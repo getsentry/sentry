@@ -239,6 +239,38 @@ def worker(ignore_unknown_queues: bool, **options: Any) -> None:
 
 @run.command()
 @click.option(
+    "--hostname",
+    "-n",
+    help=(
+        "Set custom hostname, e.g. 'w1.%h'. Expands: %h" "(hostname), %n (name) and %d, (domain)."
+    ),
+)
+@click.option(
+    "--namespace",
+    "-N",
+    help=(
+        "The task namespace, or namespaces to consume from. "
+        "Can be a comma separated list, or * "
+        "Example: -N video,image"
+    ),
+)
+@click.option("--autoreload", is_flag=True, default=False, help="Enable autoreloading.")
+@click.option("--max-tasks-per-child", default=10000)
+@log_options()
+@configuration
+def taskworker(**options: Any) -> None:
+    from sentry.taskworker.worker import Worker
+
+    with managed_bgtasks(role="taskworker"):
+        worker = Worker(
+            namespace=options.get("namespace"),
+        )
+        worker.start()
+        raise SystemExit(worker.exitcode)
+
+
+@run.command()
+@click.option(
     "--pidfile",
     help=(
         "Optional file used to store the process pid. The "
