@@ -1,4 +1,4 @@
-from datetime import datetime, timezone
+from datetime import UTC, datetime, timedelta
 from typing import TypedDict
 
 from django.db import router, transaction
@@ -20,7 +20,7 @@ class RotationScheduleLayerPutSerializer(serializers.Serializer):
     rotation_type = serializers.CharField(max_length=256, required=True)
     handoff_time = serializers.CharField(max_length=32, required=True)
     schedule_layer_restrictions = serializers.JSONField()
-    start_time = serializers.DateTimeField(required=True)
+    start_date = serializers.DateTimeField(required=True)
     user_ids = serializers.ListField(child=serializers.IntegerField(), required=False)
 
 
@@ -74,7 +74,7 @@ class RotationSchedulePutSerializer(serializers.Serializer):
                     rotation_type=layer["rotation_type"],
                     handoff_time=layer["handoff_time"],
                     schedule_layer_restrictions=layer["schedule_layer_restrictions"],
-                    start_time=layer["start_time"],
+                    start_date=layer["start_date"],
                 )
                 for j, user_id in enumerate(layer["user_ids"]):
                     orm_layer.user_orders.create(user_id=user_id, order=j)
@@ -101,8 +101,14 @@ class RotationScheduleSerializerResponse(TypedDict, total=False):
 
 @register(RotationSchedule)
 class RotationScheduleSerializer(Serializer):
-    def __init__(self, expand=None):
-        self.expand = expand or []
+    def __init__(self, start_date=None, end_date=None):
+        self.start_date = start_date
+        self.end_date = end_date
+        if start_date is None:
+            self.start_date = datetime.combine(
+                datetime.now(tz=UTC), datetime.min.time(), tzinfo=UTC
+            )
+            self.end_date = self.start_date + timedelta(days=7)
 
     def get_attrs(self, item_list, user, **kwargs):
         results = super().get_attrs(item_list, user)
@@ -115,7 +121,8 @@ class RotationScheduleSerializer(Serializer):
         ).all()
         overrides = RotationScheduleOverride.objects.filter(
             rotation_schedule__in=item_list,
-            end_time__gte=datetime.now(tz=timezone.utc),
+            start_time__lte=self.end_date,
+            end_time__gte=self.start_date,
         ).all()
         owning_user_ids = [i.user_id for i in item_list if i.user_id]
         owning_team_ids = [i.team_id for i in item_list if i.team_id]
@@ -145,7 +152,7 @@ class RotationScheduleSerializer(Serializer):
                         rotation_type=layer.rotation_type,
                         handoff_time=layer.handoff_time,
                         schedule_layer_restrictions=layer.schedule_layer_restrictions,
-                        start_time=layer.start_time,
+                        start_time=layer.start_date,
                         users=ordered_users,
                     )
                 )

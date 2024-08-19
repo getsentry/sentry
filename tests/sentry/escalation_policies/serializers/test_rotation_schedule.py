@@ -1,5 +1,4 @@
 from datetime import datetime
-from datetime import timezone as tz
 
 from sentry.api.serializers import serialize
 from sentry.escalation_policies.models.rotation_schedule import RotationSchedule
@@ -43,21 +42,21 @@ class EscalationPolicySerializerTest(TestCase):
 
         result = serialize(schedule)
 
-        assert result["id"] == str(schedule.id)
+        assert result["id"] == schedule.id
         assert result["name"] == str(schedule.name)
         assert len(result["layers"]) == 2
         assert result["team"] is None
         assert result["user"] is None
 
         assert result["layers"][0]["rotation_type"] == "weekly"
-        assert result["layers"][0]["handoff_time"] == "0 16 * * 1"
-        assert result["layers"][0]["start_time"] == datetime(2020, 1, 1).replace(tzinfo=tz.utc)
+        assert result["layers"][0]["handoff_time"] == "00:00"
+        assert result["layers"][0]["start_time"] == datetime(2024, 1, 1).date()
         assert result["layers"][0]["schedule_layer_restrictions"]["Mon"] == [["00:00", "12:00"]]
         assert result["layers"][0]["users"][0].id == userA.id
         assert result["layers"][0]["users"][1].id == userB.id
         assert result["layers"][1]["rotation_type"] == "weekly"
-        assert result["layers"][1]["handoff_time"] == "0 16 * * 1"
-        assert result["layers"][1]["start_time"] == datetime(2020, 1, 1).replace(tzinfo=tz.utc)
+        assert result["layers"][1]["handoff_time"] == "00:00"
+        assert result["layers"][1]["start_time"] == datetime(2024, 1, 1).date()
         assert result["layers"][1]["schedule_layer_restrictions"]["Mon"] == [["12:00", "24:00"]]
         assert result["layers"][1]["users"][0].id == userC.id
         assert result["layers"][1]["users"][1].id == userD.id
