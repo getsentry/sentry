@@ -2,7 +2,7 @@ import {Fragment, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 import pick from 'lodash/pick';
 
-import {Button} from 'sentry/components/button';
+import {LinkButton} from 'sentry/components/button';
 import _EventsRequest from 'sentry/components/charts/eventsRequest';
 import {getInterval} from 'sentry/components/charts/utils';
 import Truncate from 'sentry/components/truncate';
@@ -405,14 +405,14 @@ export function VitalWidget(props: PerformanceWidgetProps) {
         return (
           <Fragment>
             <div>
-              <Button
+              <LinkButton
                 onClick={handleViewAllClick}
                 to={target}
                 size="sm"
                 data-test-id="view-all-button"
               >
                 {t('View All')}
-              </Button>
+              </LinkButton>
             </div>
             {ContainerActions && <ContainerActions {...provided.widgetData.chart} />}
           </Fragment>
