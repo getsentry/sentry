@@ -63,6 +63,17 @@ export type ApiQueryKey =
       >,
     ];
 
+/**
+ * isLoading is renamed to isPending in v5, this backports the type to v4
+ *
+ * TODO: Remove this when we upgrade to react-query v5
+ *
+ * @link https://tanstack.com/query/v5/docs/framework/react/guides/migrating-to-v5
+ */
+type BackportIsPending<T> = T extends {isLoading: boolean}
+  ? T & {isPending: T['isLoading']}
+  : T;
+
 export interface UseApiQueryOptions<TApiResponse, TError = RequestError>
   extends Omit<
     UseQueryOptions<
@@ -78,6 +89,10 @@ export interface UseApiQueryOptions<TApiResponse, TError = RequestError>
     // We do not include the select option as this is difficult to make interop
     // with the way we extract data out of the ApiResult tuple
     | 'select'
+    // onSuccess and onError are gone in v5, avoid using
+    // TODO: Remove this when we upgrade to react-query v5
+    | 'onSuccess'
+    | 'onError'
   > {
   /**
    * staleTime is the amount of time (in ms) before cached data gets marked as stale.
@@ -97,7 +112,9 @@ export interface UseApiQueryOptions<TApiResponse, TError = RequestError>
   staleTime: number;
 }
 
-export type UseApiQueryResult<TData, TError> = UseQueryResult<TData, TError> & {
+export type UseApiQueryResult<TData, TError> = BackportIsPending<
+  UseQueryResult<TData, TError>
+> & {
   /**
    * Get a header value from the response
    */
@@ -125,11 +142,18 @@ export function useApiQuery<TResponseData, TError = RequestError>(
   const api = useApi({persistInFlight: PERSIST_IN_FLIGHT});
   const queryFn = fetchDataQuery(api);
 
-  const {data, ...rest} = useQuery(queryKey, queryFn, options);
+  const {data, ...rest} = useQuery({
+    queryKey,
+    queryFn,
+    ...options,
+  });
 
   const queryResult = {
     data: data?.[0],
     getResponseHeader: data?.[2]?.getResponseHeader,
+    // Backport isLoading to isPending
+    // TODO: Remove this when we upgrade to react-query v5 as it will already exist
+    isPending: rest.isLoading,
     ...rest,
   };
 
