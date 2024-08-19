@@ -1,9 +1,9 @@
 from __future__ import annotations
 
+import time
 from collections.abc import Mapping
 from typing import Any
 from uuid import uuid4
-import time
 
 from arroyo.backends.kafka import KafkaPayload, KafkaProducer
 from arroyo.types import Topic as ArroyoTopic
