@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import time
 from collections.abc import Mapping
+from datetime import timedelta
 from typing import Any
 from uuid import uuid4
 
@@ -42,11 +43,29 @@ class TaskNamespace:
 
         return self.__producer
 
-    def register(self, name: str, retry: Retry | None = None):
+    def get(self, name: str) -> Task:
+        if name not in self.__registered_tasks:
+            raise KeyError(f"No task registered with that name. Check your imports")
+        return self.__registered_tasks[name]
+
+    def register(
+        self,
+        name: str,
+        idempotent: bool | None = None,
+        deadline: timedelta | int | None = None,
+        retry: Retry | None = None,
+    ):
         """register a task, used as a decorator"""
 
         def wrapped(func):
-            task = Task(name=name, func=func, namespace=self, retry=retry)
+            task = Task(
+                name=name,
+                func=func,
+                namespace=self,
+                idempotent=idempotent,
+                deadline=deadline,
+                retry=retry,
+            )
             self.__registered_tasks[name] = task
             return task
 
@@ -73,6 +92,7 @@ class TaskNamespace:
             # TODO headers, retry_state and retries in general
             "headers": {},
             "retry_state": retry.initial_state().to_dict(),
+            "deadline": task.deadline_timestamp,
         }
         return json.dumps(task_payload)
 
@@ -84,6 +104,14 @@ class TaskRegistry:
 
     def __init__(self):
         self.__namespaces = {}
+
+    def get(self, name: str) -> TaskNamespace:
+        if name not in self.__namespaces:
+            raise KeyError(f"No task namespace with that name")
+        return self.__namespaces[name]
+
+    def get_task(self, namespace: str, task: str) -> Task:
+        return self.get(namespace).get(task)
 
     def create_namespace(self, name: str, topic: str, deadletter_topic: str, retry: Any):
         # TODO So much
