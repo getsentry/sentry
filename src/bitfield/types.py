@@ -1,4 +1,18 @@
 def cmp(a, b):
+    """Returns a comparison of two values.
+
+    This function compares two values, `a` and `b`, and returns:
+    - 1 if `a` is greater than `b`
+    - -1 if `a` is less than `b`
+    - 0 if they are equal.
+
+    Args:
+        a: The first value to compare.
+        b: The second value to compare.
+
+    Returns:
+        An integer representing the comparison result.
+    """
     return (a > b) - (a < b)
 
 
