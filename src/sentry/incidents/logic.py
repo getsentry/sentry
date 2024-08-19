@@ -1516,7 +1516,6 @@ def get_target_identifier_display_for_integration(
 
 def _get_alert_rule_trigger_action_slack_channel_id(
     name: str,
-    organization: Organization,
     integration_id: int,
     use_async_lookup: bool = True,
     integrations: Collection[Integration] | None = None,
@@ -1534,7 +1533,7 @@ def _get_alert_rule_trigger_action_slack_channel_id(
         raise InvalidTriggerActionError("Slack workspace is a required field.")
 
     try:
-        channel_data = get_channel_id(organization, integration, name, use_async_lookup)
+        channel_data = get_channel_id(integration, name, use_async_lookup)
     except DuplicateDisplayNameError as e:
         domain = integration.metadata["domain_name"]
 
