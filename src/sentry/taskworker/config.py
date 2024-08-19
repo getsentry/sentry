@@ -55,6 +55,7 @@ class TaskNamespace:
     def send_task(self, task: Task, args, kwargs) -> None:
         task_message = self._serialize_task_call(task, args, kwargs)
         # TODO this could use an RPC instead of appending to the topic directly
+        # TODO callback handling
         self.producer.produce(
             ArroyoTopic(name=self.topic),
             KafkaPayload(key=None, value=task_message.encode("utf-8"), headers=[]),
@@ -71,7 +72,7 @@ class TaskNamespace:
             "received_at": time.time(),
             # TODO headers, retry_state and retries in general
             "headers": {},
-            "retry_state": retry.initial_state(),
+            "retry_state": retry.initial_state().to_dict(),
         }
         return json.dumps(task_payload)
 
