@@ -83,6 +83,7 @@ def test_record_span_desc_url(mocked_record, default_organization):
     with Feature(
         {
             "projects:span-metrics-extraction": True,
+            "projects:record-span-descriptions": True,
         }
     ):
         project = Project(id=111, name="project", organization_id=default_organization.id)
@@ -241,9 +242,10 @@ def test_run_clusterer_task(cluster_projects_span_descs, default_organization):
         # Add a transaction to project2 so it runs again
         _record_sample(ClustererNamespace.SPANS, project2, "foo")
 
-        with mock.patch(
-            "sentry.ingest.transaction_clusterer.tasks.PROJECTS_PER_TASK", 1
-        ), freeze_time("2000-01-01 01:00:01"):
+        with (
+            mock.patch("sentry.ingest.transaction_clusterer.tasks.PROJECTS_PER_TASK", 1),
+            freeze_time("2000-01-01 01:00:01"),
+        ):
             spawn_clusterers_span_descs()
 
         # One project per batch now:
@@ -299,8 +301,9 @@ def test_get_deleted_project():
 @django_db_all
 def test_record_span_descriptions_no_databag(default_organization):
     """Verify a `None` databag doesn't break the span description clusterer."""
-    with Feature("projects:span-metrics-extraction"), override_options(
-        {"span_descs.bump-lifetime-sample-rate": 1.0}
+    with (
+        Feature("projects:span-metrics-extraction"),
+        override_options({"span_descs.bump-lifetime-sample-rate": 1.0}),
     ):
         payload = {
             "spans": [

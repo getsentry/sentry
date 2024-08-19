@@ -1,4 +1,5 @@
 """ Write transactions into redis sets """
+
 import logging
 from collections.abc import Iterator, Mapping
 from typing import Any
@@ -182,6 +183,9 @@ def record_span_descriptions(
     project: Project, event_data: Mapping[str, Any], **kwargs: Any
 ) -> None:
     if not features.has("projects:span-metrics-extraction", project):
+        return
+
+    if not features.has("projects:record-span-descriptions", project):
         return
 
     spans = event_data.get("spans", [])
