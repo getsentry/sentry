@@ -8,8 +8,8 @@ import {platformsWithNestedInstrumentationGuides} from 'sentry/data/platformCate
 import {IconOpen, IconQuestion} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {Project} from 'sentry/types';
 import type {EventTransaction} from 'sentry/types/event';
+import type {Project} from 'sentry/types/project';
 import type {UseApiQueryResult} from 'sentry/utils/queryClient';
 import type RequestError from 'sentry/utils/requestError/requestError';
 import useOrganization from 'sentry/utils/useOrganization';
