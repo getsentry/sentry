@@ -15,6 +15,7 @@ class PendingTasks(Model):
 
     class States(models.TextChoices):
         PENDING = "pending"
+        PROCESSING = "processing"
         COMPLETE = "complete"
         FAILURE = "failure"
         RETRY = "retry"

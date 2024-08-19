@@ -1,7 +1,7 @@
 from datetime import datetime
 
 from sentry.hybridcloud.rpc import RpcModel
-from sentry.taskworker.models import PendingTasks, State
+from sentry.taskworker.models import PendingTasks
 
 
 class RpcTask(RpcModel):
@@ -9,7 +9,7 @@ class RpcTask(RpcModel):
     topic: str
     partition: int
     offset: int
-    state: State
+    state: PendingTasks.States
     received_at: datetime
     added_at: datetime
     deadletter_at: datetime
