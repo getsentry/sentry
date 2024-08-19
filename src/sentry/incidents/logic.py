@@ -1486,7 +1486,7 @@ def get_target_identifier_display_for_integration(
         if target_identifier is not None:
             return target_identifier, target_value
         target_identifier = _get_alert_rule_trigger_action_slack_channel_id(
-            target_value, organization, integration_id, use_async_lookup, integrations
+            target_value, integration_id, use_async_lookup, integrations
         )
     # target_value is the MSTeams username or channel name
     elif type == AlertRuleTriggerAction.Type.MSTEAMS.value:
