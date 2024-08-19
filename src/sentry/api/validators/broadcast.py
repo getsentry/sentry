@@ -12,4 +12,4 @@ class AdminBroadcastValidator(BroadcastValidator):
     isActive = serializers.BooleanField(required=False)
     dateExpires = serializers.DateTimeField(required=False, allow_null=True)
     cta = serializers.CharField(max_length=256, required=True)
-    media_url = serializers.URLField(required=False)
+    mediaUrl = serializers.URLField(required=False)
