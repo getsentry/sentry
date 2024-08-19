@@ -231,6 +231,7 @@ export type Broadcast = {
   id: string;
   isActive: boolean;
   link: string;
+  mediaUrl: string;
   message: string;
   title: string;
 };
