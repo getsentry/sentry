@@ -1,9 +1,10 @@
 from datetime import datetime
+from typing import Any
 
 from django.db import models
 
 from sentry.backup.scopes import RelocationScope
-from sentry.db.models import Model
+from sentry.db.models import JSONField, Model
 
 
 class PendingTasks(Model):
@@ -24,15 +25,17 @@ class PendingTasks(Model):
 
     __relocation_scope__ = RelocationScope.Excluded
 
-    id = models.UUIDField()
     # Could be omitted if pending tasks are stored in redis, or kafka.
-    topic = models.CharField(blank=True, null=True)
+    topic: str = models.CharField(blank=True, null=True)
+    task_name: str = models.CharField(max_length=255, null=True)
+    parameters: models.Field[dict[str, Any] | None, dict[str, Any] | None] = JSONField(null=True)
+
     # Could be omitted if pending tasks are stored in redis, or kafka.
-    partition = models.IntegerField(default=2, blank=True, null=True)
-    offset = models.IntegerField(blank=True, null=True)
-    state = models.CharField(choices=States.choices)
-    received_at = models.DateTimeField()
-    added_at = models.DateTimeField(default=datetime.now, blank=True)
-    retry_state = models.CharField(choices=States.choices)
-    deadletter_at = models.DateTimeField()
-    processing_deadline = models.DateTimeField()
+    partition: int = models.IntegerField(default=2, blank=True, null=True)
+    offset: int = models.IntegerField(blank=True, null=True)
+    state: States = models.CharField(choices=States.choices)
+    received_at: datetime = models.DateTimeField()
+    added_at: datetime = models.DateTimeField(default=datetime.now, blank=True)
+    retry_state: States = models.CharField(choices=States.choices)
+    deadletter_at: datetime = models.DateTimeField()
+    processing_deadline: datetime = models.DateTimeField()
