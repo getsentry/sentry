@@ -9,6 +9,7 @@ from arroyo.backends.kafka import KafkaPayload, KafkaProducer
 from arroyo.types import Topic as ArroyoTopic
 
 from sentry.conf.types.kafka_definition import Topic
+from sentry.taskworker.retry import FALLBACK_RETRY, Retry
 from sentry.taskworker.task import Task
 from sentry.utils import json
 from sentry.utils.kafka_config import get_kafka_producer_cluster_options, get_topic_definition
@@ -24,7 +25,7 @@ class TaskNamespace:
     __registered_tasks: dict[str, Task]
     __producer: KafkaProducer | None = None
 
-    def __init__(self, name: str, topic: str, deadletter_topic: str, retry: Any):
+    def __init__(self, name: str, topic: str, deadletter_topic: str, retry: Retry | None):
         self.name = name
         self.topic = topic
         self.deadletter_topic = deadletter_topic
@@ -41,11 +42,11 @@ class TaskNamespace:
 
         return self.__producer
 
-    def register(self, name: str):
+    def register(self, name: str, retry: Retry | None = None):
         """register a task, used as a decorator"""
 
         def wrapped(func):
-            task = Task(name=name, func=func, namespace=self)
+            task = Task(name=name, func=func, namespace=self, retry=retry)
             self.__registered_tasks[name] = task
             return task
 
@@ -60,6 +61,8 @@ class TaskNamespace:
         )
 
     def _serialize_task_call(self, task: Task, args: list[Any], kwargs: Mapping[Any, Any]) -> str:
+        retry = task.retry or self.default_retry or FALLBACK_RETRY
+
         task_payload = {
             "id": uuid4().hex,
             "namespace": self.name,
@@ -68,7 +71,7 @@ class TaskNamespace:
             "received_at": time.time(),
             # TODO headers, retry_state and retries in general
             "headers": {},
-            "retry_state": None,
+            "retry_state": retry.initial_state(),
         }
         return json.dumps(task_payload)
 

@@ -6,6 +6,7 @@ from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
     from sentry.taskworker.config import TaskNamespace
+    from sentry.taskworker.retry import Retry
 
 
 class Task:
@@ -13,11 +14,18 @@ class Task:
     __func: Callable[..., Any]
     __namespace: TaskNamespace
 
-    def __init__(self, name: str, func: Callable[..., Any], namespace: TaskNamespace):
+    def __init__(
+        self, name: str, func: Callable[..., Any], namespace: TaskNamespace, retry: Retry | None
+    ):
         self.name = name
         self.__func = func
         self.__namespace = namespace
+        self.__retry = retry
         update_wrapper(self, func)
+
+    @property
+    def retry(self) -> Retry | None:
+        return self.__retry
 
     def __call__(self, *args, **kwargs) -> None:
         return self.__func(*args, **kwargs)
