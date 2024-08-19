@@ -8,6 +8,7 @@ import {
   IconFlag,
   IconIssues,
   IconMegaphone,
+  IconPlay,
   IconReleases,
   IconSiren,
 } from 'sentry/icons';
@@ -17,7 +18,7 @@ import useToolbarRoute from '../hooks/useToolbarRoute';
 import {navigationCss} from '../styles/navigation';
 import {resetDialogCss} from '../styles/reset';
 
-import AlertCountBadge from './alerts/alertCountBadge';
+import AlertBadge from './alerts/alertBadge';
 import IconButton from './navigation/iconButton';
 
 export default function Navigation({
@@ -54,12 +55,13 @@ export default function Navigation({
       <NavButton panelName="issues" label="Issues" icon={<IconIssues />} />
       <NavButton panelName="feedback" label="User Feedback" icon={<IconMegaphone />} />
       <NavButton panelName="alerts" label="Active Alerts" icon={<IconSiren />}>
-        <AlertCountBadge />
+        <AlertBadge />
       </NavButton>
       <NavButton panelName="featureFlags" label="Feature Flags" icon={<IconFlag />} />
       <NavButton panelName="releases" label="Releases" icon={<IconReleases />}>
         <SessionStatusBadge />
       </NavButton>
+      <NavButton panelName="replay" label="Session Replay" icon={<IconPlay />} />
     </dialog>
   );
 }

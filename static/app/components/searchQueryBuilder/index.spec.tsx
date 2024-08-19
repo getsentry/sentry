@@ -21,7 +21,7 @@ import {
 } from 'sentry/components/searchQueryBuilder/types';
 import {INTERFACE_TYPE_LOCALSTORAGE_KEY} from 'sentry/components/searchQueryBuilder/utils';
 import {InvalidReason} from 'sentry/components/searchSyntax/parser';
-import type {TagCollection} from 'sentry/types/group';
+import {SavedSearchType, type TagCollection} from 'sentry/types/group';
 import {
   FieldKey,
   FieldKind,
@@ -74,6 +74,10 @@ const FILTER_KEYS: TagCollection = {
     key: 'custom_tag_name',
     name: 'Custom_Tag_Name',
   },
+  uncategorized_tag: {
+    key: 'uncategorized_tag',
+    name: 'uncategorized_tag',
+  },
 };
 
 const FITLER_KEY_SECTIONS: FilterKeySection[] = [
@@ -110,6 +114,8 @@ describe('SearchQueryBuilder', function () {
 
     // Combobox announcements will pollute the test output if we don't clear them
     destroyAnnouncer();
+
+    MockApiClient.clearMockResponses();
   });
 
   afterEach(function () {
@@ -287,7 +293,7 @@ describe('SearchQueryBuilder', function () {
 
       const menu = screen.getByRole('listbox');
       const groups = within(menu).getAllByRole('group');
-      expect(groups).toHaveLength(2);
+      expect(groups).toHaveLength(3);
 
       // First group (Field) should have age, assigned, browser.name
       const group1 = groups[0];
@@ -301,6 +307,12 @@ describe('SearchQueryBuilder', function () {
       const group2 = groups[1];
       expect(
         within(group2).getByRole('option', {name: 'custom_tag_name'})
+      ).toBeInTheDocument();
+
+      // There should be a third group for uncategorized keys
+      const group3 = groups[2];
+      expect(
+        within(group3).getByRole('option', {name: 'uncategorized_tag'})
       ).toBeInTheDocument();
 
       // Clicking "Category 2" should filter the options to only category 2
@@ -333,6 +345,192 @@ describe('SearchQueryBuilder', function () {
         'aria-selected',
         'true'
       );
+    });
+
+    describe('recent filter keys', function () {
+      beforeEach(() => {
+        MockApiClient.addMockResponse({
+          url: '/organizations/org-slug/recent-searches/',
+          body: [
+            {query: 'assigned:me'},
+            {query: 'assigned:me browser.name:firefox'},
+            {query: 'assigned:me browser.name:firefox is:unresolved'},
+          ],
+        });
+      });
+
+      it('can select from recently-used filter keys', async function () {
+        render(
+          <SearchQueryBuilder {...defaultProps} recentSearches={SavedSearchType.ISSUE} />
+        );
+
+        await userEvent.click(getLastInput());
+
+        const recentFilterKeys = await screen.findAllByTestId('recent-filter-key');
+
+        expect(recentFilterKeys).toHaveLength(3);
+        expect(recentFilterKeys[0]).toHaveTextContent('assigned');
+        expect(recentFilterKeys[1]).toHaveTextContent('browser');
+        expect(recentFilterKeys[2]).toHaveTextContent('is');
+
+        await userEvent.click(recentFilterKeys[0]);
+
+        expect(await screen.findByRole('row', {name: 'assigned:""'})).toBeInTheDocument();
+      });
+
+      it('does not display filters present in the query', async function () {
+        render(
+          <SearchQueryBuilder
+            {...defaultProps}
+            recentSearches={SavedSearchType.ISSUE}
+            initialQuery="assigned:me"
+          />
+        );
+
+        await userEvent.click(getLastInput());
+
+        // Should not show "assigned" in the recent filter keys
+        const recentFilterKeys = await screen.findAllByTestId('recent-filter-key');
+        expect(recentFilterKeys).toHaveLength(2);
+        expect(recentFilterKeys[0]).toHaveTextContent('browser');
+        expect(recentFilterKeys[1]).toHaveTextContent('is');
+      });
+
+      it('does not display recent filters that are not valid filter keys', async function () {
+        MockApiClient.addMockResponse({
+          url: '/organizations/org-slug/recent-searches/',
+          body: [
+            // Level is not a valid filter key
+            {query: 'assigned:me level:error'},
+          ],
+        });
+
+        render(
+          <SearchQueryBuilder {...defaultProps} recentSearches={SavedSearchType.ISSUE} />
+        );
+
+        await userEvent.click(getLastInput());
+
+        // Should not show "level" in the recent filter keys
+        const recentFilterKeys = await screen.findAllByTestId('recent-filter-key');
+        expect(recentFilterKeys).toHaveLength(1);
+        expect(recentFilterKeys[0]).toHaveTextContent('assigned');
+      });
+
+      it('can navigate up/down from recent filter gutter to other search keys', async function () {
+        render(
+          <SearchQueryBuilder
+            {...defaultProps}
+            recentSearches={SavedSearchType.ISSUE}
+            initialQuery="is:unresolved"
+          />
+        );
+
+        await userEvent.click(getLastInput());
+
+        const recentFilterKeys = await screen.findAllByTestId('recent-filter-key');
+
+        // Arrow down once should focus the first recent filter key
+        await userEvent.keyboard('{ArrowDown}');
+        await waitFor(() => {
+          expect(getLastInput()).toHaveAttribute(
+            'aria-activedescendant',
+            recentFilterKeys[0].id
+          );
+        });
+
+        // Arrow right should go to the next recent filter
+        await userEvent.keyboard('{ArrowRight}');
+        await waitFor(() => {
+          expect(getLastInput()).toHaveAttribute(
+            'aria-activedescendant',
+            recentFilterKeys[1].id
+          );
+        });
+
+        // Arrow down again skip to the next non-recent filter key
+        await userEvent.keyboard('{ArrowDown}');
+        await waitFor(() => {
+          expect(getLastInput()).toHaveAttribute(
+            'aria-activedescendant',
+            screen.getByRole('option', {name: 'age'}).id
+          );
+        });
+
+        // Arrow up should go back to the first recent filter key
+        await userEvent.keyboard('{ArrowUp}');
+        await waitFor(() => {
+          expect(getLastInput()).toHaveAttribute(
+            'aria-activedescendant',
+            recentFilterKeys[0].id
+          );
+        });
+      });
+    });
+
+    describe('recent searches', function () {
+      beforeEach(() => {
+        MockApiClient.addMockResponse({
+          url: '/organizations/org-slug/recent-searches/',
+          body: [{query: 'assigned:me'}, {query: 'some recent query'}],
+        });
+      });
+
+      it('displays recent search queries when query is empty', async function () {
+        render(
+          <SearchQueryBuilder
+            {...defaultProps}
+            recentSearches={SavedSearchType.ISSUE}
+            initialQuery=""
+          />
+        );
+
+        await userEvent.click(getLastInput());
+
+        // Should have a "Recent" category
+        expect(await screen.findByRole('button', {name: 'Recent'})).toBeInTheDocument();
+        expect(screen.getByRole('option', {name: 'assigned:me'})).toBeInTheDocument();
+        expect(
+          screen.getByRole('option', {name: 'some recent query'})
+        ).toBeInTheDocument();
+      });
+
+      it('when selecting a recent search, should reset query and call onSearch', async function () {
+        const mockOnSearch = jest.fn();
+        const mockCreateRecentSearch = MockApiClient.addMockResponse({
+          url: '/organizations/org-slug/recent-searches/',
+          method: 'POST',
+        });
+
+        render(
+          <SearchQueryBuilder
+            {...defaultProps}
+            recentSearches={SavedSearchType.ISSUE}
+            initialQuery=""
+            onSearch={mockOnSearch}
+          />
+        );
+
+        await userEvent.click(getLastInput());
+
+        await userEvent.click(await screen.findByRole('option', {name: 'assigned:me'}));
+        await waitFor(() => {
+          expect(mockOnSearch).toHaveBeenCalledWith('assigned:me', expect.anything());
+        });
+
+        // Focus should be at the end of the query
+        await waitFor(() => {
+          expect(getLastInput()).toHaveFocus();
+        });
+
+        // Should call the endpoint to add this as a recent search
+        expect(mockCreateRecentSearch).toHaveBeenCalledWith(
+          expect.anything(),
+          expect.objectContaining({
+            data: {query: 'assigned:me', type: SavedSearchType.ISSUE},
+          })
+        );
+      });
     });
   });
 
@@ -2035,6 +2233,11 @@ describe('SearchQueryBuilder', function () {
           name: 'count_if',
           kind: FieldKind.FUNCTION,
         },
+        p95: {
+          key: 'p95',
+          name: 'p95',
+          kind: FieldKind.FUNCTION,
+        },
         'transaction.duration': {
           key: 'transaction.duration',
           name: 'transaction.duration',
@@ -2092,6 +2295,32 @@ describe('SearchQueryBuilder', function () {
                   dataType: FieldValueType.STRING,
                   defaultValue: '300ms',
                   required: false,
+                },
+              ],
+            };
+          case 'p95':
+            return {
+              desc: 'Returns results with the 95th percentile of the selected column.',
+              kind: FieldKind.FUNCTION,
+              defaultValue: '300ms',
+              valueType: null,
+              parameterDependentValueType: parameters => {
+                const column = parameters[0];
+                const fieldDef = column ? getFieldDefinition(column) : null;
+                return fieldDef?.valueType ?? FieldValueType.NUMBER;
+              },
+              parameters: [
+                {
+                  name: 'column',
+                  kind: 'column' as const,
+                  columnTypes: [
+                    FieldValueType.DURATION,
+                    FieldValueType.NUMBER,
+                    FieldValueType.INTEGER,
+                    FieldValueType.PERCENTAGE,
+                  ],
+                  defaultValue: 'transaction.duration',
+                  required: true,
                 },
               ],
             };
@@ -2196,6 +2425,31 @@ describe('SearchQueryBuilder', function () {
         expect(
           await screen.findByRole('row', {
             name: 'count_if(a,b,c):>100',
+          })
+        ).toBeInTheDocument();
+      });
+
+      it('automatically changes the filter value if the type changes after editing parameters', async function () {
+        render(
+          <SearchQueryBuilder
+            {...aggregateDefaultProps}
+            initialQuery="p95(transaction.duration):>10ms"
+          />
+        );
+        await userEvent.click(
+          screen.getByRole('button', {name: 'Edit parameters for filter: p95'})
+        );
+        const input = await screen.findByRole('combobox', {
+          name: 'Edit function parameters',
+        });
+
+        await userEvent.clear(input);
+        await userEvent.keyboard('timesSeen{enter}');
+
+        // After selecting timesSeen, the value should change to a number
+        expect(
+          await screen.findByRole('row', {
+            name: 'p95(timesSeen):>100',
           })
         ).toBeInTheDocument();
       });

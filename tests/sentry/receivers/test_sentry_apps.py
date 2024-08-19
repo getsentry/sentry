@@ -72,7 +72,7 @@ class TestIssueWorkflowNotifications(APITestCase):
     @with_feature("organizations:webhooks-unresolved")
     def test_notify_after_bulk_ongoing(self, delay):
         # First we need to have an ignored issue
-        self.update_issue({"status": "ignored", "substatus": "until_escalating"})
+        self.update_issue({"status": "ignored", "substatus": "archived_until_escalating"})
         bulk_transition_group_to_ongoing(
             from_status=GroupStatus.IGNORED,
             from_substatus=GroupSubStatus.UNTIL_ESCALATING,
@@ -90,7 +90,7 @@ class TestIssueWorkflowNotifications(APITestCase):
     @with_feature("organizations:webhooks-unresolved")
     def test_notify_after_escalating(self, delay):
         # First we need to have an ignored issue
-        self.update_issue({"status": "ignored", "substatus": "until_escalating"})
+        self.update_issue({"status": "ignored", "substatus": "archived_until_escalating"})
         event = self.issue.get_latest_event()
         manage_issue_states(
             group=self.issue,

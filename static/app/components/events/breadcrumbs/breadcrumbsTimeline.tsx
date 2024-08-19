@@ -1,4 +1,3 @@
-import {useRef} from 'react';
 import styled from '@emotion/styled';
 import {useVirtualizer} from '@tanstack/react-virtual';
 import moment from 'moment-timezone';
@@ -18,6 +17,22 @@ import {shouldUse24Hours} from 'sentry/utils/dates';
 interface BreadcrumbsTimelineProps {
   breadcrumbs: EnhancedCrumb[];
   /**
+   * Required reference to parent container for virtualization. It's recommended to use state instead
+   * of useRef since this component will not update when the ref changes, causing it to render empty initially.
+   * To enable virtualization, set a fixed height on the `containerElement` node.
+   *
+   * Example:
+   * ```
+   * const [container, setContainer] = useState<HTMLElement | null>(null);
+   * return (
+   *  <div ref={setContainer}>
+   *    <BreadcrumbsTimeline containerElement={container} />
+   *  </div>
+   * )
+   * ```
+   */
+  containerElement: HTMLElement | null;
+  /**
    * If true, expands the contents of the breadcrumbs' data payload
    */
   fullyExpanded?: boolean;
@@ -34,14 +49,14 @@ interface BreadcrumbsTimelineProps {
 
 export default function BreadcrumbsTimeline({
   breadcrumbs,
+  containerElement,
   startTimeString,
-  fullyExpanded = false,
+  fullyExpanded = true,
   showLastLine = false,
 }: BreadcrumbsTimelineProps) {
-  const containerRef = useRef<HTMLDivElement>(null);
   const virtualizer = useVirtualizer({
     count: breadcrumbs.length,
-    getScrollElement: () => containerRef.current,
+    getScrollElement: () => containerElement,
     estimateSize: () => 35,
     // Must match rendered item margins.
     gap: 8,
@@ -87,7 +102,7 @@ export default function BreadcrumbsTimeline({
         title={
           <Header>
             <div>
-              {title}
+              <TextBreak>{title}</TextBreak>
               {isVirtualCrumb && <Subtitle> - {t('This event')}</Subtitle>}
             </div>
             {levelComponent}
@@ -114,20 +129,34 @@ export default function BreadcrumbsTimeline({
 
   return (
     <div
-      ref={containerRef}
       style={{
         height: virtualizer.getTotalSize(),
-        contain: 'layout size',
+        position: 'relative',
       }}
     >
-      <Timeline.Container>{items}</Timeline.Container>
+      <VirtualOffset offset={virtualItems?.[0]?.start ?? 0}>
+        <Timeline.Container>{items}</Timeline.Container>
+      </VirtualOffset>
     </div>
   );
 }
 
+const VirtualOffset = styled('div')<{offset: number}>`
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  transform: translateY(${p => p.offset}px);
+`;
+
 const Header = styled('div')`
-  display: flex;
-  justify-content: space-between;
+  display: grid;
+  grid-template-columns: 1fr auto;
+`;
+
+const TextBreak = styled('span')`
+  word-wrap: break-word;
+  word-break: break-all;
 `;
 
 const Subtitle = styled('p')`
@@ -141,6 +170,8 @@ const Timestamp = styled('div')`
   margin-right: ${space(1)};
   color: ${p => p.theme.subText};
   font-size: ${p => p.theme.fontSizeSmall};
+  min-width: 50px;
+  text-align: right;
   span {
     text-decoration: underline dashed ${p => p.theme.translucentBorder};
   }

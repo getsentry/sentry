@@ -8,6 +8,7 @@ import type {
   SingleSelectProps,
 } from 'sentry/components/compactSelect';
 import {CompactSelect} from 'sentry/components/compactSelect';
+import type {SelectOptionWithKey} from 'sentry/components/compactSelect/types';
 import Truncate from 'sentry/components/truncate';
 import {defined} from 'sentry/utils';
 
@@ -82,14 +83,14 @@ function OptionSelector({
     };
   }, [multiple, selected, defaultValue, onChange, closeOnSelect]);
 
-  function isOptionDisabled(option) {
-    return (
+  function isOptionDisabled(option: SelectOptionWithKey<string>) {
+    return Boolean(
       // Option is explicitly marked as disabled
       // The user has reached the maximum number of selections (3), and the option hasn't
       // yet been selected. These options should be disabled to visually indicate that the
       // user has reached the max.
       option.disabled ||
-      (multiple && selected.length === 3 && !selected.includes(option.value))
+        (multiple && selected.length === 3 && !selected.includes(option.value))
     );
   }
 

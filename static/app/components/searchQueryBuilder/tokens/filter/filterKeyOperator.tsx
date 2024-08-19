@@ -7,10 +7,16 @@ import type {DOMAttributes, FocusableElement, Node} from '@react-types/shared';
 import {CompactSelect, type SelectOption} from 'sentry/components/compactSelect';
 import InteractionStateLayer from 'sentry/components/interactionStateLayer';
 import {useSearchQueryBuilder} from 'sentry/components/searchQueryBuilder/context';
-import {AggregateKey} from 'sentry/components/searchQueryBuilder/tokens/filter/aggregateKey';
+import {
+  AggregateKey,
+  AggregateKeyVisual,
+} from 'sentry/components/searchQueryBuilder/tokens/filter/aggregateKey';
 import {UnstyledButton} from 'sentry/components/searchQueryBuilder/tokens/filter/unstyledButton';
 import {useFilterButtonProps} from 'sentry/components/searchQueryBuilder/tokens/filter/useFilterButtonProps';
-import {getValidOpsForFilter} from 'sentry/components/searchQueryBuilder/tokens/filter/utils';
+import {
+  getValidOpsForFilter,
+  isAggregateFilterToken,
+} from 'sentry/components/searchQueryBuilder/tokens/filter/utils';
 import {
   isDateToken,
   recentSearchTypeToLabel,
@@ -99,7 +105,7 @@ function getTermOperatorFromToken(token: TokenResult<Token.FILTER>) {
   return token.operator;
 }
 
-function FilterKeyOperatorLabel({
+export function FilterKeyOperatorLabel({
   keyLabel,
   opLabel,
   includeKeyLabel,
@@ -115,7 +121,7 @@ function FilterKeyOperatorLabel({
   return (
     <KeyOpLabelWrapper>
       <span>{keyLabel}</span>
-      {opLabel ? <OpLabel>{opLabel}</OpLabel> : null}
+      {opLabel ? <OpLabel> {opLabel}</OpLabel> : null}
     </KeyOpLabelWrapper>
   );
 }
@@ -350,6 +356,23 @@ function AggregateFilterKeyOperator({
   );
 }
 
+export function FilterKeyOperatorVisual({token}: {token: TokenResult<Token.FILTER>}) {
+  if (isAggregateFilterToken(token)) {
+    const {label} = getOperatorInfo(token, false);
+
+    return (
+      <KeyOpLabelWrapper>
+        <div>
+          <AggregateKeyVisual token={token} /> {label}
+        </div>
+      </KeyOpLabelWrapper>
+    );
+  }
+
+  const {label} = getOperatorInfo(token, true);
+  return label;
+}
+
 export function FilterKeyOperator({
   token,
   state,
@@ -358,25 +381,17 @@ export function FilterKeyOperator({
   filterRef,
   gridCellProps,
 }: FilterOperatorProps) {
-  switch (token.filter) {
-    case FilterType.AGGREGATE_DATE:
-    case FilterType.AGGREGATE_DURATION:
-    case FilterType.AGGREGATE_NUMERIC:
-    case FilterType.AGGREGATE_PERCENTAGE:
-    case FilterType.AGGREGATE_RELATIVE_DATE:
-    case FilterType.AGGREGATE_SIZE:
-      return (
-        <AggregateFilterKeyOperator
-          token={token}
-          state={state}
-          item={item}
-          onOpenChange={onOpenChange}
-          filterRef={filterRef}
-          gridCellProps={gridCellProps}
-        />
-      );
-    default:
-      break;
+  if (isAggregateFilterToken(token)) {
+    return (
+      <AggregateFilterKeyOperator
+        token={token}
+        state={state}
+        item={item}
+        onOpenChange={onOpenChange}
+        filterRef={filterRef}
+        gridCellProps={gridCellProps}
+      />
+    );
   }
 
   return (

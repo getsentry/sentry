@@ -12,6 +12,9 @@ interface Props {
   onClick?: (event: MouseEvent) => void;
 }
 
+/**
+ * Inline link to orgSlug.sentry.io/{to} with built-in click analytic.
+ */
 export default function SentryAppLink({children, to}: Props) {
   const {organizationSlug, trackAnalytics} = useConfiguration();
   const {eventName, eventKey} = useContext(AnalyticsContext);

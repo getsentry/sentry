@@ -3,7 +3,7 @@ from __future__ import annotations
 import abc
 import logging
 import string
-from collections.abc import Mapping, MutableMapping, Sequence
+from collections.abc import Mapping, Sequence
 from copy import deepcopy
 from datetime import datetime, timezone
 from hashlib import md5
@@ -546,9 +546,9 @@ class BaseEvent(metaclass=abc.ABCMeta):
             str, truncatechars(template.safe_substitute(EventSubjectTemplateData(self)), 128)
         )
 
-    def as_dict(self) -> Mapping[str, Any]:
+    def as_dict(self) -> dict[str, Any]:
         """Returns the data in normalized form for external consumers."""
-        data: MutableMapping[str, Any] = {}
+        data: dict[str, Any] = {}
         data["event_id"] = self.event_id
         data["project"] = self.project_id
         data["release"] = self.release

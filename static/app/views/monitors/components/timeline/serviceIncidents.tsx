@@ -9,7 +9,7 @@ import {Hovercard} from 'sentry/components/hovercard';
 import {ServiceIncidentDetails} from 'sentry/components/serviceIncidentDetails';
 import {IconExclamation} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {StatusPageComponent, type StatuspageIncident} from 'sentry/types';
+import {StatusPageComponent, type StatuspageIncident} from 'sentry/types/system';
 import {useServiceIncidents} from 'sentry/utils/useServiceIncidents';
 
 import type {TimeWindowConfig} from './types';

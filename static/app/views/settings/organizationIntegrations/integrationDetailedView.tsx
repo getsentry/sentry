@@ -13,7 +13,8 @@ import Panel from 'sentry/components/panels/panel';
 import PanelItem from 'sentry/components/panels/panelItem';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {Integration, IntegrationProvider, ObjectStatus} from 'sentry/types';
+import type {ObjectStatus} from 'sentry/types/core';
+import type {Integration, IntegrationProvider} from 'sentry/types/integrations';
 import {getAlertText, getIntegrationStatus} from 'sentry/utils/integrationUtil';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import withOrganization from 'sentry/utils/withOrganization';
@@ -239,7 +240,6 @@ class IntegrationDetailedView extends AbstractIntegrationDetailedView<
   }
 
   renderTopButton(disabledFromFeatures: boolean, userHasAccess: boolean) {
-    const {organization} = this.props;
     const provider = this.provider;
 
     const buttonProps = {
@@ -262,7 +262,6 @@ class IntegrationDetailedView extends AbstractIntegrationDetailedView<
         }}
       >
         <StyledIntegrationButton
-          organization={organization}
           userHasAccess={userHasAccess}
           onAddIntegration={this.onInstall}
           onExternalClick={this.handleExternalInstall}

@@ -33,7 +33,7 @@ const getSdkSetupSnippet = (params: Params) => `
 import * as Sentry from "@sentry/react";
 
 Sentry.init({
-  dsn: "${params.dsn}",
+  dsn: "${params.dsn.public}",
   integrations: [${
     params.isPerformanceSelected
       ? `
@@ -61,7 +61,7 @@ ${getFeedbackConfigOptions(params.feedbackOptions)}}),`
 ],${
   params.isPerformanceSelected
     ? `
-      // Performance Monitoring
+      // Tracing
       tracesSampleRate: 1.0, //  Capture 100% of the transactions
       // Set 'tracePropagationTargets' to control for which URLs distributed tracing should be enabled
       tracePropagationTargets: ["localhost", /^https:\\/\\/yourserver\\.io\\/api/],`
@@ -187,13 +187,13 @@ const onboarding: OnboardingConfig = {
       id: 'react-router',
       name: t('React Router'),
       description: t(
-        'Configure routing, so Sentry can generate parameterized transaction names for a better overview in Performance Monitoring.'
+        'Configure routing, so Sentry can generate parameterized transaction names for a better overview on the Performance page.'
       ),
       link: 'https://docs.sentry.io/platforms/javascript/guides/react/configuration/integrations/react-router/',
     },
     {
       id: 'performance-monitoring',
-      name: t('Performance Monitoring'),
+      name: t('Tracing'),
       description: t(
         'Track down transactions to connect the dots between 10-second page loads and poor-performing API calls or slow database queries.'
       ),

@@ -12,8 +12,9 @@ from django.views.generic import View
 from email_reply_parser import EmailReplyParser
 
 from sentry import options
+from sentry.hybridcloud.models.outbox import ControlOutbox
+from sentry.hybridcloud.outbox.category import OutboxCategory, OutboxScope
 from sentry.models.organizationmapping import OrganizationMapping
-from sentry.models.outbox import ControlOutbox, OutboxCategory, OutboxScope
 from sentry.utils.email import email_to_group_id
 from sentry.web.frontend.base import control_silo_view
 

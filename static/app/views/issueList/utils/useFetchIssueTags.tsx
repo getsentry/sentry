@@ -13,12 +13,12 @@ import {
   getIssueTitleFromType,
   IssueCategory,
   IssueType,
-  type Organization,
   PriorityLevel,
   type Tag,
   type TagCollection,
-  type User,
-} from 'sentry/types';
+} from 'sentry/types/group';
+import type {Organization} from 'sentry/types/organization';
+import type {User} from 'sentry/types/user';
 import {SEMVER_TAGS} from 'sentry/utils/discover/fields';
 import {FieldKey, FieldKind, IsFieldValues, ISSUE_FIELDS} from 'sentry/utils/fields';
 import {Dataset} from 'sentry/views/alerts/rules/metric/types';
@@ -33,6 +33,9 @@ type UseFetchIssueTagsParams = {
   statsPeriod?: string | null;
   useCache?: boolean;
 };
+
+// "environment" is excluded because it should be handled by the environment page filter
+const EXCLUDED_TAGS = ['environment'];
 
 /**
  * Fetches the tags from both the Errors and IssuePlatform dataset
@@ -121,6 +124,7 @@ export const useFetchIssueTags = ({
       },
       {}
     );
+
     issuePlatformTags.forEach(tag => {
       if (allTagsCollection[tag.key]) {
         allTagsCollection[tag.key].totalValues =
@@ -129,6 +133,10 @@ export const useFetchIssueTags = ({
         allTagsCollection[tag.key] = {...tag, kind: FieldKind.TAG};
       }
     });
+
+    for (const excludedTag of EXCLUDED_TAGS) {
+      delete allTagsCollection[excludedTag];
+    }
 
     const additionalTags = builtInIssuesFields(org, allTagsCollection, assignedValues, [
       'me',
@@ -219,6 +227,7 @@ function builtInIssuesFields(
         IssueCategory.PERFORMANCE,
         IssueCategory.REPLAY,
         IssueCategory.CRON,
+        IssueCategory.UPTIME,
       ],
       predefined: true,
     },

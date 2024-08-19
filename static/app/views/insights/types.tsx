@@ -15,7 +15,7 @@ export enum ModuleName {
   RESOURCE = 'resource',
   AI = 'ai',
   MOBILE_UI = 'mobile-ui',
-  ALL = '',
+  MOBILE_SCREENS = 'mobile-screens',
   OTHER = 'other',
 }
 
@@ -56,6 +56,8 @@ export enum SpanMetricsField {
   URL_FULL = 'url.full',
   USER_AGENT_ORIGINAL = 'user_agent.original',
   CLIENT_ADDRESS = 'client.address',
+  BROWSER_NAME = 'browser.name',
+  USER_GEO_SUBREGION = 'user.geo.subregion',
 }
 
 export type SpanNumberFields =
@@ -164,6 +166,8 @@ export type SpanMetricsResponse = {
     | `${Property}(${string})`
     | `${Property}(${string},${string})`
     | `${Property}(${string},${string},${string})`]: number;
+} & {
+  [SpanMetricsField.USER_GEO_SUBREGION]: SubregionCode;
 };
 
 export type MetricsFilters = {
@@ -220,6 +224,7 @@ export enum SpanIndexedField {
   MESSAGING_MESSAGE_RECEIVE_LATENCY = 'measurements.messaging.message.receive.latency',
   MESSAGING_MESSAGE_RETRY_COUNT = 'measurements.messaging.message.retry.count',
   MESSAGING_MESSAGE_DESTINATION_NAME = 'messaging.destination.name',
+  USER_GEO_SUBREGION = 'user.geo.subregion',
 }
 
 export type SpanIndexedResponse = {
@@ -287,6 +292,7 @@ export type SpanIndexedResponse = {
   [SpanIndexedField.MESSAGING_MESSAGE_RECEIVE_LATENCY]: number;
   [SpanIndexedField.MESSAGING_MESSAGE_RETRY_COUNT]: number;
   [SpanIndexedField.MESSAGING_MESSAGE_DESTINATION_NAME]: string;
+  [SpanIndexedField.USER_GEO_SUBREGION]: string;
 };
 
 export type SpanIndexedPropery = keyof SpanIndexedResponse;
@@ -336,3 +342,32 @@ export type MetricsQueryFilters = {
 } & {
   [SpanIndexedField.PROJECT_ID]?: string;
 };
+
+// Maps the subregion code to the subregion name according to UN m49 standard
+// We also define this in relay in `country_subregion.rs`
+export const subregionCodeToName = {
+  '21': 'North America',
+  '13': 'Central America',
+  '29': 'Caribbean',
+  '5': 'South America',
+  '154': 'Northern Europe',
+  '155': 'Western Europe',
+  '39': 'Southern Europe',
+  '151': 'Eastern Europe',
+  '30': 'Eastern Asia',
+  '34': 'Southern Asia',
+  '35': 'South Eastern Asia',
+  '145': 'Western Asia',
+  '143': 'Central Asia',
+  '15': 'Northern Africa',
+  '11': 'Western Africa',
+  '17': 'Middle Africa',
+  '14': 'Eastern Africa',
+  '18': 'Southern Africa',
+  '54': 'Melanesia',
+  '57': 'Micronesia',
+  '61': 'Polynesia',
+  '53': 'Australia and New Zealand',
+};
+
+export type SubregionCode = keyof typeof subregionCodeToName;

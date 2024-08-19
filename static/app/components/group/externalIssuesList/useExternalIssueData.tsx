@@ -1,8 +1,7 @@
 import type {ExternalIssueComponent} from 'sentry/components/group/externalIssuesList/types';
+import {useExternalIssues} from 'sentry/components/group/externalIssuesList/useExternalIssues';
 import useFetchIntegrations from 'sentry/components/group/externalIssuesList/useFetchIntegrations';
-import useFetchSentryAppData from 'sentry/components/group/externalIssuesList/useFetchSentryAppData';
 import useIssueTrackingFilter from 'sentry/components/group/externalIssuesList/useIssueTrackingFilter';
-import ExternalIssueStore from 'sentry/stores/externalIssueStore';
 import SentryAppInstallationStore from 'sentry/stores/sentryAppInstallationsStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import type {Event} from 'sentry/types/event';
@@ -22,14 +21,16 @@ export default function useExternalIssueData({group, event, project}: Props) {
   const organization = useOrganization();
   const {
     data: integrations,
-    isLoading,
+    isLoading: isLoadingIntegrations,
     refetch: refetchIntegrations,
   } = useFetchIntegrations({group, organization});
-  useFetchSentryAppData({group, organization});
+  const {data: externalIssues, isLoading: isLoadingExternalIssues} = useExternalIssues({
+    group,
+    organization,
+  });
   const issueTrackingFilter = useIssueTrackingFilter();
 
   const components = useSentryAppComponentsStore({componentType: 'issue-link'});
-  const externalIssues = useLegacyStore(ExternalIssueStore);
   const sentryAppInstallations = useLegacyStore(SentryAppInstallationStore);
 
   const renderIntegrationIssues = (): ExternalIssueComponent[] => {
@@ -41,17 +42,16 @@ export default function useExternalIssueData({group, event, project}: Props) {
       integration => integration.status === 'active'
     );
 
-    const activeIntegrationsByProvider: Map<string, GroupIntegration[]> =
-      activeIntegrations.reduce((acc, curr) => {
-        const items = acc.get(curr.provider.key);
+    const activeIntegrationsByProvider = activeIntegrations.reduce((acc, curr) => {
+      const items = acc.get(curr.provider.key);
 
-        if (items) {
-          acc.set(curr.provider.key, [...items, curr]);
-        } else {
-          acc.set(curr.provider.key, [curr]);
-        }
-        return acc;
-      }, new Map());
+      if (items) {
+        acc.set(curr.provider.key, [...items, curr]);
+      } else {
+        acc.set(curr.provider.key, [curr]);
+      }
+      return acc;
+    }, new Map<string, GroupIntegration[]>());
 
     return [...activeIntegrationsByProvider.entries()].map(
       ([provider, configurations]) => ({
@@ -80,13 +80,13 @@ export default function useExternalIssueData({group, event, project}: Props) {
           return null;
         }
 
-        const issue = (externalIssues || []).find(i => i.serviceType === sentryApp.slug);
+        const externalIssue = externalIssues.find(i => i.serviceType === sentryApp.slug);
 
         return {
           type: 'sentry-app-issue',
           key: sentryApp.slug,
           disabled,
-          hasLinkedIssue: !!issue,
+          hasLinkedIssue: !!externalIssue,
           props: {
             sentryApp,
             group,
@@ -94,7 +94,7 @@ export default function useExternalIssueData({group, event, project}: Props) {
             event,
             sentryAppComponent: component,
             sentryAppInstallation: installation,
-            externalIssue: issue,
+            externalIssue,
             disabled,
           },
         };
@@ -141,7 +141,7 @@ export default function useExternalIssueData({group, event, project}: Props) {
     .sort((a, b) => Number(b.hasLinkedIssue) - Number(a.hasLinkedIssue));
 
   return {
-    isLoading,
+    isLoading: isLoadingExternalIssues || isLoadingIntegrations,
     actions,
   };
 }

@@ -2,7 +2,6 @@ import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
 
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
-import ActionButton from 'sentry/components/actions/button';
 import {Button} from 'sentry/components/button';
 import FieldGroup from 'sentry/components/forms/fieldGroup';
 import SelectField from 'sentry/components/forms/fields/selectField';
@@ -265,7 +264,7 @@ const PasswordInput = styled(Input)`
     p.theme.formPadding.md.paddingRight + CLEAR_PASSWORD_BUTTON_SIZE}px;
 `;
 
-const ClearPasswordButton = styled(ActionButton)`
+const ClearPasswordButton = styled(Button)`
   background: transparent;
   height: ${CLEAR_PASSWORD_BUTTON_SIZE}px;
   width: ${CLEAR_PASSWORD_BUTTON_SIZE}px;

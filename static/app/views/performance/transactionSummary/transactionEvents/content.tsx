@@ -11,6 +11,7 @@ import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
 import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
+import {TransactionSearchQueryBuilder} from 'sentry/components/performance/transactionSearchQueryBuilder';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
@@ -210,6 +211,8 @@ function Search(props: Props) {
     });
   };
 
+  const projectIds = useMemo(() => eventView.project?.slice(), [eventView.project]);
+
   return (
     <FilterActions>
       <Filter
@@ -221,13 +224,24 @@ function Search(props: Props) {
         <EnvironmentPageFilter />
         <DatePageFilter />
       </PageFilterBar>
-      <StyledSearchBar
-        organization={organization}
-        projectIds={eventView.project}
-        query={query}
-        fields={eventView.fields}
-        onSearch={handleSearch}
-      />
+      <StyledSearchBarWrapper>
+        {organization.features.includes('search-query-builder-performance') ? (
+          <TransactionSearchQueryBuilder
+            projects={projectIds}
+            initialQuery={query}
+            onSearch={handleSearch}
+            searchSource="transaction_events"
+          />
+        ) : (
+          <SearchBar
+            organization={organization}
+            projectIds={eventView.project}
+            query={query}
+            fields={eventView.fields}
+            onSearch={handleSearch}
+          />
+        )}
+      </StyledSearchBarWrapper>
       <CompactSelect
         triggerProps={{prefix: t('Percentile')}}
         value={eventsDisplayFilterName}
@@ -265,7 +279,7 @@ const FilterActions = styled('div')`
   }
 `;
 
-const StyledSearchBar = styled(SearchBar)`
+const StyledSearchBarWrapper = styled('div')`
   @media (min-width: ${p => p.theme.breakpoints.small}) {
     order: 1;
     grid-column: 1/6;

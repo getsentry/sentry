@@ -3,10 +3,10 @@ from __future__ import annotations
 from collections.abc import Mapping
 from typing import Any
 
-from sentry.digests import Digest
+from sentry.digests.notifications import Digest
 from sentry.digests.utils import get_groups
-from sentry.integrations.slack.message_builder import SlackBlock
 from sentry.integrations.slack.message_builder.issues import SlackIssuesMessageBuilder
+from sentry.integrations.slack.message_builder.types import SlackBlock
 from sentry.notifications.notifications.digest import DigestNotification
 from sentry.types.actor import Actor
 

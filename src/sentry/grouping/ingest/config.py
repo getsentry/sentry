@@ -21,41 +21,17 @@ Job = MutableMapping[str, Any]
 # Used to migrate projects that have no activity via getsentry scripts
 CONFIGS_TO_DEPRECATE = ("mobile:2021-02-12",)
 
-# We want to test the new optimized transition code with projects that are on
-# deprecated configs before making it the default code path.
-# Remove this once we have switched to the optimized code path.
-DO_NOT_UPGRADE_YET = ("legacy:2019-03-12", "newstyle:2019-10-29", "newstyle:2019-05-08")
+
+# Used by getsentry script. Remove it once the script has been updated to call update_grouping_config_if_needed
+def update_grouping_config_if_permitted(project: Project) -> None:
+    update_grouping_config_if_needed(project, "script")
 
 
-# Used by getsentry script. Remove it once the script has been updated to call update_grouping_config_if_permitted
-def _auto_update_grouping(project: Project) -> None:
-    update_grouping_config_if_permitted(project, "script")
-
-
-def _config_update_happened_recently(project: Project, tolerance: int) -> bool:
-    """
-    Determine whether an auto-upate happened within the last `tolerance` seconds.
-
-    We can use this test to compensate for the delay between config getting updated and Relay
-    picking up the change.
-    """
-    project_transition_expiry = project.get_option("sentry:secondary_grouping_expiry") or 0
-    last_config_update = project_transition_expiry - settings.SENTRY_GROUPING_UPDATE_MIGRATION_PHASE
-    now = int(time.time())
-    time_since_update = now - last_config_update
-
-    return time_since_update < 60
-
-
-def update_grouping_config_if_permitted(project: Project, source: str) -> None:
+def update_grouping_config_if_needed(project: Project, source: str) -> None:
     current_config = project.get_option("sentry:grouping_config")
     new_config = DEFAULT_GROUPING_CONFIG
 
     if current_config == new_config or current_config == BETA_GROUPING_CONFIG:
-        return
-
-    # Remove this code once we have transitioned to the optimized code path
-    if current_config in DO_NOT_UPGRADE_YET:
         return
 
     # Because the way the auto grouping upgrading happening is racy, we want to
@@ -114,7 +90,10 @@ def project_uses_optimized_grouping(project: Project) -> bool:
     secondary_grouping_config = project.get_option("sentry:secondary_grouping_config")
     has_mobile_config = "mobile:2021-02-12" in [primary_grouping_config, secondary_grouping_config]
 
-    return not has_mobile_config and features.has(
+    if has_mobile_config or options.get("grouping.config_transition.killswitch_enabled"):
+        return False
+
+    return features.has(
         "organizations:grouping-suppress-unnecessary-secondary-hash",
         project.organization,
-    )
+    ) or (is_in_transition(project) and project.id % 2 == 0)

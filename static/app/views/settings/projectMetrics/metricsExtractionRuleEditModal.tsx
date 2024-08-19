@@ -9,8 +9,9 @@ import {
 } from 'sentry/actionCreators/modal';
 import {t} from 'sentry/locale';
 import type {MetricsExtractionRule} from 'sentry/types/metrics';
+import type {Organization} from 'sentry/types/organization';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {useCardinalityLimitedMetricVolume} from 'sentry/utils/metrics/useCardinalityLimitedMetricVolume';
-import useOrganization from 'sentry/utils/useOrganization';
 import {
   aggregatesToGroups,
   createCondition as createExtractionCondition,
@@ -21,7 +22,18 @@ import {
 import {useUpdateMetricsExtractionRules} from 'sentry/views/settings/projectMetrics/utils/useMetricsExtractionRules';
 
 interface Props {
+  /**
+   * The extraction rule to edit
+   */
   metricExtractionRule: MetricsExtractionRule;
+  organization: Organization;
+  /**
+   * Source parameter for analytics
+   */
+  source: string;
+  /**
+   * Callback when the form is submitted successfully
+   */
   onSubmitSuccess?: (data: FormData) => void;
 }
 
@@ -31,9 +43,9 @@ export function MetricsExtractionRuleEditModal({
   closeModal,
   CloseButton,
   metricExtractionRule,
+  organization,
   onSubmitSuccess: onSubmitSuccessProp,
 }: Props & ModalRenderProps) {
-  const organization = useOrganization();
   const updateExtractionRuleMutation = useUpdateMetricsExtractionRules(
     organization.slug,
     metricExtractionRule.projectId
@@ -125,8 +137,41 @@ export const modalCss = css`
 `;
 
 export function openExtractionRuleEditModal(props: Props, options?: ModalOptions) {
-  openModal(modalProps => <MetricsExtractionRuleEditModal {...props} {...modalProps} />, {
-    modalCss,
-    ...options,
+  const {organization, metricExtractionRule, source, onSubmitSuccess} = props;
+
+  trackAnalytics('ddm.span-metric.edit.open', {
+    organization,
+    hasFilters: metricExtractionRule.conditions.some(condition => condition.value),
+    source,
   });
+
+  const handleClose: ModalOptions['onClose'] = reason => {
+    if (reason && ['close-button', 'backdrop-click', 'escape-key'].includes(reason)) {
+      trackAnalytics('ddm.span-metric.edit.cancel', {organization});
+    }
+    options?.onClose?.(reason);
+  };
+
+  const handleSubmitSuccess: Props['onSubmitSuccess'] = data => {
+    trackAnalytics('ddm.span-metric.edit.success', {
+      organization,
+      hasFilters: data.conditions.some(condition => condition.value),
+    });
+    onSubmitSuccess?.(data);
+  };
+
+  openModal(
+    modalProps => (
+      <MetricsExtractionRuleEditModal
+        {...props}
+        onSubmitSuccess={handleSubmitSuccess}
+        {...modalProps}
+      />
+    ),
+    {
+      modalCss,
+      ...options,
+      onClose: handleClose,
+    }
+  );
 }

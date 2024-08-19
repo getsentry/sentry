@@ -6,8 +6,9 @@ import type {QueryFieldValue} from 'sentry/utils/discover/fields';
 import useCustomMeasurements from 'sentry/utils/useCustomMeasurements';
 import {getDatasetConfig} from 'sentry/views/dashboards/datasetConfig/base';
 import type {DisplayType, WidgetQuery, WidgetType} from 'sentry/views/dashboards/types';
+import {hasDatasetSelector} from 'sentry/views/dashboards/utils';
 
-import {DataSet} from '../../utils';
+import {addIncompatibleFunctions, DataSet} from '../../utils';
 import {BuildStep} from '../buildStep';
 
 import {ColumnFields} from './columnFields';
@@ -38,6 +39,23 @@ export function ColumnsStep({
 }: Props) {
   const {customMeasurements} = useCustomMeasurements();
   const datasetConfig = getDatasetConfig(widgetType);
+
+  const fieldOptions = datasetConfig.getTableFieldOptions(
+    organization,
+    tags,
+    customMeasurements
+  );
+
+  // We need to persist the form values across Errors and Transactions datasets
+  // for the discover dataset split, so functions that are not compatible with
+  // errors should still appear in the field options to gracefully handle incorrect
+  // dataset splitting.
+  if (
+    hasDatasetSelector(organization) &&
+    [DataSet.ERRORS, DataSet.TRANSACTIONS].includes(dataSet)
+  ) {
+    addIncompatibleFunctions(explodedFields, fieldOptions);
+  }
 
   return (
     <BuildStep
@@ -84,11 +102,7 @@ export function ColumnsStep({
         widgetType={widgetType}
         fields={explodedFields}
         errors={queryErrors}
-        fieldOptions={datasetConfig.getTableFieldOptions(
-          organization,
-          tags,
-          customMeasurements
-        )}
+        fieldOptions={fieldOptions}
         isOnDemandWidget={isOnDemandWidget}
         filterAggregateParameters={datasetConfig.filterAggregateParams}
         filterPrimaryOptions={datasetConfig.filterTableOptions}

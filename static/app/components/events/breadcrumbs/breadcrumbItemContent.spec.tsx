@@ -17,7 +17,7 @@ describe('BreadcrumbItemContent', function () {
       message: 'my message',
       data: {a: 1, b: 2, c: 3, d: 4, e: 5, f: 6},
     };
-    render(<BreadcrumbItemContent breadcrumb={breadcrumb} />);
+    render(<BreadcrumbItemContent breadcrumb={breadcrumb} fullyExpanded={false} />);
     expect(screen.getByText(breadcrumb.message as string)).toBeInTheDocument();
     expect(screen.getByText('6 items')).toBeInTheDocument();
   });
@@ -35,7 +35,7 @@ describe('BreadcrumbItemContent', function () {
         responseSize: 15080,
       },
     };
-    render(<BreadcrumbItemContent breadcrumb={breadcrumb} />);
+    render(<BreadcrumbItemContent breadcrumb={breadcrumb} fullyExpanded={false} />);
     expect(screen.getByText(breadcrumb.message as string)).toBeInTheDocument();
     // Link is rendered in a span between method and status code
     expect(
@@ -54,7 +54,7 @@ describe('BreadcrumbItemContent', function () {
       message: "SELECT * from 'table'",
       data: {a: 1, b: 2, c: 3, d: 4, e: 5, f: 6},
     };
-    render(<BreadcrumbItemContent breadcrumb={breadcrumb} />);
+    render(<BreadcrumbItemContent breadcrumb={breadcrumb} fullyExpanded={false} />);
     // .token denotes Prism tokens for special formatting
     expect(
       screen.getByText(breadcrumb.message as string, {selector: '.token'})
@@ -78,7 +78,9 @@ describe('BreadcrumbItemContent', function () {
         f: 6,
       },
     };
-    const item = render(<BreadcrumbItemContent breadcrumb={breadcrumb} />);
+    const item = render(
+      <BreadcrumbItemContent breadcrumb={breadcrumb} fullyExpanded={false} />
+    );
     expect(screen.getByText(breadcrumb.message as string)).toBeInTheDocument();
     expect(
       screen.getByText(`${breadcrumb?.data?.type}: ${breadcrumb?.data?.value}`)
@@ -95,6 +97,7 @@ describe('BreadcrumbItemContent', function () {
             type: undefined,
           },
         }}
+        fullyExpanded={false}
       />
     );
     expect(screen.getByText(breadcrumb.message as string)).toBeInTheDocument();
@@ -111,11 +114,34 @@ describe('BreadcrumbItemContent', function () {
             value: undefined,
           },
         }}
+        fullyExpanded={false}
       />
     );
     expect(screen.getByText(breadcrumb.message as string)).toBeInTheDocument();
     expect(screen.getByText(breadcrumb?.data?.type)).toBeInTheDocument();
     expect(screen.getByText('6 items')).toBeInTheDocument();
     itemWithoutValue.unmount();
+  });
+
+  it('applies item limits with fullyExpanded', function () {
+    const longMessage = 'longMessage'.repeat(100);
+    const breadcrumb: BreadcrumbTypeDefault = {
+      type: BreadcrumbType.DEBUG,
+      level: BreadcrumbLevelType.INFO,
+      message: longMessage,
+      data: {a: 1, b: 2, c: 3, d: 4, e: 5, f: 6},
+    };
+    const compactItem = render(
+      <BreadcrumbItemContent breadcrumb={breadcrumb} fullyExpanded={false} />
+    );
+    expect(
+      screen.getByText(longMessage.substring(0, 200) + '\u2026')
+    ).toBeInTheDocument();
+    expect(screen.getByText('6 items')).toBeInTheDocument();
+    compactItem.unmount();
+
+    render(<BreadcrumbItemContent breadcrumb={breadcrumb} />);
+    expect(screen.getByText(longMessage)).toBeInTheDocument();
+    expect(screen.queryByText('6 items')).not.toBeInTheDocument();
   });
 });

@@ -19,10 +19,12 @@ import {isUrl} from 'sentry/utils/string/isUrl';
 import {usePrismTokens} from 'sentry/utils/usePrismTokens';
 
 const DEFAULT_STRUCTURED_DATA_PROPS = {
-  maxDefaultDepth: 2,
+  maxDefaultDepth: 1,
   withAnnotatedText: true,
   withOnlyFormattedText: true,
 };
+
+const MESSAGE_PREVIEW_CHAR_LIMIT = 200;
 
 interface BreadcrumbItemContentProps {
   breadcrumb: RawCrumb;
@@ -33,7 +35,7 @@ interface BreadcrumbItemContentProps {
 export default function BreadcrumbItemContent({
   breadcrumb: bc,
   meta,
-  fullyExpanded = false,
+  fullyExpanded = true,
 }: BreadcrumbItemContentProps) {
   const structuredDataProps = {
     ...DEFAULT_STRUCTURED_DATA_PROPS,
@@ -45,7 +47,24 @@ export default function BreadcrumbItemContent({
 
   const defaultMessage = defined(bc.message) ? (
     <BreadcrumbText>
-      <StructuredData value={bc.message} meta={meta?.message} {...structuredDataProps} />
+      {fullyExpanded ? (
+        <StructuredData
+          value={bc.message}
+          meta={meta?.message}
+          {...structuredDataProps}
+        />
+      ) : (
+        <StructuredData
+          value={
+            bc.message.length > MESSAGE_PREVIEW_CHAR_LIMIT
+              ? bc.message.substring(0, MESSAGE_PREVIEW_CHAR_LIMIT) + '\u2026'
+              : bc.message
+          }
+          // Note: Annotations applying to trimmed content will not be applied.
+          meta={meta?.message}
+          {...structuredDataProps}
+        />
+      )}
     </BreadcrumbText>
   ) : null;
   const defaultData = defined(bc.data) ? (
@@ -126,7 +145,7 @@ function HTTPCrumbContent({
       </BreadcrumbText>
       {Object.keys(otherData).length > 0 ? (
         <Timeline.Data>
-          <StructuredData value={otherData} meta={meta} {...structuredDataProps} />
+          <StructuredData value={otherData} meta={meta?.data} {...structuredDataProps} />
         </Timeline.Data>
       ) : null}
     </Fragment>
@@ -144,7 +163,7 @@ function SQLCrumbContent({
   return (
     <Fragment>
       <Timeline.Data>
-        <LightenTextColor className="language-sql">
+        <SQLText className="language-sql">
           {tokens.map((line, i) => (
             <div key={i}>
               {line.map((token, j) => (
@@ -154,7 +173,7 @@ function SQLCrumbContent({
               ))}
             </div>
           ))}
-        </LightenTextColor>
+        </SQLText>
       </Timeline.Data>
       {children}
     </Fragment>
@@ -182,7 +201,7 @@ function ExceptionCrumbContent({
       {children}
       {Object.keys(otherData).length > 0 ? (
         <Timeline.Data>
-          <StructuredData value={otherData} meta={meta} {...structuredDataProps} />
+          <StructuredData value={otherData} meta={meta?.data} {...structuredDataProps} />
         </Timeline.Data>
       ) : null}
     </Fragment>
@@ -196,12 +215,12 @@ const Link = styled('a')`
   word-break: break-all;
 `;
 
-const LightenTextColor = styled('pre')`
-  margin: 0;
+const SQLText = styled('pre')`
   &.language-sql {
-    color: ${p => p.theme.subText};
+    margin: 0;
     padding: ${space(0.25)} 0;
     font-size: ${p => p.theme.fontSizeSmall};
+    white-space: pre-wrap;
   }
 `;
 

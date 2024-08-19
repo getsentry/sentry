@@ -23,7 +23,7 @@ import type {
   SentryApp,
   SentryAppSchemaIssueLink,
   SentryAppWebhookRequest,
-} from 'sentry/types';
+} from 'sentry/types/integrations';
 import {shouldUse24Hours} from 'sentry/utils/dates';
 
 const ALL_EVENTS = t('All Events');

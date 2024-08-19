@@ -25,7 +25,6 @@ from sentry.models.group import GROUP_SUBSTATUS_TO_STATUS_MAP, STATUS_QUERY_CHOI
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.models.team import Team
-from sentry.models.user import User
 from sentry.search.events.constants import EQUALITY_OPERATORS, INEQUALITY_OPERATORS
 from sentry.search.events.filter import ParsedTerms, to_list
 from sentry.search.utils import (
@@ -38,6 +37,7 @@ from sentry.search.utils import (
     parse_user_value,
 )
 from sentry.types.group import SUBSTATUS_UPDATE_CHOICES, GroupSubStatus, PriorityLevel
+from sentry.users.models.user import User
 from sentry.users.services.user import RpcUser
 
 is_filter_translation = {

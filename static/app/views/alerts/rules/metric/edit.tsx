@@ -5,13 +5,11 @@ import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {Alert} from 'sentry/components/alert';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
-import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {metric} from 'sentry/utils/analytics';
 import {useApiQuery} from 'sentry/utils/queryClient';
-import routeTitleGen from 'sentry/utils/routeTitle';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import RuleForm from 'sentry/views/alerts/rules/metric/ruleForm';
@@ -86,26 +84,17 @@ export function MetricRulesEdit({
     return <LoadingError />;
   }
 
-  const title = routeTitleGen(
-    rule?.name ? t('Alert - %s', rule?.name) : '',
-    organization.slug,
-    false,
-    project?.slug
-  );
-
   return (
-    <SentryDocumentTitle title={title}>
-      <RuleForm
-        {...props}
-        params={params}
-        project={project}
-        userTeamIds={userTeamIds}
-        organization={organization}
-        ruleId={params.ruleId}
-        rule={rule}
-        onSubmitSuccess={handleSubmitSuccess}
-        disableProjectSelector
-      />
-    </SentryDocumentTitle>
+    <RuleForm
+      {...props}
+      params={params}
+      project={project}
+      userTeamIds={userTeamIds}
+      organization={organization}
+      ruleId={params.ruleId}
+      rule={rule}
+      onSubmitSuccess={handleSubmitSuccess}
+      disableProjectSelector
+    />
   );
 }

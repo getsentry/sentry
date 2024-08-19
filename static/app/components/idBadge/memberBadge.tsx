@@ -1,4 +1,5 @@
-import type {AvatarUser, Member} from 'sentry/types';
+import type {Member} from 'sentry/types/organization';
+import type {AvatarUser} from 'sentry/types/user';
 import useOrganization from 'sentry/utils/useOrganization';
 
 import UserBadge, {type UserBadgeProps} from './userBadge';

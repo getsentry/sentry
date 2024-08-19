@@ -11,15 +11,15 @@ from sentry.snuba.metrics.extraction import SearchQueryConverter, TagSpec
 # Matches the top level span attributes defined in Relay
 # https://github.com/getsentry/relay/blob/e59f21d9/relay-event-schema/src/protocol/span.rs#L119
 _TOP_LEVEL_SPAN_ATTRIBUTES = {
-    "span.exclusive_time",
-    "span.description",
-    "span.op",
-    "span.span_id",
-    "span.parent_span_id",
-    "span.trace_id",
-    "span.status",
-    "span.origin",
-    "span.duration",
+    "span.self_time": "span.exclusive_time",
+    "span.description": "span.description",
+    "span.span.op": "span.op",
+    "span.span_id": "span.span_id",
+    "span.parent_span_id": "span.parent_span_id",
+    "span.trace_id": "span.trace_id",
+    "span.status": "span.status",
+    "span.origin": "span.origin",
+    "span.duration": "span.duration",
 }
 
 # Matches the keys stored in span.sentry_tags
@@ -275,7 +275,7 @@ def _get_exists_condition(span_attribute: str) -> RuleCondition:
 
 def _map_span_attribute_name(span_attribute: str) -> str:
     if span_attribute in _TOP_LEVEL_SPAN_ATTRIBUTES:
-        return span_attribute
+        return _TOP_LEVEL_SPAN_ATTRIBUTES[span_attribute]
 
     if span_attribute in _SENTRY_TAGS:
         return f"span.sentry_tags.{span_attribute}"

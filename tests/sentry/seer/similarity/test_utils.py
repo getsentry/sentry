@@ -5,6 +5,7 @@ from uuid import uuid1
 
 from sentry.eventstore.models import Event
 from sentry.seer.similarity.utils import (
+    BASE64_ENCODED_PREFIXES,
     SEER_ELIGIBLE_PLATFORMS,
     _is_snipped_context_line,
     event_content_is_seer_eligible,
@@ -735,23 +736,15 @@ class GetStacktraceStringTest(TestCase):
         assert _is_snipped_context_line("{snip} dogs are great {snip}") is True
         assert _is_snipped_context_line("dogs are great") is False
 
-    def test_only_frame_text_base64_encoded_filename(self):
-        base64_filename = "data:text/html;base64 extra content that could be long and useless"
-        data_base64_encoded_filename = copy.deepcopy(self.BASE_APP_DATA)
-        data_base64_encoded_filename["app"]["component"]["values"][0]["values"][0]["values"][0][
-            "values"
-        ][1]["values"][0] = base64_filename
-        stacktrace_str = get_stacktrace_string(data_base64_encoded_filename)
-        assert stacktrace_str == "ZeroDivisionError: division by zero"
-
-    def test_only_frame_js_base64_encoded_filename(self):
-        base64_filename = "data:text/javascript;base64 extra content that could be long and useless"
-        data_base64_encoded_filename = copy.deepcopy(self.BASE_APP_DATA)
-        data_base64_encoded_filename["app"]["component"]["values"][0]["values"][0]["values"][0][
-            "values"
-        ][1]["values"][0] = base64_filename
-        stacktrace_str = get_stacktrace_string(data_base64_encoded_filename)
-        assert stacktrace_str == "ZeroDivisionError: division by zero"
+    def test_only_frame_base64_encoded_filename(self):
+        for base64_prefix in BASE64_ENCODED_PREFIXES:
+            base64_filename = f"{base64_prefix} extra content that could be long and useless"
+            data_base64_encoded_filename = copy.deepcopy(self.BASE_APP_DATA)
+            data_base64_encoded_filename["app"]["component"]["values"][0]["values"][0]["values"][0][
+                "values"
+            ][1]["values"][0] = base64_filename
+            stacktrace_str = get_stacktrace_string(data_base64_encoded_filename)
+            assert stacktrace_str == "ZeroDivisionError: division by zero"
 
 
 class EventContentIsSeerEligibleTest(TestCase):

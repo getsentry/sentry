@@ -4,6 +4,7 @@ import pytest
 from django.db import IntegrityError, router, transaction
 from django.db.models import QuerySet
 
+from sentry.hybridcloud.models.outbox import outbox_context
 from sentry.hybridcloud.rpc.service import RpcRemoteException
 from sentry.hybridcloud.services.control_organization_provisioning import (
     RpcOrganizationSlugReservation,
@@ -18,7 +19,6 @@ from sentry.models.organizationslugreservation import (
     OrganizationSlugReservation,
     OrganizationSlugReservationType,
 )
-from sentry.models.outbox import outbox_context
 from sentry.services.organization import (
     OrganizationOptions,
     OrganizationProvisioningOptions,

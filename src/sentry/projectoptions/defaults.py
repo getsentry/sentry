@@ -2,7 +2,7 @@ from sentry.projectoptions import register
 
 # This controls what sentry:option-epoch value is given to a project when it is created
 # The epoch of a project will determine what options are valid options for that specific project
-LATEST_EPOCH = 12
+LATEST_EPOCH = 13
 
 # grouping related configs
 #
@@ -51,7 +51,8 @@ register(key="sentry:similarity_backfill_completed", default=None)
 # is expected to be never set but the epoch defaults are used if no
 # version is set on a project's DSN.
 register(
-    key="sentry:default_loader_version", epoch_defaults={1: "4.x", 2: "5.x", 7: "6.x", 8: "7.x"}
+    key="sentry:default_loader_version",
+    epoch_defaults={1: "4.x", 2: "5.x", 7: "6.x", 8: "7.x", 13: "8.x"},
 )
 
 # Default symbol sources.  The ios source does not exist by default and
@@ -179,8 +180,7 @@ register(
 )
 
 # The available loader SDK versions
-# todo: v8 add version
 register(
     key="sentry:loader_available_sdk_versions",
-    epoch_defaults={1: ["7.x", "6.x", "5.x", "4.x"], 11: ["7.x"]},
+    epoch_defaults={1: ["8.x", "7.x", "6.x", "5.x", "4.x"], 11: ["8.x", "7.x"]},
 )

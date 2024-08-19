@@ -160,7 +160,7 @@ class AlertRuleManager(BaseManager["AlertRule"]):
     @classmethod
     def clear_alert_rule_subscription_caches(cls, instance: AlertRule, **kwargs: Any) -> None:
         subscription_ids = QuerySubscription.objects.filter(
-            snuba_query=instance.snuba_query
+            snuba_query_id=instance.snuba_query_id
         ).values_list("id", flat=True)
         if subscription_ids:
             cache.delete_many(

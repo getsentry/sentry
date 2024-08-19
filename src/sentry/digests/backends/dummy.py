@@ -3,9 +3,9 @@ from contextlib import contextmanager
 from typing import TYPE_CHECKING, Any
 
 from sentry.digests.backends.base import Backend, ScheduleEntry
+from sentry.digests.types import Record
 
 if TYPE_CHECKING:
-    from sentry.digests import Record
     from sentry.models.project import Project
 
 

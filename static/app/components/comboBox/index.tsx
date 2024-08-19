@@ -7,7 +7,7 @@ import {Item, Section} from '@react-stately/collections';
 import {type ComboBoxStateOptions, useComboBoxState} from '@react-stately/combobox';
 import omit from 'lodash/omit';
 
-import type {SelectOption} from 'sentry/components/compactSelect';
+import type {SelectKey, SelectOption} from 'sentry/components/compactSelect';
 import {ListBox} from 'sentry/components/compactSelect/listBox';
 import {
   getDisabledOptions,
@@ -42,7 +42,7 @@ interface ComboBoxProps<Value extends string>
   disabled?: boolean;
   growingInput?: boolean;
   hasSearch?: boolean;
-  hiddenOptions?: Set<string>;
+  hiddenOptions?: Set<SelectKey>;
   isLoading?: boolean;
   loadingMessage?: string;
   /**
@@ -294,7 +294,7 @@ function ControlledComboBox<Value extends string>({
   );
 
   const disabledKeys = useMemo(
-    () => [...getDisabledOptions(items), ...hiddenOptions].map(getEscapedKey),
+    () => [...getDisabledOptions(items), ...hiddenOptions],
     [hiddenOptions, items]
   );
 

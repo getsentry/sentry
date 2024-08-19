@@ -35,8 +35,9 @@ import {useDetailedProject} from 'sentry/utils/useDetailedProject';
 import {useFeedbackForm} from 'sentry/utils/useFeedbackForm';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
-import {FoldSectionKey} from 'sentry/views/issueDetails/streamline/foldSection';
+import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
 import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
+import {useHasStreamlinedUI} from 'sentry/views/issueDetails/utils';
 
 interface HighlightsDataSectionProps {
   event: Event;
@@ -224,6 +225,7 @@ export default function HighlightsDataSection({
 }: HighlightsDataSectionProps) {
   const organization = useOrganization();
   const openForm = useFeedbackForm();
+  const hasStreamlinedUI = useHasStreamlinedUI();
 
   const viewAllButton = viewAllRef ? (
     <Button
@@ -240,8 +242,8 @@ export default function HighlightsDataSection({
   return (
     <InterimSection
       key="event-highlights"
-      type={FoldSectionKey.HIGHLIGHTS}
-      title={t('Event Highlights')}
+      type={SectionKey.HIGHLIGHTS}
+      title={hasStreamlinedUI ? t('Highlights') : t('Event Highlights')}
       help={tct(
         'Promoted tags and context items saved for this project. [link:Learn more]',
         {

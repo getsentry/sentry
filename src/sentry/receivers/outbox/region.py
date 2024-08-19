@@ -15,6 +15,8 @@ from django.dispatch import receiver
 from sentry.audit_log.services.log import AuditLogEvent, UserIpEvent, log_rpc_service
 from sentry.auth.services.auth import auth_service
 from sentry.auth.services.orgauthtoken import orgauthtoken_rpc_service
+from sentry.hybridcloud.outbox.category import OutboxCategory
+from sentry.hybridcloud.outbox.signals import process_region_outbox
 from sentry.hybridcloud.services.organization_mapping import organization_mapping_service
 from sentry.hybridcloud.services.organization_mapping.model import CustomerId
 from sentry.hybridcloud.services.organization_mapping.serial import (
@@ -23,7 +25,6 @@ from sentry.hybridcloud.services.organization_mapping.serial import (
 from sentry.models.authproviderreplica import AuthProviderReplica
 from sentry.models.files.utils import get_relocation_storage
 from sentry.models.organization import Organization
-from sentry.models.outbox import OutboxCategory, process_region_outbox
 from sentry.models.project import Project
 from sentry.receivers.outbox import maybe_process_tombstone
 from sentry.relocation.services.relocation_export.service import control_relocation_export_service

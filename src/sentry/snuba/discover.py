@@ -286,6 +286,22 @@ def query(
     return result
 
 
+def _query_temp_do_not_use(
+    selected_columns: list[str],
+    query_string: str,
+    snuba_params: SnubaParams | None = None,
+    referrer: str | None = None,
+):
+    """There's a single function call in getsentry that we need to support as we remove params"""
+    return query(
+        selected_columns=selected_columns,
+        query=query_string,
+        params={},
+        snuba_params=snuba_params,
+        referrer=referrer,
+    )
+
+
 def timeseries_query(
     selected_columns: Sequence[str],
     query: str,
@@ -651,16 +667,18 @@ def get_facets(
     per_page - The number of records to fetch.
     cursor - The number of records to skip.
     """
-    sample = len(params["project_id"]) > 2
-    fetch_projects = len(params["project_id"]) > 1
 
     if len(params) == 0 and snuba_params is not None:
         params = snuba_params.filter_params
+
+    sample = len(params["project_id"]) > 2
+    fetch_projects = len(params["project_id"]) > 1
 
     with sentry_sdk.start_span(op="discover.discover", description="facets.frequent_tags"):
         key_name_builder = DiscoverQueryBuilder(
             Dataset.Discover,
             params,
+            snuba_params=snuba_params,
             query=query,
             selected_columns=["tags_key", "count()"],
             orderby=["-count()", "tags_key"],
@@ -706,6 +724,7 @@ def get_facets(
             project_value_builder = DiscoverQueryBuilder(
                 Dataset.Discover,
                 params,
+                snuba_params=snuba_params,
                 query=query,
                 selected_columns=["count()", "project_id"],
                 orderby=["-count()"],
@@ -744,6 +763,7 @@ def get_facets(
             tag_value_builder = DiscoverQueryBuilder(
                 Dataset.Discover,
                 params,
+                snuba_params=snuba_params,
                 query=query,
                 selected_columns=["count()", tag],
                 orderby=["-count()"],
@@ -765,6 +785,7 @@ def get_facets(
             aggregate_value_builder = DiscoverQueryBuilder(
                 Dataset.Discover,
                 params,
+                snuba_params=snuba_params,
                 query=(query if query is not None else "")
                 + f" tags_key:[{','.join(aggregate_tags)}]",
                 selected_columns=["count()", "tags_key", "tags_value"],
@@ -814,6 +835,7 @@ def spans_histogram_query(
     use_metrics_layer: bool = False,
     on_demand_metrics_enabled: bool = False,
     on_demand_metrics_type: MetricSpecType | None = None,
+    query_source: QuerySource | None = None,
 ) -> EventsResponse | SnubaData:
     """
     API for generating histograms for span exclusive time.
@@ -878,7 +900,7 @@ def spans_histogram_query(
             Condition(Function("has", [builder.column("spans_group"), span.group]), Op.EQ, 1),
         ]
     )
-    results = builder.run_query(referrer)
+    results = builder.run_query(referrer, query_source=query_source)
 
     if not normalize_results:
         return results
@@ -906,6 +928,7 @@ def histogram_query(
     use_metrics_layer: bool = False,
     on_demand_metrics_enabled: bool = False,
     on_demand_metrics_type: MetricSpecType | None = None,
+    query_source: QuerySource | None = None,
 ):
     """
     API for generating histograms for numeric columns.
@@ -997,7 +1020,7 @@ def histogram_query(
     )
     if extra_conditions is not None:
         builder.add_conditions(extra_conditions)
-    results = builder.process_results(builder.run_query(referrer))
+    results = builder.process_results(builder.run_query(referrer, query_source=query_source))
 
     if not normalize_results:
         return results

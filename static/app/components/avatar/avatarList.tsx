@@ -1,11 +1,14 @@
+import {forwardRef} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import TeamAvatar from 'sentry/components/avatar/teamAvatar';
 import UserAvatar from 'sentry/components/avatar/userAvatar';
 import {Tooltip} from 'sentry/components/tooltip';
+import {space} from 'sentry/styles/space';
 import type {Team} from 'sentry/types/organization';
 import type {AvatarUser} from 'sentry/types/user';
+import {useHasStreamlinedUI} from 'sentry/views/issueDetails/utils';
 
 type UserAvatarProps = React.ComponentProps<typeof UserAvatar>;
 
@@ -19,6 +22,26 @@ type Props = {
   typeAvatars?: string;
   users?: AvatarUser[];
 };
+
+const CollapsedAvatars = forwardRef(function CollapsedAvatars(
+  {size, children}: {children: React.ReactNode; size: number},
+  ref: React.ForwardedRef<HTMLDivElement>
+) {
+  const hasStreamlinedUI = useHasStreamlinedUI();
+
+  if (hasStreamlinedUI) {
+    return <CollapsedAvatarPill ref={ref}>{children}</CollapsedAvatarPill>;
+  }
+  return (
+    <CollapsedAvatarsCicle
+      ref={ref}
+      size={size}
+      data-test-id="avatarList-collapsedavatars"
+    >
+      {children}
+    </CollapsedAvatarsCicle>
+  );
+});
 
 function AvatarList({
   avatarSize = 28,
@@ -34,11 +57,21 @@ function AvatarList({
   const numVisibleTeams = maxVisibleAvatars - numTeams > 0 ? numTeams : maxVisibleAvatars;
   const maxVisibleUsers =
     maxVisibleAvatars - numVisibleTeams > 0 ? maxVisibleAvatars - numVisibleTeams : 0;
+
   // Reverse the order since css flex-reverse is used to display the avatars
   const visibleTeamAvatars = teams.slice(0, numVisibleTeams).reverse();
   const visibleUserAvatars = users.slice(0, maxVisibleUsers).reverse();
-  const numCollapsedAvatars =
+  let numCollapsedAvatars =
     users.length + teams.length - (visibleUserAvatars.length + visibleTeamAvatars.length);
+
+  if (numCollapsedAvatars === 1) {
+    if (visibleTeamAvatars.length < teams.length) {
+      visibleTeamAvatars.unshift(teams[teams.length - 1]);
+    } else if (visibleUserAvatars.length < users.length) {
+      visibleUserAvatars.unshift(users[users.length - 1]);
+    }
+    numCollapsedAvatars = 0;
+  }
 
   if (!tooltipOptions.position) {
     tooltipOptions.position = 'top';
@@ -94,6 +127,11 @@ const AvatarStyle = p => css`
   &:hover {
     z-index: 1;
   }
+
+  ${AvatarListWrapper}:hover & {
+    border-color: ${p.theme.translucentBorder};
+    cursor: pointer;
+  }
 `;
 
 const StyledUserAvatar = styled(UserAvatar)`
@@ -107,7 +145,7 @@ const StyledTeamAvatar = styled(TeamAvatar)`
   ${AvatarStyle}
 `;
 
-const CollapsedAvatars = styled('div')<{size: number}>`
+const CollapsedAvatarsCicle = styled('div')<{size: number}>`
   display: flex;
   align-items: center;
   justify-content: center;
@@ -121,6 +159,26 @@ const CollapsedAvatars = styled('div')<{size: number}>`
   height: ${p => p.size}px;
   border-radius: 50%;
   ${AvatarStyle};
+`;
+
+const CollapsedAvatarPill = styled('div')`
+  ${AvatarStyle};
+
+  display: flex;
+  align-items: center;
+  gap: ${space(0.25)};
+  font-weight: ${p => p.theme.fontWeightNormal};
+  color: ${p => p.theme.gray300};
+  height: 24px;
+  padding: 0 ${space(1)};
+  background-color: ${p => p.theme.surface400};
+  border: 1px solid ${p => p.theme.border};
+  border-radius: 24px;
+
+  ${AvatarListWrapper}:hover & {
+    background-color: ${p => p.theme.surface100};
+    cursor: pointer;
+  }
 `;
 
 const Plus = styled('span')`

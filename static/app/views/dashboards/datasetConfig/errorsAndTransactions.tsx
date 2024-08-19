@@ -7,15 +7,14 @@ import {isMultiSeriesStats} from 'sentry/components/charts/utils';
 import Link from 'sentry/components/links/link';
 import {Tooltip} from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
+import type {PageFilters, SelectValue} from 'sentry/types/core';
+import type {Series} from 'sentry/types/echarts';
+import type {TagCollection} from 'sentry/types/group';
 import type {
   EventsStats,
   MultiSeriesEventsStats,
   Organization,
-  PageFilters,
-  SelectValue,
-  TagCollection,
-} from 'sentry/types';
-import type {Series} from 'sentry/types/echarts';
+} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
 import type {CustomMeasurementCollection} from 'sentry/utils/customMeasurements/customMeasurements';
 import {getTimeStampFromTableDateField} from 'sentry/utils/dates';
@@ -62,12 +61,13 @@ import {
 } from 'sentry/views/performance/utils';
 
 import type {Widget, WidgetQuery} from '../types';
-import {DisplayType} from '../types';
+import {DisplayType, WidgetType} from '../types';
 import {
   eventViewFromWidget,
   getDashboardsMEPQueryParams,
   getNumEquations,
   getWidgetInterval,
+  hasDatasetSelector,
 } from '../utils';
 import {EventsSearchBar} from '../widgetBuilder/buildSteps/filterResultsStep/eventsSearchBar';
 import {CUSTOM_EQUATION_VALUE} from '../widgetBuilder/buildSteps/sortByStep';
@@ -632,7 +632,7 @@ function getEventsSeriesRequest(
       ...requestData.queryExtras,
       ...getQueryExtraForSplittingDiscover(widget, organization, true),
     };
-    return doOnDemandMetricsRequest(api, requestData);
+    return doOnDemandMetricsRequest(api, requestData, widget.widgetType);
   }
 
   if (organization.features.includes('performance-discover-dataset-selector')) {
@@ -647,7 +647,8 @@ function getEventsSeriesRequest(
 
 export async function doOnDemandMetricsRequest(
   api,
-  requestData
+  requestData,
+  widgetType
 ): Promise<
   [EventsStats | MultiSeriesEventsStats, string | undefined, ResponseMeta | undefined]
 > {
@@ -669,6 +670,15 @@ export async function doOnDemandMetricsRequest(
     });
 
     response[0] = {...response[0]};
+
+    if (
+      hasDatasetSelector(requestData.organization) &&
+      widgetType === WidgetType.DISCOVER
+    ) {
+      const meta = response[0].meta ?? {};
+      meta.discoverSplitDecision = 'transaction-like';
+      response[0] = {...response[0], ...{meta}};
+    }
 
     return [response[0], response[1], response[2]];
   } catch (err) {

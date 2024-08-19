@@ -19,8 +19,8 @@ from sentry.eventstore.models import Event
 from sentry.eventstore.processing import event_processing_store
 from sentry.feedback.usecases.create_feedback import FeedbackCreationSource
 from sentry.ingest.transaction_clusterer import ClustererNamespace
-from sentry.integrations.mixins.commit_context import CommitInfo, FileBlameInfo
 from sentry.integrations.models.integration import Integration
+from sentry.integrations.source_code_management.commit_context import CommitInfo, FileBlameInfo
 from sentry.issues.grouptype import (
     FeedbackGroup,
     GroupCategory,
@@ -208,7 +208,7 @@ class CorePostProcessGroupTestMixin(BasePostProgressGroupMixin):
             tags={"occurrence_type": mock.ANY},
         )
         assert "tasks.post_process.old_time_to_post_process" not in [
-            msg for (msg, _) in logger_mock.warning.call_args_list
+            args[0] for args in logger_mock.warning.call_args_list
         ]
 
 
@@ -765,7 +765,7 @@ class InboxTestMixin(BasePostProgressGroupMixin):
 
         group = new_event.group
         assert group.status == GroupStatus.UNRESOLVED
-        assert group.substatus == GroupSubStatus.ONGOING
+        assert group.substatus == GroupSubStatus.NEW
 
         self.call_post_process_group(
             is_new=True,
@@ -1106,7 +1106,7 @@ class AssignmentTestMixin(BasePostProgressGroupMixin):
             data={
                 "message": "oh no",
                 "platform": "python",
-                "stacktrace": {"frames": [{"filename": "src/app/example.py"}]},
+                "stacktrace": {"frames": [{"filename": "src/app/example.py", "in_app": True}]},
             },
             project_id=self.project.id,
         )
@@ -1114,7 +1114,7 @@ class AssignmentTestMixin(BasePostProgressGroupMixin):
             data={
                 "message": "Exception",
                 "platform": "python",
-                "stacktrace": {"frames": [{"filename": "src/app/integration.py"}]},
+                "stacktrace": {"frames": [{"filename": "src/app/integration.py", "in_app": True}]},
             },
             project_id=self.project.id,
         )
@@ -1729,7 +1729,7 @@ class SnoozeTestMixin(BasePostProgressGroupMixin):
         event = self.create_event(data={}, project_id=self.project.id)
         group = event.group
         assert group.status == GroupStatus.UNRESOLVED
-        assert group.substatus == GroupSubStatus.ONGOING
+        assert group.substatus == GroupSubStatus.NEW
         snooze = GroupSnooze.objects.create(group=group, until=timezone.now() + timedelta(hours=1))
 
         self.call_post_process_group(

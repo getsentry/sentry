@@ -1,7 +1,8 @@
 import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
-import type {Organization} from 'sentry/types';
+import type {Organization} from 'sentry/types/organization';
 import {TOP_N} from 'sentry/utils/discover/types';
+import {hasDatasetSelector} from 'sentry/views/dashboards/utils';
 
 import type {Widget} from '../types';
 import {DisplayType, WidgetType} from '../types';
@@ -25,7 +26,7 @@ export const getDefaultWidgets = (organization: Organization) => {
       queries: [
         {
           name: '',
-          conditions: 'event.type:transaction',
+          conditions: hasDatasetSelector(organization) ? '' : 'event.type:transaction',
           fields: [
             'p50(transaction.duration)',
             'p75(transaction.duration)',
@@ -53,7 +54,7 @@ export const getDefaultWidgets = (organization: Organization) => {
       queries: [
         {
           name: '',
-          conditions: 'event.type:transaction',
+          conditions: hasDatasetSelector(organization) ? '' : 'event.type:transaction',
           fields: ['transaction', 'count()'],
           aggregates: ['count()'],
           columns: ['transaction'],
@@ -152,7 +153,7 @@ export const getDefaultWidgets = (organization: Organization) => {
       queries: [
         {
           name: '',
-          conditions: 'event.type:transaction',
+          conditions: hasDatasetSelector(organization) ? '' : 'event.type:transaction',
           fields: [
             'equation|(count_if(transaction.duration,greater,300) / count()) * 100',
             'equation|(count_if(transaction.duration,lessOrEquals,300) / count()) * 100',
@@ -218,7 +219,7 @@ export const getDefaultWidgets = (organization: Organization) => {
       queries: [
         {
           name: '',
-          conditions: 'event.type:error',
+          conditions: hasDatasetSelector(organization) ? '' : 'event.type:error',
           fields: ['count_unique(user)', 'count()'],
           aggregates: ['count_unique(user)', 'count()'],
           columns: [],

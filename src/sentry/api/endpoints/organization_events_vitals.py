@@ -33,7 +33,7 @@ class OrganizationEventsVitalsEndpoint(OrganizationEventsV2EndpointBase):
 
         with sentry_sdk.start_span(op="discover.endpoint", description="parse params"):
             try:
-                params = self.get_snuba_params(request, organization)
+                snuba_params = self.get_snuba_params(request, organization)
             except NoProjects:
                 return Response([])
 
@@ -69,7 +69,8 @@ class OrganizationEventsVitalsEndpoint(OrganizationEventsV2EndpointBase):
             events_results = dataset.query(
                 selected_columns=selected_columns,
                 query=request.GET.get("query"),
-                params=params,
+                params={},
+                snuba_params=snuba_params,
                 # Results should only ever have 1 result
                 limit=1,
                 referrer="api.events.vitals",

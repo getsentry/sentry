@@ -2,13 +2,16 @@ import logging
 import operator
 from datetime import timedelta
 
+from django import forms
 from django.conf import settings
 from django.db import router, transaction
 from django.utils import timezone
 from rest_framework import serializers
 from snuba_sdk import Column, Condition, Entity, Limit, Op
+from urllib3.exceptions import MaxRetryError, TimeoutError
 
 from sentry import features
+from sentry.api.exceptions import BadRequest, RequestTimeout
 from sentry.api.fields.actor import ActorField
 from sentry.api.serializers.rest_framework.base import CamelSnakeModelSerializer
 from sentry.api.serializers.rest_framework.environment import EnvironmentField
@@ -268,7 +271,6 @@ class AlertRuleSerializer(CamelSnakeModelSerializer[AlertRule]):
         self._translate_thresholds(threshold_type, data.get("comparison_delta"), triggers, data)
 
         critical = triggers[0]
-
         self._validate_trigger_thresholds(threshold_type, critical, data.get("resolve_threshold"))
 
         if len(triggers) == 2:
@@ -413,6 +415,9 @@ class AlertRuleSerializer(CamelSnakeModelSerializer[AlertRule]):
                 )
 
     def _validate_trigger_thresholds(self, threshold_type, trigger, resolve_threshold):
+        if trigger.get("alert_threshold") is None:
+            raise serializers.ValidationError("Trigger must have an alertThreshold")
+
         if resolve_threshold is None:
             return
         is_integer = (
@@ -488,12 +493,20 @@ class AlertRuleSerializer(CamelSnakeModelSerializer[AlertRule]):
             )
         with transaction.atomic(router.db_for_write(AlertRule)):
             triggers = validated_data.pop("triggers")
-            alert_rule = create_alert_rule(
-                user=self.context.get("user", None),
-                organization=self.context["organization"],
-                ip_address=self.context.get("ip_address"),
-                **validated_data,
-            )
+            try:
+                alert_rule = create_alert_rule(
+                    user=self.context.get("user", None),
+                    organization=self.context["organization"],
+                    ip_address=self.context.get("ip_address"),
+                    **validated_data,
+                )
+            except (TimeoutError, MaxRetryError):
+                raise RequestTimeout
+            except forms.ValidationError as e:
+                # if we fail in create_metric_alert, then only one message is ever returned
+                raise serializers.ValidationError(e.error_list[0].message)
+            except Exception:
+                raise BadRequest
             self._handle_triggers(alert_rule, triggers)
             return alert_rule
 
@@ -508,12 +521,20 @@ class AlertRuleSerializer(CamelSnakeModelSerializer[AlertRule]):
             """
             validated_data.pop("monitor_type")
         with transaction.atomic(router.db_for_write(AlertRule)):
-            alert_rule = update_alert_rule(
-                instance,
-                user=self.context.get("user", None),
-                ip_address=self.context.get("ip_address"),
-                **validated_data,
-            )
+            try:
+                alert_rule = update_alert_rule(
+                    instance,
+                    user=self.context.get("user", None),
+                    ip_address=self.context.get("ip_address"),
+                    **validated_data,
+                )
+            except (TimeoutError, MaxRetryError):
+                raise RequestTimeout
+            except forms.ValidationError as e:
+                # if we fail in update_metric_alert, then only one message is ever returned
+                raise serializers.ValidationError(e.error_list[0].message)
+            except Exception:
+                raise BadRequest
             self._handle_triggers(alert_rule, triggers)
             return alert_rule
 

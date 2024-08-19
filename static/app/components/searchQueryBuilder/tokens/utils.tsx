@@ -8,7 +8,8 @@ import type {
   SelectSectionWithKey,
 } from 'sentry/components/compactSelect/types';
 import type {ParseResultToken} from 'sentry/components/searchSyntax/parser';
-import {type FieldDefinition, FieldKey, FieldValueType} from 'sentry/utils/fields';
+import {defined} from 'sentry/utils';
+import {type FieldDefinition, FieldValueType} from 'sentry/utils/fields';
 
 export function shiftFocusToChild(
   element: HTMLElement,
@@ -42,22 +43,8 @@ export function useShiftFocusToChild(
   };
 }
 
-export function getDefaultFilterValue({
-  key,
-  fieldDefinition,
-}: {
-  fieldDefinition: FieldDefinition | null;
-  key: string;
-}): string {
-  if (!fieldDefinition) {
-    return '""';
-  }
-
-  if (key === FieldKey.IS) {
-    return 'unresolved';
-  }
-
-  switch (fieldDefinition.valueType) {
+export function getDefaultValueForValueType(valueType: FieldValueType | null): string {
+  switch (valueType) {
     case FieldValueType.BOOLEAN:
       return 'true';
     case FieldValueType.INTEGER:
@@ -73,6 +60,22 @@ export function getDefaultFilterValue({
     default:
       return '""';
   }
+}
+
+export function getDefaultFilterValue({
+  fieldDefinition,
+}: {
+  fieldDefinition: FieldDefinition | null;
+}): string {
+  if (!fieldDefinition) {
+    return '""';
+  }
+
+  if (defined(fieldDefinition.defaultValue)) {
+    return fieldDefinition.defaultValue;
+  }
+
+  return getDefaultValueForValueType(fieldDefinition.valueType);
 }
 
 export function mergeSets<T>(...sets: Set<T>[]) {

@@ -1,5 +1,5 @@
+import {useExternalIssues} from 'sentry/components/group/externalIssuesList/useExternalIssues';
 import {t} from 'sentry/locale';
-import ExternalIssueStore from 'sentry/stores/externalIssueStore';
 import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
 import type {
@@ -9,6 +9,7 @@ import type {
 import type {FeedbackIssue} from 'sentry/utils/feedback/types';
 import getStacktraceBody from 'sentry/utils/getStacktraceBody';
 import {addQueryParamsToExistingUrl} from 'sentry/utils/queryString';
+import useOrganization from 'sentry/utils/useOrganization';
 import type {SchemaFormConfig} from 'sentry/views/settings/organizationIntegrations/sentryAppExternalForm';
 import SentryAppExternalForm from 'sentry/views/settings/organizationIntegrations/sentryAppExternalForm';
 
@@ -31,6 +32,8 @@ function SentryAppExternalIssueForm({
   onSubmitSuccess,
   sentryAppInstallation,
 }: Props) {
+  const organization = useOrganization();
+  const {onCreateExternalIssue} = useExternalIssues({group, organization});
   const contentArr = getStacktraceBody(event);
   const isFeedback = (group.issueCategory as string) === 'feedback';
 
@@ -46,8 +49,8 @@ function SentryAppExternalIssueForm({
       element="issue-link"
       extraFields={{groupId: group.id}}
       extraRequestBody={{projectId: group.project.id}}
-      onSubmitSuccess={issue => {
-        ExternalIssueStore.add(issue);
+      onSubmitSuccess={(issue: PlatformExternalIssue) => {
+        onCreateExternalIssue(issue);
         onSubmitSuccess(issue);
       }}
       // Needs to bind to access this.props

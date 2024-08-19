@@ -12,6 +12,7 @@ import type {FieldDefinition} from 'sentry/utils/fields';
 interface ContextData {
   disabled: boolean;
   dispatch: Dispatch<QueryBuilderActions>;
+  filterKeyMenuWidth: number;
   filterKeySections: FilterKeySection[];
   filterKeys: TagCollection;
   focusOverride: FocusOverride | null;
@@ -35,6 +36,7 @@ export const SearchQueryBuilerContext = createContext<ContextData>({
   query: '',
   focusOverride: null,
   filterKeys: {},
+  filterKeyMenuWidth: 360,
   filterKeySections: [],
   getFieldDefinition: () => null,
   getTagValues: () => Promise.resolve([]),

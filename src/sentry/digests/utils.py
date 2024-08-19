@@ -3,11 +3,12 @@ from __future__ import annotations
 from collections import Counter, defaultdict
 from collections.abc import Iterable, Mapping, Sequence
 from datetime import datetime
-from typing import Any
+from typing import TypedDict
 
 from django.db.models import Q
 
-from sentry.digests import Digest, Record
+from sentry.digests.notifications import Digest
+from sentry.digests.types import Record
 from sentry.eventstore.models import Event
 from sentry.integrations.types import ExternalProviders
 from sentry.models.group import Group
@@ -55,7 +56,15 @@ def should_get_personalized_digests(target_type: ActionTargetType, project_id: i
     )
 
 
-def get_digest_as_context(digest: Digest) -> Mapping[str, Any]:
+class _DigestContext(TypedDict):
+    counts: Counter[Group]
+    digest: Digest
+    group: Group
+    end: datetime | None
+    start: datetime | None
+
+
+def get_digest_as_context(digest: Digest) -> _DigestContext:
     start, end, counts = get_digest_metadata(digest)
     group = next(iter(counts))
 

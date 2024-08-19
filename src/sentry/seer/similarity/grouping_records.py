@@ -42,7 +42,7 @@ class BulkCreateGroupingRecordsResponse(TypedDict):
 
 
 seer_grouping_connection_pool = connection_from_url(
-    settings.SEER_GROUPING_URL,
+    settings.SEER_GROUPING_BACKFILL_URL,
     timeout=settings.SEER_GROUPING_TIMEOUT,
 )
 

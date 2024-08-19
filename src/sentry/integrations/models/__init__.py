@@ -8,11 +8,6 @@ __all__ = (
     "OrganizationIntegration",
     "ProjectIntegration",
     "RepositoryProjectPathConfig",
-    "SentryApp",
-    "SentryAppComponent",
-    "SentryAppInstallation",
-    "SentryAppInstallationForProvider",
-    "SentryAppInstallationToken",
 )
 
 # REQUIRED for migrations to run.

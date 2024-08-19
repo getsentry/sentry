@@ -167,6 +167,9 @@ def top_events_timeseries(
 
     this API should match that of sentry.snuba.discover.top_events_timeseries
     """
+
+    if len(params) == 0 and snuba_params is not None:
+        params = snuba_params.filter_params
     if top_events is None:
         with sentry_sdk.start_span(op="spans_indexed", description="top_events.fetch_events"):
             top_events = query(

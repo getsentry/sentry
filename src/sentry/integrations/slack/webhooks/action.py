@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 from collections.abc import Mapping, MutableMapping, Sequence
 from typing import Any
 
@@ -24,8 +25,8 @@ from sentry.api.helpers.group_index import update_groups
 from sentry.auth.access import from_member
 from sentry.exceptions import UnableToAcceptMemberInvitationException
 from sentry.integrations.services.integration import integration_service
-from sentry.integrations.slack.message_builder import SlackBody
 from sentry.integrations.slack.message_builder.issues import SlackIssuesMessageBuilder
+from sentry.integrations.slack.message_builder.types import SlackBody
 from sentry.integrations.slack.metrics import (
     SLACK_WEBHOOK_GROUP_ACTIONS_FAILURE_DATADOG_METRIC,
     SLACK_WEBHOOK_GROUP_ACTIONS_SUCCESS_DATADOG_METRIC,
@@ -47,7 +48,7 @@ from sentry.shared_integrations.exceptions import ApiError
 from sentry.users.services.user import RpcUser
 from sentry.utils import metrics
 
-from ..utils import logger
+_logger = logging.getLogger(__name__)
 
 UNFURL_ACTION_OPTIONS = ["link", "ignore"]
 NOTIFICATION_SETTINGS_ACTION_OPTIONS = ["all_slack"]
@@ -146,7 +147,7 @@ def get_group(slack_request: SlackActionRequest) -> Group | None:
             group = None
 
     if not group:
-        logger.info(
+        _logger.info(
             "slack.action.invalid-issue",
             extra={
                 **slack_request.logging_data,
@@ -187,7 +188,7 @@ class SlackActionEndpoint(Endpoint):
         error: ApiClient.ApiError,
         action_type: str,
     ) -> Response:
-        logger.info(
+        _logger.info(
             "slack.action.api-error",
             extra={
                 **slack_request.get_logging_data(group),
@@ -229,7 +230,7 @@ class SlackActionEndpoint(Endpoint):
         error: serializers.ValidationError,
         action_type: str,
     ) -> Response:
-        logger.info(
+        _logger.info(
             "slack.action.validation-error",
             extra={
                 **slack_request.get_logging_data(group),
@@ -321,6 +322,7 @@ class SlackActionEndpoint(Endpoint):
         initial_option_text: str,
         initial_option_value: str,
         callback_id: str,
+        metadata: str,
     ) -> View:
         formatted_options = self.build_format_options(options)
 
@@ -348,11 +350,11 @@ class SlackActionEndpoint(Endpoint):
             ],
             close={"type": "plain_text", "text": "Cancel"},
             submit={"type": "plain_text", "text": title},
-            private_metadata=callback_id,
+            private_metadata=metadata,
             callback_id=callback_id,
         )
 
-    def build_resolve_modal_payload(self, callback_id: str) -> View:
+    def build_resolve_modal_payload(self, callback_id: str, metadata: str) -> View:
         return self.build_modal_payload(
             title="Resolve",
             action_text="Resolve",
@@ -360,9 +362,10 @@ class SlackActionEndpoint(Endpoint):
             initial_option_text="Immediately",
             initial_option_value="resolved",
             callback_id=callback_id,
+            metadata=metadata,
         )
 
-    def build_archive_modal_payload(self, callback_id: str) -> View:
+    def build_archive_modal_payload(self, callback_id: str, metadata: str) -> View:
         return self.build_modal_payload(
             title="Archive",
             action_text="Archive",
@@ -370,6 +373,7 @@ class SlackActionEndpoint(Endpoint):
             initial_option_text="Until escalating",
             initial_option_value="ignored:archived_until_escalating",
             callback_id=callback_id,
+            metadata=metadata,
         )
 
     def open_resolve_dialog(self, slack_request: SlackActionRequest, group: Group) -> None:
@@ -379,18 +383,23 @@ class SlackActionEndpoint(Endpoint):
         #
         # [1]: https://stackoverflow.com/questions/46629852/update-a-bot-message-after-responding-to-a-slack-dialog#comment80795670_46629852
         org = group.project.organization
-        callback_id = {
+        callback_id_dict = {
             "issue": group.id,
             "orig_response_url": slack_request.data["response_url"],
             "is_message": _is_message(slack_request.data),
         }
         if slack_request.data.get("channel"):
-            callback_id["channel_id"] = slack_request.data["channel"]["id"]
-            callback_id["rule"] = slack_request.callback_data.get("rule")
-        callback_id = orjson.dumps(callback_id).decode()
+            callback_id_dict["channel_id"] = slack_request.data["channel"]["id"]
+            callback_id_dict["rule"] = slack_request.callback_data.get("rule")
+        callback_id = orjson.dumps(callback_id_dict).decode()
+
+        # only add tags to metadata
+        metadata_dict = callback_id_dict.copy()
+        metadata_dict["tags"] = list(slack_request.get_tags())
+        metadata = orjson.dumps(metadata_dict).decode()
 
         # XXX(CEO): the second you make a selection (without hitting Submit) it sends a slightly different request
-        modal_payload = self.build_resolve_modal_payload(callback_id)
+        modal_payload = self.build_resolve_modal_payload(callback_id, metadata=metadata)
         slack_client = SlackSdkClient(integration_id=slack_request.integration.id)
         try:
             slack_client.views_open(
@@ -408,7 +417,7 @@ class SlackActionEndpoint(Endpoint):
                 sample_rate=1.0,
                 tags={"type": "resolve_modal_open"},
             )
-            logger.exception(
+            _logger.exception(
                 "slack.action.response-error",
                 extra={
                     "organization_id": org.id,
@@ -421,7 +430,7 @@ class SlackActionEndpoint(Endpoint):
     def open_archive_dialog(self, slack_request: SlackActionRequest, group: Group) -> None:
         org = group.project.organization
 
-        callback_id = {
+        callback_id_dict = {
             "issue": group.id,
             "orig_response_url": slack_request.data["response_url"],
             "is_message": _is_message(slack_request.data),
@@ -429,10 +438,15 @@ class SlackActionEndpoint(Endpoint):
         }
 
         if slack_request.data.get("channel"):
-            callback_id["channel_id"] = slack_request.data["channel"]["id"]
-        callback_id = orjson.dumps(callback_id).decode()
+            callback_id_dict["channel_id"] = slack_request.data["channel"]["id"]
+        callback_id = orjson.dumps(callback_id_dict).decode()
 
-        modal_payload = self.build_archive_modal_payload(callback_id)
+        # only add tags to metadata
+        metadata_dict = callback_id_dict.copy()
+        metadata_dict["tags"] = list(slack_request.get_tags())
+        metadata = orjson.dumps(metadata_dict).decode()
+
+        modal_payload = self.build_archive_modal_payload(callback_id, metadata=metadata)
         slack_client = SlackSdkClient(integration_id=slack_request.integration.id)
         try:
             slack_client.views_open(
@@ -450,7 +464,7 @@ class SlackActionEndpoint(Endpoint):
                 sample_rate=1.0,
                 tags={"type": "archive_modal_open"},
             )
-            logger.exception(
+            _logger.exception(
                 "slack.action.response-error",
                 extra={
                     "organization_id": org.id,
@@ -530,6 +544,10 @@ class SlackActionEndpoint(Endpoint):
             except client.ApiError as error:
                 return self.api_error(slack_request, group, identity_user, error, "status_dialog")
 
+            view = View(**slack_request.data["view"])
+            private_metadata = orjson.loads(view.private_metadata)
+            original_tags_from_request = set(private_metadata.get("tags", {}))
+
             blocks = SlackIssuesMessageBuilder(
                 group,
                 identity=identity,
@@ -542,9 +560,7 @@ class SlackActionEndpoint(Endpoint):
 
             # use the original response_url to update the link attachment
             json_blocks = orjson.dumps(blocks.get("blocks")).decode()
-            view = View(**slack_request.data["view"])
             try:
-                private_metadata = orjson.loads(view.private_metadata)
                 webhook_client = WebhookClient(private_metadata["orig_response_url"])
                 webhook_client.send(
                     blocks=json_blocks, delete_original=False, replace_original=True
@@ -560,7 +576,7 @@ class SlackActionEndpoint(Endpoint):
                     sample_rate=1.0,
                     tags={"type": "submit_modal"},
                 )
-                logger.error(
+                _logger.exception(
                     "slack.webhook.view_submission.response-error",
                     extra={
                         "error": str(e),
@@ -636,7 +652,7 @@ class SlackActionEndpoint(Endpoint):
                 delete_original=False,
                 replace_original=True,
             )
-            logger.info(
+            _logger.info(
                 "slack.webhook.update_status.success",
                 extra={"integration_id": slack_request.integration.id, "blocks": json_blocks},
             )
@@ -645,13 +661,13 @@ class SlackActionEndpoint(Endpoint):
                 sample_rate=1.0,
                 tags={"type": "update_message"},
             )
-        except SlackApiError as e:
+        except SlackApiError:
             metrics.incr(
                 SLACK_WEBHOOK_GROUP_ACTIONS_FAILURE_DATADOG_METRIC,
                 sample_rate=1.0,
                 tags={"type": "update_message"},
             )
-            logger.error("slack.webhook.update_status.response-error", extra={"error": str(e)})
+            _logger.exception("slack.webhook.update_status.response-error")
 
         return self.respond(response)
 
@@ -668,8 +684,8 @@ class SlackActionEndpoint(Endpoint):
         payload = {"delete_original": "true"}
         try:
             requests_.post(slack_request.response_url, json=payload)
-        except ApiError as e:
-            logger.error("slack.action.response-error", extra={"error": str(e)})
+        except ApiError:
+            _logger.exception("slack.action.response-error")
             return self.respond(status=403)
 
         return self.respond()
@@ -729,12 +745,12 @@ class SlackActionEndpoint(Endpoint):
             slack_request = self.slack_request_class(request)
             slack_request.validate()
         except SlackRequestError as e:
-            logger.info(
+            _logger.info(
                 "slack.action.request-error", extra={"error": str(e), "status_code": e.status}
             )
             return self.respond(status=e.status)
 
-        logger.info(
+        _logger.info(
             "slack.action.request",
             extra={
                 "trigger_id": slack_request.data.get("trigger_id"),
@@ -827,10 +843,9 @@ class SlackActionEndpoint(Endpoint):
                 member.approve_member_invitation(identity_user, referrer="slack")
             else:
                 member.reject_member_invitation(identity_user)
-        except Exception as err:
+        except Exception:
             # shouldn't error but if it does, respond to the user
-            logger.error(
-                err,
+            _logger.exception(
                 extra={
                     "organization_id": organization.id,
                     "member_id": member.id,

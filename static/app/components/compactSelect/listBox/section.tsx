@@ -26,6 +26,7 @@ interface ListBoxSectionProps extends AriaListBoxSectionProps {
   showSectionHeaders: boolean;
   size: FormSize;
   onToggle?: (section: SelectSection<SelectKey>, type: 'select' | 'unselect') => void;
+  showDetails?: boolean;
 }
 
 /**
@@ -39,6 +40,7 @@ export function ListBoxSection({
   size,
   hiddenOptions,
   showSectionHeaders,
+  showDetails = true,
 }: ListBoxSectionProps) {
   const {itemProps, headingProps, groupProps} = useListBoxSection({
     heading: item.rendered,
@@ -52,7 +54,7 @@ export function ListBoxSection({
     item.value.showToggleAllButton;
 
   const childItems = useMemo(
-    () => [...item.childNodes].filter(child => !hiddenOptions.has(child.props.value)),
+    () => [...item.childNodes].filter(child => !hiddenOptions.has(child.key)),
     [item.childNodes, hiddenOptions]
   );
 
@@ -77,6 +79,7 @@ export function ListBoxSection({
               item={child}
               listState={listState}
               size={size}
+              showDetails={showDetails}
             />
           ))}
         </SectionGroup>

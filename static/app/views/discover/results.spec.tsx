@@ -8,11 +8,12 @@ import selectEvent from 'sentry-test/selectEvent';
 
 import * as PageFilterPersistence from 'sentry/components/organizations/pageFilters/persistence';
 import ProjectsStore from 'sentry/stores/projectsStore';
+import {SavedSearchType} from 'sentry/types/group';
 import {browserHistory} from 'sentry/utils/browserHistory';
 import EventView from 'sentry/utils/discover/eventView';
 import Results from 'sentry/views/discover/results';
 
-import {DEFAULT_EVENT_VIEW, TRANSACTION_VIEWS} from './data';
+import {DEFAULT_EVENT_VIEW, getTransactionViews} from './data';
 
 const FIELDS = [
   {
@@ -1291,16 +1292,15 @@ describe('Results', function () {
     });
 
     it('Changes the Use as Discover button to a reset button for prebuilt query', async () => {
+      const organization = OrganizationFixture({
+        features: ['discover-basic', 'discover-query'],
+      });
       MockApiClient.addMockResponse({
         url: '/organizations/org-slug/discover/homepage/',
         method: 'PUT',
         statusCode: 200,
-        body: {...TRANSACTION_VIEWS[0], name: ''},
+        body: {...getTransactionViews(organization)[0], name: ''},
       });
-      const organization = OrganizationFixture({
-        features: ['discover-basic', 'discover-query'],
-      });
-
       const {router} = initializeOrg({
         organization,
         router: {
@@ -1308,7 +1308,7 @@ describe('Results', function () {
             ...LocationFixture(),
             query: {
               ...EventView.fromNewQueryWithLocation(
-                TRANSACTION_VIEWS[0],
+                getTransactionViews(organization)[0],
                 LocationFixture()
               ).generateQueryStringObject(),
             },
@@ -1330,7 +1330,7 @@ describe('Results', function () {
         {router: router, organization}
       );
 
-      await screen.findAllByText(TRANSACTION_VIEWS[0].name);
+      await screen.findAllByText(getTransactionViews(organization)[0].name);
       await userEvent.click(screen.getByText('Set as Default'));
       expect(await screen.findByText('Remove Default')).toBeInTheDocument();
 
@@ -1739,6 +1739,218 @@ describe('Results', function () {
             dataset: 'errors',
           }),
         })
+      );
+    });
+
+    it('shows the search history for the error dataset', async function () {
+      const organization = OrganizationFixture({
+        features: [
+          'discover-basic',
+          'discover-query',
+          'performance-discover-dataset-selector',
+        ],
+      });
+
+      const {router} = initializeOrg({
+        organization,
+        router: {
+          location: {query: {id: '1'}},
+        },
+      });
+
+      ProjectsStore.loadInitialData([ProjectFixture()]);
+
+      renderMockRequests();
+
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/recent-searches/',
+        body: [
+          {
+            query: 'event.type:error',
+          },
+        ],
+        match: [
+          (_url, options) => {
+            return options.query?.type === SavedSearchType.ERROR;
+          },
+        ],
+      });
+
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/recent-searches/',
+        body: [
+          {
+            query: 'transaction.status:ok',
+          },
+        ],
+        match: [
+          (_url, options) => {
+            return options.query?.type === SavedSearchType.TRANSACTION;
+          },
+        ],
+      });
+
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/discover/saved/1/',
+        method: 'GET',
+        statusCode: 200,
+        body: {
+          id: '1',
+          name: 'new',
+          projects: [],
+          version: 2,
+          expired: false,
+          dateCreated: '2021-04-08T17:53:25.195782Z',
+          dateUpdated: '2021-04-09T12:13:18.567264Z',
+          createdBy: {
+            id: '2',
+          },
+          environment: [],
+          fields: ['title', 'event.type', 'project', 'user.display', 'timestamp'],
+          widths: ['-1', '-1', '-1', '-1', '-1'],
+          range: '24h',
+          orderby: '-user.display',
+          queryDataset: 'error-events',
+        },
+      });
+
+      render(
+        <Results
+          organization={organization}
+          location={router.location}
+          router={router}
+          loading={false}
+          setSavedQuery={jest.fn()}
+        />,
+        {
+          router: router,
+          organization,
+        }
+      );
+
+      await userEvent.click(
+        screen.getByPlaceholderText('Search for events, users, tags, and more')
+      );
+      expect(screen.getByTestId('filter-token')).toHaveTextContent('event.type:error');
+    });
+
+    it('shows the search history for the transaction dataset', async function () {
+      const organization = OrganizationFixture({
+        features: [
+          'discover-basic',
+          'discover-query',
+          'performance-discover-dataset-selector',
+        ],
+      });
+
+      const {router} = initializeOrg({
+        organization,
+        router: {
+          location: {query: {id: '1'}},
+        },
+      });
+
+      ProjectsStore.loadInitialData([ProjectFixture()]);
+
+      renderMockRequests();
+
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/recent-searches/',
+        body: [
+          {
+            query: 'event.type:error',
+          },
+        ],
+        match: [
+          (_url, options) => {
+            return options.query?.type === SavedSearchType.ERROR;
+          },
+        ],
+      });
+
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/recent-searches/',
+        body: [
+          {
+            query: 'transaction.status:ok',
+          },
+        ],
+        match: [
+          (_url, options) => {
+            return options.query?.type === SavedSearchType.TRANSACTION;
+          },
+        ],
+      });
+
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/events/',
+        body: {
+          meta: {
+            fields: {
+              id: 'string',
+              title: 'string',
+              'project.name': 'string',
+              timestamp: 'date',
+              'user.id': 'string',
+            },
+            discoverSplitDecision: 'transaction-like',
+          },
+          data: [
+            {
+              trace: 'test',
+              id: 'deadbeef',
+              'user.id': 'alberto leal',
+              title: eventTitle,
+              'project.name': 'project-slug',
+              timestamp: '2019-05-23T22:12:48+00:00',
+            },
+          ],
+        },
+      });
+
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/discover/saved/1/',
+        method: 'GET',
+        statusCode: 200,
+        body: {
+          id: '1',
+          name: 'new',
+          projects: [],
+          version: 2,
+          expired: false,
+          dateCreated: '2021-04-08T17:53:25.195782Z',
+          dateUpdated: '2021-04-09T12:13:18.567264Z',
+          createdBy: {
+            id: '2',
+          },
+          environment: [],
+          fields: ['title', 'event.type', 'project', 'user.display', 'timestamp'],
+          widths: ['-1', '-1', '-1', '-1', '-1'],
+          range: '24h',
+          orderby: '-user.display',
+          queryDataset: 'transaction-like',
+        },
+      });
+
+      render(
+        <Results
+          organization={organization}
+          location={router.location}
+          router={router}
+          loading={false}
+          setSavedQuery={jest.fn()}
+        />,
+        {
+          router: router,
+          organization,
+        }
+      );
+
+      await userEvent.click(
+        screen.getByPlaceholderText('Search for events, users, tags, and more')
+      );
+      expect(screen.getByTestId('filter-token')).toHaveTextContent(
+        'transaction.status:ok'
       );
     });
   });

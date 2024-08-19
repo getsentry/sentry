@@ -1,6 +1,8 @@
 import {useEffect, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 
+import {GrowingInput} from 'sentry/components/growingInput';
+
 function EditableTabTitle({
   label,
   onChange,
@@ -15,21 +17,22 @@ function EditableTabTitle({
   const [inputValue, setInputValue] = useState(label);
 
   const inputRef = useRef<HTMLInputElement>(null);
-
   const isEmpty = !inputValue.trim();
 
   const handleOnBlur = () => {
+    const trimmedInputValue = inputValue.trim();
     if (!isEditing) {
       return;
     }
     if (isEmpty) {
       setInputValue(label);
+      setIsEditing(false);
       return;
     }
-    if (inputValue !== label) {
-      onChange(inputValue);
+    if (trimmedInputValue !== label) {
+      onChange(trimmedInputValue);
+      setInputValue(trimmedInputValue);
     }
-
     setIsEditing(false);
   };
 
@@ -38,15 +41,20 @@ function EditableTabTitle({
       handleOnBlur();
     }
     if (e.key === 'Escape') {
-      setInputValue(label);
+      setInputValue(label.trim());
       setIsEditing(false);
+    }
+    if (e.key === 'ArrowLeft' || e.key === 'ArrowRight' || e.key === ' ') {
+      e.stopPropagation();
     }
   };
 
   useEffect(() => {
-    setTimeout(() => {
-      inputRef?.current?.focus();
-    }, 0);
+    if (isEditing) {
+      setTimeout(() => {
+        inputRef?.current?.focus();
+      }, 0);
+    }
   }, [isEditing, inputRef]);
 
   const handleOnChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -54,30 +62,29 @@ function EditableTabTitle({
   };
 
   return isEditing ? (
-    <StyledInput
-      type="text"
+    <StyledGrowingInput
       value={inputValue}
       onChange={handleOnChange}
       onKeyDown={handleOnKeyDown}
       onBlur={handleOnBlur}
       ref={inputRef}
-      size={inputValue.length > 1 ? inputValue.length - 1 : 1}
     />
   ) : (
-    label
+    <div style={{height: '20px'}}> {label}</div>
   );
 }
 
 export default EditableTabTitle;
 
-const StyledInput = styled('input')`
-  border: none !important;
-  width: fit-content;
-  background: transparent;
-  outline: none;
-  height: auto;
+const StyledGrowingInput = styled(GrowingInput)`
+  border: none;
   padding: 0;
-  font-size: inherit;
+  background: transparent;
+  min-height: 0px;
+  height: 20px;
+  cursor: pointer;
+  border-radius: 0px;
+
   &,
   &:focus,
   &:active,

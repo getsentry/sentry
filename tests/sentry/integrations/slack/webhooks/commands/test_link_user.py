@@ -1,13 +1,13 @@
+from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.integrations.slack.views.link_identity import SUCCESS_LINKED_MESSAGE, build_linking_url
 from sentry.integrations.slack.views.unlink_identity import (
     SUCCESS_UNLINKED_MESSAGE,
     build_unlinking_url,
 )
 from sentry.integrations.slack.webhooks.base import NOT_LINKED_MESSAGE
-from sentry.models.identity import Identity
-from sentry.models.integrations import OrganizationIntegration
 from sentry.testutils.helpers import get_response_text
 from sentry.testutils.silo import control_silo_test
+from sentry.users.models.identity import Identity
 from tests.sentry.integrations.slack.webhooks.commands import SlackCommandsTest
 
 

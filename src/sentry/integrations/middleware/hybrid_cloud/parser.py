@@ -14,12 +14,12 @@ from rest_framework import status
 
 from sentry.api.base import ONE_DAY
 from sentry.hybridcloud.models.webhookpayload import WebhookPayload
+from sentry.hybridcloud.outbox.category import WebhookProviderIdentifier
 from sentry.hybridcloud.services.organization_mapping import organization_mapping_service
 from sentry.integrations.errors import IntegrationMiddlewareException
+from sentry.integrations.models.integration import Integration
 from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.integrations.services.integration.model import RpcIntegration
-from sentry.models.integrations import Integration
-from sentry.models.outbox import WebhookProviderIdentifier
 from sentry.organizations.services.organization import RpcOrganizationSummary
 from sentry.ratelimits import backend as ratelimiter
 from sentry.shared_integrations.exceptions import ApiError

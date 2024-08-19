@@ -63,7 +63,7 @@ const Row = styled('div')<{showLastLine?: boolean}>`
   position: relative;
   color: ${p => p.theme.subText};
   display: grid;
-  align-items: center;
+  align-items: start;
   grid-template: auto auto / 22px 1fr auto;
   grid-column-gap: ${space(1)};
   margin: ${space(1)} 0;

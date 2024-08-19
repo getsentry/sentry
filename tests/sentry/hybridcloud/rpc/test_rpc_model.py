@@ -1,9 +1,9 @@
 from collections import deque
 
 from sentry.hybridcloud.rpc import RpcModel
-from sentry.models.authenticator import Authenticator
 from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import control_silo_test
+from sentry.users.models.authenticator import Authenticator
 from sentry.users.services.user.service import user_service
 
 

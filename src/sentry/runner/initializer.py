@@ -704,7 +704,7 @@ See: https://github.com/getsentry/snuba#sentry--snuba"""
 
 
 def validate_outbox_config() -> None:
-    from sentry.models.outbox import ControlOutboxBase, RegionOutboxBase
+    from sentry.hybridcloud.models.outbox import ControlOutboxBase, RegionOutboxBase
 
     for outbox_name in settings.SENTRY_OUTBOX_MODELS["CONTROL"]:
         ControlOutboxBase.from_outbox_name(outbox_name)

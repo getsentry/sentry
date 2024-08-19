@@ -11,8 +11,8 @@ from sentry.api.endpoints.organization_member.index import OrganizationMemberReq
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.organization_member import OrganizationMemberWithTeamsSerializer
+from sentry.hybridcloud.models.outbox import outbox_context
 from sentry.models.organizationmember import InviteStatus, OrganizationMember
-from sentry.models.outbox import outbox_context
 from sentry.notifications.notifications.organization_request import InviteRequestNotification
 from sentry.notifications.utils.tasks import async_send_notification
 

@@ -14,6 +14,7 @@ import {MetricVisualization} from 'sentry/components/modals/metricWidgetViewerMo
 import type {WidgetViewerModalOptions} from 'sentry/components/modals/widgetViewerModal';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
+import {defined} from 'sentry/utils';
 import {getMetricsUrl} from 'sentry/utils/metrics';
 import {toDisplayType} from 'sentry/utils/metrics/dashboard';
 import {hasCustomMetricsExtractionRules} from 'sentry/utils/metrics/features';
@@ -36,6 +37,7 @@ import {
   getMetricQueries,
   getMetricWidgetTitle,
   getVirtualAlias,
+  isVirtualAlias,
   useGenerateExpressionId,
 } from 'sentry/views/dashboards/metrics/utils';
 import {DisplayType} from 'sentry/views/dashboards/types';
@@ -110,22 +112,18 @@ function MetricWidgetViewerModal({
         const updated = [...curr];
         const currentQuery = updated[index];
         const updatedQuery = {...updated[index], ...data} as DashboardMetricsQuery;
-        const currentSpanAttribute = getExtractionRule(currentQuery.mri)?.spanAttribute;
-        const spanAttribute = getExtractionRule(updatedQuery.mri)?.spanAttribute;
+
+        const spanAttribute =
+          defined(updatedQuery.condition) &&
+          getExtractionRule(updatedQuery.mri, updatedQuery.condition)?.spanAttribute;
 
         if (spanAttribute) {
+          const updatedAlias = getVirtualAlias(updatedQuery.aggregation, spanAttribute);
           if (!updatedQuery.alias) {
-            updatedQuery.alias = getVirtualAlias(updatedQuery.aggregation, spanAttribute);
-          } else if (currentQuery.alias && currentSpanAttribute !== spanAttribute) {
-            if (
-              currentQuery.alias.trim() ===
-              getVirtualAlias(currentQuery.aggregation, currentSpanAttribute)
-            ) {
-              updatedQuery.alias = getVirtualAlias(
-                updatedQuery.aggregation,
-                spanAttribute
-              );
-            }
+            updatedQuery.alias = updatedAlias;
+          }
+          if (isVirtualAlias(currentQuery.alias) && isVirtualAlias(updatedQuery.alias)) {
+            updatedQuery.alias = updatedAlias;
           }
         }
 

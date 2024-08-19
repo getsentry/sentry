@@ -156,6 +156,8 @@ def delete_subscription_from_snuba(query_subscription_id, **kwargs):
     If the local subscription is marked for deletion (as opposed to disabled),
     then we delete the local subscription once we've successfully removed from Snuba.
     """
+    from sentry.incidents.models.alert_rule import AlertRule
+
     try:
         subscription = QuerySubscription.objects.get(id=query_subscription_id)
     except QuerySubscription.DoesNotExist:
@@ -184,7 +186,16 @@ def delete_subscription_from_snuba(query_subscription_id, **kwargs):
         )
 
     if subscription.status == QuerySubscription.Status.DELETING.value:
+        snuba_query = subscription.snuba_query
         subscription.delete()
+        # check that there are no subscriptions left related to the SnubaQuery before deleting
+        # add a check for the alert rule - in the snapshot case we could fall in here but the alert rule isn't deleted
+        if (
+            snuba_query
+            and not QuerySubscription.objects.filter(snuba_query=snuba_query.id).exists()
+            and not AlertRule.objects_with_snapshots.filter(snuba_query=snuba_query.id).exists()
+        ):
+            snuba_query.delete()
     else:
         subscription.update(subscription_id=None)
 

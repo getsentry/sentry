@@ -16,11 +16,11 @@ from django.utils.http import url_has_allowed_host_and_scheme
 from rest_framework.request import Request
 
 from sentry import options
+from sentry.hybridcloud.models.outbox import outbox_context
 from sentry.models.organization import Organization
-from sentry.models.outbox import outbox_context
-from sentry.models.user import User
 from sentry.organizations.absolute_url import generate_organization_url
 from sentry.organizations.services.organization import RpcOrganization
+from sentry.users.models.user import User
 from sentry.users.services.user import RpcUser
 from sentry.users.services.user.service import user_service
 from sentry.utils import metrics

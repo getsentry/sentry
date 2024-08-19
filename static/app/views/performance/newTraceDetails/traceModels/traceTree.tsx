@@ -1661,9 +1661,10 @@ export class TraceTree {
           const new_end = view[1];
 
           // Update the space of the tree and the trace root node
+          const start = Math.min(new_start * node.multiplier, this.root.space[0]);
           this.root.space = [
-            Math.min(new_start * node.multiplier, this.root.space[0]),
-            Math.max(new_end * node.multiplier - prev_start, this.root.space[1]),
+            start,
+            Math.max(new_end * node.multiplier - start, this.root.space[1]),
           ];
           this.root.children[0].space = [...this.root.space];
 

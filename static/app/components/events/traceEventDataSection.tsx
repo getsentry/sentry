@@ -1,8 +1,9 @@
 import {createContext, useCallback, useState} from 'react';
 
-import {Button} from 'sentry/components/button';
+import {LinkButton} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import {CompactSelect} from 'sentry/components/compactSelect';
+import {EventDataSection} from 'sentry/components/events/eventDataSection';
 import {SegmentedControl} from 'sentry/components/segmentedControl';
 import {Tooltip} from 'sentry/components/tooltip';
 import {IconEllipsis, IconSort} from 'sentry/icons';
@@ -14,6 +15,7 @@ import {isMobilePlatform, isNativePlatform} from 'sentry/utils/platform';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
+import {useHasStreamlinedUI} from 'sentry/views/issueDetails/utils';
 
 const sortByOptions = {
   'recent-first': t('Newest'),
@@ -52,7 +54,7 @@ type Props = {
   stackTraceNotFound: boolean;
   title: React.ReactNode;
   type: string;
-  wrapTitle?: boolean;
+  isNestedSection?: boolean;
 };
 
 export const TraceEventDataSectionContext = createContext<ChildProps | undefined>(
@@ -62,7 +64,6 @@ export const TraceEventDataSectionContext = createContext<ChildProps | undefined
 export function TraceEventDataSection({
   type,
   title,
-  wrapTitle,
   stackTraceNotFound,
   fullStackTrace,
   recentFirst,
@@ -76,9 +77,11 @@ export function TraceEventDataSection({
   hasAbsoluteFilePaths,
   hasAbsoluteAddresses,
   hasAppOnlyFrames,
+  isNestedSection = false,
 }: Props) {
   const api = useApi();
   const organization = useOrganization();
+  const hasStreamlinedUI = useHasStreamlinedUI();
 
   const [state, setState] = useState<State>({
     sortBy: recentFirst ? 'recent-first' : 'recent-last',
@@ -351,9 +354,12 @@ export function TraceEventDataSection({
     fullStackTrace: state.fullStackTrace,
   };
 
+  const SectionComponent = isNestedSection ? EventDataSection : InterimSection;
+
   return (
-    <InterimSection
+    <SectionComponent
       type={type}
+      showPermalink={!hasStreamlinedUI}
       title={title}
       guideTarget={type}
       actions={
@@ -380,7 +386,7 @@ export function TraceEventDataSection({
               </Tooltip>
             )}
             {state.display.includes('raw-stack-trace') && nativePlatform && (
-              <Button
+              <LinkButton
                 size="xs"
                 href={rawStackTraceDownloadLink}
                 title={t('Download raw stack trace file')}
@@ -394,7 +400,7 @@ export function TraceEventDataSection({
                 }}
               >
                 {t('Download')}
-              </Button>
+              </LinkButton>
             )}
             <CompactSelect
               triggerProps={{
@@ -430,11 +436,10 @@ export function TraceEventDataSection({
           </ButtonBar>
         )
       }
-      wrapTitle={wrapTitle}
     >
       <TraceEventDataSectionContext.Provider value={childProps}>
         {children(childProps)}
       </TraceEventDataSectionContext.Provider>
-    </InterimSection>
+    </SectionComponent>
   );
 }

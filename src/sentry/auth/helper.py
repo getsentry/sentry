@@ -36,11 +36,10 @@ from sentry.auth.partnership_configs import ChannelName
 from sentry.auth.provider import MigratingIdentityId, Provider
 from sentry.auth.providers.fly.provider import FlyOAuth2Provider
 from sentry.auth.superuser import is_active_superuser
+from sentry.hybridcloud.models.outbox import outbox_context
 from sentry.locks import locks
 from sentry.models.authidentity import AuthIdentity
 from sentry.models.authprovider import AuthProvider
-from sentry.models.outbox import outbox_context
-from sentry.models.user import User
 from sentry.organizations.absolute_url import generate_organization_url
 from sentry.organizations.services.organization import (
     RpcOrganization,
@@ -53,6 +52,7 @@ from sentry.pipeline import Pipeline, PipelineSessionStore
 from sentry.pipeline.provider import PipelineProvider
 from sentry.signals import sso_enabled, user_signup
 from sentry.tasks.auth import email_missing_links_control
+from sentry.users.models.user import User
 from sentry.utils import auth, metrics
 from sentry.utils.audit import create_audit_entry
 from sentry.utils.hashlib import md5_text

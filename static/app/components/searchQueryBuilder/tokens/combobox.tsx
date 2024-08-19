@@ -25,7 +25,6 @@ import type {
 } from 'sentry/components/compactSelect/types';
 import {
   getDisabledOptions,
-  getEscapedKey,
   getHiddenOptions,
 } from 'sentry/components/compactSelect/utils';
 import {GrowingInput} from 'sentry/components/growingInput';
@@ -57,9 +56,9 @@ type SearchQueryBuilderComboboxProps<T extends SelectOptionOrSectionWithKey<stri
   onCustomValueCommitted: (value: string) => void;
   /**
    * Called when the user selects an option from the dropdown.
-   * Passes the value of the selected item.
+   * Passes the selected option.
    */
-  onOptionSelected: (value: string) => void;
+  onOptionSelected: (option: T) => void;
   token: TokenResult<Token>;
   autoFocus?: boolean;
   /**
@@ -108,14 +107,21 @@ type SearchQueryBuilderComboboxProps<T extends SelectOptionOrSectionWithKey<stri
   tabIndex?: number;
 };
 
-export type CustomComboboxMenu<T> = (props: {
+type OverlayProps = ReturnType<typeof useOverlay>['overlayProps'];
+
+export type CustomComboboxMenuProps<T> = {
   hiddenOptions: Set<SelectKey>;
   isOpen: boolean;
   listBoxProps: AriaListBoxOptions<T>;
   listBoxRef: React.RefObject<HTMLUListElement>;
+  overlayProps: OverlayProps;
   popoverRef: React.RefObject<HTMLDivElement>;
   state: ComboBoxState<T>;
-}) => React.ReactNode;
+};
+
+export type CustomComboboxMenu<T> = (
+  props: CustomComboboxMenuProps<T>
+) => React.ReactNode;
 
 const DESCRIPTION_POPPER_OPTIONS = {
   placement: 'top-start' as const,
@@ -130,12 +136,15 @@ const DESCRIPTION_POPPER_OPTIONS = {
   ],
 };
 
-function findItemInSections(items: SelectOptionOrSectionWithKey<string>[], key: Key) {
+function findItemInSections<T extends SelectOptionOrSectionWithKey<string>>(
+  items: T[],
+  key: Key
+): T | null {
   for (const item of items) {
     if (itemIsSection(item)) {
       const option = item.options.find(child => child.key === key);
       if (option) {
-        return option;
+        return option as T;
       }
     } else {
       if (item.key === key) {
@@ -187,8 +196,8 @@ function useHiddenItems<T extends SelectOptionOrSectionWithKey<string>>({
     return getHiddenOptions(items, shouldFilterResults ? filterValue : '', maxOptions);
   }, [items, shouldFilterResults, filterValue, maxOptions]);
 
-  const disabledKeys: string[] = useMemo(
-    () => [...getDisabledOptions(items), ...hiddenOptions].map(getEscapedKey),
+  const disabledKeys = useMemo(
+    () => [...getDisabledOptions(items), ...hiddenOptions],
     [hiddenOptions, items]
   );
 
@@ -245,12 +254,14 @@ function OverlayContent<T extends SelectOptionOrSectionWithKey<string>>({
   popoverRef,
   state,
   totalOptions,
+  overlayProps,
 }: {
   filterValue: string;
   hiddenOptions: Set<SelectKey>;
   isOpen: boolean;
   listBoxProps: AriaListBoxOptions<any>;
   listBoxRef: React.RefObject<HTMLUListElement>;
+  overlayProps: OverlayProps;
   popoverRef: React.RefObject<HTMLDivElement>;
   state: ComboBoxState<any>;
   totalOptions: number;
@@ -265,29 +276,32 @@ function OverlayContent<T extends SelectOptionOrSectionWithKey<string>>({
       hiddenOptions,
       listBoxProps,
       state,
+      overlayProps,
     });
   }
 
   return (
-    <ListBoxOverlay ref={popoverRef}>
-      {isLoading && hiddenOptions.size >= totalOptions ? (
-        <LoadingWrapper>
-          <LoadingIndicator mini />
-        </LoadingWrapper>
-      ) : (
-        <ListBox
-          {...listBoxProps}
-          ref={listBoxRef}
-          listState={state}
-          hasSearch={!!filterValue}
-          hiddenOptions={hiddenOptions}
-          keyDownHandler={() => true}
-          overlayIsOpen={isOpen}
-          showSectionHeaders={!filterValue}
-          size="sm"
-        />
-      )}
-    </ListBoxOverlay>
+    <StyledPositionWrapper {...overlayProps} visible={isOpen}>
+      <ListBoxOverlay ref={popoverRef}>
+        {isLoading && hiddenOptions.size >= totalOptions ? (
+          <LoadingWrapper>
+            <LoadingIndicator mini />
+          </LoadingWrapper>
+        ) : (
+          <ListBox
+            {...listBoxProps}
+            ref={listBoxRef}
+            listState={state}
+            hasSearch={!!filterValue}
+            hiddenOptions={hiddenOptions}
+            keyDownHandler={() => true}
+            overlayIsOpen={isOpen}
+            showSectionHeaders={!filterValue}
+            size="sm"
+          />
+        )}
+      </ListBoxOverlay>
+    </StyledPositionWrapper>
   );
 }
 
@@ -340,10 +354,8 @@ function SearchQueryBuilderComboboxInner<T extends SelectOptionOrSectionWithKey<
   const onSelectionChange = useCallback(
     (key: Key) => {
       const selectedOption = findItemInSections(items, key);
-      if (selectedOption && 'textValue' in selectedOption && selectedOption.textValue) {
-        onOptionSelected(selectedOption.textValue);
-      } else if (key) {
-        onOptionSelected(key.toString());
+      if (selectedOption) {
+        onOptionSelected(selectedOption);
       }
     },
     [items, onOptionSelected]
@@ -533,20 +545,19 @@ function SearchQueryBuilderComboboxInner<T extends SelectOptionOrSectionWithKey<
           <DescriptionOverlay>{description}</DescriptionOverlay>
         </StyledPositionWrapper>
       ) : null}
-      <StyledPositionWrapper {...overlayProps} visible={isOpen}>
-        <OverlayContent
-          customMenu={customMenu}
-          filterValue={filterValue}
-          hiddenOptions={hiddenOptions}
-          isLoading={isLoading}
-          isOpen={isOpen}
-          listBoxProps={listBoxProps}
-          listBoxRef={listBoxRef}
-          popoverRef={popoverRef}
-          state={state}
-          totalOptions={totalOptions}
-        />
-      </StyledPositionWrapper>
+      <OverlayContent
+        customMenu={customMenu}
+        filterValue={filterValue}
+        hiddenOptions={hiddenOptions}
+        isLoading={isLoading}
+        isOpen={isOpen}
+        listBoxProps={listBoxProps}
+        listBoxRef={listBoxRef}
+        popoverRef={popoverRef}
+        state={state}
+        totalOptions={totalOptions}
+        overlayProps={overlayProps}
+      />
     </Wrapper>
   );
 }

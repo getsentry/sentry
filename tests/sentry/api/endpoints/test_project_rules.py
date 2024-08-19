@@ -18,12 +18,12 @@ from sentry.integrations.slack.tasks.find_channel_id_for_rule import find_channe
 from sentry.integrations.slack.utils.channel import SlackChannelIdData
 from sentry.models.environment import Environment
 from sentry.models.rule import Rule, RuleActivity, RuleActivityType
-from sentry.models.user import User
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers import install_slack, with_feature
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.types.actor import Actor
+from sentry.users.models.user import User
 
 
 class ProjectRuleBaseTestCase(APITestCase):
@@ -104,26 +104,16 @@ class GetMaxAlertsTest(ProjectRuleBaseTestCase):
     @with_feature("organizations:more-fast-alerts")
     @override_settings(MAX_FAST_CONDITION_ISSUE_ALERTS=1)
     @override_settings(MAX_MORE_FAST_CONDITION_ISSUE_ALERTS=2)
-    def test_get_max_alerts_more_fast_no_group_processing(self):
-        result = get_max_alerts(self.project, "fast")
-        assert result == 1
-
-    @with_feature("organizations:process-slow-alerts")
-    @with_feature("organizations:more-fast-alerts")
-    @override_settings(MAX_FAST_CONDITION_ISSUE_ALERTS=1)
-    @override_settings(MAX_MORE_FAST_CONDITION_ISSUE_ALERTS=2)
     def test_get_max_alerts_more_fast_with_group_processing(self):
         result = get_max_alerts(self.project, "fast")
         assert result == 2
 
-    @with_feature("organizations:process-slow-alerts")
     @override_settings(MAX_FAST_CONDITION_ISSUE_ALERTS=1)
     @override_settings(MAX_MORE_FAST_CONDITION_ISSUE_ALERTS=2)
     def test_get_max_alerts_fast_with_group_processing(self):
         result = get_max_alerts(self.project, "fast")
         assert result == 1
 
-    @with_feature("organizations:process-slow-alerts")
     @override_settings(MAX_SLOW_CONDITION_ISSUE_ALERTS=1)
     @override_settings(MAX_MORE_SLOW_CONDITION_ISSUE_ALERTS=2)
     def test_get_max_alerts_slow_with_group_processing(self):

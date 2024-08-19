@@ -4,10 +4,11 @@ import * as qs from 'query-string';
 import getThreadException from 'sentry/components/events/interfaces/threads/threadSelector/getThreadException';
 import {FILTER_MASK} from 'sentry/constants';
 import ConfigStore from 'sentry/stores/configStore';
-import type {Frame, PlatformKey, StacktraceType} from 'sentry/types';
 import type {Image} from 'sentry/types/debugImage';
-import type {EntryRequest, EntryThreads, Event, Thread} from 'sentry/types/event';
+import type {EntryRequest, EntryThreads, Event, Frame, Thread} from 'sentry/types/event';
 import {EntryType} from 'sentry/types/event';
+import type {PlatformKey} from 'sentry/types/project';
+import type {StacktraceType} from 'sentry/types/stacktrace';
 import {defined} from 'sentry/utils';
 import {fileExtensionToPlatform, getFileExtension} from 'sentry/utils/fileExtension';
 

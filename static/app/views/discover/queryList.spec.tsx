@@ -171,7 +171,7 @@ describe('Discover > QueryList', function () {
       expect.objectContaining({
         query: expect.objectContaining({
           dataset: 'transactions',
-          query: 'event.type:transaction',
+          query: '',
           referrer: 'api.discover.homepage.prebuilt',
           statsPeriod: '24h',
           yAxis: 'count()',
@@ -185,7 +185,7 @@ describe('Discover > QueryList', function () {
           dataset: 'errors',
           environment: [],
           field: ['url', 'count()', 'count_unique(issue)'],
-          query: 'event.type:error has:url',
+          query: 'has:url',
           referrer: 'api.discover.homepage.prebuilt',
           statsPeriod: '24h',
           topEvents: 5,

@@ -26,7 +26,7 @@ const getInstallConfig = (params: Params) => [
         description: t('Add this script tag to the top of the page:'),
         language: 'html',
         code: beautify.html(
-          `<script src="${params.cdn}" crossorigin="anonymous"></script>`,
+          `<script src="${params.dsn.cdn}" crossorigin="anonymous"></script>`,
           {indent_size: 2, wrap_attributes: 'force-expand-multiline'}
         ),
         additionalInfo: (

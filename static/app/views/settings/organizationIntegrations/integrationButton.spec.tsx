@@ -37,7 +37,6 @@ describe('AddIntegrationButton', function () {
       }}
     >
       <IntegrationButton
-        organization={org}
         userHasAccess={hasAccess}
         onAddIntegration={jest.fn()}
         onExternalClick={jest.fn()}
@@ -66,7 +65,7 @@ describe('AddIntegrationButton', function () {
   it('Renders request button when user does not have access', async function () {
     hasAccess = false;
 
-    render(getComponent());
+    render(getComponent(), {organization: org});
 
     await userEvent.click(screen.getByText('Request Installation'));
   });
@@ -82,7 +81,7 @@ describe('AddIntegrationButton', function () {
       },
     };
 
-    render(getComponent());
+    render(getComponent(), {organization: org});
 
     await userEvent.click(screen.getByText('Teams Marketplace'));
   });
@@ -99,7 +98,7 @@ describe('AddIntegrationButton', function () {
     };
     externalInstallText = 'Add Installation';
 
-    render(getComponent());
+    render(getComponent(), {organization: org});
 
     await userEvent.click(screen.getByText('Add Installation'));
   });

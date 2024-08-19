@@ -12,6 +12,7 @@ import type {Incident} from '../../types';
 export enum AlertRuleThresholdType {
   ABOVE = 0,
   BELOW = 1,
+  ABOVE_AND_BELOW = 2,
 }
 
 export enum AlertRuleTriggerType {
@@ -24,6 +25,7 @@ export enum AlertRuleComparisonType {
   COUNT = 'count',
   CHANGE = 'change',
   PERCENT = 'percent',
+  DYNAMIC = 'dynamic',
 }
 
 export enum Dataset {
@@ -53,6 +55,16 @@ export enum Datasource {
   DEFAULT = 'default',
   ERROR = 'error',
   TRANSACTION = 'transaction',
+}
+
+export enum AlertRuleSensitivity {
+  LOW = 'low',
+  MEDIUM = 'medium',
+  HIGH = 'high',
+}
+
+export enum AlertRuleSeasonality {
+  AUTO = 'auto',
 }
 
 /**
@@ -94,6 +106,7 @@ export type Trigger = Partial<SavedTrigger> & UnsavedTrigger;
 export type UnsavedMetricRule = {
   aggregate: string;
   dataset: Dataset;
+  detectionType: string;
   environment: string | null;
   projects: string[];
   query: string;
@@ -109,6 +122,8 @@ export type UnsavedMetricRule = {
   monitorWindow?: number | null;
   owner?: string | null;
   queryType?: MEPAlertsQueryType | null;
+  seasonality?: AlertRuleSeasonality | null;
+  sensitivity?: AlertRuleSensitivity | null;
 };
 
 // Form values for updating a metric alert rule

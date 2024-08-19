@@ -1,5 +1,6 @@
 from django.db import router, transaction
 
+from sentry.hybridcloud.models.outbox import outbox_context
 from sentry.hybridcloud.services.organization_mapping import (
     RpcOrganizationMappingUpdate,
     organization_mapping_service,
@@ -14,7 +15,6 @@ from sentry.models.organizationslugreservation import (
     OrganizationSlugReservation,
     OrganizationSlugReservationType,
 )
-from sentry.models.outbox import outbox_context
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TransactionTestCase
 from sentry.testutils.silo import (
@@ -51,6 +51,7 @@ def assert_matching_organization_mapping(
             org.flags.disable_member_project_creation
         )
         assert org_mapping.prevent_superuser_access == bool(org.flags.prevent_superuser_access)
+        assert org_mapping.disable_member_invite == bool(org.flags.disable_member_invite)
 
 
 @control_silo_test(regions=create_test_regions("us"), include_monolith_run=True)

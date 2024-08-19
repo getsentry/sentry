@@ -20,8 +20,9 @@ from sentry.db.models import (
 )
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
 from sentry.db.models.fields.jsonfield import JSONField
-from sentry.db.models.outboxes import ReplicatedControlModel
-from sentry.models.outbox import ControlOutbox, OutboxCategory, OutboxScope
+from sentry.hybridcloud.models.outbox import ControlOutbox
+from sentry.hybridcloud.outbox.base import ReplicatedControlModel
+from sentry.hybridcloud.outbox.category import OutboxCategory, OutboxScope
 from sentry.types.region import find_regions_for_orgs
 
 logger = logging.getLogger("sentry.authprovider")

@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 
 import type {Client} from 'sentry/api';
 import AvatarList from 'sentry/components/avatar/avatarList';
-import {Button} from 'sentry/components/button';
+import {LinkButton} from 'sentry/components/button';
 import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
 import {Divider, Hovercard} from 'sentry/components/hovercard';
 import LastCommit from 'sentry/components/lastCommit';
@@ -14,7 +14,9 @@ import TimeSince from 'sentry/components/timeSince';
 import Version from 'sentry/components/version';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {Deploy, Organization, Release, Repository} from 'sentry/types';
+import type {Repository} from 'sentry/types/integrations';
+import type {Organization} from 'sentry/types/organization';
+import type {Deploy, Release} from 'sentry/types/release';
 import {defined} from 'sentry/utils';
 import withApi from 'sentry/utils/withApi';
 import withRelease from 'sentry/utils/withRelease';
@@ -65,9 +67,9 @@ class VersionHoverCard extends Component<Props, State> {
               'Connect a repository to see commit info, files changed, and authors involved in future releases.'
             )}
           </p>
-          <Button href={`/organizations/${orgSlug}/repos/`} priority="primary">
+          <LinkButton href={`/organizations/${orgSlug}/repos/`} priority="primary">
             {t('Connect a repository')}
-          </Button>
+          </LinkButton>
         </ConnectRepo>
       ),
     };

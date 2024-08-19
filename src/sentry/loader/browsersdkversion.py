@@ -8,7 +8,6 @@ from django.conf import settings
 from packaging.version import Version
 
 import sentry
-from sentry import features
 
 logger = logging.getLogger("sentry")
 
@@ -77,7 +76,7 @@ def match_selected_version_to_browser_sdk_version(selected_version):
     )
 
 
-def get_browser_sdk_version(project_key):
+def get_browser_sdk_version(project_key) -> Version:
     selected_version = get_selected_browser_sdk_version(project_key)
 
     try:
@@ -98,9 +97,4 @@ def get_default_sdk_version_for_project(project):
 
 
 def get_available_sdk_versions_for_project(project):
-    versions = project.get_option("sentry:loader_available_sdk_versions")
-
-    if features.has("organizations:js-sdk-loader-v8", project.organization, actor=None):
-        return ["8.x"] + versions
-
-    return versions
+    return project.get_option("sentry:loader_available_sdk_versions")

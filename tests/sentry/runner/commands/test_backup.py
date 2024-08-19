@@ -25,7 +25,6 @@ from sentry.backup.dependencies import get_model_name
 from sentry.backup.findings import InstanceID
 from sentry.backup.imports import ImportingError
 from sentry.backup.services.import_export.model import RpcImportError, RpcImportErrorKind
-from sentry.models.email import Email
 from sentry.runner.commands.backup import backup, export, import_
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase, TransactionTestCase
@@ -36,6 +35,7 @@ from sentry.testutils.helpers.backups import (
     generate_rsa_key_pair,
 )
 from sentry.testutils.silo import assume_test_silo_mode
+from sentry.users.models.email import Email
 from sentry.utils import json
 
 GOOD_FILE_PATH = get_fixture_path("backup", "fresh-install.json")

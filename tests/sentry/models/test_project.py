@@ -8,7 +8,6 @@ from sentry.models.grouplink import GroupLink
 from sentry.models.notificationsettingoption import NotificationSettingOption
 from sentry.models.options.project_option import ProjectOption
 from sentry.models.options.project_template_option import ProjectTemplateOption
-from sentry.models.options.user_option import UserOption
 from sentry.models.organizationmember import OrganizationMember
 from sentry.models.organizationmemberteam import OrganizationMemberTeam
 from sentry.models.project import Project
@@ -19,7 +18,6 @@ from sentry.models.releaseprojectenvironment import ReleaseProjectEnvironment
 from sentry.models.releases.release_project import ReleaseProject
 from sentry.models.rule import Rule
 from sentry.models.scheduledeletion import RegionScheduledDeletion
-from sentry.models.user import User
 from sentry.monitors.models import Monitor, MonitorEnvironment, MonitorType, ScheduleType
 from sentry.notifications.types import NotificationSettingEnum
 from sentry.notifications.utils.participants import get_notification_recipients
@@ -31,6 +29,8 @@ from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
 from sentry.types.actor import Actor
+from sentry.users.models.user import User
+from sentry.users.models.user_option import UserOption
 
 
 class ProjectTest(APITestCase, TestCase):

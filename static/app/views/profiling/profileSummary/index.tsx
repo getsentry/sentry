@@ -18,6 +18,7 @@ import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
 import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
+import {TransactionSearchQueryBuilder} from 'sentry/components/performance/transactionSearchQueryBuilder';
 import PerformanceDuration from 'sentry/components/performanceDuration';
 import {AggregateFlamegraph} from 'sentry/components/profiling/flamegraph/aggregateFlamegraph';
 import {AggregateFlamegraphTreeTable} from 'sentry/components/profiling/flamegraph/aggregateFlamegraphTreeTable';
@@ -221,20 +222,31 @@ function ProfileFilters(props: ProfileFiltersProps) {
     [props.location]
   );
 
+  const projectIds = useMemo(() => props.projectIds.slice(), [props.projectIds]);
+
   return (
     <ActionBar>
       <PageFilterBar condensed>
         <EnvironmentPageFilter />
         <DatePageFilter />
       </PageFilterBar>
-      <SearchBar
-        searchSource="profile_summary"
-        organization={props.organization}
-        projectIds={props.projectIds}
-        query={props.query}
-        onSearch={handleSearch}
-        maxQueryLength={MAX_QUERY_LENGTH}
-      />
+      {props.organization.features.includes('search-query-builder-performance') ? (
+        <TransactionSearchQueryBuilder
+          projects={projectIds}
+          initialQuery={props.query}
+          onSearch={handleSearch}
+          searchSource="transaction_profiles"
+        />
+      ) : (
+        <SearchBar
+          searchSource="profile_summary"
+          organization={props.organization}
+          projectIds={projectIds}
+          query={props.query}
+          onSearch={handleSearch}
+          maxQueryLength={MAX_QUERY_LENGTH}
+        />
+      )}
     </ActionBar>
   );
 }
