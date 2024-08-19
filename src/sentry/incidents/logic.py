@@ -1519,7 +1519,7 @@ def get_target_identifier_display_for_integration(type, target_value, *args, **k
 
 
 def get_alert_rule_trigger_action_slack_channel_id(
-    name, integration_id, use_async_lookup, integrations
+    name, organization, integration_id, use_async_lookup, integrations
 ):
     from sentry.integrations.slack.utils.channel import get_channel_id
 
