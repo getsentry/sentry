@@ -421,7 +421,6 @@ INSTALLED_APPS: tuple[str, ...] = (
     "sentry.hybridcloud",
     "sentry.remote_subscriptions.apps.Config",
     "sentry.data_secrecy",
-    "sentry.taskworker",
 )
 
 # Silence internal hints from Django's system checks
@@ -2909,7 +2908,6 @@ KAFKA_TOPIC_TO_CLUSTER: Mapping[str, str] = {
     "shared-resources-usage": "default",
     "buffered-segments": "default",
     "buffered-segments-dlq": "default",
-    "hackweek": "default",
 }
 
 
