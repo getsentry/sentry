@@ -1,4 +1,4 @@
-from datetime import date, datetime, timedelta
+from datetime import UTC, date, datetime, timedelta
 from time import strptime
 from typing import TypedDict
 
@@ -23,7 +23,7 @@ def clock_time_on_this_day(date: date, clock_time_str: str) -> datetime:
         clock_time_str = "00:00"
         date = date + timedelta(days=1)
     time = strptime(clock_time_str, strptime_format)
-    return datetime.combine(date, datetime(*time[:6]).time())
+    return datetime.combine(date, datetime(*time[:6]).time(), tzinfo=UTC)
 
 
 # Accepts a list like [["08:00", "10:00"]] and returns rotation periods mapping to non-overlapping periods
@@ -195,7 +195,7 @@ class ScheduleLayerRotationPeriodIterator:
         while True:
             period = next(self)
             if period["end_time"] > time:
-                self.buffer.append(period)
+                self.buffer = [period] + self.buffer
                 return
 
 

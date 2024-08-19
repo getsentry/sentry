@@ -1,4 +1,4 @@
-from datetime import date, datetime, timedelta
+from datetime import UTC, date, datetime, timedelta
 from typing import TypedDict
 
 from sentry.escalation_policies import determine_schedule_oncall
@@ -77,8 +77,8 @@ class RotationScheduleLogicTest(TestCase):
                 },
                 "expected_results": [
                     RotationPeriod(
-                        start_time=datetime(2024, 1, 1, 12, 0, 0),
-                        end_time=datetime(2024, 1, 2, 0, 0, 0),
+                        start_time=datetime(2024, 1, 1, 12, 0, 0, tzinfo=UTC),
+                        end_time=datetime(2024, 1, 2, 0, 0, 0, tzinfo=UTC),
                         user_id=None,
                     ),
                 ],
@@ -91,13 +91,13 @@ class RotationScheduleLogicTest(TestCase):
                 },
                 "expected_results": [
                     RotationPeriod(
-                        start_time=datetime(2024, 1, 1, 0, 0, 0),
-                        end_time=datetime(2024, 1, 1, 8, 0, 0),
+                        start_time=datetime(2024, 1, 1, 0, 0, 0, tzinfo=UTC),
+                        end_time=datetime(2024, 1, 1, 8, 0, 0, tzinfo=UTC),
                         user_id=None,
                     ),
                     RotationPeriod(
-                        start_time=datetime(2024, 1, 1, 17, 0, 0),
-                        end_time=datetime(2024, 1, 2, 0, 0, 0),
+                        start_time=datetime(2024, 1, 1, 17, 0, 0, tzinfo=UTC),
+                        end_time=datetime(2024, 1, 2, 0, 0, 0, tzinfo=UTC),
                         user_id=None,
                     ),
                 ],
@@ -110,8 +110,8 @@ class RotationScheduleLogicTest(TestCase):
                 },
                 "expected_results": [
                     RotationPeriod(
-                        start_time=datetime(2024, 1, 1, 0, 0, 0),
-                        end_time=datetime(2024, 1, 1, 12, 0, 0),
+                        start_time=datetime(2024, 1, 1, 0, 0, 0, tzinfo=UTC),
+                        end_time=datetime(2024, 1, 1, 12, 0, 0, tzinfo=UTC),
                         user_id=None,
                     ),
                 ],
@@ -132,8 +132,8 @@ class RotationScheduleLogicTest(TestCase):
             # Simple
             {
                 "period": {
-                    "start_time": datetime.strptime("2024-01-01 01:00", time_format),  # Monday
-                    "end_time": datetime.strptime("2024-01-02 00:00", time_format),
+                    "start_time": datetime(2024, 1, 1, 1, 0, tzinfo=UTC),  # Monday
+                    "end_time": datetime(2024, 1, 2, 0, 0, tzinfo=UTC),
                     "user_id": 1,
                 },
                 "layer_restrictions": {
@@ -141,8 +141,8 @@ class RotationScheduleLogicTest(TestCase):
                 },
                 "expected_results": [
                     RotationPeriod(
-                        start_time=datetime.strptime("2024-01-01 01:00", time_format),
-                        end_time=datetime.strptime("2024-01-01 12:00", time_format),
+                        start_time=datetime(2024, 1, 1, 1, 0, tzinfo=UTC),
+                        end_time=datetime(2024, 1, 1, 12, 0, tzinfo=UTC),
                         user_id=1,
                     ),
                 ],
@@ -150,8 +150,8 @@ class RotationScheduleLogicTest(TestCase):
             # Simple split
             {
                 "period": {
-                    "start_time": datetime.strptime("2024-01-01 00:00", time_format),  # Monday
-                    "end_time": datetime.strptime("2024-01-02 00:00", time_format),
+                    "start_time": datetime(2024, 1, 1, 1, 0, tzinfo=UTC),  # Monday
+                    "end_time": datetime(2024, 1, 2, 0, 0, tzinfo=UTC),
                     "user_id": 1,
                 },
                 "layer_restrictions": {
@@ -159,8 +159,8 @@ class RotationScheduleLogicTest(TestCase):
                 },
                 "expected_results": [
                     RotationPeriod(
-                        start_time=datetime.strptime("2024-01-01 08:00", time_format),
-                        end_time=datetime.strptime("2024-01-01 17:00", time_format),
+                        start_time=datetime(2024, 1, 1, 8, 0, tzinfo=UTC),
+                        end_time=datetime(2024, 1, 1, 17, 0, tzinfo=UTC),
                         user_id=1,
                     ),
                 ],
@@ -168,8 +168,8 @@ class RotationScheduleLogicTest(TestCase):
             # week-day business hours
             {
                 "period": {
-                    "start_time": datetime.strptime("2024-01-01 00:00", time_format),  # Monday
-                    "end_time": datetime.strptime("2024-01-08 00:00", time_format),
+                    "start_time": datetime(2024, 1, 1, 0, 0, tzinfo=UTC),  # Monday
+                    "end_time": datetime(2024, 1, 8, 0, 0, tzinfo=UTC),  # Monday
                     "user_id": 1,
                 },
                 "layer_restrictions": {
@@ -181,33 +181,33 @@ class RotationScheduleLogicTest(TestCase):
                 },
                 "expected_results": [
                     RotationPeriod(
-                        start_time=datetime.strptime("2024-01-01 08:00", time_format),
-                        end_time=datetime.strptime("2024-01-01 17:00", time_format),
+                        start_time=datetime(2024, 1, 1, 8, 0, tzinfo=UTC),
+                        end_time=datetime(2024, 1, 1, 17, 0, tzinfo=UTC),
                         user_id=1,
                     ),
                     RotationPeriod(
-                        start_time=datetime.strptime("2024-01-02 08:00", time_format),
-                        end_time=datetime.strptime("2024-01-02 17:00", time_format),
+                        start_time=datetime(2024, 1, 2, 8, 0, tzinfo=UTC),
+                        end_time=datetime(2024, 1, 2, 17, 0, tzinfo=UTC),
                         user_id=1,
                     ),
                     RotationPeriod(
-                        start_time=datetime.strptime("2024-01-03 08:00", time_format),
-                        end_time=datetime.strptime("2024-01-03 17:00", time_format),
+                        start_time=datetime(2024, 1, 3, 8, 0, tzinfo=UTC),
+                        end_time=datetime(2024, 1, 3, 17, 0, tzinfo=UTC),
                         user_id=1,
                     ),
                     RotationPeriod(
-                        start_time=datetime.strptime("2024-01-04 08:00", time_format),
-                        end_time=datetime.strptime("2024-01-04 17:00", time_format),
+                        start_time=datetime(2024, 1, 4, 8, 0, tzinfo=UTC),
+                        end_time=datetime(2024, 1, 4, 17, 0, tzinfo=UTC),
                         user_id=1,
                     ),
                     RotationPeriod(
-                        start_time=datetime.strptime("2024-01-05 08:00", time_format),
-                        end_time=datetime.strptime("2024-01-05 17:00", time_format),
+                        start_time=datetime(2024, 1, 5, 8, 0, tzinfo=UTC),
+                        end_time=datetime(2024, 1, 5, 17, 0, tzinfo=UTC),
                         user_id=1,
                     ),
                     RotationPeriod(
-                        start_time=datetime.strptime("2024-01-06 00:00", time_format),
-                        end_time=datetime.strptime("2024-01-08 00:00", time_format),
+                        start_time=datetime(2024, 1, 6, 0, 0, tzinfo=UTC),
+                        end_time=datetime(2024, 1, 8, 0, 0, tzinfo=UTC),
                         user_id=1,
                     ),
                 ],
@@ -259,57 +259,57 @@ class RotationScheduleLogicTest(TestCase):
         assert periods == [
             # Mon
             RotationPeriod(
-                start_time=datetime.strptime("2024-01-01 00:00", time_format),
-                end_time=datetime.strptime("2024-01-01 12:00", time_format),
+                start_time=datetime(2024, 1, 1, 0, 0, tzinfo=UTC),
+                end_time=datetime(2024, 1, 1, 12, 0, tzinfo=UTC),
                 user_id=userA.id,
             ),
             RotationPeriod(
-                start_time=datetime.strptime("2024-01-01 12:00", time_format),
-                end_time=datetime.strptime("2024-01-02 00:00", time_format),
+                start_time=datetime(2024, 1, 1, 12, 0, tzinfo=UTC),
+                end_time=datetime(2024, 1, 2, 0, 0, tzinfo=UTC),
                 user_id=userC.id,
             ),
             # Tue
             RotationPeriod(
-                start_time=datetime.strptime("2024-01-02 00:00", time_format),
-                end_time=datetime.strptime("2024-01-02 12:00", time_format),
+                start_time=datetime(2024, 1, 2, 0, 0, tzinfo=UTC),
+                end_time=datetime(2024, 1, 2, 12, 0, tzinfo=UTC),
                 user_id=userB.id,
             ),
             RotationPeriod(
-                start_time=datetime.strptime("2024-01-02 12:00", time_format),
-                end_time=datetime.strptime("2024-01-03 00:00", time_format),
+                start_time=datetime(2024, 1, 2, 12, 0, tzinfo=UTC),
+                end_time=datetime(2024, 1, 3, 0, 0, tzinfo=UTC),
                 user_id=userD.id,
             ),
             # Wed - schedule 2 no restrictions
             RotationPeriod(
-                start_time=datetime.strptime("2024-01-03 00:00", time_format),
-                end_time=datetime.strptime("2024-01-04 00:00", time_format),
+                start_time=datetime(2024, 1, 3, 0, 0, tzinfo=UTC),
+                end_time=datetime(2024, 1, 4, 0, 0, tzinfo=UTC),
                 user_id=userC.id,
             ),
             # Thursday - schedule 2 no restrictions
             RotationPeriod(
-                start_time=datetime.strptime("2024-01-04 00:00", time_format),
-                end_time=datetime.strptime("2024-01-05 00:00", time_format),
+                start_time=datetime(2024, 1, 4, 0, 0, tzinfo=UTC),
+                end_time=datetime(2024, 1, 5, 0, 0, tzinfo=UTC),
                 user_id=userD.id,
             ),
         ]
 
         assert userA.id == determine_schedule_oncall(
             schedule,
-            datetime.strptime("2024-01-01 01:00", time_format),
+            datetime(2024, 1, 1, 1, 0, tzinfo=UTC),
         )
         assert userC.id == determine_schedule_oncall(
             schedule,
-            datetime.strptime("2024-01-01 13:00", time_format),
+            datetime(2024, 1, 1, 13, 0, tzinfo=UTC),
         )
         assert userB.id == determine_schedule_oncall(
             schedule,
-            datetime.strptime("2024-01-02 01:00", time_format),
+            datetime(2024, 1, 2, 1, 0, tzinfo=UTC),
         )
         assert userD.id == determine_schedule_oncall(
             schedule,
-            datetime.strptime("2024-01-02 13:00", time_format),
+            datetime(2024, 1, 2, 13, 0, tzinfo=UTC),
         )
         assert userA.id == determine_schedule_oncall(
             schedule,
-            datetime.strptime("2024-01-09 01:00", time_format),
+            datetime(2024, 1, 9, 1, 0, tzinfo=UTC),
         )

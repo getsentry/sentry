@@ -5,6 +5,7 @@ from django.db import router, transaction
 from rest_framework import serializers
 
 from sentry.api.serializers.base import Serializer, register
+from sentry.escalation_policies.logic import RotationPeriod, coalesce_schedule_layers
 from sentry.escalation_policies.models.rotation_schedule import (
     RotationSchedule,
     RotationScheduleLayer,
@@ -97,11 +98,13 @@ class RotationScheduleSerializerResponse(TypedDict, total=False):
     # Owner
     team_id: int | None
     user_id: int | None
+    coalesced_rotation_periods: list[RotationPeriod]
 
 
 @register(RotationSchedule)
 class RotationScheduleSerializer(Serializer):
     def __init__(self, start_date=None, end_date=None):
+        super().__init__()
         self.start_date = start_date
         self.end_date = end_date
         if start_date is None:
@@ -156,11 +159,14 @@ class RotationScheduleSerializer(Serializer):
                         users=ordered_users,
                     )
                 )
-
+            coalesced_rotation_periods = coalesce_schedule_layers(
+                schedule.layers.all(), self.start_date, self.end_date
+            )
             results[schedule] = {
                 "team": teams.get(schedule.team_id),
                 "user": users.get(schedule.user_id),
                 "layers": layers_attr,
+                "coalesced_rotation_periods": coalesced_rotation_periods,
             }
         return results
 
@@ -172,4 +178,5 @@ class RotationScheduleSerializer(Serializer):
             layers=attrs["layers"],
             team=attrs["team"],
             user=attrs["user"],
+            coalesced_rotation_periods=attrs["coalesced_rotation_periods"],
         )

@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import UTC, datetime
 from typing import TypedDict
 
 from django.conf import settings
@@ -135,4 +135,4 @@ class RotationScheduleOverride(Model):
         db_table = "sentry_rotation_schedule_override"
 
 
-DEFAULT_ROTATION_START_TIME = datetime(2024, 1, 1)
+DEFAULT_ROTATION_START_TIME = datetime(2024, 1, 1, tzinfo=UTC)

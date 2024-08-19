@@ -67,7 +67,7 @@ class OrganizationRotationScheduleDetailsEndpoint(OrganizationEndpoint):
         start, end = get_date_range_from_stats_period(params=request.GET)
         serializer = RotationScheduleSerializer(start_date=start, end_date=end)
 
-        return Response(serialize(rotation_schedule, serializer))
+        return Response(serialize(rotation_schedule, serializer=serializer))
 
     @extend_schema(
         operation_id="Delete an Rotation Schedule for an Organization",

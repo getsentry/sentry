@@ -99,7 +99,7 @@ class RotationScheduleCreateTest(APITestCase):
                 "schedule_layers": [
                     {
                         "rotation_type": "weekly",
-                        "handoff_time": "00:400",
+                        "handoff_time": "04:00",
                         "start_date": "2024-01-01T00:00:00+00:00",
                         "schedule_layer_restrictions": {
                             "Sun": [],
