@@ -1,7 +1,7 @@
-import datetime
 import inspect
 
 from django.db import models
+from django.utils import timezone
 
 from sentry.db.models import Model
 
@@ -28,7 +28,7 @@ class PendingTasks(Model):
     offset = models.IntegerField(blank=True, null=True)
     state = models.CharField(choices=[(y, x) for x, y in inspect.getmembers(State)])
     received_at = models.DateTimeField()
-    added_at = models.DateTimeField(default=datetime.now, blank=True)
+    added_at = models.DateTimeField(default=timezone.now, blank=True)
     retry_state = models.CharField(choices=[(y, x) for x, y in inspect.getmembers(State)])
     deadletter_at = models.DateTimeField()
     processing_deadline = models.DateTimeField()
