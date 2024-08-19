@@ -2,6 +2,7 @@ import styled from '@emotion/styled';
 
 import Badge from 'sentry/components/badge/badge';
 import {LinkButton} from 'sentry/components/button';
+import ExternalLink from 'sentry/components/links/externalLink';
 // import ExternalLink from 'sentry/components/links/externalLink';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -54,6 +55,9 @@ function BroadcastPanelItem({
   children,
 }: Props) {
   const organization = useOrganization();
+
+  const onPanelClicked = () =>
+    trackAnalytics('whats_new.link_clicked', {organization, title});
   return (
     <SidebarPanelItemRoot>
       {title && (
@@ -66,11 +70,14 @@ function BroadcastPanelItem({
       {children}
 
       {imageUrl && (
-        <img
-          src={imageUrl}
-          alt={title}
-          style={{maxWidth: '100%', marginBottom: space(1)}}
-        />
+        <ExternalLink href={link}>
+          <img
+            src={imageUrl}
+            alt={title}
+            style={{maxWidth: '100%', marginBottom: space(1)}}
+            onClick={onPanelClicked}
+          />
+        </ExternalLink>
       )}
 
       {message && <Message>{message}</Message>}
@@ -80,9 +87,7 @@ function BroadcastPanelItem({
           <LinkButton
             external
             href={link}
-            onClick={() =>
-              trackAnalytics('whats_new.link_clicked', {organization, title})
-            }
+            onClick={onPanelClicked}
             style={{marginTop: space(1)}}
           >
             {cta || t('Read More')}

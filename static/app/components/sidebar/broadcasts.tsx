@@ -131,7 +131,7 @@ class Broadcasts extends Component<Props, State> {
             active={currentPanel === SidebarPanelKey.BROADCASTS}
             badge={unseenPosts.length}
             icon={<IconBroadcast size="md" />}
-            label={t("What's newsss")}
+            label={t("What's new")}
             onClick={this.handleShowPanel}
             id="broadcasts"
           />
