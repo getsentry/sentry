@@ -1,8 +1,17 @@
 from __future__ import annotations
 
+from collections.abc import Mapping
 from typing import Any
+from uuid import uuid4
+import time
 
+from arroyo.backends.kafka import KafkaPayload, KafkaProducer
+from arroyo.types import Topic as ArroyoTopic
+
+from sentry.conf.types.kafka_definition import Topic
 from sentry.taskworker.task import Task
+from sentry.utils import json
+from sentry.utils.kafka_config import get_kafka_producer_cluster_options, get_topic_definition
 
 
 class TaskNamespace:
@@ -13,6 +22,7 @@ class TaskNamespace:
     """
 
     __registered_tasks: dict[str, Task]
+    __producer: KafkaProducer | None = None
 
     def __init__(self, name: str, topic: str, deadletter_topic: str, retry: Any):
         self.name = name
@@ -20,11 +30,16 @@ class TaskNamespace:
         self.deadletter_topic = deadletter_topic
         self.default_retry = retry
         self.__registered_tasks = {}
-        # TODO how to get producer?
 
-    def send_task(self, task: Task, args, kwargs) -> None:
-        # TODO serialize task message and send RPC/publish
-        ...
+    @property
+    def producer(self) -> KafkaProducer:
+        if self.__producer:
+            return self.__producer
+        cluster_name = get_topic_definition(Topic.HACKWEEK)["cluster"]
+        producer_config = get_kafka_producer_cluster_options(cluster_name)
+        self.__producer = KafkaProducer(producer_config)
+
+        return self.__producer
 
     def register(self, name: str):
         """register a task, used as a decorator"""
@@ -35,6 +50,27 @@ class TaskNamespace:
             return task
 
         return wrapped
+
+    def send_task(self, task: Task, args, kwargs) -> None:
+        task_message = self._serialize_task_call(task, args, kwargs)
+        # TODO this could use an RPC instead of appending to the topic directly
+        self.producer.produce(
+            ArroyoTopic(name=self.topic),
+            KafkaPayload(key=None, value=task_message.encode("utf-8"), headers=[]),
+        )
+
+    def _serialize_task_call(self, task: Task, args: list[Any], kwargs: Mapping[Any, Any]) -> str:
+        task_payload = {
+            "id": uuid4().hex,
+            "namespace": self.name,
+            "taskname": task.name,
+            "parameters": {"args": args, "kwargs": kwargs},
+            "received_at": time.time(),
+            # TODO headers, retry_state and retries in general
+            "headers": {},
+            "retry_state": None,
+        }
+        return json.dumps(task_payload)
 
 
 class TaskRegistry:

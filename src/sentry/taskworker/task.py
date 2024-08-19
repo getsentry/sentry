@@ -9,12 +9,12 @@ if TYPE_CHECKING:
 
 
 class Task:
-    __name: str
+    name: str
     __func: Callable[..., Any]
     __namespace: TaskNamespace
 
     def __init__(self, name: str, func: Callable[..., Any], namespace: TaskNamespace):
-        self.__name = name
+        self.name = name
         self.__func = func
         self.__namespace = namespace
         update_wrapper(self, func)
