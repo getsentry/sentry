@@ -39,8 +39,9 @@ function withSavedSearches<P extends InjectedSavedSearchesProps>(
         {...(props as P)}
         savedSearches={props.savedSearches ?? savedSearches}
         savedSearchLoading={
-          !organization.features.includes('issue-stream-custom-views') &&
-          (props.savedSearchLoading ?? isLoading)
+          organization.features.includes('issue-stream-custom-views')
+            ? false
+            : props.savedSearchLoading ?? isLoading
         }
         savedSearch={props.savedSearch ?? selectedSavedSearch}
         selectedSearchId={params.searchId ?? null}

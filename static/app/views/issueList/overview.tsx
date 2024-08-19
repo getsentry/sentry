@@ -42,6 +42,7 @@ import {GroupStatus, IssueCategory} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import toArray from 'sentry/utils/array/toArray';
 import {browserHistory} from 'sentry/utils/browserHistory';
 import CursorPoller from 'sentry/utils/cursorPoller';
 import {getUtcDateString} from 'sentry/utils/dates';
@@ -186,12 +187,19 @@ class IssueListOverview extends Component<Props, State> {
       success: this.onRealtimePoll,
     });
 
+    // componentDidMount can run before PageFiltersStore is updated
+    // This happens when following a link to the issues page with specific project selections
+    const endpointParams = this.getEndpointParams();
+    const projectParams = toArray(this.props.router.location.query.project).map(Number);
+    const shouldEarlyFetchIssues = isEqual(endpointParams.project, projectParams);
+
     // Wait for saved searches to load so if the user is on a saved search
     // or they have a pinned search we load the correct data the first time.
     // But if searches are already there, we can go right to fetching issues
     if (
-      !this.props.savedSearchLoading ||
-      this.props.organization.features.includes('issue-stream-performance')
+      shouldEarlyFetchIssues &&
+      (!this.props.savedSearchLoading ||
+        this.props.organization.features.includes('issue-stream-performance'))
     ) {
       const loadedFromCache = this.loadFromCache();
       if (!loadedFromCache) {
