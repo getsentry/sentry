@@ -1,12 +1,13 @@
 from __future__ import annotations
 
-from django.conf import settings
 import logging
 import time
 
+from django.conf import settings
 
 from sentry.taskworker.config import TaskNamespace, taskregistry
 from sentry.taskworker.models import PendingTasks
+
 logger = logging.getLogger("sentry.taskworker")
 
 
@@ -69,4 +70,6 @@ class Worker:
         if complete:
             task_service.complete_task(task_id=task_data.id)
         else:
-            task_service.set_task_status(task_id=task_data.id, task_status=PendingTasks.States.FAILURE)
+            task_service.set_task_status(
+                task_id=task_data.id, task_status=PendingTasks.States.FAILURE
+            )
