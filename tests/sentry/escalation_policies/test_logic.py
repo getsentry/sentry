@@ -1,6 +1,7 @@
 from datetime import date, datetime, timedelta
 from typing import TypedDict
 
+from sentry.escalation_policies import determine_schedule_oncall
 from sentry.escalation_policies.logic import (
     RotationPeriod,
     apply_layer_restrictions,
@@ -204,6 +205,11 @@ class RotationScheduleLogicTest(TestCase):
                         end_time=datetime.strptime("2024-01-05 17:00", time_format),
                         user_id=1,
                     ),
+                    RotationPeriod(
+                        start_time=datetime.strptime("2024-01-06 00:00", time_format),
+                        end_time=datetime.strptime("2024-01-08 00:00", time_format),
+                        user_id=1,
+                    ),
                 ],
             },
         ]
@@ -286,3 +292,24 @@ class RotationScheduleLogicTest(TestCase):
                 user_id=userD.id,
             ),
         ]
+
+        assert userA.id == determine_schedule_oncall(
+            schedule,
+            datetime.strptime("2024-01-01 01:00", time_format),
+        )
+        assert userC.id == determine_schedule_oncall(
+            schedule,
+            datetime.strptime("2024-01-01 13:00", time_format),
+        )
+        assert userB.id == determine_schedule_oncall(
+            schedule,
+            datetime.strptime("2024-01-02 01:00", time_format),
+        )
+        assert userD.id == determine_schedule_oncall(
+            schedule,
+            datetime.strptime("2024-01-02 13:00", time_format),
+        )
+        assert userA.id == determine_schedule_oncall(
+            schedule,
+            datetime.strptime("2024-01-09 01:00", time_format),
+        )

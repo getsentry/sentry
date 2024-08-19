@@ -159,7 +159,7 @@ class RotationScheduleSerializer(Serializer):
 
     def serialize(self, obj, attrs, user, **kwargs):
         return RotationScheduleSerializerResponse(
-            id=str(obj.id),
+            id=obj.id,
             name=obj.name,
             organization_id=obj.organization.id,
             layers=attrs["layers"],

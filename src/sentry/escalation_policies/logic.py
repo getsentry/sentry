@@ -190,16 +190,18 @@ class ScheduleLayerRotationPeriodIterator:
         return self.buffer.pop(0)
 
     # skip the iterator to the first period containing the passed time
+    # This overrides current iterator state.
     def fast_forward_to(self, time) -> None:
-        period = next(self)
-        if period["end_time"] > time:
-            self.buffer.append(period)
-        return
+        while True:
+            period = next(self)
+            if period["end_time"] > time:
+                self.buffer.append(period)
+                return
 
 
 def coalesce_schedule_layers(
-    schedule_layers: list[RotationScheduleLayer], start_date: datetime, end_date: datetime
-):
+    schedule_layers: list[RotationScheduleLayer], start_time: datetime, end_time: datetime
+) -> list[RotationPeriod]:
     """
     This function takes a valid list of schedule layers and coalesces them into a single schedule layer.
     """
@@ -208,10 +210,10 @@ def coalesce_schedule_layers(
     schedule: list[RotationPeriod] = []
     for layer in schedule_layers:
         period_iterator = ScheduleLayerRotationPeriodIterator(layer)
-        period_iterator.fast_forward_to(start_date)
+        period_iterator.fast_forward_to(start_time)
         while True:
             period = next(period_iterator)
             schedule = coalesce_rotation_period(schedule, period)
-            if period["start_time"] > end_date:
+            if period["start_time"] > end_time:
                 break
     return schedule
