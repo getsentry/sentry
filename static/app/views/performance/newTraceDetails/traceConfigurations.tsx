@@ -45,36 +45,67 @@ function Resource({
   );
 }
 
-function getCustomInstrumentationLink(project: Project): string | null {
-  if (!project.platform) {
-    return null;
-  }
+type ParsedPlatform = {
+  platformName: string;
+  framework?: string;
+};
 
+function parsePlatform(platform: string): ParsedPlatform {
   // Except react-native, all other project platforms have the following two structures:
   // 1. "{language}-{framework}", e.g. "javascript-nextjs"
   // 2. "{language}", e.g. "python"
   const [platformName, framework] =
-    project.platform === 'react-native'
-      ? ['react-native', undefined]
-      : project.platform.split('-');
+    platform === 'react-native' ? ['react-native', undefined] : platform.split('-');
+
+  return {platformName, framework};
+}
+
+function getCustomInstrumentationLink(project: Project | undefined): string {
+  // Default to JavaScript guide if project or platform is not available
+  if (!project || !project.platform) {
+    return `https://docs.sentry.io/platforms/javascript/tracing/instrumentation/custom-instrumentation/`;
+  }
+
+  const {platformName, framework} = parsePlatform(project.platform);
 
   return platformsWithNestedInstrumentationGuides.includes(project.platform) && framework
     ? `https://docs.sentry.io/platforms/${platformName}/guides/${framework}/tracing/instrumentation/custom-instrumentation/`
     : `https://docs.sentry.io/platforms/${platformName}/tracing/instrumentation/custom-instrumentation/`;
 }
 
+function getDistributedTracingLink(project: Project | undefined): string {
+  // Default to JavaScript guide if project or platform is not available
+  if (!project || !project.platform) {
+    return `https://docs.sentry.io/platforms/javascript/tracing/trace-propagation/`;
+  }
+
+  const {platformName, framework} = parsePlatform(project.platform);
+
+  return framework
+    ? `https://docs.sentry.io/platforms/${platformName}/guides/${framework}/tracing/trace-propagation/`
+    : `https://docs.sentry.io/platforms/${platformName}/tracing/trace-propagation/`;
+}
+
 type ResourceButtonsProps = {
   customInstrumentationLink: string;
+  distributedTracingLink: string;
 };
 
-// Note: Will be adding more resources in the future
-function ResourceButtons({customInstrumentationLink}: ResourceButtonsProps) {
+function ResourceButtons({
+  customInstrumentationLink,
+  distributedTracingLink,
+}: ResourceButtonsProps) {
   return (
     <ButtonContainer>
       <Resource
         title={t('Custom Instrumentation')}
         subtitle={t('Add Custom Spans or Transactions to your traces')}
         link={customInstrumentationLink}
+      />
+      <Resource
+        title={t('Distributed Tracing')}
+        subtitle={t('See the whole trace across all your services')}
+        link={distributedTracingLink}
       />
     </ButtonContainer>
   );
@@ -92,23 +123,29 @@ export default function TraceConfigurations({
   const traceProject = useMemo(() => {
     return rootEventResults.data
       ? projects.find(p => p.id === rootEventResults.data.projectID)
-      : null;
+      : undefined;
   }, [projects, rootEventResults.data]);
 
   const customInstrumentationLink = useMemo(
-    () => (traceProject ? getCustomInstrumentationLink(traceProject) : null),
+    () => getCustomInstrumentationLink(traceProject),
     [traceProject]
   );
 
-  if (!traceProject || !customInstrumentationLink) {
-    return null;
-  }
+  const distributedTracingLink = useMemo(
+    () => getDistributedTracingLink(traceProject),
+    [traceProject]
+  );
 
   return (
     <ClassNames>
       {({css}) => (
         <Hovercard
-          body={<ResourceButtons customInstrumentationLink={customInstrumentationLink} />}
+          body={
+            <ResourceButtons
+              customInstrumentationLink={customInstrumentationLink}
+              distributedTracingLink={distributedTracingLink}
+            />
+          }
           bodyClassName={css`
             padding: ${space(1)};
           `}
