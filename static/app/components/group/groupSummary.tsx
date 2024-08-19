@@ -44,21 +44,20 @@ export function useGroupSummary(groupId: string) {
     isError: isAutofixSetupError,
   } = useAutofixSetup({groupId});
 
+  const hasGenAIConsent = autofixSetupData?.genAIConsent.ok ?? false;
+
   const queryData = useApiQuery<GroupSummaryData>(
     makeGroupSummaryQueryKey(organization.slug, groupId),
     {
       staleTime: Infinity, // Cache the result indefinitely as it's unlikely to change if it's already computed
-      enabled: autofixSetupData?.genAIConsent.ok ?? false,
+      enabled: hasGenAIConsent,
     }
   );
-
   return {
     ...queryData,
-    isLoading:
-      // isFetchedAfterMount is here so we don't have the split second where genAIConsent is true but the query isn't loading yet.
-      isAutofixSetupLoading || queryData.isLoading || !queryData.isFetchedAfterMount,
+    isLoading: isAutofixSetupLoading || queryData.isLoading,
     isError: queryData.isError || isAutofixSetupError,
-    hasGenAIConsent: autofixSetupData?.genAIConsent.ok ?? false,
+    hasGenAIConsent,
   };
 }
 
