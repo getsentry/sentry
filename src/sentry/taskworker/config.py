@@ -45,7 +45,7 @@ class TaskNamespace:
 
     def get(self, name: str) -> Task:
         if name not in self.__registered_tasks:
-            raise KeyError(f"No task registered with that name. Check your imports")
+            raise KeyError(f"No task registered with the name {name}. Check your imports")
         return self.__registered_tasks[name]
 
     def register(
@@ -107,7 +107,7 @@ class TaskRegistry:
 
     def get(self, name: str) -> TaskNamespace:
         if name not in self.__namespaces:
-            raise KeyError(f"No task namespace with that name")
+            raise KeyError(f"No task namespace with the name {name}")
         return self.__namespaces[name]
 
     def get_task(self, namespace: str, task: str) -> Task:

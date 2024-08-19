@@ -8,13 +8,13 @@ demotasks = taskregistry.create_namespace(
 )
 
 
-@demotasks.register(name="taskdemo.hello")
+@demotasks.register(name="demos.say_hello")
 def say_hello(name):
     """Say hello to a name"""
     print(f"hello {name}")
 
 
-@demotasks.register(name="taskdemo.hello", retry=Retry(times=5, on=(KeyError,)))
+@demotasks.register(name="demos.broken", retry=Retry(times=5, on=(KeyError,)))
 def broken(runtime: str):
     """Do something or raise an error"""
     if runtime == "boom":

@@ -1270,6 +1270,10 @@ for queue in CELERY_QUEUES:
     queue.durable = False
 
 
+TASKWORKER_IMPORTS = (
+    "sentry.taskdemo",
+)
+
 # Queues that belong to the processing pipeline and need to be monitored
 # for backpressure management
 PROCESSING_QUEUES = [
