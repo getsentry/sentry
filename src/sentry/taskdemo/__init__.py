@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from sentry.taskworker.config import taskregistry
 
 demotasks = taskregistry.create_namespace(
@@ -7,4 +9,5 @@ demotasks = taskregistry.create_namespace(
 
 @demotasks.register(name="taskdemo.hello")
 def say_hello(name):
+    """Say hello to a name"""
     print(f"hello {name}")
