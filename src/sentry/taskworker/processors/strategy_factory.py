@@ -54,11 +54,18 @@ class StrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
                 partition=1,
                 # TODO: idk how to get offset
                 offset=1,
-                state="PENDING",
+                state=PendingTasks.States.PENDING,
                 # TODO: i think the sample message's type is not matching the db, hardcoding rn
                 # received_at=m["received_at"],
                 received_at=datetime(2023, 8, 19, 12, 30, 0),
-                retry_state=m["retry_state"],
+                retry_attempts=m["retry_state"]["attempts"] if m["retry_state"] else None,
+                retry_kind=m["retry_state"]["kind"] if m["retry_state"] else None,
+                discard_after_attempt=m["retry_state"]["discard_after_attempt"]
+                if m["retry_state"]
+                else None,
+                deadletter_after_attempt=m["retry_state"]["deadletter_after_attempt"]
+                if m["retry_state"]
+                else None,
                 # not sure what this field should be, arbitrary value for now
                 deadletter_at=datetime(2023, 8, 19, 12, 30, 0),
                 processing_deadline=m["deadline"],

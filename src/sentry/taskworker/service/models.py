@@ -1,8 +1,6 @@
 from datetime import datetime
 from typing import Any
 
-import orjson
-
 from sentry.hybridcloud.rpc import RpcModel
 from sentry.taskworker.models import PendingTasks
 
@@ -18,7 +16,7 @@ class RpcTask(RpcModel):
     received_at: datetime
     added_at: datetime
     deadletter_at: datetime
-    processing_deadline: datetime
+    processing_deadline: datetime | None
     retry_attempts: int
     retry_kind: str | None
     deadletter_after_attempt: int | None
@@ -26,19 +24,16 @@ class RpcTask(RpcModel):
 
 
 def serialize_task(pending_task: PendingTasks) -> RpcTask:
-    params = orjson.loads(pending_task.parameters) if pending_task.parameters is not None else None
-    headers = orjson.loads(pending_task.headers) if pending_task.headers is not None else None
-
     return RpcTask(
         id=pending_task.id,
         topic=pending_task.topic,
         partition=pending_task.partition,
         task_name=pending_task.task_name,
-        parameters=params,
+        parameters=pending_task.parameters,
         offset=pending_task.offset,
         state=pending_task.state,
         received_at=pending_task.received_at,
-        headers=headers,
+        headers=pending_task.headers,
         added_at=pending_task.added_at,
         deadletter_at=pending_task.deadletter_at,
         processing_deadline=pending_task.processing_deadline,

@@ -1,7 +1,11 @@
+import logging
+
 from django.db import router, transaction
 
 from sentry.taskworker.models import PendingTasks
 from sentry.taskworker.service.models import RpcTask, serialize_task
+
+logger = logging.getLogger("sentry.taskworker")
 
 
 class TaskService:
@@ -14,7 +18,7 @@ class TaskService:
     """
 
     def get_task(self, *, partition: int | None = None, topic: str | None = None) -> RpcTask | None:
-
+        logger.info("getting_latest_tasks", extra={"partition": partition, "topic": topic})
         with transaction.atomic(using=router.db_for_write(PendingTasks)):
             query_set = PendingTasks.objects.filter(
                 state__in=[PendingTasks.States.PENDING, PendingTasks.States.RETRY]
