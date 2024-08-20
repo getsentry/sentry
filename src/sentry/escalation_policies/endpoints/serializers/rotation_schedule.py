@@ -88,6 +88,7 @@ class RotationScheduleLayerSerializerResponse(TypedDict, total=False):
     schedule_layer_restrictions: dict
     start_time: datetime
     users: RpcUser
+    rotation_periods: list[RotationPeriod]
 
 
 class RotationScheduleSerializerResponse(TypedDict, total=False):
@@ -157,6 +158,9 @@ class RotationScheduleSerializer(Serializer):
                         schedule_layer_restrictions=layer.schedule_layer_restrictions,
                         start_time=layer.start_date,
                         users=ordered_users,
+                        rotation_periods=coalesce_schedule_layers(
+                            [layer], self.start_date, self.end_date
+                        ),
                     )
                 )
             coalesced_rotation_periods = coalesce_schedule_layers(
