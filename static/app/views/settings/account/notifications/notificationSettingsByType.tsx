@@ -158,7 +158,7 @@ class NotificationSettingsByTypeV2 extends DeprecatedAsyncComponent<Props, State
 
   isProviderSupported = (provider: SupportedProviders) => {
     // email is always possible
-    if (provider === 'email') {
+    if (provider === 'email' || provider === 'in_app') {
       return true;
     }
     return this.getLinkedOrgs(provider).length > 0;

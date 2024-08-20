@@ -1,6 +1,7 @@
 import {t} from 'sentry/locale';
 
 export const ALL_PROVIDERS = {
+  in_app: 'default',
   email: 'default',
   slack: 'never',
   msteams: 'never',
@@ -18,8 +19,14 @@ export const VALUE_MAPPING = {
   committed_only: 40,
 };
 
-export const SUPPORTED_PROVIDERS = ['email', 'slack', 'msteams'] as const;
+export const SUPPORTED_PROVIDERS = ['in_app', 'email', 'slack', 'msteams'] as const;
 export type SupportedProviders = (typeof SUPPORTED_PROVIDERS)[number];
+export const SUPPORTED_PROVIDERS_AS_CHOICES: [SupportedProviders, string][] = [
+  ['email', t('Email')],
+  ['in_app', t('In-App')],
+  ['slack', t('Slack')],
+  ['msteams', t('Microsoft Teams')],
+];
 
 export const MIN_PROJECTS_FOR_CONFIRMATION = 3;
 export const MIN_PROJECTS_FOR_SEARCH = 3;
