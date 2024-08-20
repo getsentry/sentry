@@ -281,6 +281,20 @@ class EscalationPolicyParams:
         type=int,
         description="The ID of the escalation policy you'd like to query.",
     )
+    ESCALATION_POLICY_STATE_ID = OpenApiParameter(
+        name="escalation_policy_state_id",
+        location="path",
+        required=True,
+        type=int,
+        description="The ID of the escalation policy stateyou'd like to query.",
+    )
+    ESCALATION_STATE = OpenApiParameter(
+        name="state",
+        location="query",
+        required=False,
+        type=str,
+        description="The value of the escalation policy state to filter by. One of:`resolved`, `acknowledged`, `unacknowledged`.",
+    )
 
 
 class RotationScheduleParams:

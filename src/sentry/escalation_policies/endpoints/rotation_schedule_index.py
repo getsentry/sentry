@@ -12,6 +12,7 @@ from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint, OrganizationPermission
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers.base import serialize
+from sentry.api.utils import get_date_range_from_stats_period
 from sentry.apidocs.constants import RESPONSE_FORBIDDEN, RESPONSE_NOT_FOUND, RESPONSE_UNAUTHORIZED
 from sentry.apidocs.examples.rotation_schedule_examples import RotationScheduleExamples
 from sentry.apidocs.parameters import GlobalParams
@@ -36,7 +37,7 @@ class OrganizationRotationScheduleIndexEndpoint(OrganizationEndpoint):
 
     @extend_schema(
         operation_id="List an Organization's Rotation Schedules",
-        parameters=[GlobalParams.ORG_ID_OR_SLUG],
+        parameters=[GlobalParams.ORG_ID_OR_SLUG, GlobalParams.START, GlobalParams.END],
         request=None,
         responses={
             200: inline_sentry_response_serializer(
@@ -55,7 +56,10 @@ class OrganizationRotationScheduleIndexEndpoint(OrganizationEndpoint):
         queryset = RotationSchedule.objects.filter(
             organization_id=organization.id,
         )
-        serializer = RotationScheduleSerializer()
+
+        start, end = get_date_range_from_stats_period(params=request.GET)
+
+        serializer = RotationScheduleSerializer(start_date=start, end_date=end)
 
         return self.paginate(
             request=request,

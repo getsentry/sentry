@@ -1,4 +1,5 @@
 from django.db import models
+from django.utils import timezone
 from django.utils.translation import gettext_lazy
 
 from sentry.escalation_policies.models.escalation_policy import EscalationPolicy
@@ -9,6 +10,10 @@ class EscalationPolicyStateType(models.TextChoices):
     UNACKNOWLEDGED = "unacknowledged", gettext_lazy("Unacknowledged")
     ACKNOWLEDGED = "acknowledged", gettext_lazy("Acknowledged")
     RESOLVED = "resolved", gettext_lazy("Resolved")
+
+    @classmethod
+    def get_choices(cls) -> list[tuple[str, str]]:
+        return [(key.value, key.name) for key in cls]
 
 
 class EscalationPolicyState(models.Model):
@@ -25,6 +30,8 @@ class EscalationPolicyState(models.Model):
     run_step_n = models.PositiveIntegerField(null=True)
     run_step_at = models.DateTimeField(null=True)
     state = models.CharField(max_length=32, choices=EscalationPolicyStateType.choices)
+    date_added = models.DateTimeField(default=timezone.now)
+    date_updated = models.DateTimeField(default=timezone.now)
 
     class Meta:
         app_label = "sentry"

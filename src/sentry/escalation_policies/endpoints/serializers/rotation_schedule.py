@@ -1,10 +1,11 @@
-from datetime import datetime, timezone
+from datetime import UTC, datetime, timedelta
 from typing import TypedDict
 
 from django.db import router, transaction
 from rest_framework import serializers
 
 from sentry.api.serializers.base import Serializer, register
+from sentry.escalation_policies.logic import RotationPeriod, coalesce_schedule_layers
 from sentry.escalation_policies.models.rotation_schedule import (
     RotationSchedule,
     RotationScheduleLayer,
@@ -20,7 +21,7 @@ class RotationScheduleLayerPutSerializer(serializers.Serializer):
     rotation_type = serializers.CharField(max_length=256, required=True)
     handoff_time = serializers.CharField(max_length=32, required=True)
     schedule_layer_restrictions = serializers.JSONField()
-    start_time = serializers.DateTimeField(required=True)
+    start_date = serializers.DateTimeField(required=True)
     user_ids = serializers.ListField(child=serializers.IntegerField(), required=False)
 
 
@@ -74,7 +75,7 @@ class RotationSchedulePutSerializer(serializers.Serializer):
                     rotation_type=layer["rotation_type"],
                     handoff_time=layer["handoff_time"],
                     schedule_layer_restrictions=layer["schedule_layer_restrictions"],
-                    start_time=layer["start_time"],
+                    start_date=layer["start_date"],
                 )
                 for j, user_id in enumerate(layer["user_ids"]):
                     orm_layer.user_orders.create(user_id=user_id, order=j)
@@ -87,6 +88,7 @@ class RotationScheduleLayerSerializerResponse(TypedDict, total=False):
     schedule_layer_restrictions: dict
     start_time: datetime
     users: RpcUser
+    rotation_periods: list[RotationPeriod]
 
 
 class RotationScheduleSerializerResponse(TypedDict, total=False):
@@ -97,12 +99,20 @@ class RotationScheduleSerializerResponse(TypedDict, total=False):
     # Owner
     team_id: int | None
     user_id: int | None
+    coalesced_rotation_periods: list[RotationPeriod]
 
 
 @register(RotationSchedule)
 class RotationScheduleSerializer(Serializer):
-    def __init__(self, expand=None):
-        self.expand = expand or []
+    def __init__(self, start_date=None, end_date=None):
+        super().__init__()
+        self.start_date = start_date
+        self.end_date = end_date
+        if start_date is None:
+            self.start_date = datetime.combine(
+                datetime.now(tz=UTC), datetime.min.time(), tzinfo=UTC
+            )
+            self.end_date = self.start_date + timedelta(days=7)
 
     def get_attrs(self, item_list, user, **kwargs):
         results = super().get_attrs(item_list, user)
@@ -115,7 +125,8 @@ class RotationScheduleSerializer(Serializer):
         ).all()
         overrides = RotationScheduleOverride.objects.filter(
             rotation_schedule__in=item_list,
-            end_time__gte=datetime.now(tz=timezone.utc),
+            start_time__lte=self.end_date,
+            end_time__gte=self.start_date,
         ).all()
         owning_user_ids = [i.user_id for i in item_list if i.user_id]
         owning_team_ids = [i.team_id for i in item_list if i.team_id]
@@ -145,15 +156,21 @@ class RotationScheduleSerializer(Serializer):
                         rotation_type=layer.rotation_type,
                         handoff_time=layer.handoff_time,
                         schedule_layer_restrictions=layer.schedule_layer_restrictions,
-                        start_time=layer.start_time,
+                        start_time=layer.start_date,
                         users=ordered_users,
+                        rotation_periods=coalesce_schedule_layers(
+                            [layer], self.start_date, self.end_date
+                        ),
                     )
                 )
-
+            coalesced_rotation_periods = coalesce_schedule_layers(
+                schedule.layers.all(), self.start_date, self.end_date
+            )
             results[schedule] = {
                 "team": teams.get(schedule.team_id),
                 "user": users.get(schedule.user_id),
                 "layers": layers_attr,
+                "coalesced_rotation_periods": coalesced_rotation_periods,
             }
         return results
 
@@ -165,4 +182,5 @@ class RotationScheduleSerializer(Serializer):
             layers=attrs["layers"],
             team=attrs["team"],
             user=attrs["user"],
+            coalesced_rotation_periods=attrs["coalesced_rotation_periods"],
         )

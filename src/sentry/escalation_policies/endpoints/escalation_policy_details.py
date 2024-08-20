@@ -59,9 +59,6 @@ class OrganizationEscalationPolicyDetailsEndpoint(OrganizationEndpoint):
         """
         Return a single escalation policy
         """
-        escalation_policy = EscalationPolicy.objects.get(
-            organization_id=organization.id,
-        )
         serializer = EscalationPolicySerializer()
 
         return Response(serialize(escalation_policy, serializer))

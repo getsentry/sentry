@@ -11,6 +11,7 @@ from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint, OrganizationPermission
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.serializers import serialize
+from sentry.api.utils import get_date_range_from_stats_period
 from sentry.apidocs.constants import RESPONSE_FORBIDDEN, RESPONSE_NOT_FOUND, RESPONSE_UNAUTHORIZED
 from sentry.apidocs.examples.rotation_schedule_examples import RotationScheduleExamples
 from sentry.apidocs.parameters import GlobalParams, RotationScheduleParams
@@ -46,7 +47,12 @@ class OrganizationRotationScheduleDetailsEndpoint(OrganizationEndpoint):
 
     @extend_schema(
         operation_id="Get an Rotation Schedule",
-        parameters=[GlobalParams.ORG_ID_OR_SLUG, RotationScheduleParams.ROTATION_SCHEDULE_ID],
+        parameters=[
+            GlobalParams.ORG_ID_OR_SLUG,
+            RotationScheduleParams.ROTATION_SCHEDULE_ID,
+            GlobalParams.START,
+            GlobalParams.END,
+        ],
         request=None,
         responses={
             200: RotationScheduleSerializerResponse,
@@ -63,9 +69,10 @@ class OrganizationRotationScheduleDetailsEndpoint(OrganizationEndpoint):
         rotation_schedule = RotationSchedule.objects.get(
             organization_id=organization.id,
         )
-        serializer = RotationScheduleSerializer()
+        start, end = get_date_range_from_stats_period(params=request.GET)
+        serializer = RotationScheduleSerializer(start_date=start, end_date=end)
 
-        return Response(serialize(rotation_schedule, serializer))
+        return Response(serialize(rotation_schedule, serializer=serializer))
 
     @extend_schema(
         operation_id="Delete an Rotation Schedule for an Organization",

@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import UTC, datetime
 from typing import TypedDict
 
 from django.conf import settings
@@ -26,7 +26,7 @@ class RotationSchedule(Model):
     __relocation_scope__ = RelocationScope.Organization
 
     organization = models.ForeignKey(Organization, on_delete=models.CASCADE)
-    name = models.CharField(max_length=256, unique=True)
+    name = models.CharField(max_length=256)
     # Owner is team or user
     team = FlexibleForeignKey(
         "sentry.Team", null=True, on_delete=models.SET_NULL, related_name="schedules"
@@ -36,6 +36,7 @@ class RotationSchedule(Model):
     class Meta:
         app_label = "sentry"
         db_table = "sentry_rotation_schedule"
+        unique_together = (("organization", "name"),)
 
 
 class RotationScheduleLayerRotationType(models.TextChoices):
@@ -135,4 +136,4 @@ class RotationScheduleOverride(Model):
         db_table = "sentry_rotation_schedule_override"
 
 
-DEFAULT_ROTATION_START_TIME = datetime(2024, 1, 1)
+DEFAULT_ROTATION_START_TIME = datetime(2024, 1, 1, tzinfo=UTC)

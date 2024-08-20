@@ -23,7 +23,7 @@ class RotationScheduleCreateTest(APITestCase):
         response = self.client.get(url)
         assert response.status_code == 200, response.content
         assert len(response.data) == 1
-        assert response.data[0]["id"] == str(schedule.id)
+        assert response.data[0]["id"] == schedule.id
 
     def test_new(self):
         self.login_as(user=self.user)
@@ -46,8 +46,8 @@ class RotationScheduleCreateTest(APITestCase):
                 "schedule_layers": [
                     {
                         "rotation_type": "weekly",
-                        "handoff_time": "0 4 * * 1",
-                        "start_time": "2024-01-01T00:00:00+00:00",
+                        "handoff_time": "04:00",
+                        "start_date": "2024-01-01T00:00:00+00:00",
                         "schedule_layer_restrictions": {
                             "Sun": [],
                             "Mon": [["08:00", "17:00"]],
@@ -99,8 +99,8 @@ class RotationScheduleCreateTest(APITestCase):
                 "schedule_layers": [
                     {
                         "rotation_type": "weekly",
-                        "handoff_time": "0 4 * * 1",
-                        "start_time": "2024-01-01T00:00:00+00:00",
+                        "handoff_time": "04:00",
+                        "start_date": "2024-01-01T00:00:00+00:00",
                         "schedule_layer_restrictions": {
                             "Sun": [],
                             "Mon": [["08:00", "17:00"]],
