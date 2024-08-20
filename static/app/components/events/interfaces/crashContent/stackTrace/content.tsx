@@ -2,14 +2,26 @@ import {cloneElement, Fragment, useState} from 'react';
 import styled from '@emotion/styled';
 
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
+import {Button} from 'sentry/components/button';
+import {
+  CodeWrapper,
+  ContextLineCode,
+  ContextLineWrapper,
+} from 'sentry/components/events/interfaces/frame/context';
+import ContextLineNumber from 'sentry/components/events/interfaces/frame/contextLineNumber';
+import {usePrismTokensSourceContext} from 'sentry/components/events/interfaces/frame/usePrismTokensSourceContext';
 import type {FrameSourceMapDebuggerData} from 'sentry/components/events/interfaces/sourceMapsDebuggerModal';
 import Panel from 'sentry/components/panels/panel';
+import {StructuredData} from 'sentry/components/structuredEventData';
+import {IconNext, IconPrevious, IconTimer} from 'sentry/icons';
 import {t} from 'sentry/locale';
+import {space} from 'sentry/styles/space';
 import type {Event, Frame} from 'sentry/types/event';
 import type {Organization} from 'sentry/types/organization';
 import type {PlatformKey} from 'sentry/types/project';
 import type {StackTraceMechanism, StacktraceType} from 'sentry/types/stacktrace';
 import {defined} from 'sentry/utils';
+import {getFileExtension} from 'sentry/utils/fileExtension';
 import withOrganization from 'sentry/utils/withOrganization';
 
 import type {DeprecatedLineProps} from '../../frame/deprecatedLine';
@@ -29,6 +41,16 @@ type DefaultProps = {
   expandFirstFrame: boolean;
   includeSystemFrames: boolean;
 };
+
+interface TimeTravelerStep {
+  colno: number;
+  filename: string;
+  line: string;
+  lineno: number;
+  post_lines: string[];
+  pre_lines: string[];
+  vars: Record<string, unknown>;
+}
 
 type Props = {
   data: StacktraceType;
@@ -66,6 +88,7 @@ function Content({
   frameSourceMapDebuggerData,
   hideSourceMapDebugger,
 }: Props) {
+  const [inTimetravelMode, setInTimetravelMode] = useState(false);
   const [showingAbsoluteAddresses, setShowingAbsoluteAddresses] = useState(false);
   const [showCompleteFunctionName, setShowCompleteFunctionName] = useState(false);
   const [toggleFrameMap, setToggleFrameMap] = useState(setInitialFrameMap());
@@ -298,22 +321,248 @@ function Content({
 
   const platformIcon = stackTracePlatformIcon(platform, data.frames ?? []);
 
+  const timetravelSteps:
+    | undefined
+    | {
+        colno: number;
+        filename: string;
+        line: string;
+        lineno: number;
+        post_lines: string[];
+        pre_lines: string[];
+        vars: Record<string, unknown>;
+
+        // @ts-ignore
+      }[] = event.contexts.timetravel?.steps;
+
   return (
-    <Wrapper>
-      {!hideIcon && <StacktracePlatformIcon platform={platformIcon} />}
-      <StackTraceContentPanel
-        className={wrapperClassName}
-        data-test-id="stack-trace-content"
-      >
-        <GuideAnchor target="stack_trace">
-          <StyledList data-test-id="frames">
-            {!newestFirst ? convertedFrames : [...convertedFrames].reverse()}
-          </StyledList>
-        </GuideAnchor>
-      </StackTraceContentPanel>
-    </Wrapper>
+    <Fragment>
+      {inTimetravelMode && timetravelSteps && (
+        <TimeTraveler
+          steps={timetravelSteps}
+          onBack={() => {
+            setInTimetravelMode(false);
+          }}
+        />
+      )}
+      {!inTimetravelMode && timetravelSteps && (
+        <Fragment>
+          <TimeMachineControls>
+            <NavButton
+              size="xs"
+              priority="default"
+              onClick={() => {
+                setInTimetravelMode(true);
+              }}
+              icon={<IconTimer size="sm" />}
+            >
+              Enter Time Machine
+            </NavButton>
+          </TimeMachineControls>
+          <Wrapper>
+            {!hideIcon && <StacktracePlatformIcon platform={platformIcon} />}
+            <StackTraceContentPanel
+              className={wrapperClassName}
+              data-test-id="stack-trace-content"
+            >
+              <GuideAnchor target="stack_trace">
+                <StyledList data-test-id="frames">
+                  {!newestFirst ? convertedFrames : [...convertedFrames].reverse()}
+                </StyledList>
+              </GuideAnchor>
+            </StackTraceContentPanel>
+          </Wrapper>
+        </Fragment>
+      )}
+    </Fragment>
   );
 }
+
+function TimeTraveler({steps, onBack}: {steps: TimeTravelerStep[]; onBack?: () => void}) {
+  const [timetravelStep, setTimetravelStep] = useState(0);
+
+  const currentStep = steps[timetravelStep];
+
+  const contextLines = [
+    ...currentStep.pre_lines.map((preLine, i, arr) => {
+      return [currentStep.lineno + 1 - (arr.length - i), preLine];
+    }),
+    [currentStep.lineno + 1, currentStep.line],
+    ...currentStep.post_lines.map((postLine, i) => {
+      return [currentStep.lineno + 2 + i, postLine];
+    }),
+  ] as Array<[number, string]>;
+
+  const fileExtension = getFileExtension(currentStep.filename || '') ?? '';
+  const lines = usePrismTokensSourceContext({
+    contextLines,
+    lineNo: currentStep.lineno,
+    fileExtension,
+  });
+
+  const prismClassName = fileExtension ? `language-${fileExtension}` : '';
+
+  return (
+    <Fragment>
+      <TimeTravelerControlsWrapper>
+        <NavButton size="xs" priority="default" onClick={onBack}>
+          Go back to boring Stack Trace
+        </NavButton>
+        <TimeTravelerControls>
+          Time Travel Controls:
+          <TimeTravelerButton
+            size="zero"
+            priority="default"
+            disabled={timetravelStep === 0}
+            onClick={() => {
+              setTimetravelStep(s => s - 1);
+            }}
+          >
+            <IconPrevious size="xs" />
+          </TimeTravelerButton>
+          <TimeTravelerButton
+            size="zero"
+            priority="default"
+            disabled={timetravelStep === steps.length - 1}
+            onClick={() => {
+              setTimetravelStep(s => s + 1);
+            }}
+          >
+            <IconNext size="xs" />
+          </TimeTravelerButton>
+        </TimeTravelerControls>
+      </TimeTravelerControlsWrapper>
+      <TimeTravelerContainer>
+        <CodeSide>
+          <FileName>{currentStep.filename}</FileName>
+          <TimeTravelerCodeWrapper className={prismClassName}>
+            <pre className={prismClassName}>
+              <code className={prismClassName}>
+                {lines.map((line, i) => {
+                  const contextLine = contextLines[i];
+                  const isActive = currentStep.lineno + 1 === contextLine[0];
+
+                  return (
+                    <Fragment key={i}>
+                      <ContextLineWrapper isActive={isActive} data-test-id="context-line">
+                        <ContextLineNumber
+                          lineNumber={contextLine[0]}
+                          isActive={isActive}
+                        />
+                        <ContextLineCode>
+                          {line.map((token, key) => (
+                            <span key={key} className={token.className}>
+                              {token.children}
+                            </span>
+                          ))}
+                        </ContextLineCode>
+                      </ContextLineWrapper>
+                    </Fragment>
+                  );
+                })}
+              </code>
+            </pre>
+          </TimeTravelerCodeWrapper>
+        </CodeSide>
+        <TimeTravelerVariablesContainer>
+          {Object.entries(currentStep.vars).length === 0 ? (
+            <NoLocalVariables>No local variables</NoLocalVariables>
+          ) : null}
+          {Object.entries(currentStep.vars).map(([key, value]) => {
+            return (
+              <Fragment key={key}>
+                <span>{key}:</span>
+                <StructuredData
+                  value={value}
+                  maxDefaultDepth={0}
+                  meta={{}}
+                  withAnnotatedText
+                  withOnlyFormattedText
+                  forceDefaultExpand
+                />
+              </Fragment>
+            );
+          })}
+        </TimeTravelerVariablesContainer>
+      </TimeTravelerContainer>
+    </Fragment>
+  );
+}
+
+const NavButton = styled(Button)`
+  padding: ${space(1)} ${space(1)};
+  font-size: ${p => p.theme.fontSizeSmall};
+`;
+
+const CodeSide = styled('div')`
+  border-right: 1px ${p => 'solid ' + p.theme.border};
+  flex-grow: 1;
+`;
+
+const NoLocalVariables = styled('span')`
+  color: ${p => p.theme.gray400};
+`;
+
+const FileName = styled('div')`
+  background-color: ${p => p.theme.backgroundSecondary};
+  border-bottom: 1px ${p => 'solid ' + p.theme.border};
+  font-size: ${p => p.theme.fontSizeSmall};
+  display: flex;
+  align-items: center;
+  padding: ${space(0.75)} 8px;
+`;
+
+const TimeTravelerButton = styled(Button)`
+  padding: ${space(1)} ${space(1)};
+  font-size: ${p => p.theme.fontSizeSmall};
+`;
+
+const TimeTravelerControls = styled('div')`
+  font-size: ${p => p.theme.fontSizeSmall};
+  align-items: center;
+  display: flex;
+  gap: ${space(0.75)};
+`;
+
+const TimeMachineControls = styled('div')`
+  align-items: center;
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: ${space(1)};
+  margin-top: ${space(2)};
+`;
+
+const TimeTravelerControlsWrapper = styled('div')`
+  align-items: center;
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: ${space(1)};
+  margin-top: ${space(2)};
+`;
+
+const TimeTravelerCodeWrapper = styled(CodeWrapper)``;
+
+const TimeTravelerContainer = styled(Panel)`
+  position: relative;
+  border-radius: 6px;
+  overflow: hidden;
+  display: flex;
+`;
+
+const TimeTravelerVariablesContainer = styled('div')`
+  width: 260px;
+  height: 100%;
+  overflow-y: auto;
+  overflow-x: auto;
+  background-color: ${p => p.theme.background};
+  padding: ${space(1)} 12px;
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  font-size: ${p => p.theme.fontSizeSmall};
+  grid-column-gap: 8px;
+  grid-row-gap: 2px;
+  font-family: ${p => p.theme.text.familyMono};
+`;
 
 const Wrapper = styled('div')`
   position: relative;

@@ -225,7 +225,7 @@ const Wrapper = styled('ol')<{startLineNo: number}>`
   }
 `;
 
-const CodeWrapper = styled('div')`
+export const CodeWrapper = styled('div')`
   position: relative;
   padding: 0;
 
@@ -241,7 +241,7 @@ const CodeWrapper = styled('div')`
   }
 `;
 
-const EmptyContext = styled('div')`
+export const EmptyContext = styled('div')`
   display: flex;
   align-items: center;
   gap: ${space(1)};
@@ -250,7 +250,7 @@ const EmptyContext = styled('div')`
   font-size: ${p => p.theme.fontSizeMedium};
 `;
 
-const ContextLineWrapper = styled('div')<{isActive: boolean}>`
+export const ContextLineWrapper = styled('div')<{isActive: boolean}>`
   display: grid;
   grid-template-columns: 58px 1fr;
   gap: ${space(1)};
@@ -259,7 +259,7 @@ const ContextLineWrapper = styled('div')<{isActive: boolean}>`
   padding-right: ${space(2)};
 `;
 
-const ContextLineCode = styled('div')`
+export const ContextLineCode = styled('div')`
   line-height: 24px;
   white-space: pre-wrap;
   vertical-align: middle;
