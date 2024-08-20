@@ -6,14 +6,10 @@ import type {TableDataRow} from 'sentry/utils/discover/discoverQuery';
 import EventView from 'sentry/utils/discover/eventView';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
+import type {ReplayTrace} from 'sentry/views/replays/detail/trace/useReplayTraces';
 import type {ReplayRecord} from 'sentry/views/replays/types';
 
 import {type TraceMetaQueryResults, useTraceMeta} from './useTraceMeta';
-
-export type TraceDataRow = {
-  timestamp: number | undefined;
-  traceSlug: string;
-};
 
 // Fetches the meta data for all the traces in a replay and combines the results.
 export function useReplayTraceMeta(
@@ -72,7 +68,7 @@ export function useReplayTraceMeta(
   );
 
   const traceDataRows = useMemo(() => {
-    const rows: TraceDataRow[] = [];
+    const rows: ReplayTrace[] = [];
 
     for (const row of eventsData?.data ?? []) {
       if (row.trace) {

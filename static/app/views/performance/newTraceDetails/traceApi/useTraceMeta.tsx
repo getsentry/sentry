@@ -13,8 +13,7 @@ import {decodeScalar} from 'sentry/utils/queryString';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
-
-import type {TraceDataRow} from './useReplayTraceMeta';
+import type {ReplayTrace} from 'sentry/views/replays/detail/trace/useReplayTraces';
 
 type TraceMetaQueryParams =
   | {
@@ -27,7 +26,7 @@ type TraceMetaQueryParams =
     };
 
 function getMetaQueryParams(
-  row: TraceDataRow,
+  row: ReplayTrace,
   normalizedParams: any,
   filters: Partial<PageFilters> = {}
 ): TraceMetaQueryParams {
@@ -45,7 +44,7 @@ function getMetaQueryParams(
 async function fetchSingleTraceMetaNew(
   api: Client,
   organization: Organization,
-  row: TraceDataRow,
+  row: ReplayTrace,
   queryParams: any
 ) {
   const data = await api.requestPromise(
@@ -61,7 +60,7 @@ async function fetchSingleTraceMetaNew(
 async function fetchTraceMetaInBatches(
   api: Client,
   organization: Organization,
-  traceDataRows: TraceDataRow[],
+  traceDataRows: ReplayTrace[],
   normalizedParams: any,
   filters: Partial<PageFilters> = {}
 ) {
@@ -131,7 +130,7 @@ export type TraceMetaQueryResults = {
   status: QueryStatus;
 };
 
-export function useTraceMeta(traceDataRows: TraceDataRow[]): TraceMetaQueryResults {
+export function useTraceMeta(traceDataRows: ReplayTrace[]): TraceMetaQueryResults {
   const filters = usePageFilters();
   const api = useApi();
   const organization = useOrganization();
