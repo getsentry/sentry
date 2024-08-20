@@ -1,9 +1,12 @@
+import itertools
 import logging
 import time
 from datetime import timedelta
 from unittest.mock import Mock, patch
 
 import pytest
+from django.conf import settings
+from django.test import override_settings
 from django.utils import timezone
 from snuba_sdk import Column, Condition, Entity, Op, Query, Request
 
@@ -335,6 +338,59 @@ class SnubaEventStreamTest(TestCase, SnubaTestCase, OccurrenceTestMixin):
         assert ("queue", b"post_process_transactions") in headers
         assert "occurrence_id" not in dict(headers)
         assert body["queue"] == "post_process_transactions"
+
+    @override_settings()
+    @patch("sentry.eventstream.backend.insert", autospec=True)
+    def test_queue_split_router(self, mock_eventstream_insert):
+        queues = [
+            "post_process_transactions-1",
+            "post_process_transactions-2",
+            "post_process_transactions-3",
+        ]
+        queues_gen = itertools.cycle(queues)
+
+        settings.SENTRY_POST_PROCESS_QUEUE_SPLIT_ROUTER = {
+            "post_process_transactions": lambda: next(queues_gen)
+        }
+
+        event = self.__build_transaction_event()
+        event.group_id = None
+        event.groups = [self.group]
+        insert_args = ()
+        group_state = {
+            "is_new_group_environment": True,
+            "is_new": True,
+            "is_regression": False,
+        }
+        insert_kwargs = {
+            "event": event,
+            **group_state,
+            "primary_hash": "acbd18db4cc2f85cedef654fccc4a4d8",
+            "skip_consume": False,
+            "received_timestamp": event.data["received"],
+            "group_states": [{"id": event.groups[0].id, **group_state}],
+        }
+
+        headers, body = self.__produce_payload(*insert_args, **insert_kwargs)
+        assert body["queue"] == "post_process_transactions-1"
+        headers, body = self.__produce_payload(*insert_args, **insert_kwargs)
+        assert body["queue"] == "post_process_transactions-2"
+        headers, body = self.__produce_payload(*insert_args, **insert_kwargs)
+        assert body["queue"] == "post_process_transactions-3"
+        headers, body = self.__produce_payload(*insert_args, **insert_kwargs)
+        assert body["queue"] == "post_process_transactions-1"
+
+        # test default assignment
+        insert_kwargs = {
+            "event": self.__build_event(timezone.now()),
+            **group_state,
+            "primary_hash": "acbd18db4cc2f85cedef654fccc4a4d8",
+            "skip_consume": False,
+            "received_timestamp": event.data["received"],
+            "group_states": [{"id": event.groups[0].id, **group_state}],
+        }
+        headers, body = self.__produce_payload(*insert_args, **insert_kwargs)
+        assert body["queue"] == "post_process_errors"
 
     @patch("sentry.eventstream.backend.insert", autospec=True)
     def test_issue_platform_queue(self, mock_eventstream_insert):

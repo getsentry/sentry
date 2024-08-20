@@ -3522,3 +3522,7 @@ if SILO_DEVSERVER:
         SENTRY_WEB_PORT = int(bind[1])
 
     CELERYBEAT_SCHEDULE_FILENAME = f"celerybeat-schedule-{SILO_MODE}"
+
+
+# tmp(michal): Default configuration for post_process* queueus split
+SENTRY_POST_PROCESS_QUEUE_SPLIT_ROUTER: dict[str, Callable[[], str]] = {}
