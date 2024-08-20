@@ -692,10 +692,10 @@ def snapshot_alert_rule(alert_rule: AlertRule, user: RpcUser | None = None) -> N
         triggers = AlertRuleTrigger.objects.filter(alert_rule=alert_rule)
         incidents = Incident.objects.filter(alert_rule=alert_rule)
         snuba_query_snapshot: SnubaQuery = deepcopy(_unpack_snuba_query(alert_rule))
-        snuba_query_snapshot.id = None
+        snuba_query_snapshot.id = None  # type: ignore[assignment]
         snuba_query_snapshot.save()
         alert_rule_snapshot = deepcopy(alert_rule)
-        alert_rule_snapshot.id = None
+        alert_rule_snapshot.id = None  # type: ignore[assignment]
         alert_rule_snapshot.status = AlertRuleStatus.SNAPSHOT.value
         alert_rule_snapshot.snuba_query = snuba_query_snapshot
         if alert_rule.user_id or alert_rule.team_id:
@@ -713,11 +713,11 @@ def snapshot_alert_rule(alert_rule: AlertRule, user: RpcUser | None = None) -> N
 
         for trigger in triggers:
             actions = AlertRuleTriggerAction.objects.filter(alert_rule_trigger=trigger)
-            trigger.id = None
+            trigger.id = None  # type: ignore[assignment]
             trigger.alert_rule = alert_rule_snapshot
             trigger.save()
             for action in actions:
-                action.id = None
+                action.id = None  # type: ignore[assignment]
                 action.alert_rule_trigger = trigger
                 action.save()
 
