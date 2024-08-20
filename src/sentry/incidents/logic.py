@@ -389,7 +389,7 @@ def _calculate_incident_time_range(
 
             start = end - timedelta(seconds=time_window * WINDOWED_STATS_DATA_POINTS)
 
-    retention = quotas.get_event_retention(organization=incident.organization) or 90
+    retention = quotas.get_event_retention(organization=incident.organization) or 90  # type: ignore[attr-defined]
     start = max(
         start.replace(tzinfo=timezone.utc),
         datetime.now(timezone.utc) - timedelta(days=retention),
@@ -610,7 +610,8 @@ def create_alert_rule(
             sensitivity=sensitivity,
             seasonality=seasonality,
             detection_type=detection_type,
-        )
+        )  # type: ignore[misc]
+        # Ignore assigning owner (a settable property) in the `create` call
 
         if include_all_projects:
             # NOTE: This feature is not currently utilized.
@@ -1405,7 +1406,8 @@ def create_alert_rule_trigger_action(
         integration_id=integration_id,
         sentry_app_id=sentry_app_id,
         sentry_app_config=sentry_app_config,
-    )
+    )  # type: ignore[misc]
+    # Ignore assigning sentry_app_config (dict[str, Any]) as JSONField
 
 
 def update_alert_rule_trigger_action(
