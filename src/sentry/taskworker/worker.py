@@ -63,11 +63,17 @@ class Worker:
             task_meta(*task_data.parameters["args"], **task_data.parameters["kwargs"])
             next_state = PendingTasks.States.COMPLETE
         except Exception as err:
-            logging.info("Task failed to execute %s", err)
+            logging.info("taskworker.task_errored", extra={"error": str(err)})
             # TODO check retry policy
             if task_meta.should_retry(task_data.retry_state, err):
+                logging.info("taskworker.task.retry", extra={"task": task_data.task_name})
                 next_state = PendingTasks.States.RETRY
         if next_state == PendingTasks.States.COMPLETE:
+            logging.info("taskworker.task.complete", extra={"task": task_data.task_name})
             task_service.complete_task(task_id=task_data.id)
         else:
+            logging.info(
+                "taskworker.task.change_status",
+                extra={"task": task_data.task_name, "state": next_state},
+            )
             task_service.set_task_status(task_id=task_data.id, task_status=next_state)
