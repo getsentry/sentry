@@ -4,6 +4,9 @@ import dataclasses
 from collections.abc import Sequence
 from typing import Any
 
+from sentry.taskworker.models import PendingTasks
+from sentry.taskworker.service.models import RpcTask
+
 
 @dataclasses.dataclass
 class RetryState:
@@ -16,6 +19,15 @@ class RetryState:
 
     def to_dict(self) -> dict[str, Any]:
         return dataclasses.asdict(self)
+
+    @classmethod
+    def from_task(cls, task: PendingTasks | RpcTask) -> RetryState:
+        return cls(
+            attempts=task.retry_attempts,
+            discard_after_attempt=task.discard_after_attempt,
+            deadletter_after_attempt=task.deadletter_after_attempt,
+            kind=task.retry_kind,
+        )
 
 
 class Retry:

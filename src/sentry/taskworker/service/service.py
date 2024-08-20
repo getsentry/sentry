@@ -1,7 +1,7 @@
 from django.db import router, transaction
 
 from sentry.taskworker.models import PendingTasks
-from sentry.taskworker.service.models import RpcRetryState, RpcTask, serialize_task
+from sentry.taskworker.service.models import RpcTask, serialize_task
 
 
 class TaskService:
@@ -44,12 +44,10 @@ class TaskService:
                     return serialize_task(task)
 
                 task.update(state=task_status)
-                if task_status == PendingTasks.States.RETRY and task.retry_state is not None:
-                    task_retry_state = RpcRetryState.deserialize_from_dict(task.retry_state)
-                    task_retry_state.attempts += 1
-                    task.update(retry_state=task_retry_state.json())
+                if task_status == PendingTasks.States.RETRY:
+                    task.update(retry_attempts=task.retry_attempts + 1)
 
-                return serialize_task(task)
+            return serialize_task(task)
         except PendingTasks.DoesNotExist:
             return None
 

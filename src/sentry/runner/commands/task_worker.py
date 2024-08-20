@@ -15,31 +15,28 @@ from sentry.runner.decorators import configuration
 )
 @configuration
 def task_worker(generate_empty_task) -> None:
+    from sentry.taskdemo import demotasks
     from sentry.taskworker.models import PendingTasks
-    from sentry.taskworker.sample_task import namespace
 
     if generate_empty_task:
-        from sentry.taskworker.service.models import RpcRetryState
-
         PendingTasks(
-            topic="foobar",
-            task_name="do_not_foo_the_bars",
-            parameters=orjson.dumps({"args": [], "kwargs": {}}),
-            task_namespace="hackweek",
+            topic=demotasks.topic,
+            task_name="demos.broken",
+            parameters=orjson.dumps({"args": ["safeboom"], "kwargs": {}}),
+            task_namespace=demotasks.name,
+            headers=orjson.dumps(dict(foo="bar", baz="bufo")),
             partition=1,
             offset=1,
             received_at=datetime.now(),
             state=PendingTasks.States.PENDING,
             deadletter_at=datetime.now(),
             processing_deadline=datetime.now(),
-            retry_state=RpcRetryState(
-                attempts=1,
-                discard_after_attempt=None,
-                deadletter_after_attempt=2,
-                kind=None,
-            ).json(),
+            retry_attempts=1,
+            discard_after_attempt=None,
+            deadletter_after_attempt=2,
+            retry_kind=None,
         ).save()
 
     from sentry.taskworker.worker import Worker
 
-    Worker(namespace=namespace.name).start()
+    Worker(namespace=demotasks.name).start()

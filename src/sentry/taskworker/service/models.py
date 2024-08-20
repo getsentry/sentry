@@ -1,30 +1,10 @@
 from datetime import datetime
-from typing import Any, Union
+from typing import Any
 
 import orjson
 
 from sentry.hybridcloud.rpc import RpcModel
 from sentry.taskworker.models import PendingTasks
-
-
-class RpcRetryState(RpcModel):
-    attempts: int
-    discard_after_attempt: int | None
-    deadletter_after_attempt: int | None
-    kind: str | None
-
-    @classmethod
-    def deserialize_from_dict(
-        cls, input_dict: dict[str, Any] | str | None
-    ) -> Union["RpcRetryState", None]:
-        if input_dict is None:
-            return None
-
-        if isinstance(input_dict, dict):
-            return cls.parse_obj(input_dict)
-
-        if isinstance(input_dict, str):
-            return cls.parse_raw(input_dict)
 
 
 class RpcTask(RpcModel):
@@ -39,11 +19,15 @@ class RpcTask(RpcModel):
     added_at: datetime
     deadletter_at: datetime
     processing_deadline: datetime
-    retry_state: RpcRetryState
+    retry_attempts: int
+    retry_kind: str | None
+    deadletter_after_attempt: int | None
+    discard_after_attempt: int | None
 
 
 def serialize_task(pending_task: PendingTasks) -> RpcTask:
     params = orjson.loads(pending_task.parameters) if pending_task.parameters is not None else None
+    headers = orjson.loads(pending_task.headers) if pending_task.headers is not None else None
 
     return RpcTask(
         id=pending_task.id,
@@ -54,8 +38,12 @@ def serialize_task(pending_task: PendingTasks) -> RpcTask:
         offset=pending_task.offset,
         state=pending_task.state,
         received_at=pending_task.received_at,
+        headers=headers,
         added_at=pending_task.added_at,
         deadletter_at=pending_task.deadletter_at,
         processing_deadline=pending_task.processing_deadline,
-        retry_state=RpcRetryState.deserialize_from_dict(pending_task.retry_state),
+        retry_attempts=pending_task.retry_attempts,
+        retry_kind=pending_task.retry_kind,
+        deadletter_after_attempt=pending_task.deadletter_after_attempt,
+        discard_after_attempt=pending_task.discard_after_attempt,
     )
