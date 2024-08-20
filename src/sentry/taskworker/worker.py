@@ -49,19 +49,15 @@ class Worker:
             return
 
         try:
-            # TODO this won't work until PendingTasks has tasknames
-            # task_meta = self.namespace.get(task_data.taskname)
-            task_inst = self.namespace.get("demos.say_hello")
-        except KeyError as e:
-            logging.exception("Could not resolve task with name %s", task_data.taskname)
+            task_meta = self.namespace.get(task_data.task_name)
+        except KeyError:
+            logging.exception("Could not resolve task with name %s", task_data.task_name)
             return
 
         # TODO: Check idempotency
         complete = False
         try:
-            # TODO this won't work until PendingTasks has parameters
-            # task_meta(*task_data.parameters["args"], **task_data.parameters["kwargs"])
-            task_inst(*["mark"])
+            task_meta(*task_data.parameters["args"], **task_data.parameters["kwargs"])
             complete = True
         except Exception as err:
             logging.info("Task failed to execute %s", err)

@@ -15,6 +15,7 @@ from sentry.runner.decorators import configuration
 )
 @configuration
 def task_worker(generate_empty_task) -> None:
+    from sentry.taskworker.config import taskregistry
     from sentry.taskworker.models import PendingTasks
 
     if generate_empty_task:
@@ -32,5 +33,13 @@ def task_worker(generate_empty_task) -> None:
         ).save()
 
     from sentry.taskworker.worker import Worker
+
+    namespace = taskregistry.create_namespace("hackweek", "foobar", "barfoo", None)
+
+    # Sample event with a task execution, remove when we have some actual tasks
+    @namespace.register("foo_the_bars", idempotent=None, deadline=None, retry=None)
+    def foo_the_bars(*args, **kwargs):
+        click.echo(args)
+        click.echo(kwargs)
 
     Worker(namespace="hackweek").start()
