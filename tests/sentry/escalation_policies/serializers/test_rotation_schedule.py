@@ -56,78 +56,82 @@ class EscalationPolicySerializerTest(TestCase):
 
         assert result["id"] == schedule.id
         assert result["name"] == str(schedule.name)
-        assert len(result["layers"]) == 2
+        assert len(result["scheduleLayers"]) == 2
         assert result["team"] is None
         assert result["user"] is None
 
-        assert result["layers"][0]["rotation_type"] == "daily"
-        assert result["layers"][0]["handoff_time"] == "00:00"
-        assert result["layers"][0]["start_time"] == datetime(2024, 1, 1).date()
-        assert result["layers"][0]["schedule_layer_restrictions"]["Mon"] == [["00:00", "12:00"]]
-        assert result["layers"][0]["users"][0].id == userA.id
-        assert result["layers"][0]["users"][1].id == userB.id
-        assert len(result["layers"][0]["rotation_periods"]) > 0
-        assert result["layers"][1]["rotation_type"] == "daily"
-        assert result["layers"][1]["handoff_time"] == "00:00"
-        assert result["layers"][1]["start_time"] == datetime(2024, 1, 1).date()
-        assert result["layers"][1]["schedule_layer_restrictions"]["Mon"] == [["12:00", "24:00"]]
-        assert result["layers"][1]["users"][0].id == userC.id
-        assert result["layers"][1]["users"][1].id == userD.id
-        assert len(result["layers"][1]["rotation_periods"]) > 0
-        assert result["coalesced_rotation_periods"] == [
+        assert result["scheduleLayers"][0]["rotationType"] == "daily"
+        assert result["scheduleLayers"][0]["handoffTime"] == "00:00"
+        assert result["scheduleLayers"][0]["startTime"] == datetime(2024, 1, 1).date()
+        assert result["scheduleLayers"][0]["scheduleLayerRestrictions"]["Mon"] == [
+            ["00:00", "12:00"]
+        ]
+        assert result["scheduleLayers"][0]["users"][0].id == userA.id
+        assert result["scheduleLayers"][0]["users"][1].id == userB.id
+        assert len(result["scheduleLayers"][0]["rotationPeriods"]) > 0
+        assert result["scheduleLayers"][1]["rotationType"] == "daily"
+        assert result["scheduleLayers"][1]["handoffTime"] == "00:00"
+        assert result["scheduleLayers"][1]["startTime"] == datetime(2024, 1, 1).date()
+        assert result["scheduleLayers"][1]["scheduleLayerRestrictions"]["Mon"] == [
+            ["12:00", "24:00"]
+        ]
+        assert result["scheduleLayers"][1]["users"][0].id == userC.id
+        assert result["scheduleLayers"][1]["users"][1].id == userD.id
+        assert len(result["scheduleLayers"][1]["rotationPeriods"]) > 0
+        assert result["coalescedRotationPeriods"] == [
             {
-                "start_time": datetime(2024, 1, 1, 0, 0, tzinfo=UTC),
-                "end_time": datetime(2024, 1, 1, 12, 0, tzinfo=UTC),
-                "user_id": userA.id,
+                "startTime": datetime(2024, 1, 1, 0, 0, tzinfo=UTC),
+                "endTime": datetime(2024, 1, 1, 12, 0, tzinfo=UTC),
+                "userId": userA.id,
             },
             {
-                "end_time": datetime(2024, 1, 2, 0, 0, tzinfo=UTC),
-                "start_time": datetime(2024, 1, 1, 12, 0, tzinfo=UTC),
-                "user_id": userC.id,
+                "endTime": datetime(2024, 1, 2, 0, 0, tzinfo=UTC),
+                "startTime": datetime(2024, 1, 1, 12, 0, tzinfo=UTC),
+                "userId": userC.id,
             },
             {
-                "end_time": datetime(2024, 1, 2, 12, 0, tzinfo=UTC),
-                "start_time": datetime(2024, 1, 2, 0, 0, tzinfo=UTC),
-                "user_id": userB.id,
+                "endTime": datetime(2024, 1, 2, 12, 0, tzinfo=UTC),
+                "startTime": datetime(2024, 1, 2, 0, 0, tzinfo=UTC),
+                "userId": userB.id,
             },
             {
-                "end_time": datetime(2024, 1, 3, 0, 0, tzinfo=UTC),
-                "start_time": datetime(2024, 1, 2, 12, 0, tzinfo=UTC),
-                "user_id": userD.id,
+                "endTime": datetime(2024, 1, 3, 0, 0, tzinfo=UTC),
+                "startTime": datetime(2024, 1, 2, 12, 0, tzinfo=UTC),
+                "userId": userD.id,
             },
             {
-                "end_time": datetime(2024, 1, 3, 12, 0, tzinfo=UTC),
-                "start_time": datetime(2024, 1, 3, 0, 0, tzinfo=UTC),
-                "user_id": userA.id,
+                "endTime": datetime(2024, 1, 3, 12, 0, tzinfo=UTC),
+                "startTime": datetime(2024, 1, 3, 0, 0, tzinfo=UTC),
+                "userId": userA.id,
             },
             {
-                "end_time": datetime(2024, 1, 4, 0, 0, tzinfo=UTC),
-                "start_time": datetime(2024, 1, 3, 12, 0, tzinfo=UTC),
-                "user_id": userC.id,
+                "endTime": datetime(2024, 1, 4, 0, 0, tzinfo=UTC),
+                "startTime": datetime(2024, 1, 3, 12, 0, tzinfo=UTC),
+                "userId": userC.id,
             },
             {
-                "end_time": datetime(2024, 1, 4, 12, 0, tzinfo=UTC),
-                "start_time": datetime(2024, 1, 4, 0, 0, tzinfo=UTC),
-                "user_id": userB.id,
+                "endTime": datetime(2024, 1, 4, 12, 0, tzinfo=UTC),
+                "startTime": datetime(2024, 1, 4, 0, 0, tzinfo=UTC),
+                "userId": userB.id,
             },
             {
-                "end_time": datetime(2024, 1, 5, 0, 0, tzinfo=UTC),
-                "start_time": datetime(2024, 1, 4, 12, 0, tzinfo=UTC),
-                "user_id": userD.id,
+                "endTime": datetime(2024, 1, 5, 0, 0, tzinfo=UTC),
+                "startTime": datetime(2024, 1, 4, 12, 0, tzinfo=UTC),
+                "userId": userD.id,
             },
             {
-                "end_time": datetime(2024, 1, 5, 12, 0, tzinfo=UTC),
-                "start_time": datetime(2024, 1, 5, 0, 0, tzinfo=UTC),
-                "user_id": userA.id,
+                "endTime": datetime(2024, 1, 5, 12, 0, tzinfo=UTC),
+                "startTime": datetime(2024, 1, 5, 0, 0, tzinfo=UTC),
+                "userId": userA.id,
             },
             {
-                "end_time": datetime(2024, 1, 6, 0, 0, tzinfo=UTC),
-                "start_time": datetime(2024, 1, 5, 12, 0, tzinfo=UTC),
-                "user_id": userC.id,
+                "endTime": datetime(2024, 1, 6, 0, 0, tzinfo=UTC),
+                "startTime": datetime(2024, 1, 5, 12, 0, tzinfo=UTC),
+                "userId": userC.id,
             },
             {
-                "end_time": datetime(2024, 1, 7, 0, 0, tzinfo=UTC),
-                "start_time": datetime(2024, 1, 6, 0, 0, tzinfo=UTC),
-                "user_id": userB.id,
+                "endTime": datetime(2024, 1, 7, 0, 0, tzinfo=UTC),
+                "startTime": datetime(2024, 1, 6, 0, 0, tzinfo=UTC),
+                "userId": userB.id,
             },
         ]

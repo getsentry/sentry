@@ -23,9 +23,9 @@ class EscalationPolicyStatePutSerializer(serializers.Serializer):
 class EscalationPolicyStateSerializerResponse(TypedDict, total=False):
     id: int
     group: BaseGroupSerializerResponse
-    escalation_policy: EscalationPolicySerializerResponse
-    run_step_n: int
-    run_step_at: datetime
+    escalationPolicy: EscalationPolicySerializerResponse
+    runStepN: int
+    runStepAt: datetime
     state: EscalationPolicyStateType
 
 
@@ -60,11 +60,11 @@ class EscalationPolicyStateSerializer(Serializer):
         return results
 
     def serialize(self, obj, attrs, user, **kwargs):
-        return EscalationPolicySerializerResponse(
-            id=str(obj.id),
-            run_step_n=obj.run_step_n,
-            run_step_at=obj.run_step_at,
+        return EscalationPolicyStateSerializerResponse(
+            id=obj.id,
+            runStepN=obj.run_step_n,
+            runStepAt=obj.run_step_at,
             state=obj.state,
-            escalation_policy=attrs["escalation_policy"],
+            escalationPolicy=attrs["escalation_policy"],
             group=attrs["group"],
         )

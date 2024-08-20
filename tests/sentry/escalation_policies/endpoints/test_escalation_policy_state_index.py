@@ -17,7 +17,7 @@ class EscalationPolicyStateIndexTest(APITestCase):
             user_id=self.user.id,
         )
         group = self.create_group(project=project)
-        trigger_escalation_policy(policy, group)
+        state = trigger_escalation_policy(policy, group)
 
         url = reverse(
             "sentry-api-0-organization-escalation-policy-states",
@@ -28,4 +28,4 @@ class EscalationPolicyStateIndexTest(APITestCase):
         response = self.client.get(url)
         assert response.status_code == 200, response.content
         assert len(response.data) == 1
-        assert response.data[0]["id"] == str(policy.id)
+        assert response.data[0]["id"] == state.id

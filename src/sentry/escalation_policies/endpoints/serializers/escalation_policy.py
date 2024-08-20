@@ -81,15 +81,16 @@ class EscalationPolicyStepRecipientResponse(TypedDict, total=False):
 
 
 class EscalationPolicyStepSerializerResponse(TypedDict, total=False):
-    escalate_after_sec: int
+    escalateAfterSec: int
     recipients: list[EscalationPolicyStepRecipientResponse]
+    stepNumber: int
 
 
 class EscalationPolicySerializerResponse(TypedDict, total=False):
     id: int
     name: str
     description: str | None
-    repeat_n_times: int
+    repeatNTimes: int
     steps: list[EscalationPolicyStepSerializerResponse]
     team: BaseTeamSerializerResponse
     user: RpcUser
@@ -134,8 +135,8 @@ class EscalationPolicySerializer(Serializer):
         for policy in item_list:
             steps = [
                 EscalationPolicyStepSerializerResponse(
-                    step_number=step.step_number,
-                    escalate_after_sec=step.escalate_after_sec,
+                    stepNumber=step.step_number,
+                    escalateAfterSec=step.escalate_after_sec,
                     # Team recipients + User recipients + Schedule recipients
                     recipients=[
                         EscalationPolicyStepRecipientResponse(
@@ -162,7 +163,7 @@ class EscalationPolicySerializer(Serializer):
                 for step in steps
                 if step.policy_id == policy.id
             ]
-            steps.sort(key=lambda x: x["step_number"])
+            steps.sort(key=lambda x: x["stepNumber"])
             results[policy] = {
                 "team": teams.get(policy.team_id),
                 "user": users.get(policy.user_id),
@@ -172,10 +173,10 @@ class EscalationPolicySerializer(Serializer):
 
     def serialize(self, obj, attrs, user, **kwargs):
         return EscalationPolicySerializerResponse(
-            id=str(obj.id),
+            id=obj.id,
             name=obj.name,
             description=obj.description,
-            repeat_n_times=obj.repeat_n_times,
+            repeatNTimes=obj.repeat_n_times,
             steps=attrs["steps"],
             team=attrs["team"],
             user=attrs["user"],

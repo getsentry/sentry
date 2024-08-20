@@ -33,7 +33,7 @@ class EscalationPolicyStateDetailsTest(APITestCase):
         )
         response = self.client.get(url)
         assert response.status_code == 200, response.content
-        assert response.data["id"] == str(policy.id)
+        assert response.data["id"] == state.id
 
     def test_put(self):
         self.login_as(user=self.user)

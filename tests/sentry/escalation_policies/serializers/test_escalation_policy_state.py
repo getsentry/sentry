@@ -6,11 +6,11 @@ from sentry.testutils.cases import TestCase
 
 class BaseEscalationPolicySerializerTest:
     def assert_escalation_policy_state_serialized(self, state, result):
-        assert result["id"] == str(state.id)
-        assert result["run_step_n"] == 0
-        assert result["run_step_at"] is not None
+        assert result["id"] == state.id
+        assert result["runStepN"] == 0
+        assert result["runStepAt"] is not None
         assert result["state"] == EscalationPolicyStateType.UNACKNOWLEDGED
-        assert result["escalation_policy"] is not None
+        assert result["escalationPolicy"] is not None
         assert result["group"] is not None
 
 

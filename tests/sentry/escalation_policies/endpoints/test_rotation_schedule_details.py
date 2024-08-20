@@ -26,7 +26,7 @@ class EscalationPolicyCreateTest(APITestCase):
         )
         response = self.client.get(url)
         assert response.status_code == 200, response.content
-        assert response.data["id"] == str(policy.id)
+        assert response.data["id"] == policy.id
 
     def test_delete(self):
         self.login_as(user=self.user)

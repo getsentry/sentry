@@ -5,6 +5,7 @@ from django.db import router, transaction
 from rest_framework import serializers
 
 from sentry.api.serializers.base import Serializer, register
+from sentry.api.serializers.models.team import BaseTeamSerializerResponse
 from sentry.escalation_policies.logic import RotationPeriod, coalesce_schedule_layers
 from sentry.escalation_policies.models.rotation_schedule import (
     RotationSchedule,
@@ -82,24 +83,43 @@ class RotationSchedulePutSerializer(serializers.Serializer):
         return schedule
 
 
+class RotationPeriodResponse(TypedDict):
+    startTime: datetime
+    endTime: datetime
+    userId: int
+
+
 class RotationScheduleLayerSerializerResponse(TypedDict, total=False):
-    rotation_type: str
-    handoff_time: str
-    schedule_layer_restrictions: dict
-    start_time: datetime
+    rotationType: str
+    handoffTime: str
+    scheduleLayerRestrictions: dict
+    startTime: datetime
     users: RpcUser
-    rotation_periods: list[RotationPeriod]
+    rotationPeriods: list[RotationPeriodResponse]
 
 
 class RotationScheduleSerializerResponse(TypedDict, total=False):
     id: int
     name: str
-    organization_id: int
-    schedule_layers: list[RotationScheduleLayerSerializerResponse]
+    organizationId: int
+    scheduleLayers: list[RotationScheduleLayerSerializerResponse]
     # Owner
-    team_id: int | None
-    user_id: int | None
-    coalesced_rotation_periods: list[RotationPeriod]
+    team: BaseTeamSerializerResponse
+    user: RpcUser
+    coalescedRotationPeriods: list[RotationPeriodResponse]
+
+
+def serialize_rotation_periods(
+    rotation_periods: list[RotationPeriod],
+) -> list[RotationPeriodResponse]:
+    return [
+        {
+            "startTime": period["start_time"],
+            "endTime": period["end_time"],
+            "userId": period["user_id"],
+        }
+        for period in rotation_periods
+    ]
 
 
 @register(RotationSchedule)
@@ -153,18 +173,18 @@ class RotationScheduleSerializer(Serializer):
 
                 layers_attr.append(
                     RotationScheduleLayerSerializerResponse(
-                        rotation_type=layer.rotation_type,
-                        handoff_time=layer.handoff_time,
-                        schedule_layer_restrictions=layer.schedule_layer_restrictions,
-                        start_time=layer.start_date,
+                        rotationType=layer.rotation_type,
+                        handoffTime=layer.handoff_time,
+                        scheduleLayerRestrictions=layer.schedule_layer_restrictions,
+                        startTime=layer.start_date,
                         users=ordered_users,
-                        rotation_periods=coalesce_schedule_layers(
-                            [layer], self.start_date, self.end_date
+                        rotationPeriods=serialize_rotation_periods(
+                            coalesce_schedule_layers([layer], self.start_date, self.end_date)
                         ),
                     )
                 )
-            coalesced_rotation_periods = coalesce_schedule_layers(
-                schedule.layers.all(), self.start_date, self.end_date
+            coalesced_rotation_periods = serialize_rotation_periods(
+                coalesce_schedule_layers(schedule.layers.all(), self.start_date, self.end_date)
             )
             results[schedule] = {
                 "team": teams.get(schedule.team_id),
@@ -178,9 +198,9 @@ class RotationScheduleSerializer(Serializer):
         return RotationScheduleSerializerResponse(
             id=obj.id,
             name=obj.name,
-            organization_id=obj.organization.id,
-            layers=attrs["layers"],
+            organizationId=obj.organization.id,
+            scheduleLayers=attrs["layers"],
             team=attrs["team"],
             user=attrs["user"],
-            coalesced_rotation_periods=attrs["coalesced_rotation_periods"],
+            coalescedRotationPeriods=attrs["coalesced_rotation_periods"],
         )
