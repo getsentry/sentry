@@ -2,9 +2,9 @@ from __future__ import annotations
 
 import bisect
 import logging
-from collections.abc import Collection, Iterable, Mapping
+from collections.abc import Collection, Iterable, Mapping, Sequence
 from copy import deepcopy
-from dataclasses import replace
+from dataclasses import dataclass, replace
 from datetime import datetime, timedelta, timezone
 from enum import Enum, auto
 from typing import TYPE_CHECKING, Any
@@ -55,7 +55,6 @@ from sentry.incidents.models.incident import (
     IncidentType,
     TriggerStatus,
 )
-from sentry.integrations.models import Integration
 from sentry.integrations.services.integration import RpcIntegration, integration_service
 from sentry.models.environment import Environment
 from sentry.models.notificationaction import ActionService, ActionTarget
@@ -218,7 +217,7 @@ def update_incident_status(
             subscribe_to_incident(incident, user.id)
 
         prev_status = incident.status
-        kwargs = {"status": status.value, "status_method": status_method.value}
+        kwargs: dict[str, Any] = {"status": status.value, "status_method": status_method.value}
         if status == IncidentStatus.CLOSED:
             kwargs["date_closed"] = date_closed if date_closed else django_timezone.now()
         elif status == IncidentStatus.OPEN:
@@ -307,6 +306,20 @@ def create_incident_activity(
     return activity
 
 
+def _unpack_snuba_query(alert_rule: AlertRule) -> SnubaQuery:
+    snuba_query = alert_rule.snuba_query
+    if snuba_query is None:
+        raise ValueError("The alert rule must have a non-null snuba_query")
+    return snuba_query
+
+
+def _unpack_organization(alert_rule: AlertRule) -> Organization:
+    organization = alert_rule.organization
+    if organization is None:
+        raise ValueError("The alert rule must have a non-null organization")
+    return organization
+
+
 def _build_incident_query_builder(
     incident: Incident,
     entity_subscription: EntitySubscription,
@@ -314,7 +327,7 @@ def _build_incident_query_builder(
     end: datetime | None = None,
     windowed_stats: bool = False,
 ) -> BaseQueryBuilder:
-    snuba_query = incident.alert_rule.snuba_query
+    snuba_query = _unpack_snuba_query(incident.alert_rule)
     start, end = _calculate_incident_time_range(incident, start, end, windowed_stats=windowed_stats)
     project_ids = list(
         IncidentProject.objects.filter(incident=incident).values_list("project_id", flat=True)
@@ -348,16 +361,15 @@ def _build_incident_query_builder(
 
 def _calculate_incident_time_range(
     incident: Incident,
-    start: datetime | None = None,
-    end: datetime | None = None,
+    start_arg: datetime | None = None,
+    end_arg: datetime | None = None,
     windowed_stats: bool = False,
 ) -> tuple[datetime, datetime]:
-    time_window = (
-        incident.alert_rule.snuba_query.time_window if incident.alert_rule is not None else 60
-    )
+    snuba_query = _unpack_snuba_query(incident.alert_rule)
+    time_window = snuba_query.time_window if incident.alert_rule is not None else 60
     time_window_delta = timedelta(seconds=time_window)
-    start = incident.date_started - time_window_delta if start is None else start
-    end = incident.current_end_date + time_window_delta if end is None else end
+    start = (incident.date_started - time_window_delta) if start_arg is None else start_arg
+    end = (incident.current_end_date + time_window_delta) if end_arg is None else end_arg
     if windowed_stats:
         now = django_timezone.now()
         end = start + timedelta(seconds=time_window * (WINDOWED_STATS_DATA_POINTS / 2))
@@ -396,7 +408,7 @@ def get_incident_aggregates(
     """
     Calculates aggregate stats across the life of an incident, or the provided range.
     """
-    snuba_query = incident.alert_rule.snuba_query
+    snuba_query = _unpack_snuba_query(incident.alert_rule)
     entity_subscription = get_entity_subscription_from_snuba_query(
         snuba_query,
         incident.organization_id,
@@ -420,12 +432,12 @@ def get_incident_aggregates(
     return aggregated_result[0]
 
 
-def subscribe_to_incident(incident: Incident, user_id: int) -> tuple[IncidentSubscription, bool]:
-    return IncidentSubscription.objects.get_or_create(incident=incident, user_id=user_id)
+def subscribe_to_incident(incident: Incident, user_id: int) -> None:
+    IncidentSubscription.objects.get_or_create(incident=incident, user_id=user_id)
 
 
-def unsubscribe_from_incident(incident: Incident, user_id: int) -> int:
-    return IncidentSubscription.objects.filter(incident=incident, user_id=user_id).delete()
+def unsubscribe_from_incident(incident: Incident, user_id: int) -> None:
+    IncidentSubscription.objects.filter(incident=incident, user_id=user_id).delete()
 
 
 def get_incident_subscribers(incident: Incident) -> Iterable[IncidentSubscription]:
@@ -475,7 +487,7 @@ def get_alert_resolution(time_window: int) -> int:
 
 def create_alert_rule(
     organization: Organization,
-    projects: Collection[Project],
+    projects: Sequence[Project],
     name: str,
     query: str,
     aggregate: str,
@@ -603,8 +615,10 @@ def create_alert_rule(
         if include_all_projects:
             # NOTE: This feature is not currently utilized.
             excluded_projects = excluded_projects if excluded_projects else []
-            projects = Project.objects.filter(organization=organization).exclude(
-                id__in=[p.id for p in excluded_projects]
+            projects = list(
+                Project.objects.filter(organization=organization).exclude(
+                    id__in=[p.id for p in excluded_projects]
+                )
             )
             exclusions = [
                 AlertRuleExcludedProjects(alert_rule=alert_rule, project=project)
@@ -666,7 +680,7 @@ def create_alert_rule(
             type=AlertRuleActivityType.CREATED.value,
         )
 
-    schedule_update_project_config(alert_rule, projects)
+    _schedule_update_project_config(alert_rule, projects)
 
     return alert_rule
 
@@ -677,7 +691,7 @@ def snapshot_alert_rule(alert_rule: AlertRule, user: RpcUser | None = None) -> N
     with transaction.atomic(router.db_for_write(AlertRuleActivity)):
         triggers = AlertRuleTrigger.objects.filter(alert_rule=alert_rule)
         incidents = Incident.objects.filter(alert_rule=alert_rule)
-        snuba_query_snapshot = deepcopy(alert_rule.snuba_query)
+        snuba_query_snapshot: SnubaQuery = deepcopy(_unpack_snuba_query(alert_rule))
         snuba_query_snapshot.id = None
         snuba_query_snapshot.save()
         alert_rule_snapshot = deepcopy(alert_rule)
@@ -717,7 +731,7 @@ def update_alert_rule(
     alert_rule: AlertRule,
     query_type: SnubaQuery.Type | None = None,
     dataset: Dataset | None = None,
-    projects: Collection[Project] | None = None,
+    projects: Sequence[Project] | None = None,
     name: str | None = None,
     owner: Actor | None | NotSet = NOT_SET,
     query: str | None = None,
@@ -770,8 +784,9 @@ def update_alert_rule(
     :param detection_type: the type of metric alert; defaults to AlertRuleDetectionType.STATIC
     :return: The updated `AlertRule`
     """
+    snuba_query = _unpack_snuba_query(alert_rule)
     updated_fields: dict[str, Any] = {"date_modified": django_timezone.now()}
-    updated_query_fields = {}
+    updated_query_fields: dict[str, Any] = {}
     if name:
         updated_fields["name"] = name
     if description:
@@ -795,7 +810,7 @@ def update_alert_rule(
     if include_all_projects is not None:
         updated_fields["include_all_projects"] = include_all_projects
     if dataset is not None:
-        if dataset.value != alert_rule.snuba_query.dataset:
+        if dataset.value != snuba_query.dataset:
             updated_query_fields["dataset"] = dataset
     if query_type is not None:
         updated_query_fields["query_type"] = query_type
@@ -823,7 +838,7 @@ def update_alert_rule(
     if "comparison_delta" in updated_fields or "time_window" in updated_query_fields:
         window = int(
             updated_query_fields.get(
-                "time_window", timedelta(seconds=alert_rule.snuba_query.time_window)
+                "time_window", timedelta(seconds=snuba_query.time_window)
             ).total_seconds()
             / 60
         )
@@ -857,7 +872,7 @@ def update_alert_rule(
             if (
                 time_window not in DYNAMIC_TIME_WINDOWS
                 or time_window is None
-                and alert_rule.snuba_query.time_window not in DYNAMIC_TIME_WINDOWS_SECONDS
+                and snuba_query.time_window not in DYNAMIC_TIME_WINDOWS_SECONDS
             ):
                 raise ValidationError(INVALID_TIME_WINDOW)
 
@@ -906,8 +921,7 @@ def update_alert_rule(
             type=AlertRuleActivityType.UPDATED.value,
         )
 
-        if updated_query_fields or environment != alert_rule.snuba_query.environment:
-            snuba_query = alert_rule.snuba_query
+        if updated_query_fields or environment != snuba_query.environment:
             updated_query_fields.setdefault("query_type", SnubaQuery.Type(snuba_query.type))
             updated_query_fields.setdefault("dataset", Dataset(snuba_query.dataset))
             updated_query_fields.setdefault("query", snuba_query.query)
@@ -917,13 +931,9 @@ def update_alert_rule(
             )
             updated_query_fields.setdefault("event_types", None)
             updated_query_fields.setdefault("resolution", timedelta(seconds=snuba_query.resolution))
-            update_snuba_query(
-                alert_rule.snuba_query,
-                environment=environment,
-                **updated_query_fields,
-            )
+            update_snuba_query(snuba_query, environment=environment, **updated_query_fields)
 
-        existing_subs = []
+        existing_subs: Iterable[QuerySubscription] = ()
         if (
             query is not None
             or aggregate is not None
@@ -932,10 +942,10 @@ def update_alert_rule(
             or include_all_projects is not None
             or excluded_projects is not None
         ):
-            existing_subs = alert_rule.snuba_query.subscriptions.all().select_related("project")
+            existing_subs = snuba_query.subscriptions.all().select_related("project")
 
-        new_projects = []
-        deleted_subs = []
+        new_projects: Iterable[Project] = ()
+        deleted_subs: Iterable[QuerySubscription] = ()
 
         if not alert_rule.include_all_projects:
             # We don't want to have any exclusion rows present if we're not in
@@ -1013,7 +1023,7 @@ def update_alert_rule(
             event=audit_log.get_event_id("ALERT_RULE_EDIT"),
         )
 
-    schedule_update_project_config(alert_rule, projects)
+    _schedule_update_project_config(alert_rule, projects)
 
     return alert_rule
 
@@ -1023,7 +1033,7 @@ def enable_alert_rule(alert_rule: AlertRule) -> None:
         return
     with transaction.atomic(router.db_for_write(AlertRule)):
         alert_rule.update(status=AlertRuleStatus.PENDING.value)
-        bulk_enable_snuba_subscriptions(alert_rule.snuba_query.subscriptions.all())
+        bulk_enable_snuba_subscriptions(_unpack_snuba_query(alert_rule).subscriptions.all())
 
 
 def disable_alert_rule(alert_rule: AlertRule) -> None:
@@ -1031,7 +1041,7 @@ def disable_alert_rule(alert_rule: AlertRule) -> None:
         return
     with transaction.atomic(router.db_for_write(AlertRule)):
         alert_rule.update(status=AlertRuleStatus.DISABLED.value)
-        bulk_disable_snuba_subscriptions(alert_rule.snuba_query.subscriptions.all())
+        bulk_disable_snuba_subscriptions(_unpack_snuba_query(alert_rule).subscriptions.all())
 
 
 def delete_alert_rule(
@@ -1055,10 +1065,10 @@ def delete_alert_rule(
                 event=audit_log.get_event_id("ALERT_RULE_REMOVE"),
             )
 
-        subscriptions = alert_rule.snuba_query.subscriptions.all()
+        subscriptions = _unpack_snuba_query(alert_rule).subscriptions.all()
         bulk_delete_snuba_subscriptions(subscriptions)
 
-        schedule_update_project_config(alert_rule, [sub.project for sub in subscriptions])
+        _schedule_update_project_config(alert_rule, [sub.project for sub in subscriptions])
 
         incidents = Incident.objects.filter(alert_rule=alert_rule)
         if incidents.exists():
@@ -1118,7 +1128,7 @@ def create_alert_rule_trigger(
     if alert_rule.detection_type == AlertRuleDetectionType.DYNAMIC and alert_threshold != 0:
         raise ValidationError(INVALID_ALERT_THRESHOLD)
 
-    excluded_subs = []
+    excluded_subs: Iterable[QuerySubscription] = ()
     if excluded_projects:
         excluded_subs = _get_subscriptions_from_alert_rule(alert_rule, excluded_projects)
 
@@ -1162,7 +1172,7 @@ def update_alert_rule_trigger(
     if trigger.alert_rule.detection_type == AlertRuleDetectionType.DYNAMIC and alert_threshold != 0:
         raise ValidationError(INVALID_ALERT_THRESHOLD)
 
-    updated_fields = {}
+    updated_fields: dict[str, Any] = {}
     if label is not None:
         updated_fields["label"] = label
     if alert_threshold is not None:
@@ -1290,18 +1300,16 @@ def deduplicate_trigger_actions(
     """
     actions = _prioritize_actions(triggers=triggers)
 
-    deduped = {}
+    deduped: dict[tuple[Any, ...], AlertRuleTriggerAction] = {}
     for action in actions:
-        deduped.setdefault(
-            (
-                action.type,
-                action.target_type,
-                action.target_identifier,
-                action.integration_id,
-                action.sentry_app_id,
-            ),
-            action,
+        key = (
+            action.type,
+            action.target_type,
+            action.target_identifier,
+            action.integration_id,
+            action.sentry_app_id,
         )
+        deduped.setdefault(key, action)
     return list(deduped.values())
 
 
@@ -1316,7 +1324,9 @@ def _get_subscriptions_from_alert_rule(
     :param projects: The Project we want subscriptions for
     :return: A list of QuerySubscriptions
     """
-    excluded_subscriptions = alert_rule.snuba_query.subscriptions.filter(project__in=projects)
+    excluded_subscriptions = _unpack_snuba_query(alert_rule).subscriptions.filter(
+        project__in=projects
+    )
     if len(excluded_subscriptions) != len(projects):
         invalid_slugs = {p.slug for p in projects} - {
             s.project.slug for s in excluded_subscriptions
@@ -1333,8 +1343,8 @@ def create_alert_rule_trigger_action(
     integration_id: int | None = None,
     sentry_app_id: int | None = None,
     use_async_lookup: bool = False,
-    input_channel_id=None,
-    sentry_app_config=None,
+    input_channel_id: str | None = None,
+    sentry_app_config: dict[str, Any] | None = None,
     installations: list[RpcSentryAppInstallation] | None = None,
     integrations: list[RpcIntegration] | None = None,
     priority: str | None = None,
@@ -1351,18 +1361,20 @@ def create_alert_rule_trigger_action(
     :param input_channel_id: (Optional) Slack channel ID. If provided skips lookup
     :return: The created action
     """
-    target_display = None
+    target_display: str | None = None
     if type.value in AlertRuleTriggerAction.EXEMPT_SERVICES:
         raise InvalidTriggerActionError("Selected notification service is exempt from alert rules")
 
     if type.value in AlertRuleTriggerAction.INTEGRATION_TYPES:
         if target_type != AlertRuleTriggerAction.TargetType.SPECIFIC:
             raise InvalidTriggerActionError("Must specify specific target type")
+        if target_identifier is None:
+            raise InvalidTriggerActionError("Must specify target_identifier")
 
-        target_identifier, target_display = get_target_identifier_display_for_integration(
-            type.value,
+        target = _get_target_identifier_display_for_integration(
+            type,
             target_identifier,
-            trigger.alert_rule.organization,
+            _unpack_organization(trigger.alert_rule),
             integration_id,
             use_async_lookup=use_async_lookup,
             input_channel_id=input_channel_id,
@@ -1370,9 +1382,12 @@ def create_alert_rule_trigger_action(
         )
 
     elif type == AlertRuleTriggerAction.Type.SENTRY_APP:
-        target_identifier, target_display = _get_alert_rule_trigger_action_sentry_app(
-            trigger.alert_rule.organization, sentry_app_id, installations
+        target = _get_alert_rule_trigger_action_sentry_app(
+            _unpack_organization(trigger.alert_rule), sentry_app_id, installations
         )
+
+    else:
+        target = AlertTarget(target_identifier, target_display)
 
     # store priority in the json sentry_app_config
     if priority is not None and type in [ActionService.PAGERDUTY, ActionService.OPSGENIE]:
@@ -1385,8 +1400,8 @@ def create_alert_rule_trigger_action(
         alert_rule_trigger=trigger,
         type=type.value,
         target_type=target_type.value,
-        target_identifier=target_identifier,
-        target_display=target_display,
+        target_identifier=target.identifier,
+        target_display=target.display,
         integration_id=integration_id,
         sentry_app_id=sentry_app_id,
         sentry_app_config=sentry_app_config,
@@ -1419,7 +1434,7 @@ def update_alert_rule_trigger_action(
     :param input_channel_id: (Optional) Slack channel ID. If provided skips lookup
     :return:
     """
-    updated_fields = {}
+    updated_fields: dict[str, Any] = {}
     if type is not None:
         updated_fields["type"] = type.value
     if target_type is not None:
@@ -1435,9 +1450,9 @@ def update_alert_rule_trigger_action(
 
         if type in AlertRuleTriggerAction.INTEGRATION_TYPES:
             integration_id = updated_fields.get("integration_id", trigger_action.integration_id)
-            organization = trigger_action.alert_rule_trigger.alert_rule.organization
+            organization = _unpack_organization(trigger_action.alert_rule_trigger.alert_rule)
 
-            target_identifier, target_display = get_target_identifier_display_for_integration(
+            target = _get_target_identifier_display_for_integration(
                 type,
                 target_identifier,
                 organization,
@@ -1446,18 +1461,21 @@ def update_alert_rule_trigger_action(
                 input_channel_id=input_channel_id,
                 integrations=integrations,
             )
-            updated_fields["target_display"] = target_display
+            updated_fields["target_display"] = target.display
 
         elif type == AlertRuleTriggerAction.Type.SENTRY_APP.value:
             sentry_app_id = updated_fields.get("sentry_app_id", trigger_action.sentry_app_id)
-            organization = trigger_action.alert_rule_trigger.alert_rule.organization
+            organization = _unpack_organization(trigger_action.alert_rule_trigger.alert_rule)
 
-            target_identifier, target_display = _get_alert_rule_trigger_action_sentry_app(
+            target = _get_alert_rule_trigger_action_sentry_app(
                 organization, sentry_app_id, installations
             )
-            updated_fields["target_display"] = target_display
+            updated_fields["target_display"] = target.display
 
-        updated_fields["target_identifier"] = target_identifier
+        else:
+            target = AlertTarget(target_identifier, None)
+
+        updated_fields["target_identifier"] = target.identifier
 
     # store priority in the json sentry_app_config
     if priority is not None and type in [ActionService.PAGERDUTY, ActionService.OPSGENIE]:
@@ -1470,56 +1488,61 @@ def update_alert_rule_trigger_action(
     return trigger_action
 
 
-def get_target_identifier_display_for_integration(
-    type: ActionService,
+@dataclass(frozen=True, eq=True)
+class AlertTarget:
+    identifier: str | None
+    display: str | None
+
+
+def _get_target_identifier_display_for_integration(
+    action_type: ActionService,
     target_value: str,
     organization: Organization,
-    integration_id: int,
+    integration_id: int | None,
     use_async_lookup: bool = True,
     input_channel_id: str | None = None,
-    integrations: Collection[Integration] | None = None,
-) -> tuple[str | int, str]:
-    # target_value is the Slack username or channel name
-    if type == AlertRuleTriggerAction.Type.SLACK.value:
-        # if we have a value for input_channel_id, just set target_identifier to that
-        target_identifier = input_channel_id
-        if target_identifier is not None:
-            return target_identifier, target_value
+    integrations: Iterable[RpcIntegration] | None = None,
+) -> AlertTarget:
+    if action_type == AlertRuleTriggerAction.Type.SLACK.value:
+        # target_value is the Slack username or channel name
+        if input_channel_id is not None:
+            # if we have a value for input_channel_id, just set target identifier to that
+            return AlertTarget(input_channel_id, target_value)
         target_identifier = _get_alert_rule_trigger_action_slack_channel_id(
-            target_value, organization, integration_id, use_async_lookup, integrations
+            target_value, integration_id, use_async_lookup, integrations
         )
-    # target_value is the MSTeams username or channel name
-    elif type == AlertRuleTriggerAction.Type.MSTEAMS.value:
+        return AlertTarget(target_identifier, target_value)
+    elif action_type == AlertRuleTriggerAction.Type.MSTEAMS.value:
+        # target_value is the MSTeams username or channel name
         target_identifier = _get_alert_rule_trigger_action_msteams_channel_id(
             target_value, organization, integration_id
         )
+        return AlertTarget(target_identifier, target_value)
 
-    elif type == AlertRuleTriggerAction.Type.DISCORD.value:
+    elif action_type == AlertRuleTriggerAction.Type.DISCORD.value:
         target_identifier = _get_alert_rule_trigger_action_discord_channel_id(
             target_value, integration_id
         )
+        return AlertTarget(target_identifier, target_value)
 
-    # target_value is the ID of the PagerDuty service
-    elif type == AlertRuleTriggerAction.Type.PAGERDUTY.value:
-        target_identifier, target_value = _get_alert_rule_trigger_action_pagerduty_service(
+    elif action_type == AlertRuleTriggerAction.Type.PAGERDUTY.value:
+        # target_value is the ID of the PagerDuty service
+        return _get_alert_rule_trigger_action_pagerduty_service(
             target_value, organization, integration_id
         )
-    elif type == AlertRuleTriggerAction.Type.OPSGENIE.value:
-        target_identifier, target_value = get_alert_rule_trigger_action_opsgenie_team(
+    elif action_type == AlertRuleTriggerAction.Type.OPSGENIE.value:
+        return _get_alert_rule_trigger_action_opsgenie_team(
             target_value, organization, integration_id
         )
     else:
         raise Exception("Not implemented")
 
-    return target_identifier, target_value
-
 
 def _get_alert_rule_trigger_action_slack_channel_id(
     name: str,
-    organization: Organization,
     integration_id: int,
     use_async_lookup: bool = True,
-    integrations: Collection[Integration] | None = None,
+    integrations: Iterable[RpcIntegration] | None = None,
 ) -> str:
     from sentry.integrations.slack.utils.channel import get_channel_id
 
@@ -1534,7 +1557,7 @@ def _get_alert_rule_trigger_action_slack_channel_id(
         raise InvalidTriggerActionError("Slack workspace is a required field.")
 
     try:
-        channel_data = get_channel_id(organization, integration, name, use_async_lookup)
+        channel_data = get_channel_id(integration, name, use_async_lookup)
     except DuplicateDisplayNameError as e:
         domain = integration.metadata["domain_name"]
 
@@ -1597,7 +1620,7 @@ def _get_alert_rule_trigger_action_msteams_channel_id(
 
 def _get_alert_rule_trigger_action_pagerduty_service(
     target_value: str, organization: Organization, integration_id: int
-) -> tuple[int, str]:
+) -> AlertTarget:
     from sentry.integrations.pagerduty.utils import get_service
 
     org_integration = integration_service.get_organization_integration(
@@ -1607,12 +1630,12 @@ def _get_alert_rule_trigger_action_pagerduty_service(
     if not service:
         raise InvalidTriggerActionError("No PagerDuty service found.")
 
-    return service["id"], service["service_name"]
+    return AlertTarget(str(service["id"]), service["service_name"])
 
 
-def get_alert_rule_trigger_action_opsgenie_team(
+def _get_alert_rule_trigger_action_opsgenie_team(
     target_value: str | None, organization: Organization, integration_id: int
-) -> tuple[str, str]:
+) -> AlertTarget:
     from sentry.integrations.opsgenie.utils import get_team
 
     result = integration_service.organization_context(
@@ -1627,14 +1650,14 @@ def get_alert_rule_trigger_action_opsgenie_team(
     if not team:
         raise InvalidTriggerActionError("No Opsgenie team found.")
 
-    return team["id"], team["team"]
+    return AlertTarget(team["id"], team["team"])
 
 
 def _get_alert_rule_trigger_action_sentry_app(
     organization: Organization,
-    sentry_app_id: int,
+    sentry_app_id: int | None,
     installations: Collection[RpcSentryAppInstallation] | None,
-) -> tuple[int, str]:
+) -> AlertTarget:
     from sentry.sentry_apps.services.app import app_service
 
     if installations is None:
@@ -1642,7 +1665,7 @@ def _get_alert_rule_trigger_action_sentry_app(
 
     for installation in installations:
         if installation.sentry_app.id == sentry_app_id:
-            return sentry_app_id, installation.sentry_app.name
+            return AlertTarget(str(sentry_app_id), installation.sentry_app.name)
 
     raise InvalidTriggerActionError("No SentryApp found.")
 
@@ -1831,18 +1854,13 @@ def get_slack_channel_ids(
     mapped_slack_channels = {}
     for action in slack_actions:
         if not action["target_identifier"] in mapped_slack_channels:
-            (
-                mapped_slack_channels[action["target_identifier"]],
-                _,
-            ) = get_target_identifier_display_for_integration(
+            target = _get_target_identifier_display_for_integration(
                 action["type"].value,
                 action["target_identifier"],
                 organization,
                 action["integration_id"],
-                use_async_lookup=True,
-                input_channel_id=None,
-                integrations=None,
             )
+            mapped_slack_channels[action["target_identifier"]] = target.identifier
     return mapped_slack_channels
 
 
@@ -1868,6 +1886,8 @@ def get_filtered_actions(
 ) -> list[dict[str, Any]]:
     def is_included(action: Mapping[str, Any]) -> bool:
         type_slug = action.get("type")
+        if type_slug is None or not isinstance(type_slug, str):
+            return False
         factory = AlertRuleTriggerAction.look_up_factory_by_slug(type_slug)
         return factory is not None and factory.service_type == action_type
 
@@ -1879,11 +1899,13 @@ def get_filtered_actions(
     ]
 
 
-def schedule_update_project_config(alert_rule: AlertRule, projects: Collection[Project]) -> None:
+def _schedule_update_project_config(
+    alert_rule: AlertRule, projects: Iterable[Project] | None
+) -> None:
     """
     If `should_use_on_demand`, then invalidate the project configs
     """
-    enabled_features = on_demand_metrics_feature_flags(alert_rule.organization)
+    enabled_features = on_demand_metrics_feature_flags(_unpack_organization(alert_rule))
     prefilling = "organizations:on-demand-metrics-prefill" in enabled_features
     if (
         not projects
@@ -1892,7 +1914,7 @@ def schedule_update_project_config(alert_rule: AlertRule, projects: Collection[P
     ):
         return
 
-    alert_snuba_query = alert_rule.snuba_query
+    alert_snuba_query = _unpack_snuba_query(alert_rule)
     should_use_on_demand = should_use_on_demand_metrics(
         alert_snuba_query.dataset,
         alert_snuba_query.aggregate,
