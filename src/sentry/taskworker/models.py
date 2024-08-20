@@ -23,8 +23,6 @@ class PendingTasks(Model):
         FAILURE = "failure"
         RETRY = "retry"
 
-    __relocation_scope__ = RelocationScope.Excluded
-
     # Could be omitted if pending tasks are stored in redis, or kafka.
     topic: str = models.CharField(blank=True, null=True)
     task_name: str = models.CharField(max_length=255, null=True)

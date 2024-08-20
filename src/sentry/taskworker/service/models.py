@@ -1,4 +1,5 @@
 from datetime import datetime
+from typing import Any
 
 from sentry.hybridcloud.rpc import RpcModel
 from sentry.taskworker.models import PendingTasks
@@ -7,6 +8,8 @@ from sentry.taskworker.models import PendingTasks
 class RpcTask(RpcModel):
     id: int
     topic: str
+    task_name: str
+    parameters: dict[str, Any] | None
     partition: int
     offset: int
     state: PendingTasks.States
@@ -21,6 +24,8 @@ def serialize_task(pending_task: PendingTasks) -> RpcTask:
         id=pending_task.id,
         topic=pending_task.topic,
         partition=pending_task.partition,
+        task_name=pending_task.task_name,
+        parameters=pending_task.parameters,
         offset=pending_task.offset,
         state=pending_task.state,
         received_at=pending_task.received_at,

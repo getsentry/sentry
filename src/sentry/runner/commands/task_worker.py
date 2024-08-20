@@ -1,6 +1,7 @@
 from datetime import datetime
 
 import click
+import orjson
 
 from sentry.runner.decorators import configuration
 
@@ -15,14 +16,13 @@ from sentry.runner.decorators import configuration
 @configuration
 def task_worker(generate_empty_task) -> None:
     from sentry.taskworker.models import PendingTasks
-    from sentry.taskworker.service.service import task_service
 
     if generate_empty_task:
         PendingTasks(
             topic="foobar",
             task_name="foo_the_bars",
-            parameters=None,
-            task_namespace="baz",
+            parameters=orjson.dumps({"args": [], "kwargs": {}}),
+            task_namespace="hackweek",
             partition=1,
             offset=1,
             received_at=datetime.now(),
@@ -31,11 +31,6 @@ def task_worker(generate_empty_task) -> None:
             processing_deadline=datetime.now(),
         ).save()
 
-    while True:
-        task = task_service.get_task()
-        if task is None:
-            click.echo("Queue is empty, goodbye")
-            return
+    from sentry.taskworker.worker import Worker
 
-        task_service.complete_task(task_id=task.id)
-        click.echo(f"processed task with ID {task.id}")
+    Worker(namespace="hackweek").start()
