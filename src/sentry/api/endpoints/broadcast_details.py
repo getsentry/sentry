@@ -10,7 +10,9 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import Endpoint, control_silo_endpoint
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.serializers import AdminBroadcastSerializer, BroadcastSerializer, serialize
-from sentry.api.validators import AdminBroadcastValidator, BroadcastValidator
+
+# from sentry.api.validators import AdminBroadcastValidator, BroadcastValidator
+from sentry.api.validators import AdminBroadcastValidator
 from sentry.models.broadcast import Broadcast, BroadcastSeen
 
 logger = logging.getLogger("sentry")
@@ -42,9 +44,10 @@ class BroadcastDetailsEndpoint(Endpoint):
             raise ResourceDoesNotExist
 
     def _get_validator(self, request: Request):
-        if request.access.has_permission("broadcasts.admin"):
-            return AdminBroadcastValidator
-        return BroadcastValidator
+        # if request.access.has_permission("broadcasts.admin"):
+        #     return AdminBroadcastValidator
+        # return BroadcastValidator
+        return AdminBroadcastValidator
 
     def _get_serializer(self, request: Request):
         if request.access.has_permission("broadcasts.admin"):
@@ -82,6 +85,8 @@ class BroadcastDetailsEndpoint(Endpoint):
             update_kwargs["cta"] = result["cta"]
         if result.get("mediaUrl"):
             update_kwargs["media_url"] = result["mediaUrl"]
+        if result.get("category"):
+            update_kwargs["category"] = result["category"]
         if update_kwargs:
             with transaction.atomic(using=router.db_for_write(Broadcast)):
                 broadcast.update(**update_kwargs)

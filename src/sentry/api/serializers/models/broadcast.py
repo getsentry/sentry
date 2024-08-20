@@ -30,6 +30,7 @@ class BroadcastSerializer(Serializer):
             "dateCreated": obj.date_added,
             "dateExpires": obj.date_expires,
             "hasSeen": attrs["seen"],
+            "category": obj.category,
         }
 
 

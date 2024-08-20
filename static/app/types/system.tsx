@@ -234,6 +234,7 @@ export type Broadcast = {
   mediaUrl: string;
   message: string;
   title: string;
+  category?: string;
 };
 
 // XXX(epurkhiser): The components list can be generated using jq

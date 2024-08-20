@@ -296,7 +296,7 @@ export type IssueEventParameters = {
   'tag.clicked': {
     is_clickable: boolean;
   };
-  'whats_new.link_clicked': {title?: string};
+  'whats_new.link_clicked': {category?: string; title?: string};
 };
 
 export type IssueEventKey = keyof IssueEventParameters;
