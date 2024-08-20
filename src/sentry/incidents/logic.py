@@ -1508,11 +1508,17 @@ def _get_target_identifier_display_for_integration(
         if input_channel_id is not None:
             # if we have a value for input_channel_id, just set target identifier to that
             return AlertTarget(input_channel_id, target_value)
+        if integration_id is None:
+            raise InvalidTriggerActionError(
+                "Slack requires integration_id if input_channel_id is not present"
+            )
         target_identifier = _get_alert_rule_trigger_action_slack_channel_id(
             target_value, integration_id, use_async_lookup, integrations
         )
         return AlertTarget(target_identifier, target_value)
     elif action_type == AlertRuleTriggerAction.Type.MSTEAMS.value:
+        if integration_id is None:
+            raise InvalidTriggerActionError("MSTeams requires integration_id")
         # target_value is the MSTeams username or channel name
         target_identifier = _get_alert_rule_trigger_action_msteams_channel_id(
             target_value, organization, integration_id
@@ -1520,17 +1526,23 @@ def _get_target_identifier_display_for_integration(
         return AlertTarget(target_identifier, target_value)
 
     elif action_type == AlertRuleTriggerAction.Type.DISCORD.value:
+        if integration_id is None:
+            raise InvalidTriggerActionError("Discord requires integration_id")
         target_identifier = _get_alert_rule_trigger_action_discord_channel_id(
             target_value, integration_id
         )
         return AlertTarget(target_identifier, target_value)
 
     elif action_type == AlertRuleTriggerAction.Type.PAGERDUTY.value:
+        if integration_id is None:
+            raise InvalidTriggerActionError("PagerDuty requires integration_id")
         # target_value is the ID of the PagerDuty service
         return _get_alert_rule_trigger_action_pagerduty_service(
             target_value, organization, integration_id
         )
     elif action_type == AlertRuleTriggerAction.Type.OPSGENIE.value:
+        if integration_id is None:
+            raise InvalidTriggerActionError("Opsgenie requires integration_id")
         return _get_alert_rule_trigger_action_opsgenie_team(
             target_value, organization, integration_id
         )
