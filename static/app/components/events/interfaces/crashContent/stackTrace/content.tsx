@@ -466,7 +466,7 @@ function TimeTraveler({steps, onBack}: {steps: TimeTravelerStep[]; onBack?: () =
         </CodeSide>
         <TimeTravelerVariablesContainer>
           {Object.entries(currentStep.vars).length === 0 ? (
-            <NoLocalVariables>No local variables</NoLocalVariables>
+            <NoLocalVariables>No local variables in scope.</NoLocalVariables>
           ) : null}
           {Object.entries(currentStep.vars).map(([key, value]) => {
             return (
