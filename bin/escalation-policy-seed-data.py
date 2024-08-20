@@ -257,7 +257,7 @@ def seed_policy_data():
             for i in range(5):
                 step = EscalationPolicyStep(
                     policy=self.policy,
-                    step_numer=i + 1,
+                    step_number=i + 1,
                     escalate_after_sec=random.randint(1, 5) * 15,
                 )
                 step.save()
