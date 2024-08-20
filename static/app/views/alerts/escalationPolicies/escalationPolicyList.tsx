@@ -1,6 +1,5 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
-import type {User} from '@sentry/types';
 
 import ParticipantList from 'sentry/components/group/streamlinedParticipantList';
 import * as Layout from 'sentry/components/layouts/thirds';
@@ -10,51 +9,12 @@ import Timeline from 'sentry/components/timeline';
 import {IconClock, IconExclamation, IconMegaphone, IconRefresh} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import type {User} from 'sentry/types';
 import useOrganization from 'sentry/utils/useOrganization';
 import useRouter from 'sentry/utils/useRouter';
 import AlertHeader from 'sentry/views/alerts/list/header';
 
-function UserFixture(params: Partial<User> = {}): User {
-  return {
-    id: '1',
-    username: 'foo@example.com',
-    email: 'foo@example.com',
-    name: 'Foo Bar',
-    isAuthenticated: true,
-    options: {
-      clock24Hours: false,
-      timezone: 'UTC',
-      language: 'en',
-      theme: 'system',
-      defaultIssueEvent: 'recommended',
-      avatarType: 'letter_avatar',
-      stacktraceOrder: -1,
-      issueDetailsNewExperienceQ42023: false,
-    },
-    ip_address: '127.0.0.1',
-    hasPasswordAuth: true,
-    authenticators: [],
-    canReset2fa: false,
-    dateJoined: '2020-01-01T00:00:00.000Z',
-    emails: [],
-    experiments: [],
-    has2fa: false,
-    identities: [],
-    isActive: false,
-    isManaged: false,
-    isStaff: false,
-    isSuperuser: false,
-    lastActive: '2020-01-01T00:00:00.000Z',
-    lastLogin: '2020-01-01T00:00:00.000Z',
-    permissions: new Set(),
-    flags: {
-      newsletter_consent_prompt: false,
-    },
-    ...params,
-  };
-}
-
-function NotifyItem({users}: {users: User[]}) {
+function NotifyItem({users}: {users?: User[]}) {
   return (
     <Timeline.Item
       title={'Notify:'}
@@ -65,7 +25,7 @@ function NotifyItem({users}: {users: User[]}) {
         iconBorder: 'purple200',
       }}
     >
-      <ParticipantList users={users} />
+      {users && <ParticipantList users={users} />}
     </Timeline.Item>
   );
 }
@@ -134,31 +94,15 @@ interface EscalationPolicyTimelineProps {
 }
 
 function EscalationPolicyTimeline({title}: EscalationPolicyTimelineProps) {
-  const firstBatch = [
-    UserFixture({id: '1', name: 'Michael Sun', email: 'michael.sun@example.com'}),
-    UserFixture({
-      id: '2',
-      name: 'Richard Roggenkemper',
-      email: 'richard.roggenkemper@example.com',
-    }),
-  ];
-  const secondBatch = [
-    UserFixture({id: '1', name: 'Mike Ihbe', email: 'mike.ihbe@example.com'}),
-    UserFixture({
-      id: '2',
-      name: 'Zachary Collins',
-      email: 'zachary.collins@example.com',
-    }),
-  ];
   return (
     <EscalationPolicyContainer>
       <h3>{title ?? 'Example Escalation Policy'}</h3>
       <EscalationPolicyContent>
         <Timeline.Container>
           <IncidentCreatedItem />
-          <NotifyItem users={firstBatch} />
+          <NotifyItem />
           <EscalateAfterItem minutes={10} />
-          <NotifyItem users={secondBatch} />
+          <NotifyItem />
           <EscalateAfterItem minutes={15} />
           <RepeatItem />
         </Timeline.Container>
