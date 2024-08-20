@@ -1,7 +1,7 @@
 from django.db import router, transaction
 
 from sentry.taskworker.models import PendingTasks
-from sentry.taskworker.service.models import RpcTask, serialize_task
+from sentry.taskworker.service.models import RpcRetryState, RpcTask, serialize_task
 
 
 class TaskService:
@@ -16,7 +16,9 @@ class TaskService:
     def get_task(self, *, partition: int | None = None, topic: str | None = None) -> RpcTask | None:
 
         with transaction.atomic(using=router.db_for_write(PendingTasks)):
-            query_set = PendingTasks.objects.filter(state=PendingTasks.States.PENDING)
+            query_set = PendingTasks.objects.filter(
+                state__in=[PendingTasks.States.PENDING, PendingTasks.States.RETRY]
+            )
 
             if partition is not None:
                 query_set = query_set.filter(partition=partition)
@@ -34,11 +36,19 @@ class TaskService:
     def set_task_status(self, *, task_id: int, task_status: PendingTasks.States) -> RpcTask | None:
         try:
             with transaction.atomic(using=router.db_for_write(PendingTasks)):
-                task = PendingTasks.objects.filter(id=task_id).get()
+                # Pull a select for update here to lock the row while we mutate the retry count
+                task = PendingTasks.objects.select_for_update().filter(id=task_id).get()
 
-                # TODO add state machine validtion/logging
-                if task.state != PendingTasks.States.COMPLETE:
-                    task.update(state=task_status)
+                # TODO add state machine validation/logging
+                if task.state == PendingTasks.States.COMPLETE:
+                    return serialize_task(task)
+
+                task.update(state=task_status)
+                if task_status == PendingTasks.States.RETRY and task.retry_state is not None:
+                    task_retry_state = RpcRetryState.deserialize_from_dict(task.retry_state)
+                    task_retry_state.attempts += 1
+                    task.update(retry_state=task_retry_state.json())
+
                 return serialize_task(task)
         except PendingTasks.DoesNotExist:
             return None

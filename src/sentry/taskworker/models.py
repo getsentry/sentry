@@ -34,6 +34,6 @@ class PendingTasks(Model):
     state: States = models.CharField(choices=States.choices)
     received_at: datetime = models.DateTimeField()
     added_at: datetime = models.DateTimeField(default=datetime.now, blank=True)
-    retry_state: models.Field[dict[str, Any]] = JSONField(null=True)
+    retry_state: models.Field[dict[str, Any] | None, dict[str, Any] | None] = JSONField(null=True)
     deadletter_at: datetime = models.DateTimeField()
     processing_deadline: datetime = models.DateTimeField(blank=True, null=True)

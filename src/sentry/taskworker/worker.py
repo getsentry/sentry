@@ -76,4 +76,7 @@ class Worker:
                 "taskworker.task.change_status",
                 extra={"task": task_data.task_name, "state": next_state},
             )
-            task_service.set_task_status(task_id=task_data.id, task_status=next_state)
+            task_service.set_task_status(
+                task_id=task_data.id,
+                task_status=next_state,
+            )

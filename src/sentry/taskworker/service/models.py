@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import Any
+from typing import Any, Union
 
 import orjson
 
@@ -11,7 +11,20 @@ class RpcRetryState(RpcModel):
     attempts: int
     discard_after_attempt: int | None
     deadletter_after_attempt: int | None
-    kind: str
+    kind: str | None
+
+    @classmethod
+    def deserialize_from_dict(
+        cls, input_dict: dict[str, Any] | str | None
+    ) -> Union["RpcRetryState", None]:
+        if input_dict is None:
+            return None
+
+        if isinstance(input_dict, dict):
+            return cls.parse_obj(input_dict)
+
+        if isinstance(input_dict, str):
+            return cls.parse_raw(input_dict)
 
 
 class RpcTask(RpcModel):
@@ -30,7 +43,8 @@ class RpcTask(RpcModel):
 
 
 def serialize_task(pending_task: PendingTasks) -> RpcTask:
-    params = orjson.loads(pending_task.parameters) if pending_task.parameters else None
+    params = orjson.loads(pending_task.parameters) if pending_task.parameters is not None else None
+
     return RpcTask(
         id=pending_task.id,
         topic=pending_task.topic,
@@ -43,10 +57,5 @@ def serialize_task(pending_task: PendingTasks) -> RpcTask:
         added_at=pending_task.added_at,
         deadletter_at=pending_task.deadletter_at,
         processing_deadline=pending_task.processing_deadline,
-        retry_state=RpcRetryState(
-            attempts=1,
-            discard_after_attempt=3,
-            deadletter_after_attempt=None,
-            kind="Retry",
-        ),
+        retry_state=RpcRetryState.deserialize_from_dict(pending_task.retry_state),
     )
