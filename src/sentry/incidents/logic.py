@@ -682,7 +682,7 @@ def create_alert_rule(
             type=AlertRuleActivityType.CREATED.value,
         )
 
-    _schedule_update_project_config(alert_rule, projects)
+    schedule_update_project_config(alert_rule, projects)
 
     return alert_rule
 
@@ -1025,7 +1025,7 @@ def update_alert_rule(
             event=audit_log.get_event_id("ALERT_RULE_EDIT"),
         )
 
-    _schedule_update_project_config(alert_rule, projects)
+    schedule_update_project_config(alert_rule, projects)
 
     return alert_rule
 
@@ -1070,7 +1070,7 @@ def delete_alert_rule(
         subscriptions = _unpack_snuba_query(alert_rule).subscriptions.all()
         bulk_delete_snuba_subscriptions(subscriptions)
 
-        _schedule_update_project_config(alert_rule, [sub.project for sub in subscriptions])
+        schedule_update_project_config(alert_rule, [sub.project for sub in subscriptions])
 
         incidents = Incident.objects.filter(alert_rule=alert_rule)
         if incidents.exists():
@@ -1373,7 +1373,7 @@ def create_alert_rule_trigger_action(
         if target_identifier is None:
             raise InvalidTriggerActionError("Must specify target_identifier")
 
-        target = _get_target_identifier_display_for_integration(
+        target = get_target_identifier_display_for_integration(
             type,
             target_identifier,
             _unpack_organization(trigger.alert_rule),
@@ -1455,7 +1455,7 @@ def update_alert_rule_trigger_action(
             integration_id = updated_fields.get("integration_id", trigger_action.integration_id)
             organization = _unpack_organization(trigger_action.alert_rule_trigger.alert_rule)
 
-            target = _get_target_identifier_display_for_integration(
+            target = get_target_identifier_display_for_integration(
                 type,
                 target_identifier,
                 organization,
@@ -1497,7 +1497,7 @@ class AlertTarget:
     display: str | None
 
 
-def _get_target_identifier_display_for_integration(
+def get_target_identifier_display_for_integration(
     action_type: ActionService,
     target_value: str,
     organization: Organization,
@@ -1546,7 +1546,7 @@ def _get_target_identifier_display_for_integration(
     elif action_type == AlertRuleTriggerAction.Type.OPSGENIE.value:
         if integration_id is None:
             raise InvalidTriggerActionError("Opsgenie requires integration_id")
-        return _get_alert_rule_trigger_action_opsgenie_team(
+        return get_alert_rule_trigger_action_opsgenie_team(
             target_value, organization, integration_id
         )
     else:
@@ -1648,7 +1648,7 @@ def _get_alert_rule_trigger_action_pagerduty_service(
     return AlertTarget(str(service["id"]), service["service_name"])
 
 
-def _get_alert_rule_trigger_action_opsgenie_team(
+def get_alert_rule_trigger_action_opsgenie_team(
     target_value: str | None, organization: Organization, integration_id: int
 ) -> AlertTarget:
     from sentry.integrations.opsgenie.utils import get_team
@@ -1869,7 +1869,7 @@ def get_slack_channel_ids(
     mapped_slack_channels = {}
     for action in slack_actions:
         if not action["target_identifier"] in mapped_slack_channels:
-            target = _get_target_identifier_display_for_integration(
+            target = get_target_identifier_display_for_integration(
                 action["type"].value,
                 action["target_identifier"],
                 organization,
@@ -1914,7 +1914,7 @@ def get_filtered_actions(
     ]
 
 
-def _schedule_update_project_config(
+def schedule_update_project_config(
     alert_rule: AlertRule, projects: Iterable[Project] | None
 ) -> None:
     """
