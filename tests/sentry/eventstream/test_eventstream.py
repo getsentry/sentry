@@ -380,6 +380,18 @@ class SnubaEventStreamTest(TestCase, SnubaTestCase, OccurrenceTestMixin):
         headers, body = self.__produce_payload(*insert_args, **insert_kwargs)
         assert body["queue"] == "post_process_transactions-1"
 
+        # test default assignment
+        insert_kwargs = {
+            "event": self.__build_event(timezone.now()),
+            **group_state,
+            "primary_hash": "acbd18db4cc2f85cedef654fccc4a4d8",
+            "skip_consume": False,
+            "received_timestamp": event.data["received"],
+            "group_states": [{"id": event.groups[0].id, **group_state}],
+        }
+        headers, body = self.__produce_payload(*insert_args, **insert_kwargs)
+        assert body["queue"] == "post_process_errors"
+
     @patch("sentry.eventstream.backend.insert", autospec=True)
     def test_issue_platform_queue(self, mock_eventstream_insert):
         event = self.__build_transaction_event()
