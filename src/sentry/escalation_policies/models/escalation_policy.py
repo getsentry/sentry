@@ -30,6 +30,7 @@ class EscalationPolicy(Model):
     class Meta:
         app_label = "sentry"
         db_table = "sentry_escalation_policy"
+        unique_together = (("organization", "name"),)
 
 
 @region_silo_model
