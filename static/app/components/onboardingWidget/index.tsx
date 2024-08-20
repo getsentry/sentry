@@ -1,43 +1,53 @@
-import {Fragment} from 'react';
+import {Fragment, useCallback, useEffect} from 'react';
 import {createPortal} from 'react-dom';
 import type {Theme} from '@emotion/react';
 import {css, useTheme} from '@emotion/react';
 
-import {Button} from 'sentry/components/button';
-import Card from 'sentry/components/card';
+import {Button, LinkButton} from 'sentry/components/button';
 import InteractionStateLayer from 'sentry/components/interactionStateLayer';
-import {
-  IconChevron,
-  IconClose,
-  IconDocs,
-  IconFire,
-  IconLightning,
-  IconMegaphone,
-  IconPlay,
-  IconStack,
-  IconTag,
-} from 'sentry/icons';
+import {CHART_PALETTE} from 'sentry/constants/chartPalette';
+import {IconCircleFill, IconClose, IconIssues, IconSpan} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import {SectionKey, useEventDetails} from 'sentry/views/issueDetails/streamline/context';
 import {sectionLabels} from 'sentry/views/issueDetails/streamline/eventNavigation';
 
-const icons = {
-  [SectionKey.HIGHLIGHTS]: <IconLightning />,
-  [SectionKey.STACKTRACE]: <IconStack />,
-  [SectionKey.EXCEPTION]: <IconFire />,
-  [SectionKey.BREADCRUMBS]: <IconChevron direction="right" />,
-  [SectionKey.TAGS]: <IconTag />,
-  [SectionKey.CONTEXTS]: <IconDocs />,
-  [SectionKey.USER_FEEDBACK]: <IconMegaphone />,
-  [SectionKey.REPLAY]: <IconPlay />,
-};
-
 interface OnboardingGuide {
   activeSection: SectionKey;
   dismissed: boolean;
 }
+
+const sections = {
+  [SectionKey.HIGHLIGHTS]: {
+    title: t('Event Highlights'),
+    description: t(
+      'This is short introduction to explain the value of the selected section'
+    ),
+    color: CHART_PALETTE[0],
+  },
+  [SectionKey.STACKTRACE]: {
+    title: t('Stack Trace'),
+    description: t(
+      'This is short introduction to explain the value of the selected section'
+    ),
+    color: CHART_PALETTE[5][1],
+  },
+  [SectionKey.EXCEPTION]: {
+    title: t('Stack Trace'),
+    description: t(
+      'This is short introduction to explain the value of the selected section'
+    ),
+    color: CHART_PALETTE[5][1],
+  },
+  [SectionKey.REPLAY]: {
+    title: t('Session Replay'),
+    description: t(
+      'This is short introduction to explain the value of the selected section'
+    ),
+    color: CHART_PALETTE[5][2],
+  },
+};
 
 export function OnboardingWidget() {
   const theme = useTheme();
@@ -47,6 +57,47 @@ export function OnboardingWidget() {
       activeSection: SectionKey.HIGHLIGHTS,
       dismissed: false,
     });
+
+  useEffect(() => {
+    const sectionNode = document.getElementById(onboardingGuideConfig.activeSection);
+    if (!sectionNode) {
+      return;
+    }
+
+    Object.assign(sectionNode.style, {
+      position: 'relative',
+      zIndex: '300000',
+      background: theme.background,
+      overflow: 'hidden',
+      border: `3px solid ${sections[onboardingGuideConfig.activeSection].color}`,
+      borderRadius: theme.borderRadius,
+    });
+    sectionNode.scrollIntoView({block: 'start', behavior: 'smooth'});
+  }, [onboardingGuideConfig.activeSection, theme]);
+
+  const handleSectionClick = useCallback(
+    (section: SectionKey) => {
+      const currentSectionNode = document.getElementById(
+        onboardingGuideConfig.activeSection
+      );
+      if (currentSectionNode) {
+        Object.assign(currentSectionNode.style, {
+          position: 'static',
+          zIndex: 'auto',
+          background: 'transparent',
+          overflow: 'visible',
+          border: 'none',
+          borderRadius: 0,
+        });
+      }
+
+      setOnboardingGuideConfig({
+        ...onboardingGuideConfig,
+        activeSection: section,
+      });
+    },
+    [onboardingGuideConfig, setOnboardingGuideConfig]
+  );
 
   if (onboardingGuideConfig.dismissed) {
     return null;
@@ -64,11 +115,11 @@ export function OnboardingWidget() {
           <div css={[fixedContainerBaseCss, fixedContainerRightEdgeCss]}>
             <div css={contentCss(theme)}>
               <div css={headerCss(theme)}>
-                <h4>{t('Test your Sentry SDK Setup')}</h4>
+                <IconIssues size="sm" />
+                {t('Issue Details')}
                 <Button
-                  css={dismissButtonCss(theme)}
                   aria-label={t('Dismiss onboarding guide')}
-                  icon={<IconClose color="white" />}
+                  icon={<IconClose />}
                   onClick={() =>
                     setOnboardingGuideConfig({...onboardingGuideConfig, dismissed: true})
                   }
@@ -76,31 +127,28 @@ export function OnboardingWidget() {
                   borderless
                 />
               </div>
-              <hr />
-              <div css={bodyCss(theme)}>
-                {eventSectionConfigs.map(config => (
-                  <Card
-                    key={config.key}
-                    onClick={() => {
-                      setOnboardingGuideConfig({
-                        ...onboardingGuideConfig,
-                        activeSection: config.key,
-                      });
-                      document
-                        .getElementById(config.key)
-                        ?.scrollIntoView({block: 'start', behavior: 'smooth'});
-                    }}
-                    css={cardCss(
-                      theme,
-                      config.key === onboardingGuideConfig.activeSection
-                    )}
-                  >
-                    <InteractionStateLayer />
-                    {icons[sectionLabels[config.key]]}
-                    {sectionLabels[config.key]}
-                  </Card>
-                ))}
-              </div>
+              {eventSectionConfigs.map(config => {
+                if (!sections[config.key]) {
+                  return null;
+                }
+                return (
+                  <div key={config.key} css={itemCss}>
+                    <InteractionStateLayer
+                      isPressed={config.key === onboardingGuideConfig.activeSection}
+                    />
+                    <div
+                      css={sectionCssContent}
+                      onClick={() => handleSectionClick(config.key)}
+                    >
+                      <IconCircleFill color={sections[config.key].color} />
+                      {sections[config.key].title}
+                    </div>
+                  </div>
+                );
+              })}
+              <LinkButton to="/" icon={<IconSpan />} priority="link" css={itemCss}>
+                {t('See this issue in the trace view ')}
+              </LinkButton>
             </div>
           </div>
         </Fragment>,
@@ -110,58 +158,39 @@ export function OnboardingWidget() {
   );
 }
 
-const dismissButtonCss = (theme: Theme) => css`
-  &:hover {
-    border-color: ${theme.white};
-  }
-`;
-
 const contentCss = (theme: Theme) => css`
-  min-width: 400px;
-  background: linear-gradient(41deg, rgba(58, 46, 93, 1) 61%, rgba(136, 81, 145, 1) 100%);
-  border-top-left-radius: ${theme.borderRadius};
-  border-bottom-left-radius: ${theme.borderRadius};
+  min-width: 320px;
+  border-radius: ${theme.borderRadius};
   border: 1px solid ${theme.border};
-  overflow: hidden;
-  hr {
-    border-color: ${theme.border};
-    margin: 0;
-  }
+  background: ${theme.background};
+  right: ${space(2)};
+  padding: ${space(0.5)};
+  font-weight: 600;
 `;
 
 const headerCss = (theme: Theme) => css`
-  padding: ${space(1.5)} ${space(2)};
+  padding-left: ${space(1.5)};
   display: grid;
-  grid-template-columns: 1fr max-content;
+  grid-template-columns: max-content 1fr max-content;
   gap: ${space(1)};
-  color: ${theme.white};
+  color: ${theme.gray300};
   align-items: center;
   h4 {
     margin-bottom: 0;
   }
 `;
 
-const bodyCss = (theme: Theme) => css`
-  padding: ${space(1.5)} ${space(2)};
-  display: grid;
-  align-items: center;
-  background: ${theme.background};
+const itemCss = css`
+  position: relative;
+  cursor: pointer;
+  padding: ${space(1)} ${space(1.5)};
 `;
 
-const cardCss = (theme: Theme, selected: boolean) => css`
-  padding: ${space(2)} ${space(3)};
-  cursor: pointer;
-  font-size: ${theme.fontSizeLarge};
+const sectionCssContent = css`
   display: grid;
   grid-template-columns: max-content 1fr;
-  align-items: center;
   gap: ${space(1)};
-  ${selected &&
-  css`
-    color: ${theme.purple400};
-    font-weight: ${theme.fontWeightBold};
-    background-color: ${theme.purple100};
-  `}
+  align-items: center;
 `;
 
 const fixedContainerBaseCss = css`
@@ -181,6 +210,7 @@ const fixedContainerRightEdgeCss = css`
   flex-direction: row-reverse;
   justify-content: flex-start;
   place-items: center;
+  right: ${space(2)};
 `;
 
 const backdropCss = (theme: Theme) => css`
