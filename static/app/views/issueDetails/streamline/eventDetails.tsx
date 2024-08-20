@@ -4,6 +4,7 @@ import styled from '@emotion/styled';
 
 import {CommitRow} from 'sentry/components/commitRow';
 import {SuspectCommits} from 'sentry/components/events/suspectCommits';
+import {OnboardingWidget} from 'sentry/components/onboardingWidget';
 import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
 import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
 import {space} from 'sentry/styles/space';
@@ -31,6 +32,7 @@ export function EventDetails({
   const {eventDetails, dispatch} = useEventDetailsReducer();
   const theme = useTheme();
   const isScreenMedium = useMedia(`(max-width: ${theme.breakpoints.medium})`);
+  const isExamplePageError = group?.culprit.includes('sentry-example-page') ?? false;
 
   useLayoutEffect(() => {
     const navHeight = nav?.offsetHeight ?? 0;
@@ -43,6 +45,7 @@ export function EventDetails({
 
   return (
     <EventDetailsContext.Provider value={{...eventDetails, dispatch}}>
+      {isExamplePageError && <OnboardingWidget />}
       <SuspectCommits
         project={project}
         eventId={event.id}

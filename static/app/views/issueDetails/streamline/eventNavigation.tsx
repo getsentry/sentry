@@ -70,7 +70,7 @@ const EventNavOrder = [
   EventNavOptions.CUSTOM,
 ];
 
-const sectionLabels = {
+export const sectionLabels = {
   [SectionKey.HIGHLIGHTS]: t('Event Highlights'),
   [SectionKey.STACKTRACE]: t('Stack Trace'),
   [SectionKey.EXCEPTION]: t('Stack Trace'),
