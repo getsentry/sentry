@@ -3,6 +3,7 @@ import styled from '@emotion/styled';
 import Access from 'sentry/components/acl/access';
 import {DropdownMenu, type MenuItemProps} from 'sentry/components/dropdownMenu';
 import ErrorBoundary from 'sentry/components/errorBoundary';
+import Link from 'sentry/components/links/link';
 import TimeSince from 'sentry/components/timeSince';
 import {IconEllipsis} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -60,7 +61,11 @@ export function OccurrenceListRow({escalationPolicyState, onStatusChange}: Props
   return (
     <ErrorBoundary>
       <div>{escalationPolicyState.state}</div>
-      <div>{escalationPolicyState.group.title}</div>
+      <div>
+        <Link href={'/issues/' + escalationPolicyState.group.id}>
+          {escalationPolicyState.group.title}
+        </Link>
+      </div>
       <TimeSince date={escalationPolicyState.dateAdded} />
       <div>{escalationPolicyState.escalationPolicy.name}</div>
 

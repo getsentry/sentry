@@ -2,12 +2,14 @@ import {forwardRef} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import ScheduleAvatar from 'sentry/components/avatar/scheduleAvatar';
 import TeamAvatar from 'sentry/components/avatar/teamAvatar';
 import UserAvatar from 'sentry/components/avatar/userAvatar';
 import {Tooltip} from 'sentry/components/tooltip';
 import {space} from 'sentry/styles/space';
 import type {Team} from 'sentry/types/organization';
 import type {AvatarUser} from 'sentry/types/user';
+import type {RotationSchedule} from 'sentry/views/escalationPolicies/queries/useFetchRotationSchedules';
 import {useHasStreamlinedUI} from 'sentry/views/issueDetails/utils';
 
 type UserAvatarProps = React.ComponentProps<typeof UserAvatar>;
@@ -17,6 +19,7 @@ type Props = {
   className?: string;
   maxVisibleAvatars?: number;
   renderTooltip?: UserAvatarProps['renderTooltip'];
+  schedules?: RotationSchedule[];
   teams?: Team[];
   tooltipOptions?: UserAvatarProps['tooltipOptions'];
   typeAvatars?: string;
@@ -51,17 +54,40 @@ function AvatarList({
   className,
   users = [],
   teams = [],
+  schedules = [],
   renderTooltip,
 }: Props) {
-  const numTeams = teams.length;
-  const numVisibleTeams = maxVisibleAvatars - numTeams > 0 ? numTeams : maxVisibleAvatars;
-  const maxVisibleUsers =
-    maxVisibleAvatars - numVisibleTeams > 0 ? maxVisibleAvatars - numVisibleTeams : 0;
+  // Prioritize schedules, then teams, then users
+  let remaining = maxVisibleAvatars;
+  const visibleAvatarsByType = {
+    schedules: schedules,
+    teams: teams,
+    users: users,
+  };
+  Object.entries(visibleAvatarsByType).forEach(objectType => {
+    const [key, avatars] = objectType;
+    if (remaining - avatars.length > 0) {
+      visibleAvatarsByType[key] = avatars.length;
+      remaining -= avatars.length;
+    } else {
+      visibleAvatarsByType[key] = remaining;
+      remaining = 0;
+    }
+  });
+
   // Reverse the order since css flex-reverse is used to display the avatars
-  const visibleTeamAvatars = teams.slice(0, numVisibleTeams).reverse();
-  const visibleUserAvatars = users.slice(0, maxVisibleUsers).reverse();
+  const visibleTeamAvatars = teams.slice(0, visibleAvatarsByType.teams.length).reverse();
+  const visibleUserAvatars = users.slice(0, visibleAvatarsByType.users.length).reverse();
+  const visibleScheduleAvatars = schedules
+    .slice(0, visibleAvatarsByType.schedules.length)
+    .reverse();
   const numCollapsedAvatars =
-    users.length + teams.length - (visibleUserAvatars.length + visibleTeamAvatars.length);
+    schedules.length +
+    users.length +
+    teams.length -
+    (visibleUserAvatars.length +
+      visibleTeamAvatars.length +
+      visibleScheduleAvatars.length);
 
   if (!tooltipOptions.position) {
     tooltipOptions.position = 'top';
@@ -91,6 +117,15 @@ function AvatarList({
         <StyledTeamAvatar
           key={`${team.id}-${team.name}`}
           team={team}
+          size={avatarSize}
+          tooltipOptions={tooltipOptions}
+          hasTooltip
+        />
+      ))}
+      {visibleScheduleAvatars.map(schedule => (
+        <StyledScheduleAvatar
+          key={`${schedule.id}-${schedule.name}`}
+          schedule={schedule}
           size={avatarSize}
           tooltipOptions={tooltipOptions}
           hasTooltip
@@ -131,6 +166,11 @@ const StyledUserAvatar = styled(UserAvatar)`
 `;
 
 const StyledTeamAvatar = styled(TeamAvatar)`
+  overflow: hidden;
+  ${AvatarStyle}
+`;
+
+const StyledScheduleAvatar = styled(ScheduleAvatar)`
   overflow: hidden;
   ${AvatarStyle}
 `;

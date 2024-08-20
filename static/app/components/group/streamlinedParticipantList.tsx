@@ -3,6 +3,7 @@ import styled from '@emotion/styled';
 
 import Avatar from 'sentry/components/avatar';
 import AvatarList from 'sentry/components/avatar/avatarList';
+import ScheduleAvatar from 'sentry/components/avatar/scheduleAvatar';
 import TeamAvatar from 'sentry/components/avatar/teamAvatar';
 import {Button} from 'sentry/components/button';
 import {Overlay, PositionWrapper} from 'sentry/components/overlay';
@@ -10,30 +11,45 @@ import {t, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Team, User} from 'sentry/types';
 import useOverlay from 'sentry/utils/useOverlay';
+import type {RotationSchedule} from 'sentry/views/escalationPolicies/queries/useFetchRotationSchedules';
 
 interface DropdownListProps {
   users: User[];
+  maxVisibleAvatars?: number;
+  schedules?: RotationSchedule[];
   teams?: Team[];
 }
 
-export default function ParticipantList({users, teams}: DropdownListProps) {
+export default function ParticipantList({
+  users,
+  teams,
+  schedules,
+  maxVisibleAvatars,
+}: DropdownListProps) {
   const {overlayProps, isOpen, triggerProps} = useOverlay({
     position: 'bottom-start',
     shouldCloseOnBlur: true,
     isKeyboardDismissDisabled: false,
   });
 
+  users = users || [];
+  teams = teams || [];
+  schedules = schedules || [];
   const theme = useTheme();
-  const showHeaders = users.length > 0 && teams && teams.length > 0;
+  const showHeaders =
+    Number(users.length > 0) + Number(teams.length > 0) + Number(schedules.length > 0) >
+    1;
 
+  maxVisibleAvatars = maxVisibleAvatars || 3;
   return (
     <div>
       <Button borderless translucentBorder size="zero" {...triggerProps}>
         <StyledAvatarList
           teams={teams}
           users={users}
+          schedules={schedules}
           avatarSize={24}
-          maxVisibleAvatars={3}
+          maxVisibleAvatars={maxVisibleAvatars}
         />
       </Button>
       {isOpen && (
@@ -62,6 +78,15 @@ export default function ParticipantList({users, teams}: DropdownListProps) {
                     {user.name}
                     <SubText>{user.email}</SubText>
                   </div>
+                </UserRow>
+              ))}
+              {showHeaders && (
+                <ListTitle>{t('Rotation Schedules (%s)', schedules.length)}</ListTitle>
+              )}
+              {schedules.map(schedule => (
+                <UserRow key={schedule.id}>
+                  <ScheduleAvatar schedule={schedule} size={20} />
+                  <div>{schedule.name}</div>
                 </UserRow>
               ))}
             </ParticipantListWrapper>

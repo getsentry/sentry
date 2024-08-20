@@ -1,25 +1,35 @@
+import type {Team} from 'sentry/types/organization';
+import type {User} from 'sentry/types/user';
 import {
   type ApiQueryKey,
   useApiQuery,
   type UseApiQueryOptions,
 } from 'sentry/utils/queryClient';
+import type {RotationSchedule} from 'sentry/views/escalationPolicies/queries/useFetchRotationSchedules';
 
-export interface EscalationPolicy {
+export type EscalationPolicyStepRecipient = {
+  data: Team | User | RotationSchedule;
+  type: 'user' | 'team' | 'schedule';
+};
+export type EscalationPolicyStep = {
+  escalateAfterSec: number;
+  recipients: EscalationPolicyStepRecipient[];
+  stepNumber: number;
+};
+
+export type EscalationPolicy = {
   description: string;
   id: string;
   name: string;
   organization: string;
   repeatNTimes: number;
+  steps: EscalationPolicyStep[];
   userId: string;
   team?: string;
-}
+};
 
 interface FetchEscalationPoliciesParams {
   orgSlug: string;
-}
-
-interface FetchEscalationPoliciesResponse {
-  escalationPolicies: EscalationPolicy[];
 }
 
 export const makeFetchEscalationPoliciesKey = ({
@@ -33,13 +43,10 @@ export const makeFetchEscalationPoliciesKey = ({
 
 export const useFetchEscalationPolicies = (
   params: FetchEscalationPoliciesParams,
-  options: Partial<UseApiQueryOptions<FetchEscalationPoliciesResponse>> = {}
+  options: Partial<UseApiQueryOptions<EscalationPolicy[]>> = {}
 ) => {
-  return useApiQuery<FetchEscalationPoliciesResponse>(
-    makeFetchEscalationPoliciesKey(params),
-    {
-      staleTime: 0,
-      ...options,
-    }
-  );
+  return useApiQuery<EscalationPolicy[]>(makeFetchEscalationPoliciesKey(params), {
+    staleTime: 0,
+    ...options,
+  });
 };

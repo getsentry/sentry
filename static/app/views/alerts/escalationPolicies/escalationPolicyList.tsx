@@ -4,17 +4,43 @@ import styled from '@emotion/styled';
 import ParticipantList from 'sentry/components/group/streamlinedParticipantList';
 import * as Layout from 'sentry/components/layouts/thirds';
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
+import Pagination from 'sentry/components/pagination';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import Timeline from 'sentry/components/timeline';
 import {IconClock, IconExclamation, IconMegaphone, IconRefresh} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {User} from 'sentry/types';
+import type {Team, User} from 'sentry/types';
+import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import useRouter from 'sentry/utils/useRouter';
 import AlertHeader from 'sentry/views/alerts/list/header';
+import {
+  type EscalationPolicy,
+  type EscalationPolicyStepRecipient,
+  useFetchEscalationPolicies,
+} from 'sentry/views/escalationPolicies/queries/useFetchEscalationPolicies';
+import type {RotationSchedule} from 'sentry/views/escalationPolicies/queries/useFetchRotationSchedules';
 
-function NotifyItem({users}: {users?: User[]}) {
+function NotifyItem({recipients}: {recipients: EscalationPolicyStepRecipient[]}) {
+  const users: User[] =
+    recipients
+      .filter(r => {
+        return r.type === 'user';
+      })
+      .map(r => r.data as User) || [];
+  const teams: Team[] =
+    recipients
+      .filter(r => {
+        return r.type === 'team';
+      })
+      .map(r => r.data as Team) || [];
+  const schedules: RotationSchedule[] =
+    recipients
+      .filter(r => {
+        return r.type === 'schedule';
+      })
+      .map(r => r.data as RotationSchedule) || [];
   return (
     <Timeline.Item
       title={'Notify:'}
@@ -25,7 +51,12 @@ function NotifyItem({users}: {users?: User[]}) {
         iconBorder: 'purple200',
       }}
     >
-      {users && <ParticipantList users={users} />}
+      <ParticipantList
+        users={users}
+        teams={teams}
+        schedules={schedules}
+        maxVisibleAvatars={10}
+      />
     </Timeline.Item>
   );
 }
@@ -66,10 +97,10 @@ function IncidentCreatedItem() {
   );
 }
 
-function RepeatItem() {
+function RepeatItem({n}: {n: number}) {
   return (
     <Timeline.Item
-      title={'Repeat:'}
+      title={'Repeat: ' + n + ' time' + (n > 1 ? 's' : '')}
       icon={<IconRefresh size="xs" />}
       colorConfig={{
         title: 'purple400',
@@ -89,29 +120,27 @@ function SideBarSection({children, title}: {children: React.ReactNode; title: st
   );
 }
 
-interface EscalationPolicyTimelineProps {
-  title?: string;
-}
-
-function EscalationPolicyTimeline({title}: EscalationPolicyTimelineProps) {
+function EscalationPolicyTimeline({policy}: {policy: EscalationPolicy}) {
   return (
     <EscalationPolicyContainer>
-      <h3>{title ?? 'Example Escalation Policy'}</h3>
+      <h3>{policy.name}</h3>
       <EscalationPolicyContent>
         <Timeline.Container>
           <IncidentCreatedItem />
-          <NotifyItem />
-          <EscalateAfterItem minutes={10} />
-          <NotifyItem />
-          <EscalateAfterItem minutes={15} />
-          <RepeatItem />
+          {policy.steps.map(policyStep => {
+            return (
+              <div key={policyStep.stepNumber}>
+                <NotifyItem recipients={policyStep.recipients} />
+                <EscalateAfterItem
+                  minutes={Math.ceil(policyStep.escalateAfterSec / 60)}
+                />
+              </div>
+            );
+          })}
+          <RepeatItem n={policy.repeatNTimes} />
         </Timeline.Container>
         <SideBarContainer>
-          <SideBarSection title={'Used by 1 service'}>Some content here</SideBarSection>
-          <SideBarSection title={'Used by 2 teams'}>Some content here</SideBarSection>
-          <SideBarSection title={'Send On-Call Handoff Notifications'}>
-            when in use by a service
-          </SideBarSection>
+          <SideBarSection title={'Used by 1 Alert'}>Some content here</SideBarSection>
         </SideBarContainer>
       </EscalationPolicyContent>
     </EscalationPolicyContainer>
@@ -120,6 +149,17 @@ function EscalationPolicyTimeline({title}: EscalationPolicyTimelineProps) {
 function EscalationPolicyList() {
   const router = useRouter();
   const organization = useOrganization();
+  const location = useLocation();
+
+  const {
+    data: escalationPolicies = [],
+    // refetch,
+    getResponseHeader,
+    // isLoading,
+    // isError,
+  } = useFetchEscalationPolicies({orgSlug: organization.slug}, {});
+  const escalationPoliciesPageLinks = getResponseHeader?.('Link');
+  const {cursor: _cursor, page: _page, ...currentQuery} = location.query;
 
   return (
     <Fragment>
@@ -129,9 +169,23 @@ function EscalationPolicyList() {
         <AlertHeader router={router} activeTab="policies" />
         <Layout.Body>
           <Layout.Main fullWidth>
-            <EscalationPolicyTimeline />
+            {escalationPolicies.map((escalationPolicy: EscalationPolicy) => (
+              <EscalationPolicyTimeline
+                key={escalationPolicy.id}
+                policy={escalationPolicy}
+              />
+            ))}
           </Layout.Main>
         </Layout.Body>
+        <Pagination
+          pageLinks={escalationPoliciesPageLinks}
+          onCursor={(cursor, path, _direction) => {
+            router.push({
+              pathname: path,
+              query: {...currentQuery, cursor},
+            });
+          }}
+        />
       </PageFiltersContainer>
     </Fragment>
   );
