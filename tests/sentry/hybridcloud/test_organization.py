@@ -11,7 +11,6 @@ from sentry.models.organizationmember import InviteStatus, OrganizationMember
 from sentry.models.organizationmemberteam import OrganizationMemberTeam
 from sentry.models.project import Project
 from sentry.models.team import Team, TeamStatus
-from sentry.models.user import User
 from sentry.organizations.services.organization import (
     RpcOrganization,
     RpcOrganizationMember,
@@ -27,6 +26,7 @@ from sentry.testutils.factories import Factories
 from sentry.testutils.helpers.task_runner import TaskRunner
 from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.testutils.silo import all_silo_test, assume_test_silo_mode
+from sentry.users.models.user import User
 
 
 def basic_filled_out_org() -> tuple[Organization, list[User]]:

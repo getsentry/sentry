@@ -5,6 +5,13 @@ from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import all_silo_test, assume_test_silo_mode
 
 
+class TestIntegration(IntegrationInstallation):
+    __test__ = False
+
+    def get_client(self):
+        pass
+
+
 @all_silo_test
 class IntegrationTestCase(TestCase):
     def setUp(self):
@@ -28,7 +35,7 @@ class IntegrationTestCase(TestCase):
         )
 
     def test_with_context(self):
-        integration = IntegrationInstallation(self.model, self.organization.id)
+        integration = TestIntegration(self.model, self.organization.id)
         assert integration.model.id == self.model.id
         assert integration.org_integration is not None
         assert integration.org_integration.id == self.org_integration.id

@@ -28,14 +28,14 @@ import sentry.db.models.fields.uuid
 import sentry.models.apiapplication
 import sentry.models.apigrant
 import sentry.models.apitoken
-import sentry.models.authenticator
 import sentry.models.broadcast
 import sentry.models.groupshare
 import sentry.models.integrations.sentry_app
 import sentry.models.integrations.sentry_app_installation
 import sentry.models.scheduledeletion
 import sentry.models.servicehook
-import sentry.models.user
+import sentry.users.models.authenticator
+import sentry.users.models.user
 import sentry.utils.security.hash
 from sentry.new_migrations.migrations import CheckedMigration
 
@@ -390,7 +390,7 @@ class Migration(CheckedMigration):
                 "verbose_name_plural": "users",
             },
             managers=[
-                ("objects", sentry.models.user.UserManager(cache_fields=["pk"])),
+                ("objects", sentry.users.models.user.UserManager(cache_fields=["pk"])),
             ],
         ),
         migrations.CreateModel(
@@ -9149,7 +9149,7 @@ class Migration(CheckedMigration):
         migrations.AlterField(
             model_name="authenticator",
             name="config",
-            field=sentry.models.authenticator.AuthenticatorConfig(editable=False),
+            field=sentry.users.models.authenticator.AuthenticatorConfig(editable=False),
         ),
         migrations.CreateModel(
             name="MonitorEnvironment",

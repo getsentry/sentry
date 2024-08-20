@@ -12,6 +12,7 @@ interface BaseAggregateFlamegraphQueryParameters {
   datetime?: PageFilters['datetime'];
   enabled?: boolean;
   environments?: PageFilters['environments'];
+  metrics?: true;
   projects?: PageFilters['projects'];
 }
 
@@ -30,6 +31,7 @@ interface TransactionsAggregateFlamegraphQueryParameters
 
 interface ProfilesAggregateFlamegraphQueryParameters
   extends BaseAggregateFlamegraphQueryParameters {
+  // query is not supported when querying from profiles
   dataSource: 'profiles';
 }
 
@@ -46,7 +48,7 @@ export type UseAggregateFlamegraphQueryResult = UseApiQueryResult<
 export function useAggregateFlamegraphQuery(
   props: AggregateFlamegraphQueryParameters
 ): UseAggregateFlamegraphQueryResult {
-  const {dataSource, datetime, enabled, environments, projects} = props;
+  const {dataSource, metrics, datetime, enabled, environments, projects} = props;
 
   let fingerprint: string | undefined = undefined;
   let query: string | undefined = undefined;
@@ -62,7 +64,9 @@ export function useAggregateFlamegraphQuery(
   const {selection} = usePageFilters();
 
   const endpointOptions = useMemo(() => {
-    const params = {
+    const params: {
+      query: Record<string, any>;
+    } = {
       query: {
         project: projects ?? selection.projects,
         environment: environments ?? selection.environments,
@@ -73,8 +77,21 @@ export function useAggregateFlamegraphQuery(
       },
     };
 
+    if (metrics) {
+      params.query.expand = 'metrics';
+    }
+
     return params;
-  }, [dataSource, datetime, environments, projects, fingerprint, query, selection]);
+  }, [
+    dataSource,
+    datetime,
+    environments,
+    projects,
+    fingerprint,
+    query,
+    metrics,
+    selection,
+  ]);
 
   return useApiQuery<Profiling.Schema>(
     [`/organizations/${organization.slug}/profiling/flamegraph/`, endpointOptions],

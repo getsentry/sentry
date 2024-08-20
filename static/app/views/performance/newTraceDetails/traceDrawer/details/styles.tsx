@@ -513,7 +513,7 @@ function NodeActions(props: {
         </Button>
 
         {isTransactionNode(props.node) ? (
-          <Button
+          <LinkButton
             size="xs"
             icon={<IconOpen />}
             onClick={() => traceAnalytics.trackViewEventJSON(props.organization)}
@@ -521,7 +521,7 @@ function NodeActions(props: {
             external
           >
             {t('JSON')} (<FileSize bytes={props.eventSize ?? 0} />)
-          </Button>
+          </LinkButton>
         ) : null}
       </Actions>
       <DropdownMenuWithPortal

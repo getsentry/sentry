@@ -1,12 +1,8 @@
 import {ProjectFixture} from 'sentry-fixture/project';
 
 import {filterSupportedTasks} from 'sentry/components/onboardingWizard/filterSupportedTasks';
-import {
-  type OnboardingTask,
-  OnboardingTaskKey,
-  type PlatformKey,
-  type Project,
-} from 'sentry/types';
+import {type OnboardingTask, OnboardingTaskKey} from 'sentry/types/onboarding';
+import type {PlatformKey, Project} from 'sentry/types/project';
 
 describe('filterSupportedTasks', function () {
   const onboardingTasks: OnboardingTask[] = [

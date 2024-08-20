@@ -15,7 +15,6 @@ from sentry.integrations.models.integration import Integration
 from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.models.activity import Activity
 from sentry.models.grouprelease import GroupRelease
-from sentry.models.identity import Identity, IdentityProvider
 from sentry.models.organization import Organization
 from sentry.models.organizationmember import OrganizationMember
 from sentry.models.organizationmemberteam import OrganizationMemberTeam
@@ -23,7 +22,6 @@ from sentry.models.project import Project
 from sentry.models.projecttemplate import ProjectTemplate
 from sentry.models.rule import Rule
 from sentry.models.team import Team
-from sentry.models.user import User
 from sentry.monitors.models import Monitor, MonitorType, ScheduleType
 from sentry.organizations.services.organization import RpcOrganization
 from sentry.silo.base import SiloMode
@@ -42,6 +40,8 @@ from sentry.uptime.models import (
     UptimeStatus,
     UptimeSubscription,
 )
+from sentry.users.models.identity import Identity, IdentityProvider
+from sentry.users.models.user import User
 from sentry.users.services.user import RpcUser
 
 

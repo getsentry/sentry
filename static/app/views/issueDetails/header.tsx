@@ -3,6 +3,7 @@ import styled from '@emotion/styled';
 import type {LocationDescriptor} from 'history';
 import omit from 'lodash/omit';
 
+import Feature from 'sentry/components/acl/feature';
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
 import Badge from 'sentry/components/badge/badge';
 import FeatureBadge from 'sentry/components/badge/featureBadge';
@@ -10,6 +11,7 @@ import {Breadcrumbs} from 'sentry/components/breadcrumbs';
 import Count from 'sentry/components/count';
 import EventOrGroupTitle from 'sentry/components/eventOrGroupTitle';
 import EventMessage from 'sentry/components/events/eventMessage';
+import {GroupSummaryHeader} from 'sentry/components/group/groupSummary';
 import {GroupStatusBadge} from 'sentry/components/group/inboxBadges/statusBadge';
 import * as Layout from 'sentry/components/layouts/thirds';
 import Link from 'sentry/components/links/link';
@@ -19,8 +21,11 @@ import {TabList} from 'sentry/components/tabs';
 import {IconChat} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {Event, Group, Organization, Project} from 'sentry/types';
+import type {Event} from 'sentry/types/event';
+import type {Group} from 'sentry/types/group';
 import {IssueCategory, IssueType} from 'sentry/types/group';
+import type {Organization} from 'sentry/types/organization';
+import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
 import useReplayCountForIssues from 'sentry/utils/replayCount/useReplayCountForIssues';
@@ -251,6 +256,9 @@ function GroupHeader({
               type={group.type}
               showUnhandled={group.isUnhandled}
             />
+            <Feature features={['organizations:ai-summary']}>
+              <GroupSummaryHeader groupId={group.id} />
+            </Feature>
           </TitleWrapper>
           <StatsWrapper>
             {issueTypeConfig.stats.enabled && (

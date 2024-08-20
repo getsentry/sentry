@@ -15,7 +15,7 @@ from django.utils.translation import gettext_lazy as _
 from sentry import newsletter, options
 from sentry import ratelimits as ratelimiter
 from sentry.auth import password_validation
-from sentry.models.user import User
+from sentry.users.models.user import User
 from sentry.utils.auth import find_users, logger
 from sentry.utils.dates import AVAILABLE_TIMEZONES
 from sentry.web.forms.fields import AllowedEmailField, CustomTypedChoiceField

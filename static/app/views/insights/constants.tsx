@@ -1,7 +1,8 @@
+import type {FilterKeySection} from 'sentry/components/searchQueryBuilder/types';
 import {t} from 'sentry/locale';
 import type {AggregationOutputType} from 'sentry/utils/discover/fields';
 import {type FieldDefinition, FieldKind, FieldValueType} from 'sentry/utils/fields';
-import {SpanFunction} from 'sentry/views/insights/types';
+import {SpanFunction, SpanIndexedField} from 'sentry/views/insights/types';
 
 export const STARFISH_AGGREGATION_FIELDS: Record<
   SpanFunction,
@@ -62,3 +63,60 @@ export const STARFISH_AGGREGATION_FIELDS: Record<
     valueType: FieldValueType.NUMBER,
   },
 };
+
+const RELEASE_FILTERS: FilterKeySection = {
+  value: 'release_filters',
+  label: 'Release',
+  children: [SpanIndexedField.RELEASE],
+};
+
+const TRANSACTION_FILTERS: FilterKeySection = {
+  value: 'transaction_filters',
+  label: 'Transaction',
+  children: [
+    SpanIndexedField.TRANSACTION_METHOD,
+    SpanIndexedField.TRANSACTION_OP,
+    SpanIndexedField.TRANSACTION,
+    SpanIndexedField.TRANSACTION_ID,
+  ],
+};
+
+const SDK_FILTERS: FilterKeySection = {
+  value: 'sdk_filters',
+  label: 'SDK',
+  children: [SpanIndexedField.SDK_NAME],
+};
+
+const USER_FILTERS: FilterKeySection = {
+  value: 'user_filters',
+  label: 'User',
+  children: [
+    SpanIndexedField.USER,
+    SpanIndexedField.USER_ID,
+    SpanIndexedField.USER_EMAIL,
+    SpanIndexedField.USER_USERNAME,
+  ],
+};
+
+const SPAN_FILTERS: FilterKeySection = {
+  value: 'span_filters',
+  label: 'Span',
+  children: [
+    SpanIndexedField.SPAN_OP,
+    SpanIndexedField.SPAN_DURATION,
+    SpanIndexedField.SPAN_SELF_TIME,
+    SpanIndexedField.SPAN_DESCRIPTION,
+    SpanIndexedField.SPAN_STATUS,
+    SpanIndexedField.SPAN_ACTION,
+    SpanIndexedField.SPAN_DOMAIN,
+    SpanIndexedField.SPAN_MODULE,
+  ],
+};
+
+export const SPANS_FILTER_KEY_SECTIONS: FilterKeySection[] = [
+  SPAN_FILTERS,
+  TRANSACTION_FILTERS,
+  USER_FILTERS,
+  RELEASE_FILTERS,
+  SDK_FILTERS,
+];

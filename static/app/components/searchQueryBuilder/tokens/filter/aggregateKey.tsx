@@ -1,4 +1,4 @@
-import {useLayoutEffect, useRef, useState} from 'react';
+import {Fragment, useLayoutEffect, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import {useFocusWithin} from '@react-aria/interactions';
 import {mergeProps} from '@react-aria/utils';
@@ -25,6 +25,20 @@ type AggregateKeyProps = {
   state: ListState<ParseResultToken>;
   token: AggregateFilter;
 };
+
+export function AggregateKeyVisual({token}: {token: AggregateFilter}) {
+  const fnName = getKeyName(token.key);
+  const fnParams = token.key.args?.text ?? '';
+
+  return (
+    <Fragment>
+      <FnName>{fnName}</FnName>
+      {'('}
+      <Parameters>{fnParams}</Parameters>
+      {')'}
+    </Fragment>
+  );
+}
 
 export function AggregateKey({
   item,
@@ -60,7 +74,6 @@ export function AggregateKey({
   const filterButtonProps = useFilterButtonProps({state, item});
 
   const fnName = getKeyName(token.key);
-  const fnParams = token.key.args?.text ?? '';
 
   if (isEditing) {
     return (
@@ -105,10 +118,7 @@ export function AggregateKey({
       {...filterButtonProps}
     >
       <InteractionStateLayer />
-      <FnName>{fnName}</FnName>
-      {'('}
-      <Parameters>{fnParams}</Parameters>
-      {')'}
+      <AggregateKeyVisual token={token} />
     </KeyButton>
   );
 }

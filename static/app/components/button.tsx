@@ -10,7 +10,6 @@ import HookStore from 'sentry/stores/hookStore';
 import {space} from 'sentry/styles/space';
 import mergeRefs from 'sentry/utils/mergeRefs';
 
-import ExternalLink from './links/externalLink';
 import Link from './links/link';
 import InteractionStateLayer from './interactionStateLayer';
 import {Tooltip, type TooltipProps} from './tooltip';
@@ -57,10 +56,6 @@ interface CommonButtonProps {
    */
   disabled?: boolean;
   /**
-   * The button is an external link. Similar to the `Link` `external` property.
-   */
-  external?: boolean;
-  /**
    * The icon to render inside of the button. The size will be set
    * appropriately based on the size of the button.
    */
@@ -106,14 +101,11 @@ type ElementProps<E> = Omit<React.ButtonHTMLAttributes<E>, 'label' | 'size' | 't
 
 interface BaseButtonProps extends CommonButtonProps, ElementProps<ButtonElement> {
   /**
-   * For use with `href` and `data:` or `blob:` schemes. Tells the browser to
-   * download the contents.
-   *
-   * See: https://developer.mozilla.org/en-US/docs/Web/HTML/Element/a#attr-download
+   * The button is an external link. Similar to the `Link` `external` property.
    *
    * @deprecated Use LinkButton instead
    */
-  download?: HTMLAnchorElement['download'];
+  external?: boolean;
   /**
    * @internal Used in the Button forwardRef
    */
@@ -171,6 +163,10 @@ interface HrefLinkButtonProps extends BaseLinkButtonProps {
    * See: https://developer.mozilla.org/en-US/docs/Web/HTML/Element/a#attr-download
    */
   download?: HTMLAnchorElement['download'];
+  /**
+   * The button is an external link. Similar to the `Link` `external` property.
+   */
+  external?: boolean;
 }
 
 interface ToLinkButtonPropsWithChildren extends ToLinkButtonProps {
@@ -501,7 +497,16 @@ const StyledButton = styled(
       }
 
       if (href && external) {
-        return <ExternalLink {...props} ref={ref} href={href} disabled={disabled} />;
+        return (
+          <a
+            {...props}
+            ref={ref}
+            href={href}
+            aria-disabled={disabled}
+            target="_blank"
+            rel="noreferrer noopener"
+          />
+        );
       }
 
       if (href) {

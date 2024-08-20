@@ -1,13 +1,13 @@
 import type {PageFilters} from 'sentry/types/core';
 import type {MRI} from 'sentry/types/metrics';
 import type {Organization} from 'sentry/types/organization';
+import {SPAN_DURATION_MRI} from 'sentry/utils/metrics/constants';
 import {parseMRI} from 'sentry/utils/metrics/mri';
 import type {MetricTag} from 'sentry/utils/metrics/types';
 import {useMetricsMeta} from 'sentry/utils/metrics/useMetricsMeta';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 
-export const SPAN_DURATION_MRI = 'd:spans/duration@millisecond';
 const ALLOWED_SPAN_DURATION_TAGS = [
   'span.category',
   'span.description',

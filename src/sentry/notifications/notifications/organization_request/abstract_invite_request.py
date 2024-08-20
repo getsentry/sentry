@@ -17,7 +17,7 @@ from sentry.types.actor import Actor
 from sentry.users.services.user.service import user_service
 
 if TYPE_CHECKING:
-    from sentry.models.user import User
+    from sentry.users.models.user import User
 
 
 # Abstract class for invite and join requests to inherit from

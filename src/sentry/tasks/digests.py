@@ -67,7 +67,7 @@ def deliver_digest(
     with snuba.options_override({"consistent": True}):
         try:
             with digests.backend.digest(key, minimum_delay=minimum_delay) as records:
-                digest, logs = build_digest(project, records)
+                digest = build_digest(project, records)
 
                 if not notification_uuid:
                     notification_uuid = get_notification_uuid_from_records(records)
@@ -75,7 +75,7 @@ def deliver_digest(
             logger.info("Skipped digest delivery: %s", error, exc_info=True)
             return
 
-        if digest:
+        if digest.digest:
             mail_adapter.notify_digest(
                 project,
                 digest,
@@ -91,7 +91,6 @@ def deliver_digest(
                     "project": project.id,
                     "target_type": target_type.value,
                     "target_identifier": target_identifier,
-                    "build_digest_logs": logs,
                     "fallthrough_choice": fallthrough_choice.value if fallthrough_choice else None,
                 },
             )

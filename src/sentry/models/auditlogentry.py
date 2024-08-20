@@ -130,7 +130,7 @@ class AuditLogEntry(Model):
         could have been created from previous code versions -- the events are stored on an async queue for indefinite
         delivery and from possibly older code versions.
         """
-        from sentry.models.user import User
+        from sentry.users.models.user import User
 
         if event.actor_label:
             label = event.actor_label[:MAX_ACTOR_LABEL_LENGTH]

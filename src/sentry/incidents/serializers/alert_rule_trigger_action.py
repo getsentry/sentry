@@ -3,6 +3,7 @@ from rest_framework import serializers
 
 from sentry import analytics
 from sentry.api.serializers.rest_framework.base import CamelSnakeModelSerializer
+from sentry.auth.access import Access
 from sentry.incidents.logic import (
     InvalidTriggerActionError,
     create_alert_rule_trigger_action,
@@ -12,7 +13,7 @@ from sentry.incidents.models.alert_rule import AlertRuleTriggerAction
 from sentry.incidents.serializers import ACTION_TARGET_TYPE_TO_STRING, STRING_TO_ACTION_TARGET_TYPE
 from sentry.integrations.opsgenie.utils import OPSGENIE_CUSTOM_PRIORITIES
 from sentry.integrations.pagerduty.utils import PAGERDUTY_CUSTOM_PRIORITIES
-from sentry.integrations.slack.utils import validate_channel_id
+from sentry.integrations.slack.utils.channel import validate_channel_id
 from sentry.models.notificationaction import ActionService
 from sentry.models.organizationmember import OrganizationMember
 from sentry.models.team import Team
@@ -83,7 +84,7 @@ class AlertRuleTriggerActionSerializer(CamelSnakeModelSerializer):
             )
         type = attrs.get("type")
         target_type = attrs.get("target_type")
-        access = self.context["access"]
+        access: Access = self.context["access"]
         identifier = attrs.get("target_identifier")
 
         if type is not None:

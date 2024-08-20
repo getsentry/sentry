@@ -21,7 +21,7 @@ import accountEmailsFields from 'sentry/data/forms/accountEmails';
 import {IconDelete, IconStack} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {UserEmail} from 'sentry/types';
+import type {UserEmail} from 'sentry/types/user';
 import type {ApiQueryKey} from 'sentry/utils/queryClient';
 import {useApiQuery, useQueryClient} from 'sentry/utils/queryClient';
 import useApi from 'sentry/utils/useApi';

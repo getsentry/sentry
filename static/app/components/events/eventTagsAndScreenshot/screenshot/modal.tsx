@@ -4,7 +4,7 @@ import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
-import {Button} from 'sentry/components/button';
+import {Button, LinkButton} from 'sentry/components/button';
 import Buttonbar from 'sentry/components/buttonBar';
 import Confirm from 'sentry/components/confirm';
 import {DateTime} from 'sentry/components/dateTime';
@@ -227,9 +227,9 @@ export default function ScreenshotModal({
           >
             <Button priority="danger">{t('Delete')}</Button>
           </Confirm>
-          <Button onClick={onDownload} href={downloadUrl}>
+          <LinkButton onClick={onDownload} href={downloadUrl}>
             {t('Download')}
-          </Button>
+          </LinkButton>
         </Buttonbar>
       </Footer>
     </Fragment>

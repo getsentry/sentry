@@ -10,9 +10,8 @@ import type {
   ExternalActorMappingOrSuggestion,
   ExternalUser,
   Integration,
-  Member,
-  Organization,
-} from 'sentry/types';
+} from 'sentry/types/integrations';
+import type {Member, Organization} from 'sentry/types/organization';
 import {sentryNameToOption} from 'sentry/utils/integrationUtil';
 import withOrganization from 'sentry/utils/withOrganization';
 // eslint-disable-next-line no-restricted-imports

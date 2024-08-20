@@ -1,5 +1,5 @@
 import {trimPackage} from 'sentry/components/events/interfaces/frame/utils';
-import type {ExceptionValue, Frame} from 'sentry/types';
+import type {ExceptionValue, Frame} from 'sentry/types/event';
 import type {StacktraceType} from 'sentry/types/stacktrace';
 import {defined} from 'sentry/utils';
 

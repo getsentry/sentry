@@ -10,7 +10,7 @@ import {InvestigationRuleCreation} from 'sentry/components/dynamicSampling/inves
 import {Hovercard} from 'sentry/components/hovercard';
 import {IconDownload, IconSliders, IconTag} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import type {OrganizationSummary} from 'sentry/types';
+import type {OrganizationSummary} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {parseCursor} from 'sentry/utils/cursor';
 import type {TableData} from 'sentry/utils/discover/discoverQuery';

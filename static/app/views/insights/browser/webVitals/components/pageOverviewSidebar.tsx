@@ -22,6 +22,7 @@ import {useProjectRawWebVitalsValuesTimeseriesQuery} from 'sentry/views/insights
 import {MODULE_DOC_LINK} from 'sentry/views/insights/browser/webVitals/settings';
 import type {ProjectScore} from 'sentry/views/insights/browser/webVitals/types';
 import type {BrowserType} from 'sentry/views/insights/browser/webVitals/utils/queryParameterDecoders/browserType';
+import type {SubregionCode} from 'sentry/views/insights/types';
 import {SidebarSpacer} from 'sentry/views/performance/transactionSummary/utils';
 
 const CHART_HEIGHTS = 100;
@@ -32,6 +33,7 @@ type Props = {
   projectScore?: ProjectScore;
   projectScoreIsLoading?: boolean;
   search?: string;
+  subregions?: SubregionCode[];
 };
 
 export function PageOverviewSidebar({
@@ -39,6 +41,7 @@ export function PageOverviewSidebar({
   transaction,
   projectScoreIsLoading,
   browserTypes,
+  subregions,
 }: Props) {
   const theme = useTheme();
   const router = useRouter();
@@ -62,6 +65,7 @@ export function PageOverviewSidebar({
     transaction,
     datetime: doubledDatetime,
     browserTypes,
+    subregions,
   });
 
   const {countDiff, currentSeries, currentCount, initialCount} = processSeriesData(

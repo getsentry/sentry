@@ -4,7 +4,8 @@ import {GroupFixture} from 'sentry-fixture/group';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {EventGroupingInfo} from 'sentry/components/events/groupingInfo';
-import {EventGroupVariantType, IssueCategory} from 'sentry/types';
+import {EventGroupVariantType} from 'sentry/types/event';
+import {IssueCategory} from 'sentry/types/group';
 
 describe('EventGroupingInfo', function () {
   const group = GroupFixture();

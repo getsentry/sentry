@@ -394,8 +394,9 @@ INSTALLED_APPS: tuple[str, ...] = (
     "sentry.discover",
     "sentry.analytics.events",
     "sentry.nodestore",
-    "sentry.monitors",
+    "sentry.users",
     "sentry.integrations",
+    "sentry.monitors",
     "sentry.uptime",
     "sentry.replays",
     "sentry.release_health",
@@ -1435,7 +1436,7 @@ if os.environ.get("OPENAPIGENERATE", False):
         "PARSER_WHITELIST": ["rest_framework.parsers.JSONParser"],
         "POSTPROCESSING_HOOKS": ["sentry.apidocs.hooks.custom_postprocessing_hook"],
         "PREPROCESSING_HOOKS": ["sentry.apidocs.hooks.custom_preprocessing_hook"],
-        "SERVERS": [{"url": "https://sentry.io"}],
+        "SERVERS": [{"url": "https://us.sentry.io"}, {"url": "https://de.sentry.io"}],
         "SORT_OPERATION_PARAMETERS": custom_parameter_sort,
         "TAGS": OPENAPI_TAGS,
         "TITLE": "API Reference",
@@ -2481,7 +2482,7 @@ SENTRY_SELF_HOSTED = True
 SENTRY_SELF_HOSTED_ERRORS_ONLY = False
 # only referenced in getsentry to provide the stable beacon version
 # updated with scripts/bump-version.sh
-SELF_HOSTED_STABLE_VERSION = "24.7.1"
+SELF_HOSTED_STABLE_VERSION = "24.8.0"
 
 # Whether we should look at X-Forwarded-For header or not
 # when checking REMOTE_ADDR ip addresses
@@ -3521,3 +3522,7 @@ if SILO_DEVSERVER:
         SENTRY_WEB_PORT = int(bind[1])
 
     CELERYBEAT_SCHEDULE_FILENAME = f"celerybeat-schedule-{SILO_MODE}"
+
+
+# tmp(michal): Default configuration for post_process* queueus split
+SENTRY_POST_PROCESS_QUEUE_SPLIT_ROUTER: dict[str, Callable[[], str]] = {}

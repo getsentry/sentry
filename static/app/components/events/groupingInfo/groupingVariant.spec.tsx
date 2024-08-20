@@ -2,7 +2,7 @@ import {EventFixture} from 'sentry-fixture/event';
 
 import {render, screen, within} from 'sentry-test/reactTestingLibrary';
 
-import {EventGroupVariantType} from 'sentry/types';
+import {EventGroupVariantType} from 'sentry/types/event';
 
 import GroupingVariant from './groupingVariant';
 

@@ -1,7 +1,7 @@
 import QuestionTooltip from 'sentry/components/questionTooltip';
 
 import ControlState from './controlState';
-import FieldControl from './fieldControl';
+import ControlWrapper from './controlWrapper';
 import FieldDescription from './fieldDescription';
 import FieldHelp from './fieldHelp';
 import FieldLabel from './fieldLabel';
@@ -33,13 +33,13 @@ function FieldGroup({
   const {
     alignRight,
     children,
-    controlClassName,
-    disabledReason,
     error,
     flexibleControlStateSize,
     help,
     hideLabel,
+    hideControlState,
     highlighted,
+    controlState,
     id,
     isSaved,
     isSaving,
@@ -58,27 +58,12 @@ function FieldGroup({
     return null;
   }
 
+  const controlStateElement = controlState ?? (
+    <ControlState error={error} isSaving={isSaving} isSaved={isSaved} />
+  );
+
   const helpElement = typeof help === 'function' ? help(props) : help;
   const shouldRenderLabel = !hideLabel && !!label;
-
-  const controlWrapperProps = {
-    inline,
-    alignRight,
-    disabledReason,
-    flexibleControlStateSize,
-    controlState: <ControlState error={error} isSaving={isSaving} isSaved={isSaved} />,
-    className: controlClassName,
-    disabled: isDisabled,
-    help: helpElement,
-  };
-
-  // See comments in prop types
-  const control =
-    typeof children === 'function' ? (
-      children({...props, ...controlWrapperProps})
-    ) : (
-      <FieldControl {...controlWrapperProps}>{children}</FieldControl>
-    );
 
   // Provide an `aria-label` to the FieldDescription label if our label is a
   // string value. This helps with testing and accessability. Without this the
@@ -122,7 +107,15 @@ function FieldGroup({
           </FieldHelp>
         )}
       </FieldDescription>
-      {control}
+      <ControlWrapper
+        inline={inline}
+        alignRight={alignRight}
+        flexibleControlStateSize={flexibleControlStateSize}
+        hideControlState={hideControlState}
+        controlState={controlStateElement}
+      >
+        {children}
+      </ControlWrapper>
     </FieldWrapper>
   );
 }

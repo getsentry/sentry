@@ -6,7 +6,7 @@ import tourFilter from 'sentry-images/spot/discover-tour-filter.svg';
 import tourGroup from 'sentry-images/spot/discover-tour-group.svg';
 
 import Banner from 'sentry/components/banner';
-import {Button} from 'sentry/components/button';
+import {Button, LinkButton} from 'sentry/components/button';
 import type {TourStep} from 'sentry/components/modals/featureTourModal';
 import FeatureTourModal, {
   TourImage,
@@ -22,9 +22,9 @@ import BackgroundSpace from './backgroundSpace';
 const docsUrl = 'https://docs.sentry.io/product/discover-queries/';
 
 const docsLink = (
-  <Button external href={docsUrl}>
+  <LinkButton external href={docsUrl}>
     {t('View Docs')}
-  </Button>
+  </LinkButton>
 );
 
 const TOUR_STEPS: TourStep[] = [

@@ -13,7 +13,10 @@ import Version from 'sentry/components/version';
 import {IconCommit} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {Actor, Commit, Organization, Release} from 'sentry/types';
+import type {Actor} from 'sentry/types/core';
+import type {Commit} from 'sentry/types/integrations';
+import type {Organization} from 'sentry/types/organization';
+import type {Release} from 'sentry/types/release';
 import {defined} from 'sentry/utils';
 import theme from 'sentry/utils/theme';
 

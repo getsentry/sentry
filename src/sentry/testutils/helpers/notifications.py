@@ -17,10 +17,10 @@ from sentry.issues.grouptype import (
 from sentry.issues.issue_occurrence import IssueEvidence, IssueOccurrence
 from sentry.models.group import Group
 from sentry.models.team import Team
-from sentry.models.user import User
 from sentry.notifications.notifications.base import BaseNotification
 from sentry.notifications.utils.actions import MessageAction
 from sentry.types.actor import Actor
+from sentry.users.models.user import User
 from sentry.users.services.user import RpcUser
 
 

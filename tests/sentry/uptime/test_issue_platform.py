@@ -52,7 +52,7 @@ class BuildOccurrenceFromResultTest(UptimeTestCase):
             project_id=1,
             event_id=event_id.hex,
             fingerprint=[result["subscription_id"]],
-            issue_title="Uptime Check Failed for https://sentry.io",
+            issue_title="Downtime detected for https://sentry.io",
             subtitle="Your monitored domain is down",
             resource_id=None,
             evidence_data={},
@@ -84,7 +84,7 @@ class BuildEventDataForOccurrenceTest(UptimeTestCase):
             project_id=1,
             event_id=event_id.hex,
             fingerprint=fingerprint,
-            issue_title="Uptime Check Failed for https://sentry.io",
+            issue_title="Downtime detected for https://sentry.io",
             subtitle="Your monitored domain is down",
             resource_id=None,
             evidence_data={},
@@ -104,9 +104,11 @@ class BuildEventDataForOccurrenceTest(UptimeTestCase):
             "project_id": 1,
             "received": datetime.datetime.now().replace(microsecond=0),
             "sdk": None,
-            "tags": {"uptime_rule": project_subscription.id},
+            "tags": {"uptime_rule": str(project_subscription.id)},
             "timestamp": occurrence.detection_time.isoformat(),
-            "contexts": {"trace": {"trace_id": result["trace_id"], "span_id": None}},
+            "contexts": {
+                "trace": {"trace_id": result["trace_id"], "span_id": result.get("span_id")}
+            },
         }
 
 

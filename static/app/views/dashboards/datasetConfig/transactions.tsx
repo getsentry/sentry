@@ -2,14 +2,14 @@ import trimStart from 'lodash/trimStart';
 
 import {doEventsRequest} from 'sentry/actionCreators/events';
 import type {Client} from 'sentry/api';
+import type {PageFilters} from 'sentry/types/core';
+import type {Series} from 'sentry/types/echarts';
+import {SavedSearchType, type TagCollection} from 'sentry/types/group';
 import type {
   EventsStats,
   MultiSeriesEventsStats,
   Organization,
-  PageFilters,
-  TagCollection,
-} from 'sentry/types';
-import type {Series} from 'sentry/types/echarts';
+} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
 import type {CustomMeasurementCollection} from 'sentry/utils/customMeasurements/customMeasurements';
 import type {EventsTableData, TableData} from 'sentry/utils/discover/discoverQuery';
@@ -73,7 +73,9 @@ export const TransactionsConfig: DatasetConfig<
   defaultWidgetQuery: DEFAULT_WIDGET_QUERY,
   enableEquations: true,
   getCustomFieldRenderer: getCustomEventsFieldRenderer,
-  SearchBar: EventsSearchBar,
+  SearchBar: props => (
+    <EventsSearchBar savedSearchType={SavedSearchType.TRANSACTION} {...props} />
+  ),
   filterSeriesSortOptions,
   filterYAxisAggregateParams,
   filterYAxisOptions,
