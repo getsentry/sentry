@@ -871,9 +871,9 @@ def update_alert_rule(
             # This must be done after backfill PR lands
             updated_fields["comparison_delta"] = None
             if (
-                time_window not in DYNAMIC_TIME_WINDOWS
-                or time_window is None
-                and snuba_query.time_window not in DYNAMIC_TIME_WINDOWS_SECONDS
+                (time_window not in DYNAMIC_TIME_WINDOWS)
+                if time_window is not None
+                else (snuba_query.time_window not in DYNAMIC_TIME_WINDOWS_SECONDS)
             ):
                 raise ValidationError(INVALID_TIME_WINDOW)
 
