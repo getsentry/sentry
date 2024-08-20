@@ -4,7 +4,7 @@ from collections.abc import Mapping, MutableSequence
 from datetime import datetime
 from typing import Any
 
-import click
+# import click
 import sentry_sdk
 from arroyo.backends.kafka.configuration import build_kafka_consumer_configuration
 from arroyo.backends.kafka.consumer import KafkaConsumer, KafkaPayload
@@ -102,16 +102,16 @@ class StrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
         self.pool.close()
 
 
-@click.command()
-@click.option("--kafka-consumer-bootstrap-servers", default="127.0.0.1:9092")
-@click.option("--source_topic", default="hackweek")
-@click.option("--group_id", default="hackweek-kafkatasks")
-@click.option("--auto_offset_reset", default="earliest")
+# @click.command()
+# @click.option("--kafka-consumer-bootstrap-servers", default="127.0.0.1:9092")
+# @click.option("--source_topic", default="hackweek")
+# @click.option("--group_id", default="hackweek-kafkatasks")
+# @click.option("--auto_offset_reset", default="earliest")
 def run(
-    kafka_consumer_bootstrap_servers,
-    source_topic,
-    group_id,
-    auto_offset_reset,
+    kafka_consumer_bootstrap_servers="127.0.0.1:9092",
+    source_topic="hackweek",
+    group_id="hackweek-kafkatasks",
+    auto_offset_reset="earliest",
 ):
     logger.info("starting consumer")
     sentry_sdk.init(
