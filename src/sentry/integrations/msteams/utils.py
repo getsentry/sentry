@@ -54,7 +54,7 @@ def get_user_conversation_id(integration: Integration, user_id: str) -> str:
     return conversation_id
 
 
-def get_channel_id(organization: Organization, integration_id: int, name: str) -> str:
+def get_channel_id(organization: Organization, integration_id: int, name: str) -> str | None:
     integrations = integration_service.get_integrations(
         providers=["msteams"],
         organization_id=organization.id,

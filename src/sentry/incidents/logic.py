@@ -432,8 +432,9 @@ def get_incident_aggregates(
     return aggregated_result[0]
 
 
-def subscribe_to_incident(incident: Incident, user_id: int) -> None:
-    IncidentSubscription.objects.get_or_create(incident=incident, user_id=user_id)
+def subscribe_to_incident(incident: Incident, user_id: int) -> IncidentSubscription:
+    subscription, _ = IncidentSubscription.objects.get_or_create(incident=incident, user_id=user_id)
+    return subscription
 
 
 def unsubscribe_from_incident(incident: Incident, user_id: int) -> None:
