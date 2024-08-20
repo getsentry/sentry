@@ -20,6 +20,7 @@ class Migration(CheckedMigration):
     # Once deployed, run these manually via: https://develop.sentry.dev/database-migrations/#migration-deployment
 
     is_post_deployment = False
+    checked = False
 
     dependencies = [
         ("taskworker", "0002_add_namespace_to_pending_task"),
