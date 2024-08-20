@@ -15,7 +15,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 
 type Props = {
-  activeTab: 'stream' | 'rules' | 'policies' | 'schedules';
+  activeTab: 'stream' | 'rules' | 'policies' | 'schedules' | 'occurrences';
   router: InjectedRouter;
 };
 
@@ -96,6 +96,13 @@ function AlertHeader({router, activeTab}: Props) {
             to={`/organizations/${organization.slug}/alerts/schedules`}
           >
             {t('Schedule')}
+          </GlobalSelectionLink>
+        </li>
+        <li className={activeTab === 'occurrences' ? 'active' : ''}>
+          <GlobalSelectionLink
+            to={`/organizations/${organization.slug}/alerts/occurrences`}
+          >
+            {t('Occurrences')}
           </GlobalSelectionLink>
         </li>
       </Layout.HeaderNavTabs>

@@ -1178,6 +1178,13 @@ function buildRoutes() {
             )}
           />
         </Route>
+        <Route path="occurrences/">
+          <IndexRoute
+            component={make(
+              () => import('sentry/views/alerts/occurrences/occurrenceList')
+            )}
+          />
+        </Route>
         <Route path="rules/">
           <IndexRoute
             component={make(
