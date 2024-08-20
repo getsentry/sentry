@@ -66,7 +66,7 @@ export type ApiQueryKey =
 /**
  * isLoading is renamed to isPending in v5, this backports the type to v4
  *
- * TODO: Remove this when we upgrade to react-query v5
+ * TODO(react-query): Remove this when we upgrade to react-query v5
  *
  * @link https://tanstack.com/query/v5/docs/framework/react/guides/migrating-to-v5
  */
@@ -90,7 +90,7 @@ export interface UseApiQueryOptions<TApiResponse, TError = RequestError>
     // with the way we extract data out of the ApiResult tuple
     | 'select'
     // onSuccess and onError are gone in v5, avoid using
-    // TODO: Remove this when we upgrade to react-query v5
+    // TODO(react-query): Remove this when we upgrade to react-query v5
     | 'onSuccess'
     | 'onError'
   > {
@@ -152,7 +152,7 @@ export function useApiQuery<TResponseData, TError = RequestError>(
     data: data?.[0],
     getResponseHeader: data?.[2]?.getResponseHeader,
     // Backport isLoading to isPending
-    // TODO: Remove this when we upgrade to react-query v5 as it will already exist
+    // TODO(react-query): Remove this when we upgrade to react-query v5 as it will already exist
     isPending: rest.isLoading,
     ...rest,
   };
