@@ -1,6 +1,7 @@
 import logging
 import signal
 from collections.abc import Mapping, MutableSequence
+from datetime import datetime
 from typing import Any
 
 import click
@@ -20,6 +21,7 @@ from arroyo.processing.strategies import (
 from arroyo.processing.strategies.run_task_with_multiprocessing import MultiprocessingPool
 from arroyo.types import BaseValue, Commit, Message, Partition, Topic
 
+from sentry.taskworker.models import PendingTasks
 from sentry.utils import json
 
 logging.basicConfig(
@@ -37,8 +39,9 @@ def process_message(message: Message[KafkaPayload]):
 
 
 class StrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
-    def __init__(self) -> None:
+    def __init__(self, topic) -> None:
         self.pool = MultiprocessingPool(num_processes=3)
+        self.topic = topic
 
     def create_with_partitions(
         self, commit: Commit, partitions: Mapping[Partition, int]
@@ -54,7 +57,21 @@ class StrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
             message: Message[MutableSequence[Mapping[str, Any]]]
         ) -> Message[MutableSequence[Mapping[str, Any]]]:
             logger.info("Flushing batch. Messages: %r...", len(message.payload))
-            logger.info("jk, not connected to db, can't flush anything")
+            pending_task = PendingTasks.create(
+                topic=self.topic,
+                task_name=message["taskname"],
+                parameters=message["parameters"],
+                task_namespace=message.get("task_namespace"),
+                partition=message.partition(),
+                offset=message.offset(),
+                state="PENDING",
+                received_at=message["received_at"],
+                retry_state=message["retry_state"],
+                # not sure what this field should be, arbitrary value for now
+                deadletter_at=datetime(2023, 8, 19, 12, 30, 0),
+                processing_deadline=message["deadline"],
+            )
+            pending_task.save()
             return message
 
         def commit_offset() -> None:
@@ -114,7 +131,7 @@ def run(
         )
     )
 
-    factory = StrategyFactory()
+    factory = StrategyFactory(topic=source_topic)
 
     processor = StreamProcessor(
         consumer=consumer,
