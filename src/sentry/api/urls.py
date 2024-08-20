@@ -12,6 +12,15 @@ from sentry.api.endpoints.group_similar_issues_embeddings import (
     GroupSimilarIssuesEmbeddingsEndpoint,
 )
 from sentry.api.endpoints.issues.related_issues import RelatedIssuesEndpoint
+from sentry.api.endpoints.notifications.notification_history_details import (
+    NotificationHistoryDetailsEndpoint,
+)
+from sentry.api.endpoints.notifications.notification_history_team import (
+    NotificationHistoryTeamEndpoint,
+)
+from sentry.api.endpoints.notifications.notification_history_user import (
+    NotificationHistoryUserEndpoint,
+)
 from sentry.api.endpoints.org_auth_token_details import OrgAuthTokenDetailsEndpoint
 from sentry.api.endpoints.org_auth_tokens import OrgAuthTokensEndpoint
 from sentry.api.endpoints.organization_events_root_cause_analysis import (
@@ -1050,6 +1059,11 @@ USER_URLS = [
         r"^(?P<user_id>[^\/]+)/notifications/email/$",
         UserNotificationEmailEndpoint.as_view(),
         name="sentry-api-0-user-notifications-email",
+    ),
+    re_path(
+        r"^(?P<user_id>[^\/]+)/notifications/history/$",
+        NotificationHistoryUserEndpoint.as_view(),
+        name="sentry-api-0-user-notification-history",
     ),
     re_path(
         r"^(?P<user_id>[^\/]+)/notification-options/$",
@@ -2904,6 +2918,11 @@ TEAM_URLS = [
         ExternalTeamDetailsEndpoint.as_view(),
         name="sentry-api-0-external-team-details",
     ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^\/]+)/(?P<team_id_or_slug>[^\/]+)/notifications/history/$",
+        NotificationHistoryTeamEndpoint.as_view(),
+        name="sentry-api-0-team-notification-history",
+    ),
 ]
 
 SENTRY_APP_URLS = [
@@ -3185,6 +3204,11 @@ urlpatterns = [
         r"^api-tokens/(?P<token_id>[^\/]+)/$",
         ApiTokenDetailsEndpoint.as_view(),
         name="sentry-api-0-api-token-details",
+    ),
+    re_path(
+        r"^notifications/history/(?P<notification_history_id>[^\/]+)/$",
+        NotificationHistoryDetailsEndpoint.as_view(),
+        name="sentry-api-0-notification-history-details",
     ),
     re_path(
         r"^prompts-activity/$",
