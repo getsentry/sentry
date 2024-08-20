@@ -67,22 +67,22 @@ export function useReplayTraceMeta(
     }
   );
 
-  const traceDataRows = useMemo(() => {
-    const rows: ReplayTrace[] = [];
+  const replayTraces = useMemo(() => {
+    const traces: ReplayTrace[] = [];
 
     for (const row of eventsData?.data ?? []) {
       if (row.trace) {
-        rows.push({
+        traces.push({
           traceSlug: String(row.trace),
           timestamp: getTimeStampFromTableDateField(row['min(timestamp)']),
         });
       }
     }
 
-    return rows;
+    return traces;
   }, [eventsData]);
 
-  const meta = useTraceMeta(traceDataRows);
+  const meta = useTraceMeta(replayTraces);
 
   const metaResults = useMemo(() => {
     return {

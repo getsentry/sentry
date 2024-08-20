@@ -44,11 +44,11 @@ function getMetaQueryParams(
 async function fetchSingleTraceMetaNew(
   api: Client,
   organization: Organization,
-  row: ReplayTrace,
+  replayTrace: ReplayTrace,
   queryParams: any
 ) {
   const data = await api.requestPromise(
-    `/organizations/${organization.slug}/events-trace-meta/${row.traceSlug}/`,
+    `/organizations/${organization.slug}/events-trace-meta/${replayTrace.traceSlug}/`,
     {
       method: 'GET',
       data: queryParams,
@@ -60,11 +60,11 @@ async function fetchSingleTraceMetaNew(
 async function fetchTraceMetaInBatches(
   api: Client,
   organization: Organization,
-  traceDataRows: ReplayTrace[],
+  replayTraces: ReplayTrace[],
   normalizedParams: any,
   filters: Partial<PageFilters> = {}
 ) {
-  const clonedTraceIds = [...traceDataRows];
+  const clonedTraceIds = [...replayTraces];
   const metaResults: TraceMeta = {
     errors: 0,
     performance_issues: 0,
@@ -78,9 +78,9 @@ async function fetchTraceMetaInBatches(
   while (clonedTraceIds.length > 0) {
     const batch = clonedTraceIds.splice(0, 3);
     const results = await Promise.allSettled(
-      batch.map(row => {
-        const queryParams = getMetaQueryParams(row, normalizedParams, filters);
-        return fetchSingleTraceMetaNew(api, organization, row, queryParams);
+      batch.map(replayTrace => {
+        const queryParams = getMetaQueryParams(replayTrace, normalizedParams, filters);
+        return fetchSingleTraceMetaNew(api, organization, replayTrace, queryParams);
       })
     );
 
@@ -130,7 +130,7 @@ export type TraceMetaQueryResults = {
   status: QueryStatus;
 };
 
-export function useTraceMeta(traceDataRows: ReplayTrace[]): TraceMetaQueryResults {
+export function useTraceMeta(replayTraces: ReplayTrace[]): TraceMetaQueryResults {
   const filters = usePageFilters();
   const api = useApi();
   const organization = useOrganization();
@@ -154,17 +154,17 @@ export function useTraceMeta(traceDataRows: ReplayTrace[]): TraceMetaQueryResult
     },
     Error
   >(
-    ['traceData', traceDataRows],
+    ['traceData', replayTraces],
     () =>
       fetchTraceMetaInBatches(
         api,
         organization,
-        traceDataRows,
+        replayTraces,
         normalizedParams,
         filters.selection
       ),
     {
-      enabled: traceDataRows.length > 0,
+      enabled: replayTraces.length > 0,
     }
   );
 
