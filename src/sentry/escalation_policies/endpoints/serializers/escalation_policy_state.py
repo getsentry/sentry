@@ -27,6 +27,7 @@ class EscalationPolicyStateSerializerResponse(TypedDict, total=False):
     runStepN: int
     runStepAt: datetime
     state: EscalationPolicyStateType
+    dateAdded: datetime
 
 
 @register(EscalationPolicyState)
@@ -67,4 +68,5 @@ class EscalationPolicyStateSerializer(Serializer):
             state=obj.state,
             escalationPolicy=attrs["escalation_policy"],
             group=attrs["group"],
+            dateAdded=obj.date_added,
         )
