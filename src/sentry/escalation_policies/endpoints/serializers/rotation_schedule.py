@@ -4,7 +4,7 @@ from typing import TypedDict
 from django.db import router, transaction
 from rest_framework import serializers
 
-from sentry.api.serializers.base import Serializer, register
+from sentry.api.serializers.base import Serializer, register, serialize
 from sentry.api.serializers.models.team import BaseTeamSerializerResponse
 from sentry.escalation_policies.logic import RotationPeriod, coalesce_schedule_layers
 from sentry.escalation_policies.models.rotation_schedule import (
@@ -187,7 +187,7 @@ class RotationScheduleSerializer(Serializer):
                 coalesce_schedule_layers(schedule.layers.all(), self.start_date, self.end_date)
             )
             results[schedule] = {
-                "team": teams.get(schedule.team_id),
+                "team": serialize(teams.get(schedule.team_id)),
                 "user": users.get(schedule.user_id),
                 "layers": layers_attr,
                 "coalesced_rotation_periods": coalesced_rotation_periods,

@@ -133,7 +133,7 @@ class EscalationPolicySerializer(Serializer):
         }
 
         for policy in item_list:
-            steps = [
+            policy_steps = [
                 EscalationPolicyStepSerializerResponse(
                     stepNumber=step.step_number,
                     escalateAfterSec=step.escalate_after_sec,
@@ -163,11 +163,11 @@ class EscalationPolicySerializer(Serializer):
                 for step in steps
                 if step.policy_id == policy.id
             ]
-            steps.sort(key=lambda x: x["stepNumber"])
+            policy_steps.sort(key=lambda x: x["stepNumber"])
             results[policy] = {
-                "team": teams.get(policy.team_id),
+                "team": serialize(teams.get(policy.team_id)),
                 "user": users.get(policy.user_id),
-                "steps": steps,
+                "steps": policy_steps,
             }
         return results
 
