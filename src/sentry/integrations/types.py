@@ -7,6 +7,7 @@ class ExternalProviders(ValueEqualityEnum):
     UNUSED_GH = 0
     UNUSED_GL = 1
 
+    IN_APP = 50
     EMAIL = 100
     SLACK = 110
     MSTEAMS = 120
@@ -26,6 +27,7 @@ class ExternalProviders(ValueEqualityEnum):
 
 
 class ExternalProviderEnum(Enum):
+    IN_APP = "in_app"  # 'external' lol
     EMAIL = "email"
     SLACK = "slack"
     MSTEAMS = "msteams"
@@ -39,6 +41,7 @@ class ExternalProviderEnum(Enum):
 
 
 EXTERNAL_PROVIDERS_REVERSE = {
+    ExternalProviderEnum.IN_APP: ExternalProviders.IN_APP,
     ExternalProviderEnum.EMAIL: ExternalProviders.EMAIL,
     ExternalProviderEnum.SLACK: ExternalProviders.SLACK,
     ExternalProviderEnum.MSTEAMS: ExternalProviders.MSTEAMS,
@@ -54,6 +57,7 @@ EXTERNAL_PROVIDERS_REVERSE = {
 EXTERNAL_PROVIDERS_REVERSE_VALUES = {k.value: v for k, v in EXTERNAL_PROVIDERS_REVERSE.items()}
 
 EXTERNAL_PROVIDERS = {
+    ExternalProviders.IN_APP: ExternalProviderEnum.IN_APP.value,
     ExternalProviders.EMAIL: ExternalProviderEnum.EMAIL.value,
     ExternalProviders.SLACK: ExternalProviderEnum.SLACK.value,
     ExternalProviders.MSTEAMS: ExternalProviderEnum.MSTEAMS.value,
@@ -67,6 +71,7 @@ EXTERNAL_PROVIDERS = {
 }
 
 PERSONAL_NOTIFICATION_PROVIDERS = [
+    ExternalProviderEnum.IN_APP.value,
     ExternalProviderEnum.EMAIL.value,
     ExternalProviderEnum.SLACK.value,
     ExternalProviderEnum.MSTEAMS.value,
