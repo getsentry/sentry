@@ -1,7 +1,7 @@
 import {useMemo} from 'react';
 import type {Location} from 'history';
 
-import {getUtcDateString} from 'sentry/utils/dates';
+import {getTimeStampFromTableDateField, getUtcDateString} from 'sentry/utils/dates';
 import type {TableDataRow} from 'sentry/utils/discover/discoverQuery';
 import EventView from 'sentry/utils/discover/eventView';
 import {useApiQuery} from 'sentry/utils/queryClient';
@@ -9,6 +9,11 @@ import useOrganization from 'sentry/utils/useOrganization';
 import type {ReplayRecord} from 'sentry/views/replays/types';
 
 import {type TraceMetaQueryResults, useTraceMeta} from './useTraceMeta';
+
+export type TraceDataRow = {
+  timestamp: number | undefined;
+  traceSlug: string;
+};
 
 // Fetches the meta data for all the traces in a replay and combines the results.
 export function useReplayTraceMeta(
@@ -66,11 +71,22 @@ export function useReplayTraceMeta(
     }
   );
 
-  const traceIds = useMemo(() => {
-    return (eventsData?.data ?? []).map(({trace}) => String(trace)).filter(Boolean);
+  const traceDataRows = useMemo(() => {
+    const rows: TraceDataRow[] = [];
+
+    for (const row of eventsData?.data ?? []) {
+      if (row.trace) {
+        rows.push({
+          traceSlug: String(row.trace),
+          timestamp: getTimeStampFromTableDateField(row['min(timestamp)']),
+        });
+      }
+    }
+
+    return rows;
   }, [eventsData]);
 
-  const meta = useTraceMeta(traceIds);
+  const meta = useTraceMeta(traceDataRows);
 
   const metaResults = useMemo(() => {
     return {

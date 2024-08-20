@@ -1,6 +1,5 @@
 import {useMemo} from 'react';
 import {useQuery} from '@tanstack/react-query';
-import type {Location} from 'history';
 import * as qs from 'query-string';
 
 import type {Client} from 'sentry/api';
@@ -15,47 +14,42 @@ import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 
+import type {TraceDataRow} from './useReplayTraceMeta';
+
 type TraceMetaQueryParams =
   | {
       // demo has the format ${projectSlug}:${eventId}
       // used to query a demo transaction event from the backend.
-      demo: string | undefined;
       statsPeriod: string;
     }
   | {
-      demo: string | undefined;
-      timestamp: string;
+      timestamp: number;
     };
 
 function getMetaQueryParams(
-  query: Location['query'],
+  row: TraceDataRow,
+  normalizedParams: any,
   filters: Partial<PageFilters> = {}
 ): TraceMetaQueryParams {
-  const normalizedParams = normalizeDateTimeParams(query, {
-    allowAbsolutePageDatetime: true,
-  });
-
   const statsPeriod = decodeScalar(normalizedParams.statsPeriod);
-  const timestamp = decodeScalar(normalizedParams.timestamp);
 
-  if (timestamp) {
-    return {timestamp, demo: decodeScalar(normalizedParams.demo)};
+  if (row.timestamp) {
+    return {timestamp: row.timestamp};
   }
 
   return {
     statsPeriod: (statsPeriod || filters?.datetime?.period) ?? DEFAULT_STATS_PERIOD,
-    demo: decodeScalar(normalizedParams.demo),
   };
 }
 
 async function fetchSingleTraceMetaNew(
   api: Client,
   organization: Organization,
-  traceSlug: string,
+  row: TraceDataRow,
   queryParams: any
 ) {
   const data = await api.requestPromise(
-    `/organizations/${organization.slug}/events-trace-meta/${traceSlug}/`,
+    `/organizations/${organization.slug}/events-trace-meta/${row.traceSlug}/`,
     {
       method: 'GET',
       data: queryParams,
@@ -65,12 +59,13 @@ async function fetchSingleTraceMetaNew(
 }
 
 async function fetchTraceMetaInBatches(
-  traceIds: string[],
   api: Client,
   organization: Organization,
-  queryParams: TraceMetaQueryParams
+  traceDataRows: TraceDataRow[],
+  normalizedParams: any,
+  filters: Partial<PageFilters> = {}
 ) {
-  const clonedTraceIds = [...traceIds];
+  const clonedTraceIds = [...traceDataRows];
   const metaResults: TraceMeta = {
     errors: 0,
     performance_issues: 0,
@@ -84,8 +79,9 @@ async function fetchTraceMetaInBatches(
   while (clonedTraceIds.length > 0) {
     const batch = clonedTraceIds.splice(0, 3);
     const results = await Promise.allSettled(
-      batch.map(slug => {
-        return fetchSingleTraceMetaNew(api, organization, slug, queryParams);
+      batch.map(row => {
+        const queryParams = getMetaQueryParams(row, normalizedParams, filters);
+        return fetchSingleTraceMetaNew(api, organization, row, queryParams);
       })
     );
 
@@ -135,18 +131,22 @@ export type TraceMetaQueryResults = {
   status: QueryStatus;
 };
 
-export function useTraceMeta(traceSlugs: string[]): TraceMetaQueryResults {
+export function useTraceMeta(traceDataRows: TraceDataRow[]): TraceMetaQueryResults {
   const filters = usePageFilters();
   const api = useApi();
   const organization = useOrganization();
 
-  const queryParams = useMemo(() => {
+  const normalizedParams = useMemo(() => {
     const query = qs.parse(location.search);
-    return getMetaQueryParams(query, filters.selection);
+    return normalizeDateTimeParams(query, {
+      allowAbsolutePageDatetime: true,
+    });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const mode = queryParams.demo ? 'demo' : undefined;
+  // demo has the format ${projectSlug}:${eventId}
+  // used to query a demo transaction event from the backend.
+  const mode = decodeScalar(normalizedParams.demo) ? 'demo' : undefined;
 
   const {data, isLoading, status} = useQuery<
     {
@@ -155,10 +155,17 @@ export function useTraceMeta(traceSlugs: string[]): TraceMetaQueryResults {
     },
     Error
   >(
-    ['traceData', traceSlugs],
-    () => fetchTraceMetaInBatches(traceSlugs, api, organization, queryParams),
+    ['traceData', traceDataRows],
+    () =>
+      fetchTraceMetaInBatches(
+        api,
+        organization,
+        traceDataRows,
+        normalizedParams,
+        filters.selection
+      ),
     {
-      enabled: traceSlugs.length > 0,
+      enabled: traceDataRows.length > 0,
     }
   );
 
