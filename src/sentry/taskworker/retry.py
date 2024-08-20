@@ -2,10 +2,7 @@ from __future__ import annotations
 
 import dataclasses
 from collections.abc import Sequence
-from typing import TYPE_CHECKING, Any
-
-if TYPE_CHECKING:
-    from sentry.taskworker.task import Task
+from typing import Any
 
 
 @dataclasses.dataclass
@@ -44,9 +41,18 @@ class Retry:
         self.__deadletter = deadletter
         self.__discard = discard
 
-    def should_retry(self, task: Task, exc: Exception) -> bool:
-        # TODO implement this for real.
-        return True
+    def should_retry(self, state: RetryState, exc: Exception) -> bool:
+        # No more attempts left
+        if state.attempts >= self.__times:
+            return False
+        # No retries for types on the ignore list
+        if self.__ignore and isinstance(exc, self.__ignore):
+            return False
+        # In the retry allow list
+        if self.__on and isinstance(exc, self.__on):
+            return True
+        # TODO add logging/assertion for no funny business
+        return False
 
     def initial_state(self) -> RetryState:
         return RetryState(

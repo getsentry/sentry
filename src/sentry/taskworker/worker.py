@@ -38,10 +38,13 @@ class Worker:
                 self.process_tasks(self.namespace)
         except KeyboardInterrupt:
             self.exitcode = 1
+        except Exception:
+            logger.exception("Worker process crashed")
 
     def process_tasks(self, namespace: TaskNamespace) -> None:
         from sentry.taskworker.service.service import task_service
 
+        # This emulates an RPC service interface.
         task_data = task_service.get_task(topic=namespace.topic)
         if task_data is None:
             logger.info("No tasks")
@@ -55,17 +58,16 @@ class Worker:
             return
 
         # TODO: Check idempotency
-        complete = False
+        next_state = PendingTasks.States.FAILURE
         try:
             task_meta(*task_data.parameters["args"], **task_data.parameters["kwargs"])
-            complete = True
+            next_state = PendingTasks.States.COMPLETE
         except Exception as err:
             logging.info("Task failed to execute %s", err)
             # TODO check retry policy
-
-        if complete:
+            if task_meta.should_retry(task_data.retry_state, err):
+                next_state = PendingTasks.States.RETRY
+        if next_state == PendingTasks.States.COMPLETE:
             task_service.complete_task(task_id=task_data.id)
         else:
-            task_service.set_task_status(
-                task_id=task_data.id, task_status=PendingTasks.States.FAILURE
-            )
+            task_service.set_task_status(task_id=task_data.id, task_status=next_state)

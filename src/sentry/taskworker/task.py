@@ -9,7 +9,7 @@ from django.utils import timezone
 
 if TYPE_CHECKING:
     from sentry.taskworker.config import TaskNamespace
-    from sentry.taskworker.retry import Retry
+    from sentry.taskworker.retry import Retry, RetryState
 
 
 class Task:
@@ -62,3 +62,10 @@ class Task:
 
     def apply_async(self, *args, **kwargs):
         self.__namespace.send_task(self, args, kwargs)
+
+    def should_retry(self, state: RetryState, exc: Exception) -> bool:
+        # No retry policy means no retries.
+        retry = self.retry
+        if not retry:
+            return False
+        return retry.should_retry(state, exc)

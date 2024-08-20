@@ -5,6 +5,14 @@ from sentry.taskworker.service.models import RpcTask, serialize_task
 
 
 class TaskService:
+    """
+    Emulate an RPC style interface
+
+    This interface is the 'worker process' interface for
+    fetching and updating state on tasks. Worker processes
+    can rely on this interface to be stable.
+    """
+
     def get_task(self, *, partition: int | None = None, topic: str | None = None) -> RpcTask | None:
 
         with transaction.atomic(using=router.db_for_write(PendingTasks)):
@@ -28,6 +36,7 @@ class TaskService:
             with transaction.atomic(using=router.db_for_write(PendingTasks)):
                 task = PendingTasks.objects.filter(id=task_id).get()
 
+                # TODO add state machine validtion/logging
                 if task.state != PendingTasks.States.COMPLETE:
                     task.update(state=task_status)
                 return serialize_task(task)

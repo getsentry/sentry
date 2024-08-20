@@ -7,6 +7,13 @@ from sentry.hybridcloud.rpc import RpcModel
 from sentry.taskworker.models import PendingTasks
 
 
+class RpcRetryState(RpcModel):
+    attempts: int
+    discard_after_attempt: int | None
+    deadletter_after_attempt: int | None
+    kind: str
+
+
 class RpcTask(RpcModel):
     id: int
     topic: str
@@ -19,6 +26,7 @@ class RpcTask(RpcModel):
     added_at: datetime
     deadletter_at: datetime
     processing_deadline: datetime
+    retry_state: RpcRetryState
 
 
 def serialize_task(pending_task: PendingTasks) -> RpcTask:
@@ -35,4 +43,10 @@ def serialize_task(pending_task: PendingTasks) -> RpcTask:
         added_at=pending_task.added_at,
         deadletter_at=pending_task.deadletter_at,
         processing_deadline=pending_task.processing_deadline,
+        retry_state=RpcRetryState(
+            attempts=1,
+            discard_after_attempt=3,
+            deadletter_after_attempt=None,
+            kind="Retry",
+        ),
     )
