@@ -1493,7 +1493,7 @@ def update_alert_rule_trigger_action(
 
 @dataclass(frozen=True, eq=True)
 class AlertTarget:
-    identifier: str | None
+    identifier: str | int | None
     display: str | None
 
 
@@ -1645,7 +1645,7 @@ def _get_alert_rule_trigger_action_pagerduty_service(
     if not service:
         raise InvalidTriggerActionError("No PagerDuty service found.")
 
-    return AlertTarget(str(service["id"]), service["service_name"])
+    return AlertTarget(service["id"], service["service_name"])
 
 
 def get_alert_rule_trigger_action_opsgenie_team(
@@ -1680,7 +1680,7 @@ def _get_alert_rule_trigger_action_sentry_app(
 
     for installation in installations:
         if installation.sentry_app.id == sentry_app_id:
-            return AlertTarget(str(sentry_app_id), installation.sentry_app.name)
+            return AlertTarget(sentry_app_id, installation.sentry_app.name)
 
     raise InvalidTriggerActionError("No SentryApp found.")
 
