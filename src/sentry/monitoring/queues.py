@@ -110,6 +110,7 @@ def get_queue_by_name(name: str) -> kombu.Queue:
 
 backends: dict[str, type[_QueueBackend]] = {
     "redis": RedisBackend,
+    "rediss": RedisBackend,
     "amqp": AmqpBackend,
     "amqps": AmqpBackend,
 }
