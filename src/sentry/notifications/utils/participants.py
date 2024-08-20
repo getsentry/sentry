@@ -46,11 +46,6 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 
-AVAILABLE_PROVIDERS = {
-    ExternalProviders.EMAIL,
-    ExternalProviders.SLACK,
-}
-
 FALLTHROUGH_NOTIFICATION_LIMIT = 20
 
 

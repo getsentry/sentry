@@ -323,13 +323,17 @@ class NotificationController:
                     ExternalProviderEnum(setting.provider).value
                 ] = NotificationSettingsOptionEnum(setting.value)
 
-            # if we have no settings for this user, use the defaults
+            # if we have no settings for this actor, use the defaults
             for type in NotificationSettingEnum:
                 for provider_str in PERSONAL_NOTIFICATION_PROVIDERS:
                     provider = ExternalProviderEnum(provider_str)
                     if provider_str not in most_specific_recipient_providers[type]:
                         # TODO(jangjodi): Remove this once the flag is removed
-                        if recipient_is_team(recipient) and (not has_team_workflow):
+                        if (
+                            recipient_is_team(recipient)
+                            and (not has_team_workflow)
+                            and (provider != ExternalProviderEnum.IN_APP)
+                        ):
                             most_specific_recipient_providers[type][
                                 provider_str
                             ] = NotificationSettingsOptionEnum.NEVER
@@ -394,6 +398,12 @@ class NotificationController:
                 option_value = recipient_options_map[type]
                 if option_value == NotificationSettingsOptionEnum.NEVER:
                     continue
+                # XXX(Leander): Bit of a hack, since team's cannot subscribe/commit
+                if option_value in [
+                    NotificationSettingsOptionEnum.SUBSCRIBE_ONLY,
+                    NotificationSettingsOptionEnum.COMMITTED_ONLY,
+                ] and recipient_is_team(recipient):
+                    option_value = NotificationSettingsOptionEnum.ALWAYS
 
                 provider_options_map = setting_providers_map[recipient][type]
                 for provider, provider_value in provider_options_map.items():

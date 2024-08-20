@@ -7,6 +7,10 @@ from sentry.integrations.types import ExternalProviders
 from sentry.models.activity import Activity
 from sentry.models.organization import Organization
 from sentry.models.team import Team
+from sentry.notifications.services import notifications_service
+from sentry.notifications.types import GroupSubscriptionReason, NotificationSettingEnum
+from sentry.notifications.utils.participants import ParticipantMap
+from sentry.types.actor import Actor
 from sentry.users.services.user.model import RpcUser
 from sentry.users.services.user.service import user_service
 
@@ -55,6 +59,26 @@ def get_assignee_str(activity: Activity, organization: Organization) -> str:
 class AssignedActivityNotification(GroupActivityNotification):
     metrics_key = "assigned_activity"
     title = "Assigned"
+
+    def get_participants_with_group_subscription_reason(self) -> ParticipantMap:
+        if is_team_assignee(self.activity):
+            assignee_id = self.activity.data.get("assignee")
+            assignee_team = _get_team_option(assignee_id, self.organization)
+            actors = Actor.many_from_object([assignee_team])
+            team_actor = actors[0]
+            providers_by_recipient = notifications_service.get_participants(
+                type=NotificationSettingEnum.WORKFLOW,
+                recipients=actors,
+                organization_id=self.organization.id,
+            )
+            team_settings = providers_by_recipient.get(team_actor.id, {})
+            participant_map = ParticipantMap()
+            for provider_str, val_str in team_settings.items():
+                provider = ExternalProviders(provider_str)
+                participant_map.add(provider, team_actor, GroupSubscriptionReason.assigned)
+            return participant_map
+
+        return super().get_participants_with_group_subscription_reason()
 
     def get_assignee(self) -> str:
         return get_assignee_str(self.activity, self.organization)
