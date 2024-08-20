@@ -31,6 +31,19 @@ def seed_policy_data():
     from sentry.models.team import Team, TeamStatus
     from sentry.testutils.factories import Factories  # noqa: S007
 
+    def make_restrictions() -> list[tuple[str, str]]:
+        start = 0
+        result = []
+        for i in range(random.randint(0, 4)):
+            start += random.randint(1, 60 * 5)
+            end = start + random.randint(1, 60 * 5)
+            if end >= 60 * 24:
+                break
+            result.append(
+                (f"{int(start / 60):02d}:{start % 60:02d}", f"{int(end / 60):02d}:{end % 60:02d}")
+            )
+        return result
+
     class TeamAndUserId(Protocol):
         team: Team
         user_id: int
@@ -41,6 +54,7 @@ def seed_policy_data():
         team_count: int = 5
         user_count: int = 5
         schedule_count: int = 5
+        policy_count: int = 5
 
         def ensure_team_and_user_pool(self):
             for i in range(self.team_count - len(self.teams)):
@@ -56,6 +70,27 @@ def seed_policy_data():
                 self.user_ids.append(u.id)
             for i in range(self.schedule_count - len(self.schedules)):
                 self.schedules.append(RotationScheduleFactory(org_context=self).build())
+
+            # Fix restrictions by recomputing
+            for schedule in self.schedules:
+                for layer in RotationScheduleLayer.objects.filter(schedule=schedule):
+                    restriction: ScheduleLayerRestriction = {
+                        "Sun": make_restrictions(),
+                        "Mon": make_restrictions(),
+                        "Tue": make_restrictions(),
+                        "Wed": make_restrictions(),
+                        "Thu": make_restrictions(),
+                        "Fri": make_restrictions(),
+                        "Sat": make_restrictions(),
+                    }
+
+                    layer.schedule_layer_restrictions = restriction
+                    layer.save()
+
+        def ensure_policies(self):
+            for i in range(self.policy_count - len(self.policies)):
+                pf = PolicyFactory(self)
+                self.policies.append(pf.build())
 
         def contextualize_slug_or_user_id(
             self, model: TeamAndUserId, slug_or_user_id: str | int | None
@@ -74,6 +109,10 @@ def seed_policy_data():
         @cached_property
         def organization(self) -> Organization:
             return Organization.objects.get(pk=self.org_id)
+
+        @cached_property
+        def policies(self) -> list[EscalationPolicy]:
+            return list(EscalationPolicy.objects.filter(organization=self.organization))
 
         @cached_property
         def user_ids(self) -> list[int]:
@@ -148,19 +187,6 @@ def seed_policy_data():
                 results.append(override)
             return results
 
-        def make_restrictions(self) -> list[tuple[str, str]]:
-            start = 0
-            result = []
-            for i in range(random.randint(0, 4)):
-                start += random.randint(1, 60 * 60 * 5)
-                end = start + random.randint(1, 60 * 60 * 5)
-                if end >= 60 * 60 * 24:
-                    break
-                result.append(
-                    (f"{int(start/60):02d}:{start%60:02d}", f"{int(end/60):02d}:{end%60:02d}")
-                )
-            return result
-
         @cached_property
         def schedule_layers(self) -> list[RotationScheduleLayer]:
             results = []
@@ -176,13 +202,13 @@ def seed_policy_data():
                 )
 
                 restriction: ScheduleLayerRestriction = {
-                    "Sun": self.make_restrictions(),
-                    "Mon": self.make_restrictions(),
-                    "Tue": self.make_restrictions(),
-                    "Wed": self.make_restrictions(),
-                    "Thu": self.make_restrictions(),
-                    "Fri": self.make_restrictions(),
-                    "Sat": self.make_restrictions(),
+                    "Sun": make_restrictions(),
+                    "Mon": make_restrictions(),
+                    "Tue": make_restrictions(),
+                    "Wed": make_restrictions(),
+                    "Thu": make_restrictions(),
+                    "Fri": make_restrictions(),
+                    "Sat": make_restrictions(),
                 }
 
                 layer.schedule_layer_restrictions = restriction
@@ -301,9 +327,7 @@ def seed_policy_data():
 
     context = OrgContext()
     context.ensure_team_and_user_pool()
-
-    for i in range(5):
-        PolicyFactory(org_context=context).build()
+    context.ensure_policies()
 
 
 if __name__ == "__main__":
