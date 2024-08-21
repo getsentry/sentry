@@ -1,5 +1,8 @@
 import logging
+from collections.abc import Iterable
+from dataclasses import dataclass
 
+from sentry.eventstore.models import GroupEvent
 from sentry.mail import mail_adapter
 from sentry.mail.forms.notify_email import NotifyEmailForm
 from sentry.notifications.types import (
@@ -10,9 +13,43 @@ from sentry.notifications.types import (
 )
 from sentry.notifications.utils.participants import determine_eligible_recipients
 from sentry.rules.actions.base import EventAction
+from sentry.types.actor import Actor
 from sentry.utils import metrics
 
 logger = logging.getLogger(__name__)
+
+
+@dataclass(frozen=True)
+class NotifyEmailTarget:
+    target_type: ActionTargetType
+    target_identifier: str | None
+    skip_digests: bool
+    fallthrough_type: FallthroughChoiceType
+
+    @classmethod
+    def unpack(cls, event_action: EventAction) -> "NotifyEmailTarget":
+        data = event_action.data
+        target_type = ActionTargetType(data["targetType"])
+        target_identifier = data.get("targetIdentifier", None)
+        skip_digests = data.get("skipDigests", False)
+
+        fallthrough_choice = data.get("fallthroughType", None)
+        fallthrough_type = (
+            FallthroughChoiceType(fallthrough_choice)
+            if fallthrough_choice
+            else FallthroughChoiceType.ACTIVE_MEMBERS
+        )
+
+        return cls(target_type, target_identifier, skip_digests, fallthrough_type)
+
+    def get_eligible_recipients(self, event: GroupEvent) -> Iterable[Actor]:
+        return determine_eligible_recipients(
+            event.group.project,
+            self.target_type,
+            self.target_identifier,
+            event,
+            self.fallthrough_type,
+        )
 
 
 class NotifyEmailAction(EventAction):
@@ -34,29 +71,17 @@ class NotifyEmailAction(EventAction):
             self.data = {**self.data, "fallthroughType": FallthroughChoiceType.ACTIVE_MEMBERS.value}
         return self.label.format(**self.data)
 
-    def after(self, event, notification_uuid: str | None = None):
+    def after(self, event: GroupEvent, notification_uuid: str | None = None):
         group = event.group
         extra = {
             "event_id": event.event_id,
             "group_id": group.id,
             "notification_uuid": notification_uuid,
         }
-        group = event.group
 
-        target_type = ActionTargetType(self.data["targetType"])
-        target_identifier = self.data.get("targetIdentifier", None)
-        skip_digests = self.data.get("skipDigests", False)
+        target = NotifyEmailTarget.unpack(self)
 
-        fallthrough_choice = self.data.get("fallthroughType", None)
-        fallthrough_type = (
-            FallthroughChoiceType(fallthrough_choice)
-            if fallthrough_choice
-            else FallthroughChoiceType.ACTIVE_MEMBERS
-        )
-
-        if not determine_eligible_recipients(
-            group.project, target_type, target_identifier, event, fallthrough_type
-        ):
+        if not target.get_eligible_recipients(event):
             self.logger.info("rule.fail.should_notify", extra=extra)
             return
 
@@ -65,10 +90,10 @@ class NotifyEmailAction(EventAction):
             lambda event, futures: mail_adapter.rule_notify(
                 event,
                 futures,
-                target_type,
-                target_identifier,
-                fallthrough_type,
-                skip_digests,
+                target.target_type,
+                target.target_identifier,
+                target.fallthrough_type,
+                target.skip_digests,
                 notification_uuid,
             )
         )
