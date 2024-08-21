@@ -34,7 +34,7 @@ export function TraceDataSection({event}: {event: Event}) {
 
   const traceContent = (
     <Fragment>
-      <StyledTraceLink>
+      <StyledTraceLink id="event-trace">
         {/* Used for trace-related issue */}
         {oneOtherIssueEvent && (
           <span>{t('One other issue appears in the same trace.')}</span>

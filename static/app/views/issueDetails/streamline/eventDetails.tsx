@@ -32,7 +32,6 @@ export function EventDetails({
   const {eventDetails, dispatch} = useEventDetailsReducer();
   const theme = useTheme();
   const isScreenMedium = useMedia(`(max-width: ${theme.breakpoints.medium})`);
-  const isExamplePageError = group?.culprit.includes('sentry-example-page') ?? false;
 
   useLayoutEffect(() => {
     const navHeight = nav?.offsetHeight ?? 0;
@@ -45,7 +44,7 @@ export function EventDetails({
 
   return (
     <EventDetailsContext.Provider value={{...eventDetails, dispatch}}>
-      {isExamplePageError && <OnboardingWidget />}
+      <OnboardingWidget />
       <SuspectCommits
         project={project}
         eventId={event.id}

@@ -111,6 +111,7 @@ function EventOrGroupHeader({
             // page with no project selected (and not the locked project
             // selected)
             ...(location.query.project !== undefined ? {} : {_allp: 1}),
+            onboarding: id === '4332613' ? '1' : '3',
           },
         }}
         onClick={onClick}

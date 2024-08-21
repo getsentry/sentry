@@ -1,8 +1,10 @@
+import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import {useFetchEventAttachments} from 'sentry/actionCreators/events';
 import {ScreenshotDataSection} from 'sentry/components/events/eventTagsAndScreenshot/screenshot/screenshotDataSection';
 import {DataSection} from 'sentry/components/events/styles';
+import {OnboardingWidget} from 'sentry/components/onboardingWidget';
 import useOrganization from 'sentry/utils/useOrganization';
 
 import EventTagsDataSection from './tags';
@@ -42,22 +44,29 @@ export function EventTagsAndScreenshot({projectSlug, event, isShare = false}: Pr
   const showTags = !!tags.length;
 
   return (
-    <Wrapper showScreenshot={showScreenshot} showTags={showTags}>
-      <div>
-        {showTags && <EventTagsDataSection event={event} projectSlug={projectSlug} />}
-      </div>
-      {showScreenshot && (
+    <Fragment>
+      <OnboardingWidget />
+      <Wrapper
+        showScreenshot={showScreenshot}
+        showTags={showTags}
+        id="highlights-section"
+      >
         <div>
-          <ScreenshotWrapper>
-            <StyledScreenshotDataSection
-              event={event}
-              isShare={isShare}
-              projectSlug={projectSlug}
-            />
-          </ScreenshotWrapper>
+          {showTags && <EventTagsDataSection event={event} projectSlug={projectSlug} />}
         </div>
-      )}
-    </Wrapper>
+        {showScreenshot && (
+          <div>
+            <ScreenshotWrapper>
+              <StyledScreenshotDataSection
+                event={event}
+                isShare={isShare}
+                projectSlug={projectSlug}
+              />
+            </ScreenshotWrapper>
+          </div>
+        )}
+      </Wrapper>
+    </Fragment>
   );
 }
 

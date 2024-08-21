@@ -488,6 +488,7 @@ function BaseGroupRow({
 
   return (
     <Wrapper
+      id={id}
       data-test-id="group"
       data-test-reviewed={reviewed}
       onClick={displayReprocessingLayout || !canSelect ? undefined : wrapperToggle}

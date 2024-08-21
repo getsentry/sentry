@@ -181,6 +181,7 @@ export default function BreadcrumbsDataSection({
       type={SectionKey.BREADCRUMBS}
       title={t('Breadcrumbs')}
       data-test-id="breadcrumbs-data-section"
+      id="event-breadcrumbs"
       actions={actions}
     >
       <ErrorBoundary mini message={t('There was an error loading the event breadcrumbs')}>

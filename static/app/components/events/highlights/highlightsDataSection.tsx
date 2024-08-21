@@ -241,6 +241,7 @@ export default function HighlightsDataSection({
 
   return (
     <InterimSection
+      id="event-highlights"
       key="event-highlights"
       type={SectionKey.HIGHLIGHTS}
       title={hasStreamlinedUI ? t('Highlights') : t('Event Highlights')}

@@ -375,7 +375,7 @@ export function EventDetailsContent({
       {hasStreamlinedUI ? (
         <EventTagsDataSection event={event} projectSlug={project.slug} ref={tagsRef} />
       ) : (
-        <div ref={tagsRef}>
+        <div ref={tagsRef} id="tags">
           <EventTagsAndScreenshot event={event} projectSlug={project.slug} />
         </div>
       )}

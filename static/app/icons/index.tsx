@@ -125,3 +125,4 @@ export {IconWarning} from './iconWarning';
 export {IconWifi} from './iconWifi';
 export {IconWindow} from './iconWindow';
 export {IconZoom} from './iconZoom';
+export {IconTarget} from './iconTarget';

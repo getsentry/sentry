@@ -1,6 +1,9 @@
+import {Fragment} from 'react';
+
 import type {IndexedMembersByProject} from 'sentry/actionCreators/members';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {OnboardingWidget} from 'sentry/components/onboardingWidget';
 import PanelBody from 'sentry/components/panels/panelBody';
 import StreamGroup from 'sentry/components/stream/group';
 import GroupStore from 'sentry/stores/groupStore';
@@ -73,14 +76,17 @@ function GroupListBody({
   }
 
   return (
-    <GroupList
-      groupIds={groupIds}
-      memberList={memberList}
-      query={query}
-      displayReprocessingLayout={displayReprocessingLayout}
-      groupStatsPeriod={groupStatsPeriod}
-      onActionTaken={onActionTaken}
-    />
+    <Fragment>
+      <OnboardingWidget />
+      <GroupList
+        groupIds={groupIds}
+        memberList={memberList}
+        query={query}
+        displayReprocessingLayout={displayReprocessingLayout}
+        groupStatsPeriod={groupStatsPeriod}
+        onActionTaken={onActionTaken}
+      />
+    </Fragment>
   );
 }
 

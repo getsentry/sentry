@@ -31,6 +31,7 @@ export interface EventDataSectionProps {
    * A description shown in a QuestionTooltip
    */
   help?: React.ReactNode;
+  id?: string;
   /**
    * If true, user is able to hover overlay without it disappearing. (nice if
    * you want the overlay to be interactive)
@@ -92,7 +93,12 @@ export function EventDataSection({
   );
 
   return (
-    <DataSection ref={scrollToSection} className={className || ''} {...props}>
+    <DataSection
+      ref={scrollToSection}
+      className={className || ''}
+      {...props}
+      id={`event-${type}`}
+    >
       <SectionHeader id={type} data-test-id={`event-section-${type}`}>
         {title && (
           <Title>
