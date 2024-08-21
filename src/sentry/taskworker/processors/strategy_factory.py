@@ -53,23 +53,33 @@ class StrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
         # by completed records. Should come from CLI/options
         self.max_pending_timeout = 8 * 60
 
+    def transform_msg_batch(
+        self, message: Message[MutableSequence[Mapping[str, Any]]]
+    ) -> MutableSequence[Mapping[str, Any]]:
+        transformed_msg_batch: MutableSequence = []
+        for msg in message.payload:
+            # TODO: need to figure out if this way of getting the offset is
+            # actually referring to the message's offset,
+            # OR the highest offset per partition included in this batch
+            for partition, offset in message.committable.items():
+                msg["partition"] = partition.index
+                # Lyn said the message itself's offset is always the committable - 1
+                msg["offset"] = offset - 1
+            transformed_msg_batch.append(msg)
+        return transformed_msg_batch
+
     def create_pending_tasks_batch(
         self, message: Message[MutableSequence[Mapping[str, Any]]]
     ) -> Sequence[PendingTasks]:
-        from sentry.taskworker.models import PendingTasks
-
-        msg = message.payload
-
+        transformed_msg_batch = self.transform_msg_batch(message)
         pending_tasks_batch = [
             PendingTasks(
                 topic=self.topic.value,
                 task_name=m["taskname"],
                 parameters=m["parameters"],
                 task_namespace=m.get("task_namespace"),
-                # TODO: idk how to get the partition
-                partition=1,
-                # TODO: idk how to get offset
-                offset=1,
+                partition=m["partition"],
+                offset=m["offset"],
                 state=PendingTasks.States.PENDING,
                 # TODO: i think the sample message's type is not matching the db, hardcoding rn
                 # received_at=m["received_at"],
@@ -85,7 +95,7 @@ class StrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
                 deadletter_at=timezone.now() + timedelta(seconds=self.max_pending_timeout),
                 processing_deadline=m["deadline"],
             )
-            for m in msg
+            for m in transformed_msg_batch
         ]
         return pending_tasks_batch
 

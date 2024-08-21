@@ -1,6 +1,3 @@
-# from sentry.runner import configure
-
-# configure()
 import logging
 import signal
 from typing import Any
