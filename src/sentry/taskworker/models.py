@@ -2,6 +2,7 @@ from datetime import datetime
 from typing import Any
 
 from django.db import models
+from django.utils import timezone
 
 from sentry.backup.scopes import RelocationScope
 from sentry.db.models import JSONField, Model
@@ -33,7 +34,7 @@ class PendingTasks(Model):
     offset: int = models.IntegerField(blank=True, null=True)
     state: States = models.CharField(choices=States.choices)
     received_at: datetime = models.DateTimeField()
-    added_at: datetime = models.DateTimeField(default=datetime.now, blank=True)
+    added_at: datetime = models.DateTimeField(default=timezone.now, blank=True)
 
     # Retry state fields
     headers: models.Field[dict[str, Any] | None, dict[str, Any] | None] = JSONField(null=True)

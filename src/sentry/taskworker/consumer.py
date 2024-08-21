@@ -46,7 +46,13 @@ def run(
         )
     )
 
-    factory = StrategyFactory(topic=source_topic)
+    factory = StrategyFactory(
+        max_batch_size=2,
+        max_batch_time=2,
+        num_processes=3,
+        input_block_size=1000,
+        output_block_size=1000,
+    )
 
     processor = StreamProcessor(
         consumer=consumer,

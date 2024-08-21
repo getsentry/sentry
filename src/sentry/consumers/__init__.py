@@ -398,6 +398,12 @@ KAFKA_CONSUMERS: Mapping[str, ConsumerDefinition] = {
         "click_options": multiprocessing_options(default_max_batch_size=100),
         "dlq_topic": Topic.BUFFERED_SEGMENTS_DLQ,
     },
+    "taskworker": {
+        "topic": Topic.HACKWEEK,
+        "strategy_factory": "sentry.taskworker.processors.strategy_factory.StrategyFactory",
+        "click_options": multiprocessing_options(default_max_batch_size=100),
+        "dlq_topic": Topic.HACKWEEK_DLQ,
+    },
     **settings.SENTRY_KAFKA_CONSUMERS,
 }
 

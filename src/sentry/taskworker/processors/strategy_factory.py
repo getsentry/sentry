@@ -1,10 +1,9 @@
-from sentry.runner import configure
+from __future__ import annotations
 
-configure()
 import logging
 from collections.abc import Mapping, MutableSequence, Sequence
-from datetime import datetime
-from typing import Any
+from datetime import UTC, datetime, timedelta
+from typing import TYPE_CHECKING, Any
 
 from arroyo.backends.kafka.consumer import KafkaPayload
 from arroyo.processing.strategies import (
@@ -17,16 +16,15 @@ from arroyo.processing.strategies import (
 )
 from arroyo.processing.strategies.run_task_with_multiprocessing import MultiprocessingPool
 from arroyo.types import BaseValue, Commit, Message, Partition
+from django.utils import timezone
 
-from sentry.taskworker.models import PendingTasks
+from sentry.conf.types.kafka_definition import Topic
 from sentry.utils import json
 
-logging.basicConfig(
-    level=getattr(logging, "INFO"),
-    format="%(asctime)s %(message)s",
-    force=True,
-)
-logger = logging.getLogger(__name__)
+if TYPE_CHECKING:
+    from sentry.taskworker.models import PendingTasks
+
+logger = logging.getLogger("sentry.taskworker.consumer")
 
 
 def process_message(message: Message[KafkaPayload]):
@@ -36,17 +34,35 @@ def process_message(message: Message[KafkaPayload]):
 
 
 class StrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
-    def __init__(self, topic) -> None:
-        self.pool = MultiprocessingPool(num_processes=3)
-        self.topic = topic
+    def __init__(
+        self,
+        max_batch_size: int,
+        max_batch_time: int,
+        num_processes: int,
+        input_block_size: int | None,
+        output_block_size: int | None,
+    ) -> None:
+        super().__init__()
+        self.pool = MultiprocessingPool(num_processes)
+
+        # TODO make this a parameter that `get_stream_processor` forwards
+        self.topic = Topic.HACKWEEK
+
+        # Maximum amount of time tasks are allowed to live in pending task
+        # after this time tasks should be deadlettered if they are followed
+        # by completed records. Should come from CLI/options
+        self.max_pending_timeout = 8 * 60
 
     def create_pending_tasks_batch(
         self, message: Message[MutableSequence[Mapping[str, Any]]]
     ) -> Sequence[PendingTasks]:
+        from sentry.taskworker.models import PendingTasks
+
         msg = message.payload
+
         pending_tasks_batch = [
             PendingTasks(
-                topic=self.topic,
+                topic=self.topic.value,
                 task_name=m["taskname"],
                 parameters=m["parameters"],
                 task_namespace=m.get("task_namespace"),
@@ -57,7 +73,7 @@ class StrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
                 state=PendingTasks.States.PENDING,
                 # TODO: i think the sample message's type is not matching the db, hardcoding rn
                 # received_at=m["received_at"],
-                received_at=datetime(2023, 8, 19, 12, 30, 0),
+                received_at=datetime.fromtimestamp(m["received_at"], tz=UTC),
                 retry_attempts=m["retry_state"]["attempts"] if m["retry_state"] else None,
                 retry_kind=m["retry_state"]["kind"] if m["retry_state"] else None,
                 discard_after_attempt=m["retry_state"]["discard_after_attempt"]
@@ -66,8 +82,7 @@ class StrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
                 deadletter_after_attempt=m["retry_state"]["deadletter_after_attempt"]
                 if m["retry_state"]
                 else None,
-                # not sure what this field should be, arbitrary value for now
-                deadletter_at=datetime(2023, 8, 19, 12, 30, 0),
+                deadletter_at=timezone.now() + timedelta(seconds=self.max_pending_timeout),
                 processing_deadline=m["deadline"],
             )
             for m in msg
@@ -77,6 +92,8 @@ class StrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
     def create_with_partitions(
         self, commit: Commit, partitions: Mapping[Partition, int]
     ) -> ProcessingStrategy[KafkaPayload]:
+        from sentry.taskworker.models import PendingTasks
+
         def accumulator(
             batched_results: MutableSequence[Mapping[str, Any]],
             message: BaseValue[Mapping[str, Any]],
@@ -93,6 +110,7 @@ class StrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
             return message
 
         collect = Reduce(
+            # TODO use CLI options
             max_batch_size=2,
             max_batch_time=2,
             accumulator=accumulator,
@@ -101,12 +119,15 @@ class StrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
                 processing_function=flush_batch,
                 concurrency=2,
                 max_pending_futures=2,
+                # TODO add retry and other cleanup steps, and then commit offsets
                 next_step=CommitOffsets(commit),
             ),
         )
+
         return RunTaskWithMultiprocessing(
             function=process_message,
             next_step=collect,
+            # TODO use CLI options
             max_batch_size=2,
             max_batch_time=2,
             pool=self.pool,

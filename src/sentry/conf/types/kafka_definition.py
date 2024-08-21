@@ -58,6 +58,7 @@ class Topic(Enum):
     BUFFERED_SEGMENTS = "buffered-segments"
     BUFFERED_SEGMENTS_DLQ = "buffered-segments-dlq"
     HACKWEEK = "hackweek"
+    HACKWEEK_DLQ = "hackweek-dlq"
 
 
 class ConsumerDefinition(TypedDict, total=False):
