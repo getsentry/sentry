@@ -499,7 +499,7 @@ def create_alert_rule(
     resolve_threshold: int | float | None = None,
     environment: Environment | None = None,
     include_all_projects: bool = False,
-    excluded_projects: Collection[Project] = (),
+    excluded_projects: Collection[Project] | None = None,
     query_type: SnubaQuery.Type = SnubaQuery.Type.ERROR,
     dataset: Dataset = Dataset.Events,
     user: RpcUser | None = None,
@@ -616,6 +616,7 @@ def create_alert_rule(
 
         if include_all_projects:
             # NOTE: This feature is not currently utilized.
+            excluded_projects = excluded_projects or ()
             projects = list(
                 Project.objects.filter(organization=organization).exclude(
                     id__in=[p.id for p in excluded_projects]
