@@ -249,7 +249,7 @@ export function DebugImageDetails({
   );
 
   const {code_file, status} = image ?? {};
-  const candidates = getCandidates({debugFiles, image, isPending});
+  const candidates = getCandidates({debugFiles, image, isLoading: isPending});
   const baseUrl = api.baseUrl;
   const fileName = getFileName(code_file);
   const haveCandidatesUnappliedDebugFile = candidates.some(

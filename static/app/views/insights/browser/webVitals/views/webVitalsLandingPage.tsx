@@ -109,7 +109,7 @@ export function WebVitalsLandingPage() {
               <PerformanceScoreChartContainer>
                 <PerformanceScoreChart
                   projectScore={projectScore}
-                  isProjectScoreLoading={isLoading || isProjectScoresLoading}
+                  isProjectScoreLoading={isPending || isProjectScoresLoading}
                   webVital={state.webVital}
                   browserTypes={browserTypes}
                   subregions={subregions}
