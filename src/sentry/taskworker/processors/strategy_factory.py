@@ -17,6 +17,7 @@ from arroyo.processing.strategies import (
 )
 from arroyo.processing.strategies.run_task_with_multiprocessing import MultiprocessingPool
 from arroyo.types import BaseValue, Commit, Message, Partition
+from django.conf import settings
 from django.db.models import Max
 from django.utils import timezone
 
@@ -55,6 +56,12 @@ class StrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
         # by completed records. Should come from CLI/options
         self.max_pending_timeout = 8 * 60
 
+        self.do_imports()
+
+    def do_imports(self) -> None:
+        for module in settings.TASKWORKER_IMPORTS:
+            __import__(module)
+
     def transform_msg_batch(
         self, message: Message[MutableSequence[Mapping[str, Any]]]
     ) -> MutableSequence[Mapping[str, Any]]:
@@ -83,7 +90,7 @@ class StrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
                 topic=self.topic.value,
                 task_name=m["taskname"],
                 parameters=m["parameters"],
-                task_namespace=m.get("task_namespace"),
+                task_namespace=m["namespace"],
                 partition=m["partition"],
                 offset=m["offset"],
                 state=PendingTasks.States.PENDING,

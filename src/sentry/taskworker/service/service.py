@@ -21,9 +21,7 @@ class TaskService:
     def get_task(self, *, partition: int | None = None, topic: str | None = None) -> RpcTask | None:
         logger.info("getting_latest_tasks", extra={"partition": partition, "topic": topic})
         with transaction.atomic(using=router.db_for_write(PendingTasks)):
-            query_set = PendingTasks.objects.filter(
-                state__in=[PendingTasks.States.PENDING, PendingTasks.States.RETRY]
-            )
+            query_set = PendingTasks.objects.filter(state=PendingTasks.States.PENDING)
 
             if partition is not None:
                 query_set = query_set.filter(partition=partition)

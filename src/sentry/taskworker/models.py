@@ -48,10 +48,17 @@ class PendingTasks(Model):
     processing_deadline = models.DateTimeField(blank=True, null=True)
 
     def has_retries_remaining(self) -> bool:
-        return (
-            self.retry_attempts < self.deadletter_after_attempt
-            or self.retry_attemtps < self.discard_after_attempt
-        )
+        if (
+            self.deadletter_after_attempt is not None
+            and self.retry_attempts < self.deadletter_after_attempt
+        ):
+            return True
+        if (
+            self.discard_after_attempt is not None
+            and self.retry_attempts < self.discard_after_attempt
+        ):
+            return True
+        return False
 
     def retry_state(self) -> RetryState:
         return RetryState(
@@ -68,7 +75,7 @@ class PendingTasks(Model):
             "namespace": self.task_namespace,
             "taskname": self.task_name,
             "parameters": self.parameters,
-            "recieved_at": time.time(),
+            "received_at": time.time(),
             "headers": self.headers,
             "retry_state": self.retry_state().to_dict(),
             "deadline": self.processing_deadline,
