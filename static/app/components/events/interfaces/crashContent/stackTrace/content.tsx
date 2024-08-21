@@ -356,7 +356,7 @@ function Content({
               }}
               icon={<IconTimer size="sm" />}
             >
-              Enter Time Machine
+              Switch To Debugger
             </NavButton>
           </TimeMachineControls>
           <Wrapper>
