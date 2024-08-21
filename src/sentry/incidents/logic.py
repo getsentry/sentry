@@ -1509,8 +1509,6 @@ def get_target_identifier_display_for_integration(
             target_value, integration_id, use_async_lookup, input_channel_id, integrations
         )
 
-    if target_value is None:
-        raise InvalidTriggerActionError(f"{action_type.name} requires non-null target_value")
     return _get_target_identifier_display_from_target_value(
         action_type, target_value, organization, integration_id
     )
@@ -1544,7 +1542,7 @@ def _get_target_identifier_display_for_slack(
 
 def _get_target_identifier_display_from_target_value(
     action_type: ActionService,
-    target_value: str,
+    target_value: str | None,
     organization: Organization,
     integration_id: int | None,
 ) -> AlertTarget:
@@ -1555,21 +1553,29 @@ def _get_target_identifier_display_from_target_value(
         # target_value is the MSTeams username or channel name
         if integration_id is None:
             raise InvalidTriggerActionError("MSTEAMS requires non-null integration_id")
-        target_identifier = _get_alert_rule_trigger_action_msteams_channel_id(
-            target_value, organization, integration_id
+        if target_value is None:
+            raise InvalidTriggerActionError("MSTEAMS requires non-null target_value")
+        return AlertTarget(
+            _get_alert_rule_trigger_action_msteams_channel_id(
+                target_value, organization, integration_id
+            ),
+            target_value,
         )
-        return AlertTarget(target_identifier, target_value)
 
     elif action_type == AlertRuleTriggerAction.Type.DISCORD.value:
         if integration_id is None:
             raise InvalidTriggerActionError("DISCORD requires non-null integration_id")
-        target_identifier = _get_alert_rule_trigger_action_discord_channel_id(
-            target_value, integration_id
+        if target_value is None:
+            raise InvalidTriggerActionError("DISCORD requires non-null target_value")
+        return AlertTarget(
+            _get_alert_rule_trigger_action_discord_channel_id(target_value, integration_id),
+            target_value,
         )
-        return AlertTarget(target_identifier, target_value)
 
     elif action_type == AlertRuleTriggerAction.Type.PAGERDUTY.value:
         # target_value is the ID of the PagerDuty service
+        if target_value is None:
+            raise InvalidTriggerActionError("PAGERDUTY requires non-null target_value")
         return _get_alert_rule_trigger_action_pagerduty_service(
             target_value, organization, integration_id
         )
@@ -1623,15 +1629,31 @@ def _get_alert_rule_trigger_action_slack_channel_id(
     return channel_data.channel_id
 
 
-def _get_alert_rule_trigger_action_discord_channel_id(name: str, integration_id: int) -> str:
+def _get_alert_rule_trigger_action_discord_channel_id(
+    name: str | None, integration_id: int
+) -> str | None:
     from sentry.integrations.discord.utils.channel import validate_channel_id
 
     integration = integration_service.get_integration(integration_id=integration_id)
     if integration is None:
         raise InvalidTriggerActionError("Discord integration not found.")
     try:
+        # TODO(RyanSkonnord): Force this function's `name` param to be non-null.
+        #
+        # AlertRuleTriggerActionSerializerTest.test_discord_channel_id_none covers
+        # the case of `name` being None explicitly. However, from eyeballing
+        # validate_channel_id, it looks like this can only lead to an error. The unit
+        # test case originates in https://github.com/getsentry/sentry/pull/58005,
+        # where it looks like it was targeting a spurious failure mode that occurs
+        # while building the description string.
+        #
+        # I'd like to move the null check upstream, clean up the associated nullable
+        # function params, remove the piecemeal checks from
+        # _get_target_identifier_display_from_target_value, and modify
+        # test_discord_channel_id_none to assert for an explicit null check (or just
+        # delete it).
         validate_channel_id(
-            channel_id=name,
+            channel_id=name,  # type: ignore[arg-type]
             guild_id=integration.external_id,
             guild_name=integration.name,
         )
