@@ -7,9 +7,10 @@ import {
 import type {TimeWindowConfig} from 'sentry/views/monitors/components/timeline/types';
 
 export interface RotationPeriod {
-  endTime: string;
-  startTime: string;
-  userId: string;
+  endTime: Date;
+  startTime: Date;
+  userId: string | null;
+  percentage?: number; // Not from API. Only used in UI calculations
 }
 
 export interface ScheduleRestrictions {
@@ -28,7 +29,7 @@ export interface ScheduleLayer {
   rotationType: string;
   scheduleLayerRestrictions: object;
   startTime: string;
-  users: User;
+  users: User[];
 }
 
 export interface RotationSchedule {
@@ -57,8 +58,25 @@ export const useFetchRotationSchedules = (
   params: FetchRotationSchedulesParams,
   options: Partial<UseApiQueryOptions<RotationSchedule[]>> = {}
 ) => {
-  return useApiQuery<RotationSchedule[]>(makeFetchRotationSchedulesKey(params), {
+  const resp = useApiQuery<RotationSchedule[]>(makeFetchRotationSchedulesKey(params), {
     staleTime: 0,
     ...options,
   });
+  resp.data = resp.data?.map(schedule => {
+    schedule.coalescedRotationPeriods = schedule.coalescedRotationPeriods.map(period => {
+      period.startTime = new Date(period.startTime);
+      period.endTime = new Date(period.endTime);
+      return period;
+    });
+    schedule.scheduleLayers.map(layer => {
+      layer.rotationPeriods = layer.rotationPeriods.map(period => {
+        period.startTime = new Date(period.startTime);
+        period.endTime = new Date(period.endTime);
+        return period;
+      });
+      return layer;
+    });
+    return schedule;
+  });
+  return resp;
 };

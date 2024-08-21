@@ -121,8 +121,8 @@ class EscalationPolicySerializer(Serializer):
         }
         users = {
             user.id: user
-            for user in user_service.get_many_by_id(
-                ids=[r.user_id for r in recipients if r.user_id] + owning_user_ids
+            for user in user_service.serialize_many(
+                filter={"user_ids": [r.user_id for r in recipients if r.user_id] + owning_user_ids}
             )
         }
         schedules = {

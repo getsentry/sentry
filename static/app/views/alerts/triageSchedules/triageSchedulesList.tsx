@@ -46,9 +46,13 @@ function ScheduleList() {
   const elementRef = useRef<HTMLDivElement>(null);
   const {width: timelineWidth} = useDimensions<HTMLDivElement>({elementRef});
   // const timeWindowConfig = useTimeWindowConfig({timelineWidth});
-  const start = (location.query.start ? moment(location.query.start) : moment()).toDate();
+  const start = (
+    location.query.start ? moment(location.query.start) : moment().startOf('day')
+  ).toDate();
   const end = (
-    location.query.end ? moment(location.query.end) : moment().add(7, 'days')
+    location.query.end
+      ? moment(location.query.end)
+      : moment().startOf('day').add(7, 'days')
   ).toDate();
   const timeWindowConfig = getConfigFromTimeRange(start, end, timelineWidth);
   const dateNavigation = useDateNavigation();
