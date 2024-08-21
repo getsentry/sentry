@@ -123,13 +123,14 @@ class StrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
             )["max_offset"]
             or 0
         )
-
         expired_qs = PendingTasks.objects.filter(
             deadletter_at__lt=timezone.now(),
             offset__lt=max_completed_id,
         ).exclude(state=PendingTasks.States.COMPLETE)
+
         # Messages that exceeded their deadletter_at are failures
-        expired_qs.update(state=PendingTasks.States.FAILURE)
+        updated = expired_qs.update(state=PendingTasks.States.FAILURE)
+        logger.info("task.deadletter_at", extra={"count": updated})
 
     def handle_processing_deadlines(self) -> None:
         from sentry.taskworker.models import PendingTasks
@@ -144,6 +145,7 @@ class StrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
 
         # Move processing deadline tasks back to pending
         PendingTasks.objects.filter(id__in=to_update).update(state=PendingTasks.States.PENDING)
+        logger.info("task.processingdeadline", extra={"count": len(to_update)})
 
     def handle_failed_tasks(self) -> None:
         from sentry.taskworker.models import PendingTasks
@@ -159,11 +161,11 @@ class StrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
 
         # Discard messages are simply acked and never processed again
         PendingTasks.objects.filter(id__in=to_discard).update(state=PendingTasks.States.COMPLETE)
-        logging.info("task.discarded", extra={"count": len(to_discard)})
+        logger.info("task.failed.discarded", extra={"count": len(to_discard)})
 
         # TODO do deadletter delivery
         PendingTasks.objects.filter(id__in=to_deadletter).update(state=PendingTasks.States.COMPLETE)
-        logging.info("task.deadletter", extra={"count": len(to_discard)})
+        logger.info("task.failed.deadletter", extra={"count": len(to_discard)})
 
     def create_with_partitions(
         self, commit: Commit, partitions: Mapping[Partition, int]
