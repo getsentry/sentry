@@ -3,7 +3,10 @@ from collections.abc import Iterable, Mapping
 from typing import Any
 
 from sentry.integrations.types import ExternalProviders
+from sentry.models.group import Group
 from sentry.models.notificationhistory import NotificationHistory, NotificationHistoryStatus
+from sentry.models.organization import Organization
+from sentry.models.project import Project
 from sentry.notifications.notifications.base import BaseNotification
 from sentry.notifications.notify import register_notification_provider
 from sentry.types.actor import Actor
@@ -23,7 +26,8 @@ def send_in_app_personal_notification(
     extra_context = extra_context_by_actor if extra_context_by_actor is not None else {}
     for recipient in recipients:
         recipient_context = extra_context.get(recipient.id, {})
-        ctx = {**shared_context, **recipient_context}
+        ctx = get_notification_content(shared_context, recipient_context)
+
         if ctx is not None:
             logger.warning("in_app.swallow_ctx", extra={"recipient": recipient, "ctx": ctx})
         title = notification.get_notification_title(
@@ -53,5 +57,32 @@ def send_in_app_personal_notification(
             description=description,
             status=NotificationHistoryStatus.UNREAD.value,
             source=source.value,
-            content={},
+            content=ctx,
         )
+
+
+def get_notification_content(shared, extra):
+    content = {**shared, **extra}
+    if isinstance(content.get("project"), Project):
+        project = content["project"]
+        content["project"] = {
+            "id": project.id,
+            "slug": project.slug,
+            "name": project.name,
+        }
+    if isinstance(content.get("organization"), Organization):
+        organization = content["organization"]
+        content["organization"] = {
+            "id": organization.id,
+            "slug": organization.slug,
+            "name": organization.name,
+        }
+    if isinstance(content.get("group"), Group):
+        group = content["group"]
+        content["group"] = {
+            "id": group.id,
+            "title": group.title,
+            "shortId": group.qualified_short_id,
+        }
+
+    return content
