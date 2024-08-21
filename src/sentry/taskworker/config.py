@@ -1,19 +1,19 @@
 from __future__ import annotations
 
-import time
 from collections.abc import Mapping
 from datetime import timedelta
 from typing import Any
 from uuid import uuid4
 
+import orjson
 from arroyo.backends.kafka import KafkaPayload, KafkaProducer
 from arroyo.types import Topic as ArroyoTopic
+from sentry_protos.hackweek_team_no_celery_pls.v1alpha.pending_task_pb2 import PendingTask
 
 from sentry.conf.types.kafka_definition import Topic
 from sentry.taskworker.models import PendingTasks
 from sentry.taskworker.retry import FALLBACK_RETRY, Retry
 from sentry.taskworker.task import Task
-from sentry.utils import json
 from sentry.utils.kafka_config import get_kafka_producer_cluster_options, get_topic_definition
 
 
@@ -78,7 +78,7 @@ class TaskNamespace:
         task_message = taskdata.to_message()
         self.producer.produce(
             ArroyoTopic(name=self.topic),
-            KafkaPayload(key=None, value=json.dumps(task_message).encode("utf-8"), headers=[]),
+            KafkaPayload(key=None, value=task_message.SerializeToString(), headers=[]),
         )
 
     def send_task(self, task: Task, args, kwargs) -> None:
@@ -87,24 +87,28 @@ class TaskNamespace:
         # TODO callback handling
         self.producer.produce(
             ArroyoTopic(name=self.topic),
-            KafkaPayload(key=None, value=task_message.encode("utf-8"), headers=[]),
+            KafkaPayload(key=None, value=task_message, headers=[]),
         )
 
-    def _serialize_task_call(self, task: Task, args: list[Any], kwargs: Mapping[Any, Any]) -> str:
+    def _serialize_task_call(self, task: Task, args: list[Any], kwargs: Mapping[Any, Any]) -> bytes:
         retry = task.retry or self.default_retry or FALLBACK_RETRY
 
-        task_payload = {
-            "id": uuid4().hex,
-            "namespace": self.name,
-            "taskname": task.name,
-            "parameters": {"args": args, "kwargs": kwargs},
-            "received_at": time.time(),
-            # TODO headers, retry_state and retries in general
-            "headers": {},
-            "retry_state": retry.initial_state().to_dict(),
-            "deadline": task.deadline_timestamp,
-        }
-        return json.dumps(task_payload)
+        retry_policy = PendingTask.RetryPolicy(
+            attempts=retry.initial_state().attempts,
+            kind=retry.initial_state().kind,
+            discard_after_attempt=retry.initial_state().discard_after_attempt,
+            deadletter_after_attempt=retry.initial_state().deadletter_after_attempt,
+        )
+        pending_task_payload = PendingTask(
+            task_id=uuid4().hex,
+            taskname=task.name,
+            parameters=orjson.dumps({"args": args, "kwargs": kwargs}),
+            task_namespace=self.name,
+            processing_deadline=str(task.deadline_timestamp) if task.deadline_timestamp else None,
+            retry_state=retry_policy,
+        ).SerializeToString()
+
+        return pending_task_payload
 
 
 class TaskRegistry:

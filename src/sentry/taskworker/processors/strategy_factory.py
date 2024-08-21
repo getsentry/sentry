@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import logging
 from collections.abc import Mapping, MutableSequence, Sequence
-from datetime import UTC, datetime, timedelta
 from typing import TYPE_CHECKING, Any
 
 from arroyo.backends.kafka.consumer import KafkaPayload
@@ -20,9 +19,11 @@ from arroyo.types import BaseValue, Commit, Message, Partition
 from django.conf import settings
 from django.db.models import Max
 from django.utils import timezone
+from sentry_protos.hackweek_team_no_celery_pls.v1alpha.pending_task_pb2 import (
+    PendingTask as PendingTaskProto,
+)
 
 from sentry.conf.types.kafka_definition import Topic
-from sentry.utils import json
 
 if TYPE_CHECKING:
     from sentry.taskworker.models import PendingTasks
@@ -31,9 +32,7 @@ logger = logging.getLogger("sentry.taskworker.consumer")
 
 
 def process_message(message: Message[KafkaPayload]):
-    loaded_message = json.loads(message.payload.value)
-    logger.info("processing message: %r...", loaded_message)
-    return loaded_message
+    return message.payload.value
 
 
 class StrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
@@ -63,18 +62,24 @@ class StrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
             __import__(module)
 
     def transform_msg_batch(
-        self, message: Message[MutableSequence[Mapping[str, Any]]]
+        self, message: Message[PendingTaskProto | None]
     ) -> MutableSequence[Mapping[str, Any]]:
         transformed_msg_batch: MutableSequence = []
         for msg in message.payload:
+            task = PendingTaskProto()
+            task.ParseFromString(msg)
+
             # TODO: need to figure out if this way of getting the offset is
             # actually referring to the message's offset,
             # OR the highest offset per partition included in this batch
+            partition = 0
+            offset = 0
             for partition, offset in message.committable.items():
-                msg["partition"] = partition.index
+                partition = partition.index
                 # Lyn said the message itself's offset is always the committable - 1
-                msg["offset"] = offset - 1
-            transformed_msg_batch.append(msg)
+                offset = offset - 1
+            transformed_msg_batch.append((task, partition, offset))
+
         return transformed_msg_batch
 
     def create_pending_tasks_batch(
@@ -83,32 +88,12 @@ class StrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
         from sentry.taskworker.models import PendingTasks
 
         transformed_msg_batch = self.transform_msg_batch(message)
-        # TODO we'll need a way to de-dupe messages from kafka into pending tasks
-        # we don't want to duplicate records during rebalance.
-        pending_tasks_batch = [
-            PendingTasks(
-                topic=self.topic.value,
-                task_name=m["taskname"],
-                parameters=m["parameters"],
-                task_namespace=m["namespace"],
-                partition=m["partition"],
-                offset=m["offset"],
-                state=PendingTasks.States.PENDING,
-                received_at=datetime.fromtimestamp(m["received_at"], tz=UTC),
-                retry_attempts=m["retry_state"]["attempts"] if m["retry_state"] else None,
-                retry_kind=m["retry_state"]["kind"] if m["retry_state"] else None,
-                discard_after_attempt=m["retry_state"]["discard_after_attempt"]
-                if m["retry_state"]
-                else None,
-                deadletter_after_attempt=m["retry_state"]["deadletter_after_attempt"]
-                if m["retry_state"]
-                else None,
-                deadletter_at=timezone.now() + timedelta(seconds=self.max_pending_timeout),
-                processing_deadline=m["deadline"],
-            )
-            for m in transformed_msg_batch
-        ]
-        return pending_tasks_batch
+        pending_tasks = []
+        for (m, partition, offset) in transformed_msg_batch:
+            pending_task = PendingTasks.from_message(m, self.topic.value, partition, offset)
+            pending_tasks.append(pending_task)
+
+        return pending_tasks
 
     def handle_retry_state_tasks(self) -> None:
         from sentry.taskworker.config import taskregistry

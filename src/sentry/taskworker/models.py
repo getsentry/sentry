@@ -1,10 +1,13 @@
-import time
 from datetime import datetime
 from typing import Any
 from uuid import uuid4
 
+import orjson
 from django.db import models
 from django.utils import timezone
+from sentry_protos.hackweek_team_no_celery_pls.v1alpha.pending_task_pb2 import (
+    PendingTask as PendingTaskProto,
+)
 
 from sentry.backup.scopes import RelocationScope
 from sentry.db.models import JSONField, Model
@@ -69,16 +72,42 @@ class PendingTasks(Model):
             kind=self.retry_kind,
         )
 
-    def to_message(self):
+    @classmethod
+    def from_message(
+        cls, proto_task: PendingTaskProto, topic: str, partition: int, offset: int
+    ) -> "PendingTasks":
+        return cls(
+            task_namespace=proto_task.task_namespace,
+            task_name=proto_task.taskname,
+            topic=topic,
+            parameters=orjson.loads(proto_task.parameters),
+            partition=partition,
+            state=PendingTasks.States.PENDING,
+            offset=offset,
+            processing_deadline=proto_task.processing_deadline
+            if proto_task.processing_deadline
+            else None,
+            retry_attempts=proto_task.retry_state.attempts,
+            retry_kind=proto_task.retry_state.kind,
+            deadletter_at=proto_task.deadletter_at or datetime.now(),
+            deadletter_after_attempt=proto_task.retry_state.deadletter_after_attempt,
+            discard_after_attempt=proto_task.retry_state.discard_after_attempt,
+            received_at=datetime.now(),
+        )
+
+    def to_message(self) -> PendingTaskProto:
         """Convert a pendingtask record into a topic message"""
-        data = {
-            "id": uuid4().hex,
-            "namespace": self.task_namespace,
-            "taskname": self.task_name,
-            "parameters": self.parameters,
-            "received_at": time.time(),
-            "headers": self.headers,
-            "retry_state": self.retry_state().to_dict(),
-            "deadline": self.processing_deadline,
-        }
+        data = PendingTaskProto(
+            task_id=uuid4().hex,
+            task_namespace=self.task_namespace,
+            taskname=self.task_name,
+            parameters=orjson.dumps(self.parameters) if self.parameters else None,
+            processing_deadline=str(self.processing_deadline),
+            retry_state=PendingTaskProto.RetryPolicy(
+                attempts=self.retry_attempts,
+                kind=self.retry_kind,
+                discard_after_attempt=self.discard_after_attempt,
+                deadletter_after_attempt=self.deadletter_after_attempt,
+            ),
+        )
         return data
