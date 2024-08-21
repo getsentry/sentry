@@ -105,7 +105,7 @@ export interface UseApiQueryOptions<TApiResponse, TError = RequestError>
    * Be careful with this, especially if your hook is used at the root level or in multiple components.
    *
    * Use `staleTime: Infinity` if the data should never change, or changes very irregularly.
-   * Note that the cached entries are garbage collected after 5 minutes of being unused (configure with `cacheTime`).
+   * Note that the cached entries are garbage collected after 5 minutes of being unused (configure with `gcTime`).
    *
    * Otherwise, provide a reasonable number (in ms) for your use case. Remember that the cache
    * can be updated or invalidated manually with QueryClient if you neeed to do so.

@@ -51,10 +51,10 @@ export function MetricRulesEdit({
   );
 
   useEffect(() => {
-    if (!isLoading && rule) {
+    if (!isPending && rule) {
       onChangeTitle(rule.name ?? '');
     }
-  }, [onChangeTitle, isLoading, rule]);
+  }, [onChangeTitle, isPending, rule]);
 
   useEffect(() => {
     if (isError && error?.responseText) {
