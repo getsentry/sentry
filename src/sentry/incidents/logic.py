@@ -1510,9 +1510,7 @@ def get_target_identifier_display_for_integration(
         )
 
     if target_value is None:
-        raise InvalidTriggerActionError(f"target_value is required for {action_type}")
-    if integration_id is None:
-        raise InvalidTriggerActionError(f"integration_id is required for {action_type}")
+        raise InvalidTriggerActionError(f"{action_type.name} requires non-null target_value")
     return _get_target_identifier_display_from_target_value(
         action_type, target_value, organization, integration_id
     )
@@ -1548,19 +1546,23 @@ def _get_target_identifier_display_from_target_value(
     action_type: ActionService,
     target_value: str,
     organization: Organization,
-    integration_id: int,
+    integration_id: int | None,
 ) -> AlertTarget:
     if action_type == AlertRuleTriggerAction.Type.SLACK.value:
         raise ValueError("Call _get_target_identifier_display_for_slack")
 
     elif action_type == AlertRuleTriggerAction.Type.MSTEAMS.value:
         # target_value is the MSTeams username or channel name
+        if integration_id is None:
+            raise InvalidTriggerActionError("MSTEAMS requires non-null integration_id")
         target_identifier = _get_alert_rule_trigger_action_msteams_channel_id(
             target_value, organization, integration_id
         )
         return AlertTarget(target_identifier, target_value)
 
     elif action_type == AlertRuleTriggerAction.Type.DISCORD.value:
+        if integration_id is None:
+            raise InvalidTriggerActionError("DISCORD requires non-null integration_id")
         target_identifier = _get_alert_rule_trigger_action_discord_channel_id(
             target_value, integration_id
         )
@@ -1660,7 +1662,7 @@ def _get_alert_rule_trigger_action_msteams_channel_id(
 
 
 def _get_alert_rule_trigger_action_pagerduty_service(
-    target_value: str, organization: Organization, integration_id: int
+    target_value: str, organization: Organization, integration_id: int | None
 ) -> AlertTarget:
     from sentry.integrations.pagerduty.utils import get_service
 
@@ -1675,7 +1677,7 @@ def _get_alert_rule_trigger_action_pagerduty_service(
 
 
 def get_alert_rule_trigger_action_opsgenie_team(
-    target_value: str | None, organization: Organization, integration_id: int
+    target_value: str | None, organization: Organization, integration_id: int | None
 ) -> AlertTarget:
     from sentry.integrations.opsgenie.utils import get_team
 
