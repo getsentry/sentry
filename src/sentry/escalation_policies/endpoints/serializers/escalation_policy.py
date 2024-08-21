@@ -120,7 +120,7 @@ class EscalationPolicySerializer(Serializer):
             ).all()
         }
         users = {
-            user.id: user
+            user["id"]: user
             for user in user_service.serialize_many(
                 filter={"user_ids": [r.user_id for r in recipients if r.user_id] + owning_user_ids}
             )
@@ -147,7 +147,7 @@ class EscalationPolicySerializer(Serializer):
                     ]
                     + [
                         EscalationPolicyStepRecipientResponse(
-                            type="user", data=serialize(users[r.user_id])
+                            type="user", data=users[str(r.user_id)]
                         )
                         for r in recipients
                         if r.escalation_policy_step_id == step.id and r.user_id
