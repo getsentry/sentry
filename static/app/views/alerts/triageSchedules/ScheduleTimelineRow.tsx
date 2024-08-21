@@ -54,7 +54,6 @@ export function ScheduleTimelineRow({schedule, totalWidth, timeWindowConfig}: Pr
     theme.yellow100,
     theme.pink100,
     theme.purple100,
-    theme.gray100,
     theme.red100,
   ];
   const users = {};
@@ -138,7 +137,7 @@ function ScheduleTimeline({
             key={index}
           >
             <UserAvatar style={{fillOpacity: 1.0}} user={users[userId]} />
-            {userId && <ScheduleName>{users[userId].name}</ScheduleName>}
+            {/* {userId && <ScheduleName>{users[userId].name}</ScheduleName>} */}
           </SchedulePeriod>
         ) : null;
       })}
@@ -215,13 +214,13 @@ const TimelineRow = styled('li')`
   }
 `;
 
-const ScheduleName = styled('h6')`
-  font-size: ${p => p.theme.fontSizeMedium};
-  color: ${p => p.theme.subText};
-  display: flex;
-  align-items: center;
-  margin: 0;
-`;
+// const ScheduleName = styled('h6')`
+//   font-size: ${p => p.theme.fontSizeMedium};
+//   color: ${p => p.theme.subText};
+//   display: flex;
+//   align-items: center;
+//   margin: 0;
+// `;
 
 const ScheduleContainer = styled('div')`
   display: flex;

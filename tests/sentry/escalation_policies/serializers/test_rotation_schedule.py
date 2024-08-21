@@ -66,8 +66,8 @@ class EscalationPolicySerializerTest(TestCase):
         assert result["scheduleLayers"][0]["scheduleLayerRestrictions"]["Mon"] == [
             ["00:00", "12:00"]
         ]
-        assert result["scheduleLayers"][0]["users"][0].id == userA.id
-        assert result["scheduleLayers"][0]["users"][1].id == userB.id
+        assert result["scheduleLayers"][0]["users"][0]["id"] == str(userA.id)
+        assert result["scheduleLayers"][0]["users"][1]["id"] == str(userB.id)
         assert len(result["scheduleLayers"][0]["rotationPeriods"]) > 0
         assert result["scheduleLayers"][1]["rotationType"] == "daily"
         assert result["scheduleLayers"][1]["handoffTime"] == "00:00"
@@ -75,8 +75,8 @@ class EscalationPolicySerializerTest(TestCase):
         assert result["scheduleLayers"][1]["scheduleLayerRestrictions"]["Mon"] == [
             ["12:00", "24:00"]
         ]
-        assert result["scheduleLayers"][1]["users"][0].id == userC.id
-        assert result["scheduleLayers"][1]["users"][1].id == userD.id
+        assert result["scheduleLayers"][1]["users"][0]["id"] == str(userC.id)
+        assert result["scheduleLayers"][1]["users"][1]["id"] == str(userD.id)
         assert len(result["scheduleLayers"][1]["rotationPeriods"]) > 0
         assert result["coalescedRotationPeriods"] == [
             {
