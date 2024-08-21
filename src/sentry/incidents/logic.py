@@ -1370,8 +1370,6 @@ def create_alert_rule_trigger_action(
     if type.value in AlertRuleTriggerAction.INTEGRATION_TYPES:
         if target_type != AlertRuleTriggerAction.TargetType.SPECIFIC:
             raise InvalidTriggerActionError("Must specify specific target type")
-        if target_identifier is None:
-            raise InvalidTriggerActionError("Must specify target_identifier")
 
         target = get_target_identifier_display_for_integration(
             type,
@@ -1499,7 +1497,7 @@ class AlertTarget:
 
 def get_target_identifier_display_for_integration(
     action_type: ActionService,
-    target_value: str,
+    target_value: str | None,
     organization: Organization,
     integration_id: int | None,
     use_async_lookup: bool = True,
@@ -1507,21 +1505,55 @@ def get_target_identifier_display_for_integration(
     integrations: Iterable[RpcIntegration] | None = None,
 ) -> AlertTarget:
     if action_type == AlertRuleTriggerAction.Type.SLACK.value:
-        # target_value is the Slack username or channel name
-        if input_channel_id is not None:
-            # if we have a value for input_channel_id, just set target identifier to that
-            return AlertTarget(input_channel_id, target_value)
-        if integration_id is None:
-            raise InvalidTriggerActionError(
-                "Slack requires integration_id if input_channel_id is not present"
-            )
-        target_identifier = _get_alert_rule_trigger_action_slack_channel_id(
-            target_value, integration_id, use_async_lookup, integrations
+        return _get_target_identifier_display_for_slack(
+            target_value, integration_id, use_async_lookup, input_channel_id, integrations
         )
-        return AlertTarget(target_identifier, target_value)
+
+    if target_value is None:
+        raise InvalidTriggerActionError(f"target_value is required for {action_type}")
+    if integration_id is None:
+        raise InvalidTriggerActionError(f"integration_id is required for {action_type}")
+    return _get_target_identifier_display_from_target_value(
+        action_type, target_value, organization, integration_id
+    )
+
+
+def _get_target_identifier_display_for_slack(
+    target_value: str | None,
+    integration_id: int | None,
+    use_async_lookup: bool = True,
+    input_channel_id: str | None = None,
+    integrations: Iterable[RpcIntegration] | None = None,
+) -> AlertTarget:
+    # target_value is the Slack username or channel name
+    if input_channel_id is not None:
+        # if we have a value for input_channel_id, just set target identifier to that
+        return AlertTarget(input_channel_id, target_value)
+
+    if target_value is None:
+        raise InvalidTriggerActionError(
+            "Slack requires target_value if input_channel_id is not present"
+        )
+    if integration_id is None:
+        raise InvalidTriggerActionError(
+            "Slack requires integration_id if input_channel_id is not present"
+        )
+    target_identifier = _get_alert_rule_trigger_action_slack_channel_id(
+        target_value, integration_id, use_async_lookup, integrations
+    )
+    return AlertTarget(target_identifier, target_value)
+
+
+def _get_target_identifier_display_from_target_value(
+    action_type: ActionService,
+    target_value: str,
+    organization: Organization,
+    integration_id: int,
+) -> AlertTarget:
+    if action_type == AlertRuleTriggerAction.Type.SLACK.value:
+        raise ValueError("Call _get_target_identifier_display_for_slack")
+
     elif action_type == AlertRuleTriggerAction.Type.MSTEAMS.value:
-        if integration_id is None:
-            raise InvalidTriggerActionError("MSTeams requires integration_id")
         # target_value is the MSTeams username or channel name
         target_identifier = _get_alert_rule_trigger_action_msteams_channel_id(
             target_value, organization, integration_id
@@ -1529,23 +1561,17 @@ def get_target_identifier_display_for_integration(
         return AlertTarget(target_identifier, target_value)
 
     elif action_type == AlertRuleTriggerAction.Type.DISCORD.value:
-        if integration_id is None:
-            raise InvalidTriggerActionError("Discord requires integration_id")
         target_identifier = _get_alert_rule_trigger_action_discord_channel_id(
             target_value, integration_id
         )
         return AlertTarget(target_identifier, target_value)
 
     elif action_type == AlertRuleTriggerAction.Type.PAGERDUTY.value:
-        if integration_id is None:
-            raise InvalidTriggerActionError("PagerDuty requires integration_id")
         # target_value is the ID of the PagerDuty service
         return _get_alert_rule_trigger_action_pagerduty_service(
             target_value, organization, integration_id
         )
     elif action_type == AlertRuleTriggerAction.Type.OPSGENIE.value:
-        if integration_id is None:
-            raise InvalidTriggerActionError("Opsgenie requires integration_id")
         return get_alert_rule_trigger_action_opsgenie_team(
             target_value, organization, integration_id
         )
