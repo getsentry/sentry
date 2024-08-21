@@ -44,7 +44,7 @@ export interface RotationSchedule {
 }
 interface FetchRotationSchedulesParams {
   orgSlug: string;
-  timeWindowConfig: TimeWindowConfig;
+  timeWindowConfig?: TimeWindowConfig;
 }
 export const makeFetchRotationSchedulesKey = ({
   orgSlug,
