@@ -4,6 +4,7 @@ import type {
   QueryFunctionContext,
   SetDataOptions,
   Updater,
+  UseInfiniteQueryResult as _UseInfiniteQueryResult,
   UseQueryOptions,
   UseQueryResult,
 } from '@tanstack/react-query';
@@ -296,6 +297,11 @@ function parsePageParam(dir: 'previous' | 'next') {
   };
 }
 
+// TODO(react-query): Remove this when we upgrade to react-query v5
+export type UseInfiniteQueryResult<TData, TError> = BackportIsPending<
+  _UseInfiniteQueryResult<TData, TError>
+>;
+
 /**
  * Wraps React Query's useInfiniteQuery for consistent usage in the Sentry app.
  * Query keys should be an array which include an endpoint URL and options such as query params.
@@ -305,12 +311,19 @@ function parsePageParam(dir: 'previous' | 'next') {
  */
 export function useInfiniteApiQuery<TResponseData>({queryKey}: {queryKey: ApiQueryKey}) {
   const api = useApi({persistInFlight: PERSIST_IN_FLIGHT});
-  return useInfiniteQuery({
+  const query = useInfiniteQuery({
     queryKey,
     queryFn: fetchInfiniteQuery<TResponseData>(api),
     getPreviousPageParam: parsePageParam('previous'),
     getNextPageParam: parsePageParam('next'),
   });
+
+  // TODO(react-query): Remove this when we upgrade to react-query v5
+  // @ts-expect-error: This is a backport of react-query v5
+  query.isPending = query.isLoading;
+
+  // TODO(react-query): Remove casting when we upgrade to react-query v5
+  return query as UseInfiniteQueryResult<ApiResult<TResponseData>, unknown>;
 }
 
 type ApiMutationVariables<
