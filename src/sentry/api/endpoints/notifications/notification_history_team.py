@@ -13,7 +13,7 @@ class NotificationHistoryTeamEndpoint(TeamEndpoint):
     owner = ApiOwner.ECOSYSTEM
 
     def get(self, request: Request, team: Team) -> Response:
-        queryset = NotificationHistory.objects.filter(team=team)
+        queryset = NotificationHistory.objects.filter(team=team).order_by("-date_added")
         return self.paginate(
             request=request,
             queryset=queryset,

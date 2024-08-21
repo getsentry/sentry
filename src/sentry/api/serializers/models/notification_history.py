@@ -15,7 +15,7 @@ class OutgoingNotificationHistorySerializer(Serializer):
             "status": obj.status,
             "source": obj.source,
             "content": obj.content,
-            "team": serialize(obj.team) if obj.incident else None,
+            "team": serialize(obj.team) if obj.team else None,
             "user_id": obj.user_id,
             "date_added": obj.date_added,
             "date_updated": obj.date_added,

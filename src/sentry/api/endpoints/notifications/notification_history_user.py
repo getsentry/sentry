@@ -13,7 +13,7 @@ class NotificationHistoryUserEndpoint(UserEndpoint):
     owner = ApiOwner.ECOSYSTEM
 
     def get(self, request: Request, user: User) -> Response:
-        queryset = NotificationHistory.objects.filter(user_id=user.id)
+        queryset = NotificationHistory.objects.filter(user_id=user.id).order_by("-date_added")
         return self.paginate(
             request=request,
             queryset=queryset,
