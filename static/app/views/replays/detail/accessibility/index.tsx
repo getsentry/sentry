@@ -51,7 +51,7 @@ function AccessibilityList() {
   const {
     dataOffsetMs,
     data: accessibilityData,
-    isPending,
+    isLoading,
     isRefetching,
     refetch,
   } = useA11yData();
@@ -164,7 +164,7 @@ function AccessibilityList() {
 
   return (
     <FluidHeight>
-      <FilterLoadingIndicator isLoading={isPending || isRefetching}>
+      <FilterLoadingIndicator isLoading={isLoading || isRefetching}>
         <AccessibilityFilters accessibilityData={accessibilityData} {...filterProps} />
       </FilterLoadingIndicator>
       <AccessibilityRefetchBanner initialOffsetMs={dataOffsetMs} refetch={refetch} />
