@@ -91,22 +91,16 @@ export default function useFeedbackCache() {
     [getItemQueryKeys, queryClient]
   );
 
-  const invalidateCachedListPage = useCallback(
-    (ids: TFeedbackIds) => {
-      queryClient.invalidateQueries({
-        queryKey: listQueryKey,
-        refetchPage: ([results]: ApiResult<FeedbackIssueListItem[]>) => {
-          return ids === 'all' || results.some(item => ids.includes(item.id));
-        },
-      });
-    },
-    [listQueryKey, queryClient]
-  );
+  const invalidateCachedListPage = useCallback(() => {
+    queryClient.invalidateQueries({
+      queryKey: listQueryKey,
+    });
+  }, [listQueryKey, queryClient]);
 
   const invalidateCached = useCallback(
     (ids: TFeedbackIds) => {
       invalidateCachedIssue(ids);
-      invalidateCachedListPage(ids);
+      invalidateCachedListPage();
     },
     [invalidateCachedIssue, invalidateCachedListPage]
   );
