@@ -48,7 +48,7 @@ function AllEventsTable(props: Props) {
   });
 
   const queryEnabled = group.issueCategory === IssueCategory.PERFORMANCE;
-  const {data, isLoading, isLoadingError} = useApiQuery<EventTransaction>([endpointUrl], {
+  const {data, isPending, isLoadingError} = useApiQuery<EventTransaction>([endpointUrl], {
     staleTime: 60000,
     enabled: queryEnabled,
   });
@@ -128,7 +128,7 @@ function AllEventsTable(props: Props) {
       transactionName=""
       columnTitles={columnTitles.slice()}
       referrer="api.issues.issue_events"
-      isEventLoading={queryEnabled ? isLoading : false}
+      isEventLoading={queryEnabled ? isPending : false}
     />
   );
 }

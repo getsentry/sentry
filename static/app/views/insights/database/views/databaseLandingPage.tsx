@@ -110,7 +110,7 @@ export function DatabaseLandingPage() {
   );
 
   const {
-    isLoading: isThroughputDataLoading,
+    isPending: isThroughputDataLoading,
     data: throughputData,
     error: throughputError,
   } = useSpanMetricsSeries(
@@ -122,7 +122,7 @@ export function DatabaseLandingPage() {
   );
 
   const {
-    isLoading: isDurationDataLoading,
+    isPending: isDurationDataLoading,
     data: durationData,
     error: durationError,
   } = useSpanMetricsSeries(
@@ -134,7 +134,7 @@ export function DatabaseLandingPage() {
   );
 
   const isCriticalDataLoading =
-    isThroughputDataLoading || isDurationDataLoading || queryListResponse.isLoading;
+    isThroughputDataLoading || isDurationDataLoading || queryListResponse.isPending;
 
   const isAnyCriticalDataAvailable =
     (queryListResponse.data ?? []).length > 0 ||

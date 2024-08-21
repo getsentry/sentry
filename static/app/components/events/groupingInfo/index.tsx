@@ -129,7 +129,7 @@ export function EventGroupingInfo({
     group?.issueCategory === IssueCategory.PERFORMANCE &&
     event.type === 'transaction';
 
-  const {data, isLoading, isError, isSuccess} = useApiQuery<EventGroupingInfoResponse>(
+  const {data, isPending, isError, isSuccess} = useApiQuery<EventGroupingInfoResponse>(
     [
       `/projects/${organization.slug}/${projectSlug}/events/${event.id}/grouping-info/`,
       {query: configOverride ? {config: configOverride} : {}},
@@ -186,7 +186,7 @@ export function EventGroupingInfo({
           {isError ? (
             <LoadingError message={t('Failed to fetch grouping info.')} />
           ) : null}
-          {isLoading && !hasPerformanceGrouping ? <LoadingIndicator /> : null}
+          {isPending && !hasPerformanceGrouping ? <LoadingIndicator /> : null}
           {hasPerformanceGrouping || isSuccess
             ? variants.map((variant, index) => (
                 <Fragment key={variant.key}>

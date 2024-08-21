@@ -25,7 +25,7 @@ type IpListType = Array<InternetProtocol> | null;
 function SessionHistory({routes, params, location}: Props) {
   const {
     data: ipList,
-    isLoading,
+    isPending,
     isError,
   } = useApiQuery<IpListType>(['/users/me/ips/'], {staleTime: 0});
 
@@ -33,7 +33,7 @@ function SessionHistory({routes, params, location}: Props) {
     return <LoadingError />;
   }
 
-  if (isLoading) {
+  if (isPending) {
     return <LoadingIndicator />;
   }
 

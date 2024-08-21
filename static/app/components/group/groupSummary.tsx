@@ -57,17 +57,17 @@ function GroupSummaryFeatureBadge() {
 }
 
 export function GroupSummaryHeader({groupId}: GroupSummaryProps) {
-  const {data, isLoading, isError} = useGroupSummary(groupId);
+  const {data, isPending, isError} = useGroupSummary(groupId);
   const isStreamlined = useHasStreamlinedUI();
 
-  if (isError || (!isLoading && !data.headline)) {
+  if (isError || (!isPending && !data.headline)) {
     // Don't render the summary headline if there's an error, the error is already shown in the sidebar
     // If there is no headline we also don't want to render anything
     return null;
   }
 
   const renderContent = () => {
-    if (isLoading) {
+    if (isPending) {
       return <Placeholder height="19px" width="256px" />;
     }
 
@@ -83,7 +83,7 @@ export function GroupSummaryHeader({groupId}: GroupSummaryProps) {
 }
 
 export function GroupSummary({groupId}: GroupSummaryProps) {
-  const {data, isLoading, isError} = useGroupSummary(groupId);
+  const {data, isPending, isError} = useGroupSummary(groupId);
 
   const openForm = useFeedbackForm();
 
@@ -95,7 +95,7 @@ export function GroupSummary({groupId}: GroupSummaryProps) {
             <span>{t('Issue Summary')}</span>
             <GroupSummaryFeatureBadge />
           </StyledTitle>
-          {isLoading && <StyledLoadingIndicator size={16} mini />}
+          {isPending && <StyledLoadingIndicator size={16} mini />}
         </StyledTitleRow>
         <div>
           {isError ? <div>{t('Error loading summary')}</div> : null}
@@ -117,7 +117,7 @@ export function GroupSummary({groupId}: GroupSummaryProps) {
             </Content>
           )}
         </div>
-        {openForm && !isLoading && (
+        {openForm && !isPending && (
           <ButtonContainer>
             <Button
               onClick={() => {

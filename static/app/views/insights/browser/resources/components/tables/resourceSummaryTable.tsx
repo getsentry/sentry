@@ -53,7 +53,7 @@ function ResourceSummaryTable() {
   const sort = useResourceSummarySort();
   const filters = useResourceModuleFilters();
   const cursor = decodeScalar(location.query?.[QueryParameterNames.PAGES_CURSOR]);
-  const {data, isLoading, pageLinks} = useResourcePagesQuery(groupId, {
+  const {data, isPending, pageLinks} = useResourcePagesQuery(groupId, {
     sort,
     cursor,
     subregions: filters[USER_GEO_SUBREGION],
@@ -165,7 +165,7 @@ function ResourceSummaryTable() {
     <Fragment>
       <GridEditable
         data={data || []}
-        isLoading={isLoading}
+        isLoading={isPending}
         columnOrder={columnOrder}
         columnSortBy={[
           {

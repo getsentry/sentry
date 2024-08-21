@@ -56,15 +56,15 @@ export function WebVitalsLandingPage() {
     location.query[SpanMetricsField.USER_GEO_SUBREGION]
   ) as SubregionCode[];
 
-  const {data: projectData, isLoading} = useProjectRawWebVitalsQuery({
+  const {data: projectData, isPending} = useProjectRawWebVitalsQuery({
     browserTypes,
     subregions,
   });
-  const {data: projectScores, isLoading: isProjectScoresLoading} =
+  const {data: projectScores, isPending: isProjectScoresLoading} =
     useProjectWebVitalsScoresQuery({browserTypes, subregions});
 
   const projectScore =
-    isProjectScoresLoading || isLoading
+    isProjectScoresLoading || isPending
       ? undefined
       : calculatePerformanceScoreFromStoredTableDataRow(projectScores?.data?.[0]);
 

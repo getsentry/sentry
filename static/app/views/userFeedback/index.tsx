@@ -43,7 +43,7 @@ function OrganizationUserFeedback({location: {search, pathname, query}, router}:
 
   const {
     data: reportList,
-    isLoading,
+    isPending,
     isError,
     getResponseHeader,
   } = useApiQuery<UserReport[]>(
@@ -72,7 +72,7 @@ function OrganizationUserFeedback({location: {search, pathname, query}, router}:
     if (isError) {
       return <LoadingError />;
     }
-    if (isLoading) {
+    if (isPending) {
       return (
         <Panel>
           <LoadingIndicator />

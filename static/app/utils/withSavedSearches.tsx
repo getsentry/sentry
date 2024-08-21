@@ -24,7 +24,7 @@ function withSavedSearches<P extends InjectedSavedSearchesProps>(
     props: Omit<P, keyof InjectedSavedSearchesProps> & Partial<InjectedSavedSearchesProps>
   ) {
     const organization = useOrganization();
-    const {data: savedSearches, isLoading} = useFetchSavedSearchesForOrg(
+    const {data: savedSearches, isPending} = useFetchSavedSearchesForOrg(
       {
         orgSlug: organization.slug,
       },
@@ -40,7 +40,7 @@ function withSavedSearches<P extends InjectedSavedSearchesProps>(
         savedSearches={props.savedSearches ?? savedSearches}
         savedSearchLoading={
           !organization.features.includes('issue-stream-custom-views') &&
-          (props.savedSearchLoading ?? isLoading)
+          (props.savedSearchLoading ?? isPending)
         }
         savedSearch={props.savedSearch ?? selectedSavedSearch}
         selectedSearchId={params.searchId ?? null}

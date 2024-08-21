@@ -160,7 +160,7 @@ export function MetricVisualization({
 
   const {
     data: timeseriesData,
-    isLoading,
+    isPending,
     isError,
     error,
   } = useMetricsQuery(queries, selection, {
@@ -176,7 +176,7 @@ export function MetricVisualization({
     if (displayType === DisplayType.TABLE) {
       return (
         <MetricTableVisualization
-          isLoading={isLoading}
+          isLoading={isPending}
           timeseriesData={timeseriesData}
           queries={queries}
           onOrderChange={onOrderChange}
@@ -187,7 +187,7 @@ export function MetricVisualization({
       return (
         <MetricBigNumberVisualization
           timeseriesData={timeseriesData}
-          isLoading={isLoading}
+          isLoading={isPending}
           queries={queries}
         />
       );
@@ -195,18 +195,18 @@ export function MetricVisualization({
 
     return (
       <MetricChartVisualization
-        isLoading={isLoading}
+        isLoading={isPending}
         timeseriesData={timeseriesData}
         queries={queries}
         displayType={displayType}
       />
     );
-  }, [timeseriesData, displayType, isLoading, queries, onOrderChange]);
+  }, [timeseriesData, displayType, isPending, queries, onOrderChange]);
 
   if (isError && !timeseriesData) {
     return (
       <StyledMetricChartContainer>
-        {isLoading && <LoadingIndicator />}
+        {isPending && <LoadingIndicator />}
         {isError && (
           <Alert type="error">
             {(error?.responseJSON?.detail as string) ||

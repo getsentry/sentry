@@ -126,7 +126,7 @@ function AccountIdentities() {
   const queryClient = useQueryClient();
   const {
     data: identities = EMPTY_ARRAY,
-    isLoading,
+    isPending,
     isError,
     refetch,
   } = useApiQuery<UserIdentityConfig[]>([IDENTITIES_ENDPOINT], {
@@ -164,7 +164,7 @@ function AccountIdentities() {
     [queryClient]
   );
 
-  if (isLoading) {
+  if (isPending) {
     return <LoadingIndicator />;
   }
 
