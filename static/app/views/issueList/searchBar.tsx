@@ -16,6 +16,7 @@ import {SavedSearchType, type Tag, type TagCollection} from 'sentry/types/group'
 import type {Organization} from 'sentry/types/organization';
 import {getUtcDateString} from 'sentry/utils/dates';
 import {FieldKind, getFieldDefinition} from 'sentry/utils/fields';
+import {keepPreviousData} from 'sentry/utils/queryClient';
 import useApi from 'sentry/utils/useApi';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import type {WithIssueTagsProps} from 'sentry/utils/withIssueTags';
@@ -95,7 +96,7 @@ function IssueListSearchBar({organization, tags, onClose, ...props}: Props) {
   const {tags: issueTags} = useFetchIssueTags({
     org: organization,
     projectIds: pageFilters.projects.map(id => id.toString()),
-    keepPreviousData: true,
+    placeholderData: keepPreviousData,
     enabled: organization.features.includes('issue-stream-search-query-builder'),
     start: pageFilters.datetime.start
       ? getUtcDateString(pageFilters.datetime.start)
