@@ -9,7 +9,7 @@ import zipfile
 from base64 import b64encode
 from binascii import hexlify
 from collections.abc import Mapping, Sequence
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from enum import Enum
 from hashlib import sha1
 from importlib import import_module
@@ -38,8 +38,10 @@ from sentry.escalation_policies.models.escalation_policy import (
 )
 from sentry.escalation_policies.models.rotation_schedule import (
     DEFAULT_ROTATION_START_TIME,
+    RotationSchedule,
     RotationScheduleLayer,
     RotationScheduleLayerRotationType,
+    RotationScheduleOverride,
     RotationScheduleUserOrder,
 )
 from sentry.event_manager import EventManager
@@ -188,6 +190,20 @@ from social_auth.models import UserSocialAuth
 class EventType(Enum):
     ERROR = "error"
     DEFAULT = "default"
+
+
+def make_restrictions() -> list[tuple[str, str]]:
+    start = 0
+    result = []
+    for i in range(random.randint(0, 4)):
+        start += random.randint(1, 60 * 5)
+        end = start + random.randint(1, 60 * 5)
+        if end >= 60 * 24:
+            break
+        result.append(
+            (f"{int(start / 60):02d}:{start % 60:02d}", f"{int(end / 60):02d}:{end % 60:02d}")
+        )
+    return result
 
 
 def get_fixture_path(*parts: str) -> str:
@@ -836,6 +852,43 @@ class Factories:
         Factories.create_commit_file_change(commit=commit, filename="/models/other.py")
 
         return commit
+
+    @staticmethod
+    @assume_test_silo_mode(SiloMode.REGION)
+    def create_rotation_schedule(organization, owner):
+        schedule = RotationSchedule(
+            organization=organization,
+            name=make_sentence(),
+        )
+
+        if isinstance(owner, User):
+            schedule.user_id = owner.id
+        elif isinstance(owner, int):
+            schedule.user_id = owner
+        else:
+            schedule.team = owner
+
+        schedule.save()
+        return schedule
+
+    @staticmethod
+    @assume_test_silo_mode(SiloMode.REGION)
+    def create_rotation_schedule_override(schedule, user=None, start_time=None, end_time=None):
+        if user is None:
+            user = schedule.organization.member_set.first().user_id
+        if isinstance(user, User):
+            user = user.id
+
+        if start_time is None:
+            start_time = datetime.utcnow()
+        if end_time is None:
+            end_time = start_time + timedelta(minutes=random.randint(15, 9000))
+
+        override = RotationScheduleOverride(
+            rotation_schedule=schedule, user_id=user, start_time=start_time, end_time=end_time
+        )
+        override.save()
+        return override
 
     @staticmethod
     @assume_test_silo_mode(SiloMode.REGION)
@@ -1679,6 +1732,16 @@ class Factories:
         restrictions=None,
         start_time=DEFAULT_ROTATION_START_TIME,
     ):
+        if restrictions is None:
+            restrictions = {
+                "Mon": make_restrictions(),
+                "Tue": make_restrictions(),
+                "Wed": make_restrictions(),
+                "Thu": make_restrictions(),
+                "Fri": make_restrictions(),
+                "Sat": make_restrictions(),
+                "Sun": make_restrictions(),
+            }
         layer = RotationScheduleLayer.objects.create(
             schedule=schedule,
             precedence=precedence,
