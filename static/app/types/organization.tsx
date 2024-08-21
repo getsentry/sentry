@@ -65,6 +65,7 @@ export interface Organization extends OrganizationSummary {
   eventsMemberAdmin: boolean;
   experiments: Partial<OrgExperiments>;
   genAIConsent: boolean;
+  githubActionOIDC: string;
   isDefault: boolean;
   isDynamicallySampled: boolean;
   onboardingTasks: OnboardingTaskStatus[];

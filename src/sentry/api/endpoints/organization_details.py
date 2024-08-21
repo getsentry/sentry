@@ -166,6 +166,7 @@ ORG_OPTIONS = (
     ),
     ("relayPiiConfig", "sentry:relay_pii_config", str, None),
     ("allowJoinRequests", "sentry:join_requests", bool, JOIN_REQUESTS_DEFAULT),
+    ("githubActionOIDC", "sentry:github_action_oidc", str, None),
     ("apdexThreshold", "sentry:apdex_threshold", int, None),
     (
         "aiSuggestedSolution",
@@ -278,6 +279,7 @@ class OrganizationSerializer(BaseOrganizationSerializer):
     requireEmailVerification = serializers.BooleanField(required=False)
     trustedRelays = serializers.ListField(child=TrustedRelaySerializer(), required=False)
     allowJoinRequests = serializers.BooleanField(required=False)
+    githubActionOIDC = serializers.CharField(required=False, allow_blank=True, allow_null=True)
     relayPiiConfig = serializers.CharField(required=False, allow_blank=True, allow_null=True)
     apdexThreshold = serializers.IntegerField(min_value=1, required=False)
     extrapolateMetrics = serializers.BooleanField(required=False)
