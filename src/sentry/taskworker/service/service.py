@@ -1,4 +1,5 @@
 import logging
+from datetime import timedelta
 
 from django.db import router, transaction
 
@@ -34,7 +35,10 @@ class TaskService:
             if task is None:
                 return None
 
-            task.update(state=PendingTasks.States.PROCESSING)
+            # TODO this duration should be a tasknamespace setting, or with an option
+            deadline = task.added_at + timedelta(minutes=3)
+
+            task.update(state=PendingTasks.States.PROCESSING, processing_deadline=deadline)
             return serialize_task(task)
 
     def set_task_status(self, *, task_id: int, task_status: PendingTasks.States) -> RpcTask | None:

@@ -10,6 +10,7 @@ from arroyo.backends.kafka import KafkaPayload, KafkaProducer
 from arroyo.types import Topic as ArroyoTopic
 
 from sentry.conf.types.kafka_definition import Topic
+from sentry.taskworker.models import PendingTasks
 from sentry.taskworker.retry import FALLBACK_RETRY, Retry
 from sentry.taskworker.task import Task
 from sentry.utils import json
@@ -70,6 +71,13 @@ class TaskNamespace:
             return task
 
         return wrapped
+
+    def retry_task(self, taskdata: PendingTasks) -> None:
+        task_message = taskdata.to_message()
+        self.producer.produce(
+            ArroyoTopic(name=self.topic),
+            KafkaPayload(key=None, value=json.dumps(task_message).encode("utf-8"), headers=[]),
+        )
 
     def send_task(self, task: Task, args, kwargs) -> None:
         task_message = self._serialize_task_call(task, args, kwargs)

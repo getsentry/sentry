@@ -46,6 +46,7 @@ class Task:
 
     @property
     def deadline_timestamp(self) -> int | None:
+        # TODO add namespace/default deadlines
         if not self.__deadline:
             return None
         if isinstance(self.__deadline, int):

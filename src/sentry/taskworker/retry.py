@@ -2,10 +2,11 @@ from __future__ import annotations
 
 import dataclasses
 from collections.abc import Sequence
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
-from sentry.taskworker.models import PendingTasks
-from sentry.taskworker.service.models import RpcTask
+if TYPE_CHECKING:
+    from sentry.taskworker.models import PendingTasks
+    from sentry.taskworker.service.models import RpcTask
 
 
 @dataclasses.dataclass

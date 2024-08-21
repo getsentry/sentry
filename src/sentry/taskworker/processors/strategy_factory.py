@@ -11,11 +11,13 @@ from arroyo.processing.strategies import (
     ProcessingStrategy,
     ProcessingStrategyFactory,
     Reduce,
+    RunTask,
     RunTaskInThreads,
     RunTaskWithMultiprocessing,
 )
 from arroyo.processing.strategies.run_task_with_multiprocessing import MultiprocessingPool
 from arroyo.types import BaseValue, Commit, Message, Partition
+from django.db.models import Max
 from django.utils import timezone
 
 from sentry.conf.types.kafka_definition import Topic
@@ -71,7 +73,11 @@ class StrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
     def create_pending_tasks_batch(
         self, message: Message[MutableSequence[Mapping[str, Any]]]
     ) -> Sequence[PendingTasks]:
+        from sentry.taskworker.models import PendingTasks
+
         transformed_msg_batch = self.transform_msg_batch(message)
+        # TODO we'll need a way to de-dupe messages from kafka into pending tasks
+        # we don't want to duplicate records during rebalance.
         pending_tasks_batch = [
             PendingTasks(
                 topic=self.topic.value,
@@ -81,8 +87,6 @@ class StrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
                 partition=m["partition"],
                 offset=m["offset"],
                 state=PendingTasks.States.PENDING,
-                # TODO: i think the sample message's type is not matching the db, hardcoding rn
-                # received_at=m["received_at"],
                 received_at=datetime.fromtimestamp(m["received_at"], tz=UTC),
                 retry_attempts=m["retry_state"]["attempts"] if m["retry_state"] else None,
                 retry_kind=m["retry_state"]["kind"] if m["retry_state"] else None,
@@ -98,6 +102,68 @@ class StrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
             for m in transformed_msg_batch
         ]
         return pending_tasks_batch
+
+    def handle_retry_state_tasks(self) -> None:
+        from sentry.taskworker.config import taskregistry
+        from sentry.taskworker.models import PendingTasks
+
+        retry_qs = PendingTasks.objects.filter(state=PendingTasks.States.RETRY)
+        for item in retry_qs:
+            task_ns = taskregistry.get(item.task_namespace)
+            task_ns.retry_task(item)
+        # With retries scheduled, the tasks are complete now.
+        retry_qs.update(state=PendingTasks.States.COMPLETE)
+
+    def handle_deadletter_at(self) -> None:
+        from sentry.taskworker.models import PendingTasks
+
+        max_completed_id = (
+            PendingTasks.objects.filter(state=PendingTasks.States.COMPLETE).aggregate(
+                max_offset=Max("offset")
+            )["max_offset"]
+            or 0
+        )
+
+        expired_qs = PendingTasks.objects.filter(
+            deadletter_at__lt=timezone.now(),
+            offset__lt=max_completed_id,
+        ).exclude(state=PendingTasks.States.COMPLETE)
+        # Messages that exceeded their deadletter_at are failures
+        expired_qs.update(state=PendingTasks.States.FAILURE)
+
+    def handle_processing_deadlines(self) -> None:
+        from sentry.taskworker.models import PendingTasks
+
+        past_deadline = PendingTasks.objects.filter(
+            processing_deadline__lt=timezone.now(),
+        ).exclude(state=PendingTasks.States.COMPLETE)
+        to_update = []
+        for item in past_deadline:
+            if item.has_retries_remaining():
+                to_update.append(item.id)
+
+        # Move processing deadline tasks back to pending
+        PendingTasks.objects.filter(id__in=to_update).update(state=PendingTasks.States.PENDING)
+
+    def handle_failed_tasks(self) -> None:
+        from sentry.taskworker.models import PendingTasks
+
+        failed = PendingTasks.objects.filter(state=PendingTasks.States.FAILURE)
+        to_discard = []
+        to_deadletter = []
+        for item in failed:
+            if item.discard_after_attempt is not None:
+                to_discard.append(item.id)
+            if item.deadletter_after_attempt is not None:
+                to_deadletter.append(item.id)
+
+        # Discard messages are simply acked and never processed again
+        PendingTasks.objects.filter(id__in=to_discard).update(state=PendingTasks.States.COMPLETE)
+        logging.info("task.discarded", extra={"count": len(to_discard)})
+
+        # TODO do deadletter delivery
+        PendingTasks.objects.filter(id__in=to_deadletter).update(state=PendingTasks.States.COMPLETE)
+        logging.info("task.deadletter", extra={"count": len(to_discard)})
 
     def create_with_partitions(
         self, commit: Commit, partitions: Mapping[Partition, int]
@@ -119,6 +185,22 @@ class StrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
             PendingTasks.objects.bulk_create(batch)
             return message
 
+        def do_upkeep(
+            message: Message[MutableSequence[Mapping[str, Any]]]
+        ) -> Message[MutableSequence[Mapping[str, Any]]]:
+            self.handle_processing_deadlines()
+            self.handle_retry_state_tasks()
+            self.handle_deadletter_at()
+            self.handle_failed_tasks()
+
+            return message
+
+        upkeep_step = RunTask(
+            function=do_upkeep,
+            # TODO ideally we commit offsets for completed work
+            next_step=CommitOffsets(commit),
+        )
+
         collect = Reduce(
             # TODO use CLI options
             max_batch_size=2,
@@ -129,8 +211,7 @@ class StrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
                 processing_function=flush_batch,
                 concurrency=2,
                 max_pending_futures=2,
-                # TODO add retry and other cleanup steps, and then commit offsets
-                next_step=CommitOffsets(commit),
+                next_step=upkeep_step,
             ),
         )
 
