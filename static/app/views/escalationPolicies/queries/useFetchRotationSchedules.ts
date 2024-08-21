@@ -4,6 +4,7 @@ import {
   useApiQuery,
   type UseApiQueryOptions,
 } from 'sentry/utils/queryClient';
+import type {TimeWindowConfig} from 'sentry/views/monitors/components/timeline/types';
 
 export interface RotationPeriod {
   endTime: string;
@@ -41,6 +42,7 @@ export interface RotationSchedule {
 }
 interface FetchRotationSchedulesParams {
   orgSlug: string;
+  timeWindowConfig: TimeWindowConfig;
 }
 export const makeFetchRotationSchedulesKey = ({
   orgSlug,

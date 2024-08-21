@@ -1,27 +1,47 @@
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import UserAvatar from 'sentry/components/avatar/userAvatar';
 import ParticipantList from 'sentry/components/group/streamlinedParticipantList';
 import {space} from 'sentry/styles/space';
+import {useUser} from 'sentry/utils/useUser';
 import type {UserSchedulePeriod} from 'sentry/views/alerts/triageSchedules/triageSchedulesList';
+import type {RotationSchedule} from 'sentry/views/escalationPolicies/queries/useFetchRotationSchedules';
+import type {TimeWindowConfig} from 'sentry/views/monitors/components/timeline/types';
 
-interface ScheduleTimelineRowProps {
-  name: string;
-  // Must have at least one entry
-  schedulePeriods: UserSchedulePeriod[];
+interface Props {
+  schedule: RotationSchedule;
+  timeWindowConfig: TimeWindowConfig;
   totalWidth: number;
 }
 
-export function ScheduleTimelineRow({
-  name,
-  totalWidth,
-  schedulePeriods,
-}: ScheduleTimelineRowProps) {
+export function ScheduleTimelineRow({schedule, totalWidth}: Props) {
+  const user = useUser();
+  const theme = useTheme();
+
+  const schedulePeriods: UserSchedulePeriod[] = [
+    {
+      backgroundColor: theme.green100,
+      percentage: 33,
+      user,
+    },
+    {
+      backgroundColor: theme.blue100,
+      percentage: 33,
+      user: undefined, // Represents a gap in the schedule
+    },
+    {
+      backgroundColor: theme.yellow100,
+      percentage: 34,
+      user,
+    },
+  ];
+
   return (
     <TimelineRow>
       <DetailsArea>
         <DetailsHeadline>
-          <Name>{name}</Name>
+          <Name>{schedule.name}</Name>
         </DetailsHeadline>
       </DetailsArea>
       <OnRotationContainer>
