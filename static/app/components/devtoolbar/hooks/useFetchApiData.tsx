@@ -33,7 +33,5 @@ export default function useFetchApiData<
   // @ts-expect-error: This is a backport of react-query v5
   infiniteQueryResult.isPending = infiniteQueryResult.isLoading;
 
-  return infiniteQueryResult as BackportIsPending<
-    UseQueryResult<ApiResult<QueryFnData>, Error>
-  >;
+  return infiniteQueryResult as BackportIsPending<UseQueryResult<QueryFnData, Error>>;
 }
