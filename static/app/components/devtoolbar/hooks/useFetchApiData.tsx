@@ -33,5 +33,6 @@ export default function useFetchApiData<
   // @ts-expect-error: This is a backport of react-query v5
   infiniteQueryResult.isPending = infiniteQueryResult.isLoading;
 
-  return infiniteQueryResult as BackportIsPending<UseQueryResult<QueryFnData, Error>>;
+  // TODO(react-query): Remove casting when we upgrade to react-query v5
+  return infiniteQueryResult as BackportIsPending<UseQueryResult<SelectFnData, Error>>;
 }
