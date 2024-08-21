@@ -2,11 +2,7 @@ from __future__ import annotations
 
 import dataclasses
 from collections.abc import Sequence
-from typing import TYPE_CHECKING, Any
-
-if TYPE_CHECKING:
-    from sentry.taskworker.models import PendingTasks
-    from sentry.taskworker.service.models import RpcTask
+from typing import Any
 
 
 @dataclasses.dataclass
@@ -20,15 +16,6 @@ class RetryState:
 
     def to_dict(self) -> dict[str, Any]:
         return dataclasses.asdict(self)
-
-    @classmethod
-    def from_task(cls, task: PendingTasks | RpcTask) -> RetryState:
-        return cls(
-            attempts=task.retry_attempts,
-            discard_after_attempt=task.discard_after_attempt,
-            deadletter_after_attempt=task.deadletter_after_attempt,
-            kind=task.retry_kind,
-        )
 
 
 class Retry:

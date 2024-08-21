@@ -1,4 +1,5 @@
 import time
+from datetime import datetime
 from typing import Any
 from uuid import uuid4
 
@@ -40,12 +41,12 @@ class PendingTasks(Model):
 
     # Retry state fields
     headers: models.Field[dict[str, Any] | None, dict[str, Any] | None] = JSONField(null=True)
-    retry_attempts = models.IntegerField(default=0)
-    retry_kind = models.CharField(max_length=255, null=True, blank=True)
-    deadletter_after_attempt = models.IntegerField(null=True, blank=True)
-    discard_after_attempt = models.IntegerField(null=True, blank=True)
-    deadletter_at = models.DateTimeField()
-    processing_deadline = models.DateTimeField(blank=True, null=True)
+    retry_attempts: int = models.IntegerField(default=0)
+    retry_kind: str = models.CharField(max_length=255, null=True, blank=True)
+    deadletter_after_attempt: int = models.IntegerField(null=True, blank=True)
+    discard_after_attempt: int = models.IntegerField(null=True, blank=True)
+    deadletter_at: datetime = models.DateTimeField()
+    processing_deadline: datetime = models.DateTimeField(blank=True, null=True)
 
     def has_retries_remaining(self) -> bool:
         if (

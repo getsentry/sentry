@@ -7,7 +7,6 @@ from django.conf import settings
 
 from sentry.taskworker.config import TaskNamespace, taskregistry
 from sentry.taskworker.models import PendingTasks
-from sentry.taskworker.retry import RetryState
 
 logger = logging.getLogger("sentry.taskworker")
 
@@ -66,7 +65,7 @@ class Worker:
         except Exception as err:
             logger.info("taskworker.task_errored", extra={"error": str(err)})
             # TODO check retry policy
-            if task_meta.should_retry(RetryState.from_task(task_data), err):
+            if task_meta.should_retry(task_data.retry_state(), err):
                 logger.info("taskworker.task.retry", extra={"task": task_data.task_name})
                 next_state = PendingTasks.States.RETRY
         if next_state == PendingTasks.States.COMPLETE:

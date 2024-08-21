@@ -3,6 +3,7 @@ from typing import Any
 
 from sentry.hybridcloud.rpc import RpcModel
 from sentry.taskworker.models import PendingTasks
+from sentry.taskworker.retry import RetryState
 
 
 class RpcTask(RpcModel):
@@ -21,6 +22,14 @@ class RpcTask(RpcModel):
     retry_kind: str | None
     deadletter_after_attempt: int | None
     discard_after_attempt: int | None
+
+    def retry_state(self) -> RetryState:
+        return RetryState(
+            attempts=self.retry_attempts,
+            discard_after_attempt=self.discard_after_attempt,
+            deadletter_after_attempt=self.deadletter_after_attempt,
+            kind=self.retry_kind,
+        )
 
 
 def serialize_task(pending_task: PendingTasks) -> RpcTask:
