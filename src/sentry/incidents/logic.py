@@ -1502,7 +1502,7 @@ def get_target_identifier_display_for_integration(
     integration_id: int | None,
     use_async_lookup: bool = True,
     input_channel_id: str | None = None,
-    integrations: Iterable[RpcIntegration] | None = None,
+    integrations: Collection[RpcIntegration] | None = None,
 ) -> AlertTarget:
     if action_type == AlertRuleTriggerAction.Type.SLACK.value:
         return _get_target_identifier_display_for_slack(
