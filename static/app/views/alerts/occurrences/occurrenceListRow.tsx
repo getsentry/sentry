@@ -62,7 +62,7 @@ export function OccurrenceListRow({escalationPolicyState, onStatusChange}: Props
     <ErrorBoundary>
       <div>{escalationPolicyState.state}</div>
       <div>
-        <Link href={'/issues/' + escalationPolicyState.group.id}>
+        <Link to={'/issues/' + escalationPolicyState.group.id}>
           {escalationPolicyState.group.title}
         </Link>
       </div>

@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 import UserAvatar from 'sentry/components/avatar/userAvatar';
 import ParticipantList from 'sentry/components/group/streamlinedParticipantList';
 import {space} from 'sentry/styles/space';
-import type {UserSchedulePeriod} from 'sentry/views/alerts/triageSchedules/triageSchedules';
+import type {UserSchedulePeriod} from 'sentry/views/alerts/triageSchedules/triageSchedulesList';
 
 interface ScheduleTimelineRowProps {
   name: string;

@@ -5,6 +5,7 @@ import styled from '@emotion/styled';
 import {Button} from 'sentry/components/button';
 import * as Layout from 'sentry/components/layouts/thirds';
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
+import Pagination from 'sentry/components/pagination';
 import Panel from 'sentry/components/panels/panel';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {IconChevron} from 'sentry/icons';
@@ -12,11 +13,16 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {User} from 'sentry/types';
 import {useDimensions} from 'sentry/utils/useDimensions';
+import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import useRouter from 'sentry/utils/useRouter';
 import {useUser} from 'sentry/utils/useUser';
 import AlertHeader from 'sentry/views/alerts/list/header';
 import {ScheduleTimelineRow} from 'sentry/views/alerts/triageSchedules/ScheduleTimelineRow';
+import {
+  type RotationSchedule,
+  useFetchRotationSchedules,
+} from 'sentry/views/escalationPolicies/queries/useFetchRotationSchedules';
 import {
   GridLineLabels,
   GridLineOverlay,
@@ -33,7 +39,10 @@ export interface UserSchedulePeriod {
   user?: User;
 }
 
-function ScheduleList() {
+type Props = {
+  schedule: RotationSchedule;
+};
+function ScheduleItem({schedule}: Props) {
   const elementRef = useRef<HTMLDivElement>(null);
   const {width: timelineWidth} = useDimensions<HTMLDivElement>({elementRef});
   const timeWindowConfig = useTimeWindowConfig({timelineWidth});
@@ -87,16 +96,27 @@ function ScheduleList() {
         <ScheduleTimelineRow
           schedulePeriods={schedulePeriods}
           totalWidth={timelineWidth}
-          name="Schedule 1"
+          name={schedule.name}
         />
       </ScheduleRows>
     </MonitorListPanel>
   );
 }
 
-function TriageSchedulePage() {
+function ScheduleList() {
   const router = useRouter();
   const organization = useOrganization();
+  const location = useLocation();
+
+  const {
+    data: rotationSchedules = [],
+    // refetch,
+    getResponseHeader,
+    // isLoading,
+    // isError,
+  } = useFetchRotationSchedules({orgSlug: organization.slug}, {});
+  const rotationSchedulesPageLinks = getResponseHeader?.('Link');
+  const {cursor: _cursor, page: _page, ...currentQuery} = location.query;
 
   return (
     <Fragment>
@@ -106,7 +126,18 @@ function TriageSchedulePage() {
         <AlertHeader router={router} activeTab="schedules" />
         <Layout.Body>
           <Layout.Main fullWidth>
-            <ScheduleList />
+            {rotationSchedules.map((rotationSchedule: RotationSchedule) => (
+              <ScheduleItem key={rotationSchedule.id} schedule={rotationSchedule} />
+            ))}
+            <Pagination
+              pageLinks={rotationSchedulesPageLinks}
+              onCursor={(cursor, path, _direction) => {
+                router.push({
+                  pathname: path,
+                  query: {...currentQuery, cursor},
+                });
+              }}
+            />
           </Layout.Main>
         </Layout.Body>
       </PageFiltersContainer>
@@ -173,4 +204,4 @@ const AlignedGridLineLabels = styled(GridLineLabels)`
   grid-column: 3/-1;
 `;
 
-export default TriageSchedulePage;
+export default ScheduleList;

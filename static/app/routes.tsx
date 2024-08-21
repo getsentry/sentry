@@ -1174,7 +1174,7 @@ function buildRoutes() {
         <Route path="schedules/">
           <IndexRoute
             component={make(
-              () => import('sentry/views/alerts/triageSchedules/triageSchedules')
+              () => import('sentry/views/alerts/triageSchedules/triageSchedulesList')
             )}
           />
         </Route>

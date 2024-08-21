@@ -1,24 +1,47 @@
+import type {User} from 'sentry/types/user';
 import {
   type ApiQueryKey,
   useApiQuery,
   type UseApiQueryOptions,
 } from 'sentry/utils/queryClient';
 
+export interface RotationPeriod {
+  endTime: string;
+  startTime: string;
+  userId: string;
+}
+
+export interface ScheduleRestrictions {
+  Fri?: string[][];
+  Mon?: string[][];
+  Sat?: string[][];
+  Sun?: string[][];
+  Thu?: string[][];
+  Tue?: string[][];
+  Wed?: string[][];
+}
+
+export interface ScheduleLayer {
+  handoffTime: string;
+  rotationPeriods: RotationPeriod[];
+  rotationType: string;
+  scheduleLayerRestrictions: object;
+  startTime: string;
+  users: User;
+}
+
 export interface RotationSchedule {
+  coalescedRotationPeriods: RotationPeriod[];
   id: string;
   name: string;
-  organization: string;
-  userId: string;
+  organizationId: string;
+  scheduleLayers: ScheduleLayer[];
   team?: string;
+  user?: string;
 }
 interface FetchRotationSchedulesParams {
   orgSlug: string;
 }
-
-interface FetchRotationSchedulesResponse {
-  rotationSchedules: RotationSchedule[];
-}
-
 export const makeFetchRotationSchedulesKey = ({
   orgSlug,
 }: FetchRotationSchedulesParams): ApiQueryKey => [
@@ -30,13 +53,10 @@ export const makeFetchRotationSchedulesKey = ({
 
 export const useFetchRotationSchedules = (
   params: FetchRotationSchedulesParams,
-  options: Partial<UseApiQueryOptions<FetchRotationSchedulesResponse>> = {}
+  options: Partial<UseApiQueryOptions<RotationSchedule[]>> = {}
 ) => {
-  return useApiQuery<FetchRotationSchedulesResponse>(
-    makeFetchRotationSchedulesKey(params),
-    {
-      staleTime: 0,
-      ...options,
-    }
-  );
+  return useApiQuery<RotationSchedule[]>(makeFetchRotationSchedulesKey(params), {
+    staleTime: 0,
+    ...options,
+  });
 };
