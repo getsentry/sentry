@@ -1,5 +1,6 @@
 import {cloneElement, Fragment, useState} from 'react';
 import styled from '@emotion/styled';
+import pako from 'pako';
 
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
 import {Button} from 'sentry/components/button';
@@ -321,24 +322,23 @@ function Content({
 
   const platformIcon = stackTracePlatformIcon(platform, data.frames ?? []);
 
-  const timetravelSteps:
-    | undefined
-    | {
-        colno: number;
-        filename: string;
-        line: string;
-        lineno: number;
-        post_lines: string[];
-        pre_lines: string[];
-        vars: Record<string, unknown>;
-
-        // @ts-ignore
-      }[] = event.contexts.timetravel?.steps;
+  // @ts-ignore
+  const timetravelSteps = event.contexts.debugger?.steps
+    ? JSON.parse(
+        new TextDecoder().decode(
+          pako.inflate(
+            // @ts-ignore
+            Uint8Array.from(atob(event.contexts.debugger.steps), c => c.charCodeAt(0))
+          )
+        )
+      )
+    : undefined;
 
   return (
     <Fragment>
       {inTimetravelMode && timetravelSteps && (
         <TimeTraveler
+          // @ts-ignore
           steps={timetravelSteps}
           onBack={() => {
             setInTimetravelMode(false);
@@ -409,7 +409,7 @@ function TimeTraveler({steps, onBack}: {steps: TimeTravelerStep[]; onBack?: () =
           Go back to boring Stack Trace
         </NavButton>
         <TimeTravelerControls>
-          Time Travel Controls:
+          Debugger Controls:
           <TimeTravelerButton
             size="zero"
             priority="default"
@@ -550,7 +550,7 @@ const TimeTravelerContainer = styled(Panel)`
 `;
 
 const TimeTravelerVariablesContainer = styled('div')`
-  width: 260px;
+  width: 30%;
   height: 100%;
   overflow-y: auto;
   overflow-x: auto;
