@@ -21,7 +21,7 @@ export default function InfiniteListState<Data>({
   queryResult,
 }: Props<Data>) {
   const {status, error, isFetching} = queryResult;
-  if (status === 'loading') {
+  if (status === 'pending') {
     return loadingMessage();
   }
   if (status === 'error') {

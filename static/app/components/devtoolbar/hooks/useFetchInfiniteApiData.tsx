@@ -19,6 +19,7 @@ export default function useFetchInfiniteApiData<Data extends Array<unknown>>(
     queryFn: fetchInfiniteFn<Data>,
     getNextPageParam,
     getPreviousPageParam,
+    initialPageParam: undefined,
     ...props,
   });
 

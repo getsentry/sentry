@@ -131,7 +131,7 @@ export function useTraceMeta(traceSlugs: string[]): TraceMetaQueryResults {
 
   const mode = queryParams.demo ? 'demo' : undefined;
 
-  const {data, isLoading} = useQuery<
+  const {data, isPending} = useQuery<
     {
       apiErrors: Error[];
       metaResults: TraceMeta;
@@ -164,7 +164,7 @@ export function useTraceMeta(traceSlugs: string[]): TraceMetaQueryResults {
 
   return {
     data: data?.metaResults,
-    isLoading,
+    isLoading: isPending,
     errors: data?.apiErrors || [],
   };
 }
