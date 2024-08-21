@@ -473,6 +473,7 @@ class DetailedOrganizationSerializerResponse(_DetailedOrganizationSerializerResp
     metricsActivateLastForGauges: bool
     extrapolateMetrics: bool
     requiresSso: bool
+    githubActionsOIDC: str | None
 
 
 class DetailedOrganizationSerializer(OrganizationSerializer):
@@ -611,6 +612,7 @@ class DetailedOrganizationSerializer(OrganizationSerializer):
                         METRICS_ACTIVATE_LAST_FOR_GAUGES_DEFAULT,
                     )
                 ),
+                "githubActionOIDC": obj.get_option("sentry:github_action_oidc"),
             }
         )
 
