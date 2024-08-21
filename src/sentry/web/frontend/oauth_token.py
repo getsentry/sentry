@@ -1,6 +1,8 @@
 import logging
 
-from django.http import HttpRequest, HttpResponse
+import jwt
+import requests
+from django.http import HttpRequest, HttpResponse, HttpResponseBadRequest
 from django.utils import timezone
 from django.utils.decorators import method_decorator
 from django.views.decorators.cache import never_cache
@@ -13,6 +15,7 @@ from sentry.mediators.token_exchange.util import GrantTypes
 from sentry.models.apiapplication import ApiApplication, ApiApplicationStatus
 from sentry.models.apigrant import ApiGrant
 from sentry.models.apitoken import ApiToken
+from sentry.organizations.services.organization.model import RpcOrganization
 from sentry.utils import json, metrics
 from sentry.web.frontend.base import control_silo_view
 from sentry.web.frontend.openidtoken import OpenIDToken
@@ -46,6 +49,168 @@ class OAuthTokenView(View):
             json.dumps({"error": name}), content_type="application/json", status=status
         )
 
+    def _get_rsa_key(self, jwks, kid):
+        for key in jwks["keys"]:
+            if key["kid"] == kid:
+                return {
+                    "kty": key["kty"],
+                    "kid": key["kid"],
+                    "use": key["use"],
+                    "n": key["n"],
+                    "e": key["e"],
+                }
+        return None
+
+    def _validate_id_token(self, request: HttpRequest) -> bool:
+        grant_type = request.POST.get("grant_type")
+        if grant_type != GrantTypes.TOKEN_EXCHANGE:
+            raise NotImplementedError
+
+        id_token = request.POST.get("subject_token")
+        if not id_token:
+            # return error matching RFC requirements https://www.rfc-editor.org/rfc/rfc6749#section-5.2
+            return HttpResponse(
+                json.dumps(
+                    {
+                        "error": "invalid_request",
+                        "error_description": "missing id token",
+                    }
+                ),
+                status=HttpResponseBadRequest,
+            )
+
+        # TODO make this configurable for other CI providers eventually
+        github_actions_issuer = "https://token.actions.githubusercontent.com"
+        github_actions_jwks_url = "https://token.actions.githubusercontent.com/.well-known/jwks"
+
+        # TODO validate audience
+        expected_audience = options.get("system.base-hostname")
+
+        try:
+            response = requests.get(github_actions_jwks_url)
+            response.raise_for_status()
+            jwks = response.json()
+
+            unverified_header = jwt.get_unverified_header(id_token)
+            rsa_key = self._get_rsa_key(jwks, unverified_header["kid"])
+
+            if rsa_key:
+                # TODO: validate org/repository claims too!
+                return jwt.decode(
+                    id_token,
+                    rsa_key,
+                    audience=expected_audience,
+                    issuer=github_actions_issuer,
+                    algorithms=["RS256"],
+                )
+            else:
+                return HttpResponseBadRequest(
+                    json.dumps(
+                        {
+                            "error": "invalid_request",
+                            "error_description": "id token signed with invalid key",
+                        }
+                    ),
+                    content_type="application/json",
+                )
+        except requests.exception.RequestException as e:
+            logger.exception("failed to fetch JWKS")
+            return None
+        except jwt.exceptions.InvalidTokenError as e:
+            logger.exception(f"invalid id token: {e}")
+            return None
+
+    def _authorize_resource(self, request: HttpRequest) -> int:
+        organization_resource = request.POST.get("resource")
+
+        # TODO: use stronger validation here with regex that ensures the organization ID is all numbers
+        if not organization_resource.startswith(
+            f'https://{options.get("system.base-hostname")}/api/0/organizations/'
+        ):
+            return HttpResponseBadRequest(
+                json.dumps(
+                    {
+                        "error": "invalid_target",
+                        "error_description": "resource target must be an organization",
+                    }
+                ),
+                content_type="application/json",
+            )
+
+        # TODO: handle more edge cases (ie. what happens if we end the resource string with a '/')
+        organization_id = organization_resource.rsplit("/", 1)
+
+        # return a RpcOrganization object?
+        return organization_id[1]
+
+    def _create_org_auth_token(self, request, organization: RpcOrganization):
+        # copied from src/sentry/api/endpoints/org_auth_tokens.py
+
+        from django.core.exceptions import ValidationError
+        from rest_framework import status
+        from rest_framework.response import Response
+
+        from sentry.api.serializers import serialize
+        from sentry.api.utils import generate_region_url
+        from sentry.models.organizationmapping import OrganizationMapping
+        from sentry.models.orgauthtoken import MAX_NAME_LENGTH, OrgAuthToken
+        from sentry.utils.security.orgauthtoken_token import (
+            SystemUrlPrefixMissingException,
+            generate_token,
+            hash_token,
+        )
+
+        try:
+            org_mapping = OrganizationMapping.objects.get(organization_id=organization.id)
+            token_str = generate_token(
+                organization.slug, generate_region_url(region_name=org_mapping.region_name)
+            )
+        except SystemUrlPrefixMissingException:
+            return Response(
+                {
+                    "detail": {
+                        "message": "system.url-prefix is not set. You need to set this to generate a token.",
+                        "code": "missing_system_url_prefix",
+                    }
+                },
+                status=400,
+            )
+
+        token_hashed = hash_token(token_str)
+
+        name = request.data.get("name")
+
+        # Main validation cases with specific error messages
+        if not name:
+            return Response({"detail": "The name cannot be blank."}, status=400)
+
+        if len(name) > MAX_NAME_LENGTH:
+            return Response(
+                {"detail": "The name cannot be longer than 255 characters."}, status=400
+            )
+
+        token = OrgAuthToken.objects.create(
+            name=name,
+            organization_id=organization.id,
+            scope_list=["org:ci"],
+            created_by_id=request.user.id,
+            token_last_characters=token_str[-4:],
+            token_hashed=token_hashed,
+        )
+
+        try:
+            token.full_clean()
+        except ValidationError as e:
+            return Response({"detail": list(e.messages)}, status=400)
+
+        # This is THE ONLY TIME that the token is available
+        serialized_token = serialize(token, request.user, token=token_str)
+
+        if serialized_token is None:
+            return Response({"detail": "Error when serializing token."}, status=400)
+
+        return Response(serialized_token, status=status.HTTP_201_CREATED)
+
     @method_decorator(never_cache)
     def post(self, request: HttpRequest) -> HttpResponse:
         grant_type = request.POST.get("grant_type")
@@ -60,6 +225,10 @@ class OAuthTokenView(View):
                 "client_secret_exists": bool(client_secret),
             },
         )
+
+        if grant_type == GrantTypes.TOKEN_EXCHANGE:
+            if self._validate_id_token(request):
+                organization_id = self._authorize_resource(request)
 
         if not client_id:
             return self.error(request=request, name="missing_client_id", reason="missing client_id")
@@ -157,9 +326,11 @@ class OAuthTokenView(View):
         token_information = {
             "access_token": token.token,
             "refresh_token": token.refresh_token,
-            "expires_in": int((token.expires_at - timezone.now()).total_seconds())
-            if token.expires_at
-            else None,
+            "expires_in": (
+                int((token.expires_at - timezone.now()).total_seconds())
+                if token.expires_at
+                else None
+            ),
             "expires_at": token.expires_at,
             "token_type": "bearer",
             "scope": " ".join(token.get_scopes()),
