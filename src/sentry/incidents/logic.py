@@ -1565,8 +1565,6 @@ def _get_target_identifier_display_from_target_value(
     elif action_type == AlertRuleTriggerAction.Type.DISCORD.value:
         if integration_id is None:
             raise InvalidTriggerActionError("DISCORD requires non-null integration_id")
-        if target_value is None:
-            raise InvalidTriggerActionError("DISCORD requires non-null target_value")
         return AlertTarget(
             _get_alert_rule_trigger_action_discord_channel_id(target_value, integration_id),
             target_value,
