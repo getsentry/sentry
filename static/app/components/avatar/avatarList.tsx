@@ -64,30 +64,23 @@ function AvatarList({
     teams: teams,
     users: users,
   };
-  Object.entries(visibleAvatarsByType).forEach(objectType => {
-    const [key, avatars] = objectType;
-    if (remaining - avatars.length > 0) {
-      visibleAvatarsByType[key] = avatars.length;
-      remaining -= avatars.length;
+  ['schedules', 'teams', 'users'].forEach(key => {
+    if (remaining - visibleAvatarsByType[key].length > 0) {
+      remaining -= visibleAvatarsByType[key].length;
     } else {
-      visibleAvatarsByType[key] = remaining;
+      visibleAvatarsByType[key] = visibleAvatarsByType[key].slice(0, remaining);
       remaining = 0;
     }
   });
 
   // Reverse the order since css flex-reverse is used to display the avatars
-  const visibleTeamAvatars = teams.slice(0, visibleAvatarsByType.teams.length).reverse();
-  const visibleUserAvatars = users.slice(0, visibleAvatarsByType.users.length).reverse();
-  const visibleScheduleAvatars = schedules
-    .slice(0, visibleAvatarsByType.schedules.length)
-    .reverse();
   const numCollapsedAvatars =
     schedules.length +
     users.length +
     teams.length -
-    (visibleUserAvatars.length +
-      visibleTeamAvatars.length +
-      visibleScheduleAvatars.length);
+    (visibleAvatarsByType.users.length +
+      visibleAvatarsByType.teams.length +
+      visibleAvatarsByType.schedules.length);
 
   if (!tooltipOptions.position) {
     tooltipOptions.position = 'top';
@@ -103,7 +96,7 @@ function AvatarList({
           </CollapsedAvatars>
         </Tooltip>
       )}
-      {visibleUserAvatars.map(user => (
+      {visibleAvatarsByType.users.map(user => (
         <StyledUserAvatar
           key={`${user.id}-${user.email}`}
           user={user}
@@ -113,7 +106,7 @@ function AvatarList({
           hasTooltip
         />
       ))}
-      {visibleTeamAvatars.map(team => (
+      {visibleAvatarsByType.teams.map(team => (
         <StyledTeamAvatar
           key={`${team.id}-${team.name}`}
           team={team}
@@ -122,7 +115,7 @@ function AvatarList({
           hasTooltip
         />
       ))}
-      {visibleScheduleAvatars.map(schedule => (
+      {visibleAvatarsByType.schedules.map(schedule => (
         <StyledScheduleAvatar
           key={`${schedule.id}-${schedule.name}`}
           schedule={schedule}

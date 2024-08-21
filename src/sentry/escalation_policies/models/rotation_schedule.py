@@ -27,6 +27,7 @@ class RotationSchedule(Model):
 
     organization = models.ForeignKey(Organization, on_delete=models.CASCADE)
     name = models.CharField(max_length=256)
+    description = models.CharField(max_length=512, null=True, blank=True)
     # Owner is team or user
     team = FlexibleForeignKey(
         "sentry.Team", null=True, on_delete=models.SET_NULL, related_name="schedules"

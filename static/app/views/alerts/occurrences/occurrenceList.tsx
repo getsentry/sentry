@@ -15,7 +15,6 @@ import {VisuallyCompleteWithData} from 'sentry/utils/performanceForSentry';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import useRouter from 'sentry/utils/useRouter';
-import FilterBar from 'sentry/views/alerts/filterBar';
 import AlertHeader from 'sentry/views/alerts/list/header';
 import {OccurrenceListRow} from 'sentry/views/alerts/occurrences/occurrenceListRow';
 import {useFetchEscationPolicyStates} from 'sentry/views/escalationPolicies/queries/useFetchEscalationPolicyStates';
@@ -68,28 +67,6 @@ function OccurrencesPage() {
   type SortField = 'date_added' | 'status';
   const defaultSort: SortField = 'date_added';
 
-  const handleChangeFilter = (activeFilters: string[]) => {
-    const {cursor: _cursor, page: _page, ...currentQuery} = location.query;
-    router.push({
-      pathname: location.pathname,
-      query: {
-        ...currentQuery,
-        team: activeFilters.length > 0 ? activeFilters : '',
-      },
-    });
-  };
-
-  const handleChangeSearch = (name: string) => {
-    const {cursor: _cursor, page: _page, ...currentQuery} = location.query;
-    router.push({
-      pathname: location.pathname,
-      query: {
-        ...currentQuery,
-        name,
-      },
-    });
-  };
-
   const sort: {asc: boolean; field: SortField} = {
     asc: location.query.asc === '1',
     field: (location.query.sort as SortField) || defaultSort,
@@ -109,11 +86,6 @@ function OccurrencesPage() {
         <AlertHeader router={router} activeTab="occurrences" />
         <Layout.Body>
           <Layout.Main fullWidth>
-            <FilterBar
-              location={location}
-              onChangeFilter={handleChangeFilter}
-              onChangeSearch={handleChangeSearch}
-            />
             <StyledPanelTable
               isLoading={isLoading}
               isEmpty={escalationPolicyStates.length === 0 && !isError}

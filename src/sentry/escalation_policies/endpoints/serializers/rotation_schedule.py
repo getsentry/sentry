@@ -101,6 +101,7 @@ class RotationScheduleLayerSerializerResponse(TypedDict, total=False):
 class RotationScheduleSerializerResponse(TypedDict, total=False):
     id: int
     name: str
+    description: str | None
     organizationId: int
     scheduleLayers: list[RotationScheduleLayerSerializerResponse]
     # Owner
@@ -154,9 +155,13 @@ class RotationScheduleSerializer(Serializer):
 
         teams = {team.id: team for team in Team.objects.filter(id__in=owning_team_ids).all()}
         users = {
-            user.id: user
-            for user in user_service.get_many_by_id(
-                ids=[uo.user_id for uo in user_orders] + owning_user_ids + override_users
+            user["id"]: user
+            for user in user_service.serialize_many(
+                filter={
+                    "user_ids": [uo.user_id for uo in user_orders]
+                    + owning_user_ids
+                    + override_users
+                }
             )
         }
 
@@ -166,11 +171,12 @@ class RotationScheduleSerializer(Serializer):
             layers_attr = []
             for layer in schedule_layers:
                 ordered_users = [
-                    (uo.user_id, uo.order) for uo in user_orders if uo.schedule_layer_id == layer.id
+                    (str(uo.user_id), uo.order)
+                    for uo in user_orders
+                    if uo.schedule_layer_id == layer.id
                 ]
                 ordered_users.sort(key=lambda tuple: tuple[1])
                 ordered_users = [users[user_id] for user_id, _ in ordered_users]
-
                 layers_attr.append(
                     RotationScheduleLayerSerializerResponse(
                         rotationType=layer.rotation_type,
@@ -198,6 +204,7 @@ class RotationScheduleSerializer(Serializer):
         return RotationScheduleSerializerResponse(
             id=obj.id,
             name=obj.name,
+            description=obj.description,
             organizationId=obj.organization.id,
             scheduleLayers=attrs["layers"],
             team=attrs["team"],

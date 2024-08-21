@@ -95,7 +95,7 @@ function AlertHeader({router, activeTab}: Props) {
           <GlobalSelectionLink
             to={`/organizations/${organization.slug}/alerts/schedules`}
           >
-            {t('Schedule')}
+            {t('Schedules')}
           </GlobalSelectionLink>
         </li>
         <li className={activeTab === 'occurrences' ? 'active' : ''}>

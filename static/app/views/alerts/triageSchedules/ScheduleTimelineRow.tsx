@@ -1,36 +1,108 @@
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
+import type {User} from '@sentry/types';
 
 import UserAvatar from 'sentry/components/avatar/userAvatar';
-import ParticipantList from 'sentry/components/group/streamlinedParticipantList';
+// import ParticipantList from 'sentry/components/group/streamlinedParticipantList';
 import {space} from 'sentry/styles/space';
-import type {UserSchedulePeriod} from 'sentry/views/alerts/triageSchedules/triageSchedules';
+import type {
+  RotationPeriod,
+  RotationSchedule,
+} from 'sentry/views/escalationPolicies/queries/useFetchRotationSchedules';
+import type {TimeWindowConfig} from 'sentry/views/monitors/components/timeline/types';
 
-interface ScheduleTimelineRowProps {
-  name: string;
-  // Must have at least one entry
-  schedulePeriods: UserSchedulePeriod[];
+interface Props {
+  schedule: RotationSchedule;
+  timeWindowConfig: TimeWindowConfig;
   totalWidth: number;
 }
 
-export function ScheduleTimelineRow({
-  name,
-  totalWidth,
-  schedulePeriods,
-}: ScheduleTimelineRowProps) {
+function fillGapsInRotations(rotationPeriods: RotationPeriod[], start: Date, end: Date) {
+  const filledRotations: RotationPeriod[] = [];
+
+  const firstPeriodIndex = rotationPeriods.findIndex(period => period.endTime > start);
+  rotationPeriods = rotationPeriods.slice(
+    Math.min(firstPeriodIndex, rotationPeriods.length - 1)
+  );
+  for (let i = 0; i < rotationPeriods.length; i++) {
+    if (rotationPeriods[i].startTime > start) {
+      filledRotations.push({
+        endTime: rotationPeriods[i].startTime,
+        startTime: start,
+        userId: null,
+      });
+    }
+    filledRotations.push(rotationPeriods[i]);
+    start = rotationPeriods[i].endTime;
+  }
+  if (start < end) {
+    filledRotations.push({
+      endTime: end,
+      startTime: start,
+      userId: null,
+    });
+  }
+  return filledRotations;
+}
+
+export function ScheduleTimelineRow({schedule, totalWidth, timeWindowConfig}: Props) {
+  const theme = useTheme();
+
+  const themeColors = [
+    theme.green100,
+    theme.blue100,
+    theme.yellow100,
+    theme.pink100,
+    theme.purple100,
+    theme.red100,
+  ];
+  const users = {};
+  const userColors = {};
+  let i = 0;
+  schedule.scheduleLayers.forEach(layer => {
+    layer.users.forEach(user => {
+      users[user.id] = user;
+      if (!userColors[user.id]) {
+        userColors[user.id] = themeColors[i % themeColors.length];
+        i++;
+      }
+    });
+  });
+
+  const rotations = fillGapsInRotations(
+    schedule.coalescedRotationPeriods,
+    timeWindowConfig.start,
+    timeWindowConfig.end
+  );
+  // debugger;
+  rotations.map(rotation => {
+    rotation.percentage =
+      (rotation.endTime.getTime() - rotation.startTime.getTime()) /
+      (timeWindowConfig.end.getTime() - timeWindowConfig.start.getTime());
+    return rotation;
+  });
+
   return (
     <TimelineRow>
       <DetailsArea>
         <DetailsHeadline>
-          <Name>{name}</Name>
+          <Name>{schedule.name}</Name>
         </DetailsHeadline>
+        <Description>{schedule.description}</Description>
       </DetailsArea>
       <OnRotationContainer>
         <ScheduleTitle>On Rotation Now:</ScheduleTitle>
-        {schedulePeriods[0].user && <ParticipantList users={[schedulePeriods[0].user]} />}
+        {/* TODO */}
+        {/* {rotations[1].userId && <ParticipantList users={[users[rotations[1].userId]]} />} */}
       </OnRotationContainer>
       <ScheduleContainer>
         <ScheduleOuterContainer>
-          <ScheduleTimeline periods={schedulePeriods} width={totalWidth} />
+          <ScheduleTimeline
+            periods={rotations}
+            users={users}
+            userColors={userColors}
+            width={totalWidth}
+          />
         </ScheduleOuterContainer>
       </ScheduleContainer>
     </TimelineRow>
@@ -42,27 +114,31 @@ export function ScheduleTimelineRow({
 function ScheduleTimeline({
   periods,
   width,
+  users,
+  userColors,
 }: {
-  periods: UserSchedulePeriod[];
+  periods: RotationPeriod[];
+  userColors: {number?: string};
+  users: {number?: User};
   width: number;
 }) {
   let currPosition = 0;
   return (
     <TimelineContainer>
-      {periods.map(({percentage, user, backgroundColor}, index) => {
-        const periodWidth = (percentage / 100) * width;
+      {periods.map(({percentage, userId}, index) => {
+        const periodWidth = (percentage || 0) * width;
         currPosition += periodWidth;
-        return user ? (
+        return userId ? (
           <SchedulePeriod
             style={{
               left: currPosition - periodWidth,
               width: currPosition,
-              backgroundColor,
+              backgroundColor: userColors[userId],
             }}
             key={index}
           >
-            <UserAvatar style={{fillOpacity: 1.0}} user={user} />
-            <ScheduleName>{user.name}</ScheduleName>
+            <UserAvatar style={{fillOpacity: 1.0}} user={users[userId]} />
+            {/* {userId && <ScheduleName>{users[userId].name}</ScheduleName>} */}
           </SchedulePeriod>
         ) : null;
       })}
@@ -114,6 +190,12 @@ const Name = styled('h3')`
   word-break: break-word;
   margin-bottom: ${space(0.5)};
 `;
+const Description = styled('h3')`
+  font-size: ${p => p.theme.fontSizeSmall};
+  word-break: break-word;
+  margin-bottom: ${space(0.5)};
+  font-weight: ${p => p.theme.fontWeightNormal};
+`;
 
 const ScheduleTitle = styled('h6')`
   color: ${p => p.theme.subText};
@@ -139,13 +221,13 @@ const TimelineRow = styled('li')`
   }
 `;
 
-const ScheduleName = styled('h6')`
-  font-size: ${p => p.theme.fontSizeMedium};
-  color: ${p => p.theme.subText};
-  display: flex;
-  align-items: center;
-  margin: 0;
-`;
+// const ScheduleName = styled('h6')`
+//   font-size: ${p => p.theme.fontSizeMedium};
+//   color: ${p => p.theme.subText};
+//   display: flex;
+//   align-items: center;
+//   margin: 0;
+// `;
 
 const ScheduleContainer = styled('div')`
   display: flex;

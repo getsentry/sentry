@@ -116,3 +116,13 @@ def check_leaked_responses_mocks():
             f"`responses` were leaked outside of the test context:\n{leaked_s}"
             f"(make sure to use `@responses.activate` or `with responses.mock:`)"
         )
+
+
+@pytest.fixture
+def captured_sent_emails():
+    from sentry.testutils.email import sent_messages
+    from sentry.testutils.helpers import override_options
+
+    sent_messages.clear()
+    with override_options({"mail.backend": "sentry.testutils.email.MockEmailBackend"}):
+        yield sent_messages
