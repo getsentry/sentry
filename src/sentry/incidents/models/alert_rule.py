@@ -366,7 +366,7 @@ class AlertRule(Model):
 
     def subscribe_projects(
         self,
-        projects: list[Project],
+        projects: Iterable[Project],
         monitor_type: AlertRuleMonitorTypeInt = AlertRuleMonitorTypeInt.CONTINUOUS,
         query_extra: str | None = None,
         activation_condition: AlertRuleActivationConditionType | None = None,

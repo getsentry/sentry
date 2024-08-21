@@ -1,10 +1,11 @@
 import logging
-from collections.abc import Collection
+from collections.abc import Collection, Iterable
 from datetime import timedelta
 
 from django.db import router, transaction
 
 from sentry.models.environment import Environment
+from sentry.models.project import Project
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.models import QuerySubscription, SnubaQuery, SnubaQueryEventType
 from sentry.snuba.tasks import (
@@ -134,7 +135,10 @@ def update_snuba_query(
 
 
 def bulk_create_snuba_subscriptions(
-    projects, subscription_type, snuba_query, query_extra: str | None = None
+    projects: Iterable[Project],
+    subscription_type: str,
+    snuba_query: SnubaQuery | None,
+    query_extra: str | None = None,
 ) -> list[QuerySubscription]:
     """
     Creates a subscription to a snuba query for each project.
@@ -155,7 +159,10 @@ def bulk_create_snuba_subscriptions(
 
 
 def create_snuba_subscription(
-    project, subscription_type, snuba_query, query_extra: str | None = None
+    project: Project,
+    subscription_type: str,
+    snuba_query: SnubaQuery | None,
+    query_extra: str | None = None,
 ) -> QuerySubscription:
     """
     Creates a subscription to a snuba query.
