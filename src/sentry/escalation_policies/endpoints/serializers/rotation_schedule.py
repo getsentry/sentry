@@ -101,6 +101,7 @@ class RotationScheduleLayerSerializerResponse(TypedDict, total=False):
 class RotationScheduleSerializerResponse(TypedDict, total=False):
     id: int
     name: str
+    description: str | None
     organizationId: int
     scheduleLayers: list[RotationScheduleLayerSerializerResponse]
     # Owner
@@ -203,6 +204,7 @@ class RotationScheduleSerializer(Serializer):
         return RotationScheduleSerializerResponse(
             id=obj.id,
             name=obj.name,
+            description=obj.description,
             organizationId=obj.organization.id,
             scheduleLayers=attrs["layers"],
             team=attrs["team"],

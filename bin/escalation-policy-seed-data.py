@@ -53,7 +53,7 @@ def seed_policy_data():
         org_id: int = 1
         team_count: int = 5
         user_count: int = 5
-        schedule_count: int = 5
+        schedule_count: int = 8
         policy_count: int = 5
 
         def ensure_team_and_user_pool(self):
@@ -146,6 +146,7 @@ def seed_policy_data():
             schedule = RotationSchedule(
                 organization=self.organization,
                 name=self.final_name,
+                description=self.final_desc,
             )
 
             self.org_context.contextualize_slug_or_user_id(
@@ -168,6 +169,62 @@ def seed_policy_data():
                 c += 1
                 name += " " + str(c)
             return name
+
+        @cached_property
+        def final_desc(self) -> str:
+            words = [
+                "liberty",
+                "kettle",
+                "courage",
+                "stand",
+                "satisfaction",
+                "compliance",
+                "work",
+                "voyage",
+                "district",
+                "dialogue",
+                "quit",
+                "management",
+                "standard",
+                "remain",
+                "graze",
+                "carpet",
+                "master",
+                "relevance",
+                "machinery",
+                "rubbish",
+                "singer",
+                "presidency",
+                "horn",
+                "activate",
+                "carry",
+                "sphere",
+                "shape",
+                "waiter",
+                "peasant",
+                "string",
+                "result",
+                "rhetoric",
+                "occasion",
+                "thanks",
+                "auction",
+                "dawn",
+                "head",
+                "wind",
+                "cater",
+                "brilliance",
+                "packet",
+                "unfair",
+                "wolf",
+                "loan",
+                "thick",
+                "strikebreaker",
+                "sunrise",
+                "minimum",
+                "resource",
+                "digital",
+            ]
+            return "This is a schedule for " + " ".join(random.choices(words, k=5))
 
         @cached_property
         def overrides(self) -> list[RotationScheduleOverride]:

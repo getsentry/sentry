@@ -34,6 +34,7 @@ export interface ScheduleLayer {
 
 export interface RotationSchedule {
   coalescedRotationPeriods: RotationPeriod[];
+  description: string;
   id: string;
   name: string;
   organizationId: string;

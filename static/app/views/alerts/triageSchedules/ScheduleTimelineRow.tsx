@@ -88,6 +88,7 @@ export function ScheduleTimelineRow({schedule, totalWidth, timeWindowConfig}: Pr
         <DetailsHeadline>
           <Name>{schedule.name}</Name>
         </DetailsHeadline>
+        <Description>{schedule.description}</Description>
       </DetailsArea>
       <OnRotationContainer>
         <ScheduleTitle>On Rotation Now:</ScheduleTitle>
@@ -188,6 +189,12 @@ const Name = styled('h3')`
   font-size: ${p => p.theme.fontSizeLarge};
   word-break: break-word;
   margin-bottom: ${space(0.5)};
+`;
+const Description = styled('h3')`
+  font-size: ${p => p.theme.fontSizeSmall};
+  word-break: break-word;
+  margin-bottom: ${space(0.5)};
+  font-weight: ${p => p.theme.fontWeightNormal};
 `;
 
 const ScheduleTitle = styled('h6')`
