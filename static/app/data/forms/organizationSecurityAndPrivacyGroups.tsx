@@ -111,6 +111,17 @@ const formGroups: JsonFormObject[] = [
         },
         visible: ({hasSsoEnabled}) => !hasSsoEnabled,
       },
+      {
+        name: 'githubActionOIDC',
+        type: 'string',
+        placeholder: t(
+          '{"organization": "getsentry", "repo": "sentry", "workflow-url": "release.yml"}'
+        ),
+        label: t('GitHub Actions OICD'),
+        help: t(
+          'Configuration for setting up GitHub Action`s OIDC. Format it like a JSON, with the organization and repo names as well as the `workflow-url` being the filename of the release workflow under `.github/workflows/`: i.e: {"organization": "getsentry", "repo": "sentry", "workflow-url": "release.yml"}'
+        ),
+      },
     ],
   },
   {
