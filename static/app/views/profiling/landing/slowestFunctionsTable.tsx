@@ -1,7 +1,7 @@
 import {Fragment, useCallback, useMemo, useState} from 'react';
 import {Link} from 'react-router';
 import styled from '@emotion/styled';
-import {clamp} from 'lodash';
+import clamp from 'lodash/clamp';
 
 import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
