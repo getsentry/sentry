@@ -82,7 +82,7 @@ function ConfigureIntegration({params, router, routes, location}: Props) {
   const {integrationId, providerKey} = params;
   const {
     data: config = {providers: []},
-    isLoading: isLoadingConfig,
+    isPending: isLoadingConfig,
     isError: isErrorConfig,
     refetch: refetchConfig,
     remove: removeConfig,
@@ -91,7 +91,7 @@ function ConfigureIntegration({params, router, routes, location}: Props) {
   }>([`/organizations/${organization.slug}/config/integrations/`], {staleTime: 0});
   const {
     data: integration,
-    isLoading: isLoadingIntegration,
+    isPending: isLoadingIntegration,
     isError: isErrorIntegration,
     refetch: refetchIntegration,
     remove: removeIntegration,
@@ -101,7 +101,7 @@ function ConfigureIntegration({params, router, routes, location}: Props) {
   );
   const {
     data: plugins,
-    isLoading: isLoadingPlugins,
+    isPending: isLoadingPlugins,
     isError: isErrorPlugins,
     refetch: refetchPlugins,
     remove: removePlugins,

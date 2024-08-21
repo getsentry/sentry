@@ -126,7 +126,7 @@ export default function SpanSummaryTable(props: Props) {
   const {
     data: rowData,
     pageLinks,
-    isLoading: isRowDataLoading,
+    isPending: isRowDataLoading,
   } = useSpansIndexed(
     {
       fields: [
@@ -161,7 +161,7 @@ export default function SpanSummaryTable(props: Props) {
   );
 
   const {
-    isLoading: isTxnDurationDataLoading,
+    isPending: isTxnDurationDataLoading,
     data: txnDurationData,
     isError: isTxnDurationError,
   } = useGenericDiscoverQuery<

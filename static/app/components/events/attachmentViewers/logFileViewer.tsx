@@ -11,7 +11,7 @@ import {space} from 'sentry/styles/space';
 import {useApiQuery} from 'sentry/utils/queryClient';
 
 function LogFileViewer(props: ViewerProps) {
-  const {data, isLoading, isError} = useApiQuery<string>(
+  const {data, isPending, isError} = useApiQuery<string>(
     [getAttachmentUrl(props), {headers: {Accept: '*/*; charset=utf-8'}}],
     {
       staleTime: Infinity,
@@ -22,7 +22,7 @@ function LogFileViewer(props: ViewerProps) {
     return <LoadingError message={t('Failed to download attachment.')} />;
   }
 
-  if (isLoading) {
+  if (isPending) {
     return <LoadingIndicator />;
   }
 

@@ -30,7 +30,7 @@ function ProjectSecurityHeaders() {
 
   const {
     data: keyList,
-    isLoading,
+    isPending,
     isError,
     refetch,
   } = useApiQuery<ProjectKey[]>([`/projects/${organization.slug}/${projectId}/keys/`], {
@@ -55,7 +55,7 @@ function ProjectSecurityHeaders() {
     [routes, params]
   );
 
-  if (isLoading) {
+  if (isPending) {
     return <LoadingIndicator />;
   }
 

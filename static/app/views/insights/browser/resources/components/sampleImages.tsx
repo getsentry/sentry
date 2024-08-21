@@ -39,7 +39,7 @@ function SampleImages({groupId, projectId}: Props) {
     usePerformanceGeneralProjectSettings(projectId);
   const isImagesEnabled = settings?.enable_images ?? false;
 
-  const {data: imageResources, isLoading: isLoadingImages} = useIndexedResourcesQuery({
+  const {data: imageResources, isPending: isLoadingImages} = useIndexedResourcesQuery({
     queryConditions: [
       `${SPAN_GROUP}:${groupId}`,
       ...(filters[SPAN_OP] ? [`${SPAN_OP}:${filters[SPAN_OP]}`] : []),

@@ -81,7 +81,7 @@ export function PagePerformanceTable() {
     data,
     meta,
     pageLinks,
-    isLoading: isTransactionWebVitalsQueryLoading,
+    isPending: isTransactionWebVitalsQueryLoading,
   } = useTransactionWebVitalsScoresQuery({
     limit: MAX_ROWS,
     transaction: query !== '' ? `*${escapeFilterValue(query)}*` : undefined,

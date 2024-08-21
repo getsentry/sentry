@@ -94,7 +94,7 @@ export function SlowestFunctionsTable() {
     <Fragment>
       <SlowestWidgetContainer>
         <ContentContainer>
-          {query.isLoading && (
+          {query.isPending && (
             <StatusContainer>
               <LoadingIndicator size={36} />
             </StatusContainer>
@@ -104,7 +104,7 @@ export function SlowestFunctionsTable() {
               <IconWarning data-test-id="error-indicator" color="gray300" size="lg" />
             </StatusContainer>
           )}
-          {!query.isError && !query.isLoading && !hasFunctions && (
+          {!query.isError && !query.isPending && !hasFunctions && (
             <EmptyStateWarning>
               <p>{t('No functions found')}</p>
             </EmptyStateWarning>

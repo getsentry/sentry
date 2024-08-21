@@ -45,7 +45,7 @@ export function UptimeRulesEdit({params, onChangeTitle, organization, project}: 
   const apiUrl = `/projects/${organization.slug}/${params.projectId}/uptime/${params.ruleId}/`;
 
   const {
-    isLoading,
+    isPending,
     isError,
     data: rule,
     error,
@@ -55,7 +55,7 @@ export function UptimeRulesEdit({params, onChangeTitle, organization, project}: 
     onSuccess: data => onChangeTitle(data[0]?.name ?? ''),
   });
 
-  if (isLoading) {
+  if (isPending) {
     return <LoadingIndicator />;
   }
 

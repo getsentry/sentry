@@ -69,7 +69,7 @@ export function useLoadGettingStarted({
 
   return {
     refetch: projectKeys.refetch,
-    isLoading: projectKeys.isLoading || module === undefined,
+    isLoading: projectKeys.isPending || module === undefined,
     isError: projectKeys.isError,
     docs: module === 'none' ? null : module?.default ?? null,
     dsn: projectKeys.data?.[0]?.dsn,
