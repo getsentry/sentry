@@ -169,12 +169,14 @@ function EscalationPolicyList() {
         <AlertHeader router={router} activeTab="policies" />
         <Layout.Body>
           <Layout.Main fullWidth>
-            {escalationPolicies.map((escalationPolicy: EscalationPolicy) => (
-              <EscalationPolicyTimeline
-                key={escalationPolicy.id}
-                policy={escalationPolicy}
-              />
-            ))}
+            <EscalationPolicyTimelineList>
+              {escalationPolicies.map((escalationPolicy: EscalationPolicy) => (
+                <EscalationPolicyTimeline
+                  key={escalationPolicy.id}
+                  policy={escalationPolicy}
+                />
+              ))}
+            </EscalationPolicyTimelineList>
           </Layout.Main>
         </Layout.Body>
         <Pagination
@@ -190,6 +192,12 @@ function EscalationPolicyList() {
     </Fragment>
   );
 }
+
+const EscalationPolicyTimelineList = styled('ul')`
+  display: flex;
+  flex-direction: column;
+  gap: ${space(2)};
+`;
 
 const IncidentCreatedTimelineItem = styled(Timeline.Item)`
   border-bottom: 1px solid transparent;
@@ -215,7 +223,7 @@ const EscalateAfterTimelineItem = styled(Timeline.Item)`
   }
 `;
 
-const EscalationPolicyContainer = styled('div')`
+const EscalationPolicyContainer = styled('li')`
   border: 1px solid ${p => p.theme.innerBorder};
   border-radius: 5px;
   padding: 15px;
