@@ -126,6 +126,7 @@ const desktop: Set<PlatformKey> = new Set([
   'dotnet-wpf',
   'electron',
   'flutter',
+  'godot',
   'java',
   'kotlin',
   'minidump',
