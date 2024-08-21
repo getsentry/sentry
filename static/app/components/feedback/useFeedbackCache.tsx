@@ -106,7 +106,7 @@ export default function useFeedbackCache() {
   );
 
   const invalidateListCache = useCallback(() => {
-    invalidateCachedListPage('all');
+    invalidateCachedListPage();
   }, [invalidateCachedListPage]);
 
   return {
