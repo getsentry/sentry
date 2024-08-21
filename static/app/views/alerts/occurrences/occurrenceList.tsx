@@ -17,11 +17,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 import useRouter from 'sentry/utils/useRouter';
 import AlertHeader from 'sentry/views/alerts/list/header';
 import {OccurrenceListRow} from 'sentry/views/alerts/occurrences/occurrenceListRow';
-import {useUpdateEscalationPolicyState} from 'sentry/views/escalationPolicies/mutations/useUpdateEscalationPolicyState';
-import {
-  type EscalationPolicyStateTypes,
-  useFetchEscationPolicyStates,
-} from 'sentry/views/escalationPolicies/queries/useFetchEscalationPolicyStates';
+import {useFetchEscationPolicyStates} from 'sentry/views/escalationPolicies/queries/useFetchEscalationPolicyStates';
 
 /* COPIED FROM sentry/views/alerts/rules/alertRulesList */
 const StyledLoadingError = styled(LoadingError)`
@@ -35,7 +31,7 @@ const StyledPanelTable = styled(PanelTable)`
     overflow: initial;
   }
 
-  grid-template-columns: minmax(250px, 4fr) auto auto 60px auto;
+  grid-template-columns: 500px 150px auto auto 100px;
   white-space: nowrap;
   font-size: ${p => p.theme.fontSizeMedium};
 `;
@@ -82,22 +78,6 @@ function OccurrencesPage() {
 
   /* END COPY */
 
-  const {mutateAsync: updateEscalationPolicyState} = useUpdateEscalationPolicyState({
-    onSuccess: () => {
-      refetch();
-    },
-  });
-
-  const handleStatusChange = async (id: number, state: EscalationPolicyStateTypes) => {
-    await updateEscalationPolicyState({
-      escalationPolicyStateId: id,
-      orgSlug: organization.id,
-      state: state,
-    });
-
-    return id + status;
-  };
-
   return (
     <Fragment>
       <SentryDocumentTitle title={t('Occurrences')} orgSlug={organization.slug} />
@@ -111,6 +91,7 @@ function OccurrencesPage() {
               isEmpty={escalationPolicyStates.length === 0 && !isError}
               emptyMessage={t('No occurrences found for the current query.')}
               headers={[
+                t('Title'),
                 <StyledSortLink
                   key="status"
                   role="columnheader"
@@ -133,8 +114,6 @@ function OccurrencesPage() {
                 >
                   {t('Status')} {sort.field === 'status' ? sortArrow : null}
                 </StyledSortLink>,
-
-                t('Title'),
 
                 <StyledSortLink
                   key="created"
@@ -171,7 +150,6 @@ function OccurrencesPage() {
                     <OccurrenceListRow
                       key={policyState.id}
                       escalationPolicyState={policyState}
-                      onStatusChange={handleStatusChange}
                     />
                   );
                 })}

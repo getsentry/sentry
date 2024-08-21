@@ -52,10 +52,20 @@ export const useUpdateEscalationPolicyState = (
         }
       ),
     onSuccess: (escalationPolicyState, parameters, context) => {
-      setApiQueryData<EscalationPolicyState>(
+      setApiQueryData<EscalationPolicyState[]>(
         queryClient,
         makeFetchEscalationPolicyStatesKey({orgSlug: parameters.orgSlug}),
-        escalationPolicyState // Update the cache with the new escalationPolicy
+        oldData => {
+          if (!Array.isArray(oldData)) {
+            return oldData;
+          }
+
+          return oldData.map(policyState =>
+            policyState.id === escalationPolicyState.id
+              ? escalationPolicyState
+              : policyState
+          );
+        }
       );
       options.onSuccess?.(escalationPolicyState, parameters, context);
     },

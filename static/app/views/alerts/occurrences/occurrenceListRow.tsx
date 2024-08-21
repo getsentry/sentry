@@ -1,13 +1,19 @@
+import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import Access from 'sentry/components/acl/access';
+import Tag from 'sentry/components/badge/tag';
 import {DropdownMenu, type MenuItemProps} from 'sentry/components/dropdownMenu';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import Link from 'sentry/components/links/link';
+import LoadingIndicator from 'sentry/components/loadingIndicator';
+import Text from 'sentry/components/text';
 import TimeSince from 'sentry/components/timeSince';
 import {IconEllipsis} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import useOrganization from 'sentry/utils/useOrganization';
+import {useUpdateEscalationPolicyState} from 'sentry/views/escalationPolicies/mutations/useUpdateEscalationPolicyState';
 import type {
   EscalationPolicyState,
   EscalationPolicyStateTypes,
@@ -26,17 +32,31 @@ const ActionsColumn = styled('div')`
 
 type Props = {
   escalationPolicyState: EscalationPolicyState;
-  onStatusChange: (id: number, state: EscalationPolicyStateTypes) => void;
 };
 
-export function OccurrenceListRow({escalationPolicyState, onStatusChange}: Props) {
+export function OccurrenceListRow({escalationPolicyState}: Props) {
+  const org = useOrganization();
+
+  const {mutateAsync: updateEscalationPolicyState, isLoading: isStatusLoading} =
+    useUpdateEscalationPolicyState({});
+
+  const handleStatusChange = async (id: number, state: EscalationPolicyStateTypes) => {
+    await updateEscalationPolicyState({
+      escalationPolicyStateId: id,
+      orgSlug: org.slug,
+      state: state,
+    });
+
+    return id + status;
+  };
+
   const actions: MenuItemProps[] = [
     {
       key: 'acknowledge',
       label: t('Acknowledge'),
       hidden: escalationPolicyState.state === 'acknowledged',
       onAction: () => {
-        onStatusChange(escalationPolicyState.id, 'acknowledged');
+        handleStatusChange(escalationPolicyState.id, 'acknowledged');
       },
     },
     {
@@ -44,30 +64,33 @@ export function OccurrenceListRow({escalationPolicyState, onStatusChange}: Props
       label: t('Unacknowledge'),
       hidden: escalationPolicyState.state === 'unacknowledged',
       onAction: () => {
-        onStatusChange(escalationPolicyState.id, 'unacknowledged');
+        handleStatusChange(escalationPolicyState.id, 'unacknowledged');
       },
     },
     {
       key: 'resolve',
       label: t('Resolve'),
       hidden: escalationPolicyState.state === 'resolved',
-      // priority: 'danger',
+      priority: 'primary',
       onAction: () => {
-        onStatusChange(escalationPolicyState.id, 'resolved');
+        handleStatusChange(escalationPolicyState.id, 'resolved');
       },
     },
   ];
 
   return (
     <ErrorBoundary>
-      <div>{escalationPolicyState.state}</div>
-      <div>
-        <Link to={'/issues/' + escalationPolicyState.group.id}>
+      <OccurrenceNameWrapper>
+        <Link to={`/organizations/${org.slug}/issues/` + escalationPolicyState.group.id}>
           {escalationPolicyState.group.title}
         </Link>
-      </div>
-      <TimeSince date={escalationPolicyState.dateAdded} />
-      <div>{escalationPolicyState.escalationPolicy.name}</div>
+      </OccurrenceNameWrapper>
+      <EscalationPolicyStateBadge
+        state={escalationPolicyState.state}
+        loading={isStatusLoading}
+      />
+      <StyledTimeSince date={escalationPolicyState.dateAdded} />
+      <StyledText>{escalationPolicyState.escalationPolicy.name}</StyledText>
 
       <ActionsColumn>
         <Access access={['alerts:write']}>
@@ -89,3 +112,80 @@ export function OccurrenceListRow({escalationPolicyState, onStatusChange}: Props
     </ErrorBoundary>
   );
 }
+
+function EscalationPolicyStateBadge({
+  state,
+  loading,
+}: {
+  loading: boolean;
+  state: EscalationPolicyStateTypes;
+}) {
+  const innerText =
+    state === 'unacknowledged'
+      ? t('Unacked')
+      : state === 'acknowledged'
+        ? t('Acked')
+        : t('Resolved');
+
+  const tagType = loading
+    ? 'default'
+    : state === 'unacknowledged'
+      ? 'error'
+      : state === 'acknowledged'
+        ? 'warning'
+        : 'success';
+
+  return (
+    <div style={{display: 'block'}}>
+      <StyledTag
+        type={tagType}
+        icon={
+          loading && (
+            <Fragment>
+              <StyledLoadingIndicator mini hideMessage relative size={16} />
+            </Fragment>
+          )
+        }
+      >
+        {!loading && innerText}
+      </StyledTag>
+    </div>
+  );
+}
+
+const StyledTag = styled(Tag)`
+  span {
+    display: flex;
+    align-items: center;
+    gap: ${space(0.5)};
+  }
+
+  & > div {
+    height: 24px;
+    padding: ${space(1)};
+  }
+`;
+
+const OccurrenceNameWrapper = styled('div')`
+  ${p => p.theme.overflowEllipsis}
+  display: flex;
+  align-items: center;
+  width: fit-content;
+`;
+
+const StyledLoadingIndicator = styled(LoadingIndicator)`
+  display: inline-flex;
+  align-items: center;
+  margin: 0;
+  padding: 0;
+`;
+
+const StyledTimeSince = styled(TimeSince)`
+  display: flex;
+  align-items: center;
+`;
+
+const StyledText = styled(Text)`
+  display: flex;
+  align-items: center;
+`;
