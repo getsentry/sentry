@@ -117,6 +117,7 @@ class StrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
     def handle_deadletter_at(self) -> None:
         from sentry.taskworker.models import PendingTasks
 
+        # Require a completed task with a higher offset to be present
         max_completed_id = (
             PendingTasks.objects.filter(state=PendingTasks.States.COMPLETE).aggregate(
                 max_offset=Max("offset")
@@ -126,9 +127,9 @@ class StrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
         expired_qs = PendingTasks.objects.filter(
             deadletter_at__lt=timezone.now(),
             offset__lt=max_completed_id,
-        ).exclude(state=PendingTasks.States.COMPLETE)
-
-        # Messages that exceeded their deadletter_at are failures
+            state=PendingTasks.States.PENDING,
+        )
+        # Messages that are still pending and exceeded their deadletter_at are failures
         updated = expired_qs.update(state=PendingTasks.States.FAILURE)
         logger.info("task.deadletter_at", extra={"count": updated})
 
@@ -144,7 +145,10 @@ class StrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
                 to_update.append(item.id)
 
         # Move processing deadline tasks back to pending
-        PendingTasks.objects.filter(id__in=to_update).update(state=PendingTasks.States.PENDING)
+        PendingTasks.objects.filter(id__in=to_update).update(
+            state=PendingTasks.States.PENDING,
+            processing_deadline=None,
+        )
         logger.info("task.processingdeadline", extra={"count": len(to_update)})
 
     def handle_failed_tasks(self) -> None:
@@ -165,7 +169,7 @@ class StrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
 
         # TODO do deadletter delivery
         PendingTasks.objects.filter(id__in=to_deadletter).update(state=PendingTasks.States.COMPLETE)
-        logger.info("task.failed.deadletter", extra={"count": len(to_discard)})
+        logger.info("task.failed.deadletter", extra={"count": len(to_deadletter)})
 
     def create_with_partitions(
         self, commit: Commit, partitions: Mapping[Partition, int]
