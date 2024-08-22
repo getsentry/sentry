@@ -59,8 +59,8 @@ function GroupReleaseStats({
         : '',
     ],
     {
-      staleTime: 30000,
-      gcTime: 30000,
+      staleTime: 1000 * 60 * 60,
+      gcTime: 1000 * 60 * 60,
     }
   );
 

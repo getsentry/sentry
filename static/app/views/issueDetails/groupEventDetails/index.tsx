@@ -23,6 +23,7 @@ export interface GroupEventDetailsProps
 }
 
 export function GroupEventDetailsContainer(props: GroupEventDetailsProps) {
+  console.log('hello');
   return <GroupEventDetails {...props} />;
 }
 

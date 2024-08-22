@@ -4,6 +4,7 @@ import {persistQueryClient} from '@tanstack/react-query-persist-client';
 
 const DEFAULT_QUERY_CLIENT_CONFIG = {
   defaultOptions: {
+    gcTime: 1000 * 60 * 60 * 24, // 24 hours
     queries: {
       refetchOnWindowFocus: false,
     },

@@ -72,6 +72,7 @@ const isPolling = (autofixData?: AutofixData | null) =>
 export const useAutofixData = ({groupId}: {groupId: string}) => {
   const {data} = useApiQuery<AutofixResponse>(makeAutofixQueryKey(groupId), {
     staleTime: Infinity,
+    gcTime: Infinity,
     enabled: false,
     notifyOnChangeProps: ['data'],
   });
@@ -86,14 +87,15 @@ export const useAiAutofix = (group: GroupWithAutofix, event: Event) => {
   const [isReset, setIsReset] = useState<boolean>(false);
 
   const {data: apiData} = useApiQuery<AutofixResponse>(makeAutofixQueryKey(group.id), {
-    staleTime: 0,
+    staleTime: Infinity,
+    gcTime: Infinity,
     retry: false,
-    refetchInterval: data => {
-      if (isPolling(data?.[0]?.autofix)) {
-        return POLL_INTERVAL;
-      }
-      return false;
-    },
+    // refetchInterval: data => {
+    //   if (isPolling(data?.[0]?.autofix)) {
+    //     return POLL_INTERVAL;
+    //   }
+    //   return false;
+    // },
   });
 
   const triggerAutofix = useCallback(

@@ -41,6 +41,7 @@ export function useGroupSummary(groupId: string) {
     makeGroupSummaryQueryKey(organization.slug, groupId),
     {
       staleTime: Infinity, // Cache the result indefinitely as it's unlikely to change if it's already computed
+      gcTime: 1000 * 60 * 60,
     }
   );
 }

@@ -57,8 +57,8 @@ export default function StreamlinedGroupHeader({
   const {data: groupReleaseData} = useApiQuery<GroupRelease>(
     [`/organizations/${organization.slug}/issues/${group.id}/first-last-release/`],
     {
-      staleTime: 30000,
-      gcTime: 30000,
+      staleTime: 1000 * 60 * 60,
+      gcTime: 1000 * 60 * 60,
     }
   );
 

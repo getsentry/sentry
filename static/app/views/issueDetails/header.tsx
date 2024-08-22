@@ -16,7 +16,6 @@ import {GroupStatusBadge} from 'sentry/components/group/inboxBadges/statusBadge'
 import * as Layout from 'sentry/components/layouts/thirds';
 import Link from 'sentry/components/links/link';
 import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
-import ReplayCountBadge from 'sentry/components/replays/replayCountBadge';
 import {TabList} from 'sentry/components/tabs';
 import {IconChat} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -28,9 +27,7 @@ import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
-import useReplayCountForIssues from 'sentry/utils/replayCount/useReplayCountForIssues';
 import {projectCanLinkToReplay} from 'sentry/utils/replays/projectSupportsReplay';
-import useRouteAnalyticsParams from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import GroupPriority from 'sentry/views/issueDetails/groupPriority';
@@ -64,10 +61,10 @@ export function GroupHeaderTabs({
   const organization = useOrganization();
   const location = useLocation();
 
-  const {getReplayCountForIssue} = useReplayCountForIssues({
-    statsPeriod: '90d',
-  });
-  const replaysCount = getReplayCountForIssue(group.id, group.issueCategory);
+  // const {getReplayCountForIssue} = useReplayCountForIssues({
+  //   statsPeriod: '90d',
+  // });
+  // const replaysCount = getReplayCountForIssue(group.id, group.issueCategory);
 
   // omit `sort` param from the URLs because it persists from the issues list,
   // which can cause the tab content rendering to break
@@ -84,9 +81,9 @@ export function GroupHeaderTabs({
 
   const issueTypeConfig = getConfigForIssueType(group, project);
 
-  useRouteAnalyticsParams({
-    group_has_replay: (replaysCount ?? 0) > 0,
-  });
+  // useRouteAnalyticsParams({
+  //   group_has_replay: (replaysCount ?? 0) > 0,
+  // });
 
   useEffect(() => {
     if (group.issueType === IssueType.REPLAY_HYDRATION_ERROR) {
@@ -173,7 +170,6 @@ export function GroupHeaderTabs({
         to={{pathname: `${baseUrl}replays/`, query: queryParams}}
       >
         {t('Replays')}
-        <ReplayCountBadge count={replaysCount} />
       </TabList.Item>
     </StyledTabList>
   );

@@ -71,7 +71,7 @@ function withRelease<P extends DependentProps>(WrappedComponent: React.Component
         (!releaseData.deploys && !releaseData.deploysLoading) ||
         releaseData.deploysError
       ) {
-        getReleaseDeploys(api, {orgSlug, projectSlug, releaseVersion});
+        // getReleaseDeploys(api, {orgSlug, projectSlug, releaseVersion});
       }
     }
 

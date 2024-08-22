@@ -221,7 +221,7 @@ export const useFetchIssueTagsForDetailsPage = (
       isStatisticalDetector,
       statisticalDetectorParameters,
     },
-    {enabled}
+    {enabled, staleTime: 1000 * 60 * 60, gcTime: 1000 * 60 * 60}
   );
 };
 

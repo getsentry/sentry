@@ -37,7 +37,8 @@ export function useAutofixSetup(
 ) {
   const queryData = useApiQuery<AutofixSetupResponse>(makeAutofixSetupQueryKey(groupId), {
     enabled: Boolean(groupId),
-    staleTime: 0,
+    staleTime: Infinity,
+    gcTime: Infinity,
     retry: false,
     ...options,
   });
