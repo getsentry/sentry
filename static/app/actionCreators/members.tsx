@@ -3,6 +3,7 @@ import * as Sentry from '@sentry/react';
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import type {Client} from 'sentry/api';
 import {t} from 'sentry/locale';
+import {queryClient} from 'sentry/queryClient';
 import MemberListStore from 'sentry/stores/memberListStore';
 import type {Member} from 'sentry/types/organization';
 import type {User} from 'sentry/types/user';
@@ -23,7 +24,11 @@ export async function fetchOrgMembers(
   const query = projectIds ? {project: projectIds} : {};
 
   try {
-    const members = await api.requestPromise(endpoint, {method: 'GET', query});
+    const members = await queryClient.ensureQueryData({
+      queryKey: [endpoint, query],
+      queryFn: () => api.requestPromise(endpoint, {method: 'GET', query}),
+      gcTime: 1000 * 60 * 60,
+    });
 
     if (!members) {
       // This shouldn't happen if the request was successful
