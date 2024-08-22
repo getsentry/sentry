@@ -2,11 +2,11 @@ import type {ColorConfig} from 'sentry/components/timeline';
 import {IconFire, IconLightning, IconLock, IconStar, IconSubscribed} from 'sentry/icons';
 import {type NotificationHistory, NotificationType} from 'sentry/types/notifications';
 
-export function getNotificationData(notification: NotificationHistory): {
+export function getNotificationData(source: NotificationHistory['source']): {
   colorConfig: ColorConfig;
   icon: React.ReactNode;
 } {
-  switch (notification.source) {
+  switch (source) {
     case NotificationType.DEPLOY:
       return {
         icon: <IconLightning size="xs" />,

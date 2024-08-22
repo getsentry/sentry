@@ -1,4 +1,5 @@
 import styled from '@emotion/styled';
+import {motion, type Variants} from 'framer-motion';
 import moment from 'moment';
 
 import OrganizationAvatar from 'sentry/components/avatar/organizationAvatar';
@@ -27,12 +28,21 @@ import useMutateInAppNotification from 'sentry/utils/useMutateInAppNotification'
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useProjects from 'sentry/utils/useProjects';
 
+const variants: Variants = {
+  enter: {
+    opacity: 1,
+    x: 0,
+    transition: {type: 'spring', stiffness: 300, damping: 24},
+  },
+  exit: {opacity: 0, x: 20, transition: {duration: 0.2}},
+};
+
 export function NotificationItem({notification}: {notification: NotificationHistory}) {
   const navigate = useNavigate();
   const {mutate: updateNotif} = useMutateInAppNotification({
     notifId: notification.id,
   });
-  const {colorConfig: notifColorConfig, icon} = getNotificationData(notification);
+  const {colorConfig: notifColorConfig, icon} = getNotificationData(notification.source);
 
   const isUnread = notification.status === NotificationHistoryStatus.UNREAD;
   const isArchived = notification.status === NotificationHistoryStatus.ARCHIVED;
@@ -46,23 +56,9 @@ export function NotificationItem({notification}: {notification: NotificationHist
   const notifTime = new Date(notification.date_added);
 
   return (
-    <Container>
+    <Container layout variants={variants} initial="exit" animate="enter" exit="exit">
       <NotificationCrumbs notification={notification} />
       <NotificationControls>
-        <NotificationControl
-          borderless
-          icon={<IconShow isHidden={!isUnread} />}
-          size="xs"
-          title={isUnread ? t('Mark as Read') : t('Mark Unread')}
-          aria-label={isUnread ? t('Mark as Read') : t('Mark Unread')}
-          onClick={() =>
-            updateNotif({
-              status: isUnread
-                ? NotificationHistoryStatus.READ
-                : NotificationHistoryStatus.UNREAD,
-            })
-          }
-        />
         <NotificationControl
           borderless
           icon={<IconArchive />}
@@ -74,6 +70,20 @@ export function NotificationItem({notification}: {notification: NotificationHist
               status: isArchived
                 ? NotificationHistoryStatus.READ
                 : NotificationHistoryStatus.ARCHIVED,
+            })
+          }
+        />
+        <NotificationControl
+          borderless
+          icon={<IconShow isHidden={!isUnread} />}
+          size="xs"
+          title={isUnread ? t('Mark as Read') : t('Mark Unread')}
+          aria-label={isUnread ? t('Mark as Read') : t('Mark Unread')}
+          onClick={() =>
+            updateNotif({
+              status: isUnread
+                ? NotificationHistoryStatus.READ
+                : NotificationHistoryStatus.UNREAD,
             })
           }
         />
@@ -94,19 +104,23 @@ export function NotificationItem({notification}: {notification: NotificationHist
         title={
           <Title isUnread={isUnread}>
             <div>{notification.title}</div>
+            <NotificationTimestamp>
+              <Tooltip
+                title={
+                  <DateTime date={notifTime} format={`ll - ${absoluteFormat} (z)`} />
+                }
+              >
+                <Duration
+                  seconds={moment(now).diff(moment(notifTime), 's')}
+                  abbreviation
+                />
+                {t(' ago')}
+              </Tooltip>
+            </NotificationTimestamp>
             <NotificationBadge text={notification.source} colorConfig={colorConfig} />
           </Title>
         }
         isActive
-        timestamp={
-          <NotificationTimestamp>
-            <Tooltip
-              title={<DateTime date={notifTime} format={`ll - ${absoluteFormat} (z)`} />}
-            >
-              <Duration seconds={moment(notifTime).diff(moment(now), 's')} abbreviation />
-            </Tooltip>
-          </NotificationTimestamp>
-        }
       >
         <Content isUnread={isUnread}>{notification.description}</Content>
         <NotificationActionBar notification={notification} />
@@ -156,7 +170,7 @@ function NotificationCrumbs({notification}: {notification: NotificationHistory})
   return <NotificationBreadcrumbBar crumbs={crumbs} />;
 }
 
-const Container = styled('div')`
+const Container = styled(motion.div)`
   border: 1px solid ${p => p.theme.border};
   border-radius: ${p => p.theme.borderRadius};
   overflow: hidden;
@@ -203,7 +217,8 @@ const Content = styled('div')<{isUnread: boolean}>`
 
 const Title = styled('div')<{isUnread: boolean}>`
   display: grid;
-  grid-template-columns: 1fr auto;
+  grid-template-columns: 1fr auto auto;
+  gap: ${space(1)};
   justify-content: space-between;
   font-weight: ${p => (p.isUnread ? p.theme.fontWeightBold : p.theme.fontWeightNormal)};
   color: ${p => (p.isUnread ? p.theme.textColor : p.theme.subText)};
@@ -219,7 +234,7 @@ const NotificationBadge = styled(Badge)<{colorConfig: ColorConfig}>`
 
 const NotificationTimestamp = styled(Timestamp)`
   height: 20px;
-  line-height: inherit;
+  font-weight: ${p => p.theme.fontWeightNormal};
   min-width: 0;
   display: flex;
   justify-content: center;

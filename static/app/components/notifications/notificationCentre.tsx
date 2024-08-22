@@ -1,13 +1,14 @@
 import {Fragment, useMemo, useState} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
+import {AnimatePresence, motion} from 'framer-motion';
 
 import waitingForEventImg from 'sentry-images/spot/waiting-for-event.svg';
 
 import Badge from 'sentry/components/badge/badge';
 import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
-import {CompactSelect} from 'sentry/components/compactSelect';
+import {CompactSelect, type SelectOption} from 'sentry/components/compactSelect';
 import {Flex} from 'sentry/components/container/flex';
 import {
   BreadcrumbDrawerBody,
@@ -17,11 +18,13 @@ import {
 import {InputGroup} from 'sentry/components/inputGroup';
 import {NotificationItem} from 'sentry/components/notifications/notificationItem';
 import {useUserInAppNotifications} from 'sentry/components/notifications/useUserInAppNotifications';
+import {getNotificationData} from 'sentry/components/notifications/util';
 import {SegmentedControl} from 'sentry/components/segmentedControl';
 import {IconFilter, IconSearch} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {
+  type NotificationHistory,
   NotificationHistoryStatus,
   NotificationMailboxes,
 } from 'sentry/types/notifications';
@@ -41,15 +44,18 @@ export function NotificationCentre({}: NotificationCentreProps) {
     search === '' && sources.length === 0 && mailbox !== NotificationMailboxes.ARCHIVED;
 
   const sourceOptions = useMemo(() => {
-    const allUniqueSources = notifs.reduce<Set<string>>(
+    const allUniqueSources = notifs.reduce<Set<NotificationHistory['source']>>(
       (uniqueSources, notif) => new Set([...uniqueSources, notif.source]),
-      new Set<string>()
+      new Set()
     );
-
-    return [...allUniqueSources, ...['tester', 'email', 'other']].map(source => ({
-      value: source,
-      label: toTitleCase(source),
-    }));
+    return [...allUniqueSources].map<SelectOption<string>>(source => {
+      const {icon} = getNotificationData(source as any);
+      return {
+        value: source,
+        label: toTitleCase(source),
+        leadingItems: icon,
+      };
+    });
   }, [notifs]);
 
   const displayNotifs = useMemo(() => {
@@ -150,16 +156,18 @@ export function NotificationCentre({}: NotificationCentreProps) {
     <DrawerContainer>
       <BreadcrumbDrawerHeader>
         <Header>
-          {t('Notification Centre')}
+          {t('Notifications')}
           {actions}
         </Header>
       </BreadcrumbDrawerHeader>
       {displayNotifs.length ? (
         <BreadcrumbDrawerBody>
           <NotificationContainer>
-            {displayNotifs.map(notification => (
-              <NotificationItem key={notification.id} notification={notification} />
-            ))}
+            <AnimatePresence>
+              {displayNotifs.map(notification => (
+                <NotificationItem key={notification.id} notification={notification} />
+              ))}
+            </AnimatePresence>
           </NotificationContainer>
         </BreadcrumbDrawerBody>
       ) : (
@@ -203,7 +211,7 @@ const DrawerContainer = styled('div')`
   grid-template-rows: auto 1fr;
 `;
 
-const NotificationContainer = styled('div')`
+const NotificationContainer = styled(motion.div)`
   padding: 0 ${space(1)};
 `;
 
