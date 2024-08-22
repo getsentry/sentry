@@ -3,12 +3,13 @@ import styled from '@emotion/styled';
 import type {User} from '@sentry/types';
 
 import UserAvatar from 'sentry/components/avatar/userAvatar';
-// import ParticipantList from 'sentry/components/group/streamlinedParticipantList';
+import {IconArrow} from 'sentry/icons';
 import {space} from 'sentry/styles/space';
 import type {
   RotationPeriod,
   RotationSchedule,
 } from 'sentry/views/escalationPolicies/queries/useFetchRotationSchedules';
+import {OverflowEllipsisTextContainer} from 'sentry/views/insights/common/components/textAlign';
 import type {TimeWindowConfig} from 'sentry/views/monitors/components/timeline/types';
 
 interface Props {
@@ -123,9 +124,25 @@ function ScheduleTimeline({
   width: number;
 }) {
   let currPosition = 0;
+
+  const tooltipContent = (userName: string, startTime: Date, endTime: Date) => {
+    return (
+      <div style={{display: 'flex', alignItems: 'center', flexDirection: 'column'}}>
+        <OverflowEllipsisTextContainer style={{maxWidth: '200px'}}>
+          {userName}
+        </OverflowEllipsisTextContainer>
+        <div style={{display: 'flex', alignItems: 'center'}}>
+          {startTime.toLocaleDateString()}
+          <StyledIconArrow direction="right" />
+          {endTime.toLocaleDateString()}
+        </div>
+      </div>
+    );
+  };
+
   return (
     <TimelineContainer>
-      {periods.map(({percentage, userId}, index) => {
+      {periods.map(({percentage, userId, startTime, endTime}, index) => {
         const periodWidth = (percentage || 0) * width;
         currPosition += periodWidth;
         return userId ? (
@@ -137,7 +154,12 @@ function ScheduleTimeline({
             }}
             key={index}
           >
-            <UserAvatar style={{fillOpacity: 1.0}} user={users[userId]} />
+            <UserAvatar
+              style={{fillOpacity: 1.0}}
+              user={users[userId]}
+              hasTooltip
+              tooltip={tooltipContent(users[userId].name, startTime, endTime)}
+            />
             {/* {userId && <ScheduleName>{users[userId].name}</ScheduleName>} */}
           </SchedulePeriod>
         ) : null;
@@ -211,6 +233,7 @@ const TimelineRow = styled('li')`
 
   display: grid;
   grid-template-columns: subgrid;
+  border-bottom: 1px solid ${p => p.theme.innerBorder};
 
   /* Disabled monitors become more opaque */
   --disabled-opacity: unset;
@@ -220,14 +243,6 @@ const TimelineRow = styled('li')`
     border-bottom-right-radius: ${p => p.theme.borderRadius};
   }
 `;
-
-// const ScheduleName = styled('h6')`
-//   font-size: ${p => p.theme.fontSizeMedium};
-//   color: ${p => p.theme.subText};
-//   display: flex;
-//   align-items: center;
-//   margin: 0;
-// `;
 
 const ScheduleContainer = styled('div')`
   display: flex;
@@ -249,4 +264,8 @@ const OnRotationContainer = styled('div')`
   flex-direction: column;
   border-right: 1px solid ${p => p.theme.innerBorder};
   text-align: left;
+`;
+
+const StyledIconArrow = styled(IconArrow)`
+  margin: 0 ${space(0.5)};
 `;
