@@ -14,6 +14,7 @@ import type {Organization} from 'sentry/types/organization';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 import {DataSecrecy} from 'sentry/views/settings/components/dataSecrecy';
+import DataSecrecy2 from 'sentry/views/settings/components/dataSecrecy/index2';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 
 import {DataScrubbing} from '../components/dataScrubbing';
@@ -62,6 +63,7 @@ export default function OrganizationSecurityAndPrivacyContent() {
     <Fragment>
       <SentryDocumentTitle title={title} orgSlug={organization.slug} />
       <SettingsPageHeader title={title} />
+
       <Form
         data-test-id="organization-settings-security-and-privacy"
         apiMethod="PUT"
@@ -80,7 +82,10 @@ export default function OrganizationSecurityAndPrivacyContent() {
           additionalFieldProps={{showDataSecrecySettings}}
         />
       </Form>
-      {showDataSecrecySettings && <DataSecrecy />}
+
+      {!showDataSecrecySettings && <DataSecrecy />}
+      {!showDataSecrecySettings && <DataSecrecy2 />}
+
       <Form
         data-test-id="organization-settings-security-and-privacy"
         apiMethod="PUT"
@@ -96,9 +101,9 @@ export default function OrganizationSecurityAndPrivacyContent() {
           features={features}
           forms={[dataScrubbingFormConfig]}
           disabled={!organization.access.includes('org:write')}
-          additionalFieldProps={{showDataSecrecySettings}}
         />
       </Form>
+
       <DataScrubbing
         additionalContext={t('These rules can be configured for each project.')}
         endpoint={endpoint}
@@ -107,7 +112,6 @@ export default function OrganizationSecurityAndPrivacyContent() {
         disabled={!organization.access.includes('org:write')}
         onSubmitSuccess={data => handleUpdateOrganization({...organization, ...data})}
       />
-      {showDataSecrecySettings && <DataSecrecy />}
     </Fragment>
   );
 }
