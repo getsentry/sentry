@@ -67,6 +67,8 @@ class TaskNamespace:
                 deadline=deadline,
                 retry=retry,
             )
+            # TODO tasks should be registered into the registry
+            # so that we can ensure task names are globally unique
             self.__registered_tasks[name] = task
             return task
 
@@ -121,7 +123,9 @@ class TaskRegistry:
     def get_task(self, namespace: str, task: str) -> Task:
         return self.get(namespace).get(task)
 
-    def create_namespace(self, name: str, topic: str, deadletter_topic: str, retry: Retry | None = None):
+    def create_namespace(
+        self, name: str, topic: str, deadletter_topic: str, retry: Retry | None = None
+    ):
         # TODO So much
         # - validate topic names
         # - validate deadletter topic

@@ -1,5 +1,9 @@
 from __future__ import annotations
 
+import logging
+
+logger = logging.getLogger(__name__)
+
 from sentry.conf.types.kafka_definition import Topic
 from sentry.taskworker.config import taskregistry
 from sentry.taskworker.retry import Retry
@@ -13,8 +17,7 @@ demotasks = taskregistry.create_namespace(
 
 @demotasks.register(name="demos.say_hello")
 def say_hello(name):
-    """Say hello to a name"""
-    print(f"hello {name}")
+    logger.info("hello %s", name)
 
 
 @demotasks.register(name="demos.broken", retry=Retry(times=5, on=(KeyError,)))
@@ -24,4 +27,4 @@ def broken(runtime: str):
         raise ValueError("it went boom")
     if runtime == "safeboom":
         raise KeyError("it went safeboom retry")
-    print(f"runtime {runtime}")
+    logger.info("runtime %s", runtime)
