@@ -1,10 +1,13 @@
 from __future__ import annotations
 
+from sentry.conf.types.kafka_definition import Topic
 from sentry.taskworker.config import taskregistry
 from sentry.taskworker.retry import Retry
 
 demotasks = taskregistry.create_namespace(
-    name="demos", topic="hackweek", deadletter_topic="hackweek-dlq", retry=None
+    name="demos",
+    topic=Topic.HACKWEEK.value,
+    deadletter_topic=Topic.HACKWEEK_DLQ.value,
 )
 
 
