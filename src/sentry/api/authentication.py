@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import hashlib
+import logging
 import random
 from collections.abc import Callable, Iterable
 from typing import Any, ClassVar
@@ -43,6 +44,8 @@ from sentry.users.services.user.service import user_service
 from sentry.utils.linksign import process_signature
 from sentry.utils.sdk import Scope
 from sentry.utils.security.orgauthtoken_token import SENTRY_ORG_AUTH_TOKEN_PREFIX, hash_token
+
+logger = logging.getLogger(__name__)
 
 
 class AuthenticationSiloLimit(SiloLimit):
@@ -392,6 +395,8 @@ class UserAuthTokenAuthentication(StandardAuthentication):
                     return api_token
 
     def accepts_auth(self, auth: list[bytes]) -> bool:
+        logger.error(f"AUTH {auth}")
+
         if not super().accepts_auth(auth):
             return False
 
@@ -401,9 +406,16 @@ class UserAuthTokenAuthentication(StandardAuthentication):
             return True
 
         token_str = force_str(auth[1])
-        return not token_str.startswith(SENTRY_ORG_AUTH_TOKEN_PREFIX)
+        user_auth_result = not token_str.startswith(SENTRY_ORG_AUTH_TOKEN_PREFIX)
+        startswith = token_str.startswith(SENTRY_ORG_AUTH_TOKEN_PREFIX)
+        logger.error(
+            f"USE USER AUTH? {user_auth_result} | prefix {SENTRY_ORG_AUTH_TOKEN_PREFIX} | token_str {token_str} | startswith {startswith}"
+        )
+
+        return user_auth_result
 
     def authenticate_token(self, request: Request, token_str: str) -> tuple[Any, Any]:
+        logger.error(f"USER AUTH REQUEST HEADERS: {request.headers}")
         user: AnonymousUser | User | RpcUser | None = AnonymousUser()
 
         token: SystemToken | ApiTokenReplica | ApiToken | None = SystemToken.from_request(
@@ -452,6 +464,7 @@ class OrgAuthTokenAuthentication(StandardAuthentication):
     token_name = b"bearer"
 
     def accepts_auth(self, auth: list[bytes]) -> bool:
+        logger.error(f"ORG AUTH: {auth}")
         if not super().accepts_auth(auth) or len(auth) != 2:
             return False
 
@@ -459,6 +472,8 @@ class OrgAuthTokenAuthentication(StandardAuthentication):
         return token_str.startswith(SENTRY_ORG_AUTH_TOKEN_PREFIX)
 
     def authenticate_token(self, request: Request, token_str: str) -> tuple[Any, Any]:
+        logger.error(f"REQUEST HEADERS: {request.headers}")
+
         token_hashed = hash_token(token_str)
 
         token: OrgAuthTokenReplica | OrgAuthToken
@@ -479,7 +494,11 @@ class OrgAuthTokenAuthentication(StandardAuthentication):
                 raise AuthenticationFailed("Invalid org token")
 
         return self.transform_auth(
-            None, token, "api_token", api_token_type=self.token_name, api_token_is_org_token=True
+            None,
+            token,
+            "api_token",
+            api_token_type=self.token_name,
+            api_token_is_org_token=True,
         )
 
 

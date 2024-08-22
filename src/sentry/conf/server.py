@@ -828,12 +828,24 @@ if SILO_DEVSERVER:
 
 
 CELERY_QUEUES_CONTROL = [
-    Queue("app_platform.control", routing_key="app_platform.control", exchange=control_exchange),
+    Queue(
+        "app_platform.control",
+        routing_key="app_platform.control",
+        exchange=control_exchange,
+    ),
     Queue("auth.control", routing_key="auth.control", exchange=control_exchange),
     Queue("cleanup.control", routing_key="cleanup.control", exchange=control_exchange),
     Queue("email.control", routing_key="email.control", exchange=control_exchange),
-    Queue("integrations.control", routing_key="integrations.control", exchange=control_exchange),
-    Queue("files.delete.control", routing_key="files.delete.control", exchange=control_exchange),
+    Queue(
+        "integrations.control",
+        routing_key="integrations.control",
+        exchange=control_exchange,
+    ),
+    Queue(
+        "files.delete.control",
+        routing_key="files.delete.control",
+        exchange=control_exchange,
+    ),
     Queue(
         "hybrid_cloud.control_repair",
         routing_key="hybrid_cloud.control_repair",
@@ -867,7 +879,8 @@ CELERY_QUEUES_REGION = [
     Queue("default", routing_key="default"),
     Queue("delayed_rules", routing_key="delayed_rules"),
     Queue(
-        "delete_seer_grouping_records_by_hash", routing_key="delete_seer_grouping_records_by_hash"
+        "delete_seer_grouping_records_by_hash",
+        routing_key="delete_seer_grouping_records_by_hash",
     ),
     Queue("digests.delivery", routing_key="digests.delivery"),
     Queue("digests.scheduling", routing_key="digests.scheduling"),
@@ -876,11 +889,16 @@ CELERY_QUEUES_REGION = [
     Queue("events.preprocess_event", routing_key="events.preprocess_event"),
     Queue("events.process_event", routing_key="events.process_event"),
     Queue(
-        "events.reprocessing.preprocess_event", routing_key="events.reprocessing.preprocess_event"
+        "events.reprocessing.preprocess_event",
+        routing_key="events.reprocessing.preprocess_event",
     ),
-    Queue("events.reprocessing.process_event", routing_key="events.reprocessing.process_event"),
     Queue(
-        "events.reprocessing.symbolicate_event", routing_key="events.reprocessing.symbolicate_event"
+        "events.reprocessing.process_event",
+        routing_key="events.reprocessing.process_event",
+    ),
+    Queue(
+        "events.reprocessing.symbolicate_event",
+        routing_key="events.reprocessing.symbolicate_event",
     ),
     Queue(
         "events.reprocessing.symbolicate_event_low_priority",
@@ -892,7 +910,8 @@ CELERY_QUEUES_REGION = [
     Queue("events.save_event_attachments", routing_key="events.save_event_attachments"),
     Queue("events.symbolicate_event", routing_key="events.symbolicate_event"),
     Queue(
-        "events.symbolicate_event_low_priority", routing_key="events.symbolicate_event_low_priority"
+        "events.symbolicate_event_low_priority",
+        routing_key="events.symbolicate_event_low_priority",
     ),
     Queue("events.symbolicate_js_event", routing_key="events.symbolicate_js_event"),
     Queue(
@@ -907,9 +926,13 @@ CELERY_QUEUES_REGION = [
     Queue("files.copy", routing_key="files.copy"),
     Queue("files.delete", routing_key="files.delete"),
     Queue(
-        "group_owners.process_suspect_commits", routing_key="group_owners.process_suspect_commits"
+        "group_owners.process_suspect_commits",
+        routing_key="group_owners.process_suspect_commits",
     ),
-    Queue("group_owners.process_commit_context", routing_key="group_owners.process_commit_context"),
+    Queue(
+        "group_owners.process_commit_context",
+        routing_key="group_owners.process_commit_context",
+    ),
     Queue("integrations", routing_key="integrations"),
     Queue(
         "releasemonitor",
@@ -952,14 +975,20 @@ CELERY_QUEUES_REGION = [
     Queue("auto_enable_codecov", routing_key="auto_enable_codecov"),
     Queue("weekly_escalating_forecast", routing_key="weekly_escalating_forecast"),
     Queue("relocation", routing_key="relocation"),
-    Queue("performance.statistical_detector", routing_key="performance.statistical_detector"),
+    Queue(
+        "performance.statistical_detector",
+        routing_key="performance.statistical_detector",
+    ),
     Queue("profiling.statistical_detector", routing_key="profiling.statistical_detector"),
     CELERY_ISSUE_STATES_QUEUE,
     Queue("nudge.invite_missing_org_members", routing_key="invite_missing_org_members"),
     Queue("auto_resolve_issues", routing_key="auto_resolve_issues"),
     Queue("on_demand_metrics", routing_key="on_demand_metrics"),
     Queue("check_new_issue_threshold_met", routing_key="check_new_issue_threshold_met"),
-    Queue("integrations_slack_activity_notify", routing_key="integrations_slack_activity_notify"),
+    Queue(
+        "integrations_slack_activity_notify",
+        routing_key="integrations_slack_activity_notify",
+    ),
 ]
 
 from celery.schedules import crontab
@@ -1304,7 +1333,10 @@ TIMEDELTA_ALLOW_LIST = {
 }
 
 BGTASKS = {
-    "sentry.bgtasks.clean_dsymcache:clean_dsymcache": {"interval": 5 * 60, "roles": ["worker"]},
+    "sentry.bgtasks.clean_dsymcache:clean_dsymcache": {
+        "interval": 5 * 60,
+        "roles": ["worker"],
+    },
     "sentry.bgtasks.clean_releasefilecache:clean_releasefilecache": {
         "interval": 5 * 60,
         "roles": ["worker"],
@@ -1322,14 +1354,17 @@ BGTASKS = {
 LOGGING: LoggingConfig = {
     "default_level": "INFO",
     "version": 1,
-    "disable_existing_loggers": True,
+    # "disable_existing_loggers": True,
     "handlers": {
         "null": {"class": "logging.NullHandler"},
         "console": {"class": "sentry.logging.handlers.StructLogHandler"},
         # This `internal` logger is separate from the `Logging` integration in the SDK. Since
         # we have this to record events, in `sdk.py` we set the integration's `event_level` to
         # None, so that it records breadcrumbs for all log calls but doesn't send any events.
-        "internal": {"level": "ERROR", "class": "sentry_sdk.integrations.logging.EventHandler"},
+        "internal": {
+            "level": "ERROR",
+            "class": "sentry_sdk.integrations.logging.EventHandler",
+        },
         "metrics": {
             "level": "WARNING",
             "filters": ["important_django_request"],
@@ -1362,7 +1397,11 @@ LOGGING: LoggingConfig = {
         # This only needs to go to Sentry for now.
         "sentry.similarity": {"handlers": ["internal"], "propagate": False},
         "sentry.errors": {"handlers": ["console"], "propagate": False},
-        "sentry_sdk.errors": {"handlers": ["console"], "level": "INFO", "propagate": False},
+        "sentry_sdk.errors": {
+            "handlers": ["console"],
+            "level": "INFO",
+            "propagate": False,
+        },
         "sentry.rules": {"handlers": ["console"], "propagate": False},
         "sentry.profiles": {"level": "INFO"},
         "multiprocessing": {
@@ -1382,7 +1421,11 @@ LOGGING: LoggingConfig = {
             "propagate": False,
         },
         "toronado": {"level": "ERROR", "handlers": ["null"], "propagate": False},
-        "urllib3.connectionpool": {"level": "ERROR", "handlers": ["console"], "propagate": False},
+        "urllib3.connectionpool": {
+            "level": "ERROR",
+            "handlers": ["console"],
+            "propagate": False,
+        },
         "boto3": {"level": "WARNING", "handlers": ["console"], "propagate": False},
         "botocore": {"level": "WARNING", "handlers": ["console"], "propagate": False},
     },
@@ -1432,7 +1475,10 @@ if os.environ.get("OPENAPIGENERATE", False):
         # We override the default behavior to skip adding the choice name to the bullet point if
         # it's identical to the choice value by monkey patching build_choice_description_list.
         "ENUM_GENERATE_CHOICE_DESCRIPTION": True,
-        "LICENSE": {"name": "Apache 2.0", "url": "http://www.apache.org/licenses/LICENSE-2.0.html"},
+        "LICENSE": {
+            "name": "Apache 2.0",
+            "url": "http://www.apache.org/licenses/LICENSE-2.0.html",
+        },
         "PARSER_WHITELIST": ["rest_framework.parsers.JSONParser"],
         "POSTPROCESSING_HOOKS": ["sentry.apidocs.hooks.custom_postprocessing_hook"],
         "PREPROCESSING_HOOKS": ["sentry.apidocs.hooks.custom_preprocessing_hook"],
@@ -1903,7 +1949,12 @@ SENTRY_SCOPE_SETS = (
         ("org:write", "Read and write access to organization details."),
         ("org:read", "Read access to organization details."),
     ),
-    (("org:integrations", "Read, write, and admin access to organization integrations."),),
+    (
+        (
+            "org:integrations",
+            "Read, write, and admin access to organization integrations.",
+        ),
+    ),
     (
         ("member:admin", "Read, write, and admin access to organization members."),
         ("member:write", "Read and write access to organization members."),

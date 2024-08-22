@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 import re
 from datetime import datetime, timedelta
 
@@ -49,6 +50,8 @@ from sentry.utils.cache import cache
 from sentry.utils.sdk import Scope, bind_organization_context
 
 ERR_INVALID_STATS_PERIOD = "Invalid %s. Valid choices are %s"
+
+logger = logging.getLogger(__name__)
 
 
 def get_stats_period_detail(key, choices):
@@ -108,7 +111,8 @@ def _filter_releases_by_query(queryset, organization, query, filter_params):
 
         if search_filter.key.name == SEMVER_ALIAS:
             queryset = queryset.filter_by_semver(
-                organization.id, parse_semver(search_filter.value.raw_value, search_filter.operator)
+                organization.id,
+                parse_semver(search_filter.value.raw_value, search_filter.operator),
             )
 
         if search_filter.key.name == SEMVER_PACKAGE_ALIAS:
@@ -202,7 +206,9 @@ def debounce_update_release_health_data(organization, project_ids: list[int]):
             # we want to create the release the first time we observed it on the
             # health side.
             release = Release.get_or_create(
-                project=project, version=version, date_added=dates.get((project_id, version))
+                project=project,
+                version=version,
+                date_added=dates.get((project_id, version)),
             )
 
             # Make sure that the release knows about this project.  Like we had before
@@ -456,6 +462,8 @@ class OrganizationReleasesEndpoint(
                            ``commit`` may contain a range in the form of ``previousCommit..commit``
         :auth: required
         """
+        print(f"REQUEST HEADERS {request.headers.get('authorization')}")
+        logger.error(f"REQUEST HEADERS {request.headers}")
         bind_organization_context(organization)
         serializer = ReleaseSerializerWithProjects(
             data=request.data, context={"organization": organization}
