@@ -33,10 +33,7 @@ def get_user(request):
             # currently set on the User. By default, the value will
             # be None until the first action has been taken, at
             # which point, a nonce will always be required.
-            if (
-                user.session_nonce
-                and request.session.get("_nonce", "") != user.session_nonce
-            ):
+            if user.session_nonce and request.session.get("_nonce", "") != user.session_nonce:
                 # If the nonces don't match, this session is anonymous.
                 logger.info(
                     "user.auth.invalid-nonce",

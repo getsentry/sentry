@@ -1,7 +1,7 @@
 from __future__ import annotations
 
-import logging
 import hashlib
+import logging
 import random
 from collections.abc import Callable, Iterable
 from typing import Any, ClassVar
@@ -23,11 +23,7 @@ from sentry_relay.exceptions import UnpackError
 from sentry import options
 from sentry.auth.services.auth import AuthenticatedToken
 from sentry.auth.system import SystemToken, is_internal_ip
-from sentry.hybridcloud.models import (
-    ApiKeyReplica,
-    ApiTokenReplica,
-    OrgAuthTokenReplica,
-)
+from sentry.hybridcloud.models import ApiKeyReplica, ApiTokenReplica, OrgAuthTokenReplica
 from sentry.hybridcloud.rpc.service import compare_signature
 from sentry.models.apiapplication import ApiApplication
 from sentry.models.apikey import ApiKey
@@ -47,10 +43,7 @@ from sentry.users.services.user import RpcUser
 from sentry.users.services.user.service import user_service
 from sentry.utils.linksign import process_signature
 from sentry.utils.sdk import Scope
-from sentry.utils.security.orgauthtoken_token import (
-    SENTRY_ORG_AUTH_TOKEN_PREFIX,
-    hash_token,
-)
+from sentry.utils.security.orgauthtoken_token import SENTRY_ORG_AUTH_TOKEN_PREFIX, hash_token
 
 logger = logging.getLogger(__name__)
 
@@ -234,9 +227,7 @@ class RelayAuthentication(BasicAuthentication):
             raise AuthenticationFailed("Unknown relay")
 
         try:
-            data = relay.public_key_object.unpack(
-                request.body, relay_sig, max_age=60 * 5
-            )
+            data = relay.public_key_object.unpack(request.body, relay_sig, max_age=60 * 5)
             request.relay = relay
             request.relay_request_data = data
         except UnpackError:
@@ -342,9 +333,7 @@ class TokenStrLookupRequired(Exception):
 class UserAuthTokenAuthentication(StandardAuthentication):
     token_name = b"bearer"
 
-    def _find_or_update_token_by_hash(
-        self, token_str: str
-    ) -> ApiToken | ApiTokenReplica:
+    def _find_or_update_token_by_hash(self, token_str: str) -> ApiToken | ApiTokenReplica:
         """
         Find token by hash or update token's hash value if only found via plaintext.
 
@@ -391,9 +380,9 @@ class UserAuthTokenAuthentication(StandardAuthentication):
             except (ApiToken.DoesNotExist, TokenStrLookupRequired):
                 try:
                     # If we can't find it by hash, use the plaintext string
-                    api_token = ApiToken.objects.select_related(
-                        "user", "application"
-                    ).get(token=token_str)
+                    api_token = ApiToken.objects.select_related("user", "application").get(
+                        token=token_str
+                    )
                 except ApiToken.DoesNotExist:
                     # If the token does not exist by plaintext either, it is not a valid token
                     raise AuthenticationFailed("Invalid token")
@@ -429,8 +418,8 @@ class UserAuthTokenAuthentication(StandardAuthentication):
         logger.error(f"USER AUTH REQUEST HEADERS: {request.headers}")
         user: AnonymousUser | User | RpcUser | None = AnonymousUser()
 
-        token: SystemToken | ApiTokenReplica | ApiToken | None = (
-            SystemToken.from_request(request, token_str)
+        token: SystemToken | ApiTokenReplica | ApiToken | None = SystemToken.from_request(
+            request, token_str
         )
 
         application_is_inactive = False

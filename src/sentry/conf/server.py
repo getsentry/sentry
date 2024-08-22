@@ -40,11 +40,13 @@ _EnvTypes = Union[str, float, int, list, dict]
 
 
 @overload
-def env(key: str) -> str: ...
+def env(key: str) -> str:
+    ...
 
 
 @overload
-def env(key: str, default: _EnvTypes, type: Type | None = None) -> _EnvTypes: ...
+def env(key: str, default: _EnvTypes, type: Type | None = None) -> _EnvTypes:
+    ...
 
 
 def env(
@@ -206,13 +208,15 @@ if "DATABASE_URL" in os.environ:
     url = urlparse(os.environ["DATABASE_URL"])
 
     # Update with environment configuration.
-    DATABASES["default"].update({
-        "NAME": url.path[1:],
-        "USER": url.username,
-        "PASSWORD": url.password,
-        "HOST": url.hostname,
-        "PORT": url.port,
-    })
+    DATABASES["default"].update(
+        {
+            "NAME": url.path[1:],
+            "USER": url.username,
+            "PASSWORD": url.password,
+            "HOST": url.hostname,
+            "PORT": url.port,
+        }
+    )
 
 
 # This should always be UTC.
@@ -562,9 +566,7 @@ AUTHENTICATION_BACKENDS = (
 )
 
 AUTH_PASSWORD_VALIDATORS: list[dict[str, Any]] = [
-    {
-        "NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator"
-    },
+    {"NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator"},
     {
         "NAME": "django.contrib.auth.password_validation.MinimumLengthValidator",
         "OPTIONS": {"min_length": 8},
@@ -866,9 +868,7 @@ CELERY_QUEUES_REGION = [
     # TODO(@anonrig): Remove this when all AppStore connect data is removed.
     Queue("appstoreconnect", routing_key="sentry.tasks.app_store_connect.#"),
     Queue("assemble", routing_key="assemble"),
-    Queue(
-        "backfill_seer_grouping_records", routing_key="backfill_seer_grouping_records"
-    ),
+    Queue("backfill_seer_grouping_records", routing_key="backfill_seer_grouping_records"),
     Queue("buffers.process_pending", routing_key="buffers.process_pending"),
     Queue("buffers.process_pending_batch", routing_key="buffers.process_pending_batch"),
     Queue("buffers.incr", routing_key="buffers.incr"),
@@ -979,9 +979,7 @@ CELERY_QUEUES_REGION = [
         "performance.statistical_detector",
         routing_key="performance.statistical_detector",
     ),
-    Queue(
-        "profiling.statistical_detector", routing_key="profiling.statistical_detector"
-    ),
+    Queue("profiling.statistical_detector", routing_key="profiling.statistical_detector"),
     CELERY_ISSUE_STATES_QUEUE,
     Queue("nudge.invite_missing_org_members", routing_key="invite_missing_org_members"),
     Queue("auto_resolve_issues", routing_key="auto_resolve_issues"),
@@ -1282,24 +1280,18 @@ CELERYBEAT_SCHEDULE_REGION = {
 
 # Assign the configuration keys celery uses based on our silo mode.
 if SILO_MODE == "CONTROL":
-    CELERYBEAT_SCHEDULE_FILENAME = os.path.join(
-        tempfile.gettempdir(), "sentry-celerybeat-control"
-    )
+    CELERYBEAT_SCHEDULE_FILENAME = os.path.join(tempfile.gettempdir(), "sentry-celerybeat-control")
     CELERYBEAT_SCHEDULE = CELERYBEAT_SCHEDULE_CONTROL
     CELERY_QUEUES = CELERY_QUEUES_CONTROL
 
 elif SILO_MODE == "REGION":
-    CELERYBEAT_SCHEDULE_FILENAME = os.path.join(
-        tempfile.gettempdir(), "sentry-celerybeat-region"
-    )
+    CELERYBEAT_SCHEDULE_FILENAME = os.path.join(tempfile.gettempdir(), "sentry-celerybeat-region")
     CELERYBEAT_SCHEDULE = CELERYBEAT_SCHEDULE_REGION
     CELERY_QUEUES = CELERY_QUEUES_REGION
 
 else:
     CELERYBEAT_SCHEDULE = {**CELERYBEAT_SCHEDULE_CONTROL, **CELERYBEAT_SCHEDULE_REGION}
-    CELERYBEAT_SCHEDULE_FILENAME = os.path.join(
-        tempfile.gettempdir(), "sentry-celerybeat"
-    )
+    CELERYBEAT_SCHEDULE_FILENAME = os.path.join(tempfile.gettempdir(), "sentry-celerybeat")
     CELERY_QUEUES = CELERY_QUEUES_REGION + CELERY_QUEUES_CONTROL
 
 for queue in CELERY_QUEUES:
@@ -1468,18 +1460,12 @@ def custom_parameter_sort(parameter: dict) -> tuple[str, int]:
 
 if os.environ.get("OPENAPIGENERATE", False):
     OLD_OPENAPI_JSON_PATH = "tests/apidocs/openapi-deprecated.json"
-    from sentry.apidocs.build import (
-        OPENAPI_TAGS,
-        get_old_json_components,
-        get_old_json_paths,
-    )
+    from sentry.apidocs.build import OPENAPI_TAGS, get_old_json_components, get_old_json_paths
 
     SPECTACULAR_SETTINGS = {
         "APPEND_COMPONENTS": get_old_json_components(OLD_OPENAPI_JSON_PATH),
         "APPEND_PATHS": get_old_json_paths(OLD_OPENAPI_JSON_PATH),
-        "AUTHENTICATION_WHITELIST": [
-            "sentry.api.authentication.UserAuthTokenAuthentication"
-        ],
+        "AUTHENTICATION_WHITELIST": ["sentry.api.authentication.UserAuthTokenAuthentication"],
         "COMPONENT_SPLIT_PATCH": False,
         "COMPONENT_SPLIT_REQUEST": False,
         "CONTACT": {"email": "partners@sentry.io"},
@@ -1662,13 +1648,15 @@ SENTRY_FILESTORE_ALIASES = {
 # This list is a bit fragile and hardcoded, but it's unlikely that
 # a user will be using a different backend that also mandates SMTP
 # credentials.
-SENTRY_SMTP_DISABLED_BACKENDS = frozenset((
-    "django.core.mail.backends.dummy.EmailBackend",
-    "django.core.mail.backends.console.EmailBackend",
-    "django.core.mail.backends.locmem.EmailBackend",
-    "django.core.mail.backends.filebased.EmailBackend",
-    "sentry.utils.email.PreviewBackend",
-))
+SENTRY_SMTP_DISABLED_BACKENDS = frozenset(
+    (
+        "django.core.mail.backends.dummy.EmailBackend",
+        "django.core.mail.backends.console.EmailBackend",
+        "django.core.mail.backends.locmem.EmailBackend",
+        "django.core.mail.backends.filebased.EmailBackend",
+        "sentry.utils.email.PreviewBackend",
+    )
+)
 
 SENTRY_UPLOAD_RETRY_TIME = 60  # 1 min
 
@@ -1724,9 +1712,7 @@ SENTRY_QUOTAS = "sentry.quotas.Quota"
 SENTRY_QUOTA_OPTIONS: dict[str, str] = {}
 
 # Cache for Relay project configs
-SENTRY_RELAY_PROJECTCONFIG_CACHE = (
-    "sentry.relay.projectconfig_cache.redis.RedisProjectConfigCache"
-)
+SENTRY_RELAY_PROJECTCONFIG_CACHE = "sentry.relay.projectconfig_cache.redis.RedisProjectConfigCache"
 SENTRY_RELAY_PROJECTCONFIG_CACHE_OPTIONS: dict[str, str] = {}
 
 # Which cache to use for debouncing cache updates to the projectconfig cache
@@ -1764,9 +1750,7 @@ SENTRY_INDEXSTORE = "sentry.nodestore.django.DjangoNodeStorage"
 SENTRY_INDEXSTORE_OPTIONS: dict[str, Any] = {}
 
 # Tag storage backend
-SENTRY_TAGSTORE = os.environ.get(
-    "SENTRY_TAGSTORE", "sentry.tagstore.snuba.SnubaTagStorage"
-)
+SENTRY_TAGSTORE = os.environ.get("SENTRY_TAGSTORE", "sentry.tagstore.snuba.SnubaTagStorage")
 SENTRY_TAGSTORE_OPTIONS: dict[str, Any] = {}
 
 # Search backend
@@ -1802,16 +1786,12 @@ SENTRY_METRICS_BACKEND = "sentry.metrics.dummy.DummyMetricsBackend"
 SENTRY_METRICS_OPTIONS: dict[str, Any] = {}
 SENTRY_METRICS_SAMPLE_RATE = 1.0
 SENTRY_METRICS_PREFIX = "sentry."
-SENTRY_METRICS_SKIP_INTERNAL_PREFIXES: list[
-    str
-] = []  # Order this by most frequent prefixes.
+SENTRY_METRICS_SKIP_INTERNAL_PREFIXES: list[str] = []  # Order this by most frequent prefixes.
 SENTRY_METRICS_SKIP_ALL_INTERNAL = False
 SENTRY_METRICS_DISALLOW_BAD_TAGS = IS_DEV
 
 # Metrics product
-SENTRY_METRICS_INDEXER = (
-    "sentry.sentry_metrics.indexer.postgres.postgres_v2.PostgresIndexer"
-)
+SENTRY_METRICS_INDEXER = "sentry.sentry_metrics.indexer.postgres.postgres_v2.PostgresIndexer"
 SENTRY_METRICS_INDEXER_OPTIONS: dict[str, Any] = {}
 SENTRY_METRICS_INDEXER_CACHE_TTL = 3600 * 2
 SENTRY_METRICS_INDEXER_TRANSACTIONS_SAMPLE_RATE = 0.1
@@ -1894,9 +1874,7 @@ SENTRY_MANAGED_USER_FIELDS = ()
 OPENAI_API_KEY: str | None = None
 
 # AI Suggested Fix default model
-SENTRY_AI_SUGGESTED_FIX_MODEL: str = os.getenv(
-    "SENTRY_AI_SUGGESTED_FIX_MODEL", "gpt-3.5-turbo-16k"
-)
+SENTRY_AI_SUGGESTED_FIX_MODEL: str = os.getenv("SENTRY_AI_SUGGESTED_FIX_MODEL", "gpt-3.5-turbo-16k")
 
 SENTRY_API_PAGINATION_ALLOWLIST = SENTRY_API_PAGINATION_ALLOWLIST_DO_NOT_MODIFY
 
@@ -2214,9 +2192,7 @@ SENTRY_WATCHERS = (
             "--output-pathinfo=true",
             "--config={}".format(
                 os.path.normpath(
-                    os.path.join(
-                        PROJECT_ROOT, os.pardir, os.pardir, "webpack.config.ts"
-                    )
+                    os.path.join(PROJECT_ROOT, os.pardir, os.pardir, "webpack.config.ts")
                 )
             ),
         ],
@@ -2310,207 +2286,237 @@ SENTRY_USE_UPTIME = False
 ARM64 = platform.processor() in {"arm", "arm64", "aarch64"}
 
 SENTRY_DEVSERVICES: dict[str, Callable[[Any, Any], dict[str, Any]]] = {
-    "redis": lambda settings, options: ({
-        "image": "ghcr.io/getsentry/image-mirror-library-redis:5.0-alpine",
-        "ports": {"6379/tcp": 6379},
-        "command": [
-            "redis-server",
-            "--appendonly",
-            "yes",
-            "--save",
-            "60",
-            "20",
-            "--auto-aof-rewrite-percentage",
-            "100",
-            "--auto-aof-rewrite-min-size",
-            "64mb",
-        ],
-        "volumes": {"redis": {"bind": "/data"}},
-    }),
-    "redis-cluster": lambda settings, options: ({
-        "image": "ghcr.io/getsentry/docker-redis-cluster:7.0.10",
-        "ports": {f"700{idx}/tcp": f"700{idx}" for idx in range(6)},
-        "volumes": {"redis-cluster": {"bind": "/redis-data"}},
-        "environment": {"IP": "0.0.0.0"},
-        "only_if": settings.SENTRY_DEV_USE_REDIS_CLUSTER,
-    }),
-    "rabbitmq": lambda settings, options: ({
-        "image": "ghcr.io/getsentry/image-mirror-library-rabbitmq:3-management",
-        "ports": {"5672/tcp": 5672, "15672/tcp": 15672},
-        "environment": {"IP": "0.0.0.0"},
-        "only_if": settings.SENTRY_DEV_USE_RABBITMQ,
-    }),
-    "postgres": lambda settings, options: ({
-        "image": f"ghcr.io/getsentry/image-mirror-library-postgres:{PG_VERSION}-alpine",
-        "ports": {"5432/tcp": 5432},
-        "environment": {"POSTGRES_DB": "sentry", "POSTGRES_HOST_AUTH_METHOD": "trust"},
-        "volumes": {
-            "postgres": {"bind": "/var/lib/postgresql/data"},
-            "wal2json": {"bind": "/wal2json"},
-        },
-        "command": [
-            "postgres",
-            "-c",
-            "wal_level=logical",
-            "-c",
-            "max_replication_slots=1",
-            "-c",
-            "max_wal_senders=1",
-        ],
-    }),
-    "kafka": lambda settings, options: ({
-        "image": "ghcr.io/getsentry/image-mirror-confluentinc-cp-kafka:7.5.0",
-        "ports": {"9092/tcp": 9092},
-        # https://docs.confluent.io/platform/current/installation/docker/config-reference.html#cp-kakfa-example
-        "environment": {
-            "KAFKA_PROCESS_ROLES": "broker,controller",
-            "KAFKA_CONTROLLER_QUORUM_VOTERS": "1@127.0.0.1:29093",
-            "KAFKA_CONTROLLER_LISTENER_NAMES": "CONTROLLER",
-            "KAFKA_NODE_ID": "1",
-            "CLUSTER_ID": "MkU3OEVBNTcwNTJENDM2Qk",
-            "KAFKA_LISTENERS": "PLAINTEXT://0.0.0.0:29092,INTERNAL://0.0.0.0:9093,EXTERNAL://0.0.0.0:9092,CONTROLLER://0.0.0.0:29093",
-            "KAFKA_ADVERTISED_LISTENERS": "PLAINTEXT://127.0.0.1:29092,INTERNAL://sentry_kafka:9093,EXTERNAL://127.0.0.1:9092",
-            "KAFKA_LISTENER_SECURITY_PROTOCOL_MAP": "PLAINTEXT:PLAINTEXT,INTERNAL:PLAINTEXT,EXTERNAL:PLAINTEXT,CONTROLLER:PLAINTEXT",
-            "KAFKA_INTER_BROKER_LISTENER_NAME": "PLAINTEXT",
-            "KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR": "1",
-            "KAFKA_OFFSETS_TOPIC_NUM_PARTITIONS": "1",
-            "KAFKA_LOG_RETENTION_HOURS": "24",
-            "KAFKA_MESSAGE_MAX_BYTES": "50000000",
-            "KAFKA_MAX_REQUEST_SIZE": "50000000",
-        },
-        "volumes": {"kafka": {"bind": "/var/lib/kafka/data"}},
-        "only_if": "kafka" in settings.SENTRY_EVENTSTREAM
-        or settings.SENTRY_USE_RELAY
-        or settings.SENTRY_DEV_PROCESS_SUBSCRIPTIONS
-        or settings.SENTRY_USE_PROFILING,
-    }),
-    "clickhouse": lambda settings, options: ({
-        "image": (
-            "ghcr.io/getsentry/image-mirror-altinity-clickhouse-server:23.3.19.33.altinitystable"
-        ),
-        "ports": {"9000/tcp": 9000, "9009/tcp": 9009, "8123/tcp": 8123},
-        "ulimits": [{"name": "nofile", "soft": 262144, "hard": 262144}],
-        # The arm image does not properly load the MAX_MEMORY_USAGE_RATIO
-        # from the environment in loc_config.xml, thus, hard-coding it there
-        "volumes": {
-            (
-                "clickhouse_dist"
-                if settings.SENTRY_DISTRIBUTED_CLICKHOUSE_TABLES
-                else "clickhouse"
-            ): {"bind": "/var/lib/clickhouse"},
-            os.path.join(
-                settings.DEVSERVICES_CONFIG_DIR,
-                "clickhouse",
+    "redis": lambda settings, options: (
+        {
+            "image": "ghcr.io/getsentry/image-mirror-library-redis:5.0-alpine",
+            "ports": {"6379/tcp": 6379},
+            "command": [
+                "redis-server",
+                "--appendonly",
+                "yes",
+                "--save",
+                "60",
+                "20",
+                "--auto-aof-rewrite-percentage",
+                "100",
+                "--auto-aof-rewrite-min-size",
+                "64mb",
+            ],
+            "volumes": {"redis": {"bind": "/data"}},
+        }
+    ),
+    "redis-cluster": lambda settings, options: (
+        {
+            "image": "ghcr.io/getsentry/docker-redis-cluster:7.0.10",
+            "ports": {f"700{idx}/tcp": f"700{idx}" for idx in range(6)},
+            "volumes": {"redis-cluster": {"bind": "/redis-data"}},
+            "environment": {"IP": "0.0.0.0"},
+            "only_if": settings.SENTRY_DEV_USE_REDIS_CLUSTER,
+        }
+    ),
+    "rabbitmq": lambda settings, options: (
+        {
+            "image": "ghcr.io/getsentry/image-mirror-library-rabbitmq:3-management",
+            "ports": {"5672/tcp": 5672, "15672/tcp": 15672},
+            "environment": {"IP": "0.0.0.0"},
+            "only_if": settings.SENTRY_DEV_USE_RABBITMQ,
+        }
+    ),
+    "postgres": lambda settings, options: (
+        {
+            "image": f"ghcr.io/getsentry/image-mirror-library-postgres:{PG_VERSION}-alpine",
+            "ports": {"5432/tcp": 5432},
+            "environment": {"POSTGRES_DB": "sentry", "POSTGRES_HOST_AUTH_METHOD": "trust"},
+            "volumes": {
+                "postgres": {"bind": "/var/lib/postgresql/data"},
+                "wal2json": {"bind": "/wal2json"},
+            },
+            "command": [
+                "postgres",
+                "-c",
+                "wal_level=logical",
+                "-c",
+                "max_replication_slots=1",
+                "-c",
+                "max_wal_senders=1",
+            ],
+        }
+    ),
+    "kafka": lambda settings, options: (
+        {
+            "image": "ghcr.io/getsentry/image-mirror-confluentinc-cp-kafka:7.5.0",
+            "ports": {"9092/tcp": 9092},
+            # https://docs.confluent.io/platform/current/installation/docker/config-reference.html#cp-kakfa-example
+            "environment": {
+                "KAFKA_PROCESS_ROLES": "broker,controller",
+                "KAFKA_CONTROLLER_QUORUM_VOTERS": "1@127.0.0.1:29093",
+                "KAFKA_CONTROLLER_LISTENER_NAMES": "CONTROLLER",
+                "KAFKA_NODE_ID": "1",
+                "CLUSTER_ID": "MkU3OEVBNTcwNTJENDM2Qk",
+                "KAFKA_LISTENERS": "PLAINTEXT://0.0.0.0:29092,INTERNAL://0.0.0.0:9093,EXTERNAL://0.0.0.0:9092,CONTROLLER://0.0.0.0:29093",
+                "KAFKA_ADVERTISED_LISTENERS": "PLAINTEXT://127.0.0.1:29092,INTERNAL://sentry_kafka:9093,EXTERNAL://127.0.0.1:9092",
+                "KAFKA_LISTENER_SECURITY_PROTOCOL_MAP": "PLAINTEXT:PLAINTEXT,INTERNAL:PLAINTEXT,EXTERNAL:PLAINTEXT,CONTROLLER:PLAINTEXT",
+                "KAFKA_INTER_BROKER_LISTENER_NAME": "PLAINTEXT",
+                "KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR": "1",
+                "KAFKA_OFFSETS_TOPIC_NUM_PARTITIONS": "1",
+                "KAFKA_LOG_RETENTION_HOURS": "24",
+                "KAFKA_MESSAGE_MAX_BYTES": "50000000",
+                "KAFKA_MAX_REQUEST_SIZE": "50000000",
+            },
+            "volumes": {"kafka": {"bind": "/var/lib/kafka/data"}},
+            "only_if": "kafka" in settings.SENTRY_EVENTSTREAM
+            or settings.SENTRY_USE_RELAY
+            or settings.SENTRY_DEV_PROCESS_SUBSCRIPTIONS
+            or settings.SENTRY_USE_PROFILING,
+        }
+    ),
+    "clickhouse": lambda settings, options: (
+        {
+            "image": (
+                "ghcr.io/getsentry/image-mirror-altinity-clickhouse-server:23.3.19.33.altinitystable"
+            ),
+            "ports": {"9000/tcp": 9000, "9009/tcp": 9009, "8123/tcp": 8123},
+            "ulimits": [{"name": "nofile", "soft": 262144, "hard": 262144}],
+            # The arm image does not properly load the MAX_MEMORY_USAGE_RATIO
+            # from the environment in loc_config.xml, thus, hard-coding it there
+            "volumes": {
                 (
-                    "dist_config.xml"
+                    "clickhouse_dist"
                     if settings.SENTRY_DISTRIBUTED_CLICKHOUSE_TABLES
-                    else "loc_config.xml"
+                    else "clickhouse"
+                ): {"bind": "/var/lib/clickhouse"},
+                os.path.join(
+                    settings.DEVSERVICES_CONFIG_DIR,
+                    "clickhouse",
+                    (
+                        "dist_config.xml"
+                        if settings.SENTRY_DISTRIBUTED_CLICKHOUSE_TABLES
+                        else "loc_config.xml"
+                    ),
+                ): {"bind": "/etc/clickhouse-server/config.d/sentry.xml"},
+            },
+        }
+    ),
+    "snuba": lambda settings, options: (
+        {
+            "image": "ghcr.io/getsentry/snuba:latest",
+            "ports": {"1218/tcp": 1218, "1219/tcp": 1219},
+            "command": ["devserver"]
+            + (["--no-workers"] if "snuba" in settings.SENTRY_EVENTSTREAM else []),
+            "environment": {
+                "PYTHONUNBUFFERED": "1",
+                "SNUBA_SETTINGS": "docker",
+                "DEBUG": "1",
+                "CLICKHOUSE_HOST": "{containers[clickhouse][name]}",
+                "CLICKHOUSE_PORT": "9000",
+                "CLICKHOUSE_HTTP_PORT": "8123",
+                "DEFAULT_BROKERS": (
+                    ""
+                    if "snuba" in settings.SENTRY_EVENTSTREAM
+                    else "{containers[kafka][name]}:9093"
                 ),
-            ): {"bind": "/etc/clickhouse-server/config.d/sentry.xml"},
-        },
-    }),
-    "snuba": lambda settings, options: ({
-        "image": "ghcr.io/getsentry/snuba:latest",
-        "ports": {"1218/tcp": 1218, "1219/tcp": 1219},
-        "command": ["devserver"]
-        + (["--no-workers"] if "snuba" in settings.SENTRY_EVENTSTREAM else []),
-        "environment": {
-            "PYTHONUNBUFFERED": "1",
-            "SNUBA_SETTINGS": "docker",
-            "DEBUG": "1",
-            "CLICKHOUSE_HOST": "{containers[clickhouse][name]}",
-            "CLICKHOUSE_PORT": "9000",
-            "CLICKHOUSE_HTTP_PORT": "8123",
-            "DEFAULT_BROKERS": (
-                ""
-                if "snuba" in settings.SENTRY_EVENTSTREAM
-                else "{containers[kafka][name]}:9093"
-            ),
-            "REDIS_HOST": "{containers[redis][name]}",
-            "REDIS_PORT": "6379",
-            "REDIS_DB": "1",
-            "ENABLE_SENTRY_METRICS_DEV": "1" if settings.SENTRY_USE_METRICS_DEV else "",
-            "ENABLE_PROFILES_CONSUMER": "1" if settings.SENTRY_USE_PROFILING else "",
-            "ENABLE_SPANS_CONSUMER": "1" if settings.SENTRY_USE_SPANS else "",
-            "ENABLE_ISSUE_OCCURRENCE_CONSUMER": (
-                "1" if settings.SENTRY_USE_ISSUE_OCCURRENCE else ""
-            ),
-            "ENABLE_AUTORUN_MIGRATION_SEARCH_ISSUES": "1",
-            # TODO: remove setting
-            "ENABLE_GROUP_ATTRIBUTES_CONSUMER": (
-                "1" if settings.SENTRY_USE_GROUP_ATTRIBUTES else ""
-            ),
-        },
-        "only_if": "snuba" in settings.SENTRY_EVENTSTREAM
-        or "kafka" in settings.SENTRY_EVENTSTREAM,
-        # we don't build linux/arm64 snuba images anymore
-        # apple silicon users should have working emulation under colima 0.6.2
-        # or docker desktop
-        "platform": "linux/amd64",
-    }),
-    "bigtable": lambda settings, options: ({
-        "image": "us.gcr.io/sentryio/cbtemulator:23c02d92c7a1747068eb1fc57dddbad23907d614",
-        "ports": {"8086/tcp": 8086},
-        # NEED_BIGTABLE is set by CI so we don't have to pass
-        # --skip-only-if when compiling which services to run.
-        "only_if": os.environ.get("NEED_BIGTABLE", False)
-        or "bigtable" in settings.SENTRY_NODESTORE,
-    }),
-    "memcached": lambda settings, options: ({
-        "image": "ghcr.io/getsentry/image-mirror-library-memcached:1.5-alpine",
-        "ports": {"11211/tcp": 11211},
-        "only_if": "memcached" in settings.CACHES.get("default", {}).get("BACKEND"),
-    }),
-    "symbolicator": lambda settings, options: ({
-        "image": "us-central1-docker.pkg.dev/sentryio/symbolicator/image:nightly",
-        "ports": {"3021/tcp": 3021},
-        "volumes": {settings.SYMBOLICATOR_CONFIG_DIR: {"bind": "/etc/symbolicator"}},
-        "command": ["run", "--config", "/etc/symbolicator/config.yml"],
-        "only_if": options.get("symbolicator.enabled"),
-    }),
-    "relay": lambda settings, options: ({
-        "image": "us-central1-docker.pkg.dev/sentryio/relay/relay:nightly",
-        "ports": {"7899/tcp": settings.SENTRY_RELAY_PORT},
-        "volumes": {settings.RELAY_CONFIG_DIR: {"bind": "/etc/relay"}},
-        "command": ["run", "--config", "/etc/relay"],
-        "only_if": bool(os.environ.get("SENTRY_USE_RELAY", settings.SENTRY_USE_RELAY)),
-        "with_devserver": True,
-    }),
-    "chartcuterie": lambda settings, options: ({
-        "image": "us-central1-docker.pkg.dev/sentryio/chartcuterie/image:latest",
-        "volumes": {settings.CHARTCUTERIE_CONFIG_DIR: {"bind": "/etc/chartcuterie"}},
-        "environment": {
-            "CHARTCUTERIE_CONFIG": "/etc/chartcuterie/config.js",
-            "CHARTCUTERIE_CONFIG_POLLING": "true",
-        },
-        "ports": {"9090/tcp": 7901},
-        # NEED_CHARTCUTERIE is set by CI so we don't have to pass --skip-only-if when compiling which services to run.
-        "only_if": os.environ.get("NEED_CHARTCUTERIE", False)
-        or options.get("chart-rendering.enabled"),
-    }),
-    "vroom": lambda settings, options: ({
-        "image": "us-central1-docker.pkg.dev/sentryio/vroom/vroom:latest",
-        "volumes": {"profiles": {"bind": "/var/lib/sentry-profiles"}},
-        "environment": {
-            "SENTRY_KAFKA_BROKERS_PROFILING": "{containers[kafka][name]}:9093",
-            "SENTRY_KAFKA_BROKERS_OCCURRENCES": "{containers[kafka][name]}:9093",
-            "SENTRY_SNUBA_HOST": "http://{containers[snuba][name]}:1218",
-        },
-        "ports": {"8085/tcp": 8085},
-        "only_if": settings.SENTRY_USE_PROFILING,
-    }),
-    "session-replay-analyzer": lambda settings, options: ({
-        "image": "ghcr.io/getsentry/session-replay-analyzer:latest",
-        "environment": {},
-        "ports": {"3000/tcp": 3000},
-        "only_if": settings.SENTRY_USE_REPLAY_ANALYZER_SERVICE,
-    }),
-    "spotlight-sidecar": lambda settings, options: ({
-        "image": "ghcr.io/getsentry/spotlight:latest",
-        "environment": {},
-        "ports": {"8969/tcp": 8969},
-        "only_if": settings.SENTRY_USE_SPOTLIGHT,
-    }),
+                "REDIS_HOST": "{containers[redis][name]}",
+                "REDIS_PORT": "6379",
+                "REDIS_DB": "1",
+                "ENABLE_SENTRY_METRICS_DEV": "1" if settings.SENTRY_USE_METRICS_DEV else "",
+                "ENABLE_PROFILES_CONSUMER": "1" if settings.SENTRY_USE_PROFILING else "",
+                "ENABLE_SPANS_CONSUMER": "1" if settings.SENTRY_USE_SPANS else "",
+                "ENABLE_ISSUE_OCCURRENCE_CONSUMER": (
+                    "1" if settings.SENTRY_USE_ISSUE_OCCURRENCE else ""
+                ),
+                "ENABLE_AUTORUN_MIGRATION_SEARCH_ISSUES": "1",
+                # TODO: remove setting
+                "ENABLE_GROUP_ATTRIBUTES_CONSUMER": (
+                    "1" if settings.SENTRY_USE_GROUP_ATTRIBUTES else ""
+                ),
+            },
+            "only_if": "snuba" in settings.SENTRY_EVENTSTREAM
+            or "kafka" in settings.SENTRY_EVENTSTREAM,
+            # we don't build linux/arm64 snuba images anymore
+            # apple silicon users should have working emulation under colima 0.6.2
+            # or docker desktop
+            "platform": "linux/amd64",
+        }
+    ),
+    "bigtable": lambda settings, options: (
+        {
+            "image": "us.gcr.io/sentryio/cbtemulator:23c02d92c7a1747068eb1fc57dddbad23907d614",
+            "ports": {"8086/tcp": 8086},
+            # NEED_BIGTABLE is set by CI so we don't have to pass
+            # --skip-only-if when compiling which services to run.
+            "only_if": os.environ.get("NEED_BIGTABLE", False)
+            or "bigtable" in settings.SENTRY_NODESTORE,
+        }
+    ),
+    "memcached": lambda settings, options: (
+        {
+            "image": "ghcr.io/getsentry/image-mirror-library-memcached:1.5-alpine",
+            "ports": {"11211/tcp": 11211},
+            "only_if": "memcached" in settings.CACHES.get("default", {}).get("BACKEND"),
+        }
+    ),
+    "symbolicator": lambda settings, options: (
+        {
+            "image": "us-central1-docker.pkg.dev/sentryio/symbolicator/image:nightly",
+            "ports": {"3021/tcp": 3021},
+            "volumes": {settings.SYMBOLICATOR_CONFIG_DIR: {"bind": "/etc/symbolicator"}},
+            "command": ["run", "--config", "/etc/symbolicator/config.yml"],
+            "only_if": options.get("symbolicator.enabled"),
+        }
+    ),
+    "relay": lambda settings, options: (
+        {
+            "image": "us-central1-docker.pkg.dev/sentryio/relay/relay:nightly",
+            "ports": {"7899/tcp": settings.SENTRY_RELAY_PORT},
+            "volumes": {settings.RELAY_CONFIG_DIR: {"bind": "/etc/relay"}},
+            "command": ["run", "--config", "/etc/relay"],
+            "only_if": bool(os.environ.get("SENTRY_USE_RELAY", settings.SENTRY_USE_RELAY)),
+            "with_devserver": True,
+        }
+    ),
+    "chartcuterie": lambda settings, options: (
+        {
+            "image": "us-central1-docker.pkg.dev/sentryio/chartcuterie/image:latest",
+            "volumes": {settings.CHARTCUTERIE_CONFIG_DIR: {"bind": "/etc/chartcuterie"}},
+            "environment": {
+                "CHARTCUTERIE_CONFIG": "/etc/chartcuterie/config.js",
+                "CHARTCUTERIE_CONFIG_POLLING": "true",
+            },
+            "ports": {"9090/tcp": 7901},
+            # NEED_CHARTCUTERIE is set by CI so we don't have to pass --skip-only-if when compiling which services to run.
+            "only_if": os.environ.get("NEED_CHARTCUTERIE", False)
+            or options.get("chart-rendering.enabled"),
+        }
+    ),
+    "vroom": lambda settings, options: (
+        {
+            "image": "us-central1-docker.pkg.dev/sentryio/vroom/vroom:latest",
+            "volumes": {"profiles": {"bind": "/var/lib/sentry-profiles"}},
+            "environment": {
+                "SENTRY_KAFKA_BROKERS_PROFILING": "{containers[kafka][name]}:9093",
+                "SENTRY_KAFKA_BROKERS_OCCURRENCES": "{containers[kafka][name]}:9093",
+                "SENTRY_SNUBA_HOST": "http://{containers[snuba][name]}:1218",
+            },
+            "ports": {"8085/tcp": 8085},
+            "only_if": settings.SENTRY_USE_PROFILING,
+        }
+    ),
+    "session-replay-analyzer": lambda settings, options: (
+        {
+            "image": "ghcr.io/getsentry/session-replay-analyzer:latest",
+            "environment": {},
+            "ports": {"3000/tcp": 3000},
+            "only_if": settings.SENTRY_USE_REPLAY_ANALYZER_SERVICE,
+        }
+    ),
+    "spotlight-sidecar": lambda settings, options: (
+        {
+            "image": "ghcr.io/getsentry/spotlight:latest",
+            "environment": {},
+            "ports": {"8969/tcp": 8969},
+            "only_if": settings.SENTRY_USE_SPOTLIGHT,
+        }
+    ),
 }
 
 # Max file size for serialized file uploads in API
@@ -2601,9 +2607,7 @@ SENTRY_PROFILING_ENABLED = os.environ.get("SENTRY_PROFILING_ENABLED", False)
 #
 # This setting takes precedence over `SENTRY_PROFILING_ENABLED` forcing the SDK
 # to operate under the continuous profiling model.
-SENTRY_CONTINUOUS_PROFILING_ENABLED = os.environ.get(
-    "SENTRY_CONTINUOUS_PROFILING_ENABLED", False
-)
+SENTRY_CONTINUOUS_PROFILING_ENABLED = os.environ.get("SENTRY_CONTINUOUS_PROFILING_ENABLED", False)
 
 # Callable to bind additional context for the Sentry SDK
 #
@@ -3048,9 +3052,7 @@ SENTRY_GROUPING_UPDATE_MIGRATION_PHASE = 30 * 24 * 3600  # 30 days
 SENTRY_USE_UWSGI = True
 
 # Configure service wrapper for reprocessing2 state
-SENTRY_REPROCESSING_STORE = (
-    "sentry.eventstore.reprocessing.redis.RedisReprocessingStore"
-)
+SENTRY_REPROCESSING_STORE = "sentry.eventstore.reprocessing.redis.RedisReprocessingStore"
 # Which cluster is used to store auxiliary data for reprocessing. Note that
 # this cluster is not used to store attachments etc, that still happens on
 # rc-processing. This is just for buffering up event IDs and storing a counter
@@ -3188,9 +3190,7 @@ if int(PG_VERSION.split(".", maxsplit=1)[0]) < 12:
 SEER_DEFAULT_URL = "http://127.0.0.1:9091"  # for local development
 SEER_DEFAULT_TIMEOUT = 5
 
-SEER_BREAKPOINT_DETECTION_URL = (
-    SEER_DEFAULT_URL  # for local development, these share a URL
-)
+SEER_BREAKPOINT_DETECTION_URL = SEER_DEFAULT_URL  # for local development, these share a URL
 SEER_BREAKPOINT_DETECTION_TIMEOUT = 5
 
 SEER_SEVERITY_URL = SEER_DEFAULT_URL  # for local development, these share a URL
@@ -3205,9 +3205,7 @@ SEER_GROUPING_TIMEOUT = 1
 SEER_GROUPING_BACKFILL_URL = SEER_DEFAULT_URL
 
 SEER_ANOMALY_DETECTION_MODEL_VERSION = "v1"
-SEER_ANOMALY_DETECTION_URL = (
-    SEER_DEFAULT_URL  # for local development, these share a URL
-)
+SEER_ANOMALY_DETECTION_URL = SEER_DEFAULT_URL  # for local development, these share a URL
 SEER_ANOMALY_DETECTION_TIMEOUT = 5
 
 SEER_ANOMALY_DETECTION_ENDPOINT_URL = (
@@ -3225,9 +3223,7 @@ SENTRY_VROOM = os.getenv("VROOM", "http://127.0.0.1:8085")
 SENTRY_REPLAYS_SERVICE_URL = "http://localhost:8090"
 
 
-SENTRY_ISSUE_ALERT_HISTORY = (
-    "sentry.rules.history.backends.postgres.PostgresRuleHistoryBackend"
-)
+SENTRY_ISSUE_ALERT_HISTORY = "sentry.rules.history.backends.postgres.PostgresRuleHistoryBackend"
 SENTRY_ISSUE_ALERT_HISTORY_OPTIONS: dict[str, Any] = {}
 
 # This is useful for testing SSO expiry flows
@@ -3424,9 +3420,7 @@ OPTIONS_AUTOMATOR_SLACK_WEBHOOK_URL: str | None = None
 
 OPTIONS_AUTOMATOR_HMAC_SECRET: str | None = None
 
-SENTRY_METRICS_INTERFACE_BACKEND = (
-    "sentry.sentry_metrics.client.snuba.SnubaMetricsBackend"
-)
+SENTRY_METRICS_INTERFACE_BACKEND = "sentry.sentry_metrics.client.snuba.SnubaMetricsBackend"
 SENTRY_METRICS_INTERFACE_BACKEND_OPTIONS: dict[str, Any] = {}
 
 # Controls whether the SDK will send the metrics upstream to the S4S transport.
@@ -3508,13 +3502,13 @@ SEER_GROUPING_RECORDS_URL = (
 SEER_PROJECT_GROUPING_RECORDS_DELETE_URL = (
     f"/{SEER_SIMILARITY_MODEL_VERSION}/issues/similar-issues/grouping-record/delete"
 )
-SEER_HASH_GROUPING_RECORDS_DELETE_URL = f"/{SEER_SIMILARITY_MODEL_VERSION}/issues/similar-issues/grouping-record/delete-by-hash"
+SEER_HASH_GROUPING_RECORDS_DELETE_URL = (
+    f"/{SEER_SIMILARITY_MODEL_VERSION}/issues/similar-issues/grouping-record/delete-by-hash"
+)
 SEER_SIMILARITY_CIRCUIT_BREAKER_KEY = "seer.similarity"
 
 SEER_ANOMALY_DETECTION_VERSION = "v1"
-SEER_ANOMALY_DETECTION_STORE_DATA_URL = (
-    f"/{SEER_ANOMALY_DETECTION_VERSION}/anomaly-detection/store"
-)
+SEER_ANOMALY_DETECTION_STORE_DATA_URL = f"/{SEER_ANOMALY_DETECTION_VERSION}/anomaly-detection/store"
 
 SIMILARITY_BACKFILL_COHORT_MAP: dict[str, list[int]] = {}
 
@@ -3523,9 +3517,7 @@ ngrok_host = os.environ.get("SENTRY_DEVSERVER_NGROK")
 if ngrok_host:
     SENTRY_OPTIONS["system.url-prefix"] = f"https://{ngrok_host}"
     SENTRY_OPTIONS["system.base-hostname"] = ngrok_host
-    SENTRY_OPTIONS["system.region-api-url-template"] = (
-        f"https://{{region}}.{ngrok_host}"
-    )
+    SENTRY_OPTIONS["system.region-api-url-template"] = f"https://{{region}}.{ngrok_host}"
     SENTRY_FEATURES["system:multi-region"] = True
 
     CSRF_TRUSTED_ORIGINS = [f"https://*.{ngrok_host}", f"https://{ngrok_host}"]
