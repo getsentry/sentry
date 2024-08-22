@@ -3,10 +3,12 @@ from collections.abc import Iterable, Mapping
 from typing import Any
 
 from sentry.integrations.types import ExternalProviders
+from sentry.models.deploy import Deploy
 from sentry.models.group import Group
 from sentry.models.notificationhistory import NotificationHistory, NotificationHistoryStatus
 from sentry.models.organization import Organization
 from sentry.models.project import Project
+from sentry.models.release import Release
 from sentry.notifications.notifications.base import BaseNotification
 from sentry.notifications.notify import register_notification_provider
 from sentry.types.actor import Actor
@@ -66,26 +68,47 @@ def send_in_app_personal_notification(
 
 def get_notification_content(shared, extra):
     content = {**shared, **extra}
+    result = {}
     if isinstance(content.get("project"), Project):
         project = content["project"]
-        content["project"] = {
+        result["project"] = {
             "id": project.id,
             "slug": project.slug,
             "name": project.name,
         }
     if isinstance(content.get("organization"), Organization):
         organization = content["organization"]
-        content["organization"] = {
+        result["organization"] = {
             "id": organization.id,
             "slug": organization.slug,
             "name": organization.name,
         }
     if isinstance(content.get("group"), Group):
         group = content["group"]
-        content["group"] = {
+        result["group"] = {
             "id": group.id,
             "title": group.title,
             "shortId": group.qualified_short_id,
         }
 
-    return content
+    if isinstance(content.get("deploy"), Deploy):
+        deploy = content["deploy"]
+        result["deploy"] = {
+            "id": deploy.id,
+            "release_id": deploy.release_id,
+            "environment_id": deploy.environment_id,
+            "name": deploy.name,
+            "url": deploy.url,
+        }
+
+    if isinstance(content.get("release"), Release):
+        release = content["release"]
+        result["release"] = {
+            "id": release.id,
+            "date_added": release.date_added,
+            "url": release.url,
+            "ref": release.ref,
+            "version": release.version,
+        }
+
+    return result
