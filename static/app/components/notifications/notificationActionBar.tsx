@@ -6,6 +6,7 @@ import {
   type NotificationHistory,
   NotificationHistoryStatus,
 } from 'sentry/types/notifications';
+import useMutateInAppNotification from 'sentry/utils/useMutateInAppNotification';
 import {useNavigate} from 'sentry/utils/useNavigate';
 
 export function NotificationActionBar({
@@ -14,18 +15,26 @@ export function NotificationActionBar({
   notification: NotificationHistory;
 }) {
   const navigate = useNavigate();
+  const {mutate: updateNotif} = useMutateInAppNotification({
+    notifId: notification.id,
+  });
   const actions: NotificationContentAction[] = notification.content._actions ?? [];
-  const isArchived = notification.status === NotificationHistoryStatus.ARCHIVED;
-
   const buttonActions = actions.map((action, i) => (
     <Button
       key={i}
       size="xs"
-      priority={isArchived ? 'default' : action.style ?? 'default'}
+      priority={
+        notification.status === NotificationHistoryStatus.ARCHIVED
+          ? 'default'
+          : action.style ?? 'default'
+      }
       aria-label={action.label ?? action.name}
       onClick={() => {
         if (action.url) {
           navigate(action.url);
+        }
+        if (notification.status === NotificationHistoryStatus.UNREAD) {
+          updateNotif({status: NotificationHistoryStatus.READ});
         }
       }}
     >

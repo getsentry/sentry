@@ -86,10 +86,6 @@ class AssignedActivityNotification(GroupActivityNotification):
     def get_description(self) -> tuple[str, str | None, Mapping[str, Any]]:
         return "{author} assigned {an issue} to {assignee}", None, {"assignee": self.get_assignee()}
 
-    def get_message_description(self, recipient: Actor, provider: ExternalProviders) -> Any:
-        text_template, _, params = self.get_description()
-        return self.description_as_text(text_template, params)
-
     def get_notification_title(
         self, provider: ExternalProviders, context: Mapping[str, Any] | None = None
     ) -> str:

@@ -38,6 +38,7 @@ class BaseNotification(abc.ABC):
         ExternalProviders.SLACK: "<{url}|{text}>",
         ExternalProviders.MSTEAMS: "[{text}]({url})",
         ExternalProviders.DISCORD: "[{text}]({url})",
+        ExternalProviders.IN_APP: "{text}",
     }
     message_builder = "SlackNotificationsMessageBuilder"
     # some notifications have no settings for it which is why it is optional
