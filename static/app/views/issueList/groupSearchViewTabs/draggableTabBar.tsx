@@ -31,8 +31,6 @@ export interface Tab {
 }
 
 export interface DraggableTabBarProps {
-  // selectedTabKey: string;
-  // setSelectedTabKey: (key: string) => void;
   initialTabKey: string;
   orgSlug: string;
   router: InjectedRouter;
@@ -296,7 +294,6 @@ export function DraggableTabBar({
   return (
     <DraggableTabList
       onReorder={handleOnReorder}
-      // selectedKey={tabListState?.selectedKey}
       defaultSelectedKey={initialTabKey}
       onAddView={handleOnAddView}
       orientation="horizontal"
