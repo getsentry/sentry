@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import uuid
 from enum import Enum
 from typing import Any
 
@@ -12,7 +11,6 @@ from sentry.backup.scopes import RelocationScope
 from sentry.db.models import FlexibleForeignKey, JSONField, region_silo_model, sane_repr
 from sentry.db.models.base import DefaultFieldsModel
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
-from sentry.db.models.fields.uuid import UUIDField
 from sentry.notifications.types import NotificationSettingEnum
 
 
@@ -37,8 +35,6 @@ def get_source_choices() -> list[tuple[int, str]]:
 @region_silo_model
 class NotificationHistory(DefaultFieldsModel):
     __relocation_scope__ = RelocationScope.Excluded
-
-    id = UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     user_id = HybridCloudForeignKey("sentry.User", on_delete="CASCADE", null=True)
     team = FlexibleForeignKey("sentry.Team", null=True)
 
