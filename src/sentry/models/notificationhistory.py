@@ -22,8 +22,12 @@ class NotificationHistoryStatus(Enum):
     ARCHIVED = "archived"
 
     @classmethod
-    def as_choices(cls) -> list[tuple[int, str]]:
+    def as_choices(cls) -> list[tuple[str, str]]:
         return [(key.value, key.name) for key in cls]
+
+    @classmethod
+    def get_name(cls, value: str) -> str | None:
+        return dict(cls.as_choices()).get(value)
 
 
 def get_source_choices() -> list[tuple[int, str]]:
