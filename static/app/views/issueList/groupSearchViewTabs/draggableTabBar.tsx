@@ -192,6 +192,13 @@ export function DraggableTabBar({
         },
         ...tabs.slice(idx + 1),
       ];
+      navigate({
+        query: {
+          ...queryParams,
+          viewId: tempId,
+        },
+        pathname: `/organizations/${orgSlug}/issues/`,
+      });
       setTabs(newTabs);
       tabListState?.setSelectedKey(tempId);
       onDuplicate?.(newTabs);
