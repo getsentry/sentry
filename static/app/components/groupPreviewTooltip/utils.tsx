@@ -59,7 +59,7 @@ export function usePreviewEvent<T = Event>({
         }),
       },
     ],
-    {staleTime: 30000, gcTime: 30000}
+    {staleTime: Infinity, gcTime: Infinity}
   );
 
   // Prefetch the group as well, but don't use the result
@@ -69,8 +69,8 @@ export function usePreviewEvent<T = Event>({
       {query: getGroupDetailsQueryData()},
     ],
     {
-      staleTime: 30000,
-      gcTime: 30000,
+      staleTime: Infinity,
+      gcTime: Infinity,
       enabled: defined(groupId),
     }
   );
