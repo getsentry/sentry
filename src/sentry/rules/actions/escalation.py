@@ -60,3 +60,6 @@ class NotifyEscalationAction(EventAction):
             return
 
         yield self.future(self._create_trigger_escalation_callback(policy))
+
+    def get_form_instance(self):
+        return self.form_cls(self.project, self.data)
