@@ -27,6 +27,9 @@ def send_in_app_personal_notification(
     for recipient in recipients:
         recipient_context = extra_context.get(recipient.id, {})
         ctx = get_notification_content(shared_context, recipient_context)
+        ctx["_actions"] = notification.get_actions(
+            recipient=recipient, provider=ExternalProviders.IN_APP
+        )
 
         if ctx is not None:
             logger.warning("in_app.swallow_ctx", extra={"recipient": recipient, "ctx": ctx})
