@@ -22,7 +22,7 @@ class NotifyEscalationAction(EventAction):
     """Used for triggering a messages according to escalation policies."""
 
     id = "sentry.rules.actions.escalation.NotifyEscalationAction"
-    label = "Send a notification according to the triage schedule"
+    label = "Send an escalation notification to the {targetType} policy"
     prompt = "Send a notification according to the triage schedule"
 
     form_cls = NotifyEmailForm

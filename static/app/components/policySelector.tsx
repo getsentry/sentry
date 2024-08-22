@@ -85,6 +85,7 @@ function PolicySelector(props: Props) {
 
   const handleChange = useCallback(
     (newValue: PolicyOption | PolicyOption[]) => {
+      debugger;
       if (multiple) {
         const options = newValue as PolicyOption[];
         onChange?.(options);
@@ -109,6 +110,7 @@ function PolicySelector(props: Props) {
     [multiple]
   );
 
+  debugger;
   return (
     <SelectControl
       ref={selectRef}

@@ -73,7 +73,6 @@ class MemberTeamFields extends Component<Props> {
     const teamSelected = ruleData.targetType === teamValue;
     const memberSelected = ruleData.targetType === memberValue;
     const policySelected = ruleData.targetType === policyValue;
-    console.log({policySelected});
 
     const selectControlStyles = {
       control: provided => ({

@@ -154,7 +154,7 @@ function EscalationActionFields({
       loading={!isInitialized}
       ruleData={data as IssueAlertRuleAction}
       onChange={onMemberTeamChange}
-      options={[{value: MailActionTargetType.POLICY, label: t('Schedule')}]}
+      options={[{value: MailActionTargetType.POLICY, label: t('Policy')}]}
       memberValue={MailActionTargetType.MEMBER}
       teamValue={MailActionTargetType.TEAM}
       policyValue={MailActionTargetType.POLICY}
@@ -310,7 +310,6 @@ function RuleNode({
       );
     }
 
-    console.log(fieldConfig);
     switch (fieldConfig.type) {
       case 'choice':
         return <ChoiceField {...fieldProps} />;
@@ -365,6 +364,7 @@ function RuleNode({
       if (key === 'value' && (data.match === 'is' || data.match === 'ns')) {
         return null;
       }
+
       return (
         <Separator key={key}>
           {node.formFields?.hasOwnProperty(key)
