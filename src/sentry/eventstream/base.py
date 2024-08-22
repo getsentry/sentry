@@ -2,14 +2,16 @@ from __future__ import annotations
 
 import logging
 import random
-from collections.abc import Collection, Mapping, MutableMapping, Sequence
+from collections.abc import Collection, Generator, Mapping, MutableMapping, Sequence
 from datetime import datetime
 from enum import Enum
+from itertools import cycle
 from typing import TYPE_CHECKING, Any, Optional, TypedDict, cast
 
 from django.conf import settings
 
 from sentry import options
+from sentry.celery import app
 from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.tasks.post_process import post_process_group
 from sentry.utils.cache import cache_key_for_event
@@ -51,7 +53,16 @@ class EventStreamEventType(Enum):
 
 class SplitQueueRouter:
     def __init__(self) -> None:
-        pass
+        self.__routes_config = settings.CELERY_SPLIT_QUEUE_ROUTES
+        known_queues = {c_queue.name for c_queue in app.conf.CELERY_QUEUES}
+        routers = {}
+        for source, destinations in self.__routes_config.items():
+            assert source in known_queues, f"Queue {source} in split queue config is not declared."
+            for dest in destinations:
+                assert dest in known_queues, f"Queue {dest} in split queue config is not declared."
+
+            routers[source] = cycle(destinations)
+        self.__routers: Mapping[str, Generator[str]] = routers
 
     def route_to_split_queue(self, queue: str) -> str:
         rollout_rate = options.get("celery_split_queue_rollout").get(queue, 0.0)
@@ -64,7 +75,11 @@ class SplitQueueRouter:
             # settings file.
             return settings.SENTRY_POST_PROCESS_QUEUE_SPLIT_ROUTER.get(queue, lambda: queue)()
         else:
-            raise NotImplementedError
+            router = self.__routers.get(queue)
+            if router is not None:
+                return next(router)
+            else:
+                return queue
 
 
 class EventStream(Service):

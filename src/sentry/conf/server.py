@@ -11,7 +11,7 @@ import re
 import socket
 import sys
 import tempfile
-from collections.abc import Callable, Mapping, MutableSequence
+from collections.abc import Callable, Mapping, MutableSequence, Sequence
 from datetime import datetime, timedelta
 from typing import Any, Final, Union, overload
 from urllib.parse import urlparse
@@ -3529,3 +3529,14 @@ if SILO_DEVSERVER:
 
 # tmp(michal): Default configuration for post_process* queueus split
 SENTRY_POST_PROCESS_QUEUE_SPLIT_ROUTER: dict[str, Callable[[], str]] = {}
+# Routes messages directed to a queue towards a number of shards
+# in a round robin way.
+# This is only supported in post process so far.
+# TODO: support split queues in all Celery tasks
+CELERY_SPLIT_QUEUE_ROUTES: Mapping[str, Sequence[str]] = {
+    "post_process_transactions": [
+        "post_process_transactions_1",
+        "post_process_transactions_2",
+        "post_process_transactions_3",
+    ]
+}
