@@ -89,10 +89,10 @@ class PendingTasks(Model):
             else None,
             retry_attempts=proto_task.retry_state.attempts,
             retry_kind=proto_task.retry_state.kind,
-            deadletter_at=proto_task.deadletter_at or datetime.now(),
+            deadletter_at=proto_task.deadletter_at or timezone.now(),
             deadletter_after_attempt=proto_task.retry_state.deadletter_after_attempt,
             discard_after_attempt=proto_task.retry_state.discard_after_attempt,
-            received_at=datetime.now(),
+            received_at=timezone.now(),
         )
 
     def to_message(self) -> PendingTaskProto:
