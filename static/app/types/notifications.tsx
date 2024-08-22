@@ -7,7 +7,7 @@ export const enum NotificationHistoryStatus {
 }
 
 export const enum NotificationMailboxes {
-  ALL = 'all',
+  INBOX = 'inbox',
   UNREAD = 'unread',
   ARCHIVED = 'archived',
 }

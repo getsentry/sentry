@@ -6,10 +6,10 @@ import ProjectAvatar from 'sentry/components/avatar/projectAvatar';
 import Badge from 'sentry/components/badge/badge';
 import {Breadcrumbs, type Crumb} from 'sentry/components/breadcrumbs';
 import {Button} from 'sentry/components/button';
-import ButtonBar from 'sentry/components/buttonBar';
 import DateTime from 'sentry/components/dateTime';
 import Duration from 'sentry/components/duration';
 import {Timestamp} from 'sentry/components/events/breadcrumbs/breadcrumbsTimeline';
+import {NotificationActionBar} from 'sentry/components/notifications/notificationActionBar';
 import {getNotificationData} from 'sentry/components/notifications/util';
 import Timeline, {type ColorConfig} from 'sentry/components/timeline';
 import {Tooltip} from 'sentry/components/tooltip';
@@ -26,6 +26,94 @@ import {shouldUse24Hours} from 'sentry/utils/dates';
 import useMutateInAppNotification from 'sentry/utils/useMutateInAppNotification';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useProjects from 'sentry/utils/useProjects';
+
+export function NotificationItem({notification}: {notification: NotificationHistory}) {
+  const navigate = useNavigate();
+  const {mutate: updateNotif} = useMutateInAppNotification({
+    notifId: notification.id,
+  });
+  const {colorConfig: notifColorConfig, icon} = getNotificationData(notification);
+
+  const isUnread = notification.status === NotificationHistoryStatus.UNREAD;
+  const isArchived = notification.status === NotificationHistoryStatus.ARCHIVED;
+
+  const colorConfig = isUnread
+    ? notifColorConfig
+    : ({title: 'gray300', icon: 'gray300', iconBorder: 'gray200'} as ColorConfig);
+
+  const absoluteFormat = shouldUse24Hours() ? 'HH:mm:ss.SSS' : 'hh:mm:ss.SSS';
+  const now = new Date();
+  const notifTime = new Date(notification.date_added);
+
+  return (
+    <Container>
+      <NotificationCrumbs notification={notification} />
+      <NotificationControls>
+        <NotificationControl
+          borderless
+          icon={<IconShow isHidden={!isUnread} />}
+          size="xs"
+          title={isUnread ? t('Mark as Read') : t('Mark Unread')}
+          aria-label={isUnread ? t('Mark as Read') : t('Mark Unread')}
+          onClick={() =>
+            updateNotif({
+              status: isUnread
+                ? NotificationHistoryStatus.READ
+                : NotificationHistoryStatus.UNREAD,
+            })
+          }
+        />
+        <NotificationControl
+          borderless
+          icon={<IconArchive />}
+          size="xs"
+          title={isArchived ? t('Unarchive') : t('Archive')}
+          aria-label={isArchived ? t('Unarchive') : t('Archive')}
+          onClick={() =>
+            updateNotif({
+              status: isArchived
+                ? NotificationHistoryStatus.READ
+                : NotificationHistoryStatus.ARCHIVED,
+            })
+          }
+        />
+        <NotificationControl
+          borderless
+          icon={<IconSettings />}
+          size="xs"
+          title={t('Modify in Settings')}
+          aria-label={t('Modify in Settings')}
+          onClick={() =>
+            navigate(`/settings/account/notifications/${notification.source}/`)
+          }
+        />
+      </NotificationControls>
+      <Item
+        icon={icon}
+        colorConfig={colorConfig}
+        title={
+          <Title isUnread={isUnread}>
+            <div>{notification.title}</div>
+            <NotificationBadge text={notification.source} colorConfig={colorConfig} />
+          </Title>
+        }
+        isActive
+        timestamp={
+          <NotificationTimestamp>
+            <Tooltip
+              title={<DateTime date={notifTime} format={`ll - ${absoluteFormat} (z)`} />}
+            >
+              <Duration seconds={moment(notifTime).diff(moment(now), 's')} abbreviation />
+            </Tooltip>
+          </NotificationTimestamp>
+        }
+      >
+        <Content isUnread={isUnread}>{notification.description}</Content>
+        <NotificationActionBar notification={notification} />
+      </Item>
+    </Container>
+  );
+}
 
 function NotificationCrumbs({notification}: {notification: NotificationHistory}) {
   const {
@@ -68,91 +156,6 @@ function NotificationCrumbs({notification}: {notification: NotificationHistory})
   return <NotificationBreadcrumbBar crumbs={crumbs} />;
 }
 
-export function NotificationItem({notification}: {notification: NotificationHistory}) {
-  const {mutate: updateNotif} = useMutateInAppNotification({
-    notifId: notification.id,
-  });
-  const navigate = useNavigate();
-  const {colorConfig, icon} = getNotificationData(notification);
-
-  const absoluteFormat = shouldUse24Hours() ? 'HH:mm:ss.SSS' : 'hh:mm:ss.SSS';
-
-  const now = new Date();
-  const notifTime = new Date(notification.date_added);
-  const isUnread = notification.status === NotificationHistoryStatus.UNREAD;
-
-  return (
-    <Container>
-      <NotificationCrumbs notification={notification} />
-      <NotificationControls>
-        <NotificationControl
-          borderless
-          icon={
-            <IconShow
-              isHidden={notification.status !== NotificationHistoryStatus.UNREAD}
-            />
-          }
-          size="xs"
-          title={isUnread ? t('Mark as read') : t('Mark unread')}
-          aria-label={isUnread ? t('Mark as read') : t('Mark unread')}
-          onClick={() => updateNotif({status: NotificationHistoryStatus.READ})}
-        />
-        <NotificationControl
-          borderless
-          icon={<IconArchive />}
-          size="xs"
-          title={t('Archive')}
-          aria-label={t('Archive')}
-          onClick={() => updateNotif({status: NotificationHistoryStatus.ARCHIVED})}
-        />
-        <NotificationControl
-          borderless
-          icon={<IconSettings />}
-          size="xs"
-          title={t('Modify in Settings')}
-          aria-label={t('Modify in Settings')}
-          onClick={() =>
-            navigate(`/settings/account/notifications/${notification.source}/`)
-          }
-        />
-      </NotificationControls>
-      <Item
-        icon={icon}
-        colorConfig={isUnread ? colorConfig : undefined}
-        title={
-          <Title isUnread={isUnread}>
-            <div>{notification.title}</div>
-            <NotificationBadge text={notification.source} colorConfig={colorConfig} />
-          </Title>
-        }
-        isActive
-        timestamp={
-          <Timestamp>
-            <Tooltip
-              title={<DateTime date={notifTime} format={`ll - ${absoluteFormat} (z)`} />}
-            >
-              <Duration seconds={moment(notifTime).diff(moment(now), 's')} abbreviation />
-            </Tooltip>
-          </Timestamp>
-        }
-      >
-        <Content isUnread={isUnread}>{notification.description}</Content>
-        <NotificationActionBar notification={notification} />
-      </Item>
-    </Container>
-  );
-}
-
-function NotificationActionBar({}: {notification: NotificationHistory}) {
-  return (
-    <ButtonBar gap={1}>
-      <Button size="sm">Action 1</Button>
-      <Button size="sm">Action 2</Button>
-      <Button size="sm">Action 3</Button>
-    </ButtonBar>
-  );
-}
-
 const Container = styled('div')`
   border: 1px solid ${p => p.theme.border};
   border-radius: ${p => p.theme.borderRadius};
@@ -186,12 +189,6 @@ const NotificationControls = styled('div')`
   gap: ${space(1)};
 `;
 
-const NotificationBadge = styled(Badge)<{colorConfig: ColorConfig}>`
-  border: 1px solid ${p => p.theme[p.colorConfig.iconBorder]};
-  color: ${p => p.theme[p.colorConfig.title]};
-  background: transparent;
-`;
-
 const NotificationControl = styled(Button)``;
 
 const Item = styled(Timeline.Item)`
@@ -205,10 +202,28 @@ const Content = styled('div')<{isUnread: boolean}>`
 `;
 
 const Title = styled('div')<{isUnread: boolean}>`
-  display: flex;
+  display: grid;
+  grid-template-columns: 1fr auto;
   justify-content: space-between;
   font-weight: ${p => (p.isUnread ? p.theme.fontWeightBold : p.theme.fontWeightNormal)};
   color: ${p => (p.isUnread ? p.theme.textColor : p.theme.subText)};
+`;
+
+const NotificationBadge = styled(Badge)<{colorConfig: ColorConfig}>`
+  border: 1px solid ${p => p.theme[p.colorConfig.iconBorder]};
+  color: ${p => p.theme[p.colorConfig.title]};
+  background: transparent;
+  display: block;
+  font-size: ${p => p.theme.fontSizeSmall};
+`;
+
+const NotificationTimestamp = styled(Timestamp)`
+  height: 20px;
+  line-height: inherit;
+  min-width: 0;
+  display: flex;
+  justify-content: center;
+  flex-direction: column;
 `;
 
 const CrumbWrapper = styled('div')`

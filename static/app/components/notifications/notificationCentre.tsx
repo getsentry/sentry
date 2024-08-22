@@ -1,4 +1,4 @@
-import {useMemo, useState} from 'react';
+import {Fragment, useMemo, useState} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
@@ -37,6 +37,8 @@ export function NotificationCentre({}: NotificationCentreProps) {
   const [mailbox, setMailbox] = useState<NotificationMailboxes>(
     NotificationMailboxes.UNREAD
   );
+  const isQuirky =
+    search === '' && sources.length === 0 && mailbox !== NotificationMailboxes.ARCHIVED;
 
   const sourceOptions = useMemo(() => {
     const allUniqueSources = notifs.reduce<Set<string>>(
@@ -52,8 +54,8 @@ export function NotificationCentre({}: NotificationCentreProps) {
 
   const displayNotifs = useMemo(() => {
     const mailboxNotifs =
-      mailbox === NotificationMailboxes.ALL
-        ? notifs
+      mailbox === NotificationMailboxes.INBOX
+        ? notifs.filter(notif => notif.status !== NotificationHistoryStatus.ARCHIVED)
         : notifs.filter(notif => `${notif.status}` === mailbox);
     const filteredNotifs = sources.length
       ? mailboxNotifs.filter(notif => sources.includes(notif.source))
@@ -69,11 +71,16 @@ export function NotificationCentre({}: NotificationCentreProps) {
       notifs.reduce<Record<NotificationMailboxes, number>>(
         (mbData, notif) => {
           const data = {...mbData};
-          data[NotificationMailboxes.ALL] += 1;
           switch (notif.status) {
+            case NotificationHistoryStatus.READ:
+              data[NotificationMailboxes.INBOX]++;
+              break;
             case NotificationHistoryStatus.UNREAD:
+              data[NotificationMailboxes.INBOX]++;
+              data[NotificationMailboxes.UNREAD]++;
+              break;
             case NotificationHistoryStatus.ARCHIVED:
-              data[notif.status] += 1;
+              data[NotificationMailboxes.ARCHIVED]++;
               break;
             default:
               break;
@@ -81,7 +88,7 @@ export function NotificationCentre({}: NotificationCentreProps) {
           return data;
         },
         {
-          [NotificationMailboxes.ALL]: 0,
+          [NotificationMailboxes.INBOX]: 0,
           [NotificationMailboxes.UNREAD]: 0,
           [NotificationMailboxes.ARCHIVED]: 0,
         }
@@ -112,7 +119,7 @@ export function NotificationCentre({}: NotificationCentreProps) {
             borderless
             style={{background: sources.length > 0 ? theme.purple100 : 'transparent'}}
             icon={<IconFilter />}
-            aria-label={t('Filter Notifications')}
+            aria-label={t('Filter notifications')}
             {...props}
           >
             {sources.length > 0 ? sources.length : null}
@@ -129,7 +136,9 @@ export function NotificationCentre({}: NotificationCentreProps) {
           <SegmentedControl.Item key={mb} aria-label={mb}>
             <Flex align="center">
               {toTitleCase(mb)}
-              <Badge type="gray" text={mbCount} />
+              {mb !== NotificationMailboxes.ARCHIVED && (
+                <Badge type="gray" text={mbCount} />
+              )}
             </Flex>
           </SegmentedControl.Item>
         ))}
@@ -155,20 +164,33 @@ export function NotificationCentre({}: NotificationCentreProps) {
         </BreadcrumbDrawerBody>
       ) : (
         <EmptyNotificationCentre>
-          <EmptyText>
-            <div>{t('No-tifications!')}</div>
-          </EmptyText>
-          <EmptyImage
-            src={waitingForEventImg}
-            alt={t('No notifications found')}
-            height={150}
-          />
-          <EmptyText>
-            <div>{t('You must be doing something right!')}</div>
-            <div>
-              <i>{t('(or very, very wrong...)')}</i>
-            </div>
-          </EmptyText>
+          {isQuirky ? (
+            <Fragment>
+              <EmptyText>
+                <div>{t('No-tifications!')}</div>
+              </EmptyText>
+              <EmptyImage
+                src={waitingForEventImg}
+                alt={t('No notifications found')}
+                height={150}
+              />
+              <EmptyText>
+                <div>{t('You must be doing something right!')}</div>
+                <div>
+                  <i>{t('(or very, very wrong...)')}</i>
+                </div>
+              </EmptyText>
+            </Fragment>
+          ) : (
+            <EmptyText>
+              <div>{t('No notifications found')}</div>
+              <EmptyImage
+                src={waitingForEventImg}
+                alt={t('No notifications found')}
+                height={150}
+              />
+            </EmptyText>
+          )}
         </EmptyNotificationCentre>
       )}
     </DrawerContainer>

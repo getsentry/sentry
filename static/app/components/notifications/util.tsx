@@ -1,11 +1,5 @@
 import type {ColorConfig} from 'sentry/components/timeline';
-import {
-  IconCheckmark,
-  IconFire,
-  IconLightning,
-  IconStar,
-  IconSubscribed,
-} from 'sentry/icons';
+import {IconFire, IconLightning, IconLock, IconStar, IconSubscribed} from 'sentry/icons';
 import {type NotificationHistory, NotificationType} from 'sentry/types/notifications';
 
 export function getNotificationData(notification: NotificationHistory): {
@@ -30,7 +24,7 @@ export function getNotificationData(notification: NotificationHistory): {
       };
     case NotificationType.APPROVAL:
       return {
-        icon: <IconCheckmark size="xs" />,
+        icon: <IconLock size="xs" />,
         colorConfig: {title: 'blue400', icon: 'blue300', iconBorder: 'blue200'},
       };
     case NotificationType.MARKETING:
