@@ -20,7 +20,7 @@
       "headers": [{ "key": "Referer", "value": "https://sentry.io/" }]
     },
     {
-      "source": "_assets/(.*)",
+      "source": "/_assets/(.*)",
       "headers": [
         {
           "key": "Cache-Control",
