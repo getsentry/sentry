@@ -1,9 +1,11 @@
 from collections.abc import Callable, Generator, Sequence
 
+from django import forms
+
 from sentry.escalation_policies import EscalationPolicy, trigger_escalation_policy
 from sentry.eventstore.models import GroupEvent
 from sentry.mail.actions import NotifyEmailTarget
-from sentry.mail.forms.notify_email import NotifyEmailForm
+from sentry.mail.forms.member_team import MemberTeamForm
 from sentry.notifications.types import ActionTargetType, FallthroughChoiceType
 from sentry.rules.actions.base import EventAction
 from sentry.rules.base import CallbackFuture
@@ -18,6 +20,15 @@ ACTION_CHOICES = [
 ]
 
 
+class NotifyEscalationForm(MemberTeamForm[ActionTargetType]):
+    targetType = forms.ChoiceField(choices=ACTION_CHOICES)
+
+    teamValue = ActionTargetType.TEAM
+    memberValue = ActionTargetType.MEMBER
+    policyValue = ActionTargetType.POLICY
+    targetTypeEnum = ActionTargetType
+
+
 class NotifyEscalationAction(EventAction):
     """Used for triggering a messages according to escalation policies."""
 
@@ -25,7 +36,7 @@ class NotifyEscalationAction(EventAction):
     label = "Send an escalation notification to the {targetType} policy"
     prompt = "Send a notification according to the triage schedule"
 
-    form_cls = NotifyEmailForm
+    form_cls = NotifyEscalationForm
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)

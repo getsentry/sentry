@@ -5,6 +5,7 @@ from typing import Generic, TypeVar
 
 from django import forms
 
+from sentry.escalation_policies import EscalationPolicy
 from sentry.models.organizationmemberteam import OrganizationMemberTeam
 from sentry.models.project import Project
 from sentry.users.services.user.service import user_service
@@ -19,6 +20,7 @@ class MemberTeamForm(forms.Form, Generic[T]):
     )
     teamValue: T
     memberValue: T
+    policyValue: T | None = None
     targetTypeEnum: type[T]
 
     def __init__(self, project, *args, **kwargs):
@@ -50,7 +52,7 @@ class MemberTeamForm(forms.Form, Generic[T]):
         targetIdentifier = cleaned_data.get("targetIdentifier")
 
         self.cleaned_data["targetType"] = targetType.value
-        if targetType != self.teamValue and targetType != self.memberValue:
+        if targetType not in (self.teamValue, self.memberValue, self.policyValue):
             return
 
         if not targetIdentifier:
@@ -83,6 +85,14 @@ class MemberTeamForm(forms.Form, Generic[T]):
 
             if not is_active_team_member:
                 msg = forms.ValidationError("This user is not part of the project.")
+                self.add_error("targetIdentifier", msg)
+                return
+
+        if targetType == self.policyValue:
+            if not EscalationPolicy.objects.filter(
+                organization=self.project.organization_id, id=int(targetIdentifier)
+            ).exists():
+                msg = forms.ValidationError("This EscalationPolicy is not part of the project.")
                 self.add_error("targetIdentifier", msg)
                 return
 

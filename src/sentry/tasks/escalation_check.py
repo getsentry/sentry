@@ -7,8 +7,8 @@ from sentry.escalation_policies import (
     EscalationNotification,
     EscalationPolicyState,
     EscalationPolicyStateType,
-    EscalationPolicyStep,
 )
+from sentry.escalation_policies.models.escalation_policy import EscalationPolicyStep
 from sentry.tasks.base import instrumented_task
 
 logger = logging.getLogger(__name__)
@@ -18,6 +18,7 @@ logger = logging.getLogger(__name__)
 
 @instrumented_task(
     name="sentry.tasks.escalation_check",
+    queue="escalation",
     max_retries=3,
 )
 def escalation_check(*args, escalation_policy_state_id: int, **kwds):

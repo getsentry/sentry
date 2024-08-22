@@ -771,6 +771,7 @@ CELERY_IMPORTS = (
     "sentry.tasks.deliver_from_outbox",
     "sentry.tasks.digests",
     "sentry.tasks.email",
+    "sentry.tasks.escalation_check",
     "sentry.tasks.files",
     "sentry.tasks.groupowner",
     "sentry.tasks.merge",
@@ -872,6 +873,7 @@ CELERY_QUEUES_REGION = [
     Queue("digests.scheduling", routing_key="digests.scheduling"),
     Queue("email", routing_key="email"),
     Queue("email.inbound", routing_key="email.inbound"),
+    Queue("escalation", routing_key="escalation"),
     Queue("events.preprocess_event", routing_key="events.preprocess_event"),
     Queue("events.process_event", routing_key="events.process_event"),
     Queue(
