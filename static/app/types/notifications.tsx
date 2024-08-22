@@ -32,3 +32,13 @@ export interface NotificationHistory {
   team?: Team;
   user_id?: number;
 }
+
+export interface NotificationContentAction {
+  name: string;
+  type: 'button' | 'select';
+  action_id?: string;
+  label?: string;
+  style?: 'primary' | 'danger' | 'default';
+  url?: string;
+  value?: string;
+}
