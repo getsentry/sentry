@@ -26,7 +26,7 @@ class NotificationHistorySerializer(CamelSnakeModelSerializer):
             raise serializers.ValidationError(
                 f"Invalid status selected. Choose from {status_choices}."
             )
-        return status
+        return incoming_status
 
     class Meta:
         model = NotificationHistory
