@@ -15,7 +15,7 @@ export default function useSentryAppComponentsData({projectId}: Props) {
 
   const {data: installs} = useApiQuery<SentryAppInstallation[]>(
     [`/organizations/${organization.slug}/sentry-app-installations/`],
-    {staleTime: Infinity}
+    {staleTime: Infinity, gcTime: Infinity}
   );
   useEffect(() => {
     if (installs) {

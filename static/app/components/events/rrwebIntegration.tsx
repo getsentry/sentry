@@ -43,7 +43,7 @@ function EventRRWebIntegrationContent({orgId, projectSlug, event}: Props) {
       // surprised me before.
       {query: {query: 'rrweb'}},
     ],
-    {staleTime: 0}
+    {staleTime: Infinity, gcTime: Infinity}
   );
 
   if (isError) {

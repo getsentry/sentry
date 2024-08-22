@@ -1,6 +1,7 @@
 import * as Sentry from '@sentry/react';
 
 import type {Client} from 'sentry/api';
+import {queryClient} from 'sentry/queryClient';
 import RepositoryStore from 'sentry/stores/repositoryStore';
 import type {Repository} from 'sentry/types/integrations';
 
@@ -19,10 +20,13 @@ export function getRepositories(api: Client, params: ParamsGet) {
   RepositoryStore.state.repositoriesLoading = true;
   RepositoryStore.loadRepositories(orgSlug);
 
-  return api
-    .requestPromise(path, {
-      method: 'GET',
-    })
+  const repos = queryClient.ensureQueryData({
+    queryKey: [path],
+    queryFn: () => api.requestPromise(path, {method: 'GET'}),
+    gcTime: Infinity,
+  });
+
+  return repos
     .then((res: Repository[]) => {
       RepositoryStore.loadRepositoriesSuccess(res);
     })

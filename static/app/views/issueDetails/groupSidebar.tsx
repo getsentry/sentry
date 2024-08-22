@@ -63,8 +63,8 @@ function useFetchAllEnvsGroupData(organization: OrganizationSummary, group: Grou
       {query: getGroupDetailsQueryData()},
     ],
     {
-      staleTime: 30000,
-      gcTime: 30000,
+      staleTime: Infinity,
+      gcTime: Infinity,
     }
   );
 }
@@ -73,8 +73,8 @@ function useFetchCurrentRelease(organization: OrganizationSummary, group: Group)
   return useApiQuery<CurrentRelease>(
     [`/organizations/${organization.slug}/issues/${group.id}/current-release/`],
     {
-      staleTime: 30000,
-      gcTime: 30000,
+      staleTime: Infinity,
+      gcTime: Infinity,
     }
   );
 }
