@@ -42,12 +42,18 @@ const storeConfig: ConfigStoreDefinition = {
     };
 
     // TODO(dcramer): abstract this out of ConfigStore
-    if (config.user) {
-      config.user.permissions = new Set(config.user.permissions);
-      moment.tz.setDefault(config.user.options.timezone);
+    if (this.state.user) {
+      this.state = {
+        ...this.state,
+        user: {
+          ...this.state.user,
+          permissions: new Set(this.state.user.permissions),
+        },
+      };
+      moment.tz.setDefault(this.state.user.options.timezone);
     }
 
-    this.trigger(config);
+    this.trigger(this.state);
   },
 
   getState() {

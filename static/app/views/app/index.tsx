@@ -16,6 +16,7 @@ import GlobalModal from 'sentry/components/globalModal';
 import Hook from 'sentry/components/hook';
 import Indicators from 'sentry/components/indicators';
 import {DEPLOY_PREVIEW_CONFIG, EXPERIMENTAL_SPA} from 'sentry/constants';
+import {queryClient} from 'sentry/queryClient';
 import AlertStore from 'sentry/stores/alertStore';
 import ConfigStore from 'sentry/stores/configStore';
 import HookStore from 'sentry/stores/hookStore';
@@ -84,8 +85,13 @@ function App({children, params}: Props) {
    * Loads the users organization list into the OrganizationsStore
    */
   const loadOrganizations = useCallback(async () => {
+    const orgPromise = queryClient.ensureQueryData({
+      queryKey: ['organizations'],
+      queryFn: () => fetchOrganizations(api, {member: '1'}),
+      gcTime: 1000 * 60 * 60,
+    });
     try {
-      const data = await fetchOrganizations(api, {member: '1'});
+      const data = await orgPromise;
       OrganizationsStore.load(data);
     } catch {
       // TODO: do something?

@@ -259,14 +259,15 @@ function useEventApiQuery({
     eventIdUrl === 'latest' || eventIdUrl === 'recommended';
   const latestOrRecommendedEvent = useApiQuery<Event>(queryKey, {
     // Latest/recommended event will change over time, so only cache for 30 seconds
-    staleTime: 30000,
-    gcTime: 30000,
+    staleTime: 1000 * 60 * 60,
+    gcTime: 1000 * 60 * 60,
     enabled: isOnDetailsTab && isLatestOrRecommendedEvent,
     retry: false,
   });
   const otherEventQuery = useApiQuery<Event>(queryKey, {
     // Oldest/specific events will never change
     staleTime: Infinity,
+    gcTime: 1000 * 60 * 60,
     enabled: isOnDetailsTab && !isLatestOrRecommendedEvent,
     retry: false,
   });
@@ -369,8 +370,8 @@ function useFetchGroupDetails(): FetchGroupDetailsState {
   } = useApiQuery<Group>(
     makeFetchGroupQueryKey({organizationSlug: organization.slug, groupId, environments}),
     {
-      staleTime: 30000,
-      gcTime: 30000,
+      staleTime: 1000 * 60 * 60,
+      gcTime: 1000 * 60 * 60,
       retry: false,
     }
   );

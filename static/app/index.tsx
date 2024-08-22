@@ -67,6 +67,9 @@
 //
 // [1]: https://sentry.io/careers/
 
+import {queryClient} from 'sentry/queryClient';
+import type {Config} from 'sentry/types/system';
+
 async function app() {
   // We won't need initalizeMainImport until we complete bootstrapping.
   // Initaite the fetch, just don't await it until we need it.
@@ -74,7 +77,20 @@ async function app() {
   const bootstrapImport = import('sentry/bootstrap');
 
   const {bootstrap} = await bootstrapImport;
-  const config = await bootstrap();
+
+  const isConfigFromCache = !!queryClient.getQueryData<Config>(['globalConfig']);
+  const config = await queryClient.ensureQueryData<Config>({
+    queryKey: ['globalConfig'],
+    queryFn: () => bootstrap(),
+    gcTime: 1000 * 60 * 60,
+  });
+
+  if (isConfigFromCache) {
+    window.csrfCookieName = config.csrfCookieName;
+    window.superUserCookieName = config.superUserCookieName;
+    window.superUserCookieDomain = config.superUserCookieDomain ?? undefined;
+    window.__initialData = config;
+  }
 
   const {initializeMain} = await initalizeMainImport;
   initializeMain(config);

@@ -8,6 +8,7 @@ import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {setActiveOrganization} from 'sentry/actionCreators/organizations';
 import type {ResponseMeta} from 'sentry/api';
 import {Client} from 'sentry/api';
+import {queryClient} from 'sentry/queryClient';
 import OrganizationStore from 'sentry/stores/organizationStore';
 import PageFiltersStore from 'sentry/stores/pageFiltersStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
@@ -23,18 +24,28 @@ async function fetchOrg(
   slug: string,
   usePreload?: boolean
 ): Promise<Organization> {
-  const [org] = await getPreloadedDataPromise(
-    'organization',
-    slug,
-    () =>
-      // This data should get preloaded in static/sentry/index.ejs
-      // If this url changes make sure to update the preload
-      api.requestPromise(`/organizations/${slug}/`, {
-        includeAllArgs: true,
-        query: {detailed: 0, include_feature_flags: 1},
-      }),
-    usePreload
-  );
+  const orgPromise = queryClient.ensureQueryData({
+    queryKey: ['organization', slug],
+    queryFn: async () => {
+      const [org] = await getPreloadedDataPromise(
+        'organization',
+        slug,
+        () =>
+          // This data should get preloaded in static/sentry/index.ejs
+          // If this url changes make sure to update the preload
+          api.requestPromise(`/organizations/${slug}/`, {
+            includeAllArgs: true,
+            query: {detailed: 0, include_feature_flags: 1},
+          }),
+        usePreload
+      );
+      return org;
+    },
+    gcTime: 1000 * 60 * 60,
+    staleTime: 1000 * 60 * 5,
+  });
+
+  const org = await orgPromise;
 
   if (!org) {
     throw new Error('retrieved organization is falsey');
@@ -175,12 +186,29 @@ export function fetchOrganizationDetails(
   };
 
   const loadTeamsAndProjects = () => {
+    const projectsAndTeams = queryClient.ensureQueryData({
+      queryKey: ['fetchProjectsAndTeams', slug],
+      queryFn: async () => {
+        const [[projects], [teams, , resp]] = await fetchProjectsAndTeams(
+          slug,
+          usePreload
+        );
+        const teamPageLinks = resp?.getResponseHeader('Link');
+        return {
+          projects,
+          teams,
+          teamPageLinks,
+        };
+      },
+      gcTime: 1000 * 60 * 60,
+      staleTime: 1000 * 60 * 5,
+    });
+
     return new Promise(async resolve => {
-      const [[projects], [teams, , resp]] = await fetchProjectsAndTeams(slug, usePreload);
+      const {projects, teams, teamPageLinks} = await projectsAndTeams;
 
       ProjectsStore.loadInitialData(projects ?? []);
 
-      const teamPageLinks = resp?.getResponseHeader('Link');
       if (teamPageLinks) {
         const paginationObject = parseLinkHeader(teamPageLinks);
         const hasMore = paginationObject?.next?.results ?? false;

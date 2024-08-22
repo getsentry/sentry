@@ -67,8 +67,10 @@
     "@sentry/utils": "^8.24.0",
     "@sentry/webpack-plugin": "^2.22.2",
     "@spotlightjs/spotlight": "^2.0.0-alpha.1",
+    "@tanstack/query-sync-storage-persister": "^5.52.0",
     "@tanstack/react-query": "^5.52.0",
     "@tanstack/react-query-devtools": "^5.52.0",
+    "@tanstack/react-query-persist-client": "^5.52.0",
     "@tanstack/react-virtual": "^3.5.1",
     "@types/color": "^3.0.3",
     "@types/diff": "5.2.1",
@@ -263,7 +265,9 @@
       "last 3 iOS major versions",
       "Firefox ESR"
     ],
-    "test": ["current node"]
+    "test": [
+      "current node"
+    ]
   },
   "volta": {
     "extends": ".volta.json"

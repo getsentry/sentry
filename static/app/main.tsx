@@ -4,18 +4,15 @@ import {ReactQueryDevtools} from '@tanstack/react-query-devtools';
 import DemoHeader from 'sentry/components/demo/demoHeader';
 import {OnboardingContextProvider} from 'sentry/components/onboarding/onboardingContext';
 import {ThemeAndStyleProvider} from 'sentry/components/themeAndStyleProvider';
-import {USE_REACT_QUERY_DEVTOOL} from 'sentry/constants';
 import {routes} from 'sentry/routes';
 import ConfigStore from 'sentry/stores/configStore';
 import {browserHistory} from 'sentry/utils/browserHistory';
-import {
-  DEFAULT_QUERY_CLIENT_CONFIG,
-  QueryClient,
-  QueryClientProvider,
-} from 'sentry/utils/queryClient';
+import {QueryClientProvider} from 'sentry/utils/queryClient';
 import {RouteContext} from 'sentry/views/routeContext';
 
 import RouteAnalyticsContextProvider from './views/routeAnalyticsContextProvider';
+import {queryClient} from './queryClient';
+
 /**
  * Renders our compatibility RouteContext.Provider. This will go away with
  * react-router v6.
@@ -30,8 +27,6 @@ function renderRouter(props: any) {
   );
 }
 
-const queryClient = new QueryClient(DEFAULT_QUERY_CLIENT_CONFIG);
-
 function Main() {
   return (
     <ThemeAndStyleProvider>
@@ -42,9 +37,7 @@ function Main() {
             {routes()}
           </Router>
         </OnboardingContextProvider>
-        {USE_REACT_QUERY_DEVTOOL && (
-          <ReactQueryDevtools initialIsOpen={false} buttonPosition="bottom-left" />
-        )}
+        <ReactQueryDevtools initialIsOpen={false} buttonPosition="bottom-left" />
       </QueryClientProvider>
     </ThemeAndStyleProvider>
   );

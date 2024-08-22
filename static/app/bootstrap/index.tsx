@@ -35,7 +35,7 @@ async function bootWithHydration() {
   window.__initialData = data;
 
   bootApplication(data);
-  preloadOrganizationData(data);
+  // preloadOrganizationData(data);
 
   return data;
 }
@@ -63,7 +63,7 @@ function promiseRequest(url: string): Promise<any> {
   });
 }
 
-function preloadOrganizationData(config: Config) {
+export function preloadOrganizationData(config: Config) {
   if (!config.user) {
     // Don't send requests if there is no logged in user.
     return;
