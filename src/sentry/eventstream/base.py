@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+import random
 from collections.abc import Collection, Mapping, MutableMapping, Sequence
 from datetime import datetime
 from enum import Enum
@@ -8,6 +9,7 @@ from typing import TYPE_CHECKING, Any, Optional, TypedDict, cast
 
 from django.conf import settings
 
+from sentry import options
 from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.tasks.post_process import post_process_group
 from sentry.utils.cache import cache_key_for_event
@@ -47,6 +49,24 @@ class EventStreamEventType(Enum):
     Generic = "generic"  # generic events ingested via the issue platform
 
 
+class SplitQueueRouter:
+    def __init__(self) -> None:
+        pass
+
+    def route_to_split_queue(self, queue: str) -> str:
+        rollout_rate = options.get("celery_split_queue_rollout").get(queue, 0.0)
+        if random.random() >= rollout_rate:
+            return queue
+
+        if queue in set(options.get("celery_split_queue_legacy_mode")):
+            # Use legacy route
+            # This router required to define the routing logic inside the
+            # settings file.
+            return settings.SENTRY_POST_PROCESS_QUEUE_SPLIT_ROUTER.get(queue, lambda: queue)()
+        else:
+            raise NotImplementedError
+
+
 class EventStream(Service):
     __all__ = (
         "insert",
@@ -64,6 +84,9 @@ class EventStream(Service):
         "requires_post_process_forwarder",
         "_get_event_type",
     )
+
+    def __init__(self, **options: Any) -> None:
+        self.__celery_router = SplitQueueRouter()
 
     def _dispatch_post_process_group_task(
         self,
@@ -108,9 +131,7 @@ class EventStream(Service):
         else:
             default_queue = "post_process_errors"
 
-        return settings.SENTRY_POST_PROCESS_QUEUE_SPLIT_ROUTER.get(
-            default_queue, lambda: default_queue
-        )()
+        return self.__celery_router.route_to_split_queue(default_queue)
 
     def _get_occurrence_data(self, event: Event | GroupEvent) -> MutableMapping[str, Any]:
         occurrence = cast(Optional[IssueOccurrence], getattr(event, "occurrence", None))

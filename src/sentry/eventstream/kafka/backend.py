@@ -25,6 +25,7 @@ if TYPE_CHECKING:
 
 class KafkaEventStream(SnubaProtocolEventStream):
     def __init__(self, **options: Any) -> None:
+        super().__init__(**options)
         self.topic = Topic.EVENTS
         self.transactions_topic = Topic.TRANSACTIONS
         self.issue_platform_topic = Topic.EVENTSTREAM_GENERIC
