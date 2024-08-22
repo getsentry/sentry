@@ -57,6 +57,7 @@ function useStacktraceLink(
     stacktraceLinkQueryKey(orgSlug, projectSlug, query),
     {
       staleTime: Infinity,
+      gcTime: Infinity,
       retry: false,
       ...options,
     }

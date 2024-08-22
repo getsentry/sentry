@@ -126,7 +126,8 @@ export function usePromptsCheck(
   return useApiQuery<PromptResponse>(
     makePromptsCheckQueryKey({feature, organization, projectId}),
     {
-      staleTime: 120000,
+      staleTime: 1000 * 60 * 60,
+      gcTime: 1000 * 60 * 60,
       retry: false,
       ...options,
     }
