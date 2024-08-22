@@ -889,6 +889,9 @@ CELERY_QUEUES_REGION = [
     Queue("events.save_event", routing_key="events.save_event"),
     Queue("events.save_event_highcpu", routing_key="events.save_event_highcpu"),
     Queue("events.save_event_transaction", routing_key="events.save_event_transaction"),
+    Queue("events.save_event_transaction_1", routing_key="events.save_event_transaction"),
+    Queue("events.save_event_transaction_2", routing_key="events.save_event_transaction"),
+    Queue("events.save_event_transaction_3", routing_key="events.save_event_transaction"),
     Queue("events.save_event_attachments", routing_key="events.save_event_attachments"),
     Queue("events.symbolicate_event", routing_key="events.symbolicate_event"),
     Queue(
@@ -3529,10 +3532,11 @@ if SILO_DEVSERVER:
 
 # tmp(michal): Default configuration for post_process* queueus split
 SENTRY_POST_PROCESS_QUEUE_SPLIT_ROUTER: dict[str, Callable[[], str]] = {}
-# Routes messages directed to a queue towards a number of shards
-# in a round robin way.
-# This is only supported in post process so far.
-# TODO: support split queues in all Celery tasks
+
+
+# Mapping from queue name to split queues to be used by SplitQueueRouter.
+# This is meant to be used in those case where we have to specify the
+# queue name when issuing a task. Example: post process.
 CELERY_SPLIT_QUEUE_ROUTES: Mapping[str, Sequence[str]] = {
     "post_process_transactions": [
         "post_process_transactions_1",
@@ -3540,3 +3544,20 @@ CELERY_SPLIT_QUEUE_ROUTES: Mapping[str, Sequence[str]] = {
         "post_process_transactions_3",
     ]
 }
+# Mapping from task names to split queues. This can be used when the
+# task does not have to specify the queue and can rely on Celery to
+# do the routing.
+# Each route has a task name as key and a tuple containing a list of queues
+# and a default one as destination.
+CELERY_SPLIT_QUEUE_TASK_ROUTES: Mapping[str, tuple[Sequence[str], str]] = {
+    "sentry.tasks.store.save_event_transaction": (
+        [
+            "events.save_event_transaction_1",
+            "events.save_event_transaction_2",
+            "events.save_event_transaction_3",
+        ],
+        "events.save_event_transaction",
+    )
+}
+
+CELERY_ROUTES = ("sentry.queue.routers.SplitQueueTaskRouter",)

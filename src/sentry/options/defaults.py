@@ -2728,3 +2728,8 @@ register(
     default={"post_process_transactions": 1.0},
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
+register(
+    "celery_split_queue_task_rollout",
+    default={"sentry.tasks.store.save_event_transaction": 1.0},
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)

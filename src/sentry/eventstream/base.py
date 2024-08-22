@@ -110,7 +110,7 @@ class EventStream(Service):
         else:
             default_queue = "post_process_errors"
 
-        return self.__celery_router.route_to_split_queue(default_queue)
+        return self.__celery_router.route_for_queue(default_queue)
 
     def _get_occurrence_data(self, event: Event | GroupEvent) -> MutableMapping[str, Any]:
         occurrence = cast(Optional[IssueOccurrence], getattr(event, "occurrence", None))
