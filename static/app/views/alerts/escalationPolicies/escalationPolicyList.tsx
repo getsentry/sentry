@@ -77,7 +77,6 @@ function EscalateAfterItem({minutes}: {minutes: number}) {
         icon: 'blue400',
         iconBorder: 'blue200',
       }}
-      showLastLine
     />
   );
 }
@@ -103,10 +102,11 @@ function RepeatItem({n}: {n: number}) {
       title={'Repeat: ' + n + ' time' + (n > 1 ? 's' : '')}
       icon={<IconRefresh size="xs" />}
       colorConfig={{
-        title: 'purple400',
-        icon: 'purple400',
-        iconBorder: 'purple200',
+        title: 'yellow400',
+        icon: 'yellow400',
+        iconBorder: 'yellow200',
       }}
+      isActive
     />
   );
 }
@@ -139,9 +139,9 @@ function EscalationPolicyTimeline({policy}: {policy: EscalationPolicy}) {
           })}
           <RepeatItem n={policy.repeatNTimes} />
         </Timeline.Container>
-        <SideBarContainer>
+        <RightSideBarContainer>
           <SideBarSection title={'Used by 1 Alert'}>Some content here</SideBarSection>
-        </SideBarContainer>
+        </RightSideBarContainer>
       </EscalationPolicyContent>
     </EscalationPolicyContainer>
   );
@@ -197,6 +197,7 @@ const EscalationPolicyTimelineList = styled('ul')`
   display: flex;
   flex-direction: column;
   gap: ${space(2)};
+  padding: 0;
 `;
 
 const IncidentCreatedTimelineItem = styled(Timeline.Item)`
@@ -232,15 +233,14 @@ const EscalationPolicyContainer = styled('li')`
 `;
 
 const EscalationPolicyContent = styled('div')`
-  display: grid;
-  grid-template-columns: 2fr 1fr;
-  gap: 15px;
+  display: flex;
+  justify-content: space-between;
 `;
 
-const SideBarContainer = styled('div')`
+const RightSideBarContainer = styled('div')`
   display: flex;
   flex-direction: column;
-  gap: 5px;
+  width: 500px;
 `;
 
 const SideBarTitle = styled('h6')`
