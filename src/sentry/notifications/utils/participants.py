@@ -242,8 +242,10 @@ def get_owner_reason(
     Currently only used to explain "issue owners" w/ fallthrough to everyone
     """
     # Sent to a specific user or team
-    if target_type != ActionTargetType.ISSUE_OWNERS:
-        return None
+    if target_type == ActionTargetType.MEMBER:
+        return "The alert has you configured as a recipient for these notifications."
+    if target_type == ActionTargetType.TEAM:
+        return "The alert has this team configured as a recipient for these notifications."
 
     # Not an issue alert
     if event is None:
@@ -255,7 +257,7 @@ def get_owner_reason(
     if fallthrough_choice == FallthroughChoiceType.ACTIVE_MEMBERS:
         return f"We notified recently active members in the {project.get_full_name()} project of this issue"
 
-    return None
+    return "Ownership rules have suggested you should be notified of this alert."
 
 
 def get_suspect_commit_users(project: Project, event: Event | GroupEvent) -> list[RpcUser]:

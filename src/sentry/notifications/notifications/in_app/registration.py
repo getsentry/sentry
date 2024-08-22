@@ -44,6 +44,10 @@ def send_in_app_personal_notification(
         )
         source = notification.notification_setting_type_enum
 
+        # Skip unregistered notifs (like DigestNotification)
+        if source is None:
+            return
+
         logger.info(
             "in_app.personal_notification",
             extra={

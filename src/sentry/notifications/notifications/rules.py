@@ -179,6 +179,8 @@ class AlertRuleNotification(ProjectNotification):
 
         notification_uuid = self.notification_uuid if hasattr(self, "notification_uuid") else None
         context = {
+            "organization": self.organization,
+            "project": self.project,
             "project_label": self.project.get_full_name(),
             "group": self.group,
             "group_header": group_header,
@@ -291,6 +293,63 @@ class AlertRuleNotification(ProjectNotification):
                 title_str += f" (+{len(self.rules) - 1} other)"
 
         return title_str
+
+    def get_message_description(self, recipient: Actor, provider: ExternalProviders) -> Any:
+        return get_owner_reason(
+            project=self.project,
+            target_type=self.target_type,
+            event=self.event,
+            fallthrough_choice=self.fallthrough_choice,
+        )
+
+    def get_actions(self, recipient: Actor, provider: ExternalProviders):
+        from sentry.integrations.message_builder import build_rule_url
+
+        ctx = self.get_context()
+        actions = [
+            {
+                "name": "View issue",
+                "label": "View issue",
+                "type": "button",
+                "url": ctx.get("link"),
+                "value": "view_issue",
+            }
+        ]
+
+        if self.rules:
+            actions.append(
+                {
+                    "name": "View alert",
+                    "label": "View alert",
+                    "type": "button",
+                    "url": build_rule_url(self.rules[0], self.group, self.project),
+                    "value": "view_alert",
+                }
+            )
+
+        if ctx.get("snooze_alert_url"):
+            actions.append(
+                {
+                    "name": "Snooze alert",
+                    "label": "Snooze alert",
+                    "type": "button",
+                    "url": ctx.get("snooze_alert_url"),
+                    "value": "snooze_alert",
+                }
+            )
+
+        if ctx.get("issue_replays_url"):
+            actions.append(
+                {
+                    "name": "View replay",
+                    "label": "View replay",
+                    "type": "button",
+                    "url": ctx.get("issue_replays_url"),
+                    "value": "view_replay",
+                }
+            )
+
+        return actions
 
     def send(self) -> None:
         from sentry.notifications.notify import notify
