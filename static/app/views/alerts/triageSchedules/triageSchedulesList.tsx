@@ -70,11 +70,10 @@ function ScheduleList() {
   return (
     <Fragment>
       <SentryDocumentTitle title={t('Escalation Policies')} orgSlug={organization.slug} />
-
       <PageFiltersContainer>
+        <AlertHeader router={router} activeTab="schedules" />
         <Layout.Body>
           <Layout.Main fullWidth>
-            <AlertHeader router={router} activeTab="schedules" />
             <MonitorListPanel role="region">
               <TimelineWidthTracker ref={elementRef} />
               <Header>

@@ -89,10 +89,13 @@ export function ScheduleTimelineRow({schedule, totalWidth, timeWindowConfig}: Pr
         <DetailsHeadline>
           <Name>{schedule.name}</Name>
         </DetailsHeadline>
-        <Description>{schedule.description}</Description>
+        <Description>
+          {schedule.description ??
+            'Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod'}
+        </Description>
       </DetailsArea>
       <OnRotationContainer>
-        <ScheduleTitle>On Rotation Now:</ScheduleTitle>
+        <ScheduleTitle>On Rotation:</ScheduleTitle>
         {/* TODO */}
         {/* {rotations[1].userId && <ParticipantList users={[users[rotations[1].userId]]} />} */}
       </OnRotationContainer>
@@ -197,7 +200,7 @@ const DetailsArea = styled('div')`
   border-right: 1px solid ${p => p.theme.border};
   border-radius: 0;
   position: relative;
-  padding: ${space(3)};
+  padding: ${space(1.5)};
   display: block;
 `;
 
@@ -217,15 +220,15 @@ const Description = styled('h3')`
   word-break: break-word;
   margin-bottom: ${space(0.5)};
   font-weight: ${p => p.theme.fontWeightNormal};
+  color: ${p => p.theme.subText};
 `;
 
 const ScheduleTitle = styled('h6')`
-  color: ${p => p.theme.subText};
   display: flex;
   align-items: center;
   gap: ${space(0.5)};
   font-size: ${p => p.theme.fontSizeMedium};
-  margin: ${space(1)} 0 0;
+  margin: 0;
 `;
 
 const TimelineRow = styled('li')`
@@ -260,7 +263,7 @@ const ScheduleOuterContainer = styled('div')`
 
 const OnRotationContainer = styled('div')`
   display: flex;
-  padding: ${space(1)} ${space(1)};
+  padding: ${space(1.5)};
   flex-direction: column;
   border-right: 1px solid ${p => p.theme.innerBorder};
   text-align: left;
