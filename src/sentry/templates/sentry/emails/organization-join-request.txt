@@ -1,3 +1,4 @@
+{% autoescape off %}
 Request for Access
 
 {{ email }} is requesting to join the {{ organization_name }} organization.
@@ -8,3 +9,4 @@ View access requests by clicking the link below:
 
 You are receiving this email because you're listed as an organization Owner or Manager.
 Requests to join your organization can be disabled in settings: {{ settings_link }}
+{% endautoescape %}

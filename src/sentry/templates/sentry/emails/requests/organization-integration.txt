@@ -1,3 +1,4 @@
+{% autoescape off %}
 Seems like your team could use some new tools. {{ requester_name }} from {{ organization_name }} requested the installation of {{ integration_name }}.
 {% if message %}
 They’ve included some additional context:
@@ -14,3 +15,4 @@ Let’s get integrated.
 
 You are receiving this email because you’re listed as an organization Owner or Manager.
 Requests to join your organization can be disabled in Organization Settings: {{ settings_link }}.
+{% endautoescape %}

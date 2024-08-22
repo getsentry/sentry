@@ -1,3 +1,4 @@
+{% autoescape off %}
 Unable to Fetch Commits
 -----------------------
 
@@ -9,3 +10,4 @@ Troubleshooting &amp; References
 
 https://sentry.zendesk.com/hc/en-us/articles/23968845267739-Why-am-I-receiving-the-email-Unable-to-Fetch-Commits
 https://docs.sentry.io/product/releases/setup/
+{% endautoescape %}

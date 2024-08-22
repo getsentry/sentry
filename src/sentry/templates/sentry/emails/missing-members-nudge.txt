@@ -1,3 +1,4 @@
+{% autoescape off %}
 
 Bring your full {{ provider }} team on board in Sentry
 
@@ -12,3 +13,4 @@ Most Active Contributors
 {% endfor %}
 
 View Missing Members {{ members_list_url }}
+{% endautoescape %}

@@ -1,3 +1,4 @@
+{% autoescape off %}
 The {{ organization.name }} organization has been scheduled for deletion by:
 
 User: {{ username }}
@@ -9,3 +10,4 @@ This irreversible deletion will take place at {{ eta }} and will permanently rem
 If this was unintentional and you would like to cancel the deletion:
 
 {{ url }}
+{% endautoescape %}

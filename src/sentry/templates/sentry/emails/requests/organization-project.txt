@@ -1,3 +1,4 @@
+{% autoescape off %}
 Fancy seeing you here. In your own inbox. In this email, we’ve addressed specifically to you.
 
 {{ requester_name }} told us you’d be interested in Sentry App Monitoring for Mobile.
@@ -19,3 +20,4 @@ Get Started by clicking the link below:
 
 Mobile up,
 The Sentry Team
+{% endautoescape %}

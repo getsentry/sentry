@@ -1,5 +1,7 @@
+{% autoescape off %}
 Version {{ version_parsed }} was deployed to {{ environment }} on {{ deploy.date_finished }}
 
 {% for project, release_link, resolved_issue_count in projects %}
     {{ release_link }}
 {% endfor %}
+{% endautoescape %}

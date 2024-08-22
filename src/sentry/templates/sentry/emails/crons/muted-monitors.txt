@@ -1,3 +1,4 @@
+{% autoescape off %}
 Your Cron Monitors Have Been Muted
 
 The Cron Monitors below have not processed a successful check-in for multiple weeks. We have automatically muted the failing environments for these monitors:
@@ -15,3 +16,4 @@ Note that muted monitors will still count towards on-demand budget, but can be d
 We recommend checking out our troubleshooting guide and our FAQs: "https://docs.sentry.io/product/crons/troubleshooting/" for further information on how you can bring your monitors back to a healthy status.
 
 Still facing issues? Reach out to our support team "https://sentry.zendesk.com/hc/en-us/requests/new".
+{% endautoescape %}
