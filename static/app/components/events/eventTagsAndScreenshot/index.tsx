@@ -4,7 +4,6 @@ import styled from '@emotion/styled';
 import {useFetchEventAttachments} from 'sentry/actionCreators/events';
 import {ScreenshotDataSection} from 'sentry/components/events/eventTagsAndScreenshot/screenshot/screenshotDataSection';
 import {DataSection} from 'sentry/components/events/styles';
-import {OnboardingWidget} from 'sentry/components/onboardingWidget';
 import useOrganization from 'sentry/utils/useOrganization';
 
 import EventTagsDataSection from './tags';
@@ -45,7 +44,6 @@ export function EventTagsAndScreenshot({projectSlug, event, isShare = false}: Pr
 
   return (
     <Fragment>
-      <OnboardingWidget />
       <Wrapper
         showScreenshot={showScreenshot}
         showTags={showTags}

@@ -1,6 +1,8 @@
+import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import Link from 'sentry/components/links/link';
+import {OnboardingWidget} from 'sentry/components/onboardingWidget';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import {generateTraceTarget} from 'sentry/components/quickTrace/utils';
 import {IconChevron} from 'sentry/icons';
@@ -48,18 +50,21 @@ export function TraceLink({event}: TraceLinkProps) {
   }
 
   return (
-    <StyledLink
-      to={traceTarget}
-      onClick={() => {
-        trackAnalytics('quick_trace.trace_id.clicked', {
-          organization,
-          source: 'issues',
-        });
-      }}
-    >
-      <span>{t('View Full Trace')}</span>
-      <IconChevron direction="right" size="xs" />
-    </StyledLink>
+    <Fragment>
+      <OnboardingWidget />
+      <StyledLink
+        to={traceTarget}
+        onClick={() => {
+          trackAnalytics('quick_trace.trace_id.clicked', {
+            organization,
+            source: 'issues',
+          });
+        }}
+      >
+        <span>{t('View Full Trace')}</span>
+        <IconChevron direction="right" size="xs" />
+      </StyledLink>
+    </Fragment>
   );
 }
 

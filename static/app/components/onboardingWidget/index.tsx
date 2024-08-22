@@ -41,14 +41,14 @@ const definiedSteps = {
           'Here is the destination for triaging all bugs related to application.'
         ),
         // Hack -- the target is the id of the frontend issue
-        target: '4332613',
+        target: '4460364',
       },
     ],
     exercises: [
       {
         title: t('Exercise: View an issue'),
         description: t('Humour us by clicking the highlighted issue.'),
-        target: '4332613',
+        target: '4460364',
       },
     ],
   },
@@ -98,7 +98,7 @@ const definiedSteps = {
         title: t('Exercise 1: Resolve your first issue'),
         description: t('Select the issue using the checkbox and mark as “Resolved”.'),
         // Hack -- the target is the id of the frontend issue
-        target: '4332613',
+        target: '4460364',
       },
       {
         title: t('Exercise 2: View this Issue'),
@@ -106,7 +106,7 @@ const definiedSteps = {
           'When you clicked the exploding button in the example page, a new issue appeared, but how could that be? Find out, by viewing the issue.'
         ),
         // Hack -- the target is the id of the frontend issue
-        target: '4332614',
+        target: '4460365',
       },
     ],
   },
