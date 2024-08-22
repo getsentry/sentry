@@ -20,6 +20,7 @@ from django.shortcuts import redirect
 from django.urls import reverse
 from django.utils import timezone as django_timezone
 from django.utils.decorators import method_decorator
+from django.utils.html import escape
 from django.views.decorators.csrf import csrf_exempt
 from django.views.generic import View
 
@@ -312,7 +313,7 @@ class MailPreview:
         add_unsubscribe_link(self.context)
 
     def text_body(self):
-        return render_to_string(self.text_template, context=self.context)
+        return escape(render_to_string(self.text_template, context=self.context))
 
     def html_body(self):
         try:
@@ -398,7 +399,7 @@ class ActivityMailPreview:
 
     def text_body(self):
         txt_template = f"{self.email.template_path}.txt"
-        return render_to_string(txt_template, context=self.get_context())
+        return escape(render_to_string(txt_template, context=self.get_context()))
 
     def html_body(self):
         html_template = f"{self.email.template_path}.html"
