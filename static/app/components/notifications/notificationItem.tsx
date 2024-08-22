@@ -14,7 +14,7 @@ import {NotificationActionBar} from 'sentry/components/notifications/notificatio
 import {getNotificationData} from 'sentry/components/notifications/util';
 import Timeline, {type ColorConfig} from 'sentry/components/timeline';
 import {Tooltip} from 'sentry/components/tooltip';
-import {IconArchive, IconSettings, IconShow} from 'sentry/icons';
+import {IconArchive, IconReturn, IconSettings, IconShow} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import OrganizationsStore from 'sentry/stores/organizationsStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
@@ -61,7 +61,7 @@ export function NotificationItem({notification}: {notification: NotificationHist
       <NotificationControls>
         <NotificationControl
           borderless
-          icon={<IconArchive />}
+          icon={isArchived ? <IconReturn /> : <IconArchive />}
           size="xs"
           title={isArchived ? t('Unarchive') : t('Archive')}
           aria-label={isArchived ? t('Unarchive') : t('Archive')}
@@ -99,6 +99,7 @@ export function NotificationItem({notification}: {notification: NotificationHist
         />
       </NotificationControls>
       <Item
+        isActive
         icon={icon}
         colorConfig={colorConfig}
         title={
@@ -120,7 +121,6 @@ export function NotificationItem({notification}: {notification: NotificationHist
             <NotificationBadge text={notification.source} colorConfig={colorConfig} />
           </Title>
         }
-        isActive
       >
         <Content isUnread={isUnread}>{notification.description}</Content>
         <NotificationActionBar notification={notification} />
@@ -208,6 +208,7 @@ const NotificationControl = styled(Button)``;
 const Item = styled(Timeline.Item)`
   grid-area: item;
   padding: ${space(1.5)} ${space(3)};
+  margin: ${space(1)} 0 !important;
 `;
 
 const Content = styled('div')<{isUnread: boolean}>`
@@ -221,7 +222,7 @@ const Title = styled('div')<{isUnread: boolean}>`
   gap: ${space(1)};
   justify-content: space-between;
   font-weight: ${p => (p.isUnread ? p.theme.fontWeightBold : p.theme.fontWeightNormal)};
-  color: ${p => (p.isUnread ? p.theme.textColor : p.theme.subText)};
+  color: ${p => p.theme.textColor};
 `;
 
 const NotificationBadge = styled(Badge)<{colorConfig: ColorConfig}>`

@@ -1,9 +1,10 @@
 import {Button} from 'sentry/components/button';
 import {Flex} from 'sentry/components/container/flex';
 import {space} from 'sentry/styles/space';
-import type {
-  NotificationContentAction,
-  NotificationHistory,
+import {
+  type NotificationContentAction,
+  type NotificationHistory,
+  NotificationHistoryStatus,
 } from 'sentry/types/notifications';
 import {useNavigate} from 'sentry/utils/useNavigate';
 
@@ -14,22 +15,17 @@ export function NotificationActionBar({
 }) {
   const navigate = useNavigate();
   const actions: NotificationContentAction[] = notification.content._actions ?? [];
+  const isArchived = notification.status === NotificationHistoryStatus.ARCHIVED;
 
   const buttonActions = actions.map((action, i) => (
     <Button
       key={i}
       size="xs"
-      priority={action.style ?? 'default'}
+      priority={isArchived ? 'default' : action.style ?? 'default'}
       aria-label={action.label ?? action.name}
       onClick={() => {
         if (action.url) {
           navigate(action.url);
-        }
-        switch (action.action_id) {
-          case 'approve_request':
-          case 'reject_request':
-          default:
-            return;
         }
       }}
     >
