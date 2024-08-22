@@ -27,6 +27,7 @@ const List = styled(
     const getWrapperComponent = () => {
       switch (symbol) {
         case 'numeric':
+        case 'numeric-only':
         case 'colored-numeric':
           return 'ol';
         default:

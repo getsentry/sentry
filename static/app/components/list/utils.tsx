@@ -57,6 +57,7 @@ const numericStyle = (
 `;
 
 export const listSymbol = {
+  'numeric-only': 'numeric-only',
   numeric: 'numeric',
   'colored-numeric': 'colored-numeric',
   bullet: 'bullet',

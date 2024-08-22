@@ -5,7 +5,6 @@ import {css, useTheme} from '@emotion/react';
 
 import {Button} from 'sentry/components/button';
 import InteractionStateLayer from 'sentry/components/interactionStateLayer';
-import Link from 'sentry/components/links/link';
 import List from 'sentry/components/list';
 import ListItem from 'sentry/components/list/listItem';
 import {IconClose, IconTarget} from 'sentry/icons';
@@ -13,7 +12,6 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
-import useOrganization from 'sentry/utils/useOrganization';
 
 type Exercise = {
   description: React.ReactNode;
@@ -33,130 +31,115 @@ type OnboardingStep = {
   steps?: Step[];
 };
 
-function getDefiningSteps() {
-  const organization = useOrganization();
-  return {
-    0: {
-      title: t('Issues'),
-      steps: [
-        {
-          title: t('Issue Stream'),
-          description: t(
-            'Here is the destination for triaging all bugs related to the application.'
-          ),
-          // Hack -- the target is the id of the frontend issue
-          target: '4332613',
-        },
-      ],
-      exercises: [
-        {
-          title: t('Exercise: View an Issue'),
-          description: t('Humour us by clicking the highlighted issue.'),
-          target: '4332613',
-        },
-      ],
-    },
-    1: {
-      title: t('Issue Details'),
-      steps: [
-        {
-          title: t('Event Hightlights'),
-          description: t(
-            'With these tags, you can see that you were using Chrome and macOS when they threw the error.'
-          ),
-          target: 'event-highlights',
-        },
-        {
-          title: t('Stack Trace'),
-          description: t(
-            'With the stack trace, you can see that the culprit of this issue.'
-          ),
-          target: 'event-exception',
-        },
-        {
-          title: t('Breadcrumbs'),
-          description: t(
-            'Finally, with these breadcrumb events, you can see that the issue is related to the button you just clicked.'
-          ),
-          target: 'event-breadcrumbs',
-        },
-      ],
-      exercises: [
-        {
-          title: t('Exercise: Swash this bug'),
-          target: 'event-breadcrumbs',
-          description: (
-            <List>
-              <ListItem>
-                {'1. '}
-                {t('Open “example.ts” in your IDE')}
-              </ListItem>
-              <ListItem>
-                {'2. '}
-                {t('Delete line 43')}
-              </ListItem>
-              <ListItem>
-                {'3. '}
-                {t('Click the button again')}
-              </ListItem>
-              <ListItem>
-                <span>{'4. '}</span>
-                <Link
-                  to={{
-                    pathname: `/organizations/${organization.slug}/issues/`,
-                    query: {
-                      onboarding: 2,
-                    },
-                  }}
-                  onClick={e => e.stopPropagation()}
-                >
-                  {t('Go to Issue Stream')}
-                </Link>
-              </ListItem>
-            </List>
-          ),
-        },
-      ],
-    },
-    2: {
-      title: t('Issues'),
-      exercises: [
-        {
-          title: t('Exercise 1: Resolve your first issue'),
-          description: t('Select the issue using the checkbox and mark as “Resolved”'),
-          // Hack -- the target is the id of the frontend issue
-          target: '4332613',
-        },
-        {
-          title: t('Exercise 2: View this Issue'),
-          description: t(
-            'When you clicked that button in the example page, a new issue appeared, but how could that be? Find out, by viewing the issue.'
-          ),
-          // Hack -- the target is the id of the frontend issue
-          target: '4332614',
-        },
-      ],
-    },
-    3: {
-      title: t('Issue Details'),
-      steps: [
-        {
-          title: t('Trace Connection'),
-          description: t(
-            'With tracing, you can see that this frontend issue isn’t the root cause.'
-          ),
-          target: 'event-trace',
-        },
-      ],
-      exercises: [
-        {
-          title: t('Exercise: Find the real culprit'),
-          description: t('By clicking this link\u2026'),
-        },
-      ],
-    },
-  };
-}
+const definiedSteps = {
+  0: {
+    title: t('Issues'),
+    steps: [
+      {
+        title: t('Issue Stream'),
+        description: t(
+          'Here is the destination for triaging all bugs related to application.'
+        ),
+        // Hack -- the target is the id of the frontend issue
+        target: '4332613',
+      },
+    ],
+    exercises: [
+      {
+        title: t('Exercise: View an issue'),
+        description: t('Humour us by clicking the highlighted issue.'),
+        target: '4332613',
+      },
+    ],
+  },
+  1: {
+    title: t('Issue Details'),
+    steps: [
+      {
+        title: t('Event Hightlights'),
+        description: t(
+          'You can see that you were using Chrome when you threw the error.'
+        ),
+        target: 'event-highlights',
+      },
+      {
+        title: t('Breadcrumbs'),
+        description: t(
+          'You can see that the culprit of this issue is related to the button you just clicked.'
+        ),
+        target: 'event-breadcrumbs',
+      },
+      {
+        title: t('Stack Trace'),
+        description: t(
+          'And, if it wasn’t completely obvious by this point, you can see the culprit exists on Line 8 in “page.tsx”.'
+        ),
+        target: 'event-exception',
+      },
+    ],
+    exercises: [
+      {
+        title: t('Exercise: Squash this bug'),
+        target: 'event-exception',
+        description: (
+          <ol>
+            <li>{t('Open “page.tsx” in your IDE')}</li>
+            <li>{t('Delete line 8 and save this change')}</li>
+            <li>{t('Click the exploding button again in the local dev environment.')}</li>
+          </ol>
+        ),
+      },
+    ],
+  },
+  2: {
+    title: t('Issues'),
+    exercises: [
+      {
+        title: t('Exercise 1: Resolve your first issue'),
+        description: t('Select the issue using the checkbox and mark as “Resolved”.'),
+        // Hack -- the target is the id of the frontend issue
+        target: '4332613',
+      },
+      {
+        title: t('Exercise 2: View this Issue'),
+        description: t(
+          'When you clicked the exploding button in the example page, a new issue appeared, but how could that be? Find out, by viewing the issue.'
+        ),
+        // Hack -- the target is the id of the frontend issue
+        target: '4332614',
+      },
+    ],
+  },
+  3: {
+    title: t('Issue Details'),
+    steps: [
+      {
+        title: t('Trace Connection'),
+        description: t(
+          'With tracing, you can see that this frontend issue isn’t the root cause.'
+        ),
+        target: 'event-trace',
+      },
+    ],
+    exercises: [
+      {
+        title: t('Exercise: Find the real culprit'),
+        description: (
+          <Fragment>
+            <div>
+              {t(
+                'Clicking the "View Full Trace" link, you’ll not only gain knowledge on identifying related issues, but also on debugging slow services within your application'
+              )}
+            </div>
+            <br />
+            <div>{t('Happy Squashing.')}</div>
+          </Fragment>
+        ),
+        target: 'event-trace',
+      },
+    ],
+  },
+};
 
 function getNodeTarget(target?: string) {
   return target ? document.getElementById(target) : null;
@@ -251,7 +234,6 @@ export function OnboardingWidget() {
   const navigate = useNavigate();
 
   const stepIndex = Number(location.query.onboarding);
-  const definiedSteps = getDefiningSteps();
   const displayStep: OnboardingStep | undefined = definiedSteps[stepIndex];
 
   const handleDismiss = useCallback(() => {
@@ -381,12 +363,14 @@ const exercisesCss = (theme: Theme) => css`
   color: ${theme.purple400};
   li ul {
     gap: 0;
+  }
+  ol {
+    margin: 0;
+    padding: 0;
+    padding-left: 16px;
     li {
       display: list-item;
       padding: 0;
-      a {
-        display: inline;
-      }
     }
   }
 `;
