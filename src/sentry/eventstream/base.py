@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import logging
 import random
-from collections.abc import Collection, Generator, Mapping, MutableMapping, Sequence
+from collections.abc import Collection, Iterator, Mapping, MutableMapping, Sequence
 from datetime import datetime
 from enum import Enum
 from itertools import cycle
@@ -62,7 +62,7 @@ class SplitQueueRouter:
                 assert dest in known_queues, f"Queue {dest} in split queue config is not declared."
 
             routers[source] = cycle(destinations)
-        self.__routers: Mapping[str, Generator[str]] = routers
+        self.__routers: Mapping[str, Iterator[str]] = routers
 
     def route_to_split_queue(self, queue: str) -> str:
         rollout_rate = options.get("celery_split_queue_rollout").get(queue, 0.0)
