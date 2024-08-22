@@ -271,14 +271,14 @@ const BreadcrumbDrawerContainer = styled('div')`
   grid-template-rows: auto auto 1fr;
 `;
 
-const BreadcrumbDrawerHeader = styled(DrawerHeader)`
+export const BreadcrumbDrawerHeader = styled(DrawerHeader)`
   position: unset;
   max-height: ${MIN_NAV_HEIGHT}px;
   box-shadow: none;
   border-bottom: 1px solid ${p => p.theme.border};
 `;
 
-const BreadcrumbNavigator = styled('div')`
+export const BreadcrumbNavigator = styled('div')`
   display: grid;
   grid-template-columns: 1fr auto;
   align-items: center;
@@ -290,7 +290,7 @@ const BreadcrumbNavigator = styled('div')`
   box-shadow: ${p => p.theme.translucentBorder} 0 1px;
 `;
 
-const BreadcrumbDrawerBody = styled(DrawerBody)`
+export const BreadcrumbDrawerBody = styled(DrawerBody)`
   overflow: auto;
   overscroll-behavior: contain;
   /* Move the scrollbar to the left edge */
@@ -301,14 +301,14 @@ const BreadcrumbDrawerBody = styled(DrawerBody)`
   }
 `;
 
-const Header = styled('h3')`
+export const Header = styled('h3')`
   display: block;
   font-size: ${p => p.theme.fontSizeExtraLarge};
   font-weight: ${p => p.theme.fontWeightBold};
   margin: 0;
 `;
 
-const SearchInput = styled(InputGroup.Input)`
+export const SearchInput = styled(InputGroup.Input)`
   border: 0;
   box-shadow: unset;
   color: inherit;

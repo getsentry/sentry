@@ -3,21 +3,28 @@ import moment from 'moment';
 
 import OrganizationAvatar from 'sentry/components/avatar/organizationAvatar';
 import ProjectAvatar from 'sentry/components/avatar/projectAvatar';
+import Badge from 'sentry/components/badge/badge';
 import {Breadcrumbs, type Crumb} from 'sentry/components/breadcrumbs';
 import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import DateTime from 'sentry/components/dateTime';
 import Duration from 'sentry/components/duration';
 import {Timestamp} from 'sentry/components/events/breadcrumbs/breadcrumbsTimeline';
-import Timeline from 'sentry/components/timeline';
+import {getNotificationData} from 'sentry/components/notifications/util';
+import Timeline, {type ColorConfig} from 'sentry/components/timeline';
 import {Tooltip} from 'sentry/components/tooltip';
-import {IconArchive, IconSettings, IconShow, IconSubscribed} from 'sentry/icons';
+import {IconArchive, IconSettings, IconShow} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import OrganizationsStore from 'sentry/stores/organizationsStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import {space} from 'sentry/styles/space';
-import type {NotificationHistory} from 'sentry/types/notifications';
+import {
+  type NotificationHistory,
+  NotificationHistoryStatus,
+} from 'sentry/types/notifications';
 import {shouldUse24Hours} from 'sentry/utils/dates';
+import useMutateInAppNotification from 'sentry/utils/useMutateInAppNotification';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import useProjects from 'sentry/utils/useProjects';
 
 function NotificationCrumbs({notification}: {notification: NotificationHistory}) {
@@ -62,10 +69,17 @@ function NotificationCrumbs({notification}: {notification: NotificationHistory})
 }
 
 export function NotificationItem({notification}: {notification: NotificationHistory}) {
+  const {mutate: updateNotif} = useMutateInAppNotification({
+    notifId: notification.id,
+  });
+  const navigate = useNavigate();
+  const {colorConfig, icon} = getNotificationData(notification);
+
   const absoluteFormat = shouldUse24Hours() ? 'HH:mm:ss.SSS' : 'hh:mm:ss.SSS';
+
   const now = new Date();
   const notifTime = new Date(notification.date_added);
-  const isUnread = notification.status === 'unread';
+  const isUnread = notification.status === NotificationHistoryStatus.UNREAD;
 
   return (
     <Container>
@@ -73,26 +87,44 @@ export function NotificationItem({notification}: {notification: NotificationHist
       <NotificationControls>
         <NotificationControl
           borderless
-          icon={<IconShow isHidden />}
+          icon={
+            <IconShow
+              isHidden={notification.status !== NotificationHistoryStatus.UNREAD}
+            />
+          }
           size="xs"
-          aria-label={t('Mark Seen')}
+          title={isUnread ? t('Mark as read') : t('Mark unread')}
+          aria-label={isUnread ? t('Mark as read') : t('Mark unread')}
+          onClick={() => updateNotif({status: NotificationHistoryStatus.READ})}
         />
         <NotificationControl
           borderless
           icon={<IconArchive />}
           size="xs"
+          title={t('Archive')}
           aria-label={t('Archive')}
+          onClick={() => updateNotif({status: NotificationHistoryStatus.ARCHIVED})}
         />
         <NotificationControl
           borderless
           icon={<IconSettings />}
           size="xs"
-          aria-label={t('Modify')}
+          title={t('Modify in Settings')}
+          aria-label={t('Modify in Settings')}
+          onClick={() =>
+            navigate(`/settings/account/notifications/${notification.source}/`)
+          }
         />
       </NotificationControls>
       <Item
-        icon={<IconSubscribed size="xs" />}
-        title={<Title isUnread={isUnread}>{notification.title}</Title>}
+        icon={icon}
+        colorConfig={isUnread ? colorConfig : undefined}
+        title={
+          <Title isUnread={isUnread}>
+            <div>{notification.title}</div>
+            <NotificationBadge text={notification.source} colorConfig={colorConfig} />
+          </Title>
+        }
         isActive
         timestamp={
           <Timestamp>
@@ -114,8 +146,9 @@ export function NotificationItem({notification}: {notification: NotificationHist
 function NotificationActionBar({}: {notification: NotificationHistory}) {
   return (
     <ButtonBar gap={1}>
-      <Button size="sm">Approve</Button>
-      <Button size="sm">Deny</Button>
+      <Button size="sm">Action 1</Button>
+      <Button size="sm">Action 2</Button>
+      <Button size="sm">Action 3</Button>
     </ButtonBar>
   );
 }
@@ -124,7 +157,7 @@ const Container = styled('div')`
   border: 1px solid ${p => p.theme.border};
   border-radius: ${p => p.theme.borderRadius};
   overflow: hidden;
-  margin: ${space(2)} 0;
+  margin-bottom: ${space(2)};
   display: grid;
   grid-template:
     'breadcrumbs breadcrumbs'
@@ -149,9 +182,14 @@ const NotificationControls = styled('div')`
   display: flex;
   flex-direction: column;
   height: 100%;
-
   justify-content: center;
   gap: ${space(1)};
+`;
+
+const NotificationBadge = styled(Badge)<{colorConfig: ColorConfig}>`
+  border: 1px solid ${p => p.theme[p.colorConfig.iconBorder]};
+  color: ${p => p.theme[p.colorConfig.title]};
+  background: transparent;
 `;
 
 const NotificationControl = styled(Button)``;
@@ -167,6 +205,8 @@ const Content = styled('div')<{isUnread: boolean}>`
 `;
 
 const Title = styled('div')<{isUnread: boolean}>`
+  display: flex;
+  justify-content: space-between;
   font-weight: ${p => (p.isUnread ? p.theme.fontWeightBold : p.theme.fontWeightNormal)};
   color: ${p => (p.isUnread ? p.theme.textColor : p.theme.subText)};
 `;
