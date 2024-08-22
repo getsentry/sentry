@@ -19,9 +19,6 @@ const optionFilter = createFilter({
   stringify: option => `${option.label} ${option.value}`,
 });
 
-const filterOption = (canditate, input) =>
-  canditate.data.value === optionFilter(canditate, input);
-
 const getOptionValue = (option: PolicyOption) => option.value;
 
 const placeholderSelectStyles: StylesConfig = {
@@ -78,14 +75,13 @@ function PolicySelector(props: Props) {
       value: policy.id + '',
       label: policy.name,
       // leadingItems: <IdBadge team={team} hideName />,
-      // searchKey: team.slug,
+      // searchKey: policy.name,
     }),
     []
   );
 
   const handleChange = useCallback(
     (newValue: PolicyOption | PolicyOption[]) => {
-      debugger;
       if (multiple) {
         const options = newValue as PolicyOption[];
         onChange?.(options);
@@ -110,13 +106,12 @@ function PolicySelector(props: Props) {
     [multiple]
   );
 
-  debugger;
   return (
     <SelectControl
       ref={selectRef}
       options={options}
       getOptionValue={getOptionValue}
-      filterOption={filterOption}
+      // filterOption={filterOption}
       styles={styles}
       isLoading={isFetching}
       onChange={handleChange}
