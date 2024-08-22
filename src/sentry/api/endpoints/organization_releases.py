@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import re
+import logging
 from datetime import datetime, timedelta
 
 from django.db import IntegrityError
@@ -12,7 +13,11 @@ from rest_framework.serializers import ListField
 
 from sentry import analytics, release_health
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import EnvironmentMixin, ReleaseAnalyticsMixin, region_silo_endpoint
+from sentry.api.base import (
+    EnvironmentMixin,
+    ReleaseAnalyticsMixin,
+    region_silo_endpoint,
+)
 from sentry.api.bases import NoProjects
 from sentry.api.bases.organization import OrganizationReleasesBaseEndpoint
 from sentry.api.exceptions import ConflictError, InvalidRepository
@@ -27,7 +32,10 @@ from sentry.api.serializers.rest_framework import (
 from sentry.api.utils import get_auth_api_token_type
 from sentry.exceptions import InvalidSearchQuery
 from sentry.models.activity import Activity
-from sentry.models.orgauthtoken import is_org_auth_token_auth, update_org_auth_token_last_used
+from sentry.models.orgauthtoken import (
+    is_org_auth_token_auth,
+    update_org_auth_token_last_used,
+)
 from sentry.models.project import Project
 from sentry.models.release import Release, ReleaseStatus
 from sentry.models.releases.exceptions import ReleaseCommitError
@@ -50,6 +58,8 @@ from sentry.utils.sdk import Scope, bind_organization_context
 
 ERR_INVALID_STATS_PERIOD = "Invalid %s. Valid choices are %s"
 
+logger = logging.getLogger(__name__)
+
 
 def get_stats_period_detail(key, choices):
     return ERR_INVALID_STATS_PERIOD % (key, ", ".join("'%s'" % x for x in choices))
@@ -61,7 +71,9 @@ _release_suffix = re.compile(r"^(.*)\s+\(([^)]+)\)\s*$")
 def add_environment_to_queryset(queryset, filter_params):
     if "environment" in filter_params:
         return queryset.filter(
-            releaseprojectenvironment__environment__name__in=filter_params["environment"],
+            releaseprojectenvironment__environment__name__in=filter_params[
+                "environment"
+            ],
             releaseprojectenvironment__project_id__in=filter_params["project_id"],
         )
     return queryset
@@ -70,7 +82,9 @@ def add_environment_to_queryset(queryset, filter_params):
 def add_date_filter_to_queryset(queryset, filter_params):
     """Once date has been coalesced over released and added, use it to filter releases"""
     if filter_params["start"] and filter_params["end"]:
-        return queryset.filter(date__gte=filter_params["start"], date__lte=filter_params["end"])
+        return queryset.filter(
+            date__gte=filter_params["start"], date__lte=filter_params["end"]
+        )
     return queryset
 
 
@@ -108,7 +122,8 @@ def _filter_releases_by_query(queryset, organization, query, filter_params):
 
         if search_filter.key.name == SEMVER_ALIAS:
             queryset = queryset.filter_by_semver(
-                organization.id, parse_semver(search_filter.value.raw_value, search_filter.operator)
+                organization.id,
+                parse_semver(search_filter.value.raw_value, search_filter.operator),
             )
 
         if search_filter.key.name == SEMVER_PACKAGE_ALIAS:
@@ -144,7 +159,9 @@ class ReleaseSerializerWithProjects(ReleaseWithVersionSerializer):
     headCommits = ListField(
         child=ReleaseHeadCommitSerializerDeprecated(), required=False, allow_null=False
     )
-    refs = ListField(child=ReleaseHeadCommitSerializer(), required=False, allow_null=False)
+    refs = ListField(
+        child=ReleaseHeadCommitSerializer(), required=False, allow_null=False
+    )
 
 
 def debounce_update_release_health_data(organization, project_ids: list[int]):
@@ -162,14 +179,18 @@ def debounce_update_release_health_data(organization, project_ids: list[int]):
     if not should_update:
         return
 
-    projects = {p.id: p for p in Project.objects.get_many_from_cache(should_update.keys())}
+    projects = {
+        p.id: p for p in Project.objects.get_many_from_cache(should_update.keys())
+    }
 
     # This gives us updates for all release-projects which have seen new
     # health data over the last days. It will miss releases where the last
     # date is longer than what `get_changed_project_release_model_adoptions`
     # considers recent.
-    project_releases = release_health.backend.get_changed_project_release_model_adoptions(
-        should_update.keys()
+    project_releases = (
+        release_health.backend.get_changed_project_release_model_adoptions(
+            should_update.keys()
+        )
     )
 
     # Check which we already have rows for.
@@ -202,7 +223,9 @@ def debounce_update_release_health_data(organization, project_ids: list[int]):
             # we want to create the release the first time we observed it on the
             # health side.
             release = Release.get_or_create(
-                project=project, version=version, date_added=dates.get((project_id, version))
+                project=project,
+                version=version,
+                date_added=dates.get((project_id, version)),
             )
 
             # Make sure that the release knows about this project.  Like we had before
@@ -221,18 +244,18 @@ class OrganizationReleasesEndpoint(
         "GET": ApiPublishStatus.UNKNOWN,
         "POST": ApiPublishStatus.UNKNOWN,
     }
-    SESSION_SORTS = frozenset(
-        [
-            "crash_free_sessions",
-            "crash_free_users",
-            "sessions",
-            "users",
-            "sessions_24h",
-            "users_24h",
-        ]
-    )
+    SESSION_SORTS = frozenset([
+        "crash_free_sessions",
+        "crash_free_users",
+        "sessions",
+        "users",
+        "sessions_24h",
+        "users_24h",
+    ])
 
-    def get_projects(self, request: Request, organization, project_ids=None, project_slugs=None):
+    def get_projects(
+        self, request: Request, organization, project_ids=None, project_slugs=None
+    ):
         return super().get_projects(
             request,
             organization,
@@ -259,11 +282,17 @@ class OrganizationReleasesEndpoint(
         sort = request.GET.get("sort") or "date"
         health_stat = request.GET.get("healthStat") or "sessions"
         summary_stats_period = request.GET.get("summaryStatsPeriod") or "14d"
-        health_stats_period = request.GET.get("healthStatsPeriod") or ("24h" if with_health else "")
+        health_stats_period = request.GET.get("healthStatsPeriod") or (
+            "24h" if with_health else ""
+        )
         if summary_stats_period not in STATS_PERIODS:
-            raise ParseError(detail=get_stats_period_detail("summaryStatsPeriod", STATS_PERIODS))
+            raise ParseError(
+                detail=get_stats_period_detail("summaryStatsPeriod", STATS_PERIODS)
+            )
         if health_stats_period and health_stats_period not in STATS_PERIODS:
-            raise ParseError(detail=get_stats_period_detail("healthStatsPeriod", STATS_PERIODS))
+            raise ParseError(
+                detail=get_stats_period_detail("healthStatsPeriod", STATS_PERIODS)
+            )
         if health_stat not in ("sessions", "users"):
             raise ParseError(detail="invalid healthStat")
 
@@ -271,7 +300,9 @@ class OrganizationReleasesEndpoint(
         paginator_kwargs = {}
 
         try:
-            filter_params = self.get_filter_params(request, organization, date_filter_optional=True)
+            filter_params = self.get_filter_params(
+                request, organization, date_filter_optional=True
+            )
         except NoProjects:
             return Response([])
 
@@ -297,7 +328,9 @@ class OrganizationReleasesEndpoint(
         queryset = add_environment_to_queryset(queryset, filter_params)
         if query:
             try:
-                queryset = _filter_releases_by_query(queryset, organization, query, filter_params)
+                queryset = _filter_releases_by_query(
+                    queryset, organization, query, filter_params
+                )
             except InvalidSearchQuery as e:
                 return Response(
                     {"detail": str(e)},
@@ -316,7 +349,9 @@ class OrganizationReleasesEndpoint(
             queryset = queryset.order_by("-date")
             paginator_kwargs["order_by"] = "-date"
         elif sort == "build":
-            queryset = queryset.filter(build_number__isnull=False).order_by("-build_number")
+            queryset = queryset.filter(build_number__isnull=False).order_by(
+                "-build_number"
+            )
             paginator_kwargs["order_by"] = "-build_number"
         elif sort == "semver":
             queryset = queryset.annotate_prerelease_column()
@@ -335,7 +370,9 @@ class OrganizationReleasesEndpoint(
         elif sort in self.SESSION_SORTS:
             if not flatten:
                 return Response(
-                    {"detail": "sorting by crash statistics requires flattening (flatten=1)"},
+                    {
+                        "detail": "sorting by crash statistics requires flattening (flatten=1)"
+                    },
                     status=400,
                 )
 
@@ -347,19 +384,25 @@ class OrganizationReleasesEndpoint(
                         : total_offset + limit
                     ]
                 )
-                releases_with_session_data = release_health.backend.check_releases_have_health_data(
-                    organization.id,
-                    filter_params["project_id"],
-                    release_versions,
-                    (
-                        filter_params["start"]
-                        if filter_params["start"]
-                        else datetime.utcnow() - timedelta(days=90)
-                    ),
-                    filter_params["end"] if filter_params["end"] else datetime.utcnow(),
+                releases_with_session_data = (
+                    release_health.backend.check_releases_have_health_data(
+                        organization.id,
+                        filter_params["project_id"],
+                        release_versions,
+                        (
+                            filter_params["start"]
+                            if filter_params["start"]
+                            else datetime.utcnow() - timedelta(days=90)
+                        ),
+                        filter_params["end"]
+                        if filter_params["end"]
+                        else datetime.utcnow(),
+                    )
                 )
                 valid_versions = [
-                    rv for rv in release_versions if rv not in releases_with_session_data
+                    rv
+                    for rv in release_versions
+                    if rv not in releases_with_session_data
                 ]
 
                 results = list(
@@ -372,7 +415,8 @@ class OrganizationReleasesEndpoint(
 
             paginator_cls = MergingOffsetPaginator
             paginator_kwargs.update(
-                data_load_func=lambda offset, limit: release_health.backend.get_project_releases_by_stability(
+                data_load_func=lambda offset,
+                limit: release_health.backend.get_project_releases_by_stability(
                     project_ids=filter_params["project_id"],
                     environments=filter_params.get("environment"),
                     scope=sort,
@@ -456,6 +500,8 @@ class OrganizationReleasesEndpoint(
                            ``commit`` may contain a range in the form of ``previousCommit..commit``
         :auth: required
         """
+        print(f"REQUEST HEADERS {request.headers.get('authorization')}")
+        logger.error(f"REQUEST HEADERS {request.headers}")
         bind_organization_context(organization)
         serializer = ReleaseSerializerWithProjects(
             data=request.data, context={"organization": organization}
@@ -477,7 +523,9 @@ class OrganizationReleasesEndpoint(
             projects = []
             for id_or_slug in result["projects"]:
                 if id_or_slug not in allowed_projects:
-                    return Response({"projects": ["Invalid project ids or slugs"]}, status=400)
+                    return Response(
+                        {"projects": ["Invalid project ids or slugs"]}, status=400
+                    )
                 projects.append(allowed_projects[id_or_slug])
 
             new_status = result.get("status")
@@ -555,7 +603,11 @@ class OrganizationReleasesEndpoint(
                 if not request.user.is_authenticated and not request.auth:
                     scope.set_tag("failure_reason", "user_not_authenticated")
                     return Response(
-                        {"refs": ["You must use an authenticated API token to fetch refs"]},
+                        {
+                            "refs": [
+                                "You must use an authenticated API token to fetch refs"
+                            ]
+                        },
                         status=400,
                     )
                 fetch_commits = not commit_list
@@ -585,7 +637,9 @@ class OrganizationReleasesEndpoint(
             )
 
             if is_org_auth_token_auth(request.auth):
-                update_org_auth_token_last_used(request.auth, [project.id for project in projects])
+                update_org_auth_token_last_used(
+                    request.auth, [project.id for project in projects]
+                )
 
             scope.set_tag("success_status", status)
             return Response(serialize(release, request.user), status=status)
@@ -594,7 +648,9 @@ class OrganizationReleasesEndpoint(
 
 
 @region_silo_endpoint
-class OrganizationReleasesStatsEndpoint(OrganizationReleasesBaseEndpoint, EnvironmentMixin):
+class OrganizationReleasesStatsEndpoint(
+    OrganizationReleasesBaseEndpoint, EnvironmentMixin
+):
     publish_status = {
         "GET": ApiPublishStatus.UNKNOWN,
     }
@@ -610,7 +666,9 @@ class OrganizationReleasesStatsEndpoint(OrganizationReleasesBaseEndpoint, Enviro
         query = request.GET.get("query")
 
         try:
-            filter_params = self.get_filter_params(request, organization, date_filter_optional=True)
+            filter_params = self.get_filter_params(
+                request, organization, date_filter_optional=True
+            )
         except NoProjects:
             return Response([])
 
@@ -630,7 +688,9 @@ class OrganizationReleasesStatsEndpoint(OrganizationReleasesBaseEndpoint, Enviro
         queryset = add_environment_to_queryset(queryset, filter_params)
         if query:
             try:
-                queryset = _filter_releases_by_query(queryset, organization, query, filter_params)
+                queryset = _filter_releases_by_query(
+                    queryset, organization, query, filter_params
+                )
             except InvalidSearchQuery as e:
                 return Response(
                     {"detail": str(e)},
@@ -642,7 +702,8 @@ class OrganizationReleasesStatsEndpoint(OrganizationReleasesBaseEndpoint, Enviro
             queryset=queryset,
             paginator_cls=OffsetPaginator,
             on_results=lambda x: [
-                {"version": release["version"], "date": serialize(release["date"])} for release in x
+                {"version": release["version"], "date": serialize(release["date"])}
+                for release in x
             ],
             default_per_page=1000,
             max_per_page=1000,

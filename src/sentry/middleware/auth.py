@@ -33,11 +33,17 @@ def get_user(request):
             # currently set on the User. By default, the value will
             # be None until the first action has been taken, at
             # which point, a nonce will always be required.
-            if user.session_nonce and request.session.get("_nonce", "") != user.session_nonce:
+            if (
+                user.session_nonce
+                and request.session.get("_nonce", "") != user.session_nonce
+            ):
                 # If the nonces don't match, this session is anonymous.
                 logger.info(
                     "user.auth.invalid-nonce",
-                    extra={"ip_address": request.META["REMOTE_ADDR"], "user_id": user.id},
+                    extra={
+                        "ip_address": request.META["REMOTE_ADDR"],
+                        "user_id": user.id,
+                    },
                 )
                 user = AnonymousUser()
             else:
@@ -48,6 +54,7 @@ def get_user(request):
 
 class AuthenticationMiddleware(MiddlewareMixin):
     def process_request(self, request: HttpRequest) -> None:
+        logger.error(f"GENERAL AUTH HEADERS: {request.headers}")
         if request.path.startswith("/api/0/internal/rpc/"):
             # Avoid doing RPC authentication when we're already
             # in an RPC request.

@@ -2,6 +2,8 @@ import logging
 import secrets
 
 import jwt
+from jwt import PyJWKClient
+
 import requests
 from django.http import HttpRequest, HttpResponse, HttpResponseBadRequest
 from django.utils import timezone
@@ -63,78 +65,74 @@ class OAuthTokenView(View):
         return None
 
     def _validate_id_token(self, request: HttpRequest):
-        grant_type = request.POST.get("grant_type")
-        if grant_type != GrantTypes.TOKEN_EXCHANGE:
-            raise NotImplementedError
-
-        id_token = request.POST.get("subject_token")
+        request_json = json.loads(request.body)
+        id_token = request_json.get("subject_token")
         if not id_token:
             # return error matching RFC requirements https://www.rfc-editor.org/rfc/rfc6749#section-5.2
             return HttpResponse(
-                json.dumps(
-                    {
-                        "error": "invalid_request",
-                        "error_description": "missing id token",
-                    }
-                ),
+                json.dumps({
+                    "error": "invalid_request",
+                    "error_description": "missing id token",
+                }),
                 status=400,
             )
 
         # TODO make this configurable for other CI providers eventually
         github_actions_issuer = "https://token.actions.githubusercontent.com"
-        github_actions_jwks_url = "https://token.actions.githubusercontent.com/.well-known/jwks"
+        github_actions_jwks_url = (
+            "https://token.actions.githubusercontent.com/.well-known/jwks"
+        )
 
         # TODO validate audience
         expected_audience = options.get("system.url-prefix")
 
         try:
-            response = requests.get(github_actions_jwks_url)
-            response.raise_for_status()
-            jwks = response.json()
+            jwks_client = PyJWKClient(github_actions_jwks_url)
+            signing_key = jwks_client.get_signing_key_from_jwt(id_token)
 
-            unverified_header = jwt.get_unverified_header(id_token)
-            rsa_key = self._get_rsa_key(jwks, unverified_header["kid"])
-
-            if rsa_key:
-                # TODO: validate org/repository claims too!
-                return jwt.decode(
+            if signing_key:
+                decoded_jwt = jwt.decode(
                     id_token,
-                    rsa_key,
+                    signing_key.key,
                     audience=expected_audience,
                     issuer=github_actions_issuer,
                     algorithms=["RS256"],
+                    # options={"verify_signature": False},
                 )
+                logger.error(
+                    f"-----AUDIENCE {decoded_jwt['aud']}\n EXPECTED: {expected_audience}"
+                )
+                return decoded_jwt
             else:
                 return HttpResponseBadRequest(
-                    json.dumps(
-                        {
-                            "error": "invalid_request",
-                            "error_description": "id token signed with invalid key",
-                        }
-                    ),
+                    json.dumps({
+                        "error": "invalid_request",
+                        "error_description": "id token signed with invalid key",
+                    }),
                     content_type="application/json",
                 )
-        except requests.exception.RequestException as e:
+        except requests.exceptions.RequestException as e:
             logger.exception("failed to fetch JWKS")
             return None
         except jwt.exceptions.InvalidTokenError as e:
             logger.exception(f"invalid id token: {e}")
             return None
 
-    def _get_organization_from_resource(self, request: HttpRequest) -> Organization | None:
-        organization_resource = request.POST.get("resource")
+    def _get_organization_from_resource(
+        self, request: HttpRequest
+    ) -> Organization | None:
+        request_json = json.loads(request.body)
+        organization_resource = request_json.get("resource")
 
         # TODO: use stronger validation here with regex that ensures the organization ID is all numbers
         if not organization_resource.startswith(
-            f'{options.get("system.url-prefix")}/api/0/organizations/'
+            f"https://trosentry.ngrok.dev/api/0/organizations/"
         ):
             return HttpResponseBadRequest(
-                json.dumps(
-                    {
-                        "error": "invalid_target",
-                        "error_description": "resource target must be an organization",
-                    }
-                ),
+                json.dumps({
+                    "error": "invalid_target",
+                    "error_description": "resource target must be an organization",
+                }),
                 content_type="application/json",
             )
 
@@ -142,9 +140,9 @@ class OAuthTokenView(View):
         organization_id = organization_resource.rsplit("/", 1)
 
         # return a Organization object?
-        if organization_id.isnumeric():
+        if organization_id[1].isnumeric():
             try:
-                organization = Organization.objects.get(id=organization_id[1])
+                organization = Organization.objects.get(id=int(organization_id[1]))
                 return organization
             except Organization.DoesNotExist:
                 return HttpResponseBadRequest(json.dumps({"error": "invalid_target"}))
@@ -168,9 +166,12 @@ class OAuthTokenView(View):
         )
 
         try:
-            org_mapping = OrganizationMapping.objects.get(organization_id=organization.id)
+            org_mapping = OrganizationMapping.objects.get(
+                organization_id=organization.id
+            )
             token_str = generate_token(
-                organization.slug, generate_region_url(region_name=org_mapping.region_name)
+                organization.slug,
+                generate_region_url(region_name=org_mapping.region_name),
             )
         except SystemUrlPrefixMissingException:
             return Response(
@@ -221,9 +222,11 @@ class OAuthTokenView(View):
 
     @method_decorator(never_cache)
     def post(self, request: HttpRequest) -> HttpResponse:
-        grant_type = request.POST.get("grant_type")
-        client_id = request.POST.get("client_id")
-        client_secret = request.POST.get("client_secret")
+        logger.error(f"-----------------REQUEST BODY------------: {request.body}")
+        request_json = json.loads(request.body)
+        grant_type = request_json.get("grant_type")
+        client_id = request_json.get("client_id")
+        client_secret = request_json.get("client_secret")
 
         metrics.incr(
             "oauth_token.post.start",
@@ -234,29 +237,42 @@ class OAuthTokenView(View):
             },
         )
 
+        logger.error(f"Request POST: {request.body}")
+
+        logger.error(f"{grant_type} | {GrantTypes.TOKEN_EXCHANGE}")
+
         if grant_type == GrantTypes.TOKEN_EXCHANGE:
             id_token = self._validate_id_token(request)
 
             if id_token:
                 organization = self._get_organization_from_resource(request)
-                gha_oidc_config = organization.get_option("sentry:github_action_oidc")
+                gha_oidc_config = json.loads(
+                    organization.get_option("sentry:github_action_oidc")
+                )
 
                 # check that the organization is what we expect
                 if gha_oidc_config["organization"] != id_token["repository_owner"]:
                     return HttpResponse(status=401)
                 else:
                     org_auth_token_data = self._create_org_auth_token(organization)
+                    logger.error(f"response: {org_auth_token_data}")
                     return HttpResponse(
-                        json.dumps(org_auth_token_data), content_type="application/json", status=200
+                        json.dumps(org_auth_token_data),
+                        content_type="application/json",
+                        status=200,
                     )
             else:
                 return HttpResponseBadRequest()
 
         if not client_id:
-            return self.error(request=request, name="missing_client_id", reason="missing client_id")
+            return self.error(
+                request=request, name="missing_client_id", reason="missing client_id"
+            )
         if not client_secret:
             return self.error(
-                request=request, name="missing_client_secret", reason="missing client_secret"
+                request=request,
+                name="missing_client_secret",
+                reason="missing client_secret",
             )
 
         if grant_type not in [GrantTypes.AUTHORIZATION, GrantTypes.REFRESH]:
@@ -264,14 +280,18 @@ class OAuthTokenView(View):
 
         try:
             application = ApiApplication.objects.get(
-                client_id=client_id, client_secret=client_secret, status=ApiApplicationStatus.active
+                client_id=client_id,
+                client_secret=client_secret,
+                status=ApiApplicationStatus.active,
             )
         except ApiApplication.DoesNotExist:
             metrics.incr(
                 "oauth_token.post.invalid",
                 sample_rate=1.0,
             )
-            logger.warning("Invalid client_id / secret pair", extra={"client_id": client_id})
+            logger.warning(
+                "Invalid client_id / secret pair", extra={"client_id": client_id}
+            )
             return self.error(
                 request=request,
                 name="invalid_credentials",
@@ -280,9 +300,13 @@ class OAuthTokenView(View):
             )
 
         if grant_type == GrantTypes.AUTHORIZATION:
-            token_data = self.get_access_tokens(request=request, application=application)
+            token_data = self.get_access_tokens(
+                request=request, application=application
+            )
         else:
-            token_data = self.get_refresh_token(request=request, application=application)
+            token_data = self.get_refresh_token(
+                request=request, application=application
+            )
         if "error" in token_data:
             return self.error(
                 request=request,
