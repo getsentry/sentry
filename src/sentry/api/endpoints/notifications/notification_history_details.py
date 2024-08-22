@@ -44,5 +44,5 @@ class NotificationHistoryDetailsEndpoint(Endpoint):
         if not serializer.is_valid():
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-        action = serializer.save()
-        return Response(serialize(action, user=request.user), status=status.HTTP_202_ACCEPTED)
+        notif = serializer.save()
+        return Response(serialize(notif, user=request.user), status=status.HTTP_202_ACCEPTED)
