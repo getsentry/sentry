@@ -196,6 +196,7 @@ class ActionTargetType(Enum):
     ISSUE_OWNERS = "IssueOwners"
     TEAM = "Team"
     MEMBER = "Member"
+    POLICY = "Policy"
 
 
 ACTION_CHOICES = [

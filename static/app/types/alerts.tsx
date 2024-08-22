@@ -5,6 +5,7 @@ import type {IssueConfigField} from './integrations';
 export const enum IssueAlertActionType {
   SLACK = 'sentry.integrations.slack.notify_action.SlackNotifyServiceAction',
   NOTIFY_EMAIL = 'sentry.mail.actions.NotifyEmailAction',
+  NOTIFY_ESCALATION = 'sentry.mail.actions.NotifyEscalationAction',
   DISCORD = 'sentry.integrations.discord.notify_action.DiscordNotifyServiceAction',
   SENTRY_APP = 'sentry.rules.actions.notify_event_sentry_app.NotifyEventSentryAppAction',
   MS_TEAMS = 'sentry.integrations.msteams.notify_action.MsTeamsNotifyServiceAction',
@@ -101,6 +102,7 @@ interface IssueAlertGenericActionConfig extends IssueAlertConfigBase {
   id:
     | `${IssueAlertActionType.SLACK}`
     | `${IssueAlertActionType.NOTIFY_EMAIL}`
+    | `${IssueAlertActionType.NOTIFY_ESCALATION}`
     | `${IssueAlertActionType.DISCORD}`
     | `${IssueAlertActionType.SENTRY_APP}`
     | `${IssueAlertActionType.MS_TEAMS}`
@@ -264,6 +266,7 @@ export enum MailActionTargetType {
   TEAM = 'Team',
   MEMBER = 'Member',
   RELEASE_MEMBERS = 'ReleaseMembers',
+  POLICY = 'Policy',
 }
 
 export enum AssigneeTargetType {

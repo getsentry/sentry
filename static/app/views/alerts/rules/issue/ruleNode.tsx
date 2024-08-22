@@ -13,7 +13,7 @@ import {releaseHealth} from 'sentry/data/platformCategories';
 import {IconDelete, IconSettings} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {Choices, Organization, Project} from 'sentry/types';
+import type {Choices} from 'sentry/types';
 import type {
   IssueAlertConfiguration,
   IssueAlertRuleAction,
@@ -26,6 +26,8 @@ import {
   IssueAlertFilterType,
   MailActionTargetType,
 } from 'sentry/types/alerts';
+import type {Organization} from 'sentry/types/organization';
+import type {Project} from 'sentry/types/project';
 import MemberTeamFields from 'sentry/views/alerts/rules/issue/memberTeamFields';
 import SentryAppRuleModal from 'sentry/views/alerts/rules/issue/sentryAppRuleModal';
 import TicketRuleModal from 'sentry/views/alerts/rules/issue/ticketRuleModal';
@@ -129,8 +131,33 @@ function MailActionFields({
         {value: MailActionTargetType.TEAM, label: t('Team')},
         {value: MailActionTargetType.MEMBER, label: t('Member')},
       ]}
+      teamValue={MailActionTargetType.TEAM}
+      memberValue={MailActionTargetType.MEMBER}
+      policyValue={MailActionTargetType.POLICY}
+    />
+  );
+}
+
+function EscalationActionFields({
+  data,
+  organization,
+  project,
+  disabled,
+  onMemberTeamChange,
+}: FieldProps) {
+  const isInitialized = data.targetType !== undefined && `${data.targetType}`.length > 0;
+  return (
+    <MemberTeamFields
+      disabled={disabled}
+      project={project}
+      organization={organization}
+      loading={!isInitialized}
+      ruleData={data as IssueAlertRuleAction}
+      onChange={onMemberTeamChange}
+      options={[{value: MailActionTargetType.POLICY, label: t('Schedule')}]}
       memberValue={MailActionTargetType.MEMBER}
       teamValue={MailActionTargetType.TEAM}
+      policyValue={MailActionTargetType.POLICY}
     />
   );
 }
@@ -283,6 +310,7 @@ function RuleNode({
       );
     }
 
+    console.log(fieldConfig);
     switch (fieldConfig.type) {
       case 'choice':
         return <ChoiceField {...fieldProps} />;
@@ -294,6 +322,8 @@ function RuleNode({
         return <MailActionFields {...fieldProps} />;
       case 'assignee':
         return <AssigneeFilterFields {...fieldProps} />;
+      case 'escalationAction':
+        return <EscalationActionFields {...fieldProps} />;
       default:
         return null;
     }

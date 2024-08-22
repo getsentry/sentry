@@ -1,15 +1,21 @@
 from collections.abc import Callable, Generator, Sequence
 
-from django.db.models import Q
-
 from sentry.escalation_policies import EscalationPolicy, trigger_escalation_policy
 from sentry.eventstore.models import GroupEvent
 from sentry.mail.actions import NotifyEmailTarget
 from sentry.mail.forms.notify_email import NotifyEmailForm
+from sentry.notifications.types import ActionTargetType, FallthroughChoiceType
 from sentry.rules.actions.base import EventAction
 from sentry.rules.base import CallbackFuture
-from sentry.types.actor import ActorType
 from sentry.types.rules import RuleFuture
+
+FALLTHROUGH_CHOICES = [
+    (FallthroughChoiceType.NO_ONE.value, "No One"),
+]
+
+ACTION_CHOICES = [
+    (ActionTargetType.POLICY.value, "Escalation Policy"),
+]
 
 
 class NotifyEscalationAction(EventAction):
@@ -20,6 +26,13 @@ class NotifyEscalationAction(EventAction):
     prompt = "Send a notification according to the triage schedule"
 
     form_cls = NotifyEmailForm
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.form_fields = {
+            "targetType": {"type": "escalationAction", "choices": ACTION_CHOICES},
+            "fallthroughType": {"type": "choice", "choices": FALLTHROUGH_CHOICES},
+        }
 
     @staticmethod
     def _create_trigger_escalation_callback(
@@ -33,16 +46,17 @@ class NotifyEscalationAction(EventAction):
     def after(
         self, event: GroupEvent, notification_uuid: str | None = None
     ) -> Generator[CallbackFuture]:
-        user_ids: list[int] = []
-        team_ids: list[int] = []
         target = NotifyEmailTarget.unpack(self)
-        for recipient in target.get_eligible_recipients(event):
-            if recipient.actor_type == ActorType.USER:
-                user_ids.append(recipient.id)
-            if recipient.actor_type == ActorType.TEAM:
-                team_ids.append(recipient.id)
+        # plz figure out the general form for notification targets that can account for
+        # dynamic, lazy, targets.
+        assert target.target_type == ActionTargetType.POLICY, "OMG REFACTOR THIS LATER"
 
-        query = EscalationPolicy.objects.filter(organization_id=event.group.organization.id)
-        query = query.filter(Q(user_id__in=user_ids) | Q(team_id__in=team_ids))
-        for policy in query:
-            yield self.future(self._create_trigger_escalation_callback(policy))
+        # Figure out healthy, secure scoping
+        policy = EscalationPolicy.objects.filter(
+            organization_id=event.organization.id, id=target.target_identifier
+        ).first()
+
+        if policy is None:
+            return
+
+        yield self.future(self._create_trigger_escalation_callback(policy))

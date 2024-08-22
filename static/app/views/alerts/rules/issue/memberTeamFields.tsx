@@ -3,6 +3,7 @@ import styled from '@emotion/styled';
 
 import SelectControl from 'sentry/components/forms/controls/selectControl';
 import PanelItem from 'sentry/components/panels/panelItem';
+import PolicySelector from 'sentry/components/policySelector';
 import SelectMembers from 'sentry/components/selectMembers';
 import TeamSelector from 'sentry/components/teamSelector';
 import {space} from 'sentry/styles/space';
@@ -25,6 +26,7 @@ type Props = {
   project: Project;
   ruleData: IssueAlertRuleAction | IssueAlertRuleCondition;
   teamValue: string | number;
+  policyValue?: string | number;
 };
 
 class MemberTeamFields extends Component<Props> {
@@ -64,11 +66,14 @@ class MemberTeamFields extends Component<Props> {
       ruleData,
       memberValue,
       teamValue,
+      policyValue,
       options,
     } = this.props;
 
     const teamSelected = ruleData.targetType === teamValue;
     const memberSelected = ruleData.targetType === memberValue;
+    const policySelected = ruleData.targetType === policyValue;
+    console.log({policySelected});
 
     const selectControlStyles = {
       control: provided => ({
@@ -90,7 +95,7 @@ class MemberTeamFields extends Component<Props> {
             onChange={this.handleChangeActorType}
           />
         </SelectWrapper>
-        {(teamSelected || memberSelected) && (
+        {(teamSelected || memberSelected || policySelected) && (
           <SelectWrapper>
             {teamSelected ? (
               <TeamSelector
@@ -112,6 +117,14 @@ class MemberTeamFields extends Component<Props> {
                 value={`${ruleData.targetIdentifier}`}
                 styles={selectControlStyles}
                 onChange={this.handleChangeActorId}
+              />
+            ) : policySelected ? (
+              <PolicySelector
+                onChange={this.handleChangeActorId}
+                organization={organization}
+                key={policyValue}
+                value={`${ruleData.targetIdentifier}`}
+                styles={selectControlStyles}
               />
             ) : null}
           </SelectWrapper>
