@@ -20,7 +20,8 @@ export const useFetchSavedSearchesForOrg = (
   return useApiQuery<FetchSavedSearchesForOrgResponse>(
     makeFetchSavedSearchesForOrgQueryKey({orgSlug}),
     {
-      staleTime: 30000,
+      staleTime: 1000 * 60 * 60,
+      gcTime: 1000 * 60 * 60,
       ...options,
     }
   );

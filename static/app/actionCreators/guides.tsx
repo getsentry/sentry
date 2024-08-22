@@ -2,6 +2,7 @@ import * as Sentry from '@sentry/react';
 
 import {fetchOrganizationDetails} from 'sentry/actionCreators/organization';
 import {Client} from 'sentry/api';
+import {queryClient} from 'sentry/queryClient';
 import ConfigStore from 'sentry/stores/configStore';
 import GuideStore from 'sentry/stores/guideStore';
 import type {Organization} from 'sentry/types/organization';
@@ -15,7 +16,11 @@ const api = new Client();
 
 export async function fetchGuides() {
   try {
-    const data = await api.requestPromise('/assistant/');
+    const data = await queryClient.ensureQueryData({
+      queryKey: ['fetchGuides'],
+      queryFn: () => api.requestPromise('/assistant/'),
+      gcTime: 1000 * 60 * 60,
+    });
     GuideStore.fetchSucceeded(data);
   } catch (err) {
     if (err.status !== 401 && err.status !== 403) {
