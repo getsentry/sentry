@@ -662,7 +662,7 @@ def save_event(
 
 @instrumented_task(
     name="sentry.tasks.store.save_event_transaction",
-    # queue="events.save_event_transaction",
+    # This does not define a queue as it relies on SplitQueueTaskRouter
     time_limit=65,
     soft_time_limit=60,
     silo_mode=SiloMode.REGION,

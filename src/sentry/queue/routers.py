@@ -19,6 +19,19 @@ def _validate_destiantions(destinations: Sequence[str]) -> None:
 
 
 class SplitQueueRouter:
+    """
+    Returns the split queue to use for a Celery queue.
+    Split queues allow us to spread the load of a queue to multiple ones.
+
+    This takes in input a queue name and returns the split. It is supposed
+    to be used by the code that schedules the task.
+
+    Each split queue can be individually rolled out via options.
+
+    WARNING: Do not forget to configure your workers to listen to the
+    queues appropriately before you start routing messages.
+    """
+
     def __init__(self) -> None:
         known_queues = _get_known_queues()
         self.__queue_routers = {}
@@ -51,6 +64,20 @@ class TaskRoute(NamedTuple):
 
 
 class SplitQueueTaskRouter:
+    """
+    Routes tasks to split queues.
+
+    As for `SplitQueueRouter` this is meant to spread the load of a queue
+    to a number of split queues.
+
+    The main difference is that this is a router used directly by Celery.
+    It is configured as the main router via the `CELERY_ROUTES` setting.
+    Every time a task is scheduled that does not define a queue this router
+    is used and it maps a task to a queue.
+
+    Here as well, split queues can be rolled out individually via options.
+    """
+
     def __init__(self) -> None:
         known_queues = _get_known_queues()
 

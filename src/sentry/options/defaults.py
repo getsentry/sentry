@@ -2730,6 +2730,6 @@ register(
 )
 register(
     "celery_split_queue_task_rollout",
-    default={"sentry.tasks.store.save_event_transaction": 1.0},
+    default={},
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
