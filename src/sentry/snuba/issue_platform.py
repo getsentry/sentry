@@ -1,4 +1,5 @@
 from collections.abc import Sequence
+from copy import deepcopy
 from datetime import timedelta
 
 import sentry_sdk
@@ -19,7 +20,8 @@ from sentry.utils.snuba import SnubaTSResult, bulk_snuba_queries
 def query(
     selected_columns,
     query,
-    snuba_params,
+    params,
+    snuba_params=None,
     equations=None,
     orderby=None,
     offset=None,
@@ -78,7 +80,7 @@ def query(
 
     builder = DiscoverQueryBuilder(
         Dataset.IssuePlatform,
-        {},
+        params,
         snuba_params=snuba_params,
         query=query,
         selected_columns=selected_columns,
@@ -108,8 +110,9 @@ def query(
 def timeseries_query(
     selected_columns: Sequence[str],
     query: str,
-    snuba_params: SnubaParams,
+    params: dict[str, str],
     rollup: int,
+    snuba_params: SnubaParams | None = None,
     referrer: str | None = None,
     zerofill_results: bool = True,
     comparison_delta: timedelta | None = None,
@@ -145,11 +148,14 @@ def timeseries_query(
     allow_metric_aggregates (bool) Ignored here, only used in metric enhanced performance
     """
 
+    if len(params) == 0 and snuba_params is not None:
+        params = snuba_params.filter_params
+
     with sentry_sdk.start_span(op="issueplatform", description="timeseries.filter_transform"):
         equations, columns = categorize_columns(selected_columns)
         base_builder = IssuePlatformTimeseriesQueryBuilder(
             Dataset.IssuePlatform,
-            {},
+            params,
             rollup,
             snuba_params=snuba_params,
             query=query,
@@ -164,14 +170,13 @@ def timeseries_query(
         if comparison_delta:
             if len(base_builder.aggregates) != 1:
                 raise InvalidSearchQuery("Only one column can be selected for comparison queries")
-            comp_query_params = snuba_params.copy()
-            comp_query_params.start -= comparison_delta
-            comp_query_params.end -= comparison_delta
+            comp_query_params = deepcopy(params)
+            comp_query_params["start"] -= comparison_delta
+            comp_query_params["end"] -= comparison_delta
             comparison_builder = IssuePlatformTimeseriesQueryBuilder(
                 Dataset.IssuePlatform,
-                {},
+                comp_query_params,
                 rollup,
-                snuba_params=comp_query_params,
                 query=query,
                 selected_columns=columns,
                 equations=equations,
@@ -224,7 +229,7 @@ def timeseries_query(
                 }
             },
         },
-        snuba_params.start_date,
-        snuba_params.end_date,
+        params["start"],
+        params["end"],
         rollup,
     )

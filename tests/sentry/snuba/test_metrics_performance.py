@@ -4,7 +4,7 @@ from datetime import timezone
 import pytest
 
 from sentry.exceptions import IncompatibleMetricsQuery
-from sentry.search.events.types import SnubaParams
+from sentry.search.events.types import ParamsType
 from sentry.sentry_metrics import indexer
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.snuba.metrics_performance import timeseries_query
@@ -26,13 +26,13 @@ class TimeseriesQueryTest(MetricsEnhancedPerformanceTestCase):
             hour=10, minute=0, second=0, microsecond=0
         )
         self.default_interval = 3600
-        self.projects = [self.project]
-        self.snuba_params = SnubaParams(
-            organization=self.organization,
-            projects=self.projects,
-            start=self.start,
-            end=self.end,
-        )
+        self.projects = [self.project.id]
+        self.params: ParamsType = {
+            "organization_id": self.organization.id,
+            "project_id": self.projects,
+            "start": self.start,
+            "end": self.end,
+        }
 
         indexer.record(
             use_case_id=UseCaseID.TRANSACTIONS, org_id=self.organization.id, string="transaction"
@@ -55,7 +55,7 @@ class TimeseriesQueryTest(MetricsEnhancedPerformanceTestCase):
         results = timeseries_query(
             selected_columns=["avg(transaction.duration)"],
             query="",
-            snuba_params=self.snuba_params,
+            params=self.params,
             rollup=self.default_interval,
             referrer="test_query",
         )
@@ -94,7 +94,7 @@ class TimeseriesQueryTest(MetricsEnhancedPerformanceTestCase):
         results = timeseries_query(
             selected_columns=["avg(transaction.duration)"],
             query="",
-            snuba_params=self.snuba_params,
+            params=self.params,
             rollup=self.default_interval,
             comparison_delta=datetime.timedelta(weeks=1),
             referrer="test_query",
@@ -166,7 +166,7 @@ class TimeseriesQueryTest(MetricsEnhancedPerformanceTestCase):
             timeseries_query(
                 selected_columns=["avg(transaction.duration)", "sum(transaction.duration)"],
                 query="",
-                snuba_params=self.snuba_params,
+                params=self.params,
                 rollup=self.default_interval,
                 comparison_delta=datetime.timedelta(weeks=1),
                 referrer="test_query",

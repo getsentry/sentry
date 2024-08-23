@@ -102,6 +102,7 @@ class OrganizationEventsNewTrendsStatsEndpoint(OrganizationEventsV2EndpointBase)
             return metrics_query(
                 top_event_columns,
                 query=user_query,
+                params={},
                 snuba_params=snuba_params,
                 orderby=["-count()"],
                 limit=event_limit,
@@ -148,6 +149,7 @@ class OrganizationEventsNewTrendsStatsEndpoint(OrganizationEventsV2EndpointBase)
             result = metrics_performance.bulk_timeseries_query(
                 timeseries_columns,
                 queries,
+                params={},
                 snuba_params=pruned_snuba_params,
                 rollup=rollup,
                 zerofill_results=zerofill_results,
