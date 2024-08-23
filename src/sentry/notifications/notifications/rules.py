@@ -303,7 +303,6 @@ class AlertRuleNotification(ProjectNotification):
         )
 
     def get_actions(self, recipient: Actor, provider: ExternalProviders):
-        from sentry.integrations.message_builder import build_rule_url
 
         ctx = self.get_context()
         actions = [
@@ -322,7 +321,7 @@ class AlertRuleNotification(ProjectNotification):
                     "name": "View alert",
                     "label": "View alert",
                     "type": "button",
-                    "url": build_rule_url(self.rules[0], self.group, self.project),
+                    "url": f"/organizations/{self.organization.slug}/alerts/rules/{self.project.slug}/{self.rules[0].id}/details/",
                     "value": "view_alert",
                 }
             )

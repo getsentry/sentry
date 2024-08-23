@@ -105,7 +105,12 @@ export function NotificationCentre({}: NotificationCentreProps) {
   const actions = (
     <ActionBar gap={1}>
       <InputGroup>
-        <SearchInput size="xs" value={search} onChange={e => setSearch(e.target.value)} />
+        <SearchInput
+          size="xs"
+          value={search}
+          onChange={e => setSearch(e.target.value)}
+          style={{maxWidth: 150}}
+        />
         <InputGroup.TrailingItems disablePointerEvents>
           <IconSearch size="xs" />
         </InputGroup.TrailingItems>
