@@ -120,7 +120,7 @@ class DiscordIntegrationProvider(IntegrationProvider):
 
     # https://discord.com/developers/docs/topics/oauth2#shared-resources-oauth2-scopes
     oauth_scopes = frozenset(["applications.commands", "bot", "identify"])
-    access_token = None
+    access_token = ""
 
     bot_permissions = (
         DiscordPermissions.VIEW_CHANNEL.value
