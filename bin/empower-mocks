@@ -1,0 +1,218 @@
+#!/usr/bin/env python
+from sentry.runner import configure
+
+configure()
+
+from django.conf import settings
+
+from sentry.utils import mockdata
+
+GCP_BUCKET = "empower-mocks-production"
+
+EMPOWER_PROJECT_IDS = {
+    "react": 2,
+    "flask": 3,
+    "ruby": 4,
+}
+
+import requests
+
+
+def download_file(url):
+    try:
+        response = requests.get(url)
+        if response.status_code == 200:
+            return response.content
+        elif response.status_code == 404:
+            return None
+        else:
+            response.raise_for_status()  # This will raise an HTTPError
+    except requests.exceptions.RequestException as e:
+        raise Exception(f"An error occurred while downloading the file: {str(e)}")
+
+
+def get_envelopes(project_name):
+    project_id = EMPOWER_PROJECT_IDS[project_name]
+    res = []
+    i = 1
+    while True:
+        envelope = download_file(f"https://${GCP_BUCKET}.storage.googleapis.com/${project_id}/${i}")
+        if envelope is None:
+            break
+        res.append(envelope)
+        i += 1
+    return res
+
+
+# Example of how to send an envelope to the ingest endpoint:
+
+# curl 'http://dev.getsentry.net:8000/api/1/envelope/?sentry_key=c42483a849febd65cfd8dd6df482e68e&sentry_version=7&sentry_client=sentry.javascript.react%2F8.20.0' \
+#  -H 'accept: */*' \
+#  -H 'accept-language: en-US,en;q=0.9' \
+#  -H 'cache-control: no-cache' \
+#  -H 'content-type: text/plain;charset=UTF-8' \
+#  -H 'origin: https://application-monitoring-react-dot-sales-engineering-sf.appspot.com' \
+#  -H 'pragma: no-cache' \
+#  -H 'priority: u=1, i' \
+#  -H 'referer: https://application-monitoring-react-dot-sales-engineering-sf.appspot.com/' \
+#  -H 'sec-ch-ua: "Not)A;Brand";v="99", "Google Chrome";v="127", "Chromium";v="127"' \
+#  -H 'sec-ch-ua-mobile: ?0' \
+#  -H 'sec-ch-ua-platform: "macOS"' \
+#  -H 'sec-fetch-dest: empty' \
+#  -H 'sec-fetch-mode: cors' \
+#  -H 'sec-fetch-site: cross-site' \
+#  -H 'user-agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/127.0.0.0 Safari/537.36' \
+#  --data-raw $'{"event_id":"c59350a64a4841fb96697bd832472b19","sent_at":"2024-08-21T19:53:31.548Z","sdk":{"name":"sentry.javascript.react","version":"8.20.0"},"trace":
+def send_envelope_into_ingest(envelope, project_id, public_key):
+    import subprocess
+
+    # TODO these are part of URL path so should be parsed out of the envelope:
+    # &sentry_version=7&sentry_client=sentry.javascript.react%2F8.20.0
+    subprocess.run(
+        [
+            "curl",
+            "-X",
+            "POST",
+            f"http://dev.getsentry.net:8000/api/${project_id}/envelope/?sentry_key=${public_key}",
+            "-H",
+            "content-type: text/plain;charset=UTF-8",
+            "-d",
+            envelope,
+        ]
+    )
+
+
+import re
+from datetime import datetime, timezone
+
+
+def adjust_timestamp(match, time_difference):
+    original_timestamp = datetime.strptime(match.group(0), "%Y-%m-%dT%H:%M:%S.%fZ").replace(
+        tzinfo=timezone.utc
+    )
+    new_timestamp = original_timestamp + time_difference
+    return new_timestamp.strftime("%Y-%m-%dT%H:%M:%S.%f")[:-3] + "Z"
+
+
+# shift all timestamps by equal amount so that the latest timestamp found becomes `base_time`
+def adjust_all_timestamps(input_string, base_time=None):
+    base_time = base_time or datetime.now(timezone.utc)
+    iso_8601_pattern = r"\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z"
+    timestamps = re.findall(iso_8601_pattern, input_string)
+    datetime_objects = [
+        datetime.strptime(ts, "%Y-%m-%dT%H:%M:%S.%fZ").replace(tzinfo=timezone.utc)
+        for ts in timestamps
+    ]
+    latest_timestamp = max(datetime_objects)
+    time_difference = base_time - latest_timestamp
+    return re.sub(iso_8601_pattern, lambda t: adjust_timestamp(t, time_difference), input_string)
+
+
+if __name__ == "__main__":
+    try:
+        settings.CELERY_ALWAYS_EAGER = True
+
+        import sys
+        from argparse import ArgumentParser
+
+        parser = ArgumentParser(description="Load latest mock data from empower")
+        parser.add_argument("-p", "--projects", nargs="+", help="List of empower projects")
+        parser.add_argument(
+            "-s",
+            "--stream",
+            default=False,
+            action="store_true",
+            help="Continuously send new events",
+        )
+        parser.add_option("--events", default=1, type=int, help="number of events to generate")
+        parser.add_option(
+            "--skip-default-setup",
+            default=False,
+            action="store_true",
+            help="Skips creating the default project, teams and timeseries, useful when only loading specific transactions",
+        )
+        parser.add_option(
+            "--extra-events",
+            default=False,
+            action="store_true",
+            help="add multiple events for each error group",
+        )
+        parser.add_option(
+            "--load-trends",
+            default=False,
+            action="store_true",
+            help="load multiple transactions for each id to show trends",
+        )
+        parser.add_option(
+            "--load-performance-issues",
+            default=False,
+            action="store_true",
+            help="load transactions with performance issues, still needs options/flags on for issues to appear.",
+        )
+        parser.add_option(
+            "--slow",
+            default=False,
+            action="store_true",
+            help="sleep between each transaction to let clickhouse rest",
+        )
+        options = parser.parse_args()
+
+        if options.stream:
+            raise NotImplementedError("Streaming is not yet supported")
+
+        import subprocess
+
+        ingest_running = subprocess.run(["ls", "-l"]).returncode == 0
+        if not ingest_running:
+            # print(
+            #    "Ingest is not running. Please follow https://develop.sentry.dev/development/environment/#ingestion-pipeline-relay-aka-sending-events-to-your-dev-environment"
+            # )
+            sys.exit(1)
+
+        mock_config = [
+            {"team_name": "Empower Plant", "projects": []},
+        ]
+
+        for project_name in options.projects:
+            proj_conf = {"name": project_name}
+            envelopes = get_envelopes(project_name)
+
+            all_envelopes = "".join(envelopes)
+            release_re = r'"release":"(.*?)"'
+            if re.search(release_re, all_envelopes):
+                proj_conf["release_version"] = re.search(release_re, all_envelopes).group(1)
+            else:
+                pass
+                # print(f"[WARNING] No release version found in envelopes for project '${project_name}'")
+
+            mock_config[0]["projects"].append(proj_conf)
+
+            # TODO !!!! this should not be inside the loop
+            mockdata.main(
+                # TODO implement same CLI as load-mocks and pass these options
+                skip_default_setup=options.skip_default_setup,
+                num_events=options.events,
+                extra_events=options.extra_events,
+                load_trends=options.load_trends,
+                load_performance_issues=options.load_performance_issues,
+                slow=options.slow,
+                mock_config=mock_config,
+                # TODO: add a flag to skip the actual sending of events
+            )
+
+            # TODO now get local project IDs and public keys for project with given name
+            dev_project_id = None
+            dev_project_public_key = None
+
+            for envelope in envelopes:
+                send_envelope_into_ingest(
+                    adjust_all_timestamps(envelope), dev_project_id, dev_project_public_key
+                )
+
+    except Exception:
+        # Avoid reporting any issues recursively back into Sentry
+        import sys
+        import traceback
+
+        traceback.print_exc()
+        sys.exit(1)

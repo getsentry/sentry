@@ -393,15 +393,16 @@ def create_access_request(member: OrganizationMember, team: Team) -> None:
     OrganizationAccessRequest.objects.create_or_update(member=member, team=team)
 
 
-def generate_projects(organization: Organization) -> Mapping[str, Any]:
-    mocks = (
-        ("Massive Dynamic", ("Ludic Science",)),
-        ("Captain Planet", ("Earth", "Fire", "Wind", "Water", "Heart")),
-    )
+# e.g.
+# teams_projects = (
+#   ("Massive Dynamic", ("Ludic Science",)),
+#   ("Captain Planet", ("Earth", "Fire", "Wind", "Water", "Heart")),
+# )
+def generate_projects(organization: Organization, teams_projects) -> Mapping[str, Any]:
     project_map = {}
 
     # Quickly fetch/create the teams and projects
-    for team_name, project_names in mocks:
+    for team_name, project_names in teams_projects:
         click.echo(f"> Mocking team {team_name}")
         team, _ = Team.objects.get_or_create(
             name=team_name, defaults={"organization": organization}
@@ -457,10 +458,10 @@ def create_monitor(project: Project, environment: Environment) -> None:
     )
 
 
-def create_release(project: Project) -> Release:
+def create_release(project: Project, release_version=None) -> Release:
     with transaction.atomic(using=router.db_for_write(Release)):
         release, _ = Release.objects.get_or_create(
-            version=sha1(uuid4().bytes).hexdigest(),
+            version=release_version or sha1(uuid4().bytes).hexdigest(),
             organization_id=project.organization_id,
         )
         release.add_project(project)
@@ -1318,6 +1319,24 @@ def create_mock_user_feedback(project, has_attachment=True):
         create_mock_attachment(event["event_id"], project)
 
 
+DEFAULT_MOCK_CONFIG = [
+    {
+        "team_name": "Massive Dynamic",
+        "projects": [{"name": "Ludic Science"}],  # 'release_version': "1.0.0"
+    },
+    {
+        "team_name": "Captain Planet",
+        "projects": [
+            {"name": "Earth"},
+            {"name": "Fire"},
+            {"name": "Wind"},
+            {"name": "Water"},
+            {"name": "Heart"},
+        ],
+    },
+]
+
+
 def main(
     skip_default_setup=False,
     num_events=1,
@@ -1325,6 +1344,8 @@ def main(
     load_trends=False,
     load_performance_issues=False,
     slow=False,
+    generate_events=True,
+    mock_config=None,
 ):
     owner = get_superuser()
     user = create_user()
@@ -1334,15 +1355,23 @@ def main(
     create_owner(organization, owner)
     member = create_member(organization, user, role=roles.get_default().id)
 
-    project_map = generate_projects(organization)
+    mock_config_map = {p["name"]: p for team in mock_config for p in team["projects"]}
+
+    project_map = generate_projects(
+        organization,
+        mock_config
+        and tuple(
+            (team["team_name"], tuple(p["name"] for p in team["projects"])) for team in mock_config
+        ),
+    )
     if not skip_default_setup:
-        for project in project_map.values():
-            environment = create_environment(project)
+        for project_name, project in project_map.items():
+            environment = create_environment(project)  # TODO match env from empower-mocks
             create_monitor(project, environment)
             create_access_request(member, project.teams.first())
 
             generate_tombstones(project, user)
-            release = create_release(project)
+            release = create_release(project, mock_config_map[project_name].get("release_version"))
             repo = create_repository(organization)
             raw_commits = generate_commit_data(user)
             populate_release(
@@ -1354,22 +1383,25 @@ def main(
                 commits=raw_commits,
             )
             create_metric_alert_rule(organization, project)
-            events = generate_events(
-                project=project,
-                release=release,
-                repository=repo,
-                user=user,
-                num_events=num_events,
-                extra_events=extra_events,
-            )
-            for event in events:
-                create_sample_time_series(event, release=release)
+            if generate_events:
+                events = generate_events(
+                    project=project,
+                    release=release,
+                    repository=repo,
+                    user=user,
+                    num_events=num_events,
+                    extra_events=extra_events,
+                )
+                for event in events:
+                    create_sample_time_series(event, release=release)
 
-            if hasattr(buffer, "process_pending"):
-                click.echo("    > Processing pending buffers")
-                buffer.process_pending()
+                if hasattr(buffer, "process_pending"):
+                    click.echo("    > Processing pending buffers")
+                    buffer.process_pending()
 
-            mocks_loaded.send(project=project, sender=__name__)
+                # TODO: do tests depend on standard captain planet events? should we be merging
+                # mock_config with DEFAULT_MOCK_CONFIG?
+                mocks_loaded.send(project=project, sender=__name__)
 
     create_mock_user_feedback(project_map["Wind"])
     create_mock_transactions(project_map, load_trends, load_performance_issues, slow)
