@@ -112,10 +112,8 @@ class DiscordClient(ApiClient):
         # TODO(iamrajjoshi): Eventually, we should use `/users/@me/guilds/{guild.id}/member`
         params = {"before": str(int(guild_id) + 1), "after": str(int(guild_id) - 1), "limit": 1}
 
-        response: list[dict[str, Any]] = self.get(
-            "/users/@me/guilds", headers=headers, params=params
-        )
-        if not response:
+        response = self.get("/users/@me/guilds", headers=headers, params=params)
+        if not response or not isinstance(response, list):
             return False
 
         # We will only get one guild back, so we can just grab the first one
