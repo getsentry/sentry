@@ -3548,7 +3548,8 @@ CELERY_SPLIT_QUEUE_ROUTES: Mapping[str, Sequence[str]] = {
 # task does not have to specify the queue and can rely on Celery to
 # do the routing.
 # Each route has a task name as key and a tuple containing a list of queues
-# and a default one as destination.
+# and a default one as destination. The default one is used when the
+# rollout option is not active.
 CELERY_SPLIT_QUEUE_TASK_ROUTES: Mapping[str, tuple[Sequence[str], str]] = {
     "sentry.tasks.store.save_event_transaction": (
         [
