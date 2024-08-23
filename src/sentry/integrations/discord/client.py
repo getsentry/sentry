@@ -105,27 +105,34 @@ class DiscordClient(ApiClient):
 
     def check_user_bot_installation_permission(self, access_token: str, guild_id: str) -> bool:
         headers = {"Authorization": f"Bearer {access_token}"}
-        params = {"before": str(int(guild_id) + 1), "after": str(int(guild_id) - 1), "limit": 1}
+
+        # We only want information about guild_id so we filter everything else out
         # Need to do this very convoluted way of getting the guild information because
         # https://github.com/discord/discord-api-docs/discussions/6846
+        # TODO(iamrajjoshi): Eventually, we should use `/users/@me/guilds/{guild.id}/member`
+        params = {"before": str(int(guild_id) + 1), "after": str(int(guild_id) - 1), "limit": 1}
 
         response: list[dict[str, Any]] = self.get(
             "/users/@me/guilds", headers=headers, params=params
         )
+        if not response:
+            return False
+
+        # We will only get one guild back, so we can just grab the first one
         guild_information = response[0]
 
-        if "permissions" in guild_information:
-            permissions = int(guild_information["permissions"])
-            can_manage_guild = (
-                permissions & DiscordPermissions.MANAGE_GUILD.value
-            ) == DiscordPermissions.MANAGE_GUILD.value
-            is_admin = (
-                permissions & DiscordPermissions.ADMINISTRATOR.value
-            ) == DiscordPermissions.ADMINISTRATOR.value
+        if not guild_information:
+            return False
 
-            return can_manage_guild or is_admin
+        permissions = int(guild_information["permissions"])
+        can_manage_guild = (
+            permissions & DiscordPermissions.MANAGE_GUILD.value
+        ) == DiscordPermissions.MANAGE_GUILD.value
+        is_admin = (
+            permissions & DiscordPermissions.ADMINISTRATOR.value
+        ) == DiscordPermissions.ADMINISTRATOR.value
 
-        return False
+        return can_manage_guild or is_admin
 
     def leave_guild(self, guild_id: str) -> None:
         """
