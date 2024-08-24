@@ -1,11 +1,22 @@
 #!/usr/bin/env python
 from sentry.runner import configure
+from sentry.utils.mockdata.core import generate_projects
 
 configure()
 
+import re
+import subprocess
+import sys
+from argparse import ArgumentParser
+from datetime import datetime, timezone
+
+import click
+import requests
 from django.conf import settings
 
-from sentry.utils import mockdata
+from sentry import buffer
+from sentry.models.projectkey import ProjectKey
+from sentry.utils.mockdata import get_organization
 
 GCP_BUCKET = "empower-mocks-production"
 
@@ -14,8 +25,6 @@ EMPOWER_PROJECT_IDS = {
     "flask": 3,
     "ruby": 4,
 }
-
-import requests
 
 
 def download_file(url):
@@ -64,7 +73,6 @@ def get_envelopes(project_name):
 #  -H 'user-agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/127.0.0.0 Safari/537.36' \
 #  --data-raw $'{"event_id":"c59350a64a4841fb96697bd832472b19","sent_at":"2024-08-21T19:53:31.548Z","sdk":{"name":"sentry.javascript.react","version":"8.20.0"},"trace":
 def send_envelope_into_ingest(envelope, project_id, public_key):
-    import subprocess
 
     # TODO these are part of URL path so should be parsed out of the envelope:
     # &sentry_version=7&sentry_client=sentry.javascript.react%2F8.20.0
@@ -80,10 +88,6 @@ def send_envelope_into_ingest(envelope, project_id, public_key):
             envelope,
         ]
     )
-
-
-import re
-from datetime import datetime, timezone
 
 
 def adjust_timestamp(match, time_difference):
@@ -108,12 +112,19 @@ def adjust_all_timestamps(input_string, base_time=None):
     return re.sub(iso_8601_pattern, lambda t: adjust_timestamp(t, time_difference), input_string)
 
 
+def extract_release_from_envelopes(envelopes):
+    all_envelopes = "".join(envelopes)
+    release_re = r'"release":"(.*?)"'
+    search_res = re.search(release_re, all_envelopes)
+    if search_res:
+        return search_res.group(1)  # first match
+    else:
+        click.echo(f"[WARNING] No release version found in envelopes for project '${project_name}'")
+
+
 if __name__ == "__main__":
     try:
         settings.CELERY_ALWAYS_EAGER = True
-
-        import sys
-        from argparse import ArgumentParser
 
         parser = ArgumentParser(description="Load latest mock data from empower")
         parser.add_argument("-p", "--projects", nargs="+", help="List of empower projects")
@@ -123,6 +134,12 @@ if __name__ == "__main__":
             default=False,
             action="store_true",
             help="Continuously send new events",
+        )
+        parser.add_argument(
+            "--empower-only",
+            default=False,
+            action="store_true",
+            help="Don't run `load-mocks`, just empower-mocks",
         )
         parser.add_option("--events", default=1, type=int, help="number of events to generate")
         parser.add_option(
@@ -157,57 +174,53 @@ if __name__ == "__main__":
         )
         options = parser.parse_args()
 
+        if options.empower_only and (
+            options.skip_default_setup
+            or options.extra_events
+            or options.load_trends
+            or options.load_performance_issues
+            or options.slow
+        ):
+            raise ValueError("Cannot use --empower-only with `load-mocks` options")
+
         if options.stream:
             raise NotImplementedError("Streaming is not yet supported")
 
-        import subprocess
-
         ingest_running = subprocess.run(["ls", "-l"]).returncode == 0
         if not ingest_running:
-            # print(
-            #    "Ingest is not running. Please follow https://develop.sentry.dev/development/environment/#ingestion-pipeline-relay-aka-sending-events-to-your-dev-environment"
-            # )
+            click.echo(
+                "Ingest is required for empower-mocks but is not running. Please follow https://develop.sentry.dev/development/environment/#ingestion-pipeline-relay-aka-sending-events-to-your-dev-environment"
+            )
             sys.exit(1)
 
-        mock_config = [
-            {"team_name": "Empower Plant", "projects": []},
-        ]
+        # owner = get_superuser()
+        # user = create_user()
+        organization = get_organization()
+        # create_owner(organization, owner)
+        # member = create_member(organization, user, role=roles.get_default().id)
+        project_map = generate_projects(
+            organization, (("Empower Plant", tuple(p for p in options.projects)))
+        )
 
         for project_name in options.projects:
-            proj_conf = {"name": project_name}
             envelopes = get_envelopes(project_name)
+            project = project_map[project_name]
 
-            all_envelopes = "".join(envelopes)
-            release_re = r'"release":"(.*?)"'
-            if re.search(release_re, all_envelopes):
-                proj_conf["release_version"] = re.search(release_re, all_envelopes).group(1)
-            else:
-                pass
-                # print(f"[WARNING] No release version found in envelopes for project '${project_name}'")
-
-            mock_config[0]["projects"].append(proj_conf)
-
-            # TODO !!!! this should not be inside the loop
-            mockdata.main(
-                # TODO implement same CLI as load-mocks and pass these options
-                skip_default_setup=options.skip_default_setup,
-                num_events=options.events,
-                extra_events=options.extra_events,
-                load_trends=options.load_trends,
-                load_performance_issues=options.load_performance_issues,
-                slow=options.slow,
-                mock_config=mock_config,
-                # TODO: add a flag to skip the actual sending of events
-            )
-
-            # TODO now get local project IDs and public keys for project with given name
-            dev_project_id = None
-            dev_project_public_key = None
+            dev_project_id = project.id
+            dev_project_public_key = ProjectKey.get_default(project)
 
             for envelope in envelopes:
                 send_envelope_into_ingest(
                     adjust_all_timestamps(envelope), dev_project_id, dev_project_public_key
                 )
+
+        click.echo("    > Done sending envelopes. Waiting for processing to finish")
+
+        if hasattr(buffer, "process_pending"):
+            click.echo("    > Processing pending buffers")
+            buffer.process_pending()
+
+        click.echo("    > Processing complete")
 
     except Exception:
         # Avoid reporting any issues recursively back into Sentry
