@@ -3,9 +3,11 @@ from sentry.runner import configure
 
 configure()
 
+import hashlib
 import re
 import subprocess
 import sys
+import uuid
 from argparse import ArgumentParser
 from datetime import datetime, timezone
 
@@ -20,6 +22,7 @@ from sentry.utils.mockdata.core import generate_projects
 
 GCP_BUCKET = "empower-mocks-production"
 
+# TODO: do mapping on empower/mini-relay side as it has control over project ids
 EMPOWER_PROJECT_IDS = {
     "react": 2,
     "flask": 3,
@@ -59,25 +62,6 @@ def get_envelopes(project_name):
     return res
 
 
-# Example of how to send an envelope to the ingest endpoint:
-
-# curl 'http://dev.getsentry.net:8000/api/1/envelope/?sentry_key=c42483a849febd65cfd8dd6df482e68e&sentry_version=7&sentry_client=sentry.javascript.react%2F8.20.0' \
-#  -H 'accept: */*' \
-#  -H 'accept-language: en-US,en;q=0.9' \
-#  -H 'cache-control: no-cache' \
-#  -H 'content-type: text/plain;charset=UTF-8' \
-#  -H 'origin: https://application-monitoring-react-dot-sales-engineering-sf.appspot.com' \
-#  -H 'pragma: no-cache' \
-#  -H 'priority: u=1, i' \
-#  -H 'referer: https://application-monitoring-react-dot-sales-engineering-sf.appspot.com/' \
-#  -H 'sec-ch-ua: "Not)A;Brand";v="99", "Google Chrome";v="127", "Chromium";v="127"' \
-#  -H 'sec-ch-ua-mobile: ?0' \
-#  -H 'sec-ch-ua-platform: "macOS"' \
-#  -H 'sec-fetch-dest: empty' \
-#  -H 'sec-fetch-mode: cors' \
-#  -H 'sec-fetch-site: cross-site' \
-#  -H 'user-agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/127.0.0.0 Safari/537.36' \
-#  --data-raw $'{"event_id":"c59350a64a4841fb96697bd832472b19","sent_at":"2024-08-21T19:53:31.548Z","sdk":{"name":"sentry.javascript.react","version":"8.20.0"},"trace":
 def send_envelope_into_ingest(envelope, project_id, public_key):
 
     # TODO these are part of URL path so should be parsed out of the envelope:
@@ -95,77 +79,95 @@ def send_envelope_into_ingest(envelope, project_id, public_key):
         ]
     )
     click.echo("")
+    # click.echo("Sent envelope: " + envelope.decode("utf-8"))
 
 
-def adjust_timestamp_str_iso(time_str, time_difference):
-    original_timestamp = datetime.strptime(time_str, "%Y-%m-%dT%H:%M:%S.%fZ").replace(
+def decode_if_needed(str_or_bytes):
+    if type(str_or_bytes) is not str:
+        return str_or_bytes.decode("utf-8")
+    return str_or_bytes
+
+
+def iso2dt(iso_str):
+    return datetime.strptime(decode_if_needed(iso_str), "%Y-%m-%dT%H:%M:%S.%fZ").replace(
         tzinfo=timezone.utc
     )
-    new_timestamp = original_timestamp + time_difference
-    return new_timestamp.strftime("%Y-%m-%dT%H:%M:%S.%f") + "Z"
 
 
-def adjust_timestamp_str_unix(time_str, time_difference):
-    original_timestamp = datetime.fromtimestamp(float(time_str)).replace(tzinfo=timezone.utc)
-    new_timestamp = original_timestamp + time_difference
-    return f"{new_timestamp.timestamp():.7f}"
+def dt2iso(dt):
+    return dt.strftime("%Y-%m-%dT%H:%M:%S.%f") + "Z"
+
+
+def unix2dt(unix_str):
+    return datetime.fromtimestamp(float(decode_if_needed(unix_str))).replace(tzinfo=timezone.utc)
+
+
+def dt2unix(dt):
+    return f"{dt.timestamp():.7f}"
 
 
 # Shift all timestamps by equal amount so that the latest timestamp found becomes `base_time`
-#
-# sample timestamps:
-# "start_timestamp":"2024-08-21T20:28:13.449378Z"
-# "started":"2024-08-21T20:28:00.000000Z"
-# "sent_at":"2024-08-21T20:28:13.468774Z"
-# "timestamp":"2024-08-21T20:28:13.460543Z"
-# "timestamp":1724272105.1860375
 #
 # NOTE: this can potentially mess up JSON in breadcrumbs, HTTP response bodies, etc.
 # but we don't care if that happens as this is demo data and those values can be anything.
 # What's potentially undesirable is if extraneous timestamps happens to the latest timestamp
 # that's why we try to match keys to reduce the chance of that happening.
-def adjust_all_timestamps(input_string, base_time=None):
+def shift_all_timestamps(envelope, base_time=None):
     base_time = base_time or datetime.now(timezone.utc)
-    iso_8601_re = (
-        rb"(?<=(?:started|sent_at|mestamp)\":\")\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3,9}Z(?=\")"
+    iso_8601_re = rb"(\"(?:start_timestamp|timestamp|started|sent_at)\":\")(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3,9}Z)(\")"
+    unix_fract_re = (
+        rb"(\"(?:start_timestamp|timestamp|started|sent_at)\":)(\d{10}\.\d{3,9})([^0-9])"
     )
-    unix_fract_re = rb"(?<=(?:started|sent_at|mestamp)\":)\d{10}\.\d{3,9}"
 
-    datetime_objects = [
-        datetime.strptime(ts.decode("utf-8"), "%Y-%m-%dT%H:%M:%S.%fZ").replace(tzinfo=timezone.utc)
-        for ts in re.findall(iso_8601_re, input_string)
-    ] + [
-        datetime.fromtimestamp(float(ts.decode("utf-8"))).replace(tzinfo=timezone.utc)
-        for ts in re.findall(unix_fract_re, input_string)
+    datetime_objects = [iso2dt(m[1].decode("utf-8")) for m in re.findall(iso_8601_re, envelope)] + [
+        unix2dt(m[1].decode("utf-8")) for m in re.findall(unix_fract_re, envelope)
     ]
     if not datetime_objects:
-        click.echo(f"[WARNING] No timestamps found in input string: {input_string}")
-        return input_string
-    latest_timestamp = max(datetime_objects)
-    time_difference = base_time - latest_timestamp
+        click.echo(f"[WARNING] No timestamps found in input string: {envelope}")
+        return envelope
+    latest_time = max(datetime_objects)
+    offset = base_time - latest_time
+
     return re.sub(
         iso_8601_re,
-        lambda t: adjust_timestamp_str_iso(t.group(0).decode("utf-8"), time_difference).encode(
-            "utf-8"
-        ),
+        lambda m: m.group(1) + dt2iso(iso2dt(m.group(2)) + offset).encode("utf-8") + m.group(3),
         re.sub(
             unix_fract_re,
-            lambda t: adjust_timestamp_str_unix(t.group(0).decode("utf-8"), time_difference).encode(
-                "utf-8"
-            ),
-            input_string,
+            lambda m: m.group(1)
+            + dt2unix(unix2dt(m.group(2)) + offset).encode("utf-8")
+            + m.group(3),
+            envelope,
         ),
     )
 
 
-def extract_release_from_envelopes(envelopes):
-    all_envelopes = "".join(envelopes)
-    release_re = rb'"release":"(.*?)"'
-    search_res = re.search(release_re, all_envelopes)
-    if search_res:
-        return search_res.group(1)  # first match
-    else:
-        click.echo(f"[WARNING] No release version found in envelopes for project '${project_name}'")
+# Replace all ID with their salted hashes
+# All envelopes in the same Replay session must be treated as a single unit to preserve the relationships
+# between events via replay_id and trace_id
+def make_all_ids_unique(envelopes, batch_salt=""):
+    uuid32_re = (
+        rb'("(?:id|event_id|trace_id|profile_id|replay_id|replayId|message|sid)":")([0-9a-f]{32})"'
+    )
+    id16_re = rb'("(?:parent_span_id|span_id|__span)":")([0-9a-f]{16})"'
+
+    new_envelopes = []
+    for envelope in envelopes:
+        new_envelopes.append(
+            re.sub(
+                uuid32_re,
+                lambda t: t.group(1)
+                + hashlib.sha256(t.group(2) + batch_salt).hexdigest()[:32].encode("utf-8")
+                + b'"',
+                re.sub(
+                    id16_re,
+                    lambda t: t.group(1)
+                    + hashlib.sha256(t.group(2) + batch_salt).hexdigest()[:16].encode("utf-8")
+                    + b'"',
+                    envelope,
+                ),
+            )
+        )
+    return new_envelopes
 
 
 if __name__ == "__main__":
@@ -196,27 +198,30 @@ if __name__ == "__main__":
             )
             sys.exit(1)
 
-        # owner = get_superuser()
-        # user = create_user()
         organization = get_organization()
-        # create_owner(organization, owner)
-        # member = create_member(organization, user, role=roles.get_default().id)
         project_map = generate_projects(
             organization, tuple([("Empower Plant", tuple(p for p in options.projects))])
         )
 
+        # [ {envelope: bytes, dev_project_id: int, dev_project_public_key: str} ]
+
+        batch_time = datetime.now(timezone.utc)
+        batch_salt = uuid.uuid4().hex.encode("utf-8")
+
         for project_name in options.projects:
-            envelopes = get_envelopes(project_name)
+            # TODO: first update platform, get envelopes, then send as separate step/loop
             project = project_map[project_name]
             project.platform = PROJECT_PLATFORM_MAP[project_name]
             project.save()
+            project_public_key = ProjectKey.get_default(project)
 
-            dev_project_id = project.id
-            dev_project_public_key = ProjectKey.get_default(project)
-
+            envelopes = get_envelopes(project_name)
+            envelopes = make_all_ids_unique(envelopes, batch_salt)
             for envelope in envelopes:
                 send_envelope_into_ingest(
-                    adjust_all_timestamps(envelope), dev_project_id, dev_project_public_key
+                    shift_all_timestamps(envelope, base_time=batch_time),
+                    project.id,
+                    project_public_key,
                 )
 
         click.echo("    > Done sending envelopes. Waiting for processing to finish")
