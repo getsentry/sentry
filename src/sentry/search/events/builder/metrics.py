@@ -399,7 +399,10 @@ class MetricsQueryBuilder(BaseQueryBuilder):
                 self._is_spans_metrics_query_cache = True
                 return True
             argument = match.group("columns") if match else None
-            if argument in constants.SPAN_METRICS_MAP.keys() - constants.METRICS_MAP.keys():
+            if (
+                argument in constants.SPAN_METRICS_MAP.keys() - constants.METRICS_MAP.keys()
+                or argument in constants.SPAN_METRICS_MAP.values()
+            ):
                 self._is_spans_metrics_query_cache = True
                 return True
         self._is_spans_metrics_query_cache = False
@@ -1589,8 +1592,10 @@ class HistogramMetricQueryBuilder(MetricsQueryBuilder):
         kwargs["config"] = config
         super().__init__(*args, **kwargs)
 
-    def run_query(self, referrer: str, use_cache: bool = False) -> Any:
-        result = super().run_query(referrer, use_cache)
+    def run_query(
+        self, referrer: str, use_cache: bool = False, query_source: QuerySource | None = None
+    ) -> Any:
+        result = super().run_query(referrer, use_cache, query_source=query_source)
         for row in result["data"]:
             for key, value in row.items():
                 if key in self.histogram_aliases:

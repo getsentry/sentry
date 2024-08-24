@@ -50,19 +50,20 @@ class RatelimitMiddleware:
 
         with metrics.timer("middleware.ratelimit.process_view"):
             try:
-                # TODO: put these fields into their own object
-                request.will_be_rate_limited = False
-                if settings.SENTRY_SELF_HOSTED:
-                    return None
-                request.rate_limit_category = None
-                request.rate_limit_uid = uuid.uuid4().hex
-                view_class = getattr(view_func, "view_class", None)
-                if not view_class:
-                    return None
+                with sentry_sdk.start_span(op="ratelimit.early_return"):
+                    # TODO: put these fields into their own object
+                    request.will_be_rate_limited = False
+                    if settings.SENTRY_SELF_HOSTED:
+                        return None
+                    request.rate_limit_category = None
+                    request.rate_limit_uid = uuid.uuid4().hex
+                    view_class = getattr(view_func, "view_class", None)
+                    if not view_class:
+                        return None
 
-                enforce_rate_limit = getattr(view_class, "enforce_rate_limit", False)
-                if enforce_rate_limit is False:
-                    return None
+                    enforce_rate_limit = getattr(view_class, "enforce_rate_limit", False)
+                    if enforce_rate_limit is False:
+                        return None
 
                 rate_limit_config = get_rate_limit_config(
                     view_class, view_args, {**view_kwargs, "request": request}

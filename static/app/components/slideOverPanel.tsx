@@ -24,6 +24,7 @@ type SlideOverPanelProps = {
   children: React.ReactNode;
   collapsed: boolean;
   ariaLabel?: string;
+  className?: string;
   onOpen?: () => void;
   slidePosition?: 'right' | 'bottom';
   transitionProps?: AnimationProps['transition'];
@@ -36,6 +37,7 @@ function SlideOverPanel(
     ariaLabel,
     collapsed,
     children,
+    className,
     onOpen,
     slidePosition,
     transitionProps = {},
@@ -70,6 +72,7 @@ function SlideOverPanel(
       role="complementary"
       aria-hidden={collapsed}
       aria-label={ariaLabel ?? 'slide out drawer'}
+      className={className}
     >
       {children}
     </_SlideOverPanel>

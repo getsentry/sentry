@@ -85,6 +85,6 @@ jobs:
             --cache-to type=inline \
             --tag ghcr.io/getsentry/sentry-self-hosted:${{ github.sha }} \
             --file self-hosted/Dockerfile \
-            --build-arg SOURCE_COMMIt=${{ github.sha }} \
+            --build-arg SOURCE_COMMIT=${{ github.sha }} \
             "${args[@]}" \
             .

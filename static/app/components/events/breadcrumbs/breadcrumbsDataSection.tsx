@@ -1,4 +1,4 @@
-import {useCallback, useMemo, useRef} from 'react';
+import {useCallback, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/button';
@@ -37,7 +37,7 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import {useFeedbackForm} from 'sentry/utils/useFeedbackForm';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import useOrganization from 'sentry/utils/useOrganization';
-import {FoldSectionKey} from 'sentry/views/issueDetails/streamline/foldSection';
+import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
 import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
 
 interface BreadcrumbsDataSectionProps {
@@ -52,6 +52,7 @@ export default function BreadcrumbsDataSection({
   project,
 }: BreadcrumbsDataSectionProps) {
   const viewAllButtonRef = useRef<HTMLButtonElement>(null);
+  const [container, setContainer] = useState<HTMLDivElement | null>(null);
   const openForm = useFeedbackForm();
   const {closeDrawer, isDrawerOpen, openDrawer} = useDrawer();
   const organization = useOrganization();
@@ -177,19 +178,22 @@ export default function BreadcrumbsDataSection({
   return (
     <InterimSection
       key="breadcrumbs"
-      type={FoldSectionKey.BREADCRUMBS}
+      type={SectionKey.BREADCRUMBS}
       title={t('Breadcrumbs')}
       data-test-id="breadcrumbs-data-section"
       actions={actions}
     >
       <ErrorBoundary mini message={t('There was an error loading the event breadcrumbs')}>
-        <BreadcrumbsTimeline
-          breadcrumbs={summaryCrumbs}
-          startTimeString={startTimeString}
-          // We want the timeline to appear connected to the 'View All' button
-          showLastLine={hasViewAll}
-          fullyExpanded={false}
-        />
+        <div ref={setContainer}>
+          <BreadcrumbsTimeline
+            breadcrumbs={summaryCrumbs}
+            startTimeString={startTimeString}
+            // We want the timeline to appear connected to the 'View All' button
+            showLastLine={hasViewAll}
+            fullyExpanded={false}
+            containerElement={container}
+          />
+        </div>
         {hasViewAll && (
           <ViewAllContainer>
             <VerticalEllipsis />

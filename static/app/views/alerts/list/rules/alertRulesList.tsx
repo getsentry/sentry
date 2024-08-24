@@ -141,7 +141,7 @@ function AlertRulesList() {
   const handleDeleteRule = async (projectId: string, rule: CombinedAlerts) => {
     const deleteEndpoints = {
       [CombinedAlertType.ISSUE]: `/projects/${organization.slug}/${projectId}/rules/${rule.id}/`,
-      [CombinedAlertType.METRIC]: `/projects/${organization.slug}/${projectId}/rules/${rule.id}/`,
+      [CombinedAlertType.METRIC]: `/organizations/${organization.slug}/alert-rules/${rule.id}/`,
       [CombinedAlertType.UPTIME]: `/projects/${organization.slug}/${projectId}/uptime/${rule.id}/`,
     };
 
