@@ -21,7 +21,6 @@ import {
 import {TraceType} from '../traceType';
 
 import {
-  NoDataNode,
   ParentAutogroupNode,
   SiblingAutogroupNode,
   TraceTree,
@@ -168,14 +167,6 @@ function assertSiblingAutogroupedNode(
 ): asserts node is ParentAutogroupNode {
   if (!(node instanceof SiblingAutogroupNode)) {
     throw new Error('node is not a parent node');
-  }
-}
-
-function assertNoDataNode(
-  node: TraceTreeNode<TraceTree.NodeValue>
-): asserts node is NoDataNode {
-  if (!(node instanceof NoDataNode)) {
-    throw new Error('node is not a no data node');
   }
 }
 
@@ -646,36 +637,6 @@ describe('TreeNode', () => {
       );
 
       expect(adjusted_space).toEqual([0.5, 3.5]);
-    });
-
-    it('inserts no data node when txn has no span children', async () => {
-      const tree = TraceTree.FromTrace(
-        makeTrace({
-          transactions: [
-            makeTransaction({
-              transaction: '/',
-              project_slug: 'project',
-              event_id: 'event_id',
-            }),
-          ],
-        }),
-        null,
-        null
-      );
-
-      MockApiClient.addMockResponse({
-        url: EVENT_REQUEST_URL,
-        method: 'GET',
-        body: makeEvent({}, []),
-      });
-
-      await tree.zoomIn(tree.list[1], true, {
-        api: new MockApiClient(),
-        organization: OrganizationFixture(),
-      });
-
-      assertNoDataNode(tree.list[2]);
-      expect(tree.list.length).toBe(3);
     });
 
     describe('autogrouped children', () => {
