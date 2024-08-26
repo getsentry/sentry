@@ -476,7 +476,12 @@ function SearchQueryBuilderComboboxInner<T extends SelectOptionOrSectionWithKey<
       }
       state.close();
     },
-    preventOverflowOptions: {boundary: document.body, altAxis: true},
+    shouldApplyMinWidth: false,
+    preventOverflowOptions: {boundary: document.body},
+    flipOptions: {
+      // We don't want the menu to ever flip to the other side of the input
+      fallbackPlacements: [],
+    },
   });
 
   const descriptionPopper = usePopper(
