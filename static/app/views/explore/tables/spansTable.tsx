@@ -3,6 +3,9 @@ import {Fragment, useMemo} from 'react';
 import Pagination from 'sentry/components/pagination';
 import type {NewQuery} from 'sentry/types/organization';
 import EventView from 'sentry/utils/discover/eventView';
+import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
+import {useLocation} from 'sentry/utils/useLocation';
+import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {
   Table,
@@ -22,6 +25,8 @@ import {useSpansQuery} from 'sentry/views/insights/common/queries/useSpansQuery'
 interface SpansTableProps {}
 
 export function SpansTable({}: SpansTableProps) {
+  const location = useLocation();
+  const organization = useOrganization();
   const {selection} = usePageFilters();
 
   const [dataset] = useDataset();
@@ -50,6 +55,7 @@ export function SpansTable({}: SpansTableProps) {
   });
 
   const {tableStyles} = useTableStyles({items: fields});
+  const meta = result.meta ?? {};
 
   return (
     <Fragment>
@@ -66,9 +72,18 @@ export function SpansTable({}: SpansTableProps) {
         <TableBody>
           {result.data?.map((row, i) => (
             <TableRow key={i}>
-              {fields.map(field => (
-                <TableBodyCell key={field}>{row[field]}</TableBodyCell>
-              ))}
+              {fields.map(field => {
+                const renderer = getFieldRenderer(field, meta.fields, false);
+                return (
+                  <TableBodyCell key={field}>
+                    {renderer(row, {
+                      location,
+                      organization,
+                      unit: meta?.units?.[field],
+                    })}
+                  </TableBodyCell>
+                );
+              })}
             </TableRow>
           ))}
         </TableBody>
