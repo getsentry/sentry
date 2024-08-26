@@ -73,7 +73,7 @@ class Migration(CheckedMigration):
     is_post_deployment = True
 
     dependencies = [
-        ("sentry", "0749_disable_member_invite"),
+        ("sentry", "0751_grouphashmetadata_use_one_to_one_field_for_grouphash"),
     ]
 
     operations = [
