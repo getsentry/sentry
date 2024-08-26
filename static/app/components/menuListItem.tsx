@@ -169,12 +169,7 @@ function BaseMenuListItem({
           )}
           <ContentWrap isFocused={isFocused} showDivider={showDivider} size={size}>
             <LabelWrap>
-              <Label
-                id={labelId}
-                data-test-id="menu-list-item-label"
-                aria-hidden="true"
-                {...labelProps}
-              >
+              <Label id={labelId} data-test-id="menu-list-item-label" {...labelProps}>
                 {label}
               </Label>
               {!showDetailsInOverlay && details && (
