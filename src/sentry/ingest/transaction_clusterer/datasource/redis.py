@@ -167,10 +167,3 @@ def _bump_rule_lifetime(project: Project, event_data: Mapping[str, Any]) -> None
             # Only one clustering rule is applied per project
             clusterer_rules.bump_last_used(ClustererNamespace.TRANSACTIONS, project, pattern)
             return
-
-
-def get_span_descriptions(project: Project) -> Iterator[str]:
-    """Return all span descriptions stored for the given project."""
-    client = get_redis_client()
-    redis_key = _get_redis_key(ClustererNamespace.SPANS, project)
-    return client.sscan_iter(redis_key)
