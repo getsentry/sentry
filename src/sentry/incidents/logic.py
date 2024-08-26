@@ -7,7 +7,7 @@ from copy import deepcopy
 from dataclasses import dataclass, replace
 from datetime import datetime, timedelta, timezone
 from enum import Enum, auto
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, TypedDict
 from uuid import UUID, uuid4
 
 from django.db import router, transaction
@@ -487,6 +487,19 @@ def get_alert_resolution(time_window: int) -> int:
     return DEFAULT_ALERT_RULE_WINDOW_TO_RESOLUTION[windows[index - 1]]
 
 
+class _OwnerKwargs(TypedDict):
+    user_id: int | None
+    team_id: int | None
+
+
+def _owner_kwargs_from_actor(actor: Actor | None) -> _OwnerKwargs:
+    if actor and actor.is_user:
+        return _OwnerKwargs(user_id=actor.id, team_id=None)
+    if actor and actor.is_team:
+        return _OwnerKwargs(team_id=actor.id, user_id=None)
+    return _OwnerKwargs(user_id=None, team_id=None)
+
+
 def create_alert_rule(
     organization: Organization,
     projects: Sequence[Project],
@@ -606,14 +619,13 @@ def create_alert_rule(
             threshold_period=threshold_period,
             include_all_projects=include_all_projects,
             comparison_delta=comparison_delta,
-            owner=owner,
             monitor_type=monitor_type,
             description=description,
             sensitivity=sensitivity,
             seasonality=seasonality,
             detection_type=detection_type,
-        )  # type: ignore[misc]
-        # Ignore assigning owner (a settable property) in the `create` call
+            **_owner_kwargs_from_actor(owner),
+        )
 
         if include_all_projects:
             # NOTE: This feature is not currently utilized.
