@@ -260,7 +260,6 @@ function GroupHeader({
               <GroupSummaryHeader
                 groupId={group.id}
                 groupCategory={group.issueCategory}
-                groupTitle={group.title}
               />
             </Feature>
           </TitleWrapper>
