@@ -1415,8 +1415,7 @@ def create_alert_rule_trigger_action(
         integration_id=integration_id,
         sentry_app_id=sentry_app_id,
         sentry_app_config=sentry_app_config,
-    )  # type: ignore[misc]
-    # Ignore assigning sentry_app_config (dict[str, Any]) as JSONField
+    )
 
 
 def update_alert_rule_trigger_action(
