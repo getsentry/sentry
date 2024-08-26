@@ -131,6 +131,11 @@ def error(
     error_short="Invalid installation request.",
     error_long=ERR_INTEGRATION_INVALID_INSTALLATION_REQUEST,
 ):
+    logger.error(
+        "github.installation_error",
+        extra={"org_id": org.organization.id, "error_short": error_short},
+    )
+
     return render_to_response(
         "sentry/integrations/github-integration-failed.html",
         context={
@@ -417,7 +422,7 @@ class OAuthLoginView(PipelineView):
 
         # At this point, we are past the GitHub "authorize" step
         if request.GET.get("state") != pipeline.signature:
-            return error(request, self.active_organization)
+            return error(request, self.active_organization, error_short="Invalid state")
 
         # similar to OAuth2CallbackView.get_token_params
         data = {
@@ -436,11 +441,11 @@ class OAuthLoginView(PipelineView):
             payload = {}
 
         if "access_token" not in payload:
-            return error(request, self.active_organization)
+            return error(request, self.active_organization, error_short="Missing access token")
 
         authenticated_user_info = get_user_info(payload["access_token"])
         if "login" not in authenticated_user_info:
-            return error(request, self.active_organization)
+            return error(request, self.active_organization, error_short="Missing login info")
 
         pipeline.bind_state("github_authenticated_user", authenticated_user_info["login"])
         return pipeline.next_step()
@@ -509,6 +514,10 @@ class GitHubInstallation(PipelineView):
             pipeline.fetch_state("github_authenticated_user")
             != integration.metadata["sender"]["login"]
         ):
-            return error(request, self.active_organization)
+            return error(
+                request,
+                self.active_organization,
+                error_short="Authenticated user is not the same as who installed the app",
+            )
 
         return pipeline.next_step()
