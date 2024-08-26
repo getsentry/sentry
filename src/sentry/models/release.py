@@ -691,15 +691,7 @@ class Release(Model):
         with TimedRetryPolicy(10)(lock.acquire):
             start = time()
             with (
-                atomic_transaction(
-                    using=(
-                        router.db_for_write(type(self)),
-                        router.db_for_write(ReleaseCommit),
-                        router.db_for_write(Repository),
-                        router.db_for_write(CommitAuthor),
-                        router.db_for_write(Commit),
-                    )
-                ),
+                atomic_transaction(using=router.db_for_write(type(self))),
                 in_test_hide_transaction_boundary(),
             ):
                 # TODO(dcramer): would be good to optimize the logic to avoid these
@@ -798,6 +790,7 @@ class Release(Model):
                                 for patched_file in patch_set
                             ],
                             ignore_conflicts=True,
+                            batch_size=100,
                         )
 
                     try:
