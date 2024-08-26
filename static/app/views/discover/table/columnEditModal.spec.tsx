@@ -605,7 +605,7 @@ describe('Discover -> ColumnEditModal', function () {
       expect(screen.getByDisplayValue('error')).toBeInTheDocument();
     });
 
-    it('chooses the correct default parameters for the transactions dataset', async function () {
+    it('chooses the correct default count_if parameters for the transactions dataset', async function () {
       mountModal(
         {
           columns: [
