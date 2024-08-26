@@ -95,7 +95,7 @@ class Migration(CheckedMigration):
     is_post_deployment = True
 
     dependencies = [
-        ("sentry", "0747_create_datasecrecywaiver_table"),
+        ("sentry", "0751_grouphashmetadata_use_one_to_one_field_for_grouphash"),
     ]
 
     operations = [
