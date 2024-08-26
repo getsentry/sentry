@@ -75,7 +75,7 @@ def get_active_projects(namespace: ClustererNamespace) -> Iterator[Project]:
 
 
 def _record_sample(namespace: ClustererNamespace, project: Project, sample: str) -> None:
-    with sentry_sdk.start_span(op="cluster.{namespace.value.name}.record_sample"):
+    with sentry_sdk.start_span(op=f"cluster.{namespace.value.name}.record_sample"):
         client = get_redis_client()
         redis_key = _get_redis_key(namespace, project)
         created = add_to_set([redis_key], [sample, MAX_SET_SIZE, SET_TTL], client)
