@@ -76,7 +76,6 @@ function TriggerDescription({
     AlertWizardAlertNames[getAlertTypeFromAggregateDataset(rule)]
   );
 
-  // TODO: update this text if rule type is dynamic
   const thresholdText = rule.comparisonDelta
     ? tct(
         '[metric] is [threshold]% [comparisonType] in [timeWindow] compared to the [comparisonDelta]',
@@ -271,16 +270,6 @@ export function MetricDetailsSidebar({
                   ? rule.sensitivity.charAt(0).toUpperCase() + rule.sensitivity.slice(1)
                   : ''
               } // NOTE: if the rule is dynamic, then there must be a sensitivity
-            />
-          )}
-          {rule.detectionType === 'dynamic' && (
-            <KeyValueTableRow
-              keyName={t('Seasonality')}
-              value={
-                rule.seasonality
-                  ? rule.seasonality.charAt(0).toUpperCase() + rule.seasonality.slice(1)
-                  : ''
-              } // NOTE: if the rule is dynamic, then there must be a seasonality
             />
           )}
           {rule.detectionType === 'dynamic' && (
