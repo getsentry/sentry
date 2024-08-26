@@ -221,10 +221,10 @@ describe('Performance > Table', function () {
       await userEvent.click(cellActionTriggers[8]);
 
       expect(
-        screen.getByRole('menuitemradio', {name: 'Add to filter'})
+        screen.getByRole('menuitemradio', {name: 'Show values greater than'})
       ).toBeInTheDocument();
       expect(
-        screen.getByRole('menuitemradio', {name: 'Exclude from filter'})
+        screen.getByRole('menuitemradio', {name: 'Show values less than'})
       ).toBeInTheDocument();
 
       await userEvent.keyboard('{Escape}'); // Close actions menu

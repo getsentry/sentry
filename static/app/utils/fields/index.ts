@@ -341,6 +341,12 @@ function validateForNumericAggregate(
   };
 }
 
+function getDynamicFieldValueType(parameters: Array<string | null>): FieldValueType {
+  const column = parameters[0];
+  const fieldDef = column ? getFieldDefinition(column) : null;
+  return fieldDef?.valueType ?? FieldValueType.NUMBER;
+}
+
 function validateAndDenyListColumns(
   validColumnTypes: FieldValueType[],
   deniedColumns: string[]
@@ -494,7 +500,9 @@ export const AGGREGATION_FIELDS: Record<AggregationKey, FieldDefinition> = {
   [AggregationKey.MIN]: {
     desc: t('Returns the minimum value of the selected field'),
     kind: FieldKind.FUNCTION,
+    defaultValue: '300ms',
     valueType: null,
+    parameterDependentValueType: getDynamicFieldValueType,
     parameters: [
       {
         name: 'column',
@@ -514,7 +522,9 @@ export const AGGREGATION_FIELDS: Record<AggregationKey, FieldDefinition> = {
   [AggregationKey.MAX]: {
     desc: t('Returns maximum value of the selected field'),
     kind: FieldKind.FUNCTION,
+    defaultValue: '300ms',
     valueType: null,
+    parameterDependentValueType: getDynamicFieldValueType,
     parameters: [
       {
         name: 'column',
@@ -534,7 +544,9 @@ export const AGGREGATION_FIELDS: Record<AggregationKey, FieldDefinition> = {
   [AggregationKey.SUM]: {
     desc: t('Returns the total value for the selected field'),
     kind: FieldKind.FUNCTION,
+    defaultValue: '300ms',
     valueType: null,
+    parameterDependentValueType: getDynamicFieldValueType,
     parameters: [
       {
         name: 'column',
@@ -552,7 +564,9 @@ export const AGGREGATION_FIELDS: Record<AggregationKey, FieldDefinition> = {
   [AggregationKey.ANY]: {
     desc: t('Not Recommended, a random field value'),
     kind: FieldKind.FUNCTION,
+    defaultValue: '300ms',
     valueType: null,
+    parameterDependentValueType: getDynamicFieldValueType,
     parameters: [
       {
         name: 'column',
@@ -573,7 +587,9 @@ export const AGGREGATION_FIELDS: Record<AggregationKey, FieldDefinition> = {
   [AggregationKey.P50]: {
     desc: t('Returns the 50th percentile of the selected field'),
     kind: FieldKind.FUNCTION,
+    defaultValue: '300ms',
     valueType: null,
+    parameterDependentValueType: getDynamicFieldValueType,
     parameters: [
       {
         name: 'column',
@@ -591,7 +607,9 @@ export const AGGREGATION_FIELDS: Record<AggregationKey, FieldDefinition> = {
   [AggregationKey.P75]: {
     desc: t('Returns the 75th percentile of the selected field'),
     kind: FieldKind.FUNCTION,
+    defaultValue: '300ms',
     valueType: null,
+    parameterDependentValueType: getDynamicFieldValueType,
     parameters: [
       {
         name: 'column',
@@ -609,7 +627,9 @@ export const AGGREGATION_FIELDS: Record<AggregationKey, FieldDefinition> = {
   [AggregationKey.P90]: {
     desc: t('Returns the 90th percentile of the selected field'),
     kind: FieldKind.FUNCTION,
+    defaultValue: '300ms',
     valueType: null,
+    parameterDependentValueType: getDynamicFieldValueType,
     parameters: [
       {
         name: 'column',
@@ -627,7 +647,9 @@ export const AGGREGATION_FIELDS: Record<AggregationKey, FieldDefinition> = {
   [AggregationKey.P95]: {
     desc: t('Returns the 95th percentile of the selected field'),
     kind: FieldKind.FUNCTION,
+    defaultValue: '300ms',
     valueType: null,
+    parameterDependentValueType: getDynamicFieldValueType,
     parameters: [
       {
         name: 'column',
@@ -645,7 +667,9 @@ export const AGGREGATION_FIELDS: Record<AggregationKey, FieldDefinition> = {
   [AggregationKey.P99]: {
     desc: t('Returns the 99th percentile of the selected field'),
     kind: FieldKind.FUNCTION,
+    defaultValue: '300ms',
     valueType: null,
+    parameterDependentValueType: getDynamicFieldValueType,
     parameters: [
       {
         name: 'column',
@@ -663,7 +687,9 @@ export const AGGREGATION_FIELDS: Record<AggregationKey, FieldDefinition> = {
   [AggregationKey.P100]: {
     desc: t('Returns the 100th percentile of the selected field'),
     kind: FieldKind.FUNCTION,
+    defaultValue: '300ms',
     valueType: null,
+    parameterDependentValueType: getDynamicFieldValueType,
     parameters: [
       {
         name: 'column',
@@ -681,7 +707,9 @@ export const AGGREGATION_FIELDS: Record<AggregationKey, FieldDefinition> = {
   [AggregationKey.PERCENTILE]: {
     desc: t('Returns the percentile of the selected field'),
     kind: FieldKind.FUNCTION,
+    defaultValue: '300ms',
     valueType: null,
+    parameterDependentValueType: getDynamicFieldValueType,
     parameters: [
       {
         name: 'column',
@@ -706,7 +734,9 @@ export const AGGREGATION_FIELDS: Record<AggregationKey, FieldDefinition> = {
   [AggregationKey.AVG]: {
     desc: t('Returns averages for a selected field'),
     kind: FieldKind.FUNCTION,
+    defaultValue: '300ms',
     valueType: null,
+    parameterDependentValueType: getDynamicFieldValueType,
     parameters: [
       {
         name: 'column',
@@ -740,7 +770,7 @@ export const AGGREGATION_FIELDS: Record<AggregationKey, FieldDefinition> = {
       'User-weighted performance metric that counts the number of unique users who were frustrated'
     ),
     kind: FieldKind.FUNCTION,
-    valueType: null,
+    valueType: FieldValueType.NUMBER,
     parameters: [
       {
         name: 'value',
