@@ -38,11 +38,16 @@ interface InlineAttachmentsProps
 
 const getInlineAttachmentRenderer = (attachment: IssueAttachment) => {
   switch (attachment.mimetype) {
+    case 'text/css':
+    case 'text/csv':
+    case 'text/html':
+    case 'text/javascript':
     case 'text/plain':
       return attachment.size > 0 ? LogFileViewer : undefined;
+    case 'application/json':
+    case 'application/ld+json':
     case 'text/json':
     case 'text/x-json':
-    case 'application/json':
       if (attachment.name === 'rrweb.json' || attachment.name.startsWith('rrweb-')) {
         return RRWebJsonViewer;
       }
