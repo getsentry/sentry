@@ -1,5 +1,5 @@
 import {Fragment} from 'react';
-import {cloneDeep} from 'lodash';
+import cloneDeep from 'lodash/cloneDeep';
 
 import {updateUser} from 'sentry/actionCreators/account';
 import AvatarChooser from 'sentry/components/avatarChooser';

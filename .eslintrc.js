@@ -35,6 +35,61 @@ module.exports = {
             message: 'Do not depend on toolbar internals',
           },
         ],
+        paths: [
+          {
+            name: '@testing-library/react',
+            message:
+              'Please import from `sentry-test/reactTestingLibrary` instead so that we can ensure consistency throughout the codebase',
+          },
+          {
+            name: '@testing-library/react-hooks',
+            message:
+              'Please import from `sentry-test/reactTestingLibrary` instead so that we can ensure consistency throughout the codebase',
+          },
+          {
+            name: '@testing-library/user-event',
+            message:
+              'Please import from `sentry-test/reactTestingLibrary` instead so that we can ensure consistency throughout the codebase',
+          },
+          {
+            name: '@sentry/browser',
+            message:
+              'Please import from `@sentry/react` to ensure consistency throughout the codebase.',
+          },
+          {
+            name: 'marked',
+            message:
+              "Please import marked from 'app/utils/marked' so that we can ensure sanitation of marked output",
+          },
+          {
+            name: 'lodash',
+            message:
+              "Please import lodash utilities individually. e.g. `import isEqual from 'lodash/isEqual';`. See https://github.com/getsentry/frontend-handbook#lodash from for information",
+          },
+          {
+            name: 'lodash/get',
+            message:
+              'Optional chaining `?.` and nullish coalescing operators `??` are available and preferred over using `lodash/get`. See https://github.com/getsentry/frontend-handbook#new-syntax for more information',
+          },
+          {
+            name: 'sentry/utils/theme',
+            importNames: ['lightColors', 'darkColors'],
+            message:
+              "'lightColors' and 'darkColors' exports intended for use in Storybook only. Instead, use theme prop from emotion or the useTheme hook.",
+          },
+          {
+            name: 'react-router',
+            importNames: ['withRouter'],
+            message:
+              "Use 'useLocation', 'useParams', 'useNavigate', 'useRoutes' from sentry/utils instead.",
+          },
+          {
+            name: 'sentry/utils/withSentryRouter',
+            importNames: ['withSentryRouter'],
+            message:
+              "Use 'useLocation', 'useParams', 'useNavigate', 'useRoutes' from sentry/utils instead.",
+          },
+        ],
       },
     ],
 
