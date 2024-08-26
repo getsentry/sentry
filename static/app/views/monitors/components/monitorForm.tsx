@@ -4,6 +4,7 @@ import {Observer} from 'mobx-react';
 
 import Alert from 'sentry/components/alert';
 import AlertLink from 'sentry/components/alertLink';
+import FieldWrapper from 'sentry/components/forms/fieldGroup/fieldWrapper';
 import NumberField from 'sentry/components/forms/fields/numberField';
 import SelectField from 'sentry/components/forms/fields/selectField';
 import SentryMemberTeamSelectorField from 'sentry/components/forms/fields/sentryMemberTeamSelectorField';
@@ -256,7 +257,7 @@ function MonitorForm({
       <StyledList symbol="colored-numeric">
         <StyledListItem>{t('Add a name and project')}</StyledListItem>
         <ListItemSubText>{t('The name will show up in notifications.')}</ListItemSubText>
-        <InputGroup>
+        <InputGroup noPadding>
           <TextField
             name="name"
             label={t('Name')}
@@ -309,7 +310,7 @@ function MonitorForm({
             link: <ExternalLink href="https://en.wikipedia.org/wiki/Cron" />,
           })}
         </ListItemSubText>
-        <InputGroup>
+        <InputGroup noPadding>
           {monitor !== undefined && (
             <StyledAlert type="info">
               {t(
@@ -572,13 +573,17 @@ const ListItemSubText = styled(Text)`
   color: ${p => p.theme.subText};
 `;
 
-const InputGroup = styled('div')`
+const InputGroup = styled('div')<{noPadding?: boolean}>`
   padding-left: ${space(4)};
   margin-top: ${space(1)};
   margin-bottom: ${space(4)};
   display: flex;
   flex-direction: column;
   gap: ${space(1)};
+
+  ${FieldWrapper} {
+    ${p => p.noPadding && `padding: 0;`};
+  }
 `;
 
 const MultiColumnInput = styled('div')<{columns?: string}>`
