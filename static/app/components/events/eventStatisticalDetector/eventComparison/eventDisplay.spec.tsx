@@ -146,7 +146,7 @@ describe('eventDisplay', () => {
 
     expect(
       await screen.findByRole('button', {name: 'Full Event Details'})
-    ).toHaveAttribute('href', '/organizations/org-slug/performance/project-slug:1/?');
+    ).toHaveAttribute('href', '/organizations/org-slug/performance/project-slug:1/');
   });
 
   it('allows for pagination if there are more events loaded', async () => {
