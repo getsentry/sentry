@@ -111,7 +111,7 @@ class GroupOwner(Model):
                 group_id=group_id, project_id=project_id, type__in=autoassignment_types
             )
             .exclude(user_id__isnull=True, team_id__isnull=True)
-            .order_by("type")
+            .order_by("type", "date_added")
             .first()
         )
         # should return False if no owner
