@@ -1,24 +1,28 @@
-from django.core.signing import BadSignature, SignatureExpired
-from django.http import HttpResponse
-from django.urls import reverse
-from django.utils.decorators import method_decorator
-from django.views.decorators.cache import never_cache
-from rest_framework.request import Request
+from collections.abc import Mapping
+from typing import Any
 
-from sentry.integrations.types import ExternalProviders
-from sentry.integrations.utils import get_identity_or_404
-from sentry.users.models.identity import Identity
+from django.urls import reverse
+
+from sentry.integrations.messaging import LinkIdentityView
+from sentry.integrations.models.integration import Integration
+from sentry.integrations.msteams.linkage import MsTeamsIdentityLinkageView
+from sentry.models.organization import Organization
 from sentry.utils.http import absolute_uri
-from sentry.utils.signing import sign, unsign
-from sentry.web.frontend.base import BaseView, control_silo_view
-from sentry.web.helpers import render_to_response
+from sentry.utils.signing import sign
 
 from .card_builder.identity import build_linked_card
 from .client import MsTeamsClient
-from .constants import SALT
 
 
-def build_linking_url(integration, organization, teams_user_id, team_id, tenant_id):
+def build_linking_url(
+    integration: Integration,
+    organization: Organization,
+    teams_user_id: str,
+    team_id: str,
+    tenant_id: str,
+) -> str:
+    from sentry.integrations.msteams.constants import SALT
+
     signed_params = sign(
         salt=SALT,
         integration_id=integration.id,
@@ -33,45 +37,20 @@ def build_linking_url(integration, organization, teams_user_id, team_id, tenant_
     )
 
 
-@control_silo_view
-class MsTeamsLinkIdentityView(BaseView):
-    @method_decorator(never_cache)
-    def handle(self, request: Request, signed_params) -> HttpResponse:
-        try:
-            params = unsign(signed_params, salt=SALT)
-        except (SignatureExpired, BadSignature):
-            return render_to_response(
-                "sentry/integrations/msteams/expired-link.html",
-                request=request,
+class MsTeamsLinkIdentityView(MsTeamsIdentityLinkageView, LinkIdentityView):
+    def get_success_template_and_context(
+        self, params: Mapping[str, Any], integration: Integration | None
+    ) -> tuple[str, dict[str, Any]]:
+        return "sentry/integrations/msteams/linked.html", {}
+
+    def notify_on_success(
+        self, external_id: str, params: Mapping[str, Any], integration: Integration | None
+    ) -> None:
+        if integration is None:
+            raise ValueError(
+                'Integration is required for linking (params must include "integration_id")'
             )
-
-        organization, integration, idp = get_identity_or_404(
-            ExternalProviders.MSTEAMS,
-            request.user,
-            integration_id=params["integration_id"],
-            organization_id=params["organization_id"],
-        )
-
-        if request.method != "POST":
-            return render_to_response(
-                "sentry/auth-link-identity.html",
-                request=request,
-                context={"organization": organization, "provider": integration.get_provider()},
-            )
-
-        Identity.objects.link_identity(
-            user=request.user, idp=idp, external_id=params["teams_user_id"]
-        )
-
         card = build_linked_card()
         client = MsTeamsClient(integration)
-        user_conversation_id = client.get_user_conversation_id(
-            params["teams_user_id"], params["tenant_id"]
-        )
+        user_conversation_id = client.get_user_conversation_id(external_id, params["tenant_id"])
         client.send_card(user_conversation_id, card)
-
-        return render_to_response(
-            "sentry/integrations/msteams/linked.html",
-            request=request,
-            context={"team_id": params["team_id"]},
-        )
