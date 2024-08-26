@@ -421,7 +421,7 @@ function AlertRuleDetails({params, location, router}: AlertRuleDetailsProps) {
             >
               {t('Duplicate')}
             </LinkButton>
-            <Button
+            <LinkButton
               size="sm"
               icon={<IconEdit />}
               to={`/organizations/${organization.slug}/alerts/rules/${projectSlug}/${ruleId}/`}
@@ -433,7 +433,7 @@ function AlertRuleDetails({params, location, router}: AlertRuleDetailsProps) {
               }
             >
               {rule.status === 'disabled' ? t('Edit to enable') : t('Edit Rule')}
-            </Button>
+            </LinkButton>
           </ButtonBar>
         </Layout.HeaderActions>
       </Layout.Header>

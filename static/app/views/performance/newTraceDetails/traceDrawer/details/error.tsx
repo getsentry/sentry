@@ -2,7 +2,7 @@ import {useMemo} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {Button} from 'sentry/components/button';
+import {LinkButton} from 'sentry/components/button';
 import {
   getStacktrace,
   StackTracePreviewContent,
@@ -99,9 +99,9 @@ export function ErrorNodeDetails({
             organization={organization}
             onTabScrollToNode={onTabScrollToNode}
           />
-          <Button size="xs" to={generateIssueEventTarget(node.value, organization)}>
+          <LinkButton size="xs" to={generateIssueEventTarget(node.value, organization)}>
             {t('Go to Issue')}
-          </Button>
+          </LinkButton>
         </TraceDrawerComponents.Actions>
       </TraceDrawerComponents.HeaderContainer>
 

@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 import type {Location} from 'history';
 import omit from 'lodash/omit';
 
-import {Button} from 'sentry/components/button';
+import {LinkButton} from 'sentry/components/button';
 import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
 import DiscoverButton from 'sentry/components/discoverButton';
 import * as SpanEntryContext from 'sentry/components/events/interfaces/spans/context';
@@ -85,9 +85,9 @@ function SpanChild({
             <Link data-test-id="view-child-transaction" to={to}>
               {`${transactionResult.transaction} (${transactionResult['project.name']})`}
             </Link>
-            <Button size="xs" to={target}>
+            <LinkButton size="xs" to={target}>
               {t('View Summary')}
-            </Button>
+            </LinkButton>
           </SpanChildValueWrapper>
         );
       }}
@@ -108,7 +108,7 @@ function SpanChildrenTraversalButton({
     // TODO: Amend size to use theme when we eventually refactor LoadingIndicator
     // 12px is consistent with theme.iconSizes['xs'] but theme returns a string.
     return (
-      <StyledDiscoverButton size="xs" disabled>
+      <StyledDiscoverButton href="#" size="xs" disabled>
         <StyledLoadingIndicator size={12} />
       </StyledDiscoverButton>
     );

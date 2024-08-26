@@ -1,4 +1,4 @@
-import {Button} from 'sentry/components/button';
+import {LinkButton} from 'sentry/components/button';
 import {canCreateProject} from 'sentry/components/projects/canCreateProject';
 import {IconAdd} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -9,7 +9,7 @@ export default function CreateProjectButton() {
   const canUserCreateProject = canCreateProject(organization);
 
   return (
-    <Button
+    <LinkButton
       priority="primary"
       size="sm"
       disabled={!canUserCreateProject}
@@ -22,6 +22,6 @@ export default function CreateProjectButton() {
       icon={<IconAdd isCircled />}
     >
       {t('Create Project')}
-    </Button>
+    </LinkButton>
   );
 }

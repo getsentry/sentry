@@ -12,7 +12,7 @@ import Feature from 'sentry/components/acl/feature';
 import FeatureDisabled from 'sentry/components/acl/featureDisabled';
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
 import Banner from 'sentry/components/banner';
-import {Button} from 'sentry/components/button';
+import {Button, LinkButton} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import {CreateAlertFromViewButton} from 'sentry/components/createAlertButton';
 import type {MenuItemProps} from 'sentry/components/dropdownMenu';
@@ -316,7 +316,7 @@ class SavedQueryButtonGroup extends PureComponent<Props, State> {
   renderButtonViewSaved(disabled: boolean) {
     const {organization} = this.props;
     return (
-      <Button
+      <LinkButton
         onClick={() => {
           trackAnalytics('discover_v2.view_saved_queries', {organization});
         }}
@@ -327,7 +327,7 @@ class SavedQueryButtonGroup extends PureComponent<Props, State> {
         to={getDiscoverQueriesUrl(organization)}
       >
         {t('Saved Queries')}
-      </Button>
+      </LinkButton>
     );
   }
 

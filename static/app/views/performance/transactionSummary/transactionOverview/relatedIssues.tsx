@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 import type {Location} from 'history';
 import pick from 'lodash/pick';
 
-import {Button} from 'sentry/components/button';
+import {LinkButton} from 'sentry/components/button';
 import {SectionHeading} from 'sentry/components/charts/styles';
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
 import GroupList from 'sentry/components/issues/groupList';
@@ -97,14 +97,14 @@ class RelatedIssues extends Component<Props> {
       <Fragment>
         <ControlsWrapper>
           <SectionHeading>{t('Related Issues')}</SectionHeading>
-          <Button
+          <LinkButton
             data-test-id="issues-open"
             size="xs"
             to={issueSearch}
             onClick={this.handleOpenClick}
           >
             {t('Open in Issues')}
-          </Button>
+          </LinkButton>
         </ControlsWrapper>
 
         <TableWrapper>

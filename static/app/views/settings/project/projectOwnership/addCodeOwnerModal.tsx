@@ -227,9 +227,9 @@ class AddCodeOwnerModal extends DeprecatedAsyncComponent<Props, State> {
                   {t('Install a GitHub or GitLab integration to use this feature.')}
                 </div>
                 <Container style={{paddingTop: space(2)}}>
-                  <Button priority="primary" size="sm" to={baseUrl}>
+                  <LinkButton priority="primary" size="sm" to={baseUrl}>
                     Setup Integration
-                  </Button>
+                  </LinkButton>
                 </Container>
               </Fragment>
             ) : (
@@ -241,13 +241,13 @@ class AddCodeOwnerModal extends DeprecatedAsyncComponent<Props, State> {
                 </div>
                 <IntegrationsList>
                   {integrations.map(integration => (
-                    <Button
+                    <LinkButton
                       key={integration.id}
                       to={`${baseUrl}/${integration.provider.key}/${integration.id}/?tab=codeMappings&referrer=add-codeowners`}
                     >
                       {getIntegrationIcon(integration.provider.key)}
                       <IntegrationName>{integration.name}</IntegrationName>
-                    </Button>
+                    </LinkButton>
                   ))}
                 </IntegrationsList>
               </Fragment>

@@ -1,7 +1,7 @@
 import {Fragment, useEffect} from 'react';
 import styled from '@emotion/styled';
 
-import {Button} from 'sentry/components/button';
+import {LinkButton} from 'sentry/components/button';
 import {SectionHeading} from 'sentry/components/charts/styles';
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
 import GroupList from 'sentry/components/issues/groupList';
@@ -98,9 +98,9 @@ function RelatedIssues({rule, organization, projects, query, timePeriod}: Props)
     <Fragment>
       <ControlsWrapper>
         <StyledSectionHeading>{t('Related Issues')}</StyledSectionHeading>
-        <Button data-test-id="issues-open" size="xs" to={issueSearch}>
+        <LinkButton data-test-id="issues-open" size="xs" to={issueSearch}>
           {t('Open in Issues')}
-        </Button>
+        </LinkButton>
       </ControlsWrapper>
 
       <TableWrapper>

@@ -4,7 +4,7 @@ import pick from 'lodash/pick';
 import round from 'lodash/round';
 
 import {doSessionsRequest} from 'sentry/actionCreators/sessions';
-import {Button} from 'sentry/components/button';
+import {LinkButton} from 'sentry/components/button';
 import {shouldFetchPreviousPeriod} from 'sentry/components/charts/utils';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import ScoreCard from 'sentry/components/scoreCard';
@@ -163,7 +163,7 @@ export function ProjectAnrScoreCard({
 
   function renderButton() {
     return (
-      <Button
+      <LinkButton
         data-test-id="issues-open"
         size="xs"
         to={issueSearch}
@@ -174,7 +174,7 @@ export function ProjectAnrScoreCard({
         }}
       >
         {t('View Issues')}
-      </Button>
+      </LinkButton>
     );
   }
 

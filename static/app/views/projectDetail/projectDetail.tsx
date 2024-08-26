@@ -8,7 +8,7 @@ import {updateProjects} from 'sentry/actionCreators/pageFilters';
 import {fetchTagValues} from 'sentry/actionCreators/tags';
 import Feature from 'sentry/components/acl/feature';
 import {Breadcrumbs} from 'sentry/components/breadcrumbs';
-import {Button} from 'sentry/components/button';
+import {LinkButton} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import CreateAlertButton from 'sentry/components/createAlertButton';
 import FeedbackWidgetButton from 'sentry/components/feedback/widget/feedbackWidgetButton';
@@ -178,7 +178,7 @@ export default function ProjectDetail({router, location, organization}: Props) {
               <Layout.HeaderActions>
                 <ButtonBar gap={1}>
                   <FeedbackWidgetButton />
-                  <Button
+                  <LinkButton
                     size="sm"
                     to={
                       // if we are still fetching project, we can use project slug to build issue stream url and let the redirect handle it
@@ -188,14 +188,14 @@ export default function ProjectDetail({router, location, organization}: Props) {
                     }
                   >
                     {t('View All Issues')}
-                  </Button>
+                  </LinkButton>
                   <CreateAlertButton
                     size="sm"
                     organization={organization}
                     projectSlug={params.projectId}
                     aria-label={t('Create Alert')}
                   />
-                  <Button
+                  <LinkButton
                     size="sm"
                     icon={<IconSettings />}
                     aria-label={t('Settings')}

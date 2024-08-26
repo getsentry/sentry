@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 import type {Location} from 'history';
 import omit from 'lodash/omit';
 
-import {Button} from 'sentry/components/button';
+import {LinkButton} from 'sentry/components/button';
 import {CompactSelect} from 'sentry/components/compactSelect';
 import SearchBar from 'sentry/components/events/searchBar';
 import * as Layout from 'sentry/components/layouts/thirds';
@@ -251,7 +251,7 @@ function Search(props: Props) {
           label: filter.label,
         }))}
       />
-      <Button
+      <LinkButton
         to={eventView.getResultsViewUrlTarget(
           organization.slug,
           false,
@@ -260,7 +260,7 @@ function Search(props: Props) {
         onClick={handleDiscoverButtonClick}
       >
         {t('Open in Discover')}
-      </Button>
+      </LinkButton>
     </FilterActions>
   );
 }

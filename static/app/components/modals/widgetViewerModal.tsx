@@ -15,7 +15,7 @@ import {fetchTotalCount} from 'sentry/actionCreators/events';
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import type {Client} from 'sentry/api';
 import {Alert} from 'sentry/components/alert';
-import {Button} from 'sentry/components/button';
+import {Button, LinkButton} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import SelectControl from 'sentry/components/forms/controls/selectControl';
 import Option from 'sentry/components/forms/controls/selectOption';
@@ -1118,7 +1118,7 @@ function OpenButton({
       )}
       disabled={!buttonDisabled}
     >
-      <Button
+      <LinkButton
         to={path}
         priority="primary"
         disabled={buttonDisabled}
@@ -1131,7 +1131,7 @@ function OpenButton({
         }}
       >
         {openLabel}
-      </Button>
+      </LinkButton>
     </Tooltip>
   );
 }

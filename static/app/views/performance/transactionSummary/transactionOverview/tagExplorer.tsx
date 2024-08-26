@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 import type {Location, LocationDescriptorObject} from 'history';
 
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
-import {Button} from 'sentry/components/button';
+import {LinkButton} from 'sentry/components/button';
 import {SectionHeading} from 'sentry/components/charts/styles';
 import type {GridColumn, GridColumnOrder} from 'sentry/components/gridEditable';
 import GridEditable, {COL_WIDTH_UNDEFINED} from 'sentry/components/gridEditable';
@@ -504,14 +504,14 @@ function TagsHeader(props: HeaderProps) {
       <div>
         <SectionHeading>{t('Suspect Tags')}</SectionHeading>
       </div>
-      <Button
+      <LinkButton
         onClick={handleViewAllTagsClick}
         to={viewAllTarget}
         size="xs"
         data-test-id="tags-explorer-open-tags"
       >
         {t('View All Tags')}
-      </Button>
+      </LinkButton>
       <StyledPagination pageLinks={pageLinks} onCursor={handleCursor} size="xs" />
     </Header>
   );

@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 
 import emptyStateImg from 'sentry-images/spot/profiling-empty-state.svg';
 
-import {Button, LinkButton} from 'sentry/components/button';
+import {LinkButton} from 'sentry/components/button';
 import {SectionHeading} from 'sentry/components/charts/styles';
 import InlineDocs from 'sentry/components/events/interfaces/spans/inlineDocs';
 import ExternalLink from 'sentry/components/links/externalLink';
@@ -189,9 +189,9 @@ function ProfilePreviewHeader({canvasView, event, organization}: ProfilePreviewP
           )}
         />
       </HeaderContainer>
-      <Button size="xs" onClick={handleGoToProfile} to={target}>
+      <LinkButton size="xs" onClick={handleGoToProfile} to={target}>
         {t('View Profile')}
-      </Button>
+      </LinkButton>
     </HeaderContainer>
   );
 }

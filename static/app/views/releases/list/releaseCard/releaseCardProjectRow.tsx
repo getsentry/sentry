@@ -5,7 +5,7 @@ import type {Location} from 'history';
 
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
 import Tag from 'sentry/components/badge/tag';
-import {Button} from 'sentry/components/button';
+import {LinkButton} from 'sentry/components/button';
 import MiniBarChart from 'sentry/components/charts/miniBarChart';
 import Count from 'sentry/components/count';
 import GlobalSelectionLink from 'sentry/components/globalSelectionLink';
@@ -212,7 +212,7 @@ function ReleaseCardProjectRow({
 
         <ViewColumn>
           <GuideAnchor disabled={!isTopRelease || index !== 0} target="view_release">
-            <Button
+            <LinkButton
               size="xs"
               to={{
                 pathname: `/organizations/${
@@ -226,7 +226,7 @@ function ReleaseCardProjectRow({
               }}
             >
               {t('View')}
-            </Button>
+            </LinkButton>
           </GuideAnchor>
         </ViewColumn>
       </ReleaseProjectsLayout>
