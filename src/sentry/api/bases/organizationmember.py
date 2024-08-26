@@ -40,6 +40,8 @@ class MemberPermission(OrganizationPermission):
 
         scopes = request.access.scopes
         is_role_above_member = "member:admin" in scopes or "member:write" in scopes
+        if isinstance(organization, RpcUserOrganizationContext):
+            organization = organization.organization
         return is_role_above_member or not organization.flags.disable_member_invite
 
 
