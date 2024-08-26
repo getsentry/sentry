@@ -9,7 +9,7 @@ import type {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
-import {Button} from 'sentry/components/button';
+import {Button, LinkButton} from 'sentry/components/button';
 import CircleIndicator from 'sentry/components/circleIndicator';
 import {DateTime} from 'sentry/components/dateTime';
 import {Tooltip} from 'sentry/components/tooltip';
@@ -145,9 +145,11 @@ class AccountSecurityDetails extends DeprecatedAsyncView<Props, State> {
           action={
             <AuthenticatorActions>
               {authenticator.isEnrolled && authenticator.allowRotationInPlace && (
-                <Button to={`/settings/account/security/mfa/${authenticator.id}/enroll/`}>
+                <LinkButton
+                  to={`/settings/account/security/mfa/${authenticator.id}/enroll/`}
+                >
                   {t('Rotate Secret Key')}
-                </Button>
+                </LinkButton>
               )}
               {authenticator.isEnrolled && authenticator.removeButton && (
                 <Tooltip

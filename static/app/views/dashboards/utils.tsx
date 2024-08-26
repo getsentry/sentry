@@ -351,18 +351,23 @@ export function getWidgetDiscoverUrl(
   }
 
   // Equation fields need to have their terms explicitly selected as columns in the discover table
-  const fields = discoverLocation.query.field;
+  const fields =
+    Array.isArray(discoverLocation.query.field) || !discoverLocation.query.field
+      ? discoverLocation.query.field
+      : [discoverLocation.query.field];
+
   const query = widget.queries[0];
   const queryFields = defined(query.fields)
     ? query.fields
     : [...query.columns, ...query.aggregates];
-  const equationFields = getFieldsFromEquations(queryFields);
+
   // Updates fields by adding any individual terms from equation fields as a column
-  equationFields.forEach(term => {
+  getFieldsFromEquations(queryFields).forEach(term => {
     if (Array.isArray(fields) && !fields.includes(term)) {
       fields.unshift(term);
     }
   });
+  discoverLocation.query.field = fields;
 
   if (isMetricsData) {
     discoverLocation.query.fromMetric = 'true';
