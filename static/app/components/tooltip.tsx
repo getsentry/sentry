@@ -16,12 +16,10 @@ interface TooltipContextProps {
    * This is particularly useful for making the tooltip interactive within specific contexts,
    * such as inside a modal. By default the tooltip is rendered in the 'document.body'.
    */
-  container: Parameters<typeof createPortal>[1];
+  container: Element | DocumentFragment | null;
 }
 
-export const TooltipContext = createContext<TooltipContextProps>({
-  container: document.body,
-});
+export const TooltipContext = createContext<TooltipContextProps>({container: null});
 
 interface TooltipProps extends UseHoverOverlayProps {
   /**
@@ -79,7 +77,10 @@ function Tooltip({
   return (
     <Fragment>
       {wrapTrigger(children)}
-      {createPortal(<AnimatePresence>{tooltipContent}</AnimatePresence>, container)}
+      {createPortal(
+        <AnimatePresence>{tooltipContent}</AnimatePresence>,
+        container ?? document.body
+      )}
     </Fragment>
   );
 }

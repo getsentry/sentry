@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+from datetime import timedelta
 from typing import Any
 
 import orjson
@@ -20,6 +21,7 @@ from sentry.api.serializers.rest_framework.base import convert_dict_key_case, sn
 from sentry.models.group import Group
 from sentry.seer.signed_seer_api import sign_with_seer_secret
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
+from sentry.utils.cache import cache
 
 logger = logging.getLogger(__name__)
 
@@ -30,6 +32,7 @@ class SummarizeIssueResponse(BaseModel):
     group_id: str
     summary: str
     impact: str
+    headline: str
 
 
 @region_silo_endpoint
@@ -89,6 +92,7 @@ class GroupAiSummaryEndpoint(GroupEndpoint):
             },
             option=orjson.OPT_NON_STR_KEYS,
         )
+
         response = requests.post(
             f"{settings.SEER_AUTOFIX_URL}{path}",
             data=body,
@@ -109,10 +113,10 @@ class GroupAiSummaryEndpoint(GroupEndpoint):
         if not features.has("organizations:ai-summary", group.organization, actor=request.user):
             return Response({"detail": "Feature flag not enabled"}, status=400)
 
-        if group.data.get("issue_summary"):
-            return Response(
-                convert_dict_key_case(group.data["issue_summary"], snake_to_camel_case), status=200
-            )
+        cache_key = "ai-group-summary:" + str(group.id)
+
+        if cached_summary := cache.get(cache_key):
+            return Response(convert_dict_key_case(cached_summary, snake_to_camel_case), status=200)
 
         serialized_event = self._get_event(group, request.user)
 
@@ -121,8 +125,7 @@ class GroupAiSummaryEndpoint(GroupEndpoint):
 
         issue_summary = self._call_seer(group, serialized_event)
 
-        group.data.update({"issue_summary": issue_summary.dict()})
-        group.save()
+        cache.set(cache_key, issue_summary.dict(), timeout=int(timedelta(days=7).total_seconds()))
 
         return Response(
             convert_dict_key_case(issue_summary.dict(), snake_to_camel_case), status=200

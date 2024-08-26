@@ -5,7 +5,7 @@ from django.views.decorators.cache import never_cache
 from rest_framework.request import Request
 
 from sentry.identity.pipeline import IdentityProviderPipeline
-from sentry.models.identity import IdentityProvider
+from sentry.users.models.identity import IdentityProvider
 from sentry.web.frontend.base import ControlSiloOrganizationView, control_silo_view
 from sentry.web.helpers import render_to_response
 
