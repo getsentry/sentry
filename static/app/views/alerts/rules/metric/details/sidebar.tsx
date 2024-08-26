@@ -76,6 +76,7 @@ function TriggerDescription({
     AlertWizardAlertNames[getAlertTypeFromAggregateDataset(rule)]
   );
 
+  // TODO: update this text if rule type is dynamic
   const thresholdText = rule.comparisonDelta
     ? tct(
         '[metric] is [threshold]% [comparisonType] in [timeWindow] compared to the [comparisonDelta]',
@@ -90,11 +91,13 @@ function TriggerDescription({
           ).label,
         }
       )
-    : tct('[metric] is [condition] in [timeWindow]', {
-        metric: metricName,
-        condition: `${thresholdTypeText} ${threshold}`,
-        timeWindow,
-      });
+    : rule.sensitivity
+      ? 'Dynamic threshold is reached'
+      : tct('[metric] is [condition] in [timeWindow]', {
+          metric: metricName,
+          condition: `${thresholdTypeText} ${threshold}`,
+          timeWindow,
+        });
 
   return (
     <TriggerContainer>
