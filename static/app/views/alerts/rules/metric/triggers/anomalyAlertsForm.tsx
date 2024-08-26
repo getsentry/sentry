@@ -39,10 +39,10 @@ function SensitivityFormItem({
 }: SensitivityFormItemProps) {
   return (
     <StyledField
-      label={'Sensitivity'}
+      label={'Level of responsiveness'}
       id={'sensitivity'}
       help={
-        'Lower sensitivity will alert you only when anomalies are larger, higher sensitivity will alert you and your team for even small deviations.'
+        'Choose your level of anomaly responsiveness. Higher thresholds means alerts for most anomalies. Lower thresholds means alerts only for larger ones.'
       }
       required
     >
@@ -80,9 +80,9 @@ function DirectionFormItem({
 }: DirectionFormItemProps) {
   return (
     <StyledField
-      label={'Direction'}
+      label={'Direction of anomaly movement'}
       help={
-        'Indicate if you want to be alerted of anomalies above your set bounds, below, or both.'
+        'Decide if you want to be alerted to anomalies that are moving above, below, or in both directions in relation to your threshold.'
       }
       required
     >
