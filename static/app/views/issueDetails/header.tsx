@@ -257,7 +257,11 @@ function GroupHeader({
               showUnhandled={group.isUnhandled}
             />
             <Feature features={['organizations:ai-summary']}>
-              <GroupSummaryHeader groupId={group.id} />
+              <GroupSummaryHeader
+                groupId={group.id}
+                groupCategory={group.issueCategory}
+                groupTitle={group.title}
+              />
             </Feature>
           </TitleWrapper>
           <StatsWrapper>

@@ -4,6 +4,7 @@ import {
   GroupSummary,
   makeGroupSummaryQueryKey,
 } from 'sentry/components/group/groupSummary';
+import {IssueCategory} from 'sentry/types/group';
 
 describe('GroupSummary', function () {
   beforeEach(() => {
@@ -42,7 +43,13 @@ describe('GroupSummary', function () {
       },
     });
 
-    render(<GroupSummary groupId={groupId} />);
+    render(
+      <GroupSummary
+        groupId={groupId}
+        groupCategory={IssueCategory.ERROR}
+        groupTitle={'Uh oh.'}
+      />
+    );
 
     await waitFor(() => {
       expect(screen.getByText('Issue Summary')).toBeInTheDocument();
@@ -86,7 +93,13 @@ describe('GroupSummary', function () {
       },
     });
 
-    render(<GroupSummary groupId={groupId} />);
+    render(
+      <GroupSummary
+        groupId={groupId}
+        groupCategory={IssueCategory.ERROR}
+        groupTitle={'Uh oh.'}
+      />
+    );
 
     await waitFor(
       () => {
@@ -100,4 +113,110 @@ describe('GroupSummary', function () {
     expect(screen.queryByText('Potential Impact')).not.toBeInTheDocument();
     expect(screen.queryByText('Test impact')).not.toBeInTheDocument();
   });
+});
+
+it('does not render the group summary if not an error', async function () {
+  const groupId = '1';
+  const organizationSlug = 'org-slug';
+  MockApiClient.addMockResponse({
+    url: makeGroupSummaryQueryKey(organizationSlug, groupId)[0],
+    method: 'POST',
+    body: {
+      groupId,
+      summary: 'Test summary',
+      impact: 'Test impact',
+    },
+  });
+
+  const setupCall = MockApiClient.addMockResponse({
+    url: `/issues/${groupId}/autofix/setup/`,
+    body: {
+      genAIConsent: {ok: false},
+      integration: {ok: true},
+      githubWriteIntegration: {
+        ok: true,
+        repos: [
+          {
+            provider: 'integrations:github',
+            owner: 'getsentry',
+            name: 'sentry',
+            external_id: '123',
+          },
+        ],
+      },
+    },
+  });
+
+  render(
+    <GroupSummary
+      groupId={groupId}
+      groupCategory={IssueCategory.PERFORMANCE}
+      groupTitle={'Uh oh.'}
+    />
+  );
+
+  await waitFor(
+    () => {
+      expect(setupCall).toHaveBeenCalled();
+    },
+    {timeout: 5000}
+  );
+
+  expect(screen.queryByText('Issue Summary')).not.toBeInTheDocument();
+  expect(screen.queryByText('Test summary')).not.toBeInTheDocument();
+  expect(screen.queryByText('Potential Impact')).not.toBeInTheDocument();
+  expect(screen.queryByText('Test impact')).not.toBeInTheDocument();
+});
+
+it('does not render the group summary if user feedback', async function () {
+  const groupId = '1';
+  const organizationSlug = 'org-slug';
+  MockApiClient.addMockResponse({
+    url: makeGroupSummaryQueryKey(organizationSlug, groupId)[0],
+    method: 'POST',
+    body: {
+      groupId,
+      summary: 'Test summary',
+      impact: 'Test impact',
+    },
+  });
+
+  const setupCall = MockApiClient.addMockResponse({
+    url: `/issues/${groupId}/autofix/setup/`,
+    body: {
+      genAIConsent: {ok: false},
+      integration: {ok: true},
+      githubWriteIntegration: {
+        ok: true,
+        repos: [
+          {
+            provider: 'integrations:github',
+            owner: 'getsentry',
+            name: 'sentry',
+            external_id: '123',
+          },
+        ],
+      },
+    },
+  });
+
+  render(
+    <GroupSummary
+      groupId={groupId}
+      groupCategory={IssueCategory.ERROR}
+      groupTitle={'User Feedback'}
+    />
+  );
+
+  await waitFor(
+    () => {
+      expect(setupCall).toHaveBeenCalled();
+    },
+    {timeout: 5000}
+  );
+
+  expect(screen.queryByText('Issue Summary')).not.toBeInTheDocument();
+  expect(screen.queryByText('Test summary')).not.toBeInTheDocument();
+  expect(screen.queryByText('Potential Impact')).not.toBeInTheDocument();
+  expect(screen.queryByText('Test impact')).not.toBeInTheDocument();
 });

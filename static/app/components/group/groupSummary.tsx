@@ -10,6 +10,7 @@ import * as SidebarSection from 'sentry/components/sidebarSection';
 import {IconMegaphone} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import {IssueCategory} from 'sentry/types/group';
 import marked from 'sentry/utils/marked';
 import {type ApiQueryKey, useApiQuery} from 'sentry/utils/queryClient';
 import {useFeedbackForm} from 'sentry/utils/useFeedbackForm';
@@ -17,7 +18,9 @@ import useOrganization from 'sentry/utils/useOrganization';
 import {useHasStreamlinedUI} from 'sentry/views/issueDetails/utils';
 
 interface GroupSummaryProps {
+  groupCategory: IssueCategory;
   groupId: string;
+  groupTitle: string;
 }
 
 interface GroupSummaryData {
@@ -72,13 +75,24 @@ function GroupSummaryFeatureBadge() {
   );
 }
 
-export function GroupSummaryHeader({groupId}: GroupSummaryProps) {
+export function GroupSummaryHeader({
+  groupId,
+  groupCategory,
+  groupTitle,
+}: GroupSummaryProps) {
   const {data, isLoading, isError, hasGenAIConsent} = useGroupSummary(groupId);
   const isStreamlined = useHasStreamlinedUI();
 
-  if (isError || !hasGenAIConsent || (!isLoading && !data?.headline)) {
+  if (
+    isError ||
+    !hasGenAIConsent ||
+    (!isLoading && !data?.headline) ||
+    groupCategory !== IssueCategory.ERROR ||
+    groupTitle === 'User Feedback'
+  ) {
     // Don't render the summary headline if there's an error, the error is already shown in the sidebar
     // If there is no headline we also don't want to render anything
+    // We also don't want to show summaries if the issue is not an error issue
     return null;
   }
 
@@ -98,12 +112,17 @@ export function GroupSummaryHeader({groupId}: GroupSummaryProps) {
   );
 }
 
-export function GroupSummary({groupId}: GroupSummaryProps) {
+export function GroupSummary({groupId, groupCategory, groupTitle}: GroupSummaryProps) {
   const {data, isLoading, isError, hasGenAIConsent} = useGroupSummary(groupId);
 
   const openForm = useFeedbackForm();
 
-  if (!hasGenAIConsent) {
+  if (
+    !hasGenAIConsent ||
+    groupCategory !== IssueCategory.ERROR ||
+    groupTitle === 'User Feedback'
+  ) {
+    // we don't show summaries if the issue is not an error issue
     // TODO: Render a banner for needing genai consent
     return null;
   }
