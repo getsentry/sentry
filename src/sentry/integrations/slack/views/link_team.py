@@ -17,7 +17,7 @@ from sentry.integrations.slack.metrics import (
     SLACK_LINK_TEAM_MSG_SUCCESS_DATADOG_METRIC,
 )
 from sentry.integrations.slack.sdk_client import SlackSdkClient
-from sentry.integrations.slack.views.link_identity import SlackLinkageView
+from sentry.integrations.slack.views.linkage import SlackLinkageView
 from sentry.models.team import Team
 from sentry.utils import metrics
 from sentry.web.frontend.base import region_silo_view

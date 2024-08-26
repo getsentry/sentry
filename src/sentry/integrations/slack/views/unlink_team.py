@@ -2,7 +2,7 @@ import logging
 
 from sentry.integrations.messaging import UnlinkTeamView
 from sentry.integrations.models.integration import Integration
-from sentry.integrations.slack.views.link_identity import SlackLinkageView
+from sentry.integrations.slack.views.linkage import SlackLinkageView
 from sentry.web.frontend.base import region_silo_view
 
 from . import build_linking_url as base_build_linking_url
