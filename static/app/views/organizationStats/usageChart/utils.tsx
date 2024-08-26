@@ -90,7 +90,7 @@ const MAX_NUMBER_OF_LABELS = 10;
  * @returns An object containing an array indicating visibility of each X-axis label
  */
 export function getXAxisLabelVisibility(dataPeriod: number, intervals: string[]) {
-  if (dataPeriod < 7 * 24) {
+  if (dataPeriod <= 24) {
     return {
       xAxisLabelVisibility: Array(intervals.length).fill(false),
     };
