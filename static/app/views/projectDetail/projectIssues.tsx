@@ -152,7 +152,7 @@ function ProjectIssues({organization, location, projectId, query, api}: Props) {
       query: {
         name: t('Frequent Unhandled Issues'),
         field: ['issue', 'title', 'count()', 'count_unique(user)', 'project'],
-        sort: ['-count'],
+        sort: '-count',
         query: discoverQuery,
         display: 'top5',
         ...normalizeDateTimeParams(pick(location.query, [...Object.values(URL_PARAM)])),
@@ -168,7 +168,7 @@ function ProjectIssues({organization, location, projectId, query, api}: Props) {
     : [`${IssuesQuery.ALL}`, query].join(' ').trim();
 
   const queryParams = {
-    limit: 5,
+    limit: '5',
     ...normalizeDateTimeParams(
       pick(location.query, [...Object.values(URL_PARAM), 'cursor'])
     ),

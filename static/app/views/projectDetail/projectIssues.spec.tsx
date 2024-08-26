@@ -95,7 +95,7 @@ describe('ProjectDetail > ProjectIssues', function () {
     expect(router.push).toHaveBeenCalledWith({
       pathname: '/organizations/org-slug/issues/',
       query: {
-        limit: 5,
+        limit: '5',
         query: 'error.unhandled:true is:unresolved',
         sort: 'freq',
         statsPeriod: '14d',
@@ -158,7 +158,7 @@ describe('ProjectDetail > ProjectIssues', function () {
         field: ['issue', 'title', 'count()', 'count_unique(user)', 'project'],
         name: 'Frequent Unhandled Issues',
         query: 'event.type:error error.unhandled:true',
-        sort: ['-count'],
+        sort: '-count',
         statsPeriod: '14d',
       },
     });
@@ -188,7 +188,7 @@ describe('ProjectDetail > ProjectIssues', function () {
     expect(router.push).toHaveBeenCalledWith({
       pathname: `/organizations/${organization.slug}/issues/`,
       query: {
-        limit: 5,
+        limit: '5',
         environment: 'staging',
         statsPeriod: '7d',
         query: 'error.unhandled:true is:unresolved',
