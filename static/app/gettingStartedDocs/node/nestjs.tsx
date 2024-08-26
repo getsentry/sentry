@@ -62,7 +62,8 @@ getError() {
 }
 `;
 
-const getDecoratedGlobalFilter = () => `import { Catch, ExceptionFilter } from '@nestjs/common';
+const getDecoratedGlobalFilter =
+  () => `import { Catch, ExceptionFilter } from '@nestjs/common';
 import { WithSentry } from '@sentry/nestjs';
 
 @Catch()
@@ -72,9 +73,10 @@ export class YourCatchAllExceptionFilter implements ExceptionFilter {
     // your implementation here
   }
 }
-`
+`;
 
-const getAppModuleSnippetWithSentryGlobalFilter = () => `import { Module } from '@nestjs/common';
+const getAppModuleSnippetWithSentryGlobalFilter =
+  () => `import { Module } from '@nestjs/common';
 import { APP_FILTER } from '@nestjs/core';
 import { SentryGlobalFilter } from '@sentry/nestjs/setup';
 
