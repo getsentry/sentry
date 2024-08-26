@@ -115,7 +115,7 @@ describe('GroupSummary', function () {
     expect(screen.queryByText('Test impact')).not.toBeInTheDocument();
   });
 
-  it('does not render the group summary if not an error', async function () {
+  it('does not render the group summary if not an error', function () {
     const groupId = '1';
     const organizationSlug = 'org-slug';
     MockApiClient.addMockResponse({
@@ -128,10 +128,10 @@ describe('GroupSummary', function () {
       },
     });
 
-    const setupCall = MockApiClient.addMockResponse({
+    MockApiClient.addMockResponse({
       url: `/issues/${groupId}/autofix/setup/`,
       body: {
-        genAIConsent: {ok: false},
+        genAIConsent: {ok: true},
         integration: {ok: true},
         githubWriteIntegration: {
           ok: true,
@@ -155,20 +155,13 @@ describe('GroupSummary', function () {
       />
     );
 
-    await waitFor(
-      () => {
-        expect(setupCall).toHaveBeenCalled();
-      },
-      {timeout: 5000}
-    );
-
     expect(screen.queryByText('Issue Summary')).not.toBeInTheDocument();
     expect(screen.queryByText('Test summary')).not.toBeInTheDocument();
     expect(screen.queryByText('Potential Impact')).not.toBeInTheDocument();
     expect(screen.queryByText('Test impact')).not.toBeInTheDocument();
   });
 
-  it('does not render the group summary if user feedback', async function () {
+  it('does not render the group summary if user feedback', function () {
     const groupId = '1';
     const organizationSlug = 'org-slug';
     MockApiClient.addMockResponse({
@@ -181,10 +174,10 @@ describe('GroupSummary', function () {
       },
     });
 
-    const setupCall = MockApiClient.addMockResponse({
+    MockApiClient.addMockResponse({
       url: `/issues/${groupId}/autofix/setup/`,
       body: {
-        genAIConsent: {ok: false},
+        genAIConsent: {ok: true},
         integration: {ok: true},
         githubWriteIntegration: {
           ok: true,
@@ -207,14 +200,6 @@ describe('GroupSummary', function () {
         groupTitle={'User Feedback'}
       />
     );
-
-    await waitFor(
-      () => {
-        expect(setupCall).toHaveBeenCalled();
-      },
-      {timeout: 5000}
-    );
-
     expect(screen.queryByText('Issue Summary')).not.toBeInTheDocument();
     expect(screen.queryByText('Test summary')).not.toBeInTheDocument();
     expect(screen.queryByText('Potential Impact')).not.toBeInTheDocument();
@@ -227,7 +212,7 @@ describe('GroupSummaryHeader', function () {
     MockApiClient.clearMockResponses();
   });
 
-  it('renders the group summary', async function () {
+  it('renders the group summary header', async function () {
     const groupId = '1';
     const organizationSlug = 'org-slug';
     MockApiClient.addMockResponse({
@@ -324,7 +309,7 @@ describe('GroupSummaryHeader', function () {
     expect(screen.queryByText('Test headline')).not.toBeInTheDocument();
   });
 
-  it('does not render the group summary headline if not an error', async function () {
+  it('does not render the group summary headline if not an error', function () {
     const groupId = '1';
     const organizationSlug = 'org-slug';
     MockApiClient.addMockResponse({
@@ -338,10 +323,10 @@ describe('GroupSummaryHeader', function () {
       },
     });
 
-    const setupCall = MockApiClient.addMockResponse({
+    MockApiClient.addMockResponse({
       url: `/issues/${groupId}/autofix/setup/`,
       body: {
-        genAIConsent: {ok: false},
+        genAIConsent: {ok: true},
         integration: {ok: true},
         githubWriteIntegration: {
           ok: true,
@@ -364,18 +349,10 @@ describe('GroupSummaryHeader', function () {
         groupTitle={'Uh oh.'}
       />
     );
-
-    await waitFor(
-      () => {
-        expect(setupCall).toHaveBeenCalled();
-      },
-      {timeout: 5000}
-    );
-
     expect(screen.queryByText('Test headline')).not.toBeInTheDocument();
   });
 
-  it('does not render the group summary headline if user feedback', async function () {
+  it('does not render the group summary headline if user feedback', function () {
     const groupId = '1';
     const organizationSlug = 'org-slug';
     MockApiClient.addMockResponse({
@@ -388,8 +365,7 @@ describe('GroupSummaryHeader', function () {
         headline: 'Test headline',
       },
     });
-
-    const setupCall = MockApiClient.addMockResponse({
+    MockApiClient.addMockResponse({
       url: `/issues/${groupId}/autofix/setup/`,
       body: {
         genAIConsent: {ok: false},
@@ -407,20 +383,12 @@ describe('GroupSummaryHeader', function () {
         },
       },
     });
-
     render(
       <GroupSummaryHeader
         groupId={groupId}
         groupCategory={IssueCategory.ERROR}
-        groupTitle={'User Feedback'}
+        groupTitle="User Feedback"
       />
-    );
-
-    await waitFor(
-      () => {
-        expect(setupCall).toHaveBeenCalled();
-      },
-      {timeout: 5000}
     );
 
     expect(screen.queryByText('Test headline')).not.toBeInTheDocument();

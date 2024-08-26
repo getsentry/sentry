@@ -30,6 +30,18 @@ interface GroupSummaryData {
   headline?: string;
 }
 
+const isSummaryEnabled = (
+  hasGenAIConsent: boolean,
+  groupCategory: IssueCategory,
+  groupTitle: string
+) => {
+  return (
+    hasGenAIConsent &&
+    groupCategory === IssueCategory.ERROR &&
+    groupTitle !== 'User Feedback'
+  );
+};
+
 export const makeGroupSummaryQueryKey = (
   organizationSlug: string,
   groupId: string
@@ -38,7 +50,11 @@ export const makeGroupSummaryQueryKey = (
   {method: 'POST'},
 ];
 
-export function useGroupSummary(groupId: string) {
+export function useGroupSummary(
+  groupId: string,
+  groupCategory: IssueCategory,
+  groupTitle: string
+) {
   const organization = useOrganization();
   // We piggyback and use autofix's genai consent check for now.
   const {
@@ -53,7 +69,7 @@ export function useGroupSummary(groupId: string) {
     makeGroupSummaryQueryKey(organization.slug, groupId),
     {
       staleTime: Infinity, // Cache the result indefinitely as it's unlikely to change if it's already computed
-      enabled: hasGenAIConsent,
+      enabled: isSummaryEnabled(hasGenAIConsent, groupCategory, groupTitle),
     }
   );
   return {
@@ -80,19 +96,20 @@ export function GroupSummaryHeader({
   groupCategory,
   groupTitle,
 }: GroupSummaryProps) {
-  const {data, isLoading, isError, hasGenAIConsent} = useGroupSummary(groupId);
+  const {data, isLoading, isError, hasGenAIConsent} = useGroupSummary(
+    groupId,
+    groupCategory,
+    groupTitle
+  );
   const isStreamlined = useHasStreamlinedUI();
 
   if (
     isError ||
-    !hasGenAIConsent ||
     (!isLoading && !data?.headline) ||
-    groupCategory !== IssueCategory.ERROR ||
-    groupTitle === 'User Feedback'
+    !isSummaryEnabled(hasGenAIConsent, groupCategory, groupTitle)
   ) {
     // Don't render the summary headline if there's an error, the error is already shown in the sidebar
     // If there is no headline we also don't want to render anything
-    // We also don't want to show summaries if the issue is not an error issue
     return null;
   }
 
@@ -113,16 +130,15 @@ export function GroupSummaryHeader({
 }
 
 export function GroupSummary({groupId, groupCategory, groupTitle}: GroupSummaryProps) {
-  const {data, isLoading, isError, hasGenAIConsent} = useGroupSummary(groupId);
+  const {data, isLoading, isError, hasGenAIConsent} = useGroupSummary(
+    groupId,
+    groupCategory,
+    groupTitle
+  );
 
   const openForm = useFeedbackForm();
 
-  if (
-    !hasGenAIConsent ||
-    groupCategory !== IssueCategory.ERROR ||
-    groupTitle === 'User Feedback'
-  ) {
-    // we don't show summaries if the issue is not an error issue
+  if (!isSummaryEnabled(hasGenAIConsent, groupCategory, groupTitle)) {
     // TODO: Render a banner for needing genai consent
     return null;
   }
