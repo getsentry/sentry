@@ -95,7 +95,7 @@ class Migration(CheckedMigration):
     is_post_deployment = True
 
     dependencies = [
-        ("sentry", "0751_grouphashmetadata_use_one_to_one_field_for_grouphash"),
+        ("sentry", "0752_fix_substatus_for_unresolved_groups"),
     ]
 
     operations = [
