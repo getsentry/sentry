@@ -191,8 +191,7 @@ function PerformanceQuotaExceededWarning(props: ErrorOnlyWarningsProps) {
     return null;
   }
 
-  const title = tct("You've exceeded your [billingInterval] [billingType]", {
-    billingInterval: subscription?.planDetails.billingInterval ?? 'monthly',
+  const title = tct("You've exceeded your [billingType]", {
     billingType: subscription?.onDemandBudgets?.enabled
       ? t('pay-as-you-go budget')
       : t('quota'),
