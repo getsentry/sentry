@@ -45,7 +45,7 @@ from sentry.incidents.utils.sentry_apps import trigger_sentry_app_action_creator
 from sentry.integrations.slack.tasks.find_channel_id_for_alert_rule import (
     find_channel_id_for_alert_rule,
 )
-from sentry.integrations.slack.utils import RedisRuleStatus
+from sentry.integrations.slack.utils.rule_status import RedisRuleStatus
 from sentry.models.organization import Organization
 from sentry.models.organizationmemberteam import OrganizationMemberTeam
 from sentry.models.project import Project

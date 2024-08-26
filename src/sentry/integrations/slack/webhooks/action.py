@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 from collections.abc import Mapping, MutableMapping, Sequence
 from typing import Any
 
@@ -45,7 +46,7 @@ from sentry.shared_integrations.exceptions import ApiError
 from sentry.users.services.user import RpcUser
 from sentry.utils import metrics
 
-from ..utils import logger
+_logger = logging.getLogger(__name__)
 
 UNFURL_ACTION_OPTIONS = ["link", "ignore"]
 NOTIFICATION_SETTINGS_ACTION_OPTIONS = ["all_slack"]
@@ -144,7 +145,7 @@ def get_group(slack_request: SlackActionRequest) -> Group | None:
             group = None
 
     if not group:
-        logger.info(
+        _logger.info(
             "slack.action.invalid-issue",
             extra={
                 **slack_request.logging_data,
@@ -187,7 +188,7 @@ class SlackActionEndpoint(Endpoint):
     ) -> Response:
         from sentry.integrations.slack.views.unlink_identity import build_unlinking_url
 
-        logger.info(
+        _logger.info(
             "slack.action.api-error",
             extra={
                 **slack_request.get_logging_data(group),
@@ -229,7 +230,7 @@ class SlackActionEndpoint(Endpoint):
         error: serializers.ValidationError,
         action_type: str,
     ) -> Response:
-        logger.info(
+        _logger.info(
             "slack.action.validation-error",
             extra={
                 **slack_request.get_logging_data(group),
@@ -416,7 +417,7 @@ class SlackActionEndpoint(Endpoint):
                 sample_rate=1.0,
                 tags={"type": "resolve_modal_open"},
             )
-            logger.exception(
+            _logger.exception(
                 "slack.action.response-error",
                 extra={
                     "organization_id": org.id,
@@ -463,7 +464,7 @@ class SlackActionEndpoint(Endpoint):
                 sample_rate=1.0,
                 tags={"type": "archive_modal_open"},
             )
-            logger.exception(
+            _logger.exception(
                 "slack.action.response-error",
                 extra={
                     "organization_id": org.id,
@@ -577,7 +578,7 @@ class SlackActionEndpoint(Endpoint):
                     sample_rate=1.0,
                     tags={"type": "submit_modal"},
                 )
-                logger.error(
+                _logger.exception(
                     "slack.webhook.view_submission.response-error",
                     extra={
                         "error": str(e),
@@ -653,7 +654,7 @@ class SlackActionEndpoint(Endpoint):
                 delete_original=False,
                 replace_original=True,
             )
-            logger.info(
+            _logger.info(
                 "slack.webhook.update_status.success",
                 extra={"integration_id": slack_request.integration.id, "blocks": json_blocks},
             )
@@ -662,13 +663,13 @@ class SlackActionEndpoint(Endpoint):
                 sample_rate=1.0,
                 tags={"type": "update_message"},
             )
-        except SlackApiError as e:
+        except SlackApiError:
             metrics.incr(
                 SLACK_WEBHOOK_GROUP_ACTIONS_FAILURE_DATADOG_METRIC,
                 sample_rate=1.0,
                 tags={"type": "update_message"},
             )
-            logger.error("slack.webhook.update_status.response-error", extra={"error": str(e)})
+            _logger.exception("slack.webhook.update_status.response-error")
 
         return self.respond(response)
 
@@ -685,8 +686,8 @@ class SlackActionEndpoint(Endpoint):
         payload = {"delete_original": "true"}
         try:
             requests_.post(slack_request.response_url, json=payload)
-        except ApiError as e:
-            logger.error("slack.action.response-error", extra={"error": str(e)})
+        except ApiError:
+            _logger.exception("slack.action.response-error")
             return self.respond(status=403)
 
         return self.respond()
@@ -746,12 +747,12 @@ class SlackActionEndpoint(Endpoint):
             slack_request = self.slack_request_class(request)
             slack_request.validate()
         except SlackRequestError as e:
-            logger.info(
+            _logger.info(
                 "slack.action.request-error", extra={"error": str(e), "status_code": e.status}
             )
             return self.respond(status=e.status)
 
-        logger.info(
+        _logger.info(
             "slack.action.request",
             extra={
                 "trigger_id": slack_request.data.get("trigger_id"),
@@ -844,10 +845,9 @@ class SlackActionEndpoint(Endpoint):
                 member.approve_member_invitation(identity_user, referrer="slack")
             else:
                 member.reject_member_invitation(identity_user)
-        except Exception as err:
+        except Exception:
             # shouldn't error but if it does, respond to the user
-            logger.error(
-                err,
+            _logger.exception(
                 extra={
                     "organization_id": organization.id,
                     "member_id": member.id,

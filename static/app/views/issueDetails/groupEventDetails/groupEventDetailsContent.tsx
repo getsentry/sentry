@@ -75,8 +75,8 @@ import {getReplayIdFromEvent} from 'sentry/utils/replays/getReplayIdFromEvent';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {ResourcesAndPossibleSolutions} from 'sentry/views/issueDetails/resourcesAndPossibleSolutions';
+import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
 import {EventDetails} from 'sentry/views/issueDetails/streamline/eventDetails';
-import {FoldSectionKey} from 'sentry/views/issueDetails/streamline/foldSection';
 import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
 import {TraceDataSection} from 'sentry/views/issueDetails/traceDataSection';
 import {useHasStreamlinedUI} from 'sentry/views/issueDetails/utils';
@@ -163,7 +163,7 @@ export function EventDetailsContent({
       {event.userReport && (
         <InterimSection
           title={t('User Feedback')}
-          type={FoldSectionKey.USER_FEEDBACK}
+          type={SectionKey.USER_FEEDBACK}
           actions={
             hasStreamlinedUI ? null : (
               <ErrorBoundary mini>

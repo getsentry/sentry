@@ -58,7 +58,7 @@ import {useUser} from 'sentry/utils/useUser';
 import GroupHeader from 'sentry/views/issueDetails//header';
 import {ERROR_TYPES} from 'sentry/views/issueDetails/constants';
 import SampleEventAlert from 'sentry/views/issueDetails/sampleEventAlert';
-import StreamlinedGroupHeader from 'sentry/views/issueDetails/streamlinedHeader';
+import StreamlinedGroupHeader from 'sentry/views/issueDetails/streamline/header';
 import {Tab, TabPaths} from 'sentry/views/issueDetails/types';
 import {
   getGroupDetailsQueryData,
@@ -572,7 +572,7 @@ function useTrackView({
     has_hierarchical_grouping:
       !!organization.features?.includes('grouping-stacktrace-ui') &&
       !!(event?.metadata?.current_tree_label || event?.metadata?.finest_tree_label),
-    new_issue_experience: user?.options?.issueDetailsNewExperienceQ42023 ?? false,
+    prefers_streamlined_ui: user?.options?.prefersIssueDetailsStreamlinedUI ?? false,
   });
   // Set default values for properties that may be updated in subcomponents.
   // Must be separate from the above values, otherwise the actual values filled in

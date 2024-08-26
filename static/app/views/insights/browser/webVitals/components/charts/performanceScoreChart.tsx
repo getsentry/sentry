@@ -17,11 +17,13 @@ import type {
   WebVitals,
 } from 'sentry/views/insights/browser/webVitals/types';
 import type {BrowserType} from 'sentry/views/insights/browser/webVitals/utils/queryParameterDecoders/browserType';
+import type {SubregionCode} from 'sentry/views/insights/types';
 
 type Props = {
   browserTypes?: BrowserType[];
   isProjectScoreLoading?: boolean;
   projectScore?: ProjectScore;
+  subregions?: SubregionCode[];
   transaction?: string;
   webVital?: WebVitals | null;
 };
@@ -34,6 +36,7 @@ export function PerformanceScoreChart({
   transaction,
   isProjectScoreLoading,
   browserTypes,
+  subregions,
 }: Props) {
   const theme = useTheme();
   const pageFilters = usePageFilters();
@@ -100,6 +103,7 @@ export function PerformanceScoreChart({
       <PerformanceScoreBreakdownChart
         transaction={transaction}
         browserTypes={browserTypes}
+        subregions={subregions}
       />
     </Flex>
   );

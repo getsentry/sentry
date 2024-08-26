@@ -1,8 +1,8 @@
+import dataclasses
 from abc import abstractmethod
+from collections.abc import Mapping
 from enum import Enum
-from typing import Annotated, Any, Literal, TypeVar
-
-from pydantic import BaseModel, Field, StrictBool, StrictFloat, StrictInt, StrictStr, constr
+from typing import Any, Self, TypeVar
 
 from flagpole.evaluation_context import EvaluationContext
 
@@ -48,19 +48,19 @@ def create_case_insensitive_set_from_list(values: list[T]) -> set[T]:
     return case_insensitive_set
 
 
-class ConditionBase(BaseModel):
-    property: str = Field(description="The evaluation context property to match against.")
+@dataclasses.dataclass(frozen=True)
+class ConditionBase:
+    property: str
     """The evaluation context property to match against."""
 
-    operator: ConditionOperatorKind = Field(
-        description="The operator to use when comparing the evaluation context property to the condition's value."
-    )
-    """The operator to use when comparing the evaluation context property to the condition's value."""
-
-    value: Any = Field(
-        description="The value to compare against the condition's evaluation context property."
-    )
+    value: Any
     """The value to compare against the condition's evaluation context property."""
+
+    operator: str = dataclasses.field(default="")
+    """
+    The name of the operator to use when comparing the evaluation context property to the condition's value.
+    Values must be a valid ConditionOperatorKind.
+    """
 
     def match(self, context: EvaluationContext, segment_name: str) -> bool:
         return self._operator_match(
@@ -99,12 +99,8 @@ class ConditionBase(BaseModel):
 
         return value in create_case_insensitive_set_from_list(condition_property)
 
-    def _evaluate_equals(
-        self, condition_property: Any, segment_name: str, strict_validation: bool = False
-    ) -> bool:
-        # Strict validation enforces that a property exists when used in an
-        # equals condition
-        if condition_property is None and not strict_validation:
+    def _evaluate_equals(self, condition_property: Any, segment_name: str) -> bool:
+        if condition_property is None:
             return False
 
         if not isinstance(condition_property, type(self.value)):
@@ -121,20 +117,20 @@ class ConditionBase(BaseModel):
         return condition_property == self.value
 
 
-InOperatorValueTypes = list[StrictInt] | list[StrictFloat] | list[StrictStr]
+InOperatorValueTypes = list[int] | list[float] | list[str]
 
 
 class InCondition(ConditionBase):
-    operator: Literal[ConditionOperatorKind.IN] = ConditionOperatorKind.IN
     value: InOperatorValueTypes
+    operator: str = dataclasses.field(default="in")
 
     def _operator_match(self, condition_property: Any, segment_name: str):
         return self._evaluate_in(condition_property=condition_property, segment_name=segment_name)
 
 
 class NotInCondition(ConditionBase):
-    operator: Literal[ConditionOperatorKind.NOT_IN] = ConditionOperatorKind.NOT_IN
     value: InOperatorValueTypes
+    operator: str = dataclasses.field(default="not_in")
 
     def _operator_match(self, condition_property: Any, segment_name: str):
         return not self._evaluate_in(
@@ -142,12 +138,12 @@ class NotInCondition(ConditionBase):
         )
 
 
-ContainsOperatorValueTypes = StrictInt | StrictStr | StrictFloat
+ContainsOperatorValueTypes = int | str | float
 
 
 class ContainsCondition(ConditionBase):
-    operator: Literal[ConditionOperatorKind.CONTAINS] = ConditionOperatorKind.CONTAINS
     value: ContainsOperatorValueTypes
+    operator: str = dataclasses.field(default="contains")
 
     def _operator_match(self, condition_property: Any, segment_name: str):
         return self._evaluate_contains(
@@ -156,8 +152,8 @@ class ContainsCondition(ConditionBase):
 
 
 class NotContainsCondition(ConditionBase):
-    operator: Literal[ConditionOperatorKind.NOT_CONTAINS] = ConditionOperatorKind.NOT_CONTAINS
     value: ContainsOperatorValueTypes
+    operator: str = dataclasses.field(default="not_contains")
 
     def _operator_match(self, condition_property: Any, segment_name: str):
         return not self._evaluate_contains(
@@ -165,91 +161,77 @@ class NotContainsCondition(ConditionBase):
         )
 
 
-EqualsOperatorValueTypes = (
-    StrictInt
-    | StrictFloat
-    | StrictStr
-    | StrictBool
-    | list[StrictInt]
-    | list[StrictFloat]
-    | list[StrictStr]
-)
+EqualsOperatorValueTypes = int | float | str | bool | list[int] | list[float] | list[str]
 
 
 class EqualsCondition(ConditionBase):
-    operator: Literal[ConditionOperatorKind.EQUALS] = ConditionOperatorKind.EQUALS
     value: EqualsOperatorValueTypes
-    strict_validation: bool = Field(
-        description="Whether the condition should enable strict validation, raising an exception if the evaluation context property is missing",
-        default=False,
-    )
-    """Whether the condition should enable strict validation, raising an exception if the evaluation context property is missing"""
+    operator: str = dataclasses.field(default="equals")
 
     def _operator_match(self, condition_property: Any, segment_name: str):
         return self._evaluate_equals(
             condition_property=condition_property,
             segment_name=segment_name,
-            strict_validation=self.strict_validation,
         )
 
 
 class NotEqualsCondition(ConditionBase):
-    operator: Literal[ConditionOperatorKind.NOT_EQUALS] = ConditionOperatorKind.NOT_EQUALS
     value: EqualsOperatorValueTypes
-    strict_validation: bool = Field(
-        description="Whether the condition should enable strict validation, raising an exception if the evaluation context property is missing",
-        default=False,
-    )
-    """Whether the condition should enable strict validation, raising an exception if the evaluation context property is missing"""
+    operator: str = dataclasses.field(default="not_equals")
 
     def _operator_match(self, condition_property: Any, segment_name: str):
         return not self._evaluate_equals(
             condition_property=condition_property,
             segment_name=segment_name,
-            strict_validation=self.strict_validation,
         )
 
 
-# We have to group and annotate all the different subclasses of Operator
-# in order for Pydantic to be able to discern between the different types
-# when parsing a dict or JSON.
-AvailableConditions = Annotated[
-    InCondition
-    | NotInCondition
-    | ContainsCondition
-    | NotContainsCondition
-    | EqualsCondition
-    | NotEqualsCondition,
-    Field(discriminator="operator"),
-]
+OPERATOR_LOOKUP: Mapping[ConditionOperatorKind, type[ConditionBase]] = {
+    ConditionOperatorKind.IN: InCondition,
+    ConditionOperatorKind.NOT_IN: NotInCondition,
+    ConditionOperatorKind.CONTAINS: ContainsCondition,
+    ConditionOperatorKind.NOT_CONTAINS: NotContainsCondition,
+    ConditionOperatorKind.EQUALS: EqualsCondition,
+    ConditionOperatorKind.NOT_EQUALS: NotEqualsCondition,
+}
 
 
-class Segment(BaseModel):
-    name: constr(min_length=1) = Field(  # type:ignore[valid-type]
-        description="A brief description or identifier for the segment"
+def condition_from_dict(data: Mapping[str, Any]) -> ConditionBase:
+    operator_kind = ConditionOperatorKind(data.get("operator", "invalid"))
+    if operator_kind not in OPERATOR_LOOKUP:
+        valid = ", ".join(OPERATOR_LOOKUP.keys())
+        raise ValueError(f"The {operator_kind} is not a known operator. Choose from {valid}")
+
+    condition_cls = OPERATOR_LOOKUP[operator_kind]
+    return condition_cls(
+        property=str(data.get("property")), operator=operator_kind.value, value=data.get("value")
     )
+
+
+@dataclasses.dataclass
+class Segment:
+    name: str
     "A brief description or identifier for the segment"
 
-    conditions: list[AvailableConditions] = Field(
-        description="The list of conditions that the segment must be matched in order for this segment to be active"
-    )
+    conditions: list[ConditionBase] = dataclasses.field(default_factory=list)
     "The list of conditions that the segment must be matched in order for this segment to be active"
 
-    rollout: int | None = Field(
-        default=0,
-        description="""
-        Rollout rate controls how many buckets will be granted a feature when this segment matches.
-
-        Rollout rates range from 0 (off) to 100 (all users). Rollout rates use `context.id`
-        to determine bucket membership consistently over time.
-        """,
-    )
+    rollout: int | None = dataclasses.field(default=0)
     """
     Rollout rate controls how many buckets will be granted a feature when this segment matches.
 
     Rollout rates range from 0 (off) to 100 (all users). Rollout rates use `context.id`
     to determine bucket membership consistently over time.
     """
+
+    @classmethod
+    def from_dict(cls, data: Mapping[str, Any]) -> Self:
+        conditions = [condition_from_dict(condition) for condition in data.get("conditions", [])]
+        return cls(
+            name=str(data.get("name", "")),
+            rollout=int(data.get("rollout", 0)),
+            conditions=conditions,
+        )
 
     def match(self, context: EvaluationContext) -> bool:
         for condition in self.conditions:

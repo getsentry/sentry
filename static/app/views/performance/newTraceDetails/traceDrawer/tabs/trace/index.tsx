@@ -12,7 +12,6 @@ import type {UseApiQueryResult, UseInfiniteQueryResult} from 'sentry/utils/query
 import type RequestError from 'sentry/utils/requestError/requestError';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
-import {TraceWarnings} from 'sentry/views/performance/newTraceDetails/traceWarnings';
 
 import {isTraceNode} from '../../../guards';
 import type {TraceMetaQueryResults} from '../../../traceApi/useTraceMeta';
@@ -58,7 +57,6 @@ export function TraceDetails(props: TraceDetailsProps) {
 
   return (
     <Fragment>
-      {props.tree.type === 'trace' ? <TraceWarnings type={props.traceType} /> : null}
       <IssueList issues={issues} node={props.node} organization={organization} />
       <TraceDrawerComponents.SectionCardGroup>
         <GeneralInfo

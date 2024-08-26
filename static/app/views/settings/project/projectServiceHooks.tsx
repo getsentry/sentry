@@ -6,7 +6,7 @@ import {
   addLoadingMessage,
   clearIndicators,
 } from 'sentry/actionCreators/indicator';
-import {Button} from 'sentry/components/button';
+import {LinkButton} from 'sentry/components/button';
 import EmptyMessage from 'sentry/components/emptyMessage';
 import FieldGroup from 'sentry/components/forms/fieldGroup';
 import Link from 'sentry/components/links/link';
@@ -156,7 +156,7 @@ class ProjectServiceHooks extends DeprecatedAsyncView<Props, State> {
           title={t('Service Hooks')}
           action={
             organization.access.includes('project:write') ? (
-              <Button
+              <LinkButton
                 data-test-id="new-service-hook"
                 to={`/settings/${organization.slug}/projects/${params.projectId}/hooks/new/`}
                 size="sm"
@@ -164,7 +164,7 @@ class ProjectServiceHooks extends DeprecatedAsyncView<Props, State> {
                 icon={<IconAdd isCircled />}
               >
                 {t('Create New Hook')}
-              </Button>
+              </LinkButton>
             ) : null
           }
         />

@@ -257,7 +257,7 @@ export interface NewQuery {
   expired?: boolean;
   id?: string;
   interval?: string;
-  orderby?: string;
+  orderby?: string | string[];
   projects?: Readonly<number[]>;
   query?: string;
   queryDataset?: SavedQueryDatasets;
