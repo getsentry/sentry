@@ -224,6 +224,7 @@ export function TraceView() {
         <NoProjectMessage organization={organization}>
           <TraceExternalLayout>
             <TraceMetadataHeader
+              rootEventResults={rootEvent}
               organization={organization}
               traceSlug={traceSlug}
               traceEventView={traceEventView}
