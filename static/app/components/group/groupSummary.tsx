@@ -2,6 +2,7 @@ import styled from '@emotion/styled';
 
 import FeatureBadge from 'sentry/components/badge/featureBadge';
 import {Button} from 'sentry/components/button';
+import {useAutofixSetup} from 'sentry/components/events/autofix/useAutofixSetup';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Panel from 'sentry/components/panels/panel';
 import Placeholder from 'sentry/components/placeholder';
@@ -26,7 +27,7 @@ interface GroupSummaryData {
   headline?: string;
 }
 
-const makeGroupSummaryQueryKey = (
+export const makeGroupSummaryQueryKey = (
   organizationSlug: string,
   groupId: string
 ): ApiQueryKey => [
@@ -36,13 +37,28 @@ const makeGroupSummaryQueryKey = (
 
 export function useGroupSummary(groupId: string) {
   const organization = useOrganization();
+  // We piggyback and use autofix's genai consent check for now.
+  const {
+    data: autofixSetupData,
+    isLoading: isAutofixSetupLoading,
+    isError: isAutofixSetupError,
+  } = useAutofixSetup({groupId});
 
-  return useApiQuery<GroupSummaryData>(
+  const hasGenAIConsent = autofixSetupData?.genAIConsent.ok ?? false;
+
+  const queryData = useApiQuery<GroupSummaryData>(
     makeGroupSummaryQueryKey(organization.slug, groupId),
     {
       staleTime: Infinity, // Cache the result indefinitely as it's unlikely to change if it's already computed
+      enabled: hasGenAIConsent,
     }
   );
+  return {
+    ...queryData,
+    isLoading: isAutofixSetupLoading || queryData.isLoading,
+    isError: queryData.isError || isAutofixSetupError,
+    hasGenAIConsent,
+  };
 }
 
 function GroupSummaryFeatureBadge() {
@@ -57,10 +73,10 @@ function GroupSummaryFeatureBadge() {
 }
 
 export function GroupSummaryHeader({groupId}: GroupSummaryProps) {
-  const {data, isLoading, isError} = useGroupSummary(groupId);
+  const {data, isLoading, isError, hasGenAIConsent} = useGroupSummary(groupId);
   const isStreamlined = useHasStreamlinedUI();
 
-  if (isError || (!isLoading && !data.headline)) {
+  if (isError || !hasGenAIConsent || (!isLoading && !data?.headline)) {
     // Don't render the summary headline if there's an error, the error is already shown in the sidebar
     // If there is no headline we also don't want to render anything
     return null;
@@ -83,9 +99,14 @@ export function GroupSummaryHeader({groupId}: GroupSummaryProps) {
 }
 
 export function GroupSummary({groupId}: GroupSummaryProps) {
-  const {data, isLoading, isError} = useGroupSummary(groupId);
+  const {data, isLoading, isError, hasGenAIConsent} = useGroupSummary(groupId);
 
   const openForm = useFeedbackForm();
+
+  if (!hasGenAIConsent) {
+    // TODO: Render a banner for needing genai consent
+    return null;
+  }
 
   return (
     <SidebarSection.Wrap>
