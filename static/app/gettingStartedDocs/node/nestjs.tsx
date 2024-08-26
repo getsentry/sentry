@@ -64,6 +64,7 @@ getError() {
 
 const getDecoratedGlobalFilter = () => `import { Catch, ExceptionFilter } from '@nestjs/common';
 import { WithSentry } from '@sentry/nestjs';
+
 @Catch()
 export class YourCatchAllExceptionFilter implements ExceptionFilter {
   @WithSentry()
@@ -76,6 +77,7 @@ export class YourCatchAllExceptionFilter implements ExceptionFilter {
 const getAppModuleSnippetWithSentryGlobalFilter = () => `import { Module } from '@nestjs/common';
 import { APP_FILTER } from '@nestjs/core';
 import { SentryGlobalFilter } from '@sentry/nestjs/setup';
+
 @Module({
   providers: [
     {
