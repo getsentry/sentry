@@ -1,4 +1,3 @@
-import {} from 'react-router';
 import {LocationFixture} from 'sentry-fixture/locationFixture';
 import {UserFixture} from 'sentry-fixture/user';
 
