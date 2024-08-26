@@ -172,8 +172,8 @@ class OrganizationMetricsQueryEndpoint(OrganizationEndpoint):
                 features.has("projects:use-eap-spans-for-metrics-explorer", project)
                 for project in projects
             ):
-                if len(mql_queries) == 1 and "a" in mql_queries[0].sub_queries:
-                    subquery = mql_queries[0].sub_queries["a"]
+                if len(mql_queries) == 1 and len(mql_queries[0].sub_queries) == 1:
+                    subquery = next(iter(mql_queries[0].sub_queries.values()))
                     if "d:eap/" in subquery.mql:
                         res_data = mql_eap_bridge.make_eap_request(
                             subquery.mql,
