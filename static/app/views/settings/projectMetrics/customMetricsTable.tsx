@@ -1,8 +1,8 @@
 import {Fragment, useMemo, useState} from 'react';
-import {Link} from 'react-router';
 import styled from '@emotion/styled';
 
 import Tag from 'sentry/components/badge/tag';
+import Link from 'sentry/components/links/link';
 import {PanelTable} from 'sentry/components/panels/panelTable';
 import SearchBar from 'sentry/components/searchBar';
 import {TabList, TabPanels, Tabs} from 'sentry/components/tabs';
