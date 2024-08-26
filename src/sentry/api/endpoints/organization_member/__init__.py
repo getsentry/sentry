@@ -94,6 +94,7 @@ def get_allowed_org_roles(
     request: Request,
     organization: Organization,
     member: OrganizationMember | None = None,
+    creating_org_invite: bool = False,
 ) -> Collection[Role]:
     """
     Get the set of org-level roles that the request is allowed to manage.
@@ -101,10 +102,14 @@ def get_allowed_org_roles(
     In order to change another member's role, the returned set must include both
     the starting role and the new role. That is, the set contains the roles that
     the request is allowed to promote someone to and to demote someone from.
+
+    If the request is to invite a new member, the request is allowed by non-admin members.
     """
 
     if is_active_superuser(request):
         return roles.get_all()
+    if not request.access.has_scope("member:admin") and not creating_org_invite:
+        return ()
 
     if member is None:
         try:
