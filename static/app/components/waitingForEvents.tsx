@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 
 import waitingForEventImg from 'sentry-images/spot/waiting-for-event.svg';
 
-import {Button} from 'sentry/components/button';
+import {LinkButton} from 'sentry/components/button';
 import Link from 'sentry/components/links/link';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -93,7 +93,7 @@ function WaitingForEvents({org, project, sampleIssueId: sampleIssueIdProp}: Prop
         <p>{t('Your code sleuth eagerly awaits its first mission.')}</p>
         <p>
           {project && (
-            <Button
+            <LinkButton
               data-test-id="install-instructions"
               priority="primary"
               to={`/${org.slug}/${project.slug}/getting-started/${
@@ -101,7 +101,7 @@ function WaitingForEvents({org, project, sampleIssueId: sampleIssueIdProp}: Prop
               }`}
             >
               {t('Installation Instructions')}
-            </Button>
+            </LinkButton>
           )}
         </p>
         {sampleLink}
