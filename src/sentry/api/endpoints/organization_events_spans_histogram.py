@@ -64,6 +64,7 @@ class OrganizationEventsSpansHistogramEndpoint(OrganizationEventsV2EndpointBase)
                     results = discover.spans_histogram_query(
                         span=data["span"],
                         user_query=data.get("query"),
+                        params={},
                         snuba_params=snuba_params,
                         num_buckets=data["numBuckets"],
                         precision=data["precision"],
