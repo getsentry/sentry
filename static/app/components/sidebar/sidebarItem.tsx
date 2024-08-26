@@ -183,8 +183,11 @@ function SidebarItem({
   );
 
   const toProps: LocationDescriptor = useMemo(() => {
+    if (!to && !href) {
+      return '#';
+    }
     return {
-      pathname: to ? to : href ?? '#',
+      pathname: to ? to : href,
       search,
       state: {source: SIDEBAR_NAVIGATION_SOURCE},
     };
