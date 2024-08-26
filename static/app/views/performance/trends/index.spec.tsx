@@ -137,6 +137,7 @@ function initializeTrendsData(
     organization,
     router: {
       location: {
+        pathname: '/trends/',
         query: newQuery,
       },
     },
@@ -365,7 +366,10 @@ describe('Performance > Trends', function () {
 
     const summaryLink = within(firstTransaction).getByTestId('item-transaction-name');
 
-    expect(summaryLink.closest('a')).not.toHaveAttribute('href');
+    expect(summaryLink.closest('a')).toHaveAttribute(
+      'href',
+      '/trends/?project=1&query=tpm%28%29%3A%3E0.01%20transaction.duration%3A%3E0%20transaction.duration%3A%3C15min'
+    );
 
     await clickEl(summaryLink);
     await waitFor(() => {
@@ -400,6 +404,7 @@ describe('Performance > Trends', function () {
     await clickEl(menuAction);
 
     expect(browserHistory.push).toHaveBeenCalledWith({
+      pathname: '/trends/',
       query: expect.objectContaining({
         project: expect.anything(),
         query: `tpm():>0.01 transaction.duration:>0 transaction.duration:<${DEFAULT_MAX_DURATION} !transaction:/organizations/:orgId/performance/`,
@@ -424,7 +429,7 @@ describe('Performance > Trends', function () {
 
     await waitFor(() =>
       expect(browserHistory.push).toHaveBeenCalledWith({
-        pathname: undefined,
+        pathname: '/trends/',
         query: expect.objectContaining({
           project: ['1'],
           query: 'transaction.duration:>9000',
@@ -458,6 +463,7 @@ describe('Performance > Trends', function () {
     await clickEl(menuAction);
 
     expect(browserHistory.push).toHaveBeenCalledWith({
+      pathname: '/trends/',
       query: expect.objectContaining({
         project: expect.anything(),
         query: 'tpm():>0.01 transaction.duration:>0 transaction.duration:<=863',
@@ -488,6 +494,7 @@ describe('Performance > Trends', function () {
     await clickEl(menuAction);
 
     expect(browserHistory.push).toHaveBeenCalledWith({
+      pathname: '/trends/',
       query: expect.objectContaining({
         project: expect.anything(),
         query: 'tpm():>0.01 transaction.duration:<15min transaction.duration:>=863',
@@ -517,6 +524,7 @@ describe('Performance > Trends', function () {
       await clickEl(option);
 
       expect(browserHistory.push).toHaveBeenCalledWith({
+        pathname: '/trends/',
         query: expect.objectContaining({
           regressionCursor: undefined,
           improvedCursor: undefined,
@@ -596,6 +604,7 @@ describe('Performance > Trends', function () {
       await clickEl(option);
 
       expect(browserHistory.push).toHaveBeenCalledWith({
+        pathname: '/trends/',
         query: expect.objectContaining({
           trendParameter: parameter.label,
         }),
