@@ -1,5 +1,6 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
+import {RouterFixture} from 'sentry-fixture/routerFixture';
 
 import {
   render,
@@ -19,19 +20,12 @@ jest.mock('sentry/utils/usePageFilters');
 
 describe('PagePerformanceTable', function () {
   const organization = OrganizationFixture();
+  const router = RouterFixture();
 
   let eventsMock;
 
   beforeEach(function () {
-    jest.mocked(useLocation).mockReturnValue({
-      pathname: '',
-      search: '',
-      query: {},
-      hash: '',
-      state: undefined,
-      action: 'PUSH',
-      key: '',
-    });
+    jest.mocked(useLocation).mockReturnValue(router.location);
 
     jest.mocked(usePageFilters).mockReturnValue({
       isReady: true,
@@ -115,15 +109,10 @@ describe('PagePerformanceTable', function () {
 
   it('escapes user input search filter', async () => {
     jest.mocked(useLocation).mockReturnValue({
-      pathname: '',
-      search: '',
+      ...router.location,
       query: {query: '/issues/*'},
-      hash: '',
-      state: undefined,
-      action: 'PUSH',
-      key: '',
     });
-    render(<PagePerformanceTable />, {organization});
+    render(<PagePerformanceTable />, {router, organization});
     await waitFor(() => {
       expect(eventsMock).toHaveBeenCalledTimes(1);
       expect(eventsMock).toHaveBeenLastCalledWith(
@@ -138,7 +127,7 @@ describe('PagePerformanceTable', function () {
   });
 
   it('renders a list of pages', async function () {
-    render(<PagePerformanceTable />, {organization});
+    render(<PagePerformanceTable />, {router, organization});
 
     await waitForElementToBeRemoved(() => screen.queryAllByTestId('loading-indicator'));
 
@@ -158,7 +147,7 @@ describe('PagePerformanceTable', function () {
     expect(screen.getByRole('cell', {name: '/insights/browser/'})).toBeInTheDocument();
     expect(screen.getByRole('link', {name: '/insights/browser/'})).toHaveAttribute(
       'href',
-      'overview/?project=11276&transaction=%2Finsights%2Fbrowser%2F'
+      '/mock-pathname/overview/?project=11276&transaction=%2Finsights%2Fbrowser%2F'
     );
 
     expect(screen.getByRole('cell', {name: 'frontend'})).toBeInTheDocument();
