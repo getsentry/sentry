@@ -685,6 +685,12 @@ class AlertRuleTriggerAction(AbstractNotificationAction):
         if handler:
             return handler.resolve(metric_value, new_status, notification_uuid)
 
+    def get_single_sentry_app_config(self) -> dict[str, Any] | None:
+        value = self.sentry_app_config
+        if isinstance(value, list):
+            raise ValueError("Sentry app actions have a list of configs")
+        return value
+
     @classmethod
     def register_factory(cls, factory: ActionHandlerFactory) -> None:
         cls._factory_registrations.register(factory)

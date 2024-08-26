@@ -2467,7 +2467,9 @@ class CreateAlertRuleTriggerActionTest(BaseAlertRuleTriggerActionTest):
             priority=priority,
             target_identifier="123",
         )
-        assert action.sentry_app_config["priority"] == priority
+        app_config = action.get_single_sentry_app_config()
+        assert app_config is not None
+        assert app_config["priority"] == priority
 
     def test_unsupported_priority(self):
         # doesn't save priority if the action type doesn't use it
@@ -3076,7 +3078,9 @@ class UpdateAlertRuleTriggerAction(BaseAlertRuleTriggerActionTest):
         assert action.target_identifier == team["id"]
         assert action.target_display == "cool-team"
         assert action.integration_id == integration.id
-        assert action.sentry_app_config["priority"] == priority  # priority stored in config
+        app_config = action.get_single_sentry_app_config()
+        assert app_config is not None
+        assert app_config["priority"] == priority  # priority stored in config
 
     @patch("sentry.integrations.msteams.utils.get_channel_id", return_value="some_id")
     def test_unsupported_priority(self, mock_get_channel_id):
