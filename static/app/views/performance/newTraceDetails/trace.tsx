@@ -2084,8 +2084,8 @@ const TraceStylingWrapper = styled('div')`
       }
 
       &.missing_instrumentation {
-        --pattern-odd: #4b4550;
-        --pattern-even: rgb(128, 112, 143);
+        --pattern-odd: #dedae3;
+        --pattern-even: #f4f2f7;
       }
 
       &.error,
