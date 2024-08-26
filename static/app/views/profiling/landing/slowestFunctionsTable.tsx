@@ -8,7 +8,6 @@ import EmptyStateWarning from 'sentry/components/emptyStateWarning';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import Link from 'sentry/components/links/link';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
-import Panel from 'sentry/components/panels/panel';
 import {Tooltip} from 'sentry/components/tooltip';
 import {IconChevron, IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -20,9 +19,17 @@ import {useProfilingFunctionMetrics} from 'sentry/utils/profiling/hooks/useProfi
 import {generateProfileRouteFromProfileReference} from 'sentry/utils/profiling/routes';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
+import {
+  Table,
+  TableBody,
+  TableBodyCell,
+  TableHead,
+  TableHeadCell,
+  TableRow,
+  TableStatus,
+  useTableStyles,
+} from 'sentry/views/explore/components/table';
 import {getPerformanceDuration} from 'sentry/views/performance/utils/getPerformanceDuration';
-
-import {ContentContainer, StatusContainer} from './styles';
 
 function sortFunctions(a: Profiling.FunctionMetric, b: Profiling.FunctionMetric) {
   return b.sum - a.sum;
@@ -90,56 +97,65 @@ export function SlowestFunctionsTable() {
 
   const hasFunctions = query.data?.metrics && query.data.metrics.length > 0;
 
+  const columns = [
+    {label: t('Project'), value: 'project'},
+    {label: t('Function'), value: 'function'},
+    {label: t('Package'), value: 'package'},
+    {label: t('Count()'), value: 'count', width: 'min-content' as const},
+    {label: t('p75()'), value: 'p75', width: 'min-content' as const},
+    {label: t('p95()'), value: 'p95', width: 'min-content' as const},
+    {label: t('p99()'), value: 'p99', width: 'min-content' as const},
+    {label: t('Sum()'), value: 'sum', width: 'min-content' as const},
+    {label: '', value: '', width: 'min-content' as const},
+  ];
+
+  const {tableStyles} = useTableStyles({items: columns});
+
   return (
     <Fragment>
-      <SlowestWidgetContainer>
-        <ContentContainer>
+      <Table style={tableStyles}>
+        <TableHead>
+          <TableRow>
+            {columns.map((column, i) => (
+              <TableHeadCell key={column.value} isFirst={i === 0}>
+                {column.label}
+              </TableHeadCell>
+            ))}
+          </TableRow>
+        </TableHead>
+        <TableBody>
           {query.isLoading && (
-            <StatusContainer>
+            <TableStatus>
               <LoadingIndicator size={36} />
-            </StatusContainer>
+            </TableStatus>
           )}
           {query.isError && (
-            <StatusContainer>
+            <TableStatus>
               <IconWarning data-test-id="error-indicator" color="gray300" size="lg" />
-            </StatusContainer>
+            </TableStatus>
           )}
           {!query.isError && !query.isLoading && !hasFunctions && (
-            <EmptyStateWarning>
-              <p>{t('No functions found')}</p>
-            </EmptyStateWarning>
+            <TableStatus>
+              <EmptyStateWarning>
+                <p>{t('No functions found')}</p>
+              </EmptyStateWarning>
+            </TableStatus>
           )}
-          {hasFunctions && query.isFetched && (
-            <Fragment>
-              <SlowestFunctionsContainer>
-                <SlowestFunctionHeader>
-                  <SlowestFunctionCell>{t('Slowest functions')}</SlowestFunctionCell>
-                  <SlowestFunctionCell>{t('Package')}</SlowestFunctionCell>
-                  <SlowestFunctionCell>{t('Project')}</SlowestFunctionCell>
-                  <SlowestFunctionCell>{t('Count()')}</SlowestFunctionCell>
-                  <SlowestFunctionCell>{t('p75()')}</SlowestFunctionCell>
-                  <SlowestFunctionCell>{t('p95()')}</SlowestFunctionCell>
-                  <SlowestFunctionCell>{t('p99()')}</SlowestFunctionCell>
-                  {/* @TODO remove sum before relasing */}
-                  <SlowestFunctionCell>{t('Sum()')}</SlowestFunctionCell>
-                  <SlowestFunctionCell />
-                </SlowestFunctionHeader>
-                {sortedMetrics.slice(pagination.start, pagination.end).map((f, i) => {
-                  return (
-                    <SlowestFunction
-                      key={i}
-                      function={f}
-                      projectsLookupTable={projectsLookupTable}
-                      expanded={f.fingerprint === expandedFingerprint}
-                      onExpandClick={setExpandedFingerprint}
-                    />
-                  );
-                })}
-              </SlowestFunctionsContainer>
-            </Fragment>
-          )}
-        </ContentContainer>
-      </SlowestWidgetContainer>
+          {hasFunctions &&
+            query.isFetched &&
+            sortedMetrics.slice(pagination.start, pagination.end).map((f, i) => {
+              return (
+                <SlowestFunction
+                  key={i}
+                  function={f}
+                  projectsLookupTable={projectsLookupTable}
+                  expanded={f.fingerprint === expandedFingerprint}
+                  onExpandClick={setExpandedFingerprint}
+                />
+              );
+            })}
+        </TableBody>
+      </Table>
       <SlowestFunctionsPaginationContainer>
         <ButtonBar merged>
           <Button
@@ -185,8 +201,14 @@ function SlowestFunction(props: SlowestFunctionProps) {
       : null;
 
   return (
-    <SlowestFunctionContainer>
-      <SlowestFunctionCell>
+    <TableRow>
+      <TableBodyCell>
+        <SlowestFunctionsProjectBadge
+          examples={props.function.examples}
+          projectsLookupTable={props.projectsLookupTable}
+        />{' '}
+      </TableBodyCell>
+      <TableBodyCell>
         <Tooltip title={props.function.name}>
           {exampleLink ? (
             <Link to={exampleLink}>{props.function.name || t('<unknown function>')}</Link>
@@ -194,44 +216,32 @@ function SlowestFunction(props: SlowestFunctionProps) {
             props.function.name || t('<unknown function>')
           )}
         </Tooltip>
-      </SlowestFunctionCell>
-      <SlowestFunctionCell>
+      </TableBodyCell>
+      <TableBodyCell>
         <Tooltip title={props.function.package || t('<unknown package>')}>
           {props.function.package}
         </Tooltip>
-      </SlowestFunctionCell>
-      <SlowestFunctionCell>
-        <SlowestFunctionsProjectBadge
-          examples={props.function.examples}
-          projectsLookupTable={props.projectsLookupTable}
-        />{' '}
-      </SlowestFunctionCell>
-      <SlowestFunctionCell>
-        {formatAbbreviatedNumber(props.function.count)}
-      </SlowestFunctionCell>
-      <SlowestFunctionCell>
-        {getPerformanceDuration(props.function.p75 / 1e6)}
-      </SlowestFunctionCell>
-      <SlowestFunctionCell>
-        {getPerformanceDuration(props.function.p95 / 1e6)}
-      </SlowestFunctionCell>
-      <SlowestFunctionCell>
-        {getPerformanceDuration(props.function.p99 / 1e6)}
-      </SlowestFunctionCell>
-      <SlowestFunctionCell>
+      </TableBodyCell>
+      <TableBodyCell>{formatAbbreviatedNumber(props.function.count)}</TableBodyCell>
+      <TableBodyCell>{getPerformanceDuration(props.function.p75 / 1e6)}</TableBodyCell>
+      <TableBodyCell>{getPerformanceDuration(props.function.p95 / 1e6)}</TableBodyCell>
+      <TableBodyCell>{getPerformanceDuration(props.function.p99 / 1e6)}</TableBodyCell>
+      <TableBodyCell>
         {/* @TODO remove sum before relasing */}
         {getPerformanceDuration(props.function.sum / 1e6)}
-      </SlowestFunctionCell>
-      <SlowestFunctionCell>
-        <Button
-          icon={<IconChevron direction={props.expanded ? 'up' : 'down'} />}
-          aria-label={t('View Function Metrics')}
-          onClick={() => props.onExpandClick(props.function.fingerprint)}
-          size="xs"
-        />
-      </SlowestFunctionCell>
+      </TableBodyCell>
+      <TableBodyCell>
+        <div>
+          <Button
+            icon={<IconChevron direction={props.expanded ? 'up' : 'down'} />}
+            aria-label={t('View Function Metrics')}
+            onClick={() => props.onExpandClick(props.function.fingerprint)}
+            size="xs"
+          />
+        </div>
+      </TableBodyCell>
       {props.expanded ? <SlowestFunctionTimeSeries function={props.function} /> : null}
-    </SlowestFunctionContainer>
+    </TableRow>
   );
 }
 
@@ -291,58 +301,4 @@ const SlowestFunctionsPaginationContainer = styled('div')`
   display: flex;
   justify-content: flex-end;
   margin-bottom: ${space(2)};
-`;
-
-const SlowestWidgetContainer = styled(Panel)`
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-`;
-
-const SlowestFunctionHeader = styled('div')`
-  display: grid;
-  grid-template-columns: subgrid;
-  grid-column: 1 / -1;
-
-  background-color: ${p => p.theme.backgroundSecondary};
-  border-bottom: 1px solid ${p => p.theme.border};
-  color: ${p => p.theme.subText};
-  text-transform: uppercase;
-  font-size: ${p => p.theme.fontSizeSmall};
-  font-weight: 600;
-
-  > div:nth-child(n + 4) {
-    text-align: right;
-  }
-`;
-
-const SlowestFunctionsContainer = styled('div')`
-  display: grid;
-  grid-template-columns:
-    minmax(90px, auto) minmax(90px, auto) minmax(40px, 140px) min-content min-content
-    min-content min-content min-content min-content;
-  border-collapse: collapse;
-`;
-
-const SlowestFunctionCell = styled('div')`
-  padding: ${space(1)} ${space(2)};
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-`;
-
-const SlowestFunctionContainer = styled('div')`
-  display: grid;
-  grid-template-columns: subgrid;
-  grid-column: 1 / -1;
-  font-size: ${p => p.theme.fontSizeSmall};
-
-  border-bottom: 1px solid ${p => p.theme.border};
-  &:last-child {
-    border-bottom: 0;
-  }
-
-  > div:nth-child(n + 4) {
-    text-align: right;
-  }
 `;
