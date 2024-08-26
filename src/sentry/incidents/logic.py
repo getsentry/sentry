@@ -390,7 +390,7 @@ def _calculate_incident_time_range(
 
             start = end - timedelta(seconds=time_window * WINDOWED_STATS_DATA_POINTS)
 
-    retention = quotas.get_event_retention(organization=incident.organization) or 90  # type: ignore[attr-defined]
+    retention = quotas.backend.get_event_retention(organization=incident.organization) or 90
     start = max(
         start.replace(tzinfo=timezone.utc),
         datetime.now(timezone.utc) - timedelta(days=retention),
