@@ -91,7 +91,7 @@ function TriggerDescription({
           ).label,
         }
       )
-    : rule.sensitivity
+    : rule.detectionType === 'dynamic'
       ? 'Dynamic threshold is reached'
       : tct('[metric] is [condition] in [timeWindow]', {
           metric: metricName,
@@ -263,6 +263,40 @@ export function MetricDetailsSidebar({
               teamActor ? <ActorAvatar actor={teamActor} size={24} /> : t('Unassigned')
             }
           />
+          {rule.detectionType === 'dynamic' && (
+            <KeyValueTableRow
+              keyName={t('Sensitivity')}
+              value={
+                rule.sensitivity
+                  ? rule.sensitivity.charAt(0).toUpperCase() + rule.sensitivity.slice(1)
+                  : ''
+              } // NOTE: if the rule is dynamic, then there must be a sensitivity
+            />
+          )}
+          {rule.detectionType === 'dynamic' && (
+            <KeyValueTableRow
+              keyName={t('Seasonality')}
+              value={
+                rule.seasonality
+                  ? rule.seasonality.charAt(0).toUpperCase() + rule.seasonality.slice(1)
+                  : ''
+              } // NOTE: if the rule is dynamic, then there must be a seasonality
+            />
+          )}
+          {rule.detectionType === 'dynamic' && (
+            <KeyValueTableRow
+              keyName={t('Direction')}
+              value={
+                rule.thresholdType === AlertRuleThresholdType.ABOVE ? (
+                  <OverflowTableValue>{'Above threshold'}</OverflowTableValue>
+                ) : rule.thresholdType === AlertRuleThresholdType.ABOVE_AND_BELOW ? (
+                  <OverflowTableValue>{'Above and below threshold'}</OverflowTableValue>
+                ) : (
+                  <OverflowTableValue>{'Below threshold'}</OverflowTableValue>
+                )
+              }
+            />
+          )}
         </KeyValueTable>
       </SidebarGroup>
     </Fragment>

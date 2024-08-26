@@ -172,7 +172,7 @@ export function createDefaultRule(
     environment: null,
     resolveThreshold: '',
     thresholdType: AlertRuleThresholdType.ABOVE,
-    detectionType: AlertRuleComparisonType.COUNT,
+    detectionType: 'static',
     ...defaultRuleOptions,
   };
 }
