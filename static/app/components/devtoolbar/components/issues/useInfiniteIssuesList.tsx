@@ -27,11 +27,8 @@ export default function useInfiniteIssuesList({query}: Props) {
             environment: Array.isArray(environment) ? environment : [environment],
             project: projectId,
             statsPeriod: '14d',
-
-            collapse: ['inbox'],
+            collapse: ['stats'],
             expand: [
-              'owners', // Gives us assignment
-              'stats', // Gives us `firstSeen`
               // 'pluginActions', // Gives us plugin actions available
               // 'pluginIssues', // Gives us plugin issues available
               // 'integrationIssues', // Gives us integration issues available
