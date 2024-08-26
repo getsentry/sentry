@@ -209,6 +209,7 @@ export function TraceView() {
         <NoProjectMessage organization={organization}>
           <TraceExternalLayout>
             <TraceMetadataHeader
+              rootEventResults={rootEvent}
               organization={organization}
               traceSlug={traceSlug}
               traceEventView={traceEventView}
@@ -1033,7 +1034,7 @@ function TraceResetZoomButton(props: {
       onClick={onResetZoom}
       ref={props.viewManager.registerResetZoomRef}
     >
-      {t('Reset')}
+      {t('Reset Zoom')}
     </ResetZoomButton>
   );
 }

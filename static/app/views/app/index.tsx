@@ -31,6 +31,7 @@ import {useUser} from 'sentry/utils/useUser';
 import type {InstallWizardProps} from 'sentry/views/admin/installWizard';
 import {AsyncSDKIntegrationContextProvider} from 'sentry/views/app/asyncSDKIntegrationProvider';
 import {OrganizationContextProvider} from 'sentry/views/organizationContext';
+import RouteAnalyticsContextProvider from 'sentry/views/routeAnalyticsContextProvider';
 
 import SystemAlerts from './systemAlerts';
 
@@ -234,20 +235,22 @@ function App({children, params}: Props) {
 
   return (
     <Profiler id="App" onRender={onRenderCallback}>
-      <OrganizationContextProvider>
-        <AsyncSDKIntegrationContextProvider>
-          <GlobalDrawer>
-            <GlobalFeedbackForm>
-              <MainContainer tabIndex={-1} ref={mainContainerRef}>
-                <GlobalModal onClose={handleModalClose} />
-                <SystemAlerts className="messages-container" />
-                <Indicators className="indicators-container" />
-                <ErrorBoundary>{renderBody()}</ErrorBoundary>
-              </MainContainer>
-            </GlobalFeedbackForm>
-          </GlobalDrawer>
-        </AsyncSDKIntegrationContextProvider>
-      </OrganizationContextProvider>
+      <RouteAnalyticsContextProvider>
+        <OrganizationContextProvider>
+          <AsyncSDKIntegrationContextProvider>
+            <GlobalDrawer>
+              <GlobalFeedbackForm>
+                <MainContainer tabIndex={-1} ref={mainContainerRef}>
+                  <GlobalModal onClose={handleModalClose} />
+                  <SystemAlerts className="messages-container" />
+                  <Indicators className="indicators-container" />
+                  <ErrorBoundary>{renderBody()}</ErrorBoundary>
+                </MainContainer>
+              </GlobalFeedbackForm>
+            </GlobalDrawer>
+          </AsyncSDKIntegrationContextProvider>
+        </OrganizationContextProvider>
+      </RouteAnalyticsContextProvider>
     </Profiler>
   );
 }

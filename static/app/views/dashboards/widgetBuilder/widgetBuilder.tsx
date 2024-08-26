@@ -920,6 +920,7 @@ function WidgetBuilder({
       displayType: widgetData.displayType,
       interval: widgetData.interval,
       title: widgetData.title,
+      widgetType: widgetData.widgetType,
       ...queryData,
       // Propagate page filters
       project: pageFilters.projects,

@@ -7,6 +7,7 @@ import {t} from 'sentry/locale';
 import type {SelectValue} from 'sentry/types/core';
 import type {TagCollection} from 'sentry/types/group';
 import type {OrganizationSummary} from 'sentry/types/organization';
+import {defined} from 'sentry/utils';
 import {
   aggregateFunctionOutputType,
   aggregateOutputType,
@@ -98,7 +99,9 @@ export function mapErrors(
       return;
     }
     if (Array.isArray(value) && typeof value[0] === 'object') {
-      update[key] = (value as ValidationError[]).map(item => mapErrors(item, {}));
+      update[key] = (value as ValidationError[])
+        .filter(defined)
+        .map(item => mapErrors(item, {}));
     } else {
       update[key] = mapErrors(value as ValidationError, {});
     }
