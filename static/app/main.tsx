@@ -15,18 +15,15 @@ import {
 } from 'sentry/utils/queryClient';
 import {RouteContext} from 'sentry/views/routeContext';
 
-import RouteAnalyticsContextProvider from './views/routeAnalyticsContextProvider';
 /**
  * Renders our compatibility RouteContext.Provider. This will go away with
  * react-router v6.
  */
 function renderRouter(props: any) {
   return (
-    <RouteAnalyticsContextProvider {...props}>
-      <RouteContext.Provider value={props}>
-        <RouterContext {...props} />
-      </RouteContext.Provider>
-    </RouteAnalyticsContextProvider>
+    <RouteContext.Provider value={props}>
+      <RouterContext {...props} />
+    </RouteContext.Provider>
   );
 }
 
