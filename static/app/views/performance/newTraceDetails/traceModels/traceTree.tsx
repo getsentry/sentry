@@ -34,7 +34,6 @@ import {isRootTransaction} from '../../traceDetails/utils';
 import {
   isAutogroupedNode,
   isMissingInstrumentationNode,
-  isNoDataNode,
   isParentAutogroupedNode,
   isRootNode,
   isSiblingAutogroupedNode,
@@ -345,9 +344,7 @@ export function makeTraceNodeBarColor(
   if (isMissingInstrumentationNode(node)) {
     return theme.gray300;
   }
-  if (isNoDataNode(node)) {
-    return theme.yellow300;
-  }
+
   if (isTraceErrorNode(node)) {
     // Theme defines this as orange, yet everywhere in our product we show red for errors
     if (node.value.level === 'error' || node.value.level === 'fatal') {
@@ -913,13 +910,6 @@ export class TraceTree {
     // If we've already fetched children, the tree is already assembled
     if (parent.spanChildren.length > 0) {
       parent.zoomedIn = true;
-      return [parent, null];
-    }
-
-    // If we have no spans, insert an empty node to indicate that there is no data
-    if (!spans.length && !parent.children.length) {
-      parent.zoomedIn = true;
-      parent.spanChildren.push(new NoDataNode(parent));
       return [parent, null];
     }
 
@@ -1859,13 +1849,11 @@ export class TraceTreeNode<T extends TraceTree.NodeValue = TraceTree.NodeValue> 
     | TraceTreeNode<T>
     | ParentAutogroupNode
     | SiblingAutogroupNode
-    | NoDataNode
     | MissingInstrumentationNode {
     let clone:
       | TraceTreeNode<T>
       | ParentAutogroupNode
       | SiblingAutogroupNode
-      | NoDataNode
       | MissingInstrumentationNode;
 
     if (isParentAutogroupedNode(this)) {
@@ -1880,8 +1868,6 @@ export class TraceTreeNode<T extends TraceTree.NodeValue = TraceTree.NodeValue> 
     } else if (isSiblingAutogroupedNode(this)) {
       clone = new SiblingAutogroupNode(this.parent, this.value, this.metadata);
       clone.groupCount = this.groupCount;
-    } else if (isNoDataNode(this)) {
-      clone = new NoDataNode(this.parent);
     } else if (isMissingInstrumentationNode(this)) {
       clone = new MissingInstrumentationNode(
         this.parent!,
@@ -2089,7 +2075,7 @@ export class TraceTreeNode<T extends TraceTree.NodeValue = TraceTree.NodeValue> 
     this._children = children;
   }
 
-  get spanChildren(): (TraceTreeNode | NoDataNode)[] {
+  get spanChildren(): TraceTreeNode[] {
     return this._spanChildren;
   }
 
@@ -2411,15 +2397,6 @@ export class SiblingAutogroupNode extends TraceTreeNode<TraceTree.SiblingAutogro
   }
 }
 
-export class NoDataNode extends TraceTreeNode<null> {
-  constructor(parent: TraceTreeNode<TraceTree.NodeValue> | null) {
-    super(parent, null, {
-      event_id: undefined,
-      project_slug: undefined,
-    });
-  }
-}
-
 // Generates a ID of the tree node based on its type
 function nodeToId(n: TraceTreeNode<TraceTree.NodeValue>): TraceTree.NodePath {
   if (isAutogroupedNode(n)) {
@@ -2445,10 +2422,6 @@ function nodeToId(n: TraceTreeNode<TraceTree.NodeValue>): TraceTree.NodePath {
 
   if (isTraceErrorNode(n)) {
     return `error-${n.value.event_id}`;
-  }
-
-  if (isNoDataNode(n)) {
-    return `empty-node`;
   }
 
   if (isRootNode(n)) {
@@ -2669,10 +2642,6 @@ function findInTreeFromSegment(
       return node.value.event_id === id;
     }
 
-    if (type === 'empty' && isNoDataNode(node)) {
-      return true;
-    }
-
     return false;
   });
 }
@@ -2707,10 +2676,6 @@ function printNode(t: TraceTreeNode<TraceTree.NodeValue>, offset: number): strin
     return padding + 'Trace';
   }
 
-  if (isNoDataNode(t)) {
-    return padding + 'No Data';
-  }
-
   if (isTraceErrorNode(t)) {
     return padding + (t.value.event_id || t.value.level) || 'unknown trace error';
   }
@@ -2727,7 +2692,6 @@ export function traceNodeAnalyticsName(node: TraceTreeNode<TraceTree.NodeValue>)
   if (isMissingInstrumentationNode(node)) return 'missing instrumentation';
   if (isRootNode(node)) return 'root';
   if (isTraceNode(node)) return 'trace';
-  if (isNoDataNode(node)) return 'no data';
   if (isTraceErrorNode(node)) return 'error';
   return 'unknown';
 }
@@ -2738,14 +2702,6 @@ export function traceNodeAdjacentAnalyticsProperties(
   TracingEventParameters['trace.trace_layout.span_row_click'],
   'next_op' | 'parent_op' | 'previous_op'
 > {
-  if (isNoDataNode(node)) {
-    const parent_transaction = node.parent_transaction;
-    if (!parent_transaction) return {};
-    return {
-      parent_op: parent_transaction.value['transaction.op'],
-    };
-  }
-
   if (isMissingInstrumentationNode(node)) {
     return {
       previous_op: node.previous.value.op,
