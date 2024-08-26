@@ -1,6 +1,5 @@
 import {Fragment, useMemo} from 'react';
 
-import Link from 'sentry/components/links/link';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
 import {Tooltip} from 'sentry/components/tooltip';
@@ -8,7 +7,6 @@ import {t, tn} from 'sentry/locale';
 import type {EventTransaction} from 'sentry/types/event';
 import type {Organization} from 'sentry/types/organization';
 import getDuration from 'sentry/utils/duration/getDuration';
-import {getShortEventId} from 'sentry/utils/events';
 import type {
   TraceErrorOrIssue,
   TraceFullDetailed,
@@ -16,7 +14,6 @@ import type {
 } from 'sentry/utils/performance/quickTrace/types';
 import type {UseApiQueryResult} from 'sentry/utils/queryClient';
 import type RequestError from 'sentry/utils/requestError/requestError';
-import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import {useParams} from 'sentry/utils/useParams';
 import {SpanTimeRenderer} from 'sentry/views/traces/fieldRenderers';
 
@@ -122,7 +119,6 @@ export function GeneralInfo(props: GeneralInfoProps) {
     return null;
   }
 
-  const replay_id = props.rootEventResults?.data?.contexts?.replay?.replay_id;
   const browser = props.rootEventResults?.data?.contexts?.browser;
 
   const items: SectionCardKeyValueList = [];
@@ -210,23 +206,6 @@ export function GeneralInfo(props: GeneralInfoProps) {
       value: browser ? browser.name + ' ' + browser.version : '\u2014',
     }
   );
-
-  // Hide replay preview if we are already in a replay page.
-  if (replay_id && !replay) {
-    items.push({
-      key: 'replay_id',
-      subject: t('Replay ID'),
-      value: (
-        <Link
-          to={normalizeUrl(
-            `/organizations/${props.organization.slug}/replays/${replay_id}/`
-          )}
-        >
-          {getShortEventId(replay_id)}
-        </Link>
-      ),
-    });
-  }
 
   return (
     <TraceDrawerComponents.SectionCard
