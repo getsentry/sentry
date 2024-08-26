@@ -27,17 +27,6 @@ export default function useInfiniteIssuesList({query}: Props) {
             environment: Array.isArray(environment) ? environment : [environment],
             project: projectId,
             statsPeriod: '14d',
-
-            collapse: ['inbox'],
-            expand: [
-              'owners', // Gives us assignment
-              'stats', // Gives us `firstSeen`
-              // 'pluginActions', // Gives us plugin actions available
-              // 'pluginIssues', // Gives us plugin issues available
-              // 'integrationIssues', // Gives us integration issues available
-              // 'sentryAppIssues', // Gives us Sentry app issues available
-              // 'latestEventHasAttachments', // Gives us whether the feedback has screenshots
-            ],
             shortIdLookup: 0,
             query: `issue.category:[${IssueCategory.ERROR},${IssueCategory.PERFORMANCE}] status:${mailbox} ${query}`,
           },
