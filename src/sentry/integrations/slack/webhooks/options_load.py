@@ -13,7 +13,7 @@ from rest_framework.response import Response
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import Endpoint, region_silo_endpoint
-from sentry.integrations.message_builder import format_actor_options
+from sentry.integrations.message_builder import format_actor_options_slack
 from sentry.integrations.slack.requests.base import SlackRequestError
 from sentry.integrations.slack.requests.options_load import SlackOptionsLoadRequest
 from sentry.models.group import Group
@@ -75,13 +75,13 @@ class SlackOptionsLoadEndpoint(Endpoint):
         if filtered_teams:
             team_options_group: OptionGroup = {
                 "label": {"type": "plain_text", "text": "Teams"},
-                "options": format_actor_options(filtered_teams, True),
+                "options": format_actor_options_slack(filtered_teams),
             }
             option_groups.append(team_options_group)
         if filtered_members:
             member_options_group: OptionGroup = {
                 "label": {"type": "plain_text", "text": "People"},
-                "options": format_actor_options(filtered_members, True),
+                "options": format_actor_options_slack(filtered_members),
             }
             option_groups.append(member_options_group)
         return option_groups
