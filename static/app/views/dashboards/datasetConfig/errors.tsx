@@ -129,7 +129,7 @@ function getEventsTableFieldOptions(
     aggregations: Object.keys(aggregates)
       .filter(key => ERRORS_AGGREGATION_FUNCTIONS.includes(key as AggregationKey))
       .reduce((obj, key) => {
-        obj[key] = aggregates;
+        obj[key] = aggregates[key];
         return obj;
       }, {}),
     fieldKeys: ERROR_FIELDS,

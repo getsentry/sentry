@@ -70,14 +70,15 @@ function ColumnEditModal(props: Props) {
   let fieldOptions: ReturnType<typeof generateFieldOptions>;
 
   if (dataset === DiscoverDatasets.ERRORS) {
+    const aggregations = getAggregations(DiscoverDatasets.ERRORS);
     fieldOptions = generateFieldOptions({
       organization,
       tagKeys,
       fieldKeys: ERROR_FIELDS,
-      aggregations: Object.keys(getAggregations(DiscoverDatasets.ERRORS))
+      aggregations: Object.keys(aggregations)
         .filter(key => ERRORS_AGGREGATION_FUNCTIONS.includes(key as AggregationKey))
         .reduce((obj, key) => {
-          obj[key] = getAggregations(DiscoverDatasets.ERRORS)[key];
+          obj[key] = aggregations[key];
           return obj;
         }, {}),
     });
