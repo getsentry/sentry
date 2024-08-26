@@ -35,6 +35,7 @@ import {getAlertRuleActionCategory} from 'sentry/views/alerts/rules/utils';
 import type {Incident} from 'sentry/views/alerts/types';
 import {AlertRuleStatus} from 'sentry/views/alerts/types';
 import {alertDetailsLink} from 'sentry/views/alerts/utils';
+import {getAlertTypeFromAggregateDataset} from 'sentry/views/alerts/wizard/utils';
 import {useMetricsExtractionRules} from 'sentry/views/settings/projectMetrics/utils/useMetricsExtractionRules';
 
 import {isCrashFreeAlert} from '../utils/isCrashFreeAlert';
@@ -258,7 +259,13 @@ export default function MetricDetailsBody({
             organization={organization}
             project={project}
             interval={getPeriodInterval()}
-            query={isCrashFreeAlert(dataset) ? query : queryWithTypeFilter}
+            query={
+              isCrashFreeAlert(dataset) ||
+              getAlertTypeFromAggregateDataset({aggregate, dataset}) ===
+                'insights_metrics'
+                ? query
+                : queryWithTypeFilter
+            }
             filter={getFilter()}
             isOnDemandAlert={isOnDemandMetricAlert(dataset, aggregate, query)}
           />
