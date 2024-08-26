@@ -134,8 +134,8 @@ function CommitRow({
                 onClick={onCommitClick ? () => onCommitClick(commit) : undefined}
               />
             ),
-            date: <TimeSince date={commit.dateCreated} disabledAbsoluteTooltip />,
-          })}
+          })}{' '}
+          <TimeSince date={commit.dateCreated} disabledAbsoluteTooltip />
         </Meta>
         {project && firstRelease && (
           <Fragment>
