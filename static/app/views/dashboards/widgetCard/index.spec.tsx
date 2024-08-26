@@ -114,8 +114,7 @@ describe('Dashboards > WidgetCard', function () {
     );
 
     await userEvent.click(await screen.findByLabelText('Widget actions'));
-    expect(screen.getByText('Open in Discover')).toBeInTheDocument();
-    await userEvent.click(screen.getByText('Open in Discover'));
+    await userEvent.click(screen.getByRole('menuitemradio', {name: 'Open in Discover'}));
     expect(spy).toHaveBeenCalledWith({
       isMetricsData: false,
       organization,
@@ -123,7 +122,7 @@ describe('Dashboards > WidgetCard', function () {
     });
   });
 
-  it('renders with Open in Discover button and opens in Discover when clicked', async function () {
+  it('renders with Open in Discover button', async function () {
     renderWithProviders(
       <WidgetCard
         api={api}
@@ -140,9 +139,8 @@ describe('Dashboards > WidgetCard', function () {
     );
 
     await userEvent.click(await screen.findByLabelText('Widget actions'));
-    expect(screen.getByText('Open in Discover')).toBeInTheDocument();
-    await userEvent.click(screen.getByText('Open in Discover'));
-    expect(router.push).toHaveBeenCalledWith(
+    expect(screen.getByRole('link', {name: 'Open in Discover'})).toHaveAttribute(
+      'href',
       '/organizations/org-slug/discover/results/?environment=prod&field=count%28%29&field=failure_count%28%29&name=Errors&project=1&query=event.type%3Aerror&statsPeriod=14d&yAxis=count%28%29&yAxis=failure_count%28%29'
     );
   });
@@ -166,7 +164,7 @@ describe('Dashboards > WidgetCard', function () {
     expect(await screen.findByText('Valid widget description')).toBeInTheDocument();
   });
 
-  it('Opens in Discover with prepended fields pulled from equations', async function () {
+  it('renders Discover button with prepended fields pulled from equations', async function () {
     renderWithProviders(
       <WidgetCard
         api={api}
@@ -197,14 +195,13 @@ describe('Dashboards > WidgetCard', function () {
     );
 
     await userEvent.click(await screen.findByLabelText('Widget actions'));
-    expect(screen.getByText('Open in Discover')).toBeInTheDocument();
-    await userEvent.click(screen.getByText('Open in Discover'));
-    expect(router.push).toHaveBeenCalledWith(
+    expect(screen.getByRole('link', {name: 'Open in Discover'})).toHaveAttribute(
+      'href',
       '/organizations/org-slug/discover/results/?environment=prod&field=count_if%28transaction.duration%2Cequals%2C300%29&field=failure_count%28%29&field=count%28%29&field=equation%7C%28count%28%29%20%2B%20failure_count%28%29%29%20%2F%20count_if%28transaction.duration%2Cequals%2C300%29&name=Errors&project=1&query=event.type%3Aerror&statsPeriod=14d&yAxis=equation%7C%28count%28%29%20%2B%20failure_count%28%29%29%20%2F%20count_if%28transaction.duration%2Cequals%2C300%29'
     );
   });
 
-  it('Opens in Discover with Top N', async function () {
+  it('renders button to open Discover with Top N', async function () {
     renderWithProviders(
       <WidgetCard
         api={api}
@@ -232,9 +229,8 @@ describe('Dashboards > WidgetCard', function () {
     );
 
     await userEvent.click(await screen.findByLabelText('Widget actions'));
-    expect(screen.getByText('Open in Discover')).toBeInTheDocument();
-    await userEvent.click(screen.getByText('Open in Discover'));
-    expect(router.push).toHaveBeenCalledWith(
+    expect(screen.getByRole('link', {name: 'Open in Discover'})).toHaveAttribute(
+      'href',
       '/organizations/org-slug/discover/results/?display=top5&environment=prod&field=transaction&field=count%28%29&name=Errors&project=1&query=event.type%3Aerror&statsPeriod=14d&yAxis=count%28%29'
     );
   });
@@ -268,9 +264,8 @@ describe('Dashboards > WidgetCard', function () {
     );
 
     await userEvent.click(await screen.findByLabelText('Widget actions'));
-    expect(screen.getByText('Open in Discover')).toBeInTheDocument();
-    await userEvent.click(screen.getByText('Open in Discover'));
-    expect(router.push).toHaveBeenCalledWith(
+    expect(screen.getByRole('link', {name: 'Open in Discover'})).toHaveAttribute(
+      'href',
       '/organizations/org-slug/discover/results/?environment=prod&field=p99%28measurements.custom.measurement%29&name=Errors&project=1&query=&statsPeriod=14d&yAxis=p99%28measurements.custom.measurement%29'
     );
   });
@@ -297,8 +292,7 @@ describe('Dashboards > WidgetCard', function () {
     );
 
     await userEvent.click(await screen.findByLabelText('Widget actions'));
-    expect(screen.getByText('Duplicate Widget')).toBeInTheDocument();
-    await userEvent.click(screen.getByText('Duplicate Widget'));
+    await userEvent.click(screen.getByRole('menuitemradio', {name: 'Duplicate Widget'}));
     expect(mock).toHaveBeenCalledTimes(1);
   });
 
@@ -324,8 +318,7 @@ describe('Dashboards > WidgetCard', function () {
     );
 
     await userEvent.click(await screen.findByLabelText('Widget actions'));
-    expect(screen.getByText('Duplicate Widget')).toBeInTheDocument();
-    await userEvent.click(screen.getByText('Duplicate Widget'));
+    await userEvent.click(screen.getByRole('menuitemradio', {name: 'Duplicate Widget'}));
     expect(mock).toHaveBeenCalledTimes(0);
   });
 
@@ -351,8 +344,7 @@ describe('Dashboards > WidgetCard', function () {
     );
 
     await userEvent.click(await screen.findByLabelText('Widget actions'));
-    expect(screen.getByText('Edit Widget')).toBeInTheDocument();
-    await userEvent.click(screen.getByText('Edit Widget'));
+    await userEvent.click(screen.getByRole('menuitemradio', {name: 'Edit Widget'}));
     expect(mock).toHaveBeenCalledTimes(1);
   });
 
@@ -378,8 +370,7 @@ describe('Dashboards > WidgetCard', function () {
     );
 
     await userEvent.click(await screen.findByLabelText('Widget actions'));
-    expect(screen.getByText('Delete Widget')).toBeInTheDocument();
-    await userEvent.click(screen.getByText('Delete Widget'));
+    await userEvent.click(screen.getByRole('menuitemradio', {name: 'Delete Widget'}));
     // Confirm Modal
     renderGlobalModal();
     await screen.findByRole('dialog');
