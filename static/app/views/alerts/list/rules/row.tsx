@@ -86,7 +86,7 @@ function RuleListRow({
     query: {
       project: slug,
       duplicateRuleId: rule.id,
-      createFromDuplicate: true,
+      createFromDuplicate: 'true',
       referrer: 'alert_stream',
     },
   };
