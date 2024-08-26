@@ -526,7 +526,7 @@ class OrganizationMemberPermissionRoleTest(OrganizationMemberListTestBase, Hybri
         self.organization.flags.disable_member_invite = False
         self.organization.save()
 
-        for invite_role in roles:
+        for invite_role in invite_roles:
             data = {
                 "email": f"{invite_role}_2@localhost",
                 "role": invite_role,
