@@ -1,4 +1,5 @@
 import type {Theme} from '@emotion/react';
+import * as Sentry from '@sentry/react';
 import {type eventWithTime, Replayer} from '@sentry-internal/rrweb';
 
 import {
@@ -10,6 +11,7 @@ import type {ClipWindow, VideoEvent} from 'sentry/utils/replays/types';
 type RootElem = HTMLDivElement | null;
 
 interface VideoReplayerWithInteractionsOptions {
+  context: {sdkName: string | undefined | null; sdkVersion: string | undefined | null};
   durationMs: number;
   events: eventWithTime[];
   onBuffer: (isBuffering: boolean) => void;
@@ -46,6 +48,7 @@ export class VideoReplayerWithInteractions {
     durationMs,
     theme,
     speed,
+    context,
   }: VideoReplayerWithInteractionsOptions) {
     this.config = {
       skipInactive: false,
@@ -118,6 +121,26 @@ export class VideoReplayerWithInteractions {
           timestamp: e.timestamp,
         };
         eventsWithSnapshots.push(fullSnapshotEvent);
+      }
+    });
+
+    // log instances where we have a pointer touchStart without a touchEnd
+    const touchEvents = eventsWithSnapshots.filter(
+      (e: eventWithTime) => isTouchEnd(e) || isTouchStart(e)
+    );
+    const grouped = Object.groupBy(touchEvents, (t: any) => t.data.pointerId);
+    Object.values(grouped).forEach(t => {
+      if (t?.length !== 2) {
+        Sentry.captureMessage(
+          'Mobile replay has mismatching touch start and end events',
+          {
+            tags: {
+              sdk_name: context.sdkName,
+              sdk_version: context.sdkVersion,
+              touch_event_type: typeof t,
+            },
+          }
+        );
       }
     });
 
