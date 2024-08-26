@@ -137,7 +137,7 @@ function CommitRow({
               )}
             </AuthorWrapper>
           </Tooltip>
-          {tct('[unknownLabel] committed [commitLink] [date]', tctArgs)}
+          {tct(' committed [commitLink] [date]', tctArgs)}
         </Meta>
         {project && firstRelease && (
           <Fragment>
