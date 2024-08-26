@@ -22,9 +22,9 @@ import {EntryType} from 'sentry/types/event';
 import type {Project} from 'sentry/types/project';
 import {StackType, StackView} from 'sentry/types/stacktrace';
 import {defined} from 'sentry/utils';
-import {FoldSectionKey} from 'sentry/views/issueDetails/streamline/foldSection';
+import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
 import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
-import {useHasStreamlinedUI} from 'sentry/views/issueDetails/utils';
+import {useHasStreamlinedUI, useIsSampleEvent} from 'sentry/views/issueDetails/utils';
 
 import {TraceEventDataSection} from '../traceEventDataSection';
 
@@ -107,6 +107,7 @@ export function Threads({
   const threads = data.values ?? [];
   const hasStreamlinedUI = useHasStreamlinedUI();
   const [activeThread, setActiveThread] = useActiveThreadState(event, threads);
+  const isSampleError = useIsSampleEvent();
 
   const stackTraceNotFound = !threads.length;
 
@@ -353,7 +354,7 @@ export function Threads({
 
           return (
             <Fragment>
-              {stackTrace && !isRaw && (
+              {stackTrace && !isRaw && !isSampleError && (
                 <ErrorBoundary customComponent={null}>
                   <StacktraceBanners event={event} stacktrace={stackTrace} />
                 </ErrorBoundary>
@@ -369,7 +370,7 @@ export function Threads({
   return hasStreamlinedUI ? (
     <InterimSection
       title={tn('Stack Trace', 'Stack Traces', threads.length)}
-      type={FoldSectionKey.STACKTRACE}
+      type={SectionKey.STACKTRACE}
     >
       {threadComponent}
     </InterimSection>

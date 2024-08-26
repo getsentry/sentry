@@ -16,8 +16,9 @@ import {
 } from 'sentry/utils/issueTypeConfig';
 import {getRegionDataFromOrganization} from 'sentry/utils/regions';
 import useOrganization from 'sentry/utils/useOrganization';
-import {FoldSectionKey} from 'sentry/views/issueDetails/streamline/foldSection';
+import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
 import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
+import {useIsSampleEvent} from 'sentry/views/issueDetails/utils';
 
 type Props = {
   event: Event;
@@ -49,20 +50,23 @@ export function ResourcesAndPossibleSolutions({event, project, group}: Props) {
   const organization = useOrganization();
   const config = getConfigForIssueType(group, project);
   const isSelfHostedErrorsOnly = ConfigStore.get('isSelfHostedErrorsOnly');
-
+  const isSampleError = useIsSampleEvent();
   // NOTE:  Autofix is for INTERNAL testing only for now.
   const displayAiAutofix =
     project.features.includes('ai-autofix') &&
     organization.features.includes('issue-details-autofix-ui') &&
     !shouldShowCustomErrorResourceConfig(group, project) &&
     config.autofix &&
-    hasStacktraceWithFrames(event);
+    hasStacktraceWithFrames(event) &&
+    !isSampleError;
   const displayAiSuggestedSolution =
     // Skip showing AI suggested solution if the issue has a custom resource
+    config.aiSuggestedSolution &&
     organization.aiSuggestedSolution &&
     getRegionDataFromOrganization(organization)?.name !== 'de' &&
     !shouldShowCustomErrorResourceConfig(group, project) &&
-    !displayAiAutofix;
+    !displayAiAutofix &&
+    !isSampleError;
 
   if (
     isSelfHostedErrorsOnly ||
@@ -75,7 +79,7 @@ export function ResourcesAndPossibleSolutions({event, project, group}: Props) {
     <Wrapper
       title={t('Resources and Possible Solutions')}
       configResources={!!config.resources}
-      type={FoldSectionKey.RESOURCES}
+      type={SectionKey.RESOURCES}
     >
       <Content>
         {config.resources && (

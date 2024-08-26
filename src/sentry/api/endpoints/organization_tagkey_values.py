@@ -48,9 +48,7 @@ class OrganizationTagKeyValuesEndpoint(OrganizationEventsEndpointBase):
 
         try:
             # still used by events v1 which doesn't require global views
-            snuba_params, _ = self.get_snuba_dataclass(
-                request, organization, check_global_views=False
-            )
+            snuba_params = self.get_snuba_params(request, organization, check_global_views=False)
         except NoProjects:
             paginator = SequencePaginator([])
         else:

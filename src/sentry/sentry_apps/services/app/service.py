@@ -94,6 +94,16 @@ class AppService(RpcService):
 
     @rpc_method
     @abc.abstractmethod
+    def get_installation_org_id_by_token_id(self, token_id: int) -> int | None:
+        """
+        Get the organization id for an installation by installation token_id
+
+        This is a specialized RPC call used by ratelimit middleware
+        """
+        pass
+
+    @rpc_method
+    @abc.abstractmethod
     def get_installation_token(self, *, organization_id: int, provider: str) -> str | None:
         pass
 

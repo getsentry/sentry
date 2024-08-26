@@ -7,8 +7,8 @@ import type {ApiEndpointQueryKey, ApiResult} from '../types';
 
 import useConfiguration from './useConfiguration';
 
-function parsePageParam(dir: 'previous' | 'next') {
-  return ({headers}) => {
+function parsePageParam<Data>(dir: 'previous' | 'next') {
+  return ({headers}: ApiResult<Data>) => {
     const parsed = parseLinkHeader(headers?.get('Link') ?? null);
     return parsed[dir]?.results ? parsed[dir] : null;
   };
