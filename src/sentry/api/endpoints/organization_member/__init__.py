@@ -103,7 +103,7 @@ def get_allowed_org_roles(
     the starting role and the new role. That is, the set contains the roles that
     the request is allowed to promote someone to and to demote someone from.
 
-    If the request is to invite a new member, the request is allowed by non-admin members.
+    If the request is to invite a new member, the member:admin scope is not required.
     """
 
     if is_active_superuser(request):

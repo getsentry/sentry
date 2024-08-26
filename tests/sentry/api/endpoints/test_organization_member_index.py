@@ -499,7 +499,7 @@ class OrganizationMemberPermissionRoleTest(OrganizationMemberListTestBase, Hybri
     method = "post"
 
     def invite_all_helper(self, role):
-        roles = ["owner", "manager", "member"]
+        invite_roles = ["owner", "manager", "member"]
 
         user = self.create_user("user@localhost")
         member = self.create_member(user=user, organization=self.organization, role=role)
@@ -510,7 +510,7 @@ class OrganizationMemberPermissionRoleTest(OrganizationMemberListTestBase, Hybri
 
         allowed_roles = member.get_allowed_org_roles_to_invite()
 
-        for invite_role in roles:
+        for invite_role in invite_roles:
             data = {
                 "email": f"{invite_role}_1@localhost",
                 "role": invite_role,
