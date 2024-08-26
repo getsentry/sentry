@@ -266,7 +266,6 @@ module = [
     "sentry.integrations.msteams.actions.form",
     "sentry.integrations.msteams.client",
     "sentry.integrations.msteams.integration",
-    "sentry.integrations.msteams.link_identity",
     "sentry.integrations.msteams.notifications",
     "sentry.integrations.msteams.webhook",
     "sentry.integrations.notifications",

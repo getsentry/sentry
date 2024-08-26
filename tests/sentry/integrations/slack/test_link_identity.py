@@ -99,7 +99,7 @@ class SlackIntegrationLinkIdentityTest(SlackIntegrationLinkIdentityTestBase):
 
         assert len(identity) == 1
         assert mock_logger.exception.call_count == 1
-        assert mock_logger.exception.call_args.args[0] == "%serror"
+        assert mock_logger.exception.call_args.args == ("slack.link-identity.error",)
 
     def test_basic_flow_with_web_client(self):
         """No response URL is provided, so we use WebClient."""
@@ -139,7 +139,7 @@ class SlackIntegrationLinkIdentityTest(SlackIntegrationLinkIdentityTestBase):
 
         assert len(identity) == 1
         assert mock_logger.exception.call_count == 1
-        assert mock_logger.exception.call_args.args[0] == "%serror"
+        assert mock_logger.exception.call_args.args == ("slack.link-identity.error",)
 
     @patch("sentry.integrations.slack.utils.notifications._logger")
     def test_basic_flow_with_web_client_expired_url(self, mock_logger):
