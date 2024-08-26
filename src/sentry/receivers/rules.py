@@ -6,13 +6,14 @@ import sentry_sdk
 from django.contrib.auth.models import AnonymousUser
 
 from sentry import features
-from sentry.auth.access import Access
+from sentry.auth.access import Access, NoAccess
 from sentry.incidents.endpoints.organization_alert_rule_index import create_metric_alert
 from sentry.models.project import Project
 from sentry.models.rule import Rule
 from sentry.notifications.types import FallthroughChoiceType
 from sentry.rules.conditions.new_high_priority_issue import has_high_priority_issue_alerts
 from sentry.signals import project_created
+from sentry.users.models.user import User
 
 
 def generate_iso_timestamp() -> str:
@@ -121,7 +122,7 @@ def create_default_rules(
     project: Project,
     team_id: int | None = None,
     default_rules: bool = True,
-    user=None,
+    user: User | AnonymousUser | None = None,
     access: Access | None = None,
     is_api_token: bool = False,
     ip_address: str | None = None,
@@ -144,13 +145,15 @@ def create_default_rules(
         if user is None and team_id is None:
             return
 
-        # When user is None, we must be sending to a team which requires access
+        # When user is None, we must be sending notifcations to a team which requires access
         # to also be passed.
         if user is None and access is None:
             return
 
         if user is None:
             user = AnonymousUser()
+        if access is None:
+            access = NoAccess()
 
         # Prioritize sending notifications to teams over individual users.
         if team_id and access:

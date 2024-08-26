@@ -4,6 +4,7 @@ from datetime import UTC, datetime
 from typing import Any
 
 from django.conf import settings
+from django.contrib.auth.models import AnonymousUser
 from django.db.models import Case, DateTimeField, IntegerField, OuterRef, Q, Subquery, Value, When
 from django.db.models.functions import Coalesce
 from drf_spectacular.utils import extend_schema, extend_schema_serializer
@@ -68,7 +69,7 @@ from sentry.utils.cursors import Cursor, StringCursor
 
 def create_metric_alert(
     organization: Organization,
-    user: User,
+    user: User | AnonymousUser,
     data,
     access: Access,
     query_params: Mapping[str, Any],
