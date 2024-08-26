@@ -1,4 +1,4 @@
-import Button from 'sentry/components/actions/button';
+import {Button} from 'sentry/components/button';
 import {Flex} from 'sentry/components/container/flex';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import ErrorBoundary from 'sentry/components/errorBoundary';
@@ -47,12 +47,16 @@ export default function FeedbackListBulkSelection({
       </span>
       <Flex gap={space(1)} justify="flex-end">
         <ErrorBoundary mini>
-          <Button onClick={() => onToggleResovled({newMailbox: newMailboxResolve})}>
+          <Button
+            size="xs"
+            onClick={() => onToggleResovled({newMailbox: newMailboxResolve})}
+          >
             {mailbox === 'resolved' ? t('Unresolve') : t('Resolve')}
           </Button>
         </ErrorBoundary>
         <ErrorBoundary mini>
           <Button
+            size="xs"
             onClick={() =>
               onToggleResovled({
                 newMailbox: newMailboxSpam,

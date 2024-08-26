@@ -30,8 +30,8 @@ from sentry.users.services.user import RpcUser
 if TYPE_CHECKING:
     from sentry.models.group import Group
     from sentry.models.team import Team
-    from sentry.models.user import User
     from sentry.notifications.utils.participants import ParticipantMap
+    from sentry.users.models.user import User
 
 
 class GroupSubscriptionManager(BaseManager["GroupSubscription"]):
@@ -46,7 +46,7 @@ class GroupSubscriptionManager(BaseManager["GroupSubscription"]):
         unsubscribed.
         """
         from sentry.models.team import Team
-        from sentry.models.user import User
+        from sentry.users.models.user import User
 
         try:
             with transaction.atomic(router.db_for_write(GroupSubscription)):
@@ -78,7 +78,7 @@ class GroupSubscriptionManager(BaseManager["GroupSubscription"]):
     ) -> bool | None:
         from sentry import features
         from sentry.models.team import Team
-        from sentry.models.user import User
+        from sentry.users.models.user import User
 
         if isinstance(actor, (RpcUser, User)):
             return self.subscribe(group, actor, reason)

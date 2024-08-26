@@ -1,69 +1,80 @@
-import {css} from '@emotion/react';
 import styled from '@emotion/styled';
-import merge from 'lodash/merge';
 
-import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {Button} from 'sentry/components/button';
+import ButtonBar from 'sentry/components/buttonBar';
 import {IconLab} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import ConfigStore from 'sentry/stores/configStore';
-import type {User} from 'sentry/types/user';
-import {useMutation} from 'sentry/utils/queryClient';
-import useApi from 'sentry/utils/useApi';
-import {useUser} from 'sentry/utils/useUser';
-
-type UpdateUserOptionsVariables = Partial<User['options']>;
+import {trackAnalytics} from 'sentry/utils/analytics';
+import {useFeedbackForm} from 'sentry/utils/useFeedbackForm';
+import {useLocation} from 'sentry/utils/useLocation';
+import useMutateUserOptions from 'sentry/utils/useMutateUserOptions';
+import {useNavigate} from 'sentry/utils/useNavigate';
+import useOrganization from 'sentry/utils/useOrganization';
+import {useHasStreamlinedUI} from 'sentry/views/issueDetails/utils';
 
 export function NewIssueExperienceButton() {
-  const user = useUser();
-  const api = useApi();
+  const organization = useOrganization();
+  const location = useLocation();
+  const navigate = useNavigate();
+  const hasStreamlinedUIFlag = organization.features.includes('issue-details-streamline');
+  const hasStreamlinedUI = useHasStreamlinedUI();
+  const openForm = useFeedbackForm();
+  const {mutate} = useMutateUserOptions();
 
-  const newIssueExperienceEnabled =
-    user?.options?.issueDetailsNewExperienceQ42023 ?? false;
+  if (!hasStreamlinedUIFlag) {
+    return null;
+  }
 
-  const {mutate} = useMutation({
-    mutationFn: (options: UpdateUserOptionsVariables) => {
-      return api.requestPromise('/users/me/', {
-        method: 'PUT',
-        data: {
-          options,
-        },
-      });
-    },
-    onMutate: (options: UpdateUserOptionsVariables) => {
-      ConfigStore.set('user', merge({}, user, {options}));
-    },
-    onError: () => {
-      addErrorMessage('Failed to save new issue experience preference');
-    },
-  });
+  const feedbackButton = openForm ? (
+    <Button
+      size="sm"
+      aria-label={t('Give feedback on new UI')}
+      onClick={() =>
+        openForm({
+          messagePlaceholder: t('How can we make this new UI work for you?'),
+          tags: {
+            ['feedback.source']: 'issue_details_streamline_ui',
+            ['feedback.owner']: 'issues',
+          },
+        })
+      }
+    >
+      {t('Give Feedback')}
+    </Button>
+  ) : null;
 
-  const label = newIssueExperienceEnabled
+  const label = hasStreamlinedUI
     ? t('Switch to the old issue experience')
     : t('Switch to the new issue experience');
 
   return (
-    <StyledButton
-      enabled={newIssueExperienceEnabled}
-      size="sm"
-      icon={<IconLab isSolid={newIssueExperienceEnabled} />}
-      title={label}
-      aria-label={label}
-      onClick={() =>
-        mutate({['issueDetailsNewExperienceQ42023']: !newIssueExperienceEnabled})
-      }
-    />
+    <ButtonBar merged>
+      <StyledButton
+        enabled={hasStreamlinedUI}
+        size="sm"
+        icon={<IconLab isSolid={hasStreamlinedUI} />}
+        title={label}
+        aria-label={label}
+        onClick={() => {
+          mutate({['prefersIssueDetailsStreamlinedUI']: !hasStreamlinedUI});
+          trackAnalytics('issue_details.streamline_ui_toggle', {
+            isEnabled: !hasStreamlinedUI,
+            organization: organization,
+          });
+          navigate({
+            ...location,
+            query: {...location.query, streamline: hasStreamlinedUI ? '0' : '1'},
+          });
+        }}
+      />
+      {hasStreamlinedUI && feedbackButton}
+    </ButtonBar>
   );
 }
 
 const StyledButton = styled(Button)<{enabled: boolean}>`
-  ${p =>
-    p.enabled &&
-    css`
-      color: ${p.theme.button.primary.background};
-
-      :hover {
-        color: ${p.theme.button.primary.background};
-      }
-    `}
+  color: ${p => (p.enabled ? p.theme.button.primary.background : 'inherit')};
+  :hover {
+    color: ${p => (p.enabled ? p.theme.button.primary.background : 'inherit')};
+  }
 `;

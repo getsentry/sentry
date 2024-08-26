@@ -48,7 +48,7 @@ class IncidentAttachmentInfoTest(TestCase, BaseIncidentsTest):
         assert data["ts"] == date_started
         assert (
             data["title_link"]
-            == f"http://testserver/organizations/baz/alerts/rules/details/{alert_rule.id}/?alert={incident.identifier}&referrer={referrer}&notification_uuid={notification_uuid}"
+            == f"http://testserver/organizations/baz/alerts/rules/details/{alert_rule.id}/?alert={incident.identifier}&referrer={referrer}&detection_type=static&notification_uuid={notification_uuid}"
         )
         assert (
             data["logo_url"]
@@ -93,7 +93,7 @@ class IncidentAttachmentInfoTest(TestCase, BaseIncidentsTest):
         assert data["ts"] == date_started
         assert (
             data["title_link"]
-            == f"http://testserver/organizations/baz/alerts/rules/details/{alert_rule.id}/?alert={incident.identifier}&referrer=metric_alert"
+            == f"http://testserver/organizations/baz/alerts/rules/details/{alert_rule.id}/?alert={incident.identifier}&referrer=metric_alert&detection_type=static"
         )
         assert (
             data["logo_url"]
@@ -108,7 +108,7 @@ class IncidentAttachmentInfoTest(TestCase, BaseIncidentsTest):
         assert data["ts"] == date_started
         assert (
             data["title_link"]
-            == f"http://testserver/organizations/baz/alerts/rules/details/{alert_rule.id}/?alert={incident.identifier}&referrer=metric_alert"
+            == f"http://testserver/organizations/baz/alerts/rules/details/{alert_rule.id}/?alert={incident.identifier}&referrer=metric_alert&detection_type=static"
         )
         assert (
             data["logo_url"]
@@ -123,7 +123,7 @@ class IncidentAttachmentInfoTest(TestCase, BaseIncidentsTest):
         assert data["ts"] == date_started
         assert (
             data["title_link"]
-            == f"http://testserver/organizations/baz/alerts/rules/details/{alert_rule.id}/?alert={incident.identifier}&referrer=metric_alert"
+            == f"http://testserver/organizations/baz/alerts/rules/details/{alert_rule.id}/?alert={incident.identifier}&referrer=metric_alert&detection_type=static"
         )
         assert (
             data["logo_url"]

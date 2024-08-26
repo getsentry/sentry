@@ -19,11 +19,13 @@ from sentry.integrations.message_builder import (
     build_attachment_text,
     build_attachment_title,
     build_footer,
-    format_actor_option,
-    format_actor_options,
+    format_actor_option_slack,
+    format_actor_options_slack,
     get_title_link,
 )
-from sentry.integrations.slack.message_builder import (
+from sentry.integrations.slack.message_builder.base.block import BlockSlackMessageBuilder
+from sentry.integrations.slack.message_builder.image_block_builder import ImageBlockBuilder
+from sentry.integrations.slack.message_builder.types import (
     ACTION_EMOJI,
     ACTIONED_CATEGORY_TO_EMOJI,
     CATEGORY_TO_EMOJI,
@@ -31,8 +33,6 @@ from sentry.integrations.slack.message_builder import (
     SLACK_URL_FORMAT,
     SlackBlock,
 )
-from sentry.integrations.slack.message_builder.base.block import BlockSlackMessageBuilder
-from sentry.integrations.slack.message_builder.image_block_builder import ImageBlockBuilder
 from sentry.integrations.slack.utils.escape import escape_slack_markdown_text, escape_slack_text
 from sentry.integrations.time_utils import get_approx_start_time, time_since
 from sentry.integrations.types import ExternalProviders
@@ -60,6 +60,7 @@ from sentry.snuba.referrer import Referrer
 from sentry.types.actor import Actor
 from sentry.types.group import SUBSTATUS_TO_STR
 from sentry.users.services.user.model import RpcUser
+from sentry.utils import metrics
 
 STATUSES = {"resolved": "resolved", "ignored": "ignored", "unresolved": "re-opened"}
 SUPPORTED_COMMIT_PROVIDERS = (
@@ -80,9 +81,7 @@ USER_FEEDBACK_MAX_BLOCK_TEXT_LENGTH = 1500
 # pull things out into their own functions
 SUPPORTED_CONTEXT_DATA = {
     "Events": lambda group: get_group_global_count(group),
-    "Users Affected": lambda group: group.count_users_seen(
-        referrer=Referrer.TAGSTORE_GET_GROUPS_USER_COUNTS_SLACK_ISSUE_NOTIFICATION.value
-    ),
+    "Users Affected": lambda group: get_group_users_count(group),
     "State": lambda group: SUBSTATUS_TO_STR.get(group.substatus, "").replace("_", " ").title(),
     "First Seen": lambda group: time_since(group.first_seen),
     "Approx. Start Time": lambda group: datetime.fromtimestamp(
@@ -99,6 +98,13 @@ REGRESSION_PERFORMANCE_ISSUE_TYPES = [
 ]
 
 logger = logging.getLogger(__name__)
+
+
+def get_group_users_count(group: Group) -> int:
+    metrics.incr("slack.get_group_users_count", tags={"group_id": group.id}, sample_rate=1.0)
+    return group.count_users_seen(
+        referrer=Referrer.TAGSTORE_GET_GROUPS_USER_COUNTS_SLACK_ISSUE_NOTIFICATION.value
+    )
 
 
 def build_assigned_text(identity: RpcIdentity, assignee: str) -> str | None:
@@ -237,14 +243,14 @@ def get_option_groups(group: Group) -> Sequence[OptionGroup]:
     if teams:
         team_option_group: OptionGroup = {
             "label": {"type": "plain_text", "text": "Teams"},
-            "options": format_actor_options(teams, True),
+            "options": format_actor_options_slack(teams),
         }
         option_groups.append(team_option_group)
 
     if members:
         member_option_group: OptionGroup = {
             "label": {"type": "plain_text", "text": "People"},
-            "options": format_actor_options(members, True),
+            "options": format_actor_options_slack(members),
         }
         option_groups.append(member_option_group)
     return option_groups
@@ -388,7 +394,7 @@ def build_actions(
             name="assign",
             label="Select Assignee...",
             type="select",
-            selected_options=format_actor_options([assignee], True) if assignee else [],
+            selected_options=format_actor_options_slack([assignee]) if assignee else [],
             option_groups=get_option_groups(group),
         )
         return assign_button
@@ -622,7 +628,7 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
             elif action.name == "assign":
                 actions.append(
                     self.get_external_select_action(
-                        action, format_actor_option(assignee, True) if assignee else None
+                        action, format_actor_option_slack(assignee) if assignee else None
                     )
                 )
 

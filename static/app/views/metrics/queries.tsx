@@ -1,4 +1,5 @@
 import {Fragment, useCallback, useLayoutEffect, useMemo} from 'react';
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import * as echarts from 'echarts/core';
 
@@ -87,7 +88,7 @@ export function Queries() {
 
   return (
     <Fragment>
-      <Wrapper showQuerySymbols={showQuerySymbols}>
+      <Wrapper showQuerySymbols={showQuerySymbols} hasMetricsNewInput={metricsNewInputs}>
         {widgets.map((widget, index) => (
           <Row
             key={`${widget.type}_${widget.id}`}
@@ -173,6 +174,9 @@ function Query({
   showQuerySymbols,
   canBeHidden,
 }: QueryProps) {
+  const organizations = useOrganization();
+  const hasMetricsNewInput = hasMetricsNewInputs(organizations);
+
   const metricsQuery = useMemo(
     () => ({
       mri: widget.mri,
@@ -198,7 +202,7 @@ function Query({
   const isToggleDisabled = !canBeHidden && !widget.isHidden;
 
   return (
-    <QueryWrapper hasSymbol={showQuerySymbols}>
+    <QueryWrapper hasSymbol={showQuerySymbols} hasMetricsNewInput={hasMetricsNewInput}>
       {showQuerySymbols && (
         <QueryToggle
           isHidden={widget.isHidden}
@@ -214,6 +218,7 @@ function Query({
         onChange={handleChange}
         metricsQuery={metricsQuery}
         projects={projects}
+        hasSymbols={showQuerySymbols}
       />
       <MetricQueryContextMenu
         displayType={widget.displayType}
@@ -255,6 +260,9 @@ function Formula({
   formulaDependencies,
   metricsNewInputs,
 }: FormulaProps) {
+  const organizations = useOrganization();
+  const hasMetricsNewInput = hasMetricsNewInputs(organizations);
+
   const handleToggle = useCallback(() => {
     onToggleVisibility(index);
   }, [index, onToggleVisibility]);
@@ -269,7 +277,7 @@ function Formula({
   const isToggleDisabled = !canBeHidden && !widget.isHidden;
 
   return (
-    <QueryWrapper hasSymbol={showQuerySymbols}>
+    <QueryWrapper hasSymbol={showQuerySymbols} hasMetricsNewInput={hasMetricsNewInput}>
       {showQuerySymbols && (
         <QueryToggle
           isHidden={widget.isHidden}
@@ -280,12 +288,14 @@ function Formula({
           type={MetricExpressionType.EQUATION}
         />
       )}
-      <EquationInput
-        availableVariables={availableVariables}
-        value={widget.formula}
-        onChange={formula => handleChange({formula})}
-        metricsNewInputs={metricsNewInputs}
-      />
+      <EquationInputWrapper hasMetricsNewInput={hasMetricsNewInput}>
+        <EquationInput
+          availableVariables={availableVariables}
+          value={widget.formula}
+          onChange={formula => handleChange({formula})}
+          metricsNewInputs={metricsNewInputs}
+        />
+      </EquationInputWrapper>
       <MetricFormulaContextMenu
         widgetIndex={index}
         formulaWidget={widget}
@@ -344,12 +354,18 @@ function QueryToggle({isHidden, queryId, disabled, onChange, type}: QueryToggleP
   );
 }
 
-const QueryWrapper = styled('div')<{hasSymbol: boolean}>`
-  display: grid;
-  gap: ${space(1)};
-  padding-bottom: ${space(1)};
-  grid-template-columns: 1fr max-content;
-  ${p => p.hasSymbol && `grid-template-columns: min-content 1fr max-content;`}
+const QueryWrapper = styled('div')<{hasMetricsNewInput: boolean; hasSymbol: boolean}>`
+  display: contents;
+
+  ${p =>
+    !p.hasMetricsNewInput &&
+    css`
+      display: grid;
+      gap: ${space(1)};
+      padding-bottom: ${space(1)};
+      grid-template-columns: 1fr max-content;
+      ${p.hasSymbol && `grid-template-columns: min-content 1fr max-content;`}
+    `}
 `;
 
 const StyledQuerySymbol = styled(QuerySymbol)<{isClickable: boolean}>`
@@ -362,7 +378,57 @@ const StyledEquationSymbol = styled(EquationSymbol)<{isClickable: boolean}>`
   ${p => p.isClickable && `cursor: pointer;`}
 `;
 
-const Wrapper = styled('div')<{showQuerySymbols: boolean}>``;
+const Wrapper = styled('div')<{hasMetricsNewInput: boolean; showQuerySymbols: boolean}>`
+  ${p =>
+    p.hasMetricsNewInput &&
+    css`
+      display: grid;
+      gap: ${space(1)};
+      grid-template-columns: ${p.showQuerySymbols
+        ? 'min-content 1fr max-content'
+        : '1fr max-content'};
+
+      @media (min-width: ${p.theme.breakpoints.small}) {
+        grid-template-columns: ${p.showQuerySymbols
+          ? 'min-content 1fr 1fr max-content'
+          : '1fr 1fr max-content'};
+      }
+
+      @media (min-width: ${p.theme.breakpoints.large}) {
+        grid-template-columns: ${p.showQuerySymbols
+          ? 'min-content 1fr max-content max-content max-content'
+          : '1fr max-content max-content max-content'};
+      }
+
+      @media (min-width: ${p.theme.breakpoints.xxlarge}) {
+        grid-template-columns: ${p.showQuerySymbols
+          ? 'min-content max-content max-content max-content 1fr max-content'
+          : 'max-content max-content max-content 1fr max-content'};
+      }
+    `}
+`;
+
+const EquationInputWrapper = styled('div')<{hasMetricsNewInput: boolean}>`
+  ${p =>
+    p.hasMetricsNewInput &&
+    css`
+      grid-template-columns: subgrid;
+
+      grid-column-start: 2;
+
+      @media (min-width: ${p.theme.breakpoints.small}) {
+        grid-column-end: 4;
+      }
+
+      @media (min-width: ${p.theme.breakpoints.large}) {
+        grid-column-end: 5;
+      }
+
+      @media (min-width: ${p.theme.breakpoints.xxlarge}) {
+        grid-column-end: 6;
+      }
+    `}
+`;
 
 const Row = styled('div')`
   display: contents;
@@ -371,7 +437,8 @@ const Row = styled('div')`
 const ButtonBar = styled('div')<{addQuerySymbolSpacing: boolean}>`
   align-items: center;
   display: flex;
-  padding-bottom: ${space(2)};
+  flex-wrap: wrap;
+  padding: ${space(2)} 0;
   gap: ${space(2)};
 
   ${p =>
@@ -387,4 +454,5 @@ const SwitchWrapper = styled('label')`
   margin: 0;
   align-items: center;
   gap: ${space(1)};
+  white-space: nowrap;
 `;

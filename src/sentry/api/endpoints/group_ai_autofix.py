@@ -19,10 +19,10 @@ from sentry.api.serializers import EventSerializer, serialize
 from sentry.autofix.utils import get_autofix_repos_from_project_code_mappings, get_autofix_state
 from sentry.integrations.utils.code_mapping import get_sorted_code_mapping_configs
 from sentry.models.group import Group
-from sentry.models.user import User
 from sentry.seer.signed_seer_api import sign_with_seer_secret
 from sentry.tasks.autofix import check_autofix_status
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
+from sentry.users.models.user import User
 from sentry.users.services.user.service import user_service
 
 logger = logging.getLogger(__name__)
@@ -158,7 +158,10 @@ class GroupAutofixEndpoint(GroupEndpoint):
 
         created_at = datetime.now().isoformat()
 
-        if not features.has("projects:ai-autofix", group.project):
+        if not (
+            features.has("projects:ai-autofix", group.project)
+            or features.has("organizations:autofix", group.organization)
+        ):
             return self._respond_with_error("AI Autofix is not enabled for this project.", 403)
 
         # For now we only send the event that the user is looking at, in the near future we want to send multiple events.

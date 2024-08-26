@@ -62,6 +62,7 @@ class MetricsDatasetConfig(DatasetConfig):
             constants.DEVICE_CLASS_ALIAS: lambda alias: field_aliases.resolve_device_class(
                 self.builder, alias
             ),
+            constants.SPAN_MODULE_ALIAS: self._resolve_span_module,
         }
 
     def resolve_metric(self, value: str) -> int:
@@ -119,20 +120,8 @@ class MetricsDatasetConfig(DatasetConfig):
                         )
                     ],
                     calculated_args=[resolve_metric_id],
-                    snql_distribution=lambda args, alias: Function(
-                        "avgIf",
-                        [
-                            Column("value"),
-                            Function(
-                                "equals",
-                                [
-                                    Column("metric_id"),
-                                    args["metric_id"],
-                                ],
-                            ),
-                        ],
-                        alias,
-                    ),
+                    snql_distribution=self._resolve_avg,
+                    snql_gauge=self._resolve_avg,
                     result_type_fn=self.reflective_result_type(),
                     default_result_type="integer",
                 ),
@@ -1131,6 +1120,9 @@ class MetricsDatasetConfig(DatasetConfig):
 
         return Condition(lhs, Op(operator), value)
 
+    def _resolve_span_module(self, alias: str) -> SelectType:
+        return field_aliases.resolve_span_module(self.builder, alias)
+
     # Query Functions
     def _resolve_count_if(
         self,
@@ -1147,6 +1139,26 @@ class MetricsDatasetConfig(DatasetConfig):
                     [
                         metric_condition,
                         condition,
+                    ],
+                ),
+            ],
+            alias,
+        )
+
+    def _resolve_avg(
+        self,
+        args: Mapping[str, str | Column | SelectType | int | float],
+        alias: str | None = None,
+    ) -> SelectType:
+        return Function(
+            "avgIf",
+            [
+                Column("value"),
+                Function(
+                    "equals",
+                    [
+                        Column("metric_id"),
+                        args["metric_id"],
                     ],
                 ),
             ],

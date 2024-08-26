@@ -61,7 +61,7 @@ def _export(
     # Import here to prevent circular module resolutions.
     from sentry.models.organization import Organization
     from sentry.models.organizationmember import OrganizationMember
-    from sentry.models.user import User
+    from sentry.users.models.user import User
 
     if SiloMode.get_current_mode() == SiloMode.CONTROL:
         errText = "Exports must be run in REGION or MONOLITH instances only"
@@ -165,7 +165,7 @@ def export_in_user_scope(
     """
 
     # Import here to prevent circular module resolutions.
-    from sentry.models.user import User
+    from sentry.users.models.user import User
 
     return _export(
         dest,
@@ -217,7 +217,7 @@ def export_in_config_scope(
     """
 
     # Import here to prevent circular module resolutions.
-    from sentry.models.user import User
+    from sentry.users.models.user import User
 
     return _export(
         dest,

@@ -96,6 +96,7 @@ export function SpanTimeCharts({
     [ModuleName.HTTP]: [{title: DataTitles.errorCount, Comp: ErrorChart}],
     [ModuleName.AI]: [],
     [ModuleName.MOBILE_UI]: [],
+    [ModuleName.MOBILE_SCREENS]: [],
     [ModuleName.OTHER]: [],
   };
 

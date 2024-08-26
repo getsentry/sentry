@@ -1,4 +1,4 @@
-import type {DateString} from 'sentry/types/core';
+import type {DateString} from './core';
 
 export type MetricAggregation =
   | 'sum'

@@ -431,6 +431,10 @@ export function Provider({
         events: events ?? [],
         // common to both
         root,
+        context: {
+          sdkName: replay?.getReplay().sdk.name,
+          sdkVersion: replay?.getReplay().sdk.version,
+        },
       });
       // `.current` is marked as readonly, but it's safe to set the value from
       // inside a `useEffect` hook.

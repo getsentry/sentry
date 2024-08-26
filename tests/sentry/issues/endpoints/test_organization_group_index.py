@@ -42,7 +42,6 @@ from sentry.models.groupshare import GroupShare
 from sentry.models.groupsnooze import GroupSnooze
 from sentry.models.groupsubscription import GroupSubscription
 from sentry.models.grouptombstone import GroupTombstone
-from sentry.models.options.user_option import UserOption
 from sentry.models.platformexternalissue import PlatformExternalIssue
 from sentry.models.release import Release
 from sentry.models.releaseprojectenvironment import ReleaseStages
@@ -63,6 +62,7 @@ from sentry.testutils.helpers.options import override_options
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.types.activity import ActivityType
 from sentry.types.group import GroupSubStatus, PriorityLevel
+from sentry.users.models.user_option import UserOption
 from sentry.utils import json
 from tests.sentry.issues.test_utils import SearchIssueTestMixin
 

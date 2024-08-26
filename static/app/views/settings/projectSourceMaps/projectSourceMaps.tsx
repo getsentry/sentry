@@ -24,7 +24,9 @@ import {Tooltip} from 'sentry/components/tooltip';
 import {IconArrow, IconDelete} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {DebugIdBundle, Project, SourceMapsArchive} from 'sentry/types';
+import type {Project} from 'sentry/types/project';
+import type {SourceMapsArchive} from 'sentry/types/release';
+import type {DebugIdBundle} from 'sentry/types/sourceMaps';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {decodeScalar} from 'sentry/utils/queryString';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
@@ -359,6 +361,14 @@ export function ProjectSourceMaps({location, router, project}: Props) {
       ? ArtifactBundlesPanelTable
       : ReleaseBundlesPanelTable;
 
+  // TODO(__SENTRY_USING_REACT_ROUTER_SIX): We can remove this later, react
+  // router 6 handles empty query objects without appending a trailing ?
+  const linkLocation = {
+    ...(location.query && Object.keys(location.query).length > 0
+      ? {query: location.query}
+      : {}),
+  };
+
   return (
     <Fragment>
       <SettingsPageHeader title={t('Source Maps')} />
@@ -376,7 +386,7 @@ export function ProjectSourceMaps({location, router, project}: Props) {
         <ListLink
           to={{
             pathname: debugIdsUrl,
-            query: location.query,
+            ...linkLocation,
           }}
           index
           isActive={() => tabDebugIdBundlesActive}
@@ -386,7 +396,7 @@ export function ProjectSourceMaps({location, router, project}: Props) {
         <ListLink
           to={{
             pathname: releaseBundlesUrl,
-            query: location.query,
+            ...linkLocation,
           }}
           isActive={() => !tabDebugIdBundlesActive}
         >

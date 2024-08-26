@@ -3,9 +3,10 @@ import styled from '@emotion/styled';
 
 import {getOrderedContextItems} from 'sentry/components/events/contexts';
 import {getContextIcon, getContextSummary} from 'sentry/components/events/contexts/utils';
+import {ScrollCarousel} from 'sentry/components/scrollCarousel';
 import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
-import {SectionDivider} from 'sentry/views/issueDetails/streamline/interimSection';
+import {SectionDivider} from 'sentry/views/issueDetails/streamline/foldSection';
 
 interface HighlightsIconSummaryProps {
   event: Event;
@@ -17,6 +18,7 @@ export function HighlightsIconSummary({event}: HighlightsIconSummaryProps) {
   const items = getOrderedContextItems(event)
     .map(({alias, type, value}) => ({
       ...getContextSummary({type, value}),
+      alias,
       icon: getContextIcon({
         alias,
         type,
@@ -28,16 +30,25 @@ export function HighlightsIconSummary({event}: HighlightsIconSummaryProps) {
     }))
     .filter(item => item.icon !== null);
 
+  const deviceIndex = items.findIndex(item => item.alias === 'device');
+  const clientOsIndex = items.findIndex(item => item.alias === 'client_os');
+  // Remove device if client_os is also present
+  if (deviceIndex !== -1 && clientOsIndex !== -1) {
+    items.splice(deviceIndex, 1);
+  }
+
   return items.length ? (
     <Fragment>
       <IconBar>
-        {items.map((item, index) => (
-          <IconSummary key={index}>
-            <IconWrapper>{item.icon}</IconWrapper>
-            <IconTitle>{item.title}</IconTitle>
-            <IconSubtitle>{item.subtitle}</IconSubtitle>
-          </IconSummary>
-        ))}
+        <ScrollCarousel gap={4}>
+          {items.map((item, index) => (
+            <IconSummary key={index}>
+              <IconWrapper>{item.icon}</IconWrapper>
+              <IconTitle>{item.title}</IconTitle>
+              <IconSubtitle>{item.subtitle}</IconSubtitle>
+            </IconSummary>
+          ))}
+        </ScrollCarousel>
       </IconBar>
       <SectionDivider />
     </Fragment>
@@ -45,22 +56,8 @@ export function HighlightsIconSummary({event}: HighlightsIconSummaryProps) {
 }
 
 const IconBar = styled('div')`
-  display: flex;
-  gap: ${space(4)};
-  align-items: center;
-  overflow-x: auto;
-  overflow-y: hidden;
-  margin: ${space(2)} ${space(0.75)};
   position: relative;
-  &:after {
-    position: sticky;
-    height: 100%;
-    padding: ${space(2)};
-    content: '';
-    inset: 0;
-    left: 90%;
-    background-image: linear-gradient(90deg, transparent, ${p => p.theme.background});
-  }
+  padding: ${space(2)} ${space(0.5)};
 `;
 
 const IconSummary = styled('div')`

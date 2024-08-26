@@ -56,7 +56,10 @@ def call_delete_seer_grouping_records_by_hash(
         project = group.project if group else None
     if (
         project
-        and features.has("projects:similarity-embeddings-grouping", project)
+        and (
+            features.has("projects:similarity-embeddings-grouping", project)
+            or project.get_option("sentry:similarity_backfill_completed")
+        )
         and not killswitch_enabled(project.id)
         and not options.get("seer.similarity-embeddings-delete-by-hash-killswitch.enabled")
     ):

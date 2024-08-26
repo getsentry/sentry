@@ -21,7 +21,6 @@ from sentry.auth import superuser
 from sentry.auth.services.auth import AuthenticatedToken, AuthenticationContext
 from sentry.auth.superuser import is_active_superuser
 from sentry.models.organizationmapping import OrganizationMapping
-from sentry.models.user import User
 from sentry.organizations.absolute_url import generate_organization_url
 from sentry.organizations.services.organization import (
     RpcOrganization,
@@ -36,6 +35,7 @@ from sentry.types.region import (
     find_all_multitenant_region_names,
     get_region_by_name,
 )
+from sentry.users.models.user import User
 from sentry.users.services.user import UserSerializeType
 from sentry.users.services.user.serial import serialize_generic_user
 from sentry.users.services.user.service import user_service
@@ -216,6 +216,8 @@ class _ClientConfig:
 
     @property
     def enabled_features(self) -> Iterable[str]:
+        if features.has("organizations:react-router-6", self.last_org):
+            yield "organizations:react-router-6"
         if features.has("organizations:create", actor=self.user):
             yield "organizations:create"
         if auth.has_user_registration():

@@ -17,10 +17,10 @@ from sentry.integrations.services.integration import RpcIntegration, integration
 from sentry.models.activity import Activity
 from sentry.models.group import Group
 from sentry.models.grouplink import GroupLink
-from sentry.models.user import User
 from sentry.shared_integrations.exceptions import IntegrationError, IntegrationFormError
 from sentry.signals import integration_issue_created, integration_issue_linked
 from sentry.types.activity import ActivityType
+from sentry.users.models.user import User
 
 MISSING_FEATURE_MESSAGE = "Your organization does not have access to this feature."
 

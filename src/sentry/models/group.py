@@ -624,7 +624,7 @@ class Group(Model):
     def get_absolute_url(
         self,
         params: Mapping[str, str] | None = None,
-        event_id: int | None = None,
+        event_id: str | None = None,
     ) -> str:
         # Built manually in preference to django.urls.reverse,
         # because reverse has a measured performance impact.
@@ -983,6 +983,10 @@ def pre_save_group_default_substatus(instance, sender, *args, **kwargs):
 
         if instance.status == GroupStatus.UNRESOLVED:
             if instance.substatus is None:
+                logger.warning(
+                    "no_substatus: Found UNRESOLVED group with no substatus",
+                    extra={"group_id": instance.id},
+                )
                 instance.substatus = GroupSubStatus.ONGOING
 
             # UNRESOLVED groups must have a substatus

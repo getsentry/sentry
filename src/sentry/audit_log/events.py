@@ -7,7 +7,7 @@ from sentry.utils.strings import truncatechars
 
 if TYPE_CHECKING:
     from sentry.models.auditlogentry import AuditLogEntry
-    from sentry.models.user import User
+    from sentry.users.models.user import User
 
 
 # AuditLogEvents with custom render functions

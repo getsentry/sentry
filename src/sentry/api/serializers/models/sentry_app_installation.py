@@ -8,7 +8,7 @@ from sentry.constants import SentryAppInstallationStatus
 from sentry.hybridcloud.services.organization_mapping import organization_mapping_service
 from sentry.models.integrations.sentry_app import SentryApp
 from sentry.models.integrations.sentry_app_installation import SentryAppInstallation
-from sentry.models.user import User
+from sentry.users.models.user import User
 from sentry.users.services.user import RpcUser
 
 

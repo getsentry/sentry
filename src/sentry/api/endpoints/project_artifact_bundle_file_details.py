@@ -3,7 +3,7 @@ import binascii
 import posixpath
 
 import sentry_sdk
-from django.http.response import FileResponse
+from django.http.response import FileResponse, HttpResponseBase
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -36,7 +36,8 @@ class ProjectArtifactBundleFileDetailsMixin:
             ClosesDependentFiles(fp, archive),
             content_type=headers.get("content-type", "application/octet-stream"),
         )
-        response["Content-Length"] = file_info.file_size if file_info is not None else None
+        if file_info is not None:
+            response["Content-Length"] = file_info.file_size
         response["Content-Disposition"] = 'attachment; filename="%s"' % posixpath.basename(
             " ".join(file_path.split())
         )
@@ -54,7 +55,7 @@ class ProjectArtifactBundleFileDetailsEndpoint(
     }
     permission_classes = (ProjectReleasePermission,)
 
-    def get(self, request: Request, project, bundle_id, file_id) -> Response:
+    def get(self, request: Request, project, bundle_id, file_id) -> HttpResponseBase:
         """
         Retrieve the file of an artifact bundle
         `````````````````````````````````

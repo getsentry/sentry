@@ -9,7 +9,7 @@ import type {
   Organization,
   SessionApiResponse,
   SessionFieldWithOperation,
-} from 'sentry/types';
+} from 'sentry/types/organization';
 import {filterSessionsInTimeWindow, getSessionsInterval} from 'sentry/utils/sessions';
 
 const propNamesToIgnore = ['api', 'children', 'organization'];

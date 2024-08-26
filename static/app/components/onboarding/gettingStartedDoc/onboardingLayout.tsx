@@ -23,7 +23,7 @@ import {
 } from 'sentry/components/onboarding/productSelection';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {PlatformKey, Project, ProjectKey} from 'sentry/types';
+import type {PlatformKey, Project, ProjectKey} from 'sentry/types/project';
 import useOrganization from 'sentry/utils/useOrganization';
 
 const ProductSelectionAvailabilityHook = HookOrDefault({

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import contextlib
+import functools
 import http
 import json  # noqa
 import os
@@ -51,6 +52,22 @@ else:
     RAW_SOCKET_PATH = "/var/run/docker.sock"
 
 
+# Simplified from pre-commit @ fb0ccf3546a9cb34ec3692e403270feb6d6033a2
+@functools.cache
+def _gitroot() -> str:
+    from os.path import abspath
+    from subprocess import CalledProcessError, run
+
+    try:
+        proc = run(("git", "rev-parse", "--show-cdup"), check=True, capture_output=True)
+        root = abspath(proc.stdout.decode().strip())
+    except CalledProcessError:
+        raise SystemExit(
+            "git failed. Is it installed, and are you in a Git repository directory?",
+        )
+    return root
+
+
 @contextlib.contextmanager
 def get_docker_client() -> Generator[docker.DockerClient]:
     import docker
@@ -65,9 +82,11 @@ def get_docker_client() -> Generator[docker.DockerClient]:
             if DARWIN:
                 if USE_COLIMA:
                     click.echo("Attempting to start colima...")
+                    gitroot = _gitroot()
                     subprocess.check_call(
                         (
-                            "devenv",
+                            # explicitly use repo-local devenv, not the global one
+                            f"{gitroot}/.venv/bin/devenv",
                             "colima",
                             "start",
                         )
@@ -197,15 +216,16 @@ def devservices() -> None:
         click.echo("Assuming docker (CI).")
         return
 
-    if USE_DOCKER_DESKTOP:
-        click.echo("Using docker desktop.")
-        ensure_docker_cli_context("desktop-linux")
-    if USE_COLIMA:
-        click.echo("Using colima.")
-        ensure_docker_cli_context("colima")
-    if USE_ORBSTACK:
-        click.echo("Using orbstack.")
-        ensure_docker_cli_context("orbstack")
+    if DARWIN:
+        if USE_DOCKER_DESKTOP:
+            click.echo("Using docker desktop.")
+            ensure_docker_cli_context("desktop-linux")
+        if USE_COLIMA:
+            click.echo("Using colima.")
+            ensure_docker_cli_context("colima")
+        if USE_ORBSTACK:
+            click.echo("Using orbstack.")
+            ensure_docker_cli_context("orbstack")
 
 
 @devservices.command()

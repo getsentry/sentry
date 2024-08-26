@@ -1,5 +1,4 @@
 import {useEffect, useMemo} from 'react';
-import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 
 import connectDotsImg from 'sentry-images/spot/performance-connect-dots.svg';
@@ -13,6 +12,7 @@ import {t, tct} from 'sentry/locale';
 import SidebarPanelStore from 'sentry/stores/sidebarPanelStore';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
+import {browserHistory} from 'sentry/utils/browserHistory';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {useLocation} from 'sentry/utils/useLocation';
 import useProjects from 'sentry/utils/useProjects';
@@ -83,7 +83,7 @@ function PerformanceSetupBanner({
     return (
       <Alert type="info" showIcon>
         {tct(
-          "Some of the projects associated with this trace don't support performance monitoring. To learn more about how to setup performance monitoring, visit our [documentation].",
+          "Some of the projects associated with this trace aren't set up for tracing so you're only getting a partial trace view. To learn how to enable tracing for all your projects, visit our [documentation].",
           {
             documentationLink: (
               <ExternalLink href="https://docs.sentry.io/product/performance/getting-started/">
@@ -191,8 +191,7 @@ function PerformanceQuotaExceededWarning(props: ErrorOnlyWarningsProps) {
     return null;
   }
 
-  const title = tct("You've exceeded your [billingInterval] [billingType]", {
-    billingInterval: subscription?.planDetails.billingInterval ?? 'monthly',
+  const title = tct("You've exceeded your [billingType]", {
     billingType: subscription?.onDemandBudgets?.enabled
       ? t('pay-as-you-go budget')
       : t('quota'),

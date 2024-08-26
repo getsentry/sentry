@@ -1,5 +1,4 @@
 import {Fragment} from 'react';
-import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 
 import type {GridColumnHeader, GridColumnOrder} from 'sentry/components/gridEditable';
@@ -9,6 +8,7 @@ import type {CursorHandler} from 'sentry/components/pagination';
 import Pagination from 'sentry/components/pagination';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import {browserHistory} from 'sentry/utils/browserHistory';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useParams} from 'sentry/utils/useParams';
@@ -34,6 +34,7 @@ const {
   SPAN_SELF_TIME,
   HTTP_RESPONSE_CONTENT_LENGTH,
   TRANSACTION,
+  USER_GEO_SUBREGION,
 } = SpanMetricsField;
 
 type Row = {
@@ -55,6 +56,7 @@ function ResourceSummaryTable() {
   const {data, isLoading, pageLinks} = useResourcePagesQuery(groupId, {
     sort,
     cursor,
+    subregions: filters[USER_GEO_SUBREGION],
     renderBlockingStatus: filters[RESOURCE_RENDER_BLOCKING_STATUS],
   });
 

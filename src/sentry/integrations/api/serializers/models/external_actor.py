@@ -4,7 +4,7 @@ from typing import Any, TypedDict
 from sentry.api.serializers import Serializer, register
 from sentry.integrations.models.external_actor import ExternalActor
 from sentry.integrations.utils.providers import get_provider_string
-from sentry.models.user import User
+from sentry.users.models.user import User
 
 
 class ExternalActorResponseOptional(TypedDict, total=False):
