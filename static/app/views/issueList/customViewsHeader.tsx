@@ -210,7 +210,7 @@ function CustomViewsIssueListHeaderTabsContent({
         tabListState?.setSelectedKey(selectedTab.key);
         return;
       }
-      if (selectedTab && !query) {
+      if (selectedTab && query === undefined) {
         navigate({
           query: {
             ...queryParams,
