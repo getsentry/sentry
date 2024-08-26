@@ -34,8 +34,6 @@ from sentry.integrations.slack.metrics import (
 from sentry.integrations.slack.requests.action import SlackActionRequest
 from sentry.integrations.slack.requests.base import SlackRequestError
 from sentry.integrations.slack.sdk_client import SlackSdkClient
-from sentry.integrations.slack.views.link_identity import build_linking_url
-from sentry.integrations.slack.views.unlink_identity import build_unlinking_url
 from sentry.integrations.types import ExternalProviderEnum
 from sentry.integrations.utils.scope import bind_org_context_from_integration
 from sentry.models.activity import ActivityIntegration
@@ -188,6 +186,8 @@ class SlackActionEndpoint(Endpoint):
         error: ApiClient.ApiError,
         action_type: str,
     ) -> Response:
+        from sentry.integrations.slack.views.unlink_identity import build_unlinking_url
+
         _logger.info(
             "slack.action.api-error",
             extra={
@@ -496,6 +496,8 @@ class SlackActionEndpoint(Endpoint):
         request: Request,
         action_list: Sequence[MessageAction],
     ) -> Response:
+        from sentry.integrations.slack.views.link_identity import build_linking_url
+
         group = get_group(slack_request)
         if not group:
             return self.respond(status=403)
