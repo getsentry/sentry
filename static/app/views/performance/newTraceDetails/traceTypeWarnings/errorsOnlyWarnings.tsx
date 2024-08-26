@@ -1,5 +1,4 @@
 import {useEffect, useMemo} from 'react';
-import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 
 import connectDotsImg from 'sentry-images/spot/performance-connect-dots.svg';
@@ -13,6 +12,7 @@ import {t, tct} from 'sentry/locale';
 import SidebarPanelStore from 'sentry/stores/sidebarPanelStore';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
+import {browserHistory} from 'sentry/utils/browserHistory';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {useLocation} from 'sentry/utils/useLocation';
 import useProjects from 'sentry/utils/useProjects';

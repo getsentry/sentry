@@ -1,7 +1,7 @@
-import {browserHistory} from 'react-router';
 import {mat3, vec2} from 'gl-matrix';
 import * as qs from 'query-string';
 
+import {browserHistory} from 'sentry/utils/browserHistory';
 import getDuration from 'sentry/utils/duration/getDuration';
 import clamp from 'sentry/utils/number/clamp';
 import {
