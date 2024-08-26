@@ -10,6 +10,7 @@ import * as SidebarSection from 'sentry/components/sidebarSection';
 import {IconMegaphone} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import {IssueCategory} from 'sentry/types/group';
 import marked from 'sentry/utils/marked';
 import {type ApiQueryKey, useApiQuery} from 'sentry/utils/queryClient';
 import {useFeedbackForm} from 'sentry/utils/useFeedbackForm';
@@ -17,6 +18,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 import {useHasStreamlinedUI} from 'sentry/views/issueDetails/utils';
 
 interface GroupSummaryProps {
+  groupCategory: IssueCategory;
   groupId: string;
 }
 
@@ -27,6 +29,10 @@ interface GroupSummaryData {
   headline?: string;
 }
 
+const isSummaryEnabled = (hasGenAIConsent: boolean, groupCategory: IssueCategory) => {
+  return hasGenAIConsent && groupCategory === IssueCategory.ERROR;
+};
+
 export const makeGroupSummaryQueryKey = (
   organizationSlug: string,
   groupId: string
@@ -35,7 +41,7 @@ export const makeGroupSummaryQueryKey = (
   {method: 'POST'},
 ];
 
-export function useGroupSummary(groupId: string) {
+export function useGroupSummary(groupId: string, groupCategory: IssueCategory) {
   const organization = useOrganization();
   // We piggyback and use autofix's genai consent check for now.
   const {
@@ -50,7 +56,7 @@ export function useGroupSummary(groupId: string) {
     makeGroupSummaryQueryKey(organization.slug, groupId),
     {
       staleTime: Infinity, // Cache the result indefinitely as it's unlikely to change if it's already computed
-      enabled: hasGenAIConsent,
+      enabled: isSummaryEnabled(hasGenAIConsent, groupCategory),
     }
   );
   return {
@@ -72,11 +78,18 @@ function GroupSummaryFeatureBadge() {
   );
 }
 
-export function GroupSummaryHeader({groupId}: GroupSummaryProps) {
-  const {data, isLoading, isError, hasGenAIConsent} = useGroupSummary(groupId);
+export function GroupSummaryHeader({groupId, groupCategory}: GroupSummaryProps) {
+  const {data, isLoading, isError, hasGenAIConsent} = useGroupSummary(
+    groupId,
+    groupCategory
+  );
   const isStreamlined = useHasStreamlinedUI();
 
-  if (isError || !hasGenAIConsent || (!isLoading && !data?.headline)) {
+  if (
+    isError ||
+    (!isLoading && !data?.headline) ||
+    !isSummaryEnabled(hasGenAIConsent, groupCategory)
+  ) {
     // Don't render the summary headline if there's an error, the error is already shown in the sidebar
     // If there is no headline we also don't want to render anything
     return null;
@@ -98,12 +111,15 @@ export function GroupSummaryHeader({groupId}: GroupSummaryProps) {
   );
 }
 
-export function GroupSummary({groupId}: GroupSummaryProps) {
-  const {data, isLoading, isError, hasGenAIConsent} = useGroupSummary(groupId);
+export function GroupSummary({groupId, groupCategory}: GroupSummaryProps) {
+  const {data, isLoading, isError, hasGenAIConsent} = useGroupSummary(
+    groupId,
+    groupCategory
+  );
 
   const openForm = useFeedbackForm();
 
-  if (!hasGenAIConsent) {
+  if (!isSummaryEnabled(hasGenAIConsent, groupCategory)) {
     // TODO: Render a banner for needing genai consent
     return null;
   }

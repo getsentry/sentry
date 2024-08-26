@@ -150,7 +150,7 @@ export default function StreamlinedGroupHeader({
         )}
       </MessageWrapper>
       <Feature features={['organizations:ai-summary']}>
-        <GroupSummaryHeader groupId={group.id} />
+        <GroupSummaryHeader groupId={group.id} groupCategory={group.issueCategory} />
       </Feature>
       <StyledBreak />
       <InfoWrapper
