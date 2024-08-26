@@ -3,6 +3,8 @@ import logging
 from django.db import IntegrityError, router, transaction
 from django.db.models import Q
 from rest_framework import serializers
+from rest_framework.request import Request
+from rest_framework.response import Response
 
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import control_silo_endpoint
@@ -25,11 +27,11 @@ class DuplicateEmailError(Exception):
     pass
 
 
-class EmailValidator(serializers.Serializer):
+class EmailValidator(serializers.Serializer[UserEmail]):
     email = AllowedEmailField(required=True)
 
 
-def add_email(email, user):
+def add_email(email: str, user: User) -> UserEmail:
     """
     Adds an email to user account
 
@@ -55,10 +57,6 @@ def add_email(email, user):
     return new_email
 
 
-from rest_framework.request import Request
-from rest_framework.response import Response
-
-
 @control_silo_endpoint
 class UserEmailsEndpoint(UserEndpoint):
     publish_status = {
@@ -68,7 +66,7 @@ class UserEmailsEndpoint(UserEndpoint):
         "POST": ApiPublishStatus.UNKNOWN,
     }
 
-    def get(self, request: Request, user) -> Response:
+    def get(self, request: Request, user: User) -> Response:
         """
         Get list of emails
         ``````````````````
@@ -83,7 +81,7 @@ class UserEmailsEndpoint(UserEndpoint):
         return self.respond(serialize(list(emails), user=user))
 
     @sudo_required
-    def post(self, request: Request, user) -> Response:
+    def post(self, request: Request, user: User) -> Response:
         """
         Adds a secondary email address
         ``````````````````````````````
@@ -118,7 +116,7 @@ class UserEmailsEndpoint(UserEndpoint):
             return self.respond(serialize(new_useremail, user=request.user), status=201)
 
     @sudo_required
-    def put(self, request: Request, user) -> Response:
+    def put(self, request: Request, user: User) -> Response:
         """
         Updates primary email
         `````````````````````
@@ -212,7 +210,7 @@ class UserEmailsEndpoint(UserEndpoint):
         return self.respond(serialize(new_useremail, user=request.user))
 
     @sudo_required
-    def delete(self, request: Request, user) -> Response:
+    def delete(self, request: Request, user: User) -> Response:
         """
         Removes an email from account
         `````````````````````````````

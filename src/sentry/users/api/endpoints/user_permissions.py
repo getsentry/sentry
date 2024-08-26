@@ -6,6 +6,7 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import control_silo_endpoint
 from sentry.api.bases.user import UserEndpoint
 from sentry.api.permissions import SuperuserOrStaffFeatureFlaggedPermission
+from sentry.users.models.user import User
 from sentry.users.models.userpermission import UserPermission
 
 
@@ -17,6 +18,6 @@ class UserPermissionsEndpoint(UserEndpoint):
     owner = ApiOwner.ENTERPRISE
     permission_classes = (SuperuserOrStaffFeatureFlaggedPermission,)
 
-    def get(self, request: Request, user) -> Response:
+    def get(self, request: Request, user: User) -> Response:
         permission_list = list(UserPermission.objects.filter(user=user))
         return self.respond([p.permission for p in permission_list])
