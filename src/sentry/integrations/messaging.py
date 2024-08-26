@@ -544,7 +544,7 @@ class TeamLinkageView(LinkageView, ABC):
             params = unsign(signed_params, salt=self.salt)
         except (SignatureExpired, BadSignature) as e:
             logger.warning("handle.signature_error", exc_info=e)
-            metrics.incr(self.get_metric_key("failure"), tags={"error": str(e)}, sample_rate=1.0)
+            self.capture_metric("failure", tags={"error": str(e)})
             return render_to_response(
                 "sentry/integrations/slack/expired-link.html",
                 status=400,
@@ -566,7 +566,7 @@ class TeamLinkageView(LinkageView, ABC):
                     "organization_id": organization_id,
                 },
             )
-            metrics.incr(self.get_metric_key("failure"), sample_rate=1.0)
+            self.capture_metric("failure")
             return self.render_error_page(
                 request, status=404, body_text="HTTP 404: Could not find the Slack integration."
             )
@@ -624,7 +624,7 @@ class LinkTeamView(TeamLinkageView, ABC):
 
         if not teams_by_id:
             logger.info("team.no_teams_found", extra=logger_params)
-            metrics.incr(self.get_metric_key("failure.get_teams"), sample_rate=1.0)
+            self.capture_metric("failure.get_teams")
             return self.render_error_page(
                 request,
                 status=404,
@@ -646,14 +646,14 @@ class LinkTeamView(TeamLinkageView, ABC):
 
         if not form.is_valid():
             logger.info("form.invalid", extra={**logger_params, "form_errors": form.errors})
-            metrics.incr(self.get_metric_key("failure.form_invalid"), sample_rate=1.0)
+            self.capture_metric("failure.form_invalid")
             return self.render_error_page(request, status=400, body_text="HTTP 400: Bad request")
 
         team_id = int(form.cleaned_data["team"])
         team = teams_by_id.get(team_id)
         if not team:
             logger.info("team.not_found", extra={"team_id": team_id})
-            metrics.incr(self.get_metric_key("failure.team_not_found"), sample_rate=1.0)
+            self.capture_metric("failure.team_not_found")
             return self.render_error_page(
                 request,
                 status=404,
@@ -668,9 +668,7 @@ class LinkTeamView(TeamLinkageView, ABC):
         logger_params["provider_ext_id"] = integration.external_id
         if idp is None:
             logger.info("identity_provider.not_found", extra=logger_params)
-            metrics.incr(
-                self.get_metric_key("failure.identity_provider_not_found"), sample_rate=1.0
-            )
+            self.capture_metric("failure.identity_provider_not_found")
             return self.render_error_page(
                 request, status=403, body_text="HTTP 403: Invalid team ID"
             )
@@ -680,7 +678,7 @@ class LinkTeamView(TeamLinkageView, ABC):
         )
         if not ident:
             logger.info("identity.not_found", extra=logger_params)
-            metrics.incr(self.get_metric_key("failure.identity_not_found"), sample_rate=1.0)
+            self.capture_metric("failure.identity_not_found")
             return self.render_error_page(
                 request, status=403, body_text="HTTP 403: User identity does not exist"
             )
@@ -704,7 +702,7 @@ class LinkTeamView(TeamLinkageView, ABC):
         )
 
         if not created:
-            metrics.incr(self.get_metric_key("failure.team_already_linked"), sample_rate=1.0)
+            self.capture_metric("failure.team_already_linked")
             return self.notify_team_already_linked(request, channel_id, integration, team)
 
         has_team_workflow = features.has(
@@ -726,7 +724,7 @@ class LinkTeamView(TeamLinkageView, ABC):
         )
         self.notify_on_success(channel_id, integration, message)
 
-        metrics.incr(self.get_metric_key("success.link_team"), sample_rate=1.0)
+        self.capture_metric("success")
 
         return render_to_response(
             "sentry/integrations/slack/post-linked-team.html",
@@ -789,7 +787,7 @@ class UnlinkTeamView(TeamLinkageView, ABC):
         organization = om.organization if om else None
         if organization is None:
             logger.info("no-organization-found", extra=logger_params)
-            metrics.incr(self.get_metric_key("failure.get_organization"), sample_rate=1.0)
+            self.capture_metric("failure.get_organization")
             return self.render_error_page(
                 request, status=404, body_text="HTTP 404: Could not find the organization."
             )
@@ -803,13 +801,13 @@ class UnlinkTeamView(TeamLinkageView, ABC):
         )
         if len(external_teams) == 0:
             logger.info("no-team-found", extra=logger_params)
-            metrics.incr(self.get_metric_key("failure.get_team"), sample_rate=1.0)
+            self.capture_metric("failure.get_team")
             return self.render_error_page(request, status=404, body_text="HTTP 404: Team not found")
 
         team = external_teams[0].team
         if team is None:
             logger.info("no-team-found", extra=logger_params)
-            metrics.incr(self.get_metric_key("failure.get_team"), sample_rate=1.0)
+            self.capture_metric("failure.get_team")
             return self.render_error_page(request, status=404, body_text="HTTP 404: Team not found")
 
         logger_params["team_id"] = team.id
@@ -818,7 +816,7 @@ class UnlinkTeamView(TeamLinkageView, ABC):
         # on the team you're trying to unlink.
         if not self.is_valid_role(om) and not is_team_admin(om, team=team):
             logger.info("invalid-role", extra=logger_params)
-            metrics.incr(self.get_metric_key("failure.invalid_role"), sample_rate=1.0)
+            self.capture_metric("failure.invalid_role")
             return self.render_error_page(
                 request, status=403, body_text="HTTP 403: " + INSUFFICIENT_ACCESS
             )
@@ -843,7 +841,7 @@ class UnlinkTeamView(TeamLinkageView, ABC):
             filter={"provider_id": idp.id, "identity_ext_id": slack_id}
         ):
             logger.info("identity-not-found", extra=logger_params)
-            metrics.incr(self.get_metric_key("failure.identity_not_found"), sample_rate=1.0)
+            self.capture_metric("failure.identity_not_found")
             return self.render_error_page(
                 request, status=403, body_text="HTTP 403: User identity does not exist"
             )
@@ -852,7 +850,7 @@ class UnlinkTeamView(TeamLinkageView, ABC):
         for external_team in external_teams:
             external_team.delete()
 
-        metrics.incr(self.get_metric_key("success.post.unlink_team"), sample_rate=1.0)
+        self.capture_metric("success.post")
 
         return render_to_response(
             "sentry/integrations/slack/unlinked-team.html",
