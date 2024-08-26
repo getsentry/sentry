@@ -95,10 +95,11 @@ def make_eap_request(
 
     series_data = list(resp.result)
     duration = end - start
-    bucket_size_secs = duration.total_seconds() / len(series_data)
     intervals = []
-    for i in range(len(series_data)):
-        intervals.append((start + timedelta(seconds=bucket_size_secs * i)).isoformat())
+    if len(series_data) > 0:
+        bucket_size_secs = duration.total_seconds() / len(series_data)
+        for i in range(len(series_data)):
+            intervals.append((start + timedelta(seconds=bucket_size_secs * i)).isoformat())
     intervals.append(end.isoformat())
 
     return {
