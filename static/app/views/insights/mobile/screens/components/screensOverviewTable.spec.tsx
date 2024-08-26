@@ -1,9 +1,9 @@
-import {render, screen} from '@testing-library/react';
 import type {Location} from 'history';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
 
-import {ThemeAndStyleProvider} from 'sentry/components/themeAndStyleProvider';
+import {render, screen} from 'sentry-test/reactTestingLibrary';
+
 import EventView from 'sentry/utils/discover/eventView';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -71,14 +71,12 @@ describe('ScreensOverviewTable', () => {
 
   it('renders columns', async () => {
     render(
-      <ThemeAndStyleProvider>
-        <ScreensOverviewTable
-          data={mockData}
-          eventView={mockEventView}
-          isLoading={false}
-          pageLinks=""
-        />
-      </ThemeAndStyleProvider>
+      <ScreensOverviewTable
+        data={mockData}
+        eventView={mockEventView}
+        isLoading={false}
+        pageLinks=""
+      />
     );
 
     // headers
