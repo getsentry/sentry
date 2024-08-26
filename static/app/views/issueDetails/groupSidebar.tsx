@@ -260,11 +260,7 @@ export default function GroupSidebar({
   return (
     <Container>
       <Feature features={['organizations:ai-summary']}>
-        <GroupSummary
-          groupId={group.id}
-          groupCategory={group.issueCategory}
-          groupTitle={group.title}
-        />
+        <GroupSummary groupId={group.id} groupCategory={group.issueCategory} />
       </Feature>
       {hasStreamlinedUI && event && (
         <ErrorBoundary mini>
