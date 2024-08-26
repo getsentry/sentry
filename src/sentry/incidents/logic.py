@@ -1410,7 +1410,7 @@ def create_alert_rule_trigger_action(
         alert_rule_trigger=trigger,
         type=type.value,
         target_type=target_type.value,
-        target_identifier=target.identifier,
+        target_identifier=str(target.identifier) if target.identifier is not None else None,
         target_display=target.display,
         integration_id=integration_id,
         sentry_app_id=sentry_app_id,
