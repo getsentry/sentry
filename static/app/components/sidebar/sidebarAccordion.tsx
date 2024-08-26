@@ -31,6 +31,7 @@ type SidebarAccordionProps = SidebarItemProps & {
 function SidebarAccordion({
   children,
   initiallyExpanded,
+  hasNewNav,
   ...itemProps
 }: SidebarAccordionProps) {
   const {id, collapsed: sidebarCollapsed} = itemProps;
@@ -89,6 +90,7 @@ function SidebarAccordion({
     if ((!horizontal && !sidebarCollapsed) || !children) {
       setExpandedItemId(null);
       if (!hasMainLink) {
+        console.log('SETTING EXPANDED TO NULL');
         setExpanded(!expanded);
       }
       return;
@@ -96,8 +98,10 @@ function SidebarAccordion({
 
     e.preventDefault();
     if (isOpenInFloatingSidebar) {
+      console.log('SETTING EXPANDED TO NULL');
       setExpandedItemId(null);
     } else {
+      console.log('SETTING EXPANDED TO: ', mainItemId);
       setExpandedItemId(mainItemId);
     }
   };
@@ -114,7 +118,10 @@ function SidebarAccordion({
 
   let isMainItemActive = isActive && !hasActiveChildren;
   if (shouldAccordionFloat) {
+    console.log('ACCORDION SHOULD FLOAT');
+    console.log('IS ACTIVE: ', isActive);
     isMainItemActive = isActive || hasActiveChildren;
+    console.log('IS MAIN ITEM ACTIVE: ', isMainItemActive);
   }
 
   return (
@@ -123,6 +130,7 @@ function SidebarAccordion({
         <div ref={mainItemRef}>
           <SidebarItem
             {...itemProps}
+            hasNewNav={hasNewNav}
             active={isMainItemActive}
             id={mainItemId}
             data-test-id={mainItemId}

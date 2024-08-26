@@ -458,7 +458,7 @@ function Sidebar() {
       <SidebarItem
         {...sidebarItemProps}
         icon={<IconSupport />}
-        label={t('User Feedback')}
+        label={hasNewNav ? 'User Fb.' : t('User Feedback')}
         to={`/organizations/${organization.slug}/user-feedback/`}
         id="user-feedback"
       />
@@ -470,7 +470,7 @@ function Sidebar() {
       <SidebarItem
         {...sidebarItemProps}
         icon={<IconMegaphone />}
-        label={t('User Feedback')}
+        label={hasNewNav ? 'User Fb.' : t('User Feedback')}
         variant="short"
         to={`/organizations/${organization.slug}/feedback/`}
         id="feedback"
@@ -585,6 +585,7 @@ function Sidebar() {
     />
   );
 
+  // What's the power icon here??
   const insights = hasOrganization && (
     <Feature key="insights" features="insights-entry-points" organization={organization}>
       <SidebarAccordion
@@ -612,6 +613,9 @@ function Sidebar() {
 
   // Sidebar accordion includes a secondary list of nav items
   // TODO: replace with a secondary panel
+  // Bugs:
+  // - on click highlights the card... but deselect doesn't un-highlight
+  //
   const explore = (
     <SidebarAccordion
       {...sidebarItemProps}
@@ -634,7 +638,7 @@ function Sidebar() {
       collapsed={collapsed}
       hasNewNav={hasNewNav}
     >
-      <ExpandedContextProvider>
+      <ExpandedContextProvider hasNewNav={hasNewNav}>
         <SidebarSectionGroupPrimary>
           <DropdownSidebarSection
             isSuperuser={showSuperuserWarning() && !isExcludedOrg()}
@@ -697,9 +701,9 @@ function Sidebar() {
           </PrimaryItems>
         </SidebarSectionGroupPrimary>
 
+        {/* Onboarding sidebar panels */}
         {hasOrganization && (
           <SidebarSectionGroup hasNewNav={hasNewNav}>
-            {/* What are the onboarding sidebars? */}
             <PerformanceOnboardingSidebar
               currentPanel={activePanel}
               onShowPanel={() => togglePanel(SidebarPanelKey.PERFORMANCE_ONBOARDING)}

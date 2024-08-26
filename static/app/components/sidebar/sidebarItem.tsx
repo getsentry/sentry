@@ -160,13 +160,13 @@ function SidebarItem({
 
   // TODO: floating accordion should be transformed into secondary panel
   let isInFloatingAccordion = (isNested || isMainItem) && shouldAccordionFloat;
-  if (hasNewNav) {
-    isInFloatingAccordion = false;
-  }
   const hasLink = Boolean(to);
   const isInCollapsedState = (!isInFloatingAccordion && collapsed) || hasNewNav;
 
   const isActive = defined(active) ? active : isActiveRouter;
+  if (isActive) {
+    console.log('SIDEBAR ITEM IS ACTIVE: ', id);
+  }
   const isTop = orientation === 'top' && !isInFloatingAccordion;
   const placement = isTop ? 'bottom' : 'right';
 
@@ -240,15 +240,7 @@ function SidebarItem({
             onClick={handleItemClick}
             hasNewNav={hasNewNav}
           >
-            {hasNewNav ? (
-              <StyledInteractionStateLayer
-                isPressed={isActive}
-                color="white"
-                higherOpacity
-              />
-            ) : (
-              <InteractionStateLayer isPressed={isActive} color="white" higherOpacity />
-            )}
+            <InteractionStateLayer isPressed={isActive} color="white" higherOpacity />
             <SidebarItemWrapper collapsed={isInCollapsedState} hasNewNav={hasNewNav}>
               {!isInFloatingAccordion && (
                 <SidebarItemIcon hasNewNav={hasNewNav}>{icon}</SidebarItemIcon>
@@ -383,6 +375,9 @@ const getActiveStyle = ({
   `;
 };
 
+// height: ${16 * 2 + 40}px;
+// width: 70px;
+
 const StyledSidebarItem = styled(Link, {
   shouldForwardProp: p => typeof p === 'string' && isPropValid(p),
 })`
@@ -391,7 +386,7 @@ const StyledSidebarItem = styled(Link, {
   position: relative;
   cursor: pointer;
   font-size: 15px;
-  height: ${p => (p.isInFloatingAccordion ? '35px' : p.hasNewNav ? '40px' : '30px')};
+  height: ${p => (p.isInFloatingAccordion ? '35px' : '30px')};
   flex-shrink: 0;
   border-radius: ${p => p.theme.borderRadius};
   transition: none;
@@ -413,8 +408,8 @@ const StyledSidebarItem = styled(Link, {
       `;
     }
     return css`
-      margin: ${space(2)} 0;
-      width: 100px;
+      width: 70px;
+      height: ${16 * 2 + 40}px;
       align-self: center;
     `;
   }}
@@ -551,9 +546,4 @@ const CollapsedFeatureBadge = styled(FeatureBadge)`
   position: absolute;
   top: 2px;
   right: 2px;
-`;
-
-const StyledInteractionStateLayer = styled(InteractionStateLayer)`
-  height: ${16 * 2 + 40}px;
-  width: 70px;
 `;

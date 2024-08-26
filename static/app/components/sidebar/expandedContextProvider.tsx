@@ -21,7 +21,7 @@ export function ExpandedContextProvider(props) {
   const theme = useTheme();
   const preferences = useLegacyStore(PreferencesStore);
   const horizontal = useMedia(`(max-width: ${theme.breakpoints.medium})`);
-  const shouldAccordionFloat = horizontal || !!preferences.collapsed;
+  const shouldAccordionFloat = horizontal || !!preferences.collapsed || props.hasNewNav;
 
   return (
     <ExpandedContext.Provider
