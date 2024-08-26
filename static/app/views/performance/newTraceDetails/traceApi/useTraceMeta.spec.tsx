@@ -5,11 +5,27 @@ import {makeTestQueryClient} from 'sentry-test/queryClient';
 import {renderHook, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import * as useOrganization from 'sentry/utils/useOrganization';
+import type {ReplayTrace} from 'sentry/views/replays/detail/trace/useReplayTraces';
 
 import {useTraceMeta} from './useTraceMeta';
 
 const organization = OrganizationFixture();
 const queryClient = makeTestQueryClient();
+
+const mockedReplayTraces: ReplayTrace[] = [
+  {
+    traceSlug: 'slug1',
+    timestamp: 1,
+  },
+  {
+    traceSlug: 'slug2',
+    timestamp: 2,
+  },
+  {
+    traceSlug: 'slug3',
+    timestamp: 3,
+  },
+];
 
 describe('useTraceMeta', () => {
   beforeEach(function () {
@@ -19,8 +35,6 @@ describe('useTraceMeta', () => {
   });
 
   it('Returns merged metaResults', async () => {
-    const traceSlugs = ['slug1', 'slug2', 'slug3'];
-
     // Mock the API calls
     MockApiClient.addMockResponse({
       method: 'GET',
@@ -60,7 +74,7 @@ describe('useTraceMeta', () => {
       <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
     );
 
-    const {result} = renderHook(() => useTraceMeta(traceSlugs), {wrapper});
+    const {result} = renderHook(() => useTraceMeta(mockedReplayTraces), {wrapper});
 
     expect(result.current).toEqual({
       data: undefined,
@@ -89,8 +103,6 @@ describe('useTraceMeta', () => {
   });
 
   it('Collects errors from rejected api calls', async () => {
-    const traceSlugs = ['slug1', 'slug2', 'slug3'];
-
     // Mock the API calls
     const mockRequest1 = MockApiClient.addMockResponse({
       method: 'GET',
@@ -112,7 +124,7 @@ describe('useTraceMeta', () => {
       <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
     );
 
-    const {result} = renderHook(() => useTraceMeta(traceSlugs), {wrapper});
+    const {result} = renderHook(() => useTraceMeta(mockedReplayTraces), {wrapper});
 
     expect(result.current).toEqual({
       data: undefined,
@@ -142,8 +154,6 @@ describe('useTraceMeta', () => {
   });
 
   it('Accumulates metaResults and collects errors from rejected api calls', async () => {
-    const traceSlugs = ['slug1', 'slug2', 'slug3'];
-
     // Mock the API calls
     const mockRequest1 = MockApiClient.addMockResponse({
       method: 'GET',
@@ -177,7 +187,7 @@ describe('useTraceMeta', () => {
       <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
     );
 
-    const {result} = renderHook(() => useTraceMeta(traceSlugs), {wrapper});
+    const {result} = renderHook(() => useTraceMeta(mockedReplayTraces), {wrapper});
 
     expect(result.current).toEqual({
       data: undefined,

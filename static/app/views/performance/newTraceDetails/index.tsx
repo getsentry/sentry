@@ -200,7 +200,7 @@ export function TraceView() {
     });
   }, [queryParams, traceSlug]);
 
-  const meta = useTraceMeta([traceSlug]);
+  const meta = useTraceMeta([{traceSlug, timestamp: queryParams.timestamp}]);
 
   const preferences = useMemo(
     () =>
