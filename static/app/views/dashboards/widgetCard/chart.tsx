@@ -1,3 +1,4 @@
+import type React from 'react';
 import {Component} from 'react';
 import type {InjectedRouter} from 'react-router';
 import type {Theme} from '@emotion/react';
@@ -51,6 +52,7 @@ import {
 } from 'sentry/utils/discover/fields';
 import getDynamicText from 'sentry/utils/getDynamicText';
 import {eventViewFromWidget} from 'sentry/views/dashboards/utils';
+import {AutoSizedText} from 'sentry/views/dashboards/widgetCard/autoSizedText';
 
 import {getFormatter} from '../../../components/charts/components/tooltip';
 import {getDatasetConfig} from '../datasetConfig/base';
@@ -243,7 +245,7 @@ class WidgetCardChart extends Component<WidgetCardChartProps, State> {
         ? containerHeight - parseInt(space(1), 10) - parseInt(space(3), 10)
         : `max(min(8vw, 90px), ${space(4)})`;
 
-      return (
+      return !organization.features.includes('auto-size-big-number-widget') ? (
         <BigNumber
           key={`big_number:${result.title}`}
           style={{
@@ -255,6 +257,18 @@ class WidgetCardChart extends Component<WidgetCardChartProps, State> {
             {rendered}
           </Tooltip>
         </BigNumber>
+      ) : expandNumbers ? (
+        <BigText>{rendered}</BigText>
+      ) : (
+        <AutoResizeParent key={`big_number:${result.title}`}>
+          <AutoSizedText>
+            <NumberContainerOverride>
+              <Tooltip title={rendered} showOnlyOnOverflow>
+                {rendered}
+              </Tooltip>
+            </NumberContainerOverride>
+          </AutoSizedText>
+        </AutoResizeParent>
       );
     });
   }
@@ -582,6 +596,7 @@ const BigNumberResizeWrapper = styled('div')`
   height: 100%;
   width: 100%;
   overflow: hidden;
+  position: relative;
 `;
 
 const BigNumber = styled('div')`
@@ -596,6 +611,46 @@ const BigNumber = styled('div')`
 
   * {
     text-align: left !important;
+  }
+`;
+
+const AutoResizeParent = styled('div')`
+  position: absolute;
+  color: ${p => p.theme.headingColor};
+  inset: ${space(1)} ${space(3)} 0 ${space(3)};
+
+  * {
+    line-height: 1;
+    text-align: left !important;
+  }
+`;
+
+const BigText = styled('div')`
+  display: block;
+  width: 100%;
+  color: ${p => p.theme.headingColor};
+  font-size: max(min(8vw, 90px), 30px);
+  padding: ${space(1)} ${space(3)} 0 ${space(3)};
+  white-space: nowrap;
+
+  * {
+    text-align: left !important;
+  }
+`;
+
+/**
+ * This component overrides the default behavior of `NumberContainer`,
+ * which wraps every single number in big widgets. This override forces
+ * `NumberContainer` to never truncate its values, which makes it possible
+ * to auto-size them.
+ */
+const NumberContainerOverride = styled('div')`
+  display: inline-block;
+
+  * {
+    text-overflow: clip !important;
+    display: inline;
+    white-space: nowrap;
   }
 `;
 
