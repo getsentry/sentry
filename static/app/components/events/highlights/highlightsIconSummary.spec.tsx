@@ -19,6 +19,35 @@ describe('HighlightsIconSummary', function () {
     tags: TEST_EVENT_TAGS,
   });
 
+  it('hides user if there is no id, email, username, etc', function () {
+    const eventWithoutUser = EventFixture({
+      contexts: {
+        user: {
+          customProperty: 'customValue',
+        },
+      },
+    });
+
+    const {container} = render(<HighlightsIconSummary event={eventWithoutUser} />);
+    expect(container).toBeEmptyDOMElement();
+  });
+
+  it('renders user if there is id, email, username, etc', function () {
+    const eventWithUser = EventFixture({
+      contexts: {
+        user: {
+          id: 'user id',
+          email: 'user email',
+          username: 'user username',
+        },
+      },
+    });
+
+    render(<HighlightsIconSummary event={eventWithUser} />);
+    expect(screen.getByText('user email')).toBeInTheDocument();
+    expect(screen.getByText('Username: user username')).toBeInTheDocument();
+  });
+
   it('renders appropriate icons and text', function () {
     render(<HighlightsIconSummary event={event} />);
     expect(screen.getByText('Mac OS X')).toBeInTheDocument();

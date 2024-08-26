@@ -28,7 +28,7 @@ export function HighlightsIconSummary({event}: HighlightsIconSummaryProps) {
         },
       }),
     }))
-    .filter(item => item.icon !== null);
+    .filter(item => item.icon !== null && Boolean(item.title || item.subtitle));
 
   const deviceIndex = items.findIndex(item => item.alias === 'device');
   const clientOsIndex = items.findIndex(item => item.alias === 'client_os');
