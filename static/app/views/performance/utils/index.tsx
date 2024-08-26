@@ -20,11 +20,10 @@ import {TRACING_FIELDS} from 'sentry/utils/discover/fields';
 import {SavedQueryDatasets} from 'sentry/utils/discover/types';
 import {statsPeriodToDays} from 'sentry/utils/duration/statsPeriodToDays';
 import getCurrentSentryReactRootSpan from 'sentry/utils/getCurrentSentryReactRootSpan';
-import {useQuery} from 'sentry/utils/queryClient';
+import {useApiQuery} from 'sentry/utils/queryClient';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
-import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 import {hasDatasetSelector} from 'sentry/views/dashboards/utils';
@@ -379,17 +378,16 @@ export function getProjectID(
 }
 
 export function usePerformanceGeneralProjectSettings(projectId?: number) {
-  const api = useApi();
   const organization = useOrganization();
   const {projects} = useProjects();
   const stringProjectId = projectId?.toString();
   const project = projects.find(p => p.id === stringProjectId);
 
-  return useQuery(['settings', 'general', projectId], {
-    enabled: Boolean(project),
-    queryFn: () =>
-      api.requestPromise(
-        `/api/0/projects/${organization.slug}/${project?.slug}/performance/configure/`
-      ) as Promise<{enable_images: boolean}>,
-  });
+  return useApiQuery<{enable_images: boolean}>(
+    [`/projects/${organization.slug}/${project?.slug}/performance/configure/`],
+    {
+      staleTime: 0,
+      enabled: Boolean(project),
+    }
+  );
 }
