@@ -1,14 +1,15 @@
 from datetime import datetime, timezone
 from enum import StrEnum
+from typing import Any
 
 import sentry_sdk
 from django.contrib.auth.models import AnonymousUser
 
 from sentry import features
+from sentry.auth.access import Access
 from sentry.incidents.endpoints.organization_alert_rule_index import create_metric_alert
 from sentry.models.project import Project
 from sentry.models.rule import Rule
-from sentry.models.team import Team
 from sentry.notifications.types import FallthroughChoiceType
 from sentry.rules.conditions.new_high_priority_issue import has_high_priority_issue_alerts
 from sentry.signals import project_created
@@ -118,13 +119,13 @@ def create_default_metric_alert_data(
 @project_created.connect(dispatch_uid="create_default_rules", weak=False)
 def create_default_rules(
     project: Project,
-    team: Team | None = None,
-    default_rules=True,
+    team_id: int | None = None,
+    default_rules: bool = True,
     user=None,
-    access=None,
-    is_api_token=False,
-    ip_address=None,
-    sender=None,
+    access: Access | None = None,
+    is_api_token: bool = False,
+    ip_address: str | None = None,
+    sender: Any = None,
     **kwargs,
 ):
     if not default_rules:
@@ -139,8 +140,8 @@ def create_default_rules(
         Rule.objects.create(project=project, label=DEFAULT_ISSUE_ALERT_LABEL, data=rule_data)
 
     if features.has("organizations:default-metric-alerts-new-projects", project.organization):
-        # We need to send notifications to a team or user.
-        if user is None and team is None:
+        # Metric alerts require sending notifications to a team or user.
+        if user is None and team_id is None:
             return
 
         # When user is None, we must be sending to a team which requires access
@@ -151,16 +152,16 @@ def create_default_rules(
         if user is None:
             user = AnonymousUser()
 
-        # Prefer team over user is both are provided.
-        if team and access:
-            target_id = team.id
+        # Prioritize sending notifications to teams over individual users.
+        if team_id and access:
+            target_id = team_id
             target_type = TargetType.TEAM
         else:
             target_id = user.id
             target_type = TargetType.USER
 
         data = create_default_metric_alert_data(
-            project_slug=project.slug, target_type=target_type, target_id=target_id
+            project=project, target_type=target_type, target_id=target_id
         )
 
         try:
