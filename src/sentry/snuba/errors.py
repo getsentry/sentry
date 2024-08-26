@@ -131,8 +131,9 @@ def timeseries_query(
             comp_query_params.end -= comparison_delta
             comparison_builder = ErrorsTimeseriesQueryBuilder(
                 Dataset.Events,
-                comp_query_params,
+                {},
                 rollup,
+                snuba_params=comp_query_params,
                 query=query,
                 selected_columns=columns,
                 equations=equations,
