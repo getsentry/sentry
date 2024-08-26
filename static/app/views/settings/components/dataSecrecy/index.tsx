@@ -1,20 +1,18 @@
-import React, {useEffect, useState} from 'react';
-import styled from '@emotion/styled';
+import {useEffect, useState} from 'react';
+import moment from 'moment-timezone';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
-import {Button} from 'sentry/components/button';
-import Confirm from 'sentry/components/confirm';
-import Form from 'sentry/components/forms/form';
-import JsonForm from 'sentry/components/forms/jsonForm';
-import LoadingError from 'sentry/components/loadingError';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
+import BooleanField, {
+  type BooleanFieldProps,
+} from 'sentry/components/forms/fields/booleanField';
+import DateTimeField, {
+  type DateTimeFieldProps,
+} from 'sentry/components/forms/fields/dateTimeField';
 import Panel from 'sentry/components/panels/panel';
 import PanelAlert from 'sentry/components/panels/panelAlert';
 import PanelBody from 'sentry/components/panels/panelBody';
 import PanelHeader from 'sentry/components/panels/panelHeader';
-import Text from 'sentry/components/text';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -23,6 +21,138 @@ type WaiverData = {
   access_end: string | null;
   access_start: string | null;
 };
+
+export default function DataSecrecy() {
+  const api = useApi();
+  const organization = useOrganization();
+
+  const [allowAccess, setAllowAccess] = useState(organization.allowSuperuserAccess);
+  const [allowDate, setAllowDate] = useState<WaiverData>();
+  const [allowDateFormData, setAllowDateFormData] = useState<string>('');
+
+  const {data, refetch} = useApiQuery<WaiverData>(
+    [`/organizations/${organization.slug}/data-secrecy/`],
+    {
+      staleTime: 3000,
+      retry: (failureCount, error) => failureCount < 3 && error.status !== 404,
+    }
+  );
+
+  const hasValidTempAccess =
+    allowDate?.access_end && moment().toISOString() < allowDate.access_end;
+
+  useEffect(() => {
+    if (data?.access_end) {
+      setAllowDate(data);
+      // slice it to yyyy-MM-ddThh:mm format (be aware of the timezone)
+      const localDate = moment(data.access_end).local();
+      setAllowDateFormData(localDate.format('YYYY-MM-DDTHH:mm'));
+    }
+  }, [data]);
+
+  const updateAllowedAccess = async (value: boolean) => {
+    try {
+      await api.requestPromise(`/organizations/${organization.slug}/`, {
+        method: 'PUT',
+        data: {allowSuperuserAccess: value},
+      });
+      setAllowAccess(value);
+      addSuccessMessage(t('Successfully updated access.'));
+    } catch (error) {
+      addErrorMessage(t('Unable to save changes.'));
+    }
+  };
+
+  const updateTempAccessDate = async () => {
+    if (!allowDateFormData) {
+      try {
+        await api.requestPromise(`/organizations/${organization.slug}/data-secrecy/`, {
+          method: 'DELETE',
+        });
+        setAllowDate({access_start: '', access_end: ''});
+        addSuccessMessage(t('Successfully removed temporary access window.'));
+      } catch (error) {
+        addErrorMessage(t('Unable to remove temporary access window.'));
+      }
+
+      return;
+    }
+
+    // maintain the standard format of storing the date in UTC
+    // even though the api should be able to handle the local time
+    const nextData = {
+      access_start: moment().utc().toISOString(),
+      access_end: moment.tz(allowDateFormData, moment.tz.guess()).utc().toISOString(),
+    };
+
+    try {
+      await await api.requestPromise(
+        `/organizations/${organization.slug}/data-secrecy/`,
+        {
+          method: 'PUT',
+          data: nextData,
+        }
+      );
+      setAllowDate(nextData);
+      addSuccessMessage(t('Successfully updated temporary access window.'));
+    } catch (error) {
+      addErrorMessage(t('Unable to save changes.'));
+      setAllowDateFormData('');
+    }
+    // refetch to get the latest waiver data
+    refetch();
+  };
+
+  const allowAccessProps: BooleanFieldProps = {
+    name: 'allowSuperuserAccess',
+    label: t('Allow access to Sentry employees'),
+    help: t(
+      'Sentry employees will not have access to your organization unless granted permission'
+    ),
+    'aria-label': t(
+      'Sentry employees will not have access to your data unless granted permission'
+    ),
+    value: allowAccess,
+    onBlur: updateAllowedAccess,
+  };
+
+  const allowTempAccessProps: DateTimeFieldProps = {
+    name: 'allowTemporarySuperuserAccess',
+    label: t('Allow temporary access for Sentry employees'),
+    help: t(
+      'Open a temporary time window for Sentry employees to access your organization'
+    ),
+    disabled: allowAccess,
+    value: allowAccess ? '' : allowDateFormData,
+    onBlur: updateTempAccessDate,
+    onChange: v => {
+      // the picker doesn't like having a datetime string with seconds+ and a timezone,
+      // so we remove it -- we will add it back when we save the date
+      const formattedDate = v ? moment(v).format('YYYY-MM-DDTHH:mm') : '';
+      setAllowDateFormData(formattedDate);
+    },
+  };
+
+  return (
+    <Panel>
+      <PanelHeader>{t('Support Access')}</PanelHeader>
+      <PanelBody>
+        {!allowAccess && (
+          <PanelAlert>
+            {hasValidTempAccess
+              ? tct(`Sentry employees has access to your organization until [date]`, {
+                  date: formatDateTime(allowDate?.access_end as string),
+                })
+              : t('Sentry employees do not have access to your organization')}
+          </PanelAlert>
+        )}
+
+        <BooleanField {...(allowAccessProps as BooleanFieldProps)} />
+        <DateTimeField {...(allowTempAccessProps as DateTimeFieldProps)} />
+      </PanelBody>
+    </Panel>
+  );
+}
 
 const formatDateTime = (dateString: string) => {
   const date = new Date(dateString);
@@ -37,219 +167,3 @@ const formatDateTime = (dateString: string) => {
   };
   return new Intl.DateTimeFormat('en-US', options).format(date);
 };
-
-const formatDateForInput = (dateString: string | null | undefined) => {
-  if (!dateString) return '';
-  const date = new Date(dateString);
-  return date.toISOString().slice(0, 16);
-};
-
-const getWaiverStatus = (waiverData: WaiverData | null) => {
-  if (!waiverData || !waiverData.access_start || !waiverData.access_end) {
-    return {
-      status: t('Data secrecy is not currently waived'),
-      isPast: false,
-      isFuture: false,
-      isCurrentlyWaived: false,
-    };
-  }
-
-  const now = new Date();
-  const startDate = new Date(waiverData.access_start);
-  const endDate = new Date(waiverData.access_end);
-
-  if (startDate <= now && endDate > now) {
-    return {
-      status: tct('Data secrecy is currently waived until [to]', {
-        to: <strong>{formatDateTime(waiverData.access_end)}</strong>,
-      }),
-      isPast: false,
-      isFuture: false,
-      isCurrentlyWaived: true,
-    };
-  }
-  if (startDate > now) {
-    return {
-      status: tct('Data secrecy will be waived from [from] until [to]', {
-        from: <strong>{formatDateTime(waiverData.access_start)}</strong>,
-        to: <strong>{formatDateTime(waiverData.access_end)}</strong>,
-      }),
-      isPast: false,
-      isFuture: true,
-      isCurrentlyWaived: false,
-    };
-  }
-
-  return {
-    status: tct('Data secrecy was waived [from] until [to]', {
-      from: <strong>{formatDateTime(waiverData.access_start)}</strong>,
-      to: <strong>{formatDateTime(waiverData.access_end)}</strong>,
-    }),
-    isPast: true,
-    isFuture: false,
-    isCurrentlyWaived: false,
-  };
-};
-
-export function DataSecrecy() {
-  const api = useApi();
-  const organization = useOrganization();
-  const [isEditing, setIsEditing] = useState(false);
-  const [waiverData, setWaiverData] = useState<WaiverData | null>(null);
-
-  const {
-    isLoading,
-    data,
-    refetch,
-    error: queryError,
-  } = useApiQuery<WaiverData>([`/organizations/${organization.slug}/data-secrecy/`], {
-    staleTime: 3000,
-    retry: (failureCount, error) => failureCount < 3 && error.status !== 404,
-  });
-
-  useEffect(() => {
-    if (data) {
-      setWaiverData(data);
-    }
-  }, [data]);
-
-  const initialData = {
-    access_start:
-      formatDateForInput(waiverData?.access_start) ||
-      formatDateForInput(new Date().toISOString()),
-    access_end: formatDateForInput(waiverData?.access_end) || '',
-  };
-
-  if (isLoading) {
-    return <LoadingIndicator />;
-  }
-
-  if (queryError && queryError.status !== 404) {
-    return <LoadingError onRetry={refetch} />;
-  }
-
-  const handleSubmit = async formData => {
-    try {
-      const response = await api.requestPromise(
-        `/organizations/${organization.slug}/data-secrecy/`,
-        {
-          method: 'PUT',
-          data: {
-            access_start: new Date(formData.access_start || '').toISOString(),
-            access_end: new Date(formData.access_end || '').toISOString(),
-          },
-        }
-      );
-
-      setWaiverData(response);
-      addSuccessMessage(t('Successfully updated data secrecy waiver'));
-      setIsEditing(false);
-    } catch (error) {
-      addErrorMessage(t('Unable to update data secrecy waiver'));
-    }
-  };
-
-  const handleDelete = async () => {
-    try {
-      await api.requestPromise(`/organizations/${organization.slug}/data-secrecy/`, {
-        method: 'DELETE',
-      });
-
-      setWaiverData(null);
-      addSuccessMessage(t('Successfully removed data secrecy waiver'));
-    } catch (error) {
-      addErrorMessage(t('Unable to remove data secrecy waiver'));
-    }
-  };
-
-  const waiverStatus = getWaiverStatus(waiverData);
-  const showWaiver = !waiverStatus.isPast;
-  const showRemoveButton = waiverStatus.isCurrentlyWaived || waiverStatus.isFuture;
-
-  return (
-    <Panel>
-      <PanelHeader hasButtons>
-        {t('Data Secrecy Waiver')}
-        {!isEditing && showWaiver && !organization.allowSuperuserAccess && (
-          <PanelAction>
-            <React.Fragment>
-              {showRemoveButton && (
-                <Confirm
-                  onConfirm={handleDelete}
-                  message={t('Are you sure you want to remove the data secrecy waiver?')}
-                >
-                  <Button priority="danger" size="sm">
-                    {t('Remove Waiver')}
-                  </Button>
-                </Confirm>
-              )}
-              <Button priority="primary" size="sm" onClick={() => setIsEditing(true)}>
-                {waiverStatus.isCurrentlyWaived || waiverStatus.isFuture
-                  ? t('Edit')
-                  : t('Add Waiver')}
-              </Button>
-            </React.Fragment>
-          </PanelAction>
-        )}
-      </PanelHeader>
-      {organization.allowSuperuserAccess ? (
-        <PanelAlert type="warning">
-          {t(
-            'Superuser access is currently enabled. To turn superuser access off, toggle the setting above.'
-          )}
-        </PanelAlert>
-      ) : (
-        <PanelAlert type="info">
-          {t(
-            'Data secrecy waiver allows Sentry employees to access the organization temporarily to address issues.'
-          )}
-        </PanelAlert>
-      )}
-      {!organization.allowSuperuserAccess && (
-        <StyledPanelBody>
-          {isEditing ? (
-            <Form
-              data-test-id="data-secrecy-organization-settings"
-              allowUndo
-              initialData={initialData}
-              onSubmit={handleSubmit}
-              onCancel={() => setIsEditing(false)}
-            >
-              <JsonForm
-                fields={[
-                  {
-                    name: 'access_start',
-                    type: 'datetime',
-                    label: t('Waiver Start Time'),
-                    required: true,
-                  },
-                  {
-                    name: 'access_end',
-                    type: 'datetime',
-                    label: t('Waiver End Time'),
-                    required: true,
-                  },
-                ]}
-              />
-            </Form>
-          ) : (
-            <Text>{waiverStatus.status}</Text>
-          )}
-        </StyledPanelBody>
-      )}
-    </Panel>
-  );
-}
-
-const PanelAction = styled('div')`
-  padding: ${space(1)} ${space(2)};
-  position: relative;
-  display: grid;
-  gap: ${space(1)};
-  grid-template-columns: auto auto;
-  justify-content: flex-end;
-`;
-
-const StyledPanelBody = styled(PanelBody)`
-  padding: ${space(2)};
-`;

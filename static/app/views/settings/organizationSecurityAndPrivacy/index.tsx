@@ -13,8 +13,7 @@ import type {AuthProvider} from 'sentry/types/auth';
 import type {Organization} from 'sentry/types/organization';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
-import {DataSecrecy} from 'sentry/views/settings/components/dataSecrecy';
-import DataSecrecy2 from 'sentry/views/settings/components/dataSecrecy/index2';
+import DataSecrecy from 'sentry/views/settings/components/dataSecrecy/index';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 
 import {DataScrubbing} from '../components/dataScrubbing';
@@ -83,8 +82,7 @@ export default function OrganizationSecurityAndPrivacyContent() {
         />
       </Form>
 
-      {!showDataSecrecySettings && <DataSecrecy />}
-      {!showDataSecrecySettings && <DataSecrecy2 />}
+      {showDataSecrecySettings && <DataSecrecy />}
 
       <Form
         data-test-id="organization-settings-security-and-privacy"
