@@ -274,7 +274,7 @@ function AlertRuleDetails({params, location, router}: AlertRuleDetailsProps) {
     query: {
       project: project.slug,
       duplicateRuleId: rule.id,
-      createFromDuplicate: true,
+      createFromDuplicate: 'true',
       referrer: 'issue_rule_details',
     },
   };
