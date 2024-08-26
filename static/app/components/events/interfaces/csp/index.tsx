@@ -5,7 +5,7 @@ import {SegmentedControl} from 'sentry/components/segmentedControl';
 import {t} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
 import {EntryType} from 'sentry/types/event';
-import {FoldSectionKey} from 'sentry/views/issueDetails/streamline/foldSection';
+import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
 import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
 
 import type {HelpProps} from './help';
@@ -67,7 +67,7 @@ export function Csp({data, event}: Props) {
   );
 
   return (
-    <InterimSection title={t('CSP Report')} actions={actions} type={FoldSectionKey.CSP}>
+    <InterimSection title={t('CSP Report')} actions={actions} type={SectionKey.CSP}>
       {getView(view, cleanData, meta)}
     </InterimSection>
   );

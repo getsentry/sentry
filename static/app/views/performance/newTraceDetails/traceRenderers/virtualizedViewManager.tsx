@@ -16,6 +16,8 @@ import {TraceRowWidthMeasurer} from 'sentry/views/performance/newTraceDetails/tr
 import {TraceTextMeasurer} from 'sentry/views/performance/newTraceDetails/traceRenderers/traceTextMeasurer';
 import type {TraceView} from 'sentry/views/performance/newTraceDetails/traceRenderers/traceView';
 
+import {isMissingInstrumentationNode} from '../guards';
+
 import type {TraceScheduler} from './traceScheduler';
 
 const DIVIDER_WIDTH = 6;
@@ -878,6 +880,15 @@ export class VirtualizedViewManager {
       (space[0] - this.view.to_origin) / this.span_to_px[0] -
       this.view.trace_view.x / this.span_to_px[0];
 
+    // if span ends less than 1px before the end of the view, we move it back by 1px and prevent it from being clipped
+    if (
+      (this.view.to_origin + this.view.trace_space.width - space[0] - space[1]) /
+        this.span_to_px[0] <=
+      1
+    ) {
+      // 1px for the span and 1px for the border
+      this.span_matrix[4] = this.span_matrix[4] - 2;
+    }
     return this.span_matrix;
   }
 
@@ -1392,7 +1403,10 @@ export class VirtualizedViewManager {
       return;
     }
 
-    span_text.ref.style.color = inside ? 'white' : '';
+    // We don't color the text white for missing instrumentation nodes
+    // as the text will be invisible on the light background.
+    span_text.ref.style.color =
+      inside && node && !isMissingInstrumentationNode(node) ? 'white' : '';
     span_text.ref.style.transform = `translateX(${text_transform}px)`;
   }
 

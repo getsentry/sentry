@@ -9,12 +9,13 @@ import usePageFilters from 'sentry/utils/usePageFilters';
 import {DEFAULT_QUERY_FILTER} from 'sentry/views/insights/browser/webVitals/settings';
 import type {WebVitals} from 'sentry/views/insights/browser/webVitals/types';
 import type {BrowserType} from 'sentry/views/insights/browser/webVitals/utils/queryParameterDecoders/browserType';
-import {SpanIndexedField} from 'sentry/views/insights/types';
+import {SpanIndexedField, type SubregionCode} from 'sentry/views/insights/types';
 
 type Props = {
   browserTypes?: BrowserType[];
   dataset?: DiscoverDatasets;
   enabled?: boolean;
+  subregions?: SubregionCode[];
   tag?: Tag;
   transaction?: string;
   weightWebVital?: WebVitals | 'total';
@@ -27,6 +28,7 @@ export const useProjectWebVitalsScoresQuery = ({
   enabled = true,
   weightWebVital = 'total',
   browserTypes,
+  subregions,
 }: Props = {}) => {
   const organization = useOrganization();
   const pageFilters = usePageFilters();
@@ -41,6 +43,9 @@ export const useProjectWebVitalsScoresQuery = ({
   }
   if (browserTypes) {
     search.addDisjunctionFilterValues(SpanIndexedField.BROWSER_NAME, browserTypes);
+  }
+  if (subregions) {
+    search.addDisjunctionFilterValues(SpanIndexedField.USER_GEO_SUBREGION, subregions);
   }
 
   const projectEventView = EventView.fromNewQueryWithPageFilters(
