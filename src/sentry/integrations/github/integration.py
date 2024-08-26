@@ -511,6 +511,10 @@ class GitHubInstallation(PipelineView):
             pipeline.fetch_state("github_authenticated_user")
             != integration.metadata["sender"]["login"]
         ):
-            return error(request, self.active_organization)
+            return error(
+                request,
+                self.active_organization,
+                error_short="Authenticated user is not the same as who installated the app",
+            )
 
         return pipeline.next_step()
