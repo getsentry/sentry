@@ -253,9 +253,7 @@ function chartMetadata({
   chartLabel: React.ReactNode;
   tooltipValueFormatter: (val?: number) => string;
   xAxisData: string[];
-  // xAxisLabelInterval: number;
   xAxisLabelVisibility: Record<number, boolean>;
-  // xAxisTickInterval: number;
   yAxisMinInterval: number;
 } {
   const selectDataCategory = categoryOptions.find(o => o.value === dataCategory);
