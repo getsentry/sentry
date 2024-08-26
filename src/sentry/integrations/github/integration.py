@@ -514,7 +514,7 @@ class GitHubInstallation(PipelineView):
             return error(
                 request,
                 self.active_organization,
-                error_short="Authenticated user is not the same as who installated the app",
+                error_short="Authenticated user is not the same as who installed the app",
             )
 
         return pipeline.next_step()
