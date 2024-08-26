@@ -128,6 +128,14 @@ function DashboardList({
     return <GridPreview widgetPreview={dashboard.widgetPreview} />;
   }
 
+  // TODO(__SENTRY_USING_REACT_ROUTER_SIX): We can remove this later, react
+  // router 6 handles empty query objects without appending a trailing ?
+  const queryLocation = {
+    ...(location.query && Object.keys(location.query).length > 0
+      ? {query: location.query}
+      : {}),
+  };
+
   function renderMiniDashboards() {
     return dashboards?.map((dashboard, index) => {
       return (
@@ -136,7 +144,7 @@ function DashboardList({
           title={dashboard.title}
           to={{
             pathname: `/organizations/${organization.slug}/dashboard/${dashboard.id}/`,
-            query: {...location.query},
+            ...queryLocation,
           }}
           detail={tn('%s widget', '%s widgets', dashboard.widgetPreview.length)}
           dateStatus={
