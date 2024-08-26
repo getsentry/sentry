@@ -137,13 +137,11 @@ export function useTraceMeta(traceSlugs: string[]): TraceMetaQueryResults {
       metaResults: TraceMeta;
     },
     Error
-  >(
-    ['traceData', traceSlugs],
-    () => fetchTraceMetaInBatches(traceSlugs, api, organization, queryParams),
-    {
-      enabled: traceSlugs.length > 0,
-    }
-  );
+  >({
+    queryKey: ['traceData', traceSlugs],
+    queryFn: () => fetchTraceMetaInBatches(traceSlugs, api, organization, queryParams),
+    enabled: traceSlugs.length > 0,
+  });
 
   // When projects don't have performance set up, we allow them to view a sample transaction.
   // The backend creates the sample transaction, however the trace is created async, so when the
