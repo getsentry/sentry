@@ -19,9 +19,9 @@ function useProjectSdkNeedsUpdate({
   | {isError: false; isFetching: false; needsUpdate: boolean} {
   const path = `/organizations/${organization.slug}/sdk-updates/`;
   const api = useApi({persistInFlight: true});
-  const {data, isLoading, isError} = useQuery(
-    [path],
-    async () => {
+  const {data, isLoading, isError} = useQuery({
+    queryKey: [path],
+    queryFn: async () => {
       try {
         return await api.requestPromise(path, {
           method: 'GET',
@@ -30,8 +30,9 @@ function useProjectSdkNeedsUpdate({
         return [];
       }
     },
-    {staleTime: 5000, refetchOnMount: false}
-  );
+    staleTime: 5000,
+    refetchOnMount: false,
+  });
 
   if (isLoading) {
     return {isError: false, isFetching: true, needsUpdate: undefined};
