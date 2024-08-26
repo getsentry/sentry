@@ -12,13 +12,16 @@ describe('replay event context', function () {
   const replayContext = {
     type: 'default',
     replay_id: replayId,
+    custom_replay_value: 123,
   };
 
-  it('renders replay id with button', function () {
+  it('does not render replay id with button', function () {
+    // we removed replay ID from the replay context
+    // but should still show custom values.
     render(<ReplayEventContext data={replayContext} event={event} />, {organization});
 
-    expect(screen.getByText('Replay ID')).toBeInTheDocument();
-    expect(screen.getByText(replayId)).toBeInTheDocument();
-    expect(screen.getByRole('link', {name: replayId})).toBeInTheDocument();
+    expect(screen.queryByText('Replay ID')).not.toBeInTheDocument();
+    expect(screen.queryByText(replayId)).not.toBeInTheDocument();
+    expect(screen.getByText('custom_replay_value')).toBeInTheDocument();
   });
 });
