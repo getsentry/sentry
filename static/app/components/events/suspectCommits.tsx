@@ -4,12 +4,11 @@ import uniqBy from 'lodash/uniqBy';
 
 import bannerIllustration from 'sentry-images/spot/alerts-empty-state.svg';
 
-import {Button} from 'sentry/components/button';
 import type {CommitRowProps} from 'sentry/components/commitRow';
 import {SuspectCommitHeader} from 'sentry/components/events/styles';
 import Panel from 'sentry/components/panels/panel';
+import {ScrollCarousel} from 'sentry/components/scrollCarousel';
 import {IconAdd, IconSubtract} from 'sentry/icons';
-import {IconClose} from 'sentry/icons/iconClose';
 import {t, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Group} from 'sentry/types/group';
@@ -19,7 +18,6 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import {getAnalyticsDataForGroup} from 'sentry/utils/events';
 import useRouteAnalyticsParams from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
 import useCommitters from 'sentry/utils/useCommitters';
-import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useHasStreamlinedUI} from 'sentry/views/issueDetails/utils';
 
@@ -40,11 +38,6 @@ export function SuspectCommits({group, eventId, project, commitRow: CommitRow}: 
   const committers = data?.committers ?? [];
 
   const hasStreamlinedUI = useHasStreamlinedUI();
-
-  const [suspectCommitDismissed, setSuspectCommitDismissed] = useLocalStorageState(
-    `suspect-commit-dismissed-${project.slug}-${eventId}`,
-    false
-  );
 
   function getUniqueCommitsWithAuthors() {
     // Get a list of commits with author information attached
@@ -93,35 +86,28 @@ export function SuspectCommits({group, eventId, project, commitRow: CommitRow}: 
 
   const commitHeading = tn('Suspect Commit', 'Suspect Commits (%s)', commits.length);
 
-  const firstCommit = commits[0];
-
   return hasStreamlinedUI ? (
-    !suspectCommitDismissed ? (
-      <StreamlinedPanel>
-        <Header>
-          <Title>{t('Suspect Commit')}</Title>
-          <DismissButton
-            borderless
-            icon={<IconClose />}
-            onClick={() => setSuspectCommitDismissed(true)}
-            aria-label={t('Close Suspect Commit Banner')}
-            size="zero"
-          />
-        </Header>
-        <div>
-          <CommitRow
-            key={firstCommit.id}
-            commit={firstCommit}
-            onCommitClick={() => handleCommitClick(firstCommit, 0)}
-            onPullRequestClick={() => handlePullRequestClick(firstCommit, 0)}
-            project={project}
-          />
-        </div>
-        <IllustrationContainer>
-          <Illustration src={bannerIllustration} />
-        </IllustrationContainer>
-      </StreamlinedPanel>
-    ) : null
+    <SuspectCommitWrapper>
+      <ScrollCarousel gap={0.5} transparentMask jumpItemCount={1}>
+        {commits.slice(0, 100).map((commit, commitIndex) => (
+          <StreamlinedPanel key={commitIndex}>
+            <Title>{t('Suspect Commit')}</Title>
+            <div>
+              <CommitRow
+                key={commit.id}
+                commit={commit}
+                onCommitClick={() => handleCommitClick(commit, commitIndex)}
+                onPullRequestClick={() => handlePullRequestClick(commit, commitIndex)}
+                project={project}
+              />
+            </div>
+            <IllustrationContainer>
+              <Illustration src={bannerIllustration} />
+            </IllustrationContainer>
+          </StreamlinedPanel>
+        ))}
+      </ScrollCarousel>
+    </SuspectCommitWrapper>
   ) : (
     <div>
       <SuspectCommitHeader>
@@ -170,12 +156,6 @@ const ExpandButton = styled('button')`
 const Title = styled('div')`
   font-size: ${p => p.theme.fontSizeLarge};
   font-weight: bold;
-`;
-
-const Header = styled('div')`
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
   padding: 12px 12px 0 12px;
 `;
 
@@ -184,6 +164,14 @@ const StreamlinedPanel = styled(Panel)`
     linear-gradient(to right, rgba(245, 243, 247, 0), ${p => p.theme.surface100});
   overflow: hidden;
   margin-bottom: 0;
+  width: 100%;
+  min-width: 85%;
+  &:last-child {
+    margin-right: ${space(1.5)};
+  }
+  &:first-child {
+    margin-left: ${space(1.5)};
+  }
 `;
 
 const IllustrationContainer = styled('div')`
@@ -200,6 +188,8 @@ const IllustrationContainer = styled('div')`
 const Illustration = styled('img')`
   height: 110px;
 `;
-const DismissButton = styled(Button)`
-  color: ${p => p.theme.gray300};
+
+const SuspectCommitWrapper = styled('div')`
+  margin-right: 0;
+  margin-left: 0;
 `;
