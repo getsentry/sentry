@@ -1,4 +1,4 @@
-import {useCallback} from 'react';
+import {useCallback, useEffect} from 'react';
 import type {RouteComponentProps} from 'react-router';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
@@ -47,17 +47,27 @@ export function MetricRulesEdit({
     {
       staleTime: 0,
       retry: false,
-      onSuccess: data => {
-        onChangeTitle(data[0]?.name ?? '');
-      },
-      onError: ({responseText}) => {
-        const {detail} = JSON.parse(responseText ?? '');
+    }
+  );
+
+  useEffect(() => {
+    if (!isLoading && rule) {
+      onChangeTitle(rule.name ?? '');
+    }
+  }, [onChangeTitle, isLoading, rule]);
+
+  useEffect(() => {
+    if (isError && error?.responseText) {
+      try {
+        const {detail} = JSON.parse(error.responseText);
         if (detail) {
           addErrorMessage(detail);
         }
-      },
+      } catch {
+        // Ignore
+      }
     }
-  );
+  }, [isError, error]);
 
   const handleSubmitSuccess = useCallback(() => {
     metric.endSpan({name: 'saveAlertRule'});
