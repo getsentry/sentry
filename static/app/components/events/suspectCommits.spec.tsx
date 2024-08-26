@@ -1,5 +1,6 @@
 import {EventFixture} from 'sentry-fixture/event';
 import {GroupFixture} from 'sentry-fixture/group';
+import {LocationFixture} from 'sentry-fixture/locationFixture';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
 import {RepositoryFixture} from 'sentry-fixture/repository';
@@ -181,6 +182,7 @@ describe('SuspectCommits', function () {
     const project = ProjectFixture();
     const event = EventFixture();
     const group = GroupFixture({firstRelease: {}} as any);
+    const location = LocationFixture({query: {streamline: '1'}});
 
     const committers = [
       {
@@ -227,7 +229,7 @@ describe('SuspectCommits', function () {
         method: 'GET',
         url: `/projects/${organization.slug}/${project.slug}/events/${event.id}/committers/`,
         body: {
-          committers,
+          committers: [committers[0]],
         },
       });
     });
@@ -240,7 +242,7 @@ describe('SuspectCommits', function () {
           eventId={event.id}
           group={group}
         />,
-        {organization}
+        {router: {location}}
       );
 
       expect(await screen.findByTestId('commit-row')).toBeInTheDocument();
@@ -256,24 +258,21 @@ describe('SuspectCommits', function () {
           eventId={event.id}
           group={group}
         />,
-        {organization}
+        {router: {location}}
       );
 
       expect(await screen.findByTestId('quick-context-commit-row')).toBeInTheDocument();
       expect(screen.queryByTestId('commit-row')).not.toBeInTheDocument();
     });
 
-    it('renders correct heading for single commit', async () => {
-      // For this one test, undo the `beforeEach` so that we can respond with just a single commit
-      MockApiClient.clearMockResponses();
+    it('renders multiple suspect commits', async () => {
       MockApiClient.addMockResponse({
         method: 'GET',
         url: `/projects/${organization.slug}/${project.slug}/events/${event.id}/committers/`,
         body: {
-          committers: [committers[0]],
+          committers,
         },
       });
-
       render(
         <SuspectCommits
           project={project}
@@ -281,11 +280,13 @@ describe('SuspectCommits', function () {
           eventId={event.id}
           group={group}
         />,
-        {organization}
+        {router: {location}}
       );
-
-      expect(await screen.findByText(/Suspect Commit/i)).toBeInTheDocument();
-      expect(screen.queryByText(/Suspect Commits/i)).not.toBeInTheDocument();
+      expect(
+        await screen.findByText('feat: Enhance suggested commits and add to alerts')
+      ).toBeInTheDocument();
+      expect(await screen.findByText('fix: Make things less broken')).toBeInTheDocument();
+      expect(await screen.findAllByTestId('commit-row')).toHaveLength(2);
     });
   });
 });
