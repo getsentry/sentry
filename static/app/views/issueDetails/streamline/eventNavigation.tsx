@@ -28,6 +28,7 @@ import {
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import useCopyToClipboard from 'sentry/utils/useCopyToClipboard';
 import {useLocation} from 'sentry/utils/useLocation';
+import useMedia from 'sentry/utils/useMedia';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {useSyncedLocalStorageState} from 'sentry/utils/useSyncedLocalStorageState';
@@ -57,10 +58,10 @@ enum EventNavOptions {
 }
 
 const EventNavLabels = {
-  [EventNavOptions.RECOMMENDED]: t('Recommended Event'),
-  [EventNavOptions.OLDEST]: t('First Event'),
-  [EventNavOptions.LATEST]: t('Last Event'),
-  [EventNavOptions.CUSTOM]: t('Custom Event'),
+  [EventNavOptions.RECOMMENDED]: t('Recommended'),
+  [EventNavOptions.OLDEST]: t('First'),
+  [EventNavOptions.LATEST]: t('Last'),
+  [EventNavOptions.CUSTOM]: t('Custom'),
 };
 
 const EventNavOrder = [
@@ -96,6 +97,7 @@ export const EventNavigation = forwardRef<HTMLDivElement, EventNavigationProps>(
       getFoldSectionKey(SectionKey.PROCESSING_ERROR),
       true
     );
+    const isMobile = useMedia(`(max-width: ${theme.breakpoints.small})`);
 
     const {data: actionableItems} = useActionableItems({
       eventId: event.id,
@@ -177,8 +179,9 @@ export const EventNavigation = forwardRef<HTMLDivElement, EventNavigationProps>(
                       label === EventNavOptions.CUSTOM &&
                       selectedOption !== EventNavOptions.CUSTOM
                     }
+                    textValue={`${EventNavLabels[label]} Event`}
                   >
-                    {EventNavLabels[label]}
+                    {EventNavLabels[label]} {isMobile ? '' : t('Event')}
                   </TabList.Item>
                 );
               })}
@@ -226,7 +229,7 @@ export const EventNavigation = forwardRef<HTMLDivElement, EventNavigationProps>(
               size="xs"
               css={grayText}
             >
-              {t('View All Events')}
+              {isMobile ? '' : t('View')} {t('All Events')}
             </LinkButton>
           </NavigationWrapper>
         </EventNavigationWrapper>
@@ -356,14 +359,23 @@ function EventNavigationLink({
 const EventNavigationWrapper = styled('div')`
   display: flex;
   justify-content: space-between;
+  align-items: center;
   font-size: ${p => p.theme.fontSizeSmall};
-  padding: ${space(1)} ${space(1.5)};
+  padding: ${space(1)} ${space(1)};
   min-height: ${MIN_NAV_HEIGHT}px;
   border-bottom: 1px solid ${p => p.theme.border};
+
+  @media (min-width: ${p => p.theme.breakpoints.medium}) {
+    padding: ${space(1)} ${space(1.5)};
+  }
 `;
 
 const NavigationWrapper = styled('div')`
   display: flex;
+
+  @media (min-width: ${p => p.theme.breakpoints.medium}) {
+    gap: ${space(0.25)};
+  }
 `;
 
 const Navigation = styled('div')`
