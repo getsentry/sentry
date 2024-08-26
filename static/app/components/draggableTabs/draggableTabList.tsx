@@ -71,7 +71,7 @@ function BaseDraggableTabList({
   useEffect(() => {
     setTabListState(state);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [state.selectedItem, state.selectedKey, props.children]);
+  }, [state.selectedKey]);
 
   // Detect tabs that overflow from the wrapper and put them in an overflow menu
   const tabItemsRef = useRef<Record<string | number, HTMLLIElement | null>>({});
@@ -120,7 +120,7 @@ function BaseDraggableTabList({
               </Reorder.Item>
               <TabDivider
                 layout
-                active={
+                isVisible={
                   state.selectedKey === 'temporary-tab' ||
                   (state.selectedKey !== item.key &&
                     state.collection.getKeyAfter(item.key) !== state.selectedKey)
@@ -136,7 +136,7 @@ function BaseDraggableTabList({
               {t('Add View')}
             </AddViewButton>
           </MotionWrapper>
-          <TabDivider layout active />
+          <TabDivider layout isVisible />
           <MotionWrapper layout>
             {tempTab && (
               <Tab
@@ -206,9 +206,13 @@ export function DraggableTabList({items, onAddView, ...props}: DraggableTabListP
 
 DraggableTabList.Item = Item;
 
-const TabDivider = styled(motion.div)<{active: boolean}>`
+/**
+ * TabDividers are only visible around NON-selected tabs. They are not visible around the selected tab,
+ * but they still create some space and act as a gap between tabs.
+ */
+const TabDivider = styled(motion.div)<{isVisible: boolean}>`
   ${p =>
-    p.active &&
+    p.isVisible &&
     `
     background-color: ${p.theme.gray200};
     height: 50%;
