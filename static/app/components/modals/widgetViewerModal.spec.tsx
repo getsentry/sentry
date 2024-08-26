@@ -575,10 +575,12 @@ describe('Modals -> WidgetViewerModal', function () {
         expect(eventsMock).toHaveBeenCalledTimes(1);
         expect(screen.getByText('title')).toBeInTheDocument();
         await userEvent.click(screen.getByText('title'));
-        expect(initialData.router.push).not.toHaveBeenCalledWith({
-          pathname: '/mock-pathname/',
-          query: {sort: ['-title']},
-        });
+        expect(initialData.router.push).not.toHaveBeenCalledWith(
+          expect.objectContaining({
+            pathname: '/mock-pathname/',
+            query: {sort: ['-title']},
+          })
+        );
       });
 
       it('renders transaction summary link', async function () {
@@ -750,6 +752,7 @@ describe('Modals -> WidgetViewerModal', function () {
         await userEvent.click(await screen.findByText('count()'));
         expect(initialData.router.push).toHaveBeenCalledWith(
           expect.objectContaining({
+            pathname: '/mock-pathname/',
             query: {sort: ['-count()']},
           })
         );
