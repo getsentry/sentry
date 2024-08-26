@@ -1,4 +1,5 @@
 """ Write transactions into redis sets """
+
 import logging
 from collections.abc import Iterator, Mapping
 from typing import Any
@@ -74,7 +75,7 @@ def get_active_projects(namespace: ClustererNamespace) -> Iterator[Project]:
 
 
 def _record_sample(namespace: ClustererNamespace, project: Project, sample: str) -> None:
-    with sentry_sdk.start_span(op="cluster.{namespace.value.name}.record_sample"):
+    with sentry_sdk.start_span(op=f"cluster.{namespace.value.name}.record_sample"):
         client = get_redis_client()
         redis_key = _get_redis_key(namespace, project)
         created = add_to_set([redis_key], [sample, MAX_SET_SIZE, SET_TTL], client)
@@ -182,6 +183,9 @@ def record_span_descriptions(
     project: Project, event_data: Mapping[str, Any], **kwargs: Any
 ) -> None:
     if not features.has("projects:span-metrics-extraction", project):
+        return
+
+    if not features.has("projects:record-span-descriptions", project):
         return
 
     spans = event_data.get("spans", [])

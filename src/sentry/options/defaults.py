@@ -472,12 +472,6 @@ register(
     default=[],
     flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
 )
-# Produce feedback to the new ingest-feedback-events topic, rather than ingest-events
-register(
-    "feedback.ingest-topic.rollout-rate",
-    default=0.0,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
 
 
 # Extract spans only from a random fraction of transactions.
@@ -2706,11 +2700,6 @@ register(
 register(
     "similarity.backfill_use_reranking",
     default=False,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-register(
-    "similarity.delete_task_EA_rollout_percentage",
-    default=20,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(

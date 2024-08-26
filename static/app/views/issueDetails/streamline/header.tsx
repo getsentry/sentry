@@ -1,14 +1,15 @@
 import {Fragment, useMemo} from 'react';
 import styled from '@emotion/styled';
 
+import Feature from 'sentry/components/acl/feature';
 import {Breadcrumbs} from 'sentry/components/breadcrumbs';
 import EventOrGroupTitle from 'sentry/components/eventOrGroupTitle';
 import EventMessage from 'sentry/components/events/eventMessage';
-import Divider from 'sentry/components/events/interfaces/debugMeta/debugImageDetails/candidate/information/divider';
 import {
   AssigneeSelector,
   useHandleAssigneeChange,
 } from 'sentry/components/group/assigneeSelector';
+import {GroupSummaryHeader} from 'sentry/components/group/groupSummary';
 import ParticipantList from 'sentry/components/group/streamlinedParticipantList';
 import Version from 'sentry/components/version';
 import VersionHoverCard from 'sentry/components/versionHoverCard';
@@ -23,6 +24,7 @@ import {useApiQuery} from 'sentry/utils/queryClient';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import GroupActions from 'sentry/views/issueDetails/actions/index';
+import {Divider} from 'sentry/views/issueDetails/divider';
 import GroupPriority from 'sentry/views/issueDetails/groupPriority';
 import {GroupHeaderTabs} from 'sentry/views/issueDetails/header';
 import {useIssueDetailsHeader} from 'sentry/views/issueDetails/useIssueDetailsHeader';
@@ -125,7 +127,7 @@ export default function StreamlinedGroupHeader({
                 projectSlug={project.slug}
                 releaseVersion={firstRelease.version}
               >
-                <Version version={firstRelease.version} projectId={project.id} />
+                <Version version={firstRelease.version} projectId={project.id} truncate />
               </VersionHoverCard>
               {firstRelease.id === lastRelease.id ? null : (
                 <Fragment>
@@ -135,7 +137,11 @@ export default function StreamlinedGroupHeader({
                     projectSlug={project.slug}
                     releaseVersion={lastRelease.version}
                   >
-                    <Version version={lastRelease.version} projectId={project.id} />
+                    <Version
+                      version={lastRelease.version}
+                      projectId={project.id}
+                      truncate
+                    />
                   </VersionHoverCard>
                 </Fragment>
               )}
@@ -143,6 +149,9 @@ export default function StreamlinedGroupHeader({
           </Fragment>
         )}
       </MessageWrapper>
+      <Feature features={['organizations:ai-summary']}>
+        <GroupSummaryHeader groupId={group.id} groupCategory={group.issueCategory} />
+      </Feature>
       <StyledBreak />
       <InfoWrapper
         isResolvedOrIgnored={group.status === 'resolved' || group.status === 'ignored'}
@@ -217,6 +226,7 @@ const TitleHeading = styled('div')`
 const StyledBreak = styled('hr')`
   margin-top: ${space(2)};
   margin-bottom: 0;
+  margin-right: 0;
   border-color: ${p => p.theme.border};
 `;
 
@@ -256,6 +266,7 @@ const Wrapper = styled('div')`
 const ReleaseWrapper = styled('div')`
   display: flex;
   align-items: center;
+  max-width: 40%;
   gap: ${space(0.25)};
   a {
     color: ${p => p.theme.gray300};

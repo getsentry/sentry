@@ -5,11 +5,11 @@ import {CUSTOMER_DOMAIN, USING_CUSTOMER_DOMAIN} from 'sentry/constants';
 import useRouter from './useRouter';
 
 /**
- * withSentryRouter is a higher-order component (HOC) that wraps withRouter, and implicitly injects the current customer
- * domain as the orgId parameter. This only happens if a customer domain is currently being used.
+ * withSentryRouter is a higher-order component (HOC) that emulates withRouter,
+ * and implicitly injects the current customer domain as the orgId parameter.
+ * This only happens if a customer domain is currently being used.
  *
- * Since withRouter() is discouraged from being used on new React components, we would use withSentryRouter() on
- * pre-existing React components.
+ * @deprecated only use in legacy react class components
  */
 function withSentryRouter<P extends WithRouterProps>(
   WrappedComponent: React.ComponentType<P>

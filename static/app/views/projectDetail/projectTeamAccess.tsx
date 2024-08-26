@@ -1,6 +1,6 @@
 import styled from '@emotion/styled';
 
-import {Button} from 'sentry/components/button';
+import {Button, LinkButton} from 'sentry/components/button';
 import {SectionHeading} from 'sentry/components/charts/styles';
 import Collapsible from 'sentry/components/collapsible';
 import IdBadge from 'sentry/components/idBadge';
@@ -30,7 +30,7 @@ function ProjectTeamAccess({organization, project}: Props) {
 
     if (project.teams.length === 0) {
       return (
-        <Button
+        <LinkButton
           to={settingsLink}
           disabled={!hasEditPermissions}
           title={
@@ -40,7 +40,7 @@ function ProjectTeamAccess({organization, project}: Props) {
           size="sm"
         >
           {t('Assign Team')}
-        </Button>
+        </LinkButton>
       );
     }
 

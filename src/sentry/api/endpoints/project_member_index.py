@@ -24,8 +24,7 @@ class ProjectMemberIndexEndpoint(ProjectEndpoint):
             teams__in=project.teams.all(),
         ).distinct()
 
-        member_list = sorted(queryset, key=lambda x: x.email or x.id)
-
+        member_list = sorted(queryset, key=lambda member: member.email or str(member.id))
         context = serialize(member_list, request.user)
 
         return Response(context)
