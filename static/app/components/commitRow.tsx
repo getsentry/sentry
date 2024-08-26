@@ -79,19 +79,6 @@ function CommitRow({
 
   const firstRelease = commit.releases?.[0];
 
-  const tctArgs = {
-    commitLink: (
-      <CommitLink
-        inline
-        showIcon={false}
-        commitId={commit.id}
-        repository={commit.repository}
-        onClick={onCommitClick ? () => onCommitClick(commit) : undefined}
-      />
-    ),
-    date: <TimeSince date={commit.dateCreated} disabledAbsoluteTooltip />,
-  };
-
   return hasStreamlinedUI ? (
     <StreamlinedCommitRow data-test-id="commit-row">
       {commit.pullRequest?.externalUrl ? (
@@ -137,7 +124,18 @@ function CommitRow({
               )}
             </AuthorWrapper>
           </Tooltip>
-          {tct(' committed [commitLink] [date]', tctArgs)}
+          {tct(' committed [commitLink] [date]', {
+            commitLink: (
+              <CommitLink
+                inline
+                showIcon={false}
+                commitId={commit.id}
+                repository={commit.repository}
+                onClick={onCommitClick ? () => onCommitClick(commit) : undefined}
+              />
+            ),
+            date: <TimeSince date={commit.dateCreated} disabledAbsoluteTooltip />,
+          })}
         </Meta>
         {project && firstRelease && (
           <Fragment>
