@@ -231,7 +231,7 @@ class AlertRuleDetailsGetEndpointTest(AlertRuleDetailsBase):
         self.create_alert_rule_trigger_action(alert_rule_trigger=trigger)
         resp = self.get_success_response(self.organization.slug, rule.id)
         assert rule.detection_type == AlertRuleDetectionType.STATIC
-        assert rule.detection_type == resp.data.get("detection_type")
+        assert rule.detection_type == resp.data.get("detectionType")
 
         # Confirm that we don't mess up flow for customers who don't know about detection_type field yet
         rule2 = self.create_alert_rule(comparison_delta=60)
@@ -239,7 +239,7 @@ class AlertRuleDetailsGetEndpointTest(AlertRuleDetailsBase):
         self.create_alert_rule_trigger_action(alert_rule_trigger=trigger2)
         resp = self.get_success_response(self.organization.slug, rule2.id)
         assert rule2.detection_type == AlertRuleDetectionType.PERCENT
-        assert rule2.detection_type == resp.data.get("detection_type")
+        assert rule2.detection_type == resp.data.get("detectionType")
 
         with pytest.raises(
             ValidationError,
@@ -266,7 +266,7 @@ class AlertRuleDetailsGetEndpointTest(AlertRuleDetailsBase):
         trigger = self.create_alert_rule_trigger(rule, "hi", 1000)
         self.create_alert_rule_trigger_action(alert_rule_trigger=trigger)
         resp = self.get_success_response(self.organization.slug, rule.id)
-        assert rule.detection_type == resp.data.get("detection_type")
+        assert rule.detection_type == resp.data.get("detectionType")
 
         with pytest.raises(
             ValidationError, match="Percentage-based alerts require a comparison delta"
@@ -315,7 +315,7 @@ class AlertRuleDetailsGetEndpointTest(AlertRuleDetailsBase):
         trigger = self.create_alert_rule_trigger(rule, "hi", 0)
         self.create_alert_rule_trigger_action(alert_rule_trigger=trigger)
         resp = self.get_success_response(self.organization.slug, rule.id)
-        assert rule.detection_type == resp.data.get("detection_type")
+        assert rule.detection_type == resp.data.get("detectionType")
 
         with pytest.raises(
             ValidationError, match="Dynamic alerts require both sensitivity and seasonality"
