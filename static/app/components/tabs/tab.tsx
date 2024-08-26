@@ -101,7 +101,7 @@ export const BaseTab = forwardRef(
           ref={ref}
         >
           <VariantStyledInteractionStateLayer hasSelectedBackground={false} />
-          <VariantFocusLayer />
+          <FilledFocusLayer />
           {props.children}
         </FilledTabWrap>
       );
@@ -363,6 +363,26 @@ const FocusLayer = styled('div')<{orientation: Orientation}>`
     box-shadow:
       ${p => p.theme.focusBorder} 0 0 0 1px,
       inset ${p => p.theme.focusBorder} 0 0 0 1px;
+  }
+`;
+
+const FilledFocusLayer = styled('div')`
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  bottom: 0;
+
+  pointer-events: none;
+  border-radius: inherit;
+  z-index: 0;
+  transition: border 0.1s ease-out;
+  transition: border 0.1s ease-in;
+
+  li:focus-visible & {
+    border-top: 2px solid ${p => p.theme.focusBorder};
+    border-left: 2px solid ${p => p.theme.focusBorder};
+    border-right: 2px solid ${p => p.theme.focusBorder};
   }
 `;
 
