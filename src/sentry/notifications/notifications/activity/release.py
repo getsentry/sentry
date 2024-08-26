@@ -149,6 +149,9 @@ class ReleaseActivityNotification(ActivityNotification):
             projects_text = " for these projects"
         return f"Release {self.version_parsed} was deployed to {self.environment}{projects_text}"
 
+    def get_message_description(self, recipient: Actor, provider: ExternalProviders) -> Any:
+        return self.get_context().get("text_description")
+
     def get_message_actions(
         self, recipient: Actor, provider: ExternalProviders
     ) -> Sequence[MessageAction]:

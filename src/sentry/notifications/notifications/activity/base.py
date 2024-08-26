@@ -94,6 +94,28 @@ class GroupActivityNotification(ActivityNotification, abc.ABC):
             )
         )
 
+    def get_message_description(self, recipient: Actor, provider: ExternalProviders) -> Any:
+        text_template, _, params = self.get_description()
+        return self.description_as_text(text_template, params)
+
+    def get_actions(self, recipient: Actor, provider: ExternalProviders):
+        return [
+            {
+                "name": "View issue",
+                "label": "View issue",
+                "type": "button",
+                "url": self.get_group_link(),
+                "value": "view_issue",
+            },
+            {
+                "name": "View activity",
+                "label": "View activity",
+                "type": "button",
+                "url": self.get_context().get("activity_link"),
+                "value": "view_activity",
+            },
+        ]
+
     @cached_property
     def user(self) -> RpcUser | None:
         return (
@@ -142,6 +164,7 @@ class GroupActivityNotification(ActivityNotification, abc.ABC):
 
         return {
             "organization": self.group.project.organization,
+            "project": self.group.project,
             "group": self.group,
             "link": group_link,
             "activity_link": activity_link,

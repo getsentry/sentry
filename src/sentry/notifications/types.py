@@ -34,6 +34,7 @@ class NotificationSettingEnum(ValueEqualityEnum):
     MISSING_MEMBERS = "missingMembers"
     REPORTS = "reports"
     BROKEN_MONITORS = "brokenMonitors"
+    SUSPECT_COMMIT = "suspectCommit"
 
 
 class NotificationSettingsOptionEnum(ValueEqualityEnum):

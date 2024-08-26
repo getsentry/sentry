@@ -166,7 +166,7 @@ const Subtitle = styled('p')`
   display: inline;
 `;
 
-const Timestamp = styled('div')`
+export const Timestamp = styled('div')`
   margin-right: ${space(1)};
   color: ${p => p.theme.subText};
   font-size: ${p => p.theme.fontSizeSmall};

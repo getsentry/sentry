@@ -32,11 +32,13 @@ NOTIFICATION_SETTINGS_TYPE_DEFAULTS = {
 
 # email and slack are defaulted to being on
 DEFAULT_ENABLED_PROVIDERS = [
+    ExternalProviderEnum.IN_APP,
     ExternalProviderEnum.EMAIL,
     ExternalProviderEnum.SLACK,
 ]
 
 DEFAULT_ENABLED_PROVIDERS_VALUES = [
+    ExternalProviderEnum.IN_APP.value,
     ExternalProviderEnum.EMAIL.value,
     ExternalProviderEnum.SLACK.value,
 ]

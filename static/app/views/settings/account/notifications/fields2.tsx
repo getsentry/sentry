@@ -4,6 +4,7 @@ import type {Field} from 'sentry/components/forms/types';
 import ExternalLink from 'sentry/components/links/externalLink';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import {t, tct} from 'sentry/locale';
+import {SUPPORTED_PROVIDERS_AS_CHOICES} from 'sentry/views/settings/account/notifications/constants';
 import {getDocsLinkForEventType} from 'sentry/views/settings/account/notifications/utils';
 
 export const NOTIFICATION_SETTING_FIELDS: Record<string, Field> = {
@@ -43,11 +44,7 @@ export const NOTIFICATION_SETTING_FIELDS: Record<string, Field> = {
     name: 'provider',
     type: 'select',
     label: t('Delivery Method'),
-    choices: [
-      ['email', t('Email')],
-      ['slack', t('Slack')],
-      ['msteams', t('Microsoft Teams')],
-    ],
+    choices: SUPPORTED_PROVIDERS_AS_CHOICES,
     help: t('Where personal notifications will be sent.'),
     multiple: true,
     onChange: val => {

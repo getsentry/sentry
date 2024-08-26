@@ -8,6 +8,7 @@ import GuideAnchor from 'sentry/components/assistant/guideAnchor';
 import {Chevron} from 'sentry/components/chevron';
 import FeedbackOnboardingSidebar from 'sentry/components/feedback/feedbackOnboarding/sidebar';
 import Hook from 'sentry/components/hook';
+import {NotificationSidebar} from 'sentry/components/notifications/notificationSidebar';
 import {OnboardingContext} from 'sentry/components/onboarding/onboardingContext';
 import {getMergedTasks} from 'sentry/components/onboardingWizard/taskConfig';
 import PerformanceOnboardingSidebar from 'sentry/components/performanceOnboarding/sidebar';
@@ -218,6 +219,10 @@ function Sidebar() {
       to={`/organizations/${organization.slug}/projects/`}
       id="projects"
     />
+  );
+
+  const notifications = hasOrganization && (
+    <NotificationSidebar {...sidebarItemProps} hasNewNav={hasNewNav} />
   );
 
   const issues = hasOrganization && (
@@ -653,6 +658,7 @@ function Sidebar() {
           <PrimaryItems>
             {hasOrganization && (
               <Fragment>
+                {notifications}
                 <SidebarSection hasNewNav={hasNewNav}>
                   {issues}
                   {projects}
@@ -898,7 +904,7 @@ const SubitemDot = styled('div')<{collapsed: boolean}>`
   }
 `;
 
-const SidebarSection = styled(SidebarSectionGroup)<{
+export const SidebarSection = styled(SidebarSectionGroup)<{
   hasNewNav?: boolean;
   noMargin?: boolean;
   noPadding?: boolean;

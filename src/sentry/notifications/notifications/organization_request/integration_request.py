@@ -64,6 +64,7 @@ class IntegrationRequestNotification(OrganizationRequestNotification):
         return {
             **self.get_base_context(),
             "requester_name": self.requester.get_display_name(),
+            "organization": self.organization,
             "organization_name": self.organization.name,
             "integration_link": self.integration_link,
             "integration_name": self.provider_name,
@@ -76,7 +77,7 @@ class IntegrationRequestNotification(OrganizationRequestNotification):
     def get_notification_title(
         self, provider: ExternalProviders, context: Mapping[str, Any] | None = None
     ) -> str:
-        return self.get_subject()
+        return f"Request for {self.provider_name} Integration"
 
     def build_attachment_title(self, recipient: Actor) -> str:
         return "Request to Install"

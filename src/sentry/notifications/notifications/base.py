@@ -38,6 +38,7 @@ class BaseNotification(abc.ABC):
         ExternalProviders.SLACK: "<{url}|{text}>",
         ExternalProviders.MSTEAMS: "[{text}]({url})",
         ExternalProviders.DISCORD: "[{text}]({url})",
+        ExternalProviders.IN_APP: "{text}",
     }
     message_builder = "SlackNotificationsMessageBuilder"
     # some notifications have no settings for it which is why it is optional
@@ -148,6 +149,21 @@ class BaseNotification(abc.ABC):
         self, recipient: Actor, provider: ExternalProviders
     ) -> Sequence[MessageAction]:
         return []
+
+    def get_actions(self, recipient: Actor, provider: ExternalProviders):
+        message_actions = self.get_message_actions(recipient=recipient, provider=provider)
+        return [
+            {
+                "name": m.name,
+                "label": m.label,
+                "type": m.type,
+                "url": m.url,
+                "value": m.value,
+                "action_id": m.action_id,
+                "style": m.style,
+            }
+            for m in message_actions
+        ]
 
     def get_callback_data(self) -> Mapping[str, Any] | None:
         return None
