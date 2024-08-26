@@ -38,6 +38,7 @@ class OrganizationEventsMetaEndpoint(OrganizationEventsEndpointBase):
         with handle_query_errors():
             result = dataset.query(
                 selected_columns=["count()"],
+                params={},
                 snuba_params=snuba_params,
                 query=request.query_params.get("query"),
                 referrer=Referrer.API_ORGANIZATION_EVENTS_META.value,
@@ -152,6 +153,7 @@ class OrganizationSpansSamplesEndpoint(OrganizationEventsEndpointBase):
                     f"p50({column}) as first_bound",
                     f"p95({column}) as second_bound",
                 ],
+                params={},
                 snuba_params=snuba_params,
                 query=request.query_params.get("query"),
                 referrer=Referrer.API_SPAN_SAMPLE_GET_BOUNDS.value,
@@ -174,6 +176,7 @@ class OrganizationSpansSamplesEndpoint(OrganizationEventsEndpointBase):
                 "profile_id",
             ],
             orderby=["-profile_id"],
+            params={},
             snuba_params=snuba_params,
             query=request.query_params.get("query"),
             referrer=Referrer.API_SPAN_SAMPLE_GET_SPAN_IDS.value,
@@ -197,6 +200,7 @@ class OrganizationSpansSamplesEndpoint(OrganizationEventsEndpointBase):
         result = spans_indexed.query(
             selected_columns=selected_columns,
             orderby=["timestamp"],
+            params={},
             snuba_params=snuba_params,
             query=query,
             limit=9,
