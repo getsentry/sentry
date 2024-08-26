@@ -2,7 +2,7 @@ import {Fragment} from 'react';
 import type {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 
-import {Button} from 'sentry/components/button';
+import {LinkButton} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import DeprecatedAsyncComponent from 'sentry/components/deprecatedAsyncComponent';
 import platforms from 'sentry/data/platforms';
@@ -148,7 +148,7 @@ class PlatformIntegrationSetup extends DeprecatedAsyncComponent<Props, State> {
                   modalParams={{projectId: project.id}}
                   aria-label={t('Add integration')}
                 />
-                <Button
+                <LinkButton
                   size="sm"
                   to={{
                     pathname: window.location.pathname,
@@ -157,7 +157,7 @@ class PlatformIntegrationSetup extends DeprecatedAsyncComponent<Props, State> {
                   onClick={this.trackSwitchToManual}
                 >
                   {t('Manual Setup')}
-                </Button>
+                </LinkButton>
               </StyledButtonBar>
             </Fragment>
           ) : (

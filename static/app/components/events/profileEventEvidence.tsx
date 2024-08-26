@@ -1,4 +1,4 @@
-import {Button} from 'sentry/components/button';
+import {LinkButton} from 'sentry/components/button';
 import {EventDataSection} from 'sentry/components/events/eventDataSection';
 import KeyValueList from 'sentry/components/events/interfaces/keyValueList';
 import {IconProfiling} from 'sentry/icons';
@@ -26,7 +26,7 @@ export function ProfileEventEvidence({event, projectSlug}: ProfileEvidenceProps)
             key: 'Transaction Name',
             value: evidenceData.transactionName,
             actionButton: traceSlug ? (
-              <Button
+              <LinkButton
                 size="xs"
                 to={generateLinkToEventInTraceView({
                   traceSlug,
@@ -38,7 +38,7 @@ export function ProfileEventEvidence({event, projectSlug}: ProfileEvidenceProps)
                 })}
               >
                 {t('View Transaction')}
-              </Button>
+              </LinkButton>
             ) : null,
           },
         ]
@@ -50,7 +50,7 @@ export function ProfileEventEvidence({event, projectSlug}: ProfileEvidenceProps)
             key: 'Profile ID',
             value: evidenceData.profileId,
             actionButton: (
-              <Button
+              <LinkButton
                 size="xs"
                 to={generateProfileFlamechartRouteWithHighlightFrame({
                   profileId: evidenceData.profileId,
@@ -65,7 +65,7 @@ export function ProfileEventEvidence({event, projectSlug}: ProfileEvidenceProps)
                 icon={<IconProfiling />}
               >
                 {t('View Profile')}
-              </Button>
+              </LinkButton>
             ),
           },
         ]

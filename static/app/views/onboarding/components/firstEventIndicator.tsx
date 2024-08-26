@@ -2,7 +2,7 @@ import styled from '@emotion/styled';
 import type {HTMLMotionProps, Variants} from 'framer-motion';
 import {AnimatePresence, motion} from 'framer-motion';
 
-import {Button} from 'sentry/components/button';
+import {LinkButton} from 'sentry/components/button';
 import {IconCheckmark} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import pulsingIndicatorStyles from 'sentry/styles/pulsingIndicator';
@@ -29,7 +29,7 @@ function FirstEventIndicator({children, ...props}: FirstEventIndicatorProps) {
         children({
           indicator: <Indicator firstIssue={firstIssue} {...props} />,
           firstEventButton: (
-            <Button
+            <LinkButton
               title={t("You'll need to send your first error to continue")}
               tooltipProps={{disabled: !!firstIssue}}
               disabled={!firstIssue}
@@ -46,7 +46,7 @@ function FirstEventIndicator({children, ...props}: FirstEventIndicatorProps) {
               }?referrer=onboarding-first-event-indicator`}
             >
               {t('Take me to my error')}
-            </Button>
+            </LinkButton>
           ),
         })
       }

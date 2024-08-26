@@ -1,7 +1,7 @@
 import styled from '@emotion/styled';
 import type {Location} from 'history';
 
-import {Button} from 'sentry/components/button';
+import {Button, LinkButton} from 'sentry/components/button';
 import Collapsible from 'sentry/components/collapsible';
 import IdBadge from 'sentry/components/idBadge';
 import {extractSelectionParameters} from 'sentry/components/organizations/pageFilters/utils';
@@ -43,7 +43,7 @@ function OtherProjects({projects, location, version, organization}: Props) {
           {projects.map(project => (
             <Row key={project.id}>
               <IdBadge project={project} avatarSize={16} />
-              <Button
+              <LinkButton
                 size="xs"
                 to={{
                   pathname: `/organizations/${
@@ -57,7 +57,7 @@ function OtherProjects({projects, location, version, organization}: Props) {
                 }}
               >
                 {t('View')}
-              </Button>
+              </LinkButton>
             </Row>
           ))}
         </Collapsible>

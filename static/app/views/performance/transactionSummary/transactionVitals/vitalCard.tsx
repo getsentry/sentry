@@ -6,7 +6,7 @@ import type {Location} from 'history';
 import isEqual from 'lodash/isEqual';
 import throttle from 'lodash/throttle';
 
-import {Button} from 'sentry/components/button';
+import {LinkButton} from 'sentry/components/button';
 import type {BarChartSeries} from 'sentry/components/charts/barChart';
 import {BarChart} from 'sentry/components/charts/barChart';
 import BarChartZoom from 'sentry/components/charts/barChartZoom';
@@ -207,7 +207,7 @@ class VitalCard extends Component<Props, State> {
         </StatNumber>
         <Description>{description}</Description>
         <div>
-          <Button
+          <LinkButton
             size="xs"
             to={newEventView
               .withColumns([{kind: 'field', field: column}])
@@ -222,7 +222,7 @@ class VitalCard extends Component<Props, State> {
             onClick={this.trackOpenAllEventsClicked}
           >
             {t('View Sampled Events')}
-          </Button>
+          </LinkButton>
         </div>
       </CardSummary>
     );

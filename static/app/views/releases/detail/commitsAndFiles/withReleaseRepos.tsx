@@ -4,7 +4,7 @@ import * as Sentry from '@sentry/react';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import type {Client} from 'sentry/api';
-import {Button} from 'sentry/components/button';
+import {LinkButton} from 'sentry/components/button';
 import EmptyMessage from 'sentry/components/emptyMessage';
 import {Body, Main} from 'sentry/components/layouts/thirds';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
@@ -164,12 +164,12 @@ function withReleaseRepos<P extends DependentProps>(
                     'Connect a repository to see commit info, files changed, and authors involved in future releases.'
                   )}
                   action={
-                    <Button
+                    <LinkButton
                       priority="primary"
                       to={`/settings/${organization.slug}/repos/`}
                     >
                       {t('Connect a repository')}
-                    </Button>
+                    </LinkButton>
                   }
                 />
               </Panel>

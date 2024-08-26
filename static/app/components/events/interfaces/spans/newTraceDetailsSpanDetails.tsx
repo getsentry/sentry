@@ -4,7 +4,7 @@ import omit from 'lodash/omit';
 import * as qs from 'query-string';
 
 import {Alert} from 'sentry/components/alert';
-import {Button} from 'sentry/components/button';
+import {LinkButton} from 'sentry/components/button';
 import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
 import {DateTime} from 'sentry/components/dateTime';
 import DiscoverButton from 'sentry/components/discoverButton';
@@ -115,7 +115,7 @@ function NewTraceDetailsSpanDetail(props: SpanDetailProps) {
       // TODO: Amend size to use theme when we eventually refactor LoadingIndicator
       // 12px is consistent with theme.iconSizes['xs'] but theme returns a string.
       return (
-        <StyledDiscoverButton size="xs" disabled>
+        <StyledDiscoverButton href="#" size="xs" disabled>
           <StyledLoadingIndicator size={12} />
         </StyledDiscoverButton>
       );
@@ -211,12 +211,12 @@ function NewTraceDetailsSpanDetail(props: SpanDetailProps) {
 
           return (
             <ButtonGroup>
-              <StyledButton data-test-id="view-child-transaction" size="xs" to={to}>
+              <LinkButton data-test-id="view-child-transaction" size="xs" to={to}>
                 {t('View Transaction')}
-              </StyledButton>
-              <StyledButton size="xs" to={target}>
+              </LinkButton>
+              <LinkButton size="xs" to={target}>
                 {t('View Summary')}
-              </StyledButton>
+              </LinkButton>
             </ButtonGroup>
           );
         }}
@@ -259,7 +259,7 @@ function NewTraceDetailsSpanDetail(props: SpanDetailProps) {
           organization={organization}
           span={props.node.value}
         />
-        <StyledButton
+        <LinkButton
           size="xs"
           to={spanDetailsRouteWithQuery({
             orgSlug: organization.slug,
@@ -270,7 +270,7 @@ function NewTraceDetailsSpanDetail(props: SpanDetailProps) {
           })}
         >
           {hasNewSpansUIFlag ? t('View Span Summary') : t('View Similar Spans')}
-        </StyledButton>
+        </LinkButton>
       </ButtonGroup>
     );
   }
@@ -636,8 +636,6 @@ const StyledDiscoverButton = styled(DiscoverButton)`
   top: ${space(0.75)};
   right: ${space(0.5)};
 `;
-
-const StyledButton = styled(Button)``;
 
 export const SpanDetailContainer = styled('div')`
   border-bottom: 1px solid ${p => p.theme.border};

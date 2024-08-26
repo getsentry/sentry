@@ -4,7 +4,7 @@ import type {Location} from 'history';
 import omit from 'lodash/omit';
 
 import {Alert} from 'sentry/components/alert';
-import {Button} from 'sentry/components/button';
+import {LinkButton} from 'sentry/components/button';
 import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
 import {DateTime} from 'sentry/components/dateTime';
 import {getFormattedTimeRangeWithLeadingAndTrailingZero} from 'sentry/components/events/interfaces/spans/utils';
@@ -103,9 +103,9 @@ class TransactionDetail extends Component<Props> {
     );
 
     return (
-      <StyledButton size="xs" to={target}>
+      <StyledLinkButton size="xs" to={target}>
         {t('View Event')}
-      </StyledButton>
+      </StyledLinkButton>
     );
   }
 
@@ -120,9 +120,9 @@ class TransactionDetail extends Component<Props> {
     });
 
     return (
-      <StyledButton size="xs" to={target}>
+      <StyledLinkButton size="xs" to={target}>
         {t('View Summary')}
-      </StyledButton>
+      </StyledLinkButton>
     );
   }
 
@@ -147,9 +147,9 @@ class TransactionDetail extends Component<Props> {
     }
 
     return (
-      <StyledButton size="xs" to={target} onClick={handleOnClick}>
+      <StyledLinkButton size="xs" to={target} onClick={handleOnClick}>
         {t('View Profile')}
-      </StyledButton>
+      </StyledLinkButton>
     );
   }
 
@@ -305,7 +305,7 @@ const TransactionIdTitle = styled('a')`
   }
 `;
 
-const StyledButton = styled(Button)`
+const StyledLinkButton = styled(LinkButton)`
   position: absolute;
   top: ${space(0.75)};
   right: ${space(0.5)};

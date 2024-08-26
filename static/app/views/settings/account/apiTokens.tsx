@@ -3,7 +3,7 @@ import {
   addLoadingMessage,
   addSuccessMessage,
 } from 'sentry/actionCreators/indicator';
-import {Button} from 'sentry/components/button';
+import {LinkButton} from 'sentry/components/button';
 import EmptyMessage from 'sentry/components/emptyMessage';
 import ExternalLink from 'sentry/components/links/externalLink';
 import LoadingError from 'sentry/components/loadingError';
@@ -98,13 +98,13 @@ export function ApiTokens() {
   const isEmpty = !Array.isArray(tokenList) || tokenList.length === 0;
 
   const action = (
-    <Button
+    <LinkButton
       priority="primary"
       size="sm"
       to="/settings/account/api/auth-tokens/new-token/"
     >
       {t('Create New Token')}
-    </Button>
+    </LinkButton>
   );
 
   return (

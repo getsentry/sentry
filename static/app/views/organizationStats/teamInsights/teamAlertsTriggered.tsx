@@ -3,7 +3,7 @@ import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import round from 'lodash/round';
 
-import {Button} from 'sentry/components/button';
+import {LinkButton} from 'sentry/components/button';
 import {BarChart} from 'sentry/components/charts/barChart';
 import type {DateTimeObject} from 'sentry/components/charts/utils';
 import Link from 'sentry/components/links/link';
@@ -151,20 +151,20 @@ function TeamAlertsTriggered({
         emptyMessage={t('No alerts triggered for team’s projects')}
         emptyAction={
           <ButtonsContainer>
-            <Button
+            <LinkButton
               priority="primary"
               size="sm"
               to={`/organizations/${organization.slug}/alerts/rules/`}
             >
               {t('Create Alert')}
-            </Button>
-            <Button
+            </LinkButton>
+            <LinkButton
               size="sm"
               external
               to="https://docs.sentry.io/product/alerts/create-alerts/"
             >
               {t('Learn more')}
-            </Button>
+            </LinkButton>
           </ButtonsContainer>
         }
         headers={[

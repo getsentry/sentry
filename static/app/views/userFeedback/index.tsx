@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 import {withProfiler} from '@sentry/react';
 import omit from 'lodash/omit';
 
-import {Button} from 'sentry/components/button';
+import {LinkButton} from 'sentry/components/button';
 import {EventUserFeedback} from 'sentry/components/events/userFeedback';
 import CompactIssue from 'sentry/components/issues/compactIssue';
 import * as Layout from 'sentry/components/layouts/thirds';
@@ -123,7 +123,7 @@ function OrganizationUserFeedback({location: {search, pathname, query}, router}:
                   position="left"
                   isHoverable
                 >
-                  <Button
+                  <LinkButton
                     size="sm"
                     priority="default"
                     to={{
@@ -138,7 +138,7 @@ function OrganizationUserFeedback({location: {search, pathname, query}, router}:
                     }}
                   >
                     {t('Go to New User Feedback')}
-                  </Button>
+                  </LinkButton>
                 </Tooltip>
               </Layout.HeaderActions>
             )}

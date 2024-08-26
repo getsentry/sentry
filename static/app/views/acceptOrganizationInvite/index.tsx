@@ -198,9 +198,9 @@ class AcceptOrganizationInvite extends DeprecatedAsyncView<Props, State> {
           )}
         </p>
         <Actions>
-          <Button priority="primary" to="/settings/account/security/">
+          <LinkButton priority="primary" to="/settings/account/security/">
             {t('Configure Two-Factor Auth')}
-          </Button>
+          </LinkButton>
         </Actions>
       </Fragment>
     );
@@ -218,9 +218,9 @@ class AcceptOrganizationInvite extends DeprecatedAsyncView<Props, State> {
           )}
         </p>
         <Actions>
-          <Button priority="primary" to="/settings/account/emails/">
+          <LinkButton priority="primary" to="/settings/account/emails/">
             {t('Verify Email Address')}
-          </Button>
+          </LinkButton>
         </Actions>
       </Fragment>
     );

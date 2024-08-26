@@ -3,7 +3,7 @@ import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
 
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
-import {Button} from 'sentry/components/button';
+import {Button, LinkButton} from 'sentry/components/button';
 import RadioGroup from 'sentry/components/forms/controls/radioGroup';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {t, tct} from 'sentry/locale';
@@ -105,7 +105,7 @@ function CreateNewIntegrationModal({
         <Button size="sm" onClick={() => closeModal()} style={{marginRight: space(1)}}>
           {t('Cancel')}
         </Button>
-        <Button
+        <LinkButton
           priority="primary"
           size="sm"
           to={`/settings/${organization.slug}/developer-settings/${
@@ -124,7 +124,7 @@ function CreateNewIntegrationModal({
           }}
         >
           {t('Next')}
-        </Button>
+        </LinkButton>
       </Footer>
     </Fragment>
   );

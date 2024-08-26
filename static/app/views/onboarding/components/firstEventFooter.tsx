@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 import type {Variants} from 'framer-motion';
 import {motion} from 'framer-motion';
 
-import {Button} from 'sentry/components/button';
+import {Button, LinkButton} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import Link from 'sentry/components/links/link';
 import {IconCheckmark} from 'sentry/icons';
@@ -56,7 +56,7 @@ export default function FirstEventFooter({
       );
     }
     return (
-      <Button
+      <LinkButton
         to={`/organizations/${organization.slug}/issues/${
           project?.firstIssue && 'id' in project.firstIssue
             ? `${project.firstIssue.id}/`
@@ -65,7 +65,7 @@ export default function FirstEventFooter({
         priority="primary"
       >
         {t('Take me to my error')}
-      </Button>
+      </LinkButton>
     );
   }, [project, organization.slug]);
 

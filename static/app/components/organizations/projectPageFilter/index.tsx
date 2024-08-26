@@ -7,7 +7,7 @@ import sortBy from 'lodash/sortBy';
 import {updateProjects} from 'sentry/actionCreators/pageFilters';
 import Feature from 'sentry/components/acl/feature';
 import FeatureDisabled from 'sentry/components/acl/featureDisabled';
-import {Button} from 'sentry/components/button';
+import {LinkButton} from 'sentry/components/button';
 import type {SelectOption, SelectOptionOrSection} from 'sentry/components/compactSelect';
 import {Hovercard} from 'sentry/components/hovercard';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
@@ -459,7 +459,7 @@ function checkboxWrapper(
   );
 }
 
-const TrailingButton = styled(Button)<{visible: boolean}>`
+const TrailingButton = styled(LinkButton)<{visible: boolean}>`
   color: ${p => p.theme.subText};
   display: ${p => (p.visible ? 'block' : 'none')};
 `;

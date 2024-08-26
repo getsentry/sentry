@@ -4,7 +4,7 @@ import styled from '@emotion/styled';
 
 import Access from 'sentry/components/acl/access';
 import {Alert} from 'sentry/components/alert';
-import {Button} from 'sentry/components/button';
+import {Button, LinkButton} from 'sentry/components/button';
 import CircleIndicator from 'sentry/components/circleIndicator';
 import Confirm from 'sentry/components/confirm';
 import {Tooltip} from 'sentry/components/tooltip';
@@ -144,7 +144,7 @@ export default class InstalledIntegration extends Component<Props> {
                       size="sm"
                     />
                   )}
-                  <StyledButton
+                  <StyledLinkButton
                     borderless
                     icon={<IconSettings />}
                     disabled={!allowMemberConfiguration && disableAction}
@@ -152,7 +152,7 @@ export default class InstalledIntegration extends Component<Props> {
                     data-test-id="integration-configure-button"
                   >
                     {t('Configure')}
-                  </StyledButton>
+                  </StyledLinkButton>
                 </Tooltip>
               </div>
               <div>
@@ -193,6 +193,10 @@ export default class InstalledIntegration extends Component<Props> {
 }
 
 const StyledButton = styled(Button)`
+  color: ${p => p.theme.gray300};
+`;
+
+const StyledLinkButton = styled(LinkButton)`
   color: ${p => p.theme.gray300};
 `;
 

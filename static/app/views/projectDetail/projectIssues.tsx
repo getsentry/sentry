@@ -5,7 +5,7 @@ import pick from 'lodash/pick';
 import * as qs from 'query-string';
 
 import type {Client} from 'sentry/api';
-import {Button} from 'sentry/components/button';
+import {LinkButton} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import DiscoverButton from 'sentry/components/discoverButton';
 import GroupList from 'sentry/components/issues/groupList';
@@ -260,14 +260,14 @@ function ProjectIssues({organization, location, projectId, query, api}: Props) {
           ))}
         </SegmentedControl>
         <OpenInButtonBar gap={1}>
-          <Button
+          <LinkButton
             data-test-id="issues-open"
             size="xs"
             to={issueSearch}
             onClick={handleOpenInIssuesClick}
           >
             {t('Open in Issues')}
-          </Button>
+          </LinkButton>
           <DiscoverButton
             onClick={handleOpenInDiscoverClick}
             to={getDiscoverUrl()}
