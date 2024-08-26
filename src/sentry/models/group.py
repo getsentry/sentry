@@ -624,7 +624,7 @@ class Group(Model):
     def get_absolute_url(
         self,
         params: Mapping[str, str] | None = None,
-        event_id: int | None = None,
+        event_id: str | None = None,
     ) -> str:
         # Built manually in preference to django.urls.reverse,
         # because reverse has a measured performance impact.

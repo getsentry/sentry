@@ -260,7 +260,6 @@ module = [
     "sentry.integrations.jira.webhooks.issue_updated",
     "sentry.integrations.jira_server.client",
     "sentry.integrations.jira_server.integration",
-    "sentry.integrations.message_builder",
     "sentry.integrations.metric_alerts",
     "sentry.integrations.mixins.issues",
     "sentry.integrations.mixins.notifications",

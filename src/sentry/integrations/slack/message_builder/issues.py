@@ -19,8 +19,8 @@ from sentry.integrations.message_builder import (
     build_attachment_text,
     build_attachment_title,
     build_footer,
-    format_actor_option,
-    format_actor_options,
+    format_actor_option_slack,
+    format_actor_options_slack,
     get_title_link,
 )
 from sentry.integrations.slack.message_builder.base.block import BlockSlackMessageBuilder
@@ -243,14 +243,14 @@ def get_option_groups(group: Group) -> Sequence[OptionGroup]:
     if teams:
         team_option_group: OptionGroup = {
             "label": {"type": "plain_text", "text": "Teams"},
-            "options": format_actor_options(teams, True),
+            "options": format_actor_options_slack(teams),
         }
         option_groups.append(team_option_group)
 
     if members:
         member_option_group: OptionGroup = {
             "label": {"type": "plain_text", "text": "People"},
-            "options": format_actor_options(members, True),
+            "options": format_actor_options_slack(members),
         }
         option_groups.append(member_option_group)
     return option_groups
@@ -394,7 +394,7 @@ def build_actions(
             name="assign",
             label="Select Assignee...",
             type="select",
-            selected_options=format_actor_options([assignee], True) if assignee else [],
+            selected_options=format_actor_options_slack([assignee]) if assignee else [],
             option_groups=get_option_groups(group),
         )
         return assign_button
@@ -628,7 +628,7 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
             elif action.name == "assign":
                 actions.append(
                     self.get_external_select_action(
-                        action, format_actor_option(assignee, True) if assignee else None
+                        action, format_actor_option_slack(assignee) if assignee else None
                     )
                 )
 

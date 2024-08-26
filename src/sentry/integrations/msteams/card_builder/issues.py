@@ -10,8 +10,8 @@ from sentry.integrations.message_builder import (
     build_attachment_text,
     build_attachment_title,
     build_footer,
-    format_actor_option,
-    format_actor_options,
+    format_actor_option_non_slack,
+    format_actor_options_non_slack,
 )
 from sentry.integrations.msteams.card_builder import ME, MSTEAMS_URL_FORMAT
 from sentry.integrations.msteams.card_builder.block import (
@@ -184,7 +184,7 @@ class MSTeamsIssueMessageBuilder(MSTeamsMessageBuilder):
     def get_teams_choices(self) -> Sequence[tuple[str, str]]:
         teams = self.group.project.teams.all().order_by("slug")
         return [("Me", ME)] + [
-            (team["text"], team["value"]) for team in format_actor_options(teams)
+            (team["text"], team["value"]) for team in format_actor_options_non_slack(teams)
         ]
 
     def build_group_actions(self) -> ContainerBlock:
@@ -253,7 +253,7 @@ class MSTeamsIssueMessageBuilder(MSTeamsMessageBuilder):
     def build_assignee_note(self) -> TextBlock | None:
         assignee = self.group.get_assignee()
         if assignee:
-            assignee_text = format_actor_option(assignee)["text"]
+            assignee_text = format_actor_option_non_slack(assignee)["text"]
 
             return create_text_block(
                 IssueConstants.ASSIGNEE_NOTE.format(assignee=assignee_text),
