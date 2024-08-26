@@ -178,10 +178,13 @@ class OrganizationProjectsExperimentEndpoint(OrganizationEndpoint):
         )
         project_created.send(
             project=project,
-            user=request.user,
             default_rules=result.get("default_rules", True),
-            sender=self,
+            user=request.user,
+            team_ids=[team.id],
             access=request.access,
+            is_api_token=request.auth is not None,
+            ip_address=request.META.get("REMOTE_ADDR"),
+            sender=self,
         )
         self.create_audit_entry(
             request=request,

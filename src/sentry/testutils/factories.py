@@ -28,7 +28,7 @@ from django.utils import timezone
 from django.utils.encoding import force_str
 from django.utils.text import slugify
 
-from sentry.auth.access import RpcBackedAccess
+from sentry.auth.access import RpcBackedAccess, SystemAccess
 from sentry.auth.services.auth.model import RpcAuthState, RpcMemberSsoState
 from sentry.constants import SentryAppInstallationStatus, SentryAppStatus
 from sentry.event_manager import EventManager
@@ -499,12 +499,19 @@ class Factories:
 
         with transaction.atomic(router.db_for_write(Project)):
             project = Project.objects.create(organization=organization, **kwargs)
+            team_ids = []
             if teams:
                 for team in teams:
                     project.add_team(team)
+                    team_ids.append(team.id)
             if fire_project_created:
                 project_created.send(
-                    project=project, user=AnonymousUser(), default_rules=True, sender=Factories
+                    project=project,
+                    default_rules=True,
+                    user=AnonymousUser(),
+                    team_ids=team_ids,
+                    access=SystemAccess(),
+                    sender=Factories,
                 )
         return project
 

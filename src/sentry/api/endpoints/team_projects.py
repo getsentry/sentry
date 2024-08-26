@@ -213,9 +213,9 @@ class TeamProjectsEndpoint(TeamEndpoint, EnvironmentMixin):
 
             project_created.send(
                 project=project,
-                team_id=team.id,
                 default_rules=result.get("default_rules", True),
                 user=request.user,
+                team_ids=[team.id],
                 access=request.access,
                 is_api_token=request.auth is not None,
                 ip_address=request.META.get("REMOTE_ADDR"),

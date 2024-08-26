@@ -1,3 +1,4 @@
+from collections.abc import Sequence
 from datetime import datetime, timezone
 from enum import StrEnum
 from typing import Any
@@ -70,31 +71,38 @@ DEFAULT_METRIC_ALERT_LABEL = "Send a notification for high number of errors"
 
 
 def create_default_metric_alert_data(
-    project: Project, target_type: TargetType, target_id: int
+    project: Project, target_type: TargetType, target_ids: Sequence[int]
 ) -> dict:
     """
     Generate the body params to create a default metric alert.
+
+    target_ids is a sequence to support creating triggers for multiple teams,
+    although currently we only create projects under a single team in the FE.
+    When creating triggers for users, target_ids will always be a single user.
     """
     triggers = []
+
+    # Group triggers by label/threshold then by each target.
     for label, threshold in (("critical", 5), ("warning", 2)):
-        triggers.append(
-            {
-                "label": label,
-                "alertThreshold": threshold,
-                "actions": [
-                    {
-                        # Triggers are ordered by unsavedDateCreated, so we need
-                        # to generate a unique timestamp for each trigger.
-                        "unsavedDateCreated": generate_iso_timestamp(),
-                        "type": "email",
-                        "targetType": target_type,
-                        "targetIdentifier": str(target_id),
-                        "inputChannelId": None,
-                        "options": None,
-                    }
-                ],
-            }
-        )
+        for target_id in target_ids:
+            triggers.append(
+                {
+                    "label": label,
+                    "alertThreshold": threshold,
+                    "actions": [
+                        {
+                            # Triggers are ordered by unsavedDateCreated, so we need
+                            # to generate a unique timestamp for each trigger.
+                            "unsavedDateCreated": generate_iso_timestamp(),
+                            "type": "email",
+                            "targetType": target_type,
+                            "targetIdentifier": str(target_id),
+                            "inputChannelId": None,
+                            "options": None,
+                        }
+                    ],
+                }
+            )
 
     return {
         "dataset": "events",
@@ -108,7 +116,8 @@ def create_default_metric_alert_data(
         "environment": None,
         "resolveThreshold": None,
         "thresholdType": 0,
-        "owner": f"{target_type}:{target_id}",
+        # Select the first team/user as the owner of the alert.
+        "owner": f"{target_type}:{target_ids[0]}",
         "name": "Send a notification for high number of errors",
         "projectId": str(project.id),
         "alertType": "num_errors",
@@ -120,9 +129,9 @@ def create_default_metric_alert_data(
 @project_created.connect(dispatch_uid="create_default_rules", weak=False)
 def create_default_rules(
     project: Project,
-    team_id: int | None = None,
     default_rules: bool = True,
     user: User | AnonymousUser | None = None,
+    team_ids: Sequence[int] | None = None,
     access: Access | None = None,
     is_api_token: bool = False,
     ip_address: str | None = None,
@@ -142,7 +151,7 @@ def create_default_rules(
 
     if features.has("organizations:default-metric-alerts-new-projects", project.organization):
         # Metric alerts require sending notifications to a team or user.
-        if user is None and team_id is None:
+        if user is None and team_ids is None:
             return
 
         # When user is None, we must be sending notifcations to a team which requires access
@@ -156,15 +165,15 @@ def create_default_rules(
             access = NoAccess()
 
         # Prioritize sending notifications to teams over individual users.
-        if team_id and access:
-            target_id = team_id
+        if team_ids and access:
+            target_ids = team_ids
             target_type = TargetType.TEAM
         else:
-            target_id = user.id
+            target_ids = [user.id]
             target_type = TargetType.USER
 
         data = create_default_metric_alert_data(
-            project=project, target_type=target_type, target_id=target_id
+            project=project, target_type=target_type, target_ids=target_ids
         )
 
         try:
