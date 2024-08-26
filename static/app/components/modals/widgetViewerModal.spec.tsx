@@ -753,11 +753,11 @@ describe('Modals -> WidgetViewerModal', function () {
         expect(initialData.router.push).toHaveBeenCalledWith(
           expect.objectContaining({
             pathname: '/mock-pathname/',
-            query: {sort: ['-count()']},
+            query: {sort: '-count()'},
           })
         );
         // Need to manually set the new router location and rerender to simulate the sortable column click
-        initialData.router.location.query = {sort: ['-count()']};
+        initialData.router.location.query = {sort: '-count()'};
         rerender(
           <WidgetViewerModal
             Header={stubEl}
