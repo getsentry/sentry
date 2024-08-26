@@ -55,7 +55,12 @@ export function ReplayClipSection({event, group, replayId}: Props) {
         )
       : normalizeUrl(`/organizations/${organization.slug}/issues/${group.id}/`)
     : '';
-  const replayUrl = baseUrl ? `${baseUrl}replays/${location.search}/` : '';
+  const replayUrl = baseUrl
+    ? location.search.length
+      ? `${baseUrl}replays/${location.search}/`
+      : `${baseUrl}replays/`
+    : '';
+
   const seeAllReplaysButton = replayUrl ? (
     <LinkButton
       size="xs"
