@@ -57,6 +57,10 @@ from sentry.models.project import Project
 from sentry.models.scheduledeletion import RegionScheduledDeletion
 from sentry.relay.config.metric_extraction import on_demand_metrics_feature_flags
 from sentry.search.events.builder.base import BaseQueryBuilder
+from sentry.search.events.constants import (
+    METRICS_LAYER_UNSUPPORTED_TRANSACTION_METRICS_FUNCTIONS,
+    SPANS_METRICS_FUNCTIONS,
+)
 from sentry.search.events.fields import is_function, resolve_field
 from sentry.seer.anomaly_detection.store_data import send_historical_data_to_seer
 from sentry.sentry_apps.services.app import RpcSentryAppInstallation, app_service
@@ -1739,6 +1743,15 @@ TRANSLATABLE_COLUMNS = {
 
 
 def get_column_from_aggregate(aggregate, allow_mri):
+    # These functions exist as SnQLFunction definitions and are not supported in the older
+    # logic for resolving functions. We parse these using `fields.is_function`, otherwise
+    # they will fail using the old resolve_field logic.
+    match = is_function(aggregate)
+    if match and (
+        match.group("function") in SPANS_METRICS_FUNCTIONS
+        or match.group("function") in METRICS_LAYER_UNSUPPORTED_TRANSACTION_METRICS_FUNCTIONS
+    ):
+        return None if match.group("columns") == "" else match.group("columns")
     if allow_mri:
         mri_column = get_column_from_aggregate_with_mri(aggregate)
         # Only if the column was allowed, we return it, otherwise we fallback to the old logic.

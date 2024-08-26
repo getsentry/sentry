@@ -457,6 +457,120 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase, SnubaTestCase):
         assert alert_rule.snuba_query is not None
         assert alert_rule.snuba_query.query == "is:unresolved"
 
+    def test_spm_function(self):
+        with (
+            outbox_runner(),
+            self.feature(
+                [
+                    "organizations:incidents",
+                    "organizations:performance-view",
+                    "organizations:mep-rollout-flag",
+                    "organizations:dynamic-sampling",
+                ]
+            ),
+        ):
+            data = {
+                "dataset": "generic_metrics",
+                "eventTypes": ["transaction"],
+                "aggregate": "spm()",
+                "query": "span.module:db has:span.description",
+                "timeWindow": 60,
+                "thresholdPeriod": 1,
+                "triggers": [
+                    {
+                        "label": "critical",
+                        "alertThreshold": 7000000,
+                        "actions": [
+                            {
+                                "type": "email",
+                                "targetType": "team",
+                                "targetIdentifier": self.team.id,
+                            }
+                        ],
+                    }
+                ],
+                "projects": [self.project.slug],
+                "environment": None,
+                "resolveThreshold": None,
+                "thresholdType": 1,
+                "owner": self.user.id,
+                "name": "Insights Queries SPM Alert",
+                "projectId": "1",
+                "alertType": "insights_metrics",
+                "monitorType": 0,
+                "activationCondition": 0,
+                "comparisonDelta": None,
+                "queryType": 1,
+            }
+            resp = self.get_success_response(
+                self.organization.slug,
+                status_code=201,
+                **data,
+            )
+        assert "id" in resp.data
+        alert_rule = AlertRule.objects.get(id=resp.data["id"])
+        assert resp.data == serialize(alert_rule, self.user)
+        assert alert_rule.snuba_query is not None
+        assert alert_rule.snuba_query.query == "span.module:db has:span.description"
+        assert alert_rule.snuba_query.aggregate == "spm()"
+
+    def test_performance_score_function(self):
+        with (
+            outbox_runner(),
+            self.feature(
+                [
+                    "organizations:incidents",
+                    "organizations:performance-view",
+                    "organizations:mep-rollout-flag",
+                    "organizations:dynamic-sampling",
+                ]
+            ),
+        ):
+            data = {
+                "dataset": "generic_metrics",
+                "eventTypes": ["transaction"],
+                "aggregate": "performance_score(measurements.score.fcp)",
+                "query": "transaction.op:pageload",
+                "timeWindow": 60,
+                "thresholdPeriod": 1,
+                "triggers": [
+                    {
+                        "label": "critical",
+                        "alertThreshold": 7000000,
+                        "actions": [
+                            {
+                                "type": "email",
+                                "targetType": "team",
+                                "targetIdentifier": self.team.id,
+                            }
+                        ],
+                    }
+                ],
+                "projects": [self.project.slug],
+                "environment": None,
+                "resolveThreshold": None,
+                "thresholdType": 1,
+                "owner": self.user.id,
+                "name": "Insights Queries SPM Alert",
+                "projectId": "1",
+                "alertType": "insights_metrics",
+                "monitorType": 0,
+                "activationCondition": 0,
+                "comparisonDelta": None,
+                "queryType": 1,
+            }
+            resp = self.get_success_response(
+                self.organization.slug,
+                status_code=201,
+                **data,
+            )
+        assert "id" in resp.data
+        alert_rule = AlertRule.objects.get(id=resp.data["id"])
+        assert resp.data == serialize(alert_rule, self.user)
+        assert alert_rule.snuba_query is not None
+        assert alert_rule.snuba_query.query == "transaction.op:pageload"
+        assert alert_rule.snuba_query.aggregate == "performance_score(measurements.score.fcp)"
+
     @override_settings(MAX_QUERY_SUBSCRIPTIONS_PER_ORG=1)
     def test_enforce_max_subscriptions(self):
         with self.feature("organizations:incidents"):
