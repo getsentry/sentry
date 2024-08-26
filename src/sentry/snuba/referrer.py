@@ -91,6 +91,7 @@ class Referrer(Enum):
     API_DISCOVER_TRANSACTIONS_LIST = "api.discover.transactions-list"
     API_EVENTS_MEASUREMENTS = "api.events.measurements"
     API_EVENTS_VITALS = "api.events.vitals"
+    API_EXPLORE_SPANS_SAMPLES_TABLE = "api.explore.spans-samples-table"
     API_GROUP_EVENTS_ERROR_DIRECT_HIT = "api.group-events.error.direct-hit"
     API_GROUP_EVENTS_ERROR = "api.group-events.error"
     API_GROUP_EVENTS_PERFORMANCE_DIRECT_HIT = "api.group-events.performance.direct-hit"
@@ -163,6 +164,7 @@ class Referrer(Enum):
         "api.organization.metrics-metadata.fetch-metrics-summaries"
     )
     API_ORGANIZATION_METRICS_QUERY = "api.organization.metrics-query"
+    API_ORGANIZATION_METRICS_EAP_QUERY = "api.organization.metrics-eap-query"
     API_ORGANIZATION_METRICS_SAMPLES = "api.organization.metrics-samples"
     API_ORGANIZATION_ISSUE_REPLAY_COUNT = "api.organization-issue-replay-count"
     API_ORGANIZATION_SDK_UPDATES = "api.organization-sdk-updates"

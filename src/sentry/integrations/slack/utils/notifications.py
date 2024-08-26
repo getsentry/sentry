@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 from dataclasses import dataclass
 from typing import Any
 
@@ -32,7 +33,7 @@ from sentry.integrations.slack.utils.errors import EXPIRED_URL, unpack_slack_api
 from sentry.models.options.organization_option import OrganizationOption
 from sentry.utils import metrics
 
-from . import logger
+_logger = logging.getLogger(__name__)
 
 
 def send_incident_alert_notification(
@@ -141,7 +142,7 @@ def send_incident_alert_notification(
             "incident_status": new_status,
             "attachments": attachments,
         }
-        logger.info("slack.metric_alert.error", exc_info=True, extra=log_params)
+        _logger.info("slack.metric_alert.error", exc_info=True, extra=log_params)
         metrics.incr(
             SLACK_METRIC_ALERT_FAILURE_DATADOG_METRIC,
             sample_rate=1.0,
@@ -181,7 +182,7 @@ def respond_to_slack_command(
         return f"{command_response.log_key}.{tag}"
 
     if response_url:
-        logger.info(log_msg("respond-webhook"), extra={"response_url": response_url})
+        _logger.info(log_msg("respond-webhook"), extra={"response_url": response_url})
         try:
             webhook_client = WebhookClient(response_url)
             webhook_client.send(
@@ -199,9 +200,9 @@ def respond_to_slack_command(
                     sample_rate=1.0,
                     tags={"type": "webhook", "command": command_response.command},
                 )
-                logger.exception(log_msg("error"), extra={"error": str(e)})
+                _logger.exception(log_msg("error"), extra={"error": str(e)})
     else:
-        logger.info(log_msg("respond-ephemeral"))
+        _logger.info(log_msg("respond-ephemeral"))
         try:
             client = SlackSdkClient(integration_id=integration.id)
             client.chat_postMessage(
@@ -222,4 +223,4 @@ def respond_to_slack_command(
                     sample_rate=1.0,
                     tags={"type": "ephemeral", "command": command_response.command},
                 )
-                logger.exception(log_msg("error"), extra={"error": str(e)})
+                _logger.exception(log_msg("error"), extra={"error": str(e)})
