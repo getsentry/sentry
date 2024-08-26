@@ -361,6 +361,14 @@ export function ProjectSourceMaps({location, router, project}: Props) {
       ? ArtifactBundlesPanelTable
       : ReleaseBundlesPanelTable;
 
+  // TODO(__SENTRY_USING_REACT_ROUTER_SIX): We can remove this later, react
+  // router 6 handles empty query objects without appending a trailing ?
+  const linkLocation = {
+    ...(location.query && Object.keys(location.query).length > 0
+      ? {query: location.query}
+      : {}),
+  };
+
   return (
     <Fragment>
       <SettingsPageHeader title={t('Source Maps')} />
@@ -378,7 +386,7 @@ export function ProjectSourceMaps({location, router, project}: Props) {
         <ListLink
           to={{
             pathname: debugIdsUrl,
-            query: location.query,
+            ...linkLocation,
           }}
           index
           isActive={() => tabDebugIdBundlesActive}
@@ -388,7 +396,7 @@ export function ProjectSourceMaps({location, router, project}: Props) {
         <ListLink
           to={{
             pathname: releaseBundlesUrl,
-            query: location.query,
+            ...linkLocation,
           }}
           isActive={() => !tabDebugIdBundlesActive}
         >
