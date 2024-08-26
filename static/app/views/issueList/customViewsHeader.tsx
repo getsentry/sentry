@@ -1,7 +1,7 @@
 import {useEffect, useMemo, useState} from 'react';
 import type {InjectedRouter} from 'react-router';
 import styled from '@emotion/styled';
-import {debounce} from 'lodash';
+import debounce from 'lodash/debounce';
 
 import GlobalEventProcessingAlert from 'sentry/components/globalEventProcessingAlert';
 import * as Layout from 'sentry/components/layouts/thirds';
