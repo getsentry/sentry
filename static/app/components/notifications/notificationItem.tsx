@@ -56,7 +56,7 @@ export function NotificationItem({notification}: {notification: NotificationHist
   const notifTime = new Date(notification.date_added);
 
   return (
-    <Container layout variants={variants} initial="enter" animate="enter" exit="exit">
+    <Container layout variants={variants} initial="exit" animate="enter" exit="exit">
       <NotificationCrumbs notification={notification} />
       <NotificationControls>
         <NotificationControl

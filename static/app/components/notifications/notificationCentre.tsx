@@ -67,7 +67,10 @@ export function NotificationCentre({}: NotificationCentreProps) {
       ? mailboxNotifs.filter(notif => sources.includes(notif.source))
       : mailboxNotifs;
     const searchedNotifs = filteredNotifs.filter(
-      notif => notif.description.includes(search) || notif.title.includes(search)
+      notif =>
+        notif.description.includes(search) ||
+        notif.title.includes(search) ||
+        JSON.stringify(notif.content).includes(search)
     );
     return searchedNotifs;
   }, [mailbox, notifs, sources, search]);
