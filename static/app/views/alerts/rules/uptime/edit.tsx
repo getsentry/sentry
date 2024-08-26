@@ -1,3 +1,4 @@
+import {useEffect} from 'react';
 import type {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 
@@ -46,14 +47,20 @@ export function UptimeRulesEdit({params, onChangeTitle, organization, project}: 
 
   const {
     isLoading,
+    isSuccess,
     isError,
     data: rule,
     error,
   } = useApiQuery<UptimeAlert>([apiUrl], {
     staleTime: 0,
     retry: false,
-    onSuccess: data => onChangeTitle(data[0]?.name ?? ''),
   });
+
+  useEffect(() => {
+    if (isSuccess && rule) {
+      onChangeTitle(rule.name ?? '');
+    }
+  }, [onChangeTitle, isSuccess, rule]);
 
   if (isLoading) {
     return <LoadingIndicator />;
