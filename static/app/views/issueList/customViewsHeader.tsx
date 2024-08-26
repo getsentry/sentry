@@ -1,4 +1,4 @@
-import {useEffect, useMemo, useState} from 'react';
+import {useContext, useEffect, useMemo, useState} from 'react';
 import type {InjectedRouter} from 'react-router';
 import styled from '@emotion/styled';
 import debounce from 'lodash/debounce';
@@ -6,6 +6,7 @@ import debounce from 'lodash/debounce';
 import GlobalEventProcessingAlert from 'sentry/components/globalEventProcessingAlert';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionTooltip';
+import {Tabs, TabsContext} from 'sentry/components/tabs';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
@@ -51,6 +52,7 @@ function CustomViewsIssueListHeader({
   return (
     <Layout.Header
       noActionWrap
+      // No viewId in the URL query means that a temp view is selected, which has a dashed border
       borderStyle={
         groupSearchViews && !props.router?.location.query.viewId ? 'dashed' : 'solid'
       }
@@ -69,7 +71,9 @@ function CustomViewsIssueListHeader({
       <Layout.HeaderActions />
       <StyledGlobalEventProcessingAlert projects={selectedProjects} />
       {groupSearchViews ? (
-        <CustomViewsIssueListHeaderTabsContent {...props} views={groupSearchViews} />
+        <Tabs>
+          <CustomViewsIssueListHeaderTabsContent {...props} views={groupSearchViews} />
+        </Tabs>
       ) : (
         <div style={{height: 33}} />
       )}
@@ -88,10 +92,11 @@ function CustomViewsIssueListHeaderTabsContent({
 
   // TODO: Replace this with useLocation
   const {cursor: _cursor, page: _page, ...queryParams} = router?.location.query;
+  const {query, sort, viewId} = queryParams;
 
   const viewsToTabs = views.map(
     ({id, name, query: viewQuery, querySort: viewQuerySort}, index): Tab => {
-      const tabId = id ?? `default${index}`;
+      const tabId = id ?? `default${index.toString()}`;
       return {
         id: tabId,
         key: tabId,
@@ -105,7 +110,8 @@ function CustomViewsIssueListHeaderTabsContent({
 
   const [draggableTabs, setDraggableTabs] = useState<Tab[]>(viewsToTabs);
 
-  const {query, sort, viewId} = queryParams;
+  const {tabListState} = useContext(TabsContext);
+
   const getInitialTabKey = () => {
     if (draggableTabs[0].key.startsWith('default')) {
       return draggableTabs[0].key;
@@ -122,8 +128,7 @@ function CustomViewsIssueListHeaderTabsContent({
     return draggableTabs[0].key;
   };
 
-  // TODO: infer selected tab key state from URL params
-  const [selectedTabKey, setSelectedTabKey] = useState<string>(getInitialTabKey());
+  // TODO: Try to remove this state if possible
   const [tempTab, setTempTab] = useState<Tab | undefined>(
     getInitialTabKey() === 'temporary-tab' && query
       ? {
@@ -145,8 +150,9 @@ function CustomViewsIssueListHeaderTabsContent({
           updateViews({
             orgSlug: organization.slug,
             groupSearchViews: newTabs.map(tab => ({
-              // Do not send over an ID if it's a temporary id
-              ...(tab.id[0] !== '_' ? {id: tab.id} : {}),
+              // Do not send over an ID if it's a temporary or default tab so that
+              // the backend will save these and generate permanent Ids for them
+              ...(tab.id[0] !== '_' && !tab.id.startsWith('default') ? {id: tab.id} : {}),
               name: tab.label,
               query: tab.query,
               querySort: tab.querySort,
@@ -157,6 +163,7 @@ function CustomViewsIssueListHeaderTabsContent({
     [organization.slug, updateViews]
   );
 
+  // This insane useEffect ensures that the correct tab is selected when the page loads and url updates
   useEffect(() => {
     // If no query, sort, or viewId is present, set the first tab as the selected tab, update query accordingly
     if (!query && !sort && !viewId) {
@@ -169,28 +176,56 @@ function CustomViewsIssueListHeaderTabsContent({
         },
         pathname: `/organizations/${organization.slug}/issues/`,
       });
+      tabListState?.setSelectedKey(draggableTabs[0].key);
       return;
     }
     // if a viewId is present, check if it exists in the existing views.
     if (viewId) {
       const selectedTab = draggableTabs.find(tab => tab.id === viewId);
-      if (
-        selectedTab &&
-        (query !== selectedTab!.query || sort !== selectedTab!.querySort)
-      ) {
+      if (selectedTab && query && sort) {
         // if a viewId exists but the query and sort are not what we expected, set them as unsaved changes
-        setDraggableTabs(
-          draggableTabs.map(tab =>
-            tab.key === selectedTab!.key
-              ? {
-                  ...tab,
-                  unsavedChanges: [query, sort],
-                }
-              : tab
-          )
-        );
-      } else if (!selectedTab) {
+        const isCurrentQuerySortDifferentFromExistingUnsavedChanges =
+          selectedTab.unsavedChanges &&
+          (selectedTab.unsavedChanges[0] !== query ||
+            selectedTab.unsavedChanges[1] !== sort);
+
+        const isCurrentQuerySortDifferentFromSelectedTabQuerySort =
+          query !== selectedTab.query || sort !== selectedTab.querySort;
+
+        if (
+          isCurrentQuerySortDifferentFromExistingUnsavedChanges ||
+          isCurrentQuerySortDifferentFromSelectedTabQuerySort
+        ) {
+          setDraggableTabs(
+            draggableTabs.map(tab =>
+              tab.key === selectedTab!.key
+                ? {
+                    ...tab,
+                    unsavedChanges: [query, sort],
+                  }
+                : tab
+            )
+          );
+        }
+        tabListState?.setSelectedKey(selectedTab.key);
+        return;
+      }
+      if (selectedTab && !query) {
+        navigate({
+          query: {
+            ...queryParams,
+            query: selectedTab.query,
+            sort: selectedTab.querySort,
+            viewId: selectedTab.id,
+          },
+          pathname: `/organizations/${organization.slug}/issues/`,
+        });
+        tabListState?.setSelectedKey(selectedTab.key);
+        return;
+      }
+      if (!selectedTab) {
         // if a viewId does not exist, remove it from the query
+        tabListState?.setSelectedKey('temporary-tab');
         navigate({
           query: {
             ...queryParams,
@@ -198,10 +233,24 @@ function CustomViewsIssueListHeaderTabsContent({
           },
           pathname: `/organizations/${organization.slug}/issues/`,
         });
+        return;
       }
+      return;
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+    if (query) {
+      tabListState?.setSelectedKey('temporary-tab');
+      return;
+    }
+  }, [
+    tabListState,
+    draggableTabs,
+    navigate,
+    organization.slug,
+    query,
+    queryParams,
+    sort,
+    viewId,
+  ]);
 
   // Update local tabs when new views are received from mutation request
   useEffect(() => {
@@ -233,32 +282,8 @@ function CustomViewsIssueListHeaderTabsContent({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [views]);
 
-  // Updates the tab's hasSavedChanges state
-  useEffect(() => {
-    const currentTab = draggableTabs?.find(tab => tab.key === selectedTabKey);
-    if (currentTab && (query !== currentTab.query || sort !== currentTab.querySort)) {
-      setDraggableTabs(
-        draggableTabs?.map(tab => {
-          return tab.key === selectedTabKey
-            ? {...tab, unsavedChanges: [query, sort]}
-            : tab;
-        })
-      );
-    } else if (
-      currentTab &&
-      query === currentTab.query &&
-      sort === currentTab.querySort
-    ) {
-      setDraggableTabs(
-        draggableTabs?.map(tab => {
-          return tab.key === selectedTabKey ? {...tab, unsavedChanges: undefined} : tab;
-        })
-      );
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [query, sort]);
-
   // Loads query counts when they are available
+  // TODO: fetch these dynamically instead of getting them from overview.tsx
   useEffect(() => {
     setDraggableTabs(
       draggableTabs?.map(tab => {
@@ -273,8 +298,7 @@ function CustomViewsIssueListHeaderTabsContent({
 
   return (
     <DraggableTabBar
-      selectedTabKey={selectedTabKey}
-      setSelectedTabKey={setSelectedTabKey}
+      initialTabKey={getInitialTabKey()}
       tabs={draggableTabs}
       setTabs={setDraggableTabs}
       tempTab={tempTab}
