@@ -123,7 +123,11 @@ export function TagsSummary(props: TagSummaryProps) {
     if (!data) {
       return [];
     }
-    return data.pages.flatMap(([pageData]) => (isEmpty(pageData) ? [] : pageData));
+    // filter out replayId since we no longer want to
+    // display this trace details
+    return data.pages
+      .flatMap(([pageData]) => (isEmpty(pageData) ? [] : pageData))
+      .filter(d => d.key !== 'replayId');
   }, [data]);
 
   return (
