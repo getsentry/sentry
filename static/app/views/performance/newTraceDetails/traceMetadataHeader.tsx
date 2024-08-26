@@ -9,18 +9,23 @@ import DiscoverButton from 'sentry/components/discoverButton';
 import FeedbackWidgetButton from 'sentry/components/feedback/widget/feedbackWidgetButton';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {t} from 'sentry/locale';
+import type {EventTransaction} from 'sentry/types/event';
 import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import type EventView from 'sentry/utils/discover/eventView';
 import {SavedQueryDatasets} from 'sentry/utils/discover/types';
+import type {UseApiQueryResult} from 'sentry/utils/queryClient';
+import type RequestError from 'sentry/utils/requestError/requestError';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import {useLocation} from 'sentry/utils/useLocation';
 import {hasDatasetSelector} from 'sentry/views/dashboards/utils';
+import TraceConfigurations from 'sentry/views/performance/newTraceDetails/traceConfigurations';
 
 import Tab from '../transactionSummary/tabs';
 
 interface TraceMetadataHeaderProps {
   organization: Organization;
+  rootEventResults: UseApiQueryResult<EventTransaction, RequestError>;
   traceEventView: EventView;
   traceSlug: string;
 }
@@ -367,6 +372,7 @@ export function TraceMetadataHeader(props: TraceMetadataHeaderProps) {
       </Layout.HeaderContent>
       <Layout.HeaderActions>
         <ButtonBar gap={1}>
+          <TraceConfigurations rootEventResults={props.rootEventResults} />
           <DiscoverButton
             size="sm"
             to={props.traceEventView.getResultsViewUrlTarget(
