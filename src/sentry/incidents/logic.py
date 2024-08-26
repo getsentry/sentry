@@ -1312,7 +1312,7 @@ def deduplicate_trigger_actions(
     """
     actions = _prioritize_actions(triggers=triggers)
 
-    deduped: dict[tuple[Any, ...], AlertRuleTriggerAction] = {}
+    deduped: dict[tuple[int, int, str | None, int | None, int | None], AlertRuleTriggerAction] = {}
     for action in actions:
         key = (
             action.type,
