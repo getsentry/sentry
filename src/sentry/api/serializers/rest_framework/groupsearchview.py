@@ -20,7 +20,7 @@ class GroupSearchViewValidatorResponse(TypedDict):
 class ViewValidator(serializers.Serializer):
     id = serializers.CharField(required=False)
     name = serializers.CharField(required=True)
-    query = serializers.CharField(required=True)
+    query = serializers.CharField(required=True, allow_blank=True)
     querySort = serializers.ChoiceField(
         choices=SortOptions.as_choices(), default=SortOptions.DATE, required=False
     )
