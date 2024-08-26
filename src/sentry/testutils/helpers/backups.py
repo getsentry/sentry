@@ -82,7 +82,6 @@ from sentry.models.integrations.sentry_app import SentryApp
 from sentry.models.options.option import ControlOption, Option
 from sentry.models.options.organization_option import OrganizationOption
 from sentry.models.options.project_template_option import ProjectTemplateOption
-from sentry.models.options.user_option import UserOption
 from sentry.models.organization import Organization
 from sentry.models.organizationaccessrequest import OrganizationAccessRequest
 from sentry.models.organizationmember import InviteStatus, OrganizationMember
@@ -96,8 +95,6 @@ from sentry.models.relay import Relay, RelayUsage
 from sentry.models.rule import NeglectedRule, RuleActivity, RuleActivityType
 from sentry.models.savedsearch import SavedSearch, Visibility
 from sentry.models.search_common import SearchType
-from sentry.models.userip import UserIP
-from sentry.models.userrole import UserRole, UserRoleUser
 from sentry.monitors.models import Monitor, MonitorType, ScheduleType
 from sentry.nodestore.django.models import Node
 from sentry.sentry_apps.apps import SentryAppUpdater
@@ -114,6 +111,9 @@ from sentry.testutils.silo import assume_test_silo_mode
 from sentry.types.token import AuthTokenType
 from sentry.users.models.authenticator import Authenticator
 from sentry.users.models.user import User
+from sentry.users.models.user_option import UserOption
+from sentry.users.models.userip import UserIP
+from sentry.users.models.userrole import UserRole, UserRoleUser
 from sentry.utils import json
 
 __all__ = [

@@ -83,7 +83,6 @@ from sentry.models.artifactbundle import ArtifactBundle
 from sentry.models.authidentity import AuthIdentity
 from sentry.models.authprovider import AuthProvider
 from sentry.models.avatars.sentry_app_avatar import SentryAppAvatar
-from sentry.models.avatars.user_avatar import UserAvatar
 from sentry.models.commit import Commit
 from sentry.models.commitauthor import CommitAuthor
 from sentry.models.commitfilechange import CommitFileChange
@@ -102,7 +101,6 @@ from sentry.models.group import Group
 from sentry.models.grouphistory import GroupHistory
 from sentry.models.grouplink import GroupLink
 from sentry.models.grouprelease import GroupRelease
-from sentry.models.identity import Identity, IdentityProvider, IdentityStatus
 from sentry.models.integrations.sentry_app import SentryApp
 from sentry.models.integrations.sentry_app_installation import SentryAppInstallation
 from sentry.models.integrations.sentry_app_installation_for_provider import (
@@ -115,7 +113,6 @@ from sentry.models.notificationaction import (
     NotificationAction,
 )
 from sentry.models.notificationsettingprovider import NotificationSettingProvider
-from sentry.models.options.user_option import UserOption
 from sentry.models.organization import Organization
 from sentry.models.organizationmapping import OrganizationMapping
 from sentry.models.organizationmember import OrganizationMember
@@ -138,10 +135,7 @@ from sentry.models.rulesnooze import RuleSnooze
 from sentry.models.savedsearch import SavedSearch
 from sentry.models.servicehook import ServiceHook
 from sentry.models.team import Team
-from sentry.models.useremail import UserEmail
-from sentry.models.userpermission import UserPermission
 from sentry.models.userreport import UserReport
-from sentry.models.userrole import UserRole
 from sentry.organizations.services.organization import RpcOrganization, RpcUserOrganizationContext
 from sentry.sentry_apps.apps import SentryAppCreator
 from sentry.sentry_apps.installations import (
@@ -167,7 +161,13 @@ from sentry.uptime.models import (
     UptimeStatus,
     UptimeSubscription,
 )
+from sentry.users.models.identity import Identity, IdentityProvider, IdentityStatus
 from sentry.users.models.user import User
+from sentry.users.models.user_avatar import UserAvatar
+from sentry.users.models.user_option import UserOption
+from sentry.users.models.useremail import UserEmail
+from sentry.users.models.userpermission import UserPermission
+from sentry.users.models.userrole import UserRole
 from sentry.users.services.user import RpcUser
 from sentry.utils import loremipsum
 from sentry.utils.performance_issues.performance_problem import PerformanceProblem

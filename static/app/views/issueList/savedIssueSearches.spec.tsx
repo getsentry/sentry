@@ -43,6 +43,7 @@ describe('SavedIssueSearches', function () {
     name: 'Last 4 Hours',
     query: 'age:-4h',
     visibility: SavedSearchVisibility.ORGANIZATION,
+    sort: 'date',
   });
 
   const pinnedSearch = SearchFixture({

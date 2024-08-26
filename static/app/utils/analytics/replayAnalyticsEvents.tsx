@@ -7,7 +7,9 @@ export type ReplayEventParameters = {
     issue_description: string;
     issue_impact: string | undefined;
   };
-  'replay.canvas-detected-banner-clicked': {};
+  'replay.canvas-detected-banner-clicked': {
+    sdk_needs_update?: boolean;
+  };
   'replay.details-data-loaded': {
     be_errors: number;
     fe_errors: number;

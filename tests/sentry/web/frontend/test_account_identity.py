@@ -3,9 +3,9 @@ from django.urls import reverse
 
 from sentry import identity
 from sentry.identity.providers.dummy import DummyProvider
-from sentry.models.identity import Identity, IdentityStatus
 from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import control_silo_test
+from sentry.users.models.identity import Identity, IdentityStatus
 
 
 @control_silo_test
