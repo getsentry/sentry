@@ -131,7 +131,10 @@ def error(
     error_short="Invalid installation request.",
     error_long=ERR_INTEGRATION_INVALID_INSTALLATION_REQUEST,
 ):
-    logger.error("github.installation_error", extra={"org_id": org.id, "error_short": error_short})
+    logger.error(
+        "github.installation_error",
+        extra={"org_id": org.organization.id, "error_short": error_short},
+    )
 
     return render_to_response(
         "sentry/integrations/github-integration-failed.html",
