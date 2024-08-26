@@ -207,7 +207,7 @@ class DiscordRequestParserTest(TestCase):
                 "response_url": response_url,
             }
         )
-        assert response.status_code == status.HTTP_202_ACCEPTED
+        assert response.status_code == status.HTTP_200_OK
         assert json.loads(response.content) == parser.async_response_data
 
 

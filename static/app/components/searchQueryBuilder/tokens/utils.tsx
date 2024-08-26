@@ -43,20 +43,8 @@ export function useShiftFocusToChild(
   };
 }
 
-export function getDefaultFilterValue({
-  fieldDefinition,
-}: {
-  fieldDefinition: FieldDefinition | null;
-}): string {
-  if (!fieldDefinition) {
-    return '""';
-  }
-
-  if (defined(fieldDefinition.defaultValue)) {
-    return fieldDefinition.defaultValue;
-  }
-
-  switch (fieldDefinition.valueType) {
+export function getDefaultValueForValueType(valueType: FieldValueType | null): string {
+  switch (valueType) {
     case FieldValueType.BOOLEAN:
       return 'true';
     case FieldValueType.INTEGER:
@@ -72,6 +60,22 @@ export function getDefaultFilterValue({
     default:
       return '""';
   }
+}
+
+export function getDefaultFilterValue({
+  fieldDefinition,
+}: {
+  fieldDefinition: FieldDefinition | null;
+}): string {
+  if (!fieldDefinition) {
+    return '""';
+  }
+
+  if (defined(fieldDefinition.defaultValue)) {
+    return fieldDefinition.defaultValue;
+  }
+
+  return getDefaultValueForValueType(fieldDefinition.valueType);
 }
 
 export function mergeSets<T>(...sets: Set<T>[]) {
