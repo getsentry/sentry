@@ -97,12 +97,7 @@ const useActiveThreadState = (
   return [activeThread, setActiveThread];
 };
 
-export function Threads({
-  data,
-  event,
-  projectSlug,
-  groupingCurrentLevel,
-}: Props) {
+export function Threads({data, event, projectSlug, groupingCurrentLevel}: Props) {
   const threads = data.values ?? [];
   const hasStreamlinedUI = useHasStreamlinedUI();
   const [activeThread, setActiveThread] = useActiveThreadState(event, threads);
