@@ -36,6 +36,54 @@ describe('DataSecrecy', function () {
     });
   });
 
+  it('renders default state with waiver', async function () {
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/data-secrecy/`,
+      body: null,
+    });
+
+    render(<DataSecrecy />, {organization: organization});
+
+    await waitFor(() => {
+      expect(screen.getByText('Support Access')).toBeInTheDocument();
+    });
+
+    organization.allowSuperuserAccess = true;
+
+    await waitFor(() => {
+      expect(
+        screen.getByText(/sentry employees do not have access to your organization/i)
+      ).toBeInTheDocument();
+    });
+  });
+
+  it('renders no access state with waiver present', async function () {
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/data-secrecy/`,
+      body: {
+        access_start: '2022-08-29T01:05:00+00:00',
+        access_end: '2023-08-29T01:05:00+00:00',
+      },
+    });
+
+    render(<DataSecrecy />, {organization: organization});
+
+    await waitFor(() => {
+      expect(screen.getByText('Support Access')).toBeInTheDocument();
+    });
+
+    organization.allowSuperuserAccess = false;
+
+    // we should see no access message
+    await waitFor(() => {
+      expect(
+        screen.getByText(
+          /sentry employees will not have access to your organization unless granted permission/i
+        )
+      ).toBeInTheDocument();
+    });
+  });
+
   it('renders current waiver state', async function () {
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/data-secrecy/`,
