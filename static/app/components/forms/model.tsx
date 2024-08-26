@@ -382,6 +382,10 @@ class FormModel {
       return value.length > 0;
     }
 
+    if (typeof value === 'boolean') {
+      return value === true;
+    }
+
     return value !== '' && defined(value);
   }
 
