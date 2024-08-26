@@ -108,6 +108,8 @@ def get_allowed_org_roles(
 
     if is_active_superuser(request):
         return roles.get_all()
+
+    # The member:admin scope is not required to invite a new member (when creating_org_invite is True).
     if not request.access.has_scope("member:admin") and not creating_org_invite:
         return ()
 
