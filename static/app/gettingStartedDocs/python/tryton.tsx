@@ -11,7 +11,6 @@ import {t, tct} from 'sentry/locale';
 type Params = DocsParams;
 
 const getSdkSetupSnippet = (params: Params) => `
-# wsgi.py
 import sentry_sdk
 from sentry_sdk.integrations.trytond import TrytondWSGIIntegration
 
@@ -41,7 +40,7 @@ from trytond.application import app as application
 
 # ...`;
 
-const getErrorHandlerSnippet = () => `# wsgi.py
+const getErrorHandlerSnippet = () => `
 # ...
 
 from trytond.exceptions import TrytonException
@@ -73,15 +72,28 @@ const onboarding: OnboardingConfig = {
       ),
       configurations: [
         {
-          language: 'python',
-          code: getSdkSetupSnippet(params),
+          code: [
+            {
+              label: 'wsgi.py',
+              value: 'wsgi.py',
+              language: 'python',
+              code: getSdkSetupSnippet(params),
+            },
+          ],
         },
         {
           description: t(
             'In Tryton>=5.4 an error handler can be registered to respond the client with a custom error message including the Sentry event id instead of a traceback.'
           ),
           language: 'python',
-          code: getErrorHandlerSnippet(),
+          code: [
+            {
+              label: 'wsgi.py',
+              value: 'wsgi.py',
+              language: 'python',
+              code: getErrorHandlerSnippet(),
+            },
+          ],
         },
       ],
     },
