@@ -91,9 +91,6 @@ describe('Modals -> WidgetViewerModal', function () {
       organization: {
         features: ['discover-query'],
       },
-      router: {
-        location: {query: {}},
-      },
       projects: [ProjectFixture()],
     });
 
@@ -287,8 +284,8 @@ describe('Modals -> WidgetViewerModal', function () {
       it('redirects user to Discover when clicking Open in Discover', async function () {
         mockEvents();
         await renderModal({initialData, widget: mockWidget});
-        await userEvent.click(await screen.findByText('Open in Discover'));
-        expect(initialData.router.push).toHaveBeenCalledWith(
+        expect(screen.getByRole('button', {name: 'Open in Discover'})).toHaveAttribute(
+          'href',
           '/organizations/org-slug/discover/results/?environment=prod&environment=dev&field=count%28%29&name=Test%20Widget&project=1&project=2&query=title%3A%2Forganizations%2F%3AorgId%2Fperformance%2Fsummary%2F&statsPeriod=24h&yAxis=count%28%29'
         );
       });
@@ -336,9 +333,12 @@ describe('Modals -> WidgetViewerModal', function () {
         const {rerender} = await renderModal({initialData, widget: mockWidget});
         await userEvent.click(await screen.findByText('Query Name'));
         await userEvent.click(screen.getByText('Another Query Name'));
-        expect(initialData.router.replace).toHaveBeenCalledWith({
-          query: {query: 1},
-        });
+        expect(initialData.router.replace).toHaveBeenCalledWith(
+          expect.objectContaining({
+            pathname: '/mock-pathname/',
+            query: {query: 1},
+          })
+        );
         // Need to manually set the new router location and rerender to simulate the dropdown selection click
         initialData.router.location.query = {query: ['1']};
         rerender(
@@ -576,6 +576,7 @@ describe('Modals -> WidgetViewerModal', function () {
         expect(screen.getByText('title')).toBeInTheDocument();
         await userEvent.click(screen.getByText('title'));
         expect(initialData.router.push).not.toHaveBeenCalledWith({
+          pathname: '/mock-pathname/',
           query: {sort: ['-title']},
         });
       });
@@ -747,9 +748,11 @@ describe('Modals -> WidgetViewerModal', function () {
         const eventsMock = mockEvents();
         const {rerender} = await renderModal({initialData, widget: mockWidget});
         await userEvent.click(await screen.findByText('count()'));
-        expect(initialData.router.push).toHaveBeenCalledWith({
-          query: {sort: ['-count()']},
-        });
+        expect(initialData.router.push).toHaveBeenCalledWith(
+          expect.objectContaining({
+            query: {sort: ['-count()']},
+          })
+        );
         // Need to manually set the new router location and rerender to simulate the sortable column click
         initialData.router.location.query = {sort: ['-count()']};
         rerender(
@@ -1165,8 +1168,8 @@ describe('Modals -> WidgetViewerModal', function () {
 
     it('redirects user to Issues when clicking Open in Issues', async function () {
       await renderModal({initialData, widget: mockWidget});
-      await userEvent.click(screen.getByText('Open in Issues'));
-      expect(initialData.router.push).toHaveBeenCalledWith(
+      expect(screen.getByRole('button', {name: 'Open in Issues'})).toHaveAttribute(
+        'href',
         '/organizations/org-slug/issues/?environment=prod&environment=dev&project=1&project=2&query=is%3Aunresolved&sort=&statsPeriod=24h'
       );
     });
@@ -1174,9 +1177,12 @@ describe('Modals -> WidgetViewerModal', function () {
     it('sorts table when a sortable column header is clicked', async function () {
       const {rerender} = await renderModal({initialData, widget: mockWidget});
       await userEvent.click(screen.getByText('events'));
-      expect(initialData.router.push).toHaveBeenCalledWith({
-        query: {sort: 'freq'},
-      });
+      expect(initialData.router.push).toHaveBeenCalledWith(
+        expect.objectContaining({
+          pathname: '/mock-pathname/',
+          query: {sort: 'freq'},
+        })
+      );
       // Need to manually set the new router location and rerender to simulate the sortable column click
       initialData.router.location.query = {sort: ['freq']};
       rerender(
@@ -1326,8 +1332,8 @@ describe('Modals -> WidgetViewerModal', function () {
 
     it('Open in Releases button redirects browser', async function () {
       await renderModal({initialData, widget: mockWidget});
-      await userEvent.click(screen.getByText('Open in Releases'), {delay: null});
-      expect(initialData.router.push).toHaveBeenCalledWith(
+      expect(screen.getByRole('button', {name: 'Open in Releases'})).toHaveAttribute(
+        'href',
         '/organizations/org-slug/releases/?environment=prod&environment=dev&project=1&project=2&statsPeriod=24h'
       );
     });
@@ -1376,9 +1382,12 @@ describe('Modals -> WidgetViewerModal', function () {
       });
       expect(metricsMock).toHaveBeenCalledTimes(1);
       await userEvent.click(await screen.findByText(`sum(session)`), {delay: null});
-      expect(initialData.router.push).toHaveBeenCalledWith({
-        query: {sort: '-sum(session)'},
-      });
+      expect(initialData.router.push).toHaveBeenCalledWith(
+        expect.objectContaining({
+          pathname: '/mock-pathname/',
+          query: {sort: '-sum(session)'},
+        })
+      );
       // Need to manually set the new router location and rerender to simulate the sortable column click
       initialData.router.location.query = {sort: '-sum(session)'};
       rerender(
