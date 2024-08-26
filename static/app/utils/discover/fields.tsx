@@ -27,7 +27,7 @@ import {
   WebVital,
 } from '../fields';
 
-import {CONDITIONS_ARGUMENTS, WEB_VITALS_QUALITY} from './types';
+import {CONDITIONS_ARGUMENTS, DiscoverDatasets, WEB_VITALS_QUALITY} from './types';
 
 export type Sort = {
   field: string;
@@ -635,6 +635,47 @@ export type MeasurementType =
 
 export function isSpanOperationBreakdownField(field: string) {
   return field.startsWith('spans.');
+}
+
+// Returns the AGGREGATIONS object with the expected defaults for the given dataset
+export function getAggregations(dataset: DiscoverDatasets) {
+  if (dataset === DiscoverDatasets.DISCOVER) {
+    return AGGREGATIONS;
+  }
+
+  return {
+    ...AGGREGATIONS,
+    [AggregationKey.COUNT_IF]: {
+      ...AGGREGATIONS[AggregationKey.COUNT_IF],
+      parameters: [
+        {
+          kind: 'column',
+          columnTypes: validateDenyListColumns(
+            ['string', 'duration', 'number'],
+            ['id', 'issue', 'user.display']
+          ),
+          defaultValue:
+            dataset === DiscoverDatasets.TRANSACTIONS
+              ? 'transaction.duration'
+              : 'event.type',
+          required: true,
+        },
+        {
+          kind: 'dropdown',
+          options: CONDITIONS_ARGUMENTS,
+          dataType: 'string',
+          defaultValue: CONDITIONS_ARGUMENTS[0].value,
+          required: true,
+        },
+        {
+          kind: 'value',
+          dataType: 'string',
+          defaultValue: dataset === DiscoverDatasets.TRANSACTIONS ? '300' : 'error',
+          required: true,
+        },
+      ],
+    },
+  } as const;
 }
 
 export const SPAN_OP_RELATIVE_BREAKDOWN_FIELD = 'span_ops_breakdown.relative';
