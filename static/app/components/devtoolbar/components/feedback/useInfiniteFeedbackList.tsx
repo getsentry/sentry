@@ -25,7 +25,6 @@ export default function useInfiniteFeedbackList({query}: Props) {
             project: projectId,
             statsPeriod: '14d',
             mailbox,
-            collapse: ['stats'],
             expand: [
               // 'pluginActions', // Gives us plugin actions available
               // 'pluginIssues', // Gives us plugin issues available

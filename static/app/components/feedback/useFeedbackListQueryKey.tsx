@@ -58,7 +58,6 @@ export default function useFeedbackListQueryKey({
       {
         query: {
           ...fixedQueryView,
-          collapse: ['stats'],
           expand: prefetch
             ? []
             : [
