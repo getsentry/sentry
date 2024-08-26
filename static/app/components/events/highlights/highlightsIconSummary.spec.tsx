@@ -45,7 +45,7 @@ describe('HighlightsIconSummary', function () {
 
     render(<HighlightsIconSummary event={eventWithUser} />);
     expect(screen.getByText('user email')).toBeInTheDocument();
-    expect(screen.getByText('user username')).toBeInTheDocument();
+    expect(screen.getByText('Username: user username')).toBeInTheDocument();
   });
 
   it('renders appropriate icons and text', function () {
