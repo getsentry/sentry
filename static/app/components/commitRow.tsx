@@ -124,7 +124,7 @@ function CommitRow({
               )}
             </AuthorWrapper>
           </Tooltip>
-          {tct(' committed [commitLink] [date]', {
+          {tct(' committed [commitLink]', {
             commitLink: (
               <CommitLink
                 inline
