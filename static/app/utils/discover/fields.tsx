@@ -1345,13 +1345,14 @@ export function hasDuplicate(columnList: Column[], column: Column): boolean {
 // Search categorizations for the new `SearchQueryBuilder` component.
 // Each Insights module page will have different points of interest for searching, so use these on a case-by-case basis
 
-export const TRANSACTION_FILTER_FIELDS: FilterKeySection = {
-  value: 'transaction_fields',
-  label: 'Transaction',
+export const TRANSACTION_FILTERS: FilterKeySection = {
+  value: 'transaction_event_filters',
+  label: 'Event Filters',
   children: [
     FieldKey.TRANSACTION_DURATION,
     FieldKey.TRANSACTION_OP,
     FieldKey.TRANSACTION_STATUS,
+    FieldKey.TRANSACTION,
     SpanOpBreakdown.SPANS_BROWSER,
     SpanOpBreakdown.SPANS_DB,
     SpanOpBreakdown.SPANS_HTTP,
@@ -1360,8 +1361,8 @@ export const TRANSACTION_FILTER_FIELDS: FilterKeySection = {
   ],
 };
 
-export const USER_FILTER_FIELDS: FilterKeySection = {
-  value: 'user_fields',
+export const USER_FILTERS: FilterKeySection = {
+  value: 'user_filters',
   label: 'User',
   children: [
     FieldKey.USER,
@@ -1373,8 +1374,8 @@ export const USER_FILTER_FIELDS: FilterKeySection = {
   ],
 };
 
-export const GEO_FILTER_FIELDS: FilterKeySection = {
-  value: 'geo_fields',
+export const GEO_FILTERS: FilterKeySection = {
+  value: 'geo_filters',
   label: 'Geo',
   children: [
     FieldKey.GEO_CITY,
@@ -1384,8 +1385,8 @@ export const GEO_FILTER_FIELDS: FilterKeySection = {
   ],
 };
 
-export const HTTP_FILTER_FIELDS: FilterKeySection = {
-  value: 'http_fields',
+export const HTTP_FILTERS: FilterKeySection = {
+  value: 'http_filters',
   label: 'HTTP',
   children: [
     FieldKey.HTTP_METHOD,
@@ -1395,8 +1396,8 @@ export const HTTP_FILTER_FIELDS: FilterKeySection = {
   ],
 };
 
-export const WEB_VITAL_FIELDS: FilterKeySection = {
-  value: 'web_vital_fields',
+export const WEB_VITAL_FILTERS: FilterKeySection = {
+  value: 'web_filters',
   label: 'Web Vitals',
   children: [
     WebVital.CLS,
@@ -1409,8 +1410,8 @@ export const WEB_VITAL_FIELDS: FilterKeySection = {
   ],
 };
 
-export const MOBILE_VITAL_FIELDS: FilterKeySection = {
-  value: 'mobile_vital_fields',
+export const MOBILE_VITAL_FILTERS: FilterKeySection = {
+  value: 'mobile_vitals_filters',
   label: 'Mobile Vitals',
   children: [
     MobileVital.APP_START_COLD,
@@ -1429,8 +1430,8 @@ export const MOBILE_VITAL_FIELDS: FilterKeySection = {
   ],
 };
 
-export const DEVICE_FIELDS: FilterKeySection = {
-  value: 'device_fields',
+export const DEVICE_FILTERS: FilterKeySection = {
+  value: 'device_filters',
   label: 'Device',
   children: [
     FieldKey.DEVICE_ARCH,
@@ -1453,8 +1454,8 @@ export const DEVICE_FIELDS: FilterKeySection = {
   ],
 };
 
-export const RELEASE_FIELDS: FilterKeySection = {
-  value: 'release_fields',
+export const RELEASE_FILTERS: FilterKeySection = {
+  value: 'release_filters',
   label: 'Release',
   children: [
     FieldKey.RELEASE,
@@ -1465,8 +1466,8 @@ export const RELEASE_FIELDS: FilterKeySection = {
   ],
 };
 
-export const STACKTRACE_FILTER_FIELDS: FilterKeySection = {
-  value: 'stacktrace_fields',
+export const STACKTRACE_FILTERS: FilterKeySection = {
+  value: 'stacktrace_filters',
   label: 'Stacktrace',
   children: [
     FieldKey.STACK_ABS_PATH,
@@ -1481,8 +1482,8 @@ export const STACKTRACE_FILTER_FIELDS: FilterKeySection = {
   ],
 };
 
-export const ERROR_FILTER_FIELDS: FilterKeySection = {
-  value: 'error_fields',
+export const ERROR_DETAIL_FILTERS: FilterKeySection = {
+  value: 'error_detail_filters',
   label: 'Error',
   children: [
     FieldKey.LEVEL,
@@ -1497,36 +1498,74 @@ export const ERROR_FILTER_FIELDS: FilterKeySection = {
   ],
 };
 
-export const MISC_FIELDS: FilterKeySection = {
-  value: 'misc_fields',
+export const MISC_FILTERS: FilterKeySection = {
+  value: 'misc_filters',
   label: 'Misc',
   children: [FieldKey.HAS, FieldKey.DIST],
 };
 
+export const TRANSACTION_EVENT_FILTERS: FilterKeySection = {
+  value: 'transaction_event_filters',
+  label: 'Event Filters',
+  children: [
+    ...TRANSACTION_FILTERS.children,
+    ...HTTP_FILTERS.children,
+    ...RELEASE_FILTERS.children,
+  ],
+};
+
+export const ERROR_EVENT_FILTERS: FilterKeySection = {
+  value: 'error_event_filters',
+  label: 'Event Filters',
+  children: [
+    ...ERROR_DETAIL_FILTERS.children,
+    ...HTTP_FILTERS.children,
+    ...RELEASE_FILTERS.children,
+  ],
+};
+
+export const COMBINED_EVENT_FILTERS: FilterKeySection = {
+  value: 'combined_event_filters',
+  label: 'Event Filters',
+  children: [
+    ...TRANSACTION_FILTERS.children,
+    ...ERROR_DETAIL_FILTERS.children,
+    ...HTTP_FILTERS.children,
+    ...RELEASE_FILTERS.children,
+  ],
+};
+
+export const USER_CONTEXT_FILTERS: FilterKeySection = {
+  value: 'user_context_filters',
+  label: 'User Context',
+  children: [
+    ...USER_FILTERS.children,
+    ...GEO_FILTERS.children,
+    ...DEVICE_FILTERS.children,
+  ],
+};
+
+export const PERFORMANCE_FILTERS: FilterKeySection = {
+  value: 'performance_filters',
+  label: 'Performance',
+  children: [...WEB_VITAL_FILTERS.children, ...MOBILE_VITAL_FILTERS.children],
+};
+
 export const ALL_INSIGHTS_FILTER_KEY_SECTIONS: FilterKeySection[] = [
-  TRANSACTION_FILTER_FIELDS,
-  HTTP_FILTER_FIELDS,
-  WEB_VITAL_FIELDS,
-  RELEASE_FIELDS,
-  USER_FILTER_FIELDS,
-  GEO_FILTER_FIELDS,
-  // TODO: In the future, it would be ideal if we could be more 'smart' about which fields we expose here.
-  // For example, these mobile vitals are not necessary for a Python transaction, but they should be suggested for mobile SDK transactions
-  MOBILE_VITAL_FIELDS,
-  DEVICE_FIELDS,
-  MISC_FIELDS,
+  PERFORMANCE_FILTERS,
+  TRANSACTION_FILTERS,
+  USER_CONTEXT_FILTERS,
 ];
 
 export const ERRORS_DATASET_FILTER_KEY_SECTIONS: FilterKeySection[] = [
-  ERROR_FILTER_FIELDS,
-  STACKTRACE_FILTER_FIELDS,
-  HTTP_FILTER_FIELDS,
+  ERROR_EVENT_FILTERS,
+  USER_CONTEXT_FILTERS,
 ];
 
-export const COMMON_DATASET_FILTER_KEY_SECTIONS: FilterKeySection[] = [
-  ERROR_FILTER_FIELDS,
-  TRANSACTION_FILTER_FIELDS,
-  HTTP_FILTER_FIELDS,
+export const COMBINED_DATASET_FILTER_KEY_SECTIONS: FilterKeySection[] = [
+  PERFORMANCE_FILTERS,
+  COMBINED_EVENT_FILTERS,
+  USER_CONTEXT_FILTERS,
 ];
 
 // TODO: In followup PR, add this

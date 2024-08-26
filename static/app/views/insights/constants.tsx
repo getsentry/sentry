@@ -81,20 +81,15 @@ const TRANSACTION_FILTERS: FilterKeySection = {
   ],
 };
 
-const SDK_FILTERS: FilterKeySection = {
-  value: 'sdk_filters',
-  label: 'SDK',
-  children: [SpanIndexedField.SDK_NAME],
-};
-
-const USER_FILTERS: FilterKeySection = {
-  value: 'user_filters',
-  label: 'User',
+const USER_CONTEXT_FILTERS: FilterKeySection = {
+  value: 'user_context_filters',
+  label: 'User Context',
   children: [
     SpanIndexedField.USER,
     SpanIndexedField.USER_ID,
     SpanIndexedField.USER_EMAIL,
     SpanIndexedField.USER_USERNAME,
+    SpanIndexedField.USER_GEO_SUBREGION,
   ],
 };
 
@@ -113,10 +108,17 @@ const SPAN_FILTERS: FilterKeySection = {
   ],
 };
 
+const EVENT_FILTERS: FilterKeySection = {
+  value: 'event_filters',
+  label: 'Event Filters',
+  children: [
+    ...SPAN_FILTERS.children,
+    ...TRANSACTION_FILTERS.children,
+    ...RELEASE_FILTERS.children,
+  ],
+};
+
 export const SPANS_FILTER_KEY_SECTIONS: FilterKeySection[] = [
-  SPAN_FILTERS,
-  TRANSACTION_FILTERS,
-  USER_FILTERS,
-  RELEASE_FILTERS,
-  SDK_FILTERS,
+  EVENT_FILTERS,
+  USER_CONTEXT_FILTERS,
 ];
