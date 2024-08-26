@@ -104,9 +104,7 @@ export function generateProfilingRouteWithQuery({
   const pathname = generateProfilingRoute({orgSlug});
   return {
     pathname,
-    query: {
-      ...query,
-    },
+    query,
   };
 }
 
@@ -149,9 +147,7 @@ export function generateProfileFlamechartRouteWithQuery({
   });
   return {
     pathname,
-    query: {
-      ...query,
-    },
+    query,
   };
 }
 
