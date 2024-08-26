@@ -294,7 +294,7 @@ describe('Performance > VitalDetail', function () {
       query: {
         transaction: 'something',
         project: undefined,
-        environment: [],
+        environment: undefined,
         statsPeriod: DEFAULT_STATS_PERIOD,
         start: undefined,
         end: undefined,
@@ -337,7 +337,7 @@ describe('Performance > VitalDetail', function () {
       query: {
         transaction: 'something',
         project: undefined,
-        environment: [],
+        environment: undefined,
         statsPeriod: DEFAULT_STATS_PERIOD,
         start: undefined,
         end: undefined,

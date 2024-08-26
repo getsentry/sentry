@@ -188,7 +188,7 @@ describe('Discover > Homepage', () => {
       expect.objectContaining({
         pathname: '/organizations/org-slug/discover/homepage/',
         query: expect.objectContaining({
-          field: ['event.type'],
+          field: 'event.type',
         }),
       })
     );
@@ -662,7 +662,7 @@ describe('Discover > Homepage', () => {
         query: expect.objectContaining({
           dataset: 'transactions',
           name: 'homepage query',
-          project: [],
+          project: undefined,
           query: 'event.type:error',
           queryDataset: 'transaction-like',
         }),

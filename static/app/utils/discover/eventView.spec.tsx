@@ -1162,11 +1162,11 @@ describe('EventView.generateQueryStringObject()', function () {
       id: undefined,
       name: undefined,
       field: ['id', 'title'],
-      widths: [],
-      sort: [],
+      widths: undefined,
+      sort: undefined,
       query: '',
-      project: [],
-      environment: [],
+      project: undefined,
+      environment: undefined,
       display: 'previous',
       yAxis: 'count()',
     };
@@ -1201,14 +1201,14 @@ describe('EventView.generateQueryStringObject()', function () {
       id: '1234',
       name: 'best query',
       field: ['count()', 'project.id'],
-      widths: [123, 456],
-      sort: ['-count'],
+      widths: ['123', '456'],
+      sort: '-count',
       query: 'event.type:error',
-      project: [42],
+      project: '42',
       start: '2019-10-01T00:00:00',
       end: '2019-10-02T00:00:00',
       statsPeriod: '14d',
-      environment: ['staging'],
+      environment: 'staging',
       yAxis: 'count()',
       display: 'releases',
       interval: '1m',
@@ -2996,7 +2996,7 @@ describe('EventView.getResultsViewUrlTarget()', function () {
     const result = view.getResultsViewUrlTarget(organization.slug);
     expect(result.pathname).toEqual('/organizations/org-slug/discover/results/');
     expect(result.query.query).toEqual(state.query);
-    expect(result.query.project).toEqual(state.project);
+    expect(result.query.project).toEqual('42');
     expect(result.query.display).toEqual(state.display);
   });
 
@@ -3005,7 +3005,7 @@ describe('EventView.getResultsViewUrlTarget()', function () {
     const result = view.getResultsViewUrlTarget(organization.slug);
     expect(result.pathname).toEqual('/discover/results/');
     expect(result.query.query).toEqual(state.query);
-    expect(result.query.project).toEqual(state.project);
+    expect(result.query.project).toEqual('42');
     expect(result.query.display).toEqual(state.display);
   });
 });
@@ -3057,8 +3057,8 @@ describe('EventView.getResultsViewShortUrlTarget()', function () {
     expect(result.query).not.toHaveProperty('query');
     expect(result.query.id).toEqual(state.id);
     expect(result.query.statsPeriod).toEqual(state.statsPeriod);
-    expect(result.query.project).toEqual(state.project);
-    expect(result.query.environment).toEqual(state.environment);
+    expect(result.query.project).toEqual('42');
+    expect(result.query.environment).toEqual('staging');
   });
 
   it('generates a URL with customer domain context', function () {
@@ -3070,8 +3070,8 @@ describe('EventView.getResultsViewShortUrlTarget()', function () {
     expect(result.query).not.toHaveProperty('query');
     expect(result.query.id).toEqual(state.id);
     expect(result.query.statsPeriod).toEqual(state.statsPeriod);
-    expect(result.query.project).toEqual(state.project);
-    expect(result.query.environment).toEqual(state.environment);
+    expect(result.query.project).toEqual('42');
+    expect(result.query.environment).toEqual('staging');
   });
 });
 
@@ -3126,8 +3126,8 @@ describe('EventView.getPerformanceTransactionEventsViewUrlTarget()', function ()
       '/organizations/org-slug/performance/summary/events/'
     );
     expect(result.query.query).toEqual(state.query);
-    expect(result.query.project).toEqual(state.project);
-    expect(result.query.sort).toEqual(['-count']);
+    expect(result.query.project).toEqual('42');
+    expect(result.query.sort).toEqual('-count');
     expect(result.query.transaction).toEqual(state.name);
     expect(result.query.showTransactions).toEqual(showTransactions);
     expect(result.query.breakdown).toEqual(breakdown);
@@ -3143,8 +3143,8 @@ describe('EventView.getPerformanceTransactionEventsViewUrlTarget()', function ()
     });
     expect(result.pathname).toEqual('/performance/summary/events/');
     expect(result.query.query).toEqual(state.query);
-    expect(result.query.project).toEqual(state.project);
-    expect(result.query.sort).toEqual(['-count']);
+    expect(result.query.project).toEqual('42');
+    expect(result.query.sort).toEqual('-count');
     expect(result.query.transaction).toEqual(state.name);
     expect(result.query.showTransactions).toEqual(showTransactions);
     expect(result.query.breakdown).toEqual(breakdown);
