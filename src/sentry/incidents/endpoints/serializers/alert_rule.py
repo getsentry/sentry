@@ -71,7 +71,7 @@ class AlertRuleSerializerResponseOptional(TypedDict, total=False):
         "description",  # TODO: remove this once the feature has been released to add to the public docs, being sure to denote it will only display in Slack notifications
         "sensitivity",  # For anomaly detection, which is behind a feature flag
         "seasonality",  # For anomaly detection, which is behind a feature flag
-        "detection_type",  # For anomaly detection, which is behind a feature flag
+        "detectionType",  # For anomaly detection, which is behind a feature flag
     ]
 )
 class AlertRuleSerializerResponse(AlertRuleSerializerResponseOptional):
@@ -97,7 +97,7 @@ class AlertRuleSerializerResponse(AlertRuleSerializerResponseOptional):
     activations: list[dict]
     activationCondition: int | None
     description: str
-    detection_type: str
+    detectionType: str
 
 
 @register(AlertRule)
