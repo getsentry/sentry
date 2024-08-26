@@ -22,6 +22,7 @@ from sentry import analytics, audit_log, features, quotas
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.auth.access import SystemAccess
 from sentry.constants import CRASH_RATE_ALERT_AGGREGATE_ALIAS, ObjectStatus
+from sentry.db.models import Model
 from sentry.incidents import tasks
 from sentry.incidents.models.alert_rule import (
     AlertRule,
@@ -688,16 +689,25 @@ def create_alert_rule(
 
 
 def snapshot_alert_rule(alert_rule: AlertRule, user: RpcUser | None = None) -> None:
+    def nullify_id(model: Model) -> None:
+        """Set the id field to null.
+
+        This coerces the `save` method to create a new object.
+
+        TODO: Refactor to not violate the type system
+        """
+        model.id = None  # type: ignore[assignment]
+
     # Creates an archived alert_rule using the same properties as the passed rule
     # It will also resolve any incidents attached to this rule.
     with transaction.atomic(router.db_for_write(AlertRuleActivity)):
         triggers = AlertRuleTrigger.objects.filter(alert_rule=alert_rule)
         incidents = Incident.objects.filter(alert_rule=alert_rule)
         snuba_query_snapshot: SnubaQuery = deepcopy(_unpack_snuba_query(alert_rule))
-        snuba_query_snapshot.id = None  # type: ignore[assignment]
+        nullify_id(snuba_query_snapshot)
         snuba_query_snapshot.save()
         alert_rule_snapshot = deepcopy(alert_rule)
-        alert_rule_snapshot.id = None  # type: ignore[assignment]
+        nullify_id(alert_rule_snapshot)
         alert_rule_snapshot.status = AlertRuleStatus.SNAPSHOT.value
         alert_rule_snapshot.snuba_query = snuba_query_snapshot
         if alert_rule.user_id or alert_rule.team_id:
@@ -715,11 +725,11 @@ def snapshot_alert_rule(alert_rule: AlertRule, user: RpcUser | None = None) -> N
 
         for trigger in triggers:
             actions = AlertRuleTriggerAction.objects.filter(alert_rule_trigger=trigger)
-            trigger.id = None  # type: ignore[assignment]
+            nullify_id(trigger)
             trigger.alert_rule = alert_rule_snapshot
             trigger.save()
             for action in actions:
-                action.id = None  # type: ignore[assignment]
+                nullify_id(action)
                 action.alert_rule_trigger = trigger
                 action.save()
 
