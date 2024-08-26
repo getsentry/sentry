@@ -91,10 +91,7 @@ class ProjectRuleActionsEndpoint(ProjectEndpoint):
             try:
                 callback(test_event, futures)
             except Exception as exc:
-                if hasattr(callback, "im_class"):
-                    cls = callback.im_class
-                else:
-                    cls = callback.__class__
+                cls = callback.__class__
                 callback_name = getattr(callback, "__name__", str(callback))
                 cls_name = cls.__name__
                 logger = logging.getLogger(f"sentry.test_rule.{cls_name.lower()}")
