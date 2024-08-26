@@ -90,6 +90,7 @@ export function shouldAddMissingInstrumentationSpan(sdk: string | undefined): bo
     case 'sentry.javascript.remix':
     case 'sentry.javascript.svelte':
     case 'sentry.javascript.sveltekit':
+    case 'sentry.javascript.react-native':
     case 'sentry.javascript.astro':
       return false;
     case undefined:

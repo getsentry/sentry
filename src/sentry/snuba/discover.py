@@ -3,6 +3,7 @@ import math
 import random
 from collections import namedtuple
 from collections.abc import Callable, Mapping, Sequence
+from copy import deepcopy
 from datetime import datetime, timedelta
 from typing import Any, Literal, cast
 
@@ -29,6 +30,7 @@ from sentry.search.events.fields import (
 from sentry.search.events.types import (
     EventsResponse,
     HistogramParams,
+    ParamsType,
     QueryBuilderConfig,
     SnubaData,
     SnubaParams,
@@ -180,7 +182,8 @@ def transform_tips(tips: dict[str, set[str]]) -> dict[str, str | None]:
 def query(
     selected_columns: list[str],
     query: str,
-    snuba_params: SnubaParams,
+    params: ParamsType,
+    snuba_params: SnubaParams | None = None,
     equations: list[str] | None = None,
     orderby: list[str] | None = None,
     offset: int | None = None,
@@ -217,7 +220,7 @@ def query(
 
     selected_columns - List of public aliases to fetch.
     query - Filter query string to create conditions from.
-    snuba_params - Filtering parameters with start, end, project_id, environment
+    params - Filtering parameters with start, end, project_id, environment
     equations - List of equations to calculate for the query
     orderby - The field to order results by.
     offset - The record offset to read.
@@ -241,6 +244,9 @@ def query(
     if not selected_columns:
         raise InvalidSearchQuery("No columns selected")
 
+    if len(params) == 0 and snuba_params is not None:
+        params = snuba_params.filter_params
+
     assert dataset in [
         Dataset.Discover,
         Dataset.Transactions,
@@ -248,7 +254,7 @@ def query(
 
     builder = DiscoverQueryBuilder(
         dataset,
-        params={},
+        params,
         snuba_params=snuba_params,
         query=query,
         selected_columns=selected_columns,
@@ -283,13 +289,14 @@ def query(
 def _query_temp_do_not_use(
     selected_columns: list[str],
     query_string: str,
-    snuba_params: SnubaParams,
+    snuba_params: SnubaParams | None = None,
     referrer: str | None = None,
 ):
     """There's a single function call in getsentry that we need to support as we remove params"""
     return query(
         selected_columns=selected_columns,
         query=query_string,
+        params={},
         snuba_params=snuba_params,
         referrer=referrer,
     )
@@ -298,8 +305,9 @@ def _query_temp_do_not_use(
 def timeseries_query(
     selected_columns: Sequence[str],
     query: str,
-    snuba_params: SnubaParams,
+    params: ParamsType,
     rollup: int,
+    snuba_params: SnubaParams | None = None,
     referrer: str | None = None,
     zerofill_results: bool = True,
     comparison_delta: timedelta | None = None,
@@ -327,7 +335,7 @@ def timeseries_query(
 
     selected_columns - List of public aliases to fetch.
     query - Filter query string to create conditions from.
-    snuba_params - Filtering parameters with start, end, project_id, environment,
+    params - Filtering parameters with start, end, project_id, environment,
     rollup - The bucket width in seconds
     referrer - A referrer string to help locate the origin of this query.
     comparison_delta - A timedelta used to convert this into a comparison query. We make a second
@@ -340,13 +348,22 @@ def timeseries_query(
         Dataset.Transactions,
     ], "A dataset is required to query discover"
 
+    if len(params) == 0 and snuba_params is not None:
+        params = snuba_params.filter_params
+
+    if (
+        "start" not in params
+        or params["start"] is None
+        or "end" not in params
+        or params["end"] is None
+    ):
+        InvalidSearchQuery("Start and End is required to query timeseries")
     with sentry_sdk.start_span(op="discover.discover", description="timeseries.filter_transform"):
         equations, columns = categorize_columns(selected_columns)
         base_builder = TimeseriesQueryBuilder(
             dataset,
-            params={},
-            interval=rollup,
-            snuba_params=snuba_params,
+            params,
+            rollup,
             query=query,
             selected_columns=columns,
             equations=equations,
@@ -359,16 +376,13 @@ def timeseries_query(
         if comparison_delta:
             if len(base_builder.aggregates) != 1:
                 raise InvalidSearchQuery("Only one column can be selected for comparison queries")
-            comp_query_params = snuba_params.copy()
-            assert comp_query_params.start is not None, "start is required"
-            assert comp_query_params.end is not None, "end is required"
-            comp_query_params.start -= comparison_delta
-            comp_query_params.end -= comparison_delta
+            comp_query_params = deepcopy(params)
+            comp_query_params["start"] -= comparison_delta
+            comp_query_params["end"] -= comparison_delta
             comparison_builder = TimeseriesQueryBuilder(
                 dataset,
-                params={},
-                interval=rollup,
-                snuba_params=comp_query_params,
+                comp_query_params,
+                rollup,
                 query=query,
                 selected_columns=columns,
                 equations=equations,
@@ -422,8 +436,8 @@ def timeseries_query(
                 }
             },
         },
-        snuba_params.start_date,
-        snuba_params.end_date,
+        params["start"],
+        params["end"],
         rollup,
     )
 
@@ -461,11 +475,12 @@ def top_events_timeseries(
     timeseries_columns: list[str],
     selected_columns: list[str],
     user_query: str,
-    snuba_params: SnubaParams,
+    params: ParamsType,
     orderby: list[str],
     rollup: int,
     limit: int,
     organization: Organization,
+    snuba_params: SnubaParams | None = None,
     equations: list[str] | None = None,
     referrer: str | None = None,
     top_events: EventsResponse | None = None,
@@ -490,7 +505,7 @@ def top_events_timeseries(
                     this is to determine what the top events are
     user_query - Filter query string to create conditions from. needs to be user_query
                     to not conflict with the function query
-    snuba_params - Filtering parameters with start, end, project_id, environment,
+    params - Filtering parameters with start, end, project_id, environment,
     orderby - The fields to order results by.
     rollup - The bucket width in seconds
     limit - The number of events to get timeseries for
@@ -505,12 +520,15 @@ def top_events_timeseries(
         Dataset.Transactions,
     ], "A dataset is required to query discover"
 
+    if len(params) == 0 and snuba_params is not None:
+        params = snuba_params.filter_params
+
     if top_events is None:
         with sentry_sdk.start_span(op="discover.discover", description="top_events.fetch_events"):
             top_events = query(
                 selected_columns,
                 query=user_query,
-                snuba_params=snuba_params,
+                params=params,
                 equations=equations,
                 orderby=orderby,
                 limit=limit,
@@ -525,10 +543,9 @@ def top_events_timeseries(
 
     top_events_builder = TopEventsQueryBuilder(
         dataset,
-        params={},
-        interval=rollup,
-        snuba_params=snuba_params,
-        top_events=top_events["data"],
+        params,
+        rollup,
+        top_events["data"],
         other=False,
         query=user_query,
         selected_columns=selected_columns,
@@ -542,10 +559,9 @@ def top_events_timeseries(
     if len(top_events["data"]) == limit and include_other:
         other_events_builder = TopEventsQueryBuilder(
             dataset,
-            params={},
-            interval=rollup,
-            top_events=top_events["data"],
-            snuba_params=snuba_params,
+            params,
+            rollup,
+            top_events["data"],
             other=True,
             query=user_query,
             selected_columns=selected_columns,
@@ -568,13 +584,13 @@ def top_events_timeseries(
         return SnubaTSResult(
             {
                 "data": (
-                    zerofill([], snuba_params.start_date, snuba_params.end_date, rollup, ["time"])
+                    zerofill([], params["start"], params["end"], rollup, ["time"])
                     if zerofill_results
                     else []
                 ),
             },
-            snuba_params.start_date,
-            snuba_params.end_date,
+            params["start"],
+            params["end"],
             rollup,
         )
     with sentry_sdk.start_span(
@@ -587,7 +603,7 @@ def top_events_timeseries(
         if "issue" in selected_columns:
             issues = Group.objects.get_issues_mapping(
                 {cast(int, event["issue.id"]) for event in top_events["data"]},
-                snuba_params.project_ids,
+                params["project_id"],
                 organization,
             )
         translated_groupby = top_events_builder.translated_groupby
@@ -616,20 +632,14 @@ def top_events_timeseries(
             top_events_results[key] = SnubaTSResult(
                 {
                     "data": (
-                        zerofill(
-                            item["data"],
-                            snuba_params.start_date,
-                            snuba_params.end_date,
-                            rollup,
-                            ["time"],
-                        )
+                        zerofill(item["data"], params["start"], params["end"], rollup, ["time"])
                         if zerofill_results
                         else item["data"]
                     ),
                     "order": item["order"],
                 },
-                snuba_params.start_date,
-                snuba_params.end_date,
+                params["start"],
+                params["end"],
                 rollup,
             )
 
@@ -638,8 +648,9 @@ def top_events_timeseries(
 
 def get_facets(
     query: str,
-    snuba_params: SnubaParams,
+    params: ParamsType,
     referrer: str,
+    snuba_params: SnubaParams | None = None,
     per_page: int | None = TOP_KEYS_DEFAULT_LIMIT,
     cursor: int | None = 0,
 ) -> list[FacetResult]:
@@ -657,13 +668,16 @@ def get_facets(
     cursor - The number of records to skip.
     """
 
-    sample = len(snuba_params.project_ids) > 2
-    fetch_projects = len(snuba_params.project_ids) > 1
+    if len(params) == 0 and snuba_params is not None:
+        params = snuba_params.filter_params
+
+    sample = len(params["project_id"]) > 2
+    fetch_projects = len(params["project_id"]) > 1
 
     with sentry_sdk.start_span(op="discover.discover", description="facets.frequent_tags"):
         key_name_builder = DiscoverQueryBuilder(
             Dataset.Discover,
-            params={},
+            params,
             snuba_params=snuba_params,
             query=query,
             selected_columns=["tags_key", "count()"],
@@ -709,7 +723,7 @@ def get_facets(
         with sentry_sdk.start_span(op="discover.discover", description="facets.projects"):
             project_value_builder = DiscoverQueryBuilder(
                 Dataset.Discover,
-                params={},
+                params,
                 snuba_params=snuba_params,
                 query=query,
                 selected_columns=["count()", "project_id"],
@@ -748,7 +762,7 @@ def get_facets(
             tag = f"tags[{tag_name}]"
             tag_value_builder = DiscoverQueryBuilder(
                 Dataset.Discover,
-                params={},
+                params,
                 snuba_params=snuba_params,
                 query=query,
                 selected_columns=["count()", tag],
@@ -770,7 +784,7 @@ def get_facets(
         with sentry_sdk.start_span(op="discover.discover", description="facets.aggregate_tags"):
             aggregate_value_builder = DiscoverQueryBuilder(
                 Dataset.Discover,
-                params={},
+                params,
                 snuba_params=snuba_params,
                 query=(query if query is not None else "")
                 + f" tags_key:[{','.join(aggregate_tags)}]",
@@ -805,8 +819,9 @@ def get_facets(
 def spans_histogram_query(
     span: Span,
     user_query: str,
-    snuba_params: SnubaParams,
+    params: ParamsType,
     num_buckets: int,
+    snuba_params: SnubaParams | None = None,
     precision: int = 0,
     min_value: float | None = None,
     max_value: float | None = None,
@@ -827,7 +842,7 @@ def spans_histogram_query(
 
     :param span: A span for which you want to generate histograms for.
     :param user_query: Filter query string to create conditions from.
-    :param snuba_params: Filtering parameters with start, end, project_id, environment
+    :param params: Filtering parameters with start, end, project_id, environment
     :param num_buckets: The number of buckets the histogram should contain.
     :param precision: The number of decimal places to preserve, default 0.
     :param min_value: The minimum value allowed to be in the histogram.
@@ -847,8 +862,11 @@ def spans_histogram_query(
         # to be inclusive. So we adjust the specified max_value using the multiplier.
         max_value -= 0.1 / multiplier
 
+    if len(params) == 0 and snuba_params is not None:
+        params = snuba_params.filter_params
+
     min_value, max_value = find_span_histogram_min_max(
-        span, min_value, max_value, user_query, snuba_params, data_filter
+        span, min_value, max_value, user_query, params, data_filter
     )
 
     key_column = None
@@ -867,8 +885,7 @@ def spans_histogram_query(
         group_by,
         # Arguments for QueryBuilder
         Dataset.Discover,
-        params={},
-        snuba_params=snuba_params,
+        params,
         query=user_query,
         selected_columns=[""],
         orderby=order_by,
@@ -894,9 +911,10 @@ def spans_histogram_query(
 def histogram_query(
     fields: list[str],
     user_query: str,
-    snuba_params: SnubaParams,
+    params: ParamsType,
     num_buckets: int,
     precision: int = 0,
+    snuba_params: SnubaParams | None = None,
     min_value: float | None = None,
     max_value: float | None = None,
     data_filter: Literal["exclude_outliers"] | None = None,
@@ -922,7 +940,7 @@ def histogram_query(
 
     :param fields: The list of fields for which you want to generate histograms for.
     :param user_query: Filter query string to create conditions from.
-    :param snuba_params: Filtering parameters with start, end, project_id, environment
+    :param params: Filtering parameters with start, end, project_id, environment
     :param num_buckets: The number of buckets the histogram should contain.
     :param precision: The number of decimal places to preserve, default 0.
     :param min_value: The minimum value allowed to be in the histogram.
@@ -938,6 +956,9 @@ def histogram_query(
     :param normalize_results: Indicate whether to normalize the results by column into bins.
     """
 
+    if len(params) == 0 and snuba_params is not None:
+        params = snuba_params.filter_params
+
     multiplier = int(10**precision)
     if max_value is not None:
         # We want the specified max_value to be exclusive, and the queried max_value
@@ -949,7 +970,7 @@ def histogram_query(
         min_value,
         max_value,
         user_query,
-        snuba_params,
+        params,
         data_filter,
     )
 
@@ -991,8 +1012,7 @@ def histogram_query(
         group_by,
         # Arguments for QueryBuilder
         Dataset.Discover,
-        params={},
-        snuba_params=snuba_params,
+        params,
         query=user_query,
         selected_columns=fields,
         orderby=order_by,
@@ -1089,21 +1109,21 @@ def find_span_histogram_min_max(
     min_value: float | None,
     max_value: float | None,
     user_query: str,
-    snuba_params: SnubaParams,
+    params: ParamsType,
     data_filter: Literal["exclude_outliers"] | None = None,
 ) -> tuple[float | None, float | None]:
     """
     Find the min/max value of the specified span. If either min/max is already
     specified, it will be used and not queried for.
 
-    :param span: A span for which you want to generate the histograms for.
-    :param min_value: The minimum value allowed to be in the histogram.
+    :param [Span] span: A span for which you want to generate the histograms for.
+    :param float min_value: The minimum value allowed to be in the histogram.
         If left unspecified, it is queried using `user_query` and `params`.
-    :param max_value: The maximum value allowed to be in the histogram.
+    :param float max_value: The maximum value allowed to be in the histogram.
         If left unspecified, it is queried using `user_query` and `params`.
-    :param user_query: Filter query string to create conditions from.
-    :param snuba_params: Filtering parameters with start, end, project_id, environment
-    :param data_filter: Indicate the filter strategy to be applied to the data.
+    :param str user_query: Filter query string to create conditions from.
+    :param {str: str} params: Filtering parameters with start, end, project_id, environment
+    :param str data_filter: Indicate the filter strategy to be applied to the data.
     """
     if min_value is not None and max_value is not None:
         return min_value, max_value
@@ -1128,7 +1148,7 @@ def find_span_histogram_min_max(
     results = query(
         selected_columns=selected_columns,
         query=user_query,
-        snuba_params=snuba_params,
+        params=params,
         limit=1,
         referrer="api.organization-spans-histogram-min-max",
         functions_acl=["fn_span_exclusive_time"],
@@ -1196,21 +1216,21 @@ def find_span_op_count_histogram_min_max(
     min_value: float | None,
     max_value: float | None,
     user_query: str,
-    snuba_params: SnubaParams,
+    params: ParamsType,
     data_filter: Literal["exclude_outliers"] | None = None,
 ) -> tuple[float | None, float | None]:
     """
     Find the min/max value of the specified span op count. If either min/max is already
     specified, it will be used and not queried for.
 
-    :param span_op: A span op for which count you want to generate the histograms for.
-    :param min_value: The minimum value allowed to be in the histogram.
+    :param str span_op: A span op for which count you want to generate the histograms for.
+    :param float min_value: The minimum value allowed to be in the histogram.
         If left unspecified, it is queried using `user_query` and `params`.
-    :param max_value: The maximum value allowed to be in the histogram.
+    :param float max_value: The maximum value allowed to be in the histogram.
         If left unspecified, it is queried using `user_query` and `params`.
-    :param user_query: Filter query string to create conditions from.
-    :param params: Filtering parameters with start, end, project_id, environment
-    :param data_filter: Indicate the filter strategy to be applied to the data.
+    :param str user_query: Filter query string to create conditions from.
+    :param {str: str} params: Filtering parameters with start, end, project_id, environment
+    :param str data_filter: Indicate the filter strategy to be applied to the data.
     """
     if min_value is not None and max_value is not None:
         return min_value, max_value
@@ -1235,7 +1255,7 @@ def find_span_op_count_histogram_min_max(
     results = query(
         selected_columns=selected_columns,
         query=user_query,
-        snuba_params=snuba_params,
+        params=params,
         limit=1,
         referrer="api.organization-spans-histogram-min-max",
         functions_acl=["fn_span_count"],
@@ -1303,7 +1323,7 @@ def find_histogram_min_max(
     min_value: float | None,
     max_value: float | None,
     user_query: str,
-    snuba_params: SnubaParams,
+    params: ParamsType,
     data_filter: Literal["exclude_outliers"] | None = None,
     query_fn: Callable | None = None,
 ) -> tuple[float | None, float | None]:
@@ -1311,14 +1331,14 @@ def find_histogram_min_max(
     Find the min/max value of the specified fields. If either min/max is already
     specified, it will be used and not queried for.
 
-    :param fields: The list of fields for which you want to generate the histograms for.
-    :param min_value: The minimum value allowed to be in the histogram.
+    :param [str] fields: The list of fields for which you want to generate the histograms for.
+    :param float min_value: The minimum value allowed to be in the histogram.
         If left unspecified, it is queried using `user_query` and `params`.
-    :param max_value: The maximum value allowed to be in the histogram.
+    :param float max_value: The maximum value allowed to be in the histogram.
         If left unspecified, it is queried using `user_query` and `params`.
-    :param user_query: Filter query string to create conditions from.
-    :param params: Filtering parameters with start, end, project_id, environment
-    :param data_filter: Indicate the filter strategy to be applied to the data.
+    :param str user_query: Filter query string to create conditions from.
+    :param {str: str} params: Filtering parameters with start, end, project_id, environment
+    :param str data_filter: Indicate the filter strategy to be applied to the data.
     """
 
     if min_value is not None and max_value is not None:
@@ -1343,7 +1363,7 @@ def find_histogram_min_max(
     results = query_fn(
         selected_columns=min_columns + max_columns + quartiles,
         query=user_query,
-        snuba_params=snuba_params,
+        params=params,
         limit=1,
         referrer="api.organization-events-histogram-min-max",
     )

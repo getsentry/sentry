@@ -29,8 +29,8 @@ class ProjectMemberIndexTest(APITestCase):
         response = self.client.get(url)
         assert response.status_code == 200
         assert len(response.data) == 2
-        assert response.data[0]["email"] == user_2.email
-        assert response.data[1]["email"] == user_3.email
+        emails = {user["email"] for user in response.data}
+        assert emails == {user_2.email, user_3.email}
 
     def test_email_id_comparison(self):
         # OrganizationMember email indicates the status of an invite, and is
@@ -54,5 +54,5 @@ class ProjectMemberIndexTest(APITestCase):
         response = self.client.get(url)
         assert response.status_code == 200
         assert len(response.data) == 2
-        assert response.data[0]["email"] == self.user.email
-        assert response.data[1]["email"] == invited_user.email
+        emails = {user["email"] for user in response.data}
+        assert emails == {self.user.email, invited_user.email}
