@@ -199,6 +199,8 @@ const getDocsAndOutputType = (key: AggregationKey) => {
 
 // Refer to src/sentry/search/events/fields.py
 // Try to keep functions logically sorted, ie. all the count functions are grouped together
+// When dealing with errors or transactions datasets, use getAggregations() instead because
+// there are dataset-specific overrides
 export const AGGREGATIONS = {
   [AggregationKey.COUNT]: {
     ...getDocsAndOutputType(AggregationKey.COUNT),
