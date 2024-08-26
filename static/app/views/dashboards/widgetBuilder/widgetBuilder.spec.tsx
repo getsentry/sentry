@@ -509,6 +509,7 @@ describe('WidgetBuilder', function () {
             utc: null,
             project: [],
             environment: [],
+            widgetType: 'discover',
           },
         })
       );
@@ -552,6 +553,7 @@ describe('WidgetBuilder', function () {
             utc: null,
             project: [],
             environment: [],
+            widgetType: 'discover',
           },
         })
       );
@@ -1431,6 +1433,7 @@ describe('WidgetBuilder', function () {
               utc: null,
               project: [],
               environment: [],
+              widgetType: 'discover',
             },
           })
         );
@@ -1463,6 +1466,7 @@ describe('WidgetBuilder', function () {
               utc: null,
               project: [],
               environment: [],
+              widgetType: 'discover',
             },
           })
         );

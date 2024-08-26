@@ -51,7 +51,7 @@ import {getMeasurements} from 'sentry/utils/measurements/measurements';
 import {getMetricDisplayType, getMetricsUrl} from 'sentry/utils/metrics';
 import {parseField} from 'sentry/utils/metrics/mri';
 import type {MetricsWidget} from 'sentry/utils/metrics/types';
-import {decodeList} from 'sentry/utils/queryString';
+import {decodeList, decodeScalar} from 'sentry/utils/queryString';
 import theme from 'sentry/utils/theme';
 import type {
   DashboardDetails,
@@ -203,6 +203,7 @@ export function constructWidgetFromQuery(query?: Query): Widget | undefined {
     const queryNames = coerceStringToArray(query.queryNames);
     const queryConditions = coerceStringToArray(query.queryConditions);
     const queryFields = coerceStringToArray(query.queryFields);
+    const widgetType = decodeScalar(query.widgetType);
     const queries: WidgetQuery[] = [];
     if (
       queryConditions &&
@@ -229,7 +230,7 @@ export function constructWidgetFromQuery(query?: Query): Widget | undefined {
           interval: string;
           title: string;
         }),
-        widgetType: WidgetType.DISCOVER,
+        widgetType: widgetType ? (widgetType as WidgetType) : WidgetType.DISCOVER,
         queries,
       };
       return newWidget;
