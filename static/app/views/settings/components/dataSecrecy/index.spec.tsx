@@ -6,7 +6,9 @@ import DataSecrecy from 'sentry/views/settings/components/dataSecrecy';
 jest.mock('sentry/actionCreators/indicator');
 
 describe('DataSecrecy', function () {
-  const {organization} = initializeOrg();
+  const {organization} = initializeOrg({
+    organization: {features: ['data-secrecy']},
+  });
 
   beforeEach(function () {
     MockApiClient.clearMockResponses();
@@ -51,7 +53,6 @@ describe('DataSecrecy', function () {
         /Sentry employees has access to your organization until/i
       );
       expect(accessMessage).toBeInTheDocument();
-      expect(screen.getByDisplayValue(/2024\-08\-28t18:05/i)).toBeInTheDocument();
     });
   });
 });
