@@ -23,7 +23,7 @@ import type {CustomMeasurementCollection} from 'sentry/utils/customMeasurements/
 import type {Field} from 'sentry/utils/discover/fields';
 import {
   ALL_INSIGHTS_FILTER_KEY_SECTIONS,
-  COMMON_DATASET_FILTER_KEY_SECTIONS,
+  COMBINED_DATASET_FILTER_KEY_SECTIONS,
   ERRORS_DATASET_FILTER_KEY_SECTIONS,
   isAggregateField,
   isEquation,
@@ -273,7 +273,7 @@ function ResultsSearchQueryBuilder(props: Props) {
       return [...ERRORS_DATASET_FILTER_KEY_SECTIONS, customTagsSection];
     }
 
-    return [...COMMON_DATASET_FILTER_KEY_SECTIONS, customTagsSection];
+    return [...COMBINED_DATASET_FILTER_KEY_SECTIONS, customTagsSection];
   }, [filteredTags, dataset]);
 
   return (
