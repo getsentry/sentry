@@ -153,9 +153,9 @@ export function useTraceMeta(replayTraces: ReplayTrace[]): TraceMetaQueryResults
       metaResults: TraceMeta;
     },
     Error
-  >(
-    ['traceData', replayTraces],
-    () =>
+  >({
+    queryKey: ['traceData', replayTraces],
+    queryFn: () =>
       fetchTraceMetaInBatches(
         api,
         organization,
@@ -163,10 +163,8 @@ export function useTraceMeta(replayTraces: ReplayTrace[]): TraceMetaQueryResults
         normalizedParams,
         filters.selection
       ),
-    {
-      enabled: replayTraces.length > 0,
-    }
-  );
+    enabled: replayTraces.length > 0,
+  });
 
   const results = useMemo(() => {
     return {

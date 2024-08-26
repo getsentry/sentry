@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import Access from 'sentry/components/acl/access';
-import {Button} from 'sentry/components/button';
+import {LinkButton} from 'sentry/components/button';
 import ExternalLink from 'sentry/components/links/externalLink';
 import LoadingError from 'sentry/components/loadingError';
 import {PanelTable} from 'sentry/components/panels/panelTable';
@@ -146,14 +146,14 @@ export function OrganizationAuthTokensIndex({
   });
 
   const createNewToken = (
-    <Button
+    <LinkButton
       priority="primary"
       size="sm"
       to={`/settings/${organization.slug}/auth-tokens/new-token/`}
       data-test-id="create-token"
     >
       {t('Create New Token')}
-    </Button>
+    </LinkButton>
   );
 
   return (
