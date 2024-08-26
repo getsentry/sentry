@@ -318,7 +318,7 @@ class AlertRuleSerializer(Serializer):
             "description": obj.description if obj.description is not None else "",
             "sensitivity": obj.sensitivity,
             "seasonality": obj.seasonality,
-            "detection_type": obj.detection_type,
+            "detectionType": obj.detection_type,
         }
         rule_snooze = RuleSnooze.objects.filter(
             Q(user_id=user.id) | Q(user_id=None), alert_rule=obj
