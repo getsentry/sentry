@@ -46,9 +46,7 @@ describe('GroupSummary', function () {
 
     render(<GroupSummary groupId={groupId} groupCategory={IssueCategory.ERROR} />);
 
-    await waitFor(() => {
-      expect(screen.getByText('Issue Summary')).toBeInTheDocument();
-    });
+    expect(await screen.findByText('Issue Summary')).toBeInTheDocument();
 
     expect(screen.getByText('Issue Summary')).toBeInTheDocument();
     expect(screen.getByText('Test summary')).toBeInTheDocument();
@@ -90,12 +88,9 @@ describe('GroupSummary', function () {
 
     render(<GroupSummary groupId={groupId} groupCategory={IssueCategory.ERROR} />);
 
-    await waitFor(
-      () => {
-        expect(setupCall).toHaveBeenCalled();
-      },
-      {timeout: 5000}
-    );
+    await waitFor(() => {
+      expect(setupCall).toHaveBeenCalled();
+    });
 
     expect(screen.queryByText('Issue Summary')).not.toBeInTheDocument();
     expect(screen.queryByText('Test summary')).not.toBeInTheDocument();
@@ -184,9 +179,7 @@ describe('GroupSummaryHeader', function () {
 
     render(<GroupSummaryHeader groupId={groupId} groupCategory={IssueCategory.ERROR} />);
 
-    await waitFor(() => {
-      expect(screen.getByText('Test headline')).toBeInTheDocument();
-    });
+    expect(await screen.findByText('Test headline')).toBeInTheDocument();
   });
 
   it('does not render the group summary headline if no consent', async function () {
@@ -224,12 +217,9 @@ describe('GroupSummaryHeader', function () {
 
     render(<GroupSummaryHeader groupId={groupId} groupCategory={IssueCategory.ERROR} />);
 
-    await waitFor(
-      () => {
-        expect(setupCall).toHaveBeenCalled();
-      },
-      {timeout: 5000}
-    );
+    await waitFor(() => {
+      expect(setupCall).toHaveBeenCalled();
+    });
 
     expect(screen.queryByText('Test headline')).not.toBeInTheDocument();
   });
