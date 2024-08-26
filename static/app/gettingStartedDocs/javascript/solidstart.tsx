@@ -179,6 +179,12 @@ const getInstallConfig = () => [
         language: 'bash',
         code: 'yarn add @sentry/solidstart',
       },
+      {
+        label: 'pnpm',
+        value: 'pnpm',
+        language: 'bash',
+        code: `pnpm add @sentry/solidstart`,
+      },
     ],
   },
 ];
