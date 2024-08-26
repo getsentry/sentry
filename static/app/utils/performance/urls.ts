@@ -27,13 +27,16 @@ export function getTransactionDetailsUrl(
     delete locationQuery.transaction;
   }
 
-  const target = {
+  const target: LocationDescriptor = {
     pathname: normalizeUrl(`/organizations/${orgSlug}/performance/${eventSlug}/`),
     query: locationQuery,
     hash: defined(spanId) ? spanTargetHash(spanId) : undefined,
   };
   if (!defined(target.hash)) {
     delete target.hash;
+  }
+  if (target.query && Object.keys(target.query).length === 0) {
+    delete target.query;
   }
 
   return target;
