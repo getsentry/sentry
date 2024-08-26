@@ -280,7 +280,7 @@ describe('AlertRulesList', () => {
     expect(router.push).toHaveBeenCalledWith({
       pathname: '/organizations/org-slug/alerts/new/issue/',
       query: {
-        createFromDuplicate: true,
+        createFromDuplicate: 'true',
         duplicateRuleId: '123',
         project: 'earth',
         referrer: 'alert_stream',
