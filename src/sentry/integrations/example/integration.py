@@ -12,11 +12,13 @@ from sentry.integrations.base import (
     IntegrationMetadata,
     IntegrationProvider,
 )
-from sentry.integrations.mixins import IssueSyncMixin, ResolveSyncAction
+from sentry.integrations.mixins import ResolveSyncAction
+from sentry.integrations.mixins.issues import IssueSyncIntegration
 from sentry.integrations.models.external_issue import ExternalIssue
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.services.integration.serial import serialize_integration
 from sentry.integrations.services.repository.model import RpcRepository
+from sentry.integrations.source_code_management.issues import SourceCodeIssueIntegration
 from sentry.integrations.source_code_management.repository import RepositoryIntegration
 from sentry.mediators.plugins.migrator import Migrator
 from sentry.models.repository import Repository
@@ -66,7 +68,7 @@ metadata = IntegrationMetadata(
 )
 
 
-class ExampleIntegration(RepositoryIntegration, IssueSyncMixin):
+class ExampleIntegration(RepositoryIntegration, SourceCodeIssueIntegration, IssueSyncIntegration):
     comment_key = "sync_comments"
     outbound_status_key = "sync_status_outbound"
     inbound_status_key = "sync_status_inbound"

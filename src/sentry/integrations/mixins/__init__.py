@@ -8,8 +8,6 @@ logic between providers.
 """
 
 __all__ = (
-    "IssueBasicMixin",
-    "IssueSyncMixin",
     "NotifyBasicMixin",
     "ResolveSyncAction",
     "ServerlessMixin",
@@ -17,7 +15,7 @@ __all__ = (
     "SUCCESS_UNLINKED_TEAM_TITLE",
 )
 
-from .issues import IssueBasicMixin, IssueSyncMixin, ResolveSyncAction
+from .issues import ResolveSyncAction
 from .notifications import (
     SUCCESS_UNLINKED_TEAM_MESSAGE,
     SUCCESS_UNLINKED_TEAM_TITLE,

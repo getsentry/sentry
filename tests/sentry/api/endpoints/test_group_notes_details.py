@@ -128,7 +128,7 @@ class GroupNotesDetailsTest(APITestCase):
             reason=GroupSubscriptionReason.comment,
         ).exists()
 
-    @patch("sentry.integrations.mixins.IssueBasicMixin.update_comment")
+    @patch("sentry.integrations.mixins.issues.IssueBasicIntegration.update_comment")
     @responses.activate
     def test_put(self, mock_update_comment):
         self.login_as(user=self.user)
@@ -178,7 +178,7 @@ class GroupNotesDetailsTest(APITestCase):
             "text": f"hi **@{self.user.username}**",
         }
 
-    @patch("sentry.integrations.mixins.IssueBasicMixin.update_comment")
+    @patch("sentry.integrations.mixins.issues.IssueBasicIntegration.update_comment")
     def test_put_no_external_id(self, mock_update_comment):
         del self.activity.data["external_id"]
         self.activity.save()

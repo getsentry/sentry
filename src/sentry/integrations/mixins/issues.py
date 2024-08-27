@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import enum
 import logging
+from abc import ABC, abstractmethod
 from collections import defaultdict
 from collections.abc import Mapping, Sequence
 from copy import deepcopy
@@ -9,6 +10,7 @@ from operator import attrgetter
 from typing import Any, ClassVar
 
 from sentry.eventstore.models import GroupEvent
+from sentry.integrations.base import IntegrationInstallation
 from sentry.integrations.models.external_issue import ExternalIssue
 from sentry.integrations.services.integration import integration_service
 from sentry.integrations.tasks.sync_status_inbound import (
@@ -20,7 +22,6 @@ from sentry.models.group import Group
 from sentry.models.grouplink import GroupLink
 from sentry.models.project import Project
 from sentry.notifications.utils import get_notification_group_title
-from sentry.shared_integrations.exceptions import ApiError, IntegrationError
 from sentry.silo.base import all_silo_function
 from sentry.users.models.user import User
 from sentry.users.services.user import RpcUser
@@ -60,13 +61,14 @@ class ResolveSyncAction(enum.Enum):
         return ResolveSyncAction.NOOP
 
 
-class IssueBasicMixin:
+class IssueBasicIntegration(IntegrationInstallation, ABC):
     def should_sync(self, attribute):
         return False
 
     def get_group_title(self, group, event, **kwargs):
         return get_notification_group_title(group, event, **kwargs)
 
+    @abstractmethod
     def get_issue_url(self, key: str) -> str:
         """
         Given the key of the external_issue return the external issue link.
@@ -82,12 +84,14 @@ class IssueBasicMixin:
         return "\n\n".join(result)
 
     def get_feedback_issue_body(self, event: GroupEvent) -> str:
-        messages = [
-            evidence for evidence in event.occurrence.evidence_display if evidence.name == "message"
-        ]
-        others = [
-            evidence for evidence in event.occurrence.evidence_display if evidence.name != "message"
-        ]
+        messages = []
+        others = []
+        if event.occurrence:
+            for evidence in event.occurrence.evidence_display:
+                if evidence.name == "message":
+                    messages.append(evidence)
+                else:
+                    others.append(evidence)
 
         body = ""
         for message in messages:
@@ -180,6 +184,7 @@ class IssueBasicMixin:
         """
         return [{"name": "externalIssue", "label": "Issue", "default": "", "type": "string"}]
 
+    @abstractmethod
     def get_persisted_default_config_fields(self) -> Sequence[str]:
         """
         Returns a list of field names that should have their last used values
@@ -210,7 +215,7 @@ class IssueBasicMixin:
               differentiation is made between the two field configs.
         """
         persisted_fields = self.get_persisted_default_config_fields()
-        if persisted_fields:
+        if persisted_fields and self.org_integration:
             project_defaults = {k: v for k, v in data.items() if k in persisted_fields}
             new_config = deepcopy(self.org_integration.config)
             new_config.setdefault("project_issue_defaults", {}).setdefault(
@@ -236,7 +241,13 @@ class IssueBasicMixin:
                 )
 
     def get_defaults(self, project: Project, user: User):
-        project_defaults = self.get_project_defaults(project.id)
+        project_defaults = (
+            {}
+            if not self.org_integration
+            else self.org_integration.config.get("project_issue_defaults", {}).get(
+                str(project.id), {}
+            )
+        )
 
         user_option_value = get_option_from_list(
             user_option_service.get_many(
@@ -254,12 +265,7 @@ class IssueBasicMixin:
 
         return defaults
 
-    # TODO(saif): Make private and move all usages over to `get_defaults`
-    def get_project_defaults(self, project_id):
-        return self.org_integration.config.get("project_issue_defaults", {}).get(
-            str(project_id), {}
-        )
-
+    @abstractmethod
     def create_issue(self, data, **kwargs):
         """
         Create an issue via the provider's API and return the issue key,
@@ -278,6 +284,7 @@ class IssueBasicMixin:
         """
         raise NotImplementedError
 
+    @abstractmethod
     def get_issue(self, issue_id, **kwargs):
         """
         Get an issue via the provider's API and return the issue key,
@@ -318,42 +325,6 @@ class IssueBasicMixin:
         does not match the desired display name.
         """
         return ""
-
-    def get_repository_choices(self, group: Group | None, params: Mapping[str, Any], **kwargs):
-        """
-        Returns the default repository and a set/subset of repositories of associated with the installation
-        """
-        try:
-            repos = self.get_repositories()
-        except ApiError:
-            raise IntegrationError("Unable to retrieve repositories. Please try again later.")
-        else:
-            repo_choices = [(repo["identifier"], repo["name"]) for repo in repos]
-
-        defaults = self.get_project_defaults(group.project_id) if group else {}
-        repo = params.get("repo") or defaults.get("repo")
-
-        try:
-            default_repo = repo or repo_choices[0][0]
-        except IndexError:
-            return "", repo_choices
-
-        # If a repo has been selected outside of the default list of
-        # repos, stick it onto the front of the list so that it can be
-        # selected.
-        try:
-            next(True for r in repo_choices if r[0] == default_repo)
-        except StopIteration:
-            repo_choices.insert(0, self.create_default_repo_choice(default_repo))
-
-        return default_repo, repo_choices
-
-    def create_default_repo_choice(self, default_repo):
-        """
-        Helper method for get_repository_choices
-        Returns the choice for the default repo in a tuple to be added to the list of repository choices
-        """
-        return (default_repo, default_repo)
 
     def get_annotations_for_group_list(self, group_list):
         group_links = GroupLink.objects.filter(
@@ -396,7 +367,7 @@ class IssueBasicMixin:
         pass
 
 
-class IssueSyncMixin(IssueBasicMixin):
+class IssueSyncIntegration(IssueBasicIntegration, ABC):
     comment_key: ClassVar[str | None] = None
     outbound_status_key: ClassVar[str | None] = None
     inbound_status_key: ClassVar[str | None] = None
@@ -410,6 +381,7 @@ class IssueSyncMixin(IssueBasicMixin):
         value: bool = self.org_integration.config.get(key, False)
         return value
 
+    @abstractmethod
     def sync_assignee_outbound(
         self,
         external_issue: ExternalIssue,
@@ -423,12 +395,14 @@ class IssueSyncMixin(IssueBasicMixin):
         """
         raise NotImplementedError
 
+    @abstractmethod
     def sync_status_outbound(self, external_issue, is_resolved, project_id, **kwargs):
         """
         Propagate a sentry issue's status to a linked issue's status.
         """
         raise NotImplementedError
 
+    @abstractmethod
     def get_resolve_sync_action(self, data: Mapping[str, Any]) -> ResolveSyncAction:
         """
         Given webhook data, check whether the status category changed FROM
@@ -458,3 +432,4 @@ class IssueSyncMixin(IssueBasicMixin):
         """
         Migrate the corresponding plugin's issues to the integration and disable the plugins.
         """
+        pass

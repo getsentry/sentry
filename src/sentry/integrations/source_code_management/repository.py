@@ -19,7 +19,28 @@ REPOSITORY_INTEGRATION_CHECK_FILE_METRIC = "repository_integration.check_file.{r
 REPOSITORY_INTEGRATION_GET_FILE_METRIC = "repository_integration.get_file.{result}"
 
 
-class RepositoryIntegration(IntegrationInstallation, ABC):
+class BaseRepositoryIntegration(ABC):
+    @abstractmethod
+    def get_repositories(self, query: str | None = None) -> Sequence[dict[str, Any]]:
+        """
+        Get a list of available repositories for an installation
+
+        >>> def get_repositories(self):
+        >>>     return self.get_client().get_repositories()
+
+        return [{
+            'name': display_name,
+            'identifier': external_repo_id,
+        }]
+
+        The shape of the `identifier` should match the data
+        returned by the integration's
+        IntegrationRepositoryProvider.repository_external_slug()
+        """
+        raise NotImplementedError
+
+
+class RepositoryIntegration(IntegrationInstallation, BaseRepositoryIntegration, ABC):
     @property
     def codeowners_locations(self) -> list[str] | None:
         """
@@ -64,25 +85,6 @@ class RepositoryIntegration(IntegrationInstallation, ABC):
     @abstractmethod
     def has_repo_access(self, repo: RpcRepository) -> bool:
         """Used for migrating repositories. Checks if the installation has access to the repository."""
-        raise NotImplementedError
-
-    @abstractmethod
-    def get_repositories(self, query: str | None = None) -> Sequence[dict[str, Any]]:
-        """
-        Get a list of available repositories for an installation
-
-        >>> def get_repositories(self):
-        >>>     return self.get_client().get_repositories()
-
-        return [{
-            'name': display_name,
-            'identifier': external_repo_id,
-        }]
-
-        The shape of the `identifier` should match the data
-        returned by the integration's
-        IntegrationRepositoryProvider.repository_external_slug()
-        """
         raise NotImplementedError
 
     def get_unmigratable_repositories(self) -> list[RpcRepository]:
