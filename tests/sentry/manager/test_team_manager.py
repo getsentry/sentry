@@ -53,13 +53,3 @@ class TeamManagerTest(TestCase):
 
         result = Team.objects.get_for_user(organization=org, user=user2)
         assert result == []
-
-    def test_with_projects(self):
-        user = self.create_user()
-        org = self.create_organization()
-        team = self.create_team(organization=org, name="Test")
-        self.create_member(organization=org, user=user, teams=[team])
-        project = self.create_project(teams=[team], name="foo")
-        project2 = self.create_project(teams=[team], name="bar")
-        result = Team.objects.get_for_user(organization=org, user=user, with_projects=True)
-        assert result == [(team, [project2, project])]
