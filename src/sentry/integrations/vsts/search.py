@@ -24,7 +24,7 @@ class VstsSearchEndpoint(IntegrationEndpoint):
         self, request: Request, organization: RpcOrganization, integration_id: int, **kwds: Any
     ) -> Response:
         try:
-            integration: Integration = Integration.objects.get(
+            integration = Integration.objects.get(
                 organizationintegration__organization_id=coerce_id_from(organization),
                 id=integration_id,
                 provider="vsts",
