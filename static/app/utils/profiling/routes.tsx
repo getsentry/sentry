@@ -254,7 +254,7 @@ export function generateProfileRouteFromProfileReference({
         ...query,
         frameName,
         framePackage,
-        spanId: reference.transaction_id,
+        eventId: reference.transaction_id,
         tid: reference.thread_id as unknown as string,
       }),
     });
