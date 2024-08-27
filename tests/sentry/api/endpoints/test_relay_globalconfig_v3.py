@@ -37,7 +37,6 @@ def call_endpoint(client, relay, private_key):
         # Set options to Relay's non-default values to avoid Relay skipping deserialization
         "relay.cardinality-limiter.error-sample-rate": 1.0,
         "relay.metric-stats.rollout-rate": 0.5,
-        "feedback.ingest-topic.rollout-rate": 0.5,
         "profiling.profile_metrics.unsampled_profiles.enabled": True,
         "profiling.profile_metrics.unsampled_profiles.platforms": ["fake-platform"],
         "profiling.profile_metrics.unsampled_profiles.sample_rate": 1.0,

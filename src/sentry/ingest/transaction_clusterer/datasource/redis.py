@@ -3,13 +3,11 @@
 import logging
 from collections.abc import Iterator, Mapping
 from typing import Any
-from urllib.parse import urlparse
 
 import sentry_sdk
 from django.conf import settings
 from rediscluster import RedisCluster
 
-from sentry import features
 from sentry.features.rollout import in_random_rollout
 from sentry.ingest.transaction_clusterer import ClustererNamespace
 from sentry.ingest.transaction_clusterer.datasource import (
@@ -48,7 +46,6 @@ def _get_projects_key(namespace: ClustererNamespace) -> str:
 
 
 def get_redis_client() -> RedisCluster:
-    # XXX(iker): we may want to revisit the decision of having a single Redis cluster.
     cluster_key = settings.SENTRY_TRANSACTION_NAMES_REDIS_CLUSTER
     return redis.redis_clusters.get(cluster_key)  # type: ignore[return-value]
 
@@ -170,58 +167,3 @@ def _bump_rule_lifetime(project: Project, event_data: Mapping[str, Any]) -> None
             # Only one clustering rule is applied per project
             clusterer_rules.bump_last_used(ClustererNamespace.TRANSACTIONS, project, pattern)
             return
-
-
-def get_span_descriptions(project: Project) -> Iterator[str]:
-    """Return all span descriptions stored for the given project."""
-    client = get_redis_client()
-    redis_key = _get_redis_key(ClustererNamespace.SPANS, project)
-    return client.sscan_iter(redis_key)
-
-
-def record_span_descriptions(
-    project: Project, event_data: Mapping[str, Any], **kwargs: Any
-) -> None:
-    if not features.has("projects:span-metrics-extraction", project):
-        return
-
-    if not features.has("projects:record-span-descriptions", project):
-        return
-
-    spans = event_data.get("spans", [])
-    for span in spans:
-        description = _get_span_description_to_store(span)
-        if not description:
-            continue
-        safe_execute(_record_sample, ClustererNamespace.SPANS, project, description)
-
-
-def _get_span_description_to_store(span: Mapping[str, Any]) -> str | None:
-    if not span.get("op") in ("resource.css", "resource.script", "resource.img"):
-        return None
-
-    if url := span.get("description"):
-        try:
-            parsed = urlparse(url)
-        except ValueError:
-            return None
-        return f"{parsed.netloc}{parsed.path}"
-
-    return None
-
-
-def _update_span_description_rule_lifetime(project: Project, event_data: Mapping[str, Any]) -> None:
-    from sentry.ingest.transaction_clusterer import rules as clusterer_rules
-
-    spans = event_data.get("_meta", {}).get("spans", {})
-    for span in spans.values():
-        sentry_tags = span.get("sentry_tags") or {}
-        applied_rule = sentry_tags.get("description", {}).get("", {}).get("rem", [[]])[0]
-        if not applied_rule:
-            continue
-        if len(applied_rule) == 2:
-            uncleaned_pattern = applied_rule[0]
-            # uncleaned_pattern has the following format: `description.scrubbed:<rule>`
-            tokens = uncleaned_pattern.split("description:")
-            pattern = tokens[1]
-            clusterer_rules.bump_last_used(ClustererNamespace.SPANS, project, pattern)

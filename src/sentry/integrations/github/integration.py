@@ -42,7 +42,7 @@ from sentry.utils.http import absolute_uri
 from sentry.web.helpers import render_to_response
 
 from .client import GitHubApiClient, GitHubBaseClient
-from .issues import GitHubIssueBasic
+from .issues import GitHubIssuesSpec
 from .repository import GitHubRepositoryProvider
 
 logger = logging.getLogger("sentry.integrations.github")
@@ -161,7 +161,7 @@ def get_document_origin(org) -> str:
 # https://docs.github.com/en/rest/overview/endpoints-available-for-github-apps
 
 
-class GitHubIntegration(RepositoryIntegration, CommitContextIntegration, GitHubIssueBasic):  # type: ignore[misc]
+class GitHubIntegration(RepositoryIntegration, GitHubIssuesSpec, CommitContextIntegration):
     codeowners_locations = ["CODEOWNERS", ".github/CODEOWNERS", "docs/CODEOWNERS"]
 
     @property
