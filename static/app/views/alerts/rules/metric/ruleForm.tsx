@@ -237,13 +237,15 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
       metricExtractionRules: null,
       triggers: triggersClone,
       resolveThreshold: rule.resolveThreshold,
-      sensitivity: null,
+      sensitivity: rule.sensitivity || null,
       thresholdType: rule.thresholdType,
       thresholdPeriod: rule.thresholdPeriod ?? 1,
       comparisonDelta: rule.comparisonDelta ?? undefined,
       comparisonType: rule.comparisonDelta
         ? AlertRuleComparisonType.CHANGE
-        : AlertRuleComparisonType.COUNT,
+        : rule.sensitivity
+          ? AlertRuleComparisonType.DYNAMIC
+          : AlertRuleComparisonType.COUNT,
       project: this.props.project,
       owner: rule.owner,
       alertType: getAlertTypeFromAggregateDataset({aggregate, dataset}),
@@ -938,7 +940,7 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
         ? this.state.sensitivity || AlertRuleSensitivity.MEDIUM
         : undefined;
     const seasonality =
-      value === AlertRuleComparisonType.DYNAMIC ? AlertRuleSeasonality.AUTO : undefined; // TODO: replace "auto" with the correct constant
+      value === AlertRuleComparisonType.DYNAMIC ? AlertRuleSeasonality.AUTO : undefined;
     this.setState({
       comparisonType: value,
       comparisonDelta,

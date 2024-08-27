@@ -89,10 +89,10 @@ export default function AlertRuleStatus({rule}: Props) {
 
   return (
     <FlexCenter>
-      {rule.detectionType !== 'dynamic' ? (
+      {rule.detectionType !== AlertRuleComparisonType.DYNAMIC ?? (
         <IconArrow color={iconColor} direction={iconDirection} />
-      ) : null}
-      {rule.detectionType !== 'dynamic' ? (
+      )}
+      {rule.detectionType !== AlertRuleComparisonType.DYNAMIC ? (
         <TriggerText>
           {`${thresholdTypeText} ${
             rule.latestIncident || (!rule.latestIncident && !resolvedTrigger)

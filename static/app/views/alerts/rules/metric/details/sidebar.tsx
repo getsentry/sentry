@@ -20,6 +20,7 @@ import {capitalize} from 'sentry/utils/string/capitalize';
 import {COMPARISON_DELTA_OPTIONS} from 'sentry/views/alerts/rules/metric/constants';
 import type {Action, MetricRule} from 'sentry/views/alerts/rules/metric/types';
 import {
+  AlertRuleComparisonType,
   AlertRuleThresholdType,
   AlertRuleTriggerType,
 } from 'sentry/views/alerts/rules/metric/types';
@@ -90,7 +91,7 @@ function TriggerDescription({
           ).label,
         }
       )
-    : rule.detectionType === 'dynamic'
+    : rule.detectionType === AlertRuleComparisonType.DYNAMIC
       ? 'Dynamic threshold is reached'
       : tct('[metric] is [condition] in [timeWindow]', {
           metric: metricName,
@@ -262,7 +263,7 @@ export function MetricDetailsSidebar({
               teamActor ? <ActorAvatar actor={teamActor} size={24} /> : t('Unassigned')
             }
           />
-          {rule.detectionType === 'dynamic' && (
+          {rule.detectionType === AlertRuleComparisonType.DYNAMIC && (
             <KeyValueTableRow
               keyName={t('Sensitivity')}
               value={
@@ -272,17 +273,17 @@ export function MetricDetailsSidebar({
               } // NOTE: if the rule is dynamic, then there must be a sensitivity
             />
           )}
-          {rule.detectionType === 'dynamic' && (
+          {rule.detectionType === AlertRuleComparisonType.DYNAMIC && (
             <KeyValueTableRow
               keyName={t('Direction')}
               value={
-                rule.thresholdType === AlertRuleThresholdType.ABOVE ? (
-                  <OverflowTableValue>{'Above threshold'}</OverflowTableValue>
-                ) : rule.thresholdType === AlertRuleThresholdType.ABOVE_AND_BELOW ? (
-                  <OverflowTableValue>{'Above and below threshold'}</OverflowTableValue>
-                ) : (
-                  <OverflowTableValue>{'Below threshold'}</OverflowTableValue>
-                )
+                <OverflowTableValue>
+                  {rule.thresholdType === AlertRuleThresholdType.ABOVE
+                    ? 'Above threshold'
+                    : rule.thresholdType === AlertRuleThresholdType.ABOVE_AND_BELOW
+                      ? 'Above and below threshold'
+                      : 'Below threshold'}
+                </OverflowTableValue>
               }
             />
           )}
