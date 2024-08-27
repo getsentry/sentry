@@ -349,7 +349,7 @@ const AuthorWrapper = styled('span')`
     opacity: 0.6;
   }
 
-  &:hover {
+  &:has(svg):hover {
     color: ${p => p.theme.textColor};
     & svg {
       opacity: 1;
