@@ -40,7 +40,7 @@ import {
   releaseBoxCss,
   releaseNumbersCss,
 } from '../../styles/panel';
-import {largeCss, smallCss} from '../../styles/typography';
+import {smallCss} from '../../styles/typography';
 import PanelLayout from '../panelLayout';
 
 const summaryPlaceholderHeight = '65px';
@@ -74,7 +74,6 @@ function getDiff(
         },
       ]}
     >
-      <span css={[largeCss, {fontWeight: 'bold'}]} />
       <span css={[smallCss, {color: diffColor[0], fontWeight: 'bold'}]}>Change</span>
       <span
         css={[
@@ -190,11 +189,11 @@ function CrashFreeRate({
       >
         <div css={[releaseBoxCss, releaseNumbersCss, {padding: 'var(--space200)'}]}>
           <span css={[smallCss, {fontWeight: 'bold'}]}>Latest</span>
-          <span css={[largeCss]}>{currCrashFreeRate}%</span>
+          {currCrashFreeRate}%
         </div>
         <div css={[releaseBoxCss, releaseNumbersCss, {padding: 'var(--space200)'}]}>
           <span css={[smallCss, {fontWeight: 'bold'}]}>Previous</span>
-          <span css={[largeCss]}>{prevCrashFreeRate}%</span>
+          {prevCrashFreeRate}%
         </div>
         {getDiff(
           Math.abs(diff).toFixed(2) + '%',
