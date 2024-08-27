@@ -87,7 +87,7 @@ def test_move_all_events(default_project, fast_save):
     associate_group_with_hash(group_info.group, "b" * 32)
 
     assert get_hash_values_for_group(group_info.group.id) == {"a" * 32, "b" * 32, "c" * 32}
-    assert Group.objects.get(id=new_group_info.group.id).title == "foo"
+    assert Group.objects.get(id=new_group_info.group.id).title == "<unknown>"
 
     # simulate split operation where all events of group are moved into a more specific hash
     GroupHash.objects.filter(group=group_info.group).delete()
@@ -105,7 +105,7 @@ def test_move_all_events(default_project, fast_save):
         * 32,
     }
 
-    assert Group.objects.get(id=new_group_info.group.id).title == "bam"
+    assert Group.objects.get(id=new_group_info.group.id).title == "<unknown>"
 
     new_group_info = fast_save("g")
     assert new_group_info.is_new
@@ -113,7 +113,8 @@ def test_move_all_events(default_project, fast_save):
     assert new_group_info.group.id != group_info.group.id
 
     assert get_hash_values_for_group(new_group_info.group.id) == {"c" * 32}
-    assert Group.objects.get(id=new_group_info.group.id).title == "foo"
+
+    assert Group.objects.get(id=new_group_info.group.id).title == "<unknown>"
 
 
 @django_db_all
