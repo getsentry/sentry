@@ -11,10 +11,12 @@ from sentry.models.auditlogentry import AuditLogEntry
 from sentry.models.integrations.sentry_app import SentryApp
 from sentry.models.integrations.sentry_app_installation import SentryAppInstallation
 from sentry.models.organizationmember import OrganizationMember
+from sentry.models.servicehook import ServiceHook
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers import with_feature
 from sentry.testutils.helpers.options import override_options
+from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
 
 
@@ -194,6 +196,52 @@ class UpdateSentryAppDetailsTest(SentryAppDetailsTest):
                 "description": "Organizations can **open a line to Sentry's stack trace** in another service.",
             },
         ]
+        assert not SentryAppInstallation.objects.filter(sentry_app=self.unpublished_app).exists()
+        with assume_test_silo_mode(SiloMode.REGION):
+            assert not ServiceHook.objects.filter(
+                application_id=self.unpublished_app.application_id
+            ).exists()
+
+    def test_update_internal_app(self):
+        self.get_success_response(
+            self.internal_integration.slug,
+            webhookUrl="https://newurl.com",
+            scopes=("event:read",),
+            events=("issue",),
+            status_code=200,
+        )
+        self.internal_integration.refresh_from_db()
+        assert self.internal_integration.webhook_url == "https://newurl.com"
+
+        installation = SentryAppInstallation.objects.get(sentry_app=self.internal_integration)
+        with assume_test_silo_mode(SiloMode.REGION):
+            hook = ServiceHook.objects.get(application_id=self.internal_integration.application_id)
+
+        assert hook.application_id == self.internal_integration.application_id
+        assert hook.organization_id == self.internal_integration.owner_id
+        assert hook.actor_id == installation.id
+        assert hook.url == "https://newurl.com"
+        assert set(hook.events) == {
+            "issue.assigned",
+            "issue.created",
+            "issue.ignored",
+            "issue.resolved",
+            "issue.unresolved",
+        }
+        assert hook.project_id is None
+
+        # New test to check if the internal integration's webhook URL is updated correctly
+        self.get_success_response(
+            self.internal_integration.slug,
+            webhookUrl="https://updatedurl.com",
+            status_code=200,
+        )
+        self.internal_integration.refresh_from_db()
+        assert self.internal_integration.webhook_url == "https://updatedurl.com"
+
+        # Verify the service hook URL is also updated
+        hook.refresh_from_db()
+        assert hook.url == "https://updatedurl.com"
 
     def test_can_update_name_with_non_unique_name(self):
         sentry_app = self.create_sentry_app(name="Foo Bar", organization=self.organization)
@@ -219,11 +267,170 @@ class UpdateSentryAppDetailsTest(SentryAppDetailsTest):
         response = self.get_error_response(
             self.published_app.slug,
             name="NewName",
-            webookUrl="https://newurl.com",
+            webhookUrl="https://newurl.com",
             scopes=("project:read",),
             status_code=400,
         )
         assert response.data["detail"] == "Cannot update permissions on a published integration."
+
+    def test_add_service_hooks_and_update_scope(self):
+        # first install the app on two organizations
+        org1 = self.create_organization(name="Org1")
+        org2 = self.create_organization(name="Org2")
+
+        installation1 = self.create_sentry_app_installation(
+            organization=org1, slug=self.published_app.slug
+        )
+        installation2 = self.create_sentry_app_installation(
+            organization=org2, slug=self.published_app.slug
+        )
+
+        assert installation1.organization_id == org1.id
+        assert installation2.organization_id == org2.id
+        assert installation1.sentry_app == self.published_app
+        assert installation2.sentry_app == self.published_app
+        self.published_app.scope_list = ("event:write", "event:read")
+        self.published_app.save()
+
+        # for published integrations, it runs in a task
+        with self.tasks(), outbox_runner():
+            self.get_success_response(
+                self.published_app.slug,
+                webhookUrl="https://newurl.com",
+                scopes=("event:read", "event:write"),
+                events=("issue",),
+                status_code=200,
+            )
+        self.published_app.refresh_from_db()
+        assert set(self.published_app.scope_list) == {"event:write", "event:read"}
+        assert (
+            self.published_app.webhook_url == "https://newurl.com"
+        ), f"Unexpected webhook URL: {self.published_app.webhook_url}"
+        # Check service hooks for each organization
+        with assume_test_silo_mode(SiloMode.REGION):
+            service_hooks_org1 = ServiceHook.objects.filter(
+                organization_id=org1.id, application_id=self.published_app.application_id
+            )
+            service_hooks_org2 = ServiceHook.objects.filter(
+                organization_id=org2.id, application_id=self.published_app.application_id
+            )
+
+        assert len(service_hooks_org1) > 0, f"No service hooks found for Org1 (ID: {org1.id})"
+        assert len(service_hooks_org2) > 0, f"No service hooks found for Org2 (ID: {org2.id})"
+
+        for hook in service_hooks_org1:
+            assert hook.application_id == self.published_app.application_id
+            assert hook.organization_id == org1.id
+            assert hook.actor_id == installation1.id
+            assert hook.url == "https://newurl.com"
+            assert set(hook.events) == {
+                "issue.assigned",
+                "issue.created",
+                "issue.ignored",
+                "issue.resolved",
+                "issue.unresolved",
+            }
+            assert hook.project_id is None
+
+        for hook in service_hooks_org2:
+            assert hook.application_id == self.published_app.application_id
+            assert hook.organization_id == org2.id
+            assert hook.actor_id == installation2.id
+            assert hook.url == "https://newurl.com"
+            assert set(hook.events) == {
+                "issue.assigned",
+                "issue.created",
+                "issue.ignored",
+                "issue.resolved",
+                "issue.unresolved",
+            }
+            assert hook.project_id is None
+
+    def test_update_existing_published_integration_with_webhooks(self):
+        org1 = self.create_organization()
+        org2 = self.create_organization()
+        # add the webhooks but no events yet
+        published_app = self.create_sentry_app(
+            name="TestApp",
+            organization=self.organization,
+            webhook_url="https://oldurl.com",
+            scopes=("event:read", "event:write"),
+            published=True,
+        )
+        installation1 = self.create_sentry_app_installation(
+            slug=published_app.slug, organization=org1
+        )
+        installation2 = self.create_sentry_app_installation(
+            slug=published_app.slug, organization=org2
+        )
+        # Assert initial service hooks are created
+        with assume_test_silo_mode(SiloMode.REGION):
+            service_hooks_org1 = ServiceHook.objects.filter(
+                organization_id=org1.id, application_id=published_app.application_id
+            )
+            service_hooks_org2 = ServiceHook.objects.filter(
+                organization_id=org2.id, application_id=published_app.application_id
+            )
+
+        assert len(service_hooks_org1) > 0, "No service hooks found for Org1"
+        assert len(service_hooks_org2) > 0, "No service hooks found for Org2"
+
+        for hook in service_hooks_org1:
+            assert hook.url == "https://oldurl.com"
+            assert set(hook.events) == set()
+
+        for hook in service_hooks_org2:
+            assert hook.url == "https://oldurl.com"
+            assert set(hook.events) == set()
+
+        # Update the webhook URL and events
+        with self.tasks():
+            self.get_success_response(
+                published_app.slug,
+                webhookUrl="https://newurl.com",
+                events=("issue",),
+                status_code=200,
+            )
+
+        # Assert the service hooks are updated
+        published_app.refresh_from_db()
+        assert published_app.webhook_url == "https://newurl.com"
+
+        with assume_test_silo_mode(SiloMode.REGION):
+            service_hooks_org1 = ServiceHook.objects.filter(
+                organization_id=org1.id, application_id=published_app.application_id
+            )
+            service_hooks_org2 = ServiceHook.objects.filter(
+                organization_id=org2.id, application_id=published_app.application_id
+            )
+
+        for hook in service_hooks_org1:
+            assert hook.application_id == published_app.application_id
+            assert hook.organization_id == org1.id
+            assert hook.actor_id == installation1.id
+            assert hook.url == "https://newurl.com"
+            assert set(hook.events) == {
+                "issue.assigned",
+                "issue.created",
+                "issue.ignored",
+                "issue.resolved",
+                "issue.unresolved",
+            }
+            assert hook.project_id is None
+
+        for hook in service_hooks_org2:
+            assert hook.application_id == published_app.application_id
+            assert hook.organization_id == org2.id
+            assert hook.actor_id == installation2.id
+            assert hook.url == "https://newurl.com"
+            assert set(hook.events) == {
+                "issue.assigned",
+                "issue.created",
+                "issue.ignored",
+                "issue.resolved",
+                "issue.unresolved",
+            }
+            assert hook.project_id is None
 
     def test_cannot_update_features_published_app_permissions(self):
         response = self.get_error_response(
@@ -238,7 +445,7 @@ class UpdateSentryAppDetailsTest(SentryAppDetailsTest):
         self.get_error_response(
             app.slug,
             name="NewName",
-            webookUrl="https://newurl.com",
+            webhookUrl="https://newurl.com",
             status_code=404,
         )
 
