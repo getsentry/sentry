@@ -1,4 +1,8 @@
 import {browserHistory as react3BrowserHistory} from 'react-router';
+import type {Router} from '@remix-run/router/dist/router';
+import type {History} from 'history';
+
+import {locationDescriptorToTo} from './reactRouter6Compat/location';
 
 /**
  * @deprecated Prefer using useNavigate
@@ -14,4 +18,71 @@ import {browserHistory as react3BrowserHistory} from 'react-router';
  * browserHistory.push({...location, query: {someKey: 1}})
  * navigate({...location, query: {someKey: 1}})
  */
-export const browserHistory = react3BrowserHistory;
+export let browserHistory = react3BrowserHistory;
+
+/**
+ * This shim sets the global `browserHistory` to a shim object that matches
+ * react-router 3's browserHistory implementation
+ */
+export function DANGEROUS_SET_REACT_ROUTER_6_HISTORY(router: Router) {
+  // XXX(epurkhiser): The router object for react-router 6 has a slightly
+  // different interface from -router 3 history. We need to shim some of the
+  // functions to keep things working
+  const compat6BrowserHistory: History = {
+    push: to => router.navigate(locationDescriptorToTo(to)),
+    replace: to => router.navigate(locationDescriptorToTo(to), {replace: true}),
+    go: n => router.navigate(n),
+    goBack: () => router.navigate(-1),
+    goForward: () => router.navigate(1),
+
+    // XXX(epurkhiser): react-router 6's BrowserHistory does not let you create
+    // multiple listeners. This implementation is similar but allows multiple
+    // listeners.
+    listen: _listener => {
+      // eslint-disable-next-line no-console
+      console.error('browserHistory.listen not implemented on react-router 6 shim');
+      return () => {};
+    },
+
+    listenBefore: _hook => {
+      // eslint-disable-next-line no-console
+      console.error('browserHistory.listenBefore not implemented on react-router 6 shim');
+      return () => {};
+    },
+    transitionTo: _location => {
+      // eslint-disable-next-line no-console
+      console.error('browserHistory.transitionTo not implemented on react-router 6 shim');
+    },
+    createKey: () => {
+      // eslint-disable-next-line no-console
+      console.error('browserHistory.createKey not implemented on react-router 6 shim');
+      return '';
+    },
+    createPath: () => {
+      // eslint-disable-next-line no-console
+      console.error('browserHistory.createPath not implemented on react-router 6 shim');
+      return '';
+    },
+    createHref: () => {
+      // eslint-disable-next-line no-console
+      console.error('browserHistory.createHref not implemented on react-router 6 shim');
+      return '';
+    },
+    createLocation: () => {
+      // eslint-disable-next-line no-console
+      console.error(
+        'browserHistory.createLocation not implemented on react-router 6 shim'
+      );
+      return undefined as any;
+    },
+    getCurrentLocation: () => {
+      // eslint-disable-next-line no-console
+      console.error(
+        'browserHistory.getCurrentLocation not implemented on react-router 6 shim'
+      );
+      return undefined as any;
+    },
+  };
+
+  browserHistory = compat6BrowserHistory;
+}

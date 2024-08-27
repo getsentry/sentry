@@ -1,8 +1,11 @@
 import {useCallback, useEffect, useRef} from 'react';
+import {useNavigate as useReactRouter6Navigate} from 'react-router-dom';
 import type {LocationDescriptor} from 'history';
 
+import {NODE_ENV} from 'sentry/constants';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 
+import {locationDescriptorToTo} from './reactRouter6Compat/location';
 import useRouter from './useRouter';
 
 type NavigateOptions = {
@@ -22,13 +25,41 @@ interface ReactRouter3Navigate {
  * @see https://reactrouter.com/hooks/use-navigate
  */
 export function useNavigate() {
+  // When running in test mode we still read from the legacy route context to
+  // keep test compatability while we fully migrate to react router 6
+  const useReactRouter6 = window.__SENTRY_USING_REACT_ROUTER_SIX && NODE_ENV !== 'test';
+
+  if (useReactRouter6) {
+    // biome-ignore lint/correctness/useHookAtTopLevel: react-router-6 migration
+    const router6Navigate = useReactRouter6Navigate();
+
+    // XXX(epurkhiser): Translate legacy LocationDescriptor to To in the
+    // navigate helper.
+
+    // biome-ignore lint/correctness/useHookAtTopLevel: react-router-6 migration
+    const navigate = useCallback<ReactRouter3Navigate>(
+      (to: LocationDescriptor | number, options: NavigateOptions = {}) =>
+        typeof to === 'number'
+          ? router6Navigate(to)
+          : router6Navigate(locationDescriptorToTo(to), options),
+      [router6Navigate]
+    );
+
+    return navigate;
+  }
+
+  // biome-ignore lint/correctness/useHookAtTopLevel: react-router-6 migration
   const router = useRouter();
+
+  // biome-ignore lint/correctness/useHookAtTopLevel: react-router-6 migration
   const hasMountedRef = useRef(false);
 
+  // biome-ignore lint/correctness/useHookAtTopLevel: react-router-6 migration
   useEffect(() => {
     hasMountedRef.current = true;
   });
 
+  // biome-ignore lint/correctness/useHookAtTopLevel: react-router-6 migration
   const navigate = useCallback<ReactRouter3Navigate>(
     (to: LocationDescriptor | number, options: NavigateOptions = {}) => {
       if (!hasMountedRef.current) {

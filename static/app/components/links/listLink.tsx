@@ -1,14 +1,19 @@
 import {Link as RouterLink} from 'react-router';
+import {NavLink} from 'react-router-dom';
 import styled from '@emotion/styled';
 import classNames from 'classnames';
 import type {LocationDescriptor} from 'history';
 
+import {locationDescriptorToTo} from 'sentry/utils/reactRouter6Compat/location';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
+import {useLocation} from 'sentry/utils/useLocation';
 import useRouter from 'sentry/utils/useRouter';
 
-type LinkProps = Omit<React.ComponentProps<typeof RouterLink>, 'to'>;
-
-type Props = LinkProps & {
+interface ListLinkProps
+  extends Omit<
+    React.DetailedHTMLProps<React.HTMLAttributes<HTMLAnchorElement>, HTMLAnchorElement>,
+    'href' | 'target' | 'as' | 'css' | 'ref'
+  > {
   /**
    * Link target. We don't want to expose the ToLocationFunction on this component.
    */
@@ -19,7 +24,7 @@ type Props = LinkProps & {
    * Should be should be supplied by the parent component
    */
   isActive?: (location: LocationDescriptor, indexOnly?: boolean) => boolean;
-};
+}
 
 function ListLink({
   children,
@@ -29,18 +34,33 @@ function ListLink({
   index = false,
   disabled = false,
   ...props
-}: Props) {
+}: ListLinkProps) {
   const router = useRouter();
+  const location = useLocation();
   const targetLocation = typeof to === 'string' ? {pathname: to} : to;
   const target = normalizeUrl(targetLocation);
 
-  const active = isActive?.(target, index) ?? router.isActive(target, index);
+  const active =
+    isActive?.(target, index) ??
+    // XXX(epurkhiser): our shim for router.isActive will throw an error in
+    // react-router 6. Fallback to manually checking if the path is active
+    (window.__SENTRY_USING_REACT_ROUTER_SIX
+      ? location.pathname === (typeof target === 'string' ? target : target.pathname)
+      : router.isActive(target, index));
+
+  const link = window.__SENTRY_USING_REACT_ROUTER_SIX ? (
+    <NavLink {...props} to={disabled ? '' : locationDescriptorToTo(target)}>
+      {children}
+    </NavLink>
+  ) : (
+    <RouterLink {...props} onlyActiveOnIndex={index} to={disabled ? '' : target}>
+      {children}
+    </RouterLink>
+  );
 
   return (
     <StyledLi className={classNames({active}, className)} disabled={disabled}>
-      <RouterLink {...props} onlyActiveOnIndex={index} to={disabled ? '' : target}>
-        {children}
-      </RouterLink>
+      {link}
     </StyledLi>
   );
 }

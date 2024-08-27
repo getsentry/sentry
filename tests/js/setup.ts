@@ -3,6 +3,7 @@ import '@testing-library/jest-dom';
 /* eslint-env node */
 import type {ReactElement} from 'react';
 import {configure as configureRtl} from '@testing-library/react'; // eslint-disable-line no-restricted-imports
+import {enableFetchMocks} from 'jest-fetch-mock';
 import {webcrypto} from 'node:crypto';
 import {TextDecoder, TextEncoder} from 'node:util';
 import {ConfigFixture} from 'sentry-fixture/config';
@@ -19,6 +20,11 @@ import * as performanceForSentry from 'sentry/utils/performanceForSentry';
  * Set locale to English
  */
 setLocale(DEFAULT_LOCALE_DATA);
+
+/**
+ * Setup fetch mocks (needed to define the `Request` global)
+ */
+enableFetchMocks();
 
 /**
  * XXX(epurkhiser): Gross hack to fix a bug in jsdom which makes testing of
