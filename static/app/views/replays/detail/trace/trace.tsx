@@ -12,7 +12,10 @@ import useRouteAnalyticsParams from 'sentry/utils/routeAnalytics/useRouteAnalyti
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
-import {TraceViewWaterfall} from 'sentry/views/performance/newTraceDetails';
+import {
+  getTraceViewQueryStatus,
+  TraceViewWaterfall,
+} from 'sentry/views/performance/newTraceDetails';
 import {useReplayTraceMeta} from 'sentry/views/performance/newTraceDetails/traceApi/useReplayTraceMeta';
 import {useTrace} from 'sentry/views/performance/newTraceDetails/traceApi/useTrace';
 import {useTraceRootEvent} from 'sentry/views/performance/newTraceDetails/traceApi/useTraceRootEvent';
@@ -215,7 +218,7 @@ export function NewTraceView({replayRecord}: {replayRecord: undefined | ReplayRe
         <TraceViewWaterfall
           traceSlug={undefined}
           trace={trace.data ?? null}
-          status={trace.status}
+          status={getTraceViewQueryStatus(trace.status, metaResults.status)}
           rootEvent={rootEvent}
           replayTraces={otherReplayTraces}
           organization={organization}
