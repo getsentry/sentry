@@ -21,7 +21,6 @@ from sentry.relay.config.metric_extraction import (
 )
 from sentry.relay.types import RuleCondition
 from sentry.search.events.constants import VITAL_THRESHOLDS
-from sentry.sentry_metrics.models import SpanAttributeExtractionRuleConfig
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.metrics.extraction import (
     MetricSpec,
@@ -2111,138 +2110,6 @@ def test_get_current_widget_specs(
 
 
 @django_db_all
-def test_get_span_attribute_metrics(default_project: Project) -> None:
-    extraction_configs = [
-        {
-            "spanAttribute": "span.duration",
-            "aggregates": ["count", "p50", "p75", "p90", "p95", "p99"],
-            "unit": "millisecond",
-            "tags": ["foo"],
-            "conditions": [
-                {"id": 1, "value": "bar:baz"},
-                {"id": 2, "value": "abc:xyz"},
-            ],
-        },
-        {
-            "spanAttribute": "other_attribute",
-            "aggregates": ["count"],
-            "unit": "none",
-            "tags": ["mytag"],
-            "conditions": [{"id": 3, "value": ""}],
-        },
-    ]
-    for extraction_config in extraction_configs:
-        SpanAttributeExtractionRuleConfig.from_dict(extraction_config, 1, default_project)
-
-    config = get_metric_extraction_config(default_project)
-    assert not config
-
-    with Feature("organizations:custom-metrics-extraction-rule"):
-        config = get_metric_extraction_config(default_project)
-        assert config
-        assert sorted(config["metrics"], key=lambda x: x["mri"]) == [
-            {
-                "category": "span",
-                "condition": {"name": "span.data.bar", "op": "eq", "value": "baz"},
-                "field": None,
-                "mri": "c:custom/span_attribute_1@none",
-                "tags": [
-                    {"field": "span.data.bar", "key": "bar"},
-                    {"field": "span.data.foo", "key": "foo"},
-                ],
-            },
-            {
-                "category": "span",
-                "condition": {"name": "span.data.abc", "op": "eq", "value": "xyz"},
-                "field": None,
-                "mri": "c:custom/span_attribute_2@none",
-                "tags": [
-                    {"field": "span.data.abc", "key": "abc"},
-                    {"field": "span.data.foo", "key": "foo"},
-                ],
-            },
-            {
-                "category": "span",
-                "condition": {
-                    "inner": {"name": "span.data.other_attribute", "op": "eq", "value": None},
-                    "op": "not",
-                },
-                "field": None,
-                "mri": "c:custom/span_attribute_3@none",
-                "tags": [{"field": "span.data.mytag", "key": "mytag"}],
-            },
-            {
-                "category": "span",
-                "condition": {"name": "span.data.bar", "op": "eq", "value": "baz"},
-                "field": "span.duration",
-                "mri": "d:custom/span_attribute_1@none",
-                "tags": [
-                    {"field": "span.data.bar", "key": "bar"},
-                    {"field": "span.data.foo", "key": "foo"},
-                ],
-            },
-            {
-                "category": "span",
-                "condition": {"name": "span.data.abc", "op": "eq", "value": "xyz"},
-                "field": "span.duration",
-                "mri": "d:custom/span_attribute_2@none",
-                "tags": [
-                    {"field": "span.data.abc", "key": "abc"},
-                    {"field": "span.data.foo", "key": "foo"},
-                ],
-            },
-        ]
-
-
-@django_db_all
-def test_get_span_attribute_metrics_timeout_exception(default_project: Project) -> None:
-    with Feature("organizations:custom-metrics-extraction-rule"):
-        with mock.patch(
-            "sentry.relay.config.metric_extraction._generate_span_attribute_specs",
-            side_effect=TimeoutException,
-        ) as mock_get_span_attribute_specs:
-            mock_get_span_attribute_specs.__name__ = "_generate_span_attribute_specs"
-
-            config = get_metric_extraction_config(default_project)
-            assert config is None
-
-
-@django_db_all
-@override_options({"metric_extraction.max_span_attribute_specs": 1})
-def test_get_metric_extraction_config_span_attributes_above_max_limit(
-    default_project: Project,
-) -> None:
-
-    extraction_configs = [
-        {
-            "spanAttribute": "span.duration",
-            "aggregates": ["p50", "p75", "p90", "p95", "p99"],
-            "unit": "millisecond",
-            "tags": ["foo"],
-            "conditions": [
-                {"id": 1, "value": "bar:baz"},
-                {"id": 2, "value": "abc:xyz"},
-            ],
-        },
-        {
-            "spanAttribute": "other_attribute",
-            "aggregates": ["count"],
-            "unit": "none",
-            "tags": [],
-            "conditions": [{"id": 3, "value": ""}],
-        },
-    ]
-    for extraction_config in extraction_configs:
-        SpanAttributeExtractionRuleConfig.from_dict(extraction_config, 1, default_project)
-
-    with Feature("organizations:custom-metrics-extraction-rule"):
-        config = get_metric_extraction_config(default_project)
-
-        assert config
-        assert len(config["metrics"]) == 1
-
-
-@django_db_all
 @override_options(
     {
         "sentry-metrics.extrapolation.enable_transactions": True,
@@ -2250,18 +2117,11 @@ def test_get_metric_extraction_config_span_attributes_above_max_limit(
     }
 )
 def test_get_metric_extrapolation_config(default_project: Project) -> None:
+    assert False, "fix this test - used to rely on span metrics and needs to be adapted"
     default_project.update_option("sentry:extrapolate_metrics", True)
 
     # Create a dummy extraction rule to ensure there is at least one
     # metric. Otherwise, the spec will be empty.
-    attr_config = {
-        "spanAttribute": "span.duration",
-        "aggregates": ["count"],
-        "unit": "none",
-        "tags": [],
-        "conditions": [{"id": 1, "value": "bar:baz"}],
-    }
-    SpanAttributeExtractionRuleConfig.from_dict(attr_config, 1, default_project)
 
     with Feature(
         ["organizations:metrics-extrapolation", "organizations:custom-metrics-extraction-rule"]
