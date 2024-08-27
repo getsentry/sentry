@@ -1,6 +1,5 @@
 """ Strategies for clustering high-cardinality transaction names """
 
-
 from dataclasses import dataclass
 from enum import Enum
 
@@ -29,12 +28,4 @@ class ClustererNamespace(Enum):
         persistent_storage="sentry:transaction_name_cluster_rules",
         tracker="txcluster.rules_per_project",
         meta_store="sentry:transaction_name_cluster_meta",
-    )
-    SPANS = NamespaceOption(
-        name="spans",
-        data="span.descs.data2",
-        rules="span.descs.rules",
-        persistent_storage="sentry:span_description_cluster_rules",
-        tracker="span.descs.rules_per_project",
-        meta_store="sentry:span_descriptions_cluster_meta",
     )
