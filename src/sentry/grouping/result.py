@@ -3,7 +3,6 @@ from typing import Any, Optional
 
 from sentry.db.models import NodeData
 from sentry.grouping.variants import BaseVariant
-from sentry.utils.safe import safe_execute
 
 EventMetadata = dict[str, Any]
 
@@ -27,8 +26,6 @@ class CalculatedHashes:
 
         if self.hierarchical_hashes:
             event_data["hierarchical_hashes"] = self.hierarchical_hashes
-
-            safe_execute(event_data)
 
     @classmethod
     def from_event(cls, event_data: NodeData) -> Optional["CalculatedHashes"]:
