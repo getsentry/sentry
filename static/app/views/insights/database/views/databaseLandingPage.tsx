@@ -59,12 +59,6 @@ export function DatabaseLandingPage() {
   const spanAction = decodeScalar(location.query?.['span.action']);
   const spanDomain = decodeScalar(location.query?.['span.domain']);
 
-  // If there is no query parameter for the system, retrieve the current value from the hook instead
-  // TODO: Use the currently selected system to update the view
-  // const {selectedSystem} = useSystemSelectorOptions();
-  // const systemQueryParam = decodeScalar(location.query?.[SPAN_SYSTEM]);
-  // const currentSystem = systemQueryParam ?? selectedSystem;
-
   const sortField = decodeScalar(location.query?.[QueryParameterNames.SPANS_SORT]);
 
   let sort = decodeSorts(sortField).filter(isAValidSort)[0];
@@ -189,14 +183,10 @@ export function DatabaseLandingPage() {
 
             <ModuleLayout.Full>
               <PageFilterWrapper>
-                <ModulePageFilterBar
-                  moduleName={ModuleName.DB}
-                  extraFilters={
-                    organization.features.includes(
-                      'performance-queries-mongodb-extraction'
-                    ) && <DatabaseSystemSelector />
-                  }
-                />
+                <ModulePageFilterBar moduleName={ModuleName.DB} />
+                {organization.features.includes(
+                  'performance-queries-mongodb-extraction'
+                ) && <DatabaseSystemSelector />}
               </PageFilterWrapper>
             </ModuleLayout.Full>
             <ModulesOnboarding moduleName={ModuleName.DB}>
