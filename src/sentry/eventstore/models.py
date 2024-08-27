@@ -374,13 +374,13 @@ class BaseEvent(metaclass=abc.ABCMeta):
 
         variants = self.get_grouping_variants(force_config)
         flat_variants, hierarchical_variants = sort_grouping_variants(variants)
-        flat_hashes, _ = self._hashes_from_sorted_grouping_variants(flat_variants)
+        flat_hashes = self._hashes_from_sorted_grouping_variants(flat_variants)
         hierarchical_hashes = self._hashes_from_sorted_grouping_variants(hierarchical_variants)
 
         if flat_hashes:
-            sentry_sdk.set_tag("get_hashes.flat_variant", flat_hashes[0][0])
+            sentry_sdk.set_tag("get_hashes.flat_variant", flat_hashes[0])
         if hierarchical_hashes:
-            sentry_sdk.set_tag("get_hashes.hierarchical_variant", hierarchical_hashes[0][0])
+            sentry_sdk.set_tag("get_hashes.hierarchical_variant", hierarchical_hashes[0])
 
         flat_hashes_values = [hash_ for _, hash_ in flat_hashes]
         hierarchical_hashes_values = [hash_ for _, hash_ in hierarchical_hashes]
@@ -394,7 +394,7 @@ class BaseEvent(metaclass=abc.ABCMeta):
     @staticmethod
     def _hashes_from_sorted_grouping_variants(
         variants: KeyedVariants,
-    ) -> tuple[list[tuple[str, str]], list[Any]]:
+    ) -> list[tuple[str, str]]:
         """Create hashes from variants and filter out duplicates and None values"""
 
         filtered_hashes = []
