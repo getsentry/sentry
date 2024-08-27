@@ -42,7 +42,7 @@ function IssueContext(props: BaseContextProps) {
   }, [organization]);
 
   const {
-    isLoading: issueLoading,
+    isPending: issueLoading,
     isError: issueError,
     data: issue,
   } = useApiQuery<Group>(
@@ -63,7 +63,7 @@ function IssueContext(props: BaseContextProps) {
   // NOTE: Suspect commits are generated from the first event of an issue.
   // Therefore, all events for an issue have the same suspect commits.
   const {
-    isLoading: eventLoading,
+    isPending: eventLoading,
     isError: eventError,
     data: event,
   } = useApiQuery<Event>([`/issues/${dataRow['issue.id']}/events/oldest/`], {

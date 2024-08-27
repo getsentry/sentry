@@ -26,7 +26,7 @@ export function FeedbackOnboardingLayout({
   const [name, setName] = useState(false);
   const [screenshot, setScreenshot] = useState(true);
 
-  const {isLoading: isLoadingRegistry, data: registryData} =
+  const {isPending: isLoadingRegistry, data: registryData} =
     useSourcePackageRegistries(organization);
   const selectedOptions = useUrlPlatformOptions(docsConfig.platformOptions);
   const {introduction, steps} = useMemo(() => {

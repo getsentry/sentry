@@ -35,11 +35,11 @@ function SampleImages({groupId, projectId}: Props) {
   const [showLinks, setShowLinks] = useLocalStorageState(LOCAL_STORAGE_SHOW_LINKS, false);
   const filters = useResourceModuleFilters();
   const [showImages, setShowImages] = useState(showLinks);
-  const {data: settings, isLoading: isSettingsLoading} =
+  const {data: settings, isPending: isSettingsLoading} =
     usePerformanceGeneralProjectSettings(projectId);
   const isImagesEnabled = settings?.enable_images ?? false;
 
-  const {data: imageResources, isLoading: isLoadingImages} = useIndexedResourcesQuery({
+  const {data: imageResources, isPending: isLoadingImages} = useIndexedResourcesQuery({
     queryConditions: [
       `${SPAN_GROUP}:${groupId}`,
       ...(filters[SPAN_OP] ? [`${SPAN_OP}:${filters[SPAN_OP]}`] : []),

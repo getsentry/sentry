@@ -20,7 +20,7 @@ export function useRecentCreatedProject({
   orgSlug,
   projectSlug,
 }: Props): undefined | OnboardingRecentCreatedProject {
-  const {isLoading: isProjectLoading, data: project} = useApiQuery<Project>(
+  const {isPending: isProjectLoading, data: project} = useApiQuery<Project>(
     [`/projects/${orgSlug}/${projectSlug}/`],
     {
       staleTime: 0,

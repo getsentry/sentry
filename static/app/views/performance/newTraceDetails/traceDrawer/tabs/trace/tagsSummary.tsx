@@ -116,7 +116,7 @@ export function TagsSummary(props: TagSummaryProps) {
     fetchNextPage,
     hasNextPage,
     isFetchingNextPage,
-    isLoading, // If anything is loaded yet
+    isPending, // If anything is loaded yet
   } = props.tagsInfiniteQueryResults;
 
   const tags: Tag[] = useMemo(() => {
@@ -153,7 +153,7 @@ export function TagsSummary(props: TagSummaryProps) {
                   ))}
                 </StyledTagFacetList>
               ) : null}
-              {isLoading || isFetchingNextPage ? (
+              {isPending || isFetchingNextPage ? (
                 <TagsSummaryPlaceholder />
               ) : tags.length === 0 ? (
                 <StyledEmptyStateWarning small>

@@ -66,7 +66,7 @@ function MonitorCheckIns({monitor, monitorEnvs, orgSlug}: Props) {
   const {
     data: checkInList,
     getResponseHeader,
-    isLoading,
+    isPending,
     isError,
   } = useApiQuery<CheckIn[]>(queryKey, {staleTime: 0});
 
@@ -102,7 +102,7 @@ function MonitorCheckIns({monitor, monitorEnvs, orgSlug}: Props) {
     <Fragment>
       <SectionHeading>{t('Recent Check-Ins')}</SectionHeading>
       <PanelTable headers={headers}>
-        {isLoading
+        {isPending
           ? [...new Array(headers.length)].map((_, i) => (
               <RowPlaceholder key={i}>
                 <Placeholder height="2rem" />

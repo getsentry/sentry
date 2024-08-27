@@ -49,7 +49,7 @@ function InviteMembersModal({
     source,
   });
 
-  if (memberResult.isLoading) {
+  if (memberResult.isPending) {
     return <LoadingIndicator />;
   }
 

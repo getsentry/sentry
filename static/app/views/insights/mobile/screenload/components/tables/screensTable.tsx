@@ -287,7 +287,7 @@ export function useTableQuery({
 
   return {
     ...result,
-    data: result.isLoading ? initialData : result.data,
+    data: result.isPending ? initialData : result.data,
     pageLinks: result.pageLinks,
   };
 }

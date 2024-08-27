@@ -103,8 +103,8 @@ class Tags extends Component<Props, State> {
 
       this.setState({
         tags: this.props.tagsQueryResults.data || [],
-        loading: this.props.tagsQueryResults.isLoading,
-        hasLoaded: !this.props.tagsQueryResults.isLoading,
+        loading: this.props.tagsQueryResults.isPending,
+        hasLoaded: !this.props.tagsQueryResults.isPending,
         hasMore,
         nextCursor: cursor,
         error: this.props.tagsQueryResults.error?.message || '',

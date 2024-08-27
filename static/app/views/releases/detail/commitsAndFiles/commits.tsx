@@ -44,7 +44,7 @@ function Commits({activeReleaseRepo, releaseRepos, projectSlug}: CommitsProps) {
   const query = getQuery({location, activeRepository: activeReleaseRepo});
   const {
     data: commitList = [],
-    isLoading: isLoadingCommitList,
+    isPending: isLoadingCommitList,
     error: commitListError,
     refetch,
     getResponseHeader,

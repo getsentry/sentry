@@ -16,12 +16,12 @@ interface Props {
 }
 
 export function ThroughputChart({error, destination, referrer}: Props) {
-  const {data: publishData, isLoading: isPublishDataLoading} =
+  const {data: publishData, isPending: isPublishDataLoading} =
     usePublishQueuesTimeSeriesQuery({
       destination,
       referrer,
     });
-  const {data: processData, isLoading: isProcessDataLoading} =
+  const {data: processData, isPending: isProcessDataLoading} =
     useProcessQueuesTimeSeriesQuery({
       destination,
       referrer,

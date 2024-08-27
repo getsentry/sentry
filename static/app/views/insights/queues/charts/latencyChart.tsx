@@ -13,7 +13,7 @@ interface Props {
 }
 
 export function LatencyChart({error, destination, referrer}: Props) {
-  const {data, isLoading} = useProcessQueuesTimeSeriesQuery({
+  const {data, isPending} = useProcessQueuesTimeSeriesQuery({
     destination,
     referrer,
   });
@@ -40,7 +40,7 @@ export function LatencyChart({error, destination, referrer}: Props) {
             },
           ] ?? []
         }
-        loading={isLoading}
+        loading={isPending}
         error={error}
         chartColors={CHART_PALETTE[2].slice(1)}
         type={ChartType.AREA}

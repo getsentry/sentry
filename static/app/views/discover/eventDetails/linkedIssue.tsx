@@ -26,12 +26,12 @@ function LinkedIssue({eventId, groupId}: Props) {
 
   const {
     data: group,
-    isLoading,
+    isPending,
     isError,
     error,
   } = useApiQuery<Group>([groupUrl], {staleTime: 0});
 
-  if (isLoading) {
+  if (isPending) {
     return <Placeholder height="120px" bottomGutter={2} />;
   }
 

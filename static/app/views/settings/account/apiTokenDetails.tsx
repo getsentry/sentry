@@ -106,7 +106,7 @@ export function ApiTokenDetails({params}: Props) {
   const {tokenId} = params;
 
   const {
-    isLoading,
+    isPending,
     isError,
     data: token,
     refetch: refetchToken,
@@ -143,9 +143,9 @@ export function ApiTokenDetails({params}: Props) {
             />
           )}
 
-          {isLoading && <LoadingIndicator />}
+          {isPending && <LoadingIndicator />}
 
-          {!isLoading && !isError && token && <ApiTokenDetailsForm token={token} />}
+          {!isPending && !isError && token && <ApiTokenDetailsForm token={token} />}
         </PanelBody>
       </Panel>
     </div>

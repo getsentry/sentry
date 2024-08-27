@@ -62,7 +62,7 @@ function RelatedIssuesSection({
 }: RelatedIssuesSectionProps) {
   // Fetch the list of related issues
   const {
-    isLoading,
+    isPending,
     isError,
     data: relatedIssues,
     refetch,
@@ -121,7 +121,7 @@ function RelatedIssuesSection({
 
   return (
     <HeaderWrapper>
-      {isLoading ? (
+      {isPending ? (
         <LoadingIndicator />
       ) : isError ? (
         <LoadingError

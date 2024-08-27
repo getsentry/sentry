@@ -171,7 +171,7 @@ function SavedIssueSearches({
   const [showAll, setShowAll] = useState(false);
   const {
     data: savedSearches,
-    isLoading,
+    isPending,
     isError,
     refetch,
   } = useFetchSavedSearchesForOrg({orgSlug: organization.slug});
@@ -181,7 +181,7 @@ function SavedIssueSearches({
     return null;
   }
 
-  if (isLoading) {
+  if (isPending) {
     return (
       <StyledSidebar>
         <LoadingIndicator />

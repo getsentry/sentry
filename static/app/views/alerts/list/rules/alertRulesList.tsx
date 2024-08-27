@@ -79,7 +79,7 @@ function AlertRulesList() {
     data: ruleListResponse = [],
     refetch,
     getResponseHeader,
-    isLoading,
+    isPending,
     isError,
   } = useApiQuery<Array<CombinedAlerts | null>>(
     getAlertListQueryKey(organization.slug, location.query),
@@ -195,7 +195,7 @@ function AlertRulesList() {
               onChangeSearch={handleChangeSearch}
             />
             <StyledPanelTable
-              isLoading={isLoading}
+              isLoading={isPending}
               isEmpty={ruleList.length === 0 && !isError}
               emptyMessage={t('No alert rules found for the current query.')}
               headers={[

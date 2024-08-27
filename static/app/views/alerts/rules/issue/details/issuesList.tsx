@@ -38,7 +38,7 @@ function AlertRuleIssuesList({project, rule, period, start, end, utc, cursor}: P
   const {
     data: groupHistory,
     getResponseHeader,
-    isLoading,
+    isPending,
     isError,
     error,
   } = useApiQuery<GroupHistory[]>(
@@ -69,7 +69,7 @@ function AlertRuleIssuesList({project, rule, period, start, end, utc, cursor}: P
   return (
     <Fragment>
       <StyledPanelTable
-        isLoading={isLoading}
+        isLoading={isPending}
         isEmpty={groupHistory?.length === 0}
         emptyMessage={t('No issues exist for the current query.')}
         headers={[

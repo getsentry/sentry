@@ -44,7 +44,7 @@ function OrganizationProjects() {
   const {
     data: projectList,
     getResponseHeader,
-    isLoading,
+    isPending,
     isError,
   } = useApiQuery<Project[]>(
     [
@@ -60,7 +60,7 @@ function OrganizationProjects() {
     {staleTime: 0}
   );
 
-  const {data: projectStats, isLoading: isLoadingStats} = useApiQuery<ProjectStats>(
+  const {data: projectStats, isPending: isLoadingStats} = useApiQuery<ProjectStats>(
     [
       `/organizations/${organization.slug}/stats/`,
       {
@@ -107,7 +107,7 @@ function OrganizationProjects() {
       <Panel>
         <PanelHeader>{t('Projects')}</PanelHeader>
         <PanelBody>
-          {isLoading && <LoadingIndicator />}
+          {isPending && <LoadingIndicator />}
           {isError && <LoadingError />}
           {projectList &&
             sortProjects(projectList).map(project => (

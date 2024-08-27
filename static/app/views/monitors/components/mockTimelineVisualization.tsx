@@ -60,7 +60,7 @@ export function MockTimelineVisualization({schedule}: Props) {
     `/organizations/${organization.slug}/monitors-schedule-data/`,
     {query},
   ] as const;
-  const {data, isLoading, isError, error} = useApiQuery<number[]>(sampleDataQueryKey, {
+  const {data, isPending, isError, error} = useApiQuery<number[]>(sampleDataQueryKey, {
     staleTime: 0,
     enabled: isValidConfig(schedule),
     retry: false,
@@ -92,7 +92,7 @@ export function MockTimelineVisualization({schedule}: Props) {
   return (
     <TimelineContainer>
       <TimelineWidthTracker ref={elementRef} />
-      {isLoading || !start || !end || !timeWindowConfig || !mockTimestamps ? (
+      {isPending || !start || !end || !timeWindowConfig || !mockTimestamps ? (
         <Fragment>
           <Placeholder height="50px" />
           {errorMessage ? null : <CheckInPlaceholder />}
@@ -101,7 +101,7 @@ export function MockTimelineVisualization({schedule}: Props) {
         <Fragment>
           <AlignedGridLineLabels timeWindowConfig={timeWindowConfig} />
           <AlignedGridLineOverlay
-            showCursor={!isLoading}
+            showCursor={!isPending}
             timeWindowConfig={timeWindowConfig}
           />
           <MockCheckInTimeline

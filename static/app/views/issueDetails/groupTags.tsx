@@ -45,7 +45,7 @@ function GroupTags({group, baseUrl, environments}: GroupTagsProps) {
 
   const {
     data = [],
-    isLoading,
+    isPending,
     isError,
     refetch,
   } = useFetchIssueTags({
@@ -56,7 +56,7 @@ function GroupTags({group, baseUrl, environments}: GroupTagsProps) {
 
   const alphabeticalTags = data.sort((a, b) => a.key.localeCompare(b.key));
 
-  if (isLoading) {
+  if (isPending) {
     return <LoadingIndicator />;
   }
 

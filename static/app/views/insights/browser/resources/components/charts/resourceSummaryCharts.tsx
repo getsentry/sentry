@@ -34,7 +34,7 @@ const {
 function ResourceSummaryCharts(props: {groupId: string}) {
   const filters = useResourceModuleFilters();
 
-  const {data: spanMetricsSeriesData, isLoading: areSpanMetricsSeriesLoading} =
+  const {data: spanMetricsSeriesData, isPending: areSpanMetricsSeriesLoading} =
     useSpanMetricsSeries(
       {
         search: MutableSearch.fromQueryObject({

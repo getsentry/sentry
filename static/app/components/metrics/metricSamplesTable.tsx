@@ -345,7 +345,7 @@ export function MetricSamplesTable({
       onMouseLeave={() => onRowHover?.(undefined)}
     >
       <GridEditable
-        isLoading={enabled && result.isLoading}
+        isLoading={enabled && result.isPending}
         error={enabled && result.isError && supportedMRI}
         data={result.data?.data ?? []}
         columnOrder={getColumnOrder(mri)}

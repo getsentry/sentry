@@ -102,7 +102,7 @@ function RelayUsageList({
   orgSlug: Organization['slug'];
   relays: Relay[];
 }) {
-  const {isLoading, isError, refetch, data} = useApiQuery<RelayActivity[]>(
+  const {isPending, isError, refetch, data} = useApiQuery<RelayActivity[]>(
     [`/organizations/${orgSlug}/relay_usage/`],
     {
       staleTime: 0,
@@ -156,7 +156,7 @@ function RelayUsageList({
     [relays, api, orgSlug, onRelaysChange]
   );
 
-  if (isLoading) {
+  if (isPending) {
     return <LoadingIndicator />;
   }
 

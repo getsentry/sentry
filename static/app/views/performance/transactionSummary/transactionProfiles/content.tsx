@@ -99,7 +99,7 @@ function isEmpty(resp: Profiling.Schema) {
 }
 
 function ProfileVisualization({query}: TransactionProfilesContentProps) {
-  const {data, isLoading, isError} = useAggregateFlamegraphQuery({
+  const {data, isPending, isError} = useAggregateFlamegraphQuery({
     query,
   });
 
@@ -175,7 +175,7 @@ function ProfileVisualization({query}: TransactionProfilesContentProps) {
                   />
                 )}
               </FlamegraphContainer>
-              {isLoading ? (
+              {isPending ? (
                 <RequestStateMessageContainer>
                   <LoadingIndicator />
                 </RequestStateMessageContainer>
@@ -296,7 +296,7 @@ function ProfileDigest({query}: TransactionProfilesContentProps) {
     <ProfileDigestContainer>
       <ProfileDigestLabel>{t('Last Seen')}</ProfileDigestLabel>
       <ProfileDigestValue align="right">
-        {profilesSummary.isLoading ? (
+        {profilesSummary.isPending ? (
           ''
         ) : profilesSummary.isError ? (
           ''
@@ -306,7 +306,7 @@ function ProfileDigest({query}: TransactionProfilesContentProps) {
       </ProfileDigestValue>
       <ProfileDigestLabel>{t('Count')}</ProfileDigestLabel>
       <ProfileDigestValue align="right">
-        {profilesSummary.isLoading ? (
+        {profilesSummary.isPending ? (
           ''
         ) : profilesSummary.isError ? (
           ''
@@ -320,7 +320,7 @@ function ProfileDigest({query}: TransactionProfilesContentProps) {
             {percentile.substring(0, percentile.length - 2)}
           </ProfileDigestLabel>
           <ProfileDigestValue align="right">
-            {profilesSummary.isLoading ? (
+            {profilesSummary.isPending ? (
               ''
             ) : profilesSummary.isError ? (
               ''
@@ -451,7 +451,7 @@ function ProfileList({query: userQuery, transaction}: TransactionProfilesContent
           size="xs"
         />
       </ProfileListControls>
-      {profilesList.isLoading ? (
+      {profilesList.isPending ? (
         <LoadingIndicator />
       ) : profilesList.isError ? (
         <ErrorPanel>

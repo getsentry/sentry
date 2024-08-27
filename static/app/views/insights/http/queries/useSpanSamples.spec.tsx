@@ -106,7 +106,7 @@ describe('useSpanSamples', () => {
       }
     );
 
-    expect(result.current.isLoading).toEqual(true);
+    expect(result.current.isPending).toEqual(true);
 
     expect(request).toHaveBeenCalledWith(
       '/api/0/organizations/org-slug/spans-samples/',
@@ -127,7 +127,7 @@ describe('useSpanSamples', () => {
       })
     );
 
-    await waitFor(() => expect(result.current.isLoading).toEqual(false));
+    await waitFor(() => expect(result.current.isPending).toEqual(false));
     expect(result.current.data).toEqual([
       {
         'transaction.id': '7663aab8a',

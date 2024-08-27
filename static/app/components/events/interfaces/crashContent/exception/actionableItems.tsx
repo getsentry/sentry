@@ -350,7 +350,7 @@ interface ActionableItemsProps {
 
 export function ActionableItems({event, project, isShare}: ActionableItemsProps) {
   const organization = useOrganization();
-  const {data, isLoading} = useActionableItems({
+  const {data, isPending} = useActionableItems({
     eventId: event.id,
     orgSlug: organization.slug,
     projectSlug: project.slug,
@@ -390,7 +390,7 @@ export function ActionableItems({event, project, isShare}: ActionableItemsProps)
   });
 
   if (
-    isLoading ||
+    isPending ||
     !defined(data) ||
     data.errors?.length === 0 ||
     Object.keys(errorMessages).length === 0

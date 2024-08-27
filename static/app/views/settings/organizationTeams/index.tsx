@@ -29,7 +29,7 @@ export function OrganizationTeamsContainer(props: RouteComponentProps<{}, {}>) {
   );
 
   const {
-    isLoading,
+    isPending,
     isError,
     data: requestList = [],
   } = useApiQuery<AccessRequest[]>(queryKey, {
@@ -79,7 +79,7 @@ export function OrganizationTeamsContainer(props: RouteComponentProps<{}, {}>) {
     return <LoadingError message={t('Organization not found')} />;
   }
 
-  if (isLoading) {
+  if (isPending) {
     return <LoadingIndicator />;
   }
 

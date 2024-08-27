@@ -41,7 +41,7 @@ interface EventContextProps extends BaseContextProps {
 
 function EventContext(props: EventContextProps) {
   const {organization, dataRow, eventView, location} = props;
-  const {isLoading, isError, data} = useApiQuery<Event>(
+  const {isPending, isError, data} = useApiQuery<Event>(
     [
       `/organizations/${organization.slug}/events/${dataRow['project.name']}:${dataRow.id}/`,
     ],
@@ -60,8 +60,8 @@ function EventContext(props: EventContextProps) {
     }
   }, [data, organization]);
 
-  if (isLoading || isError) {
-    return <NoContext isLoading={isLoading} />;
+  if (isPending || isError) {
+    return <NoContext isLoading={isPending} />;
   }
 
   if (data.type === 'transaction') {

@@ -148,7 +148,7 @@ export function SlowestFunctionsTable({userQuery}: {userQuery?: string}) {
           </TableRow>
         </TableHead>
         <TableBody>
-          {query.isLoading && (
+          {query.isPending && (
             <TableStatus>
               <LoadingIndicator size={36} />
             </TableStatus>
@@ -158,7 +158,7 @@ export function SlowestFunctionsTable({userQuery}: {userQuery?: string}) {
               <IconWarning data-test-id="error-indicator" color="gray300" size="lg" />
             </TableStatus>
           )}
-          {!query.isError && !query.isLoading && !hasFunctions && (
+          {!query.isError && !query.isPending && !hasFunctions && (
             <TableStatus>
               <EmptyStateWarning>
                 <p>{t('No functions found')}</p>
@@ -390,7 +390,7 @@ function SlowestFunctionTimeSeries(props: SlowestFunctionTimeSeriesProps) {
           })}
         </SlowestFunctionsExamplesContainer>
         <SlowestFunctionsChartContainer>
-          {metrics.isLoading && (
+          {metrics.isPending && (
             <TableStatusContainer>
               <LoadingIndicator size={36} />
             </TableStatusContainer>
@@ -400,7 +400,7 @@ function SlowestFunctionTimeSeries(props: SlowestFunctionTimeSeriesProps) {
               <IconWarning data-test-id="error-indicator" color="gray300" size="lg" />
             </TableStatusContainer>
           )}
-          {!metrics.isError && !metrics.isLoading && !series.length && (
+          {!metrics.isError && !metrics.isPending && !series.length && (
             <TableStatusContainer>
               <EmptyStateWarning>
                 <p>{t('No function metrics found')}</p>

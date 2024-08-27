@@ -35,7 +35,7 @@ export function ErrorNodeDetails({
     return [...node.errors];
   }, [node.errors]);
 
-  const {isLoading, data} = useApiQuery<EventError>(
+  const {isPending, data} = useApiQuery<EventError>(
     [
       `/organizations/${organization.slug}/events/${node.value.project_slug}:${node.value.event_id}/`,
     ],
@@ -75,7 +75,7 @@ export function ErrorNodeDetails({
     });
   }
 
-  return isLoading ? (
+  return isPending ? (
     <LoadingIndicator />
   ) : data ? (
     <TraceDrawerComponents.DetailContainer>

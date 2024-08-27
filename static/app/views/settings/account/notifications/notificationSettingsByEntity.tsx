@@ -66,7 +66,7 @@ function NotificationSettingsByEntity({
   // loads all the projects for an org
   const {
     data: projects,
-    isLoading,
+    isPending,
     isSuccess,
     isError,
     refetch,
@@ -264,7 +264,7 @@ function NotificationSettingsByEntity({
             aria-label={t('Add override')}
           />
         </ControlItem>
-        {isLoading && (
+        {isPending && (
           <PanelBody>
             <LoadingIndicator />
           </PanelBody>

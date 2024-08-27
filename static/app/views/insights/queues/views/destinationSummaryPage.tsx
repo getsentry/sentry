@@ -39,7 +39,7 @@ function DestinationSummaryPage() {
   const {query} = useLocation();
   const destination = decodeScalar(query.destination);
 
-  const {data, isLoading} = useQueuesMetricsQuery({
+  const {data, isPending} = useQueuesMetricsQuery({
     destination,
     referrer: Referrer.QUEUES_SUMMARY,
   });
@@ -88,31 +88,31 @@ function DestinationSummaryPage() {
                       title={t('Avg Time In Queue')}
                       value={data[0]?.['avg(messaging.message.receive.latency)']}
                       unit={DurationUnit.MILLISECOND}
-                      isLoading={isLoading}
+                      isLoading={isPending}
                     />
                     <MetricReadout
                       title={t('Avg Processing Time')}
                       value={data[0]?.['avg_if(span.duration,span.op,queue.process)']}
                       unit={DurationUnit.MILLISECOND}
-                      isLoading={isLoading}
+                      isLoading={isPending}
                     />
                     <MetricReadout
                       title={t('Error Rate')}
                       value={errorRate}
                       unit={'percentage'}
-                      isLoading={isLoading}
+                      isLoading={isPending}
                     />
                     <MetricReadout
                       title={t('Published')}
                       value={data[0]?.['count_op(queue.publish)']}
                       unit={'count'}
-                      isLoading={isLoading}
+                      isLoading={isPending}
                     />
                     <MetricReadout
                       title={t('Processed')}
                       value={data[0]?.['count_op(queue.process)']}
                       unit={'count'}
-                      isLoading={isLoading}
+                      isLoading={isPending}
                     />
                     <MetricReadout
                       title={t('Time Spent')}
@@ -121,7 +121,7 @@ function DestinationSummaryPage() {
                       tooltip={getTimeSpentExplanation(
                         data[0]?.['time_spent_percentage(app,span.duration)']
                       )}
-                      isLoading={isLoading}
+                      isLoading={isPending}
                     />
                   </ReadoutRibbon>
                 )}

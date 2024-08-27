@@ -103,7 +103,7 @@ export function PipelinesTable() {
     sort = {field: 'spm()', kind: 'desc'};
   }
 
-  const {data, isLoading, meta, pageLinks, error} = useSpanMetrics(
+  const {data, isPending, meta, pageLinks, error} = useSpanMetrics(
     {
       search: MutableSearch.fromQueryObject({
         'span.category': 'ai.pipeline',
@@ -124,7 +124,7 @@ export function PipelinesTable() {
     'api.ai-pipelines.view'
   );
 
-  const {data: tokensUsedData, isLoading: tokensUsedLoading} = useSpanMetrics(
+  const {data: tokensUsedData, isPending: tokensUsedLoading} = useSpanMetrics(
     {
       search: new MutableSearch(
         `span.category:ai span.ai.pipeline.group:[${(data as Row[])
@@ -139,7 +139,7 @@ export function PipelinesTable() {
 
   const {
     data: tokenCostData,
-    isLoading: tokenCostLoading,
+    isPending: tokenCostLoading,
     error: tokenCostError,
   } = useSpanMetrics(
     {
@@ -199,7 +199,7 @@ export function PipelinesTable() {
     <VisuallyCompleteWithData
       id="PipelinesTable"
       hasData={rows.length > 0}
-      isLoading={isLoading}
+      isLoading={isPending}
     >
       <Container>
         <SearchBar
@@ -208,7 +208,7 @@ export function PipelinesTable() {
           onSearch={handleSearch}
         />
         <GridEditable
-          isLoading={isLoading}
+          isLoading={isPending}
           error={error}
           data={rows}
           columnOrder={COLUMN_ORDER}

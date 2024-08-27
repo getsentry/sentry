@@ -39,7 +39,7 @@ export default function UptimeAlertDetails({params}: UptimeAlertDetailsProps) {
   ];
   const {
     data: uptimeRule,
-    isLoading,
+    isPending,
     isError,
   } = useApiQuery<UptimeRule>(queryKey, {staleTime: 0});
   if (isError) {
@@ -50,7 +50,7 @@ export default function UptimeAlertDetails({params}: UptimeAlertDetailsProps) {
     );
   }
 
-  if (isLoading || loadingProject) {
+  if (isPending || loadingProject) {
     return (
       <Layout.Body>
         <Layout.Main fullWidth>

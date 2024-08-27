@@ -113,7 +113,7 @@ describe('useSpanMetricsTopNSeries', () => {
       })
     );
 
-    await waitFor(() => expect(result.current.isLoading).toEqual(false));
+    await waitFor(() => expect(result.current.isPending).toEqual(false));
 
     expect(result.current.data).toEqual({
       '200': {

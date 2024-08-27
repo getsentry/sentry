@@ -52,7 +52,7 @@ function ResourceSummary() {
   const {
     query: {transaction},
   } = useLocation();
-  const {data, isLoading} = useSpanMetrics(
+  const {data, isPending} = useSpanMetrics(
     {
       search: MutableSearch.fromQueryObject({
         'span.group': groupId,
@@ -132,7 +132,7 @@ function ResourceSummary() {
                   <SubregionSelector />
                 </ToolRibbon>
                 <ResourceInfo
-                  isLoading={isLoading}
+                  isLoading={isPending}
                   avgContentLength={spanMetrics[`avg(${HTTP_RESPONSE_CONTENT_LENGTH})`]}
                   avgDecodedContentLength={
                     spanMetrics[`avg(${HTTP_DECODED_RESPONSE_CONTENT_LENGTH})`]

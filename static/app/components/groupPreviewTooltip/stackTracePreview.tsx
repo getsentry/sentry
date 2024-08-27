@@ -129,21 +129,21 @@ function StackTracePreviewBody({
 }: StackTracePreviewBodyProps) {
   const organization = useOrganization();
 
-  const {data, isLoading, isError} = usePreviewEvent({groupId, query});
+  const {data, isPending, isError} = usePreviewEvent({groupId, query});
 
   useEffect(() => {
-    if (isLoading) {
+    if (isPending) {
       onRequestBegin();
     } else {
       onRequestEnd();
     }
 
     return onUnmount;
-  }, [isLoading, onRequestBegin, onRequestEnd, onUnmount]);
+  }, [isPending, onRequestBegin, onRequestEnd, onUnmount]);
 
   const stacktrace = useMemo(() => (data ? getStacktrace(data) : null), [data]);
 
-  if (isLoading) {
+  if (isPending) {
     return (
       <NoStackTraceWrapper>
         <LoadingIndicator hideMessage size={32} />

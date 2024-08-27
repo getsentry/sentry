@@ -77,7 +77,7 @@ export function MetricListItemDetails({
     return !!data;
   });
 
-  const {data: tagsData = [], isLoading: tagsIsLoading} = useMetricsTags(
+  const {data: tagsData = [], isPending: tagsIsLoading} = useMetricsTags(
     // TODO: improve useMetricsTag interface
     isQueryEnabled ? metric.mri : undefined,
     {

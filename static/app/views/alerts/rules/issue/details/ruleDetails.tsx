@@ -79,7 +79,7 @@ function AlertRuleDetails({params, location, router}: AlertRuleDetailsProps) {
   const {projectId: projectSlug, ruleId} = params;
   const {
     data: rule,
-    isLoading,
+    isPending,
     isError,
   } = useApiQuery<IssueAlertRule>(
     getIssueAlertDetailsQueryKey({orgSlug: organization.slug, projectSlug, ruleId}),
@@ -239,7 +239,7 @@ function AlertRuleDetails({params, location, router}: AlertRuleDetailsProps) {
     });
   }
 
-  if (isLoading || projectIsLoading) {
+  if (isPending || projectIsLoading) {
     return (
       <Layout.Body>
         <Layout.Main fullWidth>

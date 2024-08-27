@@ -120,7 +120,7 @@ export default function SpanMetricsTable(props: Props) {
   const mutableSearch = MutableSearch.fromQueryObject(filters);
   mutableSearch.addStringMultiFilter(search);
 
-  const {data, isLoading, pageLinks} = useSpanMetrics(
+  const {data, isPending, pageLinks} = useSpanMetrics(
     {
       search: mutableSearch,
       fields: [
@@ -143,10 +143,10 @@ export default function SpanMetricsTable(props: Props) {
       <VisuallyCompleteWithData
         id="TransactionSpans-SpanMetricsTable"
         hasData={!!data?.length}
-        isLoading={isLoading}
+        isLoading={isPending}
       >
         <GridEditable
-          isLoading={isLoading}
+          isLoading={isPending}
           data={data}
           columnOrder={COLUMN_ORDER}
           columnSortBy={[

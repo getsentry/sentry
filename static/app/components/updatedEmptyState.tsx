@@ -22,7 +22,7 @@ import FirstEventIndicator from 'sentry/views/onboarding/components/firstEventIn
 export default function UpdatedEmptyState({project}: {project?: Project}) {
   const organization = useOrganization();
 
-  const {isLoading: isLoadingRegistry, data: registryData} =
+  const {isPending: isLoadingRegistry, data: registryData} =
     useSourcePackageRegistries(organization);
 
   const currentPlatformKey = project?.platform ?? 'other';

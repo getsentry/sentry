@@ -69,7 +69,7 @@ export function ProjectInstallPlatform({
 
   const {
     data: projectAlertRules,
-    isLoading: projectAlertRulesIsLoading,
+    isPending: projectAlertRulesIsLoading,
     isError: projectAlertRulesIsError,
   } = useApiQuery<IssueAlertRule[]>(
     [`/projects/${organization.slug}/${project?.slug}/rules/`],

@@ -35,7 +35,7 @@ export function ApiTokens() {
 
   const {
     data: tokenList,
-    isLoading,
+    isPending,
     isError,
     refetch,
   } = useApiQuery<InternalAppApiToken[]>(API_TOKEN_QUERY_KEY, {staleTime: 0});
@@ -87,7 +87,7 @@ export function ApiTokens() {
     }
   );
 
-  if (isLoading) {
+  if (isPending) {
     return <LoadingIndicator />;
   }
 

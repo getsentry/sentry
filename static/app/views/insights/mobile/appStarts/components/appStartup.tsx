@@ -104,7 +104,7 @@ function AppStartup({additionalFilters, chartHeight}: Props) {
 
   const {
     data: topTransactionsData,
-    isLoading: topTransactionsLoading,
+    isPending: topTransactionsLoading,
     pageLinks,
   } = useTableQuery({
     eventView: tableEventView,
@@ -138,7 +138,7 @@ function AppStartup({additionalFilters, chartHeight}: Props) {
       : ''
   }`.trim();
 
-  const {data: releaseEvents, isLoading: isReleaseEventsLoading} = useTableQuery({
+  const {data: releaseEvents, isPending: isReleaseEventsLoading} = useTableQuery({
     eventView: EventView.fromNewQueryWithPageFilters(
       {
         name: '',

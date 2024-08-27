@@ -50,7 +50,7 @@ function TeamAlertsTriggered({
 
   const {
     data: alertsTriggered,
-    isLoading: isAlertsTriggeredLoading,
+    isPending: isAlertsTriggeredLoading,
     isError: isAlertsTriggeredError,
     refetch: refetchAlertsTriggered,
   } = useApiQuery<AlertsTriggered>(
@@ -67,7 +67,7 @@ function TeamAlertsTriggered({
 
   const {
     data: alertsTriggeredRules,
-    isLoading: isAlertsTriggeredRulesLoading,
+    isPending: isAlertsTriggeredRulesLoading,
     isError: isAlertsTriggeredRulesError,
     refetch: refetchAlertsTriggeredRule,
   } = useApiQuery<AlertsTriggeredRule[]>(

@@ -69,7 +69,7 @@ export function useReleases(searchTerm?: string) {
             query: queryKey[1]?.query,
           }) as Promise<TableData>,
         staleTime: Infinity,
-        enabled: isReady && !releaseResults.isLoading,
+        enabled: isReady && !releaseResults.isPending,
         retry: false,
       };
     }),
@@ -109,7 +109,7 @@ export function useReleases(searchTerm?: string) {
   return {
     ...releaseResults,
     data: releaseStats,
-    isLoading: !metricsFetched || releaseResults.isLoading,
+    isLoading: !metricsFetched || releaseResults.isPending,
   };
 }
 

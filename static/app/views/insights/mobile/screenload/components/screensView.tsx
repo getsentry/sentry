@@ -125,7 +125,7 @@ export function ScreensView({yAxes, additionalFilters, chartHeight}: Props) {
 
   const {
     data: topTransactionsData,
-    isLoading: topTransactionsLoading,
+    isPending: topTransactionsLoading,
     pageLinks,
   } = useTableQuery({
     eventView: tableEventView,
@@ -168,7 +168,7 @@ export function ScreensView({yAxes, additionalFilters, chartHeight}: Props) {
     selectedPlatform,
   ]);
 
-  const {data: releaseEvents, isLoading: isReleaseEventsLoading} = useTableQuery({
+  const {data: releaseEvents, isPending: isReleaseEventsLoading} = useTableQuery({
     eventView: EventView.fromNewQueryWithLocation(
       {
         name: '',

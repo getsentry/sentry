@@ -21,12 +21,12 @@ export function PerformanceScoreWidget(props: PerformanceWidgetProps) {
   const location = useLocation();
   const {InteractiveTitle} = props;
   const theme = useTheme();
-  const {data: projectData, isLoading} = useProjectRawWebVitalsQuery();
-  const {data: projectScores, isLoading: isProjectScoresLoading} =
+  const {data: projectData, isPending} = useProjectRawWebVitalsQuery();
+  const {data: projectScores, isPending: isProjectScoresLoading} =
     useProjectWebVitalsScoresQuery();
 
   const projectScore =
-    isProjectScoresLoading || isLoading
+    isProjectScoresLoading || isPending
       ? undefined
       : calculatePerformanceScoreFromStoredTableDataRow(projectScores?.data?.[0]);
   const ringSegmentColors = theme.charts.getColorPalette(3);
@@ -93,7 +93,7 @@ export function PerformanceScoreWidget(props: PerformanceWidgetProps) {
                   radiusPadding={10}
                   labelHeightPadding={0}
                 />
-              ) : isLoading ? (
+              ) : isPending ? (
                 <StyledLoadingIndicator size={40} />
               ) : (
                 <WidgetEmptyStateWarning />

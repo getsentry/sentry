@@ -49,10 +49,10 @@ export function PerformanceScoreListWidget(props: PerformanceWidgetProps) {
   const {ContainerActions, InteractiveTitle} = props;
   const theme = useTheme();
 
-  const {data: projectScoresData, isLoading: isProjectScoresLoading} =
+  const {data: projectScoresData, isPending: isProjectScoresLoading} =
     useProjectWebVitalsScoresQuery();
 
-  const {data: transactionWebVitals, isLoading: isTransactionWebVitalsQueryLoading} =
+  const {data: transactionWebVitals, isPending: isTransactionWebVitalsQueryLoading} =
     useTransactionWebVitalsScoresQuery({limit: 4});
 
   const {data: timeseriesData, isLoading: isTimeseriesQueryLoading} =

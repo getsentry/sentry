@@ -79,7 +79,7 @@ export function DatabaseSpanSummaryPage({params}: Props) {
 
   const sort = decodeSorts(sortField).filter(isAValidSort).at(0) ?? DEFAULT_SORT;
 
-  const {data: indexedSpansByGroupId, isLoading: areIndexedSpansByGroupIdLoading} =
+  const {data: indexedSpansByGroupId, isPending: areIndexedSpansByGroupIdLoading} =
     useSpansIndexed(
       {
         search: MutableSearch.fromQueryObject({'span.group': params.groupId}),
@@ -93,7 +93,7 @@ export function DatabaseSpanSummaryPage({params}: Props) {
       'api.starfish.span-description'
     );
 
-  const {data, isLoading: areSpanMetricsLoading} = useSpanMetrics(
+  const {data, isPending: areSpanMetricsLoading} = useSpanMetrics(
     {
       search: MutableSearch.fromQueryObject(filters),
       fields: [
@@ -116,7 +116,7 @@ export function DatabaseSpanSummaryPage({params}: Props) {
   const spanMetrics = data[0] ?? {};
 
   const {
-    isLoading: isTransactionsListLoading,
+    isPending: isTransactionsListLoading,
     data: transactionsList,
     meta: transactionsListMeta,
     error: transactionsListError,
@@ -152,7 +152,7 @@ export function DatabaseSpanSummaryPage({params}: Props) {
   };
 
   const {
-    isLoading: isThroughputDataLoading,
+    isPending: isThroughputDataLoading,
     data: throughputData,
     error: throughputError,
   } = useSpanMetricsSeries(
@@ -165,7 +165,7 @@ export function DatabaseSpanSummaryPage({params}: Props) {
   );
 
   const {
-    isLoading: isDurationDataLoading,
+    isPending: isDurationDataLoading,
     data: durationData,
     error: durationError,
   } = useSpanMetricsSeries(

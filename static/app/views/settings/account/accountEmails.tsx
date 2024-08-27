@@ -74,12 +74,12 @@ export function EmailAddresses() {
   const [isUpdating, setIsUpdating] = useState(false);
   const {
     data: emails = [],
-    isLoading,
+    isPending,
     isError,
     refetch,
   } = useApiQuery<UserEmail[]>(makeEmailsEndpointKey(), {staleTime: 0, cacheTime: 0});
 
-  if (isLoading || isUpdating) {
+  if (isPending || isUpdating) {
     return (
       <Panel>
         <PanelHeader>{t('Email Addresses')}</PanelHeader>

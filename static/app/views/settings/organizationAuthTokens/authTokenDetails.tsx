@@ -184,7 +184,7 @@ export function OrganizationAuthTokensDetails({params, organization}: Props) {
   const {tokenId} = params;
 
   const {
-    isLoading,
+    isPending,
     isError,
     data: token,
     refetch: refetchToken,
@@ -224,9 +224,9 @@ export function OrganizationAuthTokensDetails({params, organization}: Props) {
             />
           )}
 
-          {isLoading && <LoadingIndicator />}
+          {isPending && <LoadingIndicator />}
 
-          {!isLoading && !isError && token && (
+          {!isPending && !isError && token && (
             <AuthTokenDetailsForm token={token} organization={organization} />
           )}
         </PanelBody>

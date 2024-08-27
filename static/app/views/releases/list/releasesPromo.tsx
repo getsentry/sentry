@@ -94,7 +94,7 @@ type Props = {
 };
 
 function ReleasesPromo({organization, project}: Props) {
-  const {data, isLoading} = useApiQuery<SentryApp[]>(
+  const {data, isPending} = useApiQuery<SentryApp[]>(
     [`/organizations/${organization.slug}/sentry-apps/`, {query: {status: 'internal'}}],
     {
       staleTime: 0,
@@ -107,10 +107,10 @@ function ReleasesPromo({organization, project}: Props) {
   const [selectedItem, selectItem] = useState<Pick<Item, 'label' | 'value'> | null>(null);
 
   useEffect(() => {
-    if (!isLoading && data) {
+    if (!isPending && data) {
       setIntegrations(data);
     }
-  }, [isLoading, data]);
+  }, [isPending, data]);
   useEffect(() => {
     trackAnalytics('releases.quickstart_viewed', {
       organization,
@@ -195,7 +195,7 @@ sentry-cli releases finalize "$VERSION"`,
     [token, selectedItem, organization.slug, project.slug]
   );
 
-  if (isLoading) {
+  if (isPending) {
     return <LoadingIndicator />;
   }
 

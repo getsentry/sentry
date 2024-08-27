@@ -115,14 +115,14 @@ function CrashFreeRate({
 }) {
   const {
     data: currSessionData,
-    isLoading: isCurrLoading,
+    isPending: isCurrLoading,
     isError: isCurrError,
   } = useReleaseSessions({
     releaseVersion: currReleaseVersion,
   });
   const {
     data: prevSessionData,
-    isLoading: isPrevLoading,
+    isPending: isPrevLoading,
     isError: isPrevError,
   } = useReleaseSessions({
     releaseVersion: prevReleaseVersion,
@@ -181,7 +181,7 @@ function CrashFreeRate({
 export default function ReleasesPanel() {
   const {
     data: releaseData,
-    isLoading: isReleaseDataLoading,
+    isPending: isReleaseDataLoading,
     isError: isReleaseDataError,
   } = useToolbarRelease();
 

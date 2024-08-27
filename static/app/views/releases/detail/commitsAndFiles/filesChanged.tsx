@@ -43,7 +43,7 @@ function FilesChanged({activeReleaseRepo, releaseRepos, projectSlug}: FilesChang
   const query = getQuery({location, activeRepository: activeReleaseRepo});
   const {
     data: fileList = [],
-    isLoading: isLoadingFileList,
+    isPending: isLoadingFileList,
     error: fileListError,
     refetch,
     getResponseHeader,

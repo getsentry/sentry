@@ -32,14 +32,14 @@ export function Recommendations({
 
 function FcpRecommendations({transaction}: {transaction: string}) {
   const query = `transaction:"${transaction}" resource.render_blocking_status:blocking`;
-  const {data, isLoading} = useResourcesQuery({
+  const {data, isPending} = useResourcesQuery({
     query,
     sort: {field: `avg(${SpanMetricsField.SPAN_SELF_TIME})`, kind: 'desc'},
     defaultResourceTypes: ['resource.script', 'resource.css', 'resource.img'],
     limit: 7,
     referrer: 'api.performance.browser.web-vitals.fcp-recommendations',
   });
-  if (isLoading || !data || data.length < 1) {
+  if (isPending || !data || data.length < 1) {
     return null;
   }
   return (

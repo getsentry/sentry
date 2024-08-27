@@ -49,7 +49,7 @@ type Props = {} & RouteComponentProps<RouteParams, {}>;
 function DataDownload({params: {orgId, dataExportId}}: Props) {
   const {
     data: download,
-    isLoading,
+    isPending,
     isError,
     error,
   } = useApiQuery<Download>([`/organizations/${orgId}/data-export/${dataExportId}/`], {
@@ -78,7 +78,7 @@ function DataDownload({params: {orgId, dataExportId}}: Props) {
     );
   }
 
-  if (isLoading) {
+  if (isPending) {
     return <LoadingIndicator />;
   }
 

@@ -87,7 +87,7 @@ function NewTraceDetailsContent(props: Props) {
     [props.traces, props.orphanErrors]
   );
   const root = props.traces?.[0];
-  const {data: rootEvent, isLoading: isRootEventLoading} = useApiQuery<EventTransaction>(
+  const {data: rootEvent, isPending: isRootEventLoading} = useApiQuery<EventTransaction>(
     [
       `/organizations/${props.organization.slug}/events/${root?.project_slug}:${root?.event_id}/`,
       {

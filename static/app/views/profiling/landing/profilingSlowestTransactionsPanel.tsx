@@ -66,9 +66,9 @@ export function ProfilingSlowestTransactionsPanel() {
     setOpenPanel(firstTransaction as string);
   }
 
-  const {isLoading} = profilingTransactionsQuery;
+  const {isPending} = profilingTransactionsQuery;
   const hasProfilingTransactions =
-    !isLoading && profilingTransactions && profilingTransactions.length > 0;
+    !isPending && profilingTransactions && profilingTransactions.length > 0;
 
   return (
     <FlexPanel>
@@ -80,9 +80,9 @@ export function ProfilingSlowestTransactionsPanel() {
           </PanelSubheading>
         </Flex>
 
-        {(isLoading || !hasProfilingTransactions) && (
+        {(isPending || !hasProfilingTransactions) && (
           <Flex column align="center" justify="center" h="100%">
-            {isLoading ? (
+            {isPending ? (
               <LoadingIndicator />
             ) : (
               !hasProfilingTransactions && (
@@ -226,7 +226,7 @@ function PanelItemFunctionsMiniGrid(props: PanelItemFunctionsMiniGridProps) {
     skipSlowestProfile: true,
   });
 
-  if (functionsQuery.isLoading) {
+  if (functionsQuery.isPending) {
     return <FunctionsMiniGridLoading />;
   }
 

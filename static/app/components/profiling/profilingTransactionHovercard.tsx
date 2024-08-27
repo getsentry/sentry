@@ -149,7 +149,7 @@ export function ProfilingTransactionHovercardBody({
       <Flex justify="space-between">
         <ContextDetail
           title={t('Latest profile')}
-          isLoading={latestProfileQuery.isLoading}
+          isLoading={latestProfileQuery.isPending}
         >
           {latestProfile ? (
             <Link
@@ -170,7 +170,7 @@ export function ProfilingTransactionHovercardBody({
 
         <ContextDetail
           title={t('Slowest profile')}
-          isLoading={slowestProfileQuery.isLoading}
+          isLoading={slowestProfileQuery.isPending}
         >
           {slowestProfile ? (
             <Flex gap={space(1)}>
@@ -201,7 +201,7 @@ export function ProfilingTransactionHovercardBody({
 
       <Flex column h={125}>
         <ProfilingTransactionHovercardFunctions
-          isLoading={functionsQuery.isLoading}
+          isLoading={functionsQuery.isPending}
           functions={functions ?? []}
           organization={organization}
           project={project}
