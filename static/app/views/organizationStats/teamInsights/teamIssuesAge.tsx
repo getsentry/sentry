@@ -143,7 +143,7 @@ function TeamIssuesAge({organization, teamSlug}: TeamIssuesAgeProps) {
         isLoading={isLoading}
       >
         {oldestIssues?.map(issue => {
-          const {title} = getTitle(issue, organization?.features, false);
+          const {title} = getTitle(issue);
 
           return (
             <Fragment key={issue.id}>
