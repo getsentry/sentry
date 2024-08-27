@@ -3,7 +3,6 @@ from rest_framework.response import Response
 from sentry.api.base import control_silo_endpoint
 from sentry.integrations.github.integration import GitHubIntegration, build_repository_query
 from sentry.integrations.github_enterprise.integration import GitHubEnterpriseIntegration
-from sentry.integrations.mixins.issues import IssueBasicIntegration
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.source_code_management.search import SourceCodeSearchEndpoint
 from sentry.shared_integrations.exceptions import ApiError
@@ -25,15 +24,17 @@ class GithubSharedSearchEndpoint(SourceCodeSearchEndpoint):
     def installation_class(self):
         return (GitHubIntegration, GitHubEnterpriseIntegration)
 
-    def handle_search_issues(
-        self, installation: IssueBasicIntegration, query: str, repo: str
-    ) -> Response:
+    def handle_search_issues(self, installation, query: str, repo: str) -> Response:
+        assert isinstance(installation, self.installation_class)
+
         try:
             response = installation.search_issues(query=f"repo:{repo} {query}")
         except ApiError as err:
             if err.code == 403:
                 return Response({"detail": "Rate limit exceeded"}, status=429)
             raise
+
+        assert isinstance(response, dict)
         return Response(
             [
                 {"label": "#{} {}".format(i["number"], i["title"]), "value": i["number"]}
@@ -45,6 +46,8 @@ class GithubSharedSearchEndpoint(SourceCodeSearchEndpoint):
     def handle_search_repositories(
         self, integration: Integration, installation, query: str
     ) -> Response:
+        assert isinstance(installation, self.installation_class)
+
         full_query = build_repository_query(integration.metadata, integration.name, query)
         try:
             response = installation.get_client().search_repositories(full_query)

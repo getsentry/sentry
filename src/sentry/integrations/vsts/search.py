@@ -19,6 +19,7 @@ class VstsSearchEndpoint(SourceCodeSearchEndpoint):
         if not query:
             return Response([])
 
+        assert isinstance(installation, self.installation_class)
         resp = installation.search_issues(query=query)
         return Response(
             [

@@ -6,7 +6,6 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import control_silo_endpoint
 from sentry.integrations.bitbucket.integration import BitbucketIntegration
-from sentry.integrations.mixins.issues import IssueBasicIntegration
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.source_code_management.search import SourceCodeSearchEndpoint
 from sentry.shared_integrations.exceptions import ApiError
@@ -33,12 +32,12 @@ class BitbucketSearchEndpoint(SourceCodeSearchEndpoint):
     def installation_class(self):
         return BitbucketIntegration
 
-    def handle_search_issues(
-        self, installation: IssueBasicIntegration, query: str, repo: str
-    ) -> Response:
+    def handle_search_issues(self, installation, query: str, repo: str) -> Response:
+        assert isinstance(installation, self.installation_class)
+
         full_query = f'title~"{query}"'
         try:
-            resp = installation.search_issues(query=full_query, repo=repo)
+            response = installation.search_issues(query=full_query, repo=repo)
         except ApiError as e:
             if "no issue tracker" in str(e):
                 logger.info(
@@ -49,10 +48,12 @@ class BitbucketSearchEndpoint(SourceCodeSearchEndpoint):
                     {"detail": "Bitbucket Repository has no issue tracker."}, status=400
                 )
             raise
+
+        assert isinstance(response, dict)
         return Response(
             [
                 {"label": "#{} {}".format(i["id"], i["title"]), "value": i["id"]}
-                for i in resp.get("values", [])
+                for i in response.get("values", [])
             ]
         )
 
@@ -60,5 +61,6 @@ class BitbucketSearchEndpoint(SourceCodeSearchEndpoint):
     def handle_search_repositories(
         self, integration: Integration, installation, query: str
     ) -> Response:
+        assert isinstance(installation, self.installation_class)
         result = installation.get_repositories(query)
         return Response([{"label": i["name"], "value": i["name"]} for i in result])
