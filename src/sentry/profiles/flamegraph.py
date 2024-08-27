@@ -477,8 +477,7 @@ class FlamegraphExecutor:
 
         chunk_size = options.get("profiling.continuous-profiling.chunks-query.size")
         queries = [
-            self._create_chunks_query(profiler_metas)
-            for chunk in chunked(profiler_metas, chunk_size)
+            self._create_chunks_query(chunk) for chunk in chunked(profiler_metas, chunk_size)
         ]
 
         results = self._query_chunks_for_profilers(queries)
