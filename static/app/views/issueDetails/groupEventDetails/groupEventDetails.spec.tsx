@@ -208,7 +208,7 @@ const mockGroupApis = (
 
   MockApiClient.addMockResponse({
     url: `/organizations/${organization.slug}/replays/${replayId}/`,
-    body: [],
+    body: {},
   });
 
   MockApiClient.addMockResponse({
