@@ -470,7 +470,6 @@ class OrganizationEventsTrendsEndpointBase(OrganizationEventsV2EndpointBase):
         with handle_query_errors():
             trend_query = TrendQueryBuilder(
                 dataset=Dataset.Discover,
-                params={},
                 snuba_params=snuba_params,
                 selected_columns=selected_columns,
                 config=QueryBuilderConfig(

@@ -58,6 +58,7 @@ from sentry.models.scheduledeletion import RegionScheduledDeletion
 from sentry.relay.config.metric_extraction import on_demand_metrics_feature_flags
 from sentry.search.events.builder.base import BaseQueryBuilder
 from sentry.search.events.fields import is_function, resolve_field
+from sentry.search.events.types import SnubaParams
 from sentry.seer.anomaly_detection.store_data import send_historical_data_to_seer
 from sentry.sentry_apps.services.app import RpcSentryAppInstallation, app_service
 from sentry.shared_integrations.exceptions import (
@@ -348,19 +349,19 @@ def build_incident_query_builder(
 ) -> BaseQueryBuilder:
     snuba_query = incident.alert_rule.snuba_query
     start, end = calculate_incident_time_range(incident, start, end, windowed_stats=windowed_stats)
-    project_ids = list(
-        IncidentProject.objects.filter(incident=incident).values_list("project_id", flat=True)
+    projects = Project.objects.filter(
+        id__in=IncidentProject.objects.filter(incident=incident).values_list("project_id")
     )
     query_builder = entity_subscription.build_query_builder(
         query=snuba_query.query,
-        project_ids=project_ids,
+        projects=projects,
         environment=snuba_query.environment,
-        params={
-            "organization_id": incident.organization_id,
-            "project_id": project_ids,
-            "start": start,
-            "end": end,
-        },
+        params=SnubaParams(
+            organization=incident.organization,
+            projects=projects,
+            start=start,
+            end=end,
+        ),
     )
     for i, column in enumerate(query_builder.columns):
         if column.alias == CRASH_RATE_ALERT_AGGREGATE_ALIAS:
@@ -426,7 +427,7 @@ def get_incident_aggregates(
     snuba_query = incident.alert_rule.snuba_query
     entity_subscription = get_entity_subscription_from_snuba_query(
         snuba_query,
-        incident.organization_id,
+        incident.organization,
     )
     query_builder = build_incident_query_builder(
         incident, entity_subscription, start, end, windowed_stats

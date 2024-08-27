@@ -61,7 +61,6 @@ def query(
 
     builder = ErrorsQueryBuilder(
         Dataset.Events,
-        params={},
         snuba_params=snuba_params,
         query=query,
         selected_columns=selected_columns,
@@ -110,7 +109,6 @@ def timeseries_query(
         equations, columns = categorize_columns(selected_columns)
         base_builder = ErrorsTimeseriesQueryBuilder(
             Dataset.Events,
-            params={},
             interval=rollup,
             snuba_params=snuba_params,
             query=query,
@@ -255,7 +253,6 @@ def top_events_timeseries(
 
     top_events_builder = ErrorsTopEventsQueryBuilder(
         Dataset.Events,
-        params={},
         interval=rollup,
         top_events=top_events["data"],
         other=False,
@@ -272,7 +269,6 @@ def top_events_timeseries(
     if len(top_events["data"]) == limit and include_other:
         other_events_builder = ErrorsTopEventsQueryBuilder(
             Dataset.Events,
-            params={},
             interval=rollup,
             top_events=top_events["data"],
             other=True,

@@ -78,7 +78,6 @@ def query(
 
     builder = DiscoverQueryBuilder(
         Dataset.IssuePlatform,
-        {},
         snuba_params=snuba_params,
         query=query,
         selected_columns=selected_columns,
@@ -149,7 +148,6 @@ def timeseries_query(
         equations, columns = categorize_columns(selected_columns)
         base_builder = IssuePlatformTimeseriesQueryBuilder(
             Dataset.IssuePlatform,
-            {},
             rollup,
             snuba_params=snuba_params,
             query=query,
@@ -169,7 +167,6 @@ def timeseries_query(
             comp_query_params.end -= comparison_delta
             comparison_builder = IssuePlatformTimeseriesQueryBuilder(
                 Dataset.IssuePlatform,
-                {},
                 rollup,
                 snuba_params=comp_query_params,
                 query=query,
