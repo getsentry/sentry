@@ -483,7 +483,8 @@ const SlowestFunctionsTimeSeriesContainer = styled(TableBodyCell)`
   grid-column: 1 / -1;
   grid-template-columns: subgrid;
   border-top: 1px solid ${p => p.theme.border};
-  padding: 0;
+
+  padding: 0 !important;
 `;
 
 const SlowestFunctionsChartContainer = styled('div')`
