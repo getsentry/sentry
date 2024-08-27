@@ -138,6 +138,10 @@ export const platformProductAvailability = {
     ProductSolution.PERFORMANCE_MONITORING,
     ProductSolution.SESSION_REPLAY,
   ],
+  'javascript-solidstart': [
+    ProductSolution.PERFORMANCE_MONITORING,
+    ProductSolution.SESSION_REPLAY,
+  ],
   'javascript-svelte': [
     ProductSolution.PERFORMANCE_MONITORING,
     ProductSolution.SESSION_REPLAY,

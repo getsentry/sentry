@@ -41,6 +41,7 @@ const browser: Set<PlatformKey> = new Set([
   'javascript-react',
   'javascript-remix',
   'javascript-solid',
+  'javascript-solidstart',
   'javascript-svelte',
   'javascript-sveltekit',
   'javascript-vue',
