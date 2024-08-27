@@ -155,10 +155,8 @@ function EditTagHighlightSection({
   ...props
 }: EditTagHighlightSectionProps) {
   const [tagFilter, setTagFilter] = useState('');
-  // filter out replayId because we don't want to expose
-  // this on issue details anymore
   const tagData = event.tags
-    .filter(tag => tag.key?.includes(tagFilter) && tag.key !== 'replayId')
+    .filter(tag => tag.key?.includes(tagFilter))
     .map(tag => tag.key);
   const tagColumnSize = Math.ceil(tagData.length / columnCount);
   const tagColumns: React.ReactNode[] = [];
@@ -251,17 +249,12 @@ function EditContextHighlightSection({
   const ctxItems = Object.entries(ctxData);
   const filteredCtxItems = ctxItems
     .map<[string, string[]]>(([contextType, contextKeys]) => {
-      // filter out replayId because we don't want to expose
-      // this on issue details anymore
       const filteredContextKeys = contextKeys.filter(
-        contextKey =>
-          (contextKey.includes(ctxFilter) || contextType.includes(ctxFilter)) &&
-          contextKey !== 'replay_id'
+        contextKey => contextKey.includes(ctxFilter) || contextType.includes(ctxFilter)
       );
       return [contextType, filteredContextKeys];
     })
     .filter(([_contextType, contextKeys]) => contextKeys.length !== 0);
-
   const ctxColumnSize = Math.ceil(filteredCtxItems.length / columnCount);
   const contextColumns: React.ReactNode[] = [];
   for (let i = 0; i < filteredCtxItems.length; i += ctxColumnSize) {
@@ -338,14 +331,9 @@ export default function EditHighlightsModal({
   project,
   closeModal,
 }: EditHighlightsModalProps) {
-  const {replay, ...rest} = prevHighlightContext;
-  const [highlightContext, setHighlightContext] = useState<HighlightContext>({
-    ...(replay && {replay: replay?.filter(k => k !== 'replay_id')}),
-    ...rest,
-  });
-  const [highlightTags, setHighlightTags] = useState<HighlightTags>(
-    prevHighlightTags.filter(p => p !== 'replayId')
-  );
+  const [highlightContext, setHighlightContext] =
+    useState<HighlightContext>(prevHighlightContext);
+  const [highlightTags, setHighlightTags] = useState<HighlightTags>(prevHighlightTags);
 
   const organization = useOrganization();
 

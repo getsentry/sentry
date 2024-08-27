@@ -140,16 +140,11 @@ function HighlightsData({
   const hasDisabledHighlights =
     Object.values(highlightContext).flat().length === 0 && highlightTags.length === 0;
 
-  const {replay, ...rest} = highlightContext;
-
   const highlightContextDataItems = getHighlightContextData({
     event,
     project,
     organization,
-    highlightContext: {
-      ...(replay && {replay: replay?.filter(k => k !== 'replay_id')}),
-      ...rest,
-    },
+    highlightContext,
     location,
   });
   const highlightContextRows = highlightContextDataItems.reduce<React.ReactNode[]>(
@@ -170,10 +165,7 @@ function HighlightsData({
     []
   );
 
-  const highlightTagItems = getHighlightTagData({
-    event,
-    highlightTags: highlightTags.filter(h => h !== 'replayId'),
-  });
+  const highlightTagItems = getHighlightTagData({event, highlightTags});
 
   const highlightTagRows = highlightTagItems.map((content, i) => (
     <EventTagsTreeRow
