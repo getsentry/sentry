@@ -191,6 +191,9 @@ class ExampleIntegration(RepositoryIntegration, SourceCodeIssueIntegration, Issu
     def has_repo_access(self, repo: RpcRepository) -> bool:
         return False
 
+    def search_issues(self, query: str | None, **kwargs):
+        return []
+
 
 class ExampleIntegrationProvider(IntegrationProvider):
     """
