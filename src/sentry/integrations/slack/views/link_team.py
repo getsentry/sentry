@@ -57,8 +57,10 @@ class SelectTeamForm(forms.Form):
     def __init__(self, teams: Sequence[Team], *args: Any, **kwargs: Any):
         super().__init__(*args, **kwargs)
 
-        self.fields["team"].choices = [(team.id, team.slug) for team in teams]
-        self.fields["team"].widget.choices = self.fields["team"].choices
+        team_field = self.fields["team"]
+        assert isinstance(team_field, forms.ChoiceField)
+        team_field.choices = [(team.id, team.slug) for team in teams]
+        team_field.widget.choices = team_field.choices
 
 
 @region_silo_view
