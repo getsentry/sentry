@@ -230,6 +230,46 @@ class OrganizationEventsSpanIndexedEndpointTest(OrganizationEventsEndpointTestBa
         assert data[0]["span.status_code"] == "200"
         assert meta["dataset"] == self.dataset
 
+    def test_other_category_span(self):
+        self.store_spans(
+            [
+                self.create_span(
+                    {
+                        "sentry_tags": {
+                            "action": "GET",
+                            "category": "alternative",
+                            "description": "GET https://*.resource.com",
+                            "domain": "*.resource.com",
+                            "op": "alternative",
+                            "status_code": "200",
+                            "transaction": "/api/0/data/",
+                            "transaction.method": "GET",
+                            "transaction.op": "http.server",
+                        }
+                    },
+                    start_ts=self.ten_mins_ago,
+                ),
+            ],
+            is_eap=self.is_eap,
+        )
+
+        response = self.do_request(
+            {
+                "field": ["span.op", "span.status_code"],
+                "query": "span.module:other span.status_code:200",
+                "project": self.project.id,
+                "dataset": self.dataset,
+            }
+        )
+
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+        meta = response.data["meta"]
+        assert len(data) == 1
+        assert data[0]["span.op"] == "alternative"
+        assert data[0]["span.status_code"] == "200"
+        assert meta["dataset"] == self.dataset
+
     def test_inp_span(self):
         replay_id = uuid.uuid4().hex
         self.store_spans(
