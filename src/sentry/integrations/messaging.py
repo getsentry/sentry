@@ -1,6 +1,6 @@
 import logging
 from abc import ABC, abstractmethod
-from collections.abc import Mapping
+from collections.abc import Iterable, Mapping
 from dataclasses import dataclass
 from typing import Any
 
@@ -42,6 +42,7 @@ from sentry.organizations.services.organization import RpcOrganization
 from sentry.rules import rules
 from sentry.rules.actions import IntegrationEventAction
 from sentry.types.actor import ActorType
+from sentry.users.services.user import RpcUser
 from sentry.users.services.user.serial import serialize_generic_user
 from sentry.utils import metrics
 from sentry.utils.signing import unsign
@@ -534,7 +535,7 @@ class TeamLinkageView(LinkageView, ABC):
         return org_member.role in cls._ALLOWED_ROLES
 
     @method_decorator(never_cache)
-    def handle(self, request: Request, signed_params: str) -> HttpResponseBase:
+    def handle(self, request: HttpRequest, signed_params: str) -> HttpResponseBase:
         if request.method not in ("GET", "POST"):
             return self.render_error_page(
                 request, status=405, body_text="HTTP 405: Method not allowed"
@@ -574,7 +575,7 @@ class TeamLinkageView(LinkageView, ABC):
 
     @abstractmethod
     def execute(
-        self, request: Request, integration: RpcIntegration, params: Mapping[str, Any]
+        self, request: HttpRequest, integration: RpcIntegration, params: Mapping[str, Any]
     ) -> HttpResponseBase:
         raise NotImplementedError
 
@@ -585,7 +586,7 @@ class LinkTeamView(TeamLinkageView, ABC):
         return "link_team_view"
 
     def execute(
-        self, request: Request, integration: RpcIntegration, params: Mapping[str, Any]
+        self, request: HttpRequest, integration: RpcIntegration, params: Mapping[str, Any]
     ) -> HttpResponseBase:
         from sentry.integrations.slack.views.link_team import (
             SUCCESS_LINKED_MESSAGE,
@@ -594,6 +595,8 @@ class LinkTeamView(TeamLinkageView, ABC):
         )
 
         user = serialize_generic_user(request.user)
+        if user is None:
+            raise TypeError("Cannot link team without a logged-in user")
 
         channel_id: str = params["channel_id"]
         channel_name: str = params["channel_name"]
@@ -607,20 +610,7 @@ class LinkTeamView(TeamLinkageView, ABC):
             "response_url": params["response_url"],
         }
 
-        organization_memberships = OrganizationMember.objects.get_for_integration(integration, user)
-        # Filter to teams where we have write access to, either through having a sufficient
-        # organization role (owner/manager/admin) or by being a team admin on at least one team.
-        teams_by_id: dict[int, Team] = {}
-        for org_membership in organization_memberships:
-            # Setting is_team_admin to True only returns teams that member is team admin on.
-            # We only want to filter for this when the user does not have a sufficient
-            # role in the org, which is checked using is_valid_role.
-            is_team_admin = not self.is_valid_role(org_membership)
-
-            for team in Team.objects.get_for_user(
-                org_membership.organization, user, is_team_admin=is_team_admin
-            ):
-                teams_by_id[team.id] = team
+        teams_by_id = {team.id: team for team in self._get_teams(integration, user)}
 
         if not teams_by_id:
             logger.info("team.no_teams_found", extra=logger_params)
@@ -737,13 +727,27 @@ class LinkTeamView(TeamLinkageView, ABC):
             },
         )
 
+    def _get_teams(self, integration: RpcIntegration, user: RpcUser) -> Iterable[Team]:
+        organization_memberships = OrganizationMember.objects.get_for_integration(integration, user)
+        # Filter to teams where we have write access to, either through having a sufficient
+        # organization role (owner/manager/admin) or by being a team admin on at least one team.
+        for org_membership in organization_memberships:
+            # Setting is_team_admin to True only returns teams that member is team admin on.
+            # We only want to filter for this when the user does not have a sufficient
+            # role in the org, which is checked using is_valid_role.
+            is_team_admin = not self.is_valid_role(org_membership)
+
+            yield from Team.objects.get_for_user(
+                org_membership.organization, user, is_team_admin=is_team_admin
+            )
+
     @abstractmethod
     def notify_on_success(self, channel_id: str, integration: RpcIntegration, message: str) -> None:
         raise NotImplementedError
 
     @abstractmethod
     def notify_team_already_linked(
-        self, request: Request, channel_id: str, integration: RpcIntegration, team: Team
+        self, request: HttpRequest, channel_id: str, integration: RpcIntegration, team: Team
     ) -> HttpResponse:
         raise NotImplementedError
 
@@ -754,7 +758,7 @@ class UnlinkTeamView(TeamLinkageView, ABC):
         return "unlink_team_view"
 
     def execute(
-        self, request: Request, integration: RpcIntegration, params: Mapping[str, Any]
+        self, request: HttpRequest, integration: RpcIntegration, params: Mapping[str, Any]
     ) -> HttpResponseBase:
         from sentry.integrations.mixins import (
             SUCCESS_UNLINKED_TEAM_MESSAGE,
@@ -763,6 +767,8 @@ class UnlinkTeamView(TeamLinkageView, ABC):
         from sentry.integrations.slack.views.unlink_team import INSUFFICIENT_ACCESS
 
         user = serialize_generic_user(request.user)
+        if user is None:
+            raise TypeError("Cannot unlink team without a logged-in user")
 
         integration_id: int = integration.id
         channel_id: str = params["channel_id"]
@@ -785,7 +791,7 @@ class UnlinkTeamView(TeamLinkageView, ABC):
             integration, user, organization_id=int(organization_id)
         ).first()
         organization = om.organization if om else None
-        if organization is None:
+        if om is None or organization is None:
             logger.info("no-organization-found", extra=logger_params)
             self.capture_metric("failure.get_organization")
             return self.render_error_page(

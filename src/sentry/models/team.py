@@ -49,6 +49,15 @@ class TeamManager(BaseManager["Team"]):
         self,
         organization: Organization,
         user: User | RpcUser,
+        is_team_admin: bool = False,
+    ) -> list[Team]:
+        ...
+
+    @overload
+    def get_for_user(
+        self,
+        organization: Organization,
+        user: User | RpcUser,
         scope: str | None = None,
         *,
         with_projects: Literal[True],

@@ -5,8 +5,7 @@ from collections.abc import Sequence
 from typing import Any
 
 from django import forms
-from django.http import HttpResponse
-from rest_framework.request import Request
+from django.http import HttpRequest, HttpResponse
 from slack_sdk.errors import SlackApiError
 
 from sentry.integrations.messaging import LinkTeamView
@@ -78,7 +77,7 @@ class SlackLinkTeamView(SlackLinkageView, LinkTeamView):
             metrics.incr(SLACK_LINK_TEAM_MSG_FAILURE_DATADOG_METRIC, sample_rate=1.0)
 
     def notify_team_already_linked(
-        self, request: Request, channel_id: str, integration: RpcIntegration, team: Team
+        self, request: HttpRequest, channel_id: str, integration: RpcIntegration, team: Team
     ) -> HttpResponse:
         message = ALREADY_LINKED_MESSAGE.format(slug=team.slug)
         try:
