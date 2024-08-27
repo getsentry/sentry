@@ -2,7 +2,7 @@ from unittest import mock
 
 import pytest
 
-from sentry.discover.dataset_split import get_and_save_split_decision_for_query
+from sentry.discover.dataset_split import _get_and_save_split_decision_for_query
 from sentry.discover.models import DatasetSourcesTypes, DiscoverSavedQuery, DiscoverSavedQueryTypes
 from sentry.models.organization import Organization
 from sentry.models.project import Project
@@ -54,7 +54,7 @@ def create_discover_query(
     [
         "option_enabled",
         "option_organization_allowlist",
-        "get_and_save_split_decision_for_query_called",
+        "_get_and_save_split_decision_for_query_called",
     ],
     [
         pytest.param(False, False, False, id="nothing_enabled"),
@@ -71,7 +71,7 @@ def create_discover_query(
 def test_split_discover_query_dataset_flags(
     option_enabled: bool,
     option_organization_allowlist: list[int],
-    get_and_save_split_decision_for_query_called: bool,
+    _get_and_save_split_decision_for_query_called: bool,
     project: Project,
 ):
     options = {
@@ -86,14 +86,14 @@ def test_split_discover_query_dataset_flags(
     with (
         override_options(options),
         mock.patch(
-            "sentry.tasks.split_discover_query_dataset.get_and_save_split_decision_for_query",
-            wraps=get_and_save_split_decision_for_query,
+            "sentry.tasks.split_discover_query_dataset._get_and_save_split_decision_for_query",
+            wraps=_get_and_save_split_decision_for_query,
         ) as mock_get_and_save_split_decision_for_query,
     ):
         split_discover_query_dataset(False)
         assert (
             mock_get_and_save_split_decision_for_query.called
-            == get_and_save_split_decision_for_query_called
+            == _get_and_save_split_decision_for_query_called
         )
 
 
@@ -111,8 +111,8 @@ def test_prevent_hitting_ratelimit_strategy(project: Project):
         freeze_time("2025-05-01") as frozen_time,
         override_options(options),
         mock.patch(
-            "sentry.tasks.split_discover_query_dataset.get_and_save_split_decision_for_query",
-            wraps=get_and_save_split_decision_for_query,
+            "sentry.tasks.split_discover_query_dataset._get_and_save_split_decision_for_query",
+            wraps=_get_and_save_split_decision_for_query,
         ) as mock_get_and_save_split_decision_for_query,
     ):
         _split_discover_query_dataset(False)

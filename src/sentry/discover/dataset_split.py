@@ -71,7 +71,7 @@ ERROR_ONLY_FIELDS = [
 ]
 
 
-def save_split_decision_for_query(
+def _save_split_decision_for_query(
     saved_query: DiscoverSavedQuery,
     split_decision: int | None,
     dataset_source: DatasetSourcesTypes | None,
@@ -84,7 +84,7 @@ def save_split_decision_for_query(
     saved_query.save()
 
 
-def check_function_parameter_matches_dataset(
+def _check_function_parameter_matches_dataset(
     function: Function | CurriedFunction,
     dataset: Dataset,
 ) -> bool:
@@ -96,7 +96,7 @@ def check_function_parameter_matches_dataset(
     return False
 
 
-def check_aliased_expression_matches_dataset(
+def _check_aliased_expression_matches_dataset(
     aliased_exp: AliasedExpression,
     dataset: Dataset,
 ) -> bool:
@@ -108,7 +108,7 @@ def check_aliased_expression_matches_dataset(
     return False
 
 
-def check_column_matches_dataset(
+def _check_column_matches_dataset(
     column: Column,
     dataset: Dataset,
 ) -> bool:
@@ -120,7 +120,7 @@ def check_column_matches_dataset(
     return False
 
 
-def check_event_type_condition(cond: Condition, dataset: Dataset):
+def _check_event_type_condition(cond: Condition, dataset: Dataset):
     op = cond.op
     rhs = cond.rhs
     if dataset == Dataset.Events and (
@@ -134,19 +134,19 @@ def check_event_type_condition(cond: Condition, dataset: Dataset):
     return False
 
 
-def check_condition_matches_dataset(
+def _check_condition_matches_dataset(
     cond: Condition,
     dataset: Dataset,
 ) -> bool:
     lhs = cond.lhs
     if isinstance(lhs, Column):
         if lhs.name == "type":
-            return check_event_type_condition(cond, dataset)
+            return _check_event_type_condition(cond, dataset)
 
-        return check_column_matches_dataset(lhs, dataset)
+        return _check_column_matches_dataset(lhs, dataset)
 
     if isinstance(lhs, Function) or isinstance(lhs, CurriedFunction):
-        return check_function_parameter_matches_dataset(lhs, dataset)
+        return _check_function_parameter_matches_dataset(lhs, dataset)
 
     return False
 
@@ -160,12 +160,12 @@ def check_top_level_conditions_match_dataset(
         if isinstance(cond, And) or isinstance(cond, Or):
             top_level_conditions.extend(cond.conditions)
         if isinstance(cond, Condition):
-            if check_condition_matches_dataset(cond, dataset):
+            if _check_condition_matches_dataset(cond, dataset):
                 return True
 
     for cond in top_level_conditions:
         if isinstance(cond, Condition):
-            if check_condition_matches_dataset(cond, dataset):
+            if _check_condition_matches_dataset(cond, dataset):
                 return True
 
     return False
@@ -177,21 +177,21 @@ def check_selected_columns_match_dataset(
 ):
     for select_col in builder.columns:
         if isinstance(select_col, Column):
-            if check_column_matches_dataset(select_col, dataset):
+            if _check_column_matches_dataset(select_col, dataset):
                 return True
 
         elif isinstance(select_col, AliasedExpression):
-            if check_aliased_expression_matches_dataset(select_col, dataset):
+            if _check_aliased_expression_matches_dataset(select_col, dataset):
                 return True
 
         elif isinstance(select_col, Function) or isinstance(select_col, CurriedFunction):
-            if check_function_parameter_matches_dataset(select_col, dataset):
+            if _check_function_parameter_matches_dataset(select_col, dataset):
                 return True
 
     return False
 
 
-def dataset_split_decision_inferred_from_query(
+def _dataset_split_decision_inferred_from_query(
     errors_builder: ErrorsQueryBuilder, transactions_builder: DiscoverQueryBuilder
 ):
     """
@@ -213,16 +213,16 @@ def dataset_split_decision_inferred_from_query(
     return None
 
 
-def get_field_list(fields: list[str]) -> list[str]:
+def _get_field_list(fields: list[str]) -> list[str]:
     return [field for field in fields if not is_equation(field)]
 
 
-def get_equation_list(fields: list[str]) -> list[str]:
+def _get_equation_list(fields: list[str]) -> list[str]:
     """equations have a prefix so that they can be easily included alongside our existing fields"""
     return [strip_equation(field) for field in fields if is_equation(field)]
 
 
-def get_snuba_dataclass(saved_query: DiscoverSavedQuery, projects: list[Project]) -> SnubaParams:
+def _get_snuba_dataclass(saved_query: DiscoverSavedQuery, projects: list[Project]) -> SnubaParams:
     # Default
     start, end = get_date_range_from_stats_period({"statsPeriod": "7d"})
 
@@ -265,7 +265,7 @@ def get_snuba_dataclass(saved_query: DiscoverSavedQuery, projects: list[Project]
         return params
 
 
-def get_and_save_split_decision_for_query(
+def _get_and_save_split_decision_for_query(
     saved_query: DiscoverSavedQuery, dry_run: bool
 ) -> tuple[int, bool]:
     # We use all projects for the clickhouse query but don't do anything
@@ -274,9 +274,9 @@ def get_and_save_split_decision_for_query(
     projects = saved_query.projects.all() or Project.objects.filter(
         organization_id=saved_query.organization.id, status=ObjectStatus.ACTIVE
     )
-    snuba_dataclass = get_snuba_dataclass(saved_query, list(projects))
-    selected_columns = get_field_list(saved_query.query.get("fields", []))
-    equations = get_equation_list(saved_query.query.get("fields", []))
+    snuba_dataclass = _get_snuba_dataclass(saved_query, list(projects))
+    selected_columns = _get_field_list(saved_query.query.get("fields", []))
+    equations = _get_equation_list(saved_query.query.get("fields", []))
     query = saved_query.query.get("query", "")
 
     # Optimizing the query we're running a little - we're omitting the order by
@@ -302,7 +302,7 @@ def get_and_save_split_decision_for_query(
         limit=1,
     )
 
-    dataset_inferred_from_query = dataset_split_decision_inferred_from_query(
+    dataset_inferred_from_query = _dataset_split_decision_inferred_from_query(
         errors_builder, transactions_builder
     )
 
@@ -310,7 +310,7 @@ def get_and_save_split_decision_for_query(
         if dry_run:
             logger.info("Split decision for %s: %s", saved_query.id, dataset_inferred_from_query)
         else:
-            save_split_decision_for_query(
+            _save_split_decision_for_query(
                 saved_query,
                 dataset_inferred_from_query,
                 DatasetSourcesTypes.INFERRED,
@@ -336,7 +336,7 @@ def get_and_save_split_decision_for_query(
                 DiscoverSavedQueryTypes.ERROR_EVENTS,
             )
         else:
-            save_split_decision_for_query(
+            _save_split_decision_for_query(
                 saved_query,
                 DiscoverSavedQueryTypes.ERROR_EVENTS,
                 DatasetSourcesTypes.INFERRED,
@@ -362,7 +362,7 @@ def get_and_save_split_decision_for_query(
                 DiscoverSavedQueryTypes.TRANSACTION_LIKE,
             )
         else:
-            save_split_decision_for_query(
+            _save_split_decision_for_query(
                 saved_query,
                 DiscoverSavedQueryTypes.TRANSACTION_LIKE,
                 DatasetSourcesTypes.INFERRED,
@@ -377,7 +377,7 @@ def get_and_save_split_decision_for_query(
             DiscoverSavedQueryTypes.ERROR_EVENTS,
         )
     else:
-        save_split_decision_for_query(
+        _save_split_decision_for_query(
             saved_query,
             DiscoverSavedQueryTypes.ERROR_EVENTS,
             DatasetSourcesTypes.FORCED,

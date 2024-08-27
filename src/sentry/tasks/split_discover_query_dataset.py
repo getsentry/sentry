@@ -7,7 +7,7 @@ from cachetools import LRUCache
 from celery.exceptions import SoftTimeLimitExceeded
 
 from sentry import options
-from sentry.discover.dataset_split import get_and_save_split_decision_for_query
+from sentry.discover.dataset_split import _get_and_save_split_decision_for_query
 from sentry.discover.models import DatasetSourcesTypes, DiscoverSavedQuery, DiscoverSavedQueryTypes
 from sentry.tasks.base import instrumented_task
 from sentry.utils import metrics, snuba
@@ -71,7 +71,7 @@ def _split_discover_query_dataset(dry_run):
 
         try:
             with metrics.timer("sentry.tasks.split_discover_query_dataset.save_split_decision"):
-                split_decision, queried_snuba = get_and_save_split_decision_for_query(
+                split_decision, queried_snuba = _get_and_save_split_decision_for_query(
                     saved_query, dry_run=dry_run
                 )
                 if split_decision == DiscoverSavedQueryTypes.ERROR_EVENTS:
