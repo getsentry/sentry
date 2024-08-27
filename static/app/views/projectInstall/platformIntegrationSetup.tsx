@@ -1,16 +1,14 @@
 import {Fragment} from 'react';
-import type {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 
-import {LinkButton} from 'sentry/components/button';
+import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import DeprecatedAsyncComponent from 'sentry/components/deprecatedAsyncComponent';
-import platforms from 'sentry/data/platforms';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {IntegrationProvider} from 'sentry/types/integrations';
 import type {Organization} from 'sentry/types/organization';
-import type {Project} from 'sentry/types/project';
+import type {PlatformIntegration, Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {browserHistory} from 'sentry/utils/browserHistory';
 import {trackIntegrationAnalytics} from 'sentry/utils/integrationUtil';
@@ -18,21 +16,22 @@ import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import withOrganization from 'sentry/utils/withOrganization';
 import AddInstallationInstructions from 'sentry/views/onboarding/components/integrations/addInstallationInstructions';
 import PostInstallCodeSnippet from 'sentry/views/onboarding/components/integrations/postInstallCodeSnippet';
+import {PlatformDocHeader} from 'sentry/views/projectInstall/platformDocHeader';
 import {AddIntegrationButton} from 'sentry/views/settings/organizationIntegrations/addIntegrationButton';
 
 import FirstEventFooter from './components/firstEventFooter';
-import PlatformHeaderButtonBar from './components/platformHeaderButtonBar';
 
 type Props = {
   integrationSlug: string;
+  onClickManualSetup: () => void;
   organization: Organization;
-} & RouteComponentProps<{platform: string; projectId: string}, {}> &
-  DeprecatedAsyncComponent['props'];
+  platform: PlatformIntegration | undefined;
+  project: Project | undefined;
+} & DeprecatedAsyncComponent['props'];
 
 type State = {
   installed: boolean;
   integrations: {providers: IntegrationProvider[]};
-  project: Project | null;
 } & DeprecatedAsyncComponent['state'];
 
 class PlatformIntegrationSetup extends DeprecatedAsyncComponent<Props, State> {
@@ -41,7 +40,6 @@ class PlatformIntegrationSetup extends DeprecatedAsyncComponent<Props, State> {
       ...super.getDefaultState(),
       installed: false,
       integrations: {providers: []},
-      project: null,
     };
   }
 
@@ -49,10 +47,10 @@ class PlatformIntegrationSetup extends DeprecatedAsyncComponent<Props, State> {
     super.componentDidMount();
     window.scrollTo(0, 0);
 
-    const {platform} = this.props.params;
+    const {platform} = this.props;
 
     // redirect if platform is not known.
-    if (!platform || platform === 'other') {
+    if (!platform || platform.id === 'other') {
       this.redirectToNeutralDocs();
     }
   }
@@ -63,7 +61,7 @@ class PlatformIntegrationSetup extends DeprecatedAsyncComponent<Props, State> {
   }
 
   getEndpoints(): ReturnType<DeprecatedAsyncComponent['getEndpoints']> {
-    const {organization, integrationSlug, params} = this.props;
+    const {organization, integrationSlug} = this.props;
 
     if (!integrationSlug) {
       return [];
@@ -74,7 +72,6 @@ class PlatformIntegrationSetup extends DeprecatedAsyncComponent<Props, State> {
         'integrations',
         `/organizations/${organization.slug}/config/integrations/?provider_key=${integrationSlug}`,
       ],
-      ['project', `/projects/${organization.slug}/${params.projectId}/`],
     ];
   }
 
@@ -84,10 +81,13 @@ class PlatformIntegrationSetup extends DeprecatedAsyncComponent<Props, State> {
   };
 
   redirectToNeutralDocs() {
-    const {organization} = this.props;
-    const {projectId} = this.props.params;
+    const {organization, project} = this.props;
 
-    const url = `/organizations/${organization.slug}/projects/${projectId}/getting-started/`;
+    if (!project) {
+      return;
+    }
+
+    const url = `/organizations/${organization.slug}/projects/${project.slug}/getting-started/`;
 
     browserHistory.push(normalizeUrl(url));
   }
@@ -97,7 +97,8 @@ class PlatformIntegrationSetup extends DeprecatedAsyncComponent<Props, State> {
   };
 
   trackSwitchToManual = () => {
-    const {organization, integrationSlug} = this.props;
+    const {onClickManualSetup, organization, integrationSlug} = this.props;
+    onClickManualSetup();
     trackIntegrationAnalytics('integrations.switch_manual_sdk_setup', {
       integration_type: 'first_party',
       integration: integrationSlug,
@@ -107,16 +108,13 @@ class PlatformIntegrationSetup extends DeprecatedAsyncComponent<Props, State> {
   };
 
   render() {
-    const {organization, params} = this.props;
-    const {installed, project} = this.state;
-    const {projectId, platform} = params;
+    const {organization, project, platform} = this.props;
+    const {installed} = this.state;
     const provider = this.provider;
 
-    const platformIntegration = platforms.find(p => p.id === platform);
-    if (!provider || !platformIntegration || !project) {
+    if (!provider || !platform || !project) {
       return null;
     }
-    const gettingStartedLink = `/organizations/${organization.slug}/projects/${projectId}/getting-started/`;
 
     // TODO: make dynamic when adding more integrations
     const docsLink =
@@ -125,15 +123,16 @@ class PlatformIntegrationSetup extends DeprecatedAsyncComponent<Props, State> {
     return (
       <OuterWrapper>
         <InnerWrapper>
-          <StyledTitle>
-            {t('Automatically instrument %s', platformIntegration.name)}
-          </StyledTitle>
-          <HeaderButtons>
-            <PlatformHeaderButtonBar
-              gettingStartedLink={gettingStartedLink}
-              docsLink={docsLink}
-            />
-          </HeaderButtons>
+          <PlatformDocHeader
+            platform={{
+              key: platform.id,
+              id: platform.id,
+              name: platform.name,
+              link: platform.link,
+            }}
+            projectSlug={project.slug}
+            title={t('Automatically instrument %s', platform.name)}
+          />
           {!installed ? (
             <Fragment>
               <AddInstallationInstructions />
@@ -148,16 +147,9 @@ class PlatformIntegrationSetup extends DeprecatedAsyncComponent<Props, State> {
                   modalParams={{projectId: project.id}}
                   aria-label={t('Add integration')}
                 />
-                <LinkButton
-                  size="sm"
-                  to={{
-                    pathname: window.location.pathname,
-                    query: {manual: '1'},
-                  }}
-                  onClick={this.trackSwitchToManual}
-                >
+                <Button size="sm" onClick={this.trackSwitchToManual}>
                   {t('Manual Setup')}
-                </LinkButton>
+                </Button>
               </StyledButtonBar>
             </Fragment>
           ) : (
@@ -197,16 +189,6 @@ const OuterWrapper = styled('div')`
   flex-direction: column;
   align-items: center;
   margin-top: 50px;
-`;
-
-const HeaderButtons = styled('div')`
-  width: min-content;
-  margin-bottom: ${space(3)};
-`;
-
-const StyledTitle = styled('h2')`
-  margin: 0;
-  margin-bottom: ${space(2)};
 `;
 
 export default withOrganization(PlatformIntegrationSetup);
