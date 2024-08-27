@@ -198,11 +198,17 @@ const mockGroupApis = (
   project: Project,
   group: Group,
   event: Event,
+  replayId: string | undefined,
   trace?: QuickTraceEvent
 ) => {
   MockApiClient.addMockResponse({
     url: `/organizations/${organization.slug}/issues/${group.id}/`,
     body: group,
+  });
+
+  MockApiClient.addMockResponse({
+    url: `/organizations/${organization.slug}/replays/${replayId}/`,
+    body: [],
   });
 
   MockApiClient.addMockResponse({
@@ -358,7 +364,7 @@ describe('groupEventDetails', () => {
 
   it('redirects on switching to an invalid environment selection for event', async function () {
     const props = makeDefaultMockData();
-    mockGroupApis(props.organization, props.project, props.group, props.event);
+    mockGroupApis(props.organization, props.project, props.group, props.event, undefined);
 
     const {rerender} = render(<TestComponent {...props} />);
     expect(browserHistory.replace).not.toHaveBeenCalled();
@@ -370,7 +376,7 @@ describe('groupEventDetails', () => {
 
   it('does not redirect when switching to a valid environment selection for event', async function () {
     const props = makeDefaultMockData();
-    mockGroupApis(props.organization, props.project, props.group, props.event);
+    mockGroupApis(props.organization, props.project, props.group, props.event, undefined);
 
     const {rerender} = render(<TestComponent {...props} />);
 
@@ -397,7 +403,8 @@ describe('groupEventDetails', () => {
         tags: [{key: 'environment', value: 'dev'}],
         previousEventID: 'prev-event-id',
         nextEventID: 'next-event-id',
-      })
+      }),
+      undefined
     );
 
     render(<TestComponent event={undefined} eventError />);
@@ -429,7 +436,8 @@ describe('groupEventDetails', () => {
         tags: [{key: 'environment', value: 'dev'}],
         previousEventID: 'prev-event-id',
         nextEventID: 'next-event-id',
-      })
+      }),
+      undefined
     );
 
     render(<TestComponent group={group} event={transaction} />, {
@@ -477,7 +485,8 @@ describe('groupEventDetails', () => {
         tags: [{key: 'environment', value: 'dev'}],
         previousEventID: 'prev-event-id',
         nextEventID: 'next-event-id',
-      })
+      }),
+      undefined
     );
 
     render(<TestComponent group={group} event={transaction} />, {});
@@ -496,7 +505,7 @@ describe('groupEventDetails', () => {
 
   it('renders event tags ui', async () => {
     const props = makeDefaultMockData();
-    mockGroupApis(props.organization, props.project, props.group, props.event);
+    mockGroupApis(props.organization, props.project, props.group, props.event, undefined);
     render(<TestComponent group={props.group} event={props.event} />, {});
 
     expect(await screen.findByText('Event ID:')).toBeInTheDocument();
@@ -543,7 +552,8 @@ describe('EventCause', () => {
         tags: [{key: 'environment', value: 'dev'}],
         previousEventID: 'prev-event-id',
         nextEventID: 'next-event-id',
-      })
+      }),
+      undefined
     );
 
     MockApiClient.addMockResponse({
@@ -603,7 +613,8 @@ describe('Platform Integrations', () => {
         tags: [{key: 'environment', value: 'dev'}],
         previousEventID: 'prev-event-id',
         nextEventID: 'next-event-id',
-      })
+      }),
+      undefined
     );
 
     const component = SentryAppComponentFixture({
@@ -642,6 +653,7 @@ describe('Platform Integrations', () => {
         props.project,
         props.group,
         props.event,
+        undefined,
         mockedTrace(props.project)
       );
 
@@ -660,10 +672,17 @@ describe('Platform Integrations', () => {
     it('does not render root issues section if related perf issues do not exist', async () => {
       const props = makeDefaultMockData();
       const trace = mockedTrace(props.project);
-      mockGroupApis(props.organization, props.project, props.group, props.event, {
-        ...trace,
-        performance_issues: [],
-      });
+      mockGroupApis(
+        props.organization,
+        props.project,
+        props.group,
+        props.event,
+        undefined,
+        {
+          ...trace,
+          performance_issues: [],
+        }
+      );
 
       render(<TestComponent group={props.group} event={props.event} />, {
         organization: props.organization,
