@@ -96,4 +96,4 @@ def project_uses_optimized_grouping(project: Project) -> bool:
     return features.has(
         "organizations:grouping-suppress-unnecessary-secondary-hash",
         project.organization,
-    ) or (is_in_transition(project) and project.id % 2 == 0)
+    ) or (is_in_transition(project))
