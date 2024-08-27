@@ -214,47 +214,51 @@ function SlowestFunction(props: SlowestFunctionProps) {
   );
 
   return (
-    <TableRow>
-      <TableBodyCell>
-        <SlowestFunctionsProjectBadge
-          examples={props.function.examples}
-          projectsLookupTable={props.projectsLookupTable}
-        />{' '}
-      </TableBodyCell>
-      <TableBodyCell>
-        <Tooltip title={props.function.name}>
-          {exampleLink ? (
-            <Link to={exampleLink}>{props.function.name || t('<unknown function>')}</Link>
-          ) : (
-            props.function.name || t('<unknown function>')
-          )}
-        </Tooltip>
-      </TableBodyCell>
-      <TableBodyCell>
-        <Tooltip title={props.function.package || t('<unknown package>')}>
-          {props.function.package}
-        </Tooltip>
-      </TableBodyCell>
-      <TableBodyCell>{getPerformanceDuration(props.function.p75 / 1e6)}</TableBodyCell>
-      <TableBodyCell>{getPerformanceDuration(props.function.p95 / 1e6)}</TableBodyCell>
-      <TableBodyCell>{getPerformanceDuration(props.function.p99 / 1e6)}</TableBodyCell>
-      <TableBodyCell>
-        <div>
-          <Button
-            icon={<IconChevron direction={props.expanded ? 'up' : 'down'} />}
-            aria-label={t('View Function Metrics')}
-            onClick={() => props.onExpandClick(props.function.fingerprint)}
-            size="xs"
-          />
-        </div>
-      </TableBodyCell>
+    <Fragment>
+      <TableRow>
+        <TableBodyCell>
+          <SlowestFunctionsProjectBadge
+            examples={props.function.examples}
+            projectsLookupTable={props.projectsLookupTable}
+          />{' '}
+        </TableBodyCell>
+        <TableBodyCell>
+          <Tooltip title={props.function.name}>
+            {exampleLink ? (
+              <Link to={exampleLink}>
+                {props.function.name || t('<unknown function>')}
+              </Link>
+            ) : (
+              props.function.name || t('<unknown function>')
+            )}
+          </Tooltip>
+        </TableBodyCell>
+        <TableBodyCell>
+          <Tooltip title={props.function.package || t('<unknown package>')}>
+            {props.function.package}
+          </Tooltip>
+        </TableBodyCell>
+        <TableBodyCell>{getPerformanceDuration(props.function.p75 / 1e6)}</TableBodyCell>
+        <TableBodyCell>{getPerformanceDuration(props.function.p95 / 1e6)}</TableBodyCell>
+        <TableBodyCell>{getPerformanceDuration(props.function.p99 / 1e6)}</TableBodyCell>
+        <TableBodyCell>
+          <div>
+            <Button
+              icon={<IconChevron direction={props.expanded ? 'up' : 'down'} />}
+              aria-label={t('View Function Metrics')}
+              onClick={() => props.onExpandClick(props.function.fingerprint)}
+              size="xs"
+            />
+          </div>
+        </TableBodyCell>
+      </TableRow>
       {props.expanded ? (
         <SlowestFunctionTimeSeries
           function={props.function}
           projectsLookupTable={props.projectsLookupTable}
         />
       ) : null}
-    </TableRow>
+    </Fragment>
   );
 }
 
@@ -343,73 +347,75 @@ function SlowestFunctionTimeSeries(props: SlowestFunctionTimeSeriesProps) {
   }, [metrics, props.function]);
 
   return (
-    <SlowestFunctionsTimeSeriesContainer>
-      <SlowestFunctionsHeader>
-        <SlowestFunctionsHeaderCell>{t('Examples')}</SlowestFunctionsHeaderCell>
-        <SlowestFunctionsHeaderCell>{t('Occurrences')}</SlowestFunctionsHeaderCell>
-      </SlowestFunctionsHeader>
-      <SlowestFunctionsExamplesContainer>
-        {props.function.examples.slice(0, 5).map((example, i) => {
-          const exampleLink = makeProfileLinkFromExample(
-            organization,
-            props.function,
-            example,
-            props.projectsLookupTable
-          );
-          return (
-            <SlowestFunctionsExamplesContainerRow key={i}>
-              <SlowestFunctionsExamplesContainerRowInner>
-                {'project_id' in example ? (
-                  <SlowestFunctionsProjectBadge
-                    examples={[example]}
-                    projectsLookupTable={props.projectsLookupTable}
-                  />
-                ) : null}
-                {exampleLink && (
-                  <LinkButton
-                    icon={<IconProfiling />}
-                    to={exampleLink}
-                    aria-label={t('Profile')}
-                    size="xs"
-                  />
-                )}
-              </SlowestFunctionsExamplesContainerRowInner>
-            </SlowestFunctionsExamplesContainerRow>
-          );
-        })}
-      </SlowestFunctionsExamplesContainer>
-      <SlowestFunctionsChartContainer>
-        {metrics.isLoading && (
-          <TableStatusContainer>
-            <LoadingIndicator size={36} />
-          </TableStatusContainer>
-        )}
-        {metrics.isError && (
-          <TableStatusContainer>
-            <IconWarning data-test-id="error-indicator" color="gray300" size="lg" />
-          </TableStatusContainer>
-        )}
-        {!metrics.isError && !metrics.isLoading && !series.length && (
-          <TableStatusContainer>
-            <EmptyStateWarning>
-              <p>{t('No function metrics found')}</p>
-            </EmptyStateWarning>
-          </TableStatusContainer>
-        )}
-        {metrics.isFetched && series.length > 0 ? (
-          <LineChart
-            {...METRICS_CHART_OPTIONS}
-            isGroupedByDate
-            showTimeInTooltip
-            series={series}
-          />
-        ) : null}
-      </SlowestFunctionsChartContainer>
-      <SlowestFunctionsRowSpacer>
-        <SlowestFunctionsRowSpacerCell />
-        <SlowestFunctionsRowSpacerCell />
-      </SlowestFunctionsRowSpacer>
-    </SlowestFunctionsTimeSeriesContainer>
+    <TableRow>
+      <SlowestFunctionsTimeSeriesContainer>
+        <SlowestFunctionsHeader>
+          <SlowestFunctionsHeaderCell>{t('Examples')}</SlowestFunctionsHeaderCell>
+          <SlowestFunctionsHeaderCell>{t('Occurrences')}</SlowestFunctionsHeaderCell>
+        </SlowestFunctionsHeader>
+        <SlowestFunctionsExamplesContainer>
+          {props.function.examples.slice(0, 5).map((example, i) => {
+            const exampleLink = makeProfileLinkFromExample(
+              organization,
+              props.function,
+              example,
+              props.projectsLookupTable
+            );
+            return (
+              <SlowestFunctionsExamplesContainerRow key={i}>
+                <SlowestFunctionsExamplesContainerRowInner>
+                  {'project_id' in example ? (
+                    <SlowestFunctionsProjectBadge
+                      examples={[example]}
+                      projectsLookupTable={props.projectsLookupTable}
+                    />
+                  ) : null}
+                  {exampleLink && (
+                    <LinkButton
+                      icon={<IconProfiling />}
+                      to={exampleLink}
+                      aria-label={t('Profile')}
+                      size="xs"
+                    />
+                  )}
+                </SlowestFunctionsExamplesContainerRowInner>
+              </SlowestFunctionsExamplesContainerRow>
+            );
+          })}
+        </SlowestFunctionsExamplesContainer>
+        <SlowestFunctionsChartContainer>
+          {metrics.isLoading && (
+            <TableStatusContainer>
+              <LoadingIndicator size={36} />
+            </TableStatusContainer>
+          )}
+          {metrics.isError && (
+            <TableStatusContainer>
+              <IconWarning data-test-id="error-indicator" color="gray300" size="lg" />
+            </TableStatusContainer>
+          )}
+          {!metrics.isError && !metrics.isLoading && !series.length && (
+            <TableStatusContainer>
+              <EmptyStateWarning>
+                <p>{t('No function metrics found')}</p>
+              </EmptyStateWarning>
+            </TableStatusContainer>
+          )}
+          {metrics.isFetched && series.length > 0 ? (
+            <LineChart
+              {...METRICS_CHART_OPTIONS}
+              isGroupedByDate
+              showTimeInTooltip
+              series={series}
+            />
+          ) : null}
+        </SlowestFunctionsChartContainer>
+        <SlowestFunctionsRowSpacer>
+          <SlowestFunctionsRowSpacerCell />
+          <SlowestFunctionsRowSpacerCell />
+        </SlowestFunctionsRowSpacer>
+      </SlowestFunctionsTimeSeriesContainer>
+    </TableRow>
   );
 }
 
@@ -466,11 +472,12 @@ const SlowestFunctionsRowSpacerCell = styled('div')`
   height: ${space(2)};
 `;
 
-const SlowestFunctionsTimeSeriesContainer = styled('div')`
+const SlowestFunctionsTimeSeriesContainer = styled(TableBodyCell)`
   display: grid;
   grid-column: 1 / -1;
   grid-template-columns: subgrid;
   border-top: 1px solid ${p => p.theme.border};
+  padding: 0;
 `;
 
 const SlowestFunctionsChartContainer = styled('div')`
