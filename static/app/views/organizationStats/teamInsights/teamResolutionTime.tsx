@@ -34,7 +34,7 @@ function TeamResolutionTime({
 
   const {
     data: resolutionTime,
-    isLoading,
+    isPending,
     isError,
     refetch,
   } = useApiQuery<TimeToResolution>(
@@ -50,7 +50,7 @@ function TeamResolutionTime({
     {staleTime: 5000}
   );
 
-  if (isLoading) {
+  if (isPending) {
     return (
       <ChartWrapper>
         <LoadingIndicator />

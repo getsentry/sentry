@@ -87,7 +87,7 @@ export function SpanOperationTable({
 
   const eventView = EventView.fromNewQueryWithLocation(newQuery, location);
 
-  const {data, isLoading, pageLinks} = useTableQuery({
+  const {data, isPending, pageLinks} = useTableQuery({
     eventView,
     enabled: true,
     referrer: Referrer.SPAN_OPERATION_TABLE,
@@ -182,7 +182,7 @@ export function SpanOperationTable({
       columnTooltipMap={columnTooltipMap}
       data={data}
       eventView={eventView}
-      isLoading={isLoading}
+      isLoading={isPending}
       pageLinks={pageLinks}
       columnOrder={[
         String(SPAN_OP),

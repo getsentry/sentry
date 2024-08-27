@@ -75,7 +75,7 @@ function ProjectDebugSymbols({organization, project, location, router, params}: 
   const {
     data: debugFiles,
     getResponseHeader: getDebugFilesResponseHeader,
-    isLoading: isLoadingDebugFiles,
+    isPending: isLoadingDebugFiles,
     isLoadingError: isLoadingErrorDebugFiles,
     refetch: refetchDebugFiles,
   } = useApiQuery<DebugFile[] | null>(
@@ -92,7 +92,7 @@ function ProjectDebugSymbols({organization, project, location, router, params}: 
 
   const {
     data: builtinSymbolSources,
-    isLoading: isLoadingSymbolSources,
+    isPending: isLoadingSymbolSources,
     isError: isErrorSymbolSources,
     refetch: refetchSymbolSources,
   } = useApiQuery<BuiltinSymbolSource[] | null>(
