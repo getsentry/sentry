@@ -303,6 +303,10 @@ class IssueBasicIntegration(IntegrationInstallation, ABC):
         """
         raise NotImplementedError
 
+    @abstractmethod
+    def search_issues(self, query: str | None, **kwargs) -> list[dict[str, Any]] | dict[str, Any]:
+        raise NotImplementedError
+
     def after_link_issue(self, external_issue, **kwargs):
         """
         Takes the external issue that has been linked via `get_issue`.

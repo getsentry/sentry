@@ -48,7 +48,7 @@ class BitbucketSearchEndpoint(IntegrationEndpoint):
 
             full_query = f'title~"{query}"'
             try:
-                resp = installation.get_client().search_issues(repo, full_query)
+                resp = installation.search_issues(query=full_query, repo=repo)
             except ApiError as e:
                 if "no issue tracker" in str(e):
                     logger.info(

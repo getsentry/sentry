@@ -9,6 +9,7 @@ from sentry.api.base import control_silo_endpoint
 from sentry.hybridcloud.rpc import coerce_id_from
 from sentry.integrations.api.bases.integration import IntegrationEndpoint
 from sentry.integrations.models.integration import Integration
+from sentry.integrations.vsts.integration import VstsIntegration
 from sentry.organizations.services.organization import RpcOrganization
 
 
@@ -39,12 +40,13 @@ class VstsSearchEndpoint(IntegrationEndpoint):
             return Response({"detail": "query is a required parameter"}, status=400)
 
         installation = integration.get_installation(organization.id)
+        assert isinstance(installation, VstsIntegration), installation
 
         if field == "externalIssue":
             if not query:
                 return Response([])
 
-            resp = installation.get_client().search_issues(integration.name, query)
+            resp = installation.search_issues(query=query)
             return Response(
                 [
                     {
