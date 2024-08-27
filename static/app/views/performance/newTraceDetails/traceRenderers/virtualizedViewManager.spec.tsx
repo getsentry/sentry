@@ -95,6 +95,7 @@ function makeSingleTransactionTree(): TraceTree {
         }),
       ],
     }),
+    null,
     null
   );
 }
@@ -325,6 +326,7 @@ describe('VirtualizedViewManger', () => {
           transactions: [makeTransaction()],
           orphan_errors: [],
         }),
+        null,
         null
       );
 
@@ -349,6 +351,7 @@ describe('VirtualizedViewManger', () => {
             }),
           ],
         }),
+        null,
         null
       );
 
@@ -382,6 +385,7 @@ describe('VirtualizedViewManger', () => {
             }),
           ],
         }),
+        null,
         null
       );
 
@@ -418,6 +422,7 @@ describe('VirtualizedViewManger', () => {
             }),
           ],
         }),
+        null,
         null
       );
 
@@ -430,42 +435,6 @@ describe('VirtualizedViewManger', () => {
       const result = await TraceTree.ExpandToPath(
         tree,
         ['span-span_id', 'txn-event_id'],
-        () => void 0,
-        {
-          api: api,
-          organization,
-        }
-      );
-
-      expect(tree.list[1].zoomedIn).toBe(true);
-      expect(result?.node).toBe(tree.list[2]);
-    });
-
-    it('scrolls to empty data node of expanded transaction', async () => {
-      manager.list = makeList();
-
-      const tree = TraceTree.FromTrace(
-        makeTrace({
-          transactions: [
-            makeTransaction({
-              event_id: 'event_id',
-              project_slug: 'project',
-              children: [],
-            }),
-          ],
-        }),
-        null
-      );
-
-      MockApiClient.addMockResponse({
-        url: EVENT_REQUEST_URL,
-        method: 'GET',
-        body: makeEvent(undefined, []),
-      });
-
-      const result = await TraceTree.ExpandToPath(
-        tree,
-        ['empty-node', 'txn-event_id'],
         () => void 0,
         {
           api: api,
@@ -496,6 +465,7 @@ describe('VirtualizedViewManger', () => {
             }),
           ],
         }),
+        null,
         null
       );
 
@@ -701,6 +671,7 @@ describe('VirtualizedViewManger', () => {
             },
           ],
         }),
+        null,
         null
       );
 
