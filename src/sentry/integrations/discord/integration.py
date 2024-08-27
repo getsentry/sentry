@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import Mapping, Sequence
+from enum import Enum
 from typing import Any
 from urllib.parse import urlencode
 
@@ -16,7 +17,6 @@ from sentry.integrations.base import (
     IntegrationProvider,
 )
 from sentry.integrations.discord.client import DiscordClient
-from sentry.integrations.discord.types import DiscordPermissions
 from sentry.integrations.models.integration import Integration
 from sentry.organizations.services.organization.model import RpcOrganizationSummary
 from sentry.pipeline.views.base import PipelineView
@@ -111,6 +111,19 @@ class DiscordIntegration(IntegrationInstallation):
             return
 
 
+class DiscordPermissions(Enum):
+    # https://discord.com/developers/docs/topics/permissions#permissions
+    VIEW_CHANNEL = 1 << 10
+    SEND_MESSAGES = 1 << 11
+    SEND_TTS_MESSAGES = 1 << 12
+    EMBED_LINKS = 1 << 14
+    ATTACH_FILES = 1 << 15
+    MANAGE_THREADS = 1 << 34
+    CREATE_PUBLIC_THREADS = 1 << 35
+    CREATE_PRIVATE_THREADS = 1 << 36
+    SEND_MESSAGES_IN_THREADS = 1 << 38
+
+
 class DiscordIntegrationProvider(IntegrationProvider):
     key = "discord"
     name = "Discord"
@@ -120,7 +133,6 @@ class DiscordIntegrationProvider(IntegrationProvider):
 
     # https://discord.com/developers/docs/topics/oauth2#shared-resources-oauth2-scopes
     oauth_scopes = frozenset(["applications.commands", "bot", "identify"])
-    access_token = ""
 
     bot_permissions = (
         DiscordPermissions.VIEW_CHANNEL.value
@@ -163,10 +175,6 @@ class DiscordIntegrationProvider(IntegrationProvider):
         auth_code = str(state.get("code"))
         if auth_code:
             discord_user_id = self._get_discord_user_id(auth_code, url)
-            if not self.client.check_user_bot_installation_permission(
-                access_token=self.access_token, guild_id=guild_id
-            ):
-                raise IntegrationError("User does not have permissions to install bot.")
         else:
             raise IntegrationError("Missing code from state.")
 
@@ -230,13 +238,13 @@ class DiscordIntegrationProvider(IntegrationProvider):
 
         """
         try:
-            self.access_token = self.client.get_access_token(auth_code, url)
+            access_token = self.client.get_access_token(auth_code, url)
         except ApiError:
             raise IntegrationError("Failed to get Discord access token from API.")
         except KeyError:
             raise IntegrationError("Failed to get Discord access token from key.")
         try:
-            user_id = self.client.get_user_id(self.access_token)
+            user_id = self.client.get_user_id(access_token)
         except ApiError:
             raise IntegrationError("Failed to get Discord user ID from API.")
         except KeyError:
