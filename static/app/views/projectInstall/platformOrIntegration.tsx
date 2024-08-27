@@ -2,9 +2,7 @@ import {useState} from 'react';
 import type {RouteComponentProps} from 'react-router';
 
 import {OnboardingContextProvider} from 'sentry/components/onboarding/onboardingContext';
-import platforms from 'sentry/data/platforms';
-import {t} from 'sentry/locale';
-import type {PlatformIntegration} from 'sentry/types/project';
+import allPlatforms from 'sentry/data/platforms';
 import {platformToIntegrationMap} from 'sentry/utils/integrationUtil';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
@@ -12,17 +10,6 @@ import useProjects from 'sentry/utils/useProjects';
 import GettingStarted from './gettingStarted';
 import {ProjectInstallPlatform} from './platform';
 import PlatformIntegrationSetup from './platformIntegrationSetup';
-
-const allPlatforms: PlatformIntegration[] = [
-  ...platforms,
-  {
-    id: 'other',
-    name: t('Other'),
-    link: 'https://docs.sentry.io/platforms/',
-    type: 'language',
-    language: 'other',
-  },
-];
 
 type Props = RouteComponentProps<{projectId: string}, {}>;
 
