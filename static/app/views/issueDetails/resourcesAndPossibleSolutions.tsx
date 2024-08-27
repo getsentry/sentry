@@ -53,7 +53,7 @@ export function ResourcesAndPossibleSolutions({event, project, group}: Props) {
   const isSampleError = useIsSampleEvent();
   // NOTE:  Autofix is for INTERNAL testing only for now.
   const displayAiAutofix =
-    project.features.includes('ai-autofix') &&
+    organization.features.includes('autofix') &&
     organization.features.includes('issue-details-autofix-ui') &&
     !shouldShowCustomErrorResourceConfig(group, project) &&
     config.autofix &&
