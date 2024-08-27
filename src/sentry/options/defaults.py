@@ -520,6 +520,9 @@ register(
     flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+# Discord
+register("discord.validate-user", default=False, flags=FLAG_AUTOMATOR_MODIFIABLE)
+
 # Codecov Integration
 register("codecov.client-secret", flags=FLAG_CREDENTIAL | FLAG_PRIORITIZE_DISK)
 
