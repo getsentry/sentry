@@ -21,9 +21,7 @@ from sentry.integrations.repository.metric_alert import (
     NewMetricAlertNotificationMessage,
 )
 from sentry.integrations.services.integration import integration_service
-from sentry.integrations.slack.message_builder.incidents import (
-    SlackIncidentsMessageBuilder,
-)
+from sentry.integrations.slack.message_builder.incidents import SlackIncidentsMessageBuilder
 from sentry.integrations.slack.metrics import (
     SLACK_LINK_IDENTITY_MSG_FAILURE_DATADOG_METRIC,
     SLACK_LINK_IDENTITY_MSG_SUCCESS_DATADOG_METRIC,
