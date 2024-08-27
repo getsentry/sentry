@@ -57,16 +57,6 @@ def _split_discover_query_dataset(dry_run):
         dataset_source=DatasetSourcesTypes.UNKNOWN.value,
     ).select_related("organization")
     if not queryset:
-        logger.info(
-            "sentry.tasks.split_discover_query_dataset - no more queries to process",
-            extra={
-                "transaction_dataset_count": transaction_dataset_count,
-                "error_dataset_count": error_dataset_count,
-                "errored_query_count": errored_query_count,
-                "inferred_with_query": inferred_with_query,
-                "inferred_without_query": inferred_without_query,
-            },
-        )
         raise EmptyQueryset
 
     for saved_query in RangeQuerySetWrapper(queryset):
@@ -140,6 +130,17 @@ def _split_discover_query_dataset(dry_run):
 
     if not did_process:
         raise NoOpException
+
+    logger.info(
+        "sentry.tasks.split_discover_query_dataset - no more queries to process",
+        extra={
+            "transaction_dataset_count": transaction_dataset_count,
+            "error_dataset_count": error_dataset_count,
+            "errored_query_count": errored_query_count,
+            "inferred_with_query": inferred_with_query,
+            "inferred_without_query": inferred_without_query,
+        },
+    )
 
 
 @instrumented_task(
