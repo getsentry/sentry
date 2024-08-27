@@ -1,5 +1,5 @@
 import {Fragment, useEffect, useState} from 'react';
-import {cloneDeep} from 'lodash';
+import {cloneDeep} from 'lodash/cloneDeep';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {updateOrganization} from 'sentry/actionCreators/organizations';
