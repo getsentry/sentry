@@ -143,10 +143,6 @@ function IntegrationSetup(props: Props) {
             />
             <Button
               size="sm"
-              to={{
-                pathname: window.location.pathname,
-                query: {manual: '1'},
-              }}
               onClick={() => {
                 props.onClickManualSetup?.();
                 trackIntegrationAnalytics('integrations.switch_manual_sdk_setup', {

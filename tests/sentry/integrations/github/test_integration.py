@@ -400,7 +400,7 @@ class GitHubIntegrationTest(IntegrationTestCase):
                 ),
             )
         )
-        assert b"Invalid installation request." in resp.content
+        assert b"Invalid state" in resp.content
 
     @responses.activate
     @override_options({"github-app.webhook-secret": ""})
@@ -459,7 +459,7 @@ class GitHubIntegrationTest(IntegrationTestCase):
             self.assertTemplateUsed(resp, "sentry/integrations/github-integration-failed.html")
             assert resp.status_code == 200
             assert b'window.opener.postMessage({"success":false' in resp.content
-            assert b"Invalid installation request." in resp.content
+            assert b"Authenticated user is not the same as who installed the app" in resp.content
 
     @responses.activate
     def test_disable_plugin_when_fully_migrated(self):
