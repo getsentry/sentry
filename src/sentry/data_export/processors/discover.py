@@ -7,7 +7,7 @@ from sentry.models.environment import Environment
 from sentry.models.group import Group
 from sentry.models.project import Project
 from sentry.search.events.fields import get_function_alias
-from sentry.search.events.types import ParamsType
+from sentry.search.events.types import SnubaParams
 from sentry.snuba import discover
 from sentry.snuba.utils import get_dataset
 
@@ -21,20 +21,20 @@ class DiscoverProcessor:
     Processor for exports of discover data based on a provided query
     """
 
-    def __init__(self, organization_id, discover_query):
-        self.projects = self.get_projects(organization_id, discover_query)
-        self.environments = self.get_environments(organization_id, discover_query)
+    def __init__(self, organization, discover_query):
+        self.projects = self.get_projects(organization.id, discover_query)
+        self.environments = self.get_environments(organization.id, discover_query)
         self.start, self.end = get_date_range_from_params(discover_query)
-        self.params: ParamsType = {
-            "organization_id": organization_id,
-            "project_id": [project.id for project in self.projects],
-            "start": self.start,
-            "end": self.end,
-        }
+        self.snuba_params = SnubaParams(
+            organization=organization,
+            projects=self.projects,
+            start=self.start,
+            end=self.end,
+        )
         # make sure to only include environment if any are given
         # an empty list DOES NOT work
         if self.environments:
-            self.params["environment"] = self.environments
+            self.snuba_params.environments = self.environments
 
         equations = discover_query.get("equations", [])
         self.header_fields = [get_function_alias(x) for x in discover_query["field"]] + equations
@@ -45,7 +45,7 @@ class DiscoverProcessor:
             fields=discover_query["field"],
             equations=equations,
             query=discover_query["query"],
-            params=self.params,
+            snuba_params=self.snuba_params,
             sort=discover_query.get("sort"),
             dataset=discover_query.get("dataset"),
         )
@@ -76,10 +76,10 @@ class DiscoverProcessor:
         if set(requested_environments) != set(environment_names):
             raise ExportError("Requested environment does not exist")
 
-        return environment_names
+        return environments
 
     @staticmethod
-    def get_data_fn(fields, equations, query, params, sort, dataset):
+    def get_data_fn(fields, equations, query, snuba_params, sort, dataset):
         dataset = get_dataset(dataset)
         if dataset is None:
             dataset = discover
@@ -89,7 +89,7 @@ class DiscoverProcessor:
                 selected_columns=fields,
                 equations=equations,
                 query=query,
-                params=params,
+                snuba_params=snuba_params,
                 offset=offset,
                 orderby=sort,
                 limit=limit,
@@ -112,8 +112,8 @@ class DiscoverProcessor:
                 i.id: i.qualified_short_id
                 for i in Group.objects.filter(
                     id__in=issue_ids,
-                    project__in=self.params["project_id"],
-                    project__organization_id=self.params["organization_id"],
+                    project__in=self.snuba_params.project_ids,
+                    project__organization_id=self.snuba_params.organization_id,
                 )
             }
             for result in new_result_list:

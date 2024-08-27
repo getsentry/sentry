@@ -5,7 +5,7 @@ from datetime import timedelta
 from snuba_sdk import Column, Condition
 
 from sentry.models.organization import Organization
-from sentry.search.events.types import EventsResponse, ParamsType, SnubaParams
+from sentry.search.events.types import EventsResponse, SnubaParams
 from sentry.snuba import discover
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.metrics.extraction import MetricSpecType
@@ -18,8 +18,7 @@ logger = logging.getLogger(__name__)
 def query(
     selected_columns: list[str],
     query: str,
-    params: ParamsType,
-    snuba_params: SnubaParams | None = None,
+    snuba_params: SnubaParams,
     equations: list[str] | None = None,
     orderby: list[str] | None = None,
     offset: int | None = None,
@@ -47,7 +46,6 @@ def query(
     return discover.query(
         selected_columns,
         query,
-        params,
         snuba_params=snuba_params,
         equations=equations,
         orderby=orderby,
@@ -78,9 +76,8 @@ def query(
 def timeseries_query(
     selected_columns: Sequence[str],
     query: str,
-    params: ParamsType,
+    snuba_params: SnubaParams,
     rollup: int,
-    snuba_params: SnubaParams | None = None,
     referrer: str | None = None,
     zerofill_results: bool = True,
     comparison_delta: timedelta | None = None,
@@ -99,10 +96,9 @@ def timeseries_query(
     return discover.timeseries_query(
         selected_columns,
         query,
-        params,
+        snuba_params,
         rollup,
         referrer=referrer,
-        snuba_params=snuba_params,
         zerofill_results=zerofill_results,
         allow_metric_aggregates=allow_metric_aggregates,
         comparison_delta=comparison_delta,
@@ -120,12 +116,11 @@ def top_events_timeseries(
     timeseries_columns: list[str],
     selected_columns: list[str],
     user_query: str,
-    params: ParamsType,
+    snuba_params: SnubaParams,
     orderby: list[str],
     rollup: int,
     limit: int,
     organization: Organization,
-    snuba_params: SnubaParams | None = None,
     equations: list[str] | None = None,
     referrer: str | None = None,
     top_events: EventsResponse | None = None,
@@ -141,12 +136,11 @@ def top_events_timeseries(
         timeseries_columns,
         selected_columns,
         user_query,
-        params,
+        snuba_params,
         orderby,
         rollup,
         limit,
         organization,
-        snuba_params=snuba_params,
         equations=equations,
         referrer=referrer,
         top_events=top_events,

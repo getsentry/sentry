@@ -288,7 +288,6 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):
                     selected_columns=self.get_field_list(organization, request),
                     equations=self.get_equation_list(organization, request),
                     user_query=query,
-                    params={},
                     snuba_params=snuba_params,
                     orderby=self.get_orderby(request),
                     rollup=rollup,
@@ -306,7 +305,6 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):
             return scoped_dataset.timeseries_query(
                 selected_columns=query_columns,
                 query=query,
-                params={},
                 snuba_params=snuba_params,
                 rollup=rollup,
                 referrer=referrer,
