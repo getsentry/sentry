@@ -252,14 +252,21 @@ const GroupContent = styled(Layout.Main)`
   display: flex;
   flex-direction: column;
   gap: ${space(1.5)};
-  padding: ${space(1.5)};
+  padding-top: ${space(1.5)};
+  padding-bottom: ${space(1.5)};
+  box-shadow: 0 0 0 1px ${p => p.theme.translucentInnerBorder};
+
+  > * {
+    margin-right: ${space(1.5)};
+    margin-left: ${space(1.5)};
+  }
 `;
 
 const StyledLayoutSide = styled(Layout.Side)<{hasStreamlinedUi: boolean}>`
   ${p =>
     p.hasStreamlinedUi
       ? css`
-          padding: ${space(1)} ${space(2)} ${space(3)};
+          padding: ${space(1.5)} ${space(2)} ${space(3)};
         `
       : css`
           padding: ${space(3)} ${space(2)} ${space(3)};

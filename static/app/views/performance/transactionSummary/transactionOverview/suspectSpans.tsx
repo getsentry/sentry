@@ -2,7 +2,7 @@ import {Fragment} from 'react';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
 
-import {Button} from 'sentry/components/button';
+import {LinkButton} from 'sentry/components/button';
 import {SectionHeading} from 'sentry/components/charts/styles';
 import type {CursorHandler} from 'sentry/components/pagination';
 import Pagination from 'sentry/components/pagination';
@@ -114,9 +114,9 @@ function SuspectSpansHeader(props: HeaderProps) {
   return (
     <Header>
       <SectionHeading>{t('Suspect Spans')}</SectionHeading>
-      <Button to={viewAllTarget} size="xs" data-test-id="suspect-spans-open-tab">
+      <LinkButton to={viewAllTarget} size="xs" data-test-id="suspect-spans-open-tab">
         {t('View All Spans')}
-      </Button>
+      </LinkButton>
       <StyledPagination pageLinks={pageLinks} onCursor={handleCursor} size="xs" />
     </Header>
   );

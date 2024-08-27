@@ -5,7 +5,7 @@ import type {Location} from 'history';
 import kebabCase from 'lodash/kebabCase';
 import mapValues from 'lodash/mapValues';
 
-import {Button} from 'sentry/components/button';
+import {LinkButton} from 'sentry/components/button';
 import ClippedBox from 'sentry/components/clippedBox';
 import {CodeSnippet} from 'sentry/components/codeSnippet';
 import {getKeyValueListData as getRegressionIssueKeyValueList} from 'sentry/components/events/eventStatisticalDetector/eventRegressionSummary';
@@ -481,9 +481,9 @@ const makeTransactionNameRow = (
   });
 
   const actionButton = projectSlug ? (
-    <Button size="xs" to={eventDetailsLocation}>
+    <LinkButton size="xs" to={eventDetailsLocation}>
       {t('View Full Event')}
-    </Button>
+    </LinkButton>
   ) : undefined;
 
   return makeRow(

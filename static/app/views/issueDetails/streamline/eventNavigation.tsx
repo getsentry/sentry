@@ -1,6 +1,6 @@
 import {type CSSProperties, forwardRef} from 'react';
 import {Fragment} from 'react';
-import {css, useTheme} from '@emotion/react';
+import {css, type SerializedStyles, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import color from 'color';
 import omit from 'lodash/omit';
@@ -25,14 +25,20 @@ import {
   getAnalyticsDataForGroup,
   getShortEventId,
 } from 'sentry/utils/events';
-import {getReplayIdFromEvent} from 'sentry/utils/replays/getReplayIdFromEvent';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import useCopyToClipboard from 'sentry/utils/useCopyToClipboard';
 import {useLocation} from 'sentry/utils/useLocation';
+import useMedia from 'sentry/utils/useMedia';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
+import {useSyncedLocalStorageState} from 'sentry/utils/useSyncedLocalStorageState';
 import {Divider} from 'sentry/views/issueDetails/divider';
-import {FoldSectionKey} from 'sentry/views/issueDetails/streamline/foldSection';
+import {
+  type SectionConfig,
+  SectionKey,
+  useEventDetails,
+} from 'sentry/views/issueDetails/streamline/context';
+import {getFoldSectionKey} from 'sentry/views/issueDetails/streamline/foldSection';
 import {useDefaultIssueEvent} from 'sentry/views/issueDetails/utils';
 
 export const MIN_NAV_HEIGHT = 44;
@@ -44,12 +50,6 @@ type EventNavigationProps = {
   style?: CSSProperties;
 };
 
-type SectionDefinition = {
-  condition: (event: Event) => boolean;
-  label: string;
-  section: FoldSectionKey;
-};
-
 enum EventNavOptions {
   RECOMMENDED = 'recommended',
   LATEST = 'latest',
@@ -58,10 +58,10 @@ enum EventNavOptions {
 }
 
 const EventNavLabels = {
-  [EventNavOptions.RECOMMENDED]: t('Recommended Event'),
-  [EventNavOptions.OLDEST]: t('First Event'),
-  [EventNavOptions.LATEST]: t('Last Event'),
-  [EventNavOptions.CUSTOM]: t('Custom Event'),
+  [EventNavOptions.RECOMMENDED]: t('Recommended'),
+  [EventNavOptions.OLDEST]: t('First'),
+  [EventNavOptions.LATEST]: t('Last'),
+  [EventNavOptions.CUSTOM]: t('Custom'),
 };
 
 const EventNavOrder = [
@@ -71,49 +71,16 @@ const EventNavOrder = [
   EventNavOptions.CUSTOM,
 ];
 
-const eventDataSections: SectionDefinition[] = [
-  {
-    section: FoldSectionKey.HIGHLIGHTS,
-    label: t('Event Highlights'),
-    condition: () => true,
-  },
-  {
-    section: FoldSectionKey.STACKTRACE,
-    label: t('Stack Trace'),
-    condition: (event: Event) => event.entries.some(entry => entry.type === 'stacktrace'),
-  },
-  {
-    section: FoldSectionKey.EXCEPTION,
-    label: t('Stack Trace'),
-    condition: (event: Event) => event.entries.some(entry => entry.type === 'exception'),
-  },
-  {
-    section: FoldSectionKey.BREADCRUMBS,
-    label: t('Breadcrumbs'),
-    condition: (event: Event) =>
-      event.entries.some(entry => entry.type === 'breadcrumbs'),
-  },
-  {
-    section: FoldSectionKey.TAGS,
-    label: t('Tags'),
-    condition: (event: Event) => event.tags.length > 0,
-  },
-  {
-    section: FoldSectionKey.CONTEXTS,
-    label: t('Context'),
-    condition: (event: Event) => !!event.context,
-  },
-  {
-    section: FoldSectionKey.USER_FEEDBACK,
-    label: t('User Feedback'),
-    condition: (event: Event) => !!event.userReport,
-  },
-  {
-    section: FoldSectionKey.REPLAY,
-    label: t('Replay'),
-    condition: (event: Event) => !!getReplayIdFromEvent(event),
-  },
-];
+const sectionLabels = {
+  [SectionKey.HIGHLIGHTS]: t('Event Highlights'),
+  [SectionKey.STACKTRACE]: t('Stack Trace'),
+  [SectionKey.EXCEPTION]: t('Stack Trace'),
+  [SectionKey.BREADCRUMBS]: t('Breadcrumbs'),
+  [SectionKey.TAGS]: t('Tags'),
+  [SectionKey.CONTEXTS]: t('Context'),
+  [SectionKey.USER_FEEDBACK]: t('User Feedback'),
+  [SectionKey.REPLAY]: t('Replay'),
+};
 
 export const EventNavigation = forwardRef<HTMLDivElement, EventNavigationProps>(
   function EventNavigation({event, group, ...props}, ref) {
@@ -122,6 +89,15 @@ export const EventNavigation = forwardRef<HTMLDivElement, EventNavigationProps>(
     const theme = useTheme();
     const params = useParams<{eventId?: string}>();
     const defaultIssueEvent = useDefaultIssueEvent();
+    const {sectionData} = useEventDetails();
+    const eventSectionConfigs = Object.values(sectionData ?? {}).filter(
+      config => sectionLabels[config.key]
+    );
+    const [_isEventErrorCollapsed, setEventErrorCollapsed] = useSyncedLocalStorageState(
+      getFoldSectionKey(SectionKey.PROCESSING_ERROR),
+      true
+    );
+    const isMobile = useMedia(`(max-width: ${theme.breakpoints.small})`);
 
     const {data: actionableItems} = useActionableItems({
       eventId: event.id,
@@ -150,10 +126,6 @@ export const EventNavigation = forwardRef<HTMLDivElement, EventNavigationProps>(
     const hasNextEvent = defined(event.nextEventID);
 
     const baseEventsPath = `/organizations/${organization.slug}/issues/${group.id}/events/`;
-
-    const jumpToSections = eventDataSections.filter(eventSection =>
-      eventSection.condition(event)
-    );
 
     const grayText = css`
       color: ${theme.subText};
@@ -207,8 +179,9 @@ export const EventNavigation = forwardRef<HTMLDivElement, EventNavigationProps>(
                       label === EventNavOptions.CUSTOM &&
                       selectedOption !== EventNavOptions.CUSTOM
                     }
+                    textValue={`${EventNavLabels[label]} Event`}
                   >
-                    {EventNavLabels[label]}
+                    {EventNavLabels[label]} {isMobile ? '' : t('Event')}
                   </TabList.Item>
                 );
               })}
@@ -256,7 +229,7 @@ export const EventNavigation = forwardRef<HTMLDivElement, EventNavigationProps>(
               size="xs"
               css={grayText}
             >
-              {t('View All Events')}
+              {isMobile ? '' : t('View')} {t('All Events')}
             </LinkButton>
           </NavigationWrapper>
         </EventNavigationWrapper>
@@ -325,8 +298,9 @@ export const EventNavigation = forwardRef<HTMLDivElement, EventNavigationProps>(
                   icon={<IconWarning color="red300" />}
                   onClick={() => {
                     document
-                      .getElementById(FoldSectionKey.PROCESSING_ERROR)
+                      .getElementById(SectionKey.PROCESSING_ERROR)
                       ?.scrollIntoView({block: 'start', behavior: 'smooth'});
+                    setEventErrorCollapsed(false);
                   }}
                 >
                   {t('Processing Error')}
@@ -334,43 +308,74 @@ export const EventNavigation = forwardRef<HTMLDivElement, EventNavigationProps>(
               </Fragment>
             )}
           </EventInfo>
-          <JumpTo>
-            <div>{t('Jump to:')}</div>
-            <ScrollCarousel gap={0.25}>
-              {jumpToSections.map(jump => (
-                <Button
-                  key={jump.section}
-                  onClick={() => {
-                    document
-                      .getElementById(jump.section)
-                      ?.scrollIntoView({block: 'start', behavior: 'smooth'});
-                  }}
-                  borderless
-                  size="xs"
-                  css={grayText}
-                >
-                  {jump.label}
-                </Button>
-              ))}
-            </ScrollCarousel>
-          </JumpTo>
+          {eventSectionConfigs.length > 0 && (
+            <JumpTo>
+              <div>{t('Jump to:')}</div>
+              <ScrollCarousel gap={0.25}>
+                {eventSectionConfigs.map(config => (
+                  <EventNavigationLink
+                    key={config.key}
+                    config={config}
+                    propCss={grayText}
+                  />
+                ))}
+              </ScrollCarousel>
+            </JumpTo>
+          )}
         </EventInfoJumpToWrapper>
       </div>
     );
   }
 );
 
+function EventNavigationLink({
+  config,
+  propCss,
+}: {
+  config: SectionConfig;
+  propCss: SerializedStyles;
+}) {
+  const [_isCollapsed, setIsCollapsed] = useSyncedLocalStorageState(
+    getFoldSectionKey(config.key),
+    config?.initialCollapse ?? false
+  );
+  return (
+    <Button
+      onClick={() => {
+        setIsCollapsed(false);
+        document
+          .getElementById(config.key)
+          ?.scrollIntoView({block: 'start', behavior: 'smooth'});
+      }}
+      borderless
+      size="xs"
+      css={propCss}
+    >
+      {sectionLabels[config.key]}
+    </Button>
+  );
+}
+
 const EventNavigationWrapper = styled('div')`
   display: flex;
   justify-content: space-between;
+  align-items: center;
   font-size: ${p => p.theme.fontSizeSmall};
-  padding: ${space(1)} ${space(1.5)};
+  padding: ${space(1)} ${space(1)};
   min-height: ${MIN_NAV_HEIGHT}px;
   border-bottom: 1px solid ${p => p.theme.border};
+
+  @media (min-width: ${p => p.theme.breakpoints.medium}) {
+    padding: ${space(1)} ${space(1.5)};
+  }
 `;
 
 const NavigationWrapper = styled('div')`
   display: flex;
+
+  @media (min-width: ${p => p.theme.breakpoints.medium}) {
+    gap: ${space(0.25)};
+  }
 `;
 
 const Navigation = styled('div')`
@@ -415,7 +420,6 @@ const JumpTo = styled('div')`
   font-size: ${p => p.theme.fontSizeSmall};
   white-space: nowrap;
   max-width: 100%;
-
   @media (min-width: ${p => p.theme.breakpoints.small}) {
     max-width: 50%;
   }
@@ -457,7 +461,7 @@ const EventTitle = styled('div')`
 const ProcessingErrorButton = styled(Button)`
   color: ${p => p.theme.red300};
   font-weight: ${p => p.theme.fontWeightNormal};
-
+  font-size: ${p => p.theme.fontSizeSmall};
   :hover {
     color: ${p => p.theme.red300};
   }

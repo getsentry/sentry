@@ -81,7 +81,7 @@ function ThresholdTypeForm({
   if (hasAnomalyDetection) {
     thresholdTypeChoices.push([
       AlertRuleComparisonType.DYNAMIC,
-      'Anomaly: when evaluated values are outside of expected bounds',
+      'Anomaly: whenever values are outside of expected bounds',
     ] as RadioOption);
   }
 

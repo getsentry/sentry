@@ -6,7 +6,7 @@ import {getContextIcon, getContextSummary} from 'sentry/components/events/contex
 import {ScrollCarousel} from 'sentry/components/scrollCarousel';
 import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
-import {SectionDivider} from 'sentry/views/issueDetails/streamline/interimSection';
+import {SectionDivider} from 'sentry/views/issueDetails/streamline/foldSection';
 
 interface HighlightsIconSummaryProps {
   event: Event;
@@ -28,7 +28,7 @@ export function HighlightsIconSummary({event}: HighlightsIconSummaryProps) {
         },
       }),
     }))
-    .filter(item => item.icon !== null);
+    .filter(item => item.icon !== null && Boolean(item.title || item.subtitle));
 
   const deviceIndex = items.findIndex(item => item.alias === 'device');
   const clientOsIndex = items.findIndex(item => item.alias === 'client_os');

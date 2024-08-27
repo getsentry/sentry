@@ -1167,12 +1167,6 @@ CELERYBEAT_SCHEDULE_REGION = {
         "schedule": crontab(minute="17"),
         "options": {"expires": 3600},
     },
-    "span.descs.clusterer": {
-        "task": "sentry.ingest.span_clusterer.tasks.spawn_span_cluster_projects",
-        # Run every 1 hour at minute 42
-        "schedule": crontab(minute="42"),
-        "options": {"expires": 3600},
-    },
     "auto-enable-codecov": {
         "task": "sentry.tasks.auto_enable_codecov.enable_for_org",
         # Run every day at 00:30
@@ -3522,3 +3516,7 @@ if SILO_DEVSERVER:
         SENTRY_WEB_PORT = int(bind[1])
 
     CELERYBEAT_SCHEDULE_FILENAME = f"celerybeat-schedule-{SILO_MODE}"
+
+
+# tmp(michal): Default configuration for post_process* queueus split
+SENTRY_POST_PROCESS_QUEUE_SPLIT_ROUTER: dict[str, Callable[[], str]] = {}

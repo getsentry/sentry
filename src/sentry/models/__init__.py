@@ -1,5 +1,6 @@
 from sentry.users.models.authenticator import *  # NOQA
 from sentry.users.models.email import *  # NOQA
+from sentry.users.models.identity import *  # NOQA
 from sentry.users.models.lostpasswordhash import *  # NOQA
 from sentry.users.models.user import *  # NOQA
 from sentry.users.models.useremail import *  # NOQA
@@ -66,7 +67,6 @@ from .groupshare import *  # NOQA
 from .groupsnooze import *  # NOQA
 from .groupsubscription import *  # NOQA
 from .grouptombstone import *  # NOQA
-from .identity import *  # NOQA
 from .importchunk import *  # NOQA
 from .integrations import *  # NOQA
 from .latestreporeleaseenvironment import *  # NOQA
