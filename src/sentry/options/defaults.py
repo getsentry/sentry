@@ -1926,8 +1926,6 @@ register("hybrid_cloud.rpc.disabled-service-methods", default=[], flags=FLAG_AUT
 
 # Decides whether an incoming transaction triggers an update of the clustering rule applied to it.
 register("txnames.bump-lifetime-sample-rate", default=0.1, flags=FLAG_AUTOMATOR_MODIFIABLE)
-# Decides whether an incoming span triggers an update of the clustering rule applied to it.
-register("span_descs.bump-lifetime-sample-rate", default=0.25, flags=FLAG_AUTOMATOR_MODIFIABLE)
 
 # === Nodestore related runtime options ===
 

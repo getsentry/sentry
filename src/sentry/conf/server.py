@@ -1167,12 +1167,6 @@ CELERYBEAT_SCHEDULE_REGION = {
         "schedule": crontab(minute="17"),
         "options": {"expires": 3600},
     },
-    "span.descs.clusterer": {
-        "task": "sentry.ingest.span_clusterer.tasks.spawn_span_cluster_projects",
-        # Run every 1 hour at minute 42
-        "schedule": crontab(minute="42"),
-        "options": {"expires": 3600},
-    },
     "auto-enable-codecov": {
         "task": "sentry.tasks.auto_enable_codecov.enable_for_org",
         # Run every day at 00:30
