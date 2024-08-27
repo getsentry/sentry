@@ -1,5 +1,7 @@
 import {useMemo} from 'react';
+import styled from '@emotion/styled';
 
+import Alert from 'sentry/components/alert';
 import {EventContexts} from 'sentry/components/events/contexts';
 import {EventAttachments} from 'sentry/components/events/eventAttachments';
 import {EventEvidence} from 'sentry/components/events/eventEvidence';
@@ -7,11 +9,12 @@ import {EventViewHierarchy} from 'sentry/components/events/eventViewHierarchy';
 import {EventRRWebIntegration} from 'sentry/components/events/rrwebIntegration';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import type {LazyRenderProps} from 'sentry/components/lazyRender';
+import ExternalLink from 'sentry/components/links/externalLink';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {CustomMetricsEventData} from 'sentry/components/metrics/customMetricsEventData';
 import {Tooltip} from 'sentry/components/tooltip';
-import {t} from 'sentry/locale';
+import {t, tct} from 'sentry/locale';
 import type {EventTransaction} from 'sentry/types/event';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
@@ -29,6 +32,7 @@ import type {
   TraceTreeNode,
 } from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
 
+import {getCustomInstrumentationLink} from '../../../traceConfigurations';
 import {IssueList} from '../issues/issues';
 import {TraceDrawerComponents} from '../styles';
 
@@ -131,6 +135,19 @@ export function TransactionNodeDetails({
 
   return (
     <TraceDrawerComponents.DetailContainer>
+      {!node.canFetch ? (
+        <StyledAlert type="info" showIcon>
+          {tct(
+            'This transaction does not have any child spans. You can add more child spans via [customInstrumentationLink:custom instrumentation].',
+            {
+              customInstrumentationLink: (
+                <ExternalLink href={getCustomInstrumentationLink(project)} />
+              ),
+            }
+          )}
+        </StyledAlert>
+      ) : null}
+
       <TransactionNodeDetailHeader
         node={node}
         organization={organization}
@@ -201,3 +218,7 @@ export function TransactionNodeDetails({
     </TraceDrawerComponents.DetailContainer>
   );
 }
+
+const StyledAlert = styled(Alert)`
+  margin: 0;
+`;

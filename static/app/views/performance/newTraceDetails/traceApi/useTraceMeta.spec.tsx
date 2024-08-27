@@ -5,11 +5,27 @@ import {makeTestQueryClient} from 'sentry-test/queryClient';
 import {renderHook, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import * as useOrganization from 'sentry/utils/useOrganization';
+import type {ReplayTrace} from 'sentry/views/replays/detail/trace/useReplayTraces';
 
 import {useTraceMeta} from './useTraceMeta';
 
 const organization = OrganizationFixture();
 const queryClient = makeTestQueryClient();
+
+const mockedReplayTraces: ReplayTrace[] = [
+  {
+    traceSlug: 'slug1',
+    timestamp: 1,
+  },
+  {
+    traceSlug: 'slug2',
+    timestamp: 2,
+  },
+  {
+    traceSlug: 'slug3',
+    timestamp: 3,
+  },
+];
 
 describe('useTraceMeta', () => {
   beforeEach(function () {
@@ -19,8 +35,6 @@ describe('useTraceMeta', () => {
   });
 
   it('Returns merged metaResults', async () => {
-    const traceSlugs = ['slug1', 'slug2', 'slug3'];
-
     // Mock the API calls
     MockApiClient.addMockResponse({
       method: 'GET',
@@ -30,6 +44,7 @@ describe('useTraceMeta', () => {
         performance_issues: 1,
         projects: 1,
         transactions: 1,
+        transaction_child_count_map: [{'transaction.id': '1', count: 1}],
       },
     });
     MockApiClient.addMockResponse({
@@ -40,6 +55,7 @@ describe('useTraceMeta', () => {
         performance_issues: 1,
         projects: 1,
         transactions: 1,
+        transaction_child_count_map: [{'transaction.id': '2', count: 2}],
       },
     });
     MockApiClient.addMockResponse({
@@ -50,6 +66,7 @@ describe('useTraceMeta', () => {
         performance_issues: 1,
         projects: 1,
         transactions: 1,
+        transaction_child_count_map: [],
       },
     });
 
@@ -57,12 +74,13 @@ describe('useTraceMeta', () => {
       <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
     );
 
-    const {result} = renderHook(() => useTraceMeta(traceSlugs), {wrapper});
+    const {result} = renderHook(() => useTraceMeta(mockedReplayTraces), {wrapper});
 
     expect(result.current).toEqual({
       data: undefined,
       errors: [],
       isLoading: true,
+      status: 'loading',
     });
 
     await waitFor(() => expect(result.current.isLoading).toBe(false));
@@ -73,15 +91,18 @@ describe('useTraceMeta', () => {
         performance_issues: 3,
         projects: 1,
         transactions: 3,
+        transactiontoSpanChildrenCount: {
+          '1': 1,
+          '2': 2,
+        },
       },
       errors: [],
       isLoading: false,
+      status: 'success',
     });
   });
 
   it('Collects errors from rejected api calls', async () => {
-    const traceSlugs = ['slug1', 'slug2', 'slug3'];
-
     // Mock the API calls
     const mockRequest1 = MockApiClient.addMockResponse({
       method: 'GET',
@@ -103,12 +124,13 @@ describe('useTraceMeta', () => {
       <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
     );
 
-    const {result} = renderHook(() => useTraceMeta(traceSlugs), {wrapper});
+    const {result} = renderHook(() => useTraceMeta(mockedReplayTraces), {wrapper});
 
     expect(result.current).toEqual({
       data: undefined,
       errors: [],
       isLoading: true,
+      status: 'loading',
     });
 
     await waitFor(() => expect(result.current.isLoading).toBe(false));
@@ -119,9 +141,11 @@ describe('useTraceMeta', () => {
         performance_issues: 0,
         projects: 0,
         transactions: 0,
+        transactiontoSpanChildrenCount: {},
       },
       errors: [expect.any(Error), expect.any(Error), expect.any(Error)],
       isLoading: false,
+      status: 'success',
     });
 
     expect(mockRequest1).toHaveBeenCalledTimes(1);
@@ -130,8 +154,6 @@ describe('useTraceMeta', () => {
   });
 
   it('Accumulates metaResults and collects errors from rejected api calls', async () => {
-    const traceSlugs = ['slug1', 'slug2', 'slug3'];
-
     // Mock the API calls
     const mockRequest1 = MockApiClient.addMockResponse({
       method: 'GET',
@@ -146,6 +168,7 @@ describe('useTraceMeta', () => {
         performance_issues: 1,
         projects: 1,
         transactions: 1,
+        transaction_child_count_map: [],
       },
     });
     const mockRequest3 = MockApiClient.addMockResponse({
@@ -156,6 +179,7 @@ describe('useTraceMeta', () => {
         performance_issues: 1,
         projects: 1,
         transactions: 1,
+        transaction_child_count_map: [],
       },
     });
 
@@ -163,12 +187,13 @@ describe('useTraceMeta', () => {
       <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
     );
 
-    const {result} = renderHook(() => useTraceMeta(traceSlugs), {wrapper});
+    const {result} = renderHook(() => useTraceMeta(mockedReplayTraces), {wrapper});
 
     expect(result.current).toEqual({
       data: undefined,
       errors: [],
       isLoading: true,
+      status: 'loading',
     });
 
     await waitFor(() => expect(result.current.isLoading).toBe(false));
@@ -179,9 +204,11 @@ describe('useTraceMeta', () => {
         performance_issues: 2,
         projects: 1,
         transactions: 2,
+        transactiontoSpanChildrenCount: {},
       },
       errors: [expect.any(Error)],
       isLoading: false,
+      status: 'success',
     });
 
     expect(mockRequest1).toHaveBeenCalledTimes(1);

@@ -39,7 +39,13 @@ describe('TraceDetailsContent', () => {
     it('should render a list of errors when a trace contains only error events', async () => {
       const initialData = initializeData();
       const eventView = EventView.fromSavedQuery(DEFAULT_EVENT_VIEW);
-      const meta = {errors: 2, projects: 1, transactions: 0, performance_issues: 1};
+      const meta = {
+        errors: 2,
+        projects: 1,
+        transactions: 0,
+        performance_issues: 1,
+        transactiontoSpanChildrenCount: {},
+      };
 
       render(
         <TraceDetailsContent
@@ -81,7 +87,13 @@ describe('TraceDetailsContent', () => {
 
       const initialData = initializeData();
       const eventView = EventView.fromSavedQuery(DEFAULT_EVENT_VIEW);
-      const meta = {errors: 2, projects: 1, transactions: 0, performance_issues: 0};
+      const meta = {
+        errors: 2,
+        projects: 1,
+        transactions: 0,
+        performance_issues: 0,
+        transactiontoSpanChildrenCount: {},
+      };
 
       render(
         <TraceDetailsContent

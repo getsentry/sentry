@@ -21,7 +21,6 @@ import {
 import {TraceType} from '../traceType';
 
 import {
-  NoDataNode,
   ParentAutogroupNode,
   SiblingAutogroupNode,
   TraceTree,
@@ -171,14 +170,6 @@ function assertSiblingAutogroupedNode(
   }
 }
 
-function assertNoDataNode(
-  node: TraceTreeNode<TraceTree.NodeValue>
-): asserts node is NoDataNode {
-  if (!(node instanceof NoDataNode)) {
-    throw new Error('node is not a no data node');
-  }
-}
-
 describe('TreeNode', () => {
   it('expands transaction nodes by default', () => {
     const node = new TraceTreeNode(null, makeTransaction(), {
@@ -262,6 +253,7 @@ describe('TreeNode', () => {
             }),
           ],
         }),
+        null,
         null
       );
 
@@ -284,6 +276,7 @@ describe('TreeNode', () => {
             }),
           ],
         }),
+        null,
         null
       );
 
@@ -305,6 +298,7 @@ describe('TreeNode', () => {
             }),
           ],
         }),
+        null,
         null
       );
 
@@ -324,6 +318,7 @@ describe('TreeNode', () => {
             }),
           ],
         }),
+        null,
         null
       );
 
@@ -345,6 +340,7 @@ describe('TreeNode', () => {
             }),
           ],
         }),
+        null,
         null
       );
 
@@ -552,6 +548,7 @@ describe('TreeNode', () => {
           transactions: [],
           orphan_errors: [makeTraceError({event_id: 'error_id'})],
         }),
+        null,
         null
       );
 
@@ -569,6 +566,7 @@ describe('TreeNode', () => {
             }),
           ],
         }),
+        null,
         null
       );
 
@@ -625,6 +623,7 @@ describe('TreeNode', () => {
           ],
           orphan_errors: [],
         }),
+        null,
         null
       );
 
@@ -640,35 +639,6 @@ describe('TreeNode', () => {
       expect(adjusted_space).toEqual([0.5, 3.5]);
     });
 
-    it('inserts no data node when txn has no span children', async () => {
-      const tree = TraceTree.FromTrace(
-        makeTrace({
-          transactions: [
-            makeTransaction({
-              transaction: '/',
-              project_slug: 'project',
-              event_id: 'event_id',
-            }),
-          ],
-        }),
-        null
-      );
-
-      MockApiClient.addMockResponse({
-        url: EVENT_REQUEST_URL,
-        method: 'GET',
-        body: makeEvent({}, []),
-      });
-
-      await tree.zoomIn(tree.list[1], true, {
-        api: new MockApiClient(),
-        organization: OrganizationFixture(),
-      });
-
-      assertNoDataNode(tree.list[2]);
-      expect(tree.list.length).toBe(3);
-    });
-
     describe('autogrouped children', () => {
       const tree = TraceTree.FromTrace(
         makeTrace({
@@ -680,6 +650,7 @@ describe('TreeNode', () => {
             }),
           ],
         }),
+        null,
         null
       );
 
@@ -729,6 +700,7 @@ describe('TreeNode', () => {
               }),
             ],
           }),
+          null,
           null
         );
 
@@ -777,6 +749,7 @@ describe('TreeNode', () => {
             }),
           ],
         }),
+        null,
         null
       );
 
@@ -830,6 +803,7 @@ describe('TraceTree', () => {
           }),
         ],
       }),
+      null,
       null
     );
 
@@ -849,6 +823,7 @@ describe('TraceTree', () => {
         ],
         orphan_errors: [makeTraceError()],
       }),
+      null,
       null
     );
 
@@ -871,6 +846,7 @@ describe('TraceTree', () => {
           } as TraceTree.TraceError,
         ],
       }),
+      null,
       null
     );
 
@@ -892,6 +868,7 @@ describe('TraceTree', () => {
         ],
         orphan_errors: [makeTraceError({timestamp: 1, level: 'error'})],
       }),
+      null,
       null
     );
 
@@ -919,6 +896,7 @@ describe('TraceTree', () => {
           makeTraceError({timestamp: 0.3}),
         ],
       }),
+      null,
       null
     );
 
@@ -935,6 +913,7 @@ describe('TraceTree', () => {
         transactions: [],
         orphan_errors: [],
       }),
+      null,
       null
     );
 
@@ -952,6 +931,7 @@ describe('TraceTree', () => {
         ],
         orphan_errors: [],
       }),
+      null,
       null
     );
 
@@ -967,6 +947,7 @@ describe('TraceTree', () => {
         ],
         orphan_errors: [],
       }),
+      null,
       null
     );
 
@@ -985,6 +966,7 @@ describe('TraceTree', () => {
         ],
         orphan_errors: [],
       }),
+      null,
       null
     );
 
@@ -1004,6 +986,7 @@ describe('TraceTree', () => {
         ],
         orphan_errors: [],
       }),
+      null,
       null
     );
 
@@ -1014,6 +997,7 @@ describe('TraceTree', () => {
         transactions: [],
         orphan_errors: [makeTraceError()],
       }),
+      null,
       null
     );
 
@@ -1029,6 +1013,7 @@ describe('TraceTree', () => {
         ],
         orphan_errors: [],
       }),
+      null,
       null
     );
 
@@ -1258,6 +1243,7 @@ describe('TraceTree', () => {
           }),
         ],
       }),
+      null,
       null
     );
 
@@ -1313,6 +1299,7 @@ describe('TraceTree', () => {
           }),
         ],
       }),
+      null,
       null
     );
 
@@ -1326,6 +1313,7 @@ describe('TraceTree', () => {
           }),
         ],
       }),
+      null,
       null
     );
 
@@ -1361,6 +1349,7 @@ describe('TraceTree', () => {
           }),
         ],
       }),
+      null,
       null
     );
 
@@ -1389,6 +1378,7 @@ describe('TraceTree', () => {
           }),
         ],
       }),
+      null,
       null
     );
 
@@ -1405,6 +1395,7 @@ describe('TraceTree', () => {
           }),
         ],
       }),
+      null,
       null
     );
 
@@ -1423,6 +1414,7 @@ describe('TraceTree', () => {
         ],
         orphan_errors: [],
       }),
+      null,
       null
     );
 
@@ -1450,6 +1442,7 @@ describe('TraceTree', () => {
             makeTransaction({transaction: 'sibling'}),
           ],
         }),
+        null,
         null
       );
 
@@ -1491,6 +1484,7 @@ describe('TraceTree', () => {
             }),
           ],
         }),
+        null,
         null
       );
 
@@ -1529,6 +1523,7 @@ describe('TraceTree', () => {
     it('expands a node and updates the list', () => {
       const tree = TraceTree.FromTrace(
         makeTrace({transactions: [makeTransaction({children: [makeTransaction()]})]}),
+        null,
         null
       );
 
@@ -1548,6 +1543,7 @@ describe('TraceTree', () => {
     it('collapses a node and updates the list', () => {
       const tree = TraceTree.FromTrace(
         makeTrace({transactions: [makeTransaction({children: [makeTransaction()]})]}),
+        null,
         null
       );
 
@@ -1574,6 +1570,7 @@ describe('TraceTree', () => {
             }),
           ],
         }),
+        null,
         null
       );
 
@@ -1594,6 +1591,7 @@ describe('TraceTree', () => {
 
       const tree = TraceTree.FromTrace(
         makeTrace({transactions: [makeTransaction({children: [makeTransaction()]})]}),
+        null,
         null
       );
 
@@ -1619,6 +1617,7 @@ describe('TraceTree', () => {
 
       const tree = TraceTree.FromTrace(
         makeTrace({transactions: [makeTransaction({children: [makeTransaction()]})]}),
+        null,
         null
       );
 
@@ -1648,6 +1647,7 @@ describe('TraceTree', () => {
             makeTransaction({project_slug: 'project', event_id: 'event_id'}),
           ],
         }),
+        null,
         null
       );
 
@@ -1729,6 +1729,7 @@ describe('TraceTree', () => {
             makeTransaction({project_slug: 'project', event_id: 'event_id'}),
           ],
         }),
+        null,
         null
       );
 
@@ -1759,6 +1760,7 @@ describe('TraceTree', () => {
             }),
           ],
         }),
+        null,
         null
       );
 
@@ -1808,6 +1810,7 @@ describe('TraceTree', () => {
             }),
           ],
         }),
+        null,
         null
       );
 
@@ -1852,6 +1855,7 @@ describe('TraceTree', () => {
             }),
           ],
         }),
+        null,
         null
       );
 
@@ -1903,6 +1907,7 @@ describe('TraceTree', () => {
             makeTransaction({project_slug: 'project', event_id: 'event_id'}),
           ],
         }),
+        null,
         null
       );
 
@@ -1941,6 +1946,7 @@ describe('TraceTree', () => {
             makeTransaction({project_slug: 'project', event_id: 'event_id'}),
           ],
         }),
+        null,
         null
       );
 
@@ -1997,6 +2003,7 @@ describe('TraceTree', () => {
             }),
           ],
         }),
+        null,
         null
       );
 
@@ -2046,6 +2053,7 @@ describe('TraceTree', () => {
             }),
           ],
         }),
+        null,
         null
       );
 
@@ -2526,6 +2534,7 @@ describe('TraceTree', () => {
             }),
           ],
         }),
+        null,
         null
       );
 
@@ -2602,6 +2611,7 @@ describe('TraceTree', () => {
             }),
           ],
         }),
+        null,
         null
       );
 
@@ -2659,6 +2669,7 @@ describe('TraceTree', () => {
         organization,
         rerender: () => {},
         urlParams: {} as Location['query'],
+        metaResults: null,
       });
 
       await waitFor(() => expect(tree.root.children[0].fetchStatus).toBe('idle'));
@@ -2683,6 +2694,7 @@ describe('TraceTree', () => {
             }),
           ],
         }),
+        null,
         null
       );
 
@@ -2730,6 +2742,7 @@ describe('TraceTree', () => {
         organization,
         rerender: () => {},
         urlParams: {} as Location['query'],
+        metaResults: null,
       });
 
       await waitFor(() => expect(tree.root.children[0].fetchStatus).toBe('idle'));
@@ -2758,6 +2771,7 @@ describe('TraceTree', () => {
             }),
           ],
         }),
+        null,
         null
       );
 
@@ -2788,6 +2802,7 @@ describe('TraceTree', () => {
             }),
           ],
         }),
+        null,
         null
       );
 
@@ -2821,6 +2836,7 @@ describe('TraceTree', () => {
             }),
           ],
         }),
+        null,
         null
       );
       MockApiClient.addMockResponse({
@@ -2859,6 +2875,7 @@ describe('TraceTree', () => {
               }),
             ],
           }),
+          null,
           null
         );
 
@@ -2899,6 +2916,7 @@ describe('TraceTree', () => {
               }),
             ],
           }),
+          null,
           null
         );
 

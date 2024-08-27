@@ -34,7 +34,7 @@ import {
   cancelAnimationTimeout,
   requestAnimationTimeout,
 } from 'sentry/utils/profiling/hooks/useVirtualizedTree/virtualizedTreeUtils';
-import type {UseApiQueryResult} from 'sentry/utils/queryClient';
+import type {QueryStatus, UseApiQueryResult} from 'sentry/utils/queryClient';
 import {decodeScalar} from 'sentry/utils/queryString';
 import type RequestError from 'sentry/utils/requestError/requestError';
 import {capitalize} from 'sentry/utils/string/capitalize';
@@ -126,6 +126,21 @@ function logTraceMetadata(
   }
 }
 
+export function getTraceViewQueryStatus(
+  traceQueryStatus: QueryStatus,
+  traceMetaQueryStatus: QueryStatus
+): QueryStatus {
+  if (traceQueryStatus === 'error' || traceMetaQueryStatus === 'error') {
+    return 'error';
+  }
+
+  if (traceQueryStatus === 'loading' || traceMetaQueryStatus === 'loading') {
+    return 'loading';
+  }
+
+  return 'success';
+}
+
 export function TraceView() {
   const params = useParams<{traceSlug?: string}>();
   const organization = useOrganization();
@@ -185,7 +200,7 @@ export function TraceView() {
     });
   }, [queryParams, traceSlug]);
 
-  const meta = useTraceMeta([traceSlug]);
+  const meta = useTraceMeta([{traceSlug, timestamp: queryParams.timestamp}]);
 
   const preferences = useMemo(
     () =>
@@ -218,7 +233,7 @@ export function TraceView() {
               <TraceViewWaterfall
                 traceSlug={traceSlug}
                 trace={trace.data ?? null}
-                status={trace.status}
+                status={getTraceViewQueryStatus(trace.status, meta.status)}
                 organization={organization}
                 rootEvent={rootEvent}
                 traceEventView={traceEventView}
@@ -346,8 +361,12 @@ export function TraceViewWaterfall(props: TraceViewWaterfallProps) {
       return;
     }
 
-    if (props.trace) {
-      const trace = TraceTree.FromTrace(props.trace, props.replayRecord);
+    if (props.trace && props.metaResults.data) {
+      const trace = TraceTree.FromTrace(
+        props.trace,
+        props.metaResults,
+        props.replayRecord
+      );
 
       // Root frame + 2 nodes
       const promises: Promise<void>[] = [];
@@ -367,6 +386,7 @@ export function TraceViewWaterfall(props: TraceViewWaterfallProps) {
     props.traceSlug,
     props.trace,
     props.status,
+    props.metaResults,
     props.replayRecord,
     projects,
     api,
@@ -385,6 +405,7 @@ export function TraceViewWaterfall(props: TraceViewWaterfallProps) {
       organization: props.organization,
       urlParams: qs.parse(location.search),
       rerender: forceRerender,
+      metaResults: props.metaResults,
     });
 
     return () => cleanup();
