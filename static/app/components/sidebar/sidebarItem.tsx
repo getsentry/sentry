@@ -164,9 +164,6 @@ function SidebarItem({
   const isInCollapsedState = (!isInFloatingAccordion && collapsed) || hasNewNav;
 
   const isActive = defined(active) ? active : isActiveRouter;
-  if (isActive) {
-    console.log('SIDEBAR ITEM IS ACTIVE: ', id);
-  }
   const isTop = orientation === 'top' && !isInFloatingAccordion;
   const placement = isTop ? 'bottom' : 'right';
 
@@ -375,9 +372,6 @@ const getActiveStyle = ({
   `;
 };
 
-// height: ${16 * 2 + 40}px;
-// width: 70px;
-
 const StyledSidebarItem = styled(Link, {
   shouldForwardProp: p => typeof p === 'string' && isPropValid(p),
 })`
@@ -386,31 +380,31 @@ const StyledSidebarItem = styled(Link, {
   position: relative;
   cursor: pointer;
   font-size: 15px;
-  height: ${p => (p.isInFloatingAccordion ? '35px' : '30px')};
+  height: ${p =>
+    p.isInFloatingAccordion ? '35px' : p.hasNewNav ? `${16 * 2 + 40}px` : '30px'};
+  width: ${p => (p.isInFloatingAccordion ? '100%' : p.hasNewNav ? '70px' : 'auto')};
   flex-shrink: 0;
   border-radius: ${p => p.theme.borderRadius};
   transition: none;
   ${p => {
-    if (!p.hasNewNav) {
+    if (p.hasNewNav && !p.isInFloatingAccordion) {
       return css`
-        &:before {
-          display: block;
-          content: '';
-          position: absolute;
-          top: 4px;
-          left: calc(-${space(2)} - 1px);
-          bottom: 6px;
-          width: 5px;
-          border-radius: 0 3px 3px 0;
-          background-color: transparent;
-          transition: 0.15s background-color linear;
-        }
+        align-self: center;
       `;
     }
     return css`
-      width: 70px;
-      height: ${16 * 2 + 40}px;
-      align-self: center;
+      &:before {
+        display: block;
+        content: '';
+        position: absolute;
+        top: 4px;
+        left: calc(-${space(2)} - 1px);
+        bottom: 6px;
+        width: 5px;
+        border-radius: 0 3px 3px 0;
+        background-color: transparent;
+        transition: 0.15s background-color linear;
+      }
     `;
   }}
 

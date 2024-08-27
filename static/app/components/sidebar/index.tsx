@@ -613,9 +613,6 @@ function Sidebar() {
 
   // Sidebar accordion includes a secondary list of nav items
   // TODO: replace with a secondary panel
-  // Bugs:
-  // - on click highlights the card... but deselect doesn't un-highlight
-  //
   const explore = (
     <SidebarAccordion
       {...sidebarItemProps}
