@@ -66,7 +66,8 @@ class ProjectRuleActionsEndpointTest(APITestCase):
             )
             self.jira_integration.add_organization(self.organization, self.user)
 
-        mock_create_issue.side_effect = IntegrationFormError("Something went wrong")
+        form_errors = {"broken": "something went wrong"}
+        mock_create_issue.side_effect = IntegrationFormError(form_errors)
         action_data = [
             {
                 "id": "sentry.integrations.jira.notify_action.JiraCreateTicketAction",
@@ -88,7 +89,7 @@ class ProjectRuleActionsEndpointTest(APITestCase):
                 self.organization.slug, self.project.slug, actions=action_data
             )
             assert mock_create_issue.call_count == 2
-            assert response.data == {"actions": ["Something went wrong"]}
+            assert response.data == {"actions": [str(form_errors)]}
 
     @mock.patch.object(JiraIntegration, "create_issue")
     def test_success_response_when_client_raises(self, mock_create_issue):
@@ -98,7 +99,7 @@ class ProjectRuleActionsEndpointTest(APITestCase):
             )
             self.jira_integration.add_organization(self.organization, self.user)
 
-        mock_create_issue.side_effect = IntegrationFormError("Something went wrong")
+        mock_create_issue.side_effect = IntegrationFormError({"broken": "something went wrong"})
         action_data = [
             {
                 "id": "sentry.integrations.jira.notify_action.JiraCreateTicketAction",

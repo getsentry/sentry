@@ -10,7 +10,7 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases import ProjectAlertRulePermission, ProjectEndpoint
 from sentry.api.serializers.rest_framework import RuleActionSerializer
-from sentry.eventstore.models import Event
+from sentry.eventstore.models import GroupEvent
 from sentry.models.rule import Rule
 from sentry.rules.processing.processor import activate_downstream_actions
 from sentry.shared_integrations.exceptions import IntegrationError
@@ -77,7 +77,7 @@ class ProjectRuleActionsEndpoint(ProjectEndpoint):
 
     def execute_future_on_test_event(
         self,
-        test_event: Event | None,
+        test_event: GroupEvent,
         rule: Rule,
     ) -> Response:
         """
