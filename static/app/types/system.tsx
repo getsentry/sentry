@@ -96,6 +96,11 @@ declare global {
      */
     __SENTRY_DEV_UI?: boolean;
     /**
+     * Use react-router v6 in compatability mode. This exists while we migrate
+     * off of react-router v3.
+     */
+    __SENTRY_USING_REACT_ROUTER_SIX?: boolean;
+    /**
      * Sentrys version string
      */
     __SENTRY__VERSION?: string;
