@@ -35,7 +35,7 @@ function SampleImages({groupId, projectId}: Props) {
   const [showLinks, setShowLinks] = useLocalStorageState(LOCAL_STORAGE_SHOW_LINKS, false);
   const filters = useResourceModuleFilters();
   const [showImages, setShowImages] = useState(showLinks);
-  const {data: settings, isLoading: isSettingsLoading} =
+  const {data: settings, isPending: isSettingsLoading} =
     usePerformanceGeneralProjectSettings(projectId);
   const isImagesEnabled = settings?.enable_images ?? false;
 
