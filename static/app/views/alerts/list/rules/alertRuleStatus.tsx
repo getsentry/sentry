@@ -89,7 +89,7 @@ export default function AlertRuleStatus({rule}: Props) {
 
   return (
     <FlexCenter>
-      {rule.detectionType !== AlertRuleComparisonType.DYNAMIC ?? (
+      {rule.detectionType !== AlertRuleComparisonType.DYNAMIC && (
         <IconArrow color={iconColor} direction={iconDirection} />
       )}
       {rule.detectionType !== AlertRuleComparisonType.DYNAMIC ? (
