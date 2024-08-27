@@ -119,7 +119,7 @@ class DiscordIntegrationProvider(IntegrationProvider):
     features = frozenset([IntegrationFeatures.CHAT_UNFURL, IntegrationFeatures.ALERT_RULE])
 
     # https://discord.com/developers/docs/topics/oauth2#shared-resources-oauth2-scopes
-    oauth_scopes = frozenset(["applications.commands", "bot", "identify"])
+    oauth_scopes = frozenset(["applications.commands", "bot", "identify", "guilds.members.read"])
     access_token = ""
 
     bot_permissions = (

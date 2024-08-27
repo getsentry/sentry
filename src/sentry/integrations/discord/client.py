@@ -12,8 +12,8 @@ from rest_framework import status
 from sentry import options
 from sentry.integrations.client import ApiClient
 from sentry.integrations.discord.message_builder.base.base import DiscordMessageBuilder
-from sentry.integrations.discord.types import DiscordPermissions
 from sentry.integrations.discord.utils.consts import DISCORD_ERROR_CODES, DISCORD_USER_ERRORS
+from sentry.shared_integrations.exceptions import ApiError
 
 # to avoid a circular import
 from sentry.utils import metrics
@@ -106,31 +106,18 @@ class DiscordClient(ApiClient):
     def check_user_bot_installation_permission(self, access_token: str, guild_id: str) -> bool:
         headers = {"Authorization": f"Bearer {access_token}"}
 
-        # We only want information about guild_id so we filter everything else out
-        # Need to do this very convoluted way of getting the guild information because
+        # We only want information about guild_id and check the user's permission in the guild, but we can't currently do that
         # https://github.com/discord/discord-api-docs/discussions/6846
         # TODO(iamrajjoshi): Eventually, we should use `/users/@me/guilds/{guild.id}/member`
-        params = {"before": str(int(guild_id) + 1), "after": str(int(guild_id) - 1), "limit": 1}
+        # Instead, we check if the user in a member of the guild
 
-        response = self.get("/users/@me/guilds", headers=headers, params=params)
-        if not response or not isinstance(response, list):
-            return False
+        try:
+            self.get(f"/users/@me/guilds/{guild_id}/member", headers=headers)
+        except ApiError as e:
+            if e.code == 404:
+                return False
 
-        # We will only get one guild back, so we can just grab the first one
-        guild_information = response[0]
-
-        if not guild_information:
-            return False
-
-        permissions = int(guild_information["permissions"])
-        can_manage_guild = (
-            permissions & DiscordPermissions.MANAGE_GUILD.value
-        ) == DiscordPermissions.MANAGE_GUILD.value
-        is_admin = (
-            permissions & DiscordPermissions.ADMINISTRATOR.value
-        ) == DiscordPermissions.ADMINISTRATOR.value
-
-        return can_manage_guild or is_admin
+        return True
 
     def leave_guild(self, guild_id: str) -> None:
         """

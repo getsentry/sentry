@@ -9,7 +9,6 @@ from sentry import audit_log, options
 from sentry.api.client import ApiError
 from sentry.integrations.discord.client import APPLICATION_COMMANDS_URL, GUILD_URL, DiscordClient
 from sentry.integrations.discord.integration import COMMANDS, DiscordIntegrationProvider
-from sentry.integrations.discord.types import DiscordPermissions
 from sentry.integrations.models.integration import Integration
 from sentry.models.auditlogentry import AuditLogEntry
 from sentry.shared_integrations.exceptions import IntegrationError
@@ -75,8 +74,8 @@ class DiscordSetupTestCase(IntegrationTestCase):
 
         responses.add(
             responses.GET,
-            url=f"{DiscordClient.base_url}/users/@me/guilds",
-            json=[{"id": guild_id, "permissions": str(DiscordPermissions.MANAGE_GUILD.value)}],
+            url=f"{DiscordClient.base_url}/users/@me/guilds/{guild_id}/member",
+            json={},
         )
 
         if command_response_empty:
@@ -170,8 +169,8 @@ class DiscordSetupTestCase(IntegrationTestCase):
 
         responses.add(
             responses.GET,
-            url=f"{DiscordClient.base_url}/users/@me/guilds",
-            json=[{"id": guild_id, "permissions": str(DiscordPermissions.MANAGE_GUILD.value)}],
+            url=f"{DiscordClient.base_url}/users/@me/guilds/{guild_id}/member",
+            json={},
         )
 
         responses.add(
@@ -282,8 +281,8 @@ class DiscordIntegrationTest(DiscordSetupTestCase):
 
         responses.add(
             responses.GET,
-            url=f"{DiscordClient.base_url}/users/@me/guilds",
-            json=[{"id": self.guild_id, "permissions": str(DiscordPermissions.MANAGE_GUILD.value)}],
+            url=f"{DiscordClient.base_url}/users/@me/guilds/{self.guild_id}/member",
+            json={},
         )
 
         result = provider.build_integration({"guild_id": self.guild_id, "code": self.user_id})
@@ -321,8 +320,8 @@ class DiscordIntegrationTest(DiscordSetupTestCase):
         )
         responses.add(
             responses.GET,
-            url=f"{DiscordClient.base_url}/users/@me/guilds",
-            json=[{"id": self.guild_id, "permissions": str(DiscordPermissions.MANAGE_GUILD.value)}],
+            url=f"{DiscordClient.base_url}/users/@me/guilds/{self.guild_id}/member",
+            json={},
         )
 
         result = provider.build_integration({"guild_id": self.guild_id, "code": self.user_id})
@@ -353,8 +352,9 @@ class DiscordIntegrationTest(DiscordSetupTestCase):
         )
         responses.add(
             responses.GET,
-            url=f"{DiscordClient.base_url}/users/@me/guilds",
-            json=[{"id": self.guild_id, "permissions": str(DiscordPermissions.VIEW_CHANNEL.value)}],
+            url=f"{DiscordClient.base_url}/users/@me/guilds/{self.guild_id}/member",
+            json={"code": 10004, "message": "Unknown guild"},
+            status=404,
         )
 
         with pytest.raises(IntegrationError):
