@@ -938,7 +938,7 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
         ? this.state.sensitivity || AlertRuleSensitivity.MEDIUM
         : undefined;
     const seasonality =
-      value === AlertRuleComparisonType.DYNAMIC ? AlertRuleSeasonality.AUTO : undefined; // TODO: replace "auto" with the correct constant
+      value === AlertRuleComparisonType.DYNAMIC ? AlertRuleSeasonality.AUTO : undefined;
     this.setState({
       comparisonType: value,
       comparisonDelta,
