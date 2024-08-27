@@ -1,4 +1,5 @@
 import logging
+from collections.abc import MutableMapping
 from time import sleep, time
 
 import sentry_sdk
@@ -17,7 +18,7 @@ logger = logging.getLogger("sentry.tasks.split_discover_query_dataset")
 
 SLEEP_FOR = 5 * 60  # 5 minutes
 MAX_NOOP_ATTEMPTS = 10
-RATE_LIMIT_CACHE = LRUCache(maxsize=1000)
+RATE_LIMIT_CACHE: MutableMapping[str | int, int] = LRUCache(maxsize=1000)
 
 
 class NoOpException(Exception):

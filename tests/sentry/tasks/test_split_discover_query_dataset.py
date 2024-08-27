@@ -71,7 +71,7 @@ def create_discover_query(
 def test_split_discover_query_dataset_flags(
     option_enabled: bool,
     option_organization_allowlist: list[int],
-    get_and_save_split_decision_for_query_called: False,
+    get_and_save_split_decision_for_query_called: bool,
     project: Project,
 ):
     options = {

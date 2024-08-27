@@ -479,7 +479,7 @@ class DiscoverSavedQueryTestCase(TestCase, SnubaTestCase):
         )
 
         with self.options({"system.event-retention-days": 90}):
-            snuba_dataclass, _ = get_snuba_dataclass(query, self.projects)
+            snuba_dataclass = get_snuba_dataclass(query, self.projects)
 
         assert snuba_dataclass.start == datetime(2024, 4, 24, 12, 0, tzinfo=timezone.utc)
         assert snuba_dataclass.end == datetime(2024, 5, 1, 12, 0, tzinfo=timezone.utc)
@@ -506,7 +506,7 @@ class DiscoverSavedQueryTestCase(TestCase, SnubaTestCase):
             is_homepage=True,
         )
 
-        snuba_dataclass, _ = get_snuba_dataclass(query, self.projects)
+        snuba_dataclass = get_snuba_dataclass(query, self.projects)
 
         assert snuba_dataclass.start == datetime(2024, 5, 1, 11, 0, tzinfo=timezone.utc)
         assert snuba_dataclass.end == datetime(2024, 5, 1, 12, 0, tzinfo=timezone.utc)
