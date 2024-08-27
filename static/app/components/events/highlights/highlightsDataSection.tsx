@@ -169,16 +169,16 @@ function HighlightsData({
 
   const {fetchError: replayFetchError} = useReplayData({
     orgSlug: organization.slug,
-    replayId: replayId,
+    replayId,
   });
 
-  // if fetchError, replace the replay id so we don't link to an invalid replay
+  // if fetchError, replace the replayId so we don't link to an invalid replay
   if (contextReplayItem && replayFetchError) {
-    contextReplayItem.value = '--';
+    contextReplayItem.value = EMPTY_HIGHLIGHT_DEFAULT;
   }
   if (tagReplayItem && replayFetchError) {
-    tagReplayItem.value = '--';
-    tagReplayItem.originalTag.value = '--';
+    tagReplayItem.value = EMPTY_HIGHLIGHT_DEFAULT;
+    tagReplayItem.originalTag.value = EMPTY_HIGHLIGHT_DEFAULT;
   }
 
   const highlightContextRows = highlightContextDataItems.reduce<React.ReactNode[]>(
