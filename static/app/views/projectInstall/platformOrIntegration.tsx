@@ -9,7 +9,7 @@ import useProjects from 'sentry/utils/useProjects';
 
 import GettingStarted from './gettingStarted';
 import {ProjectInstallPlatform} from './platform';
-import PlatformIntegrationSetup from './platformIntegrationSetup';
+import {PlatformIntegrationSetup} from './platformIntegrationSetup';
 
 type Props = RouteComponentProps<{projectId: string}, {}>;
 
