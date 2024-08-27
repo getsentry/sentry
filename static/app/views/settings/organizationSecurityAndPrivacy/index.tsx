@@ -51,6 +51,7 @@ export default function OrganizationSecurityAndPrivacyContent() {
   }
 
   const {isSelfHosted} = ConfigStore.getState();
+  // only need data secrecy in saas
   const showDataSecrecySettings =
     !organization.features.includes('data-secrecy') && !isSelfHosted;
 
