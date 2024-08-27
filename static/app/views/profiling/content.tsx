@@ -488,7 +488,7 @@ function ProfilingTransactionsContent(props: ProfilingTabContentProps) {
                 selection={selection}
                 continuousProfilingCompat={continuousProfilingCompat}
               />
-              <SlowestFunctionsTable />
+              <SlowestFunctionsTable userQuery={query} />
             </Fragment>
           ) : organization.features.includes('profiling-global-suspect-functions') ? (
             <Fragment>
