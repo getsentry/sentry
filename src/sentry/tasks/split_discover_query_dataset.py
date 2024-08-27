@@ -28,10 +28,17 @@ class EmptyQueryset(Exception):
     pass
 
 
+class TaskKilled(Exception):
+    pass
+
+
 def _split_discover_query_dataset(dry_run):
     organization_allowlist = options.get(
         "discover.saved-query-dataset-split.organization-allowlist"
     )
+    # Kill switch, this task is okay to kill
+    if not options.get("discover.saved-query-dataset-split.enable"):
+        raise TaskKilled
 
     # Tracks if any queries were processed this loop
     did_process = False
@@ -62,6 +69,10 @@ def _split_discover_query_dataset(dry_run):
         raise EmptyQueryset
 
     for saved_query in RangeQuerySetWrapper(queryset):
+        # Kill switch, this task is okay to kill
+        if not options.get("discover.saved-query-dataset-split.enable"):
+            raise TaskKilled
+
         last_accessed = RATE_LIMIT_CACHE.get(saved_query.organization_id, None)
         # Don't try to split if we've run hit snuba for this org in the last 10 seconds
         if last_accessed is not None and int(time()) - last_accessed < 10:
@@ -149,6 +160,9 @@ def split_discover_query_dataset(dry_run: bool, **kwargs):
             _split_discover_query_dataset(dry_run)
 
         except EmptyQueryset:
+            break
+        except TaskKilled:
+            logger.warning("Kill switch enabled.")
             break
         except NoOpException:
             consecutive_noop_attempts += 1
