@@ -35,7 +35,14 @@ export default function ReleaseIsssues({releaseVersion}: {releaseVersion: string
           grid-template-rows: auto 1fr;
         `}
       >
-        <span css={[smallCss, panelDescCss, panelSectionCssNoBorder, {paddingBottom: 0}]}>
+        <span
+          css={[
+            smallCss,
+            panelDescCss,
+            panelSectionCssNoBorder,
+            {paddingTop: 'var(--space25)', paddingBottom: 0},
+          ]}
+        >
           New Issues in This Release
         </span>
         <div css={resetFlexColumnCss}>
