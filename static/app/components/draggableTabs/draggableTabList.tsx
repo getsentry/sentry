@@ -106,7 +106,7 @@ function BaseDraggableTabList({
                 dragConstraints={tabListRef} // Sets the container that the tabs can be dragged within
                 dragElastic={0} // Prevents tabs from being dragged outside of the tab bar
                 dragTransition={{bounceStiffness: 400, bounceDamping: 40}} // Recovers spring behavior thats lost when using dragElastic
-                layout
+                layout="position"
               >
                 <Tab
                   key={item.key}
@@ -119,7 +119,7 @@ function BaseDraggableTabList({
                 />
               </Reorder.Item>
               <TabDivider
-                layout
+                layout="position"
                 isVisible={
                   state.selectedKey === 'temporary-tab' ||
                   (state.selectedKey !== item.key &&
