@@ -62,6 +62,36 @@ getError() {
 }
 `;
 
+const getDecoratedGlobalFilter =
+  () => `import { Catch, ExceptionFilter } from '@nestjs/common';
+import { WithSentry } from '@sentry/nestjs';
+
+@Catch()
+export class YourCatchAllExceptionFilter implements ExceptionFilter {
+  @WithSentry()
+  catch(exception, host): void {
+    // your implementation here
+  }
+}
+`;
+
+const getAppModuleSnippetWithSentryGlobalFilter =
+  () => `import { Module } from '@nestjs/common';
+import { APP_FILTER } from '@nestjs/core';
+import { SentryGlobalFilter } from '@sentry/nestjs/setup';
+
+@Module({
+  providers: [
+    {
+      provide: APP_FILTER,
+      useClass: SentryGlobalFilter,
+    },
+    // ..other providers
+  ],
+})
+export class AppModule {}
+`;
+
 const onboarding: OnboardingConfig = {
   install: params => [
     {
@@ -117,10 +147,9 @@ const onboarding: OnboardingConfig = {
         },
         {
           description: tct(
-            'Then you can add the [code1:SentryModule] as a root module. The [code2:SentryModule] needs to be registered before any other module that should be instrumented by Sentry.',
+            'Afterwards, add the [code1:SentryModule] as a root module to your main module:',
             {
               code1: <code />,
-              code2: <code />,
               docs: (
                 <ExternalLink href="https://docs.sentry.io/platforms/javascript/guides/nestjs/install/" />
               ),
@@ -133,6 +162,44 @@ const onboarding: OnboardingConfig = {
               language: 'javascript',
               filename: 'app.module.(js|ts)',
               code: getAppModuleSnippet(),
+            },
+          ],
+        },
+        {
+          description: tct(
+            'In case you are using a global catch-all exception filter (which is either a filter registered with [code1:app.useGlobalFilters()] or a filter registered in your app module providers annotated with a [code2:@Catch()] decorator without arguments), add a [code3:@WithSentry()] decorator to the [code4:catch()] method of this global error filter. This decorator will report all unexpected errors that are received by your global error filter to Sentry:',
+            {
+              code1: <code />,
+              code2: <code />,
+              code3: <code />,
+              code4: <code />,
+            }
+          ),
+          code: [
+            {
+              label: 'JavaScript',
+              value: 'javascript',
+              language: 'javascript',
+              filename: 'global.filter.(js|ts)',
+              code: getDecoratedGlobalFilter(),
+            },
+          ],
+        },
+        {
+          description: tct(
+            'In case you do not have a global catch-all exception filter, add the [code1:SentryGlobalFilter] to the providers of your main module. This filter will report all unhandled errors to Sentry that are not caught by any other error filter. Important: The [code2:SentryGlobalFilter] needs to be registered before any other exception filters.',
+            {
+              code1: <code />,
+              code2: <code />,
+            }
+          ),
+          code: [
+            {
+              label: 'JavaScript',
+              value: 'javascript',
+              language: 'javascript',
+              filename: 'app.module.(js|ts)',
+              code: getAppModuleSnippetWithSentryGlobalFilter(),
             },
           ],
         },
