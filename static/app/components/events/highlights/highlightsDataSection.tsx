@@ -30,6 +30,7 @@ import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import useReplayData from 'sentry/utils/replays/hooks/useReplayData';
 import theme from 'sentry/utils/theme';
 import {useDetailedProject} from 'sentry/utils/useDetailedProject';
 import {useFeedbackForm} from 'sentry/utils/useFeedbackForm';
@@ -147,6 +148,39 @@ function HighlightsData({
     highlightContext,
     location,
   });
+  const highlightTagItems = getHighlightTagData({event, highlightTags});
+
+  // find the replayId from either context or tags, if it exists
+  const contextReplayItem = highlightContextDataItems.find(
+    e => e.data[0].key === 'replay_id'
+  );
+  const contextReplayId = contextReplayItem?.value ?? '';
+
+  const tagReplayItem = highlightTagItems.find(e => e.originalTag.key === 'replayId');
+  const tagReplayId = tagReplayItem?.value ?? '';
+
+  // if the id doesn't exist for either tag or context, it's rendered as '--'
+  const replayId =
+    contextReplayId.length > 2
+      ? contextReplayId
+      : tagReplayId.length > 2
+        ? tagReplayId
+        : undefined;
+
+  const {fetchError: replayFetchError} = useReplayData({
+    orgSlug: organization.slug,
+    replayId: replayId,
+  });
+
+  // if fetchError, replace the replay id so we don't link to an invalid replay
+  if (contextReplayItem && replayFetchError) {
+    contextReplayItem.value = '--';
+  }
+  if (tagReplayItem && replayFetchError) {
+    tagReplayItem.value = '--';
+    tagReplayItem.originalTag.value = '--';
+  }
+
   const highlightContextRows = highlightContextDataItems.reduce<React.ReactNode[]>(
     (rowList, {alias, data}, i) => {
       const meta = getContextMeta(event, alias);
@@ -165,7 +199,6 @@ function HighlightsData({
     []
   );
 
-  const highlightTagItems = getHighlightTagData({event, highlightTags});
   const highlightTagRows = highlightTagItems.map((content, i) => (
     <EventTagsTreeRow
       key={`highlight-tag-${i}`}
