@@ -1,5 +1,6 @@
 import {Fragment, useMemo} from 'react';
 import styled from '@emotion/styled';
+import Color from 'color';
 
 import Feature from 'sentry/components/acl/feature';
 import {Breadcrumbs} from 'sentry/components/breadcrumbs';
@@ -242,7 +243,7 @@ const InfoWrapper = styled('div')<{isResolvedOrIgnored: boolean}>`
   gap: ${space(1)};
   background: ${p =>
     p.isResolvedOrIgnored
-      ? 'linear-gradient(to right, rgba(235, 250, 246, 0.2) , rgb(235, 250, 246))'
+      ? `linear-gradient(to right, ${Color(p.theme.success).lighten(0.5).alpha(0.2).string()}, ${Color(p.theme.success).lighten(0.7).alpha(0.05).string()})`
       : p.theme.background};
   color: ${p => p.theme.gray300};
   padding: ${space(1)} 24px;
