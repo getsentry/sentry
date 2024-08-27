@@ -88,7 +88,7 @@ function useCrumbHandlers() {
   );
 
   const onMouseLeave = useCallback(
-    (record: RecordType, _e: React.MouseEvent<HTMLElement>, nodeId: number) => {
+    (record: RecordType, _e: React.MouseEvent<HTMLElement>, nodeId?: number) => {
       if (mouseEnterCallback.current.id === record) {
         // If there is a mouseEnter callback queued and we're leaving the node
         // just cancel the timeout.
