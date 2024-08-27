@@ -464,6 +464,7 @@ def execute_query(query: Query, tenant_id: dict[str, int], referrer: str) -> Map
     except RateLimitExceeded as exc:
         sentry_sdk.set_tag("replay-rate-limit-exceeded", True)
         sentry_sdk.set_extra("org_id", tenant_id.get("organization_id"))
+        sentry_sdk.set_extra("referrer", referrer)
         sentry_sdk.capture_exception(exc)
         raise
 
