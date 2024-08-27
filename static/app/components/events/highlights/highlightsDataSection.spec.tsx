@@ -43,6 +43,11 @@ describe('HighlightsDataSection', function () {
       url: `/projects/${organization.slug}/${project.slug}/`,
       body: {...project, highlightTags: [], highlightContext: {}},
     });
+    const replayId = undefined;
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/replays/${replayId}/`,
+      body: {},
+    });
     render(
       <HighlightsDataSection
         event={event}
@@ -74,6 +79,12 @@ describe('HighlightsDataSection', function () {
     MockApiClient.addMockResponse({
       url: `/projects/${organization.slug}/${project.slug}/`,
       body: {...project, highlightTags, highlightContext},
+    });
+
+    const replayId = undefined;
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/replays/${replayId}/`,
+      body: {},
     });
 
     render(<HighlightsDataSection event={event} project={project} />, {
