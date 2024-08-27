@@ -100,8 +100,7 @@ def _split_discover_query_dataset(dry_run):
             snuba.QueryConnectionFailed,
             snuba.QueryTooManySimultaneous,
         ) as e:
-            # These are errors that should be okay to be retried on the next batch,
-            # so not setting a DatasetSourcesTypes.SPLIT_ERRORED dataset_source.
+            # These are errors that should be okay to be retried on the next batch.
             sentry_sdk.capture_exception(
                 e,
                 contexts={
