@@ -123,12 +123,18 @@ def update_subscription_in_snuba(
                 "event_types": subscription.snuba_query.event_types,
             },
         )
+        end = timezone.now()
+        start = end - timedelta(minutes=10)
         old_entity_key = get_entity_key_from_query_builder(
             old_entity_subscription.build_query_builder(
                 query,
                 [subscription.project_id],
                 None,
-                {"organization_id": subscription.project.organization_id},
+                {
+                    "organization_id": subscription.project.organization_id,
+                    "start": start,
+                    "end": end,
+                },
             ),
         )
         _delete_from_snuba(
@@ -216,6 +222,8 @@ def _create_in_snuba(subscription: QuerySubscription) -> str:
             subscription.project.organization_id,
         )
         query_string = build_query_strings(subscription, snuba_query).query_string
+        end = timezone.now()
+        start = end - timedelta(minutes=10)
         snql_query = entity_subscription.build_query_builder(
             query=query_string,
             project_ids=[subscription.project_id],
@@ -223,6 +231,8 @@ def _create_in_snuba(subscription: QuerySubscription) -> str:
             params={
                 "organization_id": subscription.project.organization_id,
                 "project_id": [subscription.project_id],
+                "start": start,
+                "end": end,
             },
         ).get_snql_query()
 

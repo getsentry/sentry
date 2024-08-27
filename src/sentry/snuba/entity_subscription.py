@@ -4,8 +4,10 @@ import re
 from abc import ABC, abstractmethod
 from collections.abc import Mapping, MutableMapping, Sequence
 from dataclasses import dataclass
+from datetime import timedelta
 from typing import Any, TypedDict, Union
 
+from django.utils import timezone
 from snuba_sdk import Column, Condition, Entity, Join, Op, Request
 
 from sentry import features
@@ -619,11 +621,13 @@ def get_entity_key_from_snuba_query(
         snuba_query,
         organization_id,
     )
+    end = timezone.now()
+    start = end - timedelta(minutes=10)
     query_builder = entity_subscription.build_query_builder(
         snuba_query.query,
         [project_id],
         snuba_query.environment,
-        {"organization_id": organization_id},
+        {"organization_id": organization_id, "start": start, "end": end},
         skip_field_validation_for_entity_subscription_deletion=skip_field_validation_for_entity_subscription_deletion,
     )
     return get_entity_key_from_query_builder(query_builder)
