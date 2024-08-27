@@ -335,6 +335,20 @@ def lowercase_search(builder: BaseQueryBuilder, search_filter: SearchFilter) -> 
     )
 
 
+def span_module_filter_converter(
+    builder: BaseQueryBuilder, search_filter: SearchFilter
+) -> WhereType | None:
+    module_value = search_filter.value.raw_value.lower()
+
+    if module_value != "cache" and module_value in constants.SPAN_MODULE_CATEGORY_VALUES:
+        # Creating the condition this way hits the tags index for span_module if using an actual value
+        # "Other" doesn't work for filtering in this way so we fall back to the transform of the span module field.
+        # "Cache" may be mapped on a per span basis, so it can not skip the transform and hit the index.
+        return Condition(builder.resolve_field("sentry_tags[category]"), Op.EQ, module_value)
+
+    return builder.default_filter_converter(search_filter)
+
+
 def span_status_filter_converter(
     builder: BaseQueryBuilder, search_filter: SearchFilter
 ) -> WhereType | None:

@@ -496,3 +496,16 @@ def test_id_column_permit_in_operator(params, column, query, operator):
         or nullable_condition in builder.where
         or non_nullable_condition in builder.where
     )
+
+
+@django_db_all
+def test_span_module_optimization_where_clause(params):
+    builder = SpansIndexedQueryBuilder(
+        Dataset.SpansIndexed,
+        params,
+        query="span.module:http",
+        selected_columns=["count"],
+    )
+
+    condition = Condition(builder.resolve_field("sentry_tags[category]"), Op.EQ, "http")
+    assert condition in builder.where
