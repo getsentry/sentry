@@ -1,14 +1,13 @@
 import {Fragment, useCallback, useMemo, useState} from 'react';
-import {Link} from 'react-router';
 import styled from '@emotion/styled';
-import {clamp} from 'lodash';
-import moment from 'moment';
+import clamp from 'lodash/clamp';
 
 import {Button, LinkButton} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import {LineChart, type LineChartProps} from 'sentry/components/charts/lineChart';
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
+import Link from 'sentry/components/links/link';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Panel from 'sentry/components/panels/panel';
 import {Tooltip} from 'sentry/components/tooltip';

@@ -1,6 +1,6 @@
 import 'intersection-observer'; // polyfill
 
-import {useCallback, useState} from 'react';
+import {useContext, useState} from 'react';
 import type {InjectedRouter} from 'react-router';
 import styled from '@emotion/styled';
 import type {Node} from '@react-types/shared';
@@ -10,15 +10,15 @@ import {DraggableTabList} from 'sentry/components/draggableTabs/draggableTabList
 import type {DraggableTabListItemProps} from 'sentry/components/draggableTabs/item';
 import type {MenuItemProps} from 'sentry/components/dropdownMenu';
 import QueryCount from 'sentry/components/queryCount';
-import {Tabs} from 'sentry/components/tabs';
+import {TabsContext} from 'sentry/components/tabs';
 import {t} from 'sentry/locale';
 import {defined} from 'sentry/utils';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import {DraggableTabMenuButton} from 'sentry/views/issueList/groupSearchViewTabs/draggableTabMenuButton';
 import EditableTabTitle from 'sentry/views/issueList/groupSearchViewTabs/editableTabTitle';
 import type {IssueSortOptions} from 'sentry/views/issueList/utils';
 
-// TODO(michaelsun): Move params that aren't necessary to draggableTabBar to parent
 export interface Tab {
   id: string;
   key: string;
@@ -31,14 +31,16 @@ export interface Tab {
 }
 
 export interface DraggableTabBarProps {
+  initialTabKey: string;
   orgSlug: string;
   router: InjectedRouter;
   setTabs: (tabs: Tab[]) => void;
+  setTempTab: (tab: Tab | undefined) => void;
   tabs: Tab[];
   /**
    * Callback function to be called when user clicks the `Add View` button.
    */
-  onAddView?: () => void;
+  onAddView?: (newTabs: Tab[]) => void;
   /**
    * Callback function to be called when user clicks the `Delete` button.
    * Note: The `Delete` button only appears for persistent views
@@ -78,13 +80,17 @@ export interface DraggableTabBarProps {
    * Note: The `Rename` button only appears for persistent views
    */
   onTabRenamed?: (newTabs: Tab[], newLabel: string) => void;
+  tempTab?: Tab;
 }
 
-const generateTempViewId = () => `_${Math.random().toString().substring(2, 7)}`;
+export const generateTempViewId = () => `_${Math.random().toString().substring(2, 7)}`;
 
 export function DraggableTabBar({
+  initialTabKey,
   tabs,
   setTabs,
+  tempTab,
+  setTempTab,
   orgSlug,
   router,
   onReorder,
@@ -100,33 +106,11 @@ export function DraggableTabBar({
   // TODO: Extract this to a separate component encompassing Tab.Item in the future
   const [editingTabKey, setEditingTabKey] = useState<string | null>(null);
 
-  const {cursor: _cursor, page: _page, ...queryParams} = router.location?.query ?? {};
-  const selectedTabKey = queryParams.viewId ?? 'temporary-tab';
-  const setSelectedTabKey = useCallback(
-    (key: string) => {
-      router.replace({
-        query: {
-          ...queryParams,
-          viewId: key,
-        },
-        pathname: `/organizations/${orgSlug}/issues/`,
-      });
-    },
-    [orgSlug, queryParams, router]
-  );
+  const navigate = useNavigate();
 
-  const [tempTab, setTempTab] = useState<Tab | undefined>(
-    selectedTabKey === 'temporary-tab' && queryParams.query
-      ? {
-          id: 'temporary-tab',
-          key: 'temporary-tab',
-          label: 'Unsaved',
-          query: queryParams.query,
-          querySort: queryParams.sort,
-          queryCount: undefined,
-        }
-      : undefined
-  );
+  const {cursor: _cursor, page: _page, ...queryParams} = router?.location?.query ?? {};
+
+  const {tabListState} = useContext(TabsContext);
 
   const handleOnReorder = (newOrder: Node<DraggableTabListItemProps>[]) => {
     const newTabs = newOrder
@@ -140,15 +124,17 @@ export function DraggableTabBar({
   };
 
   const handleOnSaveChanges = () => {
-    const originalTab = tabs.find(tab => tab.key === selectedTabKey);
+    const originalTab = tabs.find(tab => tab.key === tabListState?.selectedKey);
     if (originalTab) {
       const newTabs = tabs.map(tab => {
-        if (tab.key === selectedTabKey && tab.unsavedChanges) {
-          tab.query = tab.unsavedChanges[0];
-          tab.querySort = tab.unsavedChanges[1];
-          tab.unsavedChanges = undefined;
-        }
-        return tab;
+        return tab.key === tabListState?.selectedKey && tab.unsavedChanges
+          ? {
+              ...tab,
+              query: tab.unsavedChanges[0],
+              querySort: tab.unsavedChanges[1],
+              unsavedChanges: undefined,
+            }
+          : tab;
       });
       setTabs(newTabs);
       onSave?.(newTabs);
@@ -156,27 +142,24 @@ export function DraggableTabBar({
   };
 
   const handleOnDiscardChanges = () => {
-    const originalTab = tabs.find(tab => tab.key === selectedTabKey);
+    const originalTab = tabs.find(tab => tab.key === tabListState?.selectedKey);
     if (originalTab) {
       setTabs(
         tabs.map(tab => {
-          if (tab.key === selectedTabKey) {
-            tab.unsavedChanges = undefined;
-          }
-          return tab;
+          return tab.key === tabListState?.selectedKey
+            ? {...tab, unsavedChanges: undefined}
+            : tab;
         })
       );
-      router.push(
-        normalizeUrl({
-          query: {
-            ...queryParams,
-            query: originalTab.query,
-            sort: originalTab.querySort,
-            ...(originalTab.id ? {viewId: originalTab.id} : {}),
-          },
-          pathname: `/organizations/${orgSlug}/issues/`,
-        })
-      );
+      navigate({
+        query: {
+          ...queryParams,
+          query: originalTab.query,
+          sort: originalTab.querySort,
+          ...(originalTab.id ? {viewId: originalTab.id} : {}),
+        },
+        pathname: `/organizations/${orgSlug}/issues/`,
+      });
       onDiscard?.();
     }
   };
@@ -193,7 +176,7 @@ export function DraggableTabBar({
   };
 
   const handleOnDuplicate = () => {
-    const idx = tabs.findIndex(tb => tb.key === selectedTabKey);
+    const idx = tabs.findIndex(tb => tb.key === tabListState?.selectedKey);
     if (idx !== -1) {
       const tempId = generateTempViewId();
       const duplicatedTab = tabs[idx];
@@ -207,17 +190,24 @@ export function DraggableTabBar({
         },
         ...tabs.slice(idx + 1),
       ];
+      navigate({
+        query: {
+          ...queryParams,
+          viewId: tempId,
+        },
+        pathname: `/organizations/${orgSlug}/issues/`,
+      });
       setTabs(newTabs);
-      setSelectedTabKey(duplicatedTab.key);
+      tabListState?.setSelectedKey(tempId);
       onDuplicate?.(newTabs);
     }
   };
 
   const handleOnDelete = () => {
     if (tabs.length > 1) {
-      const newTabs = tabs.filter(tb => tb.key !== selectedTabKey);
+      const newTabs = tabs.filter(tb => tb.key !== tabListState?.selectedKey);
       setTabs(newTabs);
-      setSelectedTabKey(newTabs[0].key);
+      tabListState?.setSelectedKey(newTabs[0].key);
       onDelete?.(newTabs);
     }
   };
@@ -234,40 +224,45 @@ export function DraggableTabBar({
       };
       const newTabs = [...tabs, newTab];
       setTabs(newTabs);
-      setSelectedTabKey(tempId);
+      tabListState?.setSelectedKey(tempId);
       onSaveTempView?.(newTabs);
     }
   };
 
   const handleOnDiscardTempView = () => {
-    setSelectedTabKey(tabs[0].key);
+    tabListState?.setSelectedKey(tabs[0].key);
     setTempTab(undefined);
     onDiscardTempView?.();
   };
 
   const handleOnAddView = () => {
     const tempId = generateTempViewId();
-    const currentTab = tabs.find(tab => tab.key === selectedTabKey);
+    const currentTab = tabs.find(tab => tab.key === tabListState?.selectedKey);
     if (currentTab) {
-      const newTabQuery = currentTab.unsavedChanges
-        ? currentTab.unsavedChanges[0]
-        : currentTab.query;
-      const newTabSort = currentTab.unsavedChanges
-        ? currentTab.unsavedChanges[1]
-        : currentTab.querySort;
       const newTabs = [
         ...tabs,
         {
           id: tempId,
           key: tempId,
           label: 'New View',
-          query: newTabQuery,
-          querySort: newTabSort,
+          query: currentTab.unsavedChanges
+            ? currentTab.unsavedChanges[0]
+            : currentTab.query,
+          querySort: currentTab.unsavedChanges
+            ? currentTab.unsavedChanges[1]
+            : currentTab.querySort,
         },
       ];
+      navigate({
+        query: {
+          ...queryParams,
+          viewId: tempId,
+        },
+        pathname: `/organizations/${orgSlug}/issues/`,
+      });
       setTabs(newTabs);
-      setSelectedTabKey(tempId);
-      onAddView?.();
+      tabListState?.setSelectedKey(tempId);
+      onAddView?.(newTabs);
     }
   };
 
@@ -297,58 +292,55 @@ export function DraggableTabBar({
   const allTabs = tempTab ? [...tabs, tempTab] : tabs;
 
   return (
-    <Tabs value={selectedTabKey} onChange={setSelectedTabKey}>
-      <DraggableTabList
-        onReorder={handleOnReorder}
-        selectedKey={selectedTabKey}
-        showTempTab={!!tempTab}
-        onAddView={handleOnAddView}
-        orientation="horizontal"
-        hideBorder
-      >
-        {allTabs.map(tab => (
-          <DraggableTabList.Item
-            textValue={`${tab.label} tab`}
-            key={tab.key}
-            to={normalizeUrl({
-              query: {
-                ...queryParams,
-                query: tab.unsavedChanges?.[0] ?? tab.query,
-                sort: tab.unsavedChanges?.[1] ?? tab.querySort,
-                ...(tab.id !== 'temporary-tab' ? {id: tab.id} : {}),
-              },
-              pathname: `/organizations/${orgSlug}/issues/`,
-            })}
-          >
-            <TabContentWrap selected={selectedTabKey === tab.key}>
-              <EditableTabTitle
-                label={tab.label}
-                isEditing={editingTabKey === tab.key}
-                setIsEditing={isEditing => setEditingTabKey(isEditing ? tab.key : null)}
-                onChange={newLabel => handleOnTabRenamed(newLabel.trim(), tab.key)}
-              />
-              {tab.key !== 'temporary-tab' && tab.queryCount !== undefined && (
-                <StyledBadge>
-                  <QueryCount
-                    hideParens
-                    hideIfEmpty={false}
-                    count={tab.queryCount}
-                    max={1000}
-                  />
-                </StyledBadge>
-              )}
-              {selectedTabKey === tab.key && (
-                <DraggableTabMenuButton
-                  hasUnsavedChanges={!!tab.unsavedChanges}
-                  menuOptions={makeMenuOptions(tab)}
-                  aria-label={`${tab.label} Tab Options`}
+    <DraggableTabList
+      onReorder={handleOnReorder}
+      defaultSelectedKey={initialTabKey}
+      onAddView={handleOnAddView}
+      orientation="horizontal"
+      hideBorder
+    >
+      {allTabs.map(tab => (
+        <DraggableTabList.Item
+          textValue={`${tab.label} tab`}
+          key={tab.key}
+          to={normalizeUrl({
+            query: {
+              ...queryParams,
+              query: tab.unsavedChanges?.[0] ?? tab.query,
+              sort: tab.unsavedChanges?.[1] ?? tab.querySort,
+              ...(tab.id !== 'temporary-tab' ? {viewId: tab.id} : {}),
+            },
+            pathname: `/organizations/${orgSlug}/issues/`,
+          })}
+        >
+          <TabContentWrap selected={tabListState?.selectedKey === tab.key}>
+            <EditableTabTitle
+              label={tab.label}
+              isEditing={editingTabKey === tab.key}
+              setIsEditing={isEditing => setEditingTabKey(isEditing ? tab.key : null)}
+              onChange={newLabel => handleOnTabRenamed(newLabel.trim(), tab.key)}
+            />
+            {tab.key !== 'temporary-tab' && tab.queryCount !== undefined && (
+              <StyledBadge>
+                <QueryCount
+                  hideParens
+                  hideIfEmpty={false}
+                  count={tab.queryCount}
+                  max={1000}
                 />
-              )}
-            </TabContentWrap>
-          </DraggableTabList.Item>
-        ))}
-      </DraggableTabList>
-    </Tabs>
+              </StyledBadge>
+            )}
+            {tabListState?.selectedKey === tab.key && (
+              <DraggableTabMenuButton
+                hasUnsavedChanges={!!tab.unsavedChanges}
+                menuOptions={makeMenuOptions(tab)}
+                aria-label={`${tab.label} Tab Options`}
+              />
+            )}
+          </TabContentWrap>
+        </DraggableTabList.Item>
+      ))}
+    </DraggableTabList>
   );
 }
 

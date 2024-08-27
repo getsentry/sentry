@@ -8,7 +8,7 @@ from slack_sdk.web.slack_response import SlackResponse
 
 from sentry.constants import ObjectStatus
 from sentry.integrations.slack import SlackNotifyServiceAction
-from sentry.integrations.slack.utils import SLACK_RATE_LIMITED_MESSAGE
+from sentry.integrations.slack.utils.constants import SLACK_RATE_LIMITED_MESSAGE
 from sentry.integrations.types import ExternalProviders
 from sentry.notifications.additional_attachment_manager import manager
 from sentry.silo.base import SiloMode

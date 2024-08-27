@@ -1,11 +1,10 @@
 import {Fragment, useCallback, useContext, useEffect, useMemo, useState} from 'react';
-import type {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 import omit from 'lodash/omit';
 
 import Feature from 'sentry/components/acl/feature';
 import {Alert} from 'sentry/components/alert';
-import {Button} from 'sentry/components/button';
+import {LinkButton} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import NotFound from 'sentry/components/errors/notFound';
 import HookOrDefault from 'sentry/components/hookOrDefault';
@@ -23,54 +22,41 @@ import ConfigStore from 'sentry/stores/configStore';
 import {space} from 'sentry/styles/space';
 import type {IssueAlertRule} from 'sentry/types/alerts';
 import type {OnboardingSelectedSDK} from 'sentry/types/onboarding';
-import type {PlatformIntegration, PlatformKey} from 'sentry/types/project';
+import type {PlatformIntegration, PlatformKey, Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {decodeList} from 'sentry/utils/queryString';
+import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
-import useProjects from 'sentry/utils/useProjects';
 import {SetupDocsLoader} from 'sentry/views/onboarding/setupDocsLoader';
 import {GettingStartedWithProjectContext} from 'sentry/views/projects/gettingStartedWithProjectContext';
 
 import {OtherPlatformsInfo} from './otherPlatformsInfo';
 import {PlatformDocHeader} from './platformDocHeader';
 
-const allPlatforms: PlatformIntegration[] = [
-  ...platforms,
-  {
-    id: 'other',
-    name: t('Other'),
-    link: 'https://docs.sentry.io/platforms/',
-    type: 'language',
-    language: 'other',
-  },
-];
-
 const ProductUnavailableCTAHook = HookOrDefault({
   hookName: 'component:product-unavailable-cta',
 });
 
-type Props = RouteComponentProps<{projectId: string}, {}>;
+type Props = {
+  currentPlatformKey: PlatformKey;
+  loading: boolean;
+  platform: PlatformIntegration | undefined;
+  project: Project | undefined;
+};
 
-export function ProjectInstallPlatform({location, params}: Props) {
+export function ProjectInstallPlatform({
+  loading,
+  project,
+  currentPlatformKey,
+  platform: currentPlatform,
+}: Props) {
   const organization = useOrganization();
+  const location = useLocation();
   const gettingStartedWithProjectContext = useContext(GettingStartedWithProjectContext);
 
   const isSelfHosted = ConfigStore.get('isSelfHosted');
   const isSelfHostedErrorsOnly = ConfigStore.get('isSelfHostedErrorsOnly');
-
-  const {projects, initiallyLoaded} = useProjects({
-    slugs: [params.projectId],
-    orgId: organization.slug,
-  });
-
-  const loadingProjects = !initiallyLoaded;
-  const project = !loadingProjects
-    ? projects.find(proj => proj.slug === params.projectId)
-    : undefined;
-
-  const currentPlatformKey = project?.platform ?? 'other';
-  const currentPlatform = allPlatforms.find(p => p.id === currentPlatformKey);
 
   const [showLoaderOnboarding, setShowLoaderOnboarding] = useState(
     currentPlatform?.id === 'javascript'
@@ -225,9 +211,9 @@ export function ProjectInstallPlatform({location, params}: Props) {
           </Feature>
         )}
         <StyledButtonBar gap={1}>
-          <Button
+          <LinkButton
             priority="primary"
-            busy={loadingProjects}
+            busy={loading}
             to={{
               pathname: issueStreamLink,
               query: {
@@ -237,10 +223,10 @@ export function ProjectInstallPlatform({location, params}: Props) {
             }}
           >
             {t('Take me to Issues')}
-          </Button>
+          </LinkButton>
           {!isSelfHostedErrorsOnly && (
-            <Button
-              busy={loadingProjects}
+            <LinkButton
+              busy={loading}
               to={{
                 pathname: performanceOverviewLink,
                 query: {
@@ -249,11 +235,11 @@ export function ProjectInstallPlatform({location, params}: Props) {
               }}
             >
               {t('Take me to Performance')}
-            </Button>
+            </LinkButton>
           )}
           {!isSelfHostedErrorsOnly && showReplayButton && (
-            <Button
-              busy={loadingProjects}
+            <LinkButton
+              busy={loading}
               to={{
                 pathname: replayLink,
                 query: {
@@ -262,7 +248,7 @@ export function ProjectInstallPlatform({location, params}: Props) {
               }}
             >
               {t('Take me to Session Replay')}
-            </Button>
+            </LinkButton>
           )}
         </StyledButtonBar>
       </div>

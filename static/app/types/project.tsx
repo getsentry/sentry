@@ -221,6 +221,7 @@ export type PlatformKey =
   | 'javascript-react'
   | 'javascript-remix'
   | 'javascript-solid'
+  | 'javascript-solidstart'
   | 'javascript-svelte'
   | 'javascript-sveltekit'
   | 'javascript-vue'
