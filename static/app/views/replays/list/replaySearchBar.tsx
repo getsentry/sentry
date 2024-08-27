@@ -52,7 +52,7 @@ function fieldDefinitionsToTagCollection(fieldKeys: string[]): TagCollection {
 
 const REPLAY_FIELDS_AS_TAGS = fieldDefinitionsToTagCollection(REPLAY_FIELDS);
 const REPLAY_CLICK_FIELDS_AS_TAGS = fieldDefinitionsToTagCollection(REPLAY_CLICK_FIELDS);
-const EXCLUDED_TAGS = ['browser', 'device', 'os', 'user'];
+const EXCLUDED_TAGS = ['browser', 'device', 'os', 'user']; // These are excluded from the display but still valid search queries. browser.name, device.name, etc are effectively the same and included from REPLAY_FIELDS. Displaying these would be redundant and confusing.
 
 /**
  * Merges a list of supported tags and replay search properties
