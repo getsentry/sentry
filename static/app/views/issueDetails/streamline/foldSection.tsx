@@ -1,4 +1,11 @@
-import {type CSSProperties, forwardRef, Fragment, useCallback, useState} from 'react';
+import {
+  type CSSProperties,
+  forwardRef,
+  Fragment,
+  useCallback,
+  useLayoutEffect,
+  useState,
+} from 'react';
 import styled from '@emotion/styled';
 
 import ErrorBoundary from 'sentry/components/errorBoundary';
@@ -58,9 +65,11 @@ export const FoldSection = forwardRef<HTMLElement, FoldSectionProps>(function Fo
     initialCollapse
   );
 
-  if (!sectionData.hasOwnProperty(sectionKey)) {
-    dispatch({type: 'UPDATE_SECTION', key: sectionKey, config: {initialCollapse}});
-  }
+  useLayoutEffect(() => {
+    if (!sectionData.hasOwnProperty(sectionKey)) {
+      dispatch({type: 'UPDATE_SECTION', key: sectionKey, config: {initialCollapse}});
+    }
+  }, [sectionData, dispatch, sectionKey, initialCollapse]);
 
   // This controls disabling the InteractionStateLayer when hovering over action items. We don't
   // want selecting an action to appear as though it'll fold/unfold the section.
