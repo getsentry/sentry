@@ -2,6 +2,7 @@ import {Component} from 'react';
 import type {InjectedRouter} from 'react-router';
 import type {
   DataZoomComponentOption,
+  ECharts,
   InsideDataZoomComponentOption,
   ToolboxComponentOption,
   XAXisComponentOption,
@@ -100,6 +101,7 @@ class ChartZoom extends Component<Props> {
     this.saveCurrentPeriod(this.props);
   }
 
+  chart?: ECharts;
   history: Period[];
   currentPeriod?: Period;
   zooming: (() => void) | null = null;
@@ -186,6 +188,7 @@ class ChartZoom extends Component<Props> {
    */
   handleChartReady = chart => {
     this.props.onChartReady?.(chart);
+    this.chart = chart;
   };
 
   /**
