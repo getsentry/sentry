@@ -36,7 +36,7 @@ class SlackNotifyBasicMixin(NotifyBasicMixin):
             metrics.incr(SLACK_NOTIFY_MIXIN_FAILURE_DATADOG_METRIC, sample_rate=1.0)
 
             # TODO: remove this
-            if unpack_slack_api_error(e) not in (CHANNEL_NOT_FOUND):
+            if unpack_slack_api_error(e) != CHANNEL_NOT_FOUND:
                 logger.exception(
                     "slack.slash-response.error",
                     extra={"error": str(e)},
