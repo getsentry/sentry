@@ -83,10 +83,16 @@ function useMemoryPagination(items: any[], size: number) {
   };
 }
 
-export function SlowestFunctionsTable() {
+export function SlowestFunctionsTable({userQuery}: {userQuery?: string}) {
   const {projects} = useProjects();
+
   const query = useAggregateFlamegraphQuery({
-    dataSource: 'profiles',
+    // User query is only permitted when using transactions.
+    // If this is to be reused for strictly continuous profiling,
+    // it'll need to be swapped to use the `profiles` data source
+    // with no user query.
+    dataSource: 'transactions',
+    query: userQuery ?? '',
     metrics: true,
   });
 
