@@ -32,7 +32,7 @@ from sentry.utils.http import absolute_uri
 from sentry.web.helpers import render_to_response
 
 from .client import GitLabApiClient, GitLabSetupApiClient
-from .issues import GitlabIssueBasic
+from .issues import GitlabIssuesSpec
 from .repository import GitlabRepositoryProvider
 
 DESCRIPTION = """
@@ -92,7 +92,7 @@ metadata = IntegrationMetadata(
 )
 
 
-class GitlabIntegration(RepositoryIntegration, CommitContextIntegration, GitlabIssueBasic):
+class GitlabIntegration(RepositoryIntegration, GitlabIssuesSpec, CommitContextIntegration):
     codeowners_locations = ["CODEOWNERS", ".gitlab/CODEOWNERS", "docs/CODEOWNERS"]
 
     def __init__(self, *args, **kwargs):

@@ -10,7 +10,7 @@ from rest_framework.response import Response
 
 from fixtures.integrations.stub_service import StubService
 from sentry.integrations.jira.webhooks.base import JiraTokenError, JiraWebhookBase
-from sentry.integrations.mixins import IssueSyncMixin
+from sentry.integrations.mixins.issues import IssueSyncIntegration
 from sentry.integrations.services.integration.serial import serialize_integration
 from sentry.integrations.utils import AtlassianConnectValidationError
 from sentry.organizations.services.organization.serial import serialize_rpc_organization
@@ -128,7 +128,7 @@ class JiraIssueUpdatedWebhookTest(APITestCase):
                 self.integration, None, "APP-123", assign=False
             )
 
-    @patch.object(IssueSyncMixin, "sync_status_inbound")
+    @patch.object(IssueSyncIntegration, "sync_status_inbound")
     def test_simple_status_sync_inbound(self, mock_sync_status_inbound):
         with patch(
             "sentry.integrations.jira.webhooks.issue_updated.get_integration_from_jwt",
