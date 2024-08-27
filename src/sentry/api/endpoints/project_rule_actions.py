@@ -91,9 +91,8 @@ class ProjectRuleActionsEndpoint(ProjectEndpoint):
             try:
                 callback(test_event, futures)
             except Exception as exc:
-                cls = callback.__class__
                 callback_name = getattr(callback, "__name__", str(callback))
-                cls_name = cls.__name__
+                cls_name = callback.__class__.__name__
                 logger = logging.getLogger(f"sentry.test_rule.{cls_name.lower()}")
 
                 # safe_execute logs these as exceptions, which can result in
