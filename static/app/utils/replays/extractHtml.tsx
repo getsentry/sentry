@@ -6,7 +6,7 @@ import constructSelector from 'sentry/views/replays/deadRageClick/constructSelec
 export type Extraction = {
   frame: ReplayFrame;
   html: string[];
-  selector: string[];
+  selector: Map<number, string>;
   timestamp: number;
 };
 
@@ -31,15 +31,19 @@ export default function extractHtml(nodeIds: number[], mirror: Mirror): string[]
   return htmlStrings;
 }
 
-export function extractSelectorFromNodeIds(nodeIds: number[], mirror: Mirror): string[] {
-  const selectors: string[] = [];
+export function extractSelectorFromNodeIds(
+  nodeIds: number[],
+  mirror: Mirror
+): Map<number, string> {
+  const selectors = new Map<number, string>();
   for (const nodeId of nodeIds) {
     const node = mirror.getNode(nodeId);
 
     const element = node?.nodeType === Node.ELEMENT_NODE ? (node as HTMLElement) : null;
 
     if (element) {
-      selectors.push(
+      selectors.set(
+        nodeId,
         constructSelector({
           alt: element.attributes.getNamedItem('alt')?.nodeValue ?? '',
           aria_label: element.attributes.getNamedItem('aria-label')?.nodeValue ?? '',

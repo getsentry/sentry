@@ -59,7 +59,7 @@ function useCrumbHandlers() {
   });
 
   const onMouseEnter = useCallback(
-    (record: RecordType) => {
+    (record: RecordType, _e: React.MouseEvent<HTMLElement>, nodeId?: number) => {
       // This debounces the mouseEnter callback in unison with mouseLeave.
       // We ensure the pointer remains over the target element before dispatching
       // state events in order to minimize unnecessary renders. This helps during
@@ -71,7 +71,9 @@ function useCrumbHandlers() {
           setCurrentHoverTime(record.offsetMs);
         }
 
-        const metadata = getNodeIdAndLabel(record);
+        const metadata = nodeId
+          ? {annotations: undefined, nodeIds: [nodeId]}
+          : getNodeIdAndLabel(record);
         if (metadata) {
           // XXX: Kind of hacky, but mouseLeave does not fire if you move from a
           // crumb to a tooltip
@@ -86,7 +88,7 @@ function useCrumbHandlers() {
   );
 
   const onMouseLeave = useCallback(
-    (record: RecordType) => {
+    (record: RecordType, _e: React.MouseEvent<HTMLElement>, nodeId: number) => {
       if (mouseEnterCallback.current.id === record) {
         // If there is a mouseEnter callback queued and we're leaving the node
         // just cancel the timeout.
@@ -97,7 +99,9 @@ function useCrumbHandlers() {
         mouseEnterCallback.current.timeoutId = null;
       } else {
         setCurrentHoverTime(undefined);
-        const metadata = getNodeIdAndLabel(record);
+        const metadata = nodeId
+          ? {annotations: undefined, nodeIds: [nodeId]}
+          : getNodeIdAndLabel(record);
         if (metadata) {
           removeHighlight(metadata);
         }

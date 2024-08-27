@@ -1,4 +1,4 @@
-import type {CSSProperties} from 'react';
+import type {CSSProperties, ReactNode} from 'react';
 import {isValidElement, memo, useCallback} from 'react';
 import styled from '@emotion/styled';
 import beautify from 'js-beautify';
@@ -46,7 +46,11 @@ import useProjectFromSlug from 'sentry/utils/useProjectFromSlug';
 import IconWrapper from 'sentry/views/replays/detail/iconWrapper';
 import TimestampButton from 'sentry/views/replays/detail/timestampButton';
 
-type MouseCallback = (frame: ReplayFrame, e: React.MouseEvent<HTMLElement>) => void;
+type MouseCallback = (
+  frame: ReplayFrame,
+  _e: React.MouseEvent<HTMLElement>,
+  nodeId?: number
+) => void;
 
 const FRAMES_WITH_BUTTONS = ['replay.hydrate-error'];
 
@@ -227,30 +231,74 @@ function WebVitalData({
   onMouseLeave: MouseCallback;
   replay: ReplayReader | null;
 }) {
+  const clsFrame = {
+    ...frame,
+    data: {
+      value: frame.data.value,
+      size: frame.data.size,
+      rating: frame.data.rating,
+      nodeIds: [frame.data.nodeIds, 333, 870],
+      attributes: [
+        {value: 0.0123, nodeIds: frame.data.nodeIds ?? [93]},
+        {value: 0.0345, nodeIds: [333, 870]},
+      ],
+    },
+  };
   const {data: frameToExtraction} = useExtractDomNodes({replay});
-  const selectors = frameToExtraction?.get(frame)?.selector;
-  const webVitalData = selectors?.length
-    ? {
-        value: frame.data.value,
-        element: (
-          <span>
-            {selectors.map(selector => {
-              return (
-                <span
-                  key={selector}
-                  onMouseEnter={e => onMouseEnter(frame, e)}
-                  onMouseLeave={e => onMouseLeave(frame, e)}
-                >
-                  <ValueObjectKey>{'element'}</ValueObjectKey>
-                  <span>{': '}</span>
-                  <SelectorButton>{selector}</SelectorButton>
+  const selector = frameToExtraction?.get(frame)?.selector;
+
+  let webVitalData;
+  if (
+    frame.description === 'cumulative-layout-shift' &&
+    // frame.data.attributes &&
+    selector
+  ) {
+    const layoutShifts: {[x: string]: ReactNode[]}[] = [];
+    for (const attr of clsFrame.data.attributes) {
+      const elements: ReactNode[] = [];
+      attr.nodeIds?.map(nodeId => {
+        return selector.get(nodeId)
+          ? elements.push(
+              <span
+                key={nodeId}
+                onMouseEnter={e => onMouseEnter(clsFrame, e, nodeId)}
+                onMouseLeave={e => onMouseLeave(clsFrame, e, nodeId)}
+              >
+                <ValueObjectKey>{'element'}</ValueObjectKey>
+                <span>{': '}</span>
+                <span>
+                  <SelectorButton>{selector.get(nodeId)}</SelectorButton>
                 </span>
-              );
-            })}
-          </span>
-        ),
+              </span>
+            )
+          : null;
+      });
+      if (elements.length) {
+        const key = `score ${attr.value}`;
+        layoutShifts.push({[key]: elements});
       }
-    : null;
+    }
+    webVitalData = {value: frame.data.value, 'Layout shifts': layoutShifts};
+  } else if (selector?.size) {
+    // all web vitals except cls should have at most one associated element
+    const entry = selector.values().next().value;
+    webVitalData = {
+      value: frame.data.value,
+      element: (
+        <span
+          key={entry}
+          onMouseEnter={e => onMouseEnter(frame, e)}
+          onMouseLeave={e => onMouseLeave(frame, e)}
+        >
+          <ValueObjectKey>{'element'}</ValueObjectKey>
+          <span>{': '}</span>
+          <SelectorButton>{entry}</SelectorButton>
+        </span>
+      ),
+    };
+  } else {
+    webVitalData = {value: frame.data.value};
+  }
 
   return webVitalData ? (
     <StructuredEventData
