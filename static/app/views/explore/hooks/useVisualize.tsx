@@ -19,7 +19,7 @@ export const ALLOWED_VISUALIZE_FIELDS: SpanIndexedField[] = [
 
 export const ALLOWED_VISUALIZE_AGGREGATES: AggregationKey[] = [AggregationKey.COUNT];
 
-export const DEFAULT_VISUALIZATION = `${AggregationKey.COUNT}(${SpanIndexedField.SPAN_DURATION})`;
+export const DEFAULT_VISUALIZATION = `${ALLOWED_VISUALIZE_AGGREGATES[0]}(${ALLOWED_VISUALIZE_FIELDS[0]})`;
 
 export function useVisualize(): [string, (visualize: string) => void] {
   const location = useLocation();
