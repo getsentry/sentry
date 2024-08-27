@@ -1,5 +1,7 @@
 from unittest.mock import ANY, Mock, patch
 
+import orjson
+
 from sentry.api.endpoints.group_ai_summary import SummarizeIssueResponse
 from sentry.api.serializers.rest_framework.base import convert_dict_key_case, snake_to_camel_case
 from sentry.testutils.cases import APITestCase, SnubaTestCase
@@ -143,3 +145,49 @@ class GroupAiSummaryEndpointTest(APITestCase, SnubaTestCase):
             # Verify that _get_event and _call_seer were not called for the second request
             mock_get_event.assert_not_called()
             mock_call_seer.assert_not_called()
+
+    def test_call_seer_payload(self):
+        with (
+            patch(
+                "sentry.api.endpoints.group_ai_summary.GroupAiSummaryEndpoint._get_event"
+            ) as mock_get_event,
+            patch("sentry.api.endpoints.group_ai_summary.requests.post") as mock_post,
+            patch("sentry.api.endpoints.group_ai_summary.sign_with_seer_secret") as mock_sign,
+        ):
+            mock_event = {
+                "id": "test_event_id",
+                "data": "test_event_data",
+                "project_id": self.project.id,
+            }
+            mock_get_event.return_value = mock_event
+            mock_sign.return_value = {"Authorization": "Bearer test_token"}
+            mock_post.return_value.json.return_value = {
+                "group_id": str(self.group.id),
+                "summary": "Test summary",
+                "impact": "Test impact",
+                "headline": "Test headline",
+            }
+
+            self.client.post(self.url, format="json")
+
+            expected_payload = {
+                "group_id": self.group.id,
+                "issue": {
+                    "id": self.group.id,
+                    "title": self.group.title,
+                    "short_id": self.group.qualified_short_id,
+                    "events": [mock_event],
+                },
+                "organization_slug": self.group.organization.slug,
+                "organization_id": self.group.organization.id,
+                "project_id": self.project.id,
+            }
+
+            mock_post.assert_called_once()
+            actual_payload = orjson.loads(mock_post.call_args[1]["data"])
+            assert actual_payload == expected_payload
+
+            # Check headers
+            headers = mock_post.call_args[1]["headers"]
+            assert headers["content-type"] == "application/json;charset=utf-8"
+            assert headers["Authorization"] == "Bearer test_token"
