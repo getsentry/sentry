@@ -5,11 +5,18 @@ import {buttonCss} from 'sentry/components/devtoolbar/styles/typography';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import type {PlatformKey} from 'sentry/types/project';
 
-import {panelCss, panelHeadingCss, panelSectionCss} from '../styles/panel';
+import {
+  panelCss,
+  panelCssNoBorder,
+  panelHeadingCss,
+  panelHeadingCssNoBorder,
+  panelSectionCss,
+} from '../styles/panel';
 import {resetDialogCss, resetFlexColumnCss, resetFlexRowCss} from '../styles/reset';
 
 interface Props {
   children?: React.ReactNode;
+  noBorder?: boolean;
   showProjectBadge?: boolean;
   title?: string;
   titleRight?: React.ReactNode;
@@ -20,14 +27,18 @@ export default function PanelLayout({
   title,
   titleRight,
   showProjectBadge,
+  noBorder,
 }: Props) {
   const {projectId, projectSlug, projectPlatform} = useConfiguration();
   return (
-    <dialog open css={[resetDialogCss, resetFlexColumnCss, panelCss]}>
+    <dialog
+      open
+      css={[resetDialogCss, resetFlexColumnCss, noBorder ? panelCssNoBorder : panelCss]}
+    >
       <span
         css={[
           {display: 'flex', alignItems: 'center', gap: 'var(--space100)'},
-          panelHeadingCss,
+          noBorder ? panelHeadingCssNoBorder : panelHeadingCss,
         ]}
       >
         {showProjectBadge && (

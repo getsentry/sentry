@@ -1,5 +1,4 @@
 import {Fragment} from 'react';
-import {css} from '@emotion/react';
 
 import AnalyticsProvider from 'sentry/components/devtoolbar/components/analyticsProvider';
 import ReleaseIsssues from 'sentry/components/devtoolbar/components/releases/releaseIssues';
@@ -17,20 +16,14 @@ import {
 } from 'sentry/components/devtoolbar/styles/reset';
 import type {ApiResult} from 'sentry/components/devtoolbar/types';
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
-import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import PanelItem from 'sentry/components/panels/panelItem';
 import Placeholder from 'sentry/components/placeholder';
 import TimeSince from 'sentry/components/timeSince';
 import {IconArrow} from 'sentry/icons/iconArrow';
 import type {SessionApiResponse} from 'sentry/types/organization';
-import type {PlatformKey} from 'sentry/types/project';
 import type {Release} from 'sentry/types/release';
 import {defined} from 'sentry/utils';
 import {formatVersion} from 'sentry/utils/versions/formatVersion';
-import {
-  Change,
-  type ReleaseComparisonRow,
-} from 'sentry/views/releases/detail/overview/releaseComparisonChart';
 import {
   ReleaseInfoHeader,
   ReleaseInfoSubheader,
@@ -39,8 +32,15 @@ import {
 import ReleaseCardCommits from 'sentry/views/releases/list/releaseCard/releaseCardCommits';
 
 import useConfiguration from '../../hooks/useConfiguration';
-import {panelInsetContentCss, panelSectionCss} from '../../styles/panel';
-import {smallCss} from '../../styles/typography';
+import {
+  panelDescCss,
+  panelInsetContentCss,
+  panelSectionCss,
+  panelSectionCssNoBorder,
+  releaseBoxCss,
+  releaseNumbersCss,
+} from '../../styles/panel';
+import {largeCss, smallCss} from '../../styles/typography';
 import PanelLayout from '../panelLayout';
 
 const summaryPlaceholderHeight = '65px';
@@ -59,25 +59,45 @@ function getCrashFreeRate(data: ApiResult<SessionApiResponse>): number {
 
 function getDiff(
   diff: string,
-  diffColor: ReleaseComparisonRow['diffColor'],
+  diffColor: string[],
   diffDirection: 'up' | 'down' | undefined
 ) {
   return (
-    <Change
-      color={defined(diffColor) ? diffColor : 'black'}
-      css={[resetFlexRowCss, {alignItems: 'center', gap: 'var(--space25)'}]}
+    <div
+      css={[
+        releaseBoxCss,
+        releaseNumbersCss,
+        {
+          padding: 'var(--space200)',
+          backgroundColor: diffColor[1],
+          borderColor: diffColor[0],
+        },
+      ]}
     >
-      {diff}
-      {defined(diffDirection) ? <IconArrow direction={diffDirection} size="xs" /> : null}
-    </Change>
+      <span css={[largeCss, {fontWeight: 'bold'}]} />
+      <span css={[smallCss, {color: diffColor[0], fontWeight: 'bold'}]}>Change</span>
+      <span
+        css={[
+          resetFlexRowCss,
+          {
+            alignItems: 'center',
+            gap: 'var(--space25)',
+            color: diffColor[0],
+          },
+        ]}
+      >
+        {diff}
+        {defined(diffDirection) ? (
+          <IconArrow direction={diffDirection} size="sm" />
+        ) : null}
+      </span>
+    </div>
   );
 }
 
 function ReleaseSummary({orgSlug, release}: {orgSlug: string; release: Release}) {
   return (
-    <PanelItem
-      css={{width: '100%', alignItems: 'flex-start', padding: 'var(--space150)'}}
-    >
+    <PanelItem css={[releaseBoxCss, {width: '92%', alignItems: 'flex-start'}]}>
       <ReleaseInfoHeader css={infoHeaderCss}>
         <AnalyticsProvider nameVal="latest release" keyVal="latest-release">
           <SentryAppLink
@@ -99,7 +119,7 @@ function ReleaseSummary({orgSlug, release}: {orgSlug: string; release: Release})
         <span css={[resetFlexRowCss, {gap: 'var(--space25)'}]}>
           <TimeSince date={release.lastDeploy?.dateFinished || release.dateCreated} />
           {release.lastDeploy?.dateFinished &&
-            ` \u007C ${release.lastDeploy.environment}`}
+            ` \u2022 ${release.lastDeploy.environment}`}
         </span>
       </ReleaseInfoSubheader>
     </PanelItem>
@@ -154,27 +174,39 @@ function CrashFreeRate({
   const sign = Math.sign(diff);
 
   return (
-    <PanelItem css={{padding: 'var(--space150)', border: 0}}>
-      <div css={infoHeaderCss}>Crash free session rate</div>
-      <ReleaseInfoSubheader css={subtextCss}>
-        <span css={[resetFlexRowCss, {gap: 'var(--space200)'}]}>
-          <span css={resetFlexColumnCss}>
-            <span>This release</span> {currCrashFreeRate}%
-          </span>
-          <span css={resetFlexColumnCss}>
-            <span>Prev release</span> {prevCrashFreeRate}%
-          </span>
-          <span css={resetFlexColumnCss}>
-            Change
-            {getDiff(
-              Math.abs(diff).toFixed(2) + '%',
-              sign === 0 ? 'black' : sign === 1 ? 'green400' : 'red400',
-              sign === 0 ? undefined : sign === 1 ? 'up' : 'down'
-            )}
-          </span>
-        </span>
-      </ReleaseInfoSubheader>
-    </PanelItem>
+    <div>
+      <span css={[smallCss, panelDescCss, panelSectionCssNoBorder, {paddingBottom: 0}]}>
+        Crash Free Session Rate
+      </span>
+      <div
+        css={[
+          {
+            display: 'grid',
+            gridTemplateColumns: '1fr 1fr 1fr',
+            gap: 'var(--space100)',
+            padding: 'var(--space75) var(--space150) var(--space150) var(--space150)',
+          },
+        ]}
+      >
+        <div css={[releaseBoxCss, releaseNumbersCss, {padding: 'var(--space200)'}]}>
+          <span css={[smallCss, {fontWeight: 'bold'}]}>Latest</span>
+          <span css={[largeCss]}>{currCrashFreeRate}%</span>
+        </div>
+        <div css={[releaseBoxCss, releaseNumbersCss, {padding: 'var(--space200)'}]}>
+          <span css={[smallCss, {fontWeight: 'bold'}]}>Previous</span>
+          <span css={[largeCss]}>{prevCrashFreeRate}%</span>
+        </div>
+        {getDiff(
+          Math.abs(diff).toFixed(2) + '%',
+          sign === 0
+            ? ['black', 'white']
+            : sign === 1
+              ? ['var(--green400)', 'var(--green100)']
+              : ['var(--red400)', 'var(--red100)'],
+          sign === 0 ? undefined : sign === 1 ? 'up' : 'down'
+        )}
+      </div>
+    </div>
   );
 }
 
@@ -185,7 +217,7 @@ export default function ReleasesPanel() {
     isError: isReleaseDataError,
   } = useToolbarRelease();
 
-  const {organizationSlug, projectSlug, projectId, projectPlatform} = useConfiguration();
+  const {organizationSlug} = useConfiguration();
 
   if (isReleaseDataError) {
     return <EmptyStateWarning small>No data to show</EmptyStateWarning>;
@@ -194,42 +226,8 @@ export default function ReleasesPanel() {
   return (
     <PanelLayout title="Latest Release" showProjectBadge>
       <AnalyticsProvider nameVal="header" keyVal="header">
-        <span
-          css={[
-            smallCss,
-            panelSectionCss,
-            panelInsetContentCss,
-            resetFlexRowCss,
-            {gap: 'var(--space50)', flexGrow: 0},
-          ]}
-        >
-          Latest release for{' '}
-          <SentryAppLink
-            to={{
-              url: `/releases/`,
-              query: {project: projectId},
-            }}
-          >
-            <div
-              css={[
-                resetFlexRowCss,
-                {display: 'inline-flex', gap: 'var(--space50)', alignItems: 'center'},
-              ]}
-            >
-              <ProjectBadge
-                css={css({'&& img': {boxShadow: 'none'}})}
-                project={{
-                  slug: projectSlug,
-                  id: projectId,
-                  platform: projectPlatform as PlatformKey,
-                }}
-                avatarSize={16}
-                hideName
-                avatarProps={{hasTooltip: false}}
-              />
-              {projectSlug}
-            </div>
-          </SentryAppLink>
+        <span css={[smallCss, panelDescCss, panelSectionCssNoBorder, {paddingBottom: 0}]}>
+          Latest Release
         </span>
       </AnalyticsProvider>
       {isReleaseDataLoading ? (

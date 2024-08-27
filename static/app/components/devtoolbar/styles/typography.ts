@@ -70,6 +70,13 @@ export const xSmallCss = css`
   letter-spacing: +0.02rem;
 `;
 
+export const largeCss = css`
+  font-weight: 400;
+  font-size: 1rem;
+  line-height: 1.4;
+  letter-spacing: +0.02rem;
+`;
+
 export const textOverflowTwoLinesCss = css`
   margin: 0;
   white-space: initial;
