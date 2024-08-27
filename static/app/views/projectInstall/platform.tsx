@@ -238,7 +238,15 @@ export function ProjectInstallPlatform({
             </LinkButton>
           )}
           {!isSelfHostedErrorsOnly && showReplayButton && (
-            <LinkButton busy={loading} to={replayLink}>
+            <LinkButton
+              busy={loading}
+              to={{
+                pathname: replayLink,
+                query: {
+                  project: project?.id,
+                },
+              }}
+            >
               {t('Take me to Session Replay')}
             </LinkButton>
           )}
