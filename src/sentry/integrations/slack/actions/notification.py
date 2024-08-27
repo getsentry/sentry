@@ -318,4 +318,4 @@ class SlackNotifyServiceAction(IntegrationEventAction):
         )
 
     def get_channel_id(self, integration: Integration, name: str) -> SlackChannelIdData:
-        return get_channel_id(self.project.organization, integration, name)
+        return get_channel_id(integration, name)

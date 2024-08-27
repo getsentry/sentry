@@ -4,7 +4,7 @@ import omit from 'lodash/omit';
 
 import Feature from 'sentry/components/acl/feature';
 import {Alert} from 'sentry/components/alert';
-import {Button} from 'sentry/components/button';
+import {LinkButton} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import NotFound from 'sentry/components/errors/notFound';
 import HookOrDefault from 'sentry/components/hookOrDefault';
@@ -211,7 +211,7 @@ export function ProjectInstallPlatform({
           </Feature>
         )}
         <StyledButtonBar gap={1}>
-          <Button
+          <LinkButton
             priority="primary"
             busy={loading}
             to={{
@@ -223,9 +223,9 @@ export function ProjectInstallPlatform({
             }}
           >
             {t('Take me to Issues')}
-          </Button>
+          </LinkButton>
           {!isSelfHostedErrorsOnly && (
-            <Button
+            <LinkButton
               busy={loading}
               to={{
                 pathname: performanceOverviewLink,
@@ -235,20 +235,12 @@ export function ProjectInstallPlatform({
               }}
             >
               {t('Take me to Performance')}
-            </Button>
+            </LinkButton>
           )}
           {!isSelfHostedErrorsOnly && showReplayButton && (
-            <Button
-              busy={loading}
-              to={{
-                pathname: replayLink,
-                query: {
-                  project: project?.id,
-                },
-              }}
-            >
+            <LinkButton busy={loading} to={replayLink}>
               {t('Take me to Session Replay')}
-            </Button>
+            </LinkButton>
           )}
         </StyledButtonBar>
       </div>

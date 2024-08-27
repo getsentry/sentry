@@ -1,6 +1,6 @@
 import {useMemo} from 'react';
 
-import {Button} from 'sentry/components/button';
+import {LinkButton} from 'sentry/components/button';
 import KeyValueList from 'sentry/components/events/interfaces/keyValueList';
 import {DataSection} from 'sentry/components/events/styles';
 import {t} from 'sentry/locale';
@@ -69,9 +69,9 @@ export function getKeyValueListData(
           subject: t('Endpoint Name'),
           value: evidenceData.transaction,
           actionButton: (
-            <Button size="xs" to={target}>
+            <LinkButton size="xs" to={target}>
               {t('View Transaction')}
-            </Button>
+            </LinkButton>
           ),
         },
         {

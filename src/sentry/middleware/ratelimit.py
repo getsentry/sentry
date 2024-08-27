@@ -39,9 +39,10 @@ class RatelimitMiddleware:
 
     def __call__(self, request: HttpRequest) -> HttpResponseBase:
         # process_view is automatically called by Django
-        response = self.get_response(request)
-        self.process_response(request, response)
-        return response
+        with sentry_sdk.start_span(op="ratelimit.__call__"):
+            response = self.get_response(request)
+            self.process_response(request, response)
+            return response
 
     def process_view(
         self, request: HttpRequest, view_func, view_args, view_kwargs
@@ -65,29 +66,29 @@ class RatelimitMiddleware:
                     if enforce_rate_limit is False:
                         return None
 
-                rate_limit_config = get_rate_limit_config(
-                    view_class, view_args, {**view_kwargs, "request": request}
-                )
-                rate_limit_group = (
-                    rate_limit_config.group if rate_limit_config else RateLimitConfig().group
-                )
-                with sentry_sdk.start_span(op="ratelimit.get_rate_limit_key"):
+                with sentry_sdk.start_span(op="ratelimit.determine_limit_config"):
+                    rate_limit_config = get_rate_limit_config(
+                        view_class, view_args, {**view_kwargs, "request": request}
+                    )
+                    rate_limit_group = (
+                        rate_limit_config.group if rate_limit_config else RateLimitConfig().group
+                    )
                     request.rate_limit_key = get_rate_limit_key(
                         view_func, request, rate_limit_group, rate_limit_config
                     )
-                if request.rate_limit_key is None:
-                    return None
+                    if request.rate_limit_key is None:
+                        return None
 
-                category_str = request.rate_limit_key.split(":", 1)[0]
-                request.rate_limit_category = category_str
+                    category_str = request.rate_limit_key.split(":", 1)[0]
+                    request.rate_limit_category = category_str
 
-                rate_limit = get_rate_limit_value(
-                    http_method=request.method,
-                    category=RateLimitCategory(category_str),
-                    rate_limit_config=rate_limit_config,
-                )
-                if rate_limit is None:
-                    return None
+                    rate_limit = get_rate_limit_value(
+                        http_method=request.method,
+                        category=RateLimitCategory(category_str),
+                        rate_limit_config=rate_limit_config,
+                    )
+                    if rate_limit is None:
+                        return None
 
                 with sentry_sdk.start_span(op="ratelimit.above_rate_limit_check"):
                     request.rate_limit_metadata = above_rate_limit_check(
