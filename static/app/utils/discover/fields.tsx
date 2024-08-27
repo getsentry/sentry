@@ -1347,7 +1347,7 @@ export function hasDuplicate(columnList: Column[], column: Column): boolean {
 
 export const TRANSACTION_FILTERS: FilterKeySection = {
   value: 'transaction_event_filters',
-  label: 'Event Filters',
+  label: 'Event',
   children: [
     FieldKey.TRANSACTION_DURATION,
     FieldKey.TRANSACTION_OP,
@@ -1506,7 +1506,7 @@ export const MISC_FILTERS: FilterKeySection = {
 
 export const TRANSACTION_EVENT_FILTERS: FilterKeySection = {
   value: 'transaction_event_filters',
-  label: 'Event Filters',
+  label: 'Event',
   children: [
     ...TRANSACTION_FILTERS.children,
     ...HTTP_FILTERS.children,
@@ -1516,7 +1516,7 @@ export const TRANSACTION_EVENT_FILTERS: FilterKeySection = {
 
 export const ERROR_EVENT_FILTERS: FilterKeySection = {
   value: 'error_event_filters',
-  label: 'Event Filters',
+  label: 'Event',
   children: [
     ...ERROR_DETAIL_FILTERS.children,
     ...HTTP_FILTERS.children,
@@ -1526,7 +1526,7 @@ export const ERROR_EVENT_FILTERS: FilterKeySection = {
 
 export const COMBINED_EVENT_FILTERS: FilterKeySection = {
   value: 'combined_event_filters',
-  label: 'Event Filters',
+  label: 'Event',
   children: [
     ...TRANSACTION_FILTERS.children,
     ...ERROR_DETAIL_FILTERS.children,
@@ -1537,7 +1537,7 @@ export const COMBINED_EVENT_FILTERS: FilterKeySection = {
 
 export const USER_CONTEXT_FILTERS: FilterKeySection = {
   value: 'user_context_filters',
-  label: 'User Context',
+  label: 'User',
   children: [
     ...USER_FILTERS.children,
     ...GEO_FILTERS.children,
