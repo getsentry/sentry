@@ -69,6 +69,9 @@ export default function AlertRuleStatus({rule}: Props) {
       ? t('Above')
       : t('Below');
 
+  // Anomaly detection alerts have different labels
+  const statusLabel = activeIncident ? t('Bad') : t('Good');
+
   if (activeIncident) {
     iconColor =
       trigger?.label === AlertRuleTriggerType.CRITICAL
@@ -86,20 +89,26 @@ export default function AlertRuleStatus({rule}: Props) {
 
   return (
     <FlexCenter>
-      <IconArrow color={iconColor} direction={iconDirection} />
-      <TriggerText>
-        {`${thresholdTypeText} ${
-          rule.latestIncident || (!rule.latestIncident && !resolvedTrigger)
-            ? trigger?.alertThreshold?.toLocaleString()
-            : resolvedTrigger?.toLocaleString()
-        }`}
-        {getThresholdUnits(
-          rule.aggregate,
-          rule.comparisonDelta
-            ? AlertRuleComparisonType.CHANGE
-            : AlertRuleComparisonType.COUNT
-        )}
-      </TriggerText>
+      {rule.detectionType !== AlertRuleComparisonType.DYNAMIC && (
+        <IconArrow color={iconColor} direction={iconDirection} />
+      )}
+      {rule.detectionType !== AlertRuleComparisonType.DYNAMIC ? (
+        <TriggerText>
+          {`${thresholdTypeText} ${
+            rule.latestIncident || (!rule.latestIncident && !resolvedTrigger)
+              ? trigger?.alertThreshold?.toLocaleString()
+              : resolvedTrigger?.toLocaleString()
+          }`}
+          {getThresholdUnits(
+            rule.aggregate,
+            rule.comparisonDelta
+              ? AlertRuleComparisonType.CHANGE
+              : AlertRuleComparisonType.COUNT
+          )}
+        </TriggerText>
+      ) : (
+        <TriggerText>{statusLabel}</TriggerText>
+      )}
     </FlexCenter>
   );
 }
