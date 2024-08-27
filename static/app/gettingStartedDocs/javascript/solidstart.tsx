@@ -207,9 +207,8 @@ const onboarding: OnboardingConfig = {
   configure: (params: Params) => [
     {
       type: StepType.CONFIGURE,
-      description: tct(
-        "Initialize Sentry as early as possible in your application's lifecycle.",
-        {code: <code />}
+      description: t(
+        "Initialize Sentry as early as possible in your application's lifecycle."
       ),
       configurations: [
         {
