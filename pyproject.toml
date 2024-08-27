@@ -282,7 +282,6 @@ module = [
     "sentry.integrations.slack.utils.users",
     "sentry.integrations.slack.views.link_identity",
     "sentry.integrations.slack.views.link_team",
-    "sentry.integrations.slack.views.unlink_team",
     "sentry.integrations.slack.webhooks.action",
     "sentry.integrations.slack.webhooks.command",
     "sentry.integrations.slack.webhooks.event",
