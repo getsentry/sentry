@@ -6,6 +6,7 @@ import {
   Grid as _Table,
   GridBody,
   GridBodyCell,
+  GridBodyCellStatus,
   GridHead,
   GridHeadCell,
   GridRow,
@@ -21,10 +22,28 @@ export function Table({children, style, ...props}: TableProps) {
   );
 }
 
+interface TableStatusProps {
+  children: React.ReactNode;
+}
+
+export function TableStatus({children}: TableStatusProps) {
+  return (
+    <GridRow>
+      <GridBodyCellStatus>{children}</GridBodyCellStatus>
+    </GridRow>
+  );
+}
+
 const MINIMUM_COLUMN_WIDTH = COL_WIDTH_MINIMUM;
 
+type Item = {
+  label: string;
+  value: React.ReactNode;
+  width?: 'min-content';
+};
+
 interface UseTableStylesOptions {
-  items: any[];
+  items: Item[];
   minimumColumnWidth?: number;
 }
 
@@ -33,12 +52,16 @@ export function useTableStyles({
   minimumColumnWidth = MINIMUM_COLUMN_WIDTH,
 }: UseTableStylesOptions) {
   const tableStyles = useMemo(() => {
-    const columns = new Array(items.length).fill(`minmax(${minimumColumnWidth}px, auto)`);
+    const columns = new Array(items.length);
+
+    for (let i = 0; i < items.length; i++) {
+      columns[i] = items[i].width ?? `minmax(${minimumColumnWidth}px, auto)`;
+    }
 
     return {
       gridTemplateColumns: columns.join(' '),
     };
-  }, [items.length, minimumColumnWidth]);
+  }, [items, minimumColumnWidth]);
 
   return {tableStyles};
 }
