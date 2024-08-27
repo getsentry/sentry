@@ -1,6 +1,5 @@
 import {useMemo} from 'react';
 import {useQuery} from '@tanstack/react-query';
-import type {Location} from 'history';
 import * as qs from 'query-string';
 
 import type {Client} from 'sentry/api';
@@ -9,52 +8,47 @@ import {DEFAULT_STATS_PERIOD} from 'sentry/constants';
 import type {PageFilters} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import type {TraceMeta} from 'sentry/utils/performance/quickTrace/types';
+import type {QueryStatus} from 'sentry/utils/queryClient';
 import {decodeScalar} from 'sentry/utils/queryString';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
+import type {ReplayTrace} from 'sentry/views/replays/detail/trace/useReplayTraces';
 
 type TraceMetaQueryParams =
   | {
       // demo has the format ${projectSlug}:${eventId}
       // used to query a demo transaction event from the backend.
-      demo: string | undefined;
       statsPeriod: string;
     }
   | {
-      demo: string | undefined;
-      timestamp: string;
+      timestamp: number;
     };
 
 function getMetaQueryParams(
-  query: Location['query'],
+  row: ReplayTrace,
+  normalizedParams: any,
   filters: Partial<PageFilters> = {}
 ): TraceMetaQueryParams {
-  const normalizedParams = normalizeDateTimeParams(query, {
-    allowAbsolutePageDatetime: true,
-  });
-
   const statsPeriod = decodeScalar(normalizedParams.statsPeriod);
-  const timestamp = decodeScalar(normalizedParams.timestamp);
 
-  if (timestamp) {
-    return {timestamp, demo: decodeScalar(normalizedParams.demo)};
+  if (row.timestamp) {
+    return {timestamp: row.timestamp};
   }
 
   return {
     statsPeriod: (statsPeriod || filters?.datetime?.period) ?? DEFAULT_STATS_PERIOD,
-    demo: decodeScalar(normalizedParams.demo),
   };
 }
 
 async function fetchSingleTraceMetaNew(
   api: Client,
   organization: Organization,
-  traceSlug: string,
+  replayTrace: ReplayTrace,
   queryParams: any
 ) {
   const data = await api.requestPromise(
-    `/organizations/${organization.slug}/events-trace-meta/${traceSlug}/`,
+    `/organizations/${organization.slug}/events-trace-meta/${replayTrace.traceSlug}/`,
     {
       method: 'GET',
       data: queryParams,
@@ -64,17 +58,19 @@ async function fetchSingleTraceMetaNew(
 }
 
 async function fetchTraceMetaInBatches(
-  traceIds: string[],
   api: Client,
   organization: Organization,
-  queryParams: TraceMetaQueryParams
+  replayTraces: ReplayTrace[],
+  normalizedParams: any,
+  filters: Partial<PageFilters> = {}
 ) {
-  const clonedTraceIds = [...traceIds];
+  const clonedTraceIds = [...replayTraces];
   const metaResults: TraceMeta = {
     errors: 0,
     performance_issues: 0,
     projects: 0,
     transactions: 0,
+    transactiontoSpanChildrenCount: {},
   };
 
   const apiErrors: Error[] = [];
@@ -82,19 +78,32 @@ async function fetchTraceMetaInBatches(
   while (clonedTraceIds.length > 0) {
     const batch = clonedTraceIds.splice(0, 3);
     const results = await Promise.allSettled(
-      batch.map(slug => {
-        return fetchSingleTraceMetaNew(api, organization, slug, queryParams);
+      batch.map(replayTrace => {
+        const queryParams = getMetaQueryParams(replayTrace, normalizedParams, filters);
+        return fetchSingleTraceMetaNew(api, organization, replayTrace, queryParams);
       })
     );
 
     const updatedData = results.reduce(
       (acc, result) => {
         if (result.status === 'fulfilled') {
-          const {errors, performance_issues, projects, transactions} = result.value;
+          const {
+            errors,
+            performance_issues,
+            projects,
+            transactions,
+            transaction_child_count_map,
+          } = result.value;
           acc.errors += errors;
           acc.performance_issues += performance_issues;
           acc.projects = Math.max(acc.projects, projects);
           acc.transactions += transactions;
+
+          // Turn the transaction_child_count_map array into a map of transaction id to child count
+          // for more efficient lookups.
+          transaction_child_count_map.forEach(({'transaction.id': id, count}) => {
+            acc.transactiontoSpanChildrenCount[id] = count;
+          });
         } else {
           apiErrors.push(new Error(result.reason));
         }
@@ -107,6 +116,8 @@ async function fetchTraceMetaInBatches(
     metaResults.performance_issues = updatedData.performance_issues;
     metaResults.projects = Math.max(updatedData.projects, metaResults.projects);
     metaResults.transactions = updatedData.transactions;
+    metaResults.transactiontoSpanChildrenCount =
+      updatedData.transactiontoSpanChildrenCount;
   }
 
   return {metaResults, apiErrors};
@@ -116,34 +127,53 @@ export type TraceMetaQueryResults = {
   data: TraceMeta | undefined;
   errors: Error[];
   isLoading: boolean;
+  status: QueryStatus;
 };
 
-export function useTraceMeta(traceSlugs: string[]): TraceMetaQueryResults {
+export function useTraceMeta(replayTraces: ReplayTrace[]): TraceMetaQueryResults {
   const filters = usePageFilters();
   const api = useApi();
   const organization = useOrganization();
 
-  const queryParams = useMemo(() => {
+  const normalizedParams = useMemo(() => {
     const query = qs.parse(location.search);
-    return getMetaQueryParams(query, filters.selection);
+    return normalizeDateTimeParams(query, {
+      allowAbsolutePageDatetime: true,
+    });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const mode = queryParams.demo ? 'demo' : undefined;
+  // demo has the format ${projectSlug}:${eventId}
+  // used to query a demo transaction event from the backend.
+  const mode = decodeScalar(normalizedParams.demo) ? 'demo' : undefined;
 
-  const {data, isLoading} = useQuery<
+  const {data, isLoading, status} = useQuery<
     {
       apiErrors: Error[];
       metaResults: TraceMeta;
     },
     Error
-  >(
-    ['traceData', traceSlugs],
-    () => fetchTraceMetaInBatches(traceSlugs, api, organization, queryParams),
-    {
-      enabled: traceSlugs.length > 0,
-    }
-  );
+  >({
+    queryKey: ['traceData', replayTraces],
+    queryFn: () =>
+      fetchTraceMetaInBatches(
+        api,
+        organization,
+        replayTraces,
+        normalizedParams,
+        filters.selection
+      ),
+    enabled: replayTraces.length > 0,
+  });
+
+  const results = useMemo(() => {
+    return {
+      data: data?.metaResults,
+      errors: data?.apiErrors || [],
+      isLoading,
+      status,
+    };
+  }, [data, isLoading, status]);
 
   // When projects don't have performance set up, we allow them to view a sample transaction.
   // The backend creates the sample transaction, however the trace is created async, so when the
@@ -158,15 +188,13 @@ export function useTraceMeta(traceSlugs: string[]): TraceMetaQueryResults {
         performance_issues: 0,
         projects: 1,
         transactions: 1,
+        transactiontoSpanChildrenCount: {},
       },
       isLoading: false,
       errors: [],
+      status: 'success',
     };
   }
 
-  return {
-    data: data?.metaResults,
-    isLoading,
-    errors: data?.apiErrors || [],
-  };
+  return results;
 }

@@ -57,7 +57,7 @@ describe('Discover DatasetSelector', function () {
     expect(router.push).toHaveBeenCalledWith(
       expect.objectContaining({
         query: expect.objectContaining({
-          project: [],
+          project: undefined,
           field: ['transaction', 'project'],
           query: 'foo:bar',
           queryDataset: 'transaction-like',
@@ -83,7 +83,7 @@ describe('Discover DatasetSelector', function () {
     expect(router.push).toHaveBeenCalledWith(
       expect.objectContaining({
         query: expect.objectContaining({
-          project: [],
+          project: undefined,
           field: ['transaction', 'project'],
           query: 'foo:bar',
           queryDataset: 'transaction-like',

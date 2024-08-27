@@ -1,4 +1,5 @@
 import {GroupFixture} from 'sentry-fixture/group';
+import {LocationFixture} from 'sentry-fixture/locationFixture';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
 import {ReleaseFixture} from 'sentry-fixture/release';
@@ -10,17 +11,18 @@ import {textWithMarkupMatcher} from 'sentry-test/utils';
 
 import type {TeamParticipant, UserParticipant} from 'sentry/types/group';
 import {IssueCategory} from 'sentry/types/group';
-import StreamlinedGroupHeader from 'sentry/views/issueDetails/streamlinedHeader';
+import StreamlinedGroupHeader from 'sentry/views/issueDetails/streamline/header';
 import {ReprocessingStatus} from 'sentry/views/issueDetails/utils';
 
 describe('UpdatedGroupHeader', () => {
   const baseUrl = 'BASE_URL/';
-  const organization = OrganizationFixture({features: ['issue-details-streamline']});
+  const organization = OrganizationFixture();
   const project = ProjectFixture({
     platform: 'javascript',
     teams: [TeamFixture()],
   });
   const group = GroupFixture({issueCategory: IssueCategory.ERROR, isUnhandled: true});
+  const location = LocationFixture({query: {streamline: '1'}});
 
   describe('JS Project Error Issue', () => {
     const defaultProps = {
@@ -93,30 +95,33 @@ describe('UpdatedGroupHeader', () => {
         />,
         {
           organization,
+          router: {location},
         }
       );
 
-      expect(await screen.findByText('RequestError')).toBeInTheDocument();
-
-      expect(await screen.findByText('Warning')).toBeInTheDocument();
-      expect(await screen.findByText('Unhandled')).toBeInTheDocument();
+      expect(screen.getByText('RequestError')).toBeInTheDocument();
+      expect(screen.getByText('Warning')).toBeInTheDocument();
+      expect(screen.getByText('Unhandled')).toBeInTheDocument();
 
       expect(
         await screen.findByText(textWithMarkupMatcher('Releases'))
       ).toBeInTheDocument();
 
       expect(
-        await screen.findByRole('button', {name: 'Modify issue priority'})
+        screen.getByRole('button', {name: 'Modify issue priority'})
       ).toBeInTheDocument();
       expect(
-        await screen.findByRole('button', {name: 'Modify issue assignee'})
+        screen.getByRole('button', {name: 'Modify issue assignee'})
       ).toBeInTheDocument();
 
-      expect(await screen.findByText('Participants')).toBeInTheDocument();
-      expect(await screen.findByText('Viewers')).toBeInTheDocument();
+      expect(screen.getByText('Participants')).toBeInTheDocument();
+      expect(screen.getByText('Viewers')).toBeInTheDocument();
 
-      expect(await screen.findByRole('button', {name: 'Resolve'})).toBeInTheDocument();
-      expect(await screen.findByRole('button', {name: 'Archive'})).toBeInTheDocument();
+      expect(
+        screen.queryByRole('button', {name: 'Switch to the old issue experience'})
+      ).not.toBeInTheDocument();
+      expect(screen.getByRole('button', {name: 'Resolve'})).toBeInTheDocument();
+      expect(screen.getByRole('button', {name: 'Archive'})).toBeInTheDocument();
     });
 
     it('only shows one release if possible', async function () {
@@ -128,10 +133,34 @@ describe('UpdatedGroupHeader', () => {
       });
       render(
         <StreamlinedGroupHeader {...defaultProps} group={group} project={project} />,
-        {organization}
+        {
+          organization,
+          router: {location},
+        }
       );
       expect(
         await screen.findByText(textWithMarkupMatcher('Release'))
+      ).toBeInTheDocument();
+    });
+
+    it('displays new experience button if flag is set', async () => {
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/issues/${group.id}/first-last-release/`,
+        method: 'GET',
+        body: {firstRelease, lastRelease},
+      });
+      const flaggedOrganization = OrganizationFixture({
+        features: ['issue-details-streamline'],
+      });
+      render(
+        <StreamlinedGroupHeader {...defaultProps} group={group} project={project} />,
+        {
+          organization: flaggedOrganization,
+          router: {location},
+        }
+      );
+      expect(
+        await screen.findByRole('button', {name: 'Switch to the old issue experience'})
       ).toBeInTheDocument();
     });
   });

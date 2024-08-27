@@ -808,6 +808,7 @@ const commonTheme = {
     collapsedWidth: '70px',
     semiCollapsedWidth: '100px',
     expandedWidth: '220px',
+    mobileHeightNumber: 54,
     mobileHeight: '54px',
     menuSpacing: '15px',
   },

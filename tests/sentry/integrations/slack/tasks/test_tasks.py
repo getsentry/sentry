@@ -13,8 +13,8 @@ from sentry.integrations.slack.tasks import (
     find_channel_id_for_rule,
     post_message,
 )
-from sentry.integrations.slack.utils import RedisRuleStatus
 from sentry.integrations.slack.utils.channel import SlackChannelIdData
+from sentry.integrations.slack.utils.rule_status import RedisRuleStatus
 from sentry.models.rule import Rule
 from sentry.receivers.rules import DEFAULT_RULE_LABEL, DEFAULT_RULE_LABEL_NEW
 from sentry.testutils.cases import TestCase

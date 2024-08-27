@@ -625,18 +625,22 @@ function TransactionSummaryLink(props: TransactionSummaryLinkProps) {
     },
   });
 
-  const handleClick = useCallback(() => {
-    onTransactionSelection(transaction.transaction);
-    trackAnalytics('performance_views.performance_change_explorer.open', {
-      organization,
-      transaction: transaction.transaction,
-    });
-  }, [onTransactionSelection, transaction.transaction, organization]);
+  const handleClick = useCallback<React.MouseEventHandler>(
+    event => {
+      event.preventDefault();
+      onTransactionSelection(transaction.transaction);
+      trackAnalytics('performance_views.performance_change_explorer.open', {
+        organization,
+        transaction: transaction.transaction,
+      });
+    },
+    [onTransactionSelection, transaction.transaction, organization]
+  );
 
   if (organization.features.includes('performance-change-explorer')) {
     return (
       <ItemTransactionName
-        to=""
+        to={location}
         data-test-id="item-transaction-name"
         onClick={handleClick}
       >

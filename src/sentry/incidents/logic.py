@@ -57,6 +57,10 @@ from sentry.models.project import Project
 from sentry.models.scheduledeletion import RegionScheduledDeletion
 from sentry.relay.config.metric_extraction import on_demand_metrics_feature_flags
 from sentry.search.events.builder.base import BaseQueryBuilder
+from sentry.search.events.constants import (
+    METRICS_LAYER_UNSUPPORTED_TRANSACTION_METRICS_FUNCTIONS,
+    SPANS_METRICS_FUNCTIONS,
+)
 from sentry.search.events.fields import is_function, resolve_field
 from sentry.seer.anomaly_detection.store_data import send_historical_data_to_seer
 from sentry.sentry_apps.services.app import RpcSentryAppInstallation, app_service
@@ -656,7 +660,7 @@ def create_alert_rule(
             except (TimeoutError, MaxRetryError):
                 alert_rule.delete()
                 raise TimeoutError("Failed to send data to Seer - cannot create alert rule.")
-            except (ValidationError):
+            except ValidationError:
                 alert_rule.delete()
                 raise
             else:
@@ -1521,7 +1525,7 @@ def get_target_identifier_display_for_integration(type, target_value, *args, **k
 def get_alert_rule_trigger_action_slack_channel_id(
     name, organization, integration_id, use_async_lookup, integrations
 ):
-    from sentry.integrations.slack.utils import get_channel_id
+    from sentry.integrations.slack.utils.channel import get_channel_id
 
     if integrations is not None:
         try:
@@ -1534,7 +1538,7 @@ def get_alert_rule_trigger_action_slack_channel_id(
         raise InvalidTriggerActionError("Slack workspace is a required field.")
 
     try:
-        channel_data = get_channel_id(organization, integration, name, use_async_lookup)
+        channel_data = get_channel_id(integration, name, use_async_lookup)
     except DuplicateDisplayNameError as e:
         domain = integration.metadata["domain_name"]
 
@@ -1739,6 +1743,15 @@ TRANSLATABLE_COLUMNS = {
 
 
 def get_column_from_aggregate(aggregate, allow_mri):
+    # These functions exist as SnQLFunction definitions and are not supported in the older
+    # logic for resolving functions. We parse these using `fields.is_function`, otherwise
+    # they will fail using the old resolve_field logic.
+    match = is_function(aggregate)
+    if match and (
+        match.group("function") in SPANS_METRICS_FUNCTIONS
+        or match.group("function") in METRICS_LAYER_UNSUPPORTED_TRANSACTION_METRICS_FUNCTIONS
+    ):
+        return None if match.group("columns") == "" else match.group("columns")
     if allow_mri:
         mri_column = get_column_from_aggregate_with_mri(aggregate)
         # Only if the column was allowed, we return it, otherwise we fallback to the old logic.
