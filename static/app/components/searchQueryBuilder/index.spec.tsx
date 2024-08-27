@@ -1524,6 +1524,55 @@ describe('SearchQueryBuilder', function () {
         expect(screen.getByRole('combobox', {name: 'Edit filter value'})).toHaveFocus();
       });
 
+      it('keeps focus inside value when multi-selecting with ctrl+enter', async function () {
+        render(
+          <SearchQueryBuilder {...defaultProps} initialQuery="browser.name:firefox" />
+        );
+
+        await userEvent.click(
+          screen.getByRole('button', {name: 'Edit value for filter: browser.name'})
+        );
+
+        // Arrow down two places to "Chrome" option
+        await userEvent.keyboard('{ArrowDown}{ArrowDown}');
+        // Pressing ctrl+enter should toggle the option and keep focus inside the input
+        await userEvent.keyboard('{Control>}{Enter}');
+        expect(
+          await screen.findByRole('row', {name: 'browser.name:[firefox,Chrome]'})
+        ).toBeInTheDocument();
+        await waitFor(() => {
+          expect(screen.getByRole('combobox', {name: 'Edit filter value'})).toHaveValue(
+            'firefox,Chrome,'
+          );
+        });
+        expect(screen.getByRole('combobox', {name: 'Edit filter value'})).toHaveFocus();
+      });
+
+      it('keeps focus inside value when multi-selecting with ctrl+click', async function () {
+        render(
+          <SearchQueryBuilder {...defaultProps} initialQuery="browser.name:firefox" />
+        );
+
+        const user = userEvent.setup();
+
+        await user.click(
+          screen.getByRole('button', {name: 'Edit value for filter: browser.name'})
+        );
+
+        // Clicking option while holding Ctrl should toggle the option and keep focus inside the input
+        await user.keyboard('{Control>}');
+        await user.click(screen.getByRole('option', {name: 'Chrome'}));
+        expect(
+          await screen.findByRole('row', {name: 'browser.name:[firefox,Chrome]'})
+        ).toBeInTheDocument();
+        await waitFor(() => {
+          expect(screen.getByRole('combobox', {name: 'Edit filter value'})).toHaveValue(
+            'firefox,Chrome,'
+          );
+        });
+        expect(screen.getByRole('combobox', {name: 'Edit filter value'})).toHaveFocus();
+      });
+
       it('collapses many selected options', function () {
         render(
           <SearchQueryBuilder
