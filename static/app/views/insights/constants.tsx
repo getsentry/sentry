@@ -83,7 +83,7 @@ const TRANSACTION_FILTERS: FilterKeySection = {
 
 const USER_CONTEXT_FILTERS: FilterKeySection = {
   value: 'user_context_filters',
-  label: 'User Context',
+  label: 'User',
   children: [
     SpanIndexedField.USER,
     SpanIndexedField.USER_ID,
@@ -110,7 +110,7 @@ const SPAN_FILTERS: FilterKeySection = {
 
 const EVENT_FILTERS: FilterKeySection = {
   value: 'event_filters',
-  label: 'Event Filters',
+  label: 'Event',
   children: [
     ...SPAN_FILTERS.children,
     ...TRANSACTION_FILTERS.children,
