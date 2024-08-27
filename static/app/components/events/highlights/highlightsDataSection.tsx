@@ -154,16 +154,16 @@ function HighlightsData({
   const contextReplayItem = highlightContextDataItems.find(
     e => e.data[0].key === 'replay_id'
   );
-  const contextReplayId = contextReplayItem?.value ?? '';
+  const contextReplayId = contextReplayItem?.value ?? EMPTY_HIGHLIGHT_DEFAULT;
 
   const tagReplayItem = highlightTagItems.find(e => e.originalTag.key === 'replayId');
-  const tagReplayId = tagReplayItem?.value ?? '';
+  const tagReplayId = tagReplayItem?.value ?? EMPTY_HIGHLIGHT_DEFAULT;
 
   // if the id doesn't exist for either tag or context, it's rendered as '--'
   const replayId =
-    contextReplayId.length > 2
+    contextReplayId !== EMPTY_HIGHLIGHT_DEFAULT
       ? contextReplayId
-      : tagReplayId.length > 2
+      : tagReplayId !== EMPTY_HIGHLIGHT_DEFAULT
         ? tagReplayId
         : undefined;
 
