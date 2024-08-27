@@ -184,6 +184,8 @@ def process_profile_task(
 
     if sampled:
         with metrics.timer("process_profile.track_outcome.accepted"):
+            if not project.flags.has_profiles:
+                first_profile_received.send_robust(project=project, sender=Project)
             try:
                 _track_duration_outcome(profile=profile, project=project)
             except Exception as e:
@@ -975,9 +977,6 @@ def _track_outcome(
     outcome: Outcome,
     reason: str | None = None,
 ) -> None:
-    if not project.flags.has_profiles:
-        first_profile_received.send_robust(project=project, sender=Project)
-
     track_outcome(
         org_id=project.organization_id,
         project_id=project.id,
