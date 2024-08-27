@@ -42,7 +42,7 @@ export function PlatformIntegrationSetup({
     ],
     {
       enabled: !!integrationSlug,
-      staleTime: Infinity,
+      staleTime: 0,
     }
   );
 
