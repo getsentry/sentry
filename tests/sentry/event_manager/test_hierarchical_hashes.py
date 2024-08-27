@@ -26,44 +26,6 @@ def fast_save(default_project, task_runner):
         hashes = CalculatedHashes(
             hashes=["a" * 32, "b" * 32],
             hierarchical_hashes=["c" * 32, "d" * 32, "e" * 32, last_frame * 32],
-            tree_labels=[
-                [
-                    {
-                        "function": "foo",
-                        "package": "",
-                        "is_sentinel": False,
-                        "is_prefix": False,
-                        "datapath": "",
-                    }
-                ],
-                [
-                    {
-                        "function": "bar",
-                        "package": "",
-                        "is_sentinel": False,
-                        "is_prefix": False,
-                        "datapath": "",
-                    }
-                ],
-                [
-                    {
-                        "function": "baz",
-                        "package": "",
-                        "is_sentinel": False,
-                        "is_prefix": False,
-                        "datapath": "",
-                    }
-                ],
-                [
-                    {
-                        "function": "bam",
-                        "package": "",
-                        "is_sentinel": False,
-                        "is_prefix": False,
-                        "datapath": "",
-                    }
-                ],
-            ],
         )
 
         with task_runner():

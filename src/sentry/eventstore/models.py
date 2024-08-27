@@ -375,9 +375,7 @@ class BaseEvent(metaclass=abc.ABCMeta):
         variants = self.get_grouping_variants(force_config)
         flat_variants, hierarchical_variants = sort_grouping_variants(variants)
         flat_hashes, _ = self._hashes_from_sorted_grouping_variants(flat_variants)
-        hierarchical_hashes, tree_labels = self._hashes_from_sorted_grouping_variants(
-            hierarchical_variants
-        )
+        hierarchical_hashes = self._hashes_from_sorted_grouping_variants(hierarchical_variants)
 
         if flat_hashes:
             sentry_sdk.set_tag("get_hashes.flat_variant", flat_hashes[0][0])
@@ -390,7 +388,6 @@ class BaseEvent(metaclass=abc.ABCMeta):
         return CalculatedHashes(
             hashes=flat_hashes_values,
             hierarchical_hashes=hierarchical_hashes_values,
-            tree_labels=tree_labels,
             variants=variants,
         )
 
@@ -400,10 +397,7 @@ class BaseEvent(metaclass=abc.ABCMeta):
     ) -> tuple[list[tuple[str, str]], list[Any]]:
         """Create hashes from variants and filter out duplicates and None values"""
 
-        from sentry.grouping.variants import ComponentVariant
-
         filtered_hashes = []
-        tree_labels = []
         seen_hashes = set()
         for name, variant in variants:
             hash_ = variant.get_hash()
@@ -412,13 +406,8 @@ class BaseEvent(metaclass=abc.ABCMeta):
 
             seen_hashes.add(hash_)
             filtered_hashes.append((name, hash_))
-            tree_labels.append(
-                variant.component.tree_label or None
-                if isinstance(variant, ComponentVariant)
-                else None
-            )
 
-        return filtered_hashes, tree_labels
+        return filtered_hashes
 
     def normalize_stacktraces_for_grouping(self, grouping_config: StrategyConfiguration) -> None:
         """Normalize stacktraces and clear memoized interfaces
