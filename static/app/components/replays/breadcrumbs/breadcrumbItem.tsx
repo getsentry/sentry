@@ -245,19 +245,19 @@ function WebVitalData({
     },
   };
   const {data: frameToExtraction} = useExtractDomNodes({replay});
-  const selector = frameToExtraction?.get(frame)?.selector;
+  const selectors = frameToExtraction?.get(frame)?.selector;
 
-  let webVitalData;
+  const webVitalData = {value: frame.data.value};
   if (
     frame.description === 'cumulative-layout-shift' &&
     // frame.data.attributes &&
-    selector
+    selectors
   ) {
     const layoutShifts: {[x: string]: ReactNode[]}[] = [];
     for (const attr of clsFrame.data.attributes) {
       const elements: ReactNode[] = [];
       attr.nodeIds?.map(nodeId => {
-        return selector.get(nodeId)
+        return selectors.get(nodeId)
           ? elements.push(
               <span
                 key={nodeId}
@@ -267,37 +267,45 @@ function WebVitalData({
                 <ValueObjectKey>{'element'}</ValueObjectKey>
                 <span>{': '}</span>
                 <span>
-                  <SelectorButton>{selector.get(nodeId)}</SelectorButton>
+                  <SelectorButton>{selectors.get(nodeId)}</SelectorButton>
                 </span>
               </span>
             )
           : null;
       });
-      if (elements.length) {
-        const key = `score ${attr.value}`;
-        layoutShifts.push({[key]: elements});
+      if (!elements.length) {
+        elements.push(
+          <span>
+            <ValueObjectKey>{'element'}</ValueObjectKey>
+            <span>{': '}</span>
+            <ValueNull>{'unknown'}</ValueNull>
+          </span>
+        );
       }
+      layoutShifts.push({[`score ${attr.value}`]: elements});
     }
-    webVitalData = {value: frame.data.value, 'Layout shifts': layoutShifts};
-  } else if (selector?.size) {
-    // all web vitals except cls should have at most one associated element
-    const entry = selector.values().next().value;
-    webVitalData = {
-      value: frame.data.value,
-      element: (
-        <span
-          key={entry}
-          onMouseEnter={e => onMouseEnter(frame, e)}
-          onMouseLeave={e => onMouseLeave(frame, e)}
-        >
-          <ValueObjectKey>{'element'}</ValueObjectKey>
-          <span>{': '}</span>
-          <SelectorButton>{entry}</SelectorButton>
-        </span>
-      ),
-    };
-  } else {
-    webVitalData = {value: frame.data.value};
+    if (layoutShifts.length) {
+      webVitalData['Layout shifts'] = layoutShifts;
+    }
+  } else if (selectors?.size) {
+    const vitalKey = 'element';
+    webVitalData[vitalKey] = (
+      <span>
+        {Array.from(selectors).map(([, key]) => {
+          return (
+            <span
+              key={key}
+              onMouseEnter={e => onMouseEnter(frame, e)}
+              onMouseLeave={e => onMouseLeave(frame, e)}
+            >
+              <ValueObjectKey>{'element'}</ValueObjectKey>
+              <span>{': '}</span>
+              <SelectorButton>{key}</SelectorButton>
+            </span>
+          );
+        })}
+      </span>
+    );
   }
 
   return webVitalData ? (
@@ -506,6 +514,11 @@ const CodeContainer = styled('div')`
 
 const ValueObjectKey = styled('span')`
   color: var(--prism-keyword);
+`;
+
+const ValueNull = styled('span')`
+  font-weight: ${p => p.theme.fontWeightBold};
+  color: var(--prism-property);
 `;
 
 const SelectorButton = styled(Button)`
