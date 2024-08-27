@@ -70,6 +70,12 @@ def _project_has_similarity_grouping_enabled(project: Project) -> bool:
     # projects have been backfilled, the option (and this check) can go away.
     has_been_backfilled = project.get_option("sentry:similarity_backfill_completed")
 
+    metrics.incr(
+        "grouping.similarity.event_from_backfilled_project",
+        sample_rate=options.get("seer.similarity.metrics_sample_rate"),
+        tags={"backfilled": has_seer_grouping_flag_on or has_been_backfilled},
+    )
+
     return has_seer_grouping_flag_on or has_been_backfilled
 
 
