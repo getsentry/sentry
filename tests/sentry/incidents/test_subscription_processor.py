@@ -837,8 +837,8 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
         processor = SubscriptionProcessor(self.sub)
         mock_seer_request.return_value = HTTPResponse("You flew too close to the sun", status=403)
         result = processor.get_anomaly_data_from_seer(10)
-        assert mock_logger.error.called_with(
-            f"Received 403 when calling Seer endpoint {SEER_ANOMALY_DETECTION_ENDPOINT_URL}.",  # noqa
+        mock_logger.error.assert_called_with(
+            f"Received 403 when calling Seer endpoint {SEER_ANOMALY_DETECTION_ENDPOINT_URL}.",
             extra={"response_data": "You flew too close to the sun"},
         )
         assert result is None
@@ -852,7 +852,9 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
         processor = SubscriptionProcessor(self.sub)
         mock_seer_request.return_value = HTTPResponse(None, status=200)  # type: ignore[arg-type]
         result = processor.get_anomaly_data_from_seer(10)
-        assert mock_logger.exception.called_with("Failed to parse Seer anomaly detection response")
+        mock_logger.exception.assert_called_with(
+            "Failed to parse Seer anomaly detection response", extra=mock.ANY
+        )
         assert result is None
 
     def test_alert(self):
