@@ -2,7 +2,6 @@ from rest_framework.response import Response
 
 from sentry.api.base import control_silo_endpoint
 from sentry.integrations.gitlab.integration import GitlabIntegration
-from sentry.integrations.mixins.issues import IssueBasicIntegration
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.source_code_management.search import SourceCodeSearchEndpoint
 from sentry.shared_integrations.exceptions import ApiError
@@ -22,20 +21,22 @@ class GitlabIssueSearchEndpoint(SourceCodeSearchEndpoint):
     def installation_class(self):
         return GitlabIntegration
 
-    def handle_search_issues(
-        self, installation: IssueBasicIntegration, query: str, repo: str
-    ) -> Response:
+    def handle_search_issues(self, installation, query: str, repo: str) -> Response:
+        assert isinstance(installation, self.installation_class)
+        full_query: str | None = query
+
         try:
             iids = [int(query)]
-            query = None
+            full_query = None
         except ValueError:
             iids = None
 
         try:
-            response = installation.search_issues(query=query, project_id=repo, iids=iids)
+            response = installation.search_issues(query=full_query, project_id=repo, iids=iids)
         except ApiError as e:
             return Response({"detail": str(e)}, status=400)
 
+        assert isinstance(response, list)
         return Response(
             [
                 {
@@ -50,6 +51,7 @@ class GitlabIssueSearchEndpoint(SourceCodeSearchEndpoint):
     def handle_search_repositories(
         self, integration: Integration, installation, query: str
     ) -> Response:
+        assert isinstance(installation, self.installation_class)
         try:
             response = installation.search_projects(query)
         except ApiError as e:

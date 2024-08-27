@@ -11,6 +11,7 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import control_silo_endpoint
 from sentry.integrations.api.bases.integration import IntegrationEndpoint
+from sentry.integrations.base import IntegrationInstallation
 from sentry.integrations.mixins.issues import IssueBasicIntegration
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.source_code_management.repository import RepositoryIntegration
@@ -55,15 +56,15 @@ class SourceCodeSearchEndpoint(IntegrationEndpoint, ABC):
 
     @abstractmethod
     def handle_search_issues(
-        self, installation: IssueBasicIntegration, query: str, repo: str
+        self, installation: IntegrationInstallation, query: str, repo: str
     ) -> Response:
         raise NotImplementedError
 
     # not used in VSTS
     def handle_search_repositories(
-        self, integration: Integration, installation: IssueBasicIntegration, query: str
+        self, integration: Integration, installation: IntegrationInstallation, query: str
     ) -> Response:
-        pass
+        return Response()
 
     def get(
         self, request: Request, organization: RpcOrganization, integration_id: int, **kwds: Any
@@ -88,7 +89,12 @@ class SourceCodeSearchEndpoint(IntegrationEndpoint, ABC):
 
         installation = integration.get_installation(organization.id)
         if not isinstance(installation, self.installation_class):
-            raise NotFound(f"Integration by that id is not a {self.installation_class.__name__}.")
+            integration_provider = (
+                self.integration_provider if self.integration_provider else "github"
+            )
+            raise NotFound(f"Integration by that id is not of type {integration_provider}.")
+
+        assert isinstance(installation, self.installation_class)
 
         if field == self.issue_field:
             repo = request.GET.get(self.repository_field)
