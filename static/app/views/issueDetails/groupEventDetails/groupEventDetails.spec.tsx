@@ -198,7 +198,7 @@ const mockGroupApis = (
   project: Project,
   group: Group,
   event: Event,
-  replayId: string | undefined,
+  replayId?: string,
   trace?: QuickTraceEvent
 ) => {
   MockApiClient.addMockResponse({
@@ -364,7 +364,7 @@ describe('groupEventDetails', () => {
 
   it('redirects on switching to an invalid environment selection for event', async function () {
     const props = makeDefaultMockData();
-    mockGroupApis(props.organization, props.project, props.group, props.event, undefined);
+    mockGroupApis(props.organization, props.project, props.group, props.event);
 
     const {rerender} = render(<TestComponent {...props} />);
     expect(browserHistory.replace).not.toHaveBeenCalled();
@@ -376,7 +376,7 @@ describe('groupEventDetails', () => {
 
   it('does not redirect when switching to a valid environment selection for event', async function () {
     const props = makeDefaultMockData();
-    mockGroupApis(props.organization, props.project, props.group, props.event, undefined);
+    mockGroupApis(props.organization, props.project, props.group, props.event);
 
     const {rerender} = render(<TestComponent {...props} />);
 
@@ -403,8 +403,7 @@ describe('groupEventDetails', () => {
         tags: [{key: 'environment', value: 'dev'}],
         previousEventID: 'prev-event-id',
         nextEventID: 'next-event-id',
-      }),
-      undefined
+      })
     );
 
     render(<TestComponent event={undefined} eventError />);
@@ -436,8 +435,7 @@ describe('groupEventDetails', () => {
         tags: [{key: 'environment', value: 'dev'}],
         previousEventID: 'prev-event-id',
         nextEventID: 'next-event-id',
-      }),
-      undefined
+      })
     );
 
     render(<TestComponent group={group} event={transaction} />, {
@@ -485,8 +483,7 @@ describe('groupEventDetails', () => {
         tags: [{key: 'environment', value: 'dev'}],
         previousEventID: 'prev-event-id',
         nextEventID: 'next-event-id',
-      }),
-      undefined
+      })
     );
 
     render(<TestComponent group={group} event={transaction} />, {});
@@ -505,7 +502,7 @@ describe('groupEventDetails', () => {
 
   it('renders event tags ui', async () => {
     const props = makeDefaultMockData();
-    mockGroupApis(props.organization, props.project, props.group, props.event, undefined);
+    mockGroupApis(props.organization, props.project, props.group, props.event);
     render(<TestComponent group={props.group} event={props.event} />, {});
 
     expect(await screen.findByText('Event ID:')).toBeInTheDocument();
@@ -552,8 +549,7 @@ describe('EventCause', () => {
         tags: [{key: 'environment', value: 'dev'}],
         previousEventID: 'prev-event-id',
         nextEventID: 'next-event-id',
-      }),
-      undefined
+      })
     );
 
     MockApiClient.addMockResponse({
@@ -613,8 +609,7 @@ describe('Platform Integrations', () => {
         tags: [{key: 'environment', value: 'dev'}],
         previousEventID: 'prev-event-id',
         nextEventID: 'next-event-id',
-      }),
-      undefined
+      })
     );
 
     const component = SentryAppComponentFixture({
