@@ -54,7 +54,15 @@ export function SpansTable({}: SpansTableProps) {
     referrer: 'api.explore.spans-samples-table',
   });
 
-  const {tableStyles} = useTableStyles({items: fields});
+  const {tableStyles} = useTableStyles({
+    items: fields.map(field => {
+      return {
+        label: field,
+        value: field,
+      };
+    }),
+  });
+
   const meta = result.meta ?? {};
 
   return (
