@@ -100,9 +100,7 @@ class ProjectRuleActionsEndpoint(ProjectEndpoint):
                 # noisy sentry issues, so log with a warning instead.
                 if isinstance(exc, IntegrationError):
                     logger.warning(
-                        "%s.test_alert.integration_error",
-                        callback_name,
-                        extra={"exception": exc},
+                        "%s.test_alert.integration_error", callback_name, extra={"exc": exc}
                     )
 
                     # IntegrationFormErrors should be safe to propagate via the API
@@ -111,9 +109,7 @@ class ProjectRuleActionsEndpoint(ProjectEndpoint):
                     # If we encounter some unexpected exception, we probably
                     # don't want to continue executing more callbacks.
                     logger.warning(
-                        "%s.test_alert.unexpected_exception",
-                        callback_name,
-                        extra={"exception": exc},
+                        "%s.test_alert.unexpected_exception", callback_name, extra={"exc": exc}
                     )
                     break
 
