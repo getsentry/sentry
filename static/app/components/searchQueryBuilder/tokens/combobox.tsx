@@ -110,6 +110,7 @@ type SearchQueryBuilderComboboxProps<T extends SelectOptionOrSectionWithKey<stri
 type OverlayProps = ReturnType<typeof useOverlay>['overlayProps'];
 
 export type CustomComboboxMenuProps<T> = {
+  filterValue: string;
   hiddenOptions: Set<SelectKey>;
   isOpen: boolean;
   listBoxProps: AriaListBoxOptions<T>;
@@ -277,6 +278,7 @@ function OverlayContent<T extends SelectOptionOrSectionWithKey<string>>({
       listBoxProps,
       state,
       overlayProps,
+      filterValue,
     });
   }
 
