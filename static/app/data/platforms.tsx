@@ -327,6 +327,13 @@ export const platforms: PlatformIntegration[] = [
     link: 'https://docs.sentry.io/platforms/javascript/guides/solid/',
   },
   {
+    id: 'javascript-solidstart',
+    name: 'SolidStart',
+    type: 'framework',
+    language: 'javascript',
+    link: 'https://docs.sentry.io/platforms/javascript/guides/solidstart/',
+  },
+  {
     id: 'javascript-svelte',
     name: 'Svelte',
     type: 'framework',

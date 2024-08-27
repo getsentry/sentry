@@ -35,7 +35,6 @@ import {useParams} from 'sentry/utils/useParams';
 import {
   isAutogroupedNode,
   isMissingInstrumentationNode,
-  isNoDataNode,
   isRootNode,
   isSpanNode,
   isTraceErrorNode,
@@ -47,7 +46,6 @@ import {useDrawerContainerRef} from 'sentry/views/performance/newTraceDetails/tr
 import {makeTraceContinuousProfilingLink} from 'sentry/views/performance/newTraceDetails/traceDrawer/traceProfilingLink';
 import type {
   MissingInstrumentationNode,
-  NoDataNode,
   ParentAutogroupNode,
   SiblingAutogroupNode,
   TraceTree,
@@ -408,7 +406,6 @@ function NodeActions(props: {
       | TraceTreeNode<any>
       | ParentAutogroupNode
       | SiblingAutogroupNode
-      | NoDataNode
       | MissingInstrumentationNode
   ) => void;
   organization: Organization;
@@ -462,9 +459,6 @@ function NodeActions(props: {
       return [showInView];
     }
     if (isAutogroupedNode(props.node)) {
-      return [showInView];
-    }
-    if (isNoDataNode(props.node)) {
       return [showInView];
     }
 

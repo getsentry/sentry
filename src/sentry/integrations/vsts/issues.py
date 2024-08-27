@@ -6,8 +6,10 @@ from django.utils.translation import gettext as _
 from mistune import markdown
 from rest_framework.response import Response
 
-from sentry.integrations.mixins import IssueSyncMixin, ResolveSyncAction
+from sentry.integrations.mixins import ResolveSyncAction
+from sentry.integrations.mixins.issues import IssueSyncIntegration
 from sentry.integrations.services.integration import integration_service
+from sentry.integrations.source_code_management.issues import SourceCodeIssueIntegration
 from sentry.models.activity import Activity
 from sentry.shared_integrations.exceptions import ApiError, ApiUnauthorized
 from sentry.silo.base import all_silo_function
@@ -19,7 +21,7 @@ if TYPE_CHECKING:
     from sentry.models.group import Group
 
 
-class VstsIssueSync(IssueSyncMixin):
+class VstsIssuesSpec(IssueSyncIntegration, SourceCodeIssueIntegration):
     description = "Integrate Azure DevOps work items by linking a project."
     slug = "vsts"
     conf_key = slug

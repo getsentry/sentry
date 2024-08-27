@@ -472,12 +472,6 @@ register(
     default=[],
     flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
 )
-# Produce feedback to the new ingest-feedback-events topic, rather than ingest-events
-register(
-    "feedback.ingest-topic.rollout-rate",
-    default=0.0,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
 
 
 # Extract spans only from a random fraction of transactions.
@@ -506,19 +500,6 @@ register("slack.client-secret", flags=FLAG_CREDENTIAL | FLAG_PRIORITIZE_DISK)
 # signing-secret is preferred, but need to keep verification-token for apps that use it
 register("slack.verification-token", flags=FLAG_CREDENTIAL | FLAG_PRIORITIZE_DISK)
 register("slack.signing-secret", flags=FLAG_CREDENTIAL | FLAG_PRIORITIZE_DISK)
-# Use Slack SDK in SlackEventEndpoint
-register(
-    "slack.event-endpoint-sdk",
-    default=False,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-# Integration Ids to LA for Using Slack SDK in SlackEventEndpoint
-register(
-    "slack.event-endpoint-sdk-integration-ids",
-    type=Sequence,
-    default=[],
-    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
-)
 
 # Codecov Integration
 register("codecov.client-secret", flags=FLAG_CREDENTIAL | FLAG_PRIORITIZE_DISK)
@@ -1932,8 +1913,6 @@ register("hybrid_cloud.rpc.disabled-service-methods", default=[], flags=FLAG_AUT
 
 # Decides whether an incoming transaction triggers an update of the clustering rule applied to it.
 register("txnames.bump-lifetime-sample-rate", default=0.1, flags=FLAG_AUTOMATOR_MODIFIABLE)
-# Decides whether an incoming span triggers an update of the clustering rule applied to it.
-register("span_descs.bump-lifetime-sample-rate", default=0.25, flags=FLAG_AUTOMATOR_MODIFIABLE)
 
 # === Nodestore related runtime options ===
 
