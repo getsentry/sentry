@@ -945,6 +945,42 @@ class OrganizationEventsStatsEndpointTest(APITestCase, SnubaTestCase, SearchIssu
         assert response.data["start"] == parse_date(start).timestamp()
         assert response.data["end"] == parse_date(end).timestamp()
 
+    def test_comparison_error_dataset(self):
+        self.store_event(
+            data={
+                "timestamp": iso_format(self.day_ago + timedelta(days=-1, minutes=1)),
+            },
+            project_id=self.project.id,
+        )
+        self.store_event(
+            data={
+                "timestamp": iso_format(self.day_ago + timedelta(days=-1, minutes=2)),
+            },
+            project_id=self.project.id,
+        )
+        self.store_event(
+            data={
+                "timestamp": iso_format(self.day_ago + timedelta(days=-1, hours=1, minutes=1)),
+            },
+            project_id=self.project2.id,
+        )
+
+        response = self.do_request(
+            data={
+                "start": iso_format(self.day_ago),
+                "end": iso_format(self.day_ago + timedelta(hours=2)),
+                "interval": "1h",
+                "comparisonDelta": int(timedelta(days=1).total_seconds()),
+                "dataset": "errors",
+            }
+        )
+        assert response.status_code == 200, response.content
+
+        assert [attrs for time, attrs in response.data["data"]] == [
+            [{"count": 1, "comparisonCount": 2}],
+            [{"count": 2, "comparisonCount": 1}],
+        ]
+
     def test_comparison(self):
         self.store_event(
             data={
