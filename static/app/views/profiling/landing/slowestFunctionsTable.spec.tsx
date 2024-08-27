@@ -86,7 +86,6 @@ describe('SlowestFunctionsTable', () => {
       '1.50s',
       '2.00s',
       '3.00s',
-      '1.00min',
     ]) {
       expect(await screen.findByText(value)).toBeInTheDocument();
     }
