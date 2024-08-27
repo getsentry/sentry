@@ -113,7 +113,7 @@ export function SlowestFunctionsWidget({
     enabled: functionsQuery.isFetched && hasFunctions,
   });
 
-  const isLoading = functionsQuery.isLoading || (hasFunctions && totalsQuery.isLoading);
+  const isLoading = functionsQuery.isPending || (hasFunctions && totalsQuery.isPending);
   const isError = functionsQuery.isError || totalsQuery.isError;
 
   return (
@@ -274,7 +274,7 @@ function SlowestFunctionEntry({
               <IconWarning data-test-id="error-indicator" color="gray300" size="lg" />
             </StatusContainer>
           )}
-          {functionTransactionsQuery.isLoading && (
+          {functionTransactionsQuery.isPending && (
             <StatusContainer>
               <LoadingIndicator />
             </StatusContainer>

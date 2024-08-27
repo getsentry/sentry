@@ -65,7 +65,7 @@ function GroupEventAttachments({project}: GroupEventAttachmentsProps) {
 
   const {
     data: eventAttachments,
-    isLoading,
+    isPending,
     isError,
     getResponseHeader,
     refetch,
@@ -115,7 +115,7 @@ function GroupEventAttachments({project}: GroupEventAttachmentsProps) {
   };
 
   const renderInnerBody = () => {
-    if (isLoading) {
+    if (isPending) {
       return <LoadingIndicator />;
     }
 
@@ -164,7 +164,7 @@ function GroupEventAttachments({project}: GroupEventAttachmentsProps) {
       return <LoadingError onRetry={refetch} message={t('Error loading screenshots')} />;
     }
 
-    if (isLoading) {
+    if (isPending) {
       return <LoadingIndicator />;
     }
 

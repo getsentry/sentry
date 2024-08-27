@@ -46,7 +46,7 @@ export function useGroupSummary(groupId: string, groupCategory: IssueCategory) {
   // We piggyback and use autofix's genai consent check for now.
   const {
     data: autofixSetupData,
-    isLoading: isAutofixSetupLoading,
+    isPending: isAutofixSetupLoading,
     isError: isAutofixSetupError,
   } = useAutofixSetup({groupId});
 
@@ -61,7 +61,7 @@ export function useGroupSummary(groupId: string, groupCategory: IssueCategory) {
   );
   return {
     ...queryData,
-    isLoading: isAutofixSetupLoading || queryData.isLoading,
+    isPending: isAutofixSetupLoading || queryData.isPending,
     isError: queryData.isError || isAutofixSetupError,
     hasGenAIConsent,
   };
@@ -79,7 +79,7 @@ function GroupSummaryFeatureBadge() {
 }
 
 export function GroupSummaryHeader({groupId, groupCategory}: GroupSummaryProps) {
-  const {data, isLoading, isError, hasGenAIConsent} = useGroupSummary(
+  const {data, isPending, isError, hasGenAIConsent} = useGroupSummary(
     groupId,
     groupCategory
   );
@@ -87,7 +87,7 @@ export function GroupSummaryHeader({groupId, groupCategory}: GroupSummaryProps) 
 
   if (
     isError ||
-    (!isLoading && !data?.headline) ||
+    (!isPending && !data?.headline) ||
     !isSummaryEnabled(hasGenAIConsent, groupCategory)
   ) {
     // Don't render the summary headline if there's an error, the error is already shown in the sidebar
@@ -96,7 +96,7 @@ export function GroupSummaryHeader({groupId, groupCategory}: GroupSummaryProps) 
   }
 
   const renderContent = () => {
-    if (isLoading) {
+    if (isPending) {
       return <Placeholder height="19px" width="256px" />;
     }
 
@@ -112,7 +112,7 @@ export function GroupSummaryHeader({groupId, groupCategory}: GroupSummaryProps) 
 }
 
 export function GroupSummary({groupId, groupCategory}: GroupSummaryProps) {
-  const {data, isLoading, isError, hasGenAIConsent} = useGroupSummary(
+  const {data, isPending, isError, hasGenAIConsent} = useGroupSummary(
     groupId,
     groupCategory
   );
@@ -132,7 +132,7 @@ export function GroupSummary({groupId, groupCategory}: GroupSummaryProps) {
             <span>{t('Issue Summary')}</span>
             <GroupSummaryFeatureBadge />
           </StyledTitle>
-          {isLoading && <StyledLoadingIndicator size={16} mini />}
+          {isPending && <StyledLoadingIndicator size={16} mini />}
         </StyledTitleRow>
         <div>
           {isError ? <div>{t('Error loading summary')}</div> : null}
@@ -154,7 +154,7 @@ export function GroupSummary({groupId, groupCategory}: GroupSummaryProps) {
             </Content>
           )}
         </div>
-        {openForm && !isLoading && (
+        {openForm && !isPending && (
           <ButtonContainer>
             <Button
               onClick={() => {

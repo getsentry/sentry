@@ -94,7 +94,7 @@ export function HTTPLandingPage() {
   };
 
   const {
-    isLoading: isThroughputDataLoading,
+    isPending: isThroughputDataLoading,
     data: throughputData,
     error: throughputError,
   } = useSpanMetricsSeries(
@@ -106,7 +106,7 @@ export function HTTPLandingPage() {
   );
 
   const {
-    isLoading: isDurationDataLoading,
+    isPending: isDurationDataLoading,
     data: durationData,
     error: durationError,
   } = useSpanMetricsSeries(
@@ -118,7 +118,7 @@ export function HTTPLandingPage() {
   );
 
   const {
-    isLoading: isResponseCodeDataLoading,
+    isPending: isResponseCodeDataLoading,
     data: responseCodeData,
     error: responseCodeError,
   } = useSpanMetricsSeries(

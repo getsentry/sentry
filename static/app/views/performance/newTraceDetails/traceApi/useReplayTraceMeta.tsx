@@ -43,7 +43,7 @@ export function useReplayTraceMeta(
   const start = getUtcDateString(replayRecord?.started_at.getTime());
   const end = getUtcDateString(replayRecord?.finished_at.getTime());
 
-  const {data: eventsData, isLoading: eventsIsLoading} = useApiQuery<{
+  const {data: eventsData, isPending: eventsIsLoading} = useApiQuery<{
     data: TableDataRow[];
   }>(
     [

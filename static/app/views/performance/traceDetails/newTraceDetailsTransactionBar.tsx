@@ -231,7 +231,7 @@ function NewTraceDetailsTransactionBar(props: Props) {
       : undefined;
   const {
     data: embeddedChildren,
-    isLoading: isEmbeddedChildrenLoading,
+    isPending: isEmbeddedChildrenLoading,
     error: embeddedChildrenError,
   } = useApiQuery<EventTransaction>(
     [

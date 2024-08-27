@@ -37,7 +37,7 @@ export function TransactionSelector({
 
   const {
     data: incomingPages,
-    isLoading,
+    isPending,
     pageLinks,
   } = useResourcePagesQuery(defaultResourceTypes, searchQuery);
 
@@ -47,7 +47,7 @@ export function TransactionSelector({
 
   const wasSearchSpaceExhausted = useWasSearchSpaceExhausted({
     query: searchQuery,
-    isLoading,
+    isLoading: isPending,
     pageLinks,
   });
 
@@ -68,7 +68,7 @@ export function TransactionSelector({
       value={value}
       options={options}
       emptyMessage={t('No results')}
-      loading={isLoading}
+      loading={isPending}
       searchable
       menuTitle={t('Page')}
       maxMenuWidth={'600px'}

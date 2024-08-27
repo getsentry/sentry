@@ -38,7 +38,7 @@ export function MetricRulesEdit({
   const navigate = useNavigate();
 
   const {
-    isLoading,
+    isPending,
     isError,
     data: rule,
     error,
@@ -51,10 +51,10 @@ export function MetricRulesEdit({
   );
 
   useEffect(() => {
-    if (!isLoading && rule) {
+    if (!isPending && rule) {
       onChangeTitle(rule.name ?? '');
     }
-  }, [onChangeTitle, isLoading, rule]);
+  }, [onChangeTitle, isPending, rule]);
 
   useEffect(() => {
     if (isError && error?.responseText) {
@@ -78,7 +78,7 @@ export function MetricRulesEdit({
     );
   }, [params.ruleId, navigate, organization.slug]);
 
-  if (isLoading) {
+  if (isPending) {
     return <LoadingIndicator />;
   }
 

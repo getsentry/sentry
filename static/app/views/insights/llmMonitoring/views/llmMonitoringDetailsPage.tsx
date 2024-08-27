@@ -55,7 +55,7 @@ export function LLMMonitoringPage({params}: Props) {
     'span.category': 'ai.pipeline',
   };
 
-  const {data, isLoading: areSpanMetricsLoading} = useSpanMetrics(
+  const {data, isPending: areSpanMetricsLoading} = useSpanMetrics(
     {
       search: MutableSearch.fromQueryObject(filters),
       fields: [
@@ -70,7 +70,7 @@ export function LLMMonitoringPage({params}: Props) {
   );
   const spanMetrics = data[0] ?? {};
 
-  const {data: totalTokenData, isLoading: isTotalTokenDataLoading} = useSpanMetrics(
+  const {data: totalTokenData, isPending: isTotalTokenDataLoading} = useSpanMetrics(
     {
       search: MutableSearch.fromQueryObject({
         'span.category': 'ai',

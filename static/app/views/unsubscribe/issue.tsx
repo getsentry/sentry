@@ -52,12 +52,12 @@ type BodyProps = {
 
 function UnsubscribeBody({orgSlug, issueId, signature}: BodyProps) {
   const endpoint = `/organizations/${orgSlug}/unsubscribe/issue/${issueId}/`;
-  const {isLoading, isError, data} = useApiQuery<UnsubscribeResponse>(
+  const {isPending, isError, data} = useApiQuery<UnsubscribeResponse>(
     [endpoint, {query: {_: signature}}],
     {staleTime: 0}
   );
 
-  if (isLoading) {
+  if (isPending) {
     return <LoadingIndicator />;
   }
   if (isError) {

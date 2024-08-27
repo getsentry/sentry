@@ -60,7 +60,7 @@ function TokenList({
 
   const hasProjects = projectIds.length > 0;
 
-  const {data: projects, isLoading: isLoadingProjects} = useApiQuery<Project[]>(
+  const {data: projects, isPending: isLoadingProjects} = useApiQuery<Project[]>(
     [apiEndpoint, {query: {query: idQueryParams}}],
     {
       staleTime: 0,
@@ -99,7 +99,7 @@ export function OrganizationAuthTokensIndex({
   const queryClient = useQueryClient();
 
   const {
-    isLoading,
+    isPending,
     isError,
     data: tokenList,
     refetch: refetchTokenList,
@@ -178,8 +178,8 @@ export function OrganizationAuthTokensIndex({
           </TextBlock>
 
           <ResponsivePanelTable
-            isLoading={isLoading || isError}
-            isEmpty={!isLoading && !tokenList?.length}
+            isLoading={isPending || isError}
+            isEmpty={!isPending && !tokenList?.length}
             loader={
               isError ? (
                 <LoadingError
@@ -191,7 +191,7 @@ export function OrganizationAuthTokensIndex({
             emptyMessage={t("You haven't created any authentication tokens yet.")}
             headers={[t('Auth token'), t('Created'), t('Last access'), '']}
           >
-            {!isError && !isLoading && !!tokenList?.length && (
+            {!isError && !isPending && !!tokenList?.length && (
               <TokenList
                 organization={organization}
                 tokenList={tokenList}

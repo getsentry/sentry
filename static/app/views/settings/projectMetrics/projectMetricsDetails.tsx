@@ -56,7 +56,7 @@ function ProjectMetricsDetails({project, params, organization}: Props) {
 
   const {type, name, unit} = parseMRI(mri) ?? {};
   const aggregation = getDefaultAggregation(mri);
-  const {data: metricsData, isLoading} = useMetricsQuery(
+  const {data: metricsData, isPending} = useMetricsQuery(
     [{mri, aggregation, name: 'query'}],
     {
       datetime: {
@@ -173,8 +173,8 @@ function ProjectMetricsDetails({project, params, organization}: Props) {
         <PanelHeader>{t('Activity in the last 30 days (by day)')}</PanelHeader>
 
         <PanelBody withPadding>
-          {isLoading && <Placeholder height="100px" />}
-          {!isLoading && (
+          {isPending && <Placeholder height="100px" />}
+          {!isPending && (
             <MiniBarChart
               series={series}
               colors={CHART_PALETTE[0]}
@@ -184,7 +184,7 @@ function ProjectMetricsDetails({project, params, organization}: Props) {
               labelYAxisExtents
             />
           )}
-          {!isLoading && isChartEmpty && (
+          {!isPending && isChartEmpty && (
             <EmptyMessage
               title={t('No activity.')}
               description={t("We don't have data for this metric in the last 30 days.")}
@@ -202,7 +202,7 @@ function ProjectMetricsDetails({project, params, organization}: Props) {
         ]}
         emptyMessage={t('There are no tags for this metric.')}
         isEmpty={tags.length === 0}
-        isLoading={isLoading}
+        isLoading={isPending}
       >
         {tags.map(({key}) => {
           const isBlockedTag = blockingStatus?.blockedTags?.includes(key) ?? false;

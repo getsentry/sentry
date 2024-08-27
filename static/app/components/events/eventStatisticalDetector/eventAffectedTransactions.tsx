@@ -290,7 +290,7 @@ function EventAffectedTransactionsInner({
         causeType={causeType}
         columns={ADDITIONAL_COLUMNS}
         data={tableData || []}
-        isLoading={transactionsDeltaQuery.isLoading}
+        isLoading={transactionsDeltaQuery.isPending}
         isError={transactionsDeltaQuery.isError}
         options={options}
       />

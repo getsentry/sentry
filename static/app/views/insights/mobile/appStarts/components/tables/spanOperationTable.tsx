@@ -125,7 +125,7 @@ export function SpanOperationTable({
   const eventView = EventView.fromNewQueryWithLocation(newQuery, location);
   eventView.sorts = [sort];
 
-  const {data, isLoading, pageLinks} = useTableQuery({
+  const {data, isPending, pageLinks} = useTableQuery({
     eventView,
     enabled: true,
     referrer: 'api.starfish.mobile-spartup-span-table',
@@ -250,7 +250,7 @@ export function SpanOperationTable({
   return (
     <Fragment>
       <GridEditable
-        isLoading={isLoading}
+        isLoading={isPending}
         data={data?.data as TableDataRow[]}
         columnOrder={[
           String(SPAN_OP),

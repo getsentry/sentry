@@ -93,7 +93,7 @@ function fetchIssues(
   // matches in application code
   query += ` message:"${message?.slice(0, 200).replaceAll('"', '\\"')}"`;
 
-  const {isLoading, data: maybeMatchingIssues} = useApiQuery<Group[]>(
+  const {isPending, data: maybeMatchingIssues} = useApiQuery<Group[]>(
     [
       `/organizations/${organization.slug}/issues/`,
       {
@@ -124,7 +124,7 @@ function fetchIssues(
   // filter by the issues that match the exact message the user is searching for
   const issues = maybeMatchingIssues?.filter(issue => issue.metadata.value === message);
 
-  return {isLoading, issues};
+  return {isLoading: isPending, issues};
 }
 
 export default function InsightIssuesList({

@@ -23,13 +23,13 @@ type FeatureFlags = Record<string, {description: string; value: boolean}>;
 export default function EarlyFeaturesSettingsForm({access, location}: Props) {
   const organization = useOrganization();
 
-  const {data: authProvider, isLoading: authProviderIsLoading} =
+  const {data: authProvider, isPending: authProviderIsLoading} =
     useApiQuery<OrganizationAuthProvider>(
       [`/organizations/${organization.slug}/auth-provider/`],
       {staleTime: 0}
     );
 
-  const {data: featureFlags, isLoading: featureFlagsIsLoading} =
+  const {data: featureFlags, isPending: featureFlagsIsLoading} =
     useApiQuery<FeatureFlags>(['/internal/feature-flags/'], {staleTime: 0});
 
   if (authProviderIsLoading || featureFlagsIsLoading) {

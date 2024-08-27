@@ -57,7 +57,7 @@ export function MetricSearchBar({
     [projectIds]
   );
 
-  const {data: tags = EMPTY_ARRAY, isLoading} = useMetricsTags(
+  const {data: tags = EMPTY_ARRAY, isPending} = useMetricsTags(
     mri,
     {
       ...selection,
@@ -136,7 +136,7 @@ export function MetricSearchBar({
     getTagValues,
     recentSearches: SavedSearchType.METRIC,
     // don't highlight tags while loading as we don't know yet if they are supported
-    disallowUnsupportedFilters: !isLoading,
+    disallowUnsupportedFilters: !isPending,
     filterKeys: searchConfig.supportedTags,
     disallowFreeText: searchConfig.disallowFreeText,
     searchSource: props.searchSource ?? 'metrics',
@@ -150,7 +150,7 @@ export function MetricSearchBar({
     organization,
     onGetTagValues: getTagValues,
     // don't highlight tags while loading as we don't know yet if they are supported
-    highlightUnsupportedTags: !isLoading,
+    highlightUnsupportedTags: !isPending,
     onClose: handleChange,
     onSearch: handleChange,
     placeholder: t('Filter by tags'),

@@ -55,9 +55,9 @@ export function TracesChart({}: Props) {
     // References
     // - https://tanstack.com/query/v4/docs/framework/react/guides/disabling-queries
     // - https://tanstack.com/query/latest/docs/framework/react/guides/disabling-queries#isloading-previously-isinitialloading
-    (enabled[0] && firstCountSeries.isLoading) ||
-    (enabled[1] && secondCountSeries.isLoading) ||
-    (enabled[2] && thirdCountSeries.isLoading);
+    (enabled[0] && firstCountSeries.isPending) ||
+    (enabled[1] && secondCountSeries.isPending) ||
+    (enabled[2] && thirdCountSeries.isPending);
 
   const error = useMemo(() => {
     const errors = [

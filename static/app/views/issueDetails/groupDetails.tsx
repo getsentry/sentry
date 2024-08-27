@@ -351,7 +351,7 @@ function useFetchGroupDetails(): FetchGroupDetailsState {
 
   const {
     data: event,
-    isLoading: loadingEvent,
+    isPending: loadingEvent,
     isError,
     refetch: refetchEvent,
   } = useEventApiQuery({
@@ -362,7 +362,7 @@ function useFetchGroupDetails(): FetchGroupDetailsState {
 
   const {
     data: groupData,
-    isLoading: loadingGroup,
+    isPending: loadingGroup,
     isError: isGroupError,
     error: groupError,
     refetch: refetchGroupCall,

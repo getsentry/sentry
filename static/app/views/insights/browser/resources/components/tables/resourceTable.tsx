@@ -83,7 +83,7 @@ function ResourceTable({sort, defaultResourceTypes}: Props) {
   const filters = useResourceModuleFilters();
   const {setPageInfo, pageAlert} = usePageAlert();
 
-  const {data, isLoading, pageLinks} = useResourcesQuery({
+  const {data, isPending, pageLinks} = useResourcesQuery({
     sort,
     defaultResourceTypes,
     cursor,
@@ -197,7 +197,7 @@ function ResourceTable({sort, defaultResourceTypes}: Props) {
     <Fragment>
       <GridEditable
         data={tableData}
-        isLoading={isLoading}
+        isLoading={isPending}
         columnOrder={columnOrder}
         columnSortBy={[
           {

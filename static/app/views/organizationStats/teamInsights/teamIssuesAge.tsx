@@ -53,7 +53,7 @@ const bucketLabels = {
 function TeamIssuesAge({organization, teamSlug}: TeamIssuesAgeProps) {
   const {
     data: oldestIssues,
-    isLoading: isOldestIssuesLoading,
+    isPending: isOldestIssuesLoading,
     isError: isOldestIssuesError,
     refetch: refetchOldestIssues,
   } = useApiQuery<Group[]>(
@@ -70,7 +70,7 @@ function TeamIssuesAge({organization, teamSlug}: TeamIssuesAgeProps) {
 
   const {
     data: unresolvedIssueAge,
-    isLoading: isUnresolvedIssueAgeLoading,
+    isPending: isUnresolvedIssueAgeLoading,
     isError: isUnresolvedIssueAgeError,
     refetch: refetchUnresolvedIssueAge,
   } = useApiQuery<Record<string, number>>(

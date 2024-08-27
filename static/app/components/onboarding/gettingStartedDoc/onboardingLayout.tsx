@@ -55,7 +55,7 @@ export function OnboardingLayout({
   configType = 'onboarding',
 }: OnboardingLayoutProps) {
   const organization = useOrganization();
-  const {isLoading: isLoadingRegistry, data: registryData} =
+  const {isPending: isLoadingRegistry, data: registryData} =
     useSourcePackageRegistries(organization);
   const selectedOptions = useUrlPlatformOptions(docsConfig.platformOptions);
   const {platformOptions} = docsConfig;

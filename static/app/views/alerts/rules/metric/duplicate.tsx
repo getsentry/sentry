@@ -40,7 +40,7 @@ function MetricRuleDuplicate({
   const organization = useOrganization();
   const {
     data: duplicateTargetRule,
-    isLoading,
+    isPending,
     isError,
     refetch,
   } = useApiQuery<MetricRule>(
@@ -66,7 +66,7 @@ function MetricRuleDuplicate({
     otherProps.router.push(normalizeUrl(target));
   };
 
-  if (isLoading) {
+  if (isPending) {
     return <LoadingIndicator />;
   }
 

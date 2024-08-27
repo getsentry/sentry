@@ -24,7 +24,7 @@ export function useIntegrationExternalIssues({
   const organization = useOrganization();
   const {
     data: integrations = [],
-    isLoading,
+    isPending,
     refetch: refetchIntegrations,
   } = useFetchIntegrations({group, organization});
 
@@ -46,7 +46,7 @@ export function useIntegrationExternalIssues({
   const results: GroupIntegrationIssueResult = {
     integrations: [],
     linkedIssues: [],
-    isLoading,
+    isLoading: isPending,
   };
 
   for (const [providerKey, configurations] of activeIntegrationsByProvider.entries()) {

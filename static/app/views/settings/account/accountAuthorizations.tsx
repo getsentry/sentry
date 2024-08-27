@@ -32,11 +32,11 @@ function AccountAuthorizations() {
   const queryClient = useQueryClient();
   const ENDPOINT = '/api-authorizations/';
 
-  const {data, isLoading, isError, refetch} = useApiQuery<Authorization[]>([ENDPOINT], {
+  const {data, isPending, isError, refetch} = useApiQuery<Authorization[]>([ENDPOINT], {
     staleTime: 0,
   });
 
-  if (isLoading) {
+  if (isPending) {
     return <LoadingIndicator />;
   }
 

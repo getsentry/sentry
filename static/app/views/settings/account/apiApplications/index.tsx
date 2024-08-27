@@ -33,14 +33,14 @@ function ApiApplications({router}: Props) {
 
   const {
     data: appList,
-    isLoading,
+    isPending,
     isError,
     refetch,
   } = useApiQuery<ApiApplication[]>([ENDPOINT], {
     staleTime: 0,
   });
 
-  if (isLoading) {
+  if (isPending) {
     return <LoadingIndicator />;
   }
 

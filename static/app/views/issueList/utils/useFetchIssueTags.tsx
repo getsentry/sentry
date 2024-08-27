@@ -151,7 +151,7 @@ export const useFetchIssueTags = ({
 
   return {
     tags: allTags,
-    isLoading: eventsTagsQuery.isLoading || issuePlatformTagsQuery.isLoading,
+    isLoading: eventsTagsQuery.isPending || issuePlatformTagsQuery.isPending,
     isError: eventsTagsQuery.isError || issuePlatformTagsQuery.isError,
   };
 };

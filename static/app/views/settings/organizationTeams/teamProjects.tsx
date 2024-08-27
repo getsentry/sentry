@@ -42,7 +42,7 @@ function TeamProjects({team, location, params}: TeamProjectsProps) {
   const {
     data: linkedProjects,
     isError: linkedProjectsError,
-    isLoading: linkedProjectsLoading,
+    isPending: linkedProjectsLoading,
     getResponseHeader: linkedProjectsHeaders,
     refetch: refetchLinkedProjects,
   } = useApiQuery<Project[]>(
@@ -59,7 +59,7 @@ function TeamProjects({team, location, params}: TeamProjectsProps) {
   );
   const {
     data: unlinkedProjects = [],
-    isLoading: loadingUnlinkedProjects,
+    isPending: loadingUnlinkedProjects,
     refetch: refetchUnlinkedProjects,
   } = useApiQuery<Project[]>(
     [

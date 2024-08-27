@@ -21,7 +21,7 @@ type Data = {
 };
 
 export default function AdminEnvironment() {
-  const {data, isLoading, isError} = useApiQuery<Data>(['/internal/environment/'], {
+  const {data, isPending, isError} = useApiQuery<Data>(['/internal/environment/'], {
     staleTime: 0,
   });
 
@@ -29,7 +29,7 @@ export default function AdminEnvironment() {
     return <LoadingError />;
   }
 
-  if (isLoading) {
+  if (isPending) {
     return <LoadingIndicator />;
   }
 

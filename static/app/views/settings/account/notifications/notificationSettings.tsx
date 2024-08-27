@@ -81,7 +81,7 @@ function NotificationSettings({organizations}: NotificationSettingsProps) {
   // use 0 as stale time because we change the values elsewhere
   const {
     data: initialLegacyData,
-    isLoading,
+    isPending,
     isError,
     isSuccess,
     refetch,
@@ -102,7 +102,7 @@ function NotificationSettings({organizations}: NotificationSettingsProps) {
         <PanelBody>{notificationFields.map(renderOneSetting)}</PanelBody>
       </PanelNoBottomMargin>
       <BottomFormWrapper>
-        {isLoading && (
+        {isPending && (
           <Panel>
             {new Array(2).fill(0).map((_, idx) => (
               <PanelItem key={idx}>

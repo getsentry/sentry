@@ -77,7 +77,7 @@ function DeviceClassBreakdownBarChart({
 
   const {
     data: startupDataByDeviceClass,
-    isLoading,
+    isPending,
     isError,
   } = useTableQuery({
     eventView: EventView.fromNewQueryWithPageFilters(
@@ -137,11 +137,11 @@ function DeviceClassBreakdownBarChart({
       }
     >
       <TransitionChart
-        loading={isLoading || isReleasesLoading}
-        reloading={isLoading || isReleasesLoading}
+        loading={isPending || isReleasesLoading}
+        reloading={isPending || isReleasesLoading}
         height={`${chartHeight}px`}
       >
-        <LoadingScreen loading={Boolean(isLoading)} />
+        <LoadingScreen loading={Boolean(isPending)} />
         {isError ? (
           <ErrorPanel height={`${chartHeight}px`}>
             <IconWarning color="gray300" size="lg" />

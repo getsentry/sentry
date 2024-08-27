@@ -438,6 +438,7 @@ export function useGenericDiscoverQuery<T, P>(props: Props<T, P>) {
     error: parseError(res.error),
     statusCode: res.data?.[1] ?? undefined,
     response: res.data?.[2] ?? undefined,
+    isPending: res.isLoading,
   };
 }
 

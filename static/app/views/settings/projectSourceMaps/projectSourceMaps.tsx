@@ -187,7 +187,7 @@ export function ProjectSourceMaps({location, router, project}: Props) {
   const {
     data: archivesData,
     getResponseHeader: archivesHeaders,
-    isLoading: archivesLoading,
+    isPending: archivesLoading,
     refetch: archivesRefetch,
   } = useApiQuery<SourceMapsArchive[]>(
     [
@@ -206,7 +206,7 @@ export function ProjectSourceMaps({location, router, project}: Props) {
   const {
     data: debugIdBundlesData,
     getResponseHeader: debugIdBundlesHeaders,
-    isLoading: debugIdBundlesLoading,
+    isPending: debugIdBundlesLoading,
     refetch: debugIdBundlesRefetch,
   } = useApiQuery<DebugIdBundle[]>(
     [

@@ -94,7 +94,7 @@ export function HTTPDomainSummaryPage() {
 
   const cursor = decodeScalar(location.query?.[QueryParameterNames.TRANSACTIONS_CURSOR]);
 
-  const {data: domainMetrics, isLoading: areDomainMetricsLoading} = useSpanMetrics(
+  const {data: domainMetrics, isPending: areDomainMetricsLoading} = useSpanMetrics(
     {
       search: MutableSearch.fromQueryObject(filters),
       fields: [
@@ -111,7 +111,7 @@ export function HTTPDomainSummaryPage() {
   );
 
   const {
-    isLoading: isThroughputDataLoading,
+    isPending: isThroughputDataLoading,
     data: throughputData,
     error: throughputError,
   } = useSpanMetricsSeries(
@@ -123,7 +123,7 @@ export function HTTPDomainSummaryPage() {
   );
 
   const {
-    isLoading: isDurationDataLoading,
+    isPending: isDurationDataLoading,
     data: durationData,
     error: durationError,
   } = useSpanMetricsSeries(
@@ -135,7 +135,7 @@ export function HTTPDomainSummaryPage() {
   );
 
   const {
-    isLoading: isResponseCodeDataLoading,
+    isPending: isResponseCodeDataLoading,
     data: responseCodeData,
     error: responseCodeError,
   } = useSpanMetricsSeries(
@@ -147,7 +147,7 @@ export function HTTPDomainSummaryPage() {
   );
 
   const {
-    isLoading: isTransactionsListLoading,
+    isPending: isTransactionsListLoading,
     data: transactionsList,
     meta: transactionsListMeta,
     error: transactionsListError,

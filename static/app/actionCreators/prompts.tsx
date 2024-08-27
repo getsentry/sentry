@@ -242,7 +242,7 @@ export function usePrompt({
   }, [api, feature, organization, projectId, queryClient]);
 
   return {
-    isLoading: prompt.isLoading,
+    isLoading: prompt.isPending,
     isError: prompt.isError,
     isPromptDismissed,
     dismissPrompt,

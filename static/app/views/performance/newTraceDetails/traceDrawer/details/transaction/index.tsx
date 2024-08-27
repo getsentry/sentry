@@ -107,7 +107,7 @@ export function TransactionNodeDetails({
   const {
     data: event,
     isError,
-    isLoading,
+    isPending,
   } = useTransaction({
     node,
     organization,
@@ -123,7 +123,7 @@ export function TransactionNodeDetails({
     Referrer.TRACE_DRAWER_TRANSACTION_CACHE_METRICS
   );
 
-  if (isLoading) {
+  if (isPending) {
     return <LoadingIndicator />;
   }
 

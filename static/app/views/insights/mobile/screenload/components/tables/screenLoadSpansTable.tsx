@@ -68,7 +68,7 @@ export function ScreenLoadSpansTable({
   const {isProjectCrossPlatform, selectedPlatform} = useCrossPlatformProject();
 
   const spanOp = decodeScalar(location.query[SpanMetricsField.SPAN_OP]) ?? '';
-  const {hasTTFD, isLoading: hasTTFDLoading} = useTTFDConfigured([
+  const {hasTTFD, isPending: hasTTFDLoading} = useTTFDConfigured([
     `transaction:"${transaction}"`,
   ]);
 
@@ -126,7 +126,7 @@ export function ScreenLoadSpansTable({
   const eventView = EventView.fromNewQueryWithLocation(newQuery, location);
   eventView.sorts = [sort];
 
-  const {data, isLoading, pageLinks} = useTableQuery({
+  const {data, isPending, pageLinks} = useTableQuery({
     eventView,
     enabled: true,
     referrer: 'api.starfish.mobile-span-table',
@@ -362,7 +362,7 @@ export function ScreenLoadSpansTable({
         secondaryRelease={secondaryRelease}
       />
       <GridEditable
-        isLoading={isLoading || hasTTFDLoading}
+        isLoading={isPending || hasTTFDLoading}
         data={data?.data as TableDataRow[]}
         columnOrder={[
           String(SPAN_OP),

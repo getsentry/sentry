@@ -43,7 +43,7 @@ export function OverviewTimeline({monitorList}: Props) {
   const timeWindowConfig = useTimeWindowConfig({timelineWidth});
   const dateNavigation = useDateNavigation();
 
-  const {data: monitorStats, isLoading} = useMonitorStats({
+  const {data: monitorStats, isPending} = useMonitorStats({
     monitors: monitorList.map(m => m.id),
     timeWindowConfig,
   });
@@ -148,8 +148,8 @@ export function OverviewTimeline({monitorList}: Props) {
       <AlignedGridLineOverlay
         stickyCursor
         allowZoom
-        showCursor={!isLoading}
-        showIncidents={!isLoading}
+        showCursor={!isPending}
+        showIncidents={!isPending}
         timeWindowConfig={timeWindowConfig}
       />
 

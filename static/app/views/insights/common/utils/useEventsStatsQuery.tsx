@@ -48,5 +48,5 @@ export function useEventsStatsQuery({
     referrer,
   });
 
-  return {...result, data: result.isLoading ? initialData : result.data};
+  return {...result, data: result.isPending ? initialData : result.data};
 }

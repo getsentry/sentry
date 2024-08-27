@@ -123,7 +123,7 @@ describe('useDiscover', () => {
         }
       );
 
-      expect(result.current.isLoading).toEqual(true);
+      expect(result.current.isPending).toEqual(true);
 
       expect(eventsRequest).toHaveBeenCalledWith(
         '/organizations/org-slug/events/',
@@ -143,7 +143,7 @@ describe('useDiscover', () => {
         })
       );
 
-      await waitFor(() => expect(result.current.isLoading).toEqual(false));
+      await waitFor(() => expect(result.current.isPending).toEqual(false));
       expect(result.current.data).toEqual([
         {
           'span.op': 'db',
@@ -262,7 +262,7 @@ describe('useDiscover', () => {
         }
       );
 
-      expect(result.current.isLoading).toEqual(true);
+      expect(result.current.isPending).toEqual(true);
 
       expect(eventsRequest).toHaveBeenCalledWith(
         '/organizations/org-slug/events/',
@@ -282,7 +282,7 @@ describe('useDiscover', () => {
         })
       );
 
-      await waitFor(() => expect(result.current.isLoading).toEqual(false));
+      await waitFor(() => expect(result.current.isPending).toEqual(false));
       expect(result.current.data).toEqual([
         {
           'span.group': '221aa7ebd216',

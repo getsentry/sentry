@@ -26,7 +26,7 @@ export function GroupingConfigSelect({
   const organization = useOrganization();
   const {
     data: configs,
-    isLoading,
+    isPending,
     isError,
   } = useApiQuery<EventGroupingConfig[]>(
     [`/organizations/${organization.slug}/grouping-configs/`],
@@ -51,7 +51,7 @@ export function GroupingConfigSelect({
   }
 
   return (
-    <DropdownAutoComplete busy={isLoading} onSelect={onSelect} items={options}>
+    <DropdownAutoComplete busy={isPending} onSelect={onSelect} items={options}>
       {({isOpen}) => (
         <Tooltip title={t('Click here to experiment with other grouping configs')}>
           <StyledDropdownButton isOpen={isOpen} size="sm">

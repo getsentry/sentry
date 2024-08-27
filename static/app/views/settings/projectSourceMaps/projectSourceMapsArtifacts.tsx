@@ -138,7 +138,7 @@ export function ProjectSourceMapsArtifacts({params, location, router, project}: 
   const {
     data: artifactsData,
     getResponseHeader: artifactsHeaders,
-    isLoading: artifactsLoading,
+    isPending: artifactsLoading,
   } = useApiQuery<Artifact[]>(
     [
       artifactsEndpoint,
@@ -156,7 +156,7 @@ export function ProjectSourceMapsArtifacts({params, location, router, project}: 
   const {
     data: debugIdBundlesArtifactsData,
     getResponseHeader: debugIdBundlesArtifactsHeaders,
-    isLoading: debugIdBundlesArtifactsLoading,
+    isPending: debugIdBundlesArtifactsLoading,
   } = useApiQuery<DebugIdBundleArtifact>(
     [
       debugIdBundlesArtifactsEndpoint,

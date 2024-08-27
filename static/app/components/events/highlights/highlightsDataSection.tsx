@@ -88,7 +88,7 @@ function useOpenEditHighlightsModal({
 
 function EditHighlightsButton({project, event}: {event: Event; project: Project}) {
   const organization = useOrganization();
-  const {isLoading, data: detailedProject} = useDetailedProject({
+  const {isPending, data: detailedProject} = useDetailedProject({
     orgSlug: organization.slug,
     projectSlug: project.slug,
   });
@@ -102,7 +102,7 @@ function EditHighlightsButton({project, event}: {event: Event; project: Project}
       icon={<IconEdit />}
       onClick={openEditHighlightsModal}
       title={editProps.title}
-      disabled={isLoading || editProps.disabled}
+      disabled={isPending || editProps.disabled}
     >
       {t('Edit')}
     </Button>
@@ -117,7 +117,7 @@ function HighlightsData({
   const location = useLocation();
   const containerRef = useRef<HTMLDivElement>(null);
   const columnCount = useIssueDetailsColumnCount(containerRef);
-  const {isLoading, data: detailedProject} = useDetailedProject({
+  const {isPending, data: detailedProject} = useDetailedProject({
     orgSlug: organization.slug,
     projectSlug: project.slug,
   });
@@ -194,7 +194,7 @@ function HighlightsData({
 
   return (
     <HighlightContainer columnCount={columnCount} ref={containerRef}>
-      {isLoading ? (
+      {isPending ? (
         <EmptyHighlights>
           <HighlightsLoadingIndicator hideMessage size={50} />
         </EmptyHighlights>

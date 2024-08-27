@@ -155,5 +155,5 @@ export const useProjectWebVitalsScoresTimeseriesQuery = ({
     }
   );
 
-  return {data, isLoading: result.isLoading};
+  return {data, isLoading: result.isPending};
 };

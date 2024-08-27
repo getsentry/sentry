@@ -55,7 +55,7 @@ function EventBreakpointChart({event}: EventBreakpointChartProps) {
     return acc;
   }, {}) as NormalizedTrendsTransaction;
 
-  const {data, isLoading} = useGenericDiscoverQuery<
+  const {data, isPending} = useGenericDiscoverQuery<
     {
       data: EventsStatsData;
       meta: MetaType;
@@ -76,8 +76,8 @@ function EventBreakpointChart({event}: EventBreakpointChartProps) {
 
   return (
     <DataSection>
-      <TransitionChart loading={isLoading} reloading>
-        <TransparentLoadingMask visible={isLoading} />
+      <TransitionChart loading={isPending} reloading>
+        <TransparentLoadingMask visible={isPending} />
         <Chart
           percentileData={data?.['p95(transaction.duration)']?.data ?? []}
           evidenceData={normalizedOccurrenceEvent}

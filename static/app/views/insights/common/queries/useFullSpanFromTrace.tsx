@@ -60,7 +60,7 @@ export function useFullSpanFromTrace(
   // N.B. There isn't a great pattern for us to merge the responses together,
   // so we're only merging the three most important properties
   return {
-    isLoading: indexedSpansResponse.isLoading || eventDetailsResponse.isLoading,
+    isLoading: indexedSpansResponse.isPending || eventDetailsResponse.isPending,
     isFetching: indexedSpansResponse.isFetching || eventDetailsResponse.isFetching,
     isError: indexedSpansResponse.isError || eventDetailsResponse.isError,
     data: fullSpan,

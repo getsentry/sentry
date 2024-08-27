@@ -98,7 +98,7 @@ export function FunctionTrendsWidget({
   }, [trendsQuery.data]);
 
   const hasTrends = (trendsQuery.data?.length || 0) > 0;
-  const isLoading = trendsQuery.isLoading;
+  const isLoading = trendsQuery.isPending;
   const isError = trendsQuery.isError;
 
   return (

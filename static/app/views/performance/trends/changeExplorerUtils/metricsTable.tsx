@@ -107,7 +107,7 @@ export function MetricsTable(props: MetricsTableProps) {
     [trendView.end]
   );
 
-  const {data: beforeBreakpoint, isLoading: isLoadingBefore} = useDiscoverQuery(
+  const {data: beforeBreakpoint, isPending: isLoadingBefore} = useDiscoverQuery(
     getQueryParams(
       startTime,
       breakpointTime,
@@ -121,7 +121,7 @@ export function MetricsTable(props: MetricsTableProps) {
     )
   );
 
-  const {data: afterBreakpoint, isLoading: isLoadingAfter} = useDiscoverQuery(
+  const {data: afterBreakpoint, isPending: isLoadingAfter} = useDiscoverQuery(
     getQueryParams(
       breakpointTime,
       endTime,

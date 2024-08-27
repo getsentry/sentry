@@ -66,7 +66,7 @@ export function DomainSelector({
 
   const {
     data: domainData,
-    isLoading,
+    isPending,
     pageLinks,
   } = useSpansQuery<DomainData[]>({
     eventView,
@@ -77,7 +77,7 @@ export function DomainSelector({
 
   const wasSearchSpaceExhausted = useWasSearchSpaceExhausted({
     query: searchQuery,
-    isLoading,
+    isLoading: isPending,
     pageLinks,
   });
 
@@ -123,7 +123,7 @@ export function DomainSelector({
       value={value}
       options={options}
       emptyMessage={t('No results')}
-      loading={isLoading}
+      loading={isPending}
       searchable
       menuTitle={LABEL_FOR_MODULE_NAME[moduleName]}
       maxMenuWidth={'500px'}

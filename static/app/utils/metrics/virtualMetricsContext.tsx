@@ -117,7 +117,7 @@ export function VirtualMetricsContextProvider({children}: Props) {
   const spanMetaQuery = useMetricsMeta(selection, ['spans']);
 
   const extractionRules = extractionRulesQuery.data ?? EMPTY_ARRAY;
-  const isLoading = extractionRulesQuery.isLoading || spanMetaQuery.isLoading;
+  const isLoading = extractionRulesQuery.isPending || spanMetaQuery.isLoading;
 
   const extractionRulesWithBuiltIn = useMemo(() => {
     return extractionRules.map(rule => {

@@ -109,7 +109,7 @@ export function useWrappedDiscoverTimeseriesQuery<T>({
     referrer,
   });
 
-  const isFetchingOrLoading = result.isLoading || result.isFetching;
+  const isFetchingOrLoading = result.isPending || result.isFetching;
   const defaultData = initialData ?? undefined;
 
   const data: T = isFetchingOrLoading
@@ -168,7 +168,7 @@ export function useWrappedDiscoverQuery<T>({
   const meta = result.data?.meta as EventsMetaType | undefined;
 
   const data =
-    result.isLoading && initialData ? initialData : (result.data?.data as T | undefined);
+    result.isPending && initialData ? initialData : (result.data?.data as T | undefined);
 
   return {
     ...result,

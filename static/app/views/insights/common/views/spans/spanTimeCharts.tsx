@@ -70,13 +70,13 @@ export function SpanTimeCharts({
     eventView.query += ` ${extraQuery.join(' ')}`;
   }
 
-  const {isLoading} = useSpansQuery({
+  const {isPending} = useSpansQuery({
     eventView,
     initialData: [],
     referrer: 'api.starfish.span-time-charts',
   });
 
-  useSynchronizeCharts([!isLoading]);
+  useSynchronizeCharts([!isPending]);
 
   const moduleCharts: Record<
     ModuleName,
@@ -137,7 +137,7 @@ function ThroughputChart({
   }
 
   const label = getSegmentLabel(moduleName);
-  const {isLoading, data} = useSpansQuery<
+  const {isPending, data} = useSpansQuery<
     {
       'avg(span.self_time)': number;
       interval: number;
@@ -173,7 +173,7 @@ function ThroughputChart({
     <Chart
       height={CHART_HEIGHT}
       data={throughputTimeSeries}
-      loading={isLoading}
+      loading={isPending}
       grid={{
         left: '0',
         right: '0',
@@ -202,7 +202,7 @@ function DurationChart({moduleName, filters, extraQuery}: ChartProps): JSX.Eleme
 
   const label = `avg(${SPAN_SELF_TIME})`;
 
-  const {isLoading, data} = useSpansQuery<
+  const {isPending, data} = useSpansQuery<
     {
       'avg(span.self_time)': number;
       interval: number;
@@ -231,7 +231,7 @@ function DurationChart({moduleName, filters, extraQuery}: ChartProps): JSX.Eleme
     <Chart
       height={CHART_HEIGHT}
       data={[...avgSeries]}
-      loading={isLoading}
+      loading={isPending}
       grid={{
         left: '0',
         right: '0',
@@ -248,7 +248,7 @@ function DurationChart({moduleName, filters, extraQuery}: ChartProps): JSX.Eleme
 
 function ErrorChart({moduleName, filters}: ChartProps): JSX.Element {
   const query = buildDiscoverQueryConditions(moduleName, filters);
-  const {isLoading, data} = useErrorCountQuery(query);
+  const {isPending, data} = useErrorCountQuery(query);
 
   const errorRateSeries: Series = {
     seriesName: DataTitles.errorCount,
@@ -264,7 +264,7 @@ function ErrorChart({moduleName, filters}: ChartProps): JSX.Element {
     <Chart
       height={CHART_HEIGHT}
       data={[errorRateSeries]}
-      loading={isLoading}
+      loading={isPending}
       grid={{
         left: '0',
         right: '0',
@@ -289,7 +289,7 @@ const mockSeries = ({moduleName, filters, extraQuery}: ChartProps) => {
 
   const label = `avg(${SPAN_SELF_TIME})`;
 
-  const {isLoading, data} = useSpansQuery<
+  const {isPending, data} = useSpansQuery<
     {
       'avg(span.self_time)': number;
       interval: number;
@@ -327,16 +327,16 @@ const mockSeries = ({moduleName, filters, extraQuery}: ChartProps) => {
       }) satisfies Series
   );
 
-  return {isLoading, data: mockData};
+  return {isPending, data: mockData};
 };
 
 function BundleSizeChart(props: ChartProps) {
-  const {isLoading, data} = mockSeries(props);
+  const {isPending, data} = mockSeries(props);
   return (
     <Chart
       stacked
       type={ChartType.AREA}
-      loading={isLoading}
+      loading={isPending}
       data={data}
       aggregateOutputFormat="size"
       height={CHART_HEIGHT}

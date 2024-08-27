@@ -51,7 +51,7 @@ export default function useFetchInfiniteListData<Data extends Record<string, unk
     isFetching, // If the network is active
     isFetchingNextPage,
     isFetchingPreviousPage,
-    isLoading, // If anything is loaded yet
+    isPending, // If anything is loaded yet
   } = useInfiniteApiQuery<Data[]>({
     queryKey,
   });
@@ -87,7 +87,7 @@ export default function useFetchInfiniteListData<Data extends Record<string, unk
     isFetching, // If the network is active
     isFetchingNextPage,
     isFetchingPreviousPage,
-    isLoading, // If anything is loaded yet
+    isLoading: isPending, // If anything is loaded yet
     // Below are fields that are shims for react-virtualized
     getRow,
     isRowLoaded,

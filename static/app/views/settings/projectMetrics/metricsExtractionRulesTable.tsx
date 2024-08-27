@@ -37,7 +37,7 @@ export function MetricsExtractionRulesTable({project}: Props) {
   const organization = useOrganization();
   const [query, setQuery] = useSearchQueryParam('query');
 
-  const {data: extractionRules, isLoading: isLoadingExtractionRules} =
+  const {data: extractionRules, isPending: isLoadingExtractionRules} =
     useMetricsExtractionRules({
       orgId: organization.slug,
       projectId: project.id,
@@ -47,7 +47,7 @@ export function MetricsExtractionRulesTable({project}: Props) {
     organization.slug,
     project.id
   );
-  const {data: cardinality, isLoading: isLoadingCardinality} =
+  const {data: cardinality, isPending: isLoadingCardinality} =
     useCardinalityLimitedMetricVolume({
       projects: [project.id],
     });

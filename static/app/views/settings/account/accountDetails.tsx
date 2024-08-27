@@ -44,12 +44,12 @@ function AccountDetails() {
   const queryClient = useQueryClient();
   const {
     data: user,
-    isLoading,
+    isPending,
     isError,
     refetch,
   } = useApiQuery<User>(USER_ENDPOINT_QUERY_KEY, {staleTime: 0});
 
-  if (isLoading) {
+  if (isPending) {
     return (
       <Fragment>
         <SettingsPageHeader title={t('Account Details')} />

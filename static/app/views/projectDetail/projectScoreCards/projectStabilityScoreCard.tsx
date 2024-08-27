@@ -102,7 +102,7 @@ const useCrashFreeRate = (props: Props) => {
     crashFreeRate: currentQuery.data,
     previousCrashFreeRate: previousQuery.data,
     isLoading:
-      currentQuery.isLoading || (previousQuery.isLoading && isPreviousPeriodEnabled),
+      currentQuery.isPending || (previousQuery.isPending && isPreviousPeriodEnabled),
     error: currentQuery.error || previousQuery.error,
     refetch: () => {
       currentQuery.refetch();

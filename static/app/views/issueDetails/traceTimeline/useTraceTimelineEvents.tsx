@@ -63,7 +63,7 @@ export function useTraceTimelineEvents({event}: UseTraceTimelineEventsOptions): 
   const enabled = !!traceId;
   const {
     data: issuePlatformData,
-    isLoading: isLoadingIssuePlatform,
+    isPending: isLoadingIssuePlatform,
     isError: isErrorIssuePlatform,
   } = useApiQuery<TraceEventResponse>(
     [
@@ -96,7 +96,7 @@ export function useTraceTimelineEvents({event}: UseTraceTimelineEventsOptions): 
   );
   const {
     data: discoverData,
-    isLoading: isLoadingDiscover,
+    isPending: isLoadingDiscover,
     isError: isErrorDiscover,
   } = useApiQuery<{
     data: TimelineEvent[];

@@ -40,7 +40,7 @@ function SampleInfo(props: Props) {
     ribbonFilters[SpanMetricsField.USER_GEO_SUBREGION] = `[${subregions.join(',')}]`;
   }
 
-  const {data, error, isLoading} = useSpanMetrics(
+  const {data, error, isPending} = useSpanMetrics(
     {
       search: MutableSearch.fromQueryObject(ribbonFilters),
       fields: [
@@ -67,14 +67,14 @@ function SampleInfo(props: Props) {
         title={getThroughputTitle(spanMetrics?.[SpanMetricsField.SPAN_OP])}
         value={spanMetrics?.['spm()']}
         unit={RateUnit.PER_MINUTE}
-        isLoading={isLoading}
+        isLoading={isPending}
       />
 
       <MetricReadout
         title={DataTitles.avg}
         value={spanMetrics?.[`avg(${SpanMetricsField.SPAN_SELF_TIME})`]}
         unit={DurationUnit.MILLISECOND}
-        isLoading={isLoading}
+        isLoading={isPending}
       />
 
       <MetricReadout
@@ -85,7 +85,7 @@ function SampleInfo(props: Props) {
           spanMetrics?.[0]?.['time_spent_percentage()'],
           spanMetrics?.[SpanMetricsField.SPAN_OP]
         )}
-        isLoading={isLoading}
+        isLoading={isPending}
       />
     </StyledReadoutRibbon>
   );

@@ -83,7 +83,7 @@ function EventDetailsContent(props: Props) {
 
   const {
     data: event,
-    isLoading,
+    isPending,
     error,
   } = useApiQuery<Event>(
     [`/organizations/${props.organization.slug}/events/${props.eventSlug}/`],
@@ -318,7 +318,7 @@ function EventDetailsContent(props: Props) {
     return render();
   }
 
-  if (isLoading) {
+  if (isPending) {
     return <LoadingIndicator />;
   }
 

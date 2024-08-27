@@ -175,7 +175,7 @@ export function MostRegressedProfileFunctions(props: MostRegressedProfileFunctio
           size="xs"
         />
       </RegressedFunctionsTitleContainer>
-      {trendsQuery.isLoading ? (
+      {trendsQuery.isPending ? (
         <RegressedFunctionsQueryState>
           <LoadingIndicator size={36} />
         </RegressedFunctionsQueryState>

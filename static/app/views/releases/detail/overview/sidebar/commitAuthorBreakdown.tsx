@@ -31,11 +31,11 @@ function CommitAuthorBreakdown({orgId, projectSlug, version}: Props) {
 
   const {
     data: commits,
-    isLoading,
+    isPending,
     isError,
   } = useApiQuery<Commit[]>([commitsEndpoint], {staleTime: 0});
 
-  if (isLoading) {
+  if (isPending) {
     return <LoadingIndicator />;
   }
 

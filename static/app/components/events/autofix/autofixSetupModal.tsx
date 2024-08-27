@@ -320,7 +320,7 @@ function AutofixSetupContent({
   projectId: string;
 }) {
   const organization = useOrganization();
-  const {data, canStartAutofix, isLoading, isError} = useAutofixSetup(
+  const {data, canStartAutofix, isPending, isError} = useAutofixSetup(
     {groupId},
     // Want to check setup status whenever the user comes back to the tab
     {refetchOnWindowFocus: true}
@@ -341,7 +341,7 @@ function AutofixSetupContent({
     });
   }, [data, groupId, organization, projectId]);
 
-  if (isLoading) {
+  if (isPending) {
     return <LoadingIndicator />;
   }
 

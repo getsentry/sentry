@@ -87,7 +87,7 @@ export function ScreenCharts({yAxes, additionalFilters}: Props) {
 
   const {
     data: series,
-    isLoading: isSeriesLoading,
+    isPending: isSeriesLoading,
     error: seriesError,
   } = useEventsStatsQuery({
     eventView: EventView.fromNewQueryWithPageFilters(
@@ -154,7 +154,7 @@ export function ScreenCharts({yAxes, additionalFilters}: Props) {
     });
   }
 
-  const {data: deviceClassEvents, isLoading: isDeviceClassEventsLoading} = useTableQuery({
+  const {data: deviceClassEvents, isPending: isDeviceClassEventsLoading} = useTableQuery({
     eventView: EventView.fromNewQueryWithLocation(
       {
         name: '',

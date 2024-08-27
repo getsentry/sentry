@@ -53,7 +53,7 @@ export function useInpSpanSamplesWebVitalsQuery({
     );
   }
 
-  const {data, isLoading, ...rest} = useSpansIndexed(
+  const {data, isPending, ...rest} = useSpansIndexed(
     {
       search: mutableSearch,
       sorts: [sort],
@@ -79,7 +79,7 @@ export function useInpSpanSamplesWebVitalsQuery({
     'api.performance.browser.web-vitals.spans'
   );
   const tableData: InteractionSpanSampleRowWithScore[] =
-    !isLoading && data?.length
+    !isPending && data?.length
       ? data.map(row => {
           return {
             ...row,
@@ -99,7 +99,7 @@ export function useInpSpanSamplesWebVitalsQuery({
       : [];
   return {
     data: tableData,
-    isLoading,
+    isPending,
     ...rest,
   };
 }

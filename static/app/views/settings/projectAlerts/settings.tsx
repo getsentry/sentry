@@ -40,7 +40,7 @@ function ProjectAlertSettings({canEditRule, params}: ProjectAlertSettingsProps) 
   const projectSlug = params.projectId;
   const {
     data: project,
-    isLoading: isProjectLoading,
+    isPending: isProjectLoading,
     isError: isProjectError,
     refetch: refetchProject,
   } = useApiQuery<Project>([`/projects/${organization.slug}/${projectSlug}/`], {
@@ -49,7 +49,7 @@ function ProjectAlertSettings({canEditRule, params}: ProjectAlertSettingsProps) 
   });
   const {
     data: pluginList = [],
-    isLoading: isPluginListLoading,
+    isPending: isPluginListLoading,
     isError: isPluginListError,
     refetch: refetchPluginList,
   } = useApiQuery<Plugin[]>(

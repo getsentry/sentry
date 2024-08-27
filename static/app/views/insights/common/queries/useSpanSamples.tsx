@@ -83,7 +83,7 @@ export const useSpanSamples = (options: Options) => {
 
   const dateCondtions = getDateConditions(pageFilter.selection);
 
-  const {isLoading: isLoadingSeries, data: spanMetricsSeriesData} = useSpanMetricsSeries(
+  const {isPending: isLoadingSeries, data: spanMetricsSeriesData} = useSpanMetricsSeries(
     {
       search: MutableSearch.fromQueryObject({'span.group': groupId, ...filters}),
       yAxis: [`avg(${SPAN_SELF_TIME})`],

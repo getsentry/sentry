@@ -25,7 +25,7 @@ export default function SubregionSelector() {
   const hasGeoSelectorFeature = organization.features.includes('insights-region-filter');
 
   const value = decodeList(location.query[SpanMetricsField.USER_GEO_SUBREGION]);
-  const {data, isLoading} = useSpanMetrics(
+  const {data, isPending} = useSpanMetrics(
     {
       fields: [SpanMetricsField.USER_GEO_SUBREGION, 'count()'],
       search: new MutableSearch('has:user.geo.subregion'),
@@ -64,7 +64,7 @@ export default function SubregionSelector() {
         ),
       }}
       multiple
-      loading={isLoading}
+      loading={isPending}
       clearable
       value={value}
       triggerLabel={value.length === 0 ? t('All') : undefined}

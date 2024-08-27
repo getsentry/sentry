@@ -51,7 +51,7 @@ function TeamReleases({
 
   const {
     data: periodReleases,
-    isLoading: isPeriodReleasesLoading,
+    isPending: isPeriodReleasesLoading,
     isError: isPeriodReleasesError,
     refetch: refetchPeriodReleases,
   } = useApiQuery<ProjectReleaseCount>(
@@ -68,7 +68,7 @@ function TeamReleases({
 
   const {
     data: weekReleases,
-    isLoading: isWeekReleasesLoading,
+    isPending: isWeekReleasesLoading,
     isError: isWeekReleasesError,
     refetch: refetchWeekReleases,
   } = useApiQuery<ProjectReleaseCount>(

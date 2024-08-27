@@ -110,7 +110,7 @@ export function Suggestion({onHideSuggestion, projectSlug, event}: Props) {
 
   const {
     data,
-    isLoading: dataIsLoading,
+    isPending: dataIsLoading,
     isError: dataIsError,
     refetch: dataRefetch,
     error,

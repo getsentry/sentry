@@ -70,7 +70,7 @@ type FieldDef = {
 };
 
 export default function AdminSettings() {
-  const {data, isLoading, isError} = useApiQuery<Record<string, FieldDef>>(
+  const {data, isPending, isError} = useApiQuery<Record<string, FieldDef>>(
     ['/internal/options/'],
     {
       staleTime: 0,
@@ -81,7 +81,7 @@ export default function AdminSettings() {
     return <LoadingError />;
   }
 
-  if (isLoading) {
+  if (isPending) {
     return <LoadingIndicator />;
   }
 
