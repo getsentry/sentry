@@ -1,4 +1,5 @@
 import React from 'react';
+import styled from '@emotion/styled';
 
 import Alert from 'sentry/components/alert';
 import {Breadcrumbs} from 'sentry/components/breadcrumbs';
@@ -8,6 +9,7 @@ import * as Layout from 'sentry/components/layouts/thirds';
 import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionTooltip';
 import SearchBar from 'sentry/components/searchBar';
 import {t} from 'sentry/locale';
+import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {browserHistory} from 'sentry/utils/browserHistory';
 import {decodeScalar, decodeSorts} from 'sentry/utils/queryString';
@@ -30,6 +32,7 @@ import {ActionSelector} from 'sentry/views/insights/common/views/spans/selectors
 import {DomainSelector} from 'sentry/views/insights/common/views/spans/selectors/domainSelector';
 import {DurationChart} from 'sentry/views/insights/database/components/charts/durationChart';
 import {ThroughputChart} from 'sentry/views/insights/database/components/charts/throughputChart';
+import {DatabaseSystemSelector} from 'sentry/views/insights/database/components/databaseSystemSelector';
 import {NoDataMessage} from 'sentry/views/insights/database/components/noDataMessage';
 import {
   isAValidSort,
@@ -179,7 +182,12 @@ export function DatabaseLandingPage() {
             )}
 
             <ModuleLayout.Full>
-              <ModulePageFilterBar moduleName={ModuleName.DB} />
+              <PageFilterWrapper>
+                <ModulePageFilterBar moduleName={ModuleName.DB} />
+                {organization.features.includes(
+                  'performance-queries-mongodb-extraction'
+                ) && <DatabaseSystemSelector />}
+              </PageFilterWrapper>
             </ModuleLayout.Full>
             <ModulesOnboarding moduleName={ModuleName.DB}>
               <ModuleLayout.Half>
@@ -250,5 +258,10 @@ function PageWithProviders() {
     </ModulePageProviders>
   );
 }
+
+const PageFilterWrapper = styled('div')`
+  display: flex;
+  gap: ${space(3)};
+`;
 
 export default PageWithProviders;
