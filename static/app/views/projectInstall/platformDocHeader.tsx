@@ -21,9 +21,10 @@ import useRouter from 'sentry/utils/useRouter';
 type Props = {
   platform: Platform;
   projectSlug: Project['slug'];
+  title?: string;
 };
 
-export function PlatformDocHeader({platform, projectSlug}: Props) {
+export function PlatformDocHeader({platform, projectSlug, title}: Props) {
   const organization = useOrganization();
   const api = useApi();
   const router = useRouter();
@@ -91,7 +92,9 @@ export function PlatformDocHeader({platform, projectSlug}: Props) {
 
   return (
     <StyledPageHeader>
-      <h2>{t('Configure %(platform)s SDK', {platform: platform.name ?? 'other'})}</h2>
+      <h2>
+        {title ?? t('Configure %(platform)s SDK', {platform: platform.name ?? 'other'})}
+      </h2>
       <ButtonBar gap={1}>
         <Confirm
           bypass={!shallProjectBeDeleted}
