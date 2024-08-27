@@ -12,7 +12,7 @@ from sentry.exceptions import InvalidParams
 from sentry.models.project import Project
 from sentry.search.events.builder.discover import DiscoverQueryBuilder
 from sentry.search.events.builder.errors import ErrorsQueryBuilder
-from sentry.search.events.types import ParamsType, SnubaParams
+from sentry.search.events.types import SnubaParams
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.query_sources import QuerySource
 from sentry.utils import snuba
@@ -73,13 +73,13 @@ ERROR_ONLY_FIELDS = [
 
 def save_split_decision_for_query(
     saved_query: DiscoverSavedQuery,
-    split_decision: DiscoverSavedQueryTypes | None,
+    split_decision: int | None,
     dataset_source: DatasetSourcesTypes | None,
 ):
     if split_decision is not None:
         saved_query.dataset = split_decision
     if dataset_source is not None:
-        saved_query.dataset_source = dataset_source
+        saved_query.dataset_source = dataset_source.value
 
     saved_query.save()
 
@@ -214,24 +214,22 @@ def dataset_split_decision_inferred_from_query(
 
 
 def get_field_list(fields: list[str]) -> list[str]:
-    return [field for field in fields[:] if not is_equation(field)]
+    return [field for field in fields if not is_equation(field)]
 
 
 def get_equation_list(fields: list[str]) -> list[str]:
     """equations have a prefix so that they can be easily included alongside our existing fields"""
-    return [strip_equation(field) for field in fields[:] if is_equation(field)]
+    return [strip_equation(field) for field in fields if is_equation(field)]
 
 
-def get_snuba_dataclass(
-    saved_query: DiscoverSavedQuery, projects: list[Project]
-) -> tuple[SnubaParams, ParamsType]:
+def get_snuba_dataclass(saved_query: DiscoverSavedQuery, projects: list[Project]) -> SnubaParams:
     # Default
     start, end = get_date_range_from_stats_period({"statsPeriod": "7d"})
 
-    if "start" in saved_query.query:
-        start, end = parse_timestamp(saved_query.query["start"]), parse_timestamp(
-            saved_query.query["end"]
-        )
+    if "start" and "end" in saved_query.query:
+        start = parse_timestamp(saved_query.query["start"]) or start
+        end = parse_timestamp(saved_query.query["end"]) or end
+
         if start and end:
             expired, _ = outside_retention_with_modified_start(start, end, saved_query.organization)
             if expired:
@@ -264,19 +262,19 @@ def get_snuba_dataclass(
             teams=[],
             organization=saved_query.organization,
         )
-        return params, filter_params
+        return params
 
 
 def get_and_save_split_decision_for_query(
     saved_query: DiscoverSavedQuery, dry_run: bool
-) -> tuple[DiscoverSavedQueryTypes, bool]:
+) -> tuple[int, bool]:
     # We use all projects for the clickhouse query but don't do anything
     # with the data returned other than check if data exists. So this
     # all projects query should be a safe operation.
     projects = saved_query.projects.all() or Project.objects.filter(
         organization_id=saved_query.organization.id, status=ObjectStatus.ACTIVE
     )
-    snuba_dataclass, params = get_snuba_dataclass(saved_query, projects)
+    snuba_dataclass = get_snuba_dataclass(saved_query, list(projects))
     selected_columns = get_field_list(saved_query.query.get("fields", []))
     equations = get_equation_list(saved_query.query.get("fields", []))
     query = saved_query.query.get("query", "")
@@ -286,7 +284,7 @@ def get_and_save_split_decision_for_query(
     # is if data exists.
     errors_builder = ErrorsQueryBuilder(
         Dataset.Events,
-        params,
+        params={},
         snuba_params=snuba_dataclass,
         query=query,
         selected_columns=selected_columns,
@@ -296,7 +294,7 @@ def get_and_save_split_decision_for_query(
 
     transactions_builder = DiscoverQueryBuilder(
         Dataset.Transactions,
-        params,
+        params={},
         snuba_params=snuba_dataclass,
         query=query,
         selected_columns=selected_columns,
@@ -315,7 +313,7 @@ def get_and_save_split_decision_for_query(
             save_split_decision_for_query(
                 saved_query,
                 dataset_inferred_from_query,
-                DatasetSourcesTypes.INFERRED.value,
+                DatasetSourcesTypes.INFERRED,
             )
         return dataset_inferred_from_query, False
 
@@ -333,13 +331,15 @@ def get_and_save_split_decision_for_query(
     if has_errors:
         if dry_run:
             logger.info(
-                "Split decision for %s: %s", saved_query.id, DiscoverSavedQueryTypes.ERROR_EVENTS
+                "Split decision for %s: %s (inferred from running query)",
+                saved_query.id,
+                DiscoverSavedQueryTypes.ERROR_EVENTS,
             )
         else:
             save_split_decision_for_query(
                 saved_query,
                 DiscoverSavedQueryTypes.ERROR_EVENTS,
-                DatasetSourcesTypes.INFERRED.value,
+                DatasetSourcesTypes.INFERRED,
             )
         return DiscoverSavedQueryTypes.ERROR_EVENTS, True
 
@@ -357,7 +357,7 @@ def get_and_save_split_decision_for_query(
     if has_transactions:
         if dry_run:
             logger.info(
-                "Split decision for %s: %s",
+                "Split decision for %s: %s (inferred from running query)",
                 saved_query.id,
                 DiscoverSavedQueryTypes.TRANSACTION_LIKE,
             )
@@ -365,20 +365,22 @@ def get_and_save_split_decision_for_query(
             save_split_decision_for_query(
                 saved_query,
                 DiscoverSavedQueryTypes.TRANSACTION_LIKE,
-                DatasetSourcesTypes.INFERRED.value,
+                DatasetSourcesTypes.INFERRED,
             )
 
         return DiscoverSavedQueryTypes.TRANSACTION_LIKE, True
 
     if dry_run:
         logger.info(
-            "Split decision for %s: %s", saved_query.id, DiscoverSavedQueryTypes.TRANSACTION_LIKE
+            "Split decision for %s: %s (forced)",
+            saved_query.id,
+            DiscoverSavedQueryTypes.ERROR_EVENTS,
         )
     else:
         save_split_decision_for_query(
             saved_query,
             DiscoverSavedQueryTypes.ERROR_EVENTS,
-            DatasetSourcesTypes.FORCED.value,
+            DatasetSourcesTypes.FORCED,
         )
 
     return DiscoverSavedQueryTypes.ERROR_EVENTS, True
