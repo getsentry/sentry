@@ -211,8 +211,8 @@ def cleanup(
         BULK_QUERY_DELETES = [
             (models.UserReport, "date_added", None),
             (models.GroupEmailThread, "date", None),
-            (RuleFireHistory, "date_added", None),
             (NotificationMessage, "date_added", None),
+            (RuleFireHistory, "date_added", None),
         ] + additional_bulk_query_deletes
 
         # Deletions that use the `deletions` code path (which handles their child relations)
