@@ -88,8 +88,23 @@ const formGroups: JsonFormObject[] = [
       {
         name: 'openMembership',
         type: 'boolean',
-        label: t('Open Membership'),
+        label: t('Open Team Membership'),
         help: t('Allow organization members to freely join any team'),
+      },
+      {
+        name: 'allowMemberInvite',
+        type: 'boolean',
+        label: t('Let Members Invite Freely'),
+        help: t(
+          'Allow organization members to invite other members via email without needing org owner or manager approval.'
+        ),
+        visible: ({features}) => features.has('members-invite-teammates'),
+        disabled: ({features, access}) =>
+          !access.has('org:write') || !features.has('team-roles'),
+        disabledReason: ({features}) =>
+          !features.has('team-roles')
+            ? t('You must be on a business plan to toggle this feature.')
+            : undefined,
       },
       {
         name: 'allowMemberProjectCreation',
@@ -97,7 +112,7 @@ const formGroups: JsonFormObject[] = [
         label: t('Let Members Create Projects'),
         help: t('Allow organization members to create and configure new projects.'),
         disabled: ({features, access}) =>
-          !access.has('org:write') || features.has('team-roles'),
+          !access.has('org:write') || !features.has('team-roles'),
         disabledReason: ({features}) =>
           !features.has('team-roles')
             ? t('You must be on a business plan to toggle this feature.')
