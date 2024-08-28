@@ -214,6 +214,28 @@
                 "type": "string",
                 "description": "The new status for the issues. Valid values are `\"resolved\"`, `\"reprocessing\"`, `\"unresolved\"`, and `\"ignored\"`."
               },
+              "statusDetails": {
+                "type": "object",
+                "description": "Additional details about the status of the issue.",
+                "properties": {
+                  "inNextRelease": {
+                    "type": "boolean",
+                    "description": "Indicates if the issue is resolved in the next release based on the last seen release of that issue."
+                  },
+                  "inUpcomingRelease": {
+                    "type": "boolean",
+                    "description": "Indicates if the issue is resolved in an upcoming release."
+                  },
+                  "inRelease": {
+                    "type": "string",
+                    "description": "The version of the release in which the issue is resolved."
+                  },
+                  "inCommit": {
+                    "type": "string",
+                    "description": "The commit hash in which the issue is resolved."
+                  }
+                }
+              },
               "assignedTo": {
                 "type": "string",
                 "description": "The actor id (or username) of the user or team that should be assigned to this issue."

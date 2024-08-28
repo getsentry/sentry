@@ -60,7 +60,7 @@ describe('useProfileFunctionTrendss', function () {
         }),
       {wrapper: TestContext}
     );
-    expect(hook.result.current.isLoading).toEqual(true);
+    expect(hook.result.current.isPending).toEqual(true);
     expect(hook.result.current.isFetched).toEqual(false);
     await waitFor(() =>
       expect(hook.result.current).toMatchObject(

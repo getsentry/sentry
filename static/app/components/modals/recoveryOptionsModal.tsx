@@ -23,7 +23,7 @@ function RecoveryOptionsModal({
   Footer,
 }: Props) {
   const {
-    isLoading,
+    isPending,
     isError,
     refetch: refetchAuthenticators,
     data: authenticators = [],
@@ -48,7 +48,7 @@ function RecoveryOptionsModal({
     setSkipSms(true);
   };
 
-  if (isLoading) return <LoadingIndicator />;
+  if (isPending) return <LoadingIndicator />;
 
   if (isError) {
     return (

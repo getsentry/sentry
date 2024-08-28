@@ -118,7 +118,7 @@ export function ScreensOverview() {
 
   const {
     data: primaryData,
-    isLoading: primaryLoading,
+    isPending: primaryLoading,
     pageLinks: primaryLinks,
     eventView: primaryEventView,
   } = useMetrics(
@@ -132,7 +132,7 @@ export function ScreensOverview() {
     []
   );
 
-  const {data: secondaryData, isLoading: secondaryLoading} = useMetrics(
+  const {data: secondaryData, isPending: secondaryLoading} = useMetrics(
     secondaryDataset,
     secondaryFields,
     isProjectCrossPlatform ? selectedPlatform : undefined,

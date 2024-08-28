@@ -51,7 +51,7 @@ export function CustomMetricsTable({project}: Props) {
     projects: [parseInt(project.id, 10)],
   });
 
-  const isLoading = metricsMeta.isLoading || metricsCardinality.isLoading;
+  const isLoading = metricsMeta.isLoading || metricsCardinality.isPending;
 
   const sortedMeta = useMemo(() => {
     if (!metricsMeta.data) {

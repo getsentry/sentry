@@ -54,7 +54,7 @@ export function CronTimelineSection({event, organization, project}: Props) {
   const rollup = Math.floor((timeWindowConfig.elapsedMinutes * 60) / timelineWidth);
 
   const monitorStatsQueryKey = `/organizations/${organization.slug}/monitors-stats/`;
-  const {data: monitorStats, isLoading} = useApiQuery<Record<string, MonitorBucketData>>(
+  const {data: monitorStats, isPending} = useApiQuery<Record<string, MonitorBucketData>>(
     [
       monitorStatsQueryKey,
       {
@@ -108,10 +108,10 @@ export function CronTimelineSection({event, organization, project}: Props) {
         <StyledGridLineTimeLabels timeWindowConfig={timeWindowConfig} />
         <GridLineOverlay
           timeWindowConfig={timeWindowConfig}
-          showCursor={!isLoading}
-          showIncidents={!isLoading}
+          showCursor={!isPending}
+          showIncidents={!isPending}
         />
-        {monitorStats && !isLoading ? (
+        {monitorStats && !isPending ? (
           <Fragment>
             <EventLineTick left={eventTickLeft} />
             <EventLineLabel left={eventTickLeft} timelineWidth={timelineWidth}>

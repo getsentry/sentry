@@ -74,7 +74,7 @@ export function CacheLandingPage() {
   const cursor = decodeScalar(location.query?.[QueryParameterNames.TRANSACTIONS_CURSOR]);
 
   const {
-    isLoading: isCacheMissRateLoading,
+    isPending: isCacheMissRateLoading,
     data: cacheMissRateData,
     error: cacheMissRateError,
   } = useSpanMetricsSeries(
@@ -86,7 +86,7 @@ export function CacheLandingPage() {
   );
 
   const {
-    isLoading: isThroughputDataLoading,
+    isPending: isThroughputDataLoading,
     data: throughputData,
     error: throughputError,
   } = useSpanMetricsSeries(

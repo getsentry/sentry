@@ -220,7 +220,7 @@ export function EventDetailsContent({
         />
       ) : null}
       {group.issueCategory === IssueCategory.UPTIME && (
-        <UptimeDataSection group={group} />
+        <UptimeDataSection event={event} project={project} group={group} />
       )}
       {group.issueCategory === IssueCategory.CRON && (
         <CronTimelineSection
