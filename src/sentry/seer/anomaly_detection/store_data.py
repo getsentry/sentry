@@ -15,9 +15,8 @@ from sentry.seer.anomaly_detection.types import (
     AlertInSeer,
     AnomalyDetectionConfig,
     StoreDataRequest,
-    TimeSeriesPoint,
 )
-from sentry.seer.anomaly_detection.utils import translate_direction
+from sentry.seer.anomaly_detection.utils import format_historical_data, translate_direction
 from sentry.seer.signed_seer_api import make_signed_seer_api_request
 from sentry.snuba.models import SnubaQuery
 from sentry.snuba.referrer import Referrer
@@ -31,22 +30,6 @@ seer_anomaly_detection_connection_pool = connection_from_url(
     settings.SEER_ANOMALY_DETECTION_URL,
     timeout=settings.SEER_ANOMALY_DETECTION_TIMEOUT,
 )
-
-
-def format_historical_data(data: SnubaTSResult) -> list[TimeSeriesPoint]:
-    """
-    Format Snuba data into the format the Seer API expects.
-    If there are no results, it's just the timestamp
-    {'time': 1719012000}, {'time': 1719018000}, {'time': 1719024000}
-
-    If there are results, the count is added
-    {'time': 1721300400, 'count': 2}
-    """
-    formatted_data = []
-    for datum in data.data.get("data", []):
-        ts_point = TimeSeriesPoint(timestamp=datum.get("time"), value=datum.get("count", 0))
-        formatted_data.append(ts_point)
-    return formatted_data
 
 
 def _get_start_and_end_indices(data: SnubaTSResult) -> tuple[int, int]:
