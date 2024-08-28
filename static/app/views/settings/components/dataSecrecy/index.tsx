@@ -18,8 +18,8 @@ import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 
 type WaiverData = {
-  access_end: string | null;
-  access_start: string | null;
+  accessEnd: string | null;
+  accessStart: string | null;
 };
 
 export default function DataSecrecy() {
@@ -39,13 +39,13 @@ export default function DataSecrecy() {
   );
 
   const hasValidTempAccess =
-    allowDate?.access_end && moment().toISOString() < allowDate.access_end;
+    allowDate?.accessEnd && moment().toISOString() < allowDate.accessEnd;
 
   useEffect(() => {
-    if (data?.access_end) {
+    if (data?.accessEnd) {
       setAllowDate(data);
       // slice it to yyyy-MM-ddThh:mm format (be aware of the timezone)
-      const localDate = moment(data.access_end).local();
+      const localDate = moment(data.accessEnd).local();
       setAllowDateFormData(localDate.format('YYYY-MM-DDTHH:mm'));
     }
   }, [data]);
@@ -69,7 +69,7 @@ export default function DataSecrecy() {
         await api.requestPromise(`/organizations/${organization.slug}/data-secrecy/`, {
           method: 'DELETE',
         });
-        setAllowDate({access_start: '', access_end: ''});
+        setAllowDate({accessStart: '', accessEnd: ''});
         addSuccessMessage(t('Successfully removed temporary access window.'));
       } catch (error) {
         addErrorMessage(t('Unable to remove temporary access window.'));
@@ -80,9 +80,9 @@ export default function DataSecrecy() {
 
     // maintain the standard format of storing the date in UTC
     // even though the api should be able to handle the local time
-    const nextData = {
-      access_start: moment().utc().toISOString(),
-      access_end: moment.tz(allowDateFormData, moment.tz.guess()).utc().toISOString(),
+    const nextData: WaiverData = {
+      accessStart: moment().utc().toISOString(),
+      accessEnd: moment.tz(allowDateFormData, moment.tz.guess()).utc().toISOString(),
     };
 
     try {
@@ -119,7 +119,7 @@ export default function DataSecrecy() {
 
   const allowTempAccessProps: DateTimeFieldProps = {
     name: 'allowTemporarySuperuserAccess',
-    label: t('Allow temporary access for Sentry employees'),
+    label: t('Allow temporary access to Sentry employees'),
     help: t(
       'Open a temporary time window for Sentry employees to access your organization'
     ),
@@ -142,7 +142,7 @@ export default function DataSecrecy() {
           <PanelAlert>
             {hasValidTempAccess
               ? tct(`Sentry employees has access to your organization until [date]`, {
-                  date: formatDateTime(allowDate?.access_end as string),
+                  date: formatDateTime(allowDate?.accessEnd as string),
                 })
               : t('Sentry employees do not have access to your organization')}
           </PanelAlert>
