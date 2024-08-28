@@ -15,6 +15,7 @@ import {addMessage} from 'sentry/actionCreators/indicator';
 import {fetchOrgMembers, indexMembersByProject} from 'sentry/actionCreators/members';
 import {fetchTagValues, loadOrganizationTags} from 'sentry/actionCreators/tags';
 import type {Client} from 'sentry/api';
+import ErrorBoundary from 'sentry/components/errorBoundary';
 import HookOrDefault from 'sentry/components/hookOrDefault';
 import * as Layout from 'sentry/components/layouts/thirds';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
@@ -1226,12 +1227,14 @@ class IssueListOverview extends Component<Props, State> {
     return (
       <Layout.Page>
         {organization.features.includes('issue-stream-custom-views') ? (
-          <CustomViewsIssueListHeader
-            organization={organization}
-            queryCounts={queryCounts}
-            router={router}
-            selectedProjectIds={selection.projects}
-          />
+          <ErrorBoundary message={'Failed to load custom tabs'}>
+            <CustomViewsIssueListHeader
+              organization={organization}
+              queryCounts={queryCounts}
+              router={router}
+              selectedProjectIds={selection.projects}
+            />
+          </ErrorBoundary>
         ) : (
           <IssueListHeader
             organization={organization}
