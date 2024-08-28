@@ -249,6 +249,7 @@ def main(context: dict[str, str]) -> int:
     ):
         return 1
 
+    # faster prerequisite check than starting up sentry and running createuser idempotently
     stdout = proc.run(
         (
             "docker",
