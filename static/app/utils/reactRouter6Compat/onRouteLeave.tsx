@@ -1,5 +1,5 @@
-import {InjectedRouter, PlainRoute} from 'react-router';
-import {Location, unstable_usePrompt} from 'react-router-dom';
+import type {InjectedRouter, PlainRoute} from 'react-router';
+import {type Location, unstable_usePrompt} from 'react-router-dom';
 
 // Shims useRouteLeave between react router versions
 export function useRouteLeave() {
