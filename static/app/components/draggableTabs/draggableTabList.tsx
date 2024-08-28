@@ -30,7 +30,6 @@ function BaseDraggableTabList({
   outerWrapStyles,
   onReorder,
   onAddView,
-  showTempTab = false,
   tabVariant = 'filled',
   ...props
 }: BaseDraggableTabListProps) {
@@ -72,7 +71,7 @@ function BaseDraggableTabList({
   useEffect(() => {
     setTabListState(state);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [state.disabledKeys, state.selectedItem, state.selectedKey, props.children]);
+  }, [state.selectedKey]);
 
   // Detect tabs that overflow from the wrapper and put them in an overflow menu
   const tabItemsRef = useRef<Record<string | number, HTMLLIElement | null>>({});
@@ -119,11 +118,14 @@ function BaseDraggableTabList({
                   variant={tabVariant}
                 />
               </Reorder.Item>
-              {(state.selectedKey === 'temporary-tab' ||
-                (state.selectedKey !== item.key &&
-                  state.collection.getKeyAfter(item.key) !== state.selectedKey)) && (
-                <TabDivider layout />
-              )}
+              <TabDivider
+                layout
+                isVisible={
+                  state.selectedKey === 'temporary-tab' ||
+                  (state.selectedKey !== item.key &&
+                    state.collection.getKeyAfter(item.key) !== state.selectedKey)
+                }
+              />
             </Fragment>
           ))}
         </TabListWrap>
@@ -134,9 +136,8 @@ function BaseDraggableTabList({
               {t('Add View')}
             </AddViewButton>
           </MotionWrapper>
-          <TabDivider layout />
           <MotionWrapper layout>
-            {showTempTab && tempTab && (
+            {tempTab && (
               <Tab
                 key={tempTab.key}
                 item={tempTab}
@@ -173,12 +174,7 @@ export interface DraggableTabListProps
  * To be used as a direct child of the <Tabs /> component. See example usage
  * in tabs.stories.js
  */
-export function DraggableTabList({
-  items,
-  onAddView,
-  showTempTab,
-  ...props
-}: DraggableTabListProps) {
+export function DraggableTabList({items, onAddView, ...props}: DraggableTabListProps) {
   const collection = useCollection({items, ...props}, collectionFactory);
 
   const parsedItems = useMemo(
@@ -199,7 +195,6 @@ export function DraggableTabList({
     <BaseDraggableTabList
       items={parsedItems}
       onAddView={onAddView}
-      showTempTab={showTempTab}
       disabledKeys={disabledKeys}
       {...props}
     >
@@ -210,11 +205,24 @@ export function DraggableTabList({
 
 DraggableTabList.Item = Item;
 
-const TabDivider = styled(motion.div)`
-  height: 50%;
-  width: 1px;
-  border-radius: 6px;
-  background-color: ${p => p.theme.gray200};
+/**
+ * TabDividers are only visible around NON-selected tabs. They are not visible around the selected tab,
+ * but they still create some space and act as a gap between tabs.
+ */
+const TabDivider = styled(motion.div, {
+  shouldForwardProp: prop => prop !== 'isVisible',
+})<{isVisible: boolean}>`
+  ${p =>
+    p.isVisible &&
+    `
+    background-color: ${p.theme.gray200};
+    height: 50%;
+    width: 1px;
+    border-radius: 6px;
+    margin-right: ${space(0.5)};
+  `}
+  margin-top: 1px;
+  margin-left: ${space(0.5)};
 `;
 
 const TabListOuterWrap = styled('div')<{
@@ -252,14 +260,14 @@ const TabListWrap = styled('ul')`
 const AddViewButton = styled(Button)`
   display: flex;
   color: ${p => p.theme.gray300};
-  padding-right: ${space(0.5)};
-  margin: 4px 2px 2px 2px;
   font-weight: normal;
+  padding: ${space(0.5)};
+  transform: translateY(1px);
+  margin-right: ${space(0.5)};
 `;
 
 const StyledIconAdd = styled(IconAdd)`
   margin-right: 4px;
-  margin-left: 2px;
 `;
 
 const MotionWrapper = styled(motion.div)`

@@ -38,7 +38,7 @@ function ReplaysList() {
   const {
     data: replays,
     getResponseHeader,
-    isLoading,
+    isPending,
     error,
   } = useFetchReplayList({
     options: {query},
@@ -88,7 +88,7 @@ function ReplaysList() {
       <ReplayTable
         referrerLocation={'replay'}
         fetchError={error}
-        isFetching={isLoading}
+        isFetching={isPending}
         replays={replays}
         sort={decodeSorts(query.sort).at(0)}
         visibleColumns={visibleCols}

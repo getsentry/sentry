@@ -11,6 +11,17 @@ def run_command(command: list[str], log_file: str):
         return Popen(command, stdout=f, stderr=f)
 
 
+def get_files(input_files: list[str]) -> list[str]:
+    """
+    this function expands the globs specified in the input file then
+    filters for paths that are actually files
+    """
+    glob_expanded_files = [glob.glob(file, recursive=True) for file in input_files]
+    flattened_glob_matches = list(itertools.chain.from_iterable(glob_expanded_files))
+    filtered_glob_matches = [file for file in flattened_glob_matches if os.path.isfile(file)]
+    return filtered_glob_matches
+
+
 def main():
     """
     First we get the arguments passed to the upload artifacts action via the env vars,
@@ -30,9 +41,6 @@ def main():
     input_files = os.getenv("INPUT_FILES", "").split(",")
     input_test_result_files = os.getenv("INPUT_TEST_RESULT_FILES", "").split(",")
 
-    glob_expanded_coverage_files = [glob.glob(file, recursive=True) for file in input_files]
-    coverage_files = list(itertools.chain.from_iterable(glob_expanded_coverage_files))
-
     codecov_base_cmd = ["./codecov", "--verbose"]
 
     upload_flags = [
@@ -48,15 +56,14 @@ def main():
         upload_flags += ["--commit-sha", input_commit_sha]
 
     upload_coverage_cmd = [*codecov_base_cmd, "upload-process", *upload_flags]
+
+    coverage_files = get_files(input_files)
     for file in coverage_files:
         upload_coverage_cmd += ["--file", file]
 
     upload_coverage_log_file = "coverage-upload.log"
 
-    glob_expanded_test_result_files = [
-        glob.glob(file, recursive=True) for file in input_test_result_files
-    ]
-    test_result_files = list(itertools.chain.from_iterable(glob_expanded_test_result_files))
+    test_result_files = get_files(input_test_result_files)
 
     upload_test_results_cmd = [
         *codecov_base_cmd,

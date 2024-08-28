@@ -22,7 +22,7 @@ import {EntryType} from 'sentry/types/event';
 import type {Project} from 'sentry/types/project';
 import {StackType, StackView} from 'sentry/types/stacktrace';
 import {defined} from 'sentry/utils';
-import {FoldSectionKey} from 'sentry/views/issueDetails/streamline/foldSection';
+import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
 import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
 import {useHasStreamlinedUI, useIsSampleEvent} from 'sentry/views/issueDetails/utils';
 
@@ -39,7 +39,7 @@ import {inferPlatform, isStacktraceNewestFirst} from './utils';
 
 type ExceptionProps = React.ComponentProps<typeof ExceptionContent>;
 
-type Props = Pick<ExceptionProps, 'groupingCurrentLevel' | 'hasHierarchicalGrouping'> & {
+type Props = Pick<ExceptionProps, 'groupingCurrentLevel'> & {
   data: {
     values?: Array<Thread>;
   };
@@ -97,13 +97,7 @@ const useActiveThreadState = (
   return [activeThread, setActiveThread];
 };
 
-export function Threads({
-  data,
-  event,
-  projectSlug,
-  hasHierarchicalGrouping,
-  groupingCurrentLevel,
-}: Props) {
+export function Threads({data, event, projectSlug, groupingCurrentLevel}: Props) {
   const threads = data.values ?? [];
   const hasStreamlinedUI = useHasStreamlinedUI();
   const [activeThread, setActiveThread] = useActiveThreadState(event, threads);
@@ -185,7 +179,6 @@ export function Threads({
           event={event}
           values={exception.values}
           groupingCurrentLevel={groupingCurrentLevel}
-          hasHierarchicalGrouping={hasHierarchicalGrouping}
           meta={meta}
           threadId={activeThread?.id}
         />
@@ -212,7 +205,6 @@ export function Threads({
           event={event}
           platform={platform}
           groupingCurrentLevel={groupingCurrentLevel}
-          hasHierarchicalGrouping={hasHierarchicalGrouping}
           meta={meta}
           threadId={activeThread?.id}
         />
@@ -370,7 +362,7 @@ export function Threads({
   return hasStreamlinedUI ? (
     <InterimSection
       title={tn('Stack Trace', 'Stack Traces', threads.length)}
-      type={FoldSectionKey.STACKTRACE}
+      type={SectionKey.STACKTRACE}
     >
       {threadComponent}
     </InterimSection>

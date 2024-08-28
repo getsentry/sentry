@@ -238,7 +238,7 @@ function EventDifferentialFlamegraphView(props: EventDifferentialFlamegraphViewP
           canvasPoolManager={canvasPoolManager}
         />
         <DifferentialFlamegraphContainer>
-          {props.after.isLoading || props.before.isLoading ? (
+          {props.after.isPending || props.before.isPending ? (
             <LoadingIndicatorContainer>
               <LoadingIndicator />
             </LoadingIndicatorContainer>
@@ -268,7 +268,7 @@ function EventDifferentialFlamegraphView(props: EventDifferentialFlamegraphViewP
       <Panel>
         <DifferentialFlamegraphFunctionsContainer>
           <DifferentialFlamegraphChangedFunctions
-            loading={props.after.isLoading || props.before.isLoading}
+            loading={props.after.isPending || props.before.isPending}
             title={t('Slower functions')}
             subtitle={t('after regression')}
             functions={differentialFlamegraph.increasedFrames}
@@ -276,7 +276,7 @@ function EventDifferentialFlamegraphView(props: EventDifferentialFlamegraphViewP
             makeFunctionLink={makeFunctionFlamechartLink}
           />
           <DifferentialFlamegraphChangedFunctions
-            loading={props.after.isLoading || props.before.isLoading}
+            loading={props.after.isPending || props.before.isPending}
             title={t('Faster functions')}
             subtitle={t('after regression')}
             functions={differentialFlamegraph.decreasedFrames}
@@ -289,7 +289,7 @@ function EventDifferentialFlamegraphView(props: EventDifferentialFlamegraphViewP
       <Panel>
         <DifferentialFlamegraphFunctionsContainer>
           <DifferentialFlamegraphChangedFunctions
-            loading={props.after.isLoading || props.before.isLoading}
+            loading={props.after.isPending || props.before.isPending}
             title={t('New functions')}
             subtitle={t('after regression')}
             functions={differentialFlamegraph.newFrames}
@@ -297,7 +297,7 @@ function EventDifferentialFlamegraphView(props: EventDifferentialFlamegraphViewP
             makeFunctionLink={makeFunctionFlamechartLink}
           />
           <DifferentialFlamegraphChangedFunctions
-            loading={props.after.isLoading || props.before.isLoading}
+            loading={props.after.isPending || props.before.isPending}
             title={t('Removed functions')}
             subtitle={t('after regression')}
             functions={differentialFlamegraph.removedFrames}

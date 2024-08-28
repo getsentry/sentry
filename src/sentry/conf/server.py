@@ -1167,12 +1167,6 @@ CELERYBEAT_SCHEDULE_REGION = {
         "schedule": crontab(minute="17"),
         "options": {"expires": 3600},
     },
-    "span.descs.clusterer": {
-        "task": "sentry.ingest.span_clusterer.tasks.spawn_span_cluster_projects",
-        # Run every 1 hour at minute 42
-        "schedule": crontab(minute="42"),
-        "options": {"expires": 3600},
-    },
     "auto-enable-codecov": {
         "task": "sentry.tasks.auto_enable_codecov.enable_for_org",
         # Run every day at 00:30
@@ -1451,8 +1445,6 @@ SENTRY_EARLY_FEATURES = {
     "organizations:anr-analyze-frames": "Enable anr frame analysis",
     "organizations:device-classification": "Enable device.class as a selectable column",
     "organizations:gitlab-disable-on-broken": "Enable disabling gitlab integrations when broken is detected",
-    "organizations:grouping-stacktrace-ui": "Enable experimental new version of stacktrace component where additional data related to grouping is shown on each frame",
-    "organizations:grouping-title-ui": "Enable tweaks to group title in relation to hierarchical grouping.",
     "organizations:mobile-cpu-memory-in-transactions": "Display CPU and memory metrics in transactions with profiles",
     "organizations:performance-metrics-backed-transaction-summary": "Enable metrics-backed transaction summary view",
     "organizations:performance-new-trends": "Enable new trends",
@@ -1840,6 +1832,7 @@ SENTRY_SCOPES = {
     "org:ci",
     # "org:superuser",  Do not use for any type of superuser permission/access checks
     # Assigned to active SU sessions in src/sentry/auth/access.py to enable UI elements
+    "member:invite",
     "member:read",
     "member:write",
     "member:admin",
@@ -1877,9 +1870,10 @@ SENTRY_SCOPE_HIERARCHY_MAPPING = {
     "org:admin": {"org:read", "org:write", "org:admin", "org:integrations"},
     "org:integrations": {"org:integrations"},
     "org:ci": {"org:ci"},
+    "member:invite": {"member:read", "member:invite"},
     "member:read": {"member:read"},
-    "member:write": {"member:read", "member:write"},
-    "member:admin": {"member:read", "member:write", "member:admin"},
+    "member:write": {"member:read", "member:invite", "member:write"},
+    "member:admin": {"member:read", "member:invite", "member:write", "member:admin"},
     "team:read": {"team:read"},
     "team:write": {"team:read", "team:write"},
     "team:admin": {"team:read", "team:write", "team:admin"},
@@ -1908,6 +1902,7 @@ SENTRY_SCOPE_SETS = (
         ("member:admin", "Read, write, and admin access to organization members."),
         ("member:write", "Read and write access to organization members."),
         ("member:read", "Read access to organization members."),
+        ("member:invite", "Member invite access to organization members."),
     ),
     (
         ("team:admin", "Read, write, and admin access to teams."),
@@ -1951,7 +1946,7 @@ SENTRY_ROLES: tuple[RoleDict, ...] = (
     {
         "id": "member",
         "name": "Member",
-        "desc": "Members can view and act on events, as well as view most other data within the organization.",
+        "desc": "Members can view and act on events, as well as view most other data within the organization. By default, they can invite members to the organization unless the organization has disabled this feature.",
         "scopes": {
             "event:read",
             "event:write",
@@ -1959,6 +1954,7 @@ SENTRY_ROLES: tuple[RoleDict, ...] = (
             "project:releases",
             "project:read",
             "org:read",
+            "member:invite",
             "member:read",
             "team:read",
             "alerts:read",
@@ -1974,8 +1970,8 @@ SENTRY_ROLES: tuple[RoleDict, ...] = (
             create new teams and projects, as well as remove teams and projects
             on which they already hold membership (or all teams, if open
             membership is enabled). Additionally, they can manage memberships of
-            teams that they are members of. They cannot invite members to the
-            organization.
+            teams that they are members of. By default, they can invite members
+            to the organization unless the organization has disabled this feature.
             """
         ),
         "scopes": {
@@ -1984,6 +1980,7 @@ SENTRY_ROLES: tuple[RoleDict, ...] = (
             "event:admin",
             "org:read",
             "member:read",
+            "member:invite",
             "project:read",
             "project:write",
             "project:admin",
@@ -2005,6 +2002,7 @@ SENTRY_ROLES: tuple[RoleDict, ...] = (
             "event:read",
             "event:write",
             "event:admin",
+            "member:invite",
             "member:read",
             "member:write",
             "member:admin",
@@ -2038,6 +2036,7 @@ SENTRY_ROLES: tuple[RoleDict, ...] = (
             "org:write",
             "org:admin",
             "org:integrations",
+            "member:invite",
             "member:read",
             "member:write",
             "member:admin",
@@ -3522,3 +3521,7 @@ if SILO_DEVSERVER:
         SENTRY_WEB_PORT = int(bind[1])
 
     CELERYBEAT_SCHEDULE_FILENAME = f"celerybeat-schedule-{SILO_MODE}"
+
+
+# tmp(michal): Default configuration for post_process* queueus split
+SENTRY_POST_PROCESS_QUEUE_SPLIT_ROUTER: dict[str, Callable[[], str]] = {}

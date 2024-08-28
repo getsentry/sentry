@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 
 import ActorAvatar from 'sentry/components/avatar/actorAvatar';
 import Breadcrumbs from 'sentry/components/breadcrumbs';
-import {Button} from 'sentry/components/button';
+import {LinkButton} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import {SectionHeading} from 'sentry/components/charts/styles';
 import IdBadge from 'sentry/components/idBadge';
@@ -39,7 +39,7 @@ export default function UptimeAlertDetails({params}: UptimeAlertDetailsProps) {
   ];
   const {
     data: uptimeRule,
-    isLoading,
+    isPending,
     isError,
   } = useApiQuery<UptimeRule>(queryKey, {staleTime: 0});
   if (isError) {
@@ -50,7 +50,7 @@ export default function UptimeAlertDetails({params}: UptimeAlertDetailsProps) {
     );
   }
 
-  if (isLoading || loadingProject) {
+  if (isPending || loadingProject) {
     return (
       <Layout.Body>
         <Layout.Main fullWidth>
@@ -94,13 +94,13 @@ export default function UptimeAlertDetails({params}: UptimeAlertDetailsProps) {
         </Layout.HeaderContent>
         <Layout.HeaderActions>
           <ButtonBar gap={1}>
-            <Button
+            <LinkButton
               size="sm"
               icon={<IconEdit />}
               to={`/organizations/${organization.slug}/alerts/uptime-rules/${project.slug}/${uptimeRuleId}/`}
             >
               {t('Edit Rule')}
-            </Button>
+            </LinkButton>
           </ButtonBar>
         </Layout.HeaderActions>
       </Layout.Header>

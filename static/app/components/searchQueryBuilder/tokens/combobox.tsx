@@ -56,9 +56,9 @@ type SearchQueryBuilderComboboxProps<T extends SelectOptionOrSectionWithKey<stri
   onCustomValueCommitted: (value: string) => void;
   /**
    * Called when the user selects an option from the dropdown.
-   * Passes the value of the selected item.
+   * Passes the selected option.
    */
-  onOptionSelected: (value: string) => void;
+  onOptionSelected: (option: T) => void;
   token: TokenResult<Token>;
   autoFocus?: boolean;
   /**
@@ -110,6 +110,7 @@ type SearchQueryBuilderComboboxProps<T extends SelectOptionOrSectionWithKey<stri
 type OverlayProps = ReturnType<typeof useOverlay>['overlayProps'];
 
 export type CustomComboboxMenuProps<T> = {
+  filterValue: string;
   hiddenOptions: Set<SelectKey>;
   isOpen: boolean;
   listBoxProps: AriaListBoxOptions<T>;
@@ -136,12 +137,15 @@ const DESCRIPTION_POPPER_OPTIONS = {
   ],
 };
 
-function findItemInSections(items: SelectOptionOrSectionWithKey<string>[], key: Key) {
+function findItemInSections<T extends SelectOptionOrSectionWithKey<string>>(
+  items: T[],
+  key: Key
+): T | null {
   for (const item of items) {
     if (itemIsSection(item)) {
       const option = item.options.find(child => child.key === key);
       if (option) {
-        return option;
+        return option as T;
       }
     } else {
       if (item.key === key) {
@@ -274,6 +278,7 @@ function OverlayContent<T extends SelectOptionOrSectionWithKey<string>>({
       listBoxProps,
       state,
       overlayProps,
+      filterValue,
     });
   }
 
@@ -351,10 +356,8 @@ function SearchQueryBuilderComboboxInner<T extends SelectOptionOrSectionWithKey<
   const onSelectionChange = useCallback(
     (key: Key) => {
       const selectedOption = findItemInSections(items, key);
-      if (selectedOption && 'textValue' in selectedOption && selectedOption.textValue) {
-        onOptionSelected(selectedOption.textValue);
-      } else if (key) {
-        onOptionSelected(key.toString());
+      if (selectedOption) {
+        onOptionSelected(selectedOption);
       }
     },
     [items, onOptionSelected]
@@ -475,7 +478,12 @@ function SearchQueryBuilderComboboxInner<T extends SelectOptionOrSectionWithKey<
       }
       state.close();
     },
-    preventOverflowOptions: {boundary: document.body, altAxis: true},
+    shouldApplyMinWidth: false,
+    preventOverflowOptions: {boundary: document.body},
+    flipOptions: {
+      // We don't want the menu to ever flip to the other side of the input
+      fallbackPlacements: [],
+    },
   });
 
   const descriptionPopper = usePopper(

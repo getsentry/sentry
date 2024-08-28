@@ -85,12 +85,14 @@ import {
   DEFAULT_COUNT_TIME_WINDOW,
 } from './constants';
 import RuleConditionsForm from './ruleConditionsForm';
-import type {
-  EventTypes,
-  MetricActionTemplate,
-  MetricRule,
-  Trigger,
-  UnsavedMetricRule,
+import {
+  AlertRuleSeasonality,
+  AlertRuleSensitivity,
+  type EventTypes,
+  type MetricActionTemplate,
+  type MetricRule,
+  type Trigger,
+  type UnsavedMetricRule,
 } from './types';
 import {
   AlertRuleComparisonType,
@@ -142,6 +144,7 @@ type State = {
   project: Project;
   query: string;
   resolveThreshold: UnsavedMetricRule['resolveThreshold'];
+  sensitivity: UnsavedMetricRule['sensitivity'];
   thresholdPeriod: UnsavedMetricRule['thresholdPeriod'];
   thresholdType: UnsavedMetricRule['thresholdType'];
   timeWindow: number;
@@ -151,6 +154,7 @@ type State = {
   comparisonDelta?: number;
   isExtrapolatedChartData?: boolean;
   monitorType?: MonitorType;
+  seasonality?: AlertRuleSeasonality;
 } & DeprecatedAsyncComponent['state'];
 
 const isEmpty = (str: unknown): boolean => str === '' || !defined(str);
@@ -233,12 +237,16 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
       metricExtractionRules: null,
       triggers: triggersClone,
       resolveThreshold: rule.resolveThreshold,
+      sensitivity: rule.sensitivity ?? undefined,
+      seasonality: rule.seasonality ?? undefined,
       thresholdType: rule.thresholdType,
       thresholdPeriod: rule.thresholdPeriod ?? 1,
       comparisonDelta: rule.comparisonDelta ?? undefined,
       comparisonType: rule.comparisonDelta
         ? AlertRuleComparisonType.CHANGE
-        : AlertRuleComparisonType.COUNT,
+        : rule.sensitivity
+          ? AlertRuleComparisonType.DYNAMIC
+          : AlertRuleComparisonType.COUNT,
       project: this.props.project,
       owner: rule.owner,
       alertType: getAlertTypeFromAggregateDataset({aggregate, dataset}),
@@ -455,7 +463,25 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
   ) {
     const {comparisonType} = this.state;
     const triggerErrors = new Map();
-
+    // If we have an anomaly detection alert, then we don't need to validate the thresholds, but we do need to set them to 0
+    if (comparisonType === AlertRuleComparisonType.DYNAMIC) {
+      // NOTE: we don't support warning triggers for anomaly detection alerts yet
+      // once we do, uncomment this code and delete 475-478:
+      // triggers.forEach(trigger => {
+      //   trigger.alertThreshold = 0;
+      // });
+      const criticalTriggerIndex = triggers.findIndex(
+        ({label}) => label === AlertRuleTriggerType.CRITICAL
+      );
+      const warningTriggerIndex = criticalTriggerIndex ^ 1;
+      const triggersCopy = [...triggers];
+      const criticalTrigger = triggersCopy[criticalTriggerIndex];
+      const warningTrigger = triggersCopy[warningTriggerIndex];
+      criticalTrigger.alertThreshold = 0;
+      warningTrigger.alertThreshold = ''; // we need to set this to empty
+      this.setState({triggers: triggersCopy});
+      return triggerErrors; // return an empty map
+    }
     const requiredFields = ['label', 'alertThreshold'];
     triggers.forEach((trigger, triggerIndex) => {
       requiredFields.forEach(field => {
@@ -725,6 +751,9 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
       eventTypes,
       monitorType,
       activationCondition,
+      sensitivity,
+      seasonality,
+      comparisonType,
     } = this.state;
     // Remove empty warning trigger
     const sanitizedTriggers = triggers.filter(
@@ -761,7 +790,12 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
             activationCondition,
           };
         }
-
+        const detectionTypes = new Map([
+          [AlertRuleComparisonType.COUNT, 'static'],
+          [AlertRuleComparisonType.CHANGE, 'percent'],
+          [AlertRuleComparisonType.DYNAMIC, 'dynamic'],
+        ]);
+        const detectionType = detectionTypes.get(comparisonType) ?? '';
         const dataset = this.determinePerformanceDataset();
         this.setState({loading: true});
         // Add or update is just the PUT/POST to the org alert-rules api
@@ -775,7 +809,11 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
             ...activatedAlertFields,
             projects: [project.slug],
             triggers: sanitizedTriggers,
-            resolveThreshold: isEmpty(resolveThreshold) ? null : resolveThreshold,
+            resolveThreshold:
+              isEmpty(resolveThreshold) ||
+              detectionType === AlertRuleComparisonType.DYNAMIC
+                ? null
+                : resolveThreshold,
             thresholdType,
             thresholdPeriod,
             comparisonDelta: comparisonDelta ?? null,
@@ -785,6 +823,9 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
             eventTypes: isCrashFreeAlert(rule.dataset) ? undefined : eventTypes,
             dataset,
             queryType: DatasetMEPAlertQueryTypes[dataset],
+            sensitivity: sensitivity ?? null,
+            seasonality: seasonality ?? null,
+            detectionType: detectionType,
           },
           {
             duplicateRule: this.isDuplicateRule ? 'true' : 'false',
@@ -819,7 +860,13 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
             ? err?.responseJSON
             : Object.values(err?.responseJSON)
           : [];
-        const apiErrors = errors.length > 0 ? `: ${errors.join(', ')}` : '';
+        let apiErrors = '';
+        if (typeof errors[0] === 'object') {
+          // NOTE: this occurs if we get a TimeoutError when attempting to hit the Seer API
+          apiErrors = ': ' + errors[0].message;
+        } else {
+          apiErrors = errors.length > 0 ? `: ${errors.join(', ')}` : '';
+        }
         this.handleRuleSaveFailure(t('Unable to save alert%s', apiErrors));
       }
     });
@@ -848,6 +895,10 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
 
       return {triggers, triggerErrors, triggersHaveChanged: true};
     });
+  };
+
+  handleSensitivityChange = (sensitivity: AlertRuleSensitivity) => {
+    this.setState({sensitivity});
   };
 
   handleThresholdTypeChange = (thresholdType: AlertRuleThresholdType) => {
@@ -883,13 +934,25 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
 
   handleComparisonTypeChange = (value: AlertRuleComparisonType) => {
     const comparisonDelta =
-      value === AlertRuleComparisonType.COUNT
-        ? undefined
-        : this.state.comparisonDelta ?? DEFAULT_CHANGE_COMP_DELTA;
+      value === AlertRuleComparisonType.CHANGE
+        ? this.state.comparisonDelta ?? DEFAULT_CHANGE_COMP_DELTA
+        : undefined;
     const timeWindow = this.state.comparisonDelta
       ? DEFAULT_COUNT_TIME_WINDOW
       : DEFAULT_CHANGE_TIME_WINDOW;
-    this.setState({comparisonType: value, comparisonDelta, timeWindow});
+    const sensitivity =
+      value === AlertRuleComparisonType.DYNAMIC
+        ? this.state.sensitivity || AlertRuleSensitivity.MEDIUM
+        : undefined;
+    const seasonality =
+      value === AlertRuleComparisonType.DYNAMIC ? AlertRuleSeasonality.AUTO : undefined;
+    this.setState({
+      comparisonType: value,
+      comparisonDelta,
+      timeWindow,
+      sensitivity,
+      seasonality,
+    });
   };
 
   handleDeleteRule = async () => {
@@ -1096,6 +1159,7 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
       comparisonDelta,
       comparisonType,
       resolveThreshold,
+      sensitivity,
       loading,
       eventTypes,
       dataset,
@@ -1120,6 +1184,7 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
         aggregate={aggregate}
         isMigration={isMigration}
         resolveThreshold={resolveThreshold}
+        sensitivity={sensitivity}
         thresholdPeriod={thresholdPeriod}
         thresholdType={thresholdType}
         comparisonType={comparisonType}
@@ -1130,6 +1195,7 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
         onThresholdTypeChange={this.handleThresholdTypeChange}
         onThresholdPeriodChange={this.handleThresholdPeriodChange}
         onResolveThresholdChange={this.handleResolveThresholdChange}
+        onSensitivityChange={this.handleSensitivityChange}
       />
     );
 

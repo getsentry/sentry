@@ -165,7 +165,7 @@ def get_current_release_version_of_group(
 
 def update_groups(
     request: Request,
-    group_ids: Sequence[int] | None,
+    group_ids: Sequence[int | str] | None,
     projects: Sequence[Project],
     organization_id: int,
     search_fn: SearchFunction | None,

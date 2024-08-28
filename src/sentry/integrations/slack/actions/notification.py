@@ -28,8 +28,7 @@ from sentry.integrations.slack.metrics import (
     SLACK_ISSUE_ALERT_SUCCESS_DATADOG_METRIC,
 )
 from sentry.integrations.slack.sdk_client import SlackSdkClient
-from sentry.integrations.slack.utils import get_channel_id
-from sentry.integrations.slack.utils.channel import SlackChannelIdData
+from sentry.integrations.slack.utils.channel import SlackChannelIdData, get_channel_id
 from sentry.models.options.organization_option import OrganizationOption
 from sentry.models.rule import Rule
 from sentry.notifications.additional_attachment_manager import get_additional_attachment
@@ -319,4 +318,4 @@ class SlackNotifyServiceAction(IntegrationEventAction):
         )
 
     def get_channel_id(self, integration: Integration, name: str) -> SlackChannelIdData:
-        return get_channel_id(self.project.organization, integration, name)
+        return get_channel_id(integration, name)
