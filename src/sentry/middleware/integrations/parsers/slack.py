@@ -55,7 +55,7 @@ class SlackRequestParser(BaseRequestParser):
     provider = EXTERNAL_PROVIDERS[ExternalProviders.SLACK]  # "slack"
     webhook_identifier = WebhookProviderIdentifier.SLACK
     response_url: str | None = None
-    action_option = ""
+    action_option: str | None = None
 
     control_classes = [
         SlackLinkIdentityView,
@@ -108,15 +108,20 @@ class SlackRequestParser(BaseRequestParser):
 
     def handle_dialog(self, request, action, title):
         decoded_body = parse_qs(request.body.decode(encoding="utf-8"))
-        payload = json.loads(decoded_body.get("payload")[0])
+        if (payload_dict := decoded_body.get("payload")) is None:
+            raise ValueError("request format is incorrect")
+
+        payload = json.loads(payload_dict[0])
 
         # we need to grab the action_ts to use as the external_id for the loading modal
         # https://api.slack.com/reference/interaction-payloads/block-actions
         action_ts = payload.get("actions")[0].get("action_ts")
 
-        integration_id = self.get_integration_from_request().id
+        integration = self.get_integration_from_request()
+        if not integration:
+            raise ValueError("integration not found")
 
-        slack_client = SlackSdkClient(integration_id=integration_id)
+        slack_client = SlackSdkClient(integration_id=integration.id)
         loading_modal = self.build_loading_modal(action_ts, title)
 
         try:
@@ -136,7 +141,7 @@ class SlackRequestParser(BaseRequestParser):
                 tags={"type": action},
             )
             logger_params = {
-                "integration_id": integration_id,
+                "integration_id": integration.id,
                 "action": action,
             }
             logger.exception("slack.control.view.open.failure", extra=logger_params)
@@ -155,12 +160,23 @@ class SlackRequestParser(BaseRequestParser):
             # Add more actions here, ie for buttons in modal
         }
 
+        integration = self.get_integration_from_request()
+
         # if we are able to  send a response to Slack from control itself to beat the 3 second timeout, we should do so
-        if (
-            options.get("send-slack-response-from-control-silo")
-            and self.action_option in CONTROL_RESPONSE_ACTIONS
-        ):
-            CONTROL_RESPONSE_ACTIONS[self.action_option](self.request, self.action_option)
+        try:
+            if (
+                options.get("send-slack-response-from-control-silo")
+                and self.action_option in CONTROL_RESPONSE_ACTIONS
+            ):
+                CONTROL_RESPONSE_ACTIONS[self.action_option](self.request, self.action_option)
+        except ValueError:
+            logger.exception(
+                "slack.control.response.error",
+                extra={
+                    "integration_id": integration and integration.id,
+                    "action": self.action_option,
+                },
+            )
 
         convert_to_async_slack_response.apply_async(
             kwargs={
