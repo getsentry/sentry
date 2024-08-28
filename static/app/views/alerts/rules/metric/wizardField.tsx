@@ -14,6 +14,7 @@ import {
   hasCustomMetrics,
   hasCustomMetricsExtractionRules,
 } from 'sentry/utils/metrics/features';
+import InsightsMetricField from 'sentry/views/alerts/rules/metric/insightsMetricField';
 import MriField from 'sentry/views/alerts/rules/metric/mriField';
 import SpanMetricField from 'sentry/views/alerts/rules/metric/spanMetricsField';
 import type {Dataset} from 'sentry/views/alerts/rules/metric/types';
@@ -25,6 +26,7 @@ import {
 import {QueryField} from 'sentry/views/discover/table/queryField';
 import {FieldValueKind} from 'sentry/views/discover/table/types';
 import {generateFieldOptions} from 'sentry/views/discover/utils';
+import {hasInsightsAlerts} from 'sentry/views/insights/common/utils/hasInsightsAlerts';
 
 import {getFieldOptionConfig} from './metricField';
 
@@ -142,6 +144,14 @@ export default function WizardField({
               },
             ]
           : []),
+        ...(hasInsightsAlerts(organization)
+          ? [
+              {
+                label: AlertWizardAlertNames.insights_metrics,
+                value: 'insights_metrics' as const,
+              },
+            ]
+          : []),
       ],
     },
   ];
@@ -205,6 +215,14 @@ export default function WizardField({
                 project={project}
                 field={aggregate}
                 onChange={newAggregate => onChange(newAggregate, {})}
+              />
+            ) : alertType === 'insights_metrics' ? (
+              <InsightsMetricField
+                project={project}
+                aggregate={aggregate}
+                onChange={newAggregate => {
+                  return onChange(newAggregate, {});
+                }}
               />
             ) : (
               <StyledQueryField
