@@ -114,7 +114,7 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint, EnvironmentMixin):
                     matching_event = eventstore.backend.get_event_by_id(project.id, event_id)
             elif matching_group is None:
                 matching_group = get_by_short_id(
-                    project.organization_id, request.GET.get("shortIdLookup"), query
+                    project.organization_id, request.GET.get("shortIdLookup", "0"), query
                 )
                 if matching_group is not None and matching_group.project_id != project.id:
                     matching_group = None
