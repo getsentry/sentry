@@ -49,7 +49,7 @@ _query_thread_pool = ThreadPoolExecutor()
 @region_silo_endpoint
 class OrganizationEventsNewTrendsStatsEndpoint(OrganizationEventsV2EndpointBase):
     publish_status = {
-        "GET": ApiPublishStatus.UNKNOWN,
+        "GET": ApiPublishStatus.PRIVATE,
     }
     enforce_rate_limit = True
     rate_limits = {

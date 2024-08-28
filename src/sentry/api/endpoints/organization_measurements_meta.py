@@ -15,7 +15,7 @@ from sentry.snuba.metrics.datasource import get_custom_measurements
 @region_silo_endpoint
 class OrganizationMeasurementsMeta(OrganizationEventsEndpointBase):
     publish_status = {
-        "GET": ApiPublishStatus.UNKNOWN,
+        "GET": ApiPublishStatus.EXPERIMENTAL,
     }
 
     def get(self, request: Request, organization: Organization) -> Response:
