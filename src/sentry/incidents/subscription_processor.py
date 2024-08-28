@@ -670,6 +670,7 @@ class SubscriptionProcessor:
         return anomaly_type != AnomalyType.NO_DATA.value
 
     def get_anomaly_data_from_seer(self, aggregation_value: float | None):
+        # TODO: pull this out into a reusable function
         try:
             anomaly_detection_config = {
                 "time_period": self.alert_rule.snuba_query.time_window / 60,
