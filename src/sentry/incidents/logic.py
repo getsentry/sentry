@@ -929,6 +929,10 @@ def update_alert_rule(
                 except ValidationError:
                     # If there's no historical data available—something went wrong when querying snuba
                     raise ValidationError("Failed to send data to Seer - cannot update alert rule.")
+        else:
+            # if this alert was previously a dynamic alert, then we should update the rule to be ready
+            if alert_rule.status == AlertRuleStatus.NOT_ENOUGH_DATA.value:
+                alert_rule.update(status=AlertRuleStatus.PENDING.value)
 
         alert_rule.update(**updated_fields)
         AlertRuleActivity.objects.create(
