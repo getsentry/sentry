@@ -100,7 +100,9 @@ export const BaseTab = forwardRef(
           borderStyle={borderStyle}
           ref={ref}
         >
-          <VariantStyledInteractionStateLayer hasSelectedBackground={false} />
+          {!isSelected && (
+            <VariantStyledInteractionStateLayer hasSelectedBackground={false} />
+          )}
           <FilledFocusLayer />
           {props.children}
         </FilledTabWrap>
