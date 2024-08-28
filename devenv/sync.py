@@ -1,71 +1,14 @@
 from __future__ import annotations
 
+import concurrent.futures
 import configparser
+import functools
 import os
-import shlex
-import subprocess
+
+from libdevinfra.jobs import Job, Task, run_jobs
 
 from devenv import constants
 from devenv.lib import colima, config, fs, limactl, proc, venv, volta
-
-
-# TODO: need to replace this with a nicer process executor in devenv.lib
-def run_procs(
-    repo: str,
-    reporoot: str,
-    venv_path: str,
-    _procs: tuple[tuple[str, tuple[str, ...], dict[str, str]], ...],
-) -> bool:
-    procs: list[tuple[str, tuple[str, ...], subprocess.Popen[bytes]]] = []
-
-    for name, cmd, extra_env in _procs:
-        print(f"⏳ {name}")
-        if constants.DEBUG:
-            proc.xtrace(cmd)
-        env = {
-            **constants.user_environ,
-            **proc.base_env,
-            "VIRTUAL_ENV": venv_path,
-            "VOLTA_HOME": f"{reporoot}/.devenv/bin/volta-home",
-            "PATH": f"{venv_path}/bin:{reporoot}/.devenv/bin:{proc.base_path}",
-        }
-        if extra_env:
-            env = {**env, **extra_env}
-        procs.append(
-            (
-                name,
-                cmd,
-                subprocess.Popen(
-                    cmd,
-                    stdout=subprocess.PIPE,
-                    stderr=subprocess.STDOUT,
-                    env=env,
-                    cwd=reporoot,
-                ),
-            )
-        )
-
-    all_good = True
-    for name, final_cmd, p in procs:
-        out, _ = p.communicate()
-        if p.returncode != 0:
-            all_good = False
-            print(
-                f"""
-❌ {name}
-
-failed command (code p.returncode):
-    {shlex.join(final_cmd)}
-
-Output:
-{out.decode()}
-
-"""
-            )
-        else:
-            print(f"✅ {name}")
-
-    return all_good
 
 
 def main(context: dict[str, str]) -> int:
@@ -114,139 +57,136 @@ def main(context: dict[str, str]) -> int:
             # this is needed for devenv <=1.4.0,>1.2.3 to finish syncing and therefore update itself
             limactl.install()
 
-    if not run_procs(
-        repo,
-        reporoot,
-        venv_dir,
-        (
-            # TODO: devenv should provide a job runner (jobs run in parallel, tasks run sequentially)
+    jp1 = Task(
+        name="upgrade pip",
+        func=functools.partial(
+            proc.run,
             (
-                "python dependencies (1/4)",
-                (
-                    # upgrading pip first
-                    "pip",
-                    "install",
-                    "--constraint",
-                    "requirements-dev-frozen.txt",
-                    "pip",
-                ),
-                {},
+                f"{venv_dir}/bin/python3",
+                "-m",
+                "pip",
+                "--disable-pip-version-check",
+                "install",
+                "--constraint",
+                "requirements-dev-frozen.txt",
+                "pip",
             ),
+            stdout=True,
         ),
-    ):
-        return 1
-
-    if not run_procs(
-        repo,
-        reporoot,
-        venv_dir,
-        (
+    )
+    jp2 = Task(
+        name="uninstall some problems",
+        func=functools.partial(
+            proc.run,
             (
-                # Spreading out the network load by installing js,
-                # then py in the next batch.
-                "javascript dependencies (1/1)",
-                (
-                    "yarn",
-                    "install",
-                    "--frozen-lockfile",
-                    "--no-progress",
-                    "--non-interactive",
-                ),
-                {
-                    "NODE_ENV": "development",
-                },
+                f"{venv_dir}/bin/python3",
+                "-m",
+                "pip",
+                "--disable-pip-version-check",
+                "uninstall",
+                "-qqy",
+                "djangorestframework-stubs",
+                "django-stubs",
             ),
-            (
-                "python dependencies (2/4)",
-                (
-                    "pip",
-                    "uninstall",
-                    "-qqy",
-                    "djangorestframework-stubs",
-                    "django-stubs",
-                ),
-                {},
-            ),
+            stdout=True,
         ),
-    ):
-        return 1
-
-    if not run_procs(
-        repo,
-        reporoot,
-        venv_dir,
-        (
-            # could opt out of syncing python if FRONTEND_ONLY but only if repo-local devenv
-            # and pre-commit were moved to inside devenv and not the sentry venv
+    )
+    jp3 = Task(
+        name="install dependencies",
+        func=functools.partial(
+            proc.run,
             (
-                "python dependencies (3/4)",
-                (
-                    "pip",
-                    "install",
-                    "--constraint",
-                    "requirements-dev-frozen.txt",
-                    "-r",
-                    "requirements-dev-frozen.txt",
-                ),
-                {},
+                f"{venv_dir}/bin/python3",
+                "-m",
+                "pip",
+                "--disable-pip-version-check",
+                "install",
+                "--constraint",
+                "requirements-dev-frozen.txt",
+                "-r",
+                "requirements-dev-frozen.txt",
             ),
+            stdout=True,
         ),
-    ):
-        return 1
-
-    if not run_procs(
-        repo,
-        reporoot,
-        venv_dir,
-        (
+    )
+    jp4 = Task(
+        name="install editable",
+        func=functools.partial(
+            proc.run,
+            (f"{venv_dir}/bin/python3", "-m", "tools.fast_editable", "--path", "."),
+            stdout=True,
+        ),
+    )
+    jp5 = Task(
+        name="init sentry config",
+        func=functools.partial(
+            proc.run,
+            (f"{venv_dir}/bin/sentry", "init", "--dev", "--no-clobber"),
+            stdout=True,
+        ),
+    )
+    jpc1 = Task(
+        name="install pre-commit dependencies",
+        func=functools.partial(
+            proc.run,
+            (f"{venv_dir}/bin/pre-commit", "install", "--install-hooks", "-f"),
+            stdout=True,
+        ),
+    )
+    jm1 = Task(
+        name="bring up redis and postgres",
+        func=functools.partial(
+            proc.run,
+            (f"{venv_dir}/bin/sentry", "devservices", "up", "redis", "postgres"),
+            stdout=True,
+        ),
+    )
+    jm2 = Task(
+        name="apply migrations",
+        func=functools.partial(
+            proc.run,
+            ("make", "apply-migrations"),
+            pathprepend=f"{venv_dir}/bin:{reporoot}/.devenv/bin",
+            env={"VIRTUAL_ENV": venv_dir},
+            stdout=True,
+        ),
+    )
+    jt1 = Task(
+        name="install js dependencies",
+        func=functools.partial(
+            proc.run,
             (
-                "python dependencies (4/4)",
-                ("python3", "-m", "tools.fast_editable", "--path", "."),
-                {},
+                "yarn",
+                "install",
+                "--frozen-lockfile",
+                "--no-progress",
+                "--non-interactive",
             ),
-            ("pre-commit dependencies", ("pre-commit", "install", "--install-hooks", "-f"), {}),
+            pathprepend=f"{venv_dir}/bin:{reporoot}/.devenv/bin",
+            env={
+                "NODE_ENV": "development",
+                "VOLTA_HOME": f"{reporoot}/.devenv/bin/volta-home",
+            },
+            stdout=True,
         ),
-    ):
-        return 1
+    )
 
-    fs.ensure_symlink("../../config/hooks/post-merge", f"{reporoot}/.git/hooks/post-merge")
+    jp = Job(name="python dependencies", tasks=(jp1, jp2, jp3, jp4, jp5))
+    jm = Job(name="sentry migrations", tasks=(jm1, jm2))
+    jpc = Job(name="pre-commit dependencies", tasks=(jpc1,))
+    jt = Job(name="javascript dependencies", tasks=(jt1,))
 
-    if not os.path.exists(f"{constants.home}/.sentry/config.yml") or not os.path.exists(
-        f"{constants.home}/.sentry/sentry.conf.py"
-    ):
-        proc.run((f"{venv_dir}/bin/sentry", "init", "--dev"))
+    # after python deps are installed we can install pre-commit deps
+    jp3.spawn_jobs = (jpc,)
 
     # Frontend engineers don't necessarily always have devservices running and
     # can configure to skip them to save on local resources
     if FRONTEND_ONLY:
         print("Skipping python migrations since SENTRY_DEVENV_FRONTEND_ONLY is set.")
-        return 0
+    else:
+        jp5.spawn_jobs = (jm,)
 
-    # TODO: check healthchecks for redis and postgres to short circuit this
-    proc.run(
-        (
-            f"{venv_dir}/bin/{repo}",
-            "devservices",
-            "up",
-            "redis",
-            "postgres",
-        ),
-        pathprepend=f"{reporoot}/.devenv/bin",
-        exit=True,
-    )
+    with concurrent.futures.ThreadPoolExecutor() as tpe:
+        run_jobs((jp, jt), tpe)
 
-    if run_procs(
-        repo,
-        reporoot,
-        venv_dir,
-        (
-            (
-                "python migrations",
-                ("make", "apply-migrations"),
-                {},
-            ),
-        ),
-    ):
-        return 0
-
-    return 1
+    fs.ensure_symlink("../../config/hooks/post-merge", f"{reporoot}/.git/hooks/post-merge")
