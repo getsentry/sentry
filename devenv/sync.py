@@ -54,7 +54,7 @@ def run_procs(
                 f"""
 ❌ {name}
 
-failed command (code p.returncode):
+failed command (code {p.returncode}):
     {shlex.join(final_cmd)}
 
 Output:
@@ -235,7 +235,7 @@ def main(context: dict[str, str]) -> int:
         exit=True,
     )
 
-    if run_procs(
+    if not run_procs(
         repo,
         reporoot,
         venv_dir,
@@ -247,6 +247,35 @@ def main(context: dict[str, str]) -> int:
             ),
         ),
     ):
-        return 0
+        return 1
+
+    # faster prerequisite check than starting up sentry and running createuser idempotently
+    stdout = proc.run(
+        (
+            "docker",
+            "exec",
+            "sentry_postgres",
+            "psql",
+            "sentry",
+            "postgres",
+            "-t",
+            "-c",
+            "select exists (select from auth_user where email = 'admin@sentry.io')",
+        ),
+        stdout=True,
+    )
+    if stdout != "t":
+        proc.run(
+            (
+                f"{venv_dir}/bin/sentry",
+                "createuser",
+                "--superuser",
+                "--email",
+                "admin@sentry.io",
+                "--password",
+                "admin",
+                "--no-input",
+            )
+        )
 
     return 1
