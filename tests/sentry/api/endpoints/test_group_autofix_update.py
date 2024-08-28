@@ -4,6 +4,7 @@ import orjson
 from django.conf import settings
 from rest_framework import status
 
+from sentry.seer.signed_seer_api import sign_with_seer_secret
 from sentry.testutils.cases import APITestCase
 
 
@@ -32,22 +33,28 @@ class TestGroupAutofixUpdate(APITestCase):
         )
 
         assert response.status_code == status.HTTP_202_ACCEPTED
+        expected_body = orjson.dumps(
+            {
+                "run_id": 123,
+                "payload": {
+                    "type": "select_root_cause",
+                    "cause_id": 456,
+                },
+                "invoking_user": {
+                    "id": self.user.id,
+                    "display_name": self.user.get_display_name(),
+                },
+            }
+        )
+        expected_url = f"{settings.SEER_AUTOFIX_URL}/v1/automation/autofix/update"
+        expected_headers = {
+            "content-type": "application/json;charset=utf-8",
+            **sign_with_seer_secret(url=expected_url, body=expected_body),
+        }
         mock_post.assert_called_once_with(
-            f"{settings.SEER_AUTOFIX_URL}/v1/automation/autofix/update",
-            data=orjson.dumps(
-                {
-                    "run_id": 123,
-                    "payload": {
-                        "type": "select_root_cause",
-                        "cause_id": 456,
-                    },
-                    "invoking_user": {
-                        "id": self.user.id,
-                        "display_name": self.user.get_display_name(),
-                    },
-                }
-            ),
-            headers={"content-type": "application/json;charset=utf-8"},
+            expected_url,
+            data=expected_body,
+            headers=expected_headers,
         )
 
     @patch("sentry.api.endpoints.group_autofix_update.requests.post")
@@ -56,19 +63,13 @@ class TestGroupAutofixUpdate(APITestCase):
 
         response = self.client.post(
             self.url,
-            data=orjson.dumps(
-                {
-                    "run_id": 123,
-                    "payload": {
-                        "type": "select_root_cause",
-                        "cause_id": 456,
-                    },
-                    "invoking_user": {
-                        "id": self.user.id,
-                        "display_name": self.user.get_display_name(),
-                    },
-                }
-            ),
+            data={
+                "run_id": 123,
+                "payload": {
+                    "type": "select_root_cause",
+                    "cause_id": 456,
+                },
+            },
             format="json",
         )
 
