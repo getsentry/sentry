@@ -33,7 +33,7 @@ function findMriForAggregate(
 
 function SpanMetricField({field, project, onChange}: Props) {
   const organization = useOrganization();
-  const {data: extractionRules, isLoading} = useMetricsExtractionRules({
+  const {data: extractionRules, isPending} = useMetricsExtractionRules({
     orgId: organization.slug,
     projectId: project.id,
   });
@@ -182,7 +182,7 @@ function SpanMetricField({field, project, onChange}: Props) {
     <Fragment>
       <SelectControl
         searchable
-        isDisabled={isLoading}
+        isDisabled={isPending}
         placeholder={t('Select a metric')}
         noOptionsMessage={() =>
           attributeOptions.length === 0
@@ -196,7 +196,7 @@ function SpanMetricField({field, project, onChange}: Props) {
       />
       <SelectControl
         searchable
-        isDisabled={isLoading || !selectedRule}
+        isDisabled={isPending || !selectedRule}
         placeholder={t('Select a filter')}
         options={conditionOptions}
         value={selectedCondition?.id}
@@ -204,7 +204,7 @@ function SpanMetricField({field, project, onChange}: Props) {
       />
       <SelectControl
         searchable
-        isDisabled={isLoading || !selectedRule}
+        isDisabled={isPending || !selectedRule}
         placeholder={t('Select an aggregate')}
         options={aggregateOptions}
         value={selectedAggregate}

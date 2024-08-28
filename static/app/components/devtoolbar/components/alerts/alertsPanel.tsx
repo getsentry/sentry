@@ -38,7 +38,7 @@ export default function AlertsPanel() {
   const placeholderHeight = `${estimateSize - 8}px`; // The real height of the items, minus the padding-block value
 
   return (
-    <PanelLayout title="Alerts" showProjectBadge>
+    <PanelLayout title="Alerts" showProjectBadge link={{url: '/alerts/'}}>
       <div css={resetFlexColumnCss}>
         <InfiniteListState
           queryResult={queryResult}

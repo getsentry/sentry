@@ -124,12 +124,7 @@ const makeEventWithThreads = (threads: Thread[]): Event => {
     packages: {},
     type: EventOrGroupType.ERROR,
     metadata: {
-      display_title_with_tree_label: false,
       filename: 'sentry/controllers/welcome_controller.rb',
-      finest_tree_label: [
-        {filebase: 'welcome_controller.rb', function: '/'},
-        {filebase: 'welcome_controller.rb', function: 'index'},
-      ],
       function: '/',
       type: 'ZeroDivisionError',
       value: 'divided by 0',

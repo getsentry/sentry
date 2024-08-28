@@ -89,6 +89,9 @@ class GroupAiSummaryEndpoint(GroupEndpoint):
                     "short_id": group.qualified_short_id,
                     "events": [serialized_event],
                 },
+                "organization_slug": group.organization.slug,
+                "organization_id": group.organization.id,
+                "project_id": group.project.id,
             },
             option=orjson.OPT_NON_STR_KEYS,
         )

@@ -12,7 +12,7 @@ export function useSpanWaterfallModelFromTransaction(
   transaction: string,
   httpMethod?: string
 ) {
-  const {data, isLoading} = useAggregateSpans({transaction, httpMethod});
+  const {data, isPending} = useAggregateSpans({transaction, httpMethod});
   function formatSpan(span, total) {
     const {
       node_fingerprint: span_id,
@@ -111,5 +111,5 @@ export function useSpanWaterfallModelFromTransaction(
     () => new WaterfallModel(event, undefined, undefined, hiddenSpans),
     [event, hiddenSpans]
   );
-  return {waterfallModel, event, isLoading};
+  return {waterfallModel, event, isLoading: isPending};
 }

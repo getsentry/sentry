@@ -142,7 +142,7 @@ export function StacktraceLink({frame, event, line}: StacktraceLinkProps) {
 
   const {
     data: match,
-    isLoading,
+    isPending,
     refetch,
   } = useStacktraceLink(
     {
@@ -159,7 +159,7 @@ export function StacktraceLink({frame, event, line}: StacktraceLinkProps) {
     isQueryEnabled &&
     organization.codecovAccess &&
     organization.features.includes('codecov-integration');
-  const {data: coverage, isLoading: isLoadingCoverage} = useStacktraceCoverage(
+  const {data: coverage, isPending: isLoadingCoverage} = useStacktraceCoverage(
     {
       event,
       frame,
@@ -246,7 +246,7 @@ export function StacktraceLink({frame, event, line}: StacktraceLinkProps) {
     );
   }
 
-  if (isLoading || !match) {
+  if (isPending || !match) {
     const placeholderWidth = coverageEnabled ? '40px' : '14px';
     return (
       <StacktraceLinkWrapper>

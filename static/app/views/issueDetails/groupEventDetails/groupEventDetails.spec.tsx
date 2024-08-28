@@ -198,11 +198,17 @@ const mockGroupApis = (
   project: Project,
   group: Group,
   event: Event,
+  replayId?: string,
   trace?: QuickTraceEvent
 ) => {
   MockApiClient.addMockResponse({
     url: `/organizations/${organization.slug}/issues/${group.id}/`,
     body: group,
+  });
+
+  MockApiClient.addMockResponse({
+    url: `/organizations/${organization.slug}/replays/${replayId}/`,
+    body: {},
   });
 
   MockApiClient.addMockResponse({
@@ -642,6 +648,7 @@ describe('Platform Integrations', () => {
         props.project,
         props.group,
         props.event,
+        undefined,
         mockedTrace(props.project)
       );
 
@@ -660,10 +667,17 @@ describe('Platform Integrations', () => {
     it('does not render root issues section if related perf issues do not exist', async () => {
       const props = makeDefaultMockData();
       const trace = mockedTrace(props.project);
-      mockGroupApis(props.organization, props.project, props.group, props.event, {
-        ...trace,
-        performance_issues: [],
-      });
+      mockGroupApis(
+        props.organization,
+        props.project,
+        props.group,
+        props.event,
+        undefined,
+        {
+          ...trace,
+          performance_issues: [],
+        }
+      );
 
       render(<TestComponent group={props.group} event={props.event} />, {
         organization: props.organization,
