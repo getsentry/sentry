@@ -256,14 +256,17 @@ class ChartZoom extends Component<Props> {
   handleMouseDown = () => {
     // Register `mouseup` and `keydown` listeners on mouse down
     // This ensures that there is only one live listener at a time
-    // regardless of how many charts are rendered
+    // regardless of how many charts are rendered. NOTE: It's
+    // important to set `useCapture: true` in the `"keydown"` handler
+    // otherwise the Escape will close whatever modal or panel the
+    // chart is in. Those elements register their handlers _earlier_.
     document.body.addEventListener('mouseup', this.handleMouseUp);
-    document.body.addEventListener('keydown', this.handleKeyDown);
+    document.body.addEventListener('keydown', this.handleKeyDown, true);
   };
 
   handleMouseUp = () => {
     document.body.removeEventListener('mouseup', this.handleMouseUp);
-    document.body.removeEventListener('keydown', this.handleKeyDown);
+    document.body.removeEventListener('keydown', this.handleKeyDown, true);
   };
 
   handleDataZoom = (evt, chart) => {
