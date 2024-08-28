@@ -34,7 +34,7 @@ export default function ProjectKeyDetails({organization, params, project}: Props
   const {
     data: projKeyData,
     isError,
-    isLoading,
+    isPending,
   } = useApiQuery<ProjectKey>(
     [`/projects/${organization.slug}/${projectId}/keys/${keyId}/`],
     {staleTime: 0}
@@ -58,7 +58,7 @@ export default function ProjectKeyDetails({organization, params, project}: Props
     return <RouteError />;
   }
 
-  if (isLoading) {
+  if (isPending) {
     return <LoadingIndicator />;
   }
 

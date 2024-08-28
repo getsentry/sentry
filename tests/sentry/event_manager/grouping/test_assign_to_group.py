@@ -531,7 +531,7 @@ def test_uses_regular_or_optimized_grouping_as_appropriate(
         assert mock_save_aggregate.call_count == 1
     elif flag_on:
         assert mock_save_aggregate_new.call_count == 1
-    elif in_transition and id_even:
+    elif in_transition:
         assert mock_save_aggregate_new.call_count == 1
     else:
         assert mock_save_aggregate.call_count == 1

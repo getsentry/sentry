@@ -26,7 +26,7 @@ type ProjectTeamsProps = {
 export function ProjectTeams({organization, project}: ProjectTeamsProps) {
   const {
     data: projectTeams,
-    isLoading,
+    isPending,
     isError,
   } = useFetchProjectTeams({orgSlug: organization.slug, projectSlug: project.slug});
   const handleAddTeamToProject = useAddTeamToProject({
@@ -48,7 +48,7 @@ export function ProjectTeams({organization, project}: ProjectTeamsProps) {
     return <LoadingError message={t('Failed to load project teams')} />;
   }
 
-  if (isLoading) {
+  if (isPending) {
     return <LoadingIndicator />;
   }
 

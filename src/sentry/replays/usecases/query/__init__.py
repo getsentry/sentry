@@ -19,6 +19,7 @@ from collections.abc import Mapping, Sequence
 from datetime import datetime, timedelta
 from typing import Any, Literal, cast
 
+import sentry_sdk
 from rest_framework.exceptions import ParseError
 from snuba_sdk import (
     And,
@@ -41,7 +42,7 @@ from sentry.models.organization import Organization
 from sentry.replays.lib.new_query.errors import CouldNotParseValue, OperatorNotSupported
 from sentry.replays.lib.new_query.fields import ColumnField, ExpressionField, FieldProtocol
 from sentry.replays.usecases.query.fields import ComputedField, TagField
-from sentry.utils.snuba import raw_snql_query
+from sentry.utils.snuba import RateLimitExceeded, raw_snql_query
 
 VIEWED_BY_ME_KEY_ALIASES = ["viewed_by_me", "seen_by_me"]
 NULL_VIEWED_BY_ID_VALUE = 0  # default value in clickhouse
@@ -450,15 +451,22 @@ def make_full_aggregation_query(
 
 
 def execute_query(query: Query, tenant_id: dict[str, int], referrer: str) -> Mapping[str, Any]:
-    return raw_snql_query(
-        Request(
-            dataset="replays",
-            app_id="replay-backend-web",
-            query=query,
-            tenant_ids=tenant_id,
-        ),
-        referrer,
-    )
+    try:
+        return raw_snql_query(
+            Request(
+                dataset="replays",
+                app_id="replay-backend-web",
+                query=query,
+                tenant_ids=tenant_id,
+            ),
+            referrer,
+        )
+    except RateLimitExceeded as exc:
+        sentry_sdk.set_tag("replay-rate-limit-exceeded", True)
+        sentry_sdk.set_tag("org_id", tenant_id.get("organization_id"))
+        sentry_sdk.set_extra("referrer", referrer)
+        sentry_sdk.capture_exception(exc)
+        raise
 
 
 def handle_ordering(config: dict[str, Expression], sort: str) -> list[OrderBy]:

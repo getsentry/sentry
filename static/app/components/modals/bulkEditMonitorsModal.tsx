@@ -97,7 +97,7 @@ export function BulkEditMonitorsModal({Header, Body, Footer, closeModal}: Props)
   const {
     data: monitorList,
     getResponseHeader: monitorListHeaders,
-    isLoading,
+    isPending,
   } = useApiQuery<Monitor[]>(queryKey, {
     staleTime: 0,
   });
@@ -174,7 +174,7 @@ export function BulkEditMonitorsModal({Header, Body, Footer, closeModal}: Props)
           isEmpty={monitorList?.length === 0}
           emptyMessage={t('No monitors found')}
         >
-          {isLoading || !monitorList
+          {isPending || !monitorList
             ? [...new Array(NUM_PLACEHOLDER_ROWS)].map((_, i) => (
                 <RowPlaceholder key={i}>
                   <Placeholder height="2rem" />

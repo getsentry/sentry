@@ -65,7 +65,7 @@ function useTagQueries({
 
   const {
     data: tagValueList,
-    isLoading: tagValueListIsLoading,
+    isPending: tagValueListIsLoading,
     isError: tagValueListIsError,
     getResponseHeader,
   } = useFetchIssueTagValues({

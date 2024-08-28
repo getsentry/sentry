@@ -186,7 +186,7 @@ export function FlamegraphContextMenu(props: FlamegraphContextMenuProps) {
               tooltip={
                 !isSupportedPlatformForGitHubLink(props.profileGroup?.metadata?.platform)
                   ? t('Open in GitHub is not supported for this platform')
-                  : sourceCodeLink.isLoading
+                  : sourceCodeLink.isPending
                     ? 'Resolving link'
                     : sourceCodeLink.isSuccess &&
                         (!sourceCodeLink.data.sourceUrl ||
@@ -198,7 +198,7 @@ export function FlamegraphContextMenu(props: FlamegraphContextMenuProps) {
                 onClick: onOpenInGithubClick,
               })}
               icon={
-                sourceCodeLink.isLoading ? (
+                sourceCodeLink.isPending ? (
                   <StyledLoadingIndicator size={10} hideMessage />
                 ) : (
                   <IconGithub size="xs" />
@@ -431,7 +431,7 @@ export function ContinuousFlamegraphContextMenu(props: FlamegraphContextMenuProp
             <ProfilingContextMenuItemButton
               disabled={!sourceCodeLink.isSuccess || !sourceCodeLink.data?.sourceUrl}
               tooltip={
-                sourceCodeLink.isLoading
+                sourceCodeLink.isPending
                   ? 'Resolving link'
                   : sourceCodeLink.isSuccess &&
                       (!sourceCodeLink.data.sourceUrl ||
@@ -443,7 +443,7 @@ export function ContinuousFlamegraphContextMenu(props: FlamegraphContextMenuProp
                 onClick: onOpenInGithubClick,
               })}
               icon={
-                sourceCodeLink.isLoading ? (
+                sourceCodeLink.isPending ? (
                   <StyledLoadingIndicator size={10} hideMessage />
                 ) : (
                   <IconGithub size="xs" />
