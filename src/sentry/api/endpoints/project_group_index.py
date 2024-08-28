@@ -20,6 +20,7 @@ from sentry.api.serializers import serialize
 from sentry.api.serializers.models.group_stream import StreamGroupSerializer
 from sentry.models.environment import Environment
 from sentry.models.group import QUERY_STATUS_LOOKUP, Group, GroupStatus
+from sentry.models.grouphash import GroupHash
 from sentry.search.events.constants import EQUALITY_OPERATORS
 from sentry.signals import advanced_search
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
@@ -77,6 +78,7 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint, EnvironmentMixin):
                                    ``"is:unresolved"`` is assumed.)
         :qparam string environment: this restricts the issues to ones containing
                                     events from this environment
+        :qparam list hash: hashes of groups to return, overrides every other query parameter, only returning list of groups found from hashes
         :pparam string organization_id_or_slug: the id or slug of the organization the
                                           issues belong to.
         :pparam string project_id_or_slug: the id or slug of the project the issues
@@ -98,6 +100,20 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint, EnvironmentMixin):
             environment_func=self._get_environment_func(request, project.organization_id),
             stats_period=stats_period,
         )
+
+        hashes = request.GET.getlist("hash", [])
+        if hashes:
+            groups_from_hashes = GroupHash.objects.filter(hash__in=hashes).values_list(
+                "group_id", flat=True
+            )
+            groups = list(Group.objects.filter(id__in=groups_from_hashes, project_id=project.id))
+
+            serialized_groups = serialize(
+                groups,
+                request.user,
+                serializer(),
+            )
+            return Response(serialized_groups)
 
         query = request.GET.get("query", "").strip()
         if query:

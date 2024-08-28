@@ -352,6 +352,36 @@ class GroupListTest(APITestCase, SnubaTestCase):
         assert response.status_code == 200
         assert [int(r["id"]) for r in response.data] == [event.group.id]
 
+    def test_group_by_hash(self):
+        event = self.store_event(
+            data={"timestamp": iso_format(before_now(seconds=500)), "fingerprint": ["group-1"]},
+            project_id=self.project.id,
+        )
+
+        self.login_as(user=self.user)
+
+        response = self.client.get(f"{self.path}?hash={event.get_primary_hash()}")
+        assert response.status_code == 200
+        assert len(response.data) == 1
+
+    def test_groups_by_hashes(self):
+        event = self.store_event(
+            data={"timestamp": iso_format(before_now(seconds=500)), "fingerprint": ["group-1"]},
+            project_id=self.project.id,
+        )
+
+        event2 = self.store_event(
+            data={"timestamp": iso_format(before_now(seconds=400)), "fingerprint": ["group-2"]},
+            project_id=self.project.id,
+        )
+        self.login_as(user=self.user)
+
+        response = self.client.get(
+            f"{self.path}?hash={event.get_primary_hash()}&hash={event2.get_primary_hash()}"
+        )
+        assert response.status_code == 200
+        assert len(response.data) == 2
+
 
 class GroupUpdateTest(APITestCase, SnubaTestCase):
     def setUp(self):
