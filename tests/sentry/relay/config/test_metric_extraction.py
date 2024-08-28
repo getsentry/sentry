@@ -2114,18 +2114,22 @@ def test_get_current_widget_specs(
     {
         "sentry-metrics.extrapolation.enable_transactions": True,
         "sentry-metrics.extrapolation.enable_spans": True,
+        "sentry:extrapolate_metrics": True,
     }
 )
-def test_get_metric_extrapolation_config(default_project: Project) -> None:
-    assert False, "fix this test - used to rely on span metrics and needs to be adapted"
+def test_get_metric_extrapolation_config(
+    default_project: Project, default_environment: Environment
+) -> None:
     default_project.update_option("sentry:extrapolate_metrics", True)
-
-    # Create a dummy extraction rule to ensure there is at least one
-    # metric. Otherwise, the spec will be empty.
-
+    create_alert("count()", "transaction.duration:>=1000", default_project)
     with Feature(
-        ["organizations:metrics-extrapolation", "organizations:custom-metrics-extraction-rule"]
+        [
+            ON_DEMAND_METRICS,
+            "organizations:metrics-extrapolation",
+            "organizations:custom-metrics-extraction-rule",
+        ]
     ):
+
         config = get_metric_extraction_config(default_project)
 
     assert config and config["extrapolate"]
