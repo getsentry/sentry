@@ -36,13 +36,14 @@ def should_call_seer_for_grouping(event: Event, primary_hashes: CalculatedHashes
 
     project = event.project
 
-    if not _project_has_similarity_grouping_enabled(project):
+    # Check both of these before returning based on either so we can gather metrics on their results
+    content_is_eligible = event_content_is_seer_eligible(event)
+    seer_enabled_for_project = _project_has_similarity_grouping_enabled(project)
+
+    if not (content_is_eligible and seer_enabled_for_project):
         return False
 
     if _has_customized_fingerprint(event, primary_hashes):
-        return False
-
-    if not event_content_is_seer_eligible(event):
         return False
 
     # **Do not add any new checks after this.** The rate limit check MUST remain the last of all the
@@ -69,6 +70,12 @@ def _project_has_similarity_grouping_enabled(project: Project) -> bool:
     # forcing the project to wait until it's been manually added to a feature handler. Once all
     # projects have been backfilled, the option (and this check) can go away.
     has_been_backfilled = project.get_option("sentry:similarity_backfill_completed")
+
+    metrics.incr(
+        "grouping.similarity.event_from_backfilled_project",
+        sample_rate=options.get("seer.similarity.metrics_sample_rate"),
+        tags={"backfilled": has_seer_grouping_flag_on or has_been_backfilled},
+    )
 
     return has_seer_grouping_flag_on or has_been_backfilled
 
