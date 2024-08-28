@@ -64,7 +64,7 @@ function IdentityItem({identity, onDisconnect}: IdentityItemProps) {
         </IdentityText>
       </InternalContainer>
       <InternalContainer>
-        <TagWrapper css={{gap: space(0.75)}}>
+        <TagWrapper>
           {identity.category === UserIdentityCategory.SOCIAL_IDENTITY && (
             <Tag type="default">{t('Legacy')}</Tag>
           )}
@@ -254,6 +254,7 @@ const TagWrapper = styled('div')`
   justify-content: flex-start;
   flex-grow: 1;
   margin-right: ${space(1)};
+  gap: ${space(0.75)};
 `;
 
 export default AccountIdentities;
