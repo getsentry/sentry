@@ -35,9 +35,9 @@ export default function FeatureFlagsPanel() {
         title="Feature Flags"
         titleRight={
           <button
-            aria-label="Add Flag Override"
+            aria-label="Override Flag"
             css={[resetButtonCss, panelHeadingRightCss]}
-            title="Add Flag Override"
+            title="Override Flag"
             onClick={() => setIsAddFlagActive(!isAddFlagActive)}
           >
             <span css={buttonRightCss}>
@@ -46,7 +46,7 @@ export default function FeatureFlagsPanel() {
               ) : (
                 <IconChevron direction="down" size="xs" />
               )}
-              Add Flag
+              Override
             </span>
           </button>
         }
