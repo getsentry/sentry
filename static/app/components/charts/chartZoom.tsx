@@ -102,8 +102,8 @@ class ChartZoom extends Component<Props> {
   }
 
   componentWillUnmount(): void {
-    document.removeEventListener('keydown', this.handleKeyDown);
-    document.removeEventListener('mouseup', this.handleMouseUp);
+    document.body.removeEventListener('keydown', this.handleKeyDown);
+    document.body.removeEventListener('mouseup', this.handleMouseUp);
     this.$chart?.removeEventListener('mousedown', this.handleMouseDown);
   }
 
@@ -257,13 +257,13 @@ class ChartZoom extends Component<Props> {
     // Register `mouseup` and `keydown` listeners on mouse down
     // This ensures that there is only one live listener at a time
     // regardless of how many charts are rendered
-    window.addEventListener('mouseup', this.handleMouseUp);
-    window.addEventListener('keydown', this.handleKeyDown);
+    document.body.addEventListener('mouseup', this.handleMouseUp);
+    document.body.addEventListener('keydown', this.handleKeyDown);
   };
 
   handleMouseUp = () => {
-    window.removeEventListener('mouseup', this.handleMouseUp);
-    window.removeEventListener('keydown', this.handleKeyDown);
+    document.body.removeEventListener('mouseup', this.handleMouseUp);
+    document.body.removeEventListener('keydown', this.handleKeyDown);
   };
 
   handleDataZoom = (evt, chart) => {
