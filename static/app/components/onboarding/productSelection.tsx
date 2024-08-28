@@ -546,4 +546,12 @@ const TooltipDescription = styled('div')`
 
 const AlternativeInstallationAlert = styled(Alert)`
   margin-bottom: 0px;
+  /*
+   * The first child is the icon.
+   * We render a button within the message, so to ensure proper alignment,
+   * the height of the first child (icon) needs to be set to 'auto'.
+   */
+  > *:first-child {
+    height: auto;
+  }
 `;
