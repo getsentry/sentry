@@ -58,7 +58,7 @@ describe('AccountSecurityDetails', function () {
       });
 
       render(
-        <AccountSecurityWrapper {...routerProps}>
+        <AccountSecurityWrapper>
           <AccountSecurityDetails
             {...routerProps}
             onRegenerateBackupCodes={jest.fn()}
@@ -91,7 +91,7 @@ describe('AccountSecurityDetails', function () {
       });
 
       render(
-        <AccountSecurityWrapper {...routerProps}>
+        <AccountSecurityWrapper>
           <AccountSecurityDetails
             {...routerProps}
             onRegenerateBackupCodes={jest.fn()}
@@ -131,7 +131,7 @@ describe('AccountSecurityDetails', function () {
       });
 
       render(
-        <AccountSecurityWrapper {...routerProps}>
+        <AccountSecurityWrapper>
           <AccountSecurityDetails
             {...routerProps}
             onRegenerateBackupCodes={jest.fn()}
@@ -172,7 +172,7 @@ describe('AccountSecurityDetails', function () {
       });
 
       render(
-        <AccountSecurityWrapper {...routerProps}>
+        <AccountSecurityWrapper>
           <AccountSecurityDetails
             {...routerProps}
             onRegenerateBackupCodes={jest.fn()}
@@ -221,7 +221,7 @@ describe('AccountSecurityDetails', function () {
       });
 
       render(
-        <AccountSecurityWrapper {...routerProps}>
+        <AccountSecurityWrapper>
           <AccountSecurityDetails
             {...routerProps}
             onRegenerateBackupCodes={jest.fn()}
@@ -253,7 +253,7 @@ describe('AccountSecurityDetails', function () {
       });
 
       render(
-        <AccountSecurityWrapper {...routerProps}>
+        <AccountSecurityWrapper>
           <AccountSecurityDetails
             {...routerProps}
             onRegenerateBackupCodes={jest.fn()}
@@ -296,7 +296,7 @@ describe('AccountSecurityDetails', function () {
       });
 
       render(
-        <AccountSecurityWrapper {...routerProps}>
+        <AccountSecurityWrapper>
           <AccountSecurityDetails
             {...routerProps}
             onRegenerateBackupCodes={jest.fn()}
