@@ -54,6 +54,12 @@ export const enum SectionKey {
   GROUPING_INFO = 'grouping-info',
   PROCESSING_ERROR = 'processing-error',
   RRWEB = 'rrweb', // Legacy integration prior to replays
+
+  // Regression Issue
+  REGRESSION_SUMMARY = 'regression-summary',
+  REGRESSION_BREAKPOINT_CHART = 'regression-breakpoint-chart',
+  REGRESSION_FLAMEGRAPH = 'regression-flamegraph',
+  REGRESSION_PROFILE_COMPARISON = 'regression-profile-comparison',
 }
 
 /**
