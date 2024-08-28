@@ -235,7 +235,7 @@ def main(context: dict[str, str]) -> int:
         exit=True,
     )
 
-    if run_procs(
+    if not run_procs(
         repo,
         reporoot,
         venv_dir,
@@ -247,6 +247,34 @@ def main(context: dict[str, str]) -> int:
             ),
         ),
     ):
-        return 0
+        return 1
+
+    stdout = proc.run(
+        (
+            "docker",
+            "exec",
+            "sentry_postgres",
+            "psql",
+            "sentry",
+            "postgres",
+            "-t",
+            "-c",
+            "select exists (select from auth_user where email = 'admin@sentry.io')",
+        ),
+        stdout=True,
+    )
+    if stdout != "t":
+        proc.run(
+            (
+                f"{venv_dir}/bin/sentry",
+                "createuser",
+                "--superuser",
+                "--email",
+                "admin@sentry.io",
+                "--password",
+                "admin",
+                "--no-input",
+            )
+        )
 
     return 1
