@@ -19,6 +19,7 @@ import {
   hasCustomMetricsExtractionRules,
 } from 'sentry/utils/metrics/features';
 import {
+  DEFAULT_INSIGHTS_METRICS_ALERT_FIELD,
   DEFAULT_METRIC_ALERT_FIELD,
   DEFAULT_SPAN_METRIC_ALERT_FIELD,
 } from 'sentry/utils/metrics/mri';
@@ -29,6 +30,7 @@ import {
   EventTypes,
   SessionsAggregate,
 } from 'sentry/views/alerts/rules/metric/types';
+import {hasInsightsAlerts} from 'sentry/views/insights/common/utils/hasInsightsAlerts';
 import {MODULE_TITLE as LLM_MONITORING_MODULE_TITLE} from 'sentry/views/insights/llmMonitoring/settings';
 
 export type AlertType =
@@ -48,7 +50,8 @@ export type AlertType =
   | 'custom_metrics'
   | 'span_metrics'
   | 'llm_tokens'
-  | 'llm_cost';
+  | 'llm_cost'
+  | 'insights_metrics';
 
 export enum MEPAlertsQueryType {
   ERROR = 0,
@@ -92,6 +95,7 @@ export const AlertWizardAlertNames: Record<AlertType, string> = {
   crash_free_users: t('Crash Free User Rate'),
   llm_cost: t('LLM cost'),
   llm_tokens: t('LLM token usage'),
+  insights_metrics: t('Insights Metric'),
 };
 
 type AlertWizardCategory = {
@@ -137,6 +141,7 @@ export const getAlertWizardCategories = (org: Organization) => {
       options: [
         hasCustomMetrics(org) ? 'custom_metrics' : 'custom_transactions',
         ...(hasCustomMetricsExtractionRules(org) ? ['span_metrics' as const] : []),
+        ...(hasInsightsAlerts(org) ? ['insights_metrics' as const] : []),
       ],
     });
   }
@@ -221,6 +226,11 @@ export const AlertWizardRuleTemplates: Record<
   },
   llm_cost: {
     aggregate: 'sum(ai.total_cost)',
+    dataset: Dataset.GENERIC_METRICS,
+    eventTypes: EventTypes.TRANSACTION,
+  },
+  insights_metrics: {
+    aggregate: DEFAULT_INSIGHTS_METRICS_ALERT_FIELD,
     dataset: Dataset.GENERIC_METRICS,
     eventTypes: EventTypes.TRANSACTION,
   },
