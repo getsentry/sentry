@@ -55,7 +55,6 @@ export const enum SectionKey {
   PROCESSING_ERROR = 'processing-error',
   RRWEB = 'rrweb', // Legacy integration prior to replays
 
-  // Regression Issue
   REGRESSION_SUMMARY = 'regression-summary',
   REGRESSION_BREAKPOINT_CHART = 'regression-breakpoint-chart',
   REGRESSION_FLAMEGRAPH = 'regression-flamegraph',
