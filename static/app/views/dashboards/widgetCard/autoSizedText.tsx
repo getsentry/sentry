@@ -43,6 +43,7 @@ export function AutoSizedText({children}: Props) {
       const span = Sentry.startInactiveSpan({
         op: 'function',
         name: 'AutoSizedText.iterate',
+        forceTransaction: true,
       });
 
       // Run the resize iteration in a loop. This blocks the main UI thread and prevents
