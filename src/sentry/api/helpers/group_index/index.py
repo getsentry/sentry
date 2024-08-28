@@ -1,6 +1,6 @@
 from collections.abc import Callable, Mapping, MutableMapping, Sequence
 from datetime import datetime
-from typing import Any, Optional
+from typing import Any
 
 import sentry_sdk
 from django.contrib.auth.models import AnonymousUser
@@ -184,7 +184,7 @@ def get_by_short_id(
     organization_id: int,
     is_short_id_lookup: str,
     query: str,
-) -> Optional["Group"]:
+) -> Group | None:
     if is_short_id_lookup == "1" and looks_like_short_id(query):
         try:
             return Group.objects.by_qualified_short_id(organization_id, query)
