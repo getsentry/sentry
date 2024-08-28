@@ -3,7 +3,6 @@ from collections.abc import MutableMapping
 from time import sleep, time
 
 import sentry_sdk
-from cachetools import LRUCache
 from celery.exceptions import SoftTimeLimitExceeded
 
 from sentry import options
@@ -18,7 +17,7 @@ logger = logging.getLogger("sentry.tasks.split_discover_query_dataset")
 
 SLEEP_FOR = 5 * 60  # 5 minutes
 MAX_NOOP_ATTEMPTS = 10
-RATE_LIMIT_CACHE: MutableMapping[str | int, int] = LRUCache(maxsize=1000)
+RATE_LIMIT_CACHE: MutableMapping[str | int, int] = {}
 
 
 class NoOpException(Exception):
@@ -33,9 +32,10 @@ class TaskKilled(Exception):
     pass
 
 
+@sentry_sdk.trace
 def _split_discover_query_dataset(dry_run):
     organization_allowlist = options.get(
-        "discover.saved-query-dataset-split.organization-allowlist"
+        "discover.saved-query-dataset-split.organization-id-allowlist"
     )
     # Kill switch, this task is okay to kill
     if not options.get("discover.saved-query-dataset-split.enable"):
@@ -115,6 +115,7 @@ def _split_discover_query_dataset(dry_run):
                     "errored_query_count": errored_query_count,
                     "inferred_with_query": inferred_with_query,
                     "inferred_without_query": inferred_without_query,
+                    "saved_query_id": saved_query.id,
                 },
             )
 

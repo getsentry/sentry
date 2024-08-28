@@ -2561,7 +2561,7 @@ register(
     flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(
-    "discover.saved-query-dataset-split.organization-allowlist",
+    "discover.saved-query-dataset-split.organization-id-allowlist",
     type=Sequence,
     default=[],
     flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,

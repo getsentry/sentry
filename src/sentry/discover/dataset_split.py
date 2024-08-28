@@ -299,6 +299,7 @@ def _get_snuba_dataclass(saved_query: DiscoverSavedQuery, projects: list[Project
         return params
 
 
+@sentry_sdk.trace
 def _get_and_save_split_decision_for_query(
     saved_query: DiscoverSavedQuery, dry_run: bool
 ) -> tuple[int, bool]:

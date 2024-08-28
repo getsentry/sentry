@@ -76,7 +76,7 @@ def test_split_discover_query_dataset_flags(
 ):
     options = {
         "discover.saved-query-dataset-split.enable": option_enabled,
-        "discover.saved-query-dataset-split.organization-allowlist": (
+        "discover.saved-query-dataset-split.organization-id-allowlist": (
             [project.organization_id] if option_organization_allowlist else []
         ),
     }
@@ -101,7 +101,7 @@ def test_split_discover_query_dataset_flags(
 def test_prevent_hitting_ratelimit_strategy(project: Project):
     RATE_LIMIT_CACHE.clear()
     options = {
-        "discover.saved-query-dataset-split.organization-allowlist": ([project.organization_id]),
+        "discover.saved-query-dataset-split.organization-id-allowlist": ([project.organization_id]),
     }
     create_discover_query(["transaction", "count()"], "", project)
 
