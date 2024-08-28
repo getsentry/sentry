@@ -11,8 +11,8 @@ import {
   panelInsetContentCss,
   panelSectionCss,
   panelSectionCssNoBorder,
-  releaseBoxCss,
 } from 'sentry/components/devtoolbar/styles/panel';
+import {releaseBoxCss} from 'sentry/components/devtoolbar/styles/releasesPanel';
 import {resetFlexColumnCss} from 'sentry/components/devtoolbar/styles/reset';
 import {smallCss} from 'sentry/components/devtoolbar/styles/typography';
 import Placeholder from 'sentry/components/placeholder';

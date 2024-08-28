@@ -78,14 +78,3 @@ export const buttonRightCss = css`
   color: var(--purple300);
   font-weight: bold;
 `;
-
-export const releaseBoxCss = css`
-  border: 1px solid var(--gray100);
-  border-radius: 12px;
-  margin: var(--space75) var(--space150);
-`;
-
-export const releaseNumbersCss = css`
-  align-items: flex-start;
-  margin: 0;
-`;

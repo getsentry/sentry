@@ -8,6 +8,8 @@ import SentryAppLink from 'sentry/components/devtoolbar/components/sentryAppLink
 import {listItemPlaceholderWrapperCss} from 'sentry/components/devtoolbar/styles/listItem';
 import {
   infoHeaderCss,
+  releaseBoxCss,
+  releaseNumbersCss,
   subtextCss,
 } from 'sentry/components/devtoolbar/styles/releasesPanel';
 import {
@@ -37,8 +39,6 @@ import {
   panelInsetContentCss,
   panelSectionCss,
   panelSectionCssNoBorder,
-  releaseBoxCss,
-  releaseNumbersCss,
 } from '../../styles/panel';
 import {smallCss} from '../../styles/typography';
 import PanelLayout from '../panelLayout';
@@ -68,7 +68,6 @@ function getDiff(
         releaseBoxCss,
         releaseNumbersCss,
         {
-          padding: 'var(--space200)',
           backgroundColor: diffColor[1],
           borderColor: diffColor[0],
         },
@@ -187,11 +186,11 @@ function CrashFreeRate({
           },
         ]}
       >
-        <div css={[releaseBoxCss, releaseNumbersCss, {padding: 'var(--space200)'}]}>
+        <div css={[releaseBoxCss, releaseNumbersCss]}>
           <span css={[smallCss, {fontWeight: 'bold'}]}>Latest</span>
           {currCrashFreeRate}%
         </div>
-        <div css={[releaseBoxCss, releaseNumbersCss, {padding: 'var(--space200)'}]}>
+        <div css={[releaseBoxCss, releaseNumbersCss]}>
           <span css={[smallCss, {fontWeight: 'bold'}]}>Previous</span>
           {prevCrashFreeRate}%
         </div>
