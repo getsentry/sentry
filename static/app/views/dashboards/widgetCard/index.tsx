@@ -1,5 +1,4 @@
 import {Component, Fragment} from 'react';
-import type {WithRouterProps} from 'react-router';
 import type {useSortable} from '@dnd-kit/sortable';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
@@ -21,6 +20,7 @@ import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {PageFilters} from 'sentry/types/core';
 import type {Series} from 'sentry/types/echarts';
+import type {WithRouterProps} from 'sentry/types/legacyReactRouter';
 import type {Organization} from 'sentry/types/organization';
 import {getFormattedDate} from 'sentry/utils/dates';
 import type {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
