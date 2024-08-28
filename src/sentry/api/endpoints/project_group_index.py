@@ -27,6 +27,7 @@ from sentry.types.ratelimit import RateLimit, RateLimitCategory
 from sentry.utils.validators import normalize_event_id
 
 ERR_INVALID_STATS_PERIOD = "Invalid stats_period. Valid choices are '', '24h', and '14d'"
+ERR_HASHES_AND_OTHER_QUERY = "Cannot use 'hash' with 'query'"
 
 
 @region_silo_endpoint
@@ -78,7 +79,7 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint, EnvironmentMixin):
                                    ``"is:unresolved"`` is assumed.)
         :qparam string environment: this restricts the issues to ones containing
                                     events from this environment
-        :qparam list hash: hashes of groups to return, overrides every other query parameter, only returning list of groups found from hashes
+        :qparam list hash: hashes of groups to return, overrides 'query' parameter, only returning list of groups found from hashes. The maximum number of hashes that can be sent is 100. If more are sent, only the first 100 will be used.
         :pparam string organization_id_or_slug: the id or slug of the organization the
                                           issues belong to.
         :pparam string project_id_or_slug: the id or slug of the project the issues
@@ -102,7 +103,14 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint, EnvironmentMixin):
         )
 
         hashes = request.GET.getlist("hash", [])
+        query = request.GET.get("query", "").strip()
+
         if hashes:
+            if query:
+                return Response({"detail": ERR_HASHES_AND_OTHER_QUERY}, status=400)
+
+            # limit to 100 hashes
+            hashes = hashes[:100]
             groups_from_hashes = GroupHash.objects.filter(hash__in=hashes).values_list(
                 "group_id", flat=True
             )
@@ -115,7 +123,6 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint, EnvironmentMixin):
             )
             return Response(serialized_groups)
 
-        query = request.GET.get("query", "").strip()
         if query:
             matching_group = None
             matching_event = None
