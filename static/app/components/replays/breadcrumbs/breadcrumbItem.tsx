@@ -46,11 +46,7 @@ import useProjectFromSlug from 'sentry/utils/useProjectFromSlug';
 import IconWrapper from 'sentry/views/replays/detail/iconWrapper';
 import TimestampButton from 'sentry/views/replays/detail/timestampButton';
 
-type MouseCallback = (
-  frame: ReplayFrame,
-  _e: React.MouseEvent<HTMLElement>,
-  nodeId?: number
-) => void;
+type MouseCallback = (frame: ReplayFrame, nodeId?: number) => void;
 
 const FRAMES_WITH_BUTTONS = ['replay.hydrate-error'];
 
@@ -165,9 +161,9 @@ function BreadcrumbItem({
         data-is-error-frame={isErrorFrame(frame)}
         style={style}
         className={className}
-        onClick={e => onClick?.(frame, e)}
-        onMouseEnter={e => onMouseEnter(frame, e)}
-        onMouseLeave={e => onMouseLeave(frame, e)}
+        onClick={() => onClick?.(frame)}
+        onMouseEnter={() => onMouseEnter(frame)}
+        onMouseLeave={() => onMouseLeave(frame)}
       >
         <ErrorBoundary mini>
           {renderDescription()}
@@ -183,9 +179,9 @@ function BreadcrumbItem({
     <CrumbItem
       data-is-error-frame={isErrorFrame(frame)}
       as={onClick && !forceSpan ? 'button' : 'span'}
-      onClick={e => onClick?.(frame, e)}
-      onMouseEnter={e => onMouseEnter(frame, e)}
-      onMouseLeave={e => onMouseLeave(frame, e)}
+      onClick={() => onClick?.(frame)}
+      onMouseEnter={() => onMouseEnter(frame)}
+      onMouseLeave={() => onMouseLeave(frame)}
       style={style}
       className={className}
     >
@@ -263,8 +259,8 @@ function WebVitalData({
           ? elements.push(
               <span
                 key={nodeId}
-                onMouseEnter={e => onMouseEnter(clsFrame, e, nodeId)}
-                onMouseLeave={e => onMouseLeave(clsFrame, e, nodeId)}
+                onMouseEnter={() => onMouseEnter(clsFrame, nodeId)}
+                onMouseLeave={() => onMouseLeave(clsFrame, nodeId)}
               >
                 <ValueObjectKey>{'element'}</ValueObjectKey>
                 <span>{': '}</span>
@@ -298,8 +294,8 @@ function WebVitalData({
           return (
             <span
               key={key}
-              onMouseEnter={e => onMouseEnter(frame, e)}
-              onMouseLeave={e => onMouseLeave(frame, e)}
+              onMouseEnter={() => onMouseEnter(frame)}
+              onMouseLeave={() => onMouseLeave(frame)}
             >
               <ValueObjectKey>{'element'}</ValueObjectKey>
               <span>{': '}</span>

@@ -59,7 +59,7 @@ function useCrumbHandlers() {
   });
 
   const onMouseEnter = useCallback(
-    (record: RecordType, _e: React.MouseEvent<HTMLElement>, nodeId?: number) => {
+    (record: RecordType, nodeId?: number) => {
       // This debounces the mouseEnter callback in unison with mouseLeave.
       // We ensure the pointer remains over the target element before dispatching
       // state events in order to minimize unnecessary renders. This helps during
@@ -88,7 +88,7 @@ function useCrumbHandlers() {
   );
 
   const onMouseLeave = useCallback(
-    (record: RecordType, _e: React.MouseEvent<HTMLElement>, nodeId?: number) => {
+    (record: RecordType, nodeId?: number) => {
       if (mouseEnterCallback.current.id === record) {
         // If there is a mouseEnter callback queued and we're leaving the node
         // just cancel the timeout.
