@@ -102,6 +102,7 @@ def test_prevent_hitting_ratelimit_strategy(project: Project):
     RATE_LIMIT_CACHE.clear()
     options = {
         "discover.saved-query-dataset-split.organization-id-allowlist": ([project.organization_id]),
+        "discover.saved-query-dataset-split.enable": True,
     }
     create_discover_query(["transaction", "count()"], "", project)
 
