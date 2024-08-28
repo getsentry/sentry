@@ -1218,6 +1218,7 @@ class Factories:
             sentry_app_installation=installation,
         )
 
+    @staticmethod
     @assume_test_silo_mode(SiloMode.CONTROL)
     def create_stacktrace_link_schema():
         return {"type": "stacktrace-link", "uri": "/redirect/"}
