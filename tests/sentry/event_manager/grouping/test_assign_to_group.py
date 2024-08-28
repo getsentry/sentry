@@ -496,13 +496,15 @@ def test_existing_group_new_hash_exists(
 @pytest.mark.parametrize(
     "mobile_config", (True, False), ids=(" mobile_config: True ", " mobile_config: False ")
 )
-@pytest.mark.parametrize("id_even", (True, False), ids=(" id_even: True ", " id_even: False "))
+@pytest.mark.parametrize(
+    "id_qualifies", (True, False), ids=(" id_qualifies: True ", " id_qualifies: False ")
+)
 @patch("sentry.event_manager._save_aggregate_new", wraps=_save_aggregate_new)
 @patch("sentry.event_manager._save_aggregate", wraps=_save_aggregate)
 def test_uses_regular_or_optimized_grouping_as_appropriate(
     mock_save_aggregate: MagicMock,
     mock_save_aggregate_new: MagicMock,
-    id_even: bool,
+    id_qualifies: bool,
     mobile_config: bool,
     in_transition: bool,
     flag_on: bool,
@@ -513,10 +515,10 @@ def test_uses_regular_or_optimized_grouping_as_appropriate(
     with patch(
         "sentry.utils.snowflake.generate_snowflake_id", side_effect=lambda _: randint(1, 1000)
     ):
-        # Keep making projects until we get an id of the correct parity
+        # Keep making projects until we get an id which matches `id_qualifies`
         org = Factories.create_organization()
         project = Factories.create_project(organization=org)
-        while project.id % 2 == (1 if id_even else 0):
+        while (project.id % 5 >= 1) if id_qualifies else (project.id % 5 < 1):
             project = Factories.create_project(organization=org)
 
     with (
@@ -532,6 +534,8 @@ def test_uses_regular_or_optimized_grouping_as_appropriate(
     elif flag_on:
         assert mock_save_aggregate_new.call_count == 1
     elif in_transition:
+        assert mock_save_aggregate_new.call_count == 1
+    elif id_qualifies:
         assert mock_save_aggregate_new.call_count == 1
     else:
         assert mock_save_aggregate.call_count == 1
