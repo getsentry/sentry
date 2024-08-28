@@ -215,6 +215,7 @@ class ChartZoom extends Component<Props> {
     // This handler only exists if mouse down was caught inside the chart.
     // Therefore, no need to check any other state.
     if (evt.key === 'Escape') {
+      evt.stopPropagation();
       // Mark the component as currently cancelling a zoom selection. This allows
       // us to prevent "restore" handlers from running
       this.isCancellingZoom = true;
