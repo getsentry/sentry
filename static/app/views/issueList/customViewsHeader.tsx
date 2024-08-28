@@ -1,4 +1,4 @@
-import {useContext, useEffect, useLayoutEffect, useMemo, useState} from 'react';
+import {useContext, useEffect, useMemo, useState} from 'react';
 import type {InjectedRouter} from 'react-router';
 import styled from '@emotion/styled';
 import debounce from 'lodash/debounce';
@@ -164,7 +164,7 @@ function CustomViewsIssueListHeaderTabsContent({
   );
 
   // This insane useEffect ensures that the correct tab is selected when the url updates
-  useLayoutEffect(() => {
+  useEffect(() => {
     // If no query, sort, or viewId is present, set the first tab as the selected tab, update query accordingly
     if (!query && !sort && !viewId) {
       navigate({
