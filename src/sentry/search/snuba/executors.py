@@ -1162,6 +1162,8 @@ class InvalidQueryForExecutor(Exception):
 
 
 class GroupAttributesPostgresSnubaQueryExecutor(PostgresSnubaQueryExecutor):
+    logger = logging.getLogger("sentry.search.group-attributes-postgressnuba")
+
     def get_times_seen_filter(
         self, search_filter: SearchFilter, joined_entity: Entity
     ) -> Condition:
@@ -1744,6 +1746,14 @@ class GroupAttributesPostgresSnubaQueryExecutor(PostgresSnubaQueryExecutor):
         if self.should_check_search_issues(group_categories, search_filters):
             entities_to_check.append(search_issues_entity)
 
+        self.logger.info(
+            "searching for groups",
+            extra={
+                "organization_id": organization.id,
+                "entities": entities_to_check,
+                "search_filters": search_filters,
+            },
+        )
         for joined_entity in entities_to_check:
             is_errors = joined_entity.name == ENTITY_EVENTS
             where_conditions = [
@@ -1858,6 +1868,10 @@ class GroupAttributesPostgresSnubaQueryExecutor(PostgresSnubaQueryExecutor):
 
             select.append(sort_func)
 
+            self.logger.info(
+                "searching for groups with where conditions",
+                extra={"organization_id": organization.id, "where_conditions": where_conditions},
+            )
             query = Query(
                 match=Join([Relationship(joined_entity, "attributes_inner", attr_entity)]),
                 select=select,
