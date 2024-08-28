@@ -217,7 +217,6 @@ describe('Threads', function () {
         data: event.entries[1].data as React.ComponentProps<typeof Threads>['data'],
         event,
         groupingCurrentLevel: 0,
-        hasHierarchicalGrouping: true,
         projectSlug: project.slug,
       };
 
@@ -242,14 +241,14 @@ describe('Threads', function () {
         ).toBeInTheDocument();
         expect(screen.getByText('divided by 0')).toBeInTheDocument();
 
-        expect(screen.getByTestId('stack-trace-content-v2')).toBeInTheDocument();
-        expect(screen.queryAllByTestId('stack-trace-frame')).toHaveLength(3);
+        expect(screen.getByTestId('stack-trace-content')).toBeInTheDocument();
+        expect(screen.queryAllByTestId('line')).toHaveLength(3);
       });
 
       it('toggle full stack trace button', async function () {
         render(<Threads {...props} />, {organization});
 
-        expect(screen.queryAllByTestId('stack-trace-frame')).toHaveLength(3);
+        expect(screen.queryAllByTestId('line')).toHaveLength(3);
 
         expect(screen.getByRole('radio', {name: 'Full Stack Trace'})).not.toBeChecked();
 
@@ -257,14 +256,14 @@ describe('Threads', function () {
 
         expect(screen.getByRole('radio', {name: 'Full Stack Trace'})).toBeChecked();
 
-        expect(screen.queryAllByTestId('stack-trace-frame')).toHaveLength(4);
+        expect(screen.queryAllByTestId('line')).toHaveLength(4);
       });
 
       it('toggle sort by display option', async function () {
         render(<Threads {...props} />, {organization});
 
         expect(
-          within(screen.getAllByTestId('stack-trace-frame')[0]).getByText(
+          within(screen.getAllByTestId('line')[0]).getByText(
             'sentry/controllers/welcome_controller.rb'
           )
         ).toBeInTheDocument();
@@ -283,7 +282,7 @@ describe('Threads', function () {
 
         // Last frame is the first on the list
         expect(
-          within(screen.getAllByTestId('stack-trace-frame')[0]).getByText(
+          within(screen.getAllByTestId('line')[0]).getByText(
             'puma (3.12.6) lib/puma/server.rb'
           )
         ).toBeInTheDocument();
@@ -294,7 +293,7 @@ describe('Threads', function () {
 
         // First frame is the first on the list
         expect(
-          within(screen.getAllByTestId('stack-trace-frame')[0]).getByText(
+          within(screen.getAllByTestId('line')[0]).getByText(
             'sentry/controllers/welcome_controller.rb'
           )
         ).toBeInTheDocument();
@@ -860,7 +859,6 @@ describe('Threads', function () {
         data: event.entries[1].data as React.ComponentProps<typeof Threads>['data'],
         event,
         groupingCurrentLevel: 0,
-        hasHierarchicalGrouping: true,
         projectSlug: project.slug,
       };
 

@@ -14,19 +14,12 @@ import {isStacktraceNewestFirst} from './utils';
 type Props = {
   data: ExceptionType;
   event: Event;
-  hasHierarchicalGrouping: boolean;
   projectSlug: Project['slug'];
   groupingCurrentLevel?: Group['metadata']['current_level'];
   hideGuide?: boolean;
 };
 
-export function Exception({
-  event,
-  data,
-  projectSlug,
-  hasHierarchicalGrouping,
-  groupingCurrentLevel,
-}: Props) {
+export function Exception({event, data, projectSlug, groupingCurrentLevel}: Props) {
   const eventHasThreads = !!event.entries.some(entry => entry.type === EntryType.THREADS);
 
   // in case there are threads in the event data, we don't render the
@@ -105,7 +98,6 @@ export function Exception({
             event={event}
             values={data.values}
             groupingCurrentLevel={groupingCurrentLevel}
-            hasHierarchicalGrouping={hasHierarchicalGrouping}
             meta={meta}
           />
         )

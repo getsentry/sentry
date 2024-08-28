@@ -11,14 +11,12 @@ import {defined} from 'sentry/utils';
 import {isNativePlatform} from 'sentry/utils/platform';
 
 import StackTraceContent from '../stackTrace/content';
-import {HierarchicalGroupingContent} from '../stackTrace/hierarchicalGroupingContent';
 import {NativeContent} from '../stackTrace/nativeContent';
 
 type Props = {
   chainedException: boolean;
   data: ExceptionValue['stacktrace'];
   event: Event;
-  hasHierarchicalGrouping: boolean;
   platform: PlatformKey;
   stackType: StackType;
   stacktrace: ExceptionValue['stacktrace'];
@@ -38,7 +36,6 @@ function StackTrace({
   platform,
   newestFirst,
   groupingCurrentLevel,
-  hasHierarchicalGrouping,
   data,
   expandFirstFrame,
   event,
@@ -60,11 +57,7 @@ function StackTrace({
       <Panel dashedBorder>
         <EmptyMessage
           icon={<IconWarning size="xl" />}
-          title={
-            hasHierarchicalGrouping
-              ? t('No relevant stack trace has been found!')
-              : t('No app only stack trace has been found!')
-          }
+          title={t('No app only stack trace has been found!')}
         />
       </Panel>
     );
@@ -89,21 +82,6 @@ function StackTrace({
   if (isNativePlatform(platform)) {
     return (
       <NativeContent
-        data={data}
-        expandFirstFrame={expandFirstFrame}
-        includeSystemFrames={includeSystemFrames}
-        groupingCurrentLevel={groupingCurrentLevel}
-        platform={platform}
-        newestFirst={newestFirst}
-        event={event}
-        meta={meta}
-      />
-    );
-  }
-
-  if (hasHierarchicalGrouping) {
-    return (
-      <HierarchicalGroupingContent
         data={data}
         expandFirstFrame={expandFirstFrame}
         includeSystemFrames={includeSystemFrames}

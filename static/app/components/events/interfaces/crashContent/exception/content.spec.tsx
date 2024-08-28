@@ -133,7 +133,6 @@ describe('Exception Content', function () {
       <Content
         type={StackType.ORIGINAL}
         groupingCurrentLevel={0}
-        hasHierarchicalGrouping
         newestFirst
         stackView={StackView.APP}
         event={event}
@@ -199,7 +198,6 @@ describe('Exception Content', function () {
     render(
       <Content
         type={StackType.ORIGINAL}
-        hasHierarchicalGrouping={false}
         stackView={StackView.APP}
         event={event}
         values={event.entries[0].data.values}
@@ -240,7 +238,6 @@ describe('Exception Content', function () {
 
     const defaultProps = {
       type: StackType.ORIGINAL,
-      hasHierarchicalGrouping: false,
       newestFirst: true,
       platform: 'python' as const,
       stackView: StackView.APP,
