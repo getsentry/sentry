@@ -119,7 +119,7 @@ function AccountSecurityDetails({deleteDisabled, onRegenerateBackupCodes}: Props
   );
 
   const handleRemove = (device?: AuthenticatorDevice) => {
-    if (!authenticator || !authenticator.authId) {
+    if (!authenticator?.authId) {
       return;
     }
     remove({id: authenticator.authId, device});
@@ -136,12 +136,8 @@ function AccountSecurityDetails({deleteDisabled, onRegenerateBackupCodes}: Props
     return <LoadingIndicator />;
   }
 
-  if (isError) {
+  if (!authenticator || isError) {
     return <LoadingError onRetry={refetch} />;
-  }
-
-  if (!authenticator) {
-    return null;
   }
 
   return (
