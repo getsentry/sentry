@@ -1,5 +1,6 @@
 import {Fragment, useCallback, useContext, useEffect, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
+import type {LocationDescriptorObject} from 'history';
 import omit from 'lodash/omit';
 
 import Feature from 'sentry/components/acl/feature';
@@ -145,7 +146,7 @@ export function ProjectInstallPlatform({
   }, [organization, currentPlatform, project?.id]);
 
   const redirectWithProjectSelection = useCallback(
-    to => {
+    (to: LocationDescriptorObject) => {
       if (!project?.id) {
         return;
       }
