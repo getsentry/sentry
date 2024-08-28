@@ -1811,8 +1811,8 @@ register(
 )
 register(
     "insights.span-samples-query.sample-rate",
-    type=Int,
-    default=100_000_000,
+    type=Float,
+    default=100_000_000.0,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
