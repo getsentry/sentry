@@ -1809,6 +1809,12 @@ register(
     type=Int,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
+register(
+    "insights.span-samples-query.sample-rate",
+    type=Int,
+    default=100_000_000,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
 
 register(
     "performance.spans-tags-key.sample-rate",
