@@ -16,12 +16,22 @@ interface Props {
   initialData?: Partial<InviteRow>[];
   source?: string;
 }
+
 function defaultInvite(): InviteRow {
   return {
     emails: new Set<string>(),
     teams: new Set<string>(),
     role: 'member',
   };
+}
+
+function canInvite(organization: Organization) {
+  return (
+    organization.access?.includes('member:write') ||
+    (organization.features.includes('members-invite-teammates') &&
+      organization.allowMemberInvite &&
+      organization.access?.includes('member:invite'))
+  );
 }
 
 function useLogInviteModalOpened({
@@ -37,7 +47,7 @@ function useLogInviteModalOpened({
     trackAnalytics('invite_modal.opened', {
       organization,
       modal_session: sessionId,
-      can_invite: organization.access?.includes('member:write'),
+      can_invite: canInvite(organization),
       source,
     });
   }, [organization, sessionId, source]);
@@ -45,7 +55,7 @@ function useLogInviteModalOpened({
 
 export default function useInviteModal({organization, initialData, source}: Props) {
   const api = useApi();
-  const willInvite = organization.access?.includes('member:write');
+  const willInvite = canInvite(organization);
 
   /**
    * Used for analytics tracking of the modals usage.
