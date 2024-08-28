@@ -78,7 +78,6 @@ class MetricAlertDetails extends Component<Props, State> {
       prevProps.params.ruleId !== this.props.params.ruleId
     ) {
       this.fetchData();
-      this.fetchAnomalies();
       this.trackView();
     }
   }
@@ -235,7 +234,7 @@ class MetricAlertDetails extends Component<Props, State> {
   }
 
   render() {
-    const {rule, incidents, hasError, selectedIncident} = this.state;
+    const {rule, incidents, hasError, selectedIncident, anomalies} = this.state;
     const {organization, projects, loadingProjects} = this.props;
     const timePeriod = this.getTimePeriod(selectedIncident);
 
@@ -269,6 +268,7 @@ class MetricAlertDetails extends Component<Props, State> {
           rule={rule}
           project={project}
           incidents={incidents}
+          anomalies={anomalies}
           timePeriod={timePeriod}
           selectedIncident={selectedIncident}
         />

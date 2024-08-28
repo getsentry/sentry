@@ -16,7 +16,7 @@ import {getCrashFreeRateSeries} from 'sentry/utils/sessions';
 import {lightTheme as theme} from 'sentry/utils/theme';
 import type {MetricRule, Trigger} from 'sentry/views/alerts/rules/metric/types';
 import {AlertRuleTriggerType, Dataset} from 'sentry/views/alerts/rules/metric/types';
-import type {Incident} from 'sentry/views/alerts/types';
+import type {Anomaly, Incident} from 'sentry/views/alerts/types';
 import {IncidentActivityType, IncidentStatus} from 'sentry/views/alerts/types';
 import {
   ALERT_CHART_MIN_MAX_BUFFER,
@@ -139,6 +139,7 @@ function createIncidentSeries(
 export type MetricChartData = {
   rule: MetricRule;
   timeseriesData: Series[];
+  anomalies?: Anomaly[];
   handleIncidentClick?: (incident: Incident) => void;
   incidents?: Incident[];
   selectedIncident?: Incident | null;
@@ -162,6 +163,7 @@ export function getMetricAlertChartOption({
   selectedIncident,
   handleIncidentClick,
   showWaitingForData,
+  anomalies,
 }: MetricChartData): MetricChartOption {
   let criticalTrigger: Trigger | undefined;
   let warningTrigger: Trigger | undefined;
@@ -236,6 +238,7 @@ export function getMetricAlertChartOption({
     series.push(createStatusAreaSeries(theme.gray200, startTime, endTime, minChartValue));
   }
 
+  // TODO: construct segments for anomalies
   if (incidents) {
     // select incidents that fall within the graph range
     incidents
