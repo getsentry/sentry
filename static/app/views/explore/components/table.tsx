@@ -42,7 +42,7 @@ const MINIMUM_COLUMN_WIDTH = COL_WIDTH_MINIMUM;
 type Item = {
   label: string;
   value: React.ReactNode;
-  width?: 'min-content';
+  width?: number | 'min-content';
 };
 
 interface UseTableStylesOptions {
@@ -58,7 +58,11 @@ export function useTableStyles({
     const columns = new Array(items.length);
 
     for (let i = 0; i < items.length; i++) {
-      columns[i] = items[i].width ?? `minmax(${minimumColumnWidth}px, auto)`;
+      if (typeof items[i].width === 'number') {
+        columns[i] = `${items[i].width}px`;
+      } else {
+        columns[i] = items[i].width ?? `minmax(${minimumColumnWidth}px, auto)`;
+      }
     }
 
     return {

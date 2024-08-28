@@ -2,7 +2,7 @@ import {Fragment, useCallback, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 import clamp from 'lodash/clamp';
 
-import {Button, LinkButton} from 'sentry/components/button';
+import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import {LineChart, type LineChartProps} from 'sentry/components/charts/lineChart';
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
@@ -10,13 +10,15 @@ import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import Link from 'sentry/components/links/link';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {Tooltip} from 'sentry/components/tooltip';
-import {IconChevron, IconProfiling, IconWarning} from 'sentry/icons';
+import {IconChevron, IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Series} from 'sentry/types/echarts';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
+import {defined} from 'sentry/utils';
 import {axisLabelFormatter, tooltipFormatter} from 'sentry/utils/discover/charts';
+import {getShortEventId} from 'sentry/utils/events';
 import {useAggregateFlamegraphQuery} from 'sentry/utils/profiling/hooks/useAggregateFlamegraphQuery';
 import {useProfilingFunctionMetrics} from 'sentry/utils/profiling/hooks/useProfilingFunctionMetrics';
 import {generateProfileRouteFromProfileReference} from 'sentry/utils/profiling/routes';
@@ -127,13 +129,13 @@ export function SlowestFunctionsTable({userQuery}: {userQuery?: string}) {
   const hasFunctions = query.data?.metrics && query.data.metrics.length > 0;
 
   const columns = [
-    {label: t('Project'), value: 'project'},
+    {label: '', value: '', width: 62},
     {label: t('Function'), value: 'function'},
+    {label: t('Project'), value: 'project'},
     {label: t('Package'), value: 'package'},
     {label: t('p75()'), value: 'p75', width: 'min-content' as const},
     {label: t('p95()'), value: 'p95', width: 'min-content' as const},
     {label: t('p99()'), value: 'p99', width: 'min-content' as const},
-    {label: '', value: '', width: 'min-content' as const},
   ];
 
   const {tableStyles} = useTableStyles({items: columns});
@@ -231,10 +233,15 @@ function SlowestFunction(props: SlowestFunctionProps) {
     <Fragment>
       <TableRow>
         <TableBodyCell>
-          <SlowestFunctionsProjectBadge
-            examples={props.function.examples}
-            projectsLookupTable={props.projectsLookupTable}
-          />{' '}
+          <div>
+            <Button
+              icon={<IconChevron direction={props.expanded ? 'up' : 'down'} />}
+              aria-label={t('View Function Metrics')}
+              onClick={() => props.onExpandClick(props.function.fingerprint)}
+              size="xs"
+              borderless
+            />
+          </div>
         </TableBodyCell>
         <TableBodyCell>
           <Tooltip title={props.function.name}>
@@ -248,6 +255,12 @@ function SlowestFunction(props: SlowestFunctionProps) {
           </Tooltip>
         </TableBodyCell>
         <TableBodyCell>
+          <SlowestFunctionsProjectBadge
+            examples={props.function.examples}
+            projectsLookupTable={props.projectsLookupTable}
+          />{' '}
+        </TableBodyCell>
+        <TableBodyCell>
           <Tooltip title={props.function.package || t('<unknown package>')}>
             {props.function.package}
           </Tooltip>
@@ -255,16 +268,6 @@ function SlowestFunction(props: SlowestFunctionProps) {
         <TableBodyCell>{getPerformanceDuration(props.function.p75 / 1e6)}</TableBodyCell>
         <TableBodyCell>{getPerformanceDuration(props.function.p95 / 1e6)}</TableBodyCell>
         <TableBodyCell>{getPerformanceDuration(props.function.p99 / 1e6)}</TableBodyCell>
-        <TableBodyCell>
-          <div>
-            <Button
-              icon={<IconChevron direction={props.expanded ? 'up' : 'down'} />}
-              aria-label={t('View Function Metrics')}
-              onClick={() => props.onExpandClick(props.function.fingerprint)}
-              size="xs"
-            />
-          </div>
-        </TableBodyCell>
       </TableRow>
       {props.expanded ? (
         <SlowestFunctionTimeSeries
@@ -360,37 +363,57 @@ function SlowestFunctionTimeSeries(props: SlowestFunctionTimeSeriesProps) {
     return [serie];
   }, [metrics, props.function]);
 
+  const examples = useMemo(() => {
+    const uniqueExamples: Profiling.FunctionMetric['examples'] = [];
+
+    const profileIds = new Set<string>();
+    const transactionIds = new Set<string>();
+
+    for (const example of props.function.examples) {
+      if ('profile_id' in example) {
+        if (!profileIds.has(example.profile_id)) {
+          profileIds.add(example.profile_id);
+          uniqueExamples.push(example);
+        }
+      } else {
+        if (
+          defined(example.transaction_id) &&
+          !transactionIds.has(example.transaction_id)
+        ) {
+          transactionIds.add(example.transaction_id);
+          uniqueExamples.push(example);
+        }
+      }
+    }
+
+    return uniqueExamples;
+  }, [props.function.examples]);
+
   return (
     <TableRow>
       <SlowestFunctionsTimeSeriesContainer>
         <SlowestFunctionsHeader>
+          <SlowestFunctionsHeaderCell />
           <SlowestFunctionsHeaderCell>{t('Examples')}</SlowestFunctionsHeaderCell>
           <SlowestFunctionsHeaderCell>{t('Occurrences')}</SlowestFunctionsHeaderCell>
         </SlowestFunctionsHeader>
         <SlowestFunctionsExamplesContainer>
-          {props.function.examples.slice(0, 5).map((example, i) => {
+          {examples.slice(0, 5).map((example, i) => {
             const exampleLink = makeProfileLinkFromExample(
               organization,
               props.function,
               example,
               props.projectsLookupTable
             );
+
+            const eventId =
+              'profile_id' in example ? example.profile_id : example.transaction_id;
+
             return (
               <SlowestFunctionsExamplesContainerRow key={i}>
                 <SlowestFunctionsExamplesContainerRowInner>
-                  {'project_id' in example ? (
-                    <SlowestFunctionsProjectBadge
-                      examples={[example]}
-                      projectsLookupTable={props.projectsLookupTable}
-                    />
-                  ) : null}
-                  {exampleLink && (
-                    <LinkButton
-                      icon={<IconProfiling />}
-                      to={exampleLink}
-                      aria-label={t('Profile')}
-                      size="xs"
-                    />
+                  {defined(exampleLink) && defined(eventId) && (
+                    <Link to={exampleLink}>{getShortEventId(eventId)}</Link>
                   )}
                 </SlowestFunctionsExamplesContainerRowInner>
               </SlowestFunctionsExamplesContainerRow>
@@ -466,11 +489,8 @@ const SlowestFunctionsHeaderCell = styled('div')`
   text-overflow: ellipsis;
   white-space: nowrap;
 
-  &:first-child {
-    grid-column: 1 / 2;
-  }
   &:last-child {
-    grid-column: 2 / -1;
+    grid-column: 3 / -1;
   }
 `;
 
@@ -496,17 +516,21 @@ const SlowestFunctionsTimeSeriesContainer = styled(TableBodyCell)`
 `;
 
 const SlowestFunctionsChartContainer = styled('div')`
-  grid-column: 2 / -1;
+  grid-column: 3 / -1;
   padding: ${space(3)} ${space(2)} ${space(1)} ${space(2)};
   height: 214px;
 `;
 
 const SlowestFunctionsExamplesContainer = styled('div')`
-  grid-column: 1 / 2;
+  grid-column: 1 / 3;
   border-right: 1px solid ${p => p.theme.border};
+
+  display: grid;
+  grid-template-columns: subgrid;
 `;
 
 const SlowestFunctionsExamplesContainerRowInner = styled('div')`
+  grid-column: 2 / 3;
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -514,6 +538,10 @@ const SlowestFunctionsExamplesContainerRowInner = styled('div')`
 `;
 
 const SlowestFunctionsExamplesContainerRow = styled('div')`
+  display: grid;
+  grid-template-columns: subgrid;
+  grid-column: 1 / 3;
+
   &:not(:last-child) {
     border-bottom: 1px solid ${p => p.theme.border};
   }
