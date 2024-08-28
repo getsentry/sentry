@@ -20,7 +20,7 @@ from sentry.incidents.endpoints.bases import OrganizationAlertRuleEndpoint
 from sentry.incidents.models.alert_rule import AlertRule
 from sentry.models.organization import Organization
 from sentry.seer.anomaly_detection.types import AlertInSeer, TimeSeriesPoint
-from sentry.seer.signed_seer_api import sign_with_seer_secret
+from sentry.seer.signed_seer_api import make_signed_seer_api_request, sign_with_seer_secret
 
 
 class DetectAnomaliesResponse(BaseModel):
