@@ -19,12 +19,12 @@ from sentry.api.bases.group import GroupEndpoint
 from sentry.api.serializers import EventSerializer, serialize
 from sentry.api.serializers.rest_framework.base import convert_dict_key_case, snake_to_camel_case
 from sentry.constants import ObjectStatus
+from sentry.eventstore.models import GroupEvent
 from sentry.models.group import Group
 from sentry.models.project import Project
 from sentry.seer.signed_seer_api import sign_with_seer_secret
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
 from sentry.utils.cache import cache
-from src.sentry.eventstore.models import GroupEvent
 
 logger = logging.getLogger(__name__)
 
