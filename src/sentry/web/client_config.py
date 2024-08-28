@@ -216,7 +216,7 @@ class _ClientConfig:
 
     @property
     def enabled_features(self) -> Iterable[str]:
-        if features.has("organizations:react-router-6", self.last_org):
+        if self.last_org and features.has("organizations:react-router-6", self.last_org):
             yield "organizations:react-router-6"
         if features.has("organizations:create", actor=self.user):
             yield "organizations:create"
