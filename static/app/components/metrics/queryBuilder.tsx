@@ -80,7 +80,7 @@ export const QueryBuilder = memo(function QueryBuilder({
     ).mri;
   }, [metricsQuery, resolveVirtualMRI]);
 
-  const {data: tagsData = [], isLoading: tagsIsLoading} = useMetricsTags(resolvedMRI, {
+  const {data: tagsData = [], isPending: tagsIsLoading} = useMetricsTags(resolvedMRI, {
     projects: projectIds,
   });
 

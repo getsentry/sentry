@@ -103,7 +103,6 @@ class OrganizationProfilingFunctionTrendsEndpoint(OrganizationEventsV2EndpointBa
                     "examples()",
                 ],
                 query=data.get("query"),
-                params={},
                 snuba_params=snuba_params,
                 orderby=["-count()"],
                 limit=TOP_FUNCTIONS_LIMIT,
@@ -154,7 +153,6 @@ class OrganizationProfilingFunctionTrendsEndpoint(OrganizationEventsV2EndpointBa
                 formatted_results = functions.format_top_events_timeseries_results(
                     result,
                     builder,
-                    params={},
                     rollup=rollup,
                     snuba_params=snuba_params,
                     top_events={"data": chunk},

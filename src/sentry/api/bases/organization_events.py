@@ -370,7 +370,7 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
     def handle_issues(
         self, results: Sequence[Any], project_ids: Sequence[int], organization: Organization
     ) -> None:
-        issue_ids = {row.get("issue.id") for row in results}
+        issue_ids = {row.get("issue.id") for row in results if row.get("issue.id")}
         issues = Group.objects.get_issues_mapping(issue_ids, project_ids, organization)
         for result in results:
             if "issue.id" in result:

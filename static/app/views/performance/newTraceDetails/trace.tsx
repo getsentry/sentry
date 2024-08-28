@@ -15,7 +15,7 @@ import {PlatformIcon} from 'platformicons';
 
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Placeholder from 'sentry/components/placeholder';
-import {t, tct} from 'sentry/locale';
+import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
@@ -56,7 +56,6 @@ import {useTraceState, useTraceStateDispatch} from './traceState/traceStateProvi
 import {
   isAutogroupedNode,
   isMissingInstrumentationNode,
-  isNoDataNode,
   isParentAutogroupedNode,
   isSpanNode,
   isTraceErrorNode,
@@ -791,12 +790,18 @@ function RenderRow(props: {
               {props.node.children.length > 0 || props.node.canFetch ? (
                 <ChildrenButton
                   icon={
-                    props.node.canFetch && props.node.fetchStatus === 'idle' ? (
-                      '+'
-                    ) : props.node.canFetch && props.node.zoomedIn ? (
-                      <TraceIcons.Chevron direction="down" />
+                    props.node.canFetch ? (
+                      props.node.fetchStatus === 'idle' ? (
+                        '+'
+                      ) : props.node.zoomedIn ? (
+                        <TraceIcons.Chevron direction="up" />
+                      ) : (
+                        '+'
+                      )
                     ) : (
-                      '+'
+                      <TraceIcons.Chevron
+                        direction={props.node.expanded ? 'up' : 'down'}
+                      />
                     )
                   }
                   status={props.node.fetchStatus}
@@ -1112,50 +1117,6 @@ function RenderRow(props: {
             ) : null}
           </InvisibleTraceBar>
         </div>
-      </div>
-    );
-  }
-
-  if (isNoDataNode(props.node)) {
-    return (
-      <div
-        key={props.index}
-        ref={r =>
-          props.tabIndex === 0
-            ? maybeFocusRow(r, props.node, props.previouslyFocusedNodeRef)
-            : null
-        }
-        tabIndex={props.tabIndex}
-        className={`TraceRow ${rowSearchClassName}`}
-        onClick={onRowClick}
-        onKeyDown={onRowKeyDown}
-        style={props.style}
-      >
-        <div className="TraceLeftColumn" ref={registerListColumnRef}>
-          <div
-            className="TraceLeftColumnInner"
-            style={listColumnStyle}
-            onDoubleClick={onRowDoubleClick}
-          >
-            <div className="TraceChildrenCountWrapper">
-              <Connectors node={props.node} manager={props.manager} />
-            </div>
-            <span className="TraceOperation">{t('Empty')}</span>{' '}
-            <strong className="TraceEmDash"> — </strong>
-            <span className="TraceDescription">
-              {tct('[type] did not report any span data', {
-                type: props.node.parent
-                  ? isTransactionNode(props.node.parent)
-                    ? 'Transaction'
-                    : isSpanNode(props.node.parent)
-                      ? 'Span'
-                      : ''
-                  : '',
-              })}
-            </span>
-          </div>
-        </div>
-        <div ref={registerSpanColumnRef} className={spanColumnClassName} />
       </div>
     );
   }

@@ -211,7 +211,7 @@ export const useFetchProguardMappingFiles = ({
   const {
     data: proguardMappingFiles,
     isSuccess,
-    isLoading,
+    isPending,
   } = useApiQuery<DebugFile[]>(
     [
       `/projects/${organization.slug}/${project.slug}/files/dsyms/`,
@@ -287,7 +287,7 @@ export const useFetchProguardMappingFiles = ({
   }
 
   return {
-    proguardErrorsLoading: shouldFetch && isLoading,
+    proguardErrorsLoading: shouldFetch && isPending,
     proguardErrors: getProguardErrorsFromMappingFiles(),
   };
 };

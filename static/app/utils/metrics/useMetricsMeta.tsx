@@ -36,7 +36,7 @@ export function useMetricsMeta(
 ): {data: MetricMeta[]; isLoading: boolean; isRefetching: boolean; refetch: () => void} {
   const {slug} = useOrganization();
 
-  const {data, isLoading, isRefetching, refetch} = useApiQuery<MetricMeta[]>(
+  const {data, isPending, isRefetching, refetch} = useApiQuery<MetricMeta[]>(
     getMetricsMetaQueryKey(slug, pageFilters, useCases),
     {
       enabled,
@@ -58,7 +58,7 @@ export function useMetricsMeta(
 
   return {
     data: filteredMeta,
-    isLoading,
+    isLoading: isPending,
     isRefetching,
     refetch,
   };

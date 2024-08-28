@@ -40,7 +40,6 @@ function IssueTitleChildren(props: IssueTitleChildrenProps) {
       <ErrorBoundary customComponent={<EventTitleError />} mini>
         <StyledEventOrGroupTitle
           data={props.data}
-          organization={props.organization}
           // hasSeen is undefined for GroupTombstone
           hasSeen={hasSeen === undefined ? true : hasSeen}
           withStackTracePreview
