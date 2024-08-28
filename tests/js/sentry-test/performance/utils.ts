@@ -87,11 +87,7 @@ export class TransactionEventBuilder {
       perfProblem: undefined,
       metadata: {
         current_level: undefined,
-        current_tree_label: undefined,
-        directive: undefined,
-        display_title_with_tree_label: undefined,
         filename: undefined,
-        finest_tree_label: undefined,
         function: undefined,
         message: undefined,
         origin: undefined,
