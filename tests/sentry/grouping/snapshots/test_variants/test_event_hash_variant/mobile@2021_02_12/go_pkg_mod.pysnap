@@ -1,9 +1,10 @@
 ---
+created: '2024-08-27T12:08:36.239613+00:00'
+creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
 app-depth-1:
   hash: "4b8bbc500bd2cabfcadc1f1be867e0bb"
-  tree_label: "background.func2"
   component:
     app-depth-1*
       exception*
@@ -22,7 +23,6 @@ app-depth-1:
 --------------------------------------------------------------------------
 app-depth-max:
   hash: "4b8bbc500bd2cabfcadc1f1be867e0bb"
-  tree_label: "background.func2"
   component:
     app-depth-max*
       exception*
@@ -41,7 +41,6 @@ app-depth-max:
 --------------------------------------------------------------------------
 system:
   hash: "348fc4026c9fa11ffba8fbfa80a134c9"
-  tree_label: "background.func2 | FuncJob.Run"
   component:
     system*
       exception*

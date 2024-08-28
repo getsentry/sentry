@@ -1,11 +1,10 @@
 ---
-created: '2021-08-23T08:27:22.650709Z'
+created: '2024-08-27T12:08:34.866935+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
 app-depth-1:
   hash: "e37a6991567f96367fac9ba5c34f1d68"
-  tree_label: "Application.main"
   component:
     app-depth-1*
       chained-exception*
@@ -51,7 +50,6 @@ app-depth-1:
 --------------------------------------------------------------------------
 app-depth-2:
   hash: "838ca06e71d56da0d58c8b684fa6c77a"
-  tree_label: "Connector.startInternal | LifecycleBase.start"
   component:
     app-depth-2*
       chained-exception*
@@ -98,7 +96,6 @@ app-depth-2:
 --------------------------------------------------------------------------
 app-depth-3:
   hash: "e8f73dea2deb7369e187495e063a1b7b"
-  tree_label: "Connector.startInternal | LifecycleBase.start | StandardService.addConnector"
   component:
     app-depth-3*
       chained-exception*
@@ -159,7 +156,6 @@ app-depth-3:
 --------------------------------------------------------------------------
 app-depth-4:
   hash: "aaf325b9d3e0cd391701622831800ca8"
-  tree_label: "Connector.startInternal | LifecycleBase.start | StandardService.addConnector | TomcatEmbeddedServletContainer.addPreviouslyRemovedConnectors"
   component:
     app-depth-4*
       chained-exception*
@@ -234,7 +230,6 @@ app-depth-4:
 --------------------------------------------------------------------------
 app-depth-5:
   hash: "72e8348aa207c683dc07d82a720d4cba"
-  tree_label: "Connector.startInternal | LifecycleBase.start | StandardService.addConnector | TomcatEmbeddedServletContainer.addPreviouslyRemovedConnectors | TomcatEmbeddedServletContainer.start"
   component:
     app-depth-5*
       chained-exception*
@@ -323,7 +318,6 @@ app-depth-5:
 --------------------------------------------------------------------------
 app-depth-max:
   hash: "261676ef22aa0523b1a688172ee04b65"
-  tree_label: "Application.main"
   component:
     app-depth-max*
       chained-exception*
@@ -628,7 +622,6 @@ default:
 --------------------------------------------------------------------------
 system:
   hash: "8924849495809d42431719c2b9ab65c8"
-  tree_label: "LifecycleBase.start | StandardService.addConnector | TomcatEmbeddedServletContainer.addPreviouslyRemovedConnectors | TomcatEmbeddedServletContainer.start | EmbeddedWebApplicationContext.startEmbeddedServletContainer | EmbeddedWebApplicationContext.finishRefresh | AbstractApplicationContext.refresh | EmbeddedWebApplicationContext.refresh | SpringApplication.refresh | SpringApplication.refreshContext | SpringApplication.run | SpringApplication.run | SpringApplication.run | Application.main"
   component:
     system*
       chained-exception*

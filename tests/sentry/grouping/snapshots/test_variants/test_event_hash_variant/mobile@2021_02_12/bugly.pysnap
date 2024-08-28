@@ -1,11 +1,10 @@
 ---
-created: '2021-08-04T15:53:48.110339Z'
+created: '2024-08-27T12:08:34.835691+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
 app-depth-1:
   hash: "534735884d341071762ede7af01c53e8"
-  tree_label: "kill"
   component:
     app-depth-1*
       exception*
@@ -22,7 +21,6 @@ app-depth-1:
 --------------------------------------------------------------------------
 app-depth-2:
   hash: "5fe18d8a5d2a24744675e650fc46afc6"
-  tree_label: "kill | __kernel_rt_sigreturn"
   component:
     app-depth-2*
       exception*
@@ -44,7 +42,6 @@ app-depth-2:
 --------------------------------------------------------------------------
 app-depth-3:
   hash: "d9c9b0f9ba46e32fddd7cd1512fad235"
-  tree_label: "kill | __kernel_rt_sigreturn | stripped_application_code"
   component:
     app-depth-3*
       exception*
@@ -69,7 +66,6 @@ app-depth-3:
 --------------------------------------------------------------------------
 app-depth-max:
   hash: "d9c9b0f9ba46e32fddd7cd1512fad235"
-  tree_label: "kill | __kernel_rt_sigreturn | stripped_application_code"
   component:
     app-depth-max*
       exception*
@@ -94,7 +90,6 @@ app-depth-max:
 --------------------------------------------------------------------------
 system:
   hash: "5d36f5363b3d4125907c15b93f85bbd8"
-  tree_label: "kill | __kernel_rt_sigreturn | stripped_application_code"
   component:
     system*
       exception*

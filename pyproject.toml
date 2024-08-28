@@ -419,7 +419,6 @@ module = [
     "tests.sentry.api.test_base",
     "tests.sentry.api.test_event_search",
     "tests.sentry.eventstore.test_base",
-    "tests.sentry.grouping.test_result",
     "tests.sentry.issues.test_utils",
 ]
 disable_error_code = [

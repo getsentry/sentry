@@ -1,11 +1,10 @@
 ---
-created: '2021-08-31T10:25:51.197005Z'
+created: '2024-08-27T12:08:35.147378+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
 app-depth-1:
   hash: "085111c76fa557709d40f7410014247a"
-  tree_label: "Illuminate\Routing\RouteFileRegistrar::{closure}"
   component:
     app-depth-1*
       exception*
@@ -24,7 +23,6 @@ app-depth-1:
 --------------------------------------------------------------------------
 app-depth-2:
   hash: "568a519d81057ebff6cdb40a7c48da18"
-  tree_label: "Illuminate\Routing\RouteFileRegistrar::{closure} | require_once"
   component:
     app-depth-2*
       exception*
@@ -50,7 +48,6 @@ app-depth-2:
 --------------------------------------------------------------------------
 app-depth-3:
   hash: "4665d486184740231357ab63f4543a8d"
-  tree_label: "Illuminate\Routing\RouteFileRegistrar::{closure} | require_once | server.php"
   component:
     app-depth-3*
       exception*
@@ -81,7 +78,6 @@ app-depth-3:
 --------------------------------------------------------------------------
 app-depth-max:
   hash: "4665d486184740231357ab63f4543a8d"
-  tree_label: "Illuminate\Routing\RouteFileRegistrar::{closure} | require_once | server.php"
   component:
     app-depth-max*
       exception*
@@ -112,7 +108,6 @@ app-depth-max:
 --------------------------------------------------------------------------
 system:
   hash: "107ed03036d901157372f260bc3df446"
-  tree_label: "Illuminate\Routing\RouteFileRegistrar::{closure} | Illuminate\Routing\Route::runCallable | Illuminate\Routing\Route::run | Illuminate\Routing\Router::Illuminate\Routing\{closure} | Illuminate\Routing\Pipeline::Illuminate\Routing\{closure} | Illuminate\Routing\Middleware\SubstituteBindings::handle | Illuminate\Pipeline\Pipeline::Illuminate\Pipeline\{closure} | Illuminate\Routing\Pipeline::Illuminate\Routing\{closure} | Illuminate\Foundation\Http\Middleware\VerifyCsrfToken::handle | Illuminate\Pipeline\Pipeline::Illuminate\Pipeline\{closure} | Illuminate\Routing\Pipeline::Illuminate\Routing\{closure} | Illuminate\View\Middleware\ShareErrorsFromSession::handle | Illuminate\Pipeline\Pipeline::Illuminate\Pipeline\{closure} | Illuminate\Routing\Pipeline::Illuminate\Routing\{closure} | Illuminate\Session\Middleware\StartSession::handle | Illuminate\Pipeline\Pipeline::Illuminate\Pipeline\{closure} | Illuminate\Routing\Pipeline::Illuminate\Routing\{closure} | Illuminate\Cookie\Middleware\AddQueuedCookiesToResponse::handle | Illuminate\Pipeline\Pipeline::Illuminate\Pipeline\{closure} | Illuminate\Routing\Pipeline::Illuminate\Routing\{closure} | Illuminate\Cookie\Middleware\EncryptCookies::handle | Illuminate\Pipeline\Pipeline::Illuminate\Pipeline\{closure} | Illuminate\Routing\Pipeline::Illuminate\Routing\{closure} | Illuminate\Pipeline\Pipeline::then | Illuminate\Routing\Router::runRouteWithinStack | Illuminate\Routing\Router::runRoute | Illuminate\Routing\Router::dispatchToRoute | Illuminate\Routing\Router::dispatch | Illuminate\Foundation\Http\Kernel::Illuminate\Foundation\Http\{closure} | Illuminate\Routing\Pipeline::Illuminate\Routing\{closure} | Fideloper\Proxy\TrustProxies::handle | Illuminate\Pipeline\Pipeline::Illuminate\Pipeline\{closure} | Illuminate\Routing\Pipeline::Illuminate\Routing\{closure} | Illuminate\Foundation\Http\Middleware\TransformsRequest::handle | Illuminate\Pipeline\Pipeline::Illuminate\Pipeline\{closure} | Illuminate\Routing\Pipeline::Illuminate\Routing\{closure} | Illuminate\Foundation\Http\Middleware\TransformsRequest::handle | Illuminate\Pipeline\Pipeline::Illuminate\Pipeline\{closure} | Illuminate\Routing\Pipeline::Illuminate\Routing\{closure} | Illuminate\Foundation\Http\Middleware\ValidatePostSize::handle | Illuminate\Pipeline\Pipeline::Illuminate\Pipeline\{closure} | Illuminate\Routing\Pipeline::Illuminate\Routing\{closure} | Illuminate\Foundation\Http\Middleware\CheckForMaintenanceMode::handle | Illuminate\Pipeline\Pipeline::Illuminate\Pipeline\{closure} | Illuminate\Routing\Pipeline::Illuminate\Routing\{closure} | Illuminate\Pipeline\Pipeline::then | Illuminate\Foundation\Http\Kernel::sendRequestThroughRouter | Illuminate\Foundation\Http\Kernel::handle | require_once | server.php"
   component:
     system*
       exception*

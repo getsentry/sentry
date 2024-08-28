@@ -1,11 +1,10 @@
 ---
-created: '2021-08-04T15:53:48.198287Z'
+created: '2024-08-27T12:08:35.850191+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
 app-depth-1:
   hash: "aeed765d29d1a60cb094f66d2cd8efb2"
-  tree_label: "stripped_application_code"
   component:
     app-depth-1*
       exception*
@@ -20,7 +19,6 @@ app-depth-1:
 --------------------------------------------------------------------------
 app-depth-2:
   hash: "93142e733eede833a5cf69b302f43941"
-  tree_label: "std::terminate | stripped_application_code | std::__1::allocator_traits<T>::destroy<T> | stripped_application_code"
   component:
     app-depth-2*
       exception*
@@ -48,7 +46,6 @@ app-depth-2:
 --------------------------------------------------------------------------
 app-depth-3:
   hash: "e2d054b3c180378b8c1d14f638acac94"
-  tree_label: "std::terminate | stripped_application_code | std::__1::allocator_traits<T>::destroy<T> | stripped_application_code | stripped_application_code"
   component:
     app-depth-3*
       exception*
@@ -79,7 +76,6 @@ app-depth-3:
 --------------------------------------------------------------------------
 app-depth-4:
   hash: "a3681449b8f66e38697bba72bab32569"
-  tree_label: "std::terminate | stripped_application_code | std::__1::allocator_traits<T>::destroy<T> | stripped_application_code | stripped_application_code | stripped_application_code"
   component:
     app-depth-4*
       exception*
@@ -113,7 +109,6 @@ app-depth-4:
 --------------------------------------------------------------------------
 app-depth-max:
   hash: "a3681449b8f66e38697bba72bab32569"
-  tree_label: "std::terminate | stripped_application_code | std::__1::allocator_traits<T>::destroy<T> | stripped_application_code | stripped_application_code | stripped_application_code"
   component:
     app-depth-max*
       exception*
@@ -147,7 +142,6 @@ app-depth-max:
 --------------------------------------------------------------------------
 system:
   hash: "f015c2afd879c0988173d4acfcf47a9d"
-  tree_label: "std::terminate | stripped_application_code | std::__1::allocator_traits<T>::destroy<T> | stripped_application_code | stripped_application_code | stripped_application_code"
   component:
     system*
       exception*

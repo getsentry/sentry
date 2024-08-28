@@ -1,11 +1,10 @@
 ---
-created: '2021-08-31T10:25:51.187344Z'
+created: '2024-08-27T12:08:35.096357+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
 app-depth-1:
   hash: "a728cdf5d62c8e017c35c3fe04051b6e"
-  tree_label: "server.php"
   component:
     app-depth-1*
       exception*
@@ -22,7 +21,6 @@ app-depth-1:
 --------------------------------------------------------------------------
 app-depth-max:
   hash: "a728cdf5d62c8e017c35c3fe04051b6e"
-  tree_label: "server.php"
   component:
     app-depth-max*
       exception*
@@ -39,7 +37,6 @@ app-depth-max:
 --------------------------------------------------------------------------
 system:
   hash: "63c67781779781d9b0a442a5b2bdb976"
-  tree_label: "Illuminate\Pipeline\Pipeline::Illuminate\Pipeline\{closure} | run | server.php"
   component:
     system*
       exception*

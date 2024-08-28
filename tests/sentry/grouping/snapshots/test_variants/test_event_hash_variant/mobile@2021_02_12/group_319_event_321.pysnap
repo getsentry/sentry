@@ -1,11 +1,10 @@
 ---
-created: '2021-07-14T12:39:40.274110Z'
+created: '2024-08-27T12:08:34.466084+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
 app-depth-1:
   hash: "eeeee4251de9dab933f0b3ac128e7a83"
-  tree_label: "gpusSubmitDataBuffers | CGLFlushDrawable"
   component:
     app-depth-1*
       exception*
@@ -27,7 +26,6 @@ app-depth-1:
 --------------------------------------------------------------------------
 app-depth-max:
   hash: "7e64037e487c78ce0439f750a2ef503f"
-  tree_label: "abort | gpusSubmitDataBuffers | CGLFlushDrawable | stripped_application_code | -[NSView displayIfNeeded] | stripped_application_code | -[NSApplication run] | stripped_application_code"
   component:
     app-depth-max*
       exception*
@@ -311,7 +309,6 @@ app-depth-max:
 --------------------------------------------------------------------------
 system:
   hash: "f119ae60193323b0fcae908a1d72751b"
-  tree_label: "abort | gpusSubmitDataBuffers | CGLFlushDrawable | stripped_application_code | -[NSView displayIfNeeded] | stripped_application_code | -[NSApplication run] | stripped_application_code"
   component:
     system*
       exception*

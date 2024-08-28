@@ -1,11 +1,10 @@
 ---
-created: '2021-07-14T12:39:39.776234Z'
+created: '2024-08-27T12:08:34.185163+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
 app-depth-1:
   hash: "b7de92d39e823772baa9a88863c07cab"
-  tree_label: "dlopen | stripped_application_code"
   component:
     app-depth-1*
       exception*
@@ -25,7 +24,6 @@ app-depth-1:
 --------------------------------------------------------------------------
 app-depth-max:
   hash: "3da34e8c72dbcd4a490ac36eb7130638"
-  tree_label: "dlopen | stripped_application_code | stripped_application_code"
   component:
     app-depth-max*
       exception*
@@ -187,7 +185,6 @@ app-depth-max:
 --------------------------------------------------------------------------
 system:
   hash: "ce2c54a64a92925680d18a24c0c88bda"
-  tree_label: "dlopen | stripped_application_code | stripped_application_code"
   component:
     system*
       exception*

@@ -1,11 +1,10 @@
 ---
-created: '2021-08-04T15:53:48.289594Z'
+created: '2024-08-27T12:08:34.431904+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
 app-depth-1:
   hash: "a12d579fed7636c2a5d2fae110c95ce5"
-  tree_label: "SampleScript.ThrowNull ()"
   component:
     app-depth-1*
       exception*
@@ -22,7 +21,6 @@ app-depth-1:
 --------------------------------------------------------------------------
 app-depth-max:
   hash: "a12d579fed7636c2a5d2fae110c95ce5"
-  tree_label: "SampleScript.ThrowNull ()"
   component:
     app-depth-max*
       exception*
@@ -39,7 +37,6 @@ app-depth-max:
 --------------------------------------------------------------------------
 system:
   hash: "c0dbeebf0430b3310ad1f7ceb48553a6"
-  tree_label: "SampleScript.ThrowNull () | UnityEngine.Events.InvokableCall.Invoke () | UnityEngine.Events.UnityEvent.Invoke () | UnityEngine.UI.Button.Press () | UnityEngine.UI.Button.OnPointerClick (UnityEngine.EventSystems.PointerEventData eventData) | UnityEngine.EventSystems.ExecuteEvents.Execute (UnityEngine.EventSystems.IPointerClickHandler handler, UnityEngine.EventSystems.BaseEventData eventData) | UnityEngine.EventSystems.ExecuteEvents.Execute[T] (UnityEngine.GameObject target, UnityEngine.EventSystems.BaseEventData eventData, UnityEngine.EventSystems.ExecuteEvents+EventFunction`1[T1] functor) | UnityEngine.EventSystems.EventSystem:Update()"
   component:
     system*
       exception*

@@ -1,11 +1,10 @@
 ---
-created: '2021-08-04T15:53:48.163399Z'
+created: '2024-08-27T12:08:35.039814+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
 app-depth-1:
   hash: null
-  tree_label: "_prefetch"
   component:
     app-depth-1 (custom fingerprint takes precedence)
       exception*
@@ -26,7 +25,6 @@ app-depth-1:
 --------------------------------------------------------------------------
 app-depth-2:
   hash: null
-  tree_label: "_prefetch | __init__"
   component:
     app-depth-2 (custom fingerprint takes precedence)
       exception*
@@ -56,7 +54,6 @@ app-depth-2:
 --------------------------------------------------------------------------
 app-depth-3:
   hash: null
-  tree_label: "_prefetch | __init__ | _get_chunked_blob"
   component:
     app-depth-3 (custom fingerprint takes precedence)
       exception*
@@ -95,7 +92,6 @@ app-depth-3:
 --------------------------------------------------------------------------
 app-depth-4:
   hash: null
-  tree_label: "_prefetch | __init__ | _get_chunked_blob | save_to"
   component:
     app-depth-4 (custom fingerprint takes precedence)
       exception*
@@ -143,7 +139,6 @@ app-depth-4:
 --------------------------------------------------------------------------
 app-depth-5:
   hash: null
-  tree_label: "_prefetch | __init__ | _get_chunked_blob | save_to | _load_cachefiles_via_fs"
   component:
     app-depth-5 (custom fingerprint takes precedence)
       exception*
@@ -200,7 +195,6 @@ app-depth-5:
 --------------------------------------------------------------------------
 app-depth-max:
   hash: null
-  tree_label: "_prefetch | __init__ | _get_chunked_blob | save_to | _load_cachefiles_via_fs | get_symcaches | __init__ | preprocess_step | process_stacktraces | _do_process_event | process_event | _wrapped"
   component:
     app-depth-max (custom fingerprint takes precedence)
       exception*
@@ -325,7 +319,6 @@ custom-fingerprint:
 --------------------------------------------------------------------------
 system:
   hash: null
-  tree_label: "soft_timeout_sighandler | wait | join | shutdown | __exit__ | _prefetch | __init__ | _get_chunked_blob | save_to | _load_cachefiles_via_fs | get_symcaches | __init__ | preprocess_step | process_stacktraces | _do_process_event | process_event | _wrapped"
   component:
     system (custom fingerprint takes precedence)
       exception*

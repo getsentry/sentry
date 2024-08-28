@@ -1,11 +1,10 @@
 ---
-created: '2021-08-04T15:53:49.773562Z'
+created: '2024-08-27T12:08:34.788148+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
 app-depth-1:
   hash: "b00d16c0cfb749738aa97ab643b896d6"
-  tree_label: "aha"
   component:
     app-depth-1*
       exception*
@@ -24,7 +23,6 @@ app-depth-1:
 --------------------------------------------------------------------------
 app-depth-2:
   hash: "73facb3a45e918c97815e79d62fc43b7"
-  tree_label: "aha | callAnotherThing"
   component:
     app-depth-2*
       exception*
@@ -50,7 +48,6 @@ app-depth-2:
 --------------------------------------------------------------------------
 app-depth-3:
   hash: "c10618815cb9d15b0e81ed312a98e876"
-  tree_label: "aha | callAnotherThing | callback"
   component:
     app-depth-3*
       exception*
@@ -83,7 +80,6 @@ app-depth-3:
 --------------------------------------------------------------------------
 app-depth-4:
   hash: "4f469a97e68ee14eaa6d2415d0dce221"
-  tree_label: "aha | callAnotherThing | callback"
   component:
     app-depth-4*
       exception*
@@ -121,7 +117,6 @@ app-depth-4:
 --------------------------------------------------------------------------
 app-depth-5:
   hash: "39d673f040bd575e7fcc952ca42d7a86"
-  tree_label: "aha | callAnotherThing | callback | test"
   component:
     app-depth-5*
       exception*
@@ -166,7 +161,6 @@ app-depth-5:
 --------------------------------------------------------------------------
 app-depth-max:
   hash: "b2602ad455472dede8e4c340d8a7eaba"
-  tree_label: "aha | callAnotherThing | callback | test | aha | testMethod"
   component:
     app-depth-max*
       exception*
@@ -230,7 +224,6 @@ app-depth-max:
 --------------------------------------------------------------------------
 system:
   hash: "b2602ad455472dede8e4c340d8a7eaba"
-  tree_label: "aha | callAnotherThing | callback | test | aha | testMethod"
   component:
     system*
       exception*

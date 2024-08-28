@@ -328,15 +328,9 @@ def get_hash_values(
             list(primary_hashes.hierarchical_hashes)
             + list(secondary_hashes and secondary_hashes.hierarchical_hashes or [])
         ),
-        tree_labels=(
-            primary_hashes.tree_labels or (secondary_hashes and secondary_hashes.tree_labels) or []
-        ),
         # We don't set a combo `variants` value here because one set of variants would/could
         # partially or fully overwrite the other (it's a dictionary), and having variants from two
         # different configs all mixed in together makes no sense.
     )
-
-    if all_hashes.tree_labels:
-        job["finest_tree_label"] = all_hashes.finest_tree_label
 
     return (primary_hashes, secondary_hashes, all_hashes)

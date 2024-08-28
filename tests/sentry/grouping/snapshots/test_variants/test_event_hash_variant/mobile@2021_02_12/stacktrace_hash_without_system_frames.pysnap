@@ -1,11 +1,10 @@
 ---
-created: '2021-08-31T10:25:52.848524Z'
+created: '2024-08-27T12:08:36.001848+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
 app-depth-1:
   hash: "1effb24729ae4c43efa36b460511136a"
-  tree_label: "foo.py"
   component:
     app-depth-1*
       stacktrace*
@@ -15,7 +14,6 @@ app-depth-1:
 --------------------------------------------------------------------------
 app-depth-max:
   hash: "1effb24729ae4c43efa36b460511136a"
-  tree_label: "foo.py"
   component:
     app-depth-max*
       stacktrace*
@@ -25,7 +23,6 @@ app-depth-max:
 --------------------------------------------------------------------------
 system:
   hash: "659ad79e2e70c822d30a53d7d889529e"
-  tree_label: "bar.py | foo.py"
   component:
     system*
       stacktrace*

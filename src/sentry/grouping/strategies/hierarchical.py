@@ -1,5 +1,3 @@
-from collections.abc import Iterable
-
 from sentry.grouping.component import GroupingComponent
 from sentry.grouping.strategies.base import ReturnedVariants
 
@@ -79,11 +77,7 @@ def get_stacktrace_hierarchy(
             layer = list(prev_variant.values)
             layer.extend(add_to_layer)
 
-        tree_label = _compute_tree_label(layer)
-
-        all_variants[key] = prev_variant = GroupingComponent(
-            id="stacktrace", values=layer, tree_label=tree_label
-        )
+        all_variants[key] = prev_variant = GroupingComponent(id="stacktrace", values=layer)
 
     if components and not all_variants:
         # In case we haven't found any sentinel frames, start grouping by
@@ -92,29 +86,7 @@ def get_stacktrace_hierarchy(
     else:
         all_variants["app-depth-max"] = main_variant
 
-    main_variant.update(tree_label=_compute_tree_label(main_variant.values))
-
     return all_variants
-
-
-def _compute_tree_label(components: Iterable[GroupingComponent]):
-    tree_label = []
-
-    for frame in components:
-        if frame.contributes and frame.tree_label:
-            lbl = dict(frame.tree_label)
-            if frame.is_sentinel_frame:
-                lbl["is_sentinel"] = True
-            if frame.is_prefix_frame:
-                lbl["is_prefix"] = True
-
-            tree_label.append(lbl)
-
-    # We assume all components are always sorted in the way frames appear in
-    # the event (threadbase -> crashing frame). Then we want to show the
-    # crashing frame/culprit at the front.
-    tree_label.reverse()
-    return tree_label
 
 
 def _build_fallback_tree(main_variant, components, frames, inverted_hierarchy):
@@ -147,7 +119,7 @@ def _build_fallback_tree(main_variant, components, frames, inverted_hierarchy):
     # If the blaming frame is in-app, only add in-app frames going forward
     # (otherwise add any frame).
     #
-    # This cuts away a lot of noise from tree_labels, and for e.g. Android ANRs
+    # This cuts away a lot of noise for e.g. Android ANRs
     # it still kind of works since either we find the view's onCreate function,
     # or some sentinel frame first.
     needs_in_app = frames[blaming_frame_idx]["in_app"]
@@ -178,20 +150,14 @@ def _build_fallback_tree(main_variant, components, frames, inverted_hierarchy):
         if len(prev_variant.values) == len(level_frames):
             break
 
-        tree_label = _compute_tree_label(level_frames)
-
         all_variants[key] = prev_variant = GroupingComponent(
             id="stacktrace",
             values=level_frames,
-            tree_label=tree_label,
         )
 
     level_frames = _assemble_level(None)
-    tree_label = _compute_tree_label(level_frames)
 
-    all_variants["app-depth-max"] = GroupingComponent(
-        id="stacktrace", values=level_frames, tree_label=tree_label
-    )
+    all_variants["app-depth-max"] = GroupingComponent(id="stacktrace", values=level_frames)
 
     return all_variants
 

@@ -1,11 +1,10 @@
 ---
-created: '2021-09-20T12:36:00.825449Z'
+created: '2024-08-27T12:08:34.909179+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
 app-depth-1:
   hash: "e0e7c4713e9092dc77635d5a0d5db31d"
-  tree_label: "_flushPointerEventQueue"
   component:
     app-depth-1*
       stacktrace*
@@ -19,7 +18,6 @@ app-depth-1:
 --------------------------------------------------------------------------
 app-depth-max:
   hash: "e0e7c4713e9092dc77635d5a0d5db31d"
-  tree_label: "_flushPointerEventQueue"
   component:
     app-depth-max*
       stacktrace*
@@ -33,7 +31,6 @@ app-depth-max:
 --------------------------------------------------------------------------
 system:
   hash: "e0e7c4713e9092dc77635d5a0d5db31d"
-  tree_label: "_flushPointerEventQueue"
   component:
     system*
       stacktrace*
