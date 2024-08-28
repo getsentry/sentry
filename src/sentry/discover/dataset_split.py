@@ -2,7 +2,17 @@ import logging
 from typing import Any
 
 import sentry_sdk
-from snuba_sdk import AliasedExpression, And, Column, Condition, CurriedFunction, Function, Op, Or
+from snuba_sdk import (
+    AliasedExpression,
+    And,
+    BooleanCondition,
+    Column,
+    Condition,
+    CurriedFunction,
+    Function,
+    Op,
+    Or,
+)
 
 from sentry.api.utils import get_date_range_from_stats_period
 from sentry.constants import ObjectStatus
@@ -84,11 +94,26 @@ def _save_split_decision_for_query(
     saved_query.save()
 
 
+def _get_top_level_filter_conditions(builder: ErrorsQueryBuilder | DiscoverQueryBuilder):
+    top_level_conditions: list[Condition | BooleanCondition] = []
+    for cond in builder.where:
+        if isinstance(cond, And) or isinstance(cond, Or):
+            top_level_conditions.extend(cond.conditions)
+        if isinstance(cond, Condition):
+            top_level_conditions.append(cond)
+
+    return top_level_conditions
+
+
 def _check_function_parameter_matches_dataset(
     function: Function | CurriedFunction,
     dataset: Dataset,
 ) -> bool:
     fields = TRANSACTION_ONLY_FIELDS if dataset == Dataset.Transactions else ERROR_ONLY_FIELDS
+    if dataset == Dataset.Events:
+        if function.function in ["isHandled", "notHandled"]:
+            return True
+
     for parameter in function.parameters:
         if isinstance(parameter, Column) and parameter.name in fields:
             return True
@@ -140,9 +165,6 @@ def _check_condition_matches_dataset(
 ) -> bool:
     lhs = cond.lhs
     if isinstance(lhs, Column):
-        if lhs.name == "type":
-            return _check_event_type_condition(cond, dataset)
-
         return _check_column_matches_dataset(lhs, dataset)
 
     if isinstance(lhs, Function) or isinstance(lhs, CurriedFunction):
@@ -151,18 +173,11 @@ def _check_condition_matches_dataset(
     return False
 
 
-def check_top_level_conditions_match_dataset(
+def _check_top_level_conditions_match_dataset(
     builder: ErrorsQueryBuilder | DiscoverQueryBuilder,
     dataset: Dataset,
 ):
-    top_level_conditions = []
-    for cond in builder.where:
-        if isinstance(cond, And) or isinstance(cond, Or):
-            top_level_conditions.extend(cond.conditions)
-        if isinstance(cond, Condition):
-            if _check_condition_matches_dataset(cond, dataset):
-                return True
-
+    top_level_conditions = _get_top_level_filter_conditions(builder)
     for cond in top_level_conditions:
         if isinstance(cond, Condition):
             if _check_condition_matches_dataset(cond, dataset):
@@ -171,7 +186,7 @@ def check_top_level_conditions_match_dataset(
     return False
 
 
-def check_selected_columns_match_dataset(
+def _check_selected_columns_match_dataset(
     builder: ErrorsQueryBuilder | DiscoverQueryBuilder,
     dataset: Dataset,
 ):
@@ -191,6 +206,19 @@ def check_selected_columns_match_dataset(
     return False
 
 
+def _check_event_type_filter(errors_builder):
+    top_level_conditions = _get_top_level_filter_conditions(errors_builder)
+
+    for cond in top_level_conditions:
+        if isinstance(cond, Condition):
+            lhs = cond.lhs
+            if isinstance(lhs, Column) and lhs.name == "type":
+                if _check_event_type_condition(cond, Dataset.Events):
+                    return DiscoverSavedQueryTypes.ERROR_EVENTS
+                if _check_event_type_condition(cond, Dataset.Transactions):
+                    return DiscoverSavedQueryTypes.TRANSACTION_LIKE
+
+
 def _dataset_split_decision_inferred_from_query(
     errors_builder: ErrorsQueryBuilder, transactions_builder: DiscoverQueryBuilder
 ):
@@ -198,16 +226,22 @@ def _dataset_split_decision_inferred_from_query(
     Infers split decision based on fields we know exclusively belong to one
     dataset or the other. Biases towards Errors dataset.
     """
-    if check_top_level_conditions_match_dataset(errors_builder, Dataset.Events):
+    # Check the event type filter against only the errors builder because we drop
+    # event type filter on transactions (since it's not a column on transactions).
+    event_type_filter = _check_event_type_filter(errors_builder)
+    if event_type_filter is not None:
+        return event_type_filter
+
+    if _check_top_level_conditions_match_dataset(errors_builder, Dataset.Events):
         return DiscoverSavedQueryTypes.ERROR_EVENTS
 
-    if check_selected_columns_match_dataset(errors_builder, Dataset.Events):
+    if _check_selected_columns_match_dataset(errors_builder, Dataset.Events):
         return DiscoverSavedQueryTypes.ERROR_EVENTS
 
-    if check_top_level_conditions_match_dataset(transactions_builder, Dataset.Transactions):
+    if _check_top_level_conditions_match_dataset(transactions_builder, Dataset.Transactions):
         return DiscoverSavedQueryTypes.TRANSACTION_LIKE
 
-    if check_selected_columns_match_dataset(transactions_builder, Dataset.Transactions):
+    if _check_selected_columns_match_dataset(transactions_builder, Dataset.Transactions):
         return DiscoverSavedQueryTypes.TRANSACTION_LIKE
 
     return None
@@ -268,6 +302,13 @@ def _get_snuba_dataclass(saved_query: DiscoverSavedQuery, projects: list[Project
 def _get_and_save_split_decision_for_query(
     saved_query: DiscoverSavedQuery, dry_run: bool
 ) -> tuple[int, bool]:
+    """
+    This function is called by the split_discover_query_dataset task
+    in tasks/split_discover_query_dataset.py. It contains logic specifically
+    to split a Discover Saved Query with "Discover" dataset type into
+    either Errors or Transactions.
+    """
+
     # We use all projects for the clickhouse query but don't do anything
     # with the data returned other than check if data exists. So this
     # all projects query should be a safe operation.

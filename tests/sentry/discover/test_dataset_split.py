@@ -1,18 +1,29 @@
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
+
+import pytest
 
 from sentry.discover.dataset_split import (
+    _dataset_split_decision_inferred_from_query,
     _get_and_save_split_decision_for_query,
-    get_snuba_dataclass,
+    _get_snuba_dataclass,
 )
-from sentry.discover.models import DiscoverSavedQuery
+from sentry.discover.models import DiscoverSavedQuery, DiscoverSavedQueryTypes
+from sentry.models.organization import Organization
+from sentry.models.project import Project
 from sentry.models.user import User
+from sentry.search.events.builder.discover import DiscoverQueryBuilder
+from sentry.search.events.builder.errors import ErrorsQueryBuilder
+from sentry.search.events.types import SnubaParams
+from sentry.snuba.dataset import Dataset
 from sentry.testutils.cases import SnubaTestCase, TestCase
+from sentry.testutils.factories import Factories
 from sentry.testutils.helpers.datetime import before_now, freeze_time, iso_format
+from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.testutils.silo import assume_test_silo_mode_of
 from sentry.utils.samples import load_data
 
 
-class DiscoverSavedQueryTestCase(TestCase, SnubaTestCase):
+class DiscoverSavedQueryDatasetSplitTestCase(TestCase, SnubaTestCase):
     def setUp(self):
         super().setUp()
         self.org = self.create_organization()
@@ -482,7 +493,7 @@ class DiscoverSavedQueryTestCase(TestCase, SnubaTestCase):
         )
 
         with self.options({"system.event-retention-days": 90}):
-            snuba_dataclass = get_snuba_dataclass(query, self.projects)
+            snuba_dataclass = _get_snuba_dataclass(query, self.projects)
 
         assert snuba_dataclass.start == datetime(2024, 4, 24, 12, 0, tzinfo=timezone.utc)
         assert snuba_dataclass.end == datetime(2024, 5, 1, 12, 0, tzinfo=timezone.utc)
@@ -509,7 +520,122 @@ class DiscoverSavedQueryTestCase(TestCase, SnubaTestCase):
             is_homepage=True,
         )
 
-        snuba_dataclass = get_snuba_dataclass(query, self.projects)
+        snuba_dataclass = _get_snuba_dataclass(query, self.projects)
 
         assert snuba_dataclass.start == datetime(2024, 5, 1, 11, 0, tzinfo=timezone.utc)
         assert snuba_dataclass.end == datetime(2024, 5, 1, 12, 0, tzinfo=timezone.utc)
+
+
+@pytest.fixture
+def owner() -> None:
+    return Factories.create_user()
+
+
+@pytest.fixture
+def organization(owner: User) -> None:
+    return Factories.create_organization(owner=owner)
+
+
+@pytest.fixture
+def project(organization: Organization) -> Project:
+    return Factories.create_project(organization=organization)
+
+
+@pytest.mark.parametrize(
+    ["query", "selected_columns", "expected_dataset"],
+    [
+        pytest.param("", ["count()"], None),
+        pytest.param(
+            "stack.filename:'../../sentry/scripts/views.js' AND (branch:foo OR branch:bar)",
+            ["count()"],
+            DiscoverSavedQueryTypes.ERROR_EVENTS,
+        ),
+        pytest.param(
+            "error.unhandled:true",
+            ["count()"],
+            DiscoverSavedQueryTypes.ERROR_EVENTS,
+        ),
+        pytest.param(
+            "(event:type:error AND branch:foo) OR (event:type:transaction AND branch:bar)",
+            ["count()"],
+            None,
+        ),
+        pytest.param(
+            "branch:foo branch:bar",
+            ["count()"],
+            None,
+        ),
+        pytest.param(
+            "branch:foo branch:bar",
+            ["stack.function", "avg(transaction.duration)"],
+            DiscoverSavedQueryTypes.ERROR_EVENTS,
+        ),
+        pytest.param(
+            "",
+            ["error.handled", "count()"],
+            DiscoverSavedQueryTypes.ERROR_EVENTS,
+        ),
+        pytest.param(
+            "transaction.duration:>100ms",
+            ["count()"],
+            DiscoverSavedQueryTypes.TRANSACTION_LIKE,
+        ),
+        pytest.param(
+            "tag:value event.type:transaction",
+            ["count()"],
+            DiscoverSavedQueryTypes.TRANSACTION_LIKE,
+        ),
+        pytest.param(
+            "(tag:value OR branch:foo) AND event.type:transaction",
+            ["count()"],
+            DiscoverSavedQueryTypes.TRANSACTION_LIKE,
+        ),
+        pytest.param(
+            "branch:foo branch:bar",
+            ["avg(transaction.duration)"],
+            DiscoverSavedQueryTypes.TRANSACTION_LIKE,
+        ),
+        pytest.param(
+            "branch:foo branch:bar",
+            ["p95(measurements.app_start_cold)"],
+            DiscoverSavedQueryTypes.TRANSACTION_LIKE,
+        ),
+    ],
+)
+@django_db_all
+def test_dataset_split_decision_inferred_from_query(
+    query: str, selected_columns: list[str], expected_dataset: int | None, project: Project
+):
+    snuba_dataclass = SnubaParams(
+        start=datetime.now() - timedelta(days=1),
+        end=datetime.now(),
+        environments=[],
+        projects=[project],
+        user=None,
+        teams=[],
+        organization=project.organization,
+    )
+
+    errors_builder = ErrorsQueryBuilder(
+        Dataset.Events,
+        params={},
+        snuba_params=snuba_dataclass,
+        query=query,
+        selected_columns=selected_columns,
+        equations=[],
+        limit=1,
+    )
+
+    transactions_builder = DiscoverQueryBuilder(
+        Dataset.Transactions,
+        params={},
+        snuba_params=snuba_dataclass,
+        query=query,
+        selected_columns=selected_columns,
+        equations=[],
+        limit=1,
+    )
+
+    assert expected_dataset == _dataset_split_decision_inferred_from_query(
+        errors_builder=errors_builder, transactions_builder=transactions_builder
+    )
