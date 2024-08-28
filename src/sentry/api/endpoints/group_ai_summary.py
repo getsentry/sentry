@@ -164,7 +164,8 @@ class GroupAiSummaryEndpoint(GroupEndpoint):
                 continue
             if e.group_id not in issue_ids:
                 issue_ids.add(e.group_id)
-                connected_issues.append(e.group)
+                if e.group:
+                    connected_issues.append(e.group)
         return connected_issues
 
     def post(self, request: Request, group: Group) -> Response:
@@ -177,7 +178,7 @@ class GroupAiSummaryEndpoint(GroupEndpoint):
 
         serialized_event, event = self._get_event(group, request.user)
 
-        if not serialized_event:
+        if not serialized_event or not event:
             return Response({"detail": "Could not find an event for the issue"}, status=400)
 
         # get trace connected issues
@@ -187,7 +188,8 @@ class GroupAiSummaryEndpoint(GroupEndpoint):
         serialized_events_for_connected_issues = []
         for issue in connected_issues:
             serialized_connected_event, _ = self._get_event(issue, request.user)
-            serialized_events_for_connected_issues.append(serialized_connected_event)
+            if serialized_connected_event:
+                serialized_events_for_connected_issues.append(serialized_connected_event)
 
         issue_summary = self._call_seer(
             group, serialized_event, connected_issues, serialized_events_for_connected_issues
