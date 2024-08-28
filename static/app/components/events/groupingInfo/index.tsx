@@ -162,6 +162,7 @@ export function EventGroupingInfo({
         )
       }
       type={SectionKey.GROUPING_INFO}
+      initialCollapse
     >
       {!openState ? <GroupInfoSummary groupInfo={groupInfo} /> : null}
       {openState ? (

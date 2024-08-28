@@ -22,7 +22,7 @@ export function getFoldSectionKey(key: SectionKey) {
   return `'issue-details-fold-section-collapse:${key}`;
 }
 
-interface FoldSectionProps {
+export interface FoldSectionProps {
   children: React.ReactNode;
   sectionKey: SectionKey;
   /**
