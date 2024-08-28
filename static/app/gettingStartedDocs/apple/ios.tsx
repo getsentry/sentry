@@ -9,6 +9,7 @@ import type {
   DocsParams,
   OnboardingConfig,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
+import {MobileBetaBanner} from 'sentry/components/onboarding/gettingStartedDoc/utils';
 import {metricTagsExplanation} from 'sentry/components/onboarding/gettingStartedDoc/utils/metricsOnboarding';
 import {appleFeedbackOnboarding} from 'sentry/gettingStartedDocs/apple/macos';
 import {t, tct} from 'sentry/locale';
@@ -243,6 +244,20 @@ const getVerifyMetricsSnippetObjC = () => `
   unit: [[SentryMeasurementUnit alloc] initWithUnit:@"username"]
   tags: @{ @"screen" : @"login" }
 ];`;
+
+const getReplaySetupSnippet = (params: Params) => `
+SentrySDK.start(configureOptions: { options in
+  options.dsn = "${params.dsn.public}"
+  options.debug = true
+
+  // Currently under experimental options:
+  options.experimental.sessionReplay.onErrorSampleRate = 1.0
+  options.experimental.sessionReplay.sessionSampleRate = 1.0
+})`;
+
+const getReplayConfigurationSnippet = () => `
+options.experimental.sessionReplay.redactAllText = true
+options.experimental.sessionReplay.redactAllImages = true`;
 
 const onboarding: OnboardingConfig<PlatformOptions> = {
   install: params =>
@@ -615,12 +630,74 @@ const metricsOnboarding: OnboardingConfig<PlatformOptions> = {
   ],
 };
 
+const replayOnboarding: OnboardingConfig<PlatformOptions> = {
+  introduction: () => (
+    <MobileBetaBanner link="https://docs.sentry.io/platforms/android/session-replay/" />
+  ),
+  install: (params: Params) => [
+    {
+      type: StepType.INSTALL,
+      description: t(
+        'Make sure your Sentry Cocoa SDK version is at least 8.31.1. To set up the integration, add the following to your Sentry initialization.'
+      ),
+      configurations: [
+        {
+          code: [
+            {
+              label: 'Swift',
+              value: 'swift',
+              language: 'swift',
+              code: getReplaySetupSnippet(params),
+            },
+          ],
+        },
+      ],
+    },
+  ],
+  configure: () => [
+    {
+      type: StepType.CONFIGURE,
+      description: tct(
+        'The SDK is aggressively redacting all text and images. We plan to add fine controls for redacting, but currently, we just allow either on or off. Learn more about configuring Session Replay by reading the [link:configuration docs].',
+        {
+          code: <code />,
+          link: (
+            <ExternalLink
+              href={
+                'https://docs.sentry.io/platforms/apple/guides/ios/session-replay/#privacy'
+              }
+            />
+          ),
+        }
+      ),
+      configurations: [
+        {
+          description: t(
+            'The following code is the default configuration, which masks and blocks everything.'
+          ),
+          code: [
+            {
+              label: 'Swift',
+              value: 'swift',
+              language: 'swift',
+              code: getReplayConfigurationSnippet(),
+            },
+          ],
+        },
+      ],
+    },
+  ],
+  verify: () => [],
+  nextSteps: () => [],
+};
+
 const docs: Docs<PlatformOptions> = {
   onboarding,
   feedbackOnboardingCrashApi: appleFeedbackOnboarding,
   crashReportOnboarding: appleFeedbackOnboarding,
   customMetricsOnboarding: metricsOnboarding,
   platformOptions,
+  replayOnboardingMobile: replayOnboarding,
 };
 
 export default docs;
