@@ -1,9 +1,10 @@
 ---
+created: '2024-08-27T12:08:34.920608+00:00'
+creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
 app-depth-1:
   hash: "990ec5d380997ca482658d52a98b8502"
-  tree_label: "runMicrotasks"
   component:
     app-depth-1*
       exception*
@@ -20,7 +21,6 @@ app-depth-1:
 --------------------------------------------------------------------------
 app-depth-2:
   hash: "b3d321fab1665166fb7cacfa975db4bb"
-  tree_label: "runMicrotasks | processTicksAndRejections"
   component:
     app-depth-2*
       exception*
@@ -44,7 +44,6 @@ app-depth-2:
 --------------------------------------------------------------------------
 app-depth-max:
   hash: "b3d321fab1665166fb7cacfa975db4bb"
-  tree_label: "runMicrotasks | processTicksAndRejections"
   component:
     app-depth-max*
       exception*
@@ -68,7 +67,6 @@ app-depth-max:
 --------------------------------------------------------------------------
 system:
   hash: "b3d321fab1665166fb7cacfa975db4bb"
-  tree_label: "runMicrotasks | processTicksAndRejections"
   component:
     system*
       exception*

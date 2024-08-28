@@ -40,43 +40,48 @@ export function AutoSizedText({children}: Props) {
 
       let iterationCount = 0;
 
-      const span = Sentry.startInactiveSpan({
-        op: 'function',
-        name: 'AutoSizedText.iterate',
-      });
+      Sentry.withScope(scope => {
+        const span = Sentry.startInactiveSpan({
+          op: 'function',
+          name: 'AutoSizedText.iterate',
+          forceTransaction: true,
+        });
 
-      // Run the resize iteration in a loop. This blocks the main UI thread and prevents
-      // visible layout jitter. If this was done through a `ResizeObserver` or React State
-      // each step in the resize iteration would be visible to the user
-      while (iterationCount <= ITERATION_LIMIT) {
-        const childDimensions = getElementDimensions(childElement);
+        // Run the resize iteration in a loop. This blocks the main UI thread and prevents
+        // visible layout jitter. If this was done through a `ResizeObserver` or React State
+        // each step in the resize iteration would be visible to the user
+        while (iterationCount <= ITERATION_LIMIT) {
+          const childDimensions = getElementDimensions(childElement);
 
-        const widthDifference = parentDimensions.width - childDimensions.width;
-        const heightDifference = parentDimensions.height - childDimensions.height;
+          const widthDifference = parentDimensions.width - childDimensions.width;
+          const heightDifference = parentDimensions.height - childDimensions.height;
 
-        const childFitsIntoParent = heightDifference > 0 && widthDifference > 0;
-        const childIsWithinWidthTolerance =
-          Math.abs(widthDifference) <= MAXIMUM_DIFFERENCE;
-        const childIsWithinHeightTolerance =
-          Math.abs(heightDifference) <= MAXIMUM_DIFFERENCE;
+          const childFitsIntoParent = heightDifference > 0 && widthDifference > 0;
+          const childIsWithinWidthTolerance =
+            Math.abs(widthDifference) <= MAXIMUM_DIFFERENCE;
+          const childIsWithinHeightTolerance =
+            Math.abs(heightDifference) <= MAXIMUM_DIFFERENCE;
 
-        if (
-          childFitsIntoParent &&
-          (childIsWithinWidthTolerance || childIsWithinHeightTolerance)
-        ) {
-          // Stop the iteration, we've found a fit!
-          span.setAttribute('widthDifference', widthDifference);
-          span.setAttribute('heightDifference', heightDifference);
-          break;
+          if (
+            childFitsIntoParent &&
+            (childIsWithinWidthTolerance || childIsWithinHeightTolerance)
+          ) {
+            // Stop the iteration, we've found a fit!
+            span.setAttribute('widthDifference', widthDifference);
+            span.setAttribute('heightDifference', heightDifference);
+            break;
+          }
+
+          adjustFontSize(childDimensions, parentDimensions);
+
+          iterationCount += 1;
         }
 
-        adjustFontSize(childDimensions, parentDimensions);
+        scope.setTag('didExceedIterationLimit', iterationCount >= ITERATION_LIMIT);
 
-        iterationCount += 1;
-      }
-
-      span.setAttribute('iterationCount', iterationCount);
-      span.end();
+        span.setAttribute('iterationCount', iterationCount);
+        span.end();
+      });
     });
 
     observer.observe(parentElement);
