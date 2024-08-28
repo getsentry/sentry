@@ -1,3 +1,4 @@
+import datetime
 from unittest.mock import ANY, Mock, patch
 
 from sentry.api.endpoints.group_ai_summary import SummarizeIssueResponse
@@ -46,7 +47,7 @@ class GroupAiSummaryEndpointTest(APITestCase, SnubaTestCase):
 
     @patch("sentry.api.endpoints.group_ai_summary.GroupAiSummaryEndpoint._get_event")
     def test_ai_summary_get_endpoint_without_event(self, mock_get_event):
-        mock_get_event.return_value = None
+        mock_get_event.return_value = [None, None]
 
         response = self.client.post(self.url, format="json")
 
@@ -54,11 +55,22 @@ class GroupAiSummaryEndpointTest(APITestCase, SnubaTestCase):
         assert response.data == {"detail": "Could not find an event for the issue"}
         assert cache.get(f"ai-group-summary:{self.group.id}") is None
 
+    @patch(
+        "sentry.api.endpoints.group_ai_summary.GroupAiSummaryEndpoint._get_trace_connected_issues"
+    )
     @patch("sentry.api.endpoints.group_ai_summary.GroupAiSummaryEndpoint._call_seer")
     @patch("sentry.api.endpoints.group_ai_summary.GroupAiSummaryEndpoint._get_event")
-    def test_ai_summary_get_endpoint_without_existing_summary(self, mock_get_event, mock_call_seer):
-        mock_event = {"id": "test_event_id", "data": "test_event_data"}
-        mock_get_event.return_value = mock_event
+    def test_ai_summary_get_endpoint_without_existing_summary(
+        self, mock_get_event, mock_call_seer, mock_get_connected_issues
+    ):
+        event = Mock(
+            id="test_event_id",
+            data="test_event_data",
+            trace_id="test_trace",
+            datetime=datetime.datetime.now(),
+        )
+        serialized_event = {"id": "test_event_id", "data": "test_event_data"}
+        mock_get_event.return_value = [serialized_event, event]
         mock_summary = SummarizeIssueResponse(
             group_id=str(self.group.id),
             summary="Test summary",
@@ -66,13 +78,20 @@ class GroupAiSummaryEndpointTest(APITestCase, SnubaTestCase):
             headline="Test headline",
         )
         mock_call_seer.return_value = mock_summary
+        mock_get_connected_issues.return_value = [self.group, self.group]
 
         response = self.client.post(self.url, format="json")
 
         assert response.status_code == 200
         assert response.data == convert_dict_key_case(mock_summary.dict(), snake_to_camel_case)
-        mock_get_event.assert_called_once_with(self.group, ANY)
-        mock_call_seer.assert_called_once_with(self.group, mock_event)
+        mock_get_event.assert_called_with(self.group, ANY)
+        assert mock_get_event.call_count == 3
+        mock_call_seer.assert_called_once_with(
+            self.group,
+            serialized_event,
+            [self.group, self.group],
+            [serialized_event, serialized_event],
+        )
 
         # Check if the cache was set correctly
         cached_summary = cache.get(f"ai-group-summary:{self.group.id}")
@@ -81,8 +100,14 @@ class GroupAiSummaryEndpointTest(APITestCase, SnubaTestCase):
     @patch("sentry.api.endpoints.group_ai_summary.requests.post")
     @patch("sentry.api.endpoints.group_ai_summary.GroupAiSummaryEndpoint._get_event")
     def test_ai_summary_call_seer(self, mock_get_event, mock_post):
+        event = Mock(
+            id="test_event_id",
+            data="test_event_data",
+            trace_id=None,
+            datetime=datetime.datetime.now(),
+        )
         serialized_event = {"id": "test_event_id", "data": "test_event_data"}
-        mock_get_event.return_value = serialized_event
+        mock_get_event.return_value = [serialized_event, event]
         mock_response = Mock()
         mock_response.json.return_value = {
             "group_id": str(self.group.id),
@@ -112,8 +137,14 @@ class GroupAiSummaryEndpointTest(APITestCase, SnubaTestCase):
                 "sentry.api.endpoints.group_ai_summary.GroupAiSummaryEndpoint._call_seer"
             ) as mock_call_seer,
         ):
-            mock_event = {"id": "test_event_id", "data": "test_event_data"}
-            mock_get_event.return_value = mock_event
+            event = Mock(
+                id="test_event_id",
+                data="test_event_data",
+                trace_id=None,
+                datetime=datetime.datetime.now(),
+            )
+            serialized_event = {"id": "test_event_id", "data": "test_event_data"}
+            mock_get_event.return_value = [serialized_event, event]
 
             mock_summary = SummarizeIssueResponse(
                 group_id=str(self.group.id),
