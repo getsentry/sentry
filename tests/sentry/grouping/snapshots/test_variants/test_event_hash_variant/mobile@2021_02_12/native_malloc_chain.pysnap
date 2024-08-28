@@ -1,11 +1,10 @@
 ---
-created: '2021-08-04T15:53:47.893224Z'
+created: '2024-08-27T12:08:35.515349+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
 app-depth-1:
   hash: "1523e835042dfe806fce37ff02ffa142"
-  tree_label: "application_frame"
   component:
     app-depth-1*
       exception*
@@ -20,7 +19,6 @@ app-depth-1:
 --------------------------------------------------------------------------
 app-depth-2:
   hash: "3ff01ce959249abecc6bc8a8f1432b0b"
-  tree_label: "malloc_zone_malloc | application_frame"
   component:
     app-depth-2*
       exception*
@@ -40,7 +38,6 @@ app-depth-2:
 --------------------------------------------------------------------------
 app-depth-max:
   hash: "3ff01ce959249abecc6bc8a8f1432b0b"
-  tree_label: "malloc_zone_malloc | application_frame"
   component:
     app-depth-max*
       exception*
@@ -60,7 +57,6 @@ app-depth-max:
 --------------------------------------------------------------------------
 system:
   hash: "d3c9685e03a527da49fc79412c994997"
-  tree_label: "malloc_zone_malloc | application_frame"
   component:
     system*
       exception*

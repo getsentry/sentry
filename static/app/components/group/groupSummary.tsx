@@ -2,6 +2,7 @@ import styled from '@emotion/styled';
 
 import FeatureBadge from 'sentry/components/badge/featureBadge';
 import {Button} from 'sentry/components/button';
+import {useAutofixSetup} from 'sentry/components/events/autofix/useAutofixSetup';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Panel from 'sentry/components/panels/panel';
 import Placeholder from 'sentry/components/placeholder';
@@ -9,6 +10,7 @@ import * as SidebarSection from 'sentry/components/sidebarSection';
 import {IconMegaphone} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import {IssueCategory} from 'sentry/types/group';
 import marked from 'sentry/utils/marked';
 import {type ApiQueryKey, useApiQuery} from 'sentry/utils/queryClient';
 import {useFeedbackForm} from 'sentry/utils/useFeedbackForm';
@@ -16,6 +18,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 import {useHasStreamlinedUI} from 'sentry/views/issueDetails/utils';
 
 interface GroupSummaryProps {
+  groupCategory: IssueCategory;
   groupId: string;
 }
 
@@ -26,7 +29,11 @@ interface GroupSummaryData {
   headline?: string;
 }
 
-const makeGroupSummaryQueryKey = (
+const isSummaryEnabled = (hasGenAIConsent: boolean, groupCategory: IssueCategory) => {
+  return hasGenAIConsent && groupCategory === IssueCategory.ERROR;
+};
+
+export const makeGroupSummaryQueryKey = (
   organizationSlug: string,
   groupId: string
 ): ApiQueryKey => [
@@ -34,15 +41,30 @@ const makeGroupSummaryQueryKey = (
   {method: 'POST'},
 ];
 
-export function useGroupSummary(groupId: string) {
+export function useGroupSummary(groupId: string, groupCategory: IssueCategory) {
   const organization = useOrganization();
+  // We piggyback and use autofix's genai consent check for now.
+  const {
+    data: autofixSetupData,
+    isPending: isAutofixSetupLoading,
+    isError: isAutofixSetupError,
+  } = useAutofixSetup({groupId});
 
-  return useApiQuery<GroupSummaryData>(
+  const hasGenAIConsent = autofixSetupData?.genAIConsent.ok ?? false;
+
+  const queryData = useApiQuery<GroupSummaryData>(
     makeGroupSummaryQueryKey(organization.slug, groupId),
     {
       staleTime: Infinity, // Cache the result indefinitely as it's unlikely to change if it's already computed
+      enabled: isSummaryEnabled(hasGenAIConsent, groupCategory),
     }
   );
+  return {
+    ...queryData,
+    isPending: isAutofixSetupLoading || queryData.isPending,
+    isError: queryData.isError || isAutofixSetupError,
+    hasGenAIConsent,
+  };
 }
 
 function GroupSummaryFeatureBadge() {
@@ -56,18 +78,25 @@ function GroupSummaryFeatureBadge() {
   );
 }
 
-export function GroupSummaryHeader({groupId}: GroupSummaryProps) {
-  const {data, isLoading, isError} = useGroupSummary(groupId);
+export function GroupSummaryHeader({groupId, groupCategory}: GroupSummaryProps) {
+  const {data, isPending, isError, hasGenAIConsent} = useGroupSummary(
+    groupId,
+    groupCategory
+  );
   const isStreamlined = useHasStreamlinedUI();
 
-  if (isError || (!isLoading && !data.headline)) {
+  if (
+    isError ||
+    (!isPending && !data?.headline) ||
+    !isSummaryEnabled(hasGenAIConsent, groupCategory)
+  ) {
     // Don't render the summary headline if there's an error, the error is already shown in the sidebar
     // If there is no headline we also don't want to render anything
     return null;
   }
 
   const renderContent = () => {
-    if (isLoading) {
+    if (isPending) {
       return <Placeholder height="19px" width="256px" />;
     }
 
@@ -82,10 +111,18 @@ export function GroupSummaryHeader({groupId}: GroupSummaryProps) {
   );
 }
 
-export function GroupSummary({groupId}: GroupSummaryProps) {
-  const {data, isLoading, isError} = useGroupSummary(groupId);
+export function GroupSummary({groupId, groupCategory}: GroupSummaryProps) {
+  const {data, isPending, isError, hasGenAIConsent} = useGroupSummary(
+    groupId,
+    groupCategory
+  );
 
   const openForm = useFeedbackForm();
+
+  if (!isSummaryEnabled(hasGenAIConsent, groupCategory)) {
+    // TODO: Render a banner for needing genai consent
+    return null;
+  }
 
   return (
     <SidebarSection.Wrap>
@@ -95,7 +132,7 @@ export function GroupSummary({groupId}: GroupSummaryProps) {
             <span>{t('Issue Summary')}</span>
             <GroupSummaryFeatureBadge />
           </StyledTitle>
-          {isLoading && <StyledLoadingIndicator size={16} mini />}
+          {isPending && <StyledLoadingIndicator size={16} mini />}
         </StyledTitleRow>
         <div>
           {isError ? <div>{t('Error loading summary')}</div> : null}
@@ -117,7 +154,7 @@ export function GroupSummary({groupId}: GroupSummaryProps) {
             </Content>
           )}
         </div>
-        {openForm && !isLoading && (
+        {openForm && !isPending && (
           <ButtonContainer>
             <Button
               onClick={() => {

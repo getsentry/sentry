@@ -132,7 +132,6 @@ def relay_from_id(request: Request, relay_id: str) -> tuple[Relay | None, bool]:
     else:
         try:
             relay = Relay.objects.get(relay_id=relay_id)
-            relay.is_internal = is_internal_relay(request, relay.public_key)
             return relay, False  # a Relay from the database
         except Relay.DoesNotExist:
             return None, False  # no Relay found
@@ -222,6 +221,9 @@ class RelayAuthentication(BasicAuthentication):
 
         if relay is None:
             raise AuthenticationFailed("Unknown relay")
+
+        if not static:
+            relay.is_internal = is_internal_relay(request, relay.public_key)
 
         try:
             data = relay.public_key_object.unpack(request.body, relay_sig, max_age=60 * 5)

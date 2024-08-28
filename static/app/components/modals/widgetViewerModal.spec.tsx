@@ -575,10 +575,12 @@ describe('Modals -> WidgetViewerModal', function () {
         expect(eventsMock).toHaveBeenCalledTimes(1);
         expect(screen.getByText('title')).toBeInTheDocument();
         await userEvent.click(screen.getByText('title'));
-        expect(initialData.router.push).not.toHaveBeenCalledWith({
-          pathname: '/mock-pathname/',
-          query: {sort: ['-title']},
-        });
+        expect(initialData.router.push).not.toHaveBeenCalledWith(
+          expect.objectContaining({
+            pathname: '/mock-pathname/',
+            query: {sort: ['-title']},
+          })
+        );
       });
 
       it('renders transaction summary link', async function () {
@@ -750,11 +752,12 @@ describe('Modals -> WidgetViewerModal', function () {
         await userEvent.click(await screen.findByText('count()'));
         expect(initialData.router.push).toHaveBeenCalledWith(
           expect.objectContaining({
-            query: {sort: ['-count()']},
+            pathname: '/mock-pathname/',
+            query: {sort: '-count()'},
           })
         );
         // Need to manually set the new router location and rerender to simulate the sortable column click
-        initialData.router.location.query = {sort: ['-count()']};
+        initialData.router.location.query = {sort: '-count()'};
         rerender(
           <WidgetViewerModal
             Header={stubEl}

@@ -86,7 +86,7 @@ export function AverageComparisonChart({chartHeight}: Props) {
   };
   const tableEventView = EventView.fromNewQueryWithLocation(newQuery, location);
 
-  const {data, isLoading} = useTableQuery({
+  const {data, isPending} = useTableQuery({
     eventView: tableEventView,
     enabled: !isReleasesLoading,
     referrer: 'api.starfish.mobile-startup-bar-chart',
@@ -122,7 +122,7 @@ export function AverageComparisonChart({chartHeight}: Props) {
         },
       ]}
       chartHeight={chartHeight}
-      isLoading={isLoading || isReleasesLoading}
+      isLoading={isPending || isReleasesLoading}
       chartKey={`averageStart`}
     />
   );

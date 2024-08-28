@@ -59,7 +59,7 @@ describe('EventNavigation', () => {
 
       render(<EventNavigation {...defaultProps} />);
 
-      await userEvent.click(screen.getByRole('tab', {name: 'First Event'}));
+      await userEvent.click(screen.getByRole('tab', {name: 'First'}));
 
       expect(browserHistory.push).toHaveBeenCalledWith({
         pathname: '/organizations/org-slug/issues/group-id/events/oldest/',
@@ -72,7 +72,7 @@ describe('EventNavigation', () => {
 
       render(<EventNavigation {...defaultProps} />);
 
-      await userEvent.click(screen.getByRole('tab', {name: 'Last Event'}));
+      await userEvent.click(screen.getByRole('tab', {name: 'Last'}));
 
       expect(browserHistory.push).toHaveBeenCalledWith({
         pathname: '/organizations/org-slug/issues/group-id/events/latest/',
@@ -89,7 +89,7 @@ describe('EventNavigation', () => {
         },
       });
 
-      await userEvent.click(screen.getByRole('tab', {name: 'Recommended Event'}));
+      await userEvent.click(screen.getByRole('tab', {name: 'Recommended'}));
 
       expect(browserHistory.push).toHaveBeenCalledWith({
         pathname: '/organizations/org-slug/issues/group-id/events/recommended/',

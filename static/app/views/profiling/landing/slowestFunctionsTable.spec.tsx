@@ -79,15 +79,7 @@ describe('SlowestFunctionsTable', () => {
     });
 
     render(<SlowestFunctionsTable />);
-    for (const value of [
-      'slow-function',
-      'slow-package',
-      '5k',
-      '1.50s',
-      '2.00s',
-      '3.00s',
-      '1.00min',
-    ]) {
+    for (const value of ['slow-function', 'slow-package', '1.50s', '2.00s', '3.00s']) {
       expect(await screen.findByText(value)).toBeInTheDocument();
     }
   });

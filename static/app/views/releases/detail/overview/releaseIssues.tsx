@@ -6,7 +6,7 @@ import * as qs from 'query-string';
 
 import type {Client} from 'sentry/api';
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
-import {Button} from 'sentry/components/button';
+import {LinkButton} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import GroupList from 'sentry/components/issues/groupList';
 import Pagination from 'sentry/components/pagination';
@@ -390,9 +390,9 @@ class ReleaseIssues extends Component<Props, State> {
           </GuideAnchor>
 
           <OpenInButtonBar gap={1}>
-            <Button to={this.getIssuesUrl()} size="xs">
+            <LinkButton to={this.getIssuesUrl()} size="xs">
               {t('Open in Issues')}
-            </Button>
+            </LinkButton>
 
             <StyledPagination pageLinks={pageLinks} onCursor={onCursor} size="xs" />
           </OpenInButtonBar>

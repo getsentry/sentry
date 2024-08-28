@@ -114,9 +114,6 @@ export function EventDetailsContent({
   const mechanism = event.tags?.find(({key}) => key === 'mechanism')?.value;
   const isANR = mechanism === 'ANR' || mechanism === 'AppExitInfo';
   const showPossibleSolutionsHigher = shouldShowCustomErrorResourceConfig(group, project);
-  const hasHierarchicalGrouping =
-    !!organization.features?.includes('grouping-stacktrace-ui') &&
-    !!(event.metadata.current_tree_label || event.metadata.finest_tree_label);
   const groupingCurrentLevel = group?.metadata?.current_level;
 
   const hasActionableItems = actionableItemsEnabled({
@@ -220,7 +217,7 @@ export function EventDetailsContent({
         />
       ) : null}
       {group.issueCategory === IssueCategory.UPTIME && (
-        <UptimeDataSection group={group} />
+        <UptimeDataSection event={event} project={project} group={group} />
       )}
       {group.issueCategory === IssueCategory.CRON && (
         <CronTimelineSection
@@ -250,7 +247,6 @@ export function EventDetailsContent({
             data={eventEntries[EntryType.EXCEPTION].data}
             projectSlug={projectSlug}
             groupingCurrentLevel={groupingCurrentLevel}
-            hasHierarchicalGrouping={hasHierarchicalGrouping}
           />
         </EntryErrorBoundary>
       )}
@@ -261,7 +257,6 @@ export function EventDetailsContent({
             data={eventEntries[EntryType.STACKTRACE].data}
             projectSlug={projectSlug}
             groupingCurrentLevel={groupingCurrentLevel}
-            hasHierarchicalGrouping={hasHierarchicalGrouping}
           />
         </EntryErrorBoundary>
       )}
@@ -272,7 +267,6 @@ export function EventDetailsContent({
             data={eventEntries[EntryType.THREADS].data}
             projectSlug={projectSlug}
             groupingCurrentLevel={groupingCurrentLevel}
-            hasHierarchicalGrouping={hasHierarchicalGrouping}
           />
         </EntryErrorBoundary>
       )}

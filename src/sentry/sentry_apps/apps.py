@@ -37,9 +37,12 @@ from sentry.sentry_apps.installations import (
     SentryAppInstallationCreator,
     SentryAppInstallationTokenCreator,
 )
-from sentry.sentry_apps.services.hook import hook_service
+from sentry.tasks.sentry_apps import create_or_update_service_hooks_for_sentry_app
 from sentry.users.models.user import User
 from sentry.users.services.user.model import RpcUser
+from sentry.utils.sentry_apps.service_hook_manager import (
+    create_or_update_service_hooks_for_installation,
+)
 
 Schema = Mapping[str, Any]
 
@@ -151,10 +154,9 @@ class SentryAppUpdater:
 
     def _update_scopes(self) -> None:
         if self.scopes is not None:
-            if (
-                self.sentry_app.status == SentryAppStatus.PUBLISHED
-                and self.sentry_app.scope_list != self.scopes
-            ):
+            if self.sentry_app.status == SentryAppStatus.PUBLISHED and set(
+                self.sentry_app.scope_list
+            ) != set(self.scopes):
                 raise APIError("Cannot update permissions on a published integration.")
 
             # We are using a pre_save signal to enforce scope hierarchy on the ApiToken model.
@@ -185,29 +187,30 @@ class SentryAppUpdater:
             self.sentry_app.events = expand_events(self.events)
 
     def _update_service_hooks(self) -> None:
-        hooks = hook_service.update_webhook_and_events(
-            organization_id=self.sentry_app.owner_id,
-            application_id=self.sentry_app.application_id,
+        if self.sentry_app.is_published:
+            # if it's a published integration, we need to do many updates so we have to do it in a task so we don't time out
+            # the client won't know it succeeds but there's not much we can do about that unfortunately
+            create_or_update_service_hooks_for_sentry_app.apply_async(
+                kwargs={
+                    "sentry_app_id": self.sentry_app.id,
+                    "webhook_url": self.sentry_app.webhook_url,
+                    "events": self.sentry_app.events,
+                }
+            )
+            return
+
+        # for unpublished integrations that aren't installed yet, we may not have an installation
+        # if we don't, then won't have any service hooks
+        try:
+            installation = SentryAppInstallation.objects.get(sentry_app_id=self.sentry_app.id)
+        except SentryAppInstallation.DoesNotExist:
+            return
+
+        create_or_update_service_hooks_for_installation(
+            installation=installation,
             webhook_url=self.sentry_app.webhook_url,
             events=self.sentry_app.events,
         )
-
-        # if we don't have hooks but we have a webhook url now, need to create it for an internal integration
-        if self.sentry_app.webhook_url and self.sentry_app.is_internal and not hooks:
-            installation = SentryAppInstallation.objects.get(sentry_app_id=self.sentry_app.id)
-            # Note that because the update transaction is disjoint with this transaction, it is still
-            # possible we redundantly create service hooks in the face of two concurrent requests.
-            # If this proves a problem, we would need to add an additional semantic, "only create if does not exist".
-            # But I think, it should be fine.
-            hook_service.create_service_hook(
-                application_id=self.sentry_app.application_id,
-                actor_id=installation.id,
-                installation_id=installation.id,
-                organization_id=self.sentry_app.owner_id,
-                project_ids=[],
-                events=self.sentry_app.events,
-                url=self.sentry_app.webhook_url,
-            )
 
     def _update_webhook_url(self) -> None:
         if self.webhook_url is not None:

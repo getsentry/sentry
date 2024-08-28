@@ -38,7 +38,7 @@ function MessagingIntegrationModal({
     {staleTime: Infinity}
   );
 
-  if (queryResults.some(({isLoading}) => isLoading)) {
+  if (queryResults.some(({isPending}) => isPending)) {
     return null;
   }
 

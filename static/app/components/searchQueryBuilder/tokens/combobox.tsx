@@ -110,6 +110,7 @@ type SearchQueryBuilderComboboxProps<T extends SelectOptionOrSectionWithKey<stri
 type OverlayProps = ReturnType<typeof useOverlay>['overlayProps'];
 
 export type CustomComboboxMenuProps<T> = {
+  filterValue: string;
   hiddenOptions: Set<SelectKey>;
   isOpen: boolean;
   listBoxProps: AriaListBoxOptions<T>;
@@ -277,6 +278,7 @@ function OverlayContent<T extends SelectOptionOrSectionWithKey<string>>({
       listBoxProps,
       state,
       overlayProps,
+      filterValue,
     });
   }
 
@@ -476,7 +478,12 @@ function SearchQueryBuilderComboboxInner<T extends SelectOptionOrSectionWithKey<
       }
       state.close();
     },
-    preventOverflowOptions: {boundary: document.body, altAxis: true},
+    shouldApplyMinWidth: false,
+    preventOverflowOptions: {boundary: document.body},
+    flipOptions: {
+      // We don't want the menu to ever flip to the other side of the input
+      fallbackPlacements: [],
+    },
   });
 
   const descriptionPopper = usePopper(

@@ -1432,7 +1432,6 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
             "type": "Foo",
             "value": "bar",
             "initial_priority": PriorityLevel.HIGH,
-            "display_title_with_tree_label": False,
         }
 
     def test_csp_event_type(self) -> None:
@@ -2193,40 +2192,6 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
                 event1.get_hashes().hashes
                 == event2.get_hashes(load_grouping_config(grouping_config)).hashes
             )
-
-    def test_write_none_tree_labels(self) -> None:
-        """Write tree labels even if None"""
-        # This suffers from the same "has to be mobile" situation as other tests, but here it
-        # doesn't matter, because this test will go away along with hierarchical grouping and the
-        # mobile config
-        self.project.update_option("sentry:grouping_config", "mobile:2021-02-12")
-
-        event_params = make_event(
-            platform="native",
-            exception={
-                "values": [
-                    {
-                        "type": "Hello",
-                        "stacktrace": {
-                            "frames": [
-                                {
-                                    "function": "<redacted>",
-                                },
-                                {
-                                    "function": "<redacted>",
-                                },
-                            ]
-                        },
-                    }
-                ]
-            },
-        )
-
-        manager = EventManager(event_params)
-        manager.normalize()
-        event = manager.save(self.project.id)
-
-        assert event.data["hierarchical_tree_labels"] == [None]
 
     def test_synthetic_exception_detection(self) -> None:
         # TODO: Really we should use DEFAULT_GROUPING_CONFIG here as the id (so that we don't have
