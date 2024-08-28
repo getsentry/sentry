@@ -116,8 +116,8 @@ def create_default_metric_alert_data(
         "environment": None,
         "resolveThreshold": None,
         "thresholdType": 0,
-        # Select the first team/user as the owner of the alert.
-        "owner": f"{target_type}:{target_ids[0]}",
+        # Owners can only be teams, and select the first passed in team if available.
+        "owner": f"team:{target_ids[0]}" if target_type == TargetType.TEAM else None,
         "name": "Send a notification for high number of errors",
         "projectId": str(project.id),
         "alertType": "num_errors",
