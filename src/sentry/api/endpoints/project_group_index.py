@@ -79,7 +79,7 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint, EnvironmentMixin):
                                    ``"is:unresolved"`` is assumed.)
         :qparam string environment: this restricts the issues to ones containing
                                     events from this environment
-        :qparam list hash: hashes of groups to return, overrides 'query' parameter, only returning list of groups found from hashes. The maximum number of hashes that can be sent is 100. If more are sent, only the first 100 will be used.
+        :qparam list hashes: hashes of groups to return, overrides 'query' parameter, only returning list of groups found from hashes. The maximum number of hashes that can be sent is 100. If more are sent, only the first 100 will be used.
         :pparam string organization_id_or_slug: the id or slug of the organization the
                                           issues belong to.
         :pparam string project_id_or_slug: the id or slug of the project the issues
@@ -102,7 +102,7 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint, EnvironmentMixin):
             stats_period=stats_period,
         )
 
-        hashes = request.GET.getlist("hash", [])
+        hashes = request.GET.getlist("hashes", [])
         query = request.GET.get("query", "").strip()
 
         if hashes:

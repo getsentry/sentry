@@ -360,7 +360,7 @@ class GroupListTest(APITestCase, SnubaTestCase):
 
         self.login_as(user=self.user)
 
-        response = self.client.get(f"{self.path}?hash={event.get_primary_hash()}")
+        response = self.client.get(f"{self.path}?hashes={event.get_primary_hash()}")
         assert response.status_code == 200
         assert len(response.data) == 1
 
@@ -377,7 +377,7 @@ class GroupListTest(APITestCase, SnubaTestCase):
         self.login_as(user=self.user)
 
         response = self.client.get(
-            f"{self.path}?hash={event.get_primary_hash()}&hash={event2.get_primary_hash()}"
+            f"{self.path}?hashes={event.get_primary_hash()}&hashes={event2.get_primary_hash()}"
         )
         assert response.status_code == 200
         assert len(response.data) == 2
