@@ -166,20 +166,26 @@ function AccountClose() {
 
           {organizations?.map(({organization, singleOwner}) => (
             <PanelItem key={organization.slug}>
-              <Checkbox
+              <label
                 css={{
-                  marginRight: 6,
                   display: 'flex',
                   alignItems: 'center',
                 }}
-                name="organizations"
-                checked={orgsToRemove.has(organization.slug)}
-                disabled={singleOwner}
-                value={organization.slug}
-                onChange={evt => handleChange(organization, singleOwner, evt)}
-                size="sm"
-              />
-              {organization.slug}
+              >
+                <Checkbox
+                  css={{
+                    marginRight: 6,
+                  }}
+                  name="organizations"
+                  checked={orgsToRemove.has(organization.slug)}
+                  disabled={singleOwner}
+                  value={organization.slug}
+                  onChange={evt => handleChange(organization, singleOwner, evt)}
+                  size="sm"
+                  role="checkbox"
+                />
+                {organization.slug}
+              </label>
             </PanelItem>
           ))}
         </PanelBody>
