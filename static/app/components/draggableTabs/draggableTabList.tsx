@@ -261,6 +261,7 @@ const AddViewButton = styled(Button)`
   font-weight: normal;
   padding: ${space(0.5)};
   transform: translateY(1px);
+  margin-right: ${space(0.5)};
 `;
 
 const StyledIconAdd = styled(IconAdd)`
