@@ -6,6 +6,7 @@ import NegativeSpaceContainer from 'sentry/components/container/negativeSpaceCon
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import BufferingOverlay from 'sentry/components/replays/player/bufferingOverlay';
 import FastForwardBadge from 'sentry/components/replays/player/fastForwardBadge';
+import {baseReplayerCss} from 'sentry/components/replays/player/styles';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -177,26 +178,7 @@ const PositionedLoadingIndicator = styled(LoadingIndicator)`
 
 // Base styles, to make the Replayer instance work
 const PlayerRoot = styled(BasePlayerRoot)`
-  .replayer-wrapper {
-    user-select: none;
-  }
-
-  .replayer-wrapper > .replayer-mouse {
-    pointer-events: none;
-  }
-  .replayer-wrapper > .replayer-mouse-tail {
-    position: absolute;
-    pointer-events: none;
-  }
-
-  /* Override default user-agent styles */
-  .replayer-wrapper > iframe {
-    border: none;
-    background: white;
-
-    /* Set pointer-events to make it easier to right-click & inspect */
-    pointer-events: initial !important;
-  }
+  ${baseReplayerCss}
 `;
 
 // Sentry-specific styles for the player.
