@@ -1,11 +1,10 @@
 ---
-created: '2021-08-30T08:43:02.178421Z'
+created: '2024-08-27T12:08:35.268226+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
 app-depth-1:
   hash: "f3ec8ea1fb4f1f7f6598f6f935cd43a6"
-  tree_label: "eventFromException"
   component:
     app-depth-1*
       exception*
@@ -24,7 +23,6 @@ app-depth-1:
 --------------------------------------------------------------------------
 app-depth-2:
   hash: "d5ccedb70f6a8e9203070b7239258834"
-  tree_label: "eventFromException | captureException"
   component:
     app-depth-2*
       exception*
@@ -52,7 +50,6 @@ app-depth-2:
 --------------------------------------------------------------------------
 app-depth-3:
   hash: "c35317b0e34b5148a5be409a656af7ff"
-  tree_label: "eventFromException | captureException | invokeClient"
   component:
     app-depth-3*
       exception*
@@ -89,7 +86,6 @@ app-depth-3:
 --------------------------------------------------------------------------
 app-depth-4:
   hash: "0824915a9819f48054d20b6003199d87"
-  tree_label: "eventFromException | captureException | invokeClient | captureException"
   component:
     app-depth-4*
       exception*
@@ -135,7 +131,6 @@ app-depth-4:
 --------------------------------------------------------------------------
 app-depth-5:
   hash: "d50c59998b650da06b01b9f2b8ecc2f7"
-  tree_label: "eventFromException | captureException | invokeClient | captureException"
   component:
     app-depth-5*
       exception*
@@ -188,7 +183,6 @@ app-depth-5:
 --------------------------------------------------------------------------
 app-depth-max:
   hash: "a20509269752c9a1bea6078851e4d39c"
-  tree_label: "eventFromException | captureException | invokeClient | captureException | withScope"
   component:
     app-depth-max*
       exception*
@@ -250,7 +244,6 @@ app-depth-max:
 --------------------------------------------------------------------------
 system:
   hash: "252dc79eb5653bf822e2684d90734cb8"
-  tree_label: "eventFromException | captureException | invokeClient | captureException | <anonymous> | finalReturnValue | <anonymous> | mockConstructor [as captureException] | withScope"
   component:
     system*
       exception*

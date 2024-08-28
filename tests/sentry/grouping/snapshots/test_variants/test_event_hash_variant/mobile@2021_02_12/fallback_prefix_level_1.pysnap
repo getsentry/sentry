@@ -1,11 +1,10 @@
 ---
-created: '2021-08-05T16:10:40.444237Z'
+created: '2024-08-27T12:08:35.290020+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
 app-depth-1:
   hash: "972a7e3aa49f6619550683c8202b05d4"
-  tree_label: "-[UIApplication _run]"
   component:
     app-depth-1*
       exception*
@@ -18,7 +17,6 @@ app-depth-1:
 --------------------------------------------------------------------------
 app-depth-max:
   hash: "87497299851e09febfecf4e84e0d45ba"
-  tree_label: "objc_release | -[UIApplication _run]"
   component:
     app-depth-max*
       exception*
@@ -46,7 +44,6 @@ app-depth-max:
 --------------------------------------------------------------------------
 system:
   hash: "87497299851e09febfecf4e84e0d45ba"
-  tree_label: "objc_release | -[UIApplication _run]"
   component:
     system*
       exception*

@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from collections.abc import Generator, Iterable, Iterator, Sequence
+from collections.abc import Generator, Iterator, Sequence
 from typing import Any
 
 from sentry.grouping.utils import hash_from_values
@@ -29,15 +29,6 @@ def _calculate_contributes(values: Sequence[str | GroupingComponent]) -> bool:
     return False
 
 
-def calculate_tree_label(
-    values: Iterable[str | GroupingComponent],
-) -> dict[str, str | GroupingComponent | None] | None:
-    for value in values or ():
-        if isinstance(value, GroupingComponent) and value.contributes and value.tree_label:
-            return value.tree_label
-    return {}
-
-
 class GroupingComponent:
     """A grouping component is a recursive structure that is flattened
     into components to make a hash for grouping purposes.
@@ -50,7 +41,6 @@ class GroupingComponent:
         contributes: bool | None = None,
         values: Sequence[str | GroupingComponent] | None = None,
         variant_provider: bool = False,
-        tree_label: dict[str, str | GroupingComponent | None] | None = None,
         is_prefix_frame: bool = False,
         is_sentinel_frame: bool = False,
     ):
@@ -61,7 +51,6 @@ class GroupingComponent:
         self.contributes = contributes
         self.variant_provider = variant_provider
         self.values: Sequence[str | GroupingComponent] = []
-        self.tree_label = tree_label
         self.is_prefix_frame = is_prefix_frame
         self.is_sentinel_frame = is_sentinel_frame
 
@@ -69,7 +58,6 @@ class GroupingComponent:
             hint=hint,
             contributes=contributes,
             values=values,
-            tree_label=tree_label,
             is_prefix_frame=is_prefix_frame,
             is_sentinel_frame=is_sentinel_frame,
         )
@@ -125,7 +113,6 @@ class GroupingComponent:
         hint: str | None = None,
         contributes: bool | None = None,
         values: Sequence[str | GroupingComponent] | None = None,
-        tree_label: dict[str, str | GroupingComponent | None] | None = None,
         is_prefix_frame: bool | None = None,
         is_sentinel_frame: bool | None = None,
     ) -> None:
@@ -135,13 +122,9 @@ class GroupingComponent:
         if values is not None:
             if contributes is None:
                 contributes = _calculate_contributes(values)
-            if tree_label is None:
-                tree_label = calculate_tree_label(values)
             self.values = values
         if contributes is not None:
             self.contributes = contributes
-        if tree_label is not None:
-            self.tree_label = tree_label
         if is_prefix_frame is not None:
             self.is_prefix_frame = is_prefix_frame
         if is_sentinel_frame is not None:

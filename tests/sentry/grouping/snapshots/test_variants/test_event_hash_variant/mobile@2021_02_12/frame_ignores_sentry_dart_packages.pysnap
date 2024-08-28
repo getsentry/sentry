@@ -1,11 +1,10 @@
 ---
-created: '2024-06-05T14:22:40.667888+00:00'
+created: '2024-08-27T12:08:35.335763+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
 app-depth-1:
   hash: "e10a3875f73ec3361d0dddd2ae273c4a"
-  tree_label: "SentryDrift.drift"
   component:
     app-depth-1*
       stacktrace*
@@ -17,7 +16,6 @@ app-depth-1:
 --------------------------------------------------------------------------
 app-depth-2:
   hash: "f1885edef882cf108468d65d2d096993"
-  tree_label: "SentryDrift.drift | SentrySqflite.sqflite"
   component:
     app-depth-2*
       stacktrace*
@@ -34,7 +32,6 @@ app-depth-2:
 --------------------------------------------------------------------------
 app-depth-3:
   hash: "36b0fd388c246ad386048546d60352f0"
-  tree_label: "SentryDrift.drift | SentrySqflite.sqflite | SentryIsar.isar"
   component:
     app-depth-3*
       stacktrace*
@@ -56,7 +53,6 @@ app-depth-3:
 --------------------------------------------------------------------------
 app-depth-4:
   hash: "cce67867706823ac00a254dd8281e25f"
-  tree_label: "SentryDrift.drift | SentrySqflite.sqflite | SentryIsar.isar | SentryHive.hive"
   component:
     app-depth-4*
       stacktrace*
@@ -83,7 +79,6 @@ app-depth-4:
 --------------------------------------------------------------------------
 app-depth-5:
   hash: "3a36778c4dc968ce25730308094e9cec"
-  tree_label: "SentryDrift.drift | SentrySqflite.sqflite | SentryIsar.isar | SentryHive.hive | SentryFile.file"
   component:
     app-depth-5*
       stacktrace*
@@ -115,7 +110,6 @@ app-depth-5:
 --------------------------------------------------------------------------
 app-depth-max:
   hash: "278cdd35be92e2ffde1d0a40524e7786"
-  tree_label: "SentryDrift.drift | SentrySqflite.sqflite | SentryIsar.isar | SentryHive.hive | SentryFile.file | SentryDio.dio | SentryLogging.log"
   component:
     app-depth-max*
       stacktrace*
@@ -157,7 +151,6 @@ app-depth-max:
 --------------------------------------------------------------------------
 system:
   hash: "278cdd35be92e2ffde1d0a40524e7786"
-  tree_label: "SentryDrift.drift | SentrySqflite.sqflite | SentryIsar.isar | SentryHive.hive | SentryFile.file | SentryDio.dio | SentryLogging.log"
   component:
     system*
       stacktrace*

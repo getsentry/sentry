@@ -1,11 +1,10 @@
 ---
-created: '2021-08-09T15:01:27.770367Z'
+created: '2024-08-27T12:08:34.448279+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
 app-depth-1:
   hash: "aeed765d29d1a60cb094f66d2cd8efb2"
-  tree_label: "stripped_application_code"
   component:
     app-depth-1*
       exception*
@@ -20,7 +19,6 @@ app-depth-1:
 --------------------------------------------------------------------------
 app-depth-2:
   hash: "3cd20dc9b7e7fea3e8575c7cae7b76c2"
-  tree_label: "abort | stripped_application_code | stripped_application_code"
   component:
     app-depth-2*
       exception*
@@ -43,7 +41,6 @@ app-depth-2:
 --------------------------------------------------------------------------
 app-depth-3:
   hash: "6816ce334af8d6b9fb66dc1265c9fccc"
-  tree_label: "abort | stripped_application_code | stripped_application_code | stripped_application_code"
   component:
     app-depth-3*
       exception*
@@ -69,7 +66,6 @@ app-depth-3:
 --------------------------------------------------------------------------
 app-depth-4:
   hash: "26eb79a70b1adbd61006c21288099591"
-  tree_label: "abort | stripped_application_code | stripped_application_code | stripped_application_code | stripped_application_code"
   component:
     app-depth-4*
       exception*
@@ -98,7 +94,6 @@ app-depth-4:
 --------------------------------------------------------------------------
 app-depth-5:
   hash: "1056f62d72ff8b4d0c3842d696dbb10a"
-  tree_label: "abort | stripped_application_code | stripped_application_code | stripped_application_code | stripped_application_code | stripped_application_code"
   component:
     app-depth-5*
       exception*
@@ -130,7 +125,6 @@ app-depth-5:
 --------------------------------------------------------------------------
 app-depth-max:
   hash: "1056f62d72ff8b4d0c3842d696dbb10a"
-  tree_label: "abort | stripped_application_code | stripped_application_code | stripped_application_code | stripped_application_code | stripped_application_code"
   component:
     app-depth-max*
       exception*
@@ -162,7 +156,6 @@ app-depth-max:
 --------------------------------------------------------------------------
 system:
   hash: "9b0dde4e9eb497e303a5de05fb627121"
-  tree_label: "abort | stripped_application_code | stripped_application_code | stripped_application_code | stripped_application_code | stripped_application_code"
   component:
     system*
       exception*

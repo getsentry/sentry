@@ -1,11 +1,10 @@
 ---
-created: '2021-08-04T15:53:47.104225Z'
+created: '2024-08-27T12:08:34.142912+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
 app-depth-1:
   hash: "8916e86cfaa7898cdeece0f4d8035ba5"
-  tree_label: "Get"
   component:
     app-depth-1*
       exception*
@@ -24,7 +23,6 @@ app-depth-1:
 --------------------------------------------------------------------------
 app-depth-2:
   hash: "228c649a3aa0901622c0a0e66ab0522c"
-  tree_label: "Get | lambda_method"
   component:
     app-depth-2*
       exception*
@@ -48,7 +46,6 @@ app-depth-2:
 --------------------------------------------------------------------------
 app-depth-max:
   hash: "228c649a3aa0901622c0a0e66ab0522c"
-  tree_label: "Get | lambda_method"
   component:
     app-depth-max*
       exception*
@@ -79,7 +76,6 @@ default:
 --------------------------------------------------------------------------
 system:
   hash: "4ccd0f1953483581ba360c7518f90332"
-  tree_label: "Get | lambda_method | Execute | Execute | InvokeActionMethodAsync | Throw | HandleNonSuccessAndDebuggerNotification | InvokeNextActionFilterAsync | Throw | Rethrow | Next | InvokeInnerFilterAsync | Throw | HandleNonSuccessAndDebuggerNotification | InvokeNextResourceFilter | Throw | Rethrow | Next | InvokeFilterPipelineAsync | Throw | HandleNonSuccessAndDebuggerNotification | InvokeAsync | Throw | HandleNonSuccessAndDebuggerNotification | Invoke | Throw | HandleNonSuccessAndDebuggerNotification | Invoke | Throw | HandleNonSuccessAndDebuggerNotification | Invoke"
   component:
     system*
       exception*

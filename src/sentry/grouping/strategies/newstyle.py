@@ -7,7 +7,7 @@ from collections.abc import Generator
 from typing import Any
 
 from sentry.eventstore.models import Event
-from sentry.grouping.component import GroupingComponent, calculate_tree_label
+from sentry.grouping.component import GroupingComponent
 from sentry.grouping.strategies.base import (
     GroupingContext,
     ReturnedVariants,
@@ -156,11 +156,6 @@ def get_filename_component(
             filename_component.update(values=[new_filename], hint="cleaned javassist parts")
             filename = new_filename
 
-    # Best-effort to show a very short filename in the title. We truncate it to
-    # basename so technically there can be two issues that differ in filename
-    # paths but end up having the same title.
-    filename_component.update(tree_label={"filebase": get_basename(filename)})
-
     return filename_component
 
 
@@ -207,11 +202,6 @@ def get_module_component(
                 module = _java_hibernate_proxy_re.sub(r"\1<auto>", module)
             if module != old_module:
                 module_component.update(values=[module], hint="removed codegen marker")
-
-        for part in reversed(module.split(".")):
-            if "$" not in part:
-                module_component.update(tree_label={"classbase": part})
-                break
 
     return module_component
 
@@ -323,9 +313,6 @@ def get_function_component(
                 hint="ignored because sourcemap used and context line available",
             )
 
-    if function_component.values and context["hierarchical_grouping"]:
-        function_component.update(tree_label={"function": function_component.values[0]})
-
     return function_component
 
 
@@ -376,11 +363,6 @@ def frame(
 
     values = [module_component, filename_component, function_component]
     if context_line_component is not None:
-        # Typically we want to add whichever frame component contributes to
-        # the title. In JS, frames are hashed by source context, which we
-        # cannot show. In that case we want to show something else instead
-        # of hiding the frame from the title as if it didn't contribute.
-        context_line_component.update(tree_label=function_component.tree_label)
         values.append(context_line_component)
 
     if (
@@ -409,9 +391,6 @@ def frame(
                 package_component.update(
                     contributes=False, hint="ignored because function takes precedence"
                 )
-
-            if package_component.values and context["hierarchical_grouping"]:
-                package_component.update(tree_label={"package": package_component.values[0]})
 
             values.append(package_component)
 
@@ -445,21 +424,6 @@ def frame(
 
     if context["is_recursion"]:
         rv.update(contributes=False, hint="ignored due to recursion")
-
-    if rv.contributes:
-        tree_label = {}
-
-        for value in rv.values:
-            if isinstance(value, GroupingComponent) and value.contributes and value.tree_label:
-                tree_label.update(value.tree_label)
-
-        if tree_label and context["hierarchical_grouping"]:
-            tree_label["datapath"] = frame.datapath
-            rv.tree_label = tree_label
-        else:
-            # The frame contributes (somehow) but we have nothing meaningful to
-            # show.
-            rv.tree_label = None
 
     return {context["variant"]: rv}
 
@@ -728,7 +692,6 @@ def chained_exception(
         rv[name] = GroupingComponent(
             id="chained-exception",
             values=component_list,
-            tree_label=calculate_tree_label(reversed(component_list)),
         )
 
     return rv

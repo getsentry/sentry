@@ -1,11 +1,10 @@
 ---
-created: '2021-07-14T12:39:41.772766Z'
+created: '2024-08-27T12:08:35.399771+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
 app-depth-1:
   hash: "40019a41fe12c75d56cbdba3707ac3e9"
-  tree_label: "gldCreateDevice | glDeleteTextures_Exec"
   component:
     app-depth-1*
       exception*
@@ -27,7 +26,6 @@ app-depth-1:
 --------------------------------------------------------------------------
 app-depth-max:
   hash: "9c336f632f6764c0f082a6a66edbf22d"
-  tree_label: "abort | gldCreateDevice | glDeleteTextures_Exec | stripped_application_code | stripped_application_code | stripped_application_code"
   component:
     app-depth-max*
       exception*
@@ -147,7 +145,6 @@ app-depth-max:
 --------------------------------------------------------------------------
 system:
   hash: "c0251b4eb750ee0b7e6e19aaa1abea3d"
-  tree_label: "abort | gldCreateDevice | glDeleteTextures_Exec | stripped_application_code | stripped_application_code | stripped_application_code"
   component:
     system*
       exception*

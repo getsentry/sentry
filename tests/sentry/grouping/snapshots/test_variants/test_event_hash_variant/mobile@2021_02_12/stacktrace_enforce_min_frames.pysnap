@@ -1,11 +1,10 @@
 ---
-created: '2021-08-04T15:53:48.001384Z'
+created: '2024-08-27T12:08:35.001026+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
 app-depth-1:
   hash: "eb87c1031dba55b67df86fb9fff59dc6"
-  tree_label: "log_demo::main"
   component:
     app-depth-1*
       exception*
@@ -22,7 +21,6 @@ app-depth-1:
 --------------------------------------------------------------------------
 app-depth-max:
   hash: "eb87c1031dba55b67df86fb9fff59dc6"
-  tree_label: "log_demo::main"
   component:
     app-depth-max*
       exception*
@@ -39,7 +37,6 @@ app-depth-max:
 --------------------------------------------------------------------------
 system:
   hash: "cb57cfc73cc622c2ac1386c9ea531fb9"
-  tree_label: "log::__private_api_log | log_demo::main | std::panicking::try::do_call | ___rust_maybe_catch_panic | std::rt::lang_start_internal | _main"
   component:
     system*
       exception*

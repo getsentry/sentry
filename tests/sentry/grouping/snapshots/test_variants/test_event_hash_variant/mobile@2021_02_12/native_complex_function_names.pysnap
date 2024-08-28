@@ -1,11 +1,10 @@
 ---
-created: '2021-08-04T15:53:48.799706Z'
+created: '2024-08-27T12:08:35.665060+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
 app-depth-1:
   hash: "8f4c7709e4af98d3c47ce3519690e6d9"
-  tree_label: "Scaleform::GFx::AS3::IMEManager::DispatchEvent"
   component:
     app-depth-1*
       exception*
@@ -20,7 +19,6 @@ app-depth-1:
 --------------------------------------------------------------------------
 app-depth-2:
   hash: "9b78cced1eefcd0c655a0a3d8ce2cdd2"
-  tree_label: "Scaleform::GFx::AS3::IMEManager::DispatchEvent | Scaleform::GFx::IME::GImeNamesManagerVista::OnActivated"
   component:
     app-depth-2*
       exception*
@@ -38,7 +36,6 @@ app-depth-2:
 --------------------------------------------------------------------------
 app-depth-max:
   hash: "9b78cced1eefcd0c655a0a3d8ce2cdd2"
-  tree_label: "Scaleform::GFx::AS3::IMEManager::DispatchEvent | Scaleform::GFx::IME::GImeNamesManagerVista::OnActivated"
   component:
     app-depth-max*
       exception*
@@ -56,7 +53,6 @@ app-depth-max:
 --------------------------------------------------------------------------
 system:
   hash: "d6125002ce075cab3755011dddefe9e1"
-  tree_label: "Scaleform::GFx::AS3::IMEManager::DispatchEvent | Scaleform::GFx::IME::GImeNamesManagerVista::OnActivated"
   component:
     system*
       exception*

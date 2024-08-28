@@ -1,11 +1,10 @@
 ---
-created: '2021-07-14T12:39:41.542601Z'
+created: '2024-08-27T12:08:35.302979+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
 app-depth-1:
   hash: "99c9ddaf52b5ae7eebc8965606c28328"
-  tree_label: "nvwgf2umx.dll | NOutermost::CDeviceChild::LUCBeginLayerDestruction"
   component:
     app-depth-1*
       exception*
@@ -25,7 +24,6 @@ app-depth-1:
 --------------------------------------------------------------------------
 app-depth-max:
   hash: "f7257ec144c61a9da89b30a65eaa616e"
-  tree_label: "nvwgf2umx.dll | NOutermost::CDeviceChild::LUCBeginLayerDestruction | destructor' | CUseCountedObject<T>::UCDestroy"
   component:
     app-depth-max*
       exception*
@@ -73,7 +71,6 @@ app-depth-max:
 --------------------------------------------------------------------------
 system:
   hash: "4236678d0966dc8f76f7a5a7ebfc4550"
-  tree_label: "nvwgf2umx.dll | NOutermost::CDeviceChild::LUCBeginLayerDestruction | destructor' | CUseCountedObject<T>::UCDestroy"
   component:
     system*
       exception*
