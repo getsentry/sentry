@@ -8,7 +8,7 @@ from django.urls import NoReverseMatch, reverse
 from sentry import options
 from sentry.testutils.cases import TraceTestCase
 from sentry.utils.samples import load_data
-from tests.snuba.api.endpoints.test_organization_events import OrganizationEventsEndpointTestBase
+from tests.sentry.api.endpoints.test_organization_events import OrganizationEventsEndpointTestBase
 
 
 class OrganizationEventsTraceEndpointBase(OrganizationEventsEndpointTestBase, TraceTestCase):

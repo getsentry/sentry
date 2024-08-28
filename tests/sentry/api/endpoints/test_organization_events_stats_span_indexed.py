@@ -4,7 +4,7 @@ import pytest
 from django.urls import reverse
 
 from sentry.testutils.helpers.datetime import before_now, iso_format
-from tests.snuba.api.endpoints.test_organization_events import OrganizationEventsEndpointTestBase
+from tests.sentry.api.endpoints.test_organization_events import OrganizationEventsEndpointTestBase
 
 pytestmark = pytest.mark.sentry_metrics
 

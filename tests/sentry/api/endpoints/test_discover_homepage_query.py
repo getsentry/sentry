@@ -2,7 +2,7 @@ from django.urls import reverse
 
 from sentry.api.serializers import serialize
 from sentry.discover.models import DiscoverSavedQuery, DiscoverSavedQueryTypes
-from tests.snuba.api.endpoints.test_discover_saved_queries import DiscoverSavedQueryBase
+from tests.sentry.api.endpoints.test_discover_saved_queries import DiscoverSavedQueryBase
 
 FEATURES = ("organizations:discover-query",)
 

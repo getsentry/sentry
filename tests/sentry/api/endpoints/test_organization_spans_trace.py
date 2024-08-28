@@ -2,7 +2,7 @@ from uuid import uuid4
 
 from django.urls import reverse
 
-from tests.snuba.api.endpoints.test_organization_events_trace import (
+from tests.sentry.api.endpoints.test_organization_events_trace import (
     OrganizationEventsTraceEndpointBase,
 )
 

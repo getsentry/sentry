@@ -2,7 +2,7 @@ import uuid
 
 import pytest
 
-from tests.snuba.api.endpoints.test_organization_events import OrganizationEventsEndpointTestBase
+from tests.sentry.api.endpoints.test_organization_events import OrganizationEventsEndpointTestBase
 
 
 class OrganizationEventsSpanIndexedEndpointTest(OrganizationEventsEndpointTestBase):
