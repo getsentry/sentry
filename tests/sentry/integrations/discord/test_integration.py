@@ -29,6 +29,7 @@ class DiscordSetupTestCase(IntegrationTestCase):
         options.set("discord.public-key", self.public_key)
         options.set("discord.bot-token", self.bot_token)
         options.set("discord.client-secret", self.client_secret)
+        options.set("discord.validate-user", True)
 
     @mock.patch("sentry.integrations.discord.client.DiscordClient.set_application_command")
     def assert_setup_flow(
@@ -70,6 +71,12 @@ class DiscordSetupTestCase(IntegrationTestCase):
             url=f"{DiscordClient.base_url}{APPLICATION_COMMANDS_URL.format(application_id=self.application_id)}",
             match=[header_matcher({"Authorization": f"Bot {self.bot_token}"})],
             json=[] if command_response_empty else COMMANDS,
+        )
+
+        responses.add(
+            responses.GET,
+            url=f"{DiscordClient.base_url}/users/@me/guilds/{guild_id}/member",
+            json={},
         )
 
         if command_response_empty:
@@ -160,6 +167,13 @@ class DiscordSetupTestCase(IntegrationTestCase):
                 "access_token": "access_token",
             },
         )
+
+        responses.add(
+            responses.GET,
+            url=f"{DiscordClient.base_url}/users/@me/guilds/{guild_id}/member",
+            json={},
+        )
+
         responses.add(
             responses.GET, url=f"{DiscordClient.base_url}/users/@me", json={"id": "user_1234"}
         )
@@ -237,19 +251,22 @@ class DiscordSetupIntegrationTest(DiscordSetupTestCase):
 
 
 class DiscordIntegrationTest(DiscordSetupTestCase):
+    def setUp(self):
+        super().setUp()
+        self.user_id = "user1234"
+        self.guild_id = "12345"
+        self.guild_name = "guild_name"
+
     @responses.activate
     def test_get_guild_name(self):
         provider = self.provider()
-        user_id = "user1234"
-        guild_id = "guild_id"
-        guild_name = "guild_name"
         responses.add(
             responses.GET,
-            url=f"{DiscordClient.base_url}{GUILD_URL.format(guild_id=guild_id)}",
+            url=f"{DiscordClient.base_url}{GUILD_URL.format(guild_id=self.guild_id)}",
             match=[header_matcher({"Authorization": f"Bot {self.bot_token}"})],
             json={
-                "id": guild_id,
-                "name": guild_name,
+                "id": self.guild_id,
+                "name": self.guild_name,
             },
         )
         responses.add(
@@ -262,21 +279,26 @@ class DiscordIntegrationTest(DiscordSetupTestCase):
         responses.add(
             responses.GET, url=f"{DiscordClient.base_url}/users/@me", json={"id": "user_1234"}
         )
-        result = provider.build_integration({"guild_id": "guild_id", "code": user_id})
-        assert result["name"] == guild_name
+
+        responses.add(
+            responses.GET,
+            url=f"{DiscordClient.base_url}/users/@me/guilds/{self.guild_id}/member",
+            json={},
+        )
+
+        result = provider.build_integration({"guild_id": self.guild_id, "code": self.user_id})
+        assert result["name"] == self.guild_name
 
     @responses.activate
     def test_build_integration_no_code_in_state(self):
         provider = self.provider()
-        guild_id = "guild_id"
-        guild_name = "guild_name"
         responses.add(
             responses.GET,
-            url=f"{DiscordClient.base_url}{GUILD_URL.format(guild_id=guild_id)}",
+            url=f"{DiscordClient.base_url}{GUILD_URL.format(guild_id=self.guild_id)}",
             match=[header_matcher({"Authorization": f"Bot {self.bot_token}"})],
             json={
-                "id": guild_id,
-                "name": guild_name,
+                "id": self.guild_id,
+                "name": self.guild_name,
             },
         )
         with pytest.raises(IntegrationError):
@@ -285,9 +307,8 @@ class DiscordIntegrationTest(DiscordSetupTestCase):
     @responses.activate
     def test_get_guild_name_failure(self):
         provider = self.provider()
-        user_id = "user1234"
-        guild_id = "guild_id"
-        responses.add(responses.GET, "https://discord.com/api/v10/guilds/guild_name", status=500)
+
+        responses.add(responses.GET, "https://discord.com/api/v10/guilds/guild_name", status=500),
         responses.add(
             responses.POST,
             url="https://discord.com/api/v10/oauth2/token",
@@ -296,15 +317,53 @@ class DiscordIntegrationTest(DiscordSetupTestCase):
             },
         )
         responses.add(
-            responses.GET, url=f"{DiscordClient.base_url}/users/@me", json={"id": user_id}
+            responses.GET, url=f"{DiscordClient.base_url}/users/@me", json={"id": self.user_id}
         )
-        result = provider.build_integration({"guild_id": guild_id, "code": user_id})
-        assert result["name"] == guild_id
+        responses.add(
+            responses.GET,
+            url=f"{DiscordClient.base_url}/users/@me/guilds/{self.guild_id}/member",
+            json={},
+        )
+
+        result = provider.build_integration({"guild_id": self.guild_id, "code": self.user_id})
+        assert result["name"] == self.guild_id
+
+    @responses.activate
+    def test_get_user_insufficient_permission(self):
+        provider = self.provider()
+
+        responses.add(
+            responses.GET,
+            url=f"{DiscordClient.base_url}{GUILD_URL.format(guild_id=self.guild_id)}",
+            match=[header_matcher({"Authorization": f"Bot {self.bot_token}"})],
+            json={
+                "id": self.guild_id,
+                "name": self.guild_name,
+            },
+        )
+        responses.add(
+            responses.POST,
+            url="https://discord.com/api/v10/oauth2/token",
+            json={
+                "access_token": "access_token",
+            },
+        )
+        responses.add(
+            responses.GET, url=f"{DiscordClient.base_url}/users/@me", json={"id": self.user_id}
+        )
+        responses.add(
+            responses.GET,
+            url=f"{DiscordClient.base_url}/users/@me/guilds/{self.guild_id}/member",
+            json={"code": 10004, "message": "Unknown guild"},
+            status=404,
+        )
+
+        with pytest.raises(IntegrationError):
+            provider.build_integration({"guild_id": self.guild_id, "code": self.user_id})
 
     @responses.activate
     def test_get_discord_user_id(self):
         provider = self.provider()
-        user_id = "user1234"
 
         responses.add(
             responses.POST,
@@ -314,12 +373,12 @@ class DiscordIntegrationTest(DiscordSetupTestCase):
             },
         )
         responses.add(
-            responses.GET, url=f"{DiscordClient.base_url}/users/@me", json={"id": user_id}
+            responses.GET, url=f"{DiscordClient.base_url}/users/@me", json={"id": self.user_id}
         )
 
         result = provider._get_discord_user_id("auth_code", "1")
 
-        assert result == user_id
+        assert result == self.user_id
 
     @responses.activate
     def test_get_discord_user_id_oauth_failure(self):
