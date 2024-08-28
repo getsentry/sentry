@@ -64,7 +64,7 @@ function IdentityItem({identity, onDisconnect}: IdentityItemProps) {
         </IdentityText>
       </InternalContainer>
       <InternalContainer>
-        <TagWrapper>
+        <TagWrapper css={{gap: space(0.75)}}>
           {identity.category === UserIdentityCategory.SOCIAL_IDENTITY && (
             <Tag type="default">{t('Legacy')}</Tag>
           )}
