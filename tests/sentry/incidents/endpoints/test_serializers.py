@@ -21,6 +21,8 @@ from sentry.incidents.logic import (
 from sentry.incidents.models.alert_rule import (
     AlertRule,
     AlertRuleDetectionType,
+    AlertRuleSeasonality,
+    AlertRuleSensitivity,
     AlertRuleThresholdType,
     AlertRuleTriggerAction,
 )
@@ -43,6 +45,7 @@ from sentry.silo.base import SiloMode
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.models import SnubaQuery, SnubaQueryEventType
 from sentry.testutils.cases import TestCase
+from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.testutils.skips import requires_snuba
 from sentry.users.models.user import User
@@ -463,6 +466,22 @@ class TestAlertRuleSerializer(TestAlertRuleSerializerBase):
                 ]
             },
         )
+
+    @with_feature("organizations:anomaly-detection-alerts")
+    def test_invalid_alert_threshold(self):
+        """
+        Anomaly detection alerts cannot have a nonzero alert rule threshold
+        """
+        params = self.valid_params.copy()
+        params["detection_type"] = AlertRuleDetectionType.DYNAMIC
+        params["seasonality"] = AlertRuleSeasonality.AUTO
+        params["sensitivity"] = AlertRuleSensitivity.MEDIUM
+        params["time_window"] = 15
+        serializer = AlertRuleSerializer(context=self.context, data=params)
+        assert serializer.is_valid()
+
+        with pytest.raises(serializers.ValidationError):
+            serializer.save()
 
     def test_invalid_slack_channel(self):
         # We had an error where an invalid slack channel was spitting out unclear
