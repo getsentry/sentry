@@ -11,25 +11,10 @@ export const panelCss = css`
   box-shadow: 0px 10px 15px -3px rgba(0, 0, 0, 0.1);
 `;
 
-export const panelCssNoBorder = css`
-  background: white;
-  height: 90vh;
-  border: 1px solid white;
-  max-height: 560px;
-  width: 320px;
-  max-width: 320px;
-`;
-
 export const panelHeadingCss = css`
   padding: 0 0 0 var(--space200);
   text-align: left;
   border-bottom: 1px solid var(--gray200);
-`;
-
-export const panelHeadingCssNoBorder = css`
-  padding: 0 0 0 var(--space200);
-  text-align: left;
-  border-bottom: 1px solid white;
 `;
 
 export const panelHeadingLeftCss = css`

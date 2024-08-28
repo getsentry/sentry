@@ -7,13 +7,7 @@ import {buttonCss} from 'sentry/components/devtoolbar/styles/typography';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import type {PlatformKey} from 'sentry/types/project';
 
-import {
-  panelCss,
-  panelCssNoBorder,
-  panelHeadingCss,
-  panelHeadingCssNoBorder,
-  panelSectionCss,
-} from '../styles/panel';
+import {panelCss, panelHeadingCss, panelSectionCss} from '../styles/panel';
 import {resetDialogCss, resetFlexColumnCss, resetFlexRowCss} from '../styles/reset';
 
 interface Props {
@@ -37,12 +31,26 @@ export default function PanelLayout({
   return (
     <dialog
       open
-      css={[resetDialogCss, resetFlexColumnCss, noBorder ? panelCssNoBorder : panelCss]}
+      css={[
+        resetDialogCss,
+        resetFlexColumnCss,
+        panelCss,
+        noBorder
+          ? css`
+              border-color: white;
+            `
+          : undefined,
+      ]}
     >
       <span
         css={[
+          panelHeadingCss,
           {display: 'flex', alignItems: 'center', gap: 'var(--space100)'},
-          noBorder ? panelHeadingCssNoBorder : panelHeadingCss,
+          noBorder
+            ? css`
+                border-color: white;
+              `
+            : undefined,
         ]}
       >
         {showProjectBadge && (
