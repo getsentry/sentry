@@ -1,3 +1,4 @@
+from django import forms
 from rest_framework import serializers
 
 from sentry.api.serializers.rest_framework.base import CamelSnakeModelSerializer
@@ -45,6 +46,9 @@ class AlertRuleTriggerSerializer(CamelSnakeModelSerializer):
             self._handle_actions(alert_rule_trigger, actions)
 
             return alert_rule_trigger
+        except forms.ValidationError as e:
+            # if we fail in create_alert_rule_trigger, then only one message is ever returned
+            raise serializers.ValidationError(e.error_list[0].message)
         except AlertRuleTriggerLabelAlreadyUsedError:
             raise serializers.ValidationError("This label is already in use for this alert rule")
 
@@ -56,6 +60,9 @@ class AlertRuleTriggerSerializer(CamelSnakeModelSerializer):
             alert_rule_trigger = update_alert_rule_trigger(instance, **validated_data)
             self._handle_actions(alert_rule_trigger, actions)
             return alert_rule_trigger
+        except forms.ValidationError as e:
+            # if we fail in update_alert_rule_trigger, then only one message is ever returned
+            raise serializers.ValidationError(e.error_list[0].message)
         except AlertRuleTriggerLabelAlreadyUsedError:
             raise serializers.ValidationError("This label is already in use for this alert rule")
 
