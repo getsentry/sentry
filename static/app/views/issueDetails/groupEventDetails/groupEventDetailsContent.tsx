@@ -431,6 +431,7 @@ const GroupContentPadding = styled('div')`
   padding: ${space(1)} ${space(1.5)};
 `;
 
+// TODO: Merge regression issues with the other event details
 function RegressionEventContainer({children}: {children: React.ReactNode}) {
   const hasStreamlinedUI = useHasStreamlinedUI();
 

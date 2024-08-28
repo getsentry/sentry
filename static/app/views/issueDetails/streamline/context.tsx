@@ -60,6 +60,9 @@ export const enum SectionKey {
   REGRESSION_BREAKPOINT_CHART = 'regression-breakpoint-chart',
   REGRESSION_FLAMEGRAPH = 'regression-flamegraph',
   REGRESSION_PROFILE_COMPARISON = 'regression-profile-comparison',
+  REGRESSION_EVENT_COMPARISON = 'regression-event-comparison',
+  REGRESSION_POTENTIAL_CAUSES = 'regression-potential-causes',
+  REGRESSION_AFFECTED_TRANSACTIONS = 'regression-affected-transactions',
 }
 
 /**
