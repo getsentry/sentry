@@ -1,4 +1,4 @@
-import {useContext, useEffect, useMemo, useState} from 'react';
+import {useContext, useEffect, useLayoutEffect, useMemo, useState} from 'react';
 import type {InjectedRouter} from 'react-router';
 import styled from '@emotion/styled';
 import debounce from 'lodash/debounce';
@@ -163,8 +163,8 @@ function CustomViewsIssueListHeaderTabsContent({
     [organization.slug, updateViews]
   );
 
-  // This insane useEffect ensures that the correct tab is selected when the page loads and url updates
-  useEffect(() => {
+  // This insane useEffect ensures that the correct tab is selected when the url updates
+  useLayoutEffect(() => {
     // If no query, sort, or viewId is present, set the first tab as the selected tab, update query accordingly
     if (!query && !sort && !viewId) {
       navigate({
@@ -241,16 +241,8 @@ function CustomViewsIssueListHeaderTabsContent({
       tabListState?.setSelectedKey('temporary-tab');
       return;
     }
-  }, [
-    tabListState,
-    draggableTabs,
-    navigate,
-    organization.slug,
-    query,
-    queryParams,
-    sort,
-    viewId,
-  ]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [navigate, organization.slug, query, sort, viewId]);
 
   // Update local tabs when new views are received from mutation request
   useEffect(() => {
