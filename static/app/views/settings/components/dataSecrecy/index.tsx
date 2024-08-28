@@ -113,7 +113,7 @@ export default function DataSecrecy() {
       'Sentry employees will not have access to your data unless granted permission'
     ),
     value: allowAccess,
-    disabled: organization.access.includes('org:write'),
+    disabled: !organization.access.includes('org:write'),
     onBlur: updateAllowedAccess,
   };
 
@@ -123,7 +123,7 @@ export default function DataSecrecy() {
     help: t(
       'Open a temporary time window for Sentry employees to access your organization'
     ),
-    disabled: allowAccess && organization.access.includes('org:write'),
+    disabled: allowAccess && !organization.access.includes('org:write'),
     value: allowAccess ? '' : allowDateFormData,
     onBlur: updateTempAccessDate,
     onChange: v => {

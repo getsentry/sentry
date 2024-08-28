@@ -61,8 +61,8 @@ describe('DataSecrecy', function () {
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/data-secrecy/`,
       body: {
-        access_start: '2022-08-29T01:05:00+00:00',
-        access_end: '2023-08-29T01:05:00+00:00',
+        accessStart: '2022-08-29T01:05:00+00:00',
+        accessEnd: '2023-08-29T01:05:00+00:00',
       },
     });
 
@@ -88,8 +88,8 @@ describe('DataSecrecy', function () {
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/data-secrecy/`,
       body: {
-        access_start: '2023-08-29T01:05:00+00:00',
-        access_end: '2024-08-29T01:05:00+00:00',
+        accessStart: '2023-08-29T01:05:00+00:00',
+        accessEnd: '2024-08-29T01:05:00+00:00',
       },
     });
 
