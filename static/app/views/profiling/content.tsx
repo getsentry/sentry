@@ -39,6 +39,11 @@ import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
+import {
+  TableHeader,
+  TableHeaderActions,
+  TableHeaderTitle,
+} from 'sentry/views/explore/components/table';
 import {LandingAggregateFlamegraph} from 'sentry/views/profiling/landingAggregateFlamegraph';
 import {DEFAULT_PROFILING_DATETIME_SELECTION} from 'sentry/views/profiling/utils';
 
@@ -528,6 +533,18 @@ function ProfilingTransactionsContent(props: ProfilingTabContentProps) {
             </PanelsGrid>
           )}
           <Fragment>
+            <TableHeader>
+              <TableHeaderTitle>{t('Transactions')}</TableHeaderTitle>
+              <TableHeaderActions>
+                <StyledPagination
+                  pageLinks={
+                    transactions.status === 'success'
+                      ? transactions.getResponseHeader?.('Link') ?? null
+                      : null
+                  }
+                />
+              </TableHeaderActions>
+            </TableHeader>
             <ProfileEventsTable
               columns={fields.slice()}
               data={transactions.status === 'success' ? transactions.data : null}
@@ -537,13 +554,6 @@ function ProfilingTransactionsContent(props: ProfilingTabContentProps) {
               isLoading={transactions.status === 'loading'}
               sort={sort}
               sortableColumns={new Set(fields)}
-            />
-            <Pagination
-              pageLinks={
-                transactions.status === 'success'
-                  ? transactions.getResponseHeader?.('Link') ?? null
-                  : null
-              }
             />
           </Fragment>
         </Fragment>
@@ -692,6 +702,10 @@ const WidgetsContainer = styled('div')`
   @media (max-width: ${p => p.theme.breakpoints.small}) {
     grid-template-columns: 1fr;
   }
+`;
+
+const StyledPagination = styled(Pagination)`
+  margin: 0;
 `;
 
 function ProfilingContentWrapper(props: ProfilingContentProps) {

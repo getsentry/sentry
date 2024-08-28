@@ -28,6 +28,9 @@ import {
   TableBodyCell,
   TableHead,
   TableHeadCell,
+  TableHeader,
+  TableHeaderActions,
+  TableHeaderTitle,
   TableRow,
   TableStatus,
   useTableStyles,
@@ -137,6 +140,27 @@ export function SlowestFunctionsTable({userQuery}: {userQuery?: string}) {
 
   return (
     <Fragment>
+      <TableHeader>
+        <TableHeaderTitle>{t('Slowest Functions')}</TableHeaderTitle>
+        <TableHeaderActions>
+          <SlowestFunctionsPaginationContainer>
+            <ButtonBar merged>
+              <Button
+                icon={<IconChevron direction="left" />}
+                aria-label={t('Previous')}
+                size={'sm'}
+                {...pagination.previousButtonProps}
+              />
+              <Button
+                icon={<IconChevron direction="right" />}
+                aria-label={t('Next')}
+                size={'sm'}
+                {...pagination.nextButtonProps}
+              />
+            </ButtonBar>
+          </SlowestFunctionsPaginationContainer>
+        </TableHeaderActions>
+      </TableHeader>
       <Table style={tableStyles}>
         <TableHead>
           <TableRow>
@@ -180,22 +204,6 @@ export function SlowestFunctionsTable({userQuery}: {userQuery?: string}) {
             })}
         </TableBody>
       </Table>
-      <SlowestFunctionsPaginationContainer>
-        <ButtonBar merged>
-          <Button
-            icon={<IconChevron direction="left" />}
-            aria-label={t('Previous')}
-            size={'sm'}
-            {...pagination.previousButtonProps}
-          />
-          <Button
-            icon={<IconChevron direction="right" />}
-            aria-label={t('Next')}
-            size={'sm'}
-            {...pagination.nextButtonProps}
-          />
-        </ButtonBar>
-      </SlowestFunctionsPaginationContainer>
     </Fragment>
   );
 }
@@ -514,5 +522,4 @@ const SlowestFunctionsExamplesContainerRow = styled('div')`
 const SlowestFunctionsPaginationContainer = styled('div')`
   display: flex;
   justify-content: flex-end;
-  margin-bottom: ${space(2)};
 `;
