@@ -1,7 +1,10 @@
 import styled from '@emotion/styled';
 
 import {getInterval} from 'sentry/components/charts/utils';
+import {CompactSelect} from 'sentry/components/compactSelect';
+import {DEFAULT_RELATIVE_PERIODS} from 'sentry/constants';
 import {CHART_PALETTE} from 'sentry/constants/chartPalette';
+import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {tooltipFormatter} from 'sentry/utils/discover/charts';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
@@ -10,39 +13,78 @@ import Chart, {ChartType} from 'sentry/views/insights/common/components/chart';
 import ChartPanel from 'sentry/views/insights/common/components/chartPanel';
 import {useSpanIndexedSeries} from 'sentry/views/insights/common/queries/useDiscoverSeries';
 import {CHART_HEIGHT} from 'sentry/views/insights/database/settings';
+import {useMetricsIntervalParam} from 'sentry/views/metrics/utils/useMetricsIntervalParam';
+import {Subtitle} from 'sentry/views/profiling/landing/styles';
 
+import {useChartType} from '../hooks/useChartType';
 import {useVisualize} from '../hooks/useVisualize';
 
 interface ExploreChartsProps {
   query: string;
 }
 
-const useExplorerChartSeries = ({yAxis, query}: {query: string; yAxis: string}) => {
-  const pageFilters = usePageFilters();
-
-  return useSpanIndexedSeries(
-    {
-      search: new MutableSearch(query ?? ''),
-      yAxis: [yAxis],
-      interval: getInterval(pageFilters.selection.datetime, 'metrics'),
-      enabled: true,
-    },
-    'api.explorer.stats'
-  );
-};
+const exploreChartTypeOptions = [
+  {
+    value: ChartType.LINE,
+    label: t('Line'),
+  },
+  {
+    value: ChartType.AREA,
+    label: t('Area'),
+  },
+  {
+    value: ChartType.BAR,
+    label: t('Bar'),
+  },
+];
 
 // TODO: Update to support aggregate mode and multiple queries / visualizations
 export function ExploreCharts({query}: ExploreChartsProps) {
   const [visualize] = useVisualize();
+  const [chartType, setChartType] = useChartType();
+  const {interval, setInterval, currentIntervalOptions} = useMetricsIntervalParam();
 
-  const series = useExplorerChartSeries({
-    yAxis: visualize,
-    query,
-  });
+  const pageFilters = usePageFilters();
+  const period = pageFilters.selection.datetime.period;
+  const chartSubText = (period && DEFAULT_RELATIVE_PERIODS[period]) ?? '';
+
+  const series = useSpanIndexedSeries(
+    {
+      search: new MutableSearch(query ?? ''),
+      yAxis: [visualize],
+      interval: interval ?? getInterval(pageFilters.selection.datetime, 'metrics'),
+      enabled: true,
+    },
+    'api.explorer.stats'
+  );
 
   return (
     <ChartContainer>
-      <ChartPanel title={visualize}>
+      <ChartPanel>
+        <ChartHeader>
+          <div>
+            <ChartTitle>{visualize}</ChartTitle>
+            {chartSubText ? <Subtitle>{chartSubText}</Subtitle> : null}
+          </div>
+          <ChartSettingsContainer>
+            <CompactSelect
+              size="xs"
+              triggerProps={{prefix: t('Display')}}
+              value={chartType}
+              options={exploreChartTypeOptions}
+              onChange={newChartType => setChartType(newChartType.value)}
+            />
+            <CompactSelect
+              size="xs"
+              value={interval}
+              onChange={({value}) => setInterval(value)}
+              triggerProps={{
+                prefix: t('Interval'),
+              }}
+              options={currentIntervalOptions}
+            />
+          </ChartSettingsContainer>
+        </ChartHeader>
         <Chart
           height={CHART_HEIGHT}
           grid={{
@@ -55,7 +97,7 @@ export function ExploreCharts({query}: ExploreChartsProps) {
           error={series.error}
           loading={series.isPending}
           chartColors={CHART_PALETTE[2]}
-          type={ChartType.LINE}
+          type={chartType}
           aggregateOutputFormat="number"
           showLegend
           tooltipFormatterOptions={{
@@ -71,5 +113,22 @@ const ChartContainer = styled('div')`
   display: grid;
   gap: 0;
   grid-template-columns: 1fr;
-  margin-bottom: ${space(4)};
+  margin-bottom: ${space(3)};
+`;
+
+const ChartHeader = styled('div')`
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  margin-bottom: ${space(1)};
+`;
+
+const ChartTitle = styled('div')`
+  ${p => p.theme.text.cardTitle}
+`;
+
+const ChartSettingsContainer = styled('div')`
+  display: flex;
+  align-items: center;
+  gap: ${space(0.5)};
 `;
