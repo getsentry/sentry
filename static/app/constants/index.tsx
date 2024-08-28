@@ -58,6 +58,7 @@ export const ALLOWED_SCOPES = [
   'event:read',
   'event:write',
   'member:admin',
+  'member:invite',
   'member:read',
   'member:write',
   'org:admin',
