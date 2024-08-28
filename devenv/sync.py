@@ -43,6 +43,7 @@ def run_procs(
                     cmd,
                     stdout=stdout,
                     stderr=stderr,
+                    env=env,
                     cwd=reporoot,
                 ),
             )
