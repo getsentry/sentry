@@ -50,7 +50,6 @@ import {
 } from 'sentry/utils/replays/types';
 import {toTitleCase} from 'sentry/utils/string/toTitleCase';
 import type {Color} from 'sentry/utils/theme';
-import theme from 'sentry/utils/theme';
 import stripURLOrigin from 'sentry/utils/url/stripURLOrigin';
 
 interface Details {
@@ -287,13 +286,9 @@ const MAPPER_FOR_FRAME: Record<string, (frame) => Details> = {
       case 'good':
         return {
           color: 'green300',
-          description: (
-            <span style={{color: theme.green300}}>
-              {tct('[value]ms (Good)', {
-                value: frame.data.value.toFixed(2),
-              })}
-            </span>
-          ),
+          description: tct('[value]ms (Good)', {
+            value: frame.data.value.toFixed(2),
+          }),
           tabKey: TabKey.NETWORK,
           title: 'Web Vital: ' + toTitleCase(explodeSlug(frame.description)),
           icon: <IconHappy size="xs" />,
@@ -301,13 +296,9 @@ const MAPPER_FOR_FRAME: Record<string, (frame) => Details> = {
       case 'needs-improvement':
         return {
           color: 'yellow300',
-          description: (
-            <span style={{color: theme.yellow300}}>
-              {tct('[value]ms (Meh)', {
-                value: frame.data.value.toFixed(2),
-              })}
-            </span>
-          ),
+          description: tct('[value]ms (Meh)', {
+            value: frame.data.value.toFixed(2),
+          }),
           tabKey: TabKey.NETWORK,
           title: 'Web Vital: ' + toTitleCase(explodeSlug(frame.description)),
           icon: <IconMeh size="xs" />,
@@ -315,13 +306,9 @@ const MAPPER_FOR_FRAME: Record<string, (frame) => Details> = {
       default:
         return {
           color: 'red300',
-          description: (
-            <span style={{color: theme.red300}}>
-              {tct('[value]ms (Poor)', {
-                value: frame.data.value.toFixed(2),
-              })}
-            </span>
-          ),
+          description: tct('[value]ms (Poor)', {
+            value: frame.data.value.toFixed(2),
+          }),
           tabKey: TabKey.NETWORK,
           title: 'Web Vital: ' + toTitleCase(explodeSlug(frame.description)),
           icon: <IconSad size="xs" />,

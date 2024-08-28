@@ -231,6 +231,7 @@ function WebVitalData({
   onMouseLeave: MouseCallback;
   replay: ReplayReader | null;
 }) {
+  // TODO: remove test CLS data once SDK is merged and updated
   const clsFrame = {
     ...frame,
     data: {
@@ -244,6 +245,7 @@ function WebVitalData({
       ],
     },
   };
+
   const {data: frameToExtraction} = useExtractDomNodes({replay});
   const selectors = frameToExtraction?.get(frame)?.selector;
 
@@ -273,6 +275,7 @@ function WebVitalData({
             )
           : null;
       });
+      // if we can't find the elements associated with the layout shift, we still show the score with element: unknown
       if (!elements.length) {
         elements.push(
           <span>
@@ -531,6 +534,8 @@ const SelectorButton = styled(Button)`
   font-size: ${p => p.theme.fontSizeSmall};
   color: ${p => p.theme.subText};
   margin: 0 ${space(0.5)};
+  height: auto;
+  min-height: auto;
 `;
 
 export default memo(BreadcrumbItem);
