@@ -224,7 +224,6 @@ export function SpanProfileDetails({
       </SpanDetails>
       <StackTraceContent
         event={processedEvent}
-        hasHierarchicalGrouping={false}
         newestFirst
         platform={event.platform || 'other'}
         stacktrace={{

@@ -43,10 +43,7 @@ describe('StackTracePreview', () => {
     ).toBeInTheDocument();
   });
 
-  it.each([
-    ['stack-trace-content', []],
-    ['stack-trace-content-v2', ['grouping-stacktrace-ui']],
-  ])('renders %s', async (component, features) => {
+  it.each([['stack-trace-content', []]])('renders %s', async (component, features) => {
     const frame: Frame = {
       colNo: 0,
       filename: 'file.js',
