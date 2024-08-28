@@ -49,7 +49,7 @@
       {
         "name": "hash",
         "in": "query",
-        "description": "A list of hashes of groups to return. Is not compatible with 'query' parameter as it will only return the request groups with corresponding hashes. The maximum number of hashes that can be sent is 100. If more are sent, only the first 100 will be used.",
+        "description": "A list of hashes of groups to return. Is not compatible with 'query' parameter. The maximum number of hashes that can be sent is 100. If more are sent, only the first 100 will be used.",
         "schema": {
           "type": "string"
         }
