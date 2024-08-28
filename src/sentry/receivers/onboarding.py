@@ -63,7 +63,7 @@ START_DATE_TRACKING_FIRST_SOURCEMAP_PER_PROJ = datetime(2023, 11, 16, tzinfo=tim
 def record_new_project(project, user=None, user_id=None, **kwargs):
     if user_id is not None:
         default_user_id = user_id
-    elif user.is_authenticated:
+    elif user and user.is_authenticated:
         user_id = default_user_id = user.id
     else:
         user_id = None

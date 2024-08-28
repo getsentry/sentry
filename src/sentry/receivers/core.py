@@ -4,6 +4,7 @@ from django.contrib.auth.models import AnonymousUser
 from django.db import connections, router, transaction
 from django.db.models.signals import post_save
 
+from sentry.auth.access import SystemAccess
 from sentry.hybridcloud.models.outbox import outbox_context
 from sentry.loader.dynamic_sdk_options import get_default_loader_data
 from sentry.models.organization import Organization
@@ -76,8 +77,10 @@ def create_default_project(id, name, slug, verbosity=2, **kwargs):
 
         project_created.send(
             project=project,
-            user=user or AnonymousUser(),
             default_rules=True,
+            user=user or AnonymousUser(),
+            team_ids=[team.id],
+            access=SystemAccess(),
             sender=create_default_project,
         )
 

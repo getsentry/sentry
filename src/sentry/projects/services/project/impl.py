@@ -3,6 +3,7 @@ from __future__ import annotations
 from django.db import router, transaction
 
 from sentry.api.serializers import ProjectSerializer
+from sentry.auth.access import SystemAccess
 from sentry.auth.services.auth import AuthenticationContext
 from sentry.constants import ObjectStatus
 from sentry.hybridcloud.rpc import OptionValue
@@ -106,6 +107,7 @@ class DatabaseBackedProjectService(ProjectService):
                 platform=platform,
             )
 
+            team_ids = []
             if add_org_default_team:
                 team = (
                     Team.objects.filter(organization_id=organization_id, status=TeamStatus.ACTIVE)
@@ -117,12 +119,15 @@ class DatabaseBackedProjectService(ProjectService):
                 #  but doesn't block if one doesn't exist.
                 if team:
                     project.add_team(team)
+                    team_ids.append(team.id)
 
             project_created.send(
                 project=project,
                 default_rules=True,
-                sender=self.create_project_for_organization,
                 user_id=user_id,
+                team_ids=team_ids,
+                access=SystemAccess(),
+                sender=self,
             )
 
             return serialize_project(project)
