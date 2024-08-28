@@ -107,6 +107,9 @@ class GroupAiSummaryEndpoint(GroupEndpoint):
                     }
                     for i in range(len(connected_groups))
                 ],
+                "organization_slug": group.organization.slug,
+                "organization_id": group.organization.id,
+                "project_id": group.project.id,
             },
             option=orjson.OPT_NON_STR_KEYS,
         )

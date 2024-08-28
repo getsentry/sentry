@@ -41,7 +41,7 @@ function ProjectProguard({organization, location, router, params}: ProjectProgua
 
   const {
     data: mappings,
-    isLoading: dataLoading,
+    isPending: dataLoading,
     getResponseHeader,
     refetch: fetchData,
   } = useApiQuery<DebugFile[]>(

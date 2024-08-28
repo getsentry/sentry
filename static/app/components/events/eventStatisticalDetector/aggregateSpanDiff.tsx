@@ -97,7 +97,7 @@ function AggregateSpanDiff({event, project}: AggregateSpanDiffProps) {
 
   const {
     data: rcaData,
-    isLoading: isRcaLoading,
+    isPending: isRcaLoading,
     isError: isRcaError,
   } = useFetchAdvancedAnalysis({
     transaction,
@@ -116,7 +116,7 @@ function AggregateSpanDiff({event, project}: AggregateSpanDiffProps) {
 
   const {
     data: spansData,
-    isLoading: isSpansDataLoading,
+    isPending: isSpansDataLoading,
     isError: isSpansDataError,
   } = useSpanMetrics(
     {

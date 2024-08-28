@@ -177,6 +177,31 @@ export const encodeSort = (sort: Sort): string => {
 const encodeSorts = (sorts: Readonly<Array<Sort>>): Array<string> =>
   sorts.map(encodeSort);
 
+// TODO(__SENTRY_USING_REACT_ROUTER_SIX): This is needed to translate query
+// objects that have non-string values and single-element arrays to match what
+// react-router 6 translates these objects into, so that the tests can work
+// between 3 and 6.
+//
+// Once we're fully on 6 we can likely remove these changes
+function stringifyQueryParams(
+  query: Record<string, string | number | string[] | number[] | undefined>
+) {
+  for (const field in query) {
+    if (Array.isArray(query[field])) {
+      query[field] = query[field].map((v: string | number) => v.toString());
+
+      if (query[field].length === 1) {
+        query[field] = query[field][0];
+      }
+      if (query[field].length === 0) {
+        query[field] = undefined;
+      }
+    } else {
+      query[field] = query[field]?.toString();
+    }
+  }
+}
+
 const collectQueryStringByKey = (query: Query, key: string): Array<string> => {
   const needle = query[key];
   const collection = decodeList(needle);
@@ -675,8 +700,8 @@ class EventView {
       field: this.getFields(),
       widths: this.getWidths(),
       sort: encodeSorts(this.sorts),
-      environment: this.environment,
-      project: this.project,
+      environment: [...this.environment],
+      project: [...this.project],
       query: this.query,
       yAxis: this.yAxis || this.getYAxis(),
       dataset: this.dataset,
@@ -690,6 +715,8 @@ class EventView {
         output[field] = this[field];
       }
     }
+
+    stringifyQueryParams(output);
 
     return cloneDeep(output as any);
   }
@@ -1203,12 +1230,15 @@ class EventView {
   }
 
   getResultsViewShortUrlTarget(slug: string): {pathname: string; query: Query} {
-    const output = {id: this.id};
+    const output: any = {id: this.id};
     for (const field of [...Object.values(URL_PARAM), 'cursor']) {
       if (this[field]?.length) {
         output[field] = this[field];
       }
     }
+
+    stringifyQueryParams(output);
+
     return {
       pathname: normalizeUrl(`/organizations/${slug}/discover/results/`),
       query: cloneDeep(output as any),
@@ -1226,7 +1256,7 @@ class EventView {
     const {showTransactions, breakdown, webVital} = options;
     const output = {
       sort: encodeSorts(this.sorts),
-      project: this.project,
+      project: [...this.project],
       query: this.query,
       transaction: this.name,
       showTransactions,
@@ -1239,6 +1269,8 @@ class EventView {
         output[field] = this[field];
       }
     }
+
+    stringifyQueryParams(output);
 
     const query = cloneDeep(output as any);
     return {

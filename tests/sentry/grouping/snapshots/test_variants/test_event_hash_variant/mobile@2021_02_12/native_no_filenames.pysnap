@@ -1,11 +1,10 @@
 ---
-created: '2021-08-04T15:53:48.500922Z'
+created: '2024-08-27T12:08:35.413103+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
 app-depth-1:
   hash: "59c0434e3624d23495e047f18d5615c5"
-  tree_label: "log::__private_api_log"
   component:
     app-depth-1*
       exception*
@@ -22,7 +21,6 @@ app-depth-1:
 --------------------------------------------------------------------------
 app-depth-2:
   hash: "76f35a6a10b48e05d6f2eef4ed6e964e"
-  tree_label: "log::__private_api_log | log_demo::main"
   component:
     app-depth-2*
       exception*
@@ -44,7 +42,6 @@ app-depth-2:
 --------------------------------------------------------------------------
 app-depth-3:
   hash: "34020cf04e5ece6c917775f7c2d6bb27"
-  tree_label: "log::__private_api_log | log_demo::main | ___rust_maybe_catch_panic"
   component:
     app-depth-3*
       exception*
@@ -69,7 +66,6 @@ app-depth-3:
 --------------------------------------------------------------------------
 app-depth-4:
   hash: "418120a66f7031923031f5c52aca0724"
-  tree_label: "log::__private_api_log | log_demo::main | ___rust_maybe_catch_panic | _main"
   component:
     app-depth-4*
       exception*
@@ -97,7 +93,6 @@ app-depth-4:
 --------------------------------------------------------------------------
 app-depth-max:
   hash: "418120a66f7031923031f5c52aca0724"
-  tree_label: "log::__private_api_log | log_demo::main | ___rust_maybe_catch_panic | _main"
   component:
     app-depth-max*
       exception*
@@ -125,7 +120,6 @@ app-depth-max:
 --------------------------------------------------------------------------
 system:
   hash: "ef1b58eb2e70ff452c576019ee8481bd"
-  tree_label: "something | sentry | sentry::hub::Hub::with_active::{{closure}} | sentry::hub::Hub::with | sentry::hub::Hub::with_active | sentry::integrations::log::Logger::log | log::__private_api_log | log_demo::main | std::panicking::try::do_call | ___rust_maybe_catch_panic | std::rt::lang_start | _main"
   component:
     system*
       exception*

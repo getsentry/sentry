@@ -28,12 +28,12 @@ export default function ProjectIssueGrouping({organization, project, params}: Pr
   const queryKey = `/projects/${organization.slug}/${project.slug}/grouping-configs/`;
   const {
     data: groupingConfigs,
-    isLoading,
+    isPending,
     isError,
     refetch,
   } = useApiQuery<EventGroupingConfig[]>([queryKey], {staleTime: 0, cacheTime: 0});
 
-  if (isLoading) {
+  if (isPending) {
     return <LoadingIndicator />;
   }
 

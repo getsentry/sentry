@@ -98,7 +98,7 @@ export function ScreenLoadEventSamples({
   const eventView = EventView.fromNewQueryWithLocation(newQuery, location);
   eventView.sorts = [sort];
 
-  const {data, isLoading, pageLinks} = useTableQuery({
+  const {data, isPending, pageLinks} = useTableQuery({
     eventView,
     enabled: true,
     limit: 4,
@@ -110,7 +110,7 @@ export function ScreenLoadEventSamples({
     <EventSamplesTable
       eventIdKey="id"
       profileIdKey="profile.id"
-      isLoading={isLoading}
+      isLoading={isPending}
       cursorName={cursorName}
       pageLinks={pageLinks}
       eventView={eventView}

@@ -45,7 +45,7 @@ function SpanSummaryCharts() {
   };
 
   const {
-    isLoading: isThroughputDataLoading,
+    isPending: isThroughputDataLoading,
     data: throughputData,
     error: throughputError,
   } = useSpanMetricsSeries(
@@ -57,7 +57,7 @@ function SpanSummaryCharts() {
   );
 
   const {
-    isLoading: isAvgDurationDataLoading,
+    isPending: isAvgDurationDataLoading,
     data: avgDurationData,
     error: avgDurationError,
   } = useSpanMetricsSeries(
@@ -83,7 +83,7 @@ function SpanSummaryCharts() {
   );
 
   const {
-    isLoading: isTxnThroughputDataLoading,
+    isPending: isTxnThroughputDataLoading,
     data: txnThroughputData,
     error: txnThroughputError,
   } = useGenericDiscoverQuery<
