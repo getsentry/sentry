@@ -111,3 +111,6 @@ export interface UptimeAlert extends UptimeRule {
 export type CombinedMetricIssueAlerts = IssueAlert | MetricAlert;
 
 export type CombinedAlerts = CombinedMetricIssueAlerts | UptimeAlert;
+
+// TODO: This is a placeholder type for now
+export type Anomaly = {};
