@@ -31,6 +31,7 @@ const useExplorerChartSeries = ({yAxis, query}: {query: string; yAxis: string}) 
   );
 };
 
+// TODO: Update to support aggregate mode and multiple queries / visualizations
 export function ExploreCharts({query}: ExploreChartsProps) {
   const [visualize] = useVisualize();
 
