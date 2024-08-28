@@ -142,7 +142,7 @@ export function MetricWidgetCard({
 
   const {
     data: timeseriesData,
-    isLoading,
+    isPending,
     isError,
     error,
   } = useMetricsQuery(metricQueries, selection, {
@@ -155,27 +155,27 @@ export function MetricWidgetCard({
         <MetricTableContainer
           metricQueries={metricQueries}
           timeseriesData={timeseriesData}
-          isLoading={isLoading}
+          isLoading={isPending}
         />
       );
     }
     if (widget.displayType === DisplayType.BIG_NUMBER) {
       return (
-        <MetricBigNumberContainer timeseriesData={timeseriesData} isLoading={isLoading} />
+        <MetricBigNumberContainer timeseriesData={timeseriesData} isLoading={isPending} />
       );
     }
 
     return (
       <MetricChartContainer
         timeseriesData={timeseriesData}
-        isLoading={isLoading}
+        isLoading={isPending}
         metricQueries={metricQueries}
         displayType={toMetricDisplayType(widget.displayType)}
         chartHeight={!showContextMenu ? 200 : undefined}
         showLegend
       />
     );
-  }, [widget.displayType, metricQueries, timeseriesData, isLoading, showContextMenu]);
+  }, [widget.displayType, metricQueries, timeseriesData, isPending, showContextMenu]);
 
   return (
     <DashboardsMEPContext.Provider

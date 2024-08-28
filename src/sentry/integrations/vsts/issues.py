@@ -6,10 +6,12 @@ from django.utils.translation import gettext as _
 from mistune import markdown
 from rest_framework.response import Response
 
-from sentry.integrations.mixins import IssueSyncMixin, ResolveSyncAction
+from sentry.integrations.mixins import ResolveSyncAction
+from sentry.integrations.mixins.issues import IssueSyncIntegration
 from sentry.integrations.services.integration import integration_service
+from sentry.integrations.source_code_management.issues import SourceCodeIssueIntegration
 from sentry.models.activity import Activity
-from sentry.shared_integrations.exceptions import ApiError, ApiUnauthorized
+from sentry.shared_integrations.exceptions import ApiError, ApiUnauthorized, IntegrationError
 from sentry.silo.base import all_silo_function
 from sentry.users.services.user import RpcUser
 from sentry.users.services.user.service import user_service
@@ -19,7 +21,7 @@ if TYPE_CHECKING:
     from sentry.models.group import Group
 
 
-class VstsIssueSync(IssueSyncMixin):
+class VstsIssuesSpec(IssueSyncIntegration, SourceCodeIssueIntegration):
     description = "Integrate Azure DevOps work items by linking a project."
     slug = "vsts"
     conf_key = slug
@@ -354,3 +356,16 @@ class VstsIssueSync(IssueSyncMixin):
     def update_comment(self, issue_id: int, user_id: int, group_note: str) -> None:
         # Azure does not support updating comments.
         pass
+
+    def search_issues(self, query: str | None, **kwargs) -> dict[str, Any]:
+        client = self.get_client()
+
+        integration = integration_service.get_integration(
+            integration_id=self.org_integration.integration_id
+        )
+        if not integration:
+            raise IntegrationError("Azure DevOps integration not found")
+
+        resp = client.search_issues(query=query, account_name=integration.name)
+        assert isinstance(resp, dict)
+        return resp

@@ -113,14 +113,14 @@ function SourceCodeIntegrationLink({
 }: SourceCodeIntegrationLinkProps) {
   const organization = useOrganization();
 
-  const {data: match, isLoading} = useStacktraceLink({
+  const {data: match, isPending} = useStacktraceLink({
     event,
     frame,
     orgSlug: organization.slug,
     projectSlug: project.slug,
   });
 
-  if (match?.config && match.sourceUrl && frame.lineNo && !isLoading) {
+  if (match?.config && match.sourceUrl && frame.lineNo && !isPending) {
     return (
       <DeemphasizedExternalLink
         href={getIntegrationSourceUrl(

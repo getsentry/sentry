@@ -51,7 +51,7 @@ function SentryAppExternalInstallationContent({params, ...props}: Props) {
   const [isInstalled, setIsInstalled] = useState<boolean>();
 
   // Load data on mount.
-  const {data: sentryApp, isLoading: sentryAppLoading} = useApiQuery<SentryApp>(
+  const {data: sentryApp, isPending: sentryAppLoading} = useApiQuery<SentryApp>(
     [`/sentry-apps/${params.sentryAppSlug}/`],
     {
       staleTime: 0,

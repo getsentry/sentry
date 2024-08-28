@@ -1,9 +1,10 @@
 ---
+created: '2024-08-27T12:08:35.547736+00:00'
+creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
 app-depth-1:
   hash: "d8f406c2efb312db2231282f94647b1d"
-  tree_label: "api.jipJipManagementApplication"
   component:
     app-depth-1*
       stacktrace*
@@ -15,7 +16,6 @@ app-depth-1:
 --------------------------------------------------------------------------
 app-depth-max:
   hash: "d8f406c2efb312db2231282f94647b1d"
-  tree_label: "api.jipJipManagementApplication"
   component:
     app-depth-max*
       stacktrace*
@@ -27,7 +27,6 @@ app-depth-max:
 --------------------------------------------------------------------------
 system:
   hash: "d8f406c2efb312db2231282f94647b1d"
-  tree_label: "api.jipJipManagementApplication"
   component:
     system*
       stacktrace*

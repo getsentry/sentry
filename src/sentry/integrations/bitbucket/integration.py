@@ -26,7 +26,7 @@ from sentry.shared_integrations.exceptions import ApiError
 from sentry.utils.http import absolute_uri
 
 from .client import BitbucketApiClient
-from .issues import BitbucketIssueBasicMixin
+from .issues import BitbucketIssuesSpec
 from .repository import BitbucketRepositoryProvider
 
 DESCRIPTION = """
@@ -82,7 +82,7 @@ metadata = IntegrationMetadata(
 scopes = ("issue:write", "pullrequest", "webhook", "repository")
 
 
-class BitbucketIntegration(RepositoryIntegration, BitbucketIssueBasicMixin):
+class BitbucketIntegration(RepositoryIntegration, BitbucketIssuesSpec):
     @property
     def integration_name(self) -> str:
         return "bitbucket"

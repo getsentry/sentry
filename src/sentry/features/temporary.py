@@ -129,8 +129,6 @@ def register_temporary_features(manager: FeatureManager):
     manager.add("organizations:gitlab-disable-on-broken", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Enable only calculating a secondary hash when needed
     manager.add("organizations:grouping-suppress-unnecessary-secondary-hash", OrganizationFeature, FeatureHandlerStrategy.INTERNAL, api_expose=False)
-    # Enable tweaks to group title in relation to hierarchical grouping.
-    manager.add("organizations:grouping-title-ui", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Allows an org to have a larger set of project ownership rules per project
     manager.add("organizations:higher-ownership-limit", OrganizationFeature, FeatureHandlerStrategy.INTERNAL, api_expose=False)
     # Enable increased issue_owners rate limit for auto-assignment

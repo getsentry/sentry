@@ -193,7 +193,7 @@ export function CreateAlertModal({
     ? `${metricsQuery.aggregation}(${formatMRI(metricsQuery.mri)})`
     : formatMRIField(aggregate);
 
-  const {data, isLoading, refetch, isError} = useMetricsQuery(
+  const {data, isPending, refetch, isError} = useMetricsQuery(
     [alertChartQuery],
     {
       projects: formState.project ? [parseInt(formState.project, 10)] : [],
@@ -351,7 +351,7 @@ export function CreateAlertModal({
             )}
           </div>
 
-          <ChartPanel isLoading={isLoading}>
+          <ChartPanel isLoading={isPending}>
             <PanelBody withPadding>
               <ChartHeader>
                 <HeaderTitleLegend>
@@ -383,7 +383,7 @@ export function CreateAlertModal({
                 </Tooltip>
               </ChartFilters>
             </PanelBody>
-            {isLoading && <StyledLoadingIndicator />}
+            {isPending && <StyledLoadingIndicator />}
             {isError && <LoadingError onRetry={refetch} />}
             {chartSeries && <AreaChart series={chartSeries} {...chartOptions} />}
           </ChartPanel>

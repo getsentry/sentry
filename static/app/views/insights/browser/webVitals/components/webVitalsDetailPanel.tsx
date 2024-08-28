@@ -75,7 +75,7 @@ export function WebVitalsDetailPanel({
   const projectScore = calculatePerformanceScoreFromStoredTableDataRow(
     projectScoresData?.data?.[0]
   );
-  const {data, isLoading} = useTransactionWebVitalsScoresQuery({
+  const {data, isPending} = useTransactionWebVitalsScoresQuery({
     limit: 100,
     webVital: webVital ?? 'total',
     ...(webVital
@@ -266,7 +266,7 @@ export function WebVitalsDetailPanel({
         <TableContainer>
           <GridEditable
             data={dataByOpportunity}
-            isLoading={isLoading}
+            isLoading={isPending}
             columnOrder={columnOrder}
             columnSortBy={[sort]}
             grid={{
