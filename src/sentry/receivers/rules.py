@@ -154,8 +154,8 @@ def create_default_rules(
         if user is None and team_ids is None:
             return
 
-        # When user is None, we must be sending notifcations to a team which requires access
-        # to also be passed.
+        # When user is None, we must be sending notifications to a team which requires access
+        # to be passed into create_metric_alert.
         if user is None and access is None:
             return
 
