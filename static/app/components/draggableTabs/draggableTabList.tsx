@@ -210,7 +210,7 @@ DraggableTabList.Item = Item;
  * but they still create some space and act as a gap between tabs.
  */
 const TabDivider = styled(motion.div, {
-  // shouldForwardProp: prop => prop !== 'isVisible',
+  shouldForwardProp: prop => prop !== 'isVisible',
 })<{isVisible: boolean}>`
   ${p =>
     p.isVisible &&
