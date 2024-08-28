@@ -359,7 +359,6 @@ describe('Incident Rules Form', () => {
     it('creates an anomaly detection rule', async () => {
       organization.features = [...organization.features, 'anomaly-detection-alerts'];
       const rule = MetricRuleFixture({
-        detectionType: AlertRuleComparisonType.PERCENT,
         sensitivity: AlertRuleSensitivity.MEDIUM,
         seasonality: AlertRuleSeasonality.AUTO,
       });
@@ -372,17 +371,13 @@ describe('Incident Rules Form', () => {
           dataset: 'events',
         },
       });
-      await userEvent.click(
-        screen.getByText('Anomaly: when evaluated values are outside of expected bounds')
-      );
-
       expect(
         await screen.findByLabelText(
-          'Anomaly: when evaluated values are outside of expected bounds'
+          'Anomaly: whenever values are outside of expected bounds'
         )
       ).toBeChecked();
       expect(
-        await screen.findByRole('textbox', {name: 'Sensitivity'})
+        await screen.findByRole('textbox', {name: 'Level of responsiveness'})
       ).toBeInTheDocument();
       await userEvent.click(screen.getByLabelText('Save Rule'));
 
@@ -528,7 +523,7 @@ describe('Incident Rules Form', () => {
         },
       });
       const anomaly_option = await screen.findByText(
-        'Anomaly: when evaluated values are outside of expected bounds'
+        'Anomaly: whenever values are outside of expected bounds'
       );
       expect(anomaly_option).toBeInTheDocument();
     });

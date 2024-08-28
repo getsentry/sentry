@@ -113,7 +113,7 @@ export function CacheSamplePanel() {
     'project.id': query.project,
   };
 
-  const {data: cacheHitRateData, isLoading: isCacheHitRateLoading} = useSpanMetricsSeries(
+  const {data: cacheHitRateData, isPending: isCacheHitRateLoading} = useSpanMetricsSeries(
     {
       search: MutableSearch.fromQueryObject(filters satisfies SpanMetricsQueryFilters),
       yAxis: [`${SpanFunction.CACHE_MISS_RATE}()`],
@@ -137,7 +137,7 @@ export function CacheSamplePanel() {
       Referrer.SAMPLES_CACHE_METRICS_RIBBON
     );
 
-  const {data: transactionDurationData, isLoading: isTransactionDurationLoading} =
+  const {data: transactionDurationData, isPending: isTransactionDurationLoading} =
     useMetrics(
       {
         search: MutableSearch.fromQueryObject({

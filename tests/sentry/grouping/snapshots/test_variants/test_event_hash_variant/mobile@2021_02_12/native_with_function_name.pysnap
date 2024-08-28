@@ -1,5 +1,5 @@
 ---
-created: '2021-08-04T15:53:48.426599Z'
+created: '2024-08-27T12:08:35.109061+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -11,7 +11,6 @@ app:
 --------------------------------------------------------------------------
 app-depth-1:
   hash: "7b82f61c02dceddacf473738f7827805"
-  tree_label: "`anonymous namespace'::something::nested::Foo<T>::crash"
   component:
     app-depth-1*
       exception*
@@ -30,7 +29,6 @@ app-depth-1:
 --------------------------------------------------------------------------
 app-depth-2:
   hash: "ecaeb0c00f2962b1e3e3f40313787711"
-  tree_label: "`anonymous namespace'::something::nested::Foo<T>::crash | `anonymous namespace'::crash"
   component:
     app-depth-2*
       exception*
@@ -56,7 +54,6 @@ app-depth-2:
 --------------------------------------------------------------------------
 app-depth-3:
   hash: "d64904dcba276f8cad4f718cda9d8690"
-  tree_label: "`anonymous namespace'::something::nested::Foo<T>::crash | `anonymous namespace'::crash | `anonymous namespace'::start"
   component:
     app-depth-3*
       exception*
@@ -89,7 +86,6 @@ app-depth-3:
 --------------------------------------------------------------------------
 app-depth-4:
   hash: "a07df792479c5ba46fc056236749b796"
-  tree_label: "`anonymous namespace'::something::nested::Foo<T>::crash | `anonymous namespace'::crash | `anonymous namespace'::start | main"
   component:
     app-depth-4*
       exception*
@@ -129,7 +125,6 @@ app-depth-4:
 --------------------------------------------------------------------------
 app-depth-max:
   hash: "a07df792479c5ba46fc056236749b796"
-  tree_label: "`anonymous namespace'::something::nested::Foo<T>::crash | `anonymous namespace'::crash | `anonymous namespace'::start | main"
   component:
     app-depth-max*
       exception*
@@ -169,7 +164,6 @@ app-depth-max:
 --------------------------------------------------------------------------
 system:
   hash: "b6730144b136a3c9b4457fba614b07d2"
-  tree_label: "`anonymous namespace'::something::nested::Foo<T>::crash | `anonymous namespace'::crash | `anonymous namespace'::start | main"
   component:
     system*
       exception*

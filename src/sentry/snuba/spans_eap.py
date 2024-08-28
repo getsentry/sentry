@@ -12,7 +12,7 @@ from sentry.search.events.builder.spans_indexed import (
     TimeseriesSpanIndexedQueryBuilder,
     TopEventsSpanIndexedQueryBuilder,
 )
-from sentry.search.events.types import EventsResponse, ParamsType, QueryBuilderConfig, SnubaParams
+from sentry.search.events.types import EventsResponse, QueryBuilderConfig, SnubaParams
 from sentry.snuba import discover
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.metrics.extraction import MetricSpecType
@@ -25,8 +25,7 @@ logger = logging.getLogger(__name__)
 def query(
     selected_columns: list[str],
     query: str,
-    params: ParamsType,
-    snuba_params: SnubaParams | None = None,
+    snuba_params: SnubaParams,
     equations: list[str] | None = None,
     orderby: list[str] | None = None,
     offset: int | None = None,
@@ -53,7 +52,7 @@ def query(
 ):
     builder = SpansEAPQueryBuilder(
         Dataset.SpansEAP,
-        params,
+        {},
         snuba_params=snuba_params,
         query=query,
         selected_columns=selected_columns,
@@ -83,9 +82,8 @@ def query(
 def timeseries_query(
     selected_columns: Sequence[str],
     query: str,
-    params: ParamsType,
+    snuba_params,
     rollup: int,
-    snuba_params: SnubaParams | None = None,
     referrer: str | None = None,
     zerofill_results: bool = True,
     comparison_delta: timedelta | None = None,
@@ -104,13 +102,10 @@ def timeseries_query(
     """
     equations, columns = categorize_columns(selected_columns)
 
-    if len(params) == 0 and snuba_params is not None:
-        params = snuba_params.filter_params
-
     with sentry_sdk.start_span(op="spans_indexed", description="TimeseriesSpanIndexedQueryBuilder"):
         querybuilder = TimeseriesSpanIndexedQueryBuilder(
             Dataset.SpansEAP,
-            params,
+            {},
             rollup,
             snuba_params=snuba_params,
             query=query,
@@ -125,8 +120,8 @@ def timeseries_query(
         result["data"] = (
             discover.zerofill(
                 result["data"],
-                params["start"],
-                params["end"],
+                snuba_params.start_date,
+                snuba_params.end_date,
                 rollup,
                 ["time"],
             )
@@ -139,8 +134,8 @@ def timeseries_query(
             "data": result["data"],
             "meta": result["meta"],
         },
-        params["start"],
-        params["end"],
+        snuba_params.start_date,
+        snuba_params.end_date,
         rollup,
     )
 
@@ -149,12 +144,11 @@ def top_events_timeseries(
     timeseries_columns: list[str],
     selected_columns: list[str],
     user_query: str,
-    params: ParamsType,
+    snuba_params: SnubaParams,
     orderby: list[str],
     rollup: int,
     limit: int,
     organization: Organization,
-    snuba_params: SnubaParams | None = None,
     equations: list[str] | None = None,
     referrer: str | None = None,
     top_events: EventsResponse | None = None,
@@ -177,7 +171,6 @@ def top_events_timeseries(
             top_events = query(
                 selected_columns,
                 query=user_query,
-                params=params,
                 snuba_params=snuba_params,
                 equations=equations,
                 orderby=orderby,
@@ -192,7 +185,7 @@ def top_events_timeseries(
 
     top_events_builder = TopEventsSpanIndexedQueryBuilder(
         Dataset.SpansEAP,
-        params,
+        {},
         rollup,
         top_events["data"],
         snuba_params=snuba_params,
@@ -209,7 +202,7 @@ def top_events_timeseries(
     if len(top_events["data"]) == limit and include_other:
         other_events_builder = TopEventsSpanIndexedQueryBuilder(
             Dataset.SpansEAP,
-            params,
+            {},
             rollup,
             top_events["data"],
             snuba_params=snuba_params,
@@ -235,13 +228,15 @@ def top_events_timeseries(
         return SnubaTSResult(
             {
                 "data": (
-                    discover.zerofill([], params["start"], params["end"], rollup, ["time"])
+                    discover.zerofill(
+                        [], snuba_params.start_date, snuba_params.end_date, rollup, ["time"]
+                    )
                     if zerofill_results
                     else []
                 ),
             },
-            params["start"],
-            params["end"],
+            snuba_params.start_date,
+            snuba_params.end_date,
             rollup,
         )
     with sentry_sdk.start_span(
@@ -277,15 +272,19 @@ def top_events_timeseries(
                 {
                     "data": (
                         discover.zerofill(
-                            result_item["data"], params["start"], params["end"], rollup, ["time"]
+                            result_item["data"],
+                            snuba_params.start_date,
+                            snuba_params.end_date,
+                            rollup,
+                            ["time"],
                         )
                         if zerofill_results
                         else result_item["data"]
                     ),
                     "order": result_item["order"],
                 },
-                params["start"],
-                params["end"],
+                snuba_params.start_date,
+                snuba_params.end_date,
                 rollup,
             )
 

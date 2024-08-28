@@ -99,7 +99,7 @@ function EventSpanOpBreakdown({event}: {event: Event}) {
 
   const {
     data: postBreakpointData,
-    isLoading: postBreakpointIsLoading,
+    isPending: postBreakpointIsLoading,
     isError: postBreakpointIsError,
   } = useDiscoverQuery({
     eventView: postBreakpointEventView,
@@ -110,7 +110,7 @@ function EventSpanOpBreakdown({event}: {event: Event}) {
 
   const {
     data: preBreakpointData,
-    isLoading: preBreakpointIsLoading,
+    isPending: preBreakpointIsLoading,
     isError: preBreakpointIsError,
   } = useDiscoverQuery({
     eventView: preBreakpointEventView,

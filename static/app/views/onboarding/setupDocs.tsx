@@ -60,8 +60,8 @@ function SetupDocs({location, recentCreatedProject: project}: StepProps) {
     return null;
   }
 
-  const platformName = currentPlatform?.name ?? '';
-  const integrationSlug = project?.platform && platformToIntegrationMap[project.platform];
+  const platformName = currentPlatform.name;
+  const integrationSlug = project.platform && platformToIntegrationMap[project.platform];
   const showIntegrationOnboarding = integrationSlug && !integrationUseManualSetup;
 
   return (

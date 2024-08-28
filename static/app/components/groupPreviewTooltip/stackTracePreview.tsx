@@ -1,9 +1,7 @@
 import {useEffect, useMemo} from 'react';
-import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import StackTraceContent from 'sentry/components/events/interfaces/crashContent/stackTrace/content';
-import {HierarchicalGroupingContent} from 'sentry/components/events/interfaces/crashContent/stackTrace/hierarchicalGroupingContent';
 import {NativeContent} from 'sentry/components/events/interfaces/crashContent/stackTrace/nativeContent';
 import findBestThread from 'sentry/components/events/interfaces/threads/threadSelector/findBestThread';
 import getThreadStacktrace from 'sentry/components/events/interfaces/threads/threadSelector/getThreadStacktrace';
@@ -22,7 +20,6 @@ import type {PlatformKey} from 'sentry/types/project';
 import type {StacktraceType} from 'sentry/types/stacktrace';
 import {defined} from 'sentry/utils';
 import {isNativePlatform} from 'sentry/utils/platform';
-import useOrganization from 'sentry/utils/useOrganization';
 
 export function getStacktrace(event: Event): StacktraceType | null {
   const exceptionsWithStacktrace =
@@ -58,13 +55,11 @@ export function getStacktrace(event: Event): StacktraceType | null {
 export function StackTracePreviewContent({
   event,
   stacktrace,
-  orgFeatures = [],
   groupingCurrentLevel,
 }: {
   event: Event;
   stacktrace: StacktraceType;
   groupingCurrentLevel?: number;
-  orgFeatures?: string[];
 }) {
   const includeSystemFrames = useMemo(() => {
     return stacktrace?.frames?.every(frame => !frame.inApp) ?? false;
@@ -86,15 +81,6 @@ export function StackTracePreviewContent({
 
   if (isNativePlatform(platform)) {
     return <NativeContent {...commonProps} groupingCurrentLevel={groupingCurrentLevel} />;
-  }
-
-  if (orgFeatures.includes('grouping-stacktrace-ui')) {
-    return (
-      <HierarchicalGroupingContent
-        {...commonProps}
-        groupingCurrentLevel={groupingCurrentLevel}
-      />
-    );
   }
 
   return <StackTraceContent {...commonProps} />;
@@ -127,23 +113,21 @@ function StackTracePreviewBody({
   onUnmount,
   query,
 }: StackTracePreviewBodyProps) {
-  const organization = useOrganization();
-
-  const {data, isLoading, isError} = usePreviewEvent({groupId, query});
+  const {data, isPending, isError} = usePreviewEvent({groupId, query});
 
   useEffect(() => {
-    if (isLoading) {
+    if (isPending) {
       onRequestBegin();
     } else {
       onRequestEnd();
     }
 
     return onUnmount;
-  }, [isLoading, onRequestBegin, onRequestEnd, onUnmount]);
+  }, [isPending, onRequestBegin, onRequestEnd, onUnmount]);
 
   const stacktrace = useMemo(() => (data ? getStacktrace(data) : null), [data]);
 
-  if (isLoading) {
+  if (isPending) {
     return (
       <NoStackTraceWrapper>
         <LoadingIndicator hideMessage size={32} />
@@ -162,7 +146,6 @@ function StackTracePreviewBody({
           event={data}
           stacktrace={stacktrace}
           groupingCurrentLevel={groupingCurrentLevel}
-          orgFeatures={organization.features}
         />
       </StackTracePreviewWrapper>
     );
@@ -176,19 +159,11 @@ function StackTracePreviewBody({
 }
 
 function StackTracePreview({children, ...props}: StackTracePreviewProps) {
-  const organization = useOrganization();
   const {shouldShowLoadingState, onRequestBegin, onRequestEnd, reset} =
     useDelayedLoadingState();
 
-  const hasGroupingStacktraceUI = organization.features.includes(
-    'grouping-stacktrace-ui'
-  );
-
   return (
-    <Wrapper
-      data-testid="stacktrace-preview"
-      hasGroupingStacktraceUI={hasGroupingStacktraceUI}
-    >
+    <span data-testid="stacktrace-preview">
       <GroupPreviewHovercard
         hide={!shouldShowLoadingState}
         body={
@@ -202,26 +177,11 @@ function StackTracePreview({children, ...props}: StackTracePreviewProps) {
       >
         {children}
       </GroupPreviewHovercard>
-    </Wrapper>
+    </span>
   );
 }
 
 export {StackTracePreview};
-
-const Wrapper = styled('span')<{
-  hasGroupingStacktraceUI: boolean;
-}>`
-  ${p =>
-    p.hasGroupingStacktraceUI &&
-    css`
-      display: inline-flex;
-      overflow: hidden;
-      height: 100%;
-      > span:first-child {
-        ${p.theme.overflowEllipsis}
-      }
-    `}
-`;
 
 const StackTracePreviewWrapper = styled('div')`
   width: 700px;
