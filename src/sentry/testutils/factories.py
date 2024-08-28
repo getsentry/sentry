@@ -1212,13 +1212,10 @@ class Factories:
         installation = SentryAppInstallation.objects.get(
             sentry_app_id=sentry_app_id, organization_id=organization_id
         )
-        return (
-            SentryAppInstallationForProvider.objects.create(
-                organization_id=organization_id,
-                provider=provider,
-                sentry_app_installation=installation,
-            )
-            @ staticmethod
+        return SentryAppInstallationForProvider.objects.create(
+            organization_id=organization_id,
+            provider=provider,
+            sentry_app_installation=installation,
         )
 
     @assume_test_silo_mode(SiloMode.CONTROL)
