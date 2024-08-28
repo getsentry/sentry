@@ -10,6 +10,9 @@ import {
   GridHead,
   GridHeadCell,
   GridRow,
+  Header,
+  HeaderButtonContainer,
+  HeaderTitle,
 } from 'sentry/components/gridEditable/styles';
 
 interface TableProps extends React.ComponentProps<typeof _TableWrapper> {}
@@ -70,4 +73,7 @@ export const TableBody = GridBody;
 export const TableBodyCell = GridBodyCell;
 export const TableHead = GridHead;
 export const TableHeadCell = GridHeadCell;
+export const TableHeader = Header;
+export const TableHeaderActions = HeaderButtonContainer;
+export const TableHeaderTitle = HeaderTitle;
 export const TableRow = GridRow;
