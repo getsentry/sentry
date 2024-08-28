@@ -809,7 +809,11 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
             ...activatedAlertFields,
             projects: [project.slug],
             triggers: sanitizedTriggers,
-            resolveThreshold: isEmpty(resolveThreshold) ? null : resolveThreshold,
+            resolveThreshold:
+              isEmpty(resolveThreshold) ||
+              detectionType === AlertRuleComparisonType.DYNAMIC
+                ? null
+                : resolveThreshold,
             thresholdType,
             thresholdPeriod,
             comparisonDelta: comparisonDelta ?? null,
