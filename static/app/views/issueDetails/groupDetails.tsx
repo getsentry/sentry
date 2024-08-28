@@ -841,7 +841,7 @@ function GroupDetails(props: GroupDetailsProps) {
       return defaultTitle;
     }
 
-    const {title} = getTitle(group, organization?.features);
+    const {title} = getTitle(group);
     const message = getMessage(group);
 
     const eventDetails = `${organization.slug} — ${group.project.slug}`;

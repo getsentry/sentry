@@ -356,7 +356,7 @@ function EventDetailsContent(props: Props) {
   const eventSlug = getEventSlug();
   const projectSlug = eventSlug.split(':')[0];
 
-  const title = generateTitle({eventView, event, organization});
+  const title = generateTitle({eventView, event});
 
   return (
     <SentryDocumentTitle

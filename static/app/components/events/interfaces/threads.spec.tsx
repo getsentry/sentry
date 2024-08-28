@@ -188,12 +188,7 @@ describe('Threads', function () {
         packages: {},
         type: EventOrGroupType.ERROR,
         metadata: {
-          display_title_with_tree_label: false,
           filename: 'sentry/controllers/welcome_controller.rb',
-          finest_tree_label: [
-            {filebase: 'welcome_controller.rb', function: '/'},
-            {filebase: 'welcome_controller.rb', function: 'index'},
-          ],
           function: '/',
           type: 'ZeroDivisionError',
           value: 'divided by 0',
@@ -828,15 +823,6 @@ describe('Threads', function () {
         },
         type: EventOrGroupType.ERROR,
         metadata: {
-          display_title_with_tree_label: true,
-          finest_tree_label: [
-            {
-              function: 'ViewController.causeCrash',
-            },
-            {
-              function: 'main',
-            },
-          ],
           function: 'ViewController.causeCrash',
           value:
             'Attempted to dereference null pointer.\nOriginated at or in a subcall of ViewController.causeCrash(Any) -> ()',

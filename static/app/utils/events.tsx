@@ -5,11 +5,9 @@ import type {
   EntryRequest,
   EntryThreads,
   Event,
-  EventMetadata,
   ExceptionValue,
   Frame,
   Thread,
-  TreeLabelPart,
 } from 'sentry/types/event';
 import {EntryType, EventOrGroupType} from 'sentry/types/event';
 import type {
@@ -76,55 +74,7 @@ export function getLocation(event: Event | BaseGroup | GroupTombstoneHelper) {
   return undefined;
 }
 
-export function getTreeLabelPartDetails(part: TreeLabelPart) {
-  // Note: This function also exists in Python in eventtypes/base.py, to make
-  // porting efforts simpler it's recommended to keep both variants
-  // structurally similar.
-  if (typeof part === 'string') {
-    return part;
-  }
-
-  const label = part?.function || part?.package || part?.filebase || part?.type;
-  const classbase = part?.classbase;
-
-  if (classbase) {
-    return label ? `${classbase}.${label}` : classbase;
-  }
-
-  return label || '<unknown>';
-}
-
-function computeTitleWithTreeLabel(metadata: EventMetadata) {
-  const {type, current_tree_label, finest_tree_label} = metadata;
-
-  const treeLabel = current_tree_label || finest_tree_label;
-
-  const formattedTreeLabel = treeLabel
-    ? treeLabel.map(labelPart => getTreeLabelPartDetails(labelPart)).join(' | ')
-    : undefined;
-
-  if (!type) {
-    return {
-      title: formattedTreeLabel || metadata.function || '<unknown>',
-      treeLabel,
-    };
-  }
-
-  if (!formattedTreeLabel) {
-    return {title: type, treeLabel: undefined};
-  }
-
-  return {
-    title: `${type} | ${formattedTreeLabel}`,
-    treeLabel: [{type}, ...(treeLabel ?? [])],
-  };
-}
-
-export function getTitle(
-  event: Event | BaseGroup | GroupTombstoneHelper,
-  features: string[] = [],
-  grouping = false
-) {
+export function getTitle(event: Event | BaseGroup | GroupTombstoneHelper) {
   const {metadata, type, culprit, title} = event;
   const customTitle = metadata?.title;
 
@@ -134,28 +84,12 @@ export function getTitle(
         return {
           title: customTitle,
           subtitle: culprit,
-          treeLabel: undefined,
-        };
-      }
-
-      const displayTitleWithTreeLabel =
-        !isTombstone(event) &&
-        features.includes('grouping-title-ui') &&
-        (grouping ||
-          isNativePlatform(event.platform) ||
-          isMobilePlatform(event.platform));
-
-      if (displayTitleWithTreeLabel) {
-        return {
-          subtitle: culprit,
-          ...computeTitleWithTreeLabel(metadata),
         };
       }
 
       return {
         subtitle: culprit,
         title: metadata.type || metadata.function || '<unknown>',
-        treeLabel: undefined,
       };
     }
     case EventOrGroupType.CSP:
@@ -163,7 +97,6 @@ export function getTitle(
       return {
         title: customTitle ?? metadata.directive ?? '',
         subtitle: metadata.uri ?? '',
-        treeLabel: undefined,
       };
     case EventOrGroupType.EXPECTCT:
     case EventOrGroupType.EXPECTSTAPLE:
@@ -174,13 +107,11 @@ export function getTitle(
       return {
         title: customTitle ?? (metadata.message || title),
         subtitle: metadata.origin ?? '',
-        treeLabel: undefined,
       };
     case EventOrGroupType.DEFAULT:
       return {
         title: customTitle ?? title,
         subtitle: '',
-        treeLabel: undefined,
       };
     case EventOrGroupType.TRANSACTION:
     case EventOrGroupType.GENERIC:
@@ -188,13 +119,11 @@ export function getTitle(
       return {
         title: customTitle ?? title,
         subtitle: isIssue ? culprit : '',
-        treeLabel: undefined,
       };
     default:
       return {
         title: customTitle ?? title,
         subtitle: '',
-        treeLabel: undefined,
       };
   }
 }

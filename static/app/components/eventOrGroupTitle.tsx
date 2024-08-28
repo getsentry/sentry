@@ -3,39 +3,27 @@ import styled from '@emotion/styled';
 
 import type {Event} from 'sentry/types/event';
 import type {BaseGroup, GroupTombstoneHelper} from 'sentry/types/group';
-import type {Organization} from 'sentry/types/organization';
 import {getTitle, isTombstone} from 'sentry/utils/events';
-import withOrganization from 'sentry/utils/withOrganization';
 
-import EventTitleTreeLabel from './eventTitleTreeLabel';
 import GroupPreviewTooltip from './groupPreviewTooltip';
 
 interface EventOrGroupTitleProps {
   data: Event | BaseGroup | GroupTombstoneHelper;
-  organization: Organization;
   className?: string;
-  /* is issue breakdown? */
-  grouping?: boolean;
   query?: string;
   withStackTracePreview?: boolean;
 }
 
 function EventOrGroupTitle({
-  organization,
   data,
   withStackTracePreview,
-  grouping = false,
   className,
   query,
 }: EventOrGroupTitleProps) {
   const {id, groupID} = data as Event;
 
-  const {title, subtitle, treeLabel} = getTitle(data, organization?.features, grouping);
-  const titleLabel = treeLabel ? (
-    <EventTitleTreeLabel treeLabel={treeLabel} />
-  ) : (
-    title ?? ''
-  );
+  const {title, subtitle} = getTitle(data);
+  const titleLabel = title ?? '';
 
   return (
     <Wrapper className={className}>
@@ -62,7 +50,7 @@ function EventOrGroupTitle({
   );
 }
 
-export default withOrganization(EventOrGroupTitle);
+export default EventOrGroupTitle;
 
 /**
  * &nbsp; is used instead of margin/padding to split title and subtitle
