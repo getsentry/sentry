@@ -12,6 +12,7 @@ import type {
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {MobileBetaBanner} from 'sentry/components/onboarding/gettingStartedDoc/utils';
 import {getAndroidMetricsOnboarding} from 'sentry/components/onboarding/gettingStartedDoc/utils/metricsOnboarding';
+import {getReplayMobileConfigureDescription} from 'sentry/components/onboarding/gettingStartedDoc/utils/replayOnboarding';
 import {feedbackOnboardingCrashApiJava} from 'sentry/gettingStartedDocs/java/java';
 import {t, tct} from 'sentry/locale';
 import {getPackageVersion} from 'sentry/utils/gettingStartedDocs/getPackageVersion';
@@ -336,17 +337,9 @@ const replayOnboarding: OnboardingConfig<PlatformOptions> = {
   configure: () => [
     {
       type: StepType.CONFIGURE,
-      description: tct(
-        'The SDK is aggressively redacting all text and images. We plan to add fine controls for redacting, but currently, we just allow either on or off. Learn more about configuring Session Replay by reading the [link:configuration docs].',
-        {
-          code: <code />,
-          link: (
-            <ExternalLink
-              href={'https://docs.sentry.io/platforms/android/session-replay/#privacy'}
-            />
-          ),
-        }
-      ),
+      description: getReplayMobileConfigureDescription({
+        link: 'https://docs.sentry.io/platforms/android/session-replay/#privacy',
+      }),
       configurations: [
         {
           description: t(

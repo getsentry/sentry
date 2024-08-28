@@ -15,6 +15,7 @@ import {
   getCrashReportInstallDescription,
 } from 'sentry/components/onboarding/gettingStartedDoc/utils/feedbackOnboarding';
 import {getReactNativeMetricsOnboarding} from 'sentry/components/onboarding/gettingStartedDoc/utils/metricsOnboarding';
+import {getReplayMobileConfigureDescription} from 'sentry/components/onboarding/gettingStartedDoc/utils/replayOnboarding';
 import {t, tct} from 'sentry/locale';
 
 type Params = DocsParams;
@@ -433,19 +434,9 @@ const replayOnboarding: OnboardingConfig = {
   configure: () => [
     {
       type: StepType.CONFIGURE,
-      description: tct(
-        'The SDK is aggressively redacting all text and images. We plan to add fine controls for redacting, but currently, we just allow either on or off. Learn more about configuring Session Replay by reading the [link:configuration docs].',
-        {
-          code: <code />,
-          link: (
-            <ExternalLink
-              href={
-                'https://docs.sentry.io/platforms/react-native/session-replay/#privacy'
-              }
-            />
-          ),
-        }
-      ),
+      description: getReplayMobileConfigureDescription({
+        link: 'https://docs.sentry.io/platforms/react-native/session-replay/#privacy',
+      }),
       configurations: [
         {
           description: t(

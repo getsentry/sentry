@@ -4,6 +4,15 @@ import {tct} from 'sentry/locale';
 
 export const getReplayConfigureDescription = ({link}: {link: string}) =>
   tct(
+    'The SDK is aggressively redacting all text and images. We plan to add fine controls for redacting, but currently, we just allow either on or off. Learn more about configuring Session Replay by reading the [link:configuration docs].',
+    {
+      code: <code />,
+      link: <ExternalLink href={link} />,
+    }
+  );
+
+export const getReplayMobileConfigureDescription = ({link}: {link: string}) =>
+  tct(
     'Add the following to your SDK config. There are several privacy and sampling options available, all of which can be set using the [code:integrations] constructor. Learn more about configuring Session Replay by reading the [link:configuration docs].',
     {
       code: <code />,
