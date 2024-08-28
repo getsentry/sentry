@@ -1,11 +1,10 @@
 ---
-created: '2021-09-01T10:07:53.623239Z'
+created: '2024-08-27T12:08:35.562177+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
 app-depth-1:
   hash: "37431f5f13e61c1a604e54d097c98cc5"
-  tree_label: "fetchGroupEventAndMarkSeen"
   component:
     app-depth-1*
       exception*
@@ -26,7 +25,6 @@ app-depth-1:
 --------------------------------------------------------------------------
 app-depth-2:
   hash: "caa5df29a33af87ed50ebc242e35178d"
-  tree_label: "fetchGroupEventAndMarkSeen | this"
   component:
     app-depth-2*
       exception*
@@ -56,7 +54,6 @@ app-depth-2:
 --------------------------------------------------------------------------
 app-depth-3:
   hash: "0d2903c79166b4f45dce1a21dd5bca2a"
-  tree_label: "fetchGroupEventAndMarkSeen | this | X"
   component:
     app-depth-3*
       exception*
@@ -95,7 +92,6 @@ app-depth-3:
 --------------------------------------------------------------------------
 app-depth-4:
   hash: "4a3cf3893b6485428dd02da116c8370e"
-  tree_label: "fetchGroupEventAndMarkSeen | this | X | fn"
   component:
     app-depth-4*
       exception*
@@ -143,7 +139,6 @@ app-depth-4:
 --------------------------------------------------------------------------
 app-depth-max:
   hash: "4a3cf3893b6485428dd02da116c8370e"
-  tree_label: "fetchGroupEventAndMarkSeen | this | X | fn"
   component:
     app-depth-max*
       exception*
@@ -191,7 +186,6 @@ app-depth-max:
 --------------------------------------------------------------------------
 system:
   hash: "d5456487ea8dccfe96c1968b19870978"
-  tree_label: "fetchGroupEventAndMarkSeen | this | X | rh | Xg | Yg | If | this | this | fn | tryCatch | this | key | asyncGeneratorStep | _next | run | fn | M"
   component:
     system*
       exception*

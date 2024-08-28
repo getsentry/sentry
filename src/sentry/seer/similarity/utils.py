@@ -165,11 +165,26 @@ def event_content_is_seer_eligible(event: Event) -> bool:
     """
     # TODO: Determine if we want to filter out non-sourcemapped events
     if not event_content_has_stacktrace(event):
+        metrics.incr(
+            "grouping.similarity.event_content_seer_eligible",
+            sample_rate=options.get("seer.similarity.metrics_sample_rate"),
+            tags={"eligible": False, "blocker": "no-stacktrace"},
+        )
         return False
 
     if event.platform not in SEER_ELIGIBLE_PLATFORMS:
+        metrics.incr(
+            "grouping.similarity.event_content_seer_eligible",
+            sample_rate=options.get("seer.similarity.metrics_sample_rate"),
+            tags={"eligible": False, "blocker": "unsupported-platform"},
+        )
         return False
 
+    metrics.incr(
+        "grouping.similarity.event_content_seer_eligible",
+        sample_rate=options.get("seer.similarity.metrics_sample_rate"),
+        tags={"eligible": True, "blocker": "none"},
+    )
     return True
 
 
