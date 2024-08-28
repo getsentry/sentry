@@ -10,6 +10,7 @@ from django.test import override_settings
 from rest_framework import serializers
 from rest_framework.exceptions import ErrorDetail
 from slack_sdk.errors import SlackApiError
+from urllib3.response import HTTPResponse
 
 from sentry.auth.access import from_user
 from sentry.incidents.logic import (
@@ -468,10 +469,15 @@ class TestAlertRuleSerializer(TestAlertRuleSerializerBase):
         )
 
     @with_feature("organizations:anomaly-detection-alerts")
-    def test_invalid_alert_threshold(self):
+    @patch(
+        "sentry.seer.anomaly_detection.store_data.seer_anomaly_detection_connection_pool.urlopen"
+    )
+    def test_invalid_alert_threshold(self, mock_seer_request):
         """
         Anomaly detection alerts cannot have a nonzero alert rule threshold
         """
+        mock_seer_request.return_value = HTTPResponse(status=200)
+
         params = self.valid_params.copy()
         params["detection_type"] = AlertRuleDetectionType.DYNAMIC
         params["seasonality"] = AlertRuleSeasonality.AUTO
@@ -480,8 +486,13 @@ class TestAlertRuleSerializer(TestAlertRuleSerializerBase):
         serializer = AlertRuleSerializer(context=self.context, data=params)
         assert serializer.is_valid()
 
-        with pytest.raises(serializers.ValidationError):
+        with pytest.raises(
+            serializers.ValidationError,
+            match="Dynamic alerts cannot have a nonzero alert threshold",
+        ):
             serializer.save()
+
+        assert mock_seer_request.call_count == 1
 
     def test_invalid_slack_channel(self):
         # We had an error where an invalid slack channel was spitting out unclear
