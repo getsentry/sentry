@@ -233,29 +233,11 @@ export type ExceptionType = {
   values?: Array<ExceptionValue>;
 };
 
-export type TreeLabelPart =
-  | string
-  | {
-      classbase?: string;
-      datapath?: (string | number)[];
-      filebase?: string;
-      function?: string;
-      is_prefix?: boolean;
-      // is_sentinel is no longer being used,
-      // but we will still assess whether we will use this property in the near future.
-      is_sentinel?: boolean;
-      package?: string;
-      type?: string;
-    };
-
 // This type is incomplete
 export type EventMetadata = {
   current_level?: number;
-  current_tree_label?: TreeLabelPart[];
   directive?: string;
-  display_title_with_tree_label?: boolean;
   filename?: string;
-  finest_tree_label?: TreeLabelPart[];
   function?: string;
   message?: string;
   origin?: string;
