@@ -483,6 +483,7 @@ DEFAULT_ALERT_RULE_WINDOW_TO_RESOLUTION = {
     720: 5,
     1440: 15,
 }
+SORTED_TIMEWINDOWS = sorted(DEFAULT_ALERT_RULE_WINDOW_TO_RESOLUTION.keys())
 
 # Temporary mapping of `Dataset` to `AlertRule.Type`. In the future, `Performance` will be
 # able to be run on `METRICS` as well.
@@ -495,13 +496,12 @@ query_datasets_to_type = {
 
 
 def get_alert_resolution(time_window: int, organization) -> int:
-    windows = sorted(DEFAULT_ALERT_RULE_WINDOW_TO_RESOLUTION.keys())
-    index = bisect.bisect_right(windows, time_window)
+    index = bisect.bisect_right(SORTED_TIMEWINDOWS, time_window)
 
     if index == 0:
         return DEFAULT_ALERT_RULE_RESOLUTION
 
-    return DEFAULT_ALERT_RULE_WINDOW_TO_RESOLUTION[windows[index - 1]]
+    return DEFAULT_ALERT_RULE_WINDOW_TO_RESOLUTION[SORTED_TIMEWINDOWS[index - 1]]
 
 
 def create_alert_rule(
