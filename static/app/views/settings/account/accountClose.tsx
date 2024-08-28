@@ -165,7 +165,7 @@ function AccountClose() {
 
           {organizations?.map(({organization, singleOwner}) => (
             <PanelItem key={organization.slug}>
-              <label>
+              <label css={{display: 'flex', alignItems: 'center'}}>
                 <input
                   style={{marginRight: 6}}
                   type="checkbox"
