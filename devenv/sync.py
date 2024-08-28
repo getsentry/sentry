@@ -54,7 +54,7 @@ def run_procs(
                 f"""
 ❌ {name}
 
-failed command (code p.returncode):
+failed command (code {p.returncode}):
     {shlex.join(final_cmd)}
 
 Output:
