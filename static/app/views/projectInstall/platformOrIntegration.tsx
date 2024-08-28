@@ -41,6 +41,7 @@ function PlatformOrIntegration({params}: Props) {
         onClickManualSetup={() => setIntegrationUseManualSetup(true)}
         project={project}
         platform={currentPlatform}
+        loading={loadingProjects}
       />
     );
   }

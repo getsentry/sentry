@@ -1,8 +1,10 @@
-import {Fragment, useCallback, useEffect, useState} from 'react';
+import {Fragment, useEffect, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
+import LoadingError from 'sentry/components/loadingError';
+import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {IntegrationProvider} from 'sentry/types/integrations';
@@ -21,6 +23,7 @@ import FirstEventFooter from './components/firstEventFooter';
 
 interface PlatformIntegrationSetupProps {
   integrationSlug: string;
+  loading: boolean;
   onClickManualSetup: () => void;
   platform: PlatformIntegration | undefined;
   project: Project | undefined;
@@ -31,12 +34,18 @@ export function PlatformIntegrationSetup({
   platform,
   onClickManualSetup,
   integrationSlug,
+  loading,
 }: PlatformIntegrationSetupProps) {
   const organization = useOrganization();
   const [installed, setInstalled] = useState(false);
   const navigate = useNavigate();
 
-  const {data: integrations} = useApiQuery<{providers: IntegrationProvider[]}>(
+  const {
+    data: integrations,
+    isPending,
+    isError,
+    refetch,
+  } = useApiQuery<{providers: IntegrationProvider[]}>(
     [
       `/organizations/${organization.slug}/config/integrations/?provider_key=${integrationSlug}`,
     ],
@@ -46,25 +55,29 @@ export function PlatformIntegrationSetup({
     }
   );
 
-  const provider = integrations?.providers.length ? integrations.providers[0] : null;
-
-  const redirectToNeutralDocs = useCallback(() => {
-    if (!project) {
-      return;
-    }
-
-    const url = `/organizations/${organization.slug}/projects/${project.slug}/getting-started/`;
-
-    navigate(normalizeUrl(url));
-  }, [organization, project, navigate]);
-
   useEffect(() => {
     window.scrollTo(0, 0);
     // redirect if platform is not known.
-    if (!platform || platform.id === 'other') {
-      redirectToNeutralDocs();
+    if ((!platform || platform.id === 'other') && !!project?.slug) {
+      navigate(
+        normalizeUrl(
+          `/organizations/${organization.slug}/projects/${project.slug}/getting-started/`
+        )
+      );
     }
-  }, [redirectToNeutralDocs, platform]);
+  }, [platform, organization.slug, navigate, project?.slug]);
+
+  const isLoading = isPending || loading;
+
+  if (isLoading) {
+    return <LoadingIndicator />;
+  }
+
+  if (isError) {
+    return <LoadingError onRetry={refetch} />;
+  }
+
+  const provider = integrations?.providers.length ? integrations.providers[0] : null;
 
   if (!provider || !platform || !project) {
     return null;
