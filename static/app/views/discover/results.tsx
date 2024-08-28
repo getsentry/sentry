@@ -523,12 +523,11 @@ export class Results extends Component<Props, State> {
   };
 
   getDocumentTitle(): string {
-    const {organization} = this.props;
     const {eventView} = this.state;
     if (!eventView) {
       return '';
     }
-    return generateTitle({eventView, organization});
+    return generateTitle({eventView});
   }
 
   renderTagsTable() {

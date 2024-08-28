@@ -114,7 +114,6 @@ describe('EventOrGroupTitle', function () {
             type: 'ReferenceError',
             filename: 'webpack-internal:///./app/components/tabs/tabList.tsx',
             function: 'useOverflowTabs',
-            display_title_with_tree_label: false,
           },
           actor: UserFixture(),
           isTombstone: true,
