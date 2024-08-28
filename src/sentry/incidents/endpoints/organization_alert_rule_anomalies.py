@@ -19,6 +19,7 @@ from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.incidents.endpoints.bases import OrganizationAlertRuleEndpoint
 from sentry.incidents.models.alert_rule import AlertRule
 from sentry.models.organization import Organization
+from sentry.seer.anomaly_detection.detect_anomalies import get_anomaly_data_from_seer
 from sentry.seer.anomaly_detection.types import AlertInSeer, TimeSeriesPoint
 from sentry.seer.signed_seer_api import make_signed_seer_api_request, sign_with_seer_secret
 
@@ -29,46 +30,10 @@ class DetectAnomaliesResponse(BaseModel):
 
 @region_silo_endpoint
 class OrganizationAlertRuleAnomaliesEndpoint(OrganizationAlertRuleEndpoint):
-    owner = ApiOwner.ISSUES
+    owner = ApiOwner.ALERTS_NOTIFICATIONS
     publish_status = {
         "GET": ApiPublishStatus.PUBLIC,
     }
-
-    def _call_seer(
-        self,
-        alert_rule: AlertRule,
-        start: datetime | None,
-        end: datetime | None,
-    ):
-        path = "/v1/anomaly-detection/detect"
-        project = alert_rule.projects.first()
-        body = orjson.dumps(
-            {
-                "organization_id": alert_rule.organization.id,
-                "project_id": project.id,
-                "config": {
-                    # add start/end as configs
-                },
-                "context": AlertInSeer(id=alert_rule.id),
-            },
-            option=orjson.OPT_NON_STR_KEYS,
-        )
-
-        response = requests.post(
-            f"{settings.SEER_AUTOFIX_URL}{path}",
-            data=body,
-            headers={
-                "content-type": "application/json;charset=utf-8",
-                **sign_with_seer_secret(
-                    url=f"{settings.SEER_AUTOFIX_URL}{path}",
-                    body=body,
-                ),
-            },
-        )
-
-        response.raise_for_status()
-
-        return DetectAnomaliesResponse.validate(response.json())
 
     @extend_schema(
         operation_id="Retrieve anomalies for a Metric Alert Rule",
@@ -89,6 +54,6 @@ class OrganizationAlertRuleAnomaliesEndpoint(OrganizationAlertRuleEndpoint):
         """
         start = request.GET.get("start", None)
         end = request.GET.get("end", None)
-        anomalies = self._call_seer(alert_rule, start, end)
+        anomalies = get_anomaly_data_from_seer("foobar")
 
         return Response(convert_dict_key_case(anomalies.dict(), snake_to_camel_case), status=200)
