@@ -1,5 +1,4 @@
 import {Children, isValidElement} from 'react';
-import type {InjectedRouter, PlainRoute} from 'react-router';
 import {
   generatePath,
   Navigate,

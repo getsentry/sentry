@@ -45,7 +45,7 @@ import {
   isOnDemandMetricWidget,
   OnDemandControlProvider,
 } from 'sentry/utils/performance/contexts/onDemandControl';
-import {OnRouteLeave} from 'sentry/utils/reactRouter6Compat';
+import {OnRouteLeave} from 'sentry/utils/reactRouter6Compat/onRouteLeave';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import useApi from 'sentry/utils/useApi';
 import withPageFilters from 'sentry/utils/withPageFilters';
