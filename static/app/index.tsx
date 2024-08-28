@@ -67,6 +67,20 @@
 //
 // [1]: https://sentry.io/careers/
 
+// TODO(__SENTRY_USING_REACT_ROUTER_SIX): Very early on check if we're running
+// using the react-router 6 faeture flag so we can enable ths beefore the app
+// boots.
+//
+try {
+  // @ts-expect-error features is an array at this point. It is unfortuantely
+  // typed incorrectly
+  if (window.__initialData?.features?.includes('organizations:react-router-6')) {
+    window.__SENTRY_USING_REACT_ROUTER_SIX = true;
+  }
+} catch {
+  // XXX: Just don't crash the app for any reason
+}
+
 async function app() {
   // We won't need initalizeMainImport until we complete bootstrapping.
   // Initaite the fetch, just don't await it until we need it.
