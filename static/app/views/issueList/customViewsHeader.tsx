@@ -241,16 +241,8 @@ function CustomViewsIssueListHeaderTabsContent({
       tabListState?.setSelectedKey('temporary-tab');
       return;
     }
-  }, [
-    tabListState,
-    draggableTabs,
-    navigate,
-    organization.slug,
-    query,
-    queryParams,
-    sort,
-    viewId,
-  ]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tabListState, navigate, organization.slug, query, sort, viewId]);
 
   // Update local tabs when new views are received from mutation request
   useEffect(() => {
