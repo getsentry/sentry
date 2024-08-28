@@ -90,7 +90,7 @@ class RelayRegisterResponseEndpoint(Endpoint):
                 relay = Relay.objects.create(
                     relay_id=relay_id, public_key=public_key, is_internal=is_internal
                 )
-            else:
+            elif relay.is_internal != is_internal:
                 # update the internal flag in case it is changed
                 relay.is_internal = is_internal
                 relay.save()
