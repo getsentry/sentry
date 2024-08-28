@@ -163,7 +163,7 @@ function CustomViewsIssueListHeaderTabsContent({
     [organization.slug, updateViews]
   );
 
-  // This insane useEffect ensures that the correct tab is selected when the page loads and url updates
+  // This insane useEffect ensures that the correct tab is selected when the url updates
   useEffect(() => {
     // If no query, sort, or viewId is present, set the first tab as the selected tab, update query accordingly
     if (!query && !sort && !viewId) {
