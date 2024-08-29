@@ -54,8 +54,6 @@ interface Props {
   onRegenerateBackupCodes: () => void;
 }
 
-const PAGE_TITLE = t('Security');
-
 function AccountSecurityDetails({deleteDisabled, onRegenerateBackupCodes}: Props) {
   const api = useApi();
   const queryClient = useQueryClient();
@@ -67,7 +65,7 @@ function AccountSecurityDetails({deleteDisabled, onRegenerateBackupCodes}: Props
     isPending: isAuthenticatorPending,
     isError,
     refetch,
-  } = useApiQuery<Authenticator | null>(getAuthenticatorQueryKey(authId), {
+  } = useApiQuery<Authenticator>(getAuthenticatorQueryKey(authId), {
     staleTime: 0,
   });
 
@@ -136,12 +134,12 @@ function AccountSecurityDetails({deleteDisabled, onRegenerateBackupCodes}: Props
     return <LoadingIndicator />;
   }
 
-  if (!authenticator || isError) {
+  if (isError) {
     return <LoadingError onRetry={refetch} />;
   }
 
   return (
-    <SentryDocumentTitle title={PAGE_TITLE}>
+    <SentryDocumentTitle title={t('Security')}>
       <SettingsPageHeader
         title={
           <Fragment>
