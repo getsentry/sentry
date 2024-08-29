@@ -57,7 +57,7 @@ class DatasetSourcesTypes(Enum):
     """
     USER = 2
     """
-     Was an ambiguous dataset forced to split (i.e. we picked a default)
+     Was an ambiguous dataset forced to split (i.e. we picked a default).
     """
     FORCED = 3
 
