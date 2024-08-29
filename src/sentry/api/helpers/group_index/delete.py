@@ -10,13 +10,14 @@ import rest_framework
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import audit_log, eventstream
+from sentry import audit_log, eventstream, features
 from sentry.api.base import audit_logger
 from sentry.deletions.tasks.groups import delete_groups as delete_groups_task
 from sentry.issues.grouptype import GroupCategory
 from sentry.models.group import Group, GroupStatus
 from sentry.models.grouphash import GroupHash
 from sentry.models.groupinbox import GroupInbox
+from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.signals import issue_deleted
 from sentry.tasks.delete_seer_grouping_records import call_delete_seer_grouping_records_by_hash
@@ -140,7 +141,12 @@ def delete_groups(
     if not group_list:
         return Response(status=204)
 
-    if any(group.issue_category != GroupCategory.ERROR for group in group_list):
+    org = Organization.objects.get_from_cache(id=organization_id)
+    issue_platform_deletion_allowed = features.has(
+        "organizations:issue-platform-deletion", org, actor=request.user
+    )
+    non_error_group_found = any(group.issue_category != GroupCategory.ERROR for group in group_list)
+    if not issue_platform_deletion_allowed and non_error_group_found:
         raise rest_framework.exceptions.ValidationError(detail="Only error issues can be deleted.")
 
     groups_by_project_id = defaultdict(list)

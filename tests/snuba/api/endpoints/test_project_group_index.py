@@ -32,7 +32,7 @@ from sentry.models.project import Project
 from sentry.models.release import Release
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase, SnubaTestCase
-from sentry.testutils.helpers import parse_link_header, with_feature
+from sentry.testutils.helpers import Feature, parse_link_header, with_feature
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.types.activity import ActivityType
@@ -1580,6 +1580,12 @@ class GroupDeleteTest(APITestCase, SnubaTestCase):
         assert response.status_code == 400
         self.assert_groups_not_deleted([group1, group2])
 
+        # We are allowed to delete the groups with the feature flag enabled
+        with Feature({"organizations:issue-platform-deletion": True}), self.tasks():
+            response = self.client.delete(url, format="json")
+            assert response.status_code == 204
+            self.assert_groups_are_gone([group1, group2])
+
     def test_bulk_delete(self):
         groups_to_create = []
         for _ in range(10, 41):
@@ -1617,3 +1623,9 @@ class GroupDeleteTest(APITestCase, SnubaTestCase):
         # We do not support issue platform deletions
         assert response.status_code == 400
         self.assert_groups_not_deleted(groups)
+
+        # We are allowed to delete the groups with the feature flag enabled
+        with Feature({"organizations:issue-platform-deletion": True}), self.tasks():
+            response = self.client.delete(url, format="json")
+            assert response.status_code == 204
+            self.assert_groups_are_gone(groups)
