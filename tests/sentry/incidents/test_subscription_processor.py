@@ -2942,7 +2942,6 @@ class MetricsCrashRateAlertProcessUpdateTest(ProcessUpdateBaseClass, BaseMetrics
         below the Critical threshold and then is Resolved once `crash_free_percentage` goes above
         the threshold (when no resolve_threshold is set)
         """
-        # hellboy
         rule = self.crash_rate_alert_rule
         rule.update(
             detection_type=AlertRuleDetectionType.DYNAMIC,
