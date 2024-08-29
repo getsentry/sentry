@@ -47,27 +47,10 @@ export const GrowingInput = forwardRef<HTMLInputElement, InputProps>(
 
     // If the input is controlled we resize it when the value prop changes
     useLayoutEffect(() => {
-      // This mutationObserver is used to resize the input if the inputRef's style changes
-      // It's necessary because the refs do not trigger useEffects
-      const observer = new MutationObserver(() => {
-        inputRef.current && resize(inputRef.current);
-      });
-
       if (isControlled && inputRef.current) {
         resize(inputRef.current);
       }
-
-      if (inputRef.current) {
-        observer.observe(inputRef.current, {
-          attributes: true,
-          attributeFilter: ['style'],
-        });
-      }
-
-      return () => {
-        observer.disconnect();
-      };
-    }, [props.value, props.placeholder, isControlled]);
+    }, [props.value, props.placeholder, isControlled, props.className, props.style]);
 
     // If the input is uncontrolled we resize it when the user types
     const handleChange = useCallback(
