@@ -62,8 +62,8 @@ class JiraSchema:
     )
 
     @classmethod
-    def from_dict(cls, data: dict[str, Any]) -> "JiraSchema":
-        mapped_field_params = {
+    def from_dict(cls, data: dict[str, Any | None]) -> "JiraSchema":
+        mapped_field_params: dict[str, Any] = {
             new_name: data.get(new_name)
             for old_name, new_name in cls.__jira_schema_parameter_map
             if old_name in data
@@ -106,7 +106,7 @@ class JiraField:
 
     @classmethod
     def from_dict(cls, data: dict[str, Any]) -> "JiraField":
-        mapped_field_params = {
+        mapped_field_params: dict[str, Any] = {
             new_name: data.get(new_name)
             for old_name, new_name in cls.__jira_field_parameter_map
             if old_name in data
@@ -117,18 +117,8 @@ class JiraField:
         return cls(**mapped_field_params)
 
     @classmethod
-    def from_dict_list(cls, data: dict[dict[str, Any]]) -> list["JiraField"]:
+    def from_dict_list(cls, data: dict[str, dict[str, Any]]) -> list["JiraField"]:
         return [cls.from_dict(item) for item in data.values()]
-
-
-jira_issue_mapped_fields = {
-    "id": "id",
-    "description": "description",
-    "name": "name",
-    "subtask": "subtask",
-    "iconUrl": "icon_url",
-    "self": "url",
-}
 
 
 @dataclass(frozen=True)
