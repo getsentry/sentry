@@ -5,11 +5,9 @@ import type {InjectedRouter} from 'react-router';
 import styled from '@emotion/styled';
 import type {Node} from '@react-types/shared';
 
-import Badge from 'sentry/components/badge/badge';
 import {DraggableTabList} from 'sentry/components/draggableTabs/draggableTabList';
 import type {DraggableTabListItemProps} from 'sentry/components/draggableTabs/item';
 import type {MenuItemProps} from 'sentry/components/dropdownMenu';
-import QueryCount from 'sentry/components/queryCount';
 import {TabsContext} from 'sentry/components/tabs';
 import {t} from 'sentry/locale';
 import {defined} from 'sentry/utils';
@@ -26,7 +24,6 @@ export interface Tab {
   query: string;
   querySort: IssueSortOptions;
   content?: React.ReactNode;
-  queryCount?: number;
   unsavedChanges?: [string, IssueSortOptions];
 }
 
@@ -320,16 +317,6 @@ export function DraggableTabBar({
               setIsEditing={isEditing => setEditingTabKey(isEditing ? tab.key : null)}
               onChange={newLabel => handleOnTabRenamed(newLabel.trim(), tab.key)}
             />
-            {tab.key !== 'temporary-tab' && tab.queryCount !== undefined && (
-              <StyledBadge>
-                <QueryCount
-                  hideParens
-                  hideIfEmpty={false}
-                  count={tab.queryCount}
-                  max={1000}
-                />
-              </StyledBadge>
-            )}
             {tabListState?.selectedKey === tab.key && (
               <DraggableTabMenuButton
                 hasUnsavedChanges={!!tab.unsavedChanges}
@@ -442,16 +429,4 @@ const TabContentWrap = styled('span')`
   flex-direction: row;
   padding: 0;
   gap: 6px;
-`;
-
-const StyledBadge = styled(Badge)`
-  display: flex;
-  height: 16px;
-  align-items: center;
-  justify-content: center;
-  border-radius: 10px;
-  background: transparent;
-  border: 1px solid ${p => p.theme.gray200};
-  color: ${p => p.theme.gray300};
-  margin-left: 0;
 `;
