@@ -639,9 +639,36 @@ const replayOnboarding: OnboardingConfig<PlatformOptions> = {
     {
       type: StepType.INSTALL,
       description: t(
-        'Make sure your Sentry Cocoa SDK version is at least 8.31.1. To set up the integration, add the following to your Sentry initialization.'
+        'Make sure your Sentry Cocoa SDK version is at least 8.31.1. If you already have the SDK installed, you can update it to the latest version with:'
       ),
       configurations: [
+        {
+          code: [
+            {
+              label: 'SPM',
+              value: 'spm',
+              language: 'spm',
+              code: `.package(url: "https://github.com/getsentry/sentry-cocoa", from: "8.36.0"),`,
+            },
+            {
+              label: 'Cocoapods',
+              value: 'cocoapods',
+              language: 'cocoapods',
+              code: `pod update`,
+            },
+            {
+              label: 'Carthage',
+              value: 'carthage',
+              language: 'carthage',
+              code: `github "getsentry/sentry-cocoa" "8.36.0"`,
+            },
+          ],
+        },
+        {
+          description: t(
+            'To set up the integration, add the following to your Sentry initialization:'
+          ),
+        },
         {
           code: [
             {
