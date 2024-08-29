@@ -8,6 +8,7 @@ import ProjectAvatar from 'sentry/components/avatar/projectAvatar';
 import SearchBar from 'sentry/components/events/searchBar';
 import {COL_WIDTH_UNDEFINED} from 'sentry/components/gridEditable';
 import Link from 'sentry/components/links/link';
+import {SpanSearchQueryBuilder} from 'sentry/components/performance/spanSearchQueryBuilder';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -223,16 +224,28 @@ export function SampleList({
           highlightedSpanId={highlightedSpanId}
         />
 
-        <StyledSearchBar
-          searchSource={`${moduleName}-sample-panel`}
-          query={spanSearchQuery}
-          onSearch={handleSearch}
-          placeholder={t('Search for span attributes')}
-          organization={organization}
-          supportedTags={supportedTags}
-          dataset={DiscoverDatasets.SPANS_INDEXED}
-          projectIds={selection.projects}
-        />
+        <StyledSearchBar>
+          {organization.features.includes('search-query-builder-performance') ? (
+            <SpanSearchQueryBuilder
+              projects={selection.projects}
+              initialQuery={spanSearchQuery ?? ''}
+              onSearch={handleSearch}
+              placeholder={t('Search for span attributes')}
+              searchSource={`${moduleName}-sample-panel`}
+            />
+          ) : (
+            <SearchBar
+              searchSource={`${moduleName}-sample-panel`}
+              query={spanSearchQuery}
+              onSearch={handleSearch}
+              placeholder={t('Search for span attributes')}
+              organization={organization}
+              supportedTags={supportedTags}
+              dataset={DiscoverDatasets.SPANS_INDEXED}
+              projectIds={selection.projects}
+            />
+          )}
+        </StyledSearchBar>
 
         <SampleTable
           highlightedSpanId={highlightedSpanId}
@@ -279,6 +292,6 @@ const Title = styled('h4')`
   margin: 0;
 `;
 
-const StyledSearchBar = styled(SearchBar)`
+const StyledSearchBar = styled('div')`
   margin: ${space(2)} 0;
 `;
