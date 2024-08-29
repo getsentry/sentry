@@ -231,9 +231,12 @@ const TabDivider = styled(motion.div, {
     width: 1px;
     border-radius: 6px;
     margin-right: ${space(0.5)};
+    margin-left: ${space(0.5)};
   `}
+
+  ${p => !p.isVisible && `margin-left: 1px;`}
+
   margin-top: 1px;
-  margin-left: ${space(0.5)};
 `;
 
 const TabListOuterWrap = styled('div')<{
