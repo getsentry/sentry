@@ -507,10 +507,10 @@ class Factories:
             if fire_project_created:
                 project_created.send(
                     project=project,
+                    access=SystemAccess(),
                     default_rules=True,
                     user=AnonymousUser(),
                     team_ids=team_ids,
-                    access=SystemAccess(),
                     sender=Factories,
                 )
         return project

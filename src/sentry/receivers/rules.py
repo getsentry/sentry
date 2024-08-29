@@ -7,8 +7,9 @@ import sentry_sdk
 from django.contrib.auth.models import AnonymousUser
 
 from sentry import features
-from sentry.auth.access import Access, NoAccess
+from sentry.auth.access import Access
 from sentry.incidents.endpoints.organization_alert_rule_index import create_metric_alert
+from sentry.incidents.models.alert_rule import AlertRuleThresholdType
 from sentry.models.project import Project
 from sentry.models.rule import Rule
 from sentry.notifications.types import FallthroughChoiceType
@@ -115,7 +116,7 @@ def create_default_metric_alert_data(
         "projects": [project.slug],
         "environment": None,
         "resolveThreshold": None,
-        "thresholdType": 0,
+        "thresholdType": AlertRuleThresholdType.ABOVE.value,
         # Owners can only be teams, and select the first passed in team if available.
         "owner": f"team:{target_ids[0]}" if target_type == TargetType.TEAM else None,
         "name": "Send a notification for high number of errors",
@@ -129,10 +130,10 @@ def create_default_metric_alert_data(
 @project_created.connect(dispatch_uid="create_default_rules", weak=False)
 def create_default_rules(
     project: Project,
+    access: Access,
     default_rules: bool = True,
     user: User | AnonymousUser | None = None,
     team_ids: Sequence[int] | None = None,
-    access: Access | None = None,
     is_api_token: bool = False,
     ip_address: str | None = None,
     sender: Any = None,
@@ -142,27 +143,22 @@ def create_default_rules(
         return
 
     if has_high_priority_issue_alerts(project):
-        rule_data = PRIORITY_ISSUE_ALERT_DATA
-        Rule.objects.create(project=project, label=PRIORITY_ISSUE_ALERT_LABEL, data=rule_data)
+        Rule.objects.create(
+            project=project, label=PRIORITY_ISSUE_ALERT_LABEL, data=PRIORITY_ISSUE_ALERT_DATA
+        )
 
     else:
-        rule_data = DEFAULT_ISSUE_ALERT_DATA
-        Rule.objects.create(project=project, label=DEFAULT_ISSUE_ALERT_LABEL, data=rule_data)
+        Rule.objects.create(
+            project=project, label=DEFAULT_ISSUE_ALERT_LABEL, data=DEFAULT_ISSUE_ALERT_DATA
+        )
 
     if features.has("organizations:default-metric-alerts-new-projects", project.organization):
         # Metric alerts require sending notifications to a team or user.
         if user is None and team_ids is None:
             return
 
-        # When user is None, we must be sending notifications to a team which requires access
-        # to be passed into create_metric_alert.
-        if user is None and access is None:
-            return
-
         if user is None:
             user = AnonymousUser()
-        if access is None:
-            access = NoAccess()
 
         # Prioritize sending notifications to teams over individual users.
         if team_ids and access:

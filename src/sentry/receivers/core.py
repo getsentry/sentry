@@ -77,10 +77,10 @@ def create_default_project(id, name, slug, verbosity=2, **kwargs):
 
         project_created.send(
             project=project,
+            access=SystemAccess(),
             default_rules=True,
             user=user or AnonymousUser(),
             team_ids=[team.id],
-            access=SystemAccess(),
             sender=create_default_project,
         )
 

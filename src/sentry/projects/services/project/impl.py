@@ -123,10 +123,10 @@ class DatabaseBackedProjectService(ProjectService):
 
             project_created.send(
                 project=project,
+                access=SystemAccess(),
                 default_rules=True,
                 user_id=user_id,
                 team_ids=team_ids,
-                access=SystemAccess(),
                 sender=self,
             )
 
