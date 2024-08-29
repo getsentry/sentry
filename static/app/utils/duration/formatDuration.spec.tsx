@@ -63,7 +63,7 @@ describe('formatDuration', () => {
       ).toBe('8:20');
     });
 
-    it.each([
+    it.each<{duration: Duration; expected: string; precision: Unit}>([
       {duration: [500_000, 'ms'], precision: 'ms', expected: '8:20.000'},
       {duration: [500_000, 'ms'], precision: 'sec', expected: '8:20.000'},
       {duration: [500_012, 'ms'], precision: 'ms', expected: '8:20.012'},
@@ -76,7 +76,7 @@ describe('formatDuration', () => {
       {duration: [500.012, 'sec'], precision: 'sec', expected: '8:20.000'},
       {duration: [500.012, 'sec'], precision: 'ms', expected: '8:20.012'},
       {duration: [500.012, 'sec'], precision: 'sec', expected: '8:20.000'},
-    ] as Array<{duration: Duration; expected: string; precision: Unit}>)(
+    ])(
       'should format $duration with precision $precision as h:mm:ss.sss',
       ({duration, precision, expected}) => {
         expect(
@@ -89,7 +89,7 @@ describe('formatDuration', () => {
       }
     );
 
-    it.each([
+    it.each<{duration: Duration; precision: Unit}>([
       {duration: [500_000, 'ms'], precision: 'ms'},
       {duration: [500_000, 'ms'], precision: 'sec'},
       {duration: [500_012, 'ms'], precision: 'ms'},
@@ -102,7 +102,7 @@ describe('formatDuration', () => {
       {duration: [500.012, 'sec'], precision: 'sec'},
       {duration: [500.012, 'sec'], precision: 'ms'},
       {duration: [500.012, 'sec'], precision: 'sec'},
-    ] as Array<{duration: Duration; expected: string; precision: Unit}>)(
+    ])(
       'should format $duration with precision $precision as h:mm:ss, never showing ms',
       ({duration, precision}) => {
         expect(
