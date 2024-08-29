@@ -254,6 +254,7 @@ const TagWrapper = styled('div')`
   justify-content: flex-start;
   flex-grow: 1;
   margin-right: ${space(1)};
+  gap: ${space(0.75)};
 `;
 
 export default AccountIdentities;
