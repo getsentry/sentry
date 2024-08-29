@@ -252,7 +252,7 @@ class SnubaEventStorage(EventStorage):
                 if filter.start:
                     start = max(start, filter.start)
                 if filter.end:
-                    start = min(end, filter.end)
+                    end = min(end, filter.end)
 
                 result = snuba.aliased_query(
                     selected_columns=cols,
