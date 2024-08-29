@@ -651,7 +651,7 @@ const replayOnboarding: OnboardingConfig<PlatformOptions> = {
               code: `.package(url: "https://github.com/getsentry/sentry-cocoa", from: "8.36.0"),`,
             },
             {
-              label: 'Cocoapods',
+              label: 'CocoaPods',
               value: 'cocoapods',
               language: 'ruby',
               code: `pod update`,

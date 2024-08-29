@@ -4,7 +4,7 @@ import {tct} from 'sentry/locale';
 
 export const getReplayMobileConfigureDescription = ({link}: {link: string}) =>
   tct(
-    'The SDK is aggressively redacting all text and images. We plan to add fine controls for redacting, but currently, we just allow either on or off. Learn more about configuring Session Replay by reading the [link:configuration docs].',
+    'The SDK aggressively redacts all text and images. We plan to add fine controls for redacting, but currently, we just allow either on or off. Learn more about configuring Session Replay by reading the [link:configuration docs].',
     {
       link: <ExternalLink href={link} />,
     }

@@ -323,7 +323,7 @@ const replayOnboarding: OnboardingConfig<PlatformOptions> = {
               code: getReplaySetupSnippetKotlin(params),
             },
             {
-              label: 'Xml',
+              label: 'XML',
               value: 'xml',
               language: 'xml',
               filename: 'AndroidManifest.xml',
