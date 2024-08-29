@@ -981,17 +981,10 @@ def pre_save_group_default_substatus(instance, sender, *args, **kwargs):
                 "Invalid substatus for IGNORED group.", extra={"substatus": instance.substatus}
             )
 
-        if instance.status == GroupStatus.UNRESOLVED:
-            if instance.substatus is None:
-                logger.warning(
-                    "no_substatus: Found UNRESOLVED group with no substatus",
-                    extra={"group_id": instance.id},
-                )
-                instance.substatus = GroupSubStatus.ONGOING
-
-            # UNRESOLVED groups must have a substatus
-            if instance.substatus not in UNRESOLVED_SUBSTATUS_CHOICES:
-                logger.error(
-                    "Invalid substatus for UNRESOLVED group",
-                    extra={"substatus": instance.substatus},
-                )
+        if (
+            instance.status == GroupStatus.UNRESOLVED
+            and instance.substatus not in UNRESOLVED_SUBSTATUS_CHOICES
+        ):
+            logger.error(
+                "Invalid substatus for UNRESOLVED group", extra={"substatus": instance.substatus}
+            )
