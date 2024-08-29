@@ -262,7 +262,7 @@ function WebVitalData({
                 onMouseEnter={() => onMouseEnter(clsFrame, nodeId)}
                 onMouseLeave={() => onMouseLeave(clsFrame, nodeId)}
               >
-                <ValueObjectKey>{'element'}</ValueObjectKey>
+                <ValueObjectKey>{t('element')}</ValueObjectKey>
                 <span>{': '}</span>
                 <span>
                   <SelectorButton>{selectors.get(nodeId)}</SelectorButton>
