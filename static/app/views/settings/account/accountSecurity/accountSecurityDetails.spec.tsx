@@ -51,14 +51,14 @@ describe('AccountSecurityDetails', function () {
       const params = {
         authId: '15',
       };
-      const {routerProps, router} = initializeOrg({
+      const {router} = initializeOrg({
         router: {
           params,
         },
       });
 
       render(
-        <AccountSecurityWrapper {...routerProps}>
+        <AccountSecurityWrapper>
           <AccountSecurityDetails
             onRegenerateBackupCodes={jest.fn()}
             deleteDisabled={false}
@@ -83,14 +83,14 @@ describe('AccountSecurityDetails', function () {
       const params = {
         authId: '15',
       };
-      const {routerProps, router} = initializeOrg({
+      const {router} = initializeOrg({
         router: {
           params,
         },
       });
 
       render(
-        <AccountSecurityWrapper {...routerProps}>
+        <AccountSecurityWrapper>
           <AccountSecurityDetails
             onRegenerateBackupCodes={jest.fn()}
             deleteDisabled={false}
@@ -122,14 +122,14 @@ describe('AccountSecurityDetails', function () {
       const params = {
         authId: '15',
       };
-      const {routerProps, router} = initializeOrg({
+      const {router} = initializeOrg({
         router: {
           params,
         },
       });
 
       render(
-        <AccountSecurityWrapper {...routerProps}>
+        <AccountSecurityWrapper>
           <AccountSecurityDetails
             onRegenerateBackupCodes={jest.fn()}
             deleteDisabled={false}
@@ -162,14 +162,14 @@ describe('AccountSecurityDetails', function () {
         authId: '15',
       };
 
-      const {router, routerProps} = initializeOrg({
+      const {router} = initializeOrg({
         router: {
           params,
         },
       });
 
       render(
-        <AccountSecurityWrapper {...routerProps}>
+        <AccountSecurityWrapper>
           <AccountSecurityDetails
             onRegenerateBackupCodes={jest.fn()}
             deleteDisabled={false}
@@ -210,14 +210,14 @@ describe('AccountSecurityDetails', function () {
         authId: '16',
       };
 
-      const {routerProps, router} = initializeOrg({
+      const {router} = initializeOrg({
         router: {
           params,
         },
       });
 
       render(
-        <AccountSecurityWrapper {...routerProps}>
+        <AccountSecurityWrapper>
           <AccountSecurityDetails
             onRegenerateBackupCodes={jest.fn()}
             deleteDisabled={false}
@@ -241,14 +241,14 @@ describe('AccountSecurityDetails', function () {
         authId: '16',
       };
 
-      const {routerProps, router} = initializeOrg({
+      const {router} = initializeOrg({
         router: {
           params,
         },
       });
 
       render(
-        <AccountSecurityWrapper {...routerProps}>
+        <AccountSecurityWrapper>
           <AccountSecurityDetails
             onRegenerateBackupCodes={jest.fn()}
             deleteDisabled={false}
@@ -279,7 +279,7 @@ describe('AccountSecurityDetails', function () {
         authId: '16',
       };
 
-      const {routerProps, router} = initializeOrg({
+      const {router} = initializeOrg({
         router: {
           params,
         },
@@ -290,7 +290,7 @@ describe('AccountSecurityDetails', function () {
       });
 
       render(
-        <AccountSecurityWrapper {...routerProps}>
+        <AccountSecurityWrapper>
           <AccountSecurityDetails
             onRegenerateBackupCodes={jest.fn()}
             deleteDisabled={false}
