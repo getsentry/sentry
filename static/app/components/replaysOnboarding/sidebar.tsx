@@ -22,7 +22,6 @@ import TextOverflow from 'sentry/components/textOverflow';
 import {
   replayBackendPlatforms,
   replayFrontendPlatforms,
-  replayJsLoaderInstructionsPlatformList,
   replayMobilePlatforms,
   replayOnboardingPlatforms,
   replayPlatforms,
@@ -191,9 +190,6 @@ function OnboardingContent({
     replayFrontendPlatforms
       .filter((p): p is PlatformKey => p !== 'javascript')
       .includes(currentProject.platform);
-  const jsLoaderPlatform =
-    currentProject.platform &&
-    replayJsLoaderInstructionsPlatformList.includes(currentProject.platform);
 
   const defaultTab = backendPlatform ? 'jsLoader' : mobilePlatform ? 'mobile' : 'npm';
   const {getParamValue: setupMode, setParamValue: setSetupMode} = useUrlParams(
@@ -202,7 +198,6 @@ function OnboardingContent({
   );
 
   const showJsFrameworkInstructions = backendPlatform && setupMode() === 'npm';
-  const showRadioButtons = jsLoaderPlatform;
 
   const currentPlatform = currentProject.platform
     ? platforms.find(p => p.id === currentProject.platform) ?? otherPlatform
@@ -233,6 +228,8 @@ function OnboardingContent({
     orgSlug: organization.slug,
     productType: 'replay',
   });
+
+  const showRadioButtons = !!docs?.replayOnboardingJsLoader;
 
   const radioButtons = (
     <Header>
