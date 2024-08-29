@@ -85,6 +85,54 @@ class UpdateUserReportTest(TestCase):
         assert report5.group_id is None
         assert report5.environment_id is None
 
+    def test_start_end_events(self):
+        # The task should only query associated events from the given time range, or up to 1 day older.
+        event_start_offset = timedelta(days=1)
+
+        now = timezone.now()
+        start = now - timedelta(days=3)
+        end = now - timedelta(days=2)
+        event_timestamp1 = iso_format(start - event_start_offset - timedelta(hours=1))
+        event_timestamp2 = iso_format(start - event_start_offset)
+        event_timestamp3 = iso_format(start + timedelta(hours=1))
+        event_timestamp4 = iso_format(end + timedelta(hours=1))
+        report_date = start + timedelta(hours=2)
+
+        project = self.create_project()
+        event1 = self.store_event(data={"timestamp": event_timestamp1}, project_id=project.id)
+        UserReport.objects.create(
+            project_id=project.id, event_id=event1.event_id, date_added=report_date
+        )
+        event2 = self.store_event(data={"timestamp": event_timestamp2}, project_id=project.id)
+        UserReport.objects.create(
+            project_id=project.id, event_id=event2.event_id, date_added=report_date
+        )
+        event3 = self.store_event(data={"timestamp": event_timestamp3}, project_id=project.id)
+        UserReport.objects.create(
+            project_id=project.id, event_id=event3.event_id, date_added=report_date
+        )
+        event4 = self.store_event(data={"timestamp": event_timestamp4}, project_id=project.id)
+        UserReport.objects.create(
+            project_id=project.id, event_id=event4.event_id, date_added=report_date
+        )
+
+        with self.tasks():
+            update_user_reports(start=start, end=end)
+
+        report1 = UserReport.objects.get(project_id=project.id, event_id=event1.event_id)
+        report2 = UserReport.objects.get(project_id=project.id, event_id=event2.event_id)
+        report3 = UserReport.objects.get(project_id=project.id, event_id=event3.event_id)
+        report4 = UserReport.objects.get(project_id=project.id, event_id=event4.event_id)
+
+        assert report1.group_id is None
+        assert report1.environment_id is None
+        assert report2.group_id == event2.group_id
+        assert report2.environment_id == event2.get_environment().id
+        assert report3.group_id == event3.group_id
+        assert report3.environment_id == event3.get_environment().id
+        assert report4.group_id is None
+        assert report4.environment_id is None
+
     @patch("sentry.feedback.usecases.create_feedback.produce_occurrence_to_kafka")
     def test_simple_calls_feedback_shim_if_ff_enabled(self, mock_produce_occurrence_to_kafka):
         project = self.create_project()
