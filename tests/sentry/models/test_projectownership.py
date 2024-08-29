@@ -703,6 +703,75 @@ class ProjectOwnershipTestCase(TestCase):
         assignee = GroupAssignee.objects.get(group=self.event.group)
         assert assignee.team_id == self.team.id
 
+    def test_autoassignment_with_multiple_codeowners(self):
+        processing_team = self.create_team(
+            organization=self.organization, slug="processing-team", members=[self.user]
+        )
+        payment_team = self.create_team(
+            organization=self.organization, slug="payment-team", members=[self.user2]
+        )
+
+        project = self.create_project(
+            organization=self.organization, teams=[processing_team, payment_team], slug="rotation"
+        )
+        data = {
+            "stacktrace": {
+                "frames": [
+                    {"abs_path": "/app/payment_service.rb", "in_app": True},
+                    {"abs_path": "/app/processing_unit.rb", "in_app": True},
+                    {"abs_path": "/app/processing_unit.rb", "in_app": True},
+                ]
+            }
+        }
+
+        event = self.store_event(
+            data=data,
+            project_id=project.id,
+        )
+
+        rules = [
+            Rule(Matcher("codeowners", "*payment*"), [Owner("team", payment_team.slug)]),
+            Rule(
+                Matcher("codeowners", "/app/processing_unit.rb"),
+                [Owner("team", processing_team.slug)],
+            ),
+        ]
+
+        ProjectOwnership.objects.create(
+            project_id=project.id, schema=dump_schema(rules), fallthrough=True
+        )
+
+        assert len(ProjectOwnership.get_issue_owners(project.id, data)) == 2
+
+        # Order of group owners should be determined by `get_issue_owners` which has the correct order
+        group_owners = [
+            GroupOwner(
+                group=event.group,
+                type=GroupOwnerType.CODEOWNERS.value,
+                user_id=None,
+                team_id=processing_team.id,
+                project=project,
+                organization=project.organization,
+                context={"rule": str(rules[1])},
+            ),
+            GroupOwner(
+                group=event.group,
+                type=GroupOwnerType.CODEOWNERS.value,
+                user_id=None,
+                team_id=payment_team.id,
+                project=project,
+                organization=project.organization,
+                context={"rule": str(rules[0])},
+            ),
+        ]
+
+        GroupOwner.objects.bulk_create(group_owners)
+
+        ProjectOwnership.handle_auto_assignment(project.id, event)
+        assert len(GroupAssignee.objects.all()) == 1
+        assignee = GroupAssignee.objects.get(group=event.group)
+        assert assignee.team_id == processing_team.id
+
 
 class ResolveActorsTestCase(TestCase):
     def test_no_actors(self):
