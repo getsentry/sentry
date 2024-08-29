@@ -30,7 +30,6 @@ seer_anomaly_detection_connection_pool = connection_from_url(
 def get_historical_anomaly_data_from_seer(
     alert_rule: AlertRule, project: Project, start_string: str, end_string: str
 ) -> list | None:
-    # TODO: figure out types for start and end
     """
     Send time series data to Seer and return anomaly detection response.
     """
