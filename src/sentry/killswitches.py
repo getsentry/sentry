@@ -227,7 +227,7 @@ ALL_KILLSWITCH_OPTIONS = {
             "project_id": "A project ID to filter events by.",
         },
     ),
-    "issues.skip-seer-requests": KillswitchInfo(
+    "issues.severity.skip-seer-requests": KillswitchInfo(
         description="""
         Do not make requests to Seer.
 
