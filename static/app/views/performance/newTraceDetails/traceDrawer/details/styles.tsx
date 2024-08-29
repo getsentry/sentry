@@ -472,16 +472,17 @@ function NodeActions(props: {
         (typeof eventSize === 'number' ? ` (${formatBytesBase10(eventSize, 0)})` : ''),
     };
 
-    const continuousProfileLink: MenuItemProps | null = profileLink
-      ? {
-          key: 'continuous-profile',
-          onAction: () => {
-            traceAnalytics.trackViewContinuousProfile(props.organization);
-            browserHistory.push(profileLink!);
-          },
-          label: t('Continuous Profile'),
-        }
-      : null;
+    const continuousProfileLink: MenuItemProps | null =
+      organization.features.includes('continuous-profiling-ui') && !profileLink
+        ? {
+            key: 'continuous-profile',
+            onAction: () => {
+              traceAnalytics.trackViewContinuousProfile(props.organization);
+              browserHistory.push(profileLink!);
+            },
+            label: t('Continuous Profile'),
+          }
+        : null;
 
     if (isTransactionNode(props.node)) {
       return [showInView, jsonDetails, continuousProfileLink].filter(TypeSafeBoolean);
@@ -503,7 +504,7 @@ function NodeActions(props: {
     }
 
     return [showInView];
-  }, [props, profileLink]);
+  }, [props, profileLink, organization.features]);
 
   return (
     <ActionsContainer>
