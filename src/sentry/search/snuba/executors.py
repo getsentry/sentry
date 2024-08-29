@@ -61,7 +61,7 @@ from sentry.models.release import Release
 from sentry.models.team import Team
 from sentry.search.events.builder.discover import UnresolvedQuery
 from sentry.search.events.filter import convert_search_filter_to_snuba_query, format_search_filter
-from sentry.search.events.types import ParamsType, SnubaParams
+from sentry.search.events.types import SnubaParams
 from sentry.snuba.dataset import Dataset
 from sentry.users.models.user import User
 from sentry.users.services.user.model import RpcUser
@@ -1197,7 +1197,7 @@ class GroupAttributesPostgresSnubaQueryExecutor(PostgresSnubaQueryExecutor):
         self,
         search_filter: SearchFilter,
         joined_entity: Entity,
-        snuba_params: ParamsType,
+        snuba_params: SnubaParams,
     ) -> Condition:
         """
         Returns the basic lookup for a search filter.
@@ -1206,6 +1206,8 @@ class GroupAttributesPostgresSnubaQueryExecutor(PostgresSnubaQueryExecutor):
         query_builder = UnresolvedQuery(
             dataset=dataset, entity=joined_entity, snuba_params=snuba_params, params={}
         )
+        query_builder.start = snuba_params.start
+        query_builder.end = snuba_params.end
         return query_builder.convert_search_filter_to_condition(search_filter)
 
     def get_assigned(
