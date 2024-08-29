@@ -130,7 +130,7 @@ class DiscoverQueryBuilder(BaseQueryBuilder):
 
         if name in constants.TIMESTAMP_FIELDS:
             if not self.start or not self.end:
-                raise InvalidSearchQuery("Cannot query timestamp without a valid date range")
+                raise InvalidSearchQuery(f"Cannot query the {name} field without a valid date range")
 
             if (
                 operator in ["<", "<="]
