@@ -1,7 +1,6 @@
-import {useEffect, useRef, useState} from 'react';
+import {useEffect, useMemo, useRef, useState} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
-import {FocusScope} from '@react-aria/focus';
 
 import {GrowingInput} from 'sentry/components/growingInput';
 
@@ -25,6 +24,10 @@ function EditableTabTitle({
   const theme = useTheme();
   const inputRef = useRef<HTMLInputElement>(null);
   const isEmpty = !inputValue.trim();
+
+  const memoizedStyles = useMemo(() => {
+    return {fontWeight: isSelected ? theme.fontWeightBold : theme.fontWeightNormal};
+  }, [isSelected, theme.fontWeightBold, theme.fontWeightNormal]);
 
   const handleOnBlur = (e: React.FocusEvent<HTMLInputElement, Element>) => {
     e.preventDefault();
@@ -68,18 +71,16 @@ function EditableTabTitle({
   };
 
   return (
-    <FocusScope>
-      <StyledGrowingInput
-        value={inputValue}
-        onChange={handleOnChange}
-        onKeyDown={handleOnKeyDown}
-        onDoubleClick={() => isSelected && setIsEditing(true)}
-        onBlur={handleOnBlur}
-        ref={inputRef}
-        style={{fontWeight: isSelected ? theme.fontWeightBold : theme.fontWeightNormal}}
-        isSelected={isSelected}
-      />
-    </FocusScope>
+    <StyledGrowingInput
+      value={inputValue}
+      onChange={handleOnChange}
+      onKeyDown={handleOnKeyDown}
+      onDoubleClick={() => isSelected && setIsEditing(true)}
+      onBlur={handleOnBlur}
+      ref={inputRef}
+      style={memoizedStyles}
+      isSelected={isSelected}
+    />
   );
 }
 
