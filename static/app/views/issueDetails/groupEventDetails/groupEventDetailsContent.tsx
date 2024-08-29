@@ -420,13 +420,39 @@ function ResourcesAndPossibleSolutionsIssueDetailsContent({
   );
 }
 
+const GroupContent = styled('div')`
+  border: 1px solid ${p => p.theme.translucentBorder};
+  background: ${p => p.theme.background};
+  border-radius: ${p => p.theme.borderRadius};
+  position: relative;
+`;
+
+const GroupContentPadding = styled('div')`
+  padding: ${space(1)} ${space(1.5)};
+`;
+
+// TODO: Merge regression issues with the other event details
+function RegressionEventContainer({children}: {children: React.ReactNode}) {
+  const hasStreamlinedUI = useHasStreamlinedUI();
+
+  if (!hasStreamlinedUI) {
+    return children;
+  }
+
+  return (
+    <GroupContent>
+      <GroupContentPadding>{children}</GroupContentPadding>
+    </GroupContent>
+  );
+}
+
 function PerformanceDurationRegressionIssueDetailsContent({
   group,
   event,
   project,
 }: Required<EventDetailsContentProps>) {
   return (
-    <Fragment>
+    <RegressionEventContainer>
       <ErrorBoundary mini>
         <EventRegressionSummary event={event} group={group} />
       </ErrorBoundary>
@@ -439,7 +465,7 @@ function PerformanceDurationRegressionIssueDetailsContent({
       <ErrorBoundary mini>
         <EventComparison event={event} project={project} />
       </ErrorBoundary>
-    </Fragment>
+    </RegressionEventContainer>
   );
 }
 
@@ -450,36 +476,40 @@ function ProfilingDurationRegressionIssueDetailsContent({
 }: Required<EventDetailsContentProps>) {
   const organization = useOrganization();
   return (
-    <TransactionsDeltaProvider event={event} project={project}>
-      <Fragment>
-        <ErrorBoundary mini>
-          <EventRegressionSummary event={event} group={group} />
-        </ErrorBoundary>
-        <ErrorBoundary mini>
-          <EventFunctionBreakpointChart event={event} />
-        </ErrorBoundary>
-        {!organization.features.includes('continuous-profiling-compat') && (
+    <RegressionEventContainer>
+      <TransactionsDeltaProvider event={event} project={project}>
+        <Fragment>
           <ErrorBoundary mini>
-            <EventAffectedTransactions event={event} group={group} project={project} />
+            <EventRegressionSummary event={event} group={group} />
           </ErrorBoundary>
-        )}
-        <ErrorBoundary mini>
-          <DataSection>
-            <b>{t('Largest Changes in Call Stack Frequency')}</b>
-            <p>
-              {t(`See which functions changed the most before and after the regression. The
+          <ErrorBoundary mini>
+            <EventFunctionBreakpointChart event={event} />
+          </ErrorBoundary>
+          {!organization.features.includes('continuous-profiling-compat') && (
+            <ErrorBoundary mini>
+              <EventAffectedTransactions event={event} group={group} project={project} />
+            </ErrorBoundary>
+          )}
+          <ErrorBoundary mini>
+            <InterimSection
+              type={SectionKey.REGRESSION_FLAMEGRAPH}
+              title={t('Regression Flamegraph')}
+            >
+              <b>{t('Largest Changes in Call Stack Frequency')}</b>
+              <p>
+                {t(`See which functions changed the most before and after the regression. The
               frame with the largest increase in call stack population likely
               contributed to the cause for the duration regression.`)}
-            </p>
-            h
-            <EventDifferentialFlamegraph event={event} />
-          </DataSection>
-        </ErrorBoundary>
-        <ErrorBoundary mini>
-          <EventFunctionComparisonList event={event} group={group} project={project} />
-        </ErrorBoundary>
-      </Fragment>
-    </TransactionsDeltaProvider>
+              </p>
+              <EventDifferentialFlamegraph event={event} />
+            </InterimSection>
+          </ErrorBoundary>
+          <ErrorBoundary mini>
+            <EventFunctionComparisonList event={event} group={group} project={project} />
+          </ErrorBoundary>
+        </Fragment>
+      </TransactionsDeltaProvider>
+    </RegressionEventContainer>
   );
 }
 

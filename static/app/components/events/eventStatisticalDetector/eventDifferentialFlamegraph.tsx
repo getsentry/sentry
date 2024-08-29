@@ -222,8 +222,8 @@ function EventDifferentialFlamegraphView(props: EventDifferentialFlamegraphViewP
   );
 
   return (
-    <Fragment>
-      <Panel>
+    <FlamegraphContainer>
+      <StyledPanel>
         <DifferentialFlamegraphTransactionToolbar
           transaction={props.transaction}
           onNextTransactionClick={props.onNextTransactionClick}
@@ -263,9 +263,9 @@ function EventDifferentialFlamegraphView(props: EventDifferentialFlamegraphViewP
           />
         </DifferentialFlamegraphContainer>
         <DifferentialFlamegraphExplanationBar negated={negated} />
-      </Panel>
+      </StyledPanel>
 
-      <Panel>
+      <StyledPanel>
         <DifferentialFlamegraphFunctionsContainer>
           <DifferentialFlamegraphChangedFunctions
             loading={props.after.isPending || props.before.isPending}
@@ -284,9 +284,9 @@ function EventDifferentialFlamegraphView(props: EventDifferentialFlamegraphViewP
             makeFunctionLink={makeFunctionFlamechartLink}
           />
         </DifferentialFlamegraphFunctionsContainer>
-      </Panel>
+      </StyledPanel>
 
-      <Panel>
+      <StyledPanel>
         <DifferentialFlamegraphFunctionsContainer>
           <DifferentialFlamegraphChangedFunctions
             loading={props.after.isPending || props.before.isPending}
@@ -305,8 +305,8 @@ function EventDifferentialFlamegraphView(props: EventDifferentialFlamegraphViewP
             makeFunctionLink={makeFunctionFlamechartLink}
           />
         </DifferentialFlamegraphFunctionsContainer>
-      </Panel>
-    </Fragment>
+      </StyledPanel>
+    </FlamegraphContainer>
   );
 }
 
@@ -809,4 +809,14 @@ const DifferentialFlamegraphContainer = styled('div')`
   position: relative;
   width: 100%;
   height: 420px;
+`;
+
+const FlamegraphContainer = styled('div')`
+  display: flex;
+  flex-direction: column;
+  gap: ${space(1.5)};
+`;
+
+const StyledPanel = styled(Panel)`
+  margin-bottom: 0;
 `;
