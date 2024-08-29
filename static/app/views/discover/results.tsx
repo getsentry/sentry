@@ -11,7 +11,6 @@ import {fetchTotalCount} from 'sentry/actionCreators/events';
 import {fetchProjectsCount} from 'sentry/actionCreators/projects';
 import {loadOrganizationTags} from 'sentry/actionCreators/tags';
 import {Client} from 'sentry/api';
-import Feature from 'sentry/components/acl/feature';
 import {Alert} from 'sentry/components/alert';
 import {Button} from 'sentry/components/button';
 import Confirm from 'sentry/components/confirm';
@@ -62,10 +61,7 @@ import withApi from 'sentry/utils/withApi';
 import withOrganization from 'sentry/utils/withOrganization';
 import withPageFilters from 'sentry/utils/withPageFilters';
 import {hasDatasetSelector} from 'sentry/views/dashboards/utils';
-import {
-  DATASET_LABEL_MAP,
-  DatasetSelector,
-} from 'sentry/views/discover/savedQuery/datasetSelector';
+import {DATASET_LABEL_MAP} from 'sentry/views/discover/savedQuery/datasetSelectorTabs';
 import {
   getDatasetFromLocationOrSavedQueryDataset,
   getSavedQueryDataset,
@@ -762,6 +758,7 @@ export class Results extends Component<Props, State> {
             yAxis={yAxisArray}
             router={router}
             isHomepage={isHomepage}
+            splitDecision={splitDecision}
           />
           <Layout.Body>
             <CustomMeasurementsProvider organization={organization} selection={selection}>
@@ -773,21 +770,6 @@ export class Results extends Component<Props, State> {
                 {!hasDatasetSelectorFeature && <SampleDataAlert query={query} />}
 
                 <Wrapper>
-                  <Feature
-                    organization={organization}
-                    features="performance-discover-dataset-selector"
-                  >
-                    {({hasFeature}) =>
-                      hasFeature && (
-                        <DatasetSelector
-                          isHomepage={isHomepage}
-                          savedQuery={savedQuery}
-                          splitDecision={splitDecision}
-                          eventView={eventView}
-                        />
-                      )
-                    }
-                  </Feature>
                   <PageFilterBar condensed>
                     <ProjectPageFilter />
                     <EnvironmentPageFilter />

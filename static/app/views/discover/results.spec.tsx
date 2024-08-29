@@ -1545,9 +1545,10 @@ describe('Results', function () {
       });
       expect(mockRequests.eventsResultsMock).toHaveBeenCalledTimes(1);
       await waitFor(() => {
-        expect(
-          screen.getByRole('button', {name: 'Dataset Transactions'})
-        ).toBeInTheDocument();
+        expect(screen.getByRole('tab', {name: 'Transactions'})).toHaveAttribute(
+          'aria-selected',
+          'true'
+        );
       });
 
       expect(
@@ -1622,7 +1623,10 @@ describe('Results', function () {
       });
       expect(mockRequests.eventsResultsMock).toHaveBeenCalledTimes(1);
 
-      expect(screen.getByRole('button', {name: 'Dataset Errors'})).toBeInTheDocument();
+      expect(screen.getByRole('tab', {name: 'Errors'})).toHaveAttribute(
+        'aria-selected',
+        'true'
+      );
 
       expect(mockRequests.eventsStatsMock).toHaveBeenCalledWith(
         '/organizations/org-slug/events-stats/',

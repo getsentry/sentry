@@ -3,7 +3,7 @@ import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import EventView, {type EventViewOptions} from 'sentry/utils/discover/eventView';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
-import {DatasetSelector} from 'sentry/views/discover/savedQuery/datasetSelector';
+import {DatasetSelectorTabs} from 'sentry/views/discover/savedQuery/datasetSelectorTabs';
 
 const EVENT_VIEW_CONSTRUCTOR_PROPS: EventViewOptions = {
   createdBy: undefined,
@@ -27,33 +27,35 @@ describe('Discover DatasetSelector', function () {
     organization: {features: ['performance-view']},
   });
 
-  it('renders selector and options', async function () {
+  it('renders tabs', function () {
     const eventView = new EventView(EVENT_VIEW_CONSTRUCTOR_PROPS);
     render(
-      <DatasetSelector isHomepage={false} savedQuery={undefined} eventView={eventView} />,
+      <DatasetSelectorTabs
+        isHomepage={false}
+        savedQuery={undefined}
+        eventView={eventView}
+      />,
       {
         router,
       }
     );
-    await userEvent.click(screen.getByText('Dataset'));
-    const menuOptions = await screen.findAllByRole('option');
-    expect(menuOptions.map(e => e.textContent)).toEqual([
-      'Errors',
-      'Transactions',
-      'Unknown',
-    ]);
+    expect(screen.getByRole('tab', {name: 'Errors'})).toBeInTheDocument();
+    expect(screen.getByRole('tab', {name: 'Transactions'})).toBeInTheDocument();
   });
 
-  it('pushes new dafault event view if not a saved query', async function () {
+  it('pushes new default event view if not a saved query', async function () {
     const eventView = new EventView(EVENT_VIEW_CONSTRUCTOR_PROPS);
     render(
-      <DatasetSelector isHomepage={false} savedQuery={undefined} eventView={eventView} />,
+      <DatasetSelectorTabs
+        isHomepage={false}
+        savedQuery={undefined}
+        eventView={eventView}
+      />,
       {
         router,
       }
     );
-    await userEvent.click(screen.getByText('Dataset'));
-    await userEvent.click(screen.getByRole('option', {name: 'Transactions'}));
+    await userEvent.click(screen.getByRole('tab', {name: 'Transactions'}));
     expect(router.push).toHaveBeenCalledWith(
       expect.objectContaining({
         query: expect.objectContaining({
@@ -73,13 +75,16 @@ describe('Discover DatasetSelector', function () {
       id: '1',
     });
     render(
-      <DatasetSelector isHomepage={false} savedQuery={undefined} eventView={eventView} />,
+      <DatasetSelectorTabs
+        isHomepage={false}
+        savedQuery={undefined}
+        eventView={eventView}
+      />,
       {
         router,
       }
     );
-    await userEvent.click(screen.getByText('Dataset'));
-    await userEvent.click(screen.getByRole('option', {name: 'Transactions'}));
+    await userEvent.click(screen.getByRole('tab', {name: 'Transactions'}));
     expect(router.push).toHaveBeenCalledWith(
       expect.objectContaining({
         query: expect.objectContaining({

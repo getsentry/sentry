@@ -16,7 +16,9 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Organization, SavedQuery} from 'sentry/types/organization';
 import EventView from 'sentry/utils/discover/eventView';
+import type {SavedQueryDatasets} from 'sentry/utils/discover/types';
 import withApi from 'sentry/utils/withApi';
+import {DatasetSelectorTabs} from 'sentry/views/discover/savedQuery/datasetSelectorTabs';
 import {getSavedQueryWithDataset} from 'sentry/views/discover/savedQuery/utils';
 
 import Banner from './banner';
@@ -35,6 +37,7 @@ type Props = {
   setSavedQuery: (savedQuery?: SavedQuery) => void;
   yAxis: string[];
   isHomepage?: boolean;
+  splitDecision?: SavedQueryDatasets;
 };
 
 type State = {
@@ -153,6 +156,7 @@ class ResultsHeader extends Component<Props, State> {
       router,
       setSavedQuery,
       isHomepage,
+      splitDecision,
     } = this.props;
     const {savedQuery, loading, homepageQuery} = this.state;
 
@@ -220,6 +224,21 @@ class ResultsHeader extends Component<Props, State> {
           />
         </Layout.HeaderActions>
         {isHomepage && this.renderBanner()}
+        <Feature
+          organization={organization}
+          features="performance-discover-dataset-selector"
+        >
+          {({hasFeature}) =>
+            hasFeature && (
+              <DatasetSelectorTabs
+                eventView={eventView}
+                isHomepage={isHomepage}
+                savedQuery={savedQuery}
+                splitDecision={splitDecision}
+              />
+            )
+          }
+        </Feature>
       </Layout.Header>
     );
   }

@@ -1,4 +1,4 @@
-import {CompactSelect} from 'sentry/components/compactSelect';
+import {TabList, Tabs} from 'sentry/components/tabs';
 import {t} from 'sentry/locale';
 import type {SavedQuery} from 'sentry/types/organization';
 import type EventView from 'sentry/utils/discover/eventView';
@@ -26,7 +26,7 @@ type Props = {
   splitDecision?: SavedQueryDatasets;
 };
 
-export function DatasetSelector(props: Props) {
+export function DatasetSelectorTabs(props: Props) {
   const {savedQuery, isHomepage, splitDecision, eventView} = props;
   const location = useLocation();
   const organization = useOrganization();
@@ -53,16 +53,11 @@ export function DatasetSelector(props: Props) {
   }
 
   return (
-    <CompactSelect
-      triggerProps={{prefix: t('Dataset')}}
+    <Tabs
       value={value}
-      options={options}
       onChange={newValue => {
-        if (newValue.value === value) {
-          return;
-        }
         const nextEventView = eventView.withDataset(
-          getDatasetFromLocationOrSavedQueryDataset(undefined, newValue.value)
+          getDatasetFromLocationOrSavedQueryDataset(undefined, newValue)
         );
         const nextLocation = nextEventView.getResultsViewUrlTarget(
           organization.slug,
@@ -72,10 +67,16 @@ export function DatasetSelector(props: Props) {
           ...location,
           query: {
             ...nextLocation.query,
-            [DATASET_PARAM]: newValue.value,
+            [DATASET_PARAM]: newValue,
           },
         });
       }}
-    />
+    >
+      <TabList variant="filled" hideBorder>
+        {options.map(option => (
+          <TabList.Item key={option.value}>{option.label}</TabList.Item>
+        ))}
+      </TabList>
+    </Tabs>
   );
 }
