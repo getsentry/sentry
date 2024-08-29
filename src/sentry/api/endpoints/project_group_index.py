@@ -111,10 +111,10 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint, EnvironmentMixin):
 
             # limit to 100 hashes
             hashes = hashes[:100]
-            groups_from_hashes = GroupHash.objects.filter(hash__in=hashes).values_list(
-                "group_id", flat=True
-            )
-            groups = list(Group.objects.filter(id__in=groups_from_hashes, project_id=project.id))
+            groups_from_hashes = GroupHash.objects.filter(
+                hash__in=hashes, project=project
+            ).values_list("group_id", flat=True)
+            groups = list(Group.objects.filter(id__in=groups_from_hashes))
 
             serialized_groups = serialize(
                 groups,
