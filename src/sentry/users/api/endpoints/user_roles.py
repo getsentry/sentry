@@ -6,6 +6,7 @@ from sentry.api.base import control_silo_endpoint
 from sentry.api.bases.user import UserEndpoint
 from sentry.api.permissions import SuperuserPermission
 from sentry.api.serializers import serialize
+from sentry.users.models.user import User
 from sentry.users.models.userrole import UserRole
 
 
@@ -16,7 +17,7 @@ class UserUserRolesEndpoint(UserEndpoint):
     }
     permission_classes = (SuperuserPermission,)
 
-    def get(self, request: Request, user) -> Response:
+    def get(self, request: Request, user: User) -> Response:
         # XXX(dcramer): we may decide to relax "view" permission over time, but being more restrictive by default
         # is preferred
         if not request.access.has_permission("users.admin"):

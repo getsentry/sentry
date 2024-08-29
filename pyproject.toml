@@ -179,7 +179,6 @@ module = [
     "sentry.api.endpoints.team_details",
     "sentry.api.endpoints.team_release_count",
     "sentry.api.endpoints.team_time_to_resolution",
-    "sentry.api.endpoints.user_details",
     "sentry.api.endpoints.user_subscriptions",
     "sentry.api.event_search",
     "sentry.api.helpers.group_index.index",

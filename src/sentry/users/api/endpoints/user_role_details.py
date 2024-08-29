@@ -11,6 +11,7 @@ from sentry.api.bases.user import UserEndpoint
 from sentry.api.decorators import sudo_required
 from sentry.api.permissions import SuperuserPermission
 from sentry.api.serializers import serialize
+from sentry.users.models.user import User
 from sentry.users.models.userrole import UserRole, UserRoleUser
 
 audit_logger = logging.getLogger("sentry.audit.user")
@@ -25,7 +26,7 @@ class UserUserRoleDetailsEndpoint(UserEndpoint):
     }
     permission_classes = (SuperuserPermission,)
 
-    def get(self, request: Request, user, role_name) -> Response:
+    def get(self, request: Request, user: User, role_name: str) -> Response:
         # XXX(dcramer): we may decide to relax "view" permission over time, but being more restrictive by default
         # is preferred
         if not request.access.has_permission("users.admin"):
@@ -38,7 +39,7 @@ class UserUserRoleDetailsEndpoint(UserEndpoint):
         return self.respond(serialize(role, request.user))
 
     @sudo_required
-    def post(self, request: Request, user, role_name) -> Response:
+    def post(self, request: Request, user: User, role_name: str) -> Response:
         if not request.access.has_permission("users.admin"):
             return self.respond(status=403)
 
@@ -65,7 +66,7 @@ class UserUserRoleDetailsEndpoint(UserEndpoint):
         return self.respond(status=201)
 
     @sudo_required
-    def delete(self, request: Request, user, role_name) -> Response:
+    def delete(self, request: Request, user: User, role_name: str) -> Response:
         if not request.access.has_permission("users.admin"):
             return self.respond(status=403)
 

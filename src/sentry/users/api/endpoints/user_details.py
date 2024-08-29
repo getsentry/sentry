@@ -1,6 +1,7 @@
 import logging
 import zoneinfo
 from datetime import datetime
+from typing import Any
 
 from django.conf import settings
 from django.contrib.auth import logout
@@ -36,23 +37,24 @@ audit_logger = logging.getLogger("sentry.audit.user")
 delete_logger = logging.getLogger("sentry.deletions.api")
 
 
-def _get_timezone_choices():
-    results = []
+def _get_timezone_choices() -> list[tuple[str, str]]:
+    build_results = []
     for tz in AVAILABLE_TIMEZONES:
         now = datetime.now(zoneinfo.ZoneInfo(tz))
         offset = now.strftime("%z")
-        results.append((int(offset), tz, f"(UTC{offset}) {tz}"))
-    results.sort()
+        build_results.append((int(offset), tz, f"(UTC{offset}) {tz}"))
+    build_results.sort()
 
-    for i in range(len(results)):
-        results[i] = results[i][1:]
+    results: list[tuple[str, str]] = []
+    for item in build_results:
+        results.append(item[1:])
     return results
 
 
 TIMEZONE_CHOICES = _get_timezone_choices()
 
 
-class UserOptionsSerializer(serializers.Serializer):
+class UserOptionsSerializer(serializers.Serializer[UserOption]):
     language = serializers.ChoiceField(choices=LANGUAGES, required=False)
     stacktraceOrder = serializers.ChoiceField(
         choices=(
@@ -83,8 +85,10 @@ class UserOptionsSerializer(serializers.Serializer):
     prefersIssueDetailsStreamlinedUI = serializers.BooleanField(required=False)
 
 
-class BaseUserSerializer(CamelSnakeModelSerializer):
-    def validate_username(self, value):
+class BaseUserSerializer(CamelSnakeModelSerializer[User]):
+    def validate_username(self, value: str) -> str:
+        assert isinstance(self.instance, User), "Should be a single record not a sequence"
+
         if (
             User.objects.filter(username__iexact=value)
             # Django throws an exception if `id` is `None`, which it will be when we're importing
@@ -95,9 +99,10 @@ class BaseUserSerializer(CamelSnakeModelSerializer):
             raise serializers.ValidationError("That username is already in use.")
         return value
 
-    def validate(self, attrs):
+    def validate(self, attrs: dict[str, Any]) -> dict[str, Any]:
         attrs = super().validate(attrs)
 
+        assert isinstance(self.instance, User), "Should be a single record not a sequence"
         if self.instance.email == self.instance.username:
             if attrs.get("username", self.instance.email) != self.instance.email:
                 # ... this probably needs to handle newsletters and such?
@@ -105,7 +110,7 @@ class BaseUserSerializer(CamelSnakeModelSerializer):
 
         return attrs
 
-    def update(self, instance, validated_data):
+    def update(self, instance: User, validated_data: dict[str, Any]) -> User:
         if "isActive" not in validated_data:
             validated_data["isActive"] = instance.is_active
         return super().update(instance, validated_data)
@@ -116,7 +121,8 @@ class UserSerializer(BaseUserSerializer):
         model = User
         fields = ("name", "username")
 
-    def validate(self, attrs):
+    def validate(self, attrs: dict[str, Any]) -> dict[str, Any]:
+        field: str
         for field in settings.SENTRY_MANAGED_USER_FIELDS:
             attrs.pop(field, None)
 
@@ -140,7 +146,7 @@ class PrivilegedUserSerializer(SuperuserUserSerializer):
         fields = ("name", "username", "is_active", "is_staff", "is_superuser")
 
 
-class DeleteUserSerializer(serializers.Serializer):
+class DeleteUserSerializer(serializers.Serializer[User]):
     organizations = serializers.ListField(
         child=serializers.CharField(required=False), required=True
     )
@@ -157,7 +163,7 @@ class UserDetailsEndpoint(UserEndpoint):
 
     permission_classes = (UserAndStaffPermission,)
 
-    def get(self, request: Request, user) -> Response:
+    def get(self, request: Request, user: User) -> Response:
         """
         Retrieve User Details
         `````````````````````
@@ -169,7 +175,7 @@ class UserDetailsEndpoint(UserEndpoint):
         """
         return Response(serialize(user, request.user, DetailedSelfUserSerializer()))
 
-    def put(self, request: Request, user) -> Response:
+    def put(self, request: Request, user: User) -> Response:
         """
         Update Account Appearance options
         `````````````````````````````````
@@ -210,6 +216,7 @@ class UserDetailsEndpoint(UserEndpoint):
                     status=status.HTTP_403_FORBIDDEN,
                 )
 
+        serializer_cls: type[BaseUserSerializer]
         if can_elevate_user:
             serializer_cls = PrivilegedUserSerializer
         # With superuser read/write separation, superuser read cannot hit this endpoint
@@ -265,7 +272,7 @@ class UserDetailsEndpoint(UserEndpoint):
         return Response(serialize(user, request.user, DetailedSelfUserSerializer()))
 
     @sudo_required
-    def delete(self, request: Request, user) -> Response:
+    def delete(self, request: Request, user: User) -> Response:
         """
         Delete User Account
 
