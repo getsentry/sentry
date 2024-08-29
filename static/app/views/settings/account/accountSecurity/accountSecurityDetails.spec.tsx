@@ -60,7 +60,6 @@ describe('AccountSecurityDetails', function () {
       render(
         <AccountSecurityWrapper {...routerProps}>
           <AccountSecurityDetails
-            {...routerProps}
             onRegenerateBackupCodes={jest.fn()}
             deleteDisabled={false}
           />
@@ -93,7 +92,6 @@ describe('AccountSecurityDetails', function () {
       render(
         <AccountSecurityWrapper {...routerProps}>
           <AccountSecurityDetails
-            {...routerProps}
             onRegenerateBackupCodes={jest.fn()}
             deleteDisabled={false}
           />
@@ -133,7 +131,6 @@ describe('AccountSecurityDetails', function () {
       render(
         <AccountSecurityWrapper {...routerProps}>
           <AccountSecurityDetails
-            {...routerProps}
             onRegenerateBackupCodes={jest.fn()}
             deleteDisabled={false}
           />
@@ -174,7 +171,6 @@ describe('AccountSecurityDetails', function () {
       render(
         <AccountSecurityWrapper {...routerProps}>
           <AccountSecurityDetails
-            {...routerProps}
             onRegenerateBackupCodes={jest.fn()}
             deleteDisabled={false}
           />
@@ -223,7 +219,6 @@ describe('AccountSecurityDetails', function () {
       render(
         <AccountSecurityWrapper {...routerProps}>
           <AccountSecurityDetails
-            {...routerProps}
             onRegenerateBackupCodes={jest.fn()}
             deleteDisabled={false}
           />
@@ -255,7 +250,6 @@ describe('AccountSecurityDetails', function () {
       render(
         <AccountSecurityWrapper {...routerProps}>
           <AccountSecurityDetails
-            {...routerProps}
             onRegenerateBackupCodes={jest.fn()}
             deleteDisabled={false}
           />
@@ -298,7 +292,6 @@ describe('AccountSecurityDetails', function () {
       render(
         <AccountSecurityWrapper {...routerProps}>
           <AccountSecurityDetails
-            {...routerProps}
             onRegenerateBackupCodes={jest.fn()}
             deleteDisabled={false}
           />
