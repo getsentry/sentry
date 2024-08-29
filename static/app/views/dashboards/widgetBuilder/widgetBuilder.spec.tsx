@@ -1392,12 +1392,10 @@ describe('WidgetBuilder', function () {
   });
 
   it('does not trigger alert dialog if no changes', async function () {
+    renderTestComponent();
     const alertMock = jest.spyOn(window, 'alert');
 
-    // Click Cancel
     await userEvent.click(await screen.findByText('Cancel'));
-
-    // Assert an alert was triggered
     expect(alertMock).not.toHaveBeenCalled();
   });
 
