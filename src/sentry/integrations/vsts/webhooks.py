@@ -12,7 +12,7 @@ from rest_framework.response import Response
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import Endpoint, region_silo_endpoint
-from sentry.integrations.mixins import IssueSyncMixin
+from sentry.integrations.mixins.issues import IssueSyncIntegration
 from sentry.integrations.services.integration import integration_service
 from sentry.integrations.utils import sync_group_assignee_inbound
 from sentry.utils.email import parse_email
@@ -136,7 +136,7 @@ def handle_status_change(
 
     for org_integration in org_integrations:
         installation = integration.get_installation(organization_id=org_integration.organization_id)
-        if isinstance(installation, IssueSyncMixin):
+        if isinstance(installation, IssueSyncIntegration):
             installation.sync_status_inbound(
                 external_issue_key,
                 {

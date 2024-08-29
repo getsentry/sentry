@@ -4,7 +4,7 @@ import {motion} from 'framer-motion';
 
 import {openInviteMembersModal} from 'sentry/actionCreators/modal';
 import {Alert} from 'sentry/components/alert';
-import {Button, LinkButton} from 'sentry/components/button';
+import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import ExternalLink from 'sentry/components/links/externalLink';
 import LoadingError from 'sentry/components/loadingError';
@@ -141,12 +141,8 @@ function IntegrationSetup(props: Props) {
               analyticsParams={{view: 'onboarding', already_installed: false}}
               modalParams={{projectId: project.id}}
             />
-            <LinkButton
+            <Button
               size="sm"
-              to={{
-                pathname: window.location.pathname,
-                query: {manual: '1'},
-              }}
               onClick={() => {
                 props.onClickManualSetup?.();
                 trackIntegrationAnalytics('integrations.switch_manual_sdk_setup', {
@@ -158,7 +154,7 @@ function IntegrationSetup(props: Props) {
               }}
             >
               {t('Manual Setup')}
-            </LinkButton>
+            </Button>
           </StyledButtonBar>
         </DocsWrapper>
       </Fragment>

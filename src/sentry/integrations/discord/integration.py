@@ -119,7 +119,7 @@ class DiscordIntegrationProvider(IntegrationProvider):
     features = frozenset([IntegrationFeatures.CHAT_UNFURL, IntegrationFeatures.ALERT_RULE])
 
     # https://discord.com/developers/docs/topics/oauth2#shared-resources-oauth2-scopes
-    oauth_scopes = frozenset(["applications.commands", "bot", "identify"])
+    oauth_scopes = frozenset(["applications.commands", "bot", "identify", "guilds.members.read"])
     access_token = ""
 
     bot_permissions = (
@@ -163,7 +163,9 @@ class DiscordIntegrationProvider(IntegrationProvider):
         auth_code = str(state.get("code"))
         if auth_code:
             discord_user_id = self._get_discord_user_id(auth_code, url)
-            if not self.client.check_user_bot_installation_permission(
+            if options.get(
+                "discord.validate-user"
+            ) and not self.client.check_user_bot_installation_permission(
                 access_token=self.access_token, guild_id=guild_id
             ):
                 raise IntegrationError("User does not have permissions to install bot.")

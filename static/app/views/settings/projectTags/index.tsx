@@ -53,7 +53,7 @@ function ProjectTags(props: Props) {
 
   const {
     data: tags,
-    isLoading,
+    isPending,
     isError,
   } = useApiQuery<TagWithTopValues[]>(
     [`/projects/${organization.slug}/${projectId}/tags/`],
@@ -77,7 +77,7 @@ function ProjectTags(props: Props) {
     },
   });
 
-  if (isLoading) {
+  if (isPending) {
     return <LoadingIndicator />;
   }
 

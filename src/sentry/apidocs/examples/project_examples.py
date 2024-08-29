@@ -120,7 +120,6 @@ DETAILED_PROJECT = {
         "version": "backend@3e90a5d9e767ebcfa70e921d7a7ff6c037461168",
     },
     "options": {
-        "sentry:span_description_cluster_rules": [],
         "sentry:transaction_name_cluster_rules": [],
         "digests:mail:maximum_delay": 600,
         "sentry:scrub_defaults": False,

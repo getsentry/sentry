@@ -38,10 +38,10 @@ type BodyProps = {
 
 function OrganizationRestoreBody({orgSlug}: BodyProps) {
   const endpoint = `/organizations/${orgSlug}/`;
-  const {isLoading, isError, data} = useApiQuery<Organization>([endpoint], {
+  const {isPending, isError, data} = useApiQuery<Organization>([endpoint], {
     staleTime: 0,
   });
-  if (isLoading) {
+  if (isPending) {
     return <LoadingIndicator />;
   }
   if (isError) {

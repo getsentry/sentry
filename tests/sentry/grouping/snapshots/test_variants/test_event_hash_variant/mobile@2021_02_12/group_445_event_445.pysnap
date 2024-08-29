@@ -1,11 +1,10 @@
 ---
-created: '2021-08-09T15:01:35.927520Z'
+created: '2024-08-27T12:08:34.124883+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
 app-depth-1:
   hash: "aeed765d29d1a60cb094f66d2cd8efb2"
-  tree_label: "stripped_application_code"
   component:
     app-depth-1*
       exception*
@@ -20,7 +19,6 @@ app-depth-1:
 --------------------------------------------------------------------------
 app-depth-2:
   hash: "9a6cd9472e8cac05c8e9b555384341d9"
-  tree_label: "raise | stripped_application_code | stripped_application_code"
   component:
     app-depth-2*
       exception*
@@ -43,7 +41,6 @@ app-depth-2:
 --------------------------------------------------------------------------
 app-depth-3:
   hash: "10931b6ba91d6826d5cce1682fd9d67b"
-  tree_label: "raise | stripped_application_code | stripped_application_code | stripped_application_code"
   component:
     app-depth-3*
       exception*
@@ -69,7 +66,6 @@ app-depth-3:
 --------------------------------------------------------------------------
 app-depth-4:
   hash: "4b191f37efd301221e8e32962b44f4d5"
-  tree_label: "raise | stripped_application_code | stripped_application_code | stripped_application_code | stripped_application_code"
   component:
     app-depth-4*
       exception*
@@ -98,7 +94,6 @@ app-depth-4:
 --------------------------------------------------------------------------
 app-depth-5:
   hash: "fca1c2ac2f8b338a36b19dc2064660d9"
-  tree_label: "raise | stripped_application_code | stripped_application_code | stripped_application_code | stripped_application_code | DispatchMessageWorker"
   component:
     app-depth-5*
       exception*
@@ -132,7 +127,6 @@ app-depth-5:
 --------------------------------------------------------------------------
 app-depth-max:
   hash: "e964d1e7cfec1ffbfe73559e02f9ac1b"
-  tree_label: "raise | stripped_application_code | stripped_application_code | stripped_application_code | stripped_application_code | DispatchMessageWorker | stripped_application_code | stripped_application_code | std::basic_string<T>::{ctor}"
   component:
     app-depth-max*
       exception*
@@ -177,7 +171,6 @@ app-depth-max:
 --------------------------------------------------------------------------
 system:
   hash: "6ca70b05afe6f28addb3923c2e247b70"
-  tree_label: "raise | stripped_application_code | stripped_application_code | stripped_application_code | stripped_application_code | DispatchMessageWorker | stripped_application_code | stripped_application_code | std::basic_string<T>::{ctor}"
   component:
     system*
       exception*

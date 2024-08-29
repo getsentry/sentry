@@ -14,7 +14,7 @@ interface UseProfilingFunctionMetricsProps {
 
 export function useProfilingFunctionMetrics(
   props: UseProfilingFunctionMetricsProps
-): UseApiQueryResult<EventsStatsData, RequestError> {
+): UseApiQueryResult<{data: EventsStatsData}, RequestError> {
   const organization = useOrganization();
   const {selection} = usePageFilters();
 
@@ -34,7 +34,7 @@ export function useProfilingFunctionMetrics(
     return params;
   }, [props.fingerprint, props.projects, selection.datetime, selection.environments]);
 
-  return useApiQuery<EventsStatsData>([path, endpointOptions], {
+  return useApiQuery<{data: EventsStatsData}>([path, endpointOptions], {
     enabled: !!props.fingerprint,
     staleTime: 0,
   });

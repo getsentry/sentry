@@ -136,7 +136,6 @@ function BaseDraggableTabList({
               {t('Add View')}
             </AddViewButton>
           </MotionWrapper>
-          <TabDivider layout isVisible />
           <MotionWrapper layout>
             {tempTab && (
               <Tab
@@ -210,7 +209,9 @@ DraggableTabList.Item = Item;
  * TabDividers are only visible around NON-selected tabs. They are not visible around the selected tab,
  * but they still create some space and act as a gap between tabs.
  */
-const TabDivider = styled(motion.div)<{isVisible: boolean}>`
+const TabDivider = styled(motion.div, {
+  shouldForwardProp: prop => prop !== 'isVisible',
+})<{isVisible: boolean}>`
   ${p =>
     p.isVisible &&
     `
@@ -262,6 +263,7 @@ const AddViewButton = styled(Button)`
   font-weight: normal;
   padding: ${space(0.5)};
   transform: translateY(1px);
+  margin-right: ${space(0.5)};
 `;
 
 const StyledIconAdd = styled(IconAdd)`

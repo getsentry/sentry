@@ -9,6 +9,13 @@ import type {Config} from 'sentry/types/system';
 import {addExtraMeasurements, addUIElementTag} from 'sentry/utils/performanceForSentry';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import {getErrorDebugIds} from 'sentry/utils/getErrorDebugIds';
+import {
+  createRoutesFromChildren,
+  matchRoutes,
+  useLocation,
+  useNavigationType,
+} from 'react-router-dom';
+import {useEffect} from 'react';
 
 const SPA_MODE_ALLOW_URLS = [
   'localhost',
@@ -49,20 +56,30 @@ const shouldOverrideBrowserProfiling = window?.__initialData?.user?.isSuperuser;
  * (e.g.  `static/views/integrationPipeline`)
  */
 function getSentryIntegrations(routes?: Function) {
+  const reactRouterIntegration = window.__SENTRY_USING_REACT_ROUTER_SIX
+    ? Sentry.reactRouterV6BrowserTracingIntegration({
+        useEffect: useEffect,
+        useLocation: useLocation,
+        useNavigationType: useNavigationType,
+        createRoutesFromChildren: createRoutesFromChildren,
+        matchRoutes: matchRoutes,
+      })
+    : Sentry.reactRouterV3BrowserTracingIntegration({
+        history: browserHistory as any,
+        routes: typeof routes === 'function' ? createRoutes(routes()) : [],
+        match,
+        enableLongAnimationFrame: true,
+        _experiments: {
+          enableInteractions: false,
+        },
+      });
+
   const integrations = [
     Sentry.extraErrorDataIntegration({
       // 6 is arbitrary, seems like a nice number
       depth: 6,
     }),
-    Sentry.reactRouterV3BrowserTracingIntegration({
-      history: browserHistory as any,
-      routes: typeof routes === 'function' ? createRoutes(routes()) : [],
-      match,
-      enableLongAnimationFrame: true,
-      _experiments: {
-        enableInteractions: false,
-      },
-    }),
+    reactRouterIntegration,
     Sentry.browserProfilingIntegration(),
     Sentry.thirdPartyErrorFilterIntegration({
       filterKeys: ['sentry-spa'],

@@ -141,15 +141,7 @@ export function pushEventViewToLocation(props: {
   });
 }
 
-export function generateTitle({
-  eventView,
-  event,
-  organization,
-}: {
-  eventView: EventView;
-  event?: Event;
-  organization?: Organization;
-}) {
+export function generateTitle({eventView, event}: {eventView: EventView; event?: Event}) {
   const titles = [t('Discover')];
 
   const eventViewName = eventView.name;
@@ -157,7 +149,7 @@ export function generateTitle({
     titles.push(String(eventViewName).trim());
   }
 
-  const eventTitle = event ? getTitle(event, organization?.features).title : undefined;
+  const eventTitle = event ? getTitle(event).title : undefined;
 
   if (eventTitle) {
     titles.push(eventTitle);

@@ -141,7 +141,7 @@ export default function TagFacets({
 
   const {transaction, aggregateRange2, breakpoint} =
     event?.occurrence?.evidenceData ?? {};
-  const {isLoading, isError, data, refetch} = useFetchIssueTagsForDetailsPage({
+  const {isPending, isError, data, refetch} = useFetchIssueTagsForDetailsPage({
     groupId,
     orgSlug: organization.slug,
     environment: environments,
@@ -182,7 +182,7 @@ export default function TagFacets({
     .filter(tagKey => !tagKeys.includes(tagKey) && tagKey !== 'replayId')
     .sort();
 
-  if (isLoading) {
+  if (isPending) {
     return (
       <WrapperWithTitle>
         <TagPlaceholders>

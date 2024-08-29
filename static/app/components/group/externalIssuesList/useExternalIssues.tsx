@@ -24,7 +24,7 @@ function getExternalIssuesQueryKey({
 
 export function useExternalIssues({group, organization}: UseExternalIssuesOptions) {
   const queryClient = useQueryClient();
-  const {isLoading, data = []} = useApiQuery<PlatformExternalIssue[]>(
+  const {isPending, data = []} = useApiQuery<PlatformExternalIssue[]>(
     getExternalIssuesQueryKey({group, organization}),
     {staleTime: 60_000}
   );
@@ -54,7 +54,7 @@ export function useExternalIssues({group, organization}: UseExternalIssuesOption
   return {
     onDeleteExternalIssue,
     onCreateExternalIssue,
-    isLoading,
+    isLoading: isPending,
     data,
   };
 }
