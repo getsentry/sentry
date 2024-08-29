@@ -3,6 +3,7 @@ from typing import Any, TypeVar
 
 from sentry import options
 from sentry.eventstore.models import Event
+from sentry.killswitches import killswitch_matches_context
 from sentry.utils import metrics
 from sentry.utils.safe import get_path
 
@@ -216,6 +217,20 @@ def killswitch_enabled(project_id: int, event: Event | None = None) -> bool:
             "grouping.similarity.did_call_seer",
             sample_rate=options.get("seer.similarity.metrics_sample_rate"),
             tags={"call_made": False, "blocker": "similarity-killswitch"},
+        )
+        return True
+
+    if killswitch_matches_context(
+        "seer.similarity.grouping_killswitch_projects", {"project_id": project_id}
+    ):
+        logger.warning(
+            "should_call_seer_for_grouping.seer_similarity_project_killswitch_enabled",
+            extra=logger_extra,
+        )
+        metrics.incr(
+            "grouping.similarity.did_call_seer",
+            sample_rate=options.get("seer.similarity.metrics_sample_rate"),
+            tags={"call_made": False, "blocker": "project-killswitch"},
         )
         return True
 
