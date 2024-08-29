@@ -184,13 +184,24 @@ class GroupAiSummaryEndpointTest(APITestCase, SnubaTestCase):
             ) as mock_get_event,
             patch("sentry.api.endpoints.group_ai_summary.requests.post") as mock_post,
             patch("sentry.api.endpoints.group_ai_summary.sign_with_seer_secret") as mock_sign,
+            patch(
+                "sentry.api.endpoints.group_ai_summary.GroupAiSummaryEndpoint._get_trace_connected_issues"
+            ) as mock_get_connected_issues,
         ):
-            mock_event = {
+            serialized_event = {
                 "id": "test_event_id",
                 "data": "test_event_data",
                 "project_id": self.project.id,
             }
-            mock_get_event.return_value = mock_event
+            event = Mock(
+                id="test_event_id",
+                data="test_event_data",
+                trace_id=None,
+                project_id=self.project.id,
+                datetime=datetime.datetime.now(),
+            )
+            mock_get_event.return_value = [serialized_event, event]
+            mock_get_connected_issues.return_value = []
             mock_sign.return_value = {"Authorization": "Bearer test_token"}
             mock_post.return_value.json.return_value = {
                 "group_id": str(self.group.id),
@@ -207,8 +218,9 @@ class GroupAiSummaryEndpointTest(APITestCase, SnubaTestCase):
                     "id": self.group.id,
                     "title": self.group.title,
                     "short_id": self.group.qualified_short_id,
-                    "events": [mock_event],
+                    "events": [serialized_event],
                 },
+                "connected_issues": [],
                 "organization_slug": self.group.organization.slug,
                 "organization_id": self.group.organization.id,
                 "project_id": self.project.id,
