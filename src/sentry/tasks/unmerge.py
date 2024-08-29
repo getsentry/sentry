@@ -164,6 +164,7 @@ def get_fingerprint(event: BaseEvent) -> str | None:
 
 
 def migrate_events(
+    source,
     caches,
     project,
     args: UnmergeArgs,
@@ -195,7 +196,7 @@ def migrate_events(
         destination = Group.objects.create(
             project_id=project.id,
             short_id=project.next_short_id(),
-            **get_group_creation_attributes(caches, events),
+            **get_group_creation_attributes(caches, source, events),
         )
 
         destination_id = destination.id
@@ -574,6 +575,7 @@ def unmerge(*posargs, **kwargs):
     for unmerge_key, _destination_events in destination_events.items():
         destination_id, eventstream_state = destinations.get(unmerge_key) or (None, None)
         (destination_id, eventstream_state) = migrate_events(
+            source,
             caches,
             project,
             args,
