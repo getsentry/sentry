@@ -359,6 +359,7 @@ def shim_to_feedback(
         logger.exception(
             "Error attempting to create new User Feedback from Shiming old User Report"
         )
+        metrics.incr("feedback.shim_to_feedback.failed", tags={"referrer": source.value})
 
 
 def auto_ignore_spam_feedbacks(project, issue_fingerprint):
