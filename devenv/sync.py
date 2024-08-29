@@ -54,7 +54,7 @@ def run_procs(
         out, _ = p.communicate()
         if p.returncode != 0:
             all_good = False
-            out = f"Output:\n{out.decode()}" if not verbose else ""
+            out_str = f"Output:\n{out.decode()}" if not verbose else ""
             print(
                 f"""
 ❌ {name}
@@ -62,7 +62,7 @@ def run_procs(
 failed command (code {p.returncode}):
     {shlex.join(final_cmd)}
 
-{out}
+{out_str}
 
 """
             )
