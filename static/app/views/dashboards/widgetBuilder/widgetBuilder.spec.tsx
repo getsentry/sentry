@@ -1827,6 +1827,80 @@ describe('WidgetBuilder', function () {
         expect(screen.getByText('transaction.duration')).toBeInTheDocument();
         expect(screen.getByText('testFilter:value')).toBeInTheDocument();
       });
+
+      it('sets the correct default count_if parameters for the errors dataset', async function () {
+        dashboard = mockDashboard({
+          widgets: [
+            WidgetFixture({
+              displayType: DisplayType.TABLE,
+              widgetType: WidgetType.ERRORS,
+              queries: [
+                {
+                  name: 'Test Widget',
+                  fields: ['count()'],
+                  columns: [],
+                  aggregates: ['count()'],
+                  conditions: '',
+                  orderby: '',
+                },
+              ],
+            }),
+          ],
+        });
+
+        renderTestComponent({
+          orgFeatures: [...defaultOrgFeatures, 'performance-discover-dataset-selector'],
+          dashboard,
+          params: {
+            widgetIndex: '0',
+          },
+        });
+
+        await userEvent.click(await screen.findByTestId('label'));
+        await userEvent.click(screen.getByText(/count_if/));
+
+        const fieldLabels = screen.getAllByTestId('label');
+        expect(fieldLabels[0]).toHaveTextContent(/count_if/);
+        expect(fieldLabels[1]).toHaveTextContent('event.type');
+        expect(screen.getByDisplayValue('error')).toBeInTheDocument();
+      });
+
+      it('sets the correct default count_if parameters for the transactions dataset', async function () {
+        dashboard = mockDashboard({
+          widgets: [
+            WidgetFixture({
+              displayType: DisplayType.TABLE,
+              widgetType: WidgetType.TRANSACTIONS,
+              queries: [
+                {
+                  name: 'Test Widget',
+                  fields: ['count()'],
+                  columns: [],
+                  aggregates: ['count()'],
+                  conditions: '',
+                  orderby: '',
+                },
+              ],
+            }),
+          ],
+        });
+
+        renderTestComponent({
+          orgFeatures: [...defaultOrgFeatures, 'performance-discover-dataset-selector'],
+          dashboard,
+          params: {
+            widgetIndex: '0',
+          },
+        });
+
+        await userEvent.click(await screen.findByTestId('label'));
+        await userEvent.click(screen.getByText(/count_if/));
+
+        const fieldLabels = screen.getAllByTestId('label');
+        expect(fieldLabels[0]).toHaveTextContent(/count_if/);
+        expect(fieldLabels[1]).toHaveTextContent('transaction.duration');
+        expect(screen.getByDisplayValue('300')).toBeInTheDocument();
+      });
     });
 
     describe('events-stats', function () {
@@ -1965,6 +2039,80 @@ describe('WidgetBuilder', function () {
         expect(await screen.findByText(/p99\(…\)/i)).toBeInTheDocument();
         expect(screen.getByText('transaction.duration')).toBeInTheDocument();
         expect(screen.getByText('testFilter:value')).toBeInTheDocument();
+      });
+
+      it('sets the correct default count_if parameters for the errors dataset', async function () {
+        dashboard = mockDashboard({
+          widgets: [
+            WidgetFixture({
+              displayType: DisplayType.LINE,
+              widgetType: WidgetType.ERRORS,
+              queries: [
+                {
+                  name: 'Test Widget',
+                  fields: ['count()'],
+                  columns: [],
+                  aggregates: ['count()'],
+                  conditions: '',
+                  orderby: '',
+                },
+              ],
+            }),
+          ],
+        });
+
+        renderTestComponent({
+          orgFeatures: [...defaultOrgFeatures, 'performance-discover-dataset-selector'],
+          dashboard,
+          params: {
+            widgetIndex: '0',
+          },
+        });
+
+        await userEvent.click(await screen.findByTestId('label'));
+        await userEvent.click(screen.getByText(/count_if/));
+
+        const fieldLabels = screen.getAllByTestId('label');
+        expect(fieldLabels[0]).toHaveTextContent(/count_if/);
+        expect(fieldLabels[1]).toHaveTextContent('event.type');
+        expect(screen.getByDisplayValue('error')).toBeInTheDocument();
+      });
+
+      it('sets the correct default count_if parameters for the transactions dataset', async function () {
+        dashboard = mockDashboard({
+          widgets: [
+            WidgetFixture({
+              displayType: DisplayType.LINE,
+              widgetType: WidgetType.TRANSACTIONS,
+              queries: [
+                {
+                  name: 'Test Widget',
+                  fields: ['count()'],
+                  columns: [],
+                  aggregates: ['count()'],
+                  conditions: '',
+                  orderby: '',
+                },
+              ],
+            }),
+          ],
+        });
+
+        renderTestComponent({
+          orgFeatures: [...defaultOrgFeatures, 'performance-discover-dataset-selector'],
+          dashboard,
+          params: {
+            widgetIndex: '0',
+          },
+        });
+
+        await userEvent.click(await screen.findByTestId('label'));
+        await userEvent.click(screen.getByText(/count_if/));
+
+        const fieldLabels = screen.getAllByTestId('label');
+        expect(fieldLabels[0]).toHaveTextContent(/count_if/);
+        expect(fieldLabels[1]).toHaveTextContent('transaction.duration');
+        expect(screen.getByDisplayValue('300')).toBeInTheDocument();
       });
     });
 
