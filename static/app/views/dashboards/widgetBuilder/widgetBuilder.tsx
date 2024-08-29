@@ -1,5 +1,6 @@
 import {useEffect, useMemo, useRef, useState} from 'react';
 import type {RouteComponentProps} from 'react-router';
+import type {Location} from 'react-router-dom';
 import styled from '@emotion/styled';
 import cloneDeep from 'lodash/cloneDeep';
 import omit from 'lodash/omit';
@@ -44,6 +45,7 @@ import {
   isOnDemandMetricWidget,
   OnDemandControlProvider,
 } from 'sentry/utils/performance/contexts/onDemandControl';
+import {OnRouteLeave} from 'sentry/utils/reactRouter6Compat/onRouteLeave';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import useApi from 'sentry/utils/useApi';
 import withPageFilters from 'sentry/utils/withPageFilters';
@@ -99,6 +101,9 @@ import {
 } from './utils';
 import {WidgetLibrary} from './widgetLibrary';
 
+const UNSAVED_CHANGES_MESSAGE = t(
+  'You have unsaved changes, are you sure you want to leave?'
+);
 const WIDGET_TYPE_TO_DATA_SET = {
   [WidgetType.DISCOVER]: DataSet.EVENTS,
   [WidgetType.ISSUE]: DataSet.ISSUES,
@@ -366,17 +371,21 @@ function WidgetBuilder({
     fetchOrgMembers(api, organization.slug, selection.projects?.map(String));
   }, [selection.projects, api, organization.slug]);
 
-  useEffect(() => {
-    const onUnload = () => {
-      if (!isSubmittingRef.current && state.userHasModified) {
-        return t('You have unsaved changes, are you sure you want to leave?');
-      }
-      return undefined;
-    };
+  function onLegacyRouteLeave(): string | undefined {
+    return !isSubmittingRef.current && state.userHasModified
+      ? UNSAVED_CHANGES_MESSAGE
+      : undefined;
+  }
 
-    router.setRouteLeaveHook(route, onUnload);
-  }, [state.userHasModified, route, router]);
-
+  function onRouteLeave(locationChange: {
+    currentLocation: Location;
+    nextLocation: Location;
+  }): boolean {
+    return (
+      locationChange.currentLocation.pathname !== locationChange.nextLocation.pathname &&
+      !!onLegacyRouteLeave()
+    );
+  }
   const widgetType = DATA_SET_TO_WIDGET_TYPE[state.dataSet];
 
   const currentWidget = {
@@ -1104,6 +1113,13 @@ function WidgetBuilder({
           datetime: {start: null, end: null, utc: null, period: DEFAULT_STATS_PERIOD},
         }}
       >
+        <OnRouteLeave
+          message={UNSAVED_CHANGES_MESSAGE}
+          when={onRouteLeave}
+          legacyWhen={onLegacyRouteLeave}
+          route={route}
+          router={router}
+        />
         <CustomMeasurementsProvider organization={organization} selection={selection}>
           <OnDemandControlProvider location={location}>
             <MetricsResultsMetaProvider>
