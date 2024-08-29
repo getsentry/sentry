@@ -17,7 +17,7 @@ import {useRoutes} from './useRoutes';
  *
  * react-router 6 does not include this hook.
  */
-function useRouter() {
+function useRouter(): InjectedRouter<any, any> {
   // When running in test mode we still read from the legacy route context to
   // keep test compatability while we fully migrate to react router 6
   const useReactRouter6 = window.__SENTRY_USING_REACT_ROUTER_SIX && NODE_ENV !== 'test';
