@@ -2,7 +2,6 @@ import styled from '@emotion/styled';
 
 import {getInterval} from 'sentry/components/charts/utils';
 import {CompactSelect} from 'sentry/components/compactSelect';
-import {DEFAULT_RELATIVE_PERIODS} from 'sentry/constants';
 import {CHART_PALETTE} from 'sentry/constants/chartPalette';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -13,9 +12,8 @@ import Chart, {ChartType} from 'sentry/views/insights/common/components/chart';
 import ChartPanel from 'sentry/views/insights/common/components/chartPanel';
 import {useSpanIndexedSeries} from 'sentry/views/insights/common/queries/useDiscoverSeries';
 import {CHART_HEIGHT} from 'sentry/views/insights/database/settings';
-import {useMetricsIntervalParam} from 'sentry/views/metrics/utils/useMetricsIntervalParam';
-import {Subtitle} from 'sentry/views/profiling/landing/styles';
 
+import {useChartInterval} from '../hooks/useChartInterval';
 import {useChartType} from '../hooks/useChartType';
 import {useVisualize} from '../hooks/useVisualize';
 
@@ -40,13 +38,10 @@ const exploreChartTypeOptions = [
 
 // TODO: Update to support aggregate mode and multiple queries / visualizations
 export function ExploreCharts({query}: ExploreChartsProps) {
+  const pageFilters = usePageFilters();
   const [visualize] = useVisualize();
   const [chartType, setChartType] = useChartType();
-  const {interval, setInterval, currentIntervalOptions} = useMetricsIntervalParam();
-
-  const pageFilters = usePageFilters();
-  const period = pageFilters.selection.datetime.period;
-  const chartSubText = (period && DEFAULT_RELATIVE_PERIODS[period]) ?? '';
+  const [interval, setInterval, intervalOptions] = useChartInterval();
 
   const series = useSpanIndexedSeries(
     {
@@ -62,10 +57,7 @@ export function ExploreCharts({query}: ExploreChartsProps) {
     <ChartContainer>
       <ChartPanel>
         <ChartHeader>
-          <div>
-            <ChartTitle>{visualize}</ChartTitle>
-            {chartSubText ? <Subtitle>{chartSubText}</Subtitle> : null}
-          </div>
+          <ChartTitle>{visualize}</ChartTitle>
           <ChartSettingsContainer>
             <CompactSelect
               size="xs"
@@ -81,7 +73,7 @@ export function ExploreCharts({query}: ExploreChartsProps) {
               triggerProps={{
                 prefix: t('Interval'),
               }}
-              options={currentIntervalOptions}
+              options={intervalOptions}
             />
           </ChartSettingsContainer>
         </ChartHeader>
