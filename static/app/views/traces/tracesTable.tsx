@@ -1,4 +1,5 @@
 import {Fragment, useCallback, useMemo, useState} from 'react';
+import styled from '@emotion/styled';
 import debounce from 'lodash/debounce';
 
 import {Button} from 'sentry/components/button';
@@ -11,6 +12,7 @@ import {SPAN_PROPS_DOCS_URL} from 'sentry/constants';
 import {IconChevron} from 'sentry/icons/iconChevron';
 import {IconWarning} from 'sentry/icons/iconWarning';
 import {t, tct} from 'sentry/locale';
+import {space} from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {decodeList} from 'sentry/utils/queryString';
@@ -183,7 +185,7 @@ function TraceRow({defaultExpanded, trace}: {defaultExpanded; trace: TraceResult
   return (
     <Fragment>
       <StyledPanelItem align="center" center onClick={onClickExpand}>
-        <Button
+        <StyledButton
           icon={<IconChevron size="xs" direction={expanded ? 'down' : 'right'} />}
           aria-label={t('Toggle trace details')}
           aria-expanded={expanded}
@@ -270,3 +272,7 @@ function TraceRow({defaultExpanded, trace}: {defaultExpanded; trace: TraceResult
     </Fragment>
   );
 }
+
+const StyledButton = styled(Button)`
+  margin-right: ${space(0.5)};
+`;
