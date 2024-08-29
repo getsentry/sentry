@@ -1,17 +1,6 @@
 import type {InjectedRouter, PlainRoute} from 'react-router';
 import {type Location, unstable_usePrompt} from 'react-router-dom';
 
-// Shims useRouteLeave between react router versions
-export function useRouteLeave() {
-  if (window.__SENTRY_USING_REACT_ROUTER_SIX) {
-    unstable_usePrompt({
-      message: 'Are you sure?',
-      when: ({currentLocation, nextLocation}) =>
-        currentLocation.pathname !== nextLocation.pathname,
-    });
-  }
-}
-
 type ReactRouterV6RouteLeaveCallback = (state: {
   currentLocation: Location;
   nextLocation: Location;
