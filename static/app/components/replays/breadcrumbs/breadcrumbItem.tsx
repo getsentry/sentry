@@ -121,16 +121,16 @@ function BreadcrumbItem({
   }, [expandPaths, frame, onInspectorExpanded, onMouseEnter, onMouseLeave, replay]);
 
   const renderCodeSnippet = useCallback(() => {
-    return (!isSpanFrame(frame) || (isSpanFrame(frame) && !isWebVitalFrame(frame))) &&
-      extraction?.html
-      ? extraction?.html.map(html => (
-          <CodeContainer key={html}>
-            <CodeSnippet language="html" hideCopyButton>
-              {beautify.html(html, {indent_size: 2})}
-            </CodeSnippet>
-          </CodeContainer>
-        ))
-      : null;
+    return (
+      (!isSpanFrame(frame) || (isSpanFrame(frame) && !isWebVitalFrame(frame))) &&
+      extraction?.html?.map(html => (
+        <CodeContainer key={html}>
+          <CodeSnippet language="html" hideCopyButton>
+            {beautify.html(html, {indent_size: 2})}
+          </CodeSnippet>
+        </CodeContainer>
+      ))
+    );
   }, [extraction?.html, frame]);
 
   const renderIssueLink = useCallback(() => {
@@ -243,19 +243,19 @@ function WebVitalData({
   };
 
   const {data: frameToExtraction} = useExtractDomNodes({replay});
-  const selectors = frameToExtraction?.get(frame)?.selector;
+  const selectors = frameToExtraction?.get(frame)?.selectors;
 
   const webVitalData = {value: frame.data.value};
   if (
-    frame.description === 'cumulative-layout-shift' &&
-    // frame.data.attributes &&
+    clsFrame.description === 'cumulative-layout-shift' &&
+    clsFrame.data.attributes &&
     selectors
   ) {
     const layoutShifts: {[x: string]: ReactNode[]}[] = [];
     for (const attr of clsFrame.data.attributes) {
       const elements: ReactNode[] = [];
-      attr.nodeIds?.map(nodeId => {
-        return selectors.get(nodeId)
+      attr.nodeIds?.forEach(nodeId => {
+        selectors.get(nodeId)
           ? elements.push(
               <span
                 key={nodeId}
@@ -275,9 +275,9 @@ function WebVitalData({
       if (!elements.length) {
         elements.push(
           <span>
-            <ValueObjectKey>{'element'}</ValueObjectKey>
+            <ValueObjectKey>{t('element')}</ValueObjectKey>
             <span>{': '}</span>
-            <ValueNull>{'unknown'}</ValueNull>
+            <ValueNull>{t('unknown')}</ValueNull>
           </span>
         );
       }
@@ -290,16 +290,18 @@ function WebVitalData({
     const vitalKey = 'element';
     webVitalData[vitalKey] = (
       <span>
-        {Array.from(selectors).map(([, key]) => {
+        {Array.from(selectors).map(([value, key]) => {
           return (
             <span
               key={key}
-              onMouseEnter={() => onMouseEnter(frame)}
-              onMouseLeave={() => onMouseLeave(frame)}
+              onMouseEnter={() => onMouseEnter(frame, value)}
+              onMouseLeave={() => onMouseLeave(frame, value)}
             >
-              <ValueObjectKey>{'element'}</ValueObjectKey>
+              <ValueObjectKey>{t('element')}</ValueObjectKey>
               <span>{': '}</span>
-              <SelectorButton>{key}</SelectorButton>
+              <Button size="zero" borderless>
+                {key}
+              </Button>
             </span>
           );
         })}
