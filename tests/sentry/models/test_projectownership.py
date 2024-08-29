@@ -703,7 +703,7 @@ class ProjectOwnershipTestCase(TestCase):
         assignee = GroupAssignee.objects.get(group=self.event.group)
         assert assignee.team_id == self.team.id
 
-    def test_autoassign_multiple_codeowners(self):
+    def test_autoassignment_with_multiple_codeowners(self):
         processing_team = self.create_team(
             organization=self.organization, slug="processing-team", members=[self.user]
         )
