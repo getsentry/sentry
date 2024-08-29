@@ -1392,18 +1392,10 @@ describe('WidgetBuilder', function () {
   });
 
   it('does not trigger alert dialog if no changes', async function () {
-    const {router} = renderTestComponent();
+    renderTestComponent();
+    const alertMock = jest.spyOn(window, 'alert');
 
-    const alertMock = jest.fn();
-    const setRouteLeaveHookMock = jest.spyOn(router, 'setRouteLeaveHook');
-    setRouteLeaveHookMock.mockImplementationOnce((_route, _callback) => {
-      return alertMock();
-    });
-
-    // Click Cancel
     await userEvent.click(await screen.findByText('Cancel'));
-
-    // Assert an alert was triggered
     expect(alertMock).not.toHaveBeenCalled();
   });
 
