@@ -7,6 +7,7 @@ from sentry.api.bases.user import UserEndpoint
 from sentry.api.decorators import sudo_required
 from sentry.api.paginator import DateTimePaginator
 from sentry.api.serializers import serialize
+from sentry.users.models.user import User
 from sentry.users.models.userip import UserIP
 
 
@@ -17,7 +18,7 @@ class UserIPsEndpoint(UserEndpoint):
     }
 
     @sudo_required
-    def get(self, request: Request, user) -> Response:
+    def get(self, request: Request, user: User) -> Response:
         """
         Get list of IP addresses
         ````````````````````````

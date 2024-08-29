@@ -85,7 +85,7 @@ class UserIdentityConfigEndpoint(UserEndpoint):
 
     permission_classes = (UserAndStaffPermission,)
 
-    def get(self, request: Request, user) -> Response:
+    def get(self, request: Request, user: User) -> Response:
         """
         Retrieve all of a user's SocialIdentity, Identity, and AuthIdentity values
         ``````````````````````````````````````````````````````````````````````````
@@ -108,26 +108,26 @@ class UserIdentityConfigDetailsEndpoint(UserEndpoint):
     permission_classes = (UserAndStaffPermission,)
 
     @staticmethod
-    def _get_identity(user, category, identity_id) -> UserIdentityConfig | None:
-        identity_id = int(identity_id)
+    def _get_identity(user: User, category: str, identity_id: str) -> UserIdentityConfig | None:
+        identity_int = int(identity_id)
 
         # This fetches and iterates over all the user's identities.
         # If needed, we could optimize to look directly for the one
         # object, but we would still need to examine the full set of
         # Identity objects in order to correctly set the status.
         for identity in get_identities(user):
-            if identity.category == category and identity.id == identity_id:
+            if identity.category == category and identity.id == identity_int:
                 return identity
         return None
 
-    def get(self, request: Request, user, category, identity_id) -> Response:
+    def get(self, request: Request, user: User, category: str, identity_id: str) -> Response:
         identity = self._get_identity(user, category, identity_id)
         if identity:
             return Response(serialize(identity))
         else:
             return Response(status=status.HTTP_404_NOT_FOUND)
 
-    def delete(self, request: Request, user, category, identity_id) -> Response:
+    def delete(self, request: Request, user: User, category: str, identity_id: str) -> Response:
         with transaction.atomic(using=router.db_for_write(Identity)):
             identity = self._get_identity(user, category, identity_id)
             if not identity:

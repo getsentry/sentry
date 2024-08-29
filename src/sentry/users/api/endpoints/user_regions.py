@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from typing import Any
+
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -25,7 +27,9 @@ from sentry.users.services.user import RpcUser
 class UserRegionEndpointPermissions(UserPermission):
     scope_map = {"GET": ["org:read"]}
 
-    def has_object_permission(self, request, view, user: User | RpcUser | None = None):
+    def has_object_permission(
+        self, request: Request, view: Any, user: User | RpcUser | None = None
+    ) -> bool:
         if user and user.id == request.user.id and request.user.is_authenticated:
             return True
         if is_system_auth(request.auth):
@@ -45,7 +49,7 @@ class UserRegionsEndpoint(UserEndpoint):
 
     permission_classes = (UserRegionEndpointPermissions,)
 
-    def get(self, request: Request, user: RpcUser, **kwargs) -> Response:
+    def get(self, request: Request, user: RpcUser, **kwargs: Any) -> Response:
         """
         Retrieve the Regions a User has membership in
         `````````````````````````````````````````````

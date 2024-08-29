@@ -20,7 +20,9 @@ from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
 from sentry.users.models.authenticator import Authenticator
 from sentry.users.models.useremail import UserEmail
-from tests.sentry.api.endpoints.test_user_authenticator_details import assert_security_email_sent
+from tests.sentry.users.api.endpoints.test_user_authenticator_details import (
+    assert_security_email_sent,
+)
 
 
 @control_silo_test
@@ -193,7 +195,7 @@ class UserAuthenticatorEnrollTest(APITestCase):
         }
 
     @mock.patch(
-        "sentry.api.endpoints.user_authenticator_enroll.ratelimiter.backend.is_limited",
+        "sentry.users.api.endpoints.user_authenticator_enroll.ratelimiter.backend.is_limited",
         return_value=True,
     )
     @mock.patch("sentry.auth.authenticators.U2fInterface.try_enroll")
@@ -463,7 +465,7 @@ class AcceptOrganizationInviteTest(APITestCase):
 
         self.assert_invite_accepted(resp, om.id)
 
-    @mock.patch("sentry.api.endpoints.user_authenticator_enroll.logger")
+    @mock.patch("sentry.users.api.endpoints.user_authenticator_enroll.logger")
     @mock.patch("sentry.auth.authenticators.U2fInterface.try_enroll", return_value=True)
     def test_user_already_org_member(self, try_enroll, log):
         om = self.get_om_and_init_invite()
@@ -478,7 +480,7 @@ class AcceptOrganizationInviteTest(APITestCase):
             extra={"organization_id": self.organization.id, "user_id": self.user.id},
         )
 
-    @mock.patch("sentry.api.endpoints.user_authenticator_enroll.logger")
+    @mock.patch("sentry.users.api.endpoints.user_authenticator_enroll.logger")
     @mock.patch("sentry.auth.authenticators.U2fInterface.try_enroll", return_value=True)
     def test_org_member_does_not_exist(self, try_enroll, log):
         om = self.get_om_and_init_invite()
@@ -501,7 +503,7 @@ class AcceptOrganizationInviteTest(APITestCase):
         assert log.exception.call_count == 1
         assert log.exception.call_args[0][0] == "Invalid pending invite cookie"
 
-    @mock.patch("sentry.api.endpoints.user_authenticator_enroll.logger")
+    @mock.patch("sentry.users.api.endpoints.user_authenticator_enroll.logger")
     @mock.patch("sentry.auth.authenticators.U2fInterface.try_enroll", return_value=True)
     def test_invalid_token(self, try_enroll, log):
         om = self.get_om_and_init_invite()
@@ -521,7 +523,7 @@ class AcceptOrganizationInviteTest(APITestCase):
         assert om.user_id is None
         assert om.email == "newuser@example.com"
 
-    @mock.patch("sentry.api.endpoints.user_authenticator_enroll.logger")
+    @mock.patch("sentry.users.api.endpoints.user_authenticator_enroll.logger")
     @mock.patch("sentry.auth.authenticators.U2fInterface.try_enroll", return_value=True)
     @override_options({"system.url-prefix": "https://testserver"})
     def test_enroll_without_pending_invite__no_error(self, try_enroll, log):
