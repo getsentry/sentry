@@ -98,26 +98,31 @@ function BaseDraggableTabList({
         <TabListWrap {...tabListProps} className={className} ref={tabListRef}>
           {persistentTabs.map(item => (
             <Fragment key={item.key}>
-              <Reorder.Item
-                key={item.key}
-                value={item}
-                style={{display: 'flex', flexDirection: 'row'}}
-                as="div"
-                dragConstraints={tabListRef} // Sets the container that the tabs can be dragged within
-                dragElastic={0} // Prevents tabs from being dragged outside of the tab bar
-                dragTransition={{bounceStiffness: 400, bounceDamping: 40}} // Recovers spring behavior thats lost when using dragElastic
-                layout
-              >
-                <Tab
+              <TabItemWrap isSelected={state.selectedKey === item.key}>
+                <Reorder.Item
                   key={item.key}
-                  item={item}
-                  state={state}
-                  orientation={orientation}
-                  overflowing={false}
-                  ref={element => (tabItemsRef.current[item.key] = element)}
-                  variant={tabVariant}
-                />
-              </Reorder.Item>
+                  value={item}
+                  style={{
+                    display: 'flex',
+                    flexDirection: 'row',
+                  }}
+                  as="div"
+                  dragConstraints={tabListRef} // Sets the container that the tabs can be dragged within
+                  dragElastic={0} // Prevents tabs from being dragged outside of the tab bar
+                  dragTransition={{bounceStiffness: 400, bounceDamping: 40}} // Recovers spring behavior thats lost when using dragElastic
+                  layout="position"
+                >
+                  <Tab
+                    key={item.key}
+                    item={item}
+                    state={state}
+                    orientation={orientation}
+                    overflowing={false}
+                    ref={element => (tabItemsRef.current[item.key] = element)}
+                    variant={tabVariant}
+                  />
+                </Reorder.Item>
+              </TabItemWrap>
               <TabDivider
                 layout
                 isVisible={
@@ -204,6 +209,12 @@ export function DraggableTabList({items, onAddView, ...props}: DraggableTabListP
 }
 
 DraggableTabList.Item = Item;
+
+const TabItemWrap = styled('div')<{isSelected: boolean}>`
+  display: flex;
+  position: relative;
+  z-index: ${p => (p.isSelected ? 1 : 0)};
+`;
 
 /**
  * TabDividers are only visible around NON-selected tabs. They are not visible around the selected tab,
