@@ -313,7 +313,7 @@ export function DraggableTabBar({
             pathname: `/organizations/${orgSlug}/issues/`,
           })}
         >
-          <TabContentWrap selected={tabListState?.selectedKey === tab.key}>
+          <TabContentWrap>
             <EditableTabTitle
               label={tab.label}
               isEditing={editingTabKey === tab.key}
@@ -435,14 +435,13 @@ const makeTempViewMenuOptions = ({
   ];
 };
 
-const TabContentWrap = styled('span')<{selected: boolean}>`
+const TabContentWrap = styled('span')`
   white-space: nowrap;
   display: flex;
   align-items: center;
   flex-direction: row;
   padding: 0;
   gap: 6px;
-  ${p => (p.selected ? 'z-index: 1;' : 'z-index: 0;')}
 `;
 
 const StyledBadge = styled(Badge)`
