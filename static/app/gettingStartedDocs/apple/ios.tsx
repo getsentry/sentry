@@ -647,19 +647,19 @@ const replayOnboarding: OnboardingConfig<PlatformOptions> = {
             {
               label: 'SPM',
               value: 'spm',
-              language: 'spm',
+              language: 'swift',
               code: `.package(url: "https://github.com/getsentry/sentry-cocoa", from: "8.36.0"),`,
             },
             {
               label: 'Cocoapods',
               value: 'cocoapods',
-              language: 'cocoapods',
+              language: 'ruby',
               code: `pod update`,
             },
             {
               label: 'Carthage',
               value: 'carthage',
-              language: 'carthage',
+              language: 'swift',
               code: `github "getsentry/sentry-cocoa" "8.36.0"`,
             },
           ],
