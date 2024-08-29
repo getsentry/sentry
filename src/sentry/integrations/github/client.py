@@ -428,7 +428,8 @@ class GitHubBaseClient(GithubProxyClient, RepositoryClient, CommitContextClient)
         else:
             # We do not raise the exception so we can keep iterating through the repos.
             # Nevertheless, investigate the error to determine if we should abort the processing
-            capture_message("Continuing execution. Investigate: %s", error_message, extra=extra)
+            sentry_sdk.set_context("extra", extra)
+            capture_message(f"Continuing execution. Investigate: {error_message}")
 
         return should_count_error
 
