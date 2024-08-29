@@ -10,12 +10,12 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import control_silo_endpoint
 from sentry.api.bases.user import UserAndStaffPermission, UserEndpoint
 from sentry.api.serializers import serialize
-from sentry.api.serializers.models.user_identity_config import (
+from sentry.models.authidentity import AuthIdentity
+from sentry.users.api.serializers.user_identity_config import (
     Status,
     UserIdentityConfig,
     supports_login,
 )
-from sentry.models.authidentity import AuthIdentity
 from sentry.users.models.identity import Identity
 from sentry.users.models.user import User
 from social_auth.models import UserSocialAuth

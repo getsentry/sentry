@@ -6,12 +6,12 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import Endpoint, control_silo_endpoint
 from sentry.api.serializers.base import serialize
-from sentry.api.serializers.models.user import DetailedSelfUserSerializer
 from sentry.models.organization import Organization
 from sentry.utils import auth, metrics
 from sentry.utils.hashlib import md5_text
 from sentry.web.forms.accounts import AuthenticationForm
 from sentry.web.frontend.base import OrganizationMixin
+from src.sentry.users.api.serializers.user import DetailedSelfUserSerializer
 
 
 @control_silo_endpoint

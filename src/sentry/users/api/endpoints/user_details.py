@@ -18,7 +18,6 @@ from sentry.api.bases.user import UserAndStaffPermission, UserEndpoint
 from sentry.api.decorators import sudo_required
 from sentry.api.endpoints.organization_details import post_org_pending_deletion
 from sentry.api.serializers import serialize
-from sentry.api.serializers.models.user import DetailedSelfUserSerializer
 from sentry.api.serializers.rest_framework import CamelSnakeModelSerializer
 from sentry.auth.elevated_mode import has_elevated_mode
 from sentry.constants import LANGUAGES
@@ -32,6 +31,7 @@ from sentry.users.models.user_option import UserOption
 from sentry.users.models.useremail import UserEmail
 from sentry.users.services.user.serial import serialize_generic_user
 from sentry.utils.dates import AVAILABLE_TIMEZONES
+from src.sentry.users.api.serializers.user import DetailedSelfUserSerializer
 
 audit_logger = logging.getLogger("sentry.audit.user")
 delete_logger = logging.getLogger("sentry.deletions.api")

@@ -4,7 +4,6 @@ from typing import cast
 
 from django.utils import timezone
 
-from sentry.api.serializers.models.user import UserSerializerResponse
 from sentry.locks import locks
 from sentry.models.commit import Commit
 from sentry.models.groupowner import GroupOwner, GroupOwnerType
@@ -17,6 +16,7 @@ from sentry.utils.cache import cache
 from sentry.utils.committers import get_event_file_committers
 from sentry.utils.locking import UnableToAcquireLock
 from sentry.utils.sdk import set_current_event_project
+from src.sentry.users.api.serializers.user import UserSerializerResponse
 
 PREFERRED_GROUP_OWNERS = 2
 PREFERRED_GROUP_OWNER_AGE = timedelta(days=7)
