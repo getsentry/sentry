@@ -101,7 +101,7 @@ class TestEventManagerPriority(TestCase):
 
     @patch("sentry.event_manager._get_severity_score", return_value=(0.2, "ml"))
     def test_killswitch_on(self, mock_get_severity_score: MagicMock):
-        options.set("issues.skip-seer-requests", [self.project.id])
+        options.set("issues.severity.skip-seer-requests", [self.project.id])
         event = EventManager(
             make_event(level=logging.WARNING, fingerprint=["def"], platform="python")
         ).save(self.project.id)
@@ -112,7 +112,7 @@ class TestEventManagerPriority(TestCase):
         assert event.group.get_event_metadata()["initial_priority"] == PriorityLevel.MEDIUM
         assert mock_get_severity_score.call_count == 0
 
-        options.set("issues.skip-seer-requests", [])
+        options.set("issues.severity.skip-seer-requests", [])
         event = EventManager(
             make_event(level=logging.WARNING, fingerprint=["abc"], platform="python")
         ).save(self.project.id)

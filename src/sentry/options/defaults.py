@@ -1011,7 +1011,7 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(
-    "issues.skip-seer-requests",
+    "issues.severity.skip-seer-requests",
     type=Sequence,
     default=[],
     flags=FLAG_AUTOMATOR_MODIFIABLE,
