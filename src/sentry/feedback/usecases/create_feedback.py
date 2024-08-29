@@ -166,7 +166,6 @@ def should_filter_feedback(event, project_id, source: FeedbackCreationSource):
             tags={
                 "reason": "missing_context",
                 "referrer": source.value,
-                "client_source": event["contexts"]["feedback"].get("source"),
             },
         )
         return True
@@ -177,7 +176,6 @@ def should_filter_feedback(event, project_id, source: FeedbackCreationSource):
             tags={
                 "reason": "unreal.unattended",
                 "referrer": source.value,
-                "client_source": event["contexts"]["feedback"].get("source"),
             },
         )
         return True
@@ -188,7 +186,6 @@ def should_filter_feedback(event, project_id, source: FeedbackCreationSource):
             tags={
                 "reason": "empty",
                 "referrer": source.value,
-                "client_source": event["contexts"]["feedback"].get("source"),
             },
         )
         return True
