@@ -8,6 +8,7 @@ from typing import Any, cast
 import orjson
 import sentry_sdk
 from requests import PreparedRequest
+from sentry_sdk import capture_exception, capture_message
 
 from sentry.constants import ObjectStatus
 from sentry.integrations.github.blame import (
@@ -427,7 +428,7 @@ class GitHubBaseClient(GithubProxyClient, RepositoryClient, CommitContextClient)
         else:
             # We do not raise the exception so we can keep iterating through the repos.
             # Nevertheless, investigate the error to determine if we should abort the processing
-            logger.error("Continuing execution. Investigate: %s", error_message, extra=extra)
+            capture_message("Continuing execution. Investigate: %s", error_message, extra=extra)
 
         return should_count_error
 
@@ -448,7 +449,8 @@ class GitHubBaseClient(GithubProxyClient, RepositoryClient, CommitContextClient)
         except ApiError:
             only_use_cache = True
             # Report so we can investigate
-            logger.exception("Loading trees from cache. Execution will continue. Check logs.")
+            logger.warning("Loading trees from cache. Execution will continue. Check logs.")
+            capture_exception(level="warning")
 
         for index, repo_info in enumerate(repositories):
             repo_full_name = repo_info["full_name"]
