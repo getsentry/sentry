@@ -19,7 +19,7 @@ class JiraSchemaTypes(str, Enum):
 
 @dataclass(frozen=True)
 class JiraSchema:
-    type: str
+    schema_type: str
     """
     The Field type. Possible types include:
     - string
@@ -63,13 +63,15 @@ class JiraSchema:
 
     @classmethod
     def from_dict(cls, data: dict[str, Any | None]) -> "JiraSchema":
-        mapped_field_params: dict[str, Any] = {
-            new_name: data.get(new_name)
-            for old_name, new_name in cls.__jira_schema_parameter_map
-            if old_name in data
-        }
+        schema_type = data.get("type")
+        custom = data.get("custom")
+        custom_id = data.get("custom_id")
+        system = data.get("system")
+        items = data.get("items")
 
-        return cls(**mapped_field_params)
+        return cls(
+            schema_type=schema_type, custom=custom, custom_id=custom_id, system=system, items=items
+        )
 
     @classmethod
     def from_dict_list(cls, data: list[dict[str, Any]]) -> list["JiraSchema"]:
@@ -91,30 +93,28 @@ class JiraField:
     operations: list[str]
     has_default_value: bool = False
 
-    __jira_field_parameter_map = frozenset(
-        [
-            ("required", "required"),
-            ("name", "name"),
-            ("key", "key"),
-            ("operations", "operations"),
-            ("hasDefaultValue", "has_default_value"),
-        ]
-    )
-
     def is_custom_field(self) -> bool:
         return self.schema.custom is not None
 
     @classmethod
     def from_dict(cls, data: dict[str, Any]) -> "JiraField":
-        mapped_field_params: dict[str, Any] = {
-            new_name: data.get(new_name)
-            for old_name, new_name in cls.__jira_field_parameter_map
-            if old_name in data
-        }
+        required = data.get("required")
+        name = data.get("name")
+        key = data.get("key")
+        operations = data.get("operations")
+        has_default_value = data.get("hasDefaultValue")
+        raw_schema = data.get("schema")
 
-        mapped_field_params["schema"] = JiraSchema.from_dict(data["schema"])
+        schema = JiraSchema.from_dict(raw_schema)
 
-        return cls(**mapped_field_params)
+        return cls(
+            required=required,
+            name=name,
+            key=key,
+            schema=schema,
+            operations=operations,
+            has_default_value=has_default_value,
+        )
 
     @classmethod
     def from_dict_list(cls, data: dict[str, dict[str, Any]]) -> list["JiraField"]:
@@ -130,35 +130,32 @@ class JiraIssueTypeMetadata:
     icon_url: str
     url: str
     fields: list[JiraField]
-    __jira_issue_mapped_fields = frozenset(
-        [
-            ("id", "id"),
-            ("description", "description"),
-            ("name", "name"),
-            ("subtask", "subtask"),
-            ("iconUrl", "icon_url"),
-            ("self", "url"),
-        ]
-    )
+
+    @classmethod
+    def from_dict(cls, data: dict[str, Any]) -> "JiraIssueTypeMetadata":
+        jira_id = data.get("id")
+        description = data.get("description")
+        name = data.get("name")
+        subtask = data.get("subtask")
+        icon_url = data.get("iconUrl")
+        url = data.get("self")
+        raw_fields = data.get("fields")
+
+        fields = JiraField.from_dict_list(raw_fields)
+
+        return cls(
+            id=jira_id,
+            name=name,
+            description=description,
+            subtask=subtask,
+            icon_url=icon_url,
+            url=url,
+            fields=fields,
+        )
 
     @classmethod
     def from_jira_meta_config(cls, meta_config: dict[str, Any]) -> list["JiraIssueTypeMetadata"]:
-        issue_configs = []
         issue_types_list = meta_config.get("issuetypes", {})
-
-        for issue_config in issue_types_list:
-            # Create a shallow copy of the config meta, without the "self" property,
-            # which we need to rename.
-            meta_config_clone = {
-                np: issue_config.get(op)
-                for op, np in cls.__jira_issue_mapped_fields
-                if op in issue_config
-            }
-
-            meta_config_clone["fields"] = []
-            if (fields := issue_config.get("fields")) is not None:
-                meta_config_clone["fields"] = JiraField.from_dict_list(fields)
-
-            issue_configs.append(cls(**meta_config_clone))
+        issue_configs = [cls.from_dict(it) for it in issue_types_list]
 
         return issue_configs
