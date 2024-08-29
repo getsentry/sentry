@@ -11,6 +11,7 @@ from sentry.models.project import Project
 from sentry.models.userreport import UserReport
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
+from sentry.utils import metrics
 from sentry.utils.iterators import chunked
 
 logger = logging.getLogger(__name__)
@@ -71,6 +72,7 @@ def update_user_reports(**kwargs: Any) -> None:
                     "update_user_reports.eventstore_query_failed",
                     extra={"project_id": project_id, "start": start, "end": end},
                 )  # will also send exc to Sentry
+                metrics.incr("tasks.update_user_reports.eventstore_query_failed")
 
         for event in events:
             report = report_by_event.get(event.event_id)
@@ -82,6 +84,7 @@ def update_user_reports(**kwargs: Any) -> None:
                         "update_user_reports.shim_to_feedback",
                         extra={"report_id": report.id, "event_id": event.event_id},
                     )
+                    metrics.incr("tasks.update_user_reports.shim_to_feedback")
                     shim_to_feedback(
                         {
                             "name": report.name,
@@ -96,6 +99,7 @@ def update_user_reports(**kwargs: Any) -> None:
                     )
                 report.update(group_id=event.group_id, environment_id=event.get_environment().id)
                 updated_reports += 1
+                metrics.incr("tasks.update_user_reports.missing_event_found")
 
         if not samples and len(reports) <= 10:
             samples = {
