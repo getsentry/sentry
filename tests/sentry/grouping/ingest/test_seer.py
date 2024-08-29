@@ -93,6 +93,17 @@ class ShouldCallSeerTest(TestCase):
                 )
 
     @with_feature("projects:similarity-embeddings-grouping")
+    def test_obeys_project_specific_killswitch(self):
+        for blocked_projects, expected_result in [([self.project.id], False), ([], True)]:
+            with override_options(
+                {"seer.similarity.grouping_killswitch_projects": blocked_projects}
+            ):
+                assert (
+                    should_call_seer_for_grouping(self.event, self.primary_hashes)
+                    is expected_result
+                )
+
+    @with_feature("projects:similarity-embeddings-grouping")
     def test_obeys_global_ratelimit(self):
         for ratelimit_enabled, expected_result in [(True, False), (False, True)]:
             with patch(
