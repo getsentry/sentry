@@ -249,6 +249,7 @@ export const Subject = styled('div')`
   grid-column: span 1;
   font-family: ${p => p.theme.text.familyMono};
   word-break: break-word;
+  min-width: 100px;
 `;
 
 const ValueSection = styled('div')<{hasEmptySubject: boolean; hasErrors: boolean}>`
