@@ -96,16 +96,18 @@ def _generate_culprit(event):
 
 
 initial_fields = {
-    "culprit": lambda event: _generate_culprit(event),
-    "data": lambda event: {
+    "culprit": lambda event, group: _generate_culprit(event),
+    "data": lambda event, group: {
         "last_received": event.data.get("received") or float(event.datetime.strftime("%s")),
         "type": event.data["type"],
         "metadata": event.data["metadata"],
     },
-    "last_seen": lambda event: event.datetime,
-    "level": lambda event: LOG_LEVELS_MAP.get(event.get_tag("level"), logging.ERROR),
-    "message": lambda event: event.search_message,
-    "times_seen": lambda event: 0,
+    "last_seen": lambda event, group: event.datetime,
+    "level": lambda event, group: LOG_LEVELS_MAP.get(event.get_tag("level"), logging.ERROR),
+    "message": lambda event, group: event.search_message,
+    "times_seen": lambda event, group: 0,
+    "status": lambda event, group: group.status,
+    "substatus": lambda event, group: group.substatus,
 }
 
 
@@ -128,14 +130,14 @@ backfill_fields = {
 }
 
 
-def get_group_creation_attributes(caches, events):
+def get_group_creation_attributes(caches, group, events):
     latest_event = events[0]
     return reduce(
         lambda data, event: merge_mappings(
             [data, {name: f(caches, data, event) for name, f in backfill_fields.items()}]
         ),
         events,
-        {name: f(latest_event) for name, f in initial_fields.items()},
+        {name: f(latest_event, group) for name, f in initial_fields.items()},
     )
 
 
@@ -162,6 +164,7 @@ def get_fingerprint(event: BaseEvent) -> str | None:
 
 
 def migrate_events(
+    source,
     caches,
     project,
     args: UnmergeArgs,
@@ -193,7 +196,7 @@ def migrate_events(
         destination = Group.objects.create(
             project_id=project.id,
             short_id=project.next_short_id(),
-            **get_group_creation_attributes(caches, events),
+            **get_group_creation_attributes(caches, source, events),
         )
 
         destination_id = destination.id
@@ -546,7 +549,7 @@ def unmerge(*posargs, **kwargs):
 
     if source_events:
         if not source_fields_reset:
-            source.update(**get_group_creation_attributes(caches, source_events))
+            source.update(**get_group_creation_attributes(caches, source, source_events))
             source_fields_reset = True
         else:
             source.update(**get_group_backfill_attributes(caches, source, source_events))
@@ -572,6 +575,7 @@ def unmerge(*posargs, **kwargs):
     for unmerge_key, _destination_events in destination_events.items():
         destination_id, eventstream_state = destinations.get(unmerge_key) or (None, None)
         (destination_id, eventstream_state) = migrate_events(
+            source,
             caches,
             project,
             args,
