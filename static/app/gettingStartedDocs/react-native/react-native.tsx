@@ -412,9 +412,36 @@ const replayOnboarding: OnboardingConfig = {
     {
       type: StepType.INSTALL,
       description: t(
-        'Make sure your Sentry React Native SDK version is at least 5.26.0. To set up the integration, add the following to your Sentry initialization.'
+        'Make sure your Sentry React Native SDK version is at least 5.26.0. If you already have the SDK installed, you can update it to the latest version with:'
       ),
       configurations: [
+        {
+          code: [
+            {
+              label: 'npm',
+              value: 'npm',
+              language: 'bash',
+              code: `npm install @sentry/react-native --save`,
+            },
+            {
+              label: 'yarn',
+              value: 'yarn',
+              language: 'bash',
+              code: `yarn add @sentry/react-native`,
+            },
+            {
+              label: 'pnpm',
+              value: 'pnpm',
+              language: 'bash',
+              code: `pnpm add @sentry/react-native`,
+            },
+          ],
+        },
+        {
+          description: t(
+            'To set up the integration, add the following to your Sentry initialization:'
+          ),
+        },
         {
           code: [
             {
