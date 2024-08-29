@@ -1,11 +1,16 @@
+from typing import TypeVar
+
 from rest_framework.response import Response
 
 from sentry.api.base import control_silo_endpoint
 from sentry.integrations.github.integration import GitHubIntegration, build_repository_query
 from sentry.integrations.github_enterprise.integration import GitHubEnterpriseIntegration
 from sentry.integrations.models.integration import Integration
+from sentry.integrations.source_code_management.issues import SourceCodeIssueIntegration
 from sentry.integrations.source_code_management.search import SourceCodeSearchEndpoint
 from sentry.shared_integrations.exceptions import ApiError
+
+T = TypeVar("T", bound=SourceCodeIssueIntegration)
 
 
 @control_silo_endpoint
@@ -24,7 +29,7 @@ class GithubSharedSearchEndpoint(SourceCodeSearchEndpoint):
     def installation_class(self):
         return (GitHubIntegration, GitHubEnterpriseIntegration)
 
-    def handle_search_issues(self, installation, query: str, repo: str) -> Response:
+    def handle_search_issues(self, installation: T, query: str, repo: str) -> Response:
         assert isinstance(installation, self.installation_class)
 
         try:
@@ -44,7 +49,7 @@ class GithubSharedSearchEndpoint(SourceCodeSearchEndpoint):
 
     # TODO: somehow type installation with installation_class
     def handle_search_repositories(
-        self, integration: Integration, installation, query: str
+        self, integration: Integration, installation: T, query: str
     ) -> Response:
         assert isinstance(installation, self.installation_class)
 

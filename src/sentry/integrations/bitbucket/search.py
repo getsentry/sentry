@@ -1,4 +1,5 @@
 import logging
+from typing import TypeVar
 
 from rest_framework.response import Response
 
@@ -7,10 +8,13 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import control_silo_endpoint
 from sentry.integrations.bitbucket.integration import BitbucketIntegration
 from sentry.integrations.models.integration import Integration
+from sentry.integrations.source_code_management.issues import SourceCodeIssueIntegration
 from sentry.integrations.source_code_management.search import SourceCodeSearchEndpoint
 from sentry.shared_integrations.exceptions import ApiError
 
 logger = logging.getLogger("sentry.integrations.bitbucket")
+
+T = TypeVar("T", bound=SourceCodeIssueIntegration)
 
 
 @control_silo_endpoint
@@ -32,9 +36,7 @@ class BitbucketSearchEndpoint(SourceCodeSearchEndpoint):
     def installation_class(self):
         return BitbucketIntegration
 
-    def handle_search_issues(self, installation, query: str, repo: str) -> Response:
-        assert isinstance(installation, self.installation_class)
-
+    def handle_search_issues(self, installation: T, query: str, repo: str) -> Response:
         full_query = f'title~"{query}"'
         try:
             response = installation.search_issues(query=full_query, repo=repo)
@@ -59,8 +61,7 @@ class BitbucketSearchEndpoint(SourceCodeSearchEndpoint):
 
     # TODO: somehow type installation with installation_class
     def handle_search_repositories(
-        self, integration: Integration, installation, query: str
+        self, integration: Integration, installation: T, query: str
     ) -> Response:
-        assert isinstance(installation, self.installation_class)
         result = installation.get_repositories(query)
         return Response([{"label": i["name"], "value": i["name"]} for i in result])
