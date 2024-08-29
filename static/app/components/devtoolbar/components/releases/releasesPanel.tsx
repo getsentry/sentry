@@ -192,7 +192,7 @@ export default function ReleasesPanel() {
   }
 
   return (
-    <PanelLayout title="Latest Release" showProjectBadge>
+    <PanelLayout title="Latest Release" showProjectBadge link={{url: '/releases/'}}>
       <AnalyticsProvider nameVal="header" keyVal="header">
         <span
           css={[

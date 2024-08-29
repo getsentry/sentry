@@ -10,7 +10,6 @@ import RawContent from './rawContent';
 
 type Props = {
   event: Event;
-  hasHierarchicalGrouping: boolean;
   newestFirst: boolean;
   projectSlug: Project['slug'];
   stackType: StackType;
@@ -27,7 +26,6 @@ export function ExceptionContent({
   values,
   event,
   newestFirst,
-  hasHierarchicalGrouping,
   groupingCurrentLevel,
   meta,
   threadId,
@@ -50,7 +48,6 @@ export function ExceptionContent({
           projectSlug={projectSlug}
           newestFirst={newestFirst}
           event={event}
-          hasHierarchicalGrouping={hasHierarchicalGrouping}
           groupingCurrentLevel={groupingCurrentLevel}
           meta={meta}
           threadId={threadId}

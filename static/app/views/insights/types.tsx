@@ -28,6 +28,7 @@ export enum SpanMetricsField {
   SPAN_GROUP = 'span.group',
   SPAN_DURATION = 'span.duration',
   SPAN_SELF_TIME = 'span.self_time',
+  SPAN_SYSTEM = 'span.system',
   PROJECT = 'project',
   PROJECT_ID = 'project.id',
   TRANSACTION = 'transaction',
@@ -78,6 +79,7 @@ export type SpanStringFields =
   | 'span.action'
   | 'span.group'
   | 'span.category'
+  | 'span.system'
   | 'transaction'
   | 'transaction.method'
   | 'release'

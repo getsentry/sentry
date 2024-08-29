@@ -31,6 +31,7 @@ import {ActionSelector} from 'sentry/views/insights/common/views/spans/selectors
 import {DomainSelector} from 'sentry/views/insights/common/views/spans/selectors/domainSelector';
 import {DurationChart} from 'sentry/views/insights/database/components/charts/durationChart';
 import {ThroughputChart} from 'sentry/views/insights/database/components/charts/throughputChart';
+import {DatabaseSystemSelector} from 'sentry/views/insights/database/components/databaseSystemSelector';
 import {NoDataMessage} from 'sentry/views/insights/database/components/noDataMessage';
 import {
   isAValidSort,
@@ -184,17 +185,14 @@ export function DatabaseLandingPage() {
             )}
 
             <ModuleLayout.Full>
-              <TopMenuContainer>
-                <ModulePageFilterBar
-                  moduleName={ModuleName.DB}
-                  extraFilters={
-                    <React.Fragment>
-                      <ActionSelector moduleName={moduleName} value={spanAction ?? ''} />
-                      <DomainSelector moduleName={moduleName} value={spanDomain ?? ''} />
-                    </React.Fragment>
-                  }
-                />
-              </TopMenuContainer>
+              <PageFilterWrapper>
+                <ModulePageFilterBar moduleName={ModuleName.DB} />
+                {organization.features.includes(
+                  'performance-queries-mongodb-extraction'
+                ) && <DatabaseSystemSelector />}
+                <ActionSelector moduleName={moduleName} value={spanAction ?? ''} />
+                <DomainSelector moduleName={moduleName} value={spanDomain ?? ''} />
+              </PageFilterWrapper>
             </ModuleLayout.Full>
             <ModulesOnboarding moduleName={ModuleName.DB}>
               <ModuleLayout.Half>
@@ -259,9 +257,9 @@ function PageWithProviders() {
   );
 }
 
-export default PageWithProviders;
-
-const TopMenuContainer = styled('div')`
+const PageFilterWrapper = styled('div')`
   display: flex;
-  gap: ${space(2)};
+  gap: ${space(3)};
 `;
+
+export default PageWithProviders;

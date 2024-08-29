@@ -296,9 +296,10 @@ class GitHubIntegration(RepositoryIntegration, GitHubIssuesSpec, CommitContextIn
 
         return trees
 
-    # TODO(cathy): define in issue ABC
-    def search_issues(self, query: str) -> Mapping[str, Sequence[Mapping[str, Any]]]:
-        return self.get_client().search_issues(query)
+    def search_issues(self, query: str | None, **kwargs) -> dict[str, Any]:
+        resp = self.get_client().search_issues(query)
+        assert isinstance(resp, dict)
+        return resp
 
 
 class GitHubIntegrationProvider(IntegrationProvider):
