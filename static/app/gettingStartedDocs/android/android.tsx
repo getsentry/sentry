@@ -310,16 +310,74 @@ const replayOnboarding: OnboardingConfig<PlatformOptions> = {
   install: (params: Params) => [
     {
       type: StepType.INSTALL,
-      description: t(
-        'Make sure your Sentry Android SDK version is at least 7.12.0. To set up the integration, add the following to your Sentry initialization.'
+      description: tct(
+        "Make sure your Sentry Android SDK version is at least 7.12.0. The easiest way to update through the Sentry Android Gradle plugin to your app module's [code:build.gradle] file.",
+        {code: <code />}
       ),
       configurations: [
         {
           code: [
             {
+              label: 'Groovy',
+              value: 'groovy',
+              language: 'groovy',
+              filename: 'app/build.gradle',
+              code: `plugins {
+  id "com.android.application"
+  id "io.sentry.android.gradle" version "4.11.0"
+}`,
+            },
+            {
               label: 'Kotlin',
               value: 'kotlin',
-              language: 'kotlin',
+              language: 'java',
+              filename: 'app/build.gradle.kts',
+              code: `plugins {
+  id("com.android.application")
+  id("io.sentry.android.gradle") version "4.11.0"
+}`,
+            },
+          ],
+        },
+        {
+          description: tct(
+            'If you have the SDK installed without the Sentry Gradle Plugin, you can update the version directly in the [code:build.gradle] through:',
+            {code: <code />}
+          ),
+        },
+        {
+          code: [
+            {
+              label: 'Groovy',
+              value: 'groovy',
+              language: 'groovy',
+              filename: 'app/build.gradle',
+              code: `dependencies {
+    implementation 'io.sentry:sentry-android:7.14.0'
+}`,
+            },
+            {
+              label: 'Kotlin',
+              value: 'kotlin',
+              language: 'java',
+              filename: 'app/build.gradle.kts',
+              code: `dependencies {
+    implementation("io.sentry:sentry-android:7.14.0")
+}`,
+            },
+          ],
+        },
+        {
+          description: t(
+            'To set up the integration, add the following to your Sentry initialization:'
+          ),
+        },
+        {
+          code: [
+            {
+              label: 'Kotlin',
+              value: 'kotlin',
+              language: 'java',
               code: getReplaySetupSnippetKotlin(params),
             },
             {
