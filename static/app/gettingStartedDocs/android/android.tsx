@@ -407,7 +407,7 @@ const replayOnboarding: OnboardingConfig<PlatformOptions> = {
             {
               label: 'Kotlin',
               value: 'kotlin',
-              language: 'kotlin',
+              language: 'java',
               code: getReplayConfigurationSnippet(),
             },
           ],
