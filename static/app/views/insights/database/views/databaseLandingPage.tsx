@@ -187,11 +187,13 @@ export function DatabaseLandingPage() {
             <ModuleLayout.Full>
               <PageFilterWrapper>
                 <ModulePageFilterBar moduleName={ModuleName.DB} />
-                {organization.features.includes(
-                  'performance-queries-mongodb-extraction'
-                ) && <DatabaseSystemSelector />}
-                <ActionSelector moduleName={moduleName} value={spanAction ?? ''} />
-                <DomainSelector moduleName={moduleName} value={spanDomain ?? ''} />
+                <DbFilterWrapper>
+                  {organization.features.includes(
+                    'performance-queries-mongodb-extraction'
+                  ) && <DatabaseSystemSelector />}
+                  <ActionSelector moduleName={moduleName} value={spanAction ?? ''} />
+                  <DomainSelector moduleName={moduleName} value={spanDomain ?? ''} />
+                </DbFilterWrapper>
               </PageFilterWrapper>
             </ModuleLayout.Full>
             <ModulesOnboarding moduleName={ModuleName.DB}>
@@ -260,6 +262,13 @@ function PageWithProviders() {
 const PageFilterWrapper = styled('div')`
   display: flex;
   gap: ${space(3)};
+  flex-wrap: wrap;
+`;
+
+const DbFilterWrapper = styled('div')`
+  display: flex;
+  gap: ${space(3)};
+  flex-wrap: wrap;
 `;
 
 export default PageWithProviders;
