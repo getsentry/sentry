@@ -1,5 +1,4 @@
 import {useCallback, useMemo, useState} from 'react';
-import type {InjectedRouter} from 'react-router';
 import type {
   DataZoomComponentOption,
   InsideDataZoomComponentOption,
@@ -20,6 +19,7 @@ import type {
   EChartFinishedHandler,
   EChartRestoreHandler,
 } from 'sentry/types/echarts';
+import type {InjectedRouter} from 'sentry/types/legacyReactRouter';
 import {getUtcDateString, getUtcToLocalDateObject} from 'sentry/utils/dates';
 
 // TODO: replace usages of ChartZoom with useChartZoom

@@ -1,5 +1,4 @@
 import {Fragment, PureComponent} from 'react';
-import type {InjectedRouter} from 'react-router';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {FocusScope} from '@react-aria/focus';
@@ -23,6 +22,7 @@ import {Overlay, PositionWrapper} from 'sentry/components/overlay';
 import {IconBookmark, IconDelete, IconEllipsis, IconStar} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import type {InjectedRouter} from 'sentry/types/legacyReactRouter';
 import type {Organization, SavedQuery} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';

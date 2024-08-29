@@ -1,7 +1,6 @@
-import type {InjectedRouter} from 'react-router';
-
 import type {OnboardingContextProps} from 'sentry/components/onboarding/onboardingContext';
 import type {Category} from 'sentry/components/platformPicker';
+import type {InjectedRouter} from 'sentry/types/legacyReactRouter';
 
 import type {Group} from './group';
 import type {Organization} from './organization';

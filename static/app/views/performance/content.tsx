@@ -1,5 +1,4 @@
 import {useEffect, useRef, useState} from 'react';
-import type {InjectedRouter} from 'react-router';
 import * as Sentry from '@sentry/react';
 import type {Location} from 'history';
 import isEqual from 'lodash/isEqual';
@@ -10,6 +9,7 @@ import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {ALL_ACCESS_PROJECTS} from 'sentry/constants/pageFilters';
 import {t} from 'sentry/locale';
 import type {PageFilters} from 'sentry/types/core';
+import type {InjectedRouter} from 'sentry/types/legacyReactRouter';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {browserHistory} from 'sentry/utils/browserHistory';

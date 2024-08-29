@@ -1,10 +1,10 @@
-import type {RouteComponentProps} from 'react-router';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import ConfigStore from 'sentry/stores/configStore';
+import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import type {Config} from 'sentry/types/system';
 import withDomainRedirect from 'sentry/utils/withDomainRedirect';
 import {OrganizationContext} from 'sentry/views/organizationContext';

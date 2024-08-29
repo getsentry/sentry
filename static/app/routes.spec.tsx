@@ -1,8 +1,8 @@
-import type {RouteComponent} from 'react-router';
 import {createRoutes} from 'react-router';
 
 import * as constants from 'sentry/constants';
 import {buildRoutes} from 'sentry/routes';
+import type {RouteComponent} from 'sentry/types/legacyReactRouter';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 
 // Setup a module mock so that we can replace

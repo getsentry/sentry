@@ -1,8 +1,8 @@
 import {Component, Fragment} from 'react';
-import type {WithRouterProps} from 'react-router';
 import * as Sentry from '@sentry/react';
 import scrollToElement from 'scroll-to-element';
 
+import type {WithRouterProps} from 'sentry/types/legacyReactRouter';
 import {defined} from 'sentry/utils';
 import {sanitizeQuerySelector} from 'sentry/utils/sanitizeQuerySelector';
 // eslint-disable-next-line no-restricted-imports

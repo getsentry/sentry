@@ -1,5 +1,4 @@
-import type {RouteComponentProps} from 'react-router';
-
+import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {metric} from 'sentry/utils/analytics';

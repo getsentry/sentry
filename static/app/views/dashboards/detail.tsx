@@ -1,5 +1,4 @@
 import {cloneElement, Component, Fragment, isValidElement} from 'react';
-import type {PlainRoute, RouteComponentProps} from 'react-router';
 import type {Location} from 'react-router-dom';
 import styled from '@emotion/styled';
 import isEqual from 'lodash/isEqual';
@@ -28,6 +27,7 @@ import {USING_CUSTOMER_DOMAIN} from 'sentry/constants';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {PageFilters} from 'sentry/types/core';
+import type {PlainRoute, RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';

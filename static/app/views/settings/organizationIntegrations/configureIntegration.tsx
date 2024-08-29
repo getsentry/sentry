@@ -1,5 +1,4 @@
 import {Fragment, useEffect} from 'react';
-import type {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
@@ -23,6 +22,7 @@ import type {
   OrganizationIntegration,
   PluginWithProjectList,
 } from 'sentry/types/integrations';
+import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import type {Organization} from 'sentry/types/organization';
 import {singleLineRenderer} from 'sentry/utils/marked';
 import type {ApiQueryKey} from 'sentry/utils/queryClient';

@@ -1,5 +1,4 @@
 import {useEffect, useState} from 'react';
-import type {RouteComponentProps} from 'react-router';
 import pick from 'lodash/pick';
 
 import {updateDashboardVisit} from 'sentry/actionCreators/dashboards';
@@ -10,6 +9,7 @@ import NotFound from 'sentry/components/errors/notFound';
 import * as Layout from 'sentry/components/layouts/thirds';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
+import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import type {Organization} from 'sentry/types/organization';
 import {browserHistory} from 'sentry/utils/browserHistory';
 import useApi from 'sentry/utils/useApi';

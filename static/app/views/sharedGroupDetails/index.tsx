@@ -1,5 +1,4 @@
 import {Component} from 'react';
-import type {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 
 import type {Client} from 'sentry/api';
@@ -14,6 +13,7 @@ import {t} from 'sentry/locale';
 import {SentryPropTypeValidators} from 'sentry/sentryPropTypeValidators';
 import {space} from 'sentry/styles/space';
 import type {Group} from 'sentry/types/group';
+import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import withApi from 'sentry/utils/withApi';
 
 import {OrganizationContext} from '../organizationContext';

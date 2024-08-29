@@ -1,5 +1,4 @@
 import {Component} from 'react';
-import type {RouteComponentProps, RouteContextInterface} from 'react-router';
 import * as Sentry from '@sentry/react';
 import isEqual from 'lodash/isEqual';
 
@@ -10,6 +9,10 @@ import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
 import {SentryPropTypeValidators} from 'sentry/sentryPropTypeValidators';
+import type {
+  RouteComponentProps,
+  RouteContextInterface,
+} from 'sentry/types/legacyReactRouter';
 import {metric} from 'sentry/utils/analytics';
 import getRouteStringFromRoutes from 'sentry/utils/getRouteStringFromRoutes';
 import PermissionDenied from 'sentry/views/permissionDenied';

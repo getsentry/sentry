@@ -1,5 +1,4 @@
 import {useState} from 'react';
-import type {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 import debounce from 'lodash/debounce';
 import partition from 'lodash/partition';
@@ -17,6 +16,7 @@ import {DEFAULT_DEBOUNCE_DURATION} from 'sentry/constants';
 import {IconAdd} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import type {AccessRequest, Organization} from 'sentry/types/organization';
 import {useTeams} from 'sentry/utils/useTeams';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';

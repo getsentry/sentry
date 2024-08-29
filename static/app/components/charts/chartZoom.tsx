@@ -1,5 +1,4 @@
 import {Component} from 'react';
-import type {InjectedRouter} from 'react-router';
 import type {
   DataZoomComponentOption,
   ECharts,
@@ -21,6 +20,7 @@ import type {
   EChartFinishedHandler,
   EChartRestoreHandler,
 } from 'sentry/types/echarts';
+import type {InjectedRouter} from 'sentry/types/legacyReactRouter';
 import {getUtcDateString, getUtcToLocalDateObject} from 'sentry/utils/dates';
 
 const getDate = date =>

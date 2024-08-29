@@ -1,9 +1,9 @@
 import {Fragment} from 'react';
-import type {InjectedRouter} from 'react-router';
 import type {Location} from 'history';
 
 import type {Client} from 'sentry/api';
 import type {BuiltinSymbolSource, CustomRepo} from 'sentry/types/debugFiles';
+import type {InjectedRouter} from 'sentry/types/legacyReactRouter';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 

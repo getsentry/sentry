@@ -1,5 +1,3 @@
-import type {RouteComponentProps} from 'react-router';
-
 import Access from 'sentry/components/acl/access';
 import {LinkButton} from 'sentry/components/button';
 import Form from 'sentry/components/forms/form';
@@ -9,6 +7,7 @@ import Link from 'sentry/components/links/link';
 import ReplaySettingsAlert from 'sentry/components/replays/alerts/replaySettingsAlert';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t, tct} from 'sentry/locale';
+import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';

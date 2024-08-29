@@ -1,10 +1,10 @@
 import {Component} from 'react';
-import type {WithRouterProps} from 'react-router';
 import type {Result as SearchResult} from '@sentry-internal/global-search';
 import {SentryGlobalSearch, standardSDKSlug} from '@sentry-internal/global-search';
 import dompurify from 'dompurify';
 import debounce from 'lodash/debounce';
 
+import type {WithRouterProps} from 'sentry/types/legacyReactRouter';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import parseHtmlMarks from 'sentry/utils/parseHtmlMarks';

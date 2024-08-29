@@ -1,5 +1,4 @@
 import {Fragment} from 'react';
-import type {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 
 import {BarChart} from 'sentry/components/charts/barChart';
@@ -14,6 +13,7 @@ import PanelHeader from 'sentry/components/panels/panelHeader';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {SentryApp} from 'sentry/types/integrations';
+import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import type {Organization} from 'sentry/types/organization';
 import withOrganization from 'sentry/utils/withOrganization';
 import DeprecatedAsyncView from 'sentry/views/deprecatedAsyncView';

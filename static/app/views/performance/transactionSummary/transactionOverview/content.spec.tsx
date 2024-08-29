@@ -1,10 +1,10 @@
-import type {InjectedRouter} from 'react-router';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
+import type {InjectedRouter} from 'sentry/types/legacyReactRouter';
 import EventView from 'sentry/utils/discover/eventView';
 import {MEPSettingProvider} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import {SpanOperationBreakdownFilter} from 'sentry/views/performance/transactionSummary/filter';
