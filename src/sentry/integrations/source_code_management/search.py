@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from typing import Any
+from typing import Any, Generic, TypeVar
 
 from django.db.models import Q
 from rest_framework import serializers
@@ -11,11 +11,11 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import control_silo_endpoint
 from sentry.integrations.api.bases.integration import IntegrationEndpoint
-from sentry.integrations.base import IntegrationInstallation
-from sentry.integrations.mixins.issues import IssueBasicIntegration
 from sentry.integrations.models.integration import Integration
-from sentry.integrations.source_code_management.repository import RepositoryIntegration
+from sentry.integrations.source_code_management.issues import SourceCodeIssueIntegration
 from sentry.organizations.services.organization import RpcOrganization
+
+T = TypeVar("T", bound=SourceCodeIssueIntegration)
 
 
 class SourceCodeSearchSerializer(serializers.Serializer):
@@ -24,7 +24,7 @@ class SourceCodeSearchSerializer(serializers.Serializer):
 
 
 @control_silo_endpoint
-class SourceCodeSearchEndpoint(IntegrationEndpoint, ABC):
+class SourceCodeSearchEndpoint(IntegrationEndpoint, Generic[T], ABC):
     owner = ApiOwner.ECOSYSTEM
     publish_status = {
         "GET": ApiPublishStatus.PRIVATE,
@@ -48,23 +48,18 @@ class SourceCodeSearchEndpoint(IntegrationEndpoint, ABC):
     @abstractmethod
     def installation_class(
         self,
-    ) -> (
-        type[IssueBasicIntegration | RepositoryIntegration]
-        | tuple[type[IssueBasicIntegration | RepositoryIntegration]]
-    ):
+    ) -> type[T]:
         raise NotImplementedError
 
     @abstractmethod
-    def handle_search_issues(
-        self, installation: IntegrationInstallation, query: str, repo: str
-    ) -> Response:
+    def handle_search_issues(self, installation: T, query: str, repo: str) -> Response:
         raise NotImplementedError
 
     # not used in VSTS
     def handle_search_repositories(
-        self, integration: Integration, installation: IntegrationInstallation, query: str
+        self, integration: Integration, installation: T, query: str
     ) -> Response:
-        return Response()
+        raise NotImplementedError
 
     def get(
         self, request: Request, organization: RpcOrganization, integration_id: int, **kwds: Any
@@ -93,8 +88,6 @@ class SourceCodeSearchEndpoint(IntegrationEndpoint, ABC):
                 self.integration_provider if self.integration_provider else "github"
             )
             raise NotFound(f"Integration by that id is not of type {integration_provider}.")
-
-        assert isinstance(installation, self.installation_class)
 
         if field == self.issue_field:
             repo = request.GET.get(self.repository_field)
