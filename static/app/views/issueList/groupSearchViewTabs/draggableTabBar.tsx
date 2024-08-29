@@ -316,6 +316,7 @@ export function DraggableTabBar({
               isEditing={editingTabKey === tab.key}
               setIsEditing={isEditing => setEditingTabKey(isEditing ? tab.key : null)}
               onChange={newLabel => handleOnTabRenamed(newLabel.trim(), tab.key)}
+              isSelected={tabListState?.selectedKey === tab.key}
             />
             {tabListState?.selectedKey === tab.key && (
               <DraggableTabMenuButton
