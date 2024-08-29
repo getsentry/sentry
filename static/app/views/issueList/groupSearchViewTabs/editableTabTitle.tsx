@@ -70,7 +70,7 @@ function EditableTabTitle({
     setInputValue(e.target.value);
   };
 
-  return (
+  return isSelected ? (
     <StyledGrowingInput
       value={inputValue}
       onChange={handleOnChange}
@@ -81,6 +81,8 @@ function EditableTabTitle({
       style={memoizedStyles}
       isSelected={isSelected}
     />
+  ) : (
+    <div style={{height: '20px'}}>{label}</div>
   );
 }
 
