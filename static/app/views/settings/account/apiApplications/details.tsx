@@ -124,7 +124,7 @@ function ApiApplicationsDetails() {
 
             <FormField
               name="clientSecret"
-              label="Client Secret"
+              label={t('Client Secret')}
               help={t(`Your secret is only available briefly after application creation. Make
                   sure to save this value!`)}
             >
@@ -143,7 +143,7 @@ function ApiApplicationsDetails() {
                       )}
                     >
                       <Button size="xs" priority="danger">
-                        Rotate client secret
+                        {t('Rotate client secret')}
                       </Button>
                     </Confirm>
                   </ClientSecret>
@@ -151,11 +151,11 @@ function ApiApplicationsDetails() {
               }
             </FormField>
 
-            <FormField name="" label="Authorization URL">
+            <FormField name="" label={t('Authorization URL')}>
               {() => <TextCopyInput>{`${urlPrefix}/oauth/authorize/`}</TextCopyInput>}
             </FormField>
 
-            <FormField name="" label="Token URL">
+            <FormField name="" label={t('Token URL')}>
               {() => <TextCopyInput>{`${urlPrefix}/oauth/token/`}</TextCopyInput>}
             </FormField>
           </PanelBody>
