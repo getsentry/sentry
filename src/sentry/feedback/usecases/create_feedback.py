@@ -163,26 +163,44 @@ def should_filter_feedback(event, project_id, source: FeedbackCreationSource):
     ):
         metrics.incr(
             "feedback.create_feedback_issue.filtered",
-            tags={"reason": "missing_context"},
+            tags={
+                "reason": "missing_context",
+                "referrer": source.value,
+            },
         )
         return True
 
     if event["contexts"]["feedback"]["message"] == UNREAL_FEEDBACK_UNATTENDED_MESSAGE:
         metrics.incr(
             "feedback.create_feedback_issue.filtered",
-            tags={"reason": "unreal.unattended"},
+            tags={
+                "reason": "unreal.unattended",
+                "referrer": source.value,
+            },
         )
         return True
 
     if event["contexts"]["feedback"]["message"].strip() == "":
-        metrics.incr("feedback.create_feedback_issue.filtered", tags={"reason": "empty"})
+        metrics.incr(
+            "feedback.create_feedback_issue.filtered",
+            tags={
+                "reason": "empty",
+                "referrer": source.value,
+            },
+        )
         return True
 
     return False
 
 
 def create_feedback_issue(event, project_id: int, source: FeedbackCreationSource):
-    metrics.incr("feedback.create_feedback_issue.entered")
+    metrics.incr(
+        "feedback.create_feedback_issue.entered",
+        tags={
+            "referrer": source.value,
+            "client_source": get_path(event, "contexts", "feedback", "source"),
+        },
+    )
 
     if should_filter_feedback(event, project_id, source):
         return
@@ -200,7 +218,11 @@ def create_feedback_issue(event, project_id: int, source: FeedbackCreationSource
             logger.exception("Error checking if message is spam")
         metrics.incr(
             "feedback.create_feedback_issue.spam_detection",
-            tags={"is_spam": is_message_spam},
+            tags={
+                "is_spam": is_message_spam,
+                "referrer": source.value,
+                "client_source": event["contexts"]["feedback"].get("source"),
+            },
             sample_rate=1.0,
         )
 
@@ -345,7 +367,11 @@ def shim_to_feedback(
             feedback_event["tags"] = [list(item) for item in event.tags]
 
         else:
-            metrics.incr("feedback.user_report.missing_event", sample_rate=1.0)
+            metrics.incr(
+                "feedback.user_report.missing_event",
+                sample_rate=1.0,
+                tags={"referrer": source.value},
+            )
 
             feedback_event["timestamp"] = datetime.utcnow().timestamp()
             feedback_event["platform"] = "other"
