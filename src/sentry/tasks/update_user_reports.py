@@ -65,13 +65,12 @@ def update_user_reports(**kwargs: Any) -> None:
                     filter=snuba_filter, referrer="tasks.update_user_reports"
                 )
                 events.extend(events_chunk)
-            except Exception as e:
+            except Exception:
+                sentry_sdk.set_tag("update_user_reports.eventstore_query_failed", True)
                 logger.exception(
                     "update_user_reports.eventstore_query_failed",
                     extra={"project_id": project_id, "start": start, "end": end},
-                )
-                sentry_sdk.set_tag("update_user_reports.eventstore_query_failed", True)
-                sentry_sdk.capture_exception(e)
+                )  # will also send exc to Sentry
 
         for event in events:
             report = report_by_event.get(event.event_id)
