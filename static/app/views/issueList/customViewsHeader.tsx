@@ -1,5 +1,4 @@
 import {useContext, useEffect, useMemo, useState} from 'react';
-import type {InjectedRouter} from 'react-router';
 import styled from '@emotion/styled';
 import debounce from 'lodash/debounce';
 
@@ -9,6 +8,7 @@ import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionT
 import {Tabs, TabsContext} from 'sentry/components/tabs';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import type {InjectedRouter} from 'sentry/types/legacyReactRouter';
 import type {Organization} from 'sentry/types/organization';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useProjects from 'sentry/utils/useProjects';

@@ -1,4 +1,3 @@
-import type {InjectedRouter} from 'react-router';
 import {urlEncode} from '@sentry/utils';
 import type {Location, Query} from 'history';
 import * as Papa from 'papaparse';
@@ -9,6 +8,7 @@ import {URL_PARAM} from 'sentry/constants/pageFilters';
 import {t} from 'sentry/locale';
 import type {SelectValue} from 'sentry/types/core';
 import type {Event} from 'sentry/types/event';
+import type {InjectedRouter} from 'sentry/types/legacyReactRouter';
 import type {
   NewQuery,
   Organization,

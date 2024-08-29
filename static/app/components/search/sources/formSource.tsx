@@ -1,9 +1,9 @@
 import {Component} from 'react';
-import type {WithRouterProps} from 'react-router';
 
 import {loadSearchMap} from 'sentry/actionCreators/formSearch';
 import type {FormSearchField} from 'sentry/stores/formSearchStore';
 import FormSearchStore from 'sentry/stores/formSearchStore';
+import type {WithRouterProps} from 'sentry/types/legacyReactRouter';
 import type {Fuse} from 'sentry/utils/fuzzySearch';
 import {createFuzzySearch} from 'sentry/utils/fuzzySearch';
 import replaceRouterParams from 'sentry/utils/replaceRouterParams';

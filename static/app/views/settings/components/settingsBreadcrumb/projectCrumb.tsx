@@ -1,9 +1,9 @@
-import type {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 
 import IdBadge from 'sentry/components/idBadge';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {space} from 'sentry/styles/space';
+import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {browserHistory} from 'sentry/utils/browserHistory';

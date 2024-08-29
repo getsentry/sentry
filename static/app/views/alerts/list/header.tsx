@@ -1,5 +1,3 @@
-import type {InjectedRouter} from 'react-router';
-
 import {navigateTo} from 'sentry/actionCreators/navigation';
 import {LinkButton} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
@@ -11,6 +9,7 @@ import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionT
 import {IconSettings} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import ProjectsStore from 'sentry/stores/projectsStore';
+import type {InjectedRouter} from 'sentry/types/legacyReactRouter';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 

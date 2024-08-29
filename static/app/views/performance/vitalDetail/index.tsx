@@ -1,5 +1,4 @@
 import {Component} from 'react';
-import type {RouteComponentProps} from 'react-router';
 import isEqual from 'lodash/isEqual';
 
 import {loadOrganizationTags} from 'sentry/actionCreators/tags';
@@ -9,6 +8,7 @@ import PageFiltersContainer from 'sentry/components/organizations/pageFilters/co
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
 import type {PageFilters} from 'sentry/types/core';
+import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';

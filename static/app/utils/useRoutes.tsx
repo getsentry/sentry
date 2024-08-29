@@ -1,8 +1,8 @@
 import {useMemo} from 'react';
-import type {PlainRoute} from 'react-router';
 import {useMatches} from 'react-router-dom';
 
 import {NODE_ENV} from 'sentry/constants';
+import type {PlainRoute} from 'sentry/types/legacyReactRouter';
 import {useRouteContext} from 'sentry/utils/useRouteContext';
 
 export function useRoutes(): PlainRoute<any>[] {

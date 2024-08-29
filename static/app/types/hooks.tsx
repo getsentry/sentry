@@ -1,5 +1,3 @@
-import type {Route, RouteComponentProps, RouteContextInterface} from 'react-router';
-
 import type {ChildrenRenderFn} from 'sentry/components/acl/feature';
 import type {Guide} from 'sentry/components/assistant/types';
 import type {ButtonProps} from 'sentry/components/button';
@@ -21,6 +19,11 @@ import type {NavigationItem, NavigationSection} from 'sentry/views/settings/type
 import type {ExperimentKey} from './experiments';
 import type {Group} from './group';
 import type {Integration, IntegrationProvider} from './integrations';
+import type {
+  Route,
+  RouteComponentProps,
+  RouteContextInterface,
+} from './legacyReactRouter';
 import type {Member, Organization} from './organization';
 import type {Project} from './project';
 import type {User} from './user';

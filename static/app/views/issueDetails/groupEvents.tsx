@@ -1,11 +1,11 @@
 import {useCallback} from 'react';
-import type {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 
 import EventSearchBar from 'sentry/components/events/searchBar';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {space} from 'sentry/styles/space';
 import type {Group} from 'sentry/types/group';
+import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import {browserHistory} from 'sentry/utils/browserHistory';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import useCleanQueryParamsOnRouteLeave from 'sentry/utils/useCleanQueryParamsOnRouteLeave';

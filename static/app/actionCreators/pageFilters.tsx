@@ -1,4 +1,3 @@
-import type {InjectedRouter} from 'react-router';
 import * as Sentry from '@sentry/react';
 import type {Location} from 'history';
 import isInteger from 'lodash/isInteger';
@@ -24,6 +23,7 @@ import {
 import OrganizationStore from 'sentry/stores/organizationStore';
 import PageFiltersStore from 'sentry/stores/pageFiltersStore';
 import type {DateString, PageFilters, PinnedPageFilter} from 'sentry/types/core';
+import type {InjectedRouter} from 'sentry/types/legacyReactRouter';
 import type {Organization} from 'sentry/types/organization';
 import type {Environment, MinimalProject, Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';

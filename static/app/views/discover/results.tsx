@@ -1,5 +1,4 @@
 import {Component, Fragment} from 'react';
-import type {InjectedRouter} from 'react-router';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 import type {Location} from 'history';
@@ -36,6 +35,7 @@ import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {PageFilters} from 'sentry/types/core';
 import {SavedSearchType} from 'sentry/types/group';
+import type {InjectedRouter} from 'sentry/types/legacyReactRouter';
 import type {NewQuery, Organization, SavedQuery} from 'sentry/types/organization';
 import {defined, generateQueryWithTag} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';

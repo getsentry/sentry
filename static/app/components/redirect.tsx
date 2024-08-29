@@ -1,6 +1,6 @@
 import {useEffect} from 'react';
-import type {InjectedRouter} from 'react-router';
 
+import type {InjectedRouter} from 'sentry/types/legacyReactRouter';
 import {useNavigate} from 'sentry/utils/useNavigate';
 
 type Props = {

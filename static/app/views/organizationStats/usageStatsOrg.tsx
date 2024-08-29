@@ -1,6 +1,5 @@
 import type {MouseEvent as ReactMouseEvent} from 'react';
 import {Fragment} from 'react';
-import type {WithRouterProps} from 'react-router';
 import styled from '@emotion/styled';
 import isEqual from 'lodash/isEqual';
 import moment from 'moment-timezone';
@@ -22,6 +21,7 @@ import {DEFAULT_STATS_PERIOD} from 'sentry/constants';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {DataCategoryInfo, IntervalPeriod} from 'sentry/types/core';
+import type {WithRouterProps} from 'sentry/types/legacyReactRouter';
 import type {Organization} from 'sentry/types/organization';
 import {parsePeriodToHours} from 'sentry/utils/duration/parsePeriodToHours';
 

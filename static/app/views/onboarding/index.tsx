@@ -1,4 +1,4 @@
-import type {RouteComponentProps} from 'react-router';
+import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 
 import Onboarding from './onboarding';
 

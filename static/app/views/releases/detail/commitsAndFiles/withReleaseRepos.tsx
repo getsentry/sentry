@@ -1,5 +1,4 @@
 import {Component} from 'react';
-import type {RouteComponentProps} from 'react-router';
 import * as Sentry from '@sentry/react';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
@@ -12,6 +11,7 @@ import Panel from 'sentry/components/panels/panel';
 import {IconCommit} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Repository} from 'sentry/types/integrations';
+import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import type {Organization} from 'sentry/types/organization';
 import getDisplayName from 'sentry/utils/getDisplayName';
 import withApi from 'sentry/utils/withApi';

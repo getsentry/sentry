@@ -1,5 +1,4 @@
 import {useEffect, useState} from 'react';
-import type {InjectedRouter} from 'react-router';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
@@ -15,6 +14,7 @@ import LoadingError from 'sentry/components/loadingError';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {SelectValue} from 'sentry/types/core';
+import type {InjectedRouter} from 'sentry/types/legacyReactRouter';
 import type {Organization} from 'sentry/types/organization';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';

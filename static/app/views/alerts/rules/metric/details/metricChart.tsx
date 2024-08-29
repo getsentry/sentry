@@ -1,5 +1,4 @@
 import {Fragment, PureComponent} from 'react';
-import type {WithRouterProps} from 'react-router';
 import styled from '@emotion/styled';
 import color from 'color';
 import type {LineSeriesOption} from 'echarts';
@@ -39,6 +38,7 @@ import {space} from 'sentry/styles/space';
 import {ActivationConditionType, MonitorType} from 'sentry/types/alerts';
 import type {DateString} from 'sentry/types/core';
 import type {ReactEchartsRef, Series} from 'sentry/types/echarts';
+import type {WithRouterProps} from 'sentry/types/legacyReactRouter';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import toArray from 'sentry/utils/array/toArray';

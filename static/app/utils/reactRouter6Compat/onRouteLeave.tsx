@@ -1,5 +1,6 @@
-import type {InjectedRouter, PlainRoute} from 'react-router';
 import {type Location, unstable_usePrompt} from 'react-router-dom';
+
+import type {InjectedRouter, PlainRoute} from 'sentry/types/legacyReactRouter';
 
 type ReactRouterV6RouteLeaveCallback = (state: {
   currentLocation: Location;

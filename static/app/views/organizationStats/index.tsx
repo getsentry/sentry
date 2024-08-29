@@ -1,5 +1,4 @@
 import {Component} from 'react';
-import type {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 import type {LocationDescriptorObject} from 'history';
 import omit from 'lodash/omit';
@@ -28,6 +27,7 @@ import {
   type DataCategoryInfo,
   type PageFilters,
 } from 'sentry/types/core';
+import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import withOrganization from 'sentry/utils/withOrganization';

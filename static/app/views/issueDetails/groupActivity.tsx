@@ -1,5 +1,4 @@
 import {Fragment, useCallback, useMemo} from 'react';
-import type {RouteComponentProps} from 'react-router';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import type {
@@ -20,6 +19,7 @@ import type {
   GroupActivityNote,
   GroupActivityReprocess,
 } from 'sentry/types/group';
+import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import type {User} from 'sentry/types/user';
 import type {MutateOptions} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';

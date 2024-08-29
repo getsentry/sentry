@@ -1,11 +1,11 @@
 import {Fragment} from 'react';
-import type {RouteComponentProps} from 'react-router';
 import * as Sentry from '@sentry/react';
 
 import {Button} from 'sentry/components/button';
 import ExternalLink from 'sentry/components/links/externalLink';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t, tct} from 'sentry/locale';
+import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {METRICS_DOCS_URL} from 'sentry/utils/metrics/constants';

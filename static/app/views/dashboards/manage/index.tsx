@@ -1,4 +1,3 @@
-import type {InjectedRouter} from 'react-router';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
 import pick from 'lodash/pick';
@@ -24,6 +23,7 @@ import {IconAdd} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {SelectValue} from 'sentry/types/core';
+import type {InjectedRouter} from 'sentry/types/legacyReactRouter';
 import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {browserHistory} from 'sentry/utils/browserHistory';

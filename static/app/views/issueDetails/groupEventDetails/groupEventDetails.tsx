@@ -1,5 +1,4 @@
 import {Fragment, useEffect} from 'react';
-import type {RouteComponentProps} from 'react-router';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import isEqual from 'lodash/isEqual';
@@ -16,6 +15,7 @@ import useSentryAppComponentsData from 'sentry/stores/useSentryAppComponentsData
 import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
 import type {Group, GroupActivityReprocess, GroupReprocessing} from 'sentry/types/group';
+import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';

@@ -1,5 +1,4 @@
 import {Fragment} from 'react';
-import type {WithRouterProps} from 'react-router';
 
 import {Alert} from 'sentry/components/alert';
 import {LinkButton} from 'sentry/components/button';
@@ -14,6 +13,7 @@ import {IconCommit} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import RepositoryStore from 'sentry/stores/repositoryStore';
 import type {Integration, Repository} from 'sentry/types/integrations';
+import type {WithRouterProps} from 'sentry/types/legacyReactRouter';
 import type {Organization} from 'sentry/types/organization';
 import withOrganization from 'sentry/utils/withOrganization';
 import withSentryRouter from 'sentry/utils/withSentryRouter';

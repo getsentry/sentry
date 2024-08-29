@@ -1,9 +1,9 @@
 import {useMemo} from 'react';
-import type {InjectedRouter} from 'react-router';
 import type {RouteHook} from 'react-router/lib/Router';
 import type {LocationDescriptor} from 'history';
 
 import {NODE_ENV} from 'sentry/constants';
+import type {InjectedRouter} from 'sentry/types/legacyReactRouter';
 import {useRouteContext} from 'sentry/utils/useRouteContext';
 
 import {useLocation} from './useLocation';

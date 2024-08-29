@@ -1,4 +1,3 @@
-import type {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 import pick from 'lodash/pick';
 import moment from 'moment-timezone';
@@ -30,6 +29,7 @@ import {space} from 'sentry/styles/space';
 import type {IssueAlertRule} from 'sentry/types/alerts';
 import {RuleActionsCategories} from 'sentry/types/alerts';
 import type {DateString} from 'sentry/types/core';
+import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import type {ApiQueryKey} from 'sentry/utils/queryClient';
 import {setApiQueryData, useApiQuery, useQueryClient} from 'sentry/utils/queryClient';

@@ -1,5 +1,4 @@
 import {Component, Fragment} from 'react';
-import type {RouteComponentProps} from 'react-router';
 import type {Location} from 'history';
 import isEqual from 'lodash/isEqual';
 import pick from 'lodash/pick';
@@ -13,6 +12,7 @@ import * as Layout from 'sentry/components/layouts/thirds';
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
+import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';

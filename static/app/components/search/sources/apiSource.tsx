@@ -1,5 +1,4 @@
 import {Component} from 'react';
-import type {WithRouterProps} from 'react-router';
 import * as Sentry from '@sentry/react';
 import debounce from 'lodash/debounce';
 
@@ -15,6 +14,7 @@ import type {
   PluginWithProjectList,
   SentryApp,
 } from 'sentry/types/integrations';
+import type {WithRouterProps} from 'sentry/types/legacyReactRouter';
 import type {Member, Organization, Team} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';

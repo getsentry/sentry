@@ -1,5 +1,4 @@
 import {cloneElement, Fragment} from 'react';
-import type {RouteComponentProps} from 'react-router';
 
 import {openInviteMembersModal} from 'sentry/actionCreators/modal';
 import FeatureDisabled from 'sentry/components/acl/featureDisabled';
@@ -9,6 +8,7 @@ import {Hovercard} from 'sentry/components/hovercard';
 import {Tooltip} from 'sentry/components/tooltip';
 import {IconMail} from 'sentry/icons';
 import {t} from 'sentry/locale';
+import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import type {Member, Organization} from 'sentry/types/organization';
 import routeTitleGen from 'sentry/utils/routeTitle';
 import withOrganization from 'sentry/utils/withOrganization';

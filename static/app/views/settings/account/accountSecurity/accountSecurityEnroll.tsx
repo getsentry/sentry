@@ -1,5 +1,4 @@
 import {Fragment} from 'react';
-import type {WithRouterProps} from 'react-router';
 import styled from '@emotion/styled';
 import {QRCodeCanvas} from 'qrcode.react';
 
@@ -30,6 +29,7 @@ import {t} from 'sentry/locale';
 import OrganizationsStore from 'sentry/stores/organizationsStore';
 import {space} from 'sentry/styles/space';
 import type {Authenticator} from 'sentry/types/auth';
+import type {WithRouterProps} from 'sentry/types/legacyReactRouter';
 import {generateOrgSlugUrl} from 'sentry/utils';
 import getPendingInvite from 'sentry/utils/getPendingInvite';
 // eslint-disable-next-line no-restricted-imports

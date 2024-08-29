@@ -1,5 +1,4 @@
 import {Fragment, useCallback, useEffect, useState} from 'react';
-import type {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 
 import {
@@ -24,6 +23,7 @@ import {Tooltip} from 'sentry/components/tooltip';
 import {IconArrow, IconDelete} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import type {Project} from 'sentry/types/project';
 import type {SourceMapsArchive} from 'sentry/types/release';
 import type {DebugIdBundle} from 'sentry/types/sourceMaps';

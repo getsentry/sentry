@@ -1,10 +1,10 @@
-import type {RouteComponent, RouteComponentProps} from 'react-router';
 import {formatPattern} from 'react-router';
 import trimEnd from 'lodash/trimEnd';
 import trimStart from 'lodash/trimStart';
 
 import Redirect from 'sentry/components/redirect';
 import ConfigStore from 'sentry/stores/configStore';
+import type {RouteComponent, RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import recreateRoute from 'sentry/utils/recreateRoute';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 

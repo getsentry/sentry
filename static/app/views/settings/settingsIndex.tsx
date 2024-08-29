@@ -1,5 +1,4 @@
 import {useEffect} from 'react';
-import type {RouteComponentProps} from 'react-router';
 import type {Theme} from '@emotion/react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
@@ -20,6 +19,7 @@ import {IconDocs, IconLock, IconStack, IconSupport} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import {space} from 'sentry/styles/space';
+import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import type {Organization} from 'sentry/types/organization';
 import useApi from 'sentry/utils/useApi';
 import withLatestContext from 'sentry/utils/withLatestContext';

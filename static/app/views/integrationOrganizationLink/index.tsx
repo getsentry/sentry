@@ -1,5 +1,4 @@
 import {Fragment} from 'react';
-import type {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 import {urlEncode} from '@sentry/utils';
 
@@ -15,6 +14,7 @@ import NarrowLayout from 'sentry/components/narrowLayout';
 import {t, tct} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import type {Integration, IntegrationProvider} from 'sentry/types/integrations';
+import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import type {Organization} from 'sentry/types/organization';
 import {generateOrgSlugUrl} from 'sentry/utils';
 import type {IntegrationAnalyticsKey} from 'sentry/utils/analytics/integrations';

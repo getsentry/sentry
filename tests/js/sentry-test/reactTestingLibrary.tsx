@@ -1,5 +1,4 @@
 import {Component} from 'react';
-import type {InjectedRouter} from 'react-router';
 import {Router} from 'react-router-dom';
 import {cache} from '@emotion/css'; // eslint-disable-line @emotion/no-vanilla
 import {CacheProvider, ThemeProvider} from '@emotion/react';
@@ -13,6 +12,7 @@ import {makeTestQueryClient} from 'sentry-test/queryClient';
 import {GlobalDrawer} from 'sentry/components/globalDrawer';
 import GlobalModal from 'sentry/components/globalModal';
 import {SentryPropTypeValidators} from 'sentry/sentryPropTypeValidators';
+import type {InjectedRouter} from 'sentry/types/legacyReactRouter';
 import type {Organization} from 'sentry/types/organization';
 import {QueryClientProvider} from 'sentry/utils/queryClient';
 import {lightTheme} from 'sentry/utils/theme';

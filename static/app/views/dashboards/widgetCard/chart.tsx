@@ -1,6 +1,5 @@
 import type React from 'react';
 import {Component} from 'react';
-import type {InjectedRouter} from 'react-router';
 import type {Theme} from '@emotion/react';
 import {withTheme} from '@emotion/react';
 import styled from '@emotion/styled';
@@ -31,6 +30,7 @@ import type {
   ReactEchartsRef,
   Series,
 } from 'sentry/types/echarts';
+import type {InjectedRouter} from 'sentry/types/legacyReactRouter';
 import type {Organization} from 'sentry/types/organization';
 import {
   axisLabelFormatter,

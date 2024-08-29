@@ -1,5 +1,4 @@
 import {Fragment} from 'react';
-import type {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
 import moment from 'moment-timezone';
@@ -18,6 +17,7 @@ import {Tooltip} from 'sentry/components/tooltip';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {RuleActionsCategories} from 'sentry/types/alerts';
+import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {findExtractionRuleCondition} from 'sentry/utils/metrics/extractionRules';

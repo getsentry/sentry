@@ -1,4 +1,3 @@
-import type {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 
 import {Button, LinkButton} from 'sentry/components/button';
@@ -11,6 +10,7 @@ import PanelHeader from 'sentry/components/panels/panelHeader';
 import {IconDelete} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import type {Project, ProjectKey} from 'sentry/types/project';
 import recreateRoute from 'sentry/utils/recreateRoute';
 import {LoaderScript} from 'sentry/views/settings/project/projectKeys/list/loaderScript';
