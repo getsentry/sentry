@@ -44,7 +44,7 @@ from . import get_allowed_org_roles, save_team_assignments
 ERR_NO_AUTH = "You cannot remove this member with an unauthenticated API request."
 ERR_INSUFFICIENT_ROLE = "You cannot remove a member who has more access than you."
 ERR_INSUFFICIENT_SCOPE = "You are missing the member:admin scope."
-ERR_MEMBER_INVITE = "Your role cannot remove an invitation to a user you did not invite."
+ERR_MEMBER_INVITE = "Your role cannot remove an invitation that was sent by someone else."
 ERR_ONLY_OWNER = "You cannot remove the only remaining owner of the organization."
 ERR_UNINVITABLE = "You cannot send an invitation to a user who is already a full member."
 ERR_EXPIRED = "You cannot resend an expired invitation without regenerating the token."
