@@ -14,7 +14,7 @@ export const enum SectionKey {
   LLM_MONITORING = 'llm-monitoring',
 
   UPTIME = 'uptime', // Only Uptime issues
-  CRON = 'cron-timeline', // Only Cron issues
+  CRON_TIMELINE = 'cron-timeline', // Only Cron issues
 
   HIGHLIGHTS = 'highlights',
   RESOURCES = 'resources', // Position controlled by flag
