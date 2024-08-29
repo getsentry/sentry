@@ -3,7 +3,7 @@ from unittest.mock import ANY, Mock, patch
 
 import orjson
 
-from sentry.api.endpoints.group_ai_summary import SummarizeIssueResponse
+from sentry.api.endpoints.group_ai_summary import GroupAiSummaryEndpoint, SummarizeIssueResponse
 from sentry.api.serializers.rest_framework.base import convert_dict_key_case, snake_to_camel_case
 from sentry.testutils.cases import APITestCase, SnubaTestCase
 from sentry.testutils.helpers.features import apply_feature_flag_on_cls
@@ -234,3 +234,101 @@ class GroupAiSummaryEndpointTest(APITestCase, SnubaTestCase):
             headers = mock_post.call_args[1]["headers"]
             assert headers["content-type"] == "application/json;charset=utf-8"
             assert headers["Authorization"] == "Bearer test_token"
+
+    @patch("sentry.api.endpoints.group_ai_summary.Project.objects.filter")
+    @patch("sentry.api.endpoints.group_ai_summary.eventstore.backend.get_events")
+    def test_get_trace_connected_issues(self, mock_get_events, mock_project_filter):
+        event = Mock()
+        event.trace_id = "test_trace_id"
+        event.datetime = datetime.datetime.now()
+        event.group.organization.id = 1
+
+        mock_project_filter.return_value.values_list.return_value = [
+            (1, "project1"),
+            (2, "project2"),
+        ]
+
+        # connected events
+        mock_event1 = Mock(
+            event_id="1",
+            group_id=1,
+            group=Mock(),
+            datetime=event.datetime - datetime.timedelta(minutes=5),
+        )
+        mock_event2 = Mock(
+            event_id="2",
+            group_id=2,
+            group=Mock(),
+            datetime=event.datetime + datetime.timedelta(minutes=5),
+        )
+        mock_get_events.return_value = [mock_event1, mock_event2]
+
+        result = GroupAiSummaryEndpoint()._get_trace_connected_issues(event)
+
+        assert len(result) == 2
+        assert mock_event1.group in result
+        assert mock_event2.group in result
+
+        mock_project_filter.assert_called_once()
+        mock_get_events.assert_called_once()
+
+        _, kwargs = mock_get_events.call_args
+        assert kwargs["filter"].conditions == [["trace", "=", "test_trace_id"]]
+        assert kwargs["filter"].project_ids == [1, 2]
+        assert kwargs["referrer"] == "api.group_ai_summary"
+        assert kwargs["tenant_ids"] == {"organization_id": 1}
+
+    def test_get_trace_connected_issues_no_trace_id(self):
+        event = Mock()
+        event.trace_id = None
+        result = GroupAiSummaryEndpoint()._get_trace_connected_issues(event)
+        assert result == []
+
+    @patch("sentry.api.endpoints.group_ai_summary.eventstore.backend.get_event_by_id")
+    @patch("sentry.api.endpoints.group_ai_summary.serialize")
+    def test_get_event_no_recommended(self, mock_serialize, mock_get_event_by_id):
+        mock_group = Mock()
+        mock_event = Mock()
+        mock_user = Mock()
+        mock_event.event_id = "test_event_id"
+        mock_group.get_recommended_event_for_environments.return_value = None
+        mock_group.get_latest_event.return_value = mock_event
+        mock_group.project.id = "test_project_id"
+        mock_group.id = "test_group_id"
+
+        mock_ready_event = Mock()
+        mock_get_event_by_id.return_value = mock_ready_event
+
+        mock_serialized_event = {"serialized": "event"}
+        mock_serialize.return_value = mock_serialized_event
+
+        result = GroupAiSummaryEndpoint()._get_event(mock_group, mock_user)
+
+        assert result == (mock_serialized_event, mock_event)
+        mock_group.get_recommended_event_for_environments.assert_called_once()
+        mock_group.get_latest_event.assert_called_once()
+        mock_get_event_by_id.assert_called_once_with(
+            "test_project_id", "test_event_id", group_id="test_group_id"
+        )
+        mock_serialize.assert_called_once()
+
+    @patch("sentry.api.endpoints.group_ai_summary.eventstore.backend.get_event_by_id")
+    def test_get_event_recommended_first(self, mock_get_event_by_id):
+        mock_group = Mock()
+        mock_event = Mock()
+        mock_user = Mock()
+        mock_event.event_id = "test_event_id"
+        mock_group.get_recommended_event_for_environments.return_value = mock_event
+        mock_group.project.id = "test_project_id"
+        mock_group.id = "test_group_id"
+
+        mock_get_event_by_id.return_value = None
+
+        result = GroupAiSummaryEndpoint()._get_event(mock_group, mock_user)
+
+        assert result == (None, None)
+        mock_group.get_recommended_event_for_environments.assert_called_once()
+        mock_group.get_latest_event.assert_not_called()
+        mock_get_event_by_id.assert_called_once_with(
+            "test_project_id", "test_event_id", group_id="test_group_id"
+        )
