@@ -56,6 +56,7 @@ export function useProfileEventsStats<F extends string>({
       yAxis: yAxes,
       interval,
       query,
+      partial: 1,
     },
   };
 
