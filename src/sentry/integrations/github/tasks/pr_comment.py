@@ -11,8 +11,9 @@ from snuba_sdk import Request as SnubaRequest
 
 from sentry.constants import ObjectStatus
 from sentry.integrations.github.constants import ISSUE_LOCKED_ERROR_MESSAGE, RATE_LIMITED_MESSAGE
-from sentry.integrations.github.tasks.utils import PullRequestIssue, create_or_update_comment
+from sentry.integrations.github.tasks.utils import PullRequestIssue
 from sentry.integrations.services.integration import integration_service
+from sentry.integrations.source_code_management.commit_context import CommitContextIntegration
 from sentry.models.group import Group
 from sentry.models.groupowner import GroupOwnerType
 from sentry.models.options.organization_option import OrganizationOption
@@ -197,10 +198,7 @@ def github_comment_workflow(pullrequest_id: int, project_id: int):
         return
 
     installation = integration.get_installation(organization_id=org_id)
-
-    # GitHubApiClient
-    # TODO(cathy): create helper function to fetch client for repo
-    client = installation.get_client()
+    assert isinstance(installation, CommitContextIntegration)
 
     comment_body = format_comment(issue_comment_contents)
     logger.info("github.pr_comment.comment_body", extra={"body": comment_body})
@@ -208,8 +206,7 @@ def github_comment_workflow(pullrequest_id: int, project_id: int):
     top_24_issues = issue_list[:24]  # 24 is the P99 for issues-per-PR
 
     try:
-        create_or_update_comment(
-            client=client,
+        installation.create_or_update_comment(
             repo=repo,
             pr_key=pr_key,
             comment_body=comment_body,

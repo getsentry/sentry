@@ -34,10 +34,10 @@ from sentry.integrations.github.tasks.utils import (
     GithubAPIErrorType,
     PullRequestFile,
     PullRequestIssue,
-    create_or_update_comment,
 )
 from sentry.integrations.models.repository_project_path_config import RepositoryProjectPathConfig
 from sentry.integrations.services.integration import integration_service
+from sentry.integrations.source_code_management.commit_context import CommitContextIntegration
 from sentry.models.group import Group, GroupStatus
 from sentry.models.organization import Organization
 from sentry.models.project import Project
@@ -448,6 +448,7 @@ def open_pr_comment_workflow(pr_id: int) -> None:
         return
 
     installation = integration.get_installation(organization_id=org_id)
+    assert isinstance(installation, CommitContextIntegration)
 
     client = installation.get_client()
 
@@ -597,8 +598,7 @@ def open_pr_comment_workflow(pr_id: int) -> None:
     language = languages[0] if len(languages) else "not found"
 
     try:
-        create_or_update_comment(
-            client=client,
+        installation.create_or_update_comment(
             repo=repo,
             pr_key=pull_request.key,
             comment_body=comment_body,

@@ -236,7 +236,9 @@ class TestGetFilenames(GithubCommentTestCase):
     def setUp(self):
         super().setUp()
         self.pr = self.create_pr_issues()
-        self.mock_metrics = patch("sentry.integrations.github.tasks.pr_comment.metrics").start()
+        self.mock_metrics = patch(
+            "sentry.integrations.source_code_management.commit_context.metrics"
+        ).start()
         self.gh_path = self.base_url + "/repos/getsentry/sentry/pulls/{pull_number}/files"
         installation = self.integration.get_installation(organization_id=self.organization.id)
         self.gh_client = installation.get_client()
@@ -826,7 +828,7 @@ Your pull request is modifying functions with the following pre-existing issues:
 )
 @patch("sentry.integrations.github.tasks.open_pr_comment.get_top_5_issues_by_count_for_file")
 @patch("sentry.integrations.github.tasks.open_pr_comment.safe_for_comment")
-@patch("sentry.integrations.github.tasks.utils.metrics")
+@patch("sentry.integrations.source_code_management.commit_context.metrics")
 class TestOpenPRCommentWorkflow(IntegrationTestCase, CreateEventTestCase):
     base_url = "https://api.github.com"
 
