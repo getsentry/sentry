@@ -247,9 +247,7 @@ describe('ResolveActions', function () {
   });
 
   it('does render in upcoming release', async function () {
-    const organization = OrganizationFixture({
-      features: ['resolve-in-upcoming-release'],
-    });
+    const organization = OrganizationFixture({});
     const onUpdate = jest.fn();
     MockApiClient.addMockResponse({
       url: '/projects/org-slug/project-slug/releases/',

@@ -206,10 +206,6 @@ function ResolveActions({
       });
     };
 
-    const hasUpcomingRelease = organization.features.includes(
-      'resolve-in-upcoming-release'
-    );
-
     const isSemver = latestRelease ? isSemverRelease(latestRelease.version) : false;
     const items: MenuItemProps[] = [
       {
@@ -219,7 +215,6 @@ function ResolveActions({
           ? actionTitle
           : t('The next release that is not yet released'),
         onAction: () => onActionOrConfirm(handleUpcomingReleaseResolution),
-        hidden: !hasUpcomingRelease,
       },
       {
         key: 'next-release',
