@@ -2,6 +2,7 @@ import logging
 from datetime import timedelta
 from typing import Any
 
+import sentry_sdk
 from django.utils import timezone
 
 from sentry import eventstore, features
@@ -59,10 +60,17 @@ def update_user_reports(**kwargs: Any) -> None:
                 start=start - timedelta(days=1),  # we go one extra day back for events
                 end=end,
             )
-            events_chunk = eventstore.backend.get_events(
-                filter=snuba_filter, referrer="tasks.update_user_reports"
-            )
-            events.extend(events_chunk)
+            try:
+                events_chunk = eventstore.backend.get_events(
+                    filter=snuba_filter, referrer="tasks.update_user_reports"
+                )
+                events.extend(events_chunk)
+            except Exception:
+                sentry_sdk.set_tag("update_user_reports.eventstore_query_failed", True)
+                logger.exception(
+                    "update_user_reports.eventstore_query_failed",
+                    extra={"project_id": project_id, "start": start, "end": end},
+                )  # will also send exc to Sentry
 
         for event in events:
             report = report_by_event.get(event.event_id)
