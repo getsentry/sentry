@@ -161,7 +161,7 @@ def create_default_rules(
             user = AnonymousUser()
 
         # Prioritize sending notifications to teams over individual users.
-        if team_ids and access:
+        if team_ids:
             target_ids = team_ids
             target_type = TargetType.TEAM
         else:

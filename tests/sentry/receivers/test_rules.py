@@ -53,7 +53,9 @@ class DefaultRulesTest(AccessFactoryTestCase):
         with self.feature(["organizations:priority-ga-features", "organizations:incidents"]):
             yield
 
-    def assert_high_priority_alert_created(self):
+    def tearDown(self):
+        """Ensure the default priority alert rule is always created."""
+        super().tearDown()
         assert Rule.objects.count() == 1
         assert Rule.objects.filter(
             project=self.project,
@@ -71,14 +73,19 @@ class DefaultRulesTest(AccessFactoryTestCase):
             team_ids=[self.team.id],
             sender=self,
         )
-        self.assert_high_priority_alert_created()
+        assert AlertRule.objects.count() == 0
 
-    # test no user and no team_ids
+    @with_feature("organizations:default-metric-alerts-new-projects")
+    def test_no_user_or_team_passed(self):
+        project_created.send(
+            project=self.project,
+            access=self.from_user(self.user, self.organization),
+            default_rules=True,
+            sender=self,
+        )
+        assert AlertRule.objects.count() == 0
 
-    # test no user, team_ids
-
-    # test sending to user
-    @with_feature({"organizations:default-metric-alerts-new-projects": True})
+    @with_feature("organizations:default-metric-alerts-new-projects")
     def test_send_triggers_to_user(self):
         project_created.send(
             project=self.project,
@@ -97,28 +104,12 @@ class DefaultRulesTest(AccessFactoryTestCase):
         # Ensure that the expected fields are a subset of the actual model fields
         assert expected_fields.items() <= model_to_dict(metric_alert).items()
 
-        self.assert_high_priority_alert_created()
+        # TODO: Check triggers to ensure we're sending to the correct user
+
+    # test sending to user invalid access
 
     # test sending to one team
 
     # test sending to one team without correct access
 
     # test sending to multiple teams
-
-    # assert Rule fetched rule
-
-    # def test_include_all_projects_enabled(self):
-    #     request = self.make_request(user=self.user)
-    #     accesses = [
-    #         self.from_user(self.user, self.organization),
-    #         self.from_request(request, self.organization),
-    #     ]
-
-    #     for access in accesses:
-    #         project_created.send(
-    #             project=self.project,
-    #             default_rules=True,
-    #             user=self.user,
-    #             access=None,
-    #             sender=DefaultRulesTest,
-    #         )
