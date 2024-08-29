@@ -28,8 +28,8 @@ export class TraceTextMeasurer {
       return;
     }
 
-    canvas.width = 50 * window.devicePixelRatio ?? 1;
-    canvas.height = 50 * window.devicePixelRatio ?? 1;
+    canvas.width = 50 * window.devicePixelRatio;
+    canvas.height = 50 * window.devicePixelRatio;
 
     ctx.font = '11px' + theme.text.family;
 

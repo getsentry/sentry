@@ -169,9 +169,7 @@ export const getResourceTypeFilter = (
   let resourceFilter: string[] = [`${SPAN_OP}:resource.*`];
 
   if (selectedSpanOp) {
-    resourceFilter = [SPAN_OP_FILTER[selectedSpanOp].join(' OR ')] || [
-      `${SPAN_OP}:${selectedSpanOp}`,
-    ];
+    resourceFilter = [SPAN_OP_FILTER[selectedSpanOp].join(' OR ')];
   } else if (defaultResourceTypes) {
     resourceFilter = [
       defaultResourceTypes.map(type => SPAN_OP_FILTER[type].join(' OR ')).join(' OR '),
