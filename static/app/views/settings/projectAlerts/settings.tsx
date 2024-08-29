@@ -1,5 +1,4 @@
 import {Fragment} from 'react';
-import type {RouteComponentProps} from 'react-router';
 
 import AlertLink from 'sentry/components/alertLink';
 import {LinkButton} from 'sentry/components/button';
@@ -14,6 +13,7 @@ import {fields} from 'sentry/data/forms/projectAlerts';
 import {IconMail} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Plugin} from 'sentry/types/integrations';
+import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import type {Project} from 'sentry/types/project';
 import type {ApiQueryKey} from 'sentry/utils/queryClient';
 import {setApiQueryData, useApiQuery, useQueryClient} from 'sentry/utils/queryClient';

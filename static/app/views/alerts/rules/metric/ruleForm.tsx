@@ -1,5 +1,4 @@
 import type {ReactNode} from 'react';
-import type {PlainRoute, RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 
@@ -27,6 +26,7 @@ import {t, tct} from 'sentry/locale';
 import IndicatorStore from 'sentry/stores/indicatorStore';
 import {space} from 'sentry/styles/space';
 import {ActivationConditionType, MonitorType} from 'sentry/types/alerts';
+import type {PlainRoute, RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import type {MetricsExtractionRule} from 'sentry/types/metrics';
 import type {
   EventsStats,

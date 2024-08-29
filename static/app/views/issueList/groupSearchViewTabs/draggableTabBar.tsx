@@ -1,7 +1,6 @@
 import 'intersection-observer'; // polyfill
 
 import {useContext, useState} from 'react';
-import type {InjectedRouter} from 'react-router';
 import styled from '@emotion/styled';
 import type {Node} from '@react-types/shared';
 
@@ -10,6 +9,7 @@ import type {DraggableTabListItemProps} from 'sentry/components/draggableTabs/it
 import type {MenuItemProps} from 'sentry/components/dropdownMenu';
 import {TabsContext} from 'sentry/components/tabs';
 import {t} from 'sentry/locale';
+import type {InjectedRouter} from 'sentry/types/legacyReactRouter';
 import {defined} from 'sentry/utils';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import {useNavigate} from 'sentry/utils/useNavigate';

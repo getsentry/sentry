@@ -1,9 +1,9 @@
-import type {InjectedRouter} from 'react-router';
 import type {Location} from 'history';
 
 import {openModal} from 'sentry/actionCreators/modal';
 import ContextPickerModal from 'sentry/components/contextPickerModal';
 import ProjectsStore from 'sentry/stores/projectsStore';
+import type {InjectedRouter} from 'sentry/types/legacyReactRouter';
 import replaceRouterParams from 'sentry/utils/replaceRouterParams';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 
