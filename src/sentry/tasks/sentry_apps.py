@@ -27,6 +27,9 @@ from sentry.users.services.user.service import user_service
 from sentry.utils import metrics
 from sentry.utils.http import absolute_uri
 from sentry.utils.sentry_apps import send_and_save_webhook_request
+from sentry.utils.sentry_apps.service_hook_manager import (
+    create_or_update_service_hooks_for_installation,
+)
 
 logger = logging.getLogger("sentry.tasks.sentry_apps")
 
@@ -404,4 +407,19 @@ def send_webhooks(installation, event, **kwargs):
             installation.sentry_app,
             request_data,
             servicehook.sentry_app.webhook_url,
+        )
+
+
+@instrumented_task(
+    "sentry.tasks.create_or_update_service_hooks_for_sentry_app", **CONTROL_TASK_OPTIONS
+)
+def create_or_update_service_hooks_for_sentry_app(
+    sentry_app_id: int, webhook_url: str, events: list[str], **kwargs: dict
+) -> None:
+    installations = SentryAppInstallation.objects.filter(sentry_app_id=sentry_app_id)
+    for installation in installations:
+        create_or_update_service_hooks_for_installation(
+            installation=installation,
+            events=events,
+            webhook_url=webhook_url,
         )

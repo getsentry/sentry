@@ -1,7 +1,9 @@
-import {useCallback, useEffect, useMemo} from 'react';
+import {useCallback, useMemo} from 'react';
+import orderBy from 'lodash/orderBy';
 
-import {fetchTagValues, loadOrganizationTags} from 'sentry/actionCreators/tags';
+import {fetchTagValues, useFetchOrganizationTags} from 'sentry/actionCreators/tags';
 import {SearchQueryBuilder} from 'sentry/components/searchQueryBuilder';
+import type {FilterKeySection} from 'sentry/components/searchQueryBuilder/types';
 import SmartSearchBar from 'sentry/components/smartSearchBar';
 import {MAX_QUERY_LENGTH, NEGATION_OPERATOR, SEARCH_WILDCARD} from 'sentry/constants';
 import {t} from 'sentry/locale';
@@ -20,7 +22,7 @@ import {
 } from 'sentry/utils/fields';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import useApi from 'sentry/utils/useApi';
-import useTags from 'sentry/utils/useTags';
+import {Dataset} from 'sentry/views/alerts/rules/metric/types';
 
 const SEARCH_SPECIAL_CHARS_REGEXP = new RegExp(
   `^${NEGATION_OPERATOR}|\\${SEARCH_WILDCARD}`,
@@ -50,32 +52,73 @@ function fieldDefinitionsToTagCollection(fieldKeys: string[]): TagCollection {
 
 const REPLAY_FIELDS_AS_TAGS = fieldDefinitionsToTagCollection(REPLAY_FIELDS);
 const REPLAY_CLICK_FIELDS_AS_TAGS = fieldDefinitionsToTagCollection(REPLAY_CLICK_FIELDS);
+/**
+ * Excluded from the display but still valid search queries. browser.name,
+ * device.name, etc are effectively the same and included from REPLAY_FIELDS.
+ * Displaying these would be redundant and confusing.
+ */
+const EXCLUDED_TAGS = ['browser', 'device', 'os', 'user'];
 
 /**
- * Merges a list of supported tags and replay search fields into one collection.
+ * Merges a list of supported tags and replay search properties
+ * (https://docs.sentry.io/concepts/search/searchable-properties/session-replay/)
+ * into one collection.
  */
-function getReplaySearchTags(supportedTags: TagCollection): TagCollection {
-  const allTags = {
+function getReplayFilterKeys(supportedTags: TagCollection): TagCollection {
+  return {
     ...REPLAY_FIELDS_AS_TAGS,
     ...REPLAY_CLICK_FIELDS_AS_TAGS,
     ...Object.fromEntries(
-      Object.keys(supportedTags).map(key => [
-        key,
-        {
-          ...supportedTags[key],
-          kind: getReplayFieldDefinition(key)?.kind ?? FieldKind.TAG,
-        },
-      ])
+      Object.keys(supportedTags)
+        .filter(key => !EXCLUDED_TAGS.includes(key))
+        .map(key => [
+          key,
+          {
+            ...supportedTags[key],
+            kind: getReplayFieldDefinition(key)?.kind ?? FieldKind.TAG,
+          },
+        ])
     ),
   };
-
-  // A hack used to "sort" the dictionary for SearchQueryBuilder.
-  // Technically dicts are unordered but this works in dev.
-  // To guarantee ordering, we need to implement filterKeySections.
-  const keys = Object.keys(allTags);
-  keys.sort();
-  return Object.fromEntries(keys.map(key => [key, allTags[key]]));
 }
+
+const getFilterKeySections = (
+  tags: TagCollection,
+  organization: Organization
+): FilterKeySection[] => {
+  if (!organization.features.includes('search-query-builder-replays')) {
+    return [];
+  }
+
+  const customTags: Tag[] = Object.values(tags).filter(
+    tag =>
+      !EXCLUDED_TAGS.includes(tag.key) &&
+      !REPLAY_FIELDS.map(String).includes(tag.key) &&
+      !REPLAY_CLICK_FIELDS.map(String).includes(tag.key)
+  );
+
+  const orderedTagKeys = orderBy(customTags, ['totalValues', 'key'], ['desc', 'asc']).map(
+    tag => tag.key
+  );
+
+  return [
+    {
+      value: 'replay_field',
+      label: t('Suggested'),
+      children: Object.keys(REPLAY_FIELDS_AS_TAGS),
+    },
+    {
+      value: 'replay_click_field',
+      label: t('Click Fields'),
+      children: Object.keys(REPLAY_CLICK_FIELDS_AS_TAGS),
+    },
+    {
+      value: FieldKind.TAG,
+      label: t('Tags'),
+      children: orderedTagKeys,
+    },
+  ];
+};
 
 type Props = React.ComponentProps<typeof SmartSearchBar> & {
   organization: Organization;
@@ -86,15 +129,43 @@ function ReplaySearchBar(props: Props) {
   const {organization, pageFilters} = props;
   const api = useApi();
   const projectIds = pageFilters.projects;
-  const organizationTags = useTags();
-  useEffect(() => {
-    loadOrganizationTags(api, organization.slug, pageFilters);
-  }, [api, organization.slug, pageFilters]);
+  const start = pageFilters.datetime.start
+    ? getUtcDateString(pageFilters.datetime.start)
+    : undefined;
+  const end = pageFilters.datetime.end
+    ? getUtcDateString(pageFilters.datetime.end)
+    : undefined;
+  const statsPeriod = pageFilters.datetime.period;
 
-  const replayTags = useMemo(
-    () => getReplaySearchTags(organizationTags),
-    [organizationTags]
+  const tagQuery = useFetchOrganizationTags(
+    {
+      orgSlug: organization.slug,
+      projectIds: projectIds.map(String),
+      dataset: Dataset.ISSUE_PLATFORM,
+      useCache: true,
+      enabled: true,
+      keepPreviousData: false,
+      start: start,
+      end: end,
+      statsPeriod: statsPeriod,
+    },
+    {}
   );
+  const issuePlatformTags: TagCollection = useMemo(() => {
+    return (tagQuery.data ?? []).reduce<TagCollection>((acc, tag) => {
+      acc[tag.key] = {...tag, kind: FieldKind.TAG};
+      return acc;
+    }, {});
+  }, [tagQuery]);
+  // tagQuery.isLoading and tagQuery.isError are not used
+
+  const filterKeys = useMemo(
+    () => getReplayFilterKeys(issuePlatformTags),
+    [issuePlatformTags]
+  );
+  const filterKeySections = useMemo(() => {
+    return getFilterKeySections(issuePlatformTags, organization);
+  }, [issuePlatformTags, organization]);
 
   const getTagValues = useCallback(
     (tag: Tag, searchQuery: string): Promise<string[]> => {
@@ -105,13 +176,9 @@ function ReplaySearchBar(props: Props) {
       }
 
       const endpointParams = {
-        start: pageFilters.datetime.start
-          ? getUtcDateString(pageFilters.datetime.start)
-          : undefined,
-        end: pageFilters.datetime.end
-          ? getUtcDateString(pageFilters.datetime.end)
-          : undefined,
-        statsPeriod: pageFilters.datetime.period,
+        start: start,
+        end: end,
+        statsPeriod: statsPeriod,
       };
 
       return fetchTagValues({
@@ -129,14 +196,7 @@ function ReplaySearchBar(props: Props) {
         }
       );
     },
-    [
-      api,
-      organization.slug,
-      projectIds,
-      pageFilters.datetime.end,
-      pageFilters.datetime.period,
-      pageFilters.datetime.start,
-    ]
+    [api, organization.slug, projectIds, start, end, statsPeriod]
   );
 
   const onSearch = props.onSearch;
@@ -164,8 +224,8 @@ function ReplaySearchBar(props: Props) {
         disallowLogicalOperators={undefined} // ^
         className={props.className}
         fieldDefinitionGetter={getReplayFieldDefinition}
-        filterKeys={replayTags}
-        filterKeySections={undefined}
+        filterKeys={filterKeys}
+        filterKeySections={filterKeySections}
         getTagValues={getTagValues}
         initialQuery={props.query ?? props.defaultQuery ?? ''}
         onSearch={onSearchWithAnalytics}
@@ -183,7 +243,7 @@ function ReplaySearchBar(props: Props) {
     <SmartSearchBar
       {...props}
       onGetTagValues={getTagValues}
-      supportedTags={replayTags}
+      supportedTags={filterKeys}
       placeholder={
         props.placeholder ??
         t('Search for users, duration, clicked elements, count_errors, and more')
