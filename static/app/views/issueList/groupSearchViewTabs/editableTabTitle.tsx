@@ -1,29 +1,41 @@
-import {useEffect, useRef, useState} from 'react';
+import {useEffect, useMemo, useRef, useState} from 'react';
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {GrowingInput} from 'sentry/components/growingInput';
+
+interface EditableTabTitleProps {
+  isEditing: boolean;
+  isSelected: boolean;
+  label: string;
+  onChange: (newLabel: string) => void;
+  setIsEditing: (isEditing: boolean) => void;
+}
 
 function EditableTabTitle({
   label,
   onChange,
   isEditing,
+  isSelected,
   setIsEditing,
-}: {
-  isEditing: boolean;
-  label: string;
-  onChange: (newLabel: string) => void;
-  setIsEditing: (isEditing: boolean) => void;
-}) {
+}: EditableTabTitleProps) {
   const [inputValue, setInputValue] = useState(label);
 
+  const theme = useTheme();
   const inputRef = useRef<HTMLInputElement>(null);
   const isEmpty = !inputValue.trim();
 
-  const handleOnBlur = () => {
+  const memoizedStyles = useMemo(() => {
+    return {fontWeight: isSelected ? theme.fontWeightBold : theme.fontWeightNormal};
+  }, [isSelected, theme.fontWeightBold, theme.fontWeightNormal]);
+
+  const handleOnBlur = (e: React.FocusEvent<HTMLInputElement, Element>) => {
+    e.preventDefault();
     const trimmedInputValue = inputValue.trim();
     if (!isEditing) {
       return;
     }
+
     if (isEmpty) {
       setInputValue(label);
       setIsEditing(false);
@@ -37,9 +49,6 @@ function EditableTabTitle({
   };
 
   const handleOnKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter') {
-      handleOnBlur();
-    }
     if (e.key === 'Escape') {
       setInputValue(label.trim());
       setIsEditing(false);
@@ -51,9 +60,9 @@ function EditableTabTitle({
 
   useEffect(() => {
     if (isEditing) {
-      setTimeout(() => {
-        inputRef?.current?.focus();
-      }, 0);
+      requestAnimationFrame(() => {
+        inputRef.current?.focus();
+      });
     }
   }, [isEditing, inputRef]);
 
@@ -61,29 +70,33 @@ function EditableTabTitle({
     setInputValue(e.target.value);
   };
 
-  return isEditing ? (
+  return isSelected ? (
     <StyledGrowingInput
       value={inputValue}
       onChange={handleOnChange}
       onKeyDown={handleOnKeyDown}
+      onDoubleClick={() => isSelected && setIsEditing(true)}
       onBlur={handleOnBlur}
       ref={inputRef}
+      style={memoizedStyles}
+      isSelected={isSelected}
     />
   ) : (
-    <div style={{height: '20px'}}> {label}</div>
+    <div style={{height: '20px'}}>{label}</div>
   );
 }
 
 export default EditableTabTitle;
 
-const StyledGrowingInput = styled(GrowingInput)`
+const StyledGrowingInput = styled(GrowingInput)<{isSelected: boolean}>`
   border: none;
   padding: 0;
   background: transparent;
   min-height: 0px;
   height: 20px;
-  cursor: pointer;
   border-radius: 0px;
+
+  cursor: ${p => (p.isSelected ? 'auto' : 'pointer')};
 
   &,
   &:focus,
