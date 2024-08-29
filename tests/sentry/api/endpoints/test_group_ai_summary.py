@@ -332,3 +332,21 @@ class GroupAiSummaryEndpointTest(APITestCase, SnubaTestCase):
         mock_get_event_by_id.assert_called_once_with(
             "test_project_id", "test_event_id", group_id="test_group_id"
         )
+
+    @patch("sentry.api.endpoints.group_ai_summary.eventstore.backend.get_event_by_id")
+    def test_get_event_none_found(self, mock_get_event_by_id):
+        mock_group = Mock()
+        mock_user = Mock()
+        mock_group.get_recommended_event_for_environments.return_value = None
+        mock_group.get_latest_event.return_value = None
+        mock_group.project.id = "test_project_id"
+        mock_group.id = "test_group_id"
+
+        mock_get_event_by_id.return_value = None
+
+        result = GroupAiSummaryEndpoint()._get_event(mock_group, mock_user)
+
+        assert result == (None, None)
+        mock_group.get_recommended_event_for_environments.assert_called_once()
+        mock_group.get_latest_event.assert_called_once()
+        mock_get_event_by_id.assert_not_called()
