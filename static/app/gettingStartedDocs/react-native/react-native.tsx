@@ -84,10 +84,7 @@ Sentry.init({
     replaysOnErrorSampleRate: 1.0,
   },
   integrations: [
-    Sentry.mobileReplayIntegration({
-      maskAllText: true,
-      maskAllImages: true,
-    }),
+    Sentry.mobileReplayIntegration(),
   ],
 });`;
 
