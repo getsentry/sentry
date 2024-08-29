@@ -20,20 +20,20 @@ import {useUpdateGroupSearchViews} from 'sentry/views/issueList/mutations/useUpd
 import {useFetchGroupSearchViews} from 'sentry/views/issueList/queries/useFetchGroupSearchViews';
 import type {UpdateGroupSearchViewPayload} from 'sentry/views/issueList/types';
 
-import {IssueSortOptions, type QueryCounts} from './utils';
+import {IssueSortOptions} from './utils';
 
 type CustomViewsIssueListHeaderProps = {
   organization: Organization;
-  queryCounts: QueryCounts;
   router: InjectedRouter;
   selectedProjectIds: number[];
+  queryCount?: number;
 };
 
 type CustomViewsIssueListHeaderTabsContentProps = {
   organization: Organization;
-  queryCounts: QueryCounts;
   router: InjectedRouter;
   views: UpdateGroupSearchViewPayload[];
+  queryCount?: number;
 };
 
 function CustomViewsIssueListHeader({
@@ -75,6 +75,7 @@ function CustomViewsIssueListHeader({
           <CustomViewsIssueListHeaderTabsContent {...props} views={groupSearchViews} />
         </Tabs>
       ) : (
+        // TODO: Add loading state
         <div style={{height: 33}} />
       )}
     </Layout.Header>
@@ -83,7 +84,7 @@ function CustomViewsIssueListHeader({
 
 function CustomViewsIssueListHeaderTabsContent({
   organization,
-  queryCounts,
+  queryCount,
   router,
   views,
 }: CustomViewsIssueListHeaderTabsContentProps) {
@@ -103,7 +104,6 @@ function CustomViewsIssueListHeaderTabsContent({
         label: name,
         query: viewQuery,
         querySort: viewQuerySort,
-        queryCount: queryCounts[viewQuery]?.count ?? undefined,
       };
     }
   );
@@ -274,19 +274,19 @@ function CustomViewsIssueListHeaderTabsContent({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [views]);
 
-  // Loads query counts when they are available
-  // TODO: fetch these dynamically instead of getting them from overview.tsx
+  // Loads the queryCount for the selected tab's query
   useEffect(() => {
+    const selectedTabQuery = draggableTabs.find(tab => tab.query === query);
     setDraggableTabs(
       draggableTabs?.map(tab => {
-        if (tab.query && queryCounts[tab.query]) {
-          tab.queryCount = queryCounts[tab.query]?.count ?? 0; // TODO: Confirm null = 0 is correct
+        if (queryCount && tab.query === selectedTabQuery?.query) {
+          tab.queryCount = queryCount;
         }
         return tab;
       })
     );
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [queryCounts]);
+  }, [queryCount]);
 
   return (
     <DraggableTabBar

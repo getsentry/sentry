@@ -1230,7 +1230,7 @@ class IssueListOverview extends Component<Props, State> {
           <ErrorBoundary message={'Failed to load custom tabs'}>
             <CustomViewsIssueListHeader
               organization={organization}
-              queryCounts={queryCounts}
+              queryCount={this.state.issuesLoading ? undefined : queryCount}
               router={router}
               selectedProjectIds={selection.projects}
             />
