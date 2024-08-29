@@ -1,3 +1,5 @@
+from typing import Any
+
 from django.db import router, transaction
 from fido2.ctap2 import AuthenticatorData
 from rest_framework import status
@@ -31,7 +33,9 @@ class UserAuthenticatorDetailsEndpoint(UserEndpoint):
     owner = ApiOwner.ENTERPRISE
     permission_classes = (OrganizationUserPermission,)
 
-    def _get_device_for_rename(self, authenticator, interface_device_id):
+    def _get_device_for_rename(
+        self, authenticator: Authenticator, interface_device_id: str | None
+    ) -> dict[str, Any] | None:
         devices = authenticator.config
         for device in devices["devices"]:
             # this is for devices registered with webauthn, since the stored data is not a string, we need to decode it
@@ -42,7 +46,9 @@ class UserAuthenticatorDetailsEndpoint(UserEndpoint):
                 return device
         return None
 
-    def _rename_device(self, authenticator, interface_device_id, new_name):
+    def _rename_device(
+        self, authenticator: Authenticator, interface_device_id: str | None, new_name: str
+    ) -> Response:
         device = self._get_device_for_rename(authenticator, interface_device_id)
         if not device:
             return Response(status=status.HTTP_400_BAD_REQUEST)
@@ -51,10 +57,12 @@ class UserAuthenticatorDetailsEndpoint(UserEndpoint):
 
         return Response(status=status.HTTP_204_NO_CONTENT)
 
-    def _regenerate_recovery_code(self, authenticator, request, user):
+    def _regenerate_recovery_code(
+        self, authenticator: Authenticator, request: Request, user: User
+    ) -> Response:
         interface = authenticator.interface
 
-        if interface.interface_id == "recovery":
+        if isinstance(interface, RecoveryCodeInterface) and interface.interface_id == "recovery":
             interface.regenerate_codes()
 
             capture_security_activity(
@@ -68,7 +76,7 @@ class UserAuthenticatorDetailsEndpoint(UserEndpoint):
         return Response(serialize(interface))
 
     @sudo_required
-    def get(self, request: Request, user, auth_id) -> Response:
+    def get(self, request: Request, user: User, auth_id: str) -> Response:
         """
         Get Authenticator Interface
         ```````````````````````````
@@ -115,7 +123,9 @@ class UserAuthenticatorDetailsEndpoint(UserEndpoint):
         return Response(response)
 
     @sudo_required
-    def put(self, request: Request, user, auth_id, interface_device_id=None) -> Response:
+    def put(
+        self, request: Request, user: User, auth_id: str, interface_device_id: str | None = None
+    ) -> Response:
         """
         Modify authenticator interface
         ``````````````````````````````
@@ -127,19 +137,24 @@ class UserAuthenticatorDetailsEndpoint(UserEndpoint):
 
         :auth required:
         """
-        # TODO temporary solution for both renaming and regenerating recovery code. Need to find new home for regenerating recovery codes as it doesn't really do what put is supposed to do
+        # TODO temporary solution for both renaming and regenerating recovery code.
+        # Need to find new home for regenerating recovery codes as it doesn't really do what put is supposed to do
         try:
             authenticator = Authenticator.objects.get(user=user, id=auth_id)
         except (ValueError, Authenticator.DoesNotExist):
             return Response(status=status.HTTP_404_NOT_FOUND)
 
         if request.data.get("name"):
-            return self._rename_device(authenticator, interface_device_id, request.data.get("name"))
+            return self._rename_device(
+                authenticator, interface_device_id, str(request.data.get("name"))
+            )
         else:
             return self._regenerate_recovery_code(authenticator, request, user)
 
     @sudo_required
-    def delete(self, request: Request, user: User, auth_id, interface_device_id=None) -> Response:
+    def delete(
+        self, request: Request, user: User, auth_id: str, interface_device_id: str | None = None
+    ) -> Response:
         """
         Remove authenticator
         ````````````````````

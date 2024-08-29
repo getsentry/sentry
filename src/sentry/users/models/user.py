@@ -481,7 +481,7 @@ class User(Model, AbstractBaseUser):
     ) -> tuple[int, ImportKind] | None:
         # Internal function that factors our some common logic.
         def do_write() -> tuple[int, ImportKind]:
-            from sentry.api.endpoints.user_details import (
+            from sentry.users.api.endpoints.user_details import (
                 BaseUserSerializer,
                 SuperuserUserSerializer,
                 UserSerializer,

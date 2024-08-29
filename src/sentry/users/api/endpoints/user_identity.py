@@ -7,6 +7,7 @@ from sentry.api.bases.user import UserEndpoint
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
 from sentry.users.models.identity import Identity
+from sentry.users.models.user import User
 
 
 @control_silo_endpoint
@@ -15,7 +16,7 @@ class UserIdentityEndpoint(UserEndpoint):
         "GET": ApiPublishStatus.UNKNOWN,
     }
 
-    def get(self, request: Request, user) -> Response:
+    def get(self, request: Request, user: User) -> Response:
         """
         Retrieve all of a users' identities (NOT AuthIdentities)
         `````````````````````````````````

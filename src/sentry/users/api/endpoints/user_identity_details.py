@@ -5,6 +5,7 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import control_silo_endpoint
 from sentry.api.bases.user import UserEndpoint
 from sentry.models.authidentity import AuthIdentity
+from sentry.users.models.user import User
 
 
 @control_silo_endpoint
@@ -13,7 +14,7 @@ class UserIdentityDetailsEndpoint(UserEndpoint):
         "DELETE": ApiPublishStatus.UNKNOWN,
     }
 
-    def delete(self, request: Request, user, identity_id) -> Response:
+    def delete(self, request: Request, user: User, identity_id: int) -> Response:
         try:
             ai = AuthIdentity.objects.get(user=user, id=identity_id)
             ai.delete()

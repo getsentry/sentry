@@ -9,13 +9,14 @@ from sentry.api.base import control_silo_endpoint
 from sentry.api.bases.user import UserEndpoint
 from sentry.api.validators import AllowedEmailField
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
+from sentry.users.models.user import User
 from sentry.users.models.useremail import UserEmail
 
 logger = logging.getLogger("sentry.accounts")
 
 
 class InvalidEmailResponse(Response):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__(
             {"detail": "Invalid email", "email": "Invalid email"},
             status=status.HTTP_400_BAD_REQUEST,
@@ -30,7 +31,7 @@ class DuplicateEmailError(Exception):
     pass
 
 
-class EmailSerializer(serializers.Serializer):
+class EmailSerializer(serializers.Serializer[UserEmail]):
     email = AllowedEmailField(required=True)
 
 
@@ -46,7 +47,7 @@ class UserEmailsConfirmEndpoint(UserEndpoint):
         }
     }
 
-    def post(self, request: Request, user) -> Response:
+    def post(self, request: Request, user: User) -> Response:
         """
         Sends a confirmation email to user
         ``````````````````````````````````

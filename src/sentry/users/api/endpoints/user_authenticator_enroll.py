@@ -1,5 +1,6 @@
 import logging
 from base64 import b64encode
+from typing import Any
 
 import petname
 from django.http import HttpResponse
@@ -37,7 +38,7 @@ DISALLOWED_NEW_ENROLLMENT_ERR = {
 }
 
 
-class TotpRestSerializer(serializers.Serializer):
+class TotpRestSerializer(serializers.Serializer[Authenticator]):
     otp = serializers.CharField(
         label="Authenticator token",
         help_text="Code from authenticator",
@@ -47,7 +48,7 @@ class TotpRestSerializer(serializers.Serializer):
     )
 
 
-class SmsRestSerializer(serializers.Serializer):
+class SmsRestSerializer(serializers.Serializer[Authenticator]):
     phone = serializers.CharField(
         label="Phone number",
         help_text="Phone number to send SMS code",
@@ -66,7 +67,7 @@ class SmsRestSerializer(serializers.Serializer):
     )
 
 
-class U2fRestSerializer(serializers.Serializer):
+class U2fRestSerializer(serializers.Serializer[Authenticator]):
     deviceName = serializers.CharField(
         label="Device name",
         required=False,
@@ -83,7 +84,9 @@ class U2fRestSerializer(serializers.Serializer):
 serializer_map = {"totp": TotpRestSerializer, "sms": SmsRestSerializer, "u2f": U2fRestSerializer}
 
 
-def get_serializer_field_metadata(serializer, fields=None):
+def get_serializer_field_metadata(
+    serializer: serializers.Serializer[Authenticator], fields: list[str] | None = None
+) -> list[dict[str, Any]]:
     """Returns field metadata for serializer"""
     meta = []
     for field_name, field in serializer.fields.items():
@@ -118,7 +121,7 @@ class UserAuthenticatorEnrollEndpoint(UserEndpoint):
     owner = ApiOwner.ENTERPRISE
 
     @sudo_required
-    def get(self, request: Request, user, interface_id) -> HttpResponse:
+    def get(self, request: Request, user: User, interface_id: str) -> HttpResponse:
         """
         Get Authenticator Interface
         ```````````````````````````
@@ -172,7 +175,7 @@ class UserAuthenticatorEnrollEndpoint(UserEndpoint):
 
     @sudo_required
     @email_verification_required
-    def post(self, request: Request, user, interface_id) -> HttpResponse:
+    def post(self, request: Request, user: User, interface_id: str) -> HttpResponse:
         """
         Enroll in authenticator interface
         `````````````````````````````````

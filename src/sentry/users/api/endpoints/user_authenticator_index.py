@@ -7,6 +7,7 @@ from sentry.api.base import control_silo_endpoint
 from sentry.api.bases.user import UserEndpoint
 from sentry.api.serializers import serialize
 from sentry.users.models.authenticator import Authenticator
+from sentry.users.models.user import User
 
 
 @control_silo_endpoint
@@ -16,7 +17,7 @@ class UserAuthenticatorIndexEndpoint(UserEndpoint):
     }
     owner = ApiOwner.ENTERPRISE
 
-    def get(self, request: Request, user) -> Response:
+    def get(self, request: Request, user: User) -> Response:
         """Returns all interface for a user (un-enrolled ones), otherwise an empty array"""
 
         interfaces = Authenticator.objects.all_interfaces_for_user(user, return_missing=True)
