@@ -32,6 +32,7 @@ function EditableTabTitle({
     if (!isEditing) {
       return;
     }
+
     if (isEmpty) {
       setInputValue(label);
       setIsEditing(false);
@@ -72,9 +73,11 @@ function EditableTabTitle({
         value={inputValue}
         onChange={handleOnChange}
         onKeyDown={handleOnKeyDown}
+        onDoubleClick={() => isSelected && setIsEditing(true)}
         onBlur={handleOnBlur}
         ref={inputRef}
         style={{fontWeight: isSelected ? theme.fontWeightBold : theme.fontWeightNormal}}
+        isSelected={isSelected}
       />
     </FocusScope>
   );
@@ -82,14 +85,15 @@ function EditableTabTitle({
 
 export default EditableTabTitle;
 
-const StyledGrowingInput = styled(GrowingInput)`
+const StyledGrowingInput = styled(GrowingInput)<{isSelected: boolean}>`
   border: none;
   padding: 0;
   background: transparent;
   min-height: 0px;
   height: 20px;
-  cursor: pointer;
   border-radius: 0px;
+
+  cursor: ${p => (p.isSelected ? 'auto' : 'pointer')};
 
   &,
   &:focus,
