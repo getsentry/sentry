@@ -688,7 +688,7 @@ const docs: Docs<PlatformOptions> = {
   crashReportOnboarding: appleFeedbackOnboarding,
   customMetricsOnboarding: metricsOnboarding,
   platformOptions,
-  replayOnboardingMobile: replayOnboarding,
+  replayOnboarding,
 };
 
 export default docs;

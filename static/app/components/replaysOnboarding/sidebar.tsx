@@ -22,6 +22,7 @@ import TextOverflow from 'sentry/components/textOverflow';
 import {
   replayBackendPlatforms,
   replayFrontendPlatforms,
+  replayJsLoaderInstructionsPlatformList,
   replayMobilePlatforms,
   replayOnboardingPlatforms,
   replayPlatforms,
@@ -191,7 +192,7 @@ function OnboardingContent({
       .filter((p): p is PlatformKey => p !== 'javascript')
       .includes(currentProject.platform);
 
-  const defaultTab = backendPlatform ? 'jsLoader' : mobilePlatform ? 'mobile' : 'npm';
+  const defaultTab = backendPlatform ? 'jsLoader' : 'npm';
   const {getParamValue: setupMode, setParamValue: setSetupMode} = useUrlParams(
     'mode',
     defaultTab
@@ -229,7 +230,9 @@ function OnboardingContent({
     productType: 'replay',
   });
 
-  const showRadioButtons = !!docs?.replayOnboardingJsLoader;
+  const showRadioButtons =
+    currentProject.platform &&
+    replayJsLoaderInstructionsPlatformList.includes(currentProject.platform);
 
   const radioButtons = (
     <Header>
@@ -351,6 +354,7 @@ function OnboardingContent({
     <Fragment>
       {radioButtons}
       <ReplayOnboardingLayout
+        hideMaskBlockToggles={mobilePlatform}
         docsConfig={docs}
         dsn={dsn}
         activeProductSelection={[]}
@@ -358,13 +362,12 @@ function OnboardingContent({
         projectId={currentProject.id}
         projectSlug={currentProject.slug}
         configType={
-          mobilePlatform
-            ? 'replayOnboardingMobile'
-            : setupMode() === 'npm' || // switched to NPM option
-                (!setupMode() && defaultTab === 'npm') || // default value for FE frameworks when ?mode={...} in URL is not set yet
-                npmOnlyFramework // even if '?mode=jsLoader', only show npm instructions for FE frameworks
-              ? 'replayOnboardingNpm'
-              : 'replayOnboardingJsLoader'
+          setupMode() === 'npm' || // switched to NPM option
+          (!setupMode() && defaultTab === 'npm') || // default value for FE frameworks when ?mode={...} in URL is not set yet
+          npmOnlyFramework ||
+          mobilePlatform // even if '?mode=jsLoader', only show npm/default instructions for FE frameworks & mobile platforms
+            ? 'replayOnboarding'
+            : 'replayOnboardingJsLoader'
         }
       />
     </Fragment>

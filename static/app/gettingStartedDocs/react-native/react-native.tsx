@@ -460,7 +460,7 @@ const docs: Docs = {
   feedbackOnboardingCrashApi,
   crashReportOnboarding: feedbackOnboardingCrashApi,
   customMetricsOnboarding: getReactNativeMetricsOnboarding({getInstallConfig}),
-  replayOnboardingMobile: replayOnboarding,
+  replayOnboarding,
 };
 
 export default docs;

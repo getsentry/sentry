@@ -367,7 +367,7 @@ const docs: Docs<PlatformOptions> = {
   crashReportOnboarding: feedbackOnboardingCrashApiJava,
   customMetricsOnboarding: getAndroidMetricsOnboarding(),
   platformOptions,
-  replayOnboardingMobile: replayOnboarding,
+  replayOnboarding,
 };
 
 export default docs;

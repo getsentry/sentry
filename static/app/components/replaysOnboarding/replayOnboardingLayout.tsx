@@ -19,7 +19,8 @@ export function ReplayOnboardingLayout({
   projectSlug,
   newOrg,
   configType = 'onboarding',
-}: OnboardingLayoutProps) {
+  hideMaskBlockToggles,
+}: OnboardingLayoutProps & {hideMaskBlockToggles?: boolean}) {
   const organization = useOrganization();
   const {isPending: isLoadingRegistry, data: registryData} =
     useSourcePackageRegistries(organization);
@@ -87,15 +88,14 @@ export function ReplayOnboardingLayout({
                 key={step.title ?? step.type}
                 {...{
                   ...step,
-                  codeHeader:
-                    configType === 'replayOnboardingMobile' ? null : (
-                      <ReplayConfigToggle
-                        blockToggle={block}
-                        maskToggle={mask}
-                        onBlockToggle={() => setBlock(!block)}
-                        onMaskToggle={() => setMask(!mask)}
-                      />
-                    ),
+                  codeHeader: hideMaskBlockToggles ? null : (
+                    <ReplayConfigToggle
+                      blockToggle={block}
+                      maskToggle={mask}
+                      onBlockToggle={() => setBlock(!block)}
+                      onMaskToggle={() => setMask(!mask)}
+                    />
+                  ),
                 }}
               />
             ) : (
