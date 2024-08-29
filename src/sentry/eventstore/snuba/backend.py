@@ -249,10 +249,13 @@ class SnubaEventStorage(EventStorage):
                 start = min(event.datetime for event in nodestore_events)
                 end = max(event.datetime for event in nodestore_events) + timedelta(seconds=1)
 
-                if filter.start:
-                    start = max(start, filter.start)
-                if filter.end:
-                    end = min(end, filter.end)
+                if filter.start or filter.end:
+                    if filter.start:
+                        start = max(start, filter.start)
+                    if filter.end:
+                        end = min(end, filter.end)
+                    if start > end:
+                        return []
 
                 result = snuba.aliased_query(
                     selected_columns=cols,
