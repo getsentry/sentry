@@ -67,7 +67,7 @@ rfc3986-validator>=0.1.1
 sentry-arroyo>=2.16.5
 sentry-kafka-schemas>=0.1.106
 sentry-ophio==0.2.7
-sentry-protos>=0.1.3
+sentry-protos>=0.1.15
 sentry-redis-tools>=0.1.7
 sentry-relay>=0.9.1
 sentry-sdk>=2.12.0
@@ -86,7 +86,7 @@ ua-parser>=0.10.0
 unidiff>=0.7.4
 urllib3[brotli]>=2.2.2
 brotli>=1.0.9
-pyuwsgi==2.0.26
+pyuwsgi==2.0.27a1
 zstandard>=0.18.0
 sentry-usage-accountant==0.0.10
 orjson>=3.10.3

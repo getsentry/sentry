@@ -1,8 +1,7 @@
-import type {RouteComponentProps} from 'react-router';
-
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
+import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import type {Organization} from 'sentry/types/organization';
 import type {Project, ProjectKey} from 'sentry/types/project';
 import {browserHistory} from 'sentry/utils/browserHistory';
@@ -34,7 +33,7 @@ export default function ProjectKeyDetails({organization, params, project}: Props
   const {
     data: projKeyData,
     isError,
-    isLoading,
+    isPending,
   } = useApiQuery<ProjectKey>(
     [`/projects/${organization.slug}/${projectId}/keys/${keyId}/`],
     {staleTime: 0}
@@ -58,7 +57,7 @@ export default function ProjectKeyDetails({organization, params, project}: Props
     return <RouteError />;
   }
 
-  if (isLoading) {
+  if (isPending) {
     return <LoadingIndicator />;
   }
 

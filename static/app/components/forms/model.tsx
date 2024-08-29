@@ -241,7 +241,7 @@ class FormModel {
    * Set form options
    */
   setFormOptions(options: FormOptions) {
-    this.options = {...this.options, ...options} || {};
+    this.options = {...this.options, ...options};
   }
 
   /**

@@ -1,5 +1,4 @@
 import {useContext, useEffect, useMemo, useState} from 'react';
-import type {InjectedRouter} from 'react-router';
 import styled from '@emotion/styled';
 import debounce from 'lodash/debounce';
 
@@ -9,6 +8,7 @@ import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionT
 import {Tabs, TabsContext} from 'sentry/components/tabs';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import type {InjectedRouter} from 'sentry/types/legacyReactRouter';
 import type {Organization} from 'sentry/types/organization';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useProjects from 'sentry/utils/useProjects';
@@ -20,18 +20,16 @@ import {useUpdateGroupSearchViews} from 'sentry/views/issueList/mutations/useUpd
 import {useFetchGroupSearchViews} from 'sentry/views/issueList/queries/useFetchGroupSearchViews';
 import type {UpdateGroupSearchViewPayload} from 'sentry/views/issueList/types';
 
-import {IssueSortOptions, type QueryCounts} from './utils';
+import {IssueSortOptions} from './utils';
 
 type CustomViewsIssueListHeaderProps = {
   organization: Organization;
-  queryCounts: QueryCounts;
   router: InjectedRouter;
   selectedProjectIds: number[];
 };
 
 type CustomViewsIssueListHeaderTabsContentProps = {
   organization: Organization;
-  queryCounts: QueryCounts;
   router: InjectedRouter;
   views: UpdateGroupSearchViewPayload[];
 };
@@ -83,7 +81,6 @@ function CustomViewsIssueListHeader({
 
 function CustomViewsIssueListHeaderTabsContent({
   organization,
-  queryCounts,
   router,
   views,
 }: CustomViewsIssueListHeaderTabsContentProps) {
@@ -103,7 +100,6 @@ function CustomViewsIssueListHeaderTabsContent({
         label: name,
         query: viewQuery,
         querySort: viewQuerySort,
-        queryCount: queryCounts[viewQuery]?.count ?? undefined,
       };
     }
   );
@@ -163,7 +159,7 @@ function CustomViewsIssueListHeaderTabsContent({
     [organization.slug, updateViews]
   );
 
-  // This insane useEffect ensures that the correct tab is selected when the page loads and url updates
+  // This insane useEffect ensures that the correct tab is selected when the url updates
   useEffect(() => {
     // If no query, sort, or viewId is present, set the first tab as the selected tab, update query accordingly
     if (!query && !sort && !viewId) {
@@ -210,7 +206,7 @@ function CustomViewsIssueListHeaderTabsContent({
         tabListState?.setSelectedKey(selectedTab.key);
         return;
       }
-      if (selectedTab && !query) {
+      if (selectedTab && query === undefined) {
         navigate({
           query: {
             ...queryParams,
@@ -241,16 +237,8 @@ function CustomViewsIssueListHeaderTabsContent({
       tabListState?.setSelectedKey('temporary-tab');
       return;
     }
-  }, [
-    tabListState,
-    draggableTabs,
-    navigate,
-    organization.slug,
-    query,
-    queryParams,
-    sort,
-    viewId,
-  ]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [navigate, organization.slug, query, sort, viewId]);
 
   // Update local tabs when new views are received from mutation request
   useEffect(() => {
@@ -281,20 +269,6 @@ function CustomViewsIssueListHeaderTabsContent({
     );
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [views]);
-
-  // Loads query counts when they are available
-  // TODO: fetch these dynamically instead of getting them from overview.tsx
-  useEffect(() => {
-    setDraggableTabs(
-      draggableTabs?.map(tab => {
-        if (tab.query && queryCounts[tab.query]) {
-          tab.queryCount = queryCounts[tab.query]?.count ?? 0; // TODO: Confirm null = 0 is correct
-        }
-        return tab;
-      })
-    );
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [queryCounts]);
 
   return (
     <DraggableTabBar

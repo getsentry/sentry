@@ -1,5 +1,4 @@
 import type {ReactNode} from 'react';
-import type {PlainRoute, RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 
@@ -27,6 +26,7 @@ import {t, tct} from 'sentry/locale';
 import IndicatorStore from 'sentry/stores/indicatorStore';
 import {space} from 'sentry/styles/space';
 import {ActivationConditionType, MonitorType} from 'sentry/types/alerts';
+import type {PlainRoute, RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import type {MetricsExtractionRule} from 'sentry/types/metrics';
 import type {
   EventsStats,
@@ -237,13 +237,16 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
       metricExtractionRules: null,
       triggers: triggersClone,
       resolveThreshold: rule.resolveThreshold,
-      sensitivity: null,
+      sensitivity: rule.sensitivity ?? undefined,
+      seasonality: rule.seasonality ?? undefined,
       thresholdType: rule.thresholdType,
       thresholdPeriod: rule.thresholdPeriod ?? 1,
       comparisonDelta: rule.comparisonDelta ?? undefined,
       comparisonType: rule.comparisonDelta
         ? AlertRuleComparisonType.CHANGE
-        : AlertRuleComparisonType.COUNT,
+        : rule.sensitivity
+          ? AlertRuleComparisonType.DYNAMIC
+          : AlertRuleComparisonType.COUNT,
       project: this.props.project,
       owner: rule.owner,
       alertType: getAlertTypeFromAggregateDataset({aggregate, dataset}),
@@ -806,7 +809,11 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
             ...activatedAlertFields,
             projects: [project.slug],
             triggers: sanitizedTriggers,
-            resolveThreshold: isEmpty(resolveThreshold) ? null : resolveThreshold,
+            resolveThreshold:
+              isEmpty(resolveThreshold) ||
+              detectionType === AlertRuleComparisonType.DYNAMIC
+                ? null
+                : resolveThreshold,
             thresholdType,
             thresholdPeriod,
             comparisonDelta: comparisonDelta ?? null,
@@ -938,7 +945,7 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
         ? this.state.sensitivity || AlertRuleSensitivity.MEDIUM
         : undefined;
     const seasonality =
-      value === AlertRuleComparisonType.DYNAMIC ? AlertRuleSeasonality.AUTO : undefined; // TODO: replace "auto" with the correct constant
+      value === AlertRuleComparisonType.DYNAMIC ? AlertRuleSeasonality.AUTO : undefined;
     this.setState({
       comparisonType: value,
       comparisonDelta,

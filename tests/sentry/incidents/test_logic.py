@@ -1763,6 +1763,41 @@ class UpdateAlertRuleTest(TestCase, BaseIncidentsTest):
     @patch(
         "sentry.seer.anomaly_detection.store_data.seer_anomaly_detection_connection_pool.urlopen"
     )
+    def test_update_alert_rule_dynamic_to_static_status(self, mock_seer_request):
+        """
+        Assert that the alert rule status changes to PENDING if we switch from a dynamic alert to another type of alert.
+        """
+        # just setting up an alert
+        mock_seer_request.return_value = HTTPResponse(status=200)
+
+        two_days_ago = before_now(days=2).replace(hour=10, minute=0, second=0, microsecond=0)
+        self.create_event(two_days_ago + timedelta(minutes=1))
+        self.create_event(two_days_ago + timedelta(days=1))
+
+        alert_rule = self.create_alert_rule()
+        update_alert_rule(
+            alert_rule,
+            time_window=30,
+            sensitivity=AlertRuleSensitivity.HIGH,
+            seasonality=AlertRuleSeasonality.AUTO,
+            detection_type=AlertRuleDetectionType.DYNAMIC,
+        )
+        assert mock_seer_request.call_count == 1
+        assert alert_rule.status == AlertRuleStatus.NOT_ENOUGH_DATA.value
+
+        # okay, here's the test :)
+        update_alert_rule(
+            alert_rule,
+            sensitivity=None,
+            seasonality=None,
+            detection_type=AlertRuleDetectionType.STATIC,
+        )
+        assert alert_rule.status == AlertRuleStatus.PENDING.value
+
+    @with_feature("organizations:anomaly-detection-alerts")
+    @patch(
+        "sentry.seer.anomaly_detection.store_data.seer_anomaly_detection_connection_pool.urlopen"
+    )
     @patch("sentry.seer.anomaly_detection.store_data.logger")
     def test_update_alert_rule_anomaly_detection_seer_timeout_max_retry(
         self, mock_logger, mock_seer_request
@@ -3475,29 +3510,29 @@ class TestCustomMetricAlertRule(TestCase):
 class TestGetAlertResolution(TestCase):
     def test_simple(self):
         time_window = 30
-        result = get_alert_resolution(time_window)
+        result = get_alert_resolution(time_window, self.organization)
         assert result == DEFAULT_ALERT_RULE_WINDOW_TO_RESOLUTION[time_window]
 
     def test_low_range(self):
         time_window = 2
-        result = get_alert_resolution(time_window)
+        result = get_alert_resolution(time_window, self.organization)
         assert result == DEFAULT_ALERT_RULE_RESOLUTION
 
     def test_high_range(self):
         last_window = list(DEFAULT_ALERT_RULE_WINDOW_TO_RESOLUTION.keys())[-1]
         time_window = last_window + 1000
-        result = get_alert_resolution(time_window)
+        result = get_alert_resolution(time_window, self.organization)
 
         assert result == DEFAULT_ALERT_RULE_WINDOW_TO_RESOLUTION[last_window]
 
     def test_mid_range(self):
         time_window = 125
-        result = get_alert_resolution(time_window)
+        result = get_alert_resolution(time_window, self.organization)
 
         # 125 is not part of the dict, will round down to the lower window of 120
         assert result == 3
 
     def test_crazy_low_range(self):
         time_window = -5
-        result = get_alert_resolution(time_window)
+        result = get_alert_resolution(time_window, self.organization)
         assert result == DEFAULT_ALERT_RULE_RESOLUTION

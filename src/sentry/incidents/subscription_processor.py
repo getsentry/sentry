@@ -518,7 +518,11 @@ class SubscriptionProcessor:
             "organizations:fake-anomaly-detection", self.subscription.project.organization
         )
 
-        if self.has_anomaly_detection:
+        potential_anomalies = None
+        if (
+            self.has_anomaly_detection
+            and self.alert_rule.detection_type == AlertRuleDetectionType.DYNAMIC
+        ):
             potential_anomalies = self.get_anomaly_data_from_seer(aggregation_value)
             if potential_anomalies is None:
                 return []
@@ -545,8 +549,7 @@ class SubscriptionProcessor:
         with transaction.atomic(router.db_for_write(AlertRule)):
             # Triggers is the threshold - NOT an instance of a trigger
             for trigger in self.triggers:
-                detection_type = trigger.alert_rule.detection_type
-                if self.has_anomaly_detection and detection_type == AlertRuleDetectionType.DYNAMIC:
+                if potential_anomalies:
                     # NOTE: There should only be one anomaly in the list
                     for potential_anomaly in potential_anomalies:
                         # check to see if we have enough data for the dynamic alert rule now
@@ -565,7 +568,7 @@ class SubscriptionProcessor:
                         ) and not self.check_trigger_matches_status(trigger, TriggerStatus.ACTIVE):
                             metrics.incr(
                                 "incidents.alert_rules.threshold.alert",
-                                tags={"detection_type": detection_type},
+                                tags={"detection_type": self.alert_rule.detection_type},
                             )
                             incident_trigger = self.trigger_alert_threshold(
                                 trigger, aggregation_value
@@ -584,7 +587,7 @@ class SubscriptionProcessor:
                         ):
                             metrics.incr(
                                 "incidents.alert_rules.threshold.resolve",
-                                tags={"detection_type": detection_type},
+                                tags={"detection_type": self.alert_rule.detection_type},
                             )
                             incident_trigger = self.trigger_resolve_threshold(
                                 trigger, aggregation_value
@@ -602,7 +605,7 @@ class SubscriptionProcessor:
                         # And the trigger is not yet active
                         metrics.incr(
                             "incidents.alert_rules.threshold.alert",
-                            tags={"detection_type": detection_type},
+                            tags={"detection_type": self.alert_rule.detection_type},
                         )
                         # triggering a threshold will create an incident and set the status to active
                         incident_trigger = self.trigger_alert_threshold(trigger, aggregation_value)
@@ -620,7 +623,7 @@ class SubscriptionProcessor:
                     ):
                         metrics.incr(
                             "incidents.alert_rules.threshold.resolve",
-                            tags={"detection_type": detection_type},
+                            tags={"detection_type": self.alert_rule.detection_type},
                         )
                         incident_trigger = self.trigger_resolve_threshold(
                             trigger, aggregation_value

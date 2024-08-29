@@ -470,6 +470,7 @@ DEFAULT_ALERT_RULE_WINDOW_TO_RESOLUTION = {
     720: 5,
     1440: 15,
 }
+SORTED_TIMEWINDOWS = sorted(DEFAULT_ALERT_RULE_WINDOW_TO_RESOLUTION.keys())
 
 # Temporary mapping of `Dataset` to `AlertRule.Type`. In the future, `Performance` will be
 # able to be run on `METRICS` as well.
@@ -481,14 +482,13 @@ query_datasets_to_type = {
 }
 
 
-def get_alert_resolution(time_window: int) -> int:
-    windows = sorted(DEFAULT_ALERT_RULE_WINDOW_TO_RESOLUTION.keys())
-    index = bisect.bisect_right(windows, time_window)
+def get_alert_resolution(time_window: int, organization: Organization) -> int:
+    index = bisect.bisect_right(SORTED_TIMEWINDOWS, time_window)
 
     if index == 0:
         return DEFAULT_ALERT_RULE_RESOLUTION
 
-    return DEFAULT_ALERT_RULE_WINDOW_TO_RESOLUTION[windows[index - 1]]
+    return DEFAULT_ALERT_RULE_WINDOW_TO_RESOLUTION[SORTED_TIMEWINDOWS[index - 1]]
 
 
 class _OwnerKwargs(TypedDict):
@@ -567,7 +567,7 @@ def create_alert_rule(
     if monitor_type == AlertRuleMonitorTypeInt.ACTIVATED and not activation_condition:
         raise ValidationError("Activation condition required for activated alert rule")
 
-    resolution = get_alert_resolution(time_window)
+    resolution = get_alert_resolution(time_window, organization)
 
     if detection_type == AlertRuleDetectionType.DYNAMIC:
         if not (sensitivity and seasonality):
@@ -813,6 +813,8 @@ def update_alert_rule(
     :return: The updated `AlertRule`
     """
     snuba_query = _unpack_snuba_query(alert_rule)
+    organization = _unpack_organization(alert_rule)
+
     updated_fields: dict[str, Any] = {"date_modified": django_timezone.now()}
     updated_query_fields: dict[str, Any] = {}
     if name:
@@ -871,7 +873,7 @@ def update_alert_rule(
             / 60
         )
 
-        resolution = get_alert_resolution(window)
+        resolution = get_alert_resolution(window, organization=organization)
         resolution_comparison_delta = updated_fields.get(
             "comparison_delta", alert_rule.comparison_delta
         )
@@ -917,7 +919,7 @@ def update_alert_rule(
             updated_fields["team_id"] = alert_rule.team_id
 
         if detection_type == AlertRuleDetectionType.DYNAMIC:
-            if not features.has("organizations:anomaly-detection-alerts", alert_rule.organization):
+            if not features.has("organizations:anomaly-detection-alerts", organization):
                 raise ResourceDoesNotExist(
                     "Your organization does not have access to this feature."
                 )
@@ -941,6 +943,10 @@ def update_alert_rule(
                 except ValidationError:
                     # If there's no historical data available—something went wrong when querying snuba
                     raise ValidationError("Failed to send data to Seer - cannot update alert rule.")
+        else:
+            # if this alert was previously a dynamic alert, then we should update the rule to be ready
+            if alert_rule.status == AlertRuleStatus.NOT_ENOUGH_DATA.value:
+                alert_rule.update(status=AlertRuleStatus.PENDING.value)
 
         alert_rule.update(**updated_fields)
         AlertRuleActivity.objects.create(
@@ -999,7 +1005,7 @@ def update_alert_rule(
                 ]
                 AlertRuleExcludedProjects.objects.bulk_create(new_exclusions)
 
-                new_projects = Project.objects.filter(organization=alert_rule.organization).exclude(
+                new_projects = Project.objects.filter(organization=organization).exclude(
                     id__in={sub.project_id for sub in existing_subs} | excluded_project_ids
                 )
                 # If we're subscribed to any of the excluded projects then we want to

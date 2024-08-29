@@ -47,7 +47,7 @@ export function TeamUnresolvedIssues({
 }: TeamUnresolvedIssuesProps) {
   const {
     data: periodIssues = {},
-    isLoading,
+    isPending,
     isError,
     refetch,
   } = useApiQuery<ProjectReleaseCount>(
@@ -117,8 +117,8 @@ export function TeamUnresolvedIssues({
   return (
     <div>
       <ChartWrapper>
-        {isLoading && <Placeholder height="200px" />}
-        {!isLoading && (
+        {isPending && <Placeholder height="200px" />}
+        {!isPending && (
           <BarChart
             style={{height: 190}}
             isGroupedByDate
@@ -142,7 +142,7 @@ export function TeamUnresolvedIssues({
           <Fragment>
             <StyledPanelTable
               isEmpty={projects.length === 0}
-              isLoading={isLoading}
+              isLoading={isPending}
               headers={[
                 t('Project'),
                 <RightAligned key="last">
@@ -191,7 +191,7 @@ export function TeamUnresolvedIssues({
                 );
               })}
             </StyledPanelTable>
-            {!isLoading && showMoreButton}
+            {!isPending && showMoreButton}
           </Fragment>
         )}
       </CollapsePanel>

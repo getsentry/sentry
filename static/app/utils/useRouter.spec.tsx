@@ -1,58 +1,48 @@
-import {createMemoryHistory, Route, Router, RouterContext} from 'react-router';
+import {LocationFixture} from 'sentry-fixture/locationFixture';
+import {RouterFixture} from 'sentry-fixture/routerFixture';
 
 import {render} from 'sentry-test/reactTestingLibrary';
 
+import type {RouteContextInterface} from 'sentry/types/legacyReactRouter';
 import useRouter from 'sentry/utils/useRouter';
 import {RouteContext} from 'sentry/views/routeContext';
 
 describe('useRouter', () => {
   it('returns the current router object', function () {
-    let expectedRouter;
     let actualRouter;
     function HomePage() {
       actualRouter = useRouter();
       return null;
     }
 
-    const memoryHistory = createMemoryHistory();
-    memoryHistory.push('/');
+    const routeContext: RouteContextInterface = {
+      location: LocationFixture(),
+      params: {},
+      router: RouterFixture(),
+      routes: [],
+    };
 
     render(
-      <Router
-        history={memoryHistory}
-        render={props => {
-          expectedRouter = props.router;
-          return (
-            <RouteContext.Provider value={props}>
-              <RouterContext {...props} />
-            </RouteContext.Provider>
-          );
-        }}
-      >
-        <Route path="/" component={HomePage} />
-      </Router>
+      <RouteContext.Provider value={routeContext}>
+        <HomePage />
+      </RouteContext.Provider>
     );
-    expect(actualRouter).toEqual(expectedRouter);
+    expect(actualRouter).toEqual(routeContext.router);
   });
 
   it('throws error when called outside of routes provider', function () {
     // Error is expected, do not fail when calling console.error
     jest.spyOn(console, 'error').mockImplementation();
-    const memoryHistory = createMemoryHistory();
-    memoryHistory.push('/');
+
+    function HomePage() {
+      useRouter();
+      return null;
+    }
 
     expect(() =>
       render(
         <RouteContext.Provider value={null}>
-          <Router history={memoryHistory}>
-            <Route
-              path="/"
-              component={() => {
-                useRouter();
-                return null;
-              }}
-            />
-          </Router>
+          <HomePage />
         </RouteContext.Provider>
       )
     ).toThrow(/useRouteContext called outside of routes provider/);

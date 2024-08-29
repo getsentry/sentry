@@ -11,7 +11,6 @@ import HookStore from 'sentry/stores/hookStore';
 import ModalStore from 'sentry/stores/modalStore';
 import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {browserHistory} from 'sentry/utils/browserHistory';
 
 import type {StrictStoreDefinition} from './types';
 
@@ -86,7 +85,6 @@ function isForceEnabled() {
 }
 
 interface GuideStoreDefinition extends StrictStoreDefinition<GuideStoreState> {
-  browserHistoryListener: null | (() => void);
   closeGuide(dismissed?: boolean): void;
 
   fetchSucceeded(data: GuidesServerData): void;
@@ -106,7 +104,6 @@ interface GuideStoreDefinition extends StrictStoreDefinition<GuideStoreState> {
 
 const storeConfig: GuideStoreDefinition = {
   state: {...defaultState},
-  browserHistoryListener: null,
   modalStoreListener: null,
 
   init() {
@@ -116,7 +113,6 @@ const storeConfig: GuideStoreDefinition = {
     this.state = {...defaultState, forceShow: isForceEnabled()};
 
     window.addEventListener('load', this.onURLChange, false);
-    this.browserHistoryListener = browserHistory.listen(() => this.onURLChange());
 
     // Guides will show above modals, but are not interactable because
     // of the focus trap, so we force them to be hidden while a modal is open.
@@ -134,9 +130,6 @@ const storeConfig: GuideStoreDefinition = {
   teardown() {
     window.removeEventListener('load', this.onURLChange);
 
-    if (this.browserHistoryListener) {
-      this.browserHistoryListener();
-    }
     if (this.modalStoreListener) {
       this.modalStoreListener();
     }

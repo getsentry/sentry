@@ -27,7 +27,7 @@ import {
   WebVital,
 } from '../fields';
 
-import {CONDITIONS_ARGUMENTS, WEB_VITALS_QUALITY} from './types';
+import {CONDITIONS_ARGUMENTS, DiscoverDatasets, WEB_VITALS_QUALITY} from './types';
 
 export type Sort = {
   field: string;
@@ -199,6 +199,8 @@ const getDocsAndOutputType = (key: AggregationKey) => {
 
 // Refer to src/sentry/search/events/fields.py
 // Try to keep functions logically sorted, ie. all the count functions are grouped together
+// When dealing with errors or transactions datasets, use getAggregations() instead because
+// there are dataset-specific overrides
 export const AGGREGATIONS = {
   [AggregationKey.COUNT]: {
     ...getDocsAndOutputType(AggregationKey.COUNT),
@@ -635,6 +637,47 @@ export type MeasurementType =
 
 export function isSpanOperationBreakdownField(field: string) {
   return field.startsWith('spans.');
+}
+
+// Returns the AGGREGATIONS object with the expected defaults for the given dataset
+export function getAggregations(dataset: DiscoverDatasets) {
+  if (dataset === DiscoverDatasets.DISCOVER) {
+    return AGGREGATIONS;
+  }
+
+  return {
+    ...AGGREGATIONS,
+    [AggregationKey.COUNT_IF]: {
+      ...AGGREGATIONS[AggregationKey.COUNT_IF],
+      parameters: [
+        {
+          kind: 'column',
+          columnTypes: validateDenyListColumns(
+            ['string', 'duration', 'number'],
+            ['id', 'issue', 'user.display']
+          ),
+          defaultValue:
+            dataset === DiscoverDatasets.TRANSACTIONS
+              ? 'transaction.duration'
+              : 'event.type',
+          required: true,
+        },
+        {
+          kind: 'dropdown',
+          options: CONDITIONS_ARGUMENTS,
+          dataType: 'string',
+          defaultValue: CONDITIONS_ARGUMENTS[0].value,
+          required: true,
+        },
+        {
+          kind: 'value',
+          dataType: 'string',
+          defaultValue: dataset === DiscoverDatasets.TRANSACTIONS ? '300' : 'error',
+          required: true,
+        },
+      ],
+    },
+  } as const;
 }
 
 export const SPAN_OP_RELATIVE_BREAKDOWN_FIELD = 'span_ops_breakdown.relative';
@@ -1347,7 +1390,7 @@ export function hasDuplicate(columnList: Column[], column: Column): boolean {
 
 export const TRANSACTION_FILTERS: FilterKeySection = {
   value: 'transaction_event_filters',
-  label: 'Event Filters',
+  label: 'Event',
   children: [
     FieldKey.TRANSACTION_DURATION,
     FieldKey.TRANSACTION_OP,
@@ -1506,7 +1549,7 @@ export const MISC_FILTERS: FilterKeySection = {
 
 export const TRANSACTION_EVENT_FILTERS: FilterKeySection = {
   value: 'transaction_event_filters',
-  label: 'Event Filters',
+  label: 'Event',
   children: [
     ...TRANSACTION_FILTERS.children,
     ...HTTP_FILTERS.children,
@@ -1516,7 +1559,7 @@ export const TRANSACTION_EVENT_FILTERS: FilterKeySection = {
 
 export const ERROR_EVENT_FILTERS: FilterKeySection = {
   value: 'error_event_filters',
-  label: 'Event Filters',
+  label: 'Event',
   children: [
     ...ERROR_DETAIL_FILTERS.children,
     ...HTTP_FILTERS.children,
@@ -1526,7 +1569,7 @@ export const ERROR_EVENT_FILTERS: FilterKeySection = {
 
 export const COMBINED_EVENT_FILTERS: FilterKeySection = {
   value: 'combined_event_filters',
-  label: 'Event Filters',
+  label: 'Event',
   children: [
     ...TRANSACTION_FILTERS.children,
     ...ERROR_DETAIL_FILTERS.children,
@@ -1537,7 +1580,7 @@ export const COMBINED_EVENT_FILTERS: FilterKeySection = {
 
 export const USER_CONTEXT_FILTERS: FilterKeySection = {
   value: 'user_context_filters',
-  label: 'User Context',
+  label: 'User',
   children: [
     ...USER_FILTERS.children,
     ...GEO_FILTERS.children,

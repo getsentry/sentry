@@ -1,5 +1,4 @@
 import {Component} from 'react';
-import type {WithRouterProps} from 'react-router';
 import styled from '@emotion/styled';
 import debounce from 'lodash/debounce';
 
@@ -7,6 +6,7 @@ import type {Client, ResponseMeta} from 'sentry/api';
 import Input from 'sentry/components/input';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
+import type {WithRouterProps} from 'sentry/types/legacyReactRouter';
 // eslint-disable-next-line no-restricted-imports
 import withSentryRouter from 'sentry/utils/withSentryRouter';
 

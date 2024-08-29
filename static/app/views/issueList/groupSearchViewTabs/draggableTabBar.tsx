@@ -1,17 +1,15 @@
 import 'intersection-observer'; // polyfill
 
 import {useContext, useState} from 'react';
-import type {InjectedRouter} from 'react-router';
 import styled from '@emotion/styled';
 import type {Node} from '@react-types/shared';
 
-import Badge from 'sentry/components/badge/badge';
 import {DraggableTabList} from 'sentry/components/draggableTabs/draggableTabList';
 import type {DraggableTabListItemProps} from 'sentry/components/draggableTabs/item';
 import type {MenuItemProps} from 'sentry/components/dropdownMenu';
-import QueryCount from 'sentry/components/queryCount';
 import {TabsContext} from 'sentry/components/tabs';
 import {t} from 'sentry/locale';
+import type {InjectedRouter} from 'sentry/types/legacyReactRouter';
 import {defined} from 'sentry/utils';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import {useNavigate} from 'sentry/utils/useNavigate';
@@ -26,7 +24,6 @@ export interface Tab {
   query: string;
   querySort: IssueSortOptions;
   content?: React.ReactNode;
-  queryCount?: number;
   unsavedChanges?: [string, IssueSortOptions];
 }
 
@@ -313,23 +310,14 @@ export function DraggableTabBar({
             pathname: `/organizations/${orgSlug}/issues/`,
           })}
         >
-          <TabContentWrap selected={tabListState?.selectedKey === tab.key}>
+          <TabContentWrap>
             <EditableTabTitle
               label={tab.label}
               isEditing={editingTabKey === tab.key}
               setIsEditing={isEditing => setEditingTabKey(isEditing ? tab.key : null)}
               onChange={newLabel => handleOnTabRenamed(newLabel.trim(), tab.key)}
+              isSelected={tabListState?.selectedKey === tab.key}
             />
-            {tab.key !== 'temporary-tab' && tab.queryCount !== undefined && (
-              <StyledBadge>
-                <QueryCount
-                  hideParens
-                  hideIfEmpty={false}
-                  count={tab.queryCount}
-                  max={1000}
-                />
-              </StyledBadge>
-            )}
             {tabListState?.selectedKey === tab.key && (
               <DraggableTabMenuButton
                 hasUnsavedChanges={!!tab.unsavedChanges}
@@ -435,24 +423,11 @@ const makeTempViewMenuOptions = ({
   ];
 };
 
-const TabContentWrap = styled('span')<{selected: boolean}>`
+const TabContentWrap = styled('span')`
   white-space: nowrap;
   display: flex;
   align-items: center;
   flex-direction: row;
   padding: 0;
   gap: 6px;
-  ${p => (p.selected ? 'z-index: 1;' : 'z-index: 0;')}
-`;
-
-const StyledBadge = styled(Badge)`
-  display: flex;
-  height: 16px;
-  align-items: center;
-  justify-content: center;
-  border-radius: 10px;
-  background: transparent;
-  border: 1px solid ${p => p.theme.gray200};
-  color: ${p => p.theme.gray300};
-  margin-left: 0;
 `;

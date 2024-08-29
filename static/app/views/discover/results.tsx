@@ -1,5 +1,4 @@
 import {Component, Fragment} from 'react';
-import type {InjectedRouter} from 'react-router';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 import type {Location} from 'history';
@@ -11,7 +10,6 @@ import {fetchTotalCount} from 'sentry/actionCreators/events';
 import {fetchProjectsCount} from 'sentry/actionCreators/projects';
 import {loadOrganizationTags} from 'sentry/actionCreators/tags';
 import {Client} from 'sentry/api';
-import Feature from 'sentry/components/acl/feature';
 import {Alert} from 'sentry/components/alert';
 import {Button} from 'sentry/components/button';
 import Confirm from 'sentry/components/confirm';
@@ -37,6 +35,7 @@ import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {PageFilters} from 'sentry/types/core';
 import {SavedSearchType} from 'sentry/types/group';
+import type {InjectedRouter} from 'sentry/types/legacyReactRouter';
 import type {NewQuery, Organization, SavedQuery} from 'sentry/types/organization';
 import {defined, generateQueryWithTag} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -62,10 +61,7 @@ import withApi from 'sentry/utils/withApi';
 import withOrganization from 'sentry/utils/withOrganization';
 import withPageFilters from 'sentry/utils/withPageFilters';
 import {hasDatasetSelector} from 'sentry/views/dashboards/utils';
-import {
-  DATASET_LABEL_MAP,
-  DatasetSelector,
-} from 'sentry/views/discover/savedQuery/datasetSelector';
+import {DATASET_LABEL_MAP} from 'sentry/views/discover/savedQuery/datasetSelectorTabs';
 import {
   getDatasetFromLocationOrSavedQueryDataset,
   getSavedQueryDataset,
@@ -523,12 +519,11 @@ export class Results extends Component<Props, State> {
   };
 
   getDocumentTitle(): string {
-    const {organization} = this.props;
     const {eventView} = this.state;
     if (!eventView) {
       return '';
     }
-    return generateTitle({eventView, organization});
+    return generateTitle({eventView});
   }
 
   renderTagsTable() {
@@ -763,6 +758,7 @@ export class Results extends Component<Props, State> {
             yAxis={yAxisArray}
             router={router}
             isHomepage={isHomepage}
+            splitDecision={splitDecision}
           />
           <Layout.Body>
             <CustomMeasurementsProvider organization={organization} selection={selection}>
@@ -774,21 +770,6 @@ export class Results extends Component<Props, State> {
                 {!hasDatasetSelectorFeature && <SampleDataAlert query={query} />}
 
                 <Wrapper>
-                  <Feature
-                    organization={organization}
-                    features="performance-discover-dataset-selector"
-                  >
-                    {({hasFeature}) =>
-                      hasFeature && (
-                        <DatasetSelector
-                          isHomepage={isHomepage}
-                          savedQuery={savedQuery}
-                          splitDecision={splitDecision}
-                          eventView={eventView}
-                        />
-                      )
-                    }
-                  </Feature>
                   <PageFilterBar condensed>
                     <ProjectPageFilter />
                     <EnvironmentPageFilter />
