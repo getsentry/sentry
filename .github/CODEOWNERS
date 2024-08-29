@@ -218,8 +218,8 @@ yarn.lock                                                @getsentry/owners-js-de
 /tests/sentry/api/endpoints/test_discover_key_transactions.py                                  @getsentry/visibility
 /tests/sentry/api/endpoints/test_discover_saved_queries.py                                     @getsentry/visibility
 /tests/sentry/api/endpoints/test_discover_saved_query_detail.py                                @getsentry/visibility
-/tests/sentry/api/endpoints/test_group_details.py                                              @getsentry/visibility
-/tests/sentry/api/endpoints/test_group_event_details.py                                        @getsentry/visibility
+/tests/sentry/api/endpoints/test_group_details.py                                              @getsentry/visibility @getsentry/issues
+/tests/sentry/api/endpoints/test_group_event_details.py                                        @getsentry/visibility @getsentry/issues
 /tests/sentry/api/endpoints/test_organization_event_details.py                                 @getsentry/visibility
 /tests/sentry/api/endpoints/test_organization_eventid.py                                       @getsentry/visibility
 /tests/sentry/api/endpoints/test_organization_events.py                                        @getsentry/visibility
