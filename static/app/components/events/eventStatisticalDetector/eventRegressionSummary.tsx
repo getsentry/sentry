@@ -1,8 +1,8 @@
 import {useMemo} from 'react';
+import styled from '@emotion/styled';
 
 import {LinkButton} from 'sentry/components/button';
 import KeyValueList from 'sentry/components/events/interfaces/keyValueList';
-import {DataSection} from 'sentry/components/events/styles';
 import {t} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
 import type {Group, KeyValueListData} from 'sentry/types/group';
@@ -13,6 +13,8 @@ import {getFormattedDate} from 'sentry/utils/dates';
 import getDuration from 'sentry/utils/duration/getDuration';
 import {formatPercentage} from 'sentry/utils/number/formatPercentage';
 import useOrganization from 'sentry/utils/useOrganization';
+import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
+import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
 import {
   DisplayModes,
   transactionSummaryRouteWithQuery,
@@ -36,9 +38,9 @@ export function EventRegressionSummary({event, group}: EventRegressionSummaryPro
   }
 
   return (
-    <DataSection>
-      <KeyValueList data={data} shouldSort={false} />
-    </DataSection>
+    <InterimSection type={SectionKey.REGRESSION_SUMMARY} title={t('Regression Summary')}>
+      <StyledKeyValueList data={data} shouldSort={false} />
+    </InterimSection>
   );
 }
 
@@ -151,3 +153,7 @@ function formatBreakpoint(breakpoint: number) {
     local: true,
   });
 }
+
+const StyledKeyValueList = styled(KeyValueList)`
+  margin-bottom: 0 !important;
+`;

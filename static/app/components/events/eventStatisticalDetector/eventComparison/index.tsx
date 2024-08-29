@@ -2,12 +2,13 @@ import {useMemo} from 'react';
 import styled from '@emotion/styled';
 import moment from 'moment-timezone';
 
-import {EventDataSection} from 'sentry/components/events/eventDataSection';
 import {EventDisplay} from 'sentry/components/events/eventStatisticalDetector/eventComparison/eventDisplay';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
 import type {Project} from 'sentry/types/project';
+import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
+import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
 
 const COMPARISON_DESCRIPTION = t(
   'To better understand what happened before and after this regression, compare a baseline event with a regressed event. Look for any significant shape changes, operation percentage changes, and tag differences.'
@@ -25,7 +26,10 @@ function EventComparison({event, project}: EventComparisonProps) {
     event?.occurrence?.evidenceData ?? {};
 
   return (
-    <EventDataSection type="compare-events" title={t('Compare Events')}>
+    <InterimSection
+      type={SectionKey.REGRESSION_EVENT_COMPARISON}
+      title={t('Compare Events')}
+    >
       <p>{COMPARISON_DESCRIPTION}</p>
       <StyledGrid>
         <StyledGridItem position="left">
@@ -49,7 +53,7 @@ function EventComparison({event, project}: EventComparisonProps) {
           />
         </StyledGridItem>
       </StyledGrid>
-    </EventDataSection>
+    </InterimSection>
   );
 }
 
