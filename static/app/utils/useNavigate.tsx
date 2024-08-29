@@ -6,7 +6,7 @@ import {NODE_ENV} from 'sentry/constants';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 
 import {locationDescriptorToTo} from './reactRouter6Compat/location';
-import useRouter from './useRouter';
+import {useRouteContext} from './useRouteContext';
 
 type NavigateOptions = {
   replace?: boolean;
@@ -48,8 +48,11 @@ export function useNavigate(): ReactRouter3Navigate {
     return navigate;
   }
 
+  // XXX(epurkihser): We are using react-router 3 here, to avoid recursive
+  // dependencies we just use the useRouteContext instead of useRouter here
+
   // biome-ignore lint/correctness/useHookAtTopLevel: react-router-6 migration
-  const router = useRouter();
+  const {router} = useRouteContext();
 
   // biome-ignore lint/correctness/useHookAtTopLevel: react-router-6 migration
   const hasMountedRef = useRef(false);
