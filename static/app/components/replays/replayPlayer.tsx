@@ -186,7 +186,7 @@ const PlayerRoot = styled(BasePlayerRoot)`
 
 // Sentry-specific styles for the player.
 const SentryPlayerRoot = styled(PlayerRoot)`
-  ${sentryReplayerCss}
+  ${p => sentryReplayerCss(p.theme)}
 `;
 
 const Overlay = styled('div')`
