@@ -10,6 +10,9 @@ import {
   GridHead,
   GridHeadCell,
   GridRow,
+  Header,
+  HeaderButtonContainer,
+  HeaderTitle,
 } from 'sentry/components/gridEditable/styles';
 
 interface TableProps extends React.ComponentProps<typeof _TableWrapper> {}
@@ -39,7 +42,7 @@ const MINIMUM_COLUMN_WIDTH = COL_WIDTH_MINIMUM;
 type Item = {
   label: string;
   value: React.ReactNode;
-  width?: 'min-content';
+  width?: number | 'min-content';
 };
 
 interface UseTableStylesOptions {
@@ -55,7 +58,11 @@ export function useTableStyles({
     const columns = new Array(items.length);
 
     for (let i = 0; i < items.length; i++) {
-      columns[i] = items[i].width ?? `minmax(${minimumColumnWidth}px, auto)`;
+      if (typeof items[i].width === 'number') {
+        columns[i] = `${items[i].width}px`;
+      } else {
+        columns[i] = items[i].width ?? `minmax(${minimumColumnWidth}px, auto)`;
+      }
     }
 
     return {
@@ -70,4 +77,7 @@ export const TableBody = GridBody;
 export const TableBodyCell = GridBodyCell;
 export const TableHead = GridHead;
 export const TableHeadCell = GridHeadCell;
+export const TableHeader = Header;
+export const TableHeaderActions = HeaderButtonContainer;
+export const TableHeaderTitle = HeaderTitle;
 export const TableRow = GridRow;

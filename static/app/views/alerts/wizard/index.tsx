@@ -4,6 +4,7 @@ import styled from '@emotion/styled';
 
 import Feature from 'sentry/components/acl/feature';
 import FeatureDisabled from 'sentry/components/acl/featureDisabled';
+import FeatureBadge from 'sentry/components/badge/featureBadge';
 import Tag from 'sentry/components/badge/tag';
 import CreateAlertButton from 'sentry/components/createAlertButton';
 import {Hovercard} from 'sentry/components/hovercard';
@@ -166,6 +167,8 @@ function AlertWizard({organization, params, location, projectId}: AlertWizardPro
                           alertType === 'custom_metrics' &&
                           hasCustomMetricsExtractionRules(organization) ? (
                             <Tag type="warning">{t('deprecated')}</Tag>
+                          ) : alertType === 'insights_metrics' ? (
+                            <FeatureBadge type="alpha" />
                           ) : null,
                         ];
                       })}
