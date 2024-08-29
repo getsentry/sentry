@@ -53,7 +53,7 @@ describe('TwoFactorRequired', function () {
     });
 
     render(
-      <AccountSecurityWrapper {...routerProps} params={{authId: ''}}>
+      <AccountSecurityWrapper>
         <TwoFactorRequired {...baseProps} />
       </AccountSecurityWrapper>,
       {router}
@@ -65,7 +65,7 @@ describe('TwoFactorRequired', function () {
 
   it('does not render when 2FA is disabled and no pendingInvite cookie', async function () {
     render(
-      <AccountSecurityWrapper {...routerProps} params={{authId: ''}}>
+      <AccountSecurityWrapper>
         <TwoFactorRequired {...baseProps} />
       </AccountSecurityWrapper>,
       {router}
@@ -82,7 +82,7 @@ describe('TwoFactorRequired', function () {
     });
 
     render(
-      <AccountSecurityWrapper {...routerProps} params={{authId: ''}}>
+      <AccountSecurityWrapper>
         <TwoFactorRequired {...baseProps} />
       </AccountSecurityWrapper>,
       {router}
@@ -109,7 +109,7 @@ describe('TwoFactorRequired', function () {
     });
 
     render(
-      <AccountSecurityWrapper {...routerProps} params={{authId: ''}}>
+      <AccountSecurityWrapper>
         <TwoFactorRequired {...baseProps} />
       </AccountSecurityWrapper>,
       {router}
@@ -128,7 +128,7 @@ describe('TwoFactorRequired', function () {
     });
 
     render(
-      <AccountSecurityWrapper {...routerProps} params={{authId: ''}}>
+      <AccountSecurityWrapper>
         <TwoFactorRequired {...baseProps} />
       </AccountSecurityWrapper>,
       {router}
