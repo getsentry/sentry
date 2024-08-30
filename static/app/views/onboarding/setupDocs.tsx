@@ -1,4 +1,4 @@
-import {Fragment, useCallback, useEffect, useMemo, useState} from 'react';
+import {Fragment, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 import {motion} from 'framer-motion';
 
@@ -24,6 +24,7 @@ function SetupDocs({location, recentCreatedProject: project}: StepProps) {
   const organization = useOrganization();
 
   const [integrationUseManualSetup, setIntegrationUseManualSetup] = useState(false);
+  const showLoaderOnboarding = location.query.showLoader === 'true';
 
   const products = useMemo<ProductSolution[]>(
     () => decodeList(location.query.product ?? []) as ProductSolution[],
@@ -33,28 +34,6 @@ function SetupDocs({location, recentCreatedProject: project}: StepProps) {
   const currentPlatformKey = project?.platform ?? 'other';
   const currentPlatform =
     platforms.find(p => p.id === currentPlatformKey) ?? otherPlatform;
-
-  const [showLoaderOnboarding, setShowLoaderOnboarding] = useState(
-    currentPlatformKey === 'javascript'
-  );
-
-  useEffect(() => {
-    setShowLoaderOnboarding(currentPlatformKey === 'javascript');
-  }, [currentPlatformKey]);
-
-  const hideLoaderOnboarding = useCallback(() => {
-    setShowLoaderOnboarding(false);
-
-    if (!project?.id) {
-      return;
-    }
-
-    trackAnalytics('onboarding.js_loader_npm_docs_shown', {
-      organization,
-      platform: currentPlatformKey,
-      project_id: project?.id,
-    });
-  }, [organization, currentPlatformKey, project?.id]);
 
   if (!project || !currentPlatform) {
     return null;
@@ -93,7 +72,6 @@ function SetupDocs({location, recentCreatedProject: project}: StepProps) {
                   project={project}
                   location={location}
                   platform={currentPlatform.id}
-                  close={hideLoaderOnboarding}
                 />
               ) : (
                 <SdkDocumentation

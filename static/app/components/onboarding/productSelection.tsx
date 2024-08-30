@@ -17,6 +17,7 @@ import HookStore from 'sentry/stores/hookStore';
 import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 import type {PlatformKey} from 'sentry/types/project';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {decodeList} from 'sentry/utils/queryString';
 import useRouter from 'sentry/utils/useRouter';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
@@ -287,13 +288,13 @@ export type ProductSelectionProps = {
    */
   organization: Organization;
   /**
+   * The id of the current project
+   */
+  projectId: string;
+  /**
    * List of products that are disabled. All of them have to contain a reason by default and optionally an onClick handler.
    */
   disabledProducts?: DisabledProducts;
-  /**
-   * If true, the loader script is used instead of the npm/yarn guide.
-   */
-  lazyLoader?: boolean;
   /**
    * The platform key of the project (e.g. javascript-react, python-django, etc.)
    */
@@ -302,7 +303,6 @@ export type ProductSelectionProps = {
    * A custom list of products per platform. If not provided, the default list is used.
    */
   productsPerPlatform?: Record<PlatformKey, ProductSolution[]>;
-  skipLazyLoader?: () => void;
   /**
    * If true, the component has a bottom margin of 20px
    */
@@ -311,14 +311,16 @@ export type ProductSelectionProps = {
 
 export function ProductSelection({
   disabledProducts: disabledProductsProp,
-  lazyLoader,
   organization,
   platform,
   productsPerPlatform = platformProductAvailability,
-  skipLazyLoader,
+  projectId,
 }: ProductSelectionProps) {
   const router = useRouter();
   const urlProducts = decodeList(router.location.query.product);
+  const showLoader = router.location.query.showLoader === 'true';
+  const supportLoader = platform === 'javascript';
+
   const products: ProductSolution[] | undefined = platform
     ? productsPerPlatform[platform]
     : undefined;
@@ -332,16 +334,22 @@ export function ProductSelection({
   }, [products, disabledProducts]);
 
   useEffect(() => {
+    const query = {
+      ...router.location.query,
+      product: defaultProducts,
+    };
+
+    if (supportLoader && query.showLoader === undefined) {
+      query.showLoader = true;
+    }
+
     router.replace({
       pathname: router.location.pathname,
-      query: {
-        ...router.location.query,
-        product: defaultProducts,
-      },
+      query,
     });
     // Adding defaultProducts to the dependency array causes an max-depth error
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [router]);
+  }, []);
 
   const handleClickProduct = useCallback(
     (product: ProductSolution) => {
@@ -384,6 +392,24 @@ export function ProductSelection({
     [defaultProducts, organization, router, urlProducts]
   );
 
+  const handleToggleLoader = useCallback(() => {
+    if (!showLoader === false && platform) {
+      trackAnalytics('onboarding.js_loader_npm_docs_shown', {
+        organization,
+        platform,
+        project_id: projectId,
+      });
+    }
+
+    router.replace({
+      pathname: router.location.pathname,
+      query: {
+        ...router.location.query,
+        showLoader: !showLoader,
+      },
+    });
+  }, [router, showLoader, platform, projectId, organization]);
+
   if (!products) {
     // if the platform does not support any product, we don't render anything
     return null;
@@ -402,7 +428,7 @@ export function ProductSelection({
     <Fragment>
       {showPackageManagerInfo && (
         <TextBlock noMargin>
-          {lazyLoader
+          {supportLoader
             ? tct('In this quick guide you’ll use our [loaderScript] to set up:', {
                 loaderScript: <strong>Loader Script</strong>,
               })
@@ -466,17 +492,34 @@ export function ProductSelection({
           />
         )}
       </Products>
-      {showPackageManagerInfo && lazyLoader && (
+      {showPackageManagerInfo && supportLoader && (
         <AlternativeInstallationAlert type="info" showIcon>
-          {tct('Prefer to set up Sentry using [npm:npm] or [yarn:yarn]? [goHere]', {
-            npm: <strong />,
-            yarn: <strong />,
-            goHere: (
-              <SkipLazyLoaderButton onClick={skipLazyLoader} size="xs" priority="default">
-                {t('View npm instructions')}
-              </SkipLazyLoaderButton>
-            ),
-          })}
+          {showLoader
+            ? tct('Prefer to set up Sentry using [npm:npm] or [yarn:yarn]? [goHere]', {
+                npm: <strong />,
+                yarn: <strong />,
+                goHere: (
+                  <SkipLazyLoaderButton
+                    onClick={handleToggleLoader}
+                    size="xs"
+                    priority="default"
+                  >
+                    {t('View npm/yarn instructions')}
+                  </SkipLazyLoaderButton>
+                ),
+              })
+            : tct('Prefer to set up Sentry using [bold:Loader Script]? [goHere]', {
+                bold: <strong />,
+                goHere: (
+                  <SkipLazyLoaderButton
+                    onClick={handleToggleLoader}
+                    size="xs"
+                    priority="default"
+                  >
+                    {t('View loader instructions')}
+                  </SkipLazyLoaderButton>
+                ),
+              })}
         </AlternativeInstallationAlert>
       )}
     </Fragment>
