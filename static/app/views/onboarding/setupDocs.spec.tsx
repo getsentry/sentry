@@ -367,6 +367,7 @@ describe('Onboarding Setup Docs', function () {
         router: {
           location: {
             query: {
+              showLoader: 'true',
               product: [
                 ProductSolution.PERFORMANCE_MONITORING,
                 ProductSolution.SESSION_REPLAY,
@@ -441,6 +442,7 @@ describe('Onboarding Setup Docs', function () {
 
       // update query in URL
       router.location.query = {
+        showLoader: 'true',
         product: [ProductSolution.SESSION_REPLAY],
       };
       rerender(
@@ -459,6 +461,10 @@ describe('Onboarding Setup Docs', function () {
           />
         </OnboardingContextProvider>
       );
+
+      expect(
+        await screen.findByRole('heading', {name: 'Configure Browser JavaScript SDK'})
+      ).toBeInTheDocument();
 
       expect(updateLoaderMock).toHaveBeenCalledTimes(2);
       expect(updateLoaderMock).toHaveBeenLastCalledWith(

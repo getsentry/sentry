@@ -1,4 +1,4 @@
-import {Fragment, useCallback, useContext, useEffect, useMemo, useState} from 'react';
+import {Fragment, useCallback, useContext, useEffect, useMemo} from 'react';
 import styled from '@emotion/styled';
 import type {LocationDescriptorObject} from 'history';
 import omit from 'lodash/omit';
@@ -26,7 +26,6 @@ import {space} from 'sentry/styles/space';
 import type {IssueAlertRule} from 'sentry/types/alerts';
 import type {OnboardingSelectedSDK} from 'sentry/types/onboarding';
 import type {PlatformIntegration, PlatformKey, Project} from 'sentry/types/project';
-import {trackAnalytics} from 'sentry/utils/analytics';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {decodeList} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -62,10 +61,7 @@ export function ProjectInstallPlatform({
 
   const isSelfHosted = ConfigStore.get('isSelfHosted');
   const isSelfHostedErrorsOnly = ConfigStore.get('isSelfHostedErrorsOnly');
-
-  const [showLoaderOnboarding, setShowLoaderOnboarding] = useState(
-    currentPlatform?.id === 'javascript'
-  );
+  const showLoaderOnboarding = location.query.showLoader === 'true';
 
   const products = useMemo(
     () => decodeList(location.query.product ?? []) as ProductSolution[],
@@ -83,10 +79,6 @@ export function ProjectInstallPlatform({
       staleTime: 0,
     }
   );
-
-  useEffect(() => {
-    setShowLoaderOnboarding(currentPlatform?.id === 'javascript');
-  }, [currentPlatform?.id]);
 
   useEffect(() => {
     if (!project || projectAlertRulesIsLoading || projectAlertRulesIsError) {
@@ -130,20 +122,6 @@ export function ProjectInstallPlatform({
     name: currentPlatform?.name,
     link: currentPlatform?.link,
   };
-
-  const hideLoaderOnboarding = useCallback(() => {
-    setShowLoaderOnboarding(false);
-
-    if (!project?.id || !currentPlatform) {
-      return;
-    }
-
-    trackAnalytics('onboarding.js_loader_npm_docs_shown', {
-      organization,
-      platform: currentPlatform.id,
-      project_id: project?.id,
-    });
-  }, [organization, currentPlatform, project?.id]);
 
   const redirectWithProjectSelection = useCallback(
     (to: LocationDescriptorObject) => {
@@ -206,7 +184,6 @@ export function ProjectInstallPlatform({
           project={project}
           location={location}
           platform={currentPlatform.id}
-          close={hideLoaderOnboarding}
         />
       ) : (
         <SdkDocumentation
