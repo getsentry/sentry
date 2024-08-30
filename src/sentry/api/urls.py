@@ -34,7 +34,6 @@ from sentry.api.endpoints.organization_unsubscribe import (
 from sentry.api.endpoints.project_backfill_similar_issues_embeddings_records import (
     ProjectBackfillSimilarIssuesEmbeddingsRecords,
 )
-from sentry.api.endpoints.project_metrics_usage import ProjectMetricsUsageEndpoint
 from sentry.api.endpoints.project_stacktrace_coverage import ProjectStacktraceCoverageEndpoint
 from sentry.api.endpoints.project_statistical_detectors import ProjectStatisticalDetectors
 from sentry.api.endpoints.project_template_detail import OrganizationProjectTemplateDetailEndpoint
@@ -474,9 +473,6 @@ from .endpoints.organization_member_unreleased_commits import (
 )
 from .endpoints.organization_metrics_code_locations import OrganizationMetricsCodeLocationsEndpoint
 from .endpoints.organization_metrics_details import OrganizationMetricsDetailsEndpoint
-from .endpoints.organization_metrics_extraction_rules import (
-    OrganizationMetricsExtractionRulesEndpoint,
-)
 from .endpoints.organization_metrics_meta import (
     OrganizationMetricsCompatibility,
     OrganizationMetricsCompatibilitySums,
@@ -581,7 +577,6 @@ from .endpoints.project_key_stats import ProjectKeyStatsEndpoint
 from .endpoints.project_keys import ProjectKeysEndpoint
 from .endpoints.project_member_index import ProjectMemberIndexEndpoint
 from .endpoints.project_metrics import ProjectMetricsVisibilityEndpoint
-from .endpoints.project_metrics_extraction_rules import ProjectMetricsExtractionRulesEndpoint
 from .endpoints.project_ownership import ProjectOwnershipEndpoint
 from .endpoints.project_performance_general_settings import (
     ProjectPerformanceGeneralSettingsEndpoint,
@@ -1527,11 +1522,6 @@ ORGANIZATION_URLS = [
         name="sentry-api-0-organization-metrics-compatibility-sums",
     ),
     re_path(
-        r"^(?P<organization_id_or_slug>[^/]+)/metrics/extraction-rules/$",
-        OrganizationMetricsExtractionRulesEndpoint.as_view(),
-        name="sentry-api-0-organization-metrics-extraction-rules",
-    ),
-    re_path(
         r"^(?P<organization_id_or_slug>[^\/]+)/missing-members/$",
         OrganizationMissingMembersEndpoint.as_view(),
         name="sentry-api-0-organization-missing-members",
@@ -2428,16 +2418,6 @@ PROJECT_URLS: list[URLPattern | URLResolver] = [
         r"^(?P<organization_id_or_slug>[^/]+)/(?P<project_id_or_slug>[^/]+)/metrics/visibility/$",
         ProjectMetricsVisibilityEndpoint.as_view(),
         name="sentry-api-0-project-metrics-visibility",
-    ),
-    re_path(
-        r"^(?P<organization_id_or_slug>[^/]+)/(?P<project_id_or_slug>[^/]+)/metrics/extraction-rules/$",
-        ProjectMetricsExtractionRulesEndpoint.as_view(),
-        name="sentry-api-0-project-metrics-extraction-rules",
-    ),
-    re_path(
-        r"^(?P<organization_id_or_slug>[^\/]+)/(?P<project_id_or_slug>[^\/]+)/metrics-usage/(?P<span_attribute>[^\/]+)/$",
-        ProjectMetricsUsageEndpoint.as_view(),
-        name="sentry-api-0-project-metrics-usage",
     ),
     re_path(
         r"^(?P<organization_id_or_slug>[^\/]+)/(?P<project_id_or_slug>[^\/]+)/releases/$",
