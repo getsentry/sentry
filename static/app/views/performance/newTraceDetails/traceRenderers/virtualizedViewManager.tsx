@@ -85,6 +85,8 @@ export class VirtualizedViewManager {
   vertical_indicators: {[key: string]: VerticalIndicator} = {};
   span_bars: ({color: string; ref: HTMLElement; space: [number, number]} | undefined)[] =
     [];
+  span_bars_icon_container: ({ref: HTMLElement; space: [number, number]} | undefined)[] =
+    [];
   span_patterns: ({ref: HTMLElement; space: [number, number]} | undefined)[][] = [];
   invisible_bars: ({ref: HTMLElement; space: [number, number]} | undefined)[] = [];
   span_arrows: (
@@ -310,14 +312,21 @@ export class VirtualizedViewManager {
   ) {
     if (ref) {
       this.span_bars[index] = {ref, space, color};
-    }
-
-    if (ref) {
+      this.span_bars[index].ref.style.backgroundColor = color;
       this.drawSpanBar(this.span_bars[index]!);
-      this.span_bars[index]!.ref.style.backgroundColor = color;
     }
   }
 
+  registerSpanBarIconContainerRef(
+    ref: HTMLElement | null,
+    space: [number, number],
+    index: number
+  ) {
+    if (ref) {
+      this.span_bars_icon_container[index] = {ref, space};
+      this.drawSpanBarIconContainer(this.span_bars_icon_container[index]!);
+    }
+  }
   registerArrowRef(ref: HTMLElement | null, space: [number, number], index: number) {
     if (ref) {
       this.span_arrows[index] = {ref, space, visible: false, position: 0};
@@ -1262,6 +1271,7 @@ export class VirtualizedViewManager {
       }
 
       this.drawSpanBar(this.span_bars[i]);
+      this.drawSpanBarIconContainer(this.span_bars_icon_container[i]);
       this.drawSpanText(this.span_text[i], this.columns.list.column_nodes[i]);
       this.drawSpanArrow(this.span_arrows[i], false, 0);
     }
@@ -1379,6 +1389,19 @@ export class VirtualizedViewManager {
   }
 
   drawSpanBar(span_bar: this['span_bars'][0]) {
+    if (!span_bar) return;
+
+    const span_transform = this.computeSpanCSSMatrixTransform(span_bar?.space);
+    span_bar.ref.style.transform = `matrix(${span_transform.join(',')}`;
+    const inverseScale = Math.round((1 / span_transform[0]) * 1e4) / 1e4;
+    span_bar.ref.style.setProperty(
+      '--inverse-span-scale',
+      // @ts-expect-error we set number value type on purpose
+      isNaN(inverseScale) ? 1 : inverseScale
+    );
+  }
+
+  drawSpanBarIconContainer(span_bar: this['span_bars_icon_container'][0]) {
     if (!span_bar) return;
 
     const span_transform = this.computeSpanCSSMatrixTransform(span_bar?.space);

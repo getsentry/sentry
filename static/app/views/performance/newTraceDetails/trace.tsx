@@ -1315,6 +1315,16 @@ function TraceBar(props: TraceBarProps) {
     [props.manager, props.node_space, props.virtualized_index, duration]
   );
 
+  const registerSpanBarIconContainerRef = useCallback(
+    (ref: HTMLDivElement | null) => {
+      props.manager.registerSpanBarIconContainerRef(
+        ref,
+        props.node_space!,
+        props.virtualized_index
+      );
+    },
+    [props.manager, props.node_space, props.virtualized_index]
+  );
   if (!props.node_space) {
     return null;
   }
@@ -1322,6 +1332,18 @@ function TraceBar(props: TraceBarProps) {
   return (
     <Fragment>
       <div ref={registerSpanBarRef} className="TraceBar">
+        {props.performance_issues.size > 0 ||
+        props.errors.size > 0 ||
+        props.profiles.length > 0 ? (
+          <BackgroundPatterns
+            node_space={props.node_space}
+            performance_issues={props.performance_issues}
+            errors={props.errors}
+            manager={props.manager}
+          />
+        ) : null}
+      </div>
+      <div ref={registerSpanBarIconContainerRef} className="TraceBar Invisible Container">
         {props.errors.size > 0 ? (
           <ErrorIcons
             node_space={props.node_space}
@@ -1333,16 +1355,6 @@ function TraceBar(props: TraceBarProps) {
           <PerformanceIssueIcons
             node_space={props.node_space}
             performance_issues={props.performance_issues}
-            manager={props.manager}
-          />
-        ) : null}
-        {props.performance_issues.size > 0 ||
-        props.errors.size > 0 ||
-        props.profiles.length > 0 ? (
-          <BackgroundPatterns
-            node_space={props.node_space}
-            performance_issues={props.performance_issues}
-            errors={props.errors}
             manager={props.manager}
           />
         ) : null}
@@ -2166,7 +2178,7 @@ const TraceStylingWrapper = styled('div')`
       display: flex;
       align-items: center;
       justify-content: center;
-      z-index: 1;
+      z-index: 10;
 
       &.info {
         background-color: var(--info);
@@ -2398,6 +2410,10 @@ const TraceStylingWrapper = styled('div')`
     width: 100%;
     background-color: black;
     transform-origin: left center;
+
+    &.Container {
+      z-index: 5;
+    }
 
     &.Invisible {
       background-color: transparent !important;
