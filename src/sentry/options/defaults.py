@@ -1003,7 +1003,7 @@ register(
 )
 
 # Rate at which to send eligible projects to LPQ symbolicators. This is
-# intedended to test gradually phasing out the LPQ.
+# intended to test gradually phasing out the LPQ.
 register(
     "store.symbolicate-event-lpq-rate", type=Float, default=1.0, flags=FLAG_AUTOMATOR_MODIFIABLE
 )
