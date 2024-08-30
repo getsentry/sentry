@@ -20,10 +20,6 @@ export function hasCustomMetricsExtractionRules(organization: Organization) {
   );
 }
 
-export function hasMetricsExtrapolationFeature(organization: Organization) {
-  return organization.features.includes('metrics-extrapolation');
-}
-
 export function hasMetricsNewInputs(organization: Organization) {
   return organization.features.includes('metrics-new-inputs');
 }
