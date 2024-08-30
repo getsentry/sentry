@@ -27,7 +27,6 @@ import IndicatorStore from 'sentry/stores/indicatorStore';
 import {space} from 'sentry/styles/space';
 import {ActivationConditionType, MonitorType} from 'sentry/types/alerts';
 import type {PlainRoute, RouteComponentProps} from 'sentry/types/legacyReactRouter';
-import type {MetricsExtractionRule} from 'sentry/types/metrics';
 import type {
   EventsStats,
   MultiSeriesEventsStats,
@@ -41,7 +40,6 @@ import {AggregationKey} from 'sentry/utils/fields';
 import {
   getForceMetricsLayerQueryExtras,
   hasCustomMetrics,
-  hasCustomMetricsExtractionRules,
 } from 'sentry/utils/metrics/features';
 import {DEFAULT_METRIC_ALERT_FIELD, formatMRIField} from 'sentry/utils/metrics/mri';
 import {isOnDemandQueryString} from 'sentry/utils/onDemandMetrics';
@@ -132,8 +130,6 @@ type State = {
   environment: string | null;
   eventTypes: EventTypes[];
   isQueryValid: boolean;
-  // `null` means loading
-  metricExtractionRules: MetricsExtractionRule[] | null;
   project: Project;
   query: string;
   resolveThreshold: UnsavedMetricRule['resolveThreshold'];
@@ -253,7 +249,6 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
 
   getEndpoints(): ReturnType<DeprecatedAsyncComponent['getEndpoints']> {
     const {organization} = this.props;
-    const project = this.state?.project ?? this.props.project;
     // TODO(incidents): This is temporary until new API endpoints
     // We should be able to just fetch the rule if rule.id exists
 
@@ -262,14 +257,6 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
         'availableActions',
         `/organizations/${organization.slug}/alert-rules/available-actions/`,
       ],
-      ...(hasCustomMetricsExtractionRules(organization)
-        ? [
-            [
-              'metricExtractionRules',
-              `/projects/${organization.slug}/${project.slug}/metrics/extraction-rules/`,
-            ] as [string, string],
-          ]
-        : []),
     ];
   }
 
