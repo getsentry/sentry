@@ -38,18 +38,12 @@ import {defined} from 'sentry/utils';
 import {metric, trackAnalytics} from 'sentry/utils/analytics';
 import type EventView from 'sentry/utils/discover/eventView';
 import {AggregationKey} from 'sentry/utils/fields';
-import {findExtractionRuleCondition} from 'sentry/utils/metrics/extractionRules';
 import {
   getForceMetricsLayerQueryExtras,
   hasCustomMetrics,
   hasCustomMetricsExtractionRules,
 } from 'sentry/utils/metrics/features';
-import {
-  DEFAULT_METRIC_ALERT_FIELD,
-  DEFAULT_SPAN_METRIC_ALERT_FIELD,
-  formatMRIField,
-  parseField,
-} from 'sentry/utils/metrics/mri';
+import {DEFAULT_METRIC_ALERT_FIELD, formatMRIField} from 'sentry/utils/metrics/mri';
 import {isOnDemandQueryString} from 'sentry/utils/onDemandMetrics';
 import {
   hasOnDemandMetricAlertFeature,
@@ -63,7 +57,6 @@ import ThresholdTypeForm from 'sentry/views/alerts/rules/metric/thresholdTypeFor
 import Triggers from 'sentry/views/alerts/rules/metric/triggers';
 import TriggersChart from 'sentry/views/alerts/rules/metric/triggers/chart';
 import {getEventTypeFilter} from 'sentry/views/alerts/rules/metric/utils/getEventTypeFilter';
-import {getFormattedSpanMetricField} from 'sentry/views/alerts/rules/metric/utils/getFormattedSpanMetric';
 import hasThresholdValue from 'sentry/views/alerts/rules/metric/utils/hasThresholdValue';
 import {isOnDemandMetricAlert} from 'sentry/views/alerts/rules/metric/utils/onDemandMetricAlert';
 import {AlertRuleType} from 'sentry/views/alerts/types';
@@ -571,12 +564,10 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
 
     if (name === 'projectId') {
       this.setState(
-        ({project, alertType, aggregate}) => {
+        ({project}) => {
           return {
             projectId: value,
             project: projects.find(({id}) => id === value) ?? project,
-            aggregate:
-              alertType === 'span_metrics' ? DEFAULT_SPAN_METRIC_ALERT_FIELD : aggregate,
           };
         },
         () => {
@@ -1072,11 +1063,6 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
     let formattedAggregate = aggregate;
     if (alertType === 'custom_metrics') {
       formattedAggregate = formatMRIField(aggregate);
-    } else if (alertType === 'span_metrics') {
-      formattedAggregate = getFormattedSpanMetricField(
-        aggregate,
-        this.state.metricExtractionRules
-      );
     }
 
     const chartProps = {
@@ -1105,14 +1091,6 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
     let formattedQuery = `event.type:${eventTypes?.join(',')}`;
     if (alertType === 'custom_metrics') {
       formattedQuery = '';
-    }
-    if (alertType === 'span_metrics') {
-      const mri = parseField(aggregate)!.mri;
-      const condition = findExtractionRuleCondition(
-        mri,
-        this.state.metricExtractionRules || []
-      );
-      formattedQuery = condition?.value || '';
     }
 
     const wizardBuilderChart = (
