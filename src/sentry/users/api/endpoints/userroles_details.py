@@ -25,7 +25,7 @@ class UserRoleDetailsEndpoint(Endpoint):
     permission_classes = (SuperuserPermission,)
 
     @sudo_required
-    def get(self, request: Request, role_name) -> Response:
+    def get(self, request: Request, role_name: str) -> Response:
         # XXX(dcramer): we may decide to relax "view" permission over time, but being more restrictive by default
         # is preferred
         if not request.access.has_permission("users.admin"):
@@ -38,7 +38,7 @@ class UserRoleDetailsEndpoint(Endpoint):
         return self.respond(serialize(role, user=request.user))
 
     @sudo_required
-    def put(self, request: Request, role_name) -> Response:
+    def put(self, request: Request, role_name: str) -> Response:
         if not request.access.has_permission("users.admin"):
             return self.respond(status=403)
 
@@ -75,7 +75,7 @@ class UserRoleDetailsEndpoint(Endpoint):
         return self.respond(serialize(role, user=request.user))
 
     @sudo_required
-    def delete(self, request: Request, role_name) -> Response:
+    def delete(self, request: Request, role_name: str) -> Response:
         if not request.access.has_permission("users.admin"):
             return self.respond(status=403)
 

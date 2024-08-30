@@ -1,4 +1,3 @@
-import type {InjectedRouter} from 'react-router';
 import type {Location} from 'history';
 import {CommitFixture} from 'sentry-fixture/commit';
 import {CommitAuthorFixture} from 'sentry-fixture/commitAuthor';
@@ -18,6 +17,7 @@ import type {Event} from 'sentry/types/event';
 import {EntryType} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
 import {IssueCategory, IssueType} from 'sentry/types/group';
+import type {InjectedRouter} from 'sentry/types/legacyReactRouter';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {browserHistory} from 'sentry/utils/browserHistory';

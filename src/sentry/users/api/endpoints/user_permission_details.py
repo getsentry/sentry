@@ -12,6 +12,7 @@ from sentry.api.base import control_silo_endpoint
 from sentry.api.bases.user import UserEndpoint
 from sentry.api.decorators import sudo_required
 from sentry.api.permissions import SuperuserOrStaffFeatureFlaggedPermission
+from sentry.users.models.user import User
 from sentry.users.models.userpermission import UserPermission
 
 audit_logger = logging.getLogger("sentry.audit.user")
@@ -28,7 +29,7 @@ class UserPermissionDetailsEndpoint(UserEndpoint):
     authentication_classes = (SessionAuthentication,)
     permission_classes = (SuperuserOrStaffFeatureFlaggedPermission,)
 
-    def get(self, request: Request, user, permission_name) -> Response:
+    def get(self, request: Request, user: User, permission_name: str) -> Response:
         # XXX(dcramer): we may decide to relax "view" permission over time, but being more restrictive by default
         # is preferred
         if not request.access.has_permission("users.admin"):
@@ -38,7 +39,7 @@ class UserPermissionDetailsEndpoint(UserEndpoint):
         return self.respond(status=204 if has_perm else 404)
 
     @sudo_required
-    def post(self, request: Request, user, permission_name) -> Response:
+    def post(self, request: Request, user: User, permission_name: str) -> Response:
         if not request.access.has_permission("users.admin"):
             return self.respond(status=403)
 
@@ -65,7 +66,7 @@ class UserPermissionDetailsEndpoint(UserEndpoint):
         return self.respond(status=201)
 
     @sudo_required
-    def delete(self, request: Request, user, permission_name) -> Response:
+    def delete(self, request: Request, user: User, permission_name: str) -> Response:
         if not request.access.has_permission("users.admin"):
             return self.respond(status=403)
 

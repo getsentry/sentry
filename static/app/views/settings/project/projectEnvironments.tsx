@@ -1,5 +1,4 @@
 import {Component, Fragment} from 'react';
-import type {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
@@ -18,6 +17,7 @@ import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {ALL_ENVIRONMENTS_KEY} from 'sentry/constants';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import type {Organization} from 'sentry/types/organization';
 import type {Environment, Project} from 'sentry/types/project';
 import {getDisplayName, getUrlRoutingName} from 'sentry/utils/environment';

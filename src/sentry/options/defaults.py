@@ -501,6 +501,9 @@ register("slack.client-secret", flags=FLAG_CREDENTIAL | FLAG_PRIORITIZE_DISK)
 register("slack.verification-token", flags=FLAG_CREDENTIAL | FLAG_PRIORITIZE_DISK)
 register("slack.signing-secret", flags=FLAG_CREDENTIAL | FLAG_PRIORITIZE_DISK)
 
+# Discord
+register("discord.validate-user", default=False, flags=FLAG_AUTOMATOR_MODIFIABLE)
+
 # Codecov Integration
 register("codecov.client-secret", flags=FLAG_CREDENTIAL | FLAG_PRIORITIZE_DISK)
 
@@ -830,6 +833,12 @@ register(
     flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(
+    "seer.similarity.grouping_killswitch_projects",
+    default=[],
+    type=Sequence,
+    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
     "seer.severity-killswitch.enabled",
     default=False,
     type=Bool,
@@ -974,7 +983,6 @@ register(
 register(
     "store.load-shed-process-event-projects", type=Any, default=[], flags=FLAG_AUTOMATOR_MODIFIABLE
 )
-register("embeddings-grouping.use-embeddings", type=Sequence, default=[])
 register(
     "store.load-shed-process-event-projects-gradual",
     type=Dict,
@@ -1008,7 +1016,7 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(
-    "issues.skip-seer-requests",
+    "issues.severity.skip-seer-requests",
     type=Sequence,
     default=[],
     flags=FLAG_AUTOMATOR_MODIFIABLE,
@@ -2539,6 +2547,18 @@ register(
     "traces.sample-list.sample-rate",
     type=Float,
     default=0.0,
+    flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+register(
+    "discover.saved-query-dataset-split.enable",
+    default=False,
+    flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "discover.saved-query-dataset-split.organization-id-allowlist",
+    type=Sequence,
+    default=[],
     flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
