@@ -2,14 +2,12 @@ import {memo, useCallback, useEffect, useMemo, useState} from 'react';
 import {css, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {Button} from 'sentry/components/button';
 import {ComboBox} from 'sentry/components/comboBox';
 import type {ComboBoxOption} from 'sentry/components/comboBox/types';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import {QueryFieldGroup} from 'sentry/components/metrics/queryFieldGroup';
-import {IconAdd, IconInfo, IconProject, IconWarning} from 'sentry/icons';
+import {IconProject, IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {MetricMeta, MRI} from 'sentry/types/metrics';
 import {type Fuse, useFuzzySearch} from 'sentry/utils/fuzzySearch';
 import {
@@ -31,7 +29,6 @@ import {middleEllipsis} from 'sentry/utils/string/middleEllipsis';
 import useKeyPress from 'sentry/utils/useKeyPress';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
-import {openExtractionRuleCreateModal} from 'sentry/views/settings/projectMetrics/metricsExtractionRuleCreateModal';
 
 import {MetricListItemDetails} from './metricListItemDetails';
 
@@ -350,38 +347,6 @@ export const MRISelect = memo(function MRISelect({
               `
             : undefined
         }
-        menuFooter={
-          isLoading
-            ? undefined
-            : ({closeOverlay}) => (
-                <FlexBlock>
-                  <Button
-                    icon={<IconAdd isCircled />}
-                    priority="primary"
-                    onClick={() => {
-                      closeOverlay();
-                      openExtractionRuleCreateModal({
-                        organization,
-                        source: 'ddm.metric-select.create-metric',
-                      });
-                    }}
-                    size="xs"
-                  >
-                    {t('Create Metric')}
-                  </Button>
-                  <FlexBlock
-                    css={css`
-                      gap: ${space(0.75)};
-                      color: ${theme.subText};
-                      font-size: ${theme.fontSizeSmall};
-                    `}
-                  >
-                    <IconInfo size="xs" />
-                    {t('Don’t see your span attribute? Create Metric.')}
-                  </FlexBlock>
-                </FlexBlock>
-              )
-        }
       />
     );
   }
@@ -413,10 +378,4 @@ export const MRISelect = memo(function MRISelect({
 
 const CustomMetricInfoText = styled('span')`
   color: ${p => p.theme.subText};
-`;
-
-const FlexBlock = styled('div')`
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
 `;
