@@ -1,28 +1,22 @@
-import {useCallback, useEffect, useMemo} from 'react';
+import {useEffect, useMemo} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {Button} from 'sentry/components/button';
 import {
   CompactSelect,
   type SelectOption,
   type SelectOptionOrSection,
   type SelectSection,
 } from 'sentry/components/compactSelect';
-import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import {QueryFieldGroup} from 'sentry/components/metrics/queryFieldGroup';
 import {parseSearch} from 'sentry/components/searchSyntax/parser';
 import HighlightQuery from 'sentry/components/searchSyntax/renderer';
 import {Tooltip} from 'sentry/components/tooltip';
-import {IconAdd, IconInfo, IconProject, IconWarning} from 'sentry/icons';
+import {IconProject, IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {
-  MetricsExtractionCondition,
-  MetricsExtractionRule,
-  MRI,
-} from 'sentry/types/metrics';
+import type {MetricsExtractionCondition, MRI} from 'sentry/types/metrics';
 import {BUILT_IN_CONDITION_ID} from 'sentry/utils/metrics/extractionRules';
 import {hasMetricsNewInputs} from 'sentry/utils/metrics/features';
 import {useCardinalityLimitedMetricVolume} from 'sentry/utils/metrics/useCardinalityLimitedMetricVolume';
@@ -30,8 +24,6 @@ import {useVirtualMetricsContext} from 'sentry/utils/metrics/virtualMetricsConte
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
-import {useSelectedProjects} from 'sentry/views/metrics/utils/useSelectedProjects';
-import {openExtractionRuleEditModal} from 'sentry/views/settings/projectMetrics/metricsExtractionRuleEditModal';
 
 interface Props {
   mri: MRI;
@@ -180,9 +172,6 @@ export function MetricQuerySelect({onChange, conditionId, mri}: Props) {
         onChange={({value}) => {
           onChange(value);
         }}
-        menuFooter={({closeOverlay}) => (
-          <QueryFooter mri={mri} closeOverlay={closeOverlay} />
-        )}
         css={css`
           && {
             width: auto;
@@ -208,9 +197,6 @@ export function MetricQuerySelect({onChange, conditionId, mri}: Props) {
       onChange={({value}) => {
         onChange(value);
       }}
-      menuFooter={({closeOverlay}) => (
-        <QueryFooter mri={mri} closeOverlay={closeOverlay} />
-      )}
     />
   );
 }
@@ -231,78 +217,6 @@ export function CardinalityWarningIcon() {
         aria-label={t('Exceeding the cardinality limit warning')}
       />
     </Tooltip>
-  );
-}
-
-function QueryFooter({mri, closeOverlay}: {closeOverlay: () => void; mri: MRI}) {
-  const organization = useOrganization();
-  const {getExtractionRules} = useVirtualMetricsContext();
-  const selectedProjects = useSelectedProjects();
-  const extractionRules = getExtractionRules(mri);
-
-  const handleEdit = useCallback(
-    (rule: MetricsExtractionRule) => {
-      closeOverlay();
-      openExtractionRuleEditModal({
-        organization,
-        source: 'ddm.condition-select.add-filter',
-        metricExtractionRule: rule,
-      });
-    },
-    [closeOverlay, organization]
-  );
-
-  const options = useMemo(
-    () =>
-      extractionRules
-        .map(rule => {
-          const project = selectedProjects.find(p => Number(p.id) === rule.projectId);
-          if (!project) {
-            return null;
-          }
-          return {
-            key: project.slug,
-            label: <ProjectBadge project={project} avatarSize={16} disableLink />,
-            onAction: () => handleEdit(rule),
-          };
-        })
-        .filter(item => item !== null)
-        .toSorted((a, b) => a.key.localeCompare(b.key)),
-    [extractionRules, handleEdit, selectedProjects]
-  );
-
-  return (
-    <QueryFooterWrapper>
-      {extractionRules.length > 1 ? (
-        <DropdownMenu
-          size="xs"
-          triggerLabel={t('Add Filter')}
-          triggerProps={{
-            icon: <IconAdd isCircled />,
-          }}
-          items={options}
-        />
-      ) : (
-        <Button
-          size="xs"
-          icon={<IconAdd isCircled />}
-          onClick={() => extractionRules[0] && handleEdit(extractionRules[0])}
-        >
-          {t('Add Filter')}
-        </Button>
-      )}
-      <InfoWrapper>
-        <Tooltip
-          title={t(
-            'Ideally, you can visualize span data by any property you want. However, our infrastructure has limits as well, so pretty please define in advance what you want to see.'
-          )}
-          skipWrapper
-        >
-          <IconInfo size="xs" />
-        </Tooltip>
-        {t('What are filters?')}
-      </InfoWrapper>
-    </QueryFooterWrapper>
   );
 }
 
@@ -340,21 +254,6 @@ function FormattedCondition({condition}: {condition?: MetricsExtractionCondition
     </Tooltip>
   );
 }
-
-const InfoWrapper = styled('div')`
-  display: flex;
-  align-items: center;
-  gap: ${space(0.5)};
-  font-size: ${p => p.theme.fontSizeExtraSmall};
-  color: ${p => p.theme.subText};
-`;
-
-const QueryFooterWrapper = styled('div')`
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  min-width: 250px;
-`;
 
 const Highlight = styled('span')`
   padding: ${space(0.5)} ${space(0.25)};

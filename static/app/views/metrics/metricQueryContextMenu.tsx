@@ -32,7 +32,6 @@ import {
   isMetricsQueryWidget,
   type MetricDisplayType,
   type MetricsQuery,
-  type MetricsQueryWidget,
 } from 'sentry/utils/metrics/types';
 import {useVirtualMetricsContext} from 'sentry/utils/metrics/virtualMetricsContext';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -40,7 +39,6 @@ import usePageFilters from 'sentry/utils/usePageFilters';
 import useRouter from 'sentry/utils/useRouter';
 import {useMetricsContext} from 'sentry/views/metrics/context';
 import {openCreateAlertModal} from 'sentry/views/metrics/createAlertModal';
-import {openExtractionRuleEditModal} from 'sentry/views/settings/projectMetrics/metricsExtractionRuleEditModal';
 
 type ContextMenuProps = {
   displayType: MetricDisplayType;
@@ -53,11 +51,10 @@ export function MetricQueryContextMenu({
   displayType,
   widgetIndex,
 }: ContextMenuProps) {
-  const {getExtractionRule} = useVirtualMetricsContext();
   const organization = useOrganization();
   const router = useRouter();
 
-  const {removeWidget, duplicateWidget, widgets, updateWidget} = useMetricsContext();
+  const {removeWidget, duplicateWidget, widgets} = useMetricsContext();
   const createAlert = getCreateAlert(organization, metricsQuery);
 
   const createDashboardWidget = useCreateDashboardWidget(
@@ -154,26 +151,6 @@ export function MetricQueryContextMenu({
               )}`,
               router
             );
-          } else {
-            const extractionRule = getExtractionRule(
-              metricsQuery.mri,
-              metricsQuery.condition!
-            );
-            if (extractionRule) {
-              openExtractionRuleEditModal({
-                organization,
-                source: 'ddm.configure-metric',
-                metricExtractionRule: extractionRule,
-                onSubmitSuccess: data => {
-                  // Keep the unit of the MRI in sync with the unit of the extraction rule
-                  // TODO: Remove this once we have a better way to handle this
-                  const newMRI = metricsQuery.mri.replace(/@.*$/, `@${data.unit}`);
-                  updateWidget(widgetIndex, {
-                    mri: newMRI,
-                  } as Partial<MetricsQueryWidget>);
-                },
-              });
-            }
           }
         },
       },
@@ -198,8 +175,6 @@ export function MetricQueryContextMenu({
       duplicateWidget,
       widgetIndex,
       router,
-      getExtractionRule,
-      updateWidget,
       removeWidget,
     ]
   );
