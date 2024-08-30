@@ -3,7 +3,7 @@ from __future__ import annotations
 import resource
 from collections.abc import Callable, Iterable
 from contextlib import contextmanager
-from datetime import datetime
+from datetime import datetime, timedelta
 from functools import wraps
 from typing import Any, TypeVar
 
@@ -128,6 +128,13 @@ def instrumented_task(name, stat_suffix=None, silo_mode=None, record_timing=Fals
                 result = func(*args, **kwargs)
 
             return result
+
+        if kwargs.get("soft_time_limit") and not kwargs.get("time_limit"):
+            raise ValueError("time_limit must be set if soft_time_limit is set")
+
+        if kwargs.get("time_limit") is None and kwargs.get("soft_time_limit") is None:
+            kwargs["soft_time_limit"] = int(timedelta(hours=3).total_seconds())
+            kwargs["time_limit"] = int(timedelta(hours=3, seconds=15).total_seconds())
 
         # We never use result backends in Celery. Leaving `trail=True` means that if we schedule
         # many tasks from a parent task, each task leaks memory. This can lead to the scheduler
