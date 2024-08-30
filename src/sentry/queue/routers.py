@@ -13,7 +13,7 @@ def _get_known_queues() -> set[str]:
     return {c_queue.name for c_queue in app.conf.CELERY_QUEUES}
 
 
-def _validate_destiantions(destinations: Sequence[str]) -> None:
+def _validate_destinations(destinations: Sequence[str]) -> None:
     for dest in destinations:
         assert dest in _get_known_queues(), f"Queue {dest} in split queue config is not declared."
 
@@ -37,7 +37,7 @@ class SplitQueueRouter:
         self.__queue_routers = {}
         for source, destinations in settings.CELERY_SPLIT_QUEUE_ROUTES.items():
             assert source in known_queues, f"Queue {source} in split queue config is not declared."
-            _validate_destiantions(destinations)
+            _validate_destinations(destinations)
             self.__queue_routers[source] = cycle(destinations)
 
     def route_for_queue(self, queue: str) -> str:
@@ -87,7 +87,7 @@ class SplitQueueTaskRouter:
             assert (
                 default_destination in known_queues
             ), f"Queue {default_destination} in split queue config is not declared."
-            _validate_destiantions(destinations[0])
+            _validate_destinations(destinations[0])
 
             self.__task_routers[source] = TaskRoute(default_destination, cycle(destinations[0]))
 
