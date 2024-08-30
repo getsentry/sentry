@@ -52,9 +52,9 @@ describe('Metrics Layout', function () {
 
     render(<MetricsLayout />, {organization});
 
-    // Button: Create Metric
+    // Button: Add Custom Metrics
     expect(
-      await screen.findByRole('button', {name: 'Create Metric'})
+      await screen.findByRole('button', {name: 'Add Custom Metrics'})
     ).toBeInTheDocument();
 
     // Alert: No alert shall be rendered
@@ -85,8 +85,10 @@ describe('Metrics Layout', function () {
     // Button: Set Up Tracing
     expect(screen.getByRole('button', {name: 'Set Up Tracing'})).toBeInTheDocument();
 
-    // Not in the page: Create Metric
-    expect(screen.queryByRole('button', {name: 'Create Metric'})).not.toBeInTheDocument();
+    // Not in the page: Add Custom Metrics
+    expect(
+      screen.queryByRole('button', {name: 'Add Custom Metrics'})
+    ).not.toBeInTheDocument();
   });
 
   it('not using performance and have old custom metrics', async function () {
@@ -104,8 +106,8 @@ describe('Metrics Layout', function () {
       await screen.findByText(/Metrics using with the old API will stop being ingested/i)
     ).toBeInTheDocument();
 
-    // Button: Create Metric
-    expect(screen.getByRole('button', {name: 'Create Metric'})).toBeInTheDocument();
+    // Button: Add Custom Metrics
+    expect(screen.getByRole('button', {name: 'Add Custom Metrics'})).toBeInTheDocument();
 
     // Main View: Does not display the empty state.
     expect(screen.queryByText(/track and solve what matters/i)).not.toBeInTheDocument();
