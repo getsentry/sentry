@@ -1,6 +1,5 @@
 import {Fragment, useMemo} from 'react';
 
-import {Button} from 'sentry/components/button';
 import {
   rawSpanKeys,
   type RawSpanType,
@@ -13,21 +12,10 @@ import {
 import {OpsDot} from 'sentry/components/events/opsBreakdown';
 import FileSize from 'sentry/components/fileSize';
 import ExternalLink from 'sentry/components/links/externalLink';
-import Link from 'sentry/components/links/link';
-import {IconAdd} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {KeyValueListDataItem} from 'sentry/types/group';
-import type {MetricsExtractionRule} from 'sentry/types/metrics';
-import type {Organization} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
-import {getUtcDateString} from 'sentry/utils/dates';
-import {getMetricsUrl} from 'sentry/utils/metrics';
-import {hasCustomMetricsExtractionRules} from 'sentry/utils/metrics/features';
-import {MetricDisplayType} from 'sentry/utils/metrics/types';
-import {createVirtualMRI} from 'sentry/utils/metrics/virtualMetricsContext';
 import {toTitleCase} from 'sentry/utils/string/toTitleCase';
-import useOrganization from 'sentry/utils/useOrganization';
 import {isSpanNode} from 'sentry/views/performance/newTraceDetails/guards';
 import {
   type SectionCardKeyValueList,
@@ -38,8 +26,6 @@ import {
   TraceTreeNode,
 } from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
 import {getPerformanceDuration} from 'sentry/views/performance/utils/getPerformanceDuration';
-import {openExtractionRuleCreateModal} from 'sentry/views/settings/projectMetrics/metricsExtractionRuleCreateModal';
-import {useMetricsExtractionRules} from 'sentry/views/settings/projectMetrics/utils/useMetricsExtractionRules';
 
 const SIZE_DATA_KEYS = [
   'Encoded Body Size',
@@ -81,107 +67,7 @@ function partitionSizes(data: RawSpanType['data']): {
   };
 }
 
-function getSpanTimeWindow(timestamp: number) {
-  // Convert 30 minutes to miliseconds
-  const thirtyMinutesInMiliSeconds = 30 * 60 * 1000;
-
-  // Calculate the start and end of the time window
-  const startTime = timestamp - thirtyMinutesInMiliSeconds;
-  const endTime = timestamp + thirtyMinutesInMiliSeconds;
-
-  return {
-    startTime: startTime,
-    endTime: endTime,
-  };
-}
-
-function getNonSizeKeyActionData({
-  organization,
-  extractionRules,
-  spanAttribute,
-  projectId,
-  spanTimestamp,
-}: {
-  organization: Organization;
-  spanAttribute: string;
-  spanTimestamp: number;
-  extractionRules?: MetricsExtractionRule[];
-  projectId?: string;
-}): Pick<KeyValueListDataItem, 'actionButton' | 'actionButtonAlwaysVisible'> {
-  if (!hasCustomMetricsExtractionRules(organization)) {
-    return {};
-  }
-
-  const extractionRule = extractionRules?.find(
-    rule => rule.spanAttribute === spanAttribute
-  );
-
-  if (extractionRule) {
-    const virtualMRI = createVirtualMRI(extractionRule);
-    const spanTimeWindow = getSpanTimeWindow(spanTimestamp * 1000);
-    return {
-      actionButton: (
-        <Link
-          to={getMetricsUrl(organization.slug, {
-            start: getUtcDateString(spanTimeWindow.startTime),
-            end: getUtcDateString(spanTimeWindow.endTime),
-            project: [extractionRule.projectId],
-            widgets: [
-              {
-                mri: virtualMRI,
-                displayType: MetricDisplayType.BAR,
-                aggregation: extractionRule.aggregates[0],
-                query: '',
-                groupBy: undefined,
-                condition: extractionRule.conditions[0].id,
-              },
-            ],
-          })}
-        >
-          {t('Open in Metrics')}
-        </Link>
-      ),
-      actionButtonAlwaysVisible: true,
-    };
-  }
-
-  return {
-    actionButton: (
-      <Button
-        borderless
-        aria-label={t('Extract as metric')}
-        onClick={() =>
-          openExtractionRuleCreateModal({
-            organization,
-            projectId: projectId,
-            source: 'trace-view.span-attribute',
-            initialData: {
-              spanAttribute,
-            },
-          })
-        }
-        size="zero"
-        icon={<IconAdd size="xs" />}
-        title={t('Extract as metric')}
-      />
-    ),
-    actionButtonAlwaysVisible: false,
-  };
-}
-
-export function SpanKeys({
-  node,
-  projectId,
-}: {
-  node: TraceTreeNode<TraceTree.Span>;
-  projectId?: string;
-}) {
-  const organization = useOrganization();
-  const {data: extractionRules} = useMetricsExtractionRules({
-    orgId: organization.slug,
-    projectId,
-  });
-
+export function SpanKeys({node}: {node: TraceTreeNode<TraceTree.Span>}) {
   const span = node.value;
   const {sizeKeys, nonSizeKeys} = partitionSizes(span?.data ?? {});
   const allZeroSizes = SIZE_DATA_KEYS.map(key => sizeKeys[key]).every(
@@ -252,13 +138,6 @@ export function SpanKeys({
         key: key,
         subject: key,
         value: value as string | number,
-        ...getNonSizeKeyActionData({
-          organization,
-          extractionRules,
-          spanAttribute: key,
-          projectId,
-          spanTimestamp: span.timestamp,
-        }),
       });
     }
   });
