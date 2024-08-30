@@ -6,7 +6,6 @@ import {
   useEffect,
   useState,
 } from 'react';
-import type {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 import omit from 'lodash/omit';
@@ -25,6 +24,7 @@ import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
 import {GroupStatus, IssueCategory, IssueType} from 'sentry/types/group';
+import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
@@ -351,7 +351,7 @@ function useFetchGroupDetails(): FetchGroupDetailsState {
 
   const {
     data: event,
-    isLoading: loadingEvent,
+    isPending: loadingEvent,
     isError,
     refetch: refetchEvent,
   } = useEventApiQuery({
@@ -362,7 +362,7 @@ function useFetchGroupDetails(): FetchGroupDetailsState {
 
   const {
     data: groupData,
-    isLoading: loadingGroup,
+    isPending: loadingGroup,
     isError: isGroupError,
     error: groupError,
     refetch: refetchGroupCall,
@@ -547,7 +547,6 @@ function useTrackView({
   tab: Tab;
   project?: Project;
 }) {
-  const organization = useOrganization();
   const location = useLocation();
   const {alert_date, alert_rule_id, alert_type, ref_fallback, stream_index, query} =
     location.query;
@@ -569,9 +568,6 @@ function useTrackView({
     alert_type: typeof alert_type === 'string' ? alert_type : undefined,
     ref_fallback,
     group_event_type: groupEventType,
-    has_hierarchical_grouping:
-      !!organization.features?.includes('grouping-stacktrace-ui') &&
-      !!(event?.metadata?.current_tree_label || event?.metadata?.finest_tree_label),
     prefers_streamlined_ui: user?.options?.prefersIssueDetailsStreamlinedUI ?? false,
   });
   // Set default values for properties that may be updated in subcomponents.
@@ -841,7 +837,7 @@ function GroupDetails(props: GroupDetailsProps) {
       return defaultTitle;
     }
 
-    const {title} = getTitle(group, organization?.features);
+    const {title} = getTitle(group);
     const message = getMessage(group);
 
     const eventDetails = `${organization.slug} — ${group.project.slug}`;

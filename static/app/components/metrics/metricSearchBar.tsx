@@ -17,10 +17,13 @@ import {
   hasMetricsNewSearchQueryBuilder,
 } from 'sentry/utils/metrics/features';
 import {getUseCaseFromMRI} from 'sentry/utils/metrics/mri';
+import type {MetricTag} from 'sentry/utils/metrics/types';
 import {useMetricsTags} from 'sentry/utils/metrics/useMetricsTags';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
+import {INSIGHTS_METRICS} from 'sentry/views/alerts/rules/metric/utils/isInsightsMetricAlert';
+import {SpanMetricsField} from 'sentry/views/insights/types';
 import {ensureQuotedTextFilters} from 'sentry/views/metrics/utils';
 import {useSelectedProjects} from 'sentry/views/metrics/utils/useSelectedProjects';
 
@@ -36,6 +39,14 @@ export interface MetricSearchBarProps
 
 const EMPTY_ARRAY = [];
 const EMPTY_SET = new Set<never>();
+const INSIGHTS_ADDITIONAL_TAG_FILTERS: MetricTag[] = [
+  {
+    key: 'has',
+  },
+  {
+    key: SpanMetricsField.SPAN_MODULE,
+  },
+];
 
 export function MetricSearchBar({
   mri,
@@ -57,7 +68,7 @@ export function MetricSearchBar({
     [projectIds]
   );
 
-  const {data: tags = EMPTY_ARRAY, isLoading} = useMetricsTags(
+  const {data: tags = EMPTY_ARRAY, isPending} = useMetricsTags(
     mri,
     {
       ...selection,
@@ -67,9 +78,18 @@ export function MetricSearchBar({
     blockedTags
   );
 
+  const additionalTags: MetricTag[] = useMemo(
+    () =>
+      // Insights metrics allow the `has` filter.
+      // `span.module` is a discover field alias that does not appear in the metrics meta endpoint.
+      INSIGHTS_METRICS.includes(mri as string) ? INSIGHTS_ADDITIONAL_TAG_FILTERS : [],
+    [mri]
+  );
+
   const supportedTags: TagCollection = useMemo(
-    () => tags.reduce((acc, tag) => ({...acc, [tag.key]: tag}), {}),
-    [tags]
+    () =>
+      [...tags, ...additionalTags].reduce((acc, tag) => ({...acc, [tag.key]: tag}), {}),
+    [tags, additionalTags]
   );
 
   const searchConfig = useMemo(
@@ -136,7 +156,7 @@ export function MetricSearchBar({
     getTagValues,
     recentSearches: SavedSearchType.METRIC,
     // don't highlight tags while loading as we don't know yet if they are supported
-    disallowUnsupportedFilters: !isLoading,
+    disallowUnsupportedFilters: !isPending,
     filterKeys: searchConfig.supportedTags,
     disallowFreeText: searchConfig.disallowFreeText,
     searchSource: props.searchSource ?? 'metrics',
@@ -150,7 +170,7 @@ export function MetricSearchBar({
     organization,
     onGetTagValues: getTagValues,
     // don't highlight tags while loading as we don't know yet if they are supported
-    highlightUnsupportedTags: !isLoading,
+    highlightUnsupportedTags: !isPending,
     onClose: handleChange,
     onSearch: handleChange,
     placeholder: t('Filter by tags'),

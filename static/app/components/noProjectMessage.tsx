@@ -1,7 +1,7 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import {Button} from 'sentry/components/button';
+import {LinkButton} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import NoProjectEmptyState from 'sentry/components/illustrations/NoProjectEmptyState';
 import * as Layout from 'sentry/components/layouts/thirds';
@@ -46,18 +46,18 @@ function NoProjectMessage({
   // action is to create a project.
 
   const joinTeamAction = (
-    <Button
+    <LinkButton
       title={canJoinTeam ? undefined : t('You do not have permission to join a team.')}
       disabled={!canJoinTeam}
       priority={orgHasProjects ? 'primary' : 'default'}
       to={`/settings/${orgSlug}/teams/`}
     >
       {t('Join a Team')}
-    </Button>
+    </LinkButton>
   );
 
   const createProjectAction = (
-    <Button
+    <LinkButton
       title={
         canUserCreateProject
           ? undefined
@@ -68,7 +68,7 @@ function NoProjectMessage({
       to={`/organizations/${orgSlug}/projects/new/`}
     >
       {t('Create project')}
-    </Button>
+    </LinkButton>
   );
 
   return (

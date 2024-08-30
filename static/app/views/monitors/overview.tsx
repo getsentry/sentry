@@ -62,7 +62,7 @@ export default function Monitors() {
   const {
     data: monitorList,
     getResponseHeader: monitorListHeaders,
-    isLoading,
+    isPending,
     refetch,
   } = useApiQuery<Monitor[]>(queryKey, {
     staleTime: 0,
@@ -171,7 +171,7 @@ export default function Monitors() {
                 )}
               </MonitorProcessingErrors>
             )}
-            {isLoading ? (
+            {isPending ? (
               <LoadingIndicator />
             ) : monitorList?.length ? (
               <Fragment>

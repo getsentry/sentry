@@ -253,14 +253,14 @@ export function SetupReplaysCTA({
         }
         disabled={!disabled}
       >
-        <Button
+        <LinkButton
           data-test-id="create-project-btn"
           to={`/organizations/${orgSlug}/projects/new/`}
           priority="primary"
           disabled={disabled}
         >
           {t('Create Project')}
-        </Button>
+        </LinkButton>
       </Tooltip>
     );
   }

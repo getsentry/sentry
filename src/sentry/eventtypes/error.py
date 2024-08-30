@@ -6,7 +6,7 @@ from typing import Any
 from sentry.utils.safe import get_path, trim
 from sentry.utils.strings import truncatechars
 
-from .base import BaseEvent, compute_title_with_tree_label
+from .base import BaseEvent
 
 Metadata = dict[str, Any]
 
@@ -70,16 +70,6 @@ class ErrorEvent(BaseEvent):
             if func:
                 rv["function"] = func
 
-        # For now we disable rendering of tree labels for non-native/mobile
-        # platform in issuestream and everywhere else but the grouping
-        # breakdown. The grouping breakdown overrides this flag to force
-        # tree labels to show.
-        #
-        # In the frontend we look at the event platform directly when
-        # rendering the title to apply this logic to old data that doesn't
-        # have this flag materialized.
-        rv["display_title_with_tree_label"] = data.get("platform") in NATIVE_MOBILE_PLATFORMS
-
         return rv
 
     def compute_title(self, metadata: Metadata) -> str:
@@ -88,12 +78,6 @@ class ErrorEvent(BaseEvent):
             value = metadata.get("value")
             if value:
                 title += f": {truncatechars(value.splitlines()[0], 100)}"
-
-        # If there's no value for display_title_with_tree_label, or if the
-        # value is None, we should show the tree labels anyway since it's an
-        # old event.
-        if metadata.get("display_title_with_tree_label") in (None, True):
-            return compute_title_with_tree_label(title, metadata)
 
         return title or metadata.get("function") or "<unknown>"
 

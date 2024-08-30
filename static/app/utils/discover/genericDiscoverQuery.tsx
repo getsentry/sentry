@@ -422,15 +422,15 @@ export function useGenericDiscoverQuery<T, P>(props: Props<T, P>) {
   const url = `/organizations/${orgSlug}/${route}/`;
   const apiPayload = getPayload<T, P>(props);
 
-  const res = useQuery<[T, string | undefined, ResponseMeta<T> | undefined], QueryError>(
-    [route, apiPayload],
-    ({signal: _signal}) =>
+  const res = useQuery<[T, string | undefined, ResponseMeta<T> | undefined], QueryError>({
+    queryKey: [route, apiPayload],
+    queryFn: ({signal: _signal}) =>
       doDiscoverQuery<T>(api, url, apiPayload, {
         queryBatching: props.queryBatching,
         skipAbort: props.skipAbort,
       }),
-    options
-  );
+    ...options,
+  });
 
   return {
     ...res,
@@ -438,6 +438,7 @@ export function useGenericDiscoverQuery<T, P>(props: Props<T, P>) {
     error: parseError(res.error),
     statusCode: res.data?.[1] ?? undefined,
     response: res.data?.[2] ?? undefined,
+    isPending: res.isLoading,
   };
 }
 

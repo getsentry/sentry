@@ -95,6 +95,7 @@ function makeSingleTransactionTree(): TraceTree {
         }),
       ],
     }),
+    null,
     null
   );
 }
@@ -174,9 +175,7 @@ describe('VirtualizedViewManger', () => {
       manager.view.setTraceSpace([0, 0, 100, 1]);
       manager.view.setTracePhysicalSpace([0, 0, 1000, 1], [0, 0, 1000, 1]);
 
-      expect(manager.computeSpanCSSMatrixTransform([0, 100])).toEqual([
-        1, 0, 0, 1, -2, 0,
-      ]);
+      expect(manager.computeSpanCSSMatrixTransform([0, 100])).toEqual([1, 0, 0, 1, 0, 0]);
     });
 
     it('computes x position correctly', () => {
@@ -193,7 +192,7 @@ describe('VirtualizedViewManger', () => {
       manager.view.setTracePhysicalSpace([0, 0, 1000, 1], [0, 0, 1000, 1]);
 
       expect(manager.computeSpanCSSMatrixTransform([50, 1000])).toEqual([
-        1, 0, 0, 1, 48, 0,
+        1, 0, 0, 1, 50, 0,
       ]);
     });
 
@@ -211,7 +210,7 @@ describe('VirtualizedViewManger', () => {
       manager.view.setTracePhysicalSpace([0, 0, 1000, 1], [0, 0, 1000, 1]);
 
       expect(manager.computeSpanCSSMatrixTransform([50, 1000])).toEqual([
-        1, 0, 0, 1, 48, 0,
+        1, 0, 0, 1, 50, 0,
       ]);
     });
 
@@ -230,7 +229,7 @@ describe('VirtualizedViewManger', () => {
         manager.view.setTracePhysicalSpace([0, 0, 1000, 1], [0, 0, 1000, 1]);
 
         expect(manager.computeSpanCSSMatrixTransform([100, 100])).toEqual([
-          1, 0, 0, 1, -2, 0,
+          1, 0, 0, 1, 0, 0,
         ]);
       });
       it('computes x position correctly when view is offset', () => {
@@ -247,7 +246,7 @@ describe('VirtualizedViewManger', () => {
         manager.view.setTracePhysicalSpace([0, 0, 1000, 1], [0, 0, 1000, 1]);
 
         expect(manager.computeSpanCSSMatrixTransform([100, 100])).toEqual([
-          1, 0, 0, 1, -2, 0,
+          1, 0, 0, 1, 0, 0,
         ]);
       });
     });
@@ -325,6 +324,7 @@ describe('VirtualizedViewManger', () => {
           transactions: [makeTransaction()],
           orphan_errors: [],
         }),
+        null,
         null
       );
 
@@ -349,6 +349,7 @@ describe('VirtualizedViewManger', () => {
             }),
           ],
         }),
+        null,
         null
       );
 
@@ -382,6 +383,7 @@ describe('VirtualizedViewManger', () => {
             }),
           ],
         }),
+        null,
         null
       );
 
@@ -418,6 +420,7 @@ describe('VirtualizedViewManger', () => {
             }),
           ],
         }),
+        null,
         null
       );
 
@@ -430,42 +433,6 @@ describe('VirtualizedViewManger', () => {
       const result = await TraceTree.ExpandToPath(
         tree,
         ['span-span_id', 'txn-event_id'],
-        () => void 0,
-        {
-          api: api,
-          organization,
-        }
-      );
-
-      expect(tree.list[1].zoomedIn).toBe(true);
-      expect(result?.node).toBe(tree.list[2]);
-    });
-
-    it('scrolls to empty data node of expanded transaction', async () => {
-      manager.list = makeList();
-
-      const tree = TraceTree.FromTrace(
-        makeTrace({
-          transactions: [
-            makeTransaction({
-              event_id: 'event_id',
-              project_slug: 'project',
-              children: [],
-            }),
-          ],
-        }),
-        null
-      );
-
-      MockApiClient.addMockResponse({
-        url: EVENT_REQUEST_URL,
-        method: 'GET',
-        body: makeEvent(undefined, []),
-      });
-
-      const result = await TraceTree.ExpandToPath(
-        tree,
-        ['empty-node', 'txn-event_id'],
         () => void 0,
         {
           api: api,
@@ -496,6 +463,7 @@ describe('VirtualizedViewManger', () => {
             }),
           ],
         }),
+        null,
         null
       );
 
@@ -701,6 +669,7 @@ describe('VirtualizedViewManger', () => {
             },
           ],
         }),
+        null,
         null
       );
 

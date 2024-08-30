@@ -39,6 +39,11 @@ import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
+import {
+  TableHeader,
+  TableHeaderActions,
+  TableHeaderTitle,
+} from 'sentry/views/explore/components/table';
 import {LandingAggregateFlamegraph} from 'sentry/views/profiling/landingAggregateFlamegraph';
 import {DEFAULT_PROFILING_DATETIME_SELECTION} from 'sentry/views/profiling/utils';
 
@@ -354,19 +359,21 @@ function ProfilingContent({location}: ProfilingContentProps) {
         <Layout.Page>
           <ProfilingBetaAlertBanner organization={organization} />
           <ProfilingContentPageHeader tab={tab} onTabChange={onTabChange} />
-          <Layout.Body>
-            {tab === 'flamegraph' ? (
+          {tab === 'flamegraph' ? (
+            <FlamegraphBody>
               <ProfilingFlamegraphTabContent
                 tab={tab}
                 shouldShowProfilingOnboardingPanel={shouldShowProfilingOnboardingPanel}
               />
-            ) : tab === 'transactions' ? (
+            </FlamegraphBody>
+          ) : tab === 'transactions' ? (
+            <Layout.Body>
               <ProfilingTransactionsContent
                 tab={tab}
                 shouldShowProfilingOnboardingPanel={shouldShowProfilingOnboardingPanel}
               />
-            ) : null}
-          </Layout.Body>
+            </Layout.Body>
+          ) : null}
         </Layout.Page>
       </PageFiltersContainer>
     </SentryDocumentTitle>
@@ -380,22 +387,25 @@ interface ProfilingTabContentProps {
 
 function ProfilingFlamegraphTabContent(props: ProfilingTabContentProps) {
   return (
-    <Layout.Main fullWidth>
-      <ActionBar>
+    <FlamegraphMainLayout>
+      <FlamegraphActionBar>
         <PageFilterBar condensed>
           <ProjectPageFilter resetParamsOnChange={CURSOR_PARAMS} />
           <EnvironmentPageFilter resetParamsOnChange={CURSOR_PARAMS} />
           <DatePageFilter resetParamsOnChange={CURSOR_PARAMS} />
         </PageFilterBar>
-      </ActionBar>
-      {props.shouldShowProfilingOnboardingPanel ? (
-        <ProfilingOnboardingCTA />
-      ) : (
-        <LandingAggregateFlamegraphContainer>
-          <LandingAggregateFlamegraph />
-        </LandingAggregateFlamegraphContainer>
-      )}
-    </Layout.Main>
+      </FlamegraphActionBar>
+      <FlamegraphLayout>
+        {props.shouldShowProfilingOnboardingPanel ? (
+          <ProfilingOnboardingCTA />
+        ) : (
+          <LandingAggregateFlamegraphContainer>
+            <LandingAggregateFlamegraph />
+          </LandingAggregateFlamegraphContainer>
+        )}
+        <FlamegraphSidebar />
+      </FlamegraphLayout>
+    </FlamegraphMainLayout>
   );
 }
 
@@ -488,7 +498,7 @@ function ProfilingTransactionsContent(props: ProfilingTabContentProps) {
                 selection={selection}
                 continuousProfilingCompat={continuousProfilingCompat}
               />
-              <SlowestFunctionsTable />
+              <SlowestFunctionsTable userQuery={query} />
             </Fragment>
           ) : organization.features.includes('profiling-global-suspect-functions') ? (
             <Fragment>
@@ -528,6 +538,18 @@ function ProfilingTransactionsContent(props: ProfilingTabContentProps) {
             </PanelsGrid>
           )}
           <Fragment>
+            <TableHeader>
+              <TableHeaderTitle>{t('Transactions')}</TableHeaderTitle>
+              <TableHeaderActions>
+                <StyledPagination
+                  pageLinks={
+                    transactions.status === 'success'
+                      ? transactions.getResponseHeader?.('Link') ?? null
+                      : null
+                  }
+                />
+              </TableHeaderActions>
+            </TableHeader>
             <ProfileEventsTable
               columns={fields.slice()}
               data={transactions.status === 'success' ? transactions.data : null}
@@ -537,13 +559,6 @@ function ProfilingTransactionsContent(props: ProfilingTabContentProps) {
               isLoading={transactions.status === 'loading'}
               sort={sort}
               sortableColumns={new Set(fields)}
-            />
-            <Pagination
-              pageLinks={
-                transactions.status === 'success'
-                  ? transactions.getResponseHeader?.('Link') ?? null
-                  : null
-              }
             />
           </Fragment>
         </Fragment>
@@ -648,13 +663,38 @@ const ALL_FIELDS = [
 
 type FieldType = (typeof ALL_FIELDS)[number];
 
+const FlamegraphBody = styled(Layout.Body)`
+  display: grid;
+  grid-template-rows: 1fr;
+`;
+
+const FlamegraphMainLayout = styled(Layout.Main)`
+  display: grid;
+  grid-column: 1 / -1;
+  grid-template-rows: min-content 1fr;
+`;
+
+const FlamegraphLayout = styled('div')`
+  display: grid;
+  grid-template-areas: 'flamegraph sidebar';
+  grid-template-columns: 1fr min-content;
+  margin-top: ${space(2)};
+`;
+
+const FlamegraphActionBar = styled('div')``;
+
+const FlamegraphSidebar = styled('div')`
+  grid-area: sidebar;
+`;
+
 const LandingAggregateFlamegraphContainer = styled('div')`
-  height: 40vh;
+  height: 100%;
   min-height: 300px;
   position: relative;
   border: 1px solid ${p => p.theme.border};
   border-radius: ${p => p.theme.borderRadius};
   margin-bottom: ${space(2)};
+  grid-area: flamegraph;
 `;
 
 const StyledLayoutHeader = styled(Layout.Header)`
@@ -692,6 +732,10 @@ const WidgetsContainer = styled('div')`
   @media (max-width: ${p => p.theme.breakpoints.small}) {
     grid-template-columns: 1fr;
   }
+`;
+
+const StyledPagination = styled(Pagination)`
+  margin: 0;
 `;
 
 function ProfilingContentWrapper(props: ProfilingContentProps) {

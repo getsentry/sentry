@@ -16,12 +16,12 @@ interface Props {
 }
 
 export function ThroughputChart({error, destination, referrer}: Props) {
-  const {data: publishData, isLoading: isPublishDataLoading} =
+  const {data: publishData, isPending: isPublishDataLoading} =
     usePublishQueuesTimeSeriesQuery({
       destination,
       referrer,
     });
-  const {data: processData, isLoading: isProcessDataLoading} =
+  const {data: processData, isPending: isProcessDataLoading} =
     useProcessQueuesTimeSeriesQuery({
       destination,
       referrer,
@@ -36,18 +36,16 @@ export function ThroughputChart({error, destination, referrer}: Props) {
           top: '8px',
           bottom: '0',
         }}
-        data={
-          [
-            {
-              seriesName: t('Published'),
-              data: publishData['spm()'].data,
-            },
-            {
-              seriesName: t('Processed'),
-              data: processData['spm()'].data,
-            },
-          ] ?? []
-        }
+        data={[
+          {
+            seriesName: t('Published'),
+            data: publishData['spm()'].data,
+          },
+          {
+            seriesName: t('Processed'),
+            data: processData['spm()'].data,
+          },
+        ]}
         loading={isPublishDataLoading || isProcessDataLoading}
         error={error}
         chartColors={CHART_PALETTE[2].slice(1, 3)}

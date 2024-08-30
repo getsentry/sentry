@@ -2,7 +2,7 @@ import {Fragment, useState} from 'react';
 
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {Alert} from 'sentry/components/alert';
-import {Button} from 'sentry/components/button';
+import {Button, LinkButton} from 'sentry/components/button';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
@@ -23,7 +23,7 @@ function RecoveryOptionsModal({
   Footer,
 }: Props) {
   const {
-    isLoading,
+    isPending,
     isError,
     refetch: refetchAuthenticators,
     data: authenticators = [],
@@ -48,7 +48,7 @@ function RecoveryOptionsModal({
     setSkipSms(true);
   };
 
-  if (isLoading) return <LoadingIndicator />;
+  if (isPending) return <LoadingIndicator />;
 
   if (isError) {
     return (
@@ -93,7 +93,7 @@ function RecoveryOptionsModal({
           <Button onClick={handleSkipSms} name="skipStep" autoFocus>
             {t('Skip this step')}
           </Button>
-          <Button
+          <LinkButton
             priority="primary"
             onClick={closeModal}
             to={`/settings/account/security/mfa/${sms.id}/enroll/`}
@@ -102,12 +102,12 @@ function RecoveryOptionsModal({
             autoFocus
           >
             {t('Add a Phone Number')}
-          </Button>
+          </LinkButton>
         </Footer>
       ) : (
         // get recovery codes
         <Footer>
-          <Button
+          <LinkButton
             priority="primary"
             onClick={closeModal}
             to={
@@ -119,7 +119,7 @@ function RecoveryOptionsModal({
             autoFocus
           >
             {t('Get Recovery Codes')}
-          </Button>
+          </LinkButton>
         </Footer>
       )}
     </Fragment>

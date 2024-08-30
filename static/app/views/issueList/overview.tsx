@@ -1,5 +1,4 @@
 import {Component} from 'react';
-import type {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 import type {Location} from 'history';
@@ -15,6 +14,7 @@ import {addMessage} from 'sentry/actionCreators/indicator';
 import {fetchOrgMembers, indexMembersByProject} from 'sentry/actionCreators/members';
 import {fetchTagValues, loadOrganizationTags} from 'sentry/actionCreators/tags';
 import type {Client} from 'sentry/api';
+import ErrorBoundary from 'sentry/components/errorBoundary';
 import HookOrDefault from 'sentry/components/hookOrDefault';
 import * as Layout from 'sentry/components/layouts/thirds';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
@@ -39,6 +39,7 @@ import type {
   TagCollection,
 } from 'sentry/types/group';
 import {GroupStatus, IssueCategory} from 'sentry/types/group';
+import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import type {Organization} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -1226,12 +1227,13 @@ class IssueListOverview extends Component<Props, State> {
     return (
       <Layout.Page>
         {organization.features.includes('issue-stream-custom-views') ? (
-          <CustomViewsIssueListHeader
-            organization={organization}
-            queryCounts={queryCounts}
-            router={router}
-            selectedProjectIds={selection.projects}
-          />
+          <ErrorBoundary message={'Failed to load custom tabs'}>
+            <CustomViewsIssueListHeader
+              organization={organization}
+              router={router}
+              selectedProjectIds={selection.projects}
+            />
+          </ErrorBoundary>
         ) : (
           <IssueListHeader
             organization={organization}

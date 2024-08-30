@@ -1,10 +1,10 @@
 import {Fragment, useState} from 'react';
-import type {RouteComponentProps} from 'react-router';
 
 import * as Layout from 'sentry/components/layouts/thirds';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
+import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import type {Member, Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import useRouteAnalyticsEventNames from 'sentry/utils/routeAnalytics/useRouteAnalyticsEventNames';
@@ -32,7 +32,7 @@ type Props = RouteComponentProps<RouteParams, {}> & {
 };
 
 function ProjectAlertsEditor(props: Props) {
-  const {hasMetricAlerts, hasUptimeAlerts, members, organization, project} = props;
+  const {members, organization, project} = props;
   const location = useLocation();
 
   const [title, setTitle] = useState('');
@@ -80,7 +80,7 @@ function ProjectAlertsEditor(props: Props) {
       <Layout.Body>
         {!teamsLoading ? (
           <Fragment>
-            {(!hasMetricAlerts || alertType === CombinedAlertType.ISSUE) && (
+            {alertType === CombinedAlertType.ISSUE && (
               <IssueEditor
                 {...props}
                 project={project}
@@ -89,7 +89,7 @@ function ProjectAlertsEditor(props: Props) {
                 members={members}
               />
             )}
-            {hasMetricAlerts && alertType === CombinedAlertType.METRIC && (
+            {alertType === CombinedAlertType.METRIC && (
               <MetricRulesEdit
                 {...props}
                 project={project}
@@ -97,7 +97,7 @@ function ProjectAlertsEditor(props: Props) {
                 userTeamIds={teams.map(({id}) => id)}
               />
             )}
-            {hasUptimeAlerts && alertType === CombinedAlertType.UPTIME && (
+            {alertType === CombinedAlertType.UPTIME && (
               <UptimeRulesEdit
                 {...props}
                 project={project}
