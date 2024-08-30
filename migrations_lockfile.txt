@@ -10,6 +10,6 @@ hybridcloud: 0016_add_control_cacheversion
 nodestore: 0002_nodestore_no_dictfield
 remote_subscriptions: 0003_drop_remote_subscription
 replays: 0004_index_together
-sentry: 0751_grouphashmetadata_use_one_to_one_field_for_grouphash
+sentry: 0753_fix_substatus_for_ignored_groups
 social_auth: 0002_default_auto_field
 uptime: 0007_update_detected_subscription_interval

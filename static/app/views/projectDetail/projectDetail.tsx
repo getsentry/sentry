@@ -1,5 +1,4 @@
 import {Fragment, useCallback, useEffect, useMemo} from 'react';
-import type {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 import pick from 'lodash/pick';
 
@@ -8,7 +7,7 @@ import {updateProjects} from 'sentry/actionCreators/pageFilters';
 import {fetchTagValues} from 'sentry/actionCreators/tags';
 import Feature from 'sentry/components/acl/feature';
 import {Breadcrumbs} from 'sentry/components/breadcrumbs';
-import {Button} from 'sentry/components/button';
+import {LinkButton} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import CreateAlertButton from 'sentry/components/createAlertButton';
 import FeedbackWidgetButton from 'sentry/components/feedback/widget/feedbackWidgetButton';
@@ -24,6 +23,7 @@ import {DEFAULT_RELATIVE_PERIODS} from 'sentry/constants';
 import {IconSettings} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import type {Organization} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
 import routeTitleGen from 'sentry/utils/routeTitle';
@@ -178,7 +178,7 @@ export default function ProjectDetail({router, location, organization}: Props) {
               <Layout.HeaderActions>
                 <ButtonBar gap={1}>
                   <FeedbackWidgetButton />
-                  <Button
+                  <LinkButton
                     size="sm"
                     to={
                       // if we are still fetching project, we can use project slug to build issue stream url and let the redirect handle it
@@ -188,14 +188,14 @@ export default function ProjectDetail({router, location, organization}: Props) {
                     }
                   >
                     {t('View All Issues')}
-                  </Button>
+                  </LinkButton>
                   <CreateAlertButton
                     size="sm"
                     organization={organization}
                     projectSlug={params.projectId}
                     aria-label={t('Create Alert')}
                   />
-                  <Button
+                  <LinkButton
                     size="sm"
                     icon={<IconSettings />}
                     aria-label={t('Settings')}

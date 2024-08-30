@@ -12,9 +12,10 @@ import Link from 'sentry/components/links/link';
 import PanelItem from 'sentry/components/panels/panelItem';
 import TextOverflow from 'sentry/components/textOverflow';
 import TimeSince from 'sentry/components/timeSince';
+import {Tooltip} from 'sentry/components/tooltip';
 import Version from 'sentry/components/version';
 import VersionHoverCard from 'sentry/components/versionHoverCard';
-import {IconWarning} from 'sentry/icons';
+import {IconQuestion, IconWarning} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import {space} from 'sentry/styles/space';
@@ -78,48 +79,6 @@ function CommitRow({
 
   const firstRelease = commit.releases?.[0];
 
-  const tctArgs = {
-    author: <span>{isUser ? t('You') : commit.author?.name ?? t('Unknown author')}</span>,
-    unknownLabel: (
-      <Hovercard
-        body={
-          <EmailWarning>
-            {tct(
-              'The email [actorEmail] is not a member of your organization. [inviteUser:Invite] them or link additional emails in [accountSettings:account settings].',
-              {
-                actorEmail: <strong>{commit.author?.email}</strong>,
-                accountSettings: (
-                  <StyledLink
-                    to="/settings/account/emails/"
-                    onClick={() =>
-                      trackAnalytics('issue_details.suspect_commits.missing_user', {
-                        organization,
-                        link: 'account_settings',
-                      })
-                    }
-                  />
-                ),
-                inviteUser: <StyledLink to="" onClick={handleInviteClick} />,
-              }
-            )}
-          </EmailWarning>
-        }
-      >
-        <UnknownAuthorWrapper>{t('(not a member)')}</UnknownAuthorWrapper>
-      </Hovercard>
-    ),
-    commitLink: (
-      <CommitLink
-        inline
-        showIcon={false}
-        commitId={commit.id}
-        repository={commit.repository}
-        onClick={onCommitClick ? () => onCommitClick(commit) : undefined}
-      />
-    ),
-    date: <TimeSince date={commit.dateCreated} disabledAbsoluteTooltip />,
-  };
-
   return hasStreamlinedUI ? (
     <StreamlinedCommitRow data-test-id="commit-row">
       {commit.pullRequest?.externalUrl ? (
@@ -134,9 +93,49 @@ function CommitRow({
           {customAvatar ? customAvatar : <UserAvatar size={16} user={commit.author} />}
         </span>
         <Meta>
-          {commit.author && commit.author.id === undefined
-            ? tct('[author] [unknownLabel] committed [commitLink] [date]', tctArgs)
-            : tct('[author] committed [commitLink] [date]', tctArgs)}
+          <Tooltip
+            title={tct(
+              'The email [actorEmail] is not a member of your organization. [inviteUser:Invite] them or link additional emails in [accountSettings:account settings].',
+              {
+                actorEmail: <BoldEmail>{commit.author?.email}</BoldEmail>,
+                accountSettings: (
+                  <StyledLink
+                    to="/settings/account/emails/"
+                    onClick={() =>
+                      trackAnalytics('issue_details.suspect_commits.missing_user', {
+                        organization,
+                        link: 'account_settings',
+                      })
+                    }
+                  />
+                ),
+                inviteUser: <StyledLink to="" onClick={handleInviteClick} />,
+              }
+            )}
+            disabled={!commit.author || commit.author.id !== undefined}
+            overlayStyle={{maxWidth: '350px'}}
+            skipWrapper
+            isHoverable
+          >
+            <AuthorWrapper>
+              {isUser ? t('You') : commit.author?.name ?? t('Unknown author')}
+              {commit.author && commit.author.id === undefined && (
+                <IconQuestion size="xs" />
+              )}
+            </AuthorWrapper>
+          </Tooltip>
+          {tct(' committed [commitLink]', {
+            commitLink: (
+              <CommitLink
+                inline
+                showIcon={false}
+                commitId={commit.id}
+                repository={commit.repository}
+                onClick={onCommitClick ? () => onCommitClick(commit) : undefined}
+              />
+            ),
+          })}{' '}
+          <TimeSince date={commit.dateCreated} disabledAbsoluteTooltip />
         </Meta>
         {project && firstRelease && (
           <Fragment>
@@ -261,6 +260,11 @@ const EmailWarning = styled('div')`
   margin: -4px;
 `;
 
+const BoldEmail = styled('strong')`
+  font-weight: bold;
+  word-break: break-all;
+`;
+
 const StyledLink = styled(Link)`
   color: ${p => p.theme.textColor};
   border-bottom: 1px dotted ${p => p.theme.textColor};
@@ -304,12 +308,16 @@ const Meta = styled(TextOverflow)<{hasStreamlinedUI?: boolean}>`
     text-decoration: underline;
     text-decoration-style: dotted;
   }
+
+  a:hover {
+    color: ${p => p.theme.textColor};
+  }
 `;
 
 const StreamlinedCommitRow = styled('div')`
   display: flex;
   flex-direction: column;
-  padding: ${space(1)} ${space(1.5)} ${space(1.5)};
+  padding: ${space(0.5)} ${space(1.5)} ${space(1.5)};
 `;
 
 const MetaWrapper = styled('div')`
@@ -330,10 +338,23 @@ const StyledExternalLink = styled(ExternalLink)`
   }
 `;
 
-const UnknownAuthorWrapper = styled('div')`
+const AuthorWrapper = styled('span')`
+  display: inline-flex;
+  align-items: center;
+  gap: ${space(0.25)};
   color: ${p => p.theme.subText};
-  text-decoration: underline;
-  text-decoration-style: dotted;
+
+  & svg {
+    transition: 120ms opacity;
+    opacity: 0.6;
+  }
+
+  &:has(svg):hover {
+    color: ${p => p.theme.textColor};
+    & svg {
+      opacity: 1;
+    }
+  }
 `;
 
 export {CommitRow};

@@ -5,7 +5,7 @@ import pick from 'lodash/pick';
 import * as qs from 'query-string';
 
 import type {Client} from 'sentry/api';
-import {Button} from 'sentry/components/button';
+import {LinkButton} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import DiscoverButton from 'sentry/components/discoverButton';
 import GroupList from 'sentry/components/issues/groupList';
@@ -152,7 +152,7 @@ function ProjectIssues({organization, location, projectId, query, api}: Props) {
       query: {
         name: t('Frequent Unhandled Issues'),
         field: ['issue', 'title', 'count()', 'count_unique(user)', 'project'],
-        sort: ['-count'],
+        sort: '-count',
         query: discoverQuery,
         display: 'top5',
         ...normalizeDateTimeParams(pick(location.query, [...Object.values(URL_PARAM)])),
@@ -168,7 +168,7 @@ function ProjectIssues({organization, location, projectId, query, api}: Props) {
     : [`${IssuesQuery.ALL}`, query].join(' ').trim();
 
   const queryParams = {
-    limit: 5,
+    limit: '5',
     ...normalizeDateTimeParams(
       pick(location.query, [...Object.values(URL_PARAM), 'cursor'])
     ),
@@ -260,14 +260,14 @@ function ProjectIssues({organization, location, projectId, query, api}: Props) {
           ))}
         </SegmentedControl>
         <OpenInButtonBar gap={1}>
-          <Button
+          <LinkButton
             data-test-id="issues-open"
             size="xs"
             to={issueSearch}
             onClick={handleOpenInIssuesClick}
           >
             {t('Open in Issues')}
-          </Button>
+          </LinkButton>
           <DiscoverButton
             onClick={handleOpenInDiscoverClick}
             to={getDiscoverUrl()}

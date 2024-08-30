@@ -180,7 +180,6 @@ def get_stats_generator(use_discover: bool, remove_on_demand: bool):
         return module.timeseries_query(
             selected_columns=query_columns,
             query=query,
-            params={},
             snuba_params=snuba_params,
             rollup=rollup,
             referrer=Referrer.API_ORGANIZATION_METRICS_ESTIMATION_STATS.value,

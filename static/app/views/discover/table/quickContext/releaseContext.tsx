@@ -29,7 +29,7 @@ import {ContextType, tenSecondInMs} from './utils';
 
 function ReleaseContext(props: BaseContextProps) {
   const {dataRow, organization} = props;
-  const {isLoading, isError, data} = useApiQuery<ReleaseWithHealth>(
+  const {isPending, isError, data} = useApiQuery<ReleaseWithHealth>(
     [
       `/organizations/${organization.slug}/releases/${encodeURIComponent(
         dataRow.release
@@ -157,8 +157,8 @@ function ReleaseContext(props: BaseContextProps) {
       </ReleaseContextContainer>
     );
 
-  if (isLoading || isError) {
-    return <NoContext isLoading={isLoading} />;
+  if (isPending || isError) {
+    return <NoContext isLoading={isPending} />;
   }
 
   return (

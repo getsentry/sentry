@@ -35,7 +35,7 @@ export function IssueAlertDetailsChart({
   const router = useRouter();
   const {
     data: ruleFireHistory,
-    isLoading,
+    isPending,
     isError,
     error,
   } = useApiQuery<ProjectAlertRuleStats[]>(
@@ -67,7 +67,7 @@ export function IssueAlertDetailsChart({
           <HeaderTitleLegend>{t('Alerts Triggered')}</HeaderTitleLegend>
         </ChartHeader>
         {getDynamicText({
-          value: isLoading ? (
+          value: isPending ? (
             <Placeholder height="200px" />
           ) : (
             <ChartZoom
@@ -115,7 +115,7 @@ export function IssueAlertDetailsChart({
       <ChartFooter>
         <FooterHeader>{t('Total Alerts')}</FooterHeader>
         <FooterValue>
-          {isLoading ? (
+          {isPending ? (
             <Placeholder height="16px" width="50px" />
           ) : (
             totalAlertsTriggered.toLocaleString()

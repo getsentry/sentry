@@ -1,5 +1,4 @@
 import {Fragment, useCallback, useState} from 'react';
-import type {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
@@ -9,6 +8,7 @@ import {PanelTable} from 'sentry/components/panels/panelTable';
 import SearchBar from 'sentry/components/searchBar';
 import {t, tct} from 'sentry/locale';
 import type {DebugFile} from 'sentry/types/debugFiles';
+import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import type {DebugIdBundleAssociation} from 'sentry/types/sourceMaps';
@@ -41,7 +41,7 @@ function ProjectProguard({organization, location, router, params}: ProjectProgua
 
   const {
     data: mappings,
-    isLoading: dataLoading,
+    isPending: dataLoading,
     getResponseHeader,
     refetch: fetchData,
   } = useApiQuery<DebugFile[]>(

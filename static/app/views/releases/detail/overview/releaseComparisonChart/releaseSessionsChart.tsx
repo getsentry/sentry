@@ -1,5 +1,4 @@
 import {Component} from 'react';
-import type {WithRouterProps} from 'react-router';
 import type {Theme} from '@emotion/react';
 import {withTheme} from '@emotion/react';
 import round from 'lodash/round';
@@ -13,6 +12,7 @@ import TransitionChart from 'sentry/components/charts/transitionChart';
 import TransparentLoadingMask from 'sentry/components/charts/transparentLoadingMask';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import {t} from 'sentry/locale';
+import type {WithRouterProps} from 'sentry/types/legacyReactRouter';
 import type {SessionApiResponse} from 'sentry/types/organization';
 import {SessionFieldWithOperation, SessionStatus} from 'sentry/types/organization';
 import type {PlatformKey} from 'sentry/types/project';

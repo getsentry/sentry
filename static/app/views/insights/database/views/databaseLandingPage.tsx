@@ -1,4 +1,5 @@
 import React from 'react';
+import styled from '@emotion/styled';
 
 import Alert from 'sentry/components/alert';
 import {Breadcrumbs} from 'sentry/components/breadcrumbs';
@@ -8,6 +9,7 @@ import * as Layout from 'sentry/components/layouts/thirds';
 import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionTooltip';
 import SearchBar from 'sentry/components/searchBar';
 import {t} from 'sentry/locale';
+import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {browserHistory} from 'sentry/utils/browserHistory';
 import {decodeScalar, decodeSorts} from 'sentry/utils/queryString';
@@ -19,7 +21,6 @@ import * as ModuleLayout from 'sentry/views/insights/common/components/moduleLay
 import {ModulePageFilterBar} from 'sentry/views/insights/common/components/modulePageFilterBar';
 import {ModulePageProviders} from 'sentry/views/insights/common/components/modulePageProviders';
 import {ModulesOnboarding} from 'sentry/views/insights/common/components/modulesOnboarding';
-import {ToolRibbon} from 'sentry/views/insights/common/components/ribbon';
 import {useSpanMetrics} from 'sentry/views/insights/common/queries/useDiscover';
 import {useSpanMetricsSeries} from 'sentry/views/insights/common/queries/useDiscoverSeries';
 import {useHasFirstSpan} from 'sentry/views/insights/common/queries/useHasFirstSpan';
@@ -30,6 +31,7 @@ import {ActionSelector} from 'sentry/views/insights/common/views/spans/selectors
 import {DomainSelector} from 'sentry/views/insights/common/views/spans/selectors/domainSelector';
 import {DurationChart} from 'sentry/views/insights/database/components/charts/durationChart';
 import {ThroughputChart} from 'sentry/views/insights/database/components/charts/throughputChart';
+import {DatabaseSystemSelector} from 'sentry/views/insights/database/components/databaseSystemSelector';
 import {NoDataMessage} from 'sentry/views/insights/database/components/noDataMessage';
 import {
   isAValidSort,
@@ -79,7 +81,11 @@ export function DatabaseLandingPage() {
     });
   };
 
-  const chartFilters = BASE_FILTERS;
+  const chartFilters = {
+    ...BASE_FILTERS,
+    'span.action': spanAction,
+    'span.domain': spanDomain,
+  };
 
   const tableFilters = {
     ...BASE_FILTERS,
@@ -110,7 +116,7 @@ export function DatabaseLandingPage() {
   );
 
   const {
-    isLoading: isThroughputDataLoading,
+    isPending: isThroughputDataLoading,
     data: throughputData,
     error: throughputError,
   } = useSpanMetricsSeries(
@@ -122,7 +128,7 @@ export function DatabaseLandingPage() {
   );
 
   const {
-    isLoading: isDurationDataLoading,
+    isPending: isDurationDataLoading,
     data: durationData,
     error: durationError,
   } = useSpanMetricsSeries(
@@ -134,7 +140,7 @@ export function DatabaseLandingPage() {
   );
 
   const isCriticalDataLoading =
-    isThroughputDataLoading || isDurationDataLoading || queryListResponse.isLoading;
+    isThroughputDataLoading || isDurationDataLoading || queryListResponse.isPending;
 
   const isAnyCriticalDataAvailable =
     (queryListResponse.data ?? []).length > 0 ||
@@ -179,7 +185,16 @@ export function DatabaseLandingPage() {
             )}
 
             <ModuleLayout.Full>
-              <ModulePageFilterBar moduleName={ModuleName.DB} />
+              <PageFilterWrapper>
+                <ModulePageFilterBar moduleName={ModuleName.DB} />
+                <DbFilterWrapper>
+                  {organization.features.includes(
+                    'performance-queries-mongodb-extraction'
+                  ) && <DatabaseSystemSelector />}
+                  <ActionSelector moduleName={moduleName} value={spanAction ?? ''} />
+                  <DomainSelector moduleName={moduleName} value={spanDomain ?? ''} />
+                </DbFilterWrapper>
+              </PageFilterWrapper>
             </ModuleLayout.Full>
             <ModulesOnboarding moduleName={ModuleName.DB}>
               <ModuleLayout.Half>
@@ -197,13 +212,6 @@ export function DatabaseLandingPage() {
                   error={durationError}
                 />
               </ModuleLayout.Half>
-
-              <ModuleLayout.Full>
-                <ToolRibbon>
-                  <ActionSelector moduleName={moduleName} value={spanAction ?? ''} />
-                  <DomainSelector moduleName={moduleName} value={spanDomain ?? ''} />
-                </ToolRibbon>
-              </ModuleLayout.Full>
 
               <ModuleLayout.Full>
                 <SearchBar
@@ -250,5 +258,17 @@ function PageWithProviders() {
     </ModulePageProviders>
   );
 }
+
+const PageFilterWrapper = styled('div')`
+  display: flex;
+  gap: ${space(3)};
+  flex-wrap: wrap;
+`;
+
+const DbFilterWrapper = styled('div')`
+  display: flex;
+  gap: ${space(3)};
+  flex-wrap: wrap;
+`;
 
 export default PageWithProviders;

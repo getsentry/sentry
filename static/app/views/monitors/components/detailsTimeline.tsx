@@ -37,7 +37,7 @@ export function DetailsTimeline({monitor, organization}: Props) {
 
   const timeWindowConfig = useTimeWindowConfig({timelineWidth});
 
-  const {data: monitorStats, isLoading} = useMonitorStats({
+  const {data: monitorStats, isPending} = useMonitorStats({
     monitors: [monitor.id],
     timeWindowConfig,
   });
@@ -103,9 +103,9 @@ export function DetailsTimeline({monitor, organization}: Props) {
         <GridLineLabels timeWindowConfig={timeWindowConfig} />
       </Header>
       <AlignedGridLineOverlay
-        allowZoom={!isLoading}
-        showCursor={!isLoading}
-        showIncidents={!isLoading}
+        allowZoom={!isPending}
+        showCursor={!isPending}
+        showIncidents={!isPending}
         timeWindowConfig={timeWindowConfig}
       />
       <OverviewRow

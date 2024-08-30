@@ -1,4 +1,4 @@
-import type {RouteComponentProps} from 'react-router';
+import {useEffect} from 'react';
 import styled from '@emotion/styled';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
@@ -18,6 +18,7 @@ import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {IconLab} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {useApiQuery} from 'sentry/utils/queryClient';
@@ -45,17 +46,23 @@ export function UptimeRulesEdit({params, onChangeTitle, organization, project}: 
   const apiUrl = `/projects/${organization.slug}/${params.projectId}/uptime/${params.ruleId}/`;
 
   const {
-    isLoading,
+    isPending,
+    isSuccess,
     isError,
     data: rule,
     error,
   } = useApiQuery<UptimeAlert>([apiUrl], {
     staleTime: 0,
     retry: false,
-    onSuccess: data => onChangeTitle(data[0]?.name ?? ''),
   });
 
-  if (isLoading) {
+  useEffect(() => {
+    if (isSuccess && rule) {
+      onChangeTitle(rule.name ?? '');
+    }
+  }, [onChangeTitle, isSuccess, rule]);
+
+  if (isPending) {
     return <LoadingIndicator />;
   }
 

@@ -216,7 +216,7 @@ export const CardPanel = styled(Panel)`
   padding: ${space(0.75)};
   display: grid;
   column-gap: ${space(1.5)};
-  grid-template-columns: minmax(100px, auto) 1fr;
+  grid-template-columns: fit-content(50%) 1fr;
   font-size: ${p => p.theme.fontSizeSmall};
 `;
 
@@ -249,6 +249,7 @@ export const Subject = styled('div')`
   grid-column: span 1;
   font-family: ${p => p.theme.text.familyMono};
   word-break: break-word;
+  min-width: 100px;
 `;
 
 const ValueSection = styled('div')<{hasEmptySubject: boolean; hasErrors: boolean}>`

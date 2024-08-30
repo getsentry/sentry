@@ -1,6 +1,7 @@
 import {Fragment, useEffect} from 'react';
 import styled from '@emotion/styled';
 
+import {LinkButton} from 'sentry/components/button';
 import {Flex} from 'sentry/components/container/flex';
 import {Hovercard} from 'sentry/components/hovercard';
 import {
@@ -23,7 +24,6 @@ import {
 import {useLocation} from 'sentry/utils/useLocation';
 import {profilesRouteWithQuery} from 'sentry/views/performance/transactionSummary/transactionProfiles/utils';
 
-import {Button} from '../button';
 import Link from '../links/link';
 import LoadingIndicator from '../loadingIndicator';
 import PerformanceDuration from '../performanceDuration';
@@ -66,9 +66,9 @@ export function ProfilingTransactionHovercard(props: ProfilingTransactionHoverca
         header={
           <Flex justify="space-between" align="center">
             <TextTruncateOverflow>{transaction}</TextTruncateOverflow>
-            <Button to={linkToSummary} size="xs">
+            <LinkButton to={linkToSummary} size="xs">
               {t('View Profiles')}
-            </Button>
+            </LinkButton>
           </Flex>
         }
         body={
@@ -149,7 +149,7 @@ export function ProfilingTransactionHovercardBody({
       <Flex justify="space-between">
         <ContextDetail
           title={t('Latest profile')}
-          isLoading={latestProfileQuery.isLoading}
+          isLoading={latestProfileQuery.isPending}
         >
           {latestProfile ? (
             <Link
@@ -170,7 +170,7 @@ export function ProfilingTransactionHovercardBody({
 
         <ContextDetail
           title={t('Slowest profile')}
-          isLoading={slowestProfileQuery.isLoading}
+          isLoading={slowestProfileQuery.isPending}
         >
           {slowestProfile ? (
             <Flex gap={space(1)}>
@@ -201,7 +201,7 @@ export function ProfilingTransactionHovercardBody({
 
       <Flex column h={125}>
         <ProfilingTransactionHovercardFunctions
-          isLoading={functionsQuery.isLoading}
+          isLoading={functionsQuery.isPending}
           functions={functions ?? []}
           organization={organization}
           project={project}

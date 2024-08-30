@@ -1,4 +1,3 @@
-import type {InjectedRouter} from 'react-router';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
 import {TeamFixture} from 'sentry-fixture/team';
@@ -16,6 +15,7 @@ import {
 import OrganizationStore from 'sentry/stores/organizationStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import TeamStore from 'sentry/stores/teamStore';
+import type {InjectedRouter} from 'sentry/types/legacyReactRouter';
 import type {Project} from 'sentry/types/project';
 import {browserHistory} from 'sentry/utils/browserHistory';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
@@ -53,6 +53,7 @@ function initializeData({
     projects: projects ? projects : [project],
     router: {
       location: {
+        pathname: '/',
         query: {
           transaction: '/performance',
           project: project.id,
@@ -763,7 +764,7 @@ describe('Performance > TransactionSummary', function () {
       // Check the navigation.
       expect(browserHistory.push).toHaveBeenCalledTimes(1);
       expect(browserHistory.push).toHaveBeenCalledWith({
-        pathname: undefined,
+        pathname: '/',
         query: {
           transaction: '/performance',
           project: '2',
@@ -835,7 +836,7 @@ describe('Performance > TransactionSummary', function () {
 
       // Check the navigation.
       expect(browserHistory.push).toHaveBeenCalledWith({
-        pathname: undefined,
+        pathname: '/',
         query: {
           transaction: '/performance',
           project: '2',
@@ -869,7 +870,7 @@ describe('Performance > TransactionSummary', function () {
 
       // Check the navigation.
       expect(browserHistory.push).toHaveBeenCalledWith({
-        pathname: undefined,
+        pathname: '/',
         query: {
           transaction: '/performance',
           project: '2',
@@ -1021,6 +1022,7 @@ describe('Performance > TransactionSummary', function () {
       expect(router.push).toHaveBeenCalledTimes(2);
 
       expect(router.push).toHaveBeenNthCalledWith(1, {
+        pathname: '/',
         query: {
           project: '2',
           query: 'tags[environment]:dev',
@@ -1030,6 +1032,7 @@ describe('Performance > TransactionSummary', function () {
       });
 
       expect(router.push).toHaveBeenNthCalledWith(2, {
+        pathname: '/',
         query: {
           project: '2',
           query: 'foo:bar',
