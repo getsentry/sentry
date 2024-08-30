@@ -96,23 +96,24 @@ export function getXAxisLabelVisibility(dataPeriod: number, intervals: string[])
     };
   }
 
-  const uniqueLabels: string[] = [];
-  const labelToPositionMap: Record<number, boolean> = {};
+  const uniqueLabels: Set<string> = new Set();
+  const labelToPositionMap: Map<string, number> = new Map();
   const labelVisibility: boolean[] = new Array(intervals.length).fill(false);
 
   // Collect unique labels and their positions
   intervals.forEach((label, index) => {
     if (index === 0 || label.slice(0, 6) !== intervals[index - 1].slice(0, 6)) {
-      uniqueLabels.push(label);
-      labelToPositionMap[label] = index;
+      uniqueLabels.add(label);
+      labelToPositionMap.set(label, index);
     }
   });
 
+  const totalUniqueLabels = uniqueLabels.size;
+
   // Determine which labels should be visible
-  const totalUniqueLabels = uniqueLabels.length;
   if (totalUniqueLabels <= MAX_NUMBER_OF_LABELS) {
     uniqueLabels.forEach(label => {
-      const position = labelToPositionMap[label];
+      const position = labelToPositionMap.get(label);
       if (position !== undefined) {
         labelVisibility[position] = true;
       }
@@ -121,13 +122,16 @@ export function getXAxisLabelVisibility(dataPeriod: number, intervals: string[])
   }
 
   const interval = Math.floor(totalUniqueLabels / MAX_NUMBER_OF_LABELS);
-  uniqueLabels.forEach((label, i) => {
+
+  let i = 0;
+  uniqueLabels.forEach(label => {
     if (i % interval === 0) {
-      const position = labelToPositionMap[label];
+      const position = labelToPositionMap.get(label);
       if (position !== undefined) {
         labelVisibility[position] = true;
       }
     }
+    i++;
   });
 
   return {xAxisLabelVisibility: labelVisibility};
