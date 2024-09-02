@@ -13,10 +13,11 @@ from sentry.constants import CRASH_RATE_ALERT_AGGREGATE_ALIAS
 from sentry.exceptions import InvalidQuerySubscription, UnsupportedQuerySubscription
 from sentry.models.environment import Environment
 from sentry.models.organization import Organization
+from sentry.models.project import Project
 from sentry.search.events.builder.base import BaseQueryBuilder
 from sentry.search.events.builder.discover import DiscoverQueryBuilder
 from sentry.search.events.builder.metrics import AlertMetricsQueryBuilder
-from sentry.search.events.types import ParamsType, QueryBuilderConfig
+from sentry.search.events.types import QueryBuilderConfig, SnubaParams
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.sentry_metrics.utils import (
     MetricIndexNotFound,
@@ -141,9 +142,9 @@ class BaseEntitySubscription(ABC, _EntitySubscription):
     def build_query_builder(
         self,
         query: str,
-        project_ids: list[int],
+        projects: list[Project],
         environment: Environment | None,
-        params: ParamsType | None = None,
+        params: SnubaParams | None = None,
         skip_field_validation_for_entity_subscription_deletion: bool = False,
     ) -> BaseQueryBuilder:
         raise NotImplementedError
@@ -162,21 +163,21 @@ class BaseEventsAndTransactionEntitySubscription(BaseEntitySubscription, ABC):
     def build_query_builder(
         self,
         query: str,
-        project_ids: list[int],
+        projects: list[Project],
         environment: Environment | None,
-        params: ParamsType | None = None,
+        params: SnubaParams | None = None,
         skip_field_validation_for_entity_subscription_deletion: bool = False,
     ) -> BaseQueryBuilder:
         from sentry.search.events.builder.errors import ErrorsQueryBuilder
 
         if params is None:
-            params = {}
+            params = SnubaParams()
 
-        params["project_id"] = project_ids
+        params.projects = projects
 
         query = apply_dataset_query_conditions(self.query_type, query, self.event_types)
         if environment:
-            params["environment"] = environment.name
+            params.environments = [environment]
 
         query_builder_cls = DiscoverQueryBuilder
         parser_config_overrides: MutableMapping[str, Any] = {"blocked_keys": ALERT_BLOCKED_FIELDS}
@@ -190,7 +191,7 @@ class BaseEventsAndTransactionEntitySubscription(BaseEntitySubscription, ABC):
             dataset=Dataset(self.dataset.value),
             query=query,
             selected_columns=[self.aggregate],
-            params=params,
+            snuba_params=params,
             offset=None,
             limit=None,
             config=QueryBuilderConfig(
@@ -286,26 +287,26 @@ class BaseMetricsEntitySubscription(BaseEntitySubscription, ABC):
     def build_query_builder(
         self,
         query: str,
-        project_ids: list[int],
+        projects: list[Project],
         environment: Environment | None,
-        params: ParamsType | None = None,
+        params: SnubaParams | None = None,
         skip_field_validation_for_entity_subscription_deletion: bool = False,
     ) -> BaseQueryBuilder:
 
         if params is None:
-            params = {}
+            params = SnubaParams()
 
         if environment:
-            params["environment"] = environment.name
+            params.environments = [environment]
 
         query = apply_dataset_query_conditions(self.query_type, query, None)
-        params["project_id"] = project_ids
-        params["use_case_id"] = self._get_use_case_id().value
+        params.projects = projects
+        params.use_case_id = self._get_use_case_id().value
         qb = AlertMetricsQueryBuilder(
             dataset=Dataset(self.dataset.value),
             query=query,
             selected_columns=self.get_snql_aggregations(),
-            params=params,
+            snuba_params=params,
             offset=None,
             granularity=self.get_granularity(),
             config=QueryBuilderConfig(
@@ -594,7 +595,7 @@ def get_entity_key_from_query_builder(query_builder: BaseQueryBuilder) -> Entity
 
 
 def get_entity_subscription_from_snuba_query(
-    snuba_query: SnubaQuery, organization_id: int
+    snuba_query: SnubaQuery, organization: Organization
 ) -> EntitySubscription:
     query_dataset = Dataset(snuba_query.dataset)
     return get_entity_subscription(
@@ -603,7 +604,7 @@ def get_entity_subscription_from_snuba_query(
         snuba_query.aggregate,
         snuba_query.time_window,
         extra_fields={
-            "org_id": organization_id,
+            "org_id": organization.id,
             "event_types": snuba_query.event_types,
         },
     )
@@ -611,19 +612,19 @@ def get_entity_subscription_from_snuba_query(
 
 def get_entity_key_from_snuba_query(
     snuba_query: SnubaQuery,
-    organization_id: int,
-    project_id: int,
+    organization: Organization,
+    project: Project,
     skip_field_validation_for_entity_subscription_deletion: bool = False,
 ) -> EntityKey:
     entity_subscription = get_entity_subscription_from_snuba_query(
         snuba_query,
-        organization_id,
+        organization,
     )
     query_builder = entity_subscription.build_query_builder(
         snuba_query.query,
-        [project_id],
+        [project],
         snuba_query.environment,
-        {"organization_id": organization_id},
+        SnubaParams(organization=organization),
         skip_field_validation_for_entity_subscription_deletion=skip_field_validation_for_entity_subscription_deletion,
     )
     return get_entity_key_from_query_builder(query_builder)

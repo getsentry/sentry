@@ -10,7 +10,7 @@ from sentry import features
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
-from sentry.api.bases import NoProjects, OrganizationEndpoint
+from sentry.api.bases import NoProjects, OrganizationEventsEndpointBase
 from sentry.api.paginator import GenericOffsetPaginator
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.discoversavedquery import (
@@ -34,7 +34,7 @@ from sentry.search.utils import tokenize_query
 
 @extend_schema(tags=["Discover"])
 @region_silo_endpoint
-class DiscoverSavedQueriesEndpoint(OrganizationEndpoint):
+class DiscoverSavedQueriesEndpoint(OrganizationEventsEndpointBase):
     publish_status = {
         "GET": ApiPublishStatus.PUBLIC,
         "POST": ApiPublishStatus.PUBLIC,
@@ -167,9 +167,7 @@ class DiscoverSavedQueriesEndpoint(OrganizationEndpoint):
             return self.respond(status=404)
 
         try:
-            params = self.get_filter_params(
-                request, organization, project_ids=request.data.get("projects")
-            )
+            params = self.get_snuba_params(request, organization)
         except NoProjects:
             raise ParseError(detail="No Projects found, join a Team")
 

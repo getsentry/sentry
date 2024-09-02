@@ -125,7 +125,6 @@ class OrganizationProfilingFunctionTrendsEndpoint(OrganizationEventsV2EndpointBa
             builders = [
                 ProfileTopFunctionsTimeseriesQueryBuilder(
                     dataset=Dataset.Functions,
-                    params={},
                     snuba_params=snuba_params,
                     interval=rollup,
                     top_events=chunk,

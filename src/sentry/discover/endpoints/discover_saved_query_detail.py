@@ -9,7 +9,7 @@ from sentry import features
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
-from sentry.api.bases import NoProjects, OrganizationEndpoint
+from sentry.api.bases import NoProjects, OrganizationEventsEndpointBase
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.discoversavedquery import DiscoverSavedQueryModelSerializer
@@ -26,7 +26,7 @@ from sentry.discover.endpoints.serializers import DiscoverSavedQuerySerializer
 from sentry.discover.models import DatasetSourcesTypes, DiscoverSavedQuery, DiscoverSavedQueryTypes
 
 
-class DiscoverSavedQueryBase(OrganizationEndpoint):
+class DiscoverSavedQueryBase(OrganizationEventsEndpointBase):
     owner = ApiOwner.PERFORMANCE
     permission_classes = (DiscoverSavedQueryPermission,)
 
@@ -106,9 +106,7 @@ class DiscoverSavedQueryDetailEndpoint(DiscoverSavedQueryBase):
         self.check_object_permissions(request, query)
 
         try:
-            params = self.get_filter_params(
-                request, organization, project_ids=request.data.get("projects")
-            )
+            params = self.get_snuba_params(request, organization)
         except NoProjects:
             raise ParseError(detail="No Projects found, join a Team")
 

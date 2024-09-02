@@ -1202,7 +1202,7 @@ class GroupAttributesPostgresSnubaQueryExecutor(PostgresSnubaQueryExecutor):
         """
         dataset = Dataset.Events if joined_entity.name == ENTITY_EVENTS else Dataset.IssuePlatform
         query_builder = UnresolvedQuery(
-            dataset=dataset, entity=joined_entity, snuba_params=snuba_params, params={}
+            dataset=dataset, entity=joined_entity, snuba_params=snuba_params
         )
         query_builder.start = snuba_params.start
         query_builder.end = snuba_params.end

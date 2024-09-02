@@ -56,7 +56,6 @@ def query(
     with sentry_sdk.start_span(op="mep", description="MetricQueryBuilder"):
         metrics_query = MetricsQueryBuilder(
             dataset=Dataset.PerformanceMetrics,
-            params={},
             snuba_params=snuba_params,
             query=query,
             selected_columns=selected_columns,
@@ -166,8 +165,7 @@ def bulk_timeseries_query(
             metrics_queries = []
             for query in queries:
                 metrics_query = TimeseriesMetricQueryBuilder(
-                    {},
-                    rollup,
+                    interval=rollup,
                     snuba_params=snuba_params,
                     dataset=Dataset.PerformanceMetrics,
                     query=query,
@@ -270,7 +268,6 @@ def timeseries_query(
     def run_metrics_query(inner_params: SnubaParams):
         with sentry_sdk.start_span(op="mep", description="TimeseriesMetricQueryBuilder"):
             metrics_query = TimeseriesMetricQueryBuilder(
-                params={},
                 interval=rollup,
                 snuba_params=inner_params,
                 dataset=Dataset.PerformanceMetrics,
@@ -426,7 +423,6 @@ def top_events_timeseries(
 
     top_events_builder = TopMetricsQueryBuilder(
         Dataset.PerformanceMetrics,
-        params={},
         interval=rollup,
         top_events=top_events["data"],
         snuba_params=snuba_params,
@@ -443,7 +439,6 @@ def top_events_timeseries(
     if len(top_events["data"]) == limit and include_other:
         other_events_builder = TopMetricsQueryBuilder(
             Dataset.PerformanceMetrics,
-            params={},
             interval=rollup,
             top_events=top_events["data"],
             snuba_params=snuba_params,
@@ -601,7 +596,6 @@ def histogram_query(
         histogram_params,
         # Arguments for QueryBuilder
         dataset=Dataset.PerformanceMetrics,
-        params={},
         snuba_params=snuba_params,
         query=user_query,
         selected_columns=[f"histogram({field})" for field in fields],

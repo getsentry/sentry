@@ -48,7 +48,6 @@ def query(
 ):
     builder = SpansMetricsQueryBuilder(
         dataset=Dataset.PerformanceMetrics,
-        params={},
         snuba_params=snuba_params,
         query=query,
         selected_columns=selected_columns,
@@ -99,7 +98,6 @@ def timeseries_query(
     """
 
     metrics_query = TimeseriesSpansMetricsQueryBuilder(
-        params={},
         interval=rollup,
         snuba_params=snuba_params,
         dataset=Dataset.PerformanceMetrics,
@@ -202,7 +200,6 @@ def top_events_timeseries(
 
     top_events_builder = TopSpansMetricsQueryBuilder(
         Dataset.PerformanceMetrics,
-        {},
         rollup,
         top_events["data"],
         snuba_params=snuba_params,
@@ -218,10 +215,9 @@ def top_events_timeseries(
     if len(top_events["data"]) == limit and include_other:
         other_events_builder = TopSpansMetricsQueryBuilder(
             Dataset.PerformanceMetrics,
-            {},
+            snuba_params,
             rollup,
             top_events["data"],
-            snuba_params=snuba_params,
             other=True,
             query=user_query,
             selected_columns=selected_columns,

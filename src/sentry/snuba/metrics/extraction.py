@@ -34,6 +34,7 @@ from sentry.relay.types import RuleCondition
 from sentry.search.events import fields
 from sentry.search.events.builder.discover import UnresolvedQuery
 from sentry.search.events.constants import VITAL_THRESHOLDS
+from sentry.search.events.types import SnubaParams
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.metrics.naming_layer.mri import ParsedMRI, parse_mri
 from sentry.snuba.metrics.utils import MetricOperationType
@@ -326,7 +327,7 @@ _IGNORED_METRIC_CONDITION = [
 Variables = dict[str, Any]
 
 query_builder = UnresolvedQuery(
-    dataset=Dataset.Transactions, params={}
+    dataset=Dataset.Transactions, snuba_params=SnubaParams()
 )  # Workaround to get all updated discover functions instead of using the deprecated events fields.
 
 

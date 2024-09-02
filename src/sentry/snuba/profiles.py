@@ -42,7 +42,6 @@ def query(
 
     builder = ProfilesQueryBuilder(
         dataset=Dataset.Profiles,
-        params={},
         query=query,
         snuba_params=snuba_params,
         selected_columns=selected_columns,
@@ -80,7 +79,6 @@ def timeseries_query(
 ) -> Any:
     builder = ProfilesTimeseriesQueryBuilder(
         dataset=Dataset.Profiles,
-        params={},
         snuba_params=snuba_params,
         query=query,
         interval=rollup,

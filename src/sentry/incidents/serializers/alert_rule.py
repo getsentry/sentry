@@ -37,6 +37,7 @@ from sentry.incidents.models.alert_rule import (
     AlertRuleTrigger,
 )
 from sentry.incidents.utils.types import AlertRuleActivationConditionType
+from sentry.search.events.types import SnubaParams
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.entity_subscription import (
     ENTITY_TIME_COLUMNS,
@@ -347,14 +348,14 @@ class AlertRuleSerializer(CamelSnakeModelSerializer[AlertRule]):
         try:
             query_builder = entity_subscription.build_query_builder(
                 query=data["query"],
-                project_ids=[p.id for p in projects],
+                projects=projects,
                 environment=data.get("environment"),
-                params={
-                    "organization_id": projects[0].organization_id,
-                    "project_id": [p.id for p in projects],
-                    "start": start,
-                    "end": end,
-                },
+                params=SnubaParams(
+                    organization=projects[0].organization,
+                    projects=projects,
+                    start=start,
+                    end=end,
+                ),
             )
         except (InvalidSearchQuery, ValueError) as e:
             raise serializers.ValidationError(f"Invalid Query or Metric: {e}")

@@ -48,7 +48,6 @@ def init_query_builder(
 
     builder = DiscoverQueryBuilder(
         dataset=Dataset.Discover,
-        params={},
         snuba_params=snuba_params,
         selected_columns=selected_columns,
         equations=[],

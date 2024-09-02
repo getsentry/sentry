@@ -27,7 +27,7 @@ from sentry.models.dashboard_widget import (
 from sentry.relay.config.metric_extraction import get_current_widget_specs, widget_exceeds_max_specs
 from sentry.search.events.builder.discover import UnresolvedQuery
 from sentry.search.events.fields import is_function
-from sentry.search.events.types import ParamsType, QueryBuilderConfig
+from sentry.search.events.types import QueryBuilderConfig, SnubaParams
 from sentry.snuba.dataset import Dataset
 from sentry.tasks.on_demand_metrics import (
     _get_widget_on_demand_specs,
@@ -201,16 +201,16 @@ class DashboardWidgetQuerySerializer(CamelSnakeSerializer[Dashboard]):
             # Subtract one because the equation is injected to fields
             orderby = f"{orderby_prefix}equation[{len(equations) - 1}]"
 
-        params: ParamsType = {
-            "start": datetime.now() - timedelta(days=1),
-            "end": datetime.now(),
-            "project_id": [p.id for p in self.context["projects"]],
-            "organization_id": self.context["organization"].id,
-            "environment": self.context.get("environment", []),
-        }
+        params = SnubaParams(
+            start=datetime.now() - timedelta(days=1),
+            end=datetime.now(),
+            projects=self.context["projects"],
+            organization=self.context["organization"],
+            environments=self.context.get("environment", []),
+        )
 
         try:
-            parse_search_query(conditions, params=params)
+            parse_search_query(conditions, snuba_params=params)
         except InvalidSearchQuery as err:
             # We don't know if the widget that this query belongs to is an
             # Issue widget or Discover widget. Pass the error back to the
@@ -225,7 +225,7 @@ class DashboardWidgetQuerySerializer(CamelSnakeSerializer[Dashboard]):
             # since the values themselves don't matter.
             builder = UnresolvedQuery(
                 dataset=Dataset.Discover,
-                params=params,
+                snuba_params=params,
                 config=QueryBuilderConfig(
                     equation_config={
                         "auto_add": bool(not is_table or injected_orderby_equation),

@@ -7,7 +7,7 @@ from sentry.eventstore.models import Event, GroupEvent
 from sentry.models.group import Group
 from sentry.models.project import Project
 from sentry.search.events.builder.discover import DiscoverQueryBuilder
-from sentry.search.events.types import QueryBuilderConfig
+from sentry.search.events.types import QueryBuilderConfig, SnubaParams
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.referrer import Referrer
 from sentry.utils.snuba import bulk_snuba_queries
@@ -51,13 +51,13 @@ def trace_connected_issues(event: Event | GroupEvent) -> tuple[list[int], dict[s
 
     assert event.group is not None
     group = event.group
-    org_id = group.project.organization_id
+    organization = group.project.organization
     # XXX: Test without a list and validate the data type
-    project_ids = list(Project.objects.filter(organization_id=org_id).values_list("id", flat=True))
+    projects = list(Project.objects.filter(organization_id=organization.id))
     start, end = default_start_end_dates()  # Today to 90 days back
     query = DiscoverQueryBuilder(
         Dataset.Events,
-        {"start": start, "end": end, "organization_id": org_id, "project_id": project_ids},
+        SnubaParams(start=start, end=end, organization=organization, projects=projects),
         query=f"trace:{event.trace_id}",
         selected_columns=["id", "issue.id"],
         # Don't add timestamp to this orderby as snuba will have to split the time range up and make multiple queries

@@ -29,7 +29,6 @@ from sentry.search.events.datasets.base import DatasetConfig
 from sentry.search.events.datasets.discover import DiscoverDatasetConfig
 from sentry.search.events.types import (
     HistogramParams,
-    ParamsType,
     QueryBuilderConfig,
     SelectType,
     SnubaParams,
@@ -163,9 +162,8 @@ class TimeseriesQueryBuilder(UnresolvedQuery):
     def __init__(
         self,
         dataset: Dataset,
-        params: ParamsType,
+        snuba_params: SnubaParams,
         interval: int,
-        snuba_params: SnubaParams | None = None,
         query: str | None = None,
         selected_columns: list[str] | None = None,
         equations: list[str] | None = None,
@@ -177,7 +175,6 @@ class TimeseriesQueryBuilder(UnresolvedQuery):
         config.equation_config = {"auto_add": True, "aggregates_only": True}
         super().__init__(
             dataset,
-            params,
             snuba_params=snuba_params,
             query=query,
             selected_columns=selected_columns,
@@ -280,10 +277,9 @@ class TopEventsQueryBuilder(TimeseriesQueryBuilder):
     def __init__(
         self,
         dataset: Dataset,
-        params: ParamsType,
+        snuba_params: SnubaParams,
         interval: int,
         top_events: list[dict[str, Any]],
-        snuba_params: SnubaParams | None = None,
         other: bool = False,
         query: str | None = None,
         selected_columns: list[str] | None = None,
@@ -298,7 +294,6 @@ class TopEventsQueryBuilder(TimeseriesQueryBuilder):
         timeseries_equations, timeseries_functions = categorize_columns(timeseries_columns)
         super().__init__(
             dataset,
-            params,
             snuba_params=snuba_params,
             interval=interval,
             query=query,

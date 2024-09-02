@@ -308,7 +308,7 @@ class DiscoverSavedQuerySerializer(serializers.Serializer):
                 equations, columns = categorize_columns(query["fields"])
                 builder = DiscoverQueryBuilder(
                     dataset=Dataset.Discover,
-                    params=self.context["params"],
+                    snuba_params=self.context["params"],
                     query=query["query"],
                     selected_columns=columns,
                     equations=equations,

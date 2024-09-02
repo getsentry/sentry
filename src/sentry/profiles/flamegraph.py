@@ -48,7 +48,6 @@ def get_profile_ids(
 ) -> ProfileIds:
     builder = DiscoverQueryBuilder(
         dataset=Dataset.Discover,
-        params={},
         snuba_params=snuba_params,
         query=query,
         selected_columns=["profile.id"],
@@ -346,7 +345,6 @@ class FlamegraphExecutor:
 
         builder = ProfileFunctionsQueryBuilder(
             dataset=Dataset.Functions,
-            params={},
             snuba_params=self.snuba_params,
             selected_columns=["project.id", "timestamp", "unique_examples()"],
             query=self.query,
@@ -427,7 +425,6 @@ class FlamegraphExecutor:
 
         builder = DiscoverQueryBuilder(
             dataset=Dataset.Discover,
-            params={},
             snuba_params=self.snuba_params,
             selected_columns=[
                 "id",

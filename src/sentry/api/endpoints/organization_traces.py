@@ -584,7 +584,6 @@ class TracesExecutor:
             # we can take the fast path and query without using aggregates.
             query = SpansIndexedQueryBuilder(
                 Dataset.SpansIndexed,
-                params={},
                 snuba_params=snuba_params,
                 query=None,
                 selected_columns=["trace", timestamp_column],
@@ -601,7 +600,6 @@ class TracesExecutor:
         else:
             query = SpansIndexedQueryBuilder(
                 Dataset.SpansIndexed,
-                params={},
                 snuba_params=snuba_params,
                 query=None,
                 selected_columns=["trace", timestamp_column],
@@ -762,7 +760,6 @@ class TracesExecutor:
     ) -> tuple[BaseQueryBuilder, Referrer]:
         query = SpansIndexedQueryBuilder(
             Dataset.SpansIndexed,
-            params={},
             snuba_params=snuba_params,
             query="is_transaction:1",
             selected_columns=[
@@ -797,7 +794,6 @@ class TracesExecutor:
     ) -> tuple[BaseQueryBuilder, Referrer]:
         query = SpansIndexedQueryBuilder(
             Dataset.SpansIndexed,
-            params={},
             snuba_params=snuba_params,
             query=None,
             selected_columns=[
@@ -856,7 +852,6 @@ class TracesExecutor:
     ) -> tuple[BaseQueryBuilder, Referrer]:
         query = DiscoverQueryBuilder(
             Dataset.Events,
-            params={},
             snuba_params=snuba_params,
             query=None,
             selected_columns=["trace", "count()"],
@@ -878,7 +873,6 @@ class TracesExecutor:
     ) -> tuple[BaseQueryBuilder, Referrer]:
         query = DiscoverQueryBuilder(
             Dataset.IssuePlatform,
-            params={},
             snuba_params=snuba_params,
             query=None,
             selected_columns=["trace", "count()"],
@@ -993,7 +987,6 @@ class TraceSpansExecutor:
     ) -> BaseQueryBuilder:
         user_spans_query = SpansIndexedQueryBuilder(
             Dataset.SpansIndexed,
-            params={},
             snuba_params=snuba_params,
             query=None,  # Note: conditions are added below
             selected_columns=self.fields,
@@ -1139,7 +1132,6 @@ class TraceStatsExecutor:
     def get_timeseries_query(self) -> BaseQueryBuilder:
         query = TimeseriesSpanIndexedQueryBuilder(
             Dataset.SpansIndexed,
-            params={},
             snuba_params=self.snuba_params,
             interval=self.rollup,
             query=None,
@@ -1472,7 +1464,6 @@ def process_user_queries(
     with handle_span_query_errors():
         builder = SpansIndexedQueryBuilder(
             Dataset.SpansIndexed,
-            params={},
             snuba_params=snuba_params,
             query=None,  # Note: conditions are added below
             selected_columns=[],

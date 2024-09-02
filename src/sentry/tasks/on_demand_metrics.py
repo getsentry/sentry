@@ -477,7 +477,6 @@ def _query_cardinality(
 
     query_builder = DiscoverQueryBuilder(
         dataset=Dataset.Discover,
-        params={},
         snuba_params=params,
         selected_columns=unique_columns,
         config=QueryBuilderConfig(

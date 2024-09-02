@@ -12,6 +12,7 @@ from sentry.exceptions import (
 from sentry.models.group import GroupStatus
 from sentry.search.events.builder.metrics import AlertMetricsQueryBuilder
 from sentry.search.events.constants import METRICS_MAP
+from sentry.search.events.types import SnubaParams
 from sentry.sentry_metrics import indexer
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.sentry_metrics.utils import resolve, resolve_tag_key, resolve_tag_value
@@ -87,7 +88,7 @@ class EntitySubscriptionTestCase(TestCase):
         ]
         for entity in entities:
             with pytest.raises(Exception):
-                entity.build_query_builder("timestamp:-24h", [self.project.id], None)
+                entity.build_query_builder("timestamp:-24h", [self.project], None)
 
     def test_get_entity_subscription_for_metrics_dataset_non_supported_aggregate(self) -> None:
         aggregate = "count(sessions)"
@@ -134,7 +135,7 @@ class EntitySubscriptionTestCase(TestCase):
             session_status_crashed = resolve_tag_value(use_case_id, org_id, "crashed")
             metric_id = resolve(use_case_id, org_id, entity_subscription.metric_key.value)
             snql_query = entity_subscription.build_query_builder(
-                "", [self.project.id], None, {"organization_id": self.organization.id}
+                "", [self.project], None, SnubaParams(organization=self.organization)
             ).get_snql_query()
             key = lambda func: func.alias
             assert sorted(snql_query.query.select, key=key) == sorted(
@@ -196,7 +197,7 @@ class EntitySubscriptionTestCase(TestCase):
         session_status_crashed = resolve_tag_value(use_case_id, org_id, "crashed")
         session_status_init = resolve_tag_value(use_case_id, org_id, "init")
         snql_query = entity_subscription.build_query_builder(
-            "", [self.project.id], None, {"organization_id": self.organization.id}
+            "", [self.project], None, SnubaParams(organization=self.organization)
         ).get_snql_query()
         key = lambda func: func.alias
         assert sorted(snql_query.query.select, key=key) == sorted(
@@ -265,7 +266,7 @@ class EntitySubscriptionTestCase(TestCase):
             session_status_init = resolve_tag_value(use_case_id, org_id, "init")
             metric_id = resolve(use_case_id, org_id, entity_subscription.metric_key.value)
             snql_query = entity_subscription.build_query_builder(
-                "", [self.project.id], None, {"organization_id": self.organization.id}
+                "", [self.project], None, SnubaParams(organization=self.organization)
             ).get_snql_query()
             key = lambda func: func.alias
             assert sorted(snql_query.query.select, key=key) == sorted(
@@ -329,7 +330,7 @@ class EntitySubscriptionTestCase(TestCase):
         assert entity_subscription.get_entity_extra_params() == {}
         assert entity_subscription.dataset == Dataset.Transactions
         snql_query = entity_subscription.build_query_builder(
-            "", [self.project.id], None
+            "", [self.project], None
         ).get_snql_query()
         assert snql_query.query.select == [
             Function(
@@ -359,12 +360,7 @@ class EntitySubscriptionTestCase(TestCase):
         }
         assert entity_subscription.dataset == Dataset.PerformanceMetrics
         snql_query = entity_subscription.build_query_builder(
-            "",
-            [self.project.id],
-            None,
-            {
-                "organization_id": self.organization.id,
-            },
+            "", [self.project], None, SnubaParams(organization=self.organization)
         ).get_snql_query()
 
         metric_id = resolve(
@@ -416,12 +412,7 @@ class EntitySubscriptionTestCase(TestCase):
             }
             assert entity_subscription.dataset == Dataset.PerformanceMetrics
             snql_query = entity_subscription.build_query_builder(
-                "",
-                [self.project.id],
-                None,
-                {
-                    "organization_id": self.organization.id,
-                },
+                "", [self.project], None, SnubaParams(organization=self.organization)
             ).get_snql_query()
 
             metric_id = resolve(
@@ -476,12 +467,7 @@ class EntitySubscriptionTestCase(TestCase):
             }
             assert entity_subscription.dataset == Dataset.PerformanceMetrics
             snql_query = entity_subscription.build_query_builder(
-                "",
-                [self.project.id],
-                None,
-                {
-                    "organization_id": self.organization.id,
-                },
+                "", [self.project], None, SnubaParams(organization=self.organization)
             ).get_snql_query()
 
             metric_id = resolve(UseCaseID.CUSTOM, self.organization.id, mri)
@@ -531,10 +517,7 @@ class EntitySubscriptionTestCase(TestCase):
             ):
                 with pytest.raises(IncompatibleMetricsQuery):
                     entity_subscription.build_query_builder(
-                        "",
-                        [self.project.id],
-                        None,
-                        {"organization_id": self.organization.id},
+                        "", [self.project], None, SnubaParams(organization=self.organization)
                     ).get_snql_query()
 
     def test_get_entity_subscription_for_events_dataset(self) -> None:
@@ -553,7 +536,7 @@ class EntitySubscriptionTestCase(TestCase):
         entity = Entity(Dataset.Events.value, alias=Dataset.Events.value)
 
         snql_query = entity_subscription.build_query_builder(
-            "release:latest", [self.project.id], None
+            "release:latest", [self.project], None, SnubaParams(organization=self.organization)
         ).get_snql_query()
         assert snql_query.query.select == [
             Function(
@@ -596,7 +579,7 @@ class EntitySubscriptionTestCase(TestCase):
         g_entity = Entity("group_attributes", alias="ga")
 
         snql_query = entity_subscription.build_query_builder(
-            "status:unresolved", [self.project.id], None
+            "status:unresolved", [self.project], None
         ).get_snql_query()
         assert snql_query.query.match == Join([Relationship(e_entity, "attributes", g_entity)])
         assert snql_query.query.select == [
@@ -645,13 +628,13 @@ class EntitySubscriptionTestCase(TestCase):
                 )
                 builder = entity_subscription.build_query_builder(
                     query,
-                    [self.project.id],
+                    [self.project],
                     None,
-                    {
-                        "organization_id": self.organization.id,
-                        "start": datetime(2024, 1, 1),
-                        "end": datetime(2024, 1, 2),
-                    },
+                    SnubaParams(
+                        organization=self.organization,
+                        start=datetime(2024, 1, 1),
+                        end=datetime(2024, 1, 2),
+                    ),
                 )
                 assert isinstance(builder, AlertMetricsQueryBuilder)
                 assert builder.use_metrics_layer is use_metrics_layer
@@ -720,7 +703,7 @@ class GetEntitySubscriptionFromSnubaQueryTest(TestCase):
                 resolution=5,
             )
             assert isinstance(
-                get_entity_subscription_from_snuba_query(snuba_query, self.organization.id),
+                get_entity_subscription_from_snuba_query(snuba_query, self.organization),
                 expected_entity_subscription,
             )
 
@@ -854,11 +837,11 @@ class GetEntityKeyFromSnubaQueryTest(TestCase):
 
             if supported_with_no_metrics_layer:
                 assert expected_entity_key == get_entity_key_from_snuba_query(
-                    snuba_query, self.organization.id, self.project.id
+                    snuba_query, self.organization, self.project
                 )
 
             if supported_with_metrics_layer:
                 with Feature("organizations:custom-metrics"):
                     assert expected_entity_key == get_entity_key_from_snuba_query(
-                        snuba_query, self.organization.id, self.project.id
+                        snuba_query, self.organization, self.project
                     )
