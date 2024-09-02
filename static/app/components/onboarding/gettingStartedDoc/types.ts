@@ -34,6 +34,10 @@ export type SelectedPlatformOptions<
   [key in keyof PlatformOptions]: PlatformOptions[key]['items'][number]['value'];
 };
 
+export enum DocsPageLocation {
+  PROFILING_PAGE = 1,
+}
+
 export interface DocsParams<
   PlatformOptions extends BasePlatformOptions = BasePlatformOptions,
 > {
@@ -48,6 +52,10 @@ export interface DocsParams<
   projectId: Project['id'];
   projectSlug: Project['slug'];
   sourcePackageRegistries: {isLoading: boolean; data?: ReleaseRegistrySdk};
+  /**
+   * The page where the docs are being displayed
+   */
+  docsLocation?: DocsPageLocation;
   feedbackOptions?: {
     email?: boolean;
     name?: boolean;

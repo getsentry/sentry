@@ -7,7 +7,10 @@ import IdBadge from 'sentry/components/idBadge';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {Step} from 'sentry/components/onboarding/gettingStartedDoc/step';
-import type {DocsParams} from 'sentry/components/onboarding/gettingStartedDoc/types';
+import {
+  DocsPageLocation,
+  type DocsParams,
+} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {useLoadGettingStarted} from 'sentry/components/onboarding/gettingStartedDoc/utils/useLoadGettingStarted';
 import {ProductSolution} from 'sentry/components/onboarding/productSelection';
 import {TaskSidebar} from 'sentry/components/sidebar/taskSidebar';
@@ -275,6 +278,10 @@ function ProfilingOnboardingContent(props: ProfilingOnboardingContentProps) {
     platformOptions: PROFILING_ONBOARDING_STEPS,
     newOrg: false,
     feedbackOptions: {},
+    /**
+     * Page where the docs will be rendered
+     */
+    docsLocation: DocsPageLocation.PROFILING_PAGE,
   };
 
   const steps = [

@@ -1,9 +1,10 @@
 import ExternalLink from 'sentry/components/links/externalLink';
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/step';
-import type {
-  Docs,
-  DocsParams,
-  OnboardingConfig,
+import {
+  type Docs,
+  DocsPageLocation,
+  type DocsParams,
+  type OnboardingConfig,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {getPythonMetricsOnboarding} from 'sentry/components/onboarding/gettingStartedDoc/utils/metricsOnboarding';
 import replayOnboardingJsLoader from 'sentry/gettingStartedDocs/javascript/jsLoader/jsLoader';
@@ -38,7 +39,7 @@ sentry_sdk.init(
 `;
 
 const onboarding: OnboardingConfig = {
-  install: () => [
+  install: (params: Params) => [
     {
       type: StepType.INSTALL,
       description: tct('Install [code:sentry-sdk] from PyPI:', {
@@ -46,6 +47,16 @@ const onboarding: OnboardingConfig = {
       }),
       configurations: [
         {
+          description:
+            params.docsLocation === DocsPageLocation.PROFILING_PAGE
+              ? tct(
+                  'You need a minimum version [codeVersion:1.18.0] of the [codePackage:sentry-python] SDK for the profiling feature.',
+                  {
+                    codeVersion: <code />,
+                    codePackage: <code />,
+                  }
+                )
+              : undefined,
           language: 'bash',
           code: getInstallSnippet(),
         },
