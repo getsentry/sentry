@@ -346,9 +346,6 @@ class Fixtures:
     def create_sentry_app_installation_for_provider(self, *args, **kwargs):
         return Factories.create_sentry_app_installation_for_provider(*args, **kwargs)
 
-    def create_span_attribute_extraction_config(self, *args, **kwargs):
-        return Factories.create_span_attribute_extraction_config(*args, **kwargs)
-
     def create_stacktrace_link_schema(self, *args, **kwargs):
         return Factories.create_stacktrace_link_schema(*args, **kwargs)
 
