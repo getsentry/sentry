@@ -228,17 +228,37 @@ export type PipelineInitialData = {
   props: Record<string, any>;
 };
 
-export type Broadcast = {
+export interface Broadcast {
+  /**
+   * The text for the CTA link at the bottom of the panel item
+   */
   cta: string;
   dateCreated: string;
   dateExpires: string;
+  /**
+   * Has the item been seen? affects the styling of the panel item
+   */
   hasSeen: boolean;
   id: string;
   isActive: boolean;
+  /**
+   * The URL to use for the CTA
+   */
   link: string;
+  /**
+   * Image url
+   */
+  mediaUrl: string;
+  /**
+   * A message with muted styling which appears above the children content
+   */
   message: string;
   title: string;
-};
+  /**
+   * Category of the broadcast
+   */
+  category?: string;
+}
 
 // XXX(epurkhiser): The components list can be generated using jq
 //

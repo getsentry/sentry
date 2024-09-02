@@ -4,10 +4,10 @@ import {getAllBroadcasts, markBroadcastsAsSeen} from 'sentry/actionCreators/broa
 import type {Client} from 'sentry/api';
 import DemoModeGate from 'sentry/components/acl/demoModeGate';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {BroadcastPanelItem} from 'sentry/components/sidebar/broadcastPanelItem';
 import SidebarItem from 'sentry/components/sidebar/sidebarItem';
 import SidebarPanel from 'sentry/components/sidebar/sidebarPanel';
 import SidebarPanelEmpty from 'sentry/components/sidebar/sidebarPanelEmpty';
-import SidebarPanelItem from 'sentry/components/sidebar/sidebarPanelItem';
 import {IconBroadcast} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
@@ -27,6 +27,7 @@ type Props = CommonSidebarProps & {
 
 type State = {
   broadcasts: Broadcast[];
+
   error: boolean;
   loading: boolean;
 };
@@ -151,13 +152,15 @@ class Broadcasts extends Component<Props, State> {
                 </SidebarPanelEmpty>
               ) : (
                 broadcasts.map(item => (
-                  <SidebarPanelItem
+                  <BroadcastPanelItem
                     key={item.id}
                     hasSeen={item.hasSeen}
                     title={item.title}
                     message={item.message}
                     link={item.link}
                     cta={item.cta}
+                    mediaUrl={item.mediaUrl}
+                    category={item.category}
                   />
                 ))
               )}

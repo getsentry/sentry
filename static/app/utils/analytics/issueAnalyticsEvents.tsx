@@ -2,6 +2,7 @@ import type {SourceMapProcessingIssueType} from 'sentry/components/events/interf
 import type {FieldValue} from 'sentry/components/forms/model';
 import type {PriorityLevel} from 'sentry/types/group';
 import type {IntegrationType} from 'sentry/types/integrations';
+import type {Broadcast} from 'sentry/types/system';
 import type {BaseEventAnalyticsParams} from 'sentry/utils/analytics/workflowAnalyticsEvents';
 import type {CommonGroupAnalyticsData} from 'sentry/utils/events';
 
@@ -296,7 +297,7 @@ export type IssueEventParameters = {
   'tag.clicked': {
     is_clickable: boolean;
   };
-  'whats_new.link_clicked': {title?: string};
+  'whats_new.link_clicked': Pick<Broadcast, 'title' | 'category'>;
 };
 
 export type IssueEventKey = keyof IssueEventParameters;
