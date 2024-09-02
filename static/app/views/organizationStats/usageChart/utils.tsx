@@ -83,58 +83,56 @@ export function getTooltipFormatter(dataCategory: DataCategoryInfo['plural']) {
 const MAX_NUMBER_OF_LABELS = 10;
 
 /**
+ * Determines which X-axis labels should be visible based on data period and intervals.
  *
  * @param dataPeriod - Quantity of hours covered by the data
- * @param numBars - Quantity of data points covered by the dataPeriod
+ * @param intervals - Intervals to be displayed on the X-axis
+ * @returns An object containing an array indicating visibility of each X-axis label
  */
-export function getXAxisLabelInterval(dataPeriod: number, numBars: number) {
-  return dataPeriod > 7 * 24
-    ? getLabelIntervalLongPeriod(dataPeriod, numBars)
-    : getLabelIntervalShortPeriod(dataPeriod, numBars);
-}
-
-/**
- * @param dataPeriod - Quantity of hours covered by data, expected 7+ days
- */
-function getLabelIntervalLongPeriod(dataPeriod: number, numBars: number) {
-  const days = dataPeriod / 24;
-  if (days <= 7) {
-    throw new Error('This method should be used for periods > 7 days');
+export function getXAxisLabelVisibility(dataPeriod: number, intervals: string[]) {
+  if (dataPeriod <= 24) {
+    return {
+      xAxisLabelVisibility: Array(intervals.length).fill(false),
+    };
   }
 
-  // Use 1 tick per day
-  let numTicks = days;
-  let numLabels = numTicks;
+  const uniqueLabels: Set<string> = new Set();
+  const labelToPositionMap: Map<string, number> = new Map();
+  const labelVisibility: boolean[] = new Array(intervals.length).fill(false);
 
-  const daysBetweenLabels = [2, 4, 7, 14];
-  const daysBetweenTicks = [1, 2, 7, 7];
+  // Collect unique labels and their positions
+  intervals.forEach((label, index) => {
+    if (index === 0 || label.slice(0, 6) !== intervals[index - 1].slice(0, 6)) {
+      uniqueLabels.add(label);
+      labelToPositionMap.set(label, index);
+    }
+  });
 
-  for (let i = 0; i < daysBetweenLabels.length && numLabels > MAX_NUMBER_OF_LABELS; i++) {
-    numLabels = numTicks / daysBetweenLabels[i];
-    numTicks = days / daysBetweenTicks[i];
+  const totalUniqueLabels = uniqueLabels.size;
+
+  // Determine which labels should be visible
+  if (totalUniqueLabels <= MAX_NUMBER_OF_LABELS) {
+    uniqueLabels.forEach(label => {
+      const position = labelToPositionMap.get(label);
+      if (position !== undefined) {
+        labelVisibility[position] = true;
+      }
+    });
+    return {xAxisLabelVisibility: labelVisibility};
   }
 
-  return {
-    xAxisTickInterval: numBars / numTicks - 1,
-    xAxisLabelInterval: numBars / numLabels - 1,
-  };
-}
+  const interval = Math.floor(totalUniqueLabels / MAX_NUMBER_OF_LABELS);
 
-/**
- * @param dataPeriod - Quantity of hours covered by data, expected <7 days
- */
-function getLabelIntervalShortPeriod(dataPeriod: number, numBars: number) {
-  const days = dataPeriod / 24;
-  if (days > 7) {
-    throw new Error('This method should be used for periods <= 7 days');
-  }
+  let i = 0;
+  uniqueLabels.forEach(label => {
+    if (i % interval === 0) {
+      const position = labelToPositionMap.get(label);
+      if (position !== undefined) {
+        labelVisibility[position] = true;
+      }
+    }
+    i++;
+  });
 
-  // Use 1 tick/label per day, since it's guaranteed to be 7 or less
-  const numTicks = days;
-  const interval = numBars / numTicks;
-
-  return {
-    xAxisTickInterval: interval - 1,
-    xAxisLabelInterval: interval - 1,
-  };
+  return {xAxisLabelVisibility: labelVisibility};
 }
