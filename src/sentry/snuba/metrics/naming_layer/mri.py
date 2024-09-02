@@ -274,10 +274,9 @@ def format_mri_field_value(field: str, value: str) -> str:
         if parsed_mri_field is None:
             return value
 
-        else:
-            unit = cast(MetricUnit, parsed_mri_field.mri.unit)
-
+        unit = cast(MetricUnit, parsed_mri_field.mri.unit)
         return format_value_using_unit_and_op(float(value), unit, parsed_mri_field.op)
+
     except InvalidParams:
         return value
 
