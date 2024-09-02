@@ -3,7 +3,6 @@ import {render, screen, waitForElementToBeRemoved} from 'sentry-test/reactTestin
 
 import type {PageFilters} from 'sentry/types/core';
 import type {MetricsQueryApiResponse} from 'sentry/types/metrics';
-import {VirtualMetricsContextProvider} from 'sentry/utils/metrics/virtualMetricsContext';
 import importedUsePageFilters from 'sentry/utils/usePageFilters';
 import {MetricsContextProvider} from 'sentry/views/metrics/context';
 import {MetricScratchpad} from 'sentry/views/metrics/scratchpad';
@@ -136,9 +135,7 @@ describe('metric Scratchpad', function () {
 
     render(
       <MetricsContextProvider>
-        <VirtualMetricsContextProvider>
-          <MetricScratchpad />
-        </VirtualMetricsContextProvider>
+        <MetricScratchpad />
       </MetricsContextProvider>
     );
 
@@ -165,9 +162,7 @@ describe('metric Scratchpad', function () {
 
     render(
       <MetricsContextProvider>
-        <VirtualMetricsContextProvider>
-          <MetricScratchpad />
-        </VirtualMetricsContextProvider>
+        <MetricScratchpad />
       </MetricsContextProvider>
     );
 
