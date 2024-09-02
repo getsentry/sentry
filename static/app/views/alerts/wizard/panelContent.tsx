@@ -9,13 +9,11 @@ import diagramFailureRate from 'sentry-images/spot/alerts-wizard-failure-rate.sv
 import diagramFID from 'sentry-images/spot/alerts-wizard-fid.svg';
 import diagramIssues from 'sentry-images/spot/alerts-wizard-issues.svg';
 import diagramLCP from 'sentry-images/spot/alerts-wizard-lcp.svg';
-import diagramSpanMetrics from 'sentry-images/spot/alerts-wizard-span-metrics.svg';
 import diagramThroughput from 'sentry-images/spot/alerts-wizard-throughput.svg';
 import diagramTransactionDuration from 'sentry-images/spot/alerts-wizard-transaction-duration.svg';
 import diagramUsers from 'sentry-images/spot/alerts-wizard-users-experiencing-errors.svg';
 
-import ExternalLink from 'sentry/components/links/externalLink';
-import {t, tct} from 'sentry/locale';
+import {t} from 'sentry/locale';
 
 import type {AlertType} from './options';
 
@@ -143,21 +141,6 @@ export const AlertWizardPanelContent: Record<AlertType, PanelContent> = {
       ),
     ],
     illustration: diagramCustomMetrics,
-  },
-  span_metrics: {
-    description: tct(
-      'Alert on custom [link:span metrics] that you have configured, such as number of sign-ups or duration of your login.',
-      {
-        link: <ExternalLink href="https://docs.sentry.io/product/explore/metrics/" />,
-      }
-    ),
-    examples: [
-      t('When the number of sign-ups dropped by 10% compared to the previous week.'),
-      t(
-        'When the 75th percentile of your login flow is taking longer than 500 milliseconds.'
-      ),
-    ],
-    illustration: diagramSpanMetrics,
   },
   llm_tokens: {
     description: t(

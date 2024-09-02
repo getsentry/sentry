@@ -1,10 +1,4 @@
-import type {
-  MetricAggregation,
-  MetricsExtractionCondition,
-  MetricsExtractionRule,
-  MetricType,
-  MRI,
-} from 'sentry/types/metrics';
+import type {MetricAggregation, MetricType} from 'sentry/types/metrics';
 
 export const aggregationToMetricType: Record<MetricAggregation, MetricType> = {
   count: 'c',
@@ -19,19 +13,5 @@ export const aggregationToMetricType: Record<MetricAggregation, MetricType> = {
   p95: 'd',
   p99: 'd',
 };
-
-export function findExtractionRuleCondition(
-  mri: MRI,
-  extractionRules: MetricsExtractionRule[]
-): MetricsExtractionCondition | undefined {
-  for (const rule of extractionRules) {
-    for (const condition of rule.conditions) {
-      if (condition.mris.includes(mri)) {
-        return condition;
-      }
-    }
-  }
-  return undefined;
-}
 
 export const BUILT_IN_CONDITION_ID = -1;

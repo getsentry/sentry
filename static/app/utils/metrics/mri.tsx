@@ -13,7 +13,6 @@ export const DEFAULT_SPAN_MRI: MRI = 'c:custom/span_attribute_0@none';
 export const DEFAULT_INSIGHTS_MRI: MRI = 'd:spans/duration@millisecond';
 // This is a workaround as the alert builder requires a valid aggregate to be set
 export const DEFAULT_METRIC_ALERT_FIELD = `sum(${DEFAULT_MRI})`;
-export const DEFAULT_SPAN_METRIC_ALERT_FIELD = `sum(${DEFAULT_SPAN_MRI})`;
 export const DEFAULT_INSIGHTS_METRICS_ALERT_FIELD = `sum(${DEFAULT_INSIGHTS_MRI})`;
 
 export function isMRI(mri?: unknown): mri is MRI {
@@ -122,10 +121,7 @@ export function getMRI(field: string): MRI {
 }
 
 export function formatMRIField(aggregate: string) {
-  if (
-    aggregate === DEFAULT_METRIC_ALERT_FIELD ||
-    aggregate === DEFAULT_SPAN_METRIC_ALERT_FIELD
-  ) {
+  if (aggregate === DEFAULT_METRIC_ALERT_FIELD) {
     return t('Select a metric to get started');
   }
 
