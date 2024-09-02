@@ -281,7 +281,7 @@ function ProfilingOnboardingContent(props: ProfilingOnboardingContentProps) {
     /**
      * Page where the docs will be rendered
      */
-    page: DocsPageLocation.PROFILING_PAGE,
+    docsLocation: DocsPageLocation.PROFILING_PAGE,
   };
 
   const steps = [

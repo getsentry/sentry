@@ -53,16 +53,16 @@ export interface DocsParams<
   projectId: Project['id'];
   projectSlug: Project['slug'];
   sourcePackageRegistries: {isLoading: boolean; data?: ReleaseRegistrySdk};
+  /**
+   * The page where the docs are being displayed
+   */
+  docsLocation?: DocsPageLocation;
   feedbackOptions?: {
     email?: boolean;
     name?: boolean;
     screenshot?: boolean;
   };
   newOrg?: boolean;
-  /**
-   * The page where the docs are being displayed
-   */
-  page?: DocsPageLocation;
   replayOptions?: {
     block?: boolean;
     mask?: boolean;

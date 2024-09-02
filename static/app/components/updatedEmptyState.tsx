@@ -74,7 +74,7 @@ export default function UpdatedEmptyState({project}: {project?: Project}) {
     platformOptions: {installationMode: 'auto'},
     newOrg: false,
     replayOptions: {block: true, mask: true},
-    page: DocsPageLocation.ISSUES_PAGE,
+    docsLocation: DocsPageLocation.ISSUES_PAGE,
   };
 
   if (currentPlatformKey === 'java' || currentPlatformKey === 'java-spring-boot') {
