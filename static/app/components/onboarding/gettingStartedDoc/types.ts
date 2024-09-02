@@ -35,7 +35,6 @@ export type SelectedPlatformOptions<
 };
 
 export enum DocsPageLocation {
-  ISSUES_PAGE = 0,
   PROFILING_PAGE = 1,
 }
 
