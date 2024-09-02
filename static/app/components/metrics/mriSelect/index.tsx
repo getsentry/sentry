@@ -18,10 +18,7 @@ import {
   isTransactionMeasurement,
 } from 'sentry/utils/metrics';
 import {emptyMetricsQueryWidget} from 'sentry/utils/metrics/constants';
-import {
-  hasCustomMetricsExtractionRules,
-  hasMetricsNewInputs,
-} from 'sentry/utils/metrics/features';
+import {hasMetricsNewInputs} from 'sentry/utils/metrics/features';
 import {getReadableMetricType} from 'sentry/utils/metrics/formatters';
 import {formatMRI, isExtractedCustomMetric, parseMRI} from 'sentry/utils/metrics/mri';
 import {useBreakpoints} from 'sentry/utils/metrics/useBreakpoints';
@@ -164,7 +161,6 @@ export const MRISelect = memo(function MRISelect({
   const {projects} = useProjects();
   const mriMode = useMriMode();
   const [inputValue, setInputValue] = useState('');
-  const hasExtractionRules = hasCustomMetricsExtractionRules(organization);
   const breakpoints = useBreakpoints();
 
   const metricsWithDuplicateNames = useMetricsWithDuplicateNames(metricsMeta);
@@ -248,7 +244,7 @@ export const MRISelect = memo(function MRISelect({
         const parsedMRI = parseMRI(metric.mri);
         const isDuplicateWithDifferentUnit = metricsWithDuplicateNames.has(metric.mri);
         const isUnresolvedExtractedMetric = isExtractedCustomMetric(metric);
-        const showProjectBadge = hasExtractionRules && selectedProjects.length > 1;
+        const showProjectBadge = selectedProjects.length > 1;
         const projectToShow =
           selectedProjects.length > 1 && metric.projectIds.length === 1
             ? projects.find(p => metric.projectIds[0] === parseInt(p.id, 10))
@@ -281,9 +277,7 @@ export const MRISelect = memo(function MRISelect({
           !mriMode
         ) {
           trailingItems.push(
-            <CustomMetricInfoText key="text">
-              {hasExtractionRules ? t('Deprecated') : t('Custom')}
-            </CustomMetricInfoText>
+            <CustomMetricInfoText key="text">{t('Custom')}</CustomMetricInfoText>
           );
         }
         return {
@@ -310,7 +304,6 @@ export const MRISelect = memo(function MRISelect({
       }),
     [
       displayedMetrics,
-      hasExtractionRules,
       metricsWithDuplicateNames,
       mriMode,
       onTagClick,
