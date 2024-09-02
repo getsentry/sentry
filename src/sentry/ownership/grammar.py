@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import re
-from collections import namedtuple
+from collections import OrderedDict, namedtuple
 from collections.abc import Callable, Iterable, Mapping, Sequence
 from typing import Any, NamedTuple
 
@@ -13,6 +13,7 @@ from rest_framework.serializers import ValidationError
 from sentry.eventstore.models import EventSubjectTemplateData
 from sentry.integrations.models.repository_project_path_config import RepositoryProjectPathConfig
 from sentry.models.organizationmember import OrganizationMember
+from sentry.ownership.section_line import SectionLine
 from sentry.types.actor import Actor, ActorType
 from sentry.users.services.user.service import user_service
 from sentry.utils.codeowners import codeowners_match
@@ -374,29 +375,49 @@ def convert_codeowners_syntax(
     """
 
     result = ""
+    section_owners = []
+    section_lines = OrderedDict()
 
     for rule in codeowners.splitlines():
-        if rule.startswith("#") or not len(rule):
-            # We want to preserve comments from CODEOWNERS
-            result += f"{rule}\n"
-            continue
-
-        # Skip lines that are only empty space characters
-        if re.match(r"^\s*$", rule):
+        # End of current section
+        if not len(rule):
+            section_result = get_codeowners_section_result(
+                section_lines, associations, code_mapping
+            )
+            result += f"{section_result}\n"
+            section_lines.clear()
             continue
 
         path, code_owners = get_codeowners_path_and_owners(rule)
-        # Escape invalid paths https://docs.github.com/en/github/creating-cloning-and-archiving-repositories/creating-a-repository-on-github/about-code-owners#syntax-exceptions
-        # Check if path has whitespace
-        # Check if path has '#' not as first character
-        # Check if path contains '!'
-        # Check if path has a '[' followed by a ']'
-        if re.search(r"(\[([^]^\s]*)\])|[\s!#]", path):
+
+        # Start of new section
+        if re.search(r"(^\[([^]^\s]*)\])", path):
+            section_lines.clear()
+            section_owners = code_owners
+            continue
+
+        section_line = SectionLine(rule, path, list(code_owners), section_owners)
+        if section_line.should_skip():
+            continue
+
+        section_lines[section_line.get_dict_key()] = section_line
+
+    return result + get_codeowners_section_result(section_lines, associations, code_mapping)
+
+
+def get_codeowners_section_result(
+    section_lines: OrderedDict[str, SectionLine],
+    associations: Mapping[str, Any],
+    code_mapping: RepositoryProjectPathConfig,
+) -> str:
+    result = ""
+    for section_line in section_lines.values():
+        if section_line.is_preserved_comment:
+            result += f"{section_line.original_line}\n"
             continue
 
         sentry_assignees = []
-
-        for owner in code_owners:
+        for owner in section_line.get_owners():
             try:
                 sentry_assignees.append(associations[owner])
             except KeyError:
@@ -415,15 +436,15 @@ def convert_codeowners_syntax(
             # foo/dir -> anchored
             # foo/dir/ -> anchored
             # foo/ -> not anchored
-            if re.search(r"[\/].{1}", path):
-                path_with_stack_root = path.replace(
+            if re.search(r"[\/].{1}", section_line.path):
+                path_with_stack_root = section_line.path.replace(
                     code_mapping.source_root, code_mapping.stack_root, 1
                 )
                 # flatten multiple '/' if not protocol
                 formatted_path = re.sub(r"(?<!:)\/{2,}", "/", path_with_stack_root)
                 result += f'codeowners:{formatted_path} {" ".join(sentry_assignees)}\n'
             else:
-                result += f'codeowners:{path} {" ".join(sentry_assignees)}\n'
+                result += f'codeowners:{section_line.path} {" ".join(sentry_assignees)}\n'
 
     return result
 

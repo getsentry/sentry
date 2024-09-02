@@ -43,6 +43,15 @@ api/*    nisanthan.nanthakumar@sentry.io
 tests/file\ with\ spaces/ @NisanthanNanthakumar
 """
 
+associations = {
+    "@getsentry/frontend": "front-sentry",
+    "@getsentry/docs": "docs-sentry",
+    "@getsentry/ecosystem": "ecosystem",
+    "@NisanthanNanthakumar": "nisanthan.nanthakumar@sentry.io",
+    "@AnotherUser": "anotheruser@sentry.io",
+    "nisanthan.nanthakumar@sentry.io": "nisanthan.nanthakumar@sentry.io",
+}
+
 
 def test_parse_rules():
     assert parse_rules(fixture_data) == [
@@ -920,17 +929,36 @@ def test_convert_codeowners_syntax():
     assert (
         convert_codeowners_syntax(
             codeowners_fixture_data,
-            {
-                "@getsentry/frontend": "front-sentry",
-                "@getsentry/docs": "docs-sentry",
-                "@getsentry/ecosystem": "ecosystem",
-                "@NisanthanNanthakumar": "nisanthan.nanthakumar@sentry.io",
-                "@AnotherUser": "anotheruser@sentry.io",
-                "nisanthan.nanthakumar@sentry.io": "nisanthan.nanthakumar@sentry.io",
-            },
+            associations,
             code_mapping,
         )
         == "\n# cool stuff comment\ncodeowners:*.js front-sentry nisanthan.nanthakumar@sentry.io\n# good comment\n\n\ncodeowners:webpack://docs/* docs-sentry ecosystem\ncodeowners:src/sentry/* anotheruser@sentry.io\ncodeowners:api/* nisanthan.nanthakumar@sentry.io\n"
+    )
+
+
+def test_convert_codeowners_multiple_sections_with_overrides():
+    code_mapping = type("", (), {})()
+    code_mapping.stack_root = ""
+    code_mapping.source_root = ""
+
+    result = convert_codeowners_syntax(
+        r"""
+/fileA.txt @getsentry/frontend
+
+[Docs] @getsentry/docs
+/fileC.txt
+
+[Some_Section]
+/fileD.txt @getsentry/docs
+/fileD.txt @getsentry/frontend
+""",
+        associations,
+        code_mapping,
+    )
+
+    assert (
+        result
+        == "\ncodeowners:/fileA.txt front-sentry\n\ncodeowners:/fileC.txt docs-sentry\n\ncodeowners:/fileD.txt front-sentry\n"
     )
 
 
