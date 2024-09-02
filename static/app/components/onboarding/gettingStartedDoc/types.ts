@@ -34,6 +34,11 @@ export type SelectedPlatformOptions<
   [key in keyof PlatformOptions]: PlatformOptions[key]['items'][number]['value'];
 };
 
+export enum DocsPageLocation {
+  ISSUES_PAGE = 0,
+  PROFILING_PAGE = 1,
+}
+
 export interface DocsParams<
   PlatformOptions extends BasePlatformOptions = BasePlatformOptions,
 > {
@@ -54,6 +59,10 @@ export interface DocsParams<
     screenshot?: boolean;
   };
   newOrg?: boolean;
+  /**
+   * The page where the docs are being displayed
+   */
+  page?: DocsPageLocation;
   replayOptions?: {
     block?: boolean;
     mask?: boolean;

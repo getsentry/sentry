@@ -8,7 +8,10 @@ import {GuidedSteps} from 'sentry/components/guidedSteps/guidedSteps';
 import {AuthTokenGeneratorProvider} from 'sentry/components/onboarding/gettingStartedDoc/authTokenGenerator';
 import {OnboardingCodeSnippet} from 'sentry/components/onboarding/gettingStartedDoc/onboardingCodeSnippet';
 import {TabbedCodeSnippet} from 'sentry/components/onboarding/gettingStartedDoc/step';
-import type {DocsParams} from 'sentry/components/onboarding/gettingStartedDoc/types';
+import {
+  DocsPageLocation,
+  type DocsParams,
+} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {useSourcePackageRegistries} from 'sentry/components/onboarding/gettingStartedDoc/useSourcePackageRegistries';
 import {useLoadGettingStarted} from 'sentry/components/onboarding/gettingStartedDoc/utils/useLoadGettingStarted';
 import platforms from 'sentry/data/platforms';
@@ -71,6 +74,7 @@ export default function UpdatedEmptyState({project}: {project?: Project}) {
     platformOptions: {installationMode: 'auto'},
     newOrg: false,
     replayOptions: {block: true, mask: true},
+    page: DocsPageLocation.ISSUES_PAGE,
   };
 
   if (currentPlatformKey === 'java' || currentPlatformKey === 'java-spring-boot') {
