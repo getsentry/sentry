@@ -4,7 +4,6 @@ import styled from '@emotion/styled';
 import Feature from 'sentry/components/acl/feature';
 import FeatureDisabled from 'sentry/components/acl/featureDisabled';
 import FeatureBadge from 'sentry/components/badge/featureBadge';
-import Tag from 'sentry/components/badge/tag';
 import CreateAlertButton from 'sentry/components/createAlertButton';
 import {Hovercard} from 'sentry/components/hovercard';
 import * as Layout from 'sentry/components/layouts/thirds';
@@ -20,7 +19,6 @@ import {space} from 'sentry/styles/space';
 import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {hasCustomMetricsExtractionRules} from 'sentry/utils/metrics/features';
 import BuilderBreadCrumbs from 'sentry/views/alerts/builder/builderBreadCrumbs';
 import {Dataset} from 'sentry/views/alerts/rules/metric/types';
 import {AlertRuleType} from 'sentry/views/alerts/types';
@@ -164,10 +162,7 @@ function AlertWizard({organization, params, location, projectId}: AlertWizardPro
                         return [
                           alertType,
                           AlertWizardAlertNames[alertType],
-                          alertType === 'custom_metrics' &&
-                          hasCustomMetricsExtractionRules(organization) ? (
-                            <Tag type="warning">{t('deprecated')}</Tag>
-                          ) : alertType === 'insights_metrics' ? (
+                          alertType === 'insights_metrics' ? (
                             <FeatureBadge type="alpha" />
                           ) : null,
                         ];
