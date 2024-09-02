@@ -17,13 +17,9 @@ import type {Organization} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
 import {getMetricsUrl} from 'sentry/utils/metrics';
 import {toDisplayType} from 'sentry/utils/metrics/dashboard';
-import {hasCustomMetricsExtractionRules} from 'sentry/utils/metrics/features';
 import {parseMRI} from 'sentry/utils/metrics/mri';
 import {MetricExpressionType} from 'sentry/utils/metrics/types';
-import {
-  useVirtualMetricsContext,
-  VirtualMetricsContextProvider,
-} from 'sentry/utils/metrics/virtualMetricsContext';
+import {useVirtualMetricsContext} from 'sentry/utils/metrics/virtualMetricsContext';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import type {
   DashboardMetricsEquation,
@@ -375,17 +371,7 @@ function MetricWidgetViewerModal({
   );
 }
 
-function WrappedMetricWidgetViewerModal(props: Props) {
-  return hasCustomMetricsExtractionRules(props.organization) ? (
-    <VirtualMetricsContextProvider>
-      <MetricWidgetViewerModal {...props} />
-    </VirtualMetricsContextProvider>
-  ) : (
-    <MetricWidgetViewerModal {...props} />
-  );
-}
-
-export default WrappedMetricWidgetViewerModal;
+export default MetricWidgetViewerModal;
 
 export const modalCss = css`
   width: 100%;
