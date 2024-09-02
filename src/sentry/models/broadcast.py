@@ -16,13 +16,15 @@ class Broadcast(Model):
     __relocation_scope__ = RelocationScope.Excluded
 
     upstream_id = models.CharField(max_length=32, null=True, blank=True)
-    title = models.CharField(max_length=32)
+    title = models.CharField(max_length=64)
     message = models.CharField(max_length=256)
     link = models.URLField(null=True, blank=True)
     is_active = models.BooleanField(default=True, db_index=True)
     date_expires = models.DateTimeField(default=default_expiration, null=True, blank=True)
     date_added = models.DateTimeField(default=timezone.now)
     cta = models.CharField(max_length=256, null=True, blank=True)
+    media_url = models.URLField(null=True, blank=True)
+    category = models.CharField(max_length=32, null=True, blank=True)
 
     class Meta:
         app_label = "sentry"
