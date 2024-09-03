@@ -138,11 +138,11 @@ const BannerBackground = styled('div')<{image: any}>`
   display: flex;
   justify-self: flex-end;
   position: absolute;
-  top: 14px;
-  right: 15px;
-  height: 81%;
+  top: 11px;
+  right: -15px;
+  height: 90%;
   width: 100%;
-  max-width: 413px;
+  max-width: 270px;
   background-image: url(${p => p.image});
   background-repeat: no-repeat;
   background-size: contain;
