@@ -14,7 +14,7 @@ export const enum SectionKey {
   LLM_MONITORING = 'llm-monitoring',
 
   UPTIME = 'uptime', // Only Uptime issues
-  CRON = 'cron-timeline', // Only Cron issues
+  CRON_TIMELINE = 'cron-timeline', // Only Cron issues
 
   HIGHLIGHTS = 'highlights',
   RESOURCES = 'resources', // Position controlled by flag
@@ -54,6 +54,14 @@ export const enum SectionKey {
   GROUPING_INFO = 'grouping-info',
   PROCESSING_ERROR = 'processing-error',
   RRWEB = 'rrweb', // Legacy integration prior to replays
+
+  REGRESSION_SUMMARY = 'regression-summary',
+  REGRESSION_BREAKPOINT_CHART = 'regression-breakpoint-chart',
+  REGRESSION_FLAMEGRAPH = 'regression-flamegraph',
+  REGRESSION_PROFILE_COMPARISON = 'regression-profile-comparison',
+  REGRESSION_EVENT_COMPARISON = 'regression-event-comparison',
+  REGRESSION_POTENTIAL_CAUSES = 'regression-potential-causes',
+  REGRESSION_AFFECTED_TRANSACTIONS = 'regression-affected-transactions',
 }
 
 /**

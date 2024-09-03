@@ -1,5 +1,4 @@
 import {useCallback, useEffect, useState} from 'react';
-import type {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
@@ -15,6 +14,7 @@ import NarrowLayout from 'sentry/components/narrowLayout';
 import {t, tct} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import type {SentryApp, SentryAppInstallation} from 'sentry/types/integrations';
+import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import type {Organization, OrganizationSummary} from 'sentry/types/organization';
 import {generateOrgSlugUrl} from 'sentry/utils';
 import {trackIntegrationAnalytics} from 'sentry/utils/integrationUtil';

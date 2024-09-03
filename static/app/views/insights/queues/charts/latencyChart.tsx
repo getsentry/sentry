@@ -28,18 +28,16 @@ export function LatencyChart({error, destination, referrer}: Props) {
           top: '8px',
           bottom: '0',
         }}
-        data={
-          [
-            {
-              seriesName: t('Average Time in Queue'),
-              data: data['avg(messaging.message.receive.latency)'].data,
-            },
-            {
-              seriesName: t('Average Processing Time'),
-              data: data['avg(span.duration)'].data,
-            },
-          ] ?? []
-        }
+        data={[
+          {
+            seriesName: t('Average Time in Queue'),
+            data: data['avg(messaging.message.receive.latency)'].data,
+          },
+          {
+            seriesName: t('Average Processing Time'),
+            data: data['avg(span.duration)'].data,
+          },
+        ]}
         loading={isPending}
         error={error}
         chartColors={CHART_PALETTE[2].slice(1)}
