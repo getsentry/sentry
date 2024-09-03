@@ -62,6 +62,7 @@ from sentry.grouping.ingest.hashing import (
     find_existing_grouphash,
     find_existing_grouphash_new,
     get_hash_values,
+    get_or_create_grouphashes,
     maybe_run_background_grouping,
     maybe_run_secondary_grouping,
     run_primary_grouping,
@@ -1414,9 +1415,7 @@ def _save_aggregate(
         and not primary_hashes.hierarchical_hashes
     )
 
-    flat_grouphashes = [
-        GroupHash.objects.get_or_create(project=project, hash=hash)[0] for hash in hashes.hashes
-    ]
+    flat_grouphashes = get_or_create_grouphashes(project, hashes)
 
     # The root_hierarchical_hash is the least specific hash within the tree, so
     # typically hierarchical_hashes[0], unless a hash `n` has been split in
@@ -1782,10 +1781,7 @@ def get_hashes_and_grouphashes(
     grouping_config, hashes = hash_calculation_function(project, job, metric_tags)
 
     if extract_hashes(hashes):
-        grouphashes = [
-            GroupHash.objects.get_or_create(project=project, hash=hash)[0]
-            for hash in extract_hashes(hashes)
-        ]
+        grouphashes = get_or_create_grouphashes(project, hashes)
 
         existing_grouphash = find_existing_grouphash_new(grouphashes)
 
