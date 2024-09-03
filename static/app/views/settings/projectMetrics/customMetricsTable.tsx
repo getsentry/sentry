@@ -193,7 +193,7 @@ function MetricsTable({metrics, isLoading, query, project}: MetricsTableProps) {
               <Tag>{getReadableMetricType(type)}</Tag>
             </Cell>
             <Cell right>
-              <Tag>{unit}</Tag>
+              <Tag>{unit ?? 'none'}</Tag>
             </Cell>
             <Cell right>
               <BlockButton
