@@ -7,7 +7,7 @@ import {t} from 'sentry/locale';
 import type {Sort} from 'sentry/utils/discover/fields';
 import type {Field} from 'sentry/views/explore/hooks/useSampleFields';
 
-import {ToolbarHeading, ToolbarSection} from './styles';
+import {ToolbarHeader, ToolbarHeading, ToolbarSection} from './styles';
 
 interface ToolbarSortByProps {
   fields: Field[];
@@ -68,7 +68,9 @@ export function ToolbarSortBy({fields, setSorts, sorts}: ToolbarSortByProps) {
 
   return (
     <ToolbarSection data-test-id="section-sort-by">
-      <ToolbarHeading>{t('Sort By')}</ToolbarHeading>
+      <ToolbarHeader>
+        <ToolbarHeading>{t('Sort By')}</ToolbarHeading>
+      </ToolbarHeader>
       <ToolbarContent>
         <CompactSelect
           size="md"
