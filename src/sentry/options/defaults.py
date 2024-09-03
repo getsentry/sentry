@@ -1006,6 +1006,13 @@ register(
 register(
     "store.symbolicate-event-lpq-always", type=Sequence, default=[], flags=FLAG_AUTOMATOR_MODIFIABLE
 )
+
+# Rate at which to send eligible projects to LPQ symbolicators. This is
+# intended to test gradually phasing out the LPQ.
+register(
+    "store.symbolicate-event-lpq-rate", type=Float, default=1.0, flags=FLAG_AUTOMATOR_MODIFIABLE
+)
+
 register(
     "post_process.get-autoassign-owners", type=Sequence, default=[], flags=FLAG_AUTOMATOR_MODIFIABLE
 )
@@ -1467,36 +1474,6 @@ register(
 register(
     "sentry-metrics.synchronized-rebalance-delay",
     default=15,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
-# Enables extrapolation on the `transactions` namespace.
-register(
-    "sentry-metrics.extrapolation.enable_transactions",
-    default=False,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
-# Enables extrapolation on the `spans` namespace.
-register(
-    "sentry-metrics.extrapolation.enable_spans",
-    default=False,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
-# Maximum duplication factor for ingest-time extrapolation of distribution
-# values in Relay. Obsolete once `.propagate-rates` is the default.
-register(
-    "sentry-metrics.extrapolation.duplication-limit",
-    default=0,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
-# Send sample rates for metrics from Relay via the indexer into snuba rather
-# than extrapolating at ingest time.
-register(
-    "sentry-metrics.extrapolation.propagate-rates",
-    default=False,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
@@ -2321,26 +2298,6 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-# org IDs for which we want to avoid using the unsampled profiles for function metrics.
-# This will let us selectively disable the behaviour for entire orgs that may have an
-# extremely high volume increase
-register(
-    "profiling.profile_metrics.unsampled_profiles.excluded_org_ids",
-    type=Sequence,
-    default=[],
-    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
-)
-
-# project IDs for which we want to avoid using the unsampled profiles for function metrics.
-# This will let us selectively disable the behaviour for project that may have an extremely
-# high volume increase
-register(
-    "profiling.profile_metrics.unsampled_profiles.excluded_project_ids",
-    type=Sequence,
-    default=[],
-    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
-)
-
 # list of platform names for which we allow using unsampled profiles for the purpose
 # of improving profile (function) metrics
 register(
@@ -2710,5 +2667,12 @@ register(
 register(
     "delayed_processing.batch_size",
     default=10000,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+register(
+    "grouping.grouphash_metadata.ingestion_writes_enabled",
+    type=Bool,
+    default=True,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )

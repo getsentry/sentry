@@ -4,12 +4,12 @@ from collections import defaultdict
 from collections.abc import Sequence
 from dataclasses import dataclass
 from datetime import timedelta
-from typing import Any, Literal, NotRequired, TypedDict, cast
+from typing import Any, Literal, NotRequired, TypedDict
 
 import sentry_sdk
 from celery.exceptions import SoftTimeLimitExceeded
 from django.utils import timezone
-from sentry_relay.processing import validate_rule_condition, validate_sampling_condition
+from sentry_relay.processing import validate_sampling_condition
 
 from sentry import features, options
 from sentry.api.endpoints.project_transaction_threshold import DEFAULT_THRESHOLD
@@ -34,7 +34,6 @@ from sentry.relay.types import RuleCondition
 from sentry.search.events import fields
 from sentry.search.events.builder.discover import DiscoverQueryBuilder
 from sentry.search.events.types import ParamsType, QueryBuilderConfig
-from sentry.sentry_metrics.models import SpanAttributeExtractionRuleConfig
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.metrics.extraction import (
     WIDGET_QUERY_CACHE_MAX_CHUNKS,
@@ -48,7 +47,6 @@ from sentry.snuba.metrics.extraction import (
     are_specs_equal,
     should_use_on_demand_metrics,
 )
-from sentry.snuba.metrics.span_attribute_extraction import convert_to_metric_spec
 from sentry.snuba.models import SnubaQuery
 from sentry.snuba.referrer import Referrer
 from sentry.utils import json, metrics
@@ -74,17 +72,11 @@ class HighCardinalityWidgetException(Exception):
     pass
 
 
-class MetricExtrapolationConfig(TypedDict):
-    include: NotRequired[list[str]]
-    exclude: NotRequired[list[str]]
-
-
 class MetricExtractionConfig(TypedDict):
     """Configuration for generic extraction of metrics from all data categories."""
 
     version: int
     metrics: list[MetricSpec]
-    extrapolate: NotRequired[MetricExtrapolationConfig]
 
 
 def get_max_widget_specs(organization: Organization) -> int:
@@ -114,14 +106,8 @@ def get_metric_extraction_config(project: Project) -> MetricExtractionConfig | N
         alert_specs, widget_specs = build_safe_config(
             "on_demand_metric_specs", get_on_demand_metric_specs, project
         ) or ([], [])
-    with sentry_sdk.start_span(op="generate_span_attribute_specs"):
-        span_attr_specs = (
-            build_safe_config("span_attribute_specs", _generate_span_attribute_specs, project) or []
-        )
     with sentry_sdk.start_span(op="merge_metric_specs"):
-        metric_specs = _merge_metric_specs(alert_specs, widget_specs, span_attr_specs)
-    with sentry_sdk.start_span(op="get_extrapolation_config"):
-        extrapolation_config = get_extrapolation_config(project)
+        metric_specs = _merge_metric_specs(alert_specs, widget_specs)
 
     if not metric_specs:
         return None
@@ -131,42 +117,7 @@ def get_metric_extraction_config(project: Project) -> MetricExtractionConfig | N
         "metrics": metric_specs,
     }
 
-    if extrapolation_config:
-        rv["extrapolate"] = extrapolation_config
-
     return rv
-
-
-def get_extrapolation_config(project: Project) -> MetricExtrapolationConfig | None:
-    if not features.has("organizations:metrics-extrapolation", project.organization):
-        return None
-
-    enabled = project.get_option("sentry:extrapolate_metrics", None)
-    if enabled is None:
-        enabled = project.organization.get_option("sentry:extrapolate_metrics", False)
-    if not enabled:
-        return None
-
-    # Extrapolation applies to extracted metrics. This enables extrapolation for
-    # the entire `custom` namespace, but this does not extrapolate old custom
-    # metrics sent from the SDK directly.
-    config: MetricExtrapolationConfig = {
-        "include": ["?:custom/*"],
-        "exclude": [],
-    }
-
-    if options.get("sentry-metrics.extrapolation.enable_transactions"):
-        config["include"] += ["?:transactions/*"]
-        config["exclude"] += [
-            "c:transactions/usage@none",  # stats
-            "c:transactions/count_per_root_project@none",  # dynamic sampling
-        ]
-
-    if options.get("sentry-metrics.extrapolation.enable_spans"):
-        config["include"] += ["?:spans/*"]
-        config["exclude"] += ["c:spans/usage@none"]  # stats
-
-    return config
 
 
 def get_on_demand_metric_specs(
@@ -460,12 +411,11 @@ def _update_state_with_spec_limit(
 def _merge_metric_specs(
     alert_specs: list[HashedMetricSpec],
     widget_specs: list[HashedMetricSpec],
-    span_attr_specs: list[HashedMetricSpec],
 ) -> list[MetricSpec]:
     # We use a dict so that we can deduplicate metrics with the same hash.
     specs: dict[str, MetricSpec] = {}
     duplicated_specs = 0
-    for query_hash, spec, _ in widget_specs + alert_specs + span_attr_specs:
+    for query_hash, spec, _ in widget_specs + alert_specs:
         already_present = specs.get(query_hash)
         if already_present and not are_specs_equal(already_present, spec):
             logger.warning(
@@ -862,43 +812,6 @@ def _convert_aggregate_and_query_to_metrics(
                 logger.exception("Failed on-demand metric spec creation.", extra=extra)
 
     return metric_specs_and_hashes
-
-
-def _generate_span_attribute_specs(
-    timeout: TimeChecker, project: Project
-) -> list[HashedMetricSpec]:
-    if not features.has(
-        "organizations:custom-metrics-extraction-rule", organization=project.organization
-    ):
-        return []
-
-    extraction_configs = SpanAttributeExtractionRuleConfig.objects.filter(project=project)
-    extraction_rules = []
-    for extraction_config in extraction_configs:
-        extraction_rules.extend(extraction_config.generate_rules())
-        timeout.check()
-
-    version = SpecVersion(version=_METRIC_EXTRACTION_VERSION)
-
-    specs = []
-    for rule in extraction_rules:
-        try:
-            spec = cast(MetricSpec, convert_to_metric_spec(rule))
-
-            if condition := spec.get("condition"):
-                validate_rule_condition(json.dumps(condition))
-
-            specs.append((spec["mri"], spec, version))
-        except ValueError:
-            logger.exception("Invalid span attribute metric spec", extra=rule.to_dict())
-
-        timeout.check()
-
-    max_specs = options.get("metric_extraction.max_span_attribute_specs")
-    (specs, _) = _trim_if_above_limit(specs, max_specs, project, "span_attributes")
-    timeout.check()
-
-    return specs
 
 
 # CONDITIONAL TAGGING

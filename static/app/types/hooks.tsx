@@ -125,7 +125,7 @@ type OrganizationHeaderProps = {
 
 type ProductSelectionAvailabilityProps = Pick<
   ProductSelectionProps,
-  'lazyLoader' | 'skipLazyLoader' | 'platform' | 'withBottomMargin'
+  'platform' | 'withBottomMargin' | 'projectId'
 > & {
   organization: Organization;
 };
