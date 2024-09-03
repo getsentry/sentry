@@ -474,7 +474,6 @@ function ProfilingDurationRegressionIssueDetailsContent({
   event,
   project,
 }: Required<EventDetailsContentProps>) {
-  const organization = useOrganization();
   return (
     <RegressionEventContainer>
       <TransactionsDeltaProvider event={event} project={project}>
@@ -485,11 +484,9 @@ function ProfilingDurationRegressionIssueDetailsContent({
           <ErrorBoundary mini>
             <EventFunctionBreakpointChart event={event} />
           </ErrorBoundary>
-          {!organization.features.includes('continuous-profiling-compat') && (
-            <ErrorBoundary mini>
-              <EventAffectedTransactions event={event} group={group} project={project} />
-            </ErrorBoundary>
-          )}
+          <ErrorBoundary mini>
+            <EventAffectedTransactions event={event} group={group} project={project} />
+          </ErrorBoundary>
           <ErrorBoundary mini>
             <InterimSection
               type={SectionKey.REGRESSION_FLAMEGRAPH}
