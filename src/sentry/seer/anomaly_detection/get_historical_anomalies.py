@@ -36,7 +36,13 @@ def get_historical_anomaly_data_from_seer(
     """
     if alert_rule.status == AlertRuleStatus.NOT_ENOUGH_DATA.value:
         return []
+    # don't think this can happen but mypy is yelling
+    if not alert_rule.snuba_query:
+        raise ValidationError("No snuba query associated with alert rule.")
     subscription = alert_rule.snuba_query.subscriptions.first()
+    # same deal as above
+    if not subscription:
+        raise ValidationError("No subscription associated with alert rule.")
     snuba_query = SnubaQuery.objects.get(id=alert_rule.snuba_query_id)
     window_min = int(snuba_query.time_window / 60)
     start = datetime.fromisoformat(start_string)
@@ -81,7 +87,7 @@ def get_historical_anomaly_data_from_seer(
             "Timeout error when hitting anomaly detection endpoint",
             extra={
                 "subscription_id": subscription.id,
-                "dataset": subscription.snuba_query.dataset,
+                "dataset": alert_rule.snuba_query.dataset,
                 "organization_id": alert_rule.organization.id,
                 "project_id": project.id,
                 "alert_rule_id": alert_rule.id,

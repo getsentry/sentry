@@ -14,7 +14,6 @@ class Anomaly(TypedDict):
 class TimeSeriesPoint(TypedDict):
     timestamp: float
     value: float
-    anomaly: Anomaly | None
 
 
 class AnomalyDetectionConfig(TypedDict):
