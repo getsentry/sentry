@@ -50,7 +50,7 @@ export function fetchAnomaliesForRule(
   end: string
 ): Promise<Anomaly[]> {
   return uncancellableApi.requestPromise(
-    `/organizations/${orgId}/alert-rules/${ruleId}anomalies/`,
+    `/organizations/${orgId}/alert-rules/${ruleId}/anomalies/`,
     {
       query: {
         start,
