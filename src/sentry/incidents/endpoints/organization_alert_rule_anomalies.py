@@ -60,6 +60,13 @@ class OrganizationAlertRuleAnomaliesEndpoint(OrganizationAlertRuleEndpoint):
         project = alert_rule.projects.first()
         start = request.GET.get("start", None)
         end = request.GET.get("end", None)
+
+        if not project or start is None or end is None:
+            return Response(
+                "Unable to get historical anomaly data: missing required argument(s) project, start, and/or end",
+                status=400,
+            )
+
         anomalies = get_historical_anomaly_data_from_seer(alert_rule, project, start, end)
         if anomalies is None:
             return Response("Unable to get historical anomaly data", status=400)

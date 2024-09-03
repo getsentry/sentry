@@ -1,6 +1,7 @@
 from datetime import datetime
 
-from sentry.seer.anomaly_detection.store_data import fetch_historical_data, format_historical_data
+from sentry.seer.anomaly_detection.store_data import fetch_historical_data
+from sentry.seer.anomaly_detection.utils import format_historical_data
 from sentry.snuba.models import SnubaQuery
 from sentry.testutils.cases import SnubaTestCase
 from sentry.testutils.factories import EventType
