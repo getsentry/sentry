@@ -1143,22 +1143,16 @@ def _bulk_snuba_query(snuba_requests: Sequence[SnubaRequest]) -> ResultSet:
             allocation_policy_prefix = "allocation_policy."
             if _is_rejected_query(body):
                 quota_allowance_summary = body["quota_allowance"]["summary"]
-                span.set_tag(
-                    f"{allocation_policy_prefix}threads_used",
-                    quota_allowance_summary["threads_used"],
-                )
-                sentry_sdk.set_tag(
-                    f"{allocation_policy_prefix}threads_used",
-                    quota_allowance_summary["threads_used"],
-                )
-                for k, v in quota_allowance_summary["throttled_by"].items():
-                    k = allocation_policy_prefix + "throttling_policy." + k
-                    span.set_tag(k, v)
-                    sentry_sdk.set_tag(k, v)
-                for k, v in quota_allowance_summary["rejected_by"].items():
-                    k = allocation_policy_prefix + "rejecting_policy." + k
-                    span.set_tag(k, v)
-                    sentry_sdk.set_tag(k, v)
+                for k, v in quota_allowance_summary.items():
+                    if isinstance(v, dict):
+                        for nested_k, nested_v in v.items():
+                            span.set_tag(allocation_policy_prefix + k + "." + nested_k, nested_v)
+                            sentry_sdk.set_tag(
+                                allocation_policy_prefix + k + "." + nested_k, nested_v
+                            )
+                    else:
+                        span.set_tag(allocation_policy_prefix + k, v)
+                        sentry_sdk.set_tag(allocation_policy_prefix + k, v)
 
             if response.status != 200:
                 _log_request_query(snuba_requests_list[index].request)
