@@ -154,8 +154,6 @@ function TraceDataSection({
     traceEvents.length > 1 && // traceEvents include the current event.
     (!hasProject || !crashReportId || oneOtherIssueEvent?.id === crashReportId);
 
-  const ffEnabled = true; // TODO:
-
   useEffect(() => {
     if (isError) {
       trackAnalytics('feedback.trace_section.error', {organization});
@@ -181,7 +179,7 @@ function TraceDataSection({
   ]);
 
   // Note a timeline will only be shown for >1 same-trace issues.
-  return show && ffEnabled ? (
+  return show && organization.features.includes('user-feedback-trace-section') ? (
     <Section>
       <IssueDetailsTraceDataSection event={eventData} />
     </Section>
