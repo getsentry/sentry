@@ -42,7 +42,7 @@ def create_uptime_subscription(
             "type": UPTIME_SUBSCRIPTION_TYPE,
             "timeout_ms": timeout_ms,
             "url_domain": result.domain,
-            "url_suffix": result.suffix,
+            "url_domain_suffix": result.suffix,
         },
     )
     if subscription.status == UptimeSubscription.Status.DELETING.value:

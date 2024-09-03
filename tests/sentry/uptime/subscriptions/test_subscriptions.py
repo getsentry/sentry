@@ -36,7 +36,7 @@ class CreateUptimeSubscriptionTest(TestCase):
         assert uptime_sub.type == UPTIME_SUBSCRIPTION_TYPE
         assert uptime_sub.url == url
         assert uptime_sub.url_domain == "sentry"
-        assert uptime_sub.url_suffix == "io"
+        assert uptime_sub.url_domain_suffix == "io"
         assert uptime_sub.interval_seconds == uptime_sub.interval_seconds
         assert uptime_sub.timeout_ms == timeout_ms
 
@@ -52,7 +52,7 @@ class CreateUptimeSubscriptionTest(TestCase):
         assert uptime_sub.type == UPTIME_SUBSCRIPTION_TYPE
         assert uptime_sub.url == url
         assert uptime_sub.url_domain == "test"
-        assert uptime_sub.url_suffix == "vercel.app"
+        assert uptime_sub.url_domain_suffix == "vercel.app"
         assert uptime_sub.interval_seconds == uptime_sub.interval_seconds
         assert uptime_sub.timeout_ms == timeout_ms
 
@@ -100,7 +100,7 @@ class CreateUptimeSubscriptionTest(TestCase):
         assert uptime_sub.type == UPTIME_SUBSCRIPTION_TYPE
         assert uptime_sub.url == url
         assert uptime_sub.url_domain == "sentry"
-        assert uptime_sub.url_suffix == "io"
+        assert uptime_sub.url_domain_suffix == "io"
         assert uptime_sub.interval_seconds == uptime_sub.interval_seconds
         assert uptime_sub.timeout_ms == timeout_ms
 
