@@ -2,15 +2,17 @@ import {createMemoryHistory, Route, Router, RouterContext} from 'react-router';
 
 import {act, render} from 'sentry-test/reactTestingLibrary';
 
-import {useVisualize} from 'sentry/views/explore/hooks/useVisualize';
+import {ChartType} from 'sentry/views/insights/common/components/chart';
 import {RouteContext} from 'sentry/views/routeContext';
 
-describe('useVisualize', function () {
-  it('allows changing visualize function', function () {
-    let visualize, setVisualize;
+import {useChartType} from './useChartType';
+
+describe('useChartType', function () {
+  it('allows changing chart type', function () {
+    let chartType, setChartType;
 
     function TestPage() {
-      [visualize, setVisualize] = useVisualize();
+      [chartType, setChartType] = useChartType();
       return null;
     }
 
@@ -31,12 +33,12 @@ describe('useVisualize', function () {
       </Router>
     );
 
-    expect(visualize).toEqual('count(span.duration)'); // default
+    expect(chartType).toEqual(ChartType.LINE); // default
 
-    act(() => setVisualize('p75(span.duration)'));
-    expect(visualize).toEqual('p75(span.duration)');
+    act(() => setChartType(ChartType.BAR));
+    expect(chartType).toEqual(ChartType.BAR);
 
-    act(() => setVisualize('count(span.duration)'));
-    expect(visualize).toEqual('count(span.duration)');
+    act(() => setChartType(ChartType.LINE));
+    expect(chartType).toEqual(ChartType.LINE);
   });
 });
