@@ -144,7 +144,6 @@ from sentry.sentry_apps.installations import (
 )
 from sentry.sentry_apps.services.app.serial import serialize_sentry_app_installation
 from sentry.sentry_apps.services.hook import hook_service
-from sentry.sentry_metrics.models import SpanAttributeExtractionRuleConfig
 from sentry.signals import project_created
 from sentry.silo.base import SiloMode
 from sentry.snuba.dataset import Dataset
@@ -1218,13 +1217,6 @@ class Factories:
             provider=provider,
             sentry_app_installation=installation,
         )
-
-    @staticmethod
-    @assume_test_silo_mode(SiloMode.REGION)
-    def create_span_attribute_extraction_config(
-        dictionary: dict[str, Any], user_id: int, project: Project
-    ) -> SpanAttributeExtractionRuleConfig:
-        return SpanAttributeExtractionRuleConfig.from_dict(dictionary, user_id, project)
 
     @staticmethod
     @assume_test_silo_mode(SiloMode.CONTROL)

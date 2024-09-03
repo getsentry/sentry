@@ -39,22 +39,20 @@ def should_call_seer_for_grouping(event: Event, primary_hashes: CalculatedHashes
     # Check both of these before returning based on either so we can gather metrics on their results
     content_is_eligible = event_content_is_seer_eligible(event)
     seer_enabled_for_project = _project_has_similarity_grouping_enabled(project)
-
     if not (content_is_eligible and seer_enabled_for_project):
         return False
 
-    if _has_customized_fingerprint(event, primary_hashes):
-        return False
-
-    # **Do not add any new checks after this.** The rate limit check MUST remain the last of all the
-    # checks.
-    #
-    # (Checking the rate limit for calling Seer also increments the counter of how many times we've
-    # tried to call it, and if we fail any of the other checks, it shouldn't count as an attempt.
-    # Thus we only want to run the rate limit check if every other check has already succeeded.)
     if (
-        killswitch_enabled(project.id, event)
+        _has_customized_fingerprint(event, primary_hashes)
+        or killswitch_enabled(project.id, event)
         or _circuit_breaker_broken(event, project)
+        # **Do not add any new checks after this.** The rate limit check MUST remain the last of all
+        # the checks.
+        #
+        # (Checking the rate limit for calling Seer also increments the counter of how many times
+        # we've tried to call it, and if we fail any of the other checks, it shouldn't count as an
+        # attempt. Thus we only want to run the rate limit check if every other check has already
+        # succeeded.)
         or _ratelimiting_enabled(event, project)
     ):
         return False

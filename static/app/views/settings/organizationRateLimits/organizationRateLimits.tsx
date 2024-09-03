@@ -1,5 +1,3 @@
-import type {RouteComponentProps} from 'react-router';
-
 import FieldGroup from 'sentry/components/forms/fieldGroup';
 import RangeField from 'sentry/components/forms/fields/rangeField';
 import Form from 'sentry/components/forms/form';
@@ -8,6 +6,7 @@ import PanelAlert from 'sentry/components/panels/panelAlert';
 import PanelBody from 'sentry/components/panels/panelBody';
 import PanelHeader from 'sentry/components/panels/panelHeader';
 import {t, tct} from 'sentry/locale';
+import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import type {Organization} from 'sentry/types/organization';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
