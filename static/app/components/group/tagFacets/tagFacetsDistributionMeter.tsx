@@ -1,7 +1,7 @@
 import {useState} from 'react';
 import isPropValid from '@emotion/is-prop-valid';
 import styled from '@emotion/styled';
-import {motion} from 'framer-motion';
+import {AnimatePresence, motion} from 'framer-motion';
 import type {LocationDescriptor} from 'history';
 
 import type {TagSegment} from 'sentry/actionCreators/events';
@@ -145,68 +145,77 @@ function TagFacetsDistributionMeter({
 
   function renderLegend() {
     return (
-      <LegendAnimateContainer
-        expanded={expanded}
-        animate={
-          expanded ? {height: ['100%', 'auto'], opacity: 1} : {height: '0', opacity: 0}
-        }
-      >
-        <LegendContainer>
-          {topSegments.map((segment, index) => {
-            const pctLabel = Math.floor(percent(segment.count, totalValues));
-            const unfocus = !!hoveredValue && hoveredValue.value !== segment.value;
-            const focus = hoveredValue?.value === segment.value;
-            const linkLabel = segment.isOther
-              ? t(
-                  'Other %s tag values, %s of all events. View other tags.',
-                  title,
-                  `${pctLabel}%`
-                )
-              : t(
-                  '%s, %s, %s of all events. View events with this tag value.',
-                  title,
-                  segment.value,
-                  `${pctLabel}%`
+      <AnimatePresence initial={false}>
+        {expanded && (
+          <motion.div
+            variants={{
+              open: {height: ['100%', 'auto'], opacity: 1},
+              closed: {height: '0', opacity: 0, overflow: 'hidden'},
+            }}
+            initial="closed"
+            animate="open"
+            exit="closed"
+          >
+            <LegendContainer>
+              {topSegments.map((segment, index) => {
+                const pctLabel = Math.floor(percent(segment.count, totalValues));
+                const unfocus = !!hoveredValue && hoveredValue.value !== segment.value;
+                const focus = hoveredValue?.value === segment.value;
+                const linkLabel = segment.isOther
+                  ? t(
+                      'Other %s tag values, %s of all events. View other tags.',
+                      title,
+                      `${pctLabel}%`
+                    )
+                  : t(
+                      '%s, %s, %s of all events. View events with this tag value.',
+                      title,
+                      segment.value,
+                      `${pctLabel}%`
+                    );
+
+                const legend = (
+                  <LegendRow
+                    onMouseOver={() => setHoveredValue(segment)}
+                    onMouseLeave={() => setHoveredValue(null)}
+                  >
+                    <LegendDot
+                      color={colors[segment.isOther ? colors.length - 1 : index]}
+                      focus={focus}
+                    />
+                    <Tooltip skipWrapper delay={TOOLTIP_DELAY} title={segment.name}>
+                      <LegendText unfocus={unfocus}>
+                        {segment.name ?? (
+                          <NotApplicableLabel>{t('n/a')}</NotApplicableLabel>
+                        )}
+                      </LegendText>
+                    </Tooltip>
+                    <LegendPercent>{`${pctLabel}%`}</LegendPercent>
+                  </LegendRow>
                 );
 
-            const legend = (
-              <LegendRow
-                onMouseOver={() => setHoveredValue(segment)}
-                onMouseLeave={() => setHoveredValue(null)}
-              >
-                <LegendDot
-                  color={colors[segment.isOther ? colors.length - 1 : index]}
-                  focus={focus}
-                />
-                <Tooltip skipWrapper delay={TOOLTIP_DELAY} title={segment.name}>
-                  <LegendText unfocus={unfocus}>
-                    {segment.name ?? <NotApplicableLabel>{t('n/a')}</NotApplicableLabel>}
-                  </LegendText>
-                </Tooltip>
-                <LegendPercent>{`${pctLabel}%`}</LegendPercent>
-              </LegendRow>
-            );
-
-            return (
-              <li key={`segment-${segment.name}-${index}`}>
-                {onTagValueClick ? (
-                  <StyledButton
-                    aria-label={linkLabel}
-                    onClick={() => onTagValueClick?.(title, segment)}
-                    priority="link"
-                  >
-                    {legend}
-                  </StyledButton>
-                ) : (
-                  <Link to={segment.url} aria-label={linkLabel}>
-                    {legend}
-                  </Link>
-                )}
-              </li>
-            );
-          })}
-        </LegendContainer>
-      </LegendAnimateContainer>
+                return (
+                  <li key={`segment-${segment.name}-${index}`}>
+                    {onTagValueClick ? (
+                      <StyledButton
+                        aria-label={linkLabel}
+                        onClick={() => onTagValueClick?.(title, segment)}
+                        priority="link"
+                      >
+                        {legend}
+                      </StyledButton>
+                    ) : (
+                      <Link to={segment.url} aria-label={linkLabel}>
+                        {legend}
+                      </Link>
+                    )}
+                  </li>
+                );
+              })}
+            </LegendContainer>
+          </motion.div>
+        )}
+      </AnimatePresence>
     );
   }
 
@@ -313,15 +322,6 @@ const Segment = styled('span', {shouldForwardProp: isPropValid})<{color: string}
   font-size: ${p => p.theme.fontSizeExtraSmall};
   padding: 1px ${space(0.5)} 0 0;
   user-select: none;
-`;
-
-const LegendAnimateContainer = styled(motion.div, {
-  shouldForwardProp: prop =>
-    prop === 'animate' || (prop !== 'expanded' && isPropValid(prop)),
-})<{expanded: boolean}>`
-  height: 0;
-  opacity: 0;
-  ${p => (!p.expanded ? 'overflow: hidden;' : '')}
 `;
 
 const LegendContainer = styled('ol')`
