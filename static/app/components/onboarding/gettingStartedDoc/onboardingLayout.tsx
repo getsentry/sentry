@@ -117,6 +117,7 @@ export function OnboardingLayout({
             <ProductSelectionAvailabilityHook
               organization={organization}
               platform={platformKey}
+              projectId={projectId}
             />
           )}
           {platformOptions && !['customMetricsOnboarding'].includes(configType) ? (
