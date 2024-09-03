@@ -1,15 +1,15 @@
-import {useCallback, useMemo} from 'react';
+import {useCallback} from 'react';
 
-import type {ProductSolution} from 'sentry/components/onboarding/productSelection';
-import {decodeList} from 'sentry/utils/queryString';
+import {decodeBoolean, decodeList} from 'sentry/utils/queryString';
+import useLocationQuery from 'sentry/utils/url/useLocationQuery';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 
 type QueryValues = {
   /**
-   * Used to show product selection for certain platforms, e.g. javascript
+   * Used to show product selection (error monitoring, tracing, profiling and session replay) for certain platforms, e.g. javascript-react
    */
-  product?: ProductSolution[];
+  product?: string[];
   /**
    * Used to show the loader script for when the platform is javascript
    */
@@ -20,35 +20,19 @@ type QueryValues = {
   showManualSetup?: boolean;
 };
 
-const ONBOARDING_QUERY_PARAMS: (keyof QueryValues)[] = [
-  'showManualSetup',
-  'showLoader',
-  'product',
-];
-
 export function useOnboardingQueryParams(): [
   params: Partial<QueryValues>,
   setParams: (newValues: Partial<QueryValues>) => void,
 ] {
   const location = useLocation();
   const navigate = useNavigate();
-
-  const params = useMemo(() => {
-    const values = ONBOARDING_QUERY_PARAMS.reduce((acc, key) => {
-      const value = location.query[key];
-      acc[key] =
-        value === 'true'
-          ? true
-          : value === 'false'
-            ? false
-            : Array.isArray(value)
-              ? decodeList(value)
-              : value;
-      return acc;
-    }, {}) as Partial<QueryValues>;
-
-    return values;
-  }, [location.query]);
+  const params = useLocationQuery({
+    fields: {
+      product: decodeList,
+      showLoader: decodeBoolean,
+      showManualSetup: decodeBoolean,
+    },
+  });
 
   const setParams = useCallback(
     (newValues: Partial<QueryValues>) => {
