@@ -49,10 +49,10 @@ export default function useLocationQuery<
     if (typeof decoderOrValue === 'function') {
       if (decoderOrValue === decodeScalar) {
         locationFields[field] = decoderOrValue(location.query[field], '');
-      } else if (decoderOrValue === decodeInteger) {
-        locationFields[field] = decoderOrValue(location.query[field], 0);
       } else if (decoderOrValue === decodeBoolean) {
         locationFields[field] = decoderOrValue(location.query[field], false);
+      } else if (decoderOrValue === decodeInteger) {
+        locationFields[field] = decoderOrValue(location.query[field], 0);
       } else {
         locationFields[field] = decoderOrValue(location.query[field]);
       }
