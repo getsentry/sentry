@@ -1,7 +1,10 @@
+import pytest
+
 from sentry.testutils.cases import TestMigrations
 from sentry.uptime.models import ProjectUptimeSubscriptionMode, UptimeSubscription
 
 
+@pytest.mark.skip("Migration is no longer runnable. Retain until migration is removed.")
 class UpdateAutoDetectedActiveIntervalSecondsTest(TestMigrations):
     migrate_from = "0006_projectuptimesubscription_name_owner"
     migrate_to = "0007_update_detected_subscription_interval"
