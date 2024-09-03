@@ -116,6 +116,10 @@ export function isMRIField(field: string): boolean {
 
 // convenience function to get the MRI from a field, returns defaut MRI if it fails
 export function getMRI(field: string): MRI {
+  // spm() doesn't take an argument and it always operates on the spans exclusive time mri
+  if (field === 'spm()') {
+    return 'd:spans/exclusive_time@millisecond';
+  }
   const parsed = parseField(field);
   return parsed?.mri ?? DEFAULT_MRI;
 }
