@@ -1,5 +1,6 @@
 import logging
 from datetime import datetime, timedelta
+from typing import Any
 
 from django.conf import settings
 from django.core.exceptions import ValidationError
@@ -22,7 +23,6 @@ from sentry.seer.anomaly_detection.types import (
 from sentry.seer.anomaly_detection.utils import translate_direction
 from sentry.seer.signed_seer_api import make_signed_seer_api_request
 from sentry.snuba import metrics_performance
-from sentry.snuba.dataset import Dataset
 from sentry.snuba.models import SnubaQuery
 from sentry.snuba.referrer import Referrer
 from sentry.snuba.sessions_v2 import QueryDefinition
@@ -38,7 +38,7 @@ seer_anomaly_detection_connection_pool = connection_from_url(
 )
 
 
-def format_historical_data(data: SnubaTSResult, dataset: Dataset) -> list[TimeSeriesPoint]:
+def format_historical_data(data: SnubaTSResult, dataset: Any) -> list[TimeSeriesPoint]:
     """
     Format Snuba data into the format the Seer API expects.
     For errors data:
@@ -51,7 +51,7 @@ def format_historical_data(data: SnubaTSResult, dataset: Dataset) -> list[TimeSe
     For metrics_performance dataset/sessions data:
         The count is stored separately from the timestamps, if there is no data the count is 0
     """
-    formatted_data = []
+    formatted_data: list[TimeSeriesPoint] = []
     nested_data = data.data.get("data", [])
 
     if dataset == metrics_performance:
@@ -102,6 +102,7 @@ def send_historical_data_to_seer(alert_rule: AlertRule, project: Project) -> Ale
     if not historical_data:
         raise ValidationError("No historical data available.")
 
+    assert dataset
     formatted_data = format_historical_data(historical_data, dataset)
     if not formatted_data:
         raise ValidationError("Unable to get historical data for this alert.")
@@ -188,7 +189,7 @@ def fetch_historical_data(
             "project_objects": [project],
             "organization_id": alert_rule.organization.id,
         }
-        query_params = MultiValueDict(
+        query_params: MultiValueDict[str, Any] = MultiValueDict(
             {
                 "project": [project.id],
                 "statsPeriod": [f"{NUM_DAYS}d"],
