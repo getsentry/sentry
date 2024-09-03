@@ -10,6 +10,7 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {InjectedRouter} from 'sentry/types/legacyReactRouter';
 import type {Organization} from 'sentry/types/organization';
+import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useProjects from 'sentry/utils/useProjects';
 import {
@@ -84,10 +85,11 @@ function CustomViewsIssueListHeaderTabsContent({
   router,
   views,
 }: CustomViewsIssueListHeaderTabsContentProps) {
-  // Remove cursor and page when switching tabs
+  // TODO(msun): Possible replace navigate with useSearchParams() in the future?
   const navigate = useNavigate();
+  const location = useLocation();
 
-  // TODO: Replace this with useLocation
+  // TODO(msun): Use the location from useLocation instead of props router in the future
   const {cursor: _cursor, page: _page, ...queryParams} = router?.location.query;
   const {query, sort, viewId} = queryParams;
 
@@ -164,13 +166,13 @@ function CustomViewsIssueListHeaderTabsContent({
     // If no query, sort, or viewId is present, set the first tab as the selected tab, update query accordingly
     if (!query && !sort && !viewId) {
       navigate({
+        ...location,
         query: {
           ...queryParams,
           query: draggableTabs[0].query,
           sort: draggableTabs[0].querySort,
           viewId: draggableTabs[0].id,
         },
-        pathname: `/organizations/${organization.slug}/issues/`,
       });
       tabListState?.setSelectedKey(draggableTabs[0].key);
       return;
@@ -208,13 +210,13 @@ function CustomViewsIssueListHeaderTabsContent({
       }
       if (selectedTab && query === undefined) {
         navigate({
+          ...location,
           query: {
             ...queryParams,
             query: selectedTab.query,
             sort: selectedTab.querySort,
             viewId: selectedTab.id,
           },
-          pathname: `/organizations/${organization.slug}/issues/`,
         });
         tabListState?.setSelectedKey(selectedTab.key);
         return;
@@ -223,11 +225,11 @@ function CustomViewsIssueListHeaderTabsContent({
         // if a viewId does not exist, remove it from the query
         tabListState?.setSelectedKey('temporary-tab');
         navigate({
+          ...location,
           query: {
             ...queryParams,
             viewId: undefined,
           },
-          pathname: `/organizations/${organization.slug}/issues/`,
         });
         return;
       }
@@ -257,11 +259,11 @@ function CustomViewsIssueListHeaderTabsContent({
             }
           });
           navigate({
+            ...location,
             query: {
               ...queryParams,
               viewId: tab.id,
             },
-            pathname: `/organizations/${organization.slug}/issues/`,
           });
         }
         return tab;

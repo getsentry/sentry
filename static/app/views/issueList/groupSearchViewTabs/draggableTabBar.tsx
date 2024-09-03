@@ -12,6 +12,7 @@ import {t} from 'sentry/locale';
 import type {InjectedRouter} from 'sentry/types/legacyReactRouter';
 import {defined} from 'sentry/utils';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
+import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {DraggableTabMenuButton} from 'sentry/views/issueList/groupSearchViewTabs/draggableTabMenuButton';
 import EditableTabTitle from 'sentry/views/issueList/groupSearchViewTabs/editableTabTitle';
@@ -104,6 +105,7 @@ export function DraggableTabBar({
   const [editingTabKey, setEditingTabKey] = useState<string | null>(null);
 
   const navigate = useNavigate();
+  const location = useLocation();
 
   const {cursor: _cursor, page: _page, ...queryParams} = router?.location?.query ?? {};
 
@@ -149,13 +151,13 @@ export function DraggableTabBar({
         })
       );
       navigate({
+        ...location,
         query: {
           ...queryParams,
           query: originalTab.query,
           sort: originalTab.querySort,
           ...(originalTab.id ? {viewId: originalTab.id} : {}),
         },
-        pathname: `/organizations/${orgSlug}/issues/`,
       });
       onDiscard?.();
     }
@@ -188,11 +190,11 @@ export function DraggableTabBar({
         ...tabs.slice(idx + 1),
       ];
       navigate({
+        ...location,
         query: {
           ...queryParams,
           viewId: tempId,
         },
-        pathname: `/organizations/${orgSlug}/issues/`,
       });
       setTabs(newTabs);
       tabListState?.setSelectedKey(tempId);
@@ -251,11 +253,11 @@ export function DraggableTabBar({
         },
       ];
       navigate({
+        ...location,
         query: {
           ...queryParams,
           viewId: tempId,
         },
-        pathname: `/organizations/${orgSlug}/issues/`,
       });
       setTabs(newTabs);
       tabListState?.setSelectedKey(tempId);
