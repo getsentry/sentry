@@ -14,11 +14,7 @@ from sentry.integrations.slack.metrics import (
     SLACK_NOTIFY_MIXIN_SUCCESS_DATADOG_METRIC,
 )
 from sentry.integrations.slack.service import SlackService
-from sentry.integrations.slack.utils.errors import (
-    CHANNEL_NOT_FOUND,
-    EXPIRED_URL,
-    unpack_slack_api_error,
-)
+from sentry.integrations.slack.utils.errors import CHANNEL_NOT_FOUND, unpack_slack_api_error
 from sentry.integrations.types import ExternalProviders
 from sentry.notifications.notifications.base import BaseNotification
 from sentry.notifications.notify import register_notification_provider
@@ -40,7 +36,7 @@ class SlackNotifyBasicMixin(NotifyBasicMixin):
             metrics.incr(SLACK_NOTIFY_MIXIN_FAILURE_DATADOG_METRIC, sample_rate=1.0)
 
             # TODO: remove this
-            if unpack_slack_api_error(e) not in (EXPIRED_URL, CHANNEL_NOT_FOUND):
+            if unpack_slack_api_error(e) != CHANNEL_NOT_FOUND:
                 logger.exception(
                     "slack.slash-response.error",
                     extra={"error": str(e)},
