@@ -5,11 +5,11 @@ import warnings
 from collections import defaultdict
 from collections.abc import Callable, Mapping, MutableMapping, Sequence
 from datetime import datetime
-from typing import Any, DefaultDict, TypedDict, cast
+from typing import Any, DefaultDict, TypedDict, TypeVar, cast
 
 from django.conf import settings
 from django.contrib.auth.models import AnonymousUser
-from django.db.models import QuerySet
+from django.db.models import Model, QuerySet
 
 from sentry import experiments
 from sentry.api.serializers import Serializer, register
@@ -32,10 +32,12 @@ from sentry.users.models.userrole import UserRoleUser
 from sentry.users.services.user import RpcUser
 from sentry.utils.avatar import get_gravatar_url
 
+T = TypeVar("T", bound=Model)
+
 
 def manytoone_to_dict(
-    queryset: QuerySet, key: str, filter_func: Callable[[Any], bool] | None = None
-) -> MutableMapping[Any, Any]:
+    queryset: QuerySet[T], key: str, filter_func: Callable[[Any], bool] | None = None
+) -> MutableMapping[Any, list[T]]:
     result = defaultdict(list)
     for row in queryset:
         if filter_func and not filter_func(row):
@@ -100,9 +102,9 @@ class UserSerializerResponse(UserSerializerResponseOptional):
     hasPasswordAuth: bool
     isManaged: bool
     dateJoined: datetime
-    lastLogin: datetime
+    lastLogin: datetime | None
     has2fa: bool
-    lastActive: datetime
+    lastActive: datetime | None
     isSuperuser: bool
     isStaff: bool
     experiments: dict[str, Any]  # TODO
@@ -147,7 +149,6 @@ class UserSerializer(Serializer):
         user_ids = [i.id for i in item_list]
         avatars = {a.user_id: a for a in UserAvatar.objects.filter(user_id__in=user_ids)}
         identities = self._get_identities(item_list, user)
-
         emails = manytoone_to_dict(UserEmail.objects.filter(user_id__in=user_ids), "user_id")
         authenticators = Authenticator.objects.bulk_users_have_2fa(user_ids)
 
@@ -334,7 +335,7 @@ class DetailedSelfUserSerializer(UserSerializer):
     """
 
     def get_attrs(
-        self, item_list: Sequence[User], user: User, **kwargs
+        self, item_list: Sequence[User], user: User, **kwargs: Any
     ) -> MutableMapping[User, Any]:
         attrs = super().get_attrs(item_list, user)
         user_ids = [i.id for i in item_list]

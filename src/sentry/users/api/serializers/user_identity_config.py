@@ -1,15 +1,15 @@
 from __future__ import annotations
 
-from collections.abc import MutableMapping, Sequence
+from collections.abc import Mapping, MutableMapping, Sequence
 from dataclasses import dataclass
 from datetime import datetime
 from enum import Enum
-from typing import Any, Union
+from typing import TYPE_CHECKING, Any, TypedDict, Union
 
 from django.db.models.base import Model
 
 from sentry.api.serializers import Serializer, register, serialize
-from sentry.api.serializers.models import ControlSiloOrganizationSerializer, user_social_auth
+from sentry.api.serializers.models.user_social_auth import get_provider_label
 from sentry.exceptions import NotRegistered
 from sentry.hybridcloud.services.organization_mapping import organization_mapping_service
 from sentry.identity import is_login_provider
@@ -17,7 +17,14 @@ from sentry.integrations.manager import default_manager as integrations
 from sentry.models.authidentity import AuthIdentity
 from sentry.pipeline.provider import PipelineProvider
 from sentry.users.models.identity import Identity
+from sentry.users.models.user import User
 from social_auth.models import UserSocialAuth
+
+if TYPE_CHECKING:
+    from sentry.api.serializers.models.organization import (
+        ControlSiloOrganizationSerializer,
+        ControlSiloOrganizationSerializerResponse,
+    )
 
 
 class Status(Enum):
@@ -51,6 +58,11 @@ class UserIdentityProvider:
         return cls(provider.key, provider.name)
 
 
+class UserIdentityProviderSerializerResponse(TypedDict):
+    key: str
+    name: str
+
+
 @dataclass(eq=True, frozen=True)
 class UserIdentityConfig:
     category: str
@@ -68,7 +80,7 @@ class UserIdentityConfig:
     def wrap(cls, identity: IdentityType, status: Status) -> UserIdentityConfig:
         provider: PipelineProvider
 
-        def base(**kwargs):
+        def base(**kwargs: Any) -> UserIdentityConfig:
             return cls(
                 category=_IDENTITY_CATEGORY_KEYS[type(identity)],
                 id=identity.id,
@@ -78,9 +90,7 @@ class UserIdentityConfig:
 
         if isinstance(identity, UserSocialAuth):
             return base(
-                provider=UserIdentityProvider(
-                    identity.provider, user_social_auth.get_provider_label(identity)
-                ),
+                provider=UserIdentityProvider(identity.provider, get_provider_label(identity)),
                 name=identity.uid,
                 is_login=False,
             )
@@ -114,6 +124,19 @@ class UserIdentityConfig:
         return _IDENTITY_CATEGORIES_BY_KEY[self.category]
 
 
+class UserIdentityConfigSerializerResponse(TypedDict):
+    id: str
+    category: str
+    provider: UserIdentityProviderSerializerResponse
+    name: str
+    status: str
+    isLogin: bool
+    organization: ControlSiloOrganizationSerializerResponse
+    dateAdded: datetime | None
+    dateVerified: datetime | None
+    dateSynced: datetime | None
+
+
 @register(UserIdentityConfig)
 class UserIdentityConfigSerializer(Serializer):
     def get_attrs(
@@ -127,12 +150,19 @@ class UserIdentityConfigSerializer(Serializer):
             )
         }
         for item in item_list:
-            assert item.organization_id, "Organization ID must exist to get organization"
-            result[item] = dict(organization=organizations.get(item.organization_id))
+            # check if org_id exists bc mypy gets unhappy if .get() is given a None type
+            result[item] = (
+                dict(organization=organizations.get(item.organization_id))
+                if item.organization_id
+                else dict(organization=None)
+            )
 
         return result
 
-    def serialize(self, obj: UserIdentityConfig, attrs, user, **kwargs):
+    def serialize(
+        self, obj: UserIdentityConfig, attrs: Mapping[str, Any], user: User, **kwargs: Any
+    ) -> UserIdentityConfigSerializerResponse:
+
         return {
             "category": obj.category,
             "id": str(obj.id),
