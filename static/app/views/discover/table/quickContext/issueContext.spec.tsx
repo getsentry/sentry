@@ -3,12 +3,10 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
 import {RepositoryFixture} from 'sentry-fixture/repository';
 
-import {makeTestQueryClient} from 'sentry-test/queryClient';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {GroupStatus} from 'sentry/types/group';
 import type {EventData} from 'sentry/utils/discover/eventView';
-import {QueryClientProvider} from 'sentry/utils/queryClient';
 
 import IssueContext from './issueContext';
 import {defaultRow} from './testUtils';
@@ -32,12 +30,7 @@ const mockedGroup = GroupFixture({
 
 const renderIssueContext = (dataRow: EventData = defaultRow) => {
   const organization = OrganizationFixture();
-  render(
-    <QueryClientProvider client={makeTestQueryClient()}>
-      <IssueContext dataRow={dataRow} organization={organization} />
-    </QueryClientProvider>,
-    {organization}
-  );
+  render(<IssueContext dataRow={dataRow} organization={organization} />, {organization});
 };
 
 describe('Quick Context Content Issue Column', function () {
