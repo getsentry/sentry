@@ -68,8 +68,9 @@ function isLayout(val: string): val is LayoutKey {
 
 function useReplayLayout() {
   const collapsed = !!useLegacyStore(PreferencesStore).collapsed;
-  const defaultLayout = getDefaultLayout(collapsed);
   const organization = useOrganization();
+  const hasNewNav = organization?.features.includes('navigation-sidebar-v2') ?? false;
+  const defaultLayout = getDefaultLayout(collapsed, hasNewNav);
 
   const {getParamValue, setParamValue} = useUrlParams('l_page', defaultLayout);
 

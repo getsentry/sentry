@@ -35,7 +35,13 @@ const PanelContainer = styled('div')<PositionProps>`
       : css`
           width: 460px;
           top: 0;
-          left: ${p.theme.sidebar.width};
+          left: ${p.collapsed
+            ? p.theme.sidebar.collapsedWidth
+            : p.theme.sidebar.expandedWidth};
+
+          .sidebar-v2 & {
+            left: ${p.theme.sidebar.v2_width};
+          }
         `};
 `;
 

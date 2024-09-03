@@ -95,7 +95,13 @@ const Wrapper = styled('div')<{collapsed: boolean}>`
   white-space: nowrap;
   gap: ${space(4)};
 
-  margin-left: calc(-1 * ${p => p.theme.sidebar.width});
+  margin-left: calc(
+    -1 * ${p => (p.collapsed ? p.theme.sidebar.collapsedWidth : p.theme.sidebar.expandedWidth)}
+  );
+
+  .sidebar-v2 & {
+    margin-left: calc(-1 * ${p => p.theme.sidebar.v2_width});
+  }
 
   position: fixed;
   width: 100%;

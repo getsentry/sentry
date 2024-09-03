@@ -2,6 +2,7 @@ import {Fragment, useCallback, useContext, useEffect} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import {hideSidebar, showSidebar} from 'sentry/actionCreators/preferences';
 import Feature from 'sentry/components/acl/feature';
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
 import {Chevron} from 'sentry/components/chevron';
@@ -35,6 +36,7 @@ import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import DemoWalkthroughStore from 'sentry/stores/demoWalkthroughStore';
 import HookStore from 'sentry/stores/hookStore';
+import PreferencesStore from 'sentry/stores/preferencesStore';
 import SidebarPanelStore from 'sentry/stores/sidebarPanelStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import {space} from 'sentry/styles/space';
@@ -113,10 +115,12 @@ function useOpenOnboardingSidebar(organization?: Organization) {
 
 function Sidebar() {
   const location = useLocation();
+  const preferences = useLegacyStore(PreferencesStore);
   const activePanel = useLegacyStore(SidebarPanelStore);
   const organization = useOrganization({allowNull: true});
   const {shouldAccordionFloat} = useContext(ExpandedContext);
-  const hasNewNav = true;
+  const hasNewNav = organization?.features.includes('navigation-sidebar-v2') ?? false;
+  const collapsed = hasNewNav ? true : !!preferences.collapsed;
   const hasOrganization = !!organization;
   const isSelfHostedErrorsOnly = ConfigStore.get('isSelfHostedErrorsOnly');
 
@@ -130,7 +134,7 @@ function Sidebar() {
     hasPanel,
     organization,
     hasNewNav,
-    collapsed: true,
+    collapsed,
   };
   // Avoid showing superuser UI on self-hosted instances
   const showSuperuserWarning = () => {
@@ -144,7 +148,13 @@ function Sidebar() {
 
   useOpenOnboardingSidebar();
 
-  const toggleCollapse = useCallback(() => {}, []);
+  const toggleCollapse = useCallback(() => {
+    if (collapsed) {
+      showSidebar();
+    } else {
+      hideSidebar();
+    }
+  }, [collapsed]);
 
   // Close panel on any navigation
   useEffect(() => void hidePanel(), [location?.pathname]);
@@ -165,17 +175,30 @@ function Sidebar() {
     });
   }, [location?.hash]);
 
+  // Add sidebar collapse classname to body
+  useEffect(() => {
+    const bcl = document.body.classList;
+
+    if (collapsed) {
+      bcl.add('collapsed');
+    } else {
+      bcl.remove('collapsed');
+    }
+
+    return () => bcl.remove('collapsed');
+  }, [collapsed]);
+
   // Add sidebar hasNewNav classname to body
   useEffect(() => {
     const bcl = document.body.classList;
 
     if (hasNewNav) {
-      bcl.add('hasNewNav');
+      bcl.add('sidebar-v2');
     } else {
-      bcl.remove('hasNewNav');
+      bcl.remove('sidebar-v2');
     }
 
-    return () => bcl.remove('hasNewNav');
+    return () => bcl.remove('sidebar-v2');
   }, [hasNewNav]);
 
   const sidebarAnchor = isDemoWalkthrough() ? (
@@ -217,7 +240,7 @@ function Sidebar() {
     >
       <SidebarItem
         {...sidebarItemProps}
-        icon={<SubitemDot collapsed />}
+        icon={<SubitemDot collapsed={collapsed} />}
         label={<GuideAnchor target="discover">{t('Discover')}</GuideAnchor>}
         to={getDiscoverLandingUrl(organization)}
         id="discover-v2"
@@ -236,7 +259,7 @@ function Sidebar() {
         }
         to={`/organizations/${organization.slug}/${moduleURLBuilder('db')}/`}
         id="performance-database"
-        icon={<SubitemDot collapsed />}
+        icon={<SubitemDot collapsed={collapsed} />}
       />
     </Feature>
   );
@@ -250,7 +273,7 @@ function Sidebar() {
         }
         to={`/organizations/${organization.slug}/${moduleURLBuilder('http')}/`}
         id="performance-http"
-        icon={<SubitemDot collapsed />}
+        icon={<SubitemDot collapsed={collapsed} />}
       />
     </Feature>
   );
@@ -264,7 +287,7 @@ function Sidebar() {
         }
         to={`/organizations/${organization.slug}/${moduleURLBuilder('cache')}/`}
         id="performance-cache"
-        icon={<SubitemDot collapsed />}
+        icon={<SubitemDot collapsed={collapsed} />}
       />
     </Feature>
   );
@@ -278,7 +301,7 @@ function Sidebar() {
         }
         to={`/organizations/${organization.slug}/${moduleURLBuilder('vital')}/`}
         id="performance-webvitals"
-        icon={<SubitemDot collapsed />}
+        icon={<SubitemDot collapsed={collapsed} />}
       />
     </Feature>
   );
@@ -292,7 +315,7 @@ function Sidebar() {
         }
         to={`/organizations/${organization.slug}/${moduleURLBuilder('queue')}/`}
         id="performance-queues"
-        icon={<SubitemDot collapsed />}
+        icon={<SubitemDot collapsed={collapsed} />}
       />
     </Feature>
   );
@@ -313,7 +336,7 @@ function Sidebar() {
         label={MODULE_TITLES.screen_load}
         to={`/organizations/${organization.slug}/${moduleURLBuilder('screen_load')}/`}
         id="performance-mobile-screens"
-        icon={<SubitemDot collapsed />}
+        icon={<SubitemDot collapsed={collapsed} />}
       />
     </Feature>
   );
@@ -325,7 +348,7 @@ function Sidebar() {
         label={MODULE_TITLES.app_start}
         to={`/organizations/${organization.slug}/${moduleURLBuilder('app_start')}/`}
         id="performance-mobile-app-startup"
-        icon={<SubitemDot collapsed />}
+        icon={<SubitemDot collapsed={collapsed} />}
       />
     </Feature>
   );
@@ -341,7 +364,7 @@ function Sidebar() {
         label={MODULE_TITLES['mobile-ui']}
         to={`/organizations/${organization.slug}/${moduleURLBuilder('mobile-ui')}/`}
         id="performance-mobile-ui"
-        icon={<SubitemDot collapsed />}
+        icon={<SubitemDot collapsed={collapsed} />}
         isAlpha
       />
     </Feature>
@@ -358,7 +381,7 @@ function Sidebar() {
         label={MODULE_TITLES['mobile-screens']}
         to={`/organizations/${organization.slug}/${moduleURLBuilder('mobile-screens')}/`}
         id="performance-mobile-screens"
-        icon={<SubitemDot collapsed />}
+        icon={<SubitemDot collapsed={collapsed} />}
       />
     </Feature>
   );
@@ -370,7 +393,7 @@ function Sidebar() {
         label={<GuideAnchor target="starfish">{MODULE_TITLES.resource}</GuideAnchor>}
         to={`/organizations/${organization.slug}/${moduleURLBuilder('resource')}/`}
         id="performance-browser-resources"
-        icon={<SubitemDot collapsed />}
+        icon={<SubitemDot collapsed={collapsed} />}
       />
     </Feature>
   );
@@ -382,7 +405,7 @@ function Sidebar() {
         label={<GuideAnchor target="traces">{t('Traces')}</GuideAnchor>}
         to={`/organizations/${organization.slug}/traces/`}
         id="performance-trace-explorer"
-        icon={<SubitemDot collapsed />}
+        icon={<SubitemDot collapsed={collapsed} />}
         isBeta
       />
     </Feature>
@@ -392,7 +415,7 @@ function Sidebar() {
     <Feature features={['insights-entry-points']} organization={organization}>
       <SidebarItem
         {...sidebarItemProps}
-        icon={<SubitemDot collapsed />}
+        icon={<SubitemDot collapsed={collapsed} />}
         label={MODULE_TITLES.ai}
         to={`/organizations/${organization.slug}/${moduleURLBuilder('ai')}/`}
         id="llm-monitoring"
@@ -484,7 +507,7 @@ function Sidebar() {
     >
       <SidebarItem
         {...sidebarItemProps}
-        icon={<SubitemDot collapsed />}
+        icon={<SubitemDot collapsed={collapsed} />}
         label={t('Replays')}
         to={`/organizations/${organization.slug}/replays/`}
         id="replays"
@@ -497,7 +520,7 @@ function Sidebar() {
   const metrics = hasOrganization && hasCustomMetrics(organization) && (
     <SidebarItem
       {...sidebarItemProps}
-      icon={<SubitemDot collapsed />}
+      icon={<SubitemDot collapsed={collapsed} />}
       label={t('Metrics')}
       to={metricsPath}
       search={location?.pathname === normalizeUrl(metricsPath) ? location.search : ''}
@@ -537,7 +560,7 @@ function Sidebar() {
       <SidebarItem
         {...sidebarItemProps}
         index
-        icon={<SubitemDot collapsed />}
+        icon={<SubitemDot collapsed={collapsed} />}
         label={t('Profiles')}
         to={`/organizations/${organization.slug}/profiling/`}
         id="profiling"
@@ -608,17 +631,19 @@ function Sidebar() {
     </SidebarAccordion>
   );
 
-  const collapsed = true;
-
   return (
-    <SidebarWrapper aria-label={t('Primary Navigation')} collapsed hasNewNav={hasNewNav}>
+    <SidebarWrapper
+      aria-label={t('Primary Navigation')}
+      collapsed={collapsed}
+      hasNewNav={hasNewNav}
+    >
       <ExpandedContextProvider>
         <SidebarSectionGroupPrimary>
           <DropdownSidebarSection
             isSuperuser={showSuperuserWarning() && !isExcludedOrg()}
             hasNewNav={hasNewNav}
           >
-            <SidebarDropdown orientation={orientation} collapsed />
+            <SidebarDropdown orientation={orientation} collapsed={collapsed} />
 
             {showSuperuserWarning() && !isExcludedOrg() && (
               <Hook name="component:superuser-warning" organization={organization} />
@@ -633,8 +658,25 @@ function Sidebar() {
                   {projects}
                 </SidebarSection>
 
-                {!isSelfHostedErrorsOnly && (
-                  <SidebarSection hasNewNav={hasNewNav}>
+                {!isSelfHostedErrorsOnly && !hasNewNav && (
+                  <Fragment>
+                    <SidebarSection>
+                      {explore}
+                      {insights}
+                    </SidebarSection>
+                    <SidebarSection>
+                      {performance}
+                      {feedback}
+                      {monitors}
+                      {alerts}
+                      {dashboards}
+                      {releases}
+                    </SidebarSection>
+                  </Fragment>
+                )}
+
+                {!isSelfHostedErrorsOnly && hasNewNav && (
+                  <SidebarSection hasNewNav>
                     {explore}
                     {insights}
                     {performance}
@@ -784,8 +826,15 @@ export const SidebarWrapper = styled('nav')<{collapsed: boolean; hasNewNav?: boo
   background: ${p => p.theme.sidebarGradient};
   color: ${p => p.theme.sidebar.color};
   line-height: 1;
-  padding: 16px 8px;
-  width: ${p => p.theme.sidebar.width};
+  padding: 12px 0 2px; /* Allows for 32px avatars  */
+  width: ${p =>
+    p.theme.sidebar[
+      p.hasNewNav
+        ? 'semiCollapsedWidth'
+        : p.collapsed
+          ? 'collapsedWidth'
+          : 'expandedWidth'
+    ]};
   position: fixed;
   top: ${p => (ConfigStore.get('demoMode') ? p.theme.demo.headerSize : 0)};
   left: 0;
@@ -794,6 +843,11 @@ export const SidebarWrapper = styled('nav')<{collapsed: boolean; hasNewNav?: boo
   z-index: ${p => p.theme.zIndex.sidebar};
   border-right: solid 1px ${p => p.theme.sidebarBorder};
   ${responsiveFlex};
+
+  .sidebar-v2 & {
+    padding: ${space(1)} ${space(0.75)};
+    width: ${p => p.theme.sidebar.v2_width};
+  }
 
   @media (max-width: ${p => p.theme.breakpoints.medium}) {
     top: 0;

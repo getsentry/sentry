@@ -392,18 +392,43 @@ const StyledSidebarItem = styled(Link, {
   shouldForwardProp: p => typeof p === 'string' && isPropValid(p),
 })`
   display: flex;
-  align-self: center;
-  justify-content: center;
   color: ${p => (p.isInFloatingAccordion ? p.theme.gray400 : 'inherit')};
   position: relative;
   cursor: pointer;
-  font-size: 11px;
-  height: 52px;
-  width: 100%;
+  font-size: 15px;
+  height: ${p => (p.isInFloatingAccordion ? '35px' : p.hasNewNav ? '40px' : '30px')};
   flex-shrink: 0;
-  flex-grow: 1;
   border-radius: ${p => p.theme.borderRadius};
   transition: none;
+
+  ${p =>
+    !p.hasNewNav &&
+    css`
+      &:before {
+        display: block;
+        content: '';
+        position: absolute;
+        top: 4px;
+        left: calc(-${space(2)} - 1px);
+        bottom: 6px;
+        width: 5px;
+        border-radius: 0 3px 3px 0;
+        background-color: transparent;
+        transition: 0.15s background-color linear;
+      }
+    `}
+
+  @media (max-width: ${p => p.theme.breakpoints.medium}) {
+    &:before {
+      top: auto;
+      left: 5px;
+      bottom: -12px;
+      height: 5px;
+      width: auto;
+      right: 5px;
+      border-radius: 3px 3px 0 0;
+    }
+  }
 
   &:hover,
   &:focus-visible {
@@ -427,6 +452,15 @@ const StyledSidebarItem = styled(Link, {
   &:focus-visible {
     outline: none;
     box-shadow: inset 0 0 0 2px ${p => p.theme.purple300};
+  }
+
+  .sidebar-v2 & {
+    font-size: 11px;
+    align-self: center;
+    justify-content: center;
+    height: 52px;
+    width: 100%;
+    flex-grow: 1;
   }
 
   ${getActiveStyle};
@@ -529,7 +563,12 @@ const CollapsedFeatureBadge = styled(FeatureBadge)`
 `;
 
 const StyledInteractionStateLayer = styled(InteractionStateLayer)`
-  height: 53px;
-  width: 58px;
-  border-radius: ${p => p.theme.borderRadius};
+  height: ${16 * 2 + 40}px;
+  width: 70px;
+
+  .sidebar-v2 & {
+    height: 53px;
+    width: 58px;
+    border-radius: ${p => p.theme.borderRadius};
+  }
 `;
