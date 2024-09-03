@@ -23,7 +23,6 @@ export type Project = {
   eventProcessing: {
     symbolicationDegraded: boolean;
   };
-  extrapolateMetrics: boolean;
   features: string[];
   firstEvent: string | null;
   firstTransactionEvent: boolean;
