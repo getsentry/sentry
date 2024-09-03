@@ -7,7 +7,8 @@ from .apitoken import *  # noqa: F401,F403
 from .app_platform_event import *  # noqa: F401,F403
 from .auditlogentry import *  # noqa: F401,F403
 from .auth_provider import *  # noqa: F401,F403
-from .authenticator import *  # noqa: F401,F403
+
+# from ....users.api.serializers.authenticator import *  # noqa: F401,F403
 from .broadcast import *  # noqa: F401,F403
 from .commit import *  # noqa: F401,F403
 from .dashboard import *  # noqa: F401,F403
