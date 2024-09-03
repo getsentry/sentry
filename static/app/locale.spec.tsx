@@ -49,4 +49,17 @@ describe('locale.gettextComponentTemplate', () => {
       screen.getByText(textWithMarkupMatcher('1st: one2nd: two'))
     ).toBeInTheDocument();
   });
+
+  it('should render multiple groups with the same name', () => {
+    const RenderChildren = ({children}: {children?: React.ReactNode}) => children;
+    render(
+      <div>
+        {tct('[render:one] [render:two] [render:three]', {
+          render: <RenderChildren />,
+        })}
+      </div>
+    );
+
+    expect(screen.getByText(textWithMarkupMatcher('one two three'))).toBeInTheDocument();
+  });
 });

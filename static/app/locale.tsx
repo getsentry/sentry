@@ -209,13 +209,9 @@ export function parseComponentTemplate(template: string): ParsedTemplate {
       if (closeBraceOrValueSeparator === ']') {
         pos = regex.lastIndex;
       } else {
-        pos = regex.lastIndex = process(
-          regex.lastIndex,
-          groupName + groupId.toString(),
-          true
-        );
+        pos = regex.lastIndex = process(regex.lastIndex, groupId.toString(), true);
       }
-      buf.push({group: groupName, id: groupName + groupId.toString()});
+      buf.push({group: groupName, id: groupId.toString()});
       groupId++;
     }
 
