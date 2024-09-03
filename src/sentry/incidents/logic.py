@@ -570,15 +570,17 @@ def create_alert_rule(
     resolution = get_alert_resolution(time_window, organization)
 
     if detection_type == AlertRuleDetectionType.DYNAMIC:
-        if not (sensitivity and seasonality):
-            raise ValidationError("Dynamic alerts require both sensitivity and seasonality")
+        # NOTE: we hardcode seasonality for EA
+        seasonality = AlertRuleSeasonality.AUTO
+        if not (sensitivity):
+            raise ValidationError("Dynamic alerts require a sensitivity level")
         if time_window not in DYNAMIC_TIME_WINDOWS:
             raise ValidationError(INVALID_TIME_WINDOW)
     else:
-        if sensitivity or seasonality:
-            raise ValidationError(
-                "Sensitivity and seasonality are not valid fields for this alert type"
-            )
+        # NOTE: we hardcode seasonality for EA
+        seasonality = None
+        if sensitivity:
+            raise ValidationError("Sensitivity is not a valid field for this alert type")
         if threshold_type == AlertRuleThresholdType.ABOVE_AND_BELOW:
             raise ValidationError(
                 "Above and below is not a valid threshold type for this alert type"
@@ -882,8 +884,8 @@ def update_alert_rule(
             updated_fields["sensitivity"] = None
             updated_fields["seasonality"] = None
         elif detection_type == AlertRuleDetectionType.DYNAMIC:
-            # TODO: if updating to a dynamic alert rule, check to see if there's enough data
-            # This must be done after backfill PR lands
+            # NOTE: we set seasonality for EA
+            updated_fields["seasonality"] = AlertRuleSeasonality.AUTO
             updated_fields["comparison_delta"] = None
             if (
                 time_window not in DYNAMIC_TIME_WINDOWS
