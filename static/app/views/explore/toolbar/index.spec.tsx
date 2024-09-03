@@ -2,6 +2,7 @@ import {createMemoryHistory, Route, Router, RouterContext} from 'react-router';
 
 import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
 
+import {useGroupBys} from 'sentry/views/explore/hooks/useGroupBys';
 import {useResultMode} from 'sentry/views/explore/hooks/useResultsMode';
 import {useSampleFields} from 'sentry/views/explore/hooks/useSampleFields';
 import {useSorts} from 'sentry/views/explore/hooks/useSorts';
@@ -115,5 +116,43 @@ describe('ExploreToolbar', function () {
     expect(within(section).getByRole('button', {name: 'span.op'})).toBeInTheDocument();
     expect(within(section).getByRole('button', {name: 'Ascending'})).toBeInTheDocument();
     expect(sorts).toEqual([{field: 'span.op', kind: 'asc'}]);
+  });
+
+  it('allows changing group bys', async function () {
+    let groupBys;
+
+    function Component() {
+      [groupBys] = useGroupBys();
+      return <ExploreToolbar />;
+    }
+    renderWithRouter(Component);
+
+    const section = screen.getByTestId('section-group-by');
+
+    expect(within(section).getByRole('button', {name: '(none)'})).toBeInTheDocument();
+    expect(groupBys).toEqual(['']);
+
+    await userEvent.click(within(section).getByRole('button', {name: '(none)'}));
+    const groupByOptions1 = await within(section).findAllByRole('option');
+    expect(groupByOptions1.length).toBeGreaterThan(0);
+
+    await userEvent.click(within(section).getByRole('option', {name: 'span.op'}));
+    expect(within(section).getByRole('button', {name: 'span.op'})).toBeInTheDocument();
+    expect(groupBys).toEqual(['span.op']);
+
+    await userEvent.click(within(section).getByRole('button', {name: '+Add Group By'}));
+    expect(groupBys).toEqual(['span.op', '']);
+
+    await userEvent.click(within(section).getByRole('button', {name: '(none)'}));
+    const groupByOptions2 = await within(section).findAllByRole('option');
+    expect(groupByOptions2.length).toBeGreaterThan(0);
+
+    await userEvent.click(
+      within(section).getByRole('option', {name: 'span.description'})
+    );
+    expect(
+      within(section).getByRole('button', {name: 'span.description'})
+    ).toBeInTheDocument();
+    expect(groupBys).toEqual(['span.op', 'span.description']);
   });
 });
