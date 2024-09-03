@@ -1,3 +1,4 @@
+import Alert from 'sentry/components/alert';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/step';
 import type {
@@ -27,11 +28,9 @@ const onboarding: OnboardingConfig = {
       configurations: [
         {
           language: 'bash',
-          description: (
-            <p>
-              {tct('Install the [code:sentry/sentry-symfony] bundle:', {code: <code />})}
-            </p>
-          ),
+          description: tct('Install the [code:sentry/sentry-symfony] bundle:', {
+            code: <code />,
+          }),
           code: 'composer require sentry/sentry-symfony',
         },
         ...(params.isProfilingSelected
@@ -61,9 +60,7 @@ const onboarding: OnboardingConfig = {
       type: StepType.CONFIGURE,
       configurations: [
         {
-          description: (
-            <p>{tct('Add your DSN to your [code:.env] file:', {code: <code />})}</p>
-          ),
+          description: tct('Add your DSN to your [code:.env] file:', {code: <code />}),
           language: 'shell',
           code: `
 ###> sentry/sentry-symfony ###
@@ -74,13 +71,9 @@ SENTRY_DSN="${params.dsn.public}"
         ...(params.isPerformanceSelected || params.isProfilingSelected
           ? [
               {
-                description: (
-                  <p>
-                    {tct(
-                      'Add further configuration options to your [code:config/packages/sentry.yaml] file:',
-                      {code: <code />}
-                    )}
-                  </p>
+                description: tct(
+                  'Add further configuration options to your [code:config/packages/sentry.yaml] file:',
+                  {code: <code />}
                 ),
                 language: 'yaml',
                 code: `when@prod:
@@ -101,6 +94,18 @@ SENTRY_DSN="${params.dsn.public}"
               },
             ]
           : []),
+        {
+          description: (
+            <Alert type="warning">
+              {tct(
+                'In order to receive stack trace arguments in your errors, make sure to set [code:zend.exception_ignore_args: Off] in your php.ini',
+                {
+                  code: <code />,
+                }
+              )}
+            </Alert>
+          ),
+        },
       ],
     },
   ],
@@ -145,13 +150,9 @@ SENTRY_DSN="${params.dsn.public}"
           `,
         },
       ],
-      additionalInfo: (
-        <p>
-          {tct(
-            "After you visit the [code:/_sentry-test page], you can view and resolve the recorded error by logging into [sentryLink:sentry.io] and opening your project. Clicking on the error's title will open a page where you can see detailed information and mark it as resolved.",
-            {sentryLink: <ExternalLink href="https://sentry.io" />, code: <code />}
-          )}
-        </p>
+      additionalInfo: tct(
+        "After you visit the [code:/_sentry-test page], you can view and resolve the recorded error by logging into [sentryLink:sentry.io] and opening your project. Clicking on the error's title will open a page where you can see detailed information and mark it as resolved.",
+        {sentryLink: <ExternalLink href="https://sentry.io" />, code: <code />}
       ),
     },
   ],
