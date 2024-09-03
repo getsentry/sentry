@@ -1,5 +1,3 @@
-import type {RouteComponentProps} from 'react-router';
-
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {Alert} from 'sentry/components/alert';
 import AutoSelectText from 'sentry/components/autoSelectText';
@@ -15,6 +13,7 @@ import PluginList from 'sentry/components/pluginList';
 import TextCopyInput from 'sentry/components/textCopyInput';
 import {t, tct} from 'sentry/locale';
 import type {Plugin} from 'sentry/types/integrations';
+import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import getDynamicText from 'sentry/utils/getDynamicText';

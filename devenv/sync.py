@@ -15,8 +15,12 @@ def run_procs(
     reporoot: str,
     venv_path: str,
     _procs: tuple[tuple[str, tuple[str, ...], dict[str, str]], ...],
+    verbose: bool = False,
 ) -> bool:
     procs: list[tuple[str, tuple[str, ...], subprocess.Popen[bytes]]] = []
+
+    stdout = subprocess.PIPE if not verbose else None
+    stderr = subprocess.STDOUT if not verbose else None
 
     for name, cmd, extra_env in _procs:
         print(f"⏳ {name}")
@@ -37,8 +41,8 @@ def run_procs(
                 cmd,
                 subprocess.Popen(
                     cmd,
-                    stdout=subprocess.PIPE,
-                    stderr=subprocess.STDOUT,
+                    stdout=stdout,
+                    stderr=stderr,
                     env=env,
                     cwd=reporoot,
                 ),
@@ -50,6 +54,7 @@ def run_procs(
         out, _ = p.communicate()
         if p.returncode != 0:
             all_good = False
+            out_str = f"Output:\n{out.decode()}" if not verbose else ""
             print(
                 f"""
 ❌ {name}
@@ -57,8 +62,7 @@ def run_procs(
 failed command (code {p.returncode}):
     {shlex.join(final_cmd)}
 
-Output:
-{out.decode()}
+{out_str}
 
 """
             )
@@ -71,6 +75,9 @@ Output:
 def main(context: dict[str, str]) -> int:
     repo = context["repo"]
     reporoot = context["reporoot"]
+
+    # TODO: context["verbose"]
+    verbose = os.environ.get("SENTRY_DEVENV_VERBOSE") is not None
 
     FRONTEND_ONLY = os.environ.get("SENTRY_DEVENV_FRONTEND_ONLY") is not None
 
@@ -133,6 +140,7 @@ def main(context: dict[str, str]) -> int:
                 {},
             ),
         ),
+        verbose,
     ):
         return 1
 
@@ -168,6 +176,7 @@ def main(context: dict[str, str]) -> int:
                 {},
             ),
         ),
+        verbose,
     ):
         return 1
 
@@ -191,6 +200,7 @@ def main(context: dict[str, str]) -> int:
                 {},
             ),
         ),
+        verbose,
     ):
         return 1
 
@@ -206,6 +216,7 @@ def main(context: dict[str, str]) -> int:
             ),
             ("pre-commit dependencies", ("pre-commit", "install", "--install-hooks", "-f"), {}),
         ),
+        verbose,
     ):
         return 1
 
@@ -246,6 +257,7 @@ def main(context: dict[str, str]) -> int:
                 {},
             ),
         ),
+        verbose,
     ):
         return 1
 
@@ -278,4 +290,4 @@ def main(context: dict[str, str]) -> int:
             )
         )
 
-    return 1
+    return 0

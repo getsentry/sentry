@@ -6,7 +6,7 @@ import {NODE_ENV} from 'sentry/constants';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 
 import {locationDescriptorToTo} from './reactRouter6Compat/location';
-import useRouter from './useRouter';
+import {useRouteContext} from './useRouteContext';
 
 type NavigateOptions = {
   replace?: boolean;
@@ -24,7 +24,7 @@ interface ReactRouter3Navigate {
  *
  * @see https://reactrouter.com/hooks/use-navigate
  */
-export function useNavigate() {
+export function useNavigate(): ReactRouter3Navigate {
   // When running in test mode we still read from the legacy route context to
   // keep test compatability while we fully migrate to react router 6
   const useReactRouter6 = window.__SENTRY_USING_REACT_ROUTER_SIX && NODE_ENV !== 'test';
@@ -48,8 +48,11 @@ export function useNavigate() {
     return navigate;
   }
 
+  // XXX(epurkihser): We are using react-router 3 here, to avoid recursive
+  // dependencies we just use the useRouteContext instead of useRouter here
+
   // biome-ignore lint/correctness/useHookAtTopLevel: react-router-6 migration
-  const router = useRouter();
+  const {router} = useRouteContext();
 
   // biome-ignore lint/correctness/useHookAtTopLevel: react-router-6 migration
   const hasMountedRef = useRef(false);

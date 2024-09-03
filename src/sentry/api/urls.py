@@ -34,7 +34,6 @@ from sentry.api.endpoints.organization_unsubscribe import (
 from sentry.api.endpoints.project_backfill_similar_issues_embeddings_records import (
     ProjectBackfillSimilarIssuesEmbeddingsRecords,
 )
-from sentry.api.endpoints.project_metrics_usage import ProjectMetricsUsageEndpoint
 from sentry.api.endpoints.project_stacktrace_coverage import ProjectStacktraceCoverageEndpoint
 from sentry.api.endpoints.project_statistical_detectors import ProjectStatisticalDetectors
 from sentry.api.endpoints.project_template_detail import OrganizationProjectTemplateDetailEndpoint
@@ -259,6 +258,31 @@ from sentry.scim.endpoints.schemas import OrganizationSCIMSchemaIndex
 from sentry.scim.endpoints.teams import OrganizationSCIMTeamDetails, OrganizationSCIMTeamIndex
 from sentry.uptime.endpoints.project_uptime_alert_details import ProjectUptimeAlertDetailsEndpoint
 from sentry.uptime.endpoints.project_uptime_alert_index import ProjectUptimeAlertIndexEndpoint
+from sentry.users.api.endpoints.authenticator_index import AuthenticatorIndexEndpoint
+from sentry.users.api.endpoints.user_authenticator_details import UserAuthenticatorDetailsEndpoint
+from sentry.users.api.endpoints.user_authenticator_enroll import UserAuthenticatorEnrollEndpoint
+from sentry.users.api.endpoints.user_authenticator_index import UserAuthenticatorIndexEndpoint
+from sentry.users.api.endpoints.user_avatar import UserAvatarEndpoint
+from sentry.users.api.endpoints.user_details import UserDetailsEndpoint
+from sentry.users.api.endpoints.user_emails import UserEmailsEndpoint
+from sentry.users.api.endpoints.user_emails_confirm import UserEmailsConfirmEndpoint
+from sentry.users.api.endpoints.user_identity import UserIdentityEndpoint
+from sentry.users.api.endpoints.user_identity_config import (
+    UserIdentityConfigDetailsEndpoint,
+    UserIdentityConfigEndpoint,
+)
+from sentry.users.api.endpoints.user_identity_details import UserIdentityDetailsEndpoint
+from sentry.users.api.endpoints.user_index import UserIndexEndpoint
+from sentry.users.api.endpoints.user_ips import UserIPsEndpoint
+from sentry.users.api.endpoints.user_password import UserPasswordEndpoint
+from sentry.users.api.endpoints.user_permission_details import UserPermissionDetailsEndpoint
+from sentry.users.api.endpoints.user_permissions import UserPermissionsEndpoint
+from sentry.users.api.endpoints.user_permissions_config import UserPermissionsConfigEndpoint
+from sentry.users.api.endpoints.user_regions import UserRegionsEndpoint
+from sentry.users.api.endpoints.user_role_details import UserUserRoleDetailsEndpoint
+from sentry.users.api.endpoints.user_roles import UserUserRolesEndpoint
+from sentry.users.api.endpoints.userroles_details import UserRoleDetailsEndpoint
+from sentry.users.api.endpoints.userroles_index import UserRolesEndpoint
 
 from .endpoints.accept_organization_invite import AcceptOrganizationInvite
 from .endpoints.accept_project_transfer import AcceptProjectTransferEndpoint
@@ -276,12 +300,7 @@ from .endpoints.auth_config import AuthConfigEndpoint
 from .endpoints.auth_index import AuthIndexEndpoint
 from .endpoints.auth_login import AuthLoginEndpoint
 from .endpoints.auth_validate import AuthValidateEndpoint
-from .endpoints.authenticator_index import AuthenticatorIndexEndpoint
-from .endpoints.avatar import (
-    OrganizationAvatarEndpoint,
-    SentryAppAvatarEndpoint,
-    UserAvatarEndpoint,
-)
+from .endpoints.avatar import OrganizationAvatarEndpoint, SentryAppAvatarEndpoint
 from .endpoints.broadcast_details import BroadcastDetailsEndpoint
 from .endpoints.broadcast_index import BroadcastIndexEndpoint
 from .endpoints.builtin_symbol_sources import BuiltinSymbolSourcesEndpoint
@@ -454,9 +473,6 @@ from .endpoints.organization_member_unreleased_commits import (
 )
 from .endpoints.organization_metrics_code_locations import OrganizationMetricsCodeLocationsEndpoint
 from .endpoints.organization_metrics_details import OrganizationMetricsDetailsEndpoint
-from .endpoints.organization_metrics_extraction_rules import (
-    OrganizationMetricsExtractionRulesEndpoint,
-)
 from .endpoints.organization_metrics_meta import (
     OrganizationMetricsCompatibility,
     OrganizationMetricsCompatibilitySums,
@@ -561,7 +577,6 @@ from .endpoints.project_key_stats import ProjectKeyStatsEndpoint
 from .endpoints.project_keys import ProjectKeysEndpoint
 from .endpoints.project_member_index import ProjectMemberIndexEndpoint
 from .endpoints.project_metrics import ProjectMetricsVisibilityEndpoint
-from .endpoints.project_metrics_extraction_rules import ProjectMetricsExtractionRulesEndpoint
 from .endpoints.project_ownership import ProjectOwnershipEndpoint
 from .endpoints.project_performance_general_settings import (
     ProjectPerformanceGeneralSettingsEndpoint,
@@ -639,20 +654,6 @@ from .endpoints.team_release_count import TeamReleaseCountEndpoint
 from .endpoints.team_stats import TeamStatsEndpoint
 from .endpoints.team_time_to_resolution import TeamTimeToResolutionEndpoint
 from .endpoints.team_unresolved_issue_age import TeamUnresolvedIssueAgeEndpoint
-from .endpoints.user_authenticator_details import UserAuthenticatorDetailsEndpoint
-from .endpoints.user_authenticator_enroll import UserAuthenticatorEnrollEndpoint
-from .endpoints.user_authenticator_index import UserAuthenticatorIndexEndpoint
-from .endpoints.user_details import UserDetailsEndpoint
-from .endpoints.user_emails import UserEmailsEndpoint
-from .endpoints.user_emails_confirm import UserEmailsConfirmEndpoint
-from .endpoints.user_identity import UserIdentityEndpoint
-from .endpoints.user_identity_config import (
-    UserIdentityConfigDetailsEndpoint,
-    UserIdentityConfigEndpoint,
-)
-from .endpoints.user_identity_details import UserIdentityDetailsEndpoint
-from .endpoints.user_index import UserIndexEndpoint
-from .endpoints.user_ips import UserIPsEndpoint
 from .endpoints.user_notification_details import UserNotificationDetailsEndpoint
 from .endpoints.user_notification_email import UserNotificationEmailEndpoint
 from .endpoints.user_notification_settings_options import UserNotificationSettingsOptionsEndpoint
@@ -664,18 +665,9 @@ from .endpoints.user_notification_settings_providers import (
 )
 from .endpoints.user_organizationintegrations import UserOrganizationIntegrationsEndpoint
 from .endpoints.user_organizations import UserOrganizationsEndpoint
-from .endpoints.user_password import UserPasswordEndpoint
-from .endpoints.user_permission_details import UserPermissionDetailsEndpoint
-from .endpoints.user_permissions import UserPermissionsEndpoint
-from .endpoints.user_permissions_config import UserPermissionsConfigEndpoint
-from .endpoints.user_regions import UserRegionsEndpoint
-from .endpoints.user_role_details import UserUserRoleDetailsEndpoint
-from .endpoints.user_roles import UserUserRolesEndpoint
 from .endpoints.user_social_identities_index import UserSocialIdentitiesIndexEndpoint
 from .endpoints.user_social_identity_details import UserSocialIdentityDetailsEndpoint
 from .endpoints.user_subscriptions import UserSubscriptionsEndpoint
-from .endpoints.userroles_details import UserRoleDetailsEndpoint
-from .endpoints.userroles_index import UserRolesEndpoint
 
 __all__ = ("urlpatterns",)
 
@@ -1528,11 +1520,6 @@ ORGANIZATION_URLS = [
         r"^(?P<organization_id_or_slug>[^\/]+)/metrics-compatibility-sums/$",
         OrganizationMetricsCompatibilitySums.as_view(),
         name="sentry-api-0-organization-metrics-compatibility-sums",
-    ),
-    re_path(
-        r"^(?P<organization_id_or_slug>[^/]+)/metrics/extraction-rules/$",
-        OrganizationMetricsExtractionRulesEndpoint.as_view(),
-        name="sentry-api-0-organization-metrics-extraction-rules",
     ),
     re_path(
         r"^(?P<organization_id_or_slug>[^\/]+)/missing-members/$",
@@ -2431,16 +2418,6 @@ PROJECT_URLS: list[URLPattern | URLResolver] = [
         r"^(?P<organization_id_or_slug>[^/]+)/(?P<project_id_or_slug>[^/]+)/metrics/visibility/$",
         ProjectMetricsVisibilityEndpoint.as_view(),
         name="sentry-api-0-project-metrics-visibility",
-    ),
-    re_path(
-        r"^(?P<organization_id_or_slug>[^/]+)/(?P<project_id_or_slug>[^/]+)/metrics/extraction-rules/$",
-        ProjectMetricsExtractionRulesEndpoint.as_view(),
-        name="sentry-api-0-project-metrics-extraction-rules",
-    ),
-    re_path(
-        r"^(?P<organization_id_or_slug>[^\/]+)/(?P<project_id_or_slug>[^\/]+)/metrics-usage/(?P<span_attribute>[^\/]+)/$",
-        ProjectMetricsUsageEndpoint.as_view(),
-        name="sentry-api-0-project-metrics-usage",
     ),
     re_path(
         r"^(?P<organization_id_or_slug>[^\/]+)/(?P<project_id_or_slug>[^\/]+)/releases/$",

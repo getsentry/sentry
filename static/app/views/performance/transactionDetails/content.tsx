@@ -1,5 +1,4 @@
 import {Fragment, useEffect, useState} from 'react';
-import type {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 
 import Alert from 'sentry/components/alert';
@@ -27,6 +26,7 @@ import {Tooltip} from 'sentry/components/tooltip';
 import {IconOpen} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Event, EventTag, EventTransaction} from 'sentry/types/event';
+import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {formatTagKey} from 'sentry/utils/discover/fields';

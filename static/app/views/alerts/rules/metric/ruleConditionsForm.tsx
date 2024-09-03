@@ -1,5 +1,4 @@
 import {Fragment, PureComponent} from 'react';
-import type {InjectedRouter} from 'react-router';
 import {components} from 'react-select';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
@@ -39,6 +38,7 @@ import {space} from 'sentry/styles/space';
 import {ActivationConditionType, MonitorType} from 'sentry/types/alerts';
 import type {SelectValue} from 'sentry/types/core';
 import type {Tag, TagCollection} from 'sentry/types/group';
+import type {InjectedRouter} from 'sentry/types/legacyReactRouter';
 import type {Organization} from 'sentry/types/organization';
 import type {Environment, Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
@@ -251,11 +251,7 @@ class RuleConditionsForm extends PureComponent<Props, State> {
     let options: Record<string, string> = TIME_WINDOW_MAP;
     const {alertType} = this.props;
 
-    if (
-      alertType === 'custom_metrics' ||
-      alertType === 'span_metrics' ||
-      alertType === 'insights_metrics'
-    ) {
+    if (alertType === 'custom_metrics' || alertType === 'insights_metrics') {
       // Do not show ONE MINUTE interval as an option for custom_metrics alert
       options = omit(options, TimeWindow.ONE_MINUTE.toString());
     }

@@ -359,19 +359,21 @@ function ProfilingContent({location}: ProfilingContentProps) {
         <Layout.Page>
           <ProfilingBetaAlertBanner organization={organization} />
           <ProfilingContentPageHeader tab={tab} onTabChange={onTabChange} />
-          <Layout.Body>
-            {tab === 'flamegraph' ? (
+          {tab === 'flamegraph' ? (
+            <FlamegraphBody>
               <ProfilingFlamegraphTabContent
                 tab={tab}
                 shouldShowProfilingOnboardingPanel={shouldShowProfilingOnboardingPanel}
               />
-            ) : tab === 'transactions' ? (
+            </FlamegraphBody>
+          ) : tab === 'transactions' ? (
+            <Layout.Body>
               <ProfilingTransactionsContent
                 tab={tab}
                 shouldShowProfilingOnboardingPanel={shouldShowProfilingOnboardingPanel}
               />
-            ) : null}
-          </Layout.Body>
+            </Layout.Body>
+          ) : null}
         </Layout.Page>
       </PageFiltersContainer>
     </SentryDocumentTitle>
@@ -385,22 +387,25 @@ interface ProfilingTabContentProps {
 
 function ProfilingFlamegraphTabContent(props: ProfilingTabContentProps) {
   return (
-    <Layout.Main fullWidth>
-      <ActionBar>
+    <FlamegraphMainLayout>
+      <FlamegraphActionBar>
         <PageFilterBar condensed>
           <ProjectPageFilter resetParamsOnChange={CURSOR_PARAMS} />
           <EnvironmentPageFilter resetParamsOnChange={CURSOR_PARAMS} />
           <DatePageFilter resetParamsOnChange={CURSOR_PARAMS} />
         </PageFilterBar>
-      </ActionBar>
-      {props.shouldShowProfilingOnboardingPanel ? (
-        <ProfilingOnboardingCTA />
-      ) : (
-        <LandingAggregateFlamegraphContainer>
-          <LandingAggregateFlamegraph />
-        </LandingAggregateFlamegraphContainer>
-      )}
-    </Layout.Main>
+      </FlamegraphActionBar>
+      <FlamegraphLayout>
+        {props.shouldShowProfilingOnboardingPanel ? (
+          <ProfilingOnboardingCTA />
+        ) : (
+          <LandingAggregateFlamegraphContainer>
+            <LandingAggregateFlamegraph />
+          </LandingAggregateFlamegraphContainer>
+        )}
+        <FlamegraphSidebar />
+      </FlamegraphLayout>
+    </FlamegraphMainLayout>
   );
 }
 
@@ -658,13 +663,38 @@ const ALL_FIELDS = [
 
 type FieldType = (typeof ALL_FIELDS)[number];
 
+const FlamegraphBody = styled(Layout.Body)`
+  display: grid;
+  grid-template-rows: 1fr;
+`;
+
+const FlamegraphMainLayout = styled(Layout.Main)`
+  display: grid;
+  grid-column: 1 / -1;
+  grid-template-rows: min-content 1fr;
+`;
+
+const FlamegraphLayout = styled('div')`
+  display: grid;
+  grid-template-areas: 'flamegraph sidebar';
+  grid-template-columns: 1fr min-content;
+  margin-top: ${space(2)};
+`;
+
+const FlamegraphActionBar = styled('div')``;
+
+const FlamegraphSidebar = styled('div')`
+  grid-area: sidebar;
+`;
+
 const LandingAggregateFlamegraphContainer = styled('div')`
-  height: 40vh;
+  height: 100%;
   min-height: 300px;
   position: relative;
   border: 1px solid ${p => p.theme.border};
   border-radius: ${p => p.theme.borderRadius};
   margin-bottom: ${space(2)};
+  grid-area: flamegraph;
 `;
 
 const StyledLayoutHeader = styled(Layout.Header)`
