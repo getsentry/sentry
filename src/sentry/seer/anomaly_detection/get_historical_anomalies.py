@@ -9,6 +9,7 @@ from sentry.conf.server import SEER_ANOMALY_DETECTION_ENDPOINT_URL
 from sentry.incidents.models.alert_rule import AlertRule, AlertRuleStatus
 from sentry.models.project import Project
 from sentry.net.http import connection_from_url
+from sentry.search.events.types import SnubaParams
 from sentry.seer.anomaly_detection.types import AnomalyDetectionConfig
 from sentry.seer.anomaly_detection.utils import format_historical_data, translate_direction
 from sentry.seer.signed_seer_api import make_signed_seer_api_request
@@ -38,8 +39,8 @@ def get_historical_anomaly_data_from_seer(
     subscription = alert_rule.snuba_query.subscriptions.first()
     snuba_query = SnubaQuery.objects.get(id=alert_rule.snuba_query_id)
     window_min = int(snuba_query.time_window / 60)
-    start = datetime(start_string)
-    end = datetime(end_string)
+    start = datetime.fromisoformat(start_string)
+    end = datetime.fromisoformat(end_string)
     historical_data = fetch_historical_data(
         alert_rule=alert_rule, snuba_query=snuba_query, project=project, start=start, end=end
     )
@@ -143,13 +144,12 @@ def fetch_historical_data(
     historical_data = dataset.timeseries_query(
         selected_columns=[snuba_query.aggregate],
         query=snuba_query.query,
-        params={
-            "organization_id": alert_rule.organization.id,
-            "project_id": [project.id],
-            "granularity": granularity,
-            "start": start,
-            "end": end,
-        },
+        snuba_params=SnubaParams(
+            organization=alert_rule.organization,
+            projects=[project],
+            start=start,
+            end=end,
+        ),
         rollup=granularity,
         referrer=Referrer.ANOMALY_DETECTION_RETURN_HISTORICAL_ANOMALIES.value,
         zerofill_results=True,
