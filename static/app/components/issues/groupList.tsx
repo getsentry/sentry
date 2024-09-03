@@ -1,5 +1,4 @@
 import {Component, Fragment} from 'react';
-import type {WithRouterProps} from 'react-router';
 import styled from '@emotion/styled';
 import isEqual from 'lodash/isEqual';
 import omit from 'lodash/omit';
@@ -22,6 +21,7 @@ import {t} from 'sentry/locale';
 import GroupStore from 'sentry/stores/groupStore';
 import {space} from 'sentry/styles/space';
 import type {Group} from 'sentry/types/group';
+import type {WithRouterProps} from 'sentry/types/legacyReactRouter';
 import {browserHistory} from 'sentry/utils/browserHistory';
 import withApi from 'sentry/utils/withApi';
 // eslint-disable-next-line no-restricted-imports

@@ -125,7 +125,7 @@ SENTRY_BACKEND_REFERRERS = [
 @region_silo_endpoint
 class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):
     publish_status = {
-        "GET": ApiPublishStatus.UNKNOWN,
+        "GET": ApiPublishStatus.EXPERIMENTAL,
     }
     sunba_methods = ["GET"]
 
