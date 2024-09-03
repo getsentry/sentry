@@ -651,6 +651,7 @@ def create_alert_rule(
                 )
 
             try:
+                # XXX: if adding a new metric alert type, take care to check that it's handled here
                 rule_status = send_historical_data_to_seer(
                     alert_rule=alert_rule, project=projects[0]
                 )
@@ -917,6 +918,7 @@ def update_alert_rule(
                     setattr(alert_rule, k, v)
 
                 try:
+                    # XXX: if adding a new metric alert type, take care to check that it's handled here
                     rule_status = send_historical_data_to_seer(
                         alert_rule=alert_rule,
                         project=projects[0] if projects else alert_rule.projects.get(),

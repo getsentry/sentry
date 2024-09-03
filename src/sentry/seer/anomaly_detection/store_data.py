@@ -48,20 +48,24 @@ def format_historical_data(data: SnubaTSResult, dataset: Dataset) -> list[TimeSe
         If there are results, the count is added
         {'time': 1721300400, 'count': 2}
 
-    For metrics dataset data:
+    For metrics_performance dataset/sessions data:
         The count is stored separately from the timestamps, if there is no data the count is 0
     """
     formatted_data = []
+    nested_data = data.data.get("data", [])
 
     if dataset == metrics_performance:
-        for time, count in zip(
-            data.get("intervals"), data.get("groups")[0].get("series").get("sum(session)")
-        ):
+        groups = nested_data.get("groups")
+        if not len(groups):
+            return formatted_data
+        series = groups[0].get("series")
+
+        for time, count in zip(nested_data.get("intervals"), series.get("sum(session)")):
             date = datetime.strptime(time, "%Y-%m-%dT%H:%M:%SZ")
             ts_point = TimeSeriesPoint(timestamp=date.timestamp(), value=count)
             formatted_data.append(ts_point)
     else:
-        for datum in data.data.get("data", []):
+        for datum in nested_data:
             ts_point = TimeSeriesPoint(timestamp=datum.get("time"), value=datum.get("count", 0))
             formatted_data.append(ts_point)
     return formatted_data
@@ -99,6 +103,8 @@ def send_historical_data_to_seer(alert_rule: AlertRule, project: Project) -> Ale
         raise ValidationError("No historical data available.")
 
     formatted_data = format_historical_data(historical_data, dataset)
+    if not formatted_data:
+        raise ValidationError("Unable to get historical data for this alert.")
     if (
         not alert_rule.sensitivity
         or not alert_rule.seasonality
@@ -174,7 +180,7 @@ def fetch_historical_data(
         return None
 
     if dataset == metrics_performance:
-        # do alerts other than crash rate ones use the metrics_perf dataset?
+        # this is for crash free user rate and crash free session rate
         params = {
             "start": start,
             "end": end,
@@ -197,9 +203,16 @@ def fetch_historical_data(
             limit=None,
             query_config=release_health.backend.sessions_query_config(alert_rule.organization),
         )
-        # can I somehow push this through as a SnubaTSResult?
-        historical_data = release_health.backend.run_sessions_query(
-            alert_rule.organization.id, query, span_op="sessions.endpoint"
+        result = release_health.backend.run_sessions_query(
+            alert_rule.organization.id, query, span_op="sessions.anomaly_detection"
+        )
+        return SnubaTSResult(
+            {
+                "data": result,
+            },
+            result.get("start"),
+            result.get("end"),
+            granularity,
         )
 
     else:
