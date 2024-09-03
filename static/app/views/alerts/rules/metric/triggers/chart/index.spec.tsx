@@ -197,4 +197,98 @@ describe('Incident Rules Create', () => {
       })
     );
   });
+
+  it('queries custom metrics using the metricsEnhanced dataset and metrics layer', async () => {
+    const {organization, project, router} = initializeOrg({
+      organization: {features: ['custom-metrics']},
+    });
+
+    render(
+      <TriggersChart
+        api={api}
+        location={router.location}
+        organization={organization}
+        projects={[project]}
+        query=""
+        timeWindow={1}
+        aggregate="count(d:custom/my_metric@seconds)"
+        dataset={Dataset.GENERIC_METRICS}
+        triggers={[]}
+        environment={null}
+        comparisonType={AlertRuleComparisonType.COUNT}
+        resolveThreshold={null}
+        thresholdType={AlertRuleThresholdType.BELOW}
+        newAlertOrQuery
+        onDataLoaded={() => {}}
+        isQueryValid
+        showTotalCount
+      />
+    );
+
+    expect(await screen.findByTestId('area-chart')).toBeInTheDocument();
+    expect(await screen.findByTestId('alert-total-events')).toBeInTheDocument();
+
+    expect(eventStatsMock).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({
+        query: {
+          interval: '1m',
+          project: [2],
+          query: '',
+          statsPeriod: '9998m',
+          yAxis: 'count(d:custom/my_metric@seconds)',
+          referrer: 'api.organization-event-stats',
+          forceMetricsLayer: 'true',
+          dataset: 'metricsEnhanced',
+        },
+      })
+    );
+  });
+
+  it('queries insights metrics using the metricsEnhanced dataset and without the metrics layer', async () => {
+    const {organization, project, router} = initializeOrg({
+      organization: {features: ['custom-metrics']},
+    });
+
+    render(
+      <TriggersChart
+        api={api}
+        location={router.location}
+        organization={organization}
+        projects={[project]}
+        query="span.module:db"
+        timeWindow={1}
+        aggregate="spm()"
+        dataset={Dataset.GENERIC_METRICS}
+        triggers={[]}
+        environment={null}
+        comparisonType={AlertRuleComparisonType.COUNT}
+        resolveThreshold={null}
+        thresholdType={AlertRuleThresholdType.BELOW}
+        newAlertOrQuery
+        onDataLoaded={() => {}}
+        isQueryValid
+        showTotalCount
+      />
+    );
+
+    expect(await screen.findByTestId('area-chart')).toBeInTheDocument();
+    expect(await screen.findByTestId('alert-total-events')).toBeInTheDocument();
+
+    expect(eventStatsMock).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({
+        query: {
+          interval: '1m',
+          project: [2],
+          query: 'span.module:db',
+          statsPeriod: '9998m',
+          yAxis: 'spm()',
+          referrer: 'api.organization-event-stats',
+          forceMetricsLayer: undefined,
+          dataset: 'metricsEnhanced',
+        },
+      })
+    );
+  });
 });

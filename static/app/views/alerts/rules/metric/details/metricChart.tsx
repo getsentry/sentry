@@ -577,6 +577,7 @@ class MetricChart extends PureComponent<Props, State> {
       }
     }
 
+    const alertType = getAlertTypeFromAggregateDataset(rule);
     const queryExtras: Record<string, string> = {
       ...getMetricDatasetQueryExtras({
         organization,
@@ -585,7 +586,7 @@ class MetricChart extends PureComponent<Props, State> {
         newAlertOrQuery: false,
         useOnDemandMetrics: isOnDemandAlert,
       }),
-      ...getForceMetricsLayerQueryExtras(organization, dataset),
+      ...getForceMetricsLayerQueryExtras(organization, dataset, alertType),
     };
 
     if (shouldUseErrorsDataset(dataset, query)) {
