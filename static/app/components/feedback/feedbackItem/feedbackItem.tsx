@@ -1,7 +1,6 @@
 import {Fragment, useEffect, useRef} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
-import {metrics} from '@sentry/react';
 
 import {openNavigateToExternalLinkModal} from 'sentry/actionCreators/modal';
 import ErrorBoundary from 'sentry/components/errorBoundary';
@@ -20,6 +19,7 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import type {FeedbackIssue} from 'sentry/utils/feedback/types';
 import useOrganization from 'sentry/utils/useOrganization';
 import {TraceDataSection as IssueDetailsTraceDataSection} from 'sentry/views/issueDetails/traceDataSection';
@@ -144,6 +144,7 @@ function TraceDataSection({
 }) {
   // If there's a linked error from a crash report and only one other issue, showing both could be redundant.
   // TODO: we could add a jest test .spec for this ^
+  const organization = useOrganization();
   const {oneOtherIssueEvent, traceEvents, isLoading, isError} = useTraceTimelineEvents({
     event: eventData,
   });
@@ -157,11 +158,16 @@ function TraceDataSection({
 
   useEffect(() => {
     if (isError) {
-      metrics.increment('feedback.trace_section.error');
+      trackAnalytics('feedback.trace_section.error', {organization});
     } else if (!isLoading) {
-      metrics.increment('feedback.trace_section.events_loaded', traceEvents.length - 1);
+      if (traceEvents.length > 1) {
+        trackAnalytics('feedback.trace_section.loaded', {
+          numEvents: traceEvents.length - 1,
+          organization,
+        });
+      }
       if (hasProject && !!crashReportId && oneOtherIssueEvent?.id === crashReportId) {
-        metrics.increment('feedback.trace_section.crash_report_dup');
+        trackAnalytics('feedback.trace_section.crash_report_dup', {organization});
       }
     }
   }, [
@@ -170,6 +176,7 @@ function TraceDataSection({
     isError,
     isLoading,
     oneOtherIssueEvent?.id,
+    organization,
     traceEvents.length,
   ]);
 
