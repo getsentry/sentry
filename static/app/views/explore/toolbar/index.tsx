@@ -33,7 +33,7 @@ export function ExploreToolbar({extras}: ExploreToolbarProps) {
       <ToolbarVisualize visualize={visualize} setVisualize={setVisualize} />
       <ToolbarSortBy fields={sampleFields} sorts={sorts} setSorts={setSorts} />
       <ToolbarLimitTo />
-      <ToolbarGroupBy disabled />
+      <ToolbarGroupBy />
     </div>
   );
 }

@@ -1,9 +1,17 @@
 import styled from '@emotion/styled';
 
+import {Button} from 'sentry/components/button';
 import {space} from 'sentry/styles/space';
 
 export const ToolbarSection = styled('div')`
   margin-bottom: ${space(2)};
+`;
+
+export const ToolbarHeader = styled('div')`
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  align-items: baseline;
 `;
 
 export const ToolbarHeading = styled('h6')<{disabled?: boolean}>`
@@ -15,4 +23,8 @@ export const ToolbarHeading = styled('h6')<{disabled?: boolean}>`
   text-decoration: underline dotted
     ${p => (p.disabled ? p.theme.gray300 : p.theme.purple300)};
   margin: 0 0 ${space(1)} 0;
+`;
+
+export const ToolbarHeaderButton = styled(Button)<{disabled?: boolean}>`
+  color: ${p => (p.disabled ? p.theme.gray300 : p.theme.purple300)};
 `;
