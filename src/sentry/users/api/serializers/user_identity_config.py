@@ -21,10 +21,7 @@ from sentry.users.models.user import User
 from social_auth.models import UserSocialAuth
 
 if TYPE_CHECKING:
-    from sentry.api.serializers.models.organization import (
-        ControlSiloOrganizationSerializer,
-        ControlSiloOrganizationSerializerResponse,
-    )
+    from sentry.api.serializers.models.organization import ControlSiloOrganizationSerializerResponse
 
 
 class Status(Enum):
@@ -162,6 +159,7 @@ class UserIdentityConfigSerializer(Serializer):
     def serialize(
         self, obj: UserIdentityConfig, attrs: Mapping[str, Any], user: User, **kwargs: Any
     ) -> UserIdentityConfigSerializerResponse:
+        from sentry.api.serializers.models.organization import ControlSiloOrganizationSerializer
 
         return {
             "category": obj.category,
