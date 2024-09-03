@@ -4,6 +4,7 @@ import styled from '@emotion/styled';
 import Feature from 'sentry/components/acl/feature';
 import FeatureDisabled from 'sentry/components/acl/featureDisabled';
 import FeatureBadge from 'sentry/components/badge/featureBadge';
+import Tag from 'sentry/components/badge/tag';
 import CreateAlertButton from 'sentry/components/createAlertButton';
 import {Hovercard} from 'sentry/components/hovercard';
 import * as Layout from 'sentry/components/layouts/thirds';
@@ -164,6 +165,15 @@ function AlertWizard({organization, params, location, projectId}: AlertWizardPro
                           AlertWizardAlertNames[alertType],
                           alertType === 'insights_metrics' ? (
                             <FeatureBadge type="alpha" />
+                          ) : alertType === 'custom_metrics' ? (
+                            <Tag
+                              type="warning"
+                              tooltipText={t(
+                                'The Metrics beta will end and we will retire the current solution on September 30, 2024'
+                              )}
+                            >
+                              {t('Deprecated')}
+                            </Tag>
                           ) : null,
                         ];
                       })}

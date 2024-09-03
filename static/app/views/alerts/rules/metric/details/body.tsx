@@ -32,6 +32,7 @@ import {getAlertRuleActionCategory} from 'sentry/views/alerts/rules/utils';
 import type {Incident} from 'sentry/views/alerts/types';
 import {AlertRuleStatus} from 'sentry/views/alerts/types';
 import {alertDetailsLink} from 'sentry/views/alerts/utils';
+import {MetricsBetaEndAlert} from 'sentry/views/metrics/metricsBetaEndAlert';
 
 import {isCrashFreeAlert} from '../utils/isCrashFreeAlert';
 import {isCustomMetricAlert} from '../utils/isCustomMetricAlert';
@@ -166,6 +167,9 @@ export default function MetricDetailsBody({
 
   return (
     <Fragment>
+      <StyledLayoutBody>
+        <MetricsBetaEndAlert style={{marginBottom: 0}} />
+      </StyledLayoutBody>
       {selectedIncident?.alertRule.status === AlertRuleStatus.SNAPSHOT && (
         <StyledLayoutBody>
           <StyledAlert type="warning" showIcon>

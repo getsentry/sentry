@@ -13,6 +13,7 @@ import {hasMetricsExtrapolationFeature} from 'sentry/utils/metrics/features';
 import routeTitleGen from 'sentry/utils/routeTitle';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useMetricsOnboardingSidebar} from 'sentry/views/metrics/ddmOnboarding/useMetricsOnboardingSidebar';
+import {MetricsBetaEndAlert} from 'sentry/views/metrics/metricsBetaEndAlert';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
 import PermissionAlert from 'sentry/views/settings/project/permissionAlert';
@@ -59,6 +60,8 @@ function ProjectMetrics({project}: Props) {
           }
         )}
       </TextBlock>
+
+      <MetricsBetaEndAlert />
 
       <PermissionAlert project={project} />
 

@@ -2,6 +2,7 @@ import {Fragment, useCallback, useMemo, useState} from 'react';
 import {css} from '@emotion/react';
 
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
+import Alert from 'sentry/components/alert';
 import {Button, LinkButton} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
@@ -324,6 +325,11 @@ function MetricWidgetViewerModal({
           <CloseButton onClick={handleClose} />
         </Header>
         <Body>
+          <Alert type="error" showIcon>
+            {t(
+              'This widget will stop working after September 30, 2024. The Metrics beta will end and we will retire the current solution.'
+            )}
+          </Alert>
           <Queries
             displayType={displayType}
             metricQueries={metricQueries}
