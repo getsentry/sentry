@@ -648,7 +648,11 @@ const replayOnboarding: OnboardingConfig<PlatformOptions> = {
               label: 'SPM',
               value: 'spm',
               language: 'swift',
-              code: `.package(url: "https://github.com/getsentry/sentry-cocoa", from: "8.36.0"),`,
+              code: `.package(url: "https://github.com/getsentry/sentry-cocoa", from: "${getPackageVersion(
+                params,
+                'sentry.cocoa',
+                '8.36.0'
+              )}"),`,
             },
             {
               label: 'CocoaPods',
@@ -660,7 +664,11 @@ const replayOnboarding: OnboardingConfig<PlatformOptions> = {
               label: 'Carthage',
               value: 'carthage',
               language: 'swift',
-              code: `github "getsentry/sentry-cocoa" "8.36.0"`,
+              code: `github "getsentry/sentry-cocoa" "${getPackageVersion(
+                params,
+                'sentry.cocoa',
+                '8.36.0'
+              )}"`,
             },
           ],
         },
