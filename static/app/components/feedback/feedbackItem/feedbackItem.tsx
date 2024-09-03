@@ -1,6 +1,7 @@
-import {Fragment, useEffect, useRef} from 'react';
+import {Fragment, useEffect, useRef, useState} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
+import {metrics} from '@sentry/react';
 
 import {openNavigateToExternalLinkModal} from 'sentry/actionCreators/modal';
 import ErrorBoundary from 'sentry/components/errorBoundary';
@@ -152,8 +153,23 @@ function TraceDataSection({
     traceEvents.length <= 1 || // traceEvents include the current event.
     (hasProject && !!crashReportId && oneOtherIssueEvent?.id === crashReportId);
 
+  const [sentMetric, setSentMetric] = useState(false);
+  const ffEnabled = true; // TODO:
+
+  if (!isLoading && !isError && !sentMetric) {
+    if (isError) {
+      metrics.increment('feedback.trace_section.error');
+    } else {
+      metrics.increment('feedback.trace_section.events_loaded', traceEvents.length - 1);
+      if (hasProject && !!crashReportId && oneOtherIssueEvent?.id === crashReportId) {
+        metrics.increment('feedback.trace_section.crash_report_dup');
+      }
+    }
+    setSentMetric(true);
+  }
+
   // Note a timeline will only be shown for >1 same-trace issues.
-  return hide ? null : (
+  return hide || !ffEnabled ? null : (
     <Section>
       <IssueDetailsTraceDataSection event={eventData} />
     </Section>
