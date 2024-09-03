@@ -3,18 +3,18 @@ import re
 
 class SectionLine:
     original_line: str
-    path: str | None = None
+    path: str = ""
     is_preserved_comment: bool
-    _path_owners: list[str] | None = []
-    _section_owners: list[str] | None = []
+    _path_owners: list[str] = []
+    _section_owners: list[str] = []
     _has_valid_path: bool
 
     def __init__(
-            self,
-            original_line: str,
-            path: str | None,
-            path_owners: list[str] | None,
-            section_owners: list[str] | None,
+        self,
+        original_line: str,
+        path: str,
+        path_owners: list[str],
+        section_owners: list[str],
     ):
         self.original_line = original_line
         self.path = path
