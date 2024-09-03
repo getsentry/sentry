@@ -518,7 +518,7 @@ def test_uses_regular_or_optimized_grouping_as_appropriate(
         # Keep making projects until we get an id which matches `id_qualifies`
         org = Factories.create_organization()
         project = Factories.create_project(organization=org)
-        while (project.id % 5 >= 2) if id_qualifies else (project.id % 5 < 2):
+        while (project.id % 5 >= 3) if id_qualifies else (project.id % 5 < 3):
             project = Factories.create_project(organization=org)
 
     with (
