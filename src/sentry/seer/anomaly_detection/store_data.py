@@ -102,7 +102,6 @@ def send_historical_data_to_seer(alert_rule: AlertRule, project: Project) -> Ale
     if not historical_data:
         raise ValidationError("No historical data available.")
 
-    assert dataset
     formatted_data = format_historical_data(historical_data, dataset)
     if not formatted_data:
         raise ValidationError("Unable to get historical data for this alert.")
