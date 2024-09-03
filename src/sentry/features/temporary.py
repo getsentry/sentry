@@ -498,6 +498,8 @@ def register_temporary_features(manager: FeatureManager):
     manager.add("organizations:user-feedback-ui", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # User Feedback Error Link Ingestion Changes
     manager.add("organizations:user-feedback-event-link-ingestion-changes", OrganizationFeature, FeatureHandlerStrategy.OPTIONS, api_expose=False)
+    # Enable display of a trace data section in feedback details
+    manager.add("organizations:user-feedback-trace-section", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Enable view hierarchies options
     manager.add("organizations:view-hierarchies-options-dev", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable the new explore page
