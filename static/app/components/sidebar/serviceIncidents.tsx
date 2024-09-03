@@ -21,6 +21,7 @@ function ServiceIncidents({
   hidePanel,
   collapsed,
   orientation,
+  hasNewNav,
 }: Props) {
   const {data: incidents} = useServiceIncidents({statusFilter: 'unresolved'});
 
@@ -43,6 +44,7 @@ function ServiceIncidents({
         collapsed={collapsed}
         active={active}
         icon={<IconWarning size="md" />}
+        hasNewNav={hasNewNav}
         label={t('Service status')}
         onClick={onShowPanel}
       />

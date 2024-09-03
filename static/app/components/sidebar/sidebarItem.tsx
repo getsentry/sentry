@@ -392,49 +392,18 @@ const StyledSidebarItem = styled(Link, {
   shouldForwardProp: p => typeof p === 'string' && isPropValid(p),
 })`
   display: flex;
+  align-self: center;
+  justify-content: center;
   color: ${p => (p.isInFloatingAccordion ? p.theme.gray400 : 'inherit')};
   position: relative;
   cursor: pointer;
-  font-size: 15px;
-  height: ${p => (p.isInFloatingAccordion ? '35px' : p.hasNewNav ? '40px' : '30px')};
+  font-size: 11px;
+  height: 52px;
+  width: 100%;
   flex-shrink: 0;
+  flex-grow: 1;
   border-radius: ${p => p.theme.borderRadius};
   transition: none;
-  ${p => {
-    if (!p.hasNewNav) {
-      return css`
-        &:before {
-          display: block;
-          content: '';
-          position: absolute;
-          top: 4px;
-          left: calc(-${space(2)} - 1px);
-          bottom: 6px;
-          width: 5px;
-          border-radius: 0 3px 3px 0;
-          background-color: transparent;
-          transition: 0.15s background-color linear;
-        }
-      `;
-    }
-    return css`
-      margin: ${space(2)} 0;
-      width: 100px;
-      align-self: center;
-    `;
-  }}
-
-  @media (max-width: ${p => p.theme.breakpoints.medium}) {
-    &:before {
-      top: auto;
-      left: 5px;
-      bottom: -12px;
-      height: 5px;
-      width: auto;
-      right: 5px;
-      border-radius: 3px 3px 0 0;
-    }
-  }
 
   &:hover,
   &:focus-visible {
@@ -457,7 +426,7 @@ const StyledSidebarItem = styled(Link, {
 
   &:focus-visible {
     outline: none;
-    box-shadow: 0 0 0 2px ${p => p.theme.purple300};
+    box-shadow: inset 0 0 0 2px ${p => p.theme.purple300};
   }
 
   ${getActiveStyle};
@@ -482,10 +451,11 @@ const SidebarItemIcon = styled('span')<{hasNewNav?: boolean}>`
   justify-content: center;
   flex-shrink: 0;
   width: 37px;
+  padding: 6px 8px;
 
   svg {
     display: block;
-    margin: 0 auto;
+    margin: auto;
     width: 18px;
     height: 18px;
   }
@@ -559,6 +529,7 @@ const CollapsedFeatureBadge = styled(FeatureBadge)`
 `;
 
 const StyledInteractionStateLayer = styled(InteractionStateLayer)`
-  height: ${16 * 2 + 40}px;
-  width: 70px;
+  height: 53px;
+  width: 58px;
+  border-radius: ${p => p.theme.borderRadius};
 `;

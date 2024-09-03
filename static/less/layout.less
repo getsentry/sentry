@@ -7,8 +7,9 @@ body {
     &.collapsed {
       padding-left: @sidebar-collapsed-width;
     }
+
     &.hasNewNav {
-      padding-left: @sidebar-semi-collapsed-width;
+      padding-left: @sidebar-v2-width;
     }
   }
 
@@ -42,8 +43,13 @@ body.narrow {
     &.collapsed {
       padding-left: @sidebar-collapsed-width;
     }
+
     &.hasNewNav {
-      padding-left: @sidebar-semi-collapsed-width;
+      padding-left: calc(@sidebar-v2-width + @sidebar-v2-panel-width);
+
+      &.collapsed {
+        padding-left: @sidebar-v2-width;
+      }
     }
   }
 
@@ -56,7 +62,7 @@ body.narrow {
     line-height: 1.2;
   }
 
-  .app > .container {
+  .app>.container {
     padding-top: 40px;
     max-width: 860px;
 
@@ -114,7 +120,7 @@ body.narrow {
 /* Integration templates use body.auth! */
 
 body.auth {
-  .app > .container {
+  .app>.container {
     padding-top: 5vh;
     max-width: 740px;
   }
@@ -136,11 +142,9 @@ body.auth {
     padding-top: 20px;
     width: 60px;
     background: #564f64;
-    background-image: linear-gradient(
-      -180deg,
-      rgba(52, 44, 62, 0) 0%,
-      rgba(52, 44, 62, 0.5) 100%
-    );
+    background-image: linear-gradient(-180deg,
+        rgba(52, 44, 62, 0) 0%,
+        rgba(52, 44, 62, 0.5) 100%);
     box-shadow: 0 2px 0 0 rgba(0, 0, 0, 0.1);
     border-radius: 4px 0 0 4px;
     margin-top: -1px;
@@ -220,7 +224,7 @@ body.auth {
     align-items: center;
     margin-top: 20px;
 
-    > .btn {
+    >.btn {
       margin-right: 6px;
     }
 
@@ -243,11 +247,11 @@ body.auth {
     margin-left: auto;
     margin-right: 0;
 
-    > a {
+    >a {
       display: flex;
       align-items: center;
 
-      > svg {
+      >svg {
         height: 17px;
         width: 20px;
         margin-right: 5px;
@@ -304,7 +308,7 @@ body.auth {
 */
 
 .windowed-small {
-  .app > .container {
+  .app>.container {
     padding-top: 60px !important;
     max-width: 600px !important;
     margin: 0 auto;
@@ -415,18 +419,18 @@ body.auth {
     padding: 0 14px;
   }
 
-  .narrow .app > .container,
-  .narrow.windowed-small .app > .container {
+  .narrow .app>.container,
+  .narrow.windowed-small .app>.container {
     padding-top: 30px !important;
   }
 
-  .narrow.dialog .app > .container,
-  .narrow.dialog.windowed-small .app > .container {
+  .narrow.dialog .app>.container,
+  .narrow.dialog.windowed-small .app>.container {
     padding-top: 10px !important;
   }
 
   .nav-tabs {
-    > li {
+    >li {
       text-transform: capitalize;
       margin-right: 11px;
 
@@ -458,7 +462,7 @@ body.auth {
       padding-left: 30px;
     }
 
-    .app > .container {
+    .app>.container {
       .box-content.with-padding {
         padding: 20px 20px 10px;
       }
@@ -486,7 +490,7 @@ body.auth {
       padding-left: 20px;
       padding-right: 20px;
 
-      > div {
+      >div {
         width: 100%;
         padding: 0;
         margin: 0;
@@ -507,7 +511,7 @@ body.auth {
     .join-request {
       margin-left: auto;
 
-      > a > svg {
+      >a>svg {
         height: 16px;
         width: 19px;
         margin-right: 4px;

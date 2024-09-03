@@ -116,7 +116,7 @@ class Broadcasts extends Component<Props, State> {
   }
 
   render() {
-    const {orientation, collapsed, currentPanel, hidePanel, organization} = this.props;
+    const {orientation, collapsed, currentPanel, hidePanel, organization, hasNewNav} = this.props;
     const {broadcasts, loading} = this.state;
 
     const unseenPosts = this.unseenIds;
@@ -132,7 +132,8 @@ class Broadcasts extends Component<Props, State> {
             active={currentPanel === SidebarPanelKey.BROADCASTS}
             badge={unseenPosts.length}
             icon={<IconBroadcast size="md" />}
-            label={t("What's new")}
+            hasNewNav={hasNewNav}
+            label={hasNewNav ? t('New') : t("What's new")}
             onClick={this.handleShowPanel}
             id="broadcasts"
           />

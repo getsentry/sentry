@@ -20,7 +20,13 @@ type Props = Pick<
   organization: Organization;
 };
 
-function SidebarHelp({orientation, collapsed, hidePanel, organization}: Props) {
+function SidebarHelp({
+  orientation,
+  collapsed,
+  hidePanel,
+  organization,
+  hasNewNav,
+}: Props) {
   return (
     <DeprecatedDropdownMenu>
       {({isOpen, getActorProps, getMenuProps}) => (
@@ -31,6 +37,7 @@ function SidebarHelp({orientation, collapsed, hidePanel, organization}: Props) {
               orientation={orientation}
               collapsed={collapsed}
               hasPanel={false}
+              hasNewNav={hasNewNav}
               icon={<IconQuestion size="md" />}
               label={t('Help')}
               id="help"

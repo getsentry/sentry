@@ -65,7 +65,7 @@ export default function SidebarDropdown({orientation, collapsed, hideOrgLinks}: 
         collapsed={collapsed}
         organization={org ?? undefined}
         user={!org ? user : undefined}
-        size={32}
+        size={38}
         round={false}
       />
     ) : (
@@ -200,7 +200,7 @@ const UserBadgeNoOverflow = styled(IdBadge)`
 
 const SidebarDropdownRoot = styled('div')`
   position: relative;
-  padding: 0 3px; /* align org icon with sidebar item icons */
+  padding: 0; /* align org icon with sidebar item icons */
 `;
 
 // So that long org names and user names do not overflow
@@ -243,8 +243,9 @@ const SidebarDropdownActor = styled('button')`
 `;
 
 const StyledAvatar = styled(Avatar)<{collapsed: boolean}>`
-  margin: ${space(0.25)} 0;
+  margin: 0;
   margin-right: ${p => (p.collapsed ? '0' : space(1.5))};
+  margin-bottom: ${space(1)};
   box-shadow: 0 2px 0 rgba(0, 0, 0, 0.08);
   border-radius: 6px; /* Fixes background bleeding on corners */
 
