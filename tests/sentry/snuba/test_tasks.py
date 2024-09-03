@@ -242,6 +242,18 @@ class CreateSubscriptionInSnubaTest(BaseSnubaTaskTest):
                     request_body = json.loads(pool.urlopen.call_args[1]["body"])
                     assert request_body["granularity"] == expected_granularity
 
+    def test_insights_query_spm(self):
+        sub = self.create_subscription(
+            QuerySubscription.Status.CREATING,
+            query="span.module:db",
+            aggregate="spm()",
+            dataset=Dataset.PerformanceMetrics,
+        )
+        create_subscription_in_snuba(sub.id)
+        sub = QuerySubscription.objects.get(id=sub.id)
+        assert sub.status == QuerySubscription.Status.ACTIVE.value
+        assert sub.subscription_id is not None
+
 
 class UpdateSubscriptionInSnubaTest(BaseSnubaTaskTest):
     expected_status = QuerySubscription.Status.UPDATING
@@ -266,6 +278,27 @@ class UpdateSubscriptionInSnubaTest(BaseSnubaTaskTest):
         assert sub.status == QuerySubscription.Status.ACTIVE.value
         assert sub.subscription_id is not None
 
+    def test_insights_query_spm(self):
+        sub = self.create_subscription(
+            QuerySubscription.Status.CREATING,
+            query="span.module:db",
+            aggregate="spm()",
+            dataset=Dataset.PerformanceMetrics,
+        )
+        create_subscription_in_snuba(sub.id)
+        sub = QuerySubscription.objects.get(id=sub.id)
+        assert sub.status == QuerySubscription.Status.ACTIVE.value
+        assert sub.subscription_id is not None
+
+        sub.status = QuerySubscription.Status.UPDATING.value
+        sub.update(
+            status=QuerySubscription.Status.UPDATING.value, subscription_id=sub.subscription_id
+        )
+        update_subscription_in_snuba(sub.id)
+        sub = QuerySubscription.objects.get(id=sub.id)
+        assert sub.status == QuerySubscription.Status.ACTIVE.value
+        assert sub.subscription_id is not None
+
 
 class DeleteSubscriptionFromSnubaTest(BaseSnubaTaskTest):
     expected_status = QuerySubscription.Status.DELETING
@@ -275,6 +308,18 @@ class DeleteSubscriptionFromSnubaTest(BaseSnubaTaskTest):
         subscription_id = f"1/{uuid4().hex}"
         sub = self.create_subscription(
             QuerySubscription.Status.DELETING, subscription_id=subscription_id
+        )
+        delete_subscription_from_snuba(sub.id)
+        assert not QuerySubscription.objects.filter(id=sub.id).exists()
+
+    def test_insights_query_spm(self):
+        subscription_id = f"1/{uuid4().hex}"
+        sub = self.create_subscription(
+            QuerySubscription.Status.DELETING,
+            subscription_id=subscription_id,
+            query="span.module:db",
+            aggregate="spm()",
+            dataset=Dataset.PerformanceMetrics,
         )
         delete_subscription_from_snuba(sub.id)
         assert not QuerySubscription.objects.filter(id=sub.id).exists()
