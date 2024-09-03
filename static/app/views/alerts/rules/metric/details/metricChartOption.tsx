@@ -140,6 +140,48 @@ function createIncidentSeries(
   };
 }
 
+function createAnomalyMarkerSeries(
+  lineColor: string,
+  timestamp: number
+): AreaChartSeries {
+  const formatter = ({value}: any) => {
+    const time = formatTooltipDate(moment(value), 'MMM D, YYYY LT');
+    return [
+      `<div class="tooltip-series"><div>`,
+      `</div>Anomaly Detected</div>`,
+      `<div class="tooltip-footer">${time}</div>`,
+      '<div class="tooltip-arrow"></div>',
+    ].join('');
+  };
+
+  return {
+    seriesName: 'Anomaly Line',
+    type: 'line',
+    markLine: MarkLine({
+      silent: false,
+      lineStyle: {color: lineColor, type: 'dashed'},
+      label: {
+        silent: true,
+        show: false,
+      },
+      data: [
+        {
+          xAxis: timestamp,
+        },
+      ],
+      tooltip: {
+        formatter,
+      },
+    }),
+    data: [],
+    tooltip: {
+      trigger: 'item',
+      alwaysShowContent: true,
+      formatter,
+    },
+  };
+}
+
 export type MetricChartData = {
   rule: MetricRule;
   timeseriesData: Series[];
@@ -384,13 +426,13 @@ export function getMetricAlertChartOption({
           if (start && end) {
             anomalyBlocks.push([
               {
-                name: 'Anomaly Detected',
                 xAxis: start,
               },
               {
                 xAxis: end,
               },
             ]);
+            series.push(createAnomalyMarkerSeries(theme.purple300, start));
           }
           start = undefined;
           end = undefined;
@@ -410,6 +452,7 @@ export function getMetricAlertChartOption({
     }
 
     // NOTE: if timerange is too small - highlighted area will not be visible
+    // Possibly provide a minimum window size if the time range is too large?
     series.push({
       seriesName: '',
       name: 'Anomaly',
@@ -420,7 +463,7 @@ export function getMetricAlertChartOption({
         itemStyle: {
           color: 'rgba(255, 173, 177, 0.4)',
         },
-        silent: true,
+        silent: true, // potentially don't make this silent if we want to render the `anomaly detected` in the tooltip
         data: anomalyBlocks,
       },
     });
