@@ -1,5 +1,4 @@
 import {Fragment, useEffect, useState} from 'react';
-import cloneDeep from 'lodash/cloneDeep';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {updateOrganization} from 'sentry/actionCreators/organizations';
@@ -55,10 +54,6 @@ export default function OrganizationSecurityAndPrivacyContent() {
   const showDataSecrecySettings =
     organization.features.includes('data-secrecy') && !isSelfHosted;
 
-  const [securityFormConfig, dataScrubbingFormConfig] = cloneDeep(
-    organizationSecurityAndPrivacyGroups
-  );
-
   return (
     <Fragment>
       <SentryDocumentTitle title={title} orgSlug={organization.slug} />
@@ -77,31 +72,13 @@ export default function OrganizationSecurityAndPrivacyContent() {
       >
         <JsonForm
           features={features}
-          forms={[securityFormConfig]}
+          forms={organizationSecurityAndPrivacyGroups}
           disabled={!organization.access.includes('org:write')}
           additionalFieldProps={{showDataSecrecySettings}}
         />
       </Form>
 
       {showDataSecrecySettings && <DataSecrecy />}
-
-      <Form
-        data-test-id="organization-settings-security-and-privacy"
-        apiMethod="PUT"
-        apiEndpoint={endpoint}
-        initialData={initialData}
-        additionalFieldProps={{hasSsoEnabled: !!authProvider}}
-        onSubmitSuccess={handleUpdateOrganization}
-        onSubmitError={() => addErrorMessage(t('Unable to save change'))}
-        saveOnBlur
-        allowUndo
-      >
-        <JsonForm
-          features={features}
-          forms={[dataScrubbingFormConfig]}
-          disabled={!organization.access.includes('org:write')}
-        />
-      </Form>
 
       <DataScrubbing
         additionalContext={t('These rules can be configured for each project.')}
