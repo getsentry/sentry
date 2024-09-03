@@ -384,7 +384,7 @@ const docs: Docs<PlatformOptions> = {
   onboarding,
   platformOptions,
   feedbackOnboardingNpm: feedbackOnboarding,
-  replayOnboardingNpm: replayOnboarding,
+  replayOnboarding,
   customMetricsOnboarding: getJSMetricsOnboarding({getInstallConfig}),
   crashReportOnboarding,
 };

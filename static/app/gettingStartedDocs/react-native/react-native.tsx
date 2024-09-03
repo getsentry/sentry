@@ -9,11 +9,13 @@ import type {
   DocsParams,
   OnboardingConfig,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
+import {MobileBetaBanner} from 'sentry/components/onboarding/gettingStartedDoc/utils';
 import {
   getCrashReportApiIntroduction,
   getCrashReportInstallDescription,
 } from 'sentry/components/onboarding/gettingStartedDoc/utils/feedbackOnboarding';
 import {getReactNativeMetricsOnboarding} from 'sentry/components/onboarding/gettingStartedDoc/utils/metricsOnboarding';
+import {getReplayMobileConfigureDescription} from 'sentry/components/onboarding/gettingStartedDoc/utils/replayOnboarding';
 import {t, tct} from 'sentry/locale';
 
 type Params = DocsParams;
@@ -71,6 +73,27 @@ shopCheckout() {
     transaction.finish();
   }
 }`;
+
+const getReplaySetupSnippet = (params: Params) => `
+import * as Sentry from '@sentry/react-native';
+
+Sentry.init({
+  dsn: "${params.dsn.public}",
+  _experiments: {
+    replaysSessionSampleRate: 1.0,
+    replaysOnErrorSampleRate: 1.0,
+  },
+  integrations: [
+    Sentry.mobileReplayIntegration(),
+  ],
+});`;
+
+const getReplayConfigurationSnippet = () => `
+Sentry.mobileReplayIntegration({
+  maskAllText: true,
+  maskAllImages: true,
+  maskAllVectors: true,
+}),`;
 
 const onboarding: OnboardingConfig = {
   install: () => [
@@ -381,11 +404,90 @@ const getInstallConfig = () => [
   },
 ];
 
+const replayOnboarding: OnboardingConfig = {
+  introduction: () => (
+    <MobileBetaBanner link="https://docs.sentry.io/platforms/react-native/session-replay/" />
+  ),
+  install: (params: Params) => [
+    {
+      type: StepType.INSTALL,
+      description: t(
+        'Make sure your Sentry React Native SDK version is at least 5.26.0. If you already have the SDK installed, you can update it to the latest version with:'
+      ),
+      configurations: [
+        {
+          code: [
+            {
+              label: 'npm',
+              value: 'npm',
+              language: 'bash',
+              code: `npm install @sentry/react-native --save`,
+            },
+            {
+              label: 'yarn',
+              value: 'yarn',
+              language: 'bash',
+              code: `yarn add @sentry/react-native`,
+            },
+            {
+              label: 'pnpm',
+              value: 'pnpm',
+              language: 'bash',
+              code: `pnpm add @sentry/react-native`,
+            },
+          ],
+        },
+        {
+          description: t(
+            'To set up the integration, add the following to your Sentry initialization:'
+          ),
+        },
+        {
+          code: [
+            {
+              label: 'JavaScript',
+              value: 'javascript',
+              language: 'javascript',
+              code: getReplaySetupSnippet(params),
+            },
+          ],
+        },
+      ],
+    },
+  ],
+  configure: () => [
+    {
+      type: StepType.CONFIGURE,
+      description: getReplayMobileConfigureDescription({
+        link: 'https://docs.sentry.io/platforms/react-native/session-replay/#privacy',
+      }),
+      configurations: [
+        {
+          description: t(
+            'The following code is the default configuration, which masks and blocks everything.'
+          ),
+          code: [
+            {
+              label: 'JavaScript',
+              value: 'javascript',
+              language: 'javascript',
+              code: getReplayConfigurationSnippet(),
+            },
+          ],
+        },
+      ],
+    },
+  ],
+  verify: () => [],
+  nextSteps: () => [],
+};
+
 const docs: Docs = {
   onboarding,
   feedbackOnboardingCrashApi,
   crashReportOnboarding: feedbackOnboardingCrashApi,
   customMetricsOnboarding: getReactNativeMetricsOnboarding({getInstallConfig}),
+  replayOnboarding,
 };
 
 export default docs;

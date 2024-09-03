@@ -334,6 +334,7 @@ function OnboardingContent({currentProject}: {currentProject: Project}) {
     ) {
       return 'feedbackOnboardingNpm';
     }
+    // TODO: update this when we add feedback to the loader
     return 'replayOnboardingJsLoader';
   }
 
