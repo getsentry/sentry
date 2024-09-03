@@ -1,7 +1,7 @@
 import {createContext, useMemo} from 'react';
-import type {RouteContextInterface} from 'react-router';
 
 import HookStore from 'sentry/stores/hookStore';
+import type {RouteContextInterface} from 'sentry/types/legacyReactRouter';
 import type {Organization} from 'sentry/types/organization';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useParams} from 'sentry/utils/useParams';

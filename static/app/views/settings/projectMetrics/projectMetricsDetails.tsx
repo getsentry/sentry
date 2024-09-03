@@ -1,5 +1,4 @@
 import {Fragment, useCallback} from 'react';
-import type {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 
 import {LinkButton} from 'sentry/components/button';
@@ -15,6 +14,7 @@ import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {CHART_PALETTE} from 'sentry/constants/chartPalette';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import type {MRI} from 'sentry/types/metrics';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
