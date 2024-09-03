@@ -324,17 +324,25 @@ const replayOnboarding: OnboardingConfig<PlatformOptions> = {
               filename: 'app/build.gradle',
               code: `plugins {
   id "com.android.application"
-  id "io.sentry.android.gradle" version "4.11.0"
+  id "io.sentry.android.gradle" version "${getPackageVersion(
+    params,
+    'sentry.java.android.gradle-plugin',
+    '4.11.0'
+  )}"
 }`,
             },
             {
               label: 'Kotlin',
               value: 'kotlin',
-              language: 'java',
+              language: 'kotlin',
               filename: 'app/build.gradle.kts',
               code: `plugins {
   id("com.android.application")
-  id("io.sentry.android.gradle") version "4.11.0"
+  id("io.sentry.android.gradle") version "${getPackageVersion(
+    params,
+    'sentry.java.android.gradle-plugin',
+    '4.11.0'
+  )}"
 }`,
             },
           ],
@@ -353,16 +361,24 @@ const replayOnboarding: OnboardingConfig<PlatformOptions> = {
               language: 'groovy',
               filename: 'app/build.gradle',
               code: `dependencies {
-    implementation 'io.sentry:sentry-android:7.14.0'
+    implementation 'io.sentry:sentry-android:${getPackageVersion(
+      params,
+      'sentry.java.android',
+      '7.14.0'
+    )}'
 }`,
             },
             {
               label: 'Kotlin',
               value: 'kotlin',
-              language: 'java',
+              language: 'kotlin',
               filename: 'app/build.gradle.kts',
               code: `dependencies {
-    implementation("io.sentry:sentry-android:7.14.0")
+    implementation("io.sentry:sentry-android:${getPackageVersion(
+      params,
+      'sentry.java.android',
+      '7.14.0'
+    )}")
 }`,
             },
           ],
@@ -377,7 +393,7 @@ const replayOnboarding: OnboardingConfig<PlatformOptions> = {
             {
               label: 'Kotlin',
               value: 'kotlin',
-              language: 'java',
+              language: 'kotlin',
               code: getReplaySetupSnippetKotlin(params),
             },
             {
@@ -407,7 +423,7 @@ const replayOnboarding: OnboardingConfig<PlatformOptions> = {
             {
               label: 'Kotlin',
               value: 'kotlin',
-              language: 'java',
+              language: 'kotlin',
               code: getReplayConfigurationSnippet(),
             },
           ],
