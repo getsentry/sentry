@@ -9,12 +9,13 @@ import useOrganization from 'sentry/utils/useOrganization';
 
 interface SidebarPanelItemProps
   extends Partial<
-    Pick<Broadcast, 'cta' | 'link' | 'category' | 'title' | 'hasSeen' | 'message'>
+    Pick<Broadcast, 'link' | 'category' | 'title' | 'hasSeen' | 'message'>
   > {
   /**
    * Content rendered instead the panel item
    */
   children?: React.ReactNode;
+  ctaText?: string;
 }
 
 function SidebarPanelItem({
@@ -22,7 +23,7 @@ function SidebarPanelItem({
   title,
   message,
   link,
-  cta,
+  ctaText,
   children,
 }: SidebarPanelItemProps) {
   const organization = useOrganization();
@@ -44,7 +45,7 @@ function SidebarPanelItem({
               trackAnalytics('whats_new.link_clicked', {organization, title});
             }}
           >
-            {cta || t('Read More')}
+            {ctaText || t('Read More')}
           </ExternalLink>
         </Text>
       )}
@@ -69,7 +70,7 @@ const Title = styled('div')<Pick<SidebarPanelItemProps, 'hasSeen'>>`
   font-size: ${p => p.theme.fontSizeLarge};
   margin-bottom: ${space(1)};
   color: ${p => p.theme.textColor};
-  ${p => !p.hasSeen && 'font-weight: ${p => p.theme.fontWeightBold};'};
+  ${p => !p.hasSeen && `font-weight: ${p.theme.fontWeightBold};`};
 
   .culprit {
     font-weight: ${p => p.theme.fontWeightNormal};

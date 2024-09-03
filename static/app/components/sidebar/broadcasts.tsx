@@ -161,7 +161,7 @@ class Broadcasts extends Component<Props, State> {
                     title={item.title}
                     message={item.message}
                     link={item.link}
-                    cta={item.cta}
+                    ctaText={item.cta}
                     mediaUrl={item.mediaUrl}
                     category={item.category}
                   />
@@ -174,7 +174,7 @@ class Broadcasts extends Component<Props, State> {
                     title={item.title}
                     message={item.message}
                     link={item.link}
-                    cta={item.cta}
+                    ctaText={item.cta}
                   />
                 ))
               )}

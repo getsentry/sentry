@@ -4,7 +4,6 @@ import styled from '@emotion/styled';
 import Badge from 'sentry/components/badge/badge';
 import {LinkButton} from 'sentry/components/button';
 import ExternalLink from 'sentry/components/links/externalLink';
-import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Broadcast} from 'sentry/types/system';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -13,21 +12,20 @@ import useOrganization from 'sentry/utils/useOrganization';
 interface BroadcastPanelItemProps
   extends Pick<
     Broadcast,
-    'hasSeen' | 'category' | 'title' | 'message' | 'cta' | 'link' | 'mediaUrl'
-  > {}
+    'hasSeen' | 'category' | 'title' | 'message' | 'link' | 'mediaUrl'
+  > {
+  ctaText: string;
+}
 
 export function BroadcastPanelItem({
   hasSeen,
   title,
   message,
   link,
-  cta,
+  ctaText,
   mediaUrl,
   category,
-}: Pick<
-  Broadcast,
-  'hasSeen' | 'category' | 'title' | 'message' | 'cta' | 'link' | 'mediaUrl'
->) {
+}: BroadcastPanelItemProps) {
   const organization = useOrganization();
 
   const handlePanelClicked = useCallback(() => {
@@ -38,7 +36,7 @@ export function BroadcastPanelItem({
     <SidebarPanelItemRoot>
       <TitleWrapper>
         <Title hasSeen={hasSeen}>{title}</Title>
-        <Badge type={!hasSeen ? 'new' : undefined}>{category}</Badge>
+        {category && <Badge type={!hasSeen ? 'new' : 'default'}>{category}</Badge>}
       </TitleWrapper>
 
       {mediaUrl && (
@@ -50,20 +48,16 @@ export function BroadcastPanelItem({
         />
       )}
 
-      {message && <Message>{message}</Message>}
+      <Message>{message}</Message>
 
-      {link && (
-        <CTA>
-          <LinkButton
-            external
-            href={link}
-            onClick={handlePanelClicked}
-            style={{marginTop: space(1)}}
-          >
-            {cta ?? t('Read More')}
-          </LinkButton>
-        </CTA>
-      )}
+      <LinkButton
+        external
+        href={link}
+        onClick={handlePanelClicked}
+        style={{marginTop: space(1)}}
+      >
+        {ctaText}
+      </LinkButton>
     </SidebarPanelItemRoot>
   );
 }
@@ -93,7 +87,6 @@ function Image({
 const SidebarPanelItemRoot = styled('div')`
   line-height: 1.5;
   background: ${p => p.theme.background};
-  font-size: ${p => p.theme.fontSizeMedium};
   padding: ${space(3)};
 
   :not(:first-child) {
@@ -102,30 +95,17 @@ const SidebarPanelItemRoot = styled('div')`
 `;
 
 const TitleWrapper = styled('div')`
-  display: flex;
-  justify-content: space-between;
-  gap: ${space(1)};
+  display: grid;
+  grid-template-columns: 1fr max-content;
+  margin-bottom: ${space(1)};
 `;
 
 const Title = styled('div')<Pick<BroadcastPanelItemProps, 'hasSeen'>>`
   font-size: ${p => p.theme.fontSizeLarge};
-  margin-bottom: ${space(1)};
   color: ${p => p.theme.textColor};
-  font-weight: ${p => p.theme.fontWeightBold};
-
-  .culprit {
-    font-weight: ${p => p.theme.fontWeightNormal};
-  }
+  ${p => !p.hasSeen && `font-weight: ${p.theme.fontWeightBold};`};
 `;
 
-const CTA = styled('div')`
-  margin: ${space(0.5)} 0;
-
-  &:last-child {
-    margin-bottom: 0;
-  }
-`;
-
-const Message = styled(CTA)`
+const Message = styled('div')`
   color: ${p => p.theme.subText};
 `;
