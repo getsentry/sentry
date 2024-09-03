@@ -9,7 +9,7 @@ from typing import Any, Union
 from django.db.models.base import Model
 
 from sentry.api.serializers import Serializer, register, serialize
-from sentry.api.serializers.models import ControlSiloOrganizationSerializer
+from sentry.api.serializers.models import ControlSiloOrganizationSerializer, user_social_auth
 from sentry.auth.provider import Provider
 from sentry.exceptions import NotRegistered
 from sentry.hybridcloud.services.organization_mapping import organization_mapping_service
@@ -18,8 +18,6 @@ from sentry.integrations.manager import default_manager as integrations
 from sentry.models.authidentity import AuthIdentity
 from sentry.users.models.identity import Identity
 from social_auth.models import UserSocialAuth
-
-from . import user_social_auth
 
 
 class Status(Enum):
