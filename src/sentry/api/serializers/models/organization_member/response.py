@@ -8,7 +8,7 @@ from sentry.api.serializers.models.role import (
     TeamRoleSerializerResponse,
 )
 from sentry.integrations.api.serializers.models.external_actor import ExternalActorResponse
-from src.sentry.users.api.serializers.user import UserSerializerResponse
+from sentry.users.api.serializers.user import UserSerializerResponse
 
 
 class SCIMName(TypedDict):

@@ -4,9 +4,9 @@ from typing import DefaultDict, TypedDict
 from sentry.api.serializers import Serializer, register
 from sentry.constants import ALL_ACCESS_PROJECTS
 from sentry.discover.models import DatasetSourcesTypes, DiscoverSavedQuery, DiscoverSavedQueryTypes
+from sentry.users.api.serializers.user import UserSerializerResponse
 from sentry.users.services.user.service import user_service
 from sentry.utils.dates import outside_retention_with_modified_start, parse_timestamp
-from src.sentry.users.api.serializers.user import UserSerializerResponse
 
 DATASET_SOURCES = dict(DatasetSourcesTypes.as_choices())
 

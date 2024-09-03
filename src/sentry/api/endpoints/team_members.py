@@ -16,7 +16,7 @@ from sentry.apidocs.parameters import CursorQueryParam, GlobalParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.models.organizationmember import InviteStatus
 from sentry.models.organizationmemberteam import OrganizationMemberTeam
-from src.sentry.users.api.serializers.user import UserSerializerResponse
+from sentry.users.api.serializers.user import UserSerializerResponse
 
 
 class OrganizationMemberOnTeamResponse(OrganizationMemberResponse):

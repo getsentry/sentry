@@ -11,12 +11,12 @@ from sentry.models.project import Project
 from sentry.models.release import Release
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task, retry
+from sentry.users.api.serializers.user import UserSerializerResponse
 from sentry.utils import metrics
 from sentry.utils.cache import cache
 from sentry.utils.committers import get_event_file_committers
 from sentry.utils.locking import UnableToAcquireLock
 from sentry.utils.sdk import set_current_event_project
-from src.sentry.users.api.serializers.user import UserSerializerResponse
 
 PREFERRED_GROUP_OWNERS = 2
 PREFERRED_GROUP_OWNER_AGE = timedelta(days=7)

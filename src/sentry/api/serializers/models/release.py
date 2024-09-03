@@ -20,11 +20,11 @@ from sentry.models.release import Release, ReleaseStatus
 from sentry.models.releaseprojectenvironment import ReleaseProjectEnvironment
 from sentry.models.releases.release_project import ReleaseProject
 from sentry.release_health.base import ReleaseHealthOverview
+from sentry.users.api.serializers.user import UserSerializerResponse
 from sentry.users.services.user.serial import serialize_generic_user
 from sentry.users.services.user.service import user_service
 from sentry.utils import metrics
 from sentry.utils.hashlib import md5_text
-from src.sentry.users.api.serializers.user import UserSerializerResponse
 
 
 def expose_version_info(info):
