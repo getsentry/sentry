@@ -33,7 +33,7 @@ export default function extractHtmlAndSelector(
   return {html: htmlStrings, selectors};
 }
 
-export function extractHtml(node: Node): string | null {
+function extractHtml(node: Node): string | null {
   const html =
     ('outerHTML' in node ? (node.outerHTML as string) : node.textContent) || '';
   // Limit document node depth to 2
@@ -48,7 +48,7 @@ export function extractHtml(node: Node): string | null {
   return null;
 }
 
-export function extractSelector(node: Node): string | null {
+function extractSelector(node: Node): string | null {
   const element = node.nodeType === Node.ELEMENT_NODE ? (node as HTMLElement) : null;
 
   if (element) {

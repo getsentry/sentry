@@ -233,50 +233,37 @@ function WebVitalData({
   onMouseLeave: MouseCallback;
   replay: ReplayReader | null;
 }) {
-  // TODO: remove test CLS data once SDK is merged and updated
-  const clsFrame = {
-    ...frame,
-    data: {
-      value: frame.data.value,
-      size: frame.data.size,
-      rating: frame.data.rating,
-      nodeIds: [frame.data.nodeIds, 333, 870],
-      attributes: [
-        {value: 0.0123, nodeIds: frame.data.nodeIds ?? [93]},
-        {value: 0.0345, nodeIds: [333, 870]},
-      ],
-    },
-  };
-
   const {data: frameToExtraction} = useExtractDomNodes({replay});
   const selectors = frameToExtraction?.get(frame)?.selectors;
 
   const webVitalData = {value: frame.data.value};
   if (
     frame.description === 'cumulative-layout-shift' &&
-    'attributes' in frame.data &&
+    frame.data.attributions &&
     selectors
   ) {
     const layoutShifts: {[x: string]: ReactNode[]}[] = [];
-    for (const attr of clsFrame.data.attributes) {
+    for (const attr of frame.data.attributions) {
       const elements: ReactNode[] = [];
-      attr.nodeIds?.forEach(nodeId => {
-        selectors.get(nodeId)
-          ? elements.push(
-              <span
-                key={nodeId}
-                onMouseEnter={() => onMouseEnter(clsFrame, nodeId)}
-                onMouseLeave={() => onMouseLeave(clsFrame, nodeId)}
-              >
-                <ValueObjectKey>{t('element')}</ValueObjectKey>
-                <span>{': '}</span>
-                <span>
-                  <SelectorButton>{selectors.get(nodeId)}</SelectorButton>
+      if ('nodeIds' in attr && Array.isArray(attr.nodeIds)) {
+        attr.nodeIds.forEach(nodeId => {
+          selectors.get(nodeId)
+            ? elements.push(
+                <span
+                  key={nodeId}
+                  onMouseEnter={() => onMouseEnter(frame, nodeId)}
+                  onMouseLeave={() => onMouseLeave(frame, nodeId)}
+                >
+                  <ValueObjectKey>{t('element')}</ValueObjectKey>
+                  <span>{': '}</span>
+                  <span>
+                    <SelectorButton>{selectors.get(nodeId)}</SelectorButton>
+                  </span>
                 </span>
-              </span>
-            )
-          : null;
-      });
+              )
+            : null;
+        });
+      }
       // if we can't find the elements associated with the layout shift, we still show the score with element: unknown
       if (!elements.length) {
         elements.push(

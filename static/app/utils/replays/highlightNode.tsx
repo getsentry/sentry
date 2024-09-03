@@ -63,7 +63,6 @@ export function removeHighlightedNode(replayer: Replayer, props: RemoveHighlight
 export function highlightNode(replayer: Replayer, props: AddHighlightParams) {
   const {wrapper} = replayer;
   const mirror = replayer.getMirror();
-  const canvases: {canvas: HTMLCanvasElement}[] = [];
 
   const nodes =
     'nodeIds' in props
@@ -78,7 +77,7 @@ export function highlightNode(replayer: Replayer, props: AddHighlightParams) {
       !('getBoundingClientRect' in node) ||
       !replayer.iframe.contentDocument?.body?.contains(node)
     ) {
-      return null;
+      continue;
     }
 
     // Create a new canvas with the same dimensions as the iframe. We may need to
@@ -87,7 +86,7 @@ export function highlightNode(replayer: Replayer, props: AddHighlightParams) {
     const element = node.nodeType === Node.ELEMENT_NODE ? (node as HTMLElement) : null;
 
     if (!element) {
-      return null;
+      continue;
     }
 
     const canvas = document.createElement('canvas');
@@ -111,12 +110,7 @@ export function highlightNode(replayer: Replayer, props: AddHighlightParams) {
     }
 
     wrapper.insertBefore(canvas, replayer.iframe);
-
-    canvases.push({
-      canvas,
-    });
   }
-  return canvases;
 }
 
 function drawCtx(
