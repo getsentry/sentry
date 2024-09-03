@@ -5,7 +5,7 @@ import warnings
 from collections import defaultdict
 from collections.abc import Callable, Mapping, MutableMapping, Sequence
 from datetime import datetime
-from typing import Any, TypedDict, cast
+from typing import Any, DefaultDict, TypedDict, cast
 
 from django.conf import settings
 from django.contrib.auth.models import AnonymousUser
@@ -141,7 +141,9 @@ class UserSerializer(Serializer):
             results[item.user_id].append(item)
         return results
 
-    def get_attrs(self, item_list: Sequence[User], user: User) -> MutableMapping[User, Any]:
+    def get_attrs(
+        self, item_list: Sequence[User], user: User, **kwargs: Any
+    ) -> MutableMapping[User, Any]:
         user_ids = [i.id for i in item_list]
         avatars = {a.user_id: a for a in UserAvatar.objects.filter(user_id__in=user_ids)}
         identities = self._get_identities(item_list, user)
@@ -160,7 +162,11 @@ class UserSerializer(Serializer):
         return data
 
     def serialize(
-        self, obj: User, attrs: MutableMapping[str, Any], user: User | AnonymousUser | RpcUser
+        self,
+        obj: User,
+        attrs: Mapping[str, Any],
+        user: User | AnonymousUser | RpcUser,
+        **kwargs: Any,
     ) -> UserSerializerResponse | UserSerializerResponseSelf:
         experiment_assignments = experiments.all(user=user)
 
@@ -249,17 +255,14 @@ class UserSerializer(Serializer):
         return d
 
 
-class DetailedUserSerializerResponse(UserSerializerResponse):
-    authenticators: list[Any]  # TODO
-    canReset2fa: bool
-
-
 class DetailedUserSerializer(UserSerializer):
     """
     Used in situations like when a member admin (on behalf of an organization) looks up memberships.
     """
 
-    def get_attrs(self, item_list: Sequence[User], user: User) -> MutableMapping[User, Any]:
+    def get_attrs(
+        self, item_list: Sequence[User], user: User, **kwargs: Any
+    ) -> MutableMapping[User, Any]:
         attrs = super().get_attrs(item_list, user)
 
         # ignore things that aren't user controlled (like recovery codes)
@@ -277,7 +280,7 @@ class DetailedUserSerializer(UserSerializer):
             status=OrganizationStatus.ACTIVE,
         ).values_list("organization_id", flat=True)
 
-        active_memberships = defaultdict(int)
+        active_memberships: DefaultDict[int, int] = defaultdict(int)
         for membership in memberships:
             if membership.organization_id in active_organizations:
                 active_memberships[membership.user_id] += 1
@@ -290,9 +293,13 @@ class DetailedUserSerializer(UserSerializer):
         return attrs
 
     def serialize(
-        self, obj: User, attrs: MutableMapping[User, Any], user: User
-    ) -> DetailedUserSerializerResponse:
-        d = cast(DetailedUserSerializerResponse, super().serialize(obj, attrs, user))
+        self,
+        obj: User,
+        attrs: Mapping[str, Any],
+        user: User | AnonymousUser | RpcUser,
+        **kwargs: Any,
+    ) -> UserSerializerResponse:
+        d = cast(UserSerializerResponse, super().serialize(obj, attrs, user))
 
         # TODO(schew2381): Remove mention of superuser below once the staff feature flag is removed
 
@@ -316,8 +323,7 @@ class DetailedUserSerializer(UserSerializer):
 
 
 class DetailedSelfUserSerializerResponse(UserSerializerResponse):
-    permissions: Any
-    authenticators: list[Any]  # TODO
+    permissions: Sequence[str]
 
 
 class DetailedSelfUserSerializer(UserSerializer):
@@ -327,7 +333,9 @@ class DetailedSelfUserSerializer(UserSerializer):
     Should only be returned when acting on behalf of the user, or acting on behalf of a Sentry `users.admin`.
     """
 
-    def get_attrs(self, item_list: Sequence[User], user: User) -> MutableMapping[User, Any]:
+    def get_attrs(
+        self, item_list: Sequence[User], user: User, **kwargs
+    ) -> MutableMapping[User, Any]:
         attrs = super().get_attrs(item_list, user)
         user_ids = [i.id for i in item_list]
 
@@ -358,7 +366,11 @@ class DetailedSelfUserSerializer(UserSerializer):
         return attrs
 
     def serialize(
-        self, obj: User, attrs: MutableMapping[User, Any], user: User
+        self,
+        obj: User,
+        attrs: Mapping[str, Any],
+        user: User | AnonymousUser | RpcUser,
+        **kwargs: Any,
     ) -> DetailedSelfUserSerializerResponse:
         d = cast(DetailedSelfUserSerializerResponse, super().serialize(obj, attrs, user))
 

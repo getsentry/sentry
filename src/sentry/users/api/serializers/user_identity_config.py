@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from collections.abc import MutableMapping
+from collections.abc import MutableMapping, Sequence
 from dataclasses import dataclass
 from datetime import datetime
 from enum import Enum
@@ -10,12 +10,12 @@ from django.db.models.base import Model
 
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.api.serializers.models import ControlSiloOrganizationSerializer, user_social_auth
-from sentry.auth.provider import Provider
 from sentry.exceptions import NotRegistered
 from sentry.hybridcloud.services.organization_mapping import organization_mapping_service
 from sentry.identity import is_login_provider
 from sentry.integrations.manager import default_manager as integrations
 from sentry.models.authidentity import AuthIdentity
+from sentry.pipeline.provider import PipelineProvider
 from sentry.users.models.identity import Identity
 from social_auth.models import UserSocialAuth
 
@@ -47,7 +47,7 @@ class UserIdentityProvider:
     name: str
 
     @classmethod
-    def adapt(cls, provider: Provider) -> UserIdentityProvider:
+    def adapt(cls, provider: PipelineProvider) -> UserIdentityProvider:
         return cls(provider.key, provider.name)
 
 
@@ -66,6 +66,8 @@ class UserIdentityConfig:
 
     @classmethod
     def wrap(cls, identity: IdentityType, status: Status) -> UserIdentityConfig:
+        provider: PipelineProvider
+
         def base(**kwargs):
             return cls(
                 category=_IDENTITY_CATEGORY_KEYS[type(identity)],
@@ -115,7 +117,7 @@ class UserIdentityConfig:
 @register(UserIdentityConfig)
 class UserIdentityConfigSerializer(Serializer):
     def get_attrs(
-        self, item_list: list[UserIdentityConfig], user: Any, **kwargs: Any
+        self, item_list: Sequence[UserIdentityConfig], user: Any, **kwargs: Any
     ) -> MutableMapping[Any, Any]:
         result: MutableMapping[UserIdentityConfig, Any] = {}
         organizations = {
@@ -125,6 +127,7 @@ class UserIdentityConfigSerializer(Serializer):
             )
         }
         for item in item_list:
+            assert item.organization_id, "Organization ID must exist to get organization"
             result[item] = dict(organization=organizations.get(item.organization_id))
 
         return result
