@@ -3,7 +3,6 @@ import {ProjectFixture} from 'sentry-fixture/project';
 import {TeamFixture} from 'sentry-fixture/team';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {makeTestQueryClient} from 'sentry-test/queryClient';
 import {
   render,
   renderGlobalModal,
@@ -24,7 +23,6 @@ import {
   MEPSetting,
   MEPState,
 } from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
-import {QueryClientProvider} from 'sentry/utils/queryClient';
 import TransactionSummary from 'sentry/views/performance/transactionSummary/transactionOverview';
 
 const teams = [
@@ -80,14 +78,12 @@ function TestComponent({
   }
 
   return (
-    <QueryClientProvider client={makeTestQueryClient()}>
-      <MetricsCardinalityProvider
-        organization={props.organization}
-        location={props.location}
-      >
-        <TransactionSummary {...props} />
-      </MetricsCardinalityProvider>
-    </QueryClientProvider>
+    <MetricsCardinalityProvider
+      organization={props.organization}
+      location={props.location}
+    >
+      <TransactionSummary {...props} />
+    </MetricsCardinalityProvider>
   );
 }
 
