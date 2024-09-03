@@ -10,7 +10,6 @@ from sentry.db.models import ArrayField, DefaultFieldsModel, FlexibleForeignKey,
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
 from sentry.models.project import Project
 from sentry.sentry_metrics.configuration import HARD_CODED_UNITS
-from sentry.sentry_metrics.extraction_rules import SPAN_ATTRIBUTE_PREFIX, MetricsExtractionRule
 
 
 @region_silo_model
@@ -32,13 +31,6 @@ class SpanAttributeExtractionRuleCondition(DefaultFieldsModel):
         # The length of the entries in the auth_permission table were too long with the auto-generated verbose name,
         # therefore we override it with a shorter string despite being less legible.
         verbose_name = "SpanAttrCond"
-
-    def generate_mris(self):
-        mris = []
-        metric_types = MetricsExtractionRule.infer_types(self.config.aggregates)
-        for metric_type in metric_types:
-            mris.append(f"{metric_type}:custom/{SPAN_ATTRIBUTE_PREFIX}{self.id}@none")
-        return mris
 
 
 @region_silo_model
@@ -83,27 +75,3 @@ class SpanAttributeExtractionRuleConfig(DefaultFieldsModel):
                 config=config,
             )
         return config
-
-    def generate_rules(self):
-        rules = []
-        metric_types = MetricsExtractionRule.infer_types(self.aggregates)
-
-        for condition in self.conditions.all():
-            for metric_type in metric_types:
-                rule = MetricsExtractionRule(
-                    span_attribute=self.span_attribute,
-                    type=metric_type,
-                    unit=self.unit,
-                    tags=self.tags,
-                    condition=condition.value or "",
-                    id=condition.id,
-                )
-                rules.append(rule)
-
-        return rules
-
-    @property
-    def number_of_extracted_metrics(self):
-        metric_types = len(MetricsExtractionRule.infer_types(self.aggregates))
-
-        return self.conditions.count() * metric_types

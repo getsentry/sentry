@@ -99,7 +99,7 @@ class UnmergeTestCase(TestCase, SnubaTestCase):
         )
         events = [e1, e2, e3]
 
-        assert get_group_creation_attributes(get_caches(), events) == {
+        assert get_group_creation_attributes(get_caches(), e1.group, events) == {
             "active_at": now,
             "first_seen": now,
             "last_seen": now,
@@ -116,6 +116,8 @@ class UnmergeTestCase(TestCase, SnubaTestCase):
                 "last_received": e1.data["received"],
                 "metadata": {"title": "Hello from JavaScript"},
             },
+            "status": e1.group.status,
+            "substatus": e1.group.substatus,
         }
 
     def test_get_group_backfill_attributes(self):

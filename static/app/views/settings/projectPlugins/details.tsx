@@ -1,4 +1,3 @@
-import type {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 
 import {
@@ -13,6 +12,7 @@ import PluginConfig from 'sentry/components/pluginConfig';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Plugin} from 'sentry/types/integrations';
+import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import getDynamicText from 'sentry/utils/getDynamicText';
