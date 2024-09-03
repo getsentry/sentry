@@ -34,7 +34,6 @@ from sentry.constants import (
     DATA_CONSENT_DEFAULT,
     DEBUG_FILES_ROLE_DEFAULT,
     EVENTS_MEMBER_ADMIN_DEFAULT,
-    EXTRAPOLATE_METRICS_DEFAULT,
     GITHUB_COMMENT_BOT_DEFAULT,
     ISSUE_ALERTS_THREAD_DEFAULT,
     JOIN_REQUESTS_DEFAULT,
@@ -471,7 +470,6 @@ class DetailedOrganizationSerializerResponse(_DetailedOrganizationSerializerResp
     metricAlertsThreadFlag: bool
     metricsActivatePercentiles: bool
     metricsActivateLastForGauges: bool
-    extrapolateMetrics: bool
     requiresSso: bool
 
 
@@ -614,11 +612,6 @@ class DetailedOrganizationSerializer(OrganizationSerializer):
             }
         )
 
-        if features.has("organizations:metrics-extrapolation", obj):
-            context["extrapolateMetrics"] = bool(
-                obj.get_option("sentry:extrapolate_metrics", EXTRAPOLATE_METRICS_DEFAULT)
-            )
-
         if features.has("organizations:uptime-settings", obj):
             context["uptimeAutodetection"] = bool(
                 obj.get_option("sentry:uptime_autodetection", UPTIME_AUTODETECTION)
@@ -666,7 +659,6 @@ class DetailedOrganizationSerializer(OrganizationSerializer):
         "genAIConsent",
         "metricsActivatePercentiles",
         "metricsActivateLastForGauges",
-        "extrapolateMetrics",
         "quota",
     ]
 )

@@ -48,7 +48,6 @@ from sentry.constants import (
     DATA_CONSENT_DEFAULT,
     DEBUG_FILES_ROLE_DEFAULT,
     EVENTS_MEMBER_ADMIN_DEFAULT,
-    EXTRAPOLATE_METRICS_DEFAULT,
     GITHUB_COMMENT_BOT_DEFAULT,
     ISSUE_ALERTS_THREAD_DEFAULT,
     JOIN_REQUESTS_DEFAULT,
@@ -217,7 +216,6 @@ ORG_OPTIONS = (
         bool,
         METRICS_ACTIVATE_LAST_FOR_GAUGES_DEFAULT,
     ),
-    ("extrapolateMetrics", "sentry:extrapolate_metrics", bool, EXTRAPOLATE_METRICS_DEFAULT),
     ("uptimeAutodetection", "sentry:uptime_autodetection", bool, UPTIME_AUTODETECTION),
 )
 
@@ -280,7 +278,6 @@ class OrganizationSerializer(BaseOrganizationSerializer):
     allowJoinRequests = serializers.BooleanField(required=False)
     relayPiiConfig = serializers.CharField(required=False, allow_blank=True, allow_null=True)
     apdexThreshold = serializers.IntegerField(min_value=1, required=False)
-    extrapolateMetrics = serializers.BooleanField(required=False)
     uptimeAutodetection = serializers.BooleanField(required=False)
 
     @cached_property
@@ -294,24 +291,6 @@ class OrganizationSerializer(BaseOrganizationSerializer):
         org = self.context["organization"]
         org_auth_provider = auth_service.get_auth_provider(organization_id=org.id)
         return org_auth_provider is not None
-
-    def validate_extrapolateMetrics(self, value):
-        from sentry import features
-
-        organization = self.context["organization"]
-        request = self.context["request"]
-
-        # Metrics extrapolation can only be toggled when the metrics-extrapolation flag is enabled.
-        has_metrics_extrapolation = features.has(
-            "organizations:metrics-extrapolation", organization, actor=request.user
-        )
-
-        if not has_metrics_extrapolation:
-            raise serializers.ValidationError(
-                "Organization does not have the metrics extrapolation feature enabled"
-            )
-        else:
-            return value
 
     def validate_relayPiiConfig(self, value):
         organization = self.context["organization"]
@@ -626,7 +605,6 @@ def post_org_pending_deletion(
         "genAIConsent",
         "metricsActivatePercentiles",
         "metricsActivateLastForGauges",
-        "extrapolateMetrics",
     ]
 )
 class OrganizationDetailsPutSerializer(serializers.Serializer):
@@ -838,7 +816,6 @@ Below is an example of a payload for a set of advanced data scrubbing rules for 
     genAIConsent = serializers.BooleanField(required=False)
     metricsActivatePercentiles = serializers.BooleanField(required=False)
     metricsActivateLastForGauges = serializers.BooleanField(required=False)
-    extrapolateMetrics = serializers.BooleanField(required=False)
 
 
 # NOTE: We override the permission class of this endpoint in getsentry with the OrganizationDetailsPermission class
