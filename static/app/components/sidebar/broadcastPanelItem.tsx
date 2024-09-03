@@ -103,7 +103,7 @@ const TitleWrapper = styled('div')`
 const Title = styled('div')<Pick<BroadcastPanelItemProps, 'hasSeen'>>`
   font-size: ${p => p.theme.fontSizeLarge};
   color: ${p => p.theme.textColor};
-  ${p => !p.hasSeen && `font-weight: ${p.theme.fontWeightBold};`};
+  ${p => !p.hasSeen && `font-weight: ${p.theme.fontWeightBold}`};
 `;
 
 const Message = styled('div')`
