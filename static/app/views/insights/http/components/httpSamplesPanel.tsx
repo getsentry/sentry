@@ -23,10 +23,10 @@ import {
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import useLocationQuery from 'sentry/utils/url/useLocationQuery';
 import {useLocation} from 'sentry/utils/useLocation';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
-import useRouter from 'sentry/utils/useRouter';
 import {computeAxisMax} from 'sentry/views/insights/common/components/chart';
 import DetailPanel from 'sentry/views/insights/common/components/detailPanel';
 import {MetricReadout} from 'sentry/views/insights/common/components/metricReadout';
@@ -67,7 +67,7 @@ import {TraceViewSources} from 'sentry/views/performance/newTraceDetails/traceMe
 import {useSpanFieldSupportedTags} from 'sentry/views/performance/utils/useSpanFieldSupportedTags';
 
 export function HTTPSamplesPanel() {
-  const router = useRouter();
+  const navigate = useNavigate();
   const location = useLocation();
 
   const query = useLocationQuery({
@@ -110,7 +110,7 @@ export function HTTPSamplesPanel() {
       organization,
       source: ModuleName.HTTP,
     });
-    router.replace({
+    navigate({
       pathname: location.pathname,
       query: {
         ...location.query,
@@ -126,7 +126,7 @@ export function HTTPSamplesPanel() {
       organization,
       source: ModuleName.HTTP,
     });
-    router.replace({
+    navigate({
       pathname: location.pathname,
       query: {
         ...location.query,
@@ -277,20 +277,26 @@ export function HTTPSamplesPanel() {
   );
 
   const handleSearch = (newSpanSearchQuery: string) => {
-    router.replace({
+    navigate({
       pathname: location.pathname,
       query: {
         ...location.query,
         spanSearchQuery: newSpanSearchQuery,
       },
     });
+
+    if (query.panel === 'duration') {
+      refetchDurationSpanSamples();
+    } else {
+      refetchResponseCodeSpanSamples();
+    }
   };
 
   const handleClose = () => {
-    router.replace({
-      pathname: router.location.pathname,
+    navigate({
+      pathname: location.pathname,
       query: {
-        ...router.location.query,
+        ...location.query,
         transaction: undefined,
         transactionMethod: undefined,
       },
