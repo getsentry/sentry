@@ -30,18 +30,6 @@ export const MILLISECOND = 1;
 export const MICROSECOND = 0.001;
 export const NANOSECOND = 0.000001;
 
-/**
- * @deprecated Import directly from `sentry/utils/duration/getExactDuration` instead.
- * biome-ignore lint/performance/noBarrelFile: Temporary for getsentry
- */
-export {getExactDuration} from 'sentry/utils/duration/getExactDuration';
-
-/**
- * @deprecated Import directly from `sentry/utils/number/formatPercentage` instead.
- * biome-ignore lint/performance/noBarrelFile: Temporary for getsentry
- */
-export {formatPercentage} from 'sentry/utils/number/formatPercentage';
-
 const numberFormatSteps = [
   [1_000_000_000, 'b'],
   [1_000_000, 'm'],
