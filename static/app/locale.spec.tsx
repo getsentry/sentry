@@ -62,4 +62,17 @@ describe('locale.gettextComponentTemplate', () => {
 
     expect(screen.getByText(textWithMarkupMatcher('one two three'))).toBeInTheDocument();
   });
+
+  it('should render multiple groups with the same name in an HTML tag', () => {
+    const {container} = render(
+      <div>
+        {tct('[render:one] [render:two] [render:three]', {
+          render: <b />,
+        })}
+      </div>
+    );
+
+    expect(screen.getByText(textWithMarkupMatcher('one two three'))).toBeInTheDocument();
+    expect(container.innerHTML).toEqual('<div><b>one</b> <b>two</b> <b>three</b></div>');
+  });
 });
