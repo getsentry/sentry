@@ -38,7 +38,7 @@ export function BroadcastPanelItem({
     <SidebarPanelItemRoot>
       <TitleWrapper>
         <Title hasSeen={hasSeen}>{title}</Title>
-        {!hasSeen ? <Badge type={'new'}>{category}</Badge> : <Badge>{category}</Badge>}
+        <Badge type={!hasSeen ? 'new' : undefined}>{category}</Badge>
       </TitleWrapper>
 
       {mediaUrl && (
