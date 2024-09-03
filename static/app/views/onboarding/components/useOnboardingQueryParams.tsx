@@ -9,15 +9,15 @@ type QueryValues = {
   /**
    * Used to show product selection (error monitoring, tracing, profiling and session replay) for certain platforms, e.g. javascript-react
    */
-  product?: string[];
+  product: string[];
   /**
    * Used to show the loader script for when the platform is javascript
    */
-  showLoader?: boolean;
+  showLoader: boolean;
   /**
    * Used to show or not the integration onboarding for certain platforms, e.g. AWS (python)
    */
-  showManualSetup?: boolean;
+  showManualSetup: boolean;
 };
 
 export function useOnboardingQueryParams(): [

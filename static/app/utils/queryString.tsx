@@ -141,7 +141,7 @@ export function decodeSorts(value: QueryValue, fallback?: string): Sort[] {
 }
 
 export function decodeBoolean(value: QueryValue): boolean | undefined;
-export function decodeBoolean(value: QueryValue, fallback: boolean): boolean | undefined;
+export function decodeBoolean(value: QueryValue, fallback: boolean): boolean;
 export function decodeBoolean(
   value: QueryValue,
   fallback?: boolean
@@ -160,6 +160,7 @@ export function decodeBoolean(
 }
 
 const queryString = {
+  decodeBoolean,
   decodeInteger,
   decodeList,
   decodeScalar,
