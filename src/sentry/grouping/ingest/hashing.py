@@ -7,6 +7,7 @@ from typing import TYPE_CHECKING
 
 import sentry_sdk
 
+from sentry import features, options
 from sentry.exceptions import HashDiscarded
 from sentry.features.rollout import in_random_rollout
 from sentry.grouping.api import (
@@ -27,6 +28,7 @@ from sentry.grouping.ingest.metrics import record_hash_calculation_metrics
 from sentry.grouping.ingest.utils import extract_hashes
 from sentry.grouping.result import CalculatedHashes
 from sentry.models.grouphash import GroupHash
+from sentry.models.grouphashmetadata import GroupHashMetadata
 from sentry.models.project import Project
 from sentry.utils import metrics
 from sentry.utils.metrics import MutableTags
@@ -334,3 +336,26 @@ def get_hash_values(
     )
 
     return (primary_hashes, secondary_hashes, all_hashes)
+
+
+def get_or_create_grouphashes(
+    project: Project, calculated_hashes: CalculatedHashes
+) -> list[GroupHash]:
+    grouphashes = []
+
+    for hash_value in extract_hashes(calculated_hashes):
+        grouphash, created = GroupHash.objects.get_or_create(project=project, hash=hash_value)
+
+        # TODO: Do we want to expand this to backfill metadata for existing grouphashes? If we do,
+        # we'll have to override the metadata creation date for them.
+        if (
+            created
+            and options.get("grouping.grouphash_metadata.ingestion_writes_enabled")
+            and features.has("organizations:grouphash-metadata-creation", project.organization)
+        ):
+            # For now, this just creates a record with a creation timestamp
+            GroupHashMetadata.objects.create(grouphash=grouphash)
+
+        grouphashes.append(grouphash)
+
+    return grouphashes
