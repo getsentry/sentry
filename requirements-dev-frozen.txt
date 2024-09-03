@@ -125,7 +125,7 @@ phonenumberslite==8.12.55
 pillow==10.2.0
 pip-tools==7.1.0
 platformdirs==4.2.0
-pluggy==1.5.0
+pluggy==1.4.0
 pre-commit==3.3.2
 progressbar2==3.41.0
 prompt-toolkit==3.0.41
@@ -144,9 +144,9 @@ pyjwt==2.4.0
 pymemcache==4.0.0
 pyparsing==3.0.9
 pysocks==1.7.1
-pytest==8.3.2
+pytest==8.0.0
 pytest-cov==4.0.0
-pytest-django==4.9.0
+pytest-django==4.8.0
 pytest-fail-slow==0.3.0
 pytest-json-report==1.5.0
 pytest-metadata==3.1.1
