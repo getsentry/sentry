@@ -324,7 +324,7 @@ class AlertRuleDetailsGetEndpointTest(AlertRuleDetailsBase):
                 time_window=30,
             )  # Require both seasonality and sensitivity
 
-        # NOTE: uncomment this test when seasonality becomes a supported field
+        # TODO: uncomment this test when seasonality becomes a supported field
         # with pytest.raises(
         #     ValidationError, match="Dynamic alerts require both sensitivity and seasonality"
         # ):
