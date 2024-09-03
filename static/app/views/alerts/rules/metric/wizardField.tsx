@@ -11,6 +11,7 @@ import type {Project} from 'sentry/types/project';
 import type {QueryFieldValue} from 'sentry/utils/discover/fields';
 import {explodeFieldString, generateFieldAsString} from 'sentry/utils/discover/fields';
 import {hasCustomMetrics} from 'sentry/utils/metrics/features';
+import InsightsMetricField from 'sentry/views/alerts/rules/metric/insightsMetricField';
 import MriField from 'sentry/views/alerts/rules/metric/mriField';
 import type {Dataset} from 'sentry/views/alerts/rules/metric/types';
 import type {AlertType} from 'sentry/views/alerts/wizard/options';
@@ -21,6 +22,7 @@ import {
 import {QueryField} from 'sentry/views/discover/table/queryField';
 import {FieldValueKind} from 'sentry/views/discover/table/types';
 import {generateFieldOptions} from 'sentry/views/discover/utils';
+import {hasInsightsAlerts} from 'sentry/views/insights/common/utils/hasInsightsAlerts';
 
 import {getFieldOptionConfig} from './metricField';
 
@@ -130,6 +132,14 @@ export default function WizardField({
               label: AlertWizardAlertNames.custom_transactions,
               value: 'custom_transactions',
             },
+        ...(hasInsightsAlerts(organization)
+          ? [
+              {
+                label: AlertWizardAlertNames.insights_metrics,
+                value: 'insights_metrics' as const,
+              },
+            ]
+          : []),
       ],
     },
   ];
@@ -187,6 +197,14 @@ export default function WizardField({
                 project={project}
                 aggregate={aggregate}
                 onChange={newAggregate => onChange(newAggregate, {})}
+              />
+            ) : alertType === 'insights_metrics' ? (
+              <InsightsMetricField
+                project={project}
+                aggregate={aggregate}
+                onChange={newAggregate => {
+                  return onChange(newAggregate, {});
+                }}
               />
             ) : (
               <StyledQueryField
