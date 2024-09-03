@@ -35,11 +35,7 @@ jest.mock('sentry/views/metrics/queries');
 
 describe('Metrics Layout', function () {
   const organization = OrganizationFixture({
-    features: [
-      'custom-metrics',
-      'custom-metrics-extraction-rule',
-      'custom-metrics-extraction-rule-ui',
-    ],
+    features: ['custom-metrics'],
   });
 
   it("already using performance and don't have old custom metrics", async function () {
@@ -52,24 +48,24 @@ describe('Metrics Layout', function () {
 
     render(<MetricsLayout />, {organization});
 
-    // Button: Create Metric
+    // Button: Set Up Custom Metric
     expect(
-      await screen.findByRole('button', {name: 'Create Metric'})
+      await screen.findByRole('button', {name: 'Set Up Custom Metric'})
     ).toBeInTheDocument();
 
-    // Alert: No alert shall be rendered
     expect(
       screen.queryByText(/there are upcoming changes to the Metrics API/i)
-    ).not.toBeInTheDocument();
-    expect(
-      screen.queryByText(/Metrics using with the old API will stop being ingested/i)
-    ).not.toBeInTheDocument();
+    ).toBeInTheDocument();
 
-    // Main View: Does not display the empty state.
-    expect(screen.queryByText(/track and solve what matters/i)).not.toBeInTheDocument();
+    // Main View: Displays the empty state.
+    expect(screen.queryByText(/track and solve what matters/i)).toBeInTheDocument();
+
+    expect(
+      screen.getByRole('button', {name: 'View Performance Metrics'})
+    ).toBeInTheDocument();
   });
 
-  it("not using performance and don't have old custom metrics", async function () {
+  it("not using performance and doesn't have custom metrics", async function () {
     jest.spyOn(metricsContext, 'useMetricsContext').mockReturnValue({
       ...useMetricsContextReturnValueMock,
       hasCustomMetrics: false,
@@ -82,14 +78,15 @@ describe('Metrics Layout', function () {
     // Main View: Empty State
     expect(await screen.findByText(/track and solve what matters/i)).toBeInTheDocument();
 
-    // Button: Set Up Tracing
-    expect(screen.getByRole('button', {name: 'Set Up Tracing'})).toBeInTheDocument();
+    // Button: Read Docs
+    expect(screen.getByRole('button', {name: 'Read Docs'})).toBeInTheDocument();
 
-    // Not in the page: Create Metric
-    expect(screen.queryByRole('button', {name: 'Create Metric'})).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', {name: 'Set Up Custom Metric'})
+    ).toBeInTheDocument();
   });
 
-  it('not using performance and have old custom metrics', async function () {
+  it('not using performance and has custom metrics', async function () {
     jest.spyOn(metricsContext, 'useMetricsContext').mockReturnValue({
       ...useMetricsContextReturnValueMock,
       hasCustomMetrics: true,
@@ -101,11 +98,13 @@ describe('Metrics Layout', function () {
 
     // Alert: Old API metrics ingestion ending soon.
     expect(
-      await screen.findByText(/Metrics using with the old API will stop being ingested/i)
+      await screen.findByText(
+        /There are upcoming changes to the Metrics API that may affect your usage/i
+      )
     ).toBeInTheDocument();
 
-    // Button: Create Metric
-    expect(screen.getByRole('button', {name: 'Create Metric'})).toBeInTheDocument();
+    // Button: Add Custom Metrics
+    expect(screen.getByRole('button', {name: 'Add Custom Metrics'})).toBeInTheDocument();
 
     // Main View: Does not display the empty state.
     expect(screen.queryByText(/track and solve what matters/i)).not.toBeInTheDocument();

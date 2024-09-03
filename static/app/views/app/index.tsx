@@ -1,5 +1,4 @@
 import {lazy, Suspense, useCallback, useEffect, useRef} from 'react';
-import type {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 
 import {
@@ -22,6 +21,7 @@ import GuideStore from 'sentry/stores/guideStore';
 import HookStore from 'sentry/stores/hookStore';
 import OrganizationsStore from 'sentry/stores/organizationsStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
+import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import isValidOrgSlug from 'sentry/utils/isValidOrgSlug';
 import {onRenderCallback, Profiler} from 'sentry/utils/performanceForSentry';
 import useApi from 'sentry/utils/useApi';

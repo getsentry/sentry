@@ -1,11 +1,11 @@
 import {Component, Fragment} from 'react';
-import type {WithRouterProps} from 'react-router';
 import styled from '@emotion/styled';
 
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {LinkButton} from 'sentry/components/button';
 import Text from 'sentry/components/text';
 import {t, tct} from 'sentry/locale';
+import type {WithRouterProps} from 'sentry/types/legacyReactRouter';
 import recreateRoute from 'sentry/utils/recreateRoute';
 // eslint-disable-next-line no-restricted-imports
 import withSentryRouter from 'sentry/utils/withSentryRouter';

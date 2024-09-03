@@ -27,7 +27,6 @@ import {
   getMetricsInterval,
   isVirtualMetric,
 } from 'sentry/utils/metrics';
-import {hasCustomMetricsExtractionRules} from 'sentry/utils/metrics/features';
 import {formatMetricUsingUnit} from 'sentry/utils/metrics/formatters';
 import {
   formatMRI,
@@ -37,10 +36,7 @@ import {
 } from 'sentry/utils/metrics/mri';
 import type {MetricsQuery} from 'sentry/utils/metrics/types';
 import {useMetricsQuery} from 'sentry/utils/metrics/useMetricsQuery';
-import {
-  useVirtualMetricsContext,
-  VirtualMetricsContextProvider,
-} from 'sentry/utils/metrics/virtualMetricsContext';
+import {useVirtualMetricsContext} from 'sentry/utils/metrics/virtualMetricsContext';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
@@ -447,12 +443,6 @@ const StyledLoadingIndicator = styled(LoadingIndicator)`
 
 export function openCreateAlertModal(props: Props) {
   openModal(deps => {
-    return hasCustomMetricsExtractionRules(props.organization) ? (
-      <VirtualMetricsContextProvider>
-        <CreateAlertModal {...props} {...deps} />
-      </VirtualMetricsContextProvider>
-    ) : (
-      <CreateAlertModal {...props} {...deps} />
-    );
+    return <CreateAlertModal {...props} {...deps} />;
   });
 }

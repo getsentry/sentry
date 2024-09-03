@@ -1,5 +1,4 @@
 import {Component} from 'react';
-import type {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 import type {Location} from 'history';
@@ -40,6 +39,7 @@ import type {
   TagCollection,
 } from 'sentry/types/group';
 import {GroupStatus, IssueCategory} from 'sentry/types/group';
+import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import type {Organization} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -1230,7 +1230,6 @@ class IssueListOverview extends Component<Props, State> {
           <ErrorBoundary message={'Failed to load custom tabs'}>
             <CustomViewsIssueListHeader
               organization={organization}
-              queryCounts={queryCounts}
               router={router}
               selectedProjectIds={selection.projects}
             />
