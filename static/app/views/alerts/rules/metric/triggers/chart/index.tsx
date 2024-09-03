@@ -250,6 +250,7 @@ class TriggersChart extends PureComponent<Props, State> {
       projects,
       query,
       dataset,
+      aggregate,
     } = this.props;
 
     const statsPeriod = this.getStatsPeriod();
@@ -268,6 +269,8 @@ class TriggersChart extends PureComponent<Props, State> {
       queryDataset = DiscoverDatasets.ERRORS;
     }
 
+    const alertType = getAlertTypeFromAggregateDataset({aggregate, dataset});
+
     try {
       const totalCount = await fetchTotalCount(api, organization.slug, {
         field: [],
@@ -276,7 +279,7 @@ class TriggersChart extends PureComponent<Props, State> {
         statsPeriod,
         environment: environment ? [environment] : [],
         dataset: queryDataset,
-        ...getForceMetricsLayerQueryExtras(organization, dataset),
+        ...getForceMetricsLayerQueryExtras(organization, dataset, alertType),
       });
       this.setState({totalCount});
     } catch (e) {
@@ -428,6 +431,8 @@ class TriggersChart extends PureComponent<Props, State> {
       organization.features.includes('change-alerts') && comparisonDelta
     );
 
+    const alertType = getAlertTypeFromAggregateDataset({aggregate, dataset});
+
     const queryExtras = {
       ...getMetricDatasetQueryExtras({
         organization,
@@ -435,7 +440,7 @@ class TriggersChart extends PureComponent<Props, State> {
         dataset,
         newAlertOrQuery,
       }),
-      ...getForceMetricsLayerQueryExtras(organization, dataset),
+      ...getForceMetricsLayerQueryExtras(organization, dataset, alertType),
       ...(shouldUseErrorsDiscoverDataset(query, dataset, organization)
         ? {dataset: DiscoverDatasets.ERRORS}
         : {}),
