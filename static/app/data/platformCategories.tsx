@@ -345,7 +345,6 @@ export const releaseHealth: PlatformKey[] = [
   'javascript-solidstart',
   'javascript-svelte',
   'javascript-sveltekit',
-  // mobile
   'android',
   'apple-ios',
   'cordova',
@@ -353,7 +352,6 @@ export const releaseHealth: PlatformKey[] = [
   'react-native',
   'flutter',
   'dart-flutter',
-  // backend
   'bun',
   'deno',
   'native',
@@ -375,8 +373,6 @@ export const releaseHealth: PlatformKey[] = [
   'python-rq',
   'python-pymongo',
   'rust',
-  // serverless
-  // desktop
   'apple-macos',
   'native',
   'native-crashpad',
@@ -384,6 +380,19 @@ export const releaseHealth: PlatformKey[] = [
   'native-qt',
   'electron',
   'javascript-electron',
+  'rust',
+  'php',
+  'php-laravel',
+  'php-symfony',
+  'dotnet',
+  'dotnet-awslambda',
+  'dotnet-gcpfunctions',
+  'dotnet-maui',
+  'dotnet-uwp',
+  'dotnet-wpf',
+  'dotnet-winforms',
+  'dotnet-xamarin',
+  'unity',
 ];
 
 // These are the backend platforms that can set up replay -- e.g. they can be set up via a linked JS framework or via JS loader.
