@@ -1,9 +1,10 @@
-import type {CSSProperties, MouseEvent} from 'react';
+import type {CSSProperties, ReactNode} from 'react';
 import {isValidElement, memo, useCallback} from 'react';
 import styled from '@emotion/styled';
 import beautify from 'js-beautify';
 
 import ProjectAvatar from 'sentry/components/avatar/projectAvatar';
+import {Button} from 'sentry/components/button';
 import {CodeSnippet} from 'sentry/components/codeSnippet';
 import {Flex} from 'sentry/components/container/flex';
 import ErrorBoundary from 'sentry/components/errorBoundary';
@@ -13,6 +14,7 @@ import PanelItem from 'sentry/components/panels/panelItem';
 import {OpenReplayComparisonButton} from 'sentry/components/replays/breadcrumbs/openReplayComparisonButton';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
 import {useReplayGroupContext} from 'sentry/components/replays/replayGroupContext';
+import StructuredEventData from 'sentry/components/structuredEventData';
 import Timeline from 'sentry/components/timeline';
 import {useHasNewTimelineUI} from 'sentry/components/timeline/utils';
 import {Tooltip} from 'sentry/components/tooltip';
@@ -21,18 +23,22 @@ import {space} from 'sentry/styles/space';
 import type {Extraction} from 'sentry/utils/replays/extractHtml';
 import {getReplayDiffOffsetsFromFrame} from 'sentry/utils/replays/getDiffTimestamps';
 import getFrameDetails from 'sentry/utils/replays/getFrameDetails';
+import useExtractDomNodes from 'sentry/utils/replays/hooks/useExtractDomNodes';
 import type ReplayReader from 'sentry/utils/replays/replayReader';
 import type {
   ErrorFrame,
   FeedbackFrame,
   HydrationErrorFrame,
   ReplayFrame,
+  WebVitalFrame,
 } from 'sentry/utils/replays/types';
 import {
   isBreadcrumbFrame,
   isErrorFrame,
   isFeedbackFrame,
   isHydrationErrorFrame,
+  isSpanFrame,
+  isWebVitalFrame,
 } from 'sentry/utils/replays/types';
 import type {Color} from 'sentry/utils/theme';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -40,18 +46,14 @@ import useProjectFromSlug from 'sentry/utils/useProjectFromSlug';
 import IconWrapper from 'sentry/views/replays/detail/iconWrapper';
 import TimestampButton from 'sentry/views/replays/detail/timestampButton';
 
-type MouseCallback = (frame: ReplayFrame, e: React.MouseEvent<HTMLElement>) => void;
+type MouseCallback = (frame: ReplayFrame, nodeId?: number) => void;
 
 const FRAMES_WITH_BUTTONS = ['replay.hydrate-error'];
 
 interface Props {
   frame: ReplayFrame;
   onClick: null | MouseCallback;
-  onInspectorExpanded: (
-    path: string,
-    expandedState: Record<string, boolean>,
-    event: MouseEvent<HTMLDivElement>
-  ) => void;
+  onInspectorExpanded: (path: string, expandedState: Record<string, boolean>) => void;
   onMouseEnter: MouseCallback;
   onMouseLeave: MouseCallback;
   startTimestampMs: number;
@@ -105,15 +107,31 @@ function BreadcrumbItem({
     ) : null;
   }, [frame, replay]);
 
-  const renderCodeSnippet = useCallback(() => {
-    return extraction?.html ? (
-      <CodeContainer>
-        <CodeSnippet language="html" hideCopyButton>
-          {beautify.html(extraction?.html, {indent_size: 2})}
-        </CodeSnippet>
-      </CodeContainer>
+  const renderWebVital = useCallback(() => {
+    return isSpanFrame(frame) && isWebVitalFrame(frame) ? (
+      <WebVitalData
+        replay={replay}
+        frame={frame}
+        expandPaths={expandPaths}
+        onInspectorExpanded={onInspectorExpanded}
+        onMouseEnter={onMouseEnter}
+        onMouseLeave={onMouseLeave}
+      />
     ) : null;
-  }, [extraction?.html]);
+  }, [expandPaths, frame, onInspectorExpanded, onMouseEnter, onMouseLeave, replay]);
+
+  const renderCodeSnippet = useCallback(() => {
+    return (
+      (!isSpanFrame(frame) || !isWebVitalFrame(frame)) &&
+      extraction?.html?.map(html => (
+        <CodeContainer key={html}>
+          <CodeSnippet language="html" hideCopyButton>
+            {beautify.html(html, {indent_size: 2})}
+          </CodeSnippet>
+        </CodeContainer>
+      ))
+    );
+  }, [extraction?.html, frame]);
 
   const renderIssueLink = useCallback(() => {
     return isErrorFrame(frame) || isFeedbackFrame(frame) ? (
@@ -143,13 +161,17 @@ function BreadcrumbItem({
         data-is-error-frame={isErrorFrame(frame)}
         style={style}
         className={className}
-        onClick={e => onClick?.(frame, e)}
-        onMouseEnter={e => onMouseEnter(frame, e)}
-        onMouseLeave={e => onMouseLeave(frame, e)}
+        onClick={event => {
+          event.stopPropagation();
+          onClick?.(frame);
+        }}
+        onMouseEnter={() => onMouseEnter(frame)}
+        onMouseLeave={() => onMouseLeave(frame)}
       >
         <ErrorBoundary mini>
           {renderDescription()}
           {renderComparisonButton()}
+          {renderWebVital()}
           {renderCodeSnippet()}
           {renderIssueLink()}
         </ErrorBoundary>
@@ -160,9 +182,12 @@ function BreadcrumbItem({
     <CrumbItem
       data-is-error-frame={isErrorFrame(frame)}
       as={onClick && !forceSpan ? 'button' : 'span'}
-      onClick={e => onClick?.(frame, e)}
-      onMouseEnter={e => onMouseEnter(frame, e)}
-      onMouseLeave={e => onMouseLeave(frame, e)}
+      onClick={event => {
+        event.stopPropagation();
+        onClick?.(frame);
+      }}
+      onMouseEnter={() => onMouseEnter(frame)}
+      onMouseLeave={() => onMouseLeave(frame)}
       style={style}
       className={className}
     >
@@ -184,11 +209,106 @@ function BreadcrumbItem({
             {renderDescription()}
           </Flex>
           {renderComparisonButton()}
+          {renderWebVital()}
           {renderCodeSnippet()}
           {renderIssueLink()}
         </CrumbDetails>
       </ErrorBoundary>
     </CrumbItem>
+  );
+}
+
+function WebVitalData({
+  replay,
+  frame,
+  expandPaths,
+  onInspectorExpanded,
+  onMouseEnter,
+  onMouseLeave,
+}: {
+  expandPaths: string[] | undefined;
+  frame: WebVitalFrame;
+  onInspectorExpanded: (path: string, expandedState: Record<string, boolean>) => void;
+  onMouseEnter: MouseCallback;
+  onMouseLeave: MouseCallback;
+  replay: ReplayReader | null;
+}) {
+  const {data: frameToExtraction} = useExtractDomNodes({replay});
+  const selectors = frameToExtraction?.get(frame)?.selectors;
+
+  const webVitalData = {value: frame.data.value};
+  if (
+    frame.description === 'cumulative-layout-shift' &&
+    frame.data.attributions &&
+    selectors
+  ) {
+    const layoutShifts: {[x: string]: ReactNode[]}[] = [];
+    for (const attr of frame.data.attributions) {
+      const elements: ReactNode[] = [];
+      if ('nodeIds' in attr && Array.isArray(attr.nodeIds)) {
+        attr.nodeIds.forEach(nodeId => {
+          selectors.get(nodeId)
+            ? elements.push(
+                <span
+                  key={nodeId}
+                  onMouseEnter={() => onMouseEnter(frame, nodeId)}
+                  onMouseLeave={() => onMouseLeave(frame, nodeId)}
+                >
+                  <ValueObjectKey>{t('element')}</ValueObjectKey>
+                  <span>{': '}</span>
+                  <span>
+                    <SelectorButton>{selectors.get(nodeId)}</SelectorButton>
+                  </span>
+                </span>
+              )
+            : null;
+        });
+      }
+      // if we can't find the elements associated with the layout shift, we still show the score with element: unknown
+      if (!elements.length) {
+        elements.push(
+          <span>
+            <ValueObjectKey>{t('element')}</ValueObjectKey>
+            <span>{': '}</span>
+            <ValueNull>{t('unknown')}</ValueNull>
+          </span>
+        );
+      }
+      layoutShifts.push({[`score ${attr.value}`]: elements});
+    }
+    if (layoutShifts.length) {
+      webVitalData['Layout shifts'] = layoutShifts;
+    }
+  } else if (selectors?.size) {
+    selectors.forEach((key, value) => {
+      webVitalData[key] = (
+        <span
+          key={key}
+          onMouseEnter={() => onMouseEnter(frame, value)}
+          onMouseLeave={() => onMouseLeave(frame, value)}
+        >
+          <ValueObjectKey>{t('element')}</ValueObjectKey>
+          <span>{': '}</span>
+          <SelectorButton size="zero" borderless>
+            {key}
+          </SelectorButton>
+        </span>
+      );
+    });
+  }
+
+  return (
+    <StructuredEventData
+      initialExpandedPaths={expandPaths ?? []}
+      onToggleExpand={(expandedPaths, path) => {
+        onInspectorExpanded(
+          path,
+          Object.fromEntries(expandedPaths.map(item => [item, true]))
+        );
+      }}
+      data={webVitalData}
+      withAnnotatedText
+    />
   );
 }
 
@@ -379,6 +499,29 @@ const CodeContainer = styled('div')`
   max-height: 400px;
   max-width: 100%;
   overflow: auto;
+`;
+
+const ValueObjectKey = styled('span')`
+  color: var(--prism-keyword);
+`;
+
+const ValueNull = styled('span')`
+  font-weight: ${p => p.theme.fontWeightBold};
+  color: var(--prism-property);
+`;
+
+const SelectorButton = styled(Button)`
+  background: none;
+  border: none;
+  padding: 0 2px;
+  border-radius: 2px;
+  font-weight: ${p => p.theme.fontWeightNormal};
+  box-shadow: none;
+  font-size: ${p => p.theme.fontSizeSmall};
+  color: ${p => p.theme.subText};
+  margin: 0 ${space(0.5)};
+  height: auto;
+  min-height: auto;
 `;
 
 export default memo(BreadcrumbItem);

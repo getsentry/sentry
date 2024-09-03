@@ -23,12 +23,7 @@ export default function useVirtualizedInspector({cache, listRef, expandPathsRef}
   return {
     expandPaths: expandPathsRef.current,
     handleDimensionChange: useCallback(
-      (
-        index: number,
-        path: string,
-        expandedState: Record<string, boolean>,
-        event: MouseEvent<HTMLDivElement>
-      ) => {
+      (index: number, path: string, expandedState: Record<string, boolean>) => {
         const rowState = expandPathsRef.current?.get(index) || new Set();
         if (expandedState[path]) {
           rowState.add(path);
@@ -38,7 +33,6 @@ export default function useVirtualizedInspector({cache, listRef, expandPathsRef}
         }
         expandPathsRef.current?.set(index, rowState);
         handleDimensionChange(index);
-        event.stopPropagation();
       },
       [expandPathsRef, handleDimensionChange]
     ),
