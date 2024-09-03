@@ -26,6 +26,7 @@ import {space} from 'sentry/styles/space';
 import type {IssueAlertRule} from 'sentry/types/alerts';
 import type {OnboardingSelectedSDK} from 'sentry/types/onboarding';
 import type {PlatformIntegration, PlatformKey, Project} from 'sentry/types/project';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {decodeList} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -219,6 +220,11 @@ export function ProjectInstallPlatform({
             priority="primary"
             busy={loading}
             onClick={() => {
+              trackAnalytics('onboarding.take_me_to_issues_clicked', {
+                organization,
+                platform: platform.name ?? 'unknown',
+                project_id: project.id,
+              });
               redirectWithProjectSelection({
                 pathname: issueStreamLink,
                 hash: '#welcome',
@@ -231,6 +237,11 @@ export function ProjectInstallPlatform({
             <Button
               busy={loading}
               onClick={() => {
+                trackAnalytics('onboarding.take_me_to_performance_clicked', {
+                  organization,
+                  platform: platform.name ?? 'unknown',
+                  project_id: project.id,
+                });
                 redirectWithProjectSelection({
                   pathname: performanceOverviewLink,
                 });
@@ -243,6 +254,11 @@ export function ProjectInstallPlatform({
             <Button
               busy={loading}
               onClick={() => {
+                trackAnalytics('onboarding.take_me_to_session_replay_clicked', {
+                  organization,
+                  platform: platform.name ?? 'unknown',
+                  project_id: project.id,
+                });
                 redirectWithProjectSelection({
                   pathname: replayLink,
                 });
