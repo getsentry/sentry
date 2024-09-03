@@ -75,7 +75,7 @@ export function MobileBetaBanner({link}: {link: string}) {
   return (
     <Alert type="info" showIcon>
       {tct(
-        `Currently, Mobile Replay is in beta. You can [link:read our docs] to learn how to set it up for your project.`,
+        `Currently, Mobile Replay is in beta. To learn more, you can [link:read our docs].`,
         {
           link: <ExternalLink href={link} />,
         }

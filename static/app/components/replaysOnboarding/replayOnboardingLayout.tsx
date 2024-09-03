@@ -8,6 +8,7 @@ import type {DocsParams} from 'sentry/components/onboarding/gettingStartedDoc/ty
 import {useSourcePackageRegistries} from 'sentry/components/onboarding/gettingStartedDoc/useSourcePackageRegistries';
 import {useUrlPlatformOptions} from 'sentry/components/onboarding/platformOptionsControl';
 import ReplayConfigToggle from 'sentry/components/replaysOnboarding/replayConfigToggle';
+import {space} from 'sentry/styles/space';
 import useOrganization from 'sentry/utils/useOrganization';
 
 export function ReplayOnboardingLayout({
@@ -18,14 +19,15 @@ export function ReplayOnboardingLayout({
   projectSlug,
   newOrg,
   configType = 'onboarding',
-}: OnboardingLayoutProps) {
+  hideMaskBlockToggles,
+}: OnboardingLayoutProps & {hideMaskBlockToggles?: boolean}) {
   const organization = useOrganization();
   const {isPending: isLoadingRegistry, data: registryData} =
     useSourcePackageRegistries(organization);
   const selectedOptions = useUrlPlatformOptions(docsConfig.platformOptions);
   const [mask, setMask] = useState(true);
   const [block, setBlock] = useState(true);
-  const {steps} = useMemo(() => {
+  const {introduction, steps} = useMemo(() => {
     const doc = docsConfig[configType] ?? docsConfig.onboarding;
 
     const docParams: DocsParams<any> = {
@@ -78,6 +80,7 @@ export function ReplayOnboardingLayout({
   return (
     <AuthTokenGeneratorProvider projectSlug={projectSlug}>
       <Wrapper>
+        {introduction && <Introduction>{introduction}</Introduction>}
         <Steps>
           {steps.map(step =>
             step.type === StepType.CONFIGURE ? (
@@ -85,7 +88,7 @@ export function ReplayOnboardingLayout({
                 key={step.title ?? step.type}
                 {...{
                   ...step,
-                  codeHeader: (
+                  codeHeader: hideMaskBlockToggles ? null : (
                     <ReplayConfigToggle
                       blockToggle={block}
                       maskToggle={mask}
@@ -123,4 +126,10 @@ const Wrapper = styled('div')`
       margin-bottom: 0;
     }
   }
+`;
+
+const Introduction = styled('div')`
+  display: flex;
+  flex-direction: column;
+  margin: 0 0 ${space(2)} 0;
 `;
