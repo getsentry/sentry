@@ -377,7 +377,7 @@ class EventTest(TestCase, PerformanceIssueTestCase):
         )
         grouping_config: GroupingConfig = {
             "enhancements": enhancement.dumps(),
-            "id": "mobile:2021-02-12",
+            "id": "newstyle:2023-01-11",
         }
 
         event1 = Event(

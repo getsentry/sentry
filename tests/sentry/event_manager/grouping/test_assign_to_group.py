@@ -33,7 +33,6 @@ pytestmark = [requires_snuba]
 
 LEGACY_CONFIG = "legacy:2019-03-12"
 NEWSTYLE_CONFIG = "newstyle:2023-01-11"
-MOBILE_CONFIG = "mobile:2021-02-12"
 
 
 @contextmanager
@@ -494,9 +493,6 @@ def test_existing_group_new_hash_exists(
     "in_transition", (True, False), ids=(" in_transition: True ", " in_transition: False ")
 )
 @pytest.mark.parametrize(
-    "mobile_config", (True, False), ids=(" mobile_config: True ", " mobile_config: False ")
-)
-@pytest.mark.parametrize(
     "id_qualifies", (True, False), ids=(" id_qualifies: True ", " id_qualifies: False ")
 )
 @patch("sentry.event_manager._save_aggregate_new", wraps=_save_aggregate_new)
@@ -505,7 +501,6 @@ def test_uses_regular_or_optimized_grouping_as_appropriate(
     mock_save_aggregate: MagicMock,
     mock_save_aggregate_new: MagicMock,
     id_qualifies: bool,
-    mobile_config: bool,
     in_transition: bool,
     flag_on: bool,
     killswitch_enabled: bool,
@@ -526,12 +521,9 @@ def test_uses_regular_or_optimized_grouping_as_appropriate(
         patch("sentry.grouping.ingest.config.is_in_transition", return_value=in_transition),
         override_options({"grouping.config_transition.killswitch_enabled": killswitch_enabled}),
     ):
-        config = MOBILE_CONFIG if mobile_config else NEWSTYLE_CONFIG
-        save_event_with_grouping_config({"message": "Dogs are great!"}, project, config)
+        save_event_with_grouping_config({"message": "Dogs are great!"}, project, NEWSTYLE_CONFIG)
 
-    if mobile_config or killswitch_enabled:
-        assert mock_save_aggregate.call_count == 1
-    elif flag_on:
+    if flag_on:
         assert mock_save_aggregate_new.call_count == 1
     elif in_transition:
         assert mock_save_aggregate_new.call_count == 1

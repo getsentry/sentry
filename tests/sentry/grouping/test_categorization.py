@@ -56,6 +56,7 @@ from django.utils.functional import cached_property
 
 from sentry.grouping.api import get_default_grouping_config_dict, load_grouping_config
 from sentry.grouping.strategies.base import StrategyConfiguration
+from sentry.projectoptions.defaults import DEFAULT_GROUPING_CONFIG
 from sentry.stacktraces.processing import normalize_stacktraces_for_grouping
 from sentry.utils.safe import get_path
 
@@ -84,7 +85,7 @@ _CONFIG: StrategyConfiguration | None = None
 def get_config() -> StrategyConfiguration:
     global _CONFIG
     if _CONFIG is None:
-        _CONFIG = load_grouping_config(get_default_grouping_config_dict("mobile:2021-02-12"))
+        _CONFIG = load_grouping_config(get_default_grouping_config_dict(DEFAULT_GROUPING_CONFIG))
     return _CONFIG
 
 

@@ -74,6 +74,7 @@ from sentry.models.releasecommit import ReleaseCommit
 from sentry.models.releaseheadcommit import ReleaseHeadCommit
 from sentry.models.releaseprojectenvironment import ReleaseProjectEnvironment
 from sentry.options import set
+from sentry.projectoptions.defaults import DEFAULT_GROUPING_CONFIG
 from sentry.spans.grouping.utils import hash_values
 from sentry.testutils.asserts import assert_mock_called_once_with_partial
 from sentry.testutils.cases import (
@@ -1003,7 +1004,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
         # mobile config, over and above the enhancements hardcoded above, that makes this test pass.
         # We'll have to figure this out before we can delete the config.
         grouping_config = {
-            "id": "mobile:2021-02-12",
+            "id": DEFAULT_GROUPING_CONFIG,
             "enhancements": enhancements_str,
         }
 
@@ -2071,7 +2072,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
         # mobile config, over and above the enhancements hardcoded above, that makes this test pass.
         # We'll have to figure this out before we can delete the config.
         grouping_config = {
-            "id": "mobile:2021-02-12",
+            "id": DEFAULT_GROUPING_CONFIG,
             "enhancements": enhancements_str,
         }
 
@@ -2153,7 +2154,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
         # mobile config, over and above the enhancements hardcoded above, that makes this test pass.
         # We'll have to figure this out before we can delete the config.
         grouping_config = {
-            "id": "mobile:2021-02-12",
+            "id": DEFAULT_GROUPING_CONFIG,
             "enhancements": enhancements_str,
         }
 
@@ -2198,7 +2199,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
         # to update the test every time we change the default), but there's something about the
         # mobile config, over and above the enhancements hardcoded above, that makes this test pass.
         # We'll have to figure this out before we can delete the config.
-        self.project.update_option("sentry:grouping_config", "mobile:2021-02-12")
+        self.project.update_option("sentry:grouping_config", DEFAULT_GROUPING_CONFIG)
 
         manager = EventManager(
             make_event(
