@@ -41,25 +41,6 @@ if TYPE_CHECKING:
 
 HASH_RE = re.compile(r"^[0-9a-f]{32}$")
 
-# Synthetic exceptions should be marked by the SDK, but
-# are also detected here as a fallback
-_synthetic_exception_type_re = re.compile(
-    r"""
-    ^
-    (
-        EXC_ |
-        EXCEPTION_ |
-        SIG |
-        KERN_ |
-        ILL_
-
-    # e.g. "EXC_BAD_ACCESS / 0x00000032"
-    ) [A-Z0-9_ /x]+
-    $
-    """,
-    re.X,
-)
-
 
 @dataclass
 class GroupHashInfo:
