@@ -97,9 +97,10 @@ def _has_delete_permission(access: Access, project: Project) -> bool:
 
 @region_silo_endpoint
 class ProguardArtifactReleasesEndpoint(ProjectEndpoint):
+    owner = ApiOwner.OWNERS_INGEST
     publish_status = {
-        "GET": ApiPublishStatus.UNKNOWN,
-        "POST": ApiPublishStatus.UNKNOWN,
+        "GET": ApiPublishStatus.PRIVATE,
+        "POST": ApiPublishStatus.PRIVATE,
     }
     permission_classes = (ProjectReleasePermission,)
 
