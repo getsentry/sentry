@@ -122,7 +122,7 @@ function BreadcrumbItem({
 
   const renderCodeSnippet = useCallback(() => {
     return (
-      (!isSpanFrame(frame) || (isSpanFrame(frame) && !isWebVitalFrame(frame))) &&
+      (!isSpanFrame(frame) || !isWebVitalFrame(frame)) &&
       extraction?.html?.map(html => (
         <CodeContainer key={html}>
           <CodeSnippet language="html" hideCopyButton>
