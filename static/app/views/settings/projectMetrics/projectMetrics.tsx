@@ -9,15 +9,12 @@ import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {METRICS_DOCS_URL} from 'sentry/utils/metrics/constants';
-import {hasMetricsExtrapolationFeature} from 'sentry/utils/metrics/features';
 import routeTitleGen from 'sentry/utils/routeTitle';
-import useOrganization from 'sentry/utils/useOrganization';
 import {useMetricsOnboardingSidebar} from 'sentry/views/metrics/ddmOnboarding/useMetricsOnboardingSidebar';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
 import PermissionAlert from 'sentry/views/settings/project/permissionAlert';
 import {CustomMetricsTable} from 'sentry/views/settings/projectMetrics/customMetricsTable';
-import {ExtrapolationField} from 'sentry/views/settings/projectMetrics/extrapolationField';
 
 type Props = {
   organization: Organization;
@@ -25,7 +22,6 @@ type Props = {
 } & RouteComponentProps<{projectId: string}, {}>;
 
 function ProjectMetrics({project}: Props) {
-  const organization = useOrganization();
   const {activateSidebar} = useMetricsOnboardingSidebar();
 
   return (
@@ -61,10 +57,6 @@ function ProjectMetrics({project}: Props) {
       </TextBlock>
 
       <PermissionAlert project={project} />
-
-      {hasMetricsExtrapolationFeature(organization) ? (
-        <ExtrapolationField project={project} />
-      ) : null}
 
       <CustomMetricsTable project={project} />
     </Fragment>
