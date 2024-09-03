@@ -508,7 +508,6 @@ def single_exception(
         id="type",
         values=[interface.type] if interface.type else [],
     )
-    system_type_component = type_component.shallow_copy()
 
     ns_error_component = None
 
@@ -547,10 +546,7 @@ def single_exception(
     rv = {}
 
     for variant, stacktrace_component in stacktrace_variants.items():
-        values = [
-            stacktrace_component,
-            system_type_component if variant == "system" else type_component,
-        ]
+        values = [stacktrace_component, type_component]
 
         if ns_error_component is not None:
             values.append(ns_error_component)
