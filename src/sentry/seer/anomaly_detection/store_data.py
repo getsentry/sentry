@@ -11,6 +11,7 @@ from urllib3.exceptions import MaxRetryError, TimeoutError
 from sentry import release_health
 from sentry.conf.server import SEER_ANOMALY_DETECTION_STORE_DATA_URL
 from sentry.incidents.models.alert_rule import AlertRule, AlertRuleStatus
+from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.net.http import connection_from_url
 from sentry.search.events.types import SnubaParams
@@ -36,6 +37,49 @@ seer_anomaly_detection_connection_pool = connection_from_url(
     settings.SEER_ANOMALY_DETECTION_URL,
     timeout=settings.SEER_ANOMALY_DETECTION_TIMEOUT,
 )
+NUM_DAYS = 28
+
+
+def get_crash_free_historical_data(
+    start: datetime, end: datetime, project: Project, organization: Organization, granularity: int
+):
+    """
+    Fetch the historical metrics data from Snuba for crash free user rate and crash free session rate metrics
+    """
+
+    params = {
+        "start": start,
+        "end": end,
+        "project_id": [project.id],
+        "project_objects": [project],
+        "organization_id": organization.id,
+    }
+    query_params: MultiValueDict[str, Any] = MultiValueDict(
+        {
+            "project": [project.id],
+            "statsPeriod": [f"{NUM_DAYS}d"],
+            "field": ["sum(session)"],
+            "groupBy": ["release"],
+        }
+    )
+    query = QueryDefinition(
+        query=query_params,
+        params=params,
+        offset=None,
+        limit=None,
+        query_config=release_health.backend.sessions_query_config(organization),
+    )
+    result = release_health.backend.run_sessions_query(
+        organization.id, query, span_op="sessions.anomaly_detection"
+    )
+    return SnubaTSResult(
+        {
+            "data": result,
+        },
+        result.get("start"),
+        result.get("end"),
+        granularity,
+    )
 
 
 def format_historical_data(data: SnubaTSResult, dataset: Any) -> list[TimeSeriesPoint]:
@@ -165,7 +209,6 @@ def fetch_historical_data(
     """
     # TODO: if we can pass the existing timeseries data we have on the front end along here, we can shorten
     # the time period we query and combine the data
-    NUM_DAYS = 28
     end = timezone.now()
     start = end - timedelta(days=NUM_DAYS)
     granularity = snuba_query.time_window
@@ -180,39 +223,8 @@ def fetch_historical_data(
         return None
 
     if dataset == metrics_performance:
-        # this is for crash free user rate and crash free session rate
-        params = {
-            "start": start,
-            "end": end,
-            "project_id": [project.id],
-            "project_objects": [project],
-            "organization_id": alert_rule.organization.id,
-        }
-        query_params: MultiValueDict[str, Any] = MultiValueDict(
-            {
-                "project": [project.id],
-                "statsPeriod": [f"{NUM_DAYS}d"],
-                "field": ["sum(session)"],
-                "groupBy": ["release"],
-            }
-        )
-        query = QueryDefinition(
-            query=query_params,
-            params=params,
-            offset=None,
-            limit=None,
-            query_config=release_health.backend.sessions_query_config(alert_rule.organization),
-        )
-        result = release_health.backend.run_sessions_query(
-            alert_rule.organization.id, query, span_op="sessions.anomaly_detection"
-        )
-        return SnubaTSResult(
-            {
-                "data": result,
-            },
-            result.get("start"),
-            result.get("end"),
-            granularity,
+        return get_crash_free_historical_data(
+            start, end, project, alert_rule.organization, granularity
         )
 
     else:
