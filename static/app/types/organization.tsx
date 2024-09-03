@@ -55,6 +55,7 @@ export interface Organization extends OrganizationSummary {
   allowMemberInvite: boolean;
   allowMemberProjectCreation: boolean;
   allowSharedIssues: boolean;
+  allowSuperuserAccess: boolean;
   attachmentsRole: string;
   /** @deprecated use orgRoleList instead. */
   availableRoles: {id: string; name: string}[];
