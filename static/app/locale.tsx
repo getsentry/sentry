@@ -176,6 +176,7 @@ type ComponentMap = {[group: string]: React.ReactNode};
  */
 export function parseComponentTemplate(template: string): ParsedTemplate {
   const parsed: ParsedTemplate = {};
+  let groupId = 1;
 
   function process(startPos: number, group: string, inGroup: boolean) {
     const regex = /\[(.*?)(:|\])|\]/g;
@@ -185,7 +186,6 @@ export function parseComponentTemplate(template: string): ParsedTemplate {
     let match: ReturnType<typeof regex.exec>;
 
     let pos = (regex.lastIndex = startPos);
-    let groupId = 1;
 
     // eslint-disable-next-line no-cond-assign
     while ((match = regex.exec(template)) !== null) {
@@ -206,13 +206,15 @@ export function parseComponentTemplate(template: string): ParsedTemplate {
         }
       }
 
+      const currentGroupId = groupId.toString();
+      groupId++;
+
       if (closeBraceOrValueSeparator === ']') {
         pos = regex.lastIndex;
       } else {
-        pos = regex.lastIndex = process(regex.lastIndex, groupId.toString(), true);
+        pos = regex.lastIndex = process(regex.lastIndex, currentGroupId, true);
       }
-      buf.push({group: groupName, id: groupId.toString()});
-      groupId++;
+      buf.push({group: groupName, id: currentGroupId});
     }
 
     let endPos = regex.lastIndex;
