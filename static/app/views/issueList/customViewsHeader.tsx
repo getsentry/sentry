@@ -165,15 +165,18 @@ function CustomViewsIssueListHeaderTabsContent({
   useEffect(() => {
     // If no query, sort, or viewId is present, set the first tab as the selected tab, update query accordingly
     if (!query && !sort && !viewId) {
-      navigate({
-        ...location,
-        query: {
-          ...queryParams,
-          query: draggableTabs[0].query,
-          sort: draggableTabs[0].querySort,
-          viewId: draggableTabs[0].id,
+      navigate(
+        {
+          ...location,
+          query: {
+            ...queryParams,
+            query: draggableTabs[0].query,
+            sort: draggableTabs[0].querySort,
+            viewId: draggableTabs[0].id,
+          },
         },
-      });
+        {replace: true}
+      );
       tabListState?.setSelectedKey(draggableTabs[0].key);
       return;
     }
