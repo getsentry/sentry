@@ -72,17 +72,11 @@ class HighCardinalityWidgetException(Exception):
     pass
 
 
-class MetricExtrapolationConfig(TypedDict):
-    include: NotRequired[list[str]]
-    exclude: NotRequired[list[str]]
-
-
 class MetricExtractionConfig(TypedDict):
     """Configuration for generic extraction of metrics from all data categories."""
 
     version: int
     metrics: list[MetricSpec]
-    extrapolate: NotRequired[MetricExtrapolationConfig]
 
 
 def get_max_widget_specs(organization: Organization) -> int:
@@ -114,8 +108,6 @@ def get_metric_extraction_config(project: Project) -> MetricExtractionConfig | N
         ) or ([], [])
     with sentry_sdk.start_span(op="merge_metric_specs"):
         metric_specs = _merge_metric_specs(alert_specs, widget_specs)
-    with sentry_sdk.start_span(op="get_extrapolation_config"):
-        extrapolation_config = get_extrapolation_config(project)
 
     if not metric_specs:
         return None
@@ -125,42 +117,7 @@ def get_metric_extraction_config(project: Project) -> MetricExtractionConfig | N
         "metrics": metric_specs,
     }
 
-    if extrapolation_config:
-        rv["extrapolate"] = extrapolation_config
-
     return rv
-
-
-def get_extrapolation_config(project: Project) -> MetricExtrapolationConfig | None:
-    if not features.has("organizations:metrics-extrapolation", project.organization):
-        return None
-
-    enabled = project.get_option("sentry:extrapolate_metrics", None)
-    if enabled is None:
-        enabled = project.organization.get_option("sentry:extrapolate_metrics", False)
-    if not enabled:
-        return None
-
-    # Extrapolation applies to extracted metrics. This enables extrapolation for
-    # the entire `custom` namespace, but this does not extrapolate old custom
-    # metrics sent from the SDK directly.
-    config: MetricExtrapolationConfig = {
-        "include": ["?:custom/*"],
-        "exclude": [],
-    }
-
-    if options.get("sentry-metrics.extrapolation.enable_transactions"):
-        config["include"] += ["?:transactions/*"]
-        config["exclude"] += [
-            "c:transactions/usage@none",  # stats
-            "c:transactions/count_per_root_project@none",  # dynamic sampling
-        ]
-
-    if options.get("sentry-metrics.extrapolation.enable_spans"):
-        config["include"] += ["?:spans/*"]
-        config["exclude"] += ["c:spans/usage@none"]  # stats
-
-    return config
 
 
 def get_on_demand_metric_specs(

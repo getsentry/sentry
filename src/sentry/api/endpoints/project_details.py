@@ -124,7 +124,6 @@ class ProjectMemberSerializer(serializers.Serializer):
         "performanceIssueSendToPlatform",
         "highlightContext",
         "highlightTags",
-        "extrapolateMetrics",
         "uptimeAutodetection",
     ]
 )
@@ -216,7 +215,6 @@ class ProjectAdminSerializer(ProjectMemberSerializer):
     performanceIssueCreationRate = serializers.FloatField(required=False, min_value=0, max_value=1)
     performanceIssueCreationThroughPlatform = serializers.BooleanField(required=False)
     performanceIssueSendToPlatform = serializers.BooleanField(required=False)
-    extrapolateMetrics = serializers.BooleanField(required=False)
     uptimeAutodetection = serializers.BooleanField(required=False)
 
     # DO NOT ADD MORE TO OPTIONS
@@ -244,22 +242,6 @@ class ProjectAdminSerializer(ProjectMemberSerializer):
             )
 
         return data
-
-    def validate_extrapolateMetrics(self, value):
-        organization = self.context["project"].organization
-        request = self.context["request"]
-
-        # Metrics extrapolation can only be toggled when the metrics-extrapolation flag is enabled.
-        has_metrics_extrapolation = features.has(
-            "organizations:metrics-extrapolation", organization, actor=request.user
-        )
-
-        if not has_metrics_extrapolation:
-            raise serializers.ValidationError(
-                "Organization does not have the metrics extrapolation feature enabled"
-            )
-        else:
-            return value
 
     def validate_allowedDomains(self, value):
         value = list(filter(bool, value))
@@ -757,10 +739,6 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
                     "dynamicSamplingBiases"
                 ]
 
-        if "extrapolateMetrics" in result:
-            if project.update_option("sentry:extrapolate_metrics", result["extrapolateMetrics"]):
-                changed_proj_settings["sentry:extrapolate_metrics"] = result["extrapolateMetrics"]
-
         if result.get("uptimeAutodetection") is not None:
             if project.update_option("sentry:uptime_autodetection", result["uptimeAutodetection"]):
                 changed_proj_settings["sentry:uptime_autodetection"] = result["uptimeAutodetection"]
@@ -905,10 +883,6 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
                     data = serialize(project, request.user, DetailedProjectSerializer())
                     return Response(data)
 
-            if "sentry:extrapolate_metrics" in options:
-                project.update_option(
-                    "sentry:extrapolate_metrics", bool(options["sentry:extrapolate_metrics"])
-                )
             if "sentry:uptime_autodetection" in options:
                 project.update_option(
                     "sentry:uptime_autodetection", bool(options["sentry:uptime_autodetection"])

@@ -901,7 +901,6 @@ class DetailedProjectResponse(ProjectWithTeamResponseDict):
     dynamicSamplingBiases: list[dict[str, str | bool]]
     eventProcessing: dict[str, bool]
     symbolSources: str
-    extrapolateMetrics: bool
     uptimeAutodetection: bool
 
 
@@ -1021,15 +1020,6 @@ class DetailedProjectSerializer(ProjectWithTeamSerializer):
                 },
             }
         )
-
-        if features.has("organizations:metrics-extrapolation", obj.organization):
-            data.update(
-                {
-                    "extrapolateMetrics": bool(
-                        attrs["options"].get("sentry:extrapolate_metrics", False)
-                    )
-                }
-            )
 
         if features.has("organizations:uptime-settings", obj.organization):
             data.update(

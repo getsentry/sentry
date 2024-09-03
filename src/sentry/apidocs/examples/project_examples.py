@@ -159,7 +159,6 @@ DETAILED_PROJECT = {
     "dataScrubberDefaults": False,
     "safeFields": [],
     "storeCrashReports": 5,
-    "extrapolateMetrics": True,
     "sensitiveFields": ["sudo"],
     "subjectTemplate": "$shortID - $title",
     "securityToken": "e84c8c0fb1c121e988558785885f9cde",
