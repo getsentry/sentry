@@ -28,7 +28,7 @@ from sentry.models.grouptombstone import GroupTombstone
 from sentry.models.release import Release
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase, SnubaTestCase
-from sentry.testutils.helpers import parse_link_header
+from sentry.testutils.helpers import parse_link_header, with_feature
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.types.activity import ActivityType
@@ -830,6 +830,7 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
         )
         assert activity.data["version"] == ""
 
+    @with_feature("organizations:resolve-in-upcoming-release")
     def test_set_resolved_in_upcoming_release(self):
         release = Release.objects.create(organization_id=self.project.organization_id, version="a")
         release.add_project(self.project)
@@ -868,6 +869,27 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
         )
         assert activity.data["version"] == ""
 
+    def test_upcoming_release_flag_validation(self):
+        release = Release.objects.create(organization_id=self.project.organization_id, version="a")
+        release.add_project(self.project)
+
+        group = self.create_group(status=GroupStatus.UNRESOLVED)
+
+        self.login_as(user=self.user)
+
+        url = f"{self.path}?id={group.id}"
+        response = self.client.put(
+            url,
+            data={"status": "resolved", "statusDetails": {"inUpcomingRelease": True}},
+            format="json",
+        )
+        assert response.status_code == 400
+        assert (
+            response.data["statusDetails"]["inUpcomingRelease"][0]
+            == "Your organization does not have access to this feature."
+        )
+
+    @with_feature("organizations:resolve-in-upcoming-release")
     def test_upcoming_release_release_validation(self):
         group = self.create_group(status=GroupStatus.UNRESOLVED)
 
