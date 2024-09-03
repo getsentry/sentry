@@ -17,7 +17,11 @@ import {lightTheme as theme} from 'sentry/utils/theme';
 import type {MetricRule, Trigger} from 'sentry/views/alerts/rules/metric/types';
 import {AlertRuleTriggerType, Dataset} from 'sentry/views/alerts/rules/metric/types';
 import type {Anomaly, Incident} from 'sentry/views/alerts/types';
-import {IncidentActivityType, IncidentStatus} from 'sentry/views/alerts/types';
+import {
+  AnomalyType,
+  IncidentActivityType,
+  IncidentStatus,
+} from 'sentry/views/alerts/types';
 import {
   ALERT_CHART_MIN_MAX_BUFFER,
   alertAxisFormatter,
@@ -238,9 +242,7 @@ export function getMetricAlertChartOption({
     series.push(createStatusAreaSeries(theme.gray200, startTime, endTime, minChartValue));
   }
 
-  // TODO: construct segments for anomalies
   if (incidents) {
-    // select incidents that fall within the graph range
     incidents
       .filter(
         incident =>
@@ -342,6 +344,7 @@ export function getMetricAlertChartOption({
           const selectedIncidentColor =
             incidentColor === theme.yellow300 ? theme.yellow100 : theme.red100;
 
+          // Is areaSeries used anywhere?
           areaSeries.push({
             seriesName: '',
             type: 'line',
@@ -356,6 +359,71 @@ export function getMetricAlertChartOption({
           });
         }
       });
+  }
+
+  if (anomalies) {
+    const anomalyBlocks: any[] = [];
+    let start;
+    let end;
+    anomalies
+      .filter(anomalyts => {
+        const ts = new Date(anomalyts.timestamp).getTime();
+        return firstPoint < ts && ts < lastPoint;
+      })
+      .forEach(anomalyts => {
+        const {anomaly, timestamp} = anomalyts;
+
+        if (
+          [AnomalyType.high, AnomalyType.low].indexOf(anomaly.anomaly_type as string) > -1
+        ) {
+          if (!start) {
+            start = new Date(timestamp).toISOString();
+          }
+          end = new Date(timestamp).toISOString();
+        } else {
+          if (start && end) {
+            anomalyBlocks.push([
+              {
+                name: 'Anomaly Detected',
+                xAxis: start,
+              },
+              {
+                xAxis: end,
+              },
+            ]);
+          }
+          start = undefined;
+          end = undefined;
+        }
+      });
+    if (start && end) {
+      // push in the last block
+      anomalyBlocks.push([
+        {
+          name: 'Anomaly Detected',
+          xAxis: start,
+        },
+        {
+          xAxis: end,
+        },
+      ]);
+    }
+
+    // NOTE: if timerange is too small - highlighted area will not be visible
+    series.push({
+      seriesName: '',
+      name: 'Anomaly',
+      type: 'line',
+      smooth: true,
+      data: [],
+      markArea: {
+        itemStyle: {
+          color: 'rgba(255, 173, 177, 0.4)',
+        },
+        silent: true,
+        data: anomalyBlocks,
+      },
+    });
   }
 
   let maxThresholdValue = 0;
