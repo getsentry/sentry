@@ -247,8 +247,8 @@ function WebVitalData({
 
   const webVitalData = {value: frame.data.value};
   if (
-    clsFrame.description === 'cumulative-layout-shift' &&
-    clsFrame.data.attributes &&
+    frame.description === 'cumulative-layout-shift' &&
+    'attributes' in frame.data &&
     selectors
   ) {
     const layoutShifts: {[x: string]: ReactNode[]}[] = [];
@@ -287,29 +287,24 @@ function WebVitalData({
       webVitalData['Layout shifts'] = layoutShifts;
     }
   } else if (selectors?.size) {
-    const vitalKey = 'element';
-    webVitalData[vitalKey] = (
-      <span>
-        {Array.from(selectors).map(([value, key]) => {
-          return (
-            <span
-              key={key}
-              onMouseEnter={() => onMouseEnter(frame, value)}
-              onMouseLeave={() => onMouseLeave(frame, value)}
-            >
-              <ValueObjectKey>{t('element')}</ValueObjectKey>
-              <span>{': '}</span>
-              <Button size="zero" borderless>
-                {key}
-              </Button>
-            </span>
-          );
-        })}
-      </span>
-    );
+    selectors.forEach((key, value) => {
+      webVitalData[key] = (
+        <span
+          key={key}
+          onMouseEnter={() => onMouseEnter(frame, value)}
+          onMouseLeave={() => onMouseLeave(frame, value)}
+        >
+          <ValueObjectKey>{t('element')}</ValueObjectKey>
+          <span>{': '}</span>
+          <SelectorButton size="zero" borderless>
+            {key}
+          </SelectorButton>
+        </span>
+      );
+    });
   }
 
-  return webVitalData ? (
+  return (
     <StructuredEventData
       initialExpandedPaths={expandPaths ?? []}
       onToggleExpand={(expandedPaths, path) => {
@@ -321,7 +316,7 @@ function WebVitalData({
       data={webVitalData}
       withAnnotatedText
     />
-  ) : null;
+  );
 }
 
 function CrumbHydrationButton({
