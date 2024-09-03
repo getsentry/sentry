@@ -161,7 +161,10 @@ function BreadcrumbItem({
         data-is-error-frame={isErrorFrame(frame)}
         style={style}
         className={className}
-        onClick={() => onClick?.(frame)}
+        onClick={event => {
+          event.stopPropagation();
+          onClick?.(frame);
+        }}
         onMouseEnter={() => onMouseEnter(frame)}
         onMouseLeave={() => onMouseLeave(frame)}
       >
@@ -179,7 +182,10 @@ function BreadcrumbItem({
     <CrumbItem
       data-is-error-frame={isErrorFrame(frame)}
       as={onClick && !forceSpan ? 'button' : 'span'}
-      onClick={() => onClick?.(frame)}
+      onClick={event => {
+        event.stopPropagation();
+        onClick?.(frame);
+      }}
       onMouseEnter={() => onMouseEnter(frame)}
       onMouseLeave={() => onMouseLeave(frame)}
       style={style}
