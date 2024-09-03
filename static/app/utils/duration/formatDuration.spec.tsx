@@ -1,4 +1,5 @@
 import formatDuration from 'sentry/utils/duration/formatDuration';
+import type {Duration, Unit} from 'sentry/utils/duration/types';
 
 describe('formatDuration', () => {
   describe('parsing', () => {
@@ -24,21 +25,6 @@ describe('formatDuration', () => {
   });
 
   describe('formatting', () => {
-    it.each([
-      {style: 'h:mm:ss' as const, expected: '8:20'},
-      {style: 'hh:mm:ss' as const, expected: '08:20'},
-      {style: 'h:mm:ss.sss' as const, expected: '8:20.012'},
-      {style: 'hh:mm:ss.sss' as const, expected: '08:20.012'},
-    ])('should format according to the selected style', ({style, expected}) => {
-      expect(
-        formatDuration({
-          style,
-          precision: 'sec',
-          duration: [500.012, 'sec'],
-        })
-      ).toBe(expected);
-    });
-
     it('should format the value into a locale specific number', () => {
       expect(
         formatDuration({
@@ -77,35 +63,57 @@ describe('formatDuration', () => {
       ).toBe('8:20');
     });
 
-    it('should truncate ms when formatting as hours & minutes', () => {
-      expect(
-        formatDuration({
-          style: 'h:mm:ss',
-          precision: 'sec',
-          duration: [500012, 'ms'],
-        })
-      ).toBe('8:20');
-    });
+    it.each<{duration: Duration; expected: string; precision: Unit}>([
+      {duration: [500_000, 'ms'], precision: 'ms', expected: '8:20.000'},
+      {duration: [500_000, 'ms'], precision: 'sec', expected: '8:20.000'},
+      {duration: [500_012, 'ms'], precision: 'ms', expected: '8:20.012'},
+      {duration: [500_012, 'ms'], precision: 'sec', expected: '8:20.000'},
+      {duration: [500, 'sec'], precision: 'ms', expected: '8:20.000'},
+      {duration: [500, 'sec'], precision: 'sec', expected: '8:20.000'},
+      {duration: [500, 'sec'], precision: 'ms', expected: '8:20.000'},
+      {duration: [500, 'sec'], precision: 'sec', expected: '8:20.000'},
+      {duration: [500.012, 'sec'], precision: 'ms', expected: '8:20.012'},
+      {duration: [500.012, 'sec'], precision: 'sec', expected: '8:20.000'},
+      {duration: [500.012, 'sec'], precision: 'ms', expected: '8:20.012'},
+      {duration: [500.012, 'sec'], precision: 'sec', expected: '8:20.000'},
+    ])(
+      'should format $duration with precision $precision as h:mm:ss.sss',
+      ({duration, precision, expected}) => {
+        expect(
+          formatDuration({
+            style: 'h:mm:ss.sss',
+            precision,
+            duration,
+          })
+        ).toBe(expected);
+      }
+    );
 
-    it('should add ms when format demands it', () => {
-      expect(
-        formatDuration({
-          style: 'h:mm:ss.sss',
-          precision: 'sec',
-          duration: [500, 'sec'],
-        })
-      ).toBe('8:20.000');
-    });
-
-    it('should include ms when precision includes it', () => {
-      expect(
-        formatDuration({
-          style: 'h:mm:ss.sss',
-          precision: 'sec',
-          duration: [500012, 'ms'],
-        })
-      ).toBe('8:20.012');
-    });
+    it.each<{duration: Duration; precision: Unit}>([
+      {duration: [500_000, 'ms'], precision: 'ms'},
+      {duration: [500_000, 'ms'], precision: 'sec'},
+      {duration: [500_012, 'ms'], precision: 'ms'},
+      {duration: [500_012, 'ms'], precision: 'sec'},
+      {duration: [500, 'sec'], precision: 'ms'},
+      {duration: [500, 'sec'], precision: 'sec'},
+      {duration: [500, 'sec'], precision: 'ms'},
+      {duration: [500, 'sec'], precision: 'sec'},
+      {duration: [500.012, 'sec'], precision: 'ms'},
+      {duration: [500.012, 'sec'], precision: 'sec'},
+      {duration: [500.012, 'sec'], precision: 'ms'},
+      {duration: [500.012, 'sec'], precision: 'sec'},
+    ])(
+      'should format $duration with precision $precision as h:mm:ss, never showing ms',
+      ({duration, precision}) => {
+        expect(
+          formatDuration({
+            style: 'h:mm:ss',
+            precision,
+            duration,
+          })
+        ).toBe('8:20');
+      }
+    );
 
     it('should format the value into an ISO8601 period with ms precision', () => {
       expect(
