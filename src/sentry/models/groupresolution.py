@@ -144,7 +144,8 @@ class GroupResolution(Model):
         # We still fallback to the older model if either current_release_version was not set (
         # i.e. In all resolved cases except for Resolved in Next Release) or if for whatever
         # reason the semver/date checks fail (which should not happen!)
-        if res_type in (None, cls.Type.in_next_release):
+        # todo(roggenkemper): remove upcoming_release check after we know that no group resolutions have it
+        if res_type in (None, cls.Type.in_next_release, cls.Type.in_upcoming_release):
             # Add metric here to ensure that this code branch ever runs given that
             # clear_expired_resolutions changes the type to `in_release` once a Release instance
             # is created
