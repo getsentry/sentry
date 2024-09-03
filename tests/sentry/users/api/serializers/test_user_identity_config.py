@@ -57,7 +57,7 @@ class UserIdentityConfigSerializerTest(TestCase):
             "dateSynced": None,
         }
 
-    @mock.patch("sentry.api.serializers.models.user_identity_config.is_login_provider")
+    @mock.patch("sentry.users.api.serializers.user_identity_config.is_login_provider")
     def test_global_login_identity(self, mock_is_login_provider):
         mock_is_login_provider.return_value = True
 
