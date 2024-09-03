@@ -1,10 +1,5 @@
-import styled from '@emotion/styled';
-
-import Tag from 'sentry/components/badge/tag';
-import {Tooltip} from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
-import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {hasCustomMetrics} from 'sentry/utils/metrics/features';
@@ -117,16 +112,6 @@ export default function getConfiguration({
           title: t('Metrics'),
           show: () =>
             !!(organization && hasCustomMetrics(organization)) && !isSelfHostedErrorsOnly,
-          badge: () => (
-            <Tooltip
-              title={
-                'The Metrics beta will end and we will retire the current solution on September 30, 2024'
-              }
-              position="right"
-            >
-              <StyledTag type="warning">{t('Deprecated')}</StyledTag>
-            </Tooltip>
-          ),
         },
         {
           path: `${pathPrefix}/replays/`,
@@ -181,12 +166,3 @@ export default function getConfiguration({
     },
   ];
 }
-
-const StyledTag = styled(Tag)`
-  font-weight: ${p => p.theme.fontWeightNormal};
-  height: auto;
-  line-height: 1;
-  font-size: ${p => p.theme.fontSizeExtraSmall};
-  padding: 3px ${space(0.75)};
-  vertical-align: middle;
-`;
