@@ -106,5 +106,45 @@ describe('formatDuration', () => {
         })
       ).toBe('8:20.012');
     });
+
+    it('should format the value into an ISO8601 period with ms precision', () => {
+      expect(
+        formatDuration({
+          style: 'ISO8601',
+          precision: 'ms',
+          duration: [500_012, 'ms'],
+        })
+      ).toBe('PT8M20.012S');
+    });
+
+    it('should format the value into an ISO8601 period with ms precision, but no sec or ms digits', () => {
+      expect(
+        formatDuration({
+          style: 'ISO8601',
+          precision: 'ms',
+          duration: [480_000, 'ms'],
+        })
+      ).toBe('PT8M');
+    });
+
+    it('should format the value into an ISO8601 period with precision to the second', () => {
+      expect(
+        formatDuration({
+          style: 'ISO8601',
+          precision: 'sec',
+          duration: [500_012, 'ms'],
+        })
+      ).toBe('PT8M20S');
+    });
+
+    it('should format the value into an ISO8601 period with precision to the minute', () => {
+      expect(
+        formatDuration({
+          style: 'ISO8601',
+          precision: 'min',
+          duration: [500_012, 'ms'],
+        })
+      ).toBe('PT8M');
+    });
   });
 });

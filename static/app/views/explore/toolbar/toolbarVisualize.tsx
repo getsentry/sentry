@@ -11,7 +11,7 @@ import {
   ALLOWED_VISUALIZE_FIELDS,
 } from '../hooks/useVisualize';
 
-import {ToolbarHeading, ToolbarSection} from './styles';
+import {ToolbarHeader, ToolbarHeading, ToolbarSection} from './styles';
 
 interface ToolbarVisualizeProps {
   setVisualize: (visualize: string) => void;
@@ -43,7 +43,9 @@ export function ToolbarVisualize({visualize, setVisualize}: ToolbarVisualizeProp
 
   return (
     <ToolbarSection data-test-id="section-visualize">
-      <ToolbarHeading>{t('Visualize')}</ToolbarHeading>
+      <ToolbarHeader>
+        <ToolbarHeading>{t('Visualize')}</ToolbarHeading>
+      </ToolbarHeader>
       <ToolbarContent>
         <CompactSelect
           size="md"
