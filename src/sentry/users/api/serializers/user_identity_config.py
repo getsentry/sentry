@@ -127,9 +127,12 @@ class UserIdentityConfigSerializer(Serializer):
             )
         }
         for item in item_list:
-            assert item.organization_id, "Organization ID must exist to get organization"
-            result[item] = dict(organization=organizations.get(item.organization_id))
-
+            # check if org_id exists bc mypy gets unhappy if .get() is given a None type
+            result[item] = (
+                dict(organization=organizations.get(item.organization_id))
+                if item.organization_id
+                else dict(organization=None)
+            )
         return result
 
     def serialize(self, obj: UserIdentityConfig, attrs, user, **kwargs):

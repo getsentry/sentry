@@ -14,7 +14,7 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.authentication import QuietBasicAuthentication
 from sentry.api.base import Endpoint, control_silo_endpoint
 from sentry.api.exceptions import SsoRequired
-from sentry.api.serializers import DetailedSelfUserSerializer, serialize
+from sentry.api.serializers import serialize
 from sentry.api.validators import AuthVerifyValidator
 from sentry.api.validators.auth import MISSING_PASSWORD_OR_U2F_CODE
 from sentry.auth.authenticators.u2f import U2fInterface
@@ -22,6 +22,7 @@ from sentry.auth.providers.saml2.provider import handle_saml_single_logout
 from sentry.auth.services.auth.impl import promote_request_rpc_user
 from sentry.auth.superuser import SUPERUSER_ORG_ID
 from sentry.organizations.services.organization import organization_service
+from sentry.users.api.serializers.user import DetailedSelfUserSerializer
 from sentry.users.models.authenticator import Authenticator
 from sentry.utils import auth, json, metrics
 from sentry.utils.auth import DISABLE_SSO_CHECK_FOR_LOCAL_DEV, has_completed_sso, initiate_login
