@@ -58,7 +58,6 @@ def call_endpoint(client, relay, private_key):
             "spans": "base64",
             "transactions": "base64",
         },
-        "sentry-metrics.extrapolation.duplication-limit": 42,
     }
 )
 def test_global_config():

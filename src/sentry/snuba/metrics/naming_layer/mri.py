@@ -38,12 +38,9 @@ from dataclasses import dataclass
 from enum import Enum
 from typing import cast
 
-import sentry_sdk
 from sentry_kafka_schemas.codecs import ValidationError
 
 from sentry.exceptions import InvalidParams
-from sentry.sentry_metrics.extraction_rules import SPAN_ATTRIBUTE_PREFIX
-from sentry.sentry_metrics.models import SpanAttributeExtractionRuleCondition
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.snuba.dataset import EntityKey
 from sentry.snuba.metrics.units import format_value_using_unit_and_op
@@ -210,15 +207,6 @@ class ParsedMRI:
     def mri_string(self) -> str:
         return f"{self.entity}:{self.namespace}/{self.name}@{self.unit}"
 
-    @property
-    def span_attribute_rule_id(self):
-        if self.name.startswith(SPAN_ATTRIBUTE_PREFIX):
-            try:
-                return int(self.name[len(SPAN_ATTRIBUTE_PREFIX) :])
-            except ValueError:
-                return None
-        return None
-
 
 @dataclass
 class ParsedMRIField:
@@ -264,24 +252,6 @@ def format_mri_field(field: str) -> str:
         parsed = parse_mri_field(field)
 
         if parsed:
-            if condition_id := parsed.mri.span_attribute_rule_id:
-                try:
-                    condition = SpanAttributeExtractionRuleCondition.objects.get(id=condition_id)
-                    config = condition.config
-                    if condition.value:
-                        filter_str = f' filtered by "{condition.value}"'
-                    else:
-                        filter_str = ""
-
-                    return f"{parsed.op}({config.span_attribute}){filter_str}"
-                except SpanAttributeExtractionRuleCondition.DoesNotExist:
-                    with sentry_sdk.new_scope() as scope:
-                        scope.set_tag("field", field)
-                        sentry_sdk.capture_message(
-                            "Trying to format MRI field for non-existent span metric."
-                        )
-                    return field
-
             return str(parsed)
 
         else:
@@ -304,22 +274,9 @@ def format_mri_field_value(field: str, value: str) -> str:
         if parsed_mri_field is None:
             return value
 
-        if condition_id := parsed_mri_field.mri.span_attribute_rule_id:
-            try:
-                condition = SpanAttributeExtractionRuleCondition.objects.get(id=condition_id)
-                unit = cast(MetricUnit, condition.config.unit)
-            except SpanAttributeExtractionRuleCondition.DoesNotExist:
-                with sentry_sdk.new_scope() as scope:
-                    scope.set_tag("field", field)
-                    sentry_sdk.capture_message(
-                        "Trying to format MRI field for non-existent span metric."
-                    )
-                return value
-
-        else:
-            unit = cast(MetricUnit, parsed_mri_field.mri.unit)
-
+        unit = cast(MetricUnit, parsed_mri_field.mri.unit)
         return format_value_using_unit_and_op(float(value), unit, parsed_mri_field.op)
+
     except InvalidParams:
         return value
 
