@@ -7,13 +7,16 @@ import PanelLayout from 'sentry/components/devtoolbar/components/panelLayout';
 import useInfiniteReleaseIssuesList from 'sentry/components/devtoolbar/components/releases/useInfiniteReleaseIssuesList';
 import {listItemPlaceholderWrapperCss} from 'sentry/components/devtoolbar/styles/listItem';
 import {
+  panelDescCss,
   panelInsetContentCss,
   panelSectionCss,
+  panelSectionCssNoBorder,
 } from 'sentry/components/devtoolbar/styles/panel';
-import {infoHeaderCss} from 'sentry/components/devtoolbar/styles/releasesPanel';
+import {releaseBoxCss} from 'sentry/components/devtoolbar/styles/releasesPanel';
 import {resetFlexColumnCss} from 'sentry/components/devtoolbar/styles/reset';
-import PanelItem from 'sentry/components/panels/panelItem';
+import {smallCss} from 'sentry/components/devtoolbar/styles/typography';
 import Placeholder from 'sentry/components/placeholder';
+import {IconSearch} from 'sentry/icons/iconSearch';
 
 const estimateSize = 89;
 const placeholderHeight = `${estimateSize - 8}px`; // The real height of the items, minus the padding-block value
@@ -24,7 +27,7 @@ export default function ReleaseIsssues({releaseVersion}: {releaseVersion: string
   });
 
   return (
-    <PanelLayout>
+    <PanelLayout noBorder>
       <div
         css={css`
           display: grid;
@@ -32,9 +35,16 @@ export default function ReleaseIsssues({releaseVersion}: {releaseVersion: string
           grid-template-rows: auto 1fr;
         `}
       >
-        <PanelItem css={{padding: 'var(--space150)'}}>
-          <div css={infoHeaderCss}>New issues in current release</div>
-        </PanelItem>
+        <span
+          css={[
+            smallCss,
+            panelDescCss,
+            panelSectionCssNoBorder,
+            {paddingTop: 'var(--space25)', paddingBottom: 0},
+          ]}
+        >
+          New Issues in This Release
+        </span>
         <div css={resetFlexColumnCss}>
           <InfiniteListState
             queryResult={queryResult}
@@ -58,7 +68,25 @@ export default function ReleaseIsssues({releaseVersion}: {releaseVersion: string
               estimateSize={() => estimateSize}
               queryResult={queryResult}
               itemRenderer={props => <IssueListItem {...props} />}
-              emptyMessage={() => <p css={panelInsetContentCss}>No items to show</p>}
+              emptyMessage={() => (
+                <div
+                  css={[
+                    panelInsetContentCss,
+                    releaseBoxCss,
+                    resetFlexColumnCss,
+                    {
+                      padding: 'var(--space400)',
+                      alignItems: 'center',
+                      gap: 'var(--space150)',
+                      height: '212px',
+                      justifyContent: 'center',
+                    },
+                  ]}
+                >
+                  <IconSearch size="lg" />
+                  No new issues in this release.
+                </div>
+              )}
             />
           </InfiniteListState>
         </div>

@@ -13,6 +13,7 @@ import {resetDialogCss, resetFlexColumnCss, resetFlexRowCss} from '../styles/res
 interface Props {
   children?: React.ReactNode;
   link?: UrlObject;
+  noBorder?: boolean;
   showProjectBadge?: boolean;
   title?: string;
   titleRight?: React.ReactNode;
@@ -23,15 +24,33 @@ export default function PanelLayout({
   title,
   titleRight,
   showProjectBadge,
+  noBorder,
   link,
 }: Props) {
   const {projectId, projectSlug, projectPlatform} = useConfiguration();
   return (
-    <dialog open css={[resetDialogCss, resetFlexColumnCss, panelCss]}>
+    <dialog
+      open
+      css={[
+        resetDialogCss,
+        resetFlexColumnCss,
+        panelCss,
+        noBorder
+          ? css`
+              border-color: white;
+            `
+          : undefined,
+      ]}
+    >
       <span
         css={[
-          {display: 'flex', alignItems: 'center', gap: 'var(--space100)'},
           panelHeadingCss,
+          {display: 'flex', alignItems: 'center', gap: 'var(--space100)'},
+          noBorder
+            ? css`
+                border-color: white;
+              `
+            : undefined,
         ]}
       >
         {showProjectBadge && (
