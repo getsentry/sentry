@@ -652,6 +652,7 @@ class Release(Model):
                     }
                 )
 
+    @sentry_sdk.trace
     def set_commits(self, commit_list):
         """
         Bind a list of commits to this release.
@@ -659,6 +660,7 @@ class Release(Model):
         This will clear any existing commit log and replace it with the given
         commits.
         """
+        sentry_sdk.set_measurement("release.set_commits", len(commit_list))
 
         # Sort commit list in reverse order
         commit_list.sort(key=lambda commit: commit.get("timestamp", 0), reverse=True)
@@ -821,7 +823,7 @@ class Release(Model):
                     ],
                     last_commit_id=latest_commit.id if latest_commit else None,
                 )
-                metrics.timing("release.set_commits.duration", time() - start)
+                metrics.timing("release.set_commits.duration", time() - start, sample_rate=1.0)
 
         # fill any missing ReleaseHeadCommit entries
         for repo_id, commit_id in head_commit_by_repo.items():
