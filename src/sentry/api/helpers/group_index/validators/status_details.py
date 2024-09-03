@@ -1,5 +1,6 @@
 from rest_framework import serializers
 
+from sentry import features
 from sentry.models.release import Release
 
 from . import InCommitValidator
@@ -58,6 +59,11 @@ class StatusDetailsValidator(serializers.Serializer):
 
     def validate_inUpcomingRelease(self, value: bool) -> "Release":
         project = self.context["project"]
+
+        if not features.has("organizations:resolve-in-upcoming-release", project.organization):
+            raise serializers.ValidationError(
+                "Your organization does not have access to this feature."
+            )
 
         try:
             return (
