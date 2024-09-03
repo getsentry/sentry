@@ -15,7 +15,7 @@ def get_eap_meta(projects: list[Project]) -> list[MetricMeta]:
             MetricMeta(
                 name="eap.measurement",
                 type="distribution",
-                unit=None,
+                unit="none",
                 operations=["sum", "avg", "p50", "p95", "p99", "count"],
                 projectIds=eap_spans_project_ids,
                 mri="d:eap/eap.measurement@none",
