@@ -148,11 +148,11 @@ function TraceDataSection({
   const {oneOtherIssueEvent, traceEvents, isLoading, isError} = useTraceTimelineEvents({
     event: eventData,
   });
-  const hide: boolean =
-    isLoading ||
-    isError ||
-    traceEvents.length <= 1 || // traceEvents include the current event.
-    (hasProject && !!crashReportId && oneOtherIssueEvent?.id === crashReportId);
+  const show =
+    !isLoading &&
+    !isError &&
+    traceEvents.length > 1 && // traceEvents include the current event.
+    (!hasProject || !crashReportId || oneOtherIssueEvent?.id === crashReportId);
 
   const ffEnabled = true; // TODO:
 
@@ -181,11 +181,11 @@ function TraceDataSection({
   ]);
 
   // Note a timeline will only be shown for >1 same-trace issues.
-  return hide || !ffEnabled ? null : (
+  return show && ffEnabled ? (
     <Section>
       <IssueDetailsTraceDataSection event={eventData} />
     </Section>
-  );
+  ) : null;
 }
 
 // 0 padding-bottom because <ActivitySection> has space(2) built-in.
