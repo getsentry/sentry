@@ -3,6 +3,7 @@ from typing import Any
 
 from sentry.models.project import Project
 from sentry.types.actor import Actor
+from sentry.uptime.detectors.url_extraction import extractor
 from sentry.uptime.models import (
     ProjectUptimeSubscription,
     ProjectUptimeSubscriptionMode,
@@ -28,6 +29,11 @@ def create_uptime_subscription(
     Creates a new uptime subscription. This creates the row in postgres, and fires a task that will send the config
     to the uptime check system.
     """
+    # We extract the domain and suffix of the url here. This is used to prevent there being too many checks to a single
+    # domain.
+    # We enable private PSL domains so that hosting services that use subdomains are treated as suffixes for the
+    # purposes of monitoring.
+    result = extractor.extract_str(url, include_psl_private_domains=True)
     subscription, created = UptimeSubscription.objects.get_or_create(
         url=url,
         interval_seconds=interval_seconds,
@@ -35,6 +41,8 @@ def create_uptime_subscription(
             "status": UptimeSubscription.Status.CREATING.value,
             "type": UPTIME_SUBSCRIPTION_TYPE,
             "timeout_ms": timeout_ms,
+            "url_domain": result.domain,
+            "url_domain_suffix": result.suffix,
         },
     )
     if subscription.status == UptimeSubscription.Status.DELETING.value:
