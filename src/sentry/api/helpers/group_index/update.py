@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 import re
 from collections import defaultdict
 from collections.abc import Mapping, MutableMapping, Sequence
@@ -58,6 +59,8 @@ from sentry.utils import metrics
 
 from . import ACTIVITIES_COUNT, BULK_MUTATION_LIMIT, SearchFunction, delete_group_list
 from .validators import GroupValidator, ValidationError
+
+logger = logging.getLogger(__name__)
 
 
 def handle_discard(
@@ -584,8 +587,22 @@ def update_groups(
         new_substatus = (
             SUBSTATUS_UPDATE_CHOICES[result.get("substatus")] if result.get("substatus") else None
         )
-        if new_substatus is None and new_status == GroupStatus.UNRESOLVED:
+        if new_status == GroupStatus.IGNORED and new_substatus is None:
+            if status_details.get("untilEscalating"):
+                new_substatus = GroupSubStatus.UNTIL_ESCALATING
+            elif any(value for value in status_details.values is not None):
+                new_substatus = GroupSubStatus.UNTIL_CONDITION_MET
+            else:
+                new_substatus = GroupSubStatus.FOREVER
+
+        if new_status == GroupStatus.UNRESOLVED and new_substatus is None:
+            logger.warning(
+                "no_substatus: Updating group to UNRESOLVED without substatus",
+                extra={"group_id": group_list[0].id},
+            )
             new_substatus = GroupSubStatus.ONGOING
+
+            # Set the group back to NEW if it was unignored withing 7 days of when it was first seen
             if len(group_list) == 1 and group_list[0].status == GroupStatus.IGNORED:
                 is_new_group = group_list[0].first_seen > datetime.now(timezone.utc) - timedelta(
                     days=TRANSITION_AFTER_DAYS
