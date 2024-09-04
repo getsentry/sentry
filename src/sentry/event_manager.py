@@ -279,13 +279,13 @@ def has_pending_commit_resolution(group: Group) -> bool:
 
 
 @overload
-def get_max_crashreports(model: Project | Organization) -> int: ...
+def get_max_crashreports(model: Project | Organization) -> int:
+    ...
 
 
 @overload
-def get_max_crashreports(
-    model: Project | Organization, *, allow_none: Literal[True]
-) -> int | None: ...
+def get_max_crashreports(model: Project | Organization, *, allow_none: Literal[True]) -> int | None:
+    ...
 
 
 def get_max_crashreports(model: Project | Organization, *, allow_none: bool = False) -> int | None:
@@ -1463,9 +1463,11 @@ def _save_aggregate(
             # hashed) event is already in the process of talking to seer and/or creating a group and
             # has grabbed the lock before us, we'll block here until it's done. If not, we've now
             # got the lock and other identically-hashed events will have to wait for us.
-            grouphashes = list(GroupHash.objects.filter(id__in=grouphash_ids).select_for_update())
+            all_grouphashes = list(
+                GroupHash.objects.filter(id__in=grouphash_ids).select_for_update()
+            )
 
-            grouphashes = [gh for gh in grouphashes if gh.hash in hashes.hashes]
+            grouphashes = [gh for gh in all_grouphashes if gh.hash in hashes.hashes]
 
             # Now check again to see if any of our grouphashes have a group. If we got the lock, the
             # result won't have changed and we still won't find anything. If we didn't get it, we'll
