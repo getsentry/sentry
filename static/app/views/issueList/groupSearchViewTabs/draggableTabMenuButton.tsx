@@ -61,6 +61,7 @@ function FeedbackFooter() {
             messagePlaceholder: t('How can we make custom views better for you?'),
             tags: {
               ['feedback.source']: 'custom_views',
+              ['feedback.owner']: 'issues',
             },
           })
         }
