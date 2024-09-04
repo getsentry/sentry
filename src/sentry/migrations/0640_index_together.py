@@ -254,14 +254,4 @@ class Migration(CheckedMigration):
             new_name="sentry_rule_project_676d0d_idx",
             old_fields=("project", "status", "owner"),
         ),
-        migrations.RenameIndex(
-            model_name="userreport",
-            new_name="sentry_user_project_b8faaf_idx",
-            old_fields=("project_id", "date_added"),
-        ),
-        migrations.RenameIndex(
-            model_name="userreport",
-            new_name="sentry_user_project_cbfd59_idx",
-            old_fields=("project_id", "event_id"),
-        ),
     ]
