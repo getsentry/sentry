@@ -50,7 +50,7 @@ describe('Broadcasts', function () {
   it('renders item with media', async function () {
     renderMockRequests({
       orgSlug: organization.slug,
-      broadcastsResponse: [BroadcastFixture({category: 'blog post'})],
+      broadcastsResponse: [BroadcastFixture({category: 'blog'})],
     });
 
     render(
@@ -72,7 +72,7 @@ describe('Broadcasts', function () {
       'whats_new.link_clicked',
       expect.objectContaining({
         title: 'Learn about Source Maps',
-        category: 'blog post',
+        category: 'blog',
       })
     );
 

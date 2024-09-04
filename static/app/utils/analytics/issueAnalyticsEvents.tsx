@@ -297,7 +297,7 @@ export type IssueEventParameters = {
   'tag.clicked': {
     is_clickable: boolean;
   };
-  'whats_new.link_clicked': Pick<Broadcast, 'title' | 'category'>;
+  'whats_new.link_clicked': Partial<Pick<Broadcast, 'title' | 'category'>>;
 };
 
 export type IssueEventKey = keyof IssueEventParameters;
