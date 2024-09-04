@@ -86,6 +86,12 @@ class MetricsDatasetConfig(DatasetConfig):
         return value_id
 
     @property
+    def should_skip_interval_calculation(self):
+        return self.builder.builder_config.skip_time_conditions and (
+            not self.builder.params.start or not self.builder.params.end
+        )
+
+    @property
     def function_converter(self) -> Mapping[str, fields.MetricsFunction]:
         """While the final functions in clickhouse must have their -Merge combinators in order to function, we don't
         need to add them here since snuba has a FunctionMapper that will add it for us. Basically it turns expressions
@@ -779,7 +785,11 @@ class MetricsDatasetConfig(DatasetConfig):
                 fields.MetricsFunction(
                     "spm",
                     snql_distribution=self._resolve_spm,
-                    optional_args=[fields.IntervalDefault("interval", 1, None)],
+                    optional_args=[
+                        fields.NullColumn("interval")
+                        if self.should_skip_interval_calculation
+                        else fields.IntervalDefault("interval", 1, None)
+                    ],
                     default_result_type="rate",
                 ),
                 fields.MetricsFunction(
@@ -2072,6 +2082,8 @@ class MetricsDatasetConfig(DatasetConfig):
         else:
             condition = base_condition
 
+        default_interval = 1 if self.should_skip_interval_calculation else args["interval"]
+
         return Function(
             "divide",
             [
@@ -2083,9 +2095,9 @@ class MetricsDatasetConfig(DatasetConfig):
                     ],
                 ),
                 (
-                    args["interval"]
+                    default_interval
                     if interval is None
-                    else Function("divide", [args["interval"], interval])
+                    else Function("divide", [default_interval, interval])
                 ),
             ],
             alias,
