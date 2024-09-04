@@ -9,8 +9,6 @@ import {ToolbarResults} from 'sentry/views/explore/toolbar/toolbarResults';
 import {ToolbarSortBy} from 'sentry/views/explore/toolbar/toolbarSortBy';
 import {ToolbarVisualize} from 'sentry/views/explore/toolbar/toolbarVisualize';
 
-import {useVisualize} from '../hooks/useVisualize';
-
 type Extras = 'dataset toggle';
 
 interface ExploreToolbarProps {
@@ -22,7 +20,6 @@ export function ExploreToolbar({extras}: ExploreToolbarProps) {
   const [resultMode, setResultMode] = useResultMode();
   const [sampleFields] = useSampleFields();
   const [sorts, setSorts] = useSorts({fields: sampleFields});
-  const [visualize, setVisualize] = useVisualize();
 
   return (
     <div>
@@ -30,7 +27,7 @@ export function ExploreToolbar({extras}: ExploreToolbarProps) {
         <ToolbarDataset dataset={dataset} setDataset={setDataset} />
       )}
       <ToolbarResults resultMode={resultMode} setResultMode={setResultMode} />
-      <ToolbarVisualize visualize={visualize} setVisualize={setVisualize} />
+      <ToolbarVisualize />
       <ToolbarSortBy fields={sampleFields} sorts={sorts} setSorts={setSorts} />
       <ToolbarLimitTo />
       <ToolbarGroupBy />
