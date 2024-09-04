@@ -165,11 +165,6 @@ class Migration(CheckedMigration):
             old_fields=("group_id", "last_seen"),
         ),
         migrations.RenameIndex(
-            model_name="incident",
-            new_name="sentry_inci_alert_r_24a457_idx",
-            old_fields=("alert_rule", "type", "status"),
-        ),
-        migrations.RenameIndex(
             model_name="incidenttrigger",
             new_name="sentry_inci_alert_r_33da01_idx",
             old_fields=("alert_rule_trigger", "incident_id"),
