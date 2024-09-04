@@ -75,16 +75,6 @@ class Migration(CheckedMigration):
             old_fields=("debug_id", "artifact_bundle"),
         ),
         migrations.RenameIndex(
-            model_name="eventattachment",
-            new_name="sentry_even_project_62b83b_idx",
-            old_fields=("project_id", "date_added"),
-        ),
-        migrations.RenameIndex(
-            model_name="eventattachment",
-            new_name="sentry_even_project_974f7b_idx",
-            old_fields=("project_id", "event_id"),
-        ),
-        migrations.RenameIndex(
             model_name="group",
             new_name="sentry_grou_project_5eb75b_idx",
             old_fields=("project", "status", "substatus", "last_seen", "id"),

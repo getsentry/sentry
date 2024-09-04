@@ -53,8 +53,4 @@ class Migration(CheckedMigration):
             name="eventattachment",
             unique_together=set(),
         ),
-        migrations.AlterIndexTogether(
-            name="eventattachment",
-            index_together={("project_id", "date_added")},
-        ),
     ]
