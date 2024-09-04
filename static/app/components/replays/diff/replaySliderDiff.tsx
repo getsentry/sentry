@@ -35,7 +35,7 @@ export function ReplaySliderDiff({
 
   const width = toPixels(viewDimensions.width);
   return (
-    <Wrapper>
+    <Fragment>
       <Labels>
         <Tooltip title={t('How the initial server-rendered page looked.')}>
           <div style={{color: 'red'}}>{t('Before')}</div>
@@ -63,7 +63,7 @@ export function ReplaySliderDiff({
           )}
         </Positioned>
       </WithPadding>
-    </Wrapper>
+    </Fragment>
   );
 }
 
@@ -139,11 +139,6 @@ function DiffSides({leftOffsetMs, replay, rightOffsetMs, viewDimensions, width})
   );
 }
 
-const Wrapper = styled('div')`
-  display: flex;
-  flex-direction: column;
-`;
-
 const Labels = styled('div')`
   display: flex;
   justify-content: space-between;
@@ -156,9 +151,9 @@ const WithPadding = styled(NegativeSpaceContainer)`
 `;
 
 const Positioned = styled('div')`
+  min-height: 335px;
   position: relative;
   width: 100%;
-  height: 100%;
 `;
 
 const Cover = styled('div')`
