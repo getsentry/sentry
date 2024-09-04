@@ -3,11 +3,12 @@ from __future__ import annotations
 import resource
 from collections.abc import Callable, Iterable
 from contextlib import contextmanager
-from datetime import datetime, timedelta
+from datetime import datetime
 from functools import wraps
 from typing import Any, TypeVar
 
 from celery import current_task
+from celery.exceptions import SoftTimeLimitExceeded
 from django.db.models import Model
 
 from sentry.celery import app
@@ -125,16 +126,13 @@ def instrumented_task(name, stat_suffix=None, silo_mode=None, record_timing=Fals
                 metrics.timer(key, instance=instance),
                 track_memory_usage("jobs.memory_change", instance=instance),
             ):
-                result = func(*args, **kwargs)
+                try:
+                    result = func(*args, **kwargs)
+                except SoftTimeLimitExceeded:
+                    capture_exception(level="warning")
+                    raise
 
             return result
-
-        if kwargs.get("soft_time_limit") and not kwargs.get("time_limit"):
-            raise ValueError("time_limit must be set if soft_time_limit is set")
-
-        if kwargs.get("time_limit") is None and kwargs.get("soft_time_limit") is None:
-            kwargs["soft_time_limit"] = int(timedelta(hours=3).total_seconds())
-            kwargs["time_limit"] = int(timedelta(hours=3, seconds=15).total_seconds())
 
         # We never use result backends in Celery. Leaving `trail=True` means that if we schedule
         # many tasks from a parent task, each task leaks memory. This can lead to the scheduler
