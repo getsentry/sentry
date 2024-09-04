@@ -80,6 +80,9 @@ from sentry.discover.endpoints.discover_saved_query_detail import (
 from sentry.incidents.endpoints.organization_alert_rule_activations import (
     OrganizationAlertRuleActivationsEndpoint,
 )
+from sentry.incidents.endpoints.organization_alert_rule_anomalies import (
+    OrganizationAlertRuleAnomaliesEndpoint,
+)
 from sentry.incidents.endpoints.organization_alert_rule_available_action_index import (
     OrganizationAlertRuleAvailableActionIndexEndpoint,
 )
@@ -1168,6 +1171,11 @@ ORGANIZATION_URLS = [
         r"^(?P<organization_id_or_slug>[^\/]+)/alert-rules/(?P<alert_rule_id>[^\/]+)/activations/$",
         OrganizationAlertRuleActivationsEndpoint.as_view(),
         name="sentry-api-0-organization-alert-rule-activations",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^\/]+)/alert-rules/(?P<alert_rule_id>[^\/]+)/anomalies/$",
+        OrganizationAlertRuleAnomaliesEndpoint.as_view(),
+        name="sentry-api-0-organization-alert-rule-anomalies",
     ),
     re_path(  # fetch combined metric and issue alert rules
         r"^(?P<organization_id_or_slug>[^\/]+)/combined-rules/$",

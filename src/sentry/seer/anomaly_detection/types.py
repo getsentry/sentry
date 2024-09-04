@@ -2,6 +2,11 @@ from enum import Enum
 from typing import NotRequired, TypedDict
 
 
+class Anomaly(TypedDict):
+    anomaly_type: str
+    anomaly_value: float
+
+
 class TimeSeriesPoint(TypedDict):
     timestamp: float
     value: float
