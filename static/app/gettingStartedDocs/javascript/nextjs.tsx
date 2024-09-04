@@ -80,12 +80,9 @@ const onboarding: OnboardingConfig = {
           <List symbol="bullet">
             <ListItem>
               {tct(
-                'Create [serverCode:sentry.server.config.js], [clientCode:sentry.client.config.js] and [edgeCode:sentry.edge.config.js] with the default [sentryInitCode:Sentry.init].',
+                'Create [code:sentry.server.config.js], [code:sentry.client.config.js] and [code:sentry.edge.config.js] with the default [code:Sentry.init].',
                 {
-                  clientCode: <code />,
-                  serverCode: <code />,
-                  edgeCode: <code />,
-                  sentryInitCode: <code />,
+                  code: <code />,
                 }
               )}
             </ListItem>
@@ -171,7 +168,7 @@ const replayOnboarding: OnboardingConfig = {
         {
           code: [
             {
-              label: 'JavaScript',
+              label: 'sentry.client.config.js',
               value: 'javascript',
               language: 'javascript',
               code: getReplaySDKSetupSnippet({
@@ -188,10 +185,9 @@ const replayOnboarding: OnboardingConfig = {
         <Fragment>
           <TracePropagationMessage />
           {tct(
-            'Alert: The Replay integration must be added to your [sentryClient:sentry.client.config.js] file. Adding it to any server-side configuration files (like [instrumentation:instrumentation.ts]) will break your build because the Replay integration depends on Browser APIs.',
+            'Note: The Replay integration only needs to be added to your [code:sentry.client.config.js] file. Adding it to any server-side configuration files (like [code:instrumentation.ts]) will break your build because the Replay integration depends on Browser APIs.',
             {
-              sentryClient: <code />,
-              instrumentation: <code />,
+              code: <code />,
             }
           )}
         </Fragment>
@@ -228,7 +224,7 @@ const feedbackOnboarding: OnboardingConfig = {
         {
           code: [
             {
-              label: 'JavaScript',
+              label: 'sentry.client.config.js',
               value: 'javascript',
               language: 'javascript',
               code: getFeedbackSDKSetupSnippet({
@@ -244,10 +240,9 @@ const feedbackOnboarding: OnboardingConfig = {
         <AdditionalInfoWrapper>
           <div>
             {tct(
-              'Alert: The User Feedback integration must be added to your [sentryClient:sentry.client.config.js] file. Adding it to any server-side configuration files (like [instrumentation:instrumentation.ts]) will break your build because the Replay integration depends on Browser APIs.',
+              'Note: The User Feedback integration only needs to be added to your [code:sentry.client.config.js] file. Adding it to any server-side configuration files (like [code:instrumentation.ts]) will break your build because the Replay integration depends on Browser APIs.',
               {
-                sentryClient: <code />,
-                instrumentation: <code />,
+                code: <code />,
               }
             )}
           </div>
