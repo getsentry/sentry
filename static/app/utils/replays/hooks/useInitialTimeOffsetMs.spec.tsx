@@ -196,7 +196,7 @@ describe('useInitialTimeOffsetMs', () => {
         expect(result.current).toStrictEqual({
           highlight: {
             annotation: undefined,
-            nodeId: 7,
+            nodeIds: [7],
             spotlight: true,
           },
           offsetMs: 5 * 60 * 1000,
@@ -240,7 +240,7 @@ describe('useInitialTimeOffsetMs', () => {
         expect(result.current).toStrictEqual({
           highlight: {
             annotation: undefined,
-            nodeId: 7,
+            nodeIds: [7],
             spotlight: true,
           },
           offsetMs: 5 * 60 * 1000,
