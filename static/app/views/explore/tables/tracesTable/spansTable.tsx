@@ -1,4 +1,4 @@
-import {Fragment} from 'react';
+import {Fragment, useMemo} from 'react';
 import {useTheme} from '@emotion/react';
 import moment from 'moment-timezone';
 
@@ -49,7 +49,7 @@ export function SpanTable({
 
   const [query] = useUserQuery();
 
-  const spansQuery = useTraceSpans({
+  const {data, isLoading, isError} = useTraceSpans({
     trace,
     fields: [
       ...FIELDS,
@@ -69,13 +69,18 @@ export function SpanTable({
     sort: SORTS,
   });
 
-  const isLoading = spansQuery.isFetching;
-  const isError = !isLoading && spansQuery.isError;
-  const hasData = !isLoading && !isError && (spansQuery?.data?.data?.length ?? 0) > 0;
-  const spans = spansQuery.data?.data ?? [];
+  const spans = useMemo(() => data?.data ?? [], [data]);
+
+  const showErrorState = useMemo(() => {
+    return !isLoading && isError;
+  }, [isLoading, isError]);
+
+  const hasData = useMemo(() => {
+    return !isLoading && !showErrorState && spans.length > 0;
+  }, [spans, isLoading, showErrorState]);
 
   return (
-    <SpanTablePanelItem span={7} overflow>
+    <SpanTablePanelItem span={6} overflow>
       <StyledPanel>
         <SpanPanelContent>
           <StyledPanelHeader align="left" lightText>
@@ -103,7 +108,7 @@ export function SpanTable({
               </EmptyStreamWrapper>
             </StyledPanelItem>
           )}
-          {spans.map(span => (
+          {data?.data.map(span => (
             <SpanRow
               organization={organization}
               key={span.id}

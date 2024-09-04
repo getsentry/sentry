@@ -101,5 +101,5 @@ export const EmptyValueContainer = styled('span')`
 export const SpanPanelContent = styled('div')`
   width: 100%;
   display: grid;
-  grid-template-columns: 100px auto repeat(1, min-content) 160px 85px;
+  grid-template-columns: 100px auto repeat(1, min-content) 100px 75px;
 `;
