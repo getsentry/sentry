@@ -18,8 +18,7 @@ import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 import type {PlatformKey} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {decodeList} from 'sentry/utils/queryString';
-import useRouter from 'sentry/utils/useRouter';
+import {useOnboardingQueryParams} from 'sentry/views/onboarding/components/useOnboardingQueryParams';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
 
 // TODO(aknaus): move to types
@@ -316,9 +315,8 @@ export function ProductSelection({
   productsPerPlatform = platformProductAvailability,
   projectId,
 }: ProductSelectionProps) {
-  const router = useRouter();
-  const urlProducts = decodeList(router.location.query.product);
-  const showLoader = router.location.query.showLoader === 'true';
+  const [params, setParams] = useOnboardingQueryParams();
+  const urlProducts = useMemo(() => params.product ?? [], [params.product]);
   const supportLoader = platform === 'javascript';
 
   const products: ProductSolution[] | undefined = platform
@@ -334,18 +332,10 @@ export function ProductSelection({
   }, [products, disabledProducts]);
 
   useEffect(() => {
-    const query = {
-      ...router.location.query,
+    setParams({
+      showLoader:
+        supportLoader && params.showLoader === undefined ? true : params.showLoader,
       product: defaultProducts,
-    };
-
-    if (supportLoader && query.showLoader === undefined) {
-      query.showLoader = true;
-    }
-
-    router.replace({
-      pathname: router.location.pathname,
-      query,
     });
     // Adding defaultProducts to the dependency array causes an max-depth error
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -375,13 +365,7 @@ export function ProductSelection({
       }
 
       const selectedProducts = [...newProduct] as ProductSolution[];
-      router.replace({
-        pathname: router.location.pathname,
-        query: {
-          ...router.location.query,
-          product: selectedProducts,
-        },
-      });
+      setParams({product: selectedProducts});
 
       if (organization.features.includes('project-create-replay-feedback')) {
         HookStore.get('callback:on-create-project-product-selection').map(cb =>
@@ -389,11 +373,11 @@ export function ProductSelection({
         );
       }
     },
-    [defaultProducts, organization, router, urlProducts]
+    [defaultProducts, organization, setParams, urlProducts]
   );
 
   const handleToggleLoader = useCallback(() => {
-    if (!showLoader === false && platform) {
+    if (!params.showLoader === false && platform) {
       trackAnalytics('onboarding.js_loader_npm_docs_shown', {
         organization,
         platform,
@@ -401,14 +385,8 @@ export function ProductSelection({
       });
     }
 
-    router.replace({
-      pathname: router.location.pathname,
-      query: {
-        ...router.location.query,
-        showLoader: !showLoader,
-      },
-    });
-  }, [router, showLoader, platform, projectId, organization]);
+    setParams({showLoader: !params.showLoader});
+  }, [setParams, platform, projectId, organization, params.showLoader]);
 
   if (!products) {
     // if the platform does not support any product, we don't render anything
@@ -494,7 +472,7 @@ export function ProductSelection({
       </Products>
       {showPackageManagerInfo && supportLoader && (
         <AlternativeInstallationAlert type="info" showIcon>
-          {showLoader
+          {params.showLoader
             ? tct('Prefer to set up Sentry using [npm:npm] or [yarn:yarn]? [goHere]', {
                 npm: <strong />,
                 yarn: <strong />,
