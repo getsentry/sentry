@@ -3,9 +3,11 @@ from pydantic import BaseModel
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry import features
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
+from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers.base import serialize
 from sentry.apidocs.constants import (
@@ -55,6 +57,10 @@ class OrganizationAlertRuleAnomaliesEndpoint(OrganizationAlertRuleEndpoint):
         """
         Return a list of anomalies for a metric alert rule.
         """
+        if not features.has("organizations:anomaly-detection-alerts", organization):
+            raise ResourceDoesNotExist("Your organization does not have access to this feature.")
+
+        # NOTE: this will break if we ever do more than one project per alert rule
         project = alert_rule.projects.first()
         start = request.GET.get("start", None)
         end = request.GET.get("end", None)
@@ -66,8 +72,10 @@ class OrganizationAlertRuleAnomaliesEndpoint(OrganizationAlertRuleEndpoint):
             )
 
         anomalies = get_historical_anomaly_data_from_seer(alert_rule, project, start, end)
+        # NOTE: returns None if there's a problem with the Seer response
         if anomalies is None:
             return Response("Unable to get historical anomaly data", status=400)
+        # NOTE: returns empty list if there is not enough event data
         return self.paginate(
             request=request,
             queryset=anomalies,

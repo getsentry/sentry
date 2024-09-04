@@ -1,11 +1,9 @@
 from datetime import timedelta
 from unittest.mock import patch
 
-# import orjson
 import pytest
 from urllib3.response import HTTPResponse
 
-# from sentry.conf.server import SEER_ANOMALY_DETECTION_ENDPOINT_URL
 from sentry.incidents.models.alert_rule import (
     AlertRuleDetectionType,
     AlertRuleSeasonality,
@@ -34,9 +32,6 @@ class AlertRuleAnomalyEndpointTest(AlertRuleBase, SnubaTestCase):
     @patch(
         "sentry.seer.anomaly_detection.store_data.seer_anomaly_detection_connection_pool.urlopen"
     )
-    # @patch(
-    #     "sentry.seer.anomaly_detection.get_historical_anomalies.seer_anomaly_detection_connection_pool.urlopen"
-    # )
     def test_simple(self, mock_seer_store_request):
         self.create_team(organization=self.organization, members=[self.user])
         two_weeks_ago = before_now(days=14).replace(hour=10, minute=0, second=0, microsecond=0)
@@ -73,28 +68,7 @@ class AlertRuleAnomalyEndpointTest(AlertRuleBase, SnubaTestCase):
 
         self.login_as(self.user)
 
-        # seer_return_value = {
-        #     "anomalies": [
-        #         {
-        #             "anomaly": {
-        #                 "anomaly_score": 0.0,
-        #                 "anomaly_type": AnomalyType.NONE.value,
-        #             },
-        #             "timestamp": 1,
-        #             "value": 1,
-        #         },
-        #         {
-        #             "anomaly": {
-        #                 "anomaly_score": 0.0,
-        #                 "anomaly_type": AnomalyType.NONE.value,
-        #             },
-        #             "timestamp": 2,
-        #             "value": 1,
-        #         },
-        #     ]
-        # }
         mock_seer_store_request.return_value = HTTPResponse(status=200)
-        # mock_seer_request.return_value = HTTPResponse(orjson.dumps(seer_return_value), status=200)
         with outbox_runner():
             resp = self.get_success_response(
                 self.organization.slug,
@@ -107,10 +81,6 @@ class AlertRuleAnomalyEndpointTest(AlertRuleBase, SnubaTestCase):
             )
 
         assert mock_seer_store_request.call_count == 1
-        # assert mock_seer_request.call_count == 1
-        # assert mock_seer_request.call_args.args[0] == "POST"
-        # assert mock_seer_request.call_args.args[1] == SEER_ANOMALY_DETECTION_ENDPOINT_URL
-        # assert resp.data == seer_return_value["anomalies"]
         assert resp.data == [
             {
                 "timestamp": 0.1,
