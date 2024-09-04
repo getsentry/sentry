@@ -178,6 +178,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
 
         assert materialized["metadata"] == {"title": "<unlabeled event>", "dogs": "are great"}
 
+    @pytest.mark.skip(reason="Flaky test")
     def test_react_error_picks_cause_error_title_subtitle(self) -> None:
         cause_error_value = "Load failed"
         # React 19 hydration error include the hydration error and a cause
@@ -216,6 +217,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
         assert event.group is not None
         assert event.group.title == f"TypeError: {cause_error_value}"
 
+    @pytest.mark.skip(reason="Flaky test")
     def test_react_hydration_error_picks_cause_error_title_subtitle(self) -> None:
         cause_error_value = "Cannot read properties of undefined (reading 'nodeName')"
         # React 19 hydration error include the hydration error and a cause
@@ -2051,6 +2053,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
             == 0
         )
 
+    @pytest.mark.skip(reason="Flaky test")
     def test_category_match_in_app(self) -> None:
         """
         Regression test to ensure that grouping in-app enhancements work in

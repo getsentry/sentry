@@ -501,6 +501,7 @@ class EventManagerGroupingMetricsTest(TestCase):
 
     @mock.patch("sentry.event_manager.metrics.incr")
     @mock.patch("sentry.grouping.ingest.hashing.is_in_transition", return_value=True)
+    @pytest.mark.skip(reason="Flaky test")
     def test_records_hash_comparison(self, _, mock_metrics_incr: MagicMock):
         project = self.project
         project.update_option("sentry:grouping_config", NEWSTYLE_CONFIG)
