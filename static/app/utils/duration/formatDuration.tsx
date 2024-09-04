@@ -79,13 +79,19 @@ export default function formatDuration({
     case 'hh:mm:ss': // fall-through
     case 'h:mm:ss.sss': // fall-through
     case 'hh:mm:ss.sss':
+      const truncatedValueInMs = normalizeTimespanToMs(
+        Math.floor(valueInUnit),
+        precision
+      );
+      const valueInSec = msToPrecision(truncatedValueInMs, 'sec');
+
+      const padAll = style.startsWith('hh:mm:ss');
       const includeMs = style.endsWith('.sss');
-      const valueInSec = msToPrecision(ms, 'sec');
-      const str = formatSecondsToClock(valueInSec, {
-        padAll: style.startsWith('hh:mm:ss'),
-      });
+      const str = formatSecondsToClock(valueInSec, {padAll});
       const [head, tail] = str.split('.');
-      return includeMs ? [head, tail ?? '000'].join('.') : String(head);
+      return includeMs
+        ? [head, precision === 'ms' ? tail ?? '000' : '000'].join('.')
+        : String(head);
     case 'ISO8601':
       const output = ['P'];
 
