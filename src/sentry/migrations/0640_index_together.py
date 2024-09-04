@@ -180,16 +180,6 @@ class Migration(CheckedMigration):
             old_fields=("project_id", "code_id"),
         ),
         migrations.RenameIndex(
-            model_name="pullrequest",
-            new_name="sentry_pull_reposit_c429a4_idx",
-            old_fields=("repository_id", "date_added"),
-        ),
-        migrations.RenameIndex(
-            model_name="pullrequest",
-            new_name="sentry_pull_organiz_8aabcf_idx",
-            old_fields=("organization_id", "merge_commit_sha"),
-        ),
-        migrations.RenameIndex(
             model_name="regionoutbox",
             new_name="sentry_regi_shard_s_e7412f_idx",
             old_fields=("shard_scope", "shard_identifier", "id"),
