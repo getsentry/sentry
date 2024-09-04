@@ -508,6 +508,8 @@ def single_exception(
         id="type",
         values=[interface.type] if interface.type else [],
     )
+    # XXX ??
+    # system_type_component = type_component.shallow_copy()
 
     ns_error_component = None
 
@@ -523,6 +525,10 @@ def single_exception(
             # can be continuously modified without unnecessarily creating new
             # groups.
             type_component.update(contributes=False, hint="ignored because exception is synthetic")
+            # XXX: Should this come back?
+            # system_type_component.update(
+            #     contributes=False, hint="ignored because exception is synthetic"
+            # )
         if interface.mechanism.meta and "ns_error" in interface.mechanism.meta:
             ns_error_component = GroupingComponent(
                 id="ns-error",
