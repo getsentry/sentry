@@ -2082,7 +2082,11 @@ class MetricsDatasetConfig(DatasetConfig):
         else:
             condition = base_condition
 
-        default_interval = 1 if self.should_skip_interval_calculation else args["interval"]
+        default_interval = (
+            self.builder.resolve_granularity().granularity
+            if self.should_skip_interval_calculation
+            else args["interval"]
+        )
 
         return Function(
             "divide",
