@@ -12,6 +12,7 @@ FRONTEND = {
     "javascript-ember",
     "javascript-gatsby",
     "javascript-vue",
+    "javascript-nuxt",
     "javascript-nextjs",
     "javascript-remix",
     "javascript-solid",
