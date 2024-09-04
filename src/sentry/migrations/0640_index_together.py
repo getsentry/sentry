@@ -120,11 +120,6 @@ class Migration(CheckedMigration):
             old_fields=("project", "status", "type", "last_seen", "id"),
         ),
         migrations.RenameIndex(
-            model_name="groupenvironment",
-            new_name="sentry_grou_environ_443bdb_idx",
-            old_fields=("environment", "first_release", "first_seen"),
-        ),
-        migrations.RenameIndex(
             model_name="grouphistory",
             new_name="sentry_grou_project_bbcf30_idx",
             old_fields=("project", "status", "release"),
