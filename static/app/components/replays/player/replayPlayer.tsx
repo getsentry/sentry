@@ -77,12 +77,21 @@ function useReplayerInstance() {
   return mountPointRef;
 }
 
-type Props = HTMLAttributes<HTMLDivElement> & {
+interface Props extends HTMLAttributes<HTMLDivElement> {
   css?: Interpolation<Theme>;
-};
+  offsetMs?: undefined | number;
+}
 
-export default function ReplayPlayer(props: Props) {
+export default function ReplayPlayer({offsetMs, ...props}: Props) {
   const mountPointRef = useReplayerInstance();
+  const userAction = useReplayUserAction();
+
+  useEffect(() => {
+    if (offsetMs !== undefined) {
+      userAction({type: 'jumpToOffset', offsetMs});
+    }
+  }, [offsetMs, userAction]);
+
   return (
     <div
       {...props}

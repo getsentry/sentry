@@ -116,7 +116,10 @@ function stateReducer(state: State, replayerAction: ReplayerAction): State {
     case 'didUnmountPlayer': {
       state.replayerCleanup.get(replayerAction.replayer)?.();
       state.replayerCleanup.delete(replayerAction.replayer);
-      replayerAction.replayer.destroy();
+
+      // Don't call destroy. It basically just removes the component from the
+      // DOM and then triggers `ReplayerEvents.Destroy`.
+      // replayerAction.replayer.destroy();
 
       return {
         ...state,
@@ -153,6 +156,7 @@ function stateReducer(state: State, replayerAction: ReplayerAction): State {
       return state;
 
     case 'didPlayerStateChange':
+      // console.log('didPlayerStateChange', state);
       return state;
     case 'didSpeedStateChange':
       return {...state, currentSpeed: replayerAction.speedState.context.timer.speed};
@@ -197,7 +201,7 @@ function invokeUserAction(replayer: Replayer, userAction: UserAction): void {
         replayer.pause(offsetMs);
       }
 
-      // TOOD: going back to the start of the replay needs to re-build & re-render the first frame!
+      // TOOD: going back to the start of the replay needs to re-build & re-render the first frame I think.
 
       return;
     default:
@@ -257,7 +261,7 @@ function makeReplayerEventMap(
     [ReplayerEvents.MouseInteraction]: () => {},
     [ReplayerEvents.EventCast]: () => {},
     [ReplayerEvents.CustomEvent]: () => {},
-    [ReplayerEvents.Destroy]: () => {},
+    [ReplayerEvents.Destroy]: () => {}, // Won't be called because we're not calling replay.destroy()
   };
 }
 

@@ -1,9 +1,12 @@
+import {useState} from 'react';
+import type {TabListState} from '@react-stately/tabs';
+
 import Alert from 'sentry/components/alert';
 import {Flex} from 'sentry/components/container/flex';
 import {ReplaySideBySideImageDiff} from 'sentry/components/replays/diff/replaySideBySideImageDiff';
 import {ReplaySliderDiff} from 'sentry/components/replays/diff/replaySliderDiff';
 import {ReplayTextDiff} from 'sentry/components/replays/diff/replayTextDiff';
-import {TabList, TabPanels, Tabs} from 'sentry/components/tabs';
+import {TabList, TabPanels, TabsContext, type TabsProps} from 'sentry/components/tabs';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -37,7 +40,7 @@ export default function ReplayDiffChooser({
   };
 
   return (
-    <Tabs<DiffType> defaultValue={defaultTab} onChange={onTabChange}>
+    <TabStateProvider<DiffType> defaultValue={defaultTab} onChange={onTabChange}>
       {isSameTimestamp ? (
         <Alert type="warning" showIcon>
           {t(
@@ -77,6 +80,26 @@ export default function ReplayDiffChooser({
           </TabPanels.Item>
         </TabPanels>
       </Flex>
-    </Tabs>
+    </TabStateProvider>
+  );
+}
+
+// TODO(ryan953): put this into static/app/components/tabs/index.tsx near `<Tabs>`
+function TabStateProvider<T extends string | number>({
+  children,
+  ...props
+}: Omit<TabsProps<T>, 'orientation' | 'className'>) {
+  const [tabListState, setTabListState] = useState<TabListState<any>>();
+
+  return (
+    <TabsContext.Provider
+      value={{
+        rootProps: {...props, orientation: 'horizontal'},
+        tabListState,
+        setTabListState,
+      }}
+    >
+      {children}
+    </TabsContext.Provider>
   );
 }

@@ -2,7 +2,7 @@ import type {CSSProperties, ReactNode} from 'react';
 import {useRef} from 'react';
 import {css} from '@emotion/react';
 
-import {divide} from 'sentry/components/replays/utils';
+import divide from 'sentry/utils/number/divide';
 import useReplayPlayerState from 'sentry/utils/replays/playback/providers/useReplayPlayerState';
 import {useDimensions} from 'sentry/utils/useDimensions';
 

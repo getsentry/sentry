@@ -1,7 +1,7 @@
 import {useEffect} from 'react';
 
-import useRAF from 'sentry/utils/replays/hooks/useRAF';
 import useReplayPlayerState from 'sentry/utils/replays/playback/providers/useReplayPlayerState';
+import useRAF from 'sentry/utils/useRAF';
 
 interface Props {
   callback: (props: {timeMs: number}) => void;
@@ -18,17 +18,11 @@ export default function useReplayCurrentTime({callback}: Props) {
         callback({timeMs: replayer.getCurrentTime()});
       }
     },
-    {enabled: replayer && playerState === 'playing'}
+    {enabled: Boolean(replayer) && playerState === 'playing'}
   );
 
   useEffect(() => {
     if (state?.value === 'paused' && state?.context.timeOffset !== undefined) {
-      console.log('paused', {
-        isFinished,
-        replayer,
-        getCurrentTime: replayer?.getCurrentTime(),
-        timeOffset: state?.context.timeOffset,
-      });
       if (isFinished && replayer) {
         callback({timeMs: replayer?.getCurrentTime()});
       } else {

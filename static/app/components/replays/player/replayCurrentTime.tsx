@@ -8,5 +8,5 @@ export default function ReplayCurrentTime() {
 
   useReplayCurrentTime({callback: setCurrentTime});
 
-  return <Duration duration={[currentTime.timeMs, 'ms']} />;
+  return <Duration duration={[currentTime.timeMs, 'ms']} precision="sec" />;
 }

@@ -57,6 +57,7 @@ export default function ReplayDiffContent({event, group, orgSlug, replaySlug}: P
             leftOffsetMs={leftOffsetMs}
             replay={replay}
             rightOffsetMs={rightOffsetMs}
+            fixedHeight={335}
           />
         </ReplayGroupContextProvider>
       </ErrorBoundary>

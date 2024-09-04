@@ -2,14 +2,16 @@ import {Fragment, useCallback, useRef} from 'react';
 import styled from '@emotion/styled';
 
 import NegativeSpaceContainer from 'sentry/components/container/negativeSpaceContainer';
-import ReplayIFrameRoot from 'sentry/components/replays/player/replayIFrameRoot';
-import {Provider as ReplayContextProvider} from 'sentry/components/replays/replayContext';
+import ReplayPlayer from 'sentry/components/replays/player/replayPlayer';
+import ReplayPlayerContainment from 'sentry/components/replays/player/replayPlayerContainment';
 import {Tooltip} from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import formatDuration from 'sentry/utils/duration/formatDuration';
 import toPixels from 'sentry/utils/number/toPixels';
+import {ReplayPlayerEventsContextProvider} from 'sentry/utils/replays/playback/providers/useReplayPlayerEvents';
+import {ReplayPlayerPluginsContextProvider} from 'sentry/utils/replays/playback/providers/useReplayPlayerPlugins';
+import {ReplayPlayerStateContextProvider} from 'sentry/utils/replays/playback/providers/useReplayPlayerState';
 import type ReplayReader from 'sentry/utils/replays/replayReader';
 import {useDimensions} from 'sentry/utils/useDimensions';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -19,45 +21,35 @@ interface Props {
   leftOffsetMs: number;
   replay: null | ReplayReader;
   rightOffsetMs: number;
+  fixedHeight?: number;
 }
 
-export function ReplaySliderDiff({leftOffsetMs, replay, rightOffsetMs}: Props) {
+export function ReplaySliderDiff({
+  leftOffsetMs,
+  replay,
+  rightOffsetMs,
+  fixedHeight,
+}: Props) {
   const positionedRef = useRef<HTMLDivElement>(null);
   const viewDimensions = useDimensions({elementRef: positionedRef});
 
   const width = toPixels(viewDimensions.width);
   return (
-    <Fragment>
-      <Header>
+    <Wrapper>
+      <Labels>
         <Tooltip title={t('How the initial server-rendered page looked.')}>
-          <div style={{color: 'red'}}>
-            {t('Before')} @{' '}
-            {formatDuration({
-              duration: [leftOffsetMs, 'ms'],
-              precision: 'ms',
-              style: 'hh:mm:ss.sss',
-            })}
-            ms
-          </div>
+          <div style={{color: 'red'}}>{t('Before')}</div>
         </Tooltip>
         <Tooltip
           title={t(
             'How React re-rendered the page on your browser, after detecting a hydration error.'
           )}
         >
-          <div style={{color: 'green'}}>
-            {t('After')} @{' '}
-            {formatDuration({
-              duration: [rightOffsetMs, 'ms'],
-              precision: 'ms',
-              style: 'hh:mm:ss.sss',
-            })}
-            ms
-          </div>
+          <div style={{color: 'green'}}>{t('After')}</div>
         </Tooltip>
-      </Header>
+      </Labels>
       <WithPadding>
-        <Positioned ref={positionedRef}>
+        <Positioned ref={positionedRef} style={{height: fixedHeight}}>
           {viewDimensions.width ? (
             <DiffSides
               leftOffsetMs={leftOffsetMs}
@@ -71,7 +63,7 @@ export function ReplaySliderDiff({leftOffsetMs, replay, rightOffsetMs}: Props) {
           )}
         </Positioned>
       </WithPadding>
-    </Fragment>
+    </Wrapper>
   );
 }
 
@@ -118,26 +110,32 @@ function DiffSides({leftOffsetMs, replay, rightOffsetMs, viewDimensions, width})
     <Fragment>
       <Cover style={{width}}>
         <Placement style={{width}}>
-          <ReplayContextProvider
-            analyticsContext="replay_comparison_modal_left"
-            initialTimeOffsetMs={{offsetMs: leftOffsetMs}}
-            isFetching={false}
-            replay={replay}
-          >
-            <ReplayIFrameRoot viewDimensions={viewDimensions} />
-          </ReplayContextProvider>
+          <ReplayPlayerPluginsContextProvider>
+            <ReplayPlayerEventsContextProvider replay={replay}>
+              <ReplayPlayerStateContextProvider>
+                <NegativeSpaceContainer>
+                  <ReplayPlayerContainment measure="width">
+                    {style => <ReplayPlayer style={style} offsetMs={leftOffsetMs} />}
+                  </ReplayPlayerContainment>
+                </NegativeSpaceContainer>
+              </ReplayPlayerStateContextProvider>
+            </ReplayPlayerEventsContextProvider>
+          </ReplayPlayerPluginsContextProvider>
         </Placement>
       </Cover>
       <Cover ref={rightSideElem} style={{width: 0}}>
         <Placement style={{width}}>
-          <ReplayContextProvider
-            analyticsContext="replay_comparison_modal_right"
-            initialTimeOffsetMs={{offsetMs: rightOffsetMs}}
-            isFetching={false}
-            replay={replay}
-          >
-            <ReplayIFrameRoot viewDimensions={viewDimensions} />
-          </ReplayContextProvider>
+          <ReplayPlayerPluginsContextProvider>
+            <ReplayPlayerEventsContextProvider replay={replay}>
+              <ReplayPlayerStateContextProvider>
+                <NegativeSpaceContainer>
+                  <ReplayPlayerContainment measure="width">
+                    {style => <ReplayPlayer style={style} offsetMs={rightOffsetMs} />}
+                  </ReplayPlayerContainment>
+                </NegativeSpaceContainer>
+              </ReplayPlayerStateContextProvider>
+            </ReplayPlayerEventsContextProvider>
+          </ReplayPlayerPluginsContextProvider>
         </Placement>
       </Cover>
       <Divider ref={dividerElem} onMouseDown={onDividerMouseDownWithAnalytics} />
@@ -145,15 +143,26 @@ function DiffSides({leftOffsetMs, replay, rightOffsetMs, viewDimensions, width})
   );
 }
 
+const Wrapper = styled('div')`
+  display: flex;
+  flex-direction: column;
+`;
+
+const Labels = styled('div')`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+`;
+
 const WithPadding = styled(NegativeSpaceContainer)`
   padding-block: ${space(1.5)};
   overflow: visible;
 `;
 
 const Positioned = styled('div')`
-  min-height: 335px;
   position: relative;
   width: 100%;
+  height: 100%;
 `;
 
 const Cover = styled('div')`
@@ -212,10 +221,4 @@ const Divider = styled('div')`
     bottom: 0;
     transform: translate(calc(var(--handle-size) / -2 + var(--line-width) / 2), 100%);
   }
-`;
-
-const Header = styled('div')`
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
 `;
