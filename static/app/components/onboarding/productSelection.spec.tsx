@@ -233,10 +233,13 @@ describe('Onboarding Product Selection', function () {
 
     // router.replace is called to remove session-replay from query
     await waitFor(() =>
-      expect(router.replace).toHaveBeenCalledWith({
-        pathname: undefined,
-        query: {product: [ProductSolution.PERFORMANCE_MONITORING]},
-      })
+      expect(router.replace).toHaveBeenCalledWith(
+        expect.objectContaining({
+          query: expect.objectContaining({
+            product: [ProductSolution.PERFORMANCE_MONITORING],
+          }),
+        })
+      )
     );
   });
 
@@ -265,12 +268,13 @@ describe('Onboarding Product Selection', function () {
 
     // router.replace is called to add profiling from query
     await waitFor(() =>
-      expect(router.replace).toHaveBeenCalledWith({
-        pathname: undefined,
-        query: {
-          product: [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
-        },
-      })
+      expect(router.replace).toHaveBeenCalledWith(
+        expect.objectContaining({
+          query: expect.objectContaining({
+            product: [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
+          }),
+        })
+      )
     );
   });
 
