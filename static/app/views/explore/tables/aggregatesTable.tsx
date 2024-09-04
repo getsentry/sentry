@@ -17,27 +17,32 @@ import {
   useTableStyles,
 } from 'sentry/views/explore/components/table';
 import {useDataset} from 'sentry/views/explore/hooks/useDataset';
-import {useSampleFields} from 'sentry/views/explore/hooks/useSampleFields';
+import {useGroupBys} from 'sentry/views/explore/hooks/useGroupBys';
 import {useSorts} from 'sentry/views/explore/hooks/useSorts';
 import {useUserQuery} from 'sentry/views/explore/hooks/useUserQuery';
+import {useVisualizes} from 'sentry/views/explore/hooks/useVisualizes';
 import {useSpansQuery} from 'sentry/views/insights/common/queries/useSpansQuery';
 
-interface SpansTableProps {}
+interface AggregatesTableProps {}
 
-export function SpansTable({}: SpansTableProps) {
+export function AggregatesTable({}: AggregatesTableProps) {
   const location = useLocation();
   const organization = useOrganization();
   const {selection} = usePageFilters();
 
   const [dataset] = useDataset();
-  const [fields] = useSampleFields();
+  const [groupBys] = useGroupBys();
+  const [visualizes] = useVisualizes();
+  const fields = useMemo(() => {
+    return [...groupBys, ...visualizes].filter(Boolean);
+  }, [groupBys, visualizes]);
   const [sorts] = useSorts({fields});
   const [query] = useUserQuery();
 
   const eventView = useMemo(() => {
     const discoverQuery: NewQuery = {
       id: undefined,
-      name: 'Explore - Span Samples',
+      name: 'Explore - Span Aggregates',
       fields,
       orderby: sorts.map(sort => `${sort.kind === 'desc' ? '-' : ''}${sort.field}`),
       query,
@@ -51,7 +56,7 @@ export function SpansTable({}: SpansTableProps) {
   const result = useSpansQuery({
     eventView,
     initialData: [],
-    referrer: 'api.explore.spans-samples-table',
+    referrer: 'api.explore.spans-aggregates-table',
   });
 
   const {tableStyles} = useTableStyles({
