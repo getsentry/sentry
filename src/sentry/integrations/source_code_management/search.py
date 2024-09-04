@@ -84,10 +84,7 @@ class SourceCodeSearchEndpoint(IntegrationEndpoint, Generic[T], ABC):
 
         installation = integration.get_installation(organization.id)
         if not isinstance(installation, self.installation_class):
-            integration_provider = (
-                self.integration_provider if self.integration_provider else "github"
-            )
-            raise NotFound(f"Integration by that id is not of type {integration_provider}.")
+            raise NotFound(f"Integration by that id is not of type {self.integration_provider}.")
 
         if field == self.issue_field:
             repo = request.GET.get(self.repository_field)
@@ -100,4 +97,4 @@ class SourceCodeSearchEndpoint(IntegrationEndpoint, Generic[T], ABC):
         if self.repository_field and field == self.repository_field:
             return self.handle_search_repositories(integration, installation, query)
 
-        return Response(status=400)
+        return Response({"detail": "Invalid field"}, status=400)
