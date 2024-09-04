@@ -206,8 +206,8 @@ const feedbackOnboarding: OnboardingConfig = {
         <Fragment>
           <p>
             {tct(
-              'Note: The Feedback integration only needs to be added to your [entryClient:entry.client.tsx] file.',
-              {entryClient: <code />, sentryServer: <code />}
+              'Note: The Feedback integration only needs to be added to your [code:entry.client.tsx] file.',
+              {code: <code />}
             )}
           </p>
 
