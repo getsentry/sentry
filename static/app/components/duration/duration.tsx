@@ -11,8 +11,8 @@ interface Props extends HTMLAttributes<HTMLTimeElement> {
   duration: TDuration;
 
   /**
-   * How granular to render the value. You can pass in something that has `ms`
-   * precision but only show the total number of seconds (ala Math.floor)
+   * How granular to render the value. For example you can pass in something
+   * that has `ms` precision but only show the total number of seconds.
    */
   precision: Unit;
 
