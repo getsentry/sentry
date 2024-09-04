@@ -5,7 +5,7 @@ from rest_framework.exceptions import ParseError
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import search
+from sentry import options, search
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import EnvironmentMixin, region_silo_endpoint
 from sentry.api.bases import NoProjects, OrganizationEventsEndpointBase
@@ -176,6 +176,7 @@ class OrganizationSpansSamplesEndpoint(OrganizationEventsEndpointBase):
             orderby=["-profile_id"],
             snuba_params=snuba_params,
             query=request.query_params.get("query"),
+            sample=options.get("insights.span-samples-query.sample-rate") or None,
             referrer=Referrer.API_SPAN_SAMPLE_GET_SPAN_IDS.value,
             query_source=(QuerySource.FRONTEND if is_frontend else QuerySource.API),
         )
