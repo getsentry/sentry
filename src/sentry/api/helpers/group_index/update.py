@@ -24,7 +24,11 @@ from sentry.db.models.query import create_or_update
 from sentry.hybridcloud.rpc import coerce_id_from
 from sentry.integrations.tasks.kick_off_status_syncs import kick_off_status_syncs
 from sentry.issues.grouptype import GroupCategory
-from sentry.issues.ignored import handle_archived_until_escalating, handle_ignored
+from sentry.issues.ignored import (
+    IGNORED_CONDITION_FIELDS,
+    handle_archived_until_escalating,
+    handle_ignored,
+)
 from sentry.issues.merge import handle_merge
 from sentry.issues.ongoing import TRANSITION_AFTER_DAYS
 from sentry.issues.priority import update_priority
@@ -590,7 +594,7 @@ def update_groups(
         if new_status == GroupStatus.IGNORED and new_substatus is None:
             if status_details.get("untilEscalating"):
                 new_substatus = GroupSubStatus.UNTIL_ESCALATING
-            elif any(value for value in status_details.values is not None):
+            elif any(status_details.get(key) is not None for key in IGNORED_CONDITION_FIELDS):
                 new_substatus = GroupSubStatus.UNTIL_CONDITION_MET
             else:
                 new_substatus = GroupSubStatus.FOREVER
