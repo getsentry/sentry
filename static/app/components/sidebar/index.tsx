@@ -865,6 +865,11 @@ const PrimaryItems = styled('div')`
   flex-direction: column;
   gap: 1px;
   -ms-overflow-style: -ms-autohiding-scrollbar;
+
+  scrollbar-color: ${p => p.theme.sidebar.scrollbarThumbColor}
+    ${p => p.theme.sidebar.scrollbarColorTrack};
+  scrollbar-width: ${p => p.theme.sidebar.scrollbarWidth};
+
   @media (max-height: 675px) and (min-width: ${p => p.theme.breakpoints.medium}) {
     border-bottom: 1px solid ${p => p.theme.sidebarBorder};
     padding-bottom: ${space(1)};
