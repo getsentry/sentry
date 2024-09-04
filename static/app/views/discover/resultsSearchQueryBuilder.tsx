@@ -13,7 +13,10 @@ import {
 } from 'sentry/components/events/searchBarFieldConstants';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import {SearchQueryBuilder} from 'sentry/components/searchQueryBuilder';
-import type {FilterKeySection} from 'sentry/components/searchQueryBuilder/types';
+import type {
+  CallbackSearchState,
+  FilterKeySection,
+} from 'sentry/components/searchQueryBuilder/types';
 import {t} from 'sentry/locale';
 import {SavedSearchType, type TagCollection} from 'sentry/types/group';
 import {defined} from 'sentry/utils';
@@ -110,13 +113,14 @@ export const getHasTag = (tags: TagCollection) => ({
 });
 
 type Props = {
-  onSearch: (query: string) => void;
   customMeasurements?: CustomMeasurementCollection;
   dataset?: DiscoverDatasets;
   fields?: Readonly<Field[]>;
   includeSessionTagsValues?: boolean;
   includeTransactions?: boolean;
   omitTags?: string[];
+  onChange?: (query: string, state: CallbackSearchState) => void;
+  onSearch?: (query: string) => void;
   placeholder?: string;
   projectIds?: number[] | Readonly<number[]>;
   query?: string;
@@ -281,6 +285,7 @@ function ResultsSearchQueryBuilder(props: Props) {
       initialQuery={props.query ?? ''}
       onSearch={props.onSearch}
       searchSource={'eventsv2'}
+      onChange={props.onChange}
       filterKeySections={filterKeySections}
       getTagValues={getEventFieldValues}
       recentSearches={SavedSearchType.EVENT}
