@@ -3195,7 +3195,14 @@ class Migration(CheckedMigration):
             options={
                 "db_table": "sentry_userreport",
                 "unique_together": {("project_id", "event_id")},
-                "index_together": {("project_id", "date_added"), ("project_id", "event_id")},
+                "indexes": [
+                    models.Index(
+                        fields=["project_id", "event_id"], name="sentry_user_project_cbfd59_idx"
+                    ),
+                    models.Index(
+                        fields=["project_id", "date_added"], name="sentry_user_project_b8faaf_idx"
+                    ),
+                ],
             },
         ),
         migrations.CreateModel(
