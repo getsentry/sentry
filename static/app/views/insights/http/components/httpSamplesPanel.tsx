@@ -7,6 +7,7 @@ import {Button} from 'sentry/components/button';
 import {CompactSelect} from 'sentry/components/compactSelect';
 import SearchBar from 'sentry/components/events/searchBar';
 import Link from 'sentry/components/links/link';
+import {SpanSearchQueryBuilder} from 'sentry/components/performance/spanSearchQueryBuilder';
 import {SegmentedControl} from 'sentry/components/segmentedControl';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -479,16 +480,26 @@ export function HTTPSamplesPanel() {
           )}
 
           <ModuleLayout.Full>
-            <SearchBar
-              searchSource={`${ModuleName.HTTP}-sample-panel`}
-              query={query.spanSearchQuery}
-              onSearch={handleSearch}
-              placeholder={t('Search for span attributes')}
-              organization={organization}
-              supportedTags={supportedTags}
-              dataset={DiscoverDatasets.SPANS_INDEXED}
-              projectIds={selection.projects}
-            />
+            {organization.features.includes('search-query-builder-performance') ? (
+              <SpanSearchQueryBuilder
+                projects={selection.projects}
+                initialQuery={query.spanSearchQuery}
+                onSearch={handleSearch}
+                placeholder={t('Search for span attributes')}
+                searchSource={`${ModuleName.HTTP}-sample-panel`}
+              />
+            ) : (
+              <SearchBar
+                searchSource={`${ModuleName.HTTP}-sample-panel`}
+                query={query.spanSearchQuery}
+                onSearch={handleSearch}
+                placeholder={t('Search for span attributes')}
+                organization={organization}
+                supportedTags={supportedTags}
+                dataset={DiscoverDatasets.SPANS_INDEXED}
+                projectIds={selection.projects}
+              />
+            )}
           </ModuleLayout.Full>
 
           {query.panel === 'duration' && (
