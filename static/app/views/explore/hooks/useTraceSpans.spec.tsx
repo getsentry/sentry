@@ -12,7 +12,8 @@ import {QueryClientProvider} from 'sentry/utils/queryClient';
 import {OrganizationContext} from 'sentry/views/organizationContext';
 import type {TraceResult} from 'sentry/views/traces/hooks/useTraces';
 import type {SpanResults} from 'sentry/views/traces/hooks/useTraceSpans';
-import {useTraceSpans} from 'sentry/views/traces/hooks/useTraceSpans';
+
+import {useTraceSpans} from './useTraceSpans';
 
 function createTraceResult(trace?: Partial<TraceResult>): TraceResult {
   return {
