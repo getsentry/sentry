@@ -99,6 +99,7 @@ export function useTraces({datetime, enabled, limit, query}: UseTracesOptions) {
   const result = useApiQuery<TraceResults>([path, endpointOptions], {
     staleTime: 0,
     refetchOnWindowFocus: false,
+    refetchOnMount: false,
     retry: false,
     enabled,
   });
