@@ -1549,10 +1549,16 @@ class Migration(CheckedMigration):
             options={
                 "db_table": "sentry_pull_request",
                 "unique_together": {("repository_id", "key")},
-                "index_together": {
-                    ("repository_id", "date_added"),
-                    ("organization_id", "merge_commit_sha"),
-                },
+                "indexes": [
+                    models.Index(
+                        fields=["repository_id", "date_added"],
+                        name="sentry_pull_reposit_c429a4_idx",
+                    ),
+                    models.Index(
+                        fields=["organization_id", "merge_commit_sha"],
+                        name="sentry_pull_organiz_8aabcf_idx",
+                    ),
+                ],
             },
         ),
         migrations.CreateModel(
