@@ -70,9 +70,9 @@ def _project_has_similarity_grouping_enabled(project: Project) -> bool:
     has_been_backfilled = project.get_option("sentry:similarity_backfill_completed")
 
     metrics.incr(
-        "grouping.similarity.event_from_backfilled_project",
+        "grouping.similarity.event_project_backfill_status",
         sample_rate=options.get("seer.similarity.metrics_sample_rate"),
-        tags={"backfilled": has_seer_grouping_flag_on or has_been_backfilled},
+        tags={"backfilled": bool(has_seer_grouping_flag_on or has_been_backfilled)},
     )
 
     return has_seer_grouping_flag_on or has_been_backfilled
