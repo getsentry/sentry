@@ -49,4 +49,48 @@ describe('locale.gettextComponentTemplate', () => {
       screen.getByText(textWithMarkupMatcher('1st: one2nd: two'))
     ).toBeInTheDocument();
   });
+
+  it('should render multiple groups with the same name', () => {
+    const RenderChildren = ({children}: {children?: React.ReactNode}) => children;
+    render(
+      <div>
+        {tct('[render:one] [render:two] [render:three]', {
+          render: <RenderChildren />,
+        })}
+      </div>
+    );
+
+    expect(screen.getByText(textWithMarkupMatcher('one two three'))).toBeInTheDocument();
+  });
+
+  it('should render multiple groups with the same name in an HTML tag', () => {
+    const {container} = render(
+      <div>
+        {tct('[render:one] [render:two] [render:three]', {
+          render: <b />,
+        })}
+      </div>
+    );
+
+    expect(screen.getByText(textWithMarkupMatcher('one two three'))).toBeInTheDocument();
+    expect(container.innerHTML).toEqual('<div><b>one</b> <b>two</b> <b>three</b></div>');
+  });
+
+  it('should render nested goups', () => {
+    const {container} = render(
+      <div>
+        {tct('[bold:text with [link:another] group]', {
+          bold: <b />,
+          link: <a href="/link" />,
+        })}
+      </div>
+    );
+
+    expect(
+      screen.getByText(textWithMarkupMatcher('text with another group'))
+    ).toBeInTheDocument();
+    expect(container.innerHTML).toEqual(
+      '<div><b>text with <a href="/link">another</a> group</b></div>'
+    );
+  });
 });
