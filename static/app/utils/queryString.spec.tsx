@@ -207,3 +207,13 @@ describe('decodeSorts', () => {
     ]);
   });
 });
+
+describe('decodeBoolean', function () {
+  it('handles boolean strings', function () {
+    expect(utils.decodeBoolean('true')).toEqual(true);
+    expect(utils.decodeBoolean('false')).toEqual(false);
+    expect(utils.decodeBoolean('foo')).toEqual(undefined);
+    expect(utils.decodeBoolean('foo', true)).toEqual(true);
+    expect(utils.decodeBoolean('foo', false)).toEqual(false);
+  });
+});

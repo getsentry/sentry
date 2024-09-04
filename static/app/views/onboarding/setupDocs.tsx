@@ -1,4 +1,4 @@
-import {Fragment, useMemo, useState} from 'react';
+import {Fragment, useMemo} from 'react';
 import styled from '@emotion/styled';
 import {motion} from 'framer-motion';
 
@@ -13,6 +13,7 @@ import {platformToIntegrationMap} from 'sentry/utils/integrationUtil';
 import {decodeList} from 'sentry/utils/queryString';
 import useOrganization from 'sentry/utils/useOrganization';
 import SetupIntroduction from 'sentry/views/onboarding/components/setupIntroduction';
+import {useOnboardingQueryParams} from 'sentry/views/onboarding/components/useOnboardingQueryParams';
 import {SetupDocsLoader} from 'sentry/views/onboarding/setupDocsLoader';
 import {OtherPlatformsInfo} from 'sentry/views/projectInstall/otherPlatformsInfo';
 
@@ -23,9 +24,6 @@ import type {StepProps} from './types';
 function SetupDocs({location, recentCreatedProject: project}: StepProps) {
   const organization = useOrganization();
 
-  const [integrationUseManualSetup, setIntegrationUseManualSetup] = useState(false);
-  const showLoaderOnboarding = location.query.showLoader === 'true';
-
   const products = useMemo<ProductSolution[]>(
     () => decodeList(location.query.product ?? []) as ProductSolution[],
     [location.query.product]
@@ -35,13 +33,15 @@ function SetupDocs({location, recentCreatedProject: project}: StepProps) {
   const currentPlatform =
     platforms.find(p => p.id === currentPlatformKey) ?? otherPlatform;
 
+  const [params, setParams] = useOnboardingQueryParams();
+
   if (!project || !currentPlatform) {
     return null;
   }
 
   const platformName = currentPlatform.name;
   const integrationSlug = project.platform && platformToIntegrationMap[project.platform];
-  const showIntegrationOnboarding = integrationSlug && !integrationUseManualSetup;
+  const showIntegrationOnboarding = integrationSlug && !params.showManualSetup;
 
   return (
     <Fragment>
@@ -52,7 +52,7 @@ function SetupDocs({location, recentCreatedProject: project}: StepProps) {
               integrationSlug={integrationSlug}
               project={project}
               onClickManualSetup={() => {
-                setIntegrationUseManualSetup(true);
+                setParams({showManualSetup: true});
               }}
             />
           ) : (
@@ -66,7 +66,7 @@ function SetupDocs({location, recentCreatedProject: project}: StepProps) {
                   projectSlug={project.slug}
                   platform={currentPlatform.name}
                 />
-              ) : showLoaderOnboarding ? (
+              ) : params.showLoader ? (
                 <SetupDocsLoader
                   organization={organization}
                   project={project}
