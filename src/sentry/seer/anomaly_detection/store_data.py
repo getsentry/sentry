@@ -6,6 +6,8 @@ from django.core.exceptions import ValidationError
 from django.utils import timezone
 from urllib3.exceptions import MaxRetryError, TimeoutError
 
+from sentry import release_health
+from sentry.api.endpoints.organization_on_demand_metrics_estimation_stats import get_stats_generator
 from sentry.conf.server import SEER_ANOMALY_DETECTION_STORE_DATA_URL
 from sentry.incidents.models.alert_rule import AlertRule, AlertRuleStatus
 from sentry.models.project import Project
@@ -142,24 +144,38 @@ def fetch_historical_data(
         dataset_label = "errors"
     dataset = get_dataset(dataset_label)
 
-    if not project or not dataset or not alert_rule.organization:
+    if not project or not alert_rule.organization:
         return None
 
+    snuba_params = SnubaParams(
+        organization=alert_rule.organization,
+        projects=[project],
+        start=start,
+        end=end,
+    )
+
     if dataset == metrics_performance:
-        return get_crash_free_historical_data(
+        historical_data = get_crash_free_historical_data(
             start, end, project, alert_rule.organization, granularity
         )
-
+    elif "apdex" in snuba_query.aggregate:
+        generator = get_stats_generator(use_discover=True, remove_on_demand=False)
+        historical_data = generator(
+            query_columns=[snuba_query.aggregate],
+            query=snuba_query.query,
+            snuba_params=snuba_params,
+            rollup=granularity,
+            zerofill_results=True,
+            comparison_delta=alert_rule.comparison_delta,
+        )
     else:
+        if not dataset:
+            return None
+
         historical_data = dataset.timeseries_query(
             selected_columns=[snuba_query.aggregate],
             query=snuba_query.query,
-            snuba_params=SnubaParams(
-                organization=alert_rule.organization,
-                projects=[project],
-                start=start,
-                end=end,
-            ),
+            snuba_params=snuba_params,
             rollup=granularity,
             referrer=Referrer.ANOMALY_DETECTION_HISTORICAL_DATA_QUERY.value,
             zerofill_results=True,
