@@ -6,6 +6,7 @@ from rest_framework.exceptions import ParseError
 
 from sentry.issues.grouptype import ProfileFileIOGroupType
 from sentry.testutils.cases import APITestCase, SnubaTestCase
+from sentry.testutils.helpers import override_options
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from tests.sentry.issues.test_utils import SearchIssueTestMixin
 
@@ -443,3 +444,48 @@ class OrganizationSpansSamplesEndpoint(APITestCase, SnubaTestCase):
             "is_segment = 1" in call_args[0][0].serialize()
             for call_args in mock_raw_snql_query.call_args_list
         )
+
+    def test_is_using_sample_rate(self):
+        self.login_as(user=self.user)
+        project = self.create_project()
+        url = reverse(self.url_name, kwargs={"organization_id_or_slug": project.organization.slug})
+
+        def request():
+
+            return self.client.get(
+                url,
+                {
+                    "query": "span.is_segment:1 transaction:api/0/foo",
+                    "lowerBound": "0",
+                    "firstBound": "10",
+                    "secondBound": "20",
+                    "upperBound": "200",
+                    "column": "span.duration",
+                },
+                format="json",
+                extra={"project": [project.id]},
+            )
+
+        response = request()
+
+        assert response.status_code == 200, response.content
+
+        with mock.patch("sentry.search.events.builder.base.raw_snql_query") as mock_raw_snql_query:
+
+            response = request()
+            assert response.status_code == 200, response.content
+
+            assert "MATCH (spans)" in mock_raw_snql_query.call_args_list[0][0][0].serialize()
+
+        with (
+            override_options({"insights.span-samples-query.sample-rate": 100_000_000.0}),
+            mock.patch("sentry.search.events.builder.base.raw_snql_query") as mock_raw_snql_query,
+        ):
+
+            response = request()
+            assert response.status_code == 200, response.content
+
+            assert (
+                "MATCH (spans SAMPLE 100000000.0)"
+                in mock_raw_snql_query.call_args_list[0][0][0].serialize()
+            )
