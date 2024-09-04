@@ -221,7 +221,7 @@ class TimeseriesQueryBuilder(UnresolvedQuery):
 
     def get_snql_query(self) -> Request:
         return Request(
-            dataset=self.dataset.value,
+            dataset=self._get_dataset_name(),
             app_id="default",
             query=Query(
                 match=Entity(self.dataset.value),
