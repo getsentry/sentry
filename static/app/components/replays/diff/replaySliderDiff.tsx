@@ -108,10 +108,10 @@ function DiffSides({leftOffsetMs, replay, rightOffsetMs, viewDimensions, width})
 
   return (
     <Fragment>
-      <Cover style={{width}}>
-        <Placement style={{width}}>
-          <ReplayPlayerPluginsContextProvider>
-            <ReplayPlayerEventsContextProvider replay={replay}>
+      <ReplayPlayerPluginsContextProvider>
+        <ReplayPlayerEventsContextProvider replay={replay}>
+          <Cover style={{width}}>
+            <Placement style={{width}}>
               <ReplayPlayerStateContextProvider>
                 <NegativeSpaceContainer>
                   <ReplayPlayerContainment measure="width">
@@ -119,14 +119,10 @@ function DiffSides({leftOffsetMs, replay, rightOffsetMs, viewDimensions, width})
                   </ReplayPlayerContainment>
                 </NegativeSpaceContainer>
               </ReplayPlayerStateContextProvider>
-            </ReplayPlayerEventsContextProvider>
-          </ReplayPlayerPluginsContextProvider>
-        </Placement>
-      </Cover>
-      <Cover ref={rightSideElem} style={{width: 0}}>
-        <Placement style={{width}}>
-          <ReplayPlayerPluginsContextProvider>
-            <ReplayPlayerEventsContextProvider replay={replay}>
+            </Placement>
+          </Cover>
+          <Cover ref={rightSideElem} style={{width: 0}}>
+            <Placement style={{width}}>
               <ReplayPlayerStateContextProvider>
                 <NegativeSpaceContainer>
                   <ReplayPlayerContainment measure="width">
@@ -134,10 +130,10 @@ function DiffSides({leftOffsetMs, replay, rightOffsetMs, viewDimensions, width})
                   </ReplayPlayerContainment>
                 </NegativeSpaceContainer>
               </ReplayPlayerStateContextProvider>
-            </ReplayPlayerEventsContextProvider>
-          </ReplayPlayerPluginsContextProvider>
-        </Placement>
-      </Cover>
+            </Placement>
+          </Cover>
+        </ReplayPlayerEventsContextProvider>
+      </ReplayPlayerPluginsContextProvider>
       <Divider ref={dividerElem} onMouseDown={onDividerMouseDownWithAnalytics} />
     </Fragment>
   );
