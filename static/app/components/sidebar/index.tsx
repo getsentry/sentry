@@ -588,7 +588,7 @@ function Sidebar() {
     />
   );
 
-  const insights = hasOrganization && (
+  let insights = hasOrganization && (
     <Feature key="insights" features="insights-entry-points" organization={organization}>
       <SidebarAccordion
         {...sidebarItemProps}
@@ -614,8 +614,7 @@ function Sidebar() {
   );
 
   // Sidebar accordion includes a secondary list of nav items
-  // TODO: replace with a secondary panel
-  const explore = (
+  let explore = (
     <SidebarAccordion
       {...sidebarItemProps}
       icon={<IconSearch />}
@@ -630,6 +629,27 @@ function Sidebar() {
       {discover2}
     </SidebarAccordion>
   );
+
+  if (hasOrganization && hasNewNav) {
+    insights = (
+      <SidebarItem
+        {...sidebarItemProps}
+        icon={<IconGraph />}
+        label={<GuideAnchor target="insights">{t('Insights')}</GuideAnchor>}
+        to={`/organizations/${organization.slug}/${moduleURLBuilder('http')}/`}
+        id="insights"
+      />
+    );
+    explore = (
+      <SidebarItem
+        {...sidebarItemProps}
+        icon={<IconSearch />}
+        label={<GuideAnchor target="explore">{t('Explore')}</GuideAnchor>}
+        to={`/organizations/${organization.slug}/traces/`}
+        id="explore"
+      />
+    );
+  }
 
   return (
     <SidebarWrapper
