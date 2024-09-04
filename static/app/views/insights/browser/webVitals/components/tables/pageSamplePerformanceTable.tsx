@@ -1,4 +1,4 @@
-import {useMemo} from 'react';
+import {useCallback, useMemo} from 'react';
 import styled from '@emotion/styled';
 
 import ProjectAvatar from 'sentry/components/avatar/projectAvatar';
@@ -11,6 +11,7 @@ import SortLink from 'sentry/components/gridEditable/sortLink';
 import ExternalLink from 'sentry/components/links/externalLink';
 import Link from 'sentry/components/links/link';
 import Pagination from 'sentry/components/pagination';
+import {TransactionSearchQueryBuilder} from 'sentry/components/performance/transactionSearchQueryBuilder';
 import {SegmentedControl} from 'sentry/components/segmentedControl';
 import {Tooltip} from 'sentry/components/tooltip';
 import {IconChevron, IconPlay, IconProfiling} from 'sentry/icons';
@@ -18,6 +19,7 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {decodeProjects} from 'sentry/utils/discover/eventView';
 import type {Sort} from 'sentry/utils/discover/fields';
 import {generateLinkToEventInTraceView} from 'sentry/utils/discover/urls';
 import getDuration from 'sentry/utils/duration/getDuration';
@@ -27,9 +29,9 @@ import {decodeList, decodeScalar} from 'sentry/utils/queryString';
 import useReplayExists from 'sentry/utils/replayCount/useReplayExists';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
-import useRouter from 'sentry/utils/useRouter';
 import {useRoutes} from 'sentry/utils/useRoutes';
 import {PerformanceBadge} from 'sentry/views/insights/browser/webVitals/components/performanceBadge';
 import {useTransactionSamplesWebVitalsScoresQuery} from 'sentry/views/insights/browser/webVitals/queries/storedScoreQueries/useTransactionSamplesWebVitalsScoresQuery';
@@ -47,6 +49,7 @@ import decodeBrowserTypes from 'sentry/views/insights/browser/webVitals/utils/qu
 import useProfileExists from 'sentry/views/insights/browser/webVitals/utils/useProfileExists';
 import {useWebVitalsSort} from 'sentry/views/insights/browser/webVitals/utils/useWebVitalsSort';
 import {
+  ModuleName,
   SpanIndexedField,
   SpanMetricsField,
   type SubregionCode,
@@ -103,7 +106,7 @@ export function PageSamplePerformanceTable({transaction, search, limit = 9}: Pro
   const organization = useOrganization();
   const {replayExists} = useReplayExists();
   const routes = useRoutes();
-  const router = useRouter();
+  const navigate = useNavigate();
 
   const browserTypes = decodeBrowserTypes(location.query[SpanIndexedField.BROWSER_NAME]);
   const subregions = decodeList(
@@ -409,6 +412,17 @@ export function PageSamplePerformanceTable({transaction, search, limit = 9}: Pro
     return <NoOverflow>{row[key]}</NoOverflow>;
   }
 
+  const handleSearch = useCallback(
+    (queryString: string) =>
+      navigate({
+        ...location,
+        query: {...location.query, query: queryString},
+      }),
+    [location, navigate]
+  );
+
+  const projectIds = useMemo(() => decodeProjects(location), [location]);
+
   return (
     <span>
       <SearchBarContainer>
@@ -422,7 +436,8 @@ export function PageSamplePerformanceTable({transaction, search, limit = 9}: Pro
               organization,
               type: newDataSet,
             });
-            router.replace({
+
+            navigate({
               ...location,
               query: {
                 ...location.query,
@@ -443,17 +458,23 @@ export function PageSamplePerformanceTable({transaction, search, limit = 9}: Pro
             {t('Interactions')}
           </SegmentedControl.Item>
         </SegmentedControl>
+        <StyledSearchBar>
+          {organization.features.includes('search-query-builder-performance') ? (
+            <TransactionSearchQueryBuilder
+              projects={projectIds}
+              initialQuery={query ?? ''}
+              searchSource={`${ModuleName.VITAL}-page-summary`}
+              onSearch={handleSearch}
+            />
+          ) : (
+            <SearchBar
+              query={query}
+              organization={organization}
+              onSearch={handleSearch}
+            />
+          )}
+        </StyledSearchBar>
 
-        <StyledSearchBar
-          query={query}
-          organization={organization}
-          onSearch={queryString =>
-            router.replace({
-              ...location,
-              query: {...location.query, query: queryString},
-            })
-          }
-        />
         <StyledPagination
           pageLinks={
             datatype === Datatype.INTERACTIONS ? interactionsPageLinks : pageLinks
@@ -549,7 +570,7 @@ const SearchBarContainer = styled('div')`
   gap: ${space(1)};
 `;
 
-const StyledSearchBar = styled(SearchBar)`
+const StyledSearchBar = styled('div')`
   flex-grow: 1;
 `;
 
