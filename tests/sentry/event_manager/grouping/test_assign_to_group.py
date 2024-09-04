@@ -15,7 +15,6 @@ from sentry.grouping.ingest.hashing import (
     _calculate_primary_hash,
     _calculate_secondary_hash,
     find_existing_grouphash,
-    find_existing_grouphash_new,
 )
 from sentry.grouping.ingest.metrics import record_calculation_metric_with_result
 from sentry.models.grouphash import GroupHash
@@ -38,9 +37,6 @@ NEWSTYLE_CONFIG = "newstyle:2023-01-11"
 @contextmanager
 def patch_grouping_helpers(return_values: dict[str, Any]):
     wrapped_find_existing_grouphash = capture_results(find_existing_grouphash, return_values)
-    wrapped_find_existing_grouphash_new = capture_results(
-        find_existing_grouphash_new, return_values
-    )
     wrapped_calculate_primary_hash = capture_results(_calculate_primary_hash, return_values)
     wrapped_calculate_secondary_hash = capture_results(_calculate_secondary_hash, return_values)
 
@@ -49,10 +45,6 @@ def patch_grouping_helpers(return_values: dict[str, Any]):
             "sentry.event_manager.find_existing_grouphash",
             wraps=wrapped_find_existing_grouphash,
         ) as find_existing_grouphash_spy,
-        mock.patch(
-            "sentry.event_manager.find_existing_grouphash_new",
-            wraps=wrapped_find_existing_grouphash_new,
-        ) as find_existing_grouphash_new_spy,
         mock.patch(
             "sentry.grouping.ingest.hashing._calculate_primary_hash",
             wraps=wrapped_calculate_primary_hash,
@@ -75,7 +67,6 @@ def patch_grouping_helpers(return_values: dict[str, Any]):
     ):
         yield {
             "find_existing_grouphash": find_existing_grouphash_spy,
-            "find_existing_grouphash_new": find_existing_grouphash_new_spy,
             "_calculate_primary_hash": calculate_primary_hash_spy,
             "_calculate_secondary_hash": calculate_secondary_hash_spy,
             "_create_group": create_group_spy,

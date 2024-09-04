@@ -54,8 +54,7 @@ class UnmergeReplacement(abc.ABC):
 
         raise NotImplementedError()
 
-    @abc.property
-    @abc.abstractmethod
+    @abc.abstractproperty
     def primary_hashes_to_lock(self) -> Collection[str]:
         raise NotImplementedError()
 
