@@ -156,7 +156,6 @@ function stateReducer(state: State, replayerAction: ReplayerAction): State {
       return state;
 
     case 'didPlayerStateChange':
-      // console.log('didPlayerStateChange', state);
       return state;
     case 'didSpeedStateChange':
       return {...state, currentSpeed: replayerAction.speedState.context.timer.speed};

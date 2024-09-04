@@ -23,11 +23,10 @@ export default function useReplayCurrentTime({callback}: Props) {
 
   useEffect(() => {
     if (state?.value === 'paused' && state?.context.timeOffset !== undefined) {
-      if (isFinished && replayer) {
-        callback({timeMs: replayer?.getCurrentTime()});
-      } else {
-        callback({timeMs: state?.context.timeOffset});
-      }
+      callback({
+        timeMs:
+          isFinished && replayer ? replayer?.getCurrentTime() : state?.context.timeOffset,
+      });
     }
   }, [callback, replayer, state?.value, state?.context.timeOffset, isFinished]);
 

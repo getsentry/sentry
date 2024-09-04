@@ -10,6 +10,7 @@ import type useInitialOffsetMs from 'sentry/utils/replays/hooks/useInitialTimeOf
 import {ReplayCurrentTimeContextProvider} from 'sentry/utils/replays/playback/providers/useCurrentHoverTime';
 import useReplayPrefs from 'sentry/utils/replays/playback/providers/useReplayPrefs';
 import type ReplayReader from 'sentry/utils/replays/replayReader';
+import type {Dimensions} from 'sentry/utils/replays/types';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePrevious from 'sentry/utils/usePrevious';
 import useProjectFromId from 'sentry/utils/useProjectFromId';
@@ -18,7 +19,6 @@ import {useUser} from 'sentry/utils/useUser';
 
 import {CanvasReplayerPlugin} from './canvasReplayerPlugin';
 
-type Dimensions = {height: number; width: number};
 type RootElem = null | HTMLDivElement;
 
 type HighlightCallbacks = ReturnType<typeof useReplayHighlighting>;

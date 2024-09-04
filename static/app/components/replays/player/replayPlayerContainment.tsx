@@ -1,6 +1,7 @@
 import type {CSSProperties, ReactNode} from 'react';
 import {useRef} from 'react';
 import {css} from '@emotion/react';
+import styled from '@emotion/styled';
 
 import divide from 'sentry/utils/number/divide';
 import useReplayPlayerState from 'sentry/utils/replays/playback/providers/useReplayPlayerState';
@@ -8,7 +9,7 @@ import {useDimensions} from 'sentry/utils/useDimensions';
 
 interface Props {
   /**
-   * You must pass `styles` into the <ReplayPlayer>,
+   * You must pass `styles` into the <ReplayPlayer>
    */
   children: (styles: CSSProperties) => ReactNode;
 
@@ -21,17 +22,28 @@ interface Props {
    *    the replay.
    *    ie: with a wrapper that has CSS `height` set.
    *
+   *    -> Use this when the container has a fixed height.
+   *
    * "width"
    *    Height available will not be measured. The replay will be
    *   resized to accomodate the width available, and the height grows to
    *   maintain the aspect-ratio. This can result in really tall replays when
    *   captured on a mobile device.
    *
-   * There is no "height" option, document flow doesn't usually expand in an
+   *   -> Use this when the container has a flexible height, like if it's inside a
+   *   grid or flex parent.
+   *
+   * There is no "height" option; document flow doesn't usually expand in an
    * uncontrolled way like height does.
    */
   measure?: 'both' | 'width';
 }
+
+// We use 1.5 because we want to scale up mobile replays
+// (or other replays that have height > width) if they are smaller than the
+// available space. The default is to scale-down to fit desktop replays within
+// the (smaller) browser window.
+const MAX_ZOOM = 1.5;
 
 export default function ReplayPlayerContainment({children, measure = 'both'}: Props) {
   const elementRef = useRef<HTMLDivElement>(null);
@@ -47,7 +59,7 @@ export default function ReplayPlayerContainment({children, measure = 'both'}: Pr
   const scale = Math.min(
     divide(parentDimensions.height, childDimensions.height),
     divide(parentDimensions.width, childDimensions.width),
-    1.5
+    MAX_ZOOM
   );
 
   // TODO: set the `scale` into a provider, so that we can read it back
@@ -60,11 +72,9 @@ export default function ReplayPlayerContainment({children, measure = 'both'}: Pr
   };
 
   return (
-    <div css={[commonCss, measurableElemCss]} ref={elementRef}>
-      <div css={[commonCss, centeredContentCss]} style={dimensions}>
-        {children(scaleStyle)}
-      </div>
-    </div>
+    <MeasureableElem ref={elementRef}>
+      <CenteredContent style={dimensions}>{children(scaleStyle)}</CenteredContent>
+    </MeasureableElem>
   );
 }
 
@@ -75,10 +85,12 @@ const commonCss = css`
   place-content: center;
   width: 100%;
 `;
-const measurableElemCss = css`
+const MeasureableElem = styled('div')`
+  ${commonCss}
   height: 100%;
 `;
-const centeredContentCss = css`
+const CenteredContent = styled('div')`
+  ${commonCss}
   position: relative;
   overflow: hidden;
 `;
