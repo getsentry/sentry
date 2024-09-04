@@ -1232,6 +1232,8 @@ class IssueListOverview extends Component<Props, State> {
               organization={organization}
               router={router}
               selectedProjectIds={selection.projects}
+              realtimeActive={realtimeActive}
+              onRealtimeChange={this.onRealtimeChange}
             />
           </ErrorBoundary>
         ) : (

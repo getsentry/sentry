@@ -2,10 +2,13 @@ import {useContext, useEffect, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 import debounce from 'lodash/debounce';
 
+import {Button} from 'sentry/components/button';
+import ButtonBar from 'sentry/components/buttonBar';
 import GlobalEventProcessingAlert from 'sentry/components/globalEventProcessingAlert';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionTooltip';
 import {Tabs, TabsContext} from 'sentry/components/tabs';
+import {IconPause, IconPlay} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {InjectedRouter} from 'sentry/types/legacyReactRouter';
@@ -24,7 +27,9 @@ import type {UpdateGroupSearchViewPayload} from 'sentry/views/issueList/types';
 import {IssueSortOptions} from './utils';
 
 type CustomViewsIssueListHeaderProps = {
+  onRealtimeChange: (realtime: boolean) => void;
   organization: Organization;
+  realtimeActive: boolean;
   router: InjectedRouter;
   selectedProjectIds: number[];
 };
@@ -37,6 +42,8 @@ type CustomViewsIssueListHeaderTabsContentProps = {
 
 function CustomViewsIssueListHeader({
   selectedProjectIds,
+  realtimeActive,
+  onRealtimeChange,
   ...props
 }: CustomViewsIssueListHeaderProps) {
   const {projects} = useProjects();
@@ -47,6 +54,10 @@ function CustomViewsIssueListHeader({
   const {data: groupSearchViews} = useFetchGroupSearchViews({
     orgSlug: props.organization.slug,
   });
+
+  const realtimeTitle = realtimeActive
+    ? t('Pause real-time updates')
+    : t('Enable real-time updates');
 
   return (
     <Layout.Header
@@ -67,7 +78,18 @@ function CustomViewsIssueListHeader({
           />
         </Layout.Title>
       </Layout.HeaderContent>
-      <Layout.HeaderActions />
+      <Layout.HeaderActions>
+        <ButtonBar gap={1}>
+          <Button
+            size="sm"
+            data-test-id="real-time"
+            title={realtimeTitle}
+            aria-label={realtimeTitle}
+            icon={realtimeActive ? <IconPause /> : <IconPlay />}
+            onClick={() => onRealtimeChange(!realtimeActive)}
+          />
+        </ButtonBar>
+      </Layout.HeaderActions>
       <StyledGlobalEventProcessingAlert projects={selectedProjects} />
       {groupSearchViews ? (
         <Tabs>
