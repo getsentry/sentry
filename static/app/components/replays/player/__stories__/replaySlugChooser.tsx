@@ -29,11 +29,14 @@ export default function ReplaySlugChooser({children}: {children: ReactNode}) {
 
 function LoadReplay({children, replaySlug}: {children: ReactNode; replaySlug: string}) {
   const organization = useOrganization();
-  const {replay, fetching} = useReplayReader({
+  const {errors, fetching, replay} = useReplayReader({
     orgSlug: organization.slug,
     replaySlug,
   });
 
+  if (errors.length) {
+    return errors.at(0)?.title;
+  }
   if (!replay || fetching) {
     return 'Loading...';
   }
