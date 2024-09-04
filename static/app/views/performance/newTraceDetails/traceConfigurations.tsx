@@ -51,11 +51,30 @@ type ParsedPlatform = {
 };
 
 function parsePlatform(platform: string): ParsedPlatform {
-  // Except react-native, all other project platforms have the following two structures:
+  const platformParts = platform.split('-');
+
+  // For example: dotnet-google-cloud-functions, we want to split it into
+  // platformName: dotnet, framework: google-cloud-functions
+  if (platformParts.length >= 3) {
+    return {platformName: platformParts[0], framework: platformParts.slice(1).join('-')};
+  }
+
+  // With some exceptions, all other project platforms have the following two structures:
   // 1. "{language}-{framework}", e.g. "javascript-nextjs"
   // 2. "{language}", e.g. "python"
-  const [platformName, framework] =
-    platform === 'react-native' ? ['react-native', undefined] : platform.split('-');
+  const [platformName, framework] = platformParts;
+
+  if (platform === 'react-native') {
+    return {platformName};
+  }
+
+  if (platform.includes('awslambda')) {
+    return {platformName, framework: 'aws-lambda'};
+  }
+
+  if (platform.includes('gcpfunctions')) {
+    return {platformName, framework: 'gcp-functions'};
+  }
 
   return {platformName, framework};
 }

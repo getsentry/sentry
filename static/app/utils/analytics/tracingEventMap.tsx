@@ -9,6 +9,7 @@ export type TracingEventParameters = {
     shape: string;
     trace_duration_seconds: number;
   };
+  'trace.quality.missing_spans.doc_link_clicked': {};
   'trace.quality.performance_setup.banner_loaded': {};
   'trace.quality.performance_setup.checklist_triggered': {};
   'trace.quality.performance_setup.learn_more_clicked': {};
@@ -99,6 +100,8 @@ export const tracingEventMap: Record<TracingEventKey, string | null> = {
   'trace.trace_layout.reset_zoom': 'Reset Trace Zoom',
   'trace.quality.performance_setup.checklist_triggered':
     'Triggered Performance Setup Checklist',
+  'trace.quality.missing_spans.doc_link_clicked':
+    'Clicked custom instrumentation documentation link in missing spans info banner',
   'trace.quality.performance_setup.learn_more_clicked':
     'Clicked Learn More in Performance Setup Banner',
   'trace.quality.performance_setup.banner_loaded': 'Performance Setup Banner Loaded',
