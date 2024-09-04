@@ -3502,7 +3502,11 @@ class Migration(CheckedMigration):
             options={
                 "db_table": "sentry_releasefile",
                 "unique_together": {("release", "ident")},
-                "index_together": {("release", "name")},
+                "indexes": [
+                    models.Index(
+                        fields=["release_id", "name"], name="sentry_rele_release_bff97c_idx"
+                    ),
+                ],
             },
         ),
         migrations.CreateModel(
@@ -7518,10 +7522,6 @@ class Migration(CheckedMigration):
                 migrations.AlterUniqueTogether(
                     name="releasefile",
                     unique_together={("release_id", "ident")},
-                ),
-                migrations.AlterIndexTogether(
-                    name="releasefile",
-                    index_together={("release_id", "name")},
                 ),
             ],
         ),

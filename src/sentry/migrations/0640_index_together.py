@@ -215,11 +215,6 @@ class Migration(CheckedMigration):
             old_fields=("organization_id", "release_name", "dist_name", "artifact_bundle"),
         ),
         migrations.RenameIndex(
-            model_name="releasefile",
-            new_name="sentry_rele_release_bff97c_idx",
-            old_fields=("release_id", "name"),
-        ),
-        migrations.RenameIndex(
             model_name="releaseprojectenvironment",
             new_name="sentry_rele_project_922a6a_idx",
             old_fields=("project", "unadopted", "environment"),
