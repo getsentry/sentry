@@ -475,17 +475,17 @@ class OrganizationSpansSamplesEndpoint(APITestCase, SnubaTestCase):
             response = request()
             assert response.status_code == 200, response.content
 
-            assert (
-                "MATCH (spans SAMPLE 100000000.0)"
-                in mock_raw_snql_query.call_args_list[0][0][0].serialize()
-            )
+            assert "MATCH (spans)" in mock_raw_snql_query.call_args_list[0][0][0].serialize()
 
         with (
-            override_options({"insights.span-samples-query.sample-rate": 0.0}),
+            override_options({"insights.span-samples-query.sample-rate": 100_000_000.0}),
             mock.patch("sentry.search.events.builder.base.raw_snql_query") as mock_raw_snql_query,
         ):
 
             response = request()
             assert response.status_code == 200, response.content
 
-            assert "MATCH (spans)" in mock_raw_snql_query.call_args_list[0][0][0].serialize()
+            assert (
+                "MATCH (spans SAMPLE 100000000.0)"
+                in mock_raw_snql_query.call_args_list[0][0][0].serialize()
+            )
