@@ -60,7 +60,7 @@ function FeedbackFooter() {
           openForm({
             messagePlaceholder: t('How can we make custom views better for you?'),
             tags: {
-              source: 'custom_views',
+              ['feedback.source']: 'custom_views',
             },
           })
         }
