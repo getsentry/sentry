@@ -34,21 +34,6 @@ class Migration(CheckedMigration):
             old_fields=("url", "artifact_bundle"),
         ),
         migrations.RenameIndex(
-            model_name="commit",
-            new_name="sentry_comm_reposit_da31f2_idx",
-            old_fields=("repository_id", "date_added"),
-        ),
-        migrations.RenameIndex(
-            model_name="commit",
-            new_name="sentry_comm_author__131211_idx",
-            old_fields=("author", "date_added"),
-        ),
-        migrations.RenameIndex(
-            model_name="commit",
-            new_name="sentry_comm_organiz_7be514_idx",
-            old_fields=("organization_id", "date_added"),
-        ),
-        migrations.RenameIndex(
             model_name="controloutbox",
             new_name="sentry_cont_region__0c4512_idx",
             old_fields=("region_name", "shard_scope", "shard_identifier", "scheduled_for"),
