@@ -61,6 +61,10 @@ const trackViewEventJSON = (organization: Organization) =>
   trackAnalytics('trace.trace_layout.view_event_json', {
     organization,
   });
+const trackViewContinuousProfile = (organization: Organization) =>
+  trackAnalytics('trace.trace_layout.view_continuous_profile', {
+    organization,
+  });
 
 const trackTabPin = (organization: Organization) =>
   trackAnalytics('trace.trace_layout.tab_pin', {
@@ -100,6 +104,11 @@ const trackQuotaExceededIncreaseBudgetClicked = (
   trackAnalytics('trace.quality.quota_exceeded.increase_budget_clicked', {
     organization,
     traceType,
+  });
+
+const trackMissingSpansDocLinkClicked = (organization: Organization) =>
+  trackAnalytics('trace.quality.missing_spans.doc_link_clicked', {
+    organization,
   });
 
 const trackQuotaExceededLearnMoreClicked = (
@@ -147,6 +156,7 @@ const traceAnalytics = {
   // Drawer actions
   trackShowInView,
   trackViewEventJSON,
+  trackViewContinuousProfile,
   // Layout actions
   trackLayoutChange,
   trackDrawerMinimize,
@@ -165,6 +175,7 @@ const traceAnalytics = {
   trackQuotaExceededLearnMoreClicked,
   trackQuotaExceededBannerLoaded,
   trackTraceConfigurationsDocsClicked,
+  trackMissingSpansDocLinkClicked,
 };
 
 export {traceAnalytics};

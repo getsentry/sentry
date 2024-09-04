@@ -1,4 +1,4 @@
-import type {PlainRoute} from 'react-router';
+import type {PlainRoute} from 'sentry/types/legacyReactRouter';
 
 import {useBreadcrumbTitleEffect} from './context';
 

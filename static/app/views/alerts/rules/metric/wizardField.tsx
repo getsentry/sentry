@@ -10,12 +10,9 @@ import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import type {QueryFieldValue} from 'sentry/utils/discover/fields';
 import {explodeFieldString, generateFieldAsString} from 'sentry/utils/discover/fields';
-import {
-  hasCustomMetrics,
-  hasCustomMetricsExtractionRules,
-} from 'sentry/utils/metrics/features';
+import {hasCustomMetrics} from 'sentry/utils/metrics/features';
+import InsightsMetricField from 'sentry/views/alerts/rules/metric/insightsMetricField';
 import MriField from 'sentry/views/alerts/rules/metric/mriField';
-import SpanMetricField from 'sentry/views/alerts/rules/metric/spanMetricsField';
 import type {Dataset} from 'sentry/views/alerts/rules/metric/types';
 import type {AlertType} from 'sentry/views/alerts/wizard/options';
 import {
@@ -25,6 +22,7 @@ import {
 import {QueryField} from 'sentry/views/discover/table/queryField';
 import {FieldValueKind} from 'sentry/views/discover/table/types';
 import {generateFieldOptions} from 'sentry/views/discover/utils';
+import {hasInsightsAlerts} from 'sentry/views/insights/common/utils/hasInsightsAlerts';
 
 import {getFieldOptionConfig} from './metricField';
 
@@ -134,11 +132,11 @@ export default function WizardField({
               label: AlertWizardAlertNames.custom_transactions,
               value: 'custom_transactions',
             },
-        ...(hasCustomMetricsExtractionRules(organization)
+        ...(hasInsightsAlerts(organization)
           ? [
               {
-                label: AlertWizardAlertNames.span_metrics,
-                value: 'span_metrics' as const,
+                label: AlertWizardAlertNames.insights_metrics,
+                value: 'insights_metrics' as const,
               },
             ]
           : []),
@@ -147,7 +145,7 @@ export default function WizardField({
   ];
 
   return (
-    <StyledFormField alertType={alertType} {...fieldProps}>
+    <FormField {...fieldProps}>
       {({onChange, model, disabled}) => {
         const aggregate = model.getValue('aggregate');
         const dataset: Dataset = model.getValue('dataset');
@@ -200,11 +198,13 @@ export default function WizardField({
                 aggregate={aggregate}
                 onChange={newAggregate => onChange(newAggregate, {})}
               />
-            ) : alertType === 'span_metrics' ? (
-              <SpanMetricField
+            ) : alertType === 'insights_metrics' ? (
+              <InsightsMetricField
                 project={project}
-                field={aggregate}
-                onChange={newAggregate => onChange(newAggregate, {})}
+                aggregate={aggregate}
+                onChange={newAggregate => {
+                  return onChange(newAggregate, {});
+                }}
               />
             ) : (
               <StyledQueryField
@@ -226,7 +226,7 @@ export default function WizardField({
           </Container>
         );
       }}
-    </StyledFormField>
+    </FormField>
   );
 }
 
@@ -280,27 +280,10 @@ const getApproximateKnownPercentile = (customPercentile: string) => {
   return 'p100';
 };
 
-// Need to overwrite some styles with important as they are applied via inline styles from the parent
-const StyledFormField = styled(FormField)<{alertType?: AlertType}>`
-  ${p =>
-    p.alertType === 'span_metrics' &&
-    `flex-basis: 100% !important;
-  flex-grow: 0 !important;
-  min-width: 0px;
-  max-width: fit-content;
-  `}
-`;
-
 const Container = styled('div')<{hideGap: boolean; alertType?: AlertType}>`
   display: grid;
   gap: ${p => (p.hideGap ? 0 : space(1))};
   grid-template-columns: 1fr auto;
-
-  ${p =>
-    p.alertType === 'span_metrics' &&
-    `grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
-    max-width: 790px;
-    `}
 `;
 
 const StyledQueryField = styled(QueryField)<{gridColumns: number; columnWidth?: number}>`

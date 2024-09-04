@@ -1,9 +1,9 @@
-import type {WithRouterProps} from 'react-router';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
+import type {WithRouterProps} from 'sentry/types/legacyReactRouter';
 // eslint-disable-next-line no-restricted-imports
 import withSentryRouter from 'sentry/utils/withSentryRouter';
 

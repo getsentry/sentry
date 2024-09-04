@@ -14,13 +14,10 @@ import {
   SpanOpBreakdown,
   WebVital,
 } from 'sentry/utils/fields';
+import {hasCustomMetrics} from 'sentry/utils/metrics/features';
 import {
-  hasCustomMetrics,
-  hasCustomMetricsExtractionRules,
-} from 'sentry/utils/metrics/features';
-import {
+  DEFAULT_INSIGHTS_METRICS_ALERT_FIELD,
   DEFAULT_METRIC_ALERT_FIELD,
-  DEFAULT_SPAN_METRIC_ALERT_FIELD,
 } from 'sentry/utils/metrics/mri';
 import {ON_DEMAND_METRICS_UNSUPPORTED_TAGS} from 'sentry/utils/onDemandMetrics/constants';
 import {shouldShowOnDemandMetricAlertUI} from 'sentry/utils/onDemandMetrics/features';
@@ -29,6 +26,7 @@ import {
   EventTypes,
   SessionsAggregate,
 } from 'sentry/views/alerts/rules/metric/types';
+import {hasInsightsAlerts} from 'sentry/views/insights/common/utils/hasInsightsAlerts';
 import {MODULE_TITLE as LLM_MONITORING_MODULE_TITLE} from 'sentry/views/insights/llmMonitoring/settings';
 
 export type AlertType =
@@ -46,9 +44,9 @@ export type AlertType =
   | 'crash_free_users'
   | 'custom_transactions'
   | 'custom_metrics'
-  | 'span_metrics'
   | 'llm_tokens'
-  | 'llm_cost';
+  | 'llm_cost'
+  | 'insights_metrics';
 
 export enum MEPAlertsQueryType {
   ERROR = 0,
@@ -86,12 +84,12 @@ export const AlertWizardAlertNames: Record<AlertType, string> = {
   fid: t('First Input Delay'),
   cls: t('Cumulative Layout Shift'),
   custom_metrics: t('Custom Metric'),
-  span_metrics: t('Span Metric'),
   custom_transactions: t('Custom Measurement'),
   crash_free_sessions: t('Crash Free Session Rate'),
   crash_free_users: t('Crash Free User Rate'),
   llm_cost: t('LLM cost'),
   llm_tokens: t('LLM token usage'),
+  insights_metrics: t('Insights Metric'),
 };
 
 type AlertWizardCategory = {
@@ -136,7 +134,7 @@ export const getAlertWizardCategories = (org: Organization) => {
       categoryHeading: hasCustomMetrics(org) ? t('Metrics') : t('Custom'),
       options: [
         hasCustomMetrics(org) ? 'custom_metrics' : 'custom_transactions',
-        ...(hasCustomMetricsExtractionRules(org) ? ['span_metrics' as const] : []),
+        ...(hasInsightsAlerts(org) ? ['insights_metrics' as const] : []),
       ],
     });
   }
@@ -209,11 +207,6 @@ export const AlertWizardRuleTemplates: Record<
     dataset: Dataset.GENERIC_METRICS,
     eventTypes: EventTypes.TRANSACTION,
   },
-  span_metrics: {
-    aggregate: DEFAULT_SPAN_METRIC_ALERT_FIELD,
-    dataset: Dataset.GENERIC_METRICS,
-    eventTypes: EventTypes.TRANSACTION,
-  },
   llm_tokens: {
     aggregate: 'sum(ai.total_tokens.used)',
     dataset: Dataset.GENERIC_METRICS,
@@ -221,6 +214,11 @@ export const AlertWizardRuleTemplates: Record<
   },
   llm_cost: {
     aggregate: 'sum(ai.total_cost)',
+    dataset: Dataset.GENERIC_METRICS,
+    eventTypes: EventTypes.TRANSACTION,
+  },
+  insights_metrics: {
+    aggregate: DEFAULT_INSIGHTS_METRICS_ALERT_FIELD,
     dataset: Dataset.GENERIC_METRICS,
     eventTypes: EventTypes.TRANSACTION,
   },

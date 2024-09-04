@@ -1,7 +1,6 @@
-import type {RouteComponentProps} from 'react-router';
-
 import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
+import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import withOrganization from 'sentry/utils/withOrganization';
