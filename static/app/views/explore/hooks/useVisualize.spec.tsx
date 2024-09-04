@@ -6,7 +6,7 @@ import {useVisualize} from 'sentry/views/explore/hooks/useVisualize';
 import {RouteContext} from 'sentry/views/routeContext';
 
 describe('useVisualize', function () {
-  it('allows changing results mode', function () {
+  it('allows changing visualize function', function () {
     let visualize, setVisualize;
 
     function TestPage() {
