@@ -149,7 +149,7 @@ function argsInvolveReact(args: FormatArg[]): boolean {
  * this represents either a portion of the string, or a object with the group
  * key indicating the group to lookup the group value in.
  */
-type TemplateSubvalue = string | {group: string};
+type TemplateSubvalue = string | {group: string; id: string};
 
 /**
  * ParsedTemplate is a mapping of group names to Template Subvalue arrays.
@@ -176,6 +176,7 @@ type ComponentMap = {[group: string]: React.ReactNode};
  */
 export function parseComponentTemplate(template: string): ParsedTemplate {
   const parsed: ParsedTemplate = {};
+  let groupId = 1;
 
   function process(startPos: number, group: string, inGroup: boolean) {
     const regex = /\[(.*?)(:|\])|\]/g;
@@ -205,12 +206,15 @@ export function parseComponentTemplate(template: string): ParsedTemplate {
         }
       }
 
+      const currentGroupId = groupId.toString();
+      groupId++;
+
       if (closeBraceOrValueSeparator === ']') {
         pos = regex.lastIndex;
       } else {
-        pos = regex.lastIndex = process(regex.lastIndex, groupName, true);
+        pos = regex.lastIndex = process(regex.lastIndex, currentGroupId, true);
       }
-      buf.push({group: groupName});
+      buf.push({group: groupName, id: currentGroupId});
     }
 
     let endPos = regex.lastIndex;
@@ -241,21 +245,21 @@ export function renderTemplate(
 ): React.ReactNode {
   let idx = 0;
 
-  function renderGroup(groupKey: string) {
+  function renderGroup(name: string, id: string) {
     const children: React.ReactNode[] = [];
-    const group = template[groupKey] || [];
+    const group = template[id] || [];
 
     for (const item of group) {
       if (typeof item === 'string') {
         children.push(<Fragment key={idx++}>{item}</Fragment>);
       } else {
-        children.push(renderGroup(item.group));
+        children.push(renderGroup(item.group, item.id));
       }
     }
 
     // In case we cannot find our component, we call back to an empty
     // span so that stuff shows up at least.
-    let reference = components[groupKey] ?? <Fragment key={idx++} />;
+    let reference = components[name] ?? <Fragment key={idx++} />;
 
     if (!isValidElement(reference)) {
       reference = <Fragment key={idx++}>{reference}</Fragment>;
@@ -268,7 +272,7 @@ export function renderTemplate(
       : cloneElement(element, {key: idx++}, children);
   }
 
-  return <Fragment>{renderGroup('root')}</Fragment>;
+  return <Fragment>{renderGroup('root', 'root')}</Fragment>;
 }
 
 /**
