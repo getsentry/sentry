@@ -62,8 +62,8 @@ class JiraSchema:
     )
 
     @classmethod
-    def from_dict(cls, data: dict[str, Any | None]) -> "JiraSchema":
-        schema_type = data.get("type")
+    def from_dict(cls, data: dict[str, Any]) -> "JiraSchema":
+        schema_type = data["type"]
         custom = data.get("custom")
         custom_id = data.get("custom_id")
         system = data.get("system")
@@ -91,19 +91,19 @@ class JiraField:
     name: str
     key: str
     operations: list[str]
-    has_default_value: bool = False
+    has_default_value: bool
 
     def is_custom_field(self) -> bool:
         return self.schema.custom is not None
 
     @classmethod
     def from_dict(cls, data: dict[str, Any]) -> "JiraField":
-        required = data.get("required")
-        name = data.get("name")
-        key = data.get("key")
-        operations = data.get("operations")
-        has_default_value = data.get("hasDefaultValue")
-        raw_schema = data.get("schema")
+        required = data["required"]
+        name = data["name"]
+        key = data["key"]
+        operations = data["operations"]
+        has_default_value = data.get("hasDefaultValue") or False
+        raw_schema = data["schema"]
 
         schema = JiraSchema.from_dict(raw_schema)
 
@@ -133,13 +133,13 @@ class JiraIssueTypeMetadata:
 
     @classmethod
     def from_dict(cls, data: dict[str, Any]) -> "JiraIssueTypeMetadata":
-        jira_id = data.get("id")
-        description = data.get("description")
-        name = data.get("name")
-        subtask = data.get("subtask")
-        icon_url = data.get("iconUrl")
-        url = data.get("self")
-        raw_fields = data.get("fields")
+        jira_id = data["id"]
+        description = data["description"]
+        name = data["name"]
+        subtask = data["subtask"]
+        icon_url = data["iconUrl"]
+        url = data["self"]
+        raw_fields = data["fields"]
 
         fields = JiraField.from_dict_list(raw_fields)
 
