@@ -82,7 +82,7 @@ const replayOnboardingJsLoader: OnboardingConfig = {
     {
       type: StepType.VERIFY,
       description: t(
-        'To verify your replay setup, trigger an error on your page and watch Sentry capture the event along with a recording of the user interaction.'
+        'To verify your Replay setup, trigger an error on your page and watch Sentry capture the event along with a recording of the user interaction.'
       ),
       configurations: [
         {
