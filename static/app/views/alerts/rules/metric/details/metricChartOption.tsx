@@ -404,7 +404,7 @@ export function getMetricAlertChartOption({
   }
 
   if (anomalies) {
-    const anomalyBlocks: {xAxis: string}[][] = [];
+    const anomalyBlocks: {xAxis: string; name?: string}[][] = [];
     let start: string | undefined;
     let end: string | undefined;
     anomalies
