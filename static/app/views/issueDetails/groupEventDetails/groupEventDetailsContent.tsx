@@ -42,6 +42,7 @@ import {Exception} from 'sentry/components/events/interfaces/exception';
 import {Generic} from 'sentry/components/events/interfaces/generic';
 import {Message} from 'sentry/components/events/interfaces/message';
 import {AnrRootCause} from 'sentry/components/events/interfaces/performance/anrRootCause';
+import {EventTraceView} from 'sentry/components/events/interfaces/performance/eventTraceView';
 import {SpanEvidenceSection} from 'sentry/components/events/interfaces/performance/spanEvidence';
 import {Request} from 'sentry/components/events/interfaces/request';
 import {StackTrace} from 'sentry/components/events/interfaces/stackTrace';
@@ -294,6 +295,12 @@ export function EventDetailsContent({
           projectSlug={project.slug}
         />
       )}
+      <EventTraceView
+        group={group}
+        event={event}
+        organization={organization}
+        projectSlug={project.slug}
+      />
       <EventHydrationDiff event={event} group={group} />
       {issueTypeConfig.replays.enabled && (
         <EventReplay event={event} group={group} projectSlug={project.slug} />
