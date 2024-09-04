@@ -6,6 +6,7 @@ import {useGroupBys} from 'sentry/views/explore/hooks/useGroupBys';
 import {useResultMode} from 'sentry/views/explore/hooks/useResultsMode';
 import {useSampleFields} from 'sentry/views/explore/hooks/useSampleFields';
 import {useSorts} from 'sentry/views/explore/hooks/useSorts';
+import {useVisualizes} from 'sentry/views/explore/hooks/useVisualizes';
 import {ExploreToolbar} from 'sentry/views/explore/toolbar';
 import {RouteContext} from 'sentry/views/routeContext';
 
@@ -63,6 +64,50 @@ describe('ExploreToolbar', function () {
     expect(resultMode).toEqual('samples');
 
     // TODO: check other parts of page reflects this
+  });
+
+  it('allows changing visualizes', async function () {
+    let visualizes;
+
+    function Component() {
+      [visualizes] = useVisualizes();
+      return <ExploreToolbar />;
+    }
+    renderWithRouter(Component);
+
+    const section = screen.getByTestId('section-visualizes');
+
+    // this is the default
+    expect(
+      within(section).getByRole('button', {name: 'span.duration'})
+    ).toBeInTheDocument();
+    expect(within(section).getByRole('button', {name: 'count'})).toBeInTheDocument();
+    expect(visualizes).toEqual(['count(span.duration)']);
+
+    // try changing the field
+    await userEvent.click(within(section).getByRole('button', {name: 'span.duration'}));
+    await userEvent.click(within(section).getByRole('option', {name: 'span.self_time'}));
+    expect(
+      within(section).getByRole('button', {name: 'span.self_time'})
+    ).toBeInTheDocument();
+    expect(within(section).getByRole('button', {name: 'count'})).toBeInTheDocument();
+    expect(visualizes).toEqual(['count(span.self_time)']);
+
+    // try changing the aggregate
+    await userEvent.click(within(section).getByRole('button', {name: 'count'}));
+    await userEvent.click(within(section).getByRole('option', {name: 'avg'}));
+    expect(
+      within(section).getByRole('button', {name: 'span.self_time'})
+    ).toBeInTheDocument();
+    expect(within(section).getByRole('button', {name: 'avg'})).toBeInTheDocument();
+    expect(visualizes).toEqual(['avg(span.self_time)']);
+
+    await userEvent.click(within(section).getByRole('button', {name: '+Add Chart'}));
+    expect(
+      within(section).getByRole('button', {name: 'span.duration'})
+    ).toBeInTheDocument();
+    expect(within(section).getByRole('button', {name: 'count'})).toBeInTheDocument();
+    expect(visualizes).toEqual(['avg(span.self_time)', 'count(span.duration)']);
   });
 
   it('allows changing sort by', async function () {
