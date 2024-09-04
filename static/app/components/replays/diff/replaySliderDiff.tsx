@@ -8,6 +8,7 @@ import {Tooltip} from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import formatDuration from 'sentry/utils/duration/formatDuration';
 import toPixels from 'sentry/utils/number/toPixels';
 import type ReplayReader from 'sentry/utils/replays/replayReader';
 import {useDimensions} from 'sentry/utils/useDimensions';
@@ -29,14 +30,30 @@ export function ReplaySliderDiff({leftOffsetMs, replay, rightOffsetMs}: Props) {
     <Fragment>
       <Header>
         <Tooltip title={t('How the initial server-rendered page looked.')}>
-          <div style={{color: 'red'}}>{t('Before')}</div>
+          <div style={{color: 'red'}}>
+            {t('Before')} @{' '}
+            {formatDuration({
+              duration: [leftOffsetMs, 'ms'],
+              precision: 'ms',
+              style: 'hh:mm:ss.sss',
+            })}
+            ms
+          </div>
         </Tooltip>
         <Tooltip
           title={t(
             'How React re-rendered the page on your browser, after detecting a hydration error.'
           )}
         >
-          <div style={{color: 'green'}}>{t('After')}</div>
+          <div style={{color: 'green'}}>
+            {t('After')} @{' '}
+            {formatDuration({
+              duration: [rightOffsetMs, 'ms'],
+              precision: 'ms',
+              style: 'hh:mm:ss.sss',
+            })}
+            ms
+          </div>
         </Tooltip>
       </Header>
       <WithPadding>
