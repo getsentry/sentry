@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-from sentry.api.exceptions import DataSecrecyError
 from sentry.constants import ObjectStatus
 
 __all__ = [
@@ -927,10 +926,8 @@ def from_request_org_and_scopes(
             org_member=member,
         )
 
-        try:
-            superuser_scopes = get_superuser_scopes(auth_state, request.user, rpc_user_org_context)
-        except DataSecrecyError:
-            return DEFAULT
+        superuser_scopes = get_superuser_scopes(auth_state, request.user, rpc_user_org_context)
+
         if scopes:
             superuser_scopes = superuser_scopes.union(set(scopes))
 
@@ -1033,10 +1030,9 @@ def from_request(
             org_member=(summarize_member(member) if member is not None else None),
         )
         sso_state = auth_state.sso_state
-        try:
-            superuser_scopes = get_superuser_scopes(auth_state, request.user, organization)
-        except DataSecrecyError:
-            return DEFAULT
+
+        superuser_scopes = get_superuser_scopes(auth_state, request.user, organization)
+
         if scopes:
             superuser_scopes = superuser_scopes.union(set(scopes))
 
