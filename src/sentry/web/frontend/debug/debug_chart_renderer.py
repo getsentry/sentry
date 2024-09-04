@@ -447,7 +447,187 @@ metric_alert = {
     "incidents": [incident],
     "selectedIncident": None,
 }
-
+metric_alert_with_anomalies = metric_alert.copy()
+metric_alert_with_anomalies["anomalies"] = (
+    [
+        {
+            "anomaly": {
+                "anomaly_score": 0,
+                "anomaly_type": "none",
+            },
+            "timestamp": "2022-04-21T15:39:00Z",
+            "value": 0.077881957,
+        },
+        {
+            "anomaly": {
+                "anomaly_score": 0,
+                "anomaly_type": "none",
+            },
+            "timestamp": "2022-04-21T15:40:00Z",
+            "value": 0.075652768,
+        },
+        {
+            "anomaly": {
+                "anomaly_score": 0,
+                "anomaly_type": "none",
+            },
+            "timestamp": "2022-04-21T15:41:00Z",
+            "value": 0.073435431,
+        },
+        {
+            "anomaly": {
+                "anomaly_score": 0,
+                "anomaly_type": "anomaly_higher_confidence",
+            },
+            "timestamp": "2022-04-21T15:42:00Z",
+            "value": 0.071145604,
+        },
+        {
+            "anomaly": {
+                "anomaly_score": 0,
+                "anomaly_type": "anomaly_higher_confidence",
+            },
+            "timestamp": "2022-04-21T15:43:00Z",
+            "value": 0.068080257,
+        },
+        {
+            "anomaly": {
+                "anomaly_score": 0,
+                "anomaly_type": "anomaly_higher_confidence",
+            },
+            "timestamp": "2022-04-21T15:44:00Z",
+            "value": 0.065966207,
+        },
+        {
+            "anomaly": {
+                "anomaly_score": 0,
+                "anomaly_type": "anomaly_higher_confidence",
+            },
+            "timestamp": "2022-04-21T15:45:00Z",
+            "value": 0.062053994,
+        },
+        {
+            "anomaly": {
+                "anomaly_score": 0,
+                "anomaly_type": "anomaly_higher_confidence",
+            },
+            "timestamp": "2022-04-21T15:46:00Z",
+            "value": 0.058596638,
+        },
+        {
+            "anomaly": {
+                "anomaly_score": 0,
+                "anomaly_type": "anomaly_higher_confidence",
+            },
+            "timestamp": "2022-04-21T15:47:00Z",
+            "value": 0.056028657,
+        },
+        {
+            "anomaly": {
+                "anomaly_score": 0,
+                "anomaly_type": "anomaly_higher_confidence",
+            },
+            "timestamp": "2022-04-21T15:48:00Z",
+            "value": 0.052905251,
+        },
+        {
+            "anomaly": {
+                "anomaly_score": 0,
+                "anomaly_type": "anomaly_higher_confidence",
+            },
+            "timestamp": "2022-04-21T15:49:00Z",
+            "value": 0.051122719,
+        },
+        {
+            "anomaly": {
+                "anomaly_score": 0,
+                "anomaly_type": "anomaly_higher_confidence",
+            },
+            "timestamp": "2022-04-21T15:50:00Z",
+            "value": 0.050375953,
+        },
+        {
+            "anomaly": {
+                "anomaly_score": 0,
+                "anomaly_type": "anomaly_higher_confidence",
+            },
+            "timestamp": "2022-04-21T15:51:00Z",
+            "value": 0.047727103,
+        },
+        {
+            "anomaly": {
+                "anomaly_score": 0,
+                "anomaly_type": "anomaly_higher_confidence",
+            },
+            "timestamp": "2022-04-21T15:52:00Z",
+            "value": 0.047437386,
+        },
+        {
+            "anomaly": {
+                "anomaly_score": 0,
+                "anomaly_type": "none",
+            },
+            "timestamp": "2022-04-21T15:53:00Z",
+            "value": 0.046208149,
+        },
+        {
+            "anomaly": {
+                "anomaly_score": 0,
+                "anomaly_type": "none",
+            },
+            "timestamp": "2022-04-21T15:54:00Z",
+            "value": 0.044512145,
+        },
+        {
+            "anomaly": {
+                "anomaly_score": 0,
+                "anomaly_type": "none",
+            },
+            "timestamp": "2022-04-21T15:55:00Z",
+            "value": 0.043505737,
+        },
+        {
+            "anomaly": {
+                "anomaly_score": 0,
+                "anomaly_type": "none",
+            },
+            "timestamp": "2022-04-21T15:56:00Z",
+            "value": 0.043147801,
+        },
+        {
+            "anomaly": {
+                "anomaly_score": 0,
+                "anomaly_type": "none",
+            },
+            "timestamp": "2022-04-21T15:57:00Z",
+            "value": 0.041545758,
+        },
+        {
+            "anomaly": {
+                "anomaly_score": 0,
+                "anomaly_type": "none",
+            },
+            "timestamp": "2022-04-21T15:58:00Z",
+            "value": 0.040482494,
+        },
+        {
+            "anomaly": {
+                "anomaly_score": 0,
+                "anomaly_type": "none",
+            },
+            "timestamp": "2022-04-21T15:59:00Z",
+            "value": 0.041155806,
+        },
+        {
+            "anomaly": {
+                "anomaly_score": 0,
+                "anomaly_type": "none",
+            },
+            "timestamp": "2022-04-21T15:60:00Z",
+            "value": 0.042155754,
+        },
+    ],
+)
 
 crash_free_metric_alert = {
     "sessionResponse": {
@@ -516,187 +696,6 @@ crash_free_metric_alert = {
         "dateCreated": "2022-02-28T10:41:09.742215Z",
         "eventTypes": ["transaction"],
     },
-}
-
-metric_alert_anomaly = {
-    "timeseries": [
-        {
-            "anomaly": {
-                "anomaly_score": 0,
-                "anomaly_type": "none",
-            },
-            "timestamp": "2024-08-29T15:39:00Z",
-            "value": 0.077881957,
-        },
-        {
-            "anomaly": {
-                "anomaly_score": 0,
-                "anomaly_type": "none",
-            },
-            "timestamp": "2024-08-29T15:40:00Z",
-            "value": 0.075652768,
-        },
-        {
-            "anomaly": {
-                "anomaly_score": 0,
-                "anomaly_type": "none",
-            },
-            "timestamp": "2024-08-29T15:41:00Z",
-            "value": 0.073435431,
-        },
-        {
-            "anomaly": {
-                "anomaly_score": 0,
-                "anomaly_type": "anomaly_higher_confidence",
-            },
-            "timestamp": "2024-08-29T15:42:00Z",
-            "value": 0.071145604,
-        },
-        {
-            "anomaly": {
-                "anomaly_score": 0,
-                "anomaly_type": "anomaly_higher_confidence",
-            },
-            "timestamp": "2024-08-29T15:43:00Z",
-            "value": 0.068080257,
-        },
-        {
-            "anomaly": {
-                "anomaly_score": 0,
-                "anomaly_type": "anomaly_higher_confidence",
-            },
-            "timestamp": "2024-08-29T15:44:00Z",
-            "value": 0.065966207,
-        },
-        {
-            "anomaly": {
-                "anomaly_score": 0,
-                "anomaly_type": "anomaly_higher_confidence",
-            },
-            "timestamp": "2024-08-29T15:45:00Z",
-            "value": 0.062053994,
-        },
-        {
-            "anomaly": {
-                "anomaly_score": 0,
-                "anomaly_type": "anomaly_higher_confidence",
-            },
-            "timestamp": "2024-08-29T15:46:00Z",
-            "value": 0.058596638,
-        },
-        {
-            "anomaly": {
-                "anomaly_score": 0,
-                "anomaly_type": "anomaly_higher_confidence",
-            },
-            "timestamp": "2024-08-29T15:47:00Z",
-            "value": 0.056028657,
-        },
-        {
-            "anomaly": {
-                "anomaly_score": 0,
-                "anomaly_type": "anomaly_higher_confidence",
-            },
-            "timestamp": "2024-08-29T15:48:00Z",
-            "value": 0.052905251,
-        },
-        {
-            "anomaly": {
-                "anomaly_score": 0,
-                "anomaly_type": "anomaly_higher_confidence",
-            },
-            "timestamp": "2024-08-29T15:49:00Z",
-            "value": 0.051122719,
-        },
-        {
-            "anomaly": {
-                "anomaly_score": 0,
-                "anomaly_type": "anomaly_higher_confidence",
-            },
-            "timestamp": "2024-08-29T15:50:00Z",
-            "value": 0.050375953,
-        },
-        {
-            "anomaly": {
-                "anomaly_score": 0,
-                "anomaly_type": "anomaly_higher_confidence",
-            },
-            "timestamp": "2024-08-29T15:51:00Z",
-            "value": 0.047727103,
-        },
-        {
-            "anomaly": {
-                "anomaly_score": 0,
-                "anomaly_type": "anomaly_higher_confidence",
-            },
-            "timestamp": "2024-08-29T15:52:00Z",
-            "value": 0.047437386,
-        },
-        {
-            "anomaly": {
-                "anomaly_score": 0,
-                "anomaly_type": "none",
-            },
-            "timestamp": "2024-08-29T15:53:00Z",
-            "value": 0.046208149,
-        },
-        {
-            "anomaly": {
-                "anomaly_score": 0,
-                "anomaly_type": "none",
-            },
-            "timestamp": "2024-08-29T15:54:00Z",
-            "value": 0.044512145,
-        },
-        {
-            "anomaly": {
-                "anomaly_score": 0,
-                "anomaly_type": "none",
-            },
-            "timestamp": "2024-08-29T15:55:00Z",
-            "value": 0.043505737,
-        },
-        {
-            "anomaly": {
-                "anomaly_score": 0,
-                "anomaly_type": "none",
-            },
-            "timestamp": "2024-08-29T15:56:00Z",
-            "value": 0.043147801,
-        },
-        {
-            "anomaly": {
-                "anomaly_score": 0,
-                "anomaly_type": "none",
-            },
-            "timestamp": "2024-08-29T15:57:00Z",
-            "value": 0.041545758,
-        },
-        {
-            "anomaly": {
-                "anomaly_score": 0,
-                "anomaly_type": "none",
-            },
-            "timestamp": "2024-08-29T15:58:00Z",
-            "value": 0.040482494,
-        },
-        {
-            "anomaly": {
-                "anomaly_score": 0,
-                "anomaly_type": "none",
-            },
-            "timestamp": "2024-08-29T15:59:00Z",
-            "value": 0.041155806,
-        },
-        {
-            "anomaly": {
-                "anomaly_score": 0,
-                "anomaly_type": "none",
-            },
-            "timestamp": "2024-08-29T15:60:00Z",
-            "value": 0.042155754,
-        },
-    ],
 }
 
 
@@ -825,13 +824,13 @@ class DebugChartRendererView(View):
                 "title": "slack metric alert sessions crash free",
             }
         )
-        # ret.append(
-        #     {
-        #         "chart": charts.generate_chart(
-        #             ChartType.SLACK_METRIC_ALERT_ANOMALIES, metric_alert_anomaly
-        #         ),
-        #         "title": "slack metric alert anomalies",
-        #     }
-        # )
+        ret.append(
+            {
+                "chart": charts.generate_chart(
+                    ChartType.SLACK_METRIC_ALERT_EVENTS, metric_alert_with_anomalies
+                ),
+                "title": "slack metric alert with anomalies",
+            }
+        )
 
         return render_to_response("sentry/debug/chart-renderer.html", context={"charts": ret})
