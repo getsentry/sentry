@@ -66,6 +66,8 @@ export function DatabaseLandingPage() {
   const systemQueryParam = decodeScalar(location.query?.[SpanMetricsField.SPAN_SYSTEM]);
   const {selectedSystem} = useSystemSelectorOptions();
 
+  const system = systemQueryParam ?? selectedSystem;
+
   let sort = decodeSorts(sortField).filter(isAValidSort)[0];
   if (!sort) {
     sort = DEFAULT_SORT;
@@ -91,7 +93,7 @@ export function DatabaseLandingPage() {
     ...BASE_FILTERS,
     'span.action': spanAction,
     'span.domain': spanDomain,
-    'span.system': systemQueryParam ?? selectedSystem,
+    'span.system': system,
   };
 
   const tableFilters = {
@@ -99,7 +101,7 @@ export function DatabaseLandingPage() {
     'span.action': spanAction,
     'span.domain': spanDomain,
     'span.description': spanDescription ? `*${spanDescription}*` : undefined,
-    'span.system': systemQueryParam ?? selectedSystem,
+    'span.system': system,
   };
 
   const cursor = decodeScalar(location.query?.[QueryParameterNames.SPANS_CURSOR]);
