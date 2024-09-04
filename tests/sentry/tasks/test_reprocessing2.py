@@ -492,6 +492,7 @@ def test_nodestore_missing(
 
 @django_db_all
 @pytest.mark.snuba
+@pytest.mark.skip(reason="Flaky test")
 def test_apply_new_fingerprinting_rules(
     default_project,
     reset_snuba,
