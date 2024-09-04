@@ -240,7 +240,10 @@ def get_hash_values(
     )
 
     all_hashes = CalculatedHashes(
-        hashes=extract_hashes(primary_hashes) + extract_hashes(secondary_hashes)
+        hashes=extract_hashes(primary_hashes) + extract_hashes(secondary_hashes),
+        # We don't set a combo `variants` value here because one set of variants would/could
+        # partially or fully overwrite the other (it's a dictionary), and having variants from two
+        # different configs all mixed in together makes no sense.
     )
 
     return (primary_hashes, secondary_hashes, all_hashes)
