@@ -27,7 +27,7 @@ interface Props extends HTMLAttributes<HTMLTimeElement> {
 const Duration = styled(({duration, format, precision, ...props}: Props) => {
   // Style and precision should match, otherwise style will pad out missing or
   // truncated values which we don't want in this component.
-  const style = format ?? precision === 'ms' ? 'hh:mm:ss.sss' : 'hh:mm:ss';
+  const style = format ?? (precision === 'ms' ? 'hh:mm:ss.sss' : 'hh:mm:ss');
 
   return (
     <time
