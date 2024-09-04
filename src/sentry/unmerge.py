@@ -24,10 +24,6 @@ class UnmergeReplacement(abc.ABC):
     """
     A type defining how and by which criteria a subset of events can be
     moved out of a group into a new, different group.
-
-    Right now only one concrete implementation exists, the "classical" unmerge.
-    In the future there will be an additional concrete type for splitting up
-    groups based on hierarchical_hashes column.
     """
 
     @staticmethod
@@ -58,7 +54,8 @@ class UnmergeReplacement(abc.ABC):
 
         raise NotImplementedError()
 
-    @abc.abstractproperty
+    @abc.property
+    @abc.abstractmethod
     def primary_hashes_to_lock(self) -> Collection[str]:
         raise NotImplementedError()
 
