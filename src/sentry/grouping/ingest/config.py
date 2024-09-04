@@ -99,5 +99,5 @@ def project_uses_optimized_grouping(project: Project) -> bool:
             project.organization,
         )
         or (is_in_transition(project))
-        or project.id % 5 < 3  # 60% of all non-transition projects
+        or project.id % 5 < 4  # 80% of all non-transition projects
     )
