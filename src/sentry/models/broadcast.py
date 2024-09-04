@@ -11,6 +11,15 @@ def default_expiration():
     return timezone.now() + timedelta(days=7)
 
 
+BROADCAST_CATEGORIES = [
+    ["announcement", "Announcement"],
+    ["feature", "New Feature"],
+    ["blog", "Blog Post"],
+    ["event", "Event"],
+    ["video", "Video"],
+]
+
+
 @control_silo_model
 class Broadcast(Model):
     __relocation_scope__ = RelocationScope.Excluded
@@ -24,7 +33,7 @@ class Broadcast(Model):
     date_added = models.DateTimeField(default=timezone.now)
     cta = models.CharField(max_length=256, null=True, blank=True)
     media_url = models.URLField(null=True, blank=True)
-    category = models.CharField(max_length=32, null=True, blank=True)
+    category = models.CharField(choices=BROADCAST_CATEGORIES, max_length=32, null=True, blank=True)
 
     class Meta:
         app_label = "sentry"
