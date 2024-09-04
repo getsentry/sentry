@@ -972,7 +972,7 @@ export const lightTheme = {
     ...commonTheme.sidebar,
     background: sidebarBackground.light,
     scrollbarWidth: 'thin',
-    scrollbarThumbColor: '#A0A0A0 ',
+    scrollbarThumbColor: '#A0A0A0',
     scrollbarColorTrack: 'rgba(45,26,50,92.42)', // end of the gradient which is used for background
   },
   sidebarGradient: `linear-gradient(294.17deg,${sidebarBackground.light} 35.57%,#452650 92.42%,#452650 92.42%)`,
@@ -1003,7 +1003,7 @@ export const darkTheme: Theme = {
     ...commonTheme.sidebar,
     background: sidebarBackground.dark,
     scrollbarWidth: 'thin',
-    scrollbarThumbColor: '#808080 ',
+    scrollbarThumbColor: '#808080',
     scrollbarColorTrack: '#1B1825', // end of the gradient which is used for background
   },
   sidebarGradient: `linear-gradient(180deg, ${sidebarBackground.dark} 0%, #1B1825 100%)`,
