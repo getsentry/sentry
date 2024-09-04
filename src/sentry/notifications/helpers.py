@@ -12,11 +12,9 @@ from sentry.integrations.types import ExternalProviderEnum
 from sentry.integrations.utils.providers import PERSONAL_NOTIFICATION_PROVIDERS_AS_INT
 from sentry.models.organizationmembermapping import OrganizationMemberMapping
 from sentry.models.organizationmemberteamreplica import OrganizationMemberTeamReplica
-from sentry.notifications.defaults import (
-    DEFAULT_ENABLED_PROVIDERS_VALUES,
-    NOTIFICATION_SETTINGS_TYPE_DEFAULTS,
-)
+from sentry.notifications.defaults import DEFAULT_ENABLED_PROVIDERS_VALUES
 from sentry.notifications.types import (
+    NOTIFICATION_SETTINGS_TYPE_DEFAULTS,
     SUBSCRIPTION_REASON_MAP,
     VALID_VALUES_FOR_KEY,
     GroupSubscriptionReason,
@@ -46,7 +44,7 @@ def get_default_for_provider(
         return NotificationSettingsOptionEnum.NEVER
 
     # TODO(Steve): Make sure that all keys are present in NOTIFICATION_SETTINGS_TYPE_DEFAULTS
-    if type not in NOTIFICATION_SETTINGS_TYPE_DEFAULTS:
+    if type.value not in NOTIFICATION_SETTINGS_TYPE_DEFAULTS:
         return NotificationSettingsOptionEnum.NEVER
 
     # special case to disable reports for non-email providers
@@ -57,7 +55,7 @@ def get_default_for_provider(
         # Reports are only sent to email
         return NotificationSettingsOptionEnum.NEVER
 
-    return NOTIFICATION_SETTINGS_TYPE_DEFAULTS[type]
+    return NOTIFICATION_SETTINGS_TYPE_DEFAULTS[type.value]
 
 
 def get_type_defaults() -> Mapping[NotificationSettingEnum, NotificationSettingsOptionEnum]:
@@ -65,11 +63,11 @@ def get_type_defaults() -> Mapping[NotificationSettingEnum, NotificationSettings
     type_defaults = {}
     for notification_type, default in NOTIFICATION_SETTINGS_TYPE_DEFAULTS.items():
         # for the given notification type, figure out what the default value is
-        type_defaults[notification_type] = default
+        type_defaults[NotificationSettingEnum(notification_type)] = default
     return type_defaults
 
 
-def validate(type: NotificationSettingEnum, value: NotificationSettingsOptionEnum) -> bool:
+def validate(type: str, value: NotificationSettingsOptionEnum) -> bool:
     """:returns boolean. True if the "value" is valid for the "type"."""
     return value in VALID_VALUES_FOR_KEY.get(type, {})
 

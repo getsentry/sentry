@@ -77,77 +77,77 @@ class UserOptionsSettingsKey(Enum):
 
 
 VALID_VALUES_FOR_KEY = {
-    NotificationSettingEnum.APPROVAL: {
+    NotificationSettingEnum.APPROVAL.value: {
         NotificationSettingsOptionEnum.ALWAYS,
         NotificationSettingsOptionEnum.NEVER,
     },
-    NotificationSettingEnum.DEPLOY: {
+    NotificationSettingEnum.DEPLOY.value: {
         NotificationSettingsOptionEnum.ALWAYS,
         NotificationSettingsOptionEnum.COMMITTED_ONLY,
         NotificationSettingsOptionEnum.NEVER,
     },
-    NotificationSettingEnum.ISSUE_ALERTS: {
+    NotificationSettingEnum.ISSUE_ALERTS.value: {
         NotificationSettingsOptionEnum.ALWAYS,
         NotificationSettingsOptionEnum.NEVER,
     },
-    NotificationSettingEnum.QUOTA: {
+    NotificationSettingEnum.QUOTA.value: {
         NotificationSettingsOptionEnum.ALWAYS,
         NotificationSettingsOptionEnum.NEVER,
     },
-    NotificationSettingEnum.QUOTA_ERRORS: {
+    NotificationSettingEnum.QUOTA_ERRORS.value: {
         NotificationSettingsOptionEnum.ALWAYS,
         NotificationSettingsOptionEnum.NEVER,
     },
-    NotificationSettingEnum.QUOTA_TRANSACTIONS: {
+    NotificationSettingEnum.QUOTA_TRANSACTIONS.value: {
         NotificationSettingsOptionEnum.ALWAYS,
         NotificationSettingsOptionEnum.NEVER,
     },
-    NotificationSettingEnum.QUOTA_ATTACHMENTS: {
+    NotificationSettingEnum.QUOTA_ATTACHMENTS.value: {
         NotificationSettingsOptionEnum.ALWAYS,
         NotificationSettingsOptionEnum.NEVER,
     },
-    NotificationSettingEnum.QUOTA_REPLAYS: {
+    NotificationSettingEnum.QUOTA_REPLAYS.value: {
         NotificationSettingsOptionEnum.ALWAYS,
         NotificationSettingsOptionEnum.NEVER,
     },
-    NotificationSettingEnum.QUOTA_MONITOR_SEATS: {
+    NotificationSettingEnum.QUOTA_MONITOR_SEATS.value: {
         NotificationSettingsOptionEnum.ALWAYS,
         NotificationSettingsOptionEnum.NEVER,
     },
-    NotificationSettingEnum.QUOTA_SPANS: {
+    NotificationSettingEnum.QUOTA_SPANS.value: {
         NotificationSettingsOptionEnum.ALWAYS,
         NotificationSettingsOptionEnum.NEVER,
     },
-    NotificationSettingEnum.QUOTA_PROFILE_DURATION: {
+    NotificationSettingEnum.QUOTA_PROFILE_DURATION.value: {
         NotificationSettingsOptionEnum.ALWAYS,
         NotificationSettingsOptionEnum.NEVER,
     },
-    NotificationSettingEnum.QUOTA_WARNINGS: {
+    NotificationSettingEnum.QUOTA_WARNINGS.value: {
         NotificationSettingsOptionEnum.ALWAYS,
         NotificationSettingsOptionEnum.NEVER,
     },
-    NotificationSettingEnum.QUOTA_SPEND_ALLOCATIONS: {
+    NotificationSettingEnum.QUOTA_SPEND_ALLOCATIONS.value: {
         NotificationSettingsOptionEnum.ALWAYS,
         NotificationSettingsOptionEnum.NEVER,
     },
-    NotificationSettingEnum.QUOTA_THRESHOLDS: {
+    NotificationSettingEnum.QUOTA_THRESHOLDS.value: {
         NotificationSettingsOptionEnum.ALWAYS,
         NotificationSettingsOptionEnum.NEVER,
     },
-    NotificationSettingEnum.WORKFLOW: {
+    NotificationSettingEnum.WORKFLOW.value: {
         NotificationSettingsOptionEnum.ALWAYS,
         NotificationSettingsOptionEnum.SUBSCRIBE_ONLY,
         NotificationSettingsOptionEnum.NEVER,
     },
-    NotificationSettingEnum.SPIKE_PROTECTION: {
+    NotificationSettingEnum.SPIKE_PROTECTION.value: {
         NotificationSettingsOptionEnum.ALWAYS,
         NotificationSettingsOptionEnum.NEVER,
     },
-    NotificationSettingEnum.REPORTS: {
+    NotificationSettingEnum.REPORTS.value: {
         NotificationSettingsOptionEnum.ALWAYS,
         NotificationSettingsOptionEnum.NEVER,
     },
-    NotificationSettingEnum.BROKEN_MONITORS: {
+    NotificationSettingEnum.BROKEN_MONITORS.value: {
         NotificationSettingsOptionEnum.ALWAYS,
         NotificationSettingsOptionEnum.NEVER,
     },
@@ -229,6 +229,28 @@ ASSIGNEE_CHOICES = [
     (AssigneeTargetType.TEAM.value, "Team"),
     (AssigneeTargetType.MEMBER.value, "Member"),
 ]
+
+# This specifies the default value for each type of notification
+NOTIFICATION_SETTINGS_TYPE_DEFAULTS = {
+    NotificationSettingEnum.DEPLOY.value: NotificationSettingsOptionEnum.COMMITTED_ONLY,
+    NotificationSettingEnum.ISSUE_ALERTS.value: NotificationSettingsOptionEnum.ALWAYS,
+    NotificationSettingEnum.WORKFLOW.value: NotificationSettingsOptionEnum.SUBSCRIBE_ONLY,
+    NotificationSettingEnum.APPROVAL.value: NotificationSettingsOptionEnum.ALWAYS,
+    NotificationSettingEnum.QUOTA.value: NotificationSettingsOptionEnum.ALWAYS,
+    NotificationSettingEnum.QUOTA_ERRORS.value: NotificationSettingsOptionEnum.ALWAYS,
+    NotificationSettingEnum.QUOTA_TRANSACTIONS.value: NotificationSettingsOptionEnum.ALWAYS,
+    NotificationSettingEnum.QUOTA_ATTACHMENTS.value: NotificationSettingsOptionEnum.ALWAYS,
+    NotificationSettingEnum.QUOTA_REPLAYS.value: NotificationSettingsOptionEnum.ALWAYS,
+    NotificationSettingEnum.QUOTA_MONITOR_SEATS.value: NotificationSettingsOptionEnum.ALWAYS,
+    NotificationSettingEnum.QUOTA_SPANS.value: NotificationSettingsOptionEnum.ALWAYS,
+    NotificationSettingEnum.QUOTA_PROFILE_DURATION.value: NotificationSettingsOptionEnum.ALWAYS,
+    NotificationSettingEnum.QUOTA_WARNINGS.value: NotificationSettingsOptionEnum.ALWAYS,
+    NotificationSettingEnum.QUOTA_SPEND_ALLOCATIONS.value: NotificationSettingsOptionEnum.ALWAYS,
+    NotificationSettingEnum.QUOTA_THRESHOLDS.value: NotificationSettingsOptionEnum.ALWAYS,
+    NotificationSettingEnum.SPIKE_PROTECTION.value: NotificationSettingsOptionEnum.ALWAYS,
+    NotificationSettingEnum.REPORTS.value: NotificationSettingsOptionEnum.ALWAYS,
+    NotificationSettingEnum.BROKEN_MONITORS.value: NotificationSettingsOptionEnum.ALWAYS,
+}
 
 
 @dataclass
