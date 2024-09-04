@@ -190,7 +190,7 @@ const feedbackOnboarding: OnboardingConfig = {
         {
           code: [
             {
-              label: 'JavaScript',
+              label: 'entry.client.tsx',
               value: 'javascript',
               language: 'javascript',
               code: getFeedbackSDKSetupSnippet({
