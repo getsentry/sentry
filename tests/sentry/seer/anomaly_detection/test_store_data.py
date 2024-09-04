@@ -1,4 +1,6 @@
+import logging
 from datetime import datetime
+from typing import Any
 
 import pytest
 
@@ -7,16 +9,29 @@ from sentry.seer.anomaly_detection.store_data import fetch_historical_data, form
 from sentry.snuba import errors, metrics_performance
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.models import SnubaQuery
-from sentry.testutils.cases import BaseMetricsTestCase
+from sentry.testutils.cases import BaseMetricsTestCase, PerformanceIssueTestCase
 from sentry.testutils.factories import EventType
 from sentry.testutils.helpers.datetime import iso_format
+from sentry.testutils.performance_issues.event_generators import get_event
 from sentry.utils.snuba import SnubaTSResult
 from tests.sentry.incidents.endpoints.test_organization_alert_rule_index import AlertRuleBase
 
 pytestmark = pytest.mark.sentry_metrics
 
 
-class AnomalyDetectionStoreDataTest(AlertRuleBase, BaseMetricsTestCase):
+def make_event(**kwargs: Any) -> dict[str, Any]:
+    result = {
+        "event_id": "a" * 32,
+        "message": "foo",
+        "level": logging.ERROR,
+        "logger": "default",
+        "tags": [],
+    }
+    result.update(kwargs)
+    return result
+
+
+class AnomalyDetectionStoreDataTest(AlertRuleBase, BaseMetricsTestCase, PerformanceIssueTestCase):
     def setUp(self):
         super().setUp()
         self.time_1 = "2024-08-29T00:00:00Z"
@@ -74,6 +89,23 @@ class AnomalyDetectionStoreDataTest(AlertRuleBase, BaseMetricsTestCase):
         assert result
         assert {"time": int(self.time_1_ts), "count": 1} in result.data.get("data")
         assert {"time": int(self.time_2_ts), "count": 1} in result.data.get("data")
+
+    def test_anomaly_detection_fetch_historical_data_performance_alert(self):
+        alert_rule = self.create_alert_rule(
+            organization=self.organization, projects=[self.project], dataset=Dataset.Transactions
+        )
+        snuba_query = SnubaQuery.objects.get(id=alert_rule.snuba_query_id)
+        event_data = get_event("n-plus-one-in-django-index-view")
+        event_data["timestamp"] = self.time_1_ts
+        event1 = self.create_performance_issue(event_data=make_event(**event_data))
+        event_data["timestamp"] = self.time_2_ts
+
+        event2 = self.create_performance_issue(event_data=make_event(**event_data))
+
+        result = fetch_historical_data(alert_rule, snuba_query, self.project)
+        assert result
+        assert {"time": int(event1.datetime.timestamp()), "count": 1} in result.data.get("data")
+        assert {"time": int(event2.datetime.timestamp()), "count": 1} in result.data.get("data")
 
     def test_anomaly_detection_format_historical_data_crash_rate_alert(self):
         expected_return_value = [
