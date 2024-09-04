@@ -4154,7 +4154,12 @@ class Migration(CheckedMigration):
             options={
                 "db_table": "sentry_groupenvironment",
                 "unique_together": {("group", "environment")},
-                "index_together": {("environment", "first_release")},
+                "indexes": [
+                    models.Index(
+                        fields=["environment", "first_release", "first_seen"],
+                        name="sentry_grou_environ_443bdb_idx",
+                    ),
+                ],
             },
         ),
         migrations.CreateModel(
