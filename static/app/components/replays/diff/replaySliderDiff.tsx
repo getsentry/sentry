@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 
 import NegativeSpaceContainer from 'sentry/components/container/negativeSpaceContainer';
 import ReplayPlayer from 'sentry/components/replays/player/replayPlayer';
-import ReplayPlayerContainment from 'sentry/components/replays/player/replayPlayerContainment';
+import ReplayPlayerMeasurer from 'sentry/components/replays/player/replayPlayerMeasurer';
 import {Tooltip} from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -108,9 +108,9 @@ function DiffSides({leftOffsetMs, replay, rightOffsetMs, viewDimensions, width})
             <Placement style={{width}}>
               <ReplayPlayerStateContextProvider>
                 <NegativeSpaceContainer>
-                  <ReplayPlayerContainment measure="width">
+                  <ReplayPlayerMeasurer measure="width">
                     {style => <ReplayPlayer style={style} offsetMs={leftOffsetMs} />}
-                  </ReplayPlayerContainment>
+                  </ReplayPlayerMeasurer>
                 </NegativeSpaceContainer>
               </ReplayPlayerStateContextProvider>
             </Placement>
@@ -119,9 +119,9 @@ function DiffSides({leftOffsetMs, replay, rightOffsetMs, viewDimensions, width})
             <Placement style={{width}}>
               <ReplayPlayerStateContextProvider>
                 <NegativeSpaceContainer>
-                  <ReplayPlayerContainment measure="width">
+                  <ReplayPlayerMeasurer measure="width">
                     {style => <ReplayPlayer style={style} offsetMs={rightOffsetMs} />}
-                  </ReplayPlayerContainment>
+                  </ReplayPlayerMeasurer>
                 </NegativeSpaceContainer>
               </ReplayPlayerStateContextProvider>
             </Placement>
