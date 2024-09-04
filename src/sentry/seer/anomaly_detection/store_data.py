@@ -1,17 +1,13 @@
 import logging
 from datetime import datetime, timedelta
-from typing import Any
 
 from django.conf import settings
 from django.core.exceptions import ValidationError
 from django.utils import timezone
-from django.utils.datastructures import MultiValueDict
 from urllib3.exceptions import MaxRetryError, TimeoutError
 
-from sentry import release_health
 from sentry.conf.server import SEER_ANOMALY_DETECTION_STORE_DATA_URL
 from sentry.incidents.models.alert_rule import AlertRule, AlertRuleStatus
-from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.net.http import connection_from_url
 from sentry.search.events.types import SnubaParams
@@ -20,12 +16,15 @@ from sentry.seer.anomaly_detection.types import (
     AnomalyDetectionConfig,
     StoreDataRequest,
 )
-from sentry.seer.anomaly_detection.utils import format_historical_data, translate_direction
+from sentry.seer.anomaly_detection.utils import (
+    format_historical_data,
+    get_crash_free_historical_data,
+    translate_direction,
+)
 from sentry.seer.signed_seer_api import make_signed_seer_api_request
 from sentry.snuba import metrics_performance
 from sentry.snuba.models import SnubaQuery
 from sentry.snuba.referrer import Referrer
-from sentry.snuba.sessions_v2 import QueryDefinition
 from sentry.snuba.utils import get_dataset
 from sentry.utils import json
 from sentry.utils.snuba import SnubaTSResult
