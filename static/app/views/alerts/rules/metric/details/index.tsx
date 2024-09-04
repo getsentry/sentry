@@ -201,14 +201,13 @@ class MetricAlertDetails extends Component<Props, State> {
     const timePeriod = this.getTimePeriod(selectedIncident);
     const {start, end} = timePeriod;
     try {
-      const promiseList: Promise<any>[] = [
+      const [incidents, rule, anomalies] = await Promise.all([
         fetchIncidentsForRule(organization.slug, ruleId, start, end),
         rulePromise,
-      ];
-      if (organization.features.includes('anomaly-detection-alerts')) {
-        promiseList.push(fetchAnomaliesForRule(organization.slug, ruleId, start, end));
-      }
-      const [incidents, rule, anomalies] = await Promise.all(promiseList);
+        organization.features.includes('anomaly-detection-alerts')
+          ? fetchAnomaliesForRule(organization.slug, ruleId, start, end)
+          : undefined,
+      ]);
       this.setState({
         anomalies,
         incidents,

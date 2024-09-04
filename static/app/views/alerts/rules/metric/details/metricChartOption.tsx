@@ -142,7 +142,7 @@ function createIncidentSeries(
 
 function createAnomalyMarkerSeries(
   lineColor: string,
-  timestamp: number
+  timestamp: string
 ): AreaChartSeries {
   const formatter = ({value}: any) => {
     const time = formatTooltipDate(moment(value), 'MMM D, YYYY LT');
@@ -404,9 +404,9 @@ export function getMetricAlertChartOption({
   }
 
   if (anomalies) {
-    const anomalyBlocks: any[] = [];
-    let start;
-    let end;
+    const anomalyBlocks: {xAxis: string}[][] = [];
+    let start: string | undefined;
+    let end: string | undefined;
     anomalies
       .filter(anomalyts => {
         const ts = new Date(anomalyts.timestamp).getTime();
@@ -416,14 +416,17 @@ export function getMetricAlertChartOption({
         const {anomaly, timestamp} = anomalyts;
 
         if (
-          [AnomalyType.high, AnomalyType.low].indexOf(anomaly.anomaly_type as string) > -1
+          [AnomalyType.high, AnomalyType.low].includes(anomaly.anomaly_type as string)
         ) {
           if (!start) {
+            // If this is the start of an anomaly, set start
             start = new Date(timestamp).toISOString();
           }
+          // as long as we have an valid anomaly type - continue tracking until we've hit the end
           end = new Date(timestamp).toISOString();
         } else {
           if (start && end) {
+            // If we've hit a non-anomaly type, push the block
             anomalyBlocks.push([
               {
                 xAxis: start,
@@ -432,8 +435,10 @@ export function getMetricAlertChartOption({
                 xAxis: end,
               },
             ]);
+            // Create a marker line for the start of the anomaly
             series.push(createAnomalyMarkerSeries(theme.purple300, start));
           }
+          // reset the start/end to capture the next anomaly block
           start = undefined;
           end = undefined;
         }
