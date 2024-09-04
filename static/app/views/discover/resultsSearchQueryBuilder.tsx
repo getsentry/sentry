@@ -124,6 +124,7 @@ type Props = {
   placeholder?: string;
   projectIds?: number[] | Readonly<number[]>;
   query?: string;
+  searchSource?: string;
   supportedTags?: TagCollection | undefined;
 };
 
@@ -284,8 +285,8 @@ function ResultsSearchQueryBuilder(props: Props) {
       filterKeys={getTagList}
       initialQuery={props.query ?? ''}
       onSearch={props.onSearch}
-      searchSource={'eventsv2'}
       onChange={props.onChange}
+      searchSource={props.searchSource || 'eventsv2'}
       filterKeySections={filterKeySections}
       getTagValues={getEventFieldValues}
       recentSearches={SavedSearchType.EVENT}
