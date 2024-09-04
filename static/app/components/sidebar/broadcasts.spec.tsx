@@ -65,7 +65,7 @@ describe('Broadcasts', function () {
     );
 
     expect(await screen.findByText('Learn about Source Maps')).toBeInTheDocument();
-    expect(screen.getByText('blog post')).toBeInTheDocument();
+    expect(screen.getByText(/blog post/i)).toBeInTheDocument();
 
     await userEvent.click(screen.getByRole('img', {name: 'Learn about Source Maps'}));
     expect(trackAnalytics).toHaveBeenCalledWith(

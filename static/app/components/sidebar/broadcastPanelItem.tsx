@@ -4,10 +4,19 @@ import styled from '@emotion/styled';
 import Badge from 'sentry/components/badge/badge';
 import {LinkButton} from 'sentry/components/button';
 import ExternalLink from 'sentry/components/links/externalLink';
+import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Broadcast} from 'sentry/types/system';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import useOrganization from 'sentry/utils/useOrganization';
+
+const CATEGORIES: Record<Broadcast['category'], string> = {
+  announcement: t('Announcement'),
+  feature: t('New Feature'),
+  blog: t('Blog Post'),
+  event: t('Event'),
+  video: t('Video'),
+};
 
 interface BroadcastPanelItemProps
   extends Pick<
@@ -36,7 +45,7 @@ export function BroadcastPanelItem({
     <SidebarPanelItemRoot>
       <TitleWrapper>
         <Title hasSeen={hasSeen}>{title}</Title>
-        {category && <Badge type={!hasSeen ? 'new' : 'default'}>{category}</Badge>}
+        <Badge type={!hasSeen ? 'new' : 'default'}>{CATEGORIES[category]}</Badge>
       </TitleWrapper>
 
       {mediaUrl && (
