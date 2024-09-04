@@ -12,6 +12,7 @@ from sentry.api.bases.user import UserEndpoint
 from sentry.api.decorators import sudo_required
 from sentry.api.serializers import serialize
 from sentry.api.validators import AllowedEmailField
+from sentry.users.api.serializers.useremail import UserEmailSerializer
 from sentry.users.models.user import User
 from sentry.users.models.user_option import UserOption
 from sentry.users.models.useremail import UserEmail
@@ -78,7 +79,7 @@ class UserEmailsEndpoint(UserEndpoint):
 
         emails = user.emails.all()
 
-        return self.respond(serialize(list(emails), user=user))
+        return self.respond(serialize(list(emails), user=user, serializer=UserEmailSerializer()))
 
     @sudo_required
     def post(self, request: Request, user: User) -> Response:
