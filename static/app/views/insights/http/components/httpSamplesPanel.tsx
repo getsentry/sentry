@@ -152,12 +152,14 @@ export function HTTPSamplesPanel() {
   const ribbonFilters: SpanMetricsQueryFilters = {
     ...BASE_FILTERS,
     ...ADDITONAL_FILTERS,
+    ...new MutableSearch(query.spanSearchQuery).filters,
   };
 
   // These filters are for the charts and samples tables
   const filters: SpanMetricsQueryFilters = {
     ...BASE_FILTERS,
     ...ADDITONAL_FILTERS,
+    ...new MutableSearch(query.spanSearchQuery).filters,
   };
 
   const responseCodeInRange = query.responseCodeClass
