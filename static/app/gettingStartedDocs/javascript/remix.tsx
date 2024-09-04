@@ -202,9 +202,20 @@ const feedbackOnboarding: OnboardingConfig = {
           ],
         },
       ],
-      additionalInfo: crashReportCallout({
-        link: 'https://docs.sentry.io/platforms/javascript/guides/remix/user-feedback/#user-feedback-api',
-      }),
+      additionalInfo: (
+        <Fragment>
+          <p>
+            {tct(
+              'Note: The Feedback integration only needs to be added to your [entryClient:entry.client.tsx] file.',
+              {entryClient: <code />, sentryServer: <code />}
+            )}
+          </p>
+
+          {crashReportCallout({
+            link: 'https://docs.sentry.io/platforms/javascript/guides/remix/user-feedback/#user-feedback-api',
+          })}
+        </Fragment>
+      ),
     },
   ],
   verify: () => [],
