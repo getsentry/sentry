@@ -47,18 +47,15 @@ export function BroadcastPanelItem({
         <Title hasSeen={hasSeen}>{title}</Title>
         <Badge type={!hasSeen ? 'new' : 'default'}>{CATEGORIES[category]}</Badge>
       </TitleWrapper>
-
-      {mediaUrl && (
-        <Image
-          mediaUrl={mediaUrl}
-          link={link}
-          title={title}
+      <ExternalLink href={link}>
+        <img
+          src={mediaUrl}
+          alt={title}
+          style={{maxWidth: '100%', marginBottom: space(1)}}
           onClick={handlePanelClicked}
         />
-      )}
-
+      </ExternalLink>
       <Message>{message}</Message>
-
       <LinkButton
         external
         href={link}
@@ -69,28 +66,6 @@ export function BroadcastPanelItem({
       </LinkButton>
     </SidebarPanelItemRoot>
   );
-}
-
-function Image({
-  mediaUrl,
-  link,
-  title,
-  onClick,
-}: Pick<BroadcastPanelItemProps, 'mediaUrl' | 'link' | 'title'> & {onClick: () => void}) {
-  const image = (
-    <img
-      src={mediaUrl}
-      alt={title}
-      style={{maxWidth: '100%', marginBottom: space(1)}}
-      onClick={onClick}
-    />
-  );
-
-  if (link) {
-    return <ExternalLink href={link}>{image}</ExternalLink>;
-  }
-
-  return image;
 }
 
 const SidebarPanelItemRoot = styled('div')`
