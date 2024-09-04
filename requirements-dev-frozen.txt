@@ -146,7 +146,7 @@ pyparsing==3.0.9
 pysocks==1.7.1
 pytest==8.0.0
 pytest-cov==4.0.0
-pytest-django==4.8.0
+pytest-django==4.9.0
 pytest-fail-slow==0.3.0
 pytest-json-report==1.5.0
 pytest-metadata==3.1.1
