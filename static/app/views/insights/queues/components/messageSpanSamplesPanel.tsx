@@ -7,6 +7,7 @@ import {Button} from 'sentry/components/button';
 import {CompactSelect, type SelectOption} from 'sentry/components/compactSelect';
 import SearchBar from 'sentry/components/events/searchBar';
 import Link from 'sentry/components/links/link';
+import {SpanSearchQueryBuilder} from 'sentry/components/performance/spanSearchQueryBuilder';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -361,16 +362,26 @@ export function MessageSpanSamplesPanel() {
           </ModuleLayout.Full>
 
           <ModuleLayout.Full>
-            <SearchBar
-              searchSource={`${ModuleName.QUEUE}-sample-panel`}
-              query={query.spanSearchQuery}
-              onSearch={handleSearch}
-              placeholder={t('Search for span attributes')}
-              organization={organization}
-              supportedTags={supportedTags}
-              dataset={DiscoverDatasets.SPANS_INDEXED}
-              projectIds={selection.projects}
-            />
+            {organization.features.includes('search-query-builder-performance') ? (
+              <SpanSearchQueryBuilder
+                searchSource={`${ModuleName.QUEUE}-sample-panel`}
+                initialQuery={query.spanSearchQuery}
+                onSearch={handleSearch}
+                placeholder={t('Search for span attributes')}
+                projects={selection.projects}
+              />
+            ) : (
+              <SearchBar
+                searchSource={`${ModuleName.QUEUE}-sample-panel`}
+                query={query.spanSearchQuery}
+                onSearch={handleSearch}
+                placeholder={t('Search for span attributes')}
+                organization={organization}
+                supportedTags={supportedTags}
+                dataset={DiscoverDatasets.SPANS_INDEXED}
+                projectIds={selection.projects}
+              />
+            )}
           </ModuleLayout.Full>
 
           <ModuleLayout.Full>
