@@ -17,7 +17,7 @@ export const StyledPanelHeader = styled(PanelHeader)<{align: 'left' | 'right'}>`
 export const TracePanelContent = styled('div')`
   width: 100%;
   display: grid;
-  grid-template-columns: 116px auto repeat(2, min-content) 85px 112px 66px;
+  grid-template-columns: 116px auto repeat(3, min-content) 95px;
 `;
 
 export const StyledPanelItem = styled(PanelItem)<{

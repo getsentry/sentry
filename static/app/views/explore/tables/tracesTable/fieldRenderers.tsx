@@ -4,7 +4,6 @@ import styled from '@emotion/styled';
 import type {Location} from 'history';
 
 import Tag from 'sentry/components/badge/tag';
-import {LinkButton} from 'sentry/components/button';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import Link from 'sentry/components/links/link';
 import {RowRectangle} from 'sentry/components/performance/waterfall/rowBar';
@@ -12,13 +11,11 @@ import {pickBarColor} from 'sentry/components/performance/waterfall/utils';
 import PerformanceDuration from 'sentry/components/performanceDuration';
 import TimeSince from 'sentry/components/timeSince';
 import {Tooltip} from 'sentry/components/tooltip';
-import {IconIssues} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {generateLinkToEventInTraceView} from 'sentry/utils/discover/urls';
 import {getShortEventId} from 'sentry/utils/events';
 import Projects from 'sentry/utils/projects';
-import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
@@ -492,38 +489,6 @@ export function TransactionRenderer({
   });
 
   return <Link to={target}>{transaction}</Link>;
-}
-
-export function TraceIssuesRenderer({
-  trace,
-  onClick,
-}: {
-  trace: TraceResult;
-  onClick?: () => void;
-}) {
-  const organization = useOrganization();
-
-  const issueCount = trace.numErrors + trace.numOccurrences;
-
-  const issueText = issueCount >= 100 ? '99+' : issueCount === 0 ? '\u2014' : issueCount;
-
-  return (
-    <LinkButton
-      to={normalizeUrl({
-        pathname: `/organizations/${organization.slug}/issues`,
-        query: {
-          query: `trace:"${trace.trace}"`,
-        },
-      })}
-      onClick={onClick}
-      size="xs"
-      icon={<IconIssues size="xs" />}
-      disabled={issueCount === 0}
-      style={{minHeight: '24px', height: '24px', minWidth: '44px'}}
-    >
-      {issueText}
-    </LinkButton>
-  );
 }
 
 export function SpanTimeRenderer({

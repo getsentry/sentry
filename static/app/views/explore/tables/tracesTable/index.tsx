@@ -30,7 +30,6 @@ import {
   SpanTimeRenderer,
   TraceBreakdownRenderer,
   TraceIdRenderer,
-  TraceIssuesRenderer,
 } from './fieldRenderers';
 import {SpanTable} from './spansTable';
 import {
@@ -80,11 +79,8 @@ export function TracesTable() {
         <StyledPanelHeader align="right" lightText>
           {t('Timestamp')}
         </StyledPanelHeader>
-        <StyledPanelHeader align="right" lightText>
-          {t('Issues')}
-        </StyledPanelHeader>
         {isLoading && (
-          <StyledPanelItem span={7} overflow>
+          <StyledPanelItem span={6} overflow>
             <LoadingIndicator />
           </StyledPanelItem>
         )}
@@ -260,16 +256,6 @@ function TraceRow({
       </StyledPanelItem>
       <StyledPanelItem align="right">
         <SpanTimeRenderer timestamp={trace.end} tooltipShowSeconds />
-      </StyledPanelItem>
-      <StyledPanelItem align="right">
-        <TraceIssuesRenderer
-          trace={trace}
-          onClick={() =>
-            trackAnalytics('trace_explorer.open_in_issues', {
-              organization,
-            })
-          }
-        />
       </StyledPanelItem>
       {expanded && (
         <SpanTable trace={trace} setHighlightedSliceName={setHighlightedSliceName} />
