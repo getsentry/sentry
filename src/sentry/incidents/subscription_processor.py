@@ -684,7 +684,7 @@ class SubscriptionProcessor:
             context = {
                 "id": self.alert_rule.id,
                 "cur_window": {
-                    "timestamp": self.last_update,
+                    "timestamp": self.last_update.timestamp(),
                     "value": aggregation_value,
                 },
             }

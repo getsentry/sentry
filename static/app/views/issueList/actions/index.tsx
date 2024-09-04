@@ -19,6 +19,7 @@ import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import {space} from 'sentry/styles/space';
 import type {PageFilters} from 'sentry/types/core';
 import type {Group} from 'sentry/types/group';
+import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {uniq} from 'sentry/utils/array/uniq';
 import {useQueryClient} from 'sentry/utils/queryClient';
@@ -263,6 +264,26 @@ function IssueListActions({
     });
   }
 
+  // If all selected groups are from the same project, return the project ID.
+  // Otherwise, return the global selection projects. This is important because
+  // resolution in release requires that a project is specified, but the global
+  // selection may not have that information if My Projects is selected.
+  function getSelectedProjectIds(selectedGroupIds: string[] | undefined) {
+    if (!selectedGroupIds) {
+      return selection.projects;
+    }
+
+    const groups = selectedGroupIds.map(id => GroupStore.get(id));
+
+    const projectIds = new Set(groups.map(group => group?.project?.id).filter(defined));
+
+    if (projectIds.size === 1) {
+      return [...projectIds];
+    }
+
+    return selection.projects;
+  }
+
   function handleUpdate(data: IssueUpdateData) {
     if ('status' in data && data.status === 'ignored') {
       const statusDetails =
@@ -294,7 +315,7 @@ function IssueListActions({
       // We need to always respect the projects selected in the global selection header:
       // * users with no global views requires a project to be specified
       // * users with global views need to be explicit about what projects the query will run against
-      const projectConstraints = {project: selection.projects};
+      const projectConstraints = {project: getSelectedProjectIds(itemIds)};
 
       if (itemIds?.length) {
         addLoadingMessage(t('Saving changes\u2026'));
