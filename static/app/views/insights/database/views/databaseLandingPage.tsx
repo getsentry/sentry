@@ -37,6 +37,7 @@ import {
   isAValidSort,
   QueriesTable,
 } from 'sentry/views/insights/database/components/tables/queriesTable';
+import {useSystemSelectorOptions} from 'sentry/views/insights/database/components/useSystemSelectorOptions';
 import {
   BASE_FILTERS,
   DEFAULT_DURATION_AGGREGATE,
@@ -46,7 +47,6 @@ import {
 } from 'sentry/views/insights/database/settings';
 import {SupportedDatabaseSystems} from 'sentry/views/insights/database/utils/constants';
 import {ModuleName, SpanMetricsField} from 'sentry/views/insights/types';
-import {useSystemSelectorOptions} from 'sentry/views/insights/database/components/useSystemSelectorOptions';
 
 export function DatabaseLandingPage() {
   const organization = useOrganization();
