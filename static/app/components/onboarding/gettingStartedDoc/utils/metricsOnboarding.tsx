@@ -385,20 +385,20 @@ export const getAndroidMetricsOnboarding = (): OnboardingConfig => ({
           code: [
             {
               label: 'Kotlin',
-              value: 'java',
-              language: 'java',
+              value: 'kotlin',
+              language: 'kotlin',
               code: getAndroidKotlinConfigureSnippet(params),
             },
             {
               label: 'Java',
-              value: 'kotlin',
+              value: 'java',
               language: 'java',
               code: getAndroidJavaConfigureSnippet(params),
             },
             {
               label: 'XML',
               value: 'xml',
-              language: 'java',
+              language: 'xml',
               code: getAndroidXmlConfigureSnippet(params),
             },
           ],
@@ -429,7 +429,7 @@ export const getAndroidMetricsOnboarding = (): OnboardingConfig => ({
             {
               label: 'Kotlin',
               value: 'kotlin',
-              language: 'java',
+              language: 'kotlin',
               code: getJvmKotlinVerifySnippet(),
             },
             {
@@ -490,7 +490,7 @@ export const getJavaMetricsOnboarding = (): OnboardingConfig => ({
             {
               label: 'Kotlin',
               value: 'kotlin',
-              language: 'java',
+              language: 'kotlin',
               code: getJvmKotlinConfigureSnippet(params),
             },
             {
@@ -533,7 +533,7 @@ export const getJavaMetricsOnboarding = (): OnboardingConfig => ({
             {
               label: 'Kotlin',
               value: 'kotlin',
-              language: 'java',
+              language: 'kotlin',
               code: getJvmKotlinVerifySnippet(),
             },
           ],

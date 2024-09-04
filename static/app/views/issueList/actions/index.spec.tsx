@@ -3,7 +3,13 @@ import {GroupFixture} from 'sentry-fixture/group';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
 
-import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
+import {
+  render,
+  screen,
+  userEvent,
+  waitFor,
+  within,
+} from 'sentry-test/reactTestingLibrary';
 
 import GlobalModal from 'sentry/components/globalModal';
 import {DEFAULT_QUERY} from 'sentry/constants';
@@ -313,6 +319,48 @@ describe('IssueListActions', function () {
       'aria-disabled',
       'true'
     );
+  });
+
+  it('sets the project ID when My Projects is selected', async function () {
+    jest
+      .spyOn(SelectedGroupStore, 'getSelectedIds')
+      .mockImplementation(() => new Set(['1']));
+    jest
+      .spyOn(GroupStore, 'get')
+      .mockImplementation(id =>
+        GroupFixture({id, project: ProjectFixture({id: '123', slug: 'project-1'})})
+      );
+
+    const apiMock = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/issues/',
+      method: 'PUT',
+    });
+
+    render(
+      <WrappedComponent
+        selection={{
+          // No selected projects => My Projects
+          projects: [],
+          environments: [],
+          datetime: {start: null, end: null, period: null, utc: true},
+        }}
+      />
+    );
+
+    await userEvent.click(await screen.findByRole('button', {name: 'Resolve'}));
+
+    // API request should have project ID set to 123
+    await waitFor(() => {
+      expect(apiMock).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.objectContaining({
+          query: {
+            id: ['1'],
+            project: ['123'],
+          },
+        })
+      );
+    });
   });
 
   describe('mark reviewed', function () {
