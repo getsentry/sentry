@@ -518,41 +518,320 @@ crash_free_metric_alert = {
     },
 }
 
+metric_alert_anomaly = {
+    "timeseries": [
+        {
+            "anomaly": {
+                "anomaly_score": 0,
+                "anomaly_type": "none",
+            },
+            "timestamp": "2024-08-29T15:39:00Z",
+            "value": 0.077881957,
+        },
+        {
+            "anomaly": {
+                "anomaly_score": 0,
+                "anomaly_type": "none",
+            },
+            "timestamp": "2024-08-29T15:40:00Z",
+            "value": 0.075652768,
+        },
+        {
+            "anomaly": {
+                "anomaly_score": 0,
+                "anomaly_type": "none",
+            },
+            "timestamp": "2024-08-29T15:41:00Z",
+            "value": 0.073435431,
+        },
+        {
+            "anomaly": {
+                "anomaly_score": 0,
+                "anomaly_type": "anomaly_higher_confidence",
+            },
+            "timestamp": "2024-08-29T15:42:00Z",
+            "value": 0.071145604,
+        },
+        {
+            "anomaly": {
+                "anomaly_score": 0,
+                "anomaly_type": "anomaly_higher_confidence",
+            },
+            "timestamp": "2024-08-29T15:43:00Z",
+            "value": 0.068080257,
+        },
+        {
+            "anomaly": {
+                "anomaly_score": 0,
+                "anomaly_type": "anomaly_higher_confidence",
+            },
+            "timestamp": "2024-08-29T15:44:00Z",
+            "value": 0.065966207,
+        },
+        {
+            "anomaly": {
+                "anomaly_score": 0,
+                "anomaly_type": "anomaly_higher_confidence",
+            },
+            "timestamp": "2024-08-29T15:45:00Z",
+            "value": 0.062053994,
+        },
+        {
+            "anomaly": {
+                "anomaly_score": 0,
+                "anomaly_type": "anomaly_higher_confidence",
+            },
+            "timestamp": "2024-08-29T15:46:00Z",
+            "value": 0.058596638,
+        },
+        {
+            "anomaly": {
+                "anomaly_score": 0,
+                "anomaly_type": "anomaly_higher_confidence",
+            },
+            "timestamp": "2024-08-29T15:47:00Z",
+            "value": 0.056028657,
+        },
+        {
+            "anomaly": {
+                "anomaly_score": 0,
+                "anomaly_type": "anomaly_higher_confidence",
+            },
+            "timestamp": "2024-08-29T15:48:00Z",
+            "value": 0.052905251,
+        },
+        {
+            "anomaly": {
+                "anomaly_score": 0,
+                "anomaly_type": "anomaly_higher_confidence",
+            },
+            "timestamp": "2024-08-29T15:49:00Z",
+            "value": 0.051122719,
+        },
+        {
+            "anomaly": {
+                "anomaly_score": 0,
+                "anomaly_type": "anomaly_higher_confidence",
+            },
+            "timestamp": "2024-08-29T15:50:00Z",
+            "value": 0.050375953,
+        },
+        {
+            "anomaly": {
+                "anomaly_score": 0,
+                "anomaly_type": "anomaly_higher_confidence",
+            },
+            "timestamp": "2024-08-29T15:51:00Z",
+            "value": 0.047727103,
+        },
+        {
+            "anomaly": {
+                "anomaly_score": 0,
+                "anomaly_type": "anomaly_higher_confidence",
+            },
+            "timestamp": "2024-08-29T15:52:00Z",
+            "value": 0.047437386,
+        },
+        {
+            "anomaly": {
+                "anomaly_score": 0,
+                "anomaly_type": "none",
+            },
+            "timestamp": "2024-08-29T15:53:00Z",
+            "value": 0.046208149,
+        },
+        {
+            "anomaly": {
+                "anomaly_score": 0,
+                "anomaly_type": "none",
+            },
+            "timestamp": "2024-08-29T15:54:00Z",
+            "value": 0.044512145,
+        },
+        {
+            "anomaly": {
+                "anomaly_score": 0,
+                "anomaly_type": "none",
+            },
+            "timestamp": "2024-08-29T15:55:00Z",
+            "value": 0.043505737,
+        },
+        {
+            "anomaly": {
+                "anomaly_score": 0,
+                "anomaly_type": "none",
+            },
+            "timestamp": "2024-08-29T15:56:00Z",
+            "value": 0.043147801,
+        },
+        {
+            "anomaly": {
+                "anomaly_score": 0,
+                "anomaly_type": "none",
+            },
+            "timestamp": "2024-08-29T15:57:00Z",
+            "value": 0.041545758,
+        },
+        {
+            "anomaly": {
+                "anomaly_score": 0,
+                "anomaly_type": "none",
+            },
+            "timestamp": "2024-08-29T15:58:00Z",
+            "value": 0.040482494,
+        },
+        {
+            "anomaly": {
+                "anomaly_score": 0,
+                "anomaly_type": "none",
+            },
+            "timestamp": "2024-08-29T15:59:00Z",
+            "value": 0.041155806,
+        },
+        {
+            "anomaly": {
+                "anomaly_score": 0,
+                "anomaly_type": "none",
+            },
+            "timestamp": "2024-08-29T15:60:00Z",
+            "value": 0.042155754,
+        },
+    ],
+}
+
 
 class DebugChartRendererView(View):
     def get(self, request: HttpRequest) -> HttpResponse:
         ret = []
 
         ret.append(
-            charts.generate_chart(ChartType.SLACK_DISCOVER_TOTAL_PERIOD, discover_total_period)
+            {
+                "chart": charts.generate_chart(
+                    ChartType.SLACK_DISCOVER_TOTAL_PERIOD, discover_total_period
+                ),
+                "title": "Slack discover total period",
+            }
         )
         ret.append(
-            charts.generate_chart(ChartType.SLACK_DISCOVER_TOTAL_PERIOD, discover_multi_y_axis)
-        )
-        ret.append(charts.generate_chart(ChartType.SLACK_DISCOVER_TOTAL_PERIOD, discover_empty))
-        ret.append(
-            charts.generate_chart(ChartType.SLACK_DISCOVER_TOTAL_DAILY, discover_total_daily)
-        )
-        ret.append(
-            charts.generate_chart(ChartType.SLACK_DISCOVER_TOTAL_DAILY, discover_total_daily_multi)
-        )
-        ret.append(charts.generate_chart(ChartType.SLACK_DISCOVER_TOTAL_DAILY, discover_empty))
-        ret.append(charts.generate_chart(ChartType.SLACK_DISCOVER_TOP5_PERIOD, discover_top5))
-        ret.append(charts.generate_chart(ChartType.SLACK_DISCOVER_TOP5_PERIOD, discover_empty))
-        ret.append(charts.generate_chart(ChartType.SLACK_DISCOVER_TOP5_PERIOD_LINE, discover_top5))
-        ret.append(charts.generate_chart(ChartType.SLACK_DISCOVER_TOP5_PERIOD_LINE, discover_empty))
-        ret.append(charts.generate_chart(ChartType.SLACK_DISCOVER_TOP5_DAILY, discover_top5))
-        ret.append(charts.generate_chart(ChartType.SLACK_DISCOVER_TOP5_DAILY, discover_empty))
-        ret.append(
-            charts.generate_chart(ChartType.SLACK_DISCOVER_PREVIOUS_PERIOD, discover_total_period)
+            {
+                "chart": charts.generate_chart(
+                    ChartType.SLACK_DISCOVER_TOTAL_PERIOD, discover_multi_y_axis
+                ),
+                "title": "Slack discover total period multi y axis",
+            }
         )
         ret.append(
-            charts.generate_chart(ChartType.SLACK_DISCOVER_PREVIOUS_PERIOD, discover_multi_y_axis)
+            {
+                "chart": charts.generate_chart(
+                    ChartType.SLACK_DISCOVER_TOTAL_PERIOD, discover_empty
+                ),
+                "title": "Slack discover total period empty",
+            }
+        )
+        ret.append(
+            {
+                "chart": charts.generate_chart(
+                    ChartType.SLACK_DISCOVER_TOTAL_DAILY, discover_total_daily
+                ),
+                "title": "Discover total daily",
+            }
+        )
+        ret.append(
+            {
+                "chart": charts.generate_chart(
+                    ChartType.SLACK_DISCOVER_TOTAL_DAILY, discover_total_daily_multi
+                ),
+                "title": "Discover total daily multi",
+            }
+        )
+        ret.append(
+            {
+                "chart": charts.generate_chart(
+                    ChartType.SLACK_DISCOVER_TOTAL_DAILY, discover_empty
+                ),
+                "title": "Discover total daily empty",
+            }
+        )
+        ret.append(
+            {
+                "chart": charts.generate_chart(ChartType.SLACK_DISCOVER_TOP5_PERIOD, discover_top5),
+                "title": "Slack discover top5 period",
+            }
+        )
+        ret.append(
+            {
+                "chart": charts.generate_chart(
+                    ChartType.SLACK_DISCOVER_TOP5_PERIOD, discover_empty
+                ),
+                "title": "Slack discover top5 empty",
+            }
+        )
+        ret.append(
+            {
+                "chart": charts.generate_chart(
+                    ChartType.SLACK_DISCOVER_TOP5_PERIOD_LINE, discover_top5
+                ),
+                "title": "Slack discover top5 period line",
+            }
+        )
+        ret.append(
+            {
+                "chart": charts.generate_chart(
+                    ChartType.SLACK_DISCOVER_TOP5_PERIOD_LINE, discover_empty
+                ),
+                "title": "Slack discover top5 period line empty",
+            }
+        )
+        ret.append(
+            {
+                "chart": charts.generate_chart(ChartType.SLACK_DISCOVER_TOP5_DAILY, discover_top5),
+                "title": "Slack discover top5 daily",
+            }
+        )
+        ret.append(
+            {
+                "chart": charts.generate_chart(ChartType.SLACK_DISCOVER_TOP5_DAILY, discover_empty),
+                "title": "Slack discover top5 daily empty",
+            }
+        )
+        ret.append(
+            {
+                "chart": charts.generate_chart(
+                    ChartType.SLACK_DISCOVER_PREVIOUS_PERIOD, discover_total_period
+                ),
+                "title": "Slack discover previous period",
+            }
+        )
+        ret.append(
+            {
+                "chart": charts.generate_chart(
+                    ChartType.SLACK_DISCOVER_PREVIOUS_PERIOD, discover_multi_y_axis
+                ),
+                "title": "Slack discover previous period multi y axis",
+            }
         )
 
-        ret.append(charts.generate_chart(ChartType.SLACK_METRIC_ALERT_EVENTS, metric_alert))
         ret.append(
-            charts.generate_chart(ChartType.SLACK_METRIC_ALERT_SESSIONS, crash_free_metric_alert)
+            {
+                "chart": charts.generate_chart(ChartType.SLACK_METRIC_ALERT_EVENTS, metric_alert),
+                "title": "slack metric alert events",
+            }
         )
+        ret.append(
+            {
+                "chart": charts.generate_chart(
+                    ChartType.SLACK_METRIC_ALERT_SESSIONS, crash_free_metric_alert
+                ),
+                "title": "slack metric alert sessions crash free",
+            }
+        )
+        # ret.append(
+        #     {
+        #         "chart": charts.generate_chart(
+        #             ChartType.SLACK_METRIC_ALERT_ANOMALIES, metric_alert_anomaly
+        #         ),
+        #         "title": "slack metric alert anomalies",
+        #     }
+        # )
 
         return render_to_response("sentry/debug/chart-renderer.html", context={"charts": ret})
