@@ -12,6 +12,7 @@ import useRouter from 'sentry/utils/useRouter';
 function NoIssuesMatched() {
   const organization = useOrganization();
   const router = useRouter();
+
   return (
     <Wrapper data-test-id="empty-state" className="empty-state">
       <img src={campingImg} alt="Camping spot illustration" height={200} />

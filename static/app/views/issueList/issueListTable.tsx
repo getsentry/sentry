@@ -1,4 +1,4 @@
-import {Fragment} from 'react';
+import {Fragment, useContext} from 'react';
 import styled from '@emotion/styled';
 
 import type {IndexedMembersByProject} from 'sentry/actionCreators/members';
@@ -9,8 +9,10 @@ import PanelBody from 'sentry/components/panels/panelBody';
 import type {PageFilters} from 'sentry/types/core';
 import {VisuallyCompleteWithData} from 'sentry/utils/performanceForSentry';
 import IssueListActions from 'sentry/views/issueList/actions';
+import AddViewPage from 'sentry/views/issueList/addViewPage';
 import GroupListBody from 'sentry/views/issueList/groupListBody';
 import type {IssueUpdateData} from 'sentry/views/issueList/types';
+import {NewTabContext} from 'sentry/views/issueList/utils/newTabContext';
 
 interface IssueListTableProps {
   allResultsVisible: boolean;
@@ -58,7 +60,11 @@ function IssueListTable({
   onCursor,
   paginationAnalyticsEvent,
 }: IssueListTableProps) {
-  return (
+  const {newViewActive} = useContext(NewTabContext);
+
+  return newViewActive ? (
+    <AddViewPage />
+  ) : (
     <Fragment>
       <Panel>
         {groupIds.length !== 0 && (
