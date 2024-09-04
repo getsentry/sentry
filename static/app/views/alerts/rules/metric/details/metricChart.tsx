@@ -126,8 +126,6 @@ function getRuleChangeSeries(
     return [];
   }
 
-  // Mark Line - draws a vertical line on the chart
-  // Mark Area - outlines an area on the chart
   return [
     {
       type: 'line',
@@ -300,9 +298,6 @@ class MetricChart extends PureComponent<Props, State> {
       );
     };
 
-    // Chart options....
-    // This constructs the series
-    // anomalies
     const {
       criticalDuration,
       warningDuration,
