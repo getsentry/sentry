@@ -1,3 +1,4 @@
+import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import {getInterval} from 'sentry/components/charts/utils';
@@ -8,14 +9,13 @@ import {space} from 'sentry/styles/space';
 import {tooltipFormatter} from 'sentry/utils/discover/charts';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import usePageFilters from 'sentry/utils/usePageFilters';
+import {useChartInterval} from 'sentry/views/explore/hooks/useChartInterval';
+import {useChartType} from 'sentry/views/explore/hooks/useChartType';
+import {useVisualizes} from 'sentry/views/explore/hooks/useVisualizes';
 import Chart, {ChartType} from 'sentry/views/insights/common/components/chart';
 import ChartPanel from 'sentry/views/insights/common/components/chartPanel';
 import {useSpanIndexedSeries} from 'sentry/views/insights/common/queries/useDiscoverSeries';
 import {CHART_HEIGHT} from 'sentry/views/insights/database/settings';
-
-import {useChartInterval} from '../hooks/useChartInterval';
-import {useChartType} from '../hooks/useChartType';
-import {useVisualize} from '../hooks/useVisualize';
 
 interface ExploreChartsProps {
   query: string;
@@ -39,14 +39,14 @@ const exploreChartTypeOptions = [
 // TODO: Update to support aggregate mode and multiple queries / visualizations
 export function ExploreCharts({query}: ExploreChartsProps) {
   const pageFilters = usePageFilters();
-  const [visualize] = useVisualize();
+  const [visualizes] = useVisualizes();
   const [chartType, setChartType] = useChartType();
   const [interval, setInterval, intervalOptions] = useChartInterval();
 
   const series = useSpanIndexedSeries(
     {
       search: new MutableSearch(query ?? ''),
-      yAxis: [visualize],
+      yAxis: visualizes,
       interval: interval ?? getInterval(pageFilters.selection.datetime, 'metrics'),
       enabled: true,
     },
@@ -54,50 +54,54 @@ export function ExploreCharts({query}: ExploreChartsProps) {
   );
 
   return (
-    <ChartContainer>
-      <ChartPanel>
-        <ChartHeader>
-          <ChartTitle>{visualize}</ChartTitle>
-          <ChartSettingsContainer>
-            <CompactSelect
-              size="xs"
-              triggerProps={{prefix: t('Display')}}
-              value={chartType}
-              options={exploreChartTypeOptions}
-              onChange={newChartType => setChartType(newChartType.value)}
-            />
-            <CompactSelect
-              size="xs"
-              value={interval}
-              onChange={({value}) => setInterval(value)}
-              triggerProps={{
-                prefix: t('Interval'),
+    <Fragment>
+      {visualizes.map((visualize, index) => (
+        <ChartContainer key={index}>
+          <ChartPanel>
+            <ChartHeader>
+              <ChartTitle>{visualize}</ChartTitle>
+              <ChartSettingsContainer>
+                <CompactSelect
+                  size="xs"
+                  triggerProps={{prefix: t('Display')}}
+                  value={chartType}
+                  options={exploreChartTypeOptions}
+                  onChange={newChartType => setChartType(newChartType.value)}
+                />
+                <CompactSelect
+                  size="xs"
+                  value={interval}
+                  onChange={({value}) => setInterval(value)}
+                  triggerProps={{
+                    prefix: t('Interval'),
+                  }}
+                  options={intervalOptions}
+                />
+              </ChartSettingsContainer>
+            </ChartHeader>
+            <Chart
+              height={CHART_HEIGHT}
+              grid={{
+                left: '0',
+                right: '0',
+                top: '8px',
+                bottom: '0',
               }}
-              options={intervalOptions}
+              data={[series.data[visualize]]}
+              error={series.error}
+              loading={series.isPending}
+              chartColors={CHART_PALETTE[2]}
+              type={chartType}
+              aggregateOutputFormat="number"
+              showLegend
+              tooltipFormatterOptions={{
+                valueFormatter: value => tooltipFormatter(value),
+              }}
             />
-          </ChartSettingsContainer>
-        </ChartHeader>
-        <Chart
-          height={CHART_HEIGHT}
-          grid={{
-            left: '0',
-            right: '0',
-            top: '8px',
-            bottom: '0',
-          }}
-          data={[series.data[visualize]]}
-          error={series.error}
-          loading={series.isPending}
-          chartColors={CHART_PALETTE[2]}
-          type={chartType}
-          aggregateOutputFormat="number"
-          showLegend
-          tooltipFormatterOptions={{
-            valueFormatter: value => tooltipFormatter(value),
-          }}
-        />
-      </ChartPanel>
-    </ChartContainer>
+          </ChartPanel>
+        </ChartContainer>
+      ))}
+    </Fragment>
   );
 }
 

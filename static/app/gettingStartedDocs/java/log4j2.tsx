@@ -297,7 +297,7 @@ const onboarding: OnboardingConfig<PlatformOptions> = {
               code: getVerifyJavaSnippet(),
             },
             {
-              language: 'java',
+              language: 'kotlin',
               label: 'Kotlin',
               value: 'kotlin',
               code: getVerifyKotlinSnippet(),

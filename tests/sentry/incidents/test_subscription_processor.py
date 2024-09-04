@@ -2930,6 +2930,89 @@ class MetricsCrashRateAlertProcessUpdateTest(ProcessUpdateBaseClass, BaseMetrics
             incident, [action_critical], [(85.0, IncidentStatus.CLOSED, mock.ANY)]
         )
 
+    @with_feature("organizations:anomaly-detection-alerts")
+    @mock.patch(
+        "sentry.incidents.subscription_processor.SubscriptionProcessor.seer_anomaly_detection_connection_pool.urlopen"
+    )
+    def test_dynamic_crash_rate_alert_for_sessions_with_auto_resolve_critical(
+        self, mock_seer_request
+    ):
+        """
+        Test that ensures that a dynamic critical alert is triggered when `crash_free_percentage` falls
+        below the Critical threshold and then is Resolved once `crash_free_percentage` goes above
+        the threshold (when no resolve_threshold is set)
+        """
+        rule = self.crash_rate_alert_rule
+        rule.update(
+            detection_type=AlertRuleDetectionType.DYNAMIC,
+            sensitivity=AlertRuleSensitivity.HIGH,
+            seasonality=AlertRuleSeasonality.AUTO,
+        )
+        trigger = self.crash_rate_alert_critical_trigger
+        trigger.update(alert_threshold=0)
+        # dynamic alert rules have a threshold of 0.0
+        rule.snuba_query.update(time_window=15 * 60)
+        action_critical = self.crash_rate_alert_critical_action
+
+        # Send Critical Update
+        seer_return_value = {
+            "anomalies": [
+                {
+                    "anomaly": {
+                        "anomaly_score": 0.7,
+                        "anomaly_type": AnomalyType.HIGH_CONFIDENCE.value,
+                    },
+                    "timestamp": 1,
+                    "value": 10,
+                }
+            ]
+        }
+
+        mock_seer_request.return_value = HTTPResponse(orjson.dumps(seer_return_value), status=200)
+        update_value = (1 - trigger.alert_threshold / 100) + 0.05
+        processor = self.send_crash_rate_alert_update(
+            rule=rule,
+            value=update_value,
+            time_delta=timedelta(minutes=-2),
+            subscription=rule.snuba_query.subscriptions.filter(project=self.project).get(),
+        )
+        assert mock_seer_request.call_count == 1
+        assert rule.status == AlertRuleStatus.PENDING.value
+        self.assert_trigger_counts(processor, trigger, 0, 0)
+        incident = self.assert_active_incident(rule)
+        self.assert_actions_fired_for_incident(
+            incident, [action_critical], [(-5.0, IncidentStatus.CRITICAL, mock.ANY)]
+        )
+        self.assert_trigger_exists_with_status(incident, trigger, TriggerStatus.ACTIVE)
+
+        # Close the metric alert
+        seer_return_value = {
+            "anomalies": [
+                {
+                    "anomaly": {
+                        "anomaly_score": 0.2,
+                        "anomaly_type": AnomalyType.NONE.value,
+                    },
+                    "timestamp": 1,
+                    "value": 5,
+                }
+            ]
+        }
+        mock_seer_request.return_value = HTTPResponse(orjson.dumps(seer_return_value), status=200)
+        update_value = (1 - trigger.alert_threshold / 100) - 0.05
+        self.send_crash_rate_alert_update(
+            rule=rule,
+            value=update_value,
+            time_delta=timedelta(minutes=-1),
+            subscription=rule.snuba_query.subscriptions.filter(project=self.project).get(),
+        )
+        assert mock_seer_request.call_count == 2
+        assert rule.status == AlertRuleStatus.PENDING.value
+        self.assert_no_active_incident(rule)
+        self.assert_actions_resolved_for_incident(
+            incident, [action_critical], [(5.0, IncidentStatus.CLOSED, mock.ANY)]
+        )
+
     def test_crash_rate_alert_for_sessions_with_auto_resolve_warning(self):
         """
         Test that ensures that a Warning alert is triggered when `crash_free_percentage` falls
