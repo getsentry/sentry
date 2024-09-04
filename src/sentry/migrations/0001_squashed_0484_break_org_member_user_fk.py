@@ -2975,7 +2975,19 @@ class Migration(CheckedMigration):
             options={
                 "db_table": "sentry_commit",
                 "unique_together": {("repository_id", "key")},
-                "index_together": {("repository_id", "date_added")},
+                "indexes": [
+                    models.Index(
+                        fields=["repository_id", "date_added"],
+                        name="sentry_comm_reposit_da31f2_idx",
+                    ),
+                    models.Index(
+                        fields=["author", "date_added"], name="sentry_comm_author__131211_idx"
+                    ),
+                    models.Index(
+                        fields=["organization_id", "date_added"],
+                        name="sentry_comm_organiz_7be514_idx",
+                    ),
+                ],
             },
         ),
         migrations.CreateModel(
