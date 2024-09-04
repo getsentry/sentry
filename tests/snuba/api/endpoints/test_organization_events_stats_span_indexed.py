@@ -11,6 +11,14 @@ pytestmark = pytest.mark.sentry_metrics
 
 class OrganizationEventsStatsSpansMetricsEndpointTest(OrganizationEventsEndpointTestBase):
     endpoint = "sentry-api-0-organization-events-stats"
+    is_eap = False
+
+    @property
+    def dataset(self):
+        if self.is_eap:
+            return "spans"
+        else:
+            return "spansIndexed"
 
     def setUp(self):
         super().setUp()
@@ -43,7 +51,8 @@ class OrganizationEventsStatsSpansMetricsEndpointTest(OrganizationEventsEndpoint
                             {"description": "foo", "sentry_tags": {"status": "success"}},
                             start_ts=self.day_ago + timedelta(hours=hour, minutes=minute),
                         ),
-                    ]
+                    ],
+                    is_eap=self.is_eap,
                 )
 
         for axis in ["epm()", "spm()"]:
@@ -54,13 +63,13 @@ class OrganizationEventsStatsSpansMetricsEndpointTest(OrganizationEventsEndpoint
                     "interval": "1h",
                     "yAxis": axis,
                     "project": self.project.id,
-                    "dataset": "spansIndexed",
+                    "dataset": self.dataset,
                 },
             )
             assert response.status_code == 200, response.content
             data = response.data["data"]
             assert len(data) == 6
-            assert response.data["meta"]["dataset"] == "spansIndexed"
+            assert response.data["meta"]["dataset"] == self.dataset
 
             rows = data[0:6]
             for test in zip(event_counts, rows):
@@ -77,7 +86,8 @@ class OrganizationEventsStatsSpansMetricsEndpointTest(OrganizationEventsEndpoint
                             {"description": "foo", "sentry_tags": {"status": "success"}},
                             start_ts=self.day_ago + timedelta(hours=hour, minutes=minute),
                         ),
-                    ]
+                    ],
+                    is_eap=self.is_eap,
                 )
 
         for axis in ["epm()", "spm()"]:
@@ -88,13 +98,13 @@ class OrganizationEventsStatsSpansMetricsEndpointTest(OrganizationEventsEndpoint
                     "interval": "24h",
                     "yAxis": axis,
                     "project": self.project.id,
-                    "dataset": "spansIndexed",
+                    "dataset": self.dataset,
                 },
             )
             assert response.status_code == 200, response.content
             data = response.data["data"]
             assert len(data) == 2
-            assert response.data["meta"]["dataset"] == "spansIndexed"
+            assert response.data["meta"]["dataset"] == self.dataset
 
             assert data[0][1][0]["count"] == sum(event_counts) / (86400.0 / 60.0)
 
@@ -109,7 +119,8 @@ class OrganizationEventsStatsSpansMetricsEndpointTest(OrganizationEventsEndpoint
                             {"description": "foo", "sentry_tags": {"status": "success"}},
                             start_ts=self.day_ago + timedelta(hours=hour, minutes=minute + 30),
                         ),
-                    ]
+                    ],
+                    is_eap=self.is_eap,
                 )
 
         for axis in ["epm()", "spm()"]:
@@ -120,13 +131,13 @@ class OrganizationEventsStatsSpansMetricsEndpointTest(OrganizationEventsEndpoint
                     "interval": "1h",
                     "yAxis": axis,
                     "project": self.project.id,
-                    "dataset": "spansIndexed",
+                    "dataset": self.dataset,
                 },
             )
             assert response.status_code == 200, response.content
             data = response.data["data"]
             assert len(data) == 6
-            assert response.data["meta"]["dataset"] == "spansIndexed"
+            assert response.data["meta"]["dataset"] == self.dataset
 
             rows = data[0:6]
             for test in zip(event_counts, rows):
@@ -143,7 +154,8 @@ class OrganizationEventsStatsSpansMetricsEndpointTest(OrganizationEventsEndpoint
                             {"description": "foo", "sentry_tags": {"status": "success"}},
                             start_ts=self.day_ago + timedelta(minutes=minute, seconds=second),
                         ),
-                    ]
+                    ],
+                    is_eap=self.is_eap,
                 )
 
         for axis in ["eps()", "sps()"]:
@@ -154,13 +166,13 @@ class OrganizationEventsStatsSpansMetricsEndpointTest(OrganizationEventsEndpoint
                     "interval": "1m",
                     "yAxis": axis,
                     "project": self.project.id,
-                    "dataset": "spansIndexed",
+                    "dataset": self.dataset,
                 },
             )
             assert response.status_code == 200, response.content
             data = response.data["data"]
             assert len(data) == 6
-            assert response.data["meta"]["dataset"] == "spansIndexed"
+            assert response.data["meta"]["dataset"] == self.dataset
 
             rows = data[0:6]
             for test in zip(event_counts, rows):
@@ -176,7 +188,8 @@ class OrganizationEventsStatsSpansMetricsEndpointTest(OrganizationEventsEndpoint
                         start_ts=self.day_ago + timedelta(minutes=1),
                         duration=2000,
                     ),
-                ]
+                ],
+                is_eap=self.is_eap,
             )
         self.store_spans(
             [
@@ -184,7 +197,8 @@ class OrganizationEventsStatsSpansMetricsEndpointTest(OrganizationEventsEndpoint
                     {"segment_name": "baz", "sentry_tags": {"status": "success"}},
                     start_ts=self.day_ago + timedelta(minutes=1),
                 ),
-            ]
+            ],
+            is_eap=self.is_eap,
         )
 
         response = self._do_request(
@@ -196,7 +210,7 @@ class OrganizationEventsStatsSpansMetricsEndpointTest(OrganizationEventsEndpoint
                 "field": ["transaction", "sum(span.self_time)"],
                 "orderby": ["-sum_span_self_time"],
                 "project": self.project.id,
-                "dataset": "spansIndexed",
+                "dataset": self.dataset,
                 "excludeOther": 0,
                 "topEvents": 2,
             },
@@ -206,4 +220,12 @@ class OrganizationEventsStatsSpansMetricsEndpointTest(OrganizationEventsEndpoint
         assert "foo" in response.data
         assert "bar" in response.data
         assert len(response.data["Other"]["data"]) == 6
-        assert response.data["Other"]["meta"]["dataset"] == "spansIndexed"
+        assert response.data["Other"]["meta"]["dataset"] == self.dataset
+
+
+class OrganizationEventsEAPSpanEndpointTest(OrganizationEventsStatsSpansMetricsEndpointTest):
+    is_eap = True
+
+    @pytest.mark.xfail(reason="Not implemented yet")
+    def test_top_events(self):
+        super().test_top_events()
