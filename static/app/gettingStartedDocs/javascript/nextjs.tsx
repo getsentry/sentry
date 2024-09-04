@@ -27,25 +27,33 @@ import {
 } from 'sentry/components/onboarding/gettingStartedDoc/utils/replayOnboarding';
 import TextCopyInput from 'sentry/components/textCopyInput';
 import {t, tct} from 'sentry/locale';
+import ConfigStore from 'sentry/stores/configStore';
 import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
 
 type Params = DocsParams;
 
-const getInstallConfig = () => [
-  {
-    description: tct(
-      'Configure your app automatically with the [wizardLink:Sentry wizard].',
-      {
-        wizardLink: (
-          <ExternalLink href="https://docs.sentry.io/platforms/javascript/guides/nextjs/#install" />
-        ),
-      }
-    ),
-    language: 'bash',
-    code: `npx @sentry/wizard@latest -i nextjs`,
-  },
-];
+const getInstallConfig = () => {
+  const isSelfHosted = ConfigStore.get('isSelfHosted');
+  const urlPrefix = ConfigStore.get('urlPrefix');
+
+  const urlParam = isSelfHosted ? '' : `--url ${urlPrefix}`;
+
+  return [
+    {
+      description: tct(
+        'Configure your app automatically with the [wizardLink:Sentry wizard].',
+        {
+          wizardLink: (
+            <ExternalLink href="https://docs.sentry.io/platforms/javascript/guides/nextjs/#install" />
+          ),
+        }
+      ),
+      language: 'bash',
+      code: `npx @sentry/wizard@latest -i nextjs ${urlParam}`,
+    },
+  ];
+};
 
 const getManualInstallConfig = () => [
   {
