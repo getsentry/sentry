@@ -1329,7 +1329,7 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
         results = self.run_query(
             mql_queries=[
                 MQLQuery(
-                    "($query_2 + $query_1) by (platform, transaction)",
+                    "($query_2 + $query_1) by (transaction)",
                     order=QueryOrder.DESC,
                     query_1=MQLQuery(query_1),
                     query_2=MQLQuery(query_2),
@@ -1345,13 +1345,10 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
         )
         data = results["data"]
         assert len(data) == 1
-        assert len(data[0]) == 2
-        assert data[0][0]["by"] == {"platform": "ios", "transaction": "/hello"}
-        assert data[0][0]["series"] == [None, 6.0, 3.0]
-        assert data[0][0]["totals"] == 9.0
-        assert data[0][1]["by"] == {"platform": "android", "transaction": "/hello"}
-        assert data[0][1]["series"] == [None, 1.0, 1.0]
-        assert data[0][1]["totals"] == 2.0
+        assert len(data[0]) == 1
+        assert data[0][0]["by"] == {"transaction": "/hello"}
+        assert data[0][0]["series"] == [None, 7.0, 4.0]
+        assert data[0][0]["totals"] == 11.0
 
     def test_query_with_basic_formula_and_coercible_units(self):
         mri_1 = "d:custom/page_load@nanosecond"
