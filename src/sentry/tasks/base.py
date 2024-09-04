@@ -8,7 +8,6 @@ from functools import wraps
 from typing import Any, TypeVar
 
 from celery import current_task
-from celery.exceptions import SoftTimeLimitExceeded
 from django.db.models import Model
 
 from sentry.celery import app
@@ -126,11 +125,7 @@ def instrumented_task(name, stat_suffix=None, silo_mode=None, record_timing=Fals
                 metrics.timer(key, instance=instance),
                 track_memory_usage("jobs.memory_change", instance=instance),
             ):
-                try:
-                    result = func(*args, **kwargs)
-                except SoftTimeLimitExceeded:
-                    capture_exception(level="warning")
-                    raise
+                result = func(*args, **kwargs)
 
             return result
 
