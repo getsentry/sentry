@@ -62,13 +62,12 @@ google-cloud-core==2.4.1
 google-cloud-functions==1.17.0
 google-cloud-kms==2.24.2
 google-cloud-pubsub==2.23.0
-google-cloud-spanner==3.48.0
+google-cloud-spanner==3.49.0
 google-cloud-storage==2.18.0
 google-crc32c==1.6.0
 google-resumable-media==2.7.0
 googleapis-common-protos==1.63.2
 grpc-google-iam-v1==0.13.1
-grpc-interceptor==0.15.4
 grpc-stubs==1.53.0.5
 grpcio==1.60.1
 grpcio-status==1.60.1
