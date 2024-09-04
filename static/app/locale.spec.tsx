@@ -77,7 +77,7 @@ describe('locale.gettextComponentTemplate', () => {
   });
 
   it('should render nested goups', () => {
-    const container = render(
+    const {container} = render(
       <div>
         {tct('[bold:text with [link:another] group]', {
           bold: <b />,
@@ -89,7 +89,7 @@ describe('locale.gettextComponentTemplate', () => {
     expect(
       screen.getByText(textWithMarkupMatcher('text with another group'))
     ).toBeInTheDocument();
-    expect(container.container.innerHTML).toEqual(
+    expect(container.innerHTML).toEqual(
       '<div><b>text with <a href="/link">another</a> group</b></div>'
     );
   });
