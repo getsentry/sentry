@@ -19,10 +19,10 @@ import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import useLocationQuery from 'sentry/utils/url/useLocationQuery';
 import {useLocation} from 'sentry/utils/useLocation';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
-import useRouter from 'sentry/utils/useRouter';
 import {computeAxisMax} from 'sentry/views/insights/common/components/chart';
 import DetailPanel from 'sentry/views/insights/common/components/detailPanel';
 import {MetricReadout} from 'sentry/views/insights/common/components/metricReadout';
@@ -55,7 +55,7 @@ import {useSpanFieldSupportedTags} from 'sentry/views/performance/utils/useSpanF
 import {Subtitle} from 'sentry/views/profiling/landing/styles';
 
 export function MessageSpanSamplesPanel() {
-  const router = useRouter();
+  const navigate = useNavigate();
   const location = useLocation();
   const query = useLocationQuery({
     fields: {
@@ -99,7 +99,7 @@ export function MessageSpanSamplesPanel() {
       organization,
       source: ModuleName.QUEUE,
     });
-    router.replace({
+    navigate({
       pathname: location.pathname,
       query: {
         ...location.query,
@@ -115,7 +115,7 @@ export function MessageSpanSamplesPanel() {
       organization,
       source: ModuleName.QUEUE,
     });
-    router.replace({
+    navigate({
       pathname: location.pathname,
       query: {
         ...location.query,
@@ -226,7 +226,7 @@ export function MessageSpanSamplesPanel() {
   };
 
   const handleSearch = (newSpanSearchQuery: string) => {
-    router.replace({
+    navigate({
       pathname: location.pathname,
       query: {
         ...location.query,
@@ -236,10 +236,10 @@ export function MessageSpanSamplesPanel() {
   };
 
   const handleClose = () => {
-    router.replace({
-      pathname: router.location.pathname,
+    navigate({
+      pathname: location.pathname,
       query: {
-        ...router.location.query,
+        ...location.query,
         transaction: undefined,
         transactionMethod: undefined,
       },
