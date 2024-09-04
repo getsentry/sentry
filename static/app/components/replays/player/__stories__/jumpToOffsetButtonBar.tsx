@@ -23,8 +23,8 @@ export default function JumpToOffsetButtonBar({intervals}: Props) {
           >
             {formatDuration({
               duration: [intervalMs, 'ms'],
-              style: 'h:mm:ss',
-              precision: 'sec',
+              style: 'h:mm:ss.sss',
+              precision: 'ms',
             })}
           </Button>
         );
