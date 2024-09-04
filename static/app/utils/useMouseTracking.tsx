@@ -40,7 +40,6 @@ function getBoundingRect(
   });
 }
 
-// TODO: move into utils/*
 function useMouseTracking<T extends Element>({
   elem,
   onPositionChange,

@@ -17,7 +17,6 @@ export default function useA11yData() {
   const startTimestampMs = replayRecord?.started_at.getTime();
   const project = projects.find(p => p.id === replayRecord?.project_id);
   const unixTimestamp = ((startTimestampMs || 0) + currentTime) / 1000;
-  // Todo: switch to useApiQuery
   const {data, ...rest} = useQuery<RawA11yResponse>({
     queryKey: [
       `/projects/${organization.slug}/${project?.slug}/replays/${replayRecord?.id}/accessibility-issues/`,

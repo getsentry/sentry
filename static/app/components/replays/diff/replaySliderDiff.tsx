@@ -21,22 +21,16 @@ interface Props {
   leftOffsetMs: number;
   replay: null | ReplayReader;
   rightOffsetMs: number;
-  fixedHeight?: number;
 }
 
-export function ReplaySliderDiff({
-  leftOffsetMs,
-  replay,
-  rightOffsetMs,
-  fixedHeight,
-}: Props) {
+export function ReplaySliderDiff({leftOffsetMs, replay, rightOffsetMs}: Props) {
   const positionedRef = useRef<HTMLDivElement>(null);
   const viewDimensions = useDimensions({elementRef: positionedRef});
 
   const width = toPixels(viewDimensions.width);
   return (
     <Fragment>
-      <Labels>
+      <Header>
         <Tooltip title={t('How the initial server-rendered page looked.')}>
           <div style={{color: 'red'}}>{t('Before')}</div>
         </Tooltip>
@@ -47,9 +41,9 @@ export function ReplaySliderDiff({
         >
           <div style={{color: 'green'}}>{t('After')}</div>
         </Tooltip>
-      </Labels>
+      </Header>
       <WithPadding>
-        <Positioned ref={positionedRef} style={{height: fixedHeight}}>
+        <Positioned ref={positionedRef}>
           {viewDimensions.width ? (
             <DiffSides
               leftOffsetMs={leftOffsetMs}
@@ -139,12 +133,6 @@ function DiffSides({leftOffsetMs, replay, rightOffsetMs, viewDimensions, width})
   );
 }
 
-const Labels = styled('div')`
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-`;
-
 const WithPadding = styled(NegativeSpaceContainer)`
   padding-block: ${space(1.5)};
   overflow: visible;
@@ -212,4 +200,10 @@ const Divider = styled('div')`
     bottom: 0;
     transform: translate(calc(var(--handle-size) / -2 + var(--line-width) / 2), 100%);
   }
+`;
+
+const Header = styled('div')`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
 `;
