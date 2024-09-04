@@ -1,5 +1,4 @@
 import {useCallback, useMemo} from 'react';
-import styled from '@emotion/styled';
 import omit from 'lodash/omit';
 
 import {fetchSpanFieldValues, fetchTagValues} from 'sentry/actionCreators/tags';
@@ -16,7 +15,6 @@ import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilte
 import {SearchQueryBuilder} from 'sentry/components/searchQueryBuilder';
 import type {FilterKeySection} from 'sentry/components/searchQueryBuilder/types';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {SavedSearchType, type TagCollection} from 'sentry/types/group';
 import {defined} from 'sentry/utils';
 import type {CustomMeasurementCollection} from 'sentry/utils/customMeasurements/customMeasurements';
@@ -277,7 +275,7 @@ function ResultsSearchQueryBuilder(props: Props) {
   }, [filteredTags, dataset]);
 
   return (
-    <StyledResultsSearchQueryBuilder
+    <SearchQueryBuilder
       placeholder={placeholderText}
       filterKeys={getTagList}
       initialQuery={props.query ?? ''}
@@ -289,9 +287,5 @@ function ResultsSearchQueryBuilder(props: Props) {
     />
   );
 }
-
-const StyledResultsSearchQueryBuilder = styled(SearchQueryBuilder)`
-  margin-bottom: ${space(2)};
-`;
 
 export default ResultsSearchQueryBuilder;
