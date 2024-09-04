@@ -4,6 +4,7 @@ import type {Query} from 'history';
 import {browserHistory} from 'sentry/utils/browserHistory';
 import {useLocation} from 'sentry/utils/useLocation';
 
+// todo: Move into utils/
 function useFiltersInLocationQuery<Q extends Query>() {
   const {pathname, query} = useLocation<Q>();
 
