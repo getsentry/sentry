@@ -24,7 +24,7 @@ export default storyBook(ReplayPlayerMeasurer, story => {
             resolution. Text will be larger than normal!
           </p>
           <p>
-            <strong>Use this when the container has a fixed height!</strong>
+            <strong>Use this when the container has a fixed height</strong>
           </p>
 
           <NegativeSpaceContainer style={{height: 500}}>
@@ -57,9 +57,7 @@ export default storyBook(ReplayPlayerMeasurer, story => {
             replays!
           </p>
           <p>
-            <strong>
-              Use this when the container does not have a fixed height! Almost never.
-            </strong>
+            <strong>Use this when the container does not have a fixed height</strong>
           </p>
           <ReplayPlayerMeasurer measure="width">
             {style => <ReplayPlayer style={style} />}
