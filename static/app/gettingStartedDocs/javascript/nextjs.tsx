@@ -27,17 +27,13 @@ import {
 } from 'sentry/components/onboarding/gettingStartedDoc/utils/replayOnboarding';
 import TextCopyInput from 'sentry/components/textCopyInput';
 import {t, tct} from 'sentry/locale';
-import ConfigStore from 'sentry/stores/configStore';
 import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
 
 type Params = DocsParams;
 
-const getInstallConfig = () => {
-  const isSelfHosted = ConfigStore.get('isSelfHosted');
-  const urlPrefix = ConfigStore.get('urlPrefix');
-
-  const urlParam = isSelfHosted ? '' : `--url ${urlPrefix}`;
+const getInstallConfig = ({isSelfHosted, urlPrefix}: Params) => {
+  const urlParam = !isSelfHosted && urlPrefix ? `--url ${urlPrefix}` : '';
 
   return [
     {
@@ -79,7 +75,7 @@ const onboarding: OnboardingConfig = {
   install: (params: Params) => [
     {
       type: StepType.INSTALL,
-      configurations: getInstallConfig(),
+      configurations: getInstallConfig(params),
       additionalInfo: (
         <Fragment>
           {t(
@@ -168,7 +164,9 @@ const onboarding: OnboardingConfig = {
 };
 
 const replayOnboarding: OnboardingConfig = {
-  install: () => [{type: StepType.INSTALL, configurations: getInstallConfig()}],
+  install: (params: Params) => [
+    {type: StepType.INSTALL, configurations: getInstallConfig(params)},
+  ],
   configure: (params: Params) => [
     {
       type: StepType.CONFIGURE,
@@ -211,7 +209,7 @@ const replayOnboarding: OnboardingConfig = {
 };
 
 const feedbackOnboarding: OnboardingConfig = {
-  install: () => [
+  install: (params: Params) => [
     {
       type: StepType.INSTALL,
       description: tct(
@@ -220,7 +218,7 @@ const feedbackOnboarding: OnboardingConfig = {
           code: <code />,
         }
       ),
-      configurations: getInstallConfig(),
+      configurations: getInstallConfig(params),
     },
   ],
   configure: (params: Params) => [

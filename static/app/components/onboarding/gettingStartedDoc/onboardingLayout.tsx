@@ -22,6 +22,7 @@ import {
   ProductSolution,
 } from 'sentry/components/onboarding/productSelection';
 import {t} from 'sentry/locale';
+import ConfigStore from 'sentry/stores/configStore';
 import {space} from 'sentry/styles/space';
 import type {PlatformKey, Project, ProjectKey} from 'sentry/types/project';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -79,6 +80,8 @@ export function OnboardingLayout({
         isLoading: isLoadingRegistry,
         data: registryData,
       },
+      urlPrefix: ConfigStore.get('urlPrefix'),
+      isSelfHosted: ConfigStore.get('isSelfHosted'),
       platformOptions: selectedOptions,
       newOrg,
       replayOptions: {block: true, mask: true},

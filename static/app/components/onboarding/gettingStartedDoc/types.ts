@@ -61,11 +61,13 @@ export interface DocsParams<
     name?: boolean;
     screenshot?: boolean;
   };
+  isSelfHosted?: boolean;
   newOrg?: boolean;
   replayOptions?: {
     block?: boolean;
     mask?: boolean;
   };
+  urlPrefix?: string;
 }
 
 export interface NextStep {
