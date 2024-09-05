@@ -1,7 +1,9 @@
+from django.conf import settings
 from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import features, tagstore
+from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import EnvironmentMixin, region_silo_endpoint
 from sentry.api.bases.group import GroupEndpoint
@@ -20,7 +22,8 @@ class GroupDetailedStatsEndpoint(GroupEndpoint, EnvironmentMixin):
     publish_status = {
         "GET": ApiPublishStatus.PRIVATE,
     }
-    enforce_rate_limit = True
+    owner: ApiOwner = ApiOwner.ISSUES
+    enforce_rate_limit: bool = settings.SENTRY_RATELIMITER_ENABLED
     rate_limits = {
         "GET": {
             RateLimitCategory.IP: RateLimit(limit=5, window=1),
