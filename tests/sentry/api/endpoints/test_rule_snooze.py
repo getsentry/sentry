@@ -35,13 +35,14 @@ class PostRuleSnoozeTest(BaseRuleSnoozeTest):
         org2 = self.create_organization(name="Other Org", owner=user2)
         project2 = self.create_project(organization=org2, name="Other Project")
         self.login_as(user2)
-        self.get_error_response(
+        response = self.get_error_response(
             org2.slug,
             project2.slug,
             self.issue_alert_rule.id,
             target="everyone",
-            status_code=400,
+            status_code=404,
         )
+        assert response.data["detail"] == "Rule does not exist"
 
     def test_mute_issue_alert_user_forever(self):
         """Test that a user can mute an issue alert rule for themselves forever"""

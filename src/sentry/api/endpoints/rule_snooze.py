@@ -3,7 +3,7 @@ from typing import Literal
 
 from django.contrib.auth.models import AnonymousUser
 from rest_framework import serializers, status
-from rest_framework.exceptions import PermissionDenied
+from rest_framework.exceptions import NotFound, PermissionDenied
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -89,7 +89,7 @@ class BaseRuleSnoozeEndpoint(ProjectEndpoint):
                 queryset = self.rule_model.objects.filter(project=project)
             rule = queryset.get(id=rule_id)
         except self.rule_model.DoesNotExist:
-            raise serializers.ValidationError("Rule does not exist")
+            raise NotFound(detail="Rule does not exist")
 
         kwargs["rule"] = rule
 
