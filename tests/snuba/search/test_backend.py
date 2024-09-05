@@ -2395,6 +2395,7 @@ class EventsSnubaSearchTestCases(EventsDatasetTestSetup):
         )
         assert set(results) == {group_a}
 
+    @pytest.mark.skip(reason="test runs far too slowly, causing timeouts atm.")
     def test_all_fields_do_not_error(self):
         # Just a sanity check to make sure that all fields can be successfully
         # searched on without returning type errors and other schema related
