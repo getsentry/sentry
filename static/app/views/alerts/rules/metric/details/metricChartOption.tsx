@@ -1,5 +1,5 @@
 import color from 'color';
-import type {YAXisComponentOption} from 'echarts';
+import type {MarkAreaComponentOption, YAXisComponentOption} from 'echarts';
 import moment from 'moment-timezone';
 
 import type {AreaChartProps, AreaChartSeries} from 'sentry/components/charts/areaChart';
@@ -404,7 +404,7 @@ export function getMetricAlertChartOption({
   }
 
   if (anomalies) {
-    const anomalyBlocks: any[] = [];
+    const anomalyBlocks: MarkAreaComponentOption['data'] = [];
     let start: string | undefined;
     let end: string | undefined;
     anomalies
