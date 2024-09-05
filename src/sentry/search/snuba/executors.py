@@ -42,13 +42,7 @@ from sentry.api.serializers.models.group import SKIP_SNUBA_FIELDS
 from sentry.constants import ALLOWED_FUTURE_DELTA
 from sentry.db.models.manager.base_query_set import BaseQuerySet
 from sentry.issues import grouptype
-from sentry.issues.grouptype import (
-    ErrorGroupType,
-    GroupCategory,
-    GroupType,
-    get_group_types_by_category,
-)
-from sentry.issues.grouptype import registry as gt_registry
+from sentry.issues.grouptype import ErrorGroupType, GroupCategory, get_group_types_by_category
 from sentry.issues.search import (
     SEARCH_FILTER_UPDATERS,
     IntermediateSearchQueryPartial,
@@ -1826,39 +1820,22 @@ class GroupAttributesPostgresSnubaQueryExecutor(PostgresSnubaQueryExecutor):
             # handle types based on issue.type and issue.category
             if not is_errors:
                 raw_group_types = group_types_from(search_filters)
-                if raw_group_types is not None:
-                    # no possible groups, return empty
-                    if len(raw_group_types) == 0:
-                        metrics.incr(
-                            "snuba.search.group_attributes.no_possible_groups", skip_internal=False
-                        )
-                        return self.empty_result
-
-                    # filter out the group types that are not visible to the org/user
-                    group_types = [
-                        gt.type_id
-                        for gt in grouptype.registry.get_visible(organization, actor)
-                        if gt.type_id in raw_group_types
-                    ]
-                    where_conditions.append(
-                        Condition(Column("occurrence_type_id", joined_entity), Op.IN, group_types)
+                # no possible groups, return empty
+                if len(raw_group_types) == 0:
+                    metrics.incr(
+                        "snuba.search.group_attributes.no_possible_groups", skip_internal=False
                     )
-                else:
-                    all_group_type_objs: list[GroupType] = [
-                        gt_registry.get_by_type_id(id)
-                        for id in gt_registry.get_all_group_type_ids()
-                    ]
-                    hidden_group_type_ids = [
-                        gt.type_id for gt in all_group_type_objs if not gt.in_default_search
-                    ]
-                    if hidden_group_type_ids:
-                        where_conditions.append(
-                            Condition(
-                                Column("occurrence_type_id", joined_entity),
-                                Op.NOT_IN,
-                                hidden_group_type_ids,
-                            )
-                        )
+                    return self.empty_result
+
+                # filter out the group types that are not visible to the org/user
+                group_types = [
+                    gt.type_id
+                    for gt in grouptype.registry.get_visible(organization, actor)
+                    if gt.type_id in raw_group_types
+                ]
+                where_conditions.append(
+                    Condition(Column("occurrence_type_id", joined_entity), Op.IN, group_types)
+                )
 
             sort_func = self.get_sort_defs(joined_entity)[sort_by]
 
