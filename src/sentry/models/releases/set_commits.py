@@ -137,7 +137,6 @@ def set_commits_on_release(release, commit_list):
             data["author_model"] = author
 
     def set_commit(idx, data):
-        nonlocal latest_commit
 
         repo = data["repo_model"]
         author = data["author_model"]
@@ -194,16 +193,17 @@ def set_commits_on_release(release, commit_list):
         except IntegrityError:
             pass
 
-        if latest_commit is None:
-            latest_commit = commit
-
         head_commit_by_repo.setdefault(repo.id, commit.id)
+        return commit
 
     create_repositories(commit_list)
     create_commit_authors(commit_list)
 
     for idx, data in enumerate(commit_list):
-        set_commit(idx, data)
+        if idx == 0:
+            latest_commit = set_commit(idx, data)
+        else:
+            set_commit(idx, data)
 
     release.update(
         commit_count=len(commit_list),
