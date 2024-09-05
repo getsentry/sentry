@@ -3,33 +3,58 @@ import styled from '@emotion/styled';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {Broadcast} from 'sentry/types/system';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import useOrganization from 'sentry/utils/useOrganization';
 
-interface SidebarPanelItemProps
-  extends Partial<
-    Pick<Broadcast, 'link' | 'category' | 'title' | 'hasSeen' | 'message'>
-  > {
+type Props = {
   /**
    * Content rendered instead the panel item
    */
   children?: React.ReactNode;
-  ctaText?: string;
-}
+  /**
+   * The text for the CTA link at the bottom of the panel item
+   */
+  cta?: string;
+  /**
+   * Has the item been seen? affects the styling of the panel item
+   */
+  hasSeen?: boolean;
+  /**
+   * The URL to use for the CTA
+   */
+  link?: string;
+  /**
+   * A message with muted styling which appears above the children content
+   */
+  message?: React.ReactNode;
+  /**
+   * The title of the sidebar item
+   */
+  title?: string;
+  /**
+   * Actions to the right of the title
+   */
+  titleAction?: React.ReactNode;
+};
 
 function SidebarPanelItem({
   hasSeen,
   title,
   message,
   link,
-  ctaText,
+  cta,
+  titleAction,
   children,
-}: SidebarPanelItemProps) {
+}: Props) {
   const organization = useOrganization();
   return (
     <SidebarPanelItemRoot>
-      {title && <Title hasSeen={hasSeen}>{title}</Title>}
+      {title && (
+        <TitleWrapper>
+          <Title hasSeen={hasSeen}>{title}</Title>
+          {titleAction}
+        </TitleWrapper>
+      )}
       {message && <Message>{message}</Message>}
 
       {children}
@@ -45,7 +70,7 @@ function SidebarPanelItem({
               trackAnalytics('whats_new.link_clicked', {organization, title});
             }}
           >
-            {ctaText || t('Read More')}
+            {cta || t('Read More')}
           </ExternalLink>
         </Text>
       )}
@@ -66,11 +91,17 @@ const SidebarPanelItemRoot = styled('div')`
   }
 `;
 
-const Title = styled('div')<Pick<SidebarPanelItemProps, 'hasSeen'>>`
+const TitleWrapper = styled('div')`
+  display: flex;
+  justify-content: space-between;
+  gap: ${space(1)};
+`;
+
+const Title = styled('div')<Pick<Props, 'hasSeen'>>`
   font-size: ${p => p.theme.fontSizeLarge};
   margin-bottom: ${space(1)};
   color: ${p => p.theme.textColor};
-  ${p => !p.hasSeen && `font-weight: ${p.theme.fontWeightBold}`};
+  ${p => !p.hasSeen && 'font-weight: ${p => p.theme.fontWeightBold};'};
 
   .culprit {
     font-weight: ${p => p.theme.fontWeightNormal};
