@@ -243,7 +243,7 @@ class AlertRuleDetailsGetEndpointTest(AlertRuleDetailsBase):
 
         with pytest.raises(
             ValidationError,
-            match="Sensitivity and seasonality are not valid fields for this alert type",
+            match="Sensitivity is not a valid field for this alert type",
         ):
             # STATIC detection types shouldn't have seasonality or sensitivity
             self.create_alert_rule(
@@ -277,7 +277,7 @@ class AlertRuleDetailsGetEndpointTest(AlertRuleDetailsBase):
 
         with pytest.raises(
             ValidationError,
-            match="Sensitivity and seasonality are not valid fields for this alert type",
+            match="Sensitivity is not a valid field for this alert type",
         ):
             # PERCENT detection type should not have sensitivity or seasonality
             self.create_alert_rule(
@@ -317,27 +317,24 @@ class AlertRuleDetailsGetEndpointTest(AlertRuleDetailsBase):
         resp = self.get_success_response(self.organization.slug, rule.id)
         assert rule.detection_type == resp.data.get("detectionType")
 
-        with pytest.raises(
-            ValidationError, match="Dynamic alerts require both sensitivity and seasonality"
-        ):
+        with pytest.raises(ValidationError, match="Dynamic alerts require a sensitivity level"):
             self.create_alert_rule(
                 seasonality=AlertRuleSeasonality.AUTO,
                 detection_type=AlertRuleDetectionType.DYNAMIC,
                 time_window=30,
             )  # Require both seasonality and sensitivity
 
-        with pytest.raises(
-            ValidationError, match="Dynamic alerts require both sensitivity and seasonality"
-        ):
-            self.create_alert_rule(
-                sensitivity=AlertRuleSensitivity.MEDIUM,
-                detection_type=AlertRuleDetectionType.DYNAMIC,
-                time_window=30,
-            )  # Require both seasonality and sensitivity
+        # TODO: uncomment this test when seasonality becomes a supported field
+        # with pytest.raises(
+        #     ValidationError, match="Dynamic alerts require both sensitivity and seasonality"
+        # ):
+        #     self.create_alert_rule(
+        #         sensitivity=AlertRuleSensitivity.MEDIUM,
+        #         detection_type=AlertRuleDetectionType.DYNAMIC,
+        #         time_window=30,
+        #     )  # Require both seasonality and sensitivity
 
-        with pytest.raises(
-            ValidationError, match="Dynamic alerts require both sensitivity and seasonality"
-        ):
+        with pytest.raises(ValidationError, match="Dynamic alerts require a sensitivity level"):
             self.create_alert_rule(
                 detection_type=AlertRuleDetectionType.DYNAMIC,
                 time_window=30,

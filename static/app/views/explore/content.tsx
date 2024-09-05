@@ -60,7 +60,7 @@ export function ExploreContent({}: ExploreContentProps) {
               <ExploreToolbar extras={toolbarExtras} />
             </Side>
             <Main fullWidth>
-              <ExploreCharts />
+              <ExploreCharts query={userQuery} />
               <ExploreTables />
             </Main>
           </Body>
