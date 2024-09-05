@@ -29,6 +29,7 @@ __all__ = (
     "BaseModel",
     "Model",
     "DefaultFieldsModelExisting",
+    "DefaultFieldsModel",
     "sane_repr",
     "get_model_if_available",
     "control_silo_model",
@@ -334,16 +335,8 @@ class DefaultFieldsModelExisting(Model):
         abstract = True
 
 
-class DefaultFieldsModel(Model):
-    """
-    A base model that adds default date fields to a model and auto updates them.
-    """
-
-    date_added = models.DateTimeField(auto_now_add=True)
-    date_updated = models.DateTimeField(auto_now=True)
-
-    class Meta:
-        abstract = True
+# Temporary mapping so we can fix getsentry
+DefaultFieldsModel = DefaultFieldsModelExisting
 
 
 def __model_pre_save(instance: models.Model, **kwargs: Any) -> None:
