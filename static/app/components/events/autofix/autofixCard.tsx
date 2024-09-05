@@ -22,6 +22,12 @@ function AutofixFeedback() {
   const feedback = useFeedbackWidget({
     buttonRef,
     messagePlaceholder: t('How can we make Autofix better for you?'),
+    optionOverrides: {
+      tags: {
+        ['feedback.source']: 'issue_details_ai_autofix',
+        ['feedback.owner']: 'ml-ai',
+      },
+    },
   });
 
   if (!feedback) {
