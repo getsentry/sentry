@@ -22,6 +22,8 @@ import {
   ProductSolution,
 } from 'sentry/components/onboarding/productSelection';
 import {t} from 'sentry/locale';
+import ConfigStore from 'sentry/stores/configStore';
+import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import {space} from 'sentry/styles/space';
 import type {PlatformKey, Project, ProjectKey} from 'sentry/types/project';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -59,6 +61,7 @@ export function OnboardingLayout({
     useSourcePackageRegistries(organization);
   const selectedOptions = useUrlPlatformOptions(docsConfig.platformOptions);
   const {platformOptions} = docsConfig;
+  const {urlPrefix, isSelfHosted} = useLegacyStore(ConfigStore);
 
   const {introduction, steps, nextSteps} = useMemo(() => {
     const doc = docsConfig[configType] ?? docsConfig.onboarding;
@@ -79,6 +82,8 @@ export function OnboardingLayout({
         isLoading: isLoadingRegistry,
         data: registryData,
       },
+      urlPrefix,
+      isSelfHosted,
       platformOptions: selectedOptions,
       newOrg,
       replayOptions: {block: true, mask: true},
@@ -106,6 +111,8 @@ export function OnboardingLayout({
     registryData,
     selectedOptions,
     configType,
+    urlPrefix,
+    isSelfHosted,
   ]);
 
   return (

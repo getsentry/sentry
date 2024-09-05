@@ -8,6 +8,8 @@ import type {DocsParams} from 'sentry/components/onboarding/gettingStartedDoc/ty
 import {useSourcePackageRegistries} from 'sentry/components/onboarding/gettingStartedDoc/useSourcePackageRegistries';
 import {useUrlPlatformOptions} from 'sentry/components/onboarding/platformOptionsControl';
 import ReplayConfigToggle from 'sentry/components/replaysOnboarding/replayConfigToggle';
+import ConfigStore from 'sentry/stores/configStore';
+import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import {space} from 'sentry/styles/space';
 import useOrganization from 'sentry/utils/useOrganization';
 
@@ -27,6 +29,8 @@ export function ReplayOnboardingLayout({
   const selectedOptions = useUrlPlatformOptions(docsConfig.platformOptions);
   const [mask, setMask] = useState(true);
   const [block, setBlock] = useState(true);
+  const {isSelfHosted, urlPrefix} = useLegacyStore(ConfigStore);
+
   const {introduction, steps} = useMemo(() => {
     const doc = docsConfig[configType] ?? docsConfig.onboarding;
 
@@ -50,6 +54,8 @@ export function ReplayOnboardingLayout({
         mask,
         block,
       },
+      isSelfHosted,
+      urlPrefix,
     };
 
     return {
@@ -75,6 +81,8 @@ export function ReplayOnboardingLayout({
     configType,
     mask,
     block,
+    urlPrefix,
+    isSelfHosted,
   ]);
 
   return (

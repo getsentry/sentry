@@ -28,25 +28,29 @@ import {t, tct} from 'sentry/locale';
 
 type Params = DocsParams;
 
-const getConfigStep = () => [
-  {
-    description: tct(
-      'Configure your app automatically with the [wizardLink:Sentry wizard].',
-      {
-        wizardLink: (
-          <ExternalLink href="https://docs.sentry.io/platforms/javascript/guides/remix/#install" />
-        ),
-      }
-    ),
-    language: 'bash',
-    code: `npx @sentry/wizard@latest -i remix`,
-  },
-];
+const getConfigStep = ({isSelfHosted, urlPrefix}: Params) => {
+  const urlParam = !isSelfHosted && urlPrefix ? `--url ${urlPrefix}` : '';
 
-const getInstallConfig = () => [
+  return [
+    {
+      description: tct(
+        'Configure your app automatically with the [wizardLink:Sentry wizard].',
+        {
+          wizardLink: (
+            <ExternalLink href="https://docs.sentry.io/platforms/javascript/guides/remix/#install" />
+          ),
+        }
+      ),
+      language: 'bash',
+      code: `npx @sentry/wizard@latest -i remix ${urlParam}`,
+    },
+  ];
+};
+
+const getInstallConfig = (params: Params) => [
   {
     type: StepType.INSTALL,
-    configurations: getConfigStep(),
+    configurations: getConfigStep(params),
   },
 ];
 
@@ -55,7 +59,7 @@ const onboarding: OnboardingConfig = {
     tct("Sentry's integration with [remixLink:Remix] supports Remix 1.0.0 and above.", {
       remixLink: <ExternalLink href="https://remix.run/" />,
     }),
-  install: () => getInstallConfig(),
+  install: (params: Params) => getInstallConfig(params),
   configure: () => [
     {
       type: StepType.CONFIGURE,
@@ -125,7 +129,7 @@ const onboarding: OnboardingConfig = {
 };
 
 const replayOnboarding: OnboardingConfig = {
-  install: () => getInstallConfig(),
+  install: (params: Params) => getInstallConfig(params),
   configure: (params: Params) => [
     {
       type: StepType.CONFIGURE,
@@ -165,7 +169,7 @@ const replayOnboarding: OnboardingConfig = {
 };
 
 const feedbackOnboarding: OnboardingConfig = {
-  install: () => [
+  install: (params: Params) => [
     {
       type: StepType.INSTALL,
       description: tct(
@@ -174,7 +178,7 @@ const feedbackOnboarding: OnboardingConfig = {
           code: <code />,
         }
       ),
-      configurations: getConfigStep(),
+      configurations: getConfigStep(params),
     },
   ],
   configure: (params: Params) => [
