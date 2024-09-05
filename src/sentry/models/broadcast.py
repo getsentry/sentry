@@ -12,11 +12,11 @@ def default_expiration():
 
 
 BROADCAST_CATEGORIES = [
-    ["announcement", "Announcement"],
-    ["feature", "New Feature"],
-    ["blog", "Blog Post"],
-    ["event", "Event"],
-    ["video", "Video"],
+    ("announcement", "Announcement"),
+    ("feature", "New Feature"),
+    ("blog", "Blog Post"),
+    ("event", "Event"),
+    ("video", "Video"),
 ]
 
 
