@@ -10,7 +10,7 @@ from sentry.users.models.user import User
 @control_silo_endpoint
 class IndexEndpoint(Endpoint):
     publish_status = {
-        "GET": ApiPublishStatus.UNKNOWN,
+        "GET": ApiPublishStatus.PRIVATE,
     }
     permission_classes = ()
 
