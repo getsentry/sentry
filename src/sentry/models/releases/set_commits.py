@@ -1,4 +1,3 @@
-# Sort commit list in reverse order
 from __future__ import annotations
 
 import itertools
@@ -65,8 +64,8 @@ def set_commits(release, commit_list):
             head_commit_by_repo, commit_author_by_commit = set_commits_on_release(
                 release, commit_list
             )
-    fill_in_missing_release_head_commits(release, head_commit_by_repo)
 
+    fill_in_missing_release_head_commits(release, head_commit_by_repo)
     update_group_resolutions(release, commit_author_by_commit)
 
 
