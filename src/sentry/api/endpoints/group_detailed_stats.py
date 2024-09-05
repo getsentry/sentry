@@ -1,3 +1,5 @@
+from datetime import timedelta
+
 from django.conf import settings
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -44,7 +46,9 @@ class GroupDetailedStatsEndpoint(GroupEndpoint, EnvironmentMixin):
 
         environments = get_environments(request, group.project.organization)
         environment_ids = [e.id for e in environments]
-        start, end = get_date_range_from_params(request.GET)
+        start, end = get_date_range_from_params(
+            request.GET, default_stats_period=timedelta(days=14)
+        )
         try:
             rollup = get_rollup_from_request(
                 request,
@@ -53,7 +57,7 @@ class GroupDetailedStatsEndpoint(GroupEndpoint, EnvironmentMixin):
                 error=InvalidSearchQuery(),
             )
         except InvalidSearchQuery:
-            rollup = 3600  # use a default of 1 hour
+            rollup = 3600
 
         event_stats = get_group_stats(
             group=group, environment_ids=environment_ids, start=start, end=end, rollup=rollup
@@ -76,8 +80,5 @@ class GroupDetailedStatsEndpoint(GroupEndpoint, EnvironmentMixin):
             {
                 "eventStats": event_stats,
                 "userCount": user_count[group.id],
-                "rollup": rollup,
-                "start": start,
-                "end": end,
             }
         )
