@@ -1,5 +1,5 @@
 ---
-created: '2024-09-04T19:48:05.303653+00:00'
+created: '2024-09-05T13:32:09.452717+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -10,7 +10,7 @@ app:
       threads (thread has no stacktrace)
 --------------------------------------------------------------------------
 app-depth-1:
-  hash: "7b82f61c02dceddacf473738f7827805"
+  hash: "e002eefcebcc5e920bcddc9c81a06470"
   component:
     app-depth-1*
       exception*
@@ -19,7 +19,7 @@ app-depth-1:
             filename (discarded native filename for grouping stability)
               "main.cpp"
             function*
-              "`anonymous namespace'::something::nested::Foo<T>::crash"
+              "(anonymous namespace)::something::nested::Foo<T>::crash"
             package (ignored because function takes precedence)
               "crash"
         type (ignored because exception is synthetic)
@@ -28,7 +28,7 @@ app-depth-1:
           "Fatal Error: EXC_BAD_ACCESS / KERN_INVALID_ADDRESS"
 --------------------------------------------------------------------------
 app-depth-2:
-  hash: "ecaeb0c00f2962b1e3e3f40313787711"
+  hash: "f0a8645562acd4cde0096d53ab69f9ac"
   component:
     app-depth-2*
       exception*
@@ -37,14 +37,14 @@ app-depth-2:
             filename (discarded native filename for grouping stability)
               "main.cpp"
             function*
-              "`anonymous namespace'::crash"
+              "(anonymous namespace)::crash"
             package (ignored because function takes precedence)
               "crash"
           frame*
             filename (discarded native filename for grouping stability)
               "main.cpp"
             function*
-              "`anonymous namespace'::something::nested::Foo<T>::crash"
+              "(anonymous namespace)::something::nested::Foo<T>::crash"
             package (ignored because function takes precedence)
               "crash"
         type (ignored because exception is synthetic)
@@ -53,7 +53,7 @@ app-depth-2:
           "Fatal Error: EXC_BAD_ACCESS / KERN_INVALID_ADDRESS"
 --------------------------------------------------------------------------
 app-depth-3:
-  hash: "d64904dcba276f8cad4f718cda9d8690"
+  hash: "102ff7b3fc873a8b1728ddbdffbaab81"
   component:
     app-depth-3*
       exception*
@@ -62,21 +62,21 @@ app-depth-3:
             filename (discarded native filename for grouping stability)
               "main.cpp"
             function*
-              "`anonymous namespace'::start"
+              "(anonymous namespace)::start"
             package (ignored because function takes precedence)
               "crash"
           frame*
             filename (discarded native filename for grouping stability)
               "main.cpp"
             function*
-              "`anonymous namespace'::crash"
+              "(anonymous namespace)::crash"
             package (ignored because function takes precedence)
               "crash"
           frame*
             filename (discarded native filename for grouping stability)
               "main.cpp"
             function*
-              "`anonymous namespace'::something::nested::Foo<T>::crash"
+              "(anonymous namespace)::something::nested::Foo<T>::crash"
             package (ignored because function takes precedence)
               "crash"
         type (ignored because exception is synthetic)
@@ -85,7 +85,7 @@ app-depth-3:
           "Fatal Error: EXC_BAD_ACCESS / KERN_INVALID_ADDRESS"
 --------------------------------------------------------------------------
 app-depth-4:
-  hash: "a07df792479c5ba46fc056236749b796"
+  hash: "3b9ea09c02c81c1c6e5884c1fadcdda0"
   component:
     app-depth-4*
       exception*
@@ -101,21 +101,21 @@ app-depth-4:
             filename (discarded native filename for grouping stability)
               "main.cpp"
             function*
-              "`anonymous namespace'::start"
+              "(anonymous namespace)::start"
             package (ignored because function takes precedence)
               "crash"
           frame*
             filename (discarded native filename for grouping stability)
               "main.cpp"
             function*
-              "`anonymous namespace'::crash"
+              "(anonymous namespace)::crash"
             package (ignored because function takes precedence)
               "crash"
           frame*
             filename (discarded native filename for grouping stability)
               "main.cpp"
             function*
-              "`anonymous namespace'::something::nested::Foo<T>::crash"
+              "(anonymous namespace)::something::nested::Foo<T>::crash"
             package (ignored because function takes precedence)
               "crash"
         type (ignored because exception is synthetic)
@@ -124,7 +124,7 @@ app-depth-4:
           "Fatal Error: EXC_BAD_ACCESS / KERN_INVALID_ADDRESS"
 --------------------------------------------------------------------------
 app-depth-max:
-  hash: "a07df792479c5ba46fc056236749b796"
+  hash: "3b9ea09c02c81c1c6e5884c1fadcdda0"
   component:
     app-depth-max*
       exception*
@@ -140,21 +140,21 @@ app-depth-max:
             filename (discarded native filename for grouping stability)
               "main.cpp"
             function*
-              "`anonymous namespace'::start"
+              "(anonymous namespace)::start"
             package (ignored because function takes precedence)
               "crash"
           frame*
             filename (discarded native filename for grouping stability)
               "main.cpp"
             function*
-              "`anonymous namespace'::crash"
+              "(anonymous namespace)::crash"
             package (ignored because function takes precedence)
               "crash"
           frame*
             filename (discarded native filename for grouping stability)
               "main.cpp"
             function*
-              "`anonymous namespace'::something::nested::Foo<T>::crash"
+              "(anonymous namespace)::something::nested::Foo<T>::crash"
             package (ignored because function takes precedence)
               "crash"
         type (ignored because exception is synthetic)
@@ -163,7 +163,7 @@ app-depth-max:
           "Fatal Error: EXC_BAD_ACCESS / KERN_INVALID_ADDRESS"
 --------------------------------------------------------------------------
 system:
-  hash: "a07df792479c5ba46fc056236749b796"
+  hash: "3b9ea09c02c81c1c6e5884c1fadcdda0"
   component:
     system*
       exception*
@@ -179,21 +179,21 @@ system:
             filename (discarded native filename for grouping stability)
               "main.cpp"
             function*
-              "`anonymous namespace'::start"
+              "(anonymous namespace)::start"
             package (ignored because function takes precedence)
               "crash"
           frame*
             filename (discarded native filename for grouping stability)
               "main.cpp"
             function*
-              "`anonymous namespace'::crash"
+              "(anonymous namespace)::crash"
             package (ignored because function takes precedence)
               "crash"
           frame*
             filename (discarded native filename for grouping stability)
               "main.cpp"
             function*
-              "`anonymous namespace'::something::nested::Foo<T>::crash"
+              "(anonymous namespace)::something::nested::Foo<T>::crash"
             package (ignored because function takes precedence)
               "crash"
         type (ignored because exception is synthetic)
