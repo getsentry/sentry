@@ -58,6 +58,8 @@ export function AutoSizedText({children}: Props) {
           forceTransaction: true,
         });
 
+        const t1 = performance.now();
+
         // Run the resize iteration in a loop. This blocks the main UI thread and prevents
         // visible layout jitter. If this was done through a `ResizeObserver` or React State
         // each step in the resize iteration would be visible to the user
@@ -87,10 +89,12 @@ export function AutoSizedText({children}: Props) {
 
           iterationCount += 1;
         }
+        const t2 = performance.now();
 
         scope.setTag('didExceedIterationLimit', iterationCount >= ITERATION_LIMIT);
 
         span.setAttribute('iterationCount', iterationCount);
+        span.setAttribute('durationFromPerformanceAPI', t2 - t1);
         span.end();
       });
     });
