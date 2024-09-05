@@ -187,12 +187,9 @@ const onboarding: OnboardingConfig = {
         },
         {
           description: tct(
-            'In case you do not have a global catch-all exception filter, add the [code1:SentryGlobalFilter] to the providers of your main module. This filter will report all unhandled errors to Sentry that are not caught by any other error filter. Important: The [code2:SentryGlobalFilter] needs to be registered before any other exception filters. Also note that in NestJS + GraphQL applications the [code3:SentryGlobalFilter] needs to be replaced with the [code4:SentryGlobalGraphQLFilter].',
+            'In case you do not have a global catch-all exception filter, add the [code:SentryGlobalFilter] to the providers of your main module. This filter will report all unhandled errors to Sentry that are not caught by any other error filter. Important: The [code:SentryGlobalFilter] needs to be registered before any other exception filters. Also note that in NestJS + GraphQL applications the [code:SentryGlobalFilter] needs to be replaced with the [code:SentryGlobalGraphQLFilter].',
             {
-              code1: <code />,
-              code2: <code />,
-              code3: <code />,
-              code4: <code />,
+              code: <code />,
             }
           ),
           code: [
