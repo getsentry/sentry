@@ -15,6 +15,7 @@ import {
   MAX_MENU_HEIGHT,
   MAX_SEARCH_ITEMS,
 } from 'sentry/views/dashboards/widgetBuilder/utils';
+import ResultsSearchQueryBuilder from 'sentry/views/discover/resultsSearchQueryBuilder';
 
 interface Props {
   getFilterWarning: SearchBarProps['getFilterWarning'];
@@ -42,7 +43,20 @@ export function EventsSearchBar({
     ? generateAggregateFields(organization, eventView.fields)
     : eventView.fields;
 
-  return (
+  return organization.features.includes('search-query-builder-discover') ? (
+    <ResultsSearchQueryBuilder
+      projectIds={eventView.project}
+      query={widgetQuery.conditions}
+      fields={fields}
+      onChange={(query, state) => {
+        onClose?.(query, {validSearch: state.queryIsValid});
+      }}
+      customMeasurements={customMeasurements}
+      dataset={dataset}
+      includeTransactions={hasDatasetSelector(organization) ? false : true}
+      searchSource="widget_builder"
+    />
+  ) : (
     <Search
       searchSource="widget_builder"
       organization={organization}
