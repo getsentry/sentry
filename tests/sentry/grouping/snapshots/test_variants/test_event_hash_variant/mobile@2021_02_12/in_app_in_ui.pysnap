@@ -1,150 +1,84 @@
 ---
-created: '2024-09-06T11:37:51.787853+00:00'
+created: '2024-09-06T13:40:56.373256+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
-app-depth-1:
-  hash: "2e6ec14cee36b77af5543dd575ad0d6a"
-  component:
-    app-depth-1*
-      exception*
-        stacktrace*
-          frame*
-            filename*
-              "currentuserprofile.swift"
-            function*
-              "value"
-        type (ignored because exception is synthetic)
-          "EXC_BREAKPOINT"
-        value (ignored because stacktrace takes precedence)
-          "autoplayOption"
---------------------------------------------------------------------------
-app-depth-2:
-  hash: "03bc6068f9d376e3c82f407634198871"
-  component:
-    app-depth-2*
-      exception*
-        stacktrace*
-          frame*
-            filename*
-              "currentuserprofile.swift"
-            function*
-              "CurrentUserProfile.isVideoAutoplay.getter"
-          frame*
-            filename*
-              "currentuserprofile.swift"
-            function*
-              "value"
-        type (ignored because exception is synthetic)
-          "EXC_BREAKPOINT"
-        value (ignored because stacktrace takes precedence)
-          "autoplayOption"
---------------------------------------------------------------------------
-app-depth-3:
-  hash: "3be1fc191718208eb478e53ac66ab311"
-  component:
-    app-depth-3*
-      exception*
-        stacktrace*
-          frame*
-            filename*
-              "<compiler-generated>"
-            function*
-              "CurrentUserProfile.isVideoAutoplay.getter"
-          frame*
-            filename*
-              "currentuserprofile.swift"
-            function*
-              "CurrentUserProfile.isVideoAutoplay.getter"
-          frame*
-            filename*
-              "currentuserprofile.swift"
-            function*
-              "value"
-        type (ignored because exception is synthetic)
-          "EXC_BREAKPOINT"
-        value (ignored because stacktrace takes precedence)
-          "autoplayOption"
---------------------------------------------------------------------------
-app-depth-4:
-  hash: "f7cbd317d459f83aa63d4c580d30cd0f"
-  component:
-    app-depth-4*
-      exception*
-        stacktrace*
-          frame*
-            filename*
-              "mediaslideshow+extensions.swift"
-            function*
-              "MediaSlideshow.toSource"
-          frame*
-            filename*
-              "<compiler-generated>"
-            function*
-              "CurrentUserProfile.isVideoAutoplay.getter"
-          frame*
-            filename*
-              "currentuserprofile.swift"
-            function*
-              "CurrentUserProfile.isVideoAutoplay.getter"
-          frame*
-            filename*
-              "currentuserprofile.swift"
-            function*
-              "value"
-        type (ignored because exception is synthetic)
-          "EXC_BREAKPOINT"
-        value (ignored because stacktrace takes precedence)
-          "autoplayOption"
---------------------------------------------------------------------------
-app-depth-5:
-  hash: "97ead781c5c2a5a05b7e5bc031be46b0"
-  component:
-    app-depth-5*
-      exception*
-        stacktrace*
-          frame*
-            filename*
-              "mediaslideshow+extensions.swift"
-            function*
-              "MediaSlideshow.toSources"
-          frame*
-            filename*
-              "mediaslideshow+extensions.swift"
-            function*
-              "MediaSlideshow.toSource"
-          frame*
-            filename*
-              "<compiler-generated>"
-            function*
-              "CurrentUserProfile.isVideoAutoplay.getter"
-          frame*
-            filename*
-              "currentuserprofile.swift"
-            function*
-              "CurrentUserProfile.isVideoAutoplay.getter"
-          frame*
-            filename*
-              "currentuserprofile.swift"
-            function*
-              "value"
-        type (ignored because exception is synthetic)
-          "EXC_BREAKPOINT"
-        value (ignored because stacktrace takes precedence)
-          "autoplayOption"
---------------------------------------------------------------------------
-app-depth-max:
+app:
   hash: "5b032559156688c9eabe4e4bd5ae6bd4"
   component:
-    app-depth-max*
+    app*
       exception*
         stacktrace*
+          frame (non app frame)
+            function*
+              "start"
+          frame (ignored by stack trace rule (category:threadbase -group v-group))
+            filename*
+              "main.m"
+            function*
+              "main"
+          frame (non app frame)
+            function*
+              "UIApplicationMain"
+          frame (marked as prefix frame by stack trace rule (category:ui +sentinel +prefix))
+            function*
+              "-[UIApplication _run]"
+          frame (non app frame)
+            function*
+              "GSEventRunModal"
+          frame (non app frame)
+            function*
+              "CFRunLoopRunSpecific"
+          frame (non app frame)
+            function*
+              "__CFRunLoopRun"
+          frame (non app frame)
+            function*
+              "__CFRunLoopDoObservers"
+          frame (non app frame)
+            function*
+              "__CFRUNLOOP_IS_CALLING_OUT_TO_AN_OBSERVER_CALLBACK_FUNCTION__"
+          frame (non app frame)
+            function*
+              "CA::Transaction::observer_callback"
+          frame (non app frame)
+            function*
+              "CA::Transaction::commit"
+          frame (non app frame)
+            function*
+              "CA::Context::commit_transaction"
+          frame (non app frame)
+            function*
+              "CA::Layer::layout_and_display_if_needed"
+          frame (non app frame)
+            function*
+              "CA::Layer::layout_if_needed"
+          frame (non app frame)
+            function*
+              "-[CALayer layoutSublayers]"
+          frame (non app frame)
+            function*
+              "-[UIView(CALayerDelegate) layoutSublayersOfLayer:]"
           frame*
             filename*
               "<compiler-generated>"
             function*
               "TableView.layoutSubviews"
+          frame (marked as prefix frame by stack trace rule (category:ui +sentinel +prefix))
+            function*
+              "-[UITableView layoutSubviews]"
+          frame (non app frame)
+            function*
+              "-[UITableView _updateVisibleCellsNow:]"
+          frame (non app frame)
+            function*
+              "-[UITableView _createPreparedCellForGlobalRow:withIndexPath:willDisplay:]"
           frame*
+            filename*
+              "<compiler-generated>"
+            function*
+              "AnyTableViewController.tableView"
+          frame (ignored due to recursion)
             filename*
               "<compiler-generated>"
             function*
@@ -154,6 +88,11 @@ app-depth-max:
               "anytableviewcontroller.swift"
             function*
               "AnyTableViewController.tableView"
+          frame (ignored by stack trace rule (category:internals -group))
+            filename*
+              "<compiler-generated>"
+            function*
+              "closure"
           frame*
             filename*
               "dailydigesttableviewsection.swift"
@@ -174,6 +113,11 @@ app-depth-max:
               "<compiler-generated>"
             function*
               "Sequence.compactMap<T>"
+          frame (ignored by stack trace rule (category:internals -group))
+            filename*
+              "<compiler-generated>"
+            function*
+              "closure"
           frame*
             filename*
               "mediaslideshow+extensions.swift"

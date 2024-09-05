@@ -1,23 +1,14 @@
 ---
-created: '2021-05-05T18:04:39.279368Z'
+created: '2024-09-06T13:40:55.811176+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
-app-depth-1:
+app:
   hash: null
   component:
-    app-depth-1
+    app
       stacktrace
-        frame
-          filename (ignored because frame points to a URL)
-            "7f7aaadf-a006-4217-9ed5-5fbf8585c6c0"
---------------------------------------------------------------------------
-app-depth-max:
-  hash: null
-  component:
-    app-depth-max
-      stacktrace
-        frame
+        frame (non app frame)
           filename (ignored because frame points to a URL)
             "7f7aaadf-a006-4217-9ed5-5fbf8585c6c0"
 --------------------------------------------------------------------------

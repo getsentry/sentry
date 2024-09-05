@@ -1,34 +1,31 @@
 ---
-created: '2024-09-05T13:39:10.881375+00:00'
+created: '2024-09-06T13:40:55.297051+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
-app-depth-1:
-  hash: "c85e23e804b52ea4b9f290ba838e77a0"
+app:
+  hash: null
   component:
-    app-depth-1*
-      exception*
-        stacktrace*
-          frame*
+    app (exception of system takes precedence)
+      exception (ignored because this variant does not have a contributing stacktrace, but the system variant does)
+        stacktrace
+          frame (non app frame)
             function*
               "CUseCountedObject<T>::UCDestroy"
-        type (ignored because exception is synthetic)
-          "EXCEPTION_ACCESS_VIOLATION_READ"
-        value (ignored because stacktrace takes precedence)
-          "Fatal Error: EXCEPTION_ACCESS_VIOLATION_READ"
---------------------------------------------------------------------------
-app-depth-max:
-  hash: "c85e23e804b52ea4b9f290ba838e77a0"
-  component:
-    app-depth-max*
-      exception*
-        stacktrace*
-          frame*
+          frame (non app frame)
             function*
-              "CUseCountedObject<T>::UCDestroy"
+              "CContext::LUCBeginLayerDestruction"
+          frame (non app frame)
+            function*
+              "NDXGI::CDevice::DestroyDriverInstance"
+          frame (non app frame)
+            function*
+              "OpenAdapter10"
+          frame (non app frame)
+          frame (marked as prefix frame by stack trace rule (category:driver +sentinel +prefix))
         type (ignored because exception is synthetic)
           "EXCEPTION_ACCESS_VIOLATION_READ"
-        value (ignored because stacktrace takes precedence)
+        value*
           "Fatal Error: EXCEPTION_ACCESS_VIOLATION_READ"
 --------------------------------------------------------------------------
 system:

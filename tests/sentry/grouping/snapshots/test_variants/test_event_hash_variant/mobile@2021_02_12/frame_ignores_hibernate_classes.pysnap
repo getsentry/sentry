@@ -1,25 +1,14 @@
 ---
-created: '2024-08-27T12:08:34.418839+00:00'
+created: '2024-09-06T13:40:54.970505+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
-app-depth-1:
-  hash: "a01e3a60f8863fd9dfc5697fae1eed46"
+app:
+  hash: null
   component:
-    app-depth-1*
-      stacktrace*
-        frame*
-          module*
-            "com.example.model.User$HibernateProxy$oRWxjAWT"
-          function*
-            "jipJipManagementApplication"
---------------------------------------------------------------------------
-app-depth-max:
-  hash: "a01e3a60f8863fd9dfc5697fae1eed46"
-  component:
-    app-depth-max*
-      stacktrace*
-        frame*
+    app (stacktrace of system takes precedence)
+      stacktrace
+        frame (non app frame)
           module*
             "com.example.model.User$HibernateProxy$oRWxjAWT"
           function*

@@ -1,25 +1,14 @@
 ---
-created: '2021-09-20T11:55:50.492942Z'
+created: '2024-09-06T13:40:56.481025+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
-app-depth-1:
+app:
   hash: null
   component:
-    app-depth-1
+    app
       stacktrace
-        frame (ignored by stack trace rule (family:javascript path:org-dartlang-sdk:///** -app -group))
-          filename*
-            "async_patch.dart"
-          function*
-            "_asyncStartSync"
---------------------------------------------------------------------------
-app-depth-max:
-  hash: null
-  component:
-    app-depth-max
-      stacktrace
-        frame (ignored by stack trace rule (family:javascript path:org-dartlang-sdk:///** -app -group))
+        frame (marked out of app by stack trace rule (family:javascript path:org-dartlang-sdk:///** -app -group))
           filename*
             "async_patch.dart"
           function*

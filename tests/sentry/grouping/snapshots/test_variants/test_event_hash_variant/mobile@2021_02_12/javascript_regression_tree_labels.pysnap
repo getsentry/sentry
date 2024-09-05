@@ -1,156 +1,22 @@
 ---
-created: '2024-08-27T12:08:35.905120+00:00'
+created: '2024-09-06T13:40:56.256042+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
-app-depth-1:
-  hash: "568f39f50e20dc57f30bf2a9767460bc"
+app:
+  hash: null
   component:
-    app-depth-1*
-      exception*
-        stacktrace*
-          frame*
-            module*
-              "app/utils/handleXhrErrorResponse"
-            filename (module takes precedence)
-              "handlexhrerrorresponse.tsx"
-            function (ignored because sourcemap used and context line available)
-              "callback"
-            context-line*
-              "Sentry.captureException(new Error(message));"
-        type*
-          "Error"
-        value (ignored because stacktrace takes precedence)
-          "Unable to save a recent search"
---------------------------------------------------------------------------
-app-depth-2:
-  hash: "6c5d8ee9b543cfc85b2e3c11c79ffdf2"
-  component:
-    app-depth-2*
-      exception*
-        stacktrace*
-          frame*
-            module*
-              "@sentry/hub/esm/hub"
-            filename (module takes precedence)
-              "hub.js"
-            function (ignored because sourcemap used and context line available)
-              "apply"
-            context-line*
-              "callback(scope);"
-          frame*
-            module*
-              "app/utils/handleXhrErrorResponse"
-            filename (module takes precedence)
-              "handlexhrerrorresponse.tsx"
-            function (ignored because sourcemap used and context line available)
-              "callback"
-            context-line*
-              "Sentry.captureException(new Error(message));"
-        type*
-          "Error"
-        value (ignored because stacktrace takes precedence)
-          "Unable to save a recent search"
---------------------------------------------------------------------------
-app-depth-3:
-  hash: "139ce9f6566a1d464f45e04389ceddd2"
-  component:
-    app-depth-3*
-      exception*
-        stacktrace*
-          frame*
-            module*
-              "@sentry/minimal/esm/index"
-            filename (module takes precedence)
-              "index.js"
-            function (ignored because sourcemap used and context line available)
-              "callOnHub"
-            context-line*
-              "return hub[method].apply(hub, __spread(args));"
-          frame*
-            module*
-              "@sentry/hub/esm/hub"
-            filename (module takes precedence)
-              "hub.js"
-            function (ignored because sourcemap used and context line available)
-              "apply"
-            context-line*
-              "callback(scope);"
-          frame*
-            module*
-              "app/utils/handleXhrErrorResponse"
-            filename (module takes precedence)
-              "handlexhrerrorresponse.tsx"
-            function (ignored because sourcemap used and context line available)
-              "callback"
-            context-line*
-              "Sentry.captureException(new Error(message));"
-        type*
-          "Error"
-        value (ignored because stacktrace takes precedence)
-          "Unable to save a recent search"
---------------------------------------------------------------------------
-app-depth-4:
-  hash: "9699ab131909e91ad03317bac01bd8ed"
-  component:
-    app-depth-4*
-      exception*
-        stacktrace*
-          frame*
-            module*
-              "@sentry/minimal/esm/index"
-            filename (module takes precedence)
-              "index.js"
-            function (ignored because sourcemap used and context line available)
-              "Sentry"
-            context-line*
-              "callOnHub('withScope', callback);"
-          frame*
-            module*
-              "@sentry/minimal/esm/index"
-            filename (module takes precedence)
-              "index.js"
-            function (ignored because sourcemap used and context line available)
-              "callOnHub"
-            context-line*
-              "return hub[method].apply(hub, __spread(args));"
-          frame*
-            module*
-              "@sentry/hub/esm/hub"
-            filename (module takes precedence)
-              "hub.js"
-            function (ignored because sourcemap used and context line available)
-              "apply"
-            context-line*
-              "callback(scope);"
-          frame*
-            module*
-              "app/utils/handleXhrErrorResponse"
-            filename (module takes precedence)
-              "handlexhrerrorresponse.tsx"
-            function (ignored because sourcemap used and context line available)
-              "callback"
-            context-line*
-              "Sentry.captureException(new Error(message));"
-        type*
-          "Error"
-        value (ignored because stacktrace takes precedence)
-          "Unable to save a recent search"
---------------------------------------------------------------------------
-app-depth-5:
-  hash: "8fb2eda9663c3c026c23475d6da30363"
-  component:
-    app-depth-5*
-      exception*
-        stacktrace*
-          frame*
+    app (exception of system takes precedence)
+      exception (ignored because this variant does not have a contributing stacktrace, but the system variant does)
+        stacktrace
+          frame (non app frame)
             module*
               "app/utils/handleXhrErrorResponse"
             filename (module takes precedence)
               "handlexhrerrorresponse.tsx"
             context-line*
               "Sentry.withScope(scope => {"
-          frame*
+          frame (non app frame)
             module*
               "@sentry/minimal/esm/index"
             filename (module takes precedence)
@@ -159,7 +25,7 @@ app-depth-5:
               "Sentry"
             context-line*
               "callOnHub('withScope', callback);"
-          frame*
+          frame (non app frame)
             module*
               "@sentry/minimal/esm/index"
             filename (module takes precedence)
@@ -168,7 +34,7 @@ app-depth-5:
               "callOnHub"
             context-line*
               "return hub[method].apply(hub, __spread(args));"
-          frame*
+          frame (non app frame)
             module*
               "@sentry/hub/esm/hub"
             filename (module takes precedence)
@@ -177,7 +43,7 @@ app-depth-5:
               "apply"
             context-line*
               "callback(scope);"
-          frame*
+          frame (non app frame)
             module*
               "app/utils/handleXhrErrorResponse"
             filename (module takes precedence)
@@ -188,61 +54,7 @@ app-depth-5:
               "Sentry.captureException(new Error(message));"
         type*
           "Error"
-        value (ignored because stacktrace takes precedence)
-          "Unable to save a recent search"
---------------------------------------------------------------------------
-app-depth-max:
-  hash: "8fb2eda9663c3c026c23475d6da30363"
-  component:
-    app-depth-max*
-      exception*
-        stacktrace*
-          frame*
-            module*
-              "app/utils/handleXhrErrorResponse"
-            filename (module takes precedence)
-              "handlexhrerrorresponse.tsx"
-            context-line*
-              "Sentry.withScope(scope => {"
-          frame*
-            module*
-              "@sentry/minimal/esm/index"
-            filename (module takes precedence)
-              "index.js"
-            function (ignored because sourcemap used and context line available)
-              "Sentry"
-            context-line*
-              "callOnHub('withScope', callback);"
-          frame*
-            module*
-              "@sentry/minimal/esm/index"
-            filename (module takes precedence)
-              "index.js"
-            function (ignored because sourcemap used and context line available)
-              "callOnHub"
-            context-line*
-              "return hub[method].apply(hub, __spread(args));"
-          frame*
-            module*
-              "@sentry/hub/esm/hub"
-            filename (module takes precedence)
-              "hub.js"
-            function (ignored because sourcemap used and context line available)
-              "apply"
-            context-line*
-              "callback(scope);"
-          frame*
-            module*
-              "app/utils/handleXhrErrorResponse"
-            filename (module takes precedence)
-              "handlexhrerrorresponse.tsx"
-            function (ignored because sourcemap used and context line available)
-              "callback"
-            context-line*
-              "Sentry.captureException(new Error(message));"
-        type*
-          "Error"
-        value (ignored because stacktrace takes precedence)
+        value*
           "Unable to save a recent search"
 --------------------------------------------------------------------------
 system:

@@ -1,10 +1,12 @@
 ---
+created: '2024-09-06T13:40:55.450768+00:00'
+creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
-app-depth-max:
+app:
   hash: null
   component:
-    app-depth-max
+    app
 --------------------------------------------------------------------------
 fallback:
   hash: "d41d8cd98f00b204e9800998ecf8427e"

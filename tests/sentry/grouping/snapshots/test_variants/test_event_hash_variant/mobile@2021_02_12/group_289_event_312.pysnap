@@ -1,114 +1,97 @@
 ---
-created: '2024-09-06T11:37:51.246615+00:00'
+created: '2024-09-06T13:40:55.824738+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
-app-depth-1:
-  hash: "40019a41fe12c75d56cbdba3707ac3e9"
+app:
+  hash: null
   component:
-    app-depth-1*
-      exception*
-        stacktrace*
-          frame* (marked as sentinel frame by stack trace rule (category:gl +sentinel))
-            function*
-              "glDeleteTextures_Exec"
-          frame* (marked as prefix frame by stack trace rule (category:driver +sentinel +prefix))
-            function*
-              "gldCreateDevice"
-        type (ignored because exception is synthetic)
-          "0x00000000 / 0x00000000"
-        value (ignored because stacktrace takes precedence)
-          "Fatal Error: <hex> / <hex>"
---------------------------------------------------------------------------
-app-depth-max:
-  hash: "9c336f632f6764c0f082a6a66edbf22d"
-  component:
-    app-depth-max*
-      exception*
-        stacktrace*
-          frame (ignored by stack trace rule (category:threadbase -group v-group))
+    app (exception of system takes precedence)
+      exception (ignored because this variant does not have a contributing stacktrace, but the system variant does)
+        stacktrace
+          frame (non app frame)
             filename*
               "thread.cpp"
             function*
               "boost::thread::start_thread_noexcept"
-          frame (ignored by stack trace rule (category:threadbase -group v-group))
+          frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
             function*
               "thread_start"
-          frame (ignored by stack trace rule (category:threadbase -group v-group))
+          frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
             function*
               "_pthread_start"
-          frame (ignored by stack trace rule (category:threadbase -group v-group))
+          frame (non app frame)
             filename*
               "thread.cpp"
             function*
               "boost::`anonymous namespace'::thread_proxy"
-          frame*
+          frame (non app frame)
             function*
               "stripped_application_code"
-          frame (ignored by stack trace rule (category:indirection -group))
+          frame (non app frame)
             filename*
               "function_template.hpp"
             function*
               "boost::function0<T>::operator()"
-          frame*
+          frame (non app frame)
             function*
               "stripped_application_code"
-          frame (ignored by stack trace rule (category:indirection -group))
+          frame (non app frame)
             filename*
               "function_template.hpp"
             function*
               "boost::function0<T>::operator()"
-          frame*
+          frame (non app frame)
             function*
               "stripped_application_code"
-          frame (ignored due to recursion)
+          frame (non app frame)
             function*
               "stripped_application_code"
-          frame (ignored due to recursion)
+          frame (non app frame)
             function*
               "stripped_application_code"
-          frame (ignored due to recursion)
+          frame (non app frame)
             function*
               "stripped_application_code"
-          frame* (marked as sentinel frame by stack trace rule (category:gl +sentinel))
+          frame (marked as sentinel frame by stack trace rule (category:gl +sentinel))
             function*
               "glDeleteTextures_Exec"
-          frame (ignored by stack trace rule (category:internals -group))
+          frame (non app frame)
             function*
               "gleUnbindDeleteHashNamesAndObjects"
-          frame (ignored by stack trace rule (category:internals -group))
+          frame (non app frame)
             function*
               "gleUnbindTextureObject"
-          frame (ignored by stack trace rule (category:internals -group))
+          frame (non app frame)
             function*
               "gldUpdateDispatch"
-          frame (ignored due to recursion)
+          frame (non app frame)
             function*
               "gldUpdateDispatch"
-          frame (ignored by stack trace rule (category:internals -group))
+          frame (non app frame)
             function*
               "gpusSubmitDataBuffers"
-          frame* (marked as prefix frame by stack trace rule (category:driver +sentinel +prefix))
+          frame (marked as prefix frame by stack trace rule (category:driver +sentinel +prefix))
             function*
               "gldCreateDevice"
-          frame (ignored by stack trace rule (category:telemetry -group))
+          frame (non app frame)
             function*
               "gpusGenerateCrashLog"
-          frame (ignored by stack trace rule (category:indirection -group))
+          frame (non app frame)
             function*
               "gpusGenerateCrashLog.cold.1"
-          frame* (marked as prefix frame by stack trace rule (category:throw +prefix ^-group))
+          frame (marked as prefix frame by stack trace rule (category:throw +prefix ^-group))
             function*
               "abort"
-          frame (ignored by stack trace rule (category:throw +prefix ^-group))
+          frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
             function*
               "__abort"
-          frame (ignored by stack trace rule (category:throw +prefix ^-group))
+          frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
             function*
               "__pthread_kill"
         type (ignored because exception is synthetic)
           "0x00000000 / 0x00000000"
-        value (ignored because stacktrace takes precedence)
+        value* (stripped event-specific values)
           "Fatal Error: <hex> / <hex>"
 --------------------------------------------------------------------------
 system:

@@ -1,25 +1,14 @@
 ---
-created: '2024-08-27T12:08:35.346360+00:00'
+created: '2024-09-06T13:40:55.772857+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
-app-depth-1:
-  hash: "a972f399399f5566f39b14a7afdd24ff"
+app:
+  hash: null
   component:
-    app-depth-1*
-      stacktrace*
-        frame*
-          module*
-            "libfoo"
-          function*
-            "main"
---------------------------------------------------------------------------
-app-depth-max:
-  hash: "a972f399399f5566f39b14a7afdd24ff"
-  component:
-    app-depth-max*
-      stacktrace*
-        frame*
+    app (stacktrace of system takes precedence)
+      stacktrace
+        frame (non app frame)
           module*
             "libfoo"
           function*
