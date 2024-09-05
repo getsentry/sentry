@@ -71,7 +71,7 @@ export function SpansTable({}: SpansTableProps) {
         <TableHead>
           <TableRow>
             {fields.map((field, i) => (
-              <TableHeadCell key={field} isFirst={i === 0}>
+              <TableHeadCell key={i} isFirst={i === 0}>
                 {field}
               </TableHeadCell>
             ))}
@@ -80,10 +80,10 @@ export function SpansTable({}: SpansTableProps) {
         <TableBody>
           {result.data?.map((row, i) => (
             <TableRow key={i}>
-              {fields.map(field => {
+              {fields.map((field, j) => {
                 const renderer = getFieldRenderer(field, meta.fields, false);
                 return (
-                  <TableBodyCell key={field}>
+                  <TableBodyCell key={j}>
                     {renderer(row, {
                       location,
                       organization,

@@ -100,7 +100,9 @@ export const BaseTab = forwardRef(
           borderStyle={borderStyle}
           ref={ref}
         >
-          <VariantStyledInteractionStateLayer hasSelectedBackground={false} />
+          {!isSelected && (
+            <VariantStyledInteractionStateLayer hasSelectedBackground={false} />
+          )}
           <FilledFocusLayer />
           {props.children}
         </FilledTabWrap>
@@ -226,12 +228,11 @@ const FilledTabWrap = styled('li', {shouldForwardProp: tabsShouldForwardProp})<{
     `}
   }
 
-  border-radius: 6px 6px 1px 1px;
-
   &[aria-selected='false'] {
     border-top: 1px solid transparent;
   }
 
+  border-radius: 6px 6px 1px 1px;
   padding: ${space(0.75)} ${space(1.5)};
 
   transform: translateY(1px);

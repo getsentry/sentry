@@ -10,9 +10,10 @@ import {parseFunction} from 'sentry/utils/discover/fields';
 
 export const DEFAULT_MRI: MRI = 'c:custom/sentry_metric@none';
 export const DEFAULT_SPAN_MRI: MRI = 'c:custom/span_attribute_0@none';
+export const DEFAULT_INSIGHTS_MRI: MRI = 'd:spans/duration@millisecond';
 // This is a workaround as the alert builder requires a valid aggregate to be set
 export const DEFAULT_METRIC_ALERT_FIELD = `sum(${DEFAULT_MRI})`;
-export const DEFAULT_SPAN_METRIC_ALERT_FIELD = `sum(${DEFAULT_SPAN_MRI})`;
+export const DEFAULT_INSIGHTS_METRICS_ALERT_FIELD = `sum(${DEFAULT_INSIGHTS_MRI})`;
 
 export function isMRI(mri?: unknown): mri is MRI {
   if (typeof mri !== 'string') {
@@ -115,15 +116,16 @@ export function isMRIField(field: string): boolean {
 
 // convenience function to get the MRI from a field, returns defaut MRI if it fails
 export function getMRI(field: string): MRI {
+  // spm() doesn't take an argument and it always operates on the spans exclusive time mri
+  if (field === 'spm()') {
+    return 'd:spans/exclusive_time@millisecond';
+  }
   const parsed = parseField(field);
   return parsed?.mri ?? DEFAULT_MRI;
 }
 
 export function formatMRIField(aggregate: string) {
-  if (
-    aggregate === DEFAULT_METRIC_ALERT_FIELD ||
-    aggregate === DEFAULT_SPAN_METRIC_ALERT_FIELD
-  ) {
+  if (aggregate === DEFAULT_METRIC_ALERT_FIELD) {
     return t('Select a metric to get started');
   }
 

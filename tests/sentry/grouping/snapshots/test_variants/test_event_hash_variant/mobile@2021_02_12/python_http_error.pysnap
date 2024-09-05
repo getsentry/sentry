@@ -1,11 +1,10 @@
 ---
-created: '2021-08-04T15:53:48.208895Z'
+created: '2024-08-27T12:08:35.052336+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
 app-depth-1:
   hash: "92dfcda18050570bb1aabce4f35dc0a1"
-  tree_label: "send_notification"
   component:
     app-depth-1*
       exception*
@@ -26,7 +25,6 @@ app-depth-1:
 --------------------------------------------------------------------------
 app-depth-2:
   hash: "d59239f5aad3304d60beb1fde3369b78"
-  tree_label: "send_notification | safe_execute"
   component:
     app-depth-2*
       exception*
@@ -56,7 +54,6 @@ app-depth-2:
 --------------------------------------------------------------------------
 app-depth-max:
   hash: "d59239f5aad3304d60beb1fde3369b78"
-  tree_label: "send_notification | safe_execute"
   component:
     app-depth-max*
       exception*
@@ -93,7 +90,6 @@ default:
 --------------------------------------------------------------------------
 system:
   hash: "133db3f366b1327dab4e661f66dfb961"
-  tree_label: "raise_for_status | send_notification | safe_execute"
   component:
     system*
       exception*

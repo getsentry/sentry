@@ -222,10 +222,6 @@
                     "type": "boolean",
                     "description": "Indicates if the issue is resolved in the next release based on the last seen release of that issue."
                   },
-                  "inUpcomingRelease": {
-                    "type": "boolean",
-                    "description": "Indicates if the issue is resolved in an upcoming release."
-                  },
                   "inRelease": {
                     "type": "string",
                     "description": "The version of the release in which the issue is resolved."

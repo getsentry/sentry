@@ -1,9 +1,6 @@
-import {
-  getUseCaseFromMRI,
-  isExtractedCustomMetric,
-  parseField,
-} from 'sentry/utils/metrics/mri';
+import {getUseCaseFromMRI, parseField} from 'sentry/utils/metrics/mri';
 import {Dataset, SessionsAggregate} from 'sentry/views/alerts/rules/metric/types';
+import {isInsightsMetricAlert} from 'sentry/views/alerts/rules/metric/utils/isInsightsMetricAlert';
 
 import type {MetricAlertType, WizardRuleTemplate} from './options';
 
@@ -55,12 +52,16 @@ export function getAlertTypeFromAggregateDataset({
 }: Pick<WizardRuleTemplate, 'aggregate' | 'dataset'>): MetricAlertType {
   const {mri: mri} = parseField(aggregate) ?? {};
 
+  if (isInsightsMetricAlert(aggregate)) {
+    return 'insights_metrics';
+  }
+
   if (mri && getUseCaseFromMRI(mri) === 'spans') {
     return 'custom_metrics';
   }
 
   if (mri && getUseCaseFromMRI(mri) === 'custom') {
-    return isExtractedCustomMetric({mri}) ? 'span_metrics' : 'custom_metrics';
+    return 'custom_metrics';
   }
 
   const identifierForDataset = alertTypeIdentifiers[dataset];

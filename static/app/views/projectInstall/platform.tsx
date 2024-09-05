@@ -1,16 +1,18 @@
-import {Fragment, useCallback, useContext, useEffect, useMemo, useState} from 'react';
+import {Fragment, useCallback, useContext, useEffect, useMemo} from 'react';
 import styled from '@emotion/styled';
+import type {LocationDescriptorObject} from 'history';
 import omit from 'lodash/omit';
 
 import Feature from 'sentry/components/acl/feature';
 import {Alert} from 'sentry/components/alert';
-import {LinkButton} from 'sentry/components/button';
+import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import NotFound from 'sentry/components/errors/notFound';
 import HookOrDefault from 'sentry/components/hookOrDefault';
 import {SdkDocumentation} from 'sentry/components/onboarding/gettingStartedDoc/sdkDocumentation';
 import type {ProductSolution} from 'sentry/components/onboarding/productSelection';
 import {platformProductAvailability} from 'sentry/components/onboarding/productSelection';
+import {setPageFiltersStorage} from 'sentry/components/organizations/pageFilters/persistence';
 import {
   performance as performancePlatforms,
   replayPlatforms,
@@ -19,6 +21,7 @@ import type {Platform} from 'sentry/data/platformPickerCategories';
 import platforms from 'sentry/data/platforms';
 import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
+import PageFiltersStore from 'sentry/stores/pageFiltersStore';
 import {space} from 'sentry/styles/space';
 import type {IssueAlertRule} from 'sentry/types/alerts';
 import type {OnboardingSelectedSDK} from 'sentry/types/onboarding';
@@ -27,6 +30,7 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {decodeList} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import {SetupDocsLoader} from 'sentry/views/onboarding/setupDocsLoader';
 import {GettingStartedWithProjectContext} from 'sentry/views/projects/gettingStartedWithProjectContext';
@@ -53,14 +57,12 @@ export function ProjectInstallPlatform({
 }: Props) {
   const organization = useOrganization();
   const location = useLocation();
+  const navigate = useNavigate();
   const gettingStartedWithProjectContext = useContext(GettingStartedWithProjectContext);
 
   const isSelfHosted = ConfigStore.get('isSelfHosted');
   const isSelfHostedErrorsOnly = ConfigStore.get('isSelfHostedErrorsOnly');
-
-  const [showLoaderOnboarding, setShowLoaderOnboarding] = useState(
-    currentPlatform?.id === 'javascript'
-  );
+  const showLoaderOnboarding = location.query.showLoader === 'true';
 
   const products = useMemo(
     () => decodeList(location.query.product ?? []) as ProductSolution[],
@@ -78,10 +80,6 @@ export function ProjectInstallPlatform({
       staleTime: 0,
     }
   );
-
-  useEffect(() => {
-    setShowLoaderOnboarding(currentPlatform?.id === 'javascript');
-  }, [currentPlatform?.id]);
 
   useEffect(() => {
     if (!project || projectAlertRulesIsLoading || projectAlertRulesIsError) {
@@ -126,19 +124,27 @@ export function ProjectInstallPlatform({
     link: currentPlatform?.link,
   };
 
-  const hideLoaderOnboarding = useCallback(() => {
-    setShowLoaderOnboarding(false);
+  const redirectWithProjectSelection = useCallback(
+    (to: LocationDescriptorObject) => {
+      if (!project?.id) {
+        return;
+      }
+      // We need to persist and pin the project filter
+      // so the selection does not reset on further navigation
+      PageFiltersStore.updateProjects([Number(project?.id)], null);
+      PageFiltersStore.pin('projects', true);
+      setPageFiltersStorage(organization.slug, new Set(['projects']));
 
-    if (!project?.id || !currentPlatform) {
-      return;
-    }
-
-    trackAnalytics('onboarding.js_loader_npm_docs_shown', {
-      organization,
-      platform: currentPlatform.id,
-      project_id: project?.id,
-    });
-  }, [organization, currentPlatform, project?.id]);
+      navigate({
+        ...to,
+        query: {
+          ...to.query,
+          project: project?.id,
+        },
+      });
+    },
+    [navigate, organization.slug, project?.id]
+  );
 
   if (!project) {
     return null;
@@ -179,7 +185,6 @@ export function ProjectInstallPlatform({
           project={project}
           location={location}
           platform={currentPlatform.id}
-          close={hideLoaderOnboarding}
         />
       ) : (
         <SdkDocumentation
@@ -211,44 +216,56 @@ export function ProjectInstallPlatform({
           </Feature>
         )}
         <StyledButtonBar gap={1}>
-          <LinkButton
+          <Button
             priority="primary"
             busy={loading}
-            to={{
-              pathname: issueStreamLink,
-              query: {
-                project: project?.id,
-              },
-              hash: '#welcome',
+            onClick={() => {
+              trackAnalytics('onboarding.take_me_to_issues_clicked', {
+                organization,
+                platform: platform.name ?? 'unknown',
+                project_id: project.id,
+              });
+              redirectWithProjectSelection({
+                pathname: issueStreamLink,
+                hash: '#welcome',
+              });
             }}
           >
             {t('Take me to Issues')}
-          </LinkButton>
+          </Button>
           {!isSelfHostedErrorsOnly && (
-            <LinkButton
+            <Button
               busy={loading}
-              to={{
-                pathname: performanceOverviewLink,
-                query: {
-                  project: project?.id,
-                },
+              onClick={() => {
+                trackAnalytics('onboarding.take_me_to_performance_clicked', {
+                  organization,
+                  platform: platform.name ?? 'unknown',
+                  project_id: project.id,
+                });
+                redirectWithProjectSelection({
+                  pathname: performanceOverviewLink,
+                });
               }}
             >
               {t('Take me to Performance')}
-            </LinkButton>
+            </Button>
           )}
           {!isSelfHostedErrorsOnly && showReplayButton && (
-            <LinkButton
+            <Button
               busy={loading}
-              to={{
-                pathname: replayLink,
-                query: {
-                  project: project?.id,
-                },
+              onClick={() => {
+                trackAnalytics('onboarding.take_me_to_session_replay_clicked', {
+                  organization,
+                  platform: platform.name ?? 'unknown',
+                  project_id: project.id,
+                });
+                redirectWithProjectSelection({
+                  pathname: replayLink,
+                });
               }}
             >
               {t('Take me to Session Replay')}
-            </LinkButton>
+            </Button>
           )}
         </StyledButtonBar>
       </div>

@@ -1549,10 +1549,16 @@ class Migration(CheckedMigration):
             options={
                 "db_table": "sentry_pull_request",
                 "unique_together": {("repository_id", "key")},
-                "index_together": {
-                    ("repository_id", "date_added"),
-                    ("organization_id", "merge_commit_sha"),
-                },
+                "indexes": [
+                    models.Index(
+                        fields=["repository_id", "date_added"],
+                        name="sentry_pull_reposit_c429a4_idx",
+                    ),
+                    models.Index(
+                        fields=["organization_id", "merge_commit_sha"],
+                        name="sentry_pull_organiz_8aabcf_idx",
+                    ),
+                ],
             },
         ),
         migrations.CreateModel(
@@ -2784,40 +2790,6 @@ class Migration(CheckedMigration):
             },
         ),
         migrations.CreateModel(
-            name="EventUser",
-            fields=[
-                (
-                    "id",
-                    sentry.db.models.fields.bounded.BoundedBigAutoField(
-                        primary_key=True, serialize=False
-                    ),
-                ),
-                (
-                    "project_id",
-                    sentry.db.models.fields.bounded.BoundedBigIntegerField(db_index=True),
-                ),
-                ("hash", models.CharField(max_length=32)),
-                ("ident", models.CharField(max_length=128, null=True)),
-                ("email", models.EmailField(max_length=75, null=True)),
-                ("username", models.CharField(max_length=128, null=True)),
-                ("name", models.CharField(max_length=128, null=True)),
-                ("ip_address", models.GenericIPAddressField(null=True)),
-                (
-                    "date_added",
-                    models.DateTimeField(db_index=True, default=django.utils.timezone.now),
-                ),
-            ],
-            options={
-                "db_table": "sentry_eventuser",
-                "unique_together": {("project_id", "ident"), ("project_id", "hash")},
-                "index_together": {
-                    ("project_id", "username"),
-                    ("project_id", "ip_address"),
-                    ("project_id", "email"),
-                },
-            },
-        ),
-        migrations.CreateModel(
             name="EnvironmentProject",
             fields=[
                 (
@@ -3003,7 +2975,19 @@ class Migration(CheckedMigration):
             options={
                 "db_table": "sentry_commit",
                 "unique_together": {("repository_id", "key")},
-                "index_together": {("repository_id", "date_added")},
+                "indexes": [
+                    models.Index(
+                        fields=["repository_id", "date_added"],
+                        name="sentry_comm_reposit_da31f2_idx",
+                    ),
+                    models.Index(
+                        fields=["author", "date_added"], name="sentry_comm_author__131211_idx"
+                    ),
+                    models.Index(
+                        fields=["organization_id", "date_added"],
+                        name="sentry_comm_organiz_7be514_idx",
+                    ),
+                ],
             },
         ),
         migrations.CreateModel(
@@ -3195,7 +3179,14 @@ class Migration(CheckedMigration):
             options={
                 "db_table": "sentry_userreport",
                 "unique_together": {("project_id", "event_id")},
-                "index_together": {("project_id", "date_added"), ("project_id", "event_id")},
+                "indexes": [
+                    models.Index(
+                        fields=["project_id", "event_id"], name="sentry_user_project_cbfd59_idx"
+                    ),
+                    models.Index(
+                        fields=["project_id", "date_added"], name="sentry_user_project_b8faaf_idx"
+                    ),
+                ],
             },
         ),
         migrations.CreateModel(
@@ -3495,7 +3486,11 @@ class Migration(CheckedMigration):
             options={
                 "db_table": "sentry_releasefile",
                 "unique_together": {("release", "ident")},
-                "index_together": {("release", "name")},
+                "indexes": [
+                    models.Index(
+                        fields=["release_id", "name"], name="sentry_rele_release_bff97c_idx"
+                    ),
+                ],
             },
         ),
         migrations.CreateModel(
@@ -4147,7 +4142,12 @@ class Migration(CheckedMigration):
             options={
                 "db_table": "sentry_groupenvironment",
                 "unique_together": {("group", "environment")},
-                "index_together": {("environment", "first_release")},
+                "indexes": [
+                    models.Index(
+                        fields=["environment", "first_release", "first_seen"],
+                        name="sentry_grou_environ_443bdb_idx",
+                    ),
+                ],
             },
         ),
         migrations.CreateModel(
@@ -4345,10 +4345,14 @@ class Migration(CheckedMigration):
             options={
                 "db_table": "sentry_eventattachment",
                 "unique_together": {("project_id", "event_id", "file_id")},
-                "index_together": {
-                    ("project_id", "date_added"),
-                    ("project_id", "date_added", "file_id"),
-                },
+                "indexes": [
+                    models.Index(
+                        fields=["project_id", "date_added"], name="sentry_even_project_62b83b_idx"
+                    ),
+                    models.Index(
+                        fields=["project_id", "event_id"], name="sentry_even_project_974f7b_idx"
+                    ),
+                ],
             },
         ),
         migrations.AlterUniqueTogether(
@@ -4692,6 +4696,12 @@ class Migration(CheckedMigration):
             ],
             options={
                 "db_table": "sentry_incident",
+                "indexes": [
+                    models.Index(
+                        fields=["alert_rule", "type", "status"],
+                        name="sentry_inci_alert_r_24a457_idx",
+                    ),
+                ],
             },
         ),
         migrations.CreateModel(
@@ -5230,10 +5240,6 @@ class Migration(CheckedMigration):
         migrations.AlterUniqueTogether(
             name="incident",
             unique_together={("organization", "identifier")},
-        ),
-        migrations.AlterIndexTogether(
-            name="incident",
-            index_together={("alert_rule", "type", "status")},
         ),
         migrations.CreateModel(
             name="AlertRuleTriggerExclusion",
@@ -7500,10 +7506,6 @@ class Migration(CheckedMigration):
                 migrations.AlterUniqueTogether(
                     name="releasefile",
                     unique_together={("release_id", "ident")},
-                ),
-                migrations.AlterIndexTogether(
-                    name="releasefile",
-                    index_together={("release_id", "name")},
                 ),
             ],
         ),

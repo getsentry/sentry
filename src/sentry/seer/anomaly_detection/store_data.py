@@ -15,10 +15,14 @@ from sentry.seer.anomaly_detection.types import (
     AlertInSeer,
     AnomalyDetectionConfig,
     StoreDataRequest,
-    TimeSeriesPoint,
 )
-from sentry.seer.anomaly_detection.utils import translate_direction
+from sentry.seer.anomaly_detection.utils import (
+    format_historical_data,
+    get_crash_free_historical_data,
+    translate_direction,
+)
 from sentry.seer.signed_seer_api import make_signed_seer_api_request
+from sentry.snuba import metrics_performance
 from sentry.snuba.models import SnubaQuery
 from sentry.snuba.referrer import Referrer
 from sentry.snuba.utils import get_dataset
@@ -31,22 +35,7 @@ seer_anomaly_detection_connection_pool = connection_from_url(
     settings.SEER_ANOMALY_DETECTION_URL,
     timeout=settings.SEER_ANOMALY_DETECTION_TIMEOUT,
 )
-
-
-def format_historical_data(data: SnubaTSResult) -> list[TimeSeriesPoint]:
-    """
-    Format Snuba data into the format the Seer API expects.
-    If there are no results, it's just the timestamp
-    {'time': 1719012000}, {'time': 1719018000}, {'time': 1719024000}
-
-    If there are results, the count is added
-    {'time': 1721300400, 'count': 2}
-    """
-    formatted_data = []
-    for datum in data.data.get("data", []):
-        ts_point = TimeSeriesPoint(timestamp=datum.get("time"), value=datum.get("count", 0))
-        formatted_data.append(ts_point)
-    return formatted_data
+NUM_DAYS = 28
 
 
 def _get_start_and_end_indices(data: SnubaTSResult) -> tuple[int, int]:
@@ -74,12 +63,15 @@ def send_historical_data_to_seer(alert_rule: AlertRule, project: Project) -> Ale
     """
     snuba_query = SnubaQuery.objects.get(id=alert_rule.snuba_query_id)
     window_min = int(snuba_query.time_window / 60)
+    dataset = get_dataset(snuba_query.dataset)
     historical_data = fetch_historical_data(alert_rule, snuba_query, project)
 
     if not historical_data:
         raise ValidationError("No historical data available.")
 
-    formatted_data = format_historical_data(historical_data)
+    formatted_data = format_historical_data(historical_data, dataset)
+    if not formatted_data:
+        raise ValidationError("Unable to get historical data for this alert.")
     if (
         not alert_rule.sensitivity
         or not alert_rule.seasonality
@@ -140,7 +132,6 @@ def fetch_historical_data(
     """
     # TODO: if we can pass the existing timeseries data we have on the front end along here, we can shorten
     # the time period we query and combine the data
-    NUM_DAYS = 28
     end = timezone.now()
     start = end - timedelta(days=NUM_DAYS)
     granularity = snuba_query.time_window
@@ -154,17 +145,23 @@ def fetch_historical_data(
     if not project or not dataset or not alert_rule.organization:
         return None
 
-    historical_data = dataset.timeseries_query(
-        selected_columns=[snuba_query.aggregate],
-        query=snuba_query.query,
-        snuba_params=SnubaParams(
-            organization=alert_rule.organization,
-            projects=[project],
-            start=start,
-            end=end,
-        ),
-        rollup=granularity,
-        referrer=Referrer.ANOMALY_DETECTION_HISTORICAL_DATA_QUERY.value,
-        zerofill_results=True,
-    )
+    if dataset == metrics_performance:
+        return get_crash_free_historical_data(
+            start, end, project, alert_rule.organization, granularity
+        )
+
+    else:
+        historical_data = dataset.timeseries_query(
+            selected_columns=[snuba_query.aggregate],
+            query=snuba_query.query,
+            snuba_params=SnubaParams(
+                organization=alert_rule.organization,
+                projects=[project],
+                start=start,
+                end=end,
+            ),
+            rollup=granularity,
+            referrer=Referrer.ANOMALY_DETECTION_HISTORICAL_DATA_QUERY.value,
+            zerofill_results=True,
+        )
     return historical_data

@@ -1,123 +1,122 @@
-import {cloneElement} from 'react';
-import type {RouteComponentProps} from 'react-router';
+import {cloneElement, useCallback} from 'react';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {fetchOrganizations} from 'sentry/actionCreators/organizations';
-import DeprecatedAsyncComponent from 'sentry/components/deprecatedAsyncComponent';
+import LoadingError from 'sentry/components/loadingError';
+import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
 import type {Authenticator} from 'sentry/types/auth';
 import type {OrganizationSummary} from 'sentry/types/organization';
 import type {UserEmail} from 'sentry/types/user';
 import {defined} from 'sentry/utils';
+import {useApiQuery, useMutation, useQuery} from 'sentry/utils/queryClient';
+import useApi from 'sentry/utils/useApi';
+import {useParams} from 'sentry/utils/useParams';
 
 const ENDPOINT = '/users/me/authenticators/';
 
-type Props = {
+interface Props {
   children: React.ReactElement;
-} & RouteComponentProps<{authId: string}, {}> &
-  DeprecatedAsyncComponent['props'];
+}
 
-type State = {
-  emails: UserEmail[];
-  loadingOrganizations: boolean;
-  authenticators?: Authenticator[] | null;
-  organizations?: OrganizationSummary[];
-} & DeprecatedAsyncComponent['state'];
+function AccountSecurityWrapper({children}: Props) {
+  const api = useApi();
+  const {authId} = useParams<{authId?: string}>();
 
-class AccountSecurityWrapper extends DeprecatedAsyncComponent<Props, State> {
-  async fetchOrganizations() {
-    try {
-      this.setState({loadingOrganizations: true});
-      const organizations = await fetchOrganizations(this.api);
-      this.setState({organizations, loadingOrganizations: false});
-    } catch (e) {
-      this.setState({error: true, loadingOrganizations: false});
+  const orgRequest = useQuery<OrganizationSummary[]>(
+    ['organizations'],
+    () => fetchOrganizations(api),
+    {staleTime: 0}
+  );
+  const emailsRequest = useApiQuery<UserEmail[]>(['/users/me/emails/'], {staleTime: 0});
+  const authenticatorsRequest = useApiQuery<Authenticator[]>([ENDPOINT], {staleTime: 0});
+
+  const handleRefresh = useCallback(() => {
+    orgRequest.refetch();
+    authenticatorsRequest.refetch();
+    emailsRequest.refetch();
+  }, [orgRequest, authenticatorsRequest, emailsRequest]);
+
+  const disableAuthenticatorMutation = useMutation(
+    async (auth: Authenticator) => {
+      if (!auth || !auth.authId) {
+        return;
+      }
+
+      await api.requestPromise(`${ENDPOINT}${auth.authId}/`, {method: 'DELETE'});
+    },
+    {
+      onSuccess: () => {
+        handleRefresh();
+      },
+      onError: (_, auth) => {
+        addErrorMessage(t('Error disabling %s', auth.name));
+      },
     }
-  }
+  );
 
-  get shouldRenderLoading() {
-    return super.shouldRenderLoading || this.state.loadingOrganizations === true;
-  }
+  const regenerateBackupCodesMutation = useMutation(
+    async () => {
+      if (!authId) {
+        return;
+      }
 
-  getEndpoints(): ReturnType<DeprecatedAsyncComponent['getEndpoints']> {
-    return [
-      ['authenticators', ENDPOINT],
-      ['emails', '/users/me/emails/'],
-    ];
-  }
-
-  componentDidMount() {
-    super.componentDidMount();
-    this.fetchOrganizations();
-  }
-
-  reloadData() {
-    this.fetchOrganizations();
-    super.reloadData();
-  }
-
-  handleDisable = async (auth: Authenticator) => {
-    if (!auth || !auth.authId) {
-      return;
-    }
-
-    this.setState({loading: true});
-
-    try {
-      await this.api.requestPromise(`${ENDPOINT}${auth.authId}/`, {method: 'DELETE'});
-      this.reloadData();
-    } catch (_err) {
-      this.setState({loading: false});
-      addErrorMessage(t('Error disabling %s', auth.name));
-    }
-  };
-
-  handleRegenerateBackupCodes = async () => {
-    this.setState({loading: true});
-
-    try {
-      await this.api.requestPromise(`${ENDPOINT}${this.props.params.authId}/`, {
+      await api.requestPromise(`${ENDPOINT}${authId}/`, {
         method: 'PUT',
       });
-      this.reloadData();
-    } catch (_err) {
-      this.setState({loading: false});
-      addErrorMessage(t('Error regenerating backup codes'));
+    },
+    {
+      onSuccess: () => {
+        handleRefresh();
+      },
+      onError: () => {
+        addErrorMessage(t('Error regenerating backup codes'));
+      },
     }
-  };
+  );
 
-  handleRefresh = () => {
-    this.reloadData();
-  };
-
-  renderBody() {
-    const {children} = this.props;
-    const {authenticators, organizations, emails} = this.state;
-    const enrolled =
-      authenticators?.filter(auth => auth.isEnrolled && !auth.isBackupInterface) || [];
-    const countEnrolled = enrolled.length;
-    const orgsRequire2fa = organizations?.filter(org => org.require2FA) || [];
-    const deleteDisabled = orgsRequire2fa.length > 0 && countEnrolled === 1;
-    const hasVerifiedEmail = !!emails?.find(({isVerified}) => isVerified);
-
-    // This happens when you switch between children views and the next child
-    // view is lazy loaded, it can potentially be `null` while the code split
-    // package is being fetched
-    if (!defined(children)) {
-      return null;
-    }
-
-    return cloneElement(this.props.children, {
-      onDisable: this.handleDisable,
-      onRegenerateBackupCodes: this.handleRegenerateBackupCodes,
-      authenticators,
-      deleteDisabled,
-      orgsRequire2fa,
-      countEnrolled,
-      hasVerifiedEmail,
-      handleRefresh: this.handleRefresh,
-    });
+  if (
+    orgRequest.isLoading ||
+    emailsRequest.isPending ||
+    authenticatorsRequest.isPending ||
+    disableAuthenticatorMutation.isLoading ||
+    regenerateBackupCodesMutation.isLoading
+  ) {
+    return <LoadingIndicator />;
   }
+
+  if (authenticatorsRequest.isError || emailsRequest.isError || orgRequest.isError) {
+    return <LoadingError onRetry={handleRefresh} />;
+  }
+
+  const authenticators = authenticatorsRequest.data;
+  const emails = emailsRequest.data;
+  const organizations = orgRequest.data;
+
+  const enrolled =
+    authenticators.filter(auth => auth.isEnrolled && !auth.isBackupInterface) || [];
+  const countEnrolled = enrolled.length;
+  const orgsRequire2fa = organizations.filter(org => org.require2FA) || [];
+  const deleteDisabled = orgsRequire2fa.length > 0 && countEnrolled === 1;
+  const hasVerifiedEmail = !!emails.find(({isVerified}) => isVerified);
+
+  // This happens when you switch between children views and the next child
+  // view is lazy loaded, it can potentially be `null` while the code split
+  // package is being fetched
+  if (!defined(children)) {
+    return null;
+  }
+
+  return cloneElement(children, {
+    onDisable: disableAuthenticatorMutation.mutate,
+    onRegenerateBackupCodes: regenerateBackupCodesMutation.mutate,
+    authenticators,
+    deleteDisabled,
+    orgsRequire2fa,
+    countEnrolled,
+    hasVerifiedEmail,
+    handleRefresh,
+  });
 }
 
 export default AccountSecurityWrapper;

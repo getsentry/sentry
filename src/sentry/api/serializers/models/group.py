@@ -111,7 +111,6 @@ class GroupMetadataResponseOptional(TypedDict, total=False):
 
 class GroupMetadataResponse(GroupMetadataResponseOptional):
     value: str
-    display_title_with_tree_label: bool
 
 
 class GroupSubscriptionResponseOptional(TypedDict, total=False):
