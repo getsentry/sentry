@@ -468,7 +468,8 @@ export function Provider({
       return;
     }
     if (isPlaying) {
-      replayer.pause();
+      // we need to pass in the current time when pausing for mobile replays
+      replayer.pause(getCurrentPlayerTime());
       replayer.setConfig({speed: prefs.playbackSpeed});
       replayer.play(getCurrentPlayerTime());
     } else {
