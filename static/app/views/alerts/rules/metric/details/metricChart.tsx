@@ -68,7 +68,7 @@ import {AlertWizardAlertNames} from 'sentry/views/alerts/wizard/options';
 import {getAlertTypeFromAggregateDataset} from 'sentry/views/alerts/wizard/utils';
 import {hasDatasetSelector} from 'sentry/views/dashboards/utils';
 
-import type {Incident} from '../../../types';
+import type {Anomaly, Incident} from '../../../types';
 import {
   alertDetailsLink,
   alertTooltipValueFormatter,
@@ -93,6 +93,7 @@ type Props = WithRouterProps & {
   query: string;
   rule: MetricRule;
   timePeriod: TimePeriodType;
+  anomalies?: Anomaly[];
   formattedAggregate?: string;
   incidents?: Incident[];
   isOnDemandAlert?: boolean;
@@ -271,6 +272,7 @@ class MetricChart extends PureComponent<Props, State> {
     comparisonTimeseriesData?: Series[]
   ) {
     const {
+      anomalies,
       router,
       selectedIncident,
       interval,
@@ -307,6 +309,7 @@ class MetricChart extends PureComponent<Props, State> {
       rule,
       seriesName: formattedAggregate,
       incidents,
+      anomalies,
       selectedIncident,
       showWaitingForData:
         shouldShowOnDemandMetricAlertUI(organization) && this.props.isOnDemandAlert,
