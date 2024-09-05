@@ -160,13 +160,15 @@ class AnomalyDetectionStoreDataTest(AlertRuleBase, BaseMetricsTestCase, Performa
         assert 1 in result.data.get("data").get("groups")[0].get("series").get("sum(session)")
 
     def test_anomaly_detection_fetch_historical_data_apdex_alert(self):
-        # TODO generate whatever apdex data is
-        # store a transaction event
-        # apply the apdex formula(?)
         event_data = load_data("transaction")
         event_data["timestamp"] = iso_format(self.time_1_dt)
         event_data["start_timestamp"] = iso_format(self.time_1_dt)
         event_data["event_id"] = "a" * 32
+        self.store_event(data=event_data, project_id=self.project.id)
+
+        event_data["timestamp"] = iso_format(self.time_2_dt)
+        event_data["start_timestamp"] = iso_format(self.time_2_dt)
+        event_data["event_id"] = "b" * 32
         self.store_event(data=event_data, project_id=self.project.id)
 
         alert_rule = self.create_alert_rule(
@@ -182,5 +184,5 @@ class AnomalyDetectionStoreDataTest(AlertRuleBase, BaseMetricsTestCase, Performa
         snuba_query = SnubaQuery.objects.get(id=alert_rule.snuba_query_id)
         result = fetch_historical_data(alert_rule, snuba_query, self.project)
         assert result
-        assert {"time": int(self.time_1_ts), "count": 1} in result.data.get("data")
-        # assert {"time": int(self.time_2_ts)} in result.data.get("data")
+        assert {"time": int(self.time_1_ts)} in result.data.get("data")
+        assert {"time": int(self.time_2_ts)} in result.data.get("data")
