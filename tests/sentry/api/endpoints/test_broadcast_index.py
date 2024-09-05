@@ -169,6 +169,18 @@ class BroadcastCreateTest(APITestCase):
 
         assert response.status_code == 200, response.data
 
+        response = self.client.post(
+            "/api/0/broadcasts/",
+            {
+                "title": "bar",
+                "message": "foo",
+                "link": "http://example.com",
+                "cta": "Read More",
+            },
+        )
+
+        assert response.status_code == 200, response.data
+
 
 @control_silo_test
 class BroadcastUpdateTest(APITestCase):
