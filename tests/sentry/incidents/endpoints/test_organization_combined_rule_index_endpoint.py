@@ -982,6 +982,34 @@ class OrganizationCombinedRuleIndexEndpointTest(BaseAlertRuleSerializerTest, API
             f"{uptime_monitor.id}",
         ]
 
+    def test_uptime_feature_name_sort(self):
+        self.setup_project_and_rules()
+        self.create_project_uptime_subscription(name="Uptime Monitor")
+        self.create_project_uptime_subscription(
+            name="Other Uptime Monitor",
+            uptime_subscription=self.create_uptime_subscription(url="https://santry.io"),
+        )
+        self.create_project_uptime_subscription(
+            name="Onboarding Uptime monitor",
+            mode=ProjectUptimeSubscriptionMode.AUTO_DETECTED_ONBOARDING,
+            uptime_subscription=self.create_uptime_subscription(url="https://santry-iz-kool.io"),
+        )
+
+        with self.feature("organizations:uptime-rule-api"):
+            request_data = {"project": [self.project.id], "sort": "name"}
+            response = self.client.get(
+                path=self.combined_rules_url, data=request_data, content_type="application/json"
+            )
+        assert response.status_code == 200, response.content
+        result = json.loads(response.content)
+        assert [r["name"] for r in result] == [
+            "yet another alert rule",
+            "Uptime Monitor",
+            "Other Uptime Monitor",
+            "Issue Rule Test",
+            "alert rule",
+        ]
+
     def test_expand_latest_incident(self):
         self.setup_project_and_rules()
 
