@@ -208,7 +208,13 @@ class ChartZoom extends Component<Props> {
       $chart.addEventListener('mousedown', this.handleMouseDown);
       this.$chart = $chart;
     } else {
-      Sentry.captureException(new Error(`No DOM element for chart with ID ${chart.id}`));
+      Sentry.withScope(scope => {
+        scope.setContext('ECharts', {
+          id: chart.id,
+        });
+
+        Sentry.captureException(new Error(`No DOM element for ECharts instance`));
+      });
     }
   };
 
