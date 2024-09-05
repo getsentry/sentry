@@ -483,17 +483,12 @@ def _single_stacktrace_variant(
     ):
         values[0].update(contributes=False, hint="ignored single non-URL JavaScript frame")
 
-    main_variant, inverted_hierarchy = context.config.enhancements.assemble_stacktrace_component(
+    main_variant, _ = context.config.enhancements.assemble_stacktrace_component(
         values,
         frames_for_filtering,
         event.platform,
         exception_data=context["exception_data"],
     )
-
-    if inverted_hierarchy is None:
-        inverted_hierarchy = stacktrace.snapshot
-
-    inverted_hierarchy = bool(inverted_hierarchy)
 
     return {variant: main_variant}
 
