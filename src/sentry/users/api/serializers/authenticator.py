@@ -11,12 +11,6 @@ from sentry.auth.authenticators.u2f import U2fInterface
 from sentry.users.models.user import User
 
 
-def get_interface_serializer(interface: AuthenticatorInterface) -> AuthenticatorInterface:
-    if isinstance(interface, SmsInterface):
-        return SmsInterfaceSerializer()
-    return AuthenticatorInterfaceSerializer()
-
-
 class EnrolledAuthenticatorInterfaceSerializerResponse(TypedDict, total=False):
     authId: str
     createdAt: datetime
@@ -98,3 +92,9 @@ class SmsInterfaceSerializer(AuthenticatorInterfaceSerializer):
 
 for interface in RecoveryCodeInterface, TotpInterface, U2fInterface:
     register(interface)(AuthenticatorInterfaceSerializer)
+
+
+def get_interface_serializer(interface: AuthenticatorInterface) -> AuthenticatorInterfaceSerializer:
+    if isinstance(interface, SmsInterface):
+        return SmsInterfaceSerializer()
+    return AuthenticatorInterfaceSerializer()
