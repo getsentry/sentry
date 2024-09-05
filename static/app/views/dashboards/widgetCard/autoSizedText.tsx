@@ -21,6 +21,17 @@ export function AutoSizedText({children}: Props) {
       return undefined;
     }
 
+    if (!window.ResizeObserver) {
+      // `ResizeObserver` is missing in a test environment. In this case,
+      // run one iteration of the resize behaviour so a test can at least
+      // verify that the component doesn't crash.
+      const childDimensions = getElementDimensions(childElement);
+      const parentDimensions = getElementDimensions(parentElement);
+
+      adjustFontSize(childDimensions, parentDimensions);
+      return undefined;
+    }
+
     // On component first mount, register a `ResizeObserver` on the containing element. The handler fires
     // on component mount, and every time the element changes size after that
     const observer = new ResizeObserver(entries => {
