@@ -1,66 +1,73 @@
 import logging
-from typing import TypeVar
 
+from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import control_silo_endpoint
+from sentry.integrations.api.bases.integration import IntegrationEndpoint
 from sentry.integrations.bitbucket.integration import BitbucketIntegration
 from sentry.integrations.models.integration import Integration
-from sentry.integrations.source_code_management.issues import SourceCodeIssueIntegration
-from sentry.integrations.source_code_management.search import SourceCodeSearchEndpoint
 from sentry.shared_integrations.exceptions import ApiError
 
 logger = logging.getLogger("sentry.integrations.bitbucket")
 
-T = TypeVar("T", bound=SourceCodeIssueIntegration)
-
 
 @control_silo_endpoint
-class BitbucketSearchEndpoint(SourceCodeSearchEndpoint):
+class BitbucketSearchEndpoint(IntegrationEndpoint):
     owner = ApiOwner.INTEGRATIONS
     publish_status = {
         "GET": ApiPublishStatus.PRIVATE,
     }
 
-    @property
-    def repository_field(self):
-        return "repo"
-
-    @property
-    def integration_provider(self):
-        return "bitbucket"
-
-    @property
-    def installation_class(self):
-        return BitbucketIntegration
-
-    def handle_search_issues(self, installation: T, query: str, repo: str) -> Response:
-        full_query = f'title~"{query}"'
+    def get(self, request: Request, organization, integration_id, **kwds) -> Response:
         try:
-            response = installation.search_issues(query=full_query, repo=repo)
-        except ApiError as e:
-            if "no issue tracker" in str(e):
-                logger.info(
-                    "bitbucket.issue-search-no-issue-tracker",
-                    extra={"installation_id": installation.model.id, "repo": repo},
-                )
-                return Response(
-                    {"detail": "Bitbucket Repository has no issue tracker."}, status=400
-                )
-            raise
+            integration = Integration.objects.get(
+                organizationintegration__organization_id=organization.id,
+                id=integration_id,
+                provider="bitbucket",
+            )
+        except Integration.DoesNotExist:
+            return Response(status=404)
 
-        assert isinstance(response, dict)
-        return Response(
-            [
-                {"label": "#{} {}".format(i["id"], i["title"]), "value": i["id"]}
-                for i in response.get("values", [])
-            ]
-        )
+        field = request.GET.get("field")
+        query = request.GET.get("query")
+        if field is None:
+            return Response({"detail": "field is a required parameter"}, status=400)
+        if not query:
+            return Response({"detail": "query is a required parameter"}, status=400)
 
-    def handle_search_repositories(
-        self, integration: Integration, installation: T, query: str
-    ) -> Response:
-        result = installation.get_repositories(query)
-        return Response([{"label": i["name"], "value": i["name"]} for i in result])
+        installation = integration.get_installation(organization_id=organization.id)
+        assert isinstance(installation, BitbucketIntegration), installation
+
+        if field == "externalIssue":
+            repo = request.GET.get("repo")
+            if not repo:
+                return Response({"detail": "repo is a required parameter"}, status=400)
+
+            full_query = f'title~"{query}"'
+            try:
+                resp = installation.search_issues(query=full_query, repo=repo)
+            except ApiError as e:
+                if "no issue tracker" in str(e):
+                    logger.info(
+                        "bitbucket.issue-search-no-issue-tracker",
+                        extra={"installation_id": installation.model.id, "repo": repo},
+                    )
+                    return Response(
+                        {"detail": "Bitbucket Repository has no issue tracker."}, status=400
+                    )
+                raise
+            return Response(
+                [
+                    {"label": "#{} {}".format(i["id"], i["title"]), "value": i["id"]}
+                    for i in resp.get("values", [])
+                ]
+            )
+
+        if field == "repo":
+            result = installation.get_repositories(query)
+            return Response([{"label": i["name"], "value": i["name"]} for i in result])
+
+        return Response(status=400)
