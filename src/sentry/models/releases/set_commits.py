@@ -78,32 +78,41 @@ def set_commits_on_release(release, commit_list):
     ReleaseCommit.objects.filter(release=release).delete()
 
     authors = {}
-    repos = {}
     commit_author_by_commit = {}
     head_commit_by_repo: dict[int, int] = {}
     latest_commit = None
-    for idx, data in enumerate(commit_list):
+    repos = {}
+
+    def create_repositories(commit_list):
+
+        for data in commit_list:
+            repo_name = data.get("repository") or f"organization-{release.organization_id}"
+            if repo_name not in repos:
+                repo = (
+                    Repository.objects.filter(
+                        organization_id=release.organization_id,
+                        name=repo_name,
+                        status=ObjectStatus.ACTIVE,
+                    )
+                    .order_by("-pk")
+                    .first()
+                )
+
+                if repo is None:
+                    repo = Repository.objects.create(
+                        organization_id=release.organization_id,
+                        name=repo_name,
+                    )
+
+                repos[repo_name] = repo
+            else:
+                repo = repos[repo_name]
+
+    def set_commit(idx, data):
+        nonlocal latest_commit
+
         repo_name = data.get("repository") or f"organization-{release.organization_id}"
-        if repo_name not in repos:
-            repo = (
-                Repository.objects.filter(
-                    organization_id=release.organization_id,
-                    name=repo_name,
-                    status=ObjectStatus.ACTIVE,
-                )
-                .order_by("-pk")
-                .first()
-            )
-
-            if repo is None:
-                repo = Repository.objects.create(
-                    organization_id=release.organization_id,
-                    name=repo_name,
-                )
-
-            repos[repo_name] = repo
-        else:
-            repo = repos[repo_name]
+        repo = repos[repo_name]
 
         author_email = data.get("author_email")
         if author_email is None and data.get("author_name"):
@@ -184,6 +193,10 @@ def set_commits_on_release(release, commit_list):
             latest_commit = commit
 
         head_commit_by_repo.setdefault(repo.id, commit.id)
+
+    create_repositories(commit_list)
+    for idx, data in enumerate(commit_list):
+        set_commit(idx, data)
 
     release.update(
         commit_count=len(commit_list),
