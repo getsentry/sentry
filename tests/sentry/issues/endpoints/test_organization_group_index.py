@@ -9,9 +9,11 @@ from django.urls import reverse
 from django.utils import timezone
 
 from sentry import options
+from sentry.feedback.usecases.create_feedback import FeedbackCreationSource, create_feedback_issue
 from sentry.integrations.models.external_issue import ExternalIssue
 from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.issues.grouptype import (
+    FeedbackGroup,
     PerformanceNPlusOneGroupType,
     PerformanceRenderBlockingAssetSpanGroupType,
     PerformanceSlowDBQueryGroupType,
@@ -57,13 +59,14 @@ from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase, SnubaTestCase
 from sentry.testutils.helpers import parse_link_header
 from sentry.testutils.helpers.datetime import before_now, iso_format
-from sentry.testutils.helpers.features import apply_feature_flag_on_cls, with_feature
+from sentry.testutils.helpers.features import Feature, apply_feature_flag_on_cls, with_feature
 from sentry.testutils.helpers.options import override_options
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.types.activity import ActivityType
 from sentry.types.group import GroupSubStatus, PriorityLevel
 from sentry.users.models.user_option import UserOption
 from sentry.utils import json
+from tests.sentry.feedback.usecases.test_create_feedback import mock_feedback_event
 from tests.sentry.issues.test_utils import SearchIssueTestMixin
 
 
@@ -3916,6 +3919,58 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         assert response_handled_0.status_code == 200
         assert len(response_handled_0.data) == 1
         assert int(response_handled_0.data[0]["id"]) == handled_event.group.id
+
+    def test_feedback_filtered_by_default(self, _):
+        with Feature(
+            {
+                "organizations:feedback-ingest": True,
+                "organizations:feedback-visible": True,
+            }
+        ):
+            event = self.store_event(
+                data={"event_id": uuid4().hex, "timestamp": iso_format(before_now(seconds=1))},
+                project_id=self.project.id,
+            )
+            assert event.group is not None
+
+            feedback_event = mock_feedback_event(self.project.id, before_now(seconds=1))
+            create_feedback_issue(
+                feedback_event, self.project.id, FeedbackCreationSource.NEW_FEEDBACK_ENVELOPE
+            )
+            self.login_as(user=self.user)
+            res = self.get_success_response()
+
+        assert len(res.data) == 1
+        issue = res.data[0]
+        feedback_group = Group.objects.get(type=FeedbackGroup.type_id)
+        assert int(issue["id"]) != feedback_group.id
+        assert issue["issueCategory"] != "feedback"
+
+    def test_feedback_filter(self, _):
+        with Feature(
+            {
+                "organizations:feedback-ingest": True,
+                "organizations:feedback-visible": True,
+            }
+        ):
+            event = self.store_event(
+                data={"event_id": uuid4().hex, "timestamp": iso_format(before_now(seconds=1))},
+                project_id=self.project.id,
+            )
+            assert event.group is not None
+
+            feedback_event = mock_feedback_event(self.project.id, before_now(seconds=1))
+            create_feedback_issue(
+                feedback_event, self.project.id, FeedbackCreationSource.NEW_FEEDBACK_ENVELOPE
+            )
+            self.login_as(user=self.user)
+            res = self.get_success_response(query="issue.category:feedback")
+
+        assert len(res.data) == 1
+        issue = res.data[0]
+        feedback_group = Group.objects.get(type=FeedbackGroup.type_id)
+        assert int(issue["id"]) == feedback_group.id
+        assert issue["issueCategory"] == "feedback"
 
 
 class GroupUpdateTest(APITestCase, SnubaTestCase):
