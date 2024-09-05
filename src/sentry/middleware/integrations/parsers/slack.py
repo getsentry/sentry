@@ -210,6 +210,7 @@ class SlackRequestParser(BaseRequestParser):
             }
         )
 
+        # Return a 200 OK response to Slack even if we rendered the modal b/c we are sending an async response
         return HttpResponse(status=status.HTTP_200_OK)
 
     def get_integration_from_request(self) -> Integration | None:
