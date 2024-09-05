@@ -51,15 +51,14 @@ function ProjectEventRedirect({router}: Props) {
       // after following any redirects. It _should_ be the page we're trying
       // to reach; use the router to go there.
       //
-      // Here we assume that the responseURL is on the same domain as the
-      // as the window.location.origin, so we simply take the pathname.
-      //
       // Use `replace` so that hitting the browser back button will skip all
       // this redirect business.
       const url = new URL(xhr.responseURL);
       if (url.origin === window.location.origin) {
         router.replace(url.pathname);
       } else {
+        // If the origin has changed, we cannot do a simple replace with the router.
+        // Instead, we opt to do a full redirect.
         window.location.replace(xhr.responseURL);
       }
     };
