@@ -53,9 +53,8 @@ describe('Metrics Layout', function () {
       await screen.findByRole('button', {name: 'Set Up Custom Metric'})
     ).toBeInTheDocument();
 
-    expect(
-      screen.queryByText(/there are upcoming changes to the Metrics API/i)
-    ).toBeInTheDocument();
+    // Alert: Metrics beta experience ending soon.
+    expect(screen.getByText(/we are ending the beta/i)).toBeInTheDocument();
 
     // Main View: Displays the empty state.
     expect(screen.queryByText(/track and solve what matters/i)).toBeInTheDocument();
@@ -96,12 +95,8 @@ describe('Metrics Layout', function () {
 
     render(<MetricsLayout />, {organization});
 
-    // Alert: Old API metrics ingestion ending soon.
-    expect(
-      await screen.findByText(
-        /There are upcoming changes to the Metrics API that may affect your usage/i
-      )
-    ).toBeInTheDocument();
+    // Alert: Metrics beta experience ending soon.
+    expect(await screen.findByText(/we are ending the beta/i)).toBeInTheDocument();
 
     // Button: Add Custom Metrics
     expect(screen.getByRole('button', {name: 'Add Custom Metrics'})).toBeInTheDocument();
