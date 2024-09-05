@@ -2930,6 +2930,7 @@ MIGRATIONS_LOCKFILE_APP_WHITELIST = (
     "hybridcloud",
     "remote_subscriptions",
     "uptime",
+    "workflow_engine",
 )
 # Where to write the lockfile to.
 MIGRATIONS_LOCKFILE_PATH = os.path.join(PROJECT_ROOT, os.path.pardir, os.path.pardir)
