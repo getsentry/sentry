@@ -52,7 +52,7 @@ from sentry.incidents.subscription_processor import (
 )
 from sentry.incidents.utils.types import AlertRuleActivationConditionType
 from sentry.models.project import Project
-from sentry.seer.anomaly_detection.types import AnomalyType
+from sentry.seer.anomaly_detection.types import AnomalyType, TimeSeriesPoint
 from sentry.seer.anomaly_detection.utils import translate_direction
 from sentry.sentry_metrics.configuration import UseCaseKey
 from sentry.sentry_metrics.indexer.postgres.models import MetricsKeyIndexer
@@ -485,7 +485,7 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
             str(self.user.id),
         )
         seer_return_value_1 = {
-            "anomalies": [
+            "timeseries": [
                 {
                     "anomaly": {
                         "anomaly_score": 0.7,
@@ -510,7 +510,7 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
         assert deserialized_body["config"]["expected_seasonality"] == rule.seasonality.value
         assert deserialized_body["config"]["direction"] == translate_direction(rule.threshold_type)
         assert deserialized_body["context"]["id"] == rule.id
-        assert deserialized_body["context"]["cur_window"][0]["value"] == 5
+        assert deserialized_body["context"]["cur_window"]["value"] == 5
 
         self.assert_trigger_counts(processor, trigger, 0, 0)
         self.assert_trigger_counts(processor, warning_trigger, 0, 0)
@@ -525,7 +525,7 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
 
         # trigger critical
         seer_return_value_2 = {
-            "anomalies": [
+            "timeseries": [
                 {
                     "anomaly": {
                         "anomaly_score": 0.9,
@@ -550,7 +550,7 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
         assert deserialized_body["config"]["expected_seasonality"] == rule.seasonality.value
         assert deserialized_body["config"]["direction"] == translate_direction(rule.threshold_type)
         assert deserialized_body["context"]["id"] == rule.id
-        assert deserialized_body["context"]["cur_window"][0]["value"] == 10
+        assert deserialized_body["context"]["cur_window"]["value"] == 10
 
         self.assert_trigger_counts(processor, trigger, 0, 0)
         self.assert_trigger_counts(processor, warning_trigger, 0, 0)
@@ -565,7 +565,7 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
 
         # trigger a resolution
         seer_return_value_3 = {
-            "anomalies": [
+            "timeseries": [
                 {
                     "anomaly": {"anomaly_score": 0.5, "anomaly_type": AnomalyType.NONE.value},
                     "timestamp": 1,
@@ -587,7 +587,7 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
         assert deserialized_body["config"]["expected_seasonality"] == rule.seasonality.value
         assert deserialized_body["config"]["direction"] == translate_direction(rule.threshold_type)
         assert deserialized_body["context"]["id"] == rule.id
-        assert deserialized_body["context"]["cur_window"][0]["value"] == 1
+        assert deserialized_body["context"]["cur_window"]["value"] == 1
 
         self.assert_trigger_counts(processor, self.trigger, 0, 0)
         self.assert_trigger_counts(processor, warning_trigger, 0, 0)
@@ -609,7 +609,7 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
         throughput_rule.snuba_query.update(time_window=15 * 60, dataset=Dataset.Transactions)
         # trigger critical
         seer_return_value = {
-            "anomalies": [
+            "timeseries": [
                 {
                     "anomaly": {
                         "anomaly_score": 0.9,
@@ -639,7 +639,7 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
             throughput_rule.threshold_type
         )
         assert deserialized_body["context"]["id"] == throughput_rule.id
-        assert deserialized_body["context"]["cur_window"][0]["value"] == 10
+        assert deserialized_body["context"]["cur_window"]["value"] == 10
 
         self.assert_trigger_counts(processor, self.trigger, 0, 0)
         incident = self.assert_active_incident(throughput_rule)
@@ -652,7 +652,7 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
 
         # trigger a resolution
         seer_return_value_2 = {
-            "anomalies": [
+            "timeseries": [
                 {
                     "anomaly": {"anomaly_score": 0.5, "anomaly_type": AnomalyType.NONE.value},
                     "timestamp": 1,
@@ -679,7 +679,7 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
             throughput_rule.threshold_type
         )
         assert deserialized_body["context"]["id"] == throughput_rule.id
-        assert deserialized_body["context"]["cur_window"][0]["value"] == 1
+        assert deserialized_body["context"]["cur_window"]["value"] == 1
 
         self.assert_trigger_counts(processor, self.trigger, 0, 0)
         self.assert_no_active_incident(throughput_rule)
@@ -691,19 +691,19 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
     def test_has_anomaly(self):
         rule = self.dynamic_rule
         # test alert ABOVE
-        anomaly1 = {
+        anomaly1: TimeSeriesPoint = {
             "anomaly": {"anomaly_score": 0.9, "anomaly_type": AnomalyType.HIGH_CONFIDENCE.value},
             "timestamp": 1,
             "value": 10,
         }
 
-        anomaly2 = {
+        anomaly2: TimeSeriesPoint = {
             "anomaly": {"anomaly_score": 0.6, "anomaly_type": AnomalyType.LOW_CONFIDENCE.value},
             "timestamp": 1,
             "value": 10,
         }
 
-        not_anomaly = {
+        not_anomaly: TimeSeriesPoint = {
             "anomaly": {"anomaly_score": 0.2, "anomaly_type": AnomalyType.NONE.value},
             "timestamp": 1,
             "value": 10,
@@ -723,7 +723,7 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
         assert not processor.has_anomaly(not_anomaly, warning_label, False)
 
     def test_fake_anomaly(self):
-        anomaly = {
+        anomaly: TimeSeriesPoint = {
             "anomaly": {"anomaly_score": 0.2, "anomaly_type": AnomalyType.NONE.value},
             "timestamp": 1,
             "value": 10,
@@ -771,7 +771,7 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
 
         # test that we don't activate if we get "no_data"
         seer_return_value = {
-            "anomalies": [
+            "timeseries": [
                 {
                     "anomaly": {
                         "anomaly_score": 0.0,
@@ -804,7 +804,7 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
 
         # test that we activate but don't fire an alert if we get "none"
         seer_return_value = {
-            "anomalies": [
+            "timeseries": [
                 {
                     "anomaly": {
                         "anomaly_score": 0.2,
@@ -837,7 +837,7 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
 
         # test that we can activate and fire an alert
         seer_return_value = {
-            "anomalies": [
+            "timeseries": [
                 {
                     "anomaly": {
                         "anomaly_score": 0.7,
@@ -877,7 +877,7 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
         rule = self.dynamic_rule
         value = 10
         seer_return_value = {
-            "anomalies": [
+            "timeseries": [
                 {
                     "anomaly": {
                         "anomaly_score": 0.0,
@@ -910,7 +910,7 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
     @mock.patch("sentry.incidents.subscription_processor.logger")
     def test_seer_call_empty_list(self, mock_logger, mock_seer_request):
         processor = SubscriptionProcessor(self.sub)
-        seer_return_value: dict[str, list] = {"anomalies": []}
+        seer_return_value: dict[str, list] = {"timeseries": []}
         mock_seer_request.return_value = HTTPResponse(orjson.dumps(seer_return_value), status=200)
         result = processor.get_anomaly_data_from_seer(10)
         assert mock_logger.warning.call_args[0] == (
@@ -3046,7 +3046,7 @@ class MetricsCrashRateAlertProcessUpdateTest(ProcessUpdateBaseClass, BaseMetrics
 
         # Send Critical Update
         seer_return_value = {
-            "anomalies": [
+            "timeseries": [
                 {
                     "anomaly": {
                         "anomaly_score": 0.7,
@@ -3077,7 +3077,7 @@ class MetricsCrashRateAlertProcessUpdateTest(ProcessUpdateBaseClass, BaseMetrics
 
         # Close the metric alert
         seer_return_value = {
-            "anomalies": [
+            "timeseries": [
                 {
                     "anomaly": {
                         "anomaly_score": 0.2,
