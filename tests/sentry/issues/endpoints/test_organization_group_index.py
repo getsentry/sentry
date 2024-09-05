@@ -3152,7 +3152,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
             sort="new",
             query="user.email:myemail@example.com",
         )
-        # assert len(response.data) == 2
+        assert len(response.data) == 2
         assert {r["id"] for r in response.data} == {
             str(perf_group_id),
             str(error_event.group.id),
