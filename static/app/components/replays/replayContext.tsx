@@ -468,7 +468,7 @@ export function Provider({
       return;
     }
     if (isPlaying) {
-      replayer.pause();
+      replayer.pause(getCurrentPlayerTime());
       replayer.setConfig({speed: prefs.playbackSpeed});
       replayer.play(getCurrentPlayerTime());
     } else {
