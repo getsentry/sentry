@@ -107,10 +107,11 @@ function BaseDraggableTabList({
                     flexDirection: 'row',
                   }}
                   as="div"
-                  dragConstraints={tabListRef} // Sets the container that the tabs can be dragged within
-                  dragElastic={0} // Prevents tabs from being dragged outside of the tab bar
-                  dragTransition={{bounceStiffness: 400, bounceDamping: 40}} // Recovers spring behavior thats lost when using dragElastic
-                  layout="position"
+                  dragConstraints={tabListRef} // The container that the tabs can be dragged within
+                  dragElastic={0} // Prevents the tab from being dragged outside of the dragConstraints (w/o this you can drag it outside but it'll spring back)
+                  dragTransition={{bounceStiffness: 400, bounceDamping: 40}} // Recovers spring behavior thats lost when using dragElastic=0
+                  transition={{delay: -0.1}} // Skips the first few frames of the animation that make the tab appear to shrink before growing
+                  layout
                 >
                   <Tab
                     key={item.key}
@@ -230,8 +231,6 @@ const TabDivider = styled(motion.div, {
     height: 50%;
     width: 1px;
     border-radius: 6px;
-    margin-right: ${space(0.5)};
-    margin-left: ${space(0.5)};
   `}
 
   ${p => !p.isVisible && `margin-left: 1px;`}
