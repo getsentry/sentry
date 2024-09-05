@@ -84,12 +84,11 @@ def set_commits_on_release(release, commit_list):
 
     latest_commit = None
     for idx, data in enumerate(commit_list):
+        commit = set_commit(idx, data, release, head_commit_by_repo)
         if idx == 0:
-            latest_commit = set_commit(
-                idx, data, release, commit_author_by_commit, head_commit_by_repo
-            )
-        else:
-            set_commit(idx, data, release, commit_author_by_commit, head_commit_by_repo)
+            latest_commit = commit
+
+        commit_author_by_commit[commit.id] = commit.author
 
     release.update(
         commit_count=len(commit_list),
@@ -106,7 +105,7 @@ def set_commits_on_release(release, commit_list):
     return head_commit_by_repo, commit_author_by_commit
 
 
-def set_commit(idx, data, release, commit_author_by_commit, head_commit_by_repo):
+def set_commit(idx, data, release, head_commit_by_repo):
     repo = data["repo_model"]
     author = data["author_model"]
 
@@ -131,8 +130,6 @@ def set_commit(idx, data, release, commit_author_by_commit, head_commit_by_repo)
 
     if author is None:
         author = commit.author
-
-    commit_author_by_commit[commit.id] = author
 
     # Guard against patch_set being None
     patch_set = data.get("patch_set") or []
