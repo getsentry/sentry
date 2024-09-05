@@ -164,10 +164,8 @@ function SidebarItem({
     !hasPanel && router && isItemActive({to, label: labelString}, exact);
 
   // TODO: floating accordion should be transformed into secondary panel
-  let isInFloatingAccordion = (isNested || isMainItem) && shouldAccordionFloat;
-  if (hasNewNav) {
-    isInFloatingAccordion = false;
-  }
+  const isInFloatingAccordion = (isNested || isMainItem) && shouldAccordionFloat;
+  const isInSubnav = hasNewNav && isNested;
   const hasLink = Boolean(to);
   const isInCollapsedState = (!isInFloatingAccordion && collapsed) || hasNewNav;
 
@@ -237,6 +235,7 @@ function SidebarItem({
             {...props}
             id={`sidebar-item-${id}`}
             isInFloatingAccordion={isInFloatingAccordion}
+            isInSubnav={isInSubnav}
             active={isActive ? 'true' : undefined}
             to={toProps}
             disabled={!hasLink && isInFloatingAccordion}
@@ -248,14 +247,19 @@ function SidebarItem({
             {hasNewNav ? (
               <StyledInteractionStateLayer
                 isPressed={isActive}
+                isInSubnav={isInSubnav}
                 color="white"
                 higherOpacity
               />
             ) : (
               <InteractionStateLayer isPressed={isActive} color="white" higherOpacity />
             )}
-            <SidebarItemWrapper collapsed={isInCollapsedState} hasNewNav={hasNewNav}>
-              {!isInFloatingAccordion && (
+            <SidebarItemWrapper
+              isInSubnav={isInSubnav}
+              collapsed={isInCollapsedState}
+              hasNewNav={hasNewNav}
+            >
+              {!isInFloatingAccordion && !isInSubnav && (
                 <SidebarItemIcon hasNewNav={hasNewNav}>{icon}</SidebarItemIcon>
               )}
               {!isInCollapsedState && !isTop && (
@@ -355,10 +359,12 @@ const getActiveStyle = ({
   active,
   theme,
   isInFloatingAccordion,
+  isInSubnav,
 }: {
   active?: string;
   hasNewNav?: boolean;
   isInFloatingAccordion?: boolean;
+  isInSubnav?: boolean;
   theme?: Theme;
 }) => {
   if (!active) {
@@ -370,6 +376,17 @@ const getActiveStyle = ({
       &:focus,
       &:hover {
         color: ${theme?.gray400};
+      }
+    `;
+  }
+  if (isInSubnav) {
+    return css`
+      &:active,
+      &:focus,
+      &:hover {
+        &::before {
+          opacity: 1;
+        }
       }
     `;
   }
@@ -392,14 +409,19 @@ const StyledSidebarItem = styled(Link, {
   shouldForwardProp: p => typeof p === 'string' && isPropValid(p),
 })`
   display: flex;
-  color: ${p => (p.isInFloatingAccordion ? p.theme.gray400 : 'inherit')};
+  color: ${p => (p.isInFloatingAccordion || p.isInSubnav ? p.theme.gray400 : 'inherit')};
   position: relative;
   cursor: pointer;
   font-size: 15px;
-  height: ${p => (p.isInFloatingAccordion ? '35px' : p.hasNewNav ? '40px' : '30px')};
+  height: ${p =>
+    p.isInFloatingAccordion || p.isInSubnav ? '35px' : p.hasNewNav ? '40px' : '30px'};
+  align-items: center;
+  justify-content: center;
+  width: 100%;
   flex-shrink: 0;
   border-radius: ${p => p.theme.borderRadius};
   transition: none;
+  padding: ${p => (p.hasNewNav && p.isInSubnav ? `0 ${space(1)}` : '0')};
 
   ${p =>
     !p.hasNewNav &&
@@ -415,6 +437,14 @@ const StyledSidebarItem = styled(Link, {
         border-radius: 0 3px 3px 0;
         background-color: transparent;
         transition: 0.15s background-color linear;
+      }
+    `}
+  ${p =>
+    p.hasNewNav &&
+    css`
+      &:before {
+        background-color: ${p.theme.gray500};
+        border: 1px solid ${p.theme.translucentGray200};
       }
     `}
 
@@ -433,9 +463,9 @@ const StyledSidebarItem = styled(Link, {
   &:hover,
   &:focus-visible {
     ${p => {
-      if (p.isInFloatingAccordion) {
+      if (p.isInFloatingAccordion || p.isInSubnav) {
         return css`
-          background-color: ${p.theme.hover};
+          background-color: ${p.isInSubnav ? 'transparent' : p.theme.hover};
           color: ${p.theme.gray400};
         `;
       }
@@ -454,24 +484,42 @@ const StyledSidebarItem = styled(Link, {
     box-shadow: inset 0 0 0 2px ${p => p.theme.purple300};
   }
 
-  .sidebar-v2 & {
-    font-size: 11px;
-    align-self: center;
-    justify-content: center;
-    height: 52px;
-    width: 100%;
-    flex-grow: 1;
-  }
+  ${p => {
+    if (p.hasNewNav && !p.isInSubnav) {
+      return css`
+        &&& {
+          font-size: 11px;
+          align-self: center;
+          justify-content: center;
+          height: 52px;
+          width: 100%;
+          flex-grow: 1;
+        }
+      `;
+    }
+    return '';
+  }}
 
   ${getActiveStyle};
 `;
 
-const SidebarItemWrapper = styled('div')<{collapsed?: boolean; hasNewNav?: boolean}>`
+const SidebarItemWrapper = styled('div')<{
+  collapsed?: boolean;
+  hasNewNav?: boolean;
+  isInSubnav?: boolean;
+}>`
   display: flex;
   align-items: center;
-  justify-content: center;
-  ${p => p.hasNewNav && 'flex-direction: column;'}
+  justify-content: ${p => (p.isInSubnav ? 'initial' : 'center')};
   width: 100%;
+  flex-direction: ${p => (p.hasNewNav && !p.isInSubnav ? 'column' : 'row')};
+  ${p =>
+    p.hasNewNav &&
+    p.isInSubnav &&
+    css`
+      height: 32px;
+      padding: 0 ${space(1.5)};
+    `}
 
   ${p => !p.collapsed && `padding-right: ${space(1)};`}
   @media (max-width: ${p => p.theme.breakpoints.medium}) {

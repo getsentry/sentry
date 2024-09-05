@@ -9,7 +9,7 @@ body {
     }
 
     &.sidebar-v2 {
-      padding-left: @sidebar-v2-width;
+      padding-left: calc(@sidebar-v2-width + @sidebar-v2-panel-width);
     }
   }
 
@@ -47,9 +47,9 @@ body.narrow {
     &.sidebar-v2 {
       padding-left: calc(@sidebar-v2-width + @sidebar-v2-panel-width);
 
-      &.collapsed {
-        padding-left: @sidebar-v2-width;
-      }
+      // &.collapsed {
+      //   padding-left: @sidebar-v2-width;
+      // }
     }
   }
 

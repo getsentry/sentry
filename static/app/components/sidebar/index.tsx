@@ -16,6 +16,7 @@ import {
   ExpandedContext,
   ExpandedContextProvider,
 } from 'sentry/components/sidebar/expandedContextProvider';
+import {SubnavContainer} from 'sentry/components/sidebar/subnav';
 import {isDone} from 'sentry/components/sidebar/utils';
 import {
   IconDashboard,
@@ -62,7 +63,7 @@ import Broadcasts from './broadcasts';
 import SidebarHelp from './help';
 import OnboardingStatus from './onboardingStatus';
 import ServiceIncidents from './serviceIncidents';
-import {SidebarAccordion} from './sidebarAccordion';
+import {SubnavMenu} from './sidebarAccordion';
 import SidebarDropdown from './sidebarDropdown';
 import SidebarItem from './sidebarItem';
 import type {SidebarOrientation} from './types';
@@ -119,7 +120,8 @@ function Sidebar() {
   const activePanel = useLegacyStore(SidebarPanelStore);
   const organization = useOrganization({allowNull: true});
   const {shouldAccordionFloat} = useContext(ExpandedContext);
-  const hasNewNav = organization?.features.includes('navigation-sidebar-v2') ?? false;
+  // const hasNewNav = organization?.features.includes('navigation-sidebar-v2') ?? false;
+  const hasNewNav = true;
   const collapsed = hasNewNav ? true : !!preferences.collapsed;
   const hasOrganization = !!organization;
   const isSelfHostedErrorsOnly = ConfigStore.get('isSelfHostedErrorsOnly');
@@ -221,7 +223,7 @@ function Sidebar() {
   );
 
   const issues = hasOrganization && (
-    <SidebarItem
+    <SubnavMenu
       {...sidebarItemProps}
       icon={<IconIssues />}
       label={<GuideAnchor target="issues">{t('Issues')}</GuideAnchor>}
@@ -229,7 +231,57 @@ function Sidebar() {
       search="?referrer=sidebar"
       id="issues"
       hasNewNav={hasNewNav}
-    />
+    >
+      <SidebarItem
+        {...sidebarItemProps}
+        icon={<IconIssues />}
+        label={<GuideAnchor target="issues">{t('All')}</GuideAnchor>}
+        to={`/organizations/${organization.slug}/issues/`}
+        search="?referrer=sidebar"
+        id="issues"
+        hasNewNav={hasNewNav}
+      />
+      <SidebarItem
+        {...sidebarItemProps}
+        icon={<IconIssues />}
+        label={<GuideAnchor target="issues">{t('Errors & Outages')}</GuideAnchor>}
+        to={`/organizations/${organization.slug}/issues/`}
+        id="errors-outages"
+        hasNewNav={hasNewNav}
+      />
+      <SidebarItem
+        {...sidebarItemProps}
+        icon={<IconIssues />}
+        label={<GuideAnchor target="issues">{t('Trends')}</GuideAnchor>}
+        to={`/organizations/${organization.slug}/issues/`}
+        id="trends"
+        hasNewNav={hasNewNav}
+      />
+      <SidebarItem
+        {...sidebarItemProps}
+        icon={<IconIssues />}
+        label={<GuideAnchor target="issues">{t('Craftsmanship')}</GuideAnchor>}
+        to={`/organizations/${organization.slug}/issues/`}
+        id="craftsmanship"
+        hasNewNav={hasNewNav}
+      />
+      <SidebarItem
+        {...sidebarItemProps}
+        icon={<IconIssues />}
+        label={<GuideAnchor target="issues">{t('Security')}</GuideAnchor>}
+        to={`/organizations/${organization.slug}/issues/`}
+        id="security"
+        hasNewNav={hasNewNav}
+      />
+      <SidebarItem
+        {...sidebarItemProps}
+        icon={<IconMegaphone />}
+        label={t('Feedback')}
+        variant="short"
+        to={`/organizations/${organization.slug}/feedback/`}
+        id="feedback"
+      />
+    </SubnavMenu>
   );
 
   const discover2 = hasOrganization && (
@@ -465,7 +517,7 @@ function Sidebar() {
     </Feature>
   );
 
-  const feedback = hasOrganization && (
+  const feedback = hasOrganization && !hasNewNav && (
     <Feature features="user-feedback-ui" organization={organization}>
       <SidebarItem
         {...sidebarItemProps}
@@ -588,9 +640,9 @@ function Sidebar() {
     />
   );
 
-  let insights = hasOrganization && (
+  const insights = hasOrganization && (
     <Feature key="insights" features="insights-entry-points" organization={organization}>
-      <SidebarAccordion
+      <SubnavMenu
         {...sidebarItemProps}
         icon={<IconGraph />}
         label={<GuideAnchor target="insights">{t('Insights')}</GuideAnchor>}
@@ -609,13 +661,15 @@ function Sidebar() {
         {mobileUI}
         {mobileScreens}
         {llmMonitoring}
-      </SidebarAccordion>
+        {hasNewNav && monitors}
+        {hasNewNav && releases}
+      </SubnavMenu>
     </Feature>
   );
 
   // Sidebar accordion includes a secondary list of nav items
-  let explore = (
-    <SidebarAccordion
+  const explore = (
+    <SubnavMenu
       {...sidebarItemProps}
       icon={<IconSearch />}
       label={<GuideAnchor target="explore">{t('Explore')}</GuideAnchor>}
@@ -627,206 +681,208 @@ function Sidebar() {
       {profiling}
       {replays}
       {discover2}
-    </SidebarAccordion>
+    </SubnavMenu>
   );
 
-  if (hasOrganization && hasNewNav) {
-    insights = (
-      <SidebarItem
-        {...sidebarItemProps}
-        icon={<IconGraph />}
-        label={<GuideAnchor target="insights">{t('Insights')}</GuideAnchor>}
-        to={`/organizations/${organization.slug}/${moduleURLBuilder('http')}/`}
-        id="insights"
-      />
-    );
-    explore = (
-      <SidebarItem
-        {...sidebarItemProps}
-        icon={<IconSearch />}
-        label={<GuideAnchor target="explore">{t('Explore')}</GuideAnchor>}
-        to={`/organizations/${organization.slug}/traces/`}
-        id="explore"
-      />
-    );
-  }
+  // if (hasOrganization && hasNewNav) {
+  //   insights = (
+  //     <SidebarItem
+  //       {...sidebarItemProps}
+  //       icon={<IconGraph />}
+  //       label={<GuideAnchor target="insights">{t('Insights')}</GuideAnchor>}
+  //       to={`/organizations/${organization.slug}/${moduleURLBuilder('http')}/`}
+  //       id="insights"
+  //     />
+  //   );
+  //   explore = (
+  //     <SidebarItem
+  //       {...sidebarItemProps}
+  //       icon={<IconSearch />}
+  //       label={<GuideAnchor target="explore">{t('Explore')}</GuideAnchor>}
+  //       to={`/organizations/${organization.slug}/traces/`}
+  //       id="explore"
+  //     />
+  //   );
+  // }
 
   return (
-    <SidebarWrapper
-      aria-label={t('Primary Navigation')}
-      collapsed={collapsed}
-      hasNewNav={hasNewNav}
-    >
-      <ExpandedContextProvider>
-        <SidebarSectionGroupPrimary>
-          <DropdownSidebarSection
-            isSuperuser={showSuperuserWarning() && !isExcludedOrg()}
-            hasNewNav={hasNewNav}
-          >
-            <SidebarDropdown orientation={orientation} collapsed={collapsed} />
+    <SidebarWrapper>
+      <SubnavContainer>
+        <SidebarPrimaryWrapper
+          aria-label={t('Primary Navigation')}
+          collapsed={collapsed}
+          hasNewNav={hasNewNav}
+        >
+          <ExpandedContextProvider>
+            <SidebarSectionGroupPrimary>
+              <DropdownSidebarSection
+                isSuperuser={showSuperuserWarning() && !isExcludedOrg()}
+                hasNewNav={hasNewNav}
+              >
+                <SidebarDropdown orientation={orientation} collapsed={collapsed} />
 
-            {showSuperuserWarning() && !isExcludedOrg() && (
-              <Hook name="component:superuser-warning" organization={organization} />
-            )}
-          </DropdownSidebarSection>
+                {showSuperuserWarning() && !isExcludedOrg() && (
+                  <Hook name="component:superuser-warning" organization={organization} />
+                )}
+              </DropdownSidebarSection>
 
-          <PrimaryItems>
-            {hasOrganization && (
-              <Fragment>
-                <SidebarSection hasNewNav={hasNewNav}>
-                  {issues}
-                  {projects}
-                </SidebarSection>
-
-                {!isSelfHostedErrorsOnly && !hasNewNav && (
+              <PrimaryItems>
+                {hasOrganization && (
                   <Fragment>
-                    <SidebarSection>
-                      {explore}
-                      {insights}
+                    <SidebarSection hasNewNav={hasNewNav}>
+                      {issues}
+                      {projects}
                     </SidebarSection>
-                    <SidebarSection>
-                      {performance}
-                      {feedback}
-                      {monitors}
-                      {alerts}
-                      {dashboards}
-                      {releases}
-                    </SidebarSection>
+
+                    {!isSelfHostedErrorsOnly && !hasNewNav && (
+                      <Fragment>
+                        <SidebarSection>
+                          {explore}
+                          {insights}
+                        </SidebarSection>
+                        <SidebarSection>
+                          {performance}
+                          {feedback}
+                          {monitors}
+                          {alerts}
+                          {dashboards}
+                          {releases}
+                        </SidebarSection>
+                      </Fragment>
+                    )}
+
+                    {!isSelfHostedErrorsOnly && hasNewNav && (
+                      <SidebarSection hasNewNav>
+                        {explore}
+                        {insights}
+                        {performance}
+                        {feedback}
+                        {alerts}
+                        {dashboards}
+                      </SidebarSection>
+                    )}
+
+                    {isSelfHostedErrorsOnly && (
+                      <SidebarSection hasNewNav={hasNewNav}>
+                        {alerts}
+                        {discover2}
+                        {dashboards}
+                        {releases}
+                        {userFeedback}
+                      </SidebarSection>
+                    )}
+
+                    {!hasNewNav && (
+                      <SidebarSection>
+                        {stats}
+                        {settings}
+                      </SidebarSection>
+                    )}
                   </Fragment>
                 )}
+              </PrimaryItems>
+            </SidebarSectionGroupPrimary>
 
-                {!isSelfHostedErrorsOnly && hasNewNav && (
-                  <SidebarSection hasNewNav>
-                    {explore}
-                    {insights}
-                    {performance}
-                    {feedback}
-                    {monitors}
-                    {alerts}
-                    {dashboards}
-                    {releases}
-                  </SidebarSection>
-                )}
-
-                {isSelfHostedErrorsOnly && (
-                  <SidebarSection hasNewNav={hasNewNav}>
-                    {alerts}
-                    {discover2}
-                    {dashboards}
-                    {releases}
-                    {userFeedback}
-                  </SidebarSection>
-                )}
-
-                {!hasNewNav && (
-                  <SidebarSection>
-                    {stats}
-                    {settings}
-                  </SidebarSection>
-                )}
-              </Fragment>
-            )}
-          </PrimaryItems>
-        </SidebarSectionGroupPrimary>
-
-        {hasOrganization && (
-          <SidebarSectionGroup hasNewNav={hasNewNav}>
-            {/* What are the onboarding sidebars? */}
-            <PerformanceOnboardingSidebar
-              currentPanel={activePanel}
-              onShowPanel={() => togglePanel(SidebarPanelKey.PERFORMANCE_ONBOARDING)}
-              hidePanel={() => hidePanel('performance-sidequest')}
-              {...sidebarItemProps}
-            />
-            <FeedbackOnboardingSidebar
-              currentPanel={activePanel}
-              onShowPanel={() => togglePanel(SidebarPanelKey.FEEDBACK_ONBOARDING)}
-              hidePanel={hidePanel}
-              {...sidebarItemProps}
-            />
-            <ReplaysOnboardingSidebar
-              currentPanel={activePanel}
-              onShowPanel={() => togglePanel(SidebarPanelKey.REPLAYS_ONBOARDING)}
-              hidePanel={hidePanel}
-              {...sidebarItemProps}
-            />
-            <ProfilingOnboardingSidebar
-              currentPanel={activePanel}
-              onShowPanel={() => togglePanel(SidebarPanelKey.PROFILING_ONBOARDING)}
-              hidePanel={hidePanel}
-              {...sidebarItemProps}
-            />
-            <MetricsOnboardingSidebar
-              currentPanel={activePanel}
-              onShowPanel={() => togglePanel(SidebarPanelKey.METRICS_ONBOARDING)}
-              hidePanel={hidePanel}
-              {...sidebarItemProps}
-            />
-            <SidebarSection hasNewNav={hasNewNav} noMargin noPadding>
-              <OnboardingStatus
-                org={organization}
-                currentPanel={activePanel}
-                onShowPanel={() => togglePanel(SidebarPanelKey.ONBOARDING_WIZARD)}
-                hidePanel={hidePanel}
-                {...sidebarItemProps}
-              />
-            </SidebarSection>
-
-            <SidebarSection hasNewNav={hasNewNav}>
-              {HookStore.get('sidebar:bottom-items').length > 0 &&
-                HookStore.get('sidebar:bottom-items')[0]({
-                  orientation,
-                  collapsed,
-                  hasPanel,
-                  organization,
-                })}
-              <SidebarHelp
-                hasNewNav={hasNewNav}
-                orientation={orientation}
-                collapsed={collapsed}
-                hidePanel={hidePanel}
-                organization={organization}
-              />
-              <Broadcasts
-                hasNewNav={hasNewNav}
-                orientation={orientation}
-                collapsed={collapsed}
-                currentPanel={activePanel}
-                onShowPanel={() => togglePanel(SidebarPanelKey.BROADCASTS)}
-                hidePanel={hidePanel}
-                organization={organization}
-              />
-              <ServiceIncidents
-                hasNewNav={hasNewNav}
-                orientation={orientation}
-                collapsed={collapsed}
-                currentPanel={activePanel}
-                onShowPanel={() => togglePanel(SidebarPanelKey.SERVICE_INCIDENTS)}
-                hidePanel={hidePanel}
-              />
-              {hasNewNav && (
-                <Fragment>
-                  {stats}
-                  {settings}
-                </Fragment>
-              )}
-            </SidebarSection>
-
-            {!horizontal && !hasNewNav && (
-              <SidebarSection hasNewNav={hasNewNav}>
-                <SidebarCollapseItem
-                  id="collapse"
-                  data-test-id="sidebar-collapse"
+            {hasOrganization && (
+              <SidebarSectionGroup hasNewNav={hasNewNav}>
+                {/* What are the onboarding sidebars? */}
+                <PerformanceOnboardingSidebar
+                  currentPanel={activePanel}
+                  onShowPanel={() => togglePanel(SidebarPanelKey.PERFORMANCE_ONBOARDING)}
+                  hidePanel={() => hidePanel('performance-sidequest')}
                   {...sidebarItemProps}
-                  icon={<Chevron direction={collapsed ? 'right' : 'left'} />}
-                  label={collapsed ? t('Expand') : t('Collapse')}
-                  onClick={toggleCollapse}
                 />
-              </SidebarSection>
+                <FeedbackOnboardingSidebar
+                  currentPanel={activePanel}
+                  onShowPanel={() => togglePanel(SidebarPanelKey.FEEDBACK_ONBOARDING)}
+                  hidePanel={hidePanel}
+                  {...sidebarItemProps}
+                />
+                <ReplaysOnboardingSidebar
+                  currentPanel={activePanel}
+                  onShowPanel={() => togglePanel(SidebarPanelKey.REPLAYS_ONBOARDING)}
+                  hidePanel={hidePanel}
+                  {...sidebarItemProps}
+                />
+                <ProfilingOnboardingSidebar
+                  currentPanel={activePanel}
+                  onShowPanel={() => togglePanel(SidebarPanelKey.PROFILING_ONBOARDING)}
+                  hidePanel={hidePanel}
+                  {...sidebarItemProps}
+                />
+                <MetricsOnboardingSidebar
+                  currentPanel={activePanel}
+                  onShowPanel={() => togglePanel(SidebarPanelKey.METRICS_ONBOARDING)}
+                  hidePanel={hidePanel}
+                  {...sidebarItemProps}
+                />
+                <SidebarSection hasNewNav={hasNewNav} noMargin noPadding>
+                  <OnboardingStatus
+                    org={organization}
+                    currentPanel={activePanel}
+                    onShowPanel={() => togglePanel(SidebarPanelKey.ONBOARDING_WIZARD)}
+                    hidePanel={hidePanel}
+                    {...sidebarItemProps}
+                  />
+                </SidebarSection>
+
+                <SidebarSection hasNewNav={hasNewNav}>
+                  {HookStore.get('sidebar:bottom-items').length > 0 &&
+                    HookStore.get('sidebar:bottom-items')[0]({
+                      orientation,
+                      collapsed,
+                      hasPanel,
+                      organization,
+                    })}
+                  <SidebarHelp
+                    hasNewNav={hasNewNav}
+                    orientation={orientation}
+                    collapsed={collapsed}
+                    hidePanel={hidePanel}
+                    organization={organization}
+                  />
+                  <Broadcasts
+                    hasNewNav={hasNewNav}
+                    orientation={orientation}
+                    collapsed={collapsed}
+                    currentPanel={activePanel}
+                    onShowPanel={() => togglePanel(SidebarPanelKey.BROADCASTS)}
+                    hidePanel={hidePanel}
+                    organization={organization}
+                  />
+                  <ServiceIncidents
+                    hasNewNav={hasNewNav}
+                    orientation={orientation}
+                    collapsed={collapsed}
+                    currentPanel={activePanel}
+                    onShowPanel={() => togglePanel(SidebarPanelKey.SERVICE_INCIDENTS)}
+                    hidePanel={hidePanel}
+                  />
+                  {hasNewNav && (
+                    <Fragment>
+                      {stats}
+                      {settings}
+                    </Fragment>
+                  )}
+                </SidebarSection>
+
+                {!horizontal && !hasNewNav && (
+                  <SidebarSection hasNewNav={hasNewNav}>
+                    <SidebarCollapseItem
+                      id="collapse"
+                      data-test-id="sidebar-collapse"
+                      {...sidebarItemProps}
+                      icon={<Chevron direction={collapsed ? 'right' : 'left'} />}
+                      label={collapsed ? t('Expand') : t('Collapse')}
+                      onClick={toggleCollapse}
+                    />
+                  </SidebarSection>
+                )}
+              </SidebarSectionGroup>
             )}
-          </SidebarSectionGroup>
-        )}
-      </ExpandedContextProvider>
+          </ExpandedContextProvider>
+        </SidebarPrimaryWrapper>
+      </SubnavContainer>
     </SidebarWrapper>
   );
 }
@@ -842,30 +898,35 @@ const responsiveFlex = css`
   }
 `;
 
-export const SidebarWrapper = styled('nav')<{collapsed: boolean; hasNewNav?: boolean}>`
-  background: ${p => p.theme.sidebarGradient};
-  color: ${p => p.theme.sidebar.color};
-  line-height: 1;
-  padding: 12px 0 2px; /* Allows for 32px avatars  */
-  width: ${p =>
-    p.theme.sidebar[
-      p.hasNewNav
-        ? 'semiCollapsedWidth'
-        : p.collapsed
-          ? 'collapsedWidth'
-          : 'expandedWidth'
-    ]};
+const SidebarWrapper = styled('nav')`
   position: fixed;
   top: ${p => (ConfigStore.get('demoMode') ? p.theme.demo.headerSize : 0)};
   left: 0;
   bottom: 0;
   justify-content: space-between;
   z-index: ${p => p.theme.zIndex.sidebar};
+  display: flex;
+  flex-direction: row;
+  flex-wrap: nowrap;
+  align-items: stretch;
+`;
+
+export const SidebarPrimaryWrapper = styled('div')<{
+  collapsed: boolean;
+  hasNewNav?: boolean;
+}>`
+  background: ${p => p.theme.sidebarGradient};
+  color: ${p => p.theme.sidebar.color};
+  line-height: 1;
+  padding: 12px 0 2px; /* Allows for 32px avatars  */
+  width: ${p => (p.collapsed ? 'collapsedWidth' : 'expandedWidth')};
+  justify-content: space-between;
+  z-index: ${p => p.theme.zIndex.sidebar};
   border-right: solid 1px ${p => p.theme.sidebarBorder};
   ${responsiveFlex};
 
   .sidebar-v2 & {
-    padding: ${space(1)} ${space(0.75)};
+    padding: ${space(1)} ${space(0.75)} ${space(2)};
     width: ${p => p.theme.sidebar.v2_width};
   }
 
@@ -881,6 +942,15 @@ export const SidebarWrapper = styled('nav')<{collapsed: boolean; hasNewNav?: boo
     border-right: none;
     border-bottom: solid 1px ${p => p.theme.sidebarBorder};
   }
+`;
+
+export const SubnavPanelWrapper = styled('nav')`
+  display: flex;
+  flex-direction: column;
+  background: ${p => p.theme.white};
+  border-right: 1px solid ${p => p.theme.gray400};
+  width: ${p => p.theme.sidebar.v2_panelWidth};
+  height: 100%;
 `;
 
 const SidebarSectionGroup = styled('div')<{hasNewNav?: boolean}>`

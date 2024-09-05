@@ -1,6 +1,7 @@
 import {
   Children,
   cloneElement,
+  Fragment,
   isValidElement,
   useCallback,
   useContext,
@@ -13,6 +14,7 @@ import {Button} from 'sentry/components/button';
 import {Chevron} from 'sentry/components/chevron';
 import {Overlay} from 'sentry/components/overlay';
 import {ExpandedContext} from 'sentry/components/sidebar/expandedContextProvider';
+import {SubnavPanel as SubnavPortal} from 'sentry/components/sidebar/subnav';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
@@ -27,6 +29,47 @@ type SidebarAccordionProps = SidebarItemProps & {
   children?: React.ReactNode;
   initiallyExpanded?: boolean;
 };
+
+function SubnavMenu(props: SidebarAccordionProps) {
+  const {hasNewNav} = props;
+  const Component = hasNewNav ? SubnavContainer : SidebarAccordion;
+
+  return <Component {...props} />;
+}
+
+function SubnavContainer({children, hasNewNav, ...itemProps}: SidebarAccordionProps) {
+  const {id} = itemProps;
+
+  const mainItemId = `sidebar-accordion-${id}-item`;
+  const contentId = `sidebar-accordion-${id}-content`;
+  const childSidebarItems = findChildElementsInTree(children, 'SidebarItem');
+
+  const hasActiveChildren = Children.toArray(childSidebarItems).some(child => {
+    if (isValidElement(child)) {
+      return isItemActive(child.props);
+    }
+    return false;
+  });
+  const to = Children.toArray(childSidebarItems).find(child => isValidElement(child))
+    ?.props?.to;
+  const childrenWithProps = renderChildrenWithProps(children);
+
+  return (
+    <Fragment>
+      <SidebarItem
+        {...itemProps}
+        active={hasActiveChildren}
+        id={mainItemId}
+        data-test-id={mainItemId}
+        aria-expanded={false}
+        aria-owns={contentId}
+        hasNewNav={hasNewNav}
+        to={to}
+      />
+      {hasActiveChildren && <SubnavPortal>{childrenWithProps}</SubnavPortal>}
+    </Fragment>
+  );
+}
 
 function SidebarAccordion({
   children,
@@ -171,7 +214,7 @@ function SidebarAccordion({
   );
 }
 
-export {SidebarAccordion};
+export {SubnavMenu, SidebarAccordion};
 
 const renderChildrenWithProps = (children: React.ReactNode): React.ReactNode => {
   const propsToAdd: Partial<SidebarItemProps> = {
