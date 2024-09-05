@@ -34,7 +34,7 @@ class SlugsUpdateEndpoint(OrganizationEndpoint):
             name="UpdateOrgProjectSlugs",
             fields={
                 "slugs": serializers.DictField(
-                    help_text="a dictionary of project IDs to their intended slugs.", required=False
+                    help_text="A dictionary of project IDs to their intended slugs.", required=False
                 ),
             },
         ),
