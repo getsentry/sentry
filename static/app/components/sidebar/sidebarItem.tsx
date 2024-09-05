@@ -58,6 +58,10 @@ export type SidebarItemProps = {
    * Additional badge to display after label
    */
   badge?: number;
+  /**
+   * Custom tooltip title for the badge
+   */
+  badgeTitle?: string;
   className?: string;
   /**
    * Is sidebar in a collapsed state
@@ -81,6 +85,7 @@ export type SidebarItemProps = {
    * Additional badge letting users know a tab is in alpha.
    */
   isAlpha?: boolean;
+
   /**
    * Additional badge letting users know a tab is in beta.
    */
@@ -90,7 +95,6 @@ export type SidebarItemProps = {
    * Is main item in a floating accordion
    */
   isMainItem?: boolean;
-
   /**
    * Is this item nested within another item
    */
@@ -145,6 +149,7 @@ function SidebarItem({
   isMainItem,
   isOpenInFloatingSidebar,
   hasNewNav,
+  badgeTitle,
   ...props
 }: SidebarItemProps) {
   const {setExpandedItemId, shouldAccordionFloat} = useContext(ExpandedContext);
@@ -195,9 +200,9 @@ function SidebarItem({
 
   const badges = (
     <Fragment>
-      {showIsNew && <FeatureBadge type="new" variant={variant} />}
-      {isBeta && <FeatureBadge type="beta" variant={variant} />}
-      {isAlpha && <FeatureBadge type="alpha" variant={variant} />}
+      {showIsNew && <FeatureBadge type="new" variant={variant} title={badgeTitle} />}
+      {isBeta && <FeatureBadge type="beta" variant={variant} title={badgeTitle} />}
+      {isAlpha && <FeatureBadge type="alpha" variant={variant} title={badgeTitle} />}
     </Fragment>
   );
 

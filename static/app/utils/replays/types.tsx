@@ -17,6 +17,11 @@ import invariant from 'invariant';
 
 import type {HydratedA11yFrame} from 'sentry/utils/replays/hydrateA11yFrame';
 
+export type Dimensions = {
+  height: number;
+  width: number;
+};
+
 // Extracting WebVitalFrame types from TRawSpanFrame so we can document/support
 // the deprecated `nodeId` data field Moving forward, `nodeIds` is the accepted
 // field.
@@ -171,10 +176,12 @@ export function getFrameOpOrCategory(frame: ReplayFrame) {
   return val;
 }
 
-export function getNodeId(frame: ReplayFrame) {
+export function getNodeIds(frame: ReplayFrame) {
   return 'data' in frame && frame.data && 'nodeId' in frame.data
-    ? frame.data.nodeId
-    : undefined;
+    ? [frame.data.nodeId]
+    : 'data' in frame && frame.data && 'nodeIds' in frame.data
+      ? frame.data.nodeIds
+      : undefined;
 }
 
 export function isConsoleFrame(frame: BreadcrumbFrame): frame is ConsoleFrame {

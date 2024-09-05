@@ -99,7 +99,6 @@ def update_user_reports(**kwargs: Any) -> None:
                     )
                 report.update(group_id=event.group_id, environment_id=event.get_environment().id)
                 updated_reports += 1
-                metrics.incr("tasks.update_user_reports.missing_event_found")
 
         if not samples and len(reports) <= 10:
             samples = {

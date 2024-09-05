@@ -2,15 +2,15 @@ import {createMemoryHistory, Route, Router, RouterContext} from 'react-router';
 
 import {act, render} from 'sentry-test/reactTestingLibrary';
 
-import {useVisualize} from 'sentry/views/explore/hooks/useVisualize';
+import {useGroupBys} from 'sentry/views/explore/hooks/useGroupBys';
 import {RouteContext} from 'sentry/views/routeContext';
 
-describe('useVisualize', function () {
-  it('allows changing visualize function', function () {
-    let visualize, setVisualize;
+describe('useGroupBys', function () {
+  it('allows changing group bys', function () {
+    let groupBys, setGroupBys;
 
     function TestPage() {
-      [visualize, setVisualize] = useVisualize();
+      [groupBys, setGroupBys] = useGroupBys();
       return null;
     }
 
@@ -31,12 +31,12 @@ describe('useVisualize', function () {
       </Router>
     );
 
-    expect(visualize).toEqual('count(span.duration)'); // default
+    expect(groupBys).toEqual(['']); // default
 
-    act(() => setVisualize('p75(span.duration)'));
-    expect(visualize).toEqual('p75(span.duration)');
+    act(() => setGroupBys(['foo', 'bar']));
+    expect(groupBys).toEqual(['foo', 'bar']);
 
-    act(() => setVisualize('count(span.duration)'));
-    expect(visualize).toEqual('count(span.duration)');
+    act(() => setGroupBys([]));
+    expect(groupBys).toEqual(['']); // default
   });
 });
