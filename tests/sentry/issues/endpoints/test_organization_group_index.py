@@ -3920,11 +3920,12 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         assert len(response_handled_0.data) == 1
         assert int(response_handled_0.data[0]["id"]) == handled_event.group.id
 
-    def test_feedback_filtered_by_default(self, _):
+    def run_feedback_filtered_by_default_test(self, use_group_snuba_dataset: bool):
         with Feature(
             {
                 "organizations:feedback-ingest": True,
                 "organizations:feedback-visible": True,
+                "organizations:issue-search-snuba": use_group_snuba_dataset,
             }
         ):
             event = self.store_event(
@@ -3938,19 +3939,27 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
                 feedback_event, self.project.id, FeedbackCreationSource.NEW_FEEDBACK_ENVELOPE
             )
             self.login_as(user=self.user)
-            res = self.get_success_response()
+            res = self.get_success_response(useGroupSnubaDataset=use_group_snuba_dataset)
 
+        # test that the issue returned is NOT the feedback issue.
         assert len(res.data) == 1
         issue = res.data[0]
         feedback_group = Group.objects.get(type=FeedbackGroup.type_id)
         assert int(issue["id"]) != feedback_group.id
         assert issue["issueCategory"] != "feedback"
 
-    def test_feedback_filter(self, _):
+    def test_feedback_filtered_by_default_no_snuba_search(self, _):
+        self.run_feedback_filtered_by_default_test(False)
+
+    def test_feedback_filtered_by_default_use_snuba_search(self, _):
+        self.run_feedback_filtered_by_default_test(True)
+
+    def run_feedback_category_filter_test(self, use_group_snuba_dataset: bool):
         with Feature(
             {
                 "organizations:feedback-ingest": True,
                 "organizations:feedback-visible": True,
+                "organizations:issue-search-snuba": use_group_snuba_dataset,
             }
         ):
             event = self.store_event(
@@ -3964,13 +3973,22 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
                 feedback_event, self.project.id, FeedbackCreationSource.NEW_FEEDBACK_ENVELOPE
             )
             self.login_as(user=self.user)
-            res = self.get_success_response(query="issue.category:feedback")
+            res = self.get_success_response(
+                query="issue.category:feedback", useGroupSnubaDataset=use_group_snuba_dataset
+            )
 
+        # test that the issue returned IS the feedback issue.
         assert len(res.data) == 1
         issue = res.data[0]
         feedback_group = Group.objects.get(type=FeedbackGroup.type_id)
         assert int(issue["id"]) == feedback_group.id
         assert issue["issueCategory"] == "feedback"
+
+    def test_feedback_category_filter_no_snuba_search(self, _):
+        self.run_feedback_category_filter_test(False)
+
+    def test_feedback_category_filter_use_snuba_search(self, _):
+        self.run_feedback_category_filter_test(True)
 
 
 class GroupUpdateTest(APITestCase, SnubaTestCase):
