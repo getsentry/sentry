@@ -85,7 +85,8 @@ function AlertRuleIssuesList({project, rule, period, start, end, utc, cursor}: P
           const path =
             (issue as unknown as FeedbackIssue).issueType === 'feedback'
               ? {
-                  pathname: `/organizations/${organization.slug}/feedback/?feedbackSlug=${issue.project.slug}%3A${issue.id}`,
+                  pathname: `/organizations/${organization.slug}/feedback/`,
+                  query: {feedbackSlug: `${issue.project.slug}:${issue.id}`},
                 }
               : {
                   pathname: `/organizations/${organization.slug}/issues/${issue.id}/${
