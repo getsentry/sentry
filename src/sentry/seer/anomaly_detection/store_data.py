@@ -6,7 +6,6 @@ from django.core.exceptions import ValidationError
 from django.utils import timezone
 from urllib3.exceptions import MaxRetryError, TimeoutError
 
-from sentry import release_health
 from sentry.api.endpoints.organization_on_demand_metrics_estimation_stats import get_stats_generator
 from sentry.conf.server import SEER_ANOMALY_DETECTION_STORE_DATA_URL
 from sentry.incidents.models.alert_rule import AlertRule, AlertRuleStatus
