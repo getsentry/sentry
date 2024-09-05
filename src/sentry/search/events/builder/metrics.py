@@ -105,6 +105,7 @@ class MetricsQueryBuilder(BaseQueryBuilder):
         # Dataset.PerformanceMetrics is MEP. TODO: rename Dataset.Metrics to Dataset.ReleaseMetrics or similar
         dataset: Dataset | None = None,
         granularity: int | None = None,
+        time_window: int | None = None,
         config: QueryBuilderConfig | None = None,
         **kwargs: Any,
     ):
@@ -130,6 +131,8 @@ class MetricsQueryBuilder(BaseQueryBuilder):
 
         if granularity is not None:
             self._granularity = granularity
+        if time_window is not None:
+            self.time_window = time_window
 
         super().__init__(
             # TODO: defaulting to Metrics for now so I don't have to update incidents tests. Should be
@@ -1492,9 +1495,11 @@ class AlertMetricsQueryBuilder(MetricsQueryBuilder):
         self,
         *args: Any,
         granularity: int,
+        time_window: int,
         **kwargs: Any,
     ):
         self._granularity = granularity
+        self.time_window = time_window
         super().__init__(*args, **kwargs)
 
     def resolve_limit(self, limit: int | None) -> Limit | None:

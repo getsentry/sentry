@@ -2083,9 +2083,7 @@ class MetricsDatasetConfig(DatasetConfig):
             condition = base_condition
 
         default_interval = (
-            self.builder.resolve_granularity().granularity
-            if self.should_skip_interval_calculation
-            else args["interval"]
+            self.builder.time_window if self.should_skip_interval_calculation else args["interval"]
         )
 
         return Function(
