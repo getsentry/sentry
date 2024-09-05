@@ -165,15 +165,18 @@ function CustomViewsIssueListHeaderTabsContent({
   useEffect(() => {
     // If no query, sort, or viewId is present, set the first tab as the selected tab, update query accordingly
     if (!query && !sort && !viewId) {
-      navigate({
-        ...location,
-        query: {
-          ...queryParams,
-          query: draggableTabs[0].query,
-          sort: draggableTabs[0].querySort,
-          viewId: draggableTabs[0].id,
+      navigate(
+        {
+          ...location,
+          query: {
+            ...queryParams,
+            query: draggableTabs[0].query,
+            sort: draggableTabs[0].querySort,
+            viewId: draggableTabs[0].id,
+          },
         },
-      });
+        {replace: true}
+      );
       tabListState?.setSelectedKey(draggableTabs[0].key);
       return;
     }
@@ -181,30 +184,26 @@ function CustomViewsIssueListHeaderTabsContent({
     if (viewId) {
       const selectedTab = draggableTabs.find(tab => tab.id === viewId);
       if (selectedTab && query && sort) {
-        // if a viewId exists but the query and sort are not what we expected, set them as unsaved changes
-        const isCurrentQuerySortDifferentFromExistingUnsavedChanges =
-          selectedTab.unsavedChanges &&
-          (selectedTab.unsavedChanges[0] !== query ||
-            selectedTab.unsavedChanges[1] !== sort);
+        const issueSortOption = Object.values(IssueSortOptions).includes(sort)
+          ? sort
+          : IssueSortOptions.DATE;
 
-        const isCurrentQuerySortDifferentFromSelectedTabQuerySort =
-          query !== selectedTab.query || sort !== selectedTab.querySort;
+        const unsavedChanges: [string, IssueSortOptions] | undefined =
+          query === selectedTab.query && sort === selectedTab.querySort
+            ? undefined
+            : [query as string, issueSortOption];
 
-        if (
-          isCurrentQuerySortDifferentFromExistingUnsavedChanges ||
-          isCurrentQuerySortDifferentFromSelectedTabQuerySort
-        ) {
-          setDraggableTabs(
-            draggableTabs.map(tab =>
-              tab.key === selectedTab!.key
-                ? {
-                    ...tab,
-                    unsavedChanges: [query, sort],
-                  }
-                : tab
-            )
-          );
-        }
+        setDraggableTabs(
+          draggableTabs.map(tab =>
+            tab.key === selectedTab!.key
+              ? {
+                  ...tab,
+                  unsavedChanges,
+                }
+              : tab
+          )
+        );
+
         tabListState?.setSelectedKey(selectedTab.key);
         return;
       }

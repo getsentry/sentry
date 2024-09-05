@@ -2,31 +2,31 @@ import type {Replayer} from '@sentry-internal/rrweb';
 
 const DEFAULT_HIGHLIGHT_COLOR = 'rgba(168, 196, 236, 0.75)';
 
-const highlightsByNodeId: Map<number, {canvas: HTMLCanvasElement}> = new Map();
+const highlightsByNodeIds: Map<number, {canvas: HTMLCanvasElement}> = new Map();
 const highlightsBySelector: Map<string, {canvas: HTMLCanvasElement}> = new Map();
 
 type DrawProps = {annotation: string; color: string; spotlight: boolean};
 
-interface AddHighlightByNodeIdParams extends Partial<DrawProps> {
-  nodeId: number;
+interface AddHighlightByNodeIdsParams extends Partial<DrawProps> {
+  nodeIds: number[];
 }
 interface AddHighlightBySelectorParams extends Partial<DrawProps> {
   selector: string;
 }
 
-type AddHighlightParams = AddHighlightByNodeIdParams | AddHighlightBySelectorParams;
+type AddHighlightParams = AddHighlightByNodeIdsParams | AddHighlightBySelectorParams;
 
 type RemoveHighlightParams =
   | {
-      nodeId: number;
+      nodeIds: number[];
     }
   | {
       selector: string;
     };
 
 export function clearAllHighlights(replayer: Replayer) {
-  for (const nodeId of highlightsByNodeId.keys()) {
-    removeHighlightedNode(replayer, {nodeId});
+  for (const nodeId of highlightsByNodeIds.keys()) {
+    removeHighlightedNode(replayer, {nodeIds: [nodeId]});
   }
   for (const selector of highlightsBySelector.keys()) {
     removeHighlightedNode(replayer, {selector});
@@ -40,11 +40,13 @@ export function clearAllHighlights(replayer: Replayer) {
  * are creating a new canvas PER highlight.
  */
 export function removeHighlightedNode(replayer: Replayer, props: RemoveHighlightParams) {
-  if ('nodeId' in props) {
-    const highlightObj = highlightsByNodeId.get(props.nodeId);
-    if (highlightObj && replayer.wrapper.contains(highlightObj.canvas)) {
-      replayer.wrapper.removeChild(highlightObj.canvas);
-      highlightsByNodeId.delete(props.nodeId);
+  if ('nodeIds' in props) {
+    for (const nodeId of props.nodeIds) {
+      const highlightObj = highlightsByNodeIds.get(nodeId);
+      if (highlightObj && replayer.wrapper.contains(highlightObj.canvas)) {
+        replayer.wrapper.removeChild(highlightObj.canvas);
+        highlightsByNodeIds.delete(nodeId);
+      }
     }
   } else {
     const highlightObj = highlightsBySelector.get(props.selector);
@@ -62,55 +64,53 @@ export function highlightNode(replayer: Replayer, props: AddHighlightParams) {
   const {wrapper} = replayer;
   const mirror = replayer.getMirror();
 
-  const node =
-    'nodeId' in props
-      ? mirror.getNode(props.nodeId)
-      : replayer.iframe.contentDocument?.body.querySelector(props.selector);
+  const nodes =
+    'nodeIds' in props
+      ? props.nodeIds.map(nodeId => mirror.getNode(nodeId))
+      : [replayer.iframe.contentDocument?.body.querySelector(props.selector)];
 
-  // TODO(replays): There is some sort of race condition here when you "rewind" a replay,
-  // mirror will be empty and highlight does not get added because node is null
-  if (
-    !node ||
-    !('getBoundingClientRect' in node) ||
-    !replayer.iframe.contentDocument?.body?.contains(node)
-  ) {
-    return null;
+  for (const node of nodes) {
+    // TODO(replays): There is some sort of race condition here when you "rewind" a replay,
+    // mirror will be empty and highlight does not get added because node is null
+    if (
+      !node ||
+      !('getBoundingClientRect' in node) ||
+      !replayer.iframe.contentDocument?.body?.contains(node)
+    ) {
+      continue;
+    }
+
+    // Create a new canvas with the same dimensions as the iframe. We may need to
+    // revisit this strategy as we create a new canvas for every highlight. See
+    // additional notes in removeHighlight() method.
+    const element = node.nodeType === Node.ELEMENT_NODE ? (node as HTMLElement) : null;
+
+    if (!element) {
+      continue;
+    }
+
+    const canvas = document.createElement('canvas');
+    canvas.width = Number(replayer.iframe.width);
+    canvas.height = Number(replayer.iframe.height);
+    canvas.setAttribute('style', 'position:absolute;');
+
+    const boundingClientRect = element.getBoundingClientRect();
+    const drawProps = {
+      annotation: props.annotation ?? '',
+      color: props.color ?? DEFAULT_HIGHLIGHT_COLOR,
+      spotlight: props.spotlight ?? false,
+    };
+
+    drawCtx(canvas, boundingClientRect, drawProps);
+
+    if ('nodeIds' in props) {
+      highlightsByNodeIds.set(mirror.getId(node), {canvas});
+    } else {
+      highlightsBySelector.set(props.selector, {canvas});
+    }
+
+    wrapper.insertBefore(canvas, replayer.iframe);
   }
-
-  // Create a new canvas with the same dimensions as the iframe. We may need to
-  // revisit this strategy as we create a new canvas for every highlight. See
-  // additional notes in removeHighlight() method.
-  const element = node.nodeType === Node.ELEMENT_NODE ? (node as HTMLElement) : null;
-
-  if (!element) {
-    return null;
-  }
-
-  const canvas = document.createElement('canvas');
-  canvas.width = Number(replayer.iframe.width);
-  canvas.height = Number(replayer.iframe.height);
-  canvas.setAttribute('style', 'position:absolute;');
-
-  const boundingClientRect = element.getBoundingClientRect();
-  const drawProps = {
-    annotation: props.annotation ?? '',
-    color: props.color ?? DEFAULT_HIGHLIGHT_COLOR,
-    spotlight: props.spotlight ?? false,
-  };
-
-  drawCtx(canvas, boundingClientRect, drawProps);
-
-  if ('nodeId' in props) {
-    highlightsByNodeId.set(props.nodeId, {canvas});
-  } else {
-    highlightsBySelector.set(props.selector, {canvas});
-  }
-
-  wrapper.insertBefore(canvas, replayer.iframe);
-
-  return {
-    canvas,
-  };
 }
 
 function drawCtx(
