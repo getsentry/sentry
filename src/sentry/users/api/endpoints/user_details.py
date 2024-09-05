@@ -193,7 +193,7 @@ class UserDetailsEndpoint(UserEndpoint):
         """
         if "username" in request.data:
             verified_email_found = UserEmail.objects.filter(
-                user_id=user.id, email=request.data["username"], is_verified=True
+                user_id=user.id, email=request.data["email"], is_verified=True
             ).exists()
             if not verified_email_found:
                 return Response({"detail": "Verified email address is not found."}, status=400)
