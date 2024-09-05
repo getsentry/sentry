@@ -654,7 +654,7 @@ class SubscriptionProcessor:
         # before the next one then we might alert twice.
         self.update_alert_rule_stats()
 
-    def has_anomaly(self, anomaly, label: str, has_fake_anomalies: bool) -> bool:
+    def has_anomaly(self, anomaly: TimeSeriesPoint, label: str, has_fake_anomalies: bool) -> bool:
         """
         Helper function to determine whether we care about an anomaly based on the
         anomaly type and trigger type.
@@ -670,7 +670,7 @@ class SubscriptionProcessor:
             return True
         return False
 
-    def anomaly_has_confidence(self, anomaly) -> bool:
+    def anomaly_has_confidence(self, anomaly: TimeSeriesPoint) -> bool:
         """
         Helper function to determine whether we have the 7+ days of data necessary
         to detect anomalies/send alerts for dynamic alert rules.
@@ -687,9 +687,9 @@ class SubscriptionProcessor:
         )
         context = AlertInSeer(
             id=self.alert_rule.id,
-            cur_window=[
-                TimeSeriesPoint(timestamp=self.last_update.timestamp(), value=aggregation_value)
-            ],
+            cur_window=TimeSeriesPoint(
+                timestamp=self.last_update.timestamp(), value=aggregation_value
+            ),
         )
         detect_anomalies_request = DetectAnomaliesRequest(
             organization_id=self.subscription.project.organization.id,
@@ -724,7 +724,7 @@ class SubscriptionProcessor:
             return None
 
         try:
-            results = json.loads(response.data.decode("utf-8")).get("anomalies")
+            results = json.loads(response.data.decode("utf-8")).get("timeseries")
             if not results:
                 logger.warning(
                     "Seer anomaly detection response returned no potential anomalies",

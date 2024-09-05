@@ -4,12 +4,13 @@ from typing import NotRequired, TypedDict
 
 class Anomaly(TypedDict):
     anomaly_type: str
-    anomaly_value: float
+    anomaly_score: float
 
 
 class TimeSeriesPoint(TypedDict):
     timestamp: float
     value: float
+    anomaly: NotRequired[Anomaly]
 
 
 class AlertInSeer(TypedDict):
