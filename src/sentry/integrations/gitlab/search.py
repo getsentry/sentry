@@ -1,68 +1,82 @@
-from typing import TypeVar
+from typing import Any
 
+from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry.api.api_owners import ApiOwner
+from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import control_silo_endpoint
+from sentry.integrations.api.bases.integration import IntegrationEndpoint
 from sentry.integrations.gitlab.integration import GitlabIntegration
 from sentry.integrations.models.integration import Integration
-from sentry.integrations.source_code_management.issues import SourceCodeIssueIntegration
-from sentry.integrations.source_code_management.search import SourceCodeSearchEndpoint
+from sentry.organizations.services.organization import RpcOrganization
 from sentry.shared_integrations.exceptions import ApiError
-
-T = TypeVar("T", bound=SourceCodeIssueIntegration)
 
 
 @control_silo_endpoint
-class GitlabIssueSearchEndpoint(SourceCodeSearchEndpoint):
-    @property
-    def repository_field(self):
-        return "project"
+class GitlabIssueSearchEndpoint(IntegrationEndpoint):
+    owner = ApiOwner.INTEGRATIONS
+    publish_status = {
+        "GET": ApiPublishStatus.PRIVATE,
+    }
 
-    @property
-    def integration_provider(self):
-        return "gitlab"
-
-    @property
-    def installation_class(self):
-        return GitlabIntegration
-
-    def handle_search_issues(self, installation: T, query: str, repo: str) -> Response:
-        assert isinstance(installation, self.installation_class)
-        full_query: str | None = query
-
-        try:
-            iids = [int(query)]
-            full_query = None
-        except ValueError:
-            iids = None
-
-        try:
-            response = installation.search_issues(query=full_query, project_id=repo, iids=iids)
-        except ApiError as e:
-            return Response({"detail": str(e)}, status=400)
-
-        assert isinstance(response, list)
-        return Response(
-            [
-                {
-                    "label": "(#{}) {}".format(i["iid"], i["title"]),
-                    "value": "{}#{}".format(i["project_id"], i["iid"]),
-                }
-                for i in response
-            ]
-        )
-
-    def handle_search_repositories(
-        self, integration: Integration, installation: T, query: str
+    def get(
+        self, request: Request, organization: RpcOrganization, integration_id: int, **kwds: Any
     ) -> Response:
-        assert isinstance(installation, self.installation_class)
         try:
-            response = installation.search_projects(query)
-        except ApiError as e:
-            return Response({"detail": str(e)}, status=400)
-        return Response(
-            [
-                {"label": project["name_with_namespace"], "value": project["id"]}
-                for project in response
-            ]
-        )
+            integration = Integration.objects.get(
+                organizationintegration__organization_id=organization.id,
+                id=integration_id,
+                provider="gitlab",
+            )
+        except Integration.DoesNotExist:
+            return Response(status=404)
+
+        field = request.GET.get("field")
+        query = request.GET.get("query")
+        if field is None:
+            return Response({"detail": "field is a required parameter"}, status=400)
+        if query is None:
+            return Response({"detail": "query is a required parameter"}, status=400)
+
+        installation = integration.get_installation(organization.id)
+        assert isinstance(installation, GitlabIntegration), installation
+
+        if field == "externalIssue":
+            project = request.GET.get("project")
+            if project is None:
+                return Response({"detail": "project is a required parameter"}, status=400)
+            try:
+                iids = [int(query)]
+                query = None
+            except ValueError:
+                iids = None
+
+            try:
+                response = installation.search_issues(query=query, project_id=project, iids=iids)
+            except ApiError as e:
+                return Response({"detail": str(e)}, status=400)
+
+            return Response(
+                [
+                    {
+                        "label": "(#{}) {}".format(i["iid"], i["title"]),
+                        "value": "{}#{}".format(i["project_id"], i["iid"]),
+                    }
+                    for i in response
+                ]
+            )
+
+        elif field == "project":
+            try:
+                response = installation.search_projects(query)
+            except ApiError as e:
+                return Response({"detail": str(e)}, status=400)
+            return Response(
+                [
+                    {"label": project["name_with_namespace"], "value": project["id"]}
+                    for project in response
+                ]
+            )
+
+        return Response({"detail": "invalid field value"}, status=400)
