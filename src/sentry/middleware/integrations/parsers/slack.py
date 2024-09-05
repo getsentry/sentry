@@ -106,7 +106,7 @@ class SlackRequestParser(BaseRequestParser):
             ],
         }
 
-    def parse_slack_payload(self, request) -> str | None:
+    def parse_slack_payload(self, request) -> tuple[dict, str]:
         try:
             decoded_body = parse_qs(request.body.decode(encoding="utf-8"))
             payload_list = decoded_body.get("payload")
