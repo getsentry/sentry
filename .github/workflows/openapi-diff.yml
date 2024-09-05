@@ -14,7 +14,7 @@ env:
 
 jobs:
   check-diff:
-    name: build api
+    name: Fails to show the difference between the prod schema and dev schema (optional)
     runs-on: ubuntu-22.04
     timeout-minutes: 90
     steps:
