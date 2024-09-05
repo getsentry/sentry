@@ -10,7 +10,7 @@ import type {Broadcast} from 'sentry/types/system';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import useOrganization from 'sentry/utils/useOrganization';
 
-const CATEGORIES: Record<Broadcast['category'], string> = {
+const CATEGORIES: Record<NonNullable<Broadcast['category']>, string> = {
   announcement: t('Announcement'),
   feature: t('New Feature'),
   blog: t('Blog Post'),
@@ -45,16 +45,20 @@ export function BroadcastPanelItem({
     <SidebarPanelItemRoot>
       <TitleWrapper>
         <Title hasSeen={hasSeen}>{title}</Title>
-        <Badge type={!hasSeen ? 'new' : 'default'}>{CATEGORIES[category]}</Badge>
+        {category && (
+          <Badge type={!hasSeen ? 'new' : 'default'}>{CATEGORIES[category]}</Badge>
+        )}
       </TitleWrapper>
-      <ExternalLink href={link}>
-        <img
-          src={mediaUrl}
-          alt={title}
-          style={{maxWidth: '100%', marginBottom: space(1)}}
-          onClick={handlePanelClicked}
-        />
-      </ExternalLink>
+      {mediaUrl && (
+        <ExternalLink href={link}>
+          <img
+            src={mediaUrl}
+            alt={title}
+            style={{maxWidth: '100%', marginBottom: space(1)}}
+            onClick={handlePanelClicked}
+          />
+        </ExternalLink>
+      )}
       <Message>{message}</Message>
       <LinkButton
         external
