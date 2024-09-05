@@ -6,8 +6,8 @@ import {
   baseReplayerCss,
   sentryReplayerCss,
 } from 'sentry/components/replays/player/styles';
-import useReplayPlayerEvents from 'sentry/utils/replays/playback/providers/useReplayPlayerEvents';
-import useReplayPlayerPlugins from 'sentry/utils/replays/playback/providers/useReplayPlayerPlugins';
+import {useReplayPlayerEvents} from 'sentry/utils/replays/playback/providers/replayPlayerEventsContext';
+import {useReplayPlayerPlugins} from 'sentry/utils/replays/playback/providers/replayPlayerPluginsContext';
 import {
   useReplayPlayerStateDispatch,
   useReplayUserAction,

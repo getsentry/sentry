@@ -7,6 +7,7 @@ import {Button} from 'sentry/components/button';
 import {CompactSelect, type SelectOption} from 'sentry/components/compactSelect';
 import SearchBar from 'sentry/components/events/searchBar';
 import Link from 'sentry/components/links/link';
+import {SpanSearchQueryBuilder} from 'sentry/components/performance/spanSearchQueryBuilder';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -18,10 +19,10 @@ import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import useLocationQuery from 'sentry/utils/url/useLocationQuery';
 import {useLocation} from 'sentry/utils/useLocation';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
-import useRouter from 'sentry/utils/useRouter';
 import {computeAxisMax} from 'sentry/views/insights/common/components/chart';
 import DetailPanel from 'sentry/views/insights/common/components/detailPanel';
 import {MetricReadout} from 'sentry/views/insights/common/components/metricReadout';
@@ -54,7 +55,7 @@ import {useSpanFieldSupportedTags} from 'sentry/views/performance/utils/useSpanF
 import {Subtitle} from 'sentry/views/profiling/landing/styles';
 
 export function MessageSpanSamplesPanel() {
-  const router = useRouter();
+  const navigate = useNavigate();
   const location = useLocation();
   const query = useLocationQuery({
     fields: {
@@ -98,7 +99,7 @@ export function MessageSpanSamplesPanel() {
       organization,
       source: ModuleName.QUEUE,
     });
-    router.replace({
+    navigate({
       pathname: location.pathname,
       query: {
         ...location.query,
@@ -114,7 +115,7 @@ export function MessageSpanSamplesPanel() {
       organization,
       source: ModuleName.QUEUE,
     });
-    router.replace({
+    navigate({
       pathname: location.pathname,
       query: {
         ...location.query,
@@ -225,7 +226,7 @@ export function MessageSpanSamplesPanel() {
   };
 
   const handleSearch = (newSpanSearchQuery: string) => {
-    router.replace({
+    navigate({
       pathname: location.pathname,
       query: {
         ...location.query,
@@ -235,10 +236,10 @@ export function MessageSpanSamplesPanel() {
   };
 
   const handleClose = () => {
-    router.replace({
-      pathname: router.location.pathname,
+    navigate({
+      pathname: location.pathname,
       query: {
-        ...router.location.query,
+        ...location.query,
         transaction: undefined,
         transactionMethod: undefined,
       },
@@ -361,16 +362,26 @@ export function MessageSpanSamplesPanel() {
           </ModuleLayout.Full>
 
           <ModuleLayout.Full>
-            <SearchBar
-              searchSource={`${ModuleName.QUEUE}-sample-panel`}
-              query={query.spanSearchQuery}
-              onSearch={handleSearch}
-              placeholder={t('Search for span attributes')}
-              organization={organization}
-              supportedTags={supportedTags}
-              dataset={DiscoverDatasets.SPANS_INDEXED}
-              projectIds={selection.projects}
-            />
+            {organization.features.includes('search-query-builder-performance') ? (
+              <SpanSearchQueryBuilder
+                searchSource={`${ModuleName.QUEUE}-sample-panel`}
+                initialQuery={query.spanSearchQuery}
+                onSearch={handleSearch}
+                placeholder={t('Search for span attributes')}
+                projects={selection.projects}
+              />
+            ) : (
+              <SearchBar
+                searchSource={`${ModuleName.QUEUE}-sample-panel`}
+                query={query.spanSearchQuery}
+                onSearch={handleSearch}
+                placeholder={t('Search for span attributes')}
+                organization={organization}
+                supportedTags={supportedTags}
+                dataset={DiscoverDatasets.SPANS_INDEXED}
+                projectIds={selection.projects}
+              />
+            )}
           </ModuleLayout.Full>
 
           <ModuleLayout.Full>

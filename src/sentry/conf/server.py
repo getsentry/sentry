@@ -1128,12 +1128,6 @@ CELERYBEAT_SCHEDULE_REGION = {
         "schedule": crontab(minute="0", hour="12", day_of_week="sat"),
         "options": {"expires": 60 * 60 * 3},
     },
-    # "schedule-daily-organization-reports": {
-    #     "task": "sentry.tasks.summaries.daily_summary.schedule_organizations",
-    #     # Run every 1 hour on business days
-    #     "schedule": crontab(minute=0, hour="*/1", day_of_week="mon-fri"),
-    #     "options": {"expires": 60 * 60 * 3},
-    # },
     "schedule-hybrid-cloud-foreign-key-jobs": {
         "task": "sentry.tasks.deletion.hybrid_cloud.schedule_hybrid_cloud_foreign_key_jobs",
         # Run every 15 minutes

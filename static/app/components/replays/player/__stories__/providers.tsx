@@ -1,8 +1,8 @@
 import type {ReactNode} from 'react';
 
 import {StaticNoSkipReplayPreferences} from 'sentry/components/replays/preferences/replayPreferences';
-import {ReplayPlayerEventsContextProvider} from 'sentry/utils/replays/playback/providers/useReplayPlayerEvents';
-import {ReplayPlayerPluginsContextProvider} from 'sentry/utils/replays/playback/providers/useReplayPlayerPlugins';
+import {ReplayPlayerEventsContextProvider} from 'sentry/utils/replays/playback/providers/replayPlayerEventsContext';
+import {ReplayPlayerPluginsContextProvider} from 'sentry/utils/replays/playback/providers/replayPlayerPluginsContext';
 import {ReplayPlayerStateContextProvider} from 'sentry/utils/replays/playback/providers/useReplayPlayerState';
 import {ReplayPreferencesContextProvider} from 'sentry/utils/replays/playback/providers/useReplayPrefs';
 import type ReplayReader from 'sentry/utils/replays/replayReader';

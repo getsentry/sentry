@@ -15,6 +15,6 @@ export function ReplayPlayerEventsContextProvider({
   return <context.Provider value={replay.getRRWebFrames()}>{children}</context.Provider>;
 }
 
-export default function useReplayPlayerEvents() {
+export function useReplayPlayerEvents() {
   return useContext(context);
 }

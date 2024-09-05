@@ -15,14 +15,16 @@ export function ReplayPlayerPluginsContextProvider({
   const organization = useOrganization();
 
   const getter = useCallback(
-    (events: eventWithTime[]) => getPlugins(organization, events),
+    (events: eventWithTime[]) => {
+      return getPlugins(organization, events);
+    },
     [organization]
   );
 
   return <context.Provider value={getter}>{children}</context.Provider>;
 }
 
-export default function useReplayPlayerPlugins() {
+export function useReplayPlayerPlugins() {
   return useContext(context);
 }
 
