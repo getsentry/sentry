@@ -6,6 +6,7 @@ import Avatar from 'sentry/components/avatar';
 import UserAvatar from 'sentry/components/avatar/userAvatar';
 import {Button} from 'sentry/components/button';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
+import Duration from 'sentry/components/duration/duration';
 import Link from 'sentry/components/links/link';
 import PlatformIcon from 'sentry/components/replays/platformIcon';
 import ReplayPlayPauseButton from 'sentry/components/replays/replayPlayPauseButton';
@@ -29,7 +30,6 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import {browserHistory} from 'sentry/utils/browserHistory';
 import type EventView from 'sentry/utils/discover/eventView';
 import {spanOperationRelativeBreakdownRenderer} from 'sentry/utils/discover/fieldRenderers';
-import formatReplayDuration from 'sentry/utils/duration/formatReplayDuration';
 import {getShortEventId} from 'sentry/utils/events';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
@@ -526,7 +526,7 @@ export function DurationCell({replay, showDropdownFilters}: Props) {
   return (
     <Item>
       <Container>
-        <Time>{formatReplayDuration(replay.duration.asMilliseconds())}</Time>
+        <Duration duration={[replay.duration.asMilliseconds(), 'ms']} precision="sec" />
         {showDropdownFilters ? (
           <NumericDropdownFilter type="duration" val={replay.duration.asSeconds()} />
         ) : null}
@@ -696,10 +696,6 @@ const ErrorCount = styled(Count)`
   display: flex;
   align-items: center;
   gap: ${space(0.5)};
-`;
-
-const Time = styled('span')`
-  font-variant-numeric: tabular-nums;
 `;
 
 const SpanOperationBreakdown = styled('div')`

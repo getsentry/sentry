@@ -15,7 +15,7 @@ import toArray from 'sentry/utils/array/toArray';
 import {getFormattedDate} from 'sentry/utils/dates';
 import {axisLabelFormatter} from 'sentry/utils/discover/charts';
 import domId from 'sentry/utils/domId';
-import formatReplayDuration from 'sentry/utils/duration/formatReplayDuration';
+import formatDuration from 'sentry/utils/duration/formatDuration';
 import type {DomNodeChartDatapoint} from 'sentry/utils/replays/hooks/useCountDomNodes';
 
 interface Props
@@ -70,7 +70,14 @@ export default function DomNodesChart({
               ${t('Date: %s', getFormattedDate(startTimestampMs + firstValue.axisValue, 'MMM D, YYYY hh:mm:ss A z', {local: false}))}
             </div>
             <div class="tooltip-footer" style="border: none;">
-              ${t('Time within replay: %s', formatReplayDuration(firstValue.axisValue))}
+              ${t(
+                'Time within replay: %s',
+                formatDuration({
+                  duration: [firstValue.axisValue, 'ms'],
+                  precision: 'ms',
+                  style: 'hh:mm:ss.sss',
+                })
+              )}
             </div>
           <div class="tooltip-arrow"></div>
         `;
@@ -81,7 +88,12 @@ export default function DomNodesChart({
       xAxis: XAxis({
         type: 'time',
         axisLabel: {
-          formatter: (time: number) => formatReplayDuration(time),
+          formatter: (time: number) =>
+            formatDuration({
+              duration: [time, 'ms'],
+              precision: 'sec',
+              style: 'hh:mm:ss',
+            }),
         },
         theme,
       }),

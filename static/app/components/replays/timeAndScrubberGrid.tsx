@@ -3,6 +3,7 @@ import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
+import Duration from 'sentry/components/duration/duration';
 import ReplayTimeline from 'sentry/components/replays/breadcrumbs/replayTimeline';
 import {PlayerScrubber} from 'sentry/components/replays/player/scrubber';
 import useScrubberMouseTracking from 'sentry/components/replays/player/useScrubberMouseTracking';
@@ -10,7 +11,6 @@ import {useReplayContext} from 'sentry/components/replays/replayContext';
 import {IconAdd, IconSubtract} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import formatReplayDuration from 'sentry/utils/duration/formatReplayDuration';
 import useTimelineScale, {
   TimelineScaleContextProvider,
 } from 'sentry/utils/replays/hooks/useTimelineScale';
@@ -67,8 +67,9 @@ export default function TimeAndScrubberGrid({
     <TimelineScaleContextProvider>
       <Grid id="replay-timeline-player" isCompact={isCompact}>
         <Numeric style={{gridArea: 'currentTime', paddingInline: space(1.5)}}>
-          {formatReplayDuration(currentTime)}
+          <Duration duration={[currentTime, 'ms']} precision="sec" />
         </Numeric>
+
         <div style={{gridArea: 'timeline'}}>
           <ReplayTimeline />
         </div>
@@ -79,7 +80,11 @@ export default function TimeAndScrubberGrid({
           <PlayerScrubber showZoomIndicators={showZoom} />
         </StyledScrubber>
         <Numeric style={{gridArea: 'duration', paddingInline: space(1.5)}}>
-          {durationMs ? formatReplayDuration(durationMs) : '--:--'}
+          {durationMs === undefined ? (
+            '--:--'
+          ) : (
+            <Duration duration={[durationMs, 'ms']} precision="sec" />
+          )}
         </Numeric>
       </Grid>
     </TimelineScaleContextProvider>
