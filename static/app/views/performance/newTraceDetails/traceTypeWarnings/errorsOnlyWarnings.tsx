@@ -81,7 +81,7 @@ function PerformanceSetupBanner({
     return (
       <Alert type="info" showIcon>
         {tct(
-          "Some of the projects associated with this trace aren't set up for tracing so you're only getting a partial trace view. To learn how to enable tracing for all your projects, visit our [documentation].",
+          "Some of the projects associated with this trace aren't sending spans, so you're only getting a partial trace view. To learn how to enable tracing for all your projects, visit our [documentationLink].",
           {
             documentationLink: (
               <ExternalLink href="https://docs.sentry.io/product/performance/getting-started/">
