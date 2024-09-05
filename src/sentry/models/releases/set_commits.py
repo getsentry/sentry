@@ -65,118 +65,9 @@ def set_commits(release, commit_list):
             head_commit_by_repo, commit_author_by_commit = set_commits_on_release(
                 release, commit_list
             )
-    # fill any missing ReleaseHeadCommit entries
-    for repo_id, commit_id in head_commit_by_repo.items():
-        try:
-            with atomic_transaction(using=router.db_for_write(ReleaseHeadCommit)):
-                ReleaseHeadCommit.objects.create(
-                    organization_id=release.organization_id,
-                    release_id=release.id,
-                    repository_id=repo_id,
-                    commit_id=commit_id,
-                )
-        except IntegrityError:
-            pass
+    fill_in_missing_release_head_commits(release, head_commit_by_repo)
 
-    release_commits = list(
-        ReleaseCommit.objects.filter(release=release)
-        .select_related("commit")
-        .values("commit_id", "commit__key")
-    )
-
-    commit_resolutions = list(
-        GroupLink.objects.filter(
-            linked_type=GroupLink.LinkedType.commit,
-            linked_id__in=[rc["commit_id"] for rc in release_commits],
-        ).values_list("group_id", "linked_id")
-    )
-
-    commit_group_authors = [
-        (cr[0], commit_author_by_commit.get(cr[1])) for cr in commit_resolutions  # group_id
-    ]
-
-    pr_ids_by_merge_commit = list(
-        PullRequest.objects.filter(
-            merge_commit_sha__in=[rc["commit__key"] for rc in release_commits],
-            organization_id=release.organization_id,
-        ).values_list("id", flat=True)
-    )
-
-    pull_request_resolutions = list(
-        GroupLink.objects.filter(
-            relationship=GroupLink.Relationship.resolves,
-            linked_type=GroupLink.LinkedType.pull_request,
-            linked_id__in=pr_ids_by_merge_commit,
-        ).values_list("group_id", "linked_id")
-    )
-
-    pr_authors = list(
-        PullRequest.objects.filter(
-            id__in=[prr[1] for prr in pull_request_resolutions]
-        ).select_related("author")
-    )
-
-    pr_authors_dict = {pra.id: pra.author for pra in pr_authors}
-
-    pull_request_group_authors = [
-        (prr[0], pr_authors_dict.get(prr[1])) for prr in pull_request_resolutions
-    ]
-
-    user_by_author: dict[CommitAuthor | None, RpcUser | None] = {None: None}
-
-    commits_and_prs = list(itertools.chain(commit_group_authors, pull_request_group_authors))
-
-    group_project_lookup = dict(
-        Group.objects.filter(id__in=[group_id for group_id, _ in commits_and_prs]).values_list(
-            "id", "project_id"
-        )
-    )
-
-    for group_id, author in commits_and_prs:
-        if author is not None and author not in user_by_author:
-            try:
-                user_by_author[author] = author.find_users()[0]
-            except IndexError:
-                user_by_author[author] = None
-        actor = user_by_author[author]
-
-        with atomic_transaction(
-            using=(
-                router.db_for_write(GroupResolution),
-                router.db_for_write(Group),
-                # inside the remove_group_from_inbox
-                router.db_for_write(GroupInbox),
-                router.db_for_write(Activity),
-            )
-        ):
-            GroupResolution.objects.create_or_update(
-                group_id=group_id,
-                values={
-                    "release": release,
-                    "type": GroupResolution.Type.in_release,
-                    "status": GroupResolution.Status.resolved,
-                    "actor_id": actor.id if actor is not None else None,
-                },
-            )
-            group = Group.objects.get(id=group_id)
-            group.update(status=GroupStatus.RESOLVED, substatus=None)
-            remove_group_from_inbox(group, action=GroupInboxRemoveAction.RESOLVED, user=actor)
-            record_group_history(group, GroupHistoryStatus.RESOLVED, actor=actor)
-
-            metrics.incr("group.resolved", instance="in_commit", skip_internal=True)
-
-        issue_resolved.send_robust(
-            organization_id=release.organization_id,
-            user=actor,
-            group=group,
-            project=group.project,
-            resolution_type="with_commit",
-            sender=type(release),
-        )
-
-        kick_off_status_syncs.apply_async(
-            kwargs={"project_id": group_project_lookup[group_id], "group_id": group_id}
-        )
+    update_group_resolutions(release, commit_author_by_commit)
 
 
 @metrics.wraps("set_commits_on_release")
@@ -307,3 +198,120 @@ def set_commits_on_release(release, commit_list):
         last_commit_id=latest_commit.id if latest_commit else None,
     )
     return head_commit_by_repo, commit_author_by_commit
+
+
+def fill_in_missing_release_head_commits(release, head_commit_by_repo):
+    # fill any missing ReleaseHeadCommit entries
+    for repo_id, commit_id in head_commit_by_repo.items():
+        try:
+            with atomic_transaction(using=router.db_for_write(ReleaseHeadCommit)):
+                ReleaseHeadCommit.objects.create(
+                    organization_id=release.organization_id,
+                    release_id=release.id,
+                    repository_id=repo_id,
+                    commit_id=commit_id,
+                )
+        except IntegrityError:
+            pass
+
+
+def update_group_resolutions(release, commit_author_by_commit):
+    release_commits = list(
+        ReleaseCommit.objects.filter(release=release)
+        .select_related("commit")
+        .values("commit_id", "commit__key")
+    )
+
+    commit_resolutions = list(
+        GroupLink.objects.filter(
+            linked_type=GroupLink.LinkedType.commit,
+            linked_id__in=[rc["commit_id"] for rc in release_commits],
+        ).values_list("group_id", "linked_id")
+    )
+
+    commit_group_authors = [
+        (cr[0], commit_author_by_commit.get(cr[1])) for cr in commit_resolutions  # group_id
+    ]
+
+    pr_ids_by_merge_commit = list(
+        PullRequest.objects.filter(
+            merge_commit_sha__in=[rc["commit__key"] for rc in release_commits],
+            organization_id=release.organization_id,
+        ).values_list("id", flat=True)
+    )
+
+    pull_request_resolutions = list(
+        GroupLink.objects.filter(
+            relationship=GroupLink.Relationship.resolves,
+            linked_type=GroupLink.LinkedType.pull_request,
+            linked_id__in=pr_ids_by_merge_commit,
+        ).values_list("group_id", "linked_id")
+    )
+
+    pr_authors = list(
+        PullRequest.objects.filter(
+            id__in=[prr[1] for prr in pull_request_resolutions]
+        ).select_related("author")
+    )
+
+    pr_authors_dict = {pra.id: pra.author for pra in pr_authors}
+
+    pull_request_group_authors = [
+        (prr[0], pr_authors_dict.get(prr[1])) for prr in pull_request_resolutions
+    ]
+
+    user_by_author: dict[CommitAuthor | None, RpcUser | None] = {None: None}
+
+    commits_and_prs = list(itertools.chain(commit_group_authors, pull_request_group_authors))
+
+    group_project_lookup = dict(
+        Group.objects.filter(id__in=[group_id for group_id, _ in commits_and_prs]).values_list(
+            "id", "project_id"
+        )
+    )
+
+    for group_id, author in commits_and_prs:
+        if author is not None and author not in user_by_author:
+            try:
+                user_by_author[author] = author.find_users()[0]
+            except IndexError:
+                user_by_author[author] = None
+        actor = user_by_author[author]
+
+        with atomic_transaction(
+            using=(
+                router.db_for_write(GroupResolution),
+                router.db_for_write(Group),
+                # inside the remove_group_from_inbox
+                router.db_for_write(GroupInbox),
+                router.db_for_write(Activity),
+            )
+        ):
+            GroupResolution.objects.create_or_update(
+                group_id=group_id,
+                values={
+                    "release": release,
+                    "type": GroupResolution.Type.in_release,
+                    "status": GroupResolution.Status.resolved,
+                    "actor_id": actor.id if actor is not None else None,
+                },
+            )
+            group = Group.objects.get(id=group_id)
+            group.update(status=GroupStatus.RESOLVED, substatus=None)
+            remove_group_from_inbox(group, action=GroupInboxRemoveAction.RESOLVED, user=actor)
+            record_group_history(group, GroupHistoryStatus.RESOLVED, actor=actor)
+
+            metrics.incr("group.resolved", instance="in_commit", skip_internal=True)
+
+        issue_resolved.send_robust(
+            organization_id=release.organization_id,
+            user=actor,
+            group=group,
+            project=group.project,
+            resolution_type="with_commit",
+            sender=type(release),
+        )
+
+        kick_off_status_syncs.apply_async(
+            kwargs={"project_id": group_project_lookup[group_id], "group_id": group_id}
+        )
