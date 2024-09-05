@@ -141,6 +141,34 @@ class BroadcastCreateTest(APITestCase):
 
         assert response.status_code == 400, response.data
 
+        response = self.client.post(
+            "/api/0/broadcasts/",
+            {
+                "title": "bar",
+                "message": "foo",
+                "link": "http://example.com",
+                "cta": "Read More",
+                "mediaUrl": "http://example.com/image.png",
+                "category": "this is not a category",
+            },
+        )
+
+        assert response.status_code == 400, response.data
+
+        response = self.client.post(
+            "/api/0/broadcasts/",
+            {
+                "title": "bar",
+                "message": "foo",
+                "link": "http://example.com",
+                "cta": "Read More",
+                "mediaUrl": "http://example.com/image.png",
+                "category": "announcement",
+            },
+        )
+
+        assert response.status_code == 200, response.data
+
 
 @control_silo_test
 class BroadcastUpdateTest(APITestCase):

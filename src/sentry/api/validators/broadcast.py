@@ -1,5 +1,7 @@
 from rest_framework import serializers
 
+from sentry.models.broadcast import BROADCAST_CATEGORIES
+
 
 class BroadcastValidator(serializers.Serializer):
     hasSeen = serializers.BooleanField(required=False)
@@ -13,4 +15,4 @@ class AdminBroadcastValidator(BroadcastValidator):
     dateExpires = serializers.DateTimeField(required=False, allow_null=True)
     cta = serializers.CharField(max_length=256, required=True)
     mediaUrl = serializers.URLField(required=False)
-    category = serializers.CharField(max_length=64, required=False)
+    category = serializers.ChoiceField(choices=BROADCAST_CATEGORIES, required=False)
