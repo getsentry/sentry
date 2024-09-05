@@ -11,6 +11,7 @@ import {useResultMode} from 'sentry/views/explore/hooks/useResultsMode';
 import {useSampleFields} from 'sentry/views/explore/hooks/useSampleFields';
 import {useSpanFieldSupportedTags} from 'sentry/views/performance/utils/useSpanFieldSupportedTags';
 
+import {AggregatesTable} from './aggregatesTable';
 import {ColumnEditorModal} from './columnEditorModal';
 import {SpansTable} from './spansTable';
 import {TracesTable} from './tracesTable';
@@ -27,14 +28,14 @@ export function ExploreTables({}: ExploreTablesProps) {
 
   return (
     <Fragment>
-      {resultMode === 'aggregate' && <ExploreAggregateTable />}
+      {resultMode === 'aggregate' && <ExploreAggregatesTable />}
       {resultMode === 'samples' && <ExploreSamplesTable />}
     </Fragment>
   );
 }
 
-function ExploreAggregateTable() {
-  return <div>TODO: aggregate table</div>;
+function ExploreAggregatesTable() {
+  return <AggregatesTable />;
 }
 
 function ExploreSamplesTable() {
