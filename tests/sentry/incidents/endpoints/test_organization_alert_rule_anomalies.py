@@ -3,6 +3,7 @@ from unittest.mock import patch
 
 import orjson
 import pytest
+from urllib3.exceptions import TimeoutError
 from urllib3.response import HTTPResponse
 
 from sentry.conf.server import SEER_ANOMALY_DETECTION_ENDPOINT_URL
@@ -141,3 +142,135 @@ class AlertRuleAnomalyEndpointTest(AlertRuleBase, SnubaTestCase):
             )
 
         assert resp.data == []
+
+    @with_feature("organizations:anomaly-detection-alerts")
+    @with_feature("organizations:incidents")
+    @patch(
+        "sentry.seer.anomaly_detection.store_data.seer_anomaly_detection_connection_pool.urlopen"
+    )
+    @patch(
+        "sentry.seer.anomaly_detection.get_historical_anomalies.seer_anomaly_detection_connection_pool.urlopen"
+    )
+    @patch("sentry.seer.anomaly_detection.get_historical_anomalies.logger")
+    def test_timeout(self, mock_logger, mock_seer_request, mock_seer_store_request):
+        self.create_team(organization=self.organization, members=[self.user])
+        two_weeks_ago = before_now(days=14).replace(hour=10, minute=0, second=0, microsecond=0)
+        with self.options({"issues.group_attributes.send_kafka": True}):
+            self.store_event(
+                data={
+                    "event_id": "a" * 32,
+                    "message": "super duper bad",
+                    "timestamp": iso_format(two_weeks_ago + timedelta(minutes=1)),
+                    "fingerprint": ["group1"],
+                    "tags": {"sentry:user": self.user.email},
+                },
+                event_type=EventType.ERROR,
+                project_id=self.project.id,
+            )
+            self.store_event(
+                data={
+                    "event_id": "b" * 32,
+                    "message": "super bad",
+                    "timestamp": iso_format(two_weeks_ago + timedelta(days=10)),
+                    "fingerprint": ["group2"],
+                    "tags": {"sentry:user": self.user.email},
+                },
+                event_type=EventType.ERROR,
+                project_id=self.project.id,
+            )
+
+        alert_rule = self.create_alert_rule(
+            time_window=15,
+            sensitivity=AlertRuleSensitivity.MEDIUM,
+            seasonality=AlertRuleSeasonality.AUTO,
+            detection_type=AlertRuleDetectionType.DYNAMIC,
+        )
+
+        self.login_as(self.user)
+        mock_seer_store_request.return_value = HTTPResponse(status=200)
+        mock_seer_request.side_effect = TimeoutError
+        with outbox_runner():
+            resp = self.get_error_response(
+                self.organization.slug,
+                alert_rule.id,
+                qs_params={
+                    "start": str(two_weeks_ago),
+                    "end": str(two_weeks_ago + timedelta(days=12)),
+                },
+                status_code=400,
+            )
+        assert mock_seer_request.call_count == 1
+        mock_logger.exception.assert_called_with(
+            "Timeout error when hitting anomaly detection endpoint",
+            extra={
+                "subscription_id": alert_rule.snuba_query.subscriptions.first().id,
+                "dataset": alert_rule.snuba_query.dataset,
+                "organization_id": alert_rule.organization.id,
+                "project_id": self.project.id,
+                "alert_rule_id": alert_rule.id,
+            },
+        )
+        assert resp.data == "Unable to get historical anomaly data"
+
+    @with_feature("organizations:anomaly-detection-alerts")
+    @with_feature("organizations:incidents")
+    @patch(
+        "sentry.seer.anomaly_detection.store_data.seer_anomaly_detection_connection_pool.urlopen"
+    )
+    @patch(
+        "sentry.seer.anomaly_detection.get_historical_anomalies.seer_anomaly_detection_connection_pool.urlopen"
+    )
+    @patch("sentry.seer.anomaly_detection.get_historical_anomalies.logger")
+    def test_seer_error(self, mock_logger, mock_seer_request, mock_seer_store_request):
+        self.create_team(organization=self.organization, members=[self.user])
+        two_weeks_ago = before_now(days=14).replace(hour=10, minute=0, second=0, microsecond=0)
+        with self.options({"issues.group_attributes.send_kafka": True}):
+            self.store_event(
+                data={
+                    "event_id": "a" * 32,
+                    "message": "super duper bad",
+                    "timestamp": iso_format(two_weeks_ago + timedelta(minutes=1)),
+                    "fingerprint": ["group1"],
+                    "tags": {"sentry:user": self.user.email},
+                },
+                event_type=EventType.ERROR,
+                project_id=self.project.id,
+            )
+            self.store_event(
+                data={
+                    "event_id": "b" * 32,
+                    "message": "super bad",
+                    "timestamp": iso_format(two_weeks_ago + timedelta(days=10)),
+                    "fingerprint": ["group2"],
+                    "tags": {"sentry:user": self.user.email},
+                },
+                event_type=EventType.ERROR,
+                project_id=self.project.id,
+            )
+
+        alert_rule = self.create_alert_rule(
+            time_window=15,
+            sensitivity=AlertRuleSensitivity.MEDIUM,
+            seasonality=AlertRuleSeasonality.AUTO,
+            detection_type=AlertRuleDetectionType.DYNAMIC,
+        )
+
+        self.login_as(self.user)
+        mock_seer_store_request.return_value = HTTPResponse(status=200)
+        mock_seer_request.return_value = HTTPResponse("Bad stuff", status=500)
+        with outbox_runner():
+            resp = self.get_error_response(
+                self.organization.slug,
+                alert_rule.id,
+                qs_params={
+                    "start": str(two_weeks_ago),
+                    "end": str(two_weeks_ago + timedelta(days=12)),
+                },
+                status_code=400,
+            )
+        assert mock_seer_request.call_count == 1
+        mock_logger.error.assert_called_with(
+            f"Received 500 when calling Seer endpoint {SEER_ANOMALY_DETECTION_ENDPOINT_URL}.",
+            extra={"response_data": "Bad stuff"},
+        )
+        assert resp.data == "Unable to get historical anomaly data"

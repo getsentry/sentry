@@ -82,7 +82,7 @@ def get_historical_anomaly_data_from_seer(
         or alert_rule.organization is None
     ):
         # this won't happen because we've already gone through the serializer, but mypy insists
-        logger.error("Missing required configurration for an anomaly detection alert")
+        logger.error("Missing required configuration for an anomaly detection alert")
         return None
 
     anomaly_detection_config = AnomalyDetectionConfig(
