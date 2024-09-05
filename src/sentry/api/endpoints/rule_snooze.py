@@ -1,8 +1,9 @@
 import datetime
+from typing import Literal
 
 from django.contrib.auth.models import AnonymousUser
 from rest_framework import serializers, status
-from rest_framework.exceptions import PermissionDenied
+from rest_framework.exceptions import NotFound, PermissionDenied
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -20,25 +21,6 @@ from sentry.models.organizationmember import OrganizationMember
 from sentry.models.project import Project
 from sentry.models.rule import Rule
 from sentry.models.rulesnooze import RuleSnooze
-
-
-class RuleSnoozeValidator(CamelSnakeSerializer):
-    target = serializers.CharField(required=True, allow_null=False)
-    until = serializers.DateTimeField(required=False, allow_null=True)
-
-
-@register(RuleSnooze)
-class RuleSnoozeSerializer(Serializer):
-    def serialize(self, obj, attrs, user, **kwargs):
-        result = {
-            "ownerId": obj.owner_id,
-            "userId": obj.user_id or "everyone",
-            "until": obj.until or "forever",
-            "dateAdded": obj.date_added,
-            "ruleId": obj.rule_id,
-            "alertRuleId": obj.alert_rule_id,
-        }
-        return result
 
 
 def can_edit_alert_rule(organization, request):
@@ -72,25 +54,53 @@ def can_edit_alert_rule(organization, request):
     return True
 
 
+class RuleSnoozeValidator(CamelSnakeSerializer):
+    target = serializers.CharField(required=True, allow_null=False)
+    until = serializers.DateTimeField(required=False, allow_null=True)
+
+
+@register(RuleSnooze)
+class RuleSnoozeSerializer(Serializer):
+    def serialize(self, obj, attrs, user, **kwargs):
+        result = {
+            "ownerId": obj.owner_id,
+            "userId": obj.user_id or "everyone",
+            "until": obj.until or "forever",
+            "dateAdded": obj.date_added,
+            "ruleId": obj.rule_id,
+            "alertRuleId": obj.alert_rule_id,
+        }
+        return result
+
+
 @region_silo_endpoint
 class BaseRuleSnoozeEndpoint(ProjectEndpoint):
     permission_classes = (ProjectAlertRulePermission,)
+    rule_model = type[Rule] | type[AlertRule]
+    rule_field = Literal["rule", "alert_rule"]
 
-    def get_rule(self, rule_id):
+    def convert_args(self, request: Request, rule_id: int, *args, **kwargs):
+        (args, kwargs) = super().convert_args(request, *args, **kwargs)
+        project = kwargs["project"]
         try:
-            rule = self.rule_model.objects.get(id=rule_id)
+            if self.rule_model is AlertRule:
+                queryset = self.rule_model.objects.fetch_for_project(project)
+            else:
+                queryset = self.rule_model.objects.filter(project=project)
+            rule = queryset.get(id=rule_id)
         except self.rule_model.DoesNotExist:
-            raise serializers.ValidationError("Rule does not exist")
+            raise NotFound(detail="Rule does not exist")
 
-        return rule
+        kwargs["rule"] = rule
 
-    def post(self, request: Request, project: Project, rule_id) -> Response:
+        return (args, kwargs)
+
+    def post(self, request: Request, project: Project, rule: Rule | AlertRule) -> Response:
         serializer = RuleSnoozeValidator(data=request.data)
         if not serializer.is_valid():
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
         data = serializer.validated_data
-        rule = self.get_rule(rule_id)
 
         if not can_edit_alert_rule(project.organization, request):
             raise PermissionDenied(
@@ -133,7 +143,7 @@ class BaseRuleSnoozeEndpoint(ProjectEndpoint):
             user_id=request.user.id,
             organization_id=project.organization_id,
             project_id=project.id,
-            rule_id=rule_id,
+            rule_id=rule.id,
             rule_type=self.rule_field,
             target=data.get("target"),
             until=data.get("until"),
@@ -144,9 +154,7 @@ class BaseRuleSnoozeEndpoint(ProjectEndpoint):
             status=status.HTTP_201_CREATED,
         )
 
-    def delete(self, request: Request, project: Project, rule_id) -> Response:
-        rule = self.get_rule(rule_id)
-
+    def delete(self, request: Request, project: Project, rule: Rule | AlertRule) -> Response:
         # find if there is a mute for all that I can remove
         shared_snooze = None
         deletion_type = None
@@ -180,7 +188,7 @@ class BaseRuleSnoozeEndpoint(ProjectEndpoint):
                 user_id=request.user.id,
                 organization_id=project.organization_id,
                 project_id=project.id,
-                rule_id=rule_id,
+                rule_id=rule.id,
                 rule_type=self.rule_field,
                 target=deletion_type,
             )
