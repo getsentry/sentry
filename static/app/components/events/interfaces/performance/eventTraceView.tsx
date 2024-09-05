@@ -1,15 +1,14 @@
 import {useMemo} from 'react';
 import styled from '@emotion/styled';
-import qs from 'qs';
 
-import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
+import ErrorBoundary from 'sentry/components/errorBoundary';
 import {ALL_ACCESS_PROJECTS} from 'sentry/constants/pageFilters';
 import {t} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
 import {type Group, IssueCategory} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
 import EventView from 'sentry/utils/discover/eventView';
-import {decodeScalar} from 'sentry/utils/queryString';
+import {useLocation} from 'sentry/utils/useLocation';
 import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
 import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
 import {
@@ -19,7 +18,10 @@ import {
 import {useTrace} from 'sentry/views/performance/newTraceDetails/traceApi/useTrace';
 import {useTraceMeta} from 'sentry/views/performance/newTraceDetails/traceApi/useTraceMeta';
 import {useTraceRootEvent} from 'sentry/views/performance/newTraceDetails/traceApi/useTraceRootEvent';
-import type {TracePreferencesState} from 'sentry/views/performance/newTraceDetails/traceState/tracePreferences';
+import {
+  loadTraceViewPreferences,
+  type TracePreferencesState,
+} from 'sentry/views/performance/newTraceDetails/traceState/tracePreferences';
 import {TraceStateProvider} from 'sentry/views/performance/newTraceDetails/traceState/traceStateProvider';
 
 import {SpanEvidenceKeyValueList} from './spanEvidenceKeyValueList';
@@ -52,57 +54,38 @@ function EventTraceViewInner({
   projectSlug,
 }: EventTraceViewInnerProps) {
   // Assuming profile exists, should be checked in the parent component
-  const profileId = event.contexts.trace!.trace_id!;
+  const traceId = event.contexts.trace!.trace_id!;
+  const location = useLocation();
+
   const trace = useTrace({
-    traceSlug: profileId ? profileId : undefined,
+    traceSlug: traceId ? traceId : undefined,
     limit: 10000,
   });
   const rootEvent = useTraceRootEvent(trace.data ?? null);
+  const meta = useTraceMeta([{traceSlug: traceId, timestamp: undefined}]);
 
-  const meta = useTraceMeta([{traceSlug: profileId, timestamp: undefined}]);
-
-  const queryParams = useMemo(() => {
-    const normalizedParams = normalizeDateTimeParams(qs.parse(location.search), {
-      allowAbsolutePageDatetime: true,
-    });
-    const start = decodeScalar(normalizedParams.start);
-    const timestamp: string | undefined = decodeScalar(normalizedParams.timestamp);
-    const end = decodeScalar(normalizedParams.end);
-    const statsPeriod = decodeScalar(normalizedParams.statsPeriod);
-    const numberTimestamp = timestamp ? Number(timestamp) : undefined;
-
-    return {start, end, statsPeriod, timestamp: numberTimestamp, useSpans: 1};
-  }, []);
+  const preferences = useMemo(
+    () =>
+      loadTraceViewPreferences('issue-details-trace-view-preferences') ||
+      DEFAULT_ISSUE_DETAILS_TRACE_VIEW_PREFERENCES,
+    []
+  );
 
   const traceEventView = useMemo(() => {
-    const {start, end, statsPeriod, timestamp} = queryParams;
-
-    let startTimeStamp = start;
-    let endTimeStamp = end;
-
-    // If timestamp exists in the query params, we want to use it to set the start and end time
-    // with a buffer of 1.5 days, for retrieving events belonging to the trace.
-    if (typeof timestamp === 'number') {
-      const buffer = 36 * 60 * 60 * 1000; // 1.5 days in milliseconds
-      const dateFromTimestamp = new Date(timestamp * 1000);
-
-      startTimeStamp = new Date(dateFromTimestamp.getTime() - buffer).toISOString();
-      endTimeStamp = new Date(dateFromTimestamp.getTime() + buffer).toISOString();
-    }
+    const statsPeriod = location.query.statsPeriod as string | undefined;
+    // Not currently expecting start/end timestamps to be applied to this view
 
     return EventView.fromSavedQuery({
       id: undefined,
-      name: `Events with Trace ID ${profileId}`,
+      name: `Events with Trace ID ${traceId}`,
       fields: ['title', 'event.type', 'project', 'timestamp'],
       orderby: '-timestamp',
-      query: `trace:${profileId}`,
+      query: `trace:${traceId}`,
       projects: [ALL_ACCESS_PROJECTS],
       version: 2,
-      start: startTimeStamp,
-      end: endTimeStamp,
-      range: !(startTimeStamp || endTimeStamp) ? statsPeriod : undefined,
+      range: statsPeriod,
     });
-  }, [queryParams, profileId]);
+  }, [location.query.statsPeriod, traceId]);
 
   if (trace.isPending || rootEvent.isPending || !rootEvent.data) {
     return null;
@@ -112,7 +95,7 @@ function EventTraceViewInner({
     <InterimSection type={SectionKey.TRACE} title={t('Trace Preview')}>
       <SpanEvidenceKeyValueList event={rootEvent.data} projectSlug={projectSlug} />
       <TraceStateProvider
-        initialPreferences={DEFAULT_ISSUE_DETAILS_TRACE_VIEW_PREFERENCES}
+        initialPreferences={preferences}
         preferencesStorageKey="issue-details-view-preferences"
       >
         <TraceViewWaterfallWrapper>
@@ -149,7 +132,10 @@ export function EventTraceView({
   }
 
   const hasProfilingFeature = organization.features.includes('profiling');
-  if (!hasProfilingFeature) {
+  const hasIssueDetailsTrace = organization.features.includes(
+    'issue-details-always-show-trace'
+  );
+  if (!hasProfilingFeature || !hasIssueDetailsTrace) {
     return null;
   }
 
@@ -159,11 +145,13 @@ export function EventTraceView({
   }
 
   return (
-    <EventTraceViewInner
-      event={event}
-      organization={organization}
-      projectSlug={projectSlug}
-    />
+    <ErrorBoundary mini>
+      <EventTraceViewInner
+        event={event}
+        organization={organization}
+        projectSlug={projectSlug}
+      />
+    </ErrorBoundary>
   );
 }
 
