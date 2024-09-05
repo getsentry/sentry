@@ -1,34 +1,53 @@
 from django.core.exceptions import ValidationError
 from django.db import IntegrityError, router, transaction
+from drf_spectacular.utils import OpenApiResponse, extend_schema, inline_serializer
+from rest_framework import serializers
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.api.exceptions import ConflictError
 from sentry.api.helpers.slugs import validate_sentry_slug
+from sentry.apidocs.constants import RESPONSE_FORBIDDEN
+from sentry.apidocs.examples.organization_examples import OrganizationExamples
+from sentry.apidocs.parameters import GlobalParams
+from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.models.project import Project
 from sentry.utils.snowflake import MaxSnowflakeRetryError
 
 
+@extend_schema(tags=["Organizations"])
 @region_silo_endpoint
 class SlugsUpdateEndpoint(OrganizationEndpoint):
+    owner = ApiOwner.UNOWNED
     publish_status = {
-        "PUT": ApiPublishStatus.UNKNOWN,
+        "PUT": ApiPublishStatus.PUBLIC,
     }
 
+    @extend_schema(
+        operation_id="Update an Origanization's Project Slugs",
+        parameters=[GlobalParams.ORG_ID_OR_SLUG],
+        request=inline_serializer(
+            name="UpdateOrgProjectSlugs",
+            fields={
+                "slugs": serializers.DictField(
+                    help_text="a dictionary of project IDs to their intended slugs.", required=False
+                ),
+            },
+        ),
+        responses={
+            200: inline_sentry_response_serializer("SlugsUpdateResponse", list[str]),
+            400: OpenApiResponse(description="Duplicate slugs"),
+            403: RESPONSE_FORBIDDEN,
+        },
+        examples=OrganizationExamples.UPDATE_PROJ_SLUGS,
+    )
     def put(self, request: Request, organization) -> Response:
         """
-        Update Project Slugs
-        ````````````````````
-
-        Updates the slugs of projects within the organization.
-
-        :pparam string organization_id_or_slug: the id or slug of the organization the
-                                          short ID should be looked up in.
-        :param slugs: a dictionary of project IDs to their intended slugs.
-        :auth: required
+        Update an organization's project slugs.
         """
         slugs = request.data.get("slugs", {})
         for project_id, slug in slugs.items():

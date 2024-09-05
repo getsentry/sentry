@@ -1084,3 +1084,12 @@ class OrganizationExamples:
             response_only=True,
         )
     ]
+
+    UPDATE_PROJ_SLUGS = [
+        OpenApiExample(
+            "Update an org's project slugs",
+            value={"updated_slugs": {"1": "cool_slug", "2": "cooler_slug"}},
+            status_codes=["200"],
+            response_only=True,
+        )
+    ]
