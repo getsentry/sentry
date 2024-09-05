@@ -327,7 +327,7 @@ function MetricWidgetViewerModal({
         <Body>
           <Alert type="error" showIcon>
             {t(
-              'This widget will stop working on October 7th, 2024. The Metrics beta will end and we will retire the current solution.'
+              'This widget will stop working after October 7th, 2024. The Metrics beta will end and we will retire the current solution.'
             )}
           </Alert>
           <Queries
