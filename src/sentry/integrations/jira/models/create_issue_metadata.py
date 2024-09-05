@@ -51,16 +51,6 @@ class JiraSchema:
     non-aggregate types, this will be None
     """
 
-    __jira_schema_parameter_map = frozenset(
-        [
-            ("type", "type"),
-            ("custom", "custom"),
-            ("custom_id", "custom_id"),
-            ("system", "system"),
-            ("items", "items"),
-        ]
-    )
-
     @classmethod
     def from_dict(cls, data: dict[str, Any]) -> "JiraSchema":
         schema_type = data["type"]
@@ -119,6 +109,16 @@ class JiraField:
     @classmethod
     def from_dict_list(cls, data: dict[str, dict[str, Any]]) -> dict[str, "JiraField"]:
         return {key: cls.from_dict(val) for key, val in data.items()}
+
+    def get_field_type(self) -> JiraSchemaTypes | None:
+        type: str | None = self.schema.schema_type
+        if type == JiraSchemaTypes.array:
+            type = self.schema.items
+
+        if type not in JiraSchemaTypes:
+            return None
+
+        return JiraSchemaTypes(type)
 
 
 @dataclass(frozen=True)
