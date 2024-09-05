@@ -25,6 +25,7 @@ from django.views.generic import View
 from rest_framework.request import Request
 
 from sentry import options
+from sentry.api.exceptions import DataSecrecyError
 from sentry.api.utils import is_member_disabled_from_limit
 from sentry.auth import access
 from sentry.auth.superuser import is_active_superuser
@@ -380,7 +381,10 @@ class BaseView(View, OrganizationMixin):
 
         args, kwargs = self.convert_args(request, *args, **kwargs)
 
-        request.access = self.get_access(request, *args, **kwargs)
+        try:
+            request.access = self.get_access(request, *args, **kwargs)
+        except DataSecrecyError:
+            return render_to_response("sentry/data-secrecy.html", status=403, request=request)
 
         if not self.has_permission(request, *args, **kwargs):
             return self.handle_permission_required(request, *args, **kwargs)
