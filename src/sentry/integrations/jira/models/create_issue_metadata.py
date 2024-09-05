@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from dataclasses import dataclass
 from enum import Enum
 from typing import Any
@@ -52,7 +54,7 @@ class JiraSchema:
     """
 
     @classmethod
-    def from_dict(cls, data: dict[str, Any]) -> "JiraSchema":
+    def from_dict(cls, data: dict[str, Any]) -> JiraSchema:
         schema_type = data["type"]
         custom = data.get("custom")
         custom_id = data.get("custom_id")
@@ -64,7 +66,7 @@ class JiraSchema:
         )
 
     @classmethod
-    def from_dict_list(cls, data: list[dict[str, Any]]) -> list["JiraSchema"]:
+    def from_dict_list(cls, data: list[dict[str, Any]]) -> list[JiraSchema]:
         return [cls.from_dict(item) for item in data]
 
 
@@ -87,7 +89,7 @@ class JiraField:
         return self.schema.custom is not None
 
     @classmethod
-    def from_dict(cls, data: dict[str, Any]) -> "JiraField":
+    def from_dict(cls, data: dict[str, Any]) -> JiraField:
         required = data["required"]
         name = data["name"]
         key = data["key"]
@@ -107,7 +109,7 @@ class JiraField:
         )
 
     @classmethod
-    def from_dict_list(cls, data: dict[str, dict[str, Any]]) -> dict[str, "JiraField"]:
+    def from_dict_list(cls, data: dict[str, dict[str, Any]]) -> dict[str, JiraField]:
         return {key: cls.from_dict(val) for key, val in data.items()}
 
     def get_field_type(self) -> JiraSchemaTypes | None:
@@ -132,7 +134,7 @@ class JiraIssueTypeMetadata:
     fields: dict[str, JiraField]
 
     @classmethod
-    def from_dict(cls, data: dict[str, Any]) -> "JiraIssueTypeMetadata":
+    def from_dict(cls, data: dict[str, Any]) -> JiraIssueTypeMetadata:
         jira_id = data["id"]
         description = data["description"]
         name = data["name"]
@@ -154,7 +156,7 @@ class JiraIssueTypeMetadata:
         )
 
     @classmethod
-    def from_jira_meta_config(cls, meta_config: dict[str, Any]) -> list["JiraIssueTypeMetadata"]:
+    def from_jira_meta_config(cls, meta_config: dict[str, Any]) -> list[JiraIssueTypeMetadata]:
         issue_types_list = meta_config.get("issuetypes", {})
         issue_configs = [cls.from_dict(it) for it in issue_types_list]
 
