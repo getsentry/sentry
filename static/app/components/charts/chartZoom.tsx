@@ -1,4 +1,5 @@
 import {Component} from 'react';
+import * as Sentry from '@sentry/react';
 import type {
   DataZoomComponentOption,
   ECharts,
@@ -108,7 +109,7 @@ class ChartZoom extends Component<Props> {
   }
 
   chart?: ECharts;
-  $chart?: HTMLDivElement;
+  $chart?: Element;
   isCancellingZoom?: boolean;
   history: Period[];
   currentPeriod?: Period;
@@ -200,11 +201,15 @@ class ChartZoom extends Component<Props> {
     // The DOM element is also available via chart._dom but TypeScript hates that, since
     // _dom is technically private. Instead, use `querySelector` to get the element
     this.chart = chart;
-    this.$chart = document.querySelector(
-      `div[_echarts_instance_="${chart.id}"]`
-    ) as HTMLDivElement;
 
-    this.$chart.addEventListener('mousedown', this.handleMouseDown);
+    const $chart = document.querySelector(`div[_echarts_instance_="${chart.id}"]`);
+
+    if ($chart) {
+      $chart.addEventListener('mousedown', this.handleMouseDown);
+      this.$chart = $chart;
+    } else {
+      Sentry.captureException(new Error(`No DOM element for chart with ID ${chart.id}`));
+    }
   };
 
   handleKeyDown = evt => {
