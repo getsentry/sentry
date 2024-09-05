@@ -1,8 +1,6 @@
-from __future__ import annotations
-
 from collections.abc import Mapping
 from datetime import datetime
-from typing import TYPE_CHECKING, Any, TypedDict, cast
+from typing import Any, TypedDict, cast
 
 from sentry.api.serializers import Serializer, register
 from sentry.auth.authenticators.base import AuthenticatorInterface
@@ -10,11 +8,13 @@ from sentry.auth.authenticators.recovery_code import RecoveryCodeInterface
 from sentry.auth.authenticators.sms import SmsInterface
 from sentry.auth.authenticators.totp import TotpInterface
 from sentry.auth.authenticators.u2f import U2fInterface
+from sentry.users.models.user import User
 
-if TYPE_CHECKING:
-    from django.utils.functional import _StrOrPromise
 
-    from sentry.users.models.user import User
+def get_interface_serializer(interface: AuthenticatorInterface) -> AuthenticatorInterface:
+    if isinstance(interface, SmsInterface):
+        return SmsInterfaceSerializer()
+    return AuthenticatorInterfaceSerializer()
 
 
 class EnrolledAuthenticatorInterfaceSerializerResponse(TypedDict, total=False):
@@ -25,12 +25,12 @@ class EnrolledAuthenticatorInterfaceSerializerResponse(TypedDict, total=False):
 
 class AuthenticatorInterfaceSerializerResponse(EnrolledAuthenticatorInterfaceSerializerResponse):
     id: str
-    name: _StrOrPromise
-    description: _StrOrPromise
-    rotationWarning: _StrOrPromise | None
-    enrollButton: _StrOrPromise
-    configureButton: _StrOrPromise
-    removeButton: _StrOrPromise | None
+    name: str
+    description: str
+    rotationWarning: str
+    enrollButton: str
+    configureButton: str
+    removeButton: str
     isBackupInterface: bool
     isEnrolled: bool
     disallowNewEnrollment: bool
@@ -51,12 +51,12 @@ class AuthenticatorInterfaceSerializer(Serializer):
     ) -> AuthenticatorInterfaceSerializerResponse:
         data: AuthenticatorInterfaceSerializerResponse = {
             "id": str(obj.interface_id),
-            "name": obj.name,
-            "description": obj.description,
-            "rotationWarning": obj.rotation_warning,
-            "enrollButton": obj.enroll_button,
-            "configureButton": obj.configure_button,
-            "removeButton": obj.remove_button,
+            "name": str(obj.name),
+            "description": str(obj.description),
+            "rotationWarning": str(obj.rotation_warning),
+            "enrollButton": str(obj.enroll_button),
+            "configureButton": str(obj.configure_button),
+            "removeButton": str(obj.remove_button),
             "isBackupInterface": obj.is_backup_interface,
             "isEnrolled": obj.is_enrolled(),
             "disallowNewEnrollment": obj.disallow_new_enrollment,
