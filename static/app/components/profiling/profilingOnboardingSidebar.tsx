@@ -19,6 +19,8 @@ import {SidebarPanelKey} from 'sentry/components/sidebar/types';
 import {ALL_ACCESS_PROJECTS} from 'sentry/constants/pageFilters';
 import platforms from 'sentry/data/platforms';
 import {t} from 'sentry/locale';
+import ConfigStore from 'sentry/stores/configStore';
+import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import {space} from 'sentry/styles/space';
 import type {SelectValue} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
@@ -225,6 +227,7 @@ function ProfilingOnboardingContent(props: ProfilingOnboardingContentProps) {
     projSlug: props.projectSlug,
     platform: props.platform,
   });
+  const {isSelfHosted, urlPrefix} = useLegacyStore(ConfigStore);
 
   if (isLoading) {
     return <LoadingIndicator />;
@@ -282,6 +285,8 @@ function ProfilingOnboardingContent(props: ProfilingOnboardingContentProps) {
      * Page where the docs will be rendered
      */
     docsLocation: DocsPageLocation.PROFILING_PAGE,
+    urlPrefix,
+    isSelfHosted,
   };
 
   const steps = [
