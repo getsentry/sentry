@@ -687,9 +687,9 @@ class SubscriptionProcessor:
         )
         context = AlertInSeer(
             id=self.alert_rule.id,
-            cur_window=[
-                TimeSeriesPoint(timestamp=self.last_update.timestamp(), value=aggregation_value)
-            ],
+            cur_window=TimeSeriesPoint(
+                timestamp=self.last_update.timestamp(), value=aggregation_value
+            ),
         )
         detect_anomalies_request = DetectAnomaliesRequest(
             organization_id=self.subscription.project.organization.id,
