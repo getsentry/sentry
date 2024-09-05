@@ -1,5 +1,5 @@
 ---
-created: '2024-09-05T14:04:58.161085+00:00'
+created: '2024-09-06T11:30:48.515183+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -20,7 +20,7 @@ app:
           frame (non app frame)
             function*
               "UIApplicationMain"
-          frame (marked as prefix frame by stack trace rule (category:ui +sentinel +prefix))
+          frame (non app frame)
             function*
               "-[UIApplication _run]"
           frame (non app frame)
@@ -64,7 +64,7 @@ app:
               "<compiler-generated>"
             function*
               "TableView.layoutSubviews"
-          frame (marked as prefix frame by stack trace rule (category:ui +sentinel +prefix))
+          frame (non app frame)
             function*
               "-[UITableView layoutSubviews]"
           frame (non app frame)
@@ -165,7 +165,7 @@ system:
           frame (ignored by stack trace rule (category:threadbase -group v-group))
             function*
               "UIApplicationMain"
-          frame* (marked as prefix frame by stack trace rule (category:ui +sentinel +prefix))
+          frame*
             function*
               "-[UIApplication _run]"
           frame (ignored by stack trace rule (category:internals -group))
@@ -209,7 +209,7 @@ system:
               "<compiler-generated>"
             function*
               "TableView.layoutSubviews"
-          frame* (marked as prefix frame by stack trace rule (category:ui +sentinel +prefix))
+          frame*
             function*
               "-[UITableView layoutSubviews]"
           frame (ignored by stack trace rule (category:internals -group))
