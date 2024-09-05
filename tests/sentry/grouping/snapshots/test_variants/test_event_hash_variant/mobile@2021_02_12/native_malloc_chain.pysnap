@@ -1,5 +1,5 @@
 ---
-created: '2024-08-27T12:08:35.515349+00:00'
+created: '2024-09-04T19:48:05.769884+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -56,7 +56,7 @@ app-depth-max:
           "Fatal Error: EXC_BAD_INSTRUCTION / EXC_I386_INVOP"
 --------------------------------------------------------------------------
 system:
-  hash: "d3c9685e03a527da49fc79412c994997"
+  hash: "3ff01ce959249abecc6bc8a8f1432b0b"
   component:
     system*
       exception*
@@ -89,7 +89,7 @@ system:
               "nanov2_allocate_from_block.cold.1"
             package (ignored because function takes precedence)
               "libsystem_malloc.dylib"
-        type*
+        type (ignored because exception is synthetic)
           "EXC_BAD_INSTRUCTION / EXC_I386_INVOP"
         value (ignored because stacktrace takes precedence)
           "Fatal Error: EXC_BAD_INSTRUCTION / EXC_I386_INVOP"

@@ -8,7 +8,6 @@ from typing import TYPE_CHECKING, TypedDict
 import sentry_sdk
 
 from sentry import options
-from sentry.db.models.fields.node import NodeData
 from sentry.grouping.component import GroupingComponent
 from sentry.grouping.enhancer import LATEST_VERSION, Enhancements
 from sentry.grouping.enhancer.exceptions import InvalidEnhancerConfig
@@ -33,7 +32,6 @@ from sentry.grouping.variants import (
     SaltedComponentVariant,
 )
 from sentry.models.grouphash import GroupHash
-from sentry.utils.safe import get_path
 
 if TYPE_CHECKING:
     from sentry.eventstore.models import Event
@@ -42,25 +40,6 @@ if TYPE_CHECKING:
     from sentry.models.project import Project
 
 HASH_RE = re.compile(r"^[0-9a-f]{32}$")
-
-# Synthetic exceptions should be marked by the SDK, but
-# are also detected here as a fallback
-_synthetic_exception_type_re = re.compile(
-    r"""
-    ^
-    (
-        EXC_ |
-        EXCEPTION_ |
-        SIG |
-        KERN_ |
-        ILL_
-
-    # e.g. "EXC_BAD_ACCESS / 0x00000032"
-    ) [A-Z0-9_ /x]+
-    $
-    """,
-    re.X,
-)
 
 
 @dataclass
@@ -417,23 +396,3 @@ def sort_grouping_variants(variants: dict[str, BaseVariant]) -> tuple[KeyedVaria
     )
 
     return flat_variants, hierarchical_variants
-
-
-def detect_synthetic_exception(event_data: NodeData, loaded_grouping_config: StrategyConfiguration):
-    """Detect synthetic exception and write marker to event data
-
-    This only runs if detect_synthetic_exception_types is True, so
-    it is effectively only enabled for grouping strategy mobile:2021-04-02.
-
-    """
-    should_detect = loaded_grouping_config.initial_context["detect_synthetic_exception_types"]
-    if not should_detect:
-        return
-
-    for exception in get_path(event_data, "exception", "values", filter=True, default=[]):
-        mechanism = get_path(exception, "mechanism")
-        # Only detect if undecided:
-        if mechanism is not None and mechanism.get("synthetic") is None:
-            exception_type = exception.get("type")
-            if exception_type and _synthetic_exception_type_re.match(exception_type):
-                mechanism["synthetic"] = True

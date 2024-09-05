@@ -1,5 +1,5 @@
 ---
-created: '2024-08-27T12:08:36.077336+00:00'
+created: '2024-09-04T19:48:06.306650+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -93,7 +93,7 @@ app-depth-max:
           "Fatal Error: EXCEPTION_ACCESS_VIOLATION_WRITE"
 --------------------------------------------------------------------------
 system:
-  hash: "c75e8a96cb616fe8a9a45e384e6607c5"
+  hash: "3df8bc242dfdc7460b42fa529422630f"
   component:
     system*
       exception*
@@ -123,7 +123,7 @@ system:
               "main.cpp"
             function*
               "`anonymous namespace'::crash"
-        type*
+        type (ignored because exception is synthetic)
           "EXCEPTION_ACCESS_VIOLATION_WRITE"
         value (ignored because stacktrace takes precedence)
           "Fatal Error: EXCEPTION_ACCESS_VIOLATION_WRITE"

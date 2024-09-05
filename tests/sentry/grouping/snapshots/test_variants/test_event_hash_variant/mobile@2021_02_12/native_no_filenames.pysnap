@@ -1,5 +1,5 @@
 ---
-created: '2024-08-27T12:08:35.413103+00:00'
+created: '2024-09-04T19:48:05.673960+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -119,7 +119,7 @@ app-depth-max:
           "Holy shit everything is on fire!"
 --------------------------------------------------------------------------
 system:
-  hash: "ef1b58eb2e70ff452c576019ee8481bd"
+  hash: "a12f03cf6be0c16305a3c6c5c69538e8"
   component:
     system*
       exception*
@@ -188,7 +188,7 @@ system:
               "<redacted>"
             package* (used as fallback because function name is not available)
               "something"
-        type*
+        type (ignored because exception is synthetic)
           "log_demo"
         value (ignored because stacktrace takes precedence)
           "Holy shit everything is on fire!"

@@ -1,5 +1,5 @@
 ---
-created: '2024-08-27T12:08:34.326561+00:00'
+created: '2024-09-04T19:48:04.677151+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -75,7 +75,7 @@ app-depth-max:
           "Fatal Error: EXC_BAD_ACCESS / KERN_INVALID_ADDRESS"
 --------------------------------------------------------------------------
 system:
-  hash: "146b5a5d622c46da1ab5378130886b5e"
+  hash: "2c1bbd635b64d5adccdb64a620044075"
   component:
     system*
       exception*
@@ -180,7 +180,7 @@ system:
           frame (ignored by stack trace rule (category:internals -group))
             function*
               "_INTERNAL34b3029b::`anonymous namespace'::Convert4444_8uTo4444_32f<T>"
-        type*
+        type (ignored because exception is synthetic)
           "EXC_BAD_ACCESS / KERN_INVALID_ADDRESS"
         value (ignored because stacktrace takes precedence)
           "Fatal Error: EXC_BAD_ACCESS / KERN_INVALID_ADDRESS"

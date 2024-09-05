@@ -1,10 +1,10 @@
 ---
-created: '2024-08-27T12:08:36.091122+00:00'
+created: '2024-09-04T19:48:06.320222+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
 app-depth-1:
-  hash: "aeed765d29d1a60cb094f66d2cd8efb2"
+  hash: "7a27b32c35e07797b661254b7acbc610"
   component:
     app-depth-1*
       exception*
@@ -12,13 +12,13 @@ app-depth-1:
           frame*
             function*
               "stripped_application_code"
-        type (ignored because exception is synthetic)
+        type*
           "SIGABRT"
         value (ignored because stacktrace takes precedence)
           "<redacted>"
 --------------------------------------------------------------------------
 app-depth-2:
-  hash: "03195849378c2d0057736e05eb9226af"
+  hash: "f6ed682eeae96b64daee672bd741880f"
   component:
     app-depth-2*
       exception*
@@ -40,13 +40,13 @@ app-depth-2:
           frame* (marked as prefix frame by stack trace rule (category:throw +prefix ^-group))
             function*
               "abort"
-        type (ignored because exception is synthetic)
+        type*
           "SIGABRT"
         value (ignored because stacktrace takes precedence)
           "<redacted>"
 --------------------------------------------------------------------------
 app-depth-3:
-  hash: "aef58de07534b583f7a4bbc9c5201ebf"
+  hash: "804f08432027d0246c7e7bda086f6c15"
   component:
     app-depth-3*
       exception*
@@ -71,13 +71,13 @@ app-depth-3:
           frame* (marked as prefix frame by stack trace rule (category:throw +prefix ^-group))
             function*
               "abort"
-        type (ignored because exception is synthetic)
+        type*
           "SIGABRT"
         value (ignored because stacktrace takes precedence)
           "<redacted>"
 --------------------------------------------------------------------------
 app-depth-max:
-  hash: "aef58de07534b583f7a4bbc9c5201ebf"
+  hash: "804f08432027d0246c7e7bda086f6c15"
   component:
     app-depth-max*
       exception*
@@ -102,7 +102,7 @@ app-depth-max:
           frame* (marked as prefix frame by stack trace rule (category:throw +prefix ^-group))
             function*
               "abort"
-        type (ignored because exception is synthetic)
+        type*
           "SIGABRT"
         value (ignored because stacktrace takes precedence)
           "<redacted>"
