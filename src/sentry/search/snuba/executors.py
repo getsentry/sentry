@@ -1845,7 +1845,7 @@ class GroupAttributesPostgresSnubaQueryExecutor(PostgresSnubaQueryExecutor):
                     )
                 else:
                     all_group_type_objs: list[GroupType] = [
-                        gt_registry.get_group_type_by_type_id(id)
+                        gt_registry.get_by_type_id(id)
                         for id in gt_registry.get_all_group_type_ids()
                     ]
                     hidden_group_type_ids = [
