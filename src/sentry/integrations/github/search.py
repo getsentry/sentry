@@ -47,7 +47,6 @@ class GithubSharedSearchEndpoint(SourceCodeSearchEndpoint):
             ]
         )
 
-    # TODO: somehow type installation with installation_class
     def handle_search_repositories(
         self, integration: Integration, installation: T, query: str
     ) -> Response:
