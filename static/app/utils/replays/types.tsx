@@ -17,6 +17,11 @@ import invariant from 'invariant';
 
 import type {HydratedA11yFrame} from 'sentry/utils/replays/hydrateA11yFrame';
 
+export type Dimensions = {
+  height: number;
+  width: number;
+};
+
 // Extracting WebVitalFrame types from TRawSpanFrame so we can document/support
 // the deprecated `nodeId` data field Moving forward, `nodeIds` is the accepted
 // field.

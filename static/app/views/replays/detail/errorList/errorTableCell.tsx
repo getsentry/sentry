@@ -206,7 +206,7 @@ const ErrorTableCell = forwardRef<HTMLDivElement, Props>(
         <Cell {...columnProps} numeric>
           <ButtonWrapper>
             <TimestampButton
-              format="mm:ss"
+              precision="sec"
               onClick={event => {
                 event.stopPropagation();
                 onClickTimestamp(frame);
