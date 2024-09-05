@@ -7,6 +7,7 @@ from .commitauthor import *  # noqa: F401,F403
 from .discoversavedquery import *  # noqa: F401,F403
 from .group import *  # noqa: F401,F403
 from .grouphash import *  # noqa: F401,F403
+from .grouphistory import *  # noqa: F401,F403
 from .monitor import *  # noqa: F401,F403
 from .monitor_environment import *  # noqa: F401,F403
 from .organization import *  # noqa: F401,F403

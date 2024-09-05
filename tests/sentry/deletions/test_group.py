@@ -9,6 +9,7 @@ from sentry.models.files.file import File
 from sentry.models.group import Group
 from sentry.models.groupassignee import GroupAssignee
 from sentry.models.grouphash import GroupHash
+from sentry.models.grouphistory import GroupHistory, GroupHistoryStatus
 from sentry.models.groupmeta import GroupMeta
 from sentry.models.groupredirect import GroupRedirect
 from sentry.models.userreport import UserReport
@@ -124,6 +125,39 @@ class DeleteGroupTest(TestCase, SnubaTestCase):
 
         assert Group.objects.filter(id=self.keep_event.group_id).exists()
         assert nodestore.backend.get(keep_node_id)
+
+    def test_grouphistory_relation(self):
+        other_event = self.store_event(
+            data={
+                "event_id": "d" * 32,
+                "timestamp": iso_format(before_now(minutes=1)),
+                "fingerprint": ["group3"],
+            },
+            project_id=self.project.id,
+        )
+        other_group = other_event.group
+        group = self.event.group
+        history_one = self.create_group_history(group=group, status=GroupHistoryStatus.ONGOING)
+        history_two = self.create_group_history(
+            group=group,
+            status=GroupHistoryStatus.RESOLVED,
+            prev_history=history_one,
+        )
+        other_history_one = self.create_group_history(
+            group=other_group, status=GroupHistoryStatus.ONGOING
+        )
+        other_history_two = self.create_group_history(
+            group=other_group,
+            status=GroupHistoryStatus.RESOLVED,
+            prev_history=other_history_one,
+        )
+        with self.tasks():
+            delete_groups(object_ids=[group.id, other_group.id])
+
+        assert GroupHistory.objects.filter(id=history_one.id).exists() is False
+        assert GroupHistory.objects.filter(id=history_two.id).exists() is False
+        assert GroupHistory.objects.filter(id=other_history_one.id).exists() is False
+        assert GroupHistory.objects.filter(id=other_history_two.id).exists() is False
 
     @mock.patch("os.environ.get")
     @mock.patch("sentry.nodestore.delete_multi")
