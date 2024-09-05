@@ -1,147 +1,131 @@
 ---
-created: '2024-09-05T13:39:10.604314+00:00'
+created: '2024-09-06T11:28:13.448806+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
-app-depth-1:
-  hash: "aeed765d29d1a60cb094f66d2cd8efb2"
+app:
+  hash: null
   component:
-    app-depth-1*
-      exception*
-        stacktrace*
-          frame*
+    app (exception of system takes precedence)
+      exception (ignored because this variant does not have a contributing stacktrace, but the system variant does)
+        stacktrace
+          frame (non app frame)
+            function*
+              "RtlUserThreadStart"
+          frame (non app frame)
+            function*
+              "BaseThreadInitThunk"
+          frame (non app frame)
+            function*
+              "TppWorkerThread"
+          frame (non app frame)
+            function*
+              "RtlpTpWorkCallback"
+          frame (non app frame)
             function*
               "stripped_application_code"
-        type (ignored because exception is synthetic)
-          "0x40000015 / 0x00000001"
-        value (ignored because stacktrace takes precedence)
-          "Fatal Error: <hex> / <hex>"
---------------------------------------------------------------------------
-app-depth-2:
-  hash: "3cd20dc9b7e7fea3e8575c7cae7b76c2"
-  component:
-    app-depth-2*
-      exception*
-        stacktrace*
-          frame*
+          frame (non app frame)
             function*
               "stripped_application_code"
-          frame*
+          frame (non app frame)
             function*
               "stripped_application_code"
-          frame* (marked as prefix frame by stack trace rule (category:throw +prefix ^-group))
+          frame (non app frame)
+            filename (discarded native filename for grouping stability)
+              "function_template.hpp"
+            function*
+              "boost::function0<T>::operator()"
+          frame (non app frame)
+            function*
+              "stripped_application_code"
+          frame (non app frame)
+            function*
+              "stripped_application_code"
+          frame (non app frame)
+            filename (discarded native filename for grouping stability)
+              "function_template.hpp"
+            function*
+              "boost::function0<T>::operator()"
+          frame (non app frame)
+            function*
+              "stripped_application_code"
+          frame (marked out of app by stack trace rule (family:native function:std::* -app))
+            filename (discarded native filename for grouping stability)
+              "xtree"
+            function*
+              "std::_Tree<T>::insert<T>"
+          frame (marked out of app by stack trace rule (family:native function:std::* -app))
+            filename (discarded native filename for grouping stability)
+              "xtree"
+            function*
+              "std::_Tree<T>::_Emplace"
+          frame (non app frame)
+            function*
+              "stripped_application_code"
+          frame (non app frame)
+            function*
+              "stripped_application_code"
+          frame (non app frame)
+            function*
+              "stripped_application_code"
+          frame (non app frame)
+            function*
+              "stripped_application_code"
+          frame (non app frame)
+            filename (discarded native filename for grouping stability)
+              "function_template.hpp"
+            function*
+              "boost::function0<T>::operator()"
+          frame (non app frame)
+            function*
+              "stripped_application_code"
+          frame (non app frame)
+            function*
+              "stripped_application_code"
+          frame (non app frame)
+            function*
+              "stripped_application_code"
+          frame (non app frame)
+            function*
+              "stripped_application_code"
+          frame (non app frame)
+            function*
+              "stripped_application_code"
+          frame (non app frame)
+            function*
+              "stripped_application_code"
+          frame (non app frame)
+            function*
+              "stripped_application_code"
+          frame (non app frame)
+            function*
+              "stripped_application_code"
+          frame (non app frame)
+            function*
+              "stripped_application_code"
+          frame (non app frame)
+            function*
+              "stripped_application_code"
+          frame (non app frame)
+            function*
+              "stripped_application_code"
+          frame (non app frame)
+            function*
+              "stripped_application_code"
+          frame (marked as prefix frame by stack trace rule (category:throw +prefix ^-group))
             function*
               "abort"
+          frame (non app frame)
+            function*
+              "raise"
+          frame (non app frame)
+            filename (discarded native filename for grouping stability)
+              "crashpad_client_win.cc"
+            function*
+              "crashpad::`anonymous namespace'::HandleAbortSignal"
         type (ignored because exception is synthetic)
           "0x40000015 / 0x00000001"
-        value (ignored because stacktrace takes precedence)
-          "Fatal Error: <hex> / <hex>"
---------------------------------------------------------------------------
-app-depth-3:
-  hash: "6816ce334af8d6b9fb66dc1265c9fccc"
-  component:
-    app-depth-3*
-      exception*
-        stacktrace*
-          frame*
-            function*
-              "stripped_application_code"
-          frame*
-            function*
-              "stripped_application_code"
-          frame*
-            function*
-              "stripped_application_code"
-          frame* (marked as prefix frame by stack trace rule (category:throw +prefix ^-group))
-            function*
-              "abort"
-        type (ignored because exception is synthetic)
-          "0x40000015 / 0x00000001"
-        value (ignored because stacktrace takes precedence)
-          "Fatal Error: <hex> / <hex>"
---------------------------------------------------------------------------
-app-depth-4:
-  hash: "26eb79a70b1adbd61006c21288099591"
-  component:
-    app-depth-4*
-      exception*
-        stacktrace*
-          frame*
-            function*
-              "stripped_application_code"
-          frame*
-            function*
-              "stripped_application_code"
-          frame*
-            function*
-              "stripped_application_code"
-          frame*
-            function*
-              "stripped_application_code"
-          frame* (marked as prefix frame by stack trace rule (category:throw +prefix ^-group))
-            function*
-              "abort"
-        type (ignored because exception is synthetic)
-          "0x40000015 / 0x00000001"
-        value (ignored because stacktrace takes precedence)
-          "Fatal Error: <hex> / <hex>"
---------------------------------------------------------------------------
-app-depth-5:
-  hash: "1056f62d72ff8b4d0c3842d696dbb10a"
-  component:
-    app-depth-5*
-      exception*
-        stacktrace*
-          frame*
-            function*
-              "stripped_application_code"
-          frame*
-            function*
-              "stripped_application_code"
-          frame*
-            function*
-              "stripped_application_code"
-          frame*
-            function*
-              "stripped_application_code"
-          frame*
-            function*
-              "stripped_application_code"
-          frame* (marked as prefix frame by stack trace rule (category:throw +prefix ^-group))
-            function*
-              "abort"
-        type (ignored because exception is synthetic)
-          "0x40000015 / 0x00000001"
-        value (ignored because stacktrace takes precedence)
-          "Fatal Error: <hex> / <hex>"
---------------------------------------------------------------------------
-app-depth-max:
-  hash: "1056f62d72ff8b4d0c3842d696dbb10a"
-  component:
-    app-depth-max*
-      exception*
-        stacktrace*
-          frame*
-            function*
-              "stripped_application_code"
-          frame*
-            function*
-              "stripped_application_code"
-          frame*
-            function*
-              "stripped_application_code"
-          frame*
-            function*
-              "stripped_application_code"
-          frame*
-            function*
-              "stripped_application_code"
-          frame* (marked as prefix frame by stack trace rule (category:throw +prefix ^-group))
-            function*
-              "abort"
-        type (ignored because exception is synthetic)
-          "0x40000015 / 0x00000001"
-        value (ignored because stacktrace takes precedence)
+        value* (stripped event-specific values)
           "Fatal Error: <hex> / <hex>"
 --------------------------------------------------------------------------
 system:

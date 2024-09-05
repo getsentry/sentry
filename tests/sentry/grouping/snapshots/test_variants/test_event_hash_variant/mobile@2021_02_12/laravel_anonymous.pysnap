@@ -1,12 +1,12 @@
 ---
-created: '2024-08-27T12:08:35.096357+00:00'
+created: '2024-09-05T14:04:57.271561+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
-app-depth-1:
+app:
   hash: "a728cdf5d62c8e017c35c3fe04051b6e"
   component:
-    app-depth-1*
+    app*
       exception*
         stacktrace*
           frame*
@@ -14,22 +14,20 @@ app-depth-1:
               "server.php"
             context-line*
               "require_once __DIR__.'/public/index.php';"
-        type*
-          "Exception"
-        value (ignored because stacktrace takes precedence)
-          "LARAVEL TEST"
---------------------------------------------------------------------------
-app-depth-max:
-  hash: "a728cdf5d62c8e017c35c3fe04051b6e"
-  component:
-    app-depth-max*
-      exception*
-        stacktrace*
-          frame*
+          frame (non app frame)
             filename*
-              "server.php"
+              "pipeline.php"
+            function* (anonymous class method)
+              "run"
             context-line*
-              "require_once __DIR__.'/public/index.php';"
+              "return $callable($passable);"
+          frame (non app frame)
+            filename*
+              "pipeline.php"
+            function*
+              "Illuminate\\Pipeline\\Pipeline::Illuminate\\Pipeline\\{closure}"
+            context-line*
+              "? $pipe->{$this->method}(...$parameters)"
         type*
           "Exception"
         value (ignored because stacktrace takes precedence)

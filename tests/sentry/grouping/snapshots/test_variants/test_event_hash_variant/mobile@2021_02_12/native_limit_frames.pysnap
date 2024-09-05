@@ -1,34 +1,26 @@
 ---
-created: '2024-09-04T19:48:05.706182+00:00'
+created: '2024-09-05T14:04:57.625265+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
-app-depth-1:
-  hash: "8f4c7709e4af98d3c47ce3519690e6d9"
+app:
+  hash: null
   component:
-    app-depth-1*
-      exception*
-        stacktrace*
-          frame*
+    app (exception of system takes precedence)
+      exception (ignored because this variant does not have a contributing stacktrace, but the system variant does)
+        stacktrace
+          frame (non app frame)
+            function*
+              "Scaleform::GFx::IME::GImeNamesManagerVista::OnActivated"
+          frame (non app frame)
             function*
               "Scaleform::GFx::AS3::IMEManager::DispatchEvent"
-        type (ignored because exception is synthetic)
-          "log_demo"
-        value (ignored because stacktrace takes precedence)
-          "Holy shit everything is on fire!"
---------------------------------------------------------------------------
-app-depth-max:
-  hash: "8f4c7709e4af98d3c47ce3519690e6d9"
-  component:
-    app-depth-max*
-      exception*
-        stacktrace*
-          frame*
+          frame (non app frame)
             function*
-              "Scaleform::GFx::AS3::IMEManager::DispatchEvent"
+              "<lambda>::operator()"
         type (ignored because exception is synthetic)
           "log_demo"
-        value (ignored because stacktrace takes precedence)
+        value*
           "Holy shit everything is on fire!"
 --------------------------------------------------------------------------
 system:

@@ -1,32 +1,12 @@
 ---
-created: '2024-08-27T12:08:35.052336+00:00'
+created: '2024-09-05T14:04:57.224331+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
-app-depth-1:
-  hash: "92dfcda18050570bb1aabce4f35dc0a1"
-  component:
-    app-depth-1*
-      exception*
-        stacktrace*
-          frame*
-            module*
-              "sentry.integrations.slack.notify_action"
-            filename (module takes precedence)
-              "notify_action.py"
-            function*
-              "send_notification"
-            context-line*
-              "resp.raise_for_status()"
-        type*
-          "HTTPError"
-        value (ignored because stacktrace takes precedence)
-          "<int> Client Error: Too Many Requests for url: <url>"
---------------------------------------------------------------------------
-app-depth-2:
+app:
   hash: "d59239f5aad3304d60beb1fde3369b78"
   component:
-    app-depth-2*
+    app*
       exception*
         stacktrace*
           frame*
@@ -47,35 +27,15 @@ app-depth-2:
               "send_notification"
             context-line*
               "resp.raise_for_status()"
-        type*
-          "HTTPError"
-        value (ignored because stacktrace takes precedence)
-          "<int> Client Error: Too Many Requests for url: <url>"
---------------------------------------------------------------------------
-app-depth-max:
-  hash: "d59239f5aad3304d60beb1fde3369b78"
-  component:
-    app-depth-max*
-      exception*
-        stacktrace*
-          frame*
+          frame (non app frame)
             module*
-              "sentry.utils.safe"
+              "requests.models"
             filename (module takes precedence)
-              "safe.py"
+              "models.py"
             function*
-              "safe_execute"
+              "raise_for_status"
             context-line*
-              "result = func(*args, **kwargs)"
-          frame*
-            module*
-              "sentry.integrations.slack.notify_action"
-            filename (module takes precedence)
-              "notify_action.py"
-            function*
-              "send_notification"
-            context-line*
-              "resp.raise_for_status()"
+              "raise HTTPError(http_error_msg, response=self)"
         type*
           "HTTPError"
         value (ignored because stacktrace takes precedence)
@@ -84,8 +44,8 @@ app-depth-max:
 default:
   hash: null
   component:
-    default (exception of app-depth-1/app-depth-2/app-depth-max/system takes precedence)
-      message (exception of app-depth-1/app-depth-2/app-depth-max/system takes precedence)
+    default (exception of app/system takes precedence)
+      message (exception of app/system takes precedence)
         "%s.process_error"
 --------------------------------------------------------------------------
 system:

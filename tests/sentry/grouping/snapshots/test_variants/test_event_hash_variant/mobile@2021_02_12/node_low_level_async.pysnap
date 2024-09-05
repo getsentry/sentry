@@ -1,68 +1,29 @@
 ---
-created: '2024-08-27T12:08:34.920608+00:00'
+created: '2024-09-05T14:04:57.110541+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
-app-depth-1:
-  hash: "990ec5d380997ca482658d52a98b8502"
+app:
+  hash: null
   component:
-    app-depth-1*
-      exception*
-        stacktrace*
-          frame*
-            filename*
-              "axiosinterceptor.js"
-            function*
-              "runMicrotasks"
-        type*
-          "Error"
-        value (ignored because stacktrace takes precedence)
-          "bad"
---------------------------------------------------------------------------
-app-depth-2:
-  hash: "b3d321fab1665166fb7cacfa975db4bb"
-  component:
-    app-depth-2*
-      exception*
-        stacktrace*
-          frame*
+    app (exception of system takes precedence)
+      exception (ignored because this variant does not have a contributing stacktrace, but the system variant does)
+        stacktrace
+          frame (non app frame)
             module*
               "task_queues"
             filename (module takes precedence)
               "task_queues"
             function*
               "processTicksAndRejections"
-          frame*
+          frame (non app frame)
             filename*
               "axiosinterceptor.js"
             function*
               "runMicrotasks"
         type*
           "Error"
-        value (ignored because stacktrace takes precedence)
-          "bad"
---------------------------------------------------------------------------
-app-depth-max:
-  hash: "b3d321fab1665166fb7cacfa975db4bb"
-  component:
-    app-depth-max*
-      exception*
-        stacktrace*
-          frame*
-            module*
-              "task_queues"
-            filename (module takes precedence)
-              "task_queues"
-            function*
-              "processTicksAndRejections"
-          frame*
-            filename*
-              "axiosinterceptor.js"
-            function*
-              "runMicrotasks"
-        type*
-          "Error"
-        value (ignored because stacktrace takes precedence)
+        value*
           "bad"
 --------------------------------------------------------------------------
 system:

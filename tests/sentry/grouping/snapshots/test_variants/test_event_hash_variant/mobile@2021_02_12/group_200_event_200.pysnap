@@ -1,95 +1,89 @@
 ---
-created: '2024-09-05T13:39:11.434753+00:00'
+created: '2024-09-06T11:28:14.311784+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
-app-depth-1:
-  hash: "3a4c4c96a80c9be6a81afca4bb54f6ef"
+app:
+  hash: null
   component:
-    app-depth-1*
-      exception*
-        stacktrace*
-          frame*
+    app (exception of system takes precedence)
+      exception (ignored because this variant does not have a contributing stacktrace, but the system variant does)
+        stacktrace
+          frame (non app frame)
             function*
-              "destructor'"
-        type (ignored because exception is synthetic)
-          "EXCEPTION_ACCESS_VIOLATION_WRITE"
-        value (ignored because stacktrace takes precedence)
-          "Fatal Error: EXCEPTION_ACCESS_VIOLATION_WRITE"
---------------------------------------------------------------------------
-app-depth-2:
-  hash: "fb961faae31201361a148da84b7b886b"
-  component:
-    app-depth-2*
-      exception*
-        stacktrace*
-          frame*
+              "RtlUserThreadStart"
+          frame (non app frame)
             function*
-              "destructor'"
-          frame*
+              "BaseThreadInitThunk"
+          frame (non app frame)
             function*
-              "destructor'"
-          frame* (marked as prefix frame by stack trace rule (category:free +prefix))
+              "TppWorkerThread"
+          frame (non app frame)
             function*
-              "RtlFreeHeap"
-          frame* (marked as prefix frame by stack trace rule (category:free +prefix))
-            function*
-              "RtlFreeHeap"
-        type (ignored because exception is synthetic)
-          "EXCEPTION_ACCESS_VIOLATION_WRITE"
-        value (ignored because stacktrace takes precedence)
-          "Fatal Error: EXCEPTION_ACCESS_VIOLATION_WRITE"
---------------------------------------------------------------------------
-app-depth-3:
-  hash: "ca733a48a19d237df8577d09449095d9"
-  component:
-    app-depth-3*
-      exception*
-        stacktrace*
-          frame*
+              "TppWorkpExecuteCallback"
+          frame (non app frame)
             function*
               "HTTP_THREAD_POOL::_StaticWorkItemCallback"
-          frame*
+          frame (non app frame)
+            function*
+              "HTTP_ASYNC_OVERLAPPED::OnWorkItem"
+          frame (non app frame)
+            function*
+              "WEBIO_REQUEST::OnIoComplete"
+          frame (non app frame)
+            function*
+              "HTTP_USER_REQUEST::OnSendRequest"
+          frame (non app frame)
+            function*
+              "HTTP_BASE_OBJECT::Dereference"
+          frame (non app frame)
             function*
               "destructor'"
-          frame*
+          frame (non app frame)
+            function*
+              "HTTP_USER_REQUEST::~HTTP_USER_REQUEST"
+          frame (non app frame)
             function*
               "destructor'"
-          frame* (marked as prefix frame by stack trace rule (category:free +prefix))
+          frame (marked as prefix frame by stack trace rule (category:free +prefix))
             function*
               "RtlFreeHeap"
-          frame* (marked as prefix frame by stack trace rule (category:free +prefix))
+          frame (non app frame)
+            function*
+              "memset"
+          frame (non app frame)
+            function*
+              "RtlpFreeUserBlock"
+          frame (non app frame)
+            function*
+              "RtlpFreeUserBlockToHeap"
+          frame (marked as prefix frame by stack trace rule (category:free +prefix))
             function*
               "RtlFreeHeap"
+          frame (non app frame)
+            function*
+              "RtlpFreeHeapInternal"
+          frame (non app frame)
+            function*
+              "RtlpFreeHeap"
+          frame (non app frame)
+            function*
+              "RtlEnterCriticalSection"
+          frame (non app frame)
+            function*
+              "RtlpEnterCriticalSectionContended"
+          frame (non app frame)
+            function*
+              "RtlpWaitOnCriticalSection"
+          frame (non app frame)
+            function*
+              "RtlpWaitOnAddress"
+          frame (non app frame)
+            function*
+              "RtlpOptimizeWaitOnAddressWaitList"
         type (ignored because exception is synthetic)
           "EXCEPTION_ACCESS_VIOLATION_WRITE"
-        value (ignored because stacktrace takes precedence)
-          "Fatal Error: EXCEPTION_ACCESS_VIOLATION_WRITE"
---------------------------------------------------------------------------
-app-depth-max:
-  hash: "ca733a48a19d237df8577d09449095d9"
-  component:
-    app-depth-max*
-      exception*
-        stacktrace*
-          frame*
-            function*
-              "HTTP_THREAD_POOL::_StaticWorkItemCallback"
-          frame*
-            function*
-              "destructor'"
-          frame*
-            function*
-              "destructor'"
-          frame* (marked as prefix frame by stack trace rule (category:free +prefix))
-            function*
-              "RtlFreeHeap"
-          frame* (marked as prefix frame by stack trace rule (category:free +prefix))
-            function*
-              "RtlFreeHeap"
-        type (ignored because exception is synthetic)
-          "EXCEPTION_ACCESS_VIOLATION_WRITE"
-        value (ignored because stacktrace takes precedence)
+        value*
           "Fatal Error: EXCEPTION_ACCESS_VIOLATION_WRITE"
 --------------------------------------------------------------------------
 system:

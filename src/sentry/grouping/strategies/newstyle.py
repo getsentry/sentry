@@ -14,7 +14,6 @@ from sentry.grouping.strategies.base import (
     call_with_variants,
     strategy,
 )
-from sentry.grouping.strategies.hierarchical import get_stacktrace_hierarchy
 from sentry.grouping.strategies.message import normalize_message_for_grouping
 from sentry.grouping.strategies.utils import has_url_origin, remove_non_stacktrace_variants
 from sentry.grouping.utils import hash_from_values
@@ -441,20 +440,14 @@ def stacktrace(
 ) -> ReturnedVariants:
     assert context["variant"] is None
 
-    if context["hierarchical_grouping"]:
-        with context:
-            context["variant"] = "system"
-            return _single_stacktrace_variant(interface, event=event, context=context, meta=meta)
-
-    else:
-        return call_with_variants(
-            _single_stacktrace_variant,
-            ["!system", "app"],
-            interface,
-            event=event,
-            context=context,
-            meta=meta,
-        )
+    return call_with_variants(
+        _single_stacktrace_variant,
+        ["!system", "app"],
+        interface,
+        event=event,
+        context=context,
+        meta=meta,
+    )
 
 
 def _single_stacktrace_variant(
@@ -472,7 +465,7 @@ def _single_stacktrace_variant(
             context["is_recursion"] = is_recursion_v1(frame, prev_frame)
             frame_component = context.get_single_grouping_component(frame, event=event, **meta)
 
-        if not context["hierarchical_grouping"] and variant == "app" and not frame.in_app:
+        if variant == "app" and not frame.in_app:
             frame_component.update(contributes=False, hint="non app frame")
         values.append(frame_component)
         frames_for_filtering.append(frame.get_raw_data())
@@ -502,17 +495,7 @@ def _single_stacktrace_variant(
 
     inverted_hierarchy = bool(inverted_hierarchy)
 
-    if not context["hierarchical_grouping"]:
-        return {variant: main_variant}
-
-    all_variants = get_stacktrace_hierarchy(
-        main_variant, values, frames_for_filtering, inverted_hierarchy
-    )
-
-    # done for backwards compat to find old groups
-    all_variants["system"] = main_variant
-
-    return all_variants
+    return {variant: main_variant}
 
 
 @stacktrace.variant_processor

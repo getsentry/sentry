@@ -1,32 +1,21 @@
 ---
-created: '2024-08-27T12:08:36.239613+00:00'
+created: '2024-09-05T14:04:58.370092+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
-app-depth-1:
+app:
   hash: "4b8bbc500bd2cabfcadc1f1be867e0bb"
   component:
-    app-depth-1*
+    app*
       exception*
         stacktrace*
-          frame*
+          frame (non app frame)
             module*
-              "main"
+              "github.com/robfig/cron/v3"
             filename (module takes precedence)
-              "main.go"
+              "cron.go"
             function*
-              "background.func2"
-        type*
-          "*pq.Error"
-        value (ignored because stacktrace takes precedence)
-          "pq: cannot cast jsonb null to type integer"
---------------------------------------------------------------------------
-app-depth-max:
-  hash: "4b8bbc500bd2cabfcadc1f1be867e0bb"
-  component:
-    app-depth-max*
-      exception*
-        stacktrace*
+              "FuncJob.Run"
           frame*
             module*
               "main"

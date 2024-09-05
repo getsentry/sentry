@@ -53,10 +53,6 @@ BASE_STRATEGY = create_strategy_configuration(
         # newstyle: turns on falling back to exception values when there
         # is no stacktrace.
         "with_exception_value_fallback": False,
-        # Whether the strategy should produce special variants that are
-        # considered for hierarchical grouping (see HIERARCHICAL_VARIANTS
-        # constant)
-        "hierarchical_grouping": False,
         # Stacktrace is produced in the context of this exception
         "exception_data": None,
         # Whether to discard filenames of native events for grouping if
@@ -168,7 +164,6 @@ register_strategy_config(
           no longer result in different issues.
     """,
     initial_context={
-        "hierarchical_grouping": True,
         "discard_native_filename": True,
     },
     enhancements_base="mobile:2021-04-02",

@@ -1,202 +1,12 @@
 ---
-created: '2024-08-27T12:08:35.039814+00:00'
+created: '2024-09-05T14:04:57.213168+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
-app-depth-1:
+app:
   hash: null
   component:
-    app-depth-1 (custom fingerprint takes precedence)
-      exception*
-        stacktrace*
-          frame*
-            module*
-              "sentry.models.file"
-            filename (module takes precedence)
-              "file.py"
-            function*
-              "_prefetch"
-            context-line*
-              "exe.submit(fetch_file, idx.offset, idx.blob.getfile)"
-        type*
-          "SoftTimeLimitExceeded"
-        value (ignored because stacktrace takes precedence)
-          "SoftTimeLimitExceeded()"
---------------------------------------------------------------------------
-app-depth-2:
-  hash: null
-  component:
-    app-depth-2 (custom fingerprint takes precedence)
-      exception*
-        stacktrace*
-          frame*
-            module*
-              "sentry.models.file"
-            filename (module takes precedence)
-              "file.py"
-            function*
-              "__init__"
-            context-line*
-              "self._prefetch(prefetch_to, delete)"
-          frame*
-            module*
-              "sentry.models.file"
-            filename (module takes precedence)
-              "file.py"
-            function*
-              "_prefetch"
-            context-line*
-              "exe.submit(fetch_file, idx.offset, idx.blob.getfile)"
-        type*
-          "SoftTimeLimitExceeded"
-        value (ignored because stacktrace takes precedence)
-          "SoftTimeLimitExceeded()"
---------------------------------------------------------------------------
-app-depth-3:
-  hash: null
-  component:
-    app-depth-3 (custom fingerprint takes precedence)
-      exception*
-        stacktrace*
-          frame*
-            module*
-              "sentry.models.file"
-            filename (module takes precedence)
-              "file.py"
-            function*
-              "_get_chunked_blob"
-            context-line*
-              "delete=delete"
-          frame*
-            module*
-              "sentry.models.file"
-            filename (module takes precedence)
-              "file.py"
-            function*
-              "__init__"
-            context-line*
-              "self._prefetch(prefetch_to, delete)"
-          frame*
-            module*
-              "sentry.models.file"
-            filename (module takes precedence)
-              "file.py"
-            function*
-              "_prefetch"
-            context-line*
-              "exe.submit(fetch_file, idx.offset, idx.blob.getfile)"
-        type*
-          "SoftTimeLimitExceeded"
-        value (ignored because stacktrace takes precedence)
-          "SoftTimeLimitExceeded()"
---------------------------------------------------------------------------
-app-depth-4:
-  hash: null
-  component:
-    app-depth-4 (custom fingerprint takes precedence)
-      exception*
-        stacktrace*
-          frame*
-            module*
-              "sentry.models.file"
-            filename (module takes precedence)
-              "file.py"
-            function*
-              "save_to"
-            context-line*
-              "delete=False).detach_tempfile()"
-          frame*
-            module*
-              "sentry.models.file"
-            filename (module takes precedence)
-              "file.py"
-            function*
-              "_get_chunked_blob"
-            context-line*
-              "delete=delete"
-          frame*
-            module*
-              "sentry.models.file"
-            filename (module takes precedence)
-              "file.py"
-            function*
-              "__init__"
-            context-line*
-              "self._prefetch(prefetch_to, delete)"
-          frame*
-            module*
-              "sentry.models.file"
-            filename (module takes precedence)
-              "file.py"
-            function*
-              "_prefetch"
-            context-line*
-              "exe.submit(fetch_file, idx.offset, idx.blob.getfile)"
-        type*
-          "SoftTimeLimitExceeded"
-        value (ignored because stacktrace takes precedence)
-          "SoftTimeLimitExceeded()"
---------------------------------------------------------------------------
-app-depth-5:
-  hash: null
-  component:
-    app-depth-5 (custom fingerprint takes precedence)
-      exception*
-        stacktrace*
-          frame*
-            module*
-              "sentry.models.debugfile"
-            filename (module takes precedence)
-              "debugfile.py"
-            function*
-              "_load_cachefiles_via_fs"
-            context-line*
-              "model.cache_file.save_to(cachefile_path)"
-          frame*
-            module*
-              "sentry.models.file"
-            filename (module takes precedence)
-              "file.py"
-            function*
-              "save_to"
-            context-line*
-              "delete=False).detach_tempfile()"
-          frame*
-            module*
-              "sentry.models.file"
-            filename (module takes precedence)
-              "file.py"
-            function*
-              "_get_chunked_blob"
-            context-line*
-              "delete=delete"
-          frame*
-            module*
-              "sentry.models.file"
-            filename (module takes precedence)
-              "file.py"
-            function*
-              "__init__"
-            context-line*
-              "self._prefetch(prefetch_to, delete)"
-          frame*
-            module*
-              "sentry.models.file"
-            filename (module takes precedence)
-              "file.py"
-            function*
-              "_prefetch"
-            context-line*
-              "exe.submit(fetch_file, idx.offset, idx.blob.getfile)"
-        type*
-          "SoftTimeLimitExceeded"
-        value (ignored because stacktrace takes precedence)
-          "SoftTimeLimitExceeded()"
---------------------------------------------------------------------------
-app-depth-max:
-  hash: null
-  component:
-    app-depth-max (custom fingerprint takes precedence)
+    app (custom fingerprint takes precedence)
       exception*
         stacktrace*
           frame*
@@ -307,6 +117,51 @@ app-depth-max:
               "_prefetch"
             context-line*
               "exe.submit(fetch_file, idx.offset, idx.blob.getfile)"
+          frame (non app frame)
+            module*
+              "concurrent.futures._base"
+            filename (module takes precedence)
+              "_base.py"
+            function*
+              "__exit__"
+            context-line*
+              "self.shutdown(wait=True)"
+          frame (non app frame)
+            module*
+              "concurrent.futures.thread"
+            filename (module takes precedence)
+              "thread.py"
+            function*
+              "shutdown"
+            context-line*
+              "t.join(sys.maxint)"
+          frame (non app frame)
+            module*
+              "threading"
+            filename (module takes precedence)
+              "threading.py"
+            function*
+              "join"
+            context-line*
+              "self.__block.wait(delay)"
+          frame (non app frame)
+            module*
+              "threading"
+            filename (module takes precedence)
+              "threading.py"
+            function*
+              "wait"
+            context-line*
+              "_sleep(delay)"
+          frame (non app frame)
+            module*
+              "billiard.pool"
+            filename (module takes precedence)
+              "pool.py"
+            function*
+              "soft_timeout_sighandler"
+            context-line*
+              "raise SoftTimeLimitExceeded()"
         type*
           "SoftTimeLimitExceeded"
         value (ignored because stacktrace takes precedence)
