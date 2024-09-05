@@ -6,7 +6,7 @@ class BroadcastValidator(serializers.Serializer):
 
 
 class AdminBroadcastValidator(BroadcastValidator):
-    title = serializers.CharField(max_length=32, required=True)
+    title = serializers.CharField(max_length=64, required=True)
     message = serializers.CharField(max_length=256, required=True)
     link = serializers.URLField(required=True)
     isActive = serializers.BooleanField(required=False)
