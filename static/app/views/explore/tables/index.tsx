@@ -11,10 +11,10 @@ import {useResultMode} from 'sentry/views/explore/hooks/useResultsMode';
 import {useSampleFields} from 'sentry/views/explore/hooks/useSampleFields';
 import {useSpanFieldSupportedTags} from 'sentry/views/performance/utils/useSpanFieldSupportedTags';
 
+import {TracesTable} from './tracesTable/index';
 import {AggregatesTable} from './aggregatesTable';
 import {ColumnEditorModal} from './columnEditorModal';
 import {SpansTable} from './spansTable';
-import {TracesTable} from './tracesTable';
 
 enum Tab {
   SPAN = 'span',
