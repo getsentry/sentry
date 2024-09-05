@@ -507,6 +507,7 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
         assert deserialized_body["project_id"] == self.sub.project_id
         assert deserialized_body["config"]["time_period"] == rule.snuba_query.time_window / 60
         assert deserialized_body["config"]["sensitivity"] == rule.sensitivity.value
+        assert deserialized_body["config"]["expected_seasonality"] == rule.seasonality.value
         assert deserialized_body["config"]["direction"] == translate_direction(rule.threshold_type)
         assert deserialized_body["context"]["id"] == rule.id
         assert deserialized_body["context"]["cur_window"][0]["value"] == 5
@@ -546,6 +547,7 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
         assert deserialized_body["project_id"] == self.sub.project_id
         assert deserialized_body["config"]["time_period"] == rule.snuba_query.time_window / 60
         assert deserialized_body["config"]["sensitivity"] == rule.sensitivity.value
+        assert deserialized_body["config"]["expected_seasonality"] == rule.seasonality.value
         assert deserialized_body["config"]["direction"] == translate_direction(rule.threshold_type)
         assert deserialized_body["context"]["id"] == rule.id
         assert deserialized_body["context"]["cur_window"][0]["value"] == 10
@@ -582,6 +584,7 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
         assert deserialized_body["project_id"] == self.sub.project_id
         assert deserialized_body["config"]["time_period"] == rule.snuba_query.time_window / 60
         assert deserialized_body["config"]["sensitivity"] == rule.sensitivity.value
+        assert deserialized_body["config"]["expected_seasonality"] == rule.seasonality.value
         assert deserialized_body["config"]["direction"] == translate_direction(rule.threshold_type)
         assert deserialized_body["context"]["id"] == rule.id
         assert deserialized_body["context"]["cur_window"][0]["value"] == 1
@@ -631,12 +634,12 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
             == throughput_rule.snuba_query.time_window / 60
         )
         assert deserialized_body["config"]["sensitivity"] == throughput_rule.sensitivity
-        assert deserialized_body["config"]["seasonality"] == throughput_rule.seasonality
+        assert deserialized_body["config"]["expected_seasonality"] == throughput_rule.seasonality
         assert deserialized_body["config"]["direction"] == translate_direction(
             throughput_rule.threshold_type
         )
         assert deserialized_body["context"]["id"] == throughput_rule.id
-        assert deserialized_body["context"]["cur_window"]["value"] == 10
+        assert deserialized_body["context"]["cur_window"][0]["value"] == 10
 
         self.assert_trigger_counts(processor, self.trigger, 0, 0)
         incident = self.assert_active_incident(throughput_rule)
@@ -671,12 +674,12 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
             == throughput_rule.snuba_query.time_window / 60
         )
         assert deserialized_body["config"]["sensitivity"] == throughput_rule.sensitivity
-        assert deserialized_body["config"]["seasonality"] == throughput_rule.seasonality
+        assert deserialized_body["config"]["expected_seasonality"] == throughput_rule.seasonality
         assert deserialized_body["config"]["direction"] == translate_direction(
             throughput_rule.threshold_type
         )
         assert deserialized_body["context"]["id"] == throughput_rule.id
-        assert deserialized_body["context"]["cur_window"]["value"] == 1
+        assert deserialized_body["context"]["cur_window"][0]["value"] == 1
 
         self.assert_trigger_counts(processor, self.trigger, 0, 0)
         self.assert_no_active_incident(throughput_rule)
