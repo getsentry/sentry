@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import hashlib
-import random
 from collections.abc import Callable, Iterable
 from typing import Any, ClassVar
 
@@ -317,17 +316,6 @@ class ClientIdSecretAuthentication(QuietBasicAuthentication):
         return self.transform_auth(user_id, None)
 
 
-class TokenStrLookupRequired(Exception):
-    """
-    Used in combination with `apitoken.use-and-update-hash-rate` option.
-
-    If raised, calling code should peform API token lookups based on its
-    plaintext value and not its hashed value.
-    """
-
-    pass
-
-
 @AuthenticationSiloLimit(SiloMode.REGION, SiloMode.CONTROL)
 class UserAuthTokenAuthentication(StandardAuthentication):
     token_name = b"bearer"
@@ -349,18 +337,11 @@ class UserAuthTokenAuthentication(StandardAuthentication):
 
         hashed_token = hashlib.sha256(token_str.encode()).hexdigest()
 
-        rate = options.get("apitoken.use-and-update-hash-rate")
-        random_rate = random.random()
-        use_hashed_token = rate > random_rate
-
         if SiloMode.get_current_mode() == SiloMode.REGION:
             try:
-                if use_hashed_token:
-                    # Try to find the token by its hashed value first
-                    return ApiTokenReplica.objects.get(hashed_token=hashed_token)
-                else:
-                    raise TokenStrLookupRequired
-            except (ApiTokenReplica.DoesNotExist, TokenStrLookupRequired):
+                # Try to find the token by its hashed value first
+                return ApiTokenReplica.objects.get(hashed_token=hashed_token)
+            except ApiTokenReplica.DoesNotExist:
                 try:
                     # If we can't find it by hash, use the plaintext string
                     return ApiTokenReplica.objects.get(token=token_str)
@@ -370,13 +351,10 @@ class UserAuthTokenAuthentication(StandardAuthentication):
         else:
             try:
                 # Try to find the token by its hashed value first
-                if use_hashed_token:
-                    return ApiToken.objects.select_related("user", "application").get(
-                        hashed_token=hashed_token
-                    )
-                else:
-                    raise TokenStrLookupRequired
-            except (ApiToken.DoesNotExist, TokenStrLookupRequired):
+                return ApiToken.objects.select_related("user", "application").get(
+                    hashed_token=hashed_token
+                )
+            except ApiToken.DoesNotExist:
                 try:
                     # If we can't find it by hash, use the plaintext string
                     api_token = ApiToken.objects.select_related("user", "application").get(
@@ -386,10 +364,9 @@ class UserAuthTokenAuthentication(StandardAuthentication):
                     # If the token does not exist by plaintext either, it is not a valid token
                     raise AuthenticationFailed("Invalid token")
                 else:
-                    if use_hashed_token:
-                        # Update it with the hashed value if found by plaintext
-                        api_token.hashed_token = hashed_token
-                        api_token.save(update_fields=["hashed_token"])
+                    # Update it with the hashed value if found by plaintext
+                    api_token.hashed_token = hashed_token
+                    api_token.save(update_fields=["hashed_token"])
 
                     return api_token
 
@@ -481,7 +458,11 @@ class OrgAuthTokenAuthentication(StandardAuthentication):
                 raise AuthenticationFailed("Invalid org token")
 
         return self.transform_auth(
-            None, token, "api_token", api_token_type=self.token_name, api_token_is_org_token=True
+            None,
+            token,
+            "api_token",
+            api_token_type=self.token_name,
+            api_token_is_org_token=True,
         )
 
 

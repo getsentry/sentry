@@ -10,7 +10,6 @@ from django.db import models, router, transaction
 from django.utils import timezone
 from django.utils.encoding import force_str
 
-from sentry import options
 from sentry.backup.dependencies import ImportKind, NormalizedModelName, get_model_name
 from sentry.backup.helpers import ImportFlags
 from sentry.backup.sanitize import SanitizableField, Sanitizer
@@ -32,7 +31,9 @@ def default_expiration():
     return timezone.now() + DEFAULT_EXPIRATION
 
 
-def generate_token(token_type: AuthTokenType | str | None = AuthTokenType.__empty__) -> str:
+def generate_token(
+    token_type: AuthTokenType | str | None = AuthTokenType.__empty__,
+) -> str:
     if token_type:
         return f"{token_type}{secrets.token_hex(nbytes=32)}"
 
@@ -81,13 +82,12 @@ class ApiTokenManager(ControlOutboxProducingManager["ApiToken"]):
             else:
                 plaintext_token = generate_token()
 
-        if options.get("apitoken.save-hash-on-create"):
-            kwargs["hashed_token"] = hashlib.sha256(plaintext_token.encode()).hexdigest()
+        kwargs["hashed_token"] = hashlib.sha256(plaintext_token.encode()).hexdigest()
 
-            if plaintext_refresh_token:
-                kwargs["hashed_refresh_token"] = hashlib.sha256(
-                    plaintext_refresh_token.encode()
-                ).hexdigest()
+        if plaintext_refresh_token:
+            kwargs["hashed_refresh_token"] = hashlib.sha256(
+                plaintext_refresh_token.encode()
+            ).hexdigest()
 
         kwargs["token"] = plaintext_token
         kwargs["refresh_token"] = plaintext_refresh_token
@@ -207,38 +207,34 @@ class ApiToken(ReplicatedControlModel, HasApiScopes):
         return token
 
     def save(self, *args: Any, **kwargs: Any) -> None:
-        if options.get("apitoken.save-hash-on-create"):
-            self.hashed_token = hashlib.sha256(self.token.encode()).hexdigest()
+        self.hashed_token = hashlib.sha256(self.token.encode()).hexdigest()
 
-            if self.refresh_token:
-                self.hashed_refresh_token = hashlib.sha256(self.refresh_token.encode()).hexdigest()
-            else:
-                # The backup tests create a token with a refresh_token and then clear it out.
-                # So if the refresh_token is None, wipe out any hashed value that may exist too.
-                # https://github.com/getsentry/sentry/blob/1fc699564e79c62bff6cc3c168a49bfceadcac52/tests/sentry/backup/test_imports.py#L1306
-                self.hashed_refresh_token = None
+        if self.refresh_token:
+            self.hashed_refresh_token = hashlib.sha256(self.refresh_token.encode()).hexdigest()
+        else:
+            # The backup tests create a token with a refresh_token and then clear it out.
+            # So if the refresh_token is None, wipe out any hashed value that may exist too.
+            # https://github.com/getsentry/sentry/blob/1fc699564e79c62bff6cc3c168a49bfceadcac52/tests/sentry/backup/test_imports.py#L1306
+            self.hashed_refresh_token = None
 
-        if options.get("apitoken.auto-add-last-chars"):
-            token_last_characters = self.token[-4:]
-            self.token_last_characters = token_last_characters
+        token_last_characters = self.token[-4:]
+        self.token_last_characters = token_last_characters
 
         return super().save(*args, **kwargs)
 
     def update(self, *args: Any, **kwargs: Any) -> int:
         # if the token or refresh_token was updated, we need to
         # re-calculate the hashed values
-        if options.get("apitoken.save-hash-on-create"):
-            if "token" in kwargs:
-                kwargs["hashed_token"] = hashlib.sha256(kwargs["token"].encode()).hexdigest()
+        if "token" in kwargs:
+            kwargs["hashed_token"] = hashlib.sha256(kwargs["token"].encode()).hexdigest()
 
-            if "refresh_token" in kwargs:
-                kwargs["hashed_refresh_token"] = hashlib.sha256(
-                    kwargs["refresh_token"].encode()
-                ).hexdigest()
+        if "refresh_token" in kwargs:
+            kwargs["hashed_refresh_token"] = hashlib.sha256(
+                kwargs["refresh_token"].encode()
+            ).hexdigest()
 
-        if options.get("apitoken.auto-add-last-chars"):
-            if "token" in kwargs:
-                kwargs["token_last_characters"] = kwargs["token"][-4:]
+        if "token" in kwargs:
+            kwargs["token_last_characters"] = kwargs["token"][-4:]
 
         return super().update(*args, **kwargs)
 
@@ -258,7 +254,9 @@ class ApiToken(ReplicatedControlModel, HasApiScopes):
     def from_grant(cls, grant: ApiGrant):
         with transaction.atomic(router.db_for_write(cls)):
             api_token = cls.objects.create(
-                application=grant.application, user=grant.user, scope_list=grant.get_scopes()
+                application=grant.application,
+                user=grant.user,
+                scope_list=grant.get_scopes(),
             )
 
             # remove the ApiGrant from the database to prevent reuse of the same
@@ -319,7 +317,10 @@ class ApiToken(ReplicatedControlModel, HasApiScopes):
 
     @classmethod
     def sanitize_relocation_json(
-        cls, json: Any, sanitizer: Sanitizer, model_name: NormalizedModelName | None = None
+        cls,
+        json: Any,
+        sanitizer: Sanitizer,
+        model_name: NormalizedModelName | None = None,
     ) -> None:
         model_name = get_model_name(cls) if model_name is None else model_name
         super().sanitize_relocation_json(json, sanitizer, model_name)
