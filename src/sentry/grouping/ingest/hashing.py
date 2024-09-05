@@ -18,7 +18,6 @@ from sentry.grouping.api import (
     GroupingConfigNotFound,
     SecondaryGroupingConfigLoader,
     apply_server_fingerprinting,
-    detect_synthetic_exception,
     get_fingerprinting_config_for_project,
     get_grouping_config_dict_for_project,
     load_grouping_config,
@@ -60,9 +59,6 @@ def _calculate_event_grouping(
         with metrics.timer("event_manager.normalize_stacktraces_for_grouping", tags=metric_tags):
             with sentry_sdk.start_span(op="event_manager.normalize_stacktraces_for_grouping"):
                 event.normalize_stacktraces_for_grouping(loaded_grouping_config)
-
-        # Detect & set synthetic marker if necessary
-        detect_synthetic_exception(event.data, loaded_grouping_config)
 
         with metrics.timer("event_manager.apply_server_fingerprinting", tags=metric_tags):
             # The active grouping config was put into the event in the

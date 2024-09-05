@@ -1,5 +1,5 @@
 ---
-created: '2024-08-27T12:08:35.449379+00:00'
+created: '2024-09-04T19:48:05.706182+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -32,7 +32,7 @@ app-depth-max:
           "Holy shit everything is on fire!"
 --------------------------------------------------------------------------
 system:
-  hash: "8a9d7f3595adde039a6bc1d7ed159a76"
+  hash: "8f4c7709e4af98d3c47ce3519690e6d9"
   component:
     system*
       exception*
@@ -46,7 +46,7 @@ system:
           frame (ignored by stack trace rule (category:indirection -group))
             function*
               "<lambda>::operator()"
-        type*
+        type (ignored because exception is synthetic)
           "log_demo"
         value (ignored because stacktrace takes precedence)
           "Holy shit everything is on fire!"

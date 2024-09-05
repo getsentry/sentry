@@ -1,5 +1,5 @@
 ---
-created: '2024-08-27T12:08:35.476248+00:00'
+created: '2024-09-04T19:48:05.729917+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -123,7 +123,7 @@ app-depth-max:
           "Fatal Error: EXCEPTION_ACCESS_VIOLATION_WRITE"
 --------------------------------------------------------------------------
 system:
-  hash: "7f70cabce0d2163b9e8b69d47e39c494"
+  hash: "ca733a48a19d237df8577d09449095d9"
   component:
     system*
       exception*
@@ -248,7 +248,7 @@ system:
               "RtlpOptimizeWaitOnAddressWaitList"
             package (ignored because function takes precedence)
               "ntdll.dll"
-        type*
+        type (ignored because exception is synthetic)
           "EXCEPTION_ACCESS_VIOLATION_WRITE"
         value (ignored because stacktrace takes precedence)
           "Fatal Error: EXCEPTION_ACCESS_VIOLATION_WRITE"

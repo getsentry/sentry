@@ -1,5 +1,5 @@
 ---
-created: '2024-08-27T12:08:36.029254+00:00'
+created: '2024-09-04T19:48:06.259057+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -205,7 +205,7 @@ app-depth-max:
           "autoplayOption"
 --------------------------------------------------------------------------
 system:
-  hash: "6425d0b12e2907d519aeae2508e7fa0f"
+  hash: "a8c8d09a9cb9715bacc7c85ddf5211a4"
   component:
     system*
       exception*
@@ -344,7 +344,7 @@ system:
               "currentuserprofile.swift"
             function*
               "value"
-        type*
+        type (ignored because exception is synthetic)
           "EXC_BREAKPOINT"
         value (ignored because stacktrace takes precedence)
           "autoplayOption"
