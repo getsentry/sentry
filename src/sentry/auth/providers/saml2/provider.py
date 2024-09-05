@@ -465,8 +465,10 @@ def handle_saml_single_logout(request):
         idp_slo_url = idp_auth.get_slo_url()
 
         # IdP that does not support SLO will usually not provide a URL (e.g. Okta)
-        if idp_slo_url:
-            idp_auth.logout()
-            return idp_slo_url
+        if not idp_slo_url:
+            return
+
+        idp_auth.logout()
+        return idp_slo_url
     except Exception as e:
         sentry_sdk.capture_exception(e)
