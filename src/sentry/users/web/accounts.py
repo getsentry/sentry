@@ -44,7 +44,7 @@ def get_template(mode: str, name: str) -> str:
 
 @login_required
 @control_silo_function
-def login_redirect(request: HttpRequest) -> HttpResponse:
+def login_redirect(request: HttpRequest) -> HttpResponseRedirect:
     login_url = auth.get_login_redirect(request)
     return HttpResponseRedirect(login_url)
 
@@ -287,7 +287,7 @@ relocate_confirm = partial(recover_confirm, mode="relocate")
 @login_required
 @require_http_methods(["POST"])
 @control_silo_function
-def start_confirm_email(request: HttpRequest) -> HttpResponse:
+def start_confirm_email(request: HttpRequest) -> HttpResponseRedirect:
     from sentry import ratelimits as ratelimiter
 
     if ratelimiter.backend.is_limited(
