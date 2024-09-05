@@ -132,14 +132,15 @@ export function initializeSdk(config: Config, {routes}: {routes?: Function} = {}
       addExtraMeasurements(event);
       addUIElementTag(event);
 
-      event.spans = event.spans?.filter(span => {
+      const filteredSpans = event.spans?.filter(span => {
         return IGNORED_SPANS_BY_DESCRIPTION.every(
           partialDesc => !span.description?.includes(partialDesc)
         );
       });
 
       // If we removed any spans at the end above, the end timestamp needs to be adjusted again.
-      if (event.spans) {
+      if (filteredSpans && filteredSpans?.length !== event.spans?.length) {
+        event.spans = filteredSpans;
         const newEndTimestamp = Math.max(...event.spans.map(span => span.timestamp ?? 0));
         event.timestamp = newEndTimestamp;
       }
