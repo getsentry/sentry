@@ -222,7 +222,6 @@ class TeamProjectsEndpoint(TeamEndpoint, EnvironmentMixin):
             is_seer_eligible_platform = project.platform in SEER_ELIGIBLE_PLATFORMS
             if (
                 hasattr(project.organization, "flags")
-                and project.organization.flags.early_adopter
                 and is_seer_eligible_platform
                 and options.get("similarity.new_project_seer_grouping.enabled")
             ):

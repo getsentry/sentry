@@ -68,14 +68,6 @@ class TeamProjectsCreateTest(APITestCase, TestCase):
         assert project.platform == "python"
         assert project.teams.first() == self.team
 
-        # Assert project option is not set for non-EA organizations
-        assert (
-            ProjectOption.objects.get_value(
-                project=project, key="sentry:similarity_backfill_completed"
-            )
-            is None
-        )
-
     def test_invalid_numeric_slug(self):
         response = self.get_error_response(
             self.organization.slug,
@@ -243,11 +235,9 @@ class TeamProjectsCreateTest(APITestCase, TestCase):
     @override_options({"similarity.new_project_seer_grouping.enabled": True})
     def test_similarity_project_option_valid(self):
         """
-        Test that project option for similarity grouping is created for EA organizations
-        where the project platform is Seer-eligible.
+        Test that project option for similarity grouping is created when the project platform is
+        Seer-eligible.
         """
-        self.organization.flags.early_adopter = True
-        self.organization.save()
         response = self.get_success_response(
             self.organization.slug,
             self.team.slug,
@@ -270,12 +260,9 @@ class TeamProjectsCreateTest(APITestCase, TestCase):
 
     def test_similarity_project_option_invalid(self):
         """
-        Test that project option for similarity grouping is not created for EA organizations
-        where the project platform is not seer eligible.
+        Test that project option for similarity grouping is not created when the project platform
+        is not seer eligible.
         """
-
-        self.organization.flags.early_adopter = True
-        self.organization.save()
         response = self.get_success_response(
             self.organization.slug,
             self.team.slug,
