@@ -287,7 +287,7 @@ relocate_confirm = partial(recover_confirm, mode="relocate")
 @login_required
 @require_http_methods(["POST"])
 @control_silo_function
-def start_confirm_email(request: HttpRequest) -> HttpResponseRedirect:
+def start_confirm_email(request: HttpRequest) -> HttpResponse:
     from sentry import ratelimits as ratelimiter
 
     if ratelimiter.backend.is_limited(
