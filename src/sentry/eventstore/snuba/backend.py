@@ -241,21 +241,18 @@ class SnubaEventStorage(EventStorage):
             ]
             self.bind_nodes(event_list)
 
-            nodestore_events = [event for event in event_list if len(event.data)]
+            # Extending date filters by +- 1s since events are second-resolution.
+            start = filter.start - timedelta(seconds=1) if filter.start else datetime(1970, 1, 1)
+            end = filter.end + timedelta(seconds=1) if filter.end else timezone.now()
+            nodestore_events = [
+                event for event in event_list if len(event.data) and start <= event.datetime <= end
+            ]
 
             if nodestore_events:
                 event_ids = {event.event_id for event in nodestore_events}
                 project_ids = {event.project_id for event in nodestore_events}
                 start = min(event.datetime for event in nodestore_events)
                 end = max(event.datetime for event in nodestore_events) + timedelta(seconds=1)
-
-                if filter.start or filter.end:
-                    if filter.start:
-                        start = max(start, filter.start)
-                    if filter.end:
-                        end = min(end, filter.end)
-                    if start > end:
-                        return []
 
                 result = snuba.aliased_query(
                     selected_columns=cols,
