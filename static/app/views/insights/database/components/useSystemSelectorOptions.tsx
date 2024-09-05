@@ -2,33 +2,8 @@ import type {SelectOption} from 'sentry/components/compactSelect';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import {useSpanMetrics} from 'sentry/views/insights/common/queries/useDiscover';
+import {DATABASE_SYSTEM_TO_LABEL} from 'sentry/views/insights/database/utils/constants';
 import {SpanMetricsField} from 'sentry/views/insights/types';
-
-/**
- * The supported relational database system values are based on what is
- * set in the Sentry Python SDK. The only currently supported NoSQL DBMS is MongoDB.
- *
- * https://github.com/getsentry/sentry-python/blob/master/sentry_sdk/integrations/sqlalchemy.py#L125
- */
-enum SupportedDatabaseSystems {
-  // SQL
-  SQLITE = 'sqlite',
-  POSTGRESQL = 'postgresql',
-  MARIADB = 'mariadb',
-  MYSQL = 'mysql',
-  ORACLE = 'oracle',
-  // NoSQL
-  MONGODB = 'mongodb',
-}
-
-const DATABASE_SYSTEM_TO_LABEL: Record<SupportedDatabaseSystems, string> = {
-  [SupportedDatabaseSystems.SQLITE]: 'SQLite',
-  [SupportedDatabaseSystems.POSTGRESQL]: 'PostgreSQL',
-  [SupportedDatabaseSystems.MARIADB]: 'MariaDB',
-  [SupportedDatabaseSystems.MYSQL]: 'MySQL',
-  [SupportedDatabaseSystems.ORACLE]: 'Oracle',
-  [SupportedDatabaseSystems.MONGODB]: 'MongoDB',
-};
 
 export function useSystemSelectorOptions() {
   const [selectedSystem, setSelectedSystem] = useLocalStorageState<string>(
