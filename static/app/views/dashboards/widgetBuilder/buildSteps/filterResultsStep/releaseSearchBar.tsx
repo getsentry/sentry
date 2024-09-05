@@ -32,6 +32,13 @@ const supportedTags = Object.values(SESSIONS_FILTER_TAGS).reduce((acc, key) => {
   return acc;
 }, {});
 
+const invalidMessages = {
+  [InvalidReason.WILDCARD_NOT_ALLOWED]: t("Release queries don't support wildcards."),
+  [InvalidReason.FREE_TEXT_NOT_ALLOWED]: t(
+    "Release queries don't support free text search."
+  ),
+};
+
 const SEARCH_SPECIAL_CHARS_REGEXP = new RegExp(
   `^${NEGATION_OPERATOR}|\\${SEARCH_WILDCARD}`,
   'g'
@@ -98,6 +105,7 @@ export function ReleaseSearchBar({
       disallowWildcard
       disallowUnsupportedFilters
       disallowFreeText
+      invalidMessages={invalidMessages}
       recentSearches={SavedSearchType.SESSION}
     />
   ) : (
