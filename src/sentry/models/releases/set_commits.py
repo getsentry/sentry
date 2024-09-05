@@ -76,134 +76,20 @@ def set_commits_on_release(release, commit_list):
     # deletes but not overly important
     ReleaseCommit.objects.filter(release=release).delete()
 
-    authors = {}
     commit_author_by_commit = {}
     head_commit_by_repo: dict[int, int] = {}
+
+    create_repositories(commit_list, release)
+    create_commit_authors(commit_list, release)
+
     latest_commit = None
-    repos = {}
-
-    def create_repositories(commit_list):
-
-        for data in commit_list:
-            repo_name = data.get("repository") or f"organization-{release.organization_id}"
-            if repo_name not in repos:
-                repo = (
-                    Repository.objects.filter(
-                        organization_id=release.organization_id,
-                        name=repo_name,
-                        status=ObjectStatus.ACTIVE,
-                    )
-                    .order_by("-pk")
-                    .first()
-                )
-
-                if repo is None:
-                    repo = Repository.objects.create(
-                        organization_id=release.organization_id,
-                        name=repo_name,
-                    )
-
-                repos[repo_name] = repo
-            else:
-                repo = repos[repo_name]
-
-            data["repo_model"] = repo
-
-    def create_commit_authors(commit_list):
-        for data in commit_list:
-            author_email = data.get("author_email")
-            if author_email is None and data.get("author_name"):
-                author_email = (
-                    re.sub(r"[^a-zA-Z0-9\-_\.]*", "", data["author_name"]).lower() + "@localhost"
-                )
-
-            author_email = truncatechars(author_email, 75)
-
-            if not author_email:
-                author = None
-            elif author_email not in authors:
-                author_data = {"name": data.get("author_name")}
-                author, created = CommitAuthor.objects.get_or_create(
-                    organization_id=release.organization_id,
-                    email=author_email,
-                    defaults=author_data,
-                )
-                if author.name != author_data["name"]:
-                    author.update(name=author_data["name"])
-                authors[author_email] = author
-            else:
-                author = authors[author_email]
-
-            data["author_model"] = author
-
-    def set_commit(idx, data):
-
-        repo = data["repo_model"]
-        author = data["author_model"]
-
-        commit_data: _CommitDataKwargs = {}
-
-        # Update/set message and author if they are provided.
-        if author is not None:
-            commit_data["author"] = author
-        if "message" in data:
-            commit_data["message"] = data["message"]
-        if "timestamp" in data:
-            commit_data["date_added"] = data["timestamp"]
-
-        commit, created = Commit.objects.get_or_create(
-            organization_id=release.organization_id,
-            repository_id=repo.id,
-            key=data["id"],
-            defaults=commit_data,
-        )
-        if not created and any(getattr(commit, key) != value for key, value in commit_data.items()):
-            commit.update(**commit_data)
-
-        if author is None:
-            author = commit.author
-
-        commit_author_by_commit[commit.id] = author
-
-        # Guard against patch_set being None
-        patch_set = data.get("patch_set") or []
-        if patch_set:
-            CommitFileChange.objects.bulk_create(
-                [
-                    CommitFileChange(
-                        organization_id=release.organization.id,
-                        commit=commit,
-                        filename=patched_file["path"],
-                        type=patched_file["type"],
-                    )
-                    for patched_file in patch_set
-                ],
-                ignore_conflicts=True,
-                batch_size=100,
-            )
-
-        try:
-            with atomic_transaction(using=router.db_for_write(ReleaseCommit)):
-                ReleaseCommit.objects.create(
-                    organization_id=release.organization_id,
-                    release=release,
-                    commit=commit,
-                    order=idx,
-                )
-        except IntegrityError:
-            pass
-
-        head_commit_by_repo.setdefault(repo.id, commit.id)
-        return commit
-
-    create_repositories(commit_list)
-    create_commit_authors(commit_list)
-
     for idx, data in enumerate(commit_list):
         if idx == 0:
-            latest_commit = set_commit(idx, data)
+            latest_commit = set_commit(
+                idx, data, release, commit_author_by_commit, head_commit_by_repo
+            )
         else:
-            set_commit(idx, data)
+            set_commit(idx, data, release, commit_author_by_commit, head_commit_by_repo)
 
     release.update(
         commit_count=len(commit_list),
@@ -218,6 +104,66 @@ def set_commits_on_release(release, commit_list):
         last_commit_id=latest_commit.id if latest_commit else None,
     )
     return head_commit_by_repo, commit_author_by_commit
+
+
+def set_commit(idx, data, release, commit_author_by_commit, head_commit_by_repo):
+    repo = data["repo_model"]
+    author = data["author_model"]
+
+    commit_data: _CommitDataKwargs = {}
+
+    # Update/set message and author if they are provided.
+    if author is not None:
+        commit_data["author"] = author
+    if "message" in data:
+        commit_data["message"] = data["message"]
+    if "timestamp" in data:
+        commit_data["date_added"] = data["timestamp"]
+
+    commit, created = Commit.objects.get_or_create(
+        organization_id=release.organization_id,
+        repository_id=repo.id,
+        key=data["id"],
+        defaults=commit_data,
+    )
+    if not created and any(getattr(commit, key) != value for key, value in commit_data.items()):
+        commit.update(**commit_data)
+
+    if author is None:
+        author = commit.author
+
+    commit_author_by_commit[commit.id] = author
+
+    # Guard against patch_set being None
+    patch_set = data.get("patch_set") or []
+    if patch_set:
+        CommitFileChange.objects.bulk_create(
+            [
+                CommitFileChange(
+                    organization_id=release.organization.id,
+                    commit=commit,
+                    filename=patched_file["path"],
+                    type=patched_file["type"],
+                )
+                for patched_file in patch_set
+            ],
+            ignore_conflicts=True,
+            batch_size=100,
+        )
+
+    try:
+        with atomic_transaction(using=router.db_for_write(ReleaseCommit)):
+            ReleaseCommit.objects.create(
+                organization_id=release.organization_id,
+                release=release,
+                commit=commit,
+                order=idx,
+            )
+    except IntegrityError:
+        pass
+
+    head_commit_by_repo.setdefault(repo.id, commit.id)
+    return commit
 
 
 def fill_in_missing_release_head_commits(release, head_commit_by_repo):
@@ -335,3 +281,61 @@ def update_group_resolutions(release, commit_author_by_commit):
         kick_off_status_syncs.apply_async(
             kwargs={"project_id": group_project_lookup[group_id], "group_id": group_id}
         )
+
+
+def create_commit_authors(commit_list, release):
+    authors = {}
+
+    for data in commit_list:
+        author_email = data.get("author_email")
+        if author_email is None and data.get("author_name"):
+            author_email = (
+                re.sub(r"[^a-zA-Z0-9\-_\.]*", "", data["author_name"]).lower() + "@localhost"
+            )
+
+        author_email = truncatechars(author_email, 75)
+
+        if not author_email:
+            author = None
+        elif author_email not in authors:
+            author_data = {"name": data.get("author_name")}
+            author, created = CommitAuthor.objects.get_or_create(
+                organization_id=release.organization_id,
+                email=author_email,
+                defaults=author_data,
+            )
+            if author.name != author_data["name"]:
+                author.update(name=author_data["name"])
+            authors[author_email] = author
+        else:
+            author = authors[author_email]
+
+        data["author_model"] = author
+
+
+def create_repositories(commit_list, release):
+    repos = {}
+    for data in commit_list:
+        repo_name = data.get("repository") or f"organization-{release.organization_id}"
+        if repo_name not in repos:
+            repo = (
+                Repository.objects.filter(
+                    organization_id=release.organization_id,
+                    name=repo_name,
+                    status=ObjectStatus.ACTIVE,
+                )
+                .order_by("-pk")
+                .first()
+            )
+
+            if repo is None:
+                repo = Repository.objects.create(
+                    organization_id=release.organization_id,
+                    name=repo_name,
+                )
+
+            repos[repo_name] = repo
+        else:
+            repo = repos[repo_name]
+
+        data["repo_model"] = repo
