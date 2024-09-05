@@ -485,7 +485,7 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
             str(self.user.id),
         )
         seer_return_value_1 = {
-            "anomalies": [
+            "timeseries": [
                 {
                     "anomaly": {
                         "anomaly_score": 0.7,
@@ -525,7 +525,7 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
 
         # trigger critical
         seer_return_value_2 = {
-            "anomalies": [
+            "timeseries": [
                 {
                     "anomaly": {
                         "anomaly_score": 0.9,
@@ -565,7 +565,7 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
 
         # trigger a resolution
         seer_return_value_3 = {
-            "anomalies": [
+            "timeseries": [
                 {
                     "anomaly": {"anomaly_score": 0.5, "anomaly_type": AnomalyType.NONE.value},
                     "timestamp": 1,
@@ -609,7 +609,7 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
         throughput_rule.snuba_query.update(time_window=15 * 60, dataset=Dataset.Transactions)
         # trigger critical
         seer_return_value = {
-            "anomalies": [
+            "timeseries": [
                 {
                     "anomaly": {
                         "anomaly_score": 0.9,
@@ -652,7 +652,7 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
 
         # trigger a resolution
         seer_return_value_2 = {
-            "anomalies": [
+            "timeseries": [
                 {
                     "anomaly": {"anomaly_score": 0.5, "anomaly_type": AnomalyType.NONE.value},
                     "timestamp": 1,
@@ -771,7 +771,7 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
 
         # test that we don't activate if we get "no_data"
         seer_return_value = {
-            "anomalies": [
+            "timeseries": [
                 {
                     "anomaly": {
                         "anomaly_score": 0.0,
@@ -804,7 +804,7 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
 
         # test that we activate but don't fire an alert if we get "none"
         seer_return_value = {
-            "anomalies": [
+            "timeseries": [
                 {
                     "anomaly": {
                         "anomaly_score": 0.2,
@@ -837,7 +837,7 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
 
         # test that we can activate and fire an alert
         seer_return_value = {
-            "anomalies": [
+            "timeseries": [
                 {
                     "anomaly": {
                         "anomaly_score": 0.7,
@@ -877,7 +877,7 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
         rule = self.dynamic_rule
         value = 10
         seer_return_value = {
-            "anomalies": [
+            "timeseries": [
                 {
                     "anomaly": {
                         "anomaly_score": 0.0,
@@ -910,7 +910,7 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
     @mock.patch("sentry.incidents.subscription_processor.logger")
     def test_seer_call_empty_list(self, mock_logger, mock_seer_request):
         processor = SubscriptionProcessor(self.sub)
-        seer_return_value: dict[str, list] = {"anomalies": []}
+        seer_return_value: dict[str, list] = {"timeseries": []}
         mock_seer_request.return_value = HTTPResponse(orjson.dumps(seer_return_value), status=200)
         result = processor.get_anomaly_data_from_seer(10)
         assert mock_logger.warning.call_args[0] == (
@@ -3046,7 +3046,7 @@ class MetricsCrashRateAlertProcessUpdateTest(ProcessUpdateBaseClass, BaseMetrics
 
         # Send Critical Update
         seer_return_value = {
-            "anomalies": [
+            "timeseries": [
                 {
                     "anomaly": {
                         "anomaly_score": 0.7,
@@ -3077,7 +3077,7 @@ class MetricsCrashRateAlertProcessUpdateTest(ProcessUpdateBaseClass, BaseMetrics
 
         # Close the metric alert
         seer_return_value = {
-            "anomalies": [
+            "timeseries": [
                 {
                     "anomaly": {
                         "anomaly_score": 0.2,
