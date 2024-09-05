@@ -1,5 +1,5 @@
 ---
-created: '2024-09-06T13:40:56.111316+00:00'
+created: '2024-09-06T16:43:36.851768+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -26,7 +26,7 @@ app:
           frame (non app frame)
             function*
               "UIApplicationMain"
-          frame (marked as prefix frame by stack trace rule (category:ui +sentinel +prefix))
+          frame (non app frame)
             function*
               "-[UIApplication _run]"
           frame (non app frame)
@@ -102,7 +102,7 @@ system:
           frame (ignored by stack trace rule (category:threadbase -group v-group))
             function*
               "UIApplicationMain"
-          frame* (marked as prefix frame by stack trace rule (category:ui +sentinel +prefix))
+          frame*
             function*
               "-[UIApplication _run]"
           frame (ignored by stack trace rule (category:internals -group))

@@ -541,10 +541,7 @@ def single_exception(
     rv = {}
 
     for variant, stacktrace_component in stacktrace_variants.items():
-        values = [
-            stacktrace_component,
-            system_type_component if variant == "system" else type_component,
-        ]
+        values = [stacktrace_component, type_component]
 
         if ns_error_component is not None:
             values.append(ns_error_component)
