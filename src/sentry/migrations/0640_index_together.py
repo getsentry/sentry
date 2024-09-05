@@ -155,16 +155,6 @@ class Migration(CheckedMigration):
             old_fields=("project_id", "artifact_bundle"),
         ),
         migrations.RenameIndex(
-            model_name="projectdebugfile",
-            new_name="sentry_proj_project_c586ac_idx",
-            old_fields=("project_id", "debug_id"),
-        ),
-        migrations.RenameIndex(
-            model_name="projectdebugfile",
-            new_name="sentry_proj_project_9b5950_idx",
-            old_fields=("project_id", "code_id"),
-        ),
-        migrations.RenameIndex(
             model_name="regionoutbox",
             new_name="sentry_regi_shard_s_e7412f_idx",
             old_fields=("shard_scope", "shard_identifier", "id"),
