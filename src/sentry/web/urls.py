@@ -51,6 +51,7 @@ from sentry.web.frontend.user_avatar import UserAvatarPhotoView
 
 __all__ = ("urlpatterns",)
 
+from social_auth.views import complete
 
 # Only create one instance of the ReactPageView since it's duplicated everywhere
 generic_react_page_view = GenericReactPageView.as_view()
@@ -391,6 +392,12 @@ urlpatterns += [
                 ),
             ]
         ),
+    ),
+    # GitHub social auth requires the prefix auth/sso
+    re_path(
+        r"^auth/sso/account/settings/social/associate/complete/(?P<backend>[^/]+)/$",
+        complete,
+        name="socialauth_associate_complete_auth_sso",
     ),
     # Onboarding
     re_path(
