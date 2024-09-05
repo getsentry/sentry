@@ -93,10 +93,7 @@ export function ReleaseSearchBar({
       initialQuery={widgetQuery.conditions}
       filterKeySections={filterKeySections}
       filterKeys={supportedTags}
-      getTagValues={memoize(
-        getTagValues,
-        ({key}, searchQuery) => `${key}-${searchQuery}`
-      )}
+      getTagValues={getTagValues}
       placeholder={t('Search for release version, session status, and more')}
       onChange={(query, state) => {
         onClose?.(query, {validSearch: state.queryIsValid});
