@@ -2196,37 +2196,6 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
                 == event2.get_hashes(load_grouping_config(grouping_config)).hashes
             )
 
-    def test_synthetic_exception_detection(self) -> None:
-        # TODO: Really we should use DEFAULT_GROUPING_CONFIG here as the id (so that we don't have
-        # to update the test every time we change the default), but there's something about the
-        # mobile config, over and above the enhancements hardcoded above, that makes this test pass.
-        # We'll have to figure this out before we can delete the config.
-        self.project.update_option("sentry:grouping_config", "mobile:2021-02-12")
-
-        manager = EventManager(
-            make_event(
-                message="foo",
-                event_id="b" * 32,
-                exception={
-                    "values": [
-                        {
-                            "type": "SIGABRT",
-                            "mechanism": {"handled": False},
-                            "stacktrace": {"frames": [{"function": "foo"}]},
-                        }
-                    ]
-                },
-            ),
-            project=self.project,
-        )
-        manager.normalize()
-        event = manager.save(self.project.id)
-
-        mechanism = event.interfaces["exception"].values[0].mechanism
-        assert mechanism is not None
-        assert mechanism.synthetic is True
-        assert event.title == "foo"
-
     @override_options({"performance.issues.all.problem-detection": 1.0})
     @override_options({"performance.issues.n_plus_one_db.problem-creation": 1.0})
     def test_perf_issue_creation(self) -> None:

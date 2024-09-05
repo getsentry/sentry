@@ -573,6 +573,9 @@ def single_exception(
             # can be continuously modified without unnecessarily creating new
             # groups.
             type_component.update(contributes=False, hint="ignored because exception is synthetic")
+            system_type_component.update(
+                contributes=False, hint="ignored because exception is synthetic"
+            )
         if interface.mechanism.meta and "ns_error" in interface.mechanism.meta:
             ns_error_component = GroupingComponent(
                 id="ns-error",
