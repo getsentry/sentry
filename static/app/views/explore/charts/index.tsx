@@ -6,7 +6,7 @@ import {CompactSelect} from 'sentry/components/compactSelect';
 import {CHART_PALETTE} from 'sentry/constants/chartPalette';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {tooltipFormatter} from 'sentry/utils/discover/charts';
+import {aggregateOutputType} from 'sentry/utils/discover/fields';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {useChartInterval} from 'sentry/views/explore/hooks/useChartInterval';
@@ -92,11 +92,8 @@ export function ExploreCharts({query}: ExploreChartsProps) {
               loading={series.isPending}
               chartColors={CHART_PALETTE[2]}
               type={chartType}
-              aggregateOutputFormat="number"
+              aggregateOutputFormat={aggregateOutputType(visualize)}
               showLegend
-              tooltipFormatterOptions={{
-                valueFormatter: value => tooltipFormatter(value),
-              }}
             />
           </ChartPanel>
         </ChartContainer>
