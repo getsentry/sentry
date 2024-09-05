@@ -42,9 +42,14 @@ from sentry.api.serializers.models.group import SKIP_SNUBA_FIELDS
 from sentry.constants import ALLOWED_FUTURE_DELTA
 from sentry.db.models.manager.base_query_set import BaseQuerySet
 from sentry.issues import grouptype
-from sentry.issues.grouptype import ErrorGroupType, GroupCategory, get_group_types_by_category
+from sentry.issues.grouptype import (
+    ErrorGroupType,
+    GroupCategory,
+    GroupType,
+    get_group_types_by_category,
+)
+from sentry.issues.grouptype import registry as gt_registry
 from sentry.issues.search import (
-    HIDDEN_FROM_DEFAULT_SEARCH_GROUP_TYPES,
     SEARCH_FILTER_UPDATERS,
     IntermediateSearchQueryPartial,
     MergeableRow,
@@ -1839,16 +1844,21 @@ class GroupAttributesPostgresSnubaQueryExecutor(PostgresSnubaQueryExecutor):
                         Condition(Column("occurrence_type_id", joined_entity), Op.IN, group_types)
                     )
                 else:
-                    hidden_group_type_ids = list(
-                        map(lambda gt: gt.type_id, HIDDEN_FROM_DEFAULT_SEARCH_GROUP_TYPES)
-                    )
-                    where_conditions.append(
-                        Condition(
-                            Column("occurrence_type_id", joined_entity),
-                            Op.NOT_IN,
-                            hidden_group_type_ids,
+                    all_group_type_objs: list[GroupType] = [
+                        gt_registry.get_group_type_by_type_id(id)
+                        for id in gt_registry.get_all_group_type_ids()
+                    ]
+                    hidden_group_type_ids = [
+                        gt.type_id for gt in all_group_type_objs if not gt.in_default_search
+                    ]
+                    if hidden_group_type_ids:
+                        where_conditions.append(
+                            Condition(
+                                Column("occurrence_type_id", joined_entity),
+                                Op.NOT_IN,
+                                hidden_group_type_ids,
+                            )
                         )
-                    )
 
             sort_func = self.get_sort_defs(joined_entity)[sort_by]
 

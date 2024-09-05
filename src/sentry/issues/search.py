@@ -8,20 +8,13 @@ from typing import Any, Optional, Protocol, TypedDict
 
 from sentry.api.event_search import SearchFilter, SearchKey, SearchValue
 from sentry.issues import grouptype
-from sentry.issues.grouptype import (
-    FeedbackGroup,
-    GroupCategory,
-    get_all_group_type_ids,
-    get_group_type_by_type_id,
-)
+from sentry.issues.grouptype import GroupCategory, get_all_group_type_ids, get_group_type_by_type_id
 from sentry.models.environment import Environment
 from sentry.models.organization import Organization
 from sentry.search.events.filter import convert_search_filter_to_snuba_query
 from sentry.snuba.dataset import Dataset
 from sentry.utils import snuba
 from sentry.utils.snuba import SnubaQueryParams
-
-HIDDEN_FROM_DEFAULT_SEARCH_GROUP_TYPES = (FeedbackGroup,)
 
 
 class UnsupportedSearchQuery(Exception):
