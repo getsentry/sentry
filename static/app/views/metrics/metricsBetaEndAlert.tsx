@@ -9,7 +9,7 @@ export function MetricsBetaEndAlert({style}: Pick<AlertProps, 'style'>) {
         'Thank you for participating in our Metrics beta program. After careful consideration, we are ending the beta program and will retire the current Metrics solution on October 7th. Stay tuned for updates and [link:read the FAQs] for more details.',
         {
           link: (
-            <ExternalLink href="https://sentry.zendesk.com/hc/en-us/articles/26369339769883-Upcoming-API-Changes-to-Metrics" />
+            <ExternalLink href="https://sentry.zendesk.com/hc/en-us/articles/26369339769883-Metrics-Beta-Coming-to-an-End" />
           ),
         }
       )}
