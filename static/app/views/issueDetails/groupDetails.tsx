@@ -21,6 +21,7 @@ import {TabPanels, Tabs} from 'sentry/components/tabs';
 import {t} from 'sentry/locale';
 import GroupStore from 'sentry/stores/groupStore';
 import {space} from 'sentry/styles/space';
+import type {PageFilters} from 'sentry/types/core';
 import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
 import {GroupStatus, IssueCategory, IssueType} from 'sentry/types/group';
@@ -51,6 +52,7 @@ import {useDetailedProject} from 'sentry/utils/useDetailedProject';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useMemoWithPrevious} from 'sentry/utils/useMemoWithPrevious';
 import useOrganization from 'sentry/utils/useOrganization';
+import usePageFilters from 'sentry/utils/usePageFilters';
 import {useParams} from 'sentry/utils/useParams';
 import useProjects from 'sentry/utils/useProjects';
 import useRouter from 'sentry/utils/useRouter';
@@ -289,17 +291,31 @@ type FetchGroupQueryParameters = {
   environments: string[];
   groupId: string;
   organizationSlug: string;
+  datetime?: Partial<PageFilters['datetime']>;
 };
 
 function makeFetchGroupQueryKey({
   groupId,
   organizationSlug,
   environments,
+  datetime,
 }: FetchGroupQueryParameters): ApiQueryKey {
-  return [
-    `/organizations/${organizationSlug}/issues/${groupId}/`,
-    {query: getGroupDetailsQueryData({environments})},
-  ];
+  const query = getGroupDetailsQueryData({environments});
+  if (Array.isArray(query.expand)) {
+    query.expand?.push('customStats');
+  } else {
+    query.expand = ['customStats'];
+  }
+  if (datetime?.start) {
+    query.start = getUtcDateString(datetime.start);
+  }
+  if (datetime?.end) {
+    query.end = getUtcDateString(datetime.end);
+  }
+  if (datetime?.period) {
+    query.statsPeriod = datetime.period;
+  }
+  return [`/organizations/${organizationSlug}/issues/${groupId}/`, {query}];
 }
 
 /**
@@ -311,6 +327,7 @@ function makeFetchGroupQueryKey({
 function useSyncGroupStore(groupId: string, incomingEnvs: string[]) {
   const queryClient = useQueryClient();
   const organization = useOrganization();
+  const {selection: pageFilters} = usePageFilters();
 
   // It's possible the overview page is still unloading the store
   useEffect(() => {
@@ -329,19 +346,21 @@ function useSyncGroupStore(groupId: string, incomingEnvs: string[]) {
             groupId: storeGroup.id,
             organizationSlug: organization.slug,
             environments: incomingEnvs,
+            datetime: pageFilters.datetime,
           }),
           storeGroup
         );
       }
     }, undefined) as () => void;
-  }, [groupId, incomingEnvs, organization.slug, queryClient]);
+  }, [groupId, incomingEnvs, organization.slug, queryClient, pageFilters.datetime]);
 }
 
-function useFetchGroupDetails(): FetchGroupDetailsState {
+export function useFetchGroupDetails(): FetchGroupDetailsState {
   const api = useApi();
   const organization = useOrganization();
   const router = useRouter();
   const params = router.params;
+  const {selection: pageFilters} = usePageFilters();
 
   const [allProjectChanged, setAllProjectChanged] = useState<boolean>(false);
 
@@ -367,7 +386,12 @@ function useFetchGroupDetails(): FetchGroupDetailsState {
     error: groupError,
     refetch: refetchGroupCall,
   } = useApiQuery<Group>(
-    makeFetchGroupQueryKey({organizationSlug: organization.slug, groupId, environments}),
+    makeFetchGroupQueryKey({
+      organizationSlug: organization.slug,
+      groupId,
+      environments,
+      datetime: pageFilters.datetime,
+    }),
     {
       staleTime: 30000,
       cacheTime: 30000,
