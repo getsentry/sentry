@@ -50,7 +50,13 @@ describe('Broadcasts', function () {
   it('renders item with media', async function () {
     renderMockRequests({
       orgSlug: organization.slug,
-      broadcastsResponse: [BroadcastFixture({category: 'blog'})],
+      broadcastsResponse: [
+        BroadcastFixture({
+          mediaUrl:
+            'https://images.ctfassets.net/em6l9zw4tzag/2vWdw7ZaApWxygugalbyOC/285525e5b7c9fbfa8fb814a69ab214cd/PerformancePageSketches_hero.jpg?w=2520&h=945&q=50&fm=webp',
+          category: 'blog',
+        }),
+      ],
     });
 
     render(
@@ -78,5 +84,30 @@ describe('Broadcasts', function () {
 
     await userEvent.click(screen.getByRole('button', {name: 'cta_text'}));
     expect(trackAnalytics).toHaveBeenCalledTimes(2);
+  });
+
+  it('renders old experience', async function () {
+    renderMockRequests({
+      orgSlug: organization.slug,
+      broadcastsResponse: [BroadcastFixture()],
+    });
+
+    render(
+      <Broadcasts
+        orientation="left"
+        collapsed={false}
+        currentPanel={SidebarPanelKey.BROADCASTS}
+        onShowPanel={() => jest.fn()}
+        hidePanel={jest.fn()}
+        organization={organization}
+      />
+    );
+
+    expect(await screen.findByText('Learn about Source Maps')).toBeInTheDocument();
+
+    expect(screen.queryByText(/blog post/i)).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('img', {name: 'Learn about Source Maps'})
+    ).not.toBeInTheDocument();
   });
 });
