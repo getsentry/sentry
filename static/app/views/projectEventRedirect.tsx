@@ -57,7 +57,11 @@ function ProjectEventRedirect({router}: Props) {
       // Use `replace` so that hitting the browser back button will skip all
       // this redirect business.
       const url = new URL(xhr.responseURL);
-      router.replace(url.pathname);
+      if (url.origin === window.location.origin) {
+        router.replace(url.pathname);
+      } else {
+        window.location.replace(xhr.responseURL);
+      }
     };
     xhr.onerror = () => {
       setError(t('Could not load the requested event'));
