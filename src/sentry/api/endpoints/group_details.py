@@ -59,6 +59,23 @@ def get_group_global_count(group: Group) -> str:
     return str(group.times_seen_with_pending)
 
 
+def get_group_stats(
+    group, environment_ids: Sequence[int], start: datetime, end: datetime, rollup: int
+):
+    model = get_issue_tsdb_group_model(group.issue_category)
+    return tsdb.backend.rollup(
+        tsdb.backend.get_range(
+            model=model,
+            keys=[group.id],
+            start=start,
+            end=end,
+            environment_ids=environment_ids,
+            tenant_ids={"organization_id": group.project.organization_id},
+        ),
+        rollup,
+    )[group.id]
+
+
 @region_silo_endpoint
 class GroupDetailsEndpoint(GroupEndpoint, EnvironmentMixin):
     publish_status = {
@@ -109,14 +126,14 @@ class GroupDetailsEndpoint(GroupEndpoint, EnvironmentMixin):
     @staticmethod
     def __group_hourly_daily_stats(group: Group, environment_ids: Sequence[int]):
         now = timezone.now()
-        hourly_stats = GroupDetailsEndpoint.__group_custom_stats(
+        hourly_stats = get_group_stats(
             group=group,
             environment_ids=environment_ids,
             start=now - timedelta(days=1),
             end=now,
             rollup=3600,
         )
-        daily_stats = GroupDetailsEndpoint.__group_custom_stats(
+        daily_stats = get_group_stats(
             group=group,
             environment_ids=environment_ids,
             start=now - timedelta(days=30),
@@ -294,8 +311,12 @@ class GroupDetailsEndpoint(GroupEndpoint, EnvironmentMixin):
                     rollup = 3600  # use a default of 1 hour
 
                 if start and end:
-                    custom_stats = self.__group_custom_stats(
-                        group, environment_ids, start, end, rollup
+                    custom_stats = get_group_stats(
+                        group=group,
+                        environment_ids=environment_ids,
+                        start=start,
+                        end=end,
+                        rollup=rollup,
                     )
                     data["stats"].update({"custom": custom_stats})
 
