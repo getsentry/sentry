@@ -49,15 +49,21 @@ export default function ChartPanel({
   const alertsUrls =
     alertConfigs?.map(alertConfig => {
       // Alerts only support single project selection
+      const singleProject = selection.projects.length === 1 && project;
       const alertsUrl =
-        alertConfig && selection.projects.length === 1 && project
+        alertConfig && singleProject
           ? getAlertsUrl({project, ...alertConfig})
           : undefined;
       const name = alertConfig.name ?? 'Create Alert';
+      const disabled = !singleProject;
       return {
         key: name,
         label: name,
         to: alertsUrl,
+        disabled,
+        tooltip: disabled
+          ? t('Alerts are only available for a single project')
+          : undefined,
       };
     }) ?? [];
 
