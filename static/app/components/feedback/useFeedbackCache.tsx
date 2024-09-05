@@ -95,6 +95,7 @@ export default function useFeedbackCache() {
     (ids: TFeedbackIds) => {
       queryClient.invalidateQueries({
         queryKey: listQueryKey,
+        // TODO: replace refetchPage with something else
         refetchPage: ([results]: ApiResult<FeedbackIssueListItem[]>) => {
           return ids === 'all' || results.some(item => ids.includes(item.id));
         },

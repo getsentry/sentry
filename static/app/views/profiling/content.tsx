@@ -274,7 +274,7 @@ function ProfilingContentLegacy({location}: ProfilingContentProps) {
                         ? t('Unable to load profiles')
                         : null
                     }
-                    isLoading={transactions.status === 'loading'}
+                    isLoading={transactions.status === 'pending'}
                     sort={sort}
                     sortableColumns={new Set(fields)}
                   />
@@ -552,7 +552,7 @@ function ProfilingTransactionsContent(props: ProfilingTabContentProps) {
               error={
                 transactions.status === 'error' ? t('Unable to load profiles') : null
               }
-              isLoading={transactions.status === 'loading'}
+              isLoading={transactions.status === 'pending'}
               sort={sort}
               sortableColumns={new Set(fields)}
             />

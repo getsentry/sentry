@@ -23,11 +23,11 @@ function AccountSecurityWrapper({children}: Props) {
   const api = useApi();
   const {authId} = useParams<{authId?: string}>();
 
-  const orgRequest = useQuery<OrganizationSummary[]>(
-    ['organizations'],
-    () => fetchOrganizations(api),
-    {staleTime: 0}
-  );
+  const orgRequest = useQuery<OrganizationSummary[]>({
+    queryKey: ['organizations'],
+    queryFn: () => fetchOrganizations(api),
+    staleTime: 0,
+  });
   const emailsRequest = useApiQuery<UserEmail[]>(['/users/me/emails/'], {staleTime: 0});
   const authenticatorsRequest = useApiQuery<Authenticator[]>([ENDPOINT], {staleTime: 0});
 
@@ -37,26 +37,24 @@ function AccountSecurityWrapper({children}: Props) {
     emailsRequest.refetch();
   }, [orgRequest, authenticatorsRequest, emailsRequest]);
 
-  const disableAuthenticatorMutation = useMutation(
-    async (auth: Authenticator) => {
+  const disableAuthenticatorMutation = useMutation({
+    mutationFn: async (auth: Authenticator) => {
       if (!auth || !auth.authId) {
         return;
       }
 
       await api.requestPromise(`${ENDPOINT}${auth.authId}/`, {method: 'DELETE'});
     },
-    {
-      onSuccess: () => {
-        handleRefresh();
-      },
-      onError: (_, auth) => {
-        addErrorMessage(t('Error disabling %s', auth.name));
-      },
-    }
-  );
+    onSuccess: () => {
+      handleRefresh();
+    },
+    onError: (_, auth) => {
+      addErrorMessage(t('Error disabling %s', auth.name));
+    },
+  });
 
-  const regenerateBackupCodesMutation = useMutation(
-    async () => {
+  const regenerateBackupCodesMutation = useMutation({
+    mutationFn: async () => {
       if (!authId) {
         return;
       }
@@ -65,22 +63,20 @@ function AccountSecurityWrapper({children}: Props) {
         method: 'PUT',
       });
     },
-    {
-      onSuccess: () => {
-        handleRefresh();
-      },
-      onError: () => {
-        addErrorMessage(t('Error regenerating backup codes'));
-      },
-    }
-  );
+    onSuccess: () => {
+      handleRefresh();
+    },
+    onError: () => {
+      addErrorMessage(t('Error regenerating backup codes'));
+    },
+  });
 
   if (
-    orgRequest.isLoading ||
+    orgRequest.isPending ||
     emailsRequest.isPending ||
     authenticatorsRequest.isPending ||
-    disableAuthenticatorMutation.isLoading ||
-    regenerateBackupCodesMutation.isLoading
+    disableAuthenticatorMutation.isPending ||
+    regenerateBackupCodesMutation.isPending
   ) {
     return <LoadingIndicator />;
   }

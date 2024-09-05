@@ -22,7 +22,7 @@ interface FetchParams {
 }
 
 interface InfiniteFetchParams extends FetchParams {
-  pageParam: ParsedHeader;
+  pageParam: ParsedHeader | undefined;
 }
 
 export default function useApiEndpoint() {

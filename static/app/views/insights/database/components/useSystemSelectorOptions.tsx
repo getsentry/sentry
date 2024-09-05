@@ -36,7 +36,7 @@ export function useSystemSelectorOptions() {
     ''
   );
 
-  const {data, isLoading, isError} = useSpanMetrics(
+  const {data, isPending, isError} = useSpanMetrics(
     {
       search: MutableSearch.fromQueryObject({'span.op': 'db'}),
 
@@ -67,5 +67,5 @@ export function useSystemSelectorOptions() {
     setSelectedSystem(options[0].value);
   }
 
-  return {selectedSystem, setSelectedSystem, options, isLoading, isError};
+  return {selectedSystem, setSelectedSystem, options, isLoading: isPending, isError};
 }
