@@ -29,7 +29,6 @@ type Props = CommonSidebarProps & {
 
 type State = {
   broadcasts: Broadcast[];
-
   error: boolean;
   loading: boolean;
 };
