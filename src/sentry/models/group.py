@@ -242,7 +242,7 @@ def get_oldest_or_latest_event_for_environments(
         filter=_filter,
         limit=1,
         orderby=ordering.value,
-        referrer="Group.get_latest",
+        referrer=Referrer.GROUP_GET_LATEST.value,
         dataset=dataset,
         tenant_ids={"organization_id": group.project.organization_id},
     )
@@ -292,7 +292,7 @@ def get_recommended_event_for_environments(
         conditions=all_conditions,
         limit=1,
         orderby=EventOrdering.MOST_HELPFUL.value,
-        referrer="Group.get_helpful",
+        referrer=Referrer.GROUP_GET_HELPFUL.value,
         dataset=dataset,
         tenant_ids={"organization_id": group.project.organization_id},
     )
@@ -380,7 +380,7 @@ class GroupManager(BaseManager["Group"]):
                 conditions=[["group_id", "IS NOT NULL", None]],
             ),
             limit=max(len(project_ids), 100),
-            referrer="Group.filter_by_event_id",
+            referrer=Referrer.GROUP_FILTER_BY_EVENT_ID.value,
             tenant_ids=tenant_ids,
         )
         return self.filter(id__in={event.group_id for event in events})

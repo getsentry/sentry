@@ -5,6 +5,7 @@ from django.urls import URLPattern, URLResolver, re_path
 
 from sentry.api.endpoints.group_ai_summary import GroupAiSummaryEndpoint
 from sentry.api.endpoints.group_autofix_setup_check import GroupAutofixSetupCheck
+from sentry.api.endpoints.group_detailed_stats import GroupDetailedStatsEndpoint
 from sentry.api.endpoints.group_event_details import GroupEventDetailsEndpoint
 from sentry.api.endpoints.group_integration_details import GroupIntegrationDetailsEndpoint
 from sentry.api.endpoints.group_integrations import GroupIntegrationsEndpoint
@@ -724,6 +725,11 @@ def create_group_urls(name_prefix: str) -> list[URLPattern | URLResolver]:
             r"^(?P<issue_id>[^\/]+)/stats/$",
             GroupStatsEndpoint.as_view(),
             name=f"{name_prefix}-group-stats",
+        ),
+        re_path(
+            r"^(?P<issue_id>[^\/]+)/detailed-stats/$",
+            GroupDetailedStatsEndpoint.as_view(),
+            name=f"{name_prefix}-group-detailed-stats",
         ),
         re_path(
             r"^(?P<issue_id>[^\/]+)/tags/$",

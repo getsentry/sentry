@@ -1,3 +1,4 @@
+import datetime
 import functools
 import logging
 from collections.abc import Sequence
@@ -25,6 +26,8 @@ from sentry.api.serializers.models.group_stream import get_actions, get_availabl
 from sentry.api.serializers.models.platformexternalissue import PlatformExternalIssueSerializer
 from sentry.api.serializers.models.plugin import PluginSerializer
 from sentry.api.serializers.models.team import TeamSerializer
+from sentry.api.utils import get_date_range_from_params
+from sentry.exceptions import InvalidSearchQuery
 from sentry.integrations.api.serializers.models.external_issue import ExternalIssueSerializer
 from sentry.integrations.models.external_issue import ExternalIssue
 from sentry.issues.constants import get_issue_tsdb_group_model
@@ -46,6 +49,7 @@ from sentry.tasks.post_process import fetch_buffered_group_stats
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
 from sentry.users.services.user.service import user_service
 from sentry.utils import metrics
+from sentry.utils.dates import get_rollup_from_request
 
 delete_logger = logging.getLogger("sentry.deletions.api")
 
@@ -104,32 +108,39 @@ class GroupDetailsEndpoint(GroupEndpoint, EnvironmentMixin):
 
     @staticmethod
     def __group_hourly_daily_stats(group: Group, environment_ids: Sequence[int]):
-        model = get_issue_tsdb_group_model(group.issue_category)
         now = timezone.now()
-        hourly_stats = tsdb.backend.rollup(
-            tsdb.backend.get_range(
-                model=model,
-                keys=[group.id],
-                end=now,
-                start=now - timedelta(days=1),
-                environment_ids=environment_ids,
-                tenant_ids={"organization_id": group.project.organization_id},
-            ),
-            3600,
-        )[group.id]
-        daily_stats = tsdb.backend.rollup(
-            tsdb.backend.get_range(
-                model=model,
-                keys=[group.id],
-                end=now,
-                start=now - timedelta(days=30),
-                environment_ids=environment_ids,
-                tenant_ids={"organization_id": group.project.organization_id},
-            ),
-            3600 * 24,
-        )[group.id]
-
+        hourly_stats = GroupDetailsEndpoint.__group_custom_stats(
+            group=group,
+            environment_ids=environment_ids,
+            start=now - timedelta(days=1),
+            end=now,
+            rollup=3600,
+        )
+        daily_stats = GroupDetailsEndpoint.__group_custom_stats(
+            group=group,
+            environment_ids=environment_ids,
+            start=now - timedelta(days=30),
+            end=now,
+            rollup=3600 * 24,
+        )
         return hourly_stats, daily_stats
+
+    @staticmethod
+    def __group_custom_stats(
+        group, environment_ids: Sequence[int], start: datetime, end: datetime, rollup: int
+    ):
+        model = get_issue_tsdb_group_model(group.issue_category)
+        return tsdb.backend.rollup(
+            tsdb.backend.get_range(
+                model=model,
+                keys=[group.id],
+                start=start,
+                end=end,
+                environment_ids=environment_ids,
+                tenant_ids={"organization_id": group.project.organization_id},
+            ),
+            rollup,
+        )[group.id]
 
     def get(self, request: Request, group) -> Response:
         """
@@ -269,6 +280,24 @@ class GroupDetailsEndpoint(GroupEndpoint, EnvironmentMixin):
                     "count": get_group_global_count(group),
                 }
             )
+
+            if "customStats" in expand:
+                start, end = get_date_range_from_params(request.GET)
+                try:
+                    rollup = get_rollup_from_request(
+                        request,
+                        end - start,
+                        default_interval=None,
+                        error=InvalidSearchQuery(),
+                    )
+                except InvalidSearchQuery:
+                    rollup = 3600  # use a default of 1 hour
+
+                if start and end:
+                    custom_stats = self.__group_custom_stats(
+                        group, environment_ids, start, end, rollup
+                    )
+                    data["stats"].update({"custom": custom_stats})
 
             participants = user_service.serialize_many(
                 filter={"user_ids": GroupSubscriptionManager.get_participating_user_ids(group)},
