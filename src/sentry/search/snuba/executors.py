@@ -44,6 +44,7 @@ from sentry.db.models.manager.base_query_set import BaseQuerySet
 from sentry.issues import grouptype
 from sentry.issues.grouptype import ErrorGroupType, GroupCategory, get_group_types_by_category
 from sentry.issues.search import (
+    HIDDEN_FROM_DEFAULT_SEARCH_GROUP_TYPES,
     SEARCH_FILTER_UPDATERS,
     IntermediateSearchQueryPartial,
     MergeableRow,
@@ -1836,6 +1837,17 @@ class GroupAttributesPostgresSnubaQueryExecutor(PostgresSnubaQueryExecutor):
                     ]
                     where_conditions.append(
                         Condition(Column("occurrence_type_id", joined_entity), Op.IN, group_types)
+                    )
+                else:
+                    hidden_group_type_ids = list(
+                        map(lambda gt: gt.type_id, HIDDEN_FROM_DEFAULT_SEARCH_GROUP_TYPES)
+                    )
+                    where_conditions.append(
+                        Condition(
+                            Column("occurrence_type_id", joined_entity),
+                            Op.NOT_IN,
+                            hidden_group_type_ids,
+                        )
                     )
 
             sort_func = self.get_sort_defs(joined_entity)[sort_by]

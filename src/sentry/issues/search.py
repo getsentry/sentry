@@ -21,6 +21,8 @@ from sentry.snuba.dataset import Dataset
 from sentry.utils import snuba
 from sentry.utils.snuba import SnubaQueryParams
 
+HIDDEN_FROM_DEFAULT_SEARCH_GROUP_TYPES = (FeedbackGroup,)
+
 
 class UnsupportedSearchQuery(Exception):
     pass
@@ -108,9 +110,9 @@ def group_types_from(
     Return the set of group type ids to include in the query, or None if all group types should be included.
     """
 
-    # if no relevant filters, return all group types except feedback, which we hide by default
+    # if no relevant filters, return none to signify we should query all group types
     if not any(sf.key.name in ("issue.category", "issue.type") for sf in search_filters or ()):
-        return set(get_all_group_type_ids()) - {FeedbackGroup.type_id}
+        return None
 
     # start by including all group types
     include_group_types = set(get_all_group_type_ids())
