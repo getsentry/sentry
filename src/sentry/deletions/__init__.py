@@ -126,7 +126,7 @@ def load_defaults():
     default_manager.register(models.GroupEnvironment, BulkModelDeletionTask)
     default_manager.register(models.GroupHash, defaults.GroupHashDeletionTask)
     default_manager.register(models.GroupHashMetadata, BulkModelDeletionTask)
-    default_manager.register(models.GroupHistory, BulkModelDeletionTask)
+    default_manager.register(models.GroupHistory, defaults.GroupHistoryDeletionTask)
     default_manager.register(models.GroupLink, BulkModelDeletionTask)
     default_manager.register(models.GroupMeta, BulkModelDeletionTask)
     default_manager.register(models.GroupRedirect, BulkModelDeletionTask)
