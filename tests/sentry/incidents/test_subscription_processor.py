@@ -52,7 +52,7 @@ from sentry.incidents.subscription_processor import (
 )
 from sentry.incidents.utils.types import AlertRuleActivationConditionType
 from sentry.models.project import Project
-from sentry.seer.anomaly_detection.types import AnomalyType
+from sentry.seer.anomaly_detection.types import AnomalyType, TimeSeriesPoint
 from sentry.seer.anomaly_detection.utils import translate_direction
 from sentry.sentry_metrics.configuration import UseCaseKey
 from sentry.sentry_metrics.indexer.postgres.models import MetricsKeyIndexer
@@ -691,19 +691,19 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
     def test_has_anomaly(self):
         rule = self.dynamic_rule
         # test alert ABOVE
-        anomaly1 = {
+        anomaly1: TimeSeriesPoint = {
             "anomaly": {"anomaly_score": 0.9, "anomaly_type": AnomalyType.HIGH_CONFIDENCE.value},
             "timestamp": 1,
             "value": 10,
         }
 
-        anomaly2 = {
+        anomaly2: TimeSeriesPoint = {
             "anomaly": {"anomaly_score": 0.6, "anomaly_type": AnomalyType.LOW_CONFIDENCE.value},
             "timestamp": 1,
             "value": 10,
         }
 
-        not_anomaly = {
+        not_anomaly: TimeSeriesPoint = {
             "anomaly": {"anomaly_score": 0.2, "anomaly_type": AnomalyType.NONE.value},
             "timestamp": 1,
             "value": 10,
@@ -723,7 +723,7 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
         assert not processor.has_anomaly(not_anomaly, warning_label, False)
 
     def test_fake_anomaly(self):
-        anomaly = {
+        anomaly: TimeSeriesPoint = {
             "anomaly": {"anomaly_score": 0.2, "anomaly_type": AnomalyType.NONE.value},
             "timestamp": 1,
             "value": 10,
