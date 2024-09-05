@@ -1,11 +1,11 @@
 import {useCallback, useEffect} from 'react';
-import type {RouteComponentProps} from 'react-router';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {Alert} from 'sentry/components/alert';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
+import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {metric} from 'sentry/utils/analytics';
@@ -38,7 +38,7 @@ export function MetricRulesEdit({
   const navigate = useNavigate();
 
   const {
-    isLoading,
+    isPending,
     isError,
     data: rule,
     error,
@@ -51,10 +51,10 @@ export function MetricRulesEdit({
   );
 
   useEffect(() => {
-    if (!isLoading && rule) {
+    if (!isPending && rule) {
       onChangeTitle(rule.name ?? '');
     }
-  }, [onChangeTitle, isLoading, rule]);
+  }, [onChangeTitle, isPending, rule]);
 
   useEffect(() => {
     if (isError && error?.responseText) {
@@ -78,7 +78,7 @@ export function MetricRulesEdit({
     );
   }, [params.ruleId, navigate, organization.slug]);
 
-  if (isLoading) {
+  if (isPending) {
     return <LoadingIndicator />;
   }
 

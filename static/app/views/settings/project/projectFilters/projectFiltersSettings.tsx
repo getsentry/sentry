@@ -405,7 +405,7 @@ export function ProjectFiltersSettings({project, params, features}: Props) {
 
   const {
     data: filterListData,
-    isLoading,
+    isPending,
     isError,
     refetch,
   } = useApiQuery<Filter[]>([`/projects/${organization.slug}/${projectSlug}/filters/`], {
@@ -433,7 +433,7 @@ export function ProjectFiltersSettings({project, params, features}: Props) {
     []
   );
 
-  if (isLoading) {
+  if (isPending) {
     return <LoadingIndicator />;
   }
 

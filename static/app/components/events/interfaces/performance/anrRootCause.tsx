@@ -103,7 +103,6 @@ export function AnrRootCause({event, organization}: Props) {
               newestFirst
               event={event}
               platform={platform}
-              hasHierarchicalGrouping={false}
               lockAddress={address ?? undefined}
             />
           ) : (

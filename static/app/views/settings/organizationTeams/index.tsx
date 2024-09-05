@@ -1,11 +1,11 @@
 import {useCallback, useEffect, useMemo} from 'react';
-import type {RouteComponentProps} from 'react-router';
 
 import {loadStats} from 'sentry/actionCreators/projects';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
 import TeamStore from 'sentry/stores/teamStore';
+import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import type {AccessRequest} from 'sentry/types/organization';
 import {
   type ApiQueryKey,
@@ -29,7 +29,7 @@ export function OrganizationTeamsContainer(props: RouteComponentProps<{}, {}>) {
   );
 
   const {
-    isLoading,
+    isPending,
     isError,
     data: requestList = [],
   } = useApiQuery<AccessRequest[]>(queryKey, {
@@ -79,7 +79,7 @@ export function OrganizationTeamsContainer(props: RouteComponentProps<{}, {}>) {
     return <LoadingError message={t('Organization not found')} />;
   }
 
-  if (isLoading) {
+  if (isPending) {
     return <LoadingIndicator />;
   }
 

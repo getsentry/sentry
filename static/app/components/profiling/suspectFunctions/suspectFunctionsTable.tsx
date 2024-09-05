@@ -106,7 +106,7 @@ export function SuspectFunctionsTable({
       <FunctionsTable
         analyticsPageSource={analyticsPageSource}
         error={functionsQuery.isError ? functionsQuery.error.message : null}
-        isLoading={functionsQuery.isLoading}
+        isLoading={functionsQuery.isPending}
         functions={functionsQuery.isFetched ? functionsQuery.data?.data ?? [] : []}
         project={project}
         sort={functionsSort}

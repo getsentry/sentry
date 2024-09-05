@@ -19,8 +19,11 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import type {FeedbackIssue} from 'sentry/utils/feedback/types';
 import useOrganization from 'sentry/utils/useOrganization';
+import {TraceDataSection as IssueDetailsTraceDataSection} from 'sentry/views/issueDetails/traceDataSection';
+import {useTraceTimelineEvents} from 'sentry/views/issueDetails/traceTimeline/useTraceTimelineEvents';
 
 interface Props {
   eventData: Event | undefined;
@@ -58,6 +61,14 @@ export default function FeedbackItem({feedbackItem, eventData, tags}: Props) {
         <Section>
           <MessageSection eventData={eventData} feedbackItem={feedbackItem} />
         </Section>
+
+        {eventData ? (
+          <TraceDataSection
+            eventData={eventData}
+            crashReportId={crashReportId}
+            hasProject={!!feedbackItem.project}
+          />
+        ) : null}
 
         {!crashReportId || (crashReportId && url) ? (
           <Section icon={<IconLink size="xs" />} title={t('URL')}>
@@ -120,6 +131,59 @@ export default function FeedbackItem({feedbackItem, eventData, tags}: Props) {
       </OverflowPanelItem>
     </Fragment>
   );
+}
+
+function TraceDataSection({
+  eventData,
+  crashReportId,
+  hasProject,
+}: {
+  crashReportId: string | undefined;
+  eventData: Event;
+  hasProject: boolean;
+}) {
+  // If there's a linked error from a crash report and only one other issue, showing both could be redundant.
+  // TODO: we could add a jest test .spec for this ^
+  const organization = useOrganization();
+  const {oneOtherIssueEvent, traceEvents, isLoading, isError} = useTraceTimelineEvents({
+    event: eventData,
+  });
+  const show =
+    !isLoading &&
+    !isError &&
+    traceEvents.length > 1 && // traceEvents include the current event.
+    (!hasProject || !crashReportId || oneOtherIssueEvent?.id === crashReportId);
+
+  useEffect(() => {
+    if (isError) {
+      trackAnalytics('feedback.trace_section.error', {organization});
+    } else if (!isLoading) {
+      if (traceEvents.length > 1) {
+        trackAnalytics('feedback.trace_section.loaded', {
+          numEvents: traceEvents.length - 1,
+          organization,
+        });
+      }
+      if (hasProject && !!crashReportId && oneOtherIssueEvent?.id === crashReportId) {
+        trackAnalytics('feedback.trace_section.crash_report_dup', {organization});
+      }
+    }
+  }, [
+    crashReportId,
+    hasProject,
+    isError,
+    isLoading,
+    oneOtherIssueEvent?.id,
+    organization,
+    traceEvents.length,
+  ]);
+
+  // Note a timeline will only be shown for >1 same-trace issues.
+  return show && organization.features.includes('user-feedback-trace-section') ? (
+    <Section>
+      <IssueDetailsTraceDataSection event={eventData} />
+    </Section>
+  ) : null;
 }
 
 // 0 padding-bottom because <ActivitySection> has space(2) built-in.

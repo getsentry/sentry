@@ -132,12 +132,12 @@ function TagTreeColumns({
   ...props
 }: EventTagsTreeProps & {columnCount: number}) {
   const organization = useOrganization();
-  const {data: project, isLoading} = useDetailedProject({
+  const {data: project, isPending} = useDetailedProject({
     orgSlug: organization.slug,
     projectSlug,
   });
   const assembledColumns = useMemo(() => {
-    if (isLoading) {
+    if (isPending) {
       return <TreeLoadingIndicator hideMessage />;
     }
 
@@ -190,7 +190,7 @@ function TagTreeColumns({
       {startIndex: 0, runningTotal: 0, columns: []}
     );
     return data.columns;
-  }, [columnCount, isLoading, project, props, tags, meta]);
+  }, [columnCount, isPending, project, props, tags, meta]);
 
   return <Fragment>{assembledColumns}</Fragment>;
 }

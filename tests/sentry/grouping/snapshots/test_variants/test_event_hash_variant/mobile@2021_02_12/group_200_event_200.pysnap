@@ -1,11 +1,10 @@
 ---
-created: '2021-08-09T15:01:33.810359Z'
+created: '2024-09-04T19:48:05.729917+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
 app-depth-1:
   hash: "3a4c4c96a80c9be6a81afca4bb54f6ef"
-  tree_label: "destructor'"
   component:
     app-depth-1*
       exception*
@@ -22,7 +21,6 @@ app-depth-1:
 --------------------------------------------------------------------------
 app-depth-2:
   hash: "fb961faae31201361a148da84b7b886b"
-  tree_label: "RtlFreeHeap | RtlFreeHeap | destructor' | destructor'"
   component:
     app-depth-2*
       exception*
@@ -54,7 +52,6 @@ app-depth-2:
 --------------------------------------------------------------------------
 app-depth-3:
   hash: "ca733a48a19d237df8577d09449095d9"
-  tree_label: "RtlFreeHeap | RtlFreeHeap | destructor' | destructor' | HTTP_THREAD_POOL::_StaticWorkItemCallback"
   component:
     app-depth-3*
       exception*
@@ -91,7 +88,6 @@ app-depth-3:
 --------------------------------------------------------------------------
 app-depth-max:
   hash: "ca733a48a19d237df8577d09449095d9"
-  tree_label: "RtlFreeHeap | RtlFreeHeap | destructor' | destructor' | HTTP_THREAD_POOL::_StaticWorkItemCallback"
   component:
     app-depth-max*
       exception*
@@ -127,8 +123,7 @@ app-depth-max:
           "Fatal Error: EXCEPTION_ACCESS_VIOLATION_WRITE"
 --------------------------------------------------------------------------
 system:
-  hash: "7f70cabce0d2163b9e8b69d47e39c494"
-  tree_label: "RtlFreeHeap | RtlFreeHeap | destructor' | destructor' | HTTP_THREAD_POOL::_StaticWorkItemCallback"
+  hash: "ca733a48a19d237df8577d09449095d9"
   component:
     system*
       exception*
@@ -253,7 +248,7 @@ system:
               "RtlpOptimizeWaitOnAddressWaitList"
             package (ignored because function takes precedence)
               "ntdll.dll"
-        type*
+        type (ignored because exception is synthetic)
           "EXCEPTION_ACCESS_VIOLATION_WRITE"
         value (ignored because stacktrace takes precedence)
           "Fatal Error: EXCEPTION_ACCESS_VIOLATION_WRITE"

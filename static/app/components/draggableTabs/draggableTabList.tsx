@@ -98,26 +98,32 @@ function BaseDraggableTabList({
         <TabListWrap {...tabListProps} className={className} ref={tabListRef}>
           {persistentTabs.map(item => (
             <Fragment key={item.key}>
-              <Reorder.Item
-                key={item.key}
-                value={item}
-                style={{display: 'flex', flexDirection: 'row'}}
-                as="div"
-                dragConstraints={tabListRef} // Sets the container that the tabs can be dragged within
-                dragElastic={0} // Prevents tabs from being dragged outside of the tab bar
-                dragTransition={{bounceStiffness: 400, bounceDamping: 40}} // Recovers spring behavior thats lost when using dragElastic
-                layout
-              >
-                <Tab
+              <TabItemWrap isSelected={state.selectedKey === item.key}>
+                <Reorder.Item
                   key={item.key}
-                  item={item}
-                  state={state}
-                  orientation={orientation}
-                  overflowing={false}
-                  ref={element => (tabItemsRef.current[item.key] = element)}
-                  variant={tabVariant}
-                />
-              </Reorder.Item>
+                  value={item}
+                  style={{
+                    display: 'flex',
+                    flexDirection: 'row',
+                  }}
+                  as="div"
+                  dragConstraints={tabListRef} // The container that the tabs can be dragged within
+                  dragElastic={0} // Prevents the tab from being dragged outside of the dragConstraints (w/o this you can drag it outside but it'll spring back)
+                  dragTransition={{bounceStiffness: 400, bounceDamping: 40}} // Recovers spring behavior thats lost when using dragElastic=0
+                  transition={{delay: -0.1}} // Skips the first few frames of the animation that make the tab appear to shrink before growing
+                  layout
+                >
+                  <Tab
+                    key={item.key}
+                    item={item}
+                    state={state}
+                    orientation={orientation}
+                    overflowing={false}
+                    ref={element => (tabItemsRef.current[item.key] = element)}
+                    variant={tabVariant}
+                  />
+                </Reorder.Item>
+              </TabItemWrap>
               <TabDivider
                 layout
                 isVisible={
@@ -136,7 +142,6 @@ function BaseDraggableTabList({
               {t('Add View')}
             </AddViewButton>
           </MotionWrapper>
-          <TabDivider layout isVisible />
           <MotionWrapper layout>
             {tempTab && (
               <Tab
@@ -206,11 +211,19 @@ export function DraggableTabList({items, onAddView, ...props}: DraggableTabListP
 
 DraggableTabList.Item = Item;
 
+const TabItemWrap = styled('div')<{isSelected: boolean}>`
+  display: flex;
+  position: relative;
+  z-index: ${p => (p.isSelected ? 1 : 0)};
+`;
+
 /**
  * TabDividers are only visible around NON-selected tabs. They are not visible around the selected tab,
  * but they still create some space and act as a gap between tabs.
  */
-const TabDivider = styled(motion.div)<{isVisible: boolean}>`
+const TabDivider = styled(motion.div, {
+  shouldForwardProp: prop => prop !== 'isVisible',
+})<{isVisible: boolean}>`
   ${p =>
     p.isVisible &&
     `
@@ -218,10 +231,11 @@ const TabDivider = styled(motion.div)<{isVisible: boolean}>`
     height: 50%;
     width: 1px;
     border-radius: 6px;
-    margin-right: ${space(0.5)};
   `}
+
+  ${p => !p.isVisible && `margin-left: 1px;`}
+
   margin-top: 1px;
-  margin-left: ${space(0.5)};
 `;
 
 const TabListOuterWrap = styled('div')<{
@@ -262,6 +276,7 @@ const AddViewButton = styled(Button)`
   font-weight: normal;
   padding: ${space(0.5)};
   transform: translateY(1px);
+  margin-right: ${space(0.5)};
 `;
 
 const StyledIconAdd = styled(IconAdd)`

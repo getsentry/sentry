@@ -1,10 +1,10 @@
 import {Fragment} from 'react';
-import type {RouteComponentProps} from 'react-router';
 
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
+import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import useOrganization from 'sentry/utils/useOrganization';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 import EarlyFeaturesSettingsForm from 'sentry/views/settings/earlyFeatures/settingsForm';

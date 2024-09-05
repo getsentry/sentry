@@ -50,7 +50,7 @@ export const GrowingInput = forwardRef<HTMLInputElement, InputProps>(
       if (isControlled && inputRef.current) {
         resize(inputRef.current);
       }
-    }, [props.value, props.placeholder, isControlled]);
+    }, [props.value, props.placeholder, isControlled, props.className, props.style]);
 
     // If the input is uncontrolled we resize it when the user types
     const handleChange = useCallback(

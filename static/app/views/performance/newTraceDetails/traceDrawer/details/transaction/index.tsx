@@ -32,6 +32,7 @@ import type {
   TraceTreeNode,
 } from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
 
+import {traceAnalytics} from '../../../traceAnalytics';
 import {getCustomInstrumentationLink} from '../../../traceConfigurations';
 import {IssueList} from '../issues/issues';
 import {TraceDrawerComponents} from '../styles';
@@ -107,7 +108,7 @@ export function TransactionNodeDetails({
   const {
     data: event,
     isError,
-    isLoading,
+    isPending,
   } = useTransaction({
     node,
     organization,
@@ -123,7 +124,7 @@ export function TransactionNodeDetails({
     Referrer.TRACE_DRAWER_TRANSACTION_CACHE_METRICS
   );
 
-  if (isLoading) {
+  if (isPending) {
     return <LoadingIndicator />;
   }
 
@@ -141,7 +142,12 @@ export function TransactionNodeDetails({
             'This transaction does not have any child spans. You can add more child spans via [customInstrumentationLink:custom instrumentation].',
             {
               customInstrumentationLink: (
-                <ExternalLink href={getCustomInstrumentationLink(project)} />
+                <ExternalLink
+                  onClick={() => {
+                    traceAnalytics.trackMissingSpansDocLinkClicked(organization);
+                  }}
+                  href={getCustomInstrumentationLink(project)}
+                />
               ),
             }
           )}

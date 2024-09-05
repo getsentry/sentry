@@ -18,7 +18,10 @@ const NORMALIZE_PATTERNS: Array<[pattern: RegExp, replacement: string]> = [
     '/settings/$1',
   ],
   [/^\/?join-request\/[^\/]+\/?.*/, '/join-request/'],
-  [/^\/?onboarding\/[^\/]+\/(.*)/, '/onboarding/$1'],
+  [
+    /^\/?onboarding\/(?!setup-docs|select-platform|welcome)[^\/]+\/(.*)/,
+    '/onboarding/$1',
+  ],
   // Handles /org-slug/project-slug/getting-started/platform/ -> /getting-started/project-slug/platform/
   [/^\/?(?!settings)[^\/]+\/([^\/]+)\/getting-started\/(.*)/, '/getting-started/$1/$2'],
   [/^\/?accept-terms\/[^\/]*\/?$/, '/accept-terms/'],
@@ -75,6 +78,7 @@ export default function normalizeUrl(
   if (!resolved.pathname) {
     return resolved;
   }
+
   for (const patternData of NORMALIZE_PATTERNS) {
     const replacement = resolved.pathname.replace(patternData[0], patternData[1]);
     if (replacement !== resolved.pathname) {
