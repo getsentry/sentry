@@ -435,7 +435,7 @@ class SlackActionEndpoint(Endpoint):
         try:
             # We need to use the action_ts as the external_id to update the modal
             # We passed this in control when we sent the loading modal to beat the 3 second timeout
-            external_id = slack_request.data.get("actions")[0].get("action_ts")
+            external_id = slack_request.get_action_ts()
 
             if options.get("send-slack-response-from-control-silo"):
                 self._update_modal(slack_client, external_id, modal_payload, slack_request)
@@ -487,7 +487,7 @@ class SlackActionEndpoint(Endpoint):
         try:
             # We need to use the action_ts as the external_id to update the modal
             # We passed this in control when we sent the loading modal to beat the 3 second timeout
-            external_id = slack_request.data.get("actions")[0].get("action_ts")
+            external_id = slack_request.get_action_ts()
 
             if options.get("send-slack-response-from-control-silo"):
                 self._update_modal(slack_client, external_id, modal_payload, slack_request)
