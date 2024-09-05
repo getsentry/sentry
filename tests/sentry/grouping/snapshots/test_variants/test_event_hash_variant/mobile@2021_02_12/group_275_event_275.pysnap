@@ -1,5 +1,5 @@
 ---
-created: '2024-09-04T19:48:04.677151+00:00'
+created: '2024-09-05T13:39:10.504725+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -83,33 +83,21 @@ system:
           frame (ignored by stack trace rule (category:threadbase -group v-group))
             function*
               "_dispatch_root_queues_init_once"
-            package (ignored because function takes precedence)
-              "libdispatch.dylib"
           frame (ignored by stack trace rule (category:threadbase -group v-group))
             function*
               "start_wqthread"
-            package (ignored because function takes precedence)
-              "libsystem_pthread.dylib"
           frame (ignored by stack trace rule (category:threadbase -group v-group))
             function*
               "_pthread_wqthread"
-            package (ignored because function takes precedence)
-              "libsystem_pthread.dylib"
           frame (ignored by stack trace rule (category:threadbase -group v-group))
             function*
               "_dispatch_worker_thread2"
-            package (ignored because function takes precedence)
-              "libdispatch.dylib"
           frame (ignored by stack trace rule (category:threadbase -group v-group))
             function*
               "_dispatch_root_queue_drain"
-            package (ignored because function takes precedence)
-              "libdispatch.dylib"
           frame (ignored by stack trace rule (category:threadbase -group v-group))
             function*
               "_dispatch_client_callout"
-            package (ignored because function takes precedence)
-              "libdispatch.dylib"
           frame*
             function*
               "stripped_application_code"
