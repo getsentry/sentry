@@ -28,18 +28,18 @@ class SlugsUpdateEndpoint(OrganizationEndpoint):
     }
 
     @extend_schema(
-        operation_id="Update an Organization's Project Slugs",
+        operation_id="Update an Origanization's Project Slugs",
         parameters=[GlobalParams.ORG_ID_OR_SLUG],
         request=inline_serializer(
             name="UpdateOrgProjectSlugs",
             fields={
                 "slugs": serializers.DictField(
-                    help_text="A dictionary of project IDs to their intended slugs.", required=False
+                    help_text="a dictionary of project IDs to their intended slugs.", required=False
                 ),
             },
         ),
         responses={
-            200: inline_sentry_response_serializer("SlugsUpdateResponse", list[str]),
+            200: inline_sentry_response_serializer("SlugsUpdateResponse", dict[str, str]),
             400: OpenApiResponse(description="Duplicate slugs"),
             403: RESPONSE_FORBIDDEN,
         },
