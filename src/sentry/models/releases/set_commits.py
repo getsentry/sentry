@@ -72,7 +72,6 @@ def set_commits(release, commit_list):
 
 @metrics.wraps("set_commits_on_release")
 def set_commits_on_release(release, commit_list):
-
     # TODO(dcramer): would be good to optimize the logic to avoid these
     # deletes but not overly important
     ReleaseCommit.objects.filter(release=release).delete()
@@ -108,34 +107,40 @@ def set_commits_on_release(release, commit_list):
             else:
                 repo = repos[repo_name]
 
+            data["repo_model"] = repo
+
+    def create_commit_authors(commit_list):
+        for data in commit_list:
+            author_email = data.get("author_email")
+            if author_email is None and data.get("author_name"):
+                author_email = (
+                    re.sub(r"[^a-zA-Z0-9\-_\.]*", "", data["author_name"]).lower() + "@localhost"
+                )
+
+            author_email = truncatechars(author_email, 75)
+
+            if not author_email:
+                author = None
+            elif author_email not in authors:
+                author_data = {"name": data.get("author_name")}
+                author, created = CommitAuthor.objects.get_or_create(
+                    organization_id=release.organization_id,
+                    email=author_email,
+                    defaults=author_data,
+                )
+                if author.name != author_data["name"]:
+                    author.update(name=author_data["name"])
+                authors[author_email] = author
+            else:
+                author = authors[author_email]
+
+            data["author_model"] = author
+
     def set_commit(idx, data):
         nonlocal latest_commit
 
-        repo_name = data.get("repository") or f"organization-{release.organization_id}"
-        repo = repos[repo_name]
-
-        author_email = data.get("author_email")
-        if author_email is None and data.get("author_name"):
-            author_email = (
-                re.sub(r"[^a-zA-Z0-9\-_\.]*", "", data["author_name"]).lower() + "@localhost"
-            )
-
-        author_email = truncatechars(author_email, 75)
-
-        if not author_email:
-            author = None
-        elif author_email not in authors:
-            author_data = {"name": data.get("author_name")}
-            author, created = CommitAuthor.objects.get_or_create(
-                organization_id=release.organization_id,
-                email=author_email,
-                defaults=author_data,
-            )
-            if author.name != author_data["name"]:
-                author.update(name=author_data["name"])
-            authors[author_email] = author
-        else:
-            author = authors[author_email]
+        repo = data["repo_model"]
+        author = data["author_model"]
 
         commit_data: _CommitDataKwargs = {}
 
@@ -195,6 +200,8 @@ def set_commits_on_release(release, commit_list):
         head_commit_by_repo.setdefault(repo.id, commit.id)
 
     create_repositories(commit_list)
+    create_commit_authors(commit_list)
+
     for idx, data in enumerate(commit_list):
         set_commit(idx, data)
 
