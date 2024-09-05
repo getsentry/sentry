@@ -44,11 +44,6 @@ export default function SidebarDropdown({orientation, collapsed, hideOrgLinks}: 
   const user = useUser();
   const {projects} = useProjects();
 
-  const handleLogout = async () => {
-    await logout(api);
-    window.location.assign('/auth/login/');
-  };
-
   const hasOrganization = !!org;
   const hasUser = !!user;
 
@@ -165,7 +160,7 @@ export default function SidebarDropdown({orientation, collapsed, hideOrgLinks}: 
                       )}
                       <SidebarMenuItem
                         data-test-id="sidebar-signout"
-                        onClick={handleLogout}
+                        onClick={() => logout(api)}
                       >
                         {t('Sign out')}
                       </SidebarMenuItem>

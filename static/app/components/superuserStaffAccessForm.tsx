@@ -163,21 +163,15 @@ class SuperuserStaffAccessForm extends Component<Props, State> {
     });
   };
 
-  handleLogout = async () => {
-    const {api} = this.props;
-    try {
-      await logout(api);
-    } catch {
-      // ignore errors
-    }
-    const authLoginPath = `/auth/login/?next=${encodeURIComponent(window.location.href)}`;
+  handleLogout = () => {
+    let nextUrl = `/auth/login/?next=${encodeURIComponent(window.location.href)}`;
+
     const {superuserUrl} = window.__initialData.links;
     if (window.__initialData?.customerDomain && superuserUrl) {
-      const redirectURL = `${trimEnd(superuserUrl, '/')}${authLoginPath}`;
-      window.location.assign(redirectURL);
-      return;
+      nextUrl = `${trimEnd(superuserUrl, '/')}${nextUrl}`;
     }
-    window.location.assign(authLoginPath);
+
+    logout(this.props.api, nextUrl);
   };
 
   async getAuthenticators() {
