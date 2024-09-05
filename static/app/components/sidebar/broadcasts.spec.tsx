@@ -3,6 +3,7 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
+import {BROADCAST_CATEGORIES} from 'sentry/components/sidebar/broadcastPanelItem';
 import Broadcasts from 'sentry/components/sidebar/broadcasts';
 import {SidebarPanelKey} from 'sentry/components/sidebar/types';
 import type {Broadcast} from 'sentry/types/system';
@@ -28,9 +29,11 @@ function renderMockRequests({
 }
 
 describe('Broadcasts', function () {
-  const organization = OrganizationFixture({features: ['what-is-new-revamp']});
+  const category = 'blog';
 
   it('renders empty state', async function () {
+    const organization = OrganizationFixture();
+
     renderMockRequests({orgSlug: organization.slug});
 
     render(
@@ -47,17 +50,15 @@ describe('Broadcasts', function () {
     expect(await screen.findByText(/No recent updates/)).toBeInTheDocument();
   });
 
-  it('renders item with media', async function () {
-    renderMockRequests({
-      orgSlug: organization.slug,
-      broadcastsResponse: [
-        BroadcastFixture({
-          mediaUrl:
-            'https://images.ctfassets.net/em6l9zw4tzag/2vWdw7ZaApWxygugalbyOC/285525e5b7c9fbfa8fb814a69ab214cd/PerformancePageSketches_hero.jpg?w=2520&h=945&q=50&fm=webp',
-          category: 'blog',
-        }),
-      ],
+  it('renders a broadcast item with media content correctly', async function () {
+    const organization = OrganizationFixture({features: ['what-is-new-revamp']});
+    const broadcast = BroadcastFixture({
+      mediaUrl:
+        'https://images.ctfassets.net/em6l9zw4tzag/2vWdw7ZaApWxygugalbyOC/285525e5b7c9fbfa8fb814a69ab214cd/PerformancePageSketches_hero.jpg?w=2520&h=945&q=50&fm=webp',
+      category,
     });
+
+    renderMockRequests({orgSlug: organization.slug, broadcastsResponse: [broadcast]});
 
     render(
       <Broadcasts
@@ -70,27 +71,28 @@ describe('Broadcasts', function () {
       />
     );
 
-    expect(await screen.findByText('Learn about Source Maps')).toBeInTheDocument();
-    expect(screen.getByText(/blog post/i)).toBeInTheDocument();
+    // Verify that the broadcast content is rendered correctly
+    expect(await screen.findByText(BROADCAST_CATEGORIES[category])).toBeInTheDocument();
+    const titleLink = screen.getByRole('link', {name: broadcast.title});
+    expect(titleLink).toHaveAttribute('href', broadcast.link);
+    expect(screen.getByText(/Source maps are JSON/)).toBeInTheDocument();
 
-    await userEvent.click(screen.getByRole('img', {name: 'Learn about Source Maps'}));
+    // Simulate click and check if analytics tracking is called
+    await userEvent.click(titleLink);
     expect(trackAnalytics).toHaveBeenCalledWith(
       'whats_new.link_clicked',
       expect.objectContaining({
-        title: 'Learn about Source Maps',
-        category: 'blog',
+        title: broadcast.title,
+        category,
       })
     );
-
-    await userEvent.click(screen.getByRole('button', {name: 'cta_text'}));
-    expect(trackAnalytics).toHaveBeenCalledTimes(2);
   });
 
-  it('renders old experience', async function () {
-    renderMockRequests({
-      orgSlug: organization.slug,
-      broadcastsResponse: [BroadcastFixture()],
-    });
+  it('renders deprecated broadcast experience', async function () {
+    const organization = OrganizationFixture();
+    const broadcast = BroadcastFixture();
+
+    renderMockRequests({orgSlug: organization.slug, broadcastsResponse: [broadcast]});
 
     render(
       <Broadcasts
@@ -103,11 +105,6 @@ describe('Broadcasts', function () {
       />
     );
 
-    expect(await screen.findByText('Learn about Source Maps')).toBeInTheDocument();
-
-    expect(screen.queryByText(/blog post/i)).not.toBeInTheDocument();
-    expect(
-      screen.queryByRole('img', {name: 'Learn about Source Maps'})
-    ).not.toBeInTheDocument();
+    expect(await screen.findByRole('link', {name: broadcast.cta})).toBeInTheDocument();
   });
 });

@@ -229,10 +229,6 @@ export type PipelineInitialData = {
 };
 
 export interface Broadcast {
-  /**
-   * The text for the CTA link at the bottom of the panel item
-   */
-  cta: string;
   dateCreated: string;
   dateExpires: string;
   /**
@@ -254,6 +250,10 @@ export interface Broadcast {
    * Category of the broadcast. Synced with https://github.com/getsentry/getsentry/blob/2cca46d04865d13be49807ecbb3b73ef93e09ccd/static/getsentry/gsApp/utils/broadcasts.tsx#L38
    */
   category?: 'announcement' | 'feature' | 'blog' | 'event' | 'video';
+  /**
+   * The text for the CTA link at the bottom of the panel item
+   */
+  cta?: string;
   /**
    * Image url
    */

@@ -160,7 +160,6 @@ class Broadcasts extends Component<Props, State> {
                     title={item.title}
                     message={item.message}
                     link={item.link}
-                    ctaText={item.cta}
                     mediaUrl={item.mediaUrl}
                     category={item.category}
                   />

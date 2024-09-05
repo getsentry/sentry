@@ -2,7 +2,7 @@ import {useCallback} from 'react';
 import styled from '@emotion/styled';
 
 import Badge from 'sentry/components/badge/badge';
-import {LinkButton} from 'sentry/components/button';
+import Tag from 'sentry/components/badge/tag';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -10,7 +10,7 @@ import type {Broadcast} from 'sentry/types/system';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import useOrganization from 'sentry/utils/useOrganization';
 
-const CATEGORIES: Record<NonNullable<Broadcast['category']>, string> = {
+export const BROADCAST_CATEGORIES: Record<NonNullable<Broadcast['category']>, string> = {
   announcement: t('Announcement'),
   feature: t('New Feature'),
   blog: t('Blog Post'),
@@ -22,16 +22,13 @@ interface BroadcastPanelItemProps
   extends Pick<
     Broadcast,
     'hasSeen' | 'category' | 'title' | 'message' | 'link' | 'mediaUrl'
-  > {
-  ctaText: string;
-}
+  > {}
 
 export function BroadcastPanelItem({
   hasSeen,
   title,
   message,
   link,
-  ctaText,
   mediaUrl,
   category,
 }: BroadcastPanelItemProps) {
@@ -43,31 +40,19 @@ export function BroadcastPanelItem({
 
   return (
     <SidebarPanelItemRoot>
-      <TitleWrapper>
-        <Title hasSeen={hasSeen}>{title}</Title>
-        {category && (
-          <Badge type={!hasSeen ? 'new' : 'default'}>{CATEGORIES[category]}</Badge>
-        )}
-      </TitleWrapper>
-      {mediaUrl && (
-        <ExternalLink href={link}>
-          <img
-            src={mediaUrl}
-            alt={title}
-            style={{maxWidth: '100%', marginBottom: space(1)}}
-            onClick={handlePanelClicked}
-          />
-        </ExternalLink>
-      )}
-      <Message>{message}</Message>
-      <LinkButton
-        external
-        href={link}
-        onClick={handlePanelClicked}
-        style={{marginTop: space(1)}}
-      >
-        {ctaText}
-      </LinkButton>
+      <TextBlock>
+        {category &&
+          (hasSeen ? (
+            <CategoryTag>{BROADCAST_CATEGORIES[category]}</CategoryTag>
+          ) : (
+            <CategoryBadge type="new">{BROADCAST_CATEGORIES[category]}</CategoryBadge>
+          ))}
+        <Title hasSeen={hasSeen} href={link} onClick={handlePanelClicked}>
+          {title}
+        </Title>
+        <Message>{message}</Message>
+      </TextBlock>
+      {mediaUrl && <Media src={mediaUrl} alt={title} />}
     </SidebarPanelItemRoot>
   );
 }
@@ -75,25 +60,41 @@ export function BroadcastPanelItem({
 const SidebarPanelItemRoot = styled('div')`
   line-height: 1.5;
   background: ${p => p.theme.background};
-  padding: ${space(3)};
+  margin: 0 ${space(3)};
+  padding: ${space(2)} 0;
 
   :not(:first-child) {
-    border-top: 1px solid ${p => p.theme.innerBorder};
+    border-top: 1px solid ${p => p.theme.border};
   }
 `;
 
-const TitleWrapper = styled('div')`
-  display: grid;
-  grid-template-columns: 1fr max-content;
-  margin-bottom: ${space(1)};
-`;
-
-const Title = styled('div')<Pick<BroadcastPanelItemProps, 'hasSeen'>>`
+const Title = styled(ExternalLink)<Pick<BroadcastPanelItemProps, 'hasSeen'>>`
   font-size: ${p => p.theme.fontSizeLarge};
-  color: ${p => p.theme.textColor};
+  color: ${p => p.theme.blue400};
   ${p => !p.hasSeen && `font-weight: ${p.theme.fontWeightBold}`};
 `;
 
 const Message = styled('div')`
   color: ${p => p.theme.subText};
+`;
+
+const TextBlock = styled('div')`
+  margin-bottom: ${space(1.5)};
+  display: flex;
+  flex-direction: column;
+`;
+
+const Media = styled('img')`
+  border-radius: ${p => p.theme.borderRadius};
+  border: 1px solid ${p => p.theme.translucentGray200};
+  max-width: 100%;
+`;
+
+const CategoryTag = styled(Tag)`
+  margin-bottom: ${space(1)};
+`;
+
+const CategoryBadge = styled(Badge)`
+  margin-left: 0;
+  margin-bottom: ${space(1)};
 `;
