@@ -304,5 +304,5 @@ class AuthIndexEndpoint(BaseAuthIndexEndpoint):
         request.user = AnonymousUser()
 
         if slo_url:
-            return Response(status=status.HTTP_200_OK, data={"slo_url": slo_url})
+            return Response(status=status.HTTP_200_OK, data={"sloUrl": slo_url})
         return Response(status=status.HTTP_204_NO_CONTENT)
