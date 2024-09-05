@@ -80,6 +80,11 @@ class BroadcastDetailsEndpoint(Endpoint):
             update_kwargs["date_expires"] = result["dateExpires"]
         if result.get("cta"):
             update_kwargs["cta"] = result["cta"]
+        if result.get("mediaUrl"):
+            update_kwargs["media_url"] = result["mediaUrl"]
+        if result.get("category"):
+            update_kwargs["category"] = result["category"]
+
         if update_kwargs:
             with transaction.atomic(using=router.db_for_write(Broadcast)):
                 broadcast.update(**update_kwargs)

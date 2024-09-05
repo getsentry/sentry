@@ -25,10 +25,12 @@ class BroadcastSerializer(Serializer):
             "title": obj.title,
             "link": obj.link,
             "cta": obj.cta,
+            "mediaUrl": obj.media_url,
             "isActive": obj.is_active,
             "dateCreated": obj.date_added,
             "dateExpires": obj.date_expires,
             "hasSeen": attrs["seen"],
+            "category": obj.category,
         }
 
 

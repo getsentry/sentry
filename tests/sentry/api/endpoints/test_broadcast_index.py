@@ -86,7 +86,14 @@ class BroadcastCreateTest(APITestCase):
 
         response = self.client.post(
             "/api/0/broadcasts/",
-            {"title": "bar", "message": "foo", "link": "http://example.com", "cta": "Read More"},
+            {
+                "title": "bar",
+                "message": "foo",
+                "link": "http://example.com",
+                "cta": "Read More",
+                "mediaUrl": "http://example.com/image.png",
+                "category": "announcement",
+            },
         )
 
         assert response.status_code == 401
@@ -97,7 +104,14 @@ class BroadcastCreateTest(APITestCase):
 
         response = self.client.post(
             "/api/0/broadcasts/",
-            {"title": "bar", "message": "foo", "link": "http://example.com", "cta": "Read More"},
+            {
+                "title": "bar",
+                "message": "foo",
+                "link": "http://example.com",
+                "cta": "Read More",
+                "mediaUrl": "http://example.com/image.png",
+                "category": "announcement",
+            },
         )
 
         assert response.status_code == 200, response.data
@@ -105,7 +119,67 @@ class BroadcastCreateTest(APITestCase):
         broadcast = Broadcast.objects.get(id=response.data["id"])
         assert broadcast.title == "bar"
         assert broadcast.message == "foo"
-        assert broadcast.link == "http://example.com"
+        assert broadcast.cta == "Read More"
+        assert broadcast.media_url == "http://example.com/image.png"
+        assert broadcast.category == "announcement"
+
+    def test_validation(self):
+        self.add_user_permission(user=self.user, permission="broadcasts.admin")
+        self.login_as(user=self.user, superuser=True)
+
+        response = self.client.post(
+            "/api/0/broadcasts/",
+            {
+                "title": "bar",
+                "message": "foo",
+                "link": "http://example.com",
+                "cta": "Read More",
+                "mediaUrl": "this is not a url",
+                "category": "announcement",
+            },
+        )
+
+        assert response.status_code == 400, response.data
+
+        response = self.client.post(
+            "/api/0/broadcasts/",
+            {
+                "title": "bar",
+                "message": "foo",
+                "link": "http://example.com",
+                "cta": "Read More",
+                "mediaUrl": "http://example.com/image.png",
+                "category": "this is not a category",
+            },
+        )
+
+        assert response.status_code == 400, response.data
+
+        response = self.client.post(
+            "/api/0/broadcasts/",
+            {
+                "title": "bar",
+                "message": "foo",
+                "link": "http://example.com",
+                "cta": "Read More",
+                "mediaUrl": "http://example.com/image.png",
+                "category": "announcement",
+            },
+        )
+
+        assert response.status_code == 200, response.data
+
+        response = self.client.post(
+            "/api/0/broadcasts/",
+            {
+                "title": "bar",
+                "message": "foo",
+                "link": "http://example.com",
+                "cta": "Read More",
+            },
+        )
+
+        assert response.status_code == 200, response.data
 
 
 @control_silo_test
