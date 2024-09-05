@@ -117,8 +117,8 @@ class JiraField:
         )
 
     @classmethod
-    def from_dict_list(cls, data: dict[str, dict[str, Any]]) -> list["JiraField"]:
-        return [cls.from_dict(item) for item in data.values()]
+    def from_dict_list(cls, data: dict[str, dict[str, Any]]) -> dict[str, "JiraField"]:
+        return {key: cls.from_dict(val) for key, val in data.items()}
 
 
 @dataclass(frozen=True)
@@ -129,7 +129,7 @@ class JiraIssueTypeMetadata:
     subtask: bool
     icon_url: str
     url: str
-    fields: list[JiraField]
+    fields: dict[str, JiraField]
 
     @classmethod
     def from_dict(cls, data: dict[str, Any]) -> "JiraIssueTypeMetadata":
