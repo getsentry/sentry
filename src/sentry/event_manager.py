@@ -933,6 +933,10 @@ def _get_group_processing_kwargs(job: Job) -> dict[str, Any]:
     """
     Pull together all the metadata used when creating a group or updating a group's metadata based
     on a new event.
+
+    Note: Must be called *after* grouping has run, because the grouping process can affect the title
+    (by setting `main_exception_id` or by setting the title directly using a custom fingerprint
+    rule).
     """
     _materialize_metadata_many([job])
 
