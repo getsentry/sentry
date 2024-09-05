@@ -45,6 +45,7 @@ import {
   MODULE_DOC_LINK,
   MODULE_TITLE,
 } from 'sentry/views/insights/database/settings';
+import {SupportedDatabaseSystems} from 'sentry/views/insights/database/utils/constants';
 import {ModuleName, SpanMetricsField} from 'sentry/views/insights/types';
 
 export function DatabaseLandingPage() {
@@ -199,7 +200,15 @@ export function DatabaseLandingPage() {
                     'performance-queries-mongodb-extraction'
                   ) && <DatabaseSystemSelector />}
                   <ActionSelector moduleName={moduleName} value={spanAction ?? ''} />
-                  <DomainSelector moduleName={moduleName} value={spanDomain ?? ''} />
+                  <DomainSelector
+                    moduleName={moduleName}
+                    value={spanDomain ?? ''}
+                    domainAlias={
+                      system === SupportedDatabaseSystems.MONGODB
+                        ? t('Collection')
+                        : t('Table')
+                    }
+                  />
                 </DbFilterWrapper>
               </PageFilterWrapper>
             </ModuleLayout.Full>

@@ -1,5 +1,5 @@
 ---
-created: '2024-08-27T12:08:34.835691+00:00'
+created: '2024-09-04T19:48:05.053386+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -89,7 +89,7 @@ app-depth-max:
           "Segfault"
 --------------------------------------------------------------------------
 system:
-  hash: "5d36f5363b3d4125907c15b93f85bbd8"
+  hash: "d9c9b0f9ba46e32fddd7cd1512fad235"
   component:
     system*
       exception*
@@ -120,7 +120,7 @@ system:
               "kill"
             package (ignored because function takes precedence)
               "libc.so"
-        type*
+        type (ignored because exception is synthetic)
           "SIGSEGV"
         value (ignored because stacktrace takes precedence)
           "Segfault"
