@@ -1,5 +1,4 @@
 import {Component} from 'react';
-import * as Sentry from '@sentry/react';
 import type {
   DataZoomComponentOption,
   ECharts,
@@ -195,27 +194,13 @@ class ChartZoom extends Component<Props> {
   /**
    * Enable zoom immediately instead of having to toggle to zoom
    */
-  handleChartReady = chart => {
+  handleChartReady = (chart: ECharts) => {
     this.props.onChartReady?.(chart);
 
-    // The DOM element is also available via chart._dom but TypeScript hates that, since
-    // _dom is technically private. Instead, use `querySelector` to get the element
     this.chart = chart;
+    this.$chart = chart.getDom();
 
-    const $chart = document.querySelector(`div[_echarts_instance_="${chart.id}"]`);
-
-    if ($chart) {
-      $chart.addEventListener('mousedown', this.handleMouseDown);
-      this.$chart = $chart;
-    } else {
-      Sentry.withScope(scope => {
-        scope.setContext('ECharts', {
-          id: chart.id,
-        });
-
-        Sentry.captureException(new Error(`No DOM element for ECharts instance`));
-      });
-    }
+    this.$chart.addEventListener('mousedown', this.handleMouseDown);
   };
 
   handleKeyDown = evt => {
