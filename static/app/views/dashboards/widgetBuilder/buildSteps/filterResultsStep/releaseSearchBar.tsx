@@ -27,6 +27,11 @@ const filterKeySections: FilterKeySection[] = [
   {value: 'session_field', label: t('Suggested'), children: SESSIONS_FILTER_TAGS},
 ];
 
+const supportedTags = Object.values(SESSIONS_FILTER_TAGS).reduce((acc, key) => {
+  acc[key] = {key, name: key};
+  return acc;
+}, {});
+
 const SEARCH_SPECIAL_CHARS_REGEXP = new RegExp(
   `^${NEGATION_OPERATOR}|\\${SEARCH_WILDCARD}`,
   'g'
@@ -75,11 +80,6 @@ export function ReleaseSearchBar({
       }
     );
   }
-
-  const supportedTags = Object.values(SESSIONS_FILTER_TAGS).reduce((acc, key) => {
-    acc[key] = {key, name: key};
-    return acc;
-  }, {});
 
   return organization.features.includes('search-query-builder-releases') ? (
     <SearchQueryBuilder
