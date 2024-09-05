@@ -106,16 +106,40 @@ class SlackRequestParser(BaseRequestParser):
             ],
         }
 
-    def handle_dialog(self, request, action, title):
-        decoded_body = parse_qs(request.body.decode(encoding="utf-8"))
-        if (payload_dict := decoded_body.get("payload")) is None:
-            raise ValueError("request format is incorrect")
+    def parse_slack_payload(self, request) -> str | None:
+        try:
+            decoded_body = parse_qs(request.body.decode(encoding="utf-8"))
+            payload_list = decoded_body.get("payload")
 
-        payload = json.loads(payload_dict[0])
+            if not payload_list or not isinstance(payload_list, list) or len(payload_list) != 1:
+                raise ValueError(
+                    "Error parsing Slack payload: 'payload' not found or not a list of length 1"
+                )
 
-        # we need to grab the action_ts to use as the external_id for the loading modal
-        # https://api.slack.com/reference/interaction-payloads/block-actions
-        action_ts = payload.get("actions")[0].get("action_ts")
+            payload = json.loads(payload_list[0])
+
+            # Extract action_ts from the payload
+            # we need to grab the action_ts to use as the external_id for the loading modal
+            # https://api.slack.com/reference/interaction-payloads/block-actions
+            actions = payload.get("actions", None)
+            if actions and isinstance(actions, list) and len(actions) == 1:
+                (action,) = actions  # we only expect one action in the list
+                action_ts = action.get("action_ts")
+                if action_ts is None:
+                    raise ValueError(
+                        "Error parsing Slack payload: 'action_ts' not found in 'actions'"
+                    )
+                return payload, action_ts
+            else:
+                raise ValueError(
+                    "Error parsing Slack payload: 'actions' not found or not a list of length 1"
+                )
+
+        except (json.JSONDecodeError, KeyError, IndexError, TypeError) as e:
+            raise ValueError(f"Error parsing Slack payload: {str(e)}")
+
+    def handle_dialog(self, request, action: str, title: str) -> None:
+        payload, action_ts = self.parse_slack_payload(request)
 
         integration = self.get_integration_from_request()
         if not integration:

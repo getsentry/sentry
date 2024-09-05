@@ -377,7 +377,7 @@ class SlackActionEndpoint(Endpoint):
             metadata=metadata,
         )
 
-    def _update_view(
+    def _update_modal(
         self,
         slack_client: SlackSdkClient,
         external_id: str,
@@ -438,7 +438,7 @@ class SlackActionEndpoint(Endpoint):
             external_id = slack_request.data.get("actions")[0].get("action_ts")
 
             if options.get("send-slack-response-from-control-silo"):
-                self._update_view(slack_client, external_id, modal_payload, slack_request)
+                self._update_modal(slack_client, external_id, modal_payload, slack_request)
             else:
                 self._open_view(slack_client, modal_payload, slack_request)
 
@@ -490,7 +490,7 @@ class SlackActionEndpoint(Endpoint):
             external_id = slack_request.data.get("actions")[0].get("action_ts")
 
             if options.get("send-slack-response-from-control-silo"):
-                self._update_view(slack_client, external_id, modal_payload, slack_request)
+                self._update_modal(slack_client, external_id, modal_payload, slack_request)
             else:
                 self._open_view(slack_client, modal_payload, slack_request)
 
