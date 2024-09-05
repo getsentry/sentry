@@ -168,7 +168,9 @@ export default function MetricDetailsBody({
   return (
     <Fragment>
       <StyledLayoutBody>
-        <MetricsBetaEndAlert style={{marginBottom: 0}} />
+        {isCustomMetricAlert(rule.aggregate) && (
+          <MetricsBetaEndAlert style={{marginBottom: 0}} />
+        )}
       </StyledLayoutBody>
       {selectedIncident?.alertRule.status === AlertRuleStatus.SNAPSHOT && (
         <StyledLayoutBody>

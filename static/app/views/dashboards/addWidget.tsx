@@ -164,7 +164,7 @@ export function AddWidgetButton({onAddWidget, ...buttonProps}: Props & ButtonPro
           <FeatureBadge
             type="beta"
             title={
-              'The Metrics beta will end and we will retire the current solution on September 30, 2024'
+              'The Metrics beta will end and we will retire the current solution on October 7th, 2024'
             }
           />
         ),

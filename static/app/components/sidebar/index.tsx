@@ -526,7 +526,7 @@ function Sidebar() {
       search={location?.pathname === normalizeUrl(metricsPath) ? location.search : ''}
       id="metrics"
       badgeTitle={t(
-        'The Metrics beta will end and we will retire the current solution on September 30, 2024'
+        'The Metrics beta will end and we will retire the current solution on October 7th, 2024'
       )}
       isBeta
     />

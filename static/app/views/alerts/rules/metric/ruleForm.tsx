@@ -56,6 +56,7 @@ import Triggers from 'sentry/views/alerts/rules/metric/triggers';
 import TriggersChart from 'sentry/views/alerts/rules/metric/triggers/chart';
 import {getEventTypeFilter} from 'sentry/views/alerts/rules/metric/utils/getEventTypeFilter';
 import hasThresholdValue from 'sentry/views/alerts/rules/metric/utils/hasThresholdValue';
+import {isCustomMetricAlert} from 'sentry/views/alerts/rules/metric/utils/isCustomMetricAlert';
 import {isOnDemandMetricAlert} from 'sentry/views/alerts/rules/metric/utils/onDemandMetricAlert';
 import {AlertRuleType} from 'sentry/views/alerts/types';
 import {ruleNeedsErrorMigration} from 'sentry/views/alerts/utils/migrationUi';
@@ -1195,7 +1196,7 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
     return (
       <Main fullWidth>
         <PermissionAlert access={['alerts:write']} project={project} />
-        <MetricsBetaEndAlert />
+        {isCustomMetricAlert(rule.aggregate) && <MetricsBetaEndAlert />}
 
         {eventView && <IncompatibleAlertQuery eventView={eventView} />}
         <Form
