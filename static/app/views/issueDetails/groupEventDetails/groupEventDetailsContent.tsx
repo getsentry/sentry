@@ -295,12 +295,6 @@ export function EventDetailsContent({
           projectSlug={project.slug}
         />
       )}
-      <EventTraceView
-        group={group}
-        event={event}
-        organization={organization}
-        projectSlug={project.slug}
-      />
       <EventHydrationDiff event={event} group={group} />
       {issueTypeConfig.replays.enabled && (
         <EventReplay event={event} group={group} projectSlug={project.slug} />
@@ -351,6 +345,12 @@ export function EventDetailsContent({
           />
         </EntryErrorBoundary>
       ) : null}
+      <EventTraceView
+        group={group}
+        event={event}
+        organization={organization}
+        projectSlug={project.slug}
+      />
       {!showPossibleSolutionsHigher && (
         <ResourcesAndPossibleSolutionsIssueDetailsContent
           event={event}

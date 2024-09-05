@@ -1,52 +1,49 @@
+import {useMemo} from 'react';
 import styled from '@emotion/styled';
+import qs from 'qs';
 
-import type {RawSpanType} from 'sentry/components/events/interfaces/spans/types';
+import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
+import {ALL_ACCESS_PROJECTS} from 'sentry/constants/pageFilters';
 import {t} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
 import {type Group, IssueCategory} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
+import EventView from 'sentry/utils/discover/eventView';
+import {decodeScalar} from 'sentry/utils/queryString';
 import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
 import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
+import {
+  getTraceViewQueryStatus,
+  TraceViewWaterfall,
+} from 'sentry/views/performance/newTraceDetails';
 import {useTrace} from 'sentry/views/performance/newTraceDetails/traceApi/useTrace';
+import {useTraceMeta} from 'sentry/views/performance/newTraceDetails/traceApi/useTraceMeta';
 import {useTraceRootEvent} from 'sentry/views/performance/newTraceDetails/traceApi/useTraceRootEvent';
-import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
-import {ProfileGroupProvider} from 'sentry/views/profiling/profileGroupProvider';
-import {ProfileContext, ProfilesProvider} from 'sentry/views/profiling/profilesProvider';
-
-import TraceView from '../spans/traceView';
-import WaterfallModel from '../spans/waterfallModel';
+import type {TracePreferencesState} from 'sentry/views/performance/newTraceDetails/traceState/tracePreferences';
+import {TraceStateProvider} from 'sentry/views/performance/newTraceDetails/traceState/traceStateProvider';
 
 import {SpanEvidenceKeyValueList} from './spanEvidenceKeyValueList';
+
+const DEFAULT_ISSUE_DETAILS_TRACE_VIEW_PREFERENCES: TracePreferencesState = {
+  drawer: {
+    minimized: false,
+    sizes: {
+      'drawer left': 0.33,
+      'drawer right': 0.33,
+      'drawer bottom': 0.4,
+    },
+    layoutOptions: [],
+  },
+  layout: 'drawer bottom',
+  list: {
+    width: 0.5,
+  },
+};
 
 interface EventTraceViewInnerProps {
   event: Event;
   organization: Organization;
   projectSlug: string;
-}
-
-// Find a chain of affected span ids from transaction.children that contain the error span
-// Transaction children contain more children, so we need to recursively search for the error span
-function findAffectedSpanIds(
-  eventId: string,
-  transactions: TraceTree.Transaction[],
-  parentSpanIds: string[] = []
-): string[] | undefined {
-  for (const transaction of transactions) {
-    const newParentSpanIds = [...parentSpanIds, transaction.span_id];
-    if (transaction.errors.some(error => error.event_id === eventId)) {
-      return newParentSpanIds;
-    }
-
-    for (const span of transaction.children) {
-      const newChildSpanIds = [...newParentSpanIds, span.span_id];
-      const result = findAffectedSpanIds(eventId, span.children, newChildSpanIds);
-      if (result) {
-        return result;
-      }
-    }
-  }
-
-  return undefined;
 }
 
 function EventTraceViewInner({
@@ -60,51 +57,78 @@ function EventTraceViewInner({
     traceSlug: profileId ? profileId : undefined,
     limit: 10000,
   });
-  const {data: rootEvent, isPending} = useTraceRootEvent(trace.data ?? null);
+  const rootEvent = useTraceRootEvent(trace.data ?? null);
 
-  if (trace.isPending || isPending || !rootEvent) {
+  const meta = useTraceMeta([{traceSlug: profileId, timestamp: undefined}]);
+
+  const queryParams = useMemo(() => {
+    const normalizedParams = normalizeDateTimeParams(qs.parse(location.search), {
+      allowAbsolutePageDatetime: true,
+    });
+    const start = decodeScalar(normalizedParams.start);
+    const timestamp: string | undefined = decodeScalar(normalizedParams.timestamp);
+    const end = decodeScalar(normalizedParams.end);
+    const statsPeriod = decodeScalar(normalizedParams.statsPeriod);
+    const numberTimestamp = timestamp ? Number(timestamp) : undefined;
+
+    return {start, end, statsPeriod, timestamp: numberTimestamp, useSpans: 1};
+  }, []);
+
+  const traceEventView = useMemo(() => {
+    const {start, end, statsPeriod, timestamp} = queryParams;
+
+    let startTimeStamp = start;
+    let endTimeStamp = end;
+
+    // If timestamp exists in the query params, we want to use it to set the start and end time
+    // with a buffer of 1.5 days, for retrieving events belonging to the trace.
+    if (typeof timestamp === 'number') {
+      const buffer = 36 * 60 * 60 * 1000; // 1.5 days in milliseconds
+      const dateFromTimestamp = new Date(timestamp * 1000);
+
+      startTimeStamp = new Date(dateFromTimestamp.getTime() - buffer).toISOString();
+      endTimeStamp = new Date(dateFromTimestamp.getTime() + buffer).toISOString();
+    }
+
+    return EventView.fromSavedQuery({
+      id: undefined,
+      name: `Events with Trace ID ${profileId}`,
+      fields: ['title', 'event.type', 'project', 'timestamp'],
+      orderby: '-timestamp',
+      query: `trace:${profileId}`,
+      projects: [ALL_ACCESS_PROJECTS],
+      version: 2,
+      start: startTimeStamp,
+      end: endTimeStamp,
+      range: !(startTimeStamp || endTimeStamp) ? statsPeriod : undefined,
+    });
+  }, [queryParams, profileId]);
+
+  if (trace.isPending || rootEvent.isPending || !rootEvent.data) {
     return null;
   }
 
-  // Find affected span ids in the trace
-  const affectedSpanIds = findAffectedSpanIds(
-    event.eventID,
-    trace.data?.transactions ?? []
-  )?.slice(1);
-
-  console.log(rootEvent);
-  const spanEntires = rootEvent?.entries.find(entry => entry.type === 'spans');
-  const actualAffectedSpanIds = (spanEntires?.data as RawSpanType[])?.map(
-    span => span.span_id
-  );
   return (
     <InterimSection type={SectionKey.TRACE} title={t('Trace Preview')}>
-      <SpanEvidenceKeyValueList event={rootEvent} projectSlug={projectSlug} />
-      <ProfilesProvider
-        orgSlug={organization.slug}
-        projectSlug={projectSlug}
-        profileId={profileId || ''}
+      <SpanEvidenceKeyValueList event={rootEvent.data} projectSlug={projectSlug} />
+      <TraceStateProvider
+        initialPreferences={DEFAULT_ISSUE_DETAILS_TRACE_VIEW_PREFERENCES}
+        preferencesStorageKey="issue-details-view-preferences"
       >
-        <ProfileContext.Consumer>
-          {profiles => (
-            <ProfileGroupProvider
-              type="flamechart"
-              input={profiles?.type === 'resolved' ? profiles.data : null}
-              traceID={profileId || ''}
-            >
-              <TraceViewWrapper>
-                <TraceView
-                  organization={organization}
-                  waterfallModel={
-                    new WaterfallModel(rootEvent, affectedSpanIds, affectedSpanIds)
-                  }
-                  isEmbedded
-                />
-              </TraceViewWrapper>
-            </ProfileGroupProvider>
-          )}
-        </ProfileContext.Consumer>
-      </ProfilesProvider>
+        <TraceViewWaterfallWrapper>
+          <TraceViewWaterfall
+            traceSlug={undefined}
+            trace={trace.data ?? null}
+            status={getTraceViewQueryStatus(trace.status, meta.status)}
+            rootEvent={rootEvent}
+            organization={organization}
+            traceEventView={traceEventView}
+            metaResults={meta}
+            source="issues"
+            replayRecord={null}
+          />
+        </TraceViewWaterfallWrapper>
+      </TraceStateProvider>
     </InterimSection>
   );
 }
@@ -143,7 +167,8 @@ export function EventTraceView({
   );
 }
 
-const TraceViewWrapper = styled('div')`
-  border: 1px solid ${p => p.theme.innerBorder};
-  border-radius: ${p => p.theme.borderRadius};
+const TraceViewWaterfallWrapper = styled('div')`
+  display: flex;
+  flex-direction: column;
+  height: 750px;
 `;
