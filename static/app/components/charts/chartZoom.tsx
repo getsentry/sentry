@@ -108,7 +108,7 @@ class ChartZoom extends Component<Props> {
   }
 
   chart?: ECharts;
-  $chart?: Element;
+  $chart?: HTMLElement;
   isCancellingZoom?: boolean;
   history: Period[];
   currentPeriod?: Period;
