@@ -122,18 +122,16 @@ class SlackRequestParser(BaseRequestParser):
             # we need to grab the action_ts to use as the external_id for the loading modal
             # https://api.slack.com/reference/interaction-payloads/block-actions
             actions = payload.get("actions", None)
-            if actions and isinstance(actions, list) and len(actions) == 1:
-                (action,) = actions  # we only expect one action in the list
-                action_ts = action.get("action_ts")
-                if action_ts is None:
-                    raise ValueError(
-                        "Error parsing Slack payload: 'action_ts' not found in 'actions'"
-                    )
-                return payload, action_ts
-            else:
-                raise ValueError(
-                    "Error parsing Slack payload: 'actions' not found or not a list of length 1"
-                )
+            if not actions or not isinstance(actions, list):
+                raise ValueError("Error parsing Slack payload: 'actions' not found")
+            if len(actions) != 1:
+                raise ValueError("Error parsing Slack payload: 'actions' not a list of length 1")
+
+            (action,) = actions  # we only expect one action in the list
+            action_ts = action.get("action_ts")
+            if action_ts is None:
+                raise ValueError("Error parsing Slack payload: 'action_ts' not found in 'actions'")
+            return payload, action_ts
 
         except (json.JSONDecodeError, KeyError, IndexError, TypeError) as e:
             raise ValueError(f"Error parsing Slack payload: {str(e)}")
