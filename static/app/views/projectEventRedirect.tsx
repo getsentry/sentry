@@ -50,10 +50,14 @@ function ProjectEventRedirect({router}: Props) {
       // responseURL is the URL of the document the browser ultimately loaded,
       // after following any redirects. It _should_ be the page we're trying
       // to reach; use the router to go there.
-
+      //
+      // Here we assume that the responseURL is on the same domain as the
+      // as the window.location.origin, so we simply take the pathname.
+      //
       // Use `replace` so that hitting the browser back button will skip all
       // this redirect business.
-      router.replace(xhr.responseURL);
+      const url = new URL(xhr.responseURL);
+      router.replace(url.pathname);
     };
     xhr.onerror = () => {
       setError(t('Could not load the requested event'));
