@@ -76,15 +76,15 @@ class RuleSnoozeSerializer(Serializer):
 @region_silo_endpoint
 class BaseRuleSnoozeEndpoint(ProjectEndpoint):
     permission_classes = (ProjectAlertRulePermission,)
-    rule_model = Rule | AlertRule
+    rule_model = type[Rule] | type[AlertRule]
     rule_field = Literal["rule", "alert_rule"]
 
     def convert_args(self, request: Request, rule_id: int, *args, **kwargs):
         (args, kwargs) = super().convert_args(request, *args, **kwargs)
         project = kwargs["project"]
         try:
-            if isinstance(self.rule_model, AlertRule):
-                queryset = self.rule_model.fetch_for_project(project)
+            if self.rule_model is AlertRule:
+                queryset = self.rule_model.objects.fetch_for_project(project)
             else:
                 queryset = self.rule_model.objects.filter(project=project)
             rule = queryset.get(id=rule_id)
