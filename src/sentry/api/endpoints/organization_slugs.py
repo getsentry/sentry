@@ -39,7 +39,9 @@ class SlugsUpdateEndpoint(OrganizationEndpoint):
             },
         ),
         responses={
-            200: inline_sentry_response_serializer("SlugsUpdateResponse", dict[str, str]),
+            200: inline_sentry_response_serializer(
+                "SlugsUpdateResponse", dict[str, dict[str, str]]
+            ),
             400: OpenApiResponse(description="Duplicate slugs"),
             403: RESPONSE_FORBIDDEN,
         },
