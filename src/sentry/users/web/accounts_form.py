@@ -1,13 +1,13 @@
 from __future__ import annotations
 
 import re
-import zoneinfo
-from datetime import datetime
 from typing import Any
 
 from django import forms
 from django.conf import settings
 from django.contrib.auth import authenticate, get_user_model
+from django.db.models import Field
+from django.http.request import HttpRequest
 from django.utils.safestring import mark_safe
 from django.utils.text import capfirst
 from django.utils.translation import gettext_lazy as _
@@ -17,27 +17,14 @@ from sentry import ratelimits as ratelimiter
 from sentry.auth import password_validation
 from sentry.users.models.user import User
 from sentry.utils.auth import find_users, logger
-from sentry.utils.dates import AVAILABLE_TIMEZONES
+from sentry.utils.dates import get_timezone_choices
 from sentry.web.forms.fields import AllowedEmailField, CustomTypedChoiceField
 
-
-def _get_timezone_choices():
-    results = []
-    for tz in AVAILABLE_TIMEZONES:
-        now = datetime.now(zoneinfo.ZoneInfo(tz))
-        offset = now.strftime("%z")
-        results.append((int(offset), tz, f"(UTC{offset}) {tz}"))
-    results.sort()
-
-    for i in range(len(results)):
-        results[i] = results[i][1:]
-    return results
-
-
-TIMEZONE_CHOICES = _get_timezone_choices()
+TIMEZONE_CHOICES = get_timezone_choices()
 
 
 class AuthenticationForm(forms.Form):
+    username_field: Field[Any, Any]
     username = forms.CharField(
         label=_("Account"),
         max_length=128,
@@ -63,7 +50,7 @@ class AuthenticationForm(forms.Form):
         "inactive": _("This account is inactive."),
     }
 
-    def __init__(self, request=None, *args, **kwargs):
+    def __init__(self, request: HttpRequest | None = None, *args: Any, **kwargs: Any) -> None:
         """
         If request is passed in, the form will validate that cookies are
         enabled. Note that the request (a HttpRequest object) must have set a

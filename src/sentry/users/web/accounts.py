@@ -21,9 +21,13 @@ from sentry.users.models.user import User
 from sentry.users.models.useremail import UserEmail
 from sentry.users.services.lost_password_hash import lost_password_hash_service
 from sentry.users.services.user.service import user_service
+from sentry.users.web.accounts_form import (
+    ChangePasswordRecoverForm,
+    RecoverPasswordForm,
+    RelocationForm,
+)
 from sentry.utils import auth
 from sentry.web.decorators import login_required, set_referrer_policy
-from sentry.web.forms.accounts import ChangePasswordRecoverForm, RecoverPasswordForm, RelocationForm
 from sentry.web.helpers import render_to_response
 
 logger = logging.getLogger("sentry.accounts")
