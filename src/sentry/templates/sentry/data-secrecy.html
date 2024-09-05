@@ -1,0 +1,19 @@
+{% extends "sentry/bases/modal.html" %}
+
+{% load i18n %}
+
+{% block title %}{% trans "Data Secrecy Enabled" %} | {{ block.super }}{% endblock %}
+
+{% block main %}
+  <section class="body">
+    <div class="alert alert-block alert-error">
+      <div style="font-size:24px;margin-bottom:10px">
+        <span class="icon-exclamation" style="font-size:20px;margin-right:10px;"></span>
+        <span>Data Secrecy Enabled</span>
+      </div>
+      <p>{% trans "This organization has Data Secrecy Enabled." %}</p>
+      <p>{% trans "An organization that has data secrecy enabled cannot be accessed via superuser." %}</p>
+      <p>{% trans "If you need to access the organization to help debug an issue, please contact the organization to grant a waiver under Organization Settings -> Security & Privacy -> Support Access" %}</p>
+    </div>
+  </section>
+{% endblock %}

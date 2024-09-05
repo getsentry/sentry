@@ -3758,7 +3758,14 @@ class Migration(CheckedMigration):
             ],
             options={
                 "db_table": "sentry_projectdsymfile",
-                "index_together": {("project", "debug_id"), ("project", "code_id")},
+                "indexes": [
+                    models.Index(
+                        fields=["project_id", "debug_id"], name="sentry_proj_project_c586ac_idx"
+                    ),
+                    models.Index(
+                        fields=["project_id", "code_id"], name="sentry_proj_project_9b5950_idx"
+                    ),
+                ],
             },
         ),
         migrations.CreateModel(
@@ -7437,10 +7444,6 @@ class Migration(CheckedMigration):
                 migrations.RemoveField(
                     model_name="projectdebugfile",
                     name="project",
-                ),
-                migrations.AlterIndexTogether(
-                    name="projectdebugfile",
-                    index_together={("project_id", "debug_id"), ("project_id", "code_id")},
                 ),
             ],
         ),

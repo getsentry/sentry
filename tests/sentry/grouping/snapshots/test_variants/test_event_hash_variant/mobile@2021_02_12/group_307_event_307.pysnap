@@ -1,5 +1,5 @@
 ---
-created: '2024-08-27T12:08:34.696048+00:00'
+created: '2024-09-04T19:48:04.923272+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -32,7 +32,7 @@ app-depth-max:
           "Fatal Error: EXC_BAD_ACCESS / EXC_I386_GPFLT"
 --------------------------------------------------------------------------
 system:
-  hash: "d15c861b1efab5fb699db80c83460b68"
+  hash: "aeed765d29d1a60cb094f66d2cd8efb2"
   component:
     system*
       exception*
@@ -91,7 +91,7 @@ system:
               "__dynamic_cast"
             package (ignored because function takes precedence)
               "libc++abi.dylib"
-        type*
+        type (ignored because exception is synthetic)
           "EXC_BAD_ACCESS / EXC_I386_GPFLT"
         value (ignored because stacktrace takes precedence)
           "Fatal Error: EXC_BAD_ACCESS / EXC_I386_GPFLT"

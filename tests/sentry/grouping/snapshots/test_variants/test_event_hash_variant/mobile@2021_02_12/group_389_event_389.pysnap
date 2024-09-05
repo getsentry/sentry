@@ -1,5 +1,5 @@
 ---
-created: '2024-08-27T12:08:34.367118+00:00'
+created: '2024-09-04T19:48:04.710683+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -32,7 +32,7 @@ app-depth-max:
           "Fatal Error: EXC_BAD_ACCESS / KERN_INVALID_ADDRESS"
 --------------------------------------------------------------------------
 system:
-  hash: "feea96cac35c5f633ff72273d8b97ebb"
+  hash: "aeed765d29d1a60cb094f66d2cd8efb2"
   component:
     system*
       exception*
@@ -75,7 +75,7 @@ system:
               "_pthread_testcancel"
             package (ignored because function takes precedence)
               "libsystem_pthread.dylib"
-        type*
+        type (ignored because exception is synthetic)
           "EXC_BAD_ACCESS / KERN_INVALID_ADDRESS"
         value (ignored because stacktrace takes precedence)
           "Fatal Error: EXC_BAD_ACCESS / KERN_INVALID_ADDRESS"

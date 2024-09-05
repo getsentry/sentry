@@ -37,6 +37,7 @@ import {
   isAValidSort,
   QueriesTable,
 } from 'sentry/views/insights/database/components/tables/queriesTable';
+import {useSystemSelectorOptions} from 'sentry/views/insights/database/components/useSystemSelectorOptions';
 import {
   BASE_FILTERS,
   DEFAULT_DURATION_AGGREGATE,
@@ -44,6 +45,7 @@ import {
   MODULE_DOC_LINK,
   MODULE_TITLE,
 } from 'sentry/views/insights/database/settings';
+import {SupportedDatabaseSystems} from 'sentry/views/insights/database/utils/constants';
 import {ModuleName, SpanMetricsField} from 'sentry/views/insights/types';
 
 export function DatabaseLandingPage() {
@@ -59,6 +61,12 @@ export function DatabaseLandingPage() {
   const spanDomain = decodeScalar(location.query?.['span.domain']);
 
   const sortField = decodeScalar(location.query?.[QueryParameterNames.SPANS_SORT]);
+
+  // If there is no query parameter for the system, retrieve the current value from the hook instead
+  const systemQueryParam = decodeScalar(location.query?.[SpanMetricsField.SPAN_SYSTEM]);
+  const {selectedSystem} = useSystemSelectorOptions();
+
+  const system = systemQueryParam ?? selectedSystem;
 
   let sort = decodeSorts(sortField).filter(isAValidSort)[0];
   if (!sort) {
@@ -85,6 +93,7 @@ export function DatabaseLandingPage() {
     ...BASE_FILTERS,
     'span.action': spanAction,
     'span.domain': spanDomain,
+    'span.system': system,
   };
 
   const tableFilters = {
@@ -92,6 +101,7 @@ export function DatabaseLandingPage() {
     'span.action': spanAction,
     'span.domain': spanDomain,
     'span.description': spanDescription ? `*${spanDescription}*` : undefined,
+    'span.system': system,
   };
 
   const cursor = decodeScalar(location.query?.[QueryParameterNames.SPANS_CURSOR]);
@@ -192,7 +202,15 @@ export function DatabaseLandingPage() {
                     'performance-queries-mongodb-extraction'
                   ) && <DatabaseSystemSelector />}
                   <ActionSelector moduleName={moduleName} value={spanAction ?? ''} />
-                  <DomainSelector moduleName={moduleName} value={spanDomain ?? ''} />
+                  <DomainSelector
+                    moduleName={moduleName}
+                    value={spanDomain ?? ''}
+                    domainAlias={
+                      system === SupportedDatabaseSystems.MONGODB
+                        ? t('Collection')
+                        : t('Table')
+                    }
+                  />
                 </DbFilterWrapper>
               </PageFilterWrapper>
             </ModuleLayout.Full>
