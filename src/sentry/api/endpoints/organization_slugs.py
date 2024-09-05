@@ -28,7 +28,7 @@ class SlugsUpdateEndpoint(OrganizationEndpoint):
     }
 
     @extend_schema(
-        operation_id="Update an Origanization's Project Slugs",
+        operation_id="Update an Organization's Project Slugs",
         parameters=[GlobalParams.ORG_ID_OR_SLUG],
         request=inline_serializer(
             name="UpdateOrgProjectSlugs",
