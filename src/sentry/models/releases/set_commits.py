@@ -84,11 +84,12 @@ def set_commits_on_release(release, commit_list):
 
     latest_commit = None
     for idx, data in enumerate(commit_list):
-        commit = set_commit(idx, data, release, head_commit_by_repo)
+        commit = set_commit(idx, data, release)
         if idx == 0:
             latest_commit = commit
 
         commit_author_by_commit[commit.id] = commit.author
+        head_commit_by_repo.setdefault(data["repo_model"].id, commit.id)
 
     release.update(
         commit_count=len(commit_list),
@@ -105,7 +106,7 @@ def set_commits_on_release(release, commit_list):
     return head_commit_by_repo, commit_author_by_commit
 
 
-def set_commit(idx, data, release, head_commit_by_repo):
+def set_commit(idx, data, release):
     repo = data["repo_model"]
     author = data["author_model"]
 
@@ -159,7 +160,6 @@ def set_commit(idx, data, release, head_commit_by_repo):
     except IntegrityError:
         pass
 
-    head_commit_by_repo.setdefault(repo.id, commit.id)
     return commit
 
 
