@@ -22,7 +22,7 @@ class Migration(CheckedMigration):
     is_post_deployment = False
 
     dependencies = [
-        ("sentry", "0753_fix_substatus_for_ignored_groups"),
+        ("sentry", "0754_extend_broadcast_model"),
     ]
 
     operations = [
