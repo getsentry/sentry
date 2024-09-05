@@ -326,4 +326,52 @@ describe('DatabaseLandingPage', function () {
       })
     );
   });
+
+  it('displays the correct domain label for SQL systems', async function () {
+    jest.mocked(useLocation).mockReturnValue({
+      pathname: '',
+      search: '',
+      query: {
+        statsPeriod: '10d',
+        'span.system': 'postgresql',
+      },
+      hash: '',
+      state: undefined,
+      action: 'PUSH',
+      key: '',
+    });
+
+    jest.spyOn(console, 'error').mockImplementation(jest.fn()); // This silences pointless unique key errors that React throws because of the tokenized query descriptions
+
+    render(<DatabaseLandingPage />, {organization});
+
+    await waitForElementToBeRemoved(() => screen.queryAllByTestId('loading-indicator'));
+
+    const domainSelector = await screen.findByTestId('domain-selector');
+    expect(domainSelector).toHaveTextContent('Table');
+  });
+
+  it('displays the correct domain label for NoSQL systems', async function () {
+    jest.mocked(useLocation).mockReturnValue({
+      pathname: '',
+      search: '',
+      query: {
+        statsPeriod: '10d',
+        'span.system': 'mongodb',
+      },
+      hash: '',
+      state: undefined,
+      action: 'PUSH',
+      key: '',
+    });
+
+    jest.spyOn(console, 'error').mockImplementation(jest.fn()); // This silences pointless unique key errors that React throws because of the tokenized query descriptions
+
+    render(<DatabaseLandingPage />, {organization});
+
+    await waitForElementToBeRemoved(() => screen.queryAllByTestId('loading-indicator'));
+
+    const domainSelector = await screen.findByTestId('domain-selector');
+    expect(domainSelector).toHaveTextContent('Collection');
+  });
 });
