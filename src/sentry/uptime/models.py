@@ -7,7 +7,7 @@ from django.db import models
 from django.db.models import Q
 
 from sentry.backup.scopes import RelocationScope
-from sentry.db.models import DefaultFieldsModel, FlexibleForeignKey, region_silo_model
+from sentry.db.models import DefaultFieldsModelExisting, FlexibleForeignKey, region_silo_model
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
 from sentry.db.models.manager.base import BaseManager
 from sentry.models.organization import Organization
@@ -17,7 +17,7 @@ from sentry.utils.function_cache import cache_func_for_models
 
 
 @region_silo_model
-class UptimeSubscription(BaseRemoteSubscription, DefaultFieldsModel):
+class UptimeSubscription(BaseRemoteSubscription, DefaultFieldsModelExisting):
     # TODO: This should be included in export/import, but right now it has no relation to
     # any projects/orgs. Will fix this in a later pr
     __relocation_scope__ = RelocationScope.Excluded
@@ -70,7 +70,7 @@ class UptimeStatus(enum.IntEnum):
 
 
 @region_silo_model
-class ProjectUptimeSubscription(DefaultFieldsModel):
+class ProjectUptimeSubscription(DefaultFieldsModelExisting):
     # TODO: This should be included in export/import, but right now it has no relation to
     # any projects/orgs. Will fix this in a later pr
     __relocation_scope__ = RelocationScope.Excluded

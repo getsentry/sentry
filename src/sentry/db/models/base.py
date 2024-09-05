@@ -28,6 +28,7 @@ from .query import update
 __all__ = (
     "BaseModel",
     "Model",
+    "DefaultFieldsModelExisting",
     "DefaultFieldsModel",
     "sane_repr",
     "get_model_if_available",
@@ -321,7 +322,12 @@ class Model(BaseModel):
     __repr__ = sane_repr("id")
 
 
-class DefaultFieldsModel(Model):
+class DefaultFieldsModelExisting(Model):
+    """
+    A base model that adds default date fields to existing models. Don't use this on new models, since it makes `date_added`
+    nullable.
+    """
+
     date_updated = models.DateTimeField(default=timezone.now)
     date_added = models.DateTimeField(default=timezone.now, null=True)
 
@@ -329,8 +335,12 @@ class DefaultFieldsModel(Model):
         abstract = True
 
 
+# Temporary mapping so we can fix getsentry
+DefaultFieldsModel = DefaultFieldsModelExisting
+
+
 def __model_pre_save(instance: models.Model, **kwargs: Any) -> None:
-    if not isinstance(instance, DefaultFieldsModel):
+    if not isinstance(instance, DefaultFieldsModelExisting):
         return
     # Only update this field when we're updating the row, not on create.
     if instance.pk is not None:
