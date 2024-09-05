@@ -2,7 +2,6 @@ import {Fragment, useCallback, useMemo, useState} from 'react';
 import {css} from '@emotion/react';
 
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
-import Alert from 'sentry/components/alert';
 import {Button, LinkButton} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
@@ -38,6 +37,7 @@ import {
   useGenerateExpressionId,
 } from 'sentry/views/dashboards/metrics/utils';
 import {DisplayType} from 'sentry/views/dashboards/types';
+import {MetricsBetaEndAlert} from 'sentry/views/metrics/metricsBetaEndAlert';
 import {MetricDetails} from 'sentry/views/metrics/widgetDetails';
 import {OrganizationContext} from 'sentry/views/organizationContext';
 
@@ -325,11 +325,7 @@ function MetricWidgetViewerModal({
           <CloseButton onClick={handleClose} />
         </Header>
         <Body>
-          <Alert type="error" showIcon>
-            {t(
-              'This widget will stop working after October 7th, 2024. The Metrics beta will end and we will retire the current solution.'
-            )}
-          </Alert>
+          <MetricsBetaEndAlert />
           <Queries
             displayType={displayType}
             metricQueries={metricQueries}
