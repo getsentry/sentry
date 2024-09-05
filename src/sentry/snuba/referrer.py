@@ -13,6 +13,9 @@ class Referrer(Enum):
     ALERTRULESERIALIZER_TEST_QUERY_PRIMARY = "alertruleserializer.test_query.primary"
     ALERTRULESERIALIZER_TEST_QUERY = "alertruleserializer.test_query"
     ANOMALY_DETECTION_HISTORICAL_DATA_QUERY = "anomaly_detection_historical_data_query"
+    ANOMALY_DETECTION_RETURN_HISTORICAL_ANOMALIES = (
+        "anomaly_detection_get_historical_anomalies_query"
+    )
     API_ALERTS_ALERT_RULE_CHART_METRICS_ENHANCED = "api.alerts.alert-rule-chart.metrics-enhanced"
     API_ALERTS_ALERT_RULE_CHART = "api.alerts.alert-rule-chart"
     API_ALERTS_CHARTCUTERIE = "api.alerts.chartcuterie"
