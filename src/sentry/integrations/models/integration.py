@@ -9,7 +9,11 @@ from sentry.backup.dependencies import NormalizedModelName, get_model_name
 from sentry.backup.sanitize import SanitizableField, Sanitizer
 from sentry.backup.scopes import RelocationScope
 from sentry.constants import ObjectStatus
-from sentry.db.models import BoundedPositiveIntegerField, DefaultFieldsModel, control_silo_model
+from sentry.db.models import (
+    BoundedPositiveIntegerField,
+    DefaultFieldsModelExisting,
+    control_silo_model,
+)
 from sentry.db.models.fields.jsonfield import JSONField
 from sentry.db.models.manager.base import BaseManager
 from sentry.hybridcloud.models.outbox import ControlOutbox, outbox_context
@@ -42,7 +46,7 @@ class IntegrationManager(BaseManager["Integration"]):
 
 
 @control_silo_model
-class Integration(DefaultFieldsModel):
+class Integration(DefaultFieldsModelExisting):
     """
     An integration tied to a particular instance of a third-party provider (a single Slack
     workspace, a single GH org, etc.), which can be shared by multiple Sentry orgs.

@@ -6,14 +6,19 @@ from django.db import models
 from django.db.models import CASCADE
 
 from sentry.backup.scopes import RelocationScope
-from sentry.db.models import ArrayField, DefaultFieldsModel, FlexibleForeignKey, region_silo_model
+from sentry.db.models import (
+    ArrayField,
+    DefaultFieldsModelExisting,
+    FlexibleForeignKey,
+    region_silo_model,
+)
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
 from sentry.models.project import Project
 from sentry.sentry_metrics.configuration import HARD_CODED_UNITS
 
 
 @region_silo_model
-class SpanAttributeExtractionRuleCondition(DefaultFieldsModel):
+class SpanAttributeExtractionRuleCondition(DefaultFieldsModelExisting):
     __relocation_scope__ = RelocationScope.Organization
 
     created_by_id = HybridCloudForeignKey("sentry.User", on_delete="SET_NULL", null=True)
@@ -34,7 +39,7 @@ class SpanAttributeExtractionRuleCondition(DefaultFieldsModel):
 
 
 @region_silo_model
-class SpanAttributeExtractionRuleConfig(DefaultFieldsModel):
+class SpanAttributeExtractionRuleConfig(DefaultFieldsModelExisting):
     __relocation_scope__ = RelocationScope.Organization
 
     created_by_id = HybridCloudForeignKey("sentry.User", on_delete="SET_NULL", null=True)

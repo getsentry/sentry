@@ -7,7 +7,7 @@ from django.db import models
 
 from sentry.backup.scopes import RelocationScope
 from sentry.db.models import BoundedBigIntegerField, region_silo_model
-from sentry.db.models.base import DefaultFieldsModel, sane_repr
+from sentry.db.models.base import DefaultFieldsModelExisting, sane_repr
 from sentry.db.models.fields.foreignkey import FlexibleForeignKey
 from sentry.db.models.fields.uuid import UUIDField
 
@@ -17,7 +17,7 @@ def default_guid():
 
 
 @region_silo_model
-class Relocation(DefaultFieldsModel):
+class Relocation(DefaultFieldsModelExisting):
     """
     Represents a single relocation instance. The relocation may be attempted multiple times, but we
     keep a mapping of 1 `Relocation` model per file upload.
@@ -181,7 +181,7 @@ class Relocation(DefaultFieldsModel):
 
 
 @region_silo_model
-class RelocationFile(DefaultFieldsModel):
+class RelocationFile(DefaultFieldsModelExisting):
     """
     A `RelocationFile` is an association between a `Relocation` and a `File`.
 
@@ -274,7 +274,7 @@ class ValidationStatus(Enum):
 
 
 @region_silo_model
-class RelocationValidation(DefaultFieldsModel):
+class RelocationValidation(DefaultFieldsModelExisting):
     """
     Stores general information about whether or not the associated `Relocation` passed its
     validation run.
@@ -302,7 +302,7 @@ class RelocationValidation(DefaultFieldsModel):
 
 
 @region_silo_model
-class RelocationValidationAttempt(DefaultFieldsModel):
+class RelocationValidationAttempt(DefaultFieldsModelExisting):
     """
     Represents a single Google CloudBuild validation run invocation, and tracks it over its
     lifetime.

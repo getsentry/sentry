@@ -4,7 +4,7 @@ from django.db.models.signals import post_save
 from sentry.backup.scopes import RelocationScope
 from sentry.db.models import (
     BoundedBigIntegerField,
-    DefaultFieldsModel,
+    DefaultFieldsModelExisting,
     FlexibleForeignKey,
     region_silo_model,
 )
@@ -12,7 +12,7 @@ from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignK
 
 
 @region_silo_model
-class RepositoryProjectPathConfig(DefaultFieldsModel):
+class RepositoryProjectPathConfig(DefaultFieldsModelExisting):
     __relocation_scope__ = RelocationScope.Excluded
 
     repository = FlexibleForeignKey("sentry.Repository")
