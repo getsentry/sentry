@@ -24,6 +24,7 @@ from sentry.api.issue_search import (
 from sentry.exceptions import InvalidSearchQuery
 from sentry.issues.grouptype import GroupCategory, get_group_types_by_category
 from sentry.models.group import GROUP_SUBSTATUS_TO_STATUS_MAP, STATUS_QUERY_CHOICES, GroupStatus
+from sentry.models.release import ReleaseStatus
 from sentry.search.utils import get_teams_for_users
 from sentry.testutils.cases import TestCase
 from sentry.types.group import SUBSTATUS_UPDATE_CHOICES, GroupSubStatus, PriorityLevel
@@ -374,6 +375,16 @@ class ConvertReleaseValueTest(TestCase):
         release = self.create_release(self.project)
         assert convert_release_value(["latest"], [self.project], self.user, None) == release.version
         assert convert_release_value(["14.*"], [self.project], self.user, None) == "14.*"
+
+    def test_latest_archived(self):
+        open_release = self.create_release(self.project, version="1.0", status=ReleaseStatus.OPEN)
+        self.create_release(self.project, version="1.1", status=ReleaseStatus.ARCHIVED)
+
+        # The archived release is more recent, but we should still pick the open one
+        assert (
+            convert_release_value(["latest"], [self.project], self.user, None)
+            == open_release.version
+        )
 
 
 class ConvertFirstReleaseValueTest(TestCase):
