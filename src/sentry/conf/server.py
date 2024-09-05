@@ -1128,12 +1128,6 @@ CELERYBEAT_SCHEDULE_REGION = {
         "schedule": crontab(minute="0", hour="12", day_of_week="sat"),
         "options": {"expires": 60 * 60 * 3},
     },
-    # "schedule-daily-organization-reports": {
-    #     "task": "sentry.tasks.summaries.daily_summary.schedule_organizations",
-    #     # Run every 1 hour on business days
-    #     "schedule": crontab(minute=0, hour="*/1", day_of_week="mon-fri"),
-    #     "options": {"expires": 60 * 60 * 3},
-    # },
     "schedule-hybrid-cloud-foreign-key-jobs": {
         "task": "sentry.tasks.deletion.hybrid_cloud.schedule_hybrid_cloud_foreign_key_jobs",
         # Run every 15 minutes
@@ -1263,6 +1257,9 @@ else:
 for queue in CELERY_QUEUES:
     queue.durable = False
 
+# set celery max durations for tasks
+CELERY_TASK_SOFT_TIME_LIMIT = int(timedelta(hours=3).total_seconds())
+CELERY_TASK_TIME_LIMIT = int(timedelta(hours=3, seconds=15).total_seconds())
 
 # Queues that belong to the processing pipeline and need to be monitored
 # for backpressure management
