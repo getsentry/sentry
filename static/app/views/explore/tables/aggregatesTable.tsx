@@ -4,6 +4,7 @@ import Pagination from 'sentry/components/pagination';
 import type {NewQuery} from 'sentry/types/organization';
 import EventView from 'sentry/utils/discover/eventView';
 import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
+import {getAggregateAlias, type Sort} from 'sentry/utils/discover/fields';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
@@ -22,6 +23,11 @@ import {useSorts} from 'sentry/views/explore/hooks/useSorts';
 import {useUserQuery} from 'sentry/views/explore/hooks/useUserQuery';
 import {useVisualizes} from 'sentry/views/explore/hooks/useVisualizes';
 import {useSpansQuery} from 'sentry/views/insights/common/queries/useSpansQuery';
+
+function formatSort(sort: Sort): string {
+  const direction = sort.kind === 'desc' ? '-' : '';
+  return `${direction}${getAggregateAlias(sort.field)}`;
+}
 
 interface AggregatesTableProps {}
 
@@ -44,7 +50,7 @@ export function AggregatesTable({}: AggregatesTableProps) {
       id: undefined,
       name: 'Explore - Span Aggregates',
       fields,
-      orderby: sorts.map(sort => `${sort.kind === 'desc' ? '-' : ''}${sort.field}`),
+      orderby: sorts.map(formatSort),
       query,
       version: 2,
       dataset,
