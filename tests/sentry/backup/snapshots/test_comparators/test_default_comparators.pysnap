@@ -1,5 +1,5 @@
 ---
-created: '2024-08-13T18:47:42.048211+00:00'
+created: '2024-09-06T08:55:20.240546+00:00'
 creator: sentry
 source: tests/sentry/backup/test_comparators.py
 ---
@@ -1458,30 +1458,6 @@ source: tests/sentry/backup/test_comparators.py
     fields:
     - snuba_query
   model_name: sentry.snubaqueryeventtype
-- comparators:
-  - class: DateUpdatedComparator
-    fields:
-    - date_updated
-  - class: DatetimeEqualityComparator
-    fields:
-    - date_added
-  - class: ForeignKeyComparator
-    fields:
-    - config
-    - created_by_id
-  model_name: sentry.spanattributeextractionrulecondition
-- comparators:
-  - class: DateUpdatedComparator
-    fields:
-    - date_updated
-  - class: DatetimeEqualityComparator
-    fields:
-    - date_added
-  - class: ForeignKeyComparator
-    fields:
-    - created_by_id
-    - project
-  model_name: sentry.spanattributeextractionruleconfig
 - comparators:
   - class: ForeignKeyComparator
     fields:
