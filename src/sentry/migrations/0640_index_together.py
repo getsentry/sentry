@@ -24,11 +24,6 @@ class Migration(CheckedMigration):
 
     operations = [
         migrations.RenameIndex(
-            model_name="activity",
-            new_name="sentry_acti_project_cd8457_idx",
-            old_fields=("project", "datetime"),
-        ),
-        migrations.RenameIndex(
             model_name="artifactbundleindex",
             new_name="sentry_arti_url_7e628a_idx",
             old_fields=("url", "artifact_bundle"),
