@@ -1867,7 +1867,7 @@ class GroupAttributesPostgresSnubaQueryExecutor(PostgresSnubaQueryExecutor):
                 groupby=groupby,
                 having=having,
                 orderby=[OrderBy(sort_func, direction=Direction.DESC)],
-                limit=Limit(limit + 1),
+                limit=Limit(limit),
             )
             dataset = Dataset.Events.value if is_errors else Dataset.IssuePlatform.value
             request = Request(
