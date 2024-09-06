@@ -22,7 +22,7 @@ class Migration(CheckedMigration):
     is_post_deployment = False
 
     dependencies = [
-        ("sentry", "0754_extend_broadcast_model"),
+        ("sentry", "0756_grouprelease_represented_in_django"),
     ]
 
     operations = [
