@@ -21,7 +21,7 @@ class Migration(CheckedMigration):
     is_post_deployment = False
 
     dependencies = [
-        ("sentry", "0756_grouprelease_represented_in_django"),
+        ("sentry", "0757_add_scopes_to_apiapplication"),
     ]
 
     operations = [
