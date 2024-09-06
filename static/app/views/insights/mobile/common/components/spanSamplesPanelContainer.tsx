@@ -255,5 +255,5 @@ const PaddedTitle = styled('div')`
 `;
 
 const StyledSearchBar = styled(SearchBar)`
-  margin-top: ${space(2)};
+  margin: ${space(2)} 0;
 `;
