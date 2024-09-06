@@ -478,7 +478,19 @@ const replayOnboarding: OnboardingConfig = {
       ],
     },
   ],
-  verify: () => [],
+  verify: () => [
+    {
+      type: StepType.VERIFY,
+      description: tct(
+        "While you're testing, we recommend that you set [code:replaysSessionSampleRate] to [code:1.0]. This ensures that every user session will be sent to Sentry.",
+        {code: <code />}
+      ),
+      additionalInfo: tct(
+        'Once testing is complete, we recommend lowering this value in production. We still recommend keeping [code:replaysOnErrorSampleRate] set to [code:1.0].',
+        {code: <code />}
+      ),
+    },
+  ],
   nextSteps: () => [],
 };
 

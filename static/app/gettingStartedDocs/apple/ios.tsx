@@ -713,7 +713,33 @@ const replayOnboarding: OnboardingConfig<PlatformOptions> = {
       ],
     },
   ],
-  verify: () => [],
+  verify: () => [
+    {
+      type: StepType.VERIFY,
+      description: t(
+        'To verify your Replay setup, trigger an error in your app and watch Sentry capture the event along with a recording of the user interaction.'
+      ),
+      configurations: [
+        {
+          description: tct(
+            'You can simulate an error by adding the following code to your main [code: ViewController]:',
+            {code: <code />}
+          ),
+          code: [
+            {
+              label: 'Swift',
+              value: 'swift',
+              language: 'swift',
+              code: getVerifySnippet(),
+            },
+          ],
+          additionalInfo: t(
+            'After clicking the button, wait a few moments, and you\'ll see a new session appear on the "Replays" page.'
+          ),
+        },
+      ],
+    },
+  ],
   nextSteps: () => [],
 };
 
