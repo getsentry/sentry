@@ -754,7 +754,7 @@ if (IS_UI_DEV_ONLY || SENTRY_EXPERIMENTAL_SPA) {
       ...(IS_UI_DEV_ONLY
         ? {devServer: `https://127.0.0.1:${SENTRY_WEBPACK_PROXY_PORT}`}
         : {}),
-      favicon: path.resolve(sentryDjangoAppPath, 'images', 'favicon_dev.png'),
+      favicon: path.resolve(sentryDjangoAppPath, 'images', 'favicon-dev.png'),
       template: path.resolve(staticPrefix, 'index.ejs'),
       mobile: true,
       excludeChunks: ['pipeline'],
