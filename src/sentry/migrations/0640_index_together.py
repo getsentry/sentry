@@ -55,11 +55,6 @@ class Migration(CheckedMigration):
             ),
         ),
         migrations.RenameIndex(
-            model_name="debugidartifactbundle",
-            new_name="sentry_debu_debug_i_8c6c44_idx",
-            old_fields=("debug_id", "artifact_bundle"),
-        ),
-        migrations.RenameIndex(
             model_name="group",
             new_name="sentry_grou_project_5eb75b_idx",
             old_fields=("project", "status", "substatus", "last_seen", "id"),
