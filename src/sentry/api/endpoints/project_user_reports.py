@@ -1,9 +1,12 @@
+from datetime import datetime, timedelta
 from typing import NotRequired, TypedDict
 
+from django.utils import timezone
 from rest_framework import serializers
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry import quotas
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.authentication import DSNAuthentication
@@ -61,7 +64,13 @@ class ProjectUserReportsEndpoint(ProjectEndpoint, EnvironmentMixin):
         except Environment.DoesNotExist:
             queryset = UserReport.objects.none()
         else:
-            queryset = UserReport.objects.filter(project_id=project.id, group_id__isnull=False)
+            retention = quotas.backend.get_event_retention(organization=project.organization)
+            start = (
+                timezone.now() - timedelta(days=retention) if retention else datetime(1970, 1, 1)
+            )
+            queryset = UserReport.objects.filter(
+                project_id=project.id, group_id__isnull=False, date_added__gte=start
+            )
             if environment is not None:
                 queryset = queryset.filter(environment_id=environment.id)
 
