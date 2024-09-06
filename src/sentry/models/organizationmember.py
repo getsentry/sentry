@@ -128,7 +128,7 @@ class OrganizationMemberManager(BaseManager["OrganizationMember"]):
 
     def get_for_integration(
         self, integration: RpcIntegration | int, user: RpcUser, organization_id: int | None = None
-    ) -> QuerySet:
+    ) -> QuerySet[OrganizationMember]:
         # This can be moved into the integration service once OrgMemberMapping is completed.
         # We are forced to do an ORM -> service -> ORM call to reduce query size while avoiding
         # cross silo queries until we have a control silo side to map users through.
