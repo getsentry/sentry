@@ -148,12 +148,12 @@ urlpatterns = [
     re_path(r"^debug/mail/sso-linked/$", DebugSsoLinkedEmailView.as_view()),
     re_path(r"^debug/mail/sso-unlinked/$", DebugSsoUnlinkedEmailView.as_view()),
     re_path(
-        r"^debug/mail/sso-unlinked/no-password$", DebugSsoUnlinkedNoPasswordEmailView.as_view()
+        r"^debug/mail/sso-unlinked/no-password/$", DebugSsoUnlinkedNoPasswordEmailView.as_view()
     ),
-    re_path(r"^debug/mail/incident-activity$", DebugIncidentActivityEmailView.as_view()),
-    re_path(r"^debug/mail/incident-trigger$", DebugIncidentTriggerEmailView.as_view()),
+    re_path(r"^debug/mail/incident-activity/$", DebugIncidentActivityEmailView.as_view()),
+    re_path(r"^debug/mail/incident-trigger/$", DebugIncidentTriggerEmailView.as_view()),
     re_path(
-        r"^debug/mail/activated-incident-trigger$",
+        r"^debug/mail/activated-incident-trigger/$",
         DebugIncidentActivatedAlertTriggerEmailView.as_view(),
     ),
     re_path(r"^debug/mail/setup-2fa/$", DebugSetup2faEmailView.as_view()),

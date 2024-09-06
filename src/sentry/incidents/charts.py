@@ -15,7 +15,7 @@ from sentry.charts.types import ChartSize, ChartType
 from sentry.incidents.endpoints.serializers.alert_rule import AlertRuleSerializer
 from sentry.incidents.endpoints.serializers.incident import DetailedIncidentSerializer
 from sentry.incidents.logic import translate_aggregate_field
-from sentry.incidents.models.alert_rule import AlertRule
+from sentry.incidents.models.alert_rule import AlertRule, AlertRuleDetectionType
 from sentry.incidents.models.incident import Incident
 from sentry.models.apikey import ApiKey
 from sentry.models.organization import Organization
@@ -155,6 +155,31 @@ def fetch_metric_alert_incidents(
         return []
 
 
+def fetch_metric_alert_anomalies(
+    organization: Organization,
+    alert_rule: AlertRule,
+    time_period: Mapping[str, str],
+    user: Optional["User"] = None,
+) -> list[Any]:
+    try:
+        resp = client.get(
+            auth=ApiKey(organization_id=organization.id, scope_list=["org:read"]),
+            user=user,
+            path=f"/organizations/{organization.slug}/alert-rules/{alert_rule.id}/anomalies/",
+            params={
+                **time_period,
+            },
+        )
+        return resp.data
+    except Exception as exc:
+        logger.error(
+            "Failed to load anomalies for chart: %s",
+            exc,
+            exc_info=True,
+        )
+        return []
+
+
 def build_metric_alert_chart(
     organization: Organization,
     alert_rule: AlertRule,
@@ -203,6 +228,22 @@ def build_metric_alert_chart(
             user,
         ),
     }
+    # NOTE: 'anomaly-detection-alerts-charts' flag does not exist
+    # Flag can be enabled IF we want to enable marked lines/areas for anomalies in the future
+    # For now, we defer to incident lines as indicators for anomalies
+    if (
+        features.has(
+            "organizations:anomaly-detection-alerts-charts",
+            organization,
+        )
+        and alert_rule.detection_type == AlertRuleDetectionType.DYNAMIC
+    ):
+        chart_data["anomalies"] = fetch_metric_alert_anomalies(
+            organization,
+            alert_rule,
+            time_period,
+            user,
+        )
 
     allow_mri = features.has(
         "organizations:custom-metrics",
