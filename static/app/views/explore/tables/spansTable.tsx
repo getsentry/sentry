@@ -3,7 +3,6 @@ import {Fragment, useMemo} from 'react';
 import Link from 'sentry/components/links/link';
 import Pagination from 'sentry/components/pagination';
 import type {NewQuery} from 'sentry/types/organization';
-import {dedupeArray} from 'sentry/utils/dedupeArray';
 import type {EventData} from 'sentry/utils/discover/eventView';
 import EventView from 'sentry/utils/discover/eventView';
 import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
@@ -37,20 +36,16 @@ export function SpansTable({}: SpansTableProps) {
   const [sorts] = useSorts({fields});
   const [query] = useUserQuery();
 
-  const queryFields = useMemo(() => {
-    const deduped = dedupeArray([
+  const eventView = useMemo(() => {
+    const queryFields = [
       ...fields,
       'project',
       'trace',
       'transaction.id',
       'span_id',
       'timestamp',
-    ]);
-    deduped.sort();
-    return deduped;
-  }, [fields]);
+    ];
 
-  const eventView = useMemo(() => {
     const discoverQuery: NewQuery = {
       id: undefined,
       name: 'Explore - Span Samples',
@@ -62,7 +57,7 @@ export function SpansTable({}: SpansTableProps) {
     };
 
     return EventView.fromNewQueryWithPageFilters(discoverQuery, selection);
-  }, [dataset, queryFields, sorts, query, selection]);
+  }, [dataset, fields, sorts, query, selection]);
 
   const result = useSpansQuery({
     eventView,
