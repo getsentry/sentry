@@ -1,7 +1,7 @@
 # Thread safe flag tracking wrapper.
 from contextvars import ContextVar
 
-flag_manager = ContextVar("flag_manager")
+flag_manager = ContextVar("flag_manager")  # type: ignore[var-annotated]
 
 
 def initialize_flag_manager(capacity: int = 10) -> None:
@@ -63,12 +63,12 @@ class FlagManager:
         return self.ip % self.capacity
 
     def insert(self, flag: str, result: bool) -> None:
-        flag = Flag(flag, result)
+        flag_ = Flag(flag, result)
 
         if self.ip >= self.capacity:
-            self.buffer[self.index] = flag
+            self.buffer[self.index] = flag_
         else:
-            self.buffer.append(flag)
+            self.buffer.append(flag_)
 
         self.ip += 1
 
