@@ -50,7 +50,7 @@ export async function logout(api: Client, redirectUrl = '/auth/login/') {
   const data = await api.requestPromise('/auth/', {method: 'DELETE'});
 
   // If there's a URL for SAML Single-logout, redirect back to IdP
-  window.location.replace(data?.sloUrl || redirectUrl);
+  window.location.assign(data?.sloUrl || redirectUrl);
 }
 
 export function removeAuthenticator(api: Client, userId: string, authId: string) {
