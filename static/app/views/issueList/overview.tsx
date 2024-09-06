@@ -57,7 +57,7 @@ import withOrganization from 'sentry/utils/withOrganization';
 import withPageFilters from 'sentry/utils/withPageFilters';
 import withSavedSearches from 'sentry/utils/withSavedSearches';
 import CustomViewsIssueListHeader from 'sentry/views/issueList/customViewsHeader';
-import IssueListBody from 'sentry/views/issueList/issueListBody';
+import IssueListTable from 'sentry/views/issueList/issueListTable';
 import SavedIssueSearches from 'sentry/views/issueList/savedIssueSearches';
 import type {IssueUpdateData} from 'sentry/views/issueList/types';
 import {parseIssuePrioritySearch} from 'sentry/views/issueList/utils/parseIssuePrioritySearch';
@@ -1246,7 +1246,7 @@ class IssueListOverview extends Component<Props, State> {
           <StyledMain>
             <DataConsentBanner source="issues" />
             <IssueListFilters query={query} onSearch={this.onSearch} />
-            <IssueListBody
+            <IssueListTable
               selection={selection}
               query={query}
               queryCount={modifiedQueryCount}

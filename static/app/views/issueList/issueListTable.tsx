@@ -12,7 +12,7 @@ import IssueListActions from 'sentry/views/issueList/actions';
 import GroupListBody from 'sentry/views/issueList/groupListBody';
 import type {IssueUpdateData} from 'sentry/views/issueList/types';
 
-interface IssueListBodyProps {
+interface IssueListTableProps {
   allResultsVisible: boolean;
   displayReprocessingActions: boolean;
   error: string | null;
@@ -36,7 +36,7 @@ interface IssueListBodyProps {
   statsPeriod: string;
 }
 
-function IssueListBody({
+function IssueListTable({
   allResultsVisible,
   displayReprocessingActions,
   groupIds,
@@ -57,7 +57,7 @@ function IssueListBody({
   pageLinks,
   onCursor,
   paginationAnalyticsEvent,
-}: IssueListBodyProps) {
+}: IssueListTableProps) {
   return (
     <Fragment>
       <Panel>
@@ -112,4 +112,4 @@ const StyledPagination = styled(Pagination)`
   margin-top: 0;
 `;
 
-export default IssueListBody;
+export default IssueListTable;
