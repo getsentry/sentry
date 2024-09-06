@@ -104,6 +104,20 @@ describe('ExploreToolbar', function () {
       {yAxes: ['avg(span.self_time)', 'count(span.self_time)']},
       {yAxes: ['count(span.duration)']},
     ]);
+
+    // delete first overlay
+    await userEvent.click(within(section).getAllByLabelText('Remove')[0]);
+    expect(visualizes).toEqual([
+      {yAxes: ['count(span.self_time)']},
+      {yAxes: ['count(span.duration)']},
+    ]);
+
+    // delete second chart
+    await userEvent.click(within(section).getAllByLabelText('Remove')[1]);
+    expect(visualizes).toEqual([{yAxes: ['count(span.self_time)']}]);
+
+    // only one left so cant be deleted
+    expect(screen.getByLabelText('Remove')).toBeDisabled();
   });
 
   it('allows changing sort by', async function () {

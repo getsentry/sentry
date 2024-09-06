@@ -1,12 +1,15 @@
 import {Fragment, useCallback, useMemo} from 'react';
 import styled from '@emotion/styled';
 
+import {Button} from 'sentry/components/button';
 import {CompactSelect, type SelectOption} from 'sentry/components/compactSelect';
+import {IconDelete} from 'sentry/icons/iconDelete';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
 import type {ParsedFunction} from 'sentry/utils/discover/fields';
 import {parseFunction} from 'sentry/utils/discover/fields';
+import type {Visualize} from 'sentry/views/explore/hooks/useVisualizes';
 import {
   ALLOWED_VISUALIZE_AGGREGATES,
   ALLOWED_VISUALIZE_FIELDS,
@@ -85,6 +88,29 @@ export function ToolbarVisualize({}: ToolbarVisualizeProps) {
     [parsedVisualizeGroups, setVisualizes, visualizes]
   );
 
+  const deleteOverlay = useCallback(
+    (group: number, index: number) => {
+      const newVisualizes: Visualize[] = visualizes
+        .map((visualize, orgGroup) => {
+          if (group !== orgGroup) {
+            return visualize;
+          }
+
+          return {
+            yAxes: visualize.yAxes.filter((_, orgIndex) => index !== orgIndex),
+          };
+        })
+        .filter(visualize => visualize.yAxes.length > 0);
+      setVisualizes(newVisualizes);
+    },
+    [setVisualizes, visualizes]
+  );
+
+  const lastVisualization =
+    parsedVisualizeGroups
+      .map(parsedVisualizeGroup => parsedVisualizeGroup.length)
+      .reduce((a, b) => a + b, 0) <= 1;
+
   return (
     <ToolbarSection data-test-id="section-visualizes">
       <ToolbarHeader>
@@ -113,6 +139,14 @@ export function ToolbarVisualize({}: ToolbarVisualizeProps) {
                       setChartAggregate(group, index, newAggregate)
                     }
                   />
+                  <Button
+                    borderless
+                    icon={<IconDelete />}
+                    size="zero"
+                    disabled={lastVisualization}
+                    onClick={() => deleteOverlay(group, index)}
+                    aria-label={t('Remove')}
+                  />
                 </VisualizeOption>
               ))}
               <ToolbarFooterButton size="xs" onClick={() => addOverlay(group)} borderless>
@@ -128,6 +162,7 @@ export function ToolbarVisualize({}: ToolbarVisualizeProps) {
 
 const VisualizeOption = styled('div')`
   display: flex;
+  justify-content: space-between;
 
   :not(:first-child) {
     padding-top: ${space(1)};
