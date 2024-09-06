@@ -44,9 +44,9 @@ export const useDeleteSavedSearchOptimistic = (
       });
     },
     onMutate: async variables => {
-      await queryClient.cancelQueries(
-        makeFetchSavedSearchesForOrgQueryKey({orgSlug: variables.orgSlug})
-      );
+      await queryClient.cancelQueries({
+        queryKey: makeFetchSavedSearchesForOrgQueryKey({orgSlug: variables.orgSlug}),
+      });
 
       const previousSavedSearches = getApiQueryData<SavedSearch[]>(
         queryClient,

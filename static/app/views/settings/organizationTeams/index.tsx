@@ -61,7 +61,7 @@ export function OrganizationTeamsContainer(props: RouteComponentProps<{}, {}>) {
       setApiQueryData(queryClient, queryKey, newRequestList);
 
       // To be safer, trigger a refetch to ensure data is correct
-      queryClient.invalidateQueries(queryKey);
+      queryClient.invalidateQueries({queryKey});
 
       if (isApproved && requestToRemove) {
         const team = requestToRemove.team;

@@ -40,52 +40,50 @@ export function ApiTokens() {
     refetch,
   } = useApiQuery<InternalAppApiToken[]>(API_TOKEN_QUERY_KEY, {staleTime: 0});
 
-  const {mutate: deleteToken} = useMutation(
-    (token: InternalAppApiToken) => {
+  const {mutate: deleteToken} = useMutation({
+    mutationFn: (token: InternalAppApiToken) => {
       return api.requestPromise('/api-tokens/', {
         method: 'DELETE',
         data: {tokenId: token.id},
       });
     },
-    {
-      onMutate: token => {
-        addLoadingMessage();
-        queryClient.cancelQueries(API_TOKEN_QUERY_KEY);
+    onMutate: token => {
+      addLoadingMessage();
+      queryClient.cancelQueries({queryKey: API_TOKEN_QUERY_KEY});
 
-        const previous = getApiQueryData<InternalAppApiToken[]>(
-          queryClient,
-          API_TOKEN_QUERY_KEY
-        );
+      const previous = getApiQueryData<InternalAppApiToken[]>(
+        queryClient,
+        API_TOKEN_QUERY_KEY
+      );
 
+      setApiQueryData<InternalAppApiToken[]>(
+        queryClient,
+        API_TOKEN_QUERY_KEY,
+        oldTokenList => {
+          return oldTokenList?.filter(tk => tk.id !== token.id);
+        }
+      );
+
+      return {previous};
+    },
+    onSuccess: _data => {
+      addSuccessMessage(t('Removed token'));
+    },
+    onError: (_error, _variables, context) => {
+      addErrorMessage(t('Unable to remove token. Please try again.'));
+
+      if (context?.previous) {
         setApiQueryData<InternalAppApiToken[]>(
           queryClient,
           API_TOKEN_QUERY_KEY,
-          oldTokenList => {
-            return oldTokenList?.filter(tk => tk.id !== token.id);
-          }
+          context.previous
         );
-
-        return {previous};
-      },
-      onSuccess: _data => {
-        addSuccessMessage(t('Removed token'));
-      },
-      onError: (_error, _variables, context) => {
-        addErrorMessage(t('Unable to remove token. Please try again.'));
-
-        if (context?.previous) {
-          setApiQueryData<InternalAppApiToken[]>(
-            queryClient,
-            API_TOKEN_QUERY_KEY,
-            context.previous
-          );
-        }
-      },
-      onSettled: () => {
-        queryClient.invalidateQueries(API_TOKEN_QUERY_KEY);
-      },
-    }
-  );
+      }
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({queryKey: API_TOKEN_QUERY_KEY});
+    },
+  });
 
   if (isPending) {
     return <LoadingIndicator />;
