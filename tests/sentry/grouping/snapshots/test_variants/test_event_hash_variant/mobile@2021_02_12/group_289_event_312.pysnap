@@ -1,5 +1,5 @@
 ---
-created: '2024-09-04T19:48:05.660056+00:00'
+created: '2024-09-05T13:39:11.371701+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -12,13 +12,9 @@ app-depth-1:
           frame* (marked as sentinel frame by stack trace rule (category:gl +sentinel))
             function*
               "glDeleteTextures_Exec"
-            package (ignored because function takes precedence)
-              "glengine"
           frame* (marked as prefix frame by stack trace rule (category:driver +sentinel +prefix))
             function*
               "gldCreateDevice"
-            package (ignored because function takes precedence)
-              "geforcegldriver"
         type (ignored because exception is synthetic)
           "0x00000000 / 0x00000000"
         value (ignored because stacktrace takes precedence)
@@ -38,13 +34,9 @@ app-depth-max:
           frame (ignored by stack trace rule (category:threadbase -group v-group))
             function*
               "thread_start"
-            package (ignored because function takes precedence)
-              "libsystem_pthread.dylib"
           frame (ignored by stack trace rule (category:threadbase -group v-group))
             function*
               "_pthread_start"
-            package (ignored because function takes precedence)
-              "libsystem_pthread.dylib"
           frame (ignored by stack trace rule (category:threadbase -group v-group))
             filename (discarded native filename for grouping stability)
               "thread.cpp"
@@ -81,63 +73,39 @@ app-depth-max:
           frame* (marked as sentinel frame by stack trace rule (category:gl +sentinel))
             function*
               "glDeleteTextures_Exec"
-            package (ignored because function takes precedence)
-              "glengine"
           frame (ignored by stack trace rule (category:internals -group))
             function*
               "gleUnbindDeleteHashNamesAndObjects"
-            package (ignored because function takes precedence)
-              "glengine"
           frame (ignored by stack trace rule (category:internals -group))
             function*
               "gleUnbindTextureObject"
-            package (ignored because function takes precedence)
-              "glengine"
           frame (ignored by stack trace rule (category:internals -group))
             function*
               "gldUpdateDispatch"
-            package (ignored because function takes precedence)
-              "geforcegldriver"
           frame (ignored due to recursion)
             function*
               "gldUpdateDispatch"
-            package (ignored because function takes precedence)
-              "geforcegldriver"
           frame (ignored by stack trace rule (category:internals -group))
             function*
               "gpusSubmitDataBuffers"
-            package (ignored because function takes precedence)
-              "libgpusupportmercury.dylib"
           frame* (marked as prefix frame by stack trace rule (category:driver +sentinel +prefix))
             function*
               "gldCreateDevice"
-            package (ignored because function takes precedence)
-              "geforcegldriver"
           frame (ignored by stack trace rule (category:telemetry -group))
             function*
               "gpusGenerateCrashLog"
-            package (ignored because function takes precedence)
-              "libgpusupportmercury.dylib"
           frame (ignored by stack trace rule (category:indirection -group))
             function*
               "gpusGenerateCrashLog.cold.1"
-            package (ignored because function takes precedence)
-              "libgpusupportmercury.dylib"
           frame* (marked as prefix frame by stack trace rule (category:throw +prefix ^-group))
             function*
               "abort"
-            package (ignored because function takes precedence)
-              "libsystem_c.dylib"
           frame (ignored by stack trace rule (category:throw +prefix ^-group))
             function*
               "__abort"
-            package (ignored because function takes precedence)
-              "libsystem_c.dylib"
           frame (ignored by stack trace rule (category:throw +prefix ^-group))
             function*
               "__pthread_kill"
-            package (ignored because function takes precedence)
-              "libsystem_kernel.dylib"
         type (ignored because exception is synthetic)
           "0x00000000 / 0x00000000"
         value (ignored because stacktrace takes precedence)
@@ -157,13 +125,9 @@ system:
           frame (ignored by stack trace rule (category:threadbase -group v-group))
             function*
               "thread_start"
-            package (ignored because function takes precedence)
-              "libsystem_pthread.dylib"
           frame (ignored by stack trace rule (category:threadbase -group v-group))
             function*
               "_pthread_start"
-            package (ignored because function takes precedence)
-              "libsystem_pthread.dylib"
           frame (ignored by stack trace rule (category:threadbase -group v-group))
             filename (discarded native filename for grouping stability)
               "thread.cpp"
@@ -200,63 +164,39 @@ system:
           frame* (marked as sentinel frame by stack trace rule (category:gl +sentinel))
             function*
               "glDeleteTextures_Exec"
-            package (ignored because function takes precedence)
-              "glengine"
           frame (ignored by stack trace rule (category:internals -group))
             function*
               "gleUnbindDeleteHashNamesAndObjects"
-            package (ignored because function takes precedence)
-              "glengine"
           frame (ignored by stack trace rule (category:internals -group))
             function*
               "gleUnbindTextureObject"
-            package (ignored because function takes precedence)
-              "glengine"
           frame (ignored by stack trace rule (category:internals -group))
             function*
               "gldUpdateDispatch"
-            package (ignored because function takes precedence)
-              "geforcegldriver"
           frame (ignored due to recursion)
             function*
               "gldUpdateDispatch"
-            package (ignored because function takes precedence)
-              "geforcegldriver"
           frame (ignored by stack trace rule (category:internals -group))
             function*
               "gpusSubmitDataBuffers"
-            package (ignored because function takes precedence)
-              "libgpusupportmercury.dylib"
           frame* (marked as prefix frame by stack trace rule (category:driver +sentinel +prefix))
             function*
               "gldCreateDevice"
-            package (ignored because function takes precedence)
-              "geforcegldriver"
           frame (ignored by stack trace rule (category:telemetry -group))
             function*
               "gpusGenerateCrashLog"
-            package (ignored because function takes precedence)
-              "libgpusupportmercury.dylib"
           frame (ignored by stack trace rule (category:indirection -group))
             function*
               "gpusGenerateCrashLog.cold.1"
-            package (ignored because function takes precedence)
-              "libgpusupportmercury.dylib"
           frame* (marked as prefix frame by stack trace rule (category:throw +prefix ^-group))
             function*
               "abort"
-            package (ignored because function takes precedence)
-              "libsystem_c.dylib"
           frame (ignored by stack trace rule (category:throw +prefix ^-group))
             function*
               "__abort"
-            package (ignored because function takes precedence)
-              "libsystem_c.dylib"
           frame (ignored by stack trace rule (category:throw +prefix ^-group))
             function*
               "__pthread_kill"
-            package (ignored because function takes precedence)
-              "libsystem_kernel.dylib"
         type (ignored because exception is synthetic)
           "0x00000000 / 0x00000000"
         value (ignored because stacktrace takes precedence)
