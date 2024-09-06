@@ -54,18 +54,17 @@ export function ToolbarRow<T>({
   return (
     <ToolbarRowWrapper>
       {children}
-      {rows.length > 1 ? (
-        <Button
-          borderless
-          icon={<IconDelete />}
-          size="zero"
-          onClick={e => {
-            e.preventDefault();
-            removeRow(index);
-          }}
-          aria-label={t('Remove')}
-        />
-      ) : null}
+      <Button
+        borderless
+        icon={<IconDelete />}
+        size="zero"
+        disabled={rows.length <= 1}
+        onClick={e => {
+          e.preventDefault();
+          removeRow(index);
+        }}
+        aria-label={t('Remove')}
+      />
     </ToolbarRowWrapper>
   );
 }
