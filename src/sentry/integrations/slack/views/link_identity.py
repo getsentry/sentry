@@ -43,6 +43,10 @@ class SlackLinkIdentityView(SlackIdentityLinkageView, LinkIdentityView):
     def get_success_template_and_context(
         self, params: Mapping[str, Any], integration: Integration | None
     ) -> tuple[str, dict[str, Any]]:
+        if integration is None:
+            raise ValueError(
+                'integration is required for linking (params must include "integration_id")'
+            )
         return "sentry/integrations/slack/linked.html", {
             "channel_id": params["channel_id"],
             "team_id": integration.external_id,
