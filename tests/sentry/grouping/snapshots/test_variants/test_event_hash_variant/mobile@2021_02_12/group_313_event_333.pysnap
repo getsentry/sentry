@@ -1,5 +1,5 @@
 ---
-created: '2024-09-05T13:39:11.852341+00:00'
+created: '2024-09-06T11:37:51.734547+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -66,37 +66,37 @@ app-depth-max:
             function*
               "stripped_application_code"
           frame (ignored by stack trace rule (category:indirection -group))
-            filename (discarded native filename for grouping stability)
+            filename*
               "functional"
             function*
               "std::__1::function<T>::operator()"
           frame (ignored by stack trace rule (category:indirection -group))
-            filename (discarded native filename for grouping stability)
+            filename*
               "functional"
             function*
               "std::__1::__function::__value_func<T>::operator()"
           frame (ignored by stack trace rule (category:indirection -group))
-            filename (discarded native filename for grouping stability)
+            filename*
               "functional"
             function*
               "std::__1::__function::__func<T>::operator()"
           frame (ignored by stack trace rule (category:indirection -group))
-            filename (discarded native filename for grouping stability)
+            filename*
               "functional"
             function*
               "std::__1::__function::__alloc_func<T>::operator()"
           frame (ignored by stack trace rule (category:internals -group))
-            filename (discarded native filename for grouping stability)
+            filename*
               "__functional_base"
             function*
               "std::__1::__invoke_void_return_wrapper<T>::__call<T>"
           frame (ignored by stack trace rule (category:internals -group))
-            filename (discarded native filename for grouping stability)
+            filename*
               "type_traits"
             function*
               "std::__1::__invoke<T>"
           frame (ignored by stack trace rule (category:indirection -group))
-            filename (discarded native filename for grouping stability)
+            filename*
               "initialize.cpp"
             function*
               "MZ::`anonymous namespace'::lambda::operator()"
@@ -259,37 +259,37 @@ system:
             function*
               "stripped_application_code"
           frame (ignored by stack trace rule (category:indirection -group))
-            filename (discarded native filename for grouping stability)
+            filename*
               "functional"
             function*
               "std::__1::function<T>::operator()"
           frame (ignored by stack trace rule (category:indirection -group))
-            filename (discarded native filename for grouping stability)
+            filename*
               "functional"
             function*
               "std::__1::__function::__value_func<T>::operator()"
           frame (ignored by stack trace rule (category:indirection -group))
-            filename (discarded native filename for grouping stability)
+            filename*
               "functional"
             function*
               "std::__1::__function::__func<T>::operator()"
           frame (ignored by stack trace rule (category:indirection -group))
-            filename (discarded native filename for grouping stability)
+            filename*
               "functional"
             function*
               "std::__1::__function::__alloc_func<T>::operator()"
           frame (ignored by stack trace rule (category:internals -group))
-            filename (discarded native filename for grouping stability)
+            filename*
               "__functional_base"
             function*
               "std::__1::__invoke_void_return_wrapper<T>::__call<T>"
           frame (ignored by stack trace rule (category:internals -group))
-            filename (discarded native filename for grouping stability)
+            filename*
               "type_traits"
             function*
               "std::__1::__invoke<T>"
           frame (ignored by stack trace rule (category:indirection -group))
-            filename (discarded native filename for grouping stability)
+            filename*
               "initialize.cpp"
             function*
               "MZ::`anonymous namespace'::lambda::operator()"

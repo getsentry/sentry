@@ -1,5 +1,5 @@
 ---
-created: '2024-09-05T13:39:10.347882+00:00'
+created: '2024-09-06T11:37:50.046632+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -116,13 +116,13 @@ app-depth-5:
           "Fatal Error: <hex> / <hex>"
 --------------------------------------------------------------------------
 app-depth-max:
-  hash: "e964d1e7cfec1ffbfe73559e02f9ac1b"
+  hash: "15526a7b64e9b5dc6d89e7ebec864260"
   component:
     app-depth-max*
       exception*
         stacktrace*
           frame* (marked out of app by stack trace rule (family:native function:std::* -app))
-            filename (discarded native filename for grouping stability)
+            filename*
               "xstring"
             function*
               "std::basic_string<T>::{ctor}"
@@ -156,7 +156,7 @@ app-depth-max:
           "Fatal Error: <hex> / <hex>"
 --------------------------------------------------------------------------
 system:
-  hash: "e964d1e7cfec1ffbfe73559e02f9ac1b"
+  hash: "15526a7b64e9b5dc6d89e7ebec864260"
   component:
     system*
       exception*
@@ -171,32 +171,32 @@ system:
             function*
               "stripped_application_code"
           frame (ignored by stack trace rule (category:threadbase -group v-group))
-            filename (discarded native filename for grouping stability)
+            filename*
               "exe_common.inl"
             function*
               "invoke_main"
           frame (ignored by stack trace rule (category:threadbase -group v-group))
-            filename (discarded native filename for grouping stability)
+            filename*
               "winmain.cpp"
             function*
               "wWinMain"
           frame* (marked out of app by stack trace rule (family:native function:std::* -app))
-            filename (discarded native filename for grouping stability)
+            filename*
               "xstring"
             function*
               "std::basic_string<T>::{ctor}"
           frame (ignored by stack trace rule (category:internals -group))
-            filename (discarded native filename for grouping stability)
+            filename*
               "xstring"
             function*
               "std::basic_string<T>::assign"
           frame (marked out of app by stack trace rule (family:native function:std::* -app))
-            filename (discarded native filename for grouping stability)
+            filename*
               "xstring"
             function*
               "std::basic_string<T>::assign"
           frame (ignored by stack trace rule (category:internals -group))
-            filename (discarded native filename for grouping stability)
+            filename*
               "xstring"
             function*
               "std::basic_string<T>::_Reallocate_for"
@@ -219,7 +219,7 @@ system:
             function*
               "stripped_application_code"
           frame (ignored by stack trace rule (category:indirection -group))
-            filename (discarded native filename for grouping stability)
+            filename*
               "functional"
             function*
               "std::_Func_class<T>::operator()"
@@ -251,7 +251,7 @@ system:
             function*
               "stripped_application_code"
           frame (ignored by stack trace rule (category:indirection -group))
-            filename (discarded native filename for grouping stability)
+            filename*
               "function_template.hpp"
             function*
               "boost::function0<T>::operator()"
@@ -259,7 +259,7 @@ system:
             function*
               "stripped_application_code"
           frame (ignored by stack trace rule (category:indirection -group))
-            filename (discarded native filename for grouping stability)
+            filename*
               "function_template.hpp"
             function*
               "boost::function0<T>::operator()"
@@ -267,7 +267,7 @@ system:
             function*
               "stripped_application_code"
           frame (ignored by stack trace rule (category:indirection -group))
-            filename (discarded native filename for grouping stability)
+            filename*
               "function_template.hpp"
             function*
               "boost::function0<T>::operator()"
@@ -281,7 +281,7 @@ system:
             function*
               "stripped_application_code"
           frame (ignored by stack trace rule (category:indirection -group))
-            filename (discarded native filename for grouping stability)
+            filename*
               "purevirt.cpp"
             function*
               "_purecall"
@@ -292,7 +292,7 @@ system:
             function*
               "raise"
           frame (ignored by stack trace rule (category:throw +prefix ^-group))
-            filename (discarded native filename for grouping stability)
+            filename*
               "crashpad_client_win.cc"
             function*
               "crashpad::`anonymous namespace'::HandleAbortSignal"

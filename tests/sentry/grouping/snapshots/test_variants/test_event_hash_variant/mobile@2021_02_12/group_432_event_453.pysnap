@@ -1,5 +1,5 @@
 ---
-created: '2024-09-05T13:39:10.604314+00:00'
+created: '2024-09-06T11:37:50.312444+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -172,7 +172,7 @@ system:
             function*
               "stripped_application_code"
           frame (ignored by stack trace rule (category:indirection -group))
-            filename (discarded native filename for grouping stability)
+            filename*
               "function_template.hpp"
             function*
               "boost::function0<T>::operator()"
@@ -183,7 +183,7 @@ system:
             function*
               "stripped_application_code"
           frame (ignored by stack trace rule (category:indirection -group))
-            filename (discarded native filename for grouping stability)
+            filename*
               "function_template.hpp"
             function*
               "boost::function0<T>::operator()"
@@ -191,12 +191,12 @@ system:
             function*
               "stripped_application_code"
           frame (ignored by stack trace rule (category:internals -group))
-            filename (discarded native filename for grouping stability)
+            filename*
               "xtree"
             function*
               "std::_Tree<T>::insert<T>"
           frame (ignored by stack trace rule (category:internals -group))
-            filename (discarded native filename for grouping stability)
+            filename*
               "xtree"
             function*
               "std::_Tree<T>::_Emplace"
@@ -213,7 +213,7 @@ system:
             function*
               "stripped_application_code"
           frame (ignored by stack trace rule (category:indirection -group))
-            filename (discarded native filename for grouping stability)
+            filename*
               "function_template.hpp"
             function*
               "boost::function0<T>::operator()"
@@ -260,7 +260,7 @@ system:
             function*
               "raise"
           frame (ignored by stack trace rule (category:throw +prefix ^-group))
-            filename (discarded native filename for grouping stability)
+            filename*
               "crashpad_client_win.cc"
             function*
               "crashpad::`anonymous namespace'::HandleAbortSignal"

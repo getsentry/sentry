@@ -1,5 +1,5 @@
 ---
-created: '2024-09-05T13:39:11.350320+00:00'
+created: '2024-09-06T11:37:51.224249+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -18,7 +18,7 @@ app-depth-1:
           "Fatal Error: <hex> / <hex>"
 --------------------------------------------------------------------------
 app-depth-2:
-  hash: "93142e733eede833a5cf69b302f43941"
+  hash: "9ce3bcecc4f06eda9b93f32b8ab36d8a"
   component:
     app-depth-2*
       exception*
@@ -27,7 +27,7 @@ app-depth-2:
             function*
               "stripped_application_code"
           frame* (marked as prefix frame by stack trace rule (category:malloc +prefix))
-            filename (discarded native filename for grouping stability)
+            filename*
               "memory"
             function*
               "std::__1::allocator_traits<T>::destroy<T>"
@@ -43,7 +43,7 @@ app-depth-2:
           "Fatal Error: <hex> / <hex>"
 --------------------------------------------------------------------------
 app-depth-3:
-  hash: "e2d054b3c180378b8c1d14f638acac94"
+  hash: "024c95d6ab37d5d3bfa653e063489696"
   component:
     app-depth-3*
       exception*
@@ -55,7 +55,7 @@ app-depth-3:
             function*
               "stripped_application_code"
           frame* (marked as prefix frame by stack trace rule (category:malloc +prefix))
-            filename (discarded native filename for grouping stability)
+            filename*
               "memory"
             function*
               "std::__1::allocator_traits<T>::destroy<T>"
@@ -71,7 +71,7 @@ app-depth-3:
           "Fatal Error: <hex> / <hex>"
 --------------------------------------------------------------------------
 app-depth-4:
-  hash: "a3681449b8f66e38697bba72bab32569"
+  hash: "49b6f72b6635cb43190c57ee56b026b0"
   component:
     app-depth-4*
       exception*
@@ -86,7 +86,7 @@ app-depth-4:
             function*
               "stripped_application_code"
           frame* (marked as prefix frame by stack trace rule (category:malloc +prefix))
-            filename (discarded native filename for grouping stability)
+            filename*
               "memory"
             function*
               "std::__1::allocator_traits<T>::destroy<T>"
@@ -102,7 +102,7 @@ app-depth-4:
           "Fatal Error: <hex> / <hex>"
 --------------------------------------------------------------------------
 app-depth-max:
-  hash: "a3681449b8f66e38697bba72bab32569"
+  hash: "49b6f72b6635cb43190c57ee56b026b0"
   component:
     app-depth-max*
       exception*
@@ -117,7 +117,7 @@ app-depth-max:
             function*
               "stripped_application_code"
           frame* (marked as prefix frame by stack trace rule (category:malloc +prefix))
-            filename (discarded native filename for grouping stability)
+            filename*
               "memory"
             function*
               "std::__1::allocator_traits<T>::destroy<T>"
@@ -133,7 +133,7 @@ app-depth-max:
           "Fatal Error: <hex> / <hex>"
 --------------------------------------------------------------------------
 system:
-  hash: "a3681449b8f66e38697bba72bab32569"
+  hash: "49b6f72b6635cb43190c57ee56b026b0"
   component:
     system*
       exception*
@@ -155,7 +155,7 @@ system:
             function*
               "stripped_application_code"
           frame (ignored by stack trace rule (category:indirection -group))
-            filename (discarded native filename for grouping stability)
+            filename*
               "function_template.hpp"
             function*
               "boost::function0<T>::operator()"
@@ -166,7 +166,7 @@ system:
             function*
               "stripped_application_code"
           frame (ignored by stack trace rule (category:indirection -group))
-            filename (discarded native filename for grouping stability)
+            filename*
               "function_template.hpp"
             function*
               "boost::function0<T>::operator()"
@@ -177,47 +177,47 @@ system:
             function*
               "stripped_application_code"
           frame (ignored by stack trace rule (category:internals -group))
-            filename (discarded native filename for grouping stability)
+            filename*
               "mac"
             function*
               "std::__1::map<T>::~map"
           frame (ignored by stack trace rule (category:internals -group))
-            filename (discarded native filename for grouping stability)
+            filename*
               "map"
             function*
               "std::__1::map<T>::~map"
           frame (ignored by stack trace rule (category:internals -group))
-            filename (discarded native filename for grouping stability)
+            filename*
               "__tree"
             function*
               "std::__1::__tree<T>::~__tree"
           frame (marked out of app by stack trace rule (family:native function:std::* -app))
-            filename (discarded native filename for grouping stability)
+            filename*
               "__tree"
             function*
               "std::__1::__tree<T>::~__tree"
           frame (ignored by stack trace rule (category:internals -group))
-            filename (discarded native filename for grouping stability)
+            filename*
               "__tree"
             function*
               "std::__1::__tree<T>::destroy"
           frame* (marked as prefix frame by stack trace rule (category:malloc +prefix))
-            filename (discarded native filename for grouping stability)
+            filename*
               "memory"
             function*
               "std::__1::allocator_traits<T>::destroy<T>"
           frame (ignored by stack trace rule (category:internals -group))
-            filename (discarded native filename for grouping stability)
+            filename*
               "memory"
             function*
               "std::__1::allocator_traits<T>::__destroy<T>"
           frame (ignored by stack trace rule (category:internals -group))
-            filename (discarded native filename for grouping stability)
+            filename*
               "mac"
             function*
               "std::__1::pair<T>::~pair"
           frame (ignored by stack trace rule (category:internals -group))
-            filename (discarded native filename for grouping stability)
+            filename*
               "utility"
             function*
               "std::__1::pair<T>::~pair"
