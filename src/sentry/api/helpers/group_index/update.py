@@ -4,7 +4,6 @@ import logging
 import re
 from collections import defaultdict
 from collections.abc import Mapping, MutableMapping, Sequence
-from datetime import datetime, timedelta, timezone
 from typing import Any
 from urllib.parse import urlparse
 
@@ -24,15 +23,10 @@ from sentry.db.models.query import create_or_update
 from sentry.hybridcloud.rpc import coerce_id_from
 from sentry.integrations.tasks.kick_off_status_syncs import kick_off_status_syncs
 from sentry.issues.grouptype import GroupCategory
-from sentry.issues.ignored import (
-    IGNORED_CONDITION_FIELDS,
-    handle_archived_until_escalating,
-    handle_ignored,
-)
+from sentry.issues.ignored import handle_archived_until_escalating, handle_ignored
 from sentry.issues.merge import handle_merge
-from sentry.issues.ongoing import TRANSITION_AFTER_DAYS
 from sentry.issues.priority import update_priority
-from sentry.issues.status_change import handle_status_update
+from sentry.issues.status_change import handle_status_update, infer_substatus
 from sentry.issues.update_inbox import update_inbox
 from sentry.models.activity import Activity, ActivityIntegration
 from sentry.models.group import STATUS_UPDATE_CHOICES, Group, GroupStatus
@@ -591,31 +585,7 @@ def update_groups(
         new_substatus = (
             SUBSTATUS_UPDATE_CHOICES[result.get("substatus")] if result.get("substatus") else None
         )
-        if new_status == GroupStatus.IGNORED and new_substatus is None:
-            if status_details.get("untilEscalating"):
-                new_substatus = GroupSubStatus.UNTIL_ESCALATING
-            elif any(status_details.get(key) is not None for key in IGNORED_CONDITION_FIELDS):
-                new_substatus = GroupSubStatus.UNTIL_CONDITION_MET
-            else:
-                new_substatus = GroupSubStatus.FOREVER
-
-        if new_status == GroupStatus.UNRESOLVED and new_substatus is None:
-            logger.warning(
-                "no_substatus: Updating group to UNRESOLVED without substatus",
-                extra={"group_id": group_list[0].id},
-            )
-            new_substatus = GroupSubStatus.ONGOING
-
-            if len(group_list) == 1:
-                g = group_list[0]
-                # Set the group back to NEW if it was unignored withing 7 days of when it was first seen
-                if g.status == GroupStatus.IGNORED:
-                    is_new_group = g.first_seen > datetime.now(timezone.utc) - timedelta(
-                        days=TRANSITION_AFTER_DAYS
-                    )
-                    new_substatus = GroupSubStatus.NEW if is_new_group else GroupSubStatus.ONGOING
-                if g.status == GroupStatus.RESOLVED:
-                    new_substatus = GroupSubStatus.REGRESSED
+        new_substatus = infer_substatus(new_status, new_substatus, status_details, group_list)
 
         with transaction.atomic(router.db_for_write(Group)):
             # TODO(gilbert): update() doesn't call pre_save and bypasses any substatus defaulting we have there
