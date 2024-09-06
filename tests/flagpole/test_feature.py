@@ -153,6 +153,7 @@ class TestParseFeatureConfig:
         config = """
         {
             "owner": "sentry",
+            "created_at": "2024-05-14",
             "segments": [
                 {
                     "name": "",
@@ -170,6 +171,7 @@ class TestParseFeatureConfig:
         config = """
         {
             "owner": "sentry",
+            "created_at": "2024-05-14",
             "segments": [
                 {
                     "name": "allowed orgs",
@@ -194,6 +196,7 @@ class TestParseFeatureConfig:
         config = """
         {
             "owner": "sentry",
+            "created_at": "2024-05-14",
             "segments": [
                 {
                     "name": "ga",
