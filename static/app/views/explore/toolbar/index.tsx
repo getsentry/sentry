@@ -32,7 +32,9 @@ export function ExploreToolbar({extras}: ExploreToolbarProps) {
     if (resultMode === 'samples') {
       return sampleFields;
     }
-    return [...groupBys, ...visualizes].filter(Boolean);
+    return [...groupBys, ...visualizes.flatMap(visualize => visualize.yAxes)].filter(
+      Boolean
+    );
   }, [resultMode, sampleFields, groupBys, visualizes]);
 
   const [sorts, setSorts] = useSorts({fields});
@@ -44,9 +46,9 @@ export function ExploreToolbar({extras}: ExploreToolbarProps) {
       )}
       <ToolbarResults resultMode={resultMode} setResultMode={setResultMode} />
       <ToolbarVisualize />
+      <ToolbarGroupBy />
       <ToolbarSortBy fields={fields} sorts={sorts} setSorts={setSorts} />
       <ToolbarLimitTo />
-      <ToolbarGroupBy />
     </div>
   );
 }
