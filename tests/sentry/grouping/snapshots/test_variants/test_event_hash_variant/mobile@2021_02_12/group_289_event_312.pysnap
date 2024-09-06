@@ -1,5 +1,5 @@
 ---
-created: '2024-09-05T13:39:11.371701+00:00'
+created: '2024-09-06T11:37:51.246615+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -27,7 +27,7 @@ app-depth-max:
       exception*
         stacktrace*
           frame (ignored by stack trace rule (category:threadbase -group v-group))
-            filename (discarded native filename for grouping stability)
+            filename*
               "thread.cpp"
             function*
               "boost::thread::start_thread_noexcept"
@@ -38,7 +38,7 @@ app-depth-max:
             function*
               "_pthread_start"
           frame (ignored by stack trace rule (category:threadbase -group v-group))
-            filename (discarded native filename for grouping stability)
+            filename*
               "thread.cpp"
             function*
               "boost::`anonymous namespace'::thread_proxy"
@@ -46,7 +46,7 @@ app-depth-max:
             function*
               "stripped_application_code"
           frame (ignored by stack trace rule (category:indirection -group))
-            filename (discarded native filename for grouping stability)
+            filename*
               "function_template.hpp"
             function*
               "boost::function0<T>::operator()"
@@ -54,7 +54,7 @@ app-depth-max:
             function*
               "stripped_application_code"
           frame (ignored by stack trace rule (category:indirection -group))
-            filename (discarded native filename for grouping stability)
+            filename*
               "function_template.hpp"
             function*
               "boost::function0<T>::operator()"
@@ -118,7 +118,7 @@ system:
       exception*
         stacktrace*
           frame (ignored by stack trace rule (category:threadbase -group v-group))
-            filename (discarded native filename for grouping stability)
+            filename*
               "thread.cpp"
             function*
               "boost::thread::start_thread_noexcept"
@@ -129,7 +129,7 @@ system:
             function*
               "_pthread_start"
           frame (ignored by stack trace rule (category:threadbase -group v-group))
-            filename (discarded native filename for grouping stability)
+            filename*
               "thread.cpp"
             function*
               "boost::`anonymous namespace'::thread_proxy"
@@ -137,7 +137,7 @@ system:
             function*
               "stripped_application_code"
           frame (ignored by stack trace rule (category:indirection -group))
-            filename (discarded native filename for grouping stability)
+            filename*
               "function_template.hpp"
             function*
               "boost::function0<T>::operator()"
@@ -145,7 +145,7 @@ system:
             function*
               "stripped_application_code"
           frame (ignored by stack trace rule (category:indirection -group))
-            filename (discarded native filename for grouping stability)
+            filename*
               "function_template.hpp"
             function*
               "boost::function0<T>::operator()"
