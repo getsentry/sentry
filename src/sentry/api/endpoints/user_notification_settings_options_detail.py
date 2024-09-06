@@ -29,10 +29,9 @@ class UserNotificationSettingsOptionsDetailEndpoint(UserEndpoint):
         **kwargs,
     ):
         args, kwargs = super().convert_args(request, user_id, *args, **kwargs)
+        user = kwargs["user"]
         try:
-            option = NotificationSettingOption.objects.get(
-                id=notification_option_id, user=request.user
-            )
+            option = NotificationSettingOption.objects.get(id=notification_option_id, user=user)
         except NotificationSettingOption.DoesNotExist:
             raise NotFound(detail="User notification setting does not exist")
 
