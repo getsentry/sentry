@@ -31,21 +31,29 @@ describe('useVisualizes', function () {
       </Router>
     );
 
-    expect(visualizes).toEqual(['count(span.duration)']); // default
+    expect(visualizes).toEqual([{yAxes: ['count(span.duration)']}]); // default
 
-    act(() => setVisualizes(['p75(span.duration)']));
-    expect(visualizes).toEqual(['p75(span.duration)']);
-
-    act(() => setVisualizes(['']));
-    expect(visualizes).toEqual(['count(span.duration)']);
+    act(() => setVisualizes([{yAxes: ['p75(span.duration)']}]));
+    expect(visualizes).toEqual([{yAxes: ['p75(span.duration)']}]);
 
     act(() => setVisualizes([]));
-    expect(visualizes).toEqual(['count(span.duration)']);
+    expect(visualizes).toEqual([{yAxes: ['count(span.duration)']}]); // default
 
-    act(() => setVisualizes(['count(span.duration)']));
-    expect(visualizes).toEqual(['count(span.duration)']);
+    act(() => setVisualizes([{yAxes: ['count(span.duration)']}]));
+    expect(visualizes).toEqual([{yAxes: ['count(span.duration)']}]); // default
 
-    act(() => setVisualizes(['count(span.duration)', 'p75(span.duration)']));
-    expect(visualizes).toEqual(['count(span.duration)', 'p75(span.duration)']);
+    act(() => setVisualizes([{yAxes: ['count(span.duration)', 'p75(span.duration)']}]));
+    expect(visualizes).toEqual([{yAxes: ['count(span.duration)', 'p75(span.duration)']}]);
+
+    act(() =>
+      setVisualizes([
+        {yAxes: ['count(span.duration)', 'p75(span.duration)']},
+        {yAxes: ['count(span.duration)']},
+      ])
+    );
+    expect(visualizes).toEqual([
+      {yAxes: ['count(span.duration)', 'p75(span.duration)']},
+      {yAxes: ['count(span.duration)']},
+    ]);
   });
 });

@@ -1,4 +1,4 @@
-import {Fragment} from 'react';
+import {Fragment, useMemo} from 'react';
 import styled from '@emotion/styled';
 
 import {getInterval} from 'sentry/components/charts/utils';
@@ -36,6 +36,20 @@ const exploreChartTypeOptions = [
   },
 ];
 
+function dedupe(strings: string[]): string[] {
+  const deduped: string[] = [];
+  const seen = new Set();
+  strings.forEach(s => {
+    if (seen.has(s)) {
+      return;
+    }
+
+    seen.add(s);
+    deduped.push(s);
+  });
+  return deduped;
+}
+
 // TODO: Update to support aggregate mode and multiple queries / visualizations
 export function ExploreCharts({query}: ExploreChartsProps) {
   const pageFilters = usePageFilters();
@@ -43,10 +57,16 @@ export function ExploreCharts({query}: ExploreChartsProps) {
   const [chartType, setChartType] = useChartType();
   const [interval, setInterval, intervalOptions] = useChartInterval();
 
+  const yAxes = useMemo(() => {
+    const deduped = dedupe(visualizes.flatMap(visualize => visualize.yAxes));
+    deduped.sort();
+    return deduped;
+  }, [visualizes]);
+
   const series = useSpanIndexedSeries(
     {
       search: new MutableSearch(query ?? ''),
-      yAxis: visualizes,
+      yAxis: yAxes,
       interval: interval ?? getInterval(pageFilters.selection.datetime, 'metrics'),
       enabled: true,
     },
@@ -55,49 +75,53 @@ export function ExploreCharts({query}: ExploreChartsProps) {
 
   return (
     <Fragment>
-      {visualizes.map((visualize, index) => (
-        <ChartContainer key={index}>
-          <ChartPanel>
-            <ChartHeader>
-              <ChartTitle>{visualize}</ChartTitle>
-              <ChartSettingsContainer>
-                <CompactSelect
-                  size="xs"
-                  triggerProps={{prefix: t('Display')}}
-                  value={chartType}
-                  options={exploreChartTypeOptions}
-                  onChange={newChartType => setChartType(newChartType.value)}
-                />
-                <CompactSelect
-                  size="xs"
-                  value={interval}
-                  onChange={({value}) => setInterval(value)}
-                  triggerProps={{
-                    prefix: t('Interval'),
-                  }}
-                  options={intervalOptions}
-                />
-              </ChartSettingsContainer>
-            </ChartHeader>
-            <Chart
-              height={CHART_HEIGHT}
-              grid={{
-                left: '0',
-                right: '0',
-                top: '8px',
-                bottom: '0',
-              }}
-              data={[series.data[visualize]]}
-              error={series.error}
-              loading={series.isPending}
-              chartColors={CHART_PALETTE[2]}
-              type={chartType}
-              aggregateOutputFormat={aggregateOutputType(visualize)}
-              showLegend
-            />
-          </ChartPanel>
-        </ChartContainer>
-      ))}
+      {visualizes.map((visualize, index) => {
+        const dedupedYAxes = dedupe(visualize.yAxes);
+        return (
+          <ChartContainer key={index}>
+            <ChartPanel>
+              <ChartHeader>
+                <ChartTitle>{dedupedYAxes.join(',')}</ChartTitle>
+                <ChartSettingsContainer>
+                  <CompactSelect
+                    size="xs"
+                    triggerProps={{prefix: t('Display')}}
+                    value={chartType}
+                    options={exploreChartTypeOptions}
+                    onChange={newChartType => setChartType(newChartType.value)}
+                  />
+                  <CompactSelect
+                    size="xs"
+                    value={interval}
+                    onChange={({value}) => setInterval(value)}
+                    triggerProps={{
+                      prefix: t('Interval'),
+                    }}
+                    options={intervalOptions}
+                  />
+                </ChartSettingsContainer>
+              </ChartHeader>
+              <Chart
+                height={CHART_HEIGHT}
+                grid={{
+                  left: '0',
+                  right: '0',
+                  top: '8px',
+                  bottom: '0',
+                }}
+                data={dedupedYAxes.map(yAxis => series.data[yAxis])}
+                error={series.error}
+                loading={series.isPending}
+                chartColors={CHART_PALETTE[2]}
+                type={chartType}
+                // for now, use the first y axis unit
+                aggregateOutputFormat={aggregateOutputType(dedupedYAxes[0])}
+                showLegend
+              />
+            </ChartPanel>
+          </ChartContainer>
+        );
+      })}
     </Fragment>
   );
 }

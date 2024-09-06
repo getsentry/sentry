@@ -78,36 +78,46 @@ describe('ExploreToolbar', function () {
     const section = screen.getByTestId('section-visualizes');
 
     // this is the default
-    expect(
-      within(section).getByRole('button', {name: 'span.duration'})
-    ).toBeInTheDocument();
-    expect(within(section).getByRole('button', {name: 'count'})).toBeInTheDocument();
-    expect(visualizes).toEqual(['count(span.duration)']);
+    expect(visualizes).toEqual([{yAxes: ['count(span.duration)']}]);
 
     // try changing the field
     await userEvent.click(within(section).getByRole('button', {name: 'span.duration'}));
     await userEvent.click(within(section).getByRole('option', {name: 'span.self_time'}));
-    expect(
-      within(section).getByRole('button', {name: 'span.self_time'})
-    ).toBeInTheDocument();
-    expect(within(section).getByRole('button', {name: 'count'})).toBeInTheDocument();
-    expect(visualizes).toEqual(['count(span.self_time)']);
+    expect(visualizes).toEqual([{yAxes: ['count(span.self_time)']}]);
 
     // try changing the aggregate
     await userEvent.click(within(section).getByRole('button', {name: 'count'}));
     await userEvent.click(within(section).getByRole('option', {name: 'avg'}));
-    expect(
-      within(section).getByRole('button', {name: 'span.self_time'})
-    ).toBeInTheDocument();
-    expect(within(section).getByRole('button', {name: 'avg'})).toBeInTheDocument();
-    expect(visualizes).toEqual(['avg(span.self_time)']);
+    expect(visualizes).toEqual([{yAxes: ['avg(span.self_time)']}]);
 
+    // try adding an overlay
+    await userEvent.click(within(section).getByRole('button', {name: '+Add Overlay'}));
+    await userEvent.click(within(section).getByRole('button', {name: 'span.duration'}));
+    await userEvent.click(within(section).getByRole('option', {name: 'span.self_time'}));
+    expect(visualizes).toEqual([
+      {yAxes: ['avg(span.self_time)', 'count(span.self_time)']},
+    ]);
+
+    // try adding a new chart
     await userEvent.click(within(section).getByRole('button', {name: '+Add Chart'}));
-    expect(
-      within(section).getByRole('button', {name: 'span.duration'})
-    ).toBeInTheDocument();
-    expect(within(section).getByRole('button', {name: 'count'})).toBeInTheDocument();
-    expect(visualizes).toEqual(['avg(span.self_time)', 'count(span.duration)']);
+    expect(visualizes).toEqual([
+      {yAxes: ['avg(span.self_time)', 'count(span.self_time)']},
+      {yAxes: ['count(span.duration)']},
+    ]);
+
+    // delete first overlay
+    await userEvent.click(within(section).getAllByLabelText('Remove')[0]);
+    expect(visualizes).toEqual([
+      {yAxes: ['count(span.self_time)']},
+      {yAxes: ['count(span.duration)']},
+    ]);
+
+    // delete second chart
+    await userEvent.click(within(section).getAllByLabelText('Remove')[1]);
+    expect(visualizes).toEqual([{yAxes: ['count(span.self_time)']}]);
+
+    // only one left so cant be deleted
+    expect(within(section).getByLabelText('Remove')).toBeDisabled();
   });
 
   it('allows changing sort by', async function () {
