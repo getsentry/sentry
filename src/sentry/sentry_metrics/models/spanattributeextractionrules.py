@@ -28,6 +28,7 @@ class SpanAttributeExtractionRuleCondition(DefaultFieldsModelExisting):
         "sentry.SpanAttributeExtractionRuleConfig",
         related_name="conditions",
         on_delete=CASCADE,
+        db_constraint=False,
     )
 
     class Meta:
