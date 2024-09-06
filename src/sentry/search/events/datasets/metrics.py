@@ -2083,7 +2083,9 @@ class MetricsDatasetConfig(DatasetConfig):
             condition = base_condition
 
         query_time_range_interval = (
-            self.builder.time_window if self.should_skip_interval_calculation else args["interval"]
+            self.builder.resolve_time_range_window()
+            if self.should_skip_interval_calculation
+            else args["interval"]
         )
 
         return Function(

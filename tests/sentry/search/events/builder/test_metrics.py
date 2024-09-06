@@ -3150,7 +3150,7 @@ class AlertMetricsQueryBuilderTest(MetricBuilderBaseTest):
         query = AlertMetricsQueryBuilder(
             self.params,
             granularity=3600,
-            time_window=3600,
+            time_range_window=3600,
             query=query_s,
             dataset=Dataset.PerformanceMetrics,
             selected_columns=[field],
@@ -3206,7 +3206,7 @@ class AlertMetricsQueryBuilderTest(MetricBuilderBaseTest):
             query = AlertMetricsQueryBuilder(
                 params,
                 granularity=3600,
-                time_window=3600,
+                time_range_window=3600,
                 query=query_s,
                 dataset=Dataset.PerformanceMetrics,
                 selected_columns=[field],
@@ -3259,7 +3259,7 @@ class AlertMetricsQueryBuilderTest(MetricBuilderBaseTest):
         query = AlertMetricsQueryBuilder(
             self.params,
             granularity=3600,
-            time_window=3600,
+            time_range_window=3600,
             query=query_s,
             dataset=Dataset.PerformanceMetrics,
             selected_columns=[field],
@@ -3305,7 +3305,7 @@ class AlertMetricsQueryBuilderTest(MetricBuilderBaseTest):
         query = AlertMetricsQueryBuilder(
             self.params,
             granularity=3600,
-            time_window=3600,
+            time_range_window=3600,
             query=query_s,
             dataset=Dataset.PerformanceMetrics,
             selected_columns=[field],
@@ -3334,7 +3334,7 @@ class AlertMetricsQueryBuilderTest(MetricBuilderBaseTest):
         query = AlertMetricsQueryBuilder(
             params,
             granularity=3600,
-            time_window=3600,
+            time_range_window=3600,
             query="transaction.duration:>=100",
             dataset=Dataset.PerformanceMetrics,
             selected_columns=["count(transaction.duration)"],
@@ -3361,7 +3361,7 @@ class AlertMetricsQueryBuilderTest(MetricBuilderBaseTest):
         query = AlertMetricsQueryBuilder(
             params,
             granularity=3600,
-            time_window=3600,
+            time_range_window=3600,
             query="transaction.duration:>=100",
             dataset=Dataset.PerformanceMetrics,
             selected_columns=["p75(measurements.fp)"],
@@ -3420,7 +3420,7 @@ class AlertMetricsQueryBuilderTest(MetricBuilderBaseTest):
         query = AlertMetricsQueryBuilder(
             self.params,
             granularity=3600,
-            time_window=3600,
+            time_range_window=3600,
             query="transaction.duration:>=100",
             dataset=Dataset.PerformanceMetrics,
             selected_columns=["count(transaction.duration)"],
@@ -3480,7 +3480,7 @@ class AlertMetricsQueryBuilderTest(MetricBuilderBaseTest):
         query = AlertMetricsQueryBuilder(
             params,
             granularity=60,
-            time_window=3600,
+            time_range_window=3600,
             query="span.module:db",
             dataset=Dataset.PerformanceMetrics,
             selected_columns=["spm()"],
@@ -3732,7 +3732,7 @@ class CustomMetricsWithMetricsLayerTest(MetricBuilderBaseTest):
             query = AlertMetricsQueryBuilder(
                 {**self.params, "environment": self.environment.name},
                 granularity=3600,
-                time_window=3600,
+                time_range_window=3600,
                 query="phone:iPhone",
                 dataset=Dataset.PerformanceMetrics,
                 selected_columns=[f"{aggregate}({mri})"],

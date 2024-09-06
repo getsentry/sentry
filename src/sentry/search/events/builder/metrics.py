@@ -105,7 +105,8 @@ class MetricsQueryBuilder(BaseQueryBuilder):
         # Dataset.PerformanceMetrics is MEP. TODO: rename Dataset.Metrics to Dataset.ReleaseMetrics or similar
         dataset: Dataset | None = None,
         granularity: int | None = None,
-        time_window: int | None = None,
+        # Alerts queries do not contain a start and end time, so we need to accept a time_range_window in order to calculate functions such as spm/epm/eps
+        time_range_window: int | None = None,
         config: QueryBuilderConfig | None = None,
         **kwargs: Any,
     ):
@@ -131,8 +132,8 @@ class MetricsQueryBuilder(BaseQueryBuilder):
 
         if granularity is not None:
             self._granularity = granularity
-        if time_window is not None:
-            self.time_window = time_window
+        if time_range_window is not None:
+            self._time_range_window = time_range_window
 
         super().__init__(
             # TODO: defaulting to Metrics for now so I don't have to update incidents tests. Should be
@@ -555,6 +556,13 @@ class MetricsQueryBuilder(BaseQueryBuilder):
             return super().aliased_column(name)
         except InvalidSearchQuery:
             raise missing_column
+
+    def resolve_time_range_window(self) -> int:
+        start = self.start or self.params.start
+        end = self.end or self.params.end
+        if self._time_range_window is not None and (start is not None or end is not None):
+            raise InvalidSearchQuery("time_range_window can't be set when start or end is set")
+        return self._time_range_window
 
     def resolve_granularity(self) -> Granularity:
         """Granularity impacts metric queries even when they aren't timeseries because the data needs to be
@@ -1495,11 +1503,11 @@ class AlertMetricsQueryBuilder(MetricsQueryBuilder):
         self,
         *args: Any,
         granularity: int,
-        time_window: int,
+        time_range_window: int,
         **kwargs: Any,
     ):
         self._granularity = granularity
-        self.time_window = time_window
+        self._time_range_window = time_range_window
         super().__init__(*args, **kwargs)
 
     def resolve_limit(self, limit: int | None) -> Limit | None:
