@@ -117,7 +117,7 @@ describe('ExploreToolbar', function () {
     expect(visualizes).toEqual([{yAxes: ['count(span.self_time)']}]);
 
     // only one left so cant be deleted
-    expect(screen.getByLabelText('Remove')).toBeDisabled();
+    expect(within(section).getByLabelText('Remove')).toBeDisabled();
   });
 
   it('allows changing sort by', async function () {
