@@ -1,5 +1,5 @@
-from sentry.epona.models.workflow import Workflow
 from sentry.testutils.cases import TestCase
+from sentry.workflow_engine.models.workflow import Workflow
 
 
 class WorkflowTest(TestCase):
