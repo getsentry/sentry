@@ -228,17 +228,38 @@ export type PipelineInitialData = {
   props: Record<string, any>;
 };
 
-export type Broadcast = {
-  cta: string;
+export interface Broadcast {
   dateCreated: string;
   dateExpires: string;
+  /**
+   * Has the item been seen? affects the styling of the panel item
+   */
   hasSeen: boolean;
   id: string;
   isActive: boolean;
+  /**
+   * The URL to use for the CTA
+   */
   link: string;
+  /**
+   * A message with muted styling which appears above the children content
+   */
   message: string;
   title: string;
-};
+  /**
+   * Category of the broadcast.
+   * Synced with https://github.com/getsentry/sentry/blob/master/src/sentry/models/broadcast.py#L14
+   */
+  category?: 'announcement' | 'feature' | 'blog' | 'event' | 'video';
+  /**
+   * The text for the CTA link at the bottom of the panel item
+   */
+  cta?: string;
+  /**
+   * Image url
+   */
+  mediaUrl?: string;
+}
 
 // XXX(epurkhiser): The components list can be generated using jq
 //
