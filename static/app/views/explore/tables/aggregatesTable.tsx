@@ -40,7 +40,9 @@ export function AggregatesTable({}: AggregatesTableProps) {
   const [groupBys] = useGroupBys();
   const [visualizes] = useVisualizes();
   const fields = useMemo(() => {
-    return [...groupBys, ...visualizes].filter(Boolean);
+    return [...groupBys, ...visualizes.flatMap(visualize => visualize.yAxes)].filter(
+      Boolean
+    );
   }, [groupBys, visualizes]);
   const [sorts] = useSorts({fields});
   const [query] = useUserQuery();
