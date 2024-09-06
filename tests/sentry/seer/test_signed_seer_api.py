@@ -10,7 +10,7 @@ REQUEST_BODY = b'{"b": 12, "thing": "thing"}'
 PATH = "/v0/some/url"
 
 
-def run_test_case(path: str = PATH, timeout: int | None = None):
+def run_test_case(path: str = PATH, timeout: int | None = None, shared_secret: str = "secret-one"):
     """
     Make a mock connection pool, call `make_signed_seer_api_request` on it, and return the
     pool's `urlopen` method, so we can make assertions on how `make_signed_seer_api_request`
@@ -20,7 +20,7 @@ def run_test_case(path: str = PATH, timeout: int | None = None):
     mock.host = "localhost"
     mock.port = None
     mock.scheme = "http"
-    with override_settings(SEER_API_SHARED_SECRET="secret-one"):
+    with override_settings(SEER_API_SHARED_SECRET=shared_secret):
         make_signed_seer_api_request(
             mock,
             path=path,
@@ -66,6 +66,19 @@ def test_uses_shared_secret():
                 "content-type": "application/json;charset=utf-8",
                 "Authorization": "Rpcsignature rpc0:96f23d5b3df807a9dc91f090078a46c00e17fe8b0bc7ef08c9391fa8b37a66b5",
             },
+        )
+
+
+@pytest.mark.django_db
+def test_uses_shared_secret_missing_secret():
+    with override_options({"seer.api.use-shared-secret": 1.0}):
+        mock_url_open = run_test_case(shared_secret="")
+
+        mock_url_open.assert_called_once_with(
+            "POST",
+            PATH,
+            body=REQUEST_BODY,
+            headers={"content-type": "application/json;charset=utf-8"},
         )
 
 
