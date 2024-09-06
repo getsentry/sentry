@@ -1,3 +1,4 @@
+import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import ErrorLevel from 'sentry/components/events/errorLevel';
@@ -5,16 +6,20 @@ import UnhandledTag from 'sentry/components/group/inboxBadges/unhandledTag';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {EventOrGroupType, type Level} from 'sentry/types/event';
+import {capitalize} from 'sentry/utils/string/capitalize';
+import {Divider} from 'sentry/views/issueDetails/divider';
 import {useHasStreamlinedUI} from 'sentry/views/issueDetails/utils';
 
 type Props = {
+  message: React.ReactNode;
   type: EventOrGroupType;
-  annotations?: React.ReactNode;
   className?: string;
-  hasGuideAnchor?: boolean;
   level?: Level;
-  levelIndicatorSize?: string;
-  message?: React.ReactNode;
+  /**
+   * Size of the level indicator.
+   * Text will show the level as text instead of a colored dot.
+   */
+  levelIndicatorSize?: '9px' | '11px' | 'text';
   showUnhandled?: boolean;
 };
 
@@ -28,24 +33,8 @@ const EVENT_TYPES_WITH_LOG_LEVEL = new Set([
   EventOrGroupType.NEL,
 ]);
 
-function EventOrGroupLevel({
-  level,
-  levelIndicatorSize,
-  type,
-  showUnhandled,
-}: Pick<Props, 'level' | 'levelIndicatorSize' | 'type' | 'showUnhandled'>) {
-  if (level && EVENT_TYPES_WITH_LOG_LEVEL.has(type)) {
-    return (
-      <ErrorLevel level={level} size={levelIndicatorSize} showUnhandled={showUnhandled} />
-    );
-  }
-
-  return null;
-}
-
 function EventMessage({
   className,
-  annotations,
   level,
   levelIndicatorSize,
   message,
@@ -53,21 +42,24 @@ function EventMessage({
   showUnhandled = false,
 }: Props) {
   const hasStreamlinedUI = useHasStreamlinedUI();
+  const showEventLevel = level && EVENT_TYPES_WITH_LOG_LEVEL.has(type);
+  const displayLevelAsDot = showEventLevel && levelIndicatorSize !== 'text';
   return (
     <LevelMessageContainer className={className}>
-      <EventOrGroupLevel
-        level={level}
-        levelIndicatorSize={levelIndicatorSize}
-        type={type}
-        showUnhandled={showUnhandled}
-      />
-      {showUnhandled && !hasStreamlinedUI ? <UnhandledTag /> : null}
+      {displayLevelAsDot ? <ErrorLevel level={level} size={levelIndicatorSize} /> : null}
+      {showUnhandled ? <UnhandledTag /> : null}
+      {hasStreamlinedUI && showEventLevel && !displayLevelAsDot ? (
+        <Fragment>
+          {showUnhandled ? <Divider /> : null}
+          {capitalize(level)}
+          <Divider />
+        </Fragment>
+      ) : null}
       {message ? (
         <Message>{message}</Message>
       ) : (
         <NoMessage>({t('No error message')})</NoMessage>
       )}
-      {annotations}
     </LevelMessageContainer>
   );
 }
