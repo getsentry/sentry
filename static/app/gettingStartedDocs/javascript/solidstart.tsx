@@ -153,7 +153,7 @@ const getSdkRun = () => `
 }
 `;
 
-const getVerifySolidSnippet = () => `
+const getVerifySnippet = () => `
 <button
   type="button"
   onClick={() => {
@@ -337,7 +337,7 @@ const onboarding: OnboardingConfig = {
               label: 'JavaScript',
               value: 'javascript',
               language: 'javascript',
-              code: getVerifySolidSnippet(),
+              code: getVerifySnippet(),
             },
           ],
         },
@@ -404,7 +404,32 @@ const replayOnboarding: OnboardingConfig = {
       ],
     },
   ],
-  verify: () => [],
+  verify: () => [
+    {
+      type: StepType.VERIFY,
+      description: t(
+        'To verify your Replay setup, trigger an error on your page and watch Sentry capture the event along with a recording of the user interaction.'
+      ),
+      configurations: [
+        {
+          description: t(
+            'You can simulate an error by adding the following code to one of your components:'
+          ),
+          code: [
+            {
+              label: 'JavaScript',
+              value: 'javascript',
+              language: 'jsx',
+              code: getVerifySnippet(),
+            },
+          ],
+          additionalInfo: t(
+            'After clicking the button, wait a few moments, and you\'ll see a new session appear on the "Replays" page.'
+          ),
+        },
+      ],
+    },
+  ],
   nextSteps: () => [],
 };
 

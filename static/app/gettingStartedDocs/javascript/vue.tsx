@@ -54,6 +54,20 @@ const platformOptions: Record<PlatformOptionKey, PlatformOption> = {
 type PlatformOptions = typeof platformOptions;
 type Params = DocsParams<PlatformOptions>;
 
+const getVerifyReplaySnippet = () => `
+// ...
+<button @click="throwError">Throw error</button>
+// ...
+
+export default {
+  // ...
+  methods: {
+    throwError() {
+      throw new Error('Sentry Error');
+    }
+  }
+};`;
+
 const getSentryInitLayout = (params: Params, siblingOption: string): string => {
   return `Sentry.init({
     ${siblingOption === VueVersion.VUE2 ? 'Vue,' : 'app,'}
@@ -311,7 +325,27 @@ const replayOnboarding: OnboardingConfig<PlatformOptions> = {
       additionalInfo: <TracePropagationMessage />,
     },
   ],
-  verify: () => [],
+  verify: () => [
+    {
+      type: StepType.VERIFY,
+      description: t(
+        'With the settings above, session replays with errors are always captured. You can verify this by adding the following button to your app and pressing it:'
+      ),
+      configurations: [
+        {
+          code: [
+            {
+              label: 'JavaScript',
+              value: 'javascript',
+              language: 'javascript',
+              filename: 'App.vue',
+              code: getVerifyReplaySnippet(),
+            },
+          ],
+        },
+      ],
+    },
+  ],
   nextSteps: () => [],
 };
 

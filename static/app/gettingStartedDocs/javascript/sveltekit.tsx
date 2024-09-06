@@ -28,6 +28,12 @@ import {t, tct} from 'sentry/locale';
 
 type Params = DocsParams;
 
+const getVerifySnippet = () => `
+// SomeComponent.svelte
+<button type="button" on:click="{unknownFunction}">
+  Break the world
+</button>`;
+
 const getInstallConfig = ({isSelfHosted, urlPrefix}: Params) => {
   const urlParam = !isSelfHosted && urlPrefix ? `--url ${urlPrefix}` : '';
 
@@ -140,7 +146,32 @@ const replayOnboarding: OnboardingConfig = {
       ],
     },
   ],
-  verify: () => [],
+  verify: () => [
+    {
+      type: StepType.VERIFY,
+      description: t(
+        'To verify your Replay setup, trigger an error on your page and watch Sentry capture the event along with a recording of the user interaction.'
+      ),
+      configurations: [
+        {
+          description: t(
+            'You can simulate an error by adding the following code to one of your components:'
+          ),
+          code: [
+            {
+              label: 'Svelte',
+              value: 'html',
+              language: 'html',
+              code: getVerifySnippet(),
+            },
+          ],
+          additionalInfo: t(
+            'After clicking the button, wait a few moments, and you\'ll see a new session appear on the "Replays" page.'
+          ),
+        },
+      ],
+    },
+  ],
   nextSteps: () => [],
 };
 

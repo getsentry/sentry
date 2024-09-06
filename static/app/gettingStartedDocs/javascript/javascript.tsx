@@ -90,6 +90,15 @@ ${getFeedbackConfigOptions(params.feedbackOptions)}}),`
 const getVerifyJSSnippet = () => `
 myUndefinedFunction();`;
 
+const getVerifyReplaySnippet = () => `
+<button id="test-error">Trigger Test Error</button>
+<script>
+  const button = document.getElementById('test-error');
+  button.addEventListener('click', () => {
+    throw new Error('This is a test error');
+  });
+</script>`;
+
 const getInstallConfig = () => [
   {
     language: 'bash',
@@ -221,7 +230,32 @@ const replayOnboarding: OnboardingConfig = {
       additionalInfo: <TracePropagationMessage />,
     },
   ],
-  verify: () => [],
+  verify: () => [
+    {
+      type: StepType.VERIFY,
+      description: t(
+        'To verify your Replay setup, trigger an error on your page and watch Sentry capture the event along with a recording of the user interaction.'
+      ),
+      configurations: [
+        {
+          description: t(
+            'You can simulate an error by adding the following code to your page:'
+          ),
+          code: [
+            {
+              label: 'HTML',
+              value: 'html',
+              language: 'html',
+              code: getVerifyReplaySnippet(),
+            },
+          ],
+          additionalInfo: t(
+            'After clicking the button, wait a few moments, and you\'ll see a new session appear on the "Replays" page.'
+          ),
+        },
+      ],
+    },
+  ],
   nextSteps: () => [],
 };
 

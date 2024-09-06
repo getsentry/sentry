@@ -52,7 +52,7 @@ export default defineConfig({
 });
 `;
 
-const getVerifyAstroSnippet = () => `
+const getVerifySnippet = () => `
 <!-- your-page.astro -->
 ---
 ---
@@ -160,7 +160,7 @@ const onboarding: OnboardingConfig = {
               label: 'Astro',
               value: 'html',
               language: 'html',
-              code: getVerifyAstroSnippet(),
+              code: getVerifySnippet(),
             },
           ],
         },
@@ -302,7 +302,32 @@ import * as Sentry from "@sentry/astro";`,
       isOptional: true,
     },
   ],
-  verify: () => [],
+  verify: () => [
+    {
+      type: StepType.VERIFY,
+      description: t(
+        'To verify your Replay setup, trigger an error on your page and watch Sentry capture the event along with a recording of the user interaction.'
+      ),
+      configurations: [
+        {
+          description: t(
+            'You can simulate an error by adding the following code to one of your pages:'
+          ),
+          code: [
+            {
+              label: 'Astro',
+              value: 'html',
+              language: 'html',
+              code: getVerifySnippet(),
+            },
+          ],
+          additionalInfo: t(
+            'After clicking the button, wait a few moments, and you\'ll see a new session appear on the "Replays" page.'
+          ),
+        },
+      ],
+    },
+  ],
   nextSteps: () => [],
 };
 

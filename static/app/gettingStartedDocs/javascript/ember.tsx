@@ -105,6 +105,12 @@ ember install @sentry/ember
 const getVerifyEmberSnippet = () => `
 myUndefinedFunction();`;
 
+const getVerifyReplaySnippet = () => `
+setTimeout(() => {
+  throw new Error("Sentry Test Error");
+});
+`;
+
 const onboarding: OnboardingConfig = {
   introduction: MaybeBrowserProfilingBetaWarning,
   install: () => [
@@ -220,7 +226,26 @@ const replayOnboarding: OnboardingConfig = {
       additionalInfo: <TracePropagationMessage />,
     },
   ],
-  verify: () => [],
+  verify: () => [
+    {
+      type: StepType.VERIFY,
+      description: t(
+        'With the settings above, session replays with errors are always captured. You can verify this by adding the following snippet anywhere in your code and running it:'
+      ),
+      configurations: [
+        {
+          code: [
+            {
+              label: 'JavaScript',
+              value: 'javascript',
+              language: 'javascript',
+              code: getVerifyReplaySnippet(),
+            },
+          ],
+        },
+      ],
+    },
+  ],
   nextSteps: () => [],
 };
 

@@ -91,9 +91,9 @@ const root = createRoot(container);
 root.render(<App />);
 `;
 
-const getVerifyReactSnippet = () => `
+const getVerifySnippet = () => `
 return <button onClick={() => methodDoesNotExist()}>Break the world</button>;
-        `;
+`;
 
 const getInstallConfig = () => [
   {
@@ -121,11 +121,8 @@ const onboarding: OnboardingConfig = {
     {
       type: StepType.INSTALL,
       description: tct(
-        'Add the Sentry SDK as a dependency using [codeNpm:npm] or [codeYarn:yarn]:',
-        {
-          codeYarn: <code />,
-          codeNpm: <code />,
-        }
+        'Add the Sentry SDK as a dependency using [code:npm] or [code:yarn]:',
+        {code: <code />}
       ),
       configurations: getInstallConfig(),
     },
@@ -169,7 +166,7 @@ const onboarding: OnboardingConfig = {
               label: 'React',
               value: 'react',
               language: 'javascript',
-              code: getVerifyReactSnippet(),
+              code: getVerifySnippet(),
             },
           ],
         },
@@ -215,12 +212,8 @@ const replayOnboarding: OnboardingConfig = {
     {
       type: StepType.INSTALL,
       description: tct(
-        'Add the Sentry SDK as a dependency using [codeNpm:npm] or [codeYarn:yarn]. You need a minimum version 7.27.0 of [code:@sentry/react] in order to use Session Replay. You do not need to install any additional packages.',
-        {
-          code: <code />,
-          codeYarn: <code />,
-          codeNpm: <code />,
-        }
+        'Add the Sentry SDK as a dependency using [code:npm] or [code:yarn]. You need a minimum version 7.27.0 of [code:@sentry/react] in order to use Session Replay. You do not need to install any additional packages.',
+        {code: <code />}
       ),
       configurations: getInstallConfig(),
     },
@@ -246,7 +239,32 @@ const replayOnboarding: OnboardingConfig = {
       ],
     },
   ],
-  verify: () => [],
+  verify: () => [
+    {
+      type: StepType.VERIFY,
+      description: t(
+        'To verify your Replay setup, trigger an error on your page and watch Sentry capture the event along with a recording of the user interaction.'
+      ),
+      configurations: [
+        {
+          description: t(
+            'You can simulate an error by adding the following code to one of your components:'
+          ),
+          code: [
+            {
+              label: 'React',
+              value: 'react',
+              language: 'jsx',
+              code: getVerifySnippet(),
+            },
+          ],
+          additionalInfo: t(
+            'After clicking the button, wait a few moments, and you\'ll see a new session appear on the "Replays" page.'
+          ),
+        },
+      ],
+    },
+  ],
   nextSteps: () => [],
 };
 
