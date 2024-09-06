@@ -35,7 +35,7 @@ function IssueReplayCount({group}: Props) {
   );
 
   return (
-    <Tooltip title={count > 50 ? titleOver50 : title50OrLess}>
+    <Tooltip title={count > 50 ? titleOver50 : title50OrLess} skipWrapper>
       <ReplayCountLink
         to={normalizeUrl(
           `/organizations/${organization.slug}/issues/${group.id}/replays/`
