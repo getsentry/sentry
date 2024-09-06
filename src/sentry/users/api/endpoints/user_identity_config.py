@@ -14,6 +14,7 @@ from sentry.models.authidentity import AuthIdentity
 from sentry.users.api.serializers.user_identity_config import (
     Status,
     UserIdentityConfig,
+    UserIdentityConfigSerializer,
     supports_login,
 )
 from sentry.users.models.identity import Identity
@@ -95,7 +96,7 @@ class UserIdentityConfigEndpoint(UserEndpoint):
         """
 
         identities = list(get_identities(user))
-        return Response(serialize(identities))
+        return Response(serialize(identities, serializer=UserIdentityConfigSerializer()))
 
 
 @control_silo_endpoint
@@ -123,7 +124,7 @@ class UserIdentityConfigDetailsEndpoint(UserEndpoint):
     def get(self, request: Request, user: User, category: str, identity_id: str) -> Response:
         identity = self._get_identity(user, category, identity_id)
         if identity:
-            return Response(serialize(identity))
+            return Response(serialize(identity, serializer=UserIdentityConfigSerializer()))
         else:
             return Response(status=status.HTTP_404_NOT_FOUND)
 
