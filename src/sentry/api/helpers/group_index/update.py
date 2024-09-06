@@ -605,7 +605,7 @@ def update_groups(
                 extra={"group_id": group_list[0].id},
             )
             new_substatus = GroupSubStatus.ONGOING
-            
+
             if len(group_list) == 1:
                 g = group_list[0]
                 # Set the group back to NEW if it was unignored withing 7 days of when it was first seen
