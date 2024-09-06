@@ -37,6 +37,19 @@ function ThresholdTypeForm({
   if (isCrashFreeAlert(dataset)) {
     return null;
   }
+  const validAnomalyDetectionAlertTypes = new Set([
+    'num_errors',
+    'users_experiencing_errors',
+    'throughput',
+    'trans_duration',
+    'failure_rate',
+    'lcp',
+    'fid',
+    'cls',
+    'custom_transactions',
+    'custom_metrics',
+    'insights_metrics',
+  ]);
 
   const hasAnomalyDetection = organization.features.includes('anomaly-detection-alerts');
 
@@ -81,10 +94,7 @@ function ThresholdTypeForm({
     ],
   ];
 
-  if (
-    hasAnomalyDetection &&
-    !(alertType === 'apdex' || alertType === 'llm_tokens' || alertType === 'llm_cost')
-  ) {
+  if (hasAnomalyDetection && validAnomalyDetectionAlertTypes.has(alertType)) {
     thresholdTypeChoices.push([
       AlertRuleComparisonType.DYNAMIC,
       'Anomaly: whenever values are outside of expected bounds',
