@@ -219,5 +219,11 @@ describe('ExploreToolbar', function () {
       within(section).getByRole('button', {name: 'span.description'})
     ).toBeInTheDocument();
     expect(groupBys).toEqual(['span.op', 'span.description']);
+
+    await userEvent.click(within(section).getAllByLabelText('Remove')[0]);
+    expect(groupBys).toEqual(['span.description']);
+
+    // only one left so cant be deleted
+    expect(within(section).getByLabelText('Remove')).toBeDisabled();
   });
 });
