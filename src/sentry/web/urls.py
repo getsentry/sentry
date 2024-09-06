@@ -148,9 +148,8 @@ urlpatterns += [
         ErrorPageEmbedView.as_view(),
         name="sentry-error-page-embed",
     ),
-    # TODO: move and scope by organization
     re_path(
-        r"^toolbar/iframe/$",
+        r"^toolbar/iframe/(?P<organization_slug>[^/]+)$",
         IframeView.as_view(),
         name="sentry-toolbar-iframe",
     ),

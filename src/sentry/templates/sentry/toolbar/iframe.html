@@ -2,6 +2,16 @@
 {% load sentry_assets %}
 <!DOCTYPE html>
 <html>
-    <body>
-    </body>
+<head>
+  <title></title>
+</head>
+<body>
+  {% script %}
+  <script>
+  (function() {
+    fetch('https://us.sentry.io/api/0/organizations/?member=1');
+  })();
+  </script>
+  {% endscript %}
+</body>
 </html>
