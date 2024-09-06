@@ -15,7 +15,7 @@ from sentry.models.group import STATUS_QUERY_CHOICES, Group
 from sentry.models.organizationmember import OrganizationMember
 from sentry.models.organizationmemberteam import OrganizationMemberTeam
 from sentry.models.project import Project
-from sentry.models.release import Release, follows_semver_versioning_scheme
+from sentry.models.release import Release, ReleaseStatus, follows_semver_versioning_scheme
 from sentry.models.team import Team
 from sentry.search.base import ANY
 from sentry.search.events.constants import MAX_PARAMETERS_IN_ARRAY
@@ -454,6 +454,7 @@ def _run_latest_release_query(
             INNER JOIN "sentry_release_project" srp ON sr.id = srp.release_id
             {env_join}
             WHERE sr.organization_id = %s
+            AND sr.status = {ReleaseStatus.OPEN}
             AND srp.project_id IN %s
             {extra_conditions}
             {env_where}

@@ -2618,6 +2618,14 @@ class Migration(CheckedMigration):
             options={
                 "db_table": "sentry_grouprelease",
                 "unique_together": {("group_id", "release_id", "environment")},
+                "indexes": [
+                    models.Index(
+                        fields=["group_id", "first_seen"], name="sentry_grou_group_i_6eaff8_idx"
+                    ),
+                    models.Index(
+                        fields=["group_id", "last_seen"], name="sentry_grou_group_i_f10abe_idx"
+                    ),
+                ],
             },
         ),
         migrations.CreateModel(
@@ -3758,7 +3766,14 @@ class Migration(CheckedMigration):
             ],
             options={
                 "db_table": "sentry_projectdsymfile",
-                "index_together": {("project", "debug_id"), ("project", "code_id")},
+                "indexes": [
+                    models.Index(
+                        fields=["project_id", "debug_id"], name="sentry_proj_project_c586ac_idx"
+                    ),
+                    models.Index(
+                        fields=["project_id", "code_id"], name="sentry_proj_project_9b5950_idx"
+                    ),
+                ],
             },
         ),
         migrations.CreateModel(
@@ -6762,26 +6777,6 @@ class Migration(CheckedMigration):
                 ),
             ],
         ),
-        migrations.SeparateDatabaseAndState(
-            database_operations=[
-                migrations.RunSQL(
-                    sql="\n                    CREATE INDEX CONCURRENTLY IF NOT EXISTS sentry_grouprelease_group_id_first_seen_53fc35ds\n                    ON sentry_grouprelease USING btree (group_id, first_seen);\n                    ",
-                    reverse_sql="\n                    DROP INDEX CONCURRENTLY IF EXISTS sentry_grouprelease_group_id_first_seen_53fc35ds;\n                    ",
-                    hints={"tables": ["sentry_grouprelease"]},
-                ),
-                migrations.RunSQL(
-                    sql="\n                    CREATE INDEX CONCURRENTLY IF NOT EXISTS sentry_grouprelease_group_id_last_seen_g8v2sk7c\n                    ON sentry_grouprelease USING btree (group_id, last_seen DESC);\n                    ",
-                    reverse_sql="\n                    DROP INDEX CONCURRENTLY IF EXISTS sentry_grouprelease_group_id_last_seen_g8v2sk7c;\n                    ",
-                    hints={"tables": ["sentry_grouprelease"]},
-                ),
-            ],
-            state_operations=[
-                migrations.AlterIndexTogether(
-                    name="grouprelease",
-                    index_together={("group_id", "first_seen"), ("group_id", "last_seen")},
-                ),
-            ],
-        ),
         migrations.AlterField(
             model_name="externalactor",
             name="provider",
@@ -7437,10 +7432,6 @@ class Migration(CheckedMigration):
                 migrations.RemoveField(
                     model_name="projectdebugfile",
                     name="project",
-                ),
-                migrations.AlterIndexTogether(
-                    name="projectdebugfile",
-                    index_together={("project_id", "debug_id"), ("project_id", "code_id")},
                 ),
             ],
         ),

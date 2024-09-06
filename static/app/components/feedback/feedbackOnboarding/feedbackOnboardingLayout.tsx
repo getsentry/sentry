@@ -8,6 +8,8 @@ import {Step, StepType} from 'sentry/components/onboarding/gettingStartedDoc/ste
 import type {DocsParams} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {useSourcePackageRegistries} from 'sentry/components/onboarding/gettingStartedDoc/useSourcePackageRegistries';
 import {useUrlPlatformOptions} from 'sentry/components/onboarding/platformOptionsControl';
+import ConfigStore from 'sentry/stores/configStore';
+import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import {space} from 'sentry/styles/space';
 import useOrganization from 'sentry/utils/useOrganization';
 
@@ -29,6 +31,7 @@ export function FeedbackOnboardingLayout({
   const {isPending: isLoadingRegistry, data: registryData} =
     useSourcePackageRegistries(organization);
   const selectedOptions = useUrlPlatformOptions(docsConfig.platformOptions);
+  const {isSelfHosted, urlPrefix} = useLegacyStore(ConfigStore);
   const {introduction, steps} = useMemo(() => {
     const doc = docsConfig[configType] ?? docsConfig.onboarding;
 
@@ -53,6 +56,8 @@ export function FeedbackOnboardingLayout({
         name,
         screenshot,
       },
+      isSelfHosted,
+      urlPrefix,
     };
 
     return {
@@ -74,6 +79,8 @@ export function FeedbackOnboardingLayout({
     email,
     name,
     screenshot,
+    isSelfHosted,
+    urlPrefix,
   ]);
 
   return (
