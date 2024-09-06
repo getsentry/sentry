@@ -335,8 +335,16 @@ class DefaultFieldsModelExisting(Model):
         abstract = True
 
 
-# Temporary mapping so we can fix getsentry
-DefaultFieldsModel = DefaultFieldsModelExisting
+class DefaultFieldsModel(Model):
+    """
+    A base model that adds default date fields to existing models.
+    """
+
+    date_updated = models.DateTimeField(auto_now=True)
+    date_added = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        abstract = True
 
 
 def __model_pre_save(instance: models.Model, **kwargs: Any) -> None:
