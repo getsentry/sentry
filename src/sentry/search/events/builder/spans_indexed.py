@@ -87,9 +87,7 @@ class TimeseriesSpanIndexedQueryBuilder(SpansIndexedQueryBuilderMixin, Timeserie
 
 
 class TimeseriesSpanEAPIndexedQueryBuilder(SpansEAPQueryBuilder, TimeseriesQueryBuilder):
-    config_class = SpansEAPDatasetConfig
-    uuid_fields = SPAN_UUID_FIELDS
-    span_id_fields = SPAN_ID_FIELDS
+    pass
 
 
 class TopEventsSpanIndexedQueryBuilder(SpansIndexedQueryBuilderMixin, TopEventsQueryBuilder):
@@ -105,6 +103,4 @@ class TopEventsSpanIndexedQueryBuilder(SpansIndexedQueryBuilderMixin, TopEventsQ
 
 
 class TopEventsSpanEAPQueryBuilder(SpansEAPQueryBuilder, TopEventsQueryBuilder):
-    config_class = SpansEAPDatasetConfig
-    uuid_fields = SPAN_UUID_FIELDS
-    span_id_fields = SPAN_ID_FIELDS
+    pass
