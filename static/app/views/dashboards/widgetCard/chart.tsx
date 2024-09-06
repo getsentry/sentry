@@ -596,6 +596,7 @@ const BigNumberResizeWrapper = styled('div')`
   flex-grow: 1;
   overflow: hidden;
   position: relative;
+  margin: ${space(1)} ${space(3)} ${space(3)} ${space(3)};
 `;
 
 const BigNumber = styled('div')`
@@ -616,7 +617,7 @@ const BigNumber = styled('div')`
 const AutoResizeParent = styled('div')`
   position: absolute;
   color: ${p => p.theme.headingColor};
-  inset: ${space(1)} ${space(3)} 0 ${space(3)};
+  inset: 0;
 
   * {
     line-height: 1;
