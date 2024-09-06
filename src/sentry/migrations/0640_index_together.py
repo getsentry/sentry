@@ -125,16 +125,6 @@ class Migration(CheckedMigration):
             old_fields=("project", "date_added"),
         ),
         migrations.RenameIndex(
-            model_name="grouprelease",
-            new_name="sentry_grou_group_i_6eaff8_idx",
-            old_fields=("group_id", "first_seen"),
-        ),
-        migrations.RenameIndex(
-            model_name="grouprelease",
-            new_name="sentry_grou_group_i_f10abe_idx",
-            old_fields=("group_id", "last_seen"),
-        ),
-        migrations.RenameIndex(
             model_name="incidenttrigger",
             new_name="sentry_inci_alert_r_33da01_idx",
             old_fields=("alert_rule_trigger", "incident_id"),
