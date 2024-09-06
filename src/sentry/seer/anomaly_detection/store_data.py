@@ -3,28 +3,24 @@ from datetime import datetime, timedelta
 
 from django.conf import settings
 from django.core.exceptions import ValidationError
-from django.utils import timezone
 from urllib3.exceptions import MaxRetryError, TimeoutError
 
 from sentry.conf.server import SEER_ANOMALY_DETECTION_STORE_DATA_URL
 from sentry.incidents.models.alert_rule import AlertRule, AlertRuleStatus
 from sentry.models.project import Project
 from sentry.net.http import connection_from_url
-from sentry.search.events.types import SnubaParams
 from sentry.seer.anomaly_detection.types import (
     AlertInSeer,
     AnomalyDetectionConfig,
     StoreDataRequest,
 )
 from sentry.seer.anomaly_detection.utils import (
+    fetch_historical_data,
     format_historical_data,
-    get_crash_free_historical_data,
     translate_direction,
 )
 from sentry.seer.signed_seer_api import make_signed_seer_api_request
-from sentry.snuba import metrics_performance
 from sentry.snuba.models import SnubaQuery
-from sentry.snuba.referrer import Referrer
 from sentry.snuba.utils import get_dataset
 from sentry.utils import json
 from sentry.utils.snuba import SnubaTSResult
@@ -122,46 +118,3 @@ def send_historical_data_to_seer(alert_rule: AlertRule, project: Project) -> Ale
     if data_end_time - data_start_time < timedelta(days=MIN_DAYS):
         return AlertRuleStatus.NOT_ENOUGH_DATA
     return AlertRuleStatus.PENDING
-
-
-def fetch_historical_data(
-    alert_rule: AlertRule, snuba_query: SnubaQuery, project: Project
-) -> SnubaTSResult | None:
-    """
-    Fetch 28 days of historical data from Snuba to pass to Seer to build the anomaly detection model
-    """
-    # TODO: if we can pass the existing timeseries data we have on the front end along here, we can shorten
-    # the time period we query and combine the data
-    end = timezone.now()
-    start = end - timedelta(days=NUM_DAYS)
-    granularity = snuba_query.time_window
-
-    dataset_label = snuba_query.dataset
-    if dataset_label == "events":
-        # DATSET_OPTIONS expects the name 'errors'
-        dataset_label = "errors"
-    dataset = get_dataset(dataset_label)
-
-    if not project or not dataset or not alert_rule.organization:
-        return None
-
-    if dataset == metrics_performance:
-        return get_crash_free_historical_data(
-            start, end, project, alert_rule.organization, granularity
-        )
-
-    else:
-        historical_data = dataset.timeseries_query(
-            selected_columns=[snuba_query.aggregate],
-            query=snuba_query.query,
-            snuba_params=SnubaParams(
-                organization=alert_rule.organization,
-                projects=[project],
-                start=start,
-                end=end,
-            ),
-            rollup=granularity,
-            referrer=Referrer.ANOMALY_DETECTION_HISTORICAL_DATA_QUERY.value,
-            zerofill_results=True,
-        )
-    return historical_data
