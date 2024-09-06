@@ -7367,28 +7367,11 @@ class Migration(CheckedMigration):
                 ),
             ],
         ),
-        migrations.SeparateDatabaseAndState(
-            database_operations=[
-                migrations.RunSQL(
-                    sql='\n                    CREATE INDEX CONCURRENTLY "sentry_activity_project_id_datetime_c00585e4_idx" ON "sentry_activity" ("project_id", "datetime");\n                    ',
-                    reverse_sql="\n                DROP INDEX CONCURRENTLY IF EXISTS sentry_activity_project_id_datetime_c00585e4_idx;\n                ",
-                    hints={"tables": ["sentry_activity"]},
-                ),
-            ],
-            state_operations=[
-                migrations.AlterIndexTogether(
-                    name="activity",
-                    index_together={("project", "type", "datetime")},
-                ),
-            ],
-        ),
-        migrations.SeparateDatabaseAndState(
-            state_operations=[
-                migrations.AlterIndexTogether(
-                    name="activity",
-                    index_together={("project", "datetime")},
-                ),
-            ],
+        migrations.AddIndex(
+            model_name="activity",
+            index=models.Index(
+                fields=["project", "datetime"], name="sentry_acti_project_cd8457_idx"
+            ),
         ),
         migrations.SeparateDatabaseAndState(
             database_operations=[],
