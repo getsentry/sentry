@@ -31,7 +31,7 @@ import {
 
 import MetricDetailsBody from './body';
 import type {TimePeriodType} from './constants';
-import {TIME_OPTIONS, TIME_WINDOWS} from './constants';
+import {ALERT_RULE_STATUS, TIME_OPTIONS, TIME_WINDOWS} from './constants';
 import DetailsHeader from './header';
 import {buildMetricGraphDateRange} from './utils';
 
@@ -51,6 +51,7 @@ interface State {
   anomalies?: Anomaly[];
   incidents?: Incident[];
   rule?: MetricRule;
+  warning?: string;
 }
 
 class MetricAlertDetails extends Component<Props, State> {
@@ -212,10 +213,16 @@ class MetricAlertDetails extends Component<Props, State> {
       // NOTE: 'anomaly-detection-alerts-charts' flag does not exist
       // Flag can be enabled IF we want to enable marked lines/areas for anomalies in the future
       // For now, we defer to incident lines as indicators for anomalies
+      let warning;
+      if (rule.status === ALERT_RULE_STATUS.NOT_ENOUGH_DATA) {
+        warning =
+          'Insufficient data for anomaly detection. This feature will enable automatically when more data is available.';
+      }
       this.setState({
         anomalies,
         incidents,
         rule,
+        warning,
         selectedIncident,
         isLoading: false,
         hasError: false,
@@ -240,7 +247,7 @@ class MetricAlertDetails extends Component<Props, State> {
   }
 
   render() {
-    const {rule, incidents, hasError, selectedIncident, anomalies} = this.state;
+    const {rule, incidents, hasError, selectedIncident, anomalies, warning} = this.state;
     const {organization, projects, loadingProjects} = this.props;
     const timePeriod = this.getTimePeriod(selectedIncident);
 
@@ -260,6 +267,11 @@ class MetricAlertDetails extends Component<Props, State> {
         shouldForceProject={isGlobalSelectionReady}
         forceProject={project}
       >
+        {warning && (
+          <Alert type="warning" showIcon>
+            {warning}
+          </Alert>
+        )}
         <SentryDocumentTitle title={rule?.name ?? ''} />
 
         <DetailsHeader
