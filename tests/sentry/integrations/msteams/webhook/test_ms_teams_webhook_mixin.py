@@ -1,6 +1,6 @@
 from typing import Any
 
-from sentry.integrations.msteams import MsTeamsWebhookMixin
+from sentry.integrations.msteams.webhook import MsTeamsWebhookMixin
 
 
 class TestIsNewIntegrationInstallationEvent:
