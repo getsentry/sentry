@@ -102,6 +102,10 @@ describe('UpdatedGroupHeader', () => {
       expect(screen.getByText('RequestError')).toBeInTheDocument();
       expect(screen.getByText('Warning')).toBeInTheDocument();
       expect(screen.getByText('Unhandled')).toBeInTheDocument();
+      expect(screen.getByText('All Events')).toBeInTheDocument();
+      expect(screen.getByText(group.count)).toBeInTheDocument();
+      expect(screen.getByText('All Users')).toBeInTheDocument();
+      expect(screen.getByText(group.userCount)).toBeInTheDocument();
 
       expect(
         await screen.findByText(textWithMarkupMatcher('Releases'))
