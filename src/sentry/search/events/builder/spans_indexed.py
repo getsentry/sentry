@@ -108,3 +108,15 @@ class TopEventsSpanIndexedQueryBuilder(SpansIndexedQueryBuilderMixin, TopEventsQ
         return custom_time_processor(
             self.interval, Function("toUInt32", [Column("start_timestamp")])
         )
+
+
+class TopEventsSpanEAPQueryBuilder(SpansEAPQueryBuilder, TopEventsQueryBuilder):
+    config_class = SpansEAPDatasetConfig
+    uuid_fields = SPAN_UUID_FIELDS
+    span_id_fields = SPAN_ID_FIELDS
+
+    @property
+    def time_column(self) -> SelectType:
+        return custom_time_processor(
+            self.interval, Function("toUInt32", [Column("start_timestamp")])
+        )
