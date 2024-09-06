@@ -1,7 +1,10 @@
 import crashReportCallout from 'sentry/components/onboarding/gettingStartedDoc/feedback/crashReportCallout';
 import widgetCallout from 'sentry/components/onboarding/gettingStartedDoc/feedback/widgetCallout';
 import TracePropagationMessage from 'sentry/components/onboarding/gettingStartedDoc/replay/tracePropagationMessage';
-import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/step';
+import {
+  type Configuration,
+  StepType,
+} from 'sentry/components/onboarding/gettingStartedDoc/step';
 import type {
   Docs,
   DocsParams,
@@ -28,6 +31,117 @@ import {ProductSolution} from 'sentry/components/onboarding/productSelection';
 import {t, tct} from 'sentry/locale';
 
 type Params = DocsParams;
+
+function getSdkSetupSnippet(params: Params) {
+  return `
+  import { enableProdMode } from "@angular/core";
+  import { platformBrowserDynamic } from "@angular/platform-browser-dynamic";
+  import * as Sentry from "@sentry/angular";
+
+  import { AppModule } from "./app/app.module";
+
+  Sentry.init({
+    dsn: "${params.dsn.public}",
+    integrations: [${
+      params.isPerformanceSelected
+        ? `
+          Sentry.browserTracingIntegration(),`
+        : ''
+    }${
+      params.isProfilingSelected
+        ? `
+          Sentry.browserProfilingIntegration(),`
+        : ''
+    }${
+      params.isFeedbackSelected
+        ? `
+        Sentry.feedbackIntegration({
+// Additional SDK configuration goes in here, for example:
+colorScheme: "system",
+${getFeedbackConfigOptions(params.feedbackOptions)}}),`
+        : ''
+    }${
+      params.isReplaySelected
+        ? `
+          Sentry.replayIntegration(${getReplayConfigOptions(params.replayOptions)}),`
+        : ''
+    }
+  ],${
+    params.isPerformanceSelected
+      ? `
+        // Tracing
+        tracesSampleRate: 1.0, //  Capture 100% of the transactions
+        // Set 'tracePropagationTargets' to control for which URLs distributed tracing should be enabled
+        tracePropagationTargets: ["localhost", /^https:\\/\\/yourserver\\.io\\/api/],`
+      : ''
+  }${
+    params.isReplaySelected
+      ? `
+        // Session Replay
+        replaysSessionSampleRate: 0.1, // This sets the sample rate at 10%. You may want to change it to 100% while in development and then sample at a lower rate in production.
+        replaysOnErrorSampleRate: 1.0, // If you're not already sampling the entire session, change the sample rate to 100% when sampling sessions where errors occur.`
+      : ''
+  }${
+    params.isProfilingSelected
+      ? `
+        // Set profilesSampleRate to 1.0 to profile every transaction.
+        // Since profilesSampleRate is relative to tracesSampleRate,
+        // the final profiling rate can be computed as tracesSampleRate * profilesSampleRate
+        // For example, a tracesSampleRate of 0.5 and profilesSampleRate of 0.5 would
+        // results in 25% of transactions being profiled (0.5*0.5=0.25)
+        profilesSampleRate: 1.0,`
+      : ''
+  }
+  });`;
+}
+
+const getVerifySnippetTemplate = () => `
+<button (click)="throwTestError()">Test Sentry Error</button>
+`;
+
+const getVerifySnippetComponent = () => `
+public throwTestError(): void {
+  throw new Error("Sentry Test Error");
+}`;
+
+function getVerifyConfiguration(): Configuration {
+  return {
+    description: t(
+      'To verify that everything is working as expected, you can trigger a test error in your app. As an example we will add a button that throws an error when being clicked to your main app component.'
+    ),
+    configurations: [
+      {
+        description: tct(
+          'First add the button element to your [code:app.component.html]:',
+          {code: <code />}
+        ),
+        code: [
+          {
+            label: 'HTML',
+            value: 'html',
+            language: 'html',
+            filename: 'app.component.html',
+            code: getVerifySnippetTemplate(),
+          },
+        ],
+      },
+      {
+        description: tct('Then, in your [code:app.component.ts] add the event handler:', {
+          code: <code />,
+        }),
+        code: [
+          {
+            label: 'TypeScript',
+            value: 'typescript',
+            language: 'typescript',
+            filename: 'app.component.ts',
+            code: getVerifySnippetComponent(),
+          },
+        ],
+      },
+    ],
+  };
+}
 
 const getNextStep = (
   params: Params
@@ -149,13 +263,12 @@ const onboarding: OnboardingConfig = {
   verify: () => [
     {
       type: StepType.VERIFY,
-      description: t(
-        "This snippet contains an intentional error and can be used as a test to make sure that everything's working as expected."
-      ),
       configurations: [
+        getVerifyConfiguration(),
         {
-          language: 'javascript',
-          code: `myUndefinedFunction();`,
+          description: t(
+            "After clicking the button, you should see the error on Sentry's Issues page."
+          ),
         },
       ],
     },
@@ -187,69 +300,6 @@ export const nextSteps = [
     link: 'https://docs.sentry.io/platforms/javascript/guides/angular/session-replay/',
   },
 ];
-
-function getSdkSetupSnippet(params: Params) {
-  return `
-  import { enableProdMode } from "@angular/core";
-  import { platformBrowserDynamic } from "@angular/platform-browser-dynamic";
-  import * as Sentry from "@sentry/angular";
-
-  import { AppModule } from "./app/app.module";
-
-  Sentry.init({
-    dsn: "${params.dsn.public}",
-    integrations: [${
-      params.isPerformanceSelected
-        ? `
-          Sentry.browserTracingIntegration(),`
-        : ''
-    }${
-      params.isProfilingSelected
-        ? `
-          Sentry.browserProfilingIntegration(),`
-        : ''
-    }${
-      params.isFeedbackSelected
-        ? `
-        Sentry.feedbackIntegration({
-// Additional SDK configuration goes in here, for example:
-colorScheme: "system",
-${getFeedbackConfigOptions(params.feedbackOptions)}}),`
-        : ''
-    }${
-      params.isReplaySelected
-        ? `
-          Sentry.replayIntegration(${getReplayConfigOptions(params.replayOptions)}),`
-        : ''
-    }
-  ],${
-    params.isPerformanceSelected
-      ? `
-        // Tracing
-        tracesSampleRate: 1.0, //  Capture 100% of the transactions
-        // Set 'tracePropagationTargets' to control for which URLs distributed tracing should be enabled
-        tracePropagationTargets: ["localhost", /^https:\\/\\/yourserver\\.io\\/api/],`
-      : ''
-  }${
-    params.isReplaySelected
-      ? `
-        // Session Replay
-        replaysSessionSampleRate: 0.1, // This sets the sample rate at 10%. You may want to change it to 100% while in development and then sample at a lower rate in production.
-        replaysOnErrorSampleRate: 1.0, // If you're not already sampling the entire session, change the sample rate to 100% when sampling sessions where errors occur.`
-      : ''
-  }${
-    params.isProfilingSelected
-      ? `
-        // Set profilesSampleRate to 1.0 to profile every transaction.
-        // Since profilesSampleRate is relative to tracesSampleRate,
-        // the final profiling rate can be computed as tracesSampleRate * profilesSampleRate
-        // For example, a tracesSampleRate of 0.5 and profilesSampleRate of 0.5 would
-        // results in 25% of transactions being profiled (0.5*0.5=0.25)
-        profilesSampleRate: 1.0,`
-      : ''
-  }
-  });`;
-}
 
 function getSetupConfiguration(params: Params) {
   const configuration = {
@@ -306,7 +356,19 @@ const replayOnboarding: OnboardingConfig = {
       additionalInfo: <TracePropagationMessage />,
     },
   ],
-  verify: () => [],
+  verify: () => [
+    {
+      type: StepType.VERIFY,
+      configurations: [
+        getVerifyConfiguration(),
+        {
+          description: t(
+            'After clicking the button, wait a few moments, and you\'ll see a new session appear on the "Replays" page.'
+          ),
+        },
+      ],
+    },
+  ],
   nextSteps: () => [],
 };
 
