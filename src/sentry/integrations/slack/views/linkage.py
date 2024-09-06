@@ -2,7 +2,7 @@ from abc import ABC, abstractmethod
 from collections.abc import Mapping
 from typing import Any
 
-from sentry.integrations.messaging import IdentityLinkageView, MessagingIntegrationSpec
+from sentry.integrations.messaging import IdentityLinkageView, LinkageView, MessagingIntegrationSpec
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.slack.utils.notifications import (
     SlackCommandResponse,
@@ -13,7 +13,7 @@ from sentry.integrations.types import ExternalProviderEnum, ExternalProviders
 from . import SALT
 
 
-class SlackIdentityLinkageView(IdentityLinkageView, ABC):
+class SlackLinkageView(LinkageView, ABC):
     @property
     def parent_messaging_spec(self) -> MessagingIntegrationSpec:
         from sentry.integrations.slack.spec import SlackMessagingSpec
@@ -32,6 +32,8 @@ class SlackIdentityLinkageView(IdentityLinkageView, ABC):
     def salt(self) -> str:
         return SALT
 
+
+class SlackIdentityLinkageView(SlackLinkageView, IdentityLinkageView, ABC):
     @property
     def external_id_parameter(self) -> str:
         return "slack_id"
