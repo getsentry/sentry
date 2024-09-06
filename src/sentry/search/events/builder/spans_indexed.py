@@ -118,5 +118,5 @@ class TopEventsSpanEAPQueryBuilder(SpansEAPQueryBuilder, TopEventsQueryBuilder):
     @property
     def time_column(self) -> SelectType:
         return custom_time_processor(
-            self.interval, Function("toUInt32", [Column("start_timestamp")])
+            self.interval, Function("toUInt64", [Column("start_timestamp")])
         )
