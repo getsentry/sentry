@@ -9,7 +9,6 @@ import SidebarItem from 'sentry/components/sidebar/sidebarItem';
 import SidebarPanel from 'sentry/components/sidebar/sidebarPanel';
 import SidebarPanelEmpty from 'sentry/components/sidebar/sidebarPanelEmpty';
 import SidebarPanelItem from 'sentry/components/sidebar/sidebarPanelItem';
-import {hasWhatIsNewRevampFeature} from 'sentry/components/sidebar/utils';
 import {IconBroadcast} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
@@ -121,7 +120,7 @@ class Broadcasts extends Component<Props, State> {
     const {broadcasts, loading} = this.state;
 
     const unseenPosts = this.unseenIds;
-    const whatIsNewRevampFeature = hasWhatIsNewRevampFeature(organization);
+    const whatIsNewRevampFeature = organization.features.includes('what-is-new-revamp');
 
     return (
       <DemoModeGate>
