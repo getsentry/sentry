@@ -1,25 +1,17 @@
 /* eslint-env node */
 /* eslint import/no-nodejs-modules:0 */
 
-import fs from 'fs';
-import path from 'path';
-
 import rspack from '@rspack/core';
 import ReactRefreshRspackPlugin from '@rspack/plugin-react-refresh';
 import CompressionPlugin from 'compression-webpack-plugin';
 import HtmlWebpackPlugin from 'html-webpack-plugin';
+import fs from 'node:fs';
+import path from 'node:path';
 // TODO(@anonrig): Remove this when Rspack bundles it.
 import {ContextReplacementPlugin} from 'webpack';
-import WebpackHookPlugin from 'webpack-hook-plugin';
+import type {ProxyConfigArray} from 'webpack-dev-server';
 
 import LastBuiltPlugin from './build-utils/last-built-plugin';
-import SentryInstrumentation from './build-utils/sentry-instrumentation';
-import {extractIOSDeviceNames} from './scripts/extract-ios-device-names';
-
-// Runs as part of prebuild step to generate a list of identifier -> name mappings for  iOS
-(async () => {
-  await extractIOSDeviceNames();
-})();
 
 const {env} = process;
 
@@ -189,9 +181,7 @@ const appConfig: rspack.Configuration = {
   },
   context: staticPrefix,
   experiments: {
-    rspackFuture: {
-      disableTransformByDefault: true,
-    },
+    rspackFuture: {},
     css: true,
   },
   module: {
@@ -205,13 +195,19 @@ const appConfig: rspack.Configuration = {
         exclude: /\/node_modules\//,
         loader: 'builtin:swc-loader',
         options: {
-          rspackExperiments: {
-            emotion: {
-              sourceMap: true,
-            },
-          },
           sourceMap: true,
           jsc: {
+            experimental: {
+              plugins: [
+                [
+                  '@swc/plugin-emotion',
+                  {
+                    sourceMap: true,
+                    autoLabel: 'always',
+                  },
+                ],
+              ],
+            },
             parser: {
               syntax: 'typescript',
               tsx: true,
@@ -240,7 +236,7 @@ const appConfig: rspack.Configuration = {
       },
       {
         test: /\.pegjs/,
-        loader: 'pegjs-loader',
+        loader: 'pegjs-loader?cache=false&optimize=speed',
       },
       {
         test: /\.css/,
@@ -263,7 +259,7 @@ const appConfig: rspack.Configuration = {
      * Adds build time measurement instrumentation, which will be reported back
      * to sentry
      */
-    new SentryInstrumentation(),
+    // new SentryInstrumentation(),
 
     /**
      * TODO(epurkhiser): Figure out if we still need these
@@ -293,16 +289,16 @@ const appConfig: rspack.Configuration = {
      * Without this, webpack will still output all of the unused locale files despite
      * the application never loading any of them.
      */
-    new ContextReplacementPlugin(
-      /sentry-locale$/,
-      path.join(__dirname, 'src', 'sentry', 'locale', path.sep),
-      true,
-      new RegExp(`(${supportedLocales.join('|')})/.*\\.po$`)
-    ),
-    new ContextReplacementPlugin(
-      /moment\/locale/,
-      new RegExp(`(${supportedLanguages.join('|')})\\.js$`)
-    ),
+    // new ContextReplacementPlugin(
+    //   /sentry-locale$/,
+    //   path.join(__dirname, 'src', 'sentry', 'locale', path.sep),
+    //   true,
+    //   new RegExp(`(${supportedLocales.join('|')})/.*\\.po$`)
+    // ),
+    // new ContextReplacementPlugin(
+    //   /moment\/locale/,
+    //   new RegExp(`(${supportedLanguages.join('|')})\\.js$`)
+    // ),
 
     /**
      * Copies file logo-sentry.svg to the dist/entrypoints directory so that it can be accessed by
@@ -354,14 +350,17 @@ const appConfig: rspack.Configuration = {
     fallback: {
       vm: false,
       stream: false,
-      crypto: require.resolve('crypto-browserify'),
+      // Node crypto is imported in @sentry-internal/global-search but not used here
+      crypto: false,
       // `yarn why` says this is only needed in dev deps
       string_decoder: false,
+      // For framer motion v6, might be able to remove on v11
+      'process/browser': require.resolve('process/browser'),
     },
 
     modules: ['node_modules'],
     extensions: ['.jsx', '.js', '.json', '.ts', '.tsx', '.less'],
-    tsConfigPath: path.resolve(__dirname, './tsconfig.json'),
+    // tsConfigPath: path.resolve(__dirname, './tsconfig.json'),
   },
   output: {
     crossOriginLoading: 'anonymous',
@@ -388,7 +387,7 @@ const appConfig: rspack.Configuration = {
 
     // This only runs in production mode
     minimizer: [
-      new rspack.SwcCssMinimizerRspackPlugin(),
+      new rspack.LightningCssMinimizerRspackPlugin(),
       new rspack.SwcJsMinimizerRspackPlugin(),
     ],
   },
@@ -480,30 +479,35 @@ if (
 
     // If we're running siloed servers we also need to proxy
     // those requests to the right server.
-    let controlSiloProxy = {};
+    let controlSiloProxy: ProxyConfigArray = [];
     if (CONTROL_SILO_PORT) {
       // TODO(hybridcloud) We also need to use this URL pattern
       // list to select contro/region when making API requests in non-proxied
       // environments (like production). We'll likely need a way to consolidate this
       // with the configuration api.Client uses.
       const controlSiloAddress = `http://127.0.0.1:${CONTROL_SILO_PORT}`;
-      controlSiloProxy = {
-        '/auth/**': controlSiloAddress,
-        '/account/**': controlSiloAddress,
-        '/api/0/users/**': controlSiloAddress,
-        '/api/0/api-tokens/**': controlSiloAddress,
-        '/api/0/sentry-apps/**': controlSiloAddress,
-        '/api/0/organizations/*/audit-logs/**': controlSiloAddress,
-        '/api/0/organizations/*/broadcasts/**': controlSiloAddress,
-        '/api/0/organizations/*/integrations/**': controlSiloAddress,
-        '/api/0/organizations/*/config/integrations/**': controlSiloAddress,
-        '/api/0/organizations/*/sentry-apps/**': controlSiloAddress,
-        '/api/0/organizations/*/sentry-app-installations/**': controlSiloAddress,
-        '/api/0/api-authorizations/**': controlSiloAddress,
-        '/api/0/api-applications/**': controlSiloAddress,
-        '/api/0/doc-integrations/**': controlSiloAddress,
-        '/api/0/assistant/**': controlSiloAddress,
-      };
+      controlSiloProxy = [
+        {
+          context: [
+            '/auth/**',
+            '/account/**',
+            '/api/0/users/**',
+            '/api/0/api-tokens/**',
+            '/api/0/sentry-apps/**',
+            '/api/0/organizations/*/audit-logs/**',
+            '/api/0/organizations/*/broadcasts/**',
+            '/api/0/organizations/*/integrations/**',
+            '/api/0/organizations/*/config/integrations/**',
+            '/api/0/organizations/*/sentry-apps/**',
+            '/api/0/organizations/*/sentry-app-installations/**',
+            '/api/0/api-authorizations/**',
+            '/api/0/api-applications/**',
+            '/api/0/doc-integrations/**',
+            '/api/0/assistant/**',
+          ],
+          target: controlSiloAddress,
+        },
+      ];
     }
 
     appConfig.devServer = {
@@ -513,34 +517,33 @@ if (
         publicPath: '/_static/dist/sentry',
       },
       // syntax for matching is using https://www.npmjs.com/package/micromatch
-      proxy: {
+      proxy: [
         ...controlSiloProxy,
-        '/api/store/**': relayAddress,
-        '/api/{1..9}*({0..9})/**': relayAddress,
-        '/api/0/relays/outcomes/': relayAddress,
-        '!/_static/dist/sentry/**': backendAddress,
-      },
+        {
+          context: [
+            '/api/store/**',
+            '/api/{1..9}*({0..9})/**',
+            '/api/0/relays/outcomes/**',
+          ],
+          target: relayAddress,
+        },
+        {
+          context: ['!/_static/dist/sentry/**'],
+          target: backendAddress,
+        },
+      ],
     };
     appConfig.output!.publicPath = '/_static/dist/sentry/';
   }
 }
 
-// We want Spotlight only in Dev mode - Local and UI only
-if (DEV_MODE) {
-  appConfig.plugins?.push(
-    new WebpackHookPlugin({
-      onBuildStart: ['yarn run spotlight-sidecar'],
-    }) as unknown as rspack.RspackPluginInstance
-  );
-}
-
-if (SHOULD_FORK_TS) {
-  appConfig.plugins?.push(
-    new WebpackHookPlugin({
-      onBuildStart: ['yarn tsc -p ./config/tsconfig.build.json --watch --incremental'],
-    }) as unknown as rspack.RspackPluginInstance
-  );
-}
+// if (SHOULD_FORK_TS) {
+//   appConfig.plugins?.push(
+//     new WebpackHookPlugin({
+//       onBuildStart: ['yarn tsc -p ./config/tsconfig.build.json --watch --incremental'],
+//     }) as unknown as rspack.RspackPluginInstance
+//   );
+// }
 
 // XXX(epurkhiser): Sentry (development) can be run in an experimental
 // pure-SPA mode, where ONLY /api* requests are proxied directly to the API

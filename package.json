@@ -52,10 +52,10 @@
     "@react-stately/tabs": "^3.6.6",
     "@react-stately/tree": "^3.7.5",
     "@react-types/shared": "^3.22.0",
-    "@rspack/cli": "^0.4.2",
-    "@rspack/core": "^0.4.2",
-    "@rspack/plugin-react-refresh": "^0.4.2",
     "@rsdoctor/webpack-plugin": "0.3.11",
+    "@rspack/cli": "^1.0.3",
+    "@rspack/core": "^1.0.3",
+    "@rspack/plugin-react-refresh": "^1.0.0",
     "@sentry-internal/global-search": "^1.0.0",
     "@sentry-internal/react-inspector": "6.0.1-4",
     "@sentry-internal/rrweb": "2.26.0",
@@ -187,6 +187,7 @@
     "@sentry/jest-environment": "6.0.0",
     "@sentry/profiling-node": "^8.28.0",
     "@styled/typescript-styled-plugin": "^1.0.1",
+    "@swc/plugin-emotion": "^4.0.1",
     "@testing-library/dom": "10.1.0",
     "@testing-library/jest-dom": "6.4.5",
     "@testing-library/react": "16.0.0",
@@ -268,7 +269,9 @@
       "last 3 iOS major versions",
       "Firefox ESR"
     ],
-    "test": ["current node"]
+    "test": [
+      "current node"
+    ]
   },
   "volta": {
     "extends": ".volta.json"
