@@ -4,7 +4,8 @@ import styled from '@emotion/styled';
 import {Button} from 'sentry/components/button';
 import {inputStyles} from 'sentry/components/input';
 import {
-  SearchQueryBuilerContext,
+  SearchQueryBuilderContext,
+  type SearchQueryBuilderContextData,
   useSearchQueryBuilder,
 } from 'sentry/components/searchQueryBuilder/context';
 import {useHandleSearch} from 'sentry/components/searchQueryBuilder/hooks/useHandleSearch';
@@ -208,7 +209,7 @@ export function SearchQueryBuilder({
   const {width: actionBarWidth} = useDimensions({elementRef: actionBarRef});
   const size = searchBarWidth < 600 ? ('small' as const) : ('normal' as const);
 
-  const contextValue = useMemo(() => {
+  const contextValue = useMemo((): SearchQueryBuilderContextData => {
     return {
       ...state,
       disabled,
@@ -219,7 +220,6 @@ export function SearchQueryBuilder({
       getTagValues,
       getFieldDefinition: fieldDefinitionGetter,
       dispatch,
-      onSearch,
       wrapperRef,
       handleSearch,
       placeholder,
@@ -237,7 +237,6 @@ export function SearchQueryBuilder({
     getTagValues,
     fieldDefinitionGetter,
     dispatch,
-    onSearch,
     handleSearch,
     placeholder,
     recentSearches,
@@ -246,7 +245,7 @@ export function SearchQueryBuilder({
   ]);
 
   return (
-    <SearchQueryBuilerContext.Provider value={contextValue}>
+    <SearchQueryBuilderContext.Provider value={contextValue}>
       <PanelProvider>
         <Wrapper
           className={className}
@@ -267,7 +266,7 @@ export function SearchQueryBuilder({
           )}
         </Wrapper>
       </PanelProvider>
-    </SearchQueryBuilerContext.Provider>
+    </SearchQueryBuilderContext.Provider>
   );
 }
 
