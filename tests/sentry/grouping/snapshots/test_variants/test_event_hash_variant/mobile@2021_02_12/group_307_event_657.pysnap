@@ -1,5 +1,5 @@
 ---
-created: '2024-09-04T19:48:05.874580+00:00'
+created: '2024-09-05T13:39:11.574665+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -40,15 +40,9 @@ system:
           frame (ignored by stack trace rule (category:threadbase -group v-group))
             function*
               "stripped_application_code"
-          frame (ignored by stack trace rule (category:threadbase -group v-group))
-            package* (used as fallback because function name is not available)
-              "libsystem_pthread.dylib"
           frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
-            package* (used as fallback because function name is not available)
-              "libsystem_pthread.dylib"
           frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
-            package* (used as fallback because function name is not available)
-              "libsystem_pthread.dylib"
+          frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
           frame*
             function*
               "stripped_application_code"
@@ -85,9 +79,7 @@ system:
           frame (ignored due to recursion)
             function*
               "stripped_application_code"
-          frame (ignored by stack trace rule (category:internals -group))
-            package* (used as fallback because function name is not available)
-              "libc++abi.dylib"
+          frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
         type (ignored because exception is synthetic)
           "EXC_BAD_ACCESS / EXC_I386_GPFLT"
         value (ignored because stacktrace takes precedence)

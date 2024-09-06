@@ -370,23 +370,6 @@ def frame(
             contributes=False, hint="discarded native filename for grouping stability"
         )
 
-    if context["use_package_fallback"] and frame.package:
-        # If function did not symbolicate properly and we also have no filename, use package as fallback.
-        package_component = get_package_component(package=frame.package, platform=platform)
-        if package_component.contributes:
-            use_package_component = all(not component.contributes for component in values)
-
-            if use_package_component:
-                package_component.update(
-                    hint="used as fallback because function name is not available"
-                )
-            else:
-                package_component.update(
-                    contributes=False, hint="ignored because function takes precedence"
-                )
-
-            values.append(package_component)
-
     rv = GroupingComponent(id="frame", values=values)
 
     # if we are in javascript fuzzing mode we want to disregard some

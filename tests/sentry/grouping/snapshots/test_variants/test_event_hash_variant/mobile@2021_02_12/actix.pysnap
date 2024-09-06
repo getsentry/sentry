@@ -1,5 +1,5 @@
 ---
-created: '2024-08-27T12:08:34.671358+00:00'
+created: '2024-09-05T13:39:10.715862+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -14,8 +14,6 @@ app-depth-1:
               "lib.rs"
             function*
               "log::__private_api_log"
-            package (ignored because function takes precedence)
-              "log"
         type*
           "actix_web::pipeline"
         value (ignored because stacktrace takes precedence)
@@ -37,8 +35,6 @@ app-depth-2:
               "lib.rs"
             function*
               "log::__private_api_log"
-            package (ignored because function takes precedence)
-              "log"
         type*
           "actix_web::pipeline"
         value (ignored because stacktrace takes precedence)
@@ -65,8 +61,6 @@ app-depth-3:
               "lib.rs"
             function*
               "log::__private_api_log"
-            package (ignored because function takes precedence)
-              "log"
         type*
           "actix_web::pipeline"
         value (ignored because stacktrace takes precedence)
@@ -98,8 +92,6 @@ app-depth-4:
               "lib.rs"
             function*
               "log::__private_api_log"
-            package (ignored because function takes precedence)
-              "log"
         type*
           "actix_web::pipeline"
         value (ignored because stacktrace takes precedence)
@@ -136,8 +128,6 @@ app-depth-5:
               "lib.rs"
             function*
               "log::__private_api_log"
-            package (ignored because function takes precedence)
-              "log"
         type*
           "actix_web::pipeline"
         value (ignored because stacktrace takes precedence)
@@ -162,113 +152,81 @@ app-depth-max:
               "arbiter.rs"
             function*
               "actix::arbiter::Arbiter::new_with_builder::{{closure}}"
-            package (ignored because function takes precedence)
-              "actix"
           frame*
             filename (discarded native filename for grouping stability)
               "runtime.rs"
             function*
               "tokio::runtime::current_thread::runtime::Runtime::block_on"
-            package (ignored because function takes precedence)
-              "tokio"
           frame*
             filename (discarded native filename for grouping stability)
               "runtime.rs"
             function*
               "tokio::runtime::current_thread::runtime::Runtime::enter"
-            package (ignored because function takes precedence)
-              "tokio"
           frame*
             filename (discarded native filename for grouping stability)
               "lib.rs"
             function*
               "tokio_reactor::with_default"
-            package (ignored because function takes precedence)
-              "tokio_reactor"
           frame*
             filename (discarded native filename for grouping stability)
               "lib.rs"
             function*
               "tokio_reactor::with_default::{{closure}}"
-            package (ignored because function takes precedence)
-              "tokio_reactor"
           frame*
             filename (discarded native filename for grouping stability)
               "runtime.rs"
             function*
               "tokio::runtime::current_thread::runtime::Runtime::enter::{{closure}}"
-            package (ignored because function takes precedence)
-              "tokio"
           frame*
             filename (discarded native filename for grouping stability)
               "clock.rs"
             function*
               "tokio_timer::clock::clock::with_default"
-            package (ignored because function takes precedence)
-              "tokio_timer"
           frame*
             filename (discarded native filename for grouping stability)
               "clock.rs"
             function*
               "tokio_timer::clock::clock::with_default::{{closure}}"
-            package (ignored because function takes precedence)
-              "tokio_timer"
           frame*
             filename (discarded native filename for grouping stability)
               "runtime.rs"
             function*
               "tokio::runtime::current_thread::runtime::Runtime::enter::{{closure}}::{{closure}}"
-            package (ignored because function takes precedence)
-              "tokio"
           frame*
             filename (discarded native filename for grouping stability)
               "handle.rs"
             function*
               "tokio_timer::timer::handle::with_default"
-            package (ignored because function takes precedence)
-              "tokio_timer"
           frame*
             filename (discarded native filename for grouping stability)
               "handle.rs"
             function*
               "tokio_timer::timer::handle::with_default::{{closure}}"
-            package (ignored because function takes precedence)
-              "tokio_timer"
           frame*
             filename (discarded native filename for grouping stability)
               "runtime.rs"
             function*
               "tokio::runtime::current_thread::runtime::Runtime::enter::{{closure}}::{{closure}}::{{closure}}"
-            package (ignored because function takes precedence)
-              "tokio"
           frame*
             filename (discarded native filename for grouping stability)
               "global.rs"
             function*
               "tokio_executor::global::with_default"
-            package (ignored because function takes precedence)
-              "tokio_executor"
           frame*
             filename (discarded native filename for grouping stability)
               "global.rs"
             function*
               "tokio_executor::global::with_default::{{closure}}"
-            package (ignored because function takes precedence)
-              "tokio_executor"
           frame*
             filename (discarded native filename for grouping stability)
               "runtime.rs"
             function*
               "tokio::runtime::current_thread::runtime::Runtime::enter::{{closure}}::{{closure}}::{{closure}}::{{closure}}"
-            package (ignored because function takes precedence)
-              "tokio"
           frame*
             filename (discarded native filename for grouping stability)
               "runtime.rs"
             function*
               "tokio::runtime::current_thread::runtime::Runtime::block_on::{{closure}}"
-            package (ignored because function takes precedence)
-              "tokio"
           frame*
             filename (discarded native filename for grouping stability)
               "lib.rs"
@@ -299,8 +257,6 @@ app-depth-max:
               "lib.rs"
             function*
               "tokio_current_thread::CurrentRunner::set_spawn"
-            package (ignored because function takes precedence)
-              "tokio_current_thread"
           frame*
             filename (discarded native filename for grouping stability)
               "lib.rs"
@@ -336,8 +292,6 @@ app-depth-max:
               "mod.rs"
             function*
               "futures::task_impl::std::set"
-            package (ignored because function takes precedence)
-              "futures"
           frame*
             filename (discarded native filename for grouping stability)
               "mod.rs"
@@ -423,8 +377,6 @@ app-depth-max:
               "lib.rs"
             function*
               "log::__private_api_log"
-            package (ignored because function takes precedence)
-              "log"
         type*
           "actix_web::pipeline"
         value (ignored because stacktrace takes precedence)
@@ -447,8 +399,6 @@ system:
               "thread.rs"
             function*
               "std::sys::unix::thread::Thread::new::thread_start"
-            package (ignored because function takes precedence)
-              "std"
           frame* (marked out of app by stack trace rule (family:native function:alloc::* -app))
             filename (discarded native filename for grouping stability)
               "boxed.rs"
@@ -459,22 +409,16 @@ system:
               "mod.rs"
             function*
               "std::thread::Builder::spawn_unchecked::{{closure}}"
-            package (ignored because function takes precedence)
-              "std"
           frame (ignored by stack trace rule (category:internals -group))
             filename (discarded native filename for grouping stability)
               "panic.rs"
             function*
               "std::panic::catch_unwind"
-            package (ignored because function takes precedence)
-              "std"
           frame (ignored by stack trace rule (category:internals -group))
             filename (discarded native filename for grouping stability)
               "panicking.rs"
             function*
               "std::panicking::try"
-            package (ignored because function takes precedence)
-              "std"
           frame*
             filename (discarded native filename for grouping stability)
               "lib.rs"
@@ -485,8 +429,6 @@ system:
               "panicking.rs"
             function*
               "std::panicking::try::do_call"
-            package (ignored because function takes precedence)
-              "std"
           frame (ignored by stack trace rule (category:internals -group))
             filename (discarded native filename for grouping stability)
               "panic.rs"
@@ -497,43 +439,31 @@ system:
               "mod.rs"
             function*
               "std::thread::Builder::spawn_unchecked::{{closure}}::{{closure}}"
-            package (ignored because function takes precedence)
-              "std"
           frame (ignored by stack trace rule (category:internals -group))
             filename (discarded native filename for grouping stability)
               "backtrace.rs"
             function*
               "std::sys_common::backtrace::__rust_begin_short_backtrace"
-            package (ignored because function takes precedence)
-              "std"
           frame*
             filename (discarded native filename for grouping stability)
               "arbiter.rs"
             function*
               "actix::arbiter::Arbiter::new_with_builder::{{closure}}"
-            package (ignored because function takes precedence)
-              "actix"
           frame*
             filename (discarded native filename for grouping stability)
               "runtime.rs"
             function*
               "tokio::runtime::current_thread::runtime::Runtime::block_on"
-            package (ignored because function takes precedence)
-              "tokio"
           frame*
             filename (discarded native filename for grouping stability)
               "runtime.rs"
             function*
               "tokio::runtime::current_thread::runtime::Runtime::enter"
-            package (ignored because function takes precedence)
-              "tokio"
           frame*
             filename (discarded native filename for grouping stability)
               "lib.rs"
             function*
               "tokio_reactor::with_default"
-            package (ignored because function takes precedence)
-              "tokio_reactor"
           frame*
             filename (discarded native filename for grouping stability)
               "local.rs"
@@ -549,22 +479,16 @@ system:
               "lib.rs"
             function*
               "tokio_reactor::with_default::{{closure}}"
-            package (ignored because function takes precedence)
-              "tokio_reactor"
           frame*
             filename (discarded native filename for grouping stability)
               "runtime.rs"
             function*
               "tokio::runtime::current_thread::runtime::Runtime::enter::{{closure}}"
-            package (ignored because function takes precedence)
-              "tokio"
           frame*
             filename (discarded native filename for grouping stability)
               "clock.rs"
             function*
               "tokio_timer::clock::clock::with_default"
-            package (ignored because function takes precedence)
-              "tokio_timer"
           frame*
             filename (discarded native filename for grouping stability)
               "local.rs"
@@ -580,22 +504,16 @@ system:
               "clock.rs"
             function*
               "tokio_timer::clock::clock::with_default::{{closure}}"
-            package (ignored because function takes precedence)
-              "tokio_timer"
           frame*
             filename (discarded native filename for grouping stability)
               "runtime.rs"
             function*
               "tokio::runtime::current_thread::runtime::Runtime::enter::{{closure}}::{{closure}}"
-            package (ignored because function takes precedence)
-              "tokio"
           frame*
             filename (discarded native filename for grouping stability)
               "handle.rs"
             function*
               "tokio_timer::timer::handle::with_default"
-            package (ignored because function takes precedence)
-              "tokio_timer"
           frame*
             filename (discarded native filename for grouping stability)
               "local.rs"
@@ -611,22 +529,16 @@ system:
               "handle.rs"
             function*
               "tokio_timer::timer::handle::with_default::{{closure}}"
-            package (ignored because function takes precedence)
-              "tokio_timer"
           frame*
             filename (discarded native filename for grouping stability)
               "runtime.rs"
             function*
               "tokio::runtime::current_thread::runtime::Runtime::enter::{{closure}}::{{closure}}::{{closure}}"
-            package (ignored because function takes precedence)
-              "tokio"
           frame*
             filename (discarded native filename for grouping stability)
               "global.rs"
             function*
               "tokio_executor::global::with_default"
-            package (ignored because function takes precedence)
-              "tokio_executor"
           frame*
             filename (discarded native filename for grouping stability)
               "local.rs"
@@ -642,22 +554,16 @@ system:
               "global.rs"
             function*
               "tokio_executor::global::with_default::{{closure}}"
-            package (ignored because function takes precedence)
-              "tokio_executor"
           frame*
             filename (discarded native filename for grouping stability)
               "runtime.rs"
             function*
               "tokio::runtime::current_thread::runtime::Runtime::enter::{{closure}}::{{closure}}::{{closure}}::{{closure}}"
-            package (ignored because function takes precedence)
-              "tokio"
           frame*
             filename (discarded native filename for grouping stability)
               "runtime.rs"
             function*
               "tokio::runtime::current_thread::runtime::Runtime::block_on::{{closure}}"
-            package (ignored because function takes precedence)
-              "tokio"
           frame*
             filename (discarded native filename for grouping stability)
               "lib.rs"
@@ -698,8 +604,6 @@ system:
               "lib.rs"
             function*
               "tokio_current_thread::CurrentRunner::set_spawn"
-            package (ignored because function takes precedence)
-              "tokio_current_thread"
           frame*
             filename (discarded native filename for grouping stability)
               "lib.rs"
@@ -735,8 +639,6 @@ system:
               "mod.rs"
             function*
               "futures::task_impl::std::set"
-            package (ignored because function takes precedence)
-              "futures"
           frame*
             filename (discarded native filename for grouping stability)
               "mod.rs"
@@ -832,8 +734,6 @@ system:
               "lib.rs"
             function*
               "log::__private_api_log"
-            package (ignored because function takes precedence)
-              "log"
           frame*
             filename (discarded native filename for grouping stability)
               "log.rs"
@@ -844,15 +744,11 @@ system:
               "hub.rs"
             function*
               "sentry::hub::Hub::with_active"
-            package (ignored because function takes precedence)
-              "sentry"
           frame*
             filename (discarded native filename for grouping stability)
               "hub.rs"
             function*
               "sentry::hub::Hub::with"
-            package (ignored because function takes precedence)
-              "sentry"
           frame*
             filename (discarded native filename for grouping stability)
               "local.rs"
@@ -868,15 +764,11 @@ system:
               "hub.rs"
             function*
               "sentry::hub::Hub::with::{{closure}}"
-            package (ignored because function takes precedence)
-              "sentry"
           frame*
             filename (discarded native filename for grouping stability)
               "hub.rs"
             function*
               "sentry::hub::Hub::with_active::{{closure}}"
-            package (ignored because function takes precedence)
-              "sentry"
         type*
           "actix_web::pipeline"
         value (ignored because stacktrace takes precedence)

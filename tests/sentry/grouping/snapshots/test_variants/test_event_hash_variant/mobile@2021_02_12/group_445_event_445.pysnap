@@ -1,5 +1,5 @@
 ---
-created: '2024-09-04T19:48:04.511074+00:00'
+created: '2024-09-05T13:39:10.347882+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -32,8 +32,6 @@ app-depth-2:
           frame* (marked as prefix frame by stack trace rule (category:throw +prefix ^-group))
             function*
               "raise"
-            package (ignored because function takes precedence)
-              "ucrtbase.dll"
         type (ignored because exception is synthetic)
           "0x40000015 / 0x00000001"
         value (ignored because stacktrace takes precedence)
@@ -57,8 +55,6 @@ app-depth-3:
           frame* (marked as prefix frame by stack trace rule (category:throw +prefix ^-group))
             function*
               "raise"
-            package (ignored because function takes precedence)
-              "ucrtbase.dll"
         type (ignored because exception is synthetic)
           "0x40000015 / 0x00000001"
         value (ignored because stacktrace takes precedence)
@@ -85,8 +81,6 @@ app-depth-4:
           frame* (marked as prefix frame by stack trace rule (category:throw +prefix ^-group))
             function*
               "raise"
-            package (ignored because function takes precedence)
-              "ucrtbase.dll"
         type (ignored because exception is synthetic)
           "0x40000015 / 0x00000001"
         value (ignored because stacktrace takes precedence)
@@ -101,8 +95,6 @@ app-depth-5:
           frame*
             function*
               "DispatchMessageWorker"
-            package (ignored because function takes precedence)
-              "user32.dll"
           frame*
             function*
               "stripped_application_code"
@@ -118,8 +110,6 @@ app-depth-5:
           frame* (marked as prefix frame by stack trace rule (category:throw +prefix ^-group))
             function*
               "raise"
-            package (ignored because function takes precedence)
-              "ucrtbase.dll"
         type (ignored because exception is synthetic)
           "0x40000015 / 0x00000001"
         value (ignored because stacktrace takes precedence)
@@ -145,8 +135,6 @@ app-depth-max:
           frame*
             function*
               "DispatchMessageWorker"
-            package (ignored because function takes precedence)
-              "user32.dll"
           frame*
             function*
               "stripped_application_code"
@@ -162,8 +150,6 @@ app-depth-max:
           frame* (marked as prefix frame by stack trace rule (category:throw +prefix ^-group))
             function*
               "raise"
-            package (ignored because function takes precedence)
-              "ucrtbase.dll"
         type (ignored because exception is synthetic)
           "0x40000015 / 0x00000001"
         value (ignored because stacktrace takes precedence)
@@ -178,13 +164,9 @@ system:
           frame (ignored by stack trace rule (category:threadbase -group v-group))
             function*
               "RtlUserThreadStart"
-            package (ignored because function takes precedence)
-              "ntdll.dll"
           frame (ignored by stack trace rule (category:threadbase -group v-group))
             function*
               "BaseThreadInitThunk"
-            package (ignored because function takes precedence)
-              "kernel32.dll"
           frame (ignored by stack trace rule (category:threadbase -group v-group))
             function*
               "stripped_application_code"
@@ -247,13 +229,9 @@ system:
           frame*
             function*
               "DispatchMessageWorker"
-            package (ignored because function takes precedence)
-              "user32.dll"
           frame (ignored by stack trace rule (category:internals -group))
             function*
               "UserCallWinProcCheckWow"
-            package (ignored because function takes precedence)
-              "user32.dll"
           frame*
             function*
               "stripped_application_code"
@@ -307,18 +285,12 @@ system:
               "purevirt.cpp"
             function*
               "_purecall"
-            package (ignored because function takes precedence)
-              "vcruntime140.dll"
           frame (ignored by stack trace rule (category:internals -group))
             function*
               "abort"
-            package (ignored because function takes precedence)
-              "ucrtbase.dll"
           frame* (marked as prefix frame by stack trace rule (category:throw +prefix ^-group))
             function*
               "raise"
-            package (ignored because function takes precedence)
-              "ucrtbase.dll"
           frame (ignored by stack trace rule (category:throw +prefix ^-group))
             filename (discarded native filename for grouping stability)
               "crashpad_client_win.cc"
