@@ -1,5 +1,5 @@
 import {useTheme} from '@emotion/react';
-import moment from 'moment';
+import moment from 'moment-timezone';
 
 import ChartZoom from 'sentry/components/charts/chartZoom';
 import ErrorPanel from 'sentry/components/charts/errorPanel';
@@ -12,8 +12,9 @@ import Panel from 'sentry/components/panels/panel';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import {IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import type {DateString, MetricsApiResponse} from 'sentry/types';
+import type {DateString} from 'sentry/types/core';
 import type {Series} from 'sentry/types/echarts';
+import type {MetricsApiResponse} from 'sentry/types/metrics';
 import {browserHistory} from 'sentry/utils/browserHistory';
 import type {WebVital} from 'sentry/utils/fields';
 import getDynamicText from 'sentry/utils/getDynamicText';

@@ -41,12 +41,22 @@ ISSUE_STATE_CONDITIONS = [
     "sentry.rules.conditions.first_seen_event.FirstSeenEventCondition",
     "sentry.rules.conditions.regression_event.RegressionEventCondition",
     "sentry.rules.conditions.reappeared_event.ReappearedEventCondition",
+    "sentry.rules.conditions.high_priority_issue.NewHighPriorityIssueCondition",
+    "sentry.rules.conditions.high_priority_issue.ExistingHighPriorityIssueCondition",
 ]
 FREQUENCY_CONDITIONS = [
     "sentry.rules.conditions.event_frequency.EventFrequencyCondition",
     "sentry.rules.conditions.event_frequency.EventUniqueUserFrequencyCondition",
     "sentry.rules.conditions.event_frequency.EventFrequencyPercentCondition",
 ]
+
+# Most of the ISSUE_STATE_CONDITIONS are mutually exclusive, except for the following pairs.
+VALID_CONDITION_PAIRS = {
+    "sentry.rules.conditions.first_seen_event.FirstSeenEventCondition": "sentry.rules.conditions.high_priority_issue.NewHighPriorityIssueCondition",
+    "sentry.rules.conditions.high_priority_issue.NewHighPriorityIssueCondition": "sentry.rules.conditions.first_seen_event.FirstSeenEventCondition",
+    "sentry.rules.conditions.reappeared_event.ReappearedEventCondition": "sentry.rules.conditions.high_priority_issue.ExistingHighPriorityIssueCondition",
+    "sentry.rules.conditions.high_priority_issue.ExistingHighPriorityIssueCondition": "sentry.rules.conditions.reappeared_event.ReappearedEventCondition",
+}
 
 
 def preview(
@@ -62,13 +72,27 @@ def preview(
     Returns groups that would have triggered the given conditions and filters in the past 2 weeks
     """
     issue_state_conditions, frequency_conditions = categorize_conditions(conditions)
-
     # must have at least one condition to filter activity
     if not issue_state_conditions and not frequency_conditions:
         return None
-    # all the issue state conditions are mutually exclusive
     elif len(issue_state_conditions) > 1 and condition_match == "all":
-        return {}
+        # Of the supported conditions, any more than two would be mutually exclusive
+        if len(issue_state_conditions) > 2:
+            return {}
+
+        condition_ids = {condition["id"] for condition in issue_state_conditions}
+
+        # all the issue state conditions are mutually exclusive
+        if not any(condition in VALID_CONDITION_PAIRS for condition in condition_ids):
+            return {}
+
+        # if there are multiple issue state conditions, they must be one of the valid pairs
+        for condition in condition_ids:
+            if (
+                condition in VALID_CONDITION_PAIRS
+                and VALID_CONDITION_PAIRS[condition] not in condition_ids
+            ):
+                return {}
 
     if end is None:
         end = timezone.now()

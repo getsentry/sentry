@@ -81,9 +81,7 @@ def test_project_template_options(default_project):
     assert default_project.get_option("test_option") == "default"
 
     template = ProjectTemplate.objects.create(
-        name="Test Template",
-        organization=default_project.organization,
-        project=default_project,
+        name="Test Template", organization=default_project.organization
     )
 
     default_project.template = template

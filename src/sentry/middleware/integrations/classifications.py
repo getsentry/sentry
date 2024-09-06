@@ -10,8 +10,8 @@ from django.http import HttpRequest, HttpResponse
 from django.http.response import HttpResponseBase
 from rest_framework import status
 
-from sentry.models.integrations.integration import Integration
-from sentry.models.integrations.organization_integration import OrganizationIntegration
+from sentry.integrations.models.integration import Integration
+from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.utils import metrics
 
 if TYPE_CHECKING:

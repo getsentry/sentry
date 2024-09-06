@@ -251,7 +251,7 @@ export function MetricSamplesTable({
     if (!hasPerformance) {
       return (
         <PerformanceEmptyState withIcon={false}>
-          <p>{t('You need to set up performance monitoring to collect samples.')}</p>
+          <p>{t('You need to set up tracing to collect samples.')}</p>
           <LinkButton
             priority="primary"
             external
@@ -345,7 +345,7 @@ export function MetricSamplesTable({
       onMouseLeave={() => onRowHover?.(undefined)}
     >
       <GridEditable
-        isLoading={enabled && result.isLoading}
+        isLoading={enabled && result.isPending}
         error={enabled && result.isError && supportedMRI}
         data={result.data?.data ?? []}
         columnOrder={getColumnOrder(mri)}
@@ -751,9 +751,12 @@ function ProfileId({
   if (!defined(profileId)) {
     return (
       <Container>
-        <Button href={undefined} disabled size="xs">
-          <IconProfiling size="xs" />
-        </Button>
+        <Button
+          disabled
+          size="xs"
+          icon={<IconProfiling />}
+          aria-label={t('Open Profile')}
+        />
       </Container>
     );
   }

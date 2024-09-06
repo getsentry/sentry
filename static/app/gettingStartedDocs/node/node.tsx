@@ -103,6 +103,8 @@ const onboarding: OnboardingConfig = {
           language: 'javascript',
           code: isPerformanceSelected
             ? `
+const Sentry = require("@sentry/node");
+
 Sentry.startSpan({
   op: "test",
   name: "My First Test Span",
@@ -114,13 +116,13 @@ Sentry.startSpan({
   }
 });`
             : `
-setTimeout(() => {
-  try {
-    foo();
-  } catch (e) {
-    Sentry.captureException(e);
-  }
-}, 99);`,
+const Sentry = require("@sentry/node");
+
+try {
+  foo();
+} catch (e) {
+  Sentry.captureException(e);
+}`,
         },
       ],
     },

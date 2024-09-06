@@ -10,7 +10,7 @@ from sentry.api.serializers import serialize
 from sentry.mediators.external_issues.issue_link_creator import IssueLinkCreator
 from sentry.models.group import Group
 from sentry.models.project import Project
-from sentry.models.user import User
+from sentry.users.models.user import User
 from sentry.users.services.user.serial import serialize_rpc_user
 
 
@@ -32,7 +32,7 @@ def _extract_lazy_object(lo):
 class SentryAppInstallationExternalIssueActionsEndpoint(SentryAppInstallationBaseEndpoint):
     owner = ApiOwner.INTEGRATIONS
     publish_status = {
-        "POST": ApiPublishStatus.UNKNOWN,
+        "POST": ApiPublishStatus.PRIVATE,
     }
 
     def post(self, request: Request, installation) -> Response:

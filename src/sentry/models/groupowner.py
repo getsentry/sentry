@@ -68,9 +68,7 @@ class GroupOwner(Model):
         )
     )
     context: models.Field[dict[str, Any], dict[str, Any]] = JSONField(null=True)
-    user_id: models.Field[int | None, int | None] = HybridCloudForeignKey(
-        settings.AUTH_USER_MODEL, on_delete="CASCADE", null=True
-    )
+    user_id = HybridCloudForeignKey(settings.AUTH_USER_MODEL, on_delete="CASCADE", null=True)
     team = FlexibleForeignKey("sentry.Team", null=True)
     date_added = models.DateTimeField(default=timezone.now)
 
@@ -108,12 +106,15 @@ class GroupOwner(Model):
         """
         Non-cached read access to find the autoassigned GroupOwner.
         """
+
+        # Ordered by date_added as well to ensure that the first GroupOwner is returned
+        # Multiple GroupOwners can be created but they are created in the correct evaluation order, so the first one takes precedence
         issue_owner = (
             cls.objects.filter(
                 group_id=group_id, project_id=project_id, type__in=autoassignment_types
             )
             .exclude(user_id__isnull=True, team_id__isnull=True)
-            .order_by("type")
+            .order_by("type", "date_added")
             .first()
         )
         # should return False if no owner

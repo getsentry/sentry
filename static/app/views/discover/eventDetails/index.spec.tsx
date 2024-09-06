@@ -9,13 +9,14 @@ import {act, render, screen} from 'sentry-test/reactTestingLibrary';
 
 import ProjectsStore from 'sentry/stores/projectsStore';
 import EventView from 'sentry/utils/discover/eventView';
-import {ALL_VIEWS, DEFAULT_EVENT_VIEW} from 'sentry/views/discover/data';
+import {DEFAULT_EVENT_VIEW, getAllViews} from 'sentry/views/discover/data';
 import EventDetails from 'sentry/views/discover/eventDetails';
 
 describe('Discover > EventDetails', function () {
   const allEventsView = EventView.fromSavedQuery(DEFAULT_EVENT_VIEW);
+  const org = OrganizationFixture();
   const errorsView = EventView.fromSavedQuery(
-    ALL_VIEWS.find(view => view.name === 'Errors by Title')!
+    getAllViews(org).find(view => view.name === 'Errors by Title')!
   );
 
   beforeEach(function () {

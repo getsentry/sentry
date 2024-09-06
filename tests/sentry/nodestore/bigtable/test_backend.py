@@ -46,14 +46,23 @@ class MockedBigtableKVStorage(BigtableKVStorage):
         def direct_row(self, key):
             return MockedBigtableKVStorage.Row(self, key)
 
-        def read_row(self, key):
-            return MockedBigtableKVStorage.Row(self, key)
+        def read_row(self, row_key, filter_=None):
+            return MockedBigtableKVStorage.Row(self, row_key)
 
-        def read_rows(self, row_set):
+        def read_rows(
+            self,
+            start_key=None,
+            end_key=None,
+            limit=None,
+            filter_=None,
+            end_inclusive=False,
+            row_set=None,
+            retry=None,
+        ):
             assert not row_set.row_ranges, "unsupported"
             return [self.read_row(key) for key in row_set.row_keys]
 
-        def mutate_rows(self, rows):
+        def mutate_rows(self, rows, retry=None, timeout=None):
             # commits not implemented, changes are applied immediately
             return [Status(code=0) for row in rows]
 
@@ -65,7 +74,7 @@ class MockedBigtableKVStorage(BigtableKVStorage):
 
         return table
 
-    def bootstrap(self, automatic_expiry):
+    def bootstrap(self, automatic_expiry: bool = True) -> None:
         pass
 
 
@@ -98,6 +107,7 @@ def ns(request):
         yield MockedBigtableNodeStorage(project="test")
 
 
+@pytest.mark.django_db
 def test_cache(ns):
     node_1 = ("a" * 32, {"foo": "a"})
     node_2 = ("b" * 32, {"foo": "b"})

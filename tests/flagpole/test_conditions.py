@@ -1,11 +1,7 @@
-from typing import Any
-
 import pytest
-from pydantic import ValidationError
 
 from flagpole import EvaluationContext
 from flagpole.conditions import (
-    ConditionBase,
     ConditionTypeMismatchException,
     ContainsCondition,
     EqualsCondition,
@@ -15,11 +11,9 @@ from flagpole.conditions import (
     NotInCondition,
     create_case_insensitive_set_from_list,
 )
-from sentry.testutils.cases import TestCase
-from sentry.utils import json
 
 
-class TestCreateCaseInsensitiveSetFromList(TestCase):
+class TestCreateCaseInsensitiveSetFromList:
     def test_empty_set(self):
         assert create_case_insensitive_set_from_list([]) == set()
 
@@ -33,41 +27,7 @@ class TestCreateCaseInsensitiveSetFromList(TestCase):
         assert create_case_insensitive_set_from_list(["AbC", "DEF"]) == {"abc", "def"}
 
 
-def assert_valid_types(condition: type[ConditionBase], expected_types: list[Any]):
-    for value in expected_types:
-        condition_dict = dict(property="test", value=value)
-        json_condition = json.dumps(condition_dict)
-        try:
-            parsed_condition = condition.parse_raw(json_condition)
-        except ValidationError as exc:
-            raise AssertionError(
-                f"Expected value `{value}` to be a valid value for condition '{condition}'"
-            ) from exc
-        assert parsed_condition.value == value
-
-
-def assert_invalid_types(condition: type[ConditionBase], invalid_types: list[Any]):
-    for value in invalid_types:
-        json_dict = dict(value=value)
-        condition_json = json.dumps(json_dict)
-        try:
-            condition.parse_raw(condition_json)
-        except ValidationError:
-            continue
-
-        raise AssertionError(
-            f"Expected validation error for value: `{value}` for condition `{condition}`"
-        )
-
-
-class TestInConditions(TestCase):
-    def test_invalid_values(self):
-        with pytest.raises(ValidationError):
-            InCondition(property="foo", value="bar")
-
-        with pytest.raises(ValidationError):
-            InCondition(property="foo", value=1234)
-
+class TestInConditions:
     def test_is_in(self):
         values = ["bar", "baz"]
         condition = InCondition(property="foo", value=values)
@@ -87,7 +47,7 @@ class TestInConditions(TestCase):
 
     def test_is_in_numeric_string(self):
         values = ["123", "456"]
-        condition = InCondition(property="foo", value=values)
+        condition = InCondition(property="foo", value=values, operator="in")
         assert condition.value == values
         assert not condition.match(context=EvaluationContext({"foo": 123}), segment_name="test")
         assert condition.match(context=EvaluationContext({"foo": "123"}), segment_name="test")
@@ -114,22 +74,17 @@ class TestInConditions(TestCase):
         values = ["bar", "baz"]
         condition = InCondition(property="foo", value=values)
 
-        with pytest.raises(ConditionTypeMismatchException):
-            condition.match(context=EvaluationContext({"foo": []}), segment_name="test")
+        bad_context = ([1], {"k": "v"})
+        for attr_val in bad_context:
+            with pytest.raises(ConditionTypeMismatchException):
+                condition.match(context=EvaluationContext({"foo": attr_val}), segment_name="test")
 
         not_condition = NotInCondition(property="foo", value=values)
-        with pytest.raises(ConditionTypeMismatchException):
-            not_condition.match(context=EvaluationContext({"foo": []}), segment_name="test")
-
-    def test_valid_json_and_reparse(self):
-        values = [["foo", "bar"], [1, 2], [1.1, 2.2], []]
-        assert_valid_types(condition=InCondition, expected_types=values)
-        assert_valid_types(condition=NotInCondition, expected_types=values)
-
-    def test_invalid_value_type_parsing(self):
-        values = ["abc", 1, 2.2, True, None, ["a", 1], [True], [[]], [1, 2.2], [1.1, "2.2"]]
-        assert_invalid_types(condition=InCondition, invalid_types=values)
-        assert_invalid_types(condition=NotInCondition, invalid_types=values)
+        for attr_val in bad_context:
+            with pytest.raises(ConditionTypeMismatchException):
+                not_condition.match(
+                    context=EvaluationContext({"foo": attr_val}), segment_name="test"
+                )
 
     def test_missing_context_property(self):
         values = ["bar", "baz"]
@@ -144,7 +99,7 @@ class TestInConditions(TestCase):
         )
 
 
-class TestContainsConditions(TestCase):
+class TestContainsConditions:
     def test_does_contain(self):
         condition = ContainsCondition(property="foo", value="bar")
         assert condition.match(
@@ -162,7 +117,7 @@ class TestContainsConditions(TestCase):
 
     def test_does_not_contain(self):
         values = "baz"
-        condition = ContainsCondition(property="foo", value=values)
+        condition = ContainsCondition(property="foo", value=values, operator="contains")
         assert not condition.match(
             context=EvaluationContext({"foo": ["foo", "bar"]}), segment_name="test"
         )
@@ -174,33 +129,21 @@ class TestContainsConditions(TestCase):
 
     def test_invalid_property_provided(self):
         values = "baz"
+        bad_context = ("oops", "1", 1, 3.14, None, False, True)
 
-        with pytest.raises(ConditionTypeMismatchException):
-            condition = ContainsCondition(property="foo", value=values)
-            assert not condition.match(
-                context=EvaluationContext({"foo": "oops"}), segment_name="test"
-            )
+        for attr_val in bad_context:
+            with pytest.raises(ConditionTypeMismatchException):
+                condition = ContainsCondition(property="foo", value=values)
+                assert not condition.match(
+                    context=EvaluationContext({"foo": attr_val}), segment_name="test"
+                )
 
-        with pytest.raises(ConditionTypeMismatchException):
-            not_condition = NotContainsCondition(property="foo", value=values)
-            assert not_condition.match(
-                context=EvaluationContext({"foo": "oops"}), segment_name="test"
-            )
-
-    def test_valid_json_parsing_with_types(self):
-        values = [1, 2.2, "abc"]
-        assert_valid_types(condition=ContainsCondition, expected_types=values)
-        assert_valid_types(condition=NotContainsCondition, expected_types=values)
-
-    def test_invalid_value_type_parsing(self):
-        values: list[Any] = [
-            None,
-            [],
-            dict(foo="bar"),
-            [[]],
-        ]
-        assert_invalid_types(condition=ContainsCondition, invalid_types=values)
-        assert_invalid_types(condition=NotContainsCondition, invalid_types=values)
+        for attr_val in bad_context:
+            with pytest.raises(ConditionTypeMismatchException):
+                not_condition = NotContainsCondition(property="foo", value=values)
+                assert not_condition.match(
+                    context=EvaluationContext({"foo": attr_val}), segment_name="test"
+                )
 
     def test_missing_context_property(self):
         condition = ContainsCondition(property="foo", value="bar")
@@ -216,7 +159,7 @@ class TestContainsConditions(TestCase):
             )
 
 
-class TestEqualsConditions(TestCase):
+class TestEqualsConditions:
     def test_is_equal_string(self):
         value = "foo"
         condition = EqualsCondition(property="foo", value=value)
@@ -247,7 +190,7 @@ class TestEqualsConditions(TestCase):
 
     def test_equality_type_mismatch_strings(self):
         values = ["foo", "bar"]
-        condition = EqualsCondition(property="foo", value=values)
+        condition = EqualsCondition(property="foo", value=values, operator="equals")
 
         with pytest.raises(ConditionTypeMismatchException):
             condition.match(context=EvaluationContext({"foo": "foo"}), segment_name="test")
@@ -255,37 +198,3 @@ class TestEqualsConditions(TestCase):
         not_condition = NotEqualsCondition(property="foo", value=values)
         with pytest.raises(ConditionTypeMismatchException):
             not_condition.match(context=EvaluationContext({"foo": "foo"}), segment_name="test")
-
-    def test_valid_json_parsing_with_types(self):
-        values = [1, 2.2, "abc", True, False, [], ["foo"], [1], [1.1]]
-        assert_valid_types(condition=EqualsCondition, expected_types=values)
-        assert_valid_types(condition=NotEqualsCondition, expected_types=values)
-
-    def test_invalid_value_type_parsing(self):
-        values = [None, dict(foo="bar")]
-        assert_invalid_types(condition=EqualsCondition, invalid_types=values)
-        assert_invalid_types(condition=NotEqualsCondition, invalid_types=values)
-
-    def test_with_missing_context_property(self):
-        value = "foo"
-        condition = EqualsCondition(property="foo", value=value, strict_validation=True)
-
-        with pytest.raises(ConditionTypeMismatchException):
-            condition.match(context=EvaluationContext({"bar": value}), segment_name="test")
-
-        not_condition = NotEqualsCondition(property="foo", value=value, strict_validation=True)
-
-        with pytest.raises(ConditionTypeMismatchException):
-            not_condition.match(context=EvaluationContext({"bar": value}), segment_name="test")
-
-        # Test non-strict validation for both conditions
-        condition = EqualsCondition(property="foo", value=value)
-        assert (
-            condition.match(context=EvaluationContext({"bar": value}), segment_name="test") is False
-        )
-
-        not_condition = NotEqualsCondition(property="foo", value=value)
-        assert (
-            not_condition.match(context=EvaluationContext({"bar": value}), segment_name="test")
-            is True
-        )

@@ -6,16 +6,12 @@ import type {Frame} from '../frame';
 import {Profile} from './profile';
 
 export class ContinuousProfile extends Profile {
-  static FromChunk(
-    chunk: Profiling.SentryContinousProfileChunk,
+  static FromProfile(
+    chunk: Profiling.ContinuousProfile,
     frameIndex: ReturnType<typeof createContinuousProfileFrameIndex>
-  ): Profile {
-    if (chunk.profile.samples.length <= 1) {
-      return Profile.Empty;
-    }
-
-    const firstSample = chunk.profile.samples[0];
-    const lastSample = chunk.profile.samples[chunk.profile.samples.length - 1];
+  ): ContinuousProfile {
+    const firstSample = chunk.samples[0];
+    const lastSample = chunk.samples[chunk.samples.length - 1];
 
     const duration = lastSample.timestamp - firstSample.timestamp;
     const {threadId, threadName} = getThreadData(chunk);
@@ -41,15 +37,14 @@ export class ContinuousProfile extends Profile {
     let frame: Frame | null = null;
     const resolvedStack: Frame[] = new Array(256); // stack size limit
 
-    for (let i = 0; i < chunk.profile.samples.length; i++) {
-      const sample = chunk.profile.samples[i];
-      const nextSampleTimestamp =
-        chunk.profile.samples[i + 1]?.timestamp ?? sample.timestamp;
+    for (let i = 0; i < chunk.samples.length; i++) {
+      const sample = chunk.samples[i];
+      const nextSampleTimestamp = chunk.samples[i + 1]?.timestamp ?? sample.timestamp;
 
-      const stack = chunk.profile.stacks[sample.stack_id];
+      const stack = chunk.stacks[sample.stack_id];
       let size = 0;
 
-      for (let j = 0; j < stack.length; j++) {
+      for (let j = stack.length - 1; j >= 0; j--) {
         frame = resolveFrame(stack[j]);
         if (frame) resolvedStack[size++] = frame;
       }
@@ -158,18 +153,16 @@ export class ContinuousProfile extends Profile {
   }
 }
 
-function getThreadData(profile: Profiling.SentryContinousProfileChunk): {
+function getThreadData(profile: Profiling.ContinuousProfile): {
   threadId: number;
   threadName: string;
 } {
-  const {samples, thread_metadata = {}} = profile.profile;
+  const {samples, thread_metadata = {}} = profile;
   const sample = samples[0];
   const threadId = parseInt(sample.thread_id, 10);
-  const threadName = thread_metadata?.[threadId]?.name;
 
-  if (threadName) {
-    return {threadId, threadName};
-  }
-
-  return {threadId, threadName: ''};
+  return {
+    threadId,
+    threadName: thread_metadata?.[threadId]?.name ?? `Thread ${threadId}`,
+  };
 }

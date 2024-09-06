@@ -43,6 +43,7 @@ for cmd in map(
         "sentry.runner.commands.cleanup.cleanup",
         "sentry.runner.commands.config.config",
         "sentry.runner.commands.configoptions.configoptions",
+        "sentry.runner.commands.createflag.createflag",
         "sentry.runner.commands.createuser.createuser",
         "sentry.runner.commands.devserver.devserver",
         "sentry.runner.commands.django.django",

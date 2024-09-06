@@ -22,7 +22,7 @@ from sentry.api.serializers import serialize
 from sentry.models.files.file import File
 from sentry.models.relocation import Relocation, RelocationFile
 from sentry.signals import relocation_retry_link_promo_code
-from sentry.tasks.relocation import uploading_complete
+from sentry.tasks.relocation import uploading_start
 from sentry.users.services.user.service import user_service
 from sentry.utils.db import atomic_transaction
 
@@ -125,7 +125,7 @@ class RelocationRetryEndpoint(Endpoint):
                 kind=RelocationFile.Kind.RAW_USER_DATA.value,
             )
 
-        uploading_complete.delay(new_relocation.uuid)
+        uploading_start.delay(new_relocation.uuid, None, None)
         try:
             analytics.record(
                 "relocation.created",

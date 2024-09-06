@@ -1,6 +1,5 @@
-import {type Theme, useTheme} from '@emotion/react';
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
-import Color from 'color';
 import type {
   BarSeriesOption,
   LegendComponentOption,
@@ -8,7 +7,7 @@ import type {
   TooltipComponentOption,
 } from 'echarts';
 
-import BaseChart from 'sentry/components/charts/baseChart';
+import BaseChart, {type BaseChartProps} from 'sentry/components/charts/baseChart';
 import Legend from 'sentry/components/charts/components/legend';
 import xAxis from 'sentry/components/charts/components/xAxis';
 import barSeries from 'sentry/components/charts/series/barSeries';
@@ -21,26 +20,15 @@ import {IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {DataCategoryInfo, IntervalPeriod, SelectValue} from 'sentry/types/core';
+import {Outcome} from 'sentry/types/core';
 import {parsePeriodToHours} from 'sentry/utils/duration/parsePeriodToHours';
 import {statsPeriodToDays} from 'sentry/utils/duration/statsPeriodToDays';
-import commonTheme from 'sentry/utils/theme';
 
 import {formatUsageWithUnits} from '../utils';
 
-import {getTooltipFormatter, getXAxisDates, getXAxisLabelInterval} from './utils';
+import {getTooltipFormatter, getXAxisDates, getXAxisLabelVisibility} from './utils';
 
 const GIGABYTE = 10 ** 9;
-
-const COLOR_ERRORS = Color(commonTheme.dataCategory.errors).lighten(0.25).string();
-const COLOR_TRANSACTIONS = Color(commonTheme.dataCategory.transactions)
-  .lighten(0.35)
-  .string();
-const COLOR_ATTACHMENTS = Color(commonTheme.dataCategory.attachments)
-  .lighten(0.65)
-  .string();
-
-const COLOR_DROPPED = commonTheme.red300;
-const COLOR_FILTERED = commonTheme.pink100;
 
 export type CategoryOption = {
   /**
@@ -118,30 +106,28 @@ export const CHART_OPTIONS_DATA_TRANSFORM: SelectValue<ChartDataTransform>[] = [
   },
 ];
 
-const enum SeriesTypes {
+export const enum SeriesTypes {
   ACCEPTED = 'Accepted',
-  DROPPED = 'Dropped',
-  PROJECTED = 'Projected',
   FILTERED = 'Filtered',
+  RATE_LIMITED = 'Rate Limited',
+  INVALID = 'Invalid',
+  CLIENT_DISCARD = 'Client Discard',
+  PROJECTED = 'Projected',
 }
 
 export type UsageChartProps = {
   dataCategory: DataCategoryInfo['plural'];
-
   dataTransform: ChartDataTransform;
   usageDateEnd: string;
-
   usageDateStart: string;
   /**
    * Usage data to draw on chart
    */
   usageStats: ChartStats;
-
   /**
    * Override chart colors for each outcome
    */
   categoryColors?: string[];
-
   /**
    * Config for category dropdown options
    */
@@ -150,13 +136,11 @@ export type UsageChartProps = {
    * Additional data to draw on the chart alongside usage
    */
   chartSeries?: SeriesOption[];
-
   /**
    * Replace default tooltip
    */
   chartTooltip?: TooltipComponentOption;
   errors?: Record<string, Error>;
-
   /**
    * Modify the usageStats using the transformation method selected.
    * If the parent component will handle the data transformation, you should
@@ -166,15 +150,18 @@ export type UsageChartProps = {
     stats: Readonly<ChartStats>,
     transform: Readonly<ChartDataTransform>
   ) => ChartStats;
-
   isError?: boolean;
   isLoading?: boolean;
-
+  /**
+   * Selected map of each legend item.
+   * Default to be selected if item is not in the map
+   */
+  legendSelected?: Record<string, boolean>;
+  onLegendSelectChanged?: BaseChartProps['onLegendSelectChanged'];
   /**
    * Intervals between the x-axis values
    */
   usageDateInterval?: IntervalPeriod;
-
   /**
    * Display datetime in UTC
    */
@@ -192,9 +179,11 @@ const cumulativeTotalDataTransformation: UsageChartProps['handleDataTransformati
 ) => {
   const chartData: ChartStats = {
     accepted: [],
-    dropped: [],
-    projected: [],
     filtered: [],
+    rateLimited: [],
+    invalid: [],
+    clientDiscard: [],
+    projected: [],
     reserved: [],
     onDemand: [],
   };
@@ -226,10 +215,13 @@ const getUnitYaxisFormatter =
 
 export type ChartStats = {
   accepted: NonNullable<BarSeriesOption['data']>;
-  dropped: NonNullable<BarSeriesOption['data']>;
   projected: NonNullable<BarSeriesOption['data']>;
+  clientDiscard?: NonNullable<BarSeriesOption['data']>;
+  dropped?: NonNullable<BarSeriesOption['data']>;
   filtered?: NonNullable<BarSeriesOption['data']>;
+  invalid?: NonNullable<BarSeriesOption['data']>;
   onDemand?: NonNullable<BarSeriesOption['data']>;
+  rateLimited?: NonNullable<BarSeriesOption['data']>;
   reserved?: NonNullable<BarSeriesOption['data']>;
 };
 
@@ -261,8 +253,7 @@ function chartMetadata({
   chartLabel: React.ReactNode;
   tooltipValueFormatter: (val?: number) => string;
   xAxisData: string[];
-  xAxisLabelInterval: number;
-  xAxisTickInterval: number;
+  xAxisLabelVisibility: Record<number, boolean>;
   yAxisMinInterval: number;
 } {
   const selectDataCategory = categoryOptions.find(o => o.value === dataCategory);
@@ -295,11 +286,6 @@ function chartMetadata({
     throw new Error('UsageChart: Unable to parse data time period');
   }
 
-  const {xAxisTickInterval, xAxisLabelInterval} = getXAxisLabelInterval(
-    dataPeriod,
-    dataPeriod / barPeriod
-  );
-
   const {label, yAxisMinInterval} = selectDataCategory;
 
   /**
@@ -316,29 +302,16 @@ function chartMetadata({
     usageDateInterval
   );
 
+  const {xAxisLabelVisibility} = getXAxisLabelVisibility(dataPeriod, xAxisDates);
+
   return {
     chartLabel: label,
     chartData,
     xAxisData: xAxisDates,
-    xAxisTickInterval,
-    xAxisLabelInterval,
+    xAxisLabelVisibility,
     yAxisMinInterval,
     tooltipValueFormatter: getTooltipFormatter(dataCategory),
   };
-}
-
-function chartColors(theme: Theme, dataCategory: UsageChartProps['dataCategory']) {
-  const COLOR_PROJECTED = theme.chartOther;
-
-  if (dataCategory === DATA_CATEGORY_INFO.error.plural) {
-    return [COLOR_ERRORS, COLOR_FILTERED, COLOR_DROPPED, COLOR_PROJECTED];
-  }
-
-  if (dataCategory === DATA_CATEGORY_INFO.attachment.plural) {
-    return [COLOR_ATTACHMENTS, COLOR_FILTERED, COLOR_DROPPED, COLOR_PROJECTED];
-  }
-
-  return [COLOR_TRANSACTIONS, COLOR_FILTERED, COLOR_DROPPED, COLOR_PROJECTED];
 }
 
 function UsageChartBody({
@@ -358,6 +331,8 @@ function UsageChartBody({
   usageDateShowUtc = true,
   yAxisFormatter,
   handleDataTransformation = cumulativeTotalDataTransformation,
+  legendSelected,
+  onLegendSelectChanged,
 }: UsageChartProps) {
   const theme = useTheme();
 
@@ -387,9 +362,8 @@ function UsageChartBody({
     chartData,
     tooltipValueFormatter,
     xAxisData,
-    xAxisTickInterval,
-    xAxisLabelInterval,
     yAxisMinInterval,
+    xAxisLabelVisibility,
   } = chartMetadata({
     categoryOptions,
     dataCategory,
@@ -401,34 +375,31 @@ function UsageChartBody({
     usageDateInterval,
     usageDateShowUtc,
   });
+  function chartLegendData(): LegendComponentOption['data'] {
+    const legend: LegendComponentOption['data'] = [];
 
-  function chartLegendData() {
-    const legend: LegendComponentOption['data'] = [
-      ...(chartData.reserved && chartData.reserved.length > 0
-        ? []
-        : [
-            {
-              name: SeriesTypes.ACCEPTED,
-            },
-          ]),
-    ];
-
-    if (chartData.filtered && chartData.filtered.length > 0) {
-      legend.push({
-        name: SeriesTypes.FILTERED,
-      });
+    if (!chartData.reserved || chartData.reserved.length === 0) {
+      legend.push({name: SeriesTypes.ACCEPTED});
     }
 
-    if (chartData.dropped.length > 0) {
-      legend.push({
-        name: SeriesTypes.DROPPED,
-      });
+    if ((chartData.filtered ?? []).length > 0) {
+      legend.push({name: SeriesTypes.FILTERED});
+    }
+
+    if ((chartData.rateLimited ?? []).length > 0) {
+      legend.push({name: SeriesTypes.RATE_LIMITED});
+    }
+
+    if ((chartData.invalid ?? []).length > 0) {
+      legend.push({name: SeriesTypes.INVALID});
+    }
+
+    if ((chartData.clientDiscard ?? []).length > 0) {
+      legend.push({name: SeriesTypes.CLIENT_DISCARD});
     }
 
     if (chartData.projected.length > 0) {
-      legend.push({
-        name: SeriesTypes.PROJECTED,
-      });
+      legend.push({name: SeriesTypes.PROJECTED});
     }
 
     if (chartSeries) {
@@ -444,7 +415,14 @@ function UsageChartBody({
 
   const colors = categoryColors?.length
     ? categoryColors
-    : chartColors(theme, dataCategory);
+    : [
+        theme.outcome[Outcome.ACCEPTED],
+        theme.outcome[Outcome.FILTERED],
+        theme.outcome[Outcome.RATE_LIMITED],
+        theme.outcome[Outcome.INVALID],
+        theme.outcome[Outcome.CLIENT_DISCARD],
+        theme.chartOther, // Projected
+      ];
 
   const series: SeriesOption[] = [
     barSeries({
@@ -462,8 +440,21 @@ function UsageChartBody({
       legendHoverLink: false,
     }),
     barSeries({
-      name: SeriesTypes.DROPPED,
-      data: chartData.dropped,
+      name: SeriesTypes.RATE_LIMITED,
+      data: chartData.rateLimited,
+      barMinHeight: 1,
+      stack: 'usage',
+      legendHoverLink: false,
+    }),
+    barSeries({
+      name: SeriesTypes.INVALID,
+      data: chartData.invalid,
+      stack: 'usage',
+      legendHoverLink: false,
+    }),
+    barSeries({
+      name: SeriesTypes.CLIENT_DISCARD,
+      data: chartData.clientDiscard,
       stack: 'usage',
       legendHoverLink: false,
     }),
@@ -488,11 +479,12 @@ function UsageChartBody({
         name: 'Date',
         data: xAxisData,
         axisTick: {
-          interval: xAxisTickInterval,
           alignWithLabel: true,
         },
         axisLabel: {
-          interval: xAxisLabelInterval,
+          interval: function (index: number) {
+            return xAxisLabelVisibility[index];
+          },
           formatter: (label: string) => label.slice(0, 6), // Limit label to 6 chars
         },
         theme,
@@ -516,12 +508,13 @@ function UsageChartBody({
               valueFormatter: tooltipValueFormatter,
             }
       }
-      onLegendSelectChanged={() => {}}
+      onLegendSelectChanged={onLegendSelectChanged}
       legend={Legend({
         right: 10,
         top: 5,
         data: chartLegendData(),
         theme,
+        selected: legendSelected,
       })}
     />
   );

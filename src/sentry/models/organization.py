@@ -14,7 +14,9 @@ from django.utils.functional import cached_property
 from bitfield import TypedClassBitField
 from sentry import features, roles
 from sentry.app import env
-from sentry.backup.scopes import RelocationScope
+from sentry.backup.dependencies import PrimaryKeyMap
+from sentry.backup.helpers import ImportFlags
+from sentry.backup.scopes import ImportScope, RelocationScope
 from sentry.constants import (
     ALERTS_MEMBER_WRITE_DEFAULT,
     EVENTS_MEMBER_ADMIN_DEFAULT,
@@ -23,15 +25,15 @@ from sentry.constants import (
 from sentry.db.models import BoundedPositiveIntegerField, region_silo_model, sane_repr
 from sentry.db.models.fields.slug import SentryOrgSlugField
 from sentry.db.models.manager.base import BaseManager
-from sentry.db.models.outboxes import ReplicatedRegionModel
 from sentry.db.models.utils import slugify_instance
 from sentry.db.postgres.transactions import in_test_hide_transaction_boundary
+from sentry.hybridcloud.outbox.base import ReplicatedRegionModel
+from sentry.hybridcloud.outbox.category import OutboxCategory
 from sentry.hybridcloud.services.organization_mapping import organization_mapping_service
 from sentry.locks import locks
-from sentry.models.outbox import OutboxCategory
 from sentry.notifications.services import notifications_service
+from sentry.organizations.absolute_url import has_customer_domain, organization_absolute_url
 from sentry.roles.manager import Role
-from sentry.types.organization import OrganizationAbsoluteUrlMixin
 from sentry.users.services.user import RpcUser, RpcUserProfile
 from sentry.users.services.user.service import user_service
 from sentry.utils.http import is_using_customer_domain
@@ -143,7 +145,7 @@ class OrganizationManager(BaseManager["Organization"]):
 
 @snowflake_id_model
 @region_silo_model
-class Organization(ReplicatedRegionModel, OrganizationAbsoluteUrlMixin):
+class Organization(ReplicatedRegionModel):
     """
     An organization represents a group of individuals which maintain ownership of projects.
     """
@@ -195,6 +197,12 @@ class Organization(ReplicatedRegionModel, OrganizationAbsoluteUrlMixin):
 
         # Disable org-members from creating new projects
         disable_member_project_creation: bool
+
+        # Prevent superuser access to an organization
+        prevent_superuser_access: bool
+
+        # Disable org-members from inviting members
+        disable_member_invite: bool
 
         bitfield_default = 1
 
@@ -252,10 +260,10 @@ class Organization(ReplicatedRegionModel, OrganizationAbsoluteUrlMixin):
     def reserve_snowflake_id(cls):
         return generate_snowflake_id(cls.snowflake_redis_key)
 
-    def delete(self, **kwargs):
+    def delete(self, *args, **kwargs):
         if self.is_default:
             raise Exception("You cannot delete the default organization.")
-        return super().delete(**kwargs)
+        return super().delete(*args, **kwargs)
 
     def handle_async_replication(self, shard_identifier: int) -> None:
         from sentry.hybridcloud.services.organization_mapping.serial import (
@@ -352,7 +360,7 @@ class Organization(ReplicatedRegionModel, OrganizationAbsoluteUrlMixin):
                 organization_id__in=org_ids_to_query, role=roles.get_top_dog().id
             ).values_list("organization_id", "user_id")
 
-            for (org_id, user_id) in queried_owner_ids:
+            for org_id, user_id in queried_owner_ids:
                 # An org may have multiple owners. Here we mimic the behavior of
                 # `get_default_owner`, which is to use the first one in the query
                 # result's iteration order.
@@ -462,6 +470,28 @@ class Organization(ReplicatedRegionModel, OrganizationAbsoluteUrlMixin):
         except NoReverseMatch:
             return reverse(Organization.get_url_viewname())
 
+    @cached_property
+    def __has_customer_domain(self) -> bool:
+        """
+        Check if the current organization is using or has access to customer domains.
+        """
+        return has_customer_domain()
+
+    def absolute_url(self, path: str, query: str | None = None, fragment: str | None = None) -> str:
+        """
+        Get an absolute URL to `path` for this organization.
+
+        This method takes customer-domains into account and will update the path when
+        customer-domains are active.
+        """
+        return organization_absolute_url(
+            has_customer_domain=self.__has_customer_domain,
+            slug=self.slug,
+            path=path,
+            query=query,
+            fragment=fragment,
+        )
+
     def get_scopes(self, role: Role) -> frozenset[str]:
         """
         Note that scopes for team-roles are filtered through this method too.
@@ -486,3 +516,13 @@ class Organization(ReplicatedRegionModel, OrganizationAbsoluteUrlMixin):
 
     def delete_option(self, key: str) -> None:
         self.option_manager.unset_value(self, key)
+
+    def normalize_before_relocation_import(
+        self, pk_map: PrimaryKeyMap, scope: ImportScope, flags: ImportFlags
+    ) -> int | None:
+        old_pk = super().normalize_before_relocation_import(pk_map, scope, flags)
+        if old_pk is None:
+            return None
+        if flags.hide_organizations:
+            self.status = OrganizationStatus.RELOCATION_PENDING_APPROVAL
+        return old_pk

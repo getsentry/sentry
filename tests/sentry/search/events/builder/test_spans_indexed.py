@@ -1,7 +1,8 @@
 from datetime import datetime, timedelta, timezone
+from itertools import chain
 
 import pytest
-from snuba_sdk import AliasedExpression, And, Column, Condition, Function, Op
+from snuba_sdk import AliasedExpression, And, Column, Condition, Function, Op, Or
 
 from sentry.exceptions import InvalidSearchQuery
 from sentry.search.events.builder.spans_indexed import (
@@ -403,43 +404,108 @@ def test_free_text_search(params, query, expected):
 
 
 @pytest.mark.parametrize(
-    ["column", "query", "message"],
+    ["column"],
+    [pytest.param(column) for column in chain(SPAN_ID_FIELDS, SPAN_UUID_FIELDS)],
+)
+@pytest.mark.parametrize(
+    ["query", "message"],
     [
-        pytest.param(column, f"{column}:bad_span_id", "valid 16 character hex", id=column)
-        for column in SPAN_ID_FIELDS
-    ]
-    + [
-        pytest.param(
-            column,
-            f"{column}:*wild*card*",
-            "Wildcard conditions are not permitted",
-            id=column,
-        )
-        for column in SPAN_ID_FIELDS
-    ]
-    + [
-        pytest.param(column, f"{column}:bad_span_id", "valid UUID hex", id=column)
-        for column in SPAN_UUID_FIELDS
-    ]
-    + [
-        pytest.param(
-            column,
-            f"{column}:*wild*card*",
-            "Wildcard conditions are not permitted",
-            id=column,
-        )
-        for column in SPAN_UUID_FIELDS
+        pytest.param("bad_span_id", "must be a valid", id="bad span id"),
+        pytest.param("*wild*card*", "Wildcard conditions are not permitted", id="wildcard"),
     ],
 )
 @django_db_all
-def test_column_validation_failed(params, column, query, message):
+def test_id_column_validation_failed(params, column, query, message):
     with pytest.raises(InvalidSearchQuery) as err:
         SpansIndexedQueryBuilder(
             Dataset.SpansIndexed,
             params,
-            query=query,
+            query=f"{column}:{query}",
             selected_columns=["count"],
         )
 
     assert message in str(err)
     assert f"`{column}`" in str(err)
+
+
+@pytest.mark.parametrize(
+    ["column"],
+    [pytest.param(column) for column in ["profile.id", "profile_id"]],
+)
+@django_db_all
+def test_profile_id_column_has(params, column):
+    builder = SpansIndexedQueryBuilder(
+        Dataset.SpansIndexed,
+        params,
+        query=f"has:{column}",
+        selected_columns=["count"],
+    )
+
+    assert (
+        Condition(
+            Function("isNull", [Column("profile_id")]),
+            Op.NEQ,
+            1,
+        )
+        in builder.where
+    )
+
+
+@pytest.mark.parametrize(
+    ["column", "query"],
+    [pytest.param(column, "0" * 32, id=column) for column in SPAN_UUID_FIELDS]
+    + [pytest.param(column, "0" * 16, id=column) for column in SPAN_ID_FIELDS]
+    + [pytest.param(column, "0" * 10, id=column) for column in SPAN_ID_FIELDS],
+)
+@pytest.mark.parametrize(
+    ["operator"],
+    [pytest.param("", id="IN"), pytest.param("!", id="NOT IN")],
+)
+@django_db_all
+def test_id_column_permit_in_operator(params, column, query, operator):
+    builder = SpansIndexedQueryBuilder(
+        Dataset.SpansIndexed,
+        params,
+        query=f"{operator}{column}:[{query}]",
+        selected_columns=["count"],
+    )
+
+    resolved_column = builder.resolve_column(column)
+
+    condition = Condition(
+        resolved_column,
+        Op.IN if operator == "" else Op.NOT_IN,
+        [query],
+    )
+
+    nullable_condition = Or(
+        conditions=[
+            Condition(Function("isNull", [resolved_column]), Op.EQ, 1),
+            condition,
+        ],
+    )
+
+    non_nullable_condition = Condition(
+        Function("ifNull", [resolved_column, ""]),
+        Op.IN if operator == "" else Op.NOT_IN,
+        [query],
+    )
+
+    assert (
+        condition in builder.where
+        or nullable_condition in builder.where
+        or non_nullable_condition in builder.where
+    )
+
+
+@django_db_all
+def test_span_module_optimization_where_clause(params):
+    builder = SpansIndexedQueryBuilder(
+        Dataset.SpansIndexed,
+        params,
+        query="span.module:http",
+        selected_columns=["count"],
+    )
+
+    condition = Condition(builder.resolve_field("sentry_tags[category]"), Op.EQ, "http")
+    assert condition in builder.where

@@ -1,5 +1,5 @@
 ---
-created: '2024-07-01T10:56:29.969796+00:00'
+created: '2024-08-13T18:47:42.048211+00:00'
 creator: sentry
 source: tests/sentry/backup/test_comparators.py
 ---
@@ -390,6 +390,11 @@ source: tests/sentry/backup/test_comparators.py
 - comparators:
   - class: ForeignKeyComparator
     fields:
+    - organization
+  model_name: sentry.datasecrecywaiver
+- comparators:
+  - class: ForeignKeyComparator
+    fields:
     - artifact_bundle
     - organization_id
   model_name: sentry.debugidartifactbundle
@@ -470,12 +475,6 @@ source: tests/sentry/backup/test_comparators.py
     - group_id
     - project_id
   model_name: sentry.eventattachment
-- comparators:
-  - class: ForeignKeyComparator
-    fields:
-    - processing_issue
-    - raw_event
-  model_name: sentry.eventprocessingissue
 - comparators:
   - class: ForeignKeyComparator
     fields:
@@ -575,6 +574,11 @@ source: tests/sentry/backup/test_comparators.py
     - group_tombstone_id
     - project
   model_name: sentry.grouphash
+- comparators:
+  - class: ForeignKeyComparator
+    fields:
+    - grouphash
+  model_name: sentry.grouphashmetadata
 - comparators:
   - class: ForeignKeyComparator
     fields:
@@ -1013,11 +1017,6 @@ source: tests/sentry/backup/test_comparators.py
 - comparators:
   - class: ForeignKeyComparator
     fields:
-    - project
-  model_name: sentry.processingissue
-- comparators:
-  - class: ForeignKeyComparator
-    fields:
     - organization_id
     - project_debug_file
     - project_id
@@ -1175,11 +1174,6 @@ source: tests/sentry/backup/test_comparators.py
 - comparators:
   - class: ForeignKeyComparator
     fields:
-    - project
-  model_name: sentry.rawevent
-- comparators:
-  - class: ForeignKeyComparator
-    fields:
     - organization
     - user_id
   model_name: sentry.recentsearch
@@ -1333,11 +1327,6 @@ source: tests/sentry/backup/test_comparators.py
     - project
     - repository
   model_name: sentry.repositoryprojectpathconfig
-- comparators:
-  - class: ForeignKeyComparator
-    fields:
-    - project
-  model_name: sentry.reprocessingreport
 - comparators:
   - class: ForeignKeyComparator
     fields:
@@ -1633,6 +1622,8 @@ source: tests/sentry/backup/test_comparators.py
 - comparators:
   - class: ForeignKeyComparator
     fields:
+    - owner_team
+    - owner_user_id
     - project
     - uptime_subscription
   model_name: uptime.projectuptimesubscription

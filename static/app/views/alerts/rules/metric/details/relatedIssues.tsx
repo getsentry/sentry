@@ -1,7 +1,7 @@
 import {Fragment, useEffect} from 'react';
 import styled from '@emotion/styled';
 
-import {Button} from 'sentry/components/button';
+import {LinkButton} from 'sentry/components/button';
 import {SectionHeading} from 'sentry/components/charts/styles';
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
 import GroupList from 'sentry/components/issues/groupList';
@@ -10,7 +10,8 @@ import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {OrganizationSummary, Project} from 'sentry/types';
+import type {Organization} from 'sentry/types/organization';
+import type {Project} from 'sentry/types/project';
 import useRouter from 'sentry/utils/useRouter';
 import {
   RELATED_ISSUES_BOOLEAN_QUERY_ERROR,
@@ -23,7 +24,7 @@ import {isSessionAggregate} from 'sentry/views/alerts/utils';
 import type {TimePeriodType} from './constants';
 
 interface Props {
-  organization: OrganizationSummary;
+  organization: Organization;
   projects: Project[];
   rule: MetricRule;
   timePeriod: TimePeriodType;
@@ -51,7 +52,7 @@ function RelatedIssues({rule, organization, projects, query, timePeriod}: Props)
       !isSessionAggregate(rule.aggregate)
     ) {
       const {buttonText, to} = makeDefaultCta({
-        orgSlug: organization.slug,
+        organization,
         projects,
         rule,
         query,
@@ -97,9 +98,9 @@ function RelatedIssues({rule, organization, projects, query, timePeriod}: Props)
     <Fragment>
       <ControlsWrapper>
         <StyledSectionHeading>{t('Related Issues')}</StyledSectionHeading>
-        <Button data-test-id="issues-open" size="xs" to={issueSearch}>
+        <LinkButton data-test-id="issues-open" size="xs" to={issueSearch}>
           {t('Open in Issues')}
-        </Button>
+        </LinkButton>
       </ControlsWrapper>
 
       <TableWrapper>

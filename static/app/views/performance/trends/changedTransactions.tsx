@@ -24,7 +24,8 @@ import {Tooltip} from 'sentry/components/tooltip';
 import {IconArrow, IconEllipsis} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {AvatarProject, Organization, Project} from 'sentry/types';
+import type {Organization} from 'sentry/types/organization';
+import type {AvatarProject, Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {browserHistory} from 'sentry/utils/browserHistory';
 import getDuration from 'sentry/utils/duration/getDuration';
@@ -624,18 +625,22 @@ function TransactionSummaryLink(props: TransactionSummaryLinkProps) {
     },
   });
 
-  const handleClick = useCallback(() => {
-    onTransactionSelection(transaction.transaction);
-    trackAnalytics('performance_views.performance_change_explorer.open', {
-      organization,
-      transaction: transaction.transaction,
-    });
-  }, [onTransactionSelection, transaction.transaction, organization]);
+  const handleClick = useCallback<React.MouseEventHandler>(
+    event => {
+      event.preventDefault();
+      onTransactionSelection(transaction.transaction);
+      trackAnalytics('performance_views.performance_change_explorer.open', {
+        organization,
+        transaction: transaction.transaction,
+      });
+    },
+    [onTransactionSelection, transaction.transaction, organization]
+  );
 
   if (organization.features.includes('performance-change-explorer')) {
     return (
       <ItemTransactionName
-        to=""
+        to={location}
         data-test-id="item-transaction-name"
         onClick={handleClick}
       >

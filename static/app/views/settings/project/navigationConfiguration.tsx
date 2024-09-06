@@ -1,4 +1,3 @@
-import FeatureBadge from 'sentry/components/badge/featureBadge';
 import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import type {Organization} from 'sentry/types/organization';
@@ -135,13 +134,6 @@ export default function getConfiguration({
           path: `${pathPrefix}/loader-script/`,
           title: t('Loader Script'),
           description: t("View and manage the project's Loader Script"),
-        },
-        {
-          path: `${pathPrefix}/remote-config/`,
-          badge: () => <FeatureBadge type="experimental" />,
-          title: t('Remote Config'),
-          description: t("View and manage the project's Remote Configuration"),
-          show: organization?.features.includes('remote-config'),
         },
         {
           path: `${pathPrefix}/release-tracking/`,

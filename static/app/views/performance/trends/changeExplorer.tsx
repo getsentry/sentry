@@ -1,9 +1,9 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
-import moment from 'moment';
+import moment from 'moment-timezone';
 
-import {Button} from 'sentry/components/button';
+import {LinkButton} from 'sentry/components/button';
 import {getArbitraryRelativePeriod} from 'sentry/components/timeRangeSelector/utils';
 import {DEFAULT_RELATIVE_PERIODS} from 'sentry/constants';
 import {IconFire, IconOpen} from 'sentry/icons';
@@ -13,7 +13,7 @@ import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import theme from 'sentry/utils/theme';
-import {normalizeUrl} from 'sentry/utils/withDomainRequired';
+import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import DetailPanel from 'sentry/views/insights/common/components/detailPanel';
 import {
   DisplayModes,
@@ -297,7 +297,7 @@ type ChangeTypeProps = {regression: boolean};
 
 const ChangeType = styled('p')<ChangeTypeProps>`
   color: ${p => (p.regression ? p.theme.danger : p.theme.success)};
-  margin-bottom: ${space(0)};
+  margin-bottom: 0;
 `;
 
 const FireIcon = styled('div')<ChangeTypeProps>`
@@ -311,7 +311,7 @@ const FireIcon = styled('div')<ChangeTypeProps>`
 
 const TransactionName = styled('h4')`
   margin-right: ${space(1)};
-  margin-bottom: ${space(0)};
+  margin-bottom: 0;
   ${p => p.theme.overflowEllipsis};
 `;
 
@@ -322,8 +322,8 @@ const TransactionNameWrapper = styled('div')`
   max-width: fit-content;
 `;
 
-const ViewTransactionButton = styled(Button)`
-  padding: ${space(0)};
+const ViewTransactionButton = styled(LinkButton)`
+  padding: 0;
   height: min-content;
   min-height: 0px;
 `;
@@ -347,7 +347,7 @@ export const ExplorerText = styled('p')<{
   color?: string;
   margin?: string;
 }>`
-  margin-bottom: ${p => (p.margin ? p.margin : space(0))};
+  margin-bottom: ${p => (p.margin ? p.margin : 0)};
   color: ${p => p.color};
   text-align: ${p => p.align};
 `;

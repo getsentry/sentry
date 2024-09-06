@@ -9,7 +9,9 @@ import type {
   DocsParams,
   OnboardingConfig,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
+import {MobileBetaBanner} from 'sentry/components/onboarding/gettingStartedDoc/utils';
 import {metricTagsExplanation} from 'sentry/components/onboarding/gettingStartedDoc/utils/metricsOnboarding';
+import {getReplayMobileConfigureDescription} from 'sentry/components/onboarding/gettingStartedDoc/utils/replayOnboarding';
 import {appleFeedbackOnboarding} from 'sentry/gettingStartedDocs/apple/macos';
 import {t, tct} from 'sentry/locale';
 import {getPackageVersion} from 'sentry/utils/gettingStartedDocs/getPackageVersion';
@@ -64,12 +66,12 @@ func application(_ application: UIApplication,
     didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?) -> Bool {
 
     SentrySDK.start { options in
-        options.dsn = "${params.dsn}"
+        options.dsn = "${params.dsn.public}"
         options.debug = true // Enabling debug when first installing is always helpful${
           params.isPerformanceSelected
             ? `
 
-        // Set tracesSampleRate to 1.0 to capture 100% of transactions for performance monitoring.
+        // Set tracesSampleRate to 1.0 to capture 100% of transactions for tracing.
         // We recommend adjusting this value in production.
         options.tracesSampleRate = 1.0`
             : ''
@@ -94,12 +96,12 @@ import Sentry
 struct SwiftUIApp: App {
     init() {
         SentrySDK.start { options in
-            options.dsn = "${params.dsn}"
+            options.dsn = "${params.dsn.public}"
             options.debug = true // Enabling debug when first installing is always helpful${
               params.isPerformanceSelected
                 ? `
 
-            // Set tracesSampleRate to 1.0 to capture 100% of transactions for performance monitoring.
+            // Set tracesSampleRate to 1.0 to capture 100% of transactions for tracing.
             // We recommend adjusting this value in production.
             options.tracesSampleRate = 1.0`
                 : ''
@@ -159,7 +161,7 @@ const getConfigureMetricsSnippetSwift = (params: Params) => `
 import Sentry
 
 SentrySDK.start { options in
-    options.dsn = "${params.dsn}"
+    options.dsn = "${params.dsn.public}"
 
     options.enableMetrics = true
 }`;
@@ -168,7 +170,7 @@ const getConfigureMetricsSnippetObjC = (params: Params) => `
 @import Sentry;
 
 [SentrySDK startWithConfigureOptions:^(SentryOptions * options) {
-    options.Dsn = @"${params.dsn}";
+    options.Dsn = @"${params.dsn.public}";
 
     options.enableMetrics = YES;
 }];`;
@@ -243,6 +245,20 @@ const getVerifyMetricsSnippetObjC = () => `
   unit: [[SentryMeasurementUnit alloc] initWithUnit:@"username"]
   tags: @{ @"screen" : @"login" }
 ];`;
+
+const getReplaySetupSnippet = (params: Params) => `
+SentrySDK.start(configureOptions: { options in
+  options.dsn = "${params.dsn.public}"
+  options.debug = true
+
+  // Currently under experimental options:
+  options.experimental.sessionReplay.onErrorSampleRate = 1.0
+  options.experimental.sessionReplay.sessionSampleRate = 1.0
+})`;
+
+const getReplayConfigurationSnippet = () => `
+options.experimental.sessionReplay.redactAllText = true
+options.experimental.sessionReplay.redactAllImages = true`;
 
 const onboarding: OnboardingConfig<PlatformOptions> = {
   install: params =>
@@ -425,13 +441,13 @@ const onboarding: OnboardingConfig<PlatformOptions> = {
                   <ExternalLink href="https://docs.sentry.io/platforms/apple/guides/ios/enriching-events/viewhierarchy/" />
                 ),
                 ttfd: (
-                  <ExternalLink href="https://docs.sentry.io/platforms/apple/guides/ios/performance/instrumentation/automatic-instrumentation/#time-to-full-display" />
+                  <ExternalLink href="https://docs.sentry.io/platforms/apple/guides/ios/tracing/instrumentation/automatic-instrumentation/#time-to-full-display" />
                 ),
                 metricKit: (
                   <ExternalLink href="https://docs.sentry.io/platforms/apple/guides/watchos/configuration/metric-kit/" />
                 ),
                 prewarmedAppStart: (
-                  <ExternalLink href="https://docs.sentry.io/platforms/apple/performance/instrumentation/automatic-instrumentation/#prewarmed-app-start-tracing" />
+                  <ExternalLink href="https://docs.sentry.io/platforms/apple/tracing/instrumentation/automatic-instrumentation/#prewarmed-app-start-tracing" />
                 ),
                 asyncStacktraces: (
                   <ExternalLink href="https://docs.sentry.io/platforms/apple/guides/ios/#stitch-together-swift-concurrency-stack-traces" />
@@ -502,7 +518,7 @@ const onboarding: OnboardingConfig<PlatformOptions> = {
       id: 'swiftui',
       name: t('SwiftUI'),
       description: t('Learn about our first class integration with SwiftUI.'),
-      link: 'https://docs.sentry.io/platforms/apple/performance/instrumentation/swiftui-instrumentation/',
+      link: 'https://docs.sentry.io/platforms/apple/tracing/instrumentation/swiftui-instrumentation/',
     },
     {
       id: 'profiling',
@@ -615,12 +631,99 @@ const metricsOnboarding: OnboardingConfig<PlatformOptions> = {
   ],
 };
 
+const replayOnboarding: OnboardingConfig<PlatformOptions> = {
+  introduction: () => (
+    <MobileBetaBanner link="https://docs.sentry.io/platforms/android/session-replay/" />
+  ),
+  install: (params: Params) => [
+    {
+      type: StepType.INSTALL,
+      description: t(
+        'Make sure your Sentry Cocoa SDK version is at least 8.31.1. If you already have the SDK installed, you can update it to the latest version with:'
+      ),
+      configurations: [
+        {
+          code: [
+            {
+              label: 'SPM',
+              value: 'spm',
+              language: 'swift',
+              code: `.package(url: "https://github.com/getsentry/sentry-cocoa", from: "${getPackageVersion(
+                params,
+                'sentry.cocoa',
+                '8.36.0'
+              )}"),`,
+            },
+            {
+              label: 'CocoaPods',
+              value: 'cocoapods',
+              language: 'ruby',
+              code: `pod update`,
+            },
+            {
+              label: 'Carthage',
+              value: 'carthage',
+              language: 'swift',
+              code: `github "getsentry/sentry-cocoa" "${getPackageVersion(
+                params,
+                'sentry.cocoa',
+                '8.36.0'
+              )}"`,
+            },
+          ],
+        },
+        {
+          description: t(
+            'To set up the integration, add the following to your Sentry initialization:'
+          ),
+        },
+        {
+          code: [
+            {
+              label: 'Swift',
+              value: 'swift',
+              language: 'swift',
+              code: getReplaySetupSnippet(params),
+            },
+          ],
+        },
+      ],
+    },
+  ],
+  configure: () => [
+    {
+      type: StepType.CONFIGURE,
+      description: getReplayMobileConfigureDescription({
+        link: 'https://docs.sentry.io/platforms/apple/guides/ios/session-replay/#privacy',
+      }),
+      configurations: [
+        {
+          description: t(
+            'The following code is the default configuration, which masks and blocks everything.'
+          ),
+          code: [
+            {
+              label: 'Swift',
+              value: 'swift',
+              language: 'swift',
+              code: getReplayConfigurationSnippet(),
+            },
+          ],
+        },
+      ],
+    },
+  ],
+  verify: () => [],
+  nextSteps: () => [],
+};
+
 const docs: Docs<PlatformOptions> = {
   onboarding,
   feedbackOnboardingCrashApi: appleFeedbackOnboarding,
   crashReportOnboarding: appleFeedbackOnboarding,
   customMetricsOnboarding: metricsOnboarding,
   platformOptions,
+  replayOnboarding,
 };
 
 export default docs;

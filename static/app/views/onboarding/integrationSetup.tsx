@@ -11,7 +11,8 @@ import LoadingError from 'sentry/components/loadingError';
 import platforms from 'sentry/data/platforms';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {IntegrationProvider, Project} from 'sentry/types';
+import type {IntegrationProvider} from 'sentry/types/integrations';
+import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import getDynamicText from 'sentry/utils/getDynamicText';
 import {trackIntegrationAnalytics} from 'sentry/utils/integrationUtil';
@@ -142,10 +143,6 @@ function IntegrationSetup(props: Props) {
             />
             <Button
               size="sm"
-              to={{
-                pathname: window.location.pathname,
-                query: {manual: '1'},
-              }}
               onClick={() => {
                 props.onClickManualSetup?.();
                 trackIntegrationAnalytics('integrations.switch_manual_sdk_setup', {

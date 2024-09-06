@@ -13,7 +13,7 @@ from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.serializers import serialize
 from sentry.discover.endpoints.bases import DiscoverSavedQueryPermission
 from sentry.discover.endpoints.serializers import DiscoverSavedQuerySerializer
-from sentry.discover.models import DiscoverSavedQuery
+from sentry.discover.models import DatasetSourcesTypes, DiscoverSavedQuery, DiscoverSavedQueryTypes
 
 
 def get_homepage_query(organization, user):
@@ -25,9 +25,9 @@ def get_homepage_query(organization, user):
 @region_silo_endpoint
 class DiscoverHomepageQueryEndpoint(OrganizationEndpoint):
     publish_status = {
-        "DELETE": ApiPublishStatus.UNKNOWN,
-        "GET": ApiPublishStatus.UNKNOWN,
-        "PUT": ApiPublishStatus.UNKNOWN,
+        "DELETE": ApiPublishStatus.PRIVATE,
+        "GET": ApiPublishStatus.PRIVATE,
+        "PUT": ApiPublishStatus.PRIVATE,
     }
     owner = ApiOwner.PERFORMANCE
 
@@ -77,6 +77,14 @@ class DiscoverHomepageQueryEndpoint(OrganizationEndpoint):
             raise ParseError(serializer.errors)
 
         data = serializer.validated_data
+        user_selected_dataset = (
+            features.has(
+                "organizations:performance-discover-dataset-selector",
+                organization,
+                actor=request.user,
+            )
+            and data["query_dataset"] != DiscoverSavedQueryTypes.DISCOVER
+        )
         if previous_homepage:
             previous_homepage.update(
                 organization=organization,
@@ -84,6 +92,11 @@ class DiscoverHomepageQueryEndpoint(OrganizationEndpoint):
                 query=data["query"],
                 version=data["version"],
                 dataset=data["query_dataset"],
+                dataset_source=(
+                    DatasetSourcesTypes.USER.value
+                    if user_selected_dataset
+                    else DatasetSourcesTypes.UNKNOWN.value
+                ),
             )
             previous_homepage.set_projects(data["project_ids"])
             return Response(serialize(previous_homepage), status=status.HTTP_200_OK)
@@ -94,6 +107,11 @@ class DiscoverHomepageQueryEndpoint(OrganizationEndpoint):
             query=data["query"],
             version=data["version"],
             dataset=data["query_dataset"],
+            dataset_source=(
+                DatasetSourcesTypes.USER.value
+                if user_selected_dataset
+                else DatasetSourcesTypes.UNKNOWN.value
+            ),
             created_by_id=request.user.id,
             is_homepage=True,
         )

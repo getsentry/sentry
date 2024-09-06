@@ -394,6 +394,8 @@ INSTALLED_APPS: tuple[str, ...] = (
     "sentry.discover",
     "sentry.analytics.events",
     "sentry.nodestore",
+    "sentry.users",
+    "sentry.integrations",
     "sentry.monitors",
     "sentry.uptime",
     "sentry.replays",
@@ -418,6 +420,8 @@ INSTALLED_APPS: tuple[str, ...] = (
     "sentry.feedback",
     "sentry.hybridcloud",
     "sentry.remote_subscriptions.apps.Config",
+    "sentry.data_secrecy",
+    "sentry.workflow_engine",
 )
 
 # Silence internal hints from Django's system checks
@@ -735,7 +739,13 @@ CELERY_IMPORTS = (
     "sentry.data_export.tasks",
     "sentry.discover.tasks",
     "sentry.hybridcloud.tasks.deliver_webhooks",
+    "sentry.hybridcloud.tasks.backfill_outboxes",
+    "sentry.hybridcloud.tasks.deliver_from_outbox",
     "sentry.incidents.tasks",
+    "sentry.integrations.github.tasks",
+    "sentry.integrations.github.tasks.pr_comment",
+    "sentry.integrations.jira.tasks",
+    "sentry.integrations.opsgenie.tasks",
     "sentry.snuba.tasks",
     "sentry.replays.tasks",
     "sentry.monitors.tasks.clock_pulse",
@@ -744,7 +754,6 @@ CELERY_IMPORTS = (
     "sentry.tasks.auth",
     "sentry.tasks.auto_remove_inbox",
     "sentry.tasks.auto_resolve_issues",
-    "sentry.tasks.backfill_outboxes",
     "sentry.tasks.embeddings_grouping.backfill_seer_grouping_records_for_project",
     "sentry.tasks.beacon",
     "sentry.tasks.check_auth",
@@ -760,12 +769,10 @@ CELERY_IMPORTS = (
     "sentry.tasks.deletion.scheduled",
     "sentry.tasks.deletion.groups",
     "sentry.tasks.deletion.hybrid_cloud",
-    "sentry.tasks.deliver_from_outbox",
     "sentry.tasks.digests",
     "sentry.tasks.email",
     "sentry.tasks.files",
     "sentry.tasks.groupowner",
-    "sentry.tasks.integrations",
     "sentry.tasks.merge",
     "sentry.tasks.options",
     "sentry.tasks.ping",
@@ -776,7 +783,6 @@ CELERY_IMPORTS = (
     "sentry.tasks.relocation",
     "sentry.tasks.summaries.weekly_reports",
     "sentry.tasks.summaries.daily_summary",
-    "sentry.tasks.reprocessing",
     "sentry.tasks.reprocessing2",
     "sentry.tasks.sentry_apps",
     "sentry.tasks.servicehooks",
@@ -807,6 +813,10 @@ CELERY_IMPORTS = (
     "sentry.replays.usecases.ingest.issue_creation",
     "sentry.integrations.slack.tasks",
     "sentry.uptime.detectors.tasks",
+    "sentry.uptime.subscriptions.tasks",
+    "sentry.integrations.vsts.tasks",
+    "sentry.integrations.vsts.tasks.kickoff_subscription_check",
+    "sentry.integrations.tasks",
 )
 
 default_exchange = Exchange("default", type="direct")
@@ -862,8 +872,6 @@ CELERY_QUEUES_REGION = [
     Queue("email.inbound", routing_key="email.inbound"),
     Queue("events.preprocess_event", routing_key="events.preprocess_event"),
     Queue("events.process_event", routing_key="events.process_event"),
-    Queue("events.process_event_proguard", routing_key="events.process_event_proguard"),
-    Queue("events.reprocess_events", routing_key="events.reprocess_events"),
     Queue(
         "events.reprocessing.preprocess_event", routing_key="events.reprocessing.preprocess_event"
     ),
@@ -949,6 +957,7 @@ CELERY_QUEUES_REGION = [
     Queue("on_demand_metrics", routing_key="on_demand_metrics"),
     Queue("check_new_issue_threshold_met", routing_key="check_new_issue_threshold_met"),
     Queue("integrations_slack_activity_notify", routing_key="integrations_slack_activity_notify"),
+    Queue("split_discover_query_dataset", routing_key="split_discover_query_dataset"),
 ]
 
 from celery.schedules import crontab
@@ -993,7 +1002,7 @@ CELERYBEAT_SCHEDULE_CONTROL = {
         "options": {"queue": "cleanup.control"},
     },
     "schedule-vsts-integration-subscription-check": {
-        "task": "sentry.tasks.integrations.kickoff_vsts_subscription_check",
+        "task": "sentry.integrations.vsts.tasks.kickoff_vsts_subscription_check",
         # Run every 6 hours
         "schedule": crontab_with_minute_jitter(hour="*/6"),
         "options": {"expires": 60 * 25, "queue": "integrations.control"},
@@ -1068,12 +1077,6 @@ CELERYBEAT_SCHEDULE_REGION = {
         "schedule": crontab(minute="*/5"),
         "options": {"expires": 300},
     },
-    "clear-expired-raw-events": {
-        "task": "sentry.tasks.clear_expired_raw_events",
-        # Run every 15 minutes
-        "schedule": crontab(minute="*/15"),
-        "options": {"expires": 300},
-    },
     "collect-project-platforms": {
         "task": "sentry.tasks.collect_project_platforms",
         # Run every 3 hours
@@ -1122,12 +1125,6 @@ CELERYBEAT_SCHEDULE_REGION = {
         "schedule": crontab(minute="0", hour="12", day_of_week="sat"),
         "options": {"expires": 60 * 60 * 3},
     },
-    # "schedule-daily-organization-reports": {
-    #     "task": "sentry.tasks.summaries.daily_summary.schedule_organizations",
-    #     # Run every 1 hour on business days
-    #     "schedule": crontab(minute=0, hour="*/1", day_of_week="mon-fri"),
-    #     "options": {"expires": 60 * 60 * 3},
-    # },
     "schedule-hybrid-cloud-foreign-key-jobs": {
         "task": "sentry.tasks.deletion.hybrid_cloud.schedule_hybrid_cloud_foreign_key_jobs",
         # Run every 15 minutes
@@ -1151,16 +1148,15 @@ CELERYBEAT_SCHEDULE_REGION = {
         "schedule": crontab(minute="*/20"),
         "options": {"expires": 20 * 60},
     },
+    "uptime-subscription-checker": {
+        "task": "sentry.uptime.tasks.subscription_checker",
+        "schedule": crontab(minute="*/10"),
+        "options": {"expires": 10 * 60},
+    },
     "transaction-name-clusterer": {
         "task": "sentry.ingest.transaction_clusterer.tasks.spawn_clusterers",
         # Run every 1 hour at minute 17
         "schedule": crontab(minute="17"),
-        "options": {"expires": 3600},
-    },
-    "span.descs.clusterer": {
-        "task": "sentry.ingest.span_clusterer.tasks.spawn_span_cluster_projects",
-        # Run every 1 hour at minute 42
-        "schedule": crontab(minute="42"),
         "options": {"expires": 3600},
     },
     "auto-enable-codecov": {
@@ -1212,7 +1208,7 @@ CELERYBEAT_SCHEDULE_REGION = {
         "options": {"expires": 3600},
     },
     "github_comment_reactions": {
-        "task": "sentry.tasks.integrations.github_comment_reactions",
+        "task": "sentry.integrations.github.tasks.github_comment_reactions",
         # 9:00 PDT, 12:00 EDT, 16:00 UTC
         "schedule": crontab(minute="0", hour="16"),
     },
@@ -1258,6 +1254,9 @@ else:
 for queue in CELERY_QUEUES:
     queue.durable = False
 
+# set celery max durations for tasks
+CELERY_TASK_SOFT_TIME_LIMIT = int(timedelta(hours=3).total_seconds())
+CELERY_TASK_TIME_LIMIT = int(timedelta(hours=3, seconds=15).total_seconds())
 
 # Queues that belong to the processing pipeline and need to be monitored
 # for backpressure management
@@ -1265,7 +1264,6 @@ PROCESSING_QUEUES = [
     "events.preprocess_event",
     "events.process_event",
     "events.process_event_proguard",
-    "events.reprocess_events",
     "events.reprocessing.preprocess_event",
     "events.reprocessing.process_event",
     "events.reprocessing.symbolicate_event",
@@ -1411,25 +1409,28 @@ if os.environ.get("OPENAPIGENERATE", False):
     from sentry.apidocs.build import OPENAPI_TAGS, get_old_json_components, get_old_json_paths
 
     SPECTACULAR_SETTINGS = {
-        "DEFAULT_GENERATOR_CLASS": "sentry.apidocs.hooks.CustomGenerator",
-        "PREPROCESSING_HOOKS": ["sentry.apidocs.hooks.custom_preprocessing_hook"],
-        "POSTPROCESSING_HOOKS": ["sentry.apidocs.hooks.custom_postprocessing_hook"],
-        "DISABLE_ERRORS_AND_WARNINGS": False,
-        "COMPONENT_SPLIT_REQUEST": False,
-        "COMPONENT_SPLIT_PATCH": False,
+        "APPEND_COMPONENTS": get_old_json_components(OLD_OPENAPI_JSON_PATH),
+        "APPEND_PATHS": get_old_json_paths(OLD_OPENAPI_JSON_PATH),
         "AUTHENTICATION_WHITELIST": ["sentry.api.authentication.UserAuthTokenAuthentication"],
+        "COMPONENT_SPLIT_PATCH": False,
+        "COMPONENT_SPLIT_REQUEST": False,
+        "CONTACT": {"email": "partners@sentry.io"},
+        "DEFAULT_GENERATOR_CLASS": "sentry.apidocs.hooks.CustomGenerator",
+        "DESCRIPTION": "Sentry Public API",
+        "DISABLE_ERRORS_AND_WARNINGS": False,
+        # We override the default behavior to skip adding the choice name to the bullet point if
+        # it's identical to the choice value by monkey patching build_choice_description_list.
+        "ENUM_GENERATE_CHOICE_DESCRIPTION": True,
+        "LICENSE": {"name": "Apache 2.0", "url": "http://www.apache.org/licenses/LICENSE-2.0.html"},
+        "PARSER_WHITELIST": ["rest_framework.parsers.JSONParser"],
+        "POSTPROCESSING_HOOKS": ["sentry.apidocs.hooks.custom_postprocessing_hook"],
+        "PREPROCESSING_HOOKS": ["sentry.apidocs.hooks.custom_preprocessing_hook"],
+        "SERVERS": [{"url": "https://us.sentry.io"}, {"url": "https://de.sentry.io"}],
+        "SORT_OPERATION_PARAMETERS": custom_parameter_sort,
         "TAGS": OPENAPI_TAGS,
         "TITLE": "API Reference",
-        "DESCRIPTION": "Sentry Public API",
         "TOS": "http://sentry.io/terms/",
-        "CONTACT": {"email": "partners@sentry.io"},
-        "LICENSE": {"name": "Apache 2.0", "url": "http://www.apache.org/licenses/LICENSE-2.0.html"},
         "VERSION": "v0",
-        "SERVERS": [{"url": "https://sentry.io"}],
-        "PARSER_WHITELIST": ["rest_framework.parsers.JSONParser"],
-        "APPEND_PATHS": get_old_json_paths(OLD_OPENAPI_JSON_PATH),
-        "APPEND_COMPONENTS": get_old_json_components(OLD_OPENAPI_JSON_PATH),
-        "SORT_OPERATION_PARAMETERS": custom_parameter_sort,
     }
 
 CRISPY_TEMPLATE_PACK = "bootstrap3"
@@ -1437,11 +1438,8 @@ CRISPY_TEMPLATE_PACK = "bootstrap3"
 
 SENTRY_EARLY_FEATURES = {
     "organizations:anr-analyze-frames": "Enable anr frame analysis",
-    "organizations:anr-improvements": "Enable anr improvements ui",
     "organizations:device-classification": "Enable device.class as a selectable column",
     "organizations:gitlab-disable-on-broken": "Enable disabling gitlab integrations when broken is detected",
-    "organizations:grouping-stacktrace-ui": "Enable experimental new version of stacktrace component where additional data related to grouping is shown on each frame",
-    "organizations:grouping-title-ui": "Enable tweaks to group title in relation to hierarchical grouping.",
     "organizations:mobile-cpu-memory-in-transactions": "Display CPU and memory metrics in transactions with profiles",
     "organizations:performance-metrics-backed-transaction-summary": "Enable metrics-backed transaction summary view",
     "organizations:performance-new-trends": "Enable new trends",
@@ -1540,10 +1538,6 @@ SENTRY_REPROCESSING_APM_SAMPLING = 0
 # ----
 # end APM config
 # ----
-
-# DSN to use for Sentry monitors
-SENTRY_MONITOR_DSN: str | None = None
-SENTRY_MONITOR_API_ROOT: str | None = None
 
 # Web Service
 SENTRY_WEB_HOST = "127.0.0.1"
@@ -1829,6 +1823,7 @@ SENTRY_SCOPES = {
     "org:ci",
     # "org:superuser",  Do not use for any type of superuser permission/access checks
     # Assigned to active SU sessions in src/sentry/auth/access.py to enable UI elements
+    "member:invite",
     "member:read",
     "member:write",
     "member:admin",
@@ -1866,9 +1861,10 @@ SENTRY_SCOPE_HIERARCHY_MAPPING = {
     "org:admin": {"org:read", "org:write", "org:admin", "org:integrations"},
     "org:integrations": {"org:integrations"},
     "org:ci": {"org:ci"},
+    "member:invite": {"member:read", "member:invite"},
     "member:read": {"member:read"},
-    "member:write": {"member:read", "member:write"},
-    "member:admin": {"member:read", "member:write", "member:admin"},
+    "member:write": {"member:read", "member:invite", "member:write"},
+    "member:admin": {"member:read", "member:invite", "member:write", "member:admin"},
     "team:read": {"team:read"},
     "team:write": {"team:read", "team:write"},
     "team:admin": {"team:read", "team:write", "team:admin"},
@@ -1897,6 +1893,7 @@ SENTRY_SCOPE_SETS = (
         ("member:admin", "Read, write, and admin access to organization members."),
         ("member:write", "Read and write access to organization members."),
         ("member:read", "Read access to organization members."),
+        ("member:invite", "Member invite access to organization members."),
     ),
     (
         ("team:admin", "Read, write, and admin access to teams."),
@@ -1940,7 +1937,7 @@ SENTRY_ROLES: tuple[RoleDict, ...] = (
     {
         "id": "member",
         "name": "Member",
-        "desc": "Members can view and act on events, as well as view most other data within the organization.",
+        "desc": "Members can view and act on events, as well as view most other data within the organization. By default, they can invite members to the organization unless the organization has disabled this feature.",
         "scopes": {
             "event:read",
             "event:write",
@@ -1948,6 +1945,7 @@ SENTRY_ROLES: tuple[RoleDict, ...] = (
             "project:releases",
             "project:read",
             "org:read",
+            "member:invite",
             "member:read",
             "team:read",
             "alerts:read",
@@ -1963,8 +1961,8 @@ SENTRY_ROLES: tuple[RoleDict, ...] = (
             create new teams and projects, as well as remove teams and projects
             on which they already hold membership (or all teams, if open
             membership is enabled). Additionally, they can manage memberships of
-            teams that they are members of. They cannot invite members to the
-            organization.
+            teams that they are members of. By default, they can invite members
+            to the organization unless the organization has disabled this feature.
             """
         ),
         "scopes": {
@@ -1973,6 +1971,7 @@ SENTRY_ROLES: tuple[RoleDict, ...] = (
             "event:admin",
             "org:read",
             "member:read",
+            "member:invite",
             "project:read",
             "project:write",
             "project:admin",
@@ -1994,6 +1993,7 @@ SENTRY_ROLES: tuple[RoleDict, ...] = (
             "event:read",
             "event:write",
             "event:admin",
+            "member:invite",
             "member:read",
             "member:write",
             "member:admin",
@@ -2027,6 +2027,7 @@ SENTRY_ROLES: tuple[RoleDict, ...] = (
             "org:write",
             "org:admin",
             "org:integrations",
+            "member:invite",
             "member:read",
             "member:write",
             "member:admin",
@@ -2471,7 +2472,7 @@ SENTRY_SELF_HOSTED = True
 SENTRY_SELF_HOSTED_ERRORS_ONLY = False
 # only referenced in getsentry to provide the stable beacon version
 # updated with scripts/bump-version.sh
-SELF_HOSTED_STABLE_VERSION = "24.6.0"
+SELF_HOSTED_STABLE_VERSION = "24.8.0"
 
 # Whether we should look at X-Forwarded-For header or not
 # when checking REMOTE_ADDR ip addresses
@@ -2539,6 +2540,13 @@ SENTRY_PROFILER_MODE: Final = "sleep"
 # This will allow us to have finer control over where we are running the
 # profiler. For example, only on the web server.
 SENTRY_PROFILING_ENABLED = os.environ.get("SENTRY_PROFILING_ENABLED", False)
+
+# To have finer control over which process will have continuous profiling enabled,
+# this environment variable will be required to enable continuous profiling.
+#
+# This setting takes precedence over `SENTRY_PROFILING_ENABLED` forcing the SDK
+# to operate under the continuous profiling model.
+SENTRY_CONTINUOUS_PROFILING_ENABLED = os.environ.get("SENTRY_CONTINUOUS_PROFILING_ENABLED", False)
 
 # Callable to bind additional context for the Sentry SDK
 #
@@ -2853,7 +2861,9 @@ KAFKA_TOPIC_TO_CLUSTER: Mapping[str, str] = {
     "transactions": "default",
     "snuba-transactions-commit-log": "default",
     "outcomes": "default",
+    "outcomes-dlq": "default",
     "outcomes-billing": "default",
+    "outcomes-billing-dlq": "default",
     "events-subscription-results": "default",
     "transactions-subscription-results": "default",
     "generic-metrics-subscription-results": "default",
@@ -2878,6 +2888,7 @@ KAFKA_TOPIC_TO_CLUSTER: Mapping[str, str] = {
     "ingest-monitors": "default",
     "monitors-clock-tick": "default",
     "monitors-clock-tasks": "default",
+    "uptime-configs": "default",
     "uptime-results": "default",
     "uptime-configs": "default",
     "generic-events": "default",
@@ -2911,6 +2922,7 @@ MIGRATIONS_LOCKFILE_APP_WHITELIST = (
     "hybridcloud",
     "remote_subscriptions",
     "uptime",
+    "workflow_engine",
 )
 # Where to write the lockfile to.
 MIGRATIONS_LOCKFILE_PATH = os.path.join(PROJECT_ROOT, os.path.pardir, os.path.pardir)
@@ -2957,6 +2969,8 @@ SENTRY_REQUEST_METRIC_ALLOWED_PATHS = (
     "sentry.replays.endpoints",
     "sentry.monitors.endpoints",
     "sentry.issues.endpoints",
+    "sentry.integrations.api.endpoints",
+    "sentry.users.api.endpoints",
 )
 SENTRY_MAIL_ADAPTER_BACKEND = "sentry.mail.adapter.MailAdapter"
 
@@ -2973,12 +2987,8 @@ SENTRY_SIMILARITY_INDEX_REDIS_CLUSTER = "default"
 # Unused legacy option, there to satisfy getsentry CI. Remove from getsentry, then here
 SENTRY_SIMILARITY2_INDEX_REDIS_CLUSTER = None
 
-# If this is turned on, then sentry will perform automatic grouping updates.
-# This is enabled in production
-SENTRY_GROUPING_AUTO_UPDATE_ENABLED = False
-
 # How long the migration phase for grouping lasts
-SENTRY_GROUPING_UPDATE_MIGRATION_PHASE = 7 * 24 * 3600  # 7 days
+SENTRY_GROUPING_UPDATE_MIGRATION_PHASE = 30 * 24 * 3600  # 30 days
 
 SENTRY_USE_UWSGI = True
 
@@ -3133,8 +3143,15 @@ SEER_AUTOFIX_URL = SEER_DEFAULT_URL  # for local development, these share a URL
 SEER_GROUPING_URL = SEER_DEFAULT_URL  # for local development, these share a URL
 SEER_GROUPING_TIMEOUT = 1
 
+SEER_GROUPING_BACKFILL_URL = SEER_DEFAULT_URL
+
+SEER_ANOMALY_DETECTION_MODEL_VERSION = "v1"
 SEER_ANOMALY_DETECTION_URL = SEER_DEFAULT_URL  # for local development, these share a URL
-SEER_ANOMALY_DETECTION_TIMEOUT = 5
+SEER_ANOMALY_DETECTION_TIMEOUT = 15
+
+SEER_ANOMALY_DETECTION_ENDPOINT_URL = (
+    f"/{SEER_ANOMALY_DETECTION_MODEL_VERSION}/anomaly-detection/detect"
+)
 
 SEER_AUTOFIX_GITHUB_APP_USER_ID = 157164994
 
@@ -3180,7 +3197,7 @@ SUPERUSER_STAFF_EMAIL_SUFFIX: str | None = None
 ENABLE_ANALYTICS = False
 
 MAX_SLOW_CONDITION_ISSUE_ALERTS = 100
-MAX_MORE_SLOW_CONDITION_ISSUE_ALERTS = 300
+MAX_MORE_SLOW_CONDITION_ISSUE_ALERTS = 400
 MAX_FAST_CONDITION_ISSUE_ALERTS = 500
 MAX_QUERY_SUBSCRIPTIONS_PER_ORG = 1000
 MAX_MORE_FAST_CONDITION_ISSUE_ALERTS = 1000
@@ -3342,6 +3359,8 @@ BROKEN_TIMEOUT_THRESHOLD = 1000
 # are changed by sentry configoptions.
 OPTIONS_AUTOMATOR_SLACK_WEBHOOK_URL: str | None = None
 
+OPTIONS_AUTOMATOR_HMAC_SECRET: str | None = None
+
 SENTRY_METRICS_INTERFACE_BACKEND = "sentry.sentry_metrics.client.snuba.SnubaMetricsBackend"
 SENTRY_METRICS_INTERFACE_BACKEND_OPTIONS: dict[str, Any] = {}
 
@@ -3427,9 +3446,10 @@ SEER_PROJECT_GROUPING_RECORDS_DELETE_URL = (
 SEER_HASH_GROUPING_RECORDS_DELETE_URL = (
     f"/{SEER_SIMILARITY_MODEL_VERSION}/issues/similar-issues/grouping-record/delete-by-hash"
 )
+SEER_SIMILARITY_CIRCUIT_BREAKER_KEY = "seer.similarity"
 
-# TODO: Remove this soon, just a way to configure a project for this before we implement properly
-UPTIME_POC_PROJECT_ID = 1
+SEER_ANOMALY_DETECTION_VERSION = "v1"
+SEER_ANOMALY_DETECTION_STORE_DATA_URL = f"/{SEER_ANOMALY_DETECTION_VERSION}/anomaly-detection/store"
 
 SIMILARITY_BACKFILL_COHORT_MAP: dict[str, list[int]] = {}
 
@@ -3494,3 +3514,7 @@ if SILO_DEVSERVER:
         SENTRY_WEB_PORT = int(bind[1])
 
     CELERYBEAT_SCHEDULE_FILENAME = f"celerybeat-schedule-{SILO_MODE}"
+
+
+# tmp(michal): Default configuration for post_process* queueus split
+SENTRY_POST_PROCESS_QUEUE_SPLIT_ROUTER: dict[str, Callable[[], str]] = {}

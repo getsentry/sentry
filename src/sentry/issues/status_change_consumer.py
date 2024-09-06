@@ -136,8 +136,10 @@ def bulk_get_groups_from_fingerprints(
             ).select_related("group")
         )
 
-    result: dict[tuple[int, str], Group] = {
-        (grouphash.project_id, grouphash.hash): grouphash.group for grouphash in query
+    result = {
+        (grouphash.project_id, grouphash.hash): grouphash.group
+        for grouphash in query
+        if grouphash.group is not None
     }
 
     found_fingerprints = set(result.keys())
@@ -209,7 +211,10 @@ def process_status_change_message(
             return None
         txn.set_tag("group_id", group.id)
 
-    with metrics.timer("occurrence_consumer._process_message.status_change.update_group_status"):
+    with metrics.timer(
+        "occurrence_consumer._process_message.status_change.update_group_status",
+        tags={"occurrence_type": group.issue_type.type_id},
+    ):
         update_status(group, status_change_data)
 
     return group

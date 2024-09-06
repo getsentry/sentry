@@ -7,7 +7,7 @@ import QuestionTooltip from 'sentry/components/questionTooltip';
 import {IconLink} from 'sentry/icons';
 import {space} from 'sentry/styles/space';
 
-type Props = {
+export interface EventDataSectionProps {
   children: React.ReactNode;
   /**
    * The title of the section
@@ -46,7 +46,7 @@ type Props = {
    * Should the title be wrapped in a h3?
    */
   wrapTitle?: boolean;
-};
+}
 
 function scrollToSection(element: HTMLDivElement) {
   if (window.location.hash && element) {
@@ -80,7 +80,7 @@ export function EventDataSection({
   showPermalink = true,
   isHelpHoverable = false,
   ...props
-}: Props) {
+}: EventDataSectionProps) {
   let titleNode = wrapTitle ? <h3>{title}</h3> : title;
 
   titleNode = guideTarget ? (

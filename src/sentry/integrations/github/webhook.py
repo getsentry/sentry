@@ -10,11 +10,10 @@ from typing import Any
 import orjson
 from dateutil.parser import parse as parse_date
 from django.db import IntegrityError, router, transaction
-from django.http import HttpResponse
+from django.http import HttpRequest, HttpResponse
 from django.utils.crypto import constant_time_compare
 from django.utils.decorators import method_decorator
 from django.views.decorators.csrf import csrf_exempt
-from rest_framework.request import Request
 
 from sentry import analytics, options
 from sentry.api.api_owners import ApiOwner
@@ -23,6 +22,7 @@ from sentry.api.base import Endpoint, all_silo_endpoint
 from sentry.autofix.webhooks import handle_github_pr_webhook_for_autofix
 from sentry.constants import EXTENSION_LANGUAGE_MAP, ObjectStatus
 from sentry.identity.services.identity.service import identity_service
+from sentry.integrations.github.tasks.open_pr_comment import open_pr_comment_workflow
 from sentry.integrations.pipeline import ensure_integration
 from sentry.integrations.services.integration.model import (
     RpcIntegration,
@@ -44,7 +44,6 @@ from sentry.plugins.providers.integration_repository import (
     get_integration_repository_provider,
 )
 from sentry.shared_integrations.exceptions import ApiError
-from sentry.tasks.integrations.github.open_pr_comment import open_pr_comment_workflow
 from sentry.users.services.user.service import user_service
 from sentry.utils import metrics
 
@@ -592,15 +591,14 @@ class GitHubIntegrationsWebhookEndpoint(Endpoint):
         "POST": ApiPublishStatus.PRIVATE,
     }
 
-    _handlers = {
+    _handlers: dict[str, Callable[[], Callable[[Any], Any]]] = {
         "push": PushEventWebhook,
         "pull_request": PullRequestEventWebhook,
         "installation": InstallationEventWebhook,
     }
 
     def get_handler(self, event_type: str) -> Callable[[], Callable[[Any], Any]] | None:
-        handler: Callable[[], Callable[[Any], Any]] | None = self._handlers.get(event_type)
-        return handler
+        return self._handlers.get(event_type)
 
     def is_valid_signature(self, method: str, body: bytes, secret: str, signature: str) -> bool:
         if method == "sha1":
@@ -612,7 +610,7 @@ class GitHubIntegrationsWebhookEndpoint(Endpoint):
         return constant_time_compare(expected, signature)
 
     @method_decorator(csrf_exempt)
-    def dispatch(self, request: Request, *args: Any, **kwargs: Any) -> HttpResponse:
+    def dispatch(self, request: HttpRequest, *args: Any, **kwargs: Any) -> HttpResponse:
         if request.method != "POST":
             return HttpResponse(status=405)
 
@@ -627,10 +625,10 @@ class GitHubIntegrationsWebhookEndpoint(Endpoint):
     def get_secret(self) -> str | None:
         return options.get("github-app.webhook-secret")
 
-    def post(self, request: Request) -> HttpResponse:
+    def post(self, request: HttpRequest) -> HttpResponse:
         return self.handle(request)
 
-    def handle(self, request: Request) -> HttpResponse:
+    def handle(self, request: HttpRequest) -> HttpResponse:
         clear_tags_and_context()
         secret = self.get_secret()
 

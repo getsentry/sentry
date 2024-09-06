@@ -19,7 +19,7 @@ from ..models import ExportedData
 @region_silo_endpoint
 class DataExportDetailsEndpoint(OrganizationEndpoint):
     publish_status = {
-        "GET": ApiPublishStatus.UNKNOWN,
+        "GET": ApiPublishStatus.PRIVATE,
     }
     owner = ApiOwner.PERFORMANCE
     permission_classes = (OrganizationDataExportPermission,)

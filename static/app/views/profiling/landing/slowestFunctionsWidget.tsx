@@ -113,7 +113,7 @@ export function SlowestFunctionsWidget({
     enabled: functionsQuery.isFetched && hasFunctions,
   });
 
-  const isLoading = functionsQuery.isLoading || (hasFunctions && totalsQuery.isLoading);
+  const isLoading = functionsQuery.isPending || (hasFunctions && totalsQuery.isPending);
   const isError = functionsQuery.isError || totalsQuery.isError;
 
   return (
@@ -274,7 +274,7 @@ function SlowestFunctionEntry({
               <IconWarning data-test-id="error-indicator" color="gray300" size="lg" />
             </StatusContainer>
           )}
-          {functionTransactionsQuery.isLoading && (
+          {functionTransactionsQuery.isPending && (
             <StatusContainer>
               <LoadingIndicator />
             </StatusContainer>
@@ -406,7 +406,7 @@ const TransactionsList = styled('div')`
   grid-template-columns: minmax(0, 1fr) repeat(3, auto);
   grid-template-rows: 18px repeat(5, min-content);
   column-gap: ${space(1)};
-  padding: ${space(0)} ${space(2)};
+  padding: 0 ${space(2)};
 `;
 
 const TransactionsListHeader = styled('span')<{

@@ -15,9 +15,11 @@ import {DurationUnit} from 'sentry/utils/discover/fields';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
+import {HeaderContainer} from 'sentry/views/insights/common/components/headerContainer';
 import {MetricReadout} from 'sentry/views/insights/common/components/metricReadout';
 import * as ModuleLayout from 'sentry/views/insights/common/components/moduleLayout';
 import {ModulePageProviders} from 'sentry/views/insights/common/components/modulePageProviders';
+import {ReadoutRibbon, ToolRibbon} from 'sentry/views/insights/common/components/ribbon';
 import {getTimeSpentExplanation} from 'sentry/views/insights/common/components/tableCells/timeSpentCell';
 import {useOnboardingProject} from 'sentry/views/insights/common/queries/useOnboardingProject';
 import {useModuleBreadcrumbs} from 'sentry/views/insights/common/utils/useModuleBreadcrumbs';
@@ -37,7 +39,7 @@ function DestinationSummaryPage() {
   const {query} = useLocation();
   const destination = decodeScalar(query.destination);
 
-  const {data, isLoading} = useQueuesMetricsQuery({
+  const {data, isPending} = useQueuesMetricsQuery({
     destination,
     referrer: Referrer.QUEUES_SUMMARY,
   });
@@ -72,43 +74,45 @@ function DestinationSummaryPage() {
           <ModuleLayout.Layout>
             <ModuleLayout.Full>
               <HeaderContainer>
-                <PageFilterBar condensed>
-                  <ProjectPageFilter />
-                  <EnvironmentPageFilter />
-                  <DatePageFilter />
-                </PageFilterBar>
+                <ToolRibbon>
+                  <PageFilterBar condensed>
+                    <ProjectPageFilter />
+                    <EnvironmentPageFilter />
+                    <DatePageFilter />
+                  </PageFilterBar>
+                </ToolRibbon>
 
                 {!onboardingProject && (
-                  <MetricsRibbon>
+                  <ReadoutRibbon>
                     <MetricReadout
                       title={t('Avg Time In Queue')}
                       value={data[0]?.['avg(messaging.message.receive.latency)']}
                       unit={DurationUnit.MILLISECOND}
-                      isLoading={isLoading}
+                      isLoading={isPending}
                     />
                     <MetricReadout
                       title={t('Avg Processing Time')}
                       value={data[0]?.['avg_if(span.duration,span.op,queue.process)']}
                       unit={DurationUnit.MILLISECOND}
-                      isLoading={isLoading}
+                      isLoading={isPending}
                     />
                     <MetricReadout
                       title={t('Error Rate')}
                       value={errorRate}
                       unit={'percentage'}
-                      isLoading={isLoading}
+                      isLoading={isPending}
                     />
                     <MetricReadout
                       title={t('Published')}
                       value={data[0]?.['count_op(queue.publish)']}
                       unit={'count'}
-                      isLoading={isLoading}
+                      isLoading={isPending}
                     />
                     <MetricReadout
                       title={t('Processed')}
                       value={data[0]?.['count_op(queue.process)']}
                       unit={'count'}
-                      isLoading={isLoading}
+                      isLoading={isPending}
                     />
                     <MetricReadout
                       title={t('Time Spent')}
@@ -117,9 +121,9 @@ function DestinationSummaryPage() {
                       tooltip={getTimeSpentExplanation(
                         data[0]?.['time_spent_percentage(app,span.duration)']
                       )}
-                      isLoading={isLoading}
+                      isLoading={isPending}
                     />
-                  </MetricsRibbon>
+                  </ReadoutRibbon>
                 )}
               </HeaderContainer>
             </ModuleLayout.Full>
@@ -176,15 +180,4 @@ const Flex = styled('div')`
   display: flex;
   flex-direction: column;
   gap: ${space(2)};
-`;
-
-const MetricsRibbon = styled('div')`
-  display: flex;
-  flex-wrap: wrap;
-  gap: ${space(4)};
-`;
-
-const HeaderContainer = styled('div')`
-  display: flex;
-  justify-content: space-between;
 `;

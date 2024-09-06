@@ -4,15 +4,15 @@ import omit from 'lodash/omit';
 import {useAggregateSpans} from 'sentry/components/events/interfaces/spans/aggregateSpans';
 import type {AggregateSpanType} from 'sentry/components/events/interfaces/spans/types';
 import WaterfallModel from 'sentry/components/events/interfaces/spans/waterfallModel';
-import type {AggregateEventTransaction} from 'sentry/types';
-import {EntryType, EventOrGroupType} from 'sentry/types';
+import type {AggregateEventTransaction} from 'sentry/types/event';
+import {EntryType, EventOrGroupType} from 'sentry/types/event';
 import {defined} from 'sentry/utils';
 
 export function useSpanWaterfallModelFromTransaction(
   transaction: string,
   httpMethod?: string
 ) {
-  const {data, isLoading} = useAggregateSpans({transaction, httpMethod});
+  const {data, isPending} = useAggregateSpans({transaction, httpMethod});
   function formatSpan(span, total) {
     const {
       node_fingerprint: span_id,
@@ -111,5 +111,5 @@ export function useSpanWaterfallModelFromTransaction(
     () => new WaterfallModel(event, undefined, undefined, hiddenSpans),
     [event, hiddenSpans]
   );
-  return {waterfallModel, event, isLoading};
+  return {waterfallModel, event, isLoading: isPending};
 }

@@ -2,7 +2,7 @@ from uuid import uuid4
 
 import pytest
 
-from sentry.models.outbox import outbox_context
+from sentry.hybridcloud.models.outbox import outbox_context
 from sentry.testutils.cases import TestMigrations
 
 

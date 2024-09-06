@@ -58,6 +58,7 @@ from sentry.search.events.types import (
 )
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.metrics.utils import MetricMeta
+from sentry.snuba.query_sources import QuerySource
 from sentry.users.services.user.service import user_service
 from sentry.utils.dates import outside_retention_with_modified_start
 from sentry.utils.env import in_test_environment
@@ -124,11 +125,11 @@ class BaseQueryBuilder:
             return snuba_params
 
         if "project_objects" in params:
-            projects = cast(Sequence[Project], params["project_objects"])
+            projects = params["project_objects"]
         elif "project_id" in params and (
             isinstance(params["project_id"], list) or isinstance(params["project_id"], tuple)  # type: ignore[unreachable]
         ):
-            projects = Project.objects.filter(id__in=params["project_id"])
+            projects = list(Project.objects.filter(id__in=params["project_id"]))
         else:
             projects = []
 
@@ -162,9 +163,9 @@ class BaseQueryBuilder:
         user_id = params.get("user_id")
         user = user_service.get_user(user_id=user_id) if user_id is not None else None  # type: ignore[arg-type]
         teams = (
-            Team.objects.filter(id__in=params["team_id"])  # type: ignore[typeddict-item]
-            if "team_id" in params and isinstance(params["team_id"], list)  # type: ignore[typeddict-item]
-            else None
+            Team.objects.filter(id__in=params["team_id"])
+            if "team_id" in params and isinstance(params["team_id"], list)
+            else []
         )
         return SnubaParams(
             start=cast(datetime, params.get("start")),
@@ -206,9 +207,11 @@ class BaseQueryBuilder:
 
         # filter params is the older style params, shouldn't be used anymore
         self.filter_params = params
+        if snuba_params is not None:
+            self.filter_params = snuba_params.filter_params
         self.params = self._dataclass_params(snuba_params, params)
 
-        org_id = params.get("organization_id")
+        org_id = self.params.organization_id
         self.organization_id: int | None = (
             org_id if org_id is not None and isinstance(org_id, int) else None
         )
@@ -1304,6 +1307,7 @@ class BaseQueryBuilder:
         if (
             search_filter.operator in ("!=", "NOT IN")
             and not search_filter.key.is_tag
+            and not is_tag
             and name not in self.config.non_nullable_keys
         ):
             # Handle null columns on inequality comparisons. Any comparison
@@ -1476,11 +1480,14 @@ class BaseQueryBuilder:
         """
         return self.function_alias_map[function.alias].field
 
+    def _get_dataset_name(self) -> str:
+        return self.dataset.value
+
     def get_snql_query(self) -> Request:
         self.validate_having_clause()
 
         return Request(
-            dataset=self.dataset.value,
+            dataset=self._get_dataset_name(),
             app_id="default",
             query=Query(
                 match=Entity(self.dataset.value, sample=self.sample_rate),
@@ -1508,10 +1515,12 @@ class BaseQueryBuilder:
             return None
         return value
 
-    def run_query(self, referrer: str, use_cache: bool = False) -> Any:
+    def run_query(
+        self, referrer: str | None, use_cache: bool = False, query_source: QuerySource | None = None
+    ) -> Any:
         if not referrer:
             InvalidSearchQuery("Query missing referrer.")
-        return raw_snql_query(self.get_snql_query(), referrer, use_cache)
+        return raw_snql_query(self.get_snql_query(), referrer, use_cache, query_source)
 
     def process_results(self, results: Any) -> EventsResponse:
         with sentry_sdk.start_span(op="QueryBuilder", description="process_results") as span:

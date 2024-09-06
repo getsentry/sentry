@@ -308,12 +308,14 @@ class BaseMetricsEntitySubscription(BaseEntitySubscription, ABC):
             params=params,
             offset=None,
             granularity=self.get_granularity(),
+            time_range_window=self.time_window,
             config=QueryBuilderConfig(
                 skip_time_conditions=True,
                 use_metrics_layer=self.use_metrics_layer,
                 on_demand_metrics_enabled=self.on_demand_metrics_enabled,
                 on_demand_metrics_type=MetricSpecType.SIMPLE_QUERY,
                 skip_field_validation_for_entity_subscription_deletion=skip_field_validation_for_entity_subscription_deletion,
+                insights_metrics_override_metric_layer=True,
             ),
         )
 

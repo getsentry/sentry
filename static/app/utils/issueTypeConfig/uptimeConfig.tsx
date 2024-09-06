@@ -12,13 +12,16 @@ const uptimeConfig: IssueCategoryConfigMapping = {
       share: {enabled: true},
     },
     attachments: {enabled: false},
+    resources: null,
     autofix: false,
+    aiSuggestedSolution: false,
     mergedIssues: {enabled: false},
     replays: {enabled: false},
     similarIssues: {enabled: false},
     userFeedback: {enabled: false},
     usesIssuePlatform: true,
     stats: {enabled: false},
+    tags: {enabled: false},
   },
 };
 

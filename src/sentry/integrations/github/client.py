@@ -8,6 +8,7 @@ from typing import Any, cast
 import orjson
 import sentry_sdk
 from requests import PreparedRequest
+from sentry_sdk import capture_exception, capture_message
 
 from sentry.constants import ObjectStatus
 from sentry.integrations.github.blame import (
@@ -16,8 +17,14 @@ from sentry.integrations.github.blame import (
     generate_file_path_mapping,
 )
 from sentry.integrations.github.utils import get_jwt, get_next_link
-from sentry.integrations.mixins.commit_context import FileBlameInfo, SourceLineInfo
+from sentry.integrations.models.integration import Integration
 from sentry.integrations.services.integration import RpcIntegration
+from sentry.integrations.source_code_management.commit_context import (
+    CommitContextClient,
+    FileBlameInfo,
+    SourceLineInfo,
+)
+from sentry.integrations.source_code_management.repository import RepositoryClient
 from sentry.integrations.types import EXTERNAL_PROVIDERS, ExternalProviders
 from sentry.integrations.utils.code_mapping import (
     MAX_CONNECTION_ERRORS,
@@ -25,7 +32,6 @@ from sentry.integrations.utils.code_mapping import (
     RepoTree,
     filter_source_code_files,
 )
-from sentry.models.integrations.integration import Integration
 from sentry.models.repository import Repository
 from sentry.shared_integrations.client.base import BaseApiResponseX
 from sentry.shared_integrations.client.proxy import IntegrationProxyClient
@@ -183,7 +189,7 @@ class GithubProxyClient(IntegrationProxyClient):
         return super().is_error_fatal(error)
 
 
-class GitHubClientMixin(GithubProxyClient):
+class GitHubBaseClient(GithubProxyClient, RepositoryClient, CommitContextClient):
     allow_redirects = True
 
     base_url = "https://api.github.com"
@@ -223,6 +229,25 @@ class GitHubClientMixin(GithubProxyClient):
         https://docs.github.com/en/rest/commits/commits#get-a-commit
         """
         return self.get_cached(f"/repos/{repo}/commits/{sha}")
+
+    def get_merge_commit_sha_from_commit(self, repo: str, sha: str) -> str | None:
+        """
+        Get the merge commit sha from a commit sha.
+        """
+        response = self.get_pullrequest_from_commit(repo, sha)
+        if not response or (isinstance(response, list) and len(response) != 1):
+            # the response should return a single merged PR, return if multiple
+            return None
+
+        (pull_request,) = response
+        if pull_request["state"] == "open":
+            metrics.incr(
+                "github_pr_comment.queue_comment_check.open_pr",
+                sample_rate=1.0,
+            )
+            return None
+
+        return pull_request.get("merge_commit_sha")
 
     def get_pullrequest_from_commit(self, repo: str, sha: str) -> Any:
         """
@@ -367,41 +392,44 @@ class GitHubClientMixin(GithubProxyClient):
         """
         msg = "Continuing execution."
         should_count_error = False
-        txt = error.text
+        error_message = error.text
         if error.json:
             json_data: Any = error.json
-            txt = json_data.get("message")
+            error_message = json_data.get("message")
 
         # TODO: Add condition for  getsentry/DataForThePeople
         # e.g. getsentry/nextjs-sentry-example
-        if txt == "Git Repository is empty.":
+        if error_message == "Git Repository is empty.":
             logger.warning("The repository is empty. %s", msg, extra=extra)
-        elif txt == "Not Found":
+        elif error_message == "Not Found":
             logger.warning("The app does not have access to the repo. %s", msg, extra=extra)
-        elif txt == "Repository access blocked":
+        elif error_message == "Repository access blocked":
             logger.warning("Github has blocked the repository. %s", msg, extra=extra)
-        elif txt == "Server Error":
+        elif error_message == "Server Error":
             logger.warning("Github failed to respond. %s.", msg, extra=extra)
             should_count_error = True
-        elif txt == "Bad credentials":
+        elif error_message == "Bad credentials":
             logger.warning("No permission granted for this repo. %s.", msg, extra=extra)
-        elif txt == "Connection reset by peer":
+        elif error_message == "Connection reset by peer":
             logger.warning("Connection reset by GitHub. %s.", msg, extra=extra)
             should_count_error = True
-        elif txt == "Connection broken: invalid chunk length":
+        elif error_message == "Connection broken: invalid chunk length":
             logger.warning("Connection broken by chunk with invalid length. %s.", msg, extra=extra)
             should_count_error = True
-        elif txt and txt.startswith("Unable to reach host:"):
+        elif error_message and error_message.startswith("Unable to reach host:"):
             logger.warning("Unable to reach host at the moment. %s.", msg, extra=extra)
             should_count_error = True
-        elif txt and txt.startswith("Due to U.S. trade controls law restrictions, this GitHub"):
+        elif error_message and error_message.startswith(
+            "Due to U.S. trade controls law restrictions, this GitHub"
+        ):
             logger.warning("Github has blocked this org. We will not continue.", extra=extra)
-            # Raising the error will be handled at the task level
+            # Raising the error will about the task and be handled at the task level
             raise error
         else:
             # We do not raise the exception so we can keep iterating through the repos.
             # Nevertheless, investigate the error to determine if we should abort the processing
-            logger.error("Investigate if to raise error. An error happened. %s", msg, extra=extra)
+            sentry_sdk.set_context("extra", extra)
+            capture_message(f"Continuing execution. Investigate: {error_message}")
 
         return should_count_error
 
@@ -422,7 +450,8 @@ class GitHubClientMixin(GithubProxyClient):
         except ApiError:
             only_use_cache = True
             # Report so we can investigate
-            logger.exception("Loading trees from cache. Execution will continue. Check logs.")
+            logger.warning("Loading trees from cache. Execution will continue. Check logs.")
+            capture_exception(level="warning")
 
         for index, repo_info in enumerate(repositories):
             repo_full_name = repo_info["full_name"]
@@ -613,10 +642,12 @@ class GitHubClientMixin(GithubProxyClient):
         """
         return self.get(f"/repos/{repo}/labels", params={"per_page": 100})
 
-    def check_file(self, repo: Repository, path: str, version: str) -> BaseApiResponseX:
+    def check_file(self, repo: Repository, path: str, version: str | None) -> BaseApiResponseX:
         return self.head_cached(path=f"/repos/{repo.name}/contents/{path}", params={"ref": version})
 
-    def get_file(self, repo: Repository, path: str, ref: str, codeowners: bool = False) -> str:
+    def get_file(
+        self, repo: Repository, path: str, ref: str | None, codeowners: bool = False
+    ) -> str:
         """Get the contents of a file
 
         See https://docs.github.com/en/rest/reference/repos#get-repository-content
@@ -722,7 +753,7 @@ class GitHubClientMixin(GithubProxyClient):
         )
 
 
-class GitHubAppsClient(GitHubClientMixin):
+class GitHubApiClient(GitHubBaseClient):
     def __init__(
         self,
         integration: Integration,

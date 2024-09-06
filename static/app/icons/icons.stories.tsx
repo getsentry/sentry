@@ -1029,11 +1029,27 @@ const SECTIONS: TSection[] = [
         name: 'Tap',
         defaultProps: {},
       },
+      {
+        id: 'thumb',
+        keywords: ['feedback', 'good'],
+        additionalProps: ['direction'],
+        name: 'Thumb',
+        defaultProps: {},
+      },
+      {
+        id: 'thumb',
+        keywords: ['feedback', 'bad', 'poor'],
+        additionalProps: ['direction'],
+        name: 'Thumb',
+        defaultProps: {
+          direction: ['down'],
+        },
+      },
     ],
   },
   {
     id: 'chart',
-    label: 'Chart',
+    label: 'Visualizations',
     icons: [
       {
         id: 'graph-type-line',
@@ -1067,6 +1083,13 @@ const SECTIONS: TSection[] = [
         },
       },
       {
+        id: 'graph-type-scatter',
+        name: 'Graph',
+        defaultProps: {
+          type: 'scatter',
+        },
+      },
+      {
         id: 'stack',
         groups: ['chart'],
         keywords: ['group', 'combine', 'view'],
@@ -1090,6 +1113,11 @@ const SECTIONS: TSection[] = [
       {
         id: 'profiling',
         name: 'Profiling',
+        defaultProps: {},
+      },
+      {
+        id: 'table',
+        name: 'Table',
         defaultProps: {},
       },
     ],

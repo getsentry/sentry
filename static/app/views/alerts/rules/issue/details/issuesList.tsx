@@ -11,8 +11,9 @@ import Pagination from 'sentry/components/pagination';
 import {PanelTable} from 'sentry/components/panels/panelTable';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {Group, Project} from 'sentry/types';
 import type {IssueAlertRule} from 'sentry/types/alerts';
+import type {Group} from 'sentry/types/group';
+import type {Project} from 'sentry/types/project';
 import {getMessage, getTitle} from 'sentry/utils/events';
 import type {FeedbackIssue} from 'sentry/utils/feedback/types';
 import getDynamicText from 'sentry/utils/getDynamicText';
@@ -37,7 +38,7 @@ function AlertRuleIssuesList({project, rule, period, start, end, utc, cursor}: P
   const {
     data: groupHistory,
     getResponseHeader,
-    isLoading,
+    isPending,
     isError,
     error,
   } = useApiQuery<GroupHistory[]>(
@@ -68,7 +69,7 @@ function AlertRuleIssuesList({project, rule, period, start, end, utc, cursor}: P
   return (
     <Fragment>
       <StyledPanelTable
-        isLoading={isLoading}
+        isLoading={isPending}
         isEmpty={groupHistory?.length === 0}
         emptyMessage={t('No issues exist for the current query.')}
         headers={[
@@ -84,7 +85,8 @@ function AlertRuleIssuesList({project, rule, period, start, end, utc, cursor}: P
           const path =
             (issue as unknown as FeedbackIssue).issueType === 'feedback'
               ? {
-                  pathname: `/organizations/${organization.slug}/feedback/?feedbackSlug=${issue.project.slug}%3A${issue.id}`,
+                  pathname: `/organizations/${organization.slug}/feedback/`,
+                  query: {feedbackSlug: `${issue.project.slug}:${issue.id}`},
                 }
               : {
                   pathname: `/organizations/${organization.slug}/issues/${issue.id}/${

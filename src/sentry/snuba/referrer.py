@@ -12,6 +12,10 @@ logger = logging.getLogger(__name__)
 class Referrer(Enum):
     ALERTRULESERIALIZER_TEST_QUERY_PRIMARY = "alertruleserializer.test_query.primary"
     ALERTRULESERIALIZER_TEST_QUERY = "alertruleserializer.test_query"
+    ANOMALY_DETECTION_HISTORICAL_DATA_QUERY = "anomaly_detection_historical_data_query"
+    ANOMALY_DETECTION_RETURN_HISTORICAL_ANOMALIES = (
+        "anomaly_detection_get_historical_anomalies_query"
+    )
     API_ALERTS_ALERT_RULE_CHART_METRICS_ENHANCED = "api.alerts.alert-rule-chart.metrics-enhanced"
     API_ALERTS_ALERT_RULE_CHART = "api.alerts.alert-rule-chart"
     API_ALERTS_CHARTCUTERIE = "api.alerts.chartcuterie"
@@ -90,6 +94,8 @@ class Referrer(Enum):
     API_DISCOVER_TRANSACTIONS_LIST = "api.discover.transactions-list"
     API_EVENTS_MEASUREMENTS = "api.events.measurements"
     API_EVENTS_VITALS = "api.events.vitals"
+    API_EXPLORE_SPANS_SAMPLES_TABLE = "api.explore.spans-samples-table"
+    API_GROUP_AI_SUMMARY = "api.group_ai_summary"
     API_GROUP_EVENTS_ERROR_DIRECT_HIT = "api.group-events.error.direct-hit"
     API_GROUP_EVENTS_ERROR = "api.group-events.error"
     API_GROUP_EVENTS_PERFORMANCE_DIRECT_HIT = "api.group-events.performance.direct-hit"
@@ -162,6 +168,7 @@ class Referrer(Enum):
         "api.organization.metrics-metadata.fetch-metrics-summaries"
     )
     API_ORGANIZATION_METRICS_QUERY = "api.organization.metrics-query"
+    API_ORGANIZATION_METRICS_EAP_QUERY = "api.organization.metrics-eap-query"
     API_ORGANIZATION_METRICS_SAMPLES = "api.organization.metrics-samples"
     API_ORGANIZATION_ISSUE_REPLAY_COUNT = "api.organization-issue-replay-count"
     API_ORGANIZATION_SDK_UPDATES = "api.organization-sdk-updates"
@@ -368,6 +375,15 @@ class Referrer(Enum):
     API_PROFILING_PROFILE_SUMMARY_TABLE = "api.profiling.profile-summary-table"
     API_PROFILING_PROFILE_SUMMARY_FUNCTIONS_TABLE = "api.profiling.profile-summary-functions-table"
     API_PROFILING_PROFILE_FLAMEGRAPH = "api.profiling.profile-flamegraph"
+    API_PROFILING_PROFILE_FLAMEGRAPH_TRANSACTION_CANDIDATES = (
+        "api.profiling.profile-flamegraph-transaction-candidates"
+    )
+    API_PROFILING_PROFILE_FLAMEGRAPH_CHUNK_CANDIDATES = (
+        "api.profiling.profile-flamegraph-chunk-candidates"
+    )
+    API_PROFILING_PROFILE_FLAMEGRAPH_PROFILE_CANDIDATES = (
+        "api.profiling.profile-flamegraph-profile-candidates"
+    )
     API_PROFILING_FLAMEGRAPH_SPANS_WITH_GROUP = "api.profiling.flamegraph-spans-with-group"
     API_PROFILING_FLAMEGRAPH_CHUNKS_FROM_SPANS = "api.profiling.flamegraph-chunks-with-spans"
     API_PROFILING_FUNCTION_SCOPED_FLAMEGRAPH = "api.profiling.function-scoped-flamegraph"
@@ -444,6 +460,8 @@ class Referrer(Enum):
     API_STARFISH_MOBILE_STARTUP_SPAN_TABLE = "api.starfish.mobile-spartup-span-table"
     API_STARFISH_MOBILE_STARTUP_LOADED_LIBRARIES = "api.starfish.mobile-startup-loaded-libraries"
     API_STARFISH_MOBILE_STARTUP_TOTALS = "api.starfish.mobile-startup-totals"
+    API_STARFISH_MOBILE_SCREENS_METRICS = "api.starfish.mobile-screens-metrics"
+    API_STARFISH_MOBILE_SCREENS_SCREEN_TABLE = "api.starfish.mobile-screens-screen-table"
     API_TRACE_EXPLORER_METRICS_SPANS_LIST = "api.trace-explorer.metrics-spans-list"
     API_TRACE_EXPLORER_SPANS_LIST = "api.trace-explorer.spans-list"
     API_TRACE_EXPLORER_SPANS_LIST_SORTED = "api.trace-explorer.spans-list-sorted"
@@ -589,6 +607,7 @@ class Referrer(Enum):
     DATA_EXPORT_TASKS_DISCOVER = "data_export.tasks.discover"
     DELETIONS_GROUP = "deletions.group"
     DISCOVER = "discover"
+    DISCOVER_SLACK_UNFURL = "discover.slack.unfurl"
     DYNAMIC_SAMPLING_DISTRIBUTION_FETCH_PROJECT_BREAKDOWN = (
         "dynamic-sampling.distribution.fetch-project-breakdown"
     )
@@ -644,6 +663,7 @@ class Referrer(Enum):
     )
     GITHUB_PR_COMMENT_BOT = "tasks.github_comment"
     GROUP_FILTER_BY_EVENT_ID = "group.filter_by_event_id"
+    GROUP_GET_HELPFUL = "Group.get_helpful"
     GROUP_GET_LATEST = "Group.get_latest"
     GROUP_UNHANDLED_FLAG = "group.unhandled-flag"
     GROUPING_RECORDS_BACKFILL_REFERRER = "getsentry.tasks.backfill_grouping_records"

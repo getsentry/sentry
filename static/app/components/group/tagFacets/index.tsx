@@ -141,7 +141,7 @@ export default function TagFacets({
 
   const {transaction, aggregateRange2, breakpoint} =
     event?.occurrence?.evidenceData ?? {};
-  const {isLoading, isError, data, refetch} = useFetchIssueTagsForDetailsPage({
+  const {isPending, isError, data, refetch} = useFetchIssueTagsForDetailsPage({
     groupId,
     orgSlug: organization.slug,
     environment: environments,
@@ -170,19 +170,19 @@ export default function TagFacets({
     const formatted =
       tagFormatter?.(keyed as Record<string, GroupTagResponseItem>) ?? keyed;
 
-    if (!organization.features.includes('device-classification')) {
-      delete formatted['device.class'];
-    }
-
     return formatted as Record<string, GroupTagResponseItem>;
-  }, [data, tagFormatter, organization, isStatisticalDetector]);
+  }, [data, tagFormatter, isStatisticalDetector]);
 
-  const topTagKeys = tagKeys.filter(tagKey => Object.keys(tagsData).includes(tagKey));
+  // filter out replayId since we no longer want to
+  // display this on issue details
+  const topTagKeys = tagKeys.filter(
+    tagKey => Object.keys(tagsData).includes(tagKey) && tagKey !== 'replayId'
+  );
   const remainingTagKeys = Object.keys(tagsData)
-    .filter(tagKey => !tagKeys.includes(tagKey))
+    .filter(tagKey => !tagKeys.includes(tagKey) && tagKey !== 'replayId')
     .sort();
 
-  if (isLoading) {
+  if (isPending) {
     return (
       <WrapperWithTitle>
         <TagPlaceholders>

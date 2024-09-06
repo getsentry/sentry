@@ -115,7 +115,6 @@ class ProjectMemberSerializer(serializers.Serializer):
         "fingerprintingRules",
         "secondaryGroupingConfig",
         "secondaryGroupingExpiry",
-        "groupingAutoUpdate",
         "scrapeJavaScript",
         "allowedDomains",
         "copy_from_project",
@@ -125,7 +124,7 @@ class ProjectMemberSerializer(serializers.Serializer):
         "performanceIssueSendToPlatform",
         "highlightContext",
         "highlightTags",
-        "extrapolateMetrics",
+        "uptimeAutodetection",
     ]
 )
 class ProjectAdminSerializer(ProjectMemberSerializer):
@@ -167,7 +166,15 @@ class ProjectAdminSerializer(ProjectMemberSerializer):
         allow_null=True,
         help_text="Automatically resolve an issue if it hasn't been seen for this many hours. Set to `0` to disable auto-resolve.",
     )
-
+    highlightContext = HighlightContextField(
+        required=False,
+        help_text="A JSON mapping of context types to lists of strings for their keys. E.g. {'user': ['id', 'email']}",
+    )
+    highlightTags = ListField(
+        child=serializers.CharField(),
+        required=False,
+        help_text="A list of strings with tag keys to highlight on this project's issues. E.g. ['release', 'environment']",
+    )
     # TODO: Add help_text to all the fields for public documentation
     team = serializers.RegexField(r"^[a-z0-9_\-]+$", max_length=50)
     digestsMinDelay = serializers.IntegerField(min_value=60, max_value=3600)
@@ -185,8 +192,6 @@ class ProjectAdminSerializer(ProjectMemberSerializer):
     dataScrubberDefaults = serializers.BooleanField(required=False)
     sensitiveFields = ListField(child=serializers.CharField(), required=False)
     safeFields = ListField(child=serializers.CharField(), required=False)
-    highlightContext = HighlightContextField(required=False)
-    highlightTags = ListField(child=serializers.CharField(), required=False)
     storeCrashReports = serializers.IntegerField(
         min_value=-1, max_value=STORE_CRASH_REPORTS_MAX, required=False, allow_null=True
     )
@@ -202,7 +207,6 @@ class ProjectAdminSerializer(ProjectMemberSerializer):
         required=False, allow_blank=True, allow_null=True
     )
     secondaryGroupingExpiry = serializers.IntegerField(min_value=1, required=False, allow_null=True)
-    groupingAutoUpdate = serializers.BooleanField(required=False)
     scrapeJavaScript = serializers.BooleanField(required=False)
     allowedDomains = EmptyListField(child=OriginField(allow_blank=True), required=False)
 
@@ -211,7 +215,7 @@ class ProjectAdminSerializer(ProjectMemberSerializer):
     performanceIssueCreationRate = serializers.FloatField(required=False, min_value=0, max_value=1)
     performanceIssueCreationThroughPlatform = serializers.BooleanField(required=False)
     performanceIssueSendToPlatform = serializers.BooleanField(required=False)
-    extrapolateMetrics = serializers.BooleanField(required=False)
+    uptimeAutodetection = serializers.BooleanField(required=False)
 
     # DO NOT ADD MORE TO OPTIONS
     # Each param should be a field in the serializer like above.
@@ -310,7 +314,8 @@ class ProjectAdminSerializer(ProjectMemberSerializer):
             # We should really only grab and parse if there are sources in sources_json whose
             # secrets are set to {"hidden-secret":true}
             orig_sources = parse_sources(
-                self.context["project"].get_option("sentry:symbol_sources")
+                self.context["project"].get_option("sentry:symbol_sources"),
+                filter_appconnect=True,
             )
             sources = parse_backfill_sources(sources_json.strip(), orig_sources)
         except InvalidSourcesError as e:
@@ -628,9 +633,6 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
                 changed_proj_settings["sentry:secondary_grouping_expiry"] = result[
                     "secondaryGroupingExpiry"
                 ]
-        if result.get("groupingAutoUpdate") is not None:
-            if project.update_option("sentry:grouping_auto_update", result["groupingAutoUpdate"]):
-                changed_proj_settings["sentry:grouping_auto_update"] = result["groupingAutoUpdate"]
         if result.get("securityToken") is not None:
             if project.update_option("sentry:token", result["securityToken"]):
                 changed_proj_settings["sentry:token"] = result["securityToken"]
@@ -701,7 +703,7 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
                 # Redact secrets so they don't get logged directly to the Audit Log
                 sources_json = result["symbolSources"] or None
                 try:
-                    sources = parse_sources(sources_json)
+                    sources = parse_sources(sources_json, filter_appconnect=True)
                 except Exception:
                     sources = []
                 redacted_sources = redact_source_secrets(sources)
@@ -732,9 +734,9 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
                     "dynamicSamplingBiases"
                 ]
 
-        if "extrapolateMetrics" in result:
-            if project.update_option("sentry:extrapolate_metrics", result["extrapolateMetrics"]):
-                changed_proj_settings["sentry:extrapolate_metrics"] = result["extrapolateMetrics"]
+        if result.get("uptimeAutodetection") is not None:
+            if project.update_option("sentry:uptime_autodetection", result["uptimeAutodetection"]):
+                changed_proj_settings["sentry:uptime_autodetection"] = result["uptimeAutodetection"]
 
         if has_elevated_scopes:
             options = result.get("options", {})
@@ -876,9 +878,9 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
                     data = serialize(project, request.user, DetailedProjectSerializer())
                     return Response(data)
 
-            if "sentry:extrapolate_metrics" in options:
+            if "sentry:uptime_autodetection" in options:
                 project.update_option(
-                    "sentry:extrapolate_metrics", bool(options["sentry:extrapolate_metrics"])
+                    "sentry:uptime_autodetection", bool(options["sentry:uptime_autodetection"])
                 )
 
         self.create_audit_entry(
@@ -952,7 +954,9 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
             project.rename_on_pending_deletion()
 
             # Tell seer to delete all the project's grouping records
-            if features.has("projects:similarity-embeddings-delete-by-hash", project):
+            if features.has(
+                "projects:similarity-embeddings-grouping", project
+            ) or project.get_option("sentry:similarity_backfill_completed"):
                 call_seer_delete_project_grouping_records.apply_async(args=[project.id])
 
         return Response(status=204)

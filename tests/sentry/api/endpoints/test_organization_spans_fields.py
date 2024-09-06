@@ -69,7 +69,7 @@ class OrganizationSpansTagKeyValuesEndpointTest(BaseSpansTestCase, APITestCase):
 
     def do_request(self, key: str, query=None, features=None, **kwargs):
         if features is None:
-            features = ["organizations:performance-trace-explorer"]
+            features = ["organizations:performance-trace-explorer", "organizations:global-views"]
         with self.feature(features):
             return self.client.get(
                 reverse(

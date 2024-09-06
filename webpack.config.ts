@@ -2,6 +2,7 @@
 
 import {WebpackReactSourcemapsPlugin} from '@acemarke/react-prod-sourcemaps';
 import {RsdoctorWebpackPlugin} from '@rsdoctor/webpack-plugin';
+import {sentryWebpackPlugin} from '@sentry/webpack-plugin';
 import browserslist from 'browserslist';
 import CompressionPlugin from 'compression-webpack-plugin';
 import CopyPlugin from 'copy-webpack-plugin';
@@ -97,7 +98,7 @@ const SENTRY_EXPERIMENTAL_SPA =
 const SENTRY_SPA_DSN = SENTRY_EXPERIMENTAL_SPA ? env.SENTRY_SPA_DSN : undefined;
 const CODECOV_TOKEN = env.CODECOV_TOKEN;
 // value should come back as either 'true' or 'false' or undefined
-const ENABLE_CODECOV_BA = env.CODECOV_ENABLE_BA === 'true' ?? false;
+const ENABLE_CODECOV_BA = env.CODECOV_ENABLE_BA === 'true';
 
 // this is the path to the django "sentry" app, we output the webpack build here to `dist`
 // so that `django collectstatic` and so that we can serve the post-webpack bundles
@@ -269,8 +270,8 @@ const appConfig: webpack.Configuration = {
         },
       },
       {
-        test: /\.pegjs/,
-        use: {loader: 'pegjs-loader'},
+        test: /\.pegjs$/,
+        use: ['pegjs-loader?cache=false&optimize=speed'],
       },
       {
         test: /\.css/,
@@ -811,5 +812,24 @@ if (env.WEBPACK_CACHE_PATH) {
     },
   };
 }
+
+appConfig.plugins?.push(
+  sentryWebpackPlugin({
+    applicationKey: 'sentry-spa',
+    telemetry: false,
+    sourcemaps: {
+      disable: true,
+    },
+    release: {
+      create: false,
+    },
+    reactComponentAnnotation: {
+      enabled: true,
+    },
+    bundleSizeOptimizations: {
+      excludeDebugStatements: IS_PRODUCTION,
+    },
+  })
+);
 
 export default appConfig;

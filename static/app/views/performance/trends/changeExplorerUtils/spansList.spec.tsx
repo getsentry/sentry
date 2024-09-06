@@ -1,4 +1,4 @@
-import moment from 'moment';
+import moment from 'moment-timezone';
 
 import {initializeData} from 'sentry-test/performance/initializePerformanceData';
 import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';

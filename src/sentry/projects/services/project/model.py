@@ -4,9 +4,10 @@
 # defined, because we want to reflect on type annotations and avoid forward references.
 
 from collections.abc import Callable
-from typing import Any, TypedDict
+from typing import Any
 
 from pydantic.fields import Field
+from typing_extensions import TypedDict
 
 from sentry.constants import ObjectStatus
 from sentry.hybridcloud.rpc import OptionValue, RpcModel

@@ -26,22 +26,21 @@ _configs_producer = SingletonProducer(_get_producer)
 
 
 def produce_config(config: CheckConfig):
-    topic = get_topic_definition(Topic.UPTIME_CONFIGS)["real_topic_name"]
-    payload = KafkaPayload(
-        UUID(config["subscription_id"]).bytes,
-        UPTIME_CONFIGS_CODEC.encode(config),
-        [],
-    )
-    _configs_producer.produce(ArroyoTopic(topic), payload)
+    _produce_to_kafka(UUID(config["subscription_id"]), UPTIME_CONFIGS_CODEC.encode(config))
 
 
-def produce_config_removal(subscription_id: UUID):
+def produce_config_removal(subscription_id: str):
+    _produce_to_kafka(UUID(subscription_id), None)
+
+
+def _produce_to_kafka(subscription_id: UUID, value: bytes | None) -> None:
     topic = get_topic_definition(Topic.UPTIME_CONFIGS)["real_topic_name"]
     payload = KafkaPayload(
         subscription_id.bytes,
         # Typically None is not allowed for the arroyo payload, but in this
         # case None produces a null value aka a tombstone.
-        None,  # type: ignore[arg-type]
+        value,  # type: ignore[arg-type]
         [],
     )
-    _configs_producer.produce(ArroyoTopic(topic), payload)
+    result = _configs_producer.produce(ArroyoTopic(topic), payload)
+    result.result()

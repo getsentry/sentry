@@ -1,5 +1,6 @@
 import {t} from 'sentry/locale';
-import type {CommitAuthor, User} from 'sentry/types';
+import type {CommitAuthor} from 'sentry/types/integrations';
+import type {User} from 'sentry/types/user';
 import {RATE_UNIT_LABELS, RateUnit} from 'sentry/utils/discover/fields';
 import {formatFloat} from 'sentry/utils/number/formatFloat';
 
@@ -28,18 +29,6 @@ export const SECOND = 1000;
 export const MILLISECOND = 1;
 export const MICROSECOND = 0.001;
 export const NANOSECOND = 0.000001;
-
-/**
- * @deprecated Import directly from `sentry/utils/duration/getExactDuration` instead.
- * biome-ignore lint/performance/noBarrelFile: Temporary for getsentry
- */
-export {getExactDuration} from 'sentry/utils/duration/getExactDuration';
-
-/**
- * @deprecated Import directly from `sentry/utils/number/formatPercentage` instead.
- * biome-ignore lint/performance/noBarrelFile: Temporary for getsentry
- */
-export {formatPercentage} from 'sentry/utils/number/formatPercentage';
 
 const numberFormatSteps = [
   [1_000_000_000, 'b'],

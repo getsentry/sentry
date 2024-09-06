@@ -1,11 +1,10 @@
 import {Fragment, useEffect} from 'react';
-import type {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 
 import {promptsCheck, promptsUpdate} from 'sentry/actionCreators/prompts';
 import Feature from 'sentry/components/acl/feature';
 import {Alert} from 'sentry/components/alert';
-import {Button} from 'sentry/components/button';
+import {LinkButton} from 'sentry/components/button';
 import CreateAlertButton from 'sentry/components/createAlertButton';
 import DeprecatedAsyncComponent from 'sentry/components/deprecatedAsyncComponent';
 import * as Layout from 'sentry/components/layouts/thirds';
@@ -16,6 +15,7 @@ import {PanelTable} from 'sentry/components/panels/panelTable';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -185,9 +185,9 @@ class IncidentsList extends DeprecatedAsyncComponent<
 
     const actions = (
       <Fragment>
-        <Button size="sm" external href={DOCS_URL}>
+        <LinkButton size="sm" external href={DOCS_URL}>
           {t('View Features')}
-        </Button>
+        </LinkButton>
         <CreateAlertButton
           organization={organization}
           iconProps={{size: 'xs'}}

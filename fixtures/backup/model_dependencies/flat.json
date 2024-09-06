@@ -201,6 +201,9 @@
   "sentry.dashboardwidgetqueryondemand": [
     "sentry.dashboardwidgetquery"
   ],
+  "sentry.datasecrecywaiver": [
+    "sentry.organization"
+  ],
   "sentry.debugidartifactbundle": [
     "sentry.artifactbundle",
     "sentry.organization"
@@ -246,10 +249,6 @@
     "sentry.file",
     "sentry.group",
     "sentry.project"
-  ],
-  "sentry.eventprocessingissue": [
-    "sentry.processingissue",
-    "sentry.rawevent"
   ],
   "sentry.exporteddata": [
     "sentry.file",
@@ -316,6 +315,9 @@
     "sentry.group",
     "sentry.grouptombstone",
     "sentry.project"
+  ],
+  "sentry.grouphashmetadata": [
+    "sentry.grouphash"
   ],
   "sentry.grouphistory": [
     "sentry.group",
@@ -553,9 +555,6 @@
     "sentry.group",
     "sentry.project"
   ],
-  "sentry.processingissue": [
-    "sentry.project"
-  ],
   "sentry.proguardartifactrelease": [
     "sentry.organization",
     "sentry.project",
@@ -643,9 +642,6 @@
     "sentry.project",
     "sentry.snubaquery"
   ],
-  "sentry.rawevent": [
-    "sentry.project"
-  ],
   "sentry.recentsearch": [
     "sentry.organization",
     "sentry.user"
@@ -730,9 +726,6 @@
     "sentry.organizationintegration",
     "sentry.project",
     "sentry.repository"
-  ],
-  "sentry.reprocessingreport": [
-    "sentry.project"
   ],
   "sentry.rule": [
     "sentry.environment",
@@ -861,6 +854,8 @@
   ],
   "uptime.projectuptimesubscription": [
     "sentry.project",
+    "sentry.team",
+    "sentry.user",
     "uptime.uptimesubscription"
   ],
   "uptime.uptimesubscription": []

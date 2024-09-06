@@ -1,5 +1,4 @@
 import {Fragment, useCallback} from 'react';
-import type {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 
 import {Role} from 'sentry/components/acl/role';
@@ -16,12 +15,15 @@ import {Tooltip} from 'sentry/components/tooltip';
 import {IconClock, IconDownload} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {Artifact, DebugIdBundleArtifact, Project} from 'sentry/types';
+import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
+import type {Project} from 'sentry/types/project';
+import type {Artifact} from 'sentry/types/release';
+import type {DebugIdBundleArtifact} from 'sentry/types/sourceMaps';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {decodeScalar} from 'sentry/utils/queryString';
+import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
-import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 import {DebugIdBundleDeleteButton} from 'sentry/views/settings/projectSourceMaps/debugIdBundleDeleteButton';
 import {DebugIdBundleDetails} from 'sentry/views/settings/projectSourceMaps/debugIdBundleDetails';
@@ -136,7 +138,7 @@ export function ProjectSourceMapsArtifacts({params, location, router, project}: 
   const {
     data: artifactsData,
     getResponseHeader: artifactsHeaders,
-    isLoading: artifactsLoading,
+    isPending: artifactsLoading,
   } = useApiQuery<Artifact[]>(
     [
       artifactsEndpoint,
@@ -154,7 +156,7 @@ export function ProjectSourceMapsArtifacts({params, location, router, project}: 
   const {
     data: debugIdBundlesArtifactsData,
     getResponseHeader: debugIdBundlesArtifactsHeaders,
-    isLoading: debugIdBundlesArtifactsLoading,
+    isPending: debugIdBundlesArtifactsLoading,
   } = useApiQuery<DebugIdBundleArtifact>(
     [
       debugIdBundlesArtifactsEndpoint,

@@ -13,7 +13,8 @@ import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {IssueAttachment, Project} from 'sentry/types';
+import type {IssueAttachment} from 'sentry/types/group';
+import type {Project} from 'sentry/types/project';
 import {useApiQuery, useMutation} from 'sentry/utils/queryClient';
 import {decodeList} from 'sentry/utils/queryString';
 import useApi from 'sentry/utils/useApi';
@@ -64,7 +65,7 @@ function GroupEventAttachments({project}: GroupEventAttachmentsProps) {
 
   const {
     data: eventAttachments,
-    isLoading,
+    isPending,
     isError,
     getResponseHeader,
     refetch,
@@ -114,7 +115,7 @@ function GroupEventAttachments({project}: GroupEventAttachmentsProps) {
   };
 
   const renderInnerBody = () => {
-    if (isLoading) {
+    if (isPending) {
       return <LoadingIndicator />;
     }
 
@@ -163,7 +164,7 @@ function GroupEventAttachments({project}: GroupEventAttachmentsProps) {
       return <LoadingError onRetry={refetch} message={t('Error loading screenshots')} />;
     }
 
-    if (isLoading) {
+    if (isPending) {
       return <LoadingIndicator />;
     }
 

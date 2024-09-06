@@ -54,7 +54,6 @@ from sentry.testutils.helpers.notifications import (
     DummyNotificationWithMoreFields,
 )
 from sentry.testutils.skips import requires_snuba
-from sentry.types.group import GroupSubStatus
 
 pytestmark = [requires_snuba]
 
@@ -391,101 +390,6 @@ class MSTeamsMessageBuilderTest(TestCase):
         card_json = orjson.dumps(issue_card).decode()
         assert card_json[0] == "{" and card_json[-1] == "}"
 
-    def test_issue_message_builder_with_escalating_issues(self):
-        with self.feature("organizations:escalating-issues-msteams"):
-            self.event1.data["metadata"].update({"value": "some error"})
-            self.group1.data["metadata"].update({"value": "some error"})
-            self.event1.data["type"] = self.group1.data["type"] = "error"
-
-            issue_card = MSTeamsIssueMessageBuilder(
-                group=self.group1, event=self.event1, rules=self.rules, integration=self.integration
-            ).build_group_card()
-
-            body = issue_card["body"]
-            assert 4 == len(body)
-
-            title = body[0]
-            assert _is_text_block(title)
-            assert "oh no" in title["text"]
-            assert TextSize.LARGE == title["size"]
-            assert TextWeight.BOLDER == title["weight"]
-
-            description = body[1]
-            assert _is_text_block(description)
-            assert "some error" == description["text"]
-            assert TextWeight.BOLDER == description["weight"]
-
-            footer = body[2]
-            assert _is_column_set_block(footer)
-            assert 3 == len(footer["columns"])
-
-            logo = footer["columns"][0]["items"][0]
-            assert _is_image_block(logo)
-            assert "20px" == logo["height"]
-
-            issue_id_and_rule = footer["columns"][1]["items"][0]
-            assert _is_text_block(issue_id_and_rule)
-            assert self.group1.qualified_short_id in issue_id_and_rule["text"]
-            assert "rule1" in issue_id_and_rule["text"]
-            assert "+1 other" in issue_id_and_rule["text"]
-
-            date = footer["columns"][2]["items"][0]
-            assert _is_text_block(date)
-            assert (
-                re.match(
-                    r"""\{\{                # {{
-                    DATE\(                  # DATE(
-                        [0-9T+:\-]+,\ SHORT #   2022-07-14T19:30:34, SHORT
-                    \)                      # )
-                    \}\}                    # }}
-                    \                       # whitespace
-                    at                      # at
-                    \                       # whitespace
-                    \{\{                    # {{
-                    TIME\([0-9T+:\-]+\)     # TIME(2022-07-14T19:30:34)
-                    \}\}                    # }}""",
-                    date["text"],
-                    re.VERBOSE,
-                )
-                is not None
-            )
-
-            actions_container = body[3]
-            assert "Container" == actions_container["type"]
-
-            action_set = actions_container["items"][0]
-            assert "ActionSet" == action_set["type"]
-
-            actions = action_set["actions"]
-            for action in actions:
-                assert ActionType.SHOW_CARD == action["type"]
-                card_body = action["card"]["body"]
-                assert 2 == len(card_body)
-                assert "Input.ChoiceSet" == card_body[-1]["type"]
-
-            resolve_action, ignore_action, assign_action = actions
-            assert "Resolve" == resolve_action["title"]
-            assert "Archive" == ignore_action["title"]
-            assert "Assign" == assign_action["title"]
-
-            assert _is_show_card_action(ignore_action)
-            body = ignore_action["card"]["body"]
-            assert 2 == len(body)
-            assert _is_text_block(body[0])
-            assert "Archive until this happens again..." == body[0]["text"]
-            assert "Archive" == ignore_action["card"]["actions"][0]["title"]
-
-            assert _is_show_card_action(assign_action)
-            body = assign_action["card"]["body"]
-            assert 2 == len(body)
-            assert _is_text_block(body[0])
-            assert "Assign to..." == body[0]["text"]
-            assert "Assign" == assign_action["card"]["actions"][0]["title"]
-
-            # Check if card is serializable to json
-            card_json = orjson.dumps(issue_card).decode()
-            assert card_json[0] == "{" and card_json[-1] == "}"
-
     def test_issue_without_description(self):
         issue_card = MSTeamsIssueMessageBuilder(
             group=self.group1, event=self.event1, rules=self.rules, integration=self.integration
@@ -538,23 +442,6 @@ class MSTeamsMessageBuilderTest(TestCase):
         ignore_action = action_set["actions"][1]
         assert ActionType.SUBMIT == ignore_action["type"]
         assert "Stop Ignoring" == ignore_action["title"]
-
-    def test_archived_issue_message(self):
-        with self.feature("organizations:escalating-issues-msteams"):
-            self.group1.status = GroupStatus.IGNORED
-            self.group1.substatus = GroupSubStatus.UNTIL_ESCALATING
-
-            issue_card = MSTeamsIssueMessageBuilder(
-                group=self.group1, event=self.event1, rules=self.rules, integration=self.integration
-            ).build_group_card()
-
-            assert _is_container_block(issue_card["body"][2])
-            action_set = issue_card["body"][2]["items"][0]
-
-            assert _is_action_set(action_set)
-            ignore_action = action_set["actions"][1]
-            assert ActionType.SUBMIT == ignore_action["type"]
-            assert "Unarchive" == ignore_action["title"]
 
     def test_assigned_issue_message(self):
         GroupAssignee.objects.assign(self.group1, self.user)

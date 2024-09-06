@@ -28,6 +28,7 @@ from .query import update
 __all__ = (
     "BaseModel",
     "Model",
+    "DefaultFieldsModelExisting",
     "DefaultFieldsModel",
     "sane_repr",
     "get_model_if_available",
@@ -321,7 +322,12 @@ class Model(BaseModel):
     __repr__ = sane_repr("id")
 
 
-class DefaultFieldsModel(Model):
+class DefaultFieldsModelExisting(Model):
+    """
+    A base model that adds default date fields to existing models. Don't use this on new models, since it makes `date_added`
+    nullable.
+    """
+
     date_updated = models.DateTimeField(default=timezone.now)
     date_added = models.DateTimeField(default=timezone.now, null=True)
 
@@ -329,10 +335,24 @@ class DefaultFieldsModel(Model):
         abstract = True
 
 
+class DefaultFieldsModel(Model):
+    """
+    A base model that adds default date fields to existing models.
+    """
+
+    date_updated = models.DateTimeField(auto_now=True)
+    date_added = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        abstract = True
+
+
 def __model_pre_save(instance: models.Model, **kwargs: Any) -> None:
-    if not isinstance(instance, DefaultFieldsModel):
+    if not isinstance(instance, DefaultFieldsModelExisting):
         return
-    instance.date_updated = timezone.now()
+    # Only update this field when we're updating the row, not on create.
+    if instance.pk is not None:
+        instance.date_updated = timezone.now()
 
 
 def __model_post_save(instance: models.Model, **kwargs: Any) -> None:
@@ -363,7 +383,16 @@ def __model_class_prepared(sender: Any, **kwargs: Any) -> None:
             f"`Excluded`, which does not make sense. `Excluded` must always be a standalone value."
         )
 
-    from .outboxes import ReplicatedControlModel, ReplicatedRegionModel
+    if (
+        getattr(sender._meta, "app_label", None) == "getsentry"
+        and sender.__relocation_scope__ != RelocationScope.Excluded
+    ):
+        raise ValueError(
+            f"{sender!r} model is in the `getsentry` app, and therefore cannot be exported. "
+            f"Please set `__relocation_scope__ = RelocationScope.Excluded` on the model definition."
+        )
+
+    from sentry.hybridcloud.outbox.base import ReplicatedControlModel, ReplicatedRegionModel
 
     if issubclass(sender, ReplicatedControlModel):
         sender.category.connect_control_model_updates(sender)

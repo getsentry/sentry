@@ -188,7 +188,7 @@ describe('Discover > Homepage', () => {
       expect.objectContaining({
         pathname: '/organizations/org-slug/discover/homepage/',
         query: expect.objectContaining({
-          field: ['event.type'],
+          field: 'event.type',
         }),
       })
     );
@@ -580,7 +580,10 @@ describe('Discover > Homepage', () => {
 
     expect(screen.getAllByTestId('grid-head-cell').length).toEqual(1);
     screen.getByText('event.type:error');
-    expect(screen.getByRole('button', {name: 'Dataset Errors'})).toBeInTheDocument();
+    expect(screen.getByRole('tab', {name: 'Errors'})).toHaveAttribute(
+      'aria-selected',
+      'true'
+    );
     expect(
       screen.getByText(
         "We're splitting our datasets up to make it a bit easier to digest. We defaulted this query to Errors. Edit as you see fit."
@@ -654,15 +657,14 @@ describe('Discover > Homepage', () => {
     expect(await screen.findByText('Remove Default')).toBeInTheDocument();
     expect(screen.queryByText('Set as Default')).not.toBeInTheDocument();
 
-    await userEvent.click(screen.getByText('Dataset'));
-    await userEvent.click(screen.getByRole('option', {name: 'Transactions'}));
+    await userEvent.click(screen.getByRole('tab', {name: 'Transactions'}));
 
     expect(initialData.router.push).toHaveBeenCalledWith(
       expect.objectContaining({
         query: expect.objectContaining({
           dataset: 'transactions',
           name: 'homepage query',
-          project: [],
+          project: undefined,
           query: 'event.type:error',
           queryDataset: 'transaction-like',
         }),

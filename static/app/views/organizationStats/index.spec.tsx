@@ -89,6 +89,8 @@ describe('OrganizationStats', function () {
   it('renders the base view', async () => {
     render(<OrganizationStats {...defaultProps} />, {router});
 
+    expect(await screen.findByTestId('usage-stats-chart')).toBeInTheDocument();
+
     // Default to Errors category
     expect(screen.getAllByText('Errors')[0]).toBeInTheDocument();
 
@@ -98,26 +100,32 @@ describe('OrganizationStats', function () {
 
     // Render the cards
     expect(screen.getAllByText('Total')[0]).toBeInTheDocument();
-    expect(screen.getByText('64')).toBeInTheDocument();
+    // Total from cards and project table should match
+    expect(screen.getAllByText('67')).toHaveLength(2);
 
     expect(screen.getAllByText('Accepted')[0]).toBeInTheDocument();
-    expect(screen.getByText('28')).toBeInTheDocument();
+    // Total from cards and project table should match
+    expect(screen.getAllByText('28')).toHaveLength(2);
     expect(await screen.findByText('6 in last min')).toBeInTheDocument();
 
     expect(screen.getAllByText('Filtered')[0]).toBeInTheDocument();
     expect(screen.getAllByText('7')[0]).toBeInTheDocument();
 
-    expect(screen.getAllByText('Dropped')[0]).toBeInTheDocument();
-    expect(screen.getAllByText('29')[0]).toBeInTheDocument();
+    expect(screen.getAllByText('Rate Limited')[0]).toBeInTheDocument();
+    expect(screen.getAllByText('17')[0]).toBeInTheDocument();
+
+    expect(screen.getAllByText('Invalid')[0]).toBeInTheDocument();
+    expect(screen.getAllByText('15')[0]).toBeInTheDocument();
 
     // Correct API Calls
     const mockExpectations = {
       UsageStatsOrg: {
         statsPeriod: DEFAULT_STATS_PERIOD,
         interval: '1h',
-        groupBy: ['category', 'outcome'],
+        groupBy: ['outcome', 'reason'],
         project: [-1],
         field: ['sum(quantity)'],
+        category: 'error',
       },
       UsageStatsPerMin: {
         statsPeriod: '5m',
@@ -314,9 +322,10 @@ describe('OrganizationStats', function () {
         query: {
           statsPeriod: DEFAULT_STATS_PERIOD,
           interval: '1h',
-          groupBy: ['category', 'outcome'],
+          groupBy: ['outcome', 'reason'],
           project: selectedProjects,
           field: ['sum(quantity)'],
+          category: 'error',
         },
       })
     );
@@ -355,9 +364,10 @@ describe('OrganizationStats', function () {
         query: {
           statsPeriod: DEFAULT_STATS_PERIOD,
           interval: '1h',
-          groupBy: ['category', 'outcome'],
+          groupBy: ['outcome', 'reason'],
           project: selectedProject,
           field: ['sum(quantity)'],
+          category: 'error',
         },
       })
     );
@@ -422,32 +432,6 @@ const mockStatsResponse = {
     {
       by: {
         project: 1,
-        category: 'attachment',
-        outcome: 'accepted',
-      },
-      totals: {
-        'sum(quantity)': 28000,
-      },
-      series: {
-        'sum(quantity)': [1000, 2000, 3000, 4000, 5000, 6000, 7000],
-      },
-    },
-    {
-      by: {
-        project: 1,
-        outcome: 'accepted',
-        category: 'transaction',
-      },
-      totals: {
-        'sum(quantity)': 28,
-      },
-      series: {
-        'sum(quantity)': [1, 2, 3, 4, 5, 6, 7],
-      },
-    },
-    {
-      by: {
-        project: 1,
         category: 'error',
         outcome: 'accepted',
       },
@@ -482,6 +466,32 @@ const mockStatsResponse = {
       },
       series: {
         'sum(quantity)': [2, 2, 2, 2, 2, 2, 2],
+      },
+    },
+    {
+      by: {
+        project: 1,
+        category: 'error',
+        outcome: 'abuse',
+      },
+      totals: {
+        'sum(quantity)': 2,
+      },
+      series: {
+        'sum(quantity)': [2, 0, 0, 0, 0, 0, 0],
+      },
+    },
+    {
+      by: {
+        project: 1,
+        category: 'error',
+        outcome: 'cardinality_limited',
+      },
+      totals: {
+        'sum(quantity)': 1,
+      },
+      series: {
+        'sum(quantity)': [1, 0, 0, 0, 0, 0, 0],
       },
     },
     {

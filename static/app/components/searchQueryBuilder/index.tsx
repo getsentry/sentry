@@ -1,30 +1,39 @@
-import {useMemo, useRef} from 'react';
+import {forwardRef, useMemo, useRef} from 'react';
 import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/button';
 import {inputStyles} from 'sentry/components/input';
 import {
-  SearchQueryBuilerContext,
+  SearchQueryBuilderContext,
+  type SearchQueryBuilderContextData,
   useSearchQueryBuilder,
 } from 'sentry/components/searchQueryBuilder/context';
+import {useHandleSearch} from 'sentry/components/searchQueryBuilder/hooks/useHandleSearch';
+import {useQueryBuilderState} from 'sentry/components/searchQueryBuilder/hooks/useQueryBuilderState';
 import {PlainTextQueryInput} from 'sentry/components/searchQueryBuilder/plainTextQueryInput';
 import {TokenizedQueryGrid} from 'sentry/components/searchQueryBuilder/tokenizedQueryGrid';
 import {
+  type CallbackSearchState,
+  type FieldDefinitionGetter,
   type FilterKeySection,
   QueryInterfaceType,
 } from 'sentry/components/searchQueryBuilder/types';
-import {useHandleSearch} from 'sentry/components/searchQueryBuilder/useHandleSearch';
-import {useQueryBuilderState} from 'sentry/components/searchQueryBuilder/useQueryBuilderState';
-import {parseQueryBuilderValue} from 'sentry/components/searchQueryBuilder/utils';
+import {
+  parseQueryBuilderValue,
+  queryIsValid,
+} from 'sentry/components/searchQueryBuilder/utils';
+import type {SearchConfig} from 'sentry/components/searchSyntax/parser';
 import {IconClose, IconSearch} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {SavedSearchType, Tag, TagCollection} from 'sentry/types/group';
+import {getFieldDefinition} from 'sentry/utils/fields';
 import PanelProvider from 'sentry/utils/panelProvider';
 import {useDimensions} from 'sentry/utils/useDimensions';
 import {useEffectAfterFirstRender} from 'sentry/utils/useEffectAfterFirstRender';
+import usePrevious from 'sentry/utils/usePrevious';
 
-interface SearchQueryBuilderProps {
+export interface SearchQueryBuilderProps {
   /**
    * A complete mapping of all possible filter keys.
    * Filter keys not included will not show up when typing and may be shown as invalid.
@@ -38,128 +47,226 @@ interface SearchQueryBuilderProps {
    */
   searchSource: string;
   className?: string;
+  disabled?: boolean;
+  /**
+   * When true, free text will be marked as invalid.
+   */
+  disallowFreeText?: boolean;
+  /**
+   * When true, parens and logical operators (AND, OR) will be marked as invalid.
+   */
+  disallowLogicalOperators?: boolean;
+  /**
+   * When true, unsupported filter keys will be highlighted as invalid.
+   */
+  disallowUnsupportedFilters?: boolean;
+  /**
+   * When true, the wildcard (*) in filter values or free text will be marked as invalid.
+   */
+  disallowWildcard?: boolean;
+  /**
+   * The lookup strategy for field definitions.
+   * Each SearchQueryBuilder instance can support a different list of fields and
+   * tags, their definitions may not overlap.
+   */
+  fieldDefinitionGetter?: FieldDefinitionGetter;
+  /**
+   * The width of the filter key menu.
+   * Defaults to 360px. May be increased if there are a large number of categories
+   * or long filter key names.
+   */
+  filterKeyMenuWidth?: number;
   /**
    * When provided, displays a tabbed interface for discovering filter keys.
    * Sections and filter keys are displayed in the order they are provided.
    */
   filterKeySections?: FilterKeySection[];
+  /**
+   * Allows for customization of the invalid token messages.
+   */
+  invalidMessages?: SearchConfig['invalidMessages'];
   label?: string;
-  onBlur?: (query: string) => void;
+  onBlur?: (query: string, state: CallbackSearchState) => void;
   /**
    * Called when the query value changes
    */
-  onChange?: (query: string) => void;
+  onChange?: (query: string, state: CallbackSearchState) => void;
   /**
    * Called when the user presses enter
    */
-  onSearch?: (query: string) => void;
+  onSearch?: (query: string, state: CallbackSearchState) => void;
+  placeholder?: string;
   queryInterface?: QueryInterfaceType;
-  savedSearchType?: SavedSearchType;
+  /**
+   * If provided, saves and displays recent searches of the given type.
+   */
+  recentSearches?: SavedSearchType;
+  /**
+   * Render custom content in the trailing section of the search bar, located
+   * to the left of the clear button.
+   */
+  trailingItems?: React.ReactNode;
 }
 
-function ActionButtons() {
-  const {dispatch, handleSearch} = useSearchQueryBuilder();
+const ActionButtons = forwardRef<HTMLDivElement, {trailingItems?: React.ReactNode}>(
+  ({trailingItems = null}, ref) => {
+    const {dispatch, handleSearch, disabled} = useSearchQueryBuilder();
 
-  return (
-    <ButtonsWrapper>
-      <ActionButton
-        aria-label={t('Clear search query')}
-        size="zero"
-        icon={<IconClose />}
-        borderless
-        onClick={() => {
-          dispatch({type: 'CLEAR'});
-          handleSearch('');
-        }}
-      />
-    </ButtonsWrapper>
-  );
-}
+    if (disabled) {
+      return null;
+    }
+
+    return (
+      <ButtonsWrapper ref={ref}>
+        {trailingItems}
+        <ActionButton
+          aria-label={t('Clear search query')}
+          size="zero"
+          icon={<IconClose />}
+          borderless
+          onClick={() => {
+            dispatch({type: 'CLEAR'});
+            handleSearch('');
+          }}
+        />
+      </ButtonsWrapper>
+    );
+  }
+);
 
 export function SearchQueryBuilder({
   className,
+  disabled = false,
+  disallowLogicalOperators,
+  disallowFreeText,
+  disallowUnsupportedFilters,
+  disallowWildcard,
+  invalidMessages,
   label,
   initialQuery,
+  fieldDefinitionGetter = getFieldDefinition,
   filterKeys,
+  filterKeyMenuWidth = 360,
   filterKeySections,
   getTagValues,
   onChange,
   onSearch,
   onBlur,
-  searchSource,
-  savedSearchType,
+  placeholder,
   queryInterface = QueryInterfaceType.TOKENIZED,
+  recentSearches,
+  searchSource,
+  trailingItems,
 }: SearchQueryBuilderProps) {
   const wrapperRef = useRef<HTMLDivElement>(null);
-  const {state, dispatch} = useQueryBuilderState({initialQuery});
+  const actionBarRef = useRef<HTMLDivElement>(null);
+  const {state, dispatch} = useQueryBuilderState({
+    initialQuery,
+    getFieldDefinition: fieldDefinitionGetter,
+    disabled,
+  });
 
   const parsedQuery = useMemo(
-    () => parseQueryBuilderValue(state.query, {filterKeys}),
-    [filterKeys, state.query]
+    () =>
+      parseQueryBuilderValue(state.query, fieldDefinitionGetter, {
+        disallowFreeText,
+        disallowLogicalOperators,
+        disallowUnsupportedFilters,
+        disallowWildcard,
+        filterKeys,
+        invalidMessages,
+      }),
+    [
+      state.query,
+      fieldDefinitionGetter,
+      disallowFreeText,
+      disallowLogicalOperators,
+      disallowUnsupportedFilters,
+      disallowWildcard,
+      filterKeys,
+      invalidMessages,
+    ]
   );
 
   useEffectAfterFirstRender(() => {
     dispatch({type: 'UPDATE_QUERY', query: initialQuery});
   }, [dispatch, initialQuery]);
 
+  const previousQuery = usePrevious(state.query);
   useEffectAfterFirstRender(() => {
-    onChange?.(state.query);
-  }, [onChange, state.query]);
+    if (previousQuery !== state.query) {
+      onChange?.(state.query, {parsedQuery, queryIsValid: queryIsValid(parsedQuery)});
+    }
+  }, [onChange, state.query, previousQuery, parsedQuery]);
 
   const handleSearch = useHandleSearch({
     parsedQuery,
-    savedSearchType,
+    recentSearches,
     searchSource,
     onSearch,
   });
-  const {width} = useDimensions({elementRef: wrapperRef});
-  const size = width < 600 ? ('small' as const) : ('normal' as const);
+  const {width: searchBarWidth} = useDimensions({elementRef: wrapperRef});
+  const {width: actionBarWidth} = useDimensions({elementRef: actionBarRef});
+  const size = searchBarWidth < 600 ? ('small' as const) : ('normal' as const);
 
-  const contextValue = useMemo(() => {
+  const contextValue = useMemo((): SearchQueryBuilderContextData => {
     return {
       ...state,
+      disabled,
       parsedQuery,
       filterKeySections: filterKeySections ?? [],
+      filterKeyMenuWidth,
       filterKeys,
       getTagValues,
+      getFieldDefinition: fieldDefinitionGetter,
       dispatch,
-      onSearch,
       wrapperRef,
       handleSearch,
+      placeholder,
+      recentSearches,
       searchSource,
       size,
     };
   }, [
     state,
+    disabled,
     parsedQuery,
     filterKeySections,
+    filterKeyMenuWidth,
     filterKeys,
     getTagValues,
+    fieldDefinitionGetter,
     dispatch,
-    onSearch,
     handleSearch,
+    placeholder,
+    recentSearches,
     searchSource,
     size,
   ]);
 
   return (
-    <SearchQueryBuilerContext.Provider value={contextValue}>
+    <SearchQueryBuilderContext.Provider value={contextValue}>
       <PanelProvider>
         <Wrapper
           className={className}
-          onBlur={() => onBlur?.(state.query)}
+          onBlur={() =>
+            onBlur?.(state.query, {parsedQuery, queryIsValid: queryIsValid(parsedQuery)})
+          }
           ref={wrapperRef}
+          aria-disabled={disabled}
         >
           {size !== 'small' && <PositionedSearchIcon size="sm" />}
           {!parsedQuery || queryInterface === QueryInterfaceType.TEXT ? (
             <PlainTextQueryInput label={label} />
           ) : (
-            <TokenizedQueryGrid label={label} />
+            <TokenizedQueryGrid label={label} actionBarWidth={actionBarWidth} />
           )}
-          {size !== 'small' && <ActionButtons />}
+          {size !== 'small' && (
+            <ActionButtons ref={actionBarRef} trailingItems={trailingItems} />
+          )}
         </Wrapper>
       </PanelProvider>
-    </SearchQueryBuilerContext.Provider>
+    </SearchQueryBuilderContext.Provider>
   );
 }
 

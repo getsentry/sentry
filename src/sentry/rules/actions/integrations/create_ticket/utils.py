@@ -5,13 +5,14 @@ from collections.abc import Callable, Sequence
 
 from rest_framework.response import Response
 
+from sentry import options
 from sentry.constants import ObjectStatus
 from sentry.eventstore.models import GroupEvent
 from sentry.integrations.base import IntegrationInstallation
+from sentry.integrations.models.external_issue import ExternalIssue
 from sentry.integrations.services.integration.model import RpcIntegration
 from sentry.integrations.services.integration.service import integration_service
 from sentry.models.grouplink import GroupLink
-from sentry.models.integrations.external_issue import ExternalIssue
 from sentry.shared_integrations.exceptions import IntegrationFormError
 from sentry.silo.base import region_silo_function
 from sentry.types.rules import RuleFuture
@@ -134,7 +135,13 @@ def create_issue(event: GroupEvent, futures: Sequence[RuleFuture]) -> None:
                     "provider": provider,
                 },
             )
-            return
+
+            # Testing out if this results in a lot of noisy sentry issues
+            # when enabled.
+            if options.get("ecosystem:enable_integration_form_error_raise"):
+                raise
+            else:
+                return
 
         if not event.get_tag("sample_event") == "yes":
             create_link(integration, installation, event, response)

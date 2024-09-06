@@ -16,16 +16,16 @@ from sentry.eventstore.models import GroupEvent
 from sentry.integrations.base import (
     FeatureDescription,
     IntegrationFeatures,
-    IntegrationInstallation,
     IntegrationMetadata,
     IntegrationProvider,
 )
-from sentry.integrations.mixins.issues import MAX_CHAR, IssueSyncMixin, ResolveSyncAction
+from sentry.integrations.jira.tasks import migrate_issues
+from sentry.integrations.mixins.issues import MAX_CHAR, IssueSyncIntegration, ResolveSyncAction
+from sentry.integrations.models.external_issue import ExternalIssue
+from sentry.integrations.models.integration_external_project import IntegrationExternalProject
 from sentry.integrations.services.integration import integration_service
 from sentry.issues.grouptype import GroupCategory
 from sentry.models.group import Group
-from sentry.models.integrations.external_issue import ExternalIssue
-from sentry.models.integrations.integration_external_project import IntegrationExternalProject
 from sentry.organizations.services.organization.service import organization_service
 from sentry.shared_integrations.exceptions import (
     ApiError,
@@ -35,7 +35,6 @@ from sentry.shared_integrations.exceptions import (
     IntegrationFormError,
 )
 from sentry.silo.base import all_silo_function
-from sentry.tasks.integrations.migrate_issues import migrate_issues
 from sentry.users.services.user import RpcUser
 from sentry.users.services.user.service import user_service
 from sentry.utils.strings import truncatechars
@@ -115,10 +114,11 @@ JIRA_CUSTOM_FIELD_TYPES = {
     "tempo_account": "com.tempoplugin.tempo-accounts:accounts.customfield",
     "sprint": "com.pyxis.greenhopper.jira:gh-sprint",
     "epic": "com.pyxis.greenhopper.jira:gh-epic-link",
+    "team": "com.atlassian.jira.plugin.system.customfieldtypes:atlassian-team",
 }
 
 
-class JiraIntegration(IntegrationInstallation, IssueSyncMixin):
+class JiraIntegration(IssueSyncIntegration):
     comment_key = "sync_comments"
     outbound_status_key = "sync_status_forward"
     inbound_status_key = "sync_status_reverse"
@@ -338,7 +338,7 @@ class JiraIntegration(IntegrationInstallation, IssueSyncMixin):
                 field["type"] = "select"
         return fields
 
-    def get_issue_url(self, key, **kwargs):
+    def get_issue_url(self, key: str) -> str:
         return "{}/browse/{}".format(self.model.metadata["base_url"], key)
 
     def get_persisted_default_config_fields(self) -> Sequence[str]:
@@ -423,7 +423,7 @@ class JiraIntegration(IntegrationInstallation, IssueSyncMixin):
 
     def get_issue(self, issue_id, **kwargs):
         """
-        Jira installation's implementation of IssueSyncMixin's `get_issue`.
+        Jira installation's implementation of IssueSyncIntegration's `get_issue`.
         """
         client = self.get_client()
         issue = client.get_issue(issue_id)
@@ -451,9 +451,11 @@ class JiraIntegration(IntegrationInstallation, IssueSyncMixin):
             issue_id, group_note.data["external_id"], quoted_comment
         )
 
-    def search_issues(self, query):
+    def search_issues(self, query: str | None, **kwargs) -> dict[str, Any]:
         try:
-            return self.get_client().search_issues(query)
+            resp = self.get_client().search_issues(query)
+            assert isinstance(resp, dict)
+            return resp
         except ApiError as e:
             self.raise_error(e)
 
@@ -860,6 +862,8 @@ class JiraIntegration(IntegrationInstallation, IssueSyncMixin):
                     elif schema["type"] == "issuelink":  # used by Parent field
                         v = {"key": v}
                     elif schema.get("custom") == JIRA_CUSTOM_FIELD_TYPES["epic"]:
+                        v = v
+                    elif schema.get("custom") == JIRA_CUSTOM_FIELD_TYPES["team"]:
                         v = v
                     elif schema.get("custom") == JIRA_CUSTOM_FIELD_TYPES["sprint"]:
                         try:

@@ -6,7 +6,7 @@ from sentry.users.services.user.service import user_service
 
 @register(GroupTombstone)
 class GroupTombstoneSerializer(Serializer):
-    def get_attrs(self, item_list, user):
+    def get_attrs(self, item_list, user, **kwargs):
         user_list = user_service.serialize_many(
             filter={"user_ids": [item.actor_id for item in item_list if item.actor_id is not None]}
         )
@@ -17,7 +17,7 @@ class GroupTombstoneSerializer(Serializer):
             attrs[item] = {"user": users.get(item.actor_id, {})}
         return attrs
 
-    def serialize(self, obj, attrs, user):
+    def serialize(self, obj, attrs, user, **kwargs):
         return {
             "id": str(obj.id),
             "level": LOG_LEVELS.get(obj.level, "unknown"),

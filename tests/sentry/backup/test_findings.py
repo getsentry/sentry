@@ -19,8 +19,8 @@ from sentry.backup.services.import_export.model import (
     RpcImportError,
     RpcImportErrorKind,
 )
-from sentry.models.email import Email
 from sentry.testutils.cases import TestCase
+from sentry.users.models.email import Email
 
 encoder = FindingJSONEncoder(
     sort_keys=True,

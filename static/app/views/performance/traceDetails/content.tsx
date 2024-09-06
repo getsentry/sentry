@@ -1,12 +1,11 @@
 import {Component, createRef, Fragment, useEffect} from 'react';
-import type {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 
 import connectDotsImg from 'sentry-images/spot/performance-connect-dots.svg';
 
 import {Alert} from 'sentry/components/alert';
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
-import {Button} from 'sentry/components/button';
+import {Button, LinkButton} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import DiscoverButton from 'sentry/components/discoverButton';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
@@ -21,11 +20,13 @@ import {IconClose} from 'sentry/icons';
 import {t, tct, tn} from 'sentry/locale';
 import SidebarPanelStore from 'sentry/stores/sidebarPanelStore';
 import {space} from 'sentry/styles/space';
+import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import type {Organization} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import type EventView from 'sentry/utils/discover/eventView';
 import type {QueryError} from 'sentry/utils/discover/genericDiscoverQuery';
+import {SavedQueryDatasets} from 'sentry/utils/discover/types';
 import getDuration from 'sentry/utils/duration/getDuration';
 import type {Fuse} from 'sentry/utils/fuzzySearch';
 import {createFuzzySearch} from 'sentry/utils/fuzzySearch';
@@ -39,6 +40,7 @@ import {filterTrace, reduceTrace} from 'sentry/utils/performance/quickTrace/util
 import {VisuallyCompleteWithData} from 'sentry/utils/performanceForSentry';
 import useDismissAlert from 'sentry/utils/useDismissAlert';
 import useProjects from 'sentry/utils/useProjects';
+import {hasDatasetSelector} from 'sentry/views/dashboards/utils';
 import Breadcrumb from 'sentry/views/performance/breadcrumb';
 import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
 import {MetaData} from 'sentry/views/performance/transactionDetails/styles';
@@ -289,7 +291,7 @@ class TraceDetailsContent extends Component<Props, State> {
     if (roots === 0 && orphans > 0) {
       warning = (
         <Alert type="info" showIcon>
-          <ExternalLink href="https://docs.sentry.io/product/performance/trace-view/#orphan-traces-and-broken-subtraces">
+          <ExternalLink href="https://docs.sentry.io/concepts/key-terms/tracing/trace-view/#orphan-traces-and-broken-subtraces">
             {t(
               'A root transaction is missing. Transactions linked by a dashed line have been orphaned and cannot be directly linked to the root.'
             )}
@@ -299,7 +301,7 @@ class TraceDetailsContent extends Component<Props, State> {
     } else if (roots === 1 && orphans > 0) {
       warning = (
         <Alert type="info" showIcon>
-          <ExternalLink href="https://docs.sentry.io/product/performance/trace-view/#orphan-traces-and-broken-subtraces">
+          <ExternalLink href="https://docs.sentry.io/concepts/key-terms/tracing/trace-view/#orphan-traces-and-broken-subtraces">
             {t(
               'This trace has broken subtraces. Transactions linked by a dashed line have been orphaned and cannot be directly linked to the root.'
             )}
@@ -309,7 +311,7 @@ class TraceDetailsContent extends Component<Props, State> {
     } else if (roots > 1) {
       warning = (
         <Alert type="info" showIcon>
-          <ExternalLink href="https://docs.sentry.io/product/sentry-basics/tracing/trace-view/#multiple-roots">
+          <ExternalLink href="https://docs.sentry.io/concepts/key-terms/tracing/trace-view/#multiple-roots">
             {t('Multiple root transactions have been found with this trace ID.')}
           </ExternalLink>
         </Alert>
@@ -402,7 +404,11 @@ class TraceDetailsContent extends Component<Props, State> {
             <ButtonBar gap={1}>
               <DiscoverButton
                 size="sm"
-                to={traceEventView.getResultsViewUrlTarget(organization.slug)}
+                to={traceEventView.getResultsViewUrlTarget(
+                  organization.slug,
+                  false,
+                  hasDatasetSelector(organization) ? SavedQueryDatasets.ERRORS : undefined
+                )}
                 onClick={() => {
                   trackAnalytics('performance_views.trace_view.open_in_discover', {
                     organization,
@@ -474,8 +480,13 @@ function OnlyOrphanErrorWarnings({orphanErrors}: OnlyOrphanErrorWarningsProps) {
       <ActionsWrapper>
         <BannerTitle>{t('Connect the Dots')}</BannerTitle>
         <BannerDescription>
-          {t(
-            "If you haven't already, configure performance monitoring to learn more about how your services are interacting with each other. This will provide more clarity about how your errors are linked."
+          {tct(
+            "If you haven't already, [tracingLink:set up tracing] to get a connected view of errors and transactions coming from interactions between all your software systems and services.",
+            {
+              tracingLink: (
+                <ExternalLink href="https://docs.sentry.io/concepts/key-terms/tracing/" />
+              ),
+            }
           )}
         </BannerDescription>
         <ButtonsWrapper>
@@ -492,9 +503,9 @@ function OnlyOrphanErrorWarnings({orphanErrors}: OnlyOrphanErrorWarningsProps) {
             </Button>
           </ActionButton>
           <ActionButton>
-            <Button href="https://docs.sentry.io/product/performance/" external>
+            <LinkButton href="https://docs.sentry.io/product/performance/" external>
               {t('Learn More')}
-            </Button>
+            </LinkButton>
           </ActionButton>
         </ButtonsWrapper>
       </ActionsWrapper>

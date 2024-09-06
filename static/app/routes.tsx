@@ -28,6 +28,7 @@ import RouteNotFound from 'sentry/views/routeNotFound';
 import SettingsWrapper from 'sentry/views/settings/components/settingsWrapper';
 
 import {IndexRoute, Route} from './components/route';
+import {buildReactRouter6Routes} from './utils/reactRouter6Compat/router';
 
 const hook = (name: HookName) => HookStore.get(name).map(cb => cb());
 
@@ -398,6 +399,13 @@ function buildRoutes() {
             name={t('Create New Token')}
             component={make(() => import('sentry/views/settings/account/apiNewToken'))}
           />
+          <Route
+            path=":tokenId/"
+            name={t('Edit User Auth Token')}
+            component={make(
+              () => import('sentry/views/settings/account/apiTokenDetails')
+            )}
+          />
         </Route>
         <Route path="applications/" name={t('Applications')}>
           <IndexRoute
@@ -548,13 +556,6 @@ function buildRoutes() {
         name={t('Replays')}
         component={make(() => import('sentry/views/settings/project/projectReplays'))}
       />
-      <Route
-        path="remote-config/"
-        name={t('Remote Config')}
-        component={make(
-          () => import('sentry/views/settings/project/projectRemoteConfig')
-        )}
-      />
       <Route path="source-maps/" name={t('Source Maps')}>
         <IndexRoute
           component={make(() => import('sentry/views/settings/projectSourceMaps'))}
@@ -690,15 +691,13 @@ function buildRoutes() {
           )}
         />
       )}
-      {USING_CUSTOMER_DOMAIN && (
-        <Route
-          path="/settings/organization/"
-          name={t('General')}
-          component={make(
-            () => import('sentry/views/settings/organizationGeneralSettings')
-          )}
-        />
-      )}
+      <Route
+        path="organization/"
+        name={t('General')}
+        component={make(
+          () => import('sentry/views/settings/organizationGeneralSettings')
+        )}
+      />
       <Route
         path="projects/"
         name={t('Projects')}
@@ -1197,6 +1196,15 @@ function buildRoutes() {
               )}
             />
           </Route>
+          <Route
+            path="uptime/"
+            component={make(() => import('sentry/views/alerts/rules/uptime'))}
+          >
+            <Route
+              path=":projectId/:uptimeRuleId/details/"
+              component={make(() => import('sentry/views/alerts/rules/uptime/details'))}
+            />
+          </Route>
         </Route>
         <Route path="metric-rules/">
           <IndexRedirect
@@ -1215,6 +1223,17 @@ function buildRoutes() {
                   : '/organizations/:orgId/alerts/rules/'
               }
             />
+            <Route
+              path=":ruleId/"
+              component={make(() => import('sentry/views/alerts/edit'))}
+            />
+          </Route>
+        </Route>
+        <Route path="uptime-rules/">
+          <Route
+            path=":projectId/"
+            component={make(() => import('sentry/views/alerts/builder/projectProvider'))}
+          >
             <Route
               path=":ruleId/"
               component={make(() => import('sentry/views/alerts/edit'))}
@@ -1363,14 +1382,6 @@ function buildRoutes() {
         to="/organizations/:orgId/releases/:release/"
       />
     </Fragment>
-  );
-
-  const activityRoutes = (
-    <Route
-      path="/activity/"
-      component={make(() => import('sentry/views/organizationActivity'))}
-      withOrgPath
-    />
   );
 
   const statsRoutes = (
@@ -1581,6 +1592,19 @@ function buildRoutes() {
           )}
         />
       </Route>
+      <Route path={`${MODULE_BASE_URLS[ModuleName.MOBILE_SCREENS]}/`}>
+        <IndexRoute
+          component={make(
+            () => import('sentry/views/insights/mobile/screens/views/screensLandingPage')
+          )}
+        />
+        <Route
+          path="details/"
+          component={make(
+            () => import('sentry/views/insights/mobile/screens/views/screenDetailsPage')
+          )}
+        />
+      </Route>
       <Route path={`${MODULE_BASE_URLS[ModuleName.AI]}/`}>
         <IndexRoute
           component={make(
@@ -1704,7 +1728,9 @@ function buildRoutes() {
       path="/traces/"
       component={make(() => import('sentry/views/traces'))}
       withOrgPath
-    />
+    >
+      <IndexRoute component={make(() => import('sentry/views/traces/content'))} />
+    </Route>
   );
 
   const userFeedbackRoutes = (
@@ -1967,7 +1993,7 @@ function buildRoutes() {
         <Route
           path="flamegraph/"
           component={make(
-            () => import('sentry/views/profiling/continuousProfileFlamechart')
+            () => import('sentry/views/profiling/continuousProfileFlamegraph')
           )}
         />
       </Route>
@@ -2098,7 +2124,6 @@ function buildRoutes() {
       {cronsRoutes}
       {replayRoutes}
       {releasesRoutes}
-      {activityRoutes}
       {statsRoutes}
       {discoverRoutes}
       {performanceRoutes}
@@ -2256,6 +2281,10 @@ function buildRoutes() {
 // We load routes both when initializing the SDK (for routing integrations) and
 // when the app renders Main. Memoize to avoid rebuilding the route tree.
 export const routes = memoize(buildRoutes);
+
+// XXX(epurkhiser): Transforms the legacy react-router 3 routest tree into a
+// react-router 6 style routes tree.
+export const routes6 = buildReactRouter6Routes(buildRoutes());
 
 // Exported for use in tests.
 export {buildRoutes};

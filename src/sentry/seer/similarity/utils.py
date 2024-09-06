@@ -1,14 +1,24 @@
 import logging
 from typing import Any, TypeVar
 
+from sentry import options
 from sentry.eventstore.models import Event
+from sentry.killswitches import killswitch_matches_context
+from sentry.utils import metrics
 from sentry.utils.safe import get_path
 
 logger = logging.getLogger(__name__)
 
 MAX_FRAME_COUNT = 30
+MAX_EXCEPTION_COUNT = 30
 FULLY_MINIFIED_STACKTRACE_MAX_FRAME_COUNT = 20
-SEER_ELIGIBLE_PLATFORMS = frozenset(["python", "javascript", "node"])
+SEER_ELIGIBLE_PLATFORMS = frozenset(["python", "javascript", "node", "ruby"])
+BASE64_ENCODED_PREFIXES = [
+    "data:text/html;base64",
+    "data:text/javascript;base64",
+    "html;base64",
+    "javascript;base64",
+]
 
 
 def _get_value_if_exists(exception_value: dict[str, Any]) -> str:
@@ -35,17 +45,21 @@ def get_stacktrace_string(data: dict[str, Any]) -> str:
         exceptions = exceptions[0].get("values")
 
     frame_count = 0
+    html_frame_count = 0  # for a temporary metric
     stacktrace_str = ""
     found_non_snipped_context_line = False
     result_parts = []
 
+    metrics.distribution("seer.grouping.exceptions.length", len(exceptions))
+
     # Reverse the list of exceptions in order to prioritize the outermost/most recent ones in cases
     # where there are chained exceptions and we end up truncating
-    for exception in reversed(exceptions):
+    # Limit the number of chained exceptions
+    for exception in reversed(exceptions[-MAX_EXCEPTION_COUNT:]):
         if exception.get("id") not in ["exception", "threads"] or not exception.get("contributes"):
             continue
 
-        # For each exception, extract its type, value, and up to 30 stacktrace frames
+        # For each exception, extract its type, value, and up to limit number of stacktrace frames
         exc_type, exc_value, frame_strings = "", "", []
         for exception_value in exception.get("values", []):
             if exception_value.get("id") == "type":
@@ -72,6 +86,31 @@ def get_stacktrace_string(data: dict[str, Any]) -> str:
                     if not _is_snipped_context_line(frame_dict["context-line"]):
                         found_non_snipped_context_line = True
 
+                    # Not an exhaustive list of tests we could run to detect HTML, but this is only
+                    # meant to be a temporary, quick-and-dirty metric
+                    # TODO: Don't let this, and the metric below, hang around forever. It's only to
+                    # help us get a sense of whether it's worthwhile trying to more accurately
+                    # detect, and then exclude, frames containing HTML
+                    if (
+                        frame_dict["filename"].endswith("html")
+                        or "<html>" in frame_dict["context-line"]
+                    ):
+                        html_frame_count += 1
+
+                    # We want to skip frames with base64 encoded filenames since they can be large
+                    # and not contain any usable information
+                    base64_encoded = False
+                    for base64_prefix in BASE64_ENCODED_PREFIXES:
+                        if frame_dict["filename"].startswith(base64_prefix):
+                            metrics.incr(
+                                "seer.grouping.base64_encoded_filename",
+                                sample_rate=1.0,
+                            )
+                            base64_encoded = True
+                            break
+                    if base64_encoded:
+                        continue
+
                     frame_strings.append(
                         f'  File "{frame_dict["filename"]}", function {frame_dict["function"]}\n    {frame_dict["context-line"]}\n'
                     )
@@ -95,7 +134,30 @@ def get_stacktrace_string(data: dict[str, Any]) -> str:
 
         stacktrace_str += header + "".join(frame_strings)
 
+    metrics.incr(
+        "seer.grouping.html_in_stacktrace",
+        sample_rate=options.get("seer.similarity.metrics_sample_rate"),
+        tags={
+            "html_frames": (
+                "none"
+                if html_frame_count == 0
+                else "all"
+                if html_frame_count == final_frame_count
+                else "some"
+            )
+        },
+    )
+
     return stacktrace_str.strip()
+
+
+def event_content_has_stacktrace(event: Event) -> bool:
+    # If an event has no stacktrace, there's no data for Seer to analyze, so no point in making the
+    # API call. If we ever start analyzing message-only events, we'll need to add `event.title in
+    # PLACEHOLDER_EVENT_TITLES` to this check.
+    return get_path(event.data, "exception", "values", -1, "stacktrace", "frames") or get_path(
+        event.data, "threads", "values", -1, "stacktrace", "frames"
+    )
 
 
 def event_content_is_seer_eligible(event: Event) -> bool:
@@ -103,26 +165,83 @@ def event_content_is_seer_eligible(event: Event) -> bool:
     Determine if an event's contents makes it fit for using with Seer's similar issues model.
     """
     # TODO: Determine if we want to filter out non-sourcemapped events
-
-    # If an event has no stacktrace, there's no data for Seer to analyze, so no point in making the
-    # API call. If we ever start analyzing message-only events, we'll need to add `event.title in
-    # PLACEHOLDER_EVENT_TITLES` to this check.
-    if not get_path(event.data, "exception", "values", -1, "stacktrace", "frames") and not get_path(
-        event.data, "threads", "values", -1, "stacktrace", "frames"
-    ):
+    if not event_content_has_stacktrace(event):
+        metrics.incr(
+            "grouping.similarity.event_content_seer_eligible",
+            sample_rate=options.get("seer.similarity.metrics_sample_rate"),
+            tags={"eligible": False, "blocker": "no-stacktrace"},
+        )
         return False
 
     if event.platform not in SEER_ELIGIBLE_PLATFORMS:
+        metrics.incr(
+            "grouping.similarity.event_content_seer_eligible",
+            sample_rate=options.get("seer.similarity.metrics_sample_rate"),
+            tags={"eligible": False, "blocker": "unsupported-platform"},
+        )
         return False
 
+    metrics.incr(
+        "grouping.similarity.event_content_seer_eligible",
+        sample_rate=options.get("seer.similarity.metrics_sample_rate"),
+        tags={"eligible": True, "blocker": "none"},
+    )
     return True
 
 
-def filter_null_from_event_title(title: str) -> str:
+def killswitch_enabled(project_id: int, event: Event | None = None) -> bool:
     """
-    Filter out null bytes from event title so that it can be saved in records table.
+    Check both the global and similarity-specific Seer killswitches.
     """
-    return title.replace("\x00", "")
+
+    logger_extra = {"event_id": event.event_id if event else None, "project_id": project_id}
+
+    if options.get("seer.global-killswitch.enabled"):
+        logger.warning(
+            "should_call_seer_for_grouping.seer_global_killswitch_enabled",
+            extra=logger_extra,
+        )
+        metrics.incr(
+            "grouping.similarity.did_call_seer",
+            sample_rate=options.get("seer.similarity.metrics_sample_rate"),
+            tags={"call_made": False, "blocker": "global-killswitch"},
+        )
+        return True
+
+    if options.get("seer.similarity-killswitch.enabled"):
+        logger.warning(
+            "should_call_seer_for_grouping.seer_similarity_killswitch_enabled",
+            extra=logger_extra,
+        )
+        metrics.incr(
+            "grouping.similarity.did_call_seer",
+            sample_rate=options.get("seer.similarity.metrics_sample_rate"),
+            tags={"call_made": False, "blocker": "similarity-killswitch"},
+        )
+        return True
+
+    if killswitch_matches_context(
+        "seer.similarity.grouping_killswitch_projects", {"project_id": project_id}
+    ):
+        logger.warning(
+            "should_call_seer_for_grouping.seer_similarity_project_killswitch_enabled",
+            extra=logger_extra,
+        )
+        metrics.incr(
+            "grouping.similarity.did_call_seer",
+            sample_rate=options.get("seer.similarity.metrics_sample_rate"),
+            tags={"call_made": False, "blocker": "project-killswitch"},
+        )
+        return True
+
+    return False
+
+
+def filter_null_from_string(string: str) -> str:
+    """
+    Filter out null bytes from string so that it can be saved in records table.
+    """
+    return string.replace("\x00", "")
 
 
 T = TypeVar("T", dict[str, Any], str)
@@ -145,4 +264,4 @@ def _is_snipped_context_line(context_line: str) -> bool:
     # This check is implicitly restricted to JS (and friends) events by the fact that the `{snip]`
     # is only added in the JS processor. See
     # https://github.com/getsentry/sentry/blob/d077a5bb7e13a5927794b35d9ae667a4f181feb7/src/sentry/lang/javascript/utils.py#L72-L77.
-    return context_line.startswith("{snip}") and context_line.endswith("{snip}")
+    return context_line.startswith("{snip}") or context_line.endswith("{snip}")

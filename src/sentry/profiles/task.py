@@ -159,7 +159,7 @@ def process_profile_task(
         set_measurement("profile.frames.processed", len(profile["profile"]["frames"]))
 
     if (
-        profile.get("version") != "2"
+        profile.get("version") in ["1", "2"]
         and options.get("profiling.generic_metrics.functions_ingestion.enabled")
         and (
             organization.id
@@ -182,13 +182,16 @@ def process_profile_task(
     if not _push_profile_to_vroom(profile, project):
         return
 
-    with metrics.timer("process_profile.track_outcome.accepted"):
-        try:
-            _track_duration_outcome(profile=profile, project=project)
-        except Exception as e:
-            sentry_sdk.capture_exception(e)
-        if profile.get("version") != "2":
-            _track_outcome(profile=profile, project=project, outcome=Outcome.ACCEPTED)
+    if sampled:
+        with metrics.timer("process_profile.track_outcome.accepted"):
+            if not project.flags.has_profiles:
+                first_profile_received.send_robust(project=project, sender=Project)
+            try:
+                _track_duration_outcome(profile=profile, project=project)
+            except Exception as e:
+                sentry_sdk.capture_exception(e)
+            if profile.get("version") != "2":
+                _track_outcome(profile=profile, project=project, outcome=Outcome.ACCEPTED)
 
 
 JS_PLATFORMS = ["javascript", "node"]
@@ -489,6 +492,7 @@ def symbolicate(
             modules=modules,
             release_package=profile.get("transaction_metadata", {}).get("app.identifier"),
             apply_source_context=False,
+            classes=[],
         )
     return symbolicator.process_payload(
         stacktraces=stacktraces, modules=modules, apply_source_context=False
@@ -973,9 +977,6 @@ def _track_outcome(
     outcome: Outcome,
     reason: str | None = None,
 ) -> None:
-    if not project.flags.has_profiles:
-        first_profile_received.send_robust(project=project, sender=Project)
-
     track_outcome(
         org_id=project.organization_id,
         project_id=project.id,

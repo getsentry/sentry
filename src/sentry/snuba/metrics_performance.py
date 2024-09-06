@@ -17,10 +17,11 @@ from sentry.search.events.builder.metrics import (
     TopMetricsQueryBuilder,
 )
 from sentry.search.events.fields import get_function_alias
-from sentry.search.events.types import EventsResponse, ParamsType, QueryBuilderConfig
+from sentry.search.events.types import EventsResponse, QueryBuilderConfig, SnubaParams
 from sentry.snuba import discover
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.metrics.extraction import MetricSpecType
+from sentry.snuba.query_sources import QuerySource
 from sentry.utils.snuba import SnubaTSResult, bulk_snuba_queries
 
 logger = logging.getLogger(__name__)
@@ -31,7 +32,6 @@ INLIER_QUERY_CLAUSE = "histogram_outlier:inlier"
 def query(
     selected_columns,
     query,
-    params,
     snuba_params=None,
     equations=None,
     orderby=None,
@@ -51,11 +51,12 @@ def query(
     on_demand_metrics_type: MetricSpecType | None = None,
     granularity: int | None = None,
     fallback_to_transactions=False,
+    query_source: QuerySource | None = None,
 ):
     with sentry_sdk.start_span(op="mep", description="MetricQueryBuilder"):
         metrics_query = MetricsQueryBuilder(
-            params,
             dataset=Dataset.PerformanceMetrics,
+            params={},
             snuba_params=snuba_params,
             query=query,
             selected_columns=selected_columns,
@@ -78,7 +79,7 @@ def query(
             ),
         )
         metrics_referrer = referrer + ".metrics-enhanced"
-        results = metrics_query.run_query(metrics_referrer)
+        results = metrics_query.run_query(referrer=metrics_referrer, query_source=query_source)
     with sentry_sdk.start_span(op="mep", description="query.transform_results"):
         results = metrics_query.process_results(results)
         results["meta"]["isMetricsData"] = True
@@ -92,7 +93,7 @@ def query(
 def bulk_timeseries_query(
     selected_columns: Sequence[str],
     queries: list[str],
-    params: ParamsType,
+    snuba_params: SnubaParams,
     rollup: int,
     referrer: str,
     zerofill_results: bool = True,
@@ -106,6 +107,7 @@ def bulk_timeseries_query(
     groupby: Column | None = None,
     *,
     apply_formatting: Literal[False],
+    query_source: QuerySource | None = None,
 ) -> EventsResponse:
     ...
 
@@ -114,7 +116,7 @@ def bulk_timeseries_query(
 def bulk_timeseries_query(
     selected_columns: Sequence[str],
     queries: list[str],
-    params: ParamsType,
+    snuba_params: SnubaParams,
     rollup: int,
     referrer: str,
     zerofill_results: bool = True,
@@ -126,6 +128,7 @@ def bulk_timeseries_query(
     on_demand_metrics_enabled: bool = False,
     on_demand_metrics_type: MetricSpecType | None = None,
     groupby: Column | None = None,
+    query_source: QuerySource | None = None,
 ) -> SnubaTSResult:
     ...
 
@@ -133,7 +136,7 @@ def bulk_timeseries_query(
 def bulk_timeseries_query(
     selected_columns: Sequence[str],
     queries: list[str],
-    params: ParamsType,
+    snuba_params: SnubaParams,
     rollup: int,
     referrer: str,
     zerofill_results: bool = True,
@@ -145,6 +148,7 @@ def bulk_timeseries_query(
     on_demand_metrics_enabled: bool = False,
     on_demand_metrics_type: MetricSpecType | None = None,
     groupby: Column | None = None,
+    query_source: QuerySource | None = None,
     *,
     apply_formatting: bool = True,
 ) -> SnubaTSResult | EventsResponse:
@@ -162,8 +166,9 @@ def bulk_timeseries_query(
             metrics_queries = []
             for query in queries:
                 metrics_query = TimeseriesMetricQueryBuilder(
-                    params,
+                    {},
                     rollup,
+                    snuba_params=snuba_params,
                     dataset=Dataset.PerformanceMetrics,
                     query=query,
                     selected_columns=columns,
@@ -178,7 +183,9 @@ def bulk_timeseries_query(
                 metrics_queries.append(snql_query[0])
 
             metrics_referrer = referrer + ".metrics-enhanced"
-            bulk_result = bulk_snuba_queries(metrics_queries, metrics_referrer)
+            bulk_result = bulk_snuba_queries(
+                metrics_queries, metrics_referrer, query_source=query_source
+            )
             _result: dict[str, Any] = {"data": []}
             for br in bulk_result:
                 _result["data"] = [*_result["data"], *br["data"]]
@@ -195,18 +202,18 @@ def bulk_timeseries_query(
             result["data"] = (
                 discover.zerofill(
                     result["data"],
-                    params["start"],
-                    params["end"],
+                    snuba_params.start_date,
+                    snuba_params.end_date,
                     rollup,
-                    "time",
+                    ["time"],
                 )
                 if zerofill_results
                 else discover.format_time(
                     result["data"],
-                    params["start"],
-                    params["end"],
+                    snuba_params.start_date,
+                    snuba_params.end_date,
                     rollup,
-                    "time",
+                    ["time"],
                 )
             )
 
@@ -216,20 +223,22 @@ def bulk_timeseries_query(
                     "isMetricsData": True,
                     "meta": result["meta"],
                 },
-                params["start"],
-                params["end"],
+                snuba_params.start_date,
+                snuba_params.end_date,
                 rollup,
             )
     return SnubaTSResult(
         {
             "data": (
-                discover.zerofill([], params["start"], params["end"], rollup, "time")
+                discover.zerofill(
+                    [], snuba_params.start_date, snuba_params.end_date, rollup, ["time"]
+                )
                 if zerofill_results
                 else []
             ),
         },
-        params["start"],
-        params["end"],
+        snuba_params.start_date,
+        snuba_params.end_date,
         rollup,
     )
 
@@ -237,7 +246,7 @@ def bulk_timeseries_query(
 def timeseries_query(
     selected_columns: Sequence[str],
     query: str,
-    params: ParamsType,
+    snuba_params: SnubaParams,
     rollup: int,
     referrer: str,
     zerofill_results: bool = True,
@@ -249,6 +258,7 @@ def timeseries_query(
     on_demand_metrics_enabled: bool = False,
     on_demand_metrics_type: MetricSpecType | None = None,
     groupby: Column | None = None,
+    query_source: QuerySource | None = None,
 ) -> SnubaTSResult:
     """
     High-level API for doing arbitrary user timeseries queries against events.
@@ -257,11 +267,12 @@ def timeseries_query(
     equations, columns = categorize_columns(selected_columns)
     metrics_compatible = not equations
 
-    def run_metrics_query(inner_params: ParamsType):
+    def run_metrics_query(inner_params: SnubaParams):
         with sentry_sdk.start_span(op="mep", description="TimeseriesMetricQueryBuilder"):
             metrics_query = TimeseriesMetricQueryBuilder(
-                inner_params,
-                rollup,
+                params={},
+                interval=rollup,
+                snuba_params=inner_params,
                 dataset=Dataset.PerformanceMetrics,
                 query=query,
                 selected_columns=columns,
@@ -275,16 +286,16 @@ def timeseries_query(
                 ),
             )
             metrics_referrer = referrer + ".metrics-enhanced"
-            result = metrics_query.run_query(metrics_referrer)
+            result = metrics_query.run_query(referrer=metrics_referrer, query_source=query_source)
         with sentry_sdk.start_span(op="mep", description="query.transform_results"):
             result = metrics_query.process_results(result)
             result["data"] = (
                 discover.zerofill(
                     result["data"],
-                    inner_params["start"],
-                    inner_params["end"],
+                    inner_params.start_date,
+                    inner_params.end_date,
                     rollup,
-                    "time",
+                    ["time"],
                 )
                 if zerofill_results
                 else result["data"]
@@ -308,15 +319,14 @@ def timeseries_query(
         #
         # In case we want to support multiple aggregate comparisons, we can just remove the condition below and rework
         # the implementation of the `comparisonCount` field.
-        result = run_metrics_query(inner_params=params)
+        result = run_metrics_query(inner_params=snuba_params)
         if comparison_delta:
-            result_to_compare = run_metrics_query(
-                inner_params={
-                    **params,
-                    "start": params["start"] - comparison_delta,
-                    "end": params["end"] - comparison_delta,
-                }
-            )
+            comparison_params = snuba_params.copy()
+            assert comparison_params.start is not None, "start is required"
+            assert comparison_params.end is not None, "end is required"
+            comparison_params.start -= comparison_delta
+            comparison_params.end -= comparison_delta
+            result_to_compare = run_metrics_query(inner_params=comparison_params)
 
             aliased_columns = [
                 get_function_alias(selected_column) for selected_column in selected_columns
@@ -355,8 +365,8 @@ def timeseries_query(
                 "meta": result["meta"],
             },
             # We keep the params passed in the function as the time interval.
-            params["start"],
-            params["end"],
+            snuba_params.start_date,
+            snuba_params.end_date,
             rollup,
         )
 
@@ -364,13 +374,15 @@ def timeseries_query(
     return SnubaTSResult(
         {
             "data": (
-                discover.zerofill([], params["start"], params["end"], rollup, "time")
+                discover.zerofill(
+                    [], snuba_params.start_date, snuba_params.end_date, rollup, ["time"]
+                )
                 if zerofill_results
                 else []
             ),
         },
-        params["start"],
-        params["end"],
+        snuba_params.start_date,
+        snuba_params.end_date,
         rollup,
     )
 
@@ -379,7 +391,7 @@ def top_events_timeseries(
     timeseries_columns,
     selected_columns,
     user_query,
-    params,
+    snuba_params,
     orderby,
     rollup,
     limit,
@@ -393,12 +405,14 @@ def top_events_timeseries(
     functions_acl=None,
     on_demand_metrics_enabled=False,
     on_demand_metrics_type: MetricSpecType | None = None,
+    query_source: QuerySource | None = None,
 ) -> SnubaTSResult | dict[str, Any]:
+
     if top_events is None:
         top_events = query(
             selected_columns,
             query=user_query,
-            params=params,
+            snuba_params=snuba_params,
             equations=equations,
             orderby=orderby,
             limit=limit,
@@ -407,13 +421,15 @@ def top_events_timeseries(
             use_aggregate_conditions=True,
             on_demand_metrics_enabled=on_demand_metrics_enabled,
             on_demand_metrics_type=on_demand_metrics_type,
+            query_source=query_source,
         )
 
     top_events_builder = TopMetricsQueryBuilder(
         Dataset.PerformanceMetrics,
-        params,
-        rollup,
-        top_events["data"],
+        params={},
+        interval=rollup,
+        top_events=top_events["data"],
+        snuba_params=snuba_params,
         other=False,
         query=user_query,
         selected_columns=selected_columns,
@@ -427,9 +443,10 @@ def top_events_timeseries(
     if len(top_events["data"]) == limit and include_other:
         other_events_builder = TopMetricsQueryBuilder(
             Dataset.PerformanceMetrics,
-            params,
-            rollup,
-            top_events["data"],
+            params={},
+            interval=rollup,
+            top_events=top_events["data"],
+            snuba_params=snuba_params,
             other=True,
             query=user_query,
             selected_columns=selected_columns,
@@ -441,10 +458,10 @@ def top_events_timeseries(
         )
 
         # TODO: use bulk_snuba_queries
-        other_result = other_events_builder.run_query(referrer)
-        result = top_events_builder.run_query(referrer)
+        other_result = other_events_builder.run_query(referrer=referrer, query_source=query_source)
+        result = top_events_builder.run_query(referrer=referrer, query_source=query_source)
     else:
-        result = top_events_builder.run_query(referrer)
+        result = top_events_builder.run_query(referrer=referrer, query_source=query_source)
         other_result = {"data": []}
     if (
         not allow_empty
@@ -454,13 +471,15 @@ def top_events_timeseries(
         return SnubaTSResult(
             {
                 "data": (
-                    discover.zerofill([], params["start"], params["end"], rollup, "time")
+                    discover.zerofill(
+                        [], snuba_params.start_date, snuba_params.end_date, rollup, ["time"]
+                    )
                     if zerofill_results
                     else []
                 ),
             },
-            params["start"],
-            params["end"],
+            snuba_params.start_date,
+            snuba_params.end_date,
             rollup,
         )
 
@@ -490,7 +509,13 @@ def top_events_timeseries(
         results[key] = SnubaTSResult(
             {
                 "data": (
-                    discover.zerofill(item["data"], params["start"], params["end"], rollup, "time")
+                    discover.zerofill(
+                        item["data"],
+                        snuba_params.start_date,
+                        snuba_params.end_date,
+                        rollup,
+                        ["time"],
+                    )
                     if zerofill_results
                     else item["data"]
                 ),
@@ -499,8 +524,8 @@ def top_events_timeseries(
                 # This could mislead downstream consumers of the meta data
                 "meta": {"isMetricsExtractedData": top_events_builder.use_on_demand},
             },
-            params["start"],
-            params["end"],
+            snuba_params.start_date,
+            snuba_params.end_date,
             rollup,
         )
 
@@ -510,7 +535,7 @@ def top_events_timeseries(
 def histogram_query(
     fields,
     user_query,
-    params,
+    snuba_params,
     num_buckets,
     precision=0,
     min_value=None,
@@ -524,6 +549,7 @@ def histogram_query(
     extra_conditions=None,
     normalize_results=True,
     use_metrics_layer=True,
+    query_source: QuerySource | None = None,
 ):
     """
     API for generating histograms for numeric columns.
@@ -564,7 +590,7 @@ def histogram_query(
         max_value -= 0.1 / multiplier
 
     min_value, max_value = discover.find_histogram_min_max(
-        fields, min_value, max_value, user_query, params, data_filter, query_fn=query
+        fields, min_value, max_value, user_query, snuba_params, data_filter, query_fn=query
     )
     if min_value is None or max_value is None:
         return {"meta": {"isMetricsData": True}}
@@ -575,7 +601,8 @@ def histogram_query(
         histogram_params,
         # Arguments for QueryBuilder
         dataset=Dataset.PerformanceMetrics,
-        params=params,
+        params={},
+        snuba_params=snuba_params,
         query=user_query,
         selected_columns=[f"histogram({field})" for field in fields],
         orderby=order_by,
@@ -586,7 +613,7 @@ def histogram_query(
     )
     if extra_conditions is not None:
         builder.add_conditions(extra_conditions)
-    results = builder.run_query(referrer)
+    results = builder.run_query(referrer, query_source=query_source)
 
     # TODO: format to match non-metric-result
     if not normalize_results:

@@ -34,18 +34,14 @@ from sentry.backup.imports import (
 from sentry.backup.scopes import ExportScope, ImportScope, RelocationScope
 from sentry.backup.services.import_export.model import RpcImportErrorKind
 from sentry.models.apitoken import DEFAULT_EXPIRATION, ApiToken, generate_token
-from sentry.models.authenticator import Authenticator
-from sentry.models.email import Email
 from sentry.models.importchunk import (
     ControlImportChunk,
     ControlImportChunkReplica,
     RegionImportChunk,
 )
-from sentry.models.lostpasswordhash import LostPasswordHash
 from sentry.models.options.option import ControlOption, Option
 from sentry.models.options.project_option import ProjectOption
-from sentry.models.options.user_option import UserOption
-from sentry.models.organization import Organization
+from sentry.models.organization import Organization, OrganizationStatus
 from sentry.models.organizationmapping import OrganizationMapping
 from sentry.models.organizationmember import OrganizationMember
 from sentry.models.organizationmembermapping import OrganizationMemberMapping
@@ -59,11 +55,6 @@ from sentry.models.projectkey import ProjectKey
 from sentry.models.relay import Relay, RelayUsage
 from sentry.models.savedsearch import SavedSearch, Visibility
 from sentry.models.team import Team
-from sentry.models.user import User
-from sentry.models.useremail import UserEmail
-from sentry.models.userip import UserIP
-from sentry.models.userpermission import UserPermission
-from sentry.models.userrole import UserRole, UserRoleUser
 from sentry.monitors.models import Monitor
 from sentry.receivers import create_default_projects
 from sentry.silo.base import SiloMode
@@ -81,6 +72,15 @@ from sentry.testutils.helpers.backups import (
 )
 from sentry.testutils.hybrid_cloud import use_split_dbs
 from sentry.testutils.silo import assume_test_silo_mode
+from sentry.users.models.authenticator import Authenticator
+from sentry.users.models.email import Email
+from sentry.users.models.lostpasswordhash import LostPasswordHash
+from sentry.users.models.user import User
+from sentry.users.models.user_option import UserOption
+from sentry.users.models.useremail import UserEmail
+from sentry.users.models.userip import UserIP
+from sentry.users.models.userpermission import UserPermission
+from sentry.users.models.userrole import UserRole, UserRoleUser
 from tests.sentry.backup import (
     expect_models,
     get_matching_exportable_models,
@@ -384,7 +384,7 @@ class SanitizationTests(ImportTestCase):
                 assert err.value.context.get_kind() == RpcImportErrorKind.ValidationError
                 assert err.value.context.on.model == "sentry.user"
 
-    @patch("sentry.models.userip.geo_by_addr")
+    @patch("sentry.users.models.userip.geo_by_addr")
     def test_good_regional_user_ip_in_global_scope(self, mock_geo_by_addr):
         mock_geo_by_addr.return_value = {
             "country_code": "US",
@@ -421,7 +421,7 @@ class SanitizationTests(ImportTestCase):
             ).exists()
 
     # Regression test for getsentry/self-hosted#2468.
-    @patch("sentry.models.userip.geo_by_addr")
+    @patch("sentry.users.models.userip.geo_by_addr")
     def test_good_multiple_user_ips_per_user_in_global_scope(self, mock_geo_by_addr):
         mock_geo_by_addr.return_value = {
             "country_code": "US",
@@ -693,9 +693,7 @@ class SignalingTests(ImportTestCase):
         assert Project.objects.filter(name="other-project-some-org").exists()
 
         assert ProjectKey.objects.count() == 2
-        assert ProjectOption.objects.count() == 6
-        assert ProjectOption.objects.filter(key="sentry:relay-rev").exists()
-        assert ProjectOption.objects.filter(key="sentry:relay-rev-lastchange").exists()
+        assert ProjectOption.objects.count() == 2
         assert ProjectOption.objects.filter(key="sentry:option-epoch").exists()
 
         with assume_test_silo_mode(SiloMode.CONTROL):
@@ -2174,6 +2172,34 @@ class CustomImportBehaviorTests(ImportTestCase):
     down (think on the order of 5-10 seconds per test case), we encourage combining model test cases
     as much as reasonably possible.
     """
+
+    @expect_models(CUSTOM_IMPORT_BEHAVIOR_TESTED, OrganizationMember)
+    def test_hide_organizations_import_flag(self, expected_models: list[type[Model]]):
+        owner = self.create_exhaustive_user("owner", email="owner@test.com")
+        member = self.create_exhaustive_user("member", email="member@test.com")
+        self.create_exhaustive_organization(
+            slug="test-org",
+            owner=owner,
+            member=member,
+        )
+
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            tmp_path = self.export_to_tmp_file_and_clear_database(tmp_dir)
+            with open(tmp_path, "rb") as tmp_file:
+                import_in_organization_scope(
+                    tmp_file,
+                    org_filter={"test-org"},
+                    flags=ImportFlags(hide_organizations=True),
+                    printer=NOOP_PRINTER,
+                )
+
+            assert (
+                Organization.objects.get(slug="test-org").status
+                == OrganizationStatus.RELOCATION_PENDING_APPROVAL.value
+            )
+
+            with open(tmp_path, "rb") as tmp_file:
+                verify_models_in_output(expected_models, orjson.loads(tmp_file.read()))
 
     @expect_models(CUSTOM_IMPORT_BEHAVIOR_TESTED, OrganizationMember)
     def test_organization_member_inviter_id(self, expected_models: list[type[Model]]):

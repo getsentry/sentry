@@ -37,6 +37,10 @@ interface CodeSnippetProps {
   isRounded?: boolean;
   language?: string;
   /**
+   * Line numbers of the code that will be visually highlighted.
+   */
+  linesToHighlight?: number[];
+  /**
    * Fires after the code snippet is highlighted and all DOM nodes are available
    * @param element The root element of the code snippet
    */
@@ -69,6 +73,7 @@ export function CodeSnippet({
   filename,
   hideCopyButton,
   language,
+  linesToHighlight,
   icon,
   isRounded = true,
   onAfterHighlight,
@@ -79,6 +84,13 @@ export function CodeSnippet({
   tabs,
 }: CodeSnippetProps) {
   const ref = useRef<HTMLModElement | null>(null);
+
+  // https://prismjs.com/plugins/line-highlight/
+  useEffect(() => {
+    if (linesToHighlight) {
+      import('prismjs/plugins/line-highlight/prism-line-highlight');
+    }
+  }, [linesToHighlight]);
 
   useEffect(() => {
     const element = ref.current;
@@ -169,7 +181,10 @@ export function CodeSnippet({
         )}
       </Header>
 
-      <pre className={`language-${String(language)}`}>
+      <pre
+        className={`language-${String(language)}`}
+        data-line={linesToHighlight?.join(',')}
+      >
         <Code
           ref={ref}
           className={`language-${String(language)}`}

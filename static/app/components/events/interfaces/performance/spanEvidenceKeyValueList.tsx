@@ -5,7 +5,7 @@ import type {Location} from 'history';
 import kebabCase from 'lodash/kebabCase';
 import mapValues from 'lodash/mapValues';
 
-import {Button} from 'sentry/components/button';
+import {LinkButton} from 'sentry/components/button';
 import ClippedBox from 'sentry/components/clippedBox';
 import {CodeSnippet} from 'sentry/components/codeSnippet';
 import {getKeyValueListData as getRegressionIssueKeyValueList} from 'sentry/components/events/eventStatisticalDetector/eventRegressionSummary';
@@ -13,22 +13,16 @@ import {getSpanInfoFromTransactionEvent} from 'sentry/components/events/interfac
 import {AnnotatedText} from 'sentry/components/events/meta/annotatedText';
 import Link from 'sentry/components/links/link';
 import {t} from 'sentry/locale';
-import type {
-  Entry,
-  EntryRequest,
-  Event,
-  EventTransaction,
-  KeyValueListData,
-  KeyValueListDataItem,
-  Organization,
-} from 'sentry/types';
+import type {Entry, EntryRequest, Event, EventTransaction} from 'sentry/types/event';
+import {EntryType} from 'sentry/types/event';
+import type {KeyValueListData, KeyValueListDataItem} from 'sentry/types/group';
 import {
-  EntryType,
   getIssueTypeFromOccurrenceType,
   isOccurrenceBased,
   IssueType,
   isTransactionBased,
-} from 'sentry/types';
+} from 'sentry/types/group';
+import type {Organization} from 'sentry/types/organization';
 import {formatBytesBase2} from 'sentry/utils/bytes/formatBytesBase2';
 import {generateLinkToEventInTraceView} from 'sentry/utils/discover/urls';
 import toRoundedPercent from 'sentry/utils/number/toRoundedPercent';
@@ -487,9 +481,9 @@ const makeTransactionNameRow = (
   });
 
   const actionButton = projectSlug ? (
-    <Button size="xs" to={eventDetailsLocation}>
+    <LinkButton size="xs" to={eventDetailsLocation}>
       {t('View Full Event')}
-    </Button>
+    </LinkButton>
   ) : undefined;
 
   return makeRow(

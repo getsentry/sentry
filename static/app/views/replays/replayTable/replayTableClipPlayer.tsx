@@ -1,5 +1,4 @@
 import ReplayClipPreviewPlayer from 'sentry/components/events/eventReplay/replayClipPreviewPlayer';
-import {StaticReplayPreferences} from 'sentry/components/replays/preferences/replayPreferences';
 import {Provider as ReplayContextProvider} from 'sentry/components/replays/replayContext';
 import useReplayReader from 'sentry/utils/replays/hooks/useReplayReader';
 
@@ -22,7 +21,6 @@ function ReplayTableClipPlayer({analyticsContext, orgSlug, replaySlug, ...props}
     <ReplayContextProvider
       analyticsContext={analyticsContext}
       isFetching={fetching}
-      prefsStrategy={StaticReplayPreferences}
       replay={replay}
     >
       <ReplayClipPreviewPlayer

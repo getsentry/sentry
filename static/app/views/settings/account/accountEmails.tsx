@@ -21,16 +21,20 @@ import accountEmailsFields from 'sentry/data/forms/accountEmails';
 import {IconDelete, IconStack} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {UserEmail} from 'sentry/types';
+import type {UserEmail} from 'sentry/types/user';
 import type {ApiQueryKey} from 'sentry/utils/queryClient';
-import {useApiQuery} from 'sentry/utils/queryClient';
+import {useApiQuery, useQueryClient} from 'sentry/utils/queryClient';
 import useApi from 'sentry/utils/useApi';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 
 const ENDPOINT = '/users/me/emails/';
 
 function AccountEmails() {
+  const queryClient = useQueryClient();
+
   const handleSubmitSuccess: FormProps['onSubmitSuccess'] = (_change, model, id) => {
+    queryClient.invalidateQueries({queryKey: makeEmailsEndpointKey()});
+
     if (id === undefined) {
       return;
     }
@@ -70,12 +74,12 @@ export function EmailAddresses() {
   const [isUpdating, setIsUpdating] = useState(false);
   const {
     data: emails = [],
-    isLoading,
+    isPending,
     isError,
     refetch,
   } = useApiQuery<UserEmail[]>(makeEmailsEndpointKey(), {staleTime: 0, cacheTime: 0});
 
-  if (isLoading || isUpdating) {
+  if (isPending || isUpdating) {
     return (
       <Panel>
         <PanelHeader>{t('Email Addresses')}</PanelHeader>

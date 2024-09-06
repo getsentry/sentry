@@ -1,14 +1,13 @@
 import {Fragment} from 'react';
-import styled from '@emotion/styled';
 
 import Alert from 'sentry/components/alert';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {formatBytesBase2} from 'sentry/utils/bytes/formatBytesBase2';
 import {DurationUnit, SizeUnit} from 'sentry/utils/discover/fields';
 import getDynamicText from 'sentry/utils/getDynamicText';
 import {RESOURCE_THROUGHPUT_UNIT} from 'sentry/views/insights/browser/resources/settings';
 import {MetricReadout} from 'sentry/views/insights/common/components/metricReadout';
+import {ReadoutRibbon} from 'sentry/views/insights/common/components/ribbon';
 import {getTimeSpentExplanation} from 'sentry/views/insights/common/components/tableCells/timeSpentCell';
 import {
   DataTitles,
@@ -20,6 +19,7 @@ type Props = {
   avgDecodedContentLength: number;
   avgDuration: number;
   avgTransferSize: number;
+  isLoading: boolean;
   throughput: number;
   timeSpentPercentage: number;
   timeSpentTotal: number;
@@ -27,6 +27,7 @@ type Props = {
 
 function ResourceInfo(props: Props) {
   const {
+    isLoading,
     avgContentLength,
     avgDecodedContentLength,
     avgDuration,
@@ -68,53 +69,53 @@ function ResourceInfo(props: Props) {
 
   return (
     <Fragment>
-      <MetricsRibbon>
+      <ReadoutRibbon>
         <MetricReadout
-          align="left"
           title={getThroughputTitle('resource')}
           value={throughput}
           unit={RESOURCE_THROUGHPUT_UNIT}
+          isLoading={isLoading}
         />
 
         <MetricReadout
-          align="left"
           title={DataTitles['avg(http.response_content_length)']}
           tooltip={tooltips.avgContentLength}
           value={avgContentLength}
           unit={SizeUnit.BYTE}
+          isLoading={isLoading}
         />
 
         <MetricReadout
-          align="left"
           title={DataTitles['avg(http.decoded_response_content_length)']}
           value={avgDecodedContentLength}
           tooltip={tooltips.avgDecodedContentLength}
           unit={SizeUnit.BYTE}
+          isLoading={isLoading}
         />
 
         <MetricReadout
-          align="left"
           title={DataTitles['avg(http.response_transfer_size)']}
           value={avgTransferSize}
           tooltip={tooltips.avgTransferSize}
           unit={SizeUnit.BYTE}
+          isLoading={isLoading}
         />
 
         <MetricReadout
-          align="left"
           title={DataTitles.avg}
           value={avgDuration}
           unit={DurationUnit.MILLISECOND}
+          isLoading={isLoading}
         />
 
         <MetricReadout
-          align="left"
           title={DataTitles.timeSpent}
           value={timeSpentTotal}
           unit={DurationUnit.MILLISECOND}
           tooltip={getTimeSpentExplanation(timeSpentPercentage, 'resource')}
+          isLoading={isLoading}
         />
-      </MetricsRibbon>
+      </ReadoutRibbon>
 
       {hasNoData && (
         <Alert style={{width: '100%'}} type="warning" showIcon>
@@ -126,11 +127,5 @@ function ResourceInfo(props: Props) {
     </Fragment>
   );
 }
-
-const MetricsRibbon = styled('div')`
-  display: flex;
-  flex-wrap: wrap;
-  gap: ${space(4)};
-`;
 
 export default ResourceInfo;

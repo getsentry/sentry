@@ -1,3 +1,5 @@
+import type {ProfilingFormatterUnit} from 'sentry/utils/profiling/units/units';
+
 import {CallTreeNode} from '../callTreeNode';
 import {Frame} from '../frame';
 
@@ -21,7 +23,7 @@ export class Profile {
   type: string;
 
   // Unit in which the timings are reported in
-  unit = 'microseconds';
+  unit: ProfilingFormatterUnit = 'microseconds';
   // Name of the profile
   name = 'Unknown';
 
@@ -44,7 +46,8 @@ export class Profile {
     negativeSamplesCount: 0,
   };
 
-  callTreeNodeProfileIdMap: Map<CallTreeNode, string[]> = new Map();
+  callTreeNodeProfileIdMap: Map<CallTreeNode, Profiling.ProfileReference[] | string[]> =
+    new Map();
 
   constructor({
     duration,
@@ -62,7 +65,7 @@ export class Profile {
     startedAt: number;
     threadId: number;
     type: 'flamechart' | 'flamegraph' | 'empty';
-    unit: string;
+    unit: ProfilingFormatterUnit;
     timestamp?: number;
   }) {
     this.threadId = threadId;

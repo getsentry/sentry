@@ -1,7 +1,7 @@
 import {Fragment} from 'react';
 
 import {t, tct} from 'sentry/locale';
-import type {PlatformKey, Project} from 'sentry/types';
+import type {PlatformKey, Project} from 'sentry/types/project';
 import type {
   IssueCategoryConfigMapping,
   IssueTypeConfig,
@@ -22,6 +22,7 @@ export const errorConfig: IssueCategoryConfigMapping = {
     },
     attachments: {enabled: true},
     autofix: true,
+    aiSuggestedSolution: true,
     mergedIssues: {enabled: true},
     replays: {enabled: true},
     similarIssues: {enabled: true},

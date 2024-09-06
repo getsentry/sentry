@@ -34,7 +34,7 @@ class Repository(Model, PendingDeletionMixin):
     provider = models.CharField(max_length=64, null=True)
     # The external_id is the id of the repo in the provider's system. (e.g. GitHub's repo id)
     external_id = models.CharField(max_length=64, null=True)
-    config = JSONField(default=dict)
+    config: models.Field[dict[str, Any], dict[str, Any]] = JSONField(default=dict)
     status = BoundedPositiveIntegerField(
         default=ObjectStatus.ACTIVE, choices=ObjectStatus.as_choices(), db_index=True
     )

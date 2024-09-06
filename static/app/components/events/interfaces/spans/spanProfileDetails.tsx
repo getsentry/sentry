@@ -1,7 +1,7 @@
 import {useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
-import {Button} from 'sentry/components/button';
+import {Button, LinkButton} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import {SectionHeading} from 'sentry/components/charts/styles';
 import {StackTraceContent} from 'sentry/components/events/interfaces/crashContent/stackTrace';
@@ -10,8 +10,9 @@ import QuestionTooltip from 'sentry/components/questionTooltip';
 import {IconChevron, IconProfiling} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {EventTransaction, Frame, PlatformKey} from 'sentry/types';
+import type {EventTransaction, Frame} from 'sentry/types/event';
 import {EntryType} from 'sentry/types/event';
+import type {PlatformKey} from 'sentry/types/project';
 import {StackView} from 'sentry/types/stacktrace';
 import {defined} from 'sentry/utils';
 import {formatPercentage} from 'sentry/utils/number/formatPercentage';
@@ -216,14 +217,13 @@ export function SpanProfileDetails({
           </ButtonBar>
         </SpanDetailsItem>
         <SpanDetailsItem>
-          <Button icon={<IconProfiling />} to={spanTarget} size="xs">
+          <LinkButton icon={<IconProfiling />} to={spanTarget} size="xs">
             {t('Profile')}
-          </Button>
+          </LinkButton>
         </SpanDetailsItem>
       </SpanDetails>
       <StackTraceContent
         event={processedEvent}
-        hasHierarchicalGrouping={false}
         newestFirst
         platform={event.platform || 'other'}
         stacktrace={{

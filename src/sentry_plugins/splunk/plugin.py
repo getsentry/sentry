@@ -68,7 +68,7 @@ class SplunkPlugin(CorePluginMixin, DataForwardingPlugin):
     def get_client(self):
         return SplunkApiClient(self.project_instance, self.project_token)
 
-    def get_config(self, project, **kwargs):
+    def get_config(self, project, user=None, initial=None, add_additional_fields: bool = False):
         return [
             {
                 "name": "instance",

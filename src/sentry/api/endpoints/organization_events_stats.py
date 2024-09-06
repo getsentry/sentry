@@ -14,15 +14,21 @@ from sentry.api.bases import OrganizationEventsV2EndpointBase
 from sentry.constants import MAX_TOP_EVENTS
 from sentry.models.dashboard_widget import DashboardWidget, DashboardWidgetTypes
 from sentry.models.organization import Organization
+from sentry.search.events.types import SnubaParams
 from sentry.snuba import (
     discover,
+    errors,
     functions,
     metrics_enhanced_performance,
     metrics_performance,
+    profile_functions_metrics,
+    spans_eap,
     spans_indexed,
     spans_metrics,
+    transactions,
 )
 from sentry.snuba.metrics.extraction import MetricSpecType
+from sentry.snuba.query_sources import QuerySource
 from sentry.snuba.referrer import Referrer
 from sentry.utils.snuba import SnubaError, SnubaTSResult
 
@@ -73,6 +79,9 @@ METRICS_ENHANCED_REFERRERS: set[str] = {
 ALLOWED_EVENTS_STATS_REFERRERS: set[str] = {
     Referrer.API_ALERTS_ALERT_RULE_CHART.value,
     Referrer.API_ALERTS_CHARTCUTERIE.value,
+    Referrer.API_ENDPOINT_REGRESSION_ALERT_CHARTCUTERIE.value,
+    Referrer.API_FUNCTION_REGRESSION_ALERT_CHARTCUTERIE.value,
+    Referrer.DISCOVER_SLACK_UNFURL.value,
     Referrer.API_DASHBOARDS_WIDGET_AREA_CHART.value,
     Referrer.API_DASHBOARDS_WIDGET_BAR_CHART.value,
     Referrer.API_DASHBOARDS_WIDGET_LINE_CHART.value,
@@ -106,10 +115,18 @@ ALLOWED_EVENTS_STATS_REFERRERS: set[str] = {
 }
 
 
+SENTRY_BACKEND_REFERRERS = [
+    Referrer.API_ALERTS_CHARTCUTERIE.value,
+    Referrer.API_ENDPOINT_REGRESSION_ALERT_CHARTCUTERIE.value,
+    Referrer.API_FUNCTION_REGRESSION_ALERT_CHARTCUTERIE.value,
+    Referrer.DISCOVER_SLACK_UNFURL.value,
+]
+
+
 @region_silo_endpoint
 class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):
     publish_status = {
-        "GET": ApiPublishStatus.UNKNOWN,
+        "GET": ApiPublishStatus.EXPERIMENTAL,
     }
     sunba_methods = ["GET"]
 
@@ -165,6 +182,7 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):
         return has_data
 
     def get(self, request: Request, organization: Organization) -> Response:
+        query_source = self.get_request_source(request)
         with sentry_sdk.start_span(op="discover.endpoint", description="filter_params") as span:
             span.set_data("organization", organization)
 
@@ -203,6 +221,8 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):
                 if referrer in ALLOWED_EVENTS_STATS_REFERRERS.union(METRICS_ENHANCED_REFERRERS)
                 else Referrer.API_ORGANIZATION_EVENT_STATS.value
             )
+            if referrer in SENTRY_BACKEND_REFERRERS:
+                query_source = QuerySource.SENTRY_BACKEND
             batch_features = self.get_features(organization, request)
             has_chart_interpolation = batch_features.get(
                 "organizations:performance-chart-interpolation", False
@@ -231,8 +251,12 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):
                         functions,
                         metrics_performance,
                         metrics_enhanced_performance,
+                        profile_functions_metrics,
                         spans_indexed,
                         spans_metrics,
+                        spans_eap,
+                        errors,
+                        transactions,
                     ]
                     else discover
                 )
@@ -255,7 +279,7 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):
             scoped_dataset: Any,
             query_columns: Sequence[str],
             query: str,
-            params: dict[str, str],
+            snuba_params: SnubaParams,
             rollup: int,
             zerofill_results: bool,
             comparison_delta: datetime | None,
@@ -266,7 +290,7 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):
                     selected_columns=self.get_field_list(organization, request),
                     equations=self.get_equation_list(organization, request),
                     user_query=query,
-                    params=params,
+                    snuba_params=snuba_params,
                     orderby=self.get_orderby(request),
                     rollup=rollup,
                     limit=top_events,
@@ -277,12 +301,13 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):
                     on_demand_metrics_enabled=use_on_demand_metrics,
                     on_demand_metrics_type=on_demand_metrics_type,
                     include_other=include_other,
+                    query_source=query_source,
                 )
 
             return scoped_dataset.timeseries_query(
                 selected_columns=query_columns,
                 query=query,
-                params=params,
+                snuba_params=snuba_params,
                 rollup=rollup,
                 referrer=referrer,
                 zerofill_results=zerofill_results,
@@ -302,6 +327,7 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):
                     )
                 ),
                 on_demand_metrics_type=on_demand_metrics_type,
+                query_source=query_source,
             )
 
         def get_event_stats_factory(scoped_dataset):
@@ -316,7 +342,7 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):
             def fn(
                 query_columns: Sequence[str],
                 query: str,
-                params: dict[str, str],
+                snuba_params: SnubaParams,
                 rollup: int,
                 zerofill_results: bool,
                 comparison_delta: datetime | None,
@@ -327,7 +353,7 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):
                         scoped_dataset,
                         query_columns,
                         query,
-                        params,
+                        snuba_params,
                         rollup,
                         zerofill_results,
                         comparison_delta,
@@ -359,7 +385,7 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):
                             split_dataset,
                             query_columns,
                             split_query,
-                            params,
+                            snuba_params,
                             rollup,
                             zerofill_results,
                             comparison_delta,
@@ -373,7 +399,7 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):
                             discover,
                             query_columns,
                             errors_only_query,
-                            params,
+                            snuba_params,
                             rollup,
                             zerofill_results,
                             comparison_delta,
@@ -386,7 +412,7 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):
                         scoped_dataset,
                         query_columns,
                         query,
-                        params,
+                        snuba_params,
                         rollup,
                         zerofill_results,
                         comparison_delta,
@@ -414,14 +440,16 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):
                             discover,
                             query_columns,
                             transactions_only_query,
-                            params,
+                            snuba_params,
                             rollup,
                             zerofill_results,
                             comparison_delta,
                         )
                         has_transactions = self.check_if_results_have_data(transaction_results)
 
-                    decision = self.save_split_decision(widget, has_errors, has_transactions)
+                    decision = self.save_split_decision(
+                        widget, has_errors, has_transactions, organization, request.user
+                    )
 
                     if decision == DashboardWidgetTypes.DISCOVER:
                         # The user needs to be warned to split in this case.
@@ -429,14 +457,38 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):
                             discover,
                             query_columns,
                             query,
-                            params,
+                            snuba_params,
                             rollup,
                             zerofill_results,
                             comparison_delta,
                         )
                     elif decision == DashboardWidgetTypes.TRANSACTION_LIKE:
+                        for result in (
+                            original_results.values()
+                            if isinstance(original_results, dict)
+                            else [original_results]
+                        ):
+                            if not result.data.get("meta"):
+                                result.data["meta"] = {}
+                            result.data["meta"][
+                                "discoverSplitDecision"
+                            ] = DashboardWidgetTypes.get_type_name(
+                                DashboardWidgetTypes.TRANSACTION_LIKE
+                            )
                         return original_results
                     elif decision == DashboardWidgetTypes.ERROR_EVENTS and error_results:
+                        for result in (
+                            error_results.values()
+                            if isinstance(error_results, dict)
+                            else [error_results]
+                        ):
+                            if not result.data.get("meta"):
+                                result.data["meta"] = {}
+                            result.data["meta"][
+                                "discoverSplitDecision"
+                            ] = DashboardWidgetTypes.get_type_name(
+                                DashboardWidgetTypes.ERROR_EVENTS
+                            )
                         return error_results
                     else:
                         return original_results
@@ -448,7 +500,7 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):
                         scoped_dataset,
                         query_columns,
                         query,
-                        params,
+                        snuba_params,
                         rollup,
                         zerofill_results,
                         comparison_delta,

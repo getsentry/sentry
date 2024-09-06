@@ -19,9 +19,9 @@ from sentry.models.servicehook import ServiceHook
 class ProjectServiceHookDetailsEndpoint(ProjectEndpoint):
     owner = ApiOwner.INTEGRATIONS
     publish_status = {
-        "DELETE": ApiPublishStatus.UNKNOWN,
-        "GET": ApiPublishStatus.UNKNOWN,
-        "PUT": ApiPublishStatus.UNKNOWN,
+        "DELETE": ApiPublishStatus.PRIVATE,
+        "GET": ApiPublishStatus.PRIVATE,
+        "PUT": ApiPublishStatus.PRIVATE,
     }
 
     def get(self, request: Request, project, hook_id) -> Response:

@@ -23,7 +23,6 @@ from sentry.rules.filters.base import EventFilter
 from sentry.rules.processing.processor import PROJECT_ID_BUFFER_LIST_KEY, RuleProcessor
 from sentry.testutils.cases import PerformanceIssueTestCase, TestCase
 from sentry.testutils.helpers import install_slack
-from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.helpers.redis import mock_redis_buffer
 from sentry.testutils.skips import requires_snuba
 from sentry.utils import json
@@ -113,7 +112,6 @@ class RuleProcessorTest(TestCase, PerformanceIssueTestCase):
         for rule_fire_history in rule_fire_histories:
             assert getattr(rule_fire_history, "notification_uuid", None) is not None
 
-    @with_feature("organizations:process-slow-alerts")
     def test_delayed_rule_match_any_slow_conditions(self):
         """
         Test that a rule with only 'slow' conditions and action match of 'any' for a performance issue gets added to the Redis buffer and does not immediately fire when the 'fast' condition fails to pass
@@ -157,7 +155,6 @@ class RuleProcessorTest(TestCase, PerformanceIssueTestCase):
             )
         }
 
-    @with_feature("organizations:process-slow-alerts")
     def test_delayed_rule_match_any_slow_fast_conditions(self):
         """
         Test that a rule with a 'slow' condition, a 'fast' condition, and action match of 'any' gets added to the Redis buffer and does not immediately fire when the 'fast' condition fails to pass
@@ -195,7 +192,6 @@ class RuleProcessorTest(TestCase, PerformanceIssueTestCase):
             )
         }
 
-    @with_feature("organizations:process-slow-alerts")
     def test_delayed_rule_match_error_slow_fast_conditions(self):
         """
         Test that a rule with a 'slow' condition, a 'fast' condition, and action match of 'garbage' errors and does not fire or get added to the Redis queue
@@ -220,7 +216,6 @@ class RuleProcessorTest(TestCase, PerformanceIssueTestCase):
         results = list(rp.apply())
         assert len(results) == 0
 
-    @with_feature("organizations:process-slow-alerts")
     def test_rule_match_any_slow_fast_conditions_fast_passes(self):
         """
         Test that a rule with both 'slow' and 'fast' conditions and action match of 'any' where a fast condition passes fires and doesn't get enqueued
@@ -242,7 +237,6 @@ class RuleProcessorTest(TestCase, PerformanceIssueTestCase):
         results = list(rp.apply())
         assert len(results) == 1
 
-    @with_feature("organizations:process-slow-alerts")
     def test_delayed_rule_match_all(self):
         """
         Test that a rule with a 'slow' condition and action match of 'all' gets added to the Redis buffer and does not immediately fire

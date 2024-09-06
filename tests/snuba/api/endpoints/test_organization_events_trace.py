@@ -1713,3 +1713,6 @@ class OrganizationEventsTraceMetaEndpointTest(OrganizationEventsTraceEndpointBas
         assert data["transactions"] == 8
         assert data["errors"] == 1
         assert data["performance_issues"] == 2
+        assert len(data["transaction_child_count_map"]) == 8
+        for item in data["transaction_child_count_map"]:
+            assert item["count"] > 1, item

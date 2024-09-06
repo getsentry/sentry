@@ -17,7 +17,7 @@ interface Args<Frame extends ReplayFrame | RecordingFrame, CollectionData> {
 }
 
 type FrameRef<Frame extends ReplayFrame | RecordingFrame> = {
-  frame: Frame | undefined;
+  current: Frame | undefined;
 };
 
 export default function replayerStepper<
@@ -38,7 +38,7 @@ export default function replayerStepper<
       return;
     }
 
-    const replayer = createHiddenPlayer(rrwebEvents);
+    const {replayer, cleanupReplayer} = createHiddenPlayer(rrwebEvents);
 
     const nextFrame = (function () {
       let i = 0;
@@ -47,6 +47,9 @@ export default function replayerStepper<
 
     const onDone = () => {
       resolve(collection);
+      // to avoid recursion, since destroy() in cleanupReplayer() calls pause()
+      replayer.off('pause', handlePause);
+      cleanupReplayer();
     };
 
     const nextOrDone = () => {
@@ -59,25 +62,25 @@ export default function replayerStepper<
     };
 
     const frameRef: FrameRef<Frame> = {
-      frame: undefined,
+      current: undefined,
     };
 
     const considerFrame = (frame: Frame) => {
       if (shouldVisitFrame(frame, replayer)) {
-        frameRef.frame = frame;
-        window.setTimeout(() => {
+        frameRef.current = frame;
+        window.requestAnimationFrame(() => {
           const timestamp =
             'offsetMs' in frame ? frame.offsetMs : frame.timestamp - startTimestampMs;
           replayer.pause(timestamp);
-        }, 0);
+        });
       } else {
-        frameRef.frame = undefined;
+        frameRef.current = undefined;
         nextOrDone();
       }
     };
 
     const handlePause = () => {
-      onVisitFrame(frameRef.frame!, collection, replayer);
+      onVisitFrame(frameRef.current!, collection, replayer);
       nextOrDone();
     };
 

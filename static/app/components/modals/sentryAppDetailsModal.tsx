@@ -10,7 +10,8 @@ import SentryAppIcon from 'sentry/components/sentryAppIcon';
 import {IconFlag} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {IntegrationFeature, Organization, SentryApp} from 'sentry/types';
+import type {IntegrationFeature, SentryApp} from 'sentry/types/integrations';
+import type {Organization} from 'sentry/types/organization';
 import {toPermissions} from 'sentry/utils/consolidatedScopes';
 import {
   getIntegrationFeatureGate,
@@ -216,9 +217,10 @@ const Heading = styled('div')`
 `;
 
 const HeadingInfo = styled('div')`
-  display: grid;
-  grid-template-rows: max-content max-content;
+  display: flex;
+  flex-direction: column;
   align-items: start;
+  gap: ${space(0.75)};
 `;
 
 const Name = styled('div')`
@@ -262,6 +264,7 @@ const Permission = styled('div')`
 
 const Footer = styled('div')`
   display: flex;
+  align-items: center;
   padding: 20px 30px;
   border-top: 1px solid #e2dee6;
   margin: 20px -30px -30px;

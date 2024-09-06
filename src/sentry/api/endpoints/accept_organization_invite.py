@@ -100,8 +100,8 @@ def get_invite_state(
 @control_silo_endpoint
 class AcceptOrganizationInvite(Endpoint):
     publish_status = {
-        "GET": ApiPublishStatus.UNKNOWN,
-        "POST": ApiPublishStatus.UNKNOWN,
+        "GET": ApiPublishStatus.PRIVATE,
+        "POST": ApiPublishStatus.PRIVATE,
     }
     # Disable authentication and permission requirements.
     permission_classes = ()

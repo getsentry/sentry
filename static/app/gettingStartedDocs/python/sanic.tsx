@@ -18,7 +18,7 @@ const getSdkSetupSnippet = (params: Params) => `from sanic import Sanic
 import sentry_sdk
 
 sentry_sdk.init(
-    dsn="${params.dsn}",
+    dsn="${params.dsn.public}",
 )
 `;
 
@@ -46,7 +46,7 @@ const onboarding: OnboardingConfig = {
           description: (
             <p>
               {tct(
-                "f you're on Python 3.6, you also need the [code:aiocontextvars] package:",
+                "If you're on Python 3.6, you also need the [code:aiocontextvars] package:",
                 {
                   code: <code />,
                 }

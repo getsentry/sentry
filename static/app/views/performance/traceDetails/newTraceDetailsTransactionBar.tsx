@@ -62,7 +62,8 @@ import {Tooltip} from 'sentry/components/tooltip';
 import {IconZoom} from 'sentry/icons/iconZoom';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {EventTransaction, Organization} from 'sentry/types';
+import type {EventTransaction} from 'sentry/types/event';
+import type {Organization} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
 import {browserHistory} from 'sentry/utils/browserHistory';
 import {hasMetricsExperimentalFeature} from 'sentry/utils/metrics/features';
@@ -230,7 +231,7 @@ function NewTraceDetailsTransactionBar(props: Props) {
       : undefined;
   const {
     data: embeddedChildren,
-    isLoading: isEmbeddedChildrenLoading,
+    isPending: isEmbeddedChildrenLoading,
     error: embeddedChildrenError,
   } = useApiQuery<EventTransaction>(
     [

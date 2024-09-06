@@ -61,14 +61,16 @@ and a value, the type of which depends on the operator specified.
 """
 from __future__ import annotations
 
-from datetime import datetime
+import dataclasses
+import functools
+import os
 from typing import Any
 
+import jsonschema
 import orjson
 import yaml
-from pydantic import BaseModel, Field, ValidationError, constr
 
-from flagpole.conditions import Segment
+from flagpole.conditions import ConditionBase, Segment
 from flagpole.evaluation_context import ContextBuilder, EvaluationContext
 
 
@@ -76,15 +78,30 @@ class InvalidFeatureFlagConfiguration(Exception):
     pass
 
 
-class Feature(BaseModel):
-    name: constr(min_length=1, to_lower=True)  # type:ignore[valid-type]
-    owner: constr(min_length=1)  # type:ignore[valid-type]
-    segments: list[Segment]
-    """A list of segments to evaluate against the provided data"""
-    enabled: bool = True
-    """Defines whether or not the feature is enabled."""
-    created_at: datetime = Field(default_factory=datetime.now)
-    """This datetime is when this instance was created. It can be used to decide when to re-read configuration data"""
+@functools.cache
+def load_json_schema() -> dict[str, Any]:
+    path = os.path.join(os.path.dirname(__file__), "flagpole-schema.json")
+    with open(path, "rb") as json_file:
+        data = orjson.loads(json_file.read())
+    return data
+
+
+@dataclasses.dataclass(frozen=True)
+class Feature:
+    name: str
+    "The feature name."
+
+    owner: str
+    "The owner of this feature. Either an email address or team name, preferably."
+
+    enabled: bool = dataclasses.field(default=True)
+    "Whether or not the feature is enabled."
+
+    segments: list[Segment] = dataclasses.field(default_factory=list)
+    "The list of segments to evaluate for the feature. An empty list will always evaluate to False."
+
+    created_at: str | None = None
+    "The datetime when this feature was created."
 
     def match(self, context: EvaluationContext) -> bool:
         if not self.enabled:
@@ -97,24 +114,40 @@ class Feature(BaseModel):
 
         return False
 
-    @classmethod
-    def dump_schema_to_file(cls, file_path: str) -> None:
-        with open(file_path, "w") as file:
-            file.write(cls.schema_json(indent=2))
+    def validate(self) -> bool:
+        """
+        Validate a feature against the JSON schema.
+        Will raise if the the current dict form a feature does not match the schema.
+        """
+        dict_data = dataclasses.asdict(self)
+        spec = load_json_schema()
+        jsonschema.validate(dict_data, spec)
+
+        return True
 
     @classmethod
     def from_feature_dictionary(cls, name: str, config_dict: dict[str, Any]) -> Feature:
+        segment_data = config_dict.get("segments")
+        if not isinstance(segment_data, list):
+            raise InvalidFeatureFlagConfiguration("Feature has no segments defined")
         try:
-            feature = cls(name=name, **config_dict)
-        except ValidationError as exc:
-            raise InvalidFeatureFlagConfiguration("Provided JSON is not a valid feature") from exc
+            segments = [Segment.from_dict(segment) for segment in segment_data]
+            feature = cls(
+                name=name,
+                owner=str(config_dict.get("owner", "")),
+                enabled=bool(config_dict.get("enabled", True)),
+                created_at=str(config_dict.get("created_at")),
+                segments=segments,
+            )
+        except Exception as exc:
+            raise InvalidFeatureFlagConfiguration(
+                "Provided config_dict is not a valid feature"
+            ) from exc
 
         return feature
 
     @classmethod
-    def from_feature_config_json(
-        cls, name: str, config_json: str, context_builder: ContextBuilder | None = None
-    ) -> Feature:
+    def from_feature_config_json(cls, name: str, config_json: str) -> Feature:
         try:
             config_data_dict = orjson.loads(config_json)
         except orjson.JSONDecodeError as decode_error:
@@ -122,6 +155,9 @@ class Feature(BaseModel):
 
         if not isinstance(config_data_dict, dict):
             raise InvalidFeatureFlagConfiguration("Feature JSON is not a valid feature")
+
+        if not name:
+            raise InvalidFeatureFlagConfiguration("Feature name is required")
 
         return cls.from_feature_dictionary(name=name, config_dict=config_data_dict)
 
@@ -136,7 +172,7 @@ class Feature(BaseModel):
         return features
 
     @classmethod
-    def from_bulk_yaml(cls, yaml_str) -> list[Feature]:
+    def from_bulk_yaml(cls, yaml_str: str) -> list[Feature]:
         features: list[Feature] = []
         parsed_yaml = yaml.safe_load(yaml_str)
         for feature, yaml_dict in parsed_yaml.items():
@@ -145,9 +181,9 @@ class Feature(BaseModel):
         return features
 
     def to_dict(self) -> dict[str, Any]:
-        json_dict = dict(orjson.loads(self.json()))
-        json_dict.pop("name")
-        return {self.name: json_dict}
+        dict_data = dataclasses.asdict(self)
+        dict_data.pop("name")
+        return {self.name: dict_data}
 
     def to_yaml_str(self) -> str:
         return yaml.dump(self.to_dict())
@@ -156,4 +192,11 @@ class Feature(BaseModel):
         return orjson.dumps(self.to_dict()).decode()
 
 
-__all__ = ["Feature", "InvalidFeatureFlagConfiguration", "ContextBuilder", "EvaluationContext"]
+__all__ = [
+    "Feature",
+    "InvalidFeatureFlagConfiguration",
+    "ContextBuilder",
+    "EvaluationContext",
+    "Segment",
+    "ConditionBase",
+]

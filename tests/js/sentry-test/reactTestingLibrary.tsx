@@ -1,15 +1,18 @@
 import {Component} from 'react';
-import type {InjectedRouter} from 'react-router';
+import {Router} from 'react-router-dom';
 import {cache} from '@emotion/css'; // eslint-disable-line @emotion/no-vanilla
 import {CacheProvider, ThemeProvider} from '@emotion/react';
 import * as rtl from '@testing-library/react'; // eslint-disable-line no-restricted-imports
 import userEvent from '@testing-library/user-event'; // eslint-disable-line no-restricted-imports
+import {createMemoryHistory} from 'history';
+import * as qs from 'query-string';
 
 import {makeTestQueryClient} from 'sentry-test/queryClient';
 
 import {GlobalDrawer} from 'sentry/components/globalDrawer';
 import GlobalModal from 'sentry/components/globalModal';
 import {SentryPropTypeValidators} from 'sentry/sentryPropTypeValidators';
+import type {InjectedRouter} from 'sentry/types/legacyReactRouter';
 import type {Organization} from 'sentry/types/organization';
 import {QueryClientProvider} from 'sentry/utils/queryClient';
 import {lightTheme} from 'sentry/utils/theme';
@@ -57,23 +60,63 @@ function makeAllTheProviders(providers: ProviderOptions) {
   const optionalOrganization = providers.organization === null ? null : organization;
 
   return function ({children}: {children?: React.ReactNode}) {
+    const content = (
+      <RouteContext.Provider
+        value={{
+          router,
+          location: router.location,
+          params: router.params,
+          routes: router.routes,
+        }}
+      >
+        <OrganizationContext.Provider value={optionalOrganization}>
+          <GlobalDrawer>{children}</GlobalDrawer>
+        </OrganizationContext.Provider>
+      </RouteContext.Provider>
+    );
+
+    // Inject legacy react-router 3 style router mocked navigation functions
+    // into the memory history used in react router 6
+
+    const history = createMemoryHistory();
+    history.replace = router.replace;
+    history.push = (path: any) => {
+      if (typeof path === 'object' && path.search) {
+        path.query = qs.parse(path.search);
+        delete path.search;
+        delete path.hash;
+      }
+
+      // XXX(epurkhiser): This is a hack for react-router 3 to 6. react-router
+      // 6 will not convert objects into strings before pushing. We can detect
+      // this by looking for an empty hash, which we normally do not set for
+      // our browserHistory.push calls
+      if (typeof path === 'object' && path.hash === '') {
+        const queryString = path.query ? qs.stringify(path.query) : null;
+        path = `${path.pathname}${queryString ? `?${queryString}` : ''}`;
+      }
+
+      router.push(path);
+    };
+
+    // TODO(__SENTRY_USING_REACT_ROUTER_SIX): For some reason getsentry is
+    // infering the type of this wrong. Unclear why that is happening
+    const Router6 = Router as any;
+
+    const routerContainer = window.__SENTRY_USING_REACT_ROUTER_SIX ? (
+      <Router6 location={router.location} navigator={history}>
+        {content}
+      </Router6>
+    ) : (
+      content
+    );
+
     return (
       <LegacyRouterProvider>
         <CacheProvider value={{...cache, compat: true}}>
           <ThemeProvider theme={lightTheme}>
             <QueryClientProvider client={makeTestQueryClient()}>
-              <RouteContext.Provider
-                value={{
-                  router,
-                  location: router.location,
-                  params: router.params,
-                  routes: router.routes,
-                }}
-              >
-                <OrganizationContext.Provider value={optionalOrganization}>
-                  <GlobalDrawer>{children}</GlobalDrawer>
-                </OrganizationContext.Provider>
-              </RouteContext.Provider>
+              {routerContainer}
             </QueryClientProvider>
           </ThemeProvider>
         </CacheProvider>

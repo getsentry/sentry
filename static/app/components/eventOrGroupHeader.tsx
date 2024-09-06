@@ -9,8 +9,9 @@ import GlobalSelectionLink from 'sentry/components/globalSelectionLink';
 import {IconStar} from 'sentry/icons';
 import {tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {Group, GroupTombstoneHelper, Organization} from 'sentry/types';
 import type {Event} from 'sentry/types/event';
+import type {Group, GroupTombstoneHelper} from 'sentry/types/group';
+import type {Organization} from 'sentry/types/organization';
 import {getLocation, getMessage, isTombstone} from 'sentry/utils/events';
 import {useLocation} from 'sentry/utils/useLocation';
 import withOrganization from 'sentry/utils/withOrganization';
@@ -21,8 +22,6 @@ interface EventOrGroupHeaderProps {
   data: Event | Group | GroupTombstoneHelper;
   organization: Organization;
   eventId?: string;
-  /* is issue breakdown? */
-  grouping?: boolean;
   hideIcons?: boolean;
   hideLevel?: boolean;
   index?: number;
@@ -43,7 +42,6 @@ function EventOrGroupHeader({
   onClick,
   hideIcons,
   eventId,
-  grouping = false,
   source,
 }: EventOrGroupHeaderProps) {
   const location = useLocation();
@@ -60,11 +58,9 @@ function EventOrGroupHeader({
         <ErrorBoundary customComponent={<EventTitleError />} mini>
           <StyledEventOrGroupTitle
             data={data}
-            organization={organization}
             // hasSeen is undefined for GroupTombstone
             hasSeen={hasSeen === undefined ? true : hasSeen}
             withStackTracePreview
-            grouping={grouping}
             query={query}
           />
         </ErrorBoundary>

@@ -15,6 +15,7 @@ from sentry.seer.similarity.grouping_records import (
     delete_grouping_records_by_hash,
     post_bulk_grouping_records,
 )
+from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.utils import json
 
 DUMMY_POOL = ConnectionPool("dummy")
@@ -37,6 +38,7 @@ CREATE_GROUPING_RECORDS_REQUEST_PARAMS: CreateGroupingRecordsRequest = {
         },
     ],
     "stacktrace_list": ["stacktrace 1", "stacktrace 2"],
+    "use_reranking": False,
 }
 
 
@@ -60,6 +62,7 @@ def test_post_bulk_grouping_records_success(mock_seer_request: MagicMock, mock_l
             "group_ids": json.dumps(CREATE_GROUPING_RECORDS_REQUEST_PARAMS["group_id_list"]),
             "project_id": 1,
             "stacktrace_length_sum": 24,
+            "use_reranking": False,
         },
     )
 
@@ -68,7 +71,7 @@ def test_post_bulk_grouping_records_success(mock_seer_request: MagicMock, mock_l
 @mock.patch("sentry.seer.similarity.grouping_records.logger")
 @mock.patch("sentry.seer.similarity.grouping_records.seer_grouping_connection_pool.urlopen")
 def test_post_bulk_grouping_records_timeout(mock_seer_request: MagicMock, mock_logger: MagicMock):
-    expected_return_value = {"success": False}
+    expected_return_value = {"success": False, "reason": "ReadTimeoutError"}
     mock_seer_request.side_effect = ReadTimeoutError(
         DUMMY_POOL, settings.SEER_AUTOFIX_URL, "read timed out"
     )
@@ -83,6 +86,7 @@ def test_post_bulk_grouping_records_timeout(mock_seer_request: MagicMock, mock_l
             "reason": "ReadTimeoutError",
             "timeout": POST_BULK_GROUPING_RECORDS_TIMEOUT,
             "stacktrace_length_sum": 24,
+            "use_reranking": False,
         },
     )
 
@@ -91,7 +95,7 @@ def test_post_bulk_grouping_records_timeout(mock_seer_request: MagicMock, mock_l
 @mock.patch("sentry.seer.similarity.grouping_records.logger")
 @mock.patch("sentry.seer.similarity.grouping_records.seer_grouping_connection_pool.urlopen")
 def test_post_bulk_grouping_records_failure(mock_seer_request: MagicMock, mock_logger: MagicMock):
-    expected_return_value = {"success": False}
+    expected_return_value = {"success": False, "reason": "INTERNAL SERVER ERROR"}
     mock_seer_request.return_value = HTTPResponse(
         b"<!doctype html>\n<html lang=en>\n<title>500 Internal Server Error</title>\n<h1>Internal Server Error</h1>\n<p>The server encountered an internal error and was unable to complete your request. Either the server is overloaded or there is an error in the application.</p>\n",
         reason="INTERNAL SERVER ERROR",
@@ -107,6 +111,7 @@ def test_post_bulk_grouping_records_failure(mock_seer_request: MagicMock, mock_l
             "project_id": 1,
             "reason": "INTERNAL SERVER ERROR",
             "stacktrace_length_sum": 24,
+            "use_reranking": False,
         },
     )
 
@@ -125,6 +130,35 @@ def test_post_bulk_grouping_records_empty_data(mock_seer_request: MagicMock):
     assert response == expected_return_value
 
 
+@pytest.mark.django_db
+@mock.patch("sentry.seer.similarity.grouping_records.logger")
+@mock.patch("sentry.seer.similarity.grouping_records.seer_grouping_connection_pool.urlopen")
+def test_post_bulk_grouping_records_use_reranking(
+    mock_seer_request: MagicMock, mock_logger: MagicMock
+):
+    expected_return_value = {
+        "success": True,
+        "groups_with_neighbor": {"1": "00000000000000000000000000000000"},
+    }
+    mock_seer_request.return_value = HTTPResponse(
+        json.dumps(expected_return_value).encode("utf-8"), status=200
+    )
+
+    CREATE_GROUPING_RECORDS_REQUEST_PARAMS.update({"use_reranking": True})
+    response = post_bulk_grouping_records(CREATE_GROUPING_RECORDS_REQUEST_PARAMS)
+    assert response == expected_return_value
+    mock_logger.info.assert_called_with(
+        "seer.post_bulk_grouping_records.success",
+        extra={
+            "group_ids": json.dumps(CREATE_GROUPING_RECORDS_REQUEST_PARAMS["group_id_list"]),
+            "project_id": 1,
+            "stacktrace_length_sum": 24,
+            "use_reranking": True,
+        },
+    )
+
+
+@django_db_all
 @mock.patch("sentry.seer.similarity.grouping_records.logger")
 @mock.patch("sentry.seer.similarity.grouping_records.seer_grouping_connection_pool.urlopen")
 def test_delete_grouping_records_by_hash_success(
@@ -168,6 +202,7 @@ def test_delete_grouping_records_by_hash_timeout(
     )
 
 
+@django_db_all
 @mock.patch("sentry.seer.similarity.grouping_records.logger")
 @mock.patch("sentry.seer.similarity.grouping_records.seer_grouping_connection_pool.urlopen")
 def test_delete_grouping_records_by_hash_failure(

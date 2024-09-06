@@ -211,7 +211,7 @@ function ProfilingMeasurements({
                 onMouseDown={onStartWindowSelection}
               >
                 <MemoizedChart
-                  data={data}
+                  data={data as Profiling.Measurement}
                   type={measurementType}
                   transactionDuration={transactionDurationInMs}
                 />

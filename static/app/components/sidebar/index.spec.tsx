@@ -10,7 +10,8 @@ import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingL
 import {OnboardingContextProvider} from 'sentry/components/onboarding/onboardingContext';
 import SidebarContainer from 'sentry/components/sidebar';
 import ConfigStore from 'sentry/stores/configStore';
-import type {Organization, StatuspageIncident} from 'sentry/types';
+import type {Organization} from 'sentry/types/organization';
+import type {StatuspageIncident} from 'sentry/types/system';
 import localStorage from 'sentry/utils/localStorage';
 import {useLocation} from 'sentry/utils/useLocation';
 import * as incidentsHook from 'sentry/utils/useServiceIncidents';
@@ -65,7 +66,7 @@ describe('Sidebar', function () {
   };
 
   beforeEach(function () {
-    mockUseLocation.mockReset();
+    mockUseLocation.mockReturnValue(LocationFixture());
     jest.spyOn(incidentsHook, 'useServiceIncidents').mockImplementation(
       () =>
         ({
@@ -87,6 +88,10 @@ describe('Sidebar', function () {
     });
   });
 
+  afterEach(function () {
+    mockUseLocation.mockReset();
+  });
+
   it('renders', async function () {
     renderSidebar({organization});
     expect(await screen.findByTestId('sidebar-dropdown')).toBeInTheDocument();
@@ -100,6 +105,20 @@ describe('Sidebar', function () {
     expect(screen.getByText(user.email)).toBeInTheDocument();
 
     await userEvent.click(screen.getByTestId('sidebar-dropdown'));
+  });
+
+  it('does not render collapse with navigation-sidebar-v2 flag', async function () {
+    renderSidebar({
+      organization: {...organization, features: ['navigation-sidebar-v2']},
+    });
+
+    // await for the page to be rendered
+    expect(await screen.findByText('Issues')).toBeInTheDocument();
+    // Check that the user name is no longer visible
+    expect(screen.queryByText(user.name)).not.toBeInTheDocument();
+    // Check that the organization name is no longer visible
+    expect(screen.queryByText(organization.name)).not.toBeInTheDocument();
+    expect(screen.queryByTestId('sidebar-collapse')).not.toBeInTheDocument();
   });
 
   it('has can logout', async function () {
@@ -301,7 +320,7 @@ describe('Sidebar', function () {
       ConfigStore.set('features', new Set([]));
       ConfigStore.set('user', user);
 
-      mockUseLocation.mockReturnValue(LocationFixture());
+      mockUseLocation.mockReturnValue({...LocationFixture()});
     });
 
     it('renders navigation', async function () {
@@ -390,6 +409,25 @@ describe('Sidebar', function () {
       ].forEach((title, index) => {
         expect(links[index]).toHaveAccessibleName(title);
       });
+    });
+
+    it('mobile screens module hides all other mobile modules', async function () {
+      localStorage.setItem('sidebar-accordion-insights:expanded', 'true');
+      renderSidebarWithFeatures([
+        'insights-entry-points',
+        'starfish-mobile-ui-module',
+        'insights-mobile-screens-module',
+      ]);
+
+      await waitFor(function () {
+        expect(apiMocks.broadcasts).toHaveBeenCalled();
+      });
+
+      ['App Starts', 'Screen Loads', /Mobile UI/].forEach(title => {
+        expect(screen.queryByText(title)).not.toBeInTheDocument();
+      });
+
+      expect(screen.getByText(/Mobile Screens/)).toBeInTheDocument();
     });
 
     it('should not render floating accordion when expanded', async () => {

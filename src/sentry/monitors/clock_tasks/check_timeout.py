@@ -61,7 +61,7 @@ def dispatch_check_timeout(ts: datetime):
         produce_task(payload)
 
 
-def mark_checkin_timeout(checkin_id: int, ts: datetime):
+def mark_checkin_timeout(checkin_id: int, ts: datetime) -> None:
     logger.info("checkin_timeout", extra={"checkin_id": checkin_id})
 
     try:
@@ -74,6 +74,9 @@ def mark_checkin_timeout(checkin_id: int, ts: datetime):
         # The monitor may have been deleted or the timeout may have reached
         # it's retention period (less likely)
         metrics.incr("sentry.monitors.tasks.check_timeout.not_found")
+        return
+
+    if checkin.monitor_environment is None:
         return
 
     monitor_environment = checkin.monitor_environment

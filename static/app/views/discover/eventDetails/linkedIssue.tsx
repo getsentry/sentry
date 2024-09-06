@@ -12,7 +12,7 @@ import ShortId from 'sentry/components/shortId';
 import GroupChart from 'sentry/components/stream/groupChart';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {TimeseriesValue} from 'sentry/types';
+import type {TimeseriesValue} from 'sentry/types/core';
 import type {Group} from 'sentry/types/group';
 import {useApiQuery} from 'sentry/utils/queryClient';
 
@@ -26,12 +26,12 @@ function LinkedIssue({eventId, groupId}: Props) {
 
   const {
     data: group,
-    isLoading,
+    isPending,
     isError,
     error,
   } = useApiQuery<Group>([groupUrl], {staleTime: 0});
 
-  if (isLoading) {
+  if (isPending) {
     return <Placeholder height="120px" bottomGutter={2} />;
   }
 

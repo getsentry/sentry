@@ -11,5 +11,7 @@ export type BreadcrumbWithMeta = {
 export type BreadcrumbTransactionEvent = {
   id: string;
   'project.name': string;
+  timestamp: string;
   title: string;
+  trace: string;
 };

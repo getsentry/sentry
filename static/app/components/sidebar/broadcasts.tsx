@@ -4,13 +4,15 @@ import {getAllBroadcasts, markBroadcastsAsSeen} from 'sentry/actionCreators/broa
 import type {Client} from 'sentry/api';
 import DemoModeGate from 'sentry/components/acl/demoModeGate';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {BroadcastPanelItem} from 'sentry/components/sidebar/broadcastPanelItem';
 import SidebarItem from 'sentry/components/sidebar/sidebarItem';
 import SidebarPanel from 'sentry/components/sidebar/sidebarPanel';
 import SidebarPanelEmpty from 'sentry/components/sidebar/sidebarPanelEmpty';
 import SidebarPanelItem from 'sentry/components/sidebar/sidebarPanelItem';
 import {IconBroadcast} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import type {Broadcast, Organization} from 'sentry/types';
+import type {Organization} from 'sentry/types/organization';
+import type {Broadcast} from 'sentry/types/system';
 import withApi from 'sentry/utils/withApi';
 
 import type {CommonSidebarProps} from './types';
@@ -114,10 +116,11 @@ class Broadcasts extends Component<Props, State> {
   }
 
   render() {
-    const {orientation, collapsed, currentPanel, hidePanel} = this.props;
+    const {orientation, collapsed, currentPanel, hidePanel, organization} = this.props;
     const {broadcasts, loading} = this.state;
 
     const unseenPosts = this.unseenIds;
+    const whatIsNewRevampFeature = organization.features.includes('what-is-new-revamp');
 
     return (
       <DemoModeGate>
@@ -148,6 +151,18 @@ class Broadcasts extends Component<Props, State> {
                 <SidebarPanelEmpty>
                   {t('No recent updates from the Sentry team.')}
                 </SidebarPanelEmpty>
+              ) : whatIsNewRevampFeature ? (
+                broadcasts.map(item => (
+                  <BroadcastPanelItem
+                    key={item.id}
+                    hasSeen={item.hasSeen}
+                    title={item.title}
+                    message={item.message}
+                    link={item.link}
+                    mediaUrl={item.mediaUrl}
+                    category={item.category}
+                  />
+                ))
               ) : (
                 broadcasts.map(item => (
                   <SidebarPanelItem

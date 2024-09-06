@@ -58,6 +58,17 @@ const formGroups: JsonFormObject[] = [
         ),
         visible: () => !ConfigStore.get('isSelfHostedErrorsOnly'),
       },
+      {
+        name: 'uptimeAutodetection',
+        type: 'boolean',
+        label: t('Automatically Configure Uptime Alerts'),
+        help: t('Detect most-used URLs for uptime monitoring.'),
+        // TOOD(epurkhiser): Currently there's no need for users to change this
+        // setting as it will just be confusing. In the future when
+        // autodetection is used for suggested URLs it will make more sense to
+        // for users to have the option to disable this.
+        visible: false,
+      },
     ],
   },
 
@@ -67,7 +78,6 @@ const formGroups: JsonFormObject[] = [
       {
         name: 'defaultRole',
         type: 'select',
-        required: true,
         label: t('Default Role'),
         // seems weird to have choices in initial form data
         choices: ({initialData} = {}) =>
@@ -78,9 +88,35 @@ const formGroups: JsonFormObject[] = [
       {
         name: 'openMembership',
         type: 'boolean',
-        required: true,
-        label: t('Open Membership'),
+        label: t('Open Team Membership'),
         help: t('Allow organization members to freely join any team'),
+      },
+      {
+        name: 'allowMemberInvite',
+        type: 'boolean',
+        label: t('Let Members Invite Freely'),
+        help: t(
+          'Allow organization members to invite other members via email without needing org owner or manager approval.'
+        ),
+        visible: ({features}) => features.has('members-invite-teammates'),
+        disabled: ({features, access}) =>
+          !access.has('org:write') || !features.has('team-roles'),
+        disabledReason: ({features}) =>
+          !features.has('team-roles')
+            ? t('You must be on a business plan to toggle this feature.')
+            : undefined,
+      },
+      {
+        name: 'allowMemberProjectCreation',
+        type: 'boolean',
+        label: t('Let Members Create Projects'),
+        help: t('Allow organization members to create and configure new projects.'),
+        disabled: ({features, access}) =>
+          !access.has('org:write') || !features.has('team-roles'),
+        disabledReason: ({features}) =>
+          !features.has('team-roles')
+            ? t('You must be on a business plan to toggle this feature.')
+            : undefined,
       },
       {
         name: 'eventsMemberAdmin',

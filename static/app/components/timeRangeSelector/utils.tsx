@@ -1,5 +1,5 @@
 import {Fragment} from 'react';
-import moment from 'moment';
+import moment from 'moment-timezone';
 
 import Datetime from 'sentry/components/dateTime';
 import autoCompleteFilter from 'sentry/components/dropdownAutoComplete/autoCompleteFilter';

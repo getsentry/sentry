@@ -1,5 +1,6 @@
 from django.db.models import F, Q
 from django.utils import timezone
+from drf_spectacular.utils import extend_schema
 from rest_framework.exceptions import ParseError
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -11,9 +12,18 @@ from sentry.api.base import region_silo_endpoint
 from sentry.api.bases import NoProjects, OrganizationEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.serializers import serialize
+from sentry.api.serializers.models.discoversavedquery import DiscoverSavedQueryModelSerializer
+from sentry.apidocs.constants import (
+    RESPONSE_BAD_REQUEST,
+    RESPONSE_FORBIDDEN,
+    RESPONSE_NO_CONTENT,
+    RESPONSE_NOT_FOUND,
+)
+from sentry.apidocs.examples.discover_saved_query_examples import DiscoverExamples
+from sentry.apidocs.parameters import DiscoverSavedQueryParams, GlobalParams
 from sentry.discover.endpoints.bases import DiscoverSavedQueryPermission
 from sentry.discover.endpoints.serializers import DiscoverSavedQuerySerializer
-from sentry.discover.models import DiscoverSavedQuery
+from sentry.discover.models import DatasetSourcesTypes, DiscoverSavedQuery, DiscoverSavedQueryTypes
 
 
 class DiscoverSavedQueryBase(OrganizationEndpoint):
@@ -35,12 +45,13 @@ class DiscoverSavedQueryBase(OrganizationEndpoint):
         return (args, kwargs)
 
 
+@extend_schema(tags=["Discover"])
 @region_silo_endpoint
 class DiscoverSavedQueryDetailEndpoint(DiscoverSavedQueryBase):
     publish_status = {
-        "DELETE": ApiPublishStatus.UNKNOWN,
-        "GET": ApiPublishStatus.UNKNOWN,
-        "PUT": ApiPublishStatus.UNKNOWN,
+        "DELETE": ApiPublishStatus.PUBLIC,
+        "GET": ApiPublishStatus.PUBLIC,
+        "PUT": ApiPublishStatus.PUBLIC,
     }
 
     def has_feature(self, organization, request):
@@ -48,9 +59,23 @@ class DiscoverSavedQueryDetailEndpoint(DiscoverSavedQueryBase):
             "organizations:discover", organization, actor=request.user
         ) or features.has("organizations:discover-query", organization, actor=request.user)
 
+    @extend_schema(
+        operation_id="Retrieve an Organization's Discover Saved Query",
+        parameters=[
+            GlobalParams.ORG_ID_OR_SLUG,
+            DiscoverSavedQueryParams.DISCOVER_SAVED_QUERY_ID,
+        ],
+        request=None,
+        responses={
+            200: DiscoverSavedQueryModelSerializer,
+            403: RESPONSE_FORBIDDEN,
+            404: RESPONSE_NOT_FOUND,
+        },
+        examples=DiscoverExamples.DISCOVER_SAVED_QUERY_GET_RESPONSE,
+    )
     def get(self, request: Request, organization, query) -> Response:
         """
-        Get a saved query
+        Retrieve a saved query.
         """
         if not self.has_feature(organization, request):
             return self.respond(status=404)
@@ -59,9 +84,21 @@ class DiscoverSavedQueryDetailEndpoint(DiscoverSavedQueryBase):
 
         return Response(serialize(query), status=200)
 
+    @extend_schema(
+        operation_id="Edit an Organization's Discover Saved Query",
+        parameters=[GlobalParams.ORG_ID_OR_SLUG, DiscoverSavedQueryParams.DISCOVER_SAVED_QUERY_ID],
+        request=DiscoverSavedQuerySerializer,
+        responses={
+            200: DiscoverSavedQueryModelSerializer,
+            400: RESPONSE_BAD_REQUEST,
+            403: RESPONSE_FORBIDDEN,
+            404: RESPONSE_NOT_FOUND,
+        },
+        examples=DiscoverExamples.DISCOVER_SAVED_QUERY_GET_RESPONSE,
+    )
     def put(self, request: Request, organization, query) -> Response:
         """
-        Modify a saved query
+        Modify a saved query.
         """
         if not self.has_feature(organization, request):
             return self.respond(status=404)
@@ -83,21 +120,44 @@ class DiscoverSavedQueryDetailEndpoint(DiscoverSavedQueryBase):
             return Response(serializer.errors, status=400)
 
         data = serializer.validated_data
+        user_selected_dataset = (
+            features.has(
+                "organizations:performance-discover-dataset-selector",
+                organization,
+                actor=request.user,
+            )
+            and data["query_dataset"] != DiscoverSavedQueryTypes.DISCOVER
+        )
+
         query.update(
             organization=organization,
             name=data["name"],
             query=data["query"],
             version=data["version"],
             dataset=data["query_dataset"],
+            dataset_source=(
+                DatasetSourcesTypes.USER.value
+                if user_selected_dataset
+                else DatasetSourcesTypes.UNKNOWN.value
+            ),
         )
 
         query.set_projects(data["project_ids"])
 
         return Response(serialize(query), status=200)
 
+    @extend_schema(
+        operation_id="Delete an Organization's Discover Saved Query",
+        parameters=[GlobalParams.ORG_ID_OR_SLUG, DiscoverSavedQueryParams.DISCOVER_SAVED_QUERY_ID],
+        responses={
+            204: RESPONSE_NO_CONTENT,
+            403: RESPONSE_FORBIDDEN,
+            404: RESPONSE_NOT_FOUND,
+        },
+    )
     def delete(self, request: Request, organization, query) -> Response:
         """
-        Delete a saved query
+        Delete a saved query.
         """
         if not self.has_feature(organization, request):
             return self.respond(status=404)

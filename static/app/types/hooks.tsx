@@ -1,5 +1,3 @@
-import type {Route, RouteComponentProps, RouteContextInterface} from 'react-router';
-
 import type {ChildrenRenderFn} from 'sentry/components/acl/feature';
 import type {Guide} from 'sentry/components/assistant/types';
 import type {ButtonProps} from 'sentry/components/button';
@@ -11,7 +9,6 @@ import type SidebarItem from 'sentry/components/sidebar/sidebarItem';
 import type DateRange from 'sentry/components/timeRangeSelector/dateRange';
 import type SelectorItems from 'sentry/components/timeRangeSelector/selectorItems';
 import type {SVGIconProps} from 'sentry/icons/svgIcon';
-import type {Group} from 'sentry/types/group';
 import type {UseExperiment} from 'sentry/utils/useExperiment';
 import type {TitleableModuleNames} from 'sentry/views/insights/common/components/modulePageProviders';
 import type {StatusToggleButtonProps} from 'sentry/views/monitors/components/statusToggleButton';
@@ -20,7 +17,13 @@ import type {RouteAnalyticsContext} from 'sentry/views/routeAnalyticsContextProv
 import type {NavigationItem, NavigationSection} from 'sentry/views/settings/types';
 
 import type {ExperimentKey} from './experiments';
+import type {Group} from './group';
 import type {Integration, IntegrationProvider} from './integrations';
+import type {
+  Route,
+  RouteComponentProps,
+  RouteContextInterface,
+} from './legacyReactRouter';
 import type {Member, Organization} from './organization';
 import type {Project} from './project';
 import type {User} from './user';
@@ -122,7 +125,7 @@ type OrganizationHeaderProps = {
 
 type ProductSelectionAvailabilityProps = Pick<
   ProductSelectionProps,
-  'lazyLoader' | 'skipLazyLoader' | 'platform' | 'withBottomMargin'
+  'platform' | 'withBottomMargin' | 'projectId'
 > & {
   organization: Organization;
 };
@@ -632,6 +635,10 @@ type InviteButtonCustomizationHook = () => React.ComponentType<{
      */
     disabled: boolean;
     onTriggerModal: () => void;
+    /**
+     * Whether to display a message that new members must be registered via SSO
+     */
+    isSsoRequired?: boolean;
   }) => React.ReactElement;
   onTriggerModal: () => void;
   organization: Organization;

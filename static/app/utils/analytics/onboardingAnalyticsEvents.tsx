@@ -28,6 +28,13 @@ export type OnboardingEventParameters = {
     platform: string;
     project_id: string;
   };
+  'onboarding.messaging_integration_external_install_clicked': {
+    provider_key: string;
+  };
+  'onboarding.messaging_integration_modal_rendered': {
+    project_id: string;
+  };
+  'onboarding.messaging_integration_steps_refreshed': {};
   'onboarding.nextjs-dsn-copied': {};
   'onboarding.select_framework_modal_close_button_clicked': {
     platform: string;
@@ -51,6 +58,18 @@ export type OnboardingEventParameters = {
     project_id: string;
   };
   'onboarding.source_maps_wizard_selected_and_copied': {
+    platform: string;
+    project_id: string;
+  };
+  'onboarding.take_me_to_issues_clicked': {
+    platform: string;
+    project_id: string;
+  };
+  'onboarding.take_me_to_performance_clicked': {
+    platform: string;
+    project_id: string;
+  };
+  'onboarding.take_me_to_session_replay_clicked': {
     platform: string;
     project_id: string;
   };
@@ -80,4 +99,15 @@ export const onboardingEventMap: Record<keyof OnboardingEventParameters, string>
   'onboarding.source_maps_wizard_selected_and_copied':
     'Onboarding: Source Maps Wizard Selected and Copied',
   'onboarding.nextjs-dsn-copied': 'Onboarding: NextJS DSN Copied',
+  'onboarding.messaging_integration_modal_rendered':
+    'Onboarding: Messaging Integration Modal Rendered',
+  'onboarding.messaging_integration_external_install_clicked':
+    'Onboarding: Messaging Integration External Install Clicked',
+  'onboarding.messaging_integration_steps_refreshed':
+    'Onboarding: Messaging Integration Steps Refreshed',
+  'onboarding.take_me_to_issues_clicked': 'Onboarding: Take Me to Issues Clicked',
+  'onboarding.take_me_to_performance_clicked':
+    'Onboarding: Take Me to Performance Clicked',
+  'onboarding.take_me_to_session_replay_clicked':
+    'Onboarding: Take Me to Session Replay Clicked',
 };

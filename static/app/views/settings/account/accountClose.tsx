@@ -6,7 +6,8 @@ import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {openModal} from 'sentry/actionCreators/modal';
 import {fetchOrganizations} from 'sentry/actionCreators/organizations';
 import {Alert} from 'sentry/components/alert';
-import {Button} from 'sentry/components/button';
+import {LinkButton} from 'sentry/components/button';
+import Checkbox from 'sentry/components/checkbox';
 import HookOrDefault from 'sentry/components/hookOrDefault';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Panel from 'sentry/components/panels/panel';
@@ -15,7 +16,7 @@ import PanelBody from 'sentry/components/panels/panelBody';
 import PanelHeader from 'sentry/components/panels/panelHeader';
 import PanelItem from 'sentry/components/panels/panelItem';
 import {t} from 'sentry/locale';
-import type {Organization, OrganizationSummary} from 'sentry/types';
+import type {Organization, OrganizationSummary} from 'sentry/types/organization';
 import useApi from 'sentry/utils/useApi';
 import {ConfirmAccountClose} from 'sentry/views/settings/account/confirmAccountClose';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
@@ -42,7 +43,7 @@ function GoodbyeModalContent({Header, Body, Footer}: ModalRenderProps) {
         </TextBlock>
       </Body>
       <Footer>
-        <Button href={BYE_URL}>{t('Goodbye')}</Button>
+        <LinkButton href={BYE_URL}>{t('Goodbye')}</LinkButton>
       </Footer>
     </div>
   );
@@ -165,15 +166,23 @@ function AccountClose() {
 
           {organizations?.map(({organization, singleOwner}) => (
             <PanelItem key={organization.slug}>
-              <label>
-                <input
-                  style={{marginRight: 6}}
-                  type="checkbox"
-                  value={organization.slug}
-                  onChange={evt => handleChange(organization, singleOwner, evt)}
+              <label
+                css={{
+                  display: 'flex',
+                  alignItems: 'center',
+                }}
+              >
+                <Checkbox
+                  css={{
+                    marginRight: 6,
+                  }}
                   name="organizations"
                   checked={orgsToRemove.has(organization.slug)}
                   disabled={singleOwner}
+                  value={organization.slug}
+                  onChange={evt => handleChange(organization, singleOwner, evt)}
+                  size="sm"
+                  role="checkbox"
                 />
                 {organization.slug}
               </label>

@@ -103,8 +103,8 @@ class Tags extends Component<Props, State> {
 
       this.setState({
         tags: this.props.tagsQueryResults.data || [],
-        loading: this.props.tagsQueryResults.isLoading,
-        hasLoaded: !this.props.tagsQueryResults.isLoading,
+        loading: this.props.tagsQueryResults.isPending,
+        hasLoaded: !this.props.tagsQueryResults.isPending,
         hasMore,
         nextCursor: cursor,
         error: this.props.tagsQueryResults.error?.message || '',
@@ -135,9 +135,6 @@ class Tags extends Component<Props, State> {
       }
 
       let tags = data;
-      if (!organization.features.includes('device-classification')) {
-        tags = tags.filter(tag => tag.key !== 'device.class');
-      }
       if (appendTags) {
         tags = [...this.state.tags, ...tags];
       }

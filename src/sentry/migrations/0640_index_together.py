@@ -24,29 +24,9 @@ class Migration(CheckedMigration):
 
     operations = [
         migrations.RenameIndex(
-            model_name="activity",
-            new_name="sentry_acti_project_cd8457_idx",
-            old_fields=("project", "datetime"),
-        ),
-        migrations.RenameIndex(
             model_name="artifactbundleindex",
             new_name="sentry_arti_url_7e628a_idx",
             old_fields=("url", "artifact_bundle"),
-        ),
-        migrations.RenameIndex(
-            model_name="commit",
-            new_name="sentry_comm_reposit_da31f2_idx",
-            old_fields=("repository_id", "date_added"),
-        ),
-        migrations.RenameIndex(
-            model_name="commit",
-            new_name="sentry_comm_author__131211_idx",
-            old_fields=("author", "date_added"),
-        ),
-        migrations.RenameIndex(
-            model_name="commit",
-            new_name="sentry_comm_organiz_7be514_idx",
-            old_fields=("organization_id", "date_added"),
         ),
         migrations.RenameIndex(
             model_name="controloutbox",
@@ -68,21 +48,6 @@ class Migration(CheckedMigration):
                 "category",
                 "object_identifier",
             ),
-        ),
-        migrations.RenameIndex(
-            model_name="debugidartifactbundle",
-            new_name="sentry_debu_debug_i_8c6c44_idx",
-            old_fields=("debug_id", "artifact_bundle"),
-        ),
-        migrations.RenameIndex(
-            model_name="eventattachment",
-            new_name="sentry_even_project_62b83b_idx",
-            old_fields=("project_id", "date_added"),
-        ),
-        migrations.RenameIndex(
-            model_name="eventattachment",
-            new_name="sentry_even_project_974f7b_idx",
-            old_fields=("project_id", "event_id"),
         ),
         migrations.RenameIndex(
             model_name="group",
@@ -130,11 +95,6 @@ class Migration(CheckedMigration):
             old_fields=("project", "status", "type", "last_seen", "id"),
         ),
         migrations.RenameIndex(
-            model_name="groupenvironment",
-            new_name="sentry_grou_environ_443bdb_idx",
-            old_fields=("environment", "first_release", "first_seen"),
-        ),
-        migrations.RenameIndex(
             model_name="grouphistory",
             new_name="sentry_grou_project_bbcf30_idx",
             old_fields=("project", "status", "release"),
@@ -148,26 +108,6 @@ class Migration(CheckedMigration):
             model_name="grouphistory",
             new_name="sentry_grou_project_20b3f8_idx",
             old_fields=("project", "date_added"),
-        ),
-        migrations.RenameIndex(
-            model_name="groupinbox",
-            new_name="sentry_grou_project_a9fe16_idx",
-            old_fields=("project", "date_added"),
-        ),
-        migrations.RenameIndex(
-            model_name="grouprelease",
-            new_name="sentry_grou_group_i_6eaff8_idx",
-            old_fields=("group_id", "first_seen"),
-        ),
-        migrations.RenameIndex(
-            model_name="grouprelease",
-            new_name="sentry_grou_group_i_f10abe_idx",
-            old_fields=("group_id", "last_seen"),
-        ),
-        migrations.RenameIndex(
-            model_name="incident",
-            new_name="sentry_inci_alert_r_24a457_idx",
-            old_fields=("alert_rule", "type", "status"),
         ),
         migrations.RenameIndex(
             model_name="incidenttrigger",
@@ -190,26 +130,6 @@ class Migration(CheckedMigration):
             old_fields=("project_id", "artifact_bundle"),
         ),
         migrations.RenameIndex(
-            model_name="projectdebugfile",
-            new_name="sentry_proj_project_c586ac_idx",
-            old_fields=("project_id", "debug_id"),
-        ),
-        migrations.RenameIndex(
-            model_name="projectdebugfile",
-            new_name="sentry_proj_project_9b5950_idx",
-            old_fields=("project_id", "code_id"),
-        ),
-        migrations.RenameIndex(
-            model_name="pullrequest",
-            new_name="sentry_pull_reposit_c429a4_idx",
-            old_fields=("repository_id", "date_added"),
-        ),
-        migrations.RenameIndex(
-            model_name="pullrequest",
-            new_name="sentry_pull_organiz_8aabcf_idx",
-            old_fields=("organization_id", "merge_commit_sha"),
-        ),
-        migrations.RenameIndex(
             model_name="regionoutbox",
             new_name="sentry_regi_shard_s_e7412f_idx",
             old_fields=("shard_scope", "shard_identifier", "id"),
@@ -225,19 +145,9 @@ class Migration(CheckedMigration):
             old_fields=("shard_scope", "shard_identifier", "scheduled_for"),
         ),
         migrations.RenameIndex(
-            model_name="regressiongroup",
-            new_name="sentry_regr_type_3a29e7_idx",
-            old_fields=("type", "project_id", "fingerprint", "active"),
-        ),
-        migrations.RenameIndex(
             model_name="releaseartifactbundle",
             new_name="sentry_rele_organiz_291018_idx",
             old_fields=("organization_id", "release_name", "dist_name", "artifact_bundle"),
-        ),
-        migrations.RenameIndex(
-            model_name="releasefile",
-            new_name="sentry_rele_release_bff97c_idx",
-            old_fields=("release_id", "name"),
         ),
         migrations.RenameIndex(
             model_name="releaseprojectenvironment",
@@ -253,15 +163,5 @@ class Migration(CheckedMigration):
             model_name="rule",
             new_name="sentry_rule_project_676d0d_idx",
             old_fields=("project", "status", "owner"),
-        ),
-        migrations.RenameIndex(
-            model_name="userreport",
-            new_name="sentry_user_project_b8faaf_idx",
-            old_fields=("project_id", "date_added"),
-        ),
-        migrations.RenameIndex(
-            model_name="userreport",
-            new_name="sentry_user_project_cbfd59_idx",
-            old_fields=("project_id", "event_id"),
         ),
     ]

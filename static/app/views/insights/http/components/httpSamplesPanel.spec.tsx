@@ -222,7 +222,7 @@ describe('HTTPSamplesPanel', () => {
             excludeOther: 0,
             field: ['span.status_code', 'count()'],
             interval: '30m',
-            orderby: undefined,
+            orderby: '-count()',
             partial: 1,
             per_page: 50,
             project: [],
@@ -230,6 +230,7 @@ describe('HTTPSamplesPanel', () => {
               'span.module:http span.op:http.client !has:span.domain transaction:/api/0/users span.status_code:[300,301,302,303,304,305,307,308]',
             referrer: 'api.performance.http.samples-panel-response-code-chart',
             statsPeriod: '10d',
+            sort: '-count()',
             topEvents: '5',
             yAxis: 'count()',
           },
@@ -244,7 +245,7 @@ describe('HTTPSamplesPanel', () => {
           query: expect.objectContaining({
             dataset: 'spansIndexed',
             query:
-              'span.module:http span.op:http.client transaction:/api/0/users span.status_code:[300,301,302,303,304,305,307,308] ( !has:span.domain OR span.domain:[""] )',
+              'span.module:http span.op:http.client !has:span.domain transaction:/api/0/users span.status_code:[300,301,302,303,304,305,307,308]',
             project: [],
             field: [
               'project',
@@ -404,7 +405,7 @@ describe('HTTPSamplesPanel', () => {
           method: 'GET',
           query: expect.objectContaining({
             query:
-              'span.module:http span.op:http.client transaction:/api/0/users span.domain:"\\*.sentry.dev"',
+              'span.module:http span.op:http.client span.domain:"\\*.sentry.dev" transaction:/api/0/users',
             project: [],
             additionalFields: [
               'trace',
@@ -469,10 +470,21 @@ describe('HTTPSamplesPanel', () => {
       expect(screen.getByRole('columnheader', {name: 'URL'})).toBeInTheDocument();
 
       expect(screen.getByRole('cell', {name: 'b1bf1acde131623a'})).toBeInTheDocument();
-      expect(screen.getByRole('link', {name: 'b1bf1acde131623a'})).toHaveAttribute(
-        'href',
-        '/organizations/org-slug/performance/javascript:11c910c9c10b3ec4ecf8f209b8c6ce48/?domain=%2A.sentry.dev&panel=duration&statsPeriod=10d&transactionMethod=GET'
-      );
+
+      // TODO(__SENTRY_USING_REACT_ROUTER_SIX): This first variant can be removed
+      // once react-router 3 has been removed.
+      try {
+        expect(screen.getByRole('link', {name: 'b1bf1acde131623a'})).toHaveAttribute(
+          'href',
+          '/organizations/org-slug/performance/javascript:11c910c9c10b3ec4ecf8f209b8c6ce48/?domain=%2A.sentry.dev&panel=duration&statsPeriod=10d&transactionMethod=GET'
+        );
+      } catch {
+        expect(screen.getByRole('link', {name: 'b1bf1acde131623a'})).toHaveAttribute(
+          'href',
+          '/organizations/org-slug/performance/javascript:11c910c9c10b3ec4ecf8f209b8c6ce48/?domain=%2A.sentry.dev&panel=duration&statsPeriod=10d&transactionMethod=GET#span-b1bf1acde131623a'
+        );
+      }
+
       expect(screen.getByRole('cell', {name: '200'})).toBeInTheDocument();
     });
 

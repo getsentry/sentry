@@ -2,7 +2,7 @@ import {useMemo} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {Button} from 'sentry/components/button';
+import {LinkButton} from 'sentry/components/button';
 import {
   getStacktrace,
   StackTracePreviewContent,
@@ -10,7 +10,7 @@ import {
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {generateIssueEventTarget} from 'sentry/components/quickTrace/utils';
 import {t} from 'sentry/locale';
-import type {EventError} from 'sentry/types';
+import type {EventError} from 'sentry/types/event';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {TraceIcons} from 'sentry/views/performance/newTraceDetails/icons';
 import type {TraceTreeNodeDetailsProps} from 'sentry/views/performance/newTraceDetails/traceDrawer/tabs/traceTreeNodeDetails';
@@ -35,7 +35,7 @@ export function ErrorNodeDetails({
     return [...node.errors];
   }, [node.errors]);
 
-  const {isLoading, data} = useApiQuery<EventError>(
+  const {isPending, data} = useApiQuery<EventError>(
     [
       `/organizations/${organization.slug}/events/${node.value.project_slug}:${node.value.event_id}/`,
     ],
@@ -75,7 +75,7 @@ export function ErrorNodeDetails({
     });
   }
 
-  return isLoading ? (
+  return isPending ? (
     <LoadingIndicator />
   ) : data ? (
     <TraceDrawerComponents.DetailContainer>
@@ -88,10 +88,9 @@ export function ErrorNodeDetails({
           </TraceDrawerComponents.IconBorder>
           <TraceDrawerComponents.TitleText>
             <div>{node.value.level ?? t('error')}</div>
-            <TraceDrawerComponents.TitleOp>
-              {' '}
-              {node.value.message ?? node.value.title ?? 'Error'}
-            </TraceDrawerComponents.TitleOp>
+            <TraceDrawerComponents.TitleOp
+              text={node.value.message ?? node.value.title ?? 'Error'}
+            />
           </TraceDrawerComponents.TitleText>
         </TraceDrawerComponents.Title>
         <TraceDrawerComponents.Actions>
@@ -100,9 +99,9 @@ export function ErrorNodeDetails({
             organization={organization}
             onTabScrollToNode={onTabScrollToNode}
           />
-          <Button size="xs" to={generateIssueEventTarget(node.value, organization)}>
+          <LinkButton size="xs" to={generateIssueEventTarget(node.value, organization)}>
             {t('Go to Issue')}
-          </Button>
+          </LinkButton>
         </TraceDrawerComponents.Actions>
       </TraceDrawerComponents.HeaderContainer>
 

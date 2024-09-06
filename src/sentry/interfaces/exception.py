@@ -454,7 +454,7 @@ class Exception(Interface):
 
         return {"values": result}
 
-    def to_string(self, event, is_public=False, **kwargs):
+    def to_string(self, event) -> str:
         if not self.values:
             return ""
 
@@ -471,7 +471,7 @@ class Exception(Interface):
                     )
                     + "\n\n"
                 )
-        return ("".join(output)).strip()
+        return "".join(output).strip()
 
     def get_stacktrace(self, *args, **kwargs):
         exc = self.values[-1]

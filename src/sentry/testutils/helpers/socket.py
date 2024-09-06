@@ -11,7 +11,7 @@ __all__ = ["override_blocklist"]
 
 
 @contextlib.contextmanager
-def override_blocklist(*ip_addresses: str) -> Generator[None, None, None]:
+def override_blocklist(*ip_addresses: str) -> Generator[None]:
     with mock.patch.object(
         net_socket,
         "DISALLOWED_IPS",

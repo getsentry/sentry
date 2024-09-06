@@ -61,6 +61,10 @@ const trackViewEventJSON = (organization: Organization) =>
   trackAnalytics('trace.trace_layout.view_event_json', {
     organization,
   });
+const trackViewContinuousProfile = (organization: Organization) =>
+  trackAnalytics('trace.trace_layout.view_continuous_profile', {
+    organization,
+  });
 
 const trackTabPin = (organization: Organization) =>
   trackAnalytics('trace.trace_layout.tab_pin', {
@@ -83,6 +87,50 @@ const trackResetZoom = (organization: Organization) =>
     organization,
   });
 
+const trackPerformanceSetupChecklistTriggered = (organization: Organization) =>
+  trackAnalytics('trace.quality.performance_setup.checklist_triggered', {
+    organization,
+  });
+
+const trackPerformanceSetupBannerLoaded = (organization: Organization) =>
+  trackAnalytics('trace.quality.performance_setup.banner_loaded', {
+    organization,
+  });
+
+const trackQuotaExceededIncreaseBudgetClicked = (
+  organization: Organization,
+  traceType: string
+) =>
+  trackAnalytics('trace.quality.quota_exceeded.increase_budget_clicked', {
+    organization,
+    traceType,
+  });
+
+const trackMissingSpansDocLinkClicked = (organization: Organization) =>
+  trackAnalytics('trace.quality.missing_spans.doc_link_clicked', {
+    organization,
+  });
+
+const trackQuotaExceededLearnMoreClicked = (
+  organization: Organization,
+  traceType: string
+) =>
+  trackAnalytics('trace.quality.quota_exceeded.learn_more_clicked', {
+    organization,
+    traceType,
+  });
+
+const trackQuotaExceededBannerLoaded = (organization: Organization, traceType: string) =>
+  trackAnalytics('trace.quality.quota_exceeded.banner_loaded', {
+    organization,
+    traceType,
+  });
+
+const trackPerformanceSetupLearnMoreClicked = (organization: Organization) =>
+  trackAnalytics('trace.quality.performance_setup.learn_more_clicked', {
+    organization,
+  });
+
 const trackViewShortcuts = (organization: Organization) =>
   trackAnalytics('trace.trace_layout.view_shortcuts', {
     organization,
@@ -94,6 +142,12 @@ const trackTraceWarningType = (type: TraceType, organization: Organization) =>
     type,
   });
 
+const trackTraceConfigurationsDocsClicked = (organization: Organization, title: string) =>
+  trackAnalytics('trace.configurations_docs_link_clicked', {
+    organization,
+    title,
+  });
+
 const traceAnalytics = {
   // Trace shape
   trackTraceMetadata,
@@ -102,6 +156,7 @@ const traceAnalytics = {
   // Drawer actions
   trackShowInView,
   trackViewEventJSON,
+  trackViewContinuousProfile,
   // Layout actions
   trackLayoutChange,
   trackDrawerMinimize,
@@ -112,6 +167,15 @@ const traceAnalytics = {
   trackResetZoom,
   trackViewShortcuts,
   trackTraceWarningType,
+  // Trace Quality Improvement
+  trackPerformanceSetupChecklistTriggered,
+  trackPerformanceSetupLearnMoreClicked,
+  trackPerformanceSetupBannerLoaded,
+  trackQuotaExceededIncreaseBudgetClicked,
+  trackQuotaExceededLearnMoreClicked,
+  trackQuotaExceededBannerLoaded,
+  trackTraceConfigurationsDocsClicked,
+  trackMissingSpansDocLinkClicked,
 };
 
 export {traceAnalytics};

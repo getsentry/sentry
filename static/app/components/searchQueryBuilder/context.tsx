@@ -1,18 +1,22 @@
 import {createContext, type Dispatch, useContext} from 'react';
 
+import type {QueryBuilderActions} from 'sentry/components/searchQueryBuilder/hooks/useQueryBuilderState';
 import type {
   FilterKeySection,
   FocusOverride,
 } from 'sentry/components/searchQueryBuilder/types';
-import type {QueryBuilderActions} from 'sentry/components/searchQueryBuilder/useQueryBuilderState';
 import type {ParseResult} from 'sentry/components/searchSyntax/parser';
-import type {Tag, TagCollection} from 'sentry/types/group';
+import type {SavedSearchType, Tag, TagCollection} from 'sentry/types/group';
+import type {FieldDefinition} from 'sentry/utils/fields';
 
-interface ContextData {
+export interface SearchQueryBuilderContextData {
+  disabled: boolean;
   dispatch: Dispatch<QueryBuilderActions>;
+  filterKeyMenuWidth: number;
   filterKeySections: FilterKeySection[];
   filterKeys: TagCollection;
   focusOverride: FocusOverride | null;
+  getFieldDefinition: (key: string) => FieldDefinition | null;
   getTagValues: (tag: Tag, query: string) => Promise<string[]>;
   handleSearch: (query: string) => void;
   parsedQuery: ParseResult | null;
@@ -20,17 +24,21 @@ interface ContextData {
   searchSource: string;
   size: 'small' | 'normal';
   wrapperRef: React.RefObject<HTMLDivElement>;
+  placeholder?: string;
+  recentSearches?: SavedSearchType;
 }
 
 export function useSearchQueryBuilder() {
-  return useContext(SearchQueryBuilerContext);
+  return useContext(SearchQueryBuilderContext);
 }
 
-export const SearchQueryBuilerContext = createContext<ContextData>({
+export const SearchQueryBuilderContext = createContext<SearchQueryBuilderContextData>({
   query: '',
   focusOverride: null,
   filterKeys: {},
+  filterKeyMenuWidth: 360,
   filterKeySections: [],
+  getFieldDefinition: () => null,
   getTagValues: () => Promise.resolve([]),
   dispatch: () => {},
   parsedQuery: null,
@@ -38,4 +46,5 @@ export const SearchQueryBuilerContext = createContext<ContextData>({
   handleSearch: () => {},
   searchSource: '',
   size: 'normal',
+  disabled: false,
 });

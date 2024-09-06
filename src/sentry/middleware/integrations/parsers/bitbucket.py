@@ -3,10 +3,10 @@ from __future__ import annotations
 import logging
 from typing import Any
 
+from sentry.hybridcloud.outbox.category import WebhookProviderIdentifier
 from sentry.integrations.bitbucket import BitbucketWebhookEndpoint
 from sentry.integrations.middleware.hybrid_cloud.parser import BaseRequestParser
 from sentry.models.organizationmapping import OrganizationMapping
-from sentry.models.outbox import WebhookProviderIdentifier
 from sentry.types.region import RegionResolutionError, get_region_by_name
 
 logger = logging.getLogger(__name__)

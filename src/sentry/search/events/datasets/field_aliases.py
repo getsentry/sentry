@@ -107,18 +107,8 @@ def resolve_span_module(builder: BaseQueryBuilder, alias: str) -> SelectType:
                 "transform",
                 [
                     builder.column("span.category"),
-                    [
-                        "cache",
-                        "db",
-                        "http",
-                        "queue",
-                    ],
-                    [
-                        "cache",
-                        "db",
-                        "http",
-                        "queue",
-                    ],
+                    constants.SPAN_MODULE_CATEGORY_VALUES,
+                    constants.SPAN_MODULE_CATEGORY_VALUES,
                     "other",
                 ],
             ),

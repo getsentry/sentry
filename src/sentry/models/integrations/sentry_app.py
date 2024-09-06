@@ -28,8 +28,9 @@ from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignK
 from sentry.db.models.fields.jsonfield import JSONField
 from sentry.db.models.fields.slug import SentrySlugField
 from sentry.db.models.paranoia import ParanoidManager, ParanoidModel
+from sentry.hybridcloud.models.outbox import ControlOutbox, outbox_context
+from sentry.hybridcloud.outbox.category import OutboxCategory, OutboxScope
 from sentry.models.apiscopes import HasApiScopes
-from sentry.models.outbox import ControlOutbox, OutboxCategory, OutboxScope, outbox_context
 from sentry.types.region import find_all_region_names
 from sentry.utils import metrics
 
@@ -233,7 +234,7 @@ class SentryApp(ParanoidModel, HasApiScopes, Model):
             for region_name in find_all_region_names()
         ]
 
-    def delete(self):
+    def delete(self, *args, **kwargs):
         from sentry.models.avatars.sentry_app_avatar import SentryAppAvatar
 
         with outbox_context(transaction.atomic(using=router.db_for_write(SentryApp))):
@@ -241,7 +242,7 @@ class SentryApp(ParanoidModel, HasApiScopes, Model):
                 outbox.save()
 
         SentryAppAvatar.objects.filter(sentry_app=self).delete()
-        return super().delete()
+        return super().delete(*args, **kwargs)
 
     def _disable(self):
         self.events = []

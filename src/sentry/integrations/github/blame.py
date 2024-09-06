@@ -9,7 +9,11 @@ from typing import Any, TypedDict
 from django.utils.datastructures import OrderedSet
 from isodate import parse_datetime
 
-from sentry.integrations.mixins.commit_context import CommitInfo, FileBlameInfo, SourceLineInfo
+from sentry.integrations.source_code_management.commit_context import (
+    CommitInfo,
+    FileBlameInfo,
+    SourceLineInfo,
+)
 
 logger = logging.getLogger("sentry.integrations.github")
 

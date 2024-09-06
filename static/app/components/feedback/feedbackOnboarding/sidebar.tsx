@@ -5,7 +5,7 @@ import {PlatformIcon} from 'platformicons';
 
 import HighlightTopRightPattern from 'sentry-images/pattern/highlight-top-right.svg';
 
-import {Button} from 'sentry/components/button';
+import {LinkButton} from 'sentry/components/button';
 import {CompactSelect} from 'sentry/components/compactSelect';
 import {FeedbackOnboardingLayout} from 'sentry/components/feedback/feedbackOnboarding/feedbackOnboardingLayout';
 import {CRASH_REPORT_HASH} from 'sentry/components/feedback/useFeedbackOnboarding';
@@ -33,7 +33,8 @@ import {
 import platforms, {otherPlatform} from 'sentry/data/platforms';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {PlatformKey, Project, SelectValue} from 'sentry/types';
+import type {SelectValue} from 'sentry/types/core';
+import type {PlatformKey, Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -145,7 +146,7 @@ function FeedbackOnboardingSidebar(props: CommonSidebarProps) {
 
 function OnboardingContent({currentProject}: {currentProject: Project}) {
   const organization = useOrganization();
-  const jsFrameworkSelectOptions = replayJsFrameworkOptions.map(platform => {
+  const jsFrameworkSelectOptions = replayJsFrameworkOptions().map(platform => {
     return {
       value: platform.id,
       textValue: platform.name,
@@ -193,14 +194,13 @@ function OnboardingContent({currentProject}: {currentProject: Project}) {
     !crashReportOnboarding;
 
   const jsFrameworkPlatform =
-    replayJsFrameworkOptions.find(p => p.id === jsFramework.value) ??
-    replayJsFrameworkOptions[0];
+    replayJsFrameworkOptions().find(p => p.id === jsFramework.value) ??
+    replayJsFrameworkOptions()[0];
 
   const {
     isLoading,
     docs: newDocs,
     dsn,
-    cdn,
   } = useLoadGettingStarted({
     platform:
       showJsFrameworkInstructions && !crashReportOnboarding
@@ -269,7 +269,8 @@ function OnboardingContent({currentProject}: {currentProject: Project}) {
       ) : (
         newDocs?.platformOptions &&
         widgetPlatform &&
-        !crashReportOnboarding && (
+        !crashReportOnboarding &&
+        !isLoading && (
           <PlatformSelect>
             {tct("I'm using [platformSelect]", {
               platformSelect: (
@@ -307,13 +308,13 @@ function OnboardingContent({currentProject}: {currentProject: Project}) {
           )}
         </div>
         <div>
-          <Button
+          <LinkButton
             size="sm"
             href="https://docs.sentry.io/platforms/javascript/user-feedback/"
             external
           >
             {t('Read Docs')}
-          </Button>
+          </LinkButton>
         </div>
       </Fragment>
     );
@@ -333,6 +334,7 @@ function OnboardingContent({currentProject}: {currentProject: Project}) {
     ) {
       return 'feedbackOnboardingNpm';
     }
+    // TODO: update this when we add feedback to the loader
     return 'replayOnboardingJsLoader';
   }
 
@@ -342,7 +344,6 @@ function OnboardingContent({currentProject}: {currentProject: Project}) {
       <FeedbackOnboardingLayout
         docsConfig={newDocs}
         dsn={dsn}
-        cdn={cdn}
         activeProductSelection={[]}
         platformKey={currentPlatform.id}
         projectId={currentProject.id}

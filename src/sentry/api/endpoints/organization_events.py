@@ -1,7 +1,7 @@
 import logging
 from collections.abc import Mapping
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from typing import Any
+from typing import Any, NotRequired, TypedDict
 
 import sentry_sdk
 from drf_spectacular.utils import OpenApiResponse, extend_schema
@@ -39,11 +39,13 @@ from sentry.utils.snuba import SnubaError
 logger = logging.getLogger(__name__)
 
 METRICS_ENHANCED_REFERRERS = {Referrer.API_PERFORMANCE_LANDING_TABLE.value}
-EMPTY_EVENTS_RESPONSE: discover.EventsResponse = {"data": [], "meta": {"fields": {}}}
 SAVED_QUERY_DATASET_MAP = {
-    DiscoverSavedQueryTypes.TRANSACTION_LIKE: get_dataset("discover"),
+    DiscoverSavedQueryTypes.TRANSACTION_LIKE: get_dataset("transactions"),
     DiscoverSavedQueryTypes.ERROR_EVENTS: get_dataset("errors"),
 }
+# TODO: Adjust this once we make a decision in the DACI for global views restriction
+# Do not add more referrers to this list as it is a temporary solution
+GLOBAL_VIEW_ALLOWLIST = {Referrer.API_ISSUES_ISSUE_EVENTS.value}
 
 
 class DiscoverDatasetSplitException(Exception):
@@ -109,6 +111,8 @@ ALLOWED_EVENTS_REFERRERS = {
     Referrer.API_STARFISH_MOBILE_STARTUP_SPAN_TABLE.value,
     Referrer.API_STARFISH_MOBILE_STARTUP_LOADED_LIBRARIES.value,
     Referrer.API_STARFISH_MOBILE_STARTUP_TOTALS.value,
+    Referrer.API_STARFISH_MOBILE_SCREENS_METRICS.value,
+    Referrer.API_STARFISH_MOBILE_SCREENS_SCREEN_TABLE.value,
     Referrer.API_PERFORMANCE_HTTP_LANDING_DOMAINS_LIST.value,
     Referrer.API_PERFORMANCE_HTTP_DOMAIN_SUMMARY_METRICS_RIBBON.value,
     Referrer.API_PERFORMANCE_HTTP_DOMAIN_SUMMARY_TRANSACTIONS_LIST.value,
@@ -122,6 +126,7 @@ ALLOWED_EVENTS_REFERRERS = {
     Referrer.API_PERFORMANCE_MOBILE_UI_METRICS_RIBBON.value,
     Referrer.API_PERFORMANCE_SPAN_SUMMARY_HEADER_DATA.value,
     Referrer.API_PERFORMANCE_SPAN_SUMMARY_TABLE.value,
+    Referrer.API_EXPLORE_SPANS_SAMPLES_TABLE,
 }
 
 API_TOKEN_REFERRER = Referrer.API_AUTH_TOKEN_EVENTS.value
@@ -132,6 +137,27 @@ DEFAULT_REDUCED_RATE_LIMIT = dict(
     limit=1000, window=300, concurrent_limit=15  # 1000 requests per 5 minutes
 )
 DEFAULT_INCREASED_RATE_LIMIT = dict(limit=50, window=1, concurrent_limit=50)
+
+
+class EventsMeta(TypedDict):
+    fields: dict[str, str]
+    datasetReason: NotRequired[str]
+    isMetricsData: NotRequired[bool]
+    isMetricsExtractedData: NotRequired[bool]
+
+
+# Only used for api docs
+class EventsApiResponse(TypedDict):
+    data: list[dict[str, Any]]
+    meta: EventsMeta
+
+
+# When calling make build-spectacular-docs we hit this issue
+# https://github.com/tfranzel/drf-spectacular/issues/1041
+# This is a work around
+EventsMeta.__annotations__["datasetReason"] = str
+EventsMeta.__annotations__["isMetricsData"] = bool
+EventsMeta.__annotations__["isMetricsExtractedData"] = bool
 
 
 def rate_limit_events(
@@ -266,7 +292,7 @@ class OrganizationEventsEndpoint(OrganizationEventsV2EndpointBase):
         ],
         responses={
             200: inline_sentry_response_serializer(
-                "OrganizationEventsResponseDict", discover.EventsResponse
+                "OrganizationEventsResponseDict", EventsApiResponse
             ),
             400: OpenApiResponse(description="Invalid Query"),
             404: api_constants.RESPONSE_NOT_FOUND,
@@ -295,8 +321,19 @@ class OrganizationEventsEndpoint(OrganizationEventsV2EndpointBase):
         if not self.has_feature(organization, request):
             return Response(status=404)
 
+        referrer = request.GET.get("referrer")
+
         try:
-            snuba_params, params = self.get_snuba_dataclass(request, organization)
+            snuba_params = self.get_snuba_params(
+                request,
+                organization,
+                # This is only temporary until we come to a decision on global views
+                # checking for referrer for an allowlist is a brittle check since referrer
+                # can easily be set by the caller
+                check_global_views=not (
+                    referrer in GLOBAL_VIEW_ALLOWLIST and bool(organization.flags.allow_joinleave)
+                ),
+            )
         except NoProjects:
             return Response(
                 {
@@ -310,8 +347,6 @@ class OrganizationEventsEndpoint(OrganizationEventsV2EndpointBase):
             )
         except InvalidParams as err:
             raise ParseError(err)
-
-        referrer = request.GET.get("referrer")
 
         batch_features = self.get_features(organization, request)
 
@@ -352,13 +387,18 @@ class OrganizationEventsEndpoint(OrganizationEventsV2EndpointBase):
         if request.auth:
             referrer = API_TOKEN_REFERRER
         elif referrer not in ALLOWED_EVENTS_REFERRERS:
+            with sentry_sdk.isolation_scope() as scope:
+                scope.set_tag("forbidden_referrer", referrer)
+                sentry_sdk.capture_message(
+                    "Forbidden Referrer. If this is intentional, add it to `ALLOWED_EVENTS_REFERRERS`"
+                )
             referrer = Referrer.API_ORGANIZATION_EVENTS.value
 
-        def _data_fn(scopedDataset, offset, limit, query) -> dict[str, Any]:
-            return scopedDataset.query(
+        def _data_fn(scoped_dataset, offset, limit, query) -> dict[str, Any]:
+            query_source = self.get_request_source(request)
+            return scoped_dataset.query(
                 selected_columns=self.get_field_list(organization, request),
                 query=query,
-                params=params,
                 snuba_params=snuba_params,
                 equations=self.get_equation_list(organization, request),
                 orderby=self.get_orderby(request),
@@ -375,10 +415,11 @@ class OrganizationEventsEndpoint(OrganizationEventsV2EndpointBase):
                 use_metrics_layer=batch_features.get("organizations:use-metrics-layer", False),
                 on_demand_metrics_enabled=on_demand_metrics_enabled,
                 on_demand_metrics_type=on_demand_metrics_type,
+                query_source=query_source,
             )
 
         @sentry_sdk.tracing.trace
-        def _dashboards_data_fn(scopedDataset, offset, limit, scoped_query, dashboard_widget_id):
+        def _dashboards_data_fn(scoped_dataset, offset, limit, scoped_query, dashboard_widget_id):
             try:
                 widget = DashboardWidget.objects.get(id=dashboard_widget_id)
                 does_widget_have_split = widget.discover_widget_split is not None
@@ -394,7 +435,7 @@ class OrganizationEventsEndpoint(OrganizationEventsV2EndpointBase):
                         split_dataset = errors
                     elif widget.discover_widget_split == DashboardWidgetTypes.TRANSACTION_LIKE:
                         # We can't add event.type:transaction for now because of on-demand.
-                        split_dataset = scopedDataset
+                        split_dataset = scoped_dataset
                     else:
                         split_dataset = discover
 
@@ -408,8 +449,8 @@ class OrganizationEventsEndpoint(OrganizationEventsV2EndpointBase):
                     has_errors = False
                     error_results = None
 
-                original_results = _data_fn(scopedDataset, offset, limit, scoped_query)
-                if original_results.get("data"):
+                original_results = _data_fn(scoped_dataset, offset, limit, scoped_query)
+                if original_results.get("data") is not None:
                     dataset_meta = original_results.get("meta", {})
                 else:
                     dataset_meta = list(original_results.values())[0].get("data").get("meta", {})
@@ -426,23 +467,31 @@ class OrganizationEventsEndpoint(OrganizationEventsV2EndpointBase):
                     transaction_results = _data_fn(transactions, offset, limit, scoped_query)
                     has_transactions = len(transaction_results["data"]) > 0
 
-                decision = self.save_split_decision(widget, has_errors, has_transactions)
+                decision = self.save_split_decision(
+                    widget, has_errors, has_transactions, organization, request.user
+                )
 
                 if decision == DashboardWidgetTypes.DISCOVER:
                     return _data_fn(discover, offset, limit, scoped_query)
                 elif decision == DashboardWidgetTypes.TRANSACTION_LIKE:
+                    original_results["meta"][
+                        "discoverSplitDecision"
+                    ] = DashboardWidgetTypes.get_type_name(DashboardWidgetTypes.TRANSACTION_LIKE)
                     return original_results
                 elif decision == DashboardWidgetTypes.ERROR_EVENTS and error_results:
+                    error_results["meta"][
+                        "discoverSplitDecision"
+                    ] = DashboardWidgetTypes.get_type_name(DashboardWidgetTypes.ERROR_EVENTS)
                     return error_results
                 else:
                     return original_results
             except Exception as e:
                 # Swallow the exception if it was due to the discover split, and try again one more time.
                 sentry_sdk.capture_exception(e)
-                return _data_fn(scopedDataset, offset, limit, scoped_query)
+                return _data_fn(scoped_dataset, offset, limit, scoped_query)
 
         @sentry_sdk.tracing.trace
-        def _discover_data_fn(scopedDataset, offset, limit, scoped_query, discover_saved_query_id):
+        def _discover_data_fn(scoped_dataset, offset, limit, scoped_query, discover_saved_query_id):
             try:
                 discover_query = DiscoverSavedQuery.objects.get(
                     id=discover_saved_query_id, organization=organization
@@ -451,7 +500,7 @@ class OrganizationEventsEndpoint(OrganizationEventsV2EndpointBase):
                     discover_query.dataset is not DiscoverSavedQueryTypes.DISCOVER
                 )
                 if does_widget_have_split:
-                    return _data_fn(scopedDataset, offset, limit, scoped_query)
+                    return _data_fn(scoped_dataset, offset, limit, scoped_query)
 
                 dataset_inferred_from_query = dataset_split_decision_inferred_from_query(
                     self.get_field_list(organization, request),
@@ -541,9 +590,9 @@ class OrganizationEventsEndpoint(OrganizationEventsV2EndpointBase):
             except Exception as e:
                 # Swallow the exception if it was due to the discover split, and try again one more time.
                 sentry_sdk.capture_exception(e)
-                return _data_fn(scopedDataset, offset, limit, scoped_query)
+                return _data_fn(scoped_dataset, offset, limit, scoped_query)
 
-        def data_fn_factory(scopedDataset):
+        def data_fn_factory(scoped_dataset):
             """
             This factory closes over query and dataset in order to make an additional request to the errors dataset
             in the case that this request is from a dashboard widget or a discover query and we're trying to split
@@ -558,14 +607,14 @@ class OrganizationEventsEndpoint(OrganizationEventsV2EndpointBase):
             def fn(offset, limit) -> dict[str, Any]:
                 if save_discover_dataset_decision and discover_saved_query_id:
                     return _discover_data_fn(
-                        scopedDataset, offset, limit, scoped_query, discover_saved_query_id
+                        scoped_dataset, offset, limit, scoped_query, discover_saved_query_id
                     )
 
                 if not (metrics_enhanced and dashboard_widget_id):
-                    return _data_fn(scopedDataset, offset, limit, scoped_query)
+                    return _data_fn(scoped_dataset, offset, limit, scoped_query)
 
                 return _dashboards_data_fn(
-                    scopedDataset, offset, limit, scoped_query, dashboard_widget_id
+                    scoped_dataset, offset, limit, scoped_query, dashboard_widget_id
                 )
 
             return fn
@@ -579,7 +628,7 @@ class OrganizationEventsEndpoint(OrganizationEventsV2EndpointBase):
                     self.handle_results_with_meta(
                         request,
                         organization,
-                        params["project_id"],
+                        snuba_params.project_ids,
                         data_fn(0, self.get_per_page(request)),
                         standard_meta=True,
                         dataset=dataset,
@@ -592,7 +641,7 @@ class OrganizationEventsEndpoint(OrganizationEventsV2EndpointBase):
                     on_results=lambda results: self.handle_results_with_meta(
                         request,
                         organization,
-                        params["project_id"],
+                        snuba_params.project_ids,
                         results,
                         standard_meta=True,
                         dataset=dataset,

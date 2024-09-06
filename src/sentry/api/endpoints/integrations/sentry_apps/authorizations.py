@@ -22,7 +22,7 @@ logger = logging.getLogger(__name__)
 class SentryAppAuthorizationsEndpoint(SentryAppAuthorizationsBaseEndpoint):
     owner = ApiOwner.INTEGRATIONS
     publish_status = {
-        "POST": ApiPublishStatus.UNKNOWN,
+        "POST": ApiPublishStatus.PRIVATE,
     }
 
     def post(self, request: Request, installation) -> Response:

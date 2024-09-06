@@ -1,6 +1,10 @@
 import styled from '@emotion/styled';
 
+import {openInsightChartModal} from 'sentry/actionCreators/modal';
+import {Button} from 'sentry/components/button';
 import Panel from 'sentry/components/panels/panel';
+import {IconExpand} from 'sentry/icons';
+import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {Subtitle} from 'sentry/views/performance/landing/widgets/widgets/singleFieldAreaWidget';
 
@@ -27,6 +31,15 @@ export default function ChartPanel({title, children, button, subtitle}: Props) {
               </ChartLabel>
             )}
             {button}
+            <Button
+              aria-label={t('Expand Insight Chart')}
+              borderless
+              size="xs"
+              icon={<IconExpand />}
+              onClick={() => {
+                openInsightChartModal({title, children});
+              }}
+            />
           </Header>
         )}
         {subtitle && (
@@ -61,7 +74,6 @@ const PanelBody = styled('div')`
 `;
 
 const Header = styled('div')`
-  padding: 0 ${space(1)} 0 0;
   width: 100%;
   display: flex;
   align-items: center;

@@ -18,7 +18,8 @@ interface PlainTextQueryInputProps {
 
 export function PlainTextQueryInput({label}: PlainTextQueryInputProps) {
   const inputRef = useRef<HTMLTextAreaElement>(null);
-  const {query, parsedQuery, dispatch, handleSearch, size} = useSearchQueryBuilder();
+  const {query, parsedQuery, dispatch, handleSearch, size, placeholder, disabled} =
+    useSearchQueryBuilder();
   const [cursorPosition, setCursorPosition] = useState(0);
 
   const setCursorPositionOnEvent = (event: SyntheticEvent<HTMLTextAreaElement>) => {
@@ -70,6 +71,8 @@ export function PlainTextQueryInput({label}: PlainTextQueryInputProps) {
         onPaste={setCursorPositionOnEvent}
         spellCheck={false}
         size={size}
+        placeholder={placeholder}
+        disabled={disabled}
       />
     </InputWrapper>
   );

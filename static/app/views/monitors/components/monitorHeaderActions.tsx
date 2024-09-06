@@ -1,14 +1,14 @@
 import {deleteMonitor, updateMonitor} from 'sentry/actionCreators/monitors';
-import {Button} from 'sentry/components/button';
+import {Button, LinkButton} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import Confirm from 'sentry/components/confirm';
 import FeedbackWidgetButton from 'sentry/components/feedback/widget/feedbackWidgetButton';
 import {IconDelete, IconEdit, IconSubscribed, IconUnsubscribed} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {browserHistory} from 'sentry/utils/browserHistory';
+import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import useApi from 'sentry/utils/useApi';
 import usePageFilters from 'sentry/utils/usePageFilters';
-import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 
 import type {Monitor} from '../types';
 
@@ -70,7 +70,7 @@ function MonitorHeaderActions({monitor, orgSlug, onUpdate}: Props) {
       >
         <Button size="sm" icon={<IconDelete size="xs" />} aria-label={t('Delete')} />
       </Confirm>
-      <Button
+      <LinkButton
         priority="primary"
         size="sm"
         icon={<IconEdit />}
@@ -87,7 +87,7 @@ function MonitorHeaderActions({monitor, orgSlug, onUpdate}: Props) {
         }}
       >
         {t('Edit')}
-      </Button>
+      </LinkButton>
     </ButtonBar>
   );
 }

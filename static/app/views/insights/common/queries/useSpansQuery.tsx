@@ -1,4 +1,4 @@
-import moment from 'moment';
+import moment from 'moment-timezone';
 
 import type {TableData} from 'sentry/utils/discover/discoverQuery';
 import {useDiscoverQuery} from 'sentry/utils/discover/discoverQuery';
@@ -109,7 +109,7 @@ export function useWrappedDiscoverTimeseriesQuery<T>({
     referrer,
   });
 
-  const isFetchingOrLoading = result.isLoading || result.isFetching;
+  const isFetchingOrLoading = result.isPending || result.isFetching;
   const defaultData = initialData ?? undefined;
 
   const data: T = isFetchingOrLoading
@@ -133,12 +133,14 @@ export function useWrappedDiscoverQuery<T>({
   referrer,
   limit,
   cursor,
+  noPagination,
 }: {
   eventView: EventView;
   cursor?: string;
   enabled?: boolean;
   initialData?: T;
   limit?: number;
+  noPagination?: boolean;
   referrer?: string;
 }) {
   const location = useLocation();
@@ -158,6 +160,7 @@ export function useWrappedDiscoverQuery<T>({
       retryDelay: getRetryDelay,
       staleTime: Infinity,
     },
+    noPagination,
   });
 
   // TODO: useDiscoverQuery incorrectly states that it returns MetaType, but it
@@ -165,7 +168,7 @@ export function useWrappedDiscoverQuery<T>({
   const meta = result.data?.meta as EventsMetaType | undefined;
 
   const data =
-    result.isLoading && initialData ? initialData : (result.data?.data as T | undefined);
+    result.isPending && initialData ? initialData : (result.data?.data as T | undefined);
 
   return {
     ...result,

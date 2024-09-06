@@ -3,6 +3,7 @@ from uuid import uuid4
 
 from django.urls import reverse
 
+from sentry.api.endpoints.project_transfer import SALT
 from sentry.models.options.project_option import ProjectOption
 from sentry.models.project import Project
 from sentry.testutils.cases import APITestCase, PermissionTestCase
@@ -49,6 +50,7 @@ class AcceptTransferProjectTest(APITestCase):
     def test_handle_incorrect_url_data(self):
         self.login_as(self.owner)
         url_data = sign(
+            salt=SALT,
             actor_id=self.member.id,
             # This is bad data
             from_organization_id=9999999,
@@ -65,6 +67,7 @@ class AcceptTransferProjectTest(APITestCase):
     def test_handle_incorrect_transaction_id(self):
         self.login_as(self.owner)
         url_data = sign(
+            salt=SALT,
             actor_id=self.member.id,
             from_organization_id=self.from_organization.id,
             project_id=self.project.id,
@@ -80,6 +83,7 @@ class AcceptTransferProjectTest(APITestCase):
     def test_returns_org_options_with_signed_link(self):
         self.login_as(self.owner)
         url_data = sign(
+            salt=SALT,
             actor_id=self.member.user_id,
             from_organization_id=self.from_organization.id,
             project_id=self.project.id,
@@ -99,6 +103,7 @@ class AcceptTransferProjectTest(APITestCase):
     def test_transfers_project_to_team_deprecated(self):
         self.login_as(self.owner)
         url_data = sign(
+            salt=SALT,
             actor_id=self.member.user_id,
             from_organization_id=self.from_organization.id,
             project_id=self.project.id,
@@ -118,6 +123,7 @@ class AcceptTransferProjectTest(APITestCase):
 
         self.login_as(rando_user)
         url_data = sign(
+            salt=SALT,
             actor_id=self.member.user_id,
             from_organization_id=rando_org.id,
             project_id=self.project.id,
@@ -136,6 +142,7 @@ class AcceptTransferProjectTest(APITestCase):
     def test_transfers_project_to_correct_organization(self):
         self.login_as(self.owner)
         url_data = sign(
+            salt=SALT,
             actor_id=self.member.user_id,
             from_organization_id=self.from_organization.id,
             project_id=self.project.id,
@@ -154,6 +161,7 @@ class AcceptTransferProjectTest(APITestCase):
     def test_use_org_when_team_and_org_provided(self):
         self.login_as(self.owner)
         url_data = sign(
+            salt=SALT,
             actor_id=self.member.user_id,
             from_organization_id=self.from_organization.id,
             project_id=self.project.id,

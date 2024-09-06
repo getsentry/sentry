@@ -8,21 +8,17 @@ logic between providers.
 """
 
 __all__ = (
-    "IssueBasicMixin",
-    "IssueSyncMixin",
     "NotifyBasicMixin",
-    "RepositoryMixin",
     "ResolveSyncAction",
     "ServerlessMixin",
     "SUCCESS_UNLINKED_TEAM_MESSAGE",
     "SUCCESS_UNLINKED_TEAM_TITLE",
 )
 
-from .issues import IssueBasicMixin, IssueSyncMixin, ResolveSyncAction
+from .issues import ResolveSyncAction
 from .notifications import (
     SUCCESS_UNLINKED_TEAM_MESSAGE,
     SUCCESS_UNLINKED_TEAM_TITLE,
     NotifyBasicMixin,
 )
-from .repositories import RepositoryMixin
 from .serverless import ServerlessMixin

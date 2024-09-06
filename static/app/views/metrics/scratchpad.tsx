@@ -7,6 +7,7 @@ import type {Field} from 'sentry/components/metrics/metricSamplesTable';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {generateLinkToEventInTraceView} from 'sentry/utils/discover/urls';
+import {hasMetricsNewInputs} from 'sentry/utils/metrics/features';
 import {
   isMetricsEquationWidget,
   MetricExpressionType,
@@ -45,6 +46,7 @@ export function MetricScratchpad() {
   const router = useRouter();
   const organization = useOrganization();
   const getChartPalette = useGetCachedChartPalette();
+  const metricsNewInputs = hasMetricsNewInputs(organization);
 
   // Make sure all charts are connected to the same group whenever the widgets definition changes
   useLayoutEffect(() => {
@@ -169,7 +171,7 @@ export function MetricScratchpad() {
           tableSort={firstWidget.sort}
           queries={filteredWidgets
             .filter(w => !(w.type === MetricExpressionType.EQUATION && w.isHidden))
-            .map(w => widgetToQuery(w))}
+            .map(w => widgetToQuery({widget: w, metricsNewInputs}))}
           isSelected
           hasSiblings={false}
           onChange={handleChange}
@@ -196,16 +198,18 @@ function MultiChartWidgetQueries({
   formulaDependencies: ReturnType<typeof useFormulaDependencies>;
   widget: MetricsWidget;
 }) {
+  const organization = useOrganization();
+  const metricsNewInputs = hasMetricsNewInputs(organization);
   const queries = useMemo(() => {
     return [
-      widgetToQuery(widget),
+      widgetToQuery({widget, metricsNewInputs}),
       ...(isMetricsEquationWidget(widget)
         ? formulaDependencies[widget.id]?.dependencies?.map(dependency =>
-            widgetToQuery(dependency, true)
+            widgetToQuery({widget: dependency, isQueryOnly: true, metricsNewInputs})
           )
         : []),
     ];
-  }, [widget, formulaDependencies]);
+  }, [widget, formulaDependencies, metricsNewInputs]);
 
   return children(queries);
 }

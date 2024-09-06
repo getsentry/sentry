@@ -1,7 +1,7 @@
 import {useMemo} from 'react';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
-import moment from 'moment';
+import moment from 'moment-timezone';
 
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
 import {DataSection} from 'sentry/components/events/styles';
@@ -99,7 +99,7 @@ function EventSpanOpBreakdown({event}: {event: Event}) {
 
   const {
     data: postBreakpointData,
-    isLoading: postBreakpointIsLoading,
+    isPending: postBreakpointIsLoading,
     isError: postBreakpointIsError,
   } = useDiscoverQuery({
     eventView: postBreakpointEventView,
@@ -110,7 +110,7 @@ function EventSpanOpBreakdown({event}: {event: Event}) {
 
   const {
     data: preBreakpointData,
-    isLoading: preBreakpointIsLoading,
+    isPending: preBreakpointIsLoading,
     isError: preBreakpointIsError,
   } = useDiscoverQuery({
     eventView: preBreakpointEventView,

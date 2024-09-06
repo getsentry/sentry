@@ -19,7 +19,7 @@ export function TraceShortcuts() {
 
   return (
     <Button size="xs" onClick={onOpenShortcutsClick} aria-label={t('Trace Shortcuts')}>
-      ⌘
+      Shortcuts
     </Button>
   );
 }
@@ -40,7 +40,7 @@ function TraceShortcutsModal({Header, Body}: ModalRenderProps) {
   return (
     <Fragment>
       <Header closeButton>
-        <h2>{t('Keyboard controls')}</h2>
+        <h2>{t('Shortcuts')}</h2>
       </Header>
       <Body>
         <ShortcutsLayout>

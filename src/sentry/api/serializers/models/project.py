@@ -35,11 +35,12 @@ from sentry.models.projectbookmark import ProjectBookmark
 from sentry.models.projectplatform import ProjectPlatform
 from sentry.models.projectteam import ProjectTeam
 from sentry.models.release import Release
-from sentry.models.user import User
 from sentry.models.userreport import UserReport
 from sentry.release_health.base import CurrentAndPreviousCrashFreeRate
 from sentry.roles import organization_roles
+from sentry.search.events.types import SnubaParams
 from sentry.snuba import discover
+from sentry.users.models.user import User
 
 STATUS_LABELS = {
     ObjectStatus.ACTIVE: "active",
@@ -69,7 +70,6 @@ PROJECT_FEATURES_NOT_USED_ON_FRONTEND = {
     "profiling-ingest-unsampled-profiles",
     "discard-transaction",
     "race-free-group-creation",
-    "first-event-severity-new-escalation",
     "first-event-severity-calculation",
     "alert-filters",
     "servicehooks",
@@ -252,8 +252,10 @@ class ProjectSerializerBaseResponse(_ProjectSerializerOptionalBaseResponse):
     access: list[str]
     hasAccess: bool
     hasCustomMetrics: bool
+    hasFeedbacks: bool
     hasMinifiedStackTrace: bool
     hasMonitors: bool
+    hasNewFeedbacks: bool
     hasProfiles: bool
     hasReplays: bool
     hasSessions: bool
@@ -343,9 +345,9 @@ class ProjectSerializer(Serializer):
             project_ids = [o.id for o in item_list]
 
             if self.stats_period:
-                stats = self.get_stats(project_ids, "!event.type:transaction")
+                stats = self.get_stats(item_list, "!event.type:transaction")
                 if self._expand("transaction_stats"):
-                    transaction_stats = self.get_stats(project_ids, "event.type:transaction")
+                    transaction_stats = self.get_stats(item_list, "event.type:transaction")
                 if self._expand("session_stats"):
                     session_stats = self.get_session_stats(project_ids)
 
@@ -390,26 +392,26 @@ class ProjectSerializer(Serializer):
                     serialized["options"] = options[project.id]
         return result
 
-    def get_stats(self, project_ids, query):
+    def get_stats(self, projects, query):
         # we need to compute stats at 1d (1h resolution), and 14d
         segments, interval = STATS_PERIOD_CHOICES[self.stats_period]
         now = timezone.now()
 
-        params = {
-            "project_id": project_ids,
-            "start": now - ((segments - 1) * interval),
-            "end": now,
-        }
+        snuba_params = SnubaParams(
+            projects=projects,
+            start=now - ((segments - 1) * interval),
+            end=now,
+        )
         if self.environment_id:
             query = f"{query} environment:{self.environment_id}"
 
         # Generate a query result to skip the top_events.find query
-        top_events = {"data": [{"project_id": p} for p in project_ids]}
+        top_events = {"data": [{"project_id": p.id} for p in projects]}
         stats = self.dataset.top_events_timeseries(
             timeseries_columns=["count()"],
             selected_columns=["project_id"],
             user_query=query,
-            params=params,
+            snuba_params=snuba_params,
             orderby="project_id",
             rollup=int(interval.total_seconds()),
             limit=10000,
@@ -418,13 +420,13 @@ class ProjectSerializer(Serializer):
             top_events=top_events,
         )
         results = {}
-        for project_id in project_ids:
+        for project in projects:
             serialized = []
-            str_id = str(project_id)
+            str_id = str(project.id)
             if str_id in stats:
                 for item in stats[str_id].data["data"]:
                     serialized.append((item["time"], item.get("count", 0)))
-            results[project_id] = serialized
+            results[project.id] = serialized
         return results
 
     def get_session_stats(
@@ -554,7 +556,7 @@ class ProjectWithOrganizationSerializer(ProjectSerializer):
             attrs[item]["organization"] = orgs[str(item.organization_id)]
         return attrs
 
-    def serialize(self, obj, attrs, user):
+    def serialize(self, obj, attrs, user, **kwargs):
         data = super().serialize(obj, attrs, user)
         data["organization"] = attrs["organization"]
         return data
@@ -888,7 +890,6 @@ class DetailedProjectResponse(ProjectWithTeamResponseDict):
     groupingEnhancementsBase: str | None
     secondaryGroupingExpiry: int
     secondaryGroupingConfig: str | None
-    groupingAutoUpdate: bool
     fingerprintingRules: str
     organization: OrganizationSerializerResponse
     plugins: list[Plugin]
@@ -900,7 +901,7 @@ class DetailedProjectResponse(ProjectWithTeamResponseDict):
     dynamicSamplingBiases: list[dict[str, str | bool]]
     eventProcessing: dict[str, bool]
     symbolSources: str
-    extrapolateMetrics: bool
+    uptimeAutodetection: bool
 
 
 class DetailedProjectSerializer(ProjectWithTeamSerializer):
@@ -988,9 +989,6 @@ class DetailedProjectSerializer(ProjectWithTeamSerializer):
                 "secondaryGroupingConfig": self.get_value_with_default(
                     attrs, "sentry:secondary_grouping_config"
                 ),
-                "groupingAutoUpdate": self.get_value_with_default(
-                    attrs, "sentry:grouping_auto_update"
-                ),
                 "fingerprintingRules": self.get_value_with_default(
                     attrs, "sentry:fingerprinting_rules"
                 ),
@@ -1023,18 +1021,18 @@ class DetailedProjectSerializer(ProjectWithTeamSerializer):
             }
         )
 
-        if features.has("organizations:metrics-extrapolation", obj.organization):
+        if features.has("organizations:uptime-settings", obj.organization):
             data.update(
                 {
-                    "extrapolateMetrics": bool(
-                        attrs["options"].get("sentry:extrapolate_metrics", False)
+                    "uptimeAutodetection": bool(
+                        attrs["options"].get("sentry:uptime_autodetection", True)
                     )
                 }
             )
 
         custom_symbol_sources_json = attrs["options"].get("sentry:symbol_sources")
         try:
-            sources = parse_sources(custom_symbol_sources_json)
+            sources = parse_sources(custom_symbol_sources_json, filter_appconnect=False)
         except Exception:
             # In theory sources stored on the project should be valid. If they are invalid, we don't
             # want to abort serialization just for sources, so just return an empty list instead of
@@ -1120,7 +1118,7 @@ class DetailedProjectSerializer(ProjectWithTeamSerializer):
 
 
 class SharedProjectSerializer(Serializer):
-    def serialize(self, obj, attrs, user):
+    def serialize(self, obj, attrs, user, **kwargs):
         from sentry import features
 
         feature_list = []

@@ -1,14 +1,17 @@
-import {Fragment, useRef} from 'react';
+import {Fragment, useCallback, useRef} from 'react';
 import styled from '@emotion/styled';
 
 import NegativeSpaceContainer from 'sentry/components/container/negativeSpaceContainer';
 import ReplayIFrameRoot from 'sentry/components/replays/player/replayIFrameRoot';
-import {StaticReplayPreferences} from 'sentry/components/replays/preferences/replayPreferences';
 import {Provider as ReplayContextProvider} from 'sentry/components/replays/replayContext';
+import {Tooltip} from 'sentry/components/tooltip';
+import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import toPixels from 'sentry/utils/number/toPixels';
 import type ReplayReader from 'sentry/utils/replays/replayReader';
 import {useDimensions} from 'sentry/utils/useDimensions';
+import useOrganization from 'sentry/utils/useOrganization';
 import {useResizableDrawer} from 'sentry/utils/useResizableDrawer';
 
 interface Props {
@@ -23,28 +26,43 @@ export function ReplaySliderDiff({leftOffsetMs, replay, rightOffsetMs}: Props) {
 
   const width = toPixels(viewDimensions.width);
   return (
-    <WithPadding>
-      <Positioned ref={positionedRef}>
-        {viewDimensions.width ? (
-          <DiffSides
-            leftOffsetMs={leftOffsetMs}
-            replay={replay}
-            rightOffsetMs={rightOffsetMs}
-            viewDimensions={viewDimensions}
-            width={width}
-          />
-        ) : (
-          <div />
-        )}
-      </Positioned>
-    </WithPadding>
+    <Fragment>
+      <Header>
+        <Tooltip title={t('How the initial server-rendered page looked.')}>
+          <div style={{color: 'red'}}>{t('Before')}</div>
+        </Tooltip>
+        <Tooltip
+          title={t(
+            'How React re-rendered the page on your browser, after detecting a hydration error.'
+          )}
+        >
+          <div style={{color: 'green'}}>{t('After')}</div>
+        </Tooltip>
+      </Header>
+      <WithPadding>
+        <Positioned ref={positionedRef}>
+          {viewDimensions.width ? (
+            <DiffSides
+              leftOffsetMs={leftOffsetMs}
+              replay={replay}
+              rightOffsetMs={rightOffsetMs}
+              viewDimensions={viewDimensions}
+              width={width}
+            />
+          ) : (
+            <div />
+          )}
+        </Positioned>
+      </WithPadding>
+    </Fragment>
   );
 }
 
 function DiffSides({leftOffsetMs, replay, rightOffsetMs, viewDimensions, width}) {
   const rightSideElem = useRef<HTMLDivElement>(null);
   const dividerElem = useRef<HTMLDivElement>(null);
-  const {onMouseDown} = useResizableDrawer({
+
+  const {onMouseDown: onDividerMouseDown} = useResizableDrawer({
     direction: 'left',
     initialSize: viewDimensions.width / 2,
     min: 0,
@@ -63,6 +81,22 @@ function DiffSides({leftOffsetMs, replay, rightOffsetMs, viewDimensions, width})
     },
   });
 
+  const organization = useOrganization();
+  const dividerClickedRef = useRef(false); // once set, never flips back to false
+
+  const onDividerMouseDownWithAnalytics: React.MouseEventHandler<HTMLElement> =
+    useCallback(
+      (event: React.MouseEvent<HTMLElement>) => {
+        // tracks only the first mouseDown since the last render
+        if (organization && !dividerClickedRef.current) {
+          trackAnalytics('replay.hydration-modal.slider-interaction', {organization});
+          dividerClickedRef.current = true;
+        }
+        onDividerMouseDown(event);
+      },
+      [onDividerMouseDown, organization]
+    );
+
   return (
     <Fragment>
       <Cover style={{width}}>
@@ -71,7 +105,6 @@ function DiffSides({leftOffsetMs, replay, rightOffsetMs, viewDimensions, width})
             analyticsContext="replay_comparison_modal_left"
             initialTimeOffsetMs={{offsetMs: leftOffsetMs}}
             isFetching={false}
-            prefsStrategy={StaticReplayPreferences}
             replay={replay}
           >
             <ReplayIFrameRoot viewDimensions={viewDimensions} />
@@ -84,14 +117,13 @@ function DiffSides({leftOffsetMs, replay, rightOffsetMs, viewDimensions, width})
             analyticsContext="replay_comparison_modal_right"
             initialTimeOffsetMs={{offsetMs: rightOffsetMs}}
             isFetching={false}
-            prefsStrategy={StaticReplayPreferences}
             replay={replay}
           >
             <ReplayIFrameRoot viewDimensions={viewDimensions} />
           </ReplayContextProvider>
         </Placement>
       </Cover>
-      <Divider ref={dividerElem} onMouseDown={onMouseDown} />
+      <Divider ref={dividerElem} onMouseDown={onDividerMouseDownWithAnalytics} />
     </Fragment>
   );
 }
@@ -163,4 +195,10 @@ const Divider = styled('div')`
     bottom: 0;
     transform: translate(calc(var(--handle-size) / -2 + var(--line-width) / 2), 100%);
   }
+`;
+
+const Header = styled('div')`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
 `;

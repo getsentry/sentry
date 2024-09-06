@@ -1,7 +1,7 @@
-import {browserHistory} from 'react-router';
 import {mat3, vec2} from 'gl-matrix';
 import * as qs from 'query-string';
 
+import {browserHistory} from 'sentry/utils/browserHistory';
 import getDuration from 'sentry/utils/duration/getDuration';
 import clamp from 'sentry/utils/number/clamp';
 import {
@@ -15,6 +15,8 @@ import type {
 import {TraceRowWidthMeasurer} from 'sentry/views/performance/newTraceDetails/traceRenderers/traceRowWidthMeasurer';
 import {TraceTextMeasurer} from 'sentry/views/performance/newTraceDetails/traceRenderers/traceTextMeasurer';
 import type {TraceView} from 'sentry/views/performance/newTraceDetails/traceRenderers/traceView';
+
+import {isMissingInstrumentationNode} from '../guards';
 
 import type {TraceScheduler} from './traceScheduler';
 
@@ -166,7 +168,6 @@ export class VirtualizedViewManager {
     this.onHorizontalScrollbarScroll = this.onHorizontalScrollbarScroll.bind(this);
   }
 
-  dividerScale: 1 | undefined = undefined;
   dividerStartVec: [number, number] | null = null;
   previousDividerClientVec: [number, number] | null = null;
 
@@ -175,8 +176,6 @@ export class VirtualizedViewManager {
       return;
     }
 
-    this.dividerScale =
-      this.view.trace_view.width === this.view.trace_space.width ? 1 : undefined;
     this.dividerStartVec = [event.clientX, event.clientY];
     this.previousDividerClientVec = [event.clientX, event.clientY];
 
@@ -194,12 +193,14 @@ export class VirtualizedViewManager {
       return;
     }
 
-    this.dividerScale = undefined;
     const distance = event.clientX - this.dividerStartVec[0];
     const distancePercentage = distance / this.view.trace_container_physical_space.width;
 
-    this.columns.list.width = this.columns.list.width + distancePercentage;
-    this.columns.span_list.width = this.columns.span_list.width - distancePercentage;
+    const list = clamp(this.columns.list.width + distancePercentage, 0.1, 0.9);
+    const span_list = clamp(this.columns.span_list.width - distancePercentage, 0.1, 0.9);
+
+    this.columns.list.width = list;
+    this.columns.span_list.width = span_list;
 
     document.body.style.cursor = '';
     document.body.style.userSelect = '';
@@ -222,24 +223,27 @@ export class VirtualizedViewManager {
     const distance = event.clientX - this.dividerStartVec[0];
     const distancePercentage = distance / this.view.trace_container_physical_space.width;
 
-    this.view.trace_physical_space.width =
-      (this.columns.span_list.width - distancePercentage) *
-      this.view.trace_container_physical_space.width;
+    const list = clamp(this.columns.list.width + distancePercentage, 0, 1);
+    const span_list = clamp(this.columns.span_list.width - distancePercentage, 0, 1);
 
-    const physical_distance = this.previousDividerClientVec[0] - event.clientX;
-    const config_distance_pct = physical_distance / this.view.trace_physical_space.width;
-    const config_distance = this.view.trace_view.width * config_distance_pct;
-
-    if (!this.dividerScale) {
-      this.scheduler.dispatch('set trace view', {
-        x: this.view.trace_view.x - config_distance,
-        width: this.view.trace_view.width + config_distance,
-      });
+    if (span_list * this.view.trace_container_physical_space.width <= 100) {
+      return;
+    }
+    if (list * this.view.trace_container_physical_space.width <= 100) {
+      return;
     }
 
+    this.view.trace_physical_space.width =
+      span_list * this.view.trace_container_physical_space.width;
+
+    this.scheduler.dispatch('set trace view', {
+      x: this.view.trace_view.x,
+      width: this.view.trace_view.width,
+    });
+
     this.scheduler.dispatch('divider resize', {
-      list: this.columns.list.width + distancePercentage,
-      span_list: this.columns.span_list.width - distancePercentage,
+      list,
+      span_list,
     });
     this.previousDividerClientVec = [event.clientX, event.clientY];
   }
@@ -560,18 +564,15 @@ export class VirtualizedViewManager {
     const rafCallback = (now: number) => {
       const elapsed = now - start;
       const progress = elapsed / duration;
-
       const eased = easeOutSine(progress);
 
-      const x = start_x + distance_x * eased;
-      const width = start_width - distance_width * eased;
-
-      this.scheduler.dispatch('set trace view', {
-        x,
-        width,
-      });
-
-      if (progress < 1) {
+      if (progress <= 1) {
+        const x = start_x + distance_x * eased;
+        const width = start_width - distance_width * eased;
+        this.scheduler.dispatch('set trace view', {
+          x,
+          width,
+        });
         this.timers.onZoomIntoSpace = window.requestAnimationFrame(rafCallback);
       } else {
         this.timers.onZoomIntoSpace = null;
@@ -702,7 +703,6 @@ export class VirtualizedViewManager {
   syncResetZoomButton() {
     if (!this.reset_zoom_button) return;
     this.reset_zoom_button.disabled =
-      this.view.trace_view.x === 0 &&
       this.view.trace_view.width === this.view.trace_space.width;
   }
 
@@ -880,6 +880,16 @@ export class VirtualizedViewManager {
       (space[0] - this.view.to_origin) / this.span_to_px[0] -
       this.view.trace_view.x / this.span_to_px[0];
 
+    // if span ends less than 1px before the end of the view, we move it back by 1px and prevent it from being clipped
+    if (
+      space[0] - this.view.to_origin > this.view.trace_space.width / 2 &&
+      (this.view.to_origin + this.view.trace_space.width - space[0] - space[1]) /
+        this.span_to_px[0] <=
+        1
+    ) {
+      // 1px for the span and 1px for the border
+      this.span_matrix[4] = this.span_matrix[4] - 2;
+    }
     return this.span_matrix;
   }
 
@@ -1394,7 +1404,10 @@ export class VirtualizedViewManager {
       return;
     }
 
-    span_text.ref.style.color = inside ? 'white' : '';
+    // We don't color the text white for missing instrumentation nodes
+    // as the text will be invisible on the light background.
+    span_text.ref.style.color =
+      inside && node && !isMissingInstrumentationNode(node) ? 'white' : '';
     span_text.ref.style.transform = `translateX(${text_transform}px)`;
   }
 

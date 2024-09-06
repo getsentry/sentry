@@ -36,6 +36,7 @@ describe('Breadcrumbs', () => {
       hasMore: false,
       initiallyLoaded: false,
       onSearch: () => Promise.resolve(),
+      reloadProjects: jest.fn(),
       placeholders: [],
       projects: [project],
     });

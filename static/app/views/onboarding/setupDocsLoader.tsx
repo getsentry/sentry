@@ -34,9 +34,7 @@ export function SetupDocsLoader({
   location,
   project,
   platform,
-  close,
 }: {
-  close: () => void;
   location: Location;
   organization: Organization;
   platform: PlatformKey | null;
@@ -146,9 +144,8 @@ export function SetupDocsLoader({
       <Header>
         <ProductSelectionAvailabilityHook
           organization={organization}
-          lazyLoader
-          skipLazyLoader={close}
           platform={currentPlatform}
+          projectId={project.id}
         />
       </Header>
       <Divider />
@@ -210,7 +207,7 @@ Sentry.onLoad(function() {
   }${
     hasPerformance
       ? `
-    // Performance Monitoring
+    // Tracing
     tracesSampleRate: 1.0, // Capture 100% of the transactions`
       : ''
   }${
@@ -315,8 +312,8 @@ Sentry.onLoad(function() {
           </li>
           {!products.includes(ProductSolution.PERFORMANCE_MONITORING) && (
             <li>
-              <ExternalLink href="https://docs.sentry.io/platforms/javascript/performance/">
-                {t('Performance Monitoring')}
+              <ExternalLink href="https://docs.sentry.io/platforms/javascript/tracing/">
+                {t('Tracing')}
               </ExternalLink>
               {': '}
               {t(

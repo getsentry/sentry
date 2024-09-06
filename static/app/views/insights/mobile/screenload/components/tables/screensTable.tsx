@@ -130,8 +130,8 @@ export function ScreensTable({data, eventView, isLoading, pageLinks, onCursor}: 
     ) {
       const docsUrl =
         project?.platform === 'android'
-          ? 'https://docs.sentry.io/platforms/android/performance/instrumentation/automatic-instrumentation/#time-to-full-display'
-          : 'https://docs.sentry.io/platforms/apple/guides/ios/performance/instrumentation/automatic-instrumentation/#time-to-full-display';
+          ? 'https://docs.sentry.io/platforms/android/tracing/instrumentation/automatic-instrumentation/#time-to-full-display'
+          : 'https://docs.sentry.io/platforms/apple/guides/ios/tracing/instrumentation/automatic-instrumentation/#time-to-full-display';
       return (
         <div style={{textAlign: 'right'}}>
           <Tooltip
@@ -287,7 +287,7 @@ export function useTableQuery({
 
   return {
     ...result,
-    data: result.isLoading ? initialData : result.data,
+    data: result.isPending ? initialData : result.data,
     pageLinks: result.pageLinks,
   };
 }

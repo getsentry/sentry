@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 from collections import namedtuple
 from collections.abc import Mapping, Sequence
 from typing import Any
@@ -9,7 +10,6 @@ from django.views import View
 from slack_sdk import WebClient
 from slack_sdk.errors import SlackApiError
 
-from sentry import features as sentry_features
 from sentry.identity.pipeline import IdentityProviderPipeline
 from sentry.integrations.base import (
     FeatureDescription,
@@ -18,17 +18,17 @@ from sentry.integrations.base import (
     IntegrationMetadata,
     IntegrationProvider,
 )
+from sentry.integrations.models.integration import Integration
 from sentry.integrations.slack.sdk_client import SlackSdkClient
-from sentry.models.integrations.integration import Integration
+from sentry.integrations.slack.tasks.link_slack_user_identities import link_slack_user_identities
 from sentry.organizations.services.organization import RpcOrganizationSummary
 from sentry.pipeline import NestedPipelineView
 from sentry.shared_integrations.exceptions import IntegrationError
-from sentry.tasks.integrations.slack import link_slack_user_identities
 from sentry.utils.http import absolute_uri
 
-from .client import SlackClient
 from .notifications import SlackNotifyBasicMixin
-from .utils import logger
+
+_logger = logging.getLogger("sentry.integrations.slack")
 
 Channel = namedtuple("Channel", ["name", "id"])
 
@@ -73,10 +73,8 @@ metadata = IntegrationMetadata(
 
 
 class SlackIntegration(SlackNotifyBasicMixin, IntegrationInstallation):
-    def get_client(self) -> SlackClient | SlackSdkClient:
-        if sentry_features.has("organizations:slack-sdk-notify-mixin", self.organization):
-            return SlackSdkClient(integration_id=self.model.id)
-        return SlackClient(integration_id=self.model.id)
+    def get_client(self) -> SlackSdkClient:
+        return SlackSdkClient(integration_id=self.model.id)
 
     def get_config_data(self) -> Mapping[str, str]:
         metadata_ = self.model.metadata
@@ -146,8 +144,8 @@ class SlackIntegrationProvider(IntegrationProvider):
             sdk_response = client.team_info()
 
             return sdk_response.get("team")
-        except SlackApiError as e:
-            logger.error("slack.install.team-info.error", extra={"error": str(e)})
+        except SlackApiError:
+            _logger.exception("slack.install.team-info.error")
             raise IntegrationError("Could not retrieve Slack team information.")
 
     def build_integration(self, state: Mapping[str, Any]) -> Mapping[str, Any]:

@@ -1,4 +1,4 @@
-import {Fragment, useEffect} from 'react';
+import {createContext, Fragment, useContext, useEffect} from 'react';
 import {createPortal} from 'react-dom';
 import type {SerializedStyles} from '@emotion/react';
 import {useTheme} from '@emotion/react';
@@ -9,6 +9,17 @@ import {Overlay, PositionWrapper} from 'sentry/components/overlay';
 import {space} from 'sentry/styles/space';
 import type {UseHoverOverlayProps} from 'sentry/utils/useHoverOverlay';
 import {useHoverOverlay} from 'sentry/utils/useHoverOverlay';
+
+interface TooltipContextProps {
+  /**
+   * Specifies the DOM node where the tooltip should be rendered.
+   * This is particularly useful for making the tooltip interactive within specific contexts,
+   * such as inside a modal. By default the tooltip is rendered in the 'document.body'.
+   */
+  container: Element | DocumentFragment | null;
+}
+
+export const TooltipContext = createContext<TooltipContextProps>({container: null});
 
 interface TooltipProps extends UseHoverOverlayProps {
   /**
@@ -33,6 +44,7 @@ function Tooltip({
   disabled = false,
   ...hoverOverlayProps
 }: TooltipProps) {
+  const {container} = useContext(TooltipContext);
   const theme = useTheme();
   const {wrapTrigger, isOpen, overlayProps, placement, arrowData, arrowProps, reset} =
     useHoverOverlay('tooltip', hoverOverlayProps);
@@ -65,7 +77,10 @@ function Tooltip({
   return (
     <Fragment>
       {wrapTrigger(children)}
-      {createPortal(<AnimatePresence>{tooltipContent}</AnimatePresence>, document.body)}
+      {createPortal(
+        <AnimatePresence>{tooltipContent}</AnimatePresence>,
+        container ?? document.body
+      )}
     </Fragment>
   );
 }

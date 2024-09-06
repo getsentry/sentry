@@ -4,7 +4,7 @@ import omit from 'lodash/omit';
 import * as qs from 'query-string';
 
 import {Alert} from 'sentry/components/alert';
-import {Button} from 'sentry/components/button';
+import {LinkButton} from 'sentry/components/button';
 import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
 import {DateTime} from 'sentry/components/dateTime';
 import DiscoverButton from 'sentry/components/discoverButton';
@@ -25,11 +25,13 @@ import type {Organization} from 'sentry/types/organization';
 import {assert} from 'sentry/types/utils';
 import {defined} from 'sentry/utils';
 import EventView from 'sentry/utils/discover/eventView';
+import {SavedQueryDatasets} from 'sentry/utils/discover/types';
 import {generateEventSlug} from 'sentry/utils/discover/urls';
 import getDynamicText from 'sentry/utils/getDynamicText';
 import {safeURL} from 'sentry/utils/url/safeURL';
 import {useLocation} from 'sentry/utils/useLocation';
 import useProjects from 'sentry/utils/useProjects';
+import {hasDatasetSelector} from 'sentry/views/dashboards/utils';
 import {
   Frame,
   SpanDescription,
@@ -113,7 +115,7 @@ function NewTraceDetailsSpanDetail(props: SpanDetailProps) {
       // TODO: Amend size to use theme when we eventually refactor LoadingIndicator
       // 12px is consistent with theme.iconSizes['xs'] but theme returns a string.
       return (
-        <StyledDiscoverButton size="xs" disabled>
+        <StyledDiscoverButton href="#" size="xs" disabled>
           <StyledLoadingIndicator size={12} />
         </StyledDiscoverButton>
       );
@@ -161,7 +163,11 @@ function NewTraceDetailsSpanDetail(props: SpanDetailProps) {
       <StyledDiscoverButton
         data-test-id="view-child-transactions"
         size="xs"
-        to={childrenEventView.getResultsViewUrlTarget(organization.slug)}
+        to={childrenEventView.getResultsViewUrlTarget(
+          organization.slug,
+          false,
+          hasDatasetSelector(organization) ? SavedQueryDatasets.TRANSACTIONS : undefined
+        )}
       >
         {t('View Children')}
       </StyledDiscoverButton>
@@ -205,12 +211,12 @@ function NewTraceDetailsSpanDetail(props: SpanDetailProps) {
 
           return (
             <ButtonGroup>
-              <StyledButton data-test-id="view-child-transaction" size="xs" to={to}>
+              <LinkButton data-test-id="view-child-transaction" size="xs" to={to}>
                 {t('View Transaction')}
-              </StyledButton>
-              <StyledButton size="xs" to={target}>
+              </LinkButton>
+              <LinkButton size="xs" to={target}>
                 {t('View Summary')}
-              </StyledButton>
+              </LinkButton>
             </ButtonGroup>
           );
         }}
@@ -253,7 +259,7 @@ function NewTraceDetailsSpanDetail(props: SpanDetailProps) {
           organization={organization}
           span={props.node.value}
         />
-        <StyledButton
+        <LinkButton
           size="xs"
           to={spanDetailsRouteWithQuery({
             orgSlug: organization.slug,
@@ -264,7 +270,7 @@ function NewTraceDetailsSpanDetail(props: SpanDetailProps) {
           })}
         >
           {hasNewSpansUIFlag ? t('View Span Summary') : t('View Similar Spans')}
-        </StyledButton>
+        </LinkButton>
       </ButtonGroup>
     );
   }
@@ -631,8 +637,6 @@ const StyledDiscoverButton = styled(DiscoverButton)`
   right: ${space(0.5)};
 `;
 
-const StyledButton = styled(Button)``;
-
 export const SpanDetailContainer = styled('div')`
   border-bottom: 1px solid ${p => p.theme.border};
   cursor: auto;
@@ -661,7 +665,7 @@ const StyledLoadingIndicator = styled(LoadingIndicator)`
 
 const StyledText = styled('p')`
   font-size: ${p => p.theme.fontSizeMedium};
-  margin: ${space(2)} ${space(0)};
+  margin: ${space(2)} 0;
 `;
 
 function TextTr({children}) {

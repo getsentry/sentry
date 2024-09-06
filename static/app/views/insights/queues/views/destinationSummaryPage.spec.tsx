@@ -46,6 +46,7 @@ describe('destinationSummaryPage', () => {
   jest.mocked(useProjects).mockReturnValue({
     projects: [],
     onSearch: jest.fn(),
+    reloadProjects: jest.fn(),
     placeholders: [],
     fetching: false,
     hasMore: null,

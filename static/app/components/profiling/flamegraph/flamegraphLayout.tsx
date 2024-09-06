@@ -28,8 +28,8 @@ interface FlamegraphLayoutProps {
   memoryChart: React.ReactElement | null;
   minimap: React.ReactElement;
   spans: React.ReactElement | null;
+  spansTreeDepth: number | null;
   uiFrames: React.ReactElement | null;
-  spansTreeDepth?: number;
 }
 
 export function FlamegraphLayout(props: FlamegraphLayoutProps) {

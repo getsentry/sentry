@@ -6,25 +6,10 @@ import Placeholder from 'sentry/components/placeholder';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {useQuery} from 'sentry/utils/queryClient';
-import countDomNodes from 'sentry/utils/replays/countDomNodes';
+import useCountDomNodes from 'sentry/utils/replays/hooks/useCountDomNodes';
 import useCurrentHoverTime from 'sentry/utils/replays/playback/providers/useCurrentHoverTime';
-import type ReplayReader from 'sentry/utils/replays/replayReader';
 import DomNodesChart from 'sentry/views/replays/detail/memoryPanel/domNodesChart';
 import MemoryChart from 'sentry/views/replays/detail/memoryPanel/memoryChart';
-
-function useCountDomNodes({replay}: {replay: null | ReplayReader}) {
-  return useQuery(
-    ['countDomNodes', replay],
-    () =>
-      countDomNodes({
-        frames: replay?.getRRWebMutations(),
-        rrwebEvents: replay?.getRRWebFrames(),
-        startTimestampMs: replay?.getStartTimestampMs() ?? 0,
-      }),
-    {enabled: Boolean(replay), cacheTime: Infinity}
-  );
-}
 
 export default function MemoryPanel() {
   const {currentTime, isFetching, replay, setCurrentTime} = useReplayContext();
@@ -32,7 +17,9 @@ export default function MemoryPanel() {
 
   const memoryFrames = replay?.getMemoryFrames();
 
-  const {data: frameToCount} = useCountDomNodes({replay});
+  const {data: frameToCount, isLoading: isDomNodeDataLoading} = useCountDomNodes({
+    replay,
+  });
   const domNodeData = useMemo(
     () => Array.from(frameToCount?.values() || []),
     [frameToCount]
@@ -65,7 +52,7 @@ export default function MemoryPanel() {
     );
 
   const domNodesChart =
-    !replay || isFetching ? (
+    !replay || isDomNodeDataLoading ? (
       <Placeholder height="100%" />
     ) : (
       <Fragment>

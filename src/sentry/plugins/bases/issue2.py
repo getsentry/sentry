@@ -2,7 +2,6 @@ from __future__ import annotations
 
 from django.conf import settings
 from django.urls import re_path, reverse
-from django.utils.html import format_html
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -80,7 +79,7 @@ class IssueTrackingPlugin2(Plugin):
     def get_group_title(self, request: Request, group, event):
         return event.title
 
-    def is_configured(self, request: Request, project, **kwargs):
+    def is_configured(self, project) -> bool:
         raise NotImplementedError
 
     def get_group_urls(self):
@@ -147,34 +146,22 @@ class IssueTrackingPlugin2(Plugin):
     def get_link_existing_issue_fields(self, request: Request, group, event, **kwargs):
         return []
 
-    def _get_issue_url_compat(self, group, issue, **kwargs):
-        if self.issue_fields is None:
-            return self.get_issue_url(group, issue["id"])
-        return self.get_issue_url(group, issue)
-
-    def _get_issue_label_compat(self, group, issue, **kwargs):
-        if self.issue_fields is None:
-            return self.get_issue_label(group, issue["id"])
-        return self.get_issue_label(group, issue)
-
-    def get_issue_url(self, group, issue, **kwargs):
+    def get_issue_url(self, group, issue_id: str) -> str:
         """
-        Given an issue context (issue_id string or issue dict) return an absolute URL to the issue's details
+        Given an issue context (issue_id string) return an absolute URL to the issue's details
         page.
         """
         raise NotImplementedError
 
-    def get_issue_label(self, group, issue, **kwargs):
+    def get_issue_label(self, group, issue_id: str) -> str:
         """
-        Given an issue context (issue_id string or issue dict) return a string representing the issue.
+        Given an issue context (issue_id string) return a string representing the issue.
 
         e.g. GitHub represents issues as GH-XXX
         """
-        if isinstance(issue, dict):
-            return "#{}".format(issue["id"])
-        return f"#{issue}"
+        return f"#{issue_id}"
 
-    def create_issue(self, request: Request, group, form_data, **kwargs):
+    def create_issue(self, request: Request, group, form_data):
         """
         Creates the issue on the remote service and returns an issue ID.
 
@@ -275,8 +262,8 @@ class IssueTrackingPlugin2(Plugin):
             or request.data.get("title")
             or self._get_issue_label_compat(group, issue),
             "provider": self.get_title(),
-            "location": self._get_issue_url_compat(group, issue),
-            "label": self._get_issue_label_compat(group, issue),
+            "location": self.get_issue_url(group, issue["id"]),
+            "label": self.get_issue_label(group, issue["id"]),
         }
         Activity.objects.create(
             project=group.project,
@@ -291,9 +278,9 @@ class IssueTrackingPlugin2(Plugin):
         )
         return Response(
             {
-                "issue_url": self.get_issue_url(group, issue),
-                "link": self._get_issue_url_compat(group, issue),
-                "label": self._get_issue_label_compat(group, issue),
+                "issue_url": self.get_issue_url(group, issue["id"]),
+                "link": self.get_issue_url(group, issue["id"]),
+                "label": self.get_issue_label(group, issue["id"]),
                 "id": issue["id"],
             }
         )
@@ -342,8 +329,8 @@ class IssueTrackingPlugin2(Plugin):
         issue_information = {
             "title": issue.get("title") or self._get_issue_label_compat(group, issue),
             "provider": self.get_title(),
-            "location": self._get_issue_url_compat(group, issue),
-            "label": self._get_issue_label_compat(group, issue),
+            "location": self.get_issue_url(group, issue["id"]),
+            "label": self.get_issue_label(group, issue["id"]),
         }
         Activity.objects.create(
             project=group.project,
@@ -355,8 +342,8 @@ class IssueTrackingPlugin2(Plugin):
         return Response(
             {
                 "message": "Successfully linked issue.",
-                "link": self._get_issue_url_compat(group, issue),
-                "label": self._get_issue_label_compat(group, issue),
+                "link": self.get_issue_url(group, issue["id"]),
+                "label": self.get_issue_label(group, issue["id"]),
                 "id": issue["id"],
             }
         )
@@ -372,7 +359,7 @@ class IssueTrackingPlugin2(Plugin):
         return Response({"message": "No issues to unlink."}, status=400)
 
     def plugin_issues(self, request: Request, group, plugin_issues, **kwargs) -> None:
-        if not self.is_configured(request=request, project=group.project):
+        if not self.is_configured(project=group.project):
             return
 
         item = {
@@ -384,23 +371,22 @@ class IssueTrackingPlugin2(Plugin):
         if issue:
             item["issue"] = {
                 "issue_id": issue.get("id"),
-                "url": self._get_issue_url_compat(group, issue),
-                "label": self._get_issue_label_compat(group, issue),
+                "url": self.get_issue_url(group, issue["id"]),
+                "label": self.get_issue_label(group, issue["id"]),
             }
 
         item.update(PluginSerializer(group.project).serialize(self, None, request.user))
         plugin_issues.append(item)
 
-    def get_config(self, *args, **kwargs):
+    def get_config(self, project, user=None, initial=None, add_additional_fields: bool = False):
         # TODO(dcramer): update existing plugins to just use get_config
-        # TODO(dcramer): remove request kwarg after sentry-plugins has been
-        # updated
-        kwargs.setdefault("request", None)
-        return self.get_configure_plugin_fields(*args, **kwargs)
+        return self.get_configure_plugin_fields(
+            project=project, user=user, initial=initial, add_additional_fields=add_additional_fields
+        )
 
     def check_config_and_auth(self, request: Request, group):
         has_auth_configured = self.has_auth_configured()
-        if not (has_auth_configured and self.is_configured(project=group.project, request=request)):
+        if not (has_auth_configured and self.is_configured(project=group.project)):
             if self.auth_provider:
                 required_auth_settings = settings.AUTH_PROVIDERS[self.auth_provider]
             else:
@@ -423,7 +409,7 @@ class IssueTrackingPlugin2(Plugin):
 
     # TODO: should we get rid of this (move it to react?)
     def tags(self, request: Request, group, tag_list, **kwargs):
-        if not self.is_configured(request=request, project=group.project):
+        if not self.is_configured(project=group.project):
             return tag_list
 
         issue = self.build_issue(group)
@@ -431,11 +417,10 @@ class IssueTrackingPlugin2(Plugin):
             return tag_list
 
         tag_list.append(
-            format_html(
-                '<a href="{}">{}</a>',
-                self._get_issue_url_compat(group, issue),
-                self._get_issue_label_compat(group, issue),
-            )
+            {
+                "url": self.get_issue_url(group, issue["id"]),
+                "displayName": self.get_issue_label(group, issue["id"]),
+            }
         )
 
         return tag_list

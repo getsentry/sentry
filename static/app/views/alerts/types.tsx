@@ -1,6 +1,7 @@
 import type {AlertRuleActivation, IssueAlertRule} from 'sentry/types/alerts';
 import type {User} from 'sentry/types/user';
 import type {MetricRule} from 'sentry/views/alerts/rules/metric/types';
+import type {UptimeRule} from 'sentry/views/alerts/rules/uptime/types';
 
 type Data = [number, {count: number}[]][];
 
@@ -91,9 +92,10 @@ export enum AlertRuleStatus {
 export enum CombinedAlertType {
   METRIC = 'alert_rule',
   ISSUE = 'rule',
+  UPTIME = 'uptime',
 }
 
-interface IssueAlert extends IssueAlertRule {
+export interface IssueAlert extends IssueAlertRule {
   type: CombinedAlertType.ISSUE;
   latestIncident?: Incident | null;
 }
@@ -102,4 +104,25 @@ export interface MetricAlert extends MetricRule {
   type: CombinedAlertType.METRIC;
 }
 
+export interface UptimeAlert extends UptimeRule {
+  type: CombinedAlertType.UPTIME;
+}
+
 export type CombinedMetricIssueAlerts = IssueAlert | MetricAlert;
+
+export type CombinedAlerts = CombinedMetricIssueAlerts | UptimeAlert;
+
+// TODO: This is a placeholder type for now
+// Assume this is a timestamp of when the anomaly occurred and for how long
+export type Anomaly = {
+  anomaly: {[key: string]: number | string};
+  timestamp: string;
+  value: number;
+};
+
+export const AnomalyType = {
+  high: 'anomaly_higher_confidence',
+  low: 'anomaly_lower_confidence',
+  none: 'none',
+  noData: 'no_data',
+};

@@ -4,6 +4,7 @@ import {Observer} from 'mobx-react';
 
 import Alert from 'sentry/components/alert';
 import AlertLink from 'sentry/components/alertLink';
+import FieldWrapper from 'sentry/components/forms/fieldGroup/fieldWrapper';
 import NumberField from 'sentry/components/forms/fields/numberField';
 import SelectField from 'sentry/components/forms/fields/selectField';
 import SentryMemberTeamSelectorField from 'sentry/components/forms/fields/sentryMemberTeamSelectorField';
@@ -25,9 +26,9 @@ import type {SelectValue} from 'sentry/types/core';
 import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
 import slugify from 'sentry/utils/slugify';
 import commonTheme from 'sentry/utils/theme';
+import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
-import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import {getScheduleIntervals} from 'sentry/views/monitors/utils';
 import {crontabAsText} from 'sentry/views/monitors/utils/crontabAsText';
 
@@ -256,19 +257,21 @@ function MonitorForm({
       <StyledList symbol="colored-numeric">
         <StyledListItem>{t('Add a name and project')}</StyledListItem>
         <ListItemSubText>{t('The name will show up in notifications.')}</ListItemSubText>
-        <InputGroup>
-          <StyledTextField
+        <InputGroup noPadding>
+          <TextField
             name="name"
-            aria-label={t('Name')}
+            label={t('Name')}
+            hideLabel
             placeholder={t('My Cron Job')}
             required
             stacked
             inline={false}
           />
           {monitor && (
-            <StyledTextField
+            <TextField
               name="slug"
-              aria-label={t('Slug')}
+              label={t('Slug')}
+              hideLabel
               help={tct(
                 'The [strong:monitor-slug] is used to uniquely identify your monitor within your organization. Changing this slug will require updates to any instrumented check-in calls.',
                 {strong: <strong />}
@@ -280,9 +283,10 @@ function MonitorForm({
               transformInput={slugify}
             />
           )}
-          <StyledSentryProjectSelectorField
+          <SentryProjectSelectorField
             name="project"
-            aria-label={t('Project')}
+            label={t('Project')}
+            hideLabel
             groupProjects={project =>
               platformsWithGuides.includes(project.platform) ? 'suggested' : 'other'
             }
@@ -306,7 +310,7 @@ function MonitorForm({
             link: <ExternalLink href="https://en.wikipedia.org/wiki/Cron" />,
           })}
         </ListItemSubText>
-        <InputGroup>
+        <InputGroup noPadding>
           {monitor !== undefined && (
             <StyledAlert type="info">
               {t(
@@ -314,9 +318,10 @@ function MonitorForm({
               )}
             </StyledAlert>
           )}
-          <StyledSelectField
+          <SelectField
             name="config.scheduleType"
-            aria-label={t('Schedule Type')}
+            label={t('Schedule Type')}
+            hideLabel
             options={SCHEDULE_OPTIONS}
             defaultValue={ScheduleType.CRONTAB}
             orientInline
@@ -338,9 +343,10 @@ function MonitorForm({
               if (scheduleType === 'crontab') {
                 return (
                   <MultiColumnInput columns="1fr 2fr">
-                    <StyledTextField
+                    <TextField
                       name="config.schedule"
-                      aria-label={t('Crontab Schedule')}
+                      label={t('Crontab Schedule')}
+                      hideLabel
                       placeholder="* * * * *"
                       defaultValue={DEFAULT_CRONTAB}
                       css={{input: {fontFamily: commonTheme.text.familyMono}}}
@@ -348,9 +354,10 @@ function MonitorForm({
                       stacked
                       inline={false}
                     />
-                    <StyledSelectField
+                    <SelectField
                       name="config.timezone"
-                      aria-label={t('Timezone')}
+                      label={t('Timezone')}
+                      hideLabel
                       defaultValue="UTC"
                       options={timezoneOptions}
                       required
@@ -365,9 +372,10 @@ function MonitorForm({
                 return (
                   <MultiColumnInput columns="auto 1fr 2fr">
                     <LabelText>{t('Every')}</LabelText>
-                    <StyledNumberField
+                    <NumberField
                       name="config.schedule.frequency"
-                      aria-label={t('Interval Frequency')}
+                      label={t('Interval Frequency')}
+                      hideLabel
                       placeholder="e.g. 1"
                       defaultValue="1"
                       min={1}
@@ -375,9 +383,10 @@ function MonitorForm({
                       stacked
                       inline={false}
                     />
-                    <StyledSelectField
+                    <SelectField
                       name="config.schedule.interval"
-                      aria-label={t('Interval Type')}
+                      label={t('Interval Type')}
+                      hideLabel
                       options={getScheduleIntervals(
                         Number(form.current.getValue('config.schedule.frequency') ?? 1)
                       )}
@@ -548,22 +557,6 @@ const StyledAlert = styled(Alert)`
   margin-bottom: 0;
 `;
 
-const StyledNumberField = styled(NumberField)`
-  padding: 0;
-`;
-
-const StyledSelectField = styled(SelectField)`
-  padding: 0;
-`;
-
-const StyledTextField = styled(TextField)`
-  padding: 0;
-`;
-
-const StyledSentryProjectSelectorField = styled(SentryProjectSelectorField)`
-  padding: 0;
-`;
-
 const StyledListItem = styled(ListItem)`
   font-size: ${p => p.theme.fontSizeExtraLarge};
   font-weight: ${p => p.theme.fontWeightBold};
@@ -580,13 +573,17 @@ const ListItemSubText = styled(Text)`
   color: ${p => p.theme.subText};
 `;
 
-const InputGroup = styled('div')`
+const InputGroup = styled('div')<{noPadding?: boolean}>`
   padding-left: ${space(4)};
   margin-top: ${space(1)};
   margin-bottom: ${space(4)};
   display: flex;
   flex-direction: column;
   gap: ${space(1)};
+
+  ${FieldWrapper} {
+    ${p => p.noPadding && `padding: 0;`};
+  }
 `;
 
 const MultiColumnInput = styled('div')<{columns?: string}>`

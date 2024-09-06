@@ -1,3 +1,4 @@
+import Alert from 'sentry/components/alert';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/step';
 import type {
@@ -39,7 +40,7 @@ return Application::configure(basePath: dirname(__DIR__))
     })->create();`;
 
 const getConfigureSnippet = (params: Params) =>
-  `SENTRY_LARAVEL_DSN=${params.dsn}${
+  `SENTRY_LARAVEL_DSN=${params.dsn.public}${
     params.isPerformanceSelected
       ? `
 # Specify a fixed sample rate
@@ -121,7 +122,7 @@ const onboarding: OnboardingConfig = {
         {
           description: t('Configure the Sentry DSN with this command:'),
           language: 'shell',
-          code: `php artisan sentry:publish --dsn=${params.dsn}`,
+          code: `php artisan sentry:publish --dsn=${params.dsn.public}`,
         },
         {
           description: tct(
@@ -130,6 +131,18 @@ const onboarding: OnboardingConfig = {
           ),
           language: 'shell',
           code: getConfigureSnippet(params),
+        },
+        {
+          description: (
+            <Alert type="warning">
+              {tct(
+                'In order to receive stack trace arguments in your errors, make sure to set [code:zend.exception_ignore_args: Off] in your php.ini',
+                {
+                  code: <code />,
+                }
+              )}
+            </Alert>
+          ),
         },
       ],
     },
@@ -285,7 +298,7 @@ const crashReportOnboarding: OnboardingConfig = {
   @if(app()->bound('sentry') && app('sentry')->getLastEventId())
   <div class="subtitle">Error ID: {{ app('sentry')->getLastEventId() }}</div>
   <script>
-    Sentry.init({ dsn: '${params.dsn}' });
+    Sentry.init({ dsn: '${params.dsn.public}' });
     Sentry.showReportDialog({
       eventId: '{{ app('sentry')->getLastEventId() }}'
     });

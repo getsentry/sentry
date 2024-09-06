@@ -14,7 +14,9 @@ import type {Organization} from 'sentry/types/organization';
 import {generateQueryWithTag} from 'sentry/utils';
 import type EventView from 'sentry/utils/discover/eventView';
 import {formatTagKey} from 'sentry/utils/discover/fields';
+import {SavedQueryDatasets} from 'sentry/utils/discover/types';
 import type {UseInfiniteQueryResult} from 'sentry/utils/queryClient';
+import {hasDatasetSelector} from 'sentry/views/dashboards/utils';
 import StyledEmptyStateWarning from 'sentry/views/replays/detail/emptyState';
 
 import {TraceDrawerComponents} from '../../details/styles';
@@ -25,7 +27,11 @@ const getTagTarget = (
   eventView: EventView,
   organization: Organization
 ) => {
-  const url = eventView.getResultsViewUrlTarget(organization.slug, false);
+  const url = eventView.getResultsViewUrlTarget(
+    organization.slug,
+    false,
+    hasDatasetSelector(organization) ? SavedQueryDatasets.ERRORS : undefined
+  );
   url.query = generateQueryWithTag(url.query, {
     key: formatTagKey(tagKey),
     value: tagValue,
@@ -110,14 +116,18 @@ export function TagsSummary(props: TagSummaryProps) {
     fetchNextPage,
     hasNextPage,
     isFetchingNextPage,
-    isLoading, // If anything is loaded yet
+    isPending, // If anything is loaded yet
   } = props.tagsInfiniteQueryResults;
 
   const tags: Tag[] = useMemo(() => {
     if (!data) {
       return [];
     }
-    return data.pages.flatMap(([pageData]) => (isEmpty(pageData) ? [] : pageData));
+    // filter out replayId since we no longer want to
+    // display this trace details
+    return data.pages
+      .flatMap(([pageData]) => (isEmpty(pageData) ? [] : pageData))
+      .filter(d => d.key !== 'replayId');
   }, [data]);
 
   return (
@@ -143,7 +153,7 @@ export function TagsSummary(props: TagSummaryProps) {
                   ))}
                 </StyledTagFacetList>
               ) : null}
-              {isLoading || isFetchingNextPage ? (
+              {isPending || isFetchingNextPage ? (
                 <TagsSummaryPlaceholder />
               ) : tags.length === 0 ? (
                 <StyledEmptyStateWarning small>

@@ -13,7 +13,7 @@ __all__ = ("BurstTaskRunner", "TaskRunner")
 
 
 @contextlib.contextmanager
-def TaskRunner() -> Generator[None, None, None]:
+def TaskRunner() -> Generator[None]:
     prev = settings.CELERY_ALWAYS_EAGER
     settings.CELERY_ALWAYS_EAGER = True
     current_app.conf.CELERY_ALWAYS_EAGER = True
@@ -60,7 +60,7 @@ class _BurstState:
         self.queue.append((task, args, {} if kwargs is None else kwargs))
 
     @contextlib.contextmanager
-    def _patched(self) -> Generator[Self, None, None]:
+    def _patched(self) -> Generator[Self]:
         if self._active:
             raise AssertionError("nested BurstTaskRunner!")
 
@@ -72,7 +72,7 @@ class _BurstState:
                 self._active = False
 
     @contextlib.contextmanager
-    def temporarily_enable_normal_task_processing(self) -> Generator[None, None, None]:
+    def temporarily_enable_normal_task_processing(self) -> Generator[None]:
         if not self._active:
             raise AssertionError("cannot disable burst when not active")
 

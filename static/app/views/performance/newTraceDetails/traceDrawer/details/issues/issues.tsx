@@ -1,4 +1,5 @@
 import {useMemo} from 'react';
+import type {Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import ActorAvatar from 'sentry/components/avatar/actorAvatar';
@@ -14,7 +15,8 @@ import GroupChart from 'sentry/components/stream/groupChart';
 import {IconUser} from 'sentry/icons';
 import {t, tct, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {Group, Organization} from 'sentry/types';
+import type {Group} from 'sentry/types/group';
+import type {Organization} from 'sentry/types/organization';
 import type {
   TraceError,
   TraceErrorOrIssue,
@@ -44,9 +46,27 @@ const TABLE_WIDTH_BREAKPOINTS = {
   FOURTH: 400,
 };
 
+const issueOrderPriority: Record<keyof Theme['level'], number> = {
+  fatal: 0,
+  error: 1,
+  warning: 2,
+  sample: 3,
+  info: 4,
+  default: 5,
+  unknown: 6,
+};
+
+function sortIssuesByLevel(a: TraceError, b: TraceError): number {
+  // If the level is not defined in the priority map, default to unknown
+  const aPriority = issueOrderPriority[a.level] ?? issueOrderPriority.unknown;
+  const bPriority = issueOrderPriority[b.level] ?? issueOrderPriority.unknown;
+
+  return aPriority - bPriority;
+}
+
 function Issue(props: IssueProps) {
   const {
-    isLoading,
+    isPending,
     data: fetchedIssue,
     isError,
   } = useApiQuery<Group>(
@@ -64,7 +84,7 @@ function Issue(props: IssueProps) {
     }
   );
 
-  return isLoading ? (
+  return isPending ? (
     <StyledLoadingIndicatorWrapper>
       <LoadingIndicator size={24} mini />
     </StyledLoadingIndicatorWrapper>
@@ -162,7 +182,7 @@ export function IssueList({issues, node, organization}: IssueListProps) {
   }, [node, node.performance_issues.size]);
 
   const uniqueIssues = useMemo(() => {
-    return [...uniqueErrorIssues, ...uniquePerformanceIssues];
+    return [...uniquePerformanceIssues, ...uniqueErrorIssues.sort(sortIssuesByLevel)];
   }, [uniqueErrorIssues, uniquePerformanceIssues]);
 
   if (!issues.length) {

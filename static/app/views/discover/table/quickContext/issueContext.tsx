@@ -14,7 +14,8 @@ import {Tooltip} from 'sentry/components/tooltip';
 import {IconCheckmark, IconMute, IconNot, IconUser} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {Event, Group} from 'sentry/types';
+import type {Event} from 'sentry/types/event';
+import type {Group} from 'sentry/types/group';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useApiQuery} from 'sentry/utils/queryClient';
 
@@ -41,7 +42,7 @@ function IssueContext(props: BaseContextProps) {
   }, [organization]);
 
   const {
-    isLoading: issueLoading,
+    isPending: issueLoading,
     isError: issueError,
     data: issue,
   } = useApiQuery<Group>(
@@ -62,7 +63,7 @@ function IssueContext(props: BaseContextProps) {
   // NOTE: Suspect commits are generated from the first event of an issue.
   // Therefore, all events for an issue have the same suspect commits.
   const {
-    isLoading: eventLoading,
+    isPending: eventLoading,
     isError: eventError,
     data: event,
   } = useApiQuery<Event>([`/issues/${dataRow['issue.id']}/events/oldest/`], {

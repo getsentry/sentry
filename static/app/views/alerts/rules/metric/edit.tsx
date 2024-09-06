@@ -1,19 +1,17 @@
-import {useCallback} from 'react';
-import type {RouteComponentProps} from 'react-router';
+import {useCallback, useEffect} from 'react';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {Alert} from 'sentry/components/alert';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
-import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
+import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {metric} from 'sentry/utils/analytics';
 import {useApiQuery} from 'sentry/utils/queryClient';
-import routeTitleGen from 'sentry/utils/routeTitle';
+import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import {useNavigate} from 'sentry/utils/useNavigate';
-import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import RuleForm from 'sentry/views/alerts/rules/metric/ruleForm';
 import type {MetricRule} from 'sentry/views/alerts/rules/metric/types';
 
@@ -40,7 +38,7 @@ export function MetricRulesEdit({
   const navigate = useNavigate();
 
   const {
-    isLoading,
+    isPending,
     isError,
     data: rule,
     error,
@@ -49,17 +47,27 @@ export function MetricRulesEdit({
     {
       staleTime: 0,
       retry: false,
-      onSuccess: data => {
-        onChangeTitle(data[0]?.name ?? '');
-      },
-      onError: ({responseText}) => {
-        const {detail} = JSON.parse(responseText ?? '');
+    }
+  );
+
+  useEffect(() => {
+    if (!isPending && rule) {
+      onChangeTitle(rule.name ?? '');
+    }
+  }, [onChangeTitle, isPending, rule]);
+
+  useEffect(() => {
+    if (isError && error?.responseText) {
+      try {
+        const {detail} = JSON.parse(error.responseText);
         if (detail) {
           addErrorMessage(detail);
         }
-      },
+      } catch {
+        // Ignore
+      }
     }
-  );
+  }, [isError, error]);
 
   const handleSubmitSuccess = useCallback(() => {
     metric.endSpan({name: 'saveAlertRule'});
@@ -70,7 +78,7 @@ export function MetricRulesEdit({
     );
   }, [params.ruleId, navigate, organization.slug]);
 
-  if (isLoading) {
+  if (isPending) {
     return <LoadingIndicator />;
   }
 
@@ -86,26 +94,17 @@ export function MetricRulesEdit({
     return <LoadingError />;
   }
 
-  const title = routeTitleGen(
-    rule?.name ? t('Alert - %s', rule?.name) : '',
-    organization.slug,
-    false,
-    project?.slug
-  );
-
   return (
-    <SentryDocumentTitle title={title}>
-      <RuleForm
-        {...props}
-        params={params}
-        project={project}
-        userTeamIds={userTeamIds}
-        organization={organization}
-        ruleId={params.ruleId}
-        rule={rule}
-        onSubmitSuccess={handleSubmitSuccess}
-        disableProjectSelector
-      />
-    </SentryDocumentTitle>
+    <RuleForm
+      {...props}
+      params={params}
+      project={project}
+      userTeamIds={userTeamIds}
+      organization={organization}
+      ruleId={params.ruleId}
+      rule={rule}
+      onSubmitSuccess={handleSubmitSuccess}
+      disableProjectSelector
+    />
   );
 }

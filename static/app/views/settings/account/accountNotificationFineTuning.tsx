@@ -1,5 +1,4 @@
 import {Fragment} from 'react';
-import type {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 
 import EmptyMessage from 'sentry/components/emptyMessage';
@@ -15,7 +14,10 @@ import ConfigStore from 'sentry/stores/configStore';
 import OrganizationsStore from 'sentry/stores/organizationsStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import {space} from 'sentry/styles/space';
-import type {Organization, Project, UserEmail} from 'sentry/types';
+import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
+import type {Organization} from 'sentry/types/organization';
+import type {Project} from 'sentry/types/project';
+import type {UserEmail} from 'sentry/types/user';
 import parseLinkHeader from 'sentry/utils/parseLinkHeader';
 import withOrganizations from 'sentry/utils/withOrganizations';
 import DeprecatedAsyncView from 'sentry/views/deprecatedAsyncView';
@@ -46,6 +48,7 @@ const accountNotifications = [
   'quota',
   'spikeProtection',
   'reports',
+  'brokenMonitors',
 ];
 
 type ANBPProps = {

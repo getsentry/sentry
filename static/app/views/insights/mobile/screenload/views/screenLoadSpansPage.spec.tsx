@@ -26,6 +26,7 @@ function mockResponses(organization, project) {
     hasMore: false,
     initiallyLoaded: false,
     onSearch: jest.fn(),
+    reloadProjects: jest.fn(),
     placeholders: [],
     projects: [project],
   });
@@ -112,7 +113,10 @@ describe('Screen Summary', function () {
     let eventsStatsMock;
     let organization;
     beforeEach(function () {
-      const project = ProjectFixture({platform: 'react-native'});
+      const project = ProjectFixture({
+        platform: 'react-native',
+        hasInsightsScreenLoad: true,
+      });
       organization = OrganizationFixture({features: ['insights-initial-modules']});
       mockResponses(organization, project);
       localStorage.clear();
@@ -166,7 +170,7 @@ describe('Screen Summary', function () {
             query: expect.objectContaining({
               dataset: 'spansMetrics',
               query:
-                'transaction.op:ui.load transaction:MainActivity has:span.description span.op:[file.read,file.write,ui.load,http.client,db,db.sql.room,db.sql.query,db.sql.transaction] os.name:Android release:[com.example.vu.android@2.10.5,com.example.vu.android@2.10.3+42]',
+                'transaction.op:ui.load transaction:MainActivity has:span.description span.op:[file.read,file.write,ui.load,http.client,db,db.sql.room,db.sql.query,db.sql.transaction] os.name:Android ( release:com.example.vu.android@2.10.5 OR release:com.example.vu.android@2.10.3+42 )',
             }),
           })
         );
@@ -180,7 +184,7 @@ describe('Screen Summary', function () {
             query: expect.objectContaining({
               dataset: 'metrics',
               query:
-                'event.type:transaction transaction.op:ui.load transaction:MainActivity os.name:Android release:[com.example.vu.android@2.10.5,com.example.vu.android@2.10.3+42]',
+                'event.type:transaction transaction.op:ui.load transaction:MainActivity os.name:Android ( release:com.example.vu.android@2.10.5 OR release:com.example.vu.android@2.10.3+42 )',
             }),
           })
         );
@@ -192,7 +196,7 @@ describe('Screen Summary', function () {
             query: expect.objectContaining({
               dataset: 'metrics',
               query:
-                'event.type:transaction transaction.op:ui.load transaction:MainActivity os.name:Android release:[com.example.vu.android@2.10.5,com.example.vu.android@2.10.3+42]',
+                'event.type:transaction transaction.op:ui.load transaction:MainActivity os.name:Android ( release:com.example.vu.android@2.10.5 OR release:com.example.vu.android@2.10.3+42 )',
             }),
           })
         );
@@ -205,7 +209,7 @@ describe('Screen Summary', function () {
     let eventsStatsMock;
     let organization;
     beforeEach(function () {
-      const project = ProjectFixture({platform: 'android'});
+      const project = ProjectFixture({platform: 'android', hasInsightsScreenLoad: true});
       organization = OrganizationFixture({features: ['insights-initial-modules']});
       mockResponses(organization, project);
       localStorage.clear();
@@ -259,7 +263,7 @@ describe('Screen Summary', function () {
             query: expect.objectContaining({
               dataset: 'spansMetrics',
               query:
-                'transaction.op:ui.load transaction:MainActivity has:span.description span.op:[file.read,file.write,ui.load,http.client,db,db.sql.room,db.sql.query,db.sql.transaction] release:[com.example.vu.android@2.10.5,com.example.vu.android@2.10.3+42]',
+                'transaction.op:ui.load transaction:MainActivity has:span.description span.op:[file.read,file.write,ui.load,http.client,db,db.sql.room,db.sql.query,db.sql.transaction] ( release:com.example.vu.android@2.10.5 OR release:com.example.vu.android@2.10.3+42 )',
             }),
           })
         );
@@ -273,7 +277,7 @@ describe('Screen Summary', function () {
             query: expect.objectContaining({
               dataset: 'metrics',
               query:
-                'event.type:transaction transaction.op:ui.load transaction:MainActivity release:[com.example.vu.android@2.10.5,com.example.vu.android@2.10.3+42]',
+                'event.type:transaction transaction.op:ui.load transaction:MainActivity ( release:com.example.vu.android@2.10.5 OR release:com.example.vu.android@2.10.3+42 )',
             }),
           })
         );
@@ -286,7 +290,7 @@ describe('Screen Summary', function () {
             query: expect.objectContaining({
               dataset: 'metrics',
               query:
-                'event.type:transaction transaction.op:ui.load transaction:MainActivity release:[com.example.vu.android@2.10.5,com.example.vu.android@2.10.3+42]',
+                'event.type:transaction transaction.op:ui.load transaction:MainActivity ( release:com.example.vu.android@2.10.5 OR release:com.example.vu.android@2.10.3+42 )',
             }),
           })
         );

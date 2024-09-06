@@ -12,14 +12,11 @@ import {Tooltip} from 'sentry/components/tooltip';
 import {IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {
-  Event,
-  Frame,
-  Organization,
-  PlatformKey,
-  StacktraceLinkResult,
-} from 'sentry/types';
-import {CodecovStatusCode} from 'sentry/types';
+import type {Event, Frame} from 'sentry/types/event';
+import type {StacktraceLinkResult} from 'sentry/types/integrations';
+import {CodecovStatusCode} from 'sentry/types/integrations';
+import type {Organization} from 'sentry/types/organization';
+import type {PlatformKey} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {getAnalyticsDataForEvent} from 'sentry/utils/events';
 import {getIntegrationIcon, getIntegrationSourceUrl} from 'sentry/utils/integrationUtil';
@@ -145,7 +142,7 @@ export function StacktraceLink({frame, event, line}: StacktraceLinkProps) {
 
   const {
     data: match,
-    isLoading,
+    isPending,
     refetch,
   } = useStacktraceLink(
     {
@@ -162,7 +159,7 @@ export function StacktraceLink({frame, event, line}: StacktraceLinkProps) {
     isQueryEnabled &&
     organization.codecovAccess &&
     organization.features.includes('codecov-integration');
-  const {data: coverage, isLoading: isLoadingCoverage} = useStacktraceCoverage(
+  const {data: coverage, isPending: isLoadingCoverage} = useStacktraceCoverage(
     {
       event,
       frame,
@@ -249,7 +246,7 @@ export function StacktraceLink({frame, event, line}: StacktraceLinkProps) {
     );
   }
 
-  if (isLoading || !match) {
+  if (isPending || !match) {
     const placeholderWidth = coverageEnabled ? '40px' : '14px';
     return (
       <StacktraceLinkWrapper>
@@ -395,7 +392,7 @@ const StacktraceLinkWrapper = styled('div')`
   align-items: center;
   color: ${p => p.theme.subText};
   font-family: ${p => p.theme.text.family};
-  padding: ${space(0)} ${space(1)};
+  padding: 0 ${space(1)};
 `;
 
 const FixMappingButton = styled(Button)`

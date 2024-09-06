@@ -5,6 +5,8 @@ from django.db import router, transaction
 from sentry import roles
 from sentry.constants import RESERVED_ORGANIZATION_SLUGS
 from sentry.db.models.utils import slugify_instance
+from sentry.hybridcloud.models.outbox import ControlOutbox, RegionOutbox, outbox_context
+from sentry.hybridcloud.outbox.category import OutboxCategory, OutboxScope
 from sentry.hybridcloud.services.control_organization_provisioning import (
     ControlOrganizationProvisioningRpcService,
     RpcOrganizationSlugReservation,
@@ -16,13 +18,6 @@ from sentry.models.organizationmembermapping import OrganizationMemberMapping
 from sentry.models.organizationslugreservation import (
     OrganizationSlugReservation,
     OrganizationSlugReservationType,
-)
-from sentry.models.outbox import (
-    ControlOutbox,
-    OutboxCategory,
-    OutboxScope,
-    RegionOutbox,
-    outbox_context,
 )
 from sentry.organizations.services.organization import RpcOrganization
 from sentry.services.organization import OrganizationProvisioningOptions

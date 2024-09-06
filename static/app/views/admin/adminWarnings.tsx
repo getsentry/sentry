@@ -10,11 +10,11 @@ type Data = {
 };
 
 function AdminWarnings() {
-  const {data, isLoading, isError} = useApiQuery<Data>(['/internal/warnings/'], {
+  const {data, isPending, isError} = useApiQuery<Data>(['/internal/warnings/'], {
     staleTime: 0,
   });
 
-  if (isLoading) {
+  if (isPending) {
     return <LoadingIndicator />;
   }
 

@@ -1,7 +1,6 @@
 import color from 'color';
-import type {YAXisComponentOption} from 'echarts';
-import moment from 'moment';
-import momentTimezone from 'moment-timezone';
+import type {MarkAreaComponentOption, YAXisComponentOption} from 'echarts';
+import moment from 'moment-timezone';
 
 import type {AreaChartProps, AreaChartSeries} from 'sentry/components/charts/areaChart';
 import MarkArea from 'sentry/components/charts/components/markArea';
@@ -17,8 +16,12 @@ import {getCrashFreeRateSeries} from 'sentry/utils/sessions';
 import {lightTheme as theme} from 'sentry/utils/theme';
 import type {MetricRule, Trigger} from 'sentry/views/alerts/rules/metric/types';
 import {AlertRuleTriggerType, Dataset} from 'sentry/views/alerts/rules/metric/types';
-import type {Incident} from 'sentry/views/alerts/types';
-import {IncidentActivityType, IncidentStatus} from 'sentry/views/alerts/types';
+import type {Anomaly, Incident} from 'sentry/views/alerts/types';
+import {
+  AnomalyType,
+  IncidentActivityType,
+  IncidentStatus,
+} from 'sentry/views/alerts/types';
 import {
   ALERT_CHART_MIN_MAX_BUFFER,
   alertAxisFormatter,
@@ -35,7 +38,7 @@ function formatTooltipDate(date: moment.MomentInput, format: string): string {
   const {
     options: {timezone},
   } = ConfigStore.get('user');
-  return momentTimezone.tz(date, timezone).format(format);
+  return moment.tz(date, timezone).format(format);
 }
 
 function createStatusAreaSeries(
@@ -137,12 +140,56 @@ function createIncidentSeries(
   };
 }
 
+function createAnomalyMarkerSeries(
+  lineColor: string,
+  timestamp: string
+): AreaChartSeries {
+  const formatter = ({value}: any) => {
+    const time = formatTooltipDate(moment(value), 'MMM D, YYYY LT');
+    return [
+      `<div class="tooltip-series"><div>`,
+      `</div>Anomaly Detected</div>`,
+      `<div class="tooltip-footer">${time}</div>`,
+      '<div class="tooltip-arrow"></div>',
+    ].join('');
+  };
+
+  return {
+    seriesName: 'Anomaly Line',
+    type: 'line',
+    markLine: MarkLine({
+      silent: false,
+      lineStyle: {color: lineColor, type: 'dashed'},
+      label: {
+        silent: true,
+        show: false,
+      },
+      data: [
+        {
+          xAxis: timestamp,
+        },
+      ],
+      tooltip: {
+        formatter,
+      },
+    }),
+    data: [],
+    tooltip: {
+      trigger: 'item',
+      alwaysShowContent: true,
+      formatter,
+    },
+  };
+}
+
 export type MetricChartData = {
   rule: MetricRule;
   timeseriesData: Series[];
+  anomalies?: Anomaly[];
   handleIncidentClick?: (incident: Incident) => void;
   incidents?: Incident[];
   selectedIncident?: Incident | null;
+  seriesName?: string;
   showWaitingForData?: boolean;
 };
 
@@ -157,10 +204,12 @@ type MetricChartOption = {
 export function getMetricAlertChartOption({
   timeseriesData,
   rule,
+  seriesName,
   incidents,
   selectedIncident,
   handleIncidentClick,
   showWaitingForData,
+  anomalies,
 }: MetricChartData): MetricChartOption {
   let criticalTrigger: Trigger | undefined;
   let warningTrigger: Trigger | undefined;
@@ -236,7 +285,6 @@ export function getMetricAlertChartOption({
   }
 
   if (incidents) {
-    // select incidents that fall within the graph range
     incidents
       .filter(
         incident =>
@@ -277,7 +325,7 @@ export function getMetricAlertChartOption({
             incidentColor,
             incidentStartDate,
             incidentStartValue,
-            series[0].seriesName,
+            seriesName ?? series[0].seriesName,
             rule.aggregate,
             handleIncidentClick
           )
@@ -338,6 +386,7 @@ export function getMetricAlertChartOption({
           const selectedIncidentColor =
             incidentColor === theme.yellow300 ? theme.yellow100 : theme.red100;
 
+          // Is areaSeries used anywhere?
           areaSeries.push({
             seriesName: '',
             type: 'line',
@@ -352,6 +401,77 @@ export function getMetricAlertChartOption({
           });
         }
       });
+  }
+
+  if (anomalies) {
+    const anomalyBlocks: MarkAreaComponentOption['data'] = [];
+    let start: string | undefined;
+    let end: string | undefined;
+    anomalies
+      .filter(anomalyts => {
+        const ts = new Date(anomalyts.timestamp).getTime();
+        return firstPoint < ts && ts < lastPoint;
+      })
+      .forEach(anomalyts => {
+        const {anomaly, timestamp} = anomalyts;
+
+        if (
+          [AnomalyType.high, AnomalyType.low].includes(anomaly.anomaly_type as string)
+        ) {
+          if (!start) {
+            // If this is the start of an anomaly, set start
+            start = new Date(timestamp).toISOString();
+          }
+          // as long as we have an valid anomaly type - continue tracking until we've hit the end
+          end = new Date(timestamp).toISOString();
+        } else {
+          if (start && end) {
+            // If we've hit a non-anomaly type, push the block
+            anomalyBlocks.push([
+              {
+                xAxis: start,
+              },
+              {
+                xAxis: end,
+              },
+            ]);
+            // Create a marker line for the start of the anomaly
+            series.push(createAnomalyMarkerSeries(theme.purple300, start));
+          }
+          // reset the start/end to capture the next anomaly block
+          start = undefined;
+          end = undefined;
+        }
+      });
+    if (start && end) {
+      // push in the last block
+      anomalyBlocks.push([
+        {
+          name: 'Anomaly Detected',
+          xAxis: start,
+        },
+        {
+          xAxis: end,
+        },
+      ]);
+    }
+
+    // NOTE: if timerange is too small - highlighted area will not be visible
+    // Possibly provide a minimum window size if the time range is too large?
+    series.push({
+      seriesName: '',
+      name: 'Anomaly',
+      type: 'line',
+      smooth: true,
+      data: [],
+      markArea: {
+        itemStyle: {
+          color: 'rgba(255, 173, 177, 0.4)',
+        },
+        silent: true, // potentially don't make this silent if we want to render the `anomaly detected` in the tooltip
+        data: anomalyBlocks,
+      },
+    });
   }
 
   let maxThresholdValue = 0;

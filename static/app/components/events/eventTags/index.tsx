@@ -4,8 +4,8 @@ import * as Sentry from '@sentry/react';
 import EventTagCustomBanner from 'sentry/components/events/eventTags/eventTagCustomBanner';
 import EventTagsTree from 'sentry/components/events/eventTags/eventTagsTree';
 import {TagFilter} from 'sentry/components/events/eventTags/util';
-import type {Project} from 'sentry/types';
 import type {Event, EventTag} from 'sentry/types/event';
+import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {isMobilePlatform} from 'sentry/utils/platform';
@@ -33,15 +33,10 @@ export function EventTags({
 
   const tagsSource = defined(filteredTags) ? filteredTags : event.tags;
 
-  const tags = !organization.features.includes('device-classification')
-    ? tagsSource?.filter(tag => tag.key !== 'device.class')
-    : tagsSource;
+  const tags = tagsSource;
 
   useEffect(() => {
-    if (
-      organization.features.includes('device-classification') &&
-      isMobilePlatform(event.platform)
-    ) {
+    if (isMobilePlatform(event.platform)) {
       const deviceClass = tagsSource.find(tag => tag.key === 'device.class')?.value;
       const deviceFamily = tagsSource.find(tag => tag.key === 'device.family')?.value;
       const deviceModel = tagsSource.find(tag => tag.key === 'device.model')?.value;
@@ -100,9 +95,18 @@ export function EventTags({
 
   const hasCustomTagsBanner = tagFilter === TagFilter.CUSTOM && tags.length === 0;
 
+  // filter out replayId since we no longer want to display this on
+  // trace or issue details
+  const filtered = tags.filter(t => t.key !== 'replayId');
+
   return (
     <Fragment>
-      <EventTagsTree event={event} meta={meta} projectSlug={projectSlug} tags={tags} />
+      <EventTagsTree
+        event={event}
+        meta={meta}
+        projectSlug={projectSlug}
+        tags={filtered}
+      />
       {hasCustomTagsBanner && <EventTagCustomBanner />}
     </Fragment>
   );

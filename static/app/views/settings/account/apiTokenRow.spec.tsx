@@ -10,13 +10,30 @@ import {
 import ApiTokenRow from 'sentry/views/settings/account/apiTokenRow';
 
 describe('ApiTokenRow', () => {
-  it('renders', () => {
-    render(<ApiTokenRow onRemove={() => {}} token={ApiTokenFixture()} />);
+  it('renders link when can edit', () => {
+    render(
+      <ApiTokenRow
+        onRemove={() => {}}
+        token={ApiTokenFixture({id: '1', name: 'token1'})}
+        canEdit
+      />
+    );
+    screen.getByRole('link', {name: /token1/i});
+  });
+
+  it('renders text when cannot edit', () => {
+    render(
+      <ApiTokenRow
+        onRemove={() => {}}
+        token={ApiTokenFixture({id: '1', name: 'token1'})}
+      />
+    );
+    screen.getByRole('heading', {name: /token1/i});
   });
 
   it('calls onRemove callback when trash can is clicked', async () => {
     const cb = jest.fn();
-    render(<ApiTokenRow onRemove={cb} token={ApiTokenFixture()} />);
+    render(<ApiTokenRow onRemove={cb} token={ApiTokenFixture()} canEdit />);
     renderGlobalModal();
 
     await userEvent.click(screen.getByLabelText('Remove'));
@@ -29,7 +46,7 @@ describe('ApiTokenRow', () => {
     token.tokenLastCharacters = 'a1b2c3d4';
 
     const cb = jest.fn();
-    render(<ApiTokenRow onRemove={cb} token={token} />);
+    render(<ApiTokenRow onRemove={cb} token={token} canEdit />);
     expect(screen.queryByLabelText('Token preview')).toBeInTheDocument();
   });
 });

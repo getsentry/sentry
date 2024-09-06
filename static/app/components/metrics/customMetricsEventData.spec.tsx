@@ -106,7 +106,7 @@ describe('CustomMetricsEventData', () => {
       }
     );
 
-    expect(screen.getByText('Emitted Metrics')).toBeInTheDocument();
+    expect(screen.getByText('Custom Metrics')).toBeInTheDocument();
 
     expect(screen.getByText('my.metric')).toBeInTheDocument();
     expect(screen.getByRole('link', {name: 'View Metric'})).toBeInTheDocument();
@@ -140,7 +140,7 @@ describe('CustomMetricsEventData', () => {
       {organization}
     );
 
-    expect(screen.getByText('Emitted Metrics')).toBeInTheDocument();
+    expect(screen.getByText('Custom Metrics')).toBeInTheDocument();
 
     expect(screen.getByText('my.metric')).toBeInTheDocument();
     expect(screen.getByRole('link', {name: 'View Metric'})).toBeInTheDocument();
@@ -174,7 +174,7 @@ describe('CustomMetricsEventData', () => {
       }
     );
 
-    expect(screen.getByText('Emitted Metrics')).toBeInTheDocument();
+    expect(screen.getByText('Custom Metrics')).toBeInTheDocument();
 
     expect(screen.getByText('my.metric')).toBeInTheDocument();
     expect(screen.getByRole('link', {name: 'View Metric'})).toBeInTheDocument();
@@ -209,7 +209,7 @@ describe('CustomMetricsEventData', () => {
       }
     );
 
-    expect(screen.getByText('Emitted Metrics')).toBeInTheDocument();
+    expect(screen.getByText('Custom Metrics')).toBeInTheDocument();
 
     expect(screen.getByText('my.metric')).toBeInTheDocument();
     expect(screen.getByRole('link', {name: 'View Metric'})).toBeInTheDocument();
@@ -308,7 +308,7 @@ describe('CustomMetricsEventData', () => {
       }
     );
 
-    expect(screen.getByText('Emitted Metrics')).toBeInTheDocument();
+    expect(screen.getByText('Custom Metrics')).toBeInTheDocument();
 
     expect(screen.getByText('my.counter')).toBeInTheDocument();
     expect(screen.getAllByText('my.distribution')).toHaveLength(2);

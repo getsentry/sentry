@@ -1,6 +1,6 @@
 import {Fragment, useMemo} from 'react';
 import styled from '@emotion/styled';
-import moment from 'moment';
+import moment from 'moment-timezone';
 
 import ActorAvatar from 'sentry/components/avatar/actorAvatar';
 import Tag from 'sentry/components/badge/tag';

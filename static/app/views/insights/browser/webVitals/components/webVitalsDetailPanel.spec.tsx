@@ -100,7 +100,7 @@ describe('WebVitalsDetailPanel', function () {
             'performance_score(measurements.score.cls)',
             `performance_score(measurements.score.inp)`,
             'performance_score(measurements.score.ttfb)',
-            'avg(measurements.score.total)',
+            'performance_score(measurements.score.total)',
             'avg(measurements.score.weight.lcp)',
             'avg(measurements.score.weight.fcp)',
             'avg(measurements.score.weight.cls)',
@@ -128,6 +128,8 @@ describe('WebVitalsDetailPanel', function () {
         query: expect.objectContaining({
           dataset: 'metrics',
           field: [
+            'project.id',
+            'project',
             'transaction',
             'p75(measurements.lcp)',
             'p75(measurements.fcp)',
@@ -136,7 +138,7 @@ describe('WebVitalsDetailPanel', function () {
             'p75(measurements.inp)',
             'performance_score(measurements.score.lcp)',
             'opportunity_score(measurements.score.lcp)',
-            'avg(measurements.score.total)',
+            'performance_score(measurements.score.total)',
             'count()',
             'count_scores(measurements.score.lcp)',
             'count_scores(measurements.score.fcp)',

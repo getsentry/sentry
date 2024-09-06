@@ -1,11 +1,11 @@
 from __future__ import annotations
 
-from collections.abc import Callable, Mapping, Sequence
-from typing import Any
+from collections.abc import Iterable, Sequence
+from typing import Any, Literal, TypedDict
 
 from sentry import features
-from sentry.eventstore.models import GroupEvent
-from sentry.integrations.slack.message_builder import LEVEL_TO_COLOR, SLACK_URL_FORMAT
+from sentry.eventstore.models import Event, GroupEvent
+from sentry.integrations.slack.message_builder.types import LEVEL_TO_COLOR, SLACK_URL_FORMAT
 from sentry.integrations.types import EXTERNAL_PROVIDERS, ExternalProviders
 from sentry.issues.grouptype import GroupCategory
 from sentry.models.environment import Environment
@@ -19,42 +19,53 @@ from sentry.users.services.user import RpcUser
 from sentry.utils.http import absolute_uri
 
 
-def format_actor_options(
-    actors: Sequence[Team | RpcUser], use_block_kit: bool = False
-) -> Sequence[Mapping[str, str]]:
-    sort_func: Callable[[Mapping[str, str]], Any] = lambda actor: actor["text"]
-    if use_block_kit:
-        sort_func = lambda actor: actor["text"]["text"]
-    return sorted((format_actor_option(actor, use_block_kit) for actor in actors), key=sort_func)
+class _SlackText(TypedDict):
+    type: Literal["plain_text"]
+    text: str
 
 
-def format_actor_option(actor: Team | RpcUser, use_block_kit: bool = False) -> Mapping[str, str]:
+class _SlackActorOption(TypedDict):
+    text: _SlackText
+    value: str
+
+
+class _NonSlackActorOption(TypedDict):
+    text: str
+    value: str
+
+
+def _actor_text_and_value(actor: Team | RpcUser) -> tuple[str, str]:
     if isinstance(actor, RpcUser):
-        if use_block_kit:
-            return {
-                "text": {
-                    "type": "plain_text",
-                    "text": actor.get_display_name(),
-                },
-                "value": f"user:{actor.id}",
-            }
-
-        return {"text": actor.get_display_name(), "value": f"user:{actor.id}"}
-    if isinstance(actor, Team):
-        if use_block_kit:
-            return {
-                "text": {
-                    "type": "plain_text",
-                    "text": f"#{actor.slug}",
-                },
-                "value": f"team:{actor.id}",
-            }
-        return {"text": f"#{actor.slug}", "value": f"team:{actor.id}"}
-
-    raise NotImplementedError
+        return (actor.get_display_name(), f"user:{actor.id}")
+    elif isinstance(actor, Team):
+        return (f"#{actor.slug}", f"team:{actor.id}")
+    else:
+        raise AssertionError("unreachable")
 
 
-def build_attachment_title(obj: Group | GroupEvent) -> str:
+def format_actor_option_non_slack(actor: Team | RpcUser) -> _NonSlackActorOption:
+    text, value = _actor_text_and_value(actor)
+    return {"text": text, "value": value}
+
+
+def format_actor_options_non_slack(actors: Iterable[Team | RpcUser]) -> list[_NonSlackActorOption]:
+    return sorted(
+        (format_actor_option_non_slack(actor) for actor in actors), key=lambda dct: dct["text"]
+    )
+
+
+def format_actor_option_slack(actor: Team | RpcUser) -> _SlackActorOption:
+    text, value = _actor_text_and_value(actor)
+    return {"text": {"type": "plain_text", "text": text}, "value": value}
+
+
+def format_actor_options_slack(actors: Iterable[Team | RpcUser]) -> list[_SlackActorOption]:
+    return sorted(
+        (format_actor_option_slack(actor) for actor in actors), key=lambda dct: dct["text"]["text"]
+    )
+
+
+def build_attachment_title(obj: Group | Event | GroupEvent) -> str:
     ev_metadata = obj.get_event_metadata()
     ev_type = obj.get_event_type()
     title = obj.title
@@ -64,23 +75,27 @@ def build_attachment_title(obj: Group | GroupEvent) -> str:
 
     elif ev_type == "csp":
         title = f'{ev_metadata["directive"]} - {ev_metadata["uri"]}'
-
     else:
-        group = getattr(obj, "group", obj)
         if isinstance(obj, GroupEvent):
             if obj.occurrence is not None:
                 title = obj.occurrence.issue_title
         else:
-            event = group.get_latest_event()
-            if event is not None and event.occurrence is not None:
-                title = event.occurrence.issue_title
+            if not isinstance(obj, Group):
+                group = obj.group
+            else:
+                group = obj
+
+            if group is not None:
+                event = group.get_latest_event()
+                if event is not None and event.occurrence is not None:
+                    title = event.occurrence.issue_title
 
     return title
 
 
 def get_title_link(
     group: Group,
-    event: GroupEvent | None,
+    event: Event | GroupEvent | None,
     link_to_event: bool,
     issue_details: bool,
     notification: BaseNotification | None,
@@ -97,14 +112,16 @@ def get_title_link(
             rule_env = None
         else:
             rule_env = rule.environment_id
-        try:
-            env = Environment.objects.get(id=rule_env)
-        except Environment.DoesNotExist:
-            pass
-        else:
-            other_params["environment"] = env.name
 
-        other_params["alert_rule_id"] = rule_id
+        if rule_env is not None:
+            try:
+                env = Environment.objects.get(id=rule_env)
+            except Environment.DoesNotExist:
+                pass
+            else:
+                other_params["environment"] = env.name
+
+        other_params["alert_rule_id"] = str(rule_id)
         # hard code for issue alerts
         other_params["alert_type"] = "issue"
 
@@ -136,7 +153,7 @@ def get_title_link(
     return url
 
 
-def build_attachment_text(group: Group, event: GroupEvent | None = None) -> Any | None:
+def build_attachment_text(group: Group, event: Event | GroupEvent | None = None) -> Any | None:
     # Group and Event both implement get_event_{type,metadata}
     obj = event if event is not None else group
     ev_metadata = obj.get_event_metadata()
@@ -145,7 +162,7 @@ def build_attachment_text(group: Group, event: GroupEvent | None = None) -> Any 
     if not event:
         event = group.get_latest_event()
 
-    if event and getattr(event, "occurrence", None) is not None:
+    if isinstance(event, GroupEvent) and event.occurrence is not None:
         important = event.occurrence.important_evidence_display
         if important:
             return important.value
@@ -156,7 +173,7 @@ def build_attachment_text(group: Group, event: GroupEvent | None = None) -> Any 
 
 
 def build_attachment_replay_link(
-    group: Group, event: GroupEvent | None = None, url_format: str = SLACK_URL_FORMAT
+    group: Group, event: Event | GroupEvent | None = None, url_format: str = SLACK_URL_FORMAT
 ) -> str | None:
     has_replay = features.has("organizations:session-replay", group.organization)
     has_slack_links = features.has(

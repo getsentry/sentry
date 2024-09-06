@@ -15,8 +15,9 @@ import {EditSavedSearchModal} from 'sentry/components/modals/savedSearchModal/ed
 import {IconClose, IconEllipsis} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {Organization, SavedSearch} from 'sentry/types';
-import {SavedSearchVisibility} from 'sentry/types';
+import type {SavedSearch} from 'sentry/types/group';
+import {SavedSearchVisibility} from 'sentry/types/group';
+import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import useMedia from 'sentry/utils/useMedia';
 import {useSyncedLocalStorageState} from 'sentry/utils/useSyncedLocalStorageState';
@@ -170,7 +171,7 @@ function SavedIssueSearches({
   const [showAll, setShowAll] = useState(false);
   const {
     data: savedSearches,
-    isLoading,
+    isPending,
     isError,
     refetch,
   } = useFetchSavedSearchesForOrg({orgSlug: organization.slug});
@@ -180,7 +181,7 @@ function SavedIssueSearches({
     return null;
   }
 
-  if (isLoading) {
+  if (isPending) {
     return (
       <StyledSidebar>
         <LoadingIndicator />

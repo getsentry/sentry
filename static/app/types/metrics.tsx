@@ -1,4 +1,4 @@
-import type {DateString} from 'sentry/types/core';
+import type {DateString} from './core';
 
 export type MetricAggregation =
   | 'sum'
@@ -10,6 +10,7 @@ export type MetricAggregation =
   | 'min'
   | 'p50'
   | 'p75'
+  | 'p90'
   | 'p95'
   | 'p99';
 
@@ -135,6 +136,9 @@ export interface MetricsExtractionCondition {
 export interface MetricsExtractionRule {
   aggregates: MetricAggregation[];
   conditions: MetricsExtractionCondition[];
+  createdById: number | null;
+  dateAdded: string;
+  dateUpdated: string;
   projectId: number;
   spanAttribute: string;
   tags: string[];

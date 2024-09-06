@@ -1,5 +1,4 @@
 import {Fragment} from 'react';
-import type {WithRouterProps} from 'react-router';
 import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/button';
@@ -17,8 +16,9 @@ import type {
   ExternalActorMappingOrSuggestion,
   ExternalActorSuggestion,
   Integration,
-  Organization,
-} from 'sentry/types';
+} from 'sentry/types/integrations';
+import type {WithRouterProps} from 'sentry/types/legacyReactRouter';
+import type {Organization} from 'sentry/types/organization';
 import {isExternalActorMapping} from 'sentry/utils/integrationUtil';
 import {capitalize} from 'sentry/utils/string/capitalize';
 // eslint-disable-next-line no-restricted-imports

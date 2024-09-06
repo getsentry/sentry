@@ -86,7 +86,7 @@ export function useTraces({
     query: {
       project: selection.projects,
       environment: selection.environments,
-      ...(datetime ?? normalizeDateTimeParams(selection.datetime)),
+      ...normalizeDateTimeParams(datetime ?? selection.datetime),
       query,
       per_page: limit,
       breakdownSlices: BREAKDOWN_SLICES,

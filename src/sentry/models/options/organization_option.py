@@ -81,7 +81,7 @@ class OrganizationOptionManager(OptionManager["OrganizationOption"]):
         self._option_cache[cache_key] = result
         return result
 
-    def post_save(self, instance: OrganizationOption, **kwargs: Any) -> None:
+    def post_save(self, *, instance: OrganizationOption, created: bool, **kwargs: object) -> None:
         self.reload_cache(instance.organization_id, "organizationoption.post_save")
 
     def post_delete(self, instance: OrganizationOption, **kwargs: Any) -> None:

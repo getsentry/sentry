@@ -1,7 +1,7 @@
 import type {ReactNode} from 'react';
 import {useMemo} from 'react';
 import type {Location} from 'history';
-import moment from 'moment';
+import moment from 'moment-timezone';
 
 import type {GridColumnOrder} from 'sentry/components/gridEditable';
 import GridEditable, {COL_WIDTH_UNDEFINED} from 'sentry/components/gridEditable';
@@ -107,7 +107,7 @@ export function MetricsTable(props: MetricsTableProps) {
     [trendView.end]
   );
 
-  const {data: beforeBreakpoint, isLoading: isLoadingBefore} = useDiscoverQuery(
+  const {data: beforeBreakpoint, isPending: isLoadingBefore} = useDiscoverQuery(
     getQueryParams(
       startTime,
       breakpointTime,
@@ -121,7 +121,7 @@ export function MetricsTable(props: MetricsTableProps) {
     )
   );
 
-  const {data: afterBreakpoint, isLoading: isLoadingAfter} = useDiscoverQuery(
+  const {data: afterBreakpoint, isPending: isLoadingAfter} = useDiscoverQuery(
     getQueryParams(
       breakpointTime,
       endTime,

@@ -4,7 +4,7 @@ import isEqual from 'lodash/isEqual';
 import omit from 'lodash/omit';
 import pick from 'lodash/pick';
 import uniqBy from 'lodash/uniqBy';
-import moment from 'moment';
+import moment from 'moment-timezone';
 
 import type {EventQuery} from 'sentry/actionCreators/events';
 import {COL_WIDTH_UNDEFINED} from 'sentry/components/gridEditable';
@@ -12,14 +12,10 @@ import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilte
 import {DEFAULT_PER_PAGE} from 'sentry/constants';
 import {ALL_ACCESS_PROJECTS, URL_PARAM} from 'sentry/constants/pageFilters';
 import {t} from 'sentry/locale';
-import type {
-  NewQuery,
-  PageFilters,
-  Project,
-  SavedQuery,
-  SelectValue,
-  User,
-} from 'sentry/types';
+import type {PageFilters, SelectValue} from 'sentry/types/core';
+import type {NewQuery, SavedQuery} from 'sentry/types/organization';
+import type {Project} from 'sentry/types/project';
+import type {User} from 'sentry/types/user';
 import toArray from 'sentry/utils/array/toArray';
 import type {Column, ColumnType, Field, Sort} from 'sentry/utils/discover/fields';
 import {
@@ -38,11 +34,13 @@ import {
   DISPLAY_MODE_FALLBACK_OPTIONS,
   DISPLAY_MODE_OPTIONS,
   DisplayModes,
+  type SavedQueryDatasets,
   TOP_N,
 } from 'sentry/utils/discover/types';
 import {statsPeriodToDays} from 'sentry/utils/duration/statsPeriodToDays';
 import {decodeList, decodeScalar, decodeSorts} from 'sentry/utils/queryString';
-import {normalizeUrl} from 'sentry/utils/withDomainRequired';
+import normalizeUrl from 'sentry/utils/url/normalizeUrl';
+import type {WidgetType} from 'sentry/views/dashboards/types';
 import {getSavedQueryDatasetFromLocationOrDataset} from 'sentry/views/discover/savedQuery/utils';
 import type {TableColumn, TableColumnSort} from 'sentry/views/discover/table/types';
 import {FieldValueKind} from 'sentry/views/discover/table/types';
@@ -65,6 +63,7 @@ export type MetaType = Record<string, any> & {
 export type EventsMetaType = {fields: Record<string, ColumnType>} & {
   units: Record<string, string>;
 } & {
+  discoverSplitDecision?: WidgetType;
   isMetricsData?: boolean;
   isMetricsExtractedData?: boolean;
 };
@@ -178,6 +177,31 @@ export const encodeSort = (sort: Sort): string => {
 const encodeSorts = (sorts: Readonly<Array<Sort>>): Array<string> =>
   sorts.map(encodeSort);
 
+// TODO(__SENTRY_USING_REACT_ROUTER_SIX): This is needed to translate query
+// objects that have non-string values and single-element arrays to match what
+// react-router 6 translates these objects into, so that the tests can work
+// between 3 and 6.
+//
+// Once we're fully on 6 we can likely remove these changes
+function stringifyQueryParams(
+  query: Record<string, string | number | string[] | number[] | undefined>
+) {
+  for (const field in query) {
+    if (Array.isArray(query[field])) {
+      query[field] = query[field].map((v: string | number) => v.toString());
+
+      if (query[field].length === 1) {
+        query[field] = query[field][0];
+      }
+      if (query[field].length === 0) {
+        query[field] = undefined;
+      }
+    } else {
+      query[field] = query[field]?.toString();
+    }
+  }
+}
+
 const collectQueryStringByKey = (query: Query, key: string): Array<string> => {
   const needle = query[key];
   const collection = decodeList(needle);
@@ -219,7 +243,7 @@ const decodeTeams = (location: Location): ('myteams' | number)[] => {
     .filter(team => team === 'myteams' || !isNaN(team));
 };
 
-const decodeProjects = (location: Location): number[] => {
+export const decodeProjects = (location: Location): number[] => {
   if (!location.query || !location.query.project) {
     return [];
   }
@@ -676,8 +700,8 @@ class EventView {
       field: this.getFields(),
       widths: this.getWidths(),
       sort: encodeSorts(this.sorts),
-      environment: this.environment,
-      project: this.project,
+      environment: [...this.environment],
+      project: [...this.project],
       query: this.query,
       yAxis: this.yAxis || this.getYAxis(),
       dataset: this.dataset,
@@ -691,6 +715,8 @@ class EventView {
         output[field] = this[field];
       }
     }
+
+    stringifyQueryParams(output);
 
     return cloneDeep(output as any);
   }
@@ -1189,22 +1215,30 @@ class EventView {
 
   getResultsViewUrlTarget(
     slug: string,
-    isHomepage: boolean = false
+    isHomepage: boolean = false,
+    queryDataset?: SavedQueryDatasets
   ): {pathname: string; query: Query} {
     const target = isHomepage ? 'homepage' : 'results';
+    const query = this.generateQueryStringObject();
+    if (queryDataset) {
+      query.queryDataset = queryDataset;
+    }
     return {
       pathname: normalizeUrl(`/organizations/${slug}/discover/${target}/`),
-      query: this.generateQueryStringObject(),
+      query: query,
     };
   }
 
   getResultsViewShortUrlTarget(slug: string): {pathname: string; query: Query} {
-    const output = {id: this.id};
+    const output: any = {id: this.id};
     for (const field of [...Object.values(URL_PARAM), 'cursor']) {
       if (this[field]?.length) {
         output[field] = this[field];
       }
     }
+
+    stringifyQueryParams(output);
+
     return {
       pathname: normalizeUrl(`/organizations/${slug}/discover/results/`),
       query: cloneDeep(output as any),
@@ -1222,7 +1256,7 @@ class EventView {
     const {showTransactions, breakdown, webVital} = options;
     const output = {
       sort: encodeSorts(this.sorts),
-      project: this.project,
+      project: [...this.project],
       query: this.query,
       transaction: this.name,
       showTransactions,
@@ -1235,6 +1269,8 @@ class EventView {
         output[field] = this[field];
       }
     }
+
+    stringifyQueryParams(output);
 
     const query = cloneDeep(output as any);
     return {
@@ -1438,7 +1474,7 @@ class EventView {
 
 export type ImmutableEventView = Readonly<Omit<EventView, 'additionalConditions'>>;
 
-const isFieldsSimilar = (
+export const isFieldsSimilar = (
   currentValue: Array<string>,
   otherValue: Array<string>
 ): boolean => {

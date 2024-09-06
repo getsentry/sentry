@@ -28,25 +28,29 @@ import {t, tct} from 'sentry/locale';
 
 type Params = DocsParams;
 
-const getConfigStep = () => [
-  {
-    description: tct(
-      'Configure your app automatically with the [wizardLink:Sentry wizard].',
-      {
-        wizardLink: (
-          <ExternalLink href="https://docs.sentry.io/platforms/javascript/guides/remix/#install" />
-        ),
-      }
-    ),
-    language: 'bash',
-    code: `npx @sentry/wizard@latest -i remix`,
-  },
-];
+const getConfigStep = ({isSelfHosted, urlPrefix}: Params) => {
+  const urlParam = !isSelfHosted && urlPrefix ? `--url ${urlPrefix}` : '';
 
-const getInstallConfig = () => [
+  return [
+    {
+      description: tct(
+        'Configure your app automatically with the [wizardLink:Sentry wizard].',
+        {
+          wizardLink: (
+            <ExternalLink href="https://docs.sentry.io/platforms/javascript/guides/remix/#install" />
+          ),
+        }
+      ),
+      language: 'bash',
+      code: `npx @sentry/wizard@latest -i remix ${urlParam}`,
+    },
+  ];
+};
+
+const getInstallConfig = (params: Params) => [
   {
     type: StepType.INSTALL,
-    configurations: getConfigStep(),
+    configurations: getConfigStep(params),
   },
 ];
 
@@ -55,7 +59,7 @@ const onboarding: OnboardingConfig = {
     tct("Sentry's integration with [remixLink:Remix] supports Remix 1.0.0 and above.", {
       remixLink: <ExternalLink href="https://remix.run/" />,
     }),
-  install: () => getInstallConfig(),
+  install: (params: Params) => getInstallConfig(params),
   configure: () => [
     {
       type: StepType.CONFIGURE,
@@ -121,28 +125,11 @@ const onboarding: OnboardingConfig = {
     },
   ],
   verify: () => [],
-  nextSteps: () => [
-    {
-      id: 'performance-monitoring',
-      name: t('Performance Monitoring'),
-      description: t(
-        'Track down transactions to connect the dots between 10-second page loads and poor-performing API calls or slow database queries.'
-      ),
-      link: 'https://docs.sentry.io/platforms/javascript/guides/remix/performance/',
-    },
-    {
-      id: 'session-replay',
-      name: t('Session Replay'),
-      description: t(
-        'Get to the root cause of an error or latency issue faster by seeing all the technical details related to that issue in one visual replay on your web application.'
-      ),
-      link: 'https://docs.sentry.io/platforms/javascript/guides/remix/session-replay/',
-    },
-  ],
+  nextSteps: () => [],
 };
 
 const replayOnboarding: OnboardingConfig = {
-  install: () => getInstallConfig(),
+  install: (params: Params) => getInstallConfig(params),
   configure: (params: Params) => [
     {
       type: StepType.CONFIGURE,
@@ -153,12 +140,12 @@ const replayOnboarding: OnboardingConfig = {
         {
           code: [
             {
-              label: 'JavaScript',
+              label: 'entry.client.tsx',
               value: 'javascript',
               language: 'javascript',
               code: getReplaySDKSetupSnippet({
                 importStatement: `import * as Sentry from "@sentry/remix";`,
-                dsn: params.dsn,
+                dsn: params.dsn.public,
                 mask: params.replayOptions?.mask,
                 block: params.replayOptions?.block,
               }),
@@ -182,7 +169,7 @@ const replayOnboarding: OnboardingConfig = {
 };
 
 const feedbackOnboarding: OnboardingConfig = {
-  install: () => [
+  install: (params: Params) => [
     {
       type: StepType.INSTALL,
       description: tct(
@@ -191,7 +178,7 @@ const feedbackOnboarding: OnboardingConfig = {
           code: <code />,
         }
       ),
-      configurations: getConfigStep(),
+      configurations: getConfigStep(params),
     },
   ],
   configure: (params: Params) => [
@@ -207,21 +194,32 @@ const feedbackOnboarding: OnboardingConfig = {
         {
           code: [
             {
-              label: 'JavaScript',
+              label: 'entry.client.tsx',
               value: 'javascript',
               language: 'javascript',
               code: getFeedbackSDKSetupSnippet({
                 importStatement: `import * as Sentry from "@sentry/remix";`,
-                dsn: params.dsn,
+                dsn: params.dsn.public,
                 feedbackOptions: params.feedbackOptions,
               }),
             },
           ],
         },
       ],
-      additionalInfo: crashReportCallout({
-        link: 'https://docs.sentry.io/platforms/javascript/guides/remix/user-feedback/#user-feedback-api',
-      }),
+      additionalInfo: (
+        <Fragment>
+          <p>
+            {tct(
+              'Note: The Feedback integration only needs to be added to your [code:entry.client.tsx] file.',
+              {code: <code />}
+            )}
+          </p>
+
+          {crashReportCallout({
+            link: 'https://docs.sentry.io/platforms/javascript/guides/remix/user-feedback/#user-feedback-api',
+          })}
+        </Fragment>
+      ),
     },
   ],
   verify: () => [],
@@ -249,7 +247,7 @@ const crashReportOnboarding: OnboardingConfig = {
 const docs: Docs = {
   onboarding,
   feedbackOnboardingNpm: feedbackOnboarding,
-  replayOnboardingNpm: replayOnboarding,
+  replayOnboarding,
   customMetricsOnboarding: getJSMetricsOnboarding({getInstallConfig}),
   crashReportOnboarding,
 };

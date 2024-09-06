@@ -1,6 +1,6 @@
 import orjson
 
-from sentry.integrations.slack.message_builder import SlackBody
+from sentry.integrations.slack.message_builder.types import SlackBody
 
 from .base.block import BlockSlackMessageBuilder
 

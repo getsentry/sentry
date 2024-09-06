@@ -33,7 +33,7 @@ from sentry.models.transaction_threshold import ProjectTransactionThreshold, Tra
 from sentry.relay.types import RuleCondition
 from sentry.search.events import fields
 from sentry.search.events.builder.discover import UnresolvedQuery
-from sentry.search.events.constants import DEFAULT_PROJECT_THRESHOLD, VITAL_THRESHOLDS
+from sentry.search.events.constants import VITAL_THRESHOLDS
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.metrics.naming_layer.mri import ParsedMRI, parse_mri
 from sentry.snuba.metrics.utils import MetricOperationType
@@ -1060,7 +1060,7 @@ def failure_tag_spec(_1: Project, _2: Sequence[str] | None) -> list[TagSpec]:
 
 def apdex_tag_spec(project: Project, arguments: Sequence[str] | None) -> list[TagSpec]:
     apdex_threshold = _get_threshold(arguments)
-    field = _map_field_name(_get_satisfactory_threshold_and_metric(project)[1])
+    field = _map_field_name(_get_satisfactory_metric(project))
 
     return [
         {
@@ -1146,7 +1146,7 @@ def user_misery_tag_spec(project: Project, arguments: Sequence[str] | None) -> l
     measured as a response time four times the satisfactory response time threshold (in milliseconds).
     It highlights transactions that have the highest impact on users."""
     threshold = _get_threshold(arguments)
-    field = _map_field_name(_get_satisfactory_threshold_and_metric(project)[1])
+    field = _map_field_name(_get_satisfactory_metric(project))
 
     return [
         {
@@ -1157,12 +1157,16 @@ def user_misery_tag_spec(project: Project, arguments: Sequence[str] | None) -> l
     ]
 
 
-# This is used to map a metric to a function which generates a specification
-_DERIVED_METRICS: dict[MetricOperationType, TagsSpecsGenerator] = {
+# This is used to map custom on-demand operations that requires special tags to a function which generates specs for those tags.
+_ONDEMAND_OP_TO_SPEC_GENERATOR: dict[MetricOperationType, TagsSpecsGenerator] = {
     "on_demand_failure_count": failure_tag_spec,
     "on_demand_failure_rate": failure_tag_spec,
-    "on_demand_apdex": apdex_tag_spec,
     "on_demand_count_web_vitals": count_web_vitals_spec,
+}
+# Same as `_ONDEMAND_OP_TO_SPEC_GENERATOR` except these ops may have project specific specs.
+# We use this to opt out of some kinds of organization level cacheing.
+_ONDEMAND_OP_TO_PROJECT_SPEC_GENERATOR: dict[MetricOperationType, TagsSpecsGenerator] = {
+    "on_demand_apdex": apdex_tag_spec,
     "on_demand_user_misery": user_misery_tag_spec,
 }
 
@@ -1332,9 +1336,19 @@ class OnDemandMetricSpec:
         is extracted."""
         return self._process_query()
 
+    def is_project_dependent(self) -> bool:
+        """Returns whether the spec is unique to a project, which is required for some forms of caching"""
+        tags_specs_generator = _ONDEMAND_OP_TO_PROJECT_SPEC_GENERATOR.get(self.op)
+        return tags_specs_generator is not None
+
     def tags_conditions(self, project: Project) -> list[TagSpec]:
-        """Returns a list of tag conditions that will specify how tags are injected into metrics by Relay."""
-        tags_specs_generator = _DERIVED_METRICS.get(self.op)
+        """Returns a list of tag conditions that will specify how tags are injected into metrics by Relay, and a bool if those specs may be project specific."""
+        tags_specs_generator = _ONDEMAND_OP_TO_SPEC_GENERATOR.get(self.op)
+        tags_specs_generator_for_project = _ONDEMAND_OP_TO_PROJECT_SPEC_GENERATOR.get(self.op)
+
+        if tags_specs_generator_for_project is not None:
+            tags_specs_generator = tags_specs_generator_for_project
+
         if tags_specs_generator is None:
             return []
 
@@ -1593,24 +1607,21 @@ def _map_field_name(search_key: str) -> str:
     raise ValueError(f"Unsupported query field {search_key}")
 
 
-def _get_satisfactory_threshold_and_metric(project: Project) -> tuple[int, str]:
+def _get_satisfactory_metric(project: Project) -> str:
     """It returns the statisfactory response time threshold for the project and
     the associated metric ("transaction.duration" or "measurements.lcp")."""
+
     result = ProjectTransactionThreshold.filter(
         organization_id=project.organization.id,
         project_ids=[project.id],
         order_by=[],
-        value_list=["threshold", "metric"],
+        value_list=["metric"],
     )
 
     if len(result) == 0:
-        # We use the default threshold shown in the UI.
-        threshold = DEFAULT_PROJECT_THRESHOLD
         metric = TransactionMetric.DURATION.value
     else:
-        # We technically don't use this threshold since we extract it from the apdex(x) field
-        # where x is the threshold, however, we still return it in case a fallback is needed.
-        threshold, metric = result[0]
+        metric = result[0][0]
 
     if metric == TransactionMetric.DURATION.value:
         metric_field = "transaction.duration"
@@ -1620,7 +1631,7 @@ def _get_satisfactory_threshold_and_metric(project: Project) -> tuple[int, str]:
     else:
         raise Exception("Invalid metric for project transaction threshold")
 
-    return threshold, metric_field
+    return metric_field
 
 
 def _escape_wildcard(value: str) -> str:

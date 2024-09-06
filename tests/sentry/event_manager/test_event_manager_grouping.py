@@ -6,7 +6,6 @@ from unittest import mock
 from unittest.mock import ANY, MagicMock
 
 import pytest
-from django.test import override_settings
 
 from sentry import audit_log
 from sentry.conf.server import SENTRY_GROUPING_UPDATE_MIGRATION_PHASE
@@ -15,9 +14,14 @@ from sentry.eventtypes.base import DefaultEvent
 from sentry.grouping.result import CalculatedHashes
 from sentry.models.auditlogentry import AuditLogEntry
 from sentry.models.group import Group
+from sentry.models.grouphash import GroupHash
+from sentry.models.grouphashmetadata import GroupHashMetadata
+from sentry.models.project import Project
 from sentry.projectoptions.defaults import DEFAULT_GROUPING_CONFIG
 from sentry.testutils.cases import TestCase
+from sentry.testutils.helpers import Feature
 from sentry.testutils.helpers.eventprocessing import save_new_event
+from sentry.testutils.helpers.options import override_options
 from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.testutils.silo import assume_test_silo_mode_of
 from sentry.testutils.skips import requires_snuba
@@ -134,42 +138,71 @@ class EventManagerGroupingTest(TestCase):
         assert group.data["metadata"]["title"] == event2.title
 
     def test_auto_updates_grouping_config(self):
-        self.project.update_option("sentry:grouping_config", LEGACY_CONFIG)
+        self.project.update_option("sentry:grouping_config", "mobile:2021-02-12")
 
-        with override_settings(SENTRY_GROUPING_AUTO_UPDATE_ENABLED=False):
-            save_new_event({"message": "Dogs are great!"}, self.project)
-            assert self.project.get_option("sentry:grouping_config") == LEGACY_CONFIG
+        save_new_event({"message": "Adopt don't shop"}, self.project)
+        assert self.project.get_option("sentry:grouping_config") == DEFAULT_GROUPING_CONFIG
 
-        with override_settings(SENTRY_GROUPING_AUTO_UPDATE_ENABLED=True):
-            save_new_event({"message": "Adopt don't shop"}, self.project)
-            assert self.project.get_option("sentry:grouping_config") == DEFAULT_GROUPING_CONFIG
+        with assume_test_silo_mode_of(AuditLogEntry):
+            audit_log_entry = AuditLogEntry.objects.get()
 
-            with assume_test_silo_mode_of(AuditLogEntry):
-                audit_log_entry = AuditLogEntry.objects.get()
+        assert audit_log_entry.event == audit_log.get_event_id("PROJECT_EDIT")
+        assert audit_log_entry.actor_label == "Sentry"
 
-            assert audit_log_entry.event == audit_log.get_event_id("PROJECT_EDIT")
-            assert audit_log_entry.actor_label == "Sentry"
+        assert audit_log_entry.data == {
+            "sentry:grouping_config": DEFAULT_GROUPING_CONFIG,
+            "sentry:secondary_grouping_config": "mobile:2021-02-12",
+            "sentry:secondary_grouping_expiry": ANY,  # tested separately below
+            "id": self.project.id,
+            "slug": self.project.slug,
+            "name": self.project.name,
+            "status": 0,
+            "public": False,
+        }
 
-            assert audit_log_entry.data == {
-                "sentry:grouping_config": DEFAULT_GROUPING_CONFIG,
-                "sentry:secondary_grouping_config": LEGACY_CONFIG,
-                "sentry:secondary_grouping_expiry": ANY,  # tested separately below
-                "id": self.project.id,
-                "slug": self.project.slug,
-                "name": self.project.name,
-                "status": 0,
-                "public": False,
-            }
+        # When the config upgrade is actually happening, the expiry value is set before the
+        # audit log entry is created, which means the expiry is based on a timestamp
+        # ever-so-slightly before the audit log entry's timestamp, making a one-second tolerance
+        # necessary.
+        actual_expiry = audit_log_entry.data["sentry:secondary_grouping_expiry"]
+        expected_expiry = (
+            int(audit_log_entry.datetime.timestamp()) + SENTRY_GROUPING_UPDATE_MIGRATION_PHASE
+        )
+        assert actual_expiry == expected_expiry or actual_expiry == expected_expiry - 1
 
-            # When the config upgrade is actually happening, the expiry value is set before the
-            # audit log entry is created, which means the expiry is based on a timestamp
-            # ever-so-slightly before the audit log entry's timestamp, making a one-second tolerance
-            # necessary.
-            actual_expiry = audit_log_entry.data["sentry:secondary_grouping_expiry"]
-            expected_expiry = (
-                int(audit_log_entry.datetime.timestamp()) + SENTRY_GROUPING_UPDATE_MIGRATION_PHASE
-            )
-            assert actual_expiry == expected_expiry or actual_expiry == expected_expiry - 1
+    def test_creates_grouphash_metadata_when_appropriate(self):
+
+        # The killswitch is obeyed
+        with override_options({"grouping.grouphash_metadata.ingestion_writes_enabled": False}):
+            event1 = save_new_event({"message": "Dogs are great!"}, self.project)
+            grouphash = GroupHash.objects.filter(
+                project=self.project, hash=event1.get_primary_hash()
+            ).first()
+            assert grouphash and grouphash.metadata is None
+
+        # The feature flag is obeyed
+        with Feature({"organizations:grouphash-metadata-creation": False}):
+            event2 = save_new_event({"message": "Sit! Good dog!"}, self.project)
+            grouphash = GroupHash.objects.filter(
+                project=self.project, hash=event2.get_primary_hash()
+            ).first()
+            assert grouphash and grouphash.metadata is None
+
+        with Feature({"organizations:grouphash-metadata-creation": True}):
+            # New hashes get metadata
+            event3 = save_new_event({"message": "Adopt, don't shop"}, self.project)
+            grouphash = GroupHash.objects.filter(
+                project=self.project, hash=event3.get_primary_hash()
+            ).first()
+            assert grouphash and isinstance(grouphash.metadata, GroupHashMetadata)
+
+            # For now, existing hashes aren't backfiled when new events are assigned to them
+            event4 = save_new_event({"message": "Dogs are great!"}, self.project)
+            assert event4.get_primary_hash() == event1.get_primary_hash()
+            grouphash = GroupHash.objects.filter(
+                project=self.project, hash=event4.get_primary_hash()
+            ).first()
+            assert grouphash and grouphash.metadata is None
 
 
 class PlaceholderTitleTest(TestCase):
@@ -374,18 +407,24 @@ class EventManagerGroupingMetricsTest(TestCase):
         project = self.project
 
         cases: list[Any] = [
-            [LEGACY_CONFIG, None, None, 1],
-            [NEWSTYLE_CONFIG, LEGACY_CONFIG, time() + 3600, 2],
+            ["Dogs are great!", LEGACY_CONFIG, None, None, 1],
+            ["Adopt don't shop", NEWSTYLE_CONFIG, LEGACY_CONFIG, time() + 3600, 2],
         ]
 
-        for primary_config, secondary_config, transition_expiry, expected_total_calcs in cases:
+        for (
+            message,
+            primary_config,
+            secondary_config,
+            transition_expiry,
+            expected_total_calcs,
+        ) in cases:
             mock_metrics_incr.reset_mock()
 
             project.update_option("sentry:grouping_config", primary_config)
             project.update_option("sentry:secondary_grouping_config", secondary_config)
             project.update_option("sentry:secondary_grouping_expiry", transition_expiry)
 
-            save_new_event({"message": "Dogs are great!"}, self.project)
+            save_new_event({"message": message}, self.project)
 
             total_calculations_calls = get_relevant_metrics_calls(
                 mock_metrics_incr, "grouping.total_calculations"
@@ -429,9 +468,16 @@ class EventManagerGroupingMetricsTest(TestCase):
             transition_expiry,
             expected_in_transition,
         ) in in_transition_cases:
-            for has_flag, expected_using_optimization in optimized_logic_cases:
-                with self.feature(
-                    {"organizations:grouping-suppress-unnecessary-secondary-hash": has_flag}
+            for using_optimization, expected_using_optimization in optimized_logic_cases:
+                with (
+                    mock.patch(
+                        "sentry.event_manager.project_uses_optimized_grouping",
+                        return_value=using_optimization,
+                    ),
+                    mock.patch(
+                        "sentry.grouping.ingest.metrics.project_uses_optimized_grouping",
+                        return_value=using_optimization,
+                    ),
                 ):
                     mock_metrics_incr.reset_mock()
 
@@ -454,37 +500,43 @@ class EventManagerGroupingMetricsTest(TestCase):
                         metric_tags["using_transition_optimization"] == expected_using_optimization
                     )
 
-    @mock.patch("sentry.event_manager.metrics.incr")
-    @mock.patch("sentry.grouping.ingest.hashing.is_in_transition", return_value=True)
-    def test_records_hash_comparison(self, _, mock_metrics_incr: MagicMock):
-        project = self.project
-        project.update_option("sentry:grouping_config", NEWSTYLE_CONFIG)
-        project.update_option("sentry:secondary_grouping_config", LEGACY_CONFIG)
 
-        cases = [
-            # primary_hashes, secondary_hashes, expected_tag
-            (["maisey"], ["maisey"], "no change"),
-            (["maisey"], ["charlie"], "full change"),
-            (["maisey", "charlie"], ["maisey", "charlie"], "no change"),
-            (["maisey", "charlie"], ["cory", "charlie"], "partial change"),
-            (["maisey", "charlie"], ["cory", "bodhi"], "full change"),
-        ]
+@django_db_all
+@pytest.mark.parametrize(
+    ["primary_hashes", "secondary_hashes", "expected_tag"],
+    [
+        (["maisey"], ["maisey"], "no change"),
+        (["maisey"], ["charlie"], "full change"),
+        (["maisey", "charlie"], ["maisey", "charlie"], "no change"),
+        (["maisey", "charlie"], ["cory", "charlie"], "partial change"),
+        (["maisey", "charlie"], ["cory", "bodhi"], "full change"),
+    ],
+)
+@mock.patch("sentry.event_manager.metrics.incr")
+def test_records_hash_comparison_metric(
+    mock_metrics_incr: MagicMock,
+    primary_hashes: list[str],
+    secondary_hashes: list[str],
+    expected_tag: str,
+    default_project: Project,
+):
+    project = default_project
+    project.update_option("sentry:grouping_config", NEWSTYLE_CONFIG)
+    project.update_option("sentry:secondary_grouping_config", LEGACY_CONFIG)
+    project.update_option("sentry:secondary_grouping_expiry", time() + 3600)
 
-        for primary_hashes, secondary_hashes, expected_tag in cases:
-            with mock.patch(
-                "sentry.grouping.ingest.hashing._calculate_primary_hash",
-                return_value=CalculatedHashes(primary_hashes),
-            ):
-                with mock.patch(
-                    "sentry.grouping.ingest.hashing._calculate_secondary_hash",
-                    return_value=CalculatedHashes(secondary_hashes),
-                ):
-                    save_new_event({"message": "Dogs are great!"}, self.project)
+    with mock.patch(
+        "sentry.grouping.ingest.hashing._calculate_primary_hash",
+        return_value=CalculatedHashes(primary_hashes),
+    ):
+        with mock.patch(
+            "sentry.grouping.ingest.hashing._calculate_secondary_hash",
+            return_value=CalculatedHashes(secondary_hashes),
+        ):
+            save_new_event({"message": "Dogs are great!"}, project)
 
-                    hash_comparison_calls = get_relevant_metrics_calls(
-                        mock_metrics_incr, "grouping.hash_comparison"
-                    )
-                    assert len(hash_comparison_calls) == 1
-                    assert hash_comparison_calls[0].kwargs["tags"]["result"] == expected_tag
-
-                    mock_metrics_incr.reset_mock()
+            hash_comparison_calls = get_relevant_metrics_calls(
+                mock_metrics_incr, "grouping.hash_comparison"
+            )
+            assert len(hash_comparison_calls) == 1
+            assert hash_comparison_calls[0].kwargs["tags"]["result"] == expected_tag

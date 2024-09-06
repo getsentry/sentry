@@ -13,14 +13,11 @@ from django.utils import timezone
 from sentry_relay.processing import parse_release
 from slack_sdk.web import SlackResponse
 
-from sentry.digests.notifications import Notification
 from sentry.event_manager import EventManager
 from sentry.models.activity import Activity
 from sentry.models.group import Group, GroupStatus
 from sentry.models.groupassignee import GroupAssignee
-from sentry.models.identity import Identity, IdentityStatus
 from sentry.models.notificationsettingoption import NotificationSettingOption
-from sentry.models.options.user_option import UserOption
 from sentry.models.rule import Rule
 from sentry.notifications.notifications.activity.assigned import AssignedActivityNotification
 from sentry.notifications.notifications.activity.regression import RegressionActivityNotification
@@ -32,6 +29,8 @@ from sentry.testutils.helpers.eventprocessing import write_event_to_cache
 from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
 from sentry.testutils.skips import requires_snuba
 from sentry.types.activity import ActivityType
+from sentry.users.models.identity import Identity, IdentityStatus
+from sentry.users.models.user_option import UserOption
 from sentry.utils import json
 
 pytestmark = [requires_snuba]
@@ -587,17 +586,3 @@ class ActivityNotificationTest(APITestCase):
             notification_uuid=notification_uuid,
             actor_type="User",
         )
-
-
-class NotificationTupleTest(APITestCase):
-    def test_missing_notification_uuid(self):
-        rule = self.create_project_rule()
-        group = self.create_group()
-        notification = Notification(rule, group)
-        assert notification.notification_uuid is None
-
-    def test_notification_uuid(self):
-        rule = self.create_project_rule()
-        group = self.create_group()
-        notification = Notification(rule, group, notification_uuid=str(uuid.uuid4()))
-        assert notification.notification_uuid is not None

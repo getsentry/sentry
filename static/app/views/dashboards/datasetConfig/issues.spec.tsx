@@ -52,7 +52,7 @@ describe('transformIssuesResponseToTable', function () {
             id: '1',
             'issue.id': '1',
             lifetimeUsers: 5,
-            links: '',
+            links: [],
             period: '',
             projectId: '3',
             status: 'unresolved',

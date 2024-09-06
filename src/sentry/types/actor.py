@@ -11,8 +11,8 @@ from sentry.users.services.user import RpcUser
 
 if TYPE_CHECKING:
     from sentry.models.team import Team
-    from sentry.models.user import User
     from sentry.organizations.services.organization import RpcTeam
+    from sentry.users.models.user import User
 
 
 class ActorType(str, Enum):
@@ -40,7 +40,9 @@ class Actor(RpcModel):
         pass
 
     @classmethod
-    def resolve_many(cls, actors: Sequence["Actor"]) -> list["Team | RpcUser"]:
+    def resolve_many(
+        cls, actors: Sequence["Actor"], filter_none: bool = True
+    ) -> list["Team | RpcUser | None"]:
         """
         Resolve a list of actors in a batch to the Team/User the Actor references.
 
@@ -64,7 +66,10 @@ class Actor(RpcModel):
                 for team in Team.objects.filter(id__in=[t.id for t in actor_list]):
                     results[(actor_type, team.id)] = team
 
-        return list(filter(None, [results.get((actor.actor_type, actor.id)) for actor in actors]))
+        final_results = [results.get((actor.actor_type, actor.id)) for actor in actors]
+        if filter_none:
+            final_results = list(filter(None, final_results))
+        return final_results
 
     @classmethod
     def many_from_object(cls, objects: Iterable[ActorTarget]) -> list["Actor"]:
@@ -76,8 +81,8 @@ class Actor(RpcModel):
         missing actors will have actors generated.
         """
         from sentry.models.team import Team
-        from sentry.models.user import User
         from sentry.organizations.services.organization import RpcTeam
+        from sentry.users.models.user import User
 
         result: list["Actor"] = []
         grouped_by_type: MutableMapping[str, list[int]] = defaultdict(list)
@@ -115,8 +120,8 @@ class Actor(RpcModel):
                      Without the actor_id the Actor acts as a tuple of id and type.
         """
         from sentry.models.team import Team
-        from sentry.models.user import User
         from sentry.organizations.services.organization import RpcTeam
+        from sentry.users.models.user import User
 
         if isinstance(obj, cls):
             return obj

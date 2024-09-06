@@ -1,5 +1,6 @@
 import * as Sentry from '@sentry/react';
 
+import clamp from 'sentry/utils/number/clamp';
 import {traceReducerExhaustiveActionCheck} from 'sentry/views/performance/newTraceDetails/traceState';
 
 type TraceLayoutPreferences = 'drawer left' | 'drawer bottom' | 'drawer right';
@@ -68,6 +69,14 @@ export function storeTraceViewPreferences(
 function isInt(value: any): value is number {
   return typeof value === 'number' && !isNaN(value);
 }
+
+function correctListWidth(state: TracePreferencesState): TracePreferencesState {
+  if (state.list.width < 0.1 || state.list.width > 0.9) {
+    state.list.width = 0.5;
+  }
+  return state;
+}
+
 export function loadTraceViewPreferences(key: string): TracePreferencesState | null {
   const stored = localStorage.getItem(key);
 
@@ -89,6 +98,7 @@ export function loadTraceViewPreferences(key: string): TracePreferencesState | n
         parsed.list &&
         isInt(parsed.list.width)
       ) {
+        correctListWidth(parsed);
         return parsed;
       }
     } catch (e) {
@@ -119,8 +129,7 @@ export function tracePreferencesReducer(
           ...state.drawer,
           sizes: {
             ...state.drawer.sizes,
-            [state.layout]:
-              action.payload < 0 ? 0 : action.payload > 1 ? 1 : action.payload,
+            [state.layout]: clamp(action.payload, 0, 1),
           },
         },
       };
@@ -128,7 +137,7 @@ export function tracePreferencesReducer(
       return {
         ...state,
         list: {
-          width: action.payload < 0 ? 0 : action.payload > 1 ? 1 : action.payload,
+          width: clamp(action.payload, 0.1, 0.9),
         },
       };
     default:

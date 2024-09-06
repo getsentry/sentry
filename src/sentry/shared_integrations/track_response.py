@@ -4,7 +4,7 @@ import logging
 from collections.abc import Mapping
 
 from django.utils.functional import cached_property
-from rest_framework.response import Response
+from requests.models import Response
 
 from sentry.utils import metrics
 

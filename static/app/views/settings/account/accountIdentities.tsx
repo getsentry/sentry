@@ -1,6 +1,6 @@
 import {Fragment, useCallback, useMemo} from 'react';
 import styled from '@emotion/styled';
-import moment from 'moment';
+import moment from 'moment-timezone';
 
 import {disconnectIdentity} from 'sentry/actionCreators/account';
 import {Alert} from 'sentry/components/alert';
@@ -18,8 +18,8 @@ import PanelItem from 'sentry/components/panels/panelItem';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {UserIdentityConfig} from 'sentry/types';
-import {UserIdentityCategory, UserIdentityStatus} from 'sentry/types';
+import type {UserIdentityConfig} from 'sentry/types/auth';
+import {UserIdentityCategory, UserIdentityStatus} from 'sentry/types/auth';
 import {setApiQueryData, useApiQuery, useQueryClient} from 'sentry/utils/queryClient';
 import IdentityIcon from 'sentry/views/settings/components/identityIcon';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
@@ -126,7 +126,7 @@ function AccountIdentities() {
   const queryClient = useQueryClient();
   const {
     data: identities = EMPTY_ARRAY,
-    isLoading,
+    isPending,
     isError,
     refetch,
   } = useApiQuery<UserIdentityConfig[]>([IDENTITIES_ENDPOINT], {
@@ -164,7 +164,7 @@ function AccountIdentities() {
     [queryClient]
   );
 
-  if (isLoading) {
+  if (isPending) {
     return <LoadingIndicator />;
   }
 
@@ -254,6 +254,7 @@ const TagWrapper = styled('div')`
   justify-content: flex-start;
   flex-grow: 1;
   margin-right: ${space(1)};
+  gap: ${space(0.75)};
 `;
 
 export default AccountIdentities;

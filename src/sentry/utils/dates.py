@@ -1,7 +1,6 @@
 import logging
 import re
 import zoneinfo
-from collections.abc import Mapping
 from datetime import UTC, date, datetime, timedelta
 from typing import Any, overload
 
@@ -138,13 +137,11 @@ def get_interval_from_range(date_range: timedelta, high_fidelity: bool) -> str:
 
 def get_rollup_from_request(
     request: HttpRequest,
-    params: Mapping[str, Any],
+    date_range: timedelta,
     default_interval: None | str,
     error: Exception,
     top_events: int = 0,
 ) -> int:
-    date_range = params["end"] - params["start"]
-
     if default_interval is None:
         default_interval = get_interval_from_range(date_range, False)
 

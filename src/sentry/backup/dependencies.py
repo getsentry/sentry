@@ -427,7 +427,10 @@ def dependencies() -> dict[NormalizedModelName, ModelRelations]:
         for model in model_iterator:
             # Ignore some native Django models, since other models don't reference them and we don't
             # really use them for business logic.
-            if model._meta.app_label in {"sessions", "sites", "test"}:
+            #
+            # Also, exclude `getsentry`, since data in those tables should never be backed up or
+            # checked.
+            if model._meta.app_label in {"sessions", "sites", "test", "getsentry"}:
                 continue
 
             foreign_keys: dict[str, ForeignField] = dict()
@@ -712,7 +715,7 @@ def merge_users_for_model_in_org(
     """
 
     from sentry.models.organization import Organization
-    from sentry.models.user import User
+    from sentry.users.models.user import User
 
     model_relations = dependencies()[get_model_name(model)]
     user_refs = {k for k, v in model_relations.foreign_keys.items() if v.model == User}

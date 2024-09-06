@@ -99,11 +99,9 @@ from sentry.models.deploy import Deploy
 from sentry.models.environment import Environment
 from sentry.models.files.file import File
 from sentry.models.groupmeta import GroupMeta
-from sentry.models.identity import Identity, IdentityProvider, IdentityStatus
 from sentry.models.notificationsettingoption import NotificationSettingOption
 from sentry.models.notificationsettingprovider import NotificationSettingProvider
 from sentry.models.options.project_option import ProjectOption
-from sentry.models.options.user_option import UserOption
 from sentry.models.organization import Organization
 from sentry.models.organizationmember import OrganizationMember
 from sentry.models.project import Project
@@ -111,8 +109,6 @@ from sentry.models.release import Release
 from sentry.models.releasecommit import ReleaseCommit
 from sentry.models.repository import Repository
 from sentry.models.rule import RuleSource
-from sentry.models.user import User
-from sentry.models.useremail import UserEmail
 from sentry.monitors.models import Monitor, MonitorEnvironment, MonitorType, ScheduleType
 from sentry.notifications.notifications.base import alert_page_needs_org_id
 from sentry.notifications.types import FineTuningAPIKey
@@ -127,6 +123,7 @@ from sentry.search.events.constants import (
     METRIC_SATISFIED_TAG_VALUE,
     METRIC_TOLERATED_TAG_VALUE,
     METRICS_MAP,
+    PROFILE_METRICS_MAP,
     SPAN_METRICS_MAP,
 )
 from sentry.sentry_metrics import indexer
@@ -145,6 +142,10 @@ from sentry.testutils.helpers.notifications import TEST_ISSUE_OCCURRENCE
 from sentry.testutils.helpers.slack import install_slack
 from sentry.testutils.pytest.selenium import Browser
 from sentry.types.condition_activity import ConditionActivity, ConditionActivityType
+from sentry.users.models.identity import Identity, IdentityProvider, IdentityStatus
+from sentry.users.models.user import User
+from sentry.users.models.user_option import UserOption
+from sentry.users.models.useremail import UserEmail
 from sentry.utils import json
 from sentry.utils.auth import SsoSession
 from sentry.utils.json import dumps_htmlsafe
@@ -1368,18 +1369,29 @@ class SnubaTestCase(BaseTestCase):
             == 200
         )
 
-    def store_span(self, span):
+    def store_span(self, span, is_eap=False):
         assert (
             requests.post(
-                settings.SENTRY_SNUBA + "/tests/entities/spans/insert", data=json.dumps([span])
+                settings.SENTRY_SNUBA + f"/tests/entities/{'eap_' if is_eap else ''}spans/insert",
+                data=json.dumps([span]),
             ).status_code
             == 200
         )
 
-    def store_spans(self, spans):
+    def store_spans(self, spans, is_eap=False):
         assert (
             requests.post(
-                settings.SENTRY_SNUBA + "/tests/entities/spans/insert", data=json.dumps(spans)
+                settings.SENTRY_SNUBA + f"/tests/entities/{'eap_' if is_eap else ''}spans/insert",
+                data=json.dumps(spans),
+            ).status_code
+            == 200
+        )
+
+    def store_issues(self, issues):
+        assert (
+            requests.post(
+                settings.SENTRY_SNUBA + "/tests/entities/search_issues/insert",
+                data=json.dumps(issues),
             ).status_code
             == 200
         )
@@ -1521,9 +1533,12 @@ class BaseSpansTestCase(SnubaTestCase):
 
         payload = {
             "project_id": project_id,
+            "organization_id": 1,
             "span_id": span_id,
             "trace_id": trace_id,
             "duration_ms": int(duration),
+            "start_timestamp_precise": timestamp.timestamp(),
+            "end_timestamp_precise": timestamp.timestamp() + duration / 1000,
             "exclusive_time_ms": int(exclusive_time),
             "is_segment": True,
             "received": timezone.now().timestamp(),
@@ -1585,6 +1600,7 @@ class BaseSpansTestCase(SnubaTestCase):
 
         payload = {
             "project_id": project_id,
+            "organization_id": 1,
             "span_id": span_id,
             "trace_id": trace_id,
             "duration_ms": int(duration),
@@ -1592,6 +1608,8 @@ class BaseSpansTestCase(SnubaTestCase):
             "is_segment": False,
             "received": timezone.now().timestamp(),
             "start_timestamp_ms": int(timestamp.timestamp() * 1000),
+            "start_timestamp_precise": timestamp.timestamp(),
+            "end_timestamp_precise": timestamp.timestamp() + duration / 1000,
             "sentry_tags": {
                 "transaction": transaction or "/hello",
                 "op": op or "http",
@@ -1711,6 +1729,7 @@ class BaseMetricsTestCase(SnubaTestCase):
         timestamp: int,
         value: Any,
         aggregation_option: AggregationOption | None = None,
+        sampling_weight: int | None = None,
     ) -> None:
 
         parsed = parse_mri(mri)
@@ -1795,6 +1814,9 @@ class BaseMetricsTestCase(SnubaTestCase):
 
         if aggregation_option:
             msg["aggregation_option"] = aggregation_option.value
+
+        if sampling_weight:
+            msg["sampling_weight"] = sampling_weight
 
         if METRIC_PATH_MAPPING[use_case_id] == UseCaseKey.PERFORMANCE:
             entity = f"generic_metrics_{cls.ENTITY_SHORTHANDS[metric_type]}s"
@@ -2078,6 +2100,9 @@ class MetricsEnhancedPerformanceTestCase(BaseMetricsLayerTestCase, TestCase):
         "measurements.app_start_warm": "metrics_distributions",
         "spans.http": "metrics_distributions",
         "user": "metrics_sets",
+        "function.duration": "metrics_distributions",
+        "measurements.inp": "metrics_distributions",
+        "messaging.message.receive.latency": "metrics_gauges",
     }
     ON_DEMAND_KEY_MAP = {
         "c": TransactionMetricKey.COUNT_ON_DEMAND.value,
@@ -2198,7 +2223,7 @@ class MetricsEnhancedPerformanceTestCase(BaseMetricsLayerTestCase, TestCase):
 
     def store_span_metric(
         self,
-        value: dict[str, int] | list[int] | int,
+        value: dict[str, int] | list[int] | list[dict[str, int]] | int,
         metric: str = "span.self_time",
         internal_metric: str | None = None,
         entity: str | None = None,
@@ -2225,6 +2250,49 @@ class MetricsEnhancedPerformanceTestCase(BaseMetricsLayerTestCase, TestCase):
         if not isinstance(value, list):
             value = [value]
         for subvalue in value:
+            self.store_metric(
+                org_id,
+                project,
+                internal_metric,
+                tags,
+                int(metric_timestamp),
+                subvalue,
+            )
+
+    def store_profile_functions_metric(
+        self,
+        value: dict[str, int] | list[int] | int,
+        metric: str = "function.duration",
+        internal_metric: str | None = None,
+        entity: str | None = None,
+        tags: dict[str, str] | None = None,
+        timestamp: datetime | None = None,
+        project: int | None = None,
+        use_case_id: UseCaseID = UseCaseID.SPANS,
+    ):
+        internal_metric = (
+            PROFILE_METRICS_MAP[metric] if internal_metric is None else internal_metric
+        )
+        entity = self.ENTITY_MAP[metric] if entity is None else entity
+        org_id = self.organization.id
+
+        if tags is None:
+            tags = {}
+
+        if timestamp is None:
+            metric_timestamp = self.DEFAULT_METRIC_TIMESTAMP.timestamp()
+        else:
+            metric_timestamp = timestamp.timestamp()
+
+        if project is None:
+            project = self.project.id
+
+        val_list: list[int | dict[str, int]] = []
+        if not isinstance(value, list):
+            val_list.append(value)
+        else:
+            val_list = value
+        for subvalue in val_list:
             self.store_metric(
                 org_id,
                 project,
@@ -2320,14 +2388,11 @@ class OutcomesSnubaTest(TestCase):
 
 @pytest.mark.snuba
 @requires_snuba
+@pytest.mark.usefixtures("reset_snuba")
 class ProfilesSnubaTestCase(
     TestCase,
     BaseTestCase,  # forcing this to explicitly inherit BaseTestCase addresses some type hint issues
 ):
-    def setUp(self):
-        super().setUp()
-        assert requests.post(settings.SENTRY_SNUBA + "/tests/functions/drop").status_code == 200
-
     def store_functions(
         self,
         functions,
@@ -2336,11 +2401,8 @@ class ProfilesSnubaTestCase(
         extras=None,
         timestamp=None,
     ):
-        if timestamp is None:
-            timestamp = before_now(minutes=10)
-
         if transaction is None:
-            transaction = load_data("transaction", timestamp=timestamp)
+            transaction = load_data("transaction", timestamp=timestamp or before_now(minutes=10))
 
         profile_context = transaction.setdefault("contexts", {}).setdefault("profile", {})
         if profile_context.get("profile_id") is None:
@@ -2763,11 +2825,13 @@ class TestMigrations(TransactionTestCase):
 
 
 class SCIMTestCase(APITestCase):
-    def setUp(self, provider="dummy"):
+    provider = "dummy"
+
+    def setUp(self):
         super().setUp()
         with assume_test_silo_mode(SiloMode.CONTROL):
             self.auth_provider_inst = AuthProviderModel(
-                organization_id=self.organization.id, provider=provider
+                organization_id=self.organization.id, provider=self.provider
             )
             self.auth_provider_inst.enable_scim(self.user)
             self.auth_provider_inst.save()
@@ -2778,9 +2842,11 @@ class SCIMTestCase(APITestCase):
 
 
 class SCIMAzureTestCase(SCIMTestCase):
+    provider = ACTIVE_DIRECTORY_PROVIDER_NAME
+
     def setUp(self):
         auth.register(ACTIVE_DIRECTORY_PROVIDER_NAME, DummyProvider)
-        super().setUp(provider=ACTIVE_DIRECTORY_PROVIDER_NAME)
+        super().setUp()
         self.addCleanup(auth.unregister, ACTIVE_DIRECTORY_PROVIDER_NAME, DummyProvider)
 
 
@@ -2933,9 +2999,7 @@ class SlackActivityNotificationTest(ActivityTestCase):
             blocks[2]["text"]["text"]
             == "```db - SELECT `books_author`.`id`, `books_author`.`name` FROM `books_author` WHERE `books_author`.`id` = %s LIMIT 21```"
         )
-        assert (
-            blocks[3]["elements"][0]["text"] == "State: *Ongoing*   First Seen: *10\xa0minutes ago*"
-        )
+        assert blocks[3]["elements"][0]["text"] == "State: *New*   First Seen: *10\xa0minutes ago*"
         optional_org_id = f"&organizationId={org.id}" if alert_page_needs_org_id(alert_type) else ""
         assert (
             blocks[4]["elements"][0]["text"]
@@ -2965,9 +3029,7 @@ class SlackActivityNotificationTest(ActivityTestCase):
             blocks[3]["text"]["text"]
             == "```db - SELECT `books_author`.`id`, `books_author`.`name` FROM `books_author` WHERE `books_author`.`id` = %s LIMIT 21```"
         )
-        assert (
-            blocks[4]["elements"][0]["text"] == "State: *Ongoing*   First Seen: *10\xa0minutes ago*"
-        )
+        assert blocks[4]["elements"][0]["text"] == "State: *New*   First Seen: *10\xa0minutes ago*"
         optional_org_id = f"&organizationId={org.id}" if alert_page_needs_org_id(alert_type) else ""
         assert (
             blocks[5]["elements"][0]["text"]
@@ -3242,18 +3304,23 @@ class MonitorIngestTestCase(MonitorTestCase):
 
 
 class UptimeTestCase(TestCase):
-    def create_uptime_result(self, subscription_id: str | None = None) -> CheckResult:
+    def create_uptime_result(
+        self,
+        subscription_id: str | None = None,
+        status: str = CHECKSTATUS_FAILURE,
+        scheduled_check_time: datetime | None = None,
+    ) -> CheckResult:
         if subscription_id is None:
             subscription_id = uuid.uuid4().hex
+        if scheduled_check_time is None:
+            scheduled_check_time = datetime.now().replace(microsecond=0)
         return {
             "guid": uuid.uuid4().hex,
             "subscription_id": subscription_id,
-            "status": CHECKSTATUS_FAILURE,
+            "status": status,
             "status_reason": {"type": CHECKSTATUSREASONTYPE_TIMEOUT, "description": "it timed out"},
             "trace_id": uuid.uuid4().hex,
-            "scheduled_check_time_ms": int(
-                datetime.now().replace(microsecond=0).timestamp() * 1000
-            ),
+            "scheduled_check_time_ms": int(scheduled_check_time.timestamp() * 1000),
             "actual_check_time_ms": int(datetime.now().replace(microsecond=0).timestamp() * 1000),
             "duration_ms": 100,
             "request_info": {"request_type": REQUESTTYPE_HEAD, "http_status_code": 500},
@@ -3278,9 +3345,9 @@ class SpanTestCase(BaseTestCase):
     def load_data(
         self,
         platform: str = "transaction",
-        timestamp: datetime = None,
-        duration: timedelta = None,
-        **kwargs: dict[str, Any],
+        timestamp: datetime | None = None,
+        duration: timedelta | None = None,
+        **kwargs: Any,
     ) -> dict[str | int, Any]:
         if timestamp is None:
             timestamp = self.ten_mins_ago
@@ -3335,6 +3402,8 @@ class SpanTestCase(BaseTestCase):
                 "profile_id": uuid4().hex,
                 # Multiply by 1000 cause it needs to be ms
                 "start_timestamp_ms": int(start_ts.timestamp() * 1000),
+                "start_timestamp_precise": start_ts.timestamp(),
+                "end_timestamp_precise": start_ts.timestamp() + duration / 1000,
                 "timestamp": int(start_ts.timestamp() * 1000),
                 "received": start_ts.timestamp(),
                 "duration_ms": duration,

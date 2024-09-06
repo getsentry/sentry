@@ -16,7 +16,8 @@ import {IconChevron} from 'sentry/icons/iconChevron';
 import {t} from 'sentry/locale';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import {space} from 'sentry/styles/space';
-import type {Event, Project} from 'sentry/types';
+import type {Event} from 'sentry/types/event';
+import type {Project} from 'sentry/types/project';
 import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
 import {formatPercentage} from 'sentry/utils/number/formatPercentage';
 import {
@@ -34,7 +35,7 @@ import type {EventsResultsDataRow} from 'sentry/utils/profiling/hooks/types';
 import {useDifferentialFlamegraphModel} from 'sentry/utils/profiling/hooks/useDifferentialFlamegraphModel';
 import type {DifferentialFlamegraphQueryResult} from 'sentry/utils/profiling/hooks/useDifferentialFlamegraphQuery';
 import {useDifferentialFlamegraphQuery} from 'sentry/utils/profiling/hooks/useDifferentialFlamegraphQuery';
-import {generateProfileFlamechartRouteWithQuery} from 'sentry/utils/profiling/routes';
+import {generateProfileRouteFromProfileReference} from 'sentry/utils/profiling/routes';
 import {relativeChange} from 'sentry/utils/profiling/units/units';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
@@ -195,22 +196,34 @@ function EventDifferentialFlamegraphView(props: EventDifferentialFlamegraphViewP
       if (!frame.profileIds?.length) {
         return '';
       }
-      return generateProfileFlamechartRouteWithQuery({
-        orgSlug: organization.slug,
-        projectSlug: props.project.slug,
-        profileId: frame.profileIds?.[0] ?? '',
-        query: {
-          frameName: frame.frame.name,
-          framePackage: frame.frame.package,
-        },
-      });
+      const profileId = frame.profileIds[0];
+
+      if (typeof profileId !== 'undefined') {
+        return (
+          generateProfileRouteFromProfileReference({
+            orgSlug: organization.slug,
+            projectSlug: props.project.slug,
+            reference:
+              typeof profileId === 'string'
+                ? profileId
+                : 'profiler_id' in profileId
+                  ? profileId.profiler_id
+                  : profileId.profile_id,
+            framePackage: frame.frame.package,
+            frameName: frame.frame.name,
+          }) ?? ''
+        );
+      }
+
+      // Regression issues do not work with continuous profiles
+      return '';
     },
     [organization.slug, props.project]
   );
 
   return (
-    <Fragment>
-      <Panel>
+    <FlamegraphContainer>
+      <StyledPanel>
         <DifferentialFlamegraphTransactionToolbar
           transaction={props.transaction}
           onNextTransactionClick={props.onNextTransactionClick}
@@ -225,7 +238,7 @@ function EventDifferentialFlamegraphView(props: EventDifferentialFlamegraphViewP
           canvasPoolManager={canvasPoolManager}
         />
         <DifferentialFlamegraphContainer>
-          {props.after.isLoading || props.before.isLoading ? (
+          {props.after.isPending || props.before.isPending ? (
             <LoadingIndicatorContainer>
               <LoadingIndicator />
             </LoadingIndicatorContainer>
@@ -250,12 +263,12 @@ function EventDifferentialFlamegraphView(props: EventDifferentialFlamegraphViewP
           />
         </DifferentialFlamegraphContainer>
         <DifferentialFlamegraphExplanationBar negated={negated} />
-      </Panel>
+      </StyledPanel>
 
-      <Panel>
+      <StyledPanel>
         <DifferentialFlamegraphFunctionsContainer>
           <DifferentialFlamegraphChangedFunctions
-            loading={props.after.isLoading || props.before.isLoading}
+            loading={props.after.isPending || props.before.isPending}
             title={t('Slower functions')}
             subtitle={t('after regression')}
             functions={differentialFlamegraph.increasedFrames}
@@ -263,7 +276,7 @@ function EventDifferentialFlamegraphView(props: EventDifferentialFlamegraphViewP
             makeFunctionLink={makeFunctionFlamechartLink}
           />
           <DifferentialFlamegraphChangedFunctions
-            loading={props.after.isLoading || props.before.isLoading}
+            loading={props.after.isPending || props.before.isPending}
             title={t('Faster functions')}
             subtitle={t('after regression')}
             functions={differentialFlamegraph.decreasedFrames}
@@ -271,12 +284,12 @@ function EventDifferentialFlamegraphView(props: EventDifferentialFlamegraphViewP
             makeFunctionLink={makeFunctionFlamechartLink}
           />
         </DifferentialFlamegraphFunctionsContainer>
-      </Panel>
+      </StyledPanel>
 
-      <Panel>
+      <StyledPanel>
         <DifferentialFlamegraphFunctionsContainer>
           <DifferentialFlamegraphChangedFunctions
-            loading={props.after.isLoading || props.before.isLoading}
+            loading={props.after.isPending || props.before.isPending}
             title={t('New functions')}
             subtitle={t('after regression')}
             functions={differentialFlamegraph.newFrames}
@@ -284,7 +297,7 @@ function EventDifferentialFlamegraphView(props: EventDifferentialFlamegraphViewP
             makeFunctionLink={makeFunctionFlamechartLink}
           />
           <DifferentialFlamegraphChangedFunctions
-            loading={props.after.isLoading || props.before.isLoading}
+            loading={props.after.isPending || props.before.isPending}
             title={t('Removed functions')}
             subtitle={t('after regression')}
             functions={differentialFlamegraph.removedFrames}
@@ -292,8 +305,8 @@ function EventDifferentialFlamegraphView(props: EventDifferentialFlamegraphViewP
             makeFunctionLink={makeFunctionFlamechartLink}
           />
         </DifferentialFlamegraphFunctionsContainer>
-      </Panel>
-    </Fragment>
+      </StyledPanel>
+    </FlamegraphContainer>
   );
 }
 
@@ -608,7 +621,7 @@ const DifferentialFlamegraphChangedFunctionContainer = styled('div')`
   flex-direction: row;
   justify-content: space-between;
   gap: ${space(1)};
-  padding: ${space(0.5)} ${space(0)};
+  padding: ${space(0.5)} 0;
 
   > *:first-child {
     min-width: 0;
@@ -796,4 +809,14 @@ const DifferentialFlamegraphContainer = styled('div')`
   position: relative;
   width: 100%;
   height: 420px;
+`;
+
+const FlamegraphContainer = styled('div')`
+  display: flex;
+  flex-direction: column;
+  gap: ${space(1.5)};
+`;
+
+const StyledPanel = styled(Panel)`
+  margin-bottom: 0;
 `;

@@ -7,7 +7,7 @@ import {
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {act, render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import type {ReleaseProject} from 'sentry/types';
+import type {ReleaseProject} from 'sentry/types/release';
 import {browserHistory} from 'sentry/utils/browserHistory';
 import ReleaseComparisonChart from 'sentry/views/releases/detail/overview/releaseComparisonChart';
 

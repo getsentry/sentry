@@ -1,5 +1,4 @@
 import {useCallback, useEffect, useState} from 'react';
-import type {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
@@ -14,12 +13,9 @@ import SentryAppDetailsModal from 'sentry/components/modals/sentryAppDetailsModa
 import NarrowLayout from 'sentry/components/narrowLayout';
 import {t, tct} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
-import type {
-  Organization,
-  OrganizationSummary,
-  SentryApp,
-  SentryAppInstallation,
-} from 'sentry/types';
+import type {SentryApp, SentryAppInstallation} from 'sentry/types/integrations';
+import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
+import type {Organization, OrganizationSummary} from 'sentry/types/organization';
 import {generateOrgSlugUrl} from 'sentry/utils';
 import {trackIntegrationAnalytics} from 'sentry/utils/integrationUtil';
 import {useApiQuery} from 'sentry/utils/queryClient';
@@ -55,7 +51,7 @@ function SentryAppExternalInstallationContent({params, ...props}: Props) {
   const [isInstalled, setIsInstalled] = useState<boolean>();
 
   // Load data on mount.
-  const {data: sentryApp, isLoading: sentryAppLoading} = useApiQuery<SentryApp>(
+  const {data: sentryApp, isPending: sentryAppLoading} = useApiQuery<SentryApp>(
     [`/sentry-apps/${params.sentryAppSlug}/`],
     {
       staleTime: 0,
@@ -337,15 +333,13 @@ function MultiOrgView({
         )}
       </p>
       <FieldGroup label={t('Organization')} inline={false} stacked required>
-        {() => (
-          <SelectControl
-            onChange={({value}) => onSelectOrg(value)}
-            value={selectedOrgSlug}
-            placeholder={t('Select an organization')}
-            options={getOrganizationOptions(organizations)}
-            data-test-id="org-select"
-          />
-        )}
+        <SelectControl
+          onChange={({value}) => onSelectOrg(value)}
+          value={selectedOrgSlug}
+          placeholder={t('Select an organization')}
+          options={getOrganizationOptions(organizations)}
+          data-test-id="org-select"
+        />
       </FieldGroup>
     </div>
   );

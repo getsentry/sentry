@@ -81,14 +81,11 @@ def group_categories_from(
     for search_filter in search_filters or ():
         if search_filter.key.name in ("issue.category", "issue.type"):
             if search_filter.is_negation:
+                # get all group categories except the ones in the negation filter
                 group_categories.update(
                     get_group_type_by_type_id(value).category
-                    for value in list(
-                        filter(
-                            lambda x: x not in get_all_group_type_ids(),
-                            search_filter.value.raw_value,
-                        )
-                    )
+                    for value in get_all_group_type_ids()
+                    if value not in search_filter.value.raw_value
                 )
             else:
                 group_categories.update(

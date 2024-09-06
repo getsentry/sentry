@@ -1,20 +1,19 @@
 import {Fragment, useEffect, useMemo, useState} from 'react';
 import LazyLoad, {forceCheck} from 'react-lazyload';
-import type {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 import {withProfiler} from '@sentry/react';
 import debounce from 'lodash/debounce';
 import uniqBy from 'lodash/uniqBy';
 
 import type {Client} from 'sentry/api';
-import {Button} from 'sentry/components/button';
+import {LinkButton} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import * as Layout from 'sentry/components/layouts/thirds';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import NoProjectMessage from 'sentry/components/noProjectMessage';
 import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionTooltip';
-import {useProjectCreationAccess} from 'sentry/components/projects/useProjectCreationAccess';
+import {canCreateProject} from 'sentry/components/projects/canCreateProject';
 import SearchBar from 'sentry/components/searchBar';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {DEFAULT_DEBOUNCE_DURATION} from 'sentry/constants';
@@ -22,6 +21,7 @@ import {IconAdd, IconUser} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import ProjectsStatsStore from 'sentry/stores/projectsStatsStore';
 import {space} from 'sentry/styles/space';
+import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import type {Organization} from 'sentry/types/organization';
 import type {Project, TeamWithProjects} from 'sentry/types/project';
 import {
@@ -91,7 +91,7 @@ function Dashboard({teams, organization, loadingTeams, error, router, location}:
     []
   );
 
-  const {canCreateProject} = useProjectCreationAccess({organization});
+  const canUserCreateProject = canCreateProject(organization);
   if (loadingTeams) {
     return <LoadingIndicator />;
   }
@@ -154,7 +154,7 @@ function Dashboard({teams, organization, loadingTeams, error, router, location}:
         </Layout.HeaderContent>
         <Layout.HeaderActions>
           <ButtonBar gap={1}>
-            <Button
+            <LinkButton
               size="sm"
               icon={<IconUser />}
               title={
@@ -165,13 +165,13 @@ function Dashboard({teams, organization, loadingTeams, error, router, location}:
               data-test-id="join-team"
             >
               {t('Join a Team')}
-            </Button>
-            <Button
+            </LinkButton>
+            <LinkButton
               size="sm"
               priority="primary"
-              disabled={!canCreateProject}
+              disabled={!canUserCreateProject}
               title={
-                !canCreateProject
+                !canUserCreateProject
                   ? t('You do not have permission to create projects')
                   : undefined
               }
@@ -180,7 +180,7 @@ function Dashboard({teams, organization, loadingTeams, error, router, location}:
               data-test-id="create-project"
             >
               {t('Create Project')}
-            </Button>
+            </LinkButton>
           </ButtonBar>
         </Layout.HeaderActions>
       </Layout.Header>

@@ -1,11 +1,13 @@
 import * as Sentry from '@sentry/react';
+import type {eventWithTime} from '@sentry-internal/rrweb';
 import memoize from 'lodash/memoize';
-import {type Duration, duration} from 'moment';
+import {type Duration, duration} from 'moment-timezone';
 
 import {defined} from 'sentry/utils';
 import domId from 'sentry/utils/domId';
 import localStorageWrapper from 'sentry/utils/localStorage';
 import clamp from 'sentry/utils/number/clamp';
+import extractHtmlandSelector from 'sentry/utils/replays/extractHtml';
 import hydrateBreadcrumbs, {
   replayInitBreadcrumb,
 } from 'sentry/utils/replays/hydrateBreadcrumbs';
@@ -14,10 +16,10 @@ import hydrateFrames from 'sentry/utils/replays/hydrateFrames';
 import {
   clipEndFrame,
   recordingEndFrame,
-  recordingStartFrame,
 } from 'sentry/utils/replays/hydrateRRWebRecordingFrames';
 import hydrateSpans from 'sentry/utils/replays/hydrateSpans';
 import {replayTimestamps} from 'sentry/utils/replays/replayDataUtils';
+import replayerStepper from 'sentry/utils/replays/replayerStepper';
 import type {
   BreadcrumbFrame,
   ClipWindow,
@@ -27,19 +29,20 @@ import type {
   MemoryFrame,
   OptionFrame,
   RecordingFrame,
+  ReplayFrame,
   serializedNodeWithId,
   SlowClickFrame,
   SpanFrame,
   VideoEvent,
+  WebVitalFrame,
 } from 'sentry/utils/replays/types';
 import {
   BreadcrumbCategories,
   EventType,
+  getNodeIds,
   IncrementalSource,
-  isBackgroundFrame,
   isDeadClick,
   isDeadRageClick,
-  isForegroundFrame,
   isPaintFrame,
   isWebVitalFrame,
 } from 'sentry/utils/replays/types';
@@ -139,6 +142,54 @@ function removeDuplicateNavCrumbs(
   );
   return otherBreadcrumbFrames.concat(uniqueNavCrumbs);
 }
+
+const extractDomNodes = {
+  shouldVisitFrame: frame => {
+    const nodeIds = getNodeIds(frame);
+    return nodeIds.filter(nodeId => nodeId !== -1).length > 0;
+  },
+  onVisitFrame: (frame, collection, replayer) => {
+    const mirror = replayer.getMirror();
+    const nodeIds = getNodeIds(frame);
+    const {html, selectors} = extractHtmlandSelector((nodeIds ?? []) as number[], mirror);
+    collection.set(frame as ReplayFrame, {
+      frame,
+      html,
+      selectors,
+      timestamp: frame.timestampMs,
+    });
+  },
+};
+
+const countDomNodes = function (frames: eventWithTime[]) {
+  let frameCount = 0;
+  const length = frames?.length ?? 0;
+  const frameStep = Math.max(Math.round(length * 0.007), 1);
+
+  let prevIds: number[] = [];
+
+  return {
+    shouldVisitFrame() {
+      frameCount++;
+      return frameCount % frameStep === 0;
+    },
+    onVisitFrame(frame, collection, replayer) {
+      const ids = replayer.getMirror().getIds(); // gets list of DOM nodes present
+      const count = ids.length;
+      const added = ids.filter(id => !prevIds.includes(id)).length;
+      const removed = prevIds.filter(id => !ids.includes(id)).length;
+      collection.set(frame as RecordingFrame, {
+        count,
+        added,
+        removed,
+        timestampMs: frame.timestamp,
+        startTimestampMs: frame.timestamp,
+        endTimestampMs: frame.timestamp,
+      });
+      prevIds = ids;
+    },
+  };
+};
 
 export default class ReplayReader {
   static factory({
@@ -246,8 +297,29 @@ export default class ReplayReader {
     this._optionFrame = optionFrame;
 
     // Insert extra records to satisfy minimum requirements for the UI
+    // e.g. we have buffered events from browser that happen *before* replay
+    // recording is started these can show up in the timeline (navigation) and
+    // in Network table
+    //
+    // We fake the start time so that the timelines of these UI components and
+    // the replay recording all match up
     this._sortedBreadcrumbFrames.unshift(replayInitBreadcrumb(replayRecord));
-    this._sortedRRWebEvents.unshift(recordingStartFrame(replayRecord));
+    const startTimestampMs = replayRecord.started_at.getTime();
+    const firstMeta = rrwebFrames.find(frame => frame.type === EventType.Meta);
+    const firstSnapshot = rrwebFrames.find(
+      frame => frame.type === EventType.FullSnapshot
+    );
+    if (firstMeta && firstSnapshot && firstMeta.timestamp > startTimestampMs) {
+      this._sortedRRWebEvents.unshift({
+        ...firstSnapshot,
+        timestamp: startTimestampMs,
+      });
+      this._sortedRRWebEvents.unshift({
+        ...firstMeta,
+        timestamp: startTimestampMs,
+      });
+    }
+
     this._sortedRRWebEvents.push(recordingEndFrame(replayRecord));
 
     this._duration = replayRecord.duration;
@@ -394,6 +466,34 @@ export default class ReplayReader {
     return this.processingErrors().length;
   };
 
+  getCountDomNodes = memoize(async () => {
+    const {onVisitFrame, shouldVisitFrame} = countDomNodes(this.getRRWebMutations());
+
+    const results = await replayerStepper({
+      frames: this.getRRWebMutations(),
+      rrwebEvents: this.getRRWebFrames(),
+      startTimestampMs: this.getReplay().started_at.getTime() ?? 0,
+      onVisitFrame,
+      shouldVisitFrame,
+    });
+
+    return results;
+  });
+
+  getExtractDomNodes = memoize(async () => {
+    const {onVisitFrame, shouldVisitFrame} = extractDomNodes;
+
+    const results = await replayerStepper({
+      frames: this.getDOMFrames(),
+      rrwebEvents: this.getRRWebFrames(),
+      startTimestampMs: this.getReplay().started_at.getTime() ?? 0,
+      onVisitFrame,
+      shouldVisitFrame,
+    });
+
+    return results;
+  });
+
   getClipWindow = () => this._clipWindow;
 
   /**
@@ -478,7 +578,9 @@ export default class ReplayReader {
               )
           )
       ),
-      ...this._sortedSpanFrames.filter(frame => 'nodeId' in (frame.data ?? {})),
+      ...this._sortedSpanFrames.filter(
+        frame => 'nodeId' in (frame.data ?? {}) || 'nodeIds' in (frame.data ?? {})
+      ),
     ].sort(sortFrames)
   );
 
@@ -530,15 +632,23 @@ export default class ReplayReader {
 
   getWebVitalFrames = memoize(() => {
     if (this._featureFlags?.includes('session-replay-web-vitals')) {
-      return this._sortedSpanFrames.filter(isWebVitalFrame);
+      // sort by largest timestamp first to easily find the last CLS in a burst
+      const allWebVitals = this._sortedSpanFrames.filter(isWebVitalFrame).reverse();
+      let lastTimestamp = 0;
+      const groupedCls: WebVitalFrame[] = [];
+
+      for (const cls of allWebVitals) {
+        if (cls.description === 'cumulative-layout-shift') {
+          if (lastTimestamp === cls.timestampMs) {
+            groupedCls.push(cls);
+          } else {
+            lastTimestamp = cls.timestampMs;
+          }
+        }
+      }
+      return allWebVitals.filter(frame => !groupedCls.includes(frame)).reverse();
     }
     return [];
-  });
-
-  getAppFrames = memoize(() => {
-    return this._sortedBreadcrumbFrames.filter(
-      frame => isBackgroundFrame(frame) || isForegroundFrame(frame)
-    );
   });
 
   getVideoEvents = () => this._videoEvents;

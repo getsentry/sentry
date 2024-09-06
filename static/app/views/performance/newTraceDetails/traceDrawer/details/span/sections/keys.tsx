@@ -14,17 +14,18 @@ import FileSize from 'sentry/components/fileSize';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {KeyValueListDataItem} from 'sentry/types';
 import {defined} from 'sentry/utils';
 import {toTitleCase} from 'sentry/utils/string/toTitleCase';
 import {isSpanNode} from 'sentry/views/performance/newTraceDetails/guards';
+import {
+  type SectionCardKeyValueList,
+  TraceDrawerComponents,
+} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/styles';
 import {
   type TraceTree,
   TraceTreeNode,
 } from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
 import {getPerformanceDuration} from 'sentry/views/performance/utils/getPerformanceDuration';
-
-import {type SectionCardKeyValueList, TraceDrawerComponents} from '../../styles';
 
 const SIZE_DATA_KEYS = [
   'Encoded Body Size',
@@ -40,6 +41,12 @@ function partitionSizes(data: RawSpanType['data']): {
   nonSizeKeys: {[key: string]: unknown};
   sizeKeys: {[key: string]: number};
 } {
+  if (!data) {
+    return {
+      sizeKeys: {},
+      nonSizeKeys: {},
+    };
+  }
   const sizeKeys = SIZE_DATA_KEYS.reduce((keys, key) => {
     if (data.hasOwnProperty(key) && defined(data[key])) {
       try {
@@ -130,7 +137,7 @@ export function SpanKeys({node}: {node: TraceTreeNode<TraceTree.Span>}) {
       items.push({
         key: key,
         subject: key,
-        value: value as KeyValueListDataItem['value'],
+        value: value as string | number,
       });
     }
   });

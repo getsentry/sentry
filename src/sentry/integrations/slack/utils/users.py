@@ -1,19 +1,25 @@
 from __future__ import annotations
 
-from collections.abc import Iterable, Mapping, MutableMapping, Sequence
+import logging
+from collections.abc import Iterable, Mapping, MutableMapping
 from dataclasses import dataclass
 from typing import Any
 
 from slack_sdk.errors import SlackApiError
 
+from sentry.integrations.models.integration import Integration
 from sentry.integrations.services.integration import RpcIntegration
+from sentry.integrations.slack.metrics import (
+    SLACK_UTILS_GET_USER_LIST_FAILURE_DATADOG_METRIC,
+    SLACK_UTILS_GET_USER_LIST_SUCCESS_DATADOG_METRIC,
+)
 from sentry.integrations.slack.sdk_client import SlackSdkClient
-from sentry.models.integrations.integration import Integration
 from sentry.models.organization import Organization
-from sentry.models.user import User
 from sentry.organizations.services.organization import RpcOrganization
+from sentry.users.models.user import User
+from sentry.utils import metrics
 
-from ..utils import logger
+_logger = logging.getLogger(__name__)
 
 SLACK_GET_USERS_PAGE_LIMIT = 100
 SLACK_GET_USERS_PAGE_SIZE = 200
@@ -37,7 +43,7 @@ def format_slack_info_by_email(users: dict[str, Any]) -> dict[str, SlackUserData
 
 
 def format_slack_data_by_user(
-    emails_by_user: Mapping[User, Sequence[str]], users: dict[str, Any]
+    emails_by_user: Mapping[User, Iterable[str]], users: dict[str, Any]
 ) -> Mapping[User, SlackUserData]:
     slack_info_by_email = format_slack_info_by_email(users)
 
@@ -62,13 +68,15 @@ def get_slack_user_list(
             if kwargs
             else sdk_client.users_list(limit=SLACK_GET_USERS_PAGE_SIZE)
         )
+        metrics.incr(SLACK_UTILS_GET_USER_LIST_SUCCESS_DATADOG_METRIC, sample_rate=1.0)
 
         for page in users_list:
             users: dict[str, Any] = page.get("members")
 
             yield users
     except SlackApiError as e:
-        logger.info(
+        metrics.incr(SLACK_UTILS_GET_USER_LIST_FAILURE_DATADOG_METRIC, sample_rate=1.0)
+        _logger.info(
             "slack.post_install.get_users.error",
             extra={
                 "error": str(e),
@@ -82,7 +90,7 @@ def get_slack_user_list(
 def get_slack_data_by_user(
     integration: Integration | RpcIntegration,
     organization: Organization | RpcOrganization,
-    emails_by_user: Mapping[User, Sequence[str]],
+    emails_by_user: Mapping[User, Iterable[str]],
 ) -> Iterable[Mapping[User, SlackUserData]]:
     all_users = get_slack_user_list(integration, organization)
     yield from (format_slack_data_by_user(emails_by_user, users) for users in all_users)

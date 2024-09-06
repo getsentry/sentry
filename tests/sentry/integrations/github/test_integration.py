@@ -14,7 +14,6 @@ from django.urls import reverse
 
 import sentry
 from fixtures.github import INSTALLATION_EVENT_EXAMPLE
-from sentry.api.utils import generate_organization_url
 from sentry.constants import ObjectStatus
 from sentry.integrations.github import (
     API_ERRORS,
@@ -23,18 +22,24 @@ from sentry.integrations.github import (
     client,
 )
 from sentry.integrations.github.integration import GitHubIntegration
-from sentry.integrations.mixins.commit_context import CommitInfo, FileBlameInfo, SourceLineInfo
+from sentry.integrations.models.integration import Integration
+from sentry.integrations.models.organization_integration import OrganizationIntegration
+from sentry.integrations.source_code_management.commit_context import (
+    CommitInfo,
+    FileBlameInfo,
+    SourceLineInfo,
+)
 from sentry.integrations.utils.code_mapping import Repo, RepoTree
-from sentry.models.integrations.integration import Integration
-from sentry.models.integrations.organization_integration import OrganizationIntegration
 from sentry.models.project import Project
 from sentry.models.repository import Repository
+from sentry.organizations.absolute_url import generate_organization_url
 from sentry.plugins.base import plugins
 from sentry.plugins.bases.issue2 import IssueTrackingPlugin2
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import IntegrationTestCase
 from sentry.testutils.helpers.integrations import get_installation_of_type
+from sentry.testutils.helpers.options import override_options
 from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
 from sentry.utils.cache import cache
 
@@ -395,9 +400,10 @@ class GitHubIntegrationTest(IntegrationTestCase):
                 ),
             )
         )
-        assert b"Invalid installation request." in resp.content
+        assert b"Invalid state" in resp.content
 
     @responses.activate
+    @override_options({"github-app.webhook-secret": ""})
     def test_github_user_mismatch(self):
         self._stub_github()
 
@@ -453,7 +459,7 @@ class GitHubIntegrationTest(IntegrationTestCase):
             self.assertTemplateUsed(resp, "sentry/integrations/github-integration-failed.html")
             assert resp.status_code == 200
             assert b'window.opener.postMessage({"success":false' in resp.content
-            assert b"Invalid installation request." in resp.content
+            assert b"Authenticated user is not the same as who installed the app" in resp.content
 
     @responses.activate
     def test_disable_plugin_when_fully_migrated(self):
@@ -522,7 +528,7 @@ class GitHubIntegrationTest(IntegrationTestCase):
             GitHubIntegration, integration, self.organization.id
         )
 
-        with patch.object(sentry.integrations.github.client.GitHubClientMixin, "page_size", 1):
+        with patch.object(sentry.integrations.github.client.GitHubBaseClient, "page_size", 1):
             result = installation.get_repositories(fetch_max_pages=True)
             assert result == [
                 {"name": "foo", "identifier": "Test-Organization/foo", "default_branch": "master"},
@@ -541,7 +547,7 @@ class GitHubIntegrationTest(IntegrationTestCase):
             GitHubIntegration, integration, self.organization.id
         )
 
-        with patch.object(sentry.integrations.github.client.GitHubClientMixin, "page_size", 1):
+        with patch.object(sentry.integrations.github.client.GitHubBaseClient, "page_size", 1):
             result = installation.get_repositories()
             assert result == [
                 {"name": "foo", "identifier": "Test-Organization/foo", "default_branch": "master"},

@@ -16,7 +16,9 @@ import {Tooltip} from 'sentry/components/tooltip';
 import Version from 'sentry/components/version';
 import {t, tct, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {Organization, PageFilters, Release} from 'sentry/types';
+import type {PageFilters} from 'sentry/types/core';
+import type {Organization} from 'sentry/types/organization';
+import type {Release} from 'sentry/types/release';
 
 import type {ReleasesDisplayOption} from '../releasesDisplayOptions';
 import type {ReleasesRequestRenderProps} from '../releasesRequest';
@@ -214,7 +216,7 @@ function ReleaseCard({
   );
 }
 
-const VersionWrapper = styled('div')`
+export const VersionWrapper = styled('div')`
   display: flex;
   align-items: center;
 `;
@@ -244,12 +246,12 @@ const ReleaseInfo = styled('div')`
   }
 `;
 
-const ReleaseInfoSubheader = styled('div')`
+export const ReleaseInfoSubheader = styled('div')`
   font-size: ${p => p.theme.fontSizeSmall};
   color: ${p => p.theme.gray400};
 `;
 
-const PackageName = styled('div')`
+export const PackageName = styled('div')`
   font-size: ${p => p.theme.fontSizeMedium};
   color: ${p => p.theme.textColor};
   display: flex;
@@ -267,7 +269,7 @@ const ReleaseProjects = styled('div')`
   }
 `;
 
-const ReleaseInfoHeader = styled('div')`
+export const ReleaseInfoHeader = styled('div')`
   font-size: ${p => p.theme.fontSizeExtraLarge};
   display: grid;
   grid-template-columns: minmax(0, 1fr) max-content;

@@ -5,7 +5,7 @@ import logging
 import re
 from collections.abc import Mapping, Sequence
 from time import time
-from typing import ClassVar
+from typing import ClassVar, TypedDict
 
 import orjson
 import sentry_sdk
@@ -36,6 +36,7 @@ from sentry.db.postgres.transactions import in_test_hide_transaction_boundary
 from sentry.locks import locks
 from sentry.models.activity import Activity
 from sentry.models.artifactbundle import ArtifactBundle
+from sentry.models.commitauthor import CommitAuthor
 from sentry.models.commitfilechange import CommitFileChange
 from sentry.models.grouphistory import GroupHistoryStatus, record_group_history
 from sentry.models.groupinbox import GroupInbox, GroupInboxRemoveAction, remove_group_from_inbox
@@ -176,6 +177,12 @@ class ReleaseModelManager(BaseManager["Release"]):
 
         # Convert the False back into a None.
         return release_version or None
+
+
+class _CommitDataKwargs(TypedDict, total=False):
+    author: CommitAuthor
+    message: str
+    date_added: str
 
 
 @region_silo_model
@@ -645,6 +652,7 @@ class Release(Model):
                     }
                 )
 
+    @sentry_sdk.trace
     def set_commits(self, commit_list):
         """
         Bind a list of commits to this release.
@@ -652,13 +660,14 @@ class Release(Model):
         This will clear any existing commit log and replace it with the given
         commits.
         """
+        sentry_sdk.set_measurement("release.set_commits", len(commit_list))
 
         # Sort commit list in reverse order
         commit_list.sort(key=lambda commit: commit.get("timestamp", 0), reverse=True)
 
         # TODO(dcramer): this function could use some cleanup/refactoring as it's a bit unwieldy
+        from sentry.integrations.tasks.kick_off_status_syncs import kick_off_status_syncs
         from sentry.models.commit import Commit
-        from sentry.models.commitauthor import CommitAuthor
         from sentry.models.group import Group, GroupStatus
         from sentry.models.grouplink import GroupLink
         from sentry.models.groupresolution import GroupResolution
@@ -667,7 +676,6 @@ class Release(Model):
         from sentry.models.releaseheadcommit import ReleaseHeadCommit
         from sentry.models.repository import Repository
         from sentry.plugins.providers.repository import RepositoryProvider
-        from sentry.tasks.integrations import kick_off_status_syncs
 
         # todo(meredith): implement for IntegrationRepositoryProvider
         commit_list = [
@@ -685,15 +693,7 @@ class Release(Model):
         with TimedRetryPolicy(10)(lock.acquire):
             start = time()
             with (
-                atomic_transaction(
-                    using=(
-                        router.db_for_write(type(self)),
-                        router.db_for_write(ReleaseCommit),
-                        router.db_for_write(Repository),
-                        router.db_for_write(CommitAuthor),
-                        router.db_for_write(Commit),
-                    )
-                ),
+                atomic_transaction(using=router.db_for_write(type(self))),
                 in_test_hide_transaction_boundary(),
             ):
                 # TODO(dcramer): would be good to optimize the logic to avoid these
@@ -752,7 +752,7 @@ class Release(Model):
                     else:
                         author = authors[author_email]
 
-                    commit_data = {}
+                    commit_data: _CommitDataKwargs = {}
 
                     # Update/set message and author if they are provided.
                     if author is not None:
@@ -768,14 +768,10 @@ class Release(Model):
                         key=data["id"],
                         defaults=commit_data,
                     )
-                    if not created:
-                        commit_data = {
-                            key: value
-                            for key, value in commit_data.items()
-                            if getattr(commit, key) != value
-                        }
-                        if commit_data:
-                            commit.update(**commit_data)
+                    if not created and any(
+                        getattr(commit, key) != value for key, value in commit_data.items()
+                    ):
+                        commit.update(**commit_data)
 
                     if author is None:
                         author = commit.author
@@ -796,6 +792,7 @@ class Release(Model):
                                 for patched_file in patch_set
                             ],
                             ignore_conflicts=True,
+                            batch_size=100,
                         )
 
                     try:
@@ -826,7 +823,7 @@ class Release(Model):
                     ],
                     last_commit_id=latest_commit.id if latest_commit else None,
                 )
-                metrics.timing("release.set_commits.duration", time() - start)
+                metrics.timing("release.set_commits.duration", time() - start, sample_rate=1.0)
 
         # fill any missing ReleaseHeadCommit entries
         for repo_id, commit_id in head_commit_by_repo.items():
@@ -885,7 +882,7 @@ class Release(Model):
             (prr[0], pr_authors_dict.get(prr[1])) for prr in pull_request_resolutions
         ]
 
-        user_by_author: dict[str | None, RpcUser | None] = {None: None}
+        user_by_author: dict[CommitAuthor | None, RpcUser | None] = {None: None}
 
         commits_and_prs = list(itertools.chain(commit_group_authors, pull_request_group_authors))
 

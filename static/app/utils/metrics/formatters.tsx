@@ -180,7 +180,7 @@ const METRIC_UNIT_TO_SHORT: Record<FormattingSupportedMetricUnit, string> = {
 };
 
 export function formatMetricUsingUnit(value: number | null, unit: string) {
-  if (!defined(value)) {
+  if (!defined(value) || Math.abs(value) === Infinity) {
     return '\u2014';
   }
 

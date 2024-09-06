@@ -13,11 +13,11 @@ from rest_framework.serializers import ValidationError
 
 from sentry.api.authentication import ClientIdSecretAuthentication
 from sentry.api.base import Endpoint
-from sentry.api.bases.integration import PARANOID_GET
 from sentry.api.permissions import SentryPermission, StaffPermissionMixin
 from sentry.auth.staff import is_active_staff
 from sentry.auth.superuser import is_active_superuser, superuser_has_permission
 from sentry.coreapi import APIError
+from sentry.integrations.api.bases.integration import PARANOID_GET
 from sentry.middleware.stats import add_request_metric_tags
 from sentry.models.integrations.sentry_app import SentryApp
 from sentry.models.organization import OrganizationStatus

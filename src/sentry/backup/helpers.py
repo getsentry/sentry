@@ -66,10 +66,6 @@ class Filter(Generic[T]):
     allowlist based filtration: models of the given type whose specified field matches ANY of the
     supplied values will be allowed through."""
 
-    model: type[models.base.Model]
-    field: str
-    values: set[T]
-
     def __init__(
         self,
         model: type[models.base.Model],
@@ -90,7 +86,7 @@ class ImportFlags(NamedTuple):
     """
 
     # If a username already exists, should we re-use that user, or create a new one with a randomly
-    # suffixed username (ex: "some-user" would become "some-user-ad21")
+    # suffixed username (ex: "some-user" would become "some-user-ad21")?
     merge_users: bool = False
 
     # If a global configuration value `ControlOption`/`Option` (as identified by its unique
@@ -103,3 +99,8 @@ class ImportFlags(NamedTuple):
     # is not provided, the import was called in a non-relocation context, like from the `sentry
     # import` CLI command.
     import_uuid: str | None = None
+
+    # Controls whether or not organizations have their `status` set to `RELOCATION_PENDING_APPROVAL`
+    # when being imported. This is primarily useful for SaaS -> SaaS relocations only, and is
+    # therefore not meant to be exposed to or settable from the command line via flags.
+    hide_organizations: bool = False

@@ -1,8 +1,10 @@
 /* global process */
 
 import {t} from 'sentry/locale';
-import type {DataCategoryInfo, OrgRole, PermissionResource, Scope} from 'sentry/types';
+import type {DataCategoryInfo, Scope} from 'sentry/types/core';
 import {DataCategoryExact} from 'sentry/types/core';
+import type {PermissionResource} from 'sentry/types/integrations';
+import type {OrgRole} from 'sentry/types/organization';
 
 /**
  * Common constants here
@@ -56,6 +58,7 @@ export const ALLOWED_SCOPES = [
   'event:read',
   'event:write',
   'member:admin',
+  'member:invite',
   'member:read',
   'member:write',
   'org:admin',
@@ -311,7 +314,7 @@ export const DATA_CATEGORY_INFO = {
   },
   [DataCategoryExact.SPAN]: {
     name: DataCategoryExact.SPAN,
-    apiName: 'span_indexed',
+    apiName: 'span',
     plural: 'spans',
     displayName: 'spans',
     titleName: t('Spans'),
@@ -386,6 +389,8 @@ export const ORGANIZATION_FETCH_ERROR_TYPES = {
 
 export const CONFIG_DOCS_URL = 'https://develop.sentry.dev/config/';
 export const DISCOVER2_DOCS_URL = 'https://docs.sentry.io/product/discover-queries/';
+export const SPAN_PROPS_DOCS_URL =
+  'https://docs.sentry.io/concepts/search/searchable-properties/spans/';
 
 export const IS_ACCEPTANCE_TEST = !!process.env.IS_ACCEPTANCE_TEST;
 export const NODE_ENV = process.env.NODE_ENV;

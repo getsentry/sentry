@@ -10,11 +10,11 @@ import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {IconImage} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import {safeURL} from 'sentry/utils/url/safeURL';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
-import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import ResourceSize from 'sentry/views/insights/browser/resources/components/resourceSize';
 import {useIndexedResourcesQuery} from 'sentry/views/insights/browser/resources/queries/useIndexedResourceQuery';
 import {useResourceModuleFilters} from 'sentry/views/insights/browser/resources/utils/useResourceFilters';
@@ -35,11 +35,11 @@ function SampleImages({groupId, projectId}: Props) {
   const [showLinks, setShowLinks] = useLocalStorageState(LOCAL_STORAGE_SHOW_LINKS, false);
   const filters = useResourceModuleFilters();
   const [showImages, setShowImages] = useState(showLinks);
-  const {data: settings, isLoading: isSettingsLoading} =
+  const {data: settings, isPending: isSettingsLoading} =
     usePerformanceGeneralProjectSettings(projectId);
   const isImagesEnabled = settings?.enable_images ?? false;
 
-  const {data: imageResources, isLoading: isLoadingImages} = useIndexedResourcesQuery({
+  const {data: imageResources, isPending: isLoadingImages} = useIndexedResourcesQuery({
     queryConditions: [
       `${SPAN_GROUP}:${groupId}`,
       ...(filters[SPAN_OP] ? [`${SPAN_OP}:${filters[SPAN_OP]}`] : []),

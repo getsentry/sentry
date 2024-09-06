@@ -1,6 +1,6 @@
 import {Component} from 'react';
 import type {LineSeriesOption} from 'echarts';
-import moment from 'moment';
+import moment from 'moment-timezone';
 
 import type {Series, SeriesDataUnit} from 'sentry/types/echarts';
 import toArray from 'sentry/utils/array/toArray';

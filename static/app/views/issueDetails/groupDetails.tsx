@@ -6,7 +6,6 @@ import {
   useEffect,
   useState,
 } from 'react';
-import type {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 import omit from 'lodash/omit';
@@ -22,9 +21,12 @@ import {TabPanels, Tabs} from 'sentry/components/tabs';
 import {t} from 'sentry/locale';
 import GroupStore from 'sentry/stores/groupStore';
 import {space} from 'sentry/styles/space';
-import type {Group, Organization, Project} from 'sentry/types';
-import {GroupStatus, IssueCategory, IssueType} from 'sentry/types';
 import type {Event} from 'sentry/types/event';
+import type {Group} from 'sentry/types/group';
+import {GroupStatus, IssueCategory, IssueType} from 'sentry/types/group';
+import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
+import type {Organization} from 'sentry/types/organization';
+import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {browserHistory} from 'sentry/utils/browserHistory';
@@ -43,6 +45,7 @@ import recreateRoute from 'sentry/utils/recreateRoute';
 import useDisableRouteAnalytics from 'sentry/utils/routeAnalytics/useDisableRouteAnalytics';
 import useRouteAnalyticsEventNames from 'sentry/utils/routeAnalytics/useRouteAnalyticsEventNames';
 import useRouteAnalyticsParams from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
+import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import useApi from 'sentry/utils/useApi';
 import {useDetailedProject} from 'sentry/utils/useDetailedProject';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -52,12 +55,11 @@ import {useParams} from 'sentry/utils/useParams';
 import useProjects from 'sentry/utils/useProjects';
 import useRouter from 'sentry/utils/useRouter';
 import {useUser} from 'sentry/utils/useUser';
-import {normalizeUrl} from 'sentry/utils/withDomainRequired';
-
-import {ERROR_TYPES} from './constants';
-import GroupHeader from './header';
-import SampleEventAlert from './sampleEventAlert';
-import {Tab, TabPaths} from './types';
+import GroupHeader from 'sentry/views/issueDetails//header';
+import {ERROR_TYPES} from 'sentry/views/issueDetails/constants';
+import SampleEventAlert from 'sentry/views/issueDetails/sampleEventAlert';
+import StreamlinedGroupHeader from 'sentry/views/issueDetails/streamline/header';
+import {Tab, TabPaths} from 'sentry/views/issueDetails/types';
 import {
   getGroupDetailsQueryData,
   getGroupEventDetailsQueryData,
@@ -66,8 +68,9 @@ import {
   ReprocessingStatus,
   useDefaultIssueEvent,
   useEnvironmentsFromUrl,
-  useFetchIssueTagsForDetailsPage,
-} from './utils';
+  useHasStreamlinedUI,
+  useIsSampleEvent,
+} from 'sentry/views/issueDetails/utils';
 
 type Error = (typeof ERROR_TYPES)[keyof typeof ERROR_TYPES] | null;
 
@@ -348,7 +351,7 @@ function useFetchGroupDetails(): FetchGroupDetailsState {
 
   const {
     data: event,
-    isLoading: loadingEvent,
+    isPending: loadingEvent,
     isError,
     refetch: refetchEvent,
   } = useEventApiQuery({
@@ -359,7 +362,7 @@ function useFetchGroupDetails(): FetchGroupDetailsState {
 
   const {
     data: groupData,
-    isLoading: loadingGroup,
+    isPending: loadingGroup,
     isError: isGroupError,
     error: groupError,
     refetch: refetchGroupCall,
@@ -544,7 +547,6 @@ function useTrackView({
   tab: Tab;
   project?: Project;
 }) {
-  const organization = useOrganization();
   const location = useLocation();
   const {alert_date, alert_rule_id, alert_type, ref_fallback, stream_index, query} =
     location.query;
@@ -566,10 +568,7 @@ function useTrackView({
     alert_type: typeof alert_type === 'string' ? alert_type : undefined,
     ref_fallback,
     group_event_type: groupEventType,
-    has_hierarchical_grouping:
-      !!organization.features?.includes('grouping-stacktrace-ui') &&
-      !!(event?.metadata?.current_tree_label || event?.metadata?.finest_tree_label),
-    new_issue_experience: user?.options?.issueDetailsNewExperienceQ42023 ?? false,
+    prefers_streamlined_ui: user?.options?.prefersIssueDetailsStreamlinedUI ?? false,
   });
   // Set default values for properties that may be updated in subcomponents.
   // Must be separate from the above values, otherwise the actual values filled in
@@ -683,6 +682,8 @@ function GroupDetailsContent({
 
   const environments = useEnvironmentsFromUrl();
 
+  const hasStreamlinedUI = useHasStreamlinedUI();
+
   useTrackView({group, event, project, tab: currentTab});
 
   const childProps = {
@@ -702,14 +703,23 @@ function GroupDetailsContent({
       value={currentTab}
       onChange={tab => trackTabChanged({tab, group, project, event, organization})}
     >
-      <GroupHeader
-        organization={organization}
-        groupReprocessingStatus={groupReprocessingStatus}
-        event={event ?? undefined}
-        group={group}
-        baseUrl={baseUrl}
-        project={project as Project}
-      />
+      {hasStreamlinedUI ? (
+        <StreamlinedGroupHeader
+          group={group}
+          project={project}
+          groupReprocessingStatus={groupReprocessingStatus}
+          baseUrl={baseUrl}
+        />
+      ) : (
+        <GroupHeader
+          organization={organization}
+          groupReprocessingStatus={groupReprocessingStatus}
+          event={event ?? undefined}
+          group={group}
+          baseUrl={baseUrl}
+          project={project as Project}
+        />
+      )}
       <GroupTabPanels>
         <TabPanels.Item key={currentTab}>
           {isValidElement(children) ? cloneElement(children, childProps) : children}
@@ -817,22 +827,8 @@ function GroupDetailsPageContent(props: GroupDetailsProps & FetchGroupDetailsSta
 
 function GroupDetails(props: GroupDetailsProps) {
   const organization = useOrganization();
-  const router = useRouter();
-
   const {group, ...fetchGroupDetailsProps} = useFetchGroupDetails();
-
-  const environments = useEnvironmentsFromUrl();
-
-  const {data} = useFetchIssueTagsForDetailsPage(
-    {
-      groupId: router.params.groupId,
-      orgSlug: organization.slug,
-      environment: environments,
-    },
-    // Don't want this query to take precedence over the main requests
-    {enabled: defined(group)}
-  );
-  const isSampleError = data?.some(tag => tag.key === 'sample_event') ?? false;
+  const isSampleError = useIsSampleEvent();
 
   const getGroupDetailsTitle = () => {
     const defaultTitle = 'Sentry';
@@ -841,7 +837,7 @@ function GroupDetails(props: GroupDetailsProps) {
       return defaultTitle;
     }
 
-    const {title} = getTitle(group, organization?.features);
+    const {title} = getTitle(group);
     const message = getMessage(group);
 
     const eventDetails = `${organization.slug} — ${group.project.slug}`;

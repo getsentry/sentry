@@ -218,7 +218,7 @@ class SnubaTagStorage(TagStorage):
         limit=1000,
         keys=None,
         include_values_seen=True,
-        include_transactions=False,
+        dataset: Dataset = Dataset.Events,
         denylist=None,
         tenant_ids=None,
         **kwargs,
@@ -232,7 +232,7 @@ class SnubaTagStorage(TagStorage):
             limit,
             keys,
             include_values_seen=include_values_seen,
-            include_transactions=include_transactions,
+            dataset=dataset,
             denylist=denylist,
             tenant_ids=tenant_ids,
         )
@@ -248,8 +248,8 @@ class SnubaTagStorage(TagStorage):
         keys=None,
         include_values_seen=True,
         use_cache=False,
-        include_transactions=False,
         denylist=None,
+        dataset: Dataset = Dataset.Discover,
         **kwargs,
     ):
         """Query snuba for tag keys based on projects
@@ -272,9 +272,6 @@ class SnubaTagStorage(TagStorage):
         if end is None:
             end = default_end
 
-        dataset = Dataset.Events
-        if include_transactions:
-            dataset = Dataset.Discover
         conditions = []
         aggregations = [["count()", "", "count"]]
 
@@ -282,7 +279,7 @@ class SnubaTagStorage(TagStorage):
         if environments:
             filters["environment"] = sorted(environments)
         if group is not None:
-            # We override dataset changes from `include_transactions` here. They aren't relevant
+            # We override dataset changes from `dataset` here. They aren't relevant
             # when filtering by a group.
             dataset, conditions, filters = self.apply_group_filters_conditions(
                 group, conditions, filters
@@ -428,9 +425,9 @@ class SnubaTagStorage(TagStorage):
         environments,
         start,
         end,
+        dataset: Dataset = Dataset.Events,
         status=TagKeyStatus.ACTIVE,
         use_cache: bool = False,
-        include_transactions: bool = False,
         tenant_ids=None,
     ):
         max_unsampled_projects = _max_unsampled_projects
@@ -450,9 +447,9 @@ class SnubaTagStorage(TagStorage):
             environments,
             start,
             end,
+            dataset=dataset,
             include_values_seen=False,
             use_cache=use_cache,
-            include_transactions=include_transactions,
             tenant_ids=tenant_ids,
             **optimize_kwargs,
         )
@@ -1179,6 +1176,7 @@ class SnubaTagStorage(TagStorage):
         key,
         start=None,
         end=None,
+        dataset: Dataset | None = None,
         query: str | None = None,
         order_by="-last_seen",
         include_transactions: bool = False,
@@ -1196,11 +1194,12 @@ class SnubaTagStorage(TagStorage):
         if order_by == "-count":
             order_by = "-times_seen"
 
-        dataset = Dataset.Events
-        if include_transactions:
-            dataset = Dataset.Discover
-        if include_replays:
-            dataset = Dataset.Replays
+        if not dataset:
+            dataset = Dataset.Events
+            if include_transactions:
+                dataset = Dataset.Discover
+            if include_replays:
+                dataset = Dataset.Replays
 
         snuba_key = snuba.get_snuba_column_name(key, dataset=dataset)
 

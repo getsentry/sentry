@@ -6,7 +6,7 @@ import Badge from 'sentry/components/badge/badge';
 import {CompactSelect} from 'sentry/components/compactSelect';
 import {IconUser} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import type {Actor} from 'sentry/types';
+import type {Actor} from 'sentry/types/core';
 
 interface Props {
   actors: Actor[];

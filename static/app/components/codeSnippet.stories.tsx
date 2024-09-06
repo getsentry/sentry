@@ -136,6 +136,22 @@ Sentry.addIntegration(replayIntegration());`}</CodeSnippet>
 // Sometime later
 const { replayIntegration } = await import("@sentry/browser");
 Sentry.addIntegration(replayIntegration());`}</CodeSnippet>
+        <br />
+        <h2>
+          <JSXProperty name="linesToHighlight" value={[1, 3, 4]} />
+        </h2>
+        <CodeSnippet
+          linesToHighlight={[1, 3, 4]}
+          disableUserSelection
+          language="javascript"
+        >{`Sentry.init({
+  // Note, Replay is NOT instantiated below:
+  integrations: [],
+});
+
+// Sometime later
+const { replayIntegration } = await import("@sentry/browser");
+Sentry.addIntegration(replayIntegration());`}</CodeSnippet>
       </Fragment>
     );
   });

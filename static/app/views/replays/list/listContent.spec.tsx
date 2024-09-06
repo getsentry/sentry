@@ -8,22 +8,33 @@ import {
   useReplayOnboardingSidebarPanel,
 } from 'sentry/utils/replays/hooks/useReplayOnboarding';
 import useProjectSdkNeedsUpdate from 'sentry/utils/useProjectSdkNeedsUpdate';
+import useAllMobileProj from 'sentry/views/replays/detail/useAllMobileProj';
 import ListPage from 'sentry/views/replays/list/listContent';
 
 jest.mock('sentry/utils/replays/hooks/useDeadRageSelectors');
 jest.mock('sentry/utils/replays/hooks/useReplayOnboarding');
 jest.mock('sentry/utils/replays/hooks/useReplayPageview');
 jest.mock('sentry/utils/useProjectSdkNeedsUpdate');
+jest.mock('sentry/views/replays/detail/useAllMobileProj');
 
 const mockUseDeadRageSelectors = jest.mocked(useDeadRageSelectors);
+mockUseDeadRageSelectors.mockReturnValue({
+  isLoading: false,
+  isError: false,
+  data: [],
+  pageLinks: undefined,
+});
 
 const mockUseHaveSelectedProjectsSentAnyReplayEvents = jest.mocked(
   useHaveSelectedProjectsSentAnyReplayEvents
 );
 const mockUseProjectSdkNeedsUpdate = jest.mocked(useProjectSdkNeedsUpdate);
-const mockUseReplayOnboardingSidebarPanel = jest.mocked(useReplayOnboardingSidebarPanel);
 
+const mockUseReplayOnboardingSidebarPanel = jest.mocked(useReplayOnboardingSidebarPanel);
 mockUseReplayOnboardingSidebarPanel.mockReturnValue({activateSidebar: jest.fn()});
+
+const mockUseAllMobileProj = jest.mocked(useAllMobileProj);
+mockUseAllMobileProj.mockReturnValue({allMobileProj: false});
 
 const AM1_FEATURES = [];
 const AM2_FEATURES = ['session-replay'];
@@ -43,6 +54,7 @@ describe('ReplayList', () => {
     mockUseHaveSelectedProjectsSentAnyReplayEvents.mockClear();
     mockUseProjectSdkNeedsUpdate.mockClear();
     mockUseDeadRageSelectors.mockClear();
+    // mockUseAllMobileProj.mockClear();
     MockApiClient.clearMockResponses();
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/tags/',
@@ -137,13 +149,13 @@ describe('ReplayList', () => {
     });
 
     await waitFor(() => {
-      expect(screen.queryByText('Introducing Rage and Dead Clicks')).toBeInTheDocument();
+      expect(screen.getByText('Introducing Rage and Dead Clicks')).toBeInTheDocument();
       expect(screen.queryByTestId('replay-table')).toBeInTheDocument();
     });
     expect(mockFetchReplayListRequest).toHaveBeenCalled();
   });
 
-  it('should fetch the replay table and show selector tables when the org is on AM2, has sent some replays, and has a newer SDK version', async () => {
+  it('should fetch the replay table when the org is on AM2, has sent some replays, and has a newer SDK version', async () => {
     const mockOrg = getMockOrganizationFixture({features: AM2_FEATURES});
     mockUseHaveSelectedProjectsSentAnyReplayEvents.mockReturnValue({
       fetching: false,
@@ -154,21 +166,13 @@ describe('ReplayList', () => {
       isFetching: false,
       needsUpdate: false,
     });
-    mockUseDeadRageSelectors.mockReturnValue({
-      isLoading: false,
-      isError: false,
-      data: [],
-      pageLinks: undefined,
-    });
 
     render(<ListPage />, {
       organization: mockOrg,
     });
 
     await waitFor(() => expect(screen.queryAllByTestId('replay-table')).toHaveLength(1));
-    await waitFor(() =>
-      expect(screen.queryAllByTestId('selector-widget')).toHaveLength(2)
-    );
+
     expect(mockFetchReplayListRequest).toHaveBeenCalled();
   });
 });

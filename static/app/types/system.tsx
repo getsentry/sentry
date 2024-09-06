@@ -2,8 +2,8 @@ import type {Theme} from '@emotion/react';
 import type {FocusTrap} from 'focus-trap';
 
 import type {exportedGlobals} from 'sentry/bootstrap/exportGlobals';
-import type {ParntershipAgreementType} from 'sentry/types/hooks';
 
+import type {ParntershipAgreementType} from './hooks';
 import type {User} from './user';
 
 export enum SentryInitRenderReactComponent {
@@ -95,6 +95,11 @@ declare global {
      * Used by webpack-devserver + html-webpack
      */
     __SENTRY_DEV_UI?: boolean;
+    /**
+     * Use react-router v6 in compatability mode. This exists while we migrate
+     * off of react-router v3.
+     */
+    __SENTRY_USING_REACT_ROUTER_SIX?: boolean;
     /**
      * Sentrys version string
      */
@@ -223,17 +228,38 @@ export type PipelineInitialData = {
   props: Record<string, any>;
 };
 
-export type Broadcast = {
-  cta: string;
+export interface Broadcast {
   dateCreated: string;
   dateExpires: string;
+  /**
+   * Has the item been seen? affects the styling of the panel item
+   */
   hasSeen: boolean;
   id: string;
   isActive: boolean;
+  /**
+   * The URL to use for the CTA
+   */
   link: string;
+  /**
+   * A message with muted styling which appears above the children content
+   */
   message: string;
   title: string;
-};
+  /**
+   * Category of the broadcast.
+   * Synced with https://github.com/getsentry/sentry/blob/master/src/sentry/models/broadcast.py#L14
+   */
+  category?: 'announcement' | 'feature' | 'blog' | 'event' | 'video';
+  /**
+   * The text for the CTA link at the bottom of the panel item
+   */
+  cta?: string;
+  /**
+   * Image url
+   */
+  mediaUrl?: string;
+}
 
 // XXX(epurkhiser): The components list can be generated using jq
 //

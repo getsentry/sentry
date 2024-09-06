@@ -9,10 +9,10 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import Endpoint, control_silo_endpoint
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
+from sentry.hybridcloud.models.outbox import outbox_context
 from sentry.models.apiapplication import ApiApplicationStatus
 from sentry.models.apiauthorization import ApiAuthorization
 from sentry.models.apitoken import ApiToken
-from sentry.models.outbox import outbox_context
 
 
 @control_silo_endpoint

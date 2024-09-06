@@ -2,21 +2,22 @@ import type React from 'react';
 import {createContext, useContext} from 'react';
 
 import {RELATIVE_DAYS_WINDOW} from 'sentry/components/events/eventStatisticalDetector/consts';
-import type {Event, Project} from 'sentry/types';
+import type {Event} from 'sentry/types/event';
+import type {Project} from 'sentry/types/project';
 import type {EventsResults} from 'sentry/utils/profiling/hooks/types';
 import {useProfileFunctions} from 'sentry/utils/profiling/hooks/useProfileFunctions';
 import {useRelativeDateTime} from 'sentry/utils/profiling/hooks/useRelativeDateTime';
-import type {UseQueryResult} from 'sentry/utils/queryClient';
+import type {UseApiQueryResult} from 'sentry/utils/queryClient';
 import type RequestError from 'sentry/utils/requestError/requestError';
 
-const TransactionsDeltaProviderContext = createContext<UseQueryResult<
+const TransactionsDeltaProviderContext = createContext<UseApiQueryResult<
   EventsResults<string>,
   RequestError
 > | null>(null);
 
 const TRANSACTIONS_LIMIT = 10;
 
-export function useTransactionsDelta(): UseQueryResult<
+export function useTransactionsDelta(): UseApiQueryResult<
   EventsResults<string>,
   RequestError
 > {
@@ -65,7 +66,7 @@ export function TransactionsDeltaProvider(props: TransactionsDeltaProviderProps)
       key: regressionScore,
       order: 'desc',
     },
-    query: `fingerprint:${fingerprint} ${regressionScore}:>0`,
+    query: `fingerprint:${fingerprint}`,
     projects: [props.project.id],
     limit: TRANSACTIONS_LIMIT,
     referrer: 'api.profiling.functions.regression.transactions',

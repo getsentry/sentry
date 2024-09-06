@@ -69,11 +69,9 @@ class ProjectReleasesEndpoint(ProjectEndpoint, EnvironmentMixin):
         if query:
             queryset = queryset.filter(version__icontains=query)
 
-        queryset = queryset.extra(select={"sort": "COALESCE(date_released, date_added)"})
-
         return self.paginate(
             request=request,
-            queryset=queryset,
+            queryset=queryset.extra(select={"sort": "COALESCE(date_released, date_added)"}),
             order_by="-sort",
             paginator_cls=OffsetPaginator,
             on_results=lambda x: serialize(

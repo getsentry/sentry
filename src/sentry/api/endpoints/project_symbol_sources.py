@@ -181,7 +181,7 @@ class SourceSerializer(serializers.Serializer):
 @extend_schema(tags=["Projects"])
 @region_silo_endpoint
 class ProjectSymbolSourcesEndpoint(ProjectEndpoint):
-    owner = ApiOwner.PROCESSING
+    owner = ApiOwner.OWNERS_INGEST
     publish_status = {
         "GET": ApiPublishStatus.PUBLIC,
         "DELETE": ApiPublishStatus.PUBLIC,
@@ -212,7 +212,7 @@ class ProjectSymbolSourcesEndpoint(ProjectEndpoint):
         """
         id = request.GET.get("id")
         custom_symbol_sources_json = project.get_option("sentry:symbol_sources") or []
-        sources = parse_sources(custom_symbol_sources_json)
+        sources = parse_sources(custom_symbol_sources_json, filter_appconnect=False)
         redacted = redact_source_secrets(sources)
 
         if id:
@@ -244,7 +244,7 @@ class ProjectSymbolSourcesEndpoint(ProjectEndpoint):
         id = request.GET.get("id")
         custom_symbol_sources_json = project.get_option("sentry:symbol_sources") or []
 
-        sources = parse_sources(custom_symbol_sources_json)
+        sources = parse_sources(custom_symbol_sources_json, filter_appconnect=False)
 
         if id:
             filtered_sources = [src for src in sources if src["id"] != id]
@@ -273,7 +273,7 @@ class ProjectSymbolSourcesEndpoint(ProjectEndpoint):
         Add a custom symbol source to a project.
         """
         custom_symbol_sources_json = project.get_option("sentry:symbol_sources") or []
-        sources = parse_sources(custom_symbol_sources_json)
+        sources = parse_sources(custom_symbol_sources_json, filter_appconnect=False)
 
         source = request.data
 
@@ -320,7 +320,7 @@ class ProjectSymbolSourcesEndpoint(ProjectEndpoint):
         source = request.data
 
         custom_symbol_sources_json = project.get_option("sentry:symbol_sources") or []
-        sources = parse_sources(custom_symbol_sources_json)
+        sources = parse_sources(custom_symbol_sources_json, filter_appconnect=False)
 
         if id is None:
             return Response(data={"error": "Missing source id"}, status=404)

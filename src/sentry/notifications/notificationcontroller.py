@@ -18,7 +18,6 @@ from sentry.models.notificationsettingoption import NotificationSettingOption
 from sentry.models.notificationsettingprovider import NotificationSettingProvider
 from sentry.models.organizationmapping import OrganizationMapping
 from sentry.models.team import Team
-from sentry.models.user import User
 from sentry.notifications.helpers import (
     get_default_for_provider,
     get_team_members,
@@ -34,6 +33,7 @@ from sentry.notifications.types import (
     NotificationSettingsOptionEnum,
 )
 from sentry.types.actor import Actor, ActorType
+from sentry.users.models.user import User
 from sentry.users.services.user.model import RpcUser
 
 Recipient = Union[Actor, Team, RpcUser, User]
@@ -72,22 +72,21 @@ class NotificationController:
         self.type = type
         self.provider = provider
 
-        org_mapping = OrganizationMapping.objects.filter(organization_id=organization_id).first()
-        org = (
-            serialize_organization_mapping(org_mapping)
-            if organization_id and org_mapping is not None
-            else None
-        )
+        if organization_id is not None:
+            org_mapping = OrganizationMapping.objects.filter(
+                organization_id=organization_id
+            ).first()
+            org = serialize_organization_mapping(org_mapping) if org_mapping is not None else None
+        else:
+            org = None
         if org and features.has("organizations:team-workflow-notifications", org):
             self.recipients: list[Recipient] = []
             for recipient in recipients:
-                if recipient_is_team(
-                    recipient
-                ):  # this call assures the recipient type is okay (so can safely ignore below type errors)
-                    if team_is_valid_recipient(recipient):  # type: ignore[arg-type]
+                if recipient_is_team(recipient):
+                    if team_is_valid_recipient(recipient):
                         self.recipients.append(recipient)
                     else:
-                        self.recipients += get_team_members(recipient)  # type: ignore[arg-type]
+                        self.recipients += get_team_members(recipient)
                 else:
                     self.recipients.append(recipient)
         else:
@@ -289,14 +288,13 @@ class NotificationController:
             )
         )
 
-        org_mapping = OrganizationMapping.objects.filter(
-            organization_id=self.organization_id
-        ).first()
-        org = (
-            serialize_organization_mapping(org_mapping)
-            if self.organization_id and org_mapping is not None
-            else None
-        )
+        if self.organization_id is not None:
+            org_mapping = OrganizationMapping.objects.filter(
+                organization_id=self.organization_id
+            ).first()
+            org = serialize_organization_mapping(org_mapping) if org_mapping is not None else None
+        else:
+            org = None
         has_team_workflow = org and features.has("organizations:team-workflow-notifications", org)
 
         for recipient in self.recipients:

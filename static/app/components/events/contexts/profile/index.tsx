@@ -1,5 +1,4 @@
 import Feature from 'sentry/components/acl/feature';
-import {Button} from 'sentry/components/button';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import KeyValueList from 'sentry/components/events/interfaces/keyValueList';
 import {t} from 'sentry/locale';
@@ -7,7 +6,6 @@ import type {Event, ProfileContext} from 'sentry/types/event';
 import {ProfileContextKey} from 'sentry/types/event';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
-import {trackAnalytics} from 'sentry/utils/analytics';
 import {generateProfileFlamechartRoute} from 'sentry/utils/profiling/routes';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
@@ -103,7 +101,7 @@ function getProfileKnownDataDetails({
         return undefined;
       }
 
-      const target = project?.slug
+      const link = project?.slug
         ? generateProfileFlamechartRoute({
             orgSlug: organization.slug,
             projectSlug: project?.slug,
@@ -114,21 +112,7 @@ function getProfileKnownDataDetails({
       return {
         subject: t('Profile ID'),
         value: data.profile_id,
-        action: {link: target},
-        actionButton: target && (
-          <Button
-            size="xs"
-            to={target}
-            onClick={() =>
-              trackAnalytics('profiling_views.go_to_flamegraph', {
-                organization,
-                source: 'events.profile_event_context',
-              })
-            }
-          >
-            {t('View Profile')}
-          </Button>
-        ),
+        action: {link},
       };
     }
     default:

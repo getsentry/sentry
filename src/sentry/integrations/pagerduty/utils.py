@@ -9,12 +9,13 @@ from django.http import Http404
 from sentry.incidents.models.alert_rule import AlertRuleTriggerAction
 from sentry.incidents.models.incident import Incident, IncidentStatus
 from sentry.integrations.metric_alerts import incident_attachment_info
+from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.integrations.services.integration import integration_service
 from sentry.integrations.services.integration.model import RpcOrganizationIntegration
-from sentry.models.integrations.organization_integration import OrganizationIntegration
 from sentry.shared_integrations.client.proxy import infer_org_integration
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.silo.base import control_silo_function
+from sentry.utils import metrics
 
 logger = logging.getLogger("sentry.integrations.pagerduty")
 
@@ -193,7 +194,10 @@ def send_incident_alert_notification(
                 "target_identifier": action.target_identifier,
             },
         )
-        raise Http404
+        metrics.incr(
+            "pagerduty.metric_alert_rule.integration_removed_after_rule_creation", sample_rate=1.0
+        )
+        return False
 
     attachment = build_incident_attachment(
         incident, client.integration_key, new_status, metric_value, notification_uuid

@@ -298,6 +298,36 @@ describe('ReleasesList', () => {
     );
   });
 
+  it('searches for a release with new searchbar (search-query-builder-releases)', async () => {
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/recent-searches/',
+      method: 'POST',
+      body: [],
+    });
+    render(<ReleasesList {...props} />, {
+      router,
+      organization: {...organization, features: ['search-query-builder-releases']},
+    });
+    const input = await screen.findByDisplayValue('derp');
+    expect(input).toBeInTheDocument();
+
+    expect(endpointMock).toHaveBeenCalledWith(
+      '/organizations/org-slug/releases/',
+      expect.objectContaining({
+        query: expect.objectContaining({query: 'derp'}),
+      })
+    );
+
+    await userEvent.clear(input);
+    await userEvent.type(input, 'a{enter}');
+
+    expect(router.push).toHaveBeenCalledWith(
+      expect.objectContaining({
+        query: expect.objectContaining({query: 'a'}),
+      })
+    );
+  });
+
   it('sorts releases', async () => {
     render(<ReleasesList {...props} />, {
       router,

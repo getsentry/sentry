@@ -1,5 +1,6 @@
 import mapValues from 'lodash/mapValues';
 
+import {STATIC_FIELD_TAGS_WITHOUT_TRANSACTION_FIELDS} from 'sentry/components/events/searchBarFieldConstants';
 import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import type {TagCollection} from 'sentry/types/group';
@@ -14,7 +15,10 @@ import {
   WebVital,
 } from 'sentry/utils/fields';
 import {hasCustomMetrics} from 'sentry/utils/metrics/features';
-import {DEFAULT_METRIC_ALERT_FIELD} from 'sentry/utils/metrics/mri';
+import {
+  DEFAULT_INSIGHTS_METRICS_ALERT_FIELD,
+  DEFAULT_METRIC_ALERT_FIELD,
+} from 'sentry/utils/metrics/mri';
 import {ON_DEMAND_METRICS_UNSUPPORTED_TAGS} from 'sentry/utils/onDemandMetrics/constants';
 import {shouldShowOnDemandMetricAlertUI} from 'sentry/utils/onDemandMetrics/features';
 import {
@@ -22,6 +26,7 @@ import {
   EventTypes,
   SessionsAggregate,
 } from 'sentry/views/alerts/rules/metric/types';
+import {hasInsightsAlerts} from 'sentry/views/insights/common/utils/hasInsightsAlerts';
 import {MODULE_TITLE as LLM_MONITORING_MODULE_TITLE} from 'sentry/views/insights/llmMonitoring/settings';
 
 export type AlertType =
@@ -40,7 +45,8 @@ export type AlertType =
   | 'custom_transactions'
   | 'custom_metrics'
   | 'llm_tokens'
-  | 'llm_cost';
+  | 'llm_cost'
+  | 'insights_metrics';
 
 export enum MEPAlertsQueryType {
   ERROR = 0,
@@ -56,12 +62,14 @@ export enum MEPAlertsDataset {
 
 export type MetricAlertType = Exclude<AlertType, 'issues'>;
 
-export const DatasetMEPAlertQueryTypes: Record<Dataset, MEPAlertsQueryType> = {
+export const DatasetMEPAlertQueryTypes: Record<
+  Exclude<Dataset, 'search_issues' | Dataset.SESSIONS>, // IssuePlatform (search_issues) is not used in alerts, so we can exclude it here
+  MEPAlertsQueryType
+> = {
   [Dataset.ERRORS]: MEPAlertsQueryType.ERROR,
   [Dataset.TRANSACTIONS]: MEPAlertsQueryType.PERFORMANCE,
   [Dataset.GENERIC_METRICS]: MEPAlertsQueryType.PERFORMANCE,
   [Dataset.METRICS]: MEPAlertsQueryType.CRASH_RATE,
-  [Dataset.SESSIONS]: MEPAlertsQueryType.CRASH_RATE,
 };
 
 export const AlertWizardAlertNames: Record<AlertType, string> = {
@@ -81,6 +89,7 @@ export const AlertWizardAlertNames: Record<AlertType, string> = {
   crash_free_users: t('Crash Free User Rate'),
   llm_cost: t('LLM cost'),
   llm_tokens: t('LLM token usage'),
+  insights_metrics: t('Insights Metric'),
 };
 
 type AlertWizardCategory = {
@@ -123,7 +132,10 @@ export const getAlertWizardCategories = (org: Organization) => {
     }
     result.push({
       categoryHeading: hasCustomMetrics(org) ? t('Metrics') : t('Custom'),
-      options: [hasCustomMetrics(org) ? 'custom_metrics' : 'custom_transactions'],
+      options: [
+        hasCustomMetrics(org) ? 'custom_metrics' : 'custom_transactions',
+        ...(hasInsightsAlerts(org) ? ['insights_metrics' as const] : []),
+      ],
     });
   }
   return result;
@@ -205,16 +217,19 @@ export const AlertWizardRuleTemplates: Record<
     dataset: Dataset.GENERIC_METRICS,
     eventTypes: EventTypes.TRANSACTION,
   },
+  insights_metrics: {
+    aggregate: DEFAULT_INSIGHTS_METRICS_ALERT_FIELD,
+    dataset: Dataset.GENERIC_METRICS,
+    eventTypes: EventTypes.TRANSACTION,
+  },
   crash_free_sessions: {
     aggregate: SessionsAggregate.CRASH_FREE_SESSIONS,
-    // TODO(scttcper): Use Dataset.Metric on GA of alert-crash-free-metrics
-    dataset: Dataset.SESSIONS,
+    dataset: Dataset.METRICS,
     eventTypes: EventTypes.SESSION,
   },
   crash_free_users: {
     aggregate: SessionsAggregate.CRASH_FREE_USERS,
-    // TODO(scttcper): Use Dataset.Metric on GA of alert-crash-free-metrics
-    dataset: Dataset.SESSIONS,
+    dataset: Dataset.METRICS,
     eventTypes: EventTypes.USER,
   },
 };
@@ -273,6 +288,13 @@ const INDEXED_PERFORMANCE_ALERTS_OMITTED_TAGS = [
   ...Object.values(ReplayClickFieldKey),
 ];
 
+const ERROR_SUPPORTED_TAGS = [
+  FieldKey.IS,
+  ...Object.keys(STATIC_FIELD_TAGS_WITHOUT_TRANSACTION_FIELDS).map(
+    key => key as FieldKey
+  ),
+];
+
 // Some data sets support a very limited number of tags. For these cases,
 // define all supported tags explicitly
 export function datasetSupportedTags(
@@ -281,7 +303,7 @@ export function datasetSupportedTags(
 ): TagCollection | undefined {
   return mapValues(
     {
-      [Dataset.ERRORS]: [FieldKey.IS],
+      [Dataset.ERRORS]: ERROR_SUPPORTED_TAGS,
       [Dataset.TRANSACTIONS]: org.features.includes('alert-allow-indexed')
         ? undefined
         : transactionSupportedTags(org),

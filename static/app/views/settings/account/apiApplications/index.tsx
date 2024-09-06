@@ -1,5 +1,3 @@
-import type {RouteComponentProps} from 'react-router';
-
 import {
   addErrorMessage,
   addLoadingMessage,
@@ -15,7 +13,8 @@ import PanelHeader from 'sentry/components/panels/panelHeader';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {IconAdd} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import type {ApiApplication} from 'sentry/types';
+import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
+import type {ApiApplication} from 'sentry/types/user';
 import {setApiQueryData, useApiQuery, useQueryClient} from 'sentry/utils/queryClient';
 import useApi from 'sentry/utils/useApi';
 import Row from 'sentry/views/settings/account/apiApplications/row';
@@ -33,14 +32,14 @@ function ApiApplications({router}: Props) {
 
   const {
     data: appList,
-    isLoading,
+    isPending,
     isError,
     refetch,
   } = useApiQuery<ApiApplication[]>([ENDPOINT], {
     staleTime: 0,
   });
 
-  if (isLoading) {
+  if (isPending) {
     return <LoadingIndicator />;
   }
 

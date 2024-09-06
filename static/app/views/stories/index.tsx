@@ -1,9 +1,9 @@
 import {useRef, useState} from 'react';
-import type {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 
 import Input from 'sentry/components/input';
 import {space} from 'sentry/styles/space';
+import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import {useHotkeys} from 'sentry/utils/useHotkeys';
 import OrganizationContainer from 'sentry/views/organizationContainer';
 import EmptyStory from 'sentry/views/stories/emptyStory';

@@ -12,7 +12,7 @@ from sentry.search.events.builder import metrics
 from sentry.search.events.datasets import field_aliases, filter_aliases, function_aliases
 from sentry.search.events.datasets.metrics import MetricsDatasetConfig
 from sentry.search.events.types import SelectType, WhereType
-from sentry.snuba.metrics.naming_layer.mri import SessionMRI, TransactionMRI
+from sentry.snuba.metrics.naming_layer.mri import SessionMRI, SpanMRI, TransactionMRI
 from sentry.utils.numbers import format_grouped_length
 
 
@@ -393,6 +393,20 @@ class MetricsLayerDatasetConfig(MetricsDatasetConfig):
                         "rate",
                         [
                             Column(TransactionMRI.DURATION.value),
+                            args["interval"],
+                            60,
+                        ],
+                        alias,
+                    ),
+                    optional_args=[fields.IntervalDefault("interval", 1, None)],
+                    default_result_type="rate",
+                ),
+                fields.MetricsFunction(
+                    "spm",
+                    snql_metric_layer=lambda args, alias: Function(
+                        "rate",
+                        [
+                            Column(SpanMRI.SELF_TIME.value),
                             args["interval"],
                             60,
                         ],

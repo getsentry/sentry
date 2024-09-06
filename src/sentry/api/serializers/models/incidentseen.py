@@ -6,7 +6,7 @@ from sentry.users.services.user.service import user_service
 
 @register(IncidentSeen)
 class IncidentSeenSerializer(Serializer):
-    def get_attrs(self, item_list, user):
+    def get_attrs(self, item_list, user, **kwargs):
         item_users = user_service.serialize_many(
             filter={
                 "user_ids": [i.user_id for i in item_list],
@@ -20,7 +20,7 @@ class IncidentSeenSerializer(Serializer):
             result[item] = {"user": user_map[str(item.user_id)]}
         return result
 
-    def serialize(self, obj, attrs, user):
+    def serialize(self, obj, attrs, user, **kwargs):
         data = attrs["user"]
         data["lastSeen"] = obj.last_seen
         return data

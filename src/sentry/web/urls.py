@@ -11,6 +11,8 @@ from django.views.generic import RedirectView
 from sentry.api.endpoints.oauth_userinfo import OAuthUserInfoEndpoint
 from sentry.auth.providers.saml2.provider import SAML2AcceptACSView, SAML2MetadataView, SAML2SLSView
 from sentry.charts.endpoints import serve_chartcuterie_config
+from sentry.integrations.web.doc_integration_avatar import DocIntegrationAvatarPhotoView
+from sentry.integrations.web.organization_integration_setup import OrganizationIntegrationSetupView
 from sentry.web import api
 from sentry.web.frontend import accounts, generic
 from sentry.web.frontend.account_identity import AccountIdentityAssociateView
@@ -21,7 +23,6 @@ from sentry.web.frontend.auth_logout import AuthLogoutView
 from sentry.web.frontend.auth_organization_login import AuthOrganizationLoginView
 from sentry.web.frontend.auth_provider_login import AuthProviderLoginView
 from sentry.web.frontend.disabled_member_view import DisabledMemberView
-from sentry.web.frontend.doc_integration_avatar import DocIntegrationAvatarPhotoView
 from sentry.web.frontend.error_page_embed import ErrorPageEmbedView
 from sentry.web.frontend.group_event_json import GroupEventJsonView
 from sentry.web.frontend.group_plugin_action import GroupPluginActionView
@@ -35,7 +36,6 @@ from sentry.web.frontend.oauth_authorize import OAuthAuthorizeView
 from sentry.web.frontend.oauth_token import OAuthTokenView
 from sentry.web.frontend.organization_auth_settings import OrganizationAuthSettingsView
 from sentry.web.frontend.organization_avatar import OrganizationAvatarPhotoView
-from sentry.web.frontend.organization_integration_setup import OrganizationIntegrationSetupView
 from sentry.web.frontend.out import OutView
 from sentry.web.frontend.pipeline_advancer import PipelineAdvancerView
 from sentry.web.frontend.project_event import ProjectEventRedirect
@@ -51,6 +51,7 @@ from sentry.web.frontend.user_avatar import UserAvatarPhotoView
 
 __all__ = ("urlpatterns",)
 
+from social_auth.views import complete
 
 # Only create one instance of the ReactPageView since it's duplicated everywhere
 generic_react_page_view = GenericReactPageView.as_view()
@@ -392,6 +393,12 @@ urlpatterns += [
             ]
         ),
     ),
+    # GitHub social auth requires the prefix auth/sso
+    re_path(
+        r"^auth/sso/account/settings/social/associate/complete/(?P<backend>[^/]+)/$",
+        complete,
+        name="socialauth_associate_complete_auth_sso",
+    ),
     # Onboarding
     re_path(
         r"^onboarding/",
@@ -725,7 +732,7 @@ urlpatterns += [
         react_page_view,
         name="insights",
     ),
-    # Insights
+    # Traces
     re_path(
         r"^traces/",
         react_page_view,

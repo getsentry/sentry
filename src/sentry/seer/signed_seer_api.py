@@ -2,11 +2,13 @@ import hashlib
 import hmac
 from random import random
 from typing import Any
+from urllib.parse import urlparse
 
 from django.conf import settings
 from urllib3 import BaseHTTPResponse, HTTPConnectionPool
 
 from sentry import options
+from sentry.utils import metrics
 
 
 def make_signed_seer_api_request(
@@ -21,13 +23,19 @@ def make_signed_seer_api_request(
     if timeout:
         timeout_options["timeout"] = timeout
 
-    return connection_pool.urlopen(
-        "POST",
-        path,
-        body=body,
-        headers={"content-type": "application/json;charset=utf-8", **auth_headers},
-        **timeout_options,
-    )
+    with metrics.timer(
+        "seer.request_to_seer",
+        sample_rate=1.0,
+        # Pull off query params, if any
+        tags={"endpoint": urlparse(path).path},
+    ):
+        return connection_pool.urlopen(
+            "POST",
+            path,
+            body=body,
+            headers={"content-type": "application/json;charset=utf-8", **auth_headers},
+            **timeout_options,
+        )
 
 
 def sign_with_seer_secret(url: str, body: bytes):

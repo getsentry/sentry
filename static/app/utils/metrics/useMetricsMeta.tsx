@@ -1,8 +1,11 @@
 import {useMemo} from 'react';
 
 import type {PageFilters} from 'sentry/types/core';
-import {isExtractedCustomMetric} from 'sentry/utils/metrics';
-import {formatMRI, getUseCaseFromMRI} from 'sentry/utils/metrics/mri';
+import {
+  formatMRI,
+  getUseCaseFromMRI,
+  isExtractedCustomMetric,
+} from 'sentry/utils/metrics/mri';
 import {useVirtualMetricsContext} from 'sentry/utils/metrics/virtualMetricsContext';
 import type {ApiQueryKey} from 'sentry/utils/queryClient';
 import {useApiQuery} from 'sentry/utils/queryClient';
@@ -33,7 +36,7 @@ export function useMetricsMeta(
 ): {data: MetricMeta[]; isLoading: boolean; isRefetching: boolean; refetch: () => void} {
   const {slug} = useOrganization();
 
-  const {data, isLoading, isRefetching, refetch} = useApiQuery<MetricMeta[]>(
+  const {data, isPending, isRefetching, refetch} = useApiQuery<MetricMeta[]>(
     getMetricsMetaQueryKey(slug, pageFilters, useCases),
     {
       enabled,
@@ -55,7 +58,7 @@ export function useMetricsMeta(
 
   return {
     data: filteredMeta,
-    isLoading,
+    isLoading: isPending,
     isRefetching,
     refetch,
   };
@@ -75,8 +78,11 @@ export const useVirtualizedMetricsMeta = (
   isRefetching: boolean;
   refetch: () => void;
 } => {
-  const {virtualMeta, isLoading: isVirtualMetricsContextLoading} =
-    useVirtualMetricsContext();
+  const {
+    virtualMeta,
+    isLoading: isVirtualMetricsContextLoading,
+    getVirtualMRI,
+  } = useVirtualMetricsContext();
 
   const {data, isLoading, isRefetching, refetch} = useMetricsMeta(
     pageFilters,
@@ -86,13 +92,13 @@ export const useVirtualizedMetricsMeta = (
   );
 
   const newMeta = useMemo(() => {
-    // Filter all extracted custom metrics and mix them in from the virtual context
+    // Filter all metrics that have a virtual equivalent or are extracted metrics and mix them in from the virtual context
     const otherMetrics = data.filter(meta => {
-      return !isExtractedCustomMetric(meta);
+      return !isExtractedCustomMetric(meta) && !getVirtualMRI(meta.mri);
     });
 
     return sortMeta([...otherMetrics, ...virtualMeta]);
-  }, [data, virtualMeta]);
+  }, [data, getVirtualMRI, virtualMeta]);
 
   return {
     data: newMeta,

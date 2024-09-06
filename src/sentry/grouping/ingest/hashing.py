@@ -7,6 +7,7 @@ from typing import TYPE_CHECKING
 
 import sentry_sdk
 
+from sentry import features, options
 from sentry.exceptions import HashDiscarded
 from sentry.features.rollout import in_random_rollout
 from sentry.grouping.api import (
@@ -17,19 +18,17 @@ from sentry.grouping.api import (
     GroupingConfigNotFound,
     SecondaryGroupingConfigLoader,
     apply_server_fingerprinting,
-    detect_synthetic_exception,
     get_fingerprinting_config_for_project,
-    get_grouping_config_dict_for_event_data,
     get_grouping_config_dict_for_project,
     load_grouping_config,
 )
-from sentry.grouping.ingest.config import _config_update_happened_recently, is_in_transition
+from sentry.grouping.ingest.config import is_in_transition
 from sentry.grouping.ingest.metrics import record_hash_calculation_metrics
 from sentry.grouping.ingest.utils import extract_hashes
 from sentry.grouping.result import CalculatedHashes
 from sentry.models.grouphash import GroupHash
+from sentry.models.grouphashmetadata import GroupHashMetadata
 from sentry.models.project import Project
-from sentry.reprocessing2 import is_reprocessed_event
 from sentry.utils import metrics
 from sentry.utils.metrics import MutableTags
 from sentry.utils.tag_normalization import normalized_sdk_tag_from_event
@@ -60,9 +59,6 @@ def _calculate_event_grouping(
         with metrics.timer("event_manager.normalize_stacktraces_for_grouping", tags=metric_tags):
             with sentry_sdk.start_span(op="event_manager.normalize_stacktraces_for_grouping"):
                 event.normalize_stacktraces_for_grouping(loaded_grouping_config)
-
-        # Detect & set synthetic marker if necessary
-        detect_synthetic_exception(event.data, loaded_grouping_config)
 
         with metrics.timer("event_manager.apply_server_fingerprinting", tags=metric_tags):
             # The active grouping config was put into the event in the
@@ -174,43 +170,8 @@ def run_primary_grouping(
     Get the primary grouping config and primary hashes for the event.
     """
     with metrics.timer("event_manager.load_grouping_config"):
-        if is_reprocessed_event(job["data"]):
-            # The customer might have changed grouping enhancements since
-            # the event was ingested -> make sure we get the fresh one for reprocessing.
-            grouping_config = get_grouping_config_dict_for_project(project)
-            # Write back grouping config because it might have changed since the
-            # event was ingested.
-            # NOTE: We could do this unconditionally (regardless of `is_processed`).
-            job["data"]["grouping_config"] = grouping_config
-        else:
-            grouping_config = get_grouping_config_dict_for_event_data(
-                job["event"].data.data, project
-            )
-
-            # TODO: For new (non-reprocessed) events, we read the grouping config off the event
-            # rather than from the project. But that grouping config is put there by Relay after
-            # looking it up on the project. Are these ever not the same? If we don't ever see this
-            # log, after some period of time we could probably just decide to always follow the
-            # behavior from the reprocessing branch above. If we do that, we should decide if we
-            # also want to stop adding the config in Relay.
-            # See https://github.com/getsentry/sentry/pull/65116.
-            config_from_relay = grouping_config["id"]
-            config_from_project = project.get_option("sentry:grouping_config")
-
-            if config_from_relay != config_from_project:
-                # The relay value might not match the value stored on the project if the project was
-                # recently updated and relay's still using its cached value. Based on logs, this delay
-                # seems to be about 3 seconds, but let's be generous and give it a minute to account for
-                # clock skew, network latency, etc.
-                if not _config_update_happened_recently(project, 30):
-                    logger.info(
-                        "Event grouping config different from project grouping config",
-                        extra={
-                            "project": project.id,
-                            "relay_config": config_from_relay,
-                            "project_config": config_from_project,
-                        },
-                    )
+        grouping_config = get_grouping_config_dict_for_project(project)
+        job["data"]["grouping_config"] = grouping_config
 
     with (
         sentry_sdk.start_span(
@@ -353,7 +314,6 @@ def get_hash_values(
     primary_grouping_config, primary_hashes = run_primary_grouping(project, job, metric_tags)
 
     record_hash_calculation_metrics(
-        project,
         primary_grouping_config,
         primary_hashes,
         secondary_grouping_config,
@@ -366,15 +326,32 @@ def get_hash_values(
             list(primary_hashes.hierarchical_hashes)
             + list(secondary_hashes and secondary_hashes.hierarchical_hashes or [])
         ),
-        tree_labels=(
-            primary_hashes.tree_labels or (secondary_hashes and secondary_hashes.tree_labels) or []
-        ),
         # We don't set a combo `variants` value here because one set of variants would/could
         # partially or fully overwrite the other (it's a dictionary), and having variants from two
         # different configs all mixed in together makes no sense.
     )
 
-    if all_hashes.tree_labels:
-        job["finest_tree_label"] = all_hashes.finest_tree_label
-
     return (primary_hashes, secondary_hashes, all_hashes)
+
+
+def get_or_create_grouphashes(
+    project: Project, calculated_hashes: CalculatedHashes
+) -> list[GroupHash]:
+    grouphashes = []
+
+    for hash_value in extract_hashes(calculated_hashes):
+        grouphash, created = GroupHash.objects.get_or_create(project=project, hash=hash_value)
+
+        # TODO: Do we want to expand this to backfill metadata for existing grouphashes? If we do,
+        # we'll have to override the metadata creation date for them.
+        if (
+            created
+            and options.get("grouping.grouphash_metadata.ingestion_writes_enabled")
+            and features.has("organizations:grouphash-metadata-creation", project.organization)
+        ):
+            # For now, this just creates a record with a creation timestamp
+            GroupHashMetadata.objects.create(grouphash=grouphash)
+
+        grouphashes.append(grouphash)
+
+    return grouphashes

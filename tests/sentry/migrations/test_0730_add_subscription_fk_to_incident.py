@@ -1,5 +1,7 @@
 from datetime import timedelta
 
+import pytest
+
 from sentry.incidents.models.alert_rule import AlertRule, AlertRuleThresholdType
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.models import SnubaQuery
@@ -133,6 +135,7 @@ class AlertRuleProjectBackfillTest(TestMigrations):
         assert self.incident_mult.alert_rule
         assert not self.incident_mult.subscription
 
+    @pytest.mark.skip(reason="old migration test")
     def test(self):
         self.incident.refresh_from_db()
         assert self.incident.subscription is not None

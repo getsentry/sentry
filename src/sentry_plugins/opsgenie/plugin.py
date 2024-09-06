@@ -70,7 +70,7 @@ class OpsGeniePlugin(CorePluginMixin, notify.NotificationPlugin):
 
     logger = logging.getLogger("sentry.plugins.opsgenie")
 
-    def is_configured(self, project):
+    def is_configured(self, project) -> bool:
         return all(self.get_option(k, project) for k in ("api_key", "alert_url"))
 
     def get_form_initial(self, project=None):
@@ -96,7 +96,7 @@ class OpsGeniePlugin(CorePluginMixin, notify.NotificationPlugin):
             "tags": [f'{str(x).replace(",", "")}:{str(y).replace(",", "")}' for x, y in event.tags],
         }
 
-    def notify_users(self, group, event, fail_silently=False, triggering_rules=None, **kwargs):
+    def notify_users(self, group, event, triggering_rules) -> None:
         if not self.is_configured(group.project):
             return
 

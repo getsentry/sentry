@@ -1,7 +1,8 @@
+import {useCallback, useMemo} from 'react';
 import styled from '@emotion/styled';
 
-import Tag from 'sentry/components/badge/tag';
-import type {SelectOption} from 'sentry/components/compactSelect';
+import type {SelectOption, SelectSection} from 'sentry/components/compactSelect';
+import {BreadcrumbSort} from 'sentry/components/events/interfaces/breadcrumbs';
 import type {BreadcrumbMeta} from 'sentry/components/events/interfaces/breadcrumbs/types';
 import {
   convertCrumbType,
@@ -35,20 +36,26 @@ import {EntryType, type Event} from 'sentry/types/event';
 import {toTitleCase} from 'sentry/utils/string/toTitleCase';
 
 const BREADCRUMB_TITLE_PLACEHOLDER = t('Generic');
-const BREADCRUMB_SUMMARY_COUNT = 3;
+const BREADCRUMB_SUMMARY_COUNT = 5;
 
 export const enum BreadcrumbTimeDisplay {
   RELATIVE = 'relative',
   ABSOLUTE = 'absolute',
 }
-export const BREADCRUMB_TIME_DISPLAY_OPTIONS = [
-  {label: t('Relative'), value: BreadcrumbTimeDisplay.RELATIVE},
-  {label: t('Absolute'), value: BreadcrumbTimeDisplay.ABSOLUTE},
-];
+export const BREADCRUMB_TIME_DISPLAY_OPTIONS = {
+  [BreadcrumbTimeDisplay.RELATIVE]: {
+    label: t('Relative'),
+    value: BreadcrumbTimeDisplay.RELATIVE,
+  },
+  [BreadcrumbTimeDisplay.ABSOLUTE]: {
+    label: t('Absolute'),
+    value: BreadcrumbTimeDisplay.ABSOLUTE,
+  },
+};
 export const BREADCRUMB_TIME_DISPLAY_LOCALSTORAGE_KEY = 'event-breadcrumb-time-display';
 
 const Color = styled('span')<{colorConfig: ColorConfig}>`
-  color: ${p => p.theme[p.colorConfig.primary]};
+  color: ${p => p.theme[p.colorConfig.icon]};
 `;
 
 /**
@@ -56,33 +63,21 @@ const Color = styled('span')<{colorConfig: ColorConfig}>`
  * As of writing this, it just grabs a few, but in the future it may collapse,
  * or manipulate them in some way for a better summary.
  */
-export function getSummaryBreadcrumbs(crumbs: EnhancedCrumb[]) {
-  return [...crumbs].reverse().slice(0, BREADCRUMB_SUMMARY_COUNT);
+export function getSummaryBreadcrumbs(
+  crumbs: readonly EnhancedCrumb[],
+  sort: BreadcrumbSort
+) {
+  const sortedCrumbs = sort === BreadcrumbSort.OLDEST ? crumbs : crumbs.toReversed();
+  return sortedCrumbs.slice(0, BREADCRUMB_SUMMARY_COUNT);
 }
 
-export function applyBreadcrumbSearch(
-  search: string,
-  crumbs: EnhancedCrumb[]
-): EnhancedCrumb[] {
-  if (search === '') {
-    return crumbs;
-  }
-  return crumbs.filter(
-    ({breadcrumb: c}) =>
-      c.type.includes(search) ||
-      c.message?.includes(search) ||
-      c.category?.includes(search) ||
-      (c.data && JSON.stringify(c.data)?.includes(search))
-  );
-}
-
-export function getBreadcrumbFilterOptions(crumbs: EnhancedCrumb[]) {
+export function getBreadcrumbTypeOptions(crumbs: EnhancedCrumb[]) {
   const uniqueCrumbTypes = crumbs.reduce((crumbTypeSet, {breadcrumb: crumb}) => {
     crumbTypeSet.add(crumb.type);
     return crumbTypeSet;
   }, new Set<BreadcrumbType>());
 
-  const filterOptions: SelectOption<string>[] = [...uniqueCrumbTypes].map(crumbType => {
+  const typeOptions = [...uniqueCrumbTypes].map<SelectOption<string>>(crumbType => {
     const crumbFilter = getBreadcrumbFilter(crumbType);
     return {
       value: crumbFilter,
@@ -94,7 +89,80 @@ export function getBreadcrumbFilterOptions(crumbs: EnhancedCrumb[]) {
       ),
     };
   });
-  return filterOptions.sort((a, b) => a.value.localeCompare(b.value));
+  return typeOptions.sort((a, b) => a.value.localeCompare(b.value));
+}
+
+function getBreadcrumbLevelOptions(crumbs: EnhancedCrumb[]) {
+  const crumbLevels = crumbs.reduce(
+    (crumbMap, ec) => {
+      crumbMap[ec.breadcrumb.level] = ec.levelComponent;
+      return crumbMap;
+    },
+    {} as Record<BreadcrumbLevelType, EnhancedCrumb['levelComponent']>
+  );
+
+  const levelOptions = Object.entries(crumbLevels).map<SelectOption<string>>(
+    ([crumbLevel, levelComponent]) => {
+      return {
+        value: crumbLevel,
+        label: levelComponent,
+        textValue: crumbLevel,
+      };
+    }
+  );
+  return levelOptions.sort((a, b) => a.value.localeCompare(b.value));
+}
+
+export function useBreadcrumbFilters(crumbs: EnhancedCrumb[]) {
+  const filterOptions = useMemo(() => {
+    const options: SelectSection<string>[] = [];
+    const typeOptions = getBreadcrumbTypeOptions(crumbs);
+    if (typeOptions.length) {
+      options.push({
+        key: 'types',
+        label: t('Types'),
+        options: typeOptions.map(o => ({...o, value: `type-${o.value}`})),
+      });
+    }
+    const levelOptions = getBreadcrumbLevelOptions(crumbs);
+    if (levelOptions.length) {
+      options.push({
+        key: 'levels',
+        label: t('Levels'),
+        options: levelOptions.map(o => ({...o, value: `level-${o.value}`})),
+      });
+    }
+
+    return options;
+  }, [crumbs]);
+
+  const applyFilters = useCallback(
+    (crumbsToFilter: EnhancedCrumb[], options: SelectOption<string>['value'][]) => {
+      const typeFilterSet = new Set<string>();
+      const levelFilterSet = new Set<string>();
+      options.forEach(optionValue => {
+        const [indicator, value] = optionValue.split('-');
+        if (indicator === 'type') {
+          typeFilterSet.add(value);
+        } else if (indicator === 'level') {
+          levelFilterSet.add(value);
+        }
+      });
+
+      return crumbsToFilter.filter(ec => {
+        if (typeFilterSet.size > 0 && !typeFilterSet.has(ec.filter)) {
+          return false;
+        }
+        if (levelFilterSet.size > 0 && !levelFilterSet.has(ec.breadcrumb.level)) {
+          return false;
+        }
+        return true;
+      });
+    },
+    []
+  );
+
+  return {filterOptions, applyFilters};
 }
 
 export interface EnhancedCrumb {
@@ -121,7 +189,7 @@ export interface EnhancedCrumb {
 export function getEnhancedBreadcrumbs(event: Event): EnhancedCrumb[] {
   const breadcrumbEntryIndex =
     event.entries?.findIndex(entry => entry.type === EntryType.BREADCRUMBS) ?? -1;
-  const breadcrumbs = event.entries?.[breadcrumbEntryIndex]?.data?.values ?? [];
+  const breadcrumbs: any[] = event.entries?.[breadcrumbEntryIndex]?.data?.values ?? [];
 
   if (breadcrumbs.length === 0) {
     return [];
@@ -131,7 +199,9 @@ export function getEnhancedBreadcrumbs(event: Event): EnhancedCrumb[] {
   const meta: Record<number, any> =
     event._meta?.entries?.[breadcrumbEntryIndex]?.data?.values ?? {};
 
-  const enhancedCrumbs: EnhancedCrumb[] = breadcrumbs.map((raw, i) => ({
+  const enhancedCrumbs = breadcrumbs.map<
+    Pick<EnhancedCrumb, 'raw' | 'meta' | 'breadcrumb'>
+  >((raw, i) => ({
     raw,
     meta: meta[i],
     // Converts breadcrumbs into other types if sufficient data is present.
@@ -146,59 +216,64 @@ export function getEnhancedBreadcrumbs(event: Event): EnhancedCrumb[] {
     : enhancedCrumbs;
 
   // Add display props
-  return allCrumbs.map(ec => ({
+  return allCrumbs.map<EnhancedCrumb>(ec => ({
     ...ec,
-    title: getBreadcrumbTitle(ec.breadcrumb.category),
+    title: getBreadcrumbTitle(ec.breadcrumb),
     colorConfig: getBreadcrumbColorConfig(ec.breadcrumb.type),
     filter: getBreadcrumbFilter(ec.breadcrumb.type),
     iconComponent: <BreadcrumbIcon type={ec.breadcrumb.type} />,
-    levelComponent: <BreadcrumbLevel level={ec.breadcrumb.level} />,
+    levelComponent: (
+      <BreadcrumbLevel level={ec.breadcrumb.level}>{ec.breadcrumb.level}</BreadcrumbLevel>
+    ),
   }));
 }
 
-function getBreadcrumbTitle(category: RawCrumb['category']) {
-  switch (category) {
+function getBreadcrumbTitle(crumb: RawCrumb) {
+  if (crumb?.type === BreadcrumbType.DEFAULT) {
+    return crumb?.category ?? BREADCRUMB_TITLE_PLACEHOLDER.toLocaleLowerCase();
+  }
+
+  switch (crumb?.category) {
     case 'http':
     case 'xhr':
-      return category.toUpperCase();
-    case 'httplib':
-      return t('httplib');
+      return crumb?.category.toUpperCase();
     case 'ui.click':
       return t('UI Click');
     case 'ui.input':
       return t('UI Input');
     case null:
     case undefined:
-      return BREADCRUMB_TITLE_PLACEHOLDER;
+      return BREADCRUMB_TITLE_PLACEHOLDER.toLocaleLowerCase();
     default:
-      const titleCategory = category.split('.').join(' ');
-      return toTitleCase(titleCategory);
+      const titleCategory = crumb?.category.split('.').join(' ');
+      return toTitleCase(titleCategory, {allowInnerUpperCase: true});
   }
 }
 
 function getBreadcrumbColorConfig(type?: BreadcrumbType): ColorConfig {
   switch (type) {
     case BreadcrumbType.ERROR:
-      return {primary: 'red400', secondary: 'red200'};
+      return {title: 'red400', icon: 'red400', iconBorder: 'red200'};
     case BreadcrumbType.WARNING:
-      return {primary: 'yellow400', secondary: 'yellow200'};
+      return {title: 'yellow400', icon: 'yellow400', iconBorder: 'yellow200'};
     case BreadcrumbType.NAVIGATION:
     case BreadcrumbType.HTTP:
     case BreadcrumbType.QUERY:
     case BreadcrumbType.TRANSACTION:
-      return {primary: 'green400', secondary: 'green200'};
+      return {title: 'green400', icon: 'green400', iconBorder: 'green200'};
     case BreadcrumbType.USER:
     case BreadcrumbType.UI:
-      return {primary: 'purple400', secondary: 'purple200'};
+      return {title: 'purple400', icon: 'purple400', iconBorder: 'purple200'};
     case BreadcrumbType.SYSTEM:
     case BreadcrumbType.SESSION:
     case BreadcrumbType.DEVICE:
     case BreadcrumbType.NETWORK:
-      return {primary: 'pink400', secondary: 'pink200'};
-    case BreadcrumbType.DEBUG:
+      return {title: 'pink400', icon: 'pink400', iconBorder: 'pink200'};
     case BreadcrumbType.INFO:
+      return {title: 'blue400', icon: 'blue300', iconBorder: 'blue200'};
+    case BreadcrumbType.DEBUG:
     default:
-      return {primary: 'gray300', secondary: 'gray200'};
+      return {title: 'gray400', icon: 'gray300', iconBorder: 'gray200'};
   }
 }
 
@@ -232,7 +307,7 @@ function getBreadcrumbFilter(type?: BreadcrumbType) {
     case BreadcrumbType.NETWORK:
       return t('Network');
     default:
-      return t('Default');
+      return BREADCRUMB_TITLE_PLACEHOLDER;
   }
 }
 
@@ -271,24 +346,25 @@ function BreadcrumbIcon({type}: {type?: BreadcrumbType}) {
   }
 }
 
-function BreadcrumbLevel({level}: {level: BreadcrumbLevelType}) {
-  switch (level) {
-    case BreadcrumbLevelType.ERROR:
-    case BreadcrumbLevelType.FATAL:
-      return <StyledTag type="error">{level}</StyledTag>;
-    case BreadcrumbLevelType.WARNING:
-      return <StyledTag type="warning">{level}</StyledTag>;
-    case BreadcrumbLevelType.DEBUG:
-    case BreadcrumbLevelType.INFO:
-    case BreadcrumbLevelType.LOG:
-      return <StyledTag type="highlight">{level}</StyledTag>;
-    case BreadcrumbLevelType.UNDEFINED:
-    default:
-      return null;
-  }
-}
-
-const StyledTag = styled(Tag)`
+const BreadcrumbLevel = styled('div')<{level: BreadcrumbLevelType}>`
   margin: 0 ${space(1)};
   font-weight: normal;
+  font-size: ${p => p.theme.fontSizeSmall};
+  border: 0;
+  background: none;
+  color: ${p => {
+    switch (p.level) {
+      case BreadcrumbLevelType.ERROR:
+      case BreadcrumbLevelType.FATAL:
+        return p.theme.red400;
+      case BreadcrumbLevelType.WARNING:
+        return p.theme.yellow400;
+      default:
+      case BreadcrumbLevelType.DEBUG:
+      case BreadcrumbLevelType.INFO:
+      case BreadcrumbLevelType.LOG:
+        return p.theme.gray300;
+    }
+  }};
+  display: ${p => (p.level === BreadcrumbLevelType.UNDEFINED ? 'none' : 'block')};
 `;

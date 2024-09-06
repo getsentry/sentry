@@ -1,4 +1,3 @@
-import functools
 import sys
 
 from django.urls import reverse
@@ -82,16 +81,14 @@ class OrganizationStatsTest(APITestCase, OutcomesSnubaTest):
             teams=[self.create_team(organization=org, members=[self.user])]
         )
 
-        make_request = functools.partial(
-            self.client.get, reverse("sentry-api-0-organization-stats", args=[org.slug])
-        )
+        url = reverse("sentry-api-0-organization-stats", args=[org.slug])
 
-        response = make_request({"id": [project.id], "group": "project"})
+        response = self.client.get(url, {"id": str(project.id), "group": "project"})
 
         assert response.status_code == 200, response.content
         assert project.id in response.data
 
-        response = make_request({"id": [sys.maxsize], "group": "project"})
+        response = self.client.get(url, {"id": str(sys.maxsize), "group": "project"})
 
         assert project.id not in response.data
 
@@ -106,11 +103,10 @@ class OrganizationStatsTest(APITestCase, OutcomesSnubaTest):
             teams=[self.create_team(organization=org, members=[self.user])]
         )
 
-        make_request = functools.partial(
-            self.client.get, reverse("sentry-api-0-organization-stats", args=[org.slug])
+        response = self.client.get(
+            reverse("sentry-api-0-organization-stats", args=[org.slug]),
+            {"projectID": str(project.id), "group": "project"},
         )
-
-        response = make_request({"projectID": [project.id], "group": "project"})
 
         assert response.status_code == 200, response.content
         assert project.id in response.data

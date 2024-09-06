@@ -1,6 +1,6 @@
 from django.urls import re_path
 
-from sentry.web.frontend.vercel_extension_configuration import VercelExtensionConfigurationView
+from sentry.integrations.web.vercel_extension_configuration import VercelExtensionConfigurationView
 
 from .webhook import VercelWebhookEndpoint
 

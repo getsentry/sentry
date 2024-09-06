@@ -1,4 +1,5 @@
 import {DATA_CATEGORY_INFO} from 'sentry/constants';
+import {getReasonGroupName} from 'sentry/views/organizationStats/getReasonGroupName';
 import {formatUsageWithUnits} from 'sentry/views/organizationStats/utils';
 
 const MILLION = 10 ** 6;
@@ -161,5 +162,11 @@ describe('formatUsageWithUnits', function () {
     expect(
       formatUsageWithUnits(24 * hourInMs, DATA_CATEGORY_INFO.profileDuration.plural)
     ).toBe('24');
+  });
+
+  it('Correctly groups invalid outcome reasons', function () {
+    expect(getReasonGroupName('invalid', 'duplicate_item')).toBe('invalid_request');
+    expect(getReasonGroupName('invalid', 'too_large')).toBe('too_large');
+    expect(getReasonGroupName('invalid', 'some_other_reason')).toBe('internal');
   });
 });

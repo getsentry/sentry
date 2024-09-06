@@ -8,8 +8,8 @@ from rest_framework.response import Response
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import control_silo_endpoint
-from sentry.api.bases.integration import IntegrationEndpoint
-from sentry.models.integrations.integration import Integration
+from sentry.integrations.api.bases.integration import IntegrationEndpoint
+from sentry.integrations.models.integration import Integration
 from sentry.organizations.services.organization import RpcOrganization
 from sentry.shared_integrations.exceptions import ApiError, ApiUnauthorized, IntegrationError
 
@@ -21,7 +21,7 @@ from ..utils import build_user_choice
 class JiraSearchEndpoint(IntegrationEndpoint):
     owner = ApiOwner.INTEGRATIONS
     publish_status = {
-        "GET": ApiPublishStatus.UNKNOWN,
+        "GET": ApiPublishStatus.PRIVATE,
     }
     """
     Called by our front end when it needs to make requests to Jira's API for data.

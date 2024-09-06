@@ -13,13 +13,13 @@ StatsPeriod = namedtuple("StatsPeriod", ("segments", "interval"))
 
 @register(Environment)
 class EnvironmentSerializer(Serializer):
-    def serialize(self, obj, attrs, user):
+    def serialize(self, obj, attrs, user, **kwargs):
         return {"id": str(obj.id), "name": obj.name}
 
 
 @register(EnvironmentProject)
 class EnvironmentProjectSerializer(Serializer):
-    def serialize(self, obj, attrs, user):
+    def serialize(self, obj, attrs, user, **kwargs):
         return {
             "id": str(obj.id),
             "name": obj.environment.name,
@@ -38,7 +38,7 @@ class GroupEnvironmentWithStatsSerializer(EnvironmentSerializer):
         self.since = since
         self.until = until
 
-    def get_attrs(self, item_list, user):
+    def get_attrs(self, item_list, user, **kwargs):
         attrs = {item: {"stats": {}} for item in item_list}
         items = {self.group.id: []}
         for item in item_list:
@@ -67,7 +67,7 @@ class GroupEnvironmentWithStatsSerializer(EnvironmentSerializer):
                 ]
         return attrs
 
-    def serialize(self, obj, attrs, user):
+    def serialize(self, obj, attrs, user, **kwargs):
         result = super().serialize(obj, attrs, user)
         result["stats"] = attrs["stats"]
         return result

@@ -4,7 +4,9 @@ import type {Location} from 'history';
 import {loadOrganizationTags} from 'sentry/actionCreators/tags';
 import LoadingContainer from 'sentry/components/loading/loadingContainer';
 import {t} from 'sentry/locale';
-import type {Organization, PageFilters, Project} from 'sentry/types';
+import type {PageFilters} from 'sentry/types/core';
+import type {Organization} from 'sentry/types/organization';
+import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {browserHistory} from 'sentry/utils/browserHistory';
 import {useDiscoverQuery} from 'sentry/utils/discover/discoverQuery';
@@ -145,10 +147,10 @@ function OverviewContentWrapper(props: ChildProps) {
     mepContext.setIsMetricsData(isMetricsData);
   }, [mepContext, queryData.data]);
 
-  const {data: tableData, isLoading, error} = queryData;
+  const {data: tableData, isPending, error} = queryData;
   const {
     data: totalCountTableData,
-    isLoading: isTotalCountQueryLoading,
+    isPending: isTotalCountQueryLoading,
     error: totalCountQueryError,
   } = totalCountQueryData;
 
@@ -193,7 +195,7 @@ function OverviewContentWrapper(props: ChildProps) {
       eventView={eventView}
       projectId={projectId}
       transactionName={transactionName}
-      isLoading={isLoading || isTotalCountQueryLoading}
+      isLoading={isPending || isTotalCountQueryLoading}
       error={error || totalCountQueryError}
       totalValues={totals}
       onChangeFilter={onChangeFilter}

@@ -103,7 +103,7 @@ export function PipelinesTable() {
     sort = {field: 'spm()', kind: 'desc'};
   }
 
-  const {data, isLoading, meta, pageLinks, error} = useSpanMetrics(
+  const {data, isPending, meta, pageLinks, error} = useSpanMetrics(
     {
       search: MutableSearch.fromQueryObject({
         'span.category': 'ai.pipeline',
@@ -124,16 +124,29 @@ export function PipelinesTable() {
     'api.ai-pipelines.view'
   );
 
-  const {data: tokensUsedData, isLoading: tokensUsedLoading} = useSpanMetrics(
+  const {data: tokensUsedData, isPending: tokensUsedLoading} = useSpanMetrics(
+    {
+      search: new MutableSearch(
+        `span.category:ai span.ai.pipeline.group:[${(data as Row[])
+          ?.map(x => x['span.group'])
+          ?.filter(x => !!x)
+          .join(',')}]`
+      ),
+      fields: ['span.ai.pipeline.group', 'sum(ai.total_tokens.used)'],
+    },
+    'api.performance.ai-analytics.token-usage-chart'
+  );
+
+  const {
+    data: tokenCostData,
+    isPending: tokenCostLoading,
+    error: tokenCostError,
+  } = useSpanMetrics(
     {
       search: new MutableSearch(
         `span.category:ai span.ai.pipeline.group:[${(data as Row[])?.map(x => x['span.group']).join(',')}]`
       ),
-      fields: [
-        'span.ai.pipeline.group',
-        'sum(ai.total_tokens.used)',
-        'sum(ai.total_cost)',
-      ],
+      fields: ['span.ai.pipeline.group', 'sum(ai.total_cost)'],
     },
     'api.performance.ai-analytics.token-usage-chart'
   );
@@ -151,7 +164,14 @@ export function PipelinesTable() {
       if (tokenUsedDataPoint) {
         row['sum(ai.total_tokens.used)'] =
           tokenUsedDataPoint['sum(ai.total_tokens.used)'];
-        row['sum(ai.total_cost)'] = tokenUsedDataPoint['sum(ai.total_cost)'];
+      }
+    }
+    if (!tokenCostLoading && !tokenCostError) {
+      const tokenCostDataPoint = tokenCostData.find(
+        tokenRow => tokenRow['span.ai.pipeline.group'] === row['span.group']
+      );
+      if (tokenCostDataPoint) {
+        row['sum(ai.total_cost)'] = tokenCostDataPoint['sum(ai.total_cost)'];
       }
     }
     return row;
@@ -179,7 +199,7 @@ export function PipelinesTable() {
     <VisuallyCompleteWithData
       id="PipelinesTable"
       hasData={rows.length > 0}
-      isLoading={isLoading}
+      isLoading={isPending}
     >
       <Container>
         <SearchBar
@@ -188,7 +208,7 @@ export function PipelinesTable() {
           onSearch={handleSearch}
         />
         <GridEditable
-          isLoading={isLoading}
+          isLoading={isPending}
           error={error}
           data={rows}
           columnOrder={COLUMN_ORDER}

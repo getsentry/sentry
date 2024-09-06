@@ -36,6 +36,8 @@ describe('traceProfilingLink', () => {
         makeTraceContinuousProfilingLink(node, event.profiler_id, {
           projectSlug: 'project',
           orgSlug: '',
+          traceId: '',
+          threadId: '0',
         })
       ).toBeNull();
     });
@@ -45,6 +47,8 @@ describe('traceProfilingLink', () => {
         makeTraceContinuousProfilingLink(node, event.profiler_id, {
           projectSlug: '',
           orgSlug: 'sentry',
+          traceId: '',
+          threadId: '0',
         })
       ).toBeNull();
     });
@@ -64,10 +68,14 @@ describe('traceProfilingLink', () => {
 
     const node = new TraceTreeNode(
       null,
-      makeTransaction({start_timestamp: undefined, timestamp: timestamp / 1e3}),
+      makeTransaction({
+        start_timestamp: undefined,
+        timestamp: timestamp / 1e3,
+        event_id: 'event',
+      }),
       {
-        project_slug: '',
-        event_id: '',
+        project_slug: 'project',
+        event_id: 'event',
       }
     );
 
@@ -77,6 +85,8 @@ describe('traceProfilingLink', () => {
       {
         projectSlug: 'project',
         orgSlug: 'sentry',
+        traceId: 'trace',
+        threadId: '0',
       }
     );
 

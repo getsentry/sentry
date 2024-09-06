@@ -1,3 +1,5 @@
+import {Fragment} from 'react';
+
 import {t, tct} from 'sentry/locale';
 import {formatBytesBase2} from 'sentry/utils/bytes/formatBytesBase2';
 import {formatRate} from 'sentry/utils/formatters';
@@ -12,16 +14,13 @@ import {useResourceModuleFilters} from 'sentry/views/insights/browser/resources/
 import {AVG_COLOR, THROUGHPUT_COLOR} from 'sentry/views/insights/colors';
 import Chart, {ChartType} from 'sentry/views/insights/common/components/chart';
 import ChartPanel from 'sentry/views/insights/common/components/chartPanel';
+import * as ModuleLayout from 'sentry/views/insights/common/components/moduleLayout';
 import {useSpanMetricsSeries} from 'sentry/views/insights/common/queries/useDiscoverSeries';
 import {
   DataTitles,
   getDurationChartTitle,
   getThroughputChartTitle,
 } from 'sentry/views/insights/common/views/spans/types';
-import {
-  Block,
-  BlockContainer,
-} from 'sentry/views/insights/common/views/spanSummaryPage/block';
 import {SpanMetricsField} from 'sentry/views/insights/types';
 
 const {
@@ -35,7 +34,7 @@ const {
 function ResourceSummaryCharts(props: {groupId: string}) {
   const filters = useResourceModuleFilters();
 
-  const {data: spanMetricsSeriesData, isLoading: areSpanMetricsSeriesLoading} =
+  const {data: spanMetricsSeriesData, isPending: areSpanMetricsSeriesLoading} =
     useSpanMetricsSeries(
       {
         search: MutableSearch.fromQueryObject({
@@ -44,6 +43,11 @@ function ResourceSummaryCharts(props: {groupId: string}) {
             ? {
                 [RESOURCE_RENDER_BLOCKING_STATUS]:
                   filters[RESOURCE_RENDER_BLOCKING_STATUS],
+              }
+            : {}),
+          ...(filters[SpanMetricsField.USER_GEO_SUBREGION]
+            ? {
+                [SpanMetricsField.USER_GEO_SUBREGION]: `[${filters[SpanMetricsField.USER_GEO_SUBREGION].join(',')}]`,
               }
             : {}),
         }),
@@ -69,8 +73,8 @@ function ResourceSummaryCharts(props: {groupId: string}) {
   }
 
   return (
-    <BlockContainer>
-      <Block>
+    <Fragment>
+      <ModuleLayout.Third>
         <ChartPanel title={getThroughputChartTitle('http', RESOURCE_THROUGHPUT_UNIT)}>
           <Chart
             height={160}
@@ -88,8 +92,9 @@ function ResourceSummaryCharts(props: {groupId: string}) {
             }}
           />
         </ChartPanel>
-      </Block>
-      <Block>
+      </ModuleLayout.Third>
+
+      <ModuleLayout.Third>
         <ChartPanel title={getDurationChartTitle('http')}>
           <Chart
             height={160}
@@ -100,8 +105,9 @@ function ResourceSummaryCharts(props: {groupId: string}) {
             definedAxisTicks={4}
           />
         </ChartPanel>
-      </Block>
-      <Block>
+      </ModuleLayout.Third>
+
+      <ModuleLayout.Third>
         <ChartPanel title={tct('Average [dataType] Size', {dataType: DATA_TYPE})}>
           <Chart
             height={160}
@@ -125,8 +131,8 @@ function ResourceSummaryCharts(props: {groupId: string}) {
             }}
           />
         </ChartPanel>
-      </Block>
-    </BlockContainer>
+      </ModuleLayout.Third>
+    </Fragment>
   );
 }
 

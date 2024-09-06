@@ -10,7 +10,7 @@ coefficient = number / variable / open_paren _ expression _ close_paren
 
 
 number              = [0-9]+('.'[0-9]+)? { return { type: "number", content: text()}}
-variable            = [a-z]+ { return { type: "variable", content: text()}}
+variable            = [a-zA-Z]+ { return { type: "variable", content: text()}}
 _                   = " "* { return { type: "whitespace", content: text()}}
 
 open_paren          = "(" { return { type: "openParen", content: text()}}

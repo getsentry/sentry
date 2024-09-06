@@ -1,4 +1,4 @@
-import moment from 'moment';
+import moment from 'moment-timezone';
 
 export function getDaysSinceDatePrecise(date: string) {
   const dateWithTime = moment(date).utc();

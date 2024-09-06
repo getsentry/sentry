@@ -1,5 +1,6 @@
 import isEqual from 'lodash/isEqual';
 
+import type {FilterKeySection} from 'sentry/components/searchQueryBuilder/types';
 import {RELEASE_ADOPTION_STAGES} from 'sentry/constants';
 import type {SelectValue} from 'sentry/types/core';
 import type {MetricType} from 'sentry/types/metrics';
@@ -11,7 +12,7 @@ import {
   SESSIONS_OPERATIONS,
 } from 'sentry/views/dashboards/widgetBuilder/releaseWidget/fields';
 import {STARFISH_FIELDS} from 'sentry/views/insights/common/utils/constants';
-import {STARFISH_AGGREGATION_FIELDS} from 'sentry/views/insights/types';
+import {STARFISH_AGGREGATION_FIELDS} from 'sentry/views/insights/constants';
 
 import {
   AGGREGATION_FIELDS,
@@ -21,9 +22,12 @@ import {
   FieldValueType,
   getFieldDefinition,
   MEASUREMENT_FIELDS,
+  MobileVital,
   SpanOpBreakdown,
   WebVital,
 } from '../fields';
+
+import {CONDITIONS_ARGUMENTS, DiscoverDatasets, WEB_VITALS_QUALITY} from './types';
 
 export type Sort = {
   field: string;
@@ -186,52 +190,6 @@ export const RATE_UNIT_TITLE = {
   [RateUnit.PER_HOUR]: 'Per Hour',
 };
 
-const CONDITIONS_ARGUMENTS: SelectValue<string>[] = [
-  {
-    label: 'is equal to',
-    value: 'equals',
-  },
-  {
-    label: 'is not equal to',
-    value: 'notEquals',
-  },
-  {
-    label: 'is less than',
-    value: 'less',
-  },
-  {
-    label: 'is greater than',
-    value: 'greater',
-  },
-  {
-    label: 'is less than or equal to',
-    value: 'lessOrEquals',
-  },
-  {
-    label: 'is greater than or equal to',
-    value: 'greaterOrEquals',
-  },
-];
-
-const WEB_VITALS_QUALITY: SelectValue<string>[] = [
-  {
-    label: 'good',
-    value: 'good',
-  },
-  {
-    label: 'meh',
-    value: 'meh',
-  },
-  {
-    label: 'poor',
-    value: 'poor',
-  },
-  {
-    label: 'any',
-    value: 'any',
-  },
-];
-
 const getDocsAndOutputType = (key: AggregationKey) => {
   return {
     documentation: AGGREGATION_FIELDS[key].desc,
@@ -241,6 +199,8 @@ const getDocsAndOutputType = (key: AggregationKey) => {
 
 // Refer to src/sentry/search/events/fields.py
 // Try to keep functions logically sorted, ie. all the count functions are grouped together
+// When dealing with errors or transactions datasets, use getAggregations() instead because
+// there are dataset-specific overrides
 export const AGGREGATIONS = {
   [AggregationKey.COUNT]: {
     ...getDocsAndOutputType(AggregationKey.COUNT),
@@ -679,6 +639,47 @@ export function isSpanOperationBreakdownField(field: string) {
   return field.startsWith('spans.');
 }
 
+// Returns the AGGREGATIONS object with the expected defaults for the given dataset
+export function getAggregations(dataset: DiscoverDatasets) {
+  if (dataset === DiscoverDatasets.DISCOVER) {
+    return AGGREGATIONS;
+  }
+
+  return {
+    ...AGGREGATIONS,
+    [AggregationKey.COUNT_IF]: {
+      ...AGGREGATIONS[AggregationKey.COUNT_IF],
+      parameters: [
+        {
+          kind: 'column',
+          columnTypes: validateDenyListColumns(
+            ['string', 'duration', 'number'],
+            ['id', 'issue', 'user.display']
+          ),
+          defaultValue:
+            dataset === DiscoverDatasets.TRANSACTIONS
+              ? 'transaction.duration'
+              : 'event.type',
+          required: true,
+        },
+        {
+          kind: 'dropdown',
+          options: CONDITIONS_ARGUMENTS,
+          dataType: 'string',
+          defaultValue: CONDITIONS_ARGUMENTS[0].value,
+          required: true,
+        },
+        {
+          kind: 'value',
+          dataType: 'string',
+          defaultValue: dataset === DiscoverDatasets.TRANSACTIONS ? '300' : 'error',
+          required: true,
+        },
+      ],
+    },
+  } as const;
+}
+
 export const SPAN_OP_RELATIVE_BREAKDOWN_FIELD = 'span_ops_breakdown.relative';
 
 export function isRelativeSpanOperationBreakdownField(field: string) {
@@ -749,11 +750,20 @@ export const ERROR_ONLY_FIELDS: (FieldKey | SpanOpBreakdown)[] = [
   FieldKey.STACK_COLNO,
   FieldKey.STACK_LINENO,
   FieldKey.STACK_STACK_LEVEL,
+  FieldKey.EVENT_TYPE,
 ];
 
 export const TRANSACTION_FIELDS = DISCOVER_FIELDS.filter(
   f => !ERROR_ONLY_FIELDS.includes(f)
 );
+
+export const ERRORS_AGGREGATION_FUNCTIONS = [
+  AggregationKey.COUNT,
+  AggregationKey.COUNT_IF,
+  AggregationKey.COUNT_UNIQUE,
+  AggregationKey.EPS,
+  AggregationKey.EPM,
+];
 
 // This list contains fields/functions that are available with profiling feature.
 export const PROFILING_FIELDS: string[] = [FieldKey.PROFILE_ID];
@@ -1374,3 +1384,234 @@ export function hasDuplicate(columnList: Column[], column: Column): boolean {
   }
   return columnList.filter(newColumn => isEqual(newColumn, column)).length > 1;
 }
+
+// Search categorizations for the new `SearchQueryBuilder` component.
+// Each Insights module page will have different points of interest for searching, so use these on a case-by-case basis
+
+export const TRANSACTION_FILTERS: FilterKeySection = {
+  value: 'transaction_event_filters',
+  label: 'Event',
+  children: [
+    FieldKey.TRANSACTION_DURATION,
+    FieldKey.TRANSACTION_OP,
+    FieldKey.TRANSACTION_STATUS,
+    FieldKey.TRANSACTION,
+    SpanOpBreakdown.SPANS_BROWSER,
+    SpanOpBreakdown.SPANS_DB,
+    SpanOpBreakdown.SPANS_HTTP,
+    SpanOpBreakdown.SPANS_RESOURCE,
+    SpanOpBreakdown.SPANS_UI,
+  ],
+};
+
+export const USER_FILTERS: FilterKeySection = {
+  value: 'user_filters',
+  label: 'User',
+  children: [
+    FieldKey.USER,
+    FieldKey.USER_DISPLAY,
+    FieldKey.USER_EMAIL,
+    FieldKey.USER_ID,
+    FieldKey.USER_IP,
+    FieldKey.USER_USERNAME,
+  ],
+};
+
+export const GEO_FILTERS: FilterKeySection = {
+  value: 'geo_filters',
+  label: 'Geo',
+  children: [
+    FieldKey.GEO_CITY,
+    FieldKey.GEO_COUNTRY_CODE,
+    FieldKey.GEO_REGION,
+    FieldKey.GEO_SUBDIVISION,
+  ],
+};
+
+export const HTTP_FILTERS: FilterKeySection = {
+  value: 'http_filters',
+  label: 'HTTP',
+  children: [
+    FieldKey.HTTP_METHOD,
+    FieldKey.HTTP_REFERER,
+    FieldKey.HTTP_STATUS_CODE,
+    FieldKey.HTTP_URL,
+  ],
+};
+
+export const WEB_VITAL_FILTERS: FilterKeySection = {
+  value: 'web_filters',
+  label: 'Web Vitals',
+  children: [
+    WebVital.CLS,
+    WebVital.FCP,
+    WebVital.FID,
+    WebVital.FP,
+    WebVital.INP,
+    WebVital.LCP,
+    WebVital.REQUEST_TIME,
+  ],
+};
+
+export const MOBILE_VITAL_FILTERS: FilterKeySection = {
+  value: 'mobile_vitals_filters',
+  label: 'Mobile Vitals',
+  children: [
+    MobileVital.APP_START_COLD,
+    MobileVital.APP_START_WARM,
+    MobileVital.FRAMES_FROZEN,
+    MobileVital.FRAMES_FROZEN_RATE,
+    MobileVital.FRAMES_SLOW,
+    MobileVital.FRAMES_SLOW_RATE,
+    MobileVital.FRAMES_TOTAL,
+    MobileVital.STALL_COUNT,
+    MobileVital.STALL_LONGEST_TIME,
+    MobileVital.STALL_PERCENTAGE,
+    MobileVital.STALL_TOTAL_TIME,
+    MobileVital.TIME_TO_FULL_DISPLAY,
+    MobileVital.TIME_TO_INITIAL_DISPLAY,
+  ],
+};
+
+export const DEVICE_FILTERS: FilterKeySection = {
+  value: 'device_filters',
+  label: 'Device',
+  children: [
+    FieldKey.DEVICE_ARCH,
+    FieldKey.DEVICE_BATTERY_LEVEL,
+    FieldKey.DEVICE_BRAND,
+    FieldKey.DEVICE_CHARGING,
+    FieldKey.DEVICE_CLASS,
+    FieldKey.DEVICE_FAMILY,
+    FieldKey.DEVICE_LOCALE,
+    // FieldKey.DEVICE_MODEL_ID,
+    FieldKey.DEVICE_NAME,
+    FieldKey.DEVICE_ONLINE,
+    FieldKey.DEVICE_ORIENTATION,
+    FieldKey.DEVICE_SCREEN_DENSITY,
+    FieldKey.DEVICE_SCREEN_DPI,
+    FieldKey.DEVICE_SCREEN_HEIGHT_PIXELS,
+    FieldKey.DEVICE_SCREEN_WIDTH_PIXELS,
+    FieldKey.DEVICE_SIMULATOR,
+    FieldKey.DEVICE_UUID,
+  ],
+};
+
+export const RELEASE_FILTERS: FilterKeySection = {
+  value: 'release_filters',
+  label: 'Release',
+  children: [
+    FieldKey.RELEASE,
+    FieldKey.RELEASE_BUILD,
+    FieldKey.RELEASE_PACKAGE,
+    FieldKey.RELEASE_STAGE,
+    FieldKey.RELEASE_VERSION,
+  ],
+};
+
+export const STACKTRACE_FILTERS: FilterKeySection = {
+  value: 'stacktrace_filters',
+  label: 'Stacktrace',
+  children: [
+    FieldKey.STACK_ABS_PATH,
+    FieldKey.STACK_COLNO,
+    FieldKey.STACK_FILENAME,
+    FieldKey.STACK_FUNCTION,
+    FieldKey.STACK_IN_APP,
+    FieldKey.STACK_LINENO,
+    FieldKey.STACK_MODULE,
+    FieldKey.STACK_PACKAGE,
+    FieldKey.STACK_STACK_LEVEL,
+  ],
+};
+
+export const ERROR_DETAIL_FILTERS: FilterKeySection = {
+  value: 'error_detail_filters',
+  label: 'Error',
+  children: [
+    FieldKey.LEVEL,
+    FieldKey.MESSAGE,
+    FieldKey.ERROR_TYPE,
+    FieldKey.ERROR_VALUE,
+    FieldKey.ERROR_MECHANISM,
+    FieldKey.ERROR_HANDLED,
+    FieldKey.ERROR_UNHANDLED,
+    FieldKey.ERROR_RECEIVED,
+    FieldKey.ERROR_MAIN_THREAD,
+  ],
+};
+
+export const MISC_FILTERS: FilterKeySection = {
+  value: 'misc_filters',
+  label: 'Misc',
+  children: [FieldKey.HAS, FieldKey.DIST],
+};
+
+export const TRANSACTION_EVENT_FILTERS: FilterKeySection = {
+  value: 'transaction_event_filters',
+  label: 'Event',
+  children: [
+    ...TRANSACTION_FILTERS.children,
+    ...HTTP_FILTERS.children,
+    ...RELEASE_FILTERS.children,
+  ],
+};
+
+export const ERROR_EVENT_FILTERS: FilterKeySection = {
+  value: 'error_event_filters',
+  label: 'Event',
+  children: [
+    ...ERROR_DETAIL_FILTERS.children,
+    ...HTTP_FILTERS.children,
+    ...RELEASE_FILTERS.children,
+  ],
+};
+
+export const COMBINED_EVENT_FILTERS: FilterKeySection = {
+  value: 'combined_event_filters',
+  label: 'Event',
+  children: [
+    ...TRANSACTION_FILTERS.children,
+    ...ERROR_DETAIL_FILTERS.children,
+    ...HTTP_FILTERS.children,
+    ...RELEASE_FILTERS.children,
+  ],
+};
+
+export const USER_CONTEXT_FILTERS: FilterKeySection = {
+  value: 'user_context_filters',
+  label: 'User',
+  children: [
+    ...USER_FILTERS.children,
+    ...GEO_FILTERS.children,
+    ...DEVICE_FILTERS.children,
+  ],
+};
+
+export const PERFORMANCE_FILTERS: FilterKeySection = {
+  value: 'performance_filters',
+  label: 'Performance',
+  children: [...WEB_VITAL_FILTERS.children, ...MOBILE_VITAL_FILTERS.children],
+};
+
+export const ALL_INSIGHTS_FILTER_KEY_SECTIONS: FilterKeySection[] = [
+  PERFORMANCE_FILTERS,
+  TRANSACTION_FILTERS,
+  USER_CONTEXT_FILTERS,
+];
+
+export const ERRORS_DATASET_FILTER_KEY_SECTIONS: FilterKeySection[] = [
+  ERROR_EVENT_FILTERS,
+  USER_CONTEXT_FILTERS,
+];
+
+export const COMBINED_DATASET_FILTER_KEY_SECTIONS: FilterKeySection[] = [
+  PERFORMANCE_FILTERS,
+  COMBINED_EVENT_FILTERS,
+  USER_CONTEXT_FILTERS,
+];
+
+// TODO: In followup PR, add this
+// export const PLATFORM_KEY_TO_FILTER_SECTIONS
+// will take in a project platform key, and output only the relevant filter key sections.
+// This way, users will not be suggested mobile fields for a backend transaction, for example.

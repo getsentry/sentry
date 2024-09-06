@@ -411,7 +411,7 @@ def update_artifact_index(
         name=archive_file.name,
         release_id=release.id,
         organization_id=release.organization_id,
-        dist_id=dist.id if dist else dist,
+        dist_id=dist.id if dist is not None else dist,
         file=archive_file,
         artifact_count=0,  # Artifacts will be counted with artifact index
     )

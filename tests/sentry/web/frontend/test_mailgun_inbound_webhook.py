@@ -1,7 +1,8 @@
 from django.urls import reverse
 
+from sentry.hybridcloud.models.outbox import ControlOutbox
+from sentry.hybridcloud.outbox.category import OutboxCategory
 from sentry.models.activity import Activity
-from sentry.models.outbox import ControlOutbox, OutboxCategory
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase
 from sentry.testutils.outbox import outbox_runner

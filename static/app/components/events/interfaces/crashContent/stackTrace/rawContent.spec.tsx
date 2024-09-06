@@ -5,7 +5,7 @@ import displayRawContent, {
   getJavaFrame,
   getJavaPreamble,
 } from 'sentry/components/events/interfaces/crashContent/stackTrace/rawContent';
-import type {StacktraceType} from 'sentry/types';
+import type {StacktraceType} from 'sentry/types/stacktrace';
 
 describe('RawStacktraceContent', () => {
   describe('getJavaFrame()', () => {
@@ -119,6 +119,45 @@ describe('RawStacktraceContent', () => {
         `Error: an error occurred
   File "application", line 1, in main
   File "application", line 2, in doThing`
+      );
+    });
+
+    it('renders dart example', () => {
+      const dartData: StacktraceType = {
+        hasSystemFrames: false,
+        framesOmitted: null,
+        registers: {},
+        frames: [
+          FrameFixture({
+            function: 'doThing',
+            package: 'flutter',
+            lineNo: 300,
+            colNo: 2,
+            filename: 'ink_well.dart',
+            absPath: 'package:flutter/src/material/ink_well.dart',
+            platform: undefined,
+          }),
+          FrameFixture({
+            function: '<asynchronous suspension>',
+            package: '<asynchronous suspension>',
+            platform: undefined,
+          }),
+          FrameFixture({
+            function: 'main',
+            package: 'sentry_flutter',
+            lineNo: 778,
+            colNo: 5,
+            filename: 'main.dart',
+            absPath: 'package:sentry_flutter/main.dart',
+            platform: undefined,
+          }),
+        ],
+      };
+      expect(displayRawContent(dartData, 'dart', exception)).toEqual(
+        `Error: an error occurred
+  #0      main (package:sentry_flutter/main.dart:778:5)
+  #1      <asynchronous suspension>
+  #2      doThing (package:flutter/src/material/ink_well.dart:300:2)`
       );
     });
 

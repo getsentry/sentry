@@ -6,14 +6,18 @@ import ConfigStore from 'sentry/stores/configStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import useAsyncSDKIntegrationStore from 'sentry/views/app/asyncSDKIntegrationProvider';
 
-type FeedbackIntegration = NonNullable<ReturnType<typeof Sentry.getFeedback>>;
+export type FeedbackIntegration = NonNullable<ReturnType<typeof Sentry.getFeedback>>;
 
-export type UseFeedbackOptions = {
-  formTitle?: string;
-  messagePlaceholder?: string;
-};
+export type UseFeedbackOptions = Parameters<FeedbackIntegration['createForm']>[0];
 
-export function useFeedback({formTitle, messagePlaceholder}: UseFeedbackOptions) {
+export function useFeedback({
+  formTitle,
+  messagePlaceholder,
+  tags,
+}: NonNullable<UseFeedbackOptions>): {
+  feedback: FeedbackIntegration | undefined;
+  options: NonNullable<UseFeedbackOptions>;
+} {
   const config = useLegacyStore(ConfigStore);
   const {state} = useAsyncSDKIntegrationStore();
 
@@ -26,8 +30,9 @@ export function useFeedback({formTitle, messagePlaceholder}: UseFeedbackOptions)
       submitButtonLabel: t('Send Feedback'),
       messagePlaceholder: messagePlaceholder ?? t('What did you expect?'),
       formTitle: formTitle ?? t('Give Feedback'),
+      tags,
     };
-  }, [config.theme, formTitle, messagePlaceholder]);
+  }, [config.theme, formTitle, messagePlaceholder, tags]);
 
   return {feedback, options};
 }

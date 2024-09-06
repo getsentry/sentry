@@ -23,7 +23,7 @@ class CommitSerializer(serializers.Serializer):
         max_length=128, required=False, allow_null=True, allow_blank=True
     )
     author_email = serializers.CharField(
-        max_length=75,
+        max_length=200,
         required=False,
         allow_null=True,
         allow_blank=True,

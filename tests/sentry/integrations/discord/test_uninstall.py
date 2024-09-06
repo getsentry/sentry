@@ -5,8 +5,8 @@ import responses
 
 from sentry.constants import ObjectStatus
 from sentry.integrations.discord.client import USERS_GUILD_URL, DiscordClient
-from sentry.models.integrations.integration import Integration
-from sentry.models.integrations.organization_integration import OrganizationIntegration
+from sentry.integrations.models.integration import Integration
+from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.models.organization import Organization
 from sentry.models.scheduledeletion import ScheduledDeletion
 from sentry.silo.base import SiloMode

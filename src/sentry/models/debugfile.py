@@ -129,7 +129,7 @@ class ProjectDebugFile(Model):
     project_id = BoundedBigIntegerField(null=True)
     debug_id = models.CharField(max_length=64, db_column="uuid")
     code_id = models.CharField(max_length=64, null=True)
-    data = JSONField(null=True)
+    data: models.Field[dict[str, Any] | None, dict[str, Any] | None] = JSONField(null=True)
     date_accessed = models.DateTimeField(default=timezone.now)
 
     objects: ClassVar[ProjectDebugFileManager] = ProjectDebugFileManager()

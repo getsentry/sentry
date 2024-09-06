@@ -17,7 +17,7 @@ class IncidentActivitySerializer(Serializer):
         user_lookup = {user["id"]: user for user in serialized_users}
         return {item: {"user": user_lookup.get(str(item.user_id))} for item in item_list}
 
-    def serialize(self, obj, attrs, user):
+    def serialize(self, obj, attrs, user, **kwargs):
         incident = obj.incident
 
         return {

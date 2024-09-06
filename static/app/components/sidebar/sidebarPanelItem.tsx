@@ -63,9 +63,12 @@ function SidebarPanelItem({
         <Text>
           <ExternalLink
             href={link}
-            onClick={() =>
-              trackAnalytics('whats_new.link_clicked', {organization, title})
-            }
+            onClick={() => {
+              if (!title) {
+                return;
+              }
+              trackAnalytics('whats_new.link_clicked', {organization, title});
+            }}
           >
             {cta || t('Read More')}
           </ExternalLink>
@@ -79,10 +82,13 @@ export default SidebarPanelItem;
 
 const SidebarPanelItemRoot = styled('div')`
   line-height: 1.5;
-  border-top: 1px solid ${p => p.theme.innerBorder};
   background: ${p => p.theme.background};
   font-size: ${p => p.theme.fontSizeMedium};
   padding: ${space(3)};
+
+  :not(:first-child) {
+    border-top: 1px solid ${p => p.theme.innerBorder};
+  }
 `;
 
 const TitleWrapper = styled('div')`

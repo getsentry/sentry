@@ -1,5 +1,4 @@
 import {Fragment} from 'react';
-import type {WithRouterProps} from 'react-router';
 import uniqBy from 'lodash/uniqBy';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
@@ -10,9 +9,9 @@ import type {
   ExternalActorMapping,
   ExternalActorMappingOrSuggestion,
   Integration,
-  Organization,
-  Team,
-} from 'sentry/types';
+} from 'sentry/types/integrations';
+import type {WithRouterProps} from 'sentry/types/legacyReactRouter';
+import type {Organization, Team} from 'sentry/types/organization';
 import {sentryNameToOption} from 'sentry/utils/integrationUtil';
 import withOrganization from 'sentry/utils/withOrganization';
 // eslint-disable-next-line no-restricted-imports

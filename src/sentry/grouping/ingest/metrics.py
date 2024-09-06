@@ -4,9 +4,9 @@ import logging
 from collections.abc import MutableMapping
 from typing import TYPE_CHECKING, Any
 
-from sentry import features
+from sentry import options
 from sentry.grouping.api import GroupingConfig
-from sentry.grouping.ingest.config import _config_update_happened_recently, is_in_transition
+from sentry.grouping.ingest.config import is_in_transition, project_uses_optimized_grouping
 from sentry.grouping.ingest.utils import extract_hashes
 from sentry.grouping.result import CalculatedHashes
 from sentry.models.project import Project
@@ -22,7 +22,6 @@ Job = MutableMapping[str, Any]
 
 
 def record_hash_calculation_metrics(
-    project: Project,
     primary_config: GroupingConfig,
     primary_hashes: CalculatedHashes,
     secondary_config: GroupingConfig,
@@ -35,37 +34,24 @@ def record_hash_calculation_metrics(
             "primary_config": primary_config["id"],
             "secondary_config": secondary_config["id"],
         }
+        current_values = primary_hashes.hashes
+        secondary_values = secondary_hashes.hashes
+        hashes_match = current_values == secondary_values
 
-        # If the configs are the same, *of course* the values are going to match, so no point in
-        # recording a metric
-        #
-        # TODO: If we fix the issue outlined in https://github.com/getsentry/sentry/pull/65116, we
-        # can ditch both this check and the logging below
-        if tags["primary_config"] != tags["secondary_config"]:
-            current_values = primary_hashes.hashes
-            secondary_values = secondary_hashes.hashes
-            hashes_match = current_values == secondary_values
-
-            if hashes_match:
-                tags["result"] = "no change"
-            else:
-                shared_hashes = set(current_values) & set(secondary_values)
-                if len(shared_hashes) > 0:
-                    tags["result"] = "partial change"
-                else:
-                    tags["result"] = "full change"
-
-            metrics.incr("grouping.hash_comparison", tags=tags)
-
+        if hashes_match:
+            tags["result"] = "no change"
         else:
-            if not _config_update_happened_recently(project, 30):
-                logger.info(
-                    "Equal primary and secondary configs",
-                    extra={
-                        "project": project.id,
-                        "primary_config": primary_config["id"],
-                    },
-                )
+            shared_hashes = set(current_values) & set(secondary_values)
+            if len(shared_hashes) > 0:
+                tags["result"] = "partial change"
+            else:
+                tags["result"] = "full change"
+
+        metrics.incr(
+            "grouping.hash_comparison",
+            sample_rate=options.get("grouping.config_transition.metrics_sample_rate"),
+            tags=tags,
+        )
 
 
 # TODO: Once the legacy `_save_aggregate` goes away, this logic can be pulled into
@@ -81,16 +67,20 @@ def record_calculation_metric_with_result(
     # count to get an average number of calculations per event
     tags = {
         "in_transition": str(is_in_transition(project)),
-        "using_transition_optimization": str(
-            features.has(
-                "organizations:grouping-suppress-unnecessary-secondary-hash",
-                project.organization,
-            )
-        ),
+        "using_transition_optimization": str(project_uses_optimized_grouping(project)),
         "result": result,
     }
-    metrics.incr("grouping.event_hashes_calculated", tags=tags)
-    metrics.incr("grouping.total_calculations", amount=2 if has_secondary_hashes else 1, tags=tags)
+    metrics.incr(
+        "grouping.event_hashes_calculated",
+        sample_rate=options.get("grouping.config_transition.metrics_sample_rate"),
+        tags=tags,
+    )
+    metrics.incr(
+        "grouping.total_calculations",
+        amount=2 if has_secondary_hashes else 1,
+        sample_rate=options.get("grouping.config_transition.metrics_sample_rate"),
+        tags=tags,
+    )
 
 
 def record_new_group_metrics(event: Event) -> None:

@@ -1,28 +1,24 @@
 import {Fragment, useMemo, useState} from 'react';
-import {Link} from 'react-router';
 import styled from '@emotion/styled';
 
 import Tag from 'sentry/components/badge/tag';
+import Link from 'sentry/components/links/link';
 import {PanelTable} from 'sentry/components/panels/panelTable';
 import SearchBar from 'sentry/components/searchBar';
 import {TabList, TabPanels, Tabs} from 'sentry/components/tabs';
 import {Tooltip} from 'sentry/components/tooltip';
 import {IconArrow} from 'sentry/icons';
 import {IconWarning} from 'sentry/icons/iconWarning';
-import {t, tct} from 'sentry/locale';
+import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {MetricMeta} from 'sentry/types/metrics';
 import type {Project} from 'sentry/types/project';
-import {isExtractedCustomMetric} from 'sentry/utils/metrics';
-import {DEFAULT_METRICS_CARDINALITY_LIMIT} from 'sentry/utils/metrics/constants';
-import {hasCustomMetricsExtractionRules} from 'sentry/utils/metrics/features';
 import {getReadableMetricType} from 'sentry/utils/metrics/formatters';
-import {formatMRI} from 'sentry/utils/metrics/mri';
+import {formatMRI, isExtractedCustomMetric} from 'sentry/utils/metrics/mri';
 import {useBlockMetric} from 'sentry/utils/metrics/useBlockMetric';
-import {useMetricsCardinality} from 'sentry/utils/metrics/useMetricsCardinality';
+import {useCardinalityLimitedMetricVolume} from 'sentry/utils/metrics/useCardinalityLimitedMetricVolume';
 import {useMetricsMeta} from 'sentry/utils/metrics/useMetricsMeta';
 import {middleEllipsis} from 'sentry/utils/string/middleEllipsis';
-import useOrganization from 'sentry/utils/useOrganization';
 import {useAccess} from 'sentry/views/settings/projectMetrics/access';
 import {BlockButton} from 'sentry/views/settings/projectMetrics/blockButton';
 import {useSearchQueryParam} from 'sentry/views/settings/projectMetrics/utils/useSearchQueryParam';
@@ -39,7 +35,6 @@ enum BlockingStatusTab {
 type MetricWithCardinality = MetricMeta & {cardinality: number};
 
 export function CustomMetricsTable({project}: Props) {
-  const organization = useOrganization();
   const [selectedTab, setSelectedTab] = useState(BlockingStatusTab.ACTIVE);
   const [query, setQuery] = useSearchQueryParam('metricsQuery');
 
@@ -49,11 +44,11 @@ export function CustomMetricsTable({project}: Props) {
     false
   );
 
-  const metricsCardinality = useMetricsCardinality({
+  const metricsCardinality = useCardinalityLimitedMetricVolume({
     projects: [parseInt(project.id, 10)],
   });
 
-  const isLoading = metricsMeta.isLoading || metricsCardinality.isLoading;
+  const isLoading = metricsMeta.isLoading || metricsCardinality.isPending;
 
   const sortedMeta = useMemo(() => {
     if (!metricsMeta.data) {
@@ -62,7 +57,6 @@ export function CustomMetricsTable({project}: Props) {
 
     // Do not show internal extracted metrics in this table
     const filteredMeta = metricsMeta.data.filter(meta => !isExtractedCustomMetric(meta));
-
     if (!metricsCardinality.data) {
       return filteredMeta.map(meta => ({...meta, cardinality: 0}));
     }
@@ -76,7 +70,12 @@ export function CustomMetricsTable({project}: Props) {
         };
       })
       .sort((a, b) => {
-        return b.cardinality - a.cardinality;
+        // First sort by cardinality (descending)
+        if (b.cardinality !== a.cardinality) {
+          return b.cardinality - a.cardinality;
+        }
+        // If cardinality is the same, sort by name (ascending)
+        return a.mri.localeCompare(b.mri);
       }) as MetricWithCardinality[];
   }, [metricsCardinality.data, metricsMeta.data]);
 
@@ -87,20 +86,11 @@ export function CustomMetricsTable({project}: Props) {
       unit.includes(query)
   );
 
-  // If we have custom metrics extraction rules,
-  // we only show the custom metrics table if the project has custom metrics
-  if (hasCustomMetricsExtractionRules(organization) && metricsMeta.data.length === 0) {
-    return null;
-  }
-
   return (
     <Fragment>
       <SearchWrapper>
         <Title>
-          <h6>{t('Emitted Metrics')}</h6>
-          {hasCustomMetricsExtractionRules(organization) && (
-            <Tag type="warning">{t('deprecated')}</Tag>
-          )}
+          <h6>{t('Custom Metrics')}</h6>
         </Title>
         <SearchBar
           placeholder={t('Search Metrics')}
@@ -150,18 +140,13 @@ interface MetricsTableProps {
 function MetricsTable({metrics, isLoading, query, project}: MetricsTableProps) {
   const blockMetricMutation = useBlockMetric(project);
   const {hasAccess} = useAccess({access: ['project:write'], project});
-  const cardinalityLimit =
-    // Retrive limit from BE
-    project.relayCustomMetricCardinalityLimit ?? DEFAULT_METRICS_CARDINALITY_LIMIT;
 
   return (
     <MetricsPanelTable
       headers={[
-        t('Metric'),
-        <Cell right key="cardinality">
+        <Cell key="metric">
           <IconArrow size="xs" direction="down" />
-
-          {t('Cardinality')}
+          {t('Metric')}
         </Cell>,
         <Cell right key="type">
           {t('Type')}
@@ -183,10 +168,19 @@ function MetricsTable({metrics, isLoading, query, project}: MetricsTableProps) {
     >
       {metrics.map(({mri, type, unit, cardinality, blockingStatus}) => {
         const isBlocked = blockingStatus[0]?.isBlocked;
-        const isCardinalityLimited = cardinality >= cardinalityLimit;
+        const isCardinalityLimited = cardinality > 0;
         return (
           <Fragment key={mri}>
             <Cell>
+              {isCardinalityLimited && (
+                <Tooltip
+                  title={t(
+                    'The tag cardinality of this metric exceeded the limit, causing the data to be dropped.'
+                  )}
+                >
+                  <StyledIconWarning size="sm" color="yellow300" />
+                </Tooltip>
+              )}
               <Link
                 to={`/settings/projects/${project.slug}/metrics/${encodeURIComponent(
                   mri
@@ -196,23 +190,10 @@ function MetricsTable({metrics, isLoading, query, project}: MetricsTableProps) {
               </Link>
             </Cell>
             <Cell right>
-              {isCardinalityLimited && (
-                <Tooltip
-                  title={tct(
-                    'The tag cardinality of this metric exceeded our limit of [cardinalityLimit], which led to the data being dropped',
-                    {cardinalityLimit}
-                  )}
-                >
-                  <StyledIconWarning size="sm" color="red300" />
-                </Tooltip>
-              )}
-              {cardinality}
-            </Cell>
-            <Cell right>
               <Tag>{getReadableMetricType(type)}</Tag>
             </Cell>
             <Cell right>
-              <Tag>{unit}</Tag>
+              <Tag>{unit ?? 'none'}</Tag>
             </Cell>
             <Cell right>
               <BlockButton
@@ -242,7 +223,7 @@ const SearchWrapper = styled('div')`
   align-items: flex-start;
   gap: ${space(1)};
   margin-top: ${space(4)};
-  margin-bottom: ${space(0)};
+  margin-bottom: 0;
 
   & > h6 {
     margin: 0;
@@ -251,7 +232,7 @@ const SearchWrapper = styled('div')`
 
 const MetricsPanelTable = styled(PanelTable)`
   margin-top: ${space(2)};
-  grid-template-columns: 1fr repeat(4, min-content);
+  grid-template-columns: 1fr repeat(3, min-content);
 `;
 
 const Cell = styled('div')<{right?: boolean}>`

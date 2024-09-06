@@ -6,37 +6,48 @@ from typing import Any
 from unittest import mock
 from unittest.mock import patch
 
+import pytest
 import responses
 from django.conf import settings
+from django.core.exceptions import ValidationError
 from django.test import override_settings
+from httpx import HTTPError
 from rest_framework.exceptions import ErrorDetail
 from rest_framework.response import Response
 from slack_sdk.errors import SlackApiError
 from slack_sdk.web import SlackResponse
+from urllib3.exceptions import MaxRetryError, TimeoutError
+from urllib3.response import HTTPResponse
 
 from sentry import audit_log
 from sentry.api.serializers import serialize
 from sentry.auth.access import OrganizationGlobalAccess
+from sentry.conf.server import SEER_ANOMALY_DETECTION_STORE_DATA_URL
 from sentry.incidents.endpoints.serializers.alert_rule import DetailedAlertRuleSerializer
 from sentry.incidents.models.alert_rule import (
     AlertRule,
+    AlertRuleDetectionType,
     AlertRuleMonitorTypeInt,
+    AlertRuleSeasonality,
+    AlertRuleSensitivity,
     AlertRuleStatus,
+    AlertRuleThresholdType,
     AlertRuleTrigger,
     AlertRuleTriggerAction,
 )
 from sentry.incidents.models.incident import Incident, IncidentStatus
 from sentry.incidents.serializers import AlertRuleSerializer
 from sentry.incidents.utils.types import AlertRuleActivationConditionType
+from sentry.integrations.slack.tasks.find_channel_id_for_alert_rule import (
+    find_channel_id_for_alert_rule,
+)
 from sentry.integrations.slack.utils.channel import SlackChannelIdData
 from sentry.models.auditlogentry import AuditLogEntry
 from sentry.models.organizationmemberteam import OrganizationMemberTeam
+from sentry.seer.anomaly_detection.store_data import seer_anomaly_detection_connection_pool
 from sentry.sentry_apps.services.app import app_service
 from sentry.silo.base import SiloMode
 from sentry.tasks.deletion.scheduled import run_scheduled_deletions
-from sentry.tasks.integrations.slack.find_channel_id_for_alert_rule import (
-    find_channel_id_for_alert_rule,
-)
 from sentry.testutils.abstract import Abstract
 from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.outbox import outbox_runner
@@ -94,6 +105,10 @@ class AlertRuleDetailsBase(AlertRuleBase):
     @cached_property
     def alert_rule(self):
         return self.new_alert_rule(data=deepcopy(self.alert_rule_dict))
+
+    @cached_property
+    def dynamic_alert_rule(self):
+        return self.new_alert_rule(data=deepcopy(self.dynamic_alert_rule_dict))
 
     @cached_property
     def valid_params(self):
@@ -205,6 +220,169 @@ class AlertRuleDetailsGetEndpointTest(AlertRuleDetailsBase):
         self.create_alert_rule_trigger_action(alert_rule_trigger=trigger)
         resp = self.get_success_response(self.organization.slug, rule.id)
         assert rule.description == resp.data.get("description")
+
+    @with_feature("organizations:anomaly-detection-alerts")
+    @with_feature("organizations:incidents")
+    def test_static_detection_type(self):
+        self.create_team(organization=self.organization, members=[self.user])
+        self.login_as(self.user)
+        rule = self.create_alert_rule()  # the default detection type is static
+        trigger = self.create_alert_rule_trigger(rule, "hi", 1000)
+        self.create_alert_rule_trigger_action(alert_rule_trigger=trigger)
+        resp = self.get_success_response(self.organization.slug, rule.id)
+        assert rule.detection_type == AlertRuleDetectionType.STATIC
+        assert rule.detection_type == resp.data.get("detectionType")
+
+        # Confirm that we don't mess up flow for customers who don't know about detection_type field yet
+        rule2 = self.create_alert_rule(comparison_delta=60)
+        trigger2 = self.create_alert_rule_trigger(rule, "heyo", 1000)
+        self.create_alert_rule_trigger_action(alert_rule_trigger=trigger2)
+        resp = self.get_success_response(self.organization.slug, rule2.id)
+        assert rule2.detection_type == AlertRuleDetectionType.PERCENT
+        assert rule2.detection_type == resp.data.get("detectionType")
+
+        with pytest.raises(
+            ValidationError,
+            match="Sensitivity is not a valid field for this alert type",
+        ):
+            # STATIC detection types shouldn't have seasonality or sensitivity
+            self.create_alert_rule(
+                seasonality=AlertRuleSeasonality.AUTO, sensitivity=AlertRuleSensitivity.HIGH
+            )
+        with pytest.raises(
+            ValidationError,
+            match="Above and below is not a valid threshold type for this alert type",
+        ):
+            self.create_alert_rule(threshold_type=AlertRuleThresholdType.ABOVE_AND_BELOW)
+
+    @with_feature("organizations:anomaly-detection-alerts")
+    @with_feature("organizations:incidents")
+    def test_percent_detection_type(self):
+        self.create_team(organization=self.organization, members=[self.user])
+        self.login_as(self.user)
+        rule = self.create_alert_rule(
+            comparison_delta=60, detection_type=AlertRuleDetectionType.PERCENT
+        )
+        trigger = self.create_alert_rule_trigger(rule, "hi", 1000)
+        self.create_alert_rule_trigger_action(alert_rule_trigger=trigger)
+        resp = self.get_success_response(self.organization.slug, rule.id)
+        assert rule.detection_type == resp.data.get("detectionType")
+
+        with pytest.raises(
+            ValidationError, match="Percentage-based alerts require a comparison delta"
+        ):
+            self.create_alert_rule(
+                detection_type=AlertRuleDetectionType.PERCENT
+            )  # PERCENT detection type requires a comparison delta
+
+        with pytest.raises(
+            ValidationError,
+            match="Sensitivity is not a valid field for this alert type",
+        ):
+            # PERCENT detection type should not have sensitivity or seasonality
+            self.create_alert_rule(
+                seasonality=AlertRuleSeasonality.AUTO,
+                sensitivity=AlertRuleSensitivity.HIGH,
+                detection_type=AlertRuleDetectionType.PERCENT,
+            )
+
+        with pytest.raises(
+            ValidationError,
+            match="Above and below is not a valid threshold type for this alert type",
+        ):
+            self.create_alert_rule(
+                threshold_type=AlertRuleThresholdType.ABOVE_AND_BELOW,
+                detection_type=AlertRuleDetectionType.PERCENT,
+            )
+
+    @with_feature("organizations:anomaly-detection-alerts")
+    @with_feature("organizations:incidents")
+    @patch(
+        "sentry.seer.anomaly_detection.store_data.seer_anomaly_detection_connection_pool.urlopen"
+    )
+    def test_dynamic_detection_type(self, mock_seer_request):
+        mock_seer_request.return_value = HTTPResponse(status=200)
+
+        self.create_team(organization=self.organization, members=[self.user])
+        self.login_as(self.user)
+        rule = self.create_alert_rule(
+            seasonality=AlertRuleSeasonality.AUTO,
+            sensitivity=AlertRuleSensitivity.HIGH,
+            threshold_type=AlertRuleThresholdType.ABOVE_AND_BELOW,
+            detection_type=AlertRuleDetectionType.DYNAMIC,
+            time_window=30,
+        )
+        trigger = self.create_alert_rule_trigger(rule, "hi", 0)
+        self.create_alert_rule_trigger_action(alert_rule_trigger=trigger)
+        resp = self.get_success_response(self.organization.slug, rule.id)
+        assert rule.detection_type == resp.data.get("detectionType")
+
+        with pytest.raises(ValidationError, match="Dynamic alerts require a sensitivity level"):
+            self.create_alert_rule(
+                seasonality=AlertRuleSeasonality.AUTO,
+                detection_type=AlertRuleDetectionType.DYNAMIC,
+                time_window=30,
+            )  # Require both seasonality and sensitivity
+
+        # TODO: uncomment this test when seasonality becomes a supported field
+        # with pytest.raises(
+        #     ValidationError, match="Dynamic alerts require both sensitivity and seasonality"
+        # ):
+        #     self.create_alert_rule(
+        #         sensitivity=AlertRuleSensitivity.MEDIUM,
+        #         detection_type=AlertRuleDetectionType.DYNAMIC,
+        #         time_window=30,
+        #     )  # Require both seasonality and sensitivity
+
+        with pytest.raises(ValidationError, match="Dynamic alerts require a sensitivity level"):
+            self.create_alert_rule(
+                detection_type=AlertRuleDetectionType.DYNAMIC,
+                time_window=30,
+            )  # DYNAMIC detection type requires seasonality and sensitivity
+
+        with pytest.raises(
+            ValidationError, match="Comparison delta is not a valid field for this alert type"
+        ):
+            # DYNAMIC detection type should not have comparison delta
+            self.create_alert_rule(
+                seasonality=AlertRuleSeasonality.AUTO,
+                sensitivity=AlertRuleSensitivity.HIGH,
+                comparison_delta=60,
+                detection_type=AlertRuleDetectionType.DYNAMIC,
+                time_window=30,
+            )
+
+        with pytest.raises(ValidationError, match="Invalid time window for dynamic alert"):
+            rule = self.create_alert_rule(
+                seasonality=AlertRuleSeasonality.AUTO,
+                sensitivity=AlertRuleSensitivity.HIGH,
+                threshold_type=AlertRuleThresholdType.ABOVE_AND_BELOW,
+                detection_type=AlertRuleDetectionType.DYNAMIC,
+                time_window=1,
+            )
+
+    @with_feature("organizations:anomaly-detection-alerts")
+    @with_feature("organizations:incidents")
+    def test_missing_threshold(self):
+        """Test that we throw a validation error when the trigger is missing alertThreshold"""
+        self.create_team(organization=self.organization, members=[self.user])
+        self.login_as(self.user)
+        data = deepcopy(self.dynamic_alert_rule_dict)
+        del data["triggers"][0]["alertThreshold"]
+
+        serializer = AlertRuleSerializer(
+            context={
+                "organization": self.organization,
+                "access": OrganizationGlobalAccess(self.organization, settings.SENTRY_SCOPES),
+                "user": self.user,
+                "installations": app_service.get_installed_for_organization(
+                    organization_id=self.organization.id
+                ),
+            },
+            data=data,
+        )
+        assert not serializer.is_valid(), serializer.errors
+        assert serializer.errors["nonFieldErrors"][0] == "Trigger must have an alertThreshold"
 
     @responses.activate
     def test_with_sentryapp_success(self):
@@ -510,7 +688,9 @@ class AlertRuleDetailsPutEndpointTest(AlertRuleDetailsBase):
         assert resp.data == serialize(self.alert_rule)
         # If the aggregate changed we'd have a new subscription, validate that
         # it hasn't changed explicitly
-        updated_sub = AlertRule.objects.get(id=self.alert_rule.id).snuba_query.subscriptions.first()
+        updated_alert_rule = AlertRule.objects.get(id=self.alert_rule.id)
+        assert updated_alert_rule.snuba_query is not None
+        updated_sub = updated_alert_rule.snuba_query.subscriptions.get()
         assert updated_sub.subscription_id == existing_sub.subscription_id
 
     def test_update_trigger_label_to_unallowed_value(self):
@@ -637,6 +817,103 @@ class AlertRuleDetailsPutEndpointTest(AlertRuleDetailsBase):
             self.organization.slug, alert_rule.id, **serialized_alert_rule
         )
         assert description == resp.data.get("description")
+
+    @with_feature("organizations:anomaly-detection-alerts")
+    @with_feature("organizations:incidents")
+    @patch(
+        "sentry.seer.anomaly_detection.store_data.seer_anomaly_detection_connection_pool.urlopen"
+    )
+    def test_anomaly_detection_alert_update_timeout(self, mock_seer_request):
+        self.create_team(organization=self.organization, members=[self.user])
+        self.login_as(self.user)
+        alert_rule = self.dynamic_alert_rule
+        # We need the IDs to force update instead of create, so we just get the rule using our own API. Like frontend would.
+        mock_seer_request.side_effect = TimeoutError
+        data = self.get_serialized_alert_rule()
+
+        resp = self.get_error_response(
+            self.organization.slug,
+            alert_rule.id,
+            status_code=408,
+            **data,
+        )
+        assert resp.data["detail"]["message"] == "Proxied request timed out"
+        assert mock_seer_request.call_count == 2  # one for create, one for update
+
+    @with_feature("organizations:anomaly-detection-alerts")
+    @with_feature("organizations:incidents")
+    @patch(
+        "sentry.seer.anomaly_detection.store_data.seer_anomaly_detection_connection_pool.urlopen"
+    )
+    def test_anomaly_detection_alert_update_max_retry(self, mock_seer_request):
+        self.create_team(organization=self.organization, members=[self.user])
+        self.login_as(self.user)
+        alert_rule = self.dynamic_alert_rule
+        # We need the IDs to force update instead of create, so we just get the rule using our own API. Like frontend would.
+        mock_seer_request.side_effect = MaxRetryError(
+            seer_anomaly_detection_connection_pool, SEER_ANOMALY_DETECTION_STORE_DATA_URL
+        )
+        data = self.get_serialized_alert_rule()
+
+        resp = self.get_error_response(
+            self.organization.slug,
+            alert_rule.id,
+            status_code=408,
+            **data,
+        )
+        assert resp.data["detail"]["message"] == "Proxied request timed out"
+        assert mock_seer_request.call_count == 2
+
+    @with_feature("organizations:anomaly-detection-alerts")
+    @with_feature("organizations:incidents")
+    @patch(
+        "sentry.seer.anomaly_detection.store_data.seer_anomaly_detection_connection_pool.urlopen"
+    )
+    def test_anomaly_detection_alert_update_other_error(self, mock_seer_request):
+        """
+        Test the catch-all in case Seer returns something that we don't expect.
+        """
+        self.create_team(organization=self.organization, members=[self.user])
+        self.login_as(self.user)
+        alert_rule = self.dynamic_alert_rule
+        # We need the IDs to force update instead of create, so we just get the rule using our own API. Like frontend would.
+        mock_seer_request.side_effect = HTTPError
+        data = self.get_serialized_alert_rule()
+
+        resp = self.get_error_response(
+            self.organization.slug,
+            alert_rule.id,
+            status_code=400,
+            **data,
+        )
+        assert resp.data["detail"]["message"] == "Invalid request"
+        assert mock_seer_request.call_count == 2
+
+    @with_feature("organizations:anomaly-detection-alerts")
+    @with_feature("organizations:incidents")
+    @patch(
+        "sentry.seer.anomaly_detection.store_data.seer_anomaly_detection_connection_pool.urlopen"
+    )
+    def test_anomaly_detection_alert_update_validation_error(self, mock_seer_request):
+        self.create_team(organization=self.organization, members=[self.user])
+        self.login_as(self.user)
+        alert_rule = self.dynamic_alert_rule
+        # We need the IDs to force update instead of create, so we just get the rule using our own API. Like frontend would.
+        data = self.get_serialized_alert_rule()
+        data["timeWindow"] = 10
+
+        resp = self.get_error_response(
+            self.organization.slug,
+            alert_rule.id,
+            status_code=400,
+            **data,
+        )
+        assert (
+            resp.data[0]
+            == "Invalid time window for dynamic alert (valid windows are 60, 30, 15 minutes)"
+        )
+        # We don't call send_historical_data_to_seer if we encounter a validation error.
+        assert mock_seer_request.call_count == 1
 
     def test_delete_action(self):
         self.create_member(
@@ -1049,7 +1326,7 @@ class AlertRuleDetailsSlackPutEndpointTest(AlertRuleDetailsBase):
         assert resp.data == {"uuid": "abc123"}
 
     @patch(
-        "sentry.integrations.slack.utils.channel.get_channel_id_with_timeout_deprecated",
+        "sentry.integrations.slack.utils.channel.get_channel_id_with_timeout",
         side_effect=[
             SlackChannelIdData("#", "10", False),
             SlackChannelIdData("#", "10", False),

@@ -19,15 +19,10 @@ import GroupStore from 'sentry/stores/groupStore';
 import MemberListStore from 'sentry/stores/memberListStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import {space} from 'sentry/styles/space';
-import type {
-  Actor,
-  Group,
-  Organization,
-  SuggestedOwner,
-  SuggestedOwnerReason,
-  Team,
-  User,
-} from 'sentry/types';
+import type {Actor} from 'sentry/types/core';
+import type {Group, SuggestedOwner, SuggestedOwnerReason} from 'sentry/types/group';
+import type {Organization, Team} from 'sentry/types/organization';
+import type {User} from 'sentry/types/user';
 import {buildTeamId, buildUserId} from 'sentry/utils';
 import type {FeedbackIssue} from 'sentry/utils/feedback/types';
 import {valueIsEqual} from 'sentry/utils/object/valueIsEqual';
@@ -223,7 +218,7 @@ export class DeprecatedAssigneeSelectorDropdown extends Component<
       return [];
     }
 
-    const teams = ProjectsStore.getBySlug(group.project.slug)?.teams ?? [];
+    const teams = ProjectsStore.getBySlug(group.project?.slug)?.teams ?? [];
     return teams
       .sort((a, b) => a.slug.localeCompare(b.slug))
       .map(team => ({

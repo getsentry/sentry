@@ -8,7 +8,7 @@ import type {NewQuery} from 'sentry/types/organization';
 import EventView from 'sentry/utils/discover/eventView';
 import {NumberContainer} from 'sentry/utils/discover/styles';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
-import {decodeScalar} from 'sentry/utils/queryString';
+import {decodeList, decodeScalar} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import usePageFilters from 'sentry/utils/usePageFilters';
@@ -26,7 +26,11 @@ import {ScreensTable} from 'sentry/views/insights/mobile/common/components/table
 import {useTableQuery} from 'sentry/views/insights/mobile/screenload/components/tables/screensTable';
 import {MobileCursors} from 'sentry/views/insights/mobile/screenload/constants';
 import {Referrer} from 'sentry/views/insights/mobile/ui/referrers';
-import {ModuleName, SpanMetricsField} from 'sentry/views/insights/types';
+import {
+  ModuleName,
+  SpanMetricsField,
+  type SubregionCode,
+} from 'sentry/views/insights/types';
 
 const {SPAN_DESCRIPTION, SPAN_GROUP, SPAN_OP, PROJECT_ID} = SpanMetricsField;
 
@@ -44,6 +48,9 @@ export function SpanOperationTable({
 
   const spanOp = decodeScalar(location.query[SpanMetricsField.SPAN_OP]) ?? '';
   const deviceClass = decodeScalar(location.query[SpanMetricsField.DEVICE_CLASS]) ?? '';
+  const subregions = decodeList(
+    location.query[SpanMetricsField.USER_GEO_SUBREGION]
+  ) as SubregionCode[];
 
   // TODO: These filters seem to be too aggressive, check that they are ingesting properly
   const searchQuery = new MutableSearch([
@@ -53,6 +60,9 @@ export function SpanOperationTable({
     `${SpanMetricsField.SPAN_OP}:${spanOp ? spanOp : `[${VALID_SPAN_OPS.join(',')}]`}`,
     ...(spanOp ? [`${SpanMetricsField.SPAN_OP}:${spanOp}`] : []),
     ...(deviceClass ? [`${SpanMetricsField.DEVICE_CLASS}:${deviceClass}`] : []),
+    ...(subregions.length
+      ? [`${SpanMetricsField.USER_GEO_SUBREGION}:[${subregions.join(',')}]`]
+      : []),
   ]);
   const queryStringPrimary = appendReleaseFilters(
     searchQuery,
@@ -69,10 +79,10 @@ export function SpanOperationTable({
       SPAN_OP,
       SPAN_GROUP,
       SPAN_DESCRIPTION,
-      `avg_if(mobile.slow_frames,release,${primaryRelease})`,
-      `avg_if(mobile.slow_frames,release,${secondaryRelease})`,
-      `avg_if(mobile.frozen_frames,release,${primaryRelease})`,
-      `avg_if(mobile.frozen_frames,release,${secondaryRelease})`,
+      `division_if(mobile.slow_frames,mobile.total_frames,release,${primaryRelease})`,
+      `division_if(mobile.slow_frames,mobile.total_frames,release,${secondaryRelease})`,
+      `division_if(mobile.frozen_frames,mobile.total_frames,release,${primaryRelease})`,
+      `division_if(mobile.frozen_frames,mobile.total_frames,release,${secondaryRelease})`,
       `avg_if(mobile.frames_delay,release,${primaryRelease})`,
       `avg_if(mobile.frames_delay,release,${secondaryRelease})`,
       `avg_compare(mobile.frames_delay,release,${primaryRelease},${secondaryRelease})`,
@@ -87,7 +97,7 @@ export function SpanOperationTable({
 
   const eventView = EventView.fromNewQueryWithLocation(newQuery, location);
 
-  const {data, isLoading, pageLinks} = useTableQuery({
+  const {data, isPending, pageLinks} = useTableQuery({
     eventView,
     enabled: true,
     referrer: Referrer.SPAN_OPERATION_TABLE,
@@ -97,22 +107,16 @@ export function SpanOperationTable({
   const columnNameMap = {
     [SPAN_OP]: t('Operation'),
     [SPAN_DESCRIPTION]: t('Span Description'),
-    [`avg_if(mobile.slow_frames,release,${primaryRelease})`]: t(
+    [`division_if(mobile.slow_frames,mobile.total_frames,release,${primaryRelease})`]: t(
       'Slow (%s)',
       PRIMARY_RELEASE_ALIAS
     ),
-    [`avg_if(mobile.slow_frames,release,${secondaryRelease})`]: t(
-      'Slow (%s)',
-      SECONDARY_RELEASE_ALIAS
-    ),
-    [`avg_if(mobile.frozen_frames,release,${primaryRelease})`]: t(
-      'Frozen (%s)',
-      PRIMARY_RELEASE_ALIAS
-    ),
-    [`avg_if(mobile.frozen_frames,release,${secondaryRelease})`]: t(
-      'Frozen (%s)',
-      SECONDARY_RELEASE_ALIAS
-    ),
+    [`division_if(mobile.slow_frames,mobile.total_frames,release,${secondaryRelease})`]:
+      t('Slow (%s)', SECONDARY_RELEASE_ALIAS),
+    [`division_if(mobile.frozen_frames,mobile.total_frames,release,${primaryRelease})`]:
+      t('Frozen (%s)', PRIMARY_RELEASE_ALIAS),
+    [`division_if(mobile.frozen_frames,mobile.total_frames,release,${secondaryRelease})`]:
+      t('Frozen (%s)', SECONDARY_RELEASE_ALIAS),
     [`avg_if(mobile.frames_delay,release,${primaryRelease})`]: t(
       'Delay (%s)',
       PRIMARY_RELEASE_ALIAS
@@ -123,6 +127,28 @@ export function SpanOperationTable({
     ),
     [`avg_compare(mobile.frames_delay,release,${primaryRelease},${secondaryRelease})`]:
       t('Change'),
+  };
+
+  const columnTooltipMap = {
+    [`division_if(mobile.slow_frames,mobile.total_frames,release,${primaryRelease})`]: t(
+      'The number of slow frames divided by total frames (%s)',
+      PRIMARY_RELEASE_ALIAS
+    ),
+    [`division_if(mobile.slow_frames,mobile.total_frames,release,${secondaryRelease})`]:
+      t(
+        'The number of slow frames divided by total frames (%s)',
+        SECONDARY_RELEASE_ALIAS
+      ),
+    [`division_if(mobile.frozen_frames,mobile.total_frames,release,${primaryRelease})`]:
+      t(
+        'The number of frozen frames divided by total frames (%s)',
+        PRIMARY_RELEASE_ALIAS
+      ),
+    [`division_if(mobile.frozen_frames,mobile.total_frames,release,${secondaryRelease})`]:
+      t(
+        'The number of frozen frames divided by total frames (%s)',
+        SECONDARY_RELEASE_ALIAS
+      ),
   };
 
   function renderBodyCell(column, row) {
@@ -163,17 +189,18 @@ export function SpanOperationTable({
   return (
     <ScreensTable
       columnNameMap={columnNameMap}
+      columnTooltipMap={columnTooltipMap}
       data={data}
       eventView={eventView}
-      isLoading={isLoading}
+      isLoading={isPending}
       pageLinks={pageLinks}
       columnOrder={[
         String(SPAN_OP),
         String(SPAN_DESCRIPTION),
-        `avg_if(mobile.slow_frames,release,${primaryRelease})`,
-        `avg_if(mobile.slow_frames,release,${secondaryRelease})`,
-        `avg_if(mobile.frozen_frames,release,${primaryRelease})`,
-        `avg_if(mobile.frozen_frames,release,${secondaryRelease})`,
+        `division_if(mobile.slow_frames,mobile.total_frames,release,${primaryRelease})`,
+        `division_if(mobile.slow_frames,mobile.total_frames,release,${secondaryRelease})`,
+        `division_if(mobile.frozen_frames,mobile.total_frames,release,${primaryRelease})`,
+        `division_if(mobile.frozen_frames,mobile.total_frames,release,${secondaryRelease})`,
         `avg_if(mobile.frames_delay,release,${primaryRelease})`,
         `avg_if(mobile.frames_delay,release,${secondaryRelease})`,
         `avg_compare(mobile.frames_delay,release,${primaryRelease},${secondaryRelease})`,

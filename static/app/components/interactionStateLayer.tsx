@@ -7,6 +7,11 @@ import {defined} from 'sentry/utils';
 interface StateLayerProps extends React.HTMLAttributes<HTMLSpanElement> {
   as?: React.ElementType;
   color?: string;
+  /**
+   * Controls if the opacity is increased when the element is in a
+   * selected or expanded state (aria-selected='true' or aria-expanded='true')
+   */
+  hasSelectedBackground?: boolean;
   higherOpacity?: boolean;
   isHovered?: boolean;
   isPressed?: boolean;
@@ -14,7 +19,8 @@ interface StateLayerProps extends React.HTMLAttributes<HTMLSpanElement> {
 
 const InteractionStateLayer = styled(
   (props: StateLayerProps) => {
-    const {children, as: Element = 'span', ...rest} = props;
+    // Prevent type checking of `rest` as it has hundreds of properties and is slow
+    const {children, as: Element = 'span', ...rest} = props as any;
 
     // Here, using `as` directly doesn't work because it loses the `role` prop. Instead, manually propagating the props does the right thing.
     return (
@@ -65,11 +71,16 @@ const InteractionStateLayer = styled(
         `
       : // If isPressed is undefined, then fallback to default press selectors
         css`
-          *:active > &&,
-          *[aria-expanded='true'] > &&,
-          *[aria-selected='true'] > && {
+          *:active > && {
             opacity: ${p.higherOpacity ? 0.12 : 0.09};
           }
+          ${p.hasSelectedBackground &&
+          css`
+            *[aria-expanded='true'] > &&,
+            *[aria-selected='true'] > && {
+              opacity: ${p.higherOpacity ? 0.12 : 0.09};
+            }
+          `}
         `}
 
 
@@ -78,5 +89,9 @@ const InteractionStateLayer = styled(
     opacity: 0;
   }
 `;
+
+InteractionStateLayer.defaultProps = {
+  hasSelectedBackground: true,
+};
 
 export default InteractionStateLayer;

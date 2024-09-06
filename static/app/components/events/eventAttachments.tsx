@@ -11,7 +11,6 @@ import JsonViewer from 'sentry/components/events/attachmentViewers/jsonViewer';
 import LogFileViewer from 'sentry/components/events/attachmentViewers/logFileViewer';
 import RRWebJsonViewer from 'sentry/components/events/attachmentViewers/rrwebJsonViewer';
 import EventAttachmentActions from 'sentry/components/events/eventAttachmentActions';
-import {EventDataSection} from 'sentry/components/events/eventDataSection';
 import FileSize from 'sentry/components/fileSize';
 import LoadingError from 'sentry/components/loadingError';
 import {PanelTable} from 'sentry/components/panels/panelTable';
@@ -19,6 +18,8 @@ import {t} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
 import type {IssueAttachment} from 'sentry/types/group';
 import useOrganization from 'sentry/utils/useOrganization';
+import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
+import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
 
 import EventAttachmentsCrashReportsNotice from './eventAttachmentsCrashReportsNotice';
 
@@ -37,11 +38,16 @@ interface InlineAttachmentsProps
 
 const getInlineAttachmentRenderer = (attachment: IssueAttachment) => {
   switch (attachment.mimetype) {
+    case 'text/css':
+    case 'text/csv':
+    case 'text/html':
+    case 'text/javascript':
     case 'text/plain':
       return attachment.size > 0 ? LogFileViewer : undefined;
+    case 'application/json':
+    case 'application/ld+json':
     case 'text/json':
     case 'text/x-json':
-    case 'application/json':
       if (attachment.name === 'rrweb.json' || attachment.name.startsWith('rrweb-')) {
         return RRWebJsonViewer;
       }
@@ -110,12 +116,12 @@ function EventAttachmentsContent({event, projectSlug}: EventAttachmentsProps) {
 
   if (isError) {
     return (
-      <EventDataSection type="attachments" title="Attachments">
+      <InterimSection type={SectionKey.ATTACHMENTS} title={t('Attachments')}>
         <LoadingError
           onRetry={refetch}
           message={t('An error occurred while fetching attachments')}
         />
-      </EventDataSection>
+      </InterimSection>
     );
   }
 
@@ -137,7 +143,7 @@ function EventAttachmentsContent({event, projectSlug}: EventAttachmentsProps) {
   };
 
   return (
-    <EventDataSection type="attachments" title={title}>
+    <InterimSection type={SectionKey.ATTACHMENTS} title={title}>
       {crashFileStripped && (
         <EventAttachmentsCrashReportsNotice
           orgSlug={organization.slug}
@@ -205,7 +211,7 @@ function EventAttachmentsContent({event, projectSlug}: EventAttachmentsProps) {
           ))}
         </StyledPanelTable>
       )}
-    </EventDataSection>
+    </InterimSection>
   );
 }
 

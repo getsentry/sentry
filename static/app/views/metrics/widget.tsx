@@ -2,7 +2,7 @@ import {Fragment, memo, useCallback, useMemo} from 'react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 import type {SeriesOption} from 'echarts';
-import moment from 'moment';
+import moment from 'moment-timezone';
 
 import {updateDateTime} from 'sentry/actionCreators/pageFilters';
 import Alert from 'sentry/components/alert';
@@ -348,7 +348,7 @@ const MetricWidgetBody = memo(
     const enableRefetch = !focusAreaProps.selection;
     const {
       data: timeseriesData,
-      isLoading,
+      isPending,
       isError,
       error,
     } = useMetricsQuery(orderedQueries, filters, {interval}, enableRefetch);
@@ -511,7 +511,7 @@ const MetricWidgetBody = memo(
     if (!chartSeries || !timeseriesData || isError) {
       return (
         <StyledMetricWidgetBody>
-          {isLoading && <LoadingIndicator />}
+          {isPending && <LoadingIndicator />}
           {isError && (
             <Alert type="error">
               {(error?.responseJSON?.detail as string) ||
@@ -544,7 +544,7 @@ const MetricWidgetBody = memo(
             )}
           </LimitAlert>
         )}
-        <TransparentLoadingMask visible={isLoading} />
+        <TransparentLoadingMask visible={isPending} />
         <GuideAnchor target="metrics_chart" disabled={widgetIndex !== 0}>
           <MetricChart
             ref={chartRef}

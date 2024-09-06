@@ -7,7 +7,7 @@ from django import forms
 
 from sentry import tagstore
 from sentry.eventstore.models import GroupEvent
-from sentry.rules import MATCH_CHOICES, EventState, MatchType
+from sentry.rules import MATCH_CHOICES, EventState, MatchType, match_values
 from sentry.rules.conditions.base import EventCondition
 from sentry.rules.history.preview_strategy import get_dataset_columns
 from sentry.snuba.dataset import Dataset
@@ -46,16 +46,16 @@ class TaggedEventCondition(EventCondition):
     }
 
     def _passes(self, raw_tags: Sequence[tuple[str, Any]]) -> bool:
-        key = self.get_option("key")
-        match = self.get_option("match")
-        value = self.get_option("value")
+        option_key = self.get_option("key")
+        option_match = self.get_option("match")
+        option_value = self.get_option("value")
 
-        if not (key and match):
+        if not (option_key and option_match):
             return False
 
-        key = key.lower()
+        option_key = option_key.lower()
 
-        tags = (
+        tag_keys = (
             k
             for gen in (
                 (k.lower() for k, v in raw_tags),
@@ -64,72 +64,29 @@ class TaggedEventCondition(EventCondition):
             for k in gen
         )
 
-        if match == MatchType.IS_SET:
-            return key in tags
+        # NOTE: IS_SET condition differs btw tagged_event and event_attribute so not handled by match_values
+        if option_match == MatchType.IS_SET:
+            return option_key in tag_keys
 
-        elif match == MatchType.NOT_SET:
-            return key not in tags
+        elif option_match == MatchType.NOT_SET:
+            return option_key not in tag_keys
 
-        if not value:
+        if not option_value:
             return False
 
-        value = value.lower()
+        option_value = option_value.lower()
 
-        values = (
+        # This represents the fetched tag values given the provided key
+        # so eg. if the key is 'environment' and the tag_value is 'production'
+        tag_values = (
             v.lower()
             for k, v in raw_tags
-            if k.lower() == key or tagstore.backend.get_standardized_key(k) == key
+            if k.lower() == option_key or tagstore.backend.get_standardized_key(k) == option_key
         )
 
-        if match == MatchType.EQUAL:
-            for t_value in values:
-                if t_value == value:
-                    return True
-            return False
-
-        elif match == MatchType.NOT_EQUAL:
-            for t_value in values:
-                if t_value == value:
-                    return False
-            return True
-
-        elif match == MatchType.STARTS_WITH:
-            for t_value in values:
-                if t_value.startswith(value):
-                    return True
-            return False
-
-        elif match == MatchType.NOT_STARTS_WITH:
-            for t_value in values:
-                if t_value.startswith(value):
-                    return False
-            return True
-
-        elif match == MatchType.ENDS_WITH:
-            for t_value in values:
-                if t_value.endswith(value):
-                    return True
-            return False
-
-        elif match == MatchType.NOT_ENDS_WITH:
-            for t_value in values:
-                if t_value.endswith(value):
-                    return False
-            return True
-
-        elif match == MatchType.CONTAINS:
-            for t_value in values:
-                if value in t_value:
-                    return True
-            return False
-
-        elif match == MatchType.NOT_CONTAINS:
-            for t_value in values:
-                if value in t_value:
-                    return False
-            return True
-
-        raise RuntimeError("Invalid Match")
+        return match_values(
+            group_values=tag_values, match_value=option_value, match_type=option_match
+        )
 
     def passes(self, event: GroupEvent, state: EventState, **kwargs: Any) -> bool:
         return self._passes(event.tags)

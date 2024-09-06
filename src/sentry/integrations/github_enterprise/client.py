@@ -1,8 +1,8 @@
-from sentry.integrations.github.client import GitHubClientMixin
+from sentry.integrations.github.client import GitHubBaseClient
 from sentry.integrations.github.utils import get_jwt
 
 
-class GitHubEnterpriseAppsClient(GitHubClientMixin):
+class GitHubEnterpriseApiClient(GitHubBaseClient):
     integration_name = "github_enterprise"
 
     def __init__(self, base_url, integration, app_id, private_key, verify_ssl, org_integration_id):

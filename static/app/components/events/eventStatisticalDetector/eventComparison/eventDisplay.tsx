@@ -21,7 +21,8 @@ import {Tooltip} from 'sentry/components/tooltip';
 import {IconChevron, IconOpen} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {EventTransaction, Project} from 'sentry/types';
+import type {EventTransaction} from 'sentry/types/event';
+import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
 import {useDiscoverQuery} from 'sentry/utils/discover/discoverQuery';
 import EventView from 'sentry/utils/discover/eventView';
@@ -145,7 +146,7 @@ function EventDisplay({
   const location = useLocation();
   const [selectedEventId, setSelectedEventId] = useState<string>('');
 
-  const {data, isLoading, isError} = useFetchSampleEvents({
+  const {data, isPending, isError} = useFetchSampleEvents({
     start,
     end,
     transaction,
@@ -175,7 +176,7 @@ function EventDisplay({
     return null;
   }
 
-  if (isLoading || isFetching) {
+  if (isPending || isFetching) {
     return <LoadingIndicator />;
   }
 

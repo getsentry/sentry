@@ -324,6 +324,7 @@ class TestGetEventSeverity(TestCase):
 
 
 @apply_feature_flag_on_cls("projects:first-event-severity-calculation")
+@apply_feature_flag_on_cls("organizations:seer-based-priority")
 class TestEventManagerSeverity(TestCase):
     @patch("sentry.event_manager._get_severity_score", return_value=(0.1121, "ml"))
     def test_flag_on(self, mock_get_severity_score: MagicMock):
@@ -423,7 +424,7 @@ class TestEventManagerSeverity(TestCase):
 
     @patch("sentry.event_manager._get_severity_score")
     def test_killswitch_on(self, mock_get_severity_score: MagicMock):
-        options.set("issues.skip-seer-requests", [self.project.id])
+        options.set("issues.severity.skip-seer-requests", [self.project.id])
         event = EventManager(
             make_event(
                 exception={"values": [{"type": "NopeError", "value": "Nopey McNopeface"}]},

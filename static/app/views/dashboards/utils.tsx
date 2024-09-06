@@ -41,13 +41,17 @@ import {
   RateUnit,
   stripEquationPrefix,
 } from 'sentry/utils/discover/fields';
-import {DiscoverDatasets, DisplayModes} from 'sentry/utils/discover/types';
+import {
+  DiscoverDatasets,
+  DisplayModes,
+  type SavedQueryDatasets,
+} from 'sentry/utils/discover/types';
 import {parsePeriodToHours} from 'sentry/utils/duration/parsePeriodToHours';
 import {getMeasurements} from 'sentry/utils/measurements/measurements';
 import {getMetricDisplayType, getMetricsUrl} from 'sentry/utils/metrics';
 import {parseField} from 'sentry/utils/metrics/mri';
 import type {MetricsWidget} from 'sentry/utils/metrics/types';
-import {decodeList} from 'sentry/utils/queryString';
+import {decodeList, decodeScalar} from 'sentry/utils/queryString';
 import theme from 'sentry/utils/theme';
 import type {
   DashboardDetails,
@@ -58,6 +62,7 @@ import type {
 import {
   DashboardFilterKeys,
   DisplayType,
+  WIDGET_TYPE_TO_SAVED_QUERY_DATASET,
   WidgetType,
 } from 'sentry/views/dashboards/types';
 
@@ -198,6 +203,7 @@ export function constructWidgetFromQuery(query?: Query): Widget | undefined {
     const queryNames = coerceStringToArray(query.queryNames);
     const queryConditions = coerceStringToArray(query.queryConditions);
     const queryFields = coerceStringToArray(query.queryFields);
+    const widgetType = decodeScalar(query.widgetType);
     const queries: WidgetQuery[] = [];
     if (
       queryConditions &&
@@ -224,7 +230,7 @@ export function constructWidgetFromQuery(query?: Query): Widget | undefined {
           interval: string;
           title: string;
         }),
-        widgetType: WidgetType.DISCOVER,
+        widgetType: widgetType ? (widgetType as WidgetType) : WidgetType.DISCOVER,
         queries,
       };
       return newWidget;
@@ -310,7 +316,13 @@ export function getWidgetDiscoverUrl(
   isMetricsData: boolean = false
 ) {
   const eventView = eventViewFromWidget(widget.title, widget.queries[index], selection);
-  const discoverLocation = eventView.getResultsViewUrlTarget(organization.slug);
+  const discoverLocation = eventView.getResultsViewUrlTarget(
+    organization.slug,
+    false,
+    hasDatasetSelector(organization) && widget.widgetType
+      ? WIDGET_TYPE_TO_SAVED_QUERY_DATASET[widget.widgetType]
+      : undefined
+  );
 
   // Pull a max of 3 valid Y-Axis from the widget
   const yAxisOptions = eventView.getYAxisOptions().map(({value}) => value);
@@ -339,18 +351,23 @@ export function getWidgetDiscoverUrl(
   }
 
   // Equation fields need to have their terms explicitly selected as columns in the discover table
-  const fields = discoverLocation.query.field;
+  const fields =
+    Array.isArray(discoverLocation.query.field) || !discoverLocation.query.field
+      ? discoverLocation.query.field
+      : [discoverLocation.query.field];
+
   const query = widget.queries[0];
   const queryFields = defined(query.fields)
     ? query.fields
     : [...query.columns, ...query.aggregates];
-  const equationFields = getFieldsFromEquations(queryFields);
+
   // Updates fields by adding any individual terms from equation fields as a column
-  equationFields.forEach(term => {
+  getFieldsFromEquations(queryFields).forEach(term => {
     if (Array.isArray(fields) && !fields.includes(term)) {
       fields.unshift(term);
     }
   });
+  discoverLocation.query.field = fields;
 
   if (isMetricsData) {
     discoverLocation.query.fromMetric = 'true';
@@ -670,4 +687,18 @@ export function dashboardFiltersToString(
 
 export function connectDashboardCharts(groupName: string) {
   connect?.(groupName);
+}
+
+export function hasDatasetSelector(organization: Organization): boolean {
+  return organization.features.includes('performance-discover-dataset-selector');
+}
+
+export function appendQueryDatasetParam(
+  organization: Organization,
+  queryDataset?: SavedQueryDatasets
+) {
+  if (hasDatasetSelector(organization) && queryDataset) {
+    return {queryDataset: queryDataset};
+  }
+  return {};
 }

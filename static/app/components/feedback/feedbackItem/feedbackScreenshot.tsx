@@ -4,7 +4,14 @@ import styled from '@emotion/styled';
 import ImageVisualization from 'sentry/components/events/eventTagsAndScreenshot/screenshot/imageVisualization';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Panel from 'sentry/components/panels/panel';
-import type {EventAttachment, Organization, Project} from 'sentry/types';
+import TextOverflow from 'sentry/components/textOverflow';
+import {Tooltip} from 'sentry/components/tooltip';
+import {IconImage} from 'sentry/icons';
+import {t} from 'sentry/locale';
+import {space} from 'sentry/styles/space';
+import type {EventAttachment} from 'sentry/types/group';
+import type {Organization} from 'sentry/types/organization';
+import type {Project} from 'sentry/types/project';
 
 type Props = {
   organization: Organization;
@@ -22,18 +29,27 @@ export default function FeedbackScreenshot({
   onClick,
 }: Props) {
   const [isLoading, setIsLoading] = useState(true);
+  // since we can't trust mimetype, we'll try to load all attachments as images
+  // if it fails, then set that here, and render a default preview instead.
+  const [imgLoadError, setImgLoadError] = useState(false);
+
   const img = (
     <StyledImageVisualization
       attachment={screenshot}
       orgId={organization.slug}
       projectSlug={projectSlug}
       eventId={screenshot.event_id}
-      onLoad={() => setIsLoading(false)}
-      onError={() => setIsLoading(false)}
+      onLoad={() => {
+        setIsLoading(false);
+      }}
+      onError={() => {
+        setIsLoading(false);
+        setImgLoadError(true);
+      }}
     />
   );
 
-  return (
+  return !imgLoadError ? (
     <StyledPanel className={className}>
       {isLoading && (
         <StyledLoadingIndicator>
@@ -42,6 +58,21 @@ export default function FeedbackScreenshot({
       )}
       {onClick ? <StyledImageButton onClick={onClick}>{img}</StyledImageButton> : img}
     </StyledPanel>
+  ) : (
+    <File onClick={onClick}>
+      <NoPreviewFound>
+        <IconImage />
+        {t('No preview found')}
+      </NoPreviewFound>
+      <Tooltip position="right" title={t('Click to download')}>
+        <FileDownload
+          aria-label="feedback-attachment-download-button"
+          href={`/api/0/projects/${organization.slug}/${projectSlug}/events/${screenshot.event_id}/attachments/${screenshot.id}/?download=1`}
+        >
+          <TextOverflow>{screenshot.name}</TextOverflow>
+        </FileDownload>
+      </Tooltip>
+    </File>
   );
 }
 
@@ -80,4 +111,30 @@ const StyledImageVisualization = styled(ImageVisualization)`
     width: auto;
     height: auto;
   }
+`;
+const FileDownload = styled('a')`
+  cursor: pointer;
+  padding: ${space(1)};
+  text-decoration: underline;
+  color: inherit;
+  :hover {
+    color: inherit;
+    text-decoration: underline;
+  }
+`;
+
+const File = styled(StyledPanel)`
+  background: ${p => p.theme.purple100};
+  padding: ${space(2)};
+  max-width: 300px;
+`;
+
+const NoPreviewFound = styled('p')`
+  color: ${p => p.theme.gray300};
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: ${space(0.5)};
+  justify-content: center;
+  margin: 0;
 `;

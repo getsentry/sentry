@@ -38,8 +38,17 @@ export type AutofixOptions = {
   iterative_feedback?: boolean;
 };
 
+export type AutofixRepository = {
+  default_branch: string;
+  external_id: string;
+  name: string;
+  provider: string;
+  url: string;
+};
+
 export type AutofixData = {
   created_at: string;
+  repositories: AutofixRepository[];
   run_id: string;
   status:
     | 'PENDING'
@@ -89,7 +98,6 @@ export interface AutofixDefaultStep extends BaseStep {
 export type AutofixRootCauseSelection =
   | {
       cause_id: string;
-      fix_id: string;
     }
   | {custom_root_cause: string}
   | null;
@@ -122,25 +130,25 @@ export interface AutofixUserResponseStep extends BaseStep {
   user_id: number;
 }
 
-export type AutofixRootCauseSuggestedFixSnippet = {
+export type AutofixRootCauseCodeContextSnippet = {
   file_path: string;
+  repo_name: string;
   snippet: string;
 };
 
-export type AutofixRootCauseSuggestedFix = {
+export type AutofixRootCauseCodeContext = {
   description: string;
-  elegance: number;
   id: string;
   title: string;
-  snippet?: AutofixRootCauseSuggestedFixSnippet;
+  snippet?: AutofixRootCauseCodeContextSnippet;
 };
 
 export type AutofixRootCauseData = {
   actionability: number;
+  code_context: AutofixRootCauseCodeContext[];
   description: string;
   id: string;
   likelihood: number;
-  suggested_fixes: AutofixRootCauseSuggestedFix[];
   title: string;
 };
 

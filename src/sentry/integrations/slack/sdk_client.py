@@ -8,10 +8,10 @@ from slack_sdk.web import SlackResponse
 
 from sentry.db.postgres.transactions import in_test_hide_transaction_boundary
 from sentry.integrations.base import disable_integration, is_response_error, is_response_success
+from sentry.integrations.models import Integration
 from sentry.integrations.request_buffer import IntegrationRequestBuffer
 from sentry.integrations.services.integration import integration_service
 from sentry.integrations.services.integration.model import RpcIntegration
-from sentry.models.integrations import Integration
 from sentry.silo.base import SiloMode
 from sentry.utils import metrics
 

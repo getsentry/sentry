@@ -1,11 +1,11 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import {Button} from 'sentry/components/button';
+import {LinkButton} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import NoProjectEmptyState from 'sentry/components/illustrations/NoProjectEmptyState';
 import * as Layout from 'sentry/components/layouts/thirds';
-import {useProjectCreationAccess} from 'sentry/components/projects/useProjectCreationAccess';
+import {canCreateProject} from 'sentry/components/projects/canCreateProject';
 import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import {space} from 'sentry/styles/space';
@@ -26,7 +26,7 @@ function NoProjectMessage({
   const {projects, initiallyLoaded: projectsLoaded} = useProjects();
 
   const orgSlug = organization.slug;
-  const {canCreateProject} = useProjectCreationAccess({organization});
+  const canUserCreateProject = canCreateProject(organization);
   const canJoinTeam = organization.access.includes('team:read');
 
   const {isSuperuser} = ConfigStore.get('user');
@@ -46,29 +46,29 @@ function NoProjectMessage({
   // action is to create a project.
 
   const joinTeamAction = (
-    <Button
+    <LinkButton
       title={canJoinTeam ? undefined : t('You do not have permission to join a team.')}
       disabled={!canJoinTeam}
       priority={orgHasProjects ? 'primary' : 'default'}
       to={`/settings/${orgSlug}/teams/`}
     >
       {t('Join a Team')}
-    </Button>
+    </LinkButton>
   );
 
   const createProjectAction = (
-    <Button
+    <LinkButton
       title={
-        canCreateProject
+        canUserCreateProject
           ? undefined
           : t('You do not have permission to create a project.')
       }
-      disabled={!canCreateProject}
+      disabled={!canUserCreateProject}
       priority={orgHasProjects ? 'default' : 'primary'}
       to={`/organizations/${orgSlug}/projects/new/`}
     >
       {t('Create project')}
-    </Button>
+    </LinkButton>
   );
 
   return (

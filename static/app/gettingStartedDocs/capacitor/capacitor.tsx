@@ -114,14 +114,14 @@ const getSentryInitLayout = (params: Params, siblingOption: string): string => {
       : siblingOption === SiblingOption.VUE3
         ? 'app,'
         : ''
-  }dsn: "${params.dsn}",
+  }dsn: "${params.dsn.public}",
    integrations: [
     ${getIntegrations(params, siblingOption)}
    ],
   ${
     params.isPerformanceSelected
       ? `
-        // Performance Monitoring
+        // Tracing
         tracesSampleRate: 1.0, //  Capture 100% of the transactions`
       : ''
   }${
@@ -255,11 +255,11 @@ const onboarding: OnboardingConfig<PlatformOptions> = {
       ? null
       : {
           id: 'performance-monitoring',
-          name: t('Performance Monitoring'),
+          name: t('Tracing'),
           description: t(
             'Track down transactions to connect the dots between 10-second page loads and poor-performing API calls or slow database queries.'
           ),
-          link: 'https://docs.sentry.io/platforms/javascript/guides/capacitor/performance/',
+          link: 'https://docs.sentry.io/platforms/javascript/guides/capacitor/tracing/',
         },
     params.isReplaySelected
       ? null
@@ -487,7 +487,7 @@ const docs: Docs<PlatformOptions> = {
   onboarding,
   platformOptions,
   feedbackOnboardingNpm: feedbackOnboarding,
-  replayOnboardingNpm: replayOnboarding,
+  replayOnboarding,
   crashReportOnboarding,
 };
 

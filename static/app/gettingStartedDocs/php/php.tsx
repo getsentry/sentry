@@ -1,3 +1,4 @@
+import Alert from 'sentry/components/alert';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/step';
 import type {
@@ -18,7 +19,7 @@ import {t, tct} from 'sentry/locale';
 type Params = DocsParams;
 
 const getConfigureSnippet = (params: Params) => `\\Sentry\\init([
-  'dsn' => '${params.dsn}',${
+  'dsn' => '${params.dsn.public}',${
     params.isPerformanceSelected
       ? `
   // Specify a fixed sample rate
@@ -100,11 +101,23 @@ const onboarding: OnboardingConfig = {
                 'To instrument certain regions of your code, you can [instrumentationLink:create transactions to capture them].',
                 {
                   instrumentationLink: (
-                    <ExternalLink href="https://docs.sentry.io/platforms/php/performance/instrumentation/custom-instrumentation/" />
+                    <ExternalLink href="https://docs.sentry.io/platforms/php/tracing/instrumentation/custom-instrumentation/" />
                   ),
                 }
               )}
             </p>
+          ),
+        },
+        {
+          description: (
+            <Alert type="warning">
+              {tct(
+                'In order to receive stack trace arguments in your errors, make sure to set [code:zend.exception_ignore_args: Off] in your php.ini',
+                {
+                  code: <code />,
+                }
+              )}
+            </Alert>
           ),
         },
       ],

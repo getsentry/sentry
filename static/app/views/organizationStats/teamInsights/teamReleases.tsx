@@ -2,9 +2,9 @@ import {Fragment} from 'react';
 import {css, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import round from 'lodash/round';
-import moment from 'moment';
+import moment from 'moment-timezone';
 
-import {Button} from 'sentry/components/button';
+import {LinkButton} from 'sentry/components/button';
 import {BarChart} from 'sentry/components/charts/barChart';
 import MarkLine from 'sentry/components/charts/components/markLine';
 import type {DateTimeObject} from 'sentry/components/charts/utils';
@@ -51,7 +51,7 @@ function TeamReleases({
 
   const {
     data: periodReleases,
-    isLoading: isPeriodReleasesLoading,
+    isPending: isPeriodReleasesLoading,
     isError: isPeriodReleasesError,
     refetch: refetchPeriodReleases,
   } = useApiQuery<ProjectReleaseCount>(
@@ -68,7 +68,7 @@ function TeamReleases({
 
   const {
     data: weekReleases,
-    isLoading: isWeekReleasesLoading,
+    isPending: isWeekReleasesLoading,
     isError: isWeekReleasesError,
     refetch: refetchWeekReleases,
   } = useApiQuery<ProjectReleaseCount>(
@@ -237,13 +237,13 @@ function TeamReleases({
         isEmpty={projects.length === 0}
         emptyMessage={t('No releases were setup for this team’s projects')}
         emptyAction={
-          <Button
+          <LinkButton
             size="sm"
             external
             href="https://docs.sentry.io/product/releases/setup/"
           >
             {t('Learn More')}
-          </Button>
+          </LinkButton>
         }
         headers={[
           t('Releases Per Project'),

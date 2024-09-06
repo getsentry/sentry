@@ -3,10 +3,11 @@ import styled from '@emotion/styled';
 import Alert from 'sentry/components/alert';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/step';
-import type {
-  Docs,
-  DocsParams,
-  OnboardingConfig,
+import {
+  type Docs,
+  DocsPageLocation,
+  type DocsParams,
+  type OnboardingConfig,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {getPythonMetricsOnboarding} from 'sentry/components/onboarding/gettingStartedDoc/utils/metricsOnboarding';
 import {crashReportOnboardingPython} from 'sentry/gettingStartedDocs/python/python';
@@ -22,12 +23,12 @@ import sentry_sdk
 from sentry_sdk.integrations.gcp import GcpIntegration
 
 sentry_sdk.init(
-    dsn="${params.dsn}",
+    dsn="${params.dsn.public}",
     integrations=[GcpIntegration()],${
       params.isPerformanceSelected
         ? `
     # Set traces_sample_rate to 1.0 to capture 100%
-    # of transactions for performance monitoring.
+    # of transactions for tracing.
     traces_sample_rate=1.0,`
         : ''
     }${
@@ -46,7 +47,7 @@ def http_function_entrypoint(request):
 
 const getTimeoutWarningSnippet = (params: Params) => `
 sentry_sdk.init(
-    dsn="${params.dsn}",
+    dsn="${params.dsn.public}",
     integrations=[
         GcpIntegration(timeout_warning=True),
     ],
@@ -61,15 +62,16 @@ const onboarding: OnboardingConfig = {
       ),
       configurations: [
         {
-          description: params.isProfilingSelected
-            ? tct(
-                'You need a minimum version [codeVersion:1.18.0] of the [codePackage:sentry-python] SDK for the profiling feature.',
-                {
-                  codeVersion: <code />,
-                  codePackage: <code />,
-                }
-              )
-            : undefined,
+          description:
+            params.docsLocation === DocsPageLocation.PROFILING_PAGE
+              ? tct(
+                  'You need a minimum version [codeVersion:1.18.0] of the [codePackage:sentry-python] SDK for the profiling feature.',
+                  {
+                    codeVersion: <code />,
+                    codePackage: <code />,
+                  }
+                )
+              : undefined,
           language: 'bash',
           code: getInstallSnippet(),
         },

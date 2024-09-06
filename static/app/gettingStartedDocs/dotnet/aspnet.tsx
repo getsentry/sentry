@@ -54,13 +54,13 @@ public class MvcApplication : HttpApplication
         _sentry = SentrySdk.Init(o =>
         {
             o.AddAspNet();
-            o.Dsn = "${params.dsn}";
+            o.Dsn = "${params.dsn.public}";
             // When configuring for the first time, to see what the SDK is doing:
             o.Debug = true;${
               params.isPerformanceSelected
                 ? `
             // Set TracesSampleRate to 1.0 to capture 100%
-            // of transactions for performance monitoring.
+            // of transactions for tracing.
             // We recommend adjusting this value in production
             o.TracesSampleRate = 1.0;`
                 : ''
@@ -202,7 +202,7 @@ const crashReportOnboarding: OnboardingConfig = {
               language: 'html',
               code: `@if (SentrySdk.LastEventId != SentryId.Empty) {
   <script>
-    Sentry.init({ dsn: "${params.dsn}" });
+    Sentry.init({ dsn: "${params.dsn.public}" });
     Sentry.showReportDialog({ eventId: "@SentrySdk.LastEventId" });
   </script>
 }`,

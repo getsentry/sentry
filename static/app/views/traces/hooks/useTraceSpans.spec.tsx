@@ -7,7 +7,7 @@ import {act, renderHook, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import PageFiltersStore from 'sentry/stores/pageFiltersStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
-import type {Organization} from 'sentry/types';
+import type {Organization} from 'sentry/types/organization';
 import {QueryClientProvider} from 'sentry/utils/queryClient';
 import {OrganizationContext} from 'sentry/views/organizationContext';
 import type {TraceResult} from 'sentry/views/traces/hooks/useTraces';
@@ -97,7 +97,7 @@ describe('useTraceSpans', function () {
           field: ['id'],
           maxSpansPerTrace: 10,
           query: 'foo:bar',
-          period: '3d',
+          statsPeriod: '3d',
           mri: 'd:transactions/duration@millisecond',
           metricsMax: '456',
           metricsMin: '123',

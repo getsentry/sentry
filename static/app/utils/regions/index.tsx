@@ -56,16 +56,21 @@ export function getRegions(): Region[] {
   return ConfigStore.get('regions') ?? [];
 }
 
-export function getRegionChoices(): [string, string][] {
+export function getRegionChoices(exclude: RegionData[] = []): [string, string][] {
   const regions = getRegions();
+  const excludedRegionNames = exclude.map(region => region.name);
 
-  return regions.map(region => {
-    const {url} = region;
-    return [
-      url,
-      `${getRegionFlagIndicator(region) || ''} ${getRegionDisplayName(region)}`,
-    ];
-  });
+  return regions
+    .filter(region => {
+      return !excludedRegionNames.includes(region.name);
+    })
+    .map(region => {
+      const {url} = region;
+      return [
+        url,
+        `${getRegionFlagIndicator(region) || ''} ${getRegionDisplayName(region)}`,
+      ];
+    });
 }
 
 export function shouldDisplayRegions(): boolean {

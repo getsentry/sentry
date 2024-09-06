@@ -4,7 +4,7 @@ import styled from '@emotion/styled';
 import difference from 'lodash/difference';
 
 import {openProjectCreationModal} from 'sentry/actionCreators/modal';
-import {Button} from 'sentry/components/button';
+import {Button, LinkButton} from 'sentry/components/button';
 import SelectControl from 'sentry/components/forms/controls/selectControl';
 import FormField from 'sentry/components/forms/formField';
 import FormFieldControlState from 'sentry/components/forms/formField/controlState';
@@ -279,7 +279,7 @@ export class RenderField extends Component<RenderProps, State> {
           <NextButtonPanelAlert type="muted">
             <NextButtonWrapper>
               {nextDescription ?? ''}
-              <Button
+              <LinkButton
                 size="sm"
                 priority="primary"
                 icon={<IconOpen />}
@@ -291,7 +291,7 @@ export class RenderField extends Component<RenderProps, State> {
                 }}
               >
                 {nextButtonText}
-              </Button>
+              </LinkButton>
             </NextButtonWrapper>
           </NextButtonPanelAlert>
         )}

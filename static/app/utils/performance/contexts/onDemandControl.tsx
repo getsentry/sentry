@@ -75,7 +75,12 @@ export function OnDemandControlProvider({
  *    can't be on-demand because they are part of errors. (eg. error.type, message, stack, etc.)
  */
 export function isOnDemandMetricWidget(widget: Widget): boolean {
-  if (widget.widgetType !== WidgetType.DISCOVER) {
+  if (
+    !(
+      widget.widgetType === WidgetType.DISCOVER ||
+      widget.widgetType === WidgetType.TRANSACTIONS
+    )
+  ) {
     return false;
   }
 
@@ -99,6 +104,12 @@ export function isOnDemandMetricWidget(widget: Widget): boolean {
 const doesWidgetHaveReleaseConditions = (widget: Widget) =>
   widget.queries.some(q => q.conditions.includes('release:'));
 
+/**
+ * Check the extraction state for any widgets exceeding spec limit / cardinality limit etc.
+ */
+const doesWidgetHaveDisabledOnDemand = (widget: Widget) =>
+  widget.queries.some(q => q.onDemand?.some(d => !d.enabled));
+
 export const shouldUseOnDemandMetrics = (
   organization: Organization,
   widget: Widget,
@@ -113,6 +124,10 @@ export const shouldUseOnDemandMetrics = (
   }
 
   if (doesWidgetHaveReleaseConditions(widget)) {
+    return false;
+  }
+
+  if (doesWidgetHaveDisabledOnDemand(widget)) {
     return false;
   }
 

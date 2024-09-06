@@ -1,7 +1,7 @@
 from unittest.mock import patch
 
 from sentry.api.helpers.autofix import AutofixCodebaseIndexingStatus
-from sentry.models.integrations.repository_project_path_config import RepositoryProjectPathConfig
+from sentry.integrations.models.repository_project_path_config import RepositoryProjectPathConfig
 from sentry.models.repository import Repository
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase, SnubaTestCase
@@ -9,7 +9,7 @@ from sentry.testutils.helpers.features import apply_feature_flag_on_cls, with_fe
 from sentry.testutils.silo import assume_test_silo_mode
 
 
-@apply_feature_flag_on_cls("projects:ai-autofix")
+@apply_feature_flag_on_cls("organizations:autofix")
 class GroupAIAutofixEndpointSuccessTest(APITestCase, SnubaTestCase):
     def setUp(self):
         super().setUp()
@@ -140,7 +140,7 @@ class GroupAIAutofixEndpointSuccessTest(APITestCase, SnubaTestCase):
         }
 
 
-@apply_feature_flag_on_cls("projects:ai-autofix")
+@apply_feature_flag_on_cls("organizations:autofix")
 class GroupAIAutofixEndpointFailureTest(APITestCase, SnubaTestCase):
     def test_no_gen_ai_consent(self):
         self.organization.update_option("sentry:gen_ai_consent", False)

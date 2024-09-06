@@ -8,7 +8,8 @@ from sentry.sentry_apps.services.app import SentryAppEventDataInterface
 
 @register(SentryAppComponent)
 class SentryAppComponentSerializer(Serializer):
-    def serialize(self, obj, attrs, user, errors):
+    def serialize(self, obj, attrs, user, **kwargs):
+        errors = kwargs["errors"]
         return {
             "uuid": str(obj.uuid),
             "type": obj.type,

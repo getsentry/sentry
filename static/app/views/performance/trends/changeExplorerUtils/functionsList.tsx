@@ -1,6 +1,6 @@
 import {Fragment, useMemo} from 'react';
 import type {Location} from 'history';
-import moment from 'moment';
+import moment from 'moment-timezone';
 
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
@@ -112,7 +112,7 @@ export function FunctionsList(props: FunctionsListProps) {
 
   const {
     data: totalTransactionsBefore,
-    isLoading: transactionsLoadingBefore,
+    isPending: transactionsLoadingBefore,
     isError: transactionsErrorBefore,
   } = useDiscoverQuery(
     getQueryParams(
@@ -134,7 +134,7 @@ export function FunctionsList(props: FunctionsListProps) {
 
   const {
     data: totalTransactionsAfter,
-    isLoading: transactionsLoadingAfter,
+    isPending: transactionsLoadingAfter,
     isError: transactionsErrorAfter,
   } = useDiscoverQuery(
     getQueryParams(
@@ -241,8 +241,8 @@ export function FunctionsList(props: FunctionsListProps) {
         isLoading={
           transactionsLoadingBefore ||
           transactionsLoadingAfter ||
-          beforeFunctionsQuery.isLoading ||
-          afterFunctionsQuery.isLoading
+          beforeFunctionsQuery.isPending ||
+          afterFunctionsQuery.isPending
         }
         isError={
           transactionsErrorBefore ||

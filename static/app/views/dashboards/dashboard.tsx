@@ -5,7 +5,6 @@ import {Component} from 'react';
 import type {Layouts} from 'react-grid-layout';
 import {Responsive, WidthProvider} from 'react-grid-layout';
 import {forceCheck} from 'react-lazyload';
-import type {InjectedRouter} from 'react-router';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
 import cloneDeep from 'lodash/cloneDeep';
@@ -22,12 +21,14 @@ import {IconResize} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import GroupStore from 'sentry/stores/groupStore';
 import {space} from 'sentry/styles/space';
-import type {Organization, PageFilters} from 'sentry/types';
+import type {PageFilters} from 'sentry/types/core';
+import type {InjectedRouter} from 'sentry/types/legacyReactRouter';
+import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {hasCustomMetrics} from 'sentry/utils/metrics/features';
 import theme from 'sentry/utils/theme';
+import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import withApi from 'sentry/utils/withApi';
-import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import withPageFilters from 'sentry/utils/withPageFilters';
 import {DataSet} from 'sentry/views/dashboards/widgetBuilder/utils';
 
@@ -516,17 +517,7 @@ class Dashboard extends Component<Props, State> {
     const {layouts, isMobile} = this.state;
     const {isEditingDashboard, dashboard, widgetLimitReached, organization, isPreview} =
       this.props;
-    let {widgets} = dashboard;
-    // Filter out any issue/release widgets if the user does not have the feature flag
-    widgets = widgets.filter(({widgetType}) => {
-      if (widgetType === WidgetType.RELEASE) {
-        return organization.features.includes('dashboards-rh-widget');
-      }
-      if (widgetType === WidgetType.METRICS) {
-        return hasCustomMetrics(organization);
-      }
-      return true;
-    });
+    const {widgets} = dashboard;
 
     const columnDepths = calculateColumnDepths(layouts[DESKTOP]);
 

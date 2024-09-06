@@ -1,3 +1,113 @@
+24.8.0
+------
+
+### Various fixes & improvements
+
+- style(toolbar): adjust alert indicator css (#76189) by @michellewzhang
+- fix(issue-summary): Word break on code (#76217) by @jennmueng
+- fix(issue-details): Prevent event error section from showing up if no errors (#76235) by @roggenkemper
+- nit(scm): group functions by class they come from in main integration class (#76240) by @cathteng
+- chore(migrations): Generalize the migrations_added file filter (#76244) by @wedamija
+- chore(explore): Add new referrer for explore in events (#76256) by @Zylphrex
+- ref(explore): Use sort type from discover (#76220) by @Zylphrex
+- misc(deps): Bump the versions of a few google packages (#76257) by @colin-sentry
+- chore(slack): temporarily track snuba user count queries round 2 (#76216) by @cathteng
+- feat(breadcrumbs): Fix breadcrumbs styles + navigation (#76207) by @leeandher
+- feat(features) Use dataclasses for flagpole instead of pydantic (#75859) by @markstory
+- ref(similarity): Manually filter times seen in backfill query (#76188) by @jangjodi
+- feat(insights): implement geo region selector in web vitals and assets (#76185) by @DominikB2014
+- chore(dashboards): Register feature for auto sized Big Number widgets (#76205) by @gggritso
+- feat(profiling) add function metrics table (#76110) by @JonasBa
+- fix(self-hosted): SOURCE_COMMIT (#76139) by @joshuarli
+- Don't emit Sentry warnings for throttled queries to Snuba (#75879) by @xurui-c
+- chore(uptime): Switch result consumer duration/delay stats to use distribition (#76237) by @wedamija
+- chore: Bump React error codes cache TTL to 3 days (#76243) by @dashed
+- chore(uptime): Bump ACTIVE_FAILURE_THRESHOLD to 3 (#76218) by @wedamija
+- fix(alert): Correct url (#76236) by @schew2381
+- fix(uptime): Always pass span_id from check result to occurrence (#76227) by @evanpurkhiser
+- ref(replay): update missing replay alert to include ad blocker note (#76215) by @michellewzhang
+- Revert "fix(breadcrumbs): Use subgrid to align log levels (#76148)" (d08c8050) by @getsentry-bot
+
+_Plus 1113 more_
+
+24.7.1
+------
+
+### Hierarchical grouping deprecation (ongoing)
+
+This project will move any projects using the mobile grouping configuration as defined here:
+https://github.com/getsentry/sentry/blob/44d816f0b9a9450fdf47136313b3a4b955ceab84/src/sentry/grouping/strategies/configurations.py&#35;L160-L188
+
+By: @armenzg (#74203)
+
+### Various fixes & improvements
+
+- chore(data-secrecy): FF for Data Secrecy (#74749) by @iamrajjoshi
+- feat(utils): Add core `CircuitBreaker` functionality (#74560) by @lobsterkatie
+- fix(replay): fix new banner check for hydration errors (#74755) by @aliu39
+- fix: split samples by threadid (#74738) by @JonasBa
+- Allow AI to be nullable (#74746) by @colin-sentry
+- Fix creating crash free session alerts (#74750) by @saponifi3d
+- feat(utils): Add helpers for circuit breaker and circuit breaker tests (#74559) by @lobsterkatie
+- chore(typing): stricter decorator type checking for leaky bucket (#74687) by @vartec
+- feat(uptime): Bump default timeout for onboarding monitors to 10s (#74739) by @wedamija
+- chore(similarity): Add seer failure reason to backfill log (#74735) by @jangjodi
+- fix(insights): Cache page alert re-rendering (#74737) by @narsaynorath
+- chore(saml2): Add flag for Single-Logout (#74736) by @leedongwei
+- chore(seer): Add timing metric to requests to Seer (#74688) by @lobsterkatie
+- feat(utils): Add stub for rate-limit-based `CircuitBreaker` class (#74557) by @lobsterkatie
+- Separates rejecting policy and throttling policy in Sentry tags and spans (#74733) by @xurui-c
+- feat(tracing): reparent ssr spans under pageload txn and under browser request span (#74675) by @JonasBa
+- ref(toolbar): add feature flag search (#74697) by @michellewzhang
+- remove temporary flagpole option (#74597) by @nhsiehgit
+- chore(issues): cleanup old issue annotations (#74684) by @oioki
+- ref: improve signatures of tsdb (#74725) by @asottile-sentry
+- feat(performance): enable long animation frame support for internal t… (#74637) by @KevinL10
+- fix(metrics): Introduce new styles to alias field (#74722) by @priscilawebdev
+- feat(dashboards): Add split source field to API response (#74717) by @narsaynorath
+- ref: fix Future types for sentry_metrics routing_producer (#74682) by @asottile-sentry
+
+_Plus 296 more_
+
+24.7.0
+------
+
+### Hierarchical grouping deprecation (ongoing)
+
+This project will move any projects using the mobile grouping configuration as defined here:
+https://github.com/getsentry/sentry/blob/44d816f0b9a9450fdf47136313b3a4b955ceab84/src/sentry/grouping/strategies/configurations.py&#35;L160-L188
+
+By: @armenzg (#74144)
+
+### Various fixes & improvements
+
+- chore(api): Rewrite Org Details docs (#73293) by @isabellaenriquez
+- metrics(replay): log rrweb_event_count to slow clicks table (#74277) by @aliu39
+- fix(slack): Fix error handling when fetching slack channel information (#74267) by @dashed
+- chore(replay): alpha -> beta (#74279) by @michellewzhang
+- feat(trace-view): Add UI fallback to old view for STs (#73684) by @k-fish
+- chore(similarity): Add killswitches for each feature flag (#74274) by @jangjodi
+- feat(prompts): support a visible status for un-hiding components (#74228) by @aliu39
+- nit(opsgenie): add config access requirement to error text (#74111) by @mifu67
+- ref(similarity): Add killswitch to delete record task (#74212) by @jangjodi
+- ref(profiling) battery usage chart (#74273) by @JonasBa
+- ref(discover): Use snake case for dataset variable (#74215) by @narsaynorath
+- ref(proguard): Deobfuscate view hierarchies as part of symbolication (#74196) by @loewenheim
+- feat(profiling) construct profile from continuous chunk (#74171) by @JonasBa
+- ref(profiling) store unit on profile chart (#74152) by @JonasBa
+- ref(metrics): Update copies (#74270) by @priscilawebdev
+- ref(proguard): Remove separate queue (#74269) by @loewenheim
+- ref(metrics): Update copies (#74268) by @priscilawebdev
+- Revert "ref(proguard): Remove separate queue (#74198)" (a1ab12d0) by @getsentry-bot
+- ref(proguard): Remove separate queue (#74198) by @loewenheim
+- feat(metrics): numeric span attribute extraction (#74190) by @obostjancic
+- feat(metrics): update extraction rule tag description (#74118) by @obostjancic
+- fix(minimetrics): skip span attribute attach if there is no span (#74193) by @obostjancic
+- feat(auto-import): Enable default vscode auto-import for Sentry BE (#74197) by @MichaelSun48
+- fix: fix broken links to Performance docs pages (#74235) by @mjq
+
+_Plus 911 more_
+
 24.6.0
 ------
 

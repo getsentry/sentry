@@ -3,8 +3,11 @@ from __future__ import annotations
 from django.conf.urls import include
 from django.urls import URLPattern, URLResolver, re_path
 
+from sentry.api.endpoints.group_ai_summary import GroupAiSummaryEndpoint
 from sentry.api.endpoints.group_autofix_setup_check import GroupAutofixSetupCheck
 from sentry.api.endpoints.group_event_details import GroupEventDetailsEndpoint
+from sentry.api.endpoints.group_integration_details import GroupIntegrationDetailsEndpoint
+from sentry.api.endpoints.group_integrations import GroupIntegrationsEndpoint
 from sentry.api.endpoints.group_similar_issues_embeddings import (
     GroupSimilarIssuesEmbeddingsEndpoint,
 )
@@ -14,11 +17,11 @@ from sentry.api.endpoints.org_auth_tokens import OrgAuthTokensEndpoint
 from sentry.api.endpoints.organization_events_root_cause_analysis import (
     OrganizationEventsRootCauseAnalysisEndpoint,
 )
-from sentry.api.endpoints.organization_integration_migrate_opsgenie import (
-    OrganizationIntegrationMigrateOpsgenieEndpoint,
-)
+from sentry.api.endpoints.organization_fork import OrganizationForkEndpoint
 from sentry.api.endpoints.organization_minimal_projects import OrganizationMinimalProjectsEndpoint
 from sentry.api.endpoints.organization_missing_org_members import OrganizationMissingMembersEndpoint
+from sentry.api.endpoints.organization_plugins_configs import OrganizationPluginsConfigsEndpoint
+from sentry.api.endpoints.organization_plugins_index import OrganizationPluginsEndpoint
 from sentry.api.endpoints.organization_projects_experiment import (
     OrganizationProjectsExperimentEndpoint,
 )
@@ -33,6 +36,8 @@ from sentry.api.endpoints.project_backfill_similar_issues_embeddings_records imp
 )
 from sentry.api.endpoints.project_stacktrace_coverage import ProjectStacktraceCoverageEndpoint
 from sentry.api.endpoints.project_statistical_detectors import ProjectStatisticalDetectors
+from sentry.api.endpoints.project_template_detail import OrganizationProjectTemplateDetailEndpoint
+from sentry.api.endpoints.project_templates_index import OrganizationProjectTemplatesIndexEndpoint
 from sentry.api.endpoints.release_thresholds.release_threshold import ReleaseThresholdEndpoint
 from sentry.api.endpoints.release_thresholds.release_threshold_details import (
     ReleaseThresholdDetailsEndpoint,
@@ -61,6 +66,7 @@ from sentry.api.endpoints.source_map_debug_blue_thunder_edition import (
 from sentry.api.utils import method_dispatch
 from sentry.data_export.endpoints.data_export import DataExportEndpoint
 from sentry.data_export.endpoints.data_export_details import DataExportDetailsEndpoint
+from sentry.data_secrecy.api.waive_data_secrecy import WaiveDataSecrecyEndpoint
 from sentry.discover.endpoints.discover_homepage_query import DiscoverHomepageQueryEndpoint
 from sentry.discover.endpoints.discover_key_transactions import (
     KeyTransactionEndpoint,
@@ -73,6 +79,9 @@ from sentry.discover.endpoints.discover_saved_query_detail import (
 )
 from sentry.incidents.endpoints.organization_alert_rule_activations import (
     OrganizationAlertRuleActivationsEndpoint,
+)
+from sentry.incidents.endpoints.organization_alert_rule_anomalies import (
+    OrganizationAlertRuleAnomaliesEndpoint,
 )
 from sentry.incidents.endpoints.organization_alert_rule_available_action_index import (
     OrganizationAlertRuleAvailableActionIndexEndpoint,
@@ -110,10 +119,60 @@ from sentry.incidents.endpoints.team_alerts_triggered import (
     TeamAlertsTriggeredIndexEndpoint,
     TeamAlertsTriggeredTotalsEndpoint,
 )
+from sentry.integrations.api.endpoints.doc_integration_avatar import DocIntegrationAvatarEndpoint
+from sentry.integrations.api.endpoints.doc_integration_details import DocIntegrationDetailsEndpoint
+from sentry.integrations.api.endpoints.doc_integrations_index import DocIntegrationsEndpoint
+from sentry.integrations.api.endpoints.external_team_details import ExternalTeamDetailsEndpoint
+from sentry.integrations.api.endpoints.external_team_index import ExternalTeamEndpoint
+from sentry.integrations.api.endpoints.external_user_details import ExternalUserDetailsEndpoint
+from sentry.integrations.api.endpoints.external_user_index import ExternalUserEndpoint
+from sentry.integrations.api.endpoints.integration_features import IntegrationFeaturesEndpoint
+from sentry.integrations.api.endpoints.integration_proxy import InternalIntegrationProxyEndpoint
+from sentry.integrations.api.endpoints.organization_code_mapping_codeowners import (
+    OrganizationCodeMappingCodeOwnersEndpoint,
+)
+from sentry.integrations.api.endpoints.organization_code_mapping_details import (
+    OrganizationCodeMappingDetailsEndpoint,
+)
+from sentry.integrations.api.endpoints.organization_code_mappings import (
+    OrganizationCodeMappingsEndpoint,
+)
+from sentry.integrations.api.endpoints.organization_config_integrations import (
+    OrganizationConfigIntegrationsEndpoint,
+)
+from sentry.integrations.api.endpoints.organization_integration_details import (
+    OrganizationIntegrationDetailsEndpoint,
+)
+from sentry.integrations.api.endpoints.organization_integration_issues import (
+    OrganizationIntegrationIssuesEndpoint,
+)
+from sentry.integrations.api.endpoints.organization_integration_migrate_opsgenie import (
+    OrganizationIntegrationMigrateOpsgenieEndpoint,
+)
+from sentry.integrations.api.endpoints.organization_integration_repos import (
+    OrganizationIntegrationReposEndpoint,
+)
+from sentry.integrations.api.endpoints.organization_integration_request import (
+    OrganizationIntegrationRequestEndpoint,
+)
+from sentry.integrations.api.endpoints.organization_integration_serverless_functions import (
+    OrganizationIntegrationServerlessFunctionsEndpoint,
+)
+from sentry.integrations.api.endpoints.organization_integrations_index import (
+    OrganizationIntegrationsEndpoint,
+)
+from sentry.integrations.api.endpoints.organization_repositories import (
+    OrganizationRepositoriesEndpoint,
+)
+from sentry.integrations.api.endpoints.organization_repository_commits import (
+    OrganizationRepositoryCommitsEndpoint,
+)
+from sentry.integrations.api.endpoints.organization_repository_details import (
+    OrganizationRepositoryDetailsEndpoint,
+)
 from sentry.issues.endpoints import (
     ActionableItemsEndpoint,
     GroupEventsEndpoint,
-    OrganizationActivityEndpoint,
     OrganizationGroupIndexEndpoint,
     OrganizationGroupSearchViewsEndpoint,
     OrganizationReleasePreviousCommitsEndpoint,
@@ -200,6 +259,33 @@ from sentry.rules.history.endpoints.project_rule_stats import ProjectRuleStatsIn
 from sentry.scim.endpoints.members import OrganizationSCIMMemberDetails, OrganizationSCIMMemberIndex
 from sentry.scim.endpoints.schemas import OrganizationSCIMSchemaIndex
 from sentry.scim.endpoints.teams import OrganizationSCIMTeamDetails, OrganizationSCIMTeamIndex
+from sentry.uptime.endpoints.project_uptime_alert_details import ProjectUptimeAlertDetailsEndpoint
+from sentry.uptime.endpoints.project_uptime_alert_index import ProjectUptimeAlertIndexEndpoint
+from sentry.users.api.endpoints.authenticator_index import AuthenticatorIndexEndpoint
+from sentry.users.api.endpoints.user_authenticator_details import UserAuthenticatorDetailsEndpoint
+from sentry.users.api.endpoints.user_authenticator_enroll import UserAuthenticatorEnrollEndpoint
+from sentry.users.api.endpoints.user_authenticator_index import UserAuthenticatorIndexEndpoint
+from sentry.users.api.endpoints.user_avatar import UserAvatarEndpoint
+from sentry.users.api.endpoints.user_details import UserDetailsEndpoint
+from sentry.users.api.endpoints.user_emails import UserEmailsEndpoint
+from sentry.users.api.endpoints.user_emails_confirm import UserEmailsConfirmEndpoint
+from sentry.users.api.endpoints.user_identity import UserIdentityEndpoint
+from sentry.users.api.endpoints.user_identity_config import (
+    UserIdentityConfigDetailsEndpoint,
+    UserIdentityConfigEndpoint,
+)
+from sentry.users.api.endpoints.user_identity_details import UserIdentityDetailsEndpoint
+from sentry.users.api.endpoints.user_index import UserIndexEndpoint
+from sentry.users.api.endpoints.user_ips import UserIPsEndpoint
+from sentry.users.api.endpoints.user_password import UserPasswordEndpoint
+from sentry.users.api.endpoints.user_permission_details import UserPermissionDetailsEndpoint
+from sentry.users.api.endpoints.user_permissions import UserPermissionsEndpoint
+from sentry.users.api.endpoints.user_permissions_config import UserPermissionsConfigEndpoint
+from sentry.users.api.endpoints.user_regions import UserRegionsEndpoint
+from sentry.users.api.endpoints.user_role_details import UserUserRoleDetailsEndpoint
+from sentry.users.api.endpoints.user_roles import UserUserRolesEndpoint
+from sentry.users.api.endpoints.userroles_details import UserRoleDetailsEndpoint
+from sentry.users.api.endpoints.userroles_index import UserRolesEndpoint
 
 from .endpoints.accept_organization_invite import AcceptOrganizationInvite
 from .endpoints.accept_project_transfer import AcceptProjectTransferEndpoint
@@ -208,6 +294,7 @@ from .endpoints.api_application_details import ApiApplicationDetailsEndpoint
 from .endpoints.api_application_rotate_secret import ApiApplicationRotateSecretEndpoint
 from .endpoints.api_applications import ApiApplicationsEndpoint
 from .endpoints.api_authorizations import ApiAuthorizationsEndpoint
+from .endpoints.api_token_details import ApiTokenDetailsEndpoint
 from .endpoints.api_tokens import ApiTokensEndpoint
 from .endpoints.artifact_bundles import ArtifactBundlesEndpoint
 from .endpoints.artifact_lookup import ProjectArtifactLookupEndpoint
@@ -216,27 +303,14 @@ from .endpoints.auth_config import AuthConfigEndpoint
 from .endpoints.auth_index import AuthIndexEndpoint
 from .endpoints.auth_login import AuthLoginEndpoint
 from .endpoints.auth_validate import AuthValidateEndpoint
-from .endpoints.authenticator_index import AuthenticatorIndexEndpoint
-from .endpoints.avatar import (
-    DocIntegrationAvatarEndpoint,
-    OrganizationAvatarEndpoint,
-    SentryAppAvatarEndpoint,
-    UserAvatarEndpoint,
-)
+from .endpoints.avatar import OrganizationAvatarEndpoint, SentryAppAvatarEndpoint
 from .endpoints.broadcast_details import BroadcastDetailsEndpoint
 from .endpoints.broadcast_index import BroadcastIndexEndpoint
 from .endpoints.builtin_symbol_sources import BuiltinSymbolSourcesEndpoint
 from .endpoints.catchall import CatchallEndpoint
 from .endpoints.check_am2_compatibility import CheckAM2CompatibilityEndpoint
 from .endpoints.chunk import ChunkUploadEndpoint
-from .endpoints.codeowners import (
-    ExternalTeamDetailsEndpoint,
-    ExternalTeamEndpoint,
-    ExternalUserDetailsEndpoint,
-    ExternalUserEndpoint,
-    ProjectCodeOwnersDetailsEndpoint,
-    ProjectCodeOwnersEndpoint,
-)
+from .endpoints.codeowners import ProjectCodeOwnersDetailsEndpoint, ProjectCodeOwnersEndpoint
 from .endpoints.custom_rules import CustomRulesEndpoint
 from .endpoints.data_scrubbing_selector_suggestions import DataScrubbingSelectorSuggestionsEndpoint
 from .endpoints.debug_files import (
@@ -266,8 +340,6 @@ from .endpoints.group_external_issue_details import GroupExternalIssueDetailsEnd
 from .endpoints.group_external_issues import GroupExternalIssuesEndpoint
 from .endpoints.group_first_last_release import GroupFirstLastReleaseEndpoint
 from .endpoints.group_hashes import GroupHashesEndpoint
-from .endpoints.group_integration_details import GroupIntegrationDetailsEndpoint
-from .endpoints.group_integrations import GroupIntegrationsEndpoint
 from .endpoints.group_notes import GroupNotesEndpoint
 from .endpoints.group_notes_details import GroupNotesDetailsEndpoint
 from .endpoints.group_participants import GroupParticipantsEndpoint
@@ -282,17 +354,6 @@ from .endpoints.group_tombstone_details import GroupTombstoneDetailsEndpoint
 from .endpoints.group_user_reports import GroupUserReportsEndpoint
 from .endpoints.grouping_configs import GroupingConfigsEndpoint
 from .endpoints.index import IndexEndpoint
-from .endpoints.integration_features import IntegrationFeaturesEndpoint
-from .endpoints.integrations import (
-    DocIntegrationDetailsEndpoint,
-    DocIntegrationsEndpoint,
-    OrganizationConfigIntegrationsEndpoint,
-    OrganizationIntegrationDetailsEndpoint,
-    OrganizationIntegrationRequestEndpoint,
-    OrganizationIntegrationsEndpoint,
-    OrganizationPluginsConfigsEndpoint,
-    OrganizationPluginsEndpoint,
-)
 from .endpoints.integrations.sentry_apps import (
     OrganizationSentryAppComponentsEndpoint,
     OrganizationSentryAppsEndpoint,
@@ -320,7 +381,6 @@ from .endpoints.internal import (
     InternalBeaconEndpoint,
     InternalEnvironmentEndpoint,
     InternalFeatureFlagsEndpoint,
-    InternalIntegrationProxyEndpoint,
     InternalMailEndpoint,
     InternalPackagesEndpoint,
     InternalQueueTasksEndpoint,
@@ -345,11 +405,6 @@ from .endpoints.organization_artifactbundle_assemble import (
 from .endpoints.organization_auditlogs import OrganizationAuditLogsEndpoint
 from .endpoints.organization_auth_provider_details import OrganizationAuthProviderDetailsEndpoint
 from .endpoints.organization_auth_providers import OrganizationAuthProvidersEndpoint
-from .endpoints.organization_code_mapping_codeowners import (
-    OrganizationCodeMappingCodeOwnersEndpoint,
-)
-from .endpoints.organization_code_mapping_details import OrganizationCodeMappingDetailsEndpoint
-from .endpoints.organization_code_mappings import OrganizationCodeMappingsEndpoint
 from .endpoints.organization_codeowners_associations import (
     OrganizationCodeOwnersAssociationsEndpoint,
 )
@@ -403,11 +458,6 @@ from .endpoints.organization_events_trends_v2 import OrganizationEventsNewTrends
 from .endpoints.organization_events_vitals import OrganizationEventsVitalsEndpoint
 from .endpoints.organization_group_index_stats import OrganizationGroupIndexStatsEndpoint
 from .endpoints.organization_index import OrganizationIndexEndpoint
-from .endpoints.organization_integration_issues import OrganizationIntegrationIssuesEndpoint
-from .endpoints.organization_integration_repos import OrganizationIntegrationReposEndpoint
-from .endpoints.organization_integration_serverless_functions import (
-    OrganizationIntegrationServerlessFunctionsEndpoint,
-)
 from .endpoints.organization_issues_count import OrganizationIssuesCountEndpoint
 from .endpoints.organization_issues_resolved_in_release import (
     OrganizationIssuesResolvedInReleaseEndpoint,
@@ -426,9 +476,6 @@ from .endpoints.organization_member_unreleased_commits import (
 )
 from .endpoints.organization_metrics_code_locations import OrganizationMetricsCodeLocationsEndpoint
 from .endpoints.organization_metrics_details import OrganizationMetricsDetailsEndpoint
-from .endpoints.organization_metrics_extraction_rules import (
-    OrganizationMetricsExtractionRulesEndpoint,
-)
 from .endpoints.organization_metrics_meta import (
     OrganizationMetricsCompatibility,
     OrganizationMetricsCompatibilitySums,
@@ -449,7 +496,6 @@ from .endpoints.organization_profiling_functions import OrganizationProfilingFun
 from .endpoints.organization_profiling_profiles import (
     OrganizationProfilingChunksEndpoint,
     OrganizationProfilingChunksFlamegraphEndpoint,
-    OrganizationProfilingFiltersEndpoint,
     OrganizationProfilingFlamegraphEndpoint,
 )
 from .endpoints.organization_projects import (
@@ -473,9 +519,6 @@ from .endpoints.organization_releases import (
     OrganizationReleasesEndpoint,
     OrganizationReleasesStatsEndpoint,
 )
-from .endpoints.organization_repositories import OrganizationRepositoriesEndpoint
-from .endpoints.organization_repository_commits import OrganizationRepositoryCommitsEndpoint
-from .endpoints.organization_repository_details import OrganizationRepositoryDetailsEndpoint
 from .endpoints.organization_request_project_creation import OrganizationRequestProjectCreation
 from .endpoints.organization_sdk_updates import (
     OrganizationSdksEndpoint,
@@ -537,7 +580,6 @@ from .endpoints.project_key_stats import ProjectKeyStatsEndpoint
 from .endpoints.project_keys import ProjectKeysEndpoint
 from .endpoints.project_member_index import ProjectMemberIndexEndpoint
 from .endpoints.project_metrics import ProjectMetricsVisibilityEndpoint
-from .endpoints.project_metrics_extraction_rules import ProjectMetricsExtractionRulesEndpoint
 from .endpoints.project_ownership import ProjectOwnershipEndpoint
 from .endpoints.project_performance_general_settings import (
     ProjectPerformanceGeneralSettingsEndpoint,
@@ -550,7 +592,6 @@ from .endpoints.project_profiling_profile import (
     ProjectProfilingEventEndpoint,
     ProjectProfilingProfileEndpoint,
     ProjectProfilingRawProfileEndpoint,
-    ProjectProfilingTransactionIDProfileIDEndpoint,
 )
 from .endpoints.project_release_commits import ProjectReleaseCommitsEndpoint
 from .endpoints.project_release_details import ProjectReleaseDetailsEndpoint
@@ -616,20 +657,6 @@ from .endpoints.team_release_count import TeamReleaseCountEndpoint
 from .endpoints.team_stats import TeamStatsEndpoint
 from .endpoints.team_time_to_resolution import TeamTimeToResolutionEndpoint
 from .endpoints.team_unresolved_issue_age import TeamUnresolvedIssueAgeEndpoint
-from .endpoints.user_authenticator_details import UserAuthenticatorDetailsEndpoint
-from .endpoints.user_authenticator_enroll import UserAuthenticatorEnrollEndpoint
-from .endpoints.user_authenticator_index import UserAuthenticatorIndexEndpoint
-from .endpoints.user_details import UserDetailsEndpoint
-from .endpoints.user_emails import UserEmailsEndpoint
-from .endpoints.user_emails_confirm import UserEmailsConfirmEndpoint
-from .endpoints.user_identity import UserIdentityEndpoint
-from .endpoints.user_identity_config import (
-    UserIdentityConfigDetailsEndpoint,
-    UserIdentityConfigEndpoint,
-)
-from .endpoints.user_identity_details import UserIdentityDetailsEndpoint
-from .endpoints.user_index import UserIndexEndpoint
-from .endpoints.user_ips import UserIPsEndpoint
 from .endpoints.user_notification_details import UserNotificationDetailsEndpoint
 from .endpoints.user_notification_email import UserNotificationEmailEndpoint
 from .endpoints.user_notification_settings_options import UserNotificationSettingsOptionsEndpoint
@@ -641,18 +668,9 @@ from .endpoints.user_notification_settings_providers import (
 )
 from .endpoints.user_organizationintegrations import UserOrganizationIntegrationsEndpoint
 from .endpoints.user_organizations import UserOrganizationsEndpoint
-from .endpoints.user_password import UserPasswordEndpoint
-from .endpoints.user_permission_details import UserPermissionDetailsEndpoint
-from .endpoints.user_permissions import UserPermissionsEndpoint
-from .endpoints.user_permissions_config import UserPermissionsConfigEndpoint
-from .endpoints.user_regions import UserRegionsEndpoint
-from .endpoints.user_role_details import UserUserRoleDetailsEndpoint
-from .endpoints.user_roles import UserUserRolesEndpoint
 from .endpoints.user_social_identities_index import UserSocialIdentitiesIndexEndpoint
 from .endpoints.user_social_identity_details import UserSocialIdentityDetailsEndpoint
 from .endpoints.user_subscriptions import UserSubscriptionsEndpoint
-from .endpoints.userroles_details import UserRoleDetailsEndpoint
-from .endpoints.userroles_index import UserRolesEndpoint
 
 __all__ = ("urlpatterns",)
 
@@ -794,6 +812,11 @@ def create_group_urls(name_prefix: str) -> list[URLPattern | URLResolver]:
             r"^(?P<issue_id>[^\/]+)/autofix/setup/$",
             GroupAutofixSetupCheck.as_view(),
             name=f"{name_prefix}-group-autofix-setup",
+        ),
+        re_path(
+            r"^(?P<issue_id>[^\/]+)/summarize/$",
+            GroupAiSummaryEndpoint.as_view(),
+            name=f"{name_prefix}-group-ai-summary",
         ),
         # Load plugin group urls
         re_path(
@@ -1149,6 +1172,11 @@ ORGANIZATION_URLS = [
         OrganizationAlertRuleActivationsEndpoint.as_view(),
         name="sentry-api-0-organization-alert-rule-activations",
     ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^\/]+)/alert-rules/(?P<alert_rule_id>[^\/]+)/anomalies/$",
+        OrganizationAlertRuleAnomaliesEndpoint.as_view(),
+        name="sentry-api-0-organization-alert-rule-anomalies",
+    ),
     re_path(  # fetch combined metric and issue alert rules
         r"^(?P<organization_id_or_slug>[^\/]+)/combined-rules/$",
         OrganizationCombinedRuleIndexEndpoint.as_view(),
@@ -1164,6 +1192,12 @@ ORGANIZATION_URLS = [
         r"^(?P<organization_id_or_slug>[^\/]+)/data-export/(?P<data_export_id>[^\/]+)/$",
         DataExportDetailsEndpoint.as_view(),
         name="sentry-api-0-organization-data-export-details",
+    ),
+    # Data Secrecy
+    re_path(
+        r"^(?P<organization_id_or_slug>[^\/]+)/data-secrecy/$",
+        WaiveDataSecrecyEndpoint.as_view(),
+        name="sentry-api-0-data-secrecy",
     ),
     # Incidents
     re_path(
@@ -1326,11 +1360,6 @@ ORGANIZATION_URLS = [
         name="sentry-api-0-organization-access-request-details",
     ),
     re_path(
-        r"^(?P<organization_id_or_slug>[^\/]+)/activity/$",
-        OrganizationActivityEndpoint.as_view(),
-        name="sentry-api-0-organization-activity",
-    ),
-    re_path(
         r"^(?P<organization_id_or_slug>[^\/]+)/api-keys/$",
         OrganizationApiKeyIndexEndpoint.as_view(),
         name="sentry-api-0-organization-api-key-index",
@@ -1399,6 +1428,16 @@ ORGANIZATION_URLS = [
         r"^(?P<organization_id_or_slug>[^\/]+)/events-stats/$",
         OrganizationEventsStatsEndpoint.as_view(),
         name="sentry-api-0-organization-events-stats",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^\/]+)/project-templates/$",
+        OrganizationProjectTemplatesIndexEndpoint.as_view(),
+        name="sentry-api-0-organization-project-templates",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^\/]+)/project-templates/(?P<template_id>[^\/]+)/$",
+        OrganizationProjectTemplateDetailEndpoint.as_view(),
+        name="sentry-api-0-organization-project-template-detail",
     ),
     re_path(
         r"^(?P<organization_id_or_slug>[^\/]+)/trace/(?P<trace_id>(?:\d+|[A-Fa-f0-9-]{32,36}))/spans/$",
@@ -1489,11 +1528,6 @@ ORGANIZATION_URLS = [
         r"^(?P<organization_id_or_slug>[^\/]+)/metrics-compatibility-sums/$",
         OrganizationMetricsCompatibilitySums.as_view(),
         name="sentry-api-0-organization-metrics-compatibility-sums",
-    ),
-    re_path(
-        r"^(?P<organization_id_or_slug>[^/]+)/metrics/extraction-rules/$",
-        OrganizationMetricsExtractionRulesEndpoint.as_view(),
-        name="sentry-api-0-organization-metrics-extraction-rules",
     ),
     re_path(
         r"^(?P<organization_id_or_slug>[^\/]+)/missing-members/$",
@@ -2089,11 +2123,6 @@ ORGANIZATION_URLS = [
         include(
             [
                 re_path(
-                    r"^filters/$",
-                    OrganizationProfilingFiltersEndpoint.as_view(),
-                    name="sentry-api-0-organization-profiling-filters",
-                ),
-                re_path(
                     r"^flamegraph/$",
                     OrganizationProfilingFlamegraphEndpoint.as_view(),
                     name="sentry-api-0-organization-profiling-flamegraph",
@@ -2160,6 +2189,12 @@ ORGANIZATION_URLS = [
         r"^(?P<organization_id_or_slug>[^\/]+)/region/$",
         OrganizationRegionEndpoint.as_view(),
         name="sentry-api-0-organization-region",
+    ),
+    # Trigger relocation
+    re_path(
+        r"^(?P<organization_id_or_slug>[^\/]+)/fork/$",
+        OrganizationForkEndpoint.as_view(),
+        name="sentry-api-0-organization-fork",
     ),
 ]
 
@@ -2391,11 +2426,6 @@ PROJECT_URLS: list[URLPattern | URLResolver] = [
         r"^(?P<organization_id_or_slug>[^/]+)/(?P<project_id_or_slug>[^/]+)/metrics/visibility/$",
         ProjectMetricsVisibilityEndpoint.as_view(),
         name="sentry-api-0-project-metrics-visibility",
-    ),
-    re_path(
-        r"^(?P<organization_id_or_slug>[^/]+)/(?P<project_id_or_slug>[^/]+)/metrics/extraction-rules/$",
-        ProjectMetricsExtractionRulesEndpoint.as_view(),
-        name="sentry-api-0-project-metrics-extraction-rules",
     ),
     re_path(
         r"^(?P<organization_id_or_slug>[^\/]+)/(?P<project_id_or_slug>[^\/]+)/releases/$",
@@ -2678,10 +2708,6 @@ PROJECT_URLS: list[URLPattern | URLResolver] = [
         ProjectTransactionNamesCluster.as_view(),
         name="sentry-api-0-organization-project-cluster-transaction-names",
     ),
-    re_path(
-        r"^(?P<organization_id_or_slug>[^\/]+)/(?P<project_id_or_slug>[^\/]+)/plugins?/",
-        include("sentry.plugins.base.project_api_urls"),
-    ),
     # Tombstone
     re_path(
         r"^(?P<organization_id_or_slug>[^\/]+)/(?P<project_id_or_slug>[^\/]+)/tombstones/$",
@@ -2723,11 +2749,6 @@ PROJECT_URLS: list[URLPattern | URLResolver] = [
         r"^(?P<organization_id_or_slug>[^\/]+)/(?P<project_id_or_slug>[^\/]+)/profiling/raw_profiles/(?P<profile_id>(?:\d+|[A-Fa-f0-9-]{32,36}))/$",
         ProjectProfilingRawProfileEndpoint.as_view(),
         name="sentry-api-0-project-profiling-raw-profile",
-    ),
-    re_path(
-        r"^(?P<organization_id_or_slug>[^\/]+)/(?P<project_id_or_slug>[^\/]+)/profiling/transactions/(?P<transaction_id>(?:\d+|[A-Fa-f0-9-]{32,36}))/$",
-        ProjectProfilingTransactionIDProfileIDEndpoint.as_view(),
-        name="sentry-api-0-project-profiling-transactions",
     ),
     re_path(
         r"^(?P<organization_id_or_slug>[^\/]+)/(?P<project_id_or_slug>[^\/]+)/statistical-detector/$",
@@ -2783,6 +2804,17 @@ PROJECT_URLS: list[URLPattern | URLResolver] = [
         r"^(?P<organization_id_or_slug>[^\/]+)/(?P<project_id_or_slug>[^\/]+)/autofix/codebase-index/create/$",
         ProjectAutofixCreateCodebaseIndexEndpoint.as_view(),
         name="sentry-api-0-project-autofix-codebase-index-create",
+    ),
+    # Uptime
+    re_path(
+        r"^(?P<organization_id_or_slug>[^\/]+)/(?P<project_id_or_slug>[^\/]+)/uptime/(?P<uptime_project_subscription_id>[^\/]+)/$",
+        ProjectUptimeAlertDetailsEndpoint.as_view(),
+        name="sentry-api-0-project-uptime-alert-details",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^\/]+)/(?P<project_id_or_slug>[^\/]+)/uptime/$",
+        ProjectUptimeAlertIndexEndpoint.as_view(),
+        name="sentry-api-0-project-uptime-alert-index",
     ),
 ]
 
@@ -3133,6 +3165,11 @@ urlpatterns = [
         r"^api-tokens/$",
         ApiTokensEndpoint.as_view(),
         name="sentry-api-0-api-tokens",
+    ),
+    re_path(
+        r"^api-tokens/(?P<token_id>[^\/]+)/$",
+        ApiTokenDetailsEndpoint.as_view(),
+        name="sentry-api-0-api-token-details",
     ),
     re_path(
         r"^prompts-activity/$",

@@ -1,4 +1,5 @@
 import sentry_sdk
+from rest_framework.exceptions import ParseError
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -10,6 +11,7 @@ from sentry.api.bases import NoProjects
 from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.api.serializers import serialize
 from sentry.api.utils import handle_query_errors
+from sentry.snuba.dataset import Dataset
 from sentry.utils.numbers import format_grouped_length
 from sentry.utils.sdk import set_measurement
 
@@ -27,6 +29,14 @@ class OrganizationTagsEndpoint(OrganizationEndpoint):
         except NoProjects:
             return Response([])
 
+        if request.GET.get("dataset"):
+            try:
+                dataset = Dataset(request.GET.get("dataset"))
+            except ValueError:
+                raise ParseError(detail="Invalid dataset parameter")
+        else:
+            dataset = Dataset.Discover
+
         with sentry_sdk.start_span(op="tagstore", description="get_tag_keys_for_projects"):
             with handle_query_errors():
                 results = tagstore.backend.get_tag_keys_for_projects(
@@ -35,8 +45,7 @@ class OrganizationTagsEndpoint(OrganizationEndpoint):
                     filter_params["start"],
                     filter_params["end"],
                     use_cache=request.GET.get("use_cache", "0") == "1",
-                    # Defaults to True, because the frontend caches these tags globally
-                    include_transactions=request.GET.get("include_transactions", "1") == "1",
+                    dataset=dataset,
                     tenant_ids={"organization_id": organization.id},
                 )
 
@@ -50,6 +59,7 @@ class OrganizationTagsEndpoint(OrganizationEndpoint):
                     "custom_tags.count.grouped",
                     format_grouped_length(len(results), [1, 10, 50, 100]),
                 )
+                sentry_sdk.set_tag("dataset_queried", dataset.value)
                 set_measurement("custom_tags.count", len(results))
 
         return Response(serialize(results, request.user))

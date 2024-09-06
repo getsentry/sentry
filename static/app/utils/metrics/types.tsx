@@ -12,7 +12,7 @@ export type MetricTag = {
 };
 
 export type SortState = {
-  name: 'name' | 'avg' | 'min' | 'max' | 'sum' | 'total' | undefined;
+  name: 'name' | MetricAggregation | undefined;
   order: 'asc' | 'desc';
 };
 

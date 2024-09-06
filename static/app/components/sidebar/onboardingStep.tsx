@@ -89,6 +89,10 @@ export const DocumentationWrapper = styled('div')`
     margin-bottom: 0;
   }
 
+  p > code {
+    color: ${p => p.theme.pink300};
+  }
+
   /* Ensures documentation content is placed behind the checkbox */
   z-index: 1;
   position: relative;

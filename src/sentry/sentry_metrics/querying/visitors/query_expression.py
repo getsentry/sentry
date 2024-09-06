@@ -422,6 +422,9 @@ class UnitsNormalizationVisitor(QueryExpressionVisitor[tuple[UnitMetadata, Query
 
         parsed_mri = parse_mri(timeseries.metric.mri)
         if parsed_mri is not None:
+            if parsed_mri.entity == "c":
+                return None
+
             return parsed_mri.unit
 
         return None

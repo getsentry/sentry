@@ -1,5 +1,5 @@
 import type {MetricAggregation} from 'sentry/types/metrics';
-import {getDefaultAggregation} from 'sentry/utils/metrics';
+import {getDefaultAggregation, isMetricsAggregation} from 'sentry/utils/metrics';
 import {DEFAULT_SORT_STATE, NO_QUERY_ID} from 'sentry/utils/metrics/constants';
 import {isMRI} from 'sentry/utils/metrics/mri';
 import {
@@ -98,14 +98,7 @@ function parseSortParam(widget: Record<string, unknown>, key: string): SortState
       ? sort.order
       : DEFAULT_SORT_STATE.order;
 
-  if (
-    name === 'name' ||
-    name === 'avg' ||
-    name === 'min' ||
-    name === 'max' ||
-    name === 'sum' ||
-    name === 'total'
-  ) {
+  if (name && (name === 'name' || isMetricsAggregation(name))) {
     return {name, order};
   }
 

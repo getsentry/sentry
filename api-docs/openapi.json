@@ -15,7 +15,10 @@
   },
   "servers": [
     {
-      "url": "https://sentry.io/"
+      "url": "https://us.sentry.io/"
+    },
+    {
+      "url": "https://de.sentry.io/"
     }
   ],
   "tags": [
@@ -92,9 +95,6 @@
     },
     "/api/0/organizations/{organization_id_or_slug}/eventids/{event_id}/": {
       "$ref": "paths/organizations/event-id-lookup.json"
-    },
-    "/api/0/organizations/{organization_id_or_slug}/": {
-      "$ref": "paths/organizations/details.json"
     },
     "/api/0/organizations/{organization_id_or_slug}/repos/": {
       "$ref": "paths/organizations/repos.json"

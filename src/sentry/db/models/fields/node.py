@@ -7,6 +7,7 @@ from collections.abc import Callable, MutableMapping
 from typing import Any
 from uuid import uuid4
 
+from django.db.models import Model
 from django.db.models.signals import post_delete
 from django.utils.functional import cached_property
 
@@ -167,8 +168,8 @@ class NodeField(GzippedDictField):
         self.ref_version = ref_version
         super().__init__(blank=blank, null=null)
 
-    def contribute_to_class(self, cls, name):
-        super().contribute_to_class(cls, name)
+    def contribute_to_class(self, cls: type[Model], name: str, private_only: bool = False) -> None:
+        super().contribute_to_class(cls, name, private_only=private_only)
         setattr(cls, name, Creator(self))
         post_delete.connect(self.on_delete, sender=self.model, weak=False)
 

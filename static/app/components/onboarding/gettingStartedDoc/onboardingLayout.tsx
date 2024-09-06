@@ -22,8 +22,10 @@ import {
   ProductSolution,
 } from 'sentry/components/onboarding/productSelection';
 import {t} from 'sentry/locale';
+import ConfigStore from 'sentry/stores/configStore';
+import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import {space} from 'sentry/styles/space';
-import type {PlatformKey, Project} from 'sentry/types';
+import type {PlatformKey, Project, ProjectKey} from 'sentry/types/project';
 import useOrganization from 'sentry/utils/useOrganization';
 
 const ProductSelectionAvailabilityHook = HookOrDefault({
@@ -33,12 +35,11 @@ const ProductSelectionAvailabilityHook = HookOrDefault({
 
 export type OnboardingLayoutProps = {
   docsConfig: Docs<any>;
-  dsn: string;
+  dsn: ProjectKey['dsn'];
   platformKey: PlatformKey;
   projectId: Project['id'];
   projectSlug: Project['slug'];
   activeProductSelection?: ProductSolution[];
-  cdn?: string;
   configType?: ConfigType;
   newOrg?: boolean;
 };
@@ -46,7 +47,6 @@ export type OnboardingLayoutProps = {
 const EMPTY_ARRAY: never[] = [];
 
 export function OnboardingLayout({
-  cdn,
   docsConfig,
   dsn,
   platformKey,
@@ -57,16 +57,16 @@ export function OnboardingLayout({
   configType = 'onboarding',
 }: OnboardingLayoutProps) {
   const organization = useOrganization();
-  const {isLoading: isLoadingRegistry, data: registryData} =
+  const {isPending: isLoadingRegistry, data: registryData} =
     useSourcePackageRegistries(organization);
   const selectedOptions = useUrlPlatformOptions(docsConfig.platformOptions);
   const {platformOptions} = docsConfig;
+  const {urlPrefix, isSelfHosted} = useLegacyStore(ConfigStore);
 
   const {introduction, steps, nextSteps} = useMemo(() => {
     const doc = docsConfig[configType] ?? docsConfig.onboarding;
 
     const docParams: DocsParams<any> = {
-      cdn,
       dsn,
       organization,
       platformKey,
@@ -82,6 +82,8 @@ export function OnboardingLayout({
         isLoading: isLoadingRegistry,
         data: registryData,
       },
+      urlPrefix,
+      isSelfHosted,
       platformOptions: selectedOptions,
       newOrg,
       replayOptions: {block: true, mask: true},
@@ -97,7 +99,6 @@ export function OnboardingLayout({
       nextSteps: doc.nextSteps?.(docParams) || [],
     };
   }, [
-    cdn,
     activeProductSelection,
     docsConfig,
     dsn,
@@ -110,6 +111,8 @@ export function OnboardingLayout({
     registryData,
     selectedOptions,
     configType,
+    urlPrefix,
+    isSelfHosted,
   ]);
 
   return (
@@ -121,6 +124,7 @@ export function OnboardingLayout({
             <ProductSelectionAvailabilityHook
               organization={organization}
               platform={platformKey}
+              projectId={projectId}
             />
           )}
           {platformOptions && !['customMetricsOnboarding'].includes(configType) ? (

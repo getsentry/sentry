@@ -1,16 +1,16 @@
 import {Fragment} from 'react';
-import type {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 
 import {logout} from 'sentry/actionCreators/account';
 import {Alert} from 'sentry/components/alert';
-import {Button} from 'sentry/components/button';
+import {Button, LinkButton} from 'sentry/components/button';
 import ExternalLink from 'sentry/components/links/externalLink';
 import Link from 'sentry/components/links/link';
 import NarrowLayout from 'sentry/components/narrowLayout';
 import {t, tct} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import {space} from 'sentry/styles/space';
+import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import {browserHistory} from 'sentry/utils/browserHistory';
 import DeprecatedAsyncView from 'sentry/views/deprecatedAsyncView';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
@@ -154,22 +154,22 @@ class AcceptOrganizationInvite extends DeprecatedAsyncView<Props, State> {
         <Actions>
           <ActionsLeft>
             {inviteDetails.hasAuthProvider && (
-              <Button
+              <LinkButton
                 data-test-id="sso-login"
                 priority="primary"
                 href={`/auth/login/${inviteDetails.orgSlug}/`}
               >
                 {t('Join with %s', inviteDetails.ssoProvider)}
-              </Button>
+              </LinkButton>
             )}
             {!inviteDetails.requireSso && (
-              <Button
+              <LinkButton
                 data-test-id="create-account"
                 priority="primary"
                 href="/auth/register/"
               >
                 {t('Create a new account')}
-              </Button>
+              </LinkButton>
             )}
           </ActionsLeft>
           {!inviteDetails.requireSso && (
@@ -198,9 +198,9 @@ class AcceptOrganizationInvite extends DeprecatedAsyncView<Props, State> {
           )}
         </p>
         <Actions>
-          <Button priority="primary" to="/settings/account/security/">
+          <LinkButton priority="primary" to="/settings/account/security/">
             {t('Configure Two-Factor Auth')}
-          </Button>
+          </LinkButton>
         </Actions>
       </Fragment>
     );
@@ -218,9 +218,9 @@ class AcceptOrganizationInvite extends DeprecatedAsyncView<Props, State> {
           )}
         </p>
         <Actions>
-          <Button priority="primary" to="/settings/account/emails/">
+          <LinkButton priority="primary" to="/settings/account/emails/">
             {t('Verify Email Address')}
-          </Button>
+          </LinkButton>
         </Actions>
       </Fragment>
     );
@@ -247,13 +247,13 @@ class AcceptOrganizationInvite extends DeprecatedAsyncView<Props, State> {
         <Actions>
           <ActionsLeft>
             {inviteDetails.hasAuthProvider && !inviteDetails.requireSso && (
-              <Button
+              <LinkButton
                 data-test-id="sso-login"
                 priority="primary"
                 href={`/auth/login/${inviteDetails.orgSlug}/`}
               >
                 {t('Join with %s', inviteDetails.ssoProvider)}
-              </Button>
+              </LinkButton>
             )}
 
             <Button

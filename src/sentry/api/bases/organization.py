@@ -203,10 +203,10 @@ class OrganizationDataExportPermission(OrganizationPermission):
 
 class OrganizationAlertRulePermission(OrganizationPermission):
     scope_map = {
-        "GET": ["org:read", "org:write", "org:admin", "alert_rule:read", "alerts:read"],
-        "POST": ["org:write", "org:admin", "alert_rule:write", "alerts:write"],
-        "PUT": ["org:write", "org:admin", "alert_rule:write", "alerts:write"],
-        "DELETE": ["org:write", "org:admin", "alert_rule:write", "alerts:write"],
+        "GET": ["org:read", "org:write", "org:admin", "alerts:read"],
+        "POST": ["org:write", "org:admin", "alerts:write"],
+        "PUT": ["org:write", "org:admin", "alerts:write"],
+        "DELETE": ["org:write", "org:admin", "alerts:write"],
     }
 
 

@@ -1,8 +1,9 @@
 from __future__ import annotations
 
+import logging
 import re
 from collections.abc import Mapping, Sequence
-from typing import Any
+from typing import Any, TypedDict
 
 import orjson
 from rest_framework import status
@@ -12,12 +13,17 @@ from rest_framework.response import Response
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import Endpoint, region_silo_endpoint
-from sentry.integrations.message_builder import format_actor_options
+from sentry.integrations.message_builder import format_actor_options_slack
 from sentry.integrations.slack.requests.base import SlackRequestError
 from sentry.integrations.slack.requests.options_load import SlackOptionsLoadRequest
 from sentry.models.group import Group
 
-from ..utils import logger
+_logger = logging.getLogger(__name__)
+
+
+class OptionGroup(TypedDict):
+    label: Mapping[str, str]
+    options: Sequence[Mapping[str, Any]]
 
 
 @region_silo_endpoint
@@ -37,9 +43,7 @@ class SlackOptionsLoadEndpoint(Endpoint):
         substring = re.escape(substring)
         return bool(re.match(substring, string, re.I))
 
-    def get_filtered_option_groups(
-        self, group: Group, substring: str
-    ) -> Sequence[Mapping[str, Any]]:
+    def get_filtered_option_groups(self, group: Group, substring: str) -> list[OptionGroup]:
         all_teams = group.project.teams.all()
         filtered_teams = list(
             filter(
@@ -67,17 +71,19 @@ class SlackOptionsLoadEndpoint(Endpoint):
             )
         )
 
-        option_groups = []
+        option_groups: list[OptionGroup] = []
         if filtered_teams:
-            team_options = format_actor_options(filtered_teams, True)
-            option_groups.append(
-                {"label": {"type": "plain_text", "text": "Teams"}, "options": team_options}
-            )
+            team_options_group: OptionGroup = {
+                "label": {"type": "plain_text", "text": "Teams"},
+                "options": format_actor_options_slack(filtered_teams),
+            }
+            option_groups.append(team_options_group)
         if filtered_members:
-            member_options = format_actor_options(filtered_members, True)
-            option_groups.append(
-                {"label": {"type": "plain_text", "text": "People"}, "options": member_options}
-            )
+            member_options_group: OptionGroup = {
+                "label": {"type": "plain_text", "text": "People"},
+                "options": format_actor_options_slack(filtered_members),
+            }
+            option_groups.append(member_options_group)
         return option_groups
 
     # XXX(isabella): atm this endpoint is used only for the assignment dropdown on issue alerts
@@ -95,7 +101,7 @@ class SlackOptionsLoadEndpoint(Endpoint):
         )
 
         if not group:
-            logger.exception(
+            _logger.error(
                 "slack.options_load.request-error",
                 extra={
                     "group_id": slack_request.group_id,

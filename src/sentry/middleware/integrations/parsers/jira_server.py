@@ -7,12 +7,12 @@ from typing import Any
 import orjson
 from django.http import HttpResponse
 
+from sentry.hybridcloud.outbox.category import WebhookProviderIdentifier
 from sentry.integrations.jira_server.webhooks import (
     JiraServerIssueUpdatedWebhook,
     get_integration_from_token,
 )
 from sentry.integrations.middleware.hybrid_cloud.parser import BaseRequestParser
-from sentry.models.outbox import WebhookProviderIdentifier
 
 logger = logging.getLogger(__name__)
 

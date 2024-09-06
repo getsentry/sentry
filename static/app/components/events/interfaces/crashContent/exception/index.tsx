@@ -1,6 +1,7 @@
 import ErrorBoundary from 'sentry/components/errorBoundary';
-import type {ExceptionType, Group, Project} from 'sentry/types';
-import type {Event} from 'sentry/types/event';
+import type {Event, ExceptionType} from 'sentry/types/event';
+import type {Group} from 'sentry/types/group';
+import type {Project} from 'sentry/types/project';
 import type {StackType} from 'sentry/types/stacktrace';
 import {StackView} from 'sentry/types/stacktrace';
 
@@ -9,7 +10,6 @@ import RawContent from './rawContent';
 
 type Props = {
   event: Event;
-  hasHierarchicalGrouping: boolean;
   newestFirst: boolean;
   projectSlug: Project['slug'];
   stackType: StackType;
@@ -26,7 +26,6 @@ export function ExceptionContent({
   values,
   event,
   newestFirst,
-  hasHierarchicalGrouping,
   groupingCurrentLevel,
   meta,
   threadId,
@@ -49,7 +48,6 @@ export function ExceptionContent({
           projectSlug={projectSlug}
           newestFirst={newestFirst}
           event={event}
-          hasHierarchicalGrouping={hasHierarchicalGrouping}
           groupingCurrentLevel={groupingCurrentLevel}
           meta={meta}
           threadId={threadId}

@@ -1,5 +1,4 @@
 import {Fragment} from 'react';
-import type {WithRouterProps} from 'react-router';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {openModal} from 'sentry/actionCreators/modal';
@@ -10,9 +9,9 @@ import type {
   ExternalActorMappingOrSuggestion,
   ExternalUser,
   Integration,
-  Member,
-  Organization,
-} from 'sentry/types';
+} from 'sentry/types/integrations';
+import type {WithRouterProps} from 'sentry/types/legacyReactRouter';
+import type {Member, Organization} from 'sentry/types/organization';
 import {sentryNameToOption} from 'sentry/utils/integrationUtil';
 import withOrganization from 'sentry/utils/withOrganization';
 // eslint-disable-next-line no-restricted-imports

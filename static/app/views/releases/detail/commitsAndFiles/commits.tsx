@@ -1,5 +1,4 @@
 import {Fragment} from 'react';
-import type {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
 
@@ -14,7 +13,9 @@ import PanelHeader from 'sentry/components/panels/panelHeader';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {Commit, Project, Repository} from 'sentry/types';
+import type {Commit, Repository} from 'sentry/types/integrations';
+import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
+import type {Project} from 'sentry/types/project';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import routeTitleGen from 'sentry/utils/routeTitle';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -43,7 +44,7 @@ function Commits({activeReleaseRepo, releaseRepos, projectSlug}: CommitsProps) {
   const query = getQuery({location, activeRepository: activeReleaseRepo});
   const {
     data: commitList = [],
-    isLoading: isLoadingCommitList,
+    isPending: isLoadingCommitList,
     error: commitListError,
     refetch,
     getResponseHeader,

@@ -8,9 +8,9 @@ import TextCopyInput from 'sentry/components/textCopyInput';
 import {Tooltip} from 'sentry/components/tooltip';
 import {t, tct} from 'sentry/locale';
 import getCurrentUrl from 'sentry/utils/replays/getCurrentUrl';
+import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
-import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 
 function ReplayCurrentUrl() {
   const {currentTime, replay} = useReplayContext();

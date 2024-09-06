@@ -24,6 +24,7 @@ from sentry.incidents.models.incident import IncidentStatus
 from sentry.incidents.utils.types import AlertRuleActivationConditionType
 from sentry.snuba.models import QuerySubscription
 from sentry.testutils.cases import TestCase
+from sentry.testutils.helpers.alert_rule import TemporaryAlertRuleTriggerActionRegistry
 from sentry.users.services.user.service import user_service
 
 
@@ -211,6 +212,35 @@ class AlertRuleTest(TestCase):
             assert current_activation.query_subscription == sub
             assert current_activation.is_complete() is False
 
+    def test_get_for_metrics(self):
+        self.create_alert_rule(organization=self.organization, aggregate="count(c:foo/1)")
+        self.create_alert_rule(organization=self.organization, aggregate="count(c:bar/2)")
+        self.create_alert_rule(organization=self.organization, aggregate="count(c:baz/2)")
+        new_org = self.create_organization()
+        self.create_alert_rule(organization=new_org, aggregate="count(c:foo/1)")
+
+        assert (
+            AlertRule.objects.get_for_metrics(self.organization, ["c:foo/1", "c:bar/2"]).count()
+            == 2
+        )
+        assert set(
+            AlertRule.objects.get_for_metrics(
+                self.organization, ["c:foo/1", "c:bar/2"]
+            ).values_list("snuba_query__aggregate", flat=True)
+        ) == {"count(c:foo/1)", "count(c:bar/2)"}
+
+        # Test that it works with a new organization
+        assert set(
+            AlertRule.objects.get_for_metrics(new_org, ["c:foo/1", "c:bar/2"]).values_list(
+                "snuba_query__aggregate", flat=True
+            )
+        ) == {"count(c:foo/1)"}
+        assert set(
+            AlertRule.objects.get_for_metrics(new_org, ["c:foo/1", "c:bar/2"]).values_list(
+                "organization_id", flat=True
+            )
+        ) == {new_org.id}
+
 
 class AlertRuleFetchForOrganizationTest(TestCase):
     def test_empty(self):
@@ -309,15 +339,17 @@ class AlertRuleTriggerActionActivateBaseTest:
     method: str
 
     def setUp(self):
-        self.old_handlers = AlertRuleTriggerAction._type_registrations
-        AlertRuleTriggerAction._type_registrations = {}
+        self.suspended_registry = TemporaryAlertRuleTriggerActionRegistry.suspend()
 
     def tearDown(self):
-        AlertRuleTriggerAction._type_registrations = self.old_handlers
+        self.suspended_registry.restore()
 
     def test_no_handler(self):
         trigger = AlertRuleTriggerAction(type=AlertRuleTriggerAction.Type.EMAIL.value)
-        assert trigger.fire(Mock(), Mock(), Mock(), 123, IncidentStatus.CRITICAL) is None
+        result = trigger.fire(Mock(), Mock(), Mock(), 123, IncidentStatus.CRITICAL)  # type: ignore[func-returns-value]
+
+        # TODO(RyanSkonnord): Remove assertion (see test_handler)
+        assert result is None
 
     def test_handler(self):
         mock_handler = Mock()
@@ -326,10 +358,13 @@ class AlertRuleTriggerActionActivateBaseTest:
         type = AlertRuleTriggerAction.Type.EMAIL
         AlertRuleTriggerAction.register_type("something", type, [])(mock_handler)
         trigger = AlertRuleTriggerAction(type=type.value)
-        assert (
-            getattr(trigger, self.method)(Mock(), Mock(), Mock(), 123, IncidentStatus.CRITICAL)
-            == mock_method.return_value
-        )
+        result = getattr(trigger, self.method)(Mock(), Mock(), Mock(), 123, IncidentStatus.CRITICAL)
+
+        # TODO(RyanSkonnord): Don't assert on return value.
+        # All concrete ActionHandlers return None from their fire and resolve
+        # methods. It seems that this return value's only purpose is to spy on
+        # whether the AlertRuleTriggerAction produced a handler.
+        assert result == mock_method.return_value
 
 
 class AlertRuleTriggerActionFireTest(AlertRuleTriggerActionActivateBaseTest, unittest.TestCase):
@@ -347,11 +382,10 @@ class AlertRuleTriggerActionActivateTest(TestCase):
             yield
 
     def setUp(self):
-        self.old_handlers = AlertRuleTriggerAction._type_registrations
-        AlertRuleTriggerAction._type_registrations = {}
+        self.suspended_registry = TemporaryAlertRuleTriggerActionRegistry.suspend()
 
     def tearDown(self):
-        AlertRuleTriggerAction._type_registrations = self.old_handlers
+        self.suspended_registry.restore()
 
     def test_unhandled(self):
         trigger = AlertRuleTriggerAction(type=AlertRuleTriggerAction.Type.EMAIL.value)

@@ -10,7 +10,7 @@ import {
   ModalFooter,
 } from 'sentry/components/globalModal/components';
 import {EditSavedSearchModal} from 'sentry/components/modals/savedSearchModal/editSavedSearchModal';
-import {SavedSearchType, SavedSearchVisibility} from 'sentry/types';
+import {SavedSearchType, SavedSearchVisibility} from 'sentry/types/group';
 import {IssueSortOptions} from 'sentry/views/issueList/utils';
 
 describe('EditSavedSearchModal', function () {
@@ -25,6 +25,10 @@ describe('EditSavedSearchModal', function () {
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/recent-searches/',
       method: 'POST',
+      body: [],
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/tags/',
       body: [],
     });
   });

@@ -25,6 +25,7 @@ import type RequestError from 'sentry/utils/requestError/requestError';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {traceAnalytics} from 'sentry/views/performance/newTraceDetails/traceAnalytics';
+import {DrawerContainerRefContext} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/drawerContainerRefContext';
 import {TraceProfiles} from 'sentry/views/performance/newTraceDetails/traceDrawer/tabs/traceProfiles';
 import {TraceVitals} from 'sentry/views/performance/newTraceDetails/traceDrawer/tabs/traceVitals';
 import {
@@ -78,6 +79,7 @@ export function TraceDrawer(props: TraceDrawerProps) {
   const organization = useOrganization();
   const traceState = useTraceState();
   const traceDispatch = useTraceStateDispatch();
+  const contentContainerRef = useRef<HTMLDivElement>(null);
 
   // The /events-facets/ endpoint used to fetch tags for the trace tab is slow. Therefore,
   // we try to prefetch the tags as soon as the drawer loads, hoping that the tags will be loaded
@@ -422,37 +424,46 @@ export function TraceDrawer(props: TraceDrawerProps) {
         </TabsLayout>
       </TabsHeightContainer>
       {traceState.preferences.drawer.minimized ? null : (
-        <Content layout={traceState.preferences.layout} data-test-id="trace-drawer">
-          <ContentWrapper>
-            {traceState.tabs.current_tab ? (
-              traceState.tabs.current_tab.node === 'trace' ? (
-                <TraceDetails
-                  metaResults={props.metaResults}
-                  traceType={props.traceType}
-                  tree={props.trace}
-                  node={props.trace.root.children[0]}
-                  rootEventResults={props.rootEventResults}
-                  traces={props.traces}
-                  tagsInfiniteQueryResults={tagsInfiniteQueryResults}
-                  traceEventView={props.traceEventView}
-                />
-              ) : traceState.tabs.current_tab.node === 'vitals' ? (
-                <TraceVitals trace={props.trace} />
-              ) : traceState.tabs.current_tab.node === 'profiles' ? (
-                <TraceProfiles tree={props.trace} onScrollToNode={props.onScrollToNode} />
-              ) : (
-                <TraceTreeNodeDetails
-                  replayRecord={props.replayRecord}
-                  manager={props.manager}
-                  organization={organization}
-                  onParentClick={onParentClick}
-                  node={traceState.tabs.current_tab.node}
-                  onTabScrollToNode={props.onTabScrollToNode}
-                />
-              )
-            ) : null}
-          </ContentWrapper>
-        </Content>
+        <DrawerContainerRefContext.Provider value={contentContainerRef}>
+          <Content
+            ref={contentContainerRef}
+            layout={traceState.preferences.layout}
+            data-test-id="trace-drawer"
+          >
+            <ContentWrapper>
+              {traceState.tabs.current_tab ? (
+                traceState.tabs.current_tab.node === 'trace' ? (
+                  <TraceDetails
+                    metaResults={props.metaResults}
+                    traceType={props.traceType}
+                    tree={props.trace}
+                    node={props.trace.root.children[0]}
+                    rootEventResults={props.rootEventResults}
+                    traces={props.traces}
+                    tagsInfiniteQueryResults={tagsInfiniteQueryResults}
+                    traceEventView={props.traceEventView}
+                  />
+                ) : traceState.tabs.current_tab.node === 'vitals' ? (
+                  <TraceVitals trace={props.trace} />
+                ) : traceState.tabs.current_tab.node === 'profiles' ? (
+                  <TraceProfiles
+                    tree={props.trace}
+                    onScrollToNode={props.onScrollToNode}
+                  />
+                ) : (
+                  <TraceTreeNodeDetails
+                    replayRecord={props.replayRecord}
+                    manager={props.manager}
+                    organization={organization}
+                    onParentClick={onParentClick}
+                    node={traceState.tabs.current_tab.node}
+                    onTabScrollToNode={props.onTabScrollToNode}
+                  />
+                )
+              ) : null}
+            </ContentWrapper>
+          </Content>
+        </DrawerContainerRefContext.Provider>
       )}
     </PanelWrapper>
   );

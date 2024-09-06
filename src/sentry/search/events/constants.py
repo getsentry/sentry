@@ -56,6 +56,7 @@ SPAN_IS_SEGMENT_ALIAS = "span.is_segment"
 SPAN_OP = "span.op"
 SPAN_DESCRIPTION = "span.description"
 SPAN_STATUS = "span.status"
+SPAN_CATEGORY = "span.category"
 
 
 class ThresholdDict(TypedDict):
@@ -261,6 +262,8 @@ FUNCTION_ALIASES = {
 
 METRICS_FUNCTION_ALIASES: dict[str, str] = {}
 
+SPAN_MODULE_CATEGORY_VALUES = ["cache", "db", "http", "queue", "resource"]
+
 SPAN_FUNCTION_ALIASES = {
     "sps": "eps",
     "spm": "epm",
@@ -431,3 +434,17 @@ METRIC_FUNCTION_LIST_BY_TYPE = {
 # The limit in snuba currently for a single query is 131,535bytes, including room for other parameters picking 120,000
 # for now
 MAX_PARAMETERS_IN_ARRAY = 120_000
+
+SPANS_METRICS_TAGS = {SPAN_MODULE_ALIAS, SPAN_DESCRIPTION, SPAN_OP, SPAN_CATEGORY}
+
+SPANS_METRICS_FUNCTIONS = {
+    "spm",
+    "cache_miss_rate",
+    "http_response_rate",
+}
+
+METRICS_LAYER_UNSUPPORTED_TRANSACTION_METRICS_FUNCTIONS = {
+    "performance_score",
+    "weighted_performance_score",
+    "count_scores",
+}

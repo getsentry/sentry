@@ -12,6 +12,7 @@ import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {MetricReadout} from 'sentry/views/insights/common/components/metricReadout';
+import {ReadoutRibbon} from 'sentry/views/insights/common/components/ribbon';
 import {useReleaseSelection} from 'sentry/views/insights/common/queries/useReleases';
 import {appendReleaseFilters} from 'sentry/views/insights/common/utils/releaseComparison';
 import useCrossPlatformProject from 'sentry/views/insights/mobile/common/queries/useCrossPlatformProject';
@@ -25,7 +26,7 @@ interface BlockProps {
   preferredPolarity?: Polarity;
 }
 
-export function MetricsRibbon({
+export function MobileMetricsRibbon({
   filters,
   blocks,
   fields,
@@ -74,14 +75,14 @@ export function MetricsRibbon({
     projects: selection.projects,
   };
   const eventView = EventView.fromNewQueryWithLocation(newQuery, location);
-  const {data, isLoading} = useTableQuery({
+  const {data, isPending} = useTableQuery({
     eventView,
     enabled: !isReleasesLoading,
     referrer,
   });
 
   return (
-    <BlockContainer>
+    <StyledReadoutRibbon>
       {blocks.map(({title, dataKey, unit, preferredPolarity}) => (
         <MetricsBlock
           key={title}
@@ -89,13 +90,17 @@ export function MetricsRibbon({
           unit={unit}
           dataKey={dataKey}
           data={data}
-          isLoading={isLoading}
+          isLoading={isPending}
           preferredPolarity={preferredPolarity}
         />
       ))}
-    </BlockContainer>
+    </StyledReadoutRibbon>
   );
 }
+
+const StyledReadoutRibbon = styled(ReadoutRibbon)`
+  margin-bottom: ${space(2)};
+`;
 
 function MetricsBlock({
   title,
@@ -121,7 +126,6 @@ function MetricsBlock({
   return (
     <MetricReadout
       title={title}
-      align="left"
       value={hasData ? value : undefined}
       isLoading={isLoading}
       unit={unit}
@@ -129,8 +133,3 @@ function MetricsBlock({
     />
   );
 }
-
-const BlockContainer = styled('div')`
-  display: flex;
-  gap: ${space(2)};
-`;

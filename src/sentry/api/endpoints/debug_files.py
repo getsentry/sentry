@@ -97,9 +97,10 @@ def _has_delete_permission(access: Access, project: Project) -> bool:
 
 @region_silo_endpoint
 class ProguardArtifactReleasesEndpoint(ProjectEndpoint):
+    owner = ApiOwner.OWNERS_INGEST
     publish_status = {
-        "GET": ApiPublishStatus.UNKNOWN,
-        "POST": ApiPublishStatus.UNKNOWN,
+        "GET": ApiPublishStatus.PRIVATE,
+        "POST": ApiPublishStatus.PRIVATE,
     }
     permission_classes = (ProjectReleasePermission,)
 
@@ -116,6 +117,8 @@ class ProguardArtifactReleasesEndpoint(ProjectEndpoint):
         if missing_fields:
             error_message = f"Missing required fields: {', '.join(missing_fields)}"
             return Response(data={"error": error_message}, status=status.HTTP_400_BAD_REQUEST)
+
+        assert release_name is not None and proguard_uuid is not None
 
         try:
             uuid.UUID(proguard_uuid)
@@ -178,7 +181,7 @@ class ProguardArtifactReleasesEndpoint(ProjectEndpoint):
 
 @region_silo_endpoint
 class DebugFilesEndpoint(ProjectEndpoint):
-    owner = ApiOwner.PROCESSING
+    owner = ApiOwner.OWNERS_INGEST
     publish_status = {
         "DELETE": ApiPublishStatus.UNKNOWN,
         "GET": ApiPublishStatus.UNKNOWN,
@@ -358,7 +361,7 @@ class DebugFilesEndpoint(ProjectEndpoint):
 
 @region_silo_endpoint
 class UnknownDebugFilesEndpoint(ProjectEndpoint):
-    owner = ApiOwner.PROCESSING
+    owner = ApiOwner.OWNERS_INGEST
     publish_status = {
         "GET": ApiPublishStatus.PRIVATE,
     }
@@ -372,7 +375,7 @@ class UnknownDebugFilesEndpoint(ProjectEndpoint):
 
 @region_silo_endpoint
 class AssociateDSymFilesEndpoint(ProjectEndpoint):
-    owner = ApiOwner.PROCESSING
+    owner = ApiOwner.OWNERS_INGEST
     publish_status = {
         "POST": ApiPublishStatus.PRIVATE,
     }
@@ -385,7 +388,7 @@ class AssociateDSymFilesEndpoint(ProjectEndpoint):
 
 @region_silo_endpoint
 class DifAssembleEndpoint(ProjectEndpoint):
-    owner = ApiOwner.PROCESSING
+    owner = ApiOwner.OWNERS_INGEST
     publish_status = {
         "POST": ApiPublishStatus.PRIVATE,
     }
@@ -507,7 +510,7 @@ class DifAssembleEndpoint(ProjectEndpoint):
 
 @region_silo_endpoint
 class SourceMapsEndpoint(ProjectEndpoint):
-    owner = ApiOwner.PROCESSING
+    owner = ApiOwner.OWNERS_INGEST
     publish_status = {
         "DELETE": ApiPublishStatus.PRIVATE,
         "GET": ApiPublishStatus.PRIVATE,

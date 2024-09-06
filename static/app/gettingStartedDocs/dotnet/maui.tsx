@@ -64,7 +64,7 @@ public static MauiApp CreateMauiApp()
     // Add this section anywhere on the builder:
     .UseSentry(options => {
       // The DSN is the only required setting.
-      options.Dsn = "${params.dsn}";
+      options.Dsn = "${params.dsn.public}";
 
       // Use debug mode if you want to see what the SDK is doing.
       // Debug messages are written to stdout with Console.Writeline,
@@ -74,7 +74,7 @@ public static MauiApp CreateMauiApp()
         params.isPerformanceSelected
           ? `
 
-      // Set TracesSampleRate to 1.0 to capture 100% of transactions for performance monitoring.
+      // Set TracesSampleRate to 1.0 to capture 100% of transactions for tracing.
       // We recommend adjusting this value in production.
       options.TracesSampleRate = 1.0;`
           : ''
@@ -246,7 +246,7 @@ const onboarding: OnboardingConfig = {
     ...(params.isPerformanceSelected
       ? [
           {
-            title: t('Performance Monitoring'),
+            title: t('Tracing'),
             description: (
               <Fragment>
                 {t(
@@ -257,7 +257,7 @@ const onboarding: OnboardingConfig = {
                     'For some parts of your code, [automaticInstrumentationLink:automatic instrumentation] is available across all of our .NET SDKs, and can be used with MAUI as well:',
                     {
                       automaticInstrumentationLink: (
-                        <ExternalLink href="https://docs.sentry.io/platforms/dotnet/guides/maui/performance/instrumentation/automatic-instrumentation/" />
+                        <ExternalLink href="https://docs.sentry.io/platforms/dotnet/guides/maui/tracing/instrumentation/automatic-instrumentation/" />
                       ),
                     }
                   )}
@@ -284,7 +284,7 @@ const onboarding: OnboardingConfig = {
                         'For other parts of your code, you can use [customInstrumentationLink:custom instrumentation], such as in the following example:',
                         {
                           customInstrumentationLink: (
-                            <ExternalLink href="https://docs.sentry.io/platforms/dotnet/guides/maui/performance/instrumentation/custom-instrumentation/" />
+                            <ExternalLink href="https://docs.sentry.io/platforms/dotnet/guides/maui/tracing/instrumentation/custom-instrumentation/" />
                           ),
                         }
                       )}

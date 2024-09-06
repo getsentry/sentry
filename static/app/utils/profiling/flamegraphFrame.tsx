@@ -12,7 +12,7 @@ export interface FlamegraphFrame {
   start: number;
   collapsed?: FlamegraphFrame[];
   processId?: number;
-  profileIds?: string[];
+  profileIds?: Profiling.ProfileReference[];
   threadId?: number;
 }
 

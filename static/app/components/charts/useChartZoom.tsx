@@ -1,25 +1,25 @@
 import {useCallback, useMemo, useState} from 'react';
-import type {InjectedRouter} from 'react-router';
 import type {
   DataZoomComponentOption,
   InsideDataZoomComponentOption,
   ToolboxComponentOption,
   XAXisComponentOption,
 } from 'echarts';
-import moment from 'moment';
+import moment from 'moment-timezone';
 import * as qs from 'query-string';
 
 import {updateDateTime} from 'sentry/actionCreators/pageFilters';
 import DataZoomInside from 'sentry/components/charts/components/dataZoomInside';
 import DataZoomSlider from 'sentry/components/charts/components/dataZoomSlider';
 import ToolBox from 'sentry/components/charts/components/toolBox';
-import type {DateString} from 'sentry/types';
+import type {DateString} from 'sentry/types/core';
 import type {
   EChartChartReadyHandler,
   EChartDataZoomHandler,
   EChartFinishedHandler,
   EChartRestoreHandler,
 } from 'sentry/types/echarts';
+import type {InjectedRouter} from 'sentry/types/legacyReactRouter';
 import {getUtcDateString, getUtcToLocalDateObject} from 'sentry/utils/dates';
 
 // TODO: replace usages of ChartZoom with useChartZoom

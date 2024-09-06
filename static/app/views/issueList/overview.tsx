@@ -1,5 +1,4 @@
 import {Component} from 'react';
-import type {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 import type {Location} from 'history';
@@ -8,13 +7,14 @@ import isEqual from 'lodash/isEqual';
 import mapValues from 'lodash/mapValues';
 import omit from 'lodash/omit';
 import pickBy from 'lodash/pickBy';
-import moment from 'moment';
+import moment from 'moment-timezone';
 import * as qs from 'query-string';
 
 import {addMessage} from 'sentry/actionCreators/indicator';
 import {fetchOrgMembers, indexMembersByProject} from 'sentry/actionCreators/members';
 import {fetchTagValues, loadOrganizationTags} from 'sentry/actionCreators/tags';
 import type {Client} from 'sentry/api';
+import ErrorBoundary from 'sentry/components/errorBoundary';
 import HookOrDefault from 'sentry/components/hookOrDefault';
 import * as Layout from 'sentry/components/layouts/thirds';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
@@ -30,16 +30,17 @@ import GroupStore from 'sentry/stores/groupStore';
 import IssueListCacheStore from 'sentry/stores/IssueListCacheStore';
 import SelectedGroupStore from 'sentry/stores/selectedGroupStore';
 import {space} from 'sentry/styles/space';
+import type {PageFilters} from 'sentry/types/core';
 import type {
   BaseGroup,
   Group,
-  Organization,
-  PageFilters,
   PriorityLevel,
   SavedSearch,
   TagCollection,
-} from 'sentry/types';
-import {GroupStatus, IssueCategory} from 'sentry/types';
+} from 'sentry/types/group';
+import {GroupStatus, IssueCategory} from 'sentry/types/group';
+import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
+import type {Organization} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {browserHistory} from 'sentry/utils/browserHistory';
@@ -55,12 +56,13 @@ import {
 import {decodeScalar} from 'sentry/utils/queryString';
 import type {WithRouteAnalyticsProps} from 'sentry/utils/routeAnalytics/withRouteAnalytics';
 import withRouteAnalytics from 'sentry/utils/routeAnalytics/withRouteAnalytics';
+import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import withApi from 'sentry/utils/withApi';
-import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import withIssueTags from 'sentry/utils/withIssueTags';
 import withOrganization from 'sentry/utils/withOrganization';
 import withPageFilters from 'sentry/utils/withPageFilters';
 import withSavedSearches from 'sentry/utils/withSavedSearches';
+import CustomViewsIssueListHeader from 'sentry/views/issueList/customViewsHeader';
 import SavedIssueSearches from 'sentry/views/issueList/savedIssueSearches';
 import type {IssueUpdateData} from 'sentry/views/issueList/types';
 import {parseIssuePrioritySearch} from 'sentry/views/issueList/utils/parseIssuePrioritySearch';
@@ -321,7 +323,10 @@ class IssueListOverview extends Component<Props, State> {
     savedSearch,
     location,
   }: Pick<Props, 'savedSearch' | 'location'>): string {
-    if (savedSearch) {
+    if (
+      !this.props.organization.features.includes('issue-stream-custom-views') &&
+      savedSearch
+    ) {
       return savedSearch.query;
     }
 
@@ -466,8 +471,10 @@ class IssueListOverview extends Component<Props, State> {
   }
 
   fetchTags() {
-    const {api, organization, selection} = this.props;
-    loadOrganizationTags(api, organization.slug, selection);
+    if (!this.props.organization.features.includes('issue-stream-search-query-builder')) {
+      const {api, organization, selection} = this.props;
+      loadOrganizationTags(api, organization.slug, selection);
+    }
   }
 
   fetchStats = (groups: string[]) => {
@@ -1219,18 +1226,29 @@ class IssueListOverview extends Component<Props, State> {
 
     return (
       <Layout.Page>
-        <IssueListHeader
-          organization={organization}
-          query={query}
-          sort={this.getSort()}
-          queryCount={queryCount}
-          queryCounts={queryCounts}
-          realtimeActive={realtimeActive}
-          onRealtimeChange={this.onRealtimeChange}
-          router={router}
-          displayReprocessingTab={showReprocessingTab}
-          selectedProjectIds={selection.projects}
-        />
+        {organization.features.includes('issue-stream-custom-views') ? (
+          <ErrorBoundary message={'Failed to load custom tabs'}>
+            <CustomViewsIssueListHeader
+              organization={organization}
+              router={router}
+              selectedProjectIds={selection.projects}
+            />
+          </ErrorBoundary>
+        ) : (
+          <IssueListHeader
+            organization={organization}
+            query={query}
+            sort={this.getSort()}
+            queryCount={queryCount}
+            queryCounts={queryCounts}
+            realtimeActive={realtimeActive}
+            onRealtimeChange={this.onRealtimeChange}
+            router={router}
+            displayReprocessingTab={showReprocessingTab}
+            selectedProjectIds={selection.projects}
+          />
+        )}
+
         <StyledBody>
           <StyledMain>
             <DataConsentBanner source="issues" />

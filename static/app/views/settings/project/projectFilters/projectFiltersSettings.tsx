@@ -59,7 +59,7 @@ const filterDescriptions = {
       'Filter transactions that match most [commonNamingPatterns:common naming patterns] for health checks.',
       {
         commonNamingPatterns: (
-          <ExternalLink href="https://docs.sentry.io/product/data-management-settings/filtering/#transactions-coming-from-health-check" />
+          <ExternalLink href="https://docs.sentry.io/concepts/data-management/filtering/#transactions-coming-from-health-check" />
         ),
       }
     ),
@@ -405,7 +405,7 @@ export function ProjectFiltersSettings({project, params, features}: Props) {
 
   const {
     data: filterListData,
-    isLoading,
+    isPending,
     isError,
     refetch,
   } = useApiQuery<Filter[]>([`/projects/${organization.slug}/${projectSlug}/filters/`], {
@@ -433,7 +433,7 @@ export function ProjectFiltersSettings({project, params, features}: Props) {
     []
   );
 
-  if (isLoading) {
+  if (isPending) {
     return <LoadingIndicator />;
   }
 

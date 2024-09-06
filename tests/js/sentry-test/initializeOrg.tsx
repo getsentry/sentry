@@ -1,9 +1,13 @@
-import type {InjectedRouter, PlainRoute, RouteComponentProps} from 'react-router';
 import type {Location} from 'history';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
 import {RouterFixture} from 'sentry-fixture/routerFixture';
 
+import type {
+  InjectedRouter,
+  PlainRoute,
+  RouteComponentProps,
+} from 'sentry/types/legacyReactRouter';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 

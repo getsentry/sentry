@@ -16,11 +16,11 @@ from sentry.eventstore.models import Event, GroupEvent
 from sentry.models.eventattachment import EventAttachment
 from sentry.models.eventerror import EventError
 from sentry.models.release import Release
-from sentry.models.user import User
 from sentry.models.userreport import UserReport
 from sentry.sdk_updates import SdkSetupState, get_suggested_updates
 from sentry.search.utils import convert_user_tag_to_query, map_device_class_level
 from sentry.stacktraces.processing import find_stacktraces_in_data
+from sentry.users.models.user import User
 from sentry.utils.json import prune_empty_keys
 from sentry.utils.safe import get_path
 
@@ -217,7 +217,7 @@ class EventSerializer(Serializer):
             and ".frames." not in name
         )
 
-    def serialize(self, obj, attrs, user):
+    def serialize(self, obj, attrs, user, **kwargs):
         from sentry.api.serializers.rest_framework import convert_dict_key_case, snake_to_camel_case
 
         errors = [
@@ -468,10 +468,10 @@ class IssueEventSerializer(SqlFormatEventSerializer):
 
 
 class SharedEventSerializer(EventSerializer):
-    def get_attrs(self, item_list, user):
+    def get_attrs(self, item_list, user, **kwargs):
         return super().get_attrs(item_list, user, is_public=True)
 
-    def serialize(self, obj, attrs, user):
+    def serialize(self, obj, attrs, user, **kwargs):
         result = super().serialize(obj, attrs, user)
         del result["context"]
         del result["contexts"]
@@ -497,7 +497,7 @@ class SimpleEventSerializer(EventSerializer):
     organization event search API gets real slow.
     """
 
-    def get_attrs(self, item_list, user):
+    def get_attrs(self, item_list, user, **kwargs):
         crash_files = get_crash_files(item_list)
         serialized_files = {
             file.event_id: serialized
@@ -505,7 +505,7 @@ class SimpleEventSerializer(EventSerializer):
         }
         return {event: {"crash_file": serialized_files.get(event.event_id)} for event in item_list}
 
-    def serialize(self, obj, attrs, user):
+    def serialize(self, obj, attrs, user, **kwargs):
         tags = [{"key": key.split("sentry:", 1)[-1], "value": value} for key, value in obj.tags]
         for tag in tags:
             query = convert_user_tag_to_query(tag["key"], tag["value"])
@@ -542,7 +542,7 @@ class ExternalEventSerializer(EventSerializer):
     should be used for Integrations that need to include event data.
     """
 
-    def serialize(self, obj, attrs, user):
+    def serialize(self, obj, attrs, user, **kwargs):
         from sentry.notifications.utils import get_notification_group_title
 
         tags = [{"key": key.split("sentry:", 1)[-1], "value": value} for key, value in obj.tags]

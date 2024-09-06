@@ -9,8 +9,8 @@ import {useIssueDetailsColumnCount} from 'sentry/components/events/eventTags/uti
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {Project} from 'sentry/types';
 import type {Event, EventTag} from 'sentry/types/event';
+import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
 import {useDetailedProject} from 'sentry/utils/useDetailedProject';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -132,12 +132,12 @@ function TagTreeColumns({
   ...props
 }: EventTagsTreeProps & {columnCount: number}) {
   const organization = useOrganization();
-  const {data: project, isLoading} = useDetailedProject({
+  const {data: project, isPending} = useDetailedProject({
     orgSlug: organization.slug,
     projectSlug,
   });
   const assembledColumns = useMemo(() => {
-    if (isLoading) {
+    if (isPending) {
       return <TreeLoadingIndicator hideMessage />;
     }
 
@@ -190,7 +190,7 @@ function TagTreeColumns({
       {startIndex: 0, runningTotal: 0, columns: []}
     );
     return data.columns;
-  }, [columnCount, isLoading, project, props, tags, meta]);
+  }, [columnCount, isPending, project, props, tags, meta]);
 
   return <Fragment>{assembledColumns}</Fragment>;
 }

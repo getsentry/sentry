@@ -6,9 +6,9 @@ from rest_framework.response import Response
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import control_silo_endpoint
-from sentry.api.bases.integration import IntegrationEndpoint
+from sentry.integrations.api.bases.integration import IntegrationEndpoint
 from sentry.integrations.bitbucket.integration import BitbucketIntegration
-from sentry.models.integrations.integration import Integration
+from sentry.integrations.models.integration import Integration
 from sentry.shared_integrations.exceptions import ApiError
 
 logger = logging.getLogger("sentry.integrations.bitbucket")
@@ -18,7 +18,7 @@ logger = logging.getLogger("sentry.integrations.bitbucket")
 class BitbucketSearchEndpoint(IntegrationEndpoint):
     owner = ApiOwner.INTEGRATIONS
     publish_status = {
-        "GET": ApiPublishStatus.UNKNOWN,
+        "GET": ApiPublishStatus.PRIVATE,
     }
 
     def get(self, request: Request, organization, integration_id, **kwds) -> Response:
@@ -48,7 +48,7 @@ class BitbucketSearchEndpoint(IntegrationEndpoint):
 
             full_query = f'title~"{query}"'
             try:
-                resp = installation.get_client().search_issues(repo, full_query)
+                resp = installation.search_issues(query=full_query, repo=repo)
             except ApiError as e:
                 if "no issue tracker" in str(e):
                     logger.info(

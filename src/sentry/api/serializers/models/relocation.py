@@ -7,7 +7,7 @@ from django.db.models import QuerySet
 from sentry.api.serializers import Serializer, register
 from sentry.models.importchunk import BaseImportChunk, ControlImportChunkReplica, RegionImportChunk
 from sentry.models.relocation import Relocation
-from sentry.models.user import User
+from sentry.users.models.user import User
 from sentry.users.services.user.model import RpcUser
 from sentry.users.services.user.service import user_service
 
@@ -96,6 +96,7 @@ class RelocationSerializer(Serializer):
             "owner": owner,
             "status": Relocation.Status(obj.status).name,
             "step": Relocation.Step(obj.step).name,
+            "provenance": Relocation.Provenance(obj.provenance).name,
             "failureReason": obj.failure_reason,
             "scheduledPauseAtStep": scheduled_at_pause_step,
             "scheduledCancelAtStep": scheduled_at_cancel_step,

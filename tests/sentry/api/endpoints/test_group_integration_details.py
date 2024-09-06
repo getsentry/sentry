@@ -1,9 +1,9 @@
 from unittest import mock
 
 from sentry.integrations.example.integration import ExampleIntegration
+from sentry.integrations.models.external_issue import ExternalIssue
 from sentry.models.activity import Activity
 from sentry.models.grouplink import GroupLink
-from sentry.models.integrations.external_issue import ExternalIssue
 from sentry.shared_integrations.exceptions import IntegrationError
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.factories import EventType

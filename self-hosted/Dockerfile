@@ -1,4 +1,4 @@
-FROM python:3.11.8-slim-bookworm
+FROM python:3.12.3-slim-bookworm
 
 LABEL maintainer="oss@sentry.io"
 LABEL org.opencontainers.image.title="Sentry"
@@ -48,11 +48,10 @@ ENV \
 # Install dependencies first to leverage Docker layer caching.
 COPY requirements-frozen.txt /tmp/requirements-frozen.txt
 RUN set -x \
-  && buildDeps="" \
   # uwsgi-dogstatsd
-  && buildDeps="$buildDeps \
+  && buildDeps=" \
   gcc \
-  libpcre3-dev \
+  libpcre2-dev \
   wget \
   zlib1g-dev \
   " \

@@ -1,5 +1,8 @@
+from __future__ import annotations
+
 import logging
 from collections.abc import Iterable
+from typing import NotRequired, TypedDict
 
 from django.db.models.query import QuerySet
 from django.http import Http404, HttpResponse, StreamingHttpResponse
@@ -36,9 +39,18 @@ RELEASE_BUNDLE_TYPE = "release.bundle"
 MAX_RELEASEFILES_QUERY = 10
 
 
+class _Artifact(TypedDict):
+    id: str
+    type: str
+    url: str
+    resolved_with: str
+    abs_path: NotRequired[str]
+    headers: NotRequired[dict[str, object]]
+
+
 @region_silo_endpoint
 class ProjectArtifactLookupEndpoint(ProjectEndpoint):
-    owner = ApiOwner.PROCESSING
+    owner = ApiOwner.OWNERS_INGEST
     publish_status = {
         "GET": ApiPublishStatus.PRIVATE,
     }
@@ -155,7 +167,7 @@ class ProjectArtifactLookupEndpoint(ProjectEndpoint):
         # Then: Construct our response
         url_constructor = UrlConstructor(request, project)
 
-        found_artifacts = []
+        found_artifacts: list[_Artifact] = []
         for download_id, resolved_with in all_bundles.items():
             found_artifacts.append(
                 {

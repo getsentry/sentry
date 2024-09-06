@@ -3,8 +3,8 @@ import {useCallback} from 'react';
 
 import {useReplayContext} from 'sentry/components/replays/replayContext';
 import divide from 'sentry/utils/number/divide';
-import useMouseTracking from 'sentry/utils/replays/hooks/useMouseTracking';
 import useCurrentHoverTime from 'sentry/utils/replays/playback/providers/useCurrentHoverTime';
+import useMouseTracking from 'sentry/utils/useMouseTracking';
 
 type Opts<T extends Element> = {
   elem: RefObject<T>;

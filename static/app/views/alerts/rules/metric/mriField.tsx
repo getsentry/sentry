@@ -163,8 +163,8 @@ function MriField({aggregate, project, onChange}: Props) {
         options={operationOptions}
         value={selectedValues?.aggregation}
         onChange={option => {
-          if (selectedValues?.aggregation) {
-            onChange(MRIToField(option.value, selectedValues?.aggregation), {});
+          if (selectedMriOption?.value) {
+            onChange(MRIToField(selectedMriOption.value, option.value), {});
           }
         }}
       />

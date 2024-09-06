@@ -1,5 +1,5 @@
 import type {ReactNode} from 'react';
-import {duration} from 'moment';
+import {duration} from 'moment-timezone';
 import {
   ReplayConsoleEventFixture,
   ReplayNavigateEventFixture,
@@ -29,6 +29,7 @@ jest.mocked(useProjects).mockReturnValue({
   hasMore: false,
   initiallyLoaded: true,
   onSearch: () => Promise.resolve(),
+  reloadProjects: jest.fn(),
   placeholders: [],
 });
 

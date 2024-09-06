@@ -113,7 +113,7 @@ class OpsgenieNotifyTeamForm(forms.Form):
             raise forms.ValidationError(
                 _(
                     'The provided API key is invalid. Please make sure that the Opsgenie API \
-                  key is an integration key of type "Sentry".'
+                  key is an integration key of type "Sentry" that has configuration access.'
                 ),
                 code="invalid_key",
                 params=params,

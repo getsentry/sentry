@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import hashlib
-import random
 from collections.abc import Callable, Iterable
 from typing import Any, ClassVar
 
@@ -35,9 +34,9 @@ from sentry.models.orgauthtoken import (
 )
 from sentry.models.projectkey import ProjectKey
 from sentry.models.relay import Relay
-from sentry.models.user import User
 from sentry.relay.utils import get_header_relay_id, get_header_relay_signature
 from sentry.silo.base import SiloLimit, SiloMode
+from sentry.users.models.user import User
 from sentry.users.services.user import RpcUser
 from sentry.users.services.user.service import user_service
 from sentry.utils.linksign import process_signature
@@ -107,7 +106,7 @@ def is_static_relay(request):
     return relay_info is not None
 
 
-def relay_from_id(request, relay_id) -> tuple[Relay | None, bool]:
+def relay_from_id(request: Request, relay_id: str) -> tuple[Relay | None, bool]:
     """
     Tries to find a Relay for a given id
     If the id is statically registered than no DB access will be done.
@@ -132,7 +131,6 @@ def relay_from_id(request, relay_id) -> tuple[Relay | None, bool]:
     else:
         try:
             relay = Relay.objects.get(relay_id=relay_id)
-            relay.is_internal = is_internal_relay(request, relay.public_key)
             return relay, False  # a Relay from the database
         except Relay.DoesNotExist:
             return None, False  # no Relay found
@@ -210,13 +208,21 @@ class RelayAuthentication(BasicAuthentication):
             raise AuthenticationFailed("Missing relay signature")
         return self.authenticate_credentials(relay_id, relay_sig, request)
 
-    def authenticate_credentials(self, relay_id, relay_sig, request):
+    def authenticate_credentials(
+        self, relay_id: str, relay_sig: str, request=None
+    ) -> tuple[AnonymousUser, None]:
         Scope.get_isolation_scope().set_tag("relay_id", relay_id)
+
+        if request is None:
+            raise AuthenticationFailed("missing request")
 
         relay, static = relay_from_id(request, relay_id)
 
         if relay is None:
             raise AuthenticationFailed("Unknown relay")
+
+        if not static:
+            relay.is_internal = is_internal_relay(request, relay.public_key)
 
         try:
             data = relay.public_key_object.unpack(request.body, relay_sig, max_age=60 * 5)
@@ -310,17 +316,6 @@ class ClientIdSecretAuthentication(QuietBasicAuthentication):
         return self.transform_auth(user_id, None)
 
 
-class TokenStrLookupRequired(Exception):
-    """
-    Used in combination with `apitoken.use-and-update-hash-rate` option.
-
-    If raised, calling code should peform API token lookups based on its
-    plaintext value and not its hashed value.
-    """
-
-    pass
-
-
 @AuthenticationSiloLimit(SiloMode.REGION, SiloMode.CONTROL)
 class UserAuthTokenAuthentication(StandardAuthentication):
     token_name = b"bearer"
@@ -342,18 +337,11 @@ class UserAuthTokenAuthentication(StandardAuthentication):
 
         hashed_token = hashlib.sha256(token_str.encode()).hexdigest()
 
-        rate = options.get("apitoken.use-and-update-hash-rate")
-        random_rate = random.random()
-        use_hashed_token = rate > random_rate
-
         if SiloMode.get_current_mode() == SiloMode.REGION:
             try:
-                if use_hashed_token:
-                    # Try to find the token by its hashed value first
-                    return ApiTokenReplica.objects.get(hashed_token=hashed_token)
-                else:
-                    raise TokenStrLookupRequired
-            except (ApiTokenReplica.DoesNotExist, TokenStrLookupRequired):
+                # Try to find the token by its hashed value first
+                return ApiTokenReplica.objects.get(hashed_token=hashed_token)
+            except ApiTokenReplica.DoesNotExist:
                 try:
                     # If we can't find it by hash, use the plaintext string
                     return ApiTokenReplica.objects.get(token=token_str)
@@ -363,13 +351,10 @@ class UserAuthTokenAuthentication(StandardAuthentication):
         else:
             try:
                 # Try to find the token by its hashed value first
-                if use_hashed_token:
-                    return ApiToken.objects.select_related("user", "application").get(
-                        hashed_token=hashed_token
-                    )
-                else:
-                    raise TokenStrLookupRequired
-            except (ApiToken.DoesNotExist, TokenStrLookupRequired):
+                return ApiToken.objects.select_related("user", "application").get(
+                    hashed_token=hashed_token
+                )
+            except ApiToken.DoesNotExist:
                 try:
                     # If we can't find it by hash, use the plaintext string
                     api_token = ApiToken.objects.select_related("user", "application").get(
@@ -379,10 +364,9 @@ class UserAuthTokenAuthentication(StandardAuthentication):
                     # If the token does not exist by plaintext either, it is not a valid token
                     raise AuthenticationFailed("Invalid token")
                 else:
-                    if use_hashed_token:
-                        # Update it with the hashed value if found by plaintext
-                        api_token.hashed_token = hashed_token
-                        api_token.save(update_fields=["hashed_token"])
+                    # Update it with the hashed value if found by plaintext
+                    api_token.hashed_token = hashed_token
+                    api_token.save(update_fields=["hashed_token"])
 
                     return api_token
 
@@ -399,7 +383,7 @@ class UserAuthTokenAuthentication(StandardAuthentication):
         return not token_str.startswith(SENTRY_ORG_AUTH_TOKEN_PREFIX)
 
     def authenticate_token(self, request: Request, token_str: str) -> tuple[Any, Any]:
-        user: AnonymousUser | RpcUser | None = AnonymousUser()
+        user: AnonymousUser | User | RpcUser | None = AnonymousUser()
 
         token: SystemToken | ApiTokenReplica | ApiToken | None = SystemToken.from_request(
             request, token_str
@@ -474,7 +458,11 @@ class OrgAuthTokenAuthentication(StandardAuthentication):
                 raise AuthenticationFailed("Invalid org token")
 
         return self.transform_auth(
-            None, token, "api_token", api_token_type=self.token_name, api_token_is_org_token=True
+            None,
+            token,
+            "api_token",
+            api_token_type=self.token_name,
+            api_token_is_org_token=True,
         )
 
 

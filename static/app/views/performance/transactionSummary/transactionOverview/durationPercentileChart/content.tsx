@@ -4,7 +4,7 @@ import type {Location} from 'history';
 import ErrorPanel from 'sentry/components/charts/errorPanel';
 import LoadingPanel from 'sentry/components/charts/loadingPanel';
 import {IconWarning} from 'sentry/icons';
-import type {OrganizationSummary} from 'sentry/types';
+import type {OrganizationSummary} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
 import EventView from 'sentry/utils/discover/eventView';
 import {useApiQuery} from 'sentry/utils/queryClient';
@@ -68,7 +68,7 @@ function Content({
 
   const {
     data: chartData,
-    isLoading,
+    isPending,
     isError,
   } = useApiQuery<{data: ApiResult[]}>(
     [`/organizations/${organization.slug}/events/`, {query: apiPayload}],
@@ -85,7 +85,7 @@ function Content({
     );
   }
 
-  if (isLoading) {
+  if (isPending) {
     return <LoadingPanel data-test-id="histogram-loading" />;
   }
 

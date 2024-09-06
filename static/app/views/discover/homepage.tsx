@@ -1,4 +1,3 @@
-import type {InjectedRouter} from 'react-router';
 import type {Location} from 'history';
 
 import type {Client} from 'sentry/api';
@@ -9,7 +8,9 @@ import {
   normalizeDateTimeString,
 } from 'sentry/components/organizations/pageFilters/parse';
 import {getPageFilterStorage} from 'sentry/components/organizations/pageFilters/persistence';
-import type {Organization, PageFilters, SavedQuery} from 'sentry/types';
+import type {PageFilters} from 'sentry/types/core';
+import type {InjectedRouter} from 'sentry/types/legacyReactRouter';
+import type {Organization, SavedQuery} from 'sentry/types/organization';
 import {browserHistory} from 'sentry/utils/browserHistory';
 import EventView from 'sentry/utils/discover/eventView';
 import withApi from 'sentry/utils/withApi';
@@ -78,7 +79,10 @@ class HomepageQueryAPI extends DeprecatedAsyncComponent<Props, HomepageQueryStat
 
       browserHistory.replace({
         ...this.props.location,
-        query,
+        query: {
+          ...query,
+          queryDataset: this.state.savedQuery?.queryDataset,
+        },
       });
     }
   }
@@ -97,30 +101,39 @@ class HomepageQueryAPI extends DeprecatedAsyncComponent<Props, HomepageQueryStat
   }
 
   onRequestSuccess({stateKey, data}) {
+    const {organization} = this.props;
     // No homepage query results in a 204, returning an empty string
     if (stateKey === 'savedQuery' && data === '') {
       this.setState({savedQuery: null});
+      return;
+    }
+    if (stateKey === 'savedQuery') {
+      this.setState({
+        savedQuery: organization.features.includes(
+          'performance-discover-dataset-selector'
+        )
+          ? getSavedQueryWithDataset(data)
+          : data,
+      });
     }
   }
 
   setSavedQuery = (newSavedQuery?: SavedQuery) => {
-    this.setState({savedQuery: newSavedQuery});
+    const {organization} = this.props;
+    this.setState({
+      savedQuery: organization.features.includes('performance-discover-dataset-selector')
+        ? (getSavedQueryWithDataset(newSavedQuery) as SavedQuery)
+        : newSavedQuery,
+    });
   };
 
   renderBody(): React.ReactNode {
     const {savedQuery, loading} = this.state;
-    const {organization} = this.props;
-    let savedQueryWithDataset = savedQuery;
-    if (
-      organization.features.includes('performance-discover-dataset-selector') &&
-      savedQuery
-    ) {
-      savedQueryWithDataset = getSavedQueryWithDataset(savedQuery);
-    }
+
     return (
       <Results
         {...this.props}
-        savedQuery={savedQueryWithDataset ?? undefined}
+        savedQuery={savedQuery ?? undefined}
         loading={loading}
         setSavedQuery={this.setSavedQuery}
         isHomepage

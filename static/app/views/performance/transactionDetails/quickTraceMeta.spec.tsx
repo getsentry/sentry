@@ -27,6 +27,7 @@ describe('QuickTraceMeta', function () {
     transactions: 0,
     errors: 0,
     performance_issues: 0,
+    transactiontoSpanChildrenCount: {},
   };
 
   it('renders basic UI', function () {
@@ -121,6 +122,7 @@ describe('QuickTraceMeta', function () {
           transactions: 1,
           errors: 0,
           performance_issues: 0,
+          transactiontoSpanChildrenCount: {},
         }}
         anchor="left"
         errorDest="issue"
@@ -180,9 +182,7 @@ describe('QuickTraceMeta', function () {
       throw new Error('child is null');
     }
     await userEvent.hover(child as HTMLElement);
-    expect(
-      await screen.findByText('Requires performance monitoring.')
-    ).toBeInTheDocument();
+    expect(await screen.findByText('Requires tracing.')).toBeInTheDocument();
   });
 
   it('does not render when platform does not support tracing', function () {

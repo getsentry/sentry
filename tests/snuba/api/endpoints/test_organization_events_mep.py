@@ -5,7 +5,7 @@ import pytest
 from django.urls import reverse
 from rest_framework.response import Response
 
-from sentry.discover.models import TeamKeyTransaction
+from sentry.discover.models import DatasetSourcesTypes, TeamKeyTransaction
 from sentry.models.dashboard_widget import DashboardWidgetTypes
 from sentry.models.projectteam import ProjectTeam
 from sentry.models.transaction_threshold import (
@@ -3458,6 +3458,252 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
         )
         assert response.status_code == 400, response.content
 
+    def test_cache_miss_rate(self):
+        self.store_span_metric(
+            1,
+            timestamp=self.min_ago,
+            tags={"cache.hit": "true"},
+        )
+        self.store_span_metric(
+            1,
+            timestamp=self.min_ago,
+            tags={"cache.hit": "false"},
+        )
+        self.store_span_metric(
+            1,
+            timestamp=self.min_ago,
+            tags={"cache.hit": "false"},
+        )
+        self.store_span_metric(
+            1,
+            timestamp=self.min_ago,
+            tags={"cache.hit": "false"},
+        )
+        response = self.do_request(
+            {
+                "field": ["cache_miss_rate()"],
+                "query": "",
+                "project": self.project.id,
+                "dataset": "metrics",
+            }
+        )
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+        meta = response.data["meta"]
+        assert len(data) == 1
+        assert data[0]["cache_miss_rate()"] == 0.75
+        assert meta["dataset"] == "metrics"
+        assert meta["fields"]["cache_miss_rate()"] == "percentage"
+
+    def test_http_response_rate(self):
+        self.store_span_metric(
+            1,
+            timestamp=self.min_ago,
+            tags={"span.status_code": "200"},
+        )
+
+        self.store_span_metric(
+            3,
+            timestamp=self.min_ago,
+            tags={"span.status_code": "301"},
+        )
+
+        self.store_span_metric(
+            3,
+            timestamp=self.min_ago,
+            tags={"span.status_code": "404"},
+        )
+
+        self.store_span_metric(
+            4,
+            timestamp=self.min_ago,
+            tags={"span.status_code": "503"},
+        )
+
+        self.store_span_metric(
+            5,
+            timestamp=self.min_ago,
+            tags={"span.status_code": "501"},
+        )
+
+        response = self.do_request(
+            {
+                "field": [
+                    "http_response_rate(200)",  # By exact code
+                    "http_response_rate(3)",  # By code class
+                    "http_response_rate(4)",
+                    "http_response_rate(5)",
+                ],
+                "query": "",
+                "project": self.project.id,
+                "dataset": "metrics",
+            }
+        )
+
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+        assert len(data) == 1
+        assert data[0]["http_response_rate(200)"] == 0.2
+        assert data[0]["http_response_rate(3)"] == 0.2
+        assert data[0]["http_response_rate(4)"] == 0.2
+        assert data[0]["http_response_rate(5)"] == 0.4
+
+        meta = response.data["meta"]
+        assert meta["dataset"] == "metrics"
+        assert meta["fields"]["http_response_rate(200)"] == "percentage"
+
+    def test_avg_span_self_time(self):
+        self.store_span_metric(
+            1,
+            timestamp=self.min_ago,
+        )
+
+        self.store_span_metric(
+            3,
+            timestamp=self.min_ago,
+        )
+
+        self.store_span_metric(
+            3,
+            timestamp=self.min_ago,
+        )
+
+        self.store_span_metric(
+            4,
+            timestamp=self.min_ago,
+        )
+
+        self.store_span_metric(
+            5,
+            timestamp=self.min_ago,
+        )
+
+        response = self.do_request(
+            {
+                "field": [
+                    "avg(span.self_time)",
+                ],
+                "query": "",
+                "project": self.project.id,
+                "dataset": "metrics",
+            }
+        )
+
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+        assert len(data) == 1
+        assert data[0]["avg(span.self_time)"] == 3.2
+
+    def test_avg_message_receive_latency(self):
+        self.store_span_metric(
+            {
+                "min": 5,
+                "max": 5,
+                "sum": 5,
+                "count": 1,
+                "last": 5,
+            },
+            internal_metric=constants.SPAN_MESSAGING_LATENCY,
+            timestamp=self.min_ago,
+            entity="metrics_gauges",
+        )
+        self.store_span_metric(
+            {
+                "min": 15,
+                "max": 15,
+                "sum": 15,
+                "count": 1,
+                "last": 15,
+            },
+            internal_metric=constants.SPAN_MESSAGING_LATENCY,
+            timestamp=self.min_ago,
+            entity="metrics_gauges",
+        )
+
+        response = self.do_request(
+            {
+                "field": [
+                    "avg(messaging.message.receive.latency)",
+                ],
+                "query": "",
+                "project": self.project.id,
+                "dataset": "metrics",
+            }
+        )
+
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+        assert len(data) == 1
+        assert data[0]["avg(messaging.message.receive.latency)"] == 10.0
+
+        response = self.do_request(
+            {
+                "field": [
+                    "avg(g:spans/messaging.message.receive.latency@millisecond)",
+                ],
+                "query": "",
+                "project": self.project.id,
+                "dataset": "metrics",
+            }
+        )
+
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+        assert len(data) == 1
+        assert data[0]["avg(g:spans/messaging.message.receive.latency@millisecond)"] == 10.0
+
+    def test_span_module_filter(self):
+        self.store_span_metric(
+            1,
+            timestamp=self.min_ago,
+            tags={"span.category": "db", "span.op": "db.redis"},
+        )
+        self.store_span_metric(
+            4,
+            timestamp=self.min_ago,
+            tags={"span.category": "cache"},
+        )
+        self.store_span_metric(
+            4,
+            timestamp=self.min_ago,
+            tags={"span.category": "db", "span.op": "db.sql.room"},
+        )
+        self.store_span_metric(
+            2,
+            timestamp=self.min_ago,
+            tags={"span.category": "db"},
+        )
+        self.store_span_metric(
+            3,
+            timestamp=self.min_ago,
+            tags={"span.category": "http"},
+        )
+
+        response = self.do_request(
+            {
+                "field": [
+                    "span.description",
+                    "span.module",
+                    "avg(span.self_time)",
+                ],
+                "orderby": "avg(span.self_time)",
+                "query": "span.module:[db, cache, other]",
+                "project": self.project.id,
+                "dataset": "metrics",
+            }
+        )
+
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+        assert len(data) == 3
+
+        assert data[0]["span.module"] == "db"
+        assert data[0]["avg(span.self_time)"] == 2
+        assert data[1]["span.module"] == "cache"
+        assert data[1]["avg(span.self_time)"] == 2.5
+        assert data[2]["span.module"] == "other"
+        assert data[2]["avg(span.self_time)"] == 4
+
 
 class OrganizationEventsMetricsEnhancedPerformanceEndpointTestWithOnDemandMetrics(
     MetricsEnhancedPerformanceTestCase
@@ -3649,6 +3895,148 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTestWithOnDemandMetric
         self._assert_on_demand_response(response, expected_on_demand_query=True)
         assert response.data["data"] == [{"count_unique(user)": 2}]
 
+    def test_split_decision_for_errors_widget(self):
+        error_data = load_data("python", timestamp=before_now(minutes=1))
+        self.store_event(
+            data={
+                **error_data,
+                "exception": {"values": [{"type": "blah", "data": {"values": []}}]},
+            },
+            project_id=self.project.id,
+        )
+        _, widget, __ = create_widget(
+            ["count()", "error.type"], "error.type:blah", self.project, discover_widget_split=None
+        )
+
+        response = self.do_request(
+            {
+                "field": ["count()", "error.type"],
+                "query": "error.type:blah",
+                "dataset": "metricsEnhanced",
+                "per_page": 50,
+                "dashboardWidgetId": widget.id,
+            }
+        )
+
+        assert response.status_code == 200, response.content
+        assert response.data.get("meta").get(
+            "discoverSplitDecision"
+        ) is DashboardWidgetTypes.get_type_name(DashboardWidgetTypes.ERROR_EVENTS)
+
+        widget.refresh_from_db()
+        assert widget.discover_widget_split == DashboardWidgetTypes.ERROR_EVENTS
+        assert widget.dataset_source == DatasetSourcesTypes.INFERRED.value
+
+    def test_split_decision_for_transactions_widget(self):
+        transaction_data = load_data("transaction", timestamp=before_now(minutes=1))
+        self.store_event(
+            data={
+                **transaction_data,
+            },
+            project_id=self.project.id,
+        )
+        _, widget, __ = create_widget(
+            ["count()", "transaction.name"], "", self.project, discover_widget_split=None
+        )
+
+        assert widget.discover_widget_split is None
+
+        response = self.do_request(
+            {
+                "field": ["count()", "transaction.name"],
+                "query": "",
+                "dataset": "metricsEnhanced",
+                "per_page": 50,
+                "dashboardWidgetId": widget.id,
+            }
+        )
+
+        assert response.status_code == 200, response.content
+        assert response.data.get("meta").get(
+            "discoverSplitDecision"
+        ) is DashboardWidgetTypes.get_type_name(DashboardWidgetTypes.TRANSACTION_LIKE)
+
+        widget.refresh_from_db()
+        assert widget.discover_widget_split == DashboardWidgetTypes.TRANSACTION_LIKE
+        assert widget.dataset_source == DatasetSourcesTypes.INFERRED.value
+
+    def test_split_decision_for_ambiguous_widget_without_data(self):
+        _, widget, __ = create_widget(
+            ["count()", "transaction.name", "error.type"],
+            "",
+            self.project,
+            discover_widget_split=None,
+        )
+        assert widget.discover_widget_split is None
+
+        response = self.do_request(
+            {
+                "field": ["count()", "transaction.op", "error.type"],
+                "query": "",
+                "dataset": "metricsEnhanced",
+                "per_page": 50,
+                "dashboardWidgetId": widget.id,
+            },
+            features={"organizations:performance-discover-dataset-selector": True},
+        )
+
+        assert response.status_code == 200, response.content
+        assert response.data.get("meta").get(
+            "discoverSplitDecision"
+        ) == DashboardWidgetTypes.get_type_name(DashboardWidgetTypes.ERROR_EVENTS)
+
+        widget.refresh_from_db()
+        assert widget.discover_widget_split == DashboardWidgetTypes.ERROR_EVENTS
+        assert widget.dataset_source == DatasetSourcesTypes.FORCED.value
+
+    def test_split_decision_for_ambiguous_widget_with_data(self):
+        # Store a transaction
+        transaction_data = load_data("transaction", timestamp=before_now(minutes=1))
+        self.store_event(
+            data={
+                **transaction_data,
+            },
+            project_id=self.project.id,
+        )
+
+        # Store an event
+        error_data = load_data("python", timestamp=before_now(minutes=1))
+        self.store_event(
+            data={
+                **error_data,
+                "exception": {"values": [{"type": "blah", "data": {"values": []}}]},
+            },
+            project_id=self.project.id,
+        )
+
+        _, widget, __ = create_widget(
+            ["count()"],
+            "",
+            self.project,
+            discover_widget_split=None,
+        )
+        assert widget.discover_widget_split is None
+
+        response = self.do_request(
+            {
+                "field": ["count()"],
+                "query": "",
+                "dataset": "metricsEnhanced",
+                "per_page": 50,
+                "dashboardWidgetId": widget.id,
+            },
+            features={"organizations:performance-discover-dataset-selector": True},
+        )
+
+        assert response.status_code == 200, response.content
+        assert response.data.get("meta").get(
+            "discoverSplitDecision"
+        ) == DashboardWidgetTypes.get_type_name(DashboardWidgetTypes.ERROR_EVENTS)
+
+        widget.refresh_from_db()
+        assert widget.discover_widget_split == DashboardWidgetTypes.ERROR_EVENTS
+        assert widget.dataset_source == DatasetSourcesTypes.FORCED.value
+
     @mock.patch("sentry.snuba.errors.query")
     def test_errors_request_made_for_saved_error_dashboard_widget_type(self, mock_errors_query):
         mock_errors_query.return_value = {
@@ -3703,130 +4091,6 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTestWithOnDemandMetric
 
         assert response.status_code == 200, response.content
         mock_mep_query.assert_called_once()
-
-    def test_split_decision_for_errors_widget(self):
-        error_data = load_data("python", timestamp=before_now(minutes=1))
-        self.store_event(
-            data={
-                **error_data,
-                "exception": {"values": [{"type": "blah", "data": {"values": []}}]},
-            },
-            project_id=self.project.id,
-        )
-        _, widget, __ = create_widget(
-            ["count()", "error.type"], "error.type:blah", self.project, discover_widget_split=None
-        )
-
-        response = self.do_request(
-            {
-                "field": ["count()", "error.type"],
-                "query": "error.type:blah",
-                "dataset": "metricsEnhanced",
-                "per_page": 50,
-                "dashboardWidgetId": widget.id,
-            }
-        )
-
-        assert response.status_code == 200, response.content
-
-        widget.refresh_from_db()
-        assert widget.discover_widget_split == DashboardWidgetTypes.ERROR_EVENTS
-
-    def test_split_decision_for_transactions_widget(self):
-        transaction_data = load_data("transaction", timestamp=before_now(minutes=1))
-        self.store_event(
-            data={
-                **transaction_data,
-            },
-            project_id=self.project.id,
-        )
-        _, widget, __ = create_widget(
-            ["count()", "transaction.name"], "", self.project, discover_widget_split=None
-        )
-
-        assert widget.discover_widget_split is None
-
-        response = self.do_request(
-            {
-                "field": ["count()", "transaction.name"],
-                "query": "",
-                "dataset": "metricsEnhanced",
-                "per_page": 50,
-                "dashboardWidgetId": widget.id,
-            }
-        )
-
-        assert response.status_code == 200, response.content
-
-        widget.refresh_from_db()
-        assert widget.discover_widget_split == DashboardWidgetTypes.TRANSACTION_LIKE
-
-    def test_split_decision_for_ambiguous_widget_without_data(self):
-        _, widget, __ = create_widget(
-            ["count()", "transaction.name", "error.type"],
-            "",
-            self.project,
-            discover_widget_split=None,
-        )
-        assert widget.discover_widget_split is None
-
-        response = self.do_request(
-            {
-                "field": ["count()", "transaction.name", "error.type"],
-                "query": "",
-                "dataset": "metricsEnhanced",
-                "per_page": 50,
-                "dashboardWidgetId": widget.id,
-            }
-        )
-
-        assert response.status_code == 200, response.content
-
-        widget.refresh_from_db()
-        assert widget.discover_widget_split is None
-
-    def test_split_decision_for_ambiguous_widget_with_data(self):
-        # Store a transaction
-        transaction_data = load_data("transaction", timestamp=before_now(minutes=1))
-        self.store_event(
-            data={
-                **transaction_data,
-            },
-            project_id=self.project.id,
-        )
-
-        # Store an event
-        error_data = load_data("python", timestamp=before_now(minutes=1))
-        self.store_event(
-            data={
-                **error_data,
-                "exception": {"values": [{"type": "blah", "data": {"values": []}}]},
-            },
-            project_id=self.project.id,
-        )
-
-        _, widget, __ = create_widget(
-            ["count()"],
-            "",
-            self.project,
-            discover_widget_split=None,
-        )
-        assert widget.discover_widget_split is None
-
-        response = self.do_request(
-            {
-                "field": ["count()"],
-                "query": "",
-                "dataset": "metricsEnhanced",
-                "per_page": 50,
-                "dashboardWidgetId": widget.id,
-            }
-        )
-
-        assert response.status_code == 200, response.content
-
-        widget.refresh_from_db()
-        assert widget.discover_widget_split is DashboardWidgetTypes.DISCOVER
 
 
 class OrganizationEventsMetricsEnhancedPerformanceEndpointTestWithMetricLayer(
@@ -3928,3 +4192,23 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTestWithMetricLayer(
     @pytest.mark.xfail(reason="Not implemented")
     def test_on_demand_with_mep(self):
         super().test_on_demand_with_mep()
+
+    @pytest.mark.xfail(reason="Not implemented")
+    def test_cache_miss_rate(self):
+        super().test_cache_miss_rate()
+
+    @pytest.mark.xfail(reason="Not implemented")
+    def test_http_response_rate(self):
+        super().test_http_response_rate()
+
+    @pytest.mark.xfail(reason="Not implemented")
+    def test_avg_span_self_time(self):
+        super().test_avg_span_self_time()
+
+    @pytest.mark.xfail(reason="Not implemented")
+    def test_avg_message_receive_latency(self):
+        super().test_avg_message_receive_latency()
+
+    @pytest.mark.xfail(reason="Not implemented")
+    def test_span_module_filter(self):
+        super().test_span_module_filter()

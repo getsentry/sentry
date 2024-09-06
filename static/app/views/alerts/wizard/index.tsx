@@ -1,9 +1,9 @@
 import {useState} from 'react';
-import type {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 
 import Feature from 'sentry/components/acl/feature';
 import FeatureDisabled from 'sentry/components/acl/featureDisabled';
+import FeatureBadge from 'sentry/components/badge/featureBadge';
 import CreateAlertButton from 'sentry/components/createAlertButton';
 import {Hovercard} from 'sentry/components/hovercard';
 import * as Layout from 'sentry/components/layouts/thirds';
@@ -16,6 +16,7 @@ import PanelHeader from 'sentry/components/panels/panelHeader';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import BuilderBreadCrumbs from 'sentry/views/alerts/builder/builderBreadCrumbs';
@@ -60,10 +61,8 @@ function AlertWizard({organization, params, location, projectId}: AlertWizardPro
     const isMetricAlert = !!metricRuleTemplate;
     const isTransactionDataset = metricRuleTemplate?.dataset === Dataset.TRANSACTIONS;
 
-    if (
-      organization.features.includes('alert-crash-free-metrics') &&
-      metricRuleTemplate?.dataset === Dataset.SESSIONS
-    ) {
+    // If theres anything using the legacy sessions dataset, we need to convert it to metrics
+    if (metricRuleTemplate?.dataset === Dataset.SESSIONS) {
       metricRuleTemplate = {...metricRuleTemplate, dataset: Dataset.METRICS};
     }
 
@@ -158,11 +157,17 @@ function AlertWizard({organization, params, location, projectId}: AlertWizardPro
                 ({categoryHeading, options}) => (
                   <div key={categoryHeading}>
                     <CategoryTitle>{categoryHeading} </CategoryTitle>
-                    <RadioPanelGroup
+                    <WizardGroupedOptions
                       choices={options.map(alertType => {
-                        return [alertType, AlertWizardAlertNames[alertType]];
+                        return [
+                          alertType,
+                          AlertWizardAlertNames[alertType],
+                          alertType === 'insights_metrics' ? (
+                            <FeatureBadge type="alpha" />
+                          ) : null,
+                        ];
                       })}
-                      onChange={handleChangeAlertOption}
+                      onChange={option => handleChangeAlertOption(option as AlertType)}
                       value={alertOption}
                       label="alert-option"
                     />
@@ -287,6 +292,12 @@ const WizardButtonContainer = styled('div')`
   justify-content: flex-end;
   a:not(:last-child) {
     margin-right: ${space(1)};
+  }
+`;
+
+const WizardGroupedOptions = styled(RadioPanelGroup)`
+  label {
+    grid-template-columns: repeat(3, max-content);
   }
 `;
 

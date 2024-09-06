@@ -53,6 +53,16 @@ class TestEnvRegionDirectory(RegionDirectory):
         with override_settings(SENTRY_REGION=self._tmp_state.default_region.name):
             yield
 
+    @contextmanager
+    def swap_to_region_by_name(self, region_name: str):
+        """Swap to the specified region when entering region mode."""
+
+        region = self.get_by_name(region_name)
+        if region is None:
+            raise Exception("specified swap region not found")
+        with override_settings(SENTRY_REGION=region.name):
+            yield
+
     @property
     def regions(self) -> frozenset[Region]:
         return self._tmp_state.regions

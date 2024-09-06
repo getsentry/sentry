@@ -412,24 +412,6 @@
 },
 {
   "model": "sentry.projectoption",
-  "pk": 1,
-  "fields": {
-    "project": 1,
-    "key": "sentry:relay-rev",
-    "value": "\"883653e754e441f9aa54052b52482bdb\""
-  }
-},
-{
-  "model": "sentry.projectoption",
-  "pk": 2,
-  "fields": {
-    "project": 1,
-    "key": "sentry:relay-rev-lastchange",
-    "value": "\"2023-06-22T22:54:29.060271Z\""
-  }
-},
-{
-  "model": "sentry.projectoption",
   "pk": 3,
   "fields": {
     "project": 1,

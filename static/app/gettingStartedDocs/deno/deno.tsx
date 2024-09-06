@@ -32,7 +32,7 @@ const getInstallConfig = () => [
 const getConfigureSnippet = (params: Params) =>
   `
 Sentry.init({
-  dsn: "${params.dsn}",${
+  dsn: "${params.dsn.public}",${
     params.isPerformanceSelected
       ? `
   // enable performance
@@ -50,7 +50,7 @@ setTimeout(() => {
 
 const getMetricsConfigureSnippet = (params: DocsParams) => `;
 Sentry.init({
-  dsn: '${params.dsn}',
+  dsn: '${params.dsn.public}',
   // Only needed for SDK versions < 8.0.0
   // _experiments: {
   //   metricsAggregator: true,
@@ -107,11 +107,11 @@ const onboarding: OnboardingConfig = {
       : [
           {
             id: 'performance-monitoring',
-            name: t('Performance Monitoring'),
+            name: t('Tracing'),
             description: t(
               'Track down transactions to connect the dots between 10-second page loads and poor-performing API calls or slow database queries.'
             ),
-            link: 'https://docs.sentry.io/platforms/javascript/guides/bun/performance/',
+            link: 'https://docs.sentry.io/platforms/javascript/guides/bun/tracing/',
           },
         ],
 };

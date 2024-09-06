@@ -541,7 +541,7 @@ def get_num_intervals(
 
 def get_intervals(
     start: datetime, end: datetime, granularity: int, interval: int | None = None
-) -> Generator[datetime, None, None]:
+) -> Generator[datetime]:
     if interval is None:
         interval = granularity
 

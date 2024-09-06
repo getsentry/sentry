@@ -25,7 +25,7 @@ from sentry.sentry_apps.components import SentryAppComponentPreparer
 class SentryAppComponentsEndpoint(SentryAppBaseEndpoint):
     owner = ApiOwner.INTEGRATIONS
     publish_status = {
-        "GET": ApiPublishStatus.UNKNOWN,
+        "GET": ApiPublishStatus.PRIVATE,
     }
 
     def get(self, request: Request, sentry_app) -> Response:
@@ -41,7 +41,7 @@ class SentryAppComponentsEndpoint(SentryAppBaseEndpoint):
 class OrganizationSentryAppComponentsEndpoint(ControlSiloOrganizationEndpoint):
     owner = ApiOwner.INTEGRATIONS
     publish_status = {
-        "GET": ApiPublishStatus.UNKNOWN,
+        "GET": ApiPublishStatus.PRIVATE,
     }
 
     @add_integration_platform_metric_tag

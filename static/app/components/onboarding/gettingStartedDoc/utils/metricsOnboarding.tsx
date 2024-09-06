@@ -12,7 +12,7 @@ import {getInstallConfig as getNodeInstallConfig} from 'sentry/utils/gettingStar
 
 const getJSConfigureSnippet = (params: DocsParams) => `
 Sentry.init({
-  dsn: "${params.dsn}",
+  dsn: "${params.dsn.public}",
   // Only needed for SDK versions < 8.0.0
   // integrations: [
   //   Sentry.metrics.metricsAggregatorIntegration(),
@@ -150,7 +150,7 @@ const getJSMetricsOnboardingVerify = ({docsLink}: {docsLink: string}) => [
 
 const getJSServerConfigureSnippet = (params: DocsParams) => `
 Sentry.init({
-  dsn: "${params.dsn}",
+  dsn: "${params.dsn.public}",
   // Only needed for SDK versions < 8.0.0
   // _experiments: {
   //   metricsAggregator: true,
@@ -229,7 +229,7 @@ const getJvmKotlinConfigureSnippet = (params: DocsParams) => `
 import io.sentry.Sentry
 
 Sentry.init(this) { options ->
-  options.dsn = "${params.dsn}",
+  options.dsn = "${params.dsn.public}",
   options.enableMetrics = true
 }`;
 
@@ -237,7 +237,7 @@ const getJvmJavaConfigureSnippet = (params: DocsParams) => `
 import io.sentry.Sentry;
 
 Sentry.init(this, options -> {
-  options.setDsn("${params.dsn}");
+  options.setDsn("${params.dsn.public}");
   options.setEnableMetrics(true);
 });`;
 
@@ -245,7 +245,7 @@ const getAndroidKotlinConfigureSnippet = (params: DocsParams) => `
 import io.sentry.android.core.SentryAndroid
 
 SentryAndroid.init(this) { options ->
-  options.dsn = "${params.dsn}",
+  options.dsn = "${params.dsn.public}",
   options.enableMetrics = true
 }`;
 
@@ -253,14 +253,14 @@ const getAndroidJavaConfigureSnippet = (params: DocsParams) => `
 import io.sentry.android.core.SentryAndroid;
 
 SentryAndroid.init(this, options -> {
-  options.setDsn("${params.dsn}");
+  options.setDsn("${params.dsn.public}");
   options.setEnableMetrics(true);
 });`;
 
 const getAndroidXmlConfigureSnippet = (params: DocsParams) => `
 <manifest>
     <application>
-        <meta-data android:name="io.sentry.dsn" android:value="${params.dsn}" />
+        <meta-data android:name="io.sentry.dsn" android:value="${params.dsn.public}" />
         <meta-data android:name="io.sentry.enable-metrics" android:value="true" />
     </application>
 </manifest>`;
@@ -385,20 +385,20 @@ export const getAndroidMetricsOnboarding = (): OnboardingConfig => ({
           code: [
             {
               label: 'Kotlin',
-              value: 'java',
-              language: 'java',
+              value: 'kotlin',
+              language: 'kotlin',
               code: getAndroidKotlinConfigureSnippet(params),
             },
             {
               label: 'Java',
-              value: 'kotlin',
+              value: 'java',
               language: 'java',
               code: getAndroidJavaConfigureSnippet(params),
             },
             {
               label: 'XML',
               value: 'xml',
-              language: 'java',
+              language: 'xml',
               code: getAndroidXmlConfigureSnippet(params),
             },
           ],
@@ -429,7 +429,7 @@ export const getAndroidMetricsOnboarding = (): OnboardingConfig => ({
             {
               label: 'Kotlin',
               value: 'kotlin',
-              language: 'java',
+              language: 'kotlin',
               code: getJvmKotlinVerifySnippet(),
             },
             {
@@ -490,7 +490,7 @@ export const getJavaMetricsOnboarding = (): OnboardingConfig => ({
             {
               label: 'Kotlin',
               value: 'kotlin',
-              language: 'java',
+              language: 'kotlin',
               code: getJvmKotlinConfigureSnippet(params),
             },
             {
@@ -533,7 +533,7 @@ export const getJavaMetricsOnboarding = (): OnboardingConfig => ({
             {
               label: 'Kotlin',
               value: 'kotlin',
-              language: 'java',
+              language: 'kotlin',
               code: getJvmKotlinVerifySnippet(),
             },
           ],
@@ -562,7 +562,7 @@ const getPythonConfigureSnippet = (params: DocsParams) => `
 import sentry_sdk
 
 sentry_sdk.init(
-  dsn="${params.dsn}",
+  dsn="${params.dsn.public}",
   # ...
 )`;
 
@@ -678,7 +678,7 @@ export const getPythonMetricsOnboarding = ({
 const getDotnetConfigureSnippet = (params: DocsParams) => `
 SentrySdk.Init(options =>
 {
-  options.Dsn = "${params.dsn}";
+  options.Dsn = "${params.dsn.public}";
   options.ExperimentalMetrics = new ExperimentalMetricsOptions
   {
     EnableCodeLocations = true

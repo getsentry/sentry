@@ -41,11 +41,21 @@ export type SearchEventParameters = {
   'search.invalid_field': Omit<SearchEventBase, 'query'> & {attempted_field_name: string};
   'search.key_autocompleted': Omit<SearchEventBase, 'query'> & {
     item_name: string | undefined;
-    search_operator: string;
+    filtered?: boolean;
     item_kind?: string;
     item_type?: string;
+    item_value_type?: string;
+    search_operator?: string;
   };
-  'search.operator_autocompleted': SearchEventBase & {search_operator: string};
+  'search.key_manually_typed': Omit<SearchEventBase, 'query'> & {
+    item_kind: string;
+    item_name: string;
+    item_value_type: string;
+  };
+  'search.operator_autocompleted': SearchEventBase & {
+    search_operator: string;
+    filter_key?: string;
+  };
   'search.pin': {
     action: 'pin' | 'unpin';
     search_type: string;
@@ -71,6 +81,19 @@ export type SearchEventParameters = {
     shortcut_method: 'hotkey' | 'click';
     shortcut_type: ShortcutType;
   };
+  'search.value_autocompleted': Omit<SearchEventBase, 'query'> & {
+    filter_key: string;
+    filter_operator: string;
+    filter_value: string;
+    filter_value_type: string;
+  };
+  'search.value_manual_submitted': Omit<SearchEventBase, 'query'> & {
+    filter_key: string;
+    filter_operator: string;
+    filter_value: string;
+    filter_value_type: string;
+    invalid: boolean;
+  };
   'settings_search.open': OpenEvent;
   'settings_search.query': QueryEvent;
   'settings_search.select': SelectEvent;
@@ -85,6 +108,7 @@ export const searchEventMap: Record<SearchEventKey, string | null> = {
   'search.searched': 'Search: Performed search',
   'search.searched_filter': 'Search: Performed search filter',
   'search.key_autocompleted': 'Search: Key Autocompleted',
+  'search.key_manually_typed': 'Search: Key Manually Typed',
   'search.shortcut_used': 'Search: Shortcut Used',
   'search.docs_opened': 'Search: Docs Opened',
   'search.search_with_invalid': 'Search: Attempted Invalid Search',
@@ -109,6 +133,8 @@ export const searchEventMap: Record<SearchEventKey, string | null> = {
   'search.pin': 'Search: Pin',
   'search.saved_search_create': 'Search: Saved Search Created',
   'search.saved_search_open_create_modal': 'Search: Saved Search Modal Opened',
+  'search.value_autocompleted': 'Search: Filter Value Autocompleted',
+  'search.value_manual_submitted': 'Search: Filter Value Submitted Manually',
   'search.saved_search_sidebar_toggle_clicked':
     'Search: Saved Search Sidebar Toggle Clicked',
   'omnisearch.open': 'Omnisearch: Open',

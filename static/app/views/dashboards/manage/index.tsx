@@ -1,4 +1,3 @@
-import type {InjectedRouter} from 'react-router';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
 import pick from 'lodash/pick';
@@ -12,6 +11,7 @@ import {Alert} from 'sentry/components/alert';
 import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import {CompactSelect} from 'sentry/components/compactSelect';
+import FeedbackWidgetButton from 'sentry/components/feedback/widget/feedbackWidgetButton';
 import * as Layout from 'sentry/components/layouts/thirds';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import NoProjectMessage from 'sentry/components/noProjectMessage';
@@ -23,17 +23,18 @@ import {IconAdd} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {SelectValue} from 'sentry/types/core';
+import type {InjectedRouter} from 'sentry/types/legacyReactRouter';
 import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {browserHistory} from 'sentry/utils/browserHistory';
 import {decodeScalar} from 'sentry/utils/queryString';
+import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import withApi from 'sentry/utils/withApi';
-import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import withOrganization from 'sentry/utils/withOrganization';
 import {DashboardImportButton} from 'sentry/views/dashboards/manage/dashboardImport';
 import DeprecatedAsyncView from 'sentry/views/deprecatedAsyncView';
 
-import {DASHBOARDS_TEMPLATES} from '../data';
+import {getDashboardTemplates} from '../data';
 import {assignDefaultLayout, getInitialColumnDepths} from '../layoutUtils';
 import type {DashboardDetails, DashboardListItem} from '../types';
 
@@ -149,9 +150,10 @@ class ManageDashboards extends DeprecatedAsyncView<Props, State> {
   }
 
   renderTemplates() {
+    const {organization} = this.props;
     return (
       <TemplateContainer>
-        {DASHBOARDS_TEMPLATES.map(dashboard => (
+        {getDashboardTemplates(organization).map(dashboard => (
           <TemplateCard
             title={dashboard.title}
             description={dashboard.description}
@@ -316,6 +318,7 @@ class ManageDashboards extends DeprecatedAsyncView<Props, State> {
                         toggle={this.toggleTemplates}
                       />
                     </TemplateSwitch>
+                    <FeedbackWidgetButton />
                     <DashboardImportButton />
                     <Button
                       data-test-id="dashboard-create"

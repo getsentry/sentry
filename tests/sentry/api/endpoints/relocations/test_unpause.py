@@ -32,6 +32,7 @@ class UnpauseRelocationTest(APITestCase):
             owner_id=self.owner.id,
             status=Relocation.Status.PAUSE.value,
             step=Relocation.Step.PREPROCESSING.value,
+            provenance=Relocation.Provenance.SELF_HOSTED.value,
             want_org_slugs=["foo"],
             want_usernames=["alice", "bob"],
             latest_notified=Relocation.EmailKind.STARTED.value,
@@ -166,7 +167,7 @@ class UnpauseRelocationTest(APITestCase):
 
         assert async_task_scheduled.call_count == 0
 
-    @patch("sentry.tasks.relocation.notifying_users.delay")
+    @patch("sentry.tasks.relocation.notifying_unhide.delay")
     def test_good_unpause_no_follow_up_step(self, async_task_scheduled: Mock):
         self.login_as(user=self.superuser, superuser=True)
         self.relocation.step = Relocation.Step.NOTIFYING.value

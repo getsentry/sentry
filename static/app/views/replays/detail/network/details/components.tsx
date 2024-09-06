@@ -12,6 +12,10 @@ export const Indent = styled('div')`
   padding-left: ${space(4)};
 `;
 
+export const InspectorMargin = styled('div')`
+  padding: ${space(1)};
+`;
+
 const NotFoundText = styled('span')`
   color: ${p => p.theme.subText};
   font-size: ${p => p.theme.fontSizeSmall};

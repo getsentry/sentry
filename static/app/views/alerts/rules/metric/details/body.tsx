@@ -1,8 +1,7 @@
 import {Fragment} from 'react';
-import type {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
-import moment from 'moment';
+import moment from 'moment-timezone';
 
 import type {Client} from 'sentry/api';
 import {Alert} from 'sentry/components/alert';
@@ -18,8 +17,10 @@ import {Tooltip} from 'sentry/components/tooltip';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {RuleActionsCategories} from 'sentry/types/alerts';
+import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
+import {formatMRIField} from 'sentry/utils/metrics/mri';
 import {shouldShowOnDemandMetricAlertUI} from 'sentry/utils/onDemandMetrics/features';
 import {ErrorMigrationWarning} from 'sentry/views/alerts/rules/metric/details/errorMigrationWarning';
 import MetricHistory from 'sentry/views/alerts/rules/metric/details/metricHistory';
@@ -28,9 +29,10 @@ import {Dataset, TimePeriod} from 'sentry/views/alerts/rules/metric/types';
 import {extractEventTypeFilterFromRule} from 'sentry/views/alerts/rules/metric/utils/getEventTypeFilter';
 import {isOnDemandMetricAlert} from 'sentry/views/alerts/rules/metric/utils/onDemandMetricAlert';
 import {getAlertRuleActionCategory} from 'sentry/views/alerts/rules/utils';
-import type {Incident} from 'sentry/views/alerts/types';
+import type {Anomaly, Incident} from 'sentry/views/alerts/types';
 import {AlertRuleStatus} from 'sentry/views/alerts/types';
 import {alertDetailsLink} from 'sentry/views/alerts/utils';
+import {MetricsBetaEndAlert} from 'sentry/views/metrics/metricsBetaEndAlert';
 
 import {isCrashFreeAlert} from '../utils/isCrashFreeAlert';
 import {isCustomMetricAlert} from '../utils/isCustomMetricAlert';
@@ -51,6 +53,7 @@ interface MetricDetailsBodyProps extends RouteComponentProps<{}, {}> {
   location: Location;
   organization: Organization;
   timePeriod: TimePeriodType;
+  anomalies?: Anomaly[];
   incidents?: Incident[];
   project?: Project;
   rule?: MetricRule;
@@ -67,6 +70,7 @@ export default function MetricDetailsBody({
   selectedIncident,
   location,
   router,
+  anomalies,
 }: MetricDetailsBodyProps) {
   function getPeriodInterval() {
     const startDate = moment.utc(timePeriod.start);
@@ -158,8 +162,18 @@ export default function MetricDetailsBody({
     isOnDemandMetricAlert(dataset, aggregate, query) &&
     shouldShowOnDemandMetricAlertUI(organization);
 
+  let formattedAggregate = aggregate;
+  if (isCustomMetricAlert(aggregate)) {
+    formattedAggregate = formatMRIField(aggregate);
+  }
+
   return (
     <Fragment>
+      <StyledLayoutBody>
+        {isCustomMetricAlert(rule.aggregate) && (
+          <MetricsBetaEndAlert style={{marginBottom: 0}} />
+        )}
+      </StyledLayoutBody>
       {selectedIncident?.alertRule.status === AlertRuleStatus.SNAPSHOT && (
         <StyledLayoutBody>
           <StyledAlert type="warning" showIcon>
@@ -220,8 +234,10 @@ export default function MetricDetailsBody({
             api={api}
             rule={rule}
             incidents={incidents}
+            anomalies={anomalies}
             timePeriod={timePeriod}
             selectedIncident={selectedIncident}
+            formattedAggregate={formattedAggregate}
             organization={organization}
             project={project}
             interval={getPeriodInterval()}

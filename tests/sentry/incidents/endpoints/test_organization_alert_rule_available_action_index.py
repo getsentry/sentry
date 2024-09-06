@@ -6,10 +6,10 @@ from sentry.incidents.endpoints.organization_alert_rule_available_action_index i
     build_action_response,
 )
 from sentry.incidents.models.alert_rule import AlertRuleTriggerAction
+from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.integrations.pagerduty.utils import add_service
 from sentry.integrations.services.integration.serial import serialize_integration
 from sentry.models.integrations import SentryAppComponent, SentryAppInstallation
-from sentry.models.integrations.organization_integration import OrganizationIntegration
 from sentry.sentry_apps.services.app.serial import serialize_sentry_app_installation
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase
@@ -33,11 +33,13 @@ METADATA = {
 
 class OrganizationAlertRuleAvailableActionIndexEndpointTest(APITestCase):
     endpoint = "sentry-api-0-organization-alert-rule-available-actions"
-    email = AlertRuleTriggerAction.get_registered_type(AlertRuleTriggerAction.Type.EMAIL)
-    slack = AlertRuleTriggerAction.get_registered_type(AlertRuleTriggerAction.Type.SLACK)
-    sentry_app = AlertRuleTriggerAction.get_registered_type(AlertRuleTriggerAction.Type.SENTRY_APP)
-    pagerduty = AlertRuleTriggerAction.get_registered_type(AlertRuleTriggerAction.Type.PAGERDUTY)
-    opsgenie = AlertRuleTriggerAction.get_registered_type(AlertRuleTriggerAction.Type.OPSGENIE)
+    email = AlertRuleTriggerAction.get_registered_factory(AlertRuleTriggerAction.Type.EMAIL)
+    slack = AlertRuleTriggerAction.get_registered_factory(AlertRuleTriggerAction.Type.SLACK)
+    sentry_app = AlertRuleTriggerAction.get_registered_factory(
+        AlertRuleTriggerAction.Type.SENTRY_APP
+    )
+    pagerduty = AlertRuleTriggerAction.get_registered_factory(AlertRuleTriggerAction.Type.PAGERDUTY)
+    opsgenie = AlertRuleTriggerAction.get_registered_factory(AlertRuleTriggerAction.Type.OPSGENIE)
 
     def setUp(self):
         super().setUp()

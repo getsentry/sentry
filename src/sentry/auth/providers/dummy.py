@@ -1,5 +1,4 @@
-from django.http import HttpResponse
-from rest_framework.request import Request
+from django.http import HttpRequest, HttpResponse
 
 from sentry.auth.provider import MigratingIdentityId, Provider
 from sentry.auth.providers.saml2.provider import Attributes, SAML2Provider
@@ -9,7 +8,7 @@ PLACEHOLDER_TEMPLATE = '<form method="POST"><input type="email" name="email" /><
 
 
 class AskEmail(AuthView):
-    def dispatch(self, request: Request, helper) -> HttpResponse:
+    def dispatch(self, request: HttpRequest, helper) -> HttpResponse:
         if "email" in request.POST:
             if "id" in request.POST:
                 helper.bind_state("id", request.POST.get("id"))

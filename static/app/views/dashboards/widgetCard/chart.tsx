@@ -1,5 +1,5 @@
+import type React from 'react';
 import {Component} from 'react';
-import type {InjectedRouter} from 'react-router';
 import type {Theme} from '@emotion/react';
 import {withTheme} from '@emotion/react';
 import styled from '@emotion/styled';
@@ -23,13 +23,15 @@ import Placeholder from 'sentry/components/placeholder';
 import {Tooltip} from 'sentry/components/tooltip';
 import {IconWarning} from 'sentry/icons';
 import {space} from 'sentry/styles/space';
-import type {Organization, PageFilters} from 'sentry/types';
+import type {PageFilters} from 'sentry/types/core';
 import type {
   EChartDataZoomHandler,
   EChartEventHandler,
   ReactEchartsRef,
   Series,
 } from 'sentry/types/echarts';
+import type {InjectedRouter} from 'sentry/types/legacyReactRouter';
+import type {Organization} from 'sentry/types/organization';
 import {
   axisLabelFormatter,
   axisLabelFormatterUsingAggregateOutputType,
@@ -50,6 +52,7 @@ import {
 } from 'sentry/utils/discover/fields';
 import getDynamicText from 'sentry/utils/getDynamicText';
 import {eventViewFromWidget} from 'sentry/views/dashboards/utils';
+import {AutoSizedText} from 'sentry/views/dashboards/widgetCard/autoSizedText';
 
 import {getFormatter} from '../../../components/charts/components/tooltip';
 import {getDatasetConfig} from '../datasetConfig/base';
@@ -96,6 +99,7 @@ type WidgetCardChartProps = Pick<
     type: 'legendselectchanged';
   }>;
   onZoom?: AugmentedEChartDataZoomHandler;
+  shouldResize?: boolean;
   showSlider?: boolean;
   timeseriesResultsTypes?: Record<string, AggregationOutputType>;
   windowWidth?: number;
@@ -241,7 +245,7 @@ class WidgetCardChart extends Component<WidgetCardChartProps, State> {
         ? containerHeight - parseInt(space(1), 10) - parseInt(space(3), 10)
         : `max(min(8vw, 90px), ${space(4)})`;
 
-      return (
+      return !organization.features.includes('auto-size-big-number-widget') ? (
         <BigNumber
           key={`big_number:${result.title}`}
           style={{
@@ -253,6 +257,18 @@ class WidgetCardChart extends Component<WidgetCardChartProps, State> {
             {rendered}
           </Tooltip>
         </BigNumber>
+      ) : expandNumbers ? (
+        <BigText>{rendered}</BigText>
+      ) : (
+        <AutoResizeParent key={`big_number:${result.title}`}>
+          <AutoSizedText>
+            <NumberContainerOverride>
+              <Tooltip title={rendered} showOnlyOnOverflow>
+                {rendered}
+              </Tooltip>
+            </NumberContainerOverride>
+          </AutoSizedText>
+        </AutoResizeParent>
       );
     });
   }
@@ -305,6 +321,7 @@ class WidgetCardChart extends Component<WidgetCardChartProps, State> {
       noPadding,
       chartZoomOptions,
       timeseriesResultsTypes,
+      shouldResize,
     } = this.props;
 
     if (widget.displayType === 'table') {
@@ -349,9 +366,6 @@ class WidgetCardChart extends Component<WidgetCardChartProps, State> {
 
     const {location, router, selection, onLegendSelectChanged} = this.props;
     const {start, end, period, utc} = selection.datetime;
-
-    // Only allow height resizing for widgets that are on a dashboard
-    const autoHeightResize = Boolean(widget.id || widget.tempId);
 
     const legend = {
       left: 0,
@@ -398,7 +412,7 @@ class WidgetCardChart extends Component<WidgetCardChartProps, State> {
     };
 
     const chartOptions = {
-      autoHeightResize,
+      autoHeightResize: shouldResize ?? true,
       grid: {
         left: 0,
         right: 4,
@@ -512,7 +526,7 @@ class WidgetCardChart extends Component<WidgetCardChartProps, State> {
           return (
             <TransitionChart loading={loading} reloading={loading}>
               <LoadingScreen loading={loading} />
-              <ChartWrapper autoHeightResize={autoHeightResize} noPadding={noPadding}>
+              <ChartWrapper autoHeightResize={shouldResize ?? true} noPadding={noPadding}>
                 {getDynamicText({
                   value: this.chartComponent({
                     ...zoomRenderProps,
@@ -582,6 +596,7 @@ const BigNumberResizeWrapper = styled('div')`
   height: 100%;
   width: 100%;
   overflow: hidden;
+  position: relative;
 `;
 
 const BigNumber = styled('div')`
@@ -596,6 +611,46 @@ const BigNumber = styled('div')`
 
   * {
     text-align: left !important;
+  }
+`;
+
+const AutoResizeParent = styled('div')`
+  position: absolute;
+  color: ${p => p.theme.headingColor};
+  inset: ${space(1)} ${space(3)} 0 ${space(3)};
+
+  * {
+    line-height: 1;
+    text-align: left !important;
+  }
+`;
+
+const BigText = styled('div')`
+  display: block;
+  width: 100%;
+  color: ${p => p.theme.headingColor};
+  font-size: max(min(8vw, 90px), 30px);
+  padding: ${space(1)} ${space(3)} 0 ${space(3)};
+  white-space: nowrap;
+
+  * {
+    text-align: left !important;
+  }
+`;
+
+/**
+ * This component overrides the default behavior of `NumberContainer`,
+ * which wraps every single number in big widgets. This override forces
+ * `NumberContainer` to never truncate its values, which makes it possible
+ * to auto-size them.
+ */
+const NumberContainerOverride = styled('div')`
+  display: inline-block;
+
+  * {
+    text-overflow: clip !important;
+    display: inline;
+    white-space: nowrap;
   }
 `;
 

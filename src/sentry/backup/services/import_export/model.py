@@ -27,7 +27,7 @@ class RpcFilter(RpcModel):
     Shadows `sentry.backup.helpers.Filter` for the purpose of passing it over an RPC boundary.
     """
 
-    model_name: str
+    on_model: str
     field: str
 
     # While on the original `Filter` type these can be any kind, in practice we only use integers or
@@ -37,7 +37,7 @@ class RpcFilter(RpcModel):
     values: set[StrictStr | StrictInt]
 
     def from_rpc(self) -> Filter:
-        model = get_model(NormalizedModelName(self.model_name))
+        model = get_model(NormalizedModelName(self.on_model))
         if model is None:
             raise ValueError("model not found")
 
@@ -46,7 +46,7 @@ class RpcFilter(RpcModel):
     @classmethod
     def into_rpc(cls, base_filter: Filter) -> "RpcFilter":
         return cls(
-            model_name=str(get_model_name(base_filter.model)),
+            on_model=str(get_model_name(base_filter.model)),
             field=base_filter.field,
             values=base_filter.values,
         )
@@ -121,12 +121,16 @@ class RpcImportFlags(RpcModel):
     merge_users: bool = False
     overwrite_configs: bool = False
     import_uuid: str | None = None
+    # TODO(azaslavsky): Remove `None` variant once rolled out, set default to `False` instead.
+    hide_organizations: bool | None = None
 
     def from_rpc(self) -> ImportFlags:
         return ImportFlags(
             merge_users=self.merge_users,
             overwrite_configs=self.overwrite_configs,
             import_uuid=self.import_uuid,
+            # TODO(azaslavsky): remove cast.
+            hide_organizations=bool(self.hide_organizations),
         )
 
     @classmethod
@@ -135,6 +139,10 @@ class RpcImportFlags(RpcModel):
             merge_users=base_flags.merge_users,
             overwrite_configs=base_flags.overwrite_configs,
             import_uuid=base_flags.import_uuid,
+            # TODO(azaslavsky): remove cast.
+            hide_organizations=(
+                None if not base_flags.hide_organizations else base_flags.hide_organizations
+            ),
         )
 
 

@@ -135,6 +135,7 @@ class OrgAuthTokenCreateTest(APITestCase):
         assert tokenDb.token_hashed is not None
         assert tokenDb.token_hashed != token.get("token")
         assert tokenDb.get_scopes() == token.get("scopes")
+        assert tokenDb.created_by is not None
         assert tokenDb.created_by.id == self.user.id
 
         # Assert that region and control URLs are both set correctly

@@ -32,6 +32,7 @@ from sentry.search.events.types import (
     ParamsType,
     QueryBuilderConfig,
     SelectType,
+    SnubaParams,
     WhereType,
 )
 from sentry.snuba.dataset import Dataset
@@ -128,6 +129,11 @@ class DiscoverQueryBuilder(BaseQueryBuilder):
             name = f"tags[{name}]"
 
         if name in constants.TIMESTAMP_FIELDS:
+            if not self.start or not self.end:
+                raise InvalidSearchQuery(
+                    f"Cannot query the {name} field without a valid date range"
+                )
+
             if (
                 operator in ["<", "<="]
                 and value < self.start
@@ -159,6 +165,7 @@ class TimeseriesQueryBuilder(UnresolvedQuery):
         dataset: Dataset,
         params: ParamsType,
         interval: int,
+        snuba_params: SnubaParams | None = None,
         query: str | None = None,
         selected_columns: list[str] | None = None,
         equations: list[str] | None = None,
@@ -171,6 +178,7 @@ class TimeseriesQueryBuilder(UnresolvedQuery):
         super().__init__(
             dataset,
             params,
+            snuba_params=snuba_params,
             query=query,
             selected_columns=selected_columns,
             equations=equations,
@@ -213,7 +221,7 @@ class TimeseriesQueryBuilder(UnresolvedQuery):
 
     def get_snql_query(self) -> Request:
         return Request(
-            dataset=self.dataset.value,
+            dataset=self._get_dataset_name(),
             app_id="default",
             query=Query(
                 match=Entity(self.dataset.value),
@@ -275,6 +283,7 @@ class TopEventsQueryBuilder(TimeseriesQueryBuilder):
         params: ParamsType,
         interval: int,
         top_events: list[dict[str, Any]],
+        snuba_params: SnubaParams | None = None,
         other: bool = False,
         query: str | None = None,
         selected_columns: list[str] | None = None,
@@ -290,6 +299,7 @@ class TopEventsQueryBuilder(TimeseriesQueryBuilder):
         super().__init__(
             dataset,
             params,
+            snuba_params=snuba_params,
             interval=interval,
             query=query,
             selected_columns=list(set(selected_columns + timeseries_functions)),
@@ -330,7 +340,7 @@ class TopEventsQueryBuilder(TimeseriesQueryBuilder):
         conditions = []
         for field in self.fields:
             # If we have a project field, we need to limit results by project so we don't hit the result limit
-            if field in ["project", "project.id"] and top_events:
+            if field in ["project", "project.id", "project.name"] and top_events:
                 # Iterate through the existing conditions to find the project one
                 # the project condition is a requirement of queries so there should always be one
                 project_condition = [
@@ -340,9 +350,9 @@ class TopEventsQueryBuilder(TimeseriesQueryBuilder):
                     and condition.lhs == self.column("project_id")
                 ][0]
                 self.where.remove(project_condition)
-                if field == "project":
+                if field in ["project", "project.name"]:
                     projects = list(
-                        {self.params.project_slug_map[event["project"]] for event in top_events}
+                        {self.params.project_slug_map[event[field]] for event in top_events}
                     )
                 else:
                     projects = list({event["project.id"] for event in top_events})

@@ -1,7 +1,7 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import {Button} from 'sentry/components/button';
+import {LinkButton} from 'sentry/components/button';
 import {SectionHeading} from 'sentry/components/charts/styles';
 import {DateTime} from 'sentry/components/dateTime';
 import Duration from 'sentry/components/duration';
@@ -66,7 +66,7 @@ function MonitorCheckIns({monitor, monitorEnvs, orgSlug}: Props) {
   const {
     data: checkInList,
     getResponseHeader,
-    isLoading,
+    isPending,
     isError,
   } = useApiQuery<CheckIn[]>(queryKey, {staleTime: 0});
 
@@ -102,7 +102,7 @@ function MonitorCheckIns({monitor, monitorEnvs, orgSlug}: Props) {
     <Fragment>
       <SectionHeading>{t('Recent Check-Ins')}</SectionHeading>
       <PanelTable headers={headers}>
-        {isLoading
+        {isPending
           ? [...new Array(headers.length)].map((_, i) => (
               <RowPlaceholder key={i}>
                 <Placeholder height="2rem" />
@@ -178,13 +178,13 @@ function MonitorCheckIns({monitor, monitorEnvs, orgSlug}: Props) {
                 )}
                 {!hasAttachments ? null : checkIn.attachmentId ? (
                   <div>
-                    <Button
+                    <LinkButton
                       size="xs"
                       icon={<IconDownload />}
                       href={generateDownloadUrl(checkIn)}
                     >
                       {t('Attachment')}
-                    </Button>
+                    </LinkButton>
                   </div>
                 ) : (
                   emptyCell

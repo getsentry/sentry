@@ -35,7 +35,6 @@ import type {Project} from 'sentry/types/project';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {parsePeriodToHours} from 'sentry/utils/duration/parsePeriodToHours';
 import {getForceMetricsLayerQueryExtras} from 'sentry/utils/metrics/features';
-import {formatMRIField} from 'sentry/utils/metrics/mri';
 import {shouldShowOnDemandMetricAlertUI} from 'sentry/utils/onDemandMetrics/features';
 import {
   getCrashFreeRateSeries,
@@ -79,6 +78,7 @@ type Props = {
   timeWindow: MetricRule['timeWindow'];
   triggers: Trigger[];
   comparisonDelta?: number;
+  formattedAggregate?: string;
   header?: React.ReactNode;
   isOnDemandMetricAlert?: boolean;
   onDataLoaded?: (data: EventsStats | MultiSeriesEventsStats | null) => void;
@@ -250,6 +250,7 @@ class TriggersChart extends PureComponent<Props, State> {
       projects,
       query,
       dataset,
+      aggregate,
     } = this.props;
 
     const statsPeriod = this.getStatsPeriod();
@@ -264,9 +265,11 @@ class TriggersChart extends PureComponent<Props, State> {
     let queryDataset = queryExtras.dataset as undefined | DiscoverDatasets;
     const queryOverride = (queryExtras.query as string | undefined) ?? query;
 
-    if (shouldUseErrorsDiscoverDataset(query, dataset)) {
+    if (shouldUseErrorsDiscoverDataset(query, dataset, organization)) {
       queryDataset = DiscoverDatasets.ERRORS;
     }
+
+    const alertType = getAlertTypeFromAggregateDataset({aggregate, dataset});
 
     try {
       const totalCount = await fetchTotalCount(api, organization.slug, {
@@ -276,7 +279,7 @@ class TriggersChart extends PureComponent<Props, State> {
         statsPeriod,
         environment: environment ? [environment] : [],
         dataset: queryDataset,
-        ...getForceMetricsLayerQueryExtras(organization, dataset),
+        ...getForceMetricsLayerQueryExtras(organization, dataset, alertType),
       });
       this.setState({totalCount});
     } catch (e) {
@@ -415,6 +418,7 @@ class TriggersChart extends PureComponent<Props, State> {
       newAlertOrQuery,
       onDataLoaded,
       environment,
+      formattedAggregate,
       comparisonDelta,
       triggers,
       thresholdType,
@@ -427,6 +431,8 @@ class TriggersChart extends PureComponent<Props, State> {
       organization.features.includes('change-alerts') && comparisonDelta
     );
 
+    const alertType = getAlertTypeFromAggregateDataset({aggregate, dataset});
+
     const queryExtras = {
       ...getMetricDatasetQueryExtras({
         organization,
@@ -434,8 +440,8 @@ class TriggersChart extends PureComponent<Props, State> {
         dataset,
         newAlertOrQuery,
       }),
-      ...getForceMetricsLayerQueryExtras(organization, dataset),
-      ...(shouldUseErrorsDiscoverDataset(query, dataset)
+      ...getForceMetricsLayerQueryExtras(organization, dataset, alertType),
+      ...(shouldUseErrorsDiscoverDataset(query, dataset, organization)
         ? {dataset: DiscoverDatasets.ERRORS}
         : {}),
     };
@@ -453,7 +459,7 @@ class TriggersChart extends PureComponent<Props, State> {
           period={period}
           yAxis={aggregate}
           includePrevious={false}
-          currentSeriesNames={[aggregate]}
+          currentSeriesNames={[formattedAggregate || aggregate]}
           partial={false}
           queryExtras={queryExtras}
           sampleRate={this.state.sampleRate}
@@ -549,7 +555,7 @@ class TriggersChart extends PureComponent<Props, State> {
         period={period}
         yAxis={aggregate}
         includePrevious={false}
-        currentSeriesNames={[formatMRIField(aggregate)]}
+        currentSeriesNames={[formattedAggregate || aggregate]}
         partial={false}
         queryExtras={queryExtras}
         useOnDemandMetrics

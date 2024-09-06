@@ -10,7 +10,8 @@ import {IconNot} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import {space} from 'sentry/styles/space';
-import type {ReleaseWithHealth, User} from 'sentry/types';
+import type {ReleaseWithHealth} from 'sentry/types/release';
+import type {User} from 'sentry/types/user';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useApiQuery} from 'sentry/utils/queryClient';
 
@@ -28,7 +29,7 @@ import {ContextType, tenSecondInMs} from './utils';
 
 function ReleaseContext(props: BaseContextProps) {
   const {dataRow, organization} = props;
-  const {isLoading, isError, data} = useApiQuery<ReleaseWithHealth>(
+  const {isPending, isError, data} = useApiQuery<ReleaseWithHealth>(
     [
       `/organizations/${organization.slug}/releases/${encodeURIComponent(
         dataRow.release
@@ -156,8 +157,8 @@ function ReleaseContext(props: BaseContextProps) {
       </ReleaseContextContainer>
     );
 
-  if (isLoading || isError) {
-    return <NoContext isLoading={isLoading} />;
+  if (isPending || isError) {
+    return <NoContext isLoading={isPending} />;
   }
 
   return (

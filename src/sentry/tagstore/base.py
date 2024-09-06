@@ -1,6 +1,7 @@
 import re
 
 from sentry.constants import TAG_LABELS
+from sentry.snuba.dataset import Dataset
 from sentry.utils.services import Service
 
 # Valid pattern for tag key names
@@ -139,9 +140,9 @@ class TagStorage(Service):
         environments,
         start,
         end,
+        dataset: Dataset = Dataset.Events,
         status=TagKeyStatus.ACTIVE,
         use_cache: bool = False,
-        include_transactions: bool = False,
         tenant_ids=None,
     ):
         """
@@ -231,6 +232,7 @@ class TagStorage(Service):
         key,
         start=None,
         end=None,
+        dataset: Dataset | None = None,
         query=None,
         order_by="-last_seen",
         include_transactions: bool = False,

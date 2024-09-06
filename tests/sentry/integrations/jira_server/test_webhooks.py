@@ -5,8 +5,8 @@ import responses
 from requests.exceptions import ConnectionError
 
 from sentry.integrations.jira_server.integration import JiraServerIntegration
+from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.integrations.services.integration.serial import serialize_integration
-from sentry.models.integrations.organization_integration import OrganizationIntegration
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import assume_test_silo_mode

@@ -1,4 +1,3 @@
-import type {InjectedRouter} from 'react-router';
 import type {Location} from 'history';
 import {CommitFixture} from 'sentry-fixture/commit';
 import {CommitAuthorFixture} from 'sentry-fixture/commitAuthor';
@@ -14,8 +13,11 @@ import {SentryAppInstallationFixture} from 'sentry-fixture/sentryAppInstallation
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, waitFor, within} from 'sentry-test/reactTestingLibrary';
 
-import type {Event, Group} from 'sentry/types';
-import {EntryType, IssueCategory, IssueType} from 'sentry/types';
+import type {Event} from 'sentry/types/event';
+import {EntryType} from 'sentry/types/event';
+import type {Group} from 'sentry/types/group';
+import {IssueCategory, IssueType} from 'sentry/types/group';
+import type {InjectedRouter} from 'sentry/types/legacyReactRouter';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {browserHistory} from 'sentry/utils/browserHistory';
@@ -196,11 +198,17 @@ const mockGroupApis = (
   project: Project,
   group: Group,
   event: Event,
+  replayId?: string,
   trace?: QuickTraceEvent
 ) => {
   MockApiClient.addMockResponse({
     url: `/organizations/${organization.slug}/issues/${group.id}/`,
     body: group,
+  });
+
+  MockApiClient.addMockResponse({
+    url: `/organizations/${organization.slug}/replays/${replayId}/`,
+    body: {},
   });
 
   MockApiClient.addMockResponse({
@@ -244,6 +252,7 @@ const mockGroupApis = (
 
   MockApiClient.addMockResponse({
     url: `/organizations/${organization.slug}/issues/${group.id}/external-issues/`,
+    body: [],
   });
 
   MockApiClient.addMockResponse({
@@ -253,7 +262,12 @@ const mockGroupApis = (
 
   MockApiClient.addMockResponse({
     url: `/organizations/${organization.slug}/prompts-activity/`,
-    body: undefined,
+    body: {data: {}, features: {['issue_feedback_hidden']: {}}},
+  });
+
+  MockApiClient.addMockResponse({
+    url: `/organizations/${organization.slug}/prompts-activity/`,
+    method: 'PUT',
   });
 
   MockApiClient.addMockResponse({
@@ -628,16 +642,13 @@ describe('Platform Integrations', () => {
       MockApiClient.clearMockResponses();
     });
     it('shows anr root cause', async () => {
-      const {organization} = initializeOrg();
-      const props = makeDefaultMockData({
-        ...organization,
-        features: ['anr-improvements'],
-      });
+      const props = makeDefaultMockData();
       mockGroupApis(
         props.organization,
         props.project,
         props.group,
         props.event,
+        undefined,
         mockedTrace(props.project)
       );
 
@@ -654,16 +665,19 @@ describe('Platform Integrations', () => {
     });
 
     it('does not render root issues section if related perf issues do not exist', async () => {
-      const {organization} = initializeOrg();
-      const props = makeDefaultMockData({
-        ...organization,
-        features: ['anr-improvements'],
-      });
+      const props = makeDefaultMockData();
       const trace = mockedTrace(props.project);
-      mockGroupApis(props.organization, props.project, props.group, props.event, {
-        ...trace,
-        performance_issues: [],
-      });
+      mockGroupApis(
+        props.organization,
+        props.project,
+        props.group,
+        props.event,
+        undefined,
+        {
+          ...trace,
+          performance_issues: [],
+        }
+      );
 
       render(<TestComponent group={props.group} event={props.event} />, {
         organization: props.organization,

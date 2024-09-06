@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from collections.abc import Mapping
 from dataclasses import dataclass
 from typing import Any
@@ -10,6 +12,7 @@ from sentry.sentry_metrics.configuration import (
 from sentry.sentry_metrics.use_case_utils import string_to_use_case_id
 
 METRICS_EXTRACTION_RULES_OPTION_KEY = "sentry:metrics_extraction_rules"
+SPAN_ATTRIBUTE_PREFIX = "span_attribute_"
 
 
 class MetricsExtractionRuleValidationError(ValueError):
@@ -71,10 +74,7 @@ class MetricsExtractionRule:
     def generate_mri(self, use_case: str = "custom"):
         """Generate the Metric Resource Identifier (MRI) associated with the extraction rule."""
         use_case_id = string_to_use_case_id(use_case)
-        if self.type in ("s", "c"):
-            return f"{self.type}:{use_case_id.value}/span_attribute_{self.id}@none"
-        else:
-            return f"{self.type}:{use_case_id.value}/span_attribute_{self.id}@{self.unit}"
+        return f"{self.type}:{use_case_id.value}/{SPAN_ATTRIBUTE_PREFIX}{self.id}@none"
 
     def __hash__(self):
         return hash(self.generate_mri())

@@ -4,11 +4,11 @@ import debounce from 'lodash/debounce';
 import omit from 'lodash/omit';
 import * as qs from 'query-string';
 
-import Feature from 'sentry/components/acl/feature';
 import ProjectAvatar from 'sentry/components/avatar/projectAvatar';
 import SearchBar from 'sentry/components/events/searchBar';
 import {COL_WIDTH_UNDEFINED} from 'sentry/components/gridEditable';
 import Link from 'sentry/components/links/link';
+import {SpanSearchQueryBuilder} from 'sentry/components/performance/spanSearchQueryBuilder';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -17,12 +17,12 @@ import {generateLinkToEventInTraceView} from 'sentry/utils/discover/urls';
 import {PageAlert, PageAlertProvider} from 'sentry/utils/performance/contexts/pageAlert';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
+import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
 import useRouter from 'sentry/utils/useRouter';
-import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import {DATA_TYPE} from 'sentry/views/insights/browser/resources/settings';
 import DetailPanel from 'sentry/views/insights/common/components/detailPanel';
 import {DEFAULT_COLUMN_ORDER} from 'sentry/views/insights/common/components/samplesTable/spanSamplesTable';
@@ -33,6 +33,7 @@ import {
   ModuleName,
   SpanIndexedField,
   SpanMetricsField,
+  type SubregionCode,
 } from 'sentry/views/insights/types';
 import {useSpanFieldSupportedTags} from 'sentry/views/performance/utils/useSpanFieldSupportedTags';
 
@@ -44,6 +45,7 @@ type Props = {
   transactionName: string;
   onClose?: () => void;
   referrer?: string;
+  subregions?: SubregionCode[];
   transactionMethod?: string;
   transactionRoute?: string;
 };
@@ -53,6 +55,7 @@ export function SampleList({
   moduleName,
   transactionName,
   transactionMethod,
+  subregions,
   onClose,
   transactionRoute = '/performance/summary/',
   referrer,
@@ -193,12 +196,14 @@ export function SampleList({
           groupId={groupId}
           transactionName={transactionName}
           transactionMethod={transactionMethod}
+          subregions={subregions}
         />
 
         <DurationChart
           groupId={groupId}
           transactionName={transactionName}
           transactionMethod={transactionMethod}
+          subregions={subregions}
           additionalFields={additionalFields}
           onClickSample={span => {
             router.push(
@@ -219,19 +224,28 @@ export function SampleList({
           highlightedSpanId={highlightedSpanId}
         />
 
-        <Feature features="performance-sample-panel-search">
-          <StyledSearchBar
-            searchSource={`${moduleName}-sample-panel`}
-            query={spanSearchQuery}
-            onSearch={handleSearch}
-            placeholder={t('Search for span attributes')}
-            organization={organization}
-            metricAlert={false}
-            supportedTags={supportedTags}
-            dataset={DiscoverDatasets.SPANS_INDEXED}
-            projectIds={selection.projects}
-          />
-        </Feature>
+        <StyledSearchBar>
+          {organization.features.includes('search-query-builder-performance') ? (
+            <SpanSearchQueryBuilder
+              projects={selection.projects}
+              initialQuery={spanSearchQuery ?? ''}
+              onSearch={handleSearch}
+              placeholder={t('Search for span attributes')}
+              searchSource={`${moduleName}-sample-panel`}
+            />
+          ) : (
+            <SearchBar
+              searchSource={`${moduleName}-sample-panel`}
+              query={spanSearchQuery}
+              onSearch={handleSearch}
+              placeholder={t('Search for span attributes')}
+              organization={organization}
+              supportedTags={supportedTags}
+              dataset={DiscoverDatasets.SPANS_INDEXED}
+              projectIds={selection.projects}
+            />
+          )}
+        </StyledSearchBar>
 
         <SampleTable
           highlightedSpanId={highlightedSpanId}
@@ -241,6 +255,7 @@ export function SampleList({
           groupId={groupId}
           moduleName={moduleName}
           transactionName={transactionName}
+          subregions={subregions}
           spanSearch={spanSearch}
           columnOrder={columnOrder}
           additionalFields={additionalFields}
@@ -277,6 +292,6 @@ const Title = styled('h4')`
   margin: 0;
 `;
 
-const StyledSearchBar = styled(SearchBar)`
-  margin-top: ${space(2)};
+const StyledSearchBar = styled('div')`
+  margin: ${space(2)} 0;
 `;

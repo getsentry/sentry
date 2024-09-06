@@ -19,7 +19,7 @@ def normalize_symbol_source(key, source):
 
 @region_silo_endpoint
 class BuiltinSymbolSourcesEndpoint(Endpoint):
-    owner = ApiOwner.PROCESSING
+    owner = ApiOwner.OWNERS_INGEST
     publish_status = {
         "GET": ApiPublishStatus.PRIVATE,
     }

@@ -8,44 +8,26 @@ from typing import Any
 from django.conf import settings
 from django.core.cache import cache
 
-from sentry import features
+from sentry import features, options
 from sentry.locks import locks
 from sentry.models.project import Project
 from sentry.projectoptions.defaults import BETA_GROUPING_CONFIG, DEFAULT_GROUPING_CONFIG
+from sentry.utils import metrics
 
 logger = logging.getLogger("sentry.events.grouping")
 
 Job = MutableMapping[str, Any]
 
-
-def update_grouping_config_if_needed(project: Project) -> None:
-    if _project_should_update_grouping(project):
-        _auto_update_grouping(project)
+# Used to migrate projects that have no activity via getsentry scripts
+CONFIGS_TO_DEPRECATE = ("mobile:2021-02-12",)
 
 
-def _project_should_update_grouping(project: Project) -> bool:
-    should_update_org = (
-        project.organization_id % 1000 < float(settings.SENTRY_GROUPING_AUTO_UPDATE_ENABLED) * 1000
-    )
-    return bool(project.get_option("sentry:grouping_auto_update")) and should_update_org
+# Used by getsentry script. Remove it once the script has been updated to call update_grouping_config_if_needed
+def update_grouping_config_if_permitted(project: Project) -> None:
+    update_grouping_config_if_needed(project, "script")
 
 
-def _config_update_happened_recently(project: Project, tolerance: int) -> bool:
-    """
-    Determine whether an auto-upate happened within the last `tolerance` seconds.
-
-    We can use this test to compensate for the delay between config getting updated and Relay
-    picking up the change.
-    """
-    project_transition_expiry = project.get_option("sentry:secondary_grouping_expiry") or 0
-    last_config_update = project_transition_expiry - settings.SENTRY_GROUPING_UPDATE_MIGRATION_PHASE
-    now = int(time.time())
-    time_since_update = now - last_config_update
-
-    return time_since_update < 60
-
-
-def _auto_update_grouping(project: Project) -> None:
+def update_grouping_config_if_needed(project: Project, source: str) -> None:
     current_config = project.get_option("sentry:grouping_config")
     new_config = DEFAULT_GROUPING_CONFIG
 
@@ -79,6 +61,7 @@ def _auto_update_grouping(project: Project) -> None:
             "sentry:secondary_grouping_expiry": expiry,
             "sentry:grouping_config": new_config,
         }
+
         for key, value in changes.items():
             project.update_option(key, value)
 
@@ -87,6 +70,11 @@ def _auto_update_grouping(project: Project) -> None:
             target_object=project.id,
             event=audit_log.get_event_id("PROJECT_EDIT"),
             data={**changes, **project.get_audit_log_data()},
+        )
+        metrics.incr(
+            "grouping.config_updated",
+            sample_rate=options.get("grouping.config_transition.metrics_sample_rate"),
+            tags={"current_config": current_config, "source": source},
         )
 
 
@@ -102,7 +90,15 @@ def project_uses_optimized_grouping(project: Project) -> bool:
     secondary_grouping_config = project.get_option("sentry:secondary_grouping_config")
     has_mobile_config = "mobile:2021-02-12" in [primary_grouping_config, secondary_grouping_config]
 
-    return not has_mobile_config and features.has(
-        "organizations:grouping-suppress-unnecessary-secondary-hash",
-        project.organization,
+    if has_mobile_config or options.get("grouping.config_transition.killswitch_enabled"):
+        return False
+
+    return (
+        features.has(
+            "organizations:grouping-suppress-unnecessary-secondary-hash",
+            project.organization,
+        )
+        or (is_in_transition(project))
+        # TODO: Yes, this is everyone - this check will soon be removed entirely
+        or project.id % 5 < 5  # 100% of all non-transition projects
     )

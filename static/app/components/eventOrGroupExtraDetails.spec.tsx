@@ -58,7 +58,10 @@ describe('EventOrGroupExtraDetails', function () {
             numComments: 14,
             shortId: 'shortId',
             logger: 'javascript logger',
-            annotations: ['annotation1', 'annotation2'],
+            annotations: [
+              {url: 'http://example.com', displayName: 'annotation1'},
+              {url: 'http://example.com', displayName: 'annotation2'},
+            ],
             assignedTo: {
               name: 'Assignee Name',
             },
@@ -80,7 +83,10 @@ describe('EventOrGroupExtraDetails', function () {
             numComments: 14,
             shortId: 'shortId',
             logger: 'javascript logger',
-            annotations: ['annotation1', 'annotation2'],
+            annotations: [
+              {url: 'http://example.com', displayName: 'annotation1'},
+              {url: 'http://example.com', displayName: 'annotation2'},
+            ],
             assignedTo: {
               name: 'Assignee Name',
             },
@@ -103,7 +109,10 @@ describe('EventOrGroupExtraDetails', function () {
             numComments: 14,
             shortId: 'shortId',
             logger: 'javascript logger',
-            annotations: ['annotation1', 'annotation2'],
+            annotations: [
+              {url: 'http://example.com', displayName: 'annotation1'},
+              {url: 'http://example.com', displayName: 'annotation2'},
+            ],
             subscriptionDetails: {reason: 'mentioned'},
           } as Group
         }

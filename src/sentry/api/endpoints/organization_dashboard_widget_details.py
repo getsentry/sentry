@@ -13,7 +13,7 @@ from sentry.api.serializers.rest_framework import DashboardWidgetSerializer
 @region_silo_endpoint
 class OrganizationDashboardWidgetDetailsEndpoint(OrganizationEndpoint):
     publish_status = {
-        "POST": ApiPublishStatus.UNKNOWN,
+        "POST": ApiPublishStatus.PRIVATE,
     }
     owner = ApiOwner.PERFORMANCE
     permission_classes = (OrganizationDashboardsPermission,)

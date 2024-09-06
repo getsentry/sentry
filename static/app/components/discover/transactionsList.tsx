@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 import type {Location, LocationDescriptor} from 'history';
 
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
-import {Button} from 'sentry/components/button';
+import {LinkButton} from 'sentry/components/button';
 import {CompactSelect} from 'sentry/components/compactSelect';
 import DiscoverButton from 'sentry/components/discoverButton';
 import {InvestigationRuleCreation} from 'sentry/components/dynamicSampling/investigationRule';
@@ -18,9 +18,11 @@ import type {TableDataRow} from 'sentry/utils/discover/discoverQuery';
 import DiscoverQuery from 'sentry/utils/discover/discoverQuery';
 import type EventView from 'sentry/utils/discover/eventView';
 import type {Sort} from 'sentry/utils/discover/fields';
+import {SavedQueryDatasets} from 'sentry/utils/discover/types';
 import {TrendsEventsDiscoverQuery} from 'sentry/utils/performance/trends/trendsDiscoverQuery';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
+import {hasDatasetSelector} from 'sentry/views/dashboards/utils';
 import type {Actions} from 'sentry/views/discover/table/cellAction';
 import type {TableColumn} from 'sentry/views/discover/table/types';
 import {decodeColumnOrder} from 'sentry/views/discover/utils';
@@ -309,7 +311,7 @@ class _TransactionsList extends Component<Props> {
         {!this.isTrend() &&
           (handleOpenAllEventsClick ? (
             <GuideAnchor target="release_transactions_open_in_transaction_events">
-              <Button
+              <LinkButton
                 onClick={handleOpenAllEventsClick}
                 to={this.generatePerformanceTransactionEventsView().getPerformanceTransactionEventsViewUrlTarget(
                   organization.slug,
@@ -322,14 +324,18 @@ class _TransactionsList extends Component<Props> {
                 data-test-id="transaction-events-open"
               >
                 {t('View Sampled Events')}
-              </Button>
+              </LinkButton>
             </GuideAnchor>
           ) : (
             <GuideAnchor target="release_transactions_open_in_discover">
               <DiscoverButton
                 onClick={handleOpenInDiscoverClick}
                 to={this.generateDiscoverEventView().getResultsViewUrlTarget(
-                  organization.slug
+                  organization.slug,
+                  false,
+                  hasDatasetSelector(organization)
+                    ? SavedQueryDatasets.TRANSACTIONS
+                    : undefined
                 )}
                 size="xs"
                 data-test-id="discover-open"

@@ -1,13 +1,13 @@
 from unittest import mock
 
 from sentry.integrations.example.integration import AliasedIntegrationProvider, ExampleIntegration
+from sentry.integrations.models.external_issue import ExternalIssue
+from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.integrations.services.integration import integration_service
 from sentry.models.activity import Activity
 from sentry.models.group import Group, GroupStatus
 from sentry.models.grouplink import GroupLink
 from sentry.models.groupresolution import GroupResolution
-from sentry.models.integrations.external_issue import ExternalIssue
-from sentry.models.integrations.organization_integration import OrganizationIntegration
 from sentry.models.release import Release
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase
@@ -505,7 +505,7 @@ class IssueDefaultTest(TestCase):
         link = self.installation.get_issue_url(self.external_issue.key)
 
         assert self.installation.get_annotations_for_group_list([self.group]) == {
-            self.group.id: [f'<a href="{link}">{label}</a>']
+            self.group.id: [{"url": link, "displayName": label}]
         }
 
         with assume_test_silo_mode(SiloMode.CONTROL):
