@@ -24,7 +24,7 @@ NEVER_CACHE = "max-age=0, no-cache, no-store, must-revalidate"
 
 
 def dev_favicon(request, extension):
-    document_root, path = resolve("sentry/images/favicon_dev.png")
+    document_root, path = resolve("sentry/images/favicon-dev.png")
     return static.serve(request, path, document_root=document_root)
 
 
