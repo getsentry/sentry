@@ -21,8 +21,6 @@ import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {extractSelectionParameters} from 'sentry/components/organizations/pageFilters/utils';
 import type {CursorHandler} from 'sentry/components/pagination';
 import Pagination from 'sentry/components/pagination';
-import Panel from 'sentry/components/panels/panel';
-import PanelBody from 'sentry/components/panels/panelBody';
 import QueryCount from 'sentry/components/queryCount';
 import {DEFAULT_QUERY, DEFAULT_STATS_PERIOD} from 'sentry/constants';
 import {t, tct} from 'sentry/locale';
@@ -49,10 +47,7 @@ import {getUtcDateString} from 'sentry/utils/dates';
 import getCurrentSentryReactRootSpan from 'sentry/utils/getCurrentSentryReactRootSpan';
 import parseApiError from 'sentry/utils/parseApiError';
 import parseLinkHeader from 'sentry/utils/parseLinkHeader';
-import {
-  makeIssuesINPObserver,
-  VisuallyCompleteWithData,
-} from 'sentry/utils/performanceForSentry';
+import {makeIssuesINPObserver} from 'sentry/utils/performanceForSentry';
 import {decodeScalar} from 'sentry/utils/queryString';
 import type {WithRouteAnalyticsProps} from 'sentry/utils/routeAnalytics/withRouteAnalytics';
 import withRouteAnalytics from 'sentry/utils/routeAnalytics/withRouteAnalytics';
@@ -63,13 +58,12 @@ import withOrganization from 'sentry/utils/withOrganization';
 import withPageFilters from 'sentry/utils/withPageFilters';
 import withSavedSearches from 'sentry/utils/withSavedSearches';
 import CustomViewsIssueListHeader from 'sentry/views/issueList/customViewsHeader';
+import IssueListBody from 'sentry/views/issueList/issueListBody';
 import SavedIssueSearches from 'sentry/views/issueList/savedIssueSearches';
 import type {IssueUpdateData} from 'sentry/views/issueList/types';
 import {parseIssuePrioritySearch} from 'sentry/views/issueList/utils/parseIssuePrioritySearch';
 
-import IssueListActions from './actions';
 import IssueListFilters from './filters';
-import GroupListBody from './groupListBody';
 import IssueListHeader from './header';
 import type {QueryCounts} from './utils';
 import {
@@ -1253,45 +1247,25 @@ class IssueListOverview extends Component<Props, State> {
           <StyledMain>
             <DataConsentBanner source="issues" />
             <IssueListFilters query={query} onSearch={this.onSearch} />
-
-            <Panel>
-              {groupIds.length !== 0 && (
-                <IssueListActions
-                  selection={selection}
-                  query={query}
-                  queryCount={modifiedQueryCount}
-                  onSelectStatsPeriod={this.onSelectStatsPeriod}
-                  onActionTaken={this.onActionTaken}
-                  onDelete={this.onDelete}
-                  statsPeriod={this.getGroupStatsPeriod()}
-                  groupIds={groupIds}
-                  allResultsVisible={this.allResultsVisible()}
-                  displayReprocessingActions={displayReprocessingActions}
-                  sort={this.getSort()}
-                  onSortChange={this.onSortChange}
-                />
-              )}
-              <PanelBody>
-                <VisuallyCompleteWithData
-                  hasData={this.state.groupIds.length > 0}
-                  id="IssueList-Body"
-                  isLoading={this.state.issuesLoading}
-                >
-                  <GroupListBody
-                    memberList={this.state.memberList}
-                    groupStatsPeriod={this.getGroupStatsPeriod()}
-                    groupIds={groupIds}
-                    displayReprocessingLayout={displayReprocessingActions}
-                    query={query}
-                    selectedProjectIds={selection.projects}
-                    loading={issuesLoading}
-                    error={error}
-                    refetchGroups={this.fetchData}
-                    onActionTaken={this.onActionTaken}
-                  />
-                </VisuallyCompleteWithData>
-              </PanelBody>
-            </Panel>
+            <IssueListBody
+              selection={selection}
+              query={query}
+              queryCount={modifiedQueryCount}
+              onSelectStatsPeriod={this.onSelectStatsPeriod}
+              onActionTaken={this.onActionTaken}
+              onDelete={this.onDelete}
+              statsPeriod={this.getGroupStatsPeriod()}
+              groupIds={groupIds}
+              allResultsVisible={this.allResultsVisible()}
+              displayReprocessingActions={displayReprocessingActions}
+              sort={this.getSort()}
+              onSortChange={this.onSortChange}
+              memberList={this.state.memberList}
+              selectedProjectIds={selection.projects}
+              issuesLoading={issuesLoading}
+              error={error}
+              refetchGroups={this.fetchData}
+            />
             <StyledPagination
               caption={
                 !issuesLoading && modifiedQueryCount > 0
