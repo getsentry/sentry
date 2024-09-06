@@ -1173,6 +1173,7 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
 
     const thresholdTypeForm = (disabled: boolean) => (
       <ThresholdTypeForm
+        alertType={alertType}
         comparisonType={comparisonType}
         dataset={dataset}
         disabled={disabled}

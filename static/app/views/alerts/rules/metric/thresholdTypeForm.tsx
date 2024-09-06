@@ -7,12 +7,14 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 import {COMPARISON_DELTA_OPTIONS} from 'sentry/views/alerts/rules/metric/constants';
+import type {MetricAlertType} from 'sentry/views/alerts/wizard/options';
 
 import {isCrashFreeAlert} from './utils/isCrashFreeAlert';
 import type {Dataset} from './types';
 import {AlertRuleComparisonType} from './types';
 
 type Props = {
+  alertType: MetricAlertType;
   comparisonType: AlertRuleComparisonType;
   dataset: Dataset;
   disabled: boolean;
@@ -23,6 +25,7 @@ type Props = {
 };
 
 function ThresholdTypeForm({
+  alertType,
   organization,
   dataset,
   disabled,
@@ -34,6 +37,19 @@ function ThresholdTypeForm({
   if (isCrashFreeAlert(dataset)) {
     return null;
   }
+  const validAnomalyDetectionAlertTypes = new Set([
+    'num_errors',
+    'users_experiencing_errors',
+    'throughput',
+    'trans_duration',
+    'failure_rate',
+    'lcp',
+    'fid',
+    'cls',
+    'custom_transactions',
+    'custom_metrics',
+    'insights_metrics',
+  ]);
 
   const hasAnomalyDetection = organization.features.includes('anomaly-detection-alerts');
 
@@ -78,7 +94,7 @@ function ThresholdTypeForm({
     ],
   ];
 
-  if (hasAnomalyDetection) {
+  if (hasAnomalyDetection && validAnomalyDetectionAlertTypes.has(alertType)) {
     thresholdTypeChoices.push([
       AlertRuleComparisonType.DYNAMIC,
       'Anomaly: whenever values are outside of expected bounds',
