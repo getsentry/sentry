@@ -12,6 +12,7 @@ from sentry.api.bases.user import UserEndpoint
 from sentry.api.decorators import sudo_required
 from sentry.api.serializers import serialize
 from sentry.api.validators import AllowedEmailField
+from sentry.users.api.serializers.useremail import UserEmailSerializer
 from sentry.users.models.user import User
 from sentry.users.models.user_option import UserOption
 from sentry.users.models.useremail import UserEmail
@@ -78,7 +79,10 @@ class UserEmailsEndpoint(UserEndpoint):
 
         emails = user.emails.all()
 
-        return self.respond(serialize(list(emails), user=user))
+        return self.respond(
+            serialize(list(emails), user=user, serializer=UserEmailSerializer()),
+            status=200,
+        )
 
     @sudo_required
     def post(self, request: Request, user: User) -> Response:
@@ -103,7 +107,10 @@ class UserEmailsEndpoint(UserEndpoint):
             new_useremail = add_email(email, user)
         except DuplicateEmailError:
             new_useremail = user.emails.get(email__iexact=email)
-            return self.respond(serialize(new_useremail, user=request.user), status=200)
+            return self.respond(
+                serialize(new_useremail, user=request.user, serializer=UserEmailSerializer()),
+                status=200,
+            )
         else:
             logger.info(
                 "user.email.add",
@@ -113,7 +120,10 @@ class UserEmailsEndpoint(UserEndpoint):
                     "email": new_useremail.email,
                 },
             )
-            return self.respond(serialize(new_useremail, user=request.user), status=201)
+            return self.respond(
+                serialize(new_useremail, user=request.user, serializer=UserEmailSerializer()),
+                status=201,
+            )
 
     @sudo_required
     def put(self, request: Request, user: User) -> Response:
@@ -207,7 +217,10 @@ class UserEmailsEndpoint(UserEndpoint):
             },
         )
 
-        return self.respond(serialize(new_useremail, user=request.user))
+        return self.respond(
+            serialize(new_useremail, user=request.user, serializer=UserEmailSerializer()),
+            status=200,
+        )
 
     @sudo_required
     def delete(self, request: Request, user: User) -> Response:
