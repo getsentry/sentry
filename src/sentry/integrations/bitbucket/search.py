@@ -36,7 +36,9 @@ class BitbucketSearchEndpoint(SourceCodeSearchEndpoint):
     def installation_class(self):
         return BitbucketIntegration
 
-    def handle_search_issues(self, installation: T, query: str, repo: str) -> Response:
+    def handle_search_issues(self, installation: T, query: str, repo: str | None) -> Response:
+        assert repo
+
         full_query = f'title~"{query}"'
         try:
             response = installation.search_issues(query=full_query, repo=repo)

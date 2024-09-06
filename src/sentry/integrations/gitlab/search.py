@@ -26,8 +26,9 @@ class GitlabIssueSearchEndpoint(SourceCodeSearchEndpoint):
     def installation_class(self):
         return GitlabIntegration
 
-    def handle_search_issues(self, installation: T, query: str, repo: str) -> Response:
-        assert isinstance(installation, self.installation_class)
+    def handle_search_issues(self, installation: T, query: str, repo: str | None) -> Response:
+        assert repo
+
         full_query: str | None = query
 
         try:

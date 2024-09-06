@@ -29,8 +29,8 @@ class GithubSharedSearchEndpoint(SourceCodeSearchEndpoint):
     def installation_class(self):
         return (GitHubIntegration, GitHubEnterpriseIntegration)
 
-    def handle_search_issues(self, installation: T, query: str, repo: str) -> Response:
-        assert isinstance(installation, self.installation_class)
+    def handle_search_issues(self, installation: T, query: str, repo: str | None) -> Response:
+        assert repo
 
         try:
             response = installation.search_issues(query=f"repo:{repo} {query}")

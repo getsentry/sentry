@@ -52,7 +52,7 @@ class SourceCodeSearchEndpoint(IntegrationEndpoint, Generic[T], ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def handle_search_issues(self, installation: T, query: str, repo: str) -> Response:
+    def handle_search_issues(self, installation: T, query: str, repo: str | None) -> Response:
         raise NotImplementedError
 
     # not used in VSTS
@@ -87,11 +87,15 @@ class SourceCodeSearchEndpoint(IntegrationEndpoint, Generic[T], ABC):
             raise NotFound(f"Integration by that id is not of type {self.integration_provider}.")
 
         if field == self.issue_field:
-            repo = request.GET.get(self.repository_field)
-            if repo is None:
-                return Response(
-                    {"detail": f"{self.repository_field} is a required parameter"}, status=400
-                )
+            repo = None
+
+            if self.repository_field:  # only fetch repository
+                repo = request.GET.get(self.repository_field)
+                if repo is None:
+                    return Response(
+                        {"detail": f"{self.repository_field} is a required parameter"}, status=400
+                    )
+
             return self.handle_search_issues(installation, query, repo)
 
         if self.repository_field and field == self.repository_field:

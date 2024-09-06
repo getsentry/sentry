@@ -20,7 +20,7 @@ class VstsSearchEndpoint(SourceCodeSearchEndpoint):
     def installation_class(self):
         return VstsIntegration
 
-    def handle_search_issues(self, installation: T, query: str, repo: str) -> Response:
+    def handle_search_issues(self, installation: T, query: str, repo: str | None) -> Response:
         if not query:
             return Response([])
 
