@@ -44,21 +44,6 @@ class Migration(CheckedMigration):
             new_name="sentry_rele_organiz_ffeeb2_idx",
             old_fields=("organization", "build_code"),
         ),
-        migrations.RenameIndex(
-            model_name="releaseproject",
-            new_name="sentry_rele_project_2ca122_idx",
-            old_fields=("project", "unadopted"),
-        ),
-        migrations.RenameIndex(
-            model_name="releaseproject",
-            new_name="sentry_rele_project_3143eb_idx",
-            old_fields=("project", "first_seen_transaction"),
-        ),
-        migrations.RenameIndex(
-            model_name="releaseproject",
-            new_name="sentry_rele_project_a80825_idx",
-            old_fields=("project", "adopted"),
-        ),
         migrations.SeparateDatabaseAndState(
             # fancy noop, we're now defining this index in django words
             database_operations=[],
