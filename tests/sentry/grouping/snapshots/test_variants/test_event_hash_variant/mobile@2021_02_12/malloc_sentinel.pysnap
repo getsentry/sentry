@@ -1,5 +1,5 @@
 ---
-created: '2024-09-04T19:48:06.320222+00:00'
+created: '2024-09-06T11:37:51.842421+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -18,13 +18,13 @@ app-depth-1:
           "<redacted>"
 --------------------------------------------------------------------------
 app-depth-2:
-  hash: "f6ed682eeae96b64daee672bd741880f"
+  hash: "804f08432027d0246c7e7bda086f6c15"
   component:
     app-depth-2*
       exception*
         stacktrace*
           frame*
-            filename (discarded native filename for grouping stability)
+            filename*
               "stripped_application_code"
             function*
               "stripped_application_code"
@@ -46,7 +46,7 @@ app-depth-2:
           "<redacted>"
 --------------------------------------------------------------------------
 app-depth-3:
-  hash: "804f08432027d0246c7e7bda086f6c15"
+  hash: "70b7b816193e06eb5d6649989fbaf605"
   component:
     app-depth-3*
       exception*
@@ -55,7 +55,7 @@ app-depth-3:
             function*
               "stripped_application_code"
           frame*
-            filename (discarded native filename for grouping stability)
+            filename*
               "stripped_application_code"
             function*
               "stripped_application_code"
@@ -77,7 +77,7 @@ app-depth-3:
           "<redacted>"
 --------------------------------------------------------------------------
 app-depth-max:
-  hash: "804f08432027d0246c7e7bda086f6c15"
+  hash: "70b7b816193e06eb5d6649989fbaf605"
   component:
     app-depth-max*
       exception*
@@ -86,7 +86,7 @@ app-depth-max:
             function*
               "stripped_application_code"
           frame*
-            filename (discarded native filename for grouping stability)
+            filename*
               "stripped_application_code"
             function*
               "stripped_application_code"
@@ -108,7 +108,7 @@ app-depth-max:
           "<redacted>"
 --------------------------------------------------------------------------
 system:
-  hash: "804f08432027d0246c7e7bda086f6c15"
+  hash: "70b7b816193e06eb5d6649989fbaf605"
   component:
     system*
       exception*
@@ -126,32 +126,32 @@ system:
             function*
               "stripped_application_code"
           frame*
-            filename (discarded native filename for grouping stability)
+            filename*
               "stripped_application_code"
             function*
               "stripped_application_code"
           frame (ignored due to recursion)
-            filename (discarded native filename for grouping stability)
+            filename*
               "stripped_application_code"
             function*
               "stripped_application_code"
           frame (ignored due to recursion)
-            filename (discarded native filename for grouping stability)
+            filename*
               "stripped_application_code"
             function*
               "stripped_application_code"
           frame (ignored due to recursion)
-            filename (discarded native filename for grouping stability)
+            filename*
               "stripped_application_code"
             function*
               "stripped_application_code"
           frame (ignored due to recursion)
-            filename (discarded native filename for grouping stability)
+            filename*
               "stripped_application_code"
             function*
               "stripped_application_code"
           frame (ignored due to recursion)
-            filename (discarded native filename for grouping stability)
+            filename*
               "stripped_application_code"
             function*
               "stripped_application_code"

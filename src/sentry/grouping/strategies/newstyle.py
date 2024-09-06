@@ -358,18 +358,6 @@ def frame(
     if context_line_component is not None:
         values.append(context_line_component)
 
-    if (
-        context["discard_native_filename"]
-        and get_behavior_family_for_platform(platform) == "native"
-        and function_component.contributes
-        and filename_component.contributes
-    ):
-        # In native, function names usually describe a full namespace. Adding
-        # the filename there just brings extra instability into grouping.
-        filename_component.update(
-            contributes=False, hint="discarded native filename for grouping stability"
-        )
-
     rv = GroupingComponent(id="frame", values=values)
 
     # if we are in javascript fuzzing mode we want to disregard some

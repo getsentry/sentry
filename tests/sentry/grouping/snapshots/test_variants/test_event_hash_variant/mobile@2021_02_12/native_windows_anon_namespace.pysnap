@@ -1,16 +1,16 @@
 ---
-created: '2024-09-04T19:48:06.306650+00:00'
+created: '2024-09-06T11:37:51.829987+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
 app-depth-1:
-  hash: "f616e8228d88e28dce01fbd04c53487d"
+  hash: "a839396425816f4aee5fa6faccdf2dc8"
   component:
     app-depth-1*
       exception*
         stacktrace*
           frame*
-            filename (discarded native filename for grouping stability)
+            filename*
               "main.cpp"
             function*
               "`anonymous namespace'::crash"
@@ -20,18 +20,18 @@ app-depth-1:
           "Fatal Error: EXCEPTION_ACCESS_VIOLATION_WRITE"
 --------------------------------------------------------------------------
 app-depth-2:
-  hash: "8e1e6add5d343d84489b957df999f941"
+  hash: "417de9b3a8cc314067366db722a116ca"
   component:
     app-depth-2*
       exception*
         stacktrace*
           frame*
-            filename (discarded native filename for grouping stability)
+            filename*
               "main.cpp"
             function*
               "`anonymous namespace'::start"
           frame*
-            filename (discarded native filename for grouping stability)
+            filename*
               "main.cpp"
             function*
               "`anonymous namespace'::crash"
@@ -41,23 +41,23 @@ app-depth-2:
           "Fatal Error: EXCEPTION_ACCESS_VIOLATION_WRITE"
 --------------------------------------------------------------------------
 app-depth-3:
-  hash: "3df8bc242dfdc7460b42fa529422630f"
+  hash: "46b84e4da51648cc9f9741abd2bdad51"
   component:
     app-depth-3*
       exception*
         stacktrace*
           frame*
-            filename (discarded native filename for grouping stability)
+            filename*
               "main.cpp"
             function*
               "main"
           frame*
-            filename (discarded native filename for grouping stability)
+            filename*
               "main.cpp"
             function*
               "`anonymous namespace'::start"
           frame*
-            filename (discarded native filename for grouping stability)
+            filename*
               "main.cpp"
             function*
               "`anonymous namespace'::crash"
@@ -67,23 +67,23 @@ app-depth-3:
           "Fatal Error: EXCEPTION_ACCESS_VIOLATION_WRITE"
 --------------------------------------------------------------------------
 app-depth-max:
-  hash: "3df8bc242dfdc7460b42fa529422630f"
+  hash: "46b84e4da51648cc9f9741abd2bdad51"
   component:
     app-depth-max*
       exception*
         stacktrace*
           frame*
-            filename (discarded native filename for grouping stability)
+            filename*
               "main.cpp"
             function*
               "main"
           frame*
-            filename (discarded native filename for grouping stability)
+            filename*
               "main.cpp"
             function*
               "`anonymous namespace'::start"
           frame*
-            filename (discarded native filename for grouping stability)
+            filename*
               "main.cpp"
             function*
               "`anonymous namespace'::crash"
@@ -93,33 +93,33 @@ app-depth-max:
           "Fatal Error: EXCEPTION_ACCESS_VIOLATION_WRITE"
 --------------------------------------------------------------------------
 system:
-  hash: "3df8bc242dfdc7460b42fa529422630f"
+  hash: "46b84e4da51648cc9f9741abd2bdad51"
   component:
     system*
       exception*
         stacktrace*
           frame (ignored by stack trace rule (category:threadbase -group v-group))
-            filename (discarded native filename for grouping stability)
+            filename*
               "exe_common.inl"
             function*
               "__scrt_common_main_seh"
           frame (ignored by stack trace rule (category:threadbase -group v-group))
-            filename (discarded native filename for grouping stability)
+            filename*
               "exe_common.inl"
             function*
               "invoke_main"
           frame*
-            filename (discarded native filename for grouping stability)
+            filename*
               "main.cpp"
             function*
               "main"
           frame*
-            filename (discarded native filename for grouping stability)
+            filename*
               "main.cpp"
             function*
               "`anonymous namespace'::start"
           frame*
-            filename (discarded native filename for grouping stability)
+            filename*
               "main.cpp"
             function*
               "`anonymous namespace'::crash"

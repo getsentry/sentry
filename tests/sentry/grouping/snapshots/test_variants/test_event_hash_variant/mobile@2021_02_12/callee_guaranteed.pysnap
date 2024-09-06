@@ -1,5 +1,5 @@
 ---
-created: '2024-08-27T12:08:36.228039+00:00'
+created: '2024-09-06T11:37:51.968527+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -118,7 +118,7 @@ system:
             function*
               "_dispatch_call_block_and_release"
           frame (ignored by stack trace rule (category:internals -group))
-            filename (discarded native filename for grouping stability)
+            filename*
               "<compiler-generated>"
             function*
               "@callee_guaranteed"
@@ -132,12 +132,12 @@ system:
             function*
               "stripped_application_code"
           frame (ignored by stack trace rule (category:internals -group))
-            filename (discarded native filename for grouping stability)
+            filename*
               "<compiler-generated>"
             function*
               "@callee_guaranteed"
           frame (ignored due to recursion)
-            filename (discarded native filename for grouping stability)
+            filename*
               "<compiler-generated>"
             function*
               "@callee_guaranteed"
@@ -145,7 +145,7 @@ system:
             function*
               "stripped_application_code"
           frame (ignored by stack trace rule (category:internals -group))
-            filename (discarded native filename for grouping stability)
+            filename*
               "<compiler-generated>"
             function*
               "@callee_guaranteed"
@@ -156,27 +156,27 @@ system:
             function*
               "stripped_application_code"
           frame (ignored by stack trace rule (category:internals -group))
-            filename (discarded native filename for grouping stability)
+            filename*
               "<compiler-generated>"
             function*
               "@callee_guaranteed"
           frame (ignored due to recursion)
-            filename (discarded native filename for grouping stability)
+            filename*
               "<compiler-generated>"
             function*
               "@callee_guaranteed"
           frame (ignored due to recursion)
-            filename (discarded native filename for grouping stability)
+            filename*
               "<compiler-generated>"
             function*
               "@callee_guaranteed"
           frame (ignored due to recursion)
-            filename (discarded native filename for grouping stability)
+            filename*
               "<compiler-generated>"
             function*
               "@callee_guaranteed"
           frame (ignored due to recursion)
-            filename (discarded native filename for grouping stability)
+            filename*
               "<compiler-generated>"
             function*
               "@callee_guaranteed"
