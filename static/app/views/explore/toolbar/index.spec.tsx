@@ -174,10 +174,10 @@ describe('ExploreToolbar', function () {
 
     const section = screen.getByTestId('section-group-by');
 
-    expect(within(section).getByRole('button', {name: '(none)'})).toBeInTheDocument();
+    expect(within(section).getByRole('button', {name: 'None'})).toBeInTheDocument();
     expect(groupBys).toEqual(['']);
 
-    await userEvent.click(within(section).getByRole('button', {name: '(none)'}));
+    await userEvent.click(within(section).getByRole('button', {name: 'None'}));
     const groupByOptions1 = await within(section).findAllByRole('option');
     expect(groupByOptions1.length).toBeGreaterThan(0);
 
@@ -188,7 +188,7 @@ describe('ExploreToolbar', function () {
     await userEvent.click(within(section).getByRole('button', {name: '+Add Group By'}));
     expect(groupBys).toEqual(['span.op', '']);
 
-    await userEvent.click(within(section).getByRole('button', {name: '(none)'}));
+    await userEvent.click(within(section).getByRole('button', {name: 'None'}));
     const groupByOptions2 = await within(section).findAllByRole('option');
     expect(groupByOptions2.length).toBeGreaterThan(0);
 
