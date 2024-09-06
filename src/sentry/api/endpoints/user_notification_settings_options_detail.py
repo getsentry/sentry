@@ -1,6 +1,8 @@
 from rest_framework import status
+from rest_framework.exceptions import NotFound
 from rest_framework.request import Request
 from rest_framework.response import Response
+from typing_extensions import override
 
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
@@ -19,13 +21,29 @@ class UserNotificationSettingsOptionsDetailEndpoint(UserEndpoint):
     # TODO(Steve): Make not private when we launch new system
     private = True
 
-    def delete(self, request: Request, user: User, notification_option_id: str) -> Response:
+    @override
+    def convert_args(
+        self,
+        request: Request,
+        notification_option_id: int,
+        user_id: int | str | None = None,
+        *args,
+        **kwargs,
+    ):
+        args, kwargs = super().convert_args(request, user_id, *args, **kwargs)
+        fetched_user = kwargs["user"]
         try:
             option = NotificationSettingOption.objects.get(
-                id=notification_option_id,
+                id=notification_option_id, user=fetched_user
             )
         except NotificationSettingOption.DoesNotExist:
-            return Response(status=status.HTTP_404_NOT_FOUND)
+            raise NotFound(detail="User notification setting does not exist")
 
-        option.delete()
+        kwargs["notification_setting_option"] = option
+        return args, kwargs
+
+    def delete(
+        self, request: Request, user: User, notification_setting_option: NotificationSettingOption
+    ) -> Response:
+        notification_setting_option.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
