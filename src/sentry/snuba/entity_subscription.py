@@ -308,6 +308,7 @@ class BaseMetricsEntitySubscription(BaseEntitySubscription, ABC):
             params=params,
             offset=None,
             granularity=self.get_granularity(),
+            time_range_window=self.time_window,
             config=QueryBuilderConfig(
                 skip_time_conditions=True,
                 use_metrics_layer=self.use_metrics_layer,
