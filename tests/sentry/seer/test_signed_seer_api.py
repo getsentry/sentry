@@ -73,14 +73,12 @@ def test_uses_shared_secret():
 def test_uses_shared_secret_missing_secret():
     with override_options({"seer.api.use-shared-secret": 1.0}):
         mock_url_open = run_test_case(shared_secret="")
+
         mock_url_open.assert_called_once_with(
             "POST",
             PATH,
             body=REQUEST_BODY,
-            headers={
-                "content-type": "application/json;charset=utf-8",
-                "Authorization": "Rpcsignature rpc0:96f23d5b3df807a9dc91f090078a46c00e17fe8b0bc7ef08c9391fa8b37a66b5",
-            },
+            headers={"content-type": "application/json;charset=utf-8"},
         )
 
 
