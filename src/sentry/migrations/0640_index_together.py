@@ -24,11 +24,6 @@ class Migration(CheckedMigration):
 
     operations = [
         migrations.RenameIndex(
-            model_name="activity",
-            new_name="sentry_acti_project_cd8457_idx",
-            old_fields=("project", "datetime"),
-        ),
-        migrations.RenameIndex(
             model_name="artifactbundleindex",
             new_name="sentry_arti_url_7e628a_idx",
             old_fields=("url", "artifact_bundle"),
@@ -53,11 +48,6 @@ class Migration(CheckedMigration):
                 "category",
                 "object_identifier",
             ),
-        ),
-        migrations.RenameIndex(
-            model_name="debugidartifactbundle",
-            new_name="sentry_debu_debug_i_8c6c44_idx",
-            old_fields=("debug_id", "artifact_bundle"),
         ),
         migrations.RenameIndex(
             model_name="group",
@@ -120,21 +110,6 @@ class Migration(CheckedMigration):
             old_fields=("project", "date_added"),
         ),
         migrations.RenameIndex(
-            model_name="groupinbox",
-            new_name="sentry_grou_project_a9fe16_idx",
-            old_fields=("project", "date_added"),
-        ),
-        migrations.RenameIndex(
-            model_name="grouprelease",
-            new_name="sentry_grou_group_i_6eaff8_idx",
-            old_fields=("group_id", "first_seen"),
-        ),
-        migrations.RenameIndex(
-            model_name="grouprelease",
-            new_name="sentry_grou_group_i_f10abe_idx",
-            old_fields=("group_id", "last_seen"),
-        ),
-        migrations.RenameIndex(
             model_name="incidenttrigger",
             new_name="sentry_inci_alert_r_33da01_idx",
             old_fields=("alert_rule_trigger", "incident_id"),
@@ -168,11 +143,6 @@ class Migration(CheckedMigration):
             model_name="regionoutbox",
             new_name="sentry_regi_shard_s_cd9995_idx",
             old_fields=("shard_scope", "shard_identifier", "scheduled_for"),
-        ),
-        migrations.RenameIndex(
-            model_name="regressiongroup",
-            new_name="sentry_regr_type_3a29e7_idx",
-            old_fields=("type", "project_id", "fingerprint", "active"),
         ),
         migrations.RenameIndex(
             model_name="releaseartifactbundle",
