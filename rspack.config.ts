@@ -358,8 +358,11 @@ const appConfig: rspack.Configuration = {
       'process/browser': require.resolve('process/browser'),
     },
 
+    // Prefers local modules over node_modules
+    preferAbsolute: true,
     modules: ['node_modules'],
-    extensions: ['.jsx', '.js', '.json', '.ts', '.tsx', '.less'],
+    extensions: ['.js', '.tsx', '.ts', '.json', '.less'],
+    symlinks: false,
     // tsConfigPath: path.resolve(__dirname, './tsconfig.json'),
   },
   output: {
