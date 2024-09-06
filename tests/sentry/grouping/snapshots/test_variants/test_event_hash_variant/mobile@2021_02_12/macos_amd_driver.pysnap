@@ -1,10 +1,10 @@
 ---
-created: '2024-09-04T19:48:04.978642+00:00'
+created: '2024-09-05T13:39:10.793350+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
 app-depth-1:
-  hash: "1504fadcf68879fb8afe4560c4d7f91b"
+  hash: "c1109df14571ebc637c6ab78044a5fac"
   component:
     app-depth-1*
       exception*
@@ -12,18 +12,13 @@ app-depth-1:
           frame* (marked as sentinel frame by stack trace rule (category:gl +sentinel))
             function*
               "glTexSubImage2D"
-            package (ignored because function takes precedence)
-              "libgl.dylib"
-          frame* (marked as prefix frame by stack trace rule (category:driver +sentinel +prefix))
-            package* (used as fallback because function name is not available)
-              "amdradeonx5000gldriver"
         type (ignored because exception is synthetic)
           "0x00000000 / 0x00000000"
         value (ignored because stacktrace takes precedence)
           "Fatal Error: <hex> / <hex>"
 --------------------------------------------------------------------------
 app-depth-max:
-  hash: "0a16eff3ac6acb7f1b7926d65019e155"
+  hash: "b8baf791d22ac902d5f59a7eedd844fd"
   component:
     app-depth-max*
       exception*
@@ -31,8 +26,6 @@ app-depth-max:
           frame (ignored by stack trace rule (category:threadbase -group v-group))
             function*
               "start"
-            package (ignored because function takes precedence)
-              "libdyld.dylib"
           frame*
             function*
               "code"
@@ -75,33 +68,21 @@ app-depth-max:
           frame*
             function*
               "-[NSRunLoop(NSRunLoop) runMode:beforeDate:]"
-            package (ignored because function takes precedence)
-              "foundation"
           frame (ignored by stack trace rule (category:internals -group))
             function*
               "CFRunLoopRunSpecific"
-            package (ignored because function takes precedence)
-              "corefoundation"
           frame (ignored by stack trace rule (category:internals -group))
             function*
               "__CFRunLoopRun"
-            package (ignored because function takes precedence)
-              "corefoundation"
           frame (ignored by stack trace rule (category:internals -group))
             function*
               "__CFRunLoopDoSources0"
-            package (ignored because function takes precedence)
-              "corefoundation"
           frame (ignored by stack trace rule (category:internals -group))
             function*
               "__CFRunLoopDoSource0"
-            package (ignored because function takes precedence)
-              "corefoundation"
           frame (ignored by stack trace rule (category:internals -group))
             function*
               "__CFRUNLOOP_IS_CALLING_OUT_TO_A_SOURCE0_PERFORM_FUNCTION__"
-            package (ignored because function takes precedence)
-              "corefoundation"
           frame*
             function*
               "code"
@@ -162,56 +143,36 @@ app-depth-max:
           frame* (marked as sentinel frame by stack trace rule (category:gl +sentinel))
             function*
               "glTexSubImage2D"
-            package (ignored because function takes precedence)
-              "libgl.dylib"
           frame (ignored by stack trace rule (category:internals -group))
             function*
               "glTexSubImage2D_Exec"
-            package (ignored because function takes precedence)
-              "glengine"
           frame (ignored by stack trace rule (category:internals -group))
             function*
               "gleTextureImagePut"
-            package (ignored because function takes precedence)
-              "glengine"
-          frame (ignored by stack trace rule (category:internals -group))
-            package* (used as fallback because function name is not available)
-              "amdradeonx5000gldriver"
+          frame
           frame (ignored by stack trace rule (category:internals -group))
             function*
               "gpusSubmitDataBuffers"
-            package (ignored because function takes precedence)
-              "libgpusupportmercury.dylib"
-          frame* (marked as prefix frame by stack trace rule (category:driver +sentinel +prefix))
-            package* (used as fallback because function name is not available)
-              "amdradeonx5000gldriver"
+          frame (marked as prefix frame by stack trace rule (category:driver +sentinel +prefix))
           frame (ignored by stack trace rule (category:telemetry -group))
             function*
               "gpusGenerateCrashLog"
-            package (ignored because function takes precedence)
-              "libgpusupportmercury.dylib"
           frame (ignored by stack trace rule (category:indirection -group))
             function*
               "gpusGenerateCrashLog.cold.1"
-            package (ignored because function takes precedence)
-              "libgpusupportmercury.dylib"
           frame* (marked as prefix frame by stack trace rule (category:throw +prefix ^-group))
             function*
               "abort"
-            package (ignored because function takes precedence)
-              "libsystem_c.dylib"
           frame (ignored by stack trace rule (category:throw +prefix ^-group))
             function*
               "__pthread_kill"
-            package (ignored because function takes precedence)
-              "libsystem_kernel.dylib"
         type (ignored because exception is synthetic)
           "0x00000000 / 0x00000000"
         value (ignored because stacktrace takes precedence)
           "Fatal Error: <hex> / <hex>"
 --------------------------------------------------------------------------
 system:
-  hash: "0a16eff3ac6acb7f1b7926d65019e155"
+  hash: "b8baf791d22ac902d5f59a7eedd844fd"
   component:
     system*
       exception*
@@ -219,8 +180,6 @@ system:
           frame (ignored by stack trace rule (category:threadbase -group v-group))
             function*
               "start"
-            package (ignored because function takes precedence)
-              "libdyld.dylib"
           frame*
             function*
               "code"
@@ -263,33 +222,21 @@ system:
           frame*
             function*
               "-[NSRunLoop(NSRunLoop) runMode:beforeDate:]"
-            package (ignored because function takes precedence)
-              "foundation"
           frame (ignored by stack trace rule (category:internals -group))
             function*
               "CFRunLoopRunSpecific"
-            package (ignored because function takes precedence)
-              "corefoundation"
           frame (ignored by stack trace rule (category:internals -group))
             function*
               "__CFRunLoopRun"
-            package (ignored because function takes precedence)
-              "corefoundation"
           frame (ignored by stack trace rule (category:internals -group))
             function*
               "__CFRunLoopDoSources0"
-            package (ignored because function takes precedence)
-              "corefoundation"
           frame (ignored by stack trace rule (category:internals -group))
             function*
               "__CFRunLoopDoSource0"
-            package (ignored because function takes precedence)
-              "corefoundation"
           frame (ignored by stack trace rule (category:internals -group))
             function*
               "__CFRUNLOOP_IS_CALLING_OUT_TO_A_SOURCE0_PERFORM_FUNCTION__"
-            package (ignored because function takes precedence)
-              "corefoundation"
           frame*
             function*
               "code"
@@ -350,49 +297,29 @@ system:
           frame* (marked as sentinel frame by stack trace rule (category:gl +sentinel))
             function*
               "glTexSubImage2D"
-            package (ignored because function takes precedence)
-              "libgl.dylib"
           frame (ignored by stack trace rule (category:internals -group))
             function*
               "glTexSubImage2D_Exec"
-            package (ignored because function takes precedence)
-              "glengine"
           frame (ignored by stack trace rule (category:internals -group))
             function*
               "gleTextureImagePut"
-            package (ignored because function takes precedence)
-              "glengine"
-          frame (ignored by stack trace rule (category:internals -group))
-            package* (used as fallback because function name is not available)
-              "amdradeonx5000gldriver"
+          frame
           frame (ignored by stack trace rule (category:internals -group))
             function*
               "gpusSubmitDataBuffers"
-            package (ignored because function takes precedence)
-              "libgpusupportmercury.dylib"
-          frame* (marked as prefix frame by stack trace rule (category:driver +sentinel +prefix))
-            package* (used as fallback because function name is not available)
-              "amdradeonx5000gldriver"
+          frame (marked as prefix frame by stack trace rule (category:driver +sentinel +prefix))
           frame (ignored by stack trace rule (category:telemetry -group))
             function*
               "gpusGenerateCrashLog"
-            package (ignored because function takes precedence)
-              "libgpusupportmercury.dylib"
           frame (ignored by stack trace rule (category:indirection -group))
             function*
               "gpusGenerateCrashLog.cold.1"
-            package (ignored because function takes precedence)
-              "libgpusupportmercury.dylib"
           frame* (marked as prefix frame by stack trace rule (category:throw +prefix ^-group))
             function*
               "abort"
-            package (ignored because function takes precedence)
-              "libsystem_c.dylib"
           frame (ignored by stack trace rule (category:throw +prefix ^-group))
             function*
               "__pthread_kill"
-            package (ignored because function takes precedence)
-              "libsystem_kernel.dylib"
         type (ignored because exception is synthetic)
           "0x00000000 / 0x00000000"
         value (ignored because stacktrace takes precedence)
