@@ -344,7 +344,6 @@ class BaseEvent(metaclass=abc.ABCMeta):
         matching *any* of the hashes. Hashes that do not yet have a GroupHash model get
         one and are associated with the same group (unless they already belong to another group).
 
-        The returned hashes already take SDK fingerprints and checksums into consideration.
         """
         # If we have hashes stored in the data we use them, otherwise we
         # fall back to generating new ones from the data.  We can only use
