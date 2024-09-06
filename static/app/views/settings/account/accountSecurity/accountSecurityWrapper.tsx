@@ -37,26 +37,24 @@ function AccountSecurityWrapper({children}: Props) {
     emailsRequest.refetch();
   }, [orgRequest, authenticatorsRequest, emailsRequest]);
 
-  const disableAuthenticatorMutation = useMutation(
-    async (auth: Authenticator) => {
+  const disableAuthenticatorMutation = useMutation({
+    mutationFn: async (auth: Authenticator) => {
       if (!auth || !auth.authId) {
         return;
       }
 
       await api.requestPromise(`${ENDPOINT}${auth.authId}/`, {method: 'DELETE'});
     },
-    {
-      onSuccess: () => {
-        handleRefresh();
-      },
-      onError: (_, auth) => {
-        addErrorMessage(t('Error disabling %s', auth.name));
-      },
-    }
-  );
+    onSuccess: () => {
+      handleRefresh();
+    },
+    onError: (_, auth) => {
+      addErrorMessage(t('Error disabling %s', auth.name));
+    },
+  });
 
-  const regenerateBackupCodesMutation = useMutation(
-    async () => {
+  const regenerateBackupCodesMutation = useMutation({
+    mutationFn: async () => {
       if (!authId) {
         return;
       }
@@ -65,15 +63,13 @@ function AccountSecurityWrapper({children}: Props) {
         method: 'PUT',
       });
     },
-    {
-      onSuccess: () => {
-        handleRefresh();
-      },
-      onError: () => {
-        addErrorMessage(t('Error regenerating backup codes'));
-      },
-    }
-  );
+    onSuccess: () => {
+      handleRefresh();
+    },
+    onError: () => {
+      addErrorMessage(t('Error regenerating backup codes'));
+    },
+  });
 
   if (
     orgRequest.isLoading ||

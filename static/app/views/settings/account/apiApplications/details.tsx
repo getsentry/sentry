@@ -57,36 +57,34 @@ function ApiApplicationsDetails() {
     staleTime: 0,
   });
 
-  const {mutate: rotateClientSecret} = useMutation<RotateClientSecretResponse>(
-    () => {
+  const {mutate: rotateClientSecret} = useMutation<RotateClientSecretResponse>({
+    mutationFn: () => {
       return api.requestPromise(`/api-applications/${appId}/rotate-secret/`, {
         method: 'POST',
       });
     },
-    {
-      onSuccess: data => {
-        openModal(({Body, Header}) => (
-          <Fragment>
-            <Header>{t('Your new Client Secret')}</Header>
-            <Body>
-              <Alert type="info" showIcon>
-                {t('This will be the only time your client secret is visible!')}
-              </Alert>
-              <TextCopyInput aria-label={t('new-client-secret')}>
-                {data.clientSecret}
-              </TextCopyInput>
-            </Body>
-          </Fragment>
-        ));
-      },
-      onError: () => {
-        addErrorMessage(t('Error rotating secret'));
-      },
-      onSettled: () => {
-        queryClient.invalidateQueries(getAppQueryKey(appId));
-      },
-    }
-  );
+    onSuccess: data => {
+      openModal(({Body, Header}) => (
+        <Fragment>
+          <Header>{t('Your new Client Secret')}</Header>
+          <Body>
+            <Alert type="info" showIcon>
+              {t('This will be the only time your client secret is visible!')}
+            </Alert>
+            <TextCopyInput aria-label={t('new-client-secret')}>
+              {data.clientSecret}
+            </TextCopyInput>
+          </Body>
+        </Fragment>
+      ));
+    },
+    onError: () => {
+      addErrorMessage(t('Error rotating secret'));
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({queryKey: getAppQueryKey(appId)});
+    },
+  });
 
   if (isPending) {
     return <LoadingIndicator />;

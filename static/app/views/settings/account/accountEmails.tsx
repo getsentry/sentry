@@ -33,7 +33,7 @@ function AccountEmails() {
   const queryClient = useQueryClient();
 
   const handleSubmitSuccess: FormProps['onSubmitSuccess'] = (_change, model, id) => {
-    queryClient.invalidateQueries(makeEmailsEndpointKey());
+    queryClient.invalidateQueries({queryKey: makeEmailsEndpointKey()});
 
     if (id === undefined) {
       return;

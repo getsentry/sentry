@@ -130,20 +130,20 @@ function ProjectDebugSymbols({organization, project, location, router, params}: 
       addSuccessMessage('Successfully deleted debug file');
 
       // invalidate debug files query
-      queryClient.invalidateQueries(
-        makeDebugFilesQueryKey({
+      queryClient.invalidateQueries({
+        queryKey: makeDebugFilesQueryKey({
           projectSlug: params.projectId,
           orgSlug: organization.slug,
           query,
-        })
-      );
+        }),
+      });
 
       // invalidate symbol sources query
-      queryClient.invalidateQueries(
-        makeSymbolSourcesQueryKey({
+      queryClient.invalidateQueries({
+        queryKey: makeSymbolSourcesQueryKey({
           orgSlug: organization.slug,
-        })
-      );
+        }),
+      });
     },
     onError: () => {
       addErrorMessage('Failed to delete debug file');
