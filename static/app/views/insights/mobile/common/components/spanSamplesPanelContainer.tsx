@@ -5,6 +5,7 @@ import debounce from 'lodash/debounce';
 import SearchBar from 'sentry/components/events/searchBar';
 import {COL_WIDTH_UNDEFINED} from 'sentry/components/gridEditable';
 import Link from 'sentry/components/links/link';
+import {SpanSearchQueryBuilder} from 'sentry/components/performance/spanSearchQueryBuilder';
 import {Tooltip} from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -197,16 +198,28 @@ export function SpanSamplesContainer({
         platform={isProjectCrossPlatform ? selectedPlatform : undefined}
       />
 
-      <StyledSearchBar
-        searchSource={`${moduleName}-sample-panel`}
-        query={searchQuery}
-        onSearch={handleSearch}
-        placeholder={t('Search for span attributes')}
-        organization={organization}
-        supportedTags={supportedTags}
-        dataset={DiscoverDatasets.SPANS_INDEXED}
-        projectIds={selection.projects}
-      />
+      <StyledSearchBar>
+        {organization.features.includes('search-query-builder-performance') ? (
+          <SpanSearchQueryBuilder
+            searchSource={`${moduleName}-sample-panel`}
+            initialQuery={searchQuery ?? ''}
+            onSearch={handleSearch}
+            placeholder={t('Search for span attributes')}
+            projects={selection.projects}
+          />
+        ) : (
+          <SearchBar
+            searchSource={`${moduleName}-sample-panel`}
+            query={searchQuery}
+            onSearch={handleSearch}
+            placeholder={t('Search for span attributes')}
+            organization={organization}
+            supportedTags={supportedTags}
+            dataset={DiscoverDatasets.SPANS_INDEXED}
+            projectIds={selection.projects}
+          />
+        )}
+      </StyledSearchBar>
 
       <SampleTable
         referrer={TraceViewSources.APP_STARTS_MODULE}
@@ -254,6 +267,6 @@ const PaddedTitle = styled('div')`
   margin-bottom: ${space(1)};
 `;
 
-const StyledSearchBar = styled(SearchBar)`
+const StyledSearchBar = styled('div')`
   margin: ${space(2)} 0;
 `;
