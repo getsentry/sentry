@@ -215,7 +215,8 @@ class MetricAlertDetails extends Component<Props, State> {
       // For now, we defer to incident lines as indicators for anomalies
       let warning;
       if (rule.status === ALERT_RULE_STATUS.NOT_ENOUGH_DATA) {
-        warning = 'Not enough data to determine dynamic threshold';
+        warning =
+          'Insufficient data for anomaly detection. This feature will enable automatically when more data is available.';
       }
       this.setState({
         anomalies,
