@@ -42,7 +42,7 @@ export function EventDetails({
 
   const searchQuery = useEventQuery({group});
   const {eventDetails, dispatch} = useEventDetailsReducer();
-  const {data: groupStats, isLoading: isLoadingStats} = useFetchEventStats({
+  const {data: groupStats, isPending: isLoadingStats} = useFetchEventStats({
     params: {
       group: group,
       referrer: 'issue_details.streamline',
