@@ -706,7 +706,7 @@ class DebugChartRendererView(View):
                 "chart": charts.generate_chart(
                     ChartType.SLACK_DISCOVER_TOTAL_PERIOD, discover_total_period
                 ),
-                "title": "Slack discover total period",
+                "title": "Slack Discover total period",
             }
         )
         ret.append(
@@ -714,7 +714,7 @@ class DebugChartRendererView(View):
                 "chart": charts.generate_chart(
                     ChartType.SLACK_DISCOVER_TOTAL_PERIOD, discover_multi_y_axis
                 ),
-                "title": "Slack discover total period multi y axis",
+                "title": "Slack Discover total period multi y axis",
             }
         )
         ret.append(
@@ -722,7 +722,7 @@ class DebugChartRendererView(View):
                 "chart": charts.generate_chart(
                     ChartType.SLACK_DISCOVER_TOTAL_PERIOD, discover_empty
                 ),
-                "title": "Slack discover total period empty",
+                "title": "Slack Discover total period empty",
             }
         )
         ret.append(
@@ -752,7 +752,7 @@ class DebugChartRendererView(View):
         ret.append(
             {
                 "chart": charts.generate_chart(ChartType.SLACK_DISCOVER_TOP5_PERIOD, discover_top5),
-                "title": "Slack discover top5 period",
+                "title": "Slack Discover top5 period",
             }
         )
         ret.append(
@@ -760,7 +760,7 @@ class DebugChartRendererView(View):
                 "chart": charts.generate_chart(
                     ChartType.SLACK_DISCOVER_TOP5_PERIOD, discover_empty
                 ),
-                "title": "Slack discover top5 empty",
+                "title": "Slack Discover top5 empty",
             }
         )
         ret.append(
@@ -768,7 +768,7 @@ class DebugChartRendererView(View):
                 "chart": charts.generate_chart(
                     ChartType.SLACK_DISCOVER_TOP5_PERIOD_LINE, discover_top5
                 ),
-                "title": "Slack discover top5 period line",
+                "title": "Slack Discover top5 period line",
             }
         )
         ret.append(
@@ -776,19 +776,19 @@ class DebugChartRendererView(View):
                 "chart": charts.generate_chart(
                     ChartType.SLACK_DISCOVER_TOP5_PERIOD_LINE, discover_empty
                 ),
-                "title": "Slack discover top5 period line empty",
+                "title": "Slack Discover top5 period line empty",
             }
         )
         ret.append(
             {
                 "chart": charts.generate_chart(ChartType.SLACK_DISCOVER_TOP5_DAILY, discover_top5),
-                "title": "Slack discover top5 daily",
+                "title": "Slack Discover top5 daily",
             }
         )
         ret.append(
             {
                 "chart": charts.generate_chart(ChartType.SLACK_DISCOVER_TOP5_DAILY, discover_empty),
-                "title": "Slack discover top5 daily empty",
+                "title": "Slack Discover top5 daily empty",
             }
         )
         ret.append(
@@ -796,7 +796,7 @@ class DebugChartRendererView(View):
                 "chart": charts.generate_chart(
                     ChartType.SLACK_DISCOVER_PREVIOUS_PERIOD, discover_total_period
                 ),
-                "title": "Slack discover previous period",
+                "title": "Slack Discover previous period",
             }
         )
         ret.append(
@@ -804,14 +804,14 @@ class DebugChartRendererView(View):
                 "chart": charts.generate_chart(
                     ChartType.SLACK_DISCOVER_PREVIOUS_PERIOD, discover_multi_y_axis
                 ),
-                "title": "Slack discover previous period multi y axis",
+                "title": "Slack Discover previous period multi y axis",
             }
         )
 
         ret.append(
             {
                 "chart": charts.generate_chart(ChartType.SLACK_METRIC_ALERT_EVENTS, metric_alert),
-                "title": "slack metric alert events",
+                "title": "Slack metric alert events",
             }
         )
         ret.append(
@@ -819,7 +819,7 @@ class DebugChartRendererView(View):
                 "chart": charts.generate_chart(
                     ChartType.SLACK_METRIC_ALERT_SESSIONS, crash_free_metric_alert
                 ),
-                "title": "slack metric alert sessions crash free",
+                "title": "Slack metric alert sessions crash free",
             }
         )
         ret.append(
@@ -827,7 +827,7 @@ class DebugChartRendererView(View):
                 "chart": charts.generate_chart(
                     ChartType.SLACK_METRIC_ALERT_EVENTS, metric_alert_with_anomalies
                 ),
-                "title": "slack metric alert with anomalies",
+                "title": "Slack metric alert with anomalies",
             }
         )
 
