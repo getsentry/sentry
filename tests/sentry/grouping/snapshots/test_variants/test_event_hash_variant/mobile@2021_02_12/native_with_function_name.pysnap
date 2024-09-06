@@ -1,5 +1,5 @@
 ---
-created: '2024-09-05T13:32:09.452717+00:00'
+created: '2024-09-06T10:48:36.808444+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -20,8 +20,6 @@ app-depth-1:
               "main.cpp"
             function*
               "(anonymous namespace)::something::nested::Foo<T>::crash"
-            package (ignored because function takes precedence)
-              "crash"
         type (ignored because exception is synthetic)
           "EXC_BAD_ACCESS / KERN_INVALID_ADDRESS"
         value (ignored because stacktrace takes precedence)
@@ -38,15 +36,11 @@ app-depth-2:
               "main.cpp"
             function*
               "(anonymous namespace)::crash"
-            package (ignored because function takes precedence)
-              "crash"
           frame*
             filename (discarded native filename for grouping stability)
               "main.cpp"
             function*
               "(anonymous namespace)::something::nested::Foo<T>::crash"
-            package (ignored because function takes precedence)
-              "crash"
         type (ignored because exception is synthetic)
           "EXC_BAD_ACCESS / KERN_INVALID_ADDRESS"
         value (ignored because stacktrace takes precedence)
@@ -63,22 +57,16 @@ app-depth-3:
               "main.cpp"
             function*
               "(anonymous namespace)::start"
-            package (ignored because function takes precedence)
-              "crash"
           frame*
             filename (discarded native filename for grouping stability)
               "main.cpp"
             function*
               "(anonymous namespace)::crash"
-            package (ignored because function takes precedence)
-              "crash"
           frame*
             filename (discarded native filename for grouping stability)
               "main.cpp"
             function*
               "(anonymous namespace)::something::nested::Foo<T>::crash"
-            package (ignored because function takes precedence)
-              "crash"
         type (ignored because exception is synthetic)
           "EXC_BAD_ACCESS / KERN_INVALID_ADDRESS"
         value (ignored because stacktrace takes precedence)
@@ -95,29 +83,21 @@ app-depth-4:
               "main.cpp"
             function*
               "main"
-            package (ignored because function takes precedence)
-              "crash"
           frame*
             filename (discarded native filename for grouping stability)
               "main.cpp"
             function*
               "(anonymous namespace)::start"
-            package (ignored because function takes precedence)
-              "crash"
           frame*
             filename (discarded native filename for grouping stability)
               "main.cpp"
             function*
               "(anonymous namespace)::crash"
-            package (ignored because function takes precedence)
-              "crash"
           frame*
             filename (discarded native filename for grouping stability)
               "main.cpp"
             function*
               "(anonymous namespace)::something::nested::Foo<T>::crash"
-            package (ignored because function takes precedence)
-              "crash"
         type (ignored because exception is synthetic)
           "EXC_BAD_ACCESS / KERN_INVALID_ADDRESS"
         value (ignored because stacktrace takes precedence)
@@ -134,29 +114,21 @@ app-depth-max:
               "main.cpp"
             function*
               "main"
-            package (ignored because function takes precedence)
-              "crash"
           frame*
             filename (discarded native filename for grouping stability)
               "main.cpp"
             function*
               "(anonymous namespace)::start"
-            package (ignored because function takes precedence)
-              "crash"
           frame*
             filename (discarded native filename for grouping stability)
               "main.cpp"
             function*
               "(anonymous namespace)::crash"
-            package (ignored because function takes precedence)
-              "crash"
           frame*
             filename (discarded native filename for grouping stability)
               "main.cpp"
             function*
               "(anonymous namespace)::something::nested::Foo<T>::crash"
-            package (ignored because function takes precedence)
-              "crash"
         type (ignored because exception is synthetic)
           "EXC_BAD_ACCESS / KERN_INVALID_ADDRESS"
         value (ignored because stacktrace takes precedence)
@@ -173,29 +145,21 @@ system:
               "main.cpp"
             function*
               "main"
-            package (ignored because function takes precedence)
-              "crash"
           frame*
             filename (discarded native filename for grouping stability)
               "main.cpp"
             function*
               "(anonymous namespace)::start"
-            package (ignored because function takes precedence)
-              "crash"
           frame*
             filename (discarded native filename for grouping stability)
               "main.cpp"
             function*
               "(anonymous namespace)::crash"
-            package (ignored because function takes precedence)
-              "crash"
           frame*
             filename (discarded native filename for grouping stability)
               "main.cpp"
             function*
               "(anonymous namespace)::something::nested::Foo<T>::crash"
-            package (ignored because function takes precedence)
-              "crash"
         type (ignored because exception is synthetic)
           "EXC_BAD_ACCESS / KERN_INVALID_ADDRESS"
         value (ignored because stacktrace takes precedence)

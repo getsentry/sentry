@@ -1,5 +1,5 @@
 ---
-created: '2024-09-04T19:48:04.923272+00:00'
+created: '2024-09-05T13:39:10.740093+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -43,13 +43,9 @@ system:
           frame (ignored by stack trace rule (category:threadbase -group v-group))
             function*
               "thread_start"
-            package (ignored because function takes precedence)
-              "libsystem_pthread.dylib"
           frame (ignored by stack trace rule (category:threadbase -group v-group))
             function*
               "_pthread_start"
-            package (ignored because function takes precedence)
-              "libsystem_pthread.dylib"
           frame*
             function*
               "stripped_application_code"
@@ -89,8 +85,6 @@ system:
           frame (ignored by stack trace rule (category:indirection -group))
             function*
               "__dynamic_cast"
-            package (ignored because function takes precedence)
-              "libc++abi.dylib"
         type (ignored because exception is synthetic)
           "EXC_BAD_ACCESS / EXC_I386_GPFLT"
         value (ignored because stacktrace takes precedence)

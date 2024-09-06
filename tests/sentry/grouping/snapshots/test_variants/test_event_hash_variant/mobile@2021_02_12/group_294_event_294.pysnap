@@ -1,5 +1,5 @@
 ---
-created: '2024-09-04T19:48:05.634635+00:00'
+created: '2024-09-05T13:39:11.350320+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -37,8 +37,6 @@ app-depth-2:
           frame* (marked as prefix frame by stack trace rule (category:throw +prefix ^-group))
             function*
               "std::terminate"
-            package (ignored because function takes precedence)
-              "libc++abi.dylib"
         type (ignored because exception is synthetic)
           "0x00000000 / 0x00000000"
         value (ignored because stacktrace takes precedence)
@@ -67,8 +65,6 @@ app-depth-3:
           frame* (marked as prefix frame by stack trace rule (category:throw +prefix ^-group))
             function*
               "std::terminate"
-            package (ignored because function takes precedence)
-              "libc++abi.dylib"
         type (ignored because exception is synthetic)
           "0x00000000 / 0x00000000"
         value (ignored because stacktrace takes precedence)
@@ -100,8 +96,6 @@ app-depth-4:
           frame* (marked as prefix frame by stack trace rule (category:throw +prefix ^-group))
             function*
               "std::terminate"
-            package (ignored because function takes precedence)
-              "libc++abi.dylib"
         type (ignored because exception is synthetic)
           "0x00000000 / 0x00000000"
         value (ignored because stacktrace takes precedence)
@@ -133,8 +127,6 @@ app-depth-max:
           frame* (marked as prefix frame by stack trace rule (category:throw +prefix ^-group))
             function*
               "std::terminate"
-            package (ignored because function takes precedence)
-              "libc++abi.dylib"
         type (ignored because exception is synthetic)
           "0x00000000 / 0x00000000"
         value (ignored because stacktrace takes precedence)
@@ -146,28 +138,16 @@ system:
     system*
       exception*
         stacktrace*
-          frame (ignored by stack trace rule (category:threadbase -group v-group))
-            package* (used as fallback because function name is not available)
-              "libdispatch.dylib"
+          frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
           frame (ignored by stack trace rule (category:threadbase -group v-group))
             function*
               "start_wqthread"
-            package (ignored because function takes precedence)
-              "libsystem_pthread.dylib"
           frame (ignored by stack trace rule (category:threadbase -group v-group))
             function*
               "_pthread_wqthread"
-            package (ignored because function takes precedence)
-              "libsystem_pthread.dylib"
-          frame (ignored by stack trace rule (category:internals -group))
-            package* (used as fallback because function name is not available)
-              "libdispatch.dylib"
           frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
-            package* (used as fallback because function name is not available)
-              "libdispatch.dylib"
           frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
-            package* (used as fallback because function name is not available)
-              "libdispatch.dylib"
+          frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
           frame*
             function*
               "stripped_application_code"
@@ -268,41 +248,25 @@ system:
           frame (ignored by stack trace rule (category:internals -group))
             function*
               "std::__1::thread::~thread"
-            package (ignored because function takes precedence)
-              "libc++.1.dylib"
           frame* (marked as prefix frame by stack trace rule (category:throw +prefix ^-group))
             function*
               "std::terminate"
-            package (ignored because function takes precedence)
-              "libc++abi.dylib"
           frame (ignored by stack trace rule (category:throw +prefix ^-group))
             function*
               "std::__terminate"
-            package (ignored because function takes precedence)
-              "libc++abi.dylib"
           frame (ignored by stack trace rule (category:throw +prefix ^-group))
             function*
               "default_terminate_handler"
-            package (ignored because function takes precedence)
-              "libc++abi.dylib"
           frame (ignored by stack trace rule (category:throw +prefix ^-group))
             function*
               "abort_message"
-            package (ignored because function takes precedence)
-              "libc++abi.dylib"
           frame (marked as prefix frame by stack trace rule (category:throw +prefix ^-group))
             function*
               "abort"
-            package (ignored because function takes precedence)
-              "libsystem_c.dylib"
           frame (ignored by stack trace rule (category:throw +prefix ^-group))
             function*
               "__abort"
-            package (ignored because function takes precedence)
-              "libsystem_c.dylib"
-          frame (ignored by stack trace rule (category:throw +prefix ^-group))
-            package* (used as fallback because function name is not available)
-              "libsystem_kernel.dylib"
+          frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
         type (ignored because exception is synthetic)
           "0x00000000 / 0x00000000"
         value (ignored because stacktrace takes precedence)
