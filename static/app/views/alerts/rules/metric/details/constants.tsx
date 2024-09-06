@@ -44,3 +44,11 @@ export type TimePeriodType = {
   custom?: boolean;
   utc?: boolean;
 };
+
+// A La models/alert_rule.py::AlertRuleStatus
+export const ALERT_RULE_STATUS = {
+  PENDING: 0,
+  SNAPSHOT: 4,
+  DISABLED: 5,
+  NOT_ENOUGH_DATA: 6,
+};
