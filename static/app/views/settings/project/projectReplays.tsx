@@ -69,7 +69,7 @@ function ProjectReplaySettings({organization, project, params: {projectId}}: Pro
         action={
           <LinkButton
             external
-            href="https://docs.sentry.io/product/session-replay/replay-page-and-filters/"
+            href="https://docs.sentry.io/product/issues/issue-details/replay-issues/"
           >
             {t('Read the Docs')}
           </LinkButton>
