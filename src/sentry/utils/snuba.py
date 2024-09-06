@@ -1254,6 +1254,7 @@ def rpc(req: SnubaRPCRequest, resp_type: type[RPCResponseType]) -> RPCResponseTy
             },
         )
         resp = resp_type()
+        assert http_resp.status == 200, Exception(http_resp.data)
         resp.ParseFromString(http_resp.data)
         return resp
 

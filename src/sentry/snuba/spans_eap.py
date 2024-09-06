@@ -73,6 +73,7 @@ def query(
         ),
     )
 
+    builder.get_rpc_query(referrer)
     result = builder.process_results(
         builder.run_query(referrer=referrer, query_source=query_source)
     )

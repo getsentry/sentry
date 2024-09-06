@@ -1,5 +1,21 @@
+from google.protobuf.timestamp_pb2 import Timestamp as ProtobufTimestamp
+from sentry_protos.snuba.v1alpha.endpoint_aggregate_bucket_pb2 import (
+    AggregateBucketRequest,
+    AggregateBucketResponse,
+)
+from sentry_protos.snuba.v1alpha.request_common_pb2 import RequestMeta
+from sentry_protos.snuba.v1alpha.trace_item_attribute_pb2 import (
+    AttributeKey,
+    AttributeKeyTransformContext,
+    AttributeValue,
+)
+from sentry_protos.snuba.v1alpha.trace_item_filter_pb2 import (
+    AndFilter,
+    ComparisonFilter,
+    TraceItemFilter,
+)
 from sentry_relay.consts import SPAN_STATUS_CODE_TO_NAME
-from snuba_sdk import Column, Function
+from snuba_sdk import Column, Function, Op
 
 from sentry.search.events import constants
 from sentry.search.events.builder.base import BaseQueryBuilder
@@ -11,6 +27,8 @@ from sentry.search.events.datasets.spans_indexed import (
 from sentry.search.events.fields import custom_time_processor
 from sentry.search.events.types import SelectType
 from sentry.snuba.dataset import Dataset
+from sentry.snuba.referrer import Referrer
+from sentry.utils import snuba
 
 SPAN_UUID_FIELDS = {
     "trace",
@@ -59,6 +77,34 @@ class SpansIndexedQueryBuilder(SpansIndexedQueryBuilderMixin, BaseQueryBuilder):
         ] = lambda status: SPAN_STATUS_CODE_TO_NAME.get(status)
 
 
+def convert_filter(where):
+    OPERATOR_MAP = {
+        Op.LT: ComparisonFilter.Op.OP_LESS_THAN,
+        Op.GT: ComparisonFilter.Op.OP_GREATER_THAN,
+        Op.LTE: ComparisonFilter.Op.OP_LESS_THAN_OR_EQUALS,
+        Op.GTE: ComparisonFilter.Op.OP_GREATER_THAN_OR_EQUALS,
+        Op.EQ: ComparisonFilter.Op.OP_EQUALS,
+        Op.NEQ: ComparisonFilter.Op.OP_NOT_EQUALS,
+    }
+    filters = []
+    for item in where:
+        if item.lhs.name in ["timestamp", "project", "project_id", "organization_id"]:
+            continue
+        filters.append(
+            TraceItemFilter(
+                comparison_filter=ComparisonFilter(
+                    key=AttributeKey(name=item.lhs.name, type=AttributeKey.Type.TYPE_STRING),
+                    op=OPERATOR_MAP[item.op],
+                    value=AttributeValue(val_str=item.rhs),
+                )
+            )
+        )
+    if len(filters) > 1:
+        return TraceItemFilter(and_filter=filters)
+    else:
+        return filters[0]
+
+
 class SpansEAPQueryBuilder(SpansIndexedQueryBuilderMixin, BaseQueryBuilder):
     requires_organization_condition = True
     uuid_fields = SPAN_UUID_FIELDS
@@ -72,6 +118,39 @@ class SpansEAPQueryBuilder(SpansIndexedQueryBuilderMixin, BaseQueryBuilder):
         if self.dataset == Dataset.SpansEAP:
             return "events_analytics_platform"
         return self.dataset.value
+
+    def get_rpc_query(self, referrer: str) -> RequestMeta:
+        start_time_proto = ProtobufTimestamp()
+        start_time_proto.FromDatetime(self.start)
+        end_time_proto = ProtobufTimestamp()
+        end_time_proto.FromDatetime(self.end)
+
+        meta = RequestMeta(
+            organization_id=self.organization_id,
+            cogs_category="TODO: what is this?",
+            referrer=referrer,
+            project_ids=self.params.project_ids,
+            start_timestamp=start_time_proto,
+            end_timestamp=end_time_proto,
+        )
+        # TODO use dataset instead of this
+        AGGREGATE_MAP = {
+            "count": AggregateBucketRequest.FUNCTION_COUNT,
+        }
+        print(convert_filter(self.where))
+        aggregate_req = AggregateBucketRequest(
+            meta=meta,
+            # lol hax
+            aggregate=AGGREGATE_MAP[self.aggregates[0].alias],
+            filter=convert_filter(self.where),
+            granularity_secs=60,
+            key=AttributeKey(name="duration", type=AttributeKey.TYPE_FLOAT),
+            attribute_key_transform_context=AttributeKeyTransformContext(),
+        )
+        print(aggregate_req)
+        aggregate_resp = snuba.rpc(aggregate_req, AggregateBucketResponse)
+        print(aggregate_resp.result)
+        return aggregate_resp.result
 
 
 class TimeseriesSpanIndexedQueryBuilder(SpansIndexedQueryBuilderMixin, TimeseriesQueryBuilder):

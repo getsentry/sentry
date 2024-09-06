@@ -533,7 +533,7 @@ class OrganizationEventsEAPSpanEndpointTest(OrganizationEventsSpanIndexedEndpoin
         response = self.do_request(
             {
                 "field": ["span.duration", "description", "count()"],
-                "query": "",
+                "query": "description:foo",
                 "orderby": "description",
                 "project": self.project.id,
                 "dataset": self.dataset,
