@@ -20,7 +20,6 @@ import * as Layout from 'sentry/components/layouts/thirds';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {extractSelectionParameters} from 'sentry/components/organizations/pageFilters/utils';
 import type {CursorHandler} from 'sentry/components/pagination';
-import Pagination from 'sentry/components/pagination';
 import QueryCount from 'sentry/components/queryCount';
 import {DEFAULT_QUERY, DEFAULT_STATS_PERIOD} from 'sentry/constants';
 import {t, tct} from 'sentry/locale';
@@ -1265,9 +1264,7 @@ class IssueListOverview extends Component<Props, State> {
               issuesLoading={issuesLoading}
               error={error}
               refetchGroups={this.fetchData}
-            />
-            <StyledPagination
-              caption={
+              paginationCaption={
                 !issuesLoading && modifiedQueryCount > 0
                   ? tct('[start]-[end] of [total]', {
                       start: numPreviousIssues + 1,
@@ -1331,10 +1328,6 @@ const StyledMain = styled('section')`
   @media (min-width: ${p => p.theme.breakpoints.medium}) {
     padding: ${space(3)} ${space(4)};
   }
-`;
-
-const StyledPagination = styled(Pagination)`
-  margin-top: 0;
 `;
 
 const StyledQueryCount = styled(QueryCount)`
