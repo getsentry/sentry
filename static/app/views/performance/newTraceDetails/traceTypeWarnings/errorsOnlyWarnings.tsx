@@ -206,7 +206,7 @@ function PerformanceQuotaExceededWarning(props: ErrorOnlyWarningsProps) {
       image={emptyTraceImg}
       title={title}
       description={tct(
-        'Spans are being dropped and monitoring is impacted. To start seeing traces with spans, increase your [billingType].',
+        'Spans are being dropped. To start seeing traces with spans, increase your [billingType].',
         {
           billingType: subscription?.onDemandBudgets?.enabled ? t('budget') : t('quota'),
         }
