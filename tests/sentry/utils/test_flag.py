@@ -9,17 +9,17 @@ def test_flag_tracking():
     flag.initialize_flag_manager(3)
 
     flag.process_flag_result("a", True)
-    flags = flag.get_serialized_flags()
+    flags = flag.get_flags_serialized()
     assert len(flags) == 1
     assert flags == [{"flag": "a", "result": True}]
 
     flag.process_flag_result("b", True)
-    flags = flag.get_serialized_flags()
+    flags = flag.get_flags_serialized()
     assert len(flags) == 2
     assert flags == [{"flag": "a", "result": True}, {"flag": "b", "result": True}]
 
     flag.process_flag_result("c", True)
-    flags = flag.get_serialized_flags()
+    flags = flag.get_flags_serialized()
     assert len(flags) == 3
     assert flags == [
         {"flag": "a", "result": True},
@@ -28,7 +28,7 @@ def test_flag_tracking():
     ]
 
     flag.process_flag_result("d", False)
-    flags = flag.get_serialized_flags()
+    flags = flag.get_flags_serialized()
     assert len(flags) == 3
     assert flags == [
         {"flag": "b", "result": True},
@@ -38,7 +38,7 @@ def test_flag_tracking():
 
     flag.process_flag_result("e", False)
     flag.process_flag_result("f", False)
-    flags = flag.get_serialized_flags()
+    flags = flag.get_flags_serialized()
     assert len(flags) == 3
     assert flags == [
         {"flag": "d", "result": False},
@@ -54,7 +54,7 @@ def test_flag_manager_asyncio_isolation():
         flag.initialize_flag_manager(capacity=3)
         for char in chars:
             flag.process_flag_result(char, True)
-        return flag.get_serialized_flags()
+        return flag.get_flags_serialized()
 
     async def runner():
         return asyncio.gather(
@@ -88,7 +88,7 @@ def test_flag_manager_thread_isolation():
         flag.initialize_flag_manager(capacity=3)
         for char in chars:
             flag.process_flag_result(char, True)
-        return flag.get_serialized_flags()
+        return flag.get_flags_serialized()
 
     with cf.ThreadPoolExecutor(max_workers=3) as pool:
         results = list(pool.map(task, ["abc", "de", "fghijk"]))

@@ -18,7 +18,7 @@ def process_flag_result(flag: str, result: bool) -> None:
 
 
 # NOTE: If not properly initialized this function is a no-op.
-def get_serialized_flags():
+def get_flags_serialized():
     try:
         _flag_manager = flag_manager.get()
         return _flag_manager.serialize()
