@@ -1,8 +1,9 @@
-import {useCallback, useMemo} from 'react';
+import {Fragment, useCallback, useMemo} from 'react';
 import styled from '@emotion/styled';
 
 import {CompactSelect, type SelectOption} from 'sentry/components/compactSelect';
 import {t} from 'sentry/locale';
+import {space} from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
 import type {ParsedFunction} from 'sentry/utils/discover/fields';
 import {parseFunction} from 'sentry/utils/discover/fields';
@@ -15,6 +16,7 @@ import {
 import type {SpanIndexedField} from 'sentry/views/insights/types';
 
 import {
+  ToolbarFooterButton,
   ToolbarHeader,
   ToolbarHeaderButton,
   ToolbarHeading,
@@ -26,8 +28,10 @@ interface ToolbarVisualizeProps {}
 export function ToolbarVisualize({}: ToolbarVisualizeProps) {
   const [visualizes, setVisualizes] = useVisualizes();
 
-  const parsedVisualizes: ParsedFunction[] = useMemo(() => {
-    return visualizes.map(parseFunction).filter(defined);
+  const parsedVisualizeGroups: ParsedFunction[][] = useMemo(() => {
+    return visualizes.map(visualize =>
+      visualize.yAxes.map(parseFunction).filter(defined)
+    );
   }, [visualizes]);
 
   const fieldOptions: SelectOption<SpanIndexedField>[] = ALLOWED_VISUALIZE_FIELDS.map(
@@ -49,25 +53,36 @@ export function ToolbarVisualize({}: ToolbarVisualizeProps) {
   );
 
   const addChart = useCallback(() => {
-    setVisualizes([...visualizes, DEFAULT_VISUALIZATION]);
+    setVisualizes([...visualizes, {yAxes: [DEFAULT_VISUALIZATION]}]);
   }, [setVisualizes, visualizes]);
 
-  const setChartField = useCallback(
-    (index: number, {value}: SelectOption<string>) => {
-      const newVisualizes = [...visualizes];
-      newVisualizes[index] = `${parsedVisualizes[index].name}(${value})`;
+  const addOverlay = useCallback(
+    (group: number) => {
+      const newVisualizes = visualizes.slice();
+      newVisualizes[group].yAxes.push(DEFAULT_VISUALIZATION);
       setVisualizes(newVisualizes);
     },
-    [parsedVisualizes, setVisualizes, visualizes]
+    [setVisualizes, visualizes]
+  );
+
+  const setChartField = useCallback(
+    (group: number, index: number, {value}: SelectOption<string>) => {
+      const newVisualizes = visualizes.slice();
+      newVisualizes[group].yAxes[index] =
+        `${parsedVisualizeGroups[group][index].name}(${value})`;
+      setVisualizes(newVisualizes);
+    },
+    [parsedVisualizeGroups, setVisualizes, visualizes]
   );
 
   const setChartAggregate = useCallback(
-    (index: number, {value}: SelectOption<string>) => {
-      const newVisualizes = [...visualizes];
-      newVisualizes[index] = `${value}(${parsedVisualizes[index].arguments[0]})`;
+    (group: number, index: number, {value}: SelectOption<string>) => {
+      const newVisualizes = visualizes.slice();
+      newVisualizes[group].yAxes[index] =
+        `${value}(${parsedVisualizeGroups[group][index].arguments[0]})`;
       setVisualizes(newVisualizes);
     },
-    [parsedVisualizes, setVisualizes, visualizes]
+    [parsedVisualizeGroups, setVisualizes, visualizes]
   );
 
   return (
@@ -78,26 +93,43 @@ export function ToolbarVisualize({}: ToolbarVisualizeProps) {
           {t('+Add Chart')}
         </ToolbarHeaderButton>
       </ToolbarHeader>
-      {parsedVisualizes.map((parsedVisualize, index) => (
-        <VisualizeOption key={index}>
-          <CompactSelect
-            size="md"
-            options={fieldOptions}
-            value={parsedVisualize.arguments[0]}
-            onChange={newField => setChartField(index, newField)}
-          />
-          <CompactSelect
-            size="md"
-            options={aggregateOptions}
-            value={parsedVisualize?.name}
-            onChange={newAggregate => setChartAggregate(index, newAggregate)}
-          />
-        </VisualizeOption>
-      ))}
+      <div>
+        {parsedVisualizeGroups.map((parsedVisualizeGroup, group) => {
+          return (
+            <Fragment key={group}>
+              {parsedVisualizeGroup.map((parsedVisualize, index) => (
+                <VisualizeOption key={index}>
+                  <CompactSelect
+                    size="md"
+                    options={fieldOptions}
+                    value={parsedVisualize.arguments[0]}
+                    onChange={newField => setChartField(group, index, newField)}
+                  />
+                  <CompactSelect
+                    size="md"
+                    options={aggregateOptions}
+                    value={parsedVisualize?.name}
+                    onChange={newAggregate =>
+                      setChartAggregate(group, index, newAggregate)
+                    }
+                  />
+                </VisualizeOption>
+              ))}
+              <ToolbarFooterButton size="xs" onClick={() => addOverlay(group)} borderless>
+                {t('+Add Overlay')}
+              </ToolbarFooterButton>
+            </Fragment>
+          );
+        })}
+      </div>
     </ToolbarSection>
   );
 }
 
 const VisualizeOption = styled('div')`
   display: flex;
+
+  :not(:first-child) {
+    padding-top: ${space(1)};
+  }
 `;

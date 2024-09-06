@@ -1,12 +1,17 @@
 import {useCallback, useMemo} from 'react';
 import type {Location} from 'history';
 
+import {defined} from 'sentry/utils';
 import {parseFunction} from 'sentry/utils/discover/fields';
 import {AggregationKey} from 'sentry/utils/fields';
 import {decodeList} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {SpanIndexedField} from 'sentry/views/insights/types';
+
+export type Visualize = {
+  yAxes: string[];
+};
 
 interface Options {
   location: Location;
@@ -28,7 +33,7 @@ export const ALLOWED_VISUALIZE_AGGREGATES: AggregationKey[] = [
 
 export const DEFAULT_VISUALIZATION = `${ALLOWED_VISUALIZE_AGGREGATES[0]}(${ALLOWED_VISUALIZE_FIELDS[0]})`;
 
-export function useVisualizes(): [string[], (visualizes: string[]) => void] {
+export function useVisualizes(): [Visualize[], (visualizes: Visualize[]) => void] {
   const location = useLocation();
   const navigate = useNavigate();
   const options = {location, navigate};
@@ -39,26 +44,30 @@ export function useVisualizes(): [string[], (visualizes: string[]) => void] {
 function useVisualizesImpl({
   location,
   navigate,
-}: Options): [string[], (visualizes: string[]) => void] {
-  const visualizes: string[] = useMemo(() => {
-    let rawVisualizes = decodeList(location.query.visualize);
+}: Options): [Visualize[], (visualizes: Visualize[]) => void] {
+  const visualizes: Visualize[] = useMemo(() => {
+    const rawVisualizes = decodeList(location.query.visualize);
 
-    if (!rawVisualizes.length) {
-      rawVisualizes = [DEFAULT_VISUALIZATION];
-    }
+    const result: Visualize[] = rawVisualizes
+      .map(parseVisualizes)
+      .filter(defined)
+      .filter(parsed => parsed.yAxes.length > 0);
 
-    return rawVisualizes.map(rawVisualize =>
-      parseFunction(rawVisualize) ? rawVisualize : DEFAULT_VISUALIZATION
-    );
+    return result.length ? result : [{yAxes: [DEFAULT_VISUALIZATION]}];
   }, [location.query.visualize]);
 
   const setVisualizes = useCallback(
-    (newVisualizes: string[]) => {
+    (newVisualizes: Visualize[]) => {
+      const stringified: string[] = [];
+      for (const visualize of newVisualizes) {
+        stringified.push(JSON.stringify(visualize));
+      }
+
       navigate({
         ...location,
         query: {
           ...location.query,
-          visualize: newVisualizes,
+          visualize: stringified,
         },
       });
     },
@@ -66,4 +75,22 @@ function useVisualizesImpl({
   );
 
   return [visualizes, setVisualizes];
+}
+
+function parseVisualizes(raw: string): Visualize | null {
+  try {
+    const parsed = JSON.parse(raw);
+    if (!defined(parsed) || !Array.isArray(parsed.yAxes)) {
+      return null;
+    }
+
+    const yAxes = parsed.yAxes.filter(parseFunction);
+    if (yAxes.lenth <= 0) {
+      return null;
+    }
+
+    return {yAxes};
+  } catch (error) {
+    return null;
+  }
 }
