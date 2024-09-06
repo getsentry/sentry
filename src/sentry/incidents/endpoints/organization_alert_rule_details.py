@@ -35,6 +35,7 @@ from sentry.integrations.slack.tasks.find_channel_id_for_alert_rule import (
 )
 from sentry.integrations.slack.utils.rule_status import RedisRuleStatus
 from sentry.models.rulesnooze import RuleSnooze
+from sentry.seer.anomaly_detection.get_anomaly_data import get_anomaly_data_from_seer
 from sentry.sentry_apps.services.app import app_service
 from sentry.users.services.user.service import user_service
 
@@ -281,6 +282,9 @@ class OrganizationAlertRuleDetailsEndpoint(OrganizationAlertRuleEndpoint):
         predefined threshold. These rules help you proactively identify and address issues in your
         project.
         """
+        print("gonna try to hit store-data")
+        get_anomaly_data_from_seer(alert_rule, alert_rule.snuba_query.subscriptions.first(), 10)
+
         return fetch_alert_rule(request, organization, alert_rule)
 
     @extend_schema(
