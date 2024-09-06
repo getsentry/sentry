@@ -13,6 +13,7 @@ from sentry.auth.providers.saml2.provider import SAML2AcceptACSView, SAML2Metada
 from sentry.charts.endpoints import serve_chartcuterie_config
 from sentry.integrations.web.doc_integration_avatar import DocIntegrationAvatarPhotoView
 from sentry.integrations.web.organization_integration_setup import OrganizationIntegrationSetupView
+from sentry.toolbar.iframe_view import IframeView
 from sentry.web import api
 from sentry.web.frontend import accounts, generic
 from sentry.web.frontend.account_identity import AccountIdentityAssociateView
@@ -145,6 +146,12 @@ urlpatterns += [
         r"^api/embed/error-page/$",
         ErrorPageEmbedView.as_view(),
         name="sentry-error-page-embed",
+    ),
+    # TODO: move and scope by organization
+    re_path(
+        r"^toolbar/iframe/$",
+        IframeView.as_view(),
+        name="sentry-toolbar-iframe",
     ),
     # OAuth
     re_path(
