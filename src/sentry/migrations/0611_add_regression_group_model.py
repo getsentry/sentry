@@ -50,7 +50,12 @@ class Migration(CheckedMigration):
             ],
             options={
                 "unique_together": {("type", "project_id", "fingerprint", "version")},
-                "index_together": {("type", "project_id", "fingerprint", "active")},
+                "indexes": [
+                    models.Index(
+                        fields=["type", "project_id", "fingerprint", "active"],
+                        name="sentry_regr_type_3a29e7_idx",
+                    ),
+                ],
             },
         ),
     ]
