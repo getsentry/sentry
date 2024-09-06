@@ -24,8 +24,6 @@ from .group_stream import *  # noqa: F401,F403
 from .grouprelease import GroupReleaseSerializer, GroupReleaseWithStatsSerializer  # noqa: F401,F403
 from .groupseen import *  # noqa: F401,F403
 from .grouptombstone import *  # noqa: F401,F403
-from .identity import *  # noqa: F401,F403
-from .identityprovider import *  # noqa: F401,F403
 from .incidentactivity import *  # noqa: F401,F403
 from .incidentseen import *  # noqa: F401,F403
 from .notification_action import *  # noqa: F401,F403
@@ -70,7 +68,4 @@ from .team import *  # noqa: F401,F403
 from .user import *  # noqa: F401,F403
 from .user_identity_config import *  # noqa: F401,F403
 from .user_social_auth import *  # noqa: F401,F403
-from .useremail import *  # noqa: F401,F403
-from .userip import *  # noqa: F401,F403
 from .userreport import *  # noqa: F401,F403
-from .userrole import *  # noqa: F401,F403

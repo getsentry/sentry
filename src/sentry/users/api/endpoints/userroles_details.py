@@ -10,6 +10,7 @@ from sentry.api.decorators import sudo_required
 from sentry.api.permissions import SuperuserPermission
 from sentry.api.serializers import serialize
 from sentry.api.validators.userrole import UserRoleValidator
+from sentry.users.api.serializers.userrole import UserRoleSerializer
 from sentry.users.models.userrole import UserRole
 
 audit_logger = logging.getLogger("sentry.audit.user")
@@ -35,7 +36,7 @@ class UserRoleDetailsEndpoint(Endpoint):
             role = UserRole.objects.get(name=role_name)
         except UserRole.DoesNotExist:
             return self.respond({"detail": f"'{role_name}' is not a known role."}, status=404)
-        return self.respond(serialize(role, user=request.user))
+        return self.respond(serialize(role, user=request.user, serializer=UserRoleSerializer()))
 
     @sudo_required
     def put(self, request: Request, role_name: str) -> Response:
@@ -72,7 +73,7 @@ class UserRoleDetailsEndpoint(Endpoint):
                 return self.respond(status=410)
             raise
 
-        return self.respond(serialize(role, user=request.user))
+        return self.respond(serialize(role, user=request.user, serializer=UserRoleSerializer()))
 
     @sudo_required
     def delete(self, request: Request, role_name: str) -> Response:
