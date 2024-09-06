@@ -3,13 +3,12 @@ from __future__ import annotations
 import itertools
 import warnings
 from collections import defaultdict
-from collections.abc import Callable, Mapping, MutableMapping, Sequence
+from collections.abc import Mapping, MutableMapping, Sequence
 from datetime import datetime
-from typing import Any, DefaultDict, TypedDict, TypeVar, cast
+from typing import Any, DefaultDict, TypedDict, cast
 
 from django.conf import settings
 from django.contrib.auth.models import AnonymousUser
-from django.db.models import Model, QuerySet
 
 from sentry import experiments
 from sentry.api.serializers import Serializer, register
@@ -31,19 +30,7 @@ from sentry.users.models.userpermission import UserPermission
 from sentry.users.models.userrole import UserRoleUser
 from sentry.users.services.user import RpcUser
 from sentry.utils.avatar import get_gravatar_url
-
-T = TypeVar("T", bound=Model)
-
-
-def manytoone_to_dict(
-    queryset: QuerySet[T], key: str, filter_func: Callable[[Any], bool] | None = None
-) -> MutableMapping[Any, list[T]]:
-    result = defaultdict(list)
-    for row in queryset:
-        if filter_func and not filter_func(row):
-            continue
-        result[getattr(row, key)].append(row)
-    return result
+from sentry.utils.serializers import manytoone_to_dict
 
 
 class _UserEmails(TypedDict):

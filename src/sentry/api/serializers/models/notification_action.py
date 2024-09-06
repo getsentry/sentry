@@ -11,7 +11,7 @@ from sentry.models.notificationaction import (
     NotificationAction,
     NotificationActionProject,
 )
-from sentry.users.api.serializers.user import manytoone_to_dict
+from sentry.utils.serializers import manytoone_to_dict
 
 
 @register(NotificationAction)
