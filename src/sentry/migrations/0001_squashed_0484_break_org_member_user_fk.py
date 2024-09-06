@@ -6414,9 +6414,11 @@ class Migration(CheckedMigration):
             name="display_type",
             field=sentry.db.models.fields.bounded.BoundedPositiveIntegerField(),
         ),
-        migrations.AlterIndexTogether(
-            name="groupinbox",
-            index_together={("project", "date_added")},
+        migrations.AddIndex(
+            model_name="groupinbox",
+            index=models.Index(
+                fields=["project", "date_added"], name="sentry_grou_project_a9fe16_idx"
+            ),
         ),
         migrations.AddField(
             model_name="dashboardwidgetquery",
