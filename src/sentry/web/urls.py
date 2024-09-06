@@ -14,6 +14,7 @@ from sentry.charts.endpoints import serve_chartcuterie_config
 from sentry.integrations.web.doc_integration_avatar import DocIntegrationAvatarPhotoView
 from sentry.integrations.web.organization_integration_setup import OrganizationIntegrationSetupView
 from sentry.toolbar.iframe_view import IframeView
+from sentry.toolbar.login_success_view import LoginSuccessView
 from sentry.web import api
 from sentry.web.frontend import accounts, generic
 from sentry.web.frontend.account_identity import AccountIdentityAssociateView
@@ -152,6 +153,11 @@ urlpatterns += [
         r"^toolbar/iframe/$",
         IframeView.as_view(),
         name="sentry-toolbar-iframe",
+    ),
+    re_path(
+        r"^toolbar/login_success/$",
+        LoginSuccessView.as_view(),
+        name="sentry-toolbar-login-success",
     ),
     # OAuth
     re_path(
