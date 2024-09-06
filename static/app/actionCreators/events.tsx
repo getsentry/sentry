@@ -33,7 +33,7 @@ import type RequestError from 'sentry/utils/requestError/requestError';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 
-type Options = {
+export type Options = {
   organization: OrganizationSummary;
   partial: boolean;
   comparisonDelta?: number;

@@ -12,7 +12,6 @@ import {parseQueryBuilderValue} from 'sentry/components/searchQueryBuilder/utils
 import {joinQuery, Token} from 'sentry/components/searchSyntax/parser';
 import {t} from 'sentry/locale';
 import type {Group, Tag, TagCollection} from 'sentry/types/group';
-import type {Organization} from 'sentry/types/organization';
 import {
   FieldKind,
   getFieldDefinition,
@@ -21,6 +20,7 @@ import {
 import useApi from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
+import usePageFilters from 'sentry/utils/usePageFilters';
 import {Dataset} from 'sentry/views/alerts/rules/metric/types';
 import {ALL_EVENTS_EXCLUDED_TAGS} from 'sentry/views/issueDetails/groupEvents';
 import {mergeAndSortTagValues} from 'sentry/views/issueDetails/utils';
@@ -35,15 +35,11 @@ interface EventSearchProps {
   queryBuilderProps?: Partial<SearchQueryBuilderProps>;
 }
 
-export function useEventQuery({
-  organization,
-  group,
-  environments,
-}: {
-  environments: string[];
-  group: Group;
-  organization: Organization;
-}): string {
+export function useEventQuery({group}: {group: Group}): string {
+  const organization = useOrganization();
+
+  const {selection} = usePageFilters();
+  const environments = selection.environments;
   const location = useLocation();
   const {query: locationQuery} = location.query;
 
