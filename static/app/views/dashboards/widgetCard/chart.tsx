@@ -593,8 +593,7 @@ const LoadingPlaceholder = styled(({className}: PlaceholderProps) => (
 `;
 
 const BigNumberResizeWrapper = styled('div')`
-  height: 100%;
-  width: 100%;
+  flex-grow: 1;
   overflow: hidden;
   position: relative;
 `;
