@@ -21,7 +21,7 @@ class Migration(CheckedMigration):
     is_post_deployment = False
 
     dependencies = [
-        ("sentry", "0735_sunset_appstore_connect_integration"),
+        ("sentry", "0756_grouprelease_represented_in_django"),
     ]
 
     operations = [
