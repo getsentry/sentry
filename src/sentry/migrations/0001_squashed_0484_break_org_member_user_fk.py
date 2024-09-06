@@ -7180,10 +7180,6 @@ class Migration(CheckedMigration):
                     field=models.DateTimeField(blank=True, null=True),
                 ),
                 migrations.AlterIndexTogether(
-                    name="releaseproject",
-                    index_together={("project", "adopted"), ("project", "unadopted")},
-                ),
-                migrations.AlterIndexTogether(
                     name="releaseprojectenvironment",
                     index_together={
                         ("project", "adopted", "environment"),
@@ -8711,13 +8707,23 @@ class Migration(CheckedMigration):
             name="first_seen_transaction",
             field=models.DateTimeField(blank=True, null=True),
         ),
-        migrations.AlterIndexTogether(
-            name="releaseproject",
-            index_together={
-                ("project", "adopted"),
-                ("project", "first_seen_transaction"),
-                ("project", "unadopted"),
-            },
+        migrations.AddIndex(
+            model_name="releaseproject",
+            index=models.Index(
+                fields=["project", "adopted"], name="sentry_rele_project_a80825_idx"
+            ),
+        ),
+        migrations.AddIndex(
+            model_name="releaseproject",
+            index=models.Index(
+                fields=["project", "unadopted"], name="sentry_rele_project_2ca122_idx"
+            ),
+        ),
+        migrations.AddIndex(
+            model_name="releaseproject",
+            index=models.Index(
+                fields=["project", "first_seen_transaction"], name="sentry_rele_project_3143eb_idx"
+            ),
         ),
         migrations.SeparateDatabaseAndState(
             database_operations=[
