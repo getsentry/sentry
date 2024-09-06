@@ -1,4 +1,4 @@
-import {useState} from 'react';
+import {useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {BarChart, type BarChartSeries} from 'sentry/components/charts/barChart';
@@ -6,12 +6,12 @@ import InteractionStateLayer from 'sentry/components/interactionStateLayer';
 import {t, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {SeriesDataUnit} from 'sentry/types/echarts';
-import type {MultiSeriesEventsStats} from 'sentry/types/organization';
+import type {EventsStats, MultiSeriesEventsStats} from 'sentry/types/organization';
 import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
 import theme from 'sentry/utils/theme';
 
-function createSeriesAndCount(stats) {
-  return stats.data?.reduce(
+function createSeriesAndCount(stats: EventsStats) {
+  return stats?.data?.reduce(
     (result, [timestamp, countData]) => {
       const count = countData?.[0]?.count ?? 0;
       return {
@@ -30,18 +30,24 @@ function createSeriesAndCount(stats) {
 }
 
 export function EventGraph({groupStats}: {groupStats: MultiSeriesEventsStats}) {
-  const [seriesState, setSeriesState] = useState({user: true, event: true});
+  const [visibleSeries, setVisibleSeries] = useState({user: true, event: true});
   const eventStats = groupStats['count()'];
-  const {series: eventSeries, count: eventCount} = createSeriesAndCount(eventStats);
+  const {series: eventSeries, count: eventCount} = useMemo(
+    () => createSeriesAndCount(eventStats),
+    [eventStats]
+  );
   const userStats = groupStats['count_unique(user)'];
-  const {series: userSeries, count: userCount} = createSeriesAndCount(userStats);
-
+  const {series: userSeries, count: userCount} = useMemo(
+    () => createSeriesAndCount(userStats),
+    [userStats]
+  );
   const series: BarChartSeries[] = [];
-  if (eventStats && seriesState.user) {
+
+  if (eventStats && visibleSeries.user) {
     series.push({
       seriesName: t('Users'),
       itemStyle: {
-        borderRadius: [2, 2, 0, 0],
+        borderRadius: visibleSeries.event ? 0 : [2, 2, 0, 0],
         borderColor: theme.translucentGray200,
         color: theme.purple200,
       },
@@ -49,7 +55,7 @@ export function EventGraph({groupStats}: {groupStats: MultiSeriesEventsStats}) {
       data: userSeries,
     });
   }
-  if (eventStats && seriesState.event) {
+  if (eventStats && visibleSeries.event) {
     series.push({
       seriesName: t('Events'),
       itemStyle: {
@@ -67,24 +73,25 @@ export function EventGraph({groupStats}: {groupStats: MultiSeriesEventsStats}) {
       <SummaryContainer>
         <Callout
           onClick={() =>
-            seriesState.user &&
-            setSeriesState({...seriesState, event: !seriesState.event})
+            visibleSeries.user &&
+            setVisibleSeries({...visibleSeries, event: !visibleSeries.event})
           }
-          enabled={seriesState.event}
-          canInteract={seriesState.user}
+          enabled={visibleSeries.event}
+          canInteract={visibleSeries.user}
         >
-          <InteractionStateLayer hidden={!seriesState.user} />
+          <InteractionStateLayer hidden={!visibleSeries.user} />
           <Label>{tn('Event', 'Events', eventCount)}</Label>
           <Count>{formatAbbreviatedNumber(eventCount)}</Count>
         </Callout>
         <Callout
           onClick={() =>
-            seriesState.event && setSeriesState({...seriesState, user: !seriesState.user})
+            visibleSeries.event &&
+            setVisibleSeries({...visibleSeries, user: !visibleSeries.user})
           }
-          enabled={seriesState.user}
-          canInteract={seriesState.event}
+          enabled={visibleSeries.user}
+          canInteract={visibleSeries.event}
         >
-          <InteractionStateLayer hidden={!seriesState.event} />
+          <InteractionStateLayer hidden={!visibleSeries.event} />
           <Label>{tn('User', 'Users', userCount)}</Label>
           <Count>{formatAbbreviatedNumber(userCount)}</Count>
         </Callout>
@@ -132,6 +139,8 @@ const Callout = styled('button')<{canInteract: boolean; enabled: boolean}>`
   border: 0;
   position: relative;
   border-radius: ${p => p.theme.borderRadius};
+  text-align: left;
+  padding: ${space(0.25)} ${space(0.5)};
 `;
 
 const Label = styled('div')`

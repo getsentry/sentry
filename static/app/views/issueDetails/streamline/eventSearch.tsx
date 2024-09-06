@@ -37,7 +37,6 @@ interface EventSearchProps {
 
 export function useEventQuery({group}: {group: Group}): string {
   const organization = useOrganization();
-
   const {selection} = usePageFilters();
   const environments = selection.environments;
   const location = useLocation();
@@ -62,7 +61,7 @@ export function useEventQuery({group}: {group: Group}): string {
     }) ?? [];
 
   // Removes invalid tokens from an issue stream query in an attempt to convert it to an event query.
-  // For example: "is:unresolved device.brand:samsung" -> "device.brand:samsung"
+  // For example: "is:unresolved browser.name:firefox" -> "browser.name:firefox"
   // Note: This is _probably_ not accounting for MANY invalid filters which could come in from the
   // issue stream. Will likely have to refine this in the future.
   const validQuery = parsedQuery.filter(token => {

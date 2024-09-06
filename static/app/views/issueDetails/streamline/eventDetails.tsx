@@ -32,15 +32,16 @@ export function EventDetails({
   event,
   project,
 }: Required<EventDetailsContentProps>) {
-  const [nav, setNav] = useState<HTMLDivElement | null>(null);
-  const {selection} = usePageFilters();
-  const location = useLocation();
-  const {environments} = selection;
-  const searchQuery = useEventQuery({group});
-  const navigate = useNavigate();
-  const {eventDetails, dispatch} = useEventDetailsReducer();
   const theme = useTheme();
+  const location = useLocation();
+  const navigate = useNavigate();
+  const {selection} = usePageFilters();
   const isScreenMedium = useMedia(`(max-width: ${theme.breakpoints.medium})`);
+  const {environments} = selection;
+  const [nav, setNav] = useState<HTMLDivElement | null>(null);
+
+  const searchQuery = useEventQuery({group});
+  const {eventDetails, dispatch} = useEventDetailsReducer();
   const {data: groupStats, isLoading: isLoadingStats} = useFetchEventStats({
     params: {
       group: group,
