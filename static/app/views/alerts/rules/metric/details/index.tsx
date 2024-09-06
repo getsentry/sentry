@@ -1,5 +1,4 @@
 import {Component, Fragment} from 'react';
-import type {RouteComponentProps} from 'react-router';
 import type {Location} from 'history';
 import isEqual from 'lodash/isEqual';
 import pick from 'lodash/pick';
@@ -13,6 +12,7 @@ import * as Layout from 'sentry/components/layouts/thirds';
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
+import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -21,9 +21,10 @@ import withApi from 'sentry/utils/withApi';
 import withProjects from 'sentry/utils/withProjects';
 import type {MetricRule} from 'sentry/views/alerts/rules/metric/types';
 import {TimePeriod} from 'sentry/views/alerts/rules/metric/types';
-import type {Incident} from 'sentry/views/alerts/types';
+import type {Anomaly, Incident} from 'sentry/views/alerts/types';
 import {
   fetchAlertRule,
+  fetchAnomaliesForRule,
   fetchIncident,
   fetchIncidentsForRule,
 } from 'sentry/views/alerts/utils/apiCalls';
@@ -47,6 +48,7 @@ interface State {
   hasError: boolean;
   isLoading: boolean;
   selectedIncident: Incident | null;
+  anomalies?: Anomaly[];
   incidents?: Incident[];
   rule?: MetricRule;
 }
@@ -199,11 +201,15 @@ class MetricAlertDetails extends Component<Props, State> {
     const timePeriod = this.getTimePeriod(selectedIncident);
     const {start, end} = timePeriod;
     try {
-      const [incidents, rule] = await Promise.all([
+      const [incidents, rule, anomalies] = await Promise.all([
         fetchIncidentsForRule(organization.slug, ruleId, start, end),
         rulePromise,
+        organization.features.includes('anomaly-detection-alerts')
+          ? fetchAnomaliesForRule(organization.slug, ruleId, start, end)
+          : undefined,
       ]);
       this.setState({
+        anomalies,
         incidents,
         rule,
         selectedIncident,
@@ -230,7 +236,7 @@ class MetricAlertDetails extends Component<Props, State> {
   }
 
   render() {
-    const {rule, incidents, hasError, selectedIncident} = this.state;
+    const {rule, incidents, hasError, selectedIncident, anomalies} = this.state;
     const {organization, projects, loadingProjects} = this.props;
     const timePeriod = this.getTimePeriod(selectedIncident);
 
@@ -264,6 +270,7 @@ class MetricAlertDetails extends Component<Props, State> {
           rule={rule}
           project={project}
           incidents={incidents}
+          anomalies={anomalies}
           timePeriod={timePeriod}
           selectedIncident={selectedIncident}
         />

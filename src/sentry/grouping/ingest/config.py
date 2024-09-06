@@ -93,7 +93,12 @@ def project_uses_optimized_grouping(project: Project) -> bool:
     if has_mobile_config or options.get("grouping.config_transition.killswitch_enabled"):
         return False
 
-    return features.has(
-        "organizations:grouping-suppress-unnecessary-secondary-hash",
-        project.organization,
-    ) or (is_in_transition(project) and project.id % 2 == 0)
+    return (
+        features.has(
+            "organizations:grouping-suppress-unnecessary-secondary-hash",
+            project.organization,
+        )
+        or (is_in_transition(project))
+        # TODO: Yes, this is everyone - this check will soon be removed entirely
+        or project.id % 5 < 5  # 100% of all non-transition projects
+    )

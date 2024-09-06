@@ -34,6 +34,10 @@ filterwarnings = [
   # this warning in protobuf causes a segfault in 3.12+ protocolbuffers/protobuf#15077
   "ignore:Type google\\._upb.*",
 
+  # TODO: we should fix these, but for now there's a lot
+  "ignore:datetime.datetime.utcfromtimestamp\\(\\) is deprecated.*",
+  "ignore:datetime.datetime.utcnow\\(\\) is deprecated.*",
+
   # The following warning filters are for pytest only.
   "ignore:.*sentry.digests.backends.dummy.DummyBackend.*:sentry.utils.warnings.UnsupportedBackend",
 
@@ -43,7 +47,7 @@ filterwarnings = [
 looponfailroots = ["src", "tests"]
 
 [tool.mypy]
-python_version = "3.11"
+python_version = "3.12"
 mypy_path = ["fixtures/stubs-for-mypy"]
 plugins = [
   "pydantic.mypy",
@@ -163,7 +167,6 @@ module = [
     "sentry.api.endpoints.organization_sessions",
     "sentry.api.endpoints.organization_stats",
     "sentry.api.endpoints.organization_teams",
-    "sentry.api.endpoints.project_group_index",
     "sentry.api.endpoints.project_index",
     "sentry.api.endpoints.project_ownership",
     "sentry.api.endpoints.project_release_files",
@@ -176,7 +179,6 @@ module = [
     "sentry.api.endpoints.team_details",
     "sentry.api.endpoints.team_release_count",
     "sentry.api.endpoints.team_time_to_resolution",
-    "sentry.api.endpoints.user_details",
     "sentry.api.endpoints.user_subscriptions",
     "sentry.api.event_search",
     "sentry.api.helpers.group_index.index",
@@ -260,14 +262,11 @@ module = [
     "sentry.integrations.jira.webhooks.issue_updated",
     "sentry.integrations.jira_server.client",
     "sentry.integrations.jira_server.integration",
-    "sentry.integrations.message_builder",
     "sentry.integrations.metric_alerts",
-    "sentry.integrations.mixins.issues",
     "sentry.integrations.mixins.notifications",
     "sentry.integrations.msteams.actions.form",
     "sentry.integrations.msteams.client",
     "sentry.integrations.msteams.integration",
-    "sentry.integrations.msteams.link_identity",
     "sentry.integrations.msteams.notifications",
     "sentry.integrations.msteams.webhook",
     "sentry.integrations.notifications",
@@ -422,7 +421,6 @@ module = [
     "tests.sentry.api.test_base",
     "tests.sentry.api.test_event_search",
     "tests.sentry.eventstore.test_base",
-    "tests.sentry.grouping.test_result",
     "tests.sentry.issues.test_utils",
 ]
 disable_error_code = [

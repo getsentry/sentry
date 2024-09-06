@@ -1,11 +1,10 @@
 ---
-created: '2021-08-04T15:53:47.840330Z'
+created: '2024-09-06T11:37:50.206121+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
 app-depth-1:
   hash: "aeed765d29d1a60cb094f66d2cd8efb2"
-  tree_label: "stripped_application_code"
   component:
     app-depth-1*
       exception*
@@ -20,7 +19,6 @@ app-depth-1:
 --------------------------------------------------------------------------
 app-depth-2:
   hash: "12c4b5346b5242ec65d3153bb45937b0"
-  tree_label: "stripped_application_code | stripped_application_code"
   component:
     app-depth-2*
       exception*
@@ -38,7 +36,6 @@ app-depth-2:
 --------------------------------------------------------------------------
 app-depth-3:
   hash: "2c1bbd635b64d5adccdb64a620044075"
-  tree_label: "stripped_application_code | stripped_application_code | stripped_application_code"
   component:
     app-depth-3*
       exception*
@@ -59,7 +56,6 @@ app-depth-3:
 --------------------------------------------------------------------------
 app-depth-max:
   hash: "2c1bbd635b64d5adccdb64a620044075"
-  tree_label: "stripped_application_code | stripped_application_code | stripped_application_code"
   component:
     app-depth-max*
       exception*
@@ -79,8 +75,7 @@ app-depth-max:
           "Fatal Error: EXC_BAD_ACCESS / KERN_INVALID_ADDRESS"
 --------------------------------------------------------------------------
 system:
-  hash: "146b5a5d622c46da1ab5378130886b5e"
-  tree_label: "stripped_application_code | stripped_application_code | stripped_application_code"
+  hash: "2c1bbd635b64d5adccdb64a620044075"
   component:
     system*
       exception*
@@ -88,33 +83,21 @@ system:
           frame (ignored by stack trace rule (category:threadbase -group v-group))
             function*
               "_dispatch_root_queues_init_once"
-            package (ignored because function takes precedence)
-              "libdispatch.dylib"
           frame (ignored by stack trace rule (category:threadbase -group v-group))
             function*
               "start_wqthread"
-            package (ignored because function takes precedence)
-              "libsystem_pthread.dylib"
           frame (ignored by stack trace rule (category:threadbase -group v-group))
             function*
               "_pthread_wqthread"
-            package (ignored because function takes precedence)
-              "libsystem_pthread.dylib"
           frame (ignored by stack trace rule (category:threadbase -group v-group))
             function*
               "_dispatch_worker_thread2"
-            package (ignored because function takes precedence)
-              "libdispatch.dylib"
           frame (ignored by stack trace rule (category:threadbase -group v-group))
             function*
               "_dispatch_root_queue_drain"
-            package (ignored because function takes precedence)
-              "libdispatch.dylib"
           frame (ignored by stack trace rule (category:threadbase -group v-group))
             function*
               "_dispatch_client_callout"
-            package (ignored because function takes precedence)
-              "libdispatch.dylib"
           frame*
             function*
               "stripped_application_code"
@@ -122,7 +105,7 @@ system:
             function*
               "stripped_application_code"
           frame (ignored by stack trace rule (category:indirection -group))
-            filename (discarded native filename for grouping stability)
+            filename*
               "function_template.hpp"
             function*
               "boost::function0<T>::operator()"
@@ -136,7 +119,7 @@ system:
             function*
               "stripped_application_code"
           frame (ignored by stack trace rule (category:indirection -group))
-            filename (discarded native filename for grouping stability)
+            filename*
               "function_template.hpp"
             function*
               "boost::function0<T>::operator()"
@@ -185,7 +168,7 @@ system:
           frame (ignored by stack trace rule (category:internals -group))
             function*
               "_INTERNAL34b3029b::`anonymous namespace'::Convert4444_8uTo4444_32f<T>"
-        type*
+        type (ignored because exception is synthetic)
           "EXC_BAD_ACCESS / KERN_INVALID_ADDRESS"
         value (ignored because stacktrace takes precedence)
           "Fatal Error: EXC_BAD_ACCESS / KERN_INVALID_ADDRESS"

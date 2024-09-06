@@ -34,7 +34,7 @@ const {
 function ResourceSummaryCharts(props: {groupId: string}) {
   const filters = useResourceModuleFilters();
 
-  const {data: spanMetricsSeriesData, isLoading: areSpanMetricsSeriesLoading} =
+  const {data: spanMetricsSeriesData, isPending: areSpanMetricsSeriesLoading} =
     useSpanMetricsSeries(
       {
         search: MutableSearch.fromQueryObject({
@@ -43,6 +43,11 @@ function ResourceSummaryCharts(props: {groupId: string}) {
             ? {
                 [RESOURCE_RENDER_BLOCKING_STATUS]:
                   filters[RESOURCE_RENDER_BLOCKING_STATUS],
+              }
+            : {}),
+          ...(filters[SpanMetricsField.USER_GEO_SUBREGION]
+            ? {
+                [SpanMetricsField.USER_GEO_SUBREGION]: `[${filters[SpanMetricsField.USER_GEO_SUBREGION].join(',')}]`,
               }
             : {}),
         }),

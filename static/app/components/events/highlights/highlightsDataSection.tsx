@@ -30,12 +30,13 @@ import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import useReplayData from 'sentry/utils/replays/hooks/useReplayData';
 import theme from 'sentry/utils/theme';
 import {useDetailedProject} from 'sentry/utils/useDetailedProject';
 import {useFeedbackForm} from 'sentry/utils/useFeedbackForm';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
-import {FoldSectionKey} from 'sentry/views/issueDetails/streamline/foldSection';
+import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
 import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
 import {useHasStreamlinedUI} from 'sentry/views/issueDetails/utils';
 
@@ -88,7 +89,7 @@ function useOpenEditHighlightsModal({
 
 function EditHighlightsButton({project, event}: {event: Event; project: Project}) {
   const organization = useOrganization();
-  const {isLoading, data: detailedProject} = useDetailedProject({
+  const {isPending, data: detailedProject} = useDetailedProject({
     orgSlug: organization.slug,
     projectSlug: project.slug,
   });
@@ -102,7 +103,7 @@ function EditHighlightsButton({project, event}: {event: Event; project: Project}
       icon={<IconEdit />}
       onClick={openEditHighlightsModal}
       title={editProps.title}
-      disabled={isLoading || editProps.disabled}
+      disabled={isPending || editProps.disabled}
     >
       {t('Edit')}
     </Button>
@@ -117,7 +118,7 @@ function HighlightsData({
   const location = useLocation();
   const containerRef = useRef<HTMLDivElement>(null);
   const columnCount = useIssueDetailsColumnCount(containerRef);
-  const {isLoading, data: detailedProject} = useDetailedProject({
+  const {isPending, data: detailedProject} = useDetailedProject({
     orgSlug: organization.slug,
     projectSlug: project.slug,
   });
@@ -147,6 +148,39 @@ function HighlightsData({
     highlightContext,
     location,
   });
+  const highlightTagItems = getHighlightTagData({event, highlightTags});
+
+  // find the replayId from either context or tags, if it exists
+  const contextReplayItem = highlightContextDataItems.find(
+    e => e.data.length && e.data[0].key === 'replay_id'
+  );
+  const contextReplayId = contextReplayItem?.value ?? EMPTY_HIGHLIGHT_DEFAULT;
+
+  const tagReplayItem = highlightTagItems.find(e => e.originalTag.key === 'replayId');
+  const tagReplayId = tagReplayItem?.value ?? EMPTY_HIGHLIGHT_DEFAULT;
+
+  // if the id doesn't exist for either tag or context, it's rendered as '--'
+  const replayId =
+    contextReplayId !== EMPTY_HIGHLIGHT_DEFAULT
+      ? contextReplayId
+      : tagReplayId !== EMPTY_HIGHLIGHT_DEFAULT
+        ? tagReplayId
+        : undefined;
+
+  const {fetchError: replayFetchError} = useReplayData({
+    orgSlug: organization.slug,
+    replayId,
+  });
+
+  // if fetchError, replace the replayId so we don't link to an invalid replay
+  if (contextReplayItem && replayFetchError) {
+    contextReplayItem.value = EMPTY_HIGHLIGHT_DEFAULT;
+  }
+  if (tagReplayItem && replayFetchError) {
+    tagReplayItem.value = EMPTY_HIGHLIGHT_DEFAULT;
+    tagReplayItem.originalTag.value = EMPTY_HIGHLIGHT_DEFAULT;
+  }
+
   const highlightContextRows = highlightContextDataItems.reduce<React.ReactNode[]>(
     (rowList, {alias, data}, i) => {
       const meta = getContextMeta(event, alias);
@@ -165,7 +199,6 @@ function HighlightsData({
     []
   );
 
-  const highlightTagItems = getHighlightTagData({event, highlightTags});
   const highlightTagRows = highlightTagItems.map((content, i) => (
     <EventTagsTreeRow
       key={`highlight-tag-${i}`}
@@ -194,7 +227,7 @@ function HighlightsData({
 
   return (
     <HighlightContainer columnCount={columnCount} ref={containerRef}>
-      {isLoading ? (
+      {isPending ? (
         <EmptyHighlights>
           <HighlightsLoadingIndicator hideMessage size={50} />
         </EmptyHighlights>
@@ -242,7 +275,7 @@ export default function HighlightsDataSection({
   return (
     <InterimSection
       key="event-highlights"
-      type={FoldSectionKey.HIGHLIGHTS}
+      type={SectionKey.HIGHLIGHTS}
       title={hasStreamlinedUI ? t('Highlights') : t('Event Highlights')}
       help={tct(
         'Promoted tags and context items saved for this project. [link:Learn more]',

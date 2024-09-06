@@ -1,4 +1,5 @@
 import {Fragment, type PropsWithChildren, useMemo} from 'react';
+import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 import type {LocationDescriptor} from 'history';
 
@@ -35,7 +36,6 @@ import {useParams} from 'sentry/utils/useParams';
 import {
   isAutogroupedNode,
   isMissingInstrumentationNode,
-  isNoDataNode,
   isRootNode,
   isSpanNode,
   isTraceErrorNode,
@@ -47,7 +47,6 @@ import {useDrawerContainerRef} from 'sentry/views/performance/newTraceDetails/tr
 import {makeTraceContinuousProfilingLink} from 'sentry/views/performance/newTraceDetails/traceDrawer/traceProfilingLink';
 import type {
   MissingInstrumentationNode,
-  NoDataNode,
   ParentAutogroupNode,
   SiblingAutogroupNode,
   TraceTree,
@@ -401,6 +400,10 @@ function DropdownMenuWithPortal(props: DropdownMenuProps) {
   );
 }
 
+function TypeSafeBoolean<T>(value: T | null | undefined): value is NonNullable<T> {
+  return value !== null && value !== undefined;
+}
+
 function NodeActions(props: {
   node: TraceTreeNode<any>;
   onTabScrollToNode: (
@@ -408,14 +411,37 @@ function NodeActions(props: {
       | TraceTreeNode<any>
       | ParentAutogroupNode
       | SiblingAutogroupNode
-      | NoDataNode
       | MissingInstrumentationNode
   ) => void;
   organization: Organization;
   eventSize?: number | undefined;
 }) {
   const organization = useOrganization();
-  const items = useMemo(() => {
+  const params = useParams<{traceSlug?: string}>();
+
+  const {data: transaction} = useTransaction({
+    node: isTransactionNode(props.node) ? props.node : null,
+    organization,
+  });
+
+  const profilerId = useMemo(() => {
+    if (isTransactionNode(props.node)) {
+      return props.node.value.profiler_id;
+    }
+    if (isSpanNode(props.node)) {
+      return props.node.value.sentry_tags?.profiler_id ?? '';
+    }
+    return '';
+  }, [props]);
+
+  const profileLink = makeTraceContinuousProfilingLink(props.node, profilerId, {
+    orgSlug: props.organization.slug,
+    projectSlug: props.node.metadata.project_slug ?? '',
+    traceId: params.traceSlug ?? '',
+    threadId: getThreadIdFromNode(props.node, transaction),
+  });
+
+  const items = useMemo((): MenuItemProps[] => {
     const showInView: MenuItemProps = {
       key: 'show-in-view',
       label: t('Show in View'),
@@ -446,17 +472,29 @@ function NodeActions(props: {
         (typeof eventSize === 'number' ? ` (${formatBytesBase10(eventSize, 0)})` : ''),
     };
 
+    const continuousProfileLink: MenuItemProps | null =
+      organization.features.includes('continuous-profiling-ui') && !profileLink
+        ? {
+            key: 'continuous-profile',
+            onAction: () => {
+              traceAnalytics.trackViewContinuousProfile(props.organization);
+              browserHistory.push(profileLink!);
+            },
+            label: t('Continuous Profile'),
+          }
+        : null;
+
     if (isTransactionNode(props.node)) {
-      return [showInView, jsonDetails];
+      return [showInView, jsonDetails, continuousProfileLink].filter(TypeSafeBoolean);
     }
     if (isSpanNode(props.node)) {
-      return [showInView];
+      return [showInView, continuousProfileLink].filter(TypeSafeBoolean);
     }
     if (isMissingInstrumentationNode(props.node)) {
-      return [showInView];
+      return [showInView, continuousProfileLink].filter(TypeSafeBoolean);
     }
     if (isTraceErrorNode(props.node)) {
-      return [showInView];
+      return [showInView, continuousProfileLink].filter(TypeSafeBoolean);
     }
     if (isRootNode(props.node)) {
       return [showInView];
@@ -464,35 +502,9 @@ function NodeActions(props: {
     if (isAutogroupedNode(props.node)) {
       return [showInView];
     }
-    if (isNoDataNode(props.node)) {
-      return [showInView];
-    }
 
     return [showInView];
-  }, [props]);
-
-  const profilerId = useMemo(() => {
-    if (isTransactionNode(props.node)) {
-      return props.node.value.profiler_id;
-    }
-    if (isSpanNode(props.node)) {
-      return props.node.value.sentry_tags?.profiler_id ?? '';
-    }
-    return '';
-  }, [props]);
-
-  const {data: transaction} = useTransaction({
-    node: isTransactionNode(props.node) ? props.node : null,
-    organization,
-  });
-
-  const params = useParams<{traceSlug?: string}>();
-  const profileLink = makeTraceContinuousProfilingLink(props.node, profilerId, {
-    orgSlug: props.organization.slug,
-    projectSlug: props.node.metadata.project_slug ?? '',
-    traceId: params.traceSlug ?? '',
-    threadId: getThreadIdFromNode(props.node, transaction),
-  });
+  }, [props, profileLink, organization.features]);
 
   return (
     <ActionsContainer>

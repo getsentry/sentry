@@ -316,7 +316,7 @@ function ProfileSummaryPage(props: ProfileSummaryPageProps) {
     return search.formatString();
   }, [rawQuery, transaction]);
 
-  const {data, isLoading, isError} = useAggregateFlamegraphQuery({
+  const {data, isPending, isError} = useAggregateFlamegraphQuery({
     query,
   });
 
@@ -449,7 +449,7 @@ function ProfileSummaryPage(props: ProfileSummaryPageProps) {
                             setHideSystemFrames={noop}
                             onHideRegressionsClick={onHideRegressionsClick}
                           />
-                          {isLoading ? (
+                          {isPending ? (
                             <RequestStateMessageContainer>
                               <LoadingIndicator />
                             </RequestStateMessageContainer>
@@ -732,7 +732,7 @@ function ProfileDigest(props: ProfileDigestProps) {
       <div>
         <ProfileDigestLabel>{t('Last Seen')}</ProfileDigestLabel>
         <div>
-          {profiles.isLoading ? (
+          {profiles.isPending ? (
             ''
           ) : profiles.isError ? (
             ''
@@ -751,7 +751,7 @@ function ProfileDigest(props: ProfileDigestProps) {
           <ProfileDigestColumn key={p}>
             <ProfileDigestLabel>{p}</ProfileDigestLabel>
             <div>
-              {profiles.isLoading ? (
+              {profiles.isPending ? (
                 ''
               ) : profiles.isError ? (
                 ''
@@ -765,7 +765,7 @@ function ProfileDigest(props: ProfileDigestProps) {
       <ProfileDigestColumn>
         <ProfileDigestLabel>{t('profiles')}</ProfileDigestLabel>
         <div>
-          {profiles.isLoading ? (
+          {profiles.isPending ? (
             ''
           ) : profiles.isError ? (
             ''

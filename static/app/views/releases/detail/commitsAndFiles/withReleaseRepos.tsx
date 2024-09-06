@@ -1,10 +1,9 @@
 import {Component} from 'react';
-import type {RouteComponentProps} from 'react-router';
 import * as Sentry from '@sentry/react';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import type {Client} from 'sentry/api';
-import {Button} from 'sentry/components/button';
+import {LinkButton} from 'sentry/components/button';
 import EmptyMessage from 'sentry/components/emptyMessage';
 import {Body, Main} from 'sentry/components/layouts/thirds';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
@@ -12,6 +11,7 @@ import Panel from 'sentry/components/panels/panel';
 import {IconCommit} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Repository} from 'sentry/types/integrations';
+import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import type {Organization} from 'sentry/types/organization';
 import getDisplayName from 'sentry/utils/getDisplayName';
 import withApi from 'sentry/utils/withApi';
@@ -164,12 +164,12 @@ function withReleaseRepos<P extends DependentProps>(
                     'Connect a repository to see commit info, files changed, and authors involved in future releases.'
                   )}
                   action={
-                    <Button
+                    <LinkButton
                       priority="primary"
                       to={`/settings/${organization.slug}/repos/`}
                     >
                       {t('Connect a repository')}
-                    </Button>
+                    </LinkButton>
                   }
                 />
               </Panel>

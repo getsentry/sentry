@@ -1,19 +1,26 @@
 import {useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
+import {isMac} from '@react-aria/utils';
 import {Item, Section} from '@react-stately/collections';
 import type {KeyboardEvent} from '@react-types/shared';
 
 import Checkbox from 'sentry/components/checkbox';
+import type {SelectOptionWithKey} from 'sentry/components/compactSelect/types';
 import {getItemsWithKeys} from 'sentry/components/compactSelect/utils';
 import {useSearchQueryBuilder} from 'sentry/components/searchQueryBuilder/context';
-import {SearchQueryBuilderCombobox} from 'sentry/components/searchQueryBuilder/tokens/combobox';
+import {
+  type CustomComboboxMenu,
+  SearchQueryBuilderCombobox,
+} from 'sentry/components/searchQueryBuilder/tokens/combobox';
 import SpecificDatePicker from 'sentry/components/searchQueryBuilder/tokens/filter/specificDatePicker';
 import {
   escapeTagValue,
   formatFilterValue,
+  getFilterValueType,
   replaceCommaSeparatedValue,
   unescapeTagValue,
 } from 'sentry/components/searchQueryBuilder/tokens/filter/utils';
+import {ValueListBox} from 'sentry/components/searchQueryBuilder/tokens/filter/valueListBox';
 import {getDefaultAbsoluteDateValue} from 'sentry/components/searchQueryBuilder/tokens/filter/valueSuggestions/date';
 import type {
   SuggestionItem,
@@ -50,6 +57,7 @@ import {type FieldDefinition, FieldValueType} from 'sentry/utils/fields';
 import {isCtrlKeyPressed} from 'sentry/utils/isCtrlKeyPressed';
 import {type QueryKey, useQuery} from 'sentry/utils/queryClient';
 import {useDebouncedValue} from 'sentry/utils/useDebouncedValue';
+import useKeyPress from 'sentry/utils/useKeyPress';
 import useOrganization from 'sentry/utils/useOrganization';
 
 type SearchQueryValueBuilderProps = {
@@ -83,14 +91,11 @@ function getMultiSelectInputValue(token: TokenResult<Token.FILTER>) {
   return items.join(',') + ',';
 }
 
-function prepareInputValueForSaving(
-  fieldDefinition: FieldDefinition | null,
-  inputValue: string
-) {
+function prepareInputValueForSaving(valueType: FieldValueType, inputValue: string) {
   const values = uniq(
     inputValue
       .split(',')
-      .map(v => cleanFilterValue(fieldDefinition?.valueType, v.trim()))
+      .map(v => cleanFilterValue(valueType, v.trim()))
       .filter(v => v && v.length > 0)
   );
 
@@ -148,12 +153,13 @@ function getPredefinedValues({
   }
 
   const definedValues = key.values ?? fieldDefinition?.values;
+  const valueType = getFilterValueType(token, fieldDefinition);
 
   if (!definedValues?.length) {
     return getValueSuggestions({
       filterValue,
       token,
-      valueType: fieldDefinition?.valueType,
+      valueType,
     });
   }
 
@@ -203,9 +209,8 @@ function tokenSupportsMultipleValues(
         return true;
       }
 
-      return (
-        !fieldDefinition?.valueType || fieldDefinition.valueType === FieldValueType.STRING
-      );
+      const valueType = getFilterValueType(token, fieldDefinition);
+      return valueType === FieldValueType.STRING;
     case FilterType.NUMERIC:
       if (token.operator === TermOperator.DEFAULT) {
         return true;
@@ -256,7 +261,9 @@ function useFilterSuggestions({
   token,
   filterValue,
   selectedValues,
+  ctrlKeyPressed,
 }: {
+  ctrlKeyPressed: boolean;
   filterValue: string;
   selectedValues: string[];
   token: TokenResult<Token.FILTER>;
@@ -318,12 +325,13 @@ function useFilterSuggestions({
               token={token}
               disabled={disabled}
               value={suggestion.value}
+              ctrlKeyPressed={ctrlKeyPressed}
             />
           );
         },
       };
     },
-    [canSelectMultipleValues, token]
+    [canSelectMultipleValues, token, ctrlKeyPressed]
   );
 
   const suggestionGroups: SuggestionSection[] = useMemo(() => {
@@ -377,7 +385,9 @@ function ItemCheckbox({
   selected,
   disabled,
   value,
+  ctrlKeyPressed,
 }: {
+  ctrlKeyPressed: boolean;
   disabled: boolean;
   isFocused: boolean;
   selected: boolean;
@@ -392,7 +402,7 @@ function ItemCheckbox({
       onMouseUp={e => e.stopPropagation()}
       onClick={e => e.stopPropagation()}
     >
-      <CheckWrap visible={isFocused || selected} role="presentation">
+      <CheckWrap visible={isFocused || selected || ctrlKeyPressed} role="presentation">
         <Checkbox
           size="sm"
           checked={selected}
@@ -434,8 +444,14 @@ export function SearchQueryBuilderValueCombobox({
   const ref = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const organization = useOrganization();
-  const {getFieldDefinition, filterKeys, dispatch, searchSource, recentSearches} =
-    useSearchQueryBuilder();
+  const {
+    getFieldDefinition,
+    filterKeys,
+    dispatch,
+    searchSource,
+    recentSearches,
+    wrapperRef: topLevelWrapperRef,
+  } = useSearchQueryBuilder();
   const keyName = getKeyName(token.key);
   const fieldDefinition = getFieldDefinition(keyName);
   const canSelectMultipleValues = tokenSupportsMultipleValues(
@@ -468,6 +484,11 @@ export function SearchQueryBuilderValueCombobox({
     [canSelectMultipleValues, inputValue]
   );
 
+  const ctrlKeyPressed = useKeyPress(
+    isMac() ? 'Meta' : 'Control',
+    topLevelWrapperRef.current
+  );
+
   useEffect(() => {
     if (canSelectMultipleValues) {
       setInputValue(getMultiSelectInputValue(token));
@@ -487,6 +508,7 @@ export function SearchQueryBuilderValueCombobox({
     token,
     filterValue,
     selectedValues,
+    ctrlKeyPressed,
   });
 
   const analyticsData = useMemo(
@@ -496,22 +518,18 @@ export function SearchQueryBuilderValueCombobox({
       search_source: searchSource,
       filter_key: keyName,
       filter_operator: token.operator,
-      filter_value_type: fieldDefinition?.valueType ?? FieldValueType.STRING,
+      filter_value_type: getFilterValueType(token, fieldDefinition),
       new_experience: true,
     }),
-    [
-      fieldDefinition?.valueType,
-      organization,
-      recentSearches,
-      searchSource,
-      keyName,
-      token.operator,
-    ]
+    [organization, recentSearches, searchSource, keyName, token, fieldDefinition]
   );
 
   const updateFilterValue = useCallback(
     (value: string) => {
-      const cleanedValue = cleanFilterValue(fieldDefinition?.valueType, value);
+      const cleanedValue = cleanFilterValue(
+        getFilterValueType(token, fieldDefinition),
+        value
+      );
 
       // TODO(malwilley): Add visual feedback for invalid values
       if (cleanedValue === null) {
@@ -526,7 +544,7 @@ export function SearchQueryBuilderValueCombobox({
       if (canSelectMultipleValues) {
         if (selectedValues.includes(value)) {
           const newValue = prepareInputValueForSaving(
-            fieldDefinition,
+            getFilterValueType(token, fieldDefinition),
             selectedValues.filter(v => v !== value).join(',')
           );
           dispatch({
@@ -535,7 +553,7 @@ export function SearchQueryBuilderValueCombobox({
             value: newValue,
           });
 
-          if (newValue && newValue !== '""') {
+          if (newValue && newValue !== '""' && !ctrlKeyPressed) {
             onCommit();
           }
 
@@ -546,11 +564,14 @@ export function SearchQueryBuilderValueCombobox({
           type: 'UPDATE_TOKEN_VALUE',
           token: token,
           value: prepareInputValueForSaving(
-            fieldDefinition,
+            getFilterValueType(token, fieldDefinition),
             replaceCommaSeparatedValue(inputValue, selectionIndex, value)
           ),
         });
-        onCommit();
+
+        if (!ctrlKeyPressed) {
+          onCommit();
+        }
       } else {
         dispatch({
           type: 'UPDATE_TOKEN_VALUE',
@@ -572,11 +593,14 @@ export function SearchQueryBuilderValueCombobox({
       selectedValues,
       selectionIndex,
       token,
+      ctrlKeyPressed,
     ]
   );
 
   const handleOptionSelected = useCallback(
-    (value: string) => {
+    (option: SelectOptionWithKey<string>) => {
+      const value = option.value;
+
       if (isDateToken(token)) {
         if (value === 'absolute_date') {
           setShowDatePicker(true);
@@ -626,7 +650,10 @@ export function SearchQueryBuilderValueCombobox({
         dispatch({
           type: 'UPDATE_TOKEN_VALUE',
           token,
-          value: prepareInputValueForSaving(fieldDefinition, value),
+          value: prepareInputValueForSaving(
+            getFilterValueType(token, fieldDefinition),
+            value
+          ),
         });
         onCommit();
         if (!isUnchanged) {
@@ -685,41 +712,59 @@ export function SearchQueryBuilderValueCombobox({
     [wrapperRef]
   );
 
-  const customMenu = useMemo(() => {
-    if (!showDatePicker) return undefined;
+  const customMenu: CustomComboboxMenu<SelectOptionWithKey<string>> | undefined =
+    useMemo(() => {
+      if (!showDatePicker)
+        return function (props) {
+          return (
+            <ValueListBox
+              {...props}
+              isMultiSelect={canSelectMultipleValues}
+              items={items}
+            />
+          );
+        };
 
-    return function ({popoverRef, isOpen}) {
-      return (
-        <SpecificDatePicker
-          popoverRef={popoverRef}
-          dateString={inputValue || getDefaultAbsoluteDateValue(token)}
-          handleSelectDateTime={newDateTimeValue => {
-            setInputValue(newDateTimeValue);
-            inputRef.current?.focus();
-            trackAnalytics('search.value_autocompleted', {
-              ...analyticsData,
-              filter_value: newDateTimeValue,
-              filter_value_type: 'absolute_date',
-            });
-          }}
-          handleBack={() => {
-            setShowDatePicker(false);
-            setInputValue('');
-            inputRef.current?.focus();
-          }}
-          handleSave={newDateTimeValue => {
-            dispatch({
-              type: 'UPDATE_TOKEN_VALUE',
-              token: token,
-              value: newDateTimeValue,
-            });
-            onCommit();
-          }}
-          isOpen={isOpen}
-        />
-      );
-    };
-  }, [analyticsData, dispatch, inputValue, onCommit, showDatePicker, token]);
+      return function (props) {
+        return (
+          <SpecificDatePicker
+            {...props}
+            dateString={inputValue || getDefaultAbsoluteDateValue(token)}
+            handleSelectDateTime={newDateTimeValue => {
+              setInputValue(newDateTimeValue);
+              inputRef.current?.focus();
+              trackAnalytics('search.value_autocompleted', {
+                ...analyticsData,
+                filter_value: newDateTimeValue,
+                filter_value_type: 'absolute_date',
+              });
+            }}
+            handleBack={() => {
+              setShowDatePicker(false);
+              setInputValue('');
+              inputRef.current?.focus();
+            }}
+            handleSave={newDateTimeValue => {
+              dispatch({
+                type: 'UPDATE_TOKEN_VALUE',
+                token: token,
+                value: newDateTimeValue,
+              });
+              onCommit();
+            }}
+          />
+        );
+      };
+    }, [
+      showDatePicker,
+      canSelectMultipleValues,
+      items,
+      inputValue,
+      token,
+      analyticsData,
+      dispatch,
+      onCommit,
+    ]);
 
   return (
     <ValueEditing ref={ref} data-test-id="filter-value-editing">

@@ -50,6 +50,16 @@ const getInstallConfig = (params: Params) => [
   },
 ];
 
+const getVerifySnippet = () => `
+<!-- A button to trigger a test error -->
+<button id="test-error">Trigger Test Error</button>
+<script>
+  const button = document.getElementById('test-error');
+  button.addEventListener('click', () => {
+    throw new Error('This is a test error');
+  });
+</script>`;
+
 const replayOnboardingJsLoader: OnboardingConfig = {
   install: (params: Params) => getInstallConfig(params),
   configure: (params: Params) => [
@@ -68,7 +78,24 @@ const replayOnboardingJsLoader: OnboardingConfig = {
       additionalInfo: <TracePropagationMessage />,
     },
   ],
-  verify: () => [],
+  verify: () => [
+    {
+      type: StepType.VERIFY,
+      description: t(
+        'To verify your Replay setup, trigger an error on your page and watch Sentry capture the event along with a recording of the user interaction.'
+      ),
+      configurations: [
+        {
+          description: t('You can simulate an error by adding the following code:'),
+          language: 'html',
+          code: getVerifySnippet(),
+          additionalInfo: t(
+            'After clicking the button, wait a few moments, and you\'ll see a new session appear on the "Replays" page.'
+          ),
+        },
+      ],
+    },
+  ],
   nextSteps: () => [],
 };
 

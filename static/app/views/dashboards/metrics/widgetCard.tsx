@@ -1,5 +1,4 @@
 import {Fragment, useMemo} from 'react';
-import type {InjectedRouter} from 'react-router';
 import styled from '@emotion/styled';
 import {ErrorBoundary} from '@sentry/react';
 import type {Location} from 'history';
@@ -12,6 +11,7 @@ import {IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {PageFilters} from 'sentry/types/core';
+import type {InjectedRouter} from 'sentry/types/legacyReactRouter';
 import type {Organization} from 'sentry/types/organization';
 import {getFormattedMQL, unescapeMetricsFormula} from 'sentry/utils/metrics';
 import {hasMetricsNewInputs} from 'sentry/utils/metrics/features';
@@ -142,7 +142,7 @@ export function MetricWidgetCard({
 
   const {
     data: timeseriesData,
-    isLoading,
+    isPending,
     isError,
     error,
   } = useMetricsQuery(metricQueries, selection, {
@@ -155,27 +155,27 @@ export function MetricWidgetCard({
         <MetricTableContainer
           metricQueries={metricQueries}
           timeseriesData={timeseriesData}
-          isLoading={isLoading}
+          isLoading={isPending}
         />
       );
     }
     if (widget.displayType === DisplayType.BIG_NUMBER) {
       return (
-        <MetricBigNumberContainer timeseriesData={timeseriesData} isLoading={isLoading} />
+        <MetricBigNumberContainer timeseriesData={timeseriesData} isLoading={isPending} />
       );
     }
 
     return (
       <MetricChartContainer
         timeseriesData={timeseriesData}
-        isLoading={isLoading}
+        isLoading={isPending}
         metricQueries={metricQueries}
         displayType={toMetricDisplayType(widget.displayType)}
         chartHeight={!showContextMenu ? 200 : undefined}
         showLegend
       />
     );
-  }, [widget.displayType, metricQueries, timeseriesData, isLoading, showContextMenu]);
+  }, [widget.displayType, metricQueries, timeseriesData, isPending, showContextMenu]);
 
   return (
     <DashboardsMEPContext.Provider

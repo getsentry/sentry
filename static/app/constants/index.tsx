@@ -58,6 +58,7 @@ export const ALLOWED_SCOPES = [
   'event:read',
   'event:write',
   'member:admin',
+  'member:invite',
   'member:read',
   'member:write',
   'org:admin',
@@ -319,14 +320,6 @@ export const DATA_CATEGORY_INFO = {
     titleName: t('Spans'),
     uid: 12,
   },
-  [DataCategoryExact.SPAN_INDEXED]: {
-    name: DataCategoryExact.SPAN_INDEXED,
-    apiName: 'span_indexed',
-    plural: 'indexed spans',
-    displayName: 'indexed span',
-    titleName: t('Spans'),
-    uid: 14,
-  },
   [DataCategoryExact.MONITOR_SEAT]: {
     name: DataCategoryExact.MONITOR_SEAT,
     apiName: 'monitorSeat',
@@ -396,6 +389,8 @@ export const ORGANIZATION_FETCH_ERROR_TYPES = {
 
 export const CONFIG_DOCS_URL = 'https://develop.sentry.dev/config/';
 export const DISCOVER2_DOCS_URL = 'https://docs.sentry.io/product/discover-queries/';
+export const SPAN_PROPS_DOCS_URL =
+  'https://docs.sentry.io/concepts/search/searchable-properties/spans/';
 
 export const IS_ACCEPTANCE_TEST = !!process.env.IS_ACCEPTANCE_TEST;
 export const NODE_ENV = process.env.NODE_ENV;

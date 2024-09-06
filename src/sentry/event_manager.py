@@ -62,6 +62,7 @@ from sentry.grouping.ingest.hashing import (
     find_existing_grouphash,
     find_existing_grouphash_new,
     get_hash_values,
+    get_or_create_grouphashes,
     maybe_run_background_grouping,
     maybe_run_secondary_grouping,
     run_primary_grouping,
@@ -904,12 +905,6 @@ def _materialize_metadata_many(jobs: Sequence[Job]) -> None:
         event_metadata = event_type.get_metadata(data)
         job["event_metadata"] = dict(event_metadata)
 
-        # In save_aggregate we store current_tree_label for the group metadata,
-        # and finest_tree_label for the event's own title.
-
-        if "finest_tree_label" in job:
-            event_metadata["finest_tree_label"] = job["finest_tree_label"]
-
         data.update(materialize_metadata(data, event_type, event_metadata))
         job["culprit"] = data["culprit"]
 
@@ -938,6 +933,10 @@ def _get_group_processing_kwargs(job: Job) -> dict[str, Any]:
     """
     Pull together all the metadata used when creating a group or updating a group's metadata based
     on a new event.
+
+    Note: Must be called *after* grouping has run, because the grouping process can affect the title
+    (by setting `main_exception_id` or by setting the title directly using a custom fingerprint
+    rule).
     """
     _materialize_metadata_many([job])
 
@@ -1420,9 +1419,7 @@ def _save_aggregate(
         and not primary_hashes.hierarchical_hashes
     )
 
-    flat_grouphashes = [
-        GroupHash.objects.get_or_create(project=project, hash=hash)[0] for hash in hashes.hashes
-    ]
+    flat_grouphashes = get_or_create_grouphashes(project, hashes)
 
     # The root_hierarchical_hash is the least specific hash within the tree, so
     # typically hierarchical_hashes[0], unless a hash `n` has been split in
@@ -1703,16 +1700,12 @@ def _save_aggregate_new(
     project = event.project
     secondary = NULL_GROUPHASH_INFO
 
-    group_processing_kwargs = _get_group_processing_kwargs(job)
-
     # Try looking for an existing group using the current grouping config
     primary = get_hashes_and_grouphashes(job, run_primary_grouping, metric_tags)
 
     # If we've found one, great. No need to do any more calculations
     if primary.existing_grouphash:
-        group_info = handle_existing_grouphash(
-            job, primary.existing_grouphash, primary.grouphashes, group_processing_kwargs
-        )
+        group_info = handle_existing_grouphash(job, primary.existing_grouphash, primary.grouphashes)
         result = "found_primary"
     # If we haven't, try again using the secondary config
     else:
@@ -1721,7 +1714,7 @@ def _save_aggregate_new(
 
         if secondary.existing_grouphash:
             group_info = handle_existing_grouphash(
-                job, secondary.existing_grouphash, all_grouphashes, group_processing_kwargs
+                job, secondary.existing_grouphash, all_grouphashes
             )
             result = "found_secondary"
         # If we still haven't found a group, ask Seer for a match (if enabled for the project)
@@ -1729,14 +1722,10 @@ def _save_aggregate_new(
             seer_matched_grouphash = maybe_check_seer_for_matching_grouphash(event, primary.hashes)
 
             if seer_matched_grouphash:
-                group_info = handle_existing_grouphash(
-                    job, seer_matched_grouphash, all_grouphashes, group_processing_kwargs
-                )
+                group_info = handle_existing_grouphash(job, seer_matched_grouphash, all_grouphashes)
             # If we *still* haven't found a group into which to put the event, create a new group
             else:
-                group_info = create_group_with_grouphashes(
-                    job, all_grouphashes, group_processing_kwargs
-                )
+                group_info = create_group_with_grouphashes(job, all_grouphashes)
             result = "no_match"
 
     # From here on out, we're just doing housekeeping
@@ -1788,10 +1777,7 @@ def get_hashes_and_grouphashes(
     grouping_config, hashes = hash_calculation_function(project, job, metric_tags)
 
     if extract_hashes(hashes):
-        grouphashes = [
-            GroupHash.objects.get_or_create(project=project, hash=hash)[0]
-            for hash in extract_hashes(hashes)
-        ]
+        grouphashes = get_or_create_grouphashes(project, hashes)
 
         existing_grouphash = find_existing_grouphash_new(grouphashes)
 
@@ -1804,7 +1790,6 @@ def handle_existing_grouphash(
     job: Job,
     existing_grouphash: GroupHash,
     all_grouphashes: list[GroupHash],
-    group_processing_kwargs: dict[str, Any],
 ) -> GroupInfo | None:
     """
     Handle the case where an incoming event matches an existing group, by assigning the event to the
@@ -1845,19 +1830,16 @@ def handle_existing_grouphash(
     is_regression = _process_existing_aggregate(
         group=group,
         event=job["event"],
-        incoming_group_values=group_processing_kwargs,
+        incoming_group_values=_get_group_processing_kwargs(job),
         release=job["release"],
     )
 
     return GroupInfo(group=group, is_new=False, is_regression=is_regression)
 
 
-def create_group_with_grouphashes(
-    job: Job, grouphashes: list[GroupHash], group_processing_kwargs: dict[str, Any]
-) -> GroupInfo | None:
+def create_group_with_grouphashes(job: Job, grouphashes: list[GroupHash]) -> GroupInfo | None:
     """
-    Create a group from the data in `job` and `group_processing_kwargs` and link it to the given
-    grouphashes.
+    Create a group from the data in `job` and link it to the given grouphashes.
 
     In very rare circumstances, we can end up in a race condition with another process trying to
     create the same group. If the current process loses the race, this function will update the
@@ -1909,7 +1891,7 @@ def create_group_with_grouphashes(
             metrics_timer_tags["outcome"] = "new_group"
             record_new_group_metrics(event)
 
-            group = _create_group(project, event, **group_processing_kwargs)
+            group = _create_group(project, event, **_get_group_processing_kwargs(job))
             add_group_id_to_grouphashes(group, grouphashes)
 
             return GroupInfo(group=group, is_new=True, is_regression=False)
@@ -1919,9 +1901,7 @@ def create_group_with_grouphashes(
         # this function at all)
         else:
             # TODO: should we be setting tags here, too?
-            return handle_existing_grouphash(
-                job, existing_grouphash, grouphashes, group_processing_kwargs
-            )
+            return handle_existing_grouphash(job, existing_grouphash, grouphashes)
 
 
 def _create_group(
@@ -2361,7 +2341,9 @@ def _get_severity_metadata_for_group(
     """
     from sentry.receivers.rules import PLATFORMS_WITH_PRIORITY_ALERTS
 
-    if killswitch_matches_context("issues.skip-seer-requests", {"project_id": event.project_id}):
+    if killswitch_matches_context(
+        "issues.severity.skip-seer-requests", {"project_id": event.project_id}
+    ):
         logger.warning(
             "get_severity_metadata_for_group.seer_killswitch_enabled",
             extra={"event_id": event.event_id, "project_id": project_id},

@@ -12,7 +12,12 @@ import ProjectsStore from 'sentry/stores/projectsStore';
 import {ActivationConditionType, MonitorType} from 'sentry/types/alerts';
 import {metric} from 'sentry/utils/analytics';
 import RuleFormContainer from 'sentry/views/alerts/rules/metric/ruleForm';
-import {Dataset} from 'sentry/views/alerts/rules/metric/types';
+import {
+  AlertRuleComparisonType,
+  AlertRuleSeasonality,
+  AlertRuleSensitivity,
+  Dataset,
+} from 'sentry/views/alerts/rules/metric/types';
 import {permissionAlertText} from 'sentry/views/settings/project/permissionAlert';
 
 jest.mock('sentry/actionCreators/indicator');
@@ -86,6 +91,14 @@ describe('Incident Rules Form', () => {
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/metrics-estimation-stats/',
       body: EventsStatsFixture(),
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/metrics/meta/',
+      body: [],
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/metrics/tags/',
+      body: [],
     });
   });
 
@@ -351,6 +364,47 @@ describe('Incident Rules Form', () => {
       );
     });
 
+    it('creates an anomaly detection rule', async () => {
+      organization.features = [...organization.features, 'anomaly-detection-alerts'];
+      const rule = MetricRuleFixture({
+        sensitivity: AlertRuleSensitivity.MEDIUM,
+        seasonality: AlertRuleSeasonality.AUTO,
+      });
+      createWrapper({
+        rule: {
+          ...rule,
+          id: undefined,
+          aggregate: 'count()',
+          eventTypes: ['error'],
+          dataset: 'events',
+        },
+      });
+      expect(
+        await screen.findByLabelText(
+          'Anomaly: whenever values are outside of expected bounds'
+        )
+      ).toBeChecked();
+      expect(
+        await screen.findByRole('textbox', {name: 'Level of responsiveness'})
+      ).toBeInTheDocument();
+      await userEvent.click(screen.getByLabelText('Save Rule'));
+
+      expect(createRule).toHaveBeenLastCalledWith(
+        expect.anything(),
+        expect.objectContaining({
+          data: expect.objectContaining({
+            aggregate: 'count()',
+            dataset: 'events',
+            environment: null,
+            eventTypes: ['error'],
+            detectionType: AlertRuleComparisonType.DYNAMIC,
+            sensitivity: AlertRuleSensitivity.MEDIUM,
+            seasonality: AlertRuleSeasonality.AUTO,
+          }),
+        })
+      );
+    });
+
     it('switches to custom metric and selects event.type:error', async () => {
       organization.features = [...organization.features, 'performance-view'];
       const rule = MetricRuleFixture();
@@ -387,6 +441,48 @@ describe('Incident Rules Form', () => {
           }),
         })
       );
+    });
+
+    it('creates an insights metric rule', async () => {
+      const rule = MetricRuleFixture();
+      createWrapper({
+        rule: {
+          ...rule,
+          id: undefined,
+          eventTypes: ['transaction'],
+          aggregate: 'avg(d:spans/exclusive_time@millisecond)',
+          dataset: Dataset.GENERIC_METRICS,
+        },
+      });
+
+      // Clear field
+      await userEvent.clear(screen.getByPlaceholderText('Enter Alert Name'));
+
+      // Enter in name so we can submit
+      await userEvent.type(
+        screen.getByPlaceholderText('Enter Alert Name'),
+        'Insights Incident Rule'
+      );
+
+      // Set thresholdPeriod
+      await selectEvent.select(screen.getAllByText('For 1 minute')[0], 'For 10 minutes');
+
+      await userEvent.click(screen.getByLabelText('Save Rule'));
+
+      expect(createRule).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.objectContaining({
+          data: expect.objectContaining({
+            name: 'Insights Incident Rule',
+            projects: ['project-slug'],
+            eventTypes: ['transaction'],
+            thresholdPeriod: 10,
+            alertType: 'insights_metrics',
+            dataset: 'generic_metrics',
+          }),
+        })
+      );
+      expect(metric.startSpan).toHaveBeenCalledWith({name: 'saveAlertRule'});
     });
   });
 
@@ -477,7 +573,7 @@ describe('Incident Rules Form', () => {
         },
       });
       const anomaly_option = await screen.findByText(
-        'Anomaly: when evaluated values are outside of expected bounds'
+        'Anomaly: whenever values are outside of expected bounds'
       );
       expect(anomaly_option).toBeInTheDocument();
     });

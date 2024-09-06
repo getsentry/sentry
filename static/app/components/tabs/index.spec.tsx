@@ -206,7 +206,7 @@ describe('Tabs', () => {
       <Tabs>
         <TabList>
           {TABS.map(tab => (
-            <TabList.Item key={tab.key} to="#some-link">
+            <TabList.Item key={tab.key} to="/#some-link">
               {tab.label}
             </TabList.Item>
           ))}
@@ -223,7 +223,7 @@ describe('Tabs', () => {
       const tabEl = screen.getByRole('tab', {name: tab.label});
       expect(within(tabEl).getByRole('link', {hidden: true})).toHaveAttribute(
         'href',
-        '#some-link'
+        '/#some-link'
       );
     });
 

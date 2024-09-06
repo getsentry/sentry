@@ -20,7 +20,6 @@ from sentry.integrations.slack.utils.errors import (
     unpack_slack_api_error,
 )
 from sentry.integrations.slack.utils.users import get_slack_user_list
-from sentry.models.organization import Organization
 from sentry.shared_integrations.exceptions import (
     ApiRateLimitedError,
     DuplicateDisplayNameError,
@@ -65,14 +64,10 @@ def strip_channel_name(name: str) -> str:
 
 
 def get_channel_id(
-    organization: Organization,
-    integration: Integration | RpcIntegration,
-    channel_name: str,
-    use_async_lookup: bool = False,
+    integration: Integration | RpcIntegration, channel_name: str, use_async_lookup: bool = False
 ) -> SlackChannelIdData:
     """
     Fetches the internal slack id of a channel.
-    :param organization: unused
     :param integration: The slack integration
     :param channel_name: The name of the channel
     :param use_async_lookup: Give the function some extra time?

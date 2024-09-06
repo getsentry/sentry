@@ -12,7 +12,7 @@ import {EnvironmentPageFilter} from 'sentry/components/organizations/environment
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import {t, tct} from 'sentry/locale';
 import {DurationUnit, RateUnit} from 'sentry/utils/discover/fields';
-import {decodeScalar, decodeSorts} from 'sentry/utils/queryString';
+import {decodeList, decodeScalar, decodeSorts} from 'sentry/utils/queryString';
 import {
   EMPTY_OPTION_VALUE,
   escapeFilterValue,
@@ -32,6 +32,7 @@ import {useSpanMetrics} from 'sentry/views/insights/common/queries/useDiscover';
 import {useSpanMetricsSeries} from 'sentry/views/insights/common/queries/useDiscoverSeries';
 import {useModuleBreadcrumbs} from 'sentry/views/insights/common/utils/useModuleBreadcrumbs';
 import {QueryParameterNames} from 'sentry/views/insights/common/views/queryParameters';
+import SubregionSelector from 'sentry/views/insights/common/views/spans/selectors/subregionSelector';
 import {
   DataTitles,
   getThroughputTitle,
@@ -68,10 +69,15 @@ export function HTTPDomainSummaryPage() {
 
   const sort = decodeSorts(sortField).filter(isAValidSort).at(0) ?? DEFAULT_SORT;
 
-  const {domain, project: projectId} = useLocationQuery({
+  const {
+    domain,
+    project: projectId,
+    'user.geo.subregion': subregions,
+  } = useLocationQuery({
     fields: {
       project: decodeScalar,
       domain: decodeScalar,
+      [SpanMetricsField.USER_GEO_SUBREGION]: decodeList,
     },
   });
 
@@ -79,11 +85,16 @@ export function HTTPDomainSummaryPage() {
   const filters: SpanMetricsQueryFilters = {
     ...BASE_FILTERS,
     'span.domain': domain === '' ? EMPTY_OPTION_VALUE : escapeFilterValue(domain),
+    ...(subregions.length > 0
+      ? {
+          [SpanMetricsField.USER_GEO_SUBREGION]: `[${subregions.join(',')}]`,
+        }
+      : {}),
   };
 
   const cursor = decodeScalar(location.query?.[QueryParameterNames.TRANSACTIONS_CURSOR]);
 
-  const {data: domainMetrics, isLoading: areDomainMetricsLoading} = useSpanMetrics(
+  const {data: domainMetrics, isPending: areDomainMetricsLoading} = useSpanMetrics(
     {
       search: MutableSearch.fromQueryObject(filters),
       fields: [
@@ -100,7 +111,7 @@ export function HTTPDomainSummaryPage() {
   );
 
   const {
-    isLoading: isThroughputDataLoading,
+    isPending: isThroughputDataLoading,
     data: throughputData,
     error: throughputError,
   } = useSpanMetricsSeries(
@@ -112,7 +123,7 @@ export function HTTPDomainSummaryPage() {
   );
 
   const {
-    isLoading: isDurationDataLoading,
+    isPending: isDurationDataLoading,
     data: durationData,
     error: durationError,
   } = useSpanMetricsSeries(
@@ -124,7 +135,7 @@ export function HTTPDomainSummaryPage() {
   );
 
   const {
-    isLoading: isResponseCodeDataLoading,
+    isPending: isResponseCodeDataLoading,
     data: responseCodeData,
     error: responseCodeError,
   } = useSpanMetricsSeries(
@@ -136,7 +147,7 @@ export function HTTPDomainSummaryPage() {
   );
 
   const {
-    isLoading: isTransactionsListLoading,
+    isPending: isTransactionsListLoading,
     data: transactionsList,
     meta: transactionsListMeta,
     error: transactionsListError,
@@ -213,6 +224,7 @@ export function HTTPDomainSummaryPage() {
                     <EnvironmentPageFilter />
                     <DatePageFilter />
                   </PageFilterBar>
+                  <SubregionSelector />
                 </ToolRibbon>
 
                 <ReadoutRibbon>

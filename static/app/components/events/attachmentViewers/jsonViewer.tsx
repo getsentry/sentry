@@ -19,7 +19,7 @@ export default function JsonViewer(props: ViewerProps) {
     }
   );
 
-  if (query.isLoading) {
+  if (query.isPending) {
     return (
       <LoadingContainer>
         <LoadingIndicator mini />

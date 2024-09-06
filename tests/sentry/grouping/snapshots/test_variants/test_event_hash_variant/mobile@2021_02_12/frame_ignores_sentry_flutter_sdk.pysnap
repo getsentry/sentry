@@ -1,11 +1,10 @@
 ---
-created: '2024-05-28T08:13:55.396261+00:00'
+created: '2024-08-27T12:08:35.487838+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
 app-depth-1:
   hash: "d1fe4234d1bddc3823d08dcc529fb161"
-  tree_label: "SentryExceptionFactory.getSentryException"
   component:
     app-depth-1*
       stacktrace*
@@ -17,7 +16,6 @@ app-depth-1:
 --------------------------------------------------------------------------
 app-depth-max:
   hash: "d1fe4234d1bddc3823d08dcc529fb161"
-  tree_label: "SentryExceptionFactory.getSentryException"
   component:
     app-depth-max*
       stacktrace*
@@ -29,7 +27,6 @@ app-depth-max:
 --------------------------------------------------------------------------
 system:
   hash: "d1fe4234d1bddc3823d08dcc529fb161"
-  tree_label: "SentryExceptionFactory.getSentryException"
   component:
     system*
       stacktrace*

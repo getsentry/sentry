@@ -1,6 +1,5 @@
 import type {FC} from 'react';
 import {Fragment, useEffect, useRef} from 'react';
-import type {InjectedRouter} from 'react-router';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
 
@@ -20,6 +19,7 @@ import {TabList, TabPanels, Tabs} from 'sentry/components/tabs';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {PageFilters} from 'sentry/types/core';
+import type {InjectedRouter} from 'sentry/types/legacyReactRouter';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';

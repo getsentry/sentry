@@ -48,7 +48,6 @@ from sentry.constants import (
     DATA_CONSENT_DEFAULT,
     DEBUG_FILES_ROLE_DEFAULT,
     EVENTS_MEMBER_ADMIN_DEFAULT,
-    EXTRAPOLATE_METRICS_DEFAULT,
     GITHUB_COMMENT_BOT_DEFAULT,
     ISSUE_ALERTS_THREAD_DEFAULT,
     JOIN_REQUESTS_DEFAULT,
@@ -77,7 +76,6 @@ from sentry.models.avatars.organization_avatar import OrganizationAvatar
 from sentry.models.options.organization_option import OrganizationOption
 from sentry.models.organization import Organization, OrganizationStatus
 from sentry.models.scheduledeletion import RegionScheduledDeletion
-from sentry.models.useremail import UserEmail
 from sentry.organizations.services.organization import organization_service
 from sentry.organizations.services.organization.model import (
     RpcOrganization,
@@ -88,6 +86,7 @@ from sentry.services.organization.provisioning import (
     OrganizationSlugCollisionException,
     organization_provisioning_service,
 )
+from sentry.users.models.useremail import UserEmail
 from sentry.users.services.user.serial import serialize_generic_user
 from sentry.utils.audit import create_audit_entry
 
@@ -217,7 +216,6 @@ ORG_OPTIONS = (
         bool,
         METRICS_ACTIVATE_LAST_FOR_GAUGES_DEFAULT,
     ),
-    ("extrapolateMetrics", "sentry:extrapolate_metrics", bool, EXTRAPOLATE_METRICS_DEFAULT),
     ("uptimeAutodetection", "sentry:uptime_autodetection", bool, UPTIME_AUTODETECTION),
 )
 
@@ -245,6 +243,7 @@ class OrganizationSerializer(BaseOrganizationSerializer):
 
     openMembership = serializers.BooleanField(required=False)
     allowSharedIssues = serializers.BooleanField(required=False)
+    allowMemberInvite = serializers.BooleanField(required=False)
     allowMemberProjectCreation = serializers.BooleanField(required=False)
     allowSuperuserAccess = serializers.BooleanField(required=False)
     enhancedPrivacy = serializers.BooleanField(required=False)
@@ -279,7 +278,6 @@ class OrganizationSerializer(BaseOrganizationSerializer):
     allowJoinRequests = serializers.BooleanField(required=False)
     relayPiiConfig = serializers.CharField(required=False, allow_blank=True, allow_null=True)
     apdexThreshold = serializers.IntegerField(min_value=1, required=False)
-    extrapolateMetrics = serializers.BooleanField(required=False)
     uptimeAutodetection = serializers.BooleanField(required=False)
 
     @cached_property
@@ -293,24 +291,6 @@ class OrganizationSerializer(BaseOrganizationSerializer):
         org = self.context["organization"]
         org_auth_provider = auth_service.get_auth_provider(organization_id=org.id)
         return org_auth_provider is not None
-
-    def validate_extrapolateMetrics(self, value):
-        from sentry import features
-
-        organization = self.context["organization"]
-        request = self.context["request"]
-
-        # Metrics extrapolation can only be toggled when the metrics-extrapolation flag is enabled.
-        has_metrics_extrapolation = features.has(
-            "organizations:metrics-extrapolation", organization, actor=request.user
-        )
-
-        if not has_metrics_extrapolation:
-            raise serializers.ValidationError(
-                "Organization does not have the metrics extrapolation feature enabled"
-            )
-        else:
-            return value
 
     def validate_relayPiiConfig(self, value):
         organization = self.context["organization"]
@@ -514,6 +494,8 @@ class OrganizationSerializer(BaseOrganizationSerializer):
             org.flags.disable_member_project_creation = not data["allowMemberProjectCreation"]
         if "allowSuperuserAccess" in data:
             org.flags.prevent_superuser_access = not data["allowSuperuserAccess"]
+        if "allowMemberInvite" in data:
+            org.flags.disable_member_invite = not data["allowMemberInvite"]
         if "name" in data:
             org.name = data["name"]
         if "slug" in data:
@@ -532,6 +514,7 @@ class OrganizationSerializer(BaseOrganizationSerializer):
                 "codecov_access": org.flags.codecov_access.is_set,
                 "disable_member_project_creation": org.flags.disable_member_project_creation.is_set,
                 "prevent_superuser_access": org.flags.prevent_superuser_access.is_set,
+                "disable_member_invite": org.flags.disable_member_invite.is_set,
             },
         }
 
@@ -622,7 +605,6 @@ def post_org_pending_deletion(
         "genAIConsent",
         "metricsActivatePercentiles",
         "metricsActivateLastForGauges",
-        "extrapolateMetrics",
     ]
 )
 class OrganizationDetailsPutSerializer(serializers.Serializer):
@@ -834,7 +816,6 @@ Below is an example of a payload for a set of advanced data scrubbing rules for 
     genAIConsent = serializers.BooleanField(required=False)
     metricsActivatePercentiles = serializers.BooleanField(required=False)
     metricsActivateLastForGauges = serializers.BooleanField(required=False)
-    extrapolateMetrics = serializers.BooleanField(required=False)
 
 
 # NOTE: We override the permission class of this endpoint in getsentry with the OrganizationDetailsPermission class

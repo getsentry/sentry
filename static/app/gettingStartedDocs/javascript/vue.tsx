@@ -61,7 +61,7 @@ const getSentryInitLayout = (params: Params, siblingOption: string): string => {
     integrations: [${
       params.isPerformanceSelected
         ? `
-          Sentry.browserTracingIntegration(),`
+          Sentry.browserTracingIntegration({ router }),`
         : ''
     }${
       params.isReplaySelected
@@ -384,7 +384,7 @@ const docs: Docs<PlatformOptions> = {
   onboarding,
   platformOptions,
   feedbackOnboardingNpm: feedbackOnboarding,
-  replayOnboardingNpm: replayOnboarding,
+  replayOnboarding,
   customMetricsOnboarding: getJSMetricsOnboarding({getInstallConfig}),
   crashReportOnboarding,
 };

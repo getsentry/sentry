@@ -13,6 +13,7 @@ import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionT
 import {Tooltip} from 'sentry/components/tooltip';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import {decodeList} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
 import useRouter from 'sentry/utils/useRouter';
 import BrowserTypeSelector from 'sentry/views/insights/browser/webVitals/components/browserTypeSelector';
@@ -35,7 +36,11 @@ import {ModulePageProviders} from 'sentry/views/insights/common/components/modul
 import {ModulesOnboarding} from 'sentry/views/insights/common/components/modulesOnboarding';
 import {useModuleBreadcrumbs} from 'sentry/views/insights/common/utils/useModuleBreadcrumbs';
 import SubregionSelector from 'sentry/views/insights/common/views/spans/selectors/subregionSelector';
-import {ModuleName, SpanIndexedField} from 'sentry/views/insights/types';
+import {
+  ModuleName,
+  SpanMetricsField,
+  type SubregionCode,
+} from 'sentry/views/insights/types';
 
 export function WebVitalsLandingPage() {
   const location = useLocation();
@@ -46,14 +51,20 @@ export function WebVitalsLandingPage() {
     webVital: (location.query.webVital as WebVitals) ?? null,
   });
 
-  const browserTypes = decodeBrowserTypes(location.query[SpanIndexedField.BROWSER_NAME]);
+  const browserTypes = decodeBrowserTypes(location.query[SpanMetricsField.BROWSER_NAME]);
+  const subregions = decodeList(
+    location.query[SpanMetricsField.USER_GEO_SUBREGION]
+  ) as SubregionCode[];
 
-  const {data: projectData, isLoading} = useProjectRawWebVitalsQuery({browserTypes});
-  const {data: projectScores, isLoading: isProjectScoresLoading} =
-    useProjectWebVitalsScoresQuery({browserTypes});
+  const {data: projectData, isPending} = useProjectRawWebVitalsQuery({
+    browserTypes,
+    subregions,
+  });
+  const {data: projectScores, isPending: isProjectScoresLoading} =
+    useProjectWebVitalsScoresQuery({browserTypes, subregions});
 
   const projectScore =
-    isProjectScoresLoading || isLoading
+    isProjectScoresLoading || isPending
       ? undefined
       : calculatePerformanceScoreFromStoredTableDataRow(projectScores?.data?.[0]);
 
@@ -98,9 +109,10 @@ export function WebVitalsLandingPage() {
               <PerformanceScoreChartContainer>
                 <PerformanceScoreChart
                   projectScore={projectScore}
-                  isProjectScoreLoading={isLoading || isProjectScoresLoading}
+                  isProjectScoreLoading={isPending || isProjectScoresLoading}
                   webVital={state.webVital}
                   browserTypes={browserTypes}
+                  subregions={subregions}
                 />
               </PerformanceScoreChartContainer>
               <WebVitalMetersContainer>

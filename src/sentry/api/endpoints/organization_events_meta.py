@@ -5,7 +5,7 @@ from rest_framework.exceptions import ParseError
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import search
+from sentry import options, search
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import EnvironmentMixin, region_silo_endpoint
 from sentry.api.bases import NoProjects, OrganizationEventsEndpointBase
@@ -38,7 +38,6 @@ class OrganizationEventsMetaEndpoint(OrganizationEventsEndpointBase):
         with handle_query_errors():
             result = dataset.query(
                 selected_columns=["count()"],
-                params={},
                 snuba_params=snuba_params,
                 query=request.query_params.get("query"),
                 referrer=Referrer.API_ORGANIZATION_EVENTS_META.value,
@@ -153,7 +152,6 @@ class OrganizationSpansSamplesEndpoint(OrganizationEventsEndpointBase):
                     f"p50({column}) as first_bound",
                     f"p95({column}) as second_bound",
                 ],
-                params={},
                 snuba_params=snuba_params,
                 query=request.query_params.get("query"),
                 referrer=Referrer.API_SPAN_SAMPLE_GET_BOUNDS.value,
@@ -176,9 +174,9 @@ class OrganizationSpansSamplesEndpoint(OrganizationEventsEndpointBase):
                 "profile_id",
             ],
             orderby=["-profile_id"],
-            params={},
             snuba_params=snuba_params,
             query=request.query_params.get("query"),
+            sample=options.get("insights.span-samples-query.sample-rate") or None,
             referrer=Referrer.API_SPAN_SAMPLE_GET_SPAN_IDS.value,
             query_source=(QuerySource.FRONTEND if is_frontend else QuerySource.API),
         )
@@ -200,7 +198,6 @@ class OrganizationSpansSamplesEndpoint(OrganizationEventsEndpointBase):
         result = spans_indexed.query(
             selected_columns=selected_columns,
             orderby=["timestamp"],
-            params={},
             snuba_params=snuba_params,
             query=query,
             limit=9,

@@ -12,7 +12,7 @@ from sentry.integrations.services.integration.model import RpcIntegration
 from sentry.integrations.utils import sync_group_assignee_inbound
 from sentry.shared_integrations.exceptions import ApiError
 
-from ...mixins import IssueSyncMixin
+from ...mixins.issues import IssueSyncIntegration
 from ..client import JiraCloudClient
 
 logger = logging.getLogger(__name__)
@@ -93,7 +93,7 @@ def handle_status_change(integration, data):
     result = integration_service.organization_contexts(integration_id=integration.id)
     for oi in result.organization_integrations:
         install = integration.get_installation(organization_id=oi.organization_id)
-        if isinstance(install, IssueSyncMixin):
+        if isinstance(install, IssueSyncIntegration):
             install.sync_status_inbound(issue_key, {"changelog": changelog, "issue": data["issue"]})
 
 

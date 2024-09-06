@@ -109,6 +109,7 @@ GETTING_STARTED_DOCS_PLATFORMS = [
     "javascript-solidstart",
     "javascript-svelte",
     "javascript-sveltekit",
+    "javascript-nuxt",
     "javascript-vue",
     "kotlin",
     "minidump",

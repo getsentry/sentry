@@ -29,6 +29,7 @@ import {ToolRibbon} from 'sentry/views/insights/common/components/ribbon';
 import {useSpanMetrics} from 'sentry/views/insights/common/queries/useDiscover';
 import {useModuleBreadcrumbs} from 'sentry/views/insights/common/utils/useModuleBreadcrumbs';
 import {useModuleURL} from 'sentry/views/insights/common/utils/useModuleURL';
+import SubregionSelector from 'sentry/views/insights/common/views/spans/selectors/subregionSelector';
 import {SampleList} from 'sentry/views/insights/common/views/spanSummaryPage/sampleList';
 import {ModuleName, SpanMetricsField} from 'sentry/views/insights/types';
 import {TraceViewSources} from 'sentry/views/performance/newTraceDetails/traceMetadataHeader';
@@ -51,10 +52,15 @@ function ResourceSummary() {
   const {
     query: {transaction},
   } = useLocation();
-  const {data, isLoading} = useSpanMetrics(
+  const {data, isPending} = useSpanMetrics(
     {
       search: MutableSearch.fromQueryObject({
         'span.group': groupId,
+        ...(filters[SpanMetricsField.USER_GEO_SUBREGION]
+          ? {
+              [SpanMetricsField.USER_GEO_SUBREGION]: `[${filters[SpanMetricsField.USER_GEO_SUBREGION].join(',')}]`,
+            }
+          : {}),
       }),
       fields: [
         `avg(${SPAN_SELF_TIME})`,
@@ -123,9 +129,10 @@ function ResourceSummary() {
                   <RenderBlockingSelector
                     value={filters[RESOURCE_RENDER_BLOCKING_STATUS] || ''}
                   />
+                  <SubregionSelector />
                 </ToolRibbon>
                 <ResourceInfo
-                  isLoading={isLoading}
+                  isLoading={isPending}
                   avgContentLength={spanMetrics[`avg(${HTTP_RESPONSE_CONTENT_LENGTH})`]}
                   avgDecodedContentLength={
                     spanMetrics[`avg(${HTTP_DECODED_RESPONSE_CONTENT_LENGTH})`]
@@ -154,6 +161,7 @@ function ResourceSummary() {
             <ModuleLayout.Full>
               <SampleList
                 transactionRoute={webVitalsModuleURL}
+                subregions={filters[SpanMetricsField.USER_GEO_SUBREGION]}
                 groupId={groupId}
                 moduleName={ModuleName.RESOURCE}
                 transactionName={transaction as string}

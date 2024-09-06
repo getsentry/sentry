@@ -353,8 +353,8 @@ describe('SearchQueryBuilder', function () {
           url: '/organizations/org-slug/recent-searches/',
           body: [
             {query: 'assigned:me'},
-            {query: 'assigned:me browser:firefox'},
-            {query: 'assigned:me browser:firefox is:unresolved'},
+            {query: 'assigned:me browser.name:firefox'},
+            {query: 'assigned:me browser.name:firefox is:unresolved'},
           ],
         });
       });
@@ -396,9 +396,34 @@ describe('SearchQueryBuilder', function () {
         expect(recentFilterKeys[1]).toHaveTextContent('is');
       });
 
-      it('can navigate between filters with arrow keys', async function () {
+      it('does not display recent filters that are not valid filter keys', async function () {
+        MockApiClient.addMockResponse({
+          url: '/organizations/org-slug/recent-searches/',
+          body: [
+            // Level is not a valid filter key
+            {query: 'assigned:me level:error'},
+          ],
+        });
+
         render(
           <SearchQueryBuilder {...defaultProps} recentSearches={SavedSearchType.ISSUE} />
+        );
+
+        await userEvent.click(getLastInput());
+
+        // Should not show "level" in the recent filter keys
+        const recentFilterKeys = await screen.findAllByTestId('recent-filter-key');
+        expect(recentFilterKeys).toHaveLength(1);
+        expect(recentFilterKeys[0]).toHaveTextContent('assigned');
+      });
+
+      it('can navigate up/down from recent filter gutter to other search keys', async function () {
+        render(
+          <SearchQueryBuilder
+            {...defaultProps}
+            recentSearches={SavedSearchType.ISSUE}
+            initialQuery="is:unresolved"
+          />
         );
 
         await userEvent.click(getLastInput());
@@ -440,6 +465,71 @@ describe('SearchQueryBuilder', function () {
             recentFilterKeys[0].id
           );
         });
+      });
+    });
+
+    describe('recent searches', function () {
+      beforeEach(() => {
+        MockApiClient.addMockResponse({
+          url: '/organizations/org-slug/recent-searches/',
+          body: [{query: 'assigned:me'}, {query: 'some recent query'}],
+        });
+      });
+
+      it('displays recent search queries when query is empty', async function () {
+        render(
+          <SearchQueryBuilder
+            {...defaultProps}
+            recentSearches={SavedSearchType.ISSUE}
+            initialQuery=""
+          />
+        );
+
+        await userEvent.click(getLastInput());
+
+        // Should have a "Recent" category
+        expect(await screen.findByRole('button', {name: 'Recent'})).toBeInTheDocument();
+        expect(screen.getByRole('option', {name: 'assigned:me'})).toBeInTheDocument();
+        expect(
+          screen.getByRole('option', {name: 'some recent query'})
+        ).toBeInTheDocument();
+      });
+
+      it('when selecting a recent search, should reset query and call onSearch', async function () {
+        const mockOnSearch = jest.fn();
+        const mockCreateRecentSearch = MockApiClient.addMockResponse({
+          url: '/organizations/org-slug/recent-searches/',
+          method: 'POST',
+        });
+
+        render(
+          <SearchQueryBuilder
+            {...defaultProps}
+            recentSearches={SavedSearchType.ISSUE}
+            initialQuery=""
+            onSearch={mockOnSearch}
+          />
+        );
+
+        await userEvent.click(getLastInput());
+
+        await userEvent.click(await screen.findByRole('option', {name: 'assigned:me'}));
+        await waitFor(() => {
+          expect(mockOnSearch).toHaveBeenCalledWith('assigned:me', expect.anything());
+        });
+
+        // Focus should be at the end of the query
+        await waitFor(() => {
+          expect(getLastInput()).toHaveFocus();
+        });
+
+        // Should call the endpoint to add this as a recent search
+        expect(mockCreateRecentSearch).toHaveBeenCalledWith(
+          expect.anything(),
+          expect.objectContaining({
+            data: {query: 'assigned:me', type: SavedSearchType.ISSUE},
+          })
+        );
       });
     });
   });
@@ -1434,6 +1524,55 @@ describe('SearchQueryBuilder', function () {
         expect(screen.getByRole('combobox', {name: 'Edit filter value'})).toHaveFocus();
       });
 
+      it('keeps focus inside value when multi-selecting with ctrl+enter', async function () {
+        render(
+          <SearchQueryBuilder {...defaultProps} initialQuery="browser.name:firefox" />
+        );
+
+        await userEvent.click(
+          screen.getByRole('button', {name: 'Edit value for filter: browser.name'})
+        );
+
+        // Arrow down two places to "Chrome" option
+        await userEvent.keyboard('{ArrowDown}{ArrowDown}');
+        // Pressing ctrl+enter should toggle the option and keep focus inside the input
+        await userEvent.keyboard('{Control>}{Enter}');
+        expect(
+          await screen.findByRole('row', {name: 'browser.name:[firefox,Chrome]'})
+        ).toBeInTheDocument();
+        await waitFor(() => {
+          expect(screen.getByRole('combobox', {name: 'Edit filter value'})).toHaveValue(
+            'firefox,Chrome,'
+          );
+        });
+        expect(screen.getByRole('combobox', {name: 'Edit filter value'})).toHaveFocus();
+      });
+
+      it('keeps focus inside value when multi-selecting with ctrl+click', async function () {
+        render(
+          <SearchQueryBuilder {...defaultProps} initialQuery="browser.name:firefox" />
+        );
+
+        const user = userEvent.setup();
+
+        await user.click(
+          screen.getByRole('button', {name: 'Edit value for filter: browser.name'})
+        );
+
+        // Clicking option while holding Ctrl should toggle the option and keep focus inside the input
+        await user.keyboard('{Control>}');
+        await user.click(screen.getByRole('option', {name: 'Chrome'}));
+        expect(
+          await screen.findByRole('row', {name: 'browser.name:[firefox,Chrome]'})
+        ).toBeInTheDocument();
+        await waitFor(() => {
+          expect(screen.getByRole('combobox', {name: 'Edit filter value'})).toHaveValue(
+            'firefox,Chrome,'
+          );
+        });
+        expect(screen.getByRole('combobox', {name: 'Edit filter value'})).toHaveFocus();
+      });
+
       it('collapses many selected options', function () {
         render(
           <SearchQueryBuilder
@@ -2143,6 +2282,11 @@ describe('SearchQueryBuilder', function () {
           name: 'count_if',
           kind: FieldKind.FUNCTION,
         },
+        p95: {
+          key: 'p95',
+          name: 'p95',
+          kind: FieldKind.FUNCTION,
+        },
         'transaction.duration': {
           key: 'transaction.duration',
           name: 'transaction.duration',
@@ -2200,6 +2344,32 @@ describe('SearchQueryBuilder', function () {
                   dataType: FieldValueType.STRING,
                   defaultValue: '300ms',
                   required: false,
+                },
+              ],
+            };
+          case 'p95':
+            return {
+              desc: 'Returns results with the 95th percentile of the selected column.',
+              kind: FieldKind.FUNCTION,
+              defaultValue: '300ms',
+              valueType: null,
+              parameterDependentValueType: parameters => {
+                const column = parameters[0];
+                const fieldDef = column ? getFieldDefinition(column) : null;
+                return fieldDef?.valueType ?? FieldValueType.NUMBER;
+              },
+              parameters: [
+                {
+                  name: 'column',
+                  kind: 'column' as const,
+                  columnTypes: [
+                    FieldValueType.DURATION,
+                    FieldValueType.NUMBER,
+                    FieldValueType.INTEGER,
+                    FieldValueType.PERCENTAGE,
+                  ],
+                  defaultValue: 'transaction.duration',
+                  required: true,
                 },
               ],
             };
@@ -2304,6 +2474,31 @@ describe('SearchQueryBuilder', function () {
         expect(
           await screen.findByRole('row', {
             name: 'count_if(a,b,c):>100',
+          })
+        ).toBeInTheDocument();
+      });
+
+      it('automatically changes the filter value if the type changes after editing parameters', async function () {
+        render(
+          <SearchQueryBuilder
+            {...aggregateDefaultProps}
+            initialQuery="p95(transaction.duration):>10ms"
+          />
+        );
+        await userEvent.click(
+          screen.getByRole('button', {name: 'Edit parameters for filter: p95'})
+        );
+        const input = await screen.findByRole('combobox', {
+          name: 'Edit function parameters',
+        });
+
+        await userEvent.clear(input);
+        await userEvent.keyboard('timesSeen{enter}');
+
+        // After selecting timesSeen, the value should change to a number
+        expect(
+          await screen.findByRole('row', {
+            name: 'p95(timesSeen):>100',
           })
         ).toBeInTheDocument();
       });

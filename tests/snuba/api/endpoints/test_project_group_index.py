@@ -25,7 +25,6 @@ from sentry.models.groupshare import GroupShare
 from sentry.models.groupsnooze import GroupSnooze
 from sentry.models.groupsubscription import GroupSubscription
 from sentry.models.grouptombstone import GroupTombstone
-from sentry.models.options.user_option import UserOption
 from sentry.models.release import Release
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase, SnubaTestCase
@@ -33,6 +32,7 @@ from sentry.testutils.helpers import parse_link_header, with_feature
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.types.activity import ActivityType
+from sentry.users.models.user_option import UserOption
 from sentry.utils import json
 
 
@@ -351,6 +351,41 @@ class GroupListTest(APITestCase, SnubaTestCase):
         response = self.client.get(f"{self.path}?query=!is:unresolved", format="json")
         assert response.status_code == 200
         assert [int(r["id"]) for r in response.data] == [event.group.id]
+
+    def test_single_group_by_hash(self):
+        event = self.store_event(
+            data={"timestamp": iso_format(before_now(seconds=500)), "fingerprint": ["group-1"]},
+            project_id=self.project.id,
+        )
+
+        self.login_as(user=self.user)
+
+        response = self.client.get(f"{self.path}?hashes={event.get_primary_hash()}")
+        assert response.status_code == 200
+        assert len(response.data) == 1
+        assert int(response.data[0]["id"]) == event.group.id
+
+    def test_multiple_groups_by_hashes(self):
+        event = self.store_event(
+            data={"timestamp": iso_format(before_now(seconds=500)), "fingerprint": ["group-1"]},
+            project_id=self.project.id,
+        )
+
+        event2 = self.store_event(
+            data={"timestamp": iso_format(before_now(seconds=400)), "fingerprint": ["group-2"]},
+            project_id=self.project.id,
+        )
+        self.login_as(user=self.user)
+
+        response = self.client.get(
+            f"{self.path}?hashes={event.get_primary_hash()}&hashes={event2.get_primary_hash()}"
+        )
+        assert response.status_code == 200
+        assert len(response.data) == 2
+
+        response_group_ids = [int(group["id"]) for group in response.data]
+        assert event.group.id in response_group_ids
+        assert event2.group.id in response_group_ids
 
 
 class GroupUpdateTest(APITestCase, SnubaTestCase):

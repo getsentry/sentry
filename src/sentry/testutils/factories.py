@@ -83,7 +83,6 @@ from sentry.models.artifactbundle import ArtifactBundle
 from sentry.models.authidentity import AuthIdentity
 from sentry.models.authprovider import AuthProvider
 from sentry.models.avatars.sentry_app_avatar import SentryAppAvatar
-from sentry.models.avatars.user_avatar import UserAvatar
 from sentry.models.commit import Commit
 from sentry.models.commitauthor import CommitAuthor
 from sentry.models.commitfilechange import CommitFileChange
@@ -102,7 +101,6 @@ from sentry.models.group import Group
 from sentry.models.grouphistory import GroupHistory
 from sentry.models.grouplink import GroupLink
 from sentry.models.grouprelease import GroupRelease
-from sentry.models.identity import Identity, IdentityProvider, IdentityStatus
 from sentry.models.integrations.sentry_app import SentryApp
 from sentry.models.integrations.sentry_app_installation import SentryAppInstallation
 from sentry.models.integrations.sentry_app_installation_for_provider import (
@@ -115,7 +113,6 @@ from sentry.models.notificationaction import (
     NotificationAction,
 )
 from sentry.models.notificationsettingprovider import NotificationSettingProvider
-from sentry.models.options.user_option import UserOption
 from sentry.models.organization import Organization
 from sentry.models.organizationmapping import OrganizationMapping
 from sentry.models.organizationmember import OrganizationMember
@@ -127,7 +124,7 @@ from sentry.models.project import Project
 from sentry.models.projectbookmark import ProjectBookmark
 from sentry.models.projectcodeowners import ProjectCodeOwners
 from sentry.models.projecttemplate import ProjectTemplate
-from sentry.models.release import Release
+from sentry.models.release import Release, ReleaseStatus
 from sentry.models.releasecommit import ReleaseCommit
 from sentry.models.releaseenvironment import ReleaseEnvironment
 from sentry.models.releasefile import ReleaseFile, update_artifact_index
@@ -138,8 +135,6 @@ from sentry.models.rulesnooze import RuleSnooze
 from sentry.models.savedsearch import SavedSearch
 from sentry.models.servicehook import ServiceHook
 from sentry.models.team import Team
-from sentry.models.useremail import UserEmail
-from sentry.models.userpermission import UserPermission
 from sentry.models.userreport import UserReport
 from sentry.organizations.services.organization import RpcOrganization, RpcUserOrganizationContext
 from sentry.sentry_apps.apps import SentryAppCreator
@@ -149,7 +144,6 @@ from sentry.sentry_apps.installations import (
 )
 from sentry.sentry_apps.services.app.serial import serialize_sentry_app_installation
 from sentry.sentry_apps.services.hook import hook_service
-from sentry.sentry_metrics.models import SpanAttributeExtractionRuleConfig
 from sentry.signals import project_created
 from sentry.silo.base import SiloMode
 from sentry.snuba.dataset import Dataset
@@ -166,7 +160,12 @@ from sentry.uptime.models import (
     UptimeStatus,
     UptimeSubscription,
 )
+from sentry.users.models.identity import Identity, IdentityProvider, IdentityStatus
 from sentry.users.models.user import User
+from sentry.users.models.user_avatar import UserAvatar
+from sentry.users.models.user_option import UserOption
+from sentry.users.models.useremail import UserEmail
+from sentry.users.models.userpermission import UserPermission
 from sentry.users.models.userrole import UserRole
 from sentry.users.services.user import RpcUser
 from sentry.utils import loremipsum
@@ -606,6 +605,7 @@ class Factories:
         date_released: datetime | None = None,
         adopted: datetime | None = None,
         unadopted: datetime | None = None,
+        status: int | None = ReleaseStatus.OPEN,
     ):
         if version is None:
             version = force_str(hexlify(os.urandom(20)))
@@ -621,6 +621,7 @@ class Factories:
             organization_id=project.organization_id,
             date_added=date_added,
             date_released=date_released,
+            status=status,
         )
 
         release.add_project(project)
@@ -1218,13 +1219,6 @@ class Factories:
             provider=provider,
             sentry_app_installation=installation,
         )
-
-    @staticmethod
-    @assume_test_silo_mode(SiloMode.REGION)
-    def create_span_attribute_extraction_config(
-        dictionary: dict[str, Any], user_id: int, project: Project
-    ) -> SpanAttributeExtractionRuleConfig:
-        return SpanAttributeExtractionRuleConfig.from_dict(dictionary, user_id, project)
 
     @staticmethod
     @assume_test_silo_mode(SiloMode.CONTROL)

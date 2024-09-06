@@ -16,11 +16,12 @@ export default function useCountDomNodes({
 }: {
   replay: null | ReplayReader;
 }): UseQueryResult<Map<RecordingFrame, DomNodeChartDatapoint>> {
-  return useQuery(
-    ['countDomNodes', replay],
-    () => {
+  return useQuery({
+    queryKey: ['countDomNodes', replay],
+    queryFn: () => {
       return replay?.getCountDomNodes();
     },
-    {enabled: Boolean(replay), cacheTime: Infinity}
-  );
+    enabled: Boolean(replay),
+    cacheTime: Infinity,
+  });
 }

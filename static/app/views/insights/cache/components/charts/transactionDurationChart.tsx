@@ -39,7 +39,7 @@ export function TransactionDurationChart({
     transaction,
   };
 
-  const {data, isLoading} = useMetricsSeries(
+  const {data, isPending} = useMetricsSeries(
     {
       yAxis: ['avg(transaction.duration)'],
       search: MutableSearch.fromQueryObject(search),
@@ -101,7 +101,7 @@ export function TransactionDurationChart({
           baselineAvgSeries,
         ]}
         aggregateOutputFormat="duration"
-        loading={isLoading}
+        loading={isPending}
         onHighlight={handleChartHighlight}
         chartColors={[AVG_COLOR]}
         type={ChartType.LINE}

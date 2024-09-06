@@ -28,6 +28,7 @@ export enum SpanMetricsField {
   SPAN_GROUP = 'span.group',
   SPAN_DURATION = 'span.duration',
   SPAN_SELF_TIME = 'span.self_time',
+  SPAN_SYSTEM = 'span.system',
   PROJECT = 'project',
   PROJECT_ID = 'project.id',
   TRANSACTION = 'transaction',
@@ -56,6 +57,7 @@ export enum SpanMetricsField {
   URL_FULL = 'url.full',
   USER_AGENT_ORIGINAL = 'user_agent.original',
   CLIENT_ADDRESS = 'client.address',
+  BROWSER_NAME = 'browser.name',
   USER_GEO_SUBREGION = 'user.geo.subregion',
 }
 
@@ -77,6 +79,7 @@ export type SpanStringFields =
   | 'span.action'
   | 'span.group'
   | 'span.category'
+  | 'span.system'
   | 'transaction'
   | 'transaction.method'
   | 'release'
@@ -84,8 +87,7 @@ export type SpanStringFields =
   | 'span.status_code'
   | 'span.ai.pipeline.group'
   | 'project'
-  | 'messaging.destination.name'
-  | SpanMetricsField.USER_GEO_SUBREGION;
+  | 'messaging.destination.name';
 
 export type SpanMetricsQueryFilters = {
   [Field in SpanStringFields]?: string;
@@ -166,6 +168,8 @@ export type SpanMetricsResponse = {
     | `${Property}(${string})`
     | `${Property}(${string},${string})`
     | `${Property}(${string},${string},${string})`]: number;
+} & {
+  [SpanMetricsField.USER_GEO_SUBREGION]: SubregionCode;
 };
 
 export type MetricsFilters = {
@@ -367,3 +371,5 @@ export const subregionCodeToName = {
   '61': 'Polynesia',
   '53': 'Australia and New Zealand',
 };
+
+export type SubregionCode = keyof typeof subregionCodeToName;

@@ -8,7 +8,6 @@ from django.urls import reverse
 from sentry.auth.authenticators.recovery_code import RecoveryCodeInterface
 from sentry.auth.authenticators.totp import TotpInterface
 from sentry.models.authprovider import AuthProvider
-from sentry.models.options.user_option import UserOption
 from sentry.models.organization import Organization
 from sentry.models.organizationmember import InviteStatus, OrganizationMember
 from sentry.models.organizationmemberteam import OrganizationMemberTeam
@@ -21,6 +20,7 @@ from sentry.testutils.hybrid_cloud import HybridCloudTestMixin
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.users.models.authenticator import Authenticator
+from sentry.users.models.user_option import UserOption
 from tests.sentry.api.endpoints.test_organization_member_index import (
     mock_organization_roles_get_factory,
 )
@@ -662,6 +662,18 @@ class UpdateOrganizationMemberTest(OrganizationMemberTestBase, HybridCloudTestMi
 class DeleteOrganizationMemberTest(OrganizationMemberTestBase):
     method = "delete"
 
+    def setUp(self):
+        super().setUp()
+
+        self.curr_user = self.create_user("member@example.com")
+        self.curr_member = self.create_member(
+            organization=self.organization, role="member", user=self.curr_user
+        )
+        self.other_user = self.create_user("other@example.com")
+        self.other_member = self.create_member(
+            organization=self.organization, role="member", user=self.other_user
+        )
+
     def test_simple(self):
         member = self.create_user("bar@example.com")
         member_om = self.create_member(organization=self.organization, user=member, role="member")
@@ -819,6 +831,47 @@ class DeleteOrganizationMemberTest(OrganizationMemberTestBase):
         )
 
         self.get_error_response(self.organization.slug, member_om.id, status_code=403)
+
+    @with_feature("organizations:members-invite-teammates")
+    def test_member_delete_pending_invite(self):
+        curr_invite = self.create_member(
+            organization=self.organization,
+            user=None,
+            email="member_invite@example.com",
+            role="member",
+            inviter_id=self.curr_user.id,
+        )
+        other_invite = self.create_member(
+            organization=self.organization,
+            user=None,
+            email="other_invite@example.com",
+            role="member",
+            inviter_id=self.other_user.id,
+        )
+
+        self.login_as(self.curr_user)
+
+        self.organization.flags.disable_member_invite = True
+        self.organization.save()
+        self.get_error_response(self.organization.slug, curr_invite.id, status_code=400)
+        self.get_error_response(self.organization.slug, curr_invite.id, status_code=400)
+
+        self.organization.flags.disable_member_invite = False
+        self.organization.save()
+        self.get_success_response(self.organization.slug, curr_invite.id)
+        self.get_error_response(self.organization.slug, other_invite.id, status_code=400)
+
+    @with_feature("organizations:members-invite-teammates")
+    def test_member_cannot_delete_members(self):
+        self.login_as(self.curr_user)
+
+        self.organization.flags.disable_member_invite = True
+        self.organization.save()
+        self.get_error_response(self.organization.slug, self.other_member.id, status_code=400)
+
+        self.organization.flags.disable_member_invite = False
+        self.organization.save()
+        self.get_error_response(self.organization.slug, self.other_member.id, status_code=400)
 
     @override_settings(SENTRY_SELF_HOSTED=False)
     @override_options({"superuser.read-write.ga-rollout": True})

@@ -472,12 +472,6 @@ register(
     default=[],
     flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
 )
-# Produce feedback to the new ingest-feedback-events topic, rather than ingest-events
-register(
-    "feedback.ingest-topic.rollout-rate",
-    default=0.0,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
 
 
 # Extract spans only from a random fraction of transactions.
@@ -506,19 +500,9 @@ register("slack.client-secret", flags=FLAG_CREDENTIAL | FLAG_PRIORITIZE_DISK)
 # signing-secret is preferred, but need to keep verification-token for apps that use it
 register("slack.verification-token", flags=FLAG_CREDENTIAL | FLAG_PRIORITIZE_DISK)
 register("slack.signing-secret", flags=FLAG_CREDENTIAL | FLAG_PRIORITIZE_DISK)
-# Use Slack SDK in SlackEventEndpoint
-register(
-    "slack.event-endpoint-sdk",
-    default=False,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-# Integration Ids to LA for Using Slack SDK in SlackEventEndpoint
-register(
-    "slack.event-endpoint-sdk-integration-ids",
-    type=Sequence,
-    default=[],
-    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
-)
+
+# Discord
+register("discord.validate-user", default=False, flags=FLAG_AUTOMATOR_MODIFIABLE)
 
 # Codecov Integration
 register("codecov.client-secret", flags=FLAG_CREDENTIAL | FLAG_PRIORITIZE_DISK)
@@ -849,6 +833,12 @@ register(
     flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(
+    "seer.similarity.grouping_killswitch_projects",
+    default=[],
+    type=Sequence,
+    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
     "seer.severity-killswitch.enabled",
     default=False,
     type=Bool,
@@ -993,7 +983,6 @@ register(
 register(
     "store.load-shed-process-event-projects", type=Any, default=[], flags=FLAG_AUTOMATOR_MODIFIABLE
 )
-register("embeddings-grouping.use-embeddings", type=Sequence, default=[])
 register(
     "store.load-shed-process-event-projects-gradual",
     type=Dict,
@@ -1017,6 +1006,13 @@ register(
 register(
     "store.symbolicate-event-lpq-always", type=Sequence, default=[], flags=FLAG_AUTOMATOR_MODIFIABLE
 )
+
+# Rate at which to send eligible projects to LPQ symbolicators. This is
+# intended to test gradually phasing out the LPQ.
+register(
+    "store.symbolicate-event-lpq-rate", type=Float, default=1.0, flags=FLAG_AUTOMATOR_MODIFIABLE
+)
+
 register(
     "post_process.get-autoassign-owners", type=Sequence, default=[], flags=FLAG_AUTOMATOR_MODIFIABLE
 )
@@ -1027,7 +1023,7 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(
-    "issues.skip-seer-requests",
+    "issues.severity.skip-seer-requests",
     type=Sequence,
     default=[],
     flags=FLAG_AUTOMATOR_MODIFIABLE,
@@ -1481,36 +1477,6 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-# Enables extrapolation on the `transactions` namespace.
-register(
-    "sentry-metrics.extrapolation.enable_transactions",
-    default=False,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
-# Enables extrapolation on the `spans` namespace.
-register(
-    "sentry-metrics.extrapolation.enable_spans",
-    default=False,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
-# Maximum duplication factor for ingest-time extrapolation of distribution
-# values in Relay. Obsolete once `.propagate-rates` is the default.
-register(
-    "sentry-metrics.extrapolation.duplication-limit",
-    default=0,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
-# Send sample rates for metrics from Relay via the indexer into snuba rather
-# than extrapolating at ingest time.
-register(
-    "sentry-metrics.extrapolation.propagate-rates",
-    default=False,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
 # Performance issue option for *all* performance issues detection
 register("performance.issues.all.problem-detection", default=1.0, flags=FLAG_AUTOMATOR_MODIFIABLE)
 
@@ -1825,6 +1791,12 @@ register(
     type=Int,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
+register(
+    "insights.span-samples-query.sample-rate",
+    type=Float,
+    default=0.0,  # 0 acts as 'no sampling'
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
 
 register(
     "performance.spans-tags-key.sample-rate",
@@ -1908,6 +1880,10 @@ register("hybrid_cloud.disable_tombstone_cleanup", default=False, flags=FLAG_AUT
 # Flagpole Configuration (used in getsentry)
 register("flagpole.debounce_reporting_seconds", default=0, flags=FLAG_AUTOMATOR_MODIFIABLE)
 
+# Feature flagging error capture rate.
+# When feature flagging has faults, it can become very high volume and we can overwhelm sentry.
+register("features.error.capture_rate", default=0.1, flags=FLAG_AUTOMATOR_MODIFIABLE)
+
 # Retry controls
 register("hybridcloud.regionsiloclient.retries", default=5, flags=FLAG_AUTOMATOR_MODIFIABLE)
 register("hybridcloud.rpc.retries", default=5, flags=FLAG_AUTOMATOR_MODIFIABLE)
@@ -1928,8 +1904,6 @@ register("hybrid_cloud.rpc.disabled-service-methods", default=[], flags=FLAG_AUT
 
 # Decides whether an incoming transaction triggers an update of the clustering rule applied to it.
 register("txnames.bump-lifetime-sample-rate", default=0.1, flags=FLAG_AUTOMATOR_MODIFIABLE)
-# Decides whether an incoming span triggers an update of the clustering rule applied to it.
-register("span_descs.bump-lifetime-sample-rate", default=0.25, flags=FLAG_AUTOMATOR_MODIFIABLE)
 
 # === Nodestore related runtime options ===
 
@@ -2330,26 +2304,6 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-# org IDs for which we want to avoid using the unsampled profiles for function metrics.
-# This will let us selectively disable the behaviour for entire orgs that may have an
-# extremely high volume increase
-register(
-    "profiling.profile_metrics.unsampled_profiles.excluded_org_ids",
-    type=Sequence,
-    default=[],
-    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
-)
-
-# project IDs for which we want to avoid using the unsampled profiles for function metrics.
-# This will let us selectively disable the behaviour for project that may have an extremely
-# high volume increase
-register(
-    "profiling.profile_metrics.unsampled_profiles.excluded_project_ids",
-    type=Sequence,
-    default=[],
-    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
-)
-
 # list of platform names for which we allow using unsampled profiles for the purpose
 # of improving profile (function) metrics
 register(
@@ -2559,6 +2513,18 @@ register(
     flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+register(
+    "discover.saved-query-dataset-split.enable",
+    default=False,
+    flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "discover.saved-query-dataset-split.organization-id-allowlist",
+    type=Sequence,
+    default=[],
+    flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 # Options for setting LLM providers and usecases
 register("llm.provider.options", default={}, flags=FLAG_NOSTORE)
 # Example provider:
@@ -2705,12 +2671,18 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(
-    "similarity.delete_task_EA_rollout_percentage",
-    default=20,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-register(
     "delayed_processing.batch_size",
     default=10000,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+register(
+    "grouping.grouphash_metadata.ingestion_writes_enabled",
+    type=Bool,
+    default=True,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+register(
+    "ecosystem:enable_integration_form_error_raise", default=False, flags=FLAG_AUTOMATOR_MODIFIABLE
 )

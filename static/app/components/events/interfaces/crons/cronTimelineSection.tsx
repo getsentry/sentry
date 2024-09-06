@@ -3,7 +3,6 @@ import styled from '@emotion/styled';
 
 import {LinkButton} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
-import {EventDataSection} from 'sentry/components/events/eventDataSection';
 import {Overlay} from 'sentry/components/overlay';
 import Panel from 'sentry/components/panels/panel';
 import {IconOpen} from 'sentry/icons';
@@ -16,6 +15,8 @@ import type {Project} from 'sentry/types/project';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {useDimensions} from 'sentry/utils/useDimensions';
 import useRouter from 'sentry/utils/useRouter';
+import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
+import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
 import {ResolutionSelector} from 'sentry/views/monitors/components/overviewTimeline/resolutionSelector';
 import {CheckInPlaceholder} from 'sentry/views/monitors/components/timeline/checkInPlaceholder';
 import {CheckInTimeline} from 'sentry/views/monitors/components/timeline/checkInTimeline';
@@ -54,7 +55,7 @@ export function CronTimelineSection({event, organization, project}: Props) {
   const rollup = Math.floor((timeWindowConfig.elapsedMinutes * 60) / timelineWidth);
 
   const monitorStatsQueryKey = `/organizations/${organization.slug}/monitors-stats/`;
-  const {data: monitorStats, isLoading} = useApiQuery<Record<string, MonitorBucketData>>(
+  const {data: monitorStats, isPending} = useApiQuery<Record<string, MonitorBucketData>>(
     [
       monitorStatsQueryKey,
       {
@@ -97,9 +98,9 @@ export function CronTimelineSection({event, organization, project}: Props) {
   );
 
   return (
-    <EventDataSection
+    <InterimSection
       title={t('Check-ins')}
-      type="check-ins"
+      type={SectionKey.CRON_TIMELINE}
       help={t('A timeline of check-ins that happened before and after this event')}
       actions={actions}
     >
@@ -108,10 +109,10 @@ export function CronTimelineSection({event, organization, project}: Props) {
         <StyledGridLineTimeLabels timeWindowConfig={timeWindowConfig} />
         <GridLineOverlay
           timeWindowConfig={timeWindowConfig}
-          showCursor={!isLoading}
-          showIncidents={!isLoading}
+          showCursor={!isPending}
+          showIncidents={!isPending}
         />
-        {monitorStats && !isLoading ? (
+        {monitorStats && !isPending ? (
           <Fragment>
             <EventLineTick left={eventTickLeft} />
             <EventLineLabel left={eventTickLeft} timelineWidth={timelineWidth}>
@@ -129,7 +130,7 @@ export function CronTimelineSection({event, organization, project}: Props) {
           <CheckInPlaceholder />
         )}
       </TimelineContainer>
-    </EventDataSection>
+    </InterimSection>
   );
 }
 
@@ -162,7 +163,9 @@ const EventLineTick = styled('div')<{left: number}>`
   transform: translateX(-2px);
 `;
 
-const EventLineLabel = styled(Overlay)<{left: number; timelineWidth: number}>`
+const EventLineLabel = styled(Overlay, {
+  shouldForwardProp: prop => prop !== 'left' && prop !== 'timelineWidth',
+})<{left: number; timelineWidth: number}>`
   width: max-content;
   padding: ${space(0.75)} ${space(1)};
   color: ${p => p.theme.textColor};

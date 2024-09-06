@@ -12,7 +12,6 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases import OrganizationEventsV2EndpointBase
 from sentry.constants import MAX_TOP_EVENTS
-from sentry.middleware import is_frontend_request
 from sentry.models.dashboard_widget import DashboardWidget, DashboardWidgetTypes
 from sentry.models.organization import Organization
 from sentry.search.events.types import SnubaParams
@@ -23,6 +22,7 @@ from sentry.snuba import (
     metrics_enhanced_performance,
     metrics_performance,
     profile_functions_metrics,
+    spans_eap,
     spans_indexed,
     spans_metrics,
     transactions,
@@ -126,7 +126,7 @@ SENTRY_BACKEND_REFERRERS = [
 @region_silo_endpoint
 class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):
     publish_status = {
-        "GET": ApiPublishStatus.UNKNOWN,
+        "GET": ApiPublishStatus.EXPERIMENTAL,
     }
     sunba_methods = ["GET"]
 
@@ -182,7 +182,7 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):
         return has_data
 
     def get(self, request: Request, organization: Organization) -> Response:
-        query_source = QuerySource.FRONTEND if is_frontend_request(request) else QuerySource.API
+        query_source = self.get_request_source(request)
         with sentry_sdk.start_span(op="discover.endpoint", description="filter_params") as span:
             span.set_data("organization", organization)
 
@@ -254,6 +254,7 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):
                         profile_functions_metrics,
                         spans_indexed,
                         spans_metrics,
+                        spans_eap,
                         errors,
                         transactions,
                     ]
@@ -289,7 +290,6 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):
                     selected_columns=self.get_field_list(organization, request),
                     equations=self.get_equation_list(organization, request),
                     user_query=query,
-                    params={},
                     snuba_params=snuba_params,
                     orderby=self.get_orderby(request),
                     rollup=rollup,
@@ -307,7 +307,6 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):
             return scoped_dataset.timeseries_query(
                 selected_columns=query_columns,
                 query=query,
-                params={},
                 snuba_params=snuba_params,
                 rollup=rollup,
                 referrer=referrer,
