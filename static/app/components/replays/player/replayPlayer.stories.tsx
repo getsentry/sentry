@@ -9,8 +9,8 @@ import ReplayPlayPauseButton from 'sentry/components/replays/player/replayPlayPa
 import ReplayPreferenceDropdown from 'sentry/components/replays/preferences/replayPreferenceDropdown';
 import SideBySide from 'sentry/components/stories/sideBySide';
 import storyBook from 'sentry/stories/storyBook';
+import {useReplayPrefs} from 'sentry/utils/replays/playback/providers/replayPreferencesContext';
 import useReplayPlayerState from 'sentry/utils/replays/playback/providers/useReplayPlayerState';
-import useReplayPrefs from 'sentry/utils/replays/playback/providers/useReplayPrefs';
 
 export default storyBook(ReplayPlayer, story => {
   story('Default', () => {

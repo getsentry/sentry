@@ -8,11 +8,11 @@ import {
 } from 'sentry/components/replays/player/styles';
 import {useReplayPlayerEvents} from 'sentry/utils/replays/playback/providers/replayPlayerEventsContext';
 import {useReplayPlayerPlugins} from 'sentry/utils/replays/playback/providers/replayPlayerPluginsContext';
+import {useReplayPrefs} from 'sentry/utils/replays/playback/providers/replayPreferencesContext';
 import {
   useReplayPlayerStateDispatch,
   useReplayUserAction,
 } from 'sentry/utils/replays/playback/providers/useReplayPlayerState';
-import useReplayPrefs from 'sentry/utils/replays/playback/providers/useReplayPrefs';
 
 function useReplayerInstance() {
   // The div that is emitted from react, where we will attach the replayer to
