@@ -206,9 +206,10 @@ class MetricAlertDetails extends Component<Props, State> {
         rulePromise,
         organization.features.includes('anomaly-detection-alerts-charts')
           ? fetchAnomaliesForRule(organization.slug, ruleId, start, end)
-          : undefined,
+          : undefined, // NOTE: there's no way for us to determine the alert rule detection type here.
+        // proxy API will need to determine whether to fetch anomalies or not
       ]);
-      // NOTE: anomaly-detection-alerts-charts flag does not exist
+      // NOTE: 'anomaly-detection-alerts-charts' flag does not exist
       // Flag can be enabled IF we want to enable marked lines/areas for anomalies in the future
       // For now, we defer to incident lines as indicators for anomalies
       this.setState({
