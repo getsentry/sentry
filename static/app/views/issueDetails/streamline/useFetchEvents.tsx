@@ -61,7 +61,6 @@ export function useFetchEventStats({
 
   return useApiQuery<MultiSeriesEventsStats>(queryKey, {
     staleTime: 30000,
-    cacheTime: 30000,
     retry: false,
     ...options,
   });
