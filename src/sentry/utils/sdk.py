@@ -26,6 +26,7 @@ from sentry.conf.types.sdk_config import SdkConfig
 from sentry.features.rollout import in_random_rollout
 from sentry.utils import metrics
 from sentry.utils.db import DjangoAtomicIntegration
+from sentry.utils.flag import get_serialized_flags
 from sentry.utils.rust import RustInfoIntegration
 
 # Can't import models in utils because utils should be the bottom of the food chain
@@ -236,6 +237,12 @@ def before_send(event: Event, _: Hint) -> Event | None:
             event["tags"]["silo_mode"] = str(settings.SILO_MODE)
         if settings.SENTRY_REGION:
             event["tags"]["sentry_region"] = settings.SENTRY_REGION
+
+    if "contexts" in event:
+        event["contexts"]["flags"] = get_serialized_flags()
+    else:
+        event["contexts"] = {"flags": get_serialized_flags()}
+
     return event
 
 
