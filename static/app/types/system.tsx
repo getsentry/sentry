@@ -248,7 +248,7 @@ export interface Broadcast {
   title: string;
   /**
    * Category of the broadcast.
-   * Synced with https://github.com/getsentry/sentry/blob/923a65508912c3e181e1c70cbdf076b7b956aa90/src/sentry/models/broadcast.py#L14
+   * Synced with https://github.com/getsentry/sentry/blob/master/src/sentry/models/broadcast.py#L14
    */
   category?: 'announcement' | 'feature' | 'blog' | 'event' | 'video';
   /**
