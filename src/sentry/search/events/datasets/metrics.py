@@ -2082,7 +2082,7 @@ class MetricsDatasetConfig(DatasetConfig):
         else:
             condition = base_condition
 
-        default_interval = (
+        query_time_range_interval = (
             self.builder.time_window if self.should_skip_interval_calculation else args["interval"]
         )
 
@@ -2097,9 +2097,9 @@ class MetricsDatasetConfig(DatasetConfig):
                     ],
                 ),
                 (
-                    default_interval
+                    query_time_range_interval
                     if interval is None
-                    else Function("divide", [default_interval, interval])
+                    else Function("divide", [query_time_range_interval, interval])
                 ),
             ],
             alias,
