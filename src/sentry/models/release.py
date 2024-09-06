@@ -1,3 +1,4 @@
+# Sort commit list in reverse order
 from __future__ import annotations
 
 import itertools
@@ -17,6 +18,7 @@ from django.utils.translation import gettext_lazy as _
 from sentry_relay.exceptions import RelayError
 from sentry_relay.processing import parse_release
 
+from sentry import features
 from sentry.backup.scopes import RelocationScope
 from sentry.constants import BAD_RELEASE_CHARS, COMMIT_RANGE_DELIMITER, ObjectStatus
 from sentry.db.models import (
@@ -59,6 +61,12 @@ from sentry.utils.retries import TimedRetryPolicy
 from sentry.utils.strings import truncatechars
 
 logger = logging.getLogger(__name__)
+
+
+class _CommitDataKwargs(TypedDict, total=False):
+    author: CommitAuthor
+    message: str
+    date_added: str
 
 
 class ReleaseStatus:
@@ -177,12 +185,6 @@ class ReleaseModelManager(BaseManager["Release"]):
 
         # Convert the False back into a None.
         return release_version or None
-
-
-class _CommitDataKwargs(TypedDict, total=False):
-    author: CommitAuthor
-    message: str
-    date_added: str
 
 
 @region_silo_model
@@ -661,282 +663,293 @@ class Release(Model):
         commits.
         """
         sentry_sdk.set_measurement("release.set_commits", len(commit_list))
+        if features.has("organizations:set-commits-updated", self.organization):
+            from sentry.models.releases.set_commits import set_commits
 
-        # Sort commit list in reverse order
-        commit_list.sort(key=lambda commit: commit.get("timestamp", 0), reverse=True)
+            set_commits(self, commit_list)
+        else:
+            # old logic that will be deleted after we get rid of the feature flag
+            sentry_sdk.set_measurement("release.set_commits", len(commit_list))
 
-        # TODO(dcramer): this function could use some cleanup/refactoring as it's a bit unwieldy
-        from sentry.integrations.tasks.kick_off_status_syncs import kick_off_status_syncs
-        from sentry.models.commit import Commit
-        from sentry.models.group import Group, GroupStatus
-        from sentry.models.grouplink import GroupLink
-        from sentry.models.groupresolution import GroupResolution
-        from sentry.models.pullrequest import PullRequest
-        from sentry.models.releasecommit import ReleaseCommit
-        from sentry.models.releaseheadcommit import ReleaseHeadCommit
-        from sentry.models.repository import Repository
-        from sentry.plugins.providers.repository import RepositoryProvider
+            # Sort commit list in reverse order
+            commit_list.sort(key=lambda commit: commit.get("timestamp", 0), reverse=True)
 
-        # todo(meredith): implement for IntegrationRepositoryProvider
-        commit_list = [
-            c
-            for c in commit_list
-            if not RepositoryProvider.should_ignore_commit(c.get("message", ""))
-        ]
-        lock_key = type(self).get_lock_key(self.organization_id, self.id)
-        lock = locks.get(lock_key, duration=10, name="release_set_commits")
-        if lock.locked():
-            # Signal failure to the consumer rapidly. This aims to prevent the number
-            # of timeouts and prevent web worker exhaustion when customers create
-            # the same release rapidly for different projects.
-            raise ReleaseCommitError
-        with TimedRetryPolicy(10)(lock.acquire):
-            start = time()
-            with (
-                atomic_transaction(using=router.db_for_write(type(self))),
-                in_test_hide_transaction_boundary(),
-            ):
-                # TODO(dcramer): would be good to optimize the logic to avoid these
-                # deletes but not overly important
-                ReleaseCommit.objects.filter(release=self).delete()
+            # TODO(dcramer): this function could use some cleanup/refactoring as it's a bit unwieldy
+            from sentry.integrations.tasks.kick_off_status_syncs import kick_off_status_syncs
+            from sentry.models.commit import Commit
+            from sentry.models.group import Group, GroupStatus
+            from sentry.models.grouplink import GroupLink
+            from sentry.models.groupresolution import GroupResolution
+            from sentry.models.pullrequest import PullRequest
+            from sentry.models.releasecommit import ReleaseCommit
+            from sentry.models.releaseheadcommit import ReleaseHeadCommit
+            from sentry.models.repository import Repository
+            from sentry.plugins.providers.repository import RepositoryProvider
 
-                authors = {}
-                repos = {}
-                commit_author_by_commit = {}
-                head_commit_by_repo: dict[int, int] = {}
-                latest_commit = None
-                for idx, data in enumerate(commit_list):
-                    repo_name = data.get("repository") or f"organization-{self.organization_id}"
-                    if repo_name not in repos:
-                        repo = (
-                            Repository.objects.filter(
-                                organization_id=self.organization_id,
-                                name=repo_name,
-                                status=ObjectStatus.ACTIVE,
-                            )
-                            .order_by("-pk")
-                            .first()
-                        )
+            # todo(meredith): implement for IntegrationRepositoryProvider
+            commit_list = [
+                c
+                for c in commit_list
+                if not RepositoryProvider.should_ignore_commit(c.get("message", ""))
+            ]
+            lock_key = type(self).get_lock_key(self.organization_id, self.id)
+            lock = locks.get(lock_key, duration=10, name="release_set_commits")
+            if lock.locked():
+                # Signal failure to the consumer rapidly. This aims to prevent the number
+                # of timeouts and prevent web worker exhaustion when customers create
+                # the same release rapidly for different projects.
+                raise ReleaseCommitError
+            with TimedRetryPolicy(10)(lock.acquire):
+                start = time()
+                with (
+                    atomic_transaction(using=router.db_for_write(type(self))),
+                    in_test_hide_transaction_boundary(),
+                ):
+                    # TODO(dcramer): would be good to optimize the logic to avoid these
+                    # deletes but not overly important
+                    ReleaseCommit.objects.filter(release=self).delete()
 
-                        if repo is None:
-                            repo = Repository.objects.create(
-                                organization_id=self.organization_id,
-                                name=repo_name,
-                            )
-
-                        repos[repo_name] = repo
-                    else:
-                        repo = repos[repo_name]
-
-                    author_email = data.get("author_email")
-                    if author_email is None and data.get("author_name"):
-                        author_email = (
-                            re.sub(r"[^a-zA-Z0-9\-_\.]*", "", data["author_name"]).lower()
-                            + "@localhost"
-                        )
-
-                    author_email = truncatechars(author_email, 75)
-
-                    if not author_email:
-                        author = None
-                    elif author_email not in authors:
-                        author_data = {"name": data.get("author_name")}
-                        author, created = CommitAuthor.objects.get_or_create(
-                            organization_id=self.organization_id,
-                            email=author_email,
-                            defaults=author_data,
-                        )
-                        if author.name != author_data["name"]:
-                            author.update(name=author_data["name"])
-                        authors[author_email] = author
-                    else:
-                        author = authors[author_email]
-
-                    commit_data: _CommitDataKwargs = {}
-
-                    # Update/set message and author if they are provided.
-                    if author is not None:
-                        commit_data["author"] = author
-                    if "message" in data:
-                        commit_data["message"] = data["message"]
-                    if "timestamp" in data:
-                        commit_data["date_added"] = data["timestamp"]
-
-                    commit, created = Commit.objects.get_or_create(
-                        organization_id=self.organization_id,
-                        repository_id=repo.id,
-                        key=data["id"],
-                        defaults=commit_data,
-                    )
-                    if not created and any(
-                        getattr(commit, key) != value for key, value in commit_data.items()
-                    ):
-                        commit.update(**commit_data)
-
-                    if author is None:
-                        author = commit.author
-
-                    commit_author_by_commit[commit.id] = author
-
-                    # Guard against patch_set being None
-                    patch_set = data.get("patch_set") or []
-                    if patch_set:
-                        CommitFileChange.objects.bulk_create(
-                            [
-                                CommitFileChange(
-                                    organization_id=self.organization.id,
-                                    commit=commit,
-                                    filename=patched_file["path"],
-                                    type=patched_file["type"],
+                    authors = {}
+                    repos = {}
+                    commit_author_by_commit = {}
+                    head_commit_by_repo: dict[int, int] = {}
+                    latest_commit = None
+                    for idx, data in enumerate(commit_list):
+                        repo_name = data.get("repository") or f"organization-{self.organization_id}"
+                        if repo_name not in repos:
+                            repo = (
+                                Repository.objects.filter(
+                                    organization_id=self.organization_id,
+                                    name=repo_name,
+                                    status=ObjectStatus.ACTIVE,
                                 )
-                                for patched_file in patch_set
-                            ],
-                            ignore_conflicts=True,
-                            batch_size=100,
-                        )
-
-                    try:
-                        with atomic_transaction(using=router.db_for_write(ReleaseCommit)):
-                            ReleaseCommit.objects.create(
-                                organization_id=self.organization_id,
-                                release=self,
-                                commit=commit,
-                                order=idx,
+                                .order_by("-pk")
+                                .first()
                             )
-                    except IntegrityError:
-                        pass
 
-                    if latest_commit is None:
-                        latest_commit = commit
+                            if repo is None:
+                                repo = Repository.objects.create(
+                                    organization_id=self.organization_id,
+                                    name=repo_name,
+                                )
 
-                    head_commit_by_repo.setdefault(repo.id, commit.id)
+                            repos[repo_name] = repo
+                        else:
+                            repo = repos[repo_name]
 
-                self.update(
-                    commit_count=len(commit_list),
-                    authors=[
-                        str(a_id)
-                        for a_id in ReleaseCommit.objects.filter(
-                            release=self, commit__author_id__isnull=False
+                        author_email = data.get("author_email")
+                        if author_email is None and data.get("author_name"):
+                            author_email = (
+                                re.sub(r"[^a-zA-Z0-9\-_\.]*", "", data["author_name"]).lower()
+                                + "@localhost"
+                            )
+
+                        author_email = truncatechars(author_email, 75)
+
+                        if not author_email:
+                            author = None
+                        elif author_email not in authors:
+                            author_data = {"name": data.get("author_name")}
+                            author, created = CommitAuthor.objects.get_or_create(
+                                organization_id=self.organization_id,
+                                email=author_email,
+                                defaults=author_data,
+                            )
+                            if author.name != author_data["name"]:
+                                author.update(name=author_data["name"])
+                            authors[author_email] = author
+                        else:
+                            author = authors[author_email]
+
+                        commit_data: _CommitDataKwargs = {}
+
+                        # Update/set message and author if they are provided.
+                        if author is not None:
+                            commit_data["author"] = author
+                        if "message" in data:
+                            commit_data["message"] = data["message"]
+                        if "timestamp" in data:
+                            commit_data["date_added"] = data["timestamp"]
+
+                        commit, created = Commit.objects.get_or_create(
+                            organization_id=self.organization_id,
+                            repository_id=repo.id,
+                            key=data["id"],
+                            defaults=commit_data,
                         )
-                        .values_list("commit__author_id", flat=True)
-                        .distinct()
-                    ],
-                    last_commit_id=latest_commit.id if latest_commit else None,
-                )
-                metrics.timing("release.set_commits.duration", time() - start, sample_rate=1.0)
+                        if not created and any(
+                            getattr(commit, key) != value for key, value in commit_data.items()
+                        ):
+                            commit.update(**commit_data)
 
-        # fill any missing ReleaseHeadCommit entries
-        for repo_id, commit_id in head_commit_by_repo.items():
-            try:
-                with atomic_transaction(using=router.db_for_write(ReleaseHeadCommit)):
-                    ReleaseHeadCommit.objects.create(
-                        organization_id=self.organization_id,
-                        release_id=self.id,
-                        repository_id=repo_id,
-                        commit_id=commit_id,
+                        if author is None:
+                            author = commit.author
+
+                        commit_author_by_commit[commit.id] = author
+
+                        # Guard against patch_set being None
+                        patch_set = data.get("patch_set") or []
+                        if patch_set:
+                            CommitFileChange.objects.bulk_create(
+                                [
+                                    CommitFileChange(
+                                        organization_id=self.organization.id,
+                                        commit=commit,
+                                        filename=patched_file["path"],
+                                        type=patched_file["type"],
+                                    )
+                                    for patched_file in patch_set
+                                ],
+                                ignore_conflicts=True,
+                                batch_size=100,
+                            )
+
+                        try:
+                            with atomic_transaction(using=router.db_for_write(ReleaseCommit)):
+                                ReleaseCommit.objects.create(
+                                    organization_id=self.organization_id,
+                                    release=self,
+                                    commit=commit,
+                                    order=idx,
+                                )
+                        except IntegrityError:
+                            pass
+
+                        if latest_commit is None:
+                            latest_commit = commit
+
+                        head_commit_by_repo.setdefault(repo.id, commit.id)
+
+                    self.update(
+                        commit_count=len(commit_list),
+                        authors=[
+                            str(a_id)
+                            for a_id in ReleaseCommit.objects.filter(
+                                release=self, commit__author_id__isnull=False
+                            )
+                            .values_list("commit__author_id", flat=True)
+                            .distinct()
+                        ],
+                        last_commit_id=latest_commit.id if latest_commit else None,
                     )
-            except IntegrityError:
-                pass
+                    metrics.timing("release.set_commits.duration", time() - start, sample_rate=1.0)
 
-        release_commits = list(
-            ReleaseCommit.objects.filter(release=self)
-            .select_related("commit")
-            .values("commit_id", "commit__key")
-        )
-
-        commit_resolutions = list(
-            GroupLink.objects.filter(
-                linked_type=GroupLink.LinkedType.commit,
-                linked_id__in=[rc["commit_id"] for rc in release_commits],
-            ).values_list("group_id", "linked_id")
-        )
-
-        commit_group_authors = [
-            (cr[0], commit_author_by_commit.get(cr[1])) for cr in commit_resolutions  # group_id
-        ]
-
-        pr_ids_by_merge_commit = list(
-            PullRequest.objects.filter(
-                merge_commit_sha__in=[rc["commit__key"] for rc in release_commits],
-                organization_id=self.organization_id,
-            ).values_list("id", flat=True)
-        )
-
-        pull_request_resolutions = list(
-            GroupLink.objects.filter(
-                relationship=GroupLink.Relationship.resolves,
-                linked_type=GroupLink.LinkedType.pull_request,
-                linked_id__in=pr_ids_by_merge_commit,
-            ).values_list("group_id", "linked_id")
-        )
-
-        pr_authors = list(
-            PullRequest.objects.filter(
-                id__in=[prr[1] for prr in pull_request_resolutions]
-            ).select_related("author")
-        )
-
-        pr_authors_dict = {pra.id: pra.author for pra in pr_authors}
-
-        pull_request_group_authors = [
-            (prr[0], pr_authors_dict.get(prr[1])) for prr in pull_request_resolutions
-        ]
-
-        user_by_author: dict[CommitAuthor | None, RpcUser | None] = {None: None}
-
-        commits_and_prs = list(itertools.chain(commit_group_authors, pull_request_group_authors))
-
-        group_project_lookup = dict(
-            Group.objects.filter(id__in=[group_id for group_id, _ in commits_and_prs]).values_list(
-                "id", "project_id"
-            )
-        )
-
-        for group_id, author in commits_and_prs:
-            if author is not None and author not in user_by_author:
+            # fill any missing ReleaseHeadCommit entries
+            for repo_id, commit_id in head_commit_by_repo.items():
                 try:
-                    user_by_author[author] = author.find_users()[0]
-                except IndexError:
-                    user_by_author[author] = None
-            actor = user_by_author[author]
+                    with atomic_transaction(using=router.db_for_write(ReleaseHeadCommit)):
+                        ReleaseHeadCommit.objects.create(
+                            organization_id=self.organization_id,
+                            release_id=self.id,
+                            repository_id=repo_id,
+                            commit_id=commit_id,
+                        )
+                except IntegrityError:
+                    pass
 
-            with atomic_transaction(
-                using=(
-                    router.db_for_write(GroupResolution),
-                    router.db_for_write(Group),
-                    # inside the remove_group_from_inbox
-                    router.db_for_write(GroupInbox),
-                    router.db_for_write(Activity),
-                )
-            ):
-                GroupResolution.objects.create_or_update(
-                    group_id=group_id,
-                    values={
-                        "release": self,
-                        "type": GroupResolution.Type.in_release,
-                        "status": GroupResolution.Status.resolved,
-                        "actor_id": actor.id if actor is not None else None,
-                    },
-                )
-                group = Group.objects.get(id=group_id)
-                group.update(status=GroupStatus.RESOLVED, substatus=None)
-                remove_group_from_inbox(group, action=GroupInboxRemoveAction.RESOLVED, user=actor)
-                record_group_history(group, GroupHistoryStatus.RESOLVED, actor=actor)
-
-                metrics.incr("group.resolved", instance="in_commit", skip_internal=True)
-
-            issue_resolved.send_robust(
-                organization_id=self.organization_id,
-                user=actor,
-                group=group,
-                project=group.project,
-                resolution_type="with_commit",
-                sender=type(self),
+            release_commits = list(
+                ReleaseCommit.objects.filter(release=self)
+                .select_related("commit")
+                .values("commit_id", "commit__key")
             )
 
-            kick_off_status_syncs.apply_async(
-                kwargs={"project_id": group_project_lookup[group_id], "group_id": group_id}
+            commit_resolutions = list(
+                GroupLink.objects.filter(
+                    linked_type=GroupLink.LinkedType.commit,
+                    linked_id__in=[rc["commit_id"] for rc in release_commits],
+                ).values_list("group_id", "linked_id")
             )
+
+            commit_group_authors = [
+                (cr[0], commit_author_by_commit.get(cr[1])) for cr in commit_resolutions  # group_id
+            ]
+
+            pr_ids_by_merge_commit = list(
+                PullRequest.objects.filter(
+                    merge_commit_sha__in=[rc["commit__key"] for rc in release_commits],
+                    organization_id=self.organization_id,
+                ).values_list("id", flat=True)
+            )
+
+            pull_request_resolutions = list(
+                GroupLink.objects.filter(
+                    relationship=GroupLink.Relationship.resolves,
+                    linked_type=GroupLink.LinkedType.pull_request,
+                    linked_id__in=pr_ids_by_merge_commit,
+                ).values_list("group_id", "linked_id")
+            )
+
+            pr_authors = list(
+                PullRequest.objects.filter(
+                    id__in=[prr[1] for prr in pull_request_resolutions]
+                ).select_related("author")
+            )
+
+            pr_authors_dict = {pra.id: pra.author for pra in pr_authors}
+
+            pull_request_group_authors = [
+                (prr[0], pr_authors_dict.get(prr[1])) for prr in pull_request_resolutions
+            ]
+
+            user_by_author: dict[CommitAuthor | None, RpcUser | None] = {None: None}
+
+            commits_and_prs = list(
+                itertools.chain(commit_group_authors, pull_request_group_authors)
+            )
+
+            group_project_lookup = dict(
+                Group.objects.filter(
+                    id__in=[group_id for group_id, _ in commits_and_prs]
+                ).values_list("id", "project_id")
+            )
+
+            for group_id, author in commits_and_prs:
+                if author is not None and author not in user_by_author:
+                    try:
+                        user_by_author[author] = author.find_users()[0]
+                    except IndexError:
+                        user_by_author[author] = None
+                actor = user_by_author[author]
+
+                with atomic_transaction(
+                    using=(
+                        router.db_for_write(GroupResolution),
+                        router.db_for_write(Group),
+                        # inside the remove_group_from_inbox
+                        router.db_for_write(GroupInbox),
+                        router.db_for_write(Activity),
+                    )
+                ):
+                    GroupResolution.objects.create_or_update(
+                        group_id=group_id,
+                        values={
+                            "release": self,
+                            "type": GroupResolution.Type.in_release,
+                            "status": GroupResolution.Status.resolved,
+                            "actor_id": actor.id if actor is not None else None,
+                        },
+                    )
+                    group = Group.objects.get(id=group_id)
+                    group.update(status=GroupStatus.RESOLVED, substatus=None)
+                    remove_group_from_inbox(
+                        group, action=GroupInboxRemoveAction.RESOLVED, user=actor
+                    )
+                    record_group_history(group, GroupHistoryStatus.RESOLVED, actor=actor)
+
+                    metrics.incr("group.resolved", instance="in_commit", skip_internal=True)
+
+                issue_resolved.send_robust(
+                    organization_id=self.organization_id,
+                    user=actor,
+                    group=group,
+                    project=group.project,
+                    resolution_type="with_commit",
+                    sender=type(self),
+                )
+
+                kick_off_status_syncs.apply_async(
+                    kwargs={"project_id": group_project_lookup[group_id], "group_id": group_id}
+                )
 
     def safe_delete(self):
         """Deletes a release if possible or raises a `UnsafeReleaseDeletion`
