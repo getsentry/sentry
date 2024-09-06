@@ -1,4 +1,6 @@
 #!/usr/bin/env python
+import orjson
+
 from sentry.runner import configure
 
 configure()
@@ -10,7 +12,6 @@ import requests
 from django.conf import settings
 
 from sentry.constants import DataCategory
-from sentry.utils import json
 from sentry.utils.outcomes import Outcome
 
 # import random
@@ -24,7 +25,7 @@ def store_outcomes(outcome, num_times=1):
         outcomes.append(outcome_copy)
 
     req = requests.post(
-        settings.SENTRY_SNUBA + "/tests/entities/outcomes/insert", data=json.dumps(outcomes)
+        settings.SENTRY_SNUBA + "/tests/entities/outcomes/insert", data=orjson.dumps(outcomes)
     )
     req.raise_for_status()
 

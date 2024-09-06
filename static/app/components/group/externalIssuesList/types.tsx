@@ -1,13 +1,14 @@
+import type {Event} from 'sentry/types/event';
+import type {Group} from 'sentry/types/group';
 import type {
-  Group,
+  ExternalIssue,
   GroupIntegration,
-  Organization,
   PlatformExternalIssue,
-  Project,
   SentryAppComponent,
   SentryAppInstallation,
-} from 'sentry/types';
-import type {Event} from 'sentry/types/event';
+} from 'sentry/types/integrations';
+import type {Organization} from 'sentry/types/organization';
+import type {Project} from 'sentry/types/project';
 
 export type ExternalIssueType =
   | 'sentry-app-issue'
@@ -40,6 +41,7 @@ export interface IntegrationComponent extends BaseIssueComponent {
     configurations: GroupIntegration[];
     group: Group;
     onChange: () => void;
+    externalIssue?: ExternalIssue;
   };
   type: 'integration-issue';
 }

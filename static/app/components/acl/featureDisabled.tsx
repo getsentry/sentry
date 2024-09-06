@@ -1,7 +1,8 @@
 import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
 
-import {Alert, AlertProps} from 'sentry/components/alert';
+import type {AlertProps} from 'sentry/components/alert';
+import {Alert} from 'sentry/components/alert';
 import {Button, ButtonLabel} from 'sentry/components/button';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {CONFIG_DOCS_URL} from 'sentry/constants';
@@ -82,7 +83,7 @@ function FeatureDisabled({
             }
           )}
         </HelpText>
-        <CopyButton borderless icon={<IconCopy size="xs" />} onClick={onClick} size="xs">
+        <CopyButton borderless icon={<IconCopy />} onClick={onClick} size="xs">
           {t('Copy to Clipboard')}
         </CopyButton>
         <Pre onClick={e => selectText(e.target as HTMLElement)}>

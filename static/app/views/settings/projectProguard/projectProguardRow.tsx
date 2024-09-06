@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 
 import Access from 'sentry/components/acl/access';
 import {Role} from 'sentry/components/acl/role';
-import {Button} from 'sentry/components/button';
+import {Button, LinkButton} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import Confirm from 'sentry/components/confirm';
 import FileSize from 'sentry/components/fileSize';
@@ -13,8 +13,8 @@ import {Tooltip} from 'sentry/components/tooltip';
 import {IconClock, IconDelete, IconDownload} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {DebugFile} from 'sentry/types/debugFiles';
-import {ProguardMappingAssociation} from 'sentry/views/settings/projectProguard';
+import type {DebugFile} from 'sentry/types/debugFiles';
+import type {ProguardMappingAssociation} from 'sentry/views/settings/projectProguard';
 import {ProguardAssociations} from 'sentry/views/settings/projectProguard/associations';
 
 type Props = {
@@ -69,7 +69,7 @@ function ProjectProguardRow({
                 disabled={hasRole}
                 isHoverable
               >
-                <Button
+                <LinkButton
                   size="sm"
                   icon={<IconDownload size="sm" />}
                   disabled={!hasRole}

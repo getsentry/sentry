@@ -1,34 +1,32 @@
 from __future__ import annotations
 
 from datetime import datetime
-from typing import Any, Dict, Optional, Sequence, Union
 
-import sentry_kafka_schemas
-from arroyo import Topic
+from arroyo import Topic as ArroyoTopic
 from arroyo.backends.abstract import Producer
 from arroyo.backends.kafka import KafkaPayload, KafkaProducer, build_kafka_configuration
-from django.conf import settings
 from django.core.cache import cache
+from sentry_kafka_schemas.codecs import Codec
+from sentry_kafka_schemas.schema_types.ingest_metrics_v1 import IngestMetric
 
 from sentry import quotas
+from sentry.conf.types.kafka_definition import Topic, get_topic_codec
 from sentry.sentry_metrics.client.base import GenericMetricsBackend
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.utils import json
-from sentry.utils.kafka_config import get_kafka_producer_cluster_options
+from sentry.utils.kafka_config import get_kafka_producer_cluster_options, get_topic_definition
 
-ingest_codec: sentry_kafka_schemas.codecs.Codec[Any] = sentry_kafka_schemas.get_codec(
-    "ingest-metrics"
-)
+INGEST_CODEC: Codec[IngestMetric] = get_topic_codec(Topic.INGEST_METRICS)
 
 
-def build_mri(metric_name: str, type: str, use_case_id: UseCaseID, unit: Optional[str]) -> str:
+def build_mri(metric_name: str, type: str, use_case_id: UseCaseID, unit: str | None) -> str:
     mri_unit = "none" if unit is None else unit
     return f"{type}:{use_case_id.value}/{metric_name}@{mri_unit}"
 
 
 def get_retention_from_org_id(org_id: int) -> int:
     cache_key = f"sentry_metrics:org_retention_days:{org_id}"
-    cached_retention: Optional[int] = cache.get(cache_key)
+    cached_retention: int | None = cache.get(cache_key)
 
     if cached_retention is not None:
         return cached_retention
@@ -49,12 +47,10 @@ def get_retention_from_org_id(org_id: int) -> int:
 
 class KafkaMetricsBackend(GenericMetricsBackend):
     def __init__(self) -> None:
-        kafka_topic_name = settings.KAFKA_INGEST_PERFORMANCE_METRICS
-        self.kafka_topic = Topic(kafka_topic_name)
-
-        kafka_topic_dict = settings.KAFKA_TOPICS[kafka_topic_name]
-        assert kafka_topic_dict is not None
-        cluster_name = kafka_topic_dict["cluster"]
+        logical_topic = Topic.INGEST_PERFORMANCE_METRICS
+        topic_defn = get_topic_definition(logical_topic)
+        self.kafka_topic = ArroyoTopic(topic_defn["real_topic_name"])
+        cluster_name = topic_defn["cluster"]
         producer_config = get_kafka_producer_cluster_options(cluster_name)
         self.producer: Producer = KafkaProducer(
             build_kafka_configuration(default_config=producer_config)
@@ -66,9 +62,9 @@ class KafkaMetricsBackend(GenericMetricsBackend):
         org_id: int,
         project_id: int,
         metric_name: str,
-        value: Union[int, float],
-        tags: Dict[str, str],
-        unit: Optional[str],
+        value: int | float,
+        tags: dict[str, str],
+        unit: str | None,
     ) -> None:
 
         """
@@ -78,7 +74,7 @@ class KafkaMetricsBackend(GenericMetricsBackend):
         produced to the broker yet.
         """
 
-        counter_metric = {
+        counter_metric: IngestMetric = {
             "org_id": org_id,
             "project_id": project_id,
             "name": build_mri(metric_name, "c", use_case_id, unit),
@@ -91,69 +87,8 @@ class KafkaMetricsBackend(GenericMetricsBackend):
 
         self.__produce(counter_metric, use_case_id)
 
-    def set(
-        self,
-        use_case_id: UseCaseID,
-        org_id: int,
-        project_id: int,
-        metric_name: str,
-        value: Sequence[int],
-        tags: Dict[str, str],
-        unit: Optional[str],
-    ) -> None:
-
-        """
-        Emit a set metric for internal use cases only. Can support
-        a sequence of values. Note that, as of now, this function
-        will return immediately even if the metric message has not been
-        produced to the broker yet.
-        """
-
-        set_metric = {
-            "org_id": org_id,
-            "project_id": project_id,
-            "name": build_mri(metric_name, "s", use_case_id, unit),
-            "value": value,
-            "timestamp": int(datetime.now().timestamp()),
-            "tags": tags,
-            "retention_days": get_retention_from_org_id(org_id),
-            "type": "s",
-        }
-
-        self.__produce(set_metric, use_case_id)
-
-    def distribution(
-        self,
-        use_case_id: UseCaseID,
-        org_id: int,
-        project_id: int,
-        metric_name: str,
-        value: Sequence[Union[int, float]],
-        tags: Dict[str, str],
-        unit: Optional[str],
-    ) -> None:
-
-        """
-        Emit a distribution metric for internal use cases only. Can
-        support a sequence of values. Note that, as of now, this function
-        will return immediately even if the metric message has not been
-        produced to the broker yet.
-        """
-        dist_metric = {
-            "org_id": org_id,
-            "project_id": project_id,
-            "name": build_mri(metric_name, "d", use_case_id, unit),
-            "value": value,
-            "timestamp": int(datetime.now().timestamp()),
-            "tags": tags,
-            "retention_days": get_retention_from_org_id(org_id),
-            "type": "d",
-        }
-
-        self.__produce(dist_metric, use_case_id)
-
-    def __produce(self, metric: Dict[str, Any], use_case_id: UseCaseID):
-        ingest_codec.validate(metric)
+    def __produce(self, metric: IngestMetric, use_case_id: UseCaseID):
+        INGEST_CODEC.validate(metric)
         payload = KafkaPayload(
             None,
             json.dumps(metric).encode("utf-8"),

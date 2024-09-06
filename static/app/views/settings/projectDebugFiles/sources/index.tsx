@@ -1,10 +1,11 @@
 import {Fragment} from 'react';
-import {InjectedRouter} from 'react-router';
-import {Location} from 'history';
+import type {Location} from 'history';
 
-import {Client} from 'sentry/api';
-import {Organization, Project} from 'sentry/types';
-import {BuiltinSymbolSource, CustomRepo} from 'sentry/types/debugFiles';
+import type {Client} from 'sentry/api';
+import type {BuiltinSymbolSource, CustomRepo} from 'sentry/types/debugFiles';
+import type {InjectedRouter} from 'sentry/types/legacyReactRouter';
+import type {Organization} from 'sentry/types/organization';
+import type {Project} from 'sentry/types/project';
 
 import BuiltInRepositories from './builtInRepositories';
 import CustomRepositories from './customRepositories';
@@ -14,7 +15,6 @@ type Props = {
   builtinSymbolSourceOptions: BuiltinSymbolSource[];
   builtinSymbolSources: string[];
   customRepositories: CustomRepo[];
-  isLoading: boolean;
   location: Location;
   organization: Organization;
   project: Project;
@@ -30,7 +30,6 @@ function Sources({
   project,
   location,
   router,
-  isLoading,
 }: Props) {
   return (
     <Fragment>
@@ -40,7 +39,6 @@ function Sources({
         builtinSymbolSources={builtinSymbolSources}
         builtinSymbolSourceOptions={builtinSymbolSourceOptions}
         project={project}
-        isLoading={isLoading}
       />
       <CustomRepositories
         api={api}
@@ -49,7 +47,6 @@ function Sources({
         organization={organization}
         customRepositories={customRepositories}
         project={project}
-        isLoading={isLoading}
       />
     </Fragment>
   );

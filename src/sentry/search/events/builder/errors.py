@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import dataclasses
-from typing import List, Optional
 
 from snuba_sdk import (
     AliasedExpression,
@@ -19,9 +18,14 @@ from snuba_sdk import (
 )
 
 from sentry.api.issue_search import convert_query_values, convert_status_value
-from sentry.search.events.builder import QueryBuilder, TimeseriesQueryBuilder
+from sentry.search.events.builder.discover import (
+    DiscoverQueryBuilder,
+    TimeseriesQueryBuilder,
+    TopEventsQueryBuilder,
+)
 from sentry.search.events.filter import ParsedTerms
 from sentry.search.events.types import SelectType
+from sentry.snuba.entity_subscription import ENTITY_TIME_COLUMNS, get_entity_key_from_query_builder
 
 value_converters = {"status": convert_status_value}
 
@@ -32,7 +36,7 @@ class ErrorsQueryBuilderMixin:
         self.entities = set()
         super().__init__(*args, **kwargs)
 
-    def parse_query(self, query: Optional[str]) -> ParsedTerms:
+    def parse_query(self, query: str | None) -> ParsedTerms:
         parsed_terms = super().parse_query(query)
         parsed_terms = convert_query_values(
             parsed_terms,
@@ -40,6 +44,7 @@ class ErrorsQueryBuilderMixin:
             self.params.user,
             list(filter(None, self.params.environments)),
             value_converters=value_converters,
+            allow_aggregate_filters=True,
         )
         return parsed_terms
 
@@ -67,10 +72,10 @@ class ErrorsQueryBuilderMixin:
 
     def resolve_query(
         self,
-        query: Optional[str] = None,
-        selected_columns: Optional[List[str]] = None,
-        groupby_columns: Optional[List[str]] = None,
-        equations: Optional[List[str]] = None,
+        query: str | None = None,
+        selected_columns: list[str] | None = None,
+        groupby_columns: list[str] | None = None,
+        equations: list[str] | None = None,
         orderby: list[str] | str | None = None,
     ) -> None:
         super().resolve_query(query, selected_columns, groupby_columns, equations, orderby)
@@ -105,7 +110,7 @@ class ErrorsQueryBuilderMixin:
         return Column(resolved_column, entity=entity)
 
 
-class ErrorsQueryBuilder(ErrorsQueryBuilderMixin, QueryBuilder):
+class ErrorsQueryBuilder(ErrorsQueryBuilderMixin, DiscoverQueryBuilder):
     def get_snql_query(self) -> Request:
         self.validate_having_clause()
         return Request(
@@ -127,8 +132,47 @@ class ErrorsQueryBuilder(ErrorsQueryBuilderMixin, QueryBuilder):
             tenant_ids=self.tenant_ids,
         )
 
+    def add_conditions(self, conditions: list[Condition]) -> None:
+        """
+        Override the base implementation to add entity data
+        """
+        entity_key = get_entity_key_from_query_builder(self)
+        time_col = ENTITY_TIME_COLUMNS[entity_key]
+        entity = Entity(entity_key.value, alias="events")
+        new_conditions = []
+        for condition in conditions:
+            column = Column(time_col, entity=entity)
+            new_conditions.append(Condition(column, condition.op, condition.rhs))
+        self.where += new_conditions
+
 
 class ErrorsTimeseriesQueryBuilder(ErrorsQueryBuilderMixin, TimeseriesQueryBuilder):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+    @property
+    def time_column(self) -> SelectType:
+        return Column("time", entity=Entity(self.dataset.value, alias=self.dataset.value))
+
+    def get_snql_query(self) -> Request:
+        return Request(
+            dataset=self.dataset.value,
+            app_id="errors",
+            query=Query(
+                match=self.match,
+                select=self.select,
+                where=self.where,
+                having=self.having,
+                groupby=self.groupby,
+                orderby=[OrderBy(self.time_column, Direction.ASC)],
+                granularity=self.granularity,
+                limit=self.limit,
+            ),
+            tenant_ids=self.tenant_ids,
+        )
+
+
+class ErrorsTopEventsQueryBuilder(ErrorsQueryBuilderMixin, TopEventsQueryBuilder):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 

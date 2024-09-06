@@ -1,5 +1,7 @@
-import {RawSpanType} from 'sentry/components/events/interfaces/spans/types';
-import {EntryType, EventOrGroupType, EventTransaction, IssueType} from 'sentry/types';
+import type {RawSpanType} from 'sentry/components/events/interfaces/spans/types';
+import type {EventTransaction} from 'sentry/types/event';
+import {EntryType, EventOrGroupType} from 'sentry/types/event';
+import {IssueType} from 'sentry/types/group';
 
 export enum ProblemSpan {
   PARENT = 'parent',
@@ -85,11 +87,7 @@ export class TransactionEventBuilder {
       perfProblem: undefined,
       metadata: {
         current_level: undefined,
-        current_tree_label: undefined,
-        directive: undefined,
-        display_title_with_tree_label: undefined,
         filename: undefined,
-        finest_tree_label: undefined,
         function: undefined,
         message: undefined,
         origin: undefined,
@@ -179,7 +177,7 @@ export class TransactionEventBuilder {
     return this;
   }
 
-  getEvent() {
+  getEventFixture() {
     return this.#event;
   }
 }

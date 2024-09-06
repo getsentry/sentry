@@ -1,11 +1,14 @@
 import abc
 
 from sentry.incidents.logic import update_incident_status
-from sentry.incidents.models import Incident, IncidentStatus, IncidentStatusMethod
+from sentry.incidents.models.incident import Incident, IncidentStatus, IncidentStatusMethod
+from sentry.testutils.abstract import Abstract
 from sentry.testutils.cases import TestCase
 
 
 class FireTest(TestCase, abc.ABC):
+    __test__ = Abstract(__module__, __qualname__)
+
     @abc.abstractmethod
     def run_test(self, incident: Incident, method: str, **kwargs):
         pass
@@ -23,4 +26,4 @@ class FireTest(TestCase, abc.ABC):
             update_incident_status(
                 incident, IncidentStatus.CLOSED, status_method=IncidentStatusMethod.MANUAL
             )
-        self.run_test(incident, method, **kwargs)
+        return self.run_test(incident, method, **kwargs)

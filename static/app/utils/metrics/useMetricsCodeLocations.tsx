@@ -1,22 +1,51 @@
-import {getDateTimeParams, MetricMetaCodeLocation} from 'sentry/utils/metrics';
+import type {SelectionRange} from 'sentry/components/metrics/chart/types';
+import type {MRI} from 'sentry/types/metrics';
+import {getDateTimeParams} from 'sentry/utils/metrics';
+import type {MetricMetaCodeLocation} from 'sentry/utils/metrics/types';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 
-type ApiResponse = {codeLocations: MetricMetaCodeLocation[]};
+type MetricCorrelationOpts = SelectionRange & {
+  codeLocations?: boolean;
+  metricSpans?: boolean;
+  query?: string;
+};
 
-export function useMetricsCodeLocations(mri: string | undefined) {
-  const organization = useOrganization();
+function useDateTimeParams(options: MetricCorrelationOpts) {
   const {selection} = usePageFilters();
 
-  const {data, isLoading} = useApiQuery<{codeLocations: MetricMetaCodeLocation[]}>(
+  const {start, end} = options;
+  return start || end
+    ? {start, end, statsPeriod: undefined}
+    : getDateTimeParams(selection.datetime);
+}
+
+export function useMetricCodeLocations(
+  mri: MRI | undefined,
+  options: MetricCorrelationOpts
+) {
+  const organization = useOrganization();
+  const {selection} = usePageFilters();
+  const dateTimeParams = useDateTimeParams(options);
+
+  const minMaxParams =
+    // remove non-numeric values
+    options.min && options.max && !isNaN(options.min) && !isNaN(options.max)
+      ? {min: options.min, max: options.max}
+      : {};
+
+  const queryInfo = useApiQuery<MetricMetaCodeLocation[]>(
     [
-      `/organizations/${organization.slug}/ddm/meta/`,
+      `/organizations/${organization.slug}/metrics/code-locations/`,
       {
         query: {
           metric: mri,
           project: selection.projects,
-          ...getDateTimeParams(selection.datetime),
+          environment: selection.environments,
+          query: options.query,
+          ...dateTimeParams,
+          ...minMaxParams,
         },
       },
     ],
@@ -26,39 +55,28 @@ export function useMetricsCodeLocations(mri: string | undefined) {
     }
   );
 
-  if (
-    !data ||
-    !Array.isArray(data?.codeLocations) ||
-    !Array.isArray(data?.codeLocations[0]?.frames)
-  ) {
-    return {data, isLoading};
+  if (!queryInfo.data) {
+    return queryInfo;
   }
 
-  deduplicateCodeLocations(data);
-  sortCodeLocations(data);
+  const deduped = queryInfo.data
+    .filter(
+      (item, index, self) => index === self.findIndex(t => equalCodeLocations(t, item))
+    )
+    .sort((a, b) => {
+      return a.timestamp - b.timestamp;
+    });
 
-  return {data, isLoading};
+  return {...queryInfo, data: deduped};
 }
-
-const sortCodeLocations = (data: ApiResponse) => {
-  data.codeLocations.sort((a, b) => {
-    return b.timestamp - a.timestamp;
-  });
-};
-
-const deduplicateCodeLocations = (data: ApiResponse) => {
-  data.codeLocations = data.codeLocations.filter((element, index) => {
-    return !data.codeLocations.slice(0, index).some(e => equalCodeLocations(e, element));
-  });
-};
 
 const equalCodeLocations = (a: MetricMetaCodeLocation, b: MetricMetaCodeLocation) => {
   if (a.mri !== b.mri) {
     return false;
   }
 
-  const aFrame = JSON.stringify(a.frames?.[0] ?? {});
-  const bFrame = JSON.stringify(b.frames?.[0] ?? {});
+  const aCodeLocation = JSON.stringify(a.codeLocations?.[0] ?? {});
+  const bCodeLocation = JSON.stringify(b.codeLocations?.[0] ?? {});
 
-  return aFrame === bFrame;
+  return aCodeLocation === bCodeLocation;
 };

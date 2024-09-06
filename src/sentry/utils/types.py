@@ -1,8 +1,8 @@
 from __future__ import annotations
 
 import typing
+from typing import TypeGuard
 
-from typing_extensions import TypeGuard
 from yaml.parser import ParserError
 from yaml.scanner import ScannerError
 
@@ -145,7 +145,7 @@ class SequenceType(Type[list]):
     expected_types = (list,)
     compatible_types = (str, tuple, list)
 
-    def _default(self) -> typing.List[typing.Any]:
+    def _default(self) -> list[typing.Any]:
         # make sure we create a fresh list each time
         return []
 
@@ -221,3 +221,9 @@ def type_from_value(value):
 
 
 AnyCallable = typing.Callable[..., AnyType]
+
+
+def NonNone(value: T | None) -> T:
+    """A hacked version of TS's non-null assertion operator"""
+    assert value is not None
+    return value

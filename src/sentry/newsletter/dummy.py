@@ -1,11 +1,13 @@
 from __future__ import annotations
 
+import contextlib
 from collections import defaultdict
-from typing import Any, Sequence
+from collections.abc import Generator, Sequence
+from typing import Any
 
 from django.utils import timezone
 
-from sentry.models.user import User
+from sentry.users.models.user import User
 
 from .base import Newsletter
 
@@ -24,7 +26,7 @@ class NewsletterSubscription:
         unsubscribed_date=None,
         **kwargs,
     ):
-        from sentry.models.useremail import UserEmail
+        from sentry.users.models.useremail import UserEmail
 
         self.email = user.email or email
         self.list_id = list_id
@@ -74,11 +76,13 @@ class DummyNewsletter(Newsletter):
         self._subscriptions: dict[User, dict[int, NewsletterSubscription]] = defaultdict(dict)
         self._enabled = enabled
 
-    def enable(self):
+    @contextlib.contextmanager
+    def enable(self) -> Generator[None]:
         self._enabled = True
-
-    def disable(self):
-        self._enabled = False
+        try:
+            yield
+        finally:
+            self._enabled = False
 
     def clear(self):
         self._subscriptions = defaultdict(dict)

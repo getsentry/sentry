@@ -6,8 +6,8 @@ import {DifferentialFlamegraphNegationSwitch} from 'sentry/components/profiling/
 import {FlamegraphSearch} from 'sentry/components/profiling/flamegraph/flamegraphToolbar/flamegraphSearch';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {CanvasPoolManager} from 'sentry/utils/profiling/canvasScheduler';
-import {DifferentialFlamegraph} from 'sentry/utils/profiling/differentialFlamegraph';
+import type {CanvasPoolManager} from 'sentry/utils/profiling/canvasScheduler';
+import type {DifferentialFlamegraph} from 'sentry/utils/profiling/differentialFlamegraph';
 
 import {DifferentialFlamegraphSettingsButton} from './differentialFlamegraphSettingsButton';
 

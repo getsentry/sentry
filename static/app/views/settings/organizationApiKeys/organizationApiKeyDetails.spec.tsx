@@ -1,4 +1,4 @@
-import {DeprecatedApiKey} from 'sentry-fixture/deprecatedApiKey';
+import {DeprecatedApiKeyFixture} from 'sentry-fixture/deprecatedApiKey';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
@@ -11,14 +11,14 @@ describe('OrganizationApiKeyDetails', function () {
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/api-keys/1/',
       method: 'GET',
-      body: DeprecatedApiKey(),
+      body: DeprecatedApiKeyFixture(),
     });
   });
 
   it('renders', function () {
-    const {organization, routerContext, routerProps} = initializeOrg();
+    const {organization, router, routerProps} = initializeOrg();
     render(<OrganizationApiKeyDetails {...routerProps} params={{apiKey: '1'}} />, {
-      context: routerContext,
+      router,
       organization,
     });
 

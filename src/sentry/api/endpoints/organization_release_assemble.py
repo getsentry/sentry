@@ -1,4 +1,5 @@
 import jsonschema
+import orjson
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -13,7 +14,7 @@ from sentry.tasks.assemble import (
     get_assemble_status,
     set_assemble_status,
 )
-from sentry.utils import json, metrics
+from sentry.utils import metrics
 
 
 @region_silo_endpoint
@@ -52,7 +53,7 @@ class OrganizationReleaseAssembleEndpoint(OrganizationReleasesBaseEndpoint):
         }
 
         try:
-            data = json.loads(request.body)
+            data = orjson.loads(request.body)
             jsonschema.validate(data, schema)
         except jsonschema.ValidationError as e:
             return Response({"error": str(e).splitlines()[0]}, status=400)

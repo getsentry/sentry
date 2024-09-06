@@ -11,7 +11,6 @@ from sentry.testutils.performance_issues.event_generators import (
     create_span,
     modify_span_start,
 )
-from sentry.testutils.silo import region_silo_test
 from sentry.utils.performance_issues.detectors.http_overhead_detector import HTTPOverheadDetector
 from sentry.utils.performance_issues.performance_detection import (
     get_detection_settings,
@@ -67,7 +66,6 @@ def find_problems(settings, event: dict[str, Any]) -> list[PerformanceProblem]:
     return list(detector.stored_problems.values())
 
 
-@region_silo_test
 @pytest.mark.django_db
 class HTTPOverheadDetectorTest(TestCase):
     def setUp(self):

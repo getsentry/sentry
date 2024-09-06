@@ -32,6 +32,11 @@ describe('javascript-nextjs onboarding docs', function () {
       screen.queryByText(textWithMarkupMatcher(/sentry.client.config.js/))
     ).toBeInTheDocument();
     expect(screen.queryByText(textWithMarkupMatcher(/Sentry.init/))).toBeInTheDocument();
-    expect(screen.queryByText(textWithMarkupMatcher(/.sentryclirc/))).toBeInTheDocument();
+    expect(
+      screen.queryByText(textWithMarkupMatcher(/.env.sentry-build-plugin/))
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByText(textWithMarkupMatcher(/instrumentation.ts/))
+    ).toBeInTheDocument();
   });
 });

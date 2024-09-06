@@ -54,7 +54,7 @@ class VercelClient(ApiClient):
             )
         except ApiError as e:
             if not e.code == 402:
-                raise e
+                raise
 
     def get_team(self):
         assert self.team_id

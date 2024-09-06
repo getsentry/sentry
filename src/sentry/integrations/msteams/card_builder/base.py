@@ -1,21 +1,24 @@
 from __future__ import annotations
 
-from typing import Any, Sequence
+from collections.abc import Sequence
+from typing import Any
 
-from sentry.integrations.message_builder import AbstractMessageBuilder
-from sentry.integrations.msteams.card_builder import Action, AdaptiveCard, Block
+from sentry.integrations.msteams.card_builder.block import (
+    Action,
+    AdaptiveCard,
+    Block,
+    create_text_block,
+)
 
-from .block import create_text_block
 
-
-class MSTeamsMessageBuilder(AbstractMessageBuilder):
+class MSTeamsMessageBuilder:
     def build(
         self,
         text: str | Block | None = None,
         title: str | Block | None = None,
         fields: Sequence[str | Block | None] | None = None,
         footer: str | Block | None = None,
-        actions: Sequence[Action] | None = None,
+        actions: list[Action] | None = None,
         **kwargs: Any,
     ) -> AdaptiveCard:
         """

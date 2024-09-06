@@ -15,10 +15,10 @@ import diagramUsers from 'sentry-images/spot/alerts-wizard-users-experiencing-er
 
 import {t} from 'sentry/locale';
 
-import {AlertType} from './options';
+import type {AlertType} from './options';
 
 type PanelContent = {
-  description: string;
+  description: React.ReactNode;
   examples: string[];
   docsLink?: string;
   illustration?: string;
@@ -139,6 +139,28 @@ export const AlertWizardPanelContent: Record<AlertType, PanelContent> = {
       t(
         'When the 75th percentile of your login flow is taking longer than 500 milliseconds.'
       ),
+    ],
+    illustration: diagramCustomMetrics,
+  },
+  llm_tokens: {
+    description: t(
+      'Receive an alert when the total number of tokens used by your LLMs reaches a limit.'
+    ),
+    examples: [t('When there are more than 100,000 tokens used within an hour')],
+    illustration: diagramCustomMetrics,
+  },
+  llm_cost: {
+    description: t(
+      'Receive an alert when the total cost of tokens used by your LLMs reaches a limit.'
+    ),
+    examples: [t('When there are more than $100 used by LLM  within an hour')],
+    illustration: diagramCustomMetrics,
+  },
+  insights_metrics: {
+    description: t('Alert on insights metrics.'),
+    examples: [
+      t('When your average time in queue exceeds 100ms.'),
+      t('When your app runs more than 1000 queries in a minute.'),
     ],
     illustration: diagramCustomMetrics,
   },

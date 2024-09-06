@@ -1,25 +1,29 @@
 import {forwardRef, useCallback, useMemo} from 'react';
-import ReactSelect, {
-  components as selectComponents,
-  createFilter,
+import type {
   GroupedOptionsType,
-  mergeStyles,
   OptionsType,
   OptionTypeBase,
   Props as ReactSelectProps,
   StylesConfig as ReactSelectStylesConfig,
 } from 'react-select';
+import ReactSelect, {
+  components as selectComponents,
+  createFilter,
+  mergeStyles,
+} from 'react-select';
 import Async from 'react-select/async';
 import AsyncCreatable from 'react-select/async-creatable';
 import Creatable from 'react-select/creatable';
-import {CSSObject, useTheme} from '@emotion/react';
+import type {CSSObject} from '@emotion/react';
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import omit from 'lodash/omit';
 
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {IconChevron, IconClose} from 'sentry/icons';
+import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {Choices, SelectValue} from 'sentry/types';
+import type {Choices, SelectValue} from 'sentry/types/core';
 import convertFromSelect2Choices from 'sentry/utils/convertFromSelect2Choices';
 import PanelProvider from 'sentry/utils/panelProvider';
 import type {FormSize} from 'sentry/utils/theme';
@@ -42,9 +46,12 @@ function isGroupedOptions<OptionType extends OptionTypeBase>(
 function ClearIndicator(
   props: React.ComponentProps<typeof selectComponents.ClearIndicator>
 ) {
+  // XXX(epurkhiser): In react-selct 5 accessibility is greatly improved, for
+  // now we manually add aria labels to these interactive elements to help with
+  // testing
   return (
     <selectComponents.ClearIndicator {...props}>
-      <IconClose legacySize="10px" />
+      <IconClose aria-label={t('Clear choices')} legacySize="10px" />
     </selectComponents.ClearIndicator>
   );
 }
@@ -54,7 +61,7 @@ function DropdownIndicator(
 ) {
   return (
     <selectComponents.DropdownIndicator {...props}>
-      <IconChevron direction="down" legacySize="14px" />
+      <IconChevron direction="down" size="sm" />
     </selectComponents.DropdownIndicator>
   );
 }
@@ -62,9 +69,12 @@ function DropdownIndicator(
 function MultiValueRemove(
   props: React.ComponentProps<typeof selectComponents.MultiValueRemove>
 ) {
+  // XXX(epurkhiser): In react-selct 5 accessibility is greatly improved, for
+  // now we manually add aria labels to these interactive elements to help with
+  // testing
   return (
     <selectComponents.MultiValueRemove {...props}>
-      <IconClose legacySize="8px" />
+      <IconClose aria-label={t('Remove item')} legacySize="8px" />
     </selectComponents.MultiValueRemove>
   );
 }
@@ -343,6 +353,7 @@ function SelectControl<OptionType extends GeneralSelectValue = GeneralSelectValu
         },
       }),
     }),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     [theme, size, maxMenuWidth, indicatorStyles]
   );
 

@@ -1,12 +1,12 @@
 from functools import cached_property
 
+import orjson
 import responses
 
 from sentry.interfaces.base import Interface
 from sentry.models.rule import Rule
 from sentry.plugins.base import Notification
 from sentry.testutils.cases import PluginTestCase
-from sentry.utils import json
 from sentry_plugins.victorops.plugin import VictorOpsPlugin
 
 SUCCESS = """{
@@ -16,7 +16,7 @@ SUCCESS = """{
 
 
 class UnicodeTestInterface(Interface):
-    def to_string(self, event):
+    def to_string(self, event) -> str:
         return self.body
 
     def get_title(self):
@@ -78,7 +78,7 @@ class VictorOpsPluginTest(PluginTestCase):
         self.plugin.notify(notification)
 
         request = responses.calls[0].request
-        payload = json.loads(request.body)
+        payload = orjson.loads(request.body)
         assert {
             "message_type": "WARNING",
             "entity_id": group.id,

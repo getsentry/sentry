@@ -3,9 +3,17 @@ import styled from '@emotion/styled';
 
 import {space} from 'sentry/styles/space';
 
-import {FieldGroupProps} from './types';
+import type {FieldGroupProps} from './types';
 
-type FieldDescriptionProps = Pick<FieldGroupProps, 'inline'>;
+interface FieldDescriptionProps extends Pick<FieldGroupProps, 'inline'> {
+  /**
+   * When set to true `display: none` will be applied and the Field
+   * description will not be present in the layout, but will still be visible
+   * for screen-readers since this element is used as the `aria-describedby` of
+   * the control input componnt.
+   */
+  displayNone?: boolean;
+}
 
 const inlineStyle = (p: FieldDescriptionProps) =>
   p.inline
@@ -19,7 +27,8 @@ const inlineStyle = (p: FieldDescriptionProps) =>
       `;
 
 const FieldDescription = styled('label')<FieldDescriptionProps>`
-  font-weight: normal;
+  font-weight: ${p => p.theme.fontWeightNormal};
+  display: ${p => (p.displayNone ? 'none' : 'inline')};
   margin-bottom: 0;
 
   ${inlineStyle};

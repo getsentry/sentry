@@ -1,5 +1,5 @@
 import {t} from 'sentry/locale';
-import {Relay} from 'sentry/types';
+import type {Relay} from 'sentry/types/relay';
 
 import ModalManager from './modalManager';
 

@@ -73,7 +73,7 @@ describe('TransactionProfileIdProvider', () => {
       body: {
         data: [
           {
-            id: MOCK_PROFILE_ID,
+            'profile.id': MOCK_PROFILE_ID,
           },
         ],
       },
@@ -92,7 +92,7 @@ describe('TransactionProfileIdProvider', () => {
 
     expect(useProfileEventsSpy).toHaveBeenCalledWith(
       expect.objectContaining({
-        query: 'trace.transaction:' + MOCK_TRX_ID,
+        query: 'id:' + MOCK_TRX_ID,
         datetime: {
           end: new Date('2022-12-20T04:00:00.000Z'),
           period: null,

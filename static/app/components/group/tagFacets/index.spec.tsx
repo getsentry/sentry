@@ -1,12 +1,13 @@
+import {ProjectFixture} from 'sentry-fixture/project';
+
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import TagFacets, {TAGS_FORMATTER} from 'sentry/components/group/tagFacets';
 
-const mockProject = TestStubs.Project();
-const {router, organization, routerContext} = initializeOrg({
+const mockProject = ProjectFixture();
+const {router, organization} = initializeOrg({
   organization: {},
-  project: mockProject,
   projects: [mockProject],
   router: {
     routes: [],
@@ -18,7 +19,7 @@ const {router, organization, routerContext} = initializeOrg({
 });
 
 describe('Tag Facets', function () {
-  const project = TestStubs.Project();
+  const project = ProjectFixture();
   project.platform = 'android';
   const tags = ['os', 'device', 'release'];
 
@@ -198,9 +199,8 @@ describe('Tag Facets', function () {
           tagFormatter={TAGS_FORMATTER}
         />,
         {
-          context: routerContext,
-          organization,
           router,
+          organization,
         }
       );
       await waitFor(() => {
@@ -229,9 +229,8 @@ describe('Tag Facets', function () {
           tagFormatter={TAGS_FORMATTER}
         />,
         {
-          context: routerContext,
-          organization,
           router,
+          organization,
         }
       );
       await waitFor(() => {

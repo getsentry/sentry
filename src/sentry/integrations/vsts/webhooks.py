@@ -1,7 +1,8 @@
 from __future__ import annotations
 
 import logging
-from typing import TYPE_CHECKING, Any, Mapping
+from collections.abc import Mapping
+from typing import TYPE_CHECKING, Any
 
 from django.utils.crypto import constant_time_compare
 from rest_framework import status
@@ -11,13 +12,13 @@ from rest_framework.response import Response
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import Endpoint, region_silo_endpoint
-from sentry.integrations.mixins import IssueSyncMixin
+from sentry.integrations.mixins.issues import IssueSyncIntegration
+from sentry.integrations.services.integration import integration_service
 from sentry.integrations.utils import sync_group_assignee_inbound
-from sentry.services.hybrid_cloud.integration import integration_service
 from sentry.utils.email import parse_email
 
 if TYPE_CHECKING:
-    from sentry.services.hybrid_cloud.integration import RpcIntegration
+    from sentry.integrations.services.integration import RpcIntegration
 
 
 UNSET = object()
@@ -34,7 +35,7 @@ def get_vsts_external_id(data: Mapping[str, Any]) -> str:
 class WorkItemWebhook(Endpoint):
     owner = ApiOwner.INTEGRATIONS
     publish_status = {
-        "POST": ApiPublishStatus.UNKNOWN,
+        "POST": ApiPublishStatus.PRIVATE,
     }
     authentication_classes = ()
     permission_classes = ()
@@ -135,7 +136,7 @@ def handle_status_change(
 
     for org_integration in org_integrations:
         installation = integration.get_installation(organization_id=org_integration.organization_id)
-        if isinstance(installation, IssueSyncMixin):
+        if isinstance(installation, IssueSyncIntegration):
             installation.sync_status_inbound(
                 external_issue_key,
                 {

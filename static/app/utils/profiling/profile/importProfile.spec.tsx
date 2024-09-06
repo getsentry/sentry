@@ -1,3 +1,4 @@
+import {ContinuousProfile} from 'sentry/utils/profiling/profile/continuousProfile';
 import {EventedProfile} from 'sentry/utils/profiling/profile/eventedProfile';
 import {
   importProfile,
@@ -6,6 +7,7 @@ import {
 import {JSSelfProfile} from 'sentry/utils/profiling/profile/jsSelfProfile';
 import {SampledProfile} from 'sentry/utils/profiling/profile/sampledProfile';
 
+import {makeSentryContinuousProfile} from './continuousProfile.spec';
 import {SentrySampledProfile} from './sentrySampledProfile';
 import {makeSentrySampledProfile} from './sentrySampledProfile.spec';
 
@@ -32,6 +34,7 @@ describe('importProfile', () => {
         },
         metadata: {} as Profiling.Schema['metadata'],
       },
+      '',
       '',
       'flamechart'
     );
@@ -61,6 +64,7 @@ describe('importProfile', () => {
         },
         metadata: {} as Profiling.Schema['metadata'],
       },
+      '',
       '',
       'flamechart'
     );
@@ -100,6 +104,7 @@ describe('importProfile', () => {
         },
       },
       '',
+      '',
       'flamechart'
     );
 
@@ -127,7 +132,7 @@ describe('importProfile', () => {
       ],
     };
 
-    const imported = importProfile(jsSelfProfile, 'profile', 'flamechart');
+    const imported = importProfile(jsSelfProfile, 'profile', '', 'flamechart');
 
     expect(imported.profiles[0]).toBeInstanceOf(JSSelfProfile);
   });
@@ -135,9 +140,17 @@ describe('importProfile', () => {
   it('imports sentry sampled profile', () => {
     const sentrySampledProfile = makeSentrySampledProfile();
 
-    const imported = importProfile(sentrySampledProfile, 'profile', 'flamegraph');
+    const imported = importProfile(sentrySampledProfile, 'profile', '', 'flamegraph');
 
     expect(imported.profiles[0]).toBeInstanceOf(SentrySampledProfile);
+  });
+
+  it('imports sentry continuous profile', () => {
+    const continuousProfile = makeSentryContinuousProfile();
+
+    const imported = importProfile(continuousProfile, 'profile', '', 'flamegraph');
+
+    expect(imported.profiles[0]).toBeInstanceOf(ContinuousProfile);
   });
 
   it('throws on unrecognized profile type', () => {
@@ -145,6 +158,7 @@ describe('importProfile', () => {
       importProfile(
         // @ts-expect-error
         {name: 'profile', activeProfileIndex: 0, profiles: [{type: 'unrecognized'}]},
+        '',
         '',
         'flamechart'
       )
@@ -154,7 +168,7 @@ describe('importProfile', () => {
 
 describe('parseDroppedProfile', () => {
   beforeEach(() => {
-    jest.restoreAllMocks();
+    jest.clearAllMocks();
   });
   it('throws if file has no string contents', async () => {
     // @ts-expect-error we are just setting null on the file, we are not actually reading it because our event is mocked
@@ -162,8 +176,10 @@ describe('parseDroppedProfile', () => {
 
     const reader = new FileReader();
 
-    jest.spyOn(window, 'FileReader').mockImplementation(() => reader);
-    jest.spyOn(reader, 'readAsText').mockImplementation(() => {
+    const fileReaderMock = jest
+      .spyOn(window, 'FileReader')
+      .mockImplementation(() => reader);
+    const readAsTextMock = jest.spyOn(reader, 'readAsText').mockImplementation(() => {
       const loadEvent = new CustomEvent('load', {
         detail: {target: {result: null}},
       });
@@ -174,6 +190,9 @@ describe('parseDroppedProfile', () => {
     await expect(parseDroppedProfile(file)).rejects.toEqual(
       'Failed to read string contents of input file'
     );
+
+    fileReaderMock.mockRestore();
+    readAsTextMock.mockRestore();
   });
 
   it('throws if FileReader errors', async () => {
@@ -181,8 +200,10 @@ describe('parseDroppedProfile', () => {
 
     const reader = new FileReader();
 
-    jest.spyOn(window, 'FileReader').mockImplementation(() => reader);
-    jest.spyOn(reader, 'readAsText').mockImplementation(() => {
+    const fileReaderMock = jest
+      .spyOn(window, 'FileReader')
+      .mockImplementation(() => reader);
+    const readAsTextMock = jest.spyOn(reader, 'readAsText').mockImplementation(() => {
       const loadEvent = new CustomEvent('error', {
         detail: {target: {result: null}},
       });
@@ -193,6 +214,9 @@ describe('parseDroppedProfile', () => {
     await expect(parseDroppedProfile(file)).rejects.toEqual(
       'Failed to read string contents of input file'
     );
+
+    fileReaderMock.mockRestore();
+    readAsTextMock.mockRestore();
   });
 
   it('throws if contents are not valid JSON', async () => {
@@ -226,6 +250,7 @@ describe('parseDroppedProfile', () => {
     const imported = importProfile(
       await parseDroppedProfile(file),
       file.name,
+      '',
       'flamechart'
     );
 
@@ -257,6 +282,7 @@ describe('parseDroppedProfile', () => {
     const imported = importProfile(
       await parseDroppedProfile(file),
       file.name,
+      '',
       'flamechart'
     );
 

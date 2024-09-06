@@ -3,22 +3,23 @@ import {css, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {
   BrowserClient,
-  defaultIntegrations,
+  captureFeedback,
   defaultStackParser,
+  getDefaultIntegrations,
   makeFetchTransport,
 } from '@sentry/react';
-import {Event} from '@sentry/types';
+import type {Event} from '@sentry/types';
 import cloneDeep from 'lodash/cloneDeep';
 
 import {addSuccessMessage} from 'sentry/actionCreators/indicator';
-import {ModalRenderProps} from 'sentry/actionCreators/modal';
+import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {Alert} from 'sentry/components/alert';
 import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import Textarea from 'sentry/components/forms/controls/textarea';
 import FieldGroup from 'sentry/components/forms/fieldGroup';
 import SelectField from 'sentry/components/forms/fields/selectField';
-import {Data} from 'sentry/components/forms/types';
+import type {Data} from 'sentry/components/forms/types';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {t, tct} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
@@ -35,7 +36,7 @@ export const feedbackClient = new BrowserClient({
   dsn: 'https://3c5ef4e344a04a0694d187a1272e96de@o1.ingest.sentry.io/6356259',
   transport: makeFetchTransport,
   stackParser: defaultStackParser,
-  integrations: defaultIntegrations,
+  integrations: getDefaultIntegrations({}),
 });
 
 const defaultFeedbackTypes = [
@@ -74,9 +75,13 @@ type DefaultFeedbackModal = {
   secondaryAction?: React.ReactNode;
 };
 
-export type FeedbackModalProps<T extends Data> =
+export type FeedbackModalProps<T extends Data> = (
   | DefaultFeedbackModal
-  | CustomFeedbackModal<T>;
+  | CustomFeedbackModal<T>
+) & {
+  /** Use the actual user feedback feature instead of simply creating a message event. */
+  useNewUserFeedback?: boolean;
+};
 
 export function FeedbackModal<T extends Data>({
   Header,
@@ -129,22 +134,45 @@ export function FeedbackModal<T extends Data>({
 
       if (props.children === undefined) {
         const feedbackTypes = props.feedbackTypes ?? defaultFeedbackTypes;
-        feedbackClient.captureEvent({
-          ...commonEventProps,
-          contexts: {
-            feedback: {
-              additionalInfo: state.additionalInfo?.trim() ? state.additionalInfo : null,
+        const fullMessage = state.additionalInfo?.trim()
+          ? `${message} - ${feedbackTypes[state.subject]} - ${state.additionalInfo}`
+          : `${message} - ${feedbackTypes[state.subject]}`;
+        if (props.useNewUserFeedback) {
+          captureFeedback({
+            message: fullMessage,
+            source: props.featureName,
+            tags: {
+              feature: props.featureName,
             },
-          },
-          message: state.additionalInfo?.trim()
-            ? `${message} - ${feedbackTypes[state.subject]} - ${state.additionalInfo}`
-            : `${message} - ${feedbackTypes[state.subject]}`,
-        });
+          });
+        } else {
+          feedbackClient.captureEvent({
+            ...commonEventProps,
+            contexts: {
+              feedback: {
+                additionalInfo: state.additionalInfo?.trim()
+                  ? state.additionalInfo
+                  : null,
+              },
+            },
+            message: fullMessage,
+          });
+        }
       } else {
-        feedbackClient.captureEvent({
-          ...commonEventProps,
-          ...(submitEventData ?? {}),
-        });
+        if (props.useNewUserFeedback) {
+          captureFeedback({
+            message,
+            source: props.featureName,
+            tags: {
+              feature: props.featureName,
+            },
+          });
+        } else {
+          feedbackClient.captureEvent({
+            ...commonEventProps,
+            ...(submitEventData ?? {}),
+          });
+        }
       }
 
       addSuccessMessage(t('Thanks for taking the time to provide us feedback!'));

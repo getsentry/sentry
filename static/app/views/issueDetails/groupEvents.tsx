@@ -1,22 +1,25 @@
 import {useCallback} from 'react';
-import {browserHistory, RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 
 import EventSearchBar from 'sentry/components/events/searchBar';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {space} from 'sentry/styles/space';
-import {Group} from 'sentry/types';
+import type {Group} from 'sentry/types/group';
+import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
+import {browserHistory} from 'sentry/utils/browserHistory';
+import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import useCleanQueryParamsOnRouteLeave from 'sentry/utils/useCleanQueryParamsOnRouteLeave';
 import useOrganization from 'sentry/utils/useOrganization';
-import {normalizeUrl} from 'sentry/utils/withDomainRequired';
+import {EventSearch} from 'sentry/views/issueDetails/streamline/eventSearch';
 
 import AllEventsTable from './allEventsTable';
 
 interface Props extends RouteComponentProps<{groupId: string}, {}> {
+  environments: string[];
   group: Group;
 }
 
-const excludedTags = [
+export const ALL_EVENTS_EXCLUDED_TAGS = [
   'environment',
   'issue',
   'issue.id',
@@ -25,7 +28,7 @@ const excludedTags = [
   'transaction.status',
 ];
 
-function GroupEvents({params, location, group}: Props) {
+function GroupEvents({params, location, group, environments}: Props) {
   const organization = useOrganization();
 
   const {groupId} = params;
@@ -46,25 +49,37 @@ function GroupEvents({params, location, group}: Props) {
     [location, organization, groupId]
   );
 
+  const query = location.query?.query ?? '';
+
   return (
     <Layout.Body>
       <Layout.Main fullWidth>
         <AllEventsFilters>
-          <EventSearchBar
-            organization={organization}
-            defaultQuery=""
-            onSearch={handleSearch}
-            excludedTags={excludedTags}
-            query={location.query?.query ?? ''}
-            hasRecentSearches={false}
-          />
+          {organization.features.includes('issue-stream-search-query-builder') ? (
+            <EventSearch
+              environments={environments}
+              group={group}
+              handleSearch={handleSearch}
+              query={query}
+            />
+          ) : (
+            <EventSearchBar
+              organization={organization}
+              defaultQuery=""
+              onSearch={handleSearch}
+              excludedTags={ALL_EVENTS_EXCLUDED_TAGS}
+              query={query}
+              hasRecentSearches={false}
+              searchSource="issue_events_tab"
+            />
+          )}
         </AllEventsFilters>
         <AllEventsTable
           issueId={group.id}
           location={location}
           organization={organization}
           group={group}
-          excludedTags={excludedTags}
+          excludedTags={ALL_EVENTS_EXCLUDED_TAGS}
         />
       </Layout.Main>
     </Layout.Body>

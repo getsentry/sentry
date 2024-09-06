@@ -1,9 +1,8 @@
 from __future__ import annotations
 
-from typing import Iterable, Mapping, Sequence
+from collections.abc import Iterable, Mapping, Sequence
 
-from sentry.digests import Digest
-from sentry.digests.notifications import build_digest, event_to_record
+from sentry.digests.notifications import Digest, DigestInfo, build_digest, event_to_record
 from sentry.digests.utils import (
     get_event_from_groups_in_digest,
     get_participants_by_event,
@@ -13,11 +12,11 @@ from sentry.digests.utils import (
 from sentry.eventstore.models import Event
 from sentry.models.project import Project
 from sentry.models.projectownership import ProjectOwnership
-from sentry.notifications.types import ActionTargetType
+from sentry.notifications.types import ActionTargetType, FallthroughChoiceType
 from sentry.ownership.grammar import Matcher, Owner, Rule, dump_schema
-from sentry.services.hybrid_cloud.actor import ActorType
 from sentry.testutils.cases import SnubaTestCase, TestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.types.actor import ActorType
 
 
 class UtilitiesHelpersTestCase(TestCase, SnubaTestCase):
@@ -62,7 +61,6 @@ class UtilitiesHelpersTestCase(TestCase, SnubaTestCase):
         digest = build_digest(
             project, sort_records([event_to_record(event, (rule,)) for event in events])
         )[0]
-        assert digest is not None
 
         events.pop(0)  # remove event with same group
         assert {e.event_id for e in get_event_from_groups_in_digest(digest)} == {
@@ -79,7 +77,11 @@ def assert_get_personalized_digests(
 ):
     result_user_ids = []
     participants_by_provider_by_event = get_participants_by_event(
-        digest, project, target_type, target_identifier
+        digest,
+        project,
+        target_type,
+        target_identifier,
+        fallthrough_choice=FallthroughChoiceType.ACTIVE_MEMBERS,
     )
     personalized_digests = get_personalized_digests(digest, participants_by_provider_by_event)
     for actor, user_digest in personalized_digests.items():
@@ -186,7 +188,6 @@ class GetPersonalizedDigestsTestCase(TestCase, SnubaTestCase):
             for event in self.team1_events + self.team2_events + self.user4_events
         ]
         digest = build_digest(self.project, sort_records(records))[0]
-        assert digest is not None
 
         expected_result = {
             self.user1.id: set(self.team1_events),
@@ -204,7 +205,6 @@ class GetPersonalizedDigestsTestCase(TestCase, SnubaTestCase):
         rule = self.project.rule_set.all()[0]
         records = [event_to_record(event, (rule,)) for event in self.team1_events]
         digest = build_digest(self.project, sort_records(records))[0]
-        assert digest is not None
 
         expected_result = {self.user1.id: set(self.team1_events)}
         assert_get_personalized_digests(
@@ -227,7 +227,6 @@ class GetPersonalizedDigestsTestCase(TestCase, SnubaTestCase):
             )
         ]
         digest = build_digest(project, sort_records(records))[0]
-        assert digest is not None
         user_ids = [member.user_id for member in team.member_set]
         assert not user_ids
         participants_by_provider_by_event = get_participants_by_event(digest, project)
@@ -242,7 +241,6 @@ class GetPersonalizedDigestsTestCase(TestCase, SnubaTestCase):
         )
         records = [event_to_record(event, (rule,)) for event in events]
         digest = build_digest(self.project, sort_records(records))[0]
-        assert digest is not None
         expected_result = {
             self.user1.id: set(events),
             self.user2.id: set(events),
@@ -259,7 +257,6 @@ class GetPersonalizedDigestsTestCase(TestCase, SnubaTestCase):
         )
         records = [event_to_record(event, (rule,)) for event in events + self.team1_events]
         digest = build_digest(self.project, sort_records(records))[0]
-        assert digest is not None
         expected_result = {
             self.user1.id: set(events + self.team1_events),
             self.user2.id: set(events),
@@ -271,4 +268,4 @@ class GetPersonalizedDigestsTestCase(TestCase, SnubaTestCase):
             assert_get_personalized_digests(self.project, digest, expected_result)
 
     def test_empty_records(self):
-        assert build_digest(self.project, []) == (None, [])
+        assert build_digest(self.project, []) == DigestInfo({}, {}, {})

@@ -1,5 +1,6 @@
+from collections.abc import Mapping, MutableMapping, Sequence
 from enum import Enum, auto
-from typing import Any, Dict, Mapping, MutableMapping, Optional, Sequence
+from typing import Any
 
 from sentry.db.models import NodeData
 from sentry.utils.safe import get_path
@@ -12,6 +13,9 @@ class Allow(Enum):
 
     """Keeps the event data if it is of type str, int, float, bool."""
     SIMPLE_TYPE = auto()
+
+    """Keeps the event data if it is a mapping with string keys and string values."""
+    MAP_WITH_STRINGS = auto()
 
     """
     Doesn't keep the event data no matter the type. This can be used to explicitly
@@ -53,12 +57,17 @@ EVENT_DATA_ALLOWLIST = {
                     "image_addr": Allow.SIMPLE_TYPE,
                     "package": Allow.SIMPLE_TYPE,
                     "platform": Allow.SIMPLE_TYPE,
-                }
+                    "lineno": Allow.SIMPLE_TYPE,
+                },
+                "registers": Allow.MAP_WITH_STRINGS.with_explanation(
+                    "Registers contain memory addresses, which isn't PII."
+                ),
             },
             "value": Allow.NEVER.with_explanation("The exception value could contain PII."),
             "type": Allow.SIMPLE_TYPE,
             "mechanism": {
                 "handled": Allow.SIMPLE_TYPE,
+                "synthetic": Allow.SIMPLE_TYPE,
                 "type": Allow.SIMPLE_TYPE,
                 "meta": {
                     "signal": {
@@ -71,6 +80,10 @@ EVENT_DATA_ALLOWLIST = {
                         "exception": Allow.SIMPLE_TYPE,
                         "code": Allow.SIMPLE_TYPE,
                         "subcode": Allow.SIMPLE_TYPE,
+                        "name": Allow.SIMPLE_TYPE,
+                    },
+                    "errno": {
+                        "number": Allow.SIMPLE_TYPE,
                         "name": Allow.SIMPLE_TYPE,
                     },
                 },
@@ -121,15 +134,15 @@ def strip_event_data(
 
 
 def _strip_event_data_with_allowlist(
-    data: Mapping[str, Any], allowlist: Optional[Mapping[str, Any]]
-) -> Optional[Mapping[str, Any]]:
+    data: Mapping[str, Any], allowlist: Mapping[str, Any] | None
+) -> Mapping[str, Any] | None:
     """
     Recursively traverses the data and only keeps values based on the allowlist.
     """
     if allowlist is None:
         return None
 
-    stripped_data: Dict[str, Any] = {}
+    stripped_data: dict[str, Any] = {}
     for data_key, data_value in data.items():
         allowlist_for_data = allowlist.get(data_key)
         if allowlist_for_data is None:
@@ -140,6 +153,16 @@ def _strip_event_data_with_allowlist(
 
             if allowed is Allow.SIMPLE_TYPE and isinstance(data_value, (str, int, float, bool)):
                 stripped_data[data_key] = data_value
+            elif allowed is Allow.MAP_WITH_STRINGS and isinstance(data_value, Mapping):
+                map_with_hex_values = {}
+                for key, value in data_value.items():
+                    if isinstance(key, str) and isinstance(value, str):
+                        map_with_hex_values[key] = value
+
+                if len(map_with_hex_values) > 0:
+                    stripped_data[data_key] = map_with_hex_values
+
+                continue
             else:
                 continue
 
@@ -179,7 +202,7 @@ def _strip_frames(
                 path_field_value: str = frame.get(path_field_key, "")
                 if path_field_value:
                     frame[path_field_key] = sdk_crash_detector.replace_sdk_frame_path(
-                        path_field_value
+                        path_field_key, path_field_value
                     )
         else:
             frame["in_app"] = False

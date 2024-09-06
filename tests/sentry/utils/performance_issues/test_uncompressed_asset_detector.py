@@ -9,7 +9,6 @@ from sentry.models.options.project_option import ProjectOption
 from sentry.testutils.cases import TestCase
 from sentry.testutils.performance_issues.event_generators import PROJECT_ID, create_span, get_event
 from sentry.testutils.performance_issues.span_builder import SpanBuilder
-from sentry.testutils.silo import region_silo_test
 from sentry.utils.performance_issues.detectors.uncompressed_asset_detector import (
     UncompressedAssetSpanDetector,
 )
@@ -41,7 +40,6 @@ def create_compressed_asset_span():
     )
 
 
-@region_silo_test
 @pytest.mark.django_db
 class UncompressedAssetsDetectorTest(TestCase):
     def setUp(self):
@@ -390,17 +388,6 @@ class UncompressedAssetsDetectorTest(TestCase):
         }
 
         assert len(self.find_problems(event)) == 0
-
-    def test_respects_feature_flag(self):
-        project = self.create_project()
-        event = get_event("uncompressed-assets/uncompressed-script-asset")
-
-        detector = UncompressedAssetSpanDetector(self._settings, event)
-
-        assert not detector.is_creation_allowed_for_organization(project.organization)
-
-        with self.feature({"organizations:performance-issues-compressed-assets-detector": True}):
-            assert detector.is_creation_allowed_for_organization(project.organization)
 
     def test_detects_problems_from_event(self):
         event = get_event("uncompressed-assets/uncompressed-script-asset")

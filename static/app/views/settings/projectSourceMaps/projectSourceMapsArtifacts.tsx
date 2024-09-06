@@ -1,27 +1,29 @@
 import {Fragment, useCallback} from 'react';
-import {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 
 import {Role} from 'sentry/components/acl/role';
-import {Button} from 'sentry/components/button';
+import Tag from 'sentry/components/badge/tag';
+import {LinkButton} from 'sentry/components/button';
 import FileSize from 'sentry/components/fileSize';
 import Link from 'sentry/components/links/link';
 import Pagination from 'sentry/components/pagination';
 import Panel from 'sentry/components/panels/panel';
-import PanelTable from 'sentry/components/panels/panelTable';
+import {PanelTable} from 'sentry/components/panels/panelTable';
 import SearchBar from 'sentry/components/searchBar';
-import Tag from 'sentry/components/tag';
 import TimeSince from 'sentry/components/timeSince';
 import {Tooltip} from 'sentry/components/tooltip';
 import {IconClock, IconDownload} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {Artifact, DebugIdBundleArtifact, Project} from 'sentry/types';
+import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
+import type {Project} from 'sentry/types/project';
+import type {Artifact} from 'sentry/types/release';
+import type {DebugIdBundleArtifact} from 'sentry/types/sourceMaps';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {decodeScalar} from 'sentry/utils/queryString';
+import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
-import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 import {DebugIdBundleDeleteButton} from 'sentry/views/settings/projectSourceMaps/debugIdBundleDeleteButton';
 import {DebugIdBundleDetails} from 'sentry/views/settings/projectSourceMaps/debugIdBundleDetails';
@@ -86,7 +88,7 @@ function ArtifactsTableRow({
                 disabled={hasRole}
                 isHoverable
               >
-                <Button
+                <LinkButton
                   size="sm"
                   icon={<IconDownload size="sm" />}
                   disabled={!hasRole}
@@ -136,7 +138,7 @@ export function ProjectSourceMapsArtifacts({params, location, router, project}: 
   const {
     data: artifactsData,
     getResponseHeader: artifactsHeaders,
-    isLoading: artifactsLoading,
+    isPending: artifactsLoading,
   } = useApiQuery<Artifact[]>(
     [
       artifactsEndpoint,
@@ -154,7 +156,7 @@ export function ProjectSourceMapsArtifacts({params, location, router, project}: 
   const {
     data: debugIdBundlesArtifactsData,
     getResponseHeader: debugIdBundlesArtifactsHeaders,
-    isLoading: debugIdBundlesArtifactsLoading,
+    isPending: debugIdBundlesArtifactsLoading,
   } = useApiQuery<DebugIdBundleArtifact>(
     [
       debugIdBundlesArtifactsEndpoint,
@@ -237,8 +239,8 @@ export function ProjectSourceMapsArtifacts({params, location, router, project}: 
           query
             ? t('No artifacts match your search query.')
             : tabDebugIdBundlesActive
-            ? t('There are no artifacts in this bundle.')
-            : t('There are no artifacts in this archive.')
+              ? t('There are no artifacts in this bundle.')
+              : t('There are no artifacts in this archive.')
         }
         isEmpty={
           (tabDebugIdBundlesActive

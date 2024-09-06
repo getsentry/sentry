@@ -1,3 +1,5 @@
+import {GroupFixture} from 'sentry-fixture/group';
+
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
@@ -10,7 +12,7 @@ import {
 } from 'sentry/components/globalModal/components';
 import {ReprocessingEventModal} from 'sentry/components/modals/reprocessEventModal';
 
-const group = TestStubs.Group({
+const group = GroupFixture({
   id: '1337',
   pluginActions: [],
   pluginIssues: [],
@@ -22,7 +24,6 @@ describe('ReprocessEventModal', function () {
       organization: {
         id: '4660',
         slug: 'org',
-        features: ['reprocessing-v2'],
       },
     });
 
@@ -71,7 +72,6 @@ describe('ReprocessEventModal', function () {
       organization: {
         id: '4660',
         slug: 'org',
-        features: ['reprocessing-v2'],
       },
     });
 

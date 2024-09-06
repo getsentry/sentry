@@ -1,5 +1,6 @@
 import {useCallback, useMemo, useRef, useState} from 'react';
-import {AutoSizer, CellMeasurer, GridCellProps, MultiGrid} from 'react-virtualized';
+import type {GridCellProps} from 'react-virtualized';
+import {AutoSizer, CellMeasurer, MultiGrid} from 'react-virtualized';
 
 import Placeholder from 'sentry/components/placeholder';
 import JumpButtons from 'sentry/components/replays/jumpButtons';
@@ -12,12 +13,12 @@ import useDetailsSplit from 'sentry/components/replays/virtualizedGrid/useDetail
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import useCrumbHandlers from 'sentry/utils/replays/hooks/useCrumbHandlers';
+import useCurrentHoverTime from 'sentry/utils/replays/playback/providers/useCurrentHoverTime';
 import {getFrameMethod, getFrameStatus} from 'sentry/utils/replays/resourceFrame';
 import useOrganization from 'sentry/utils/useOrganization';
 import FilterLoadingIndicator from 'sentry/views/replays/detail/filterLoadingIndicator';
 import FluidHeight from 'sentry/views/replays/detail/layout/fluidHeight';
 import NetworkDetails from 'sentry/views/replays/detail/network/details';
-import {ReqRespBodiesAlert} from 'sentry/views/replays/detail/network/details/onboarding';
 import NetworkFilters from 'sentry/views/replays/detail/network/networkFilters';
 import NetworkHeaderCell, {
   COLUMN_COUNT,
@@ -41,7 +42,8 @@ const cellMeasurer = {
 
 function NetworkList() {
   const organization = useOrganization();
-  const {currentTime, currentHoverTime, replay} = useReplayContext();
+  const {currentTime, replay} = useReplayContext();
+  const [currentHoverTime] = useCurrentHoverTime();
   const {onMouseEnter, onMouseLeave, onClickTimestamp} = useCrumbHandlers();
 
   const isNetworkDetailsSetup = Boolean(replay?.isNetworkDetailsSetup());
@@ -161,7 +163,6 @@ function NetworkList() {
       <FilterLoadingIndicator isLoading={!replay}>
         <NetworkFilters networkFrames={networkFrames} {...filterProps} />
       </FilterLoadingIndicator>
-      <ReqRespBodiesAlert isNetworkDetailsSetup={isNetworkDetailsSetup} />
       <GridTable ref={containerRef} data-test-id="replay-details-network-tab">
         <SplitPanel
           style={{

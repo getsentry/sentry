@@ -137,7 +137,7 @@ class GetOptionValueTest(TestCase):
             "account_number": "943013980633",
             "layer_name": "SentryNodeServerlessSDK",
             "repo_url": "https://github.com/getsentry/sentry-javascript",
-            "main_docs_url": "https://docs.sentry.io/platforms/node/guides/aws-lambda",
+            "main_docs_url": "https://docs.sentry.io/platforms/javascript/guides/aws-lambda",
             "regions": [
                 {"region": "us-east-2", "version": "19"},
                 {"region": "us-west-1", "version": "17"},

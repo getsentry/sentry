@@ -7,6 +7,9 @@ body {
     &.collapsed {
       padding-left: @sidebar-collapsed-width;
     }
+    &.hasNewNav {
+      padding-left: @sidebar-semi-collapsed-width;
+    }
   }
 
   &.scroll-lock {
@@ -38,6 +41,9 @@ body.narrow {
 
     &.collapsed {
       padding-left: @sidebar-collapsed-width;
+    }
+    &.hasNewNav {
+      padding-left: @sidebar-semi-collapsed-width;
     }
   }
 
@@ -168,6 +174,10 @@ body.auth {
         margin-bottom: 0;
       }
     }
+
+    .help-center-link {
+      color: #6c5fc7;
+    }
   }
 
   .tab-content .auth-container {
@@ -223,10 +233,6 @@ body.auth {
         color: @gray-dark;
       }
     }
-  }
-
-  .auth-terms {
-    color: @gray-light;
   }
 
   .auth-toggle {

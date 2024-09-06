@@ -6,10 +6,9 @@ from sentry.constants import ObjectStatus
 from sentry.models.organizationmember import OrganizationMember
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase
-from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
+from sentry.testutils.silo import assume_test_silo_mode
 
 
-@region_silo_test
 class OrganizationMissingMembersTestCase(APITestCase):
     endpoint = "sentry-api-0-organization-missing-members"
     method = "get"
@@ -192,6 +191,28 @@ class OrganizationMissingMembersTestCase(APITestCase):
             {"email": "c@example.com", "externalId": "c", "commitCount": 2},
             {"email": "d@example.com", "externalId": "d", "commitCount": 1},
             {"email": "a@exampletwo.com", "externalId": "not", "commitCount": 1},
+        ]
+
+    def test_case_insensitive(self):
+        # excludes author that has matching (case insensitive) email
+
+        member = self.create_member(user=self.create_user(), organization=self.organization)
+        member.user_email = "helloworld@example.com"
+        member.save()
+
+        commit_author = self.create_commit_author(
+            project=self.project, email="HelloWorld@example.com"
+        )
+        commit_author.external_id = "github:helloworld"
+        commit_author.save()
+
+        self.create_commit(repo=self.repo, author=commit_author)
+
+        response = self.get_success_response(self.organization.slug)
+        assert response.data[0]["integration"] == "github"
+        assert response.data[0]["users"] == [
+            {"email": "c@example.com", "externalId": "c", "commitCount": 2},
+            {"email": "d@example.com", "externalId": "d", "commitCount": 1},
         ]
 
     def test_owners_invalid_domain_no_filter(self):

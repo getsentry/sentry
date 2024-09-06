@@ -2,10 +2,8 @@ from django.test.client import RequestFactory
 from django.urls import reverse
 
 from fixtures.apidocs_test_case import APIDocsTestCase
-from sentry.testutils.silo import region_silo_test
 
 
-@region_silo_test
 class ProjectReleaseFileDetailsDocsTest(APIDocsTestCase):
     def setUp(self):
         self.login_as(user=self.user)
@@ -25,8 +23,8 @@ class ProjectReleaseFileDetailsDocsTest(APIDocsTestCase):
         self.url = reverse(
             "sentry-api-0-project-release-file-details",
             kwargs={
-                "project_slug": project.slug,
-                "organization_slug": project.organization.slug,
+                "project_id_or_slug": project.slug,
+                "organization_id_or_slug": project.organization.slug,
                 "version": release.version,
                 "file_id": releasefile.id,
             },

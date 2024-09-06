@@ -9,7 +9,7 @@ import type {
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
 import type {ReleaseRegistrySdk} from 'sentry/components/onboarding/gettingStartedDoc/useSourcePackageRegistries';
 import {ProductSolution} from 'sentry/components/onboarding/productSelection';
-import {DeepPartial} from 'sentry/types/utils';
+import type {DeepPartial} from 'sentry/types/utils';
 
 interface Options<PlatformOptions extends BasePlatformOptions = BasePlatformOptions> {
   releaseRegistry?: DeepPartial<ReleaseRegistrySdk>;
@@ -30,7 +30,7 @@ export function renderWithOnboardingLayout<
     selectedOptions = {},
   } = options;
 
-  const {organization, routerContext} = initializeOrg({
+  const {organization, router} = initializeOrg({
     router: {
       location: {
         query: selectedOptions,
@@ -47,14 +47,23 @@ export function renderWithOnboardingLayout<
     <OnboardingLayout
       docsConfig={docsConfig}
       projectSlug="test-project-slug"
-      dsn="test-dsn"
+      dsn={{
+        public: 'test-dsn',
+        secret: 'test-secret',
+        cdn: 'test-cdn',
+        crons: 'test-crons',
+        security: 'test-security',
+        csp: 'test-csp',
+        minidump: 'test-minidump',
+        unreal: 'test-unreal',
+      }}
       platformKey="java-spring-boot"
       projectId="test-project-id"
       activeProductSelection={selectedProducts}
     />,
     {
       organization,
-      context: routerContext,
+      router,
     }
   );
 }

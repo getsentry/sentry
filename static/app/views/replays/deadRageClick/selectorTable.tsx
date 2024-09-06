@@ -1,10 +1,12 @@
-import {ReactNode, useCallback, useMemo} from 'react';
+import type {ReactNode} from 'react';
+import {useCallback, useMemo} from 'react';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
 import {PlatformIcon} from 'platformicons';
 
 import {CodeSnippet} from 'sentry/components/codeSnippet';
-import GridEditable, {GridColumnOrder} from 'sentry/components/gridEditable';
+import type {GridColumnOrder} from 'sentry/components/gridEditable';
+import GridEditable from 'sentry/components/gridEditable';
 import Link from 'sentry/components/links/link';
 import renderSortableHeaderCell from 'sentry/components/replays/renderSortableHeaderCell';
 import useQueryBasedColumnResize from 'sentry/components/replays/useQueryBasedColumnResize';
@@ -14,12 +16,12 @@ import {Tooltip} from 'sentry/components/tooltip';
 import {IconCursorArrow} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
-import {normalizeUrl} from 'sentry/utils/withDomainRequired';
-import {DeadRageSelectorItem} from 'sentry/views/replays/types';
-import {WiderHovercard} from 'sentry/views/starfish/components/tableCells/spanDescriptionCell';
+import {WiderHovercard} from 'sentry/views/insights/common/components/tableCells/spanDescriptionCell';
+import type {DeadRageSelectorItem} from 'sentry/views/replays/types';
 
 export interface UrlState {
   widths: string[];
@@ -153,7 +155,6 @@ export default function SelectorTable({
         renderHeadCell,
         renderBodyCell,
       }}
-      location={location as Location<any>}
       title={title}
     />
   );

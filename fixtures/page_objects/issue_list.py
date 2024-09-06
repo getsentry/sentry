@@ -37,8 +37,8 @@ class IssueListPage(BasePage):
     def find_resolved_issues(self):
         return self.browser.elements('[data-test-id="resolved-issue"]')
 
-    def ignore_issues(self):
-        self.browser.click('[aria-label="Ignore"]')
+    def archive_issues(self):
+        self.browser.click('[aria-label="Archive"]')
 
     def delete_issues(self):
         self.browser.click('[aria-label="More issue actions"]')
@@ -47,8 +47,21 @@ class IssueListPage(BasePage):
         self.browser.click('[data-test-id="confirm-button"]')
 
     def merge_issues(self):
-        self.browser.click('[aria-label="Merge Selected Issues"]')
-        self.browser.click('[data-test-id="confirm-button"]')
+        # Merge button gets put into an overflow menu for small viewports
+        if self.browser.element_exists('[aria-label="Merge Selected Issues"]'):
+            self.browser.click('[aria-label="Merge Selected Issues"]')
+            self.browser.click('[data-test-id="confirm-button"]')
+        else:
+            self.browser.click('[aria-label="More issue actions"]')
+            self.browser.wait_until('[data-test-id="merge"]')
+            self.browser.click('[data-test-id="merge"]')
+            self.browser.click('[data-test-id="confirm-button"]')
 
     def mark_reviewed_issues(self):
-        self.browser.click('[aria-label="Mark Reviewed"]')
+        # Marked reviewed button gets put into an overflow menu for small viewports
+        if self.browser.element_exists('[aria-label="Mark Reviewed"]'):
+            self.browser.click('[aria-label="Mark Reviewed"]')
+        else:
+            self.browser.click('[aria-label="More issue actions"]')
+            self.browser.wait_until('[data-test-id="mark-reviewed"]')
+            self.browser.click('[data-test-id="mark-reviewed"]')

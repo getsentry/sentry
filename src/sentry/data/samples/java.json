@@ -6,7 +6,7 @@
     "name": "sentry-java",
     "version": "1.4.0-3ded0"
   },
-  "sentry.interfaces.Breadcrumbs": {
+  "breadcrumbs": {
     "values": [
       {
         "level": "debug",
@@ -33,7 +33,7 @@
       }
     ]
   },
-  "sentry.interfaces.Exception": {
+  "exception": {
     "exc_omitted": null,
     "values": [
       {
@@ -507,7 +507,7 @@
       }
     ]
   },
-  "sentry.interfaces.Http": {
+  "request": {
     "data": "{\"logged_in\":[\"1\"]}",
     "env": {
       "AUTH_TYPE": null,
@@ -523,34 +523,13 @@
       "SERVER_PROTOCOL": "HTTP/1.1"
     },
     "headers": [
-      [
-        "Accept-Language",
-        "en-US,en;q=0.8"
-      ],
-      [
-        "Host",
-        "localhost:8080"
-      ],
-      [
-        "Upgrade-Insecure-Requests",
-        "1"
-      ],
-      [
-        "Connection",
-        "keep-alive"
-      ],
-      [
-        "Dnt",
-        "1"
-      ],
-      [
-        "Cache-Control",
-        "max-age=0"
-      ],
-      [
-        "Accept-Encoding",
-        "gzip, deflate, br"
-      ],
+      ["Accept-Language", "en-US,en;q=0.8"],
+      ["Host", "localhost:8080"],
+      ["Upgrade-Insecure-Requests", "1"],
+      ["Connection", "keep-alive"],
+      ["Dnt", "1"],
+      ["Cache-Control", "max-age=0"],
+      ["Accept-Encoding", "gzip, deflate, br"],
       [
         "User-Agent",
         "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_12_6) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/60.0.3112.78 Safari/537.36"
@@ -564,10 +543,10 @@
     "query_string": "logged_in=1",
     "url": "http://localhost:8080/"
   },
-  "sentry.interfaces.Message": {
+  "logentry": {
     "message": "Authentication failed, token expired!"
   },
-  "sentry.interfaces.User": {
+  "user": {
     "data": {
       "account_level": "premium"
     },
@@ -576,42 +555,15 @@
     "username": "user"
   },
   "tags": [
-    [
-      "server_name",
-      "web1.example.com"
-    ],
-    [
-      "level",
-      "error"
-    ],
-    [
-      "url",
-      "http://localhost:8080/"
-    ],
-    [
-      "environment",
-      "production"
-    ],
-    [
-      "sentry:user",
-      "email:user@sentry.io"
-    ],
-    [
-      "device",
-      "Other"
-    ],
-    [
-      "sentry:release",
-      "3.0.2"
-    ],
-    [
-      "os",
-      "Mac OS X 10.12.6"
-    ],
-    [
-      "browser",
-      "Chrome 60.0"
-    ]
+    ["server_name", "web1.example.com"],
+    ["level", "error"],
+    ["url", "http://localhost:8080/"],
+    ["environment", "production"],
+    ["sentry:user", "email:user@sentry.io"],
+    ["device", "Other"],
+    ["sentry:release", "3.0.2"],
+    ["os", "Mac OS X 10.12.6"],
+    ["browser", "Chrome 60.0"]
   ],
   "type": "error",
   "version": "6"

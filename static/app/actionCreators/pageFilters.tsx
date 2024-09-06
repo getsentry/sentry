@@ -1,6 +1,5 @@
-import {InjectedRouter} from 'react-router';
 import * as Sentry from '@sentry/react';
-import {Location} from 'history';
+import type {Location} from 'history';
 import isInteger from 'lodash/isInteger';
 import omit from 'lodash/omit';
 import pick from 'lodash/pick';
@@ -14,22 +13,22 @@ import {
   getPageFilterStorage,
   setPageFiltersStorage,
 } from 'sentry/components/organizations/pageFilters/persistence';
-import {PageFiltersStringified} from 'sentry/components/organizations/pageFilters/types';
+import type {PageFiltersStringified} from 'sentry/components/organizations/pageFilters/types';
 import {getDefaultSelection} from 'sentry/components/organizations/pageFilters/utils';
-import {DATE_TIME_KEYS, URL_PARAM} from 'sentry/constants/pageFilters';
+import {
+  ALL_ACCESS_PROJECTS,
+  DATE_TIME_KEYS,
+  URL_PARAM,
+} from 'sentry/constants/pageFilters';
 import OrganizationStore from 'sentry/stores/organizationStore';
 import PageFiltersStore from 'sentry/stores/pageFiltersStore';
-import {
-  DateString,
-  Environment,
-  MinimalProject,
-  Organization,
-  PageFilters,
-  PinnedPageFilter,
-  Project,
-} from 'sentry/types';
-import {defined, valueIsEqual} from 'sentry/utils';
+import type {DateString, PageFilters, PinnedPageFilter} from 'sentry/types/core';
+import type {InjectedRouter} from 'sentry/types/legacyReactRouter';
+import type {Organization} from 'sentry/types/organization';
+import type {Environment, MinimalProject, Project} from 'sentry/types/project';
+import {defined} from 'sentry/utils';
 import {getUtcDateString} from 'sentry/utils/dates';
+import {valueIsEqual} from 'sentry/utils/object/valueIsEqual';
 
 type EnvironmentId = Environment['id'];
 
@@ -212,10 +211,14 @@ export function initializeUrlState({
    * IDs (project was deleted/moved to another org) can still exist in local storage or
    * shared links.
    */
-  function validateProjectId(projectId: number) {
+  function validateProjectId(projectId: number): boolean {
+    if (projectId === ALL_ACCESS_PROJECTS) {
+      return !shouldEnforceSingleProject;
+    }
+
     return (
-      !!memberProjects?.find(mp => String(mp.id) === String(projectId)) ||
-      !!nonMemberProjects?.find(nmp => String(nmp.id) === String(projectId))
+      !!memberProjects?.some(mp => String(mp.id) === String(projectId)) ||
+      !!nonMemberProjects?.some(nmp => String(nmp.id) === String(projectId))
     );
   }
 
@@ -223,10 +226,10 @@ export function initializeUrlState({
    * Check to make sure that the environment exists. Invalid environments (due to being
    * hidden) can still exist in local storage or shared links.
    */
-  function validateEnvironment(env: string) {
+  function validateEnvironment(env: string): boolean {
     return (
-      !!memberProjects?.find(mp => mp.environments.includes(env)) ||
-      !!nonMemberProjects?.find(nmp => nmp.environments.includes(env))
+      !!memberProjects?.some(mp => mp.environments.includes(env)) ||
+      !!nonMemberProjects?.some(nmp => nmp.environments.includes(env))
     );
   }
 
@@ -473,7 +476,7 @@ function updateParams(obj: PageFiltersUpdate, router?: Router, options?: Options
  * Pinned state is always persisted.
  */
 async function persistPageFilters(filter: PinnedPageFilter | null, options?: Options) {
-  if (!options?.save || !PageFiltersStore.shouldPersist) {
+  if (!options?.save || !PageFiltersStore.getState().shouldPersist) {
     return;
   }
 
@@ -507,7 +510,7 @@ async function persistPageFilters(filter: PinnedPageFilter | null, options?: Opt
  */
 async function checkDesyncedUrlState(router?: Router, shouldForceProject?: boolean) {
   // Cannot compare URL state without the router
-  if (!router || !PageFiltersStore.shouldPersist) {
+  if (!router || !PageFiltersStore.getState().shouldPersist) {
     return;
   }
 
@@ -587,7 +590,7 @@ async function checkDesyncedUrlState(router?: Router, shouldForceProject?: boole
  * Commits the new desynced filter values and clears the desynced filters list.
  */
 export function saveDesyncedFilters() {
-  const {desyncedFilters} = PageFiltersStore;
+  const {desyncedFilters} = PageFiltersStore.getState();
   [...desyncedFilters].forEach(filter => persistPageFilters(filter, {save: true}));
   PageFiltersStore.updateDesyncedFilters(new Set());
 }

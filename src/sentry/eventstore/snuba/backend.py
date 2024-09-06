@@ -1,8 +1,11 @@
+from __future__ import annotations
+
 import logging
 import random
+from collections.abc import Mapping, Sequence
 from copy import copy, deepcopy
 from datetime import datetime, timedelta
-from typing import Any, Mapping, Optional, Sequence
+from typing import Any, Literal, overload
 
 import sentry_sdk
 from django.utils import timezone
@@ -21,7 +24,7 @@ from snuba_sdk import (
 )
 
 from sentry.eventstore.base import EventStorage
-from sentry.eventstore.models import Event
+from sentry.eventstore.models import Event, GroupEvent
 from sentry.models.group import Group
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.events import Columns
@@ -66,8 +69,8 @@ class SnubaEventStorage(EventStorage):
         self,
         organization_id: int,
         group_id: int,
-        start: Optional[datetime],
-        end: Optional[datetime],
+        start: datetime | None,
+        end: datetime | None,
         conditions: Sequence[Condition],
         orderby: Sequence[str],
         limit=DEFAULT_LIMIT,
@@ -75,7 +78,7 @@ class SnubaEventStorage(EventStorage):
         referrer="eventstore.get_events_snql",
         dataset=Dataset.Events,
         tenant_ids=None,
-    ):
+    ) -> list[Event]:
         cols = self.__get_columns(dataset)
 
         resolved_order_by = []
@@ -166,7 +169,7 @@ class SnubaEventStorage(EventStorage):
         referrer="eventstore.get_events",
         dataset=Dataset.Events,
         tenant_ids=None,
-    ):
+    ) -> list[Event]:
         """
         Get events from Snuba, with node data loaded.
         """
@@ -191,7 +194,7 @@ class SnubaEventStorage(EventStorage):
         referrer="eventstore.get_unfetched_events",
         dataset=Dataset.Events,
         tenant_ids=None,
-    ):
+    ) -> list[Event]:
         """
         Get events from Snuba, without node data loaded.
         """
@@ -216,7 +219,7 @@ class SnubaEventStorage(EventStorage):
         should_bind_nodes=False,
         dataset=Dataset.Events,
         tenant_ids=None,
-    ):
+    ) -> list[Event]:
         assert filter, "You must provide a filter"
         cols = self.__get_columns(dataset)
         orderby = orderby or DESC_ORDERING
@@ -296,15 +299,42 @@ class SnubaEventStorage(EventStorage):
 
         return []
 
+    @overload
     def get_event_by_id(
         self,
-        project_id,
-        event_id,
-        group_id=None,
-        skip_transaction_groupevent=False,
+        project_id: int,
+        event_id: str,
+        group_id: int | None = None,
         tenant_ids=None,
-        occurrence_id: Optional[str] = None,
-    ):
+        occurrence_id: str | None = None,
+        *,
+        skip_transaction_groupevent: Literal[True],
+    ) -> Event | None:
+        ...
+
+    @overload
+    def get_event_by_id(
+        self,
+        project_id: int,
+        event_id: str,
+        group_id: int | None = None,
+        tenant_ids=None,
+        occurrence_id: str | None = None,
+        *,
+        skip_transaction_groupevent: bool = False,
+    ) -> Event | GroupEvent | None:
+        ...
+
+    def get_event_by_id(
+        self,
+        project_id: int,
+        event_id: str,
+        group_id: int | None = None,
+        tenant_ids=None,
+        occurrence_id: str | None = None,
+        *,
+        skip_transaction_groupevent: bool = False,
+    ) -> Event | GroupEvent | None:
         """
         Get an event given a project ID and event ID
         Returns None if an event cannot be found
@@ -425,7 +455,9 @@ class SnubaEventStorage(EventStorage):
         prev_filter = deepcopy(filter)
         prev_filter.conditions = prev_filter.conditions or []
         prev_filter.conditions.extend(get_before_event_condition(event))
-        prev_filter.start = datetime.utcfromtimestamp(0)
+
+        # We only store 90 days of data, add a few extra days just in case
+        prev_filter.start = event.datetime - timedelta(days=100)
         # the previous event can have the same timestamp, add 1 second
         # to the end condition since it uses a less than condition
         prev_filter.end = event.datetime + timedelta(seconds=1)

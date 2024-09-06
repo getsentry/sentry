@@ -7,19 +7,24 @@ from sentry.models.organizationmapping import OrganizationMapping
 from sentry.models.project import Project
 from sentry.models.projectkey import ProjectKey
 from sentry.models.team import Team
-from sentry.models.user import User
 from sentry.receivers.core import DEFAULT_SENTRY_PROJECT_ID, create_default_projects
-from sentry.silo import unguarded_write
+from sentry.silo.safety import unguarded_write
 from sentry.testutils.cases import TestCase
+from sentry.testutils.silo import assume_test_silo_mode_of
+from sentry.users.models.user import User
 
 
 class CreateDefaultProjectsTest(TestCase):
     @override_settings(SENTRY_PROJECT=1)
     def test_simple(self):
-        user, _ = User.objects.get_or_create(is_superuser=True, defaults={"username": "test"})
+        with assume_test_silo_mode_of(User):
+            user, _ = User.objects.get_or_create(is_superuser=True, defaults={"username": "test"})
         Organization.objects.all().delete()
 
-        with unguarded_write(using=router.db_for_write(OrganizationMapping)):
+        with (
+            assume_test_silo_mode_of(OrganizationMapping),
+            unguarded_write(using=router.db_for_write(OrganizationMapping)),
+        ):
             OrganizationMapping.objects.all().delete()
         Team.objects.filter(slug="sentry").delete()
         Project.objects.filter(id=settings.SENTRY_PROJECT).delete()
@@ -29,7 +34,7 @@ class CreateDefaultProjectsTest(TestCase):
         assert project.public is False
         assert project.name == "Internal"
         assert project.slug == "internal"
-        team = project.teams.first()
+        team = project.teams.get()
         assert team.slug == "sentry"
 
         pk = ProjectKey.objects.get(project=project)
@@ -46,7 +51,8 @@ class CreateDefaultProjectsTest(TestCase):
 
     @override_settings(SENTRY_PROJECT=1)
     def test_without_user(self):
-        User.objects.filter(is_superuser=True).delete()
+        with assume_test_silo_mode_of(User):
+            User.objects.filter(is_superuser=True).delete()
         with unguarded_write(using=router.db_for_write(Team)):
             Team.objects.filter(slug="sentry").delete()
             Project.objects.filter(id=settings.SENTRY_PROJECT).delete()
@@ -57,7 +63,7 @@ class CreateDefaultProjectsTest(TestCase):
         assert project.public is False
         assert project.name == "Internal"
         assert project.slug == "internal"
-        team = project.teams.first()
+        team = project.teams.get()
         assert team.slug == "sentry"
 
         pk = ProjectKey.objects.get(project=project)
@@ -74,7 +80,8 @@ class CreateDefaultProjectsTest(TestCase):
 
     def test_no_sentry_project(self):
         with self.settings(SENTRY_PROJECT=None):
-            User.objects.filter(is_superuser=True).delete()
+            with assume_test_silo_mode_of(User):
+                User.objects.filter(is_superuser=True).delete()
             with unguarded_write(using=router.db_for_write(Team)):
                 Team.objects.filter(slug="sentry").delete()
                 Project.objects.filter(id=DEFAULT_SENTRY_PROJECT_ID).delete()
@@ -85,7 +92,7 @@ class CreateDefaultProjectsTest(TestCase):
             assert project.public is False
             assert project.name == "Internal"
             assert project.slug == "internal"
-            team = project.teams.first()
+            team = project.teams.get()
             assert team.slug == "sentry"
 
             pk = ProjectKey.objects.get(project=project)

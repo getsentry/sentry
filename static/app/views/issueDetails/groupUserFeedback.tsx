@@ -1,5 +1,4 @@
 import {Component} from 'react';
-import {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 import isEqual from 'lodash/isEqual';
 
@@ -9,7 +8,10 @@ import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Pagination from 'sentry/components/pagination';
 import {space} from 'sentry/styles/space';
-import {Group, Organization, Project, UserReport} from 'sentry/types';
+import type {Group, UserReport} from 'sentry/types/group';
+import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
+import type {Organization} from 'sentry/types/organization';
+import type {Project} from 'sentry/types/project';
 import withOrganization from 'sentry/utils/withOrganization';
 import {UserFeedbackEmpty} from 'sentry/views/userFeedback/userFeedbackEmpty';
 
@@ -116,7 +118,7 @@ class GroupUserFeedback extends Component<Props, State> {
     return (
       <Layout.Body>
         <Layout.Main fullWidth>
-          <UserFeedbackEmpty projectIds={[group.project.id]} />
+          <UserFeedbackEmpty projectIds={[group.project.id]} issueTab />
         </Layout.Main>
       </Layout.Body>
     );

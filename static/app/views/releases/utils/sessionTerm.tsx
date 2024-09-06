@@ -1,5 +1,5 @@
 import {t} from 'sentry/locale';
-import type {PlatformKey} from 'sentry/types';
+import type {PlatformKey} from 'sentry/types/project';
 
 export enum SessionTerm {
   CRASHES = 'crashes',
@@ -145,6 +145,7 @@ function getTermDescriptions(platform: PlatformKey | null) {
     case 'apple-ios':
     case 'minidump':
     case 'native':
+    case 'nintendo-switch':
       return {
         ...commonTermsDescription,
         ...desktopTermDescriptions,

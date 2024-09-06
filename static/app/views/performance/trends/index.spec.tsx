@@ -1,12 +1,10 @@
-import {browserHistory} from 'react-router';
-import {Location} from 'history';
-import {Organization} from 'sentry-fixture/organization';
+import type {Location} from 'history';
+import {OrganizationFixture} from 'sentry-fixture/organization';
+import {ProjectFixture} from 'sentry-fixture/project';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {
-  initializeData,
-  InitializeDataSettings,
-} from 'sentry-test/performance/initializePerformanceData';
+import type {InitializeDataSettings} from 'sentry-test/performance/initializePerformanceData';
+import {initializeData} from 'sentry-test/performance/initializePerformanceData';
 import {
   act,
   fireEvent,
@@ -19,6 +17,7 @@ import {
 
 import PageFiltersStore from 'sentry/stores/pageFiltersStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
+import {browserHistory} from 'sentry/utils/browserHistory';
 import {WebVital} from 'sentry/utils/fields';
 import TrendsIndex from 'sentry/views/performance/trends/';
 import {defaultTrendsSelectionDate} from 'sentry/views/performance/trends/content';
@@ -32,7 +31,7 @@ const trendsViewQuery = {
   query: `tpm():>0.01 transaction.duration:>0 transaction.duration:<${DEFAULT_MAX_DURATION}`,
 };
 
-jest.mock('moment', () => {
+jest.mock('moment-timezone', () => {
   const moment = jest.requireActual('moment');
   moment.now = jest.fn().mockReturnValue(1601251200000);
   return moment;
@@ -72,8 +71,8 @@ function _initializeData(
 ) {
   const newSettings = {...settings};
   newSettings.projects = settings.projects ?? [
-    TestStubs.Project({id: '1', firstTransactionEvent: false}),
-    TestStubs.Project({id: '2', firstTransactionEvent: true}),
+    ProjectFixture({id: '1', firstTransactionEvent: false}),
+    ProjectFixture({id: '2', firstTransactionEvent: true}),
   ];
 
   if (options?.selectedProjectId) {
@@ -124,16 +123,13 @@ function initializeTrendsData(
   const _projects = Array.isArray(projects)
     ? projects
     : [
-        TestStubs.Project({id: '1', firstTransactionEvent: false}),
-        TestStubs.Project({id: '2', firstTransactionEvent: true}),
+        ProjectFixture({id: '1', firstTransactionEvent: false}),
+        ProjectFixture({id: '2', firstTransactionEvent: true}),
       ];
   const features = extraFeatures
     ? ['transaction-event', 'performance-view', ...extraFeatures]
     : ['transaction-event', 'performance-view'];
-  const organization = Organization({
-    features,
-    projects: _projects,
-  });
+  const organization = OrganizationFixture({features});
 
   const newQuery = {...(includeDefaultQuery ? trendsViewQuery : {}), ...query};
 
@@ -141,14 +137,14 @@ function initializeTrendsData(
     organization,
     router: {
       location: {
+        pathname: '/trends/',
         query: newQuery,
       },
     },
     projects: _projects,
-    project: projects ? projects[0] : undefined,
   });
 
-  act(() => ProjectsStore.loadInitialData(initialData.organization.projects));
+  act(() => ProjectsStore.loadInitialData(initialData.projects));
 
   return initialData;
 }
@@ -183,7 +179,7 @@ describe('Performance > Trends', function () {
       body: [],
     });
     MockApiClient.addMockResponse({
-      url: '/prompts-activity/',
+      url: '/organizations/org-slug/prompts-activity/',
       body: {},
     });
     MockApiClient.addMockResponse({
@@ -301,7 +297,7 @@ describe('Performance > Trends', function () {
     render(
       <TrendsIndex location={data.router.location} organization={data.organization} />,
       {
-        context: data.routerContext,
+        router: data.router,
         organization: data.organization,
       }
     );
@@ -317,7 +313,7 @@ describe('Performance > Trends', function () {
     render(
       <TrendsIndex location={data.router.location} organization={data.organization} />,
       {
-        context: data.routerContext,
+        router: data.router,
         organization: data.organization,
       }
     );
@@ -327,13 +323,13 @@ describe('Performance > Trends', function () {
   });
 
   it('view summary menu action links to the correct view', async function () {
-    const projects = [TestStubs.Project({id: 1, slug: 'internal'}), TestStubs.Project()];
+    const projects = [ProjectFixture({id: '1', slug: 'internal'}), ProjectFixture()];
     const data = initializeTrendsData(projects, {project: ['1']});
 
     render(
       <TrendsIndex location={data.router.location} organization={data.organization} />,
       {
-        context: data.routerContext,
+        router: data.router,
         organization: data.organization,
       }
     );
@@ -346,12 +342,12 @@ describe('Performance > Trends', function () {
 
     expect(summaryLink.closest('a')).toHaveAttribute(
       'href',
-      '/organizations/org-slug/performance/summary/?display=trend&project=1&query=tpm%28%29%3A%3E0.01%20transaction.duration%3A%3E0%20transaction.duration%3A%3C15min%20count_percentage%28%29%3A%3E0.25%20count_percentage%28%29%3A%3C4%20trend_percentage%28%29%3A%3E0%25%20confidence%28%29%3A%3E6&referrer=performance-transaction-summary&statsPeriod=14d&transaction=%2Forganizations%2F%3AorgId%2Fperformance%2F&trendFunction=p50&unselectedSeries=p100%28%29&unselectedSeries=avg%28%29'
+      '/organizations/org-slug/performance/summary/?display=trend&project=1&query=tpm%28%29%3A%3E0.01%20transaction.duration%3A%3E0%20transaction.duration%3A%3C15min%20count_percentage%28%29%3A%3E0.25%20count_percentage%28%29%3A%3C4%20trend_percentage%28%29%3A%3E0%25%20confidence%28%29%3A%3E6&referrer=performance-transaction-summary&statsPeriod=14d&transaction=%2Forganizations%2F%3AorgId%2Fperformance%2F&trendFunction=p95&unselectedSeries=p100%28%29&unselectedSeries=avg%28%29'
     );
   });
 
   it('view summary menu action opens performance change explorer with feature flag', async function () {
-    const projects = [TestStubs.Project({id: 1, slug: 'internal'}), TestStubs.Project()];
+    const projects = [ProjectFixture({id: '1', slug: 'internal'}), ProjectFixture()];
     const data = initializeTrendsData(projects, {project: ['1']}, true, [
       'performance-change-explorer',
     ]);
@@ -359,7 +355,7 @@ describe('Performance > Trends', function () {
     render(
       <TrendsIndex location={data.router.location} organization={data.organization} />,
       {
-        context: data.routerContext,
+        router: data.router,
         organization: data.organization,
       }
     );
@@ -370,7 +366,10 @@ describe('Performance > Trends', function () {
 
     const summaryLink = within(firstTransaction).getByTestId('item-transaction-name');
 
-    expect(summaryLink.closest('a')).not.toHaveAttribute('href');
+    expect(summaryLink.closest('a')).toHaveAttribute(
+      'href',
+      '/trends/?project=1&query=tpm%28%29%3A%3E0.01%20transaction.duration%3A%3E0%20transaction.duration%3A%3C15min'
+    );
 
     await clickEl(summaryLink);
     await waitFor(() => {
@@ -383,13 +382,13 @@ describe('Performance > Trends', function () {
   });
 
   it('hide from list menu action modifies query', async function () {
-    const projects = [TestStubs.Project({id: 1, slug: 'internal'}), TestStubs.Project()];
+    const projects = [ProjectFixture({id: '1', slug: 'internal'}), ProjectFixture()];
     const data = initializeTrendsData(projects, {project: ['1']});
 
     render(
       <TrendsIndex location={data.router.location} organization={data.organization} />,
       {
-        context: data.routerContext,
+        router: data.router,
         organization: data.organization,
       }
     );
@@ -405,6 +404,7 @@ describe('Performance > Trends', function () {
     await clickEl(menuAction);
 
     expect(browserHistory.push).toHaveBeenCalledWith({
+      pathname: '/trends/',
       query: expect.objectContaining({
         project: expect.anything(),
         query: `tpm():>0.01 transaction.duration:>0 transaction.duration:<${DEFAULT_MAX_DURATION} !transaction:/organizations/:orgId/performance/`,
@@ -413,13 +413,13 @@ describe('Performance > Trends', function () {
   });
 
   it('Changing search causes cursors to be reset', async function () {
-    const projects = [TestStubs.Project({id: 1, slug: 'internal'}), TestStubs.Project()];
+    const projects = [ProjectFixture({id: '1', slug: 'internal'}), ProjectFixture()];
     const data = initializeTrendsData(projects, {project: ['1']});
 
     render(
       <TrendsIndex location={data.router.location} organization={data.organization} />,
       {
-        context: data.routerContext,
+        router: data.router,
         organization: data.organization,
       }
     );
@@ -427,25 +427,27 @@ describe('Performance > Trends', function () {
     const input = await screen.findByTestId('smart-search-input');
     enterSearch(input, 'transaction.duration:>9000');
 
-    expect(browserHistory.push).toHaveBeenCalledWith({
-      pathname: undefined,
-      query: expect.objectContaining({
-        project: ['1'],
-        query: 'transaction.duration:>9000',
-        improvedCursor: undefined,
-        regressionCursor: undefined,
-      }),
-    });
+    await waitFor(() =>
+      expect(browserHistory.push).toHaveBeenCalledWith({
+        pathname: '/trends/',
+        query: expect.objectContaining({
+          project: ['1'],
+          query: 'transaction.duration:>9000',
+          improvedCursor: undefined,
+          regressionCursor: undefined,
+        }),
+      })
+    );
   });
 
   it('exclude greater than list menu action modifies query', async function () {
-    const projects = [TestStubs.Project({id: 1, slug: 'internal'}), TestStubs.Project()];
+    const projects = [ProjectFixture({id: '1', slug: 'internal'}), ProjectFixture()];
     const data = initializeTrendsData(projects, {project: ['1']});
 
     render(
       <TrendsIndex location={data.router.location} organization={data.organization} />,
       {
-        context: data.routerContext,
+        router: data.router,
         organization: data.organization,
       }
     );
@@ -461,6 +463,7 @@ describe('Performance > Trends', function () {
     await clickEl(menuAction);
 
     expect(browserHistory.push).toHaveBeenCalledWith({
+      pathname: '/trends/',
       query: expect.objectContaining({
         project: expect.anything(),
         query: 'tpm():>0.01 transaction.duration:>0 transaction.duration:<=863',
@@ -469,13 +472,13 @@ describe('Performance > Trends', function () {
   });
 
   it('exclude less than list menu action modifies query', async function () {
-    const projects = [TestStubs.Project({id: 1, slug: 'internal'}), TestStubs.Project()];
+    const projects = [ProjectFixture({id: '1', slug: 'internal'}), ProjectFixture()];
     const data = initializeTrendsData(projects, {project: ['1']});
 
     render(
       <TrendsIndex location={data.router.location} organization={data.organization} />,
       {
-        context: data.routerContext,
+        router: data.router,
         organization: data.organization,
       }
     );
@@ -491,6 +494,7 @@ describe('Performance > Trends', function () {
     await clickEl(menuAction);
 
     expect(browserHistory.push).toHaveBeenCalledWith({
+      pathname: '/trends/',
       query: expect.objectContaining({
         project: expect.anything(),
         query: 'tpm():>0.01 transaction.duration:<15min transaction.duration:>=863',
@@ -499,13 +503,13 @@ describe('Performance > Trends', function () {
   });
 
   it('choosing a trend function changes location', async function () {
-    const projects = [TestStubs.Project()];
+    const projects = [ProjectFixture()];
     const data = initializeTrendsData(projects, {project: ['-1']});
 
     render(
       <TrendsIndex location={data.router.location} organization={data.organization} />,
       {
-        context: data.routerContext,
+        router: data.router,
         organization: data.organization,
       }
     );
@@ -520,6 +524,7 @@ describe('Performance > Trends', function () {
       await clickEl(option);
 
       expect(browserHistory.push).toHaveBeenCalledWith({
+        pathname: '/trends/',
         query: expect.objectContaining({
           regressionCursor: undefined,
           improvedCursor: undefined,
@@ -530,29 +535,29 @@ describe('Performance > Trends', function () {
   });
 
   it('sets LCP as a default trend parameter for frontend project if query does not specify trend parameter', async function () {
-    const projects = [TestStubs.Project({id: 1, platform: 'javascript'})];
+    const projects = [ProjectFixture({id: '1', platform: 'javascript'})];
     const data = initializeTrendsData(projects, {project: [1]});
 
     render(
       <TrendsIndex location={data.router.location} organization={data.organization} />,
       {
-        context: data.routerContext,
+        router: data.router,
         organization: data.organization,
       }
     );
 
     const trendDropdownButton = await getTrendDropdown();
-    expect(trendDropdownButton).toHaveTextContent('Percentilep50');
+    expect(trendDropdownButton).toHaveTextContent('Percentilep95');
   });
 
   it('sets duration as a default trend parameter for backend project if query does not specify trend parameter', async function () {
-    const projects = [TestStubs.Project({id: 1, platform: 'python'})];
+    const projects = [ProjectFixture({id: '1', platform: 'python'})];
     const data = initializeTrendsData(projects, {project: [1]});
 
     render(
       <TrendsIndex location={data.router.location} organization={data.organization} />,
       {
-        context: data.routerContext,
+        router: data.router,
         organization: data.organization,
       }
     );
@@ -562,13 +567,13 @@ describe('Performance > Trends', function () {
   });
 
   it('sets trend parameter from query and ignores default trend parameter', async function () {
-    const projects = [TestStubs.Project({id: 1, platform: 'javascript'})];
+    const projects = [ProjectFixture({id: '1', platform: 'javascript'})];
     const data = initializeTrendsData(projects, {project: [1], trendParameter: 'FCP'});
 
     render(
       <TrendsIndex location={data.router.location} organization={data.organization} />,
       {
-        context: data.routerContext,
+        router: data.router,
         organization: data.organization,
       }
     );
@@ -578,13 +583,13 @@ describe('Performance > Trends', function () {
   });
 
   it('choosing a parameter changes location', async function () {
-    const projects = [TestStubs.Project()];
+    const projects = [ProjectFixture()];
     const data = initializeTrendsData(projects, {project: ['-1']});
 
     render(
       <TrendsIndex location={data.router.location} organization={data.organization} />,
       {
-        context: data.routerContext,
+        router: data.router,
         organization: data.organization,
       }
     );
@@ -599,6 +604,7 @@ describe('Performance > Trends', function () {
       await clickEl(option);
 
       expect(browserHistory.push).toHaveBeenCalledWith({
+        pathname: '/trends/',
         query: expect.objectContaining({
           trendParameter: parameter.label,
         }),
@@ -607,13 +613,13 @@ describe('Performance > Trends', function () {
   });
 
   it('choosing a web vitals parameter adds it as an additional condition to the query', async function () {
-    const projects = [TestStubs.Project()];
+    const projects = [ProjectFixture()];
     const data = initializeTrendsData(projects, {project: ['-1']});
 
     const {rerender} = render(
       <TrendsIndex location={data.router.location} organization={data.organization} />,
       {
-        context: data.routerContext,
+        router: data.router,
         organization: data.organization,
       }
     );
@@ -662,13 +668,13 @@ describe('Performance > Trends', function () {
   });
 
   it('trend functions in location make api calls', async function () {
-    const projects = [TestStubs.Project(), TestStubs.Project()];
+    const projects = [ProjectFixture(), ProjectFixture()];
     const data = initializeTrendsData(projects, {project: ['-1']});
 
     const {rerender} = render(
       <TrendsIndex location={data.router.location} organization={data.organization} />,
       {
-        context: data.routerContext,
+        router: data.router,
         organization: data.organization,
       }
     );
@@ -734,24 +740,26 @@ describe('Performance > Trends', function () {
     }
   });
 
-  it('Visiting trends with trends feature will update filters if none are set', function () {
+  it('Visiting trends with trends feature will update filters if none are set', async function () {
     const data = initializeTrendsData(undefined, {}, false);
 
     render(
       <TrendsIndex location={data.router.location} organization={data.organization} />,
       {
-        context: data.routerContext,
+        router: data.router,
         organization: data.organization,
       }
     );
 
-    expect(browserHistory.push).toHaveBeenNthCalledWith(
-      1,
-      expect.objectContaining({
-        query: {
-          query: `tpm():>0.01 transaction.duration:>0 transaction.duration:<${DEFAULT_MAX_DURATION}`,
-        },
-      })
+    await waitFor(() =>
+      expect(browserHistory.push).toHaveBeenNthCalledWith(
+        1,
+        expect.objectContaining({
+          query: {
+            query: `tpm():>0.01 transaction.duration:>0 transaction.duration:<${DEFAULT_MAX_DURATION}`,
+          },
+        })
+      )
     );
   });
 
@@ -767,7 +775,7 @@ describe('Performance > Trends', function () {
     render(
       <TrendsIndex location={data.router.location} organization={data.organization} />,
       {
-        context: data.routerContext,
+        router: data.router,
         organization: data.organization,
       }
     );

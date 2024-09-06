@@ -9,19 +9,17 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import control_silo_endpoint
 from sentry.api.bases.user import UserEndpoint
 from sentry.api.serializers import Serializer, serialize
-from sentry.models.options.user_option import UserOption
 from sentry.notifications.types import UserOptionsSettingsKey
+from sentry.users.models.user_option import UserOption
 
 USER_OPTION_SETTINGS = {
     UserOptionsSettingsKey.SELF_ACTIVITY: {
         "key": "self_notifications",
         "default": "0",
-        "type": bool,
     },
     UserOptionsSettingsKey.SELF_ASSIGN: {
         "key": "self_assign_issue",
         "default": "0",
-        "type": bool,
     },
 }
 
@@ -44,10 +42,7 @@ class UserNotificationsSerializer(Serializer):
         data = {}
         for key, uo in USER_OPTION_SETTINGS.items():
             val = raw_data.get(uo["key"], uo["default"])
-            if uo["type"] == bool:
-                data[key.value] = bool(int(val))  # '1' is true, '0' is false
-            elif uo["type"] == int:
-                data[key.value] = int(val)
+            data[key.value] = bool(int(val))  # '1' is true, '0' is false
 
         return data
 
@@ -60,10 +55,10 @@ class UserNotificationDetailsSerializer(serializers.Serializer):
 
 @control_silo_endpoint
 class UserNotificationDetailsEndpoint(UserEndpoint):
-    owner = ApiOwner.ISSUES
+    owner = ApiOwner.ALERTS_NOTIFICATIONS
     publish_status = {
-        "GET": ApiPublishStatus.UNKNOWN,
-        "PUT": ApiPublishStatus.UNKNOWN,
+        "GET": ApiPublishStatus.PRIVATE,
+        "PUT": ApiPublishStatus.PRIVATE,
     }
 
     def get(self, request: Request, user) -> Response:

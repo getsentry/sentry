@@ -1,7 +1,7 @@
-import {Organization} from 'sentry-fixture/organization';
-import {Team} from 'sentry-fixture/team';
+import {OrganizationFixture} from 'sentry-fixture/organization';
+import {TeamFixture} from 'sentry-fixture/team';
 
-import {reactHooks} from 'sentry-test/reactTestingLibrary';
+import {renderHook, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import OrganizationStore from 'sentry/stores/organizationStore';
 import TeamStore from 'sentry/stores/teamStore';
@@ -18,8 +18,8 @@ const queryClient = new QueryClient({
 });
 
 describe('useTeamsById', function () {
-  const org = Organization();
-  const mockTeams = [Team()];
+  const org = OrganizationFixture();
+  const mockTeams = [TeamFixture()];
 
   const wrapper = ({children}: {children?: any}) => (
     <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
@@ -34,7 +34,7 @@ describe('useTeamsById', function () {
   it('provides teams from the team store', function () {
     TeamStore.loadInitialData(mockTeams);
 
-    const {result} = reactHooks.renderHook(useTeamsById, {wrapper});
+    const {result} = renderHook(useTeamsById, {wrapper});
     const {teams} = result.current;
 
     expect(teams).toEqual(mockTeams);
@@ -48,7 +48,7 @@ describe('useTeamsById', function () {
     });
     // TeamStore.loadInitialData not yet called
     expect(TeamStore.getState().loading).toBe(true);
-    const {result} = reactHooks.renderHook(useTeamsById, {
+    const {result} = renderHook(useTeamsById, {
       initialProps: {slugs: ['foo']},
       wrapper,
     });
@@ -59,14 +59,14 @@ describe('useTeamsById', function () {
 
   it('provides only the specified slugs', async function () {
     TeamStore.loadInitialData(mockTeams);
-    const teamFoo = Team({id: '49', slug: 'foo'});
+    const teamFoo = TeamFixture({id: '49', slug: 'foo'});
     const mockRequest = MockApiClient.addMockResponse({
       url: `/organizations/${org.slug}/teams/`,
       method: 'GET',
       body: [teamFoo],
     });
 
-    const {result, waitFor} = reactHooks.renderHook(useTeamsById, {
+    const {result} = renderHook(useTeamsById, {
       initialProps: {slugs: ['foo']},
       wrapper,
     });
@@ -86,7 +86,7 @@ describe('useTeamsById', function () {
   it('only loads slugs when needed', function () {
     TeamStore.loadInitialData(mockTeams);
 
-    const {result} = reactHooks.renderHook(useTeamsById, {
+    const {result} = renderHook(useTeamsById, {
       initialProps: {slugs: [mockTeams[0].slug]},
       wrapper,
     });
@@ -97,7 +97,7 @@ describe('useTeamsById', function () {
   });
 
   it('can load teams by id', async function () {
-    const requestedTeams = [Team({id: '2', slug: 'requested-team'})];
+    const requestedTeams = [TeamFixture({id: '2', slug: 'requested-team'})];
     const mockRequest = MockApiClient.addMockResponse({
       url: `/organizations/${org.slug}/teams/`,
       method: 'GET',
@@ -106,7 +106,7 @@ describe('useTeamsById', function () {
 
     TeamStore.loadInitialData(mockTeams);
 
-    const {result, waitFor} = reactHooks.renderHook(useTeamsById, {
+    const {result} = renderHook(useTeamsById, {
       initialProps: {ids: ['2']},
       wrapper,
     });
@@ -124,7 +124,7 @@ describe('useTeamsById', function () {
   it('only loads ids when needed', function () {
     TeamStore.loadInitialData(mockTeams);
 
-    const {result} = reactHooks.renderHook(useTeamsById, {
+    const {result} = renderHook(useTeamsById, {
       initialProps: {ids: [mockTeams[0].id]},
       wrapper,
     });

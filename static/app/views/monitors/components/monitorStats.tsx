@@ -1,8 +1,10 @@
 import {Fragment, useRef} from 'react';
 import styled from '@emotion/styled';
 
-import {AreaChart, AreaChartSeries} from 'sentry/components/charts/areaChart';
-import {BarChart, BarChartSeries} from 'sentry/components/charts/barChart';
+import type {AreaChartSeries} from 'sentry/components/charts/areaChart';
+import {AreaChart} from 'sentry/components/charts/areaChart';
+import type {BarChartSeries} from 'sentry/components/charts/barChart';
+import {BarChart} from 'sentry/components/charts/barChart';
 import {getYAxisMaxFn} from 'sentry/components/charts/miniBarChart';
 import {HeaderTitle} from 'sentry/components/charts/styles';
 import EmptyMessage from 'sentry/components/emptyMessage';
@@ -11,14 +13,14 @@ import PanelBody from 'sentry/components/panels/panelBody';
 import Placeholder from 'sentry/components/placeholder';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {intervalToMilliseconds} from 'sentry/utils/dates';
 import {axisLabelFormatter, tooltipFormatter} from 'sentry/utils/discover/charts';
-import {AggregationOutputType} from 'sentry/utils/discover/fields';
+import type {AggregationOutputType} from 'sentry/utils/discover/fields';
+import {intervalToMilliseconds} from 'sentry/utils/duration/intervalToMilliseconds';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import theme from 'sentry/utils/theme';
 import usePageFilters from 'sentry/utils/usePageFilters';
 
-import {Monitor, MonitorEnvironment, MonitorStat} from '../types';
+import type {Monitor, MonitorEnvironment, MonitorStat} from '../types';
 
 type Props = {
   monitor: Monitor;
@@ -30,7 +32,7 @@ function MonitorStats({monitor, monitorEnvs, orgSlug}: Props) {
   const {selection} = usePageFilters();
   const {start, end, period} = selection.datetime;
 
-  const nowRef = useRef<Date>(new Date());
+  const nowRef = useRef(new Date());
 
   let since: number, until: number;
   if (start && end) {
@@ -43,7 +45,7 @@ function MonitorStats({monitor, monitorEnvs, orgSlug}: Props) {
   }
 
   const queryKey = [
-    `/organizations/${orgSlug}/monitors/${monitor.slug}/stats/`,
+    `/projects/${orgSlug}/${monitor.project.slug}/monitors/${monitor.slug}/stats/`,
     {
       query: {
         since: since.toString(),
@@ -54,7 +56,7 @@ function MonitorStats({monitor, monitorEnvs, orgSlug}: Props) {
     },
   ] as const;
 
-  const {data: stats, isLoading} = useApiQuery<MonitorStat[]>(queryKey, {staleTime: 0});
+  const {data: stats, isPending} = useApiQuery<MonitorStat[]>(queryKey, {staleTime: 0});
 
   let emptyStats = true;
   const success: BarChartSeries = {
@@ -103,7 +105,7 @@ function MonitorStats({monitor, monitorEnvs, orgSlug}: Props) {
     },
   });
 
-  if (!isLoading && emptyStats) {
+  if (!isPending && emptyStats) {
     return (
       <Panel>
         <PanelBody withPadding>
@@ -120,7 +122,7 @@ function MonitorStats({monitor, monitorEnvs, orgSlug}: Props) {
       <Panel>
         <PanelBody withPadding>
           <StyledHeaderTitle>{t('Status')}</StyledHeaderTitle>
-          {isLoading ? (
+          {isPending ? (
             <Placeholder height={`${height}px`} />
           ) : (
             <BarChart
@@ -149,7 +151,7 @@ function MonitorStats({monitor, monitorEnvs, orgSlug}: Props) {
       <Panel>
         <PanelBody withPadding>
           <StyledHeaderTitle>{t('Average Duration')}</StyledHeaderTitle>
-          {isLoading ? (
+          {isPending ? (
             <Placeholder height={`${height}px`} />
           ) : (
             <AreaChart

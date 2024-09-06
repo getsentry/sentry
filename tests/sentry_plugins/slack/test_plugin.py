@@ -1,15 +1,15 @@
 from functools import cached_property
 from urllib.parse import parse_qs
 
+import orjson
 import pytest
 import responses
 
-from sentry.integrations.slack.message_builder import LEVEL_TO_COLOR
+from sentry.integrations.slack.message_builder.types import LEVEL_TO_COLOR
 from sentry.models.rule import Rule
 from sentry.plugins.base import Notification
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.testutils.cases import PluginTestCase
-from sentry.utils import json
 from sentry_plugins.slack.plugin import SlackPlugin
 
 
@@ -43,7 +43,7 @@ class SlackPluginTest(PluginTestCase):
         self.plugin.notify(notification)
 
         request = responses.calls[0].request
-        payload = json.loads(parse_qs(request.body)["payload"][0])
+        payload = orjson.loads(parse_qs(request.body)["payload"][0])
         assert payload == {
             "username": "Sentry",
             "attachments": [
@@ -79,7 +79,7 @@ class SlackPluginTest(PluginTestCase):
         self.plugin.notify(notification)
 
         request = responses.calls[0].request
-        payload = json.loads(parse_qs(request.body)["payload"][0])
+        payload = orjson.loads(parse_qs(request.body)["payload"][0])
         assert payload == {
             "username": "Sentry",
             "attachments": [
@@ -113,7 +113,7 @@ class SlackPluginTest(PluginTestCase):
         self.plugin.notify(notification)
 
         request = responses.calls[0].request
-        payload = json.loads(parse_qs(request.body)["payload"][0])
+        payload = orjson.loads(parse_qs(request.body)["payload"][0])
         assert payload == {
             "username": "Sentry",
             "attachments": [

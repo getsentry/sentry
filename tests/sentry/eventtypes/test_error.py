@@ -4,10 +4,8 @@ from typing import Any
 from unittest import TestCase
 
 from sentry.eventtypes.error import ErrorEvent
-from sentry.testutils.silo import region_silo_test
 
 
-@region_silo_test
 class GetMetadataTest(TestCase):
     def test_simple(self):
         inst = ErrorEvent()
@@ -15,7 +13,6 @@ class GetMetadataTest(TestCase):
         assert inst.get_metadata(data) == {
             "type": "Exception",
             "value": "Foo",
-            "display_title_with_tree_label": False,
         }
 
     def test_no_exception_type_or_value(self):
@@ -26,7 +23,6 @@ class GetMetadataTest(TestCase):
         assert inst.get_metadata(data) == {
             "type": "Error",
             "value": "",
-            "display_title_with_tree_label": False,
         }
 
     def test_pulls_top_function(self):
@@ -51,7 +47,6 @@ class GetMetadataTest(TestCase):
             "type": "Error",
             "value": "",
             "function": "top_func",
-            "display_title_with_tree_label": True,  # native!
         }
 
     def test_none_frame(self):
@@ -60,7 +55,6 @@ class GetMetadataTest(TestCase):
         assert inst.get_metadata(data) == {
             "type": "Error",
             "value": "",
-            "display_title_with_tree_label": False,
         }
 
     def test_multiple_exceptions_default(self):
@@ -76,7 +70,6 @@ class GetMetadataTest(TestCase):
         assert inst.get_metadata(data) == {
             "type": "Exception",
             "value": "Foo",
-            "display_title_with_tree_label": False,
         }
 
     def test_multiple_exceptions_main_indicated(self):
@@ -93,11 +86,9 @@ class GetMetadataTest(TestCase):
         assert inst.get_metadata(data) == {
             "type": "Exception",
             "value": "Bar",
-            "display_title_with_tree_label": False,
         }
 
 
-@region_silo_test
 class GetTitleTest(TestCase):
     def test_none_value(self):
         inst = ErrorEvent()

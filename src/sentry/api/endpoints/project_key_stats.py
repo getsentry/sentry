@@ -29,15 +29,15 @@ class ProjectKeyStatsEndpoint(ProjectEndpoint, StatsMixin):
     enforce_rate_limit = True
     rate_limits = {
         "GET": {
-            RateLimitCategory.IP: RateLimit(20, 1),
-            RateLimitCategory.USER: RateLimit(20, 1),
-            RateLimitCategory.ORGANIZATION: RateLimit(20, 1),
+            RateLimitCategory.IP: RateLimit(limit=20, window=1),
+            RateLimitCategory.USER: RateLimit(limit=20, window=1),
+            RateLimitCategory.ORGANIZATION: RateLimit(limit=20, window=1),
         }
     }
 
     def get(self, request: Request, project, key_id) -> Response:
         try:
-            key = ProjectKey.objects.get(
+            key = ProjectKey.objects.for_request(request).get(
                 project=project, public_key=key_id, roles=F("roles").bitor(ProjectKey.roles.store)
             )
         except ProjectKey.DoesNotExist:
@@ -77,9 +77,11 @@ class ProjectKeyStatsEndpoint(ProjectEndpoint, StatsMixin):
         # Initialize the response results.
         response = []
         for time_string in results["intervals"]:
+            ts = parse_timestamp(time_string)
+            assert ts is not None
             response.append(
                 {
-                    "ts": int(parse_timestamp(time_string).timestamp()),
+                    "ts": int(ts.timestamp()),
                     "total": 0,
                     "dropped": 0,
                     "accepted": 0,

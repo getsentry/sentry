@@ -1,4 +1,4 @@
-import {Commit} from 'sentry-fixture/commit';
+import {CommitFixture} from 'sentry-fixture/commit';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
@@ -9,7 +9,7 @@ describe('LastCommit', function () {
   const mockedCommitTitle = '(improve) Add Links to Spike-Protection Email (#2408)';
 
   beforeEach(() => {
-    mockedCommit = Commit();
+    mockedCommit = CommitFixture();
   });
 
   it('renders', function () {

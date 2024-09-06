@@ -12,9 +12,6 @@ if not settings.configured:
 
     configure()
 
-if settings.SESSION_FILE_PATH and not os.path.exists(settings.SESSION_FILE_PATH):
-    os.makedirs(settings.SESSION_FILE_PATH, exist_ok=True)
-
 from django.core.handlers.wsgi import WSGIHandler
 
 # Run WSGI handler for the application

@@ -21,7 +21,7 @@ function renderModal({initialData, widget}) {
       widget={widget}
       api={api}
     />,
-    {context: initialData.routerContext}
+    {router: initialData.router}
   );
 }
 

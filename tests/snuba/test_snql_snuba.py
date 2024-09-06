@@ -1,7 +1,6 @@
 import time
 import uuid
 from datetime import datetime, timedelta
-from typing import Optional
 from unittest import mock
 
 from django.utils import timezone
@@ -19,7 +18,7 @@ from sentry.utils import snuba
 
 class SnQLTest(TestCase, SnubaTestCase):
     def _insert_event_for_time(
-        self, ts: datetime, group_hash: str = "a" * 32, group_id: Optional[int] = None
+        self, ts: datetime, group_hash: str = "a" * 32, group_id: int | None = None
     ) -> str:
         event_id = uuid.uuid4().hex
         self.snuba_insert(

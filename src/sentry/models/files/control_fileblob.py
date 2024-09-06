@@ -1,16 +1,17 @@
 from __future__ import annotations
 
-from typing import Any, Dict
+from typing import Any
 
 from sentry import options
-from sentry.db.models import control_silo_only_model
+from sentry.celery import SentryTask
+from sentry.db.models import control_silo_model
 from sentry.models.files.abstractfileblob import AbstractFileBlob
 from sentry.models.files.control_fileblobowner import ControlFileBlobOwner
 from sentry.options.manager import UnknownOption
 from sentry.tasks.files import delete_file_control
 
 
-def control_file_storage_config() -> Dict[str, Any] | None:
+def control_file_storage_config() -> dict[str, Any] | None:
     """
     When sentry is deployed in a siloed mode file relations
     used by control silo models are stored separately from
@@ -36,15 +37,18 @@ def control_file_storage_config() -> Dict[str, Any] | None:
     return None
 
 
-@control_silo_only_model
-class ControlFileBlob(AbstractFileBlob):
+@control_silo_model
+class ControlFileBlob(AbstractFileBlob[ControlFileBlobOwner]):
     class Meta:
         app_label = "sentry"
         db_table = "sentry_controlfileblob"
 
-    FILE_BLOB_OWNER_MODEL = ControlFileBlobOwner
-    DELETE_FILE_TASK = delete_file_control
-
     @classmethod
-    def _storage_config(cls) -> Dict[str, Any] | None:
+    def _storage_config(cls) -> dict[str, Any] | None:
         return control_file_storage_config()
+
+    def _create_blob_owner(self, organization_id: int) -> ControlFileBlobOwner:
+        return ControlFileBlobOwner.objects.create(organization_id=organization_id, blob=self)
+
+    def _delete_file_task(self) -> SentryTask:
+        return delete_file_control

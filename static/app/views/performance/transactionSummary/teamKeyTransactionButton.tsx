@@ -4,9 +4,10 @@ import * as TeamKeyTransactionManager from 'sentry/components/performance/teamKe
 import {Tooltip} from 'sentry/components/tooltip';
 import {IconStar} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
-import {Organization, Project} from 'sentry/types';
+import type {Organization} from 'sentry/types/organization';
+import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
-import EventView from 'sentry/utils/discover/eventView';
+import type EventView from 'sentry/utils/discover/eventView';
 import {useTeams} from 'sentry/utils/useTeams';
 import withProjects from 'sentry/utils/withProjects';
 
@@ -60,7 +61,7 @@ function TeamKeyTransactionButton({
             icon={
               <IconStar
                 isSolid={!!keyedTeamsCount}
-                color={keyedTeamsCount ? 'yellow400' : 'subText'}
+                color={keyedTeamsCount ? 'yellow300' : 'subText'}
               />
             }
           >

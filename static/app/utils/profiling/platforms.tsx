@@ -1,4 +1,4 @@
-import {Project} from 'sentry/types/project';
+import type {Project} from 'sentry/types/project';
 
 const supportedProfilingPlatformSDKs = [
   'android',
@@ -13,11 +13,18 @@ const supportedProfilingPlatformSDKs = [
   'php-laravel',
   'php-symfony2',
   'ruby',
+  'javascript-angular',
+  'javascript-astro',
+  'javascript-ember',
+  'javascript-gatsby',
   'javascript-nextjs',
-  'javascript-remix',
-  'javascript-sveltekit',
-  'javascript',
   'javascript-react',
+  'javascript-remix',
+  'javascript-svelte',
+  'javascript-solid',
+  'javascript-sveltekit',
+  'javascript-vue',
+  'javascript',
   'react-native',
 ] as const;
 export type SupportedProfilingPlatform = (typeof supportedProfilingPlatformSDKs)[number];
@@ -63,6 +70,24 @@ export function getDocsPlatformSDKForPlatform(
   }
   if (platform === 'javascript-react') {
     return 'javascript-react';
+  }
+  if (platform === 'javascript-vue') {
+    return 'javascript-vue';
+  }
+  if (platform === 'javascript-angular') {
+    return 'javascript-angular';
+  }
+  if (platform === 'javascript-gatsby') {
+    return 'javascript-gatsby';
+  }
+  if (platform === 'javascript-ember') {
+    return 'javascript-ember';
+  }
+  if (platform === 'javascript-svelte') {
+    return 'javascript-svelte';
+  }
+  if (platform === 'javascript-solid') {
+    return 'javascript-solid';
   }
 
   if (platform === 'dart-flutter') {

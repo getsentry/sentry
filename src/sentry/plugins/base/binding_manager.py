@@ -1,12 +1,12 @@
 from __future__ import annotations
 
-from typing import Any, Type
+from typing import Any
 
 from sentry.plugins.providers import IntegrationRepositoryProvider, RepositoryProvider
 
 
 class ProviderManager:
-    type: Type[Any] | None = None
+    type: type[Any] | None = None
 
     def __init__(self):
         self._items = {}

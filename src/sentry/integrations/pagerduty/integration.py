@@ -3,6 +3,7 @@ from __future__ import annotations
 import logging
 from typing import Any
 
+import orjson
 from django.db import router, transaction
 from django.http import HttpResponse
 from django.utils.translation import gettext_lazy as _
@@ -16,18 +17,15 @@ from sentry.integrations.base import (
     IntegrationMetadata,
     IntegrationProvider,
 )
-from sentry.models.integrations.integration import Integration
-from sentry.models.integrations.organization_integration import (
-    OrganizationIntegration,
-    PagerDutyServiceDict,
-)
+from sentry.integrations.models.integration import Integration
+from sentry.integrations.models.organization_integration import OrganizationIntegration
+from sentry.organizations.services.organization import RpcOrganizationSummary
 from sentry.pipeline import PipelineView
-from sentry.services.hybrid_cloud.organization import RpcOrganizationSummary
 from sentry.shared_integrations.exceptions import IntegrationError
-from sentry.utils import json
 from sentry.utils.http import absolute_uri
 
-from .client import PagerDutyProxyClient
+from .client import PagerDutyClient
+from .utils import PagerDutyServiceDict, add_service
 
 logger = logging.getLogger("sentry.integrations.pagerduty")
 
@@ -69,7 +67,7 @@ metadata = IntegrationMetadata(
 
 
 class PagerDutyIntegration(IntegrationInstallation):
-    def get_keyring_client(self, keyid: str) -> PagerDutyProxyClient:
+    def get_keyring_client(self, keyid: str) -> PagerDutyClient:
         org_integration = self.org_integration
         assert org_integration, "Cannot get client without an organization integration"
 
@@ -77,12 +75,11 @@ class PagerDutyIntegration(IntegrationInstallation):
         for pds in org_integration.config.get("pagerduty_services", []):
             if str(pds["id"]) == str(keyid):
                 integration_key = pds["integration_key"]
-        assert integration_key, "Cannot get client without an an integration_key"
+        if not integration_key:
+            raise ValueError("Cannot get client without an an integration_key.")
 
-        return PagerDutyProxyClient(
-            org_integration_id=self.org_integration.id,
-            integration_key=integration_key,
-            keyid=keyid,
+        return PagerDutyClient(
+            integration_id=org_integration.integration_id, integration_key=integration_key
         )
 
     def get_client(self):
@@ -114,8 +111,9 @@ class PagerDutyIntegration(IntegrationInstallation):
             if bad_rows:
                 raise IntegrationError("Name and key are required")
 
-            existing_service_items = OrganizationIntegration.services_in(
-                self.org_integration.config
+            oi = OrganizationIntegration.objects.get(id=self.org_integration.id)
+            existing_service_items: list[PagerDutyServiceDict] = oi.config.get(
+                "pagerduty_services", []
             )
             updated_items: list[PagerDutyServiceDict] = []
 
@@ -133,9 +131,8 @@ class PagerDutyIntegration(IntegrationInstallation):
                         }
                     )
 
-            oi = OrganizationIntegration.objects.get(id=self.org_integration.id)
             with transaction.atomic(router.db_for_write(OrganizationIntegration)):
-                oi.set_services(updated_items)
+                oi.config["pagerduty_services"] = updated_items
                 oi.save()
 
                 # new rows don't have an id
@@ -143,7 +140,7 @@ class PagerDutyIntegration(IntegrationInstallation):
                 for row in new_rows:
                     service_name = row["service"]
                     key = row["integration_key"]
-                    oi.add_pagerduty_service(integration_key=key, service_name=service_name)
+                    add_service(oi, integration_key=key, service_name=service_name)
 
     def get_config_data(self):
         service_list = []
@@ -159,7 +156,9 @@ class PagerDutyIntegration(IntegrationInstallation):
 
     @property
     def services(self) -> list[PagerDutyServiceDict]:
-        return OrganizationIntegration.services_in(self.org_integration.config)
+        if self.org_integration:
+            return self.org_integration.config.get("pagerduty_services", [])
+        return []
 
 
 class PagerDutyIntegrationProvider(IntegrationProvider):
@@ -191,13 +190,14 @@ class PagerDutyIntegrationProvider(IntegrationProvider):
 
         with transaction.atomic(router.db_for_write(OrganizationIntegration)):
             for service in services:
-                org_integration.add_pagerduty_service(
+                add_service(
+                    org_integration,
                     integration_key=service["integration_key"],
                     service_name=service["name"],
                 )
 
     def build_integration(self, state):
-        config = json.loads(state.get("config"))
+        config = orjson.loads(state.get("config"))
         account = config["account"]
         # PagerDuty gives us integration keys for various things, some of which
         # are not services. For now we only care about services.

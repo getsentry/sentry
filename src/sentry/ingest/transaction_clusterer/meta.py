@@ -1,7 +1,7 @@
 """ Track metadata about clusterer runs """
 
 from datetime import datetime, timezone
-from typing import Optional, TypedDict
+from typing import TypedDict
 
 from sentry.ingest.transaction_clusterer import ClustererNamespace
 from sentry.models.project import Project
@@ -14,7 +14,7 @@ class ClustererMeta(TypedDict):
 
 
 def get_clusterer_meta(namespace: ClustererNamespace, project: Project) -> ClustererMeta:
-    meta: Optional[ClustererMeta] = project.get_option(namespace.value.meta_store)
+    meta: ClustererMeta | None = project.get_option(namespace.value.meta_store)
     return meta or {
         "runs": 0,
         "first_run": 0,

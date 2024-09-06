@@ -1,33 +1,35 @@
-import {LocationDescriptor} from 'history';
+import type {LocationDescriptor} from 'history';
 import pick from 'lodash/pick';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
-import {ApiResult, Client, ResponseMeta} from 'sentry/api';
+import type {ApiResult, Client, ResponseMeta} from 'sentry/api';
 import {canIncludePreviousPeriod} from 'sentry/components/charts/utils';
 import {t} from 'sentry/locale';
-import {
-  DateString,
+import type {DateString} from 'sentry/types/core';
+import type {IssueAttachment} from 'sentry/types/group';
+import type {
   EventsStats,
-  IssueAttachment,
   MultiSeriesEventsStats,
   OrganizationSummary,
-} from 'sentry/types';
-import {LocationQuery} from 'sentry/utils/discover/eventView';
-import {DiscoverDatasets} from 'sentry/utils/discover/types';
-import {getPeriod} from 'sentry/utils/getPeriod';
+} from 'sentry/types/organization';
+import type {LocationQuery} from 'sentry/utils/discover/eventView';
+import type {DiscoverDatasets} from 'sentry/utils/discover/types';
+import {getPeriod} from 'sentry/utils/duration/getPeriod';
 import {PERFORMANCE_URL_PARAM} from 'sentry/utils/performance/constants';
-import {QueryBatching} from 'sentry/utils/performance/contexts/genericQueryBatcher';
-import {
+import type {QueryBatching} from 'sentry/utils/performance/contexts/genericQueryBatcher';
+import type {
   ApiQueryKey,
+  UseApiQueryOptions,
+  UseMutationOptions,
+} from 'sentry/utils/queryClient';
+import {
   getApiQueryData,
   setApiQueryData,
   useApiQuery,
-  UseApiQueryOptions,
   useMutation,
-  UseMutationOptions,
   useQueryClient,
 } from 'sentry/utils/queryClient';
-import RequestError from 'sentry/utils/requestError/requestError';
+import type RequestError from 'sentry/utils/requestError/requestError';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 
@@ -162,6 +164,7 @@ export type EventQuery = {
   query: string;
   cursor?: string;
   dataset?: DiscoverDatasets;
+  discoverSavedQueryId?: string;
   environment?: string[];
   equation?: string[];
   noPagination?: boolean;
@@ -244,12 +247,12 @@ export const makeFetchEventAttachmentsQueryKey = ({
 ];
 
 export const useFetchEventAttachments = (
-  {orgSlug, projectSlug, eventId}: FetchEventAttachmentParameters,
+  params: FetchEventAttachmentParameters,
   options: Partial<UseApiQueryOptions<FetchEventAttachmentResponse>> = {}
 ) => {
   const organization = useOrganization();
   return useApiQuery<FetchEventAttachmentResponse>(
-    [`/projects/${orgSlug}/${projectSlug}/events/${eventId}/attachments/`],
+    makeFetchEventAttachmentsQueryKey(params),
     {
       staleTime: Infinity,
       ...options,

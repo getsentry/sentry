@@ -1,21 +1,20 @@
 import {createStore} from 'reflux';
 
-import {SidebarPanelKey} from 'sentry/components/sidebar/types';
+import type {SidebarPanelKey} from 'sentry/components/sidebar/types';
 
-import {CommonStoreDefinition} from './types';
+import type {StrictStoreDefinition} from './types';
 
-type ActivePanelType = SidebarPanelKey | '';
+type ActivePanelType = Readonly<SidebarPanelKey | ''>;
 
-interface SidebarPanelStoreDefinition extends CommonStoreDefinition<ActivePanelType> {
+interface SidebarPanelStoreDefinition extends StrictStoreDefinition<ActivePanelType> {
   activatePanel(panel: SidebarPanelKey): void;
 
-  activePanel: ActivePanelType;
-  hidePanel(): void;
+  hidePanel(hash?: string): void;
   togglePanel(panel: SidebarPanelKey): void;
 }
 
 const storeConfig: SidebarPanelStoreDefinition = {
-  activePanel: '',
+  state: '',
 
   init() {
     // XXX: Do not use `this.listenTo` in this store. We avoid usage of reflux
@@ -23,25 +22,30 @@ const storeConfig: SidebarPanelStoreDefinition = {
   },
 
   activatePanel(panel: SidebarPanelKey) {
-    this.activePanel = panel;
-    this.trigger(this.activePanel);
+    this.state = panel;
+    this.trigger(this.state);
   },
 
   togglePanel(panel: SidebarPanelKey) {
-    if (this.activePanel === panel) {
+    if (this.state === panel) {
       this.hidePanel();
     } else {
       this.activatePanel(panel);
     }
   },
 
-  hidePanel() {
-    this.activePanel = '';
-    this.trigger(this.activePanel);
+  hidePanel(hash?: string) {
+    this.state = '';
+
+    if (hash) {
+      window.location.hash = window.location.hash.replace(`#${hash}`, '');
+    }
+
+    this.trigger(this.state);
   },
 
   getState() {
-    return this.activePanel;
+    return this.state;
   },
 };
 

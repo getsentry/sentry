@@ -5,9 +5,9 @@
     "operationId": "Enable Spike Protection",
     "parameters": [
       {
-        "name": "organization_slug",
+        "name": "organization_id_or_slug",
         "in": "path",
-        "description": "The slug of the organization the projects belong to",
+        "description": "The id or slug of the organization the projects belong to",
         "required": true,
         "schema": {
           "type": "string"
@@ -58,9 +58,9 @@
     "operationId": "Disable Spike Protection",
     "parameters": [
       {
-        "name": "organization_slug",
+        "name": "organization_id_or_slug",
         "in": "path",
-        "description": "The slug of the organization the projects belong to",
+        "description": "The id or slug of the organization the projects belong to",
         "required": true,
         "schema": {
           "type": "string"

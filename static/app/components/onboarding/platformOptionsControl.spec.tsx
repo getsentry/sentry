@@ -1,7 +1,7 @@
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import {PlatformOption} from 'sentry/components/onboarding/gettingStartedDoc/types';
+import type {PlatformOption} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {PlatformOptionsControl} from 'sentry/components/onboarding/platformOptionsControl';
 
 describe('Onboarding Product Selection', function () {
@@ -30,7 +30,7 @@ describe('Onboarding Product Selection', function () {
   };
 
   it('renders default state', function () {
-    const {routerContext} = initializeOrg({
+    const {router} = initializeOrg({
       router: {
         location: {
           query: {
@@ -43,7 +43,7 @@ describe('Onboarding Product Selection', function () {
     });
 
     render(<PlatformOptionsControl platformOptions={platformOptions} />, {
-      context: routerContext,
+      router,
     });
 
     // Find the Spring Boot option, preselected from the URL
@@ -75,7 +75,7 @@ describe('Onboarding Product Selection', function () {
   });
 
   it('updates the url on change', async function () {
-    const {router, routerContext} = initializeOrg({
+    const {router} = initializeOrg({
       router: {
         location: {
           query: {
@@ -88,7 +88,7 @@ describe('Onboarding Product Selection', function () {
     });
 
     render(<PlatformOptionsControl platformOptions={platformOptions} />, {
-      context: routerContext,
+      router,
     });
 
     const springBootV3 = screen.getByRole('radio', {name: 'V3'});

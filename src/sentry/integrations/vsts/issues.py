@@ -1,23 +1,27 @@
-from typing import TYPE_CHECKING, Any, Mapping, MutableMapping, Optional, Sequence, Set, Tuple
+from collections.abc import Mapping, MutableMapping, Sequence
+from typing import TYPE_CHECKING, Any, Optional
 
 from django.urls import reverse
 from django.utils.translation import gettext as _
 from mistune import markdown
 from rest_framework.response import Response
 
-from sentry.integrations.mixins import IssueSyncMixin, ResolveSyncAction
+from sentry.integrations.mixins import ResolveSyncAction
+from sentry.integrations.mixins.issues import IssueSyncIntegration
+from sentry.integrations.services.integration import integration_service
+from sentry.integrations.source_code_management.issues import SourceCodeIssueIntegration
 from sentry.models.activity import Activity
-from sentry.services.hybrid_cloud.integration import integration_service
-from sentry.services.hybrid_cloud.user import RpcUser
-from sentry.services.hybrid_cloud.user.service import user_service
-from sentry.shared_integrations.exceptions import ApiError, ApiUnauthorized
+from sentry.shared_integrations.exceptions import ApiError, ApiUnauthorized, IntegrationError
+from sentry.silo.base import all_silo_function
+from sentry.users.services.user import RpcUser
+from sentry.users.services.user.service import user_service
 
 if TYPE_CHECKING:
+    from sentry.integrations.models.external_issue import ExternalIssue
     from sentry.models.group import Group
-    from sentry.models.integrations.external_issue import ExternalIssue
 
 
-class VstsIssueSync(IssueSyncMixin):
+class VstsIssuesSpec(IssueSyncIntegration, SourceCodeIssueIntegration):
     description = "Integrate Azure DevOps work items by linking a project."
     slug = "vsts"
     conf_key = slug
@@ -28,15 +32,15 @@ class VstsIssueSync(IssueSyncMixin):
     def get_persisted_default_config_fields(self) -> Sequence[str]:
         return ["project", "work_item_type"]
 
-    def create_default_repo_choice(self, default_repo: str) -> Tuple[str, str]:
+    def create_default_repo_choice(self, default_repo: str) -> tuple[str, str]:
         # default_repo should be the project_id
-        project = self.get_client(base_url=self.instance).get_project(default_repo)
+        project = self.get_client().get_project(default_repo)
         return (project["id"], project["name"])
 
     def get_project_choices(
         self, group: Optional["Group"] = None, **kwargs: Any
-    ) -> Tuple[Optional[str], Sequence[Tuple[str, str]]]:
-        client = self.get_client(base_url=self.instance)
+    ) -> tuple[str | None, Sequence[tuple[str, str]]]:
+        client = self.get_client()
         try:
             projects = client.get_projects()
         except (ApiError, ApiUnauthorized, KeyError) as e:
@@ -75,8 +79,8 @@ class VstsIssueSync(IssueSyncMixin):
 
     def get_work_item_choices(
         self, project: str, group: Optional["Group"] = None
-    ) -> Tuple[Optional[str], Sequence[Tuple[str, str]]]:
-        client = self.get_client(base_url=self.instance)
+    ) -> tuple[str | None, Sequence[tuple[str, str]]]:
+        client = self.get_client()
         try:
             item_categories = client.get_work_item_categories(project)["value"]
         except (ApiError, ApiUnauthorized, KeyError) as e:
@@ -107,8 +111,9 @@ class VstsIssueSync(IssueSyncMixin):
     def get_create_issue_config_no_group(self, project: str) -> Sequence[Mapping[str, Any]]:
         return self.get_create_issue_config(None, None, project=project)
 
+    @all_silo_function
     def get_create_issue_config(
-        self, group: Optional["Group"], user: Optional[RpcUser], **kwargs: Any
+        self, group: Optional["Group"], user: RpcUser | None, **kwargs: Any
     ) -> Sequence[Mapping[str, Any]]:
         kwargs["link_referrer"] = "vsts_integration"
         fields = []
@@ -118,8 +123,8 @@ class VstsIssueSync(IssueSyncMixin):
             # Workitems (issues) are associated with the project not the repository.
         default_project, project_choices = self.get_project_choices(group, **kwargs)
 
-        work_item_choices: Sequence[Tuple[str, str]] = []
-        default_work_item: Optional[str] = None
+        work_item_choices: Sequence[tuple[str, str]] = []
+        default_work_item: str | None = None
         if default_project:
             default_work_item, work_item_choices = self.get_work_item_choices(
                 default_project, group
@@ -158,7 +163,7 @@ class VstsIssueSync(IssueSyncMixin):
                 field["type"] = "select"
         return fields
 
-    def get_issue_url(self, key: str, **kwargs: Any) -> str:
+    def get_issue_url(self, key: str) -> str:
         return f"{self.instance}_workitems/edit/{key}"
 
     def create_issue(self, data: Mapping[str, str], **kwargs: Any) -> Mapping[str, Any]:
@@ -169,7 +174,7 @@ class VstsIssueSync(IssueSyncMixin):
         if project_id is None:
             raise ValueError("Azure DevOps expects project")
 
-        client = self.get_client(base_url=self.instance)
+        client = self.get_client()
 
         title = data["title"]
         description = data["description"]
@@ -195,8 +200,8 @@ class VstsIssueSync(IssueSyncMixin):
             "metadata": {"display_name": "{}#{}".format(project_name, created_item["id"])},
         }
 
-    def get_issue(self, issue_id: str, **kwargs: Any) -> Mapping[str, Any]:
-        client = self.get_client(base_url=self.instance)
+    def get_issue(self, issue_id: int, **kwargs: Any) -> Mapping[str, Any]:
+        client = self.get_client()
         work_item = client.get_work_item(issue_id)
         return {
             "key": str(work_item["id"]),
@@ -212,11 +217,11 @@ class VstsIssueSync(IssueSyncMixin):
     def sync_assignee_outbound(
         self,
         external_issue: "ExternalIssue",
-        user: Optional[RpcUser],
+        user: RpcUser | None,
         assign: bool = True,
         **kwargs: Any,
     ) -> None:
-        client = self.get_client(base_url=self.instance)
+        client = self.get_client()
         assignee = None
 
         if user and assign is True:
@@ -261,7 +266,7 @@ class VstsIssueSync(IssueSyncMixin):
     def sync_status_outbound(
         self, external_issue: "ExternalIssue", is_resolved: bool, project_id: int, **kwargs: Any
     ) -> None:
-        client = self.get_client(self.instance)
+        client = self.get_client()
         work_item = client.get_work_item(external_issue.key)
         # For some reason, vsts doesn't include the project id
         # in the work item response.
@@ -320,8 +325,8 @@ class VstsIssueSync(IssueSyncMixin):
             should_unresolve=(not data["new_state"] in done_states or data["old_state"] is None),
         )
 
-    def _get_done_statuses(self, project: str) -> Set[str]:
-        client = self.get_client(base_url=self.instance)
+    def _get_done_statuses(self, project: str) -> set[str]:
+        client = self.get_client()
         try:
             all_states = client.get_work_item_states(project)["value"]
         except ApiError as err:
@@ -335,12 +340,10 @@ class VstsIssueSync(IssueSyncMixin):
     def get_issue_display_name(self, external_issue: "ExternalIssue") -> str:
         return (external_issue.metadata or {}).get("display_name", "")
 
-    def create_comment(self, issue_id: str, user_id: int, group_note: Activity) -> Response:
+    def create_comment(self, issue_id: int, user_id: int, group_note: Activity) -> Response:
         comment = group_note.data["text"]
         quoted_comment = self.create_comment_attribution(user_id, comment)
-        return self.get_client(base_url=self.instance).update_work_item(
-            issue_id, comment=quoted_comment
-        )
+        return self.get_client().update_work_item(issue_id, comment=quoted_comment)
 
     def create_comment_attribution(self, user_id: int, comment_text: str) -> str:
         # VSTS uses markdown or xml
@@ -353,3 +356,16 @@ class VstsIssueSync(IssueSyncMixin):
     def update_comment(self, issue_id: int, user_id: int, group_note: str) -> None:
         # Azure does not support updating comments.
         pass
+
+    def search_issues(self, query: str | None, **kwargs) -> dict[str, Any]:
+        client = self.get_client()
+
+        integration = integration_service.get_integration(
+            integration_id=self.org_integration.integration_id
+        )
+        if not integration:
+            raise IntegrationError("Azure DevOps integration not found")
+
+        resp = client.search_issues(query=query, account_name=integration.name)
+        assert isinstance(resp, dict)
+        return resp

@@ -12,7 +12,7 @@ from sentry.rules import rules
 class ProjectAgnosticRuleConditionsEndpoint(OrganizationEndpoint):
     owner = ApiOwner.ISSUES
     publish_status = {
-        "GET": ApiPublishStatus.UNKNOWN,
+        "GET": ApiPublishStatus.PRIVATE,
     }
 
     def get(self, request: Request, organization) -> Response:
@@ -22,7 +22,7 @@ class ProjectAgnosticRuleConditionsEndpoint(OrganizationEndpoint):
 
         def info_extractor(rule_cls):
             context = {"id": rule_cls.id, "label": rule_cls.label}
-            node = rule_cls(None)
+            node = rule_cls(project=None)
             if hasattr(node, "form_fields"):
                 context["formFields"] = node.form_fields
 

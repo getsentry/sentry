@@ -1,6 +1,10 @@
-import logging
-from typing import Dict, List, Optional, Sequence, Set, Tuple
+from __future__ import annotations
 
+import logging
+from collections.abc import Iterable
+from typing import NotRequired, TypedDict
+
+from django.db.models.query import QuerySet
 from django.http import Http404, HttpResponse, StreamingHttpResponse
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -20,7 +24,7 @@ from sentry.debug_files.artifact_bundles import (
     query_artifact_bundles_containing_file,
 )
 from sentry.lang.native.sources import get_internal_artifact_lookup_source_url
-from sentry.models.artifactbundle import NULL_STRING, ArtifactBundle, ArtifactBundleFlatFileIndex
+from sentry.models.artifactbundle import NULL_STRING, ArtifactBundle
 from sentry.models.distribution import Distribution
 from sentry.models.project import Project
 from sentry.models.release import Release
@@ -35,11 +39,20 @@ RELEASE_BUNDLE_TYPE = "release.bundle"
 MAX_RELEASEFILES_QUERY = 10
 
 
+class _Artifact(TypedDict):
+    id: str
+    type: str
+    url: str
+    resolved_with: str
+    abs_path: NotRequired[str]
+    headers: NotRequired[dict[str, object]]
+
+
 @region_silo_endpoint
 class ProjectArtifactLookupEndpoint(ProjectEndpoint):
-    owner = ApiOwner.WEB_FRONTEND_SDKS
+    owner = ApiOwner.OWNERS_INGEST
     publish_status = {
-        "GET": ApiPublishStatus.UNKNOWN,
+        "GET": ApiPublishStatus.PRIVATE,
     }
     permission_classes = (ProjectReleasePermission,)
 
@@ -49,7 +62,7 @@ class ProjectArtifactLookupEndpoint(ProjectEndpoint):
             raise Http404
         ty, ty_id, *_rest = split
 
-        rate_limited = ratelimits.is_limited(
+        rate_limited = ratelimits.backend.is_limited(
             project=project,
             key=f"rl:ArtifactLookupEndpoint:download:{download_id}:{project.id}",
             limit=10,
@@ -61,9 +74,9 @@ class ProjectArtifactLookupEndpoint(ProjectEndpoint):
             )
             return HttpResponse({"Too many download requests"}, status=429)
 
-        file = None
+        file_m: ArtifactBundle | ReleaseFile | None = None
         if ty == "artifact_bundle":
-            file = (
+            file_m = (
                 ArtifactBundle.objects.filter(
                     id=ty_id,
                     projectartifactbundle__project_id=project.id,
@@ -75,26 +88,16 @@ class ProjectArtifactLookupEndpoint(ProjectEndpoint):
         elif ty == "release_file":
             # NOTE: `ReleaseFile` does have a `project_id`, but that seems to
             # be always empty, so using the `organization_id` instead.
-            file = (
+            file_m = (
                 ReleaseFile.objects.filter(id=ty_id, organization_id=project.organization.id)
                 .select_related("file")
                 .first()
             )
             metrics.incr("sourcemaps.download.release_file")
-        elif ty == "bundle_index":
-            file = ArtifactBundleFlatFileIndex.objects.filter(
-                id=ty_id, project_id=project.id
-            ).first()
-            metrics.incr("sourcemaps.download.flat_file_index")
 
-            if file is not None and (data := file.load_flat_file_index()):
-                return HttpResponse(data, content_type="application/json")
-            else:
-                raise Http404
-
-        if file is None:
+        if file_m is None:
             raise Http404
-        file = file.file
+        file = file_m.file
 
         try:
             fp = file.getfile()
@@ -114,8 +117,8 @@ class ProjectArtifactLookupEndpoint(ProjectEndpoint):
 
         Retrieve a list of individual artifacts or artifact bundles for a given project.
 
-        :pparam string organization_slug: the slug of the organization to query.
-        :pparam string project_slug: the slug of the project to query.
+        :pparam string organization_id_or_slug: the id or slug of the organization to query.
+        :pparam string project_id_or_slug: the id or slug of the project to query.
         :qparam string debug_id: if set, will query and return the artifact
                                  bundle that matches the given `debug_id`.
         :qparam string url: if set, will query and return all the individual
@@ -146,13 +149,13 @@ class ProjectArtifactLookupEndpoint(ProjectEndpoint):
         artifact_bundles = query_artifact_bundles_containing_file(
             project, release_name, dist_name, url, debug_id
         )
-        all_bundles: Dict[str, str] = {
+        all_bundles: dict[str, str] = {
             f"artifact_bundle/{bundle_id}": resolved for bundle_id, resolved in artifact_bundles
         }
 
         # If no `ArtifactBundle`s were found matching the file, we fall back to
         # looking up the file using the legacy `ReleaseFile` infrastructure.
-        individual_files = []
+        individual_files: Iterable[ReleaseFile] = []
         if not artifact_bundles:
             release, dist = try_resolve_release_dist(project, release_name, dist_name)
             if release:
@@ -164,7 +167,7 @@ class ProjectArtifactLookupEndpoint(ProjectEndpoint):
         # Then: Construct our response
         url_constructor = UrlConstructor(request, project)
 
-        found_artifacts = []
+        found_artifacts: list[_Artifact] = []
         for download_id, resolved_with in all_bundles.items():
             found_artifacts.append(
                 {
@@ -192,13 +195,13 @@ class ProjectArtifactLookupEndpoint(ProjectEndpoint):
             )
 
         # make sure we have a stable sort order for tests
-        def natural_sort(key: str) -> Tuple[str, int]:
+        def natural_sort(key: str) -> tuple[str, int]:
             split = key.split("/")
             if len(split) > 1:
                 ty, ty_id = split
                 return (ty, int(ty_id))
             else:
-                return int(split[0])
+                return ("", int(split[0]))
 
         found_artifacts.sort(key=lambda x: natural_sort(x["id"]))
 
@@ -208,7 +211,7 @@ class ProjectArtifactLookupEndpoint(ProjectEndpoint):
 
 def try_resolve_release_dist(
     project: Project, release_name: str, dist_name: str
-) -> Tuple[Optional[Release], Optional[Distribution]]:
+) -> tuple[Release | None, Distribution | None]:
     release = None
     dist = None
     try:
@@ -229,7 +232,7 @@ def try_resolve_release_dist(
     return release, dist
 
 
-def get_legacy_release_bundles(release: Release, dist: Optional[Distribution]) -> Set[int]:
+def get_legacy_release_bundles(release: Release, dist: Distribution | None) -> set[int]:
     return set(
         ReleaseFile.objects.filter(
             release_id=release.id,
@@ -252,8 +255,8 @@ def get_legacy_release_bundles(release: Release, dist: Optional[Distribution]) -
 
 
 def get_legacy_releasefile_by_file_url(
-    release: Release, dist: Optional[Distribution], url: List[str]
-) -> Sequence[ReleaseFile]:
+    release: Release, dist: Distribution | None, url: str
+) -> QuerySet[ReleaseFile]:
     # Exclude files which are also present in archive:
     return (
         ReleaseFile.public_objects.filter(

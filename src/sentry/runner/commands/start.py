@@ -20,8 +20,7 @@ SERVICES = {
 )
 @click.argument("service", default="http", type=click.Choice(sorted(SERVICES.keys())))
 @configuration
-@click.pass_context
-def start(ctx, service, bind, workers, upgrade, noinput):
+def start(service: str, bind: str | None, workers: int, upgrade: bool, noinput: bool) -> None:
     "DEPRECATED see `sentry run` instead."
 
     from sentry.runner.initializer import show_big_error
@@ -35,8 +34,8 @@ def start(ctx, service, bind, workers, upgrade, noinput):
 
     if bind:
         if ":" in bind:
-            host, port = bind.split(":", 1)
-            port = int(port)
+            host, port_s = bind.split(":", 1)
+            port = int(port_s)
         else:
             host = bind
             port = None

@@ -1,4 +1,4 @@
-import {Organization} from 'sentry-fixture/organization';
+import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {act, renderGlobalModal} from 'sentry-test/reactTestingLibrary';
 
@@ -13,7 +13,7 @@ describe('SuggestProjectModal', function () {
       openModal(modalProps => (
         <SuggestProjectModal
           {...modalProps}
-          organization={Organization()}
+          organization={OrganizationFixture()}
           matchedUserAgentString="okhttp/"
         />
       ))

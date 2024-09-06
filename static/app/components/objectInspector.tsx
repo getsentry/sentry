@@ -1,4 +1,5 @@
-import {ComponentProps, MouseEvent, useMemo} from 'react';
+import type {ComponentProps, MouseEvent} from 'react';
+import {useMemo} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {
@@ -18,6 +19,9 @@ type Props = Omit<ComponentProps<typeof OrigObjectInspector>, 'theme'> & {
   theme?: Record<string, any>;
 };
 
+/**
+ * @deprecated use `StructuredEventData` or `StructuredData` instead.
+ */
 function ObjectInspector({data, onCopy, showCopyButton, theme, ...props}: Props) {
   const config = useLegacyStore(ConfigStore);
   const emotionTheme = useTheme();

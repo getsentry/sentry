@@ -1,11 +1,12 @@
 from __future__ import annotations
 
-from typing import Any, Mapping
+from collections.abc import Mapping
+from typing import Any
 
-from sentry.integrations.slack.message_builder import SlackBody
 from sentry.integrations.slack.message_builder.issues import SlackIssuesMessageBuilder
+from sentry.integrations.slack.message_builder.types import SlackBlock
 from sentry.notifications.notifications.base import ProjectNotification
-from sentry.services.hybrid_cloud.actor import RpcActor
+from sentry.types.actor import Actor
 
 from .base import SlackNotificationsMessageBuilder
 
@@ -15,12 +16,12 @@ class IssueNotificationMessageBuilder(SlackNotificationsMessageBuilder):
         self,
         notification: ProjectNotification,
         context: Mapping[str, Any],
-        recipient: RpcActor,
+        recipient: Actor,
     ) -> None:
         super().__init__(notification, context, recipient)
         self.notification: ProjectNotification = notification
 
-    def build(self) -> SlackBody:
+    def build(self) -> SlackBlock:
         group = getattr(self.notification, "group", None)
         return SlackIssuesMessageBuilder(
             group=group,

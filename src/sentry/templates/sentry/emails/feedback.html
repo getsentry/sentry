@@ -1,0 +1,230 @@
+{% extends "sentry/emails/base.html" %}
+
+{% load timezone from tz %}
+{% load sentry_avatars %}
+{% load sentry_helpers %}
+{% load sentry_features %}
+{% load sentry_assets %}
+{% load i18n static %}
+
+{% block head %}
+  {{ block.super }}
+  <style type="text/css" inline="false">
+    @media only screen and (max-device-width: 480px) {
+      /* Hide CTA in header on mobile */
+      .header-buttons .integration-link {
+        display: none !important;
+      }
+      .banner {
+        display: none !important;
+      }
+    }
+    @media only screen and (max-device-width: 768px) {
+      .text-desktop-only {
+        display: none !important;
+      }
+    }
+  </style>
+{% endblock %}
+
+{% block preheader %}
+  {{ group_header }} from {{ project_label }}.
+{% endblock %}
+
+{% block header %}
+  <div class="header-with-buttons">
+    {{ block.super }}
+    <div class="header-buttons">
+      {% if not has_alert_integration %}
+        <a href="{{ slack_link }}" class="btn btn-default integration-link">
+          <img src="{% absolute_asset_url 'sentry' 'images/email/slack-logo.png' %}" class="logo-small" />
+          Set up in Slack
+        </a>
+      {% endif %}
+      <a href="{{ link }}" class="btn view-on-sentry">View on Sentry</a>
+    </div>
+  </div>
+{% endblock %}
+
+{% block content %}
+
+<div class="container">
+  <div class="inner">
+    <h2 {% if notification_reason %}style="margin-bottom: 4px"{% else %}style="margin-bottom: 15px"{% endif %}>
+        {% if has_issue_states and group_header %}
+        {{ group_header }}
+        {% else %}
+        New Feedback from <a href="{{group.project.get_absolute_url}}">{{ project_label }}</a>
+        {% if environment %} in {{ environment }}{% endif %}
+        {% endif %}
+    </h2>
+    {% if notification_reason %}
+      <div class="event-notification-reason">
+        {{ notification_reason }}
+      </div>
+    {% endif %}
+
+    {% if enhanced_privacy %}
+      <div class="event">
+        <div class="event-id">ID: {{ event.event_id }}</div>
+          {% if timezone %}
+            <div class="event-date">{{ event.datetime|timezone:timezone|date:"N j, Y, g:i:s a e"}}</div>
+          {% else %}
+            <div class="event-date">{{ event.datetime|date:"N j, Y, g:i:s a e"}}</div>
+          {% endif %}
+      </div>
+
+      <div class="notice">Details about this feedback are not shown in this notification since enhanced privacy
+        controls are enabled. For more details about this feedback, <a href="{{ link }}">view this feedback on Sentry</a>.</div>
+    {% else %}
+      <table class="event-list">
+        <tr>
+          <td class="event-detail">
+            <div class="issue">
+              {% with type=event.get_event_type metadata=group.get_event_metadata transaction=event.transaction %}
+                  <div class="event-type default">
+                      {% if transaction %}
+                        <span class="event-subtitle">{{ transaction }}</span>
+                      {% endif %}
+                      {% if metadata.name and metadata.contact_email %}
+                      <p><strong>{{ metadata.name }}</strong> <a href="mailto:{{ metadata.contact_email }}">{{ metadata.contact_email }}</a></p>
+                      {% elif metadata.name %}
+                      <p><strong>{{ metadata.name }}</strong></p>
+                      {% elif metadata.contact_email %}
+                      <p><a href="mailto:{{ metadata.contact_email }}">{{ metadata.contact_email }}</a></p>
+                      {% endif %}
+                      <br />
+
+                      {% if subtitle %}
+                      <h3>Message</h3>
+                        <div class="inner"><div class="note-body"><p>{{ subtitle }}</p></div></div>
+                      {% endif %}
+                      <div class="event">
+                        <div class="event-id">ID: {{ event.event_id }}</div>
+                        {% if timezone %}
+                            <div class="event-date">{{ event.datetime|timezone:timezone|date:"N j, Y, g:i:s a e"}}</div>
+                        {% else %}
+                            <div class="event-date">{{ event.datetime|date:"N j, Y, g:i:s a e"}}</div>
+                        {% endif %}
+                      </div>
+                  </div>
+              {% endwith %}
+            </div>
+          </td>
+        </tr>
+      </table>
+
+
+      {% if has_issue_states %}
+      <div class="interface">
+        <table>
+          <colgroup>
+            <col style="width:130px;">
+          </colgroup>
+          <tbody>
+            <tr>
+              <th>project</th>
+              <td><a href="{{group.project.get_absolute_url}}">{{ project_label }}</a></td>
+            </tr>
+            {% if environment %}
+              <tr>
+                <th>environment</th>
+                <td>{{ environment }}</td>
+              </tr>
+            {% endif %}
+            <tr>
+              <th>level</th>
+              <td>{{ group.get_level_display }}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      {% endif %}
+
+
+      {% block table %}{% endblock %}
+
+      {% if issue_replays_url %}
+      <div class="interface">
+        <h3 class="title">Session Replay</h3>
+        <table>
+          <colgroup>
+            <col style="width:130px;">
+          </colgroup>
+          <tbody>
+            <tr>
+              <th>Session Replay:</th>
+              <td>
+                <a href="{{ issue_replays_url }}">
+                  <img src="{% absolute_asset_url 'sentry' 'images/email/icon-play.png' %}" width="12px" height="12px"
+                    alt="Session Replay">
+                  See a replay of this feedback
+                </a>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      {% endif %}
+
+
+      {% block stacktrace %}{% endblock %}
+
+      {% if tags %}
+        <h3>Tags</h3>
+
+        <ul class="tag-list">
+        {% for tag_key, tag_value in tags %}
+          <li>
+              <strong>{{ tag_key|as_tag_alias }}</strong>
+              <em>=</em>
+              <span>
+              {% with query=tag_key|as_tag_alias|add:":\""|add:tag_value|add:"\""|urlencode %}
+                <a href="{% absolute_uri '/organizations/{}/issues/' group.project.organization.slug %}?project={{ group.project.id }}&query={{ query }}">{{ tag_value|truncatechars:50 }}</a> {% if tag_value|is_url %}<a href="{{ tag_value }}" class="icon-share"></a>{% endif %}
+              {% endwith %}
+              </span>
+          </li>
+        {% endfor %}
+        </ul>
+      {% endif %}
+    {% endif %}
+
+    <p class="info-box">
+      {% if snooze_alert %}
+         <a class='mute' href="{% absolute_uri snooze_alert_url %}">Mute this alert</a>
+      {% endif %}
+      This email was triggered by
+      {% for rule in rules %}
+          <a href="{% absolute_uri rule.status_url %}">{{ rule.label }}</a>{% if not forloop.last %}, {% endif %}
+      {% endfor %}
+  </p>
+
+    {% if not has_integrations %}
+        <div class="logo-container">
+            <img src="{% static 'sentry/images/logos/logo-slack.svg' %}" class="logo" alt="Slack"/>
+            <img src="{% static 'sentry/images/logos/logo-pagerduty.svg' %}" class="logo" alt="PagerDuty"/>
+            <img src="{% static 'sentry/images/logos/logo-msteams.svg' %}" class="logo" alt="MS Teams"/>
+            <img src="{% static 'sentry/images/logos/logo-opsgenie.svg' %}" class="logo" alt="OpsGenie"/>
+            <img src="{% static 'sentry/images/logos/logo-twilio.svg' %}" class="logo" alt="Twilio"/>
+            <img src="{% static 'sentry/images/logos/logo-victorops.svg' %}" class="logo" alt="VictorOps"/>
+        </div>
+        <p class="align-center">
+            <a href="{% absolute_uri 'settings/{}/integrations/?referrer=alert_email' group.project.organization.slug %}">{{ "Get this alert wherever you work" }}</a>
+        </p>
+    {% endif %}
+
+    {# support for gmail actions #}
+    <div itemscope itemtype="http://schema.org/EmailMessage">
+      <meta itemprop="description" content="View Feedback Details in Sentry"/>
+      <div itemprop="action" itemscope itemtype="http://schema.org/ViewAction">
+        <link itemprop="url" href="{{ link }}"/>
+        <meta itemprop="name" content="View in Sentry"/>
+      </div>
+      <div itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+        <meta itemprop="name" content="GetSentry"/>
+        <link itemprop="url" href="https://sentry.io/"/>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

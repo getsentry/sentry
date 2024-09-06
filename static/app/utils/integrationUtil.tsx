@@ -1,7 +1,6 @@
-import capitalize from 'lodash/capitalize';
 import * as qs from 'query-string';
 
-import {Result} from 'sentry/components/forms/controls/selectAsyncControl';
+import type {Result} from 'sentry/components/forms/controls/selectAsyncControl';
 import {
   IconAsana,
   IconBitbucket,
@@ -15,6 +14,7 @@ import {
 } from 'sentry/icons';
 import {t} from 'sentry/locale';
 import HookStore from 'sentry/stores/hookStore';
+import type {Hooks} from 'sentry/types/hooks';
 import type {
   AppOrProviderOrPlugin,
   CodeOwner,
@@ -28,11 +28,11 @@ import type {
   PluginWithProjectList,
   SentryApp,
   SentryAppInstallation,
-} from 'sentry/types';
-import {Hooks} from 'sentry/types/hooks';
+} from 'sentry/types/integrations';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {capitalize} from 'sentry/utils/string/capitalize';
 
-import {IconSize} from './theme';
+import type {IconSize} from './theme';
 
 /**
  * TODO: remove alias once all usages are updated
@@ -211,6 +211,29 @@ export const getIntegrationIcon = (
   }
 };
 
+export const getIntegrationDisplayName = (integrationType?: string) => {
+  switch (integrationType) {
+    case 'asana':
+      return 'Asana';
+    case 'bitbucket':
+      return 'Bitbucket';
+    case 'gitlab':
+      return 'GitLab';
+    case 'github':
+    case 'github_enterprise':
+      return 'GitHub';
+    case 'jira':
+    case 'jira_server':
+      return 'Jira';
+    case 'vsts':
+      return 'VSTS';
+    case 'codecov':
+      return 'Codeov';
+    default:
+      return '';
+  }
+};
+
 export const getIntegrationSourceUrl = (
   integrationType: string,
   sourceUrl: string,
@@ -234,6 +257,9 @@ export const getIntegrationSourceUrl = (
     case 'github':
     case 'github_enterprise':
     default:
+      if (lineNo === null) {
+        return sourceUrl;
+      }
       return `${sourceUrl}#L${lineNo}`;
   }
 };

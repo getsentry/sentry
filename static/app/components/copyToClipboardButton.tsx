@@ -1,6 +1,7 @@
 import styled from '@emotion/styled';
 
-import {Button, ButtonProps} from 'sentry/components/button';
+import type {ButtonProps} from 'sentry/components/button';
+import {Button} from 'sentry/components/button';
 import {IconCopy} from 'sentry/icons';
 import useCopyToClipboard from 'sentry/utils/useCopyToClipboard';
 
@@ -22,6 +23,7 @@ export function CopyToClipboardButton({
   onCopy,
   onError,
   text,
+  onClick: passedOnClick,
   ...props
 }: Props) {
   const {onClick, label} = useCopyToClipboard({
@@ -38,7 +40,7 @@ export function CopyToClipboardButton({
       translucentBorder
       onClick={e => {
         onClick();
-        props.onClick?.(e);
+        passedOnClick?.(e);
       }}
       {...props}
     >

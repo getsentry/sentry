@@ -1,6 +1,6 @@
 import logging
+from collections.abc import Callable
 from datetime import timezone
-from typing import Callable, Dict
 
 import sentry_sdk
 from dateutil.parser import parse as parse_date
@@ -17,7 +17,7 @@ from sentry.utils import metrics
 logger = logging.getLogger(__name__)
 TQuerySubscriptionCallable = Callable[[QuerySubscriptionUpdate, QuerySubscription], None]
 
-subscriber_registry: Dict[str, TQuerySubscriptionCallable] = {}
+subscriber_registry: dict[str, TQuerySubscriptionCallable] = {}
 
 
 def register_subscriber(
@@ -76,7 +76,7 @@ def handle_message(
     :param message:
     :return:
     """
-    with sentry_sdk.push_scope() as scope:
+    with sentry_sdk.isolation_scope() as scope:
         try:
             with metrics.timer(
                 "snuba_query_subscriber.parse_message_value", tags={"dataset": dataset}
@@ -100,7 +100,7 @@ def handle_message(
             with metrics.timer(
                 "snuba_query_subscriber.fetch_subscription", tags={"dataset": dataset}
             ):
-                subscription: QuerySubscription = QuerySubscription.objects.get_from_cache(
+                subscription = QuerySubscription.objects.get_from_cache(
                     subscription_id=contents["subscription_id"]
                 )
                 if subscription.status != QuerySubscription.Status.ACTIVE.value:
@@ -135,6 +135,10 @@ def handle_message(
                 logger.exception(str(e))
             except Exception:
                 logger.exception("Failed to delete unused subscription from snuba.")
+            return
+
+        if subscription.snuba_query is None:
+            metrics.incr("snuba_query_subscriber.subscription_snuba_query_missing")
             return
 
         if subscription.type not in subscriber_registry:

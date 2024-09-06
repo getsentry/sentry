@@ -27,6 +27,12 @@ export enum BreadcrumbType {
   SESSION = 'session',
   TRANSACTION = 'transaction',
   INIT = 'init',
+  NETWORK = 'network',
+  DEVICE = 'device',
+}
+
+export enum BreadcrumbMessageFormat {
+  SQL = 'sql',
 }
 
 interface BreadcrumbTypeBase {
@@ -35,7 +41,7 @@ interface BreadcrumbTypeBase {
   category?: string | null;
   event_id?: string | null;
   message?: string;
-  messageFormat?: 'sql';
+  messageFormat?: BreadcrumbMessageFormat.SQL;
   messageRaw?: string;
   timestamp?: string;
 }
@@ -71,21 +77,25 @@ export interface BreadcrumbTypeInit extends BreadcrumbTypeBase {
 
 export interface BreadcrumbTypeHTTP extends BreadcrumbTypeBase {
   type: BreadcrumbType.HTTP;
-  data?: null | {
-    method?:
-      | 'POST'
-      | 'PUT'
-      | 'GET'
-      | 'HEAD'
-      | 'DELETE'
-      | 'CONNECT'
-      | 'OPTIONS'
-      | 'TRACE'
-      | 'PATCH';
-    reason?: string;
-    status_code?: number;
-    url?: string;
-  };
+  data?:
+    | null
+    | Record<string, any>
+    // Though this is the expected type, more data can be attached to these crumbs
+    | {
+        method?:
+          | 'POST'
+          | 'PUT'
+          | 'GET'
+          | 'HEAD'
+          | 'DELETE'
+          | 'CONNECT'
+          | 'OPTIONS'
+          | 'TRACE'
+          | 'PATCH';
+        reason?: string;
+        status_code?: number;
+        url?: string;
+      };
 }
 
 export interface BreadcrumbTypeDefault extends BreadcrumbTypeBase {

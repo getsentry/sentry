@@ -1,5 +1,5 @@
-import {CallTreeNode} from './callTreeNode';
-import {Frame} from './frame';
+import type {CallTreeNode} from './callTreeNode';
+import type {Frame} from './frame';
 
 export interface FlamegraphFrame {
   children: FlamegraphFrame[];
@@ -12,7 +12,7 @@ export interface FlamegraphFrame {
   start: number;
   collapsed?: FlamegraphFrame[];
   processId?: number;
-  profileIds?: string[];
+  profileIds?: Profiling.ProfileReference[];
   threadId?: number;
 }
 

@@ -3,12 +3,13 @@ from __future__ import annotations
 from sentry.api.serializers import Serializer, register
 from sentry.api.serializers.base import serialize
 from sentry.models.integrations.sentry_app_component import SentryAppComponent
-from sentry.services.hybrid_cloud.app import SentryAppEventDataInterface
+from sentry.sentry_apps.services.app import SentryAppEventDataInterface
 
 
 @register(SentryAppComponent)
 class SentryAppComponentSerializer(Serializer):
-    def serialize(self, obj, attrs, user, errors):
+    def serialize(self, obj, attrs, user, **kwargs):
+        errors = kwargs["errors"]
         return {
             "uuid": str(obj.uuid),
             "type": obj.type,

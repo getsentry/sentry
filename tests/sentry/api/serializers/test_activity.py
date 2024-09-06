@@ -4,11 +4,9 @@ from sentry.models.commit import Commit
 from sentry.models.group import GroupStatus
 from sentry.models.pullrequest import PullRequest
 from sentry.testutils.cases import TestCase
-from sentry.testutils.silo import region_silo_test
 from sentry.types.activity import ActivityType
 
 
-@region_silo_test
 class GroupActivityTestCase(TestCase):
     def test_pr_activity(self):
         self.org = self.create_organization(name="Rowdy Tiger")
@@ -57,9 +55,9 @@ class GroupActivityTestCase(TestCase):
         )
 
         result = serialize([activity], user)[0]["data"]
-        commit = result["commit"]
-        assert commit["repository"]["name"] == "organization-bar"
-        assert commit["message"] == "gemuse"
+        commit_data = result["commit"]
+        assert commit_data["repository"]["name"] == "organization-bar"
+        assert commit_data["message"] == "gemuse"
 
     def test_serialize_set_resolve_in_commit_activity_with_release(self):
         project = self.create_project(name="test_throwaway")

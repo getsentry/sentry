@@ -14,10 +14,12 @@ import PanelItem from 'sentry/components/panels/panelItem';
 import {IconSubtract} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {Organization, Project, Team} from 'sentry/types';
+import type {Organization, Team} from 'sentry/types/organization';
+import type {Project} from 'sentry/types/project';
 import {useTeams} from 'sentry/utils/useTeams';
 
-import {DropdownAddTeam, TeamSelectProps} from './utils';
+import type {TeamSelectProps} from './utils';
+import {DropdownAddTeam} from './utils';
 
 type Props = TeamSelectProps & {
   canCreateTeam: boolean;
@@ -59,10 +61,12 @@ function TeamSelect({
           "This is the last team that grants Team Admin access to you for this project. After removing this team, you will not be able to edit this project's configuration."
         )
       : isOnlyTeam
-      ? t(
-          'This is the last team with access to this project. After removing this team, only organization owners and managers will be able to access the project pages.'
-        )
-      : null;
+        ? t(
+            'This is the last team with access to this project. After removing this team, only organization owners and managers will be able to access the project pages.'
+          )
+        : t(
+            'Removing this team from the project means that members of the team can no longer access this project. Do you want to continue?'
+          );
 
     return (
       <Fragment>
@@ -133,8 +137,9 @@ function TeamRow({
         bypass={!confirmMessage}
         onConfirm={() => onRemoveTeam(team.slug)}
         disabled={disabled}
+        confirmText="Remove Team"
       >
-        <Button size="xs" icon={<IconSubtract isCircled size="xs" />} disabled={disabled}>
+        <Button size="xs" icon={<IconSubtract isCircled />} disabled={disabled}>
           {t('Remove')}
         </Button>
       </Confirm>

@@ -1,29 +1,27 @@
-import {useCallback, useContext, useEffect} from 'react';
-import {InjectedRouter} from 'react-router';
+import {useCallback, useEffect} from 'react';
 import styled from '@emotion/styled';
-import {Location} from 'history';
+import type {Location} from 'history';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {openDebugFileSourceModal} from 'sentry/actionCreators/modal';
-import {Client} from 'sentry/api';
+import type {Client} from 'sentry/api';
 import Access from 'sentry/components/acl/access';
 import Feature from 'sentry/components/acl/feature';
 import DropdownAutoComplete from 'sentry/components/dropdownAutoComplete';
 import DropdownButton from 'sentry/components/dropdownButton';
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
 import MenuItem from 'sentry/components/menuItem';
 import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';
 import PanelHeader from 'sentry/components/panels/panelHeader';
-import AppStoreConnectContext from 'sentry/components/projects/appStoreConnectContext';
 import {Tooltip} from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
 import ProjectsStore from 'sentry/stores/projectsStore';
-import {Organization, Project} from 'sentry/types';
-import {CustomRepo, CustomRepoType} from 'sentry/types/debugFiles';
+import type {CustomRepo, CustomRepoType} from 'sentry/types/debugFiles';
+import type {InjectedRouter} from 'sentry/types/legacyReactRouter';
+import type {Organization} from 'sentry/types/organization';
+import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
-import {handleXhrErrorResponse} from 'sentry/utils/handleXhrErrorResponse';
 
 import Repository from './repository';
 import {dropDownItems, expandKeys, getRequestMessages} from './utils';
@@ -33,7 +31,6 @@ const SECTION_TITLE = t('Custom Repositories');
 type Props = {
   api: Client;
   customRepositories: CustomRepo[];
-  isLoading: boolean;
   location: Location;
   organization: Organization;
   project: Project;
@@ -47,14 +44,8 @@ function CustomRepositories({
   project,
   router,
   location,
-  isLoading,
 }: Props) {
-  const appStoreConnectContext = useContext(AppStoreConnectContext);
-
   const orgSlug = organization.slug;
-  const appStoreConnectSourcesQuantity = repositories.filter(
-    repository => repository.type === CustomRepoType.APP_STORE_CONNECT
-  ).length;
 
   const persistData = useCallback(
     ({
@@ -139,30 +130,19 @@ function CustomRepositories({
       organization,
       sourceConfig: item,
       sourceType: item.type,
-      appStoreConnectSourcesQuantity,
-      appStoreConnectStatusData: appStoreConnectContext?.[item.id],
       onSave: updatedItem =>
         persistData({updatedItem: updatedItem as CustomRepo, index: itemIndex}),
       onClose: handleCloseModal,
     });
-  }, [
-    appStoreConnectContext,
-    appStoreConnectSourcesQuantity,
-    handleCloseModal,
-    location.query,
-    organization,
-    persistData,
-    repositories,
-  ]);
+  }, [handleCloseModal, location.query, organization, persistData, repositories]);
 
   useEffect(() => {
     openDebugFileSourceDialog();
-  }, [location.query, appStoreConnectContext, openDebugFileSourceDialog]);
+  }, [location.query, openDebugFileSourceDialog]);
 
   function handleAddRepository(repoType: CustomRepoType) {
     openDebugFileSourceModal({
       organization,
-      appStoreConnectSourcesQuantity,
       sourceType: repoType,
       onSave: updatedData =>
         persistData({updatedItems: [...repositories, updatedData] as CustomRepo[]}),
@@ -175,7 +155,7 @@ function CustomRepositories({
     newRepositories.splice(index, 1);
     persistData({
       updatedItems: newRepositories as CustomRepo[],
-      refresh: repositories[index].type === CustomRepoType.APP_STORE_CONNECT,
+      refresh: false,
     });
   }
 
@@ -189,30 +169,12 @@ function CustomRepositories({
     });
   }
 
-  async function handleSyncRepositoryNow(repoId: CustomRepo['id']) {
-    try {
-      await api.requestPromise(
-        `/projects/${orgSlug}/${project.slug}/appstoreconnect/${repoId}/refresh/`,
-        {
-          method: 'POST',
-        }
-      );
-      addSuccessMessage(t('Repository sync started.'));
-    } catch (error) {
-      const errorMessage = t(
-        'Rate limit for refreshing repository exceeded. Try again in a few minutes.'
-      );
-      addErrorMessage(errorMessage);
-      handleXhrErrorResponse(errorMessage, error);
-    }
-  }
-
   return (
     <Feature features="custom-symbol-sources" organization={organization}>
       {({hasFeature}) => (
         <Access access={['project:write']} project={project}>
           {({hasAccess}) => {
-            const addRepositoryButtonDisabled = !hasAccess || isLoading;
+            const addRepositoryButtonDisabled = !hasAccess;
             return (
               <Panel>
                 <PanelHeader hasButtons>
@@ -256,9 +218,7 @@ function CustomRepositories({
                   </Tooltip>
                 </PanelHeader>
                 <PanelBody>
-                  {isLoading ? (
-                    <LoadingIndicator />
-                  ) : !repositories.length ? (
+                  {!repositories.length ? (
                     <EmptyStateWarning>
                       <p>{t('No custom repositories configured')}</p>
                     </EmptyStateWarning>
@@ -266,23 +226,11 @@ function CustomRepositories({
                     repositories.map((repository, index) => (
                       <Repository
                         key={index}
-                        repository={
-                          repository.type === CustomRepoType.APP_STORE_CONNECT
-                            ? {
-                                ...repository,
-                                details: appStoreConnectContext?.[repository.id],
-                              }
-                            : repository
-                        }
-                        hasFeature={
-                          repository.type === CustomRepoType.APP_STORE_CONNECT
-                            ? hasFeature || appStoreConnectSourcesQuantity === 1
-                            : hasFeature
-                        }
+                        repository={repository}
+                        hasFeature={hasFeature}
                         hasAccess={hasAccess}
                         onDelete={handleDeleteRepository}
                         onEdit={handleEditRepository}
-                        onSyncNow={handleSyncRepositoryNow}
                       />
                     ))
                   )}
@@ -301,7 +249,7 @@ export default CustomRepositories;
 const DropDownLabel = styled(MenuItem)`
   color: ${p => p.theme.textColor};
   font-size: ${p => p.theme.fontSizeMedium};
-  font-weight: 400;
+  font-weight: ${p => p.theme.fontWeightNormal};
   text-transform: none;
   span {
     padding: 0;

@@ -4,7 +4,7 @@ from fixtures.page_objects.organization_integration_settings import (
     ExampleIntegrationSetupWindowElement,
     OrganizationIntegrationDetailViewPage,
 )
-from sentry.models.integrations.integration import Integration
+from sentry.integrations.models.integration import Integration
 from sentry.testutils.cases import AcceptanceTestCase
 from sentry.testutils.silo import no_silo_test
 
@@ -52,7 +52,7 @@ class OrganizationIntegrationDetailView(AcceptanceTestCase):
         )
 
     def test_uninstallation(self):
-        model = Integration.objects.create(
+        model = self.create_provider_integration(
             provider="slack",
             external_id="some_slack",
             name="Test Slack",

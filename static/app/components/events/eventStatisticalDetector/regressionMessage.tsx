@@ -2,7 +2,7 @@ import {useMemo} from 'react';
 import styled from '@emotion/styled';
 
 import {LinkButton} from 'sentry/components/button';
-import DateTime from 'sentry/components/dateTime';
+import {DateTime} from 'sentry/components/dateTime';
 import {DataSection} from 'sentry/components/events/styles';
 import Link from 'sentry/components/links/link';
 import PerformanceDuration from 'sentry/components/performanceDuration';
@@ -10,12 +10,14 @@ import {Tooltip} from 'sentry/components/tooltip';
 import {IconOpen} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {Event, Group, IssueType} from 'sentry/types';
+import type {Event} from 'sentry/types/event';
+import type {Group} from 'sentry/types/group';
+import {IssueType} from 'sentry/types/group';
 import {defined} from 'sentry/utils';
-import {formatPercentage} from 'sentry/utils/formatters';
+import {formatPercentage} from 'sentry/utils/number/formatPercentage';
 import {useRelativeDateTime} from 'sentry/utils/profiling/hooks/useRelativeDateTime';
+import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import useOrganization from 'sentry/utils/useOrganization';
-import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import {
   DisplayModes,
   transactionSummaryRouteWithQuery,
@@ -111,11 +113,7 @@ function EventStatisticalDetectorRegressedPerformanceMessage({
               'The current date is over 14 days from the breakpoint. Open the Transaction Summary to see the most up to date transaction behaviour.'
             )}
           >
-            <LinkButton
-              to={transactionSummaryLink}
-              size="xs"
-              icon={<IconOpen size="xs" />}
-            >
+            <LinkButton to={transactionSummaryLink} size="xs" icon={<IconOpen />}>
               {t('Go to Summary')}
             </LinkButton>
           </Tooltip>

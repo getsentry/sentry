@@ -1,5 +1,4 @@
 import {Fragment, useState} from 'react';
-import type {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
@@ -20,8 +19,10 @@ import {IconFlag, IconSubtract} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import {space} from 'sentry/styles/space';
-import type {Project, Team} from 'sentry/types';
-import {sortProjects} from 'sentry/utils';
+import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
+import type {Team} from 'sentry/types/organization';
+import type {Project} from 'sentry/types/project';
+import {sortProjects} from 'sentry/utils/project/sortProjects';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -41,7 +42,7 @@ function TeamProjects({team, location, params}: TeamProjectsProps) {
   const {
     data: linkedProjects,
     isError: linkedProjectsError,
-    isLoading: linkedProjectsLoading,
+    isPending: linkedProjectsLoading,
     getResponseHeader: linkedProjectsHeaders,
     refetch: refetchLinkedProjects,
   } = useApiQuery<Project[]>(
@@ -58,7 +59,7 @@ function TeamProjects({team, location, params}: TeamProjectsProps) {
   );
   const {
     data: unlinkedProjects = [],
-    isLoading: loadingUnlinkedProjects,
+    isPending: loadingUnlinkedProjects,
     refetch: refetchUnlinkedProjects,
   } = useApiQuery<Project[]>(
     [
@@ -162,7 +163,7 @@ function TeamProjects({team, location, params}: TeamProjectsProps) {
                   <Button
                     size="sm"
                     disabled={!hasWriteAccess}
-                    icon={<IconSubtract isCircled size="xs" />}
+                    icon={<IconSubtract isCircled />}
                     aria-label={t('Remove')}
                     onClick={() => {
                       handleLinkProject(project, 'remove');

@@ -5,7 +5,7 @@ import partition from 'lodash/partition';
 import sortBy from 'lodash/sortBy';
 import {PlatformIcon} from 'platformicons';
 
-import {ModalRenderProps} from 'sentry/actionCreators/modal';
+import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {Button} from 'sentry/components/button';
 import {RadioLineItem} from 'sentry/components/forms/controls/radioGroup';
 import List from 'sentry/components/list';
@@ -17,12 +17,9 @@ import categoryList, {createablePlatforms} from 'sentry/data/platformPickerCateg
 import platforms from 'sentry/data/platforms';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {
-  OnboardingSelectedSDK,
-  Organization,
-  PlatformIntegration,
-  PlatformKey,
-} from 'sentry/types';
+import type {OnboardingSelectedSDK} from 'sentry/types/onboarding';
+import type {Organization} from 'sentry/types/organization';
+import type {PlatformIntegration, PlatformKey} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
 
@@ -38,21 +35,23 @@ export enum SupportedLanguages {
 const topGoFrameworks: PlatformKey[] = [
   'go-echo',
   'go-fasthttp',
+  'go-fiber',
   'go-gin',
   'go-http',
   'go-iris',
-  'go-martini',
   'go-negroni',
 ];
 
 export const topJavascriptFrameworks: PlatformKey[] = [
-  'javascript-react',
   'javascript-nextjs',
+  'javascript-react',
   'javascript-vue',
   'javascript-angular',
+  'javascript-solid',
+  'javascript-solidstart',
+  'javascript-remix',
   'javascript-svelte',
   'javascript-sveltekit',
-  'javascript-remix',
   'javascript-astro',
 ];
 
@@ -66,9 +65,9 @@ const topPythonFrameworks: PlatformKey[] = [
 
 const topNodeFrameworks: PlatformKey[] = [
   'node-express',
+  'node-nestjs',
   'node-awslambda',
   'node-gcpfunctions',
-  'node-serverlesscloud',
   'node-koa',
 ];
 
@@ -284,11 +283,8 @@ export function FrameworkSuggestionModal({
       </Body>
       <Footer>
         <Actions>
-          <Button size="md" onClick={handleSkip}>
-            {t('Skip')}
-          </Button>
+          <Button onClick={handleSkip}>{t('Skip')}</Button>
           <Button
-            size="md"
             priority="primary"
             onClick={handleConfigure}
             disabled={!selectedFramework}

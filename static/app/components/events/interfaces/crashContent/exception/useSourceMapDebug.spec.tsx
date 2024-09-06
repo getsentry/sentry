@@ -1,6 +1,7 @@
 import cloneDeep from 'lodash/cloneDeep';
+import {EventStacktraceExceptionFixture} from 'sentry-fixture/eventStacktraceException';
 
-import {EntryException, Event} from 'sentry/types';
+import type {EntryException, Event} from 'sentry/types/event';
 
 import {getUniqueFilesFromException} from './useSourceMapDebug';
 
@@ -18,7 +19,7 @@ describe('getUniqueFilesFromException', () => {
   const props = {eventId: '0', orgSlug: '0', projectSlug: '0'};
 
   it('returns an array of frame filenames with required props', function () {
-    const event = TestStubs.EventStacktraceException({
+    const event = EventStacktraceExceptionFixture({
       platform: 'javascript',
     });
     const result = getUniqueFilesFromException(
@@ -41,7 +42,7 @@ describe('getUniqueFilesFromException', () => {
 
   it('does NOT use frames if all filenames are anonymous', function () {
     const event = modifyEventFrames(
-      TestStubs.EventStacktraceException({
+      EventStacktraceExceptionFixture({
         platform: 'javascript',
       }),
       {filename: '<anonymous>'}
@@ -56,7 +57,7 @@ describe('getUniqueFilesFromException', () => {
 
   it('uses frames that are relative to home directory', function () {
     const event = modifyEventFrames(
-      TestStubs.EventStacktraceException({
+      EventStacktraceExceptionFixture({
         platform: 'javascript',
       }),
       {absPath: '~/myfile.js', filename: '~/myfile.js'}

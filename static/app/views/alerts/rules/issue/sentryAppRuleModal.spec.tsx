@@ -1,5 +1,6 @@
 import styled from '@emotion/styled';
-import {SentryApp} from 'sentry-fixture/sentryApp';
+import {SentryAppFixture} from 'sentry-fixture/sentryApp';
+import {SentryAppInstallationFixture} from 'sentry-fixture/sentryAppInstallation';
 
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
@@ -20,8 +21,8 @@ describe('SentryAppRuleModal', function () {
   let sentryAppInstallation;
 
   beforeEach(function () {
-    sentryApp = SentryApp();
-    sentryAppInstallation = TestStubs.SentryAppInstallation({sentryApp});
+    sentryApp = SentryAppFixture();
+    sentryAppInstallation = SentryAppInstallationFixture();
   });
 
   const _submit = async () => {
@@ -32,11 +33,6 @@ describe('SentryAppRuleModal', function () {
   const submitSuccess = async () => {
     const errors = await _submit();
     expect(errors).toHaveLength(0);
-  };
-
-  const submitErrors = async errorCount => {
-    const errors = await _submit();
-    expect(errors).toHaveLength(errorCount);
   };
 
   const defaultConfig: SchemaFormConfig = {
@@ -131,9 +127,13 @@ describe('SentryAppRuleModal', function () {
       });
     });
 
-    it('should raise validation errors when "Save Changes" is clicked with invalid data', async function () {
+    it('submit button shall be disabled if form is incomplete', async function () {
       createWrapper();
-      await submitErrors(3);
+      expect(screen.getByRole('button', {name: 'Save Changes'})).toBeDisabled();
+      await userEvent.hover(screen.getByRole('button', {name: 'Save Changes'}));
+      expect(
+        await screen.findByText('Required fields must be filled out')
+      ).toBeInTheDocument();
     });
 
     it('should submit when "Save Changes" is clicked with valid data', async function () {
@@ -175,6 +175,68 @@ describe('SentryAppRuleModal', function () {
       await userEvent.click(screen.getByText(workspaceChoices[1][1]));
 
       await submitSuccess();
+    });
+    it('should load complexity options from backend when column has a default value', async function () {
+      const mockApi = MockApiClient.addMockResponse({
+        url: `/sentry-app-installations/${sentryAppInstallation.uuid}/external-requests/`,
+        body: {
+          choices: [
+            ['low', 'Low'],
+            ['medium', 'Medium'],
+            ['high', 'High'],
+          ],
+        },
+      });
+
+      const schema: SchemaFormConfig = {
+        uri: '/api/sentry/issue-link/create/',
+        required_fields: [
+          {
+            type: 'text',
+            label: 'Task Name',
+            name: 'title',
+            default: 'issue.title',
+          },
+          {
+            type: 'select',
+            label: "What's the status of this task?",
+            name: 'column',
+            uri: '/api/sentry/options/status/',
+            defaultValue: 'ongoing',
+            choices: [
+              ['ongoing', 'ongoing'],
+              ['completed', 'completed'],
+              ['pending', 'pending'],
+              ['cancelled', 'cancelled'],
+            ],
+          },
+        ],
+        optional_fields: [
+          {
+            type: 'select',
+            label: 'What is the estimated complexity?',
+            name: 'complexity',
+            depends_on: ['column'],
+            skip_load_on_open: true,
+            uri: '/api/sentry/options/complexity-options/',
+            choices: [],
+          },
+        ],
+      };
+
+      createWrapper({config: schema});
+
+      // Wait for component to mount and state to update
+      await waitFor(() => expect(mockApi).toHaveBeenCalled());
+
+      // Check if complexity options are loaded
+      const complexityInput = screen.getByLabelText('What is the estimated complexity?', {
+        selector: 'input#complexity',
+      });
+      await userEvent.click(complexityInput);
+      expect(screen.getByText('Low')).toBeInTheDocument();
+      expect(screen.getByText('Medium')).toBeInTheDocument();
+      expect(screen.getByText('High')).toBeInTheDocument();
     });
   });
 });

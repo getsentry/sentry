@@ -2,20 +2,19 @@ import {Component} from 'react';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {openModal} from 'sentry/actionCreators/modal';
-import {Client} from 'sentry/api';
+import type {Client} from 'sentry/api';
 import {Button} from 'sentry/components/button';
 import {IconSettings} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {Organization, Project} from 'sentry/types';
+import type {Organization} from 'sentry/types/organization';
+import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
-import EventView from 'sentry/utils/discover/eventView';
+import type EventView from 'sentry/utils/discover/eventView';
 import withApi from 'sentry/utils/withApi';
 import withProjects from 'sentry/utils/withProjects';
 
-import TransactionThresholdModal, {
-  modalCss,
-  TransactionThresholdMetric,
-} from './transactionThresholdModal';
+import type {TransactionThresholdMetric} from './transactionThresholdModal';
+import TransactionThresholdModal, {modalCss} from './transactionThresholdModal';
 
 type Props = {
   api: Client;

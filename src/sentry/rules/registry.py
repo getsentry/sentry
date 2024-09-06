@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from collections import defaultdict
-from typing import Generator
+from collections.abc import Generator
 
 from sentry.rules.base import RuleBase
 
@@ -11,10 +11,10 @@ class RuleRegistry:
         self._rules: dict[str, list[type[RuleBase]]] = defaultdict(list)
         self._map: dict[str, type[RuleBase]] = {}
 
-    def __contains__(self, rule_id: int) -> bool:
+    def __contains__(self, rule_id: str) -> bool:
         return rule_id in self._map
 
-    def __iter__(self) -> Generator[tuple[str, type[RuleBase]], None, None]:
+    def __iter__(self) -> Generator[tuple[str, type[RuleBase]]]:
         for rule_type, rule_list in self._rules.items():
             for rule in rule_list:
                 yield rule_type, rule

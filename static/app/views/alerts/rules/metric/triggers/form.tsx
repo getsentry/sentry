@@ -2,27 +2,28 @@ import {Component, Fragment, PureComponent} from 'react';
 import styled from '@emotion/styled';
 
 import {fetchOrgMembers} from 'sentry/actionCreators/members';
-import {Client} from 'sentry/api';
+import type {Client} from 'sentry/api';
 import FieldGroup from 'sentry/components/forms/fieldGroup';
 import {IconDiamond} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {Config, Organization, Project} from 'sentry/types';
+import type {Organization} from 'sentry/types/organization';
+import type {Project} from 'sentry/types/project';
+import type {Config} from 'sentry/types/system';
 import withApi from 'sentry/utils/withApi';
 import withConfig from 'sentry/utils/withConfig';
 import {getThresholdUnits} from 'sentry/views/alerts/rules/metric/constants';
 import ThresholdControl from 'sentry/views/alerts/rules/metric/triggers/thresholdControl';
 
 import {isSessionAggregate} from '../../../utils';
-import {
-  AlertRuleComparisonType,
+import type {
   AlertRuleThresholdType,
-  AlertRuleTriggerType,
   ThresholdControlValue,
   Trigger,
   UnsavedMetricRule,
   UnsavedTrigger,
 } from '../types';
+import {AlertRuleComparisonType, AlertRuleTriggerType} from '../types';
 
 type Props = {
   aggregate: UnsavedMetricRule['aggregate'];
@@ -93,7 +94,7 @@ class TriggerFormItem extends PureComponent<Props> {
         label={triggerLabel}
         help={fieldHelp}
         required={isCritical}
-        error={error && error.alertThreshold}
+        error={error?.alertThreshold}
       >
         <ThresholdControl
           disabled={disabled}
@@ -220,7 +221,7 @@ class TriggerFormContainer extends Component<TriggerFormContainerProps> {
               api={api}
               config={config}
               disabled={disabled}
-              error={errors && errors.get(index)}
+              error={errors?.get(index)}
               trigger={trigger}
               thresholdPeriod={thresholdPeriod}
               thresholdType={thresholdType}
@@ -261,7 +262,7 @@ class TriggerFormContainer extends Component<TriggerFormContainerProps> {
           api={api}
           config={config}
           disabled={disabled}
-          error={errors && errors.get(2)}
+          error={errors?.get(2)}
           trigger={resolveTrigger}
           // Flip rule thresholdType to opposite
           thresholdPeriod={thresholdPeriod}

@@ -10,7 +10,7 @@ from sentry.api.bases.incident import IncidentEndpoint, IncidentPermission
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.serializers import serialize
 from sentry.incidents.logic import delete_comment, update_comment
-from sentry.incidents.models import IncidentActivity, IncidentActivityType
+from sentry.incidents.models.incident import IncidentActivity, IncidentActivityType
 
 
 class CommentSerializer(serializers.Serializer):

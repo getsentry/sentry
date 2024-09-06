@@ -1,3 +1,5 @@
+import {ProjectFixture} from 'sentry-fixture/project';
+
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {
   render,
@@ -8,7 +10,7 @@ import {
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
 import OrganizationsStore from 'sentry/stores/organizationsStore';
-import {OrgAuthToken} from 'sentry/types';
+import type {OrgAuthToken} from 'sentry/types/user';
 import {OrganizationAuthTokensAuthTokenRow} from 'sentry/views/settings/organizationAuthTokens/authTokenRow';
 
 describe('OrganizationAuthTokensAuthTokenRow', function () {
@@ -59,7 +61,7 @@ describe('OrganizationAuthTokensAuthTokenRow', function () {
     it('shows full last used info', function () {
       const props = {
         ...defaultProps,
-        projectLastUsed: TestStubs.Project(),
+        projectLastUsed: ProjectFixture(),
         token: {
           ...token,
           dateLastUsed: new Date(),
@@ -82,7 +84,7 @@ describe('OrganizationAuthTokensAuthTokenRow', function () {
     it('shows last used project only', function () {
       const props = {
         ...defaultProps,
-        projectLastUsed: TestStubs.Project(),
+        projectLastUsed: ProjectFixture(),
         token: {
           ...token,
         },

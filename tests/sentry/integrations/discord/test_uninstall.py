@@ -1,19 +1,19 @@
-from typing import Any, Optional
+from typing import Any
 from unittest import mock
 
 import responses
 
 from sentry.constants import ObjectStatus
 from sentry.integrations.discord.client import USERS_GUILD_URL, DiscordClient
-from sentry.models.integrations.integration import Integration
-from sentry.models.integrations.organization_integration import OrganizationIntegration
+from sentry.integrations.models.integration import Integration
+from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.models.organization import Organization
 from sentry.models.scheduledeletion import ScheduledDeletion
-from sentry.services.hybrid_cloud.user.model import RpcUser
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.factories import Factories
 from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
+from sentry.users.services.user.model import RpcUser
 
 GUILD_ID = "guild-id"
 LEAVE_GUILD_URL = f"{DiscordClient.base_url}{USERS_GUILD_URL.format(guild_id=GUILD_ID)}"
@@ -32,7 +32,7 @@ class DiscordUninstallTest(APITestCase):
     def create_discord_integration(
         self,
         organization: Organization,
-        user: Optional[RpcUser],
+        user: RpcUser | None,
         guild_id: str = GUILD_ID,
         **kwargs: Any,
     ):

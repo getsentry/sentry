@@ -1,5 +1,5 @@
 {
-  "extra": {"c": "d"},
+  "extra": { "c": "d" },
   "exception": {
     "values": [
       {
@@ -223,7 +223,7 @@
   },
   "release": "io.sentry.sentry-ios-cocoapods-1.0",
   "dist": "1",
-  "tags": {"a": "b"},
+  "tags": { "a": "b" },
   "breadcrumbs": [
     {
       "message": "Breadcrumb Tracking",
@@ -238,7 +238,9 @@
       "level": "info",
       "type": "navigation",
       "category": "UIViewController",
-      "data": {"controller": "<sentry_ios_cocoapods.ViewController: 0x100e09ec0>"}
+      "data": {
+        "controller": "<sentry_ios_cocoapods.ViewController: 0x100e09ec0>"
+      }
     },
     {
       "message": "Breadcrumb Tracking",
@@ -253,7 +255,9 @@
       "level": "info",
       "type": "navigation",
       "category": "UIViewController",
-      "data": {"controller": "<sentry_ios_cocoapods.ViewController: 0x11be073c0>"}
+      "data": {
+        "controller": "<sentry_ios_cocoapods.ViewController: 0x11be073c0>"
+      }
     },
     {
       "message": "causeCrash:",
@@ -278,7 +282,9 @@
       "level": "info",
       "type": "navigation",
       "category": "UIViewController",
-      "data": {"controller": "<sentry_ios_cocoapods.ViewController: 0x100d07290>"}
+      "data": {
+        "controller": "<sentry_ios_cocoapods.ViewController: 0x100d07290>"
+      }
     },
     {
       "message": "Breadcrumb Tracking",
@@ -293,7 +299,9 @@
       "level": "info",
       "type": "navigation",
       "category": "UIViewController",
-      "data": {"controller": "<sentry_ios_cocoapods.ViewController: 0x135d07810>"}
+      "data": {
+        "controller": "<sentry_ios_cocoapods.ViewController: 0x135d07810>"
+      }
     },
     {
       "message": "Breadcrumb Tracking",
@@ -308,7 +316,9 @@
       "level": "info",
       "type": "navigation",
       "category": "UIViewController",
-      "data": {"controller": "<sentry_ios_cocoapods.ViewController: 0x100d06c30>"}
+      "data": {
+        "controller": "<sentry_ios_cocoapods.ViewController: 0x100d06c30>"
+      }
     },
     {
       "message": "causeCrash:",
@@ -333,7 +343,9 @@
       "level": "info",
       "type": "navigation",
       "category": "UIViewController",
-      "data": {"controller": "<sentry_ios_cocoapods.ViewController: 0x121d0b3b0>"}
+      "data": {
+        "controller": "<sentry_ios_cocoapods.ViewController: 0x121d0b3b0>"
+      }
     },
     {
       "message": "Breadcrumb Tracking",
@@ -348,7 +360,9 @@
       "level": "info",
       "type": "navigation",
       "category": "UIViewController",
-      "data": {"controller": "<sentry_ios_cocoapods.ViewController: 0x119d05040>"}
+      "data": {
+        "controller": "<sentry_ios_cocoapods.ViewController: 0x119d05040>"
+      }
     },
     {
       "message": "causeCrash:",
@@ -373,7 +387,9 @@
       "level": "info",
       "type": "navigation",
       "category": "UIViewController",
-      "data": {"controller": "<sentry_ios_cocoapods.ViewController: 0x100d010e0>"}
+      "data": {
+        "controller": "<sentry_ios_cocoapods.ViewController: 0x100d010e0>"
+      }
     },
     {
       "message": "sendMessage:",
@@ -398,7 +414,9 @@
       "level": "info",
       "type": "navigation",
       "category": "UIViewController",
-      "data": {"controller": "<sentry_ios_cocoapods.ViewController: 0x100d0a050>"}
+      "data": {
+        "controller": "<sentry_ios_cocoapods.ViewController: 0x100d0a050>"
+      }
     },
     {
       "message": "Breadcrumb Tracking",
@@ -413,7 +431,9 @@
       "level": "info",
       "type": "navigation",
       "category": "UIViewController",
-      "data": {"controller": "<sentry_ios_cocoapods.ViewController: 0x10fe0a470>"}
+      "data": {
+        "controller": "<sentry_ios_cocoapods.ViewController: 0x10fe0a470>"
+      }
     },
     {
       "message": "causeCrash:",
@@ -1236,7 +1256,7 @@
         "current": true,
         "crashed": false,
         "name": "KSCrash Exception Handler (Primary)",
-        "stacktrace": {"frames": []}
+        "stacktrace": { "frames": [] }
       }
     ]
   },
@@ -1270,7 +1290,7 @@
       "usable_memory": 2095349760
     }
   },
-  "sdk": {"name": "sentry-cocoa", "version": "3.11.1"},
+  "sdk": { "name": "sentry-cocoa", "version": "3.11.1" },
   "debug_meta": {
     "images": [
       {
@@ -3434,5 +3454,5 @@
     ]
   },
   "event_id": "BFE4379D82934B2B91D70B1167BCAE8D",
-  "user": {"id": "1234", "email": "hello@sentry.io"}
+  "user": { "id": "1234", "email": "hello@sentry.io" }
 }

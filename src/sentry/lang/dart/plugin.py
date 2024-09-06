@@ -1,6 +1,11 @@
+from __future__ import annotations
+
+from collections.abc import Mapping, Sequence
+from typing import Any
+
 from sentry.lang.dart.utils import deobfuscate_view_hierarchy, has_dart_symbols_file
 from sentry.models.project import Project
-from sentry.plugins.base.v2 import Plugin2
+from sentry.plugins.base.v2 import EventPreprocessor, Plugin2
 from sentry.utils.options import sample_modulo
 
 
@@ -21,7 +26,7 @@ class DartPlugin(Plugin2):
     def can_configure_for_project(self, project, **kwargs):
         return False
 
-    def get_event_preprocessors(self, data):
+    def get_event_preprocessors(self, data: Mapping[str, Any]) -> Sequence[EventPreprocessor]:
         project = Project.objects.get_from_cache(id=data["project"])
         if not sample_modulo(
             "processing.view-hierarchies-dart-deobfuscation", project.organization.id
@@ -30,3 +35,5 @@ class DartPlugin(Plugin2):
 
         if has_dart_symbols_file(data):
             return [deobfuscate_view_hierarchy]
+        else:
+            return []

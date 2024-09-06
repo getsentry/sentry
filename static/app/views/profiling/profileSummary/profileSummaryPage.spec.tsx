@@ -1,7 +1,7 @@
-import {Location} from 'history';
-import {GlobalSelection} from 'sentry-fixture/globalSelection';
-import {Organization} from 'sentry-fixture/organization';
-import RouterContextFixture from 'sentry-fixture/routerContextFixture';
+import type {Location} from 'history';
+import {GlobalSelectionFixture} from 'sentry-fixture/globalSelection';
+import {OrganizationFixture} from 'sentry-fixture/organization';
+import {ProjectFixture} from 'sentry-fixture/project';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
@@ -43,15 +43,12 @@ window.ResizeObserver =
 
 describe('ProfileSummaryPage', () => {
   it('renders new page', async () => {
-    const organization = Organization({
-      features: [],
-      projects: [TestStubs.Project()],
-    });
+    const organization = OrganizationFixture({features: []});
     OrganizationStore.onUpdate(organization);
 
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/projects/`,
-      body: [TestStubs.Project()],
+      body: [ProjectFixture()],
     });
 
     MockApiClient.addMockResponse({
@@ -85,7 +82,7 @@ describe('ProfileSummaryPage', () => {
       <ProfileSummaryPage
         view="flamegraph"
         params={{}}
-        selection={GlobalSelection()}
+        selection={GlobalSelectionFixture()}
         location={
           {
             query: {transaction: 'fancyservice'},
@@ -93,10 +90,9 @@ describe('ProfileSummaryPage', () => {
         }
       />,
       {
-        organization: Organization({
+        organization: OrganizationFixture({
           features: ['profiling-summary-redesign'],
         }),
-        context: RouterContextFixture(),
       }
     );
 

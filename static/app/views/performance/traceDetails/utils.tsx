@@ -1,8 +1,9 @@
-import {LocationDescriptor, Query} from 'history';
+import type {Location, LocationDescriptorObject} from 'history';
 
 import {PAGE_URL_PARAM} from 'sentry/constants/pageFilters';
-import {Organization, OrganizationSummary} from 'sentry/types';
-import {
+import type {Organization} from 'sentry/types/organization';
+import {getTimeStampFromTableDateField} from 'sentry/utils/dates';
+import type {
   EventLite,
   TraceError,
   TraceFull,
@@ -10,33 +11,96 @@ import {
   TraceSplitResults,
 } from 'sentry/utils/performance/quickTrace/types';
 import {isTraceSplitResult, reduceTrace} from 'sentry/utils/performance/quickTrace/utils';
+import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 
 import {DEFAULT_TRACE_ROWS_LIMIT} from './limitExceededMessage';
-import {TraceInfo} from './types';
+import type {TraceInfo} from './types';
 
-export function getTraceDetailsUrl(
-  organization: OrganizationSummary,
-  traceSlug: string,
+export function getTraceDetailsUrl({
+  organization,
+  traceSlug,
   dateSelection,
-  query: Query
-): LocationDescriptor {
+  timestamp,
+  spanId,
+  eventId,
+  demo,
+  location,
+  source,
+}: {
+  dateSelection;
+  location: Location;
+  organization: Organization;
+  traceSlug: string;
+  demo?: string;
+  eventId?: string;
+  source?: string;
+  spanId?: string;
+  timestamp?: string | number;
+}): LocationDescriptorObject {
   const {start, end, statsPeriod} = dateSelection;
 
   const queryParams = {
-    ...query,
+    ...location.query,
     statsPeriod,
     [PAGE_URL_PARAM.PAGE_START]: start,
     [PAGE_URL_PARAM.PAGE_END]: end,
   };
 
+  const oldTraceUrl = {
+    pathname: normalizeUrl(
+      `/organizations/${organization.slug}/performance/trace/${traceSlug}/`
+    ),
+    query: queryParams,
+  };
+
+  if (shouldForceRouteToOldView(organization, timestamp)) {
+    return oldTraceUrl;
+  }
+
+  if (organization.features.includes('trace-view-v1')) {
+    if (spanId) {
+      queryParams.node = [`span-${spanId}`, `txn-${eventId}`];
+    }
+    return {
+      pathname: normalizeUrl(
+        `/organizations/${organization.slug}/performance/trace/${traceSlug}/`
+      ),
+      query: {
+        ...queryParams,
+        timestamp: getTimeStampFromTableDateField(timestamp),
+        eventId,
+        demo,
+        source,
+      },
+    };
+  }
+
   if (organization.features.includes('trace-view-load-more')) {
     queryParams.limit = DEFAULT_TRACE_ROWS_LIMIT;
   }
 
-  return {
-    pathname: `/organizations/${organization.slug}/performance/trace/${traceSlug}/`,
-    query: queryParams,
-  };
+  return oldTraceUrl;
+}
+
+/**
+ * Single tenant, on-premise etc. users may not have span extraction enabled.
+ *
+ * This code can be removed at the time we're sure all STs have rolled out span extraction.
+ */
+export function shouldForceRouteToOldView(
+  organization: Organization,
+  timestamp: string | number | undefined
+) {
+  const usableTimestamp = getTimeStampFromTableDateField(timestamp);
+  if (!usableTimestamp) {
+    // Timestamps must always be provided for the new view, if it doesn't exist, fall back to the old view.
+    return true;
+  }
+
+  return (
+    organization.extraOptions?.traces.checkSpanExtractionDate &&
+    organization.extraOptions?.traces.spansExtractionDate > usableTimestamp
+  );
 }
 
 function transactionVisitor() {

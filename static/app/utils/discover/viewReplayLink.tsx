@@ -1,10 +1,10 @@
-import {ComponentProps, ReactNode, ReactText, useContext} from 'react';
+import type {ComponentProps, ReactNode, ReactText} from 'react';
 import styled from '@emotion/styled';
 
 import Link from 'sentry/components/links/link';
-import ReplayCountContext from 'sentry/components/replays/replayCountContext';
 import {Tooltip} from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
+import useReplayExists from 'sentry/utils/replayCount/useReplayExists';
 
 function ViewReplayLink({
   children,
@@ -15,9 +15,9 @@ function ViewReplayLink({
   replayId: ReactText | string;
   to: ComponentProps<typeof Link>['to'];
 }) {
-  const count = useContext(ReplayCountContext)[replayId] || 0;
+  const {replayExists} = useReplayExists();
 
-  if (count < 1) {
+  if (!replayId || !replayExists(String(replayId))) {
     return (
       <Tooltip title={t('This replay may have been rate limited or deleted.')}>
         <EmptyValueContainer>{t('(missing)')}</EmptyValueContainer>

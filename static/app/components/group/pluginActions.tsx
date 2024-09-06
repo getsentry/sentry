@@ -1,13 +1,17 @@
 import {Component, Fragment} from 'react';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
-import {closeModal, ModalRenderProps, openModal} from 'sentry/actionCreators/modal';
-import {Client} from 'sentry/api';
+import type {ModalRenderProps} from 'sentry/actionCreators/modal';
+import {closeModal, openModal} from 'sentry/actionCreators/modal';
+import type {Client} from 'sentry/api';
 import IssueSyncListElement from 'sentry/components/issueSyncListElement';
 import NavTabs from 'sentry/components/navTabs';
 import {t, tct} from 'sentry/locale';
 import plugins from 'sentry/plugins';
-import {Group, Organization, Plugin, Project} from 'sentry/types';
+import type {Group} from 'sentry/types/group';
+import type {Plugin} from 'sentry/types/integrations';
+import type {Organization} from 'sentry/types/organization';
+import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {getAnalyticsDataForGroup} from 'sentry/utils/events';
 import withApi from 'sentry/utils/withApi';
@@ -19,7 +23,7 @@ type PluginIssue = {
   url: string;
 };
 
-type TitledPlugin = Plugin & {
+export type TitledPlugin = Plugin & {
   // issue serializer adds more fields
   // TODO: should be able to use name instead of title
   title: string;
@@ -37,6 +41,41 @@ type State = {
   issue: PluginIssue | null;
   pluginLoading: boolean;
 };
+
+export function openPluginActionModal({
+  project,
+  group,
+  organization,
+  plugin,
+  onModalClose,
+}: {
+  group: Group;
+  onModalClose: (data?: any) => void;
+  organization: Organization;
+  plugin: TitledPlugin;
+  project: Project;
+}) {
+  trackAnalytics('issue_details.external_issue_modal_opened', {
+    organization,
+    ...getAnalyticsDataForGroup(group),
+    external_issue_provider: plugin.slug,
+    external_issue_type: 'plugin',
+  });
+
+  openModal(
+    deps => (
+      <PluginActionsModal
+        {...deps}
+        project={project}
+        group={group}
+        organization={organization}
+        plugin={plugin}
+        onSuccess={onModalClose}
+      />
+    ),
+    {onClose: onModalClose}
+  );
+}
 
 class PluginActions extends Component<Props, State> {
   state: State = {
@@ -98,30 +137,15 @@ class PluginActions extends Component<Props, State> {
   };
 
   openModal = () => {
-    const {issue} = this.state;
-    const {project, group, organization} = this.props;
-    const plugin = {...this.props.plugin, issue};
+    const {project, group, organization, plugin} = this.props;
 
-    trackAnalytics('issue_details.external_issue_modal_opened', {
+    openPluginActionModal({
+      project,
+      group,
       organization,
-      ...getAnalyticsDataForGroup(group),
-      external_issue_provider: plugin.slug,
-      external_issue_type: 'plugin',
+      plugin,
+      onModalClose: this.handleModalClose,
     });
-
-    openModal(
-      deps => (
-        <PluginActionsModal
-          {...deps}
-          project={project}
-          group={group}
-          organization={organization}
-          plugin={plugin}
-          onSuccess={this.handleModalClose}
-        />
-      ),
-      {onClose: this.handleModalClose}
-    );
   };
 
   render() {
@@ -145,7 +169,7 @@ type ModalProps = ModalRenderProps & {
   group: Group;
   onSuccess: (data: any) => void;
   organization: Organization;
-  plugin: TitledPlugin & {issue: PluginIssue | null};
+  plugin: TitledPlugin;
   project: Project;
 };
 

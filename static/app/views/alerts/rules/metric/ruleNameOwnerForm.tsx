@@ -7,7 +7,8 @@ import ListItem from 'sentry/components/list/listItem';
 import TeamSelector from 'sentry/components/teamSelector';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {Project, Team} from 'sentry/types';
+import type {Team} from 'sentry/types/organization';
+import type {Project} from 'sentry/types/project';
 
 type Props = {
   disabled: boolean;
@@ -39,7 +40,7 @@ export default function RuleNameOwnerForm({disabled, project}: Props) {
     >
       {({model}) => {
         const owner = model.getValue('owner');
-        const ownerId = owner && owner.split(':')[1];
+        const ownerId = owner?.split(':')[1];
         return (
           <TeamSelector
             value={ownerId}

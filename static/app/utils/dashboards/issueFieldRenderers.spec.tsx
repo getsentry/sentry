@@ -1,3 +1,7 @@
+import {GroupFixture} from 'sentry-fixture/group';
+import {ProjectFixture} from 'sentry-fixture/project';
+import {UserFixture} from 'sentry-fixture/user';
+
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {act, render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
@@ -13,8 +17,7 @@ describe('getIssueFieldRenderer', function () {
     context = initializeOrg({
       organization,
       router: {},
-      project: TestStubs.Project(),
-      projects: [TestStubs.Project()],
+      projects: [ProjectFixture()],
     });
     organization = context.organization;
     project = context.project;
@@ -49,7 +52,7 @@ describe('getIssueFieldRenderer', function () {
       filteredEvents: 3000,
       events: 6000,
       period: '7d',
-      links: ['<a href="sentry.io">ANNO-123</a>'],
+      links: [{url: 'sentry.io', displayName: 'ANNO-123'}],
     };
 
     MockApiClient.addMockResponse({
@@ -71,7 +74,7 @@ describe('getIssueFieldRenderer', function () {
   describe('Issue fields', () => {
     it('can render assignee', async function () {
       MemberListStore.loadInitialData([
-        TestStubs.User({
+        UserFixture({
           name: 'Test User',
           email: 'test@sentry.io',
           avatar: {
@@ -81,11 +84,13 @@ describe('getIssueFieldRenderer', function () {
         }),
       ]);
 
-      const group = TestStubs.Group({project});
+      const group = GroupFixture({project});
       GroupStore.add([
         {
           ...group,
-          owners: [{owner: 'user:1', type: 'suspectCommit'}],
+          owners: [
+            {owner: 'user:1', type: 'suspectCommit', date_added: '2020-01-01T00:00:00'},
+          ],
           assignedTo: {
             email: 'test@sentry.io',
             type: 'user',
@@ -148,8 +153,8 @@ describe('getIssueFieldRenderer', function () {
           data,
           ...{
             links: [
-              '<a href="sentry.io">ANNO-123</a>',
-              '<a href="sentry.io">ANNO-456</a>',
+              {url: 'sentry.io', displayName: 'ANNO-123'},
+              {url: 'sentry.io', displayName: 'ANNO-456'},
             ],
           },
         },

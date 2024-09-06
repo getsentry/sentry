@@ -2,7 +2,8 @@ from __future__ import annotations
 
 import abc
 import logging
-from typing import Any, MutableMapping
+from collections.abc import MutableMapping
+from typing import Any
 
 from django.views.decorators.csrf import csrf_exempt
 from psycopg2 import OperationalError
@@ -47,7 +48,7 @@ class JiraWebhookBase(Endpoint, abc.ABC):
         scope = scope or Scope()
 
         if isinstance(exc, (AtlassianConnectValidationError, JiraTokenError)):
-            return self.respond(status=status.HTTP_400_BAD_REQUEST)
+            return self.respond(status=status.HTTP_409_CONFLICT)
 
         # Atlassian has an automated tool which tests to make sure integrations with Jira
         # (like ours) pass certain security requirements, which leads them to probe certain

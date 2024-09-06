@@ -1,3 +1,4 @@
+import {Fragment} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
@@ -6,28 +7,32 @@ import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {useLocation} from 'sentry/utils/useLocation';
-import PerformanceScoreRingWithTooltips from 'sentry/views/performance/browser/webVitals/components/performanceScoreRingWithTooltips';
-import {calculatePerformanceScoreFromTableDataRow} from 'sentry/views/performance/browser/webVitals/utils/queries/rawWebVitalsQueries/calculatePerformanceScore';
-import {useProjectRawWebVitalsQuery} from 'sentry/views/performance/browser/webVitals/utils/queries/rawWebVitalsQueries/useProjectRawWebVitalsQuery';
+import PerformanceScoreRingWithTooltips from 'sentry/views/insights/browser/webVitals/components/performanceScoreRingWithTooltips';
+import {useProjectRawWebVitalsQuery} from 'sentry/views/insights/browser/webVitals/queries/rawWebVitalsQueries/useProjectRawWebVitalsQuery';
+import {calculatePerformanceScoreFromStoredTableDataRow} from 'sentry/views/insights/browser/webVitals/queries/storedScoreQueries/calculatePerformanceScoreFromStored';
+import {useProjectWebVitalsScoresQuery} from 'sentry/views/insights/browser/webVitals/queries/storedScoreQueries/useProjectWebVitalsScoresQuery';
+import {useModuleURL} from 'sentry/views/insights/common/utils/useModuleURL';
 
 import {GenericPerformanceWidget} from '../components/performanceWidget';
 import {Subtitle, WidgetEmptyStateWarning} from '../components/selectableList';
-import {PerformanceWidgetProps} from '../types';
+import type {PerformanceWidgetProps} from '../types';
 
 export function PerformanceScoreWidget(props: PerformanceWidgetProps) {
   const location = useLocation();
-  const {InteractiveTitle, organization} = props;
+  const {InteractiveTitle} = props;
   const theme = useTheme();
-  const {data: projectData, isLoading} = useProjectRawWebVitalsQuery();
-
-  const noTransactions = !isLoading && !projectData?.data?.[0]?.['count()'];
+  const {data: projectData, isPending} = useProjectRawWebVitalsQuery();
+  const {data: projectScores, isPending: isProjectScoresLoading} =
+    useProjectWebVitalsScoresQuery();
 
   const projectScore =
-    isLoading || noTransactions
+    isProjectScoresLoading || isPending
       ? undefined
-      : calculatePerformanceScoreFromTableDataRow(projectData?.data?.[0]);
+      : calculatePerformanceScoreFromStoredTableDataRow(projectScores?.data?.[0]);
   const ringSegmentColors = theme.charts.getColorPalette(3);
   const ringBackgroundColors = ringSegmentColors.map(color => `${color}50`);
+
+  const moduleURL = useModuleURL('vital');
 
   return (
     <GenericPerformanceWidget
@@ -36,10 +41,7 @@ export function PerformanceScoreWidget(props: PerformanceWidgetProps) {
       Subtitle={() => <Subtitle>{props.subTitle}</Subtitle>}
       HeaderActions={() => (
         <div>
-          <LinkButton
-            to={`/organizations/${organization.slug}/performance/browser/pageloads/`}
-            size="sm"
-          >
+          <LinkButton to={`${moduleURL}/`} size="sm">
             {t('View All')}
           </LinkButton>
         </div>
@@ -48,35 +50,50 @@ export function PerformanceScoreWidget(props: PerformanceWidgetProps) {
         InteractiveTitle ? () => <InteractiveTitle isLoading={false} /> : null
       }
       EmptyComponent={WidgetEmptyStateWarning}
-      Queries={{}}
+      Queries={{
+        project: {
+          component: provided => {
+            const loading = isProjectScoresLoading;
+            const data = projectScores;
+            return (
+              <Fragment>
+                {provided.children({
+                  data,
+                  isLoading: loading,
+                  hasData: !loading && (data?.data?.[0]?.['count()'] as number) > 0,
+                })}
+              </Fragment>
+            );
+          },
+          fields: [],
+          transform: function (_: any, results: any) {
+            return results;
+          },
+        },
+      }}
       Visualizations={[
         {
           component: () => (
             <Wrapper>
-              {projectScore && !noTransactions ? (
+              {projectScore ? (
                 <PerformanceScoreRingWithTooltips
                   inPerformanceWidget
                   projectScore={projectScore}
                   projectData={projectData}
-                  y={25}
+                  y={40}
                   text={
                     <span style={{fontSize: 'xxx-large'}}>{projectScore.totalScore}</span>
                   }
                   width={280}
                   height={240}
-                  size={200}
-                  barWidth={20}
-                  webVitalLabelCoordinates={{
-                    lcp: {x: 80, y: 25},
-                    fcp: {x: 60, y: 55},
-                    fid: {x: 10, y: 65},
-                    cls: {x: -5, y: 15},
-                    ttfb: {x: 10, y: -10},
-                  }}
+                  size={160}
+                  barWidth={16}
                   ringBackgroundColors={ringBackgroundColors}
                   ringSegmentColors={ringSegmentColors}
+                  radiusPadding={10}
+                  labelHeightPadding={0}
                 />
-              ) : isLoading ? (
+              ) : isPending ? (
                 <StyledLoadingIndicator size={40} />
               ) : (
                 <WidgetEmptyStateWarning />

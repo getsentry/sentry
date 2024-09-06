@@ -2,8 +2,7 @@ from __future__ import annotations
 
 import pytest
 
-from sentry.eventtypes.base import format_title_from_tree_label
-from sentry.grouping.api import detect_synthetic_exception, get_default_grouping_config_dict
+from sentry.grouping.api import get_default_grouping_config_dict
 from sentry.grouping.component import GroupingComponent
 from sentry.grouping.strategies.configurations import CONFIGURATIONS
 from sentry.utils import json
@@ -34,14 +33,8 @@ def dump_variant(variant, lines=None, indent=0):
 
     lines.append("{}hash: {}".format("  " * indent, json.dumps(variant.get_hash())))
 
-    for (key, value) in sorted(variant.__dict__.items()):
+    for key, value in sorted(variant.__dict__.items()):
         if isinstance(value, GroupingComponent):
-            if value.tree_label:
-                lines.append(
-                    '{}tree_label: "{}"'.format(
-                        "  " * indent, format_title_from_tree_label(value.tree_label)
-                    )
-                )
             lines.append("{}{}:".format("  " * indent, key))
             _dump_component(value, indent + 1)
         elif key == "config":
@@ -63,17 +56,16 @@ def test_event_hash_variant(config_name, grouping_input, insta_snapshot, log):
     # break stuff later on.
     evt.project = None
 
-    # Set the synthetic marker if detected
-    detect_synthetic_exception(evt.data, grouping_config)
-
     rv: list[str] = []
-    for (key, value) in sorted(evt.get_grouping_variants().items()):
+    for key, value in sorted(evt.get_grouping_variants().items()):
         if rv:
             rv.append("-" * 74)
         rv.append("%s:" % key)
         dump_variant(value, rv, 1)
     output = "\n".join(rv)
-    log(repr(evt.get_hashes()))
+
+    hashes = evt.get_hashes()
+    log(repr(hashes))
 
     assert evt.get_grouping_config() == grouping_config
 

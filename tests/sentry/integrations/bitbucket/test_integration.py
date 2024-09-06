@@ -4,7 +4,7 @@ import responses
 from django.urls import reverse
 
 from sentry.integrations.bitbucket import BitbucketIntegrationProvider
-from sentry.models.integrations.integration import Integration
+from sentry.integrations.models.integration import Integration
 from sentry.models.repository import Repository
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase
@@ -19,7 +19,7 @@ class BitbucketIntegrationTest(APITestCase):
         self.base_url = "https://api.bitbucket.org"
         self.shared_secret = "234567890"
         self.subject = "connect:1234567"
-        self.integration = Integration.objects.create(
+        self.integration = self.create_provider_integration(
             provider=self.provider.key,
             external_id=self.subject,
             name="sentryuser",

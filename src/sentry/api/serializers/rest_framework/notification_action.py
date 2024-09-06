@@ -1,4 +1,4 @@
-from typing import Dict, List, Tuple, TypedDict
+from typing import TypedDict
 
 from django.db import router, transaction
 from drf_spectacular.utils import extend_schema_serializer
@@ -7,15 +7,15 @@ from rest_framework import serializers
 from sentry.api.serializers.rest_framework.base import CamelSnakeModelSerializer
 from sentry.api.serializers.rest_framework.project import ProjectField
 from sentry.constants import SentryAppInstallationStatus
+from sentry.integrations.services.integration import integration_service
 from sentry.integrations.slack.utils.channel import get_channel_id, validate_channel_id
 from sentry.models.integrations.sentry_app_installation import SentryAppInstallation
 from sentry.models.notificationaction import ActionService, ActionTarget, NotificationAction
 from sentry.models.project import Project
-from sentry.services.hybrid_cloud.integration import integration_service
 from sentry.utils.strings import oxfordize_list
 
 
-def format_choices_text(choices: List[Tuple[int, str]]):
+def format_choices_text(choices: list[tuple[int, str]]):
     choices_as_display_text = [f"'{display_text}'" for (_, display_text) in choices]
     return oxfordize_list(choices_as_display_text)
 
@@ -35,7 +35,7 @@ class NotificationActionInputData(TypedDict):
     integration_id: int
     target_identifier: str
     target_display: str
-    projects: List[Project]
+    projects: list[Project]
     sentry_app_id: int
     target_type: int
 
@@ -135,7 +135,7 @@ Required if **service_type** is `slack` or `opsgenie`.
         return target_type_value
 
     def validate_trigger_type(self, trigger_type: str) -> int:
-        valid_triggers: Dict[str, int] = {v: k for k, v in NotificationAction.get_trigger_types()}
+        valid_triggers: dict[str, int] = {v: k for k, v in NotificationAction.get_trigger_types()}
         trigger_type_value = valid_triggers.get(trigger_type)
         if trigger_type_value is None:
             trigger_text = format_choices_text(NotificationAction.get_trigger_types())
@@ -205,7 +205,6 @@ Required if **service_type** is `slack` or `opsgenie`.
 
         channel_name = data.get("target_display")
         channel_id = data.get("target_identifier")
-
         if not channel_name:
             raise serializers.ValidationError(
                 {"target_display": "Did not receive a slack user or channel name."}
@@ -227,24 +226,20 @@ Required if **service_type** is `slack` or `opsgenie`.
         # If we've only received a channel name, ask slack for its id
         generic_error_message = f"Could not fetch channel id from Slack for '{channel_name}'. Try providing the channel id, or try again later."
         try:
-            _prefix, channel_id, timed_out, = get_channel_id(
-                organization=self.context["organization"],
-                integration=self.integration,
-                channel_name=channel_name,
-            )
+            channel_data = get_channel_id(integration=self.integration, channel_name=channel_name)
         except Exception:
             raise serializers.ValidationError({"target_display": generic_error_message})
 
-        if not channel_id:
+        if not channel_data.channel_id:
             raise serializers.ValidationError({"target_display": generic_error_message})
 
-        if timed_out:
+        if channel_data.timed_out:
             raise serializers.ValidationError(
                 {
                     "target_identifier": "Please provide a slack channel id, we encountered an error while searching for it via the channel name."
                 }
             )
-        data["target_identifier"] = channel_id
+        data["target_identifier"] = channel_data.channel_id
         return data
 
     def validate_discord_channel(
@@ -276,7 +271,6 @@ Required if **service_type** is `slack` or `opsgenie`.
             validate_channel_id(
                 channel_id=channel_id,
                 guild_id=self.integration.external_id,
-                integration_id=self.integration.id,
                 guild_name=self.integration.name,
             )
         except Exception as e:

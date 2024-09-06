@@ -2,15 +2,13 @@ from datetime import datetime, timezone
 from uuid import uuid4
 
 from sentry.models.commit import Commit
-from sentry.models.integrations.integration import Integration
 from sentry.models.repository import Repository
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase
-from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
+from sentry.testutils.silo import assume_test_silo_mode
 from sentry_plugins.github.testutils import PUSH_EVENT_EXAMPLE_INSTALLATION
 
 
-@region_silo_test
 class InstallationPushEventWebhookTest(APITestCase):
     def test_simple(self):
         project = self.project  # force creation
@@ -18,7 +16,7 @@ class InstallationPushEventWebhookTest(APITestCase):
         url = "/plugins/github/installations/webhook/"
 
         with assume_test_silo_mode(SiloMode.CONTROL):
-            inst = Integration.objects.create(
+            inst = self.create_provider_integration(
                 provider="github_apps", external_id="12345", name="dummyorg"
             )
 
@@ -54,6 +52,7 @@ class InstallationPushEventWebhookTest(APITestCase):
 
         assert commit.key == "133d60480286590a610a0eb7352ff6e02b9674c4"
         assert commit.message == "Update README.md (àgain)"
+        assert commit.author is not None
         assert commit.author.name == "bàxterthehacker"
         assert commit.author.email == "baxterthehacker@users.noreply.github.com"
         assert commit.author.external_id is None
@@ -63,6 +62,7 @@ class InstallationPushEventWebhookTest(APITestCase):
 
         assert commit.key == "0d1a26e67d8f5eaf1f6ba5c57fc3c7d91ac0fd1c"
         assert commit.message == "Update README.md"
+        assert commit.author is not None
         assert commit.author.name == "bàxterthehacker"
         assert commit.author.email == "baxterthehacker@users.noreply.github.com"
         assert commit.author.external_id is None

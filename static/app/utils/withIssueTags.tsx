@@ -1,6 +1,7 @@
 import {useEffect, useMemo, useState} from 'react';
 
-import {ItemType, SearchGroup} from 'sentry/components/smartSearchBar/types';
+import type {SearchGroup} from 'sentry/components/smartSearchBar/types';
+import {ItemType} from 'sentry/components/smartSearchBar/types';
 import {escapeTagValue} from 'sentry/components/smartSearchBar/utils';
 import {IconStar, IconUser} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -8,7 +9,9 @@ import MemberListStore from 'sentry/stores/memberListStore';
 import TagStore from 'sentry/stores/tagStore';
 import TeamStore from 'sentry/stores/teamStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
-import type {Organization, TagCollection, User} from 'sentry/types';
+import type {TagCollection} from 'sentry/types/group';
+import type {Organization} from 'sentry/types/organization';
+import type {User} from 'sentry/types/user';
 import getDisplayName from 'sentry/utils/getDisplayName';
 
 export interface WithIssueTagsProps {
@@ -60,9 +63,17 @@ function withIssueTags<Props extends WithIssueTagsProps>(
         .filter(team => !team.isMember)
         .map(team => `#${team.slug}`);
 
-      const meAndMyTeams = ['my_teams', '[me, my_teams, none]'];
-      const suggestedAssignees: string[] = ['me', ...meAndMyTeams, ...userTeams];
-      const assigndValues: SearchGroup[] | string[] = [
+      const suggestedAssignees: string[] = [
+        'me',
+        'my_teams',
+        'none',
+        // New search builder only works with single value suggestions
+        ...(props.organization.features.includes('issue-stream-search-query-builder')
+          ? []
+          : ['[me, my_teams, none]']),
+        ...userTeams,
+      ];
+      const assignedValues: SearchGroup[] | string[] = [
         {
           title: t('Suggested Values'),
           type: 'header',
@@ -84,7 +95,7 @@ function withIssueTags<Props extends WithIssueTagsProps>(
         ...tags,
         assigned: {
           ...tags.assigned,
-          values: assigndValues,
+          values: assignedValues,
         },
         bookmarks: {
           ...tags.bookmarks,
@@ -92,10 +103,10 @@ function withIssueTags<Props extends WithIssueTagsProps>(
         },
         assigned_or_suggested: {
           ...tags.assigned_or_suggested,
-          values: assigndValues,
+          values: assignedValues,
         },
       };
-    }, [teams, members, tags]);
+    }, [members, teams, props.organization.features, tags]);
 
     // Listen to tag store updates and cleanup listener on unmount
     useEffect(() => {

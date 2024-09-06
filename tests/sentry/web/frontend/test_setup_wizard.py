@@ -2,9 +2,7 @@ from django.test.utils import override_settings
 from django.urls import reverse
 
 from sentry.api.endpoints.setup_wizard import SETUP_WIZARD_CACHE_KEY
-from sentry.api.serializers import serialize
 from sentry.cache import default_cache
-from sentry.models.apitoken import ApiToken
 from sentry.models.projectkey import ProjectKey
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import PermissionTestCase
@@ -90,13 +88,6 @@ class SetupWizard(PermissionTestCase):
         assert len(cached.get("projects")[0].get("keys")) == 2
 
     def test_return_user_auth_token_if_multiple_orgs(self):
-        user_api_token = ApiToken.objects.create_or_update(
-            user=self.user,
-            scope_list=["project:releases"],
-            refresh_token=None,
-            expires_at=None,
-        )[0]
-
         self.org = self.create_organization(name="org1", owner=self.user)
         self.org2 = self.create_organization(name="org2", owner=self.user)
         self.team = self.create_team(organization=self.org, name="Mariachi Band")
@@ -116,7 +107,10 @@ class SetupWizard(PermissionTestCase):
         self.assertTemplateUsed(resp, "sentry/setup-wizard.html")
         cached = default_cache.get(key)
 
-        assert cached.get("apiKeys") == serialize(user_api_token)
+        assert cached.get("apiKeys") is not None
+
+        token = cached.get("apiKeys")["token"]
+        assert token.startswith("sntryu_")
 
     def test_return_org_auth_token_if_one_org(self):
         self.org = self.create_organization(owner=self.user)

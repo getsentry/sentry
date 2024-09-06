@@ -1,3 +1,7 @@
+from __future__ import annotations
+
+from typing import TYPE_CHECKING
+
 from django.db import models
 from django.utils.translation import gettext_lazy as _
 
@@ -6,11 +10,15 @@ from sentry.db.models import (
     BoundedPositiveIntegerField,
     FlexibleForeignKey,
     Model,
-    region_silo_only_model,
+    region_silo_model,
 )
+from sentry.db.models.base import sane_repr
+
+if TYPE_CHECKING:
+    from sentry.models.grouphashmetadata import GroupHashMetadata
 
 
-@region_silo_only_model
+@region_silo_model
 class GroupHash(Model):
     __relocation_scope__ = RelocationScope.Excluded
 
@@ -35,3 +43,12 @@ class GroupHash(Model):
         app_label = "sentry"
         db_table = "sentry_grouphash"
         unique_together = (("project", "hash"),)
+
+    @property
+    def metadata(self) -> GroupHashMetadata | None:
+        try:
+            return self._metadata
+        except AttributeError:
+            return None
+
+    __repr__ = sane_repr("group_id", "hash")

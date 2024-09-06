@@ -4,9 +4,9 @@ creator: sentry
 source: tests/sentry/dynamic_sampling/rules/biases/test_custom_rule_bias.py
 ---
 - condition:
-    name: environment
-    op: equals
-    value: prod1
+    name: event.transaction
+    op: eq
+    value: /hello
   id: 3001
   samplingValue:
     limit: 100
@@ -16,9 +16,8 @@ source: tests/sentry/dynamic_sampling/rules/biases/test_custom_rule_bias.py
     start: '2023-09-19T09:00:00.000000Z'
   type: transaction
 - condition:
-    name: environment
-    op: equals
-    value: prod2
+    inner: []
+    op: and
   id: 3002
   samplingValue:
     limit: 101

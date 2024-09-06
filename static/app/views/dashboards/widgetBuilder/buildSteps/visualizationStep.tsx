@@ -1,7 +1,8 @@
-import {CSSProperties, useCallback, useEffect, useState} from 'react';
+import type {CSSProperties} from 'react';
+import {useCallback, useEffect, useState} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
-import {Location} from 'history';
+import type {Location} from 'history';
 import debounce from 'lodash/debounce';
 import isEqual from 'lodash/isEqual';
 
@@ -12,10 +13,12 @@ import PanelAlert from 'sentry/components/panels/panelAlert';
 import {DEFAULT_DEBOUNCE_DURATION} from 'sentry/constants';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {Organization, PageFilters, SelectValue} from 'sentry/types';
-import {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
+import type {PageFilters, SelectValue} from 'sentry/types/core';
+import type {Organization} from 'sentry/types/organization';
+import type {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
 import usePrevious from 'sentry/utils/usePrevious';
-import {DashboardFilters, DisplayType, Widget} from 'sentry/views/dashboards/types';
+import type {DashboardFilters, Widget, WidgetType} from 'sentry/views/dashboards/types';
+import {DisplayType} from 'sentry/views/dashboards/types';
 
 import {getDashboardFiltersFromURL} from '../../utils';
 import WidgetCard, {WidgetCardPanel} from '../../widgetCard';
@@ -35,6 +38,7 @@ interface Props {
   error?: string;
   noDashboardsMEPProvider?: boolean;
   onDataFetched?: (results: TableDataWithTitle[]) => void;
+  onWidgetSplitDecision?: (splitDecision: WidgetType) => void;
 }
 
 export function VisualizationStep({
@@ -49,6 +53,7 @@ export function VisualizationStep({
   dashboardFilters,
   location,
   isWidgetInvalid,
+  onWidgetSplitDecision,
 }: Props) {
   const [debouncedWidget, setDebouncedWidget] = useState(widget);
 
@@ -114,7 +119,7 @@ export function VisualizationStep({
           selection={pageFilters}
           widget={debouncedWidget}
           dashboardFilters={getDashboardFiltersFromURL(location) ?? dashboardFilters}
-          isEditing={false}
+          isEditingDashboard={false}
           widgetLimitReached={false}
           renderErrorMessage={errorMessage =>
             typeof errorMessage === 'string' && (
@@ -126,6 +131,8 @@ export function VisualizationStep({
           noDashboardsMEPProvider={noDashboardsMEPProvider}
           isWidgetInvalid={isWidgetInvalid}
           onDataFetched={onDataFetched}
+          onWidgetSplitDecision={onWidgetSplitDecision}
+          shouldResize={false}
         />
       </VisualizationWrapper>
     </StyledBuildStep>

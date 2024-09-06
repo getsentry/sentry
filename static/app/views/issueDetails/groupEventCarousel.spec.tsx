@@ -1,10 +1,13 @@
-import {browserHistory} from 'react-router';
-import {Event as EventFixture} from 'sentry-fixture/event';
-import {Organization} from 'sentry-fixture/organization';
+import {ConfigFixture} from 'sentry-fixture/config';
+import {EventFixture} from 'sentry-fixture/event';
+import {GroupFixture} from 'sentry-fixture/group';
+import {OrganizationFixture} from 'sentry-fixture/organization';
+import {UserFixture} from 'sentry-fixture/user';
 
 import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
 
 import ConfigStore from 'sentry/stores/configStore';
+import {browserHistory} from 'sentry/utils/browserHistory';
 import * as useMedia from 'sentry/utils/useMedia';
 import {GroupEventCarousel} from 'sentry/views/issueDetails/groupEventCarousel';
 
@@ -24,7 +27,7 @@ describe('GroupEventCarousel', () => {
 
   const defaultProps = {
     event: testEvent,
-    group: TestStubs.Group({id: 'group-id'}),
+    group: GroupFixture({id: 'group-id'}),
     projectSlug: 'project-slug',
   };
 
@@ -41,18 +44,21 @@ describe('GroupEventCarousel', () => {
   });
 
   describe('recommended event ui', () => {
-    const recommendedUser = TestStubs.User({
+    const recommendedUser = UserFixture({
       options: {
+        ...UserFixture().options,
         defaultIssueEvent: 'recommended',
       },
     });
-    const latestUser = TestStubs.User({
+    const latestUser = UserFixture({
       options: {
+        ...UserFixture().options,
         defaultIssueEvent: 'latest',
       },
     });
-    const oldestUser = TestStubs.User({
+    const oldestUser = UserFixture({
       options: {
+        ...UserFixture().options,
         defaultIssueEvent: 'oldest',
       },
     });
@@ -108,34 +114,36 @@ describe('GroupEventCarousel', () => {
 
       render(<GroupEventCarousel {...singleEventProps} />);
 
-      expect(await screen.getByRole('button', {name: 'Recommended'})).toBeDisabled();
+      expect(await screen.findByRole('button', {name: 'Recommended'})).toBeDisabled();
     });
 
     it('if user default is recommended, it will show it as default', async () => {
-      ConfigStore.loadInitialData(TestStubs.Config({user: recommendedUser}));
+      ConfigStore.loadInitialData(ConfigFixture({user: recommendedUser}));
       jest.spyOn(useMedia, 'default').mockReturnValue(true);
 
       render(<GroupEventCarousel {...singleEventProps} />);
 
-      expect(await screen.getByText('Recommended')).toBeInTheDocument();
+      expect(
+        await screen.findByRole('button', {name: 'Recommended'})
+      ).toBeInTheDocument();
     });
 
     it('if user default is latest, it will show it as default', async () => {
-      ConfigStore.loadInitialData(TestStubs.Config({user: latestUser}));
+      ConfigStore.loadInitialData(ConfigFixture({user: latestUser}));
       jest.spyOn(useMedia, 'default').mockReturnValue(true);
 
       render(<GroupEventCarousel {...singleEventProps} />);
 
-      expect(await screen.getByText('Latest')).toBeInTheDocument();
+      expect(await screen.findByRole('button', {name: 'Latest'})).toBeInTheDocument();
     });
 
     it('if user default is oldest, it will show it as default', async () => {
-      ConfigStore.loadInitialData(TestStubs.Config({user: oldestUser}));
+      ConfigStore.loadInitialData(ConfigFixture({user: oldestUser}));
       jest.spyOn(useMedia, 'default').mockReturnValue(true);
 
       render(<GroupEventCarousel {...singleEventProps} />);
 
-      expect(await screen.getByText('Oldest')).toBeInTheDocument();
+      expect(await screen.findByRole('button', {name: 'Oldest'})).toBeInTheDocument();
     });
   });
 
@@ -173,7 +181,7 @@ describe('GroupEventCarousel', () => {
 
   it('links to full event details when org has discover', async () => {
     render(<GroupEventCarousel {...defaultProps} />, {
-      organization: Organization({features: ['discover-basic']}),
+      organization: OrganizationFixture({features: ['discover-basic']}),
     });
 
     await userEvent.click(screen.getByRole('button', {name: /event actions/i}));

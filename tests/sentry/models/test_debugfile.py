@@ -12,7 +12,6 @@ from django.urls import reverse
 from sentry.models.debugfile import DifMeta, ProjectDebugFile, create_dif_from_id
 from sentry.models.files.file import File
 from sentry.testutils.cases import APITestCase, TestCase
-from sentry.testutils.silo import region_silo_test
 
 # This is obviously a freely generated UUID and not the checksum UUID.
 # This is permissible if users want to send different UUIDs
@@ -25,7 +24,6 @@ org.slf4j.helpers.Util$ClassContextSecurityManager -> org.a.b.g$a:
 """
 
 
-@region_silo_test
 class DebugFileTest(TestCase):
     def test_delete_dif(self):
         dif = self.create_dif_file(
@@ -113,6 +111,11 @@ class DebugFileTest(TestCase):
             project=self.project, debug_ids=[debug_id], features=["debug"]
         )
         assert debug_id not in difs
+
+    def test_find_missing(self):
+        dif = self.create_dif_file(debug_id="dfb8e43a-f242-3d73-a453-aeb6a777ef75-feedface")
+        ret = ProjectDebugFile.objects.find_missing([dif.checksum, "a" * 40], self.project)
+        assert ret == ["a" * 40]
 
 
 class CreateDebugFileTest(APITestCase):
@@ -242,7 +245,10 @@ class DebugFilesClearTest(APITestCase):
 
         url = reverse(
             "sentry-api-0-dsym-files",
-            kwargs={"organization_slug": project.organization.slug, "project_slug": project.slug},
+            kwargs={
+                "organization_id_or_slug": project.organization.slug,
+                "project_id_or_slug": project.slug,
+            },
         )
 
         self.login_as(user=self.user)

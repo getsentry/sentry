@@ -7,10 +7,10 @@ from sentry.testutils.cases import PluginTestCase
 
 
 class SamplePlugin(Plugin2):
-    def get_actions(self, request, group):
+    def get_actions(self, request, group) -> list[tuple[str, str]]:
         return [("Example Action", f"http://example.com?id={group.id}")]
 
-    def get_annotations(self, group):
+    def get_annotations(self, group) -> list[dict[str, str]]:
         return [
             {"label": "Example Tag", "url": f"http://example.com?id={group.id}"},
             {"label": "Example Two"},

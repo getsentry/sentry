@@ -13,7 +13,7 @@ from sentry.api.serializers import serialize
 from sentry.audit_log.manager import AuditLogEventNotRegistered
 from sentry.db.models.fields.bounded import BoundedIntegerField
 from sentry.models.auditlogentry import AuditLogEntry
-from sentry.services.hybrid_cloud.organization.model import (
+from sentry.organizations.services.organization.model import (
     RpcOrganization,
     RpcUserOrganizationContext,
 )

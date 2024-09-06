@@ -1,5 +1,3 @@
-from typing import List
-
 from sentry.constants import HEALTH_CHECK_GLOBS
 from sentry.dynamic_sampling.rules.biases.base import Bias
 from sentry.dynamic_sampling.rules.utils import (
@@ -12,7 +10,7 @@ from sentry.models.project import Project
 
 
 class IgnoreHealthChecksBias(Bias):
-    def generate_rules(self, project: Project, base_sample_rate: float) -> List[PolymorphicRule]:
+    def generate_rules(self, project: Project, base_sample_rate: float) -> list[PolymorphicRule]:
         return [
             {
                 "samplingValue": {

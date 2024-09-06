@@ -1,19 +1,17 @@
-import {Component} from 'react';
-import {browserHistory, WithRouterProps} from 'react-router';
+import {Component, Fragment} from 'react';
 import styled from '@emotion/styled';
 import isEqual from 'lodash/isEqual';
 import omit from 'lodash/omit';
 import * as qs from 'query-string';
 
 import {fetchOrgMembers, indexMembersByProject} from 'sentry/actionCreators/members';
-import {Client} from 'sentry/api';
+import type {Client} from 'sentry/api';
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
 import LoadingError from 'sentry/components/loadingError';
 import Pagination from 'sentry/components/pagination';
 import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';
 import Placeholder from 'sentry/components/placeholder';
-import IssuesReplayCountProvider from 'sentry/components/replays/issuesReplayCountProvider';
 import {parseSearch, Token} from 'sentry/components/searchSyntax/parser';
 import {treeResultLocator} from 'sentry/components/searchSyntax/utils';
 import StreamGroup, {
@@ -22,11 +20,13 @@ import StreamGroup, {
 import {t} from 'sentry/locale';
 import GroupStore from 'sentry/stores/groupStore';
 import {space} from 'sentry/styles/space';
-import {Group} from 'sentry/types';
+import type {Group} from 'sentry/types/group';
+import type {WithRouterProps} from 'sentry/types/legacyReactRouter';
+import {browserHistory} from 'sentry/utils/browserHistory';
 import withApi from 'sentry/utils/withApi';
 // eslint-disable-next-line no-restricted-imports
 import withSentryRouter from 'sentry/utils/withSentryRouter';
-import {TimePeriodType} from 'sentry/views/alerts/rules/metric/details/constants';
+import type {TimePeriodType} from 'sentry/views/alerts/rules/metric/details/constants';
 import {RELATED_ISSUES_BOOLEAN_QUERY_ERROR} from 'sentry/views/alerts/rules/metric/details/relatedIssuesNotAvailable';
 
 import GroupListHeader from './groupListHeader';
@@ -41,14 +41,23 @@ const defaultProps = {
   withColumns: ['graph', 'event', 'users', 'assignee'] satisfies GroupListColumn[],
 };
 
-export type GroupListColumn = 'graph' | 'event' | 'users' | 'assignee' | 'lastTriggered';
+export type GroupListColumn =
+  | 'graph'
+  | 'event'
+  | 'users'
+  | 'priority'
+  | 'assignee'
+  | 'lastTriggered';
 
 type Props = WithRouterProps & {
   api: Client;
-  endpointPath: string;
   orgSlug: string;
-  query: string;
+  queryParams: Record<string, number | string | string[] | undefined | null>;
   customStatsPeriod?: TimePeriodType;
+  /**
+   * Defaults to `/organizations/${orgSlug}/issues/`
+   */
+  endpointPath?: string;
   onFetchSuccess?: (
     groupListState: State,
     onCursor: (
@@ -58,8 +67,11 @@ type Props = WithRouterProps & {
       pageDiff: number
     ) => void
   ) => void;
+  /**
+   * Use `query` within `queryParams` for passing the parameter to the endpoint
+   */
+  query?: string;
   queryFilterDescription?: string;
-  queryParams?: Record<string, number | string | string[] | undefined | null>;
   renderEmptyMessage?: () => React.ReactNode;
   renderErrorMessage?: (props: {detail: string}, retry: () => void) => React.ReactNode;
   // where the group list is rendered
@@ -136,7 +148,9 @@ class GroupList extends Component<Props, State> {
 
     const endpoint = this.getGroupListEndpoint();
 
-    const parsedQuery = parseSearch((queryParams ?? this.getQueryParams()).query);
+    const parsedQuery = parseSearch(
+      (queryParams ?? this.getQueryParams()).query as string
+    );
     const hasLogicBoolean = parsedQuery
       ? treeResultLocator<boolean>({
           tree: parsedQuery,
@@ -280,7 +294,7 @@ class GroupList extends Component<Props, State> {
         : DEFAULT_STREAM_GROUP_STATS_PERIOD;
 
     return (
-      <IssuesReplayCountProvider groupIds={groups.map(({id}) => id)}>
+      <Fragment>
         <Panel>
           <GroupListHeader
             withChart={!!withChart}
@@ -327,7 +341,7 @@ class GroupList extends Component<Props, State> {
         {withPagination && (
           <Pagination pageLinks={pageLinks} onCursor={this.handleCursorChange} />
         )}
-      </IssuesReplayCountProvider>
+      </Fragment>
     );
   }
 }

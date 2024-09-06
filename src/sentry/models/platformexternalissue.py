@@ -4,11 +4,11 @@ from django.db import models
 from django.utils import timezone
 
 from sentry.backup.scopes import RelocationScope
-from sentry.db.models import Model, region_silo_only_model, sane_repr
+from sentry.db.models import Model, region_silo_model, sane_repr
 from sentry.db.models.fields.foreignkey import FlexibleForeignKey
 
 
-@region_silo_only_model
+@region_silo_model
 class PlatformExternalIssue(Model):
     __relocation_scope__ = RelocationScope.Excluded
 
@@ -35,7 +35,7 @@ class PlatformExternalIssue(Model):
         # group annotations by group id
         annotations_by_group_id = defaultdict(list)
         for ei in external_issues:
-            annotation = f'<a href="{ei.web_url}">{ei.display_name}</a>'
+            annotation = {"url": ei.web_url, "displayName": ei.display_name}
             annotations_by_group_id[ei.group_id].append(annotation)
 
         return annotations_by_group_id

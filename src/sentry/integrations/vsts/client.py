@@ -1,19 +1,22 @@
 from __future__ import annotations
 
+from collections.abc import Mapping, Sequence
 from time import time
-from typing import TYPE_CHECKING, Any, List, Mapping, Optional, Sequence, Union
+from typing import TYPE_CHECKING, Any, Union
 from urllib.parse import quote
 
 from requests import PreparedRequest
 from rest_framework.response import Response
 
 from sentry.exceptions import InvalidIdentity
+from sentry.integrations.base import IntegrationFeatureNotImplementedError
 from sentry.integrations.client import ApiClient
-from sentry.models.identity import Identity
+from sentry.integrations.source_code_management.repository import RepositoryClient
 from sentry.models.repository import Repository
-from sentry.services.hybrid_cloud.util import control_silo_function
 from sentry.shared_integrations.client.base import BaseApiResponseX
 from sentry.shared_integrations.client.proxy import IntegrationProxyClient
+from sentry.silo.base import control_silo_function
+from sentry.users.models.identity import Identity
 from sentry.utils.http import absolute_uri
 
 if TYPE_CHECKING:
@@ -152,7 +155,7 @@ class VstsSetupApiClient(ApiClient, VstsApiMixin):
         return self._request(method, path, headers=headers, data=data, params=params)
 
 
-class VstsApiClient(IntegrationProxyClient, VstsApiMixin):
+class VstsApiClient(IntegrationProxyClient, VstsApiMixin, RepositoryClient):
     integration_name = "vsts"
     _identity: Identity | None = None
 
@@ -216,11 +219,11 @@ class VstsApiClient(IntegrationProxyClient, VstsApiMixin):
     def create_work_item(
         self,
         project: Project,
-        item_type: Optional[str] = None,
-        title: Optional[str] = None,
-        description: Optional[str] = None,
-        comment: Optional[str] = None,
-        link: Optional[str] = None,
+        item_type: str | None = None,
+        title: str | None = None,
+        description: str | None = None,
+        comment: str | None = None,
+        link: str | None = None,
     ) -> Response:
         data = []
         if title:
@@ -257,7 +260,7 @@ class VstsApiClient(IntegrationProxyClient, VstsApiMixin):
         assigned_to: UnsettableString = UNSET,
         state: UnsettableString = UNSET,
     ) -> Response:
-        data: List[Mapping[str, Any]] = []
+        data: list[Mapping[str, Any]] = []
 
         for f_name, f_value in (
             ("title", title),
@@ -277,9 +280,9 @@ class VstsApiClient(IntegrationProxyClient, VstsApiMixin):
                         # TODO(dcramer): this is problematic when the link already exists
                         "op": "replace" if f_name != "link" else "add",
                         "path": FIELD_MAP[f_name],
-                        "value": {"rel": "Hyperlink", "url": f_value}
-                        if f_name == "link"
-                        else f_value,
+                        "value": (
+                            {"rel": "Hyperlink", "url": f_value} if f_name == "link" else f_value
+                        ),
                     }
                 )
 
@@ -288,7 +291,7 @@ class VstsApiClient(IntegrationProxyClient, VstsApiMixin):
 
         return self.patch(VstsApiPath.work_items.format(instance=self.base_url, id=id), data=data)
 
-    def get_work_item(self, id: str) -> Response:
+    def get_work_item(self, id: int) -> Response:
         return self.get(VstsApiPath.work_items.format(instance=self.base_url, id=id))
 
     def get_work_item_states(self, project: str) -> Response:
@@ -315,7 +318,7 @@ class VstsApiClient(IntegrationProxyClient, VstsApiMixin):
             VstsApiPath.work_item_categories.format(instance=self.base_url, project=project)
         )
 
-    def get_repo(self, name_or_id: str, project: Optional[str] = None) -> Response:
+    def get_repo(self, name_or_id: str, project: str | None = None) -> Response:
         return self.get(
             VstsApiPath.repository.format(
                 instance=self.base_url,
@@ -324,7 +327,7 @@ class VstsApiClient(IntegrationProxyClient, VstsApiMixin):
             )
         )
 
-    def get_repos(self, project: Optional[str] = None) -> Response:
+    def get_repos(self, project: str | None = None) -> Response:
         return self.get(
             VstsApiPath.repositories.format(
                 instance=self.base_url, project=f"{project}/" if project else ""
@@ -367,8 +370,8 @@ class VstsApiClient(IntegrationProxyClient, VstsApiMixin):
             params={"stateFilter": "WellFormed"},
         )
 
-    def get_projects(self) -> Response:
-        def gen_params(page_number: int, page_size: int) -> Mapping[str, Union[str, int]]:
+    def get_projects(self) -> list[dict[str, Any]]:
+        def gen_params(page_number: int, page_size: int) -> Mapping[str, str | int]:
             # ADO supports a continuation token in the response but only in the newer API version (
             # https://docs.microsoft.com/en-us/rest/api/azure/devops/core/projects/list?view=azure-devops-rest-6.1
             # ). The token comes as a response header instead of the body and our API clients
@@ -385,7 +388,7 @@ class VstsApiClient(IntegrationProxyClient, VstsApiMixin):
             get_results=get_results,
         )
 
-    def get_users(self, account_name: str, continuation_token: Optional[str] = None) -> Response:
+    def get_users(self, account_name: str, continuation_token: str | None = None) -> Response:
         """
         Gets Users with access to a given account/organization
         https://docs.microsoft.com/en-us/rest/api/azure/devops/graph/users/list?view=azure-devops-rest-4.1
@@ -411,14 +414,14 @@ class VstsApiClient(IntegrationProxyClient, VstsApiMixin):
             VstsApiPath.subscription.format(instance=self.base_url, subscription_id=subscription_id)
         )
 
-    def search_issues(self, account_name: str, query: Optional[str] = None) -> Response:
+    def search_issues(self, account_name: str, query: str | None = None) -> Response:
         return self.post(
             VstsApiPath.work_item_search.format(account_name=account_name),
             data={"searchText": query, "$top": 1000},
             api_preview=True,
         )
 
-    def check_file(self, repo: Repository, path: str, version: str) -> Optional[str]:
+    def check_file(self, repo: Repository, path: str, version: str | None) -> BaseApiResponseX:
         return self.get_cached(
             path=VstsApiPath.items.format(
                 instance=repo.config["instance"],
@@ -431,3 +434,8 @@ class VstsApiClient(IntegrationProxyClient, VstsApiMixin):
                 "versionDescriptor.version": version,
             },
         )
+
+    def get_file(
+        self, repo: Repository, path: str, ref: str | None, codeowners: bool = False
+    ) -> str:
+        raise IntegrationFeatureNotImplementedError

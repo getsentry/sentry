@@ -17,11 +17,11 @@ from sentry.integrations.message_builder import (
     get_color,
     get_title_link,
 )
+from sentry.integrations.types import ExternalProviders
 from sentry.models.group import Group, GroupStatus
 from sentry.models.project import Project
 from sentry.models.rule import Rule
 from sentry.notifications.notifications.base import ProjectNotification
-from sentry.types.integrations import ExternalProviders
 
 from ..message_builder.base.component import DiscordComponentCustomIds as CustomIds
 
@@ -92,11 +92,11 @@ def build_tag_fields(
     if tags:
         event_tags = event_for_tags.tags if event_for_tags else []
         for key, value in event_tags:
-            std_key = tagstore.get_standardized_key(key)  # type: ignore
+            std_key = tagstore.backend.get_standardized_key(key)
             if std_key not in tags:
                 continue
 
-            labeled_value = tagstore.get_tag_value_label(key, value)  # type: ignore
+            labeled_value = tagstore.backend.get_tag_value_label(key, value)
             fields.append(
                 DiscordMessageEmbedField(
                     std_key,

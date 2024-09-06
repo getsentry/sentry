@@ -1,3 +1,6 @@
+import {ConfigFixture} from 'sentry-fixture/config';
+import {UserFixture} from 'sentry-fixture/user';
+
 import ConfigStore from 'sentry/stores/configStore';
 import GuideStore from 'sentry/stores/guideStore';
 import ModalStore from 'sentry/stores/modalStore';
@@ -6,17 +9,19 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 jest.mock('sentry/utils/analytics');
 
 describe('GuideStore', function () {
-  let data;
+  let data!: Parameters<typeof GuideStore.fetchSucceeded>[0];
 
   beforeEach(function () {
     jest.clearAllMocks();
-    ConfigStore.config = TestStubs.Config({
-      user: TestStubs.User({
-        id: '5',
-        isSuperuser: false,
-        dateJoined: new Date(2020, 0, 1),
-      }),
-    });
+    ConfigStore.loadInitialData(
+      ConfigFixture({
+        user: UserFixture({
+          id: '5',
+          isSuperuser: false,
+          dateJoined: '2020-01-01T00:00:00',
+        }),
+      })
+    );
     GuideStore.init();
     data = [
       {
@@ -25,8 +30,8 @@ describe('GuideStore', function () {
       },
       {guide: 'issue_stream', seen: true},
     ];
-    GuideStore.registerAnchor('issue_number');
-    GuideStore.registerAnchor('exception');
+    GuideStore.registerAnchor('issue_header_stats');
+    GuideStore.registerAnchor('issue_sidebar_owners');
     GuideStore.registerAnchor('breadcrumbs');
     GuideStore.registerAnchor('issue_stream');
   });
@@ -117,12 +122,18 @@ describe('GuideStore', function () {
   it('hides when a modal is open', function () {
     expect(GuideStore.getState().forceHide).toBe(false);
 
-    ModalStore.openModal(() => {}, {});
+    ModalStore.openModal(() => <div />, {});
 
     expect(GuideStore.getState().forceHide).toBe(true);
 
     ModalStore.closeModal();
 
     expect(GuideStore.getState().forceHide).toBe(false);
+  });
+
+  it('should return a stable reference from getState', function () {
+    ModalStore.openModal(() => <div />, {});
+    const state = GuideStore.getState();
+    expect(Object.is(state, GuideStore.getState())).toBe(true);
   });
 });

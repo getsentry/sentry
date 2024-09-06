@@ -1,6 +1,6 @@
 import {createContext} from 'react';
 
-import FormModel from 'sentry/components/forms/model';
+import type FormModel from 'sentry/components/forms/model';
 
 /**
  * Context type used in 'settings' forms.

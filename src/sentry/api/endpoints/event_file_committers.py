@@ -17,7 +17,7 @@ from sentry.utils.committers import get_serialized_event_file_committers
 class EventFileCommittersEndpoint(ProjectEndpoint):
     owner = ApiOwner.ISSUES
     publish_status = {
-        "GET": ApiPublishStatus.UNKNOWN,
+        "GET": ApiPublishStatus.PRIVATE,
     }
 
     def get(self, request: Request, project, event_id) -> Response:
@@ -27,7 +27,7 @@ class EventFileCommittersEndpoint(ProjectEndpoint):
 
         Return committers on an individual event, plus a per-frame breakdown.
 
-        :pparam string project_slug: the slug of the project the event
+        :pparam string project_id_or_slug: the id or slug of the project the event
                                      belongs to.
         :pparam string event_id: the hexadecimal ID of the event to
                                  retrieve (as reported by the raven client).

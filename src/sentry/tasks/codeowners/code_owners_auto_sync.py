@@ -1,12 +1,12 @@
 from rest_framework.exceptions import NotFound
 
+from sentry.integrations.models.repository_project_path_config import RepositoryProjectPathConfig
 from sentry.models.commit import Commit
-from sentry.models.integrations.repository_project_path_config import RepositoryProjectPathConfig
 from sentry.models.organization import Organization
 from sentry.models.projectcodeowners import ProjectCodeOwners
 from sentry.models.projectownership import ProjectOwnership
 from sentry.notifications.notifications.codeowners_auto_sync import AutoSyncNotification
-from sentry.silo import SiloMode
+from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task, retry
 
 
@@ -21,7 +21,9 @@ from sentry.tasks.base import instrumented_task, retry
 def code_owners_auto_sync(commit_id: int, **kwargs):
     from django.db.models import BooleanField, Case, Exists, OuterRef, Subquery, When
 
-    from sentry.api.endpoints.organization_code_mapping_codeowners import get_codeowner_contents
+    from sentry.integrations.api.endpoints.organization_code_mapping_codeowners import (
+        get_codeowner_contents,
+    )
 
     commit = Commit.objects.get(id=commit_id)
 

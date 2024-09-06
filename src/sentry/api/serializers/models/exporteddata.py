@@ -1,7 +1,7 @@
 from sentry.api.serializers import Serializer, register
 from sentry.data_export.base import ExportQueryType
 from sentry.data_export.models import ExportedData
-from sentry.services.hybrid_cloud.user.service import user_service
+from sentry.users.services.user.service import user_service
 
 
 @register(ExportedData)

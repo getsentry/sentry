@@ -1,12 +1,13 @@
 import {Fragment, useMemo, useRef} from 'react';
-import {AriaOptionProps, useOption} from '@react-aria/listbox';
-import {ListState} from '@react-stately/list';
-import {Node} from '@react-types/shared';
+import type {AriaOptionProps} from '@react-aria/listbox';
+import {useOption} from '@react-aria/listbox';
+import type {ListState} from '@react-stately/list';
+import type {Node} from '@react-types/shared';
 
 import Checkbox from 'sentry/components/checkbox';
 import MenuListItem from 'sentry/components/menuListItem';
 import {IconCheckmark} from 'sentry/icons';
-import {FormSize} from 'sentry/utils/theme';
+import type {FormSize} from 'sentry/utils/theme';
 
 import {CheckWrap} from '../styles';
 
@@ -14,13 +15,19 @@ interface ListBoxOptionProps extends AriaOptionProps {
   item: Node<any>;
   listState: ListState<any>;
   size: FormSize;
+  showDetails?: boolean;
 }
 
 /**
  * A <li /> element with accessibile behaviors & attributes.
  * https://react-spectrum.adobe.com/react-aria/useListBox.html
  */
-export function ListBoxOption({item, listState, size}: ListBoxOptionProps) {
+export function ListBoxOption({
+  item,
+  listState,
+  size,
+  showDetails = true,
+}: ListBoxOptionProps) {
   const ref = useRef<HTMLLIElement>(null);
   const {
     label,
@@ -32,6 +39,7 @@ export function ListBoxOption({item, listState, size}: ListBoxOptionProps) {
     tooltip,
     tooltipOptions,
     selectionMode,
+    showDetailsInOverlay,
   } = item.props;
   const multiple = selectionMode
     ? selectionMode === 'multiple'
@@ -87,7 +95,7 @@ export function ListBoxOption({item, listState, size}: ListBoxOptionProps) {
       ref={ref}
       size={size}
       label={label}
-      details={details}
+      details={showDetails ? details : null}
       disabled={isDisabled}
       isPressed={isPressed}
       isSelected={isSelected}
@@ -96,6 +104,7 @@ export function ListBoxOption({item, listState, size}: ListBoxOptionProps) {
       labelProps={labelPropsMemo}
       leadingItems={leadingItemsMemo}
       trailingItems={trailingItems}
+      showDetailsInOverlay={showDetailsInOverlay}
       tooltip={tooltip}
       tooltipOptions={tooltipOptions}
       data-test-id={item.key}

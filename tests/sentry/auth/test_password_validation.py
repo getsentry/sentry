@@ -1,4 +1,4 @@
-from typing import Any, Dict, List
+from typing import Any
 
 import responses
 from django.core.exceptions import ValidationError
@@ -7,8 +7,8 @@ from pytest import raises
 
 from sentry.auth.password_validation import validate_password
 from sentry.conf.server import AUTH_PASSWORD_VALIDATORS
-from sentry.models.user import User
 from sentry.testutils.cases import TestCase
+from sentry.users.models.user import User
 
 PWNED_PASSWORDS_RESPONSE_MOCK = """4145D488EF49819E75E71019A6E8EA21905:1
 4186AA7593257C23D6A76D99FBEB3D3FEAF:2
@@ -17,7 +17,7 @@ PWNED_PASSWORDS_RESPONSE_MOCK = """4145D488EF49819E75E71019A6E8EA21905:1
 41B1F73A901ACAE8DC9BBB439A6E14903C6:3
 """
 
-AUTH_PASSWORD_VALIDATORS_TEST: List[Dict[str, Any]] = [
+AUTH_PASSWORD_VALIDATORS_TEST: list[dict[str, Any]] = [
     v
     for v in AUTH_PASSWORD_VALIDATORS
     if v["NAME"] != "sentry.auth.password_validation.PwnedPasswordsValidator"

@@ -1,77 +1,50 @@
 from __future__ import annotations
 
-from collections import defaultdict
-from typing import TYPE_CHECKING, ClassVar, Literal, Optional, Sequence, Tuple, Union, overload
+from collections.abc import Sequence
+from typing import TYPE_CHECKING, ClassVar
 
 from django.conf import settings
-from django.db import IntegrityError, connections, models, router, transaction
+from django.db import models, router, transaction
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 
 from sentry.app import env
-from sentry.backup.dependencies import PrimaryKeyMap
-from sentry.backup.helpers import ImportFlags
-from sentry.backup.scopes import ImportScope, RelocationScope
-from sentry.constants import ObjectStatus
+from sentry.backup.scopes import RelocationScope
 from sentry.db.models import (
-    BaseManager,
     BoundedPositiveIntegerField,
     FlexibleForeignKey,
-    region_silo_only_model,
+    region_silo_model,
     sane_repr,
 )
-from sentry.db.models.outboxes import ReplicatedRegionModel
+from sentry.db.models.fields.slug import SentrySlugField
+from sentry.db.models.manager.base import BaseManager
 from sentry.db.models.utils import slugify_instance
+from sentry.hybridcloud.outbox.base import ReplicatedRegionModel
+from sentry.hybridcloud.outbox.category import OutboxCategory
 from sentry.locks import locks
-from sentry.models.actor import ACTOR_TYPES, Actor
-from sentry.models.outbox import OutboxCategory, outbox_context
 from sentry.utils.retries import TimedRetryPolicy
-from sentry.utils.snowflake import SnowflakeIdMixin
+from sentry.utils.snowflake import save_with_snowflake_id, snowflake_id_model
 
 if TYPE_CHECKING:
     from sentry.models.organization import Organization
-    from sentry.models.project import Project
-    from sentry.models.user import User
-    from sentry.services.hybrid_cloud.user import RpcUser
+    from sentry.users.models.user import User
+    from sentry.users.services.user import RpcUser
 
 
 class TeamManager(BaseManager["Team"]):
-    @overload
     def get_for_user(
         self,
         organization: Organization,
         user: User | RpcUser,
         scope: str | None = None,
-    ) -> list[Team]:
-        ...
-
-    @overload
-    def get_for_user(
-        self,
-        organization: Organization,
-        user: User | RpcUser,
-        scope: str | None = None,
-        *,
-        with_projects: Literal[True],
-    ) -> list[tuple[Team, list[Project]]]:
-        ...
-
-    def get_for_user(
-        self,
-        organization: Organization,
-        user: Union[User, RpcUser],
-        scope: Optional[str] = None,
         is_team_admin: bool = False,
-        with_projects: bool = False,
-    ) -> Union[Sequence[Team], Sequence[Tuple[Team, Sequence[Project]]]]:
+    ) -> Sequence[Team]:
         """
         Returns a list of all teams a user has some level of access to.
         """
         from sentry.auth.superuser import is_active_superuser
         from sentry.models.organizationmember import OrganizationMember
         from sentry.models.organizationmemberteam import OrganizationMemberTeam
-        from sentry.models.project import Project
-        from sentry.models.projectteam import ProjectTeam
 
         if not user.is_authenticated:
             return []
@@ -100,33 +73,9 @@ class TeamManager(BaseManager["Team"]):
 
             team_list = list(base_team_qs.filter(id__in=org_member_team_filter.values_list("team")))
 
-        results = sorted(team_list, key=lambda x: x.name.lower())
+        return sorted(team_list, key=lambda x: x.name.lower())
 
-        if with_projects:
-            project_list = sorted(
-                Project.objects.filter(teams__in=team_list, status=ObjectStatus.ACTIVE),
-                key=lambda x: x.name.lower(),
-            )
-
-            teams_by_project = defaultdict(set)
-            for project_id, team_id in ProjectTeam.objects.filter(
-                project__in=project_list, team__in=team_list
-            ).values_list("project_id", "team_id"):
-                teams_by_project[project_id].add(team_id)
-
-            projects_by_team: dict[int, list[Project]] = {t.id: [] for t in team_list}
-            for project in project_list:
-                for team_id in teams_by_project[project.id]:
-                    projects_by_team[team_id].append(project)
-
-            # these kinds of queries make people sad :(
-            for idx, team in enumerate(results):
-                team_projects = projects_by_team[team.id]
-                results[idx] = (team, team_projects)
-
-        return results
-
-    def post_save(self, instance, **kwargs):
+    def post_save(self, *, instance: Team, created: bool, **kwargs: object) -> None:
         self.process_resource_change(instance, **kwargs)
 
     def post_delete(self, instance, **kwargs):
@@ -158,8 +107,9 @@ class TeamStatus:
     DELETION_IN_PROGRESS = 2
 
 
-@region_silo_only_model
-class Team(ReplicatedRegionModel, SnowflakeIdMixin):
+@snowflake_id_model
+@region_silo_model
+class Team(ReplicatedRegionModel):
     """
     A team represents a group of individuals which maintain ownership of projects.
     """
@@ -168,7 +118,7 @@ class Team(ReplicatedRegionModel, SnowflakeIdMixin):
     category = OutboxCategory.TEAM_UPDATE
 
     organization = FlexibleForeignKey("sentry.Organization")
-    slug = models.SlugField()
+    slug = SentrySlugField()
 
     # Only currently used in SCIM, use slug elsewhere as this isn't updated in the app.
     # TODO: deprecate name in team API responses or keep it up to date with slug
@@ -181,16 +131,8 @@ class Team(ReplicatedRegionModel, SnowflakeIdMixin):
         ),
         default=TeamStatus.ACTIVE,
     )
-    actor = FlexibleForeignKey(
-        "sentry.Actor",
-        related_name="team_from_actor",
-        db_index=True,
-        unique=True,
-        null=True,
-    )
     idp_provisioned = models.BooleanField(default=False)
     date_added = models.DateTimeField(default=timezone.now, null=True)
-    org_role = models.CharField(max_length=32, null=True)
 
     objects: ClassVar[TeamManager] = TeamManager(cache_fields=("pk", "slug"))
 
@@ -208,8 +150,8 @@ class Team(ReplicatedRegionModel, SnowflakeIdMixin):
         return f"{self.name} ({self.slug})"
 
     def handle_async_replication(self, shard_identifier: int) -> None:
-        from sentry.services.hybrid_cloud.organization.serial import serialize_rpc_team
-        from sentry.services.hybrid_cloud.replica import control_replica_service
+        from sentry.hybridcloud.services.replica import control_replica_service
+        from sentry.organizations.services.organization.serial import serialize_rpc_team
 
         control_replica_service.upsert_replicated_team(team=serialize_rpc_team(self))
 
@@ -220,8 +162,10 @@ class Team(ReplicatedRegionModel, SnowflakeIdMixin):
                 slugify_instance(self, self.name, organization=self.organization)
         if settings.SENTRY_USE_SNOWFLAKE:
             snowflake_redis_key = "team_snowflake_key"
-            self.save_with_snowflake_id(
-                snowflake_redis_key, lambda: super(Team, self).save(*args, **kwargs)
+            save_with_snowflake_id(
+                instance=self,
+                snowflake_redis_key=snowflake_redis_key,
+                save_callback=lambda: super(Team, self).save(*args, **kwargs),
             )
         else:
             super().save(*args, **kwargs)
@@ -236,93 +180,12 @@ class Team(ReplicatedRegionModel, SnowflakeIdMixin):
             user_is_active=True,
         ).distinct()
 
-    def transfer_to(self, organization):
-        """
-        Transfers a team and all projects under it to the given organization.
-        """
-        from sentry.models.organizationaccessrequest import OrganizationAccessRequest
-        from sentry.models.organizationmember import OrganizationMember
-        from sentry.models.organizationmemberteam import OrganizationMemberTeam
-        from sentry.models.project import Project
-        from sentry.models.projectteam import ProjectTeam
-        from sentry.models.release import ReleaseProject
-        from sentry.models.releaseprojectenvironment import ReleaseProjectEnvironment
-
-        try:
-            with transaction.atomic(router.db_for_write(Team)):
-                self.update(organization=organization)
-        except IntegrityError:
-            # likely this means a team already exists, let's try to coerce to
-            # it instead of a blind transfer
-            new_team = Team.objects.get(organization=organization, slug=self.slug)
-        else:
-            new_team = self
-
-        project_ids = list(
-            Project.objects.filter(teams=self)
-            .exclude(organization=organization)
-            .values_list("id", flat=True)
-        )
-
-        # remove associations with releases from other org
-        ReleaseProject.objects.filter(project_id__in=project_ids).delete()
-        ReleaseProjectEnvironment.objects.filter(project_id__in=project_ids).delete()
-
-        Project.objects.filter(id__in=project_ids).update(organization=organization)
-
-        ProjectTeam.objects.filter(project_id__in=project_ids).update(team=new_team)
-
-        # remove any pending access requests from the old organization
-        if self != new_team:
-            OrganizationAccessRequest.objects.filter(team=self).delete()
-
-        # identify shared members and ensure they retain team access
-        # under the new organization
-        old_memberships = OrganizationMember.objects.filter(teams=self).exclude(
-            organization=organization
-        )
-        for member in old_memberships:
-            try:
-                new_member = OrganizationMember.objects.get(
-                    user_id=member.user_id, organization=organization
-                )
-            except OrganizationMember.DoesNotExist:
-                continue
-
-            try:
-                with transaction.atomic(router.db_for_write(OrganizationMemberTeam)):
-                    OrganizationMemberTeam.objects.create(
-                        team=new_team, organizationmember=new_member
-                    )
-            except IntegrityError:
-                pass
-
-        existing = OrganizationMemberTeam.objects.filter(team=self).exclude(
-            organizationmember__organization=organization
-        )
-        OrganizationMemberTeam.objects.bulk_delete(existing)
-
-        if new_team != self:
-            with outbox_context(
-                transaction.atomic(router.db_for_write(Team)), flush=False
-            ), connections[router.db_for_write(Team)].cursor() as cursor:
-                # we use a cursor here to avoid automatic cascading of relations
-                # in Django
-                cursor.execute("DELETE FROM sentry_team WHERE id = %s", [self.id])
-                self.outbox_for_update().save()
-                cursor.execute("DELETE FROM sentry_actor WHERE team_id = %s", [new_team.id])
-
-                Actor.objects.filter(id=self.actor_id).update(team_id=new_team.id)
-                new_team.actor_id = self.actor_id
-                new_team.save()
-
     def get_audit_log_data(self):
         return {
             "id": self.id,
             "slug": self.slug,
             "name": self.name,
             "status": self.status,
-            "org_role": self.org_role,
         }
 
     def get_projects(self):
@@ -330,40 +193,5 @@ class Team(ReplicatedRegionModel, SnowflakeIdMixin):
 
         return Project.objects.get_for_team_ids([self.id])
 
-    def get_member_actor_ids(self):
-        owner_ids = [self.actor_id]
-        member_user_ids = self.member_set.values_list("user_id", flat=True)
-        owner_ids += Actor.objects.filter(
-            type=ACTOR_TYPES["user"],
-            user_id__in=member_user_ids,
-        ).values_list("id", flat=True)
-
-        return owner_ids
-
-    # TODO(hybrid-cloud): actor refactor. Remove this method when done. For now, we do no filtering
-    # on teams.
-    @classmethod
-    def query_for_relocation_export(cls, q: models.Q, _: PrimaryKeyMap) -> models.Q:
-        return q
-
-    # TODO(hybrid-cloud): actor refactor. Remove this method when done.
-    def normalize_before_relocation_import(
-        self, pk_map: PrimaryKeyMap, scope: ImportScope, flags: ImportFlags
-    ) -> Optional[int]:
-        old_pk = super().normalize_before_relocation_import(pk_map, scope, flags)
-        if old_pk is None:
-            return None
-
-        # `Actor` and `Team` have a direct circular dependency between them for the time being due
-        # to an ongoing refactor (that is, `Actor` foreign keys directly into `Team`, and `Team`
-        # foreign keys directly into `Actor`). If we use `INSERT` database calls naively, they will
-        # always fail, because one half of the cycle will always be missing.
-        #
-        # Because `Team` ends up first in the dependency sorting (see:
-        # fixtures/backup/model_dependencies/sorted.json), a viable solution here is to always null
-        # out the `actor_id` field of the `Team` when we import it, and then make sure to circle
-        # back and update the relevant `Team` after we create the `Actor` models later on (see the
-        # `write_relocation_import` method override on that class for details).
-        self.actor_id = None
-
-        return old_pk
+    def get_member_user_ids(self):
+        return self.member_set.values_list("user_id", flat=True)

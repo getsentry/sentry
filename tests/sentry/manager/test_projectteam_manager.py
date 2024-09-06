@@ -1,10 +1,8 @@
 from sentry.models.projectteam import ProjectTeam
 from sentry.models.team import Team
 from sentry.testutils.cases import TestCase
-from sentry.testutils.silo import region_silo_test
 
 
-@region_silo_test
 class TeamManagerTest(TestCase):
     def test_simple(self):
         user = self.create_user("foo@example.com")

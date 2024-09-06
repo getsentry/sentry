@@ -1,4 +1,4 @@
-import RouterContextFixture from 'sentry-fixture/routerContextFixture';
+import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
@@ -8,11 +8,8 @@ describe('ProjectDetail > ProjectFilters', () => {
   const onSearch = jest.fn();
   const tagValueLoader = jest.fn();
 
-  afterEach(() => {
-    jest.resetAllMocks();
-  });
-
-  it('recommends semver search tag', async () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
     tagValueLoader.mockResolvedValue([
       {
         count: null,
@@ -23,14 +20,16 @@ describe('ProjectDetail > ProjectFilters', () => {
         value: 'sentry@0.5.3',
       },
     ]);
+  });
+
+  it('recommends semver search tag', async () => {
     render(
       <ProjectFilters
         query=""
         onSearch={onSearch}
         tagValueLoader={tagValueLoader}
         relativeDateOptions={{}}
-      />,
-      {context: RouterContextFixture()}
+      />
     );
 
     await userEvent.click(
@@ -45,6 +44,37 @@ describe('ProjectDetail > ProjectFilters', () => {
     expect(screen.getByText('.version')).toBeInTheDocument();
 
     await userEvent.paste('release.version:');
+
+    await screen.findByText('sentry@0.5.3');
+  });
+
+  it('recommends semver search tag (new search)', async () => {
+    render(
+      <ProjectFilters
+        query=""
+        onSearch={onSearch}
+        tagValueLoader={tagValueLoader}
+        relativeDateOptions={{}}
+      />,
+      {
+        organization: OrganizationFixture({
+          features: ['search-query-builder-project-details'],
+        }),
+      }
+    );
+
+    await userEvent.click(
+      screen.getByPlaceholderText('Search by release version, build, package, or stage')
+    );
+
+    // Should suggest all semver tags
+    await screen.findByRole('option', {name: 'release'});
+    expect(screen.getByRole('option', {name: 'release.build'})).toBeInTheDocument();
+    expect(screen.getByRole('option', {name: 'release.package'})).toBeInTheDocument();
+    expect(screen.getByRole('option', {name: 'release.stage'})).toBeInTheDocument();
+    expect(screen.getByRole('option', {name: 'release.version'})).toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole('option', {name: 'release.version'}));
 
     await screen.findByText('sentry@0.5.3');
   });

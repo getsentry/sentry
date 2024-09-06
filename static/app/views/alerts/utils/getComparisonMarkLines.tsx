@@ -1,14 +1,14 @@
 import MarkLine from 'sentry/components/charts/components/markLine';
-import {LineChartSeries} from 'sentry/components/charts/lineChart';
+import type {LineChartSeries} from 'sentry/components/charts/lineChart';
 import {t} from 'sentry/locale';
-import {Series} from 'sentry/types/echarts';
+import type {Series} from 'sentry/types/echarts';
 import {MINUTE} from 'sentry/utils/formatters';
 import theme from 'sentry/utils/theme';
-import {
+import type {
   AlertRuleThresholdType,
-  AlertRuleTriggerType,
   Trigger,
 } from 'sentry/views/alerts/rules/metric/types';
+import {AlertRuleTriggerType} from 'sentry/views/alerts/rules/metric/types';
 import {getChangeStatus} from 'sentry/views/alerts/utils/getChangeStatus';
 
 export const getComparisonMarkLines = (
@@ -60,8 +60,8 @@ export const getComparisonMarkLines = (
               status === AlertRuleTriggerType.CRITICAL
                 ? theme.red300
                 : status === AlertRuleTriggerType.WARNING
-                ? theme.yellow300
-                : theme.green300,
+                  ? theme.yellow300
+                  : theme.green300,
             type: 'solid',
             width: 4,
           },

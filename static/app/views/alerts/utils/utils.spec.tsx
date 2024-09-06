@@ -1,4 +1,5 @@
-import {MetricRule} from 'sentry-fixture/metricRule';
+import {IncidentFixture} from 'sentry-fixture/incident';
+import {MetricRuleFixture} from 'sentry-fixture/metricRule';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 
@@ -7,7 +8,7 @@ import {
   Datasource,
   SessionsAggregate,
 } from 'sentry/views/alerts/rules/metric/types';
-import {Incident, IncidentStats} from 'sentry/views/alerts/types';
+import type {IncidentStats} from 'sentry/views/alerts/types';
 import {
   alertAxisFormatter,
   alertTooltipValueFormatter,
@@ -33,17 +34,16 @@ describe('Alert utils', function () {
 
   describe('getIncidentDiscoverUrl', function () {
     it('creates a discover query url for errors', function () {
-      // TODO(ts): Add a TestStub for Incident
-      const incident: Incident = {
+      const incident = IncidentFixture({
         title: 'Test error alert',
         discoverQuery: 'id:test',
-        projects,
-        alertRule: MetricRule({
+        projects: projects.map(project => project.id),
+        alertRule: MetricRuleFixture({
           timeWindow: 1,
           dataset: Dataset.ERRORS,
           aggregate: 'count()',
         }),
-      } as Incident;
+      });
 
       const to = getIncidentDiscoverUrl({
         orgSlug: organization.slug,
@@ -56,7 +56,7 @@ describe('Alert utils', function () {
         query: expect.objectContaining({
           name: 'Test error alert',
           field: ['issue', 'count()', 'count_unique(user)'],
-          sort: ['-count'],
+          sort: '-count',
           query: 'id:test',
           yAxis: 'count()',
           start: '1970-01-01T00:00:00.000',
@@ -68,17 +68,16 @@ describe('Alert utils', function () {
     });
 
     it('creates a discover query url for transactions', function () {
-      // TODO(ts): Add a TestStub for Incident
-      const incident = {
+      const incident = IncidentFixture({
         title: 'Test transaction alert',
         discoverQuery: 'id:test',
-        projects,
-        alertRule: MetricRule({
+        projects: projects.map(project => project.id),
+        alertRule: MetricRuleFixture({
           timeWindow: 1,
           dataset: Dataset.TRANSACTIONS,
           aggregate: 'p90()',
         }),
-      } as Incident;
+      });
 
       const to = getIncidentDiscoverUrl({
         orgSlug: organization.slug,
@@ -91,7 +90,7 @@ describe('Alert utils', function () {
         query: expect.objectContaining({
           name: 'Test transaction alert',
           field: ['transaction', 'p90()'],
-          sort: ['-p90'],
+          sort: '-p90',
           query: 'id:test',
           yAxis: 'p90()',
         }),

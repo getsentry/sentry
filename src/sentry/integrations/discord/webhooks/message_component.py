@@ -22,8 +22,8 @@ from sentry.integrations.discord.webhooks.handler import DiscordInteractionHandl
 from sentry.models.activity import ActivityIntegration
 from sentry.models.group import Group
 from sentry.models.grouphistory import STATUS_TO_STRING_LOOKUP, GroupHistoryStatus
-from sentry.services.hybrid_cloud.user.model import RpcUser
 from sentry.types.group import SUBSTATUS_TO_STR, GroupSubStatus
+from sentry.users.services.user.model import RpcUser
 
 from ..utils import logger
 
@@ -232,7 +232,7 @@ class DiscordMessageComponentHandler(DiscordInteractionHandler):
                 projects=[self.group.project],
                 organization_id=self.group.organization.id,
                 search_fn=None,
-                user=self.user,  # type: ignore
+                user=self.user,  # type: ignore[arg-type]
                 data=data,
             )
 

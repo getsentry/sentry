@@ -12,11 +12,11 @@ from snuba_sdk.orderby import Direction, OrderBy
 from snuba_sdk.query import Query
 
 from sentry.snuba.metrics import (
+    DeprecatingMetricsQuery,
     MetricConditionField,
     MetricField,
     MetricGroupByField,
     MetricOrderByField,
-    MetricsQuery,
 )
 from sentry.snuba.metrics.mqb_query_transformer import (
     MQBQueryTransformationException,
@@ -142,7 +142,7 @@ VALID_QUERIES_INTEGRATION_TEST_CASES = [
             granularity=Granularity(granularity=86400),
             totals=None,
         ),
-        MetricsQuery(
+        DeprecatingMetricsQuery(
             org_id=11,
             project_ids=[11],
             select=[
@@ -307,7 +307,7 @@ VALID_QUERIES_INTEGRATION_TEST_CASES = [
             granularity=Granularity(granularity=86400),
             totals=None,
         ),
-        MetricsQuery(
+        DeprecatingMetricsQuery(
             org_id=14,
             project_ids=[13],
             select=[
@@ -487,7 +487,7 @@ VALID_QUERIES_INTEGRATION_TEST_CASES = [
             granularity=Granularity(granularity=86400),
             totals=None,
         ),
-        MetricsQuery(
+        DeprecatingMetricsQuery(
             org_id=14,
             project_ids=[13],
             select=[
@@ -644,7 +644,7 @@ VALID_QUERIES_INTEGRATION_TEST_CASES = [
             granularity=Granularity(granularity=86400),
             totals=None,
         ),
-        MetricsQuery(
+        DeprecatingMetricsQuery(
             org_id=14,
             project_ids=[13],
             select=[
@@ -789,7 +789,7 @@ VALID_QUERIES_INTEGRATION_TEST_CASES = [
             granularity=Granularity(granularity=86400),
             totals=None,
         ),
-        MetricsQuery(
+        DeprecatingMetricsQuery(
             org_id=19,
             project_ids=[18],
             select=[
@@ -915,7 +915,7 @@ VALID_QUERIES_INTEGRATION_TEST_CASES = [
             granularity=Granularity(granularity=3600),
             totals=None,
         ),
-        MetricsQuery(
+        DeprecatingMetricsQuery(
             org_id=2,
             project_ids=[2],
             select=[
@@ -1024,7 +1024,7 @@ VALID_QUERIES_INTEGRATION_TEST_CASES = [
             granularity=Granularity(granularity=60),
             totals=None,
         ),
-        MetricsQuery(
+        DeprecatingMetricsQuery(
             org_id=2,
             project_ids=[2],
             select=[
@@ -1104,7 +1104,7 @@ VALID_QUERIES_INTEGRATION_TEST_CASES = [
             granularity=Granularity(granularity=3600),
             totals=None,
         ),
-        MetricsQuery(
+        DeprecatingMetricsQuery(
             org_id=3,
             project_ids=[3],
             select=[
@@ -1192,7 +1192,7 @@ VALID_QUERIES_INTEGRATION_TEST_CASES = [
             granularity=Granularity(granularity=3600),
             totals=None,
         ),
-        MetricsQuery(
+        DeprecatingMetricsQuery(
             org_id=3,
             project_ids=[3],
             select=[
@@ -1294,7 +1294,7 @@ VALID_QUERIES_INTEGRATION_TEST_CASES = [
             granularity=Granularity(granularity=3600),
             totals=None,
         ),
-        MetricsQuery(
+        DeprecatingMetricsQuery(
             org_id=3,
             project_ids=[3],
             select=[
@@ -1388,7 +1388,7 @@ VALID_QUERIES_INTEGRATION_TEST_CASES = [
             granularity=Granularity(granularity=3600),
             totals=None,
         ),
-        MetricsQuery(
+        DeprecatingMetricsQuery(
             org_id=3,
             project_ids=[3],
             select=[
@@ -1469,7 +1469,7 @@ VALID_QUERIES_INTEGRATION_TEST_CASES = [
             granularity=Granularity(granularity=3600),
             totals=None,
         ),
-        MetricsQuery(
+        DeprecatingMetricsQuery(
             org_id=3,
             project_ids=[3],
             select=[
@@ -1561,7 +1561,7 @@ VALID_QUERIES_INTEGRATION_TEST_CASES = [
             granularity=Granularity(granularity=3600),
             totals=None,
         ),
-        MetricsQuery(
+        DeprecatingMetricsQuery(
             org_id=3,
             project_ids=[3],
             select=[

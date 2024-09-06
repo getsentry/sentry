@@ -21,7 +21,7 @@ function SettingsSearch() {
       maxResults={MAX_RESULTS}
       renderInput={({getInputProps}) => (
         <SearchInputWrapper>
-          <SearchInputIcon legacySize="14px" />
+          <SearchInputIcon size="sm" />
           <SearchInput
             aria-label={t('Search Settings')}
             {...getInputProps({type: 'text', placeholder: t('Search')})}

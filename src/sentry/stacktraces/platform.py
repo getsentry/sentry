@@ -2,7 +2,7 @@ NATIVE_PLATFORMS = frozenset(("objc", "cocoa", "swift", "native", "c"))
 JAVASCRIPT_PLATFORMS = frozenset(("javascript", "node"))
 
 
-def get_behavior_family_for_platform(platform):
+def get_behavior_family_for_platform(platform: str | None) -> str:
     if platform in NATIVE_PLATFORMS:
         return "native"
     if platform in JAVASCRIPT_PLATFORMS:

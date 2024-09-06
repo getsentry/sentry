@@ -4,15 +4,17 @@ import styled from '@emotion/styled';
 
 import Access from 'sentry/components/acl/access';
 import {Alert} from 'sentry/components/alert';
-import {Button} from 'sentry/components/button';
+import {Button, LinkButton} from 'sentry/components/button';
 import CircleIndicator from 'sentry/components/circleIndicator';
 import Confirm from 'sentry/components/confirm';
 import {Tooltip} from 'sentry/components/tooltip';
 import {IconDelete, IconSettings, IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {Integration, IntegrationProvider, ObjectStatus, Organization} from 'sentry/types';
-import {IntegrationAnalyticsKey} from 'sentry/utils/analytics/integrations';
+import type {ObjectStatus} from 'sentry/types/core';
+import type {Integration, IntegrationProvider} from 'sentry/types/integrations';
+import type {Organization} from 'sentry/types/organization';
+import type {IntegrationAnalyticsKey} from 'sentry/utils/analytics/integrations';
 import {getIntegrationStatus} from 'sentry/utils/integrationUtil';
 
 import {AddIntegrationButton} from './addIntegrationButton';
@@ -34,7 +36,7 @@ export default class InstalledIntegration extends Component<Props> {
   };
 
   getRemovalBodyAndText(aspects: Integration['provider']['aspects']) {
-    if (aspects && aspects.removal_dialog) {
+    if (aspects?.removal_dialog) {
       return {
         body: aspects.removal_dialog.body,
         actionText: aspects.removal_dialog.actionText,
@@ -142,7 +144,7 @@ export default class InstalledIntegration extends Component<Props> {
                       size="sm"
                     />
                   )}
-                  <StyledButton
+                  <StyledLinkButton
                     borderless
                     icon={<IconSettings />}
                     disabled={!allowMemberConfiguration && disableAction}
@@ -150,7 +152,7 @@ export default class InstalledIntegration extends Component<Props> {
                     data-test-id="integration-configure-button"
                   >
                     {t('Configure')}
-                  </StyledButton>
+                  </StyledLinkButton>
                 </Tooltip>
               </div>
               <div>
@@ -194,6 +196,10 @@ const StyledButton = styled(Button)`
   color: ${p => p.theme.gray300};
 `;
 
+const StyledLinkButton = styled(LinkButton)`
+  color: ${p => p.theme.gray300};
+`;
+
 const IntegrationItemBox = styled('div')`
   flex: 1;
 `;
@@ -214,10 +220,10 @@ function IntegrationStatus(
         status === 'active'
           ? t('enabled')
           : status === 'pending_deletion'
-          ? t('pending deletion')
-          : status === 'disabled'
-          ? t('disabled')
-          : t('unknown')
+            ? t('pending deletion')
+            : status === 'disabled'
+              ? t('disabled')
+              : t('unknown')
       }`}</IntegrationStatusText>
     </div>
   );
@@ -229,8 +235,8 @@ function IntegrationStatus(
         status === 'active'
           ? t('This integration can be disabled by clicking the Uninstall button')
           : status === 'disabled'
-          ? t('This integration has been disconnected from the external provider')
-          : t('This integration is pending deletion.')
+            ? t('This integration has been disconnected from the external provider')
+            : t('This integration is pending deletion.')
       }
     >
       {inner}
@@ -248,7 +254,7 @@ const StyledIntegrationStatus = styled(IntegrationStatus)`
     content: '|';
     color: ${p => p.theme.gray200};
     margin-right: ${space(1)};
-    font-weight: normal;
+    font-weight: ${p => p.theme.fontWeightNormal};
   }
 `;
 

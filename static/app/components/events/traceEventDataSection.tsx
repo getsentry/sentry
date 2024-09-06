@@ -1,28 +1,21 @@
-import {
-  AnchorHTMLAttributes,
-  cloneElement,
-  createContext,
-  useCallback,
-  useState,
-} from 'react';
-import styled from '@emotion/styled';
+import {createContext, useCallback, useState} from 'react';
 
-import {Button} from 'sentry/components/button';
+import {LinkButton} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import {CompactSelect} from 'sentry/components/compactSelect';
+import {EventDataSection} from 'sentry/components/events/eventDataSection';
 import {SegmentedControl} from 'sentry/components/segmentedControl';
 import {Tooltip} from 'sentry/components/tooltip';
-import {IconEllipsis, IconLink, IconSort} from 'sentry/icons';
+import {IconEllipsis, IconSort} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
-import {PlatformKey, Project} from 'sentry/types';
-import {Event} from 'sentry/types/event';
+import type {Event} from 'sentry/types/event';
+import type {PlatformKey, Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {isMobilePlatform, isNativePlatform} from 'sentry/utils/platform';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
-
-import {EventDataSection} from './eventDataSection';
+import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
+import {useHasStreamlinedUI} from 'sentry/views/issueDetails/utils';
 
 const sortByOptions = {
   'recent-first': t('Newest'),
@@ -59,9 +52,9 @@ type Props = {
   projectSlug: Project['slug'];
   recentFirst: boolean;
   stackTraceNotFound: boolean;
-  title: React.ReactElement<any, any>;
+  title: React.ReactNode;
   type: string;
-  wrapTitle?: boolean;
+  isNestedSection?: boolean;
 };
 
 export const TraceEventDataSectionContext = createContext<ChildProps | undefined>(
@@ -71,7 +64,6 @@ export const TraceEventDataSectionContext = createContext<ChildProps | undefined
 export function TraceEventDataSection({
   type,
   title,
-  wrapTitle,
   stackTraceNotFound,
   fullStackTrace,
   recentFirst,
@@ -85,9 +77,11 @@ export function TraceEventDataSection({
   hasAbsoluteFilePaths,
   hasAbsoluteAddresses,
   hasAppOnlyFrames,
+  isNestedSection = false,
 }: Props) {
   const api = useApi();
   const organization = useOrganization();
+  const hasStreamlinedUI = useHasStreamlinedUI();
 
   const [state, setState] = useState<State>({
     sortBy: recentFirst ? 'recent-first' : 'recent-last',
@@ -252,7 +246,12 @@ export function TraceEventDataSection({
     disabled?: boolean;
     tooltip?: string;
   }[] {
-    if (platform === 'objc' || platform === 'native' || platform === 'cocoa') {
+    if (
+      platform === 'objc' ||
+      platform === 'native' ||
+      platform === 'cocoa' ||
+      platform === 'nintendo-switch'
+    ) {
       return [
         {
           label: displayOptions['absolute-addresses'],
@@ -261,8 +260,8 @@ export function TraceEventDataSection({
           tooltip: state.display.includes('raw-stack-trace')
             ? t('Not available on raw stack trace')
             : !hasAbsoluteAddresses
-            ? t('Absolute addresses not available')
-            : undefined,
+              ? t('Absolute addresses not available')
+              : undefined,
         },
         {
           label: displayOptions['absolute-file-paths'],
@@ -271,8 +270,8 @@ export function TraceEventDataSection({
           tooltip: state.display.includes('raw-stack-trace')
             ? t('Not available on raw stack trace')
             : !hasAbsoluteFilePaths
-            ? t('Absolute file paths not available')
-            : undefined,
+              ? t('Absolute file paths not available')
+              : undefined,
         },
         {
           label: displayOptions.minified,
@@ -291,8 +290,8 @@ export function TraceEventDataSection({
           tooltip: state.display.includes('raw-stack-trace')
             ? t('Not available on raw stack trace')
             : !hasVerboseFunctionNames
-            ? t('Verbose function names not available')
-            : undefined,
+              ? t('Verbose function names not available')
+              : undefined,
         },
       ];
     }
@@ -346,8 +345,8 @@ export function TraceEventDataSection({
   const sortByTooltip = !hasNewestFirst
     ? t('Not available on stack trace with single frame')
     : state.display.includes('raw-stack-trace')
-    ? t('Not available on raw stack trace')
-    : undefined;
+      ? t('Not available on raw stack trace')
+      : undefined;
 
   const childProps = {
     recentFirst: state.sortBy === 'recent-first',
@@ -355,10 +354,14 @@ export function TraceEventDataSection({
     fullStackTrace: state.fullStackTrace,
   };
 
+  const SectionComponent = isNestedSection ? EventDataSection : InterimSection;
+
   return (
-    <EventDataSection
+    <SectionComponent
       type={type}
-      title={cloneElement(title, {type})}
+      showPermalink={!hasStreamlinedUI}
+      title={title}
+      guideTarget={type}
       actions={
         !stackTraceNotFound && (
           <ButtonBar gap={1}>
@@ -383,7 +386,7 @@ export function TraceEventDataSection({
               </Tooltip>
             )}
             {state.display.includes('raw-stack-trace') && nativePlatform && (
-              <Button
+              <LinkButton
                 size="xs"
                 href={rawStackTraceDownloadLink}
                 title={t('Download raw stack trace file')}
@@ -397,11 +400,11 @@ export function TraceEventDataSection({
                 }}
               >
                 {t('Download')}
-              </Button>
+              </LinkButton>
             )}
             <CompactSelect
               triggerProps={{
-                icon: <IconSort size="xs" />,
+                icon: <IconSort />,
                 size: 'xs',
                 title: sortByTooltip,
               }}
@@ -418,7 +421,7 @@ export function TraceEventDataSection({
             />
             <CompactSelect
               triggerProps={{
-                icon: <IconEllipsis size="xs" />,
+                icon: <IconEllipsis />,
                 size: 'xs',
                 showChevron: false,
                 'aria-label': t('Options'),
@@ -433,44 +436,10 @@ export function TraceEventDataSection({
           </ButtonBar>
         )
       }
-      showPermalink={false}
-      wrapTitle={wrapTitle}
     >
       <TraceEventDataSectionContext.Provider value={childProps}>
         {children(childProps)}
       </TraceEventDataSectionContext.Provider>
-    </EventDataSection>
+    </SectionComponent>
   );
 }
-
-interface PermalinkTitleProps
-  extends React.DetailedHTMLProps<
-    AnchorHTMLAttributes<HTMLAnchorElement>,
-    HTMLAnchorElement
-  > {}
-
-export function PermalinkTitle(props: PermalinkTitleProps) {
-  return (
-    <Permalink {...props} href={'#' + props.type} className="permalink">
-      <StyledIconLink size="xs" color="subText" />
-      <h3>{props.children}</h3>
-    </Permalink>
-  );
-}
-
-const StyledIconLink = styled(IconLink)`
-  display: none;
-  position: absolute;
-  top: 50%;
-  left: -${space(2)};
-  transform: translateY(-50%);
-`;
-
-const Permalink = styled('a')`
-  display: inline-flex;
-  justify-content: flex-start;
-
-  &:hover ${StyledIconLink} {
-    display: block;
-  }
-`;

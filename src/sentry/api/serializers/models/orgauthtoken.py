@@ -4,7 +4,8 @@ from sentry.models.orgauthtoken import OrgAuthToken
 
 @register(OrgAuthToken)
 class OrgAuthTokenSerializer(Serializer):
-    def serialize(self, obj, attrs, user, token):
+    def serialize(self, obj, attrs, user, **kwargs):
+        token = kwargs["token"]
         data = {
             "id": str(obj.id),
             "name": obj.name,

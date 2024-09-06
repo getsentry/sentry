@@ -3,11 +3,9 @@ from django.urls import reverse
 from sentry.constants import DataCategory
 from sentry.testutils.cases import APITestCase, OutcomesSnubaTest
 from sentry.testutils.helpers.datetime import before_now, freeze_time
-from sentry.testutils.silo import region_silo_test
 from sentry.utils.outcomes import Outcome
 
 
-@region_silo_test
 @freeze_time(before_now(days=1).replace(minute=10))
 class ProjectStatsTest(APITestCase, OutcomesSnubaTest):
     def test_simple(self):
@@ -47,7 +45,10 @@ class ProjectStatsTest(APITestCase, OutcomesSnubaTest):
 
         url = reverse(
             "sentry-api-0-project-stats",
-            kwargs={"organization_slug": project1.organization.slug, "project_slug": project1.slug},
+            kwargs={
+                "organization_id_or_slug": project1.organization.slug,
+                "project_id_or_slug": project1.slug,
+            },
         )
         response = self.client.get(url, format="json")
 
@@ -90,7 +91,10 @@ class ProjectStatsTest(APITestCase, OutcomesSnubaTest):
 
         url = reverse(
             "sentry-api-0-project-stats",
-            kwargs={"organization_slug": project.organization.slug, "project_slug": project.slug},
+            kwargs={
+                "organization_id_or_slug": project.organization.slug,
+                "project_id_or_slug": project.slug,
+            },
         )
         for stat in STAT_OPTS.keys():
             response = self.client.get(url, {"stat": stat}, format="json")

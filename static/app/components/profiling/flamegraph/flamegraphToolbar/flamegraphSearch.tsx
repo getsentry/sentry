@@ -6,18 +6,16 @@ import {Tooltip} from 'sentry/components/tooltip';
 import {IconChevron, IconInfo} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {CanvasPoolManager} from 'sentry/utils/profiling/canvasScheduler';
-import {Flamegraph} from 'sentry/utils/profiling/flamegraph';
+import type {CanvasPoolManager} from 'sentry/utils/profiling/canvasScheduler';
+import type {Flamegraph} from 'sentry/utils/profiling/flamegraph';
 import type {FlamegraphSearch as FlamegraphSearchResults} from 'sentry/utils/profiling/flamegraph/flamegraphStateProvider/reducers/flamegraphSearch';
 import {useFlamegraphSearch} from 'sentry/utils/profiling/flamegraph/hooks/useFlamegraphSearch';
 import {useDispatchFlamegraphState} from 'sentry/utils/profiling/flamegraph/hooks/useFlamegraphState';
-import {
-  FlamegraphFrame,
-  getFlamegraphFrameSearchId,
-} from 'sentry/utils/profiling/flamegraphFrame';
+import type {FlamegraphFrame} from 'sentry/utils/profiling/flamegraphFrame';
+import {getFlamegraphFrameSearchId} from 'sentry/utils/profiling/flamegraphFrame';
 import {fzf} from 'sentry/utils/profiling/fzf/fzf';
 import {memoizeByReference} from 'sentry/utils/profiling/profile/utils';
-import {SpanChart, SpanChartNode} from 'sentry/utils/profiling/spanChart';
+import type {SpanChart, SpanChartNode} from 'sentry/utils/profiling/spanChart';
 import {parseRegExp} from 'sentry/utils/profiling/validators/regExp';
 
 function isFlamegraphFrame(
@@ -149,7 +147,7 @@ function yieldingRafFrameSearch(
   spans: ReadonlyArray<SpanChartNode>,
   frames: ReadonlyArray<FlamegraphFrame>,
   cb: (results: FlamegraphSearchResults['results']) => void
-) {
+): {id: number} {
   const raf = {id: 0};
   const budget = 12; // ms
   const results: FlamegraphSearchResults['results'] = {
@@ -169,7 +167,7 @@ function yieldingRafFrameSearch(
   const lowercaseQuery = query.toLowerCase();
   const [_, lookup, flags] = isRegExpSearch ? regexp : ['', '', ''];
 
-  const forcedGlobalFlags = flags && flags.includes('g') ? flags : (flags || '') + 'g';
+  const forcedGlobalFlags = flags?.includes('g') ? flags : (flags || '') + 'g';
 
   const searchFramesFunction = isRegExpSearch ? searchFrameRegExp : searchFrameFzf;
   const searchSpansFunction = isRegExpSearch ? searchSpanRegExp : searchSpanFzf;

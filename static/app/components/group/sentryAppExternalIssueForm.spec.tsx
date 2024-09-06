@@ -1,30 +1,40 @@
-import selectEvent from 'react-select-event';
-import {Event as EventFixture} from 'sentry-fixture/event';
-import {SentryApp} from 'sentry-fixture/sentryApp';
-import {SentryAppInstallation} from 'sentry-fixture/sentryAppInstallation';
+import {EventFixture} from 'sentry-fixture/event';
+import {GroupFixture} from 'sentry-fixture/group';
+import {SentryAppFixture} from 'sentry-fixture/sentryApp';
+import {
+  SentryAppComponentAsyncFixture,
+  SentryAppComponentDependentFixture,
+  SentryAppComponentFixture,
+} from 'sentry-fixture/sentryAppComponent';
+import {SentryAppInstallationFixture} from 'sentry-fixture/sentryAppInstallation';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import selectEvent from 'sentry-test/selectEvent';
 
 import SentryAppExternalIssueForm from 'sentry/components/group/sentryAppExternalIssueForm';
 import {addQueryParamsToExistingUrl} from 'sentry/utils/queryString';
 
 describe('SentryAppExternalIssueForm', () => {
-  const group = TestStubs.Group({
+  const group = GroupFixture({
     title: 'ApiError: Broken',
     shortId: 'SEN123',
     permalink: 'https://sentry.io/organizations/sentry/issues/123/?project=1',
   });
-  const component = TestStubs.SentryAppComponent();
-  const sentryApp = SentryApp();
-  const sentryAppInstallation = SentryAppInstallation({});
+  const component = SentryAppComponentFixture();
+  const sentryApp = SentryAppFixture();
+  const sentryAppInstallation = SentryAppInstallationFixture();
   const submitUrl = `/sentry-app-installations/${sentryAppInstallation.uuid}/external-issue-actions/`;
-  let externalIssueRequest;
+  let externalIssueRequest!: jest.Mock<any, any>;
 
   beforeEach(() => {
     externalIssueRequest = MockApiClient.addMockResponse({
       url: submitUrl,
       method: 'POST',
       body: {},
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/org-slug/issues/1/external-issues/`,
+      body: [],
     });
   });
 
@@ -57,7 +67,7 @@ describe('SentryAppExternalIssueForm', () => {
       await userEvent.click(screen.getByRole('button', {name: 'Save Changes'}));
       expect(externalIssueRequest).not.toHaveBeenCalled();
 
-      selectEvent.openMenu(screen.getByRole('textbox', {name: 'Numbers'}));
+      await selectEvent.openMenu(screen.getByRole('textbox', {name: 'Numbers'}));
       await userEvent.type(screen.getByRole('textbox', {name: 'Numbers'}), '1');
       await userEvent.click(screen.getByText('one'));
 
@@ -148,17 +158,21 @@ describe('SentryAppExternalIssueForm', () => {
 });
 
 describe('SentryAppExternalIssueForm Async Field', () => {
-  const component = TestStubs.SentryAppComponentAsync();
-  const group = TestStubs.Group({
+  const component = SentryAppComponentAsyncFixture();
+  const group = GroupFixture({
     title: 'ApiError: Broken',
     shortId: 'SEN123',
     permalink: 'https://sentry.io/organizations/sentry/issues/123/?project=1',
   });
-  const sentryApp = SentryApp();
-  const sentryAppInstallation = SentryAppInstallation({});
+  const sentryApp = SentryAppFixture();
+  const sentryAppInstallation = SentryAppInstallationFixture();
 
-  afterEach(() => {
+  beforeEach(() => {
     MockApiClient.clearMockResponses();
+    MockApiClient.addMockResponse({
+      url: `/organizations/org-slug/issues/1/external-issues/`,
+      body: [],
+    });
   });
 
   it('renders each required_fields field', async function () {
@@ -185,7 +199,7 @@ describe('SentryAppExternalIssueForm Async Field', () => {
       />
     );
 
-    selectEvent.openMenu(screen.getByText('Numbers'));
+    await selectEvent.openMenu(screen.getByText('Numbers'));
     await userEvent.type(screen.getByRole('textbox'), 'I');
 
     expect(mockGetOptions).toHaveBeenCalled();
@@ -195,17 +209,21 @@ describe('SentryAppExternalIssueForm Async Field', () => {
 });
 
 describe('SentryAppExternalIssueForm Dependent fields', () => {
-  const group = TestStubs.Group({
+  const group = GroupFixture({
     title: 'ApiError: Broken',
     shortId: 'SEN123',
     permalink: 'https://sentry.io/organizations/sentry/issues/123/?project=1',
   });
-  const sentryApp = SentryApp();
-  const sentryAppInstallation = SentryAppInstallation({});
-  const component = TestStubs.SentryAppComponentDependent();
+  const sentryApp = SentryAppFixture();
+  const sentryAppInstallation = SentryAppInstallationFixture();
+  const component = SentryAppComponentDependentFixture();
 
-  afterEach(() => {
+  beforeEach(() => {
     MockApiClient.clearMockResponses();
+    MockApiClient.addMockResponse({
+      url: `/organizations/org-slug/issues/1/external-issues/`,
+      body: [],
+    });
   });
 
   it('load options for field that has dependencies when the dependent option is selected', async () => {

@@ -5,7 +5,8 @@ import {
   analyzeFrameForRootCause,
   analyzeFramesForRootCause,
 } from 'sentry/components/events/interfaces/analyzeFrames';
-import {EntryType, Event, EventOrGroupType, Frame, LockType} from 'sentry/types/event';
+import type {Event, Frame} from 'sentry/types/event';
+import {EntryType, EventOrGroupType, LockType} from 'sentry/types/event';
 
 const makeEventWithFrames = (frames: Frame[]): Event => {
   const event: Event = {
@@ -87,12 +88,7 @@ const makeEventWithFrames = (frames: Frame[]): Event => {
     packages: {},
     type: EventOrGroupType.ERROR,
     metadata: {
-      display_title_with_tree_label: false,
       filename: 'sentry/controllers/welcome_controller.rb',
-      finest_tree_label: [
-        {filebase: 'welcome_controller.rb', function: '/'},
-        {filebase: 'welcome_controller.rb', function: 'index'},
-      ],
       function: '/',
       type: 'ZeroDivisionError',
       value: 'divided by 0',

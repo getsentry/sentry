@@ -1,5 +1,6 @@
 from datetime import datetime, timedelta
-from typing import Dict, Match, Optional, TypedDict
+from re import Match
+from typing import TypedDict
 
 import sentry_sdk
 from rest_framework.exceptions import ParseError
@@ -15,8 +16,9 @@ from sentry.api.base import region_silo_endpoint
 from sentry.api.bases import NoProjects, OrganizationEventsV2EndpointBase
 from sentry.api.event_search import AggregateFilter
 from sentry.api.paginator import GenericOffsetPaginator
+from sentry.api.utils import handle_query_errors
 from sentry.exceptions import InvalidSearchQuery
-from sentry.search.events.builder import QueryBuilder
+from sentry.search.events.builder.discover import DiscoverQueryBuilder
 from sentry.search.events.datasets import function_aliases
 from sentry.search.events.fields import DateArg, parse_function
 from sentry.search.events.types import Alias, QueryBuilderConfig, SelectType, WhereType
@@ -53,10 +55,10 @@ TREND_TYPES = [IMPROVED, REGRESSION]
 
 
 # TODO move this to the builder file and introduce a top-events version instead
-class TrendQueryBuilder(QueryBuilder):
+class TrendQueryBuilder(DiscoverQueryBuilder):
     def convert_aggregate_filter_to_condition(
         self, aggregate_filter: AggregateFilter
-    ) -> Optional[WhereType]:
+    ) -> WhereType | None:
         name = aggregate_filter.key.name
 
         if name in self.params.aliases:
@@ -67,9 +69,9 @@ class TrendQueryBuilder(QueryBuilder):
     def resolve_function(
         self,
         function: str,
-        match: Optional[Match[str]] = None,
+        match: Match[str] | None = None,
         resolve_only=False,
-        overwrite_alias: Optional[str] = None,
+        overwrite_alias: str | None = None,
     ) -> SelectType:
         if function in self.params.aliases:
             return self.params.aliases[function].resolved_function
@@ -79,7 +81,7 @@ class TrendQueryBuilder(QueryBuilder):
 
 class OrganizationEventsTrendsEndpointBase(OrganizationEventsV2EndpointBase):
     publish_status = {
-        "GET": ApiPublishStatus.UNKNOWN,
+        "GET": ApiPublishStatus.PRIVATE,
     }
     trend_columns = {
         "p50": "percentile_range({column}, 0.5, {condition}, {boundary}) as {query_alias}",
@@ -231,7 +233,7 @@ class OrganizationEventsTrendsEndpointBase(OrganizationEventsV2EndpointBase):
         }
 
     @staticmethod
-    def get_snql_function_aliases(trend_columns: TrendColumns, trend_type: str) -> Dict[str, Alias]:
+    def get_snql_function_aliases(trend_columns: TrendColumns, trend_type: str) -> dict[str, Alias]:
         """Construct a dict of aliases
 
         this is because certain conditions behave differently depending on the trend type
@@ -425,7 +427,7 @@ class OrganizationEventsTrendsEndpointBase(OrganizationEventsV2EndpointBase):
             return Response(status=404)
 
         try:
-            params = self.get_snuba_params(request, organization)
+            snuba_params = self.get_snuba_params(request, organization)
         except NoProjects:
             return Response([])
 
@@ -436,13 +438,13 @@ class OrganizationEventsTrendsEndpointBase(OrganizationEventsV2EndpointBase):
                     middle = parse_datetime_string(middle_date)
                 except InvalidQuery:
                     raise ParseError(detail=f"{middle_date} is not a valid date format")
-                if middle <= params["start"] or middle >= params["end"]:
+                if middle <= snuba_params.start_date or middle >= snuba_params.end_date:
                     raise ParseError(
                         detail="The middle date should be within the duration of the query"
                     )
             else:
-                middle = params["start"] + timedelta(
-                    seconds=(params["end"] - params["start"]).total_seconds() * 0.5
+                middle = snuba_params.start_date + timedelta(
+                    seconds=(snuba_params.date_range).total_seconds() * 0.5
                 )
             middle = datetime.strftime(middle, DateArg.date_format)
 
@@ -465,10 +467,11 @@ class OrganizationEventsTrendsEndpointBase(OrganizationEventsV2EndpointBase):
         orderby = self.get_orderby(request)
         query = request.GET.get("query")
 
-        with self.handle_query_errors():
+        with handle_query_errors():
             trend_query = TrendQueryBuilder(
                 dataset=Dataset.Discover,
-                params=params,
+                params={},
+                snuba_params=snuba_params,
                 selected_columns=selected_columns,
                 config=QueryBuilderConfig(
                     auto_fields=False,
@@ -499,14 +502,14 @@ class OrganizationEventsTrendsEndpointBase(OrganizationEventsV2EndpointBase):
             result = trend_query.process_results(result)
             return result
 
-        with self.handle_query_errors():
+        with handle_query_errors():
             return self.paginate(
                 request=request,
                 paginator=GenericOffsetPaginator(data_fn=data_fn),
                 on_results=self.build_result_handler(
                     request,
                     organization,
-                    params,
+                    snuba_params,
                     trend_function,
                     selected_columns,
                     orderby,
@@ -520,26 +523,28 @@ class OrganizationEventsTrendsEndpointBase(OrganizationEventsV2EndpointBase):
 @region_silo_endpoint
 class OrganizationEventsTrendsStatsEndpoint(OrganizationEventsTrendsEndpointBase):
     publish_status = {
-        "GET": ApiPublishStatus.UNKNOWN,
+        "GET": ApiPublishStatus.PRIVATE,
     }
 
     def build_result_handler(
         self,
         request,
         organization,
-        params,
+        snuba_params,
         trend_function,
         selected_columns,
         orderby,
         query,
     ):
         def on_results(events_results):
-            def get_event_stats(query_columns, query, params, rollup, zerofill_results, _=None):
+            def get_event_stats(
+                query_columns, query, snuba_params, rollup, zerofill_results, _=None
+            ):
                 return discover.top_events_timeseries(
                     query_columns,
                     selected_columns,
                     query,
-                    params,
+                    snuba_params,
                     orderby,
                     rollup,
                     min(5, len(events_results["data"])),
@@ -556,7 +561,7 @@ class OrganizationEventsTrendsStatsEndpoint(OrganizationEventsTrendsEndpointBase
                     get_event_stats,
                     top_events=True,
                     query_column=trend_function,
-                    params=params,
+                    snuba_params=snuba_params,
                     query=query,
                 )
                 if len(events_results["data"]) > 0
@@ -565,7 +570,7 @@ class OrganizationEventsTrendsStatsEndpoint(OrganizationEventsTrendsEndpointBase
 
             return {
                 "events": self.handle_results_with_meta(
-                    request, organization, params["project_id"], events_results
+                    request, organization, snuba_params.project_ids, events_results
                 ),
                 "stats": stats_results,
             }
@@ -579,12 +584,12 @@ class OrganizationEventsTrendsEndpoint(OrganizationEventsTrendsEndpointBase):
         self,
         request,
         organization,
-        params,
+        snuba_params,
         trend_function,
         selected_columns,
         orderby,
         query,
     ):
         return lambda events_results: self.handle_results_with_meta(
-            request, organization, params["project_id"], events_results
+            request, organization, snuba_params.project_ids, events_results
         )

@@ -9,11 +9,10 @@ import hashlib
 import logging
 from dataclasses import dataclass
 from datetime import datetime, timedelta
-from typing import List, Optional, TypedDict, cast
+from typing import TypedDict, cast
 
 from sentry import nodestore
 from sentry.models.group import Group
-from sentry.models.organization import Organization
 from sentry.utils.dates import parse_timestamp
 
 GROUP_FORECAST_TTL = 14
@@ -23,7 +22,7 @@ ONE_EVENT_FORECAST = [10] * 14
 class EscalatingGroupForecastData(TypedDict):
     project_id: int
     group_id: int
-    forecast: List[int]
+    forecast: list[int]
     date_added: float
 
 
@@ -39,11 +38,11 @@ class EscalatingGroupForecast:
 
     project_id: int
     group_id: int
-    forecast: List[int]
+    forecast: list[int]
     date_added: datetime
 
     def save(self) -> None:
-        nodestore.set(
+        nodestore.backend.set(
             self.build_storage_identifier(self.project_id, self.group_id),
             self.to_dict(),
             ttl=timedelta(GROUP_FORECAST_TTL),
@@ -53,11 +52,10 @@ class EscalatingGroupForecast:
     def _should_fetch_escalating(cls, group_id: int) -> bool:
         group = Group.objects.get(id=group_id)
 
-        organization = Organization.objects.get(project__group__id=group_id)
-        return group.issue_type.should_detect_escalation(organization)
+        return group.issue_type.should_detect_escalation()
 
     @classmethod
-    def fetch(cls, project_id: int, group_id: int) -> Optional[EscalatingGroupForecast]:
+    def fetch(cls, project_id: int, group_id: int) -> EscalatingGroupForecast | None:
         """
         Return the forecast from nodestore if it exists.
 
@@ -69,9 +67,9 @@ class EscalatingGroupForecast:
         from sentry.issues.forecasts import generate_and_save_missing_forecasts
 
         if not cls._should_fetch_escalating(group_id=group_id):
-            return
+            return None
 
-        results = nodestore.get(cls.build_storage_identifier(project_id, group_id))
+        results = nodestore.backend.get(cls.build_storage_identifier(project_id, group_id))
         if results:
             return EscalatingGroupForecast.from_dict(results)
         generate_and_save_missing_forecasts.delay(group_id=group_id)
@@ -83,7 +81,7 @@ class EscalatingGroupForecast:
         )
 
     @classmethod
-    def fetch_todays_forecast(cls, project_id: int, group_id: int) -> Optional[int]:
+    def fetch_todays_forecast(cls, project_id: int, group_id: int) -> int | None:
         date_now = datetime.now().date()
         escalating_forecast = EscalatingGroupForecast.fetch(project_id, group_id)
 

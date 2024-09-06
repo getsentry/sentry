@@ -14,7 +14,7 @@ from sentry.models.relay import Relay
 @region_silo_endpoint
 class RelayIndexEndpoint(Endpoint):
     publish_status = {
-        "GET": ApiPublishStatus.UNKNOWN,
+        "GET": ApiPublishStatus.PRIVATE,
     }
     permission_classes = (SuperuserPermission,)
     owner = ApiOwner.OWNERS_INGEST

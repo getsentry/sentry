@@ -1,18 +1,18 @@
 import abc
 import logging
 import secrets
+from collections.abc import Mapping
 from time import time
-from typing import Any, Mapping
+from typing import Any
 from urllib.parse import parse_qsl, urlencode
 
-from django.http import HttpResponse
-from rest_framework.request import Request
+import orjson
+from django.http import HttpRequest, HttpResponse
 
 from sentry.auth.exceptions import IdentityNotValid
 from sentry.auth.provider import Provider
 from sentry.auth.view import AuthView
 from sentry.http import safe_urlopen, safe_urlread
-from sentry.utils import json
 
 ERR_INVALID_STATE = "An error occurred while validating your request."
 
@@ -46,7 +46,7 @@ class OAuth2Login(AuthView):
             "redirect_uri": redirect_uri,
         }
 
-    def dispatch(self, request: Request, helper) -> HttpResponse:
+    def dispatch(self, request: HttpRequest, helper) -> HttpResponse:
         if "code" in request.GET:
             return helper.next_step()
 
@@ -85,16 +85,16 @@ class OAuth2Callback(AuthView):
             "client_secret": self.client_secret,
         }
 
-    def exchange_token(self, request: Request, helper, code):
+    def exchange_token(self, request: HttpRequest, helper, code):
         # TODO: this needs the auth yet
         data = self.get_token_params(code=code, redirect_uri=helper.get_redirect_url())
         req = safe_urlopen(self.access_token_url, data=data)
         body = safe_urlread(req)
         if req.headers["Content-Type"].startswith("application/x-www-form-urlencoded"):
             return dict(parse_qsl(body))
-        return json.loads(body)
+        return orjson.loads(body)
 
-    def dispatch(self, request: Request, helper) -> HttpResponse:
+    def dispatch(self, request: HttpRequest, helper) -> HttpResponse:
         error = request.GET.get("error")
         state = request.GET.get("state")
         code = request.GET.get("code")
@@ -191,7 +191,7 @@ class OAuth2Provider(Provider, abc.ABC):
 
         try:
             body = safe_urlread(req)
-            payload = json.loads(body)
+            payload = orjson.loads(body)
         except Exception:
             payload = {}
 

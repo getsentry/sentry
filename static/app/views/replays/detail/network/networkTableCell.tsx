@@ -1,4 +1,5 @@
-import {ComponentProps, CSSProperties, forwardRef} from 'react';
+import type {ComponentProps, CSSProperties} from 'react';
+import {forwardRef} from 'react';
 import classNames from 'classnames';
 
 import FileSize from 'sentry/components/fileSize';
@@ -17,7 +18,7 @@ import {
 } from 'sentry/utils/replays/resourceFrame';
 import type {SpanFrame} from 'sentry/utils/replays/types';
 import useUrlParams from 'sentry/utils/useUrlParams';
-import useSortNetwork from 'sentry/views/replays/detail/network/useSortNetwork';
+import type useSortNetwork from 'sentry/views/replays/detail/network/useSortNetwork';
 import TimestampButton from 'sentry/views/replays/detail/timestampButton';
 import {operationName} from 'sentry/views/replays/detail/utils';
 
@@ -158,7 +159,7 @@ const NetworkTableCell = forwardRef<HTMLDivElement, Props>(
         <Cell {...columnProps} numeric>
           <ButtonWrapper>
             <TimestampButton
-              format="mm:ss.SSS"
+              precision="ms"
               onClick={event => {
                 event.stopPropagation();
                 onClickTimestamp(frame);

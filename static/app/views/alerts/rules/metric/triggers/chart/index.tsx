@@ -1,7 +1,6 @@
 import {Fragment, PureComponent} from 'react';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
-import capitalize from 'lodash/capitalize';
 import isEqual from 'lodash/isEqual';
 import maxBy from 'lodash/maxBy';
 import minBy from 'lodash/minBy';
@@ -26,22 +25,22 @@ import Placeholder from 'sentry/components/placeholder';
 import {IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import type {Series} from 'sentry/types/echarts';
 import type {
   EventsStats,
   MultiSeriesEventsStats,
   Organization,
-  Project,
-} from 'sentry/types';
-import type {Series} from 'sentry/types/echarts';
-import {parsePeriodToHours} from 'sentry/utils/dates';
+} from 'sentry/types/organization';
+import type {Project} from 'sentry/types/project';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
+import {parsePeriodToHours} from 'sentry/utils/duration/parsePeriodToHours';
 import {getForceMetricsLayerQueryExtras} from 'sentry/utils/metrics/features';
-import {formatMRIField} from 'sentry/utils/metrics/mri';
 import {shouldShowOnDemandMetricAlertUI} from 'sentry/utils/onDemandMetrics/features';
 import {
   getCrashFreeRateSeries,
   MINUTES_THRESHOLD_TO_DISPLAY_SECONDS,
 } from 'sentry/utils/sessions';
+import {capitalize} from 'sentry/utils/string/capitalize';
 import withApi from 'sentry/utils/withApi';
 import {COMPARISON_DELTA_OPTIONS} from 'sentry/views/alerts/rules/metric/constants';
 import {shouldUseErrorsDiscoverDataset} from 'sentry/views/alerts/rules/utils';
@@ -50,14 +49,13 @@ import {getComparisonMarkLines} from 'sentry/views/alerts/utils/getComparisonMar
 import {AlertWizardAlertNames} from 'sentry/views/alerts/wizard/options';
 import {getAlertTypeFromAggregateDataset} from 'sentry/views/alerts/wizard/utils';
 
+import type {MetricRule, Trigger} from '../../types';
 import {
   AlertRuleComparisonType,
   Dataset,
-  MetricRule,
   SessionsAggregate,
   TimePeriod,
   TimeWindow,
-  Trigger,
 } from '../../types';
 import {getMetricDatasetQueryExtras} from '../../utils/getMetricDatasetQueryExtras';
 
@@ -80,6 +78,7 @@ type Props = {
   timeWindow: MetricRule['timeWindow'];
   triggers: Trigger[];
   comparisonDelta?: number;
+  formattedAggregate?: string;
   header?: React.ReactNode;
   isOnDemandMetricAlert?: boolean;
   onDataLoaded?: (data: EventsStats | MultiSeriesEventsStats | null) => void;
@@ -251,6 +250,7 @@ class TriggersChart extends PureComponent<Props, State> {
       projects,
       query,
       dataset,
+      aggregate,
     } = this.props;
 
     const statsPeriod = this.getStatsPeriod();
@@ -263,20 +263,23 @@ class TriggersChart extends PureComponent<Props, State> {
     });
 
     let queryDataset = queryExtras.dataset as undefined | DiscoverDatasets;
+    const queryOverride = (queryExtras.query as string | undefined) ?? query;
 
-    if (shouldUseErrorsDiscoverDataset(query, dataset)) {
+    if (shouldUseErrorsDiscoverDataset(query, dataset, organization)) {
       queryDataset = DiscoverDatasets.ERRORS;
     }
+
+    const alertType = getAlertTypeFromAggregateDataset({aggregate, dataset});
 
     try {
       const totalCount = await fetchTotalCount(api, organization.slug, {
         field: [],
         project: projects.map(({id}) => id),
-        query,
+        query: queryOverride,
         statsPeriod,
         environment: environment ? [environment] : [],
         dataset: queryDataset,
-        ...getForceMetricsLayerQueryExtras(organization, dataset),
+        ...getForceMetricsLayerQueryExtras(organization, dataset, alertType),
       });
       this.setState({totalCount});
     } catch (e) {
@@ -335,8 +338,8 @@ class TriggersChart extends PureComponent<Props, State> {
     const totalCountLabel = isSessionAggregate(aggregate)
       ? SESSION_AGGREGATE_TO_HEADING[aggregate]
       : showExtrapolatedChartData
-      ? t('Estimated Transactions')
-      : t('Total');
+        ? t('Estimated Transactions')
+        : t('Total');
 
     return (
       <Fragment>
@@ -415,6 +418,7 @@ class TriggersChart extends PureComponent<Props, State> {
       newAlertOrQuery,
       onDataLoaded,
       environment,
+      formattedAggregate,
       comparisonDelta,
       triggers,
       thresholdType,
@@ -427,6 +431,8 @@ class TriggersChart extends PureComponent<Props, State> {
       organization.features.includes('change-alerts') && comparisonDelta
     );
 
+    const alertType = getAlertTypeFromAggregateDataset({aggregate, dataset});
+
     const queryExtras = {
       ...getMetricDatasetQueryExtras({
         organization,
@@ -434,8 +440,8 @@ class TriggersChart extends PureComponent<Props, State> {
         dataset,
         newAlertOrQuery,
       }),
-      ...getForceMetricsLayerQueryExtras(organization, dataset),
-      ...(shouldUseErrorsDiscoverDataset(query, dataset)
+      ...getForceMetricsLayerQueryExtras(organization, dataset, alertType),
+      ...(shouldUseErrorsDiscoverDataset(query, dataset, organization)
         ? {dataset: DiscoverDatasets.ERRORS}
         : {}),
     };
@@ -453,7 +459,7 @@ class TriggersChart extends PureComponent<Props, State> {
           period={period}
           yAxis={aggregate}
           includePrevious={false}
-          currentSeriesNames={[aggregate]}
+          currentSeriesNames={[formattedAggregate || aggregate]}
           partial={false}
           queryExtras={queryExtras}
           sampleRate={this.state.sampleRate}
@@ -549,7 +555,7 @@ class TriggersChart extends PureComponent<Props, State> {
         period={period}
         yAxis={aggregate}
         includePrevious={false}
-        currentSeriesNames={[formatMRIField(aggregate)]}
+        currentSeriesNames={[formattedAggregate || aggregate]}
         partial={false}
         queryExtras={queryExtras}
         useOnDemandMetrics
@@ -622,8 +628,8 @@ function ErrorChart({isAllowIndexed, isQueryValid, errorMessage}) {
         {!isAllowIndexed && !isQueryValid
           ? t('Your filter conditions contain an unsupported field - please review.')
           : typeof errorMessage === 'string'
-          ? errorMessage
-          : t('An error occurred while fetching data')}
+            ? errorMessage
+            : t('An error occurred while fetching data')}
       </PanelAlert>
 
       <StyledErrorPanel>

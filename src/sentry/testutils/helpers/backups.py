@@ -3,10 +3,10 @@ from __future__ import annotations
 import io
 import tempfile
 from copy import deepcopy
-from datetime import datetime, timedelta
+from datetime import UTC, datetime, timedelta
 from functools import cached_property, cmp_to_key
 from pathlib import Path
-from typing import Tuple
+from typing import Any
 from unittest.mock import MagicMock
 from uuid import uuid4
 
@@ -18,6 +18,12 @@ from django.db import connections, router
 from django.utils import timezone
 from sentry_relay.auth import generate_key_pair
 
+from sentry.backup.crypto import (
+    KeyManagementServiceClient,
+    LocalFileDecryptor,
+    LocalFileEncryptor,
+    decrypt_encrypted_tarball,
+)
 from sentry.backup.dependencies import (
     NormalizedModelName,
     get_model,
@@ -31,19 +37,14 @@ from sentry.backup.exports import (
     export_in_user_scope,
 )
 from sentry.backup.findings import ComparatorFindings
-from sentry.backup.helpers import (
-    KeyManagementServiceClient,
-    LocalFileDecryptor,
-    LocalFileEncryptor,
-    Printer,
-    decrypt_encrypted_tarball,
-)
+from sentry.backup.helpers import Printer
 from sentry.backup.imports import import_in_global_scope
 from sentry.backup.scopes import ExportScope
 from sentry.backup.validate import validate
-from sentry.db.models.fields.bounded import BoundedBigAutoField
+from sentry.data_secrecy.models import DataSecrecyWaiver
 from sentry.db.models.paranoia import ParanoidModel
-from sentry.incidents.models import (
+from sentry.incidents.models.alert_rule import AlertRuleMonitorTypeInt
+from sentry.incidents.models.incident import (
     IncidentActivity,
     IncidentSnapshot,
     IncidentSubscription,
@@ -51,11 +52,15 @@ from sentry.incidents.models import (
     PendingIncidentSnapshot,
     TimeSeriesSnapshot,
 )
+from sentry.incidents.utils.types import AlertRuleActivationConditionType
+from sentry.integrations.models.integration import Integration
+from sentry.integrations.models.organization_integration import OrganizationIntegration
+from sentry.integrations.models.project_integration import ProjectIntegration
+from sentry.models.activity import Activity
 from sentry.models.apiauthorization import ApiAuthorization
 from sentry.models.apigrant import ApiGrant
 from sentry.models.apikey import ApiKey
 from sentry.models.apitoken import ApiToken
-from sentry.models.authenticator import Authenticator
 from sentry.models.authidentity import AuthIdentity
 from sentry.models.authprovider import AuthProvider
 from sentry.models.counter import Counter
@@ -67,38 +72,49 @@ from sentry.models.dashboard_widget import (
     DashboardWidgetTypes,
 )
 from sentry.models.dynamicsampling import CustomDynamicSamplingRule
-from sentry.models.integrations.integration import Integration
-from sentry.models.integrations.organization_integration import OrganizationIntegration
-from sentry.models.integrations.project_integration import ProjectIntegration
+from sentry.models.groupassignee import GroupAssignee
+from sentry.models.groupbookmark import GroupBookmark
+from sentry.models.groupsearchview import GroupSearchView
+from sentry.models.groupseen import GroupSeen
+from sentry.models.groupshare import GroupShare
+from sentry.models.groupsubscription import GroupSubscription
 from sentry.models.integrations.sentry_app import SentryApp
 from sentry.models.options.option import ControlOption, Option
 from sentry.models.options.organization_option import OrganizationOption
-from sentry.models.options.user_option import UserOption
+from sentry.models.options.project_template_option import ProjectTemplateOption
 from sentry.models.organization import Organization
 from sentry.models.organizationaccessrequest import OrganizationAccessRequest
+from sentry.models.organizationmember import InviteStatus, OrganizationMember
 from sentry.models.orgauthtoken import OrgAuthToken
 from sentry.models.project import Project
 from sentry.models.projectownership import ProjectOwnership
 from sentry.models.projectredirect import ProjectRedirect
+from sentry.models.projecttemplate import ProjectTemplate
 from sentry.models.recentsearch import RecentSearch
 from sentry.models.relay import Relay, RelayUsage
 from sentry.models.rule import NeglectedRule, RuleActivity, RuleActivityType
 from sentry.models.savedsearch import SavedSearch, Visibility
 from sentry.models.search_common import SearchType
-from sentry.models.team import Team
-from sentry.models.user import User
-from sentry.models.userip import UserIP
-from sentry.models.userrole import UserRole, UserRoleUser
 from sentry.monitors.models import Monitor, MonitorType, ScheduleType
 from sentry.nodestore.django.models import Node
 from sentry.sentry_apps.apps import SentryAppUpdater
-from sentry.silo import unguarded_write
+from sentry.sentry_metrics.models import (
+    SpanAttributeExtractionRuleCondition,
+    SpanAttributeExtractionRuleConfig,
+)
 from sentry.silo.base import SiloMode
-from sentry.testutils.cases import TransactionTestCase
+from sentry.silo.safety import unguarded_write
+from sentry.testutils.cases import TestCase, TransactionTestCase
 from sentry.testutils.factories import get_fixture_path
+from sentry.testutils.fixtures import Fixtures
 from sentry.testutils.silo import assume_test_silo_mode
+from sentry.types.token import AuthTokenType
+from sentry.users.models.authenticator import Authenticator
+from sentry.users.models.user import User
+from sentry.users.models.user_option import UserOption
+from sentry.users.models.userip import UserIP
+from sentry.users.models.userrole import UserRole, UserRoleUser
 from sentry.utils import json
-from sentry.utils.json import JSONData
 
 __all__ = [
     "export_to_file",
@@ -129,7 +145,7 @@ class ValidationError(Exception):
         self.info = info
 
 
-def export_to_file(path: Path, scope: ExportScope, filter_by: set[str] | None = None) -> JSONData:
+def export_to_file(path: Path, scope: ExportScope, filter_by: set[str] | None = None) -> Any:
     """
     Helper function that exports the current state of the database to the specified file.
     """
@@ -154,7 +170,7 @@ def export_to_file(path: Path, scope: ExportScope, filter_by: set[str] | None = 
     return output
 
 
-def generate_rsa_key_pair() -> Tuple[bytes, bytes]:
+def generate_rsa_key_pair() -> tuple[bytes, bytes]:
     private_key = rsa.generate_private_key(
         public_exponent=65537, key_size=2048, backend=default_backend()
     )
@@ -176,7 +192,7 @@ def export_to_encrypted_tarball(
     scope: ExportScope,
     *,
     filter_by: set[str] | None = None,
-) -> JSONData:
+) -> Any:
     """
     Helper function that exports the current state of the database to the specified encrypted
     tarball.
@@ -251,11 +267,6 @@ def clear_database(*, reset_pks: bool = False):
     Deletes all models we care about from the database, in a sequence that ensures we get no
     foreign key errors.
     """
-
-    # TODO(hybrid-cloud): actor refactor. Remove this kludge when done.
-    with unguarded_write(using=router.db_for_write(Team)):
-        Team.objects.update(actor=None)
-
     reversed = reversed_dependencies()
     for model in reversed:
         if is_control_model(model):
@@ -279,7 +290,7 @@ def clear_database(*, reset_pks: bool = False):
             pass
 
 
-def import_export_then_validate(method_name: str, *, reset_pks: bool = True) -> JSONData:
+def import_export_then_validate(method_name: str, *, reset_pks: bool = True) -> Any:
     """
     Test helper that validates that data imported from an export of the current state of the test
     database correctly matches the actual outputted export data.
@@ -323,11 +334,8 @@ def import_export_then_validate(method_name: str, *, reset_pks: bool = True) -> 
     return actual
 
 
-class BackupTestCase(TransactionTestCase):
-    """
-    Instruments a database state that includes an instance of every Sentry model with every field
-    set to a non-default, non-null value. This is useful for exhaustive conformance testing.
-    """
+class ExhaustiveFixtures(Fixtures):
+    """Helper fixtures for creating 'exhaustive' (that is, maximally filled out, with all child models included) versions of common top-level models like users, organizations, etc."""
 
     @assume_test_silo_mode(SiloMode.CONTROL)
     def create_exhaustive_user(
@@ -347,8 +355,8 @@ class BackupTestCase(TransactionTestCase):
         UserIP.objects.create(
             user=user,
             ip_address="127.0.0.2",
-            first_seen=datetime(2012, 4, 5, 3, 29, 45, tzinfo=timezone.utc),
-            last_seen=datetime(2012, 4, 5, 3, 29, 45, tzinfo=timezone.utc),
+            first_seen=datetime(2012, 4, 5, 3, 29, 45, tzinfo=UTC),
+            last_seen=datetime(2012, 4, 5, 3, 29, 45, tzinfo=UTC),
         )
         Authenticator.objects.create(user=user, type=1)
 
@@ -361,14 +369,36 @@ class BackupTestCase(TransactionTestCase):
 
     @assume_test_silo_mode(SiloMode.REGION)
     def create_exhaustive_organization(
-        self, slug: str, owner: User, invitee: User, other: list[User] | None = None
+        self,
+        slug: str,
+        owner: User,
+        member: User,
+        other_members: list[User] | None = None,
+        pending_invites: dict[User, str] | None = None,
+        # A dictionary of a user to the other users they invited
+        accepted_invites: dict[User, list[User]] | None = None,
     ) -> Organization:
         org = self.create_organization(name=slug, owner=owner)
-        owner_id: BoundedBigAutoField = owner.id
-        invited = self.create_member(organization=org, user=invitee, role="member")
-        if other:
-            for o in other:
-                self.create_member(organization=org, user=o, role="member")
+        owner_id: int = owner.id
+        invited = self.create_member(organization=org, user=member, role="member")
+        if other_members:
+            for user in other_members:
+                self.create_member(organization=org, user=user, role="member")
+        if pending_invites:
+            for inviter, email in pending_invites.items():
+                OrganizationMember.objects.create(
+                    organization_id=org.id,
+                    role="member",
+                    email=email,
+                    inviter_id=inviter.id,
+                    invite_status=InviteStatus.REQUESTED_TO_BE_INVITED.value,
+                )
+        if accepted_invites:
+            for inviter, users in accepted_invites.items():
+                for user in users:
+                    self.create_member(
+                        organization=org, user=user, role="member", inviter_id=inviter.id
+                    )
 
         OrganizationOption.objects.create(
             organization=org, key="sentry:account-rate-limit", value=0
@@ -377,10 +407,16 @@ class BackupTestCase(TransactionTestCase):
         # Team
         team = self.create_team(name=f"test_team_in_{slug}", organization=org)
         self.create_team_membership(user=owner, team=team)
-        OrganizationAccessRequest.objects.create(member=invited, team=team)
+        OrganizationAccessRequest.objects.create(member=invited, team=team, requester_id=owner_id)
 
         # Project*
-        project = self.create_project(name=f"project-{slug}", teams=[team])
+        project_template = ProjectTemplate.objects.create(name=f"template-{slug}", organization=org)
+        ProjectTemplateOption.objects.create(
+            project_template=project_template, key="mail:subject_prefix", value=f"[{slug}]"
+        )
+
+        # TODO (@saponifi3d): Add project template to project
+        project = self.create_project(name=f"project-{slug}", teams=[team], organization=org)
         self.create_project_key(project)
         self.create_project_bookmark(project=project, user=owner)
         ProjectOwnership.objects.create(
@@ -402,17 +438,20 @@ class BackupTestCase(TransactionTestCase):
         )
 
         # Rule*
-        rule = self.create_project_rule(project=project)
-        RuleActivity.objects.create(rule=rule, type=RuleActivityType.CREATED.value)
+        rule = self.create_project_rule(project=project, owner_user_id=owner_id)
+        RuleActivity.objects.create(
+            rule=rule, type=RuleActivityType.CREATED.value, user_id=owner_id
+        )
         self.snooze_rule(user_id=owner_id, owner_id=owner_id, rule=rule)
         NeglectedRule.objects.create(
             rule=rule,
             organization=org,
-            disable_date=datetime.now(),
-            sent_initial_email_date=datetime.now(),
-            sent_final_email_date=datetime.now(),
+            disable_date=timezone.now(),
+            sent_initial_email_date=timezone.now(),
+            sent_final_email_date=timezone.now(),
         )
         CustomDynamicSamplingRule.update_or_create(
+            created_by_id=owner_id,
             condition={"op": "equals", "name": "environment", "value": "prod"},
             start=timezone.now(),
             end=timezone.now() + timedelta(hours=1),
@@ -421,6 +460,19 @@ class BackupTestCase(TransactionTestCase):
             num_samples=100,
             sample_rate=0.5,
             query="environment:prod event.type:transaction",
+        )
+        span_attribute_extraction_rule_config = SpanAttributeExtractionRuleConfig.objects.create(
+            project=project,
+            span_attribute="my_attribute",
+            created_by_id=owner.id,
+            unit="none",
+            tags=["tag1", "tag2"],
+            aggregates=["count", "sum", "avg", "min", "max", "p50", "p75", "p90", "p95", "p99"],
+        )
+        SpanAttributeExtractionRuleCondition.objects.create(
+            created_by_id=owner.id,
+            value="key:value",
+            config=span_attribute_extraction_rule_config,
         )
 
         # Environment*
@@ -432,6 +484,7 @@ class BackupTestCase(TransactionTestCase):
             project_id=project.id,
             type=MonitorType.CRON_JOB,
             config={"schedule": "* * * * *", "schedule_type": ScheduleType.CRONTAB},
+            owner_user_id=owner_id,
         )
 
         # AlertRule*
@@ -441,9 +494,27 @@ class BackupTestCase(TransactionTestCase):
             projects=[project],
             include_all_projects=True,
             excluded_projects=[other_project],
+            user=owner,
         )
+        alert.user_id = owner_id
+        alert.save()
         trigger = self.create_alert_rule_trigger(alert_rule=alert, excluded_projects=[project])
         self.create_alert_rule_trigger_action(alert_rule_trigger=trigger)
+        activated_alert = self.create_alert_rule(
+            organization=org,
+            projects=[project],
+            monitor_type=AlertRuleMonitorTypeInt.ACTIVATED,
+            activation_condition=AlertRuleActivationConditionType.RELEASE_CREATION,
+        )
+        self.create_alert_rule_activation(
+            alert_rule=activated_alert,
+            project=project,
+            metric_value=100,
+            activator="testing exhaustive",
+            activation_condition=AlertRuleActivationConditionType.RELEASE_CREATION,
+        )
+        activated_trigger = self.create_alert_rule_trigger(alert_rule=activated_alert)
+        self.create_alert_rule_trigger_action(alert_rule_trigger=activated_trigger)
 
         # Incident*
         incident = self.create_incident(org, [project])
@@ -451,12 +522,13 @@ class BackupTestCase(TransactionTestCase):
             incident=incident,
             type=1,
             comment=f"hello {slug}",
+            user_id=owner_id,
         )
         IncidentSnapshot.objects.create(
             incident=incident,
             event_stats_snapshot=TimeSeriesSnapshot.objects.create(
-                start=datetime.utcnow() - timedelta(hours=24),
-                end=datetime.utcnow(),
+                start=timezone.now() - timedelta(hours=24),
+                end=timezone.now(),
                 values=[[1.0, 2.0, 3.0], [1.5, 2.5, 3.5]],
                 period=1,
             ),
@@ -472,7 +544,7 @@ class BackupTestCase(TransactionTestCase):
 
         # *Snapshot
         PendingIncidentSnapshot.objects.create(
-            incident=incident, target_run_date=datetime.utcnow() + timedelta(hours=4)
+            incident=incident, target_run_date=timezone.now() + timedelta(hours=4)
         )
 
         # Dashboard
@@ -508,16 +580,49 @@ class BackupTestCase(TransactionTestCase):
             name=f"Saved query for {slug}",
             query=f"saved query for {slug}",
             visibility=Visibility.ORGANIZATION,
+            owner_id=owner_id,
         )
 
         # misc
         Counter.increment(project, 1)
-        self.create_repo(
+        repo = self.create_repo(
             project=project,
             name="getsentry/getsentry",
             provider="integrations:github",
             integration_id=integration_id,
             url="https://github.com/getsentry/getsentry",
+        )
+        repo.external_id = "https://git.example.com:1234"
+        repo.save()
+
+        # Group*
+        group = self.create_group(project=project)
+        GroupSearchView.objects.create(
+            name=f"View 1 for {slug}",
+            user_id=owner_id,
+            organization=org,
+            query=f"some query for {slug}",
+            query_sort="date",
+            position=0,
+        )
+        Activity.objects.create(
+            project=project,
+            group=group,
+            user_id=owner_id,
+            type=1,
+        )
+        for group_model in (GroupAssignee, GroupBookmark, GroupSeen, GroupShare, GroupSubscription):
+            group_model.objects.create(
+                project=project,
+                group=group,
+                user_id=owner_id,
+            )
+
+        # DataSecrecyWaiver
+        DataSecrecyWaiver.objects.create(
+            organization=org,
+            access_start=timezone.now(),
+            access_end=timezone.now() + timedelta(days=1),
         )
 
         return org
@@ -539,6 +644,7 @@ class BackupTestCase(TransactionTestCase):
         )
         OrgAuthToken.objects.create(
             organization_id=org.id,
+            created_by=owner,
             name=f"token 1 for {org.slug}",
             token_hashed=f"ABCDEF{org.slug}",
             token_last_characters="xyz1",
@@ -559,7 +665,14 @@ class BackupTestCase(TransactionTestCase):
     @assume_test_silo_mode(SiloMode.CONTROL)
     def create_exhaustive_sentry_app(self, name: str, owner: User, org: Organization) -> SentryApp:
         # SentryApp*
-        app = self.create_sentry_app(name=name, organization=org)
+        app = self.create_sentry_app(
+            name=name,
+            organization=org,
+            overview="A sample description",
+            webhook_url="https://example.com/sentry-app/webhook/",
+            redirect_url="https://example.com/sentry-app/redirect/",
+        )
+
         install = self.create_sentry_app_installation(slug=app.slug, organization=org, user=owner)
         updater = SentryAppUpdater(sentry_app=app)
         updater.schema = {"elements": [self.create_alert_rule_action_schema()]}
@@ -576,7 +689,7 @@ class BackupTestCase(TransactionTestCase):
         ApiGrant.objects.create(
             user=owner,
             application=app.application,
-            expires_at="2022-01-01 11:11",
+            expires_at="2022-01-01 11:11+00:00",
             redirect_uri="https://example.com",
             scope_list=["openid", "profile", "email"],
         )
@@ -601,12 +714,9 @@ class BackupTestCase(TransactionTestCase):
 
     @assume_test_silo_mode(SiloMode.CONTROL)
     def create_exhaustive_global_configs(self, owner: User):
+        self.create_exhaustive_api_keys_for_user(owner)
         self.create_exhaustive_global_configs_regional()
         ControlOption.objects.create(key="bar", value="b")
-        ApiAuthorization.objects.create(user=owner)
-        ApiToken.objects.create(
-            user=owner, expires_at=None, name="create_exhaustive_global_configs"
-        )
 
     @assume_test_silo_mode(SiloMode.REGION)
     def create_exhaustive_global_configs_regional(self):
@@ -623,61 +733,86 @@ class BackupTestCase(TransactionTestCase):
         extensions, and all global flags set.
         """
 
-        owner = self.create_exhaustive_user(
-            "owner", is_admin=is_superadmin, is_superuser=is_superadmin, is_staff=is_superadmin
+        superadmin = self.create_exhaustive_user(
+            "superadmin", is_admin=is_superadmin, is_superuser=is_superadmin, is_staff=is_superadmin
         )
-        invitee = self.create_exhaustive_user("invitee")
-        org = self.create_exhaustive_organization("test-org", owner, invitee)
+        owner = self.create_exhaustive_user("owner")
+        member = self.create_exhaustive_user("member")
+        org = self.create_exhaustive_organization(
+            "test-org",
+            owner,
+            member,
+            pending_invites={
+                superadmin: "invited-by-superadmin-not-in-org@example.com",
+                owner: "invited-by-org-owner@example.com",
+                member: "invited-by-org-member@example.com",
+            },
+            accepted_invites={
+                superadmin: [self.create_exhaustive_user("added-by-superadmin-not-in-org")],
+                owner: [self.create_exhaustive_user("added-by-org-owner")],
+                member: [self.create_exhaustive_user("added-by-org-member")],
+            },
+        )
         self.create_exhaustive_sentry_app("test app", owner, org)
         self.create_exhaustive_global_configs(owner)
 
-    def import_export_then_validate(self, out_name, *, reset_pks: bool = True) -> JSONData:
+    @assume_test_silo_mode(SiloMode.CONTROL)
+    def create_exhaustive_api_keys_for_user(self, user: User):
+        ApiAuthorization.objects.create(user=user)
+        ApiToken.objects.create(
+            user=user,
+            expires_at=None,
+            name=f"create_exhaustive_global_configs_for_{user.name}",
+            token_type=AuthTokenType.USER,
+        )
+
+    def import_export_then_validate(self, out_name, *, reset_pks: bool = True) -> Any:
         return import_export_then_validate(out_name, reset_pks=reset_pks)
 
     @cached_property
-    def _json_of_exhaustive_user_with_maximum_privileges(self) -> JSONData:
+    def _json_of_exhaustive_user_with_maximum_privileges(self) -> Any:
         with open(get_fixture_path("backup", "user-with-maximum-privileges.json")) as backup_file:
             return json.load(backup_file)
 
-    def json_of_exhaustive_user_with_maximum_privileges(self) -> JSONData:
+    def json_of_exhaustive_user_with_maximum_privileges(self) -> Any:
         return deepcopy(self._json_of_exhaustive_user_with_maximum_privileges)
 
     @cached_property
-    def _json_of_exhaustive_user_with_minimum_privileges(self) -> JSONData:
+    def _json_of_exhaustive_user_with_minimum_privileges(self) -> Any:
         with open(get_fixture_path("backup", "user-with-minimum-privileges.json")) as backup_file:
             return json.load(backup_file)
 
-    def json_of_exhaustive_user_with_minimum_privileges(self) -> JSONData:
+    def json_of_exhaustive_user_with_minimum_privileges(self) -> Any:
         return deepcopy(self._json_of_exhaustive_user_with_minimum_privileges)
 
     @cached_property
-    def _json_of_exhaustive_user_with_roles_no_superadmin(self) -> JSONData:
+    def _json_of_exhaustive_user_with_roles_no_superadmin(self) -> Any:
         with open(get_fixture_path("backup", "user-with-roles-no-superadmin.json")) as backup_file:
             return json.load(backup_file)
 
-    def json_of_exhaustive_user_with_roles_no_superadmin(self) -> JSONData:
+    def json_of_exhaustive_user_with_roles_no_superadmin(self) -> Any:
         return deepcopy(self._json_of_exhaustive_user_with_roles_no_superadmin)
 
     @cached_property
-    def _json_of_exhaustive_user_with_superadmin_no_roles(self) -> JSONData:
+    def _json_of_exhaustive_user_with_superadmin_no_roles(self) -> Any:
         with open(get_fixture_path("backup", "user-with-superadmin-no-roles.json")) as backup_file:
             return json.load(backup_file)
 
-    def json_of_exhaustive_user_with_superadmin_no_roles(self) -> JSONData:
+    def json_of_exhaustive_user_with_superadmin_no_roles(self) -> Any:
         return deepcopy(self._json_of_exhaustive_user_with_superadmin_no_roles)
 
     @staticmethod
-    def sort_in_memory_json(json_data: JSONData) -> JSONData:
+    def sort_in_memory_json(json_data: Any) -> Any:
         """
         Helper function that takes an unordered set of JSON models and sorts them first in
         dependency order, and then, within each model, by ascending pk number.
         """
 
-        def sort_by_model_then_pk(a: JSONData, b: JSONData) -> int:
+        def sort_by_model_then_pk(a: Any, b: Any) -> int:
             sorted_deps = sorted_dependencies()
             a_model = get_model(NormalizedModelName(a["model"]))
             b_model = get_model(NormalizedModelName(b["model"]))
-            model_diff = sorted_deps.index(a_model) - sorted_deps.index(b_model)  # type: ignore
+            model_diff = sorted_deps.index(a_model) - sorted_deps.index(b_model)  # type: ignore[arg-type]
             if model_diff != 0:
                 return model_diff
 
@@ -688,7 +823,7 @@ class BackupTestCase(TransactionTestCase):
             key=cmp_to_key(sort_by_model_then_pk),
         )
 
-    def generate_tmp_users_json(self) -> JSONData:
+    def generate_tmp_users_json(self) -> Any:
         """
         Generates an in-memory JSON array of users with different combinations of admin privileges.
         """
@@ -707,7 +842,7 @@ class BackupTestCase(TransactionTestCase):
 
         return self.sort_in_memory_json(max_user + min_user + roles_user + superadmin_user)
 
-    def generate_tmp_users_json_file(self, tmp_path: Path) -> JSONData:
+    def generate_tmp_users_json_file(self, tmp_path: Path) -> Any:
         """
         Generates a file filled with users with different combinations of admin privileges.
         """
@@ -715,3 +850,17 @@ class BackupTestCase(TransactionTestCase):
         data = self.generate_tmp_users_json()
         with open(tmp_path, "w+") as tmp_file:
             json.dump(data, tmp_file)
+
+
+class BackupTestCase(TestCase, ExhaustiveFixtures):
+    """
+    Instruments a database state that includes an instance of every Sentry model with every field
+    set to a non-default, non-null value. This is useful for exhaustive conformance testing.
+    """
+
+
+class BackupTransactionTestCase(TransactionTestCase, ExhaustiveFixtures):
+    """
+    Instruments a database state that includes an instance of every Sentry model with every field
+    set to a non-default, non-null value. This is useful for exhaustive conformance testing. Unlike `BackupTestCase`, this completely resets the database between each test, which can be an expensive operation.
+    """

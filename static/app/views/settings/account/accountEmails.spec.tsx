@@ -1,4 +1,4 @@
-import {AccountEmails as AccountEmailsFixture} from 'sentry-fixture/accountEmails';
+import {AccountEmailsFixture} from 'sentry-fixture/accountEmails';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
@@ -31,7 +31,9 @@ describe('AccountEmails', function () {
     render(<AccountEmails />);
     expect(mock).not.toHaveBeenCalled();
 
-    await userEvent.click(screen.getAllByRole('button', {name: 'Remove email'})[0]);
+    await userEvent.click(
+      (await screen.findAllByRole('button', {name: 'Remove email'}))[0]
+    );
 
     expect(mock).toHaveBeenCalledWith(
       ENDPOINT,
@@ -54,7 +56,9 @@ describe('AccountEmails', function () {
     render(<AccountEmails />);
     expect(mock).not.toHaveBeenCalled();
 
-    await userEvent.click(screen.getAllByRole('button', {name: 'Set as primary'})[0]);
+    await userEvent.click(
+      (await screen.findAllByRole('button', {name: 'Set as primary'}))[0]
+    );
 
     expect(mock).toHaveBeenCalledWith(
       ENDPOINT,
@@ -78,7 +82,7 @@ describe('AccountEmails', function () {
     expect(mock).not.toHaveBeenCalled();
 
     await userEvent.click(
-      screen.getAllByRole('button', {name: 'Resend verification'})[0]
+      (await screen.findAllByRole('button', {name: 'Resend verification'}))[0]
     );
 
     expect(mock).toHaveBeenCalledWith(
@@ -102,7 +106,31 @@ describe('AccountEmails', function () {
     render(<AccountEmails />);
     expect(mock).not.toHaveBeenCalled();
 
-    await userEvent.type(screen.getByRole('textbox'), 'test@example.com{enter}');
+    const mockGetResponseBody = [
+      ...AccountEmailsFixture(),
+      {
+        email: 'test@example.com',
+        isPrimary: false,
+        isVerified: false,
+      },
+    ];
+
+    const mockGet = MockApiClient.addMockResponse({
+      url: ENDPOINT,
+      method: 'GET',
+      statusCode: 200,
+      body: mockGetResponseBody,
+    });
+
+    const textbox = await screen.findByRole('textbox');
+    expect(screen.getAllByLabelText('Remove email')).toHaveLength(
+      AccountEmailsFixture().filter(email => !email.isPrimary).length
+    );
+
+    await userEvent.type(textbox, 'test@example.com{enter}');
+    expect(screen.getAllByLabelText('Remove email')).toHaveLength(
+      mockGetResponseBody.filter(email => !email.isPrimary).length
+    );
 
     expect(mock).toHaveBeenCalledWith(
       ENDPOINT,
@@ -111,6 +139,13 @@ describe('AccountEmails', function () {
         data: {
           email: 'test@example.com',
         },
+      })
+    );
+
+    expect(mockGet).toHaveBeenCalledWith(
+      ENDPOINT,
+      expect.objectContaining({
+        method: 'GET',
       })
     );
   });

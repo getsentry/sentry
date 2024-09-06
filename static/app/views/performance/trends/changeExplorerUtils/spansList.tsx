@@ -1,7 +1,7 @@
 import {useMemo} from 'react';
 import styled from '@emotion/styled';
-import {Location} from 'history';
-import moment from 'moment';
+import type {Location} from 'history';
+import moment from 'moment-timezone';
 
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
 import Link from 'sentry/components/links/link';
@@ -9,19 +9,22 @@ import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {IconWarning} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {Organization} from 'sentry/types';
+import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {parsePeriodToHours} from 'sentry/utils/dates';
 import {useDiscoverQuery} from 'sentry/utils/discover/discoverQuery';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
+import {parsePeriodToHours} from 'sentry/utils/duration/parsePeriodToHours';
 import SuspectSpansQuery from 'sentry/utils/performance/suspectSpans/suspectSpansQuery';
-import {SuspectSpan, SuspectSpans} from 'sentry/utils/performance/suspectSpans/types';
+import type {
+  SuspectSpan,
+  SuspectSpans,
+} from 'sentry/utils/performance/suspectSpans/types';
 import theme from 'sentry/utils/theme';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import useProjects from 'sentry/utils/useProjects';
 import {spanDetailsRouteWithQuery} from 'sentry/views/performance/transactionSummary/transactionSpans/spanDetails/utils';
+import type {SpanSortOption} from 'sentry/views/performance/transactionSummary/transactionSpans/types';
 import {
-  SpanSortOption,
   SpanSortOthers,
   SpanSortPercentiles,
 } from 'sentry/views/performance/transactionSummary/transactionSpans/types';
@@ -33,11 +36,11 @@ import {
   getQueryParams,
   relativeChange,
 } from 'sentry/views/performance/trends/changeExplorerUtils/metricsTable';
-import {
+import type {
   NormalizedTrendsTransaction,
-  TrendChangeType,
   TrendView,
 } from 'sentry/views/performance/trends/types';
+import {TrendChangeType} from 'sentry/views/performance/trends/types';
 import {getTrendProjectId} from 'sentry/views/performance/trends/utils';
 
 type SpansListProps = {
@@ -142,7 +145,7 @@ export function SpansList(props: SpansListProps) {
 
   const {
     data: totalTransactionsBefore,
-    isLoading: transactionsLoadingBefore,
+    isPending: transactionsLoadingBefore,
     isError: transactionsErrorBefore,
   } = useDiscoverQuery(
     getQueryParams(
@@ -164,7 +167,7 @@ export function SpansList(props: SpansListProps) {
 
   const {
     data: totalTransactionsAfter,
-    isLoading: transactionsLoadingAfter,
+    isPending: transactionsLoadingAfter,
     isError: transactionsErrorAfter,
   } = useDiscoverQuery(
     getQueryParams(

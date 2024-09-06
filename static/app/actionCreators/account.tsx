@@ -1,12 +1,13 @@
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {Client} from 'sentry/api';
 import ConfigStore from 'sentry/stores/configStore';
-import {User, UserIdentityConfig} from 'sentry/types';
-import {ChangeAvatarUser} from 'sentry/views/settings/account/accountDetails';
+import type {UserIdentityConfig} from 'sentry/types/auth';
+import type {User} from 'sentry/types/user';
+import type {ChangeAvatarUser} from 'sentry/views/settings/account/accountDetails';
 
 export async function disconnectIdentity(
   identity: UserIdentityConfig,
-  onSuccess: {(): void}
+  onSuccess: () => void
 ) {
   const api = new Client();
 

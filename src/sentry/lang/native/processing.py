@@ -2,7 +2,8 @@ from __future__ import annotations
 
 import logging
 import posixpath
-from typing import Any, Callable, Optional, Set
+from collections.abc import Callable, Mapping
+from typing import Any
 
 from symbolic.debuginfo import normalize_debug_id
 from symbolic.exceptions import ParseDebugIdError
@@ -22,7 +23,8 @@ from sentry.lang.native.utils import (
 )
 from sentry.models.eventerror import EventError
 from sentry.stacktraces.functions import trim_function_name
-from sentry.stacktraces.processing import find_stacktraces_in_data
+from sentry.stacktraces.processing import StacktraceInfo, find_stacktraces_in_data
+from sentry.utils import metrics
 from sentry.utils.in_app import is_known_third_party, is_optional_package
 from sentry.utils.safe import get_path, set_path, setdefault_path, trim
 
@@ -279,6 +281,7 @@ def process_minidump(symbolicator: Symbolicator, data: Any) -> Any:
         logger.error("Missing minidump for minidump event")
         return
 
+    metrics.incr("process.native.symbolicate.request")
     response = symbolicator.process_minidump(minidump.data)
 
     if _handle_response_status(data, response):
@@ -293,6 +296,7 @@ def process_applecrashreport(symbolicator: Symbolicator, data: Any) -> Any:
         logger.error("Missing applecrashreport for event")
         return
 
+    metrics.incr("process.native.symbolicate.request")
     response = symbolicator.process_applecrashreport(report.data)
 
     if _handle_response_status(data, response):
@@ -399,6 +403,7 @@ def process_native_stacktraces(symbolicator: Symbolicator, data: Any) -> Any:
 
     signal = signal_from_data(data)
 
+    metrics.incr("process.native.symbolicate.request")
     response = symbolicator.process_payload(stacktraces=stacktraces, modules=modules, signal=signal)
 
     if not _handle_response_status(data, response):
@@ -450,18 +455,24 @@ def process_native_stacktraces(symbolicator: Symbolicator, data: Any) -> Any:
     return data
 
 
-def get_native_symbolication_function(data) -> Optional[Callable[[Symbolicator, Any], Any]]:
+def get_native_symbolication_function(
+    data: Mapping[str, Any], stacktraces: list[StacktraceInfo]
+) -> Callable[[Symbolicator, Any], Any] | None:
+    """
+    Returns the appropriate symbolication function (or `None`) that will process
+    the event, based on the Event `data`, and the supplied `stacktraces`.
+    """
     if is_minidump_event(data):
         return process_minidump
     elif is_applecrashreport_event(data):
         return process_applecrashreport
-    elif is_native_event(data):
+    elif is_native_event(data, stacktraces):
         return process_native_stacktraces
     else:
         return None
 
 
-def get_required_attachment_types(data) -> Set[str]:
+def get_required_attachment_types(data) -> set[str]:
     if is_minidump_event(data):
         return {MINIDUMP_ATTACHMENT_TYPE}
     elif is_applecrashreport_event(data):

@@ -5,18 +5,18 @@
     "operationId": "List a Project's Issues",
     "parameters": [
       {
-        "name": "organization_slug",
+        "name": "organization_id_or_slug",
         "in": "path",
-        "description": "The slug of the organization the issues belong to.",
+        "description": "The id or slug of the organization the issues belong to.",
         "required": true,
         "schema": {
           "type": "string"
         }
       },
       {
-        "name": "project_slug",
+        "name": "project_id_or_slug",
         "in": "path",
-        "description": "The slug of the project the issues belong to.",
+        "description": "The id or slug of the project the issues belong to.",
         "required": true,
         "schema": {
           "type": "string"
@@ -25,7 +25,7 @@
       {
         "name": "statsPeriod",
         "in": "query",
-        "description": "An optional stat period (can be one of `\"24h\"`, `\"14d\"`, and `\"\"`).",
+        "description": "An optional stat period (can be one of `\"24h\"`, `\"14d\"`, and `\"\"`). If not provided, the API will return the max time period for the project (90 days for paid accounts, 30 days for free).",
         "schema": {
           "type": "string"
         }
@@ -42,6 +42,14 @@
         "name": "query",
         "in": "query",
         "description": "An optional Sentry structured search query. If not provided an implied `\"is:unresolved\"` is assumed.",
+        "schema": {
+          "type": "string"
+        }
+      },
+      {
+        "name": "hash",
+        "in": "query",
+        "description": "A list of hashes of groups to return. Is not compatible with 'query' parameter. The maximum number of hashes that can be sent is 100. If more are sent, only the first 100 will be used.",
         "schema": {
           "type": "string"
         }
@@ -143,18 +151,18 @@
     "operationId": "Bulk Mutate a List of Issues",
     "parameters": [
       {
-        "name": "organization_slug",
+        "name": "organization_id_or_slug",
         "in": "path",
-        "description": "The slug of the organization the issues belong to.",
+        "description": "The id or slug of the organization the issues belong to.",
         "required": true,
         "schema": {
           "type": "string"
         }
       },
       {
-        "name": "project_slug",
+        "name": "project_id_or_slug",
         "in": "path",
-        "description": "The slug of the project the issues belong to.",
+        "description": "The id or slug of the project the issues belong to.",
         "required": true,
         "schema": {
           "type": "string"
@@ -294,7 +302,7 @@
     },
     "security": [
       {
-        "auth_token": ["project:write"]
+        "auth_token": ["event:write"]
       }
     ]
   },
@@ -304,18 +312,18 @@
     "operationId": "Bulk Remove a List of Issues",
     "parameters": [
       {
-        "name": "organization_slug",
+        "name": "organization_id_or_slug",
         "in": "path",
-        "description": "The slug of the organization the issues belong to.",
+        "description": "The id or slug of the organization the issues belong to.",
         "required": true,
         "schema": {
           "type": "string"
         }
       },
       {
-        "name": "project_slug",
+        "name": "project_id_or_slug",
         "in": "path",
-        "description": "The slug of the project the issues belong to.",
+        "description": "The id or slug of the project the issues belong to.",
         "required": true,
         "schema": {
           "type": "string"
@@ -343,7 +351,7 @@
     },
     "security": [
       {
-        "auth_token": ["project:admin"]
+        "auth_token": ["event:admin"]
       }
     ]
   }

@@ -1,7 +1,8 @@
-from datetime import datetime, timedelta
+from datetime import timedelta
 
 import pytest
 from django.conf import settings
+from django.utils import timezone
 
 from sentry.sentry_metrics.indexer.cache import StringIndexerCache
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
@@ -234,8 +235,8 @@ def test_separate_namespacing() -> None:
 
 
 def test_is_valid_timestamp() -> None:
-    stale_ts = int((datetime.utcnow() - timedelta(hours=5)).timestamp())
-    new_ts = int((datetime.utcnow() - timedelta(hours=1)).timestamp())
+    stale_ts = int((timezone.now() - timedelta(hours=5)).timestamp())
+    new_ts = int((timezone.now() - timedelta(hours=1)).timestamp())
 
     assert not indexer_cache._is_valid_timestamp(str(stale_ts))
     assert indexer_cache._is_valid_timestamp(str(new_ts))

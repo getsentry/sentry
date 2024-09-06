@@ -1,12 +1,10 @@
 // eslint-disable-next-line simple-import-sort/imports
+import type {TokenResult} from 'sentry/components/searchSyntax/parser';
 import {
-  defaultConfig,
   filterTypeConfig,
   interchangeableFilterOperators,
-  SearchConfig,
   TermOperator,
   Token,
-  TokenResult,
 } from 'sentry/components/searchSyntax/parser';
 import {
   IconArrow,
@@ -20,18 +18,10 @@ import {
 } from 'sentry/icons';
 import {t} from 'sentry/locale';
 
-import {
-  AutocompleteGroup,
-  ItemType,
-  SearchGroup,
-  SearchItem,
-  Shortcut,
-  ShortcutType,
-  invalidTypes,
-} from './types';
-import {TagCollection} from 'sentry/types';
+import type {AutocompleteGroup, SearchGroup, SearchItem, Shortcut} from './types';
+import {ItemType, ShortcutType, invalidTypes} from './types';
+import type {TagCollection} from 'sentry/types/group';
 import {FieldKind, FieldValueType, getFieldDefinition} from 'sentry/utils/fields';
-import {CustomMeasurementCollection} from 'sentry/utils/customMeasurements/customMeasurements';
 
 export function addSpace(query = '') {
   if (query.length !== 0 && query[query.length - 1] !== ' ') {
@@ -328,7 +318,8 @@ export function generateOperatorEntryMap(tag: string) {
 }
 
 export function getValidOps(
-  filterToken: TokenResult<Token.FILTER>
+  filterToken: TokenResult<Token.FILTER>,
+  disallowNegation: boolean
 ): readonly TermOperator[] {
   // If the token is invalid we want to use the possible expected types as our filter type
   const validTypes = filterToken.invalid?.expectedType ?? [filterToken.filter];
@@ -343,8 +334,12 @@ export function getValidOps(
 
   // Find all valid operations
   const validOps = new Set<TermOperator>(
-    allValidTypes.map(type => filterTypeConfig[type].validOps).flat()
+    allValidTypes.flatMap(type => filterTypeConfig[type].validOps)
   );
+
+  if (disallowNegation) {
+    validOps.delete(TermOperator.NOT_EQUAL);
+  }
 
   return [...validOps];
 }
@@ -632,43 +627,6 @@ export const getDateTagAutocompleteGroups = (tagName: string): AutocompleteGroup
       type: ItemType.TAG_VALUE,
     },
   ];
-};
-
-export const getSearchConfigFromCustomPerformanceMetrics = (
-  customPerformanceMetrics?: CustomMeasurementCollection
-): Partial<SearchConfig> => {
-  if (!customPerformanceMetrics) {
-    return {};
-  }
-  const searchConfigMap: Record<string, string[]> = {
-    sizeKeys: [...defaultConfig.sizeKeys],
-    durationKeys: [...defaultConfig.durationKeys],
-    percentageKeys: [...defaultConfig.percentageKeys],
-    numericKeys: [...defaultConfig.numericKeys],
-  };
-  Object.keys(customPerformanceMetrics).forEach(metricName => {
-    const {fieldType} = customPerformanceMetrics[metricName];
-    switch (fieldType) {
-      case 'size':
-        searchConfigMap.sizeKeys.push(metricName);
-        break;
-      case 'duration':
-        searchConfigMap.durationKeys.push(metricName);
-        break;
-      case 'percentage':
-        searchConfigMap.percentageKeys.push(metricName);
-        break;
-      default:
-        searchConfigMap.numericKeys.push(metricName);
-    }
-  });
-  const searchConfig = {
-    sizeKeys: new Set(searchConfigMap.sizeKeys),
-    durationKeys: new Set(searchConfigMap.durationKeys),
-    percentageKeys: new Set(searchConfigMap.percentageKeys),
-    numericKeys: new Set(searchConfigMap.numericKeys),
-  };
-  return searchConfig;
 };
 
 /**

@@ -1,9 +1,9 @@
-import {WithRouterProps} from 'react-router';
-import {Organization} from 'sentry-fixture/organization';
+import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
+import type {WithRouterProps} from 'sentry/types/legacyReactRouter';
 // eslint-disable-next-line no-restricted-imports
 import withSentryRouter from 'sentry/utils/withSentryRouter';
 
@@ -36,18 +36,18 @@ describe('withSentryRouter', function () {
     mockUsingCustomerDomain.mockReturnValue(true);
     mockCustomerDomain.mockReturnValue('albertos-apples');
 
-    const organization = Organization({
+    const organization = OrganizationFixture({
       slug: 'albertos-apples',
       features: [],
     });
 
-    const {routerContext} = initializeOrg({
+    const {router} = initializeOrg({
       organization,
     });
 
     const WrappedComponent = withSentryRouter(MyComponent);
     render(<WrappedComponent />, {
-      context: routerContext,
+      router,
     });
 
     expect(screen.getByText('Org slug: albertos-apples')).toBeInTheDocument();
@@ -57,7 +57,7 @@ describe('withSentryRouter', function () {
     mockUsingCustomerDomain.mockReturnValue(false);
     mockCustomerDomain.mockReturnValue(undefined);
 
-    const organization = Organization({
+    const organization = OrganizationFixture({
       slug: 'albertos-apples',
       features: [],
     });
@@ -65,7 +65,7 @@ describe('withSentryRouter', function () {
     const params = {
       orgId: 'something-else',
     };
-    const {routerContext} = initializeOrg({
+    const {router} = initializeOrg({
       organization,
       router: {
         params,
@@ -74,7 +74,7 @@ describe('withSentryRouter', function () {
 
     const WrappedComponent = withSentryRouter(MyComponent);
     render(<WrappedComponent />, {
-      context: routerContext,
+      router,
     });
 
     expect(screen.getByText('Org slug: something-else')).toBeInTheDocument();

@@ -1,11 +1,8 @@
-import styled from '@emotion/styled';
-
-import {Button} from 'sentry/components/button';
+import {Button, LinkButton} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import Confirm from 'sentry/components/confirm';
 import {IconDelete, IconDownload, IconShow} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 
 type Props = {
   attachmentId: string;
@@ -41,16 +38,16 @@ function EventAttachmentActions({
       >
         <Button
           size="xs"
-          icon={<IconDelete size="xs" />}
+          icon={<IconDelete />}
           aria-label={t('Delete')}
           disabled={!url}
           title={!url ? t('Insufficient permissions to delete attachments') : undefined}
         />
       </Confirm>
 
-      <DownloadButton
+      <LinkButton
         size="xs"
-        icon={<IconDownload size="xs" />}
+        icon={<IconDownload />}
         href={url ? `${url}?download=1` : ''}
         disabled={!url}
         title={!url ? t('Insufficient permissions to download attachments') : undefined}
@@ -58,29 +55,25 @@ function EventAttachmentActions({
       />
 
       {withPreviewButton && (
-        <DownloadButton
+        <Button
           size="xs"
           disabled={!url || !hasPreview}
           priority={previewIsOpen ? 'primary' : 'default'}
-          icon={<IconShow size="xs" />}
+          icon={<IconShow />}
           onClick={handlePreview}
           title={
             !url
               ? t('Insufficient permissions to preview attachments')
               : !hasPreview
-              ? t('This attachment cannot be previewed')
-              : undefined
+                ? t('This attachment cannot be previewed')
+                : undefined
           }
         >
           {t('Preview')}
-        </DownloadButton>
+        </Button>
       )}
     </ButtonBar>
   );
 }
-
-const DownloadButton = styled(Button)`
-  margin-right: ${space(0.5)};
-`;
 
 export default EventAttachmentActions;

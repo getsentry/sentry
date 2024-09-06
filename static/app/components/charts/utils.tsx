@@ -3,14 +3,16 @@ import * as Sentry from '@sentry/react';
 import type {LegendComponentOption, LineSeriesOption} from 'echarts';
 import type {Location} from 'history';
 import orderBy from 'lodash/orderBy';
-import moment from 'moment';
+import moment from 'moment-timezone';
 
 import {DEFAULT_STATS_PERIOD} from 'sentry/constants';
-import {EventsStats, MultiSeriesEventsStats, PageFilters} from 'sentry/types';
-import {Series} from 'sentry/types/echarts';
+import type {PageFilters} from 'sentry/types/core';
+import type {ReactEchartsRef, Series} from 'sentry/types/echarts';
+import type {EventsStats, MultiSeriesEventsStats} from 'sentry/types/organization';
 import {defined, escape} from 'sentry/utils';
-import {getFormattedDate, parsePeriodToHours} from 'sentry/utils/dates';
+import {getFormattedDate} from 'sentry/utils/dates';
 import type {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
+import {parsePeriodToHours} from 'sentry/utils/duration/parsePeriodToHours';
 import oxfordizeArray from 'sentry/utils/oxfordizeArray';
 import {decodeList} from 'sentry/utils/queryString';
 
@@ -78,9 +80,12 @@ export class GranularityLadder {
   getInterval(minutes: number): string {
     if (minutes < 0) {
       // Sometimes this happens, in unknown circumstances. See the `getIntervalForMetricFunction` function span in Sentry for more info, the reason might appear there. For now, a reasonable fallback in these rare cases is to return the finest granularity, since it'll either fulfill the request or time out.
-      Sentry.captureException(
-        new Error('Invalid duration supplied to interval function')
-      );
+      Sentry.withScope(scope => {
+        scope.setFingerprint(['invalid-duration-for-interval']);
+        Sentry.captureException(
+          new Error('Invalid duration supplied to interval function')
+        );
+      });
 
       return (this.steps.at(-1) as GranularityStep)[1];
     }
@@ -373,8 +378,9 @@ export function computeEchartsAriaLabels(
           ? +highestValue[1].toFixed(3)
           : lowestValue[1];
 
-      return `The ${s.name} series contains ${s.data
-        ?.length} data points. Its lowest value is ${lowestY} ${
+      return `The ${s.name} series contains ${
+        s.data?.length
+      } data points. Its lowest value is ${lowestY} ${
         isGroupedByDate ? 'on' : 'at'
       } ${lowestX} and highest value is ${highestY} ${
         isGroupedByDate ? 'on' : 'at'
@@ -403,4 +409,12 @@ export function useEchartsAriaLabels(
 
 export function isEmptySeries(series: Series) {
   return series.data.every(dataPoint => dataPoint.value === 0);
+}
+
+/**
+ * Used to determine which chart in a group is currently hovered.
+ */
+export function isChartHovered(chartRef: ReactEchartsRef | null) {
+  const hoveredEchartElement = document.querySelector('.echarts-for-react:hover');
+  return hoveredEchartElement === chartRef?.ele;
 }

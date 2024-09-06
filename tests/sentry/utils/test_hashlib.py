@@ -2,7 +2,7 @@ from unittest import TestCase
 
 import pytest
 
-from sentry.utils.hashlib import hash_values, md5_text, sha1_text
+from sentry.utils.hashlib import fnv1a_32, hash_values, md5_text, sha1_text
 
 HASHLIB_VALUES_TESTS = (
     ("seed", None, "75a0ad233bd9a091d9d26bacbe2f377e"),
@@ -34,3 +34,18 @@ class HashlibTest(TestCase):
     def test_unicode(self):
         assert md5_text("ü").hexdigest() == "c03410a5204b21cd8229ff754688d743"
         assert sha1_text("ü").hexdigest() == "94a759fd37735430753c7b6b80684306d80ea16e"
+
+
+@pytest.mark.parametrize(
+    ("value, expected_value"),
+    (
+        ("c:transactions/count_per_root_project@none", 2684394786),
+        ("d:transactions/duration@millisecond", 1147819254),
+        ("s:transactions/user@none", 1739810785),
+        ("c:custom/user.click@none", 1248146441),
+        ("d:custom/page.load@millisecond", 2103554973),
+        ("s:custom/username@none", 670706478),
+    ),
+)
+def test_fnv1a_32_with_mris(value, expected_value):
+    assert fnv1a_32(value.encode("utf-8")) == expected_value

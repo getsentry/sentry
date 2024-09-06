@@ -2,9 +2,7 @@ import {useCallback, useEffect, useMemo, useState} from 'react';
 import * as Sentry from '@sentry/react';
 import Prism from 'prismjs';
 
-import {trackAnalytics} from 'sentry/utils/analytics';
-import {loadPrismLanguage, prismLanguageMap} from 'sentry/utils/prism';
-import useOrganization from 'sentry/utils/useOrganization';
+import {getPrismLanguage, loadPrismLanguage} from 'sentry/utils/prism';
 
 type PrismHighlightParams = {
   code: string;
@@ -23,29 +21,26 @@ type IntermediateToken = {
   types: Set<string>;
 };
 
-const useLoadPrismLanguage = (language: string, {onLoad}: {onLoad: () => void}) => {
-  const organization = useOrganization({allowNull: true});
-
+const useLoadPrismLanguage = (
+  language: string,
+  {code, onLoad}: {code: string; onLoad: () => void}
+) => {
   useEffect(() => {
-    if (!language) {
+    if (!language || !code) {
       return;
     }
 
-    if (!prismLanguageMap[language.toLowerCase()]) {
-      trackAnalytics('stack_trace.prism_missing_language', {
-        organization,
-        attempted_language: language.toLowerCase(),
-      });
+    if (!getPrismLanguage(language)) {
       return;
     }
 
     loadPrismLanguage(language, {onLoad});
-  }, [language, onLoad, organization]);
+  }, [code, language, onLoad]);
 };
 
 const getPrismGrammar = (language: string) => {
   try {
-    const fullLanguage = prismLanguageMap[language];
+    const fullLanguage = getPrismLanguage(language);
     return Prism.languages[fullLanguage] ?? null;
   } catch (e) {
     Sentry.captureException(e);
@@ -103,6 +98,11 @@ const splitTokenContentByLine = (
   }
 
   types.add(token.type);
+  if (typeof token.alias === 'string') {
+    types.add(token.alias);
+  } else if (Array.isArray(token.alias)) {
+    token.alias.forEach(alias => types.add(alias));
+  }
 
   if (Array.isArray(token.content)) {
     return splitMultipleTokensByLine(token.content, new Set(types));
@@ -111,7 +111,7 @@ const splitTokenContentByLine = (
   return splitTokenContentByLine(token.content, types);
 };
 
-const breakTokensByLine = (
+export const breakTokensByLine = (
   tokens: Array<string | Prism.Token>
 ): SyntaxHighlightLine[] => {
   const lines = splitMultipleTokensByLine(tokens);
@@ -146,7 +146,7 @@ export const usePrismTokens = ({
   const onLoad = useCallback(() => {
     setGrammar(getPrismGrammar(language));
   }, [language]);
-  useLoadPrismLanguage(language, {onLoad});
+  useLoadPrismLanguage(language, {code, onLoad});
 
   const lines = useMemo(() => {
     try {

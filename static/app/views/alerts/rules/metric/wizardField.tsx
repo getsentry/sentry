@@ -2,22 +2,27 @@ import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import SelectControl from 'sentry/components/forms/controls/selectControl';
-import FormField, {FormFieldProps} from 'sentry/components/forms/formField';
+import type {FormFieldProps} from 'sentry/components/forms/formField';
+import FormField from 'sentry/components/forms/formField';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {Organization, Project} from 'sentry/types';
+import type {Organization} from 'sentry/types/organization';
+import type {Project} from 'sentry/types/project';
+import type {QueryFieldValue} from 'sentry/utils/discover/fields';
 import {explodeFieldString, generateFieldAsString} from 'sentry/utils/discover/fields';
-import {hasDDMFeature} from 'sentry/utils/metrics/features';
+import {hasCustomMetrics} from 'sentry/utils/metrics/features';
+import InsightsMetricField from 'sentry/views/alerts/rules/metric/insightsMetricField';
 import MriField from 'sentry/views/alerts/rules/metric/mriField';
-import {Dataset} from 'sentry/views/alerts/rules/metric/types';
+import type {Dataset} from 'sentry/views/alerts/rules/metric/types';
+import type {AlertType} from 'sentry/views/alerts/wizard/options';
 import {
-  AlertType,
   AlertWizardAlertNames,
   AlertWizardRuleTemplates,
 } from 'sentry/views/alerts/wizard/options';
 import {QueryField} from 'sentry/views/discover/table/queryField';
 import {FieldValueKind} from 'sentry/views/discover/table/types';
 import {generateFieldOptions} from 'sentry/views/discover/utils';
+import {hasInsightsAlerts} from 'sentry/views/insights/common/utils/hasInsightsAlerts';
 
 import {getFieldOptionConfig} from './metricField';
 
@@ -105,7 +110,7 @@ export default function WizardField({
           label: AlertWizardAlertNames.cls,
           value: 'cls',
         },
-        ...(hasDDMFeature(organization)
+        ...(hasCustomMetrics(organization)
           ? [
               {
                 label: AlertWizardAlertNames.custom_transactions,
@@ -116,9 +121,9 @@ export default function WizardField({
       ],
     },
     {
-      label: hasDDMFeature(organization) ? t('METRICS') : t('CUSTOM'),
+      label: hasCustomMetrics(organization) ? t('METRICS') : t('CUSTOM'),
       options: [
-        hasDDMFeature(organization)
+        hasCustomMetrics(organization)
           ? {
               label: AlertWizardAlertNames.custom_metrics,
               value: 'custom_metrics',
@@ -127,6 +132,14 @@ export default function WizardField({
               label: AlertWizardAlertNames.custom_transactions,
               value: 'custom_transactions',
             },
+        ...(hasInsightsAlerts(organization)
+          ? [
+              {
+                label: AlertWizardAlertNames.insights_metrics,
+                value: 'insights_metrics' as const,
+              },
+            ]
+          : []),
       ],
     },
   ];
@@ -144,7 +157,7 @@ export default function WizardField({
             alertType,
           });
         const fieldOptions = generateFieldOptions({organization, ...fieldOptionsConfig});
-        const fieldValue = explodeFieldString(aggregate ?? '');
+        const fieldValue = getFieldValue(aggregate ?? '', model);
 
         const fieldKey =
           fieldValue?.kind === FieldValueKind.FUNCTION
@@ -164,7 +177,7 @@ export default function WizardField({
           (hidePrimarySelector ? 1 : 0);
 
         return (
-          <Container hideGap={gridColumns < 1}>
+          <Container alertType={alertType} hideGap={gridColumns < 1}>
             <SelectControl
               value={selectedTemplate}
               options={menuOptions}
@@ -179,11 +192,19 @@ export default function WizardField({
                 model.setValue('alertType', option.value);
               }}
             />
-            {hasDDMFeature(organization) && alertType === 'custom_metrics' ? (
+            {alertType === 'custom_metrics' ? (
               <MriField
                 project={project}
                 aggregate={aggregate}
                 onChange={newAggregate => onChange(newAggregate, {})}
+              />
+            ) : alertType === 'insights_metrics' ? (
+              <InsightsMetricField
+                project={project}
+                aggregate={aggregate}
+                onChange={newAggregate => {
+                  return onChange(newAggregate, {});
+                }}
               />
             ) : (
               <StyledQueryField
@@ -209,10 +230,60 @@ export default function WizardField({
   );
 }
 
-const Container = styled('div')<{hideGap: boolean}>`
+// swaps out custom percentile values for known percentiles, used while we fade out custom percentiles in metric alerts
+// TODO(telemetry-experience): remove once we migrate all custom percentile alerts
+const getFieldValue = (aggregate: string | undefined, model) => {
+  const fieldValue = explodeFieldString(aggregate ?? '');
+
+  if (fieldValue?.kind !== FieldValueKind.FUNCTION) {
+    return fieldValue;
+  }
+
+  if (fieldValue.function[0] !== 'percentile') {
+    return fieldValue;
+  }
+
+  const newFieldValue: QueryFieldValue = {
+    kind: FieldValueKind.FUNCTION,
+    function: [
+      getApproximateKnownPercentile(fieldValue.function[2] as string),
+      fieldValue.function[1],
+      undefined,
+      undefined,
+    ],
+    alias: fieldValue.alias,
+  };
+
+  model.setValue('aggregate', generateFieldAsString(newFieldValue));
+
+  return newFieldValue;
+};
+
+const getApproximateKnownPercentile = (customPercentile: string) => {
+  const percentile = parseFloat(customPercentile);
+
+  if (percentile <= 0.5) {
+    return 'p50';
+  }
+  if (percentile <= 0.75) {
+    return 'p75';
+  }
+  if (percentile <= 0.9) {
+    return 'p90';
+  }
+  if (percentile <= 0.95) {
+    return 'p95';
+  }
+  if (percentile <= 0.99) {
+    return 'p99';
+  }
+  return 'p100';
+};
+
+const Container = styled('div')<{hideGap: boolean; alertType?: AlertType}>`
   display: grid;
+  gap: ${p => (p.hideGap ? 0 : space(1))};
   grid-template-columns: 1fr auto;
-  gap: ${p => (p.hideGap ? space(0) : space(1))};
 `;
 
 const StyledQueryField = styled(QueryField)<{gridColumns: number; columnWidth?: number}>`

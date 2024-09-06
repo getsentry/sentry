@@ -8,7 +8,7 @@ from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint, ProjectSettingPermission
 from sentry.api.serializers import serialize
 from sentry.constants import ObjectStatus
-from sentry.integrations.slack.utils import RedisRuleStatus
+from sentry.integrations.slack.utils.rule_status import RedisRuleStatus
 from sentry.models.rule import Rule
 
 
@@ -16,9 +16,9 @@ from sentry.models.rule import Rule
 class ProjectRuleTaskDetailsEndpoint(ProjectEndpoint):
     owner = ApiOwner.ISSUES
     publish_status = {
-        "GET": ApiPublishStatus.UNKNOWN,
+        "GET": ApiPublishStatus.PRIVATE,
     }
-    permission_classes = [ProjectSettingPermission]
+    permission_classes = (ProjectSettingPermission,)
 
     def get(self, request: Request, project, task_uuid) -> Response:
         """

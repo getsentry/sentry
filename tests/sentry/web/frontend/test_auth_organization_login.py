@@ -14,12 +14,12 @@ from sentry.models.authprovider import AuthProvider
 from sentry.models.options.organization_option import OrganizationOption
 from sentry.models.organization import OrganizationStatus
 from sentry.models.organizationmember import OrganizationMember
-from sentry.models.useremail import UserEmail
-from sentry.services.hybrid_cloud.organization.serial import serialize_rpc_organization
-from sentry.silo import SiloMode
+from sentry.organizations.services.organization.serial import serialize_rpc_organization
+from sentry.silo.base import SiloMode
 from sentry.testutils.cases import AuthProviderTestCase
 from sentry.testutils.helpers import with_feature
 from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
+from sentry.users.models.useremail import UserEmail
 from sentry.utils import json
 
 
@@ -223,7 +223,7 @@ class OrganizationAuthLoginTest(AuthProviderTestCase):
             (next, 302),
         ]
 
-    @with_feature("organizations:customer-domains")
+    @with_feature("sytem:multi-region")
     def test_org_redirects_to_next_url_customer_domain(self):
         user = self.create_user("bar@example.com")
         auth_provider = AuthProvider.objects.create(

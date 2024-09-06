@@ -1,19 +1,25 @@
 import {useMemo} from 'react';
 
 import decodeMailbox from 'sentry/components/feedback/decodeMailbox';
-import type {Organization} from 'sentry/types';
-import {intervalToMilliseconds} from 'sentry/utils/dates';
+import type {Organization} from 'sentry/types/organization';
+import coaleseIssueStatsPeriodQuery from 'sentry/utils/feedback/coaleseIssueStatsPeriodQuery';
 import type {ApiQueryKey} from 'sentry/utils/queryClient';
 import {decodeList, decodeScalar} from 'sentry/utils/queryString';
 import useLocationQuery from 'sentry/utils/url/useLocationQuery';
 
 interface Props {
+  listHeadTime: number;
   organization: Organization;
+  prefetch: boolean;
 }
 
 const PER_PAGE = 25;
 
-export default function useFeedbackListQueryKey({organization}: Props): ApiQueryKey {
+export default function useFeedbackListQueryKey({
+  listHeadTime,
+  organization,
+  prefetch,
+}: Props): ApiQueryKey | undefined {
   const queryView = useLocationQuery({
     fields: {
       limit: PER_PAGE,
@@ -30,46 +36,41 @@ export default function useFeedbackListQueryKey({organization}: Props): ApiQuery
     },
   });
 
-  const queryViewWithStatsPeriod = useMemo(() => {
-    // We don't want to use `statsPeriod` directly, because that will mean the
-    // start time of our infinite list will change, shifting the index/page
-    // where items appear if we invalidate the cache and refetch specific pages.
-    // So we'll convert statsPeriod into start/end time here, and use that. When
-    // the user wants to see fresher content (like, after the page has been open
-    // for a while) they can trigger that specifically.
-
-    const {statsPeriod, ...rest} = queryView;
-    const now = Date.now();
-    const statsPeriodMs = intervalToMilliseconds(statsPeriod);
-    return statsPeriod
-      ? {
-          ...rest,
-          start: new Date(now - statsPeriodMs).toISOString(),
-          end: new Date(now).toISOString(),
-        }
-      : // The issues endpoint cannot handle when statsPeroid has a value of "", so
-        // we remove that from the rest and do not use it to query.
-        rest;
-  }, [queryView]);
+  const queryViewWithStatsPeriod = useMemo(
+    () =>
+      coaleseIssueStatsPeriodQuery({
+        defaultStatsPeriod: '0d',
+        listHeadTime,
+        prefetch,
+        queryView,
+      }),
+    [listHeadTime, prefetch, queryView]
+  );
 
   return useMemo(() => {
+    if (!queryViewWithStatsPeriod) {
+      return undefined;
+    }
     const {mailbox, ...fixedQueryView} = queryViewWithStatsPeriod;
+
     return [
       `/organizations/${organization.slug}/issues/`,
       {
         query: {
           ...fixedQueryView,
-          collapse: ['inbox'],
-          expand: [
-            'owners', // Gives us assignment
-            'stats', // Gives us `firstSeen`
-            'pluginActions', // Gives us plugin actions available
-            'pluginIssues', // Gives us plugin issues available
-          ],
+          expand: prefetch
+            ? []
+            : [
+                'pluginActions', // Gives us plugin actions available
+                'pluginIssues', // Gives us plugin issues available
+                'integrationIssues', // Gives us integration issues available
+                'sentryAppIssues', // Gives us Sentry app issues available
+                'latestEventHasAttachments', // Gives us whether the feedback has screenshots
+              ],
           shortIdLookup: 0,
           query: `issue.category:feedback status:${mailbox} ${fixedQueryView.query}`,
         },
       },
     ];
-  }, [queryViewWithStatsPeriod, organization.slug]);
+  }, [organization.slug, prefetch, queryViewWithStatsPeriod]);
 }

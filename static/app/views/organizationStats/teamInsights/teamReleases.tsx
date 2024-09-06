@@ -1,25 +1,26 @@
 import {Fragment} from 'react';
-import {css, Theme, withTheme} from '@emotion/react';
+import {css, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import round from 'lodash/round';
-import moment from 'moment';
+import moment from 'moment-timezone';
 
-import {Button} from 'sentry/components/button';
+import {LinkButton} from 'sentry/components/button';
 import {BarChart} from 'sentry/components/charts/barChart';
 import MarkLine from 'sentry/components/charts/components/markLine';
-import {DateTimeObject} from 'sentry/components/charts/utils';
+import type {DateTimeObject} from 'sentry/components/charts/utils';
 import Link from 'sentry/components/links/link';
 import LoadingError from 'sentry/components/loadingError';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
-import PanelTable from 'sentry/components/panels/panelTable';
+import {PanelTable} from 'sentry/components/panels/panelTable';
 import Placeholder from 'sentry/components/placeholder';
 import {IconArrow} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {Organization, Project} from 'sentry/types';
+import type {Organization} from 'sentry/types/organization';
+import type {Project} from 'sentry/types/project';
+import toArray from 'sentry/utils/array/toArray';
 import {useApiQuery} from 'sentry/utils/queryClient';
-import {ColorOrAlias} from 'sentry/utils/theme';
-import toArray from 'sentry/utils/toArray';
+import type {ColorOrAlias} from 'sentry/utils/theme';
 
 import {ProjectBadge, ProjectBadgeContainer} from './styles';
 import {barAxisLabel, groupByTrend, sortSeriesByDay} from './utils';
@@ -28,7 +29,6 @@ interface TeamReleasesProps extends DateTimeObject {
   organization: Organization;
   projects: Project[];
   teamSlug: string;
-  theme: Theme;
 }
 
 export type ProjectReleaseCount = {
@@ -41,17 +41,17 @@ function TeamReleases({
   organization,
   projects,
   teamSlug,
-  theme,
   start,
   end,
   period,
   utc,
 }: TeamReleasesProps) {
+  const theme = useTheme();
   const datetime = {start, end, period, utc};
 
   const {
     data: periodReleases,
-    isLoading: isPeriodReleasesLoading,
+    isPending: isPeriodReleasesLoading,
     isError: isPeriodReleasesError,
     refetch: refetchPeriodReleases,
   } = useApiQuery<ProjectReleaseCount>(
@@ -68,7 +68,7 @@ function TeamReleases({
 
   const {
     data: weekReleases,
-    isLoading: isWeekReleasesLoading,
+    isPending: isWeekReleasesLoading,
     isError: isWeekReleasesError,
     refetch: refetchWeekReleases,
   } = useApiQuery<ProjectReleaseCount>(
@@ -208,16 +208,22 @@ function TeamReleases({
             },
           ]}
           tooltip={{
-            formatter: seriesParams => {
+            formatter: (seriesParams: any) => {
               // `seriesParams` can be an array or an object :/
               const [series] = toArray(seriesParams);
 
+              if (!series.data?.value) {
+                return '';
+              }
+
               const dateFormat = 'MMM D';
-              const startDate = moment(series.data[0]).format(dateFormat);
-              const endDate = moment(series.data[0]).add(7, 'days').format(dateFormat);
+              const startDate = moment(series.data.value[0]).format(dateFormat);
+              const endDate = moment(series.data.value[0])
+                .add(7, 'days')
+                .format(dateFormat);
               return [
                 '<div class="tooltip-series">',
-                `<div><span class="tooltip-label">${series.marker} <strong>${series.seriesName}</strong></span> ${series.data[1]}</div>`,
+                `<div><span class="tooltip-label">${series.marker} <strong>${series.seriesName}</strong></span> ${series.data.value[1]}</div>`,
                 `<div><span class="tooltip-label"><strong>Last ${period} Average</strong></span> ${totalPeriodAverage}</div>`,
                 '</div>',
                 `<div class="tooltip-footer">${startDate} - ${endDate}</div>`,
@@ -231,13 +237,13 @@ function TeamReleases({
         isEmpty={projects.length === 0}
         emptyMessage={t('No releases were setup for this team’s projects')}
         emptyAction={
-          <Button
+          <LinkButton
             size="sm"
             external
             href="https://docs.sentry.io/product/releases/setup/"
           >
             {t('Learn More')}
-          </Button>
+          </LinkButton>
         }
         headers={[
           t('Releases Per Project'),
@@ -280,7 +286,7 @@ function TeamReleases({
   );
 }
 
-export default withTheme(TeamReleases);
+export default TeamReleases;
 
 const ChartWrapper = styled('div')`
   padding: ${space(2)} ${space(2)} 0 ${space(2)};

@@ -1,8 +1,8 @@
-import {useCallback} from 'react';
+import {useCallback, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {addSuccessMessage} from 'sentry/actionCreators/indicator';
-import {Button} from 'sentry/components/button';
+import {Button, LinkButton} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import EmptyMessage from 'sentry/components/emptyMessage';
 import LoadingError from 'sentry/components/loadingError';
@@ -12,14 +12,15 @@ import PanelFooter from 'sentry/components/panels/panelFooter';
 import PanelHeader from 'sentry/components/panels/panelHeader';
 import {IconFile, IconFlag, IconHappy, IconMeh, IconSad} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import ConfigStore from 'sentry/stores/configStore';
 import {space} from 'sentry/styles/space';
-import {Event, Project} from 'sentry/types';
+import type {Event} from 'sentry/types/event';
+import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {getAnalyticsDataForEvent} from 'sentry/utils/events';
 import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
-import marked from 'sentry/utils/marked';
+import {limitedMarked} from 'sentry/utils/marked';
 import {useApiQuery} from 'sentry/utils/queryClient';
+import {useIsSentryEmployee} from 'sentry/utils/useIsSentryEmployee';
 import useOrganization from 'sentry/utils/useOrganization';
 
 import {ExperimentalFeatureBadge} from './experimentalFeatureBadge';
@@ -56,9 +57,9 @@ function ErrorDescription({
         action={
           <ButtonBar gap={2}>
             <Button onClick={onHideSuggestion}>{t('Dismiss')}</Button>
-            <Button priority="primary" to={`/settings/${organizationSlug}/legal/`}>
+            <LinkButton priority="primary" to={`/settings/${organizationSlug}/legal/`}>
               {t('Accept in Settings')}
-            </Button>
+            </LinkButton>
           </ButtonBar>
         }
       />
@@ -66,23 +67,14 @@ function ErrorDescription({
   }
 
   if (restriction === 'individual_consent') {
-    const {isStaff} = ConfigStore.get('user');
-
-    const title = isStaff ? t('Confirm there is no PII') : t('We need your consent');
-    const description = isStaff
-      ? t(
-          'Before using this feature, please confirm that there is no personally identifiable information in this event.'
-        )
-      : t(
-          'By using this feature, you agree that OpenAI is a subprocessor and may process the data that you’ve chosen to submit. Sentry makes no guarantees as to the accuracy of the feature’s AI-generated recommendations.'
-        );
-
     const activeSuperUser = isActiveSuperuser();
     return (
       <EmptyMessage
         icon={<IconFlag size="xl" />}
-        title={title}
-        description={description}
+        title={t('We need your consent')}
+        description={t(
+          'By using this feature, you agree that OpenAI is a subprocessor and may process the data that you’ve chosen to submit. Sentry makes no guarantees as to the accuracy of the feature’s AI-generated recommendations.'
+        )}
         action={
           <ButtonBar gap={2}>
             <Button onClick={onHideSuggestion}>{t('Dismiss')}</Button>
@@ -112,10 +104,13 @@ export function Suggestion({onHideSuggestion, projectSlug, event}: Props) {
   const organization = useOrganization();
   const [suggestedSolutionLocalConfig, setSuggestedSolutionLocalConfig] =
     useOpenAISuggestionLocalStorage();
+  const [piiCertified, setPiiCertified] = useState(false);
+  const [feedbackProvided, setFeedbackProvided] = useState(false);
+  const isSentryEmployee = useIsSentryEmployee();
 
   const {
     data,
-    isLoading: dataIsLoading,
+    isPending: dataIsLoading,
     isError: dataIsError,
     refetch: dataRefetch,
     error,
@@ -125,10 +120,12 @@ export function Suggestion({onHideSuggestion, projectSlug, event}: Props) {
       {
         query: {
           consent: suggestedSolutionLocalConfig.individualConsent ? 'yes' : undefined,
+          pii_certified: isSentryEmployee ? (piiCertified ? 'yes' : 'no') : undefined,
         },
       },
     ],
     {
+      enabled: isSentryEmployee ? (piiCertified ? true : false) : true,
       staleTime: Infinity,
       retry: false,
     }
@@ -136,7 +133,27 @@ export function Suggestion({onHideSuggestion, projectSlug, event}: Props) {
 
   const handleFeedbackClick = useCallback(() => {
     addSuccessMessage('Thank you for your feedback!');
+    setFeedbackProvided(true);
   }, []);
+
+  if (isSentryEmployee && !piiCertified) {
+    return (
+      <EmptyMessage
+        icon={<IconFlag size="xl" />}
+        title={t('PII Certification Required')}
+        description={t(
+          'Before using this feature, please confirm that there is no personally identifiable information in this event.'
+        )}
+        action={
+          <ButtonBar gap={2}>
+            <Button priority="primary" onClick={() => setPiiCertified(true)}>
+              {t('Certify No PII')}
+            </Button>
+          </ButtonBar>
+        }
+      />
+    );
+  }
 
   return (
     <Panel>
@@ -168,7 +185,7 @@ export function Suggestion({onHideSuggestion, projectSlug, event}: Props) {
         ) : (
           <Content
             dangerouslySetInnerHTML={{
-              __html: marked(data.suggestion, {
+              __html: limitedMarked(data.suggestion, {
                 gfm: true,
                 breaks: true,
               }),
@@ -176,13 +193,13 @@ export function Suggestion({onHideSuggestion, projectSlug, event}: Props) {
           />
         )}
       </PanelBody>
-      {!dataIsLoading && !dataIsError && (
+      {!dataIsLoading && !dataIsError && !feedbackProvided && (
         <PanelFooter>
           <Feedback>
             <strong>{t('Was this helpful?')}</strong>
             <ButtonBar gap={1}>
               <Button
-                icon={<IconSad color="red300" size="xs" />}
+                icon={<IconSad color="red300" />}
                 size="xs"
                 onClick={() => {
                   trackAnalytics(
@@ -201,7 +218,7 @@ export function Suggestion({onHideSuggestion, projectSlug, event}: Props) {
                 {t('Nope')}
               </Button>
               <Button
-                icon={<IconMeh color="yellow300" size="xs" />}
+                icon={<IconMeh color="yellow300" />}
                 size="xs"
                 onClick={() => {
                   trackAnalytics(
@@ -220,7 +237,7 @@ export function Suggestion({onHideSuggestion, projectSlug, event}: Props) {
                 {t('Kinda')}
               </Button>
               <Button
-                icon={<IconHappy color="green300" size="xs" />}
+                icon={<IconHappy color="green300" />}
                 size="xs"
                 onClick={() => {
                   trackAnalytics(

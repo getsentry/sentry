@@ -9,13 +9,34 @@ from sentry.replays.lib.storage import FilestoreBlob, RecordingSegmentStorageMet
 from sentry.replays.testutils import mock_replay
 from sentry.testutils.cases import APITestCase, ReplaysSnubaTestCase, TransactionTestCase
 from sentry.testutils.helpers.response import close_streaming_response
-from sentry.testutils.silo import region_silo_test
 
 Message = namedtuple("Message", ["project_id", "replay_id"])
 
 
-class ProjectReplayRecordingSegmentIndexMixin:
+# have to use TransactionTestCase because we're using threadpools
+class FilestoreProjectReplayRecordingSegmentIndexTestCase(TransactionTestCase):
     endpoint = "sentry-api-0-project-replay-recording-segment-index"
+
+    def setUp(self):
+        super().setUp()
+        self.login_as(self.user)
+        self.replay_id = uuid.uuid4().hex
+        self.url = reverse(
+            self.endpoint,
+            args=(self.organization.slug, self.project.slug, self.replay_id),
+        )
+
+    def save_recording_segment(
+        self, segment_id: int, data: bytes, compressed: bool = True, is_archived: bool = False
+    ) -> None:
+        metadata = RecordingSegmentStorageMeta(
+            project_id=self.project.id,
+            replay_id=self.replay_id,
+            segment_id=segment_id,
+            retention_days=30,
+            file_id=None,
+        )
+        FilestoreBlob().set(metadata, zlib.compress(data) if compressed else data)
 
     def test_index_download_basic_compressed(self):
         for i in range(0, 3):
@@ -81,51 +102,16 @@ class ProjectReplayRecordingSegmentIndexMixin:
         assert b'[[{"test":"hello 1"}],[{"test":"hello 2"}]]' == close_streaming_response(response)
 
 
-@region_silo_test
-class FilestoreProjectReplayRecordingSegmentIndexTestCase(
-    ProjectReplayRecordingSegmentIndexMixin, TransactionTestCase
-):
-    # have to use TransactionTestCase because we're using threadpools
-
-    endpoint = "sentry-api-0-project-replay-recording-segment-index"
-
-    def setUp(self):
-        super().setUp()
-        self.login_as(self.user)
-        self.replay_id = uuid.uuid4().hex
-        self.url = reverse(
-            self.endpoint,
-            args=(self.organization.slug, self.project.slug, self.replay_id),
-        )
-
-    def save_recording_segment(self, segment_id, data: bytes, compressed: bool = True):
-        metadata = RecordingSegmentStorageMeta(
-            project_id=self.project.id,
-            replay_id=self.replay_id,
-            segment_id=segment_id,
-            retention_days=30,
-            file_id=None,
-        )
-        FilestoreBlob().set(metadata, zlib.compress(data) if compressed else data)
-
-
-@region_silo_test
 class StorageProjectReplayRecordingSegmentIndexTestCase(
-    ProjectReplayRecordingSegmentIndexMixin, APITestCase, ReplaysSnubaTestCase
+    FilestoreProjectReplayRecordingSegmentIndexTestCase, APITestCase, ReplaysSnubaTestCase
 ):
     def setUp(self):
         super().setUp()
-        self.login_as(self.user)
-        self.replay_id = uuid.uuid4().hex
-        self.url = reverse(
-            self.endpoint,
-            args=(self.organization.slug, self.project.slug, self.replay_id),
-        )
         self.features = {"organizations:session-replay": True}
 
     def save_recording_segment(
-        self, segment_id: int, data: bytes, compressed: bool = True, **metadata
-    ):
+        self, segment_id: int, data: bytes, compressed: bool = True, is_archived: bool = False
+    ) -> None:
         # Insert the row in clickhouse.
         self.store_replays(
             mock_replay(
@@ -134,7 +120,7 @@ class StorageProjectReplayRecordingSegmentIndexTestCase(
                 self.replay_id,
                 segment_id=segment_id,
                 retention_days=30,
-                **metadata,
+                is_archived=is_archived,
             )
         )
 

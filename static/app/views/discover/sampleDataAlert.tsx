@@ -32,8 +32,8 @@ export function SampleDataAlert({query}: {query?: string}) {
     key: `${slug}-${user.id}:sample-data-alert-dismissed`,
   });
 
-  const isQueryingErrors = EXCLUDED_CONDITIONS.some(
-    condition => query?.includes(condition)
+  const isQueryingErrors = EXCLUDED_CONDITIONS.some(condition =>
+    query?.includes(condition)
   );
 
   if (isDismissed || !isDynamicallySampled || isQueryingErrors) {
@@ -59,10 +59,9 @@ export function SampleDataAlert({query}: {query?: string}) {
 }
 
 const DismissButton = styled(Button)`
-  color: ${p => p.theme.alert.warning.iconColor};
+  color: ${p => p.theme.alert.warning.color};
   pointer-events: all;
   &:hover {
-    color: ${p => p.theme.alert.warning.iconHoverColor};
     opacity: 0.5;
   }
 `;

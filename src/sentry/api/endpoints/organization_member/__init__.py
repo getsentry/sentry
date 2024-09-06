@@ -1,15 +1,14 @@
 from __future__ import annotations
 
-from typing import Collection, List, Tuple
+import logging
+from collections.abc import Collection
 
 from django.db import router, transaction
-from rest_framework import status
 from rest_framework.request import Request
 
 from sentry import roles
-from sentry.api.exceptions import SentryAPIException
 from sentry.auth.access import Access
-from sentry.auth.superuser import is_active_superuser
+from sentry.auth.superuser import is_active_superuser, superuser_has_permission
 from sentry.locks import locks
 from sentry.models.organization import Organization
 from sentry.models.organizationmember import OrganizationMember
@@ -18,17 +17,13 @@ from sentry.models.team import Team
 from sentry.roles.manager import Role, TeamRole
 from sentry.utils.retries import TimedRetryPolicy
 
-
-class InvalidTeam(SentryAPIException):
-    status_code = status.HTTP_400_BAD_REQUEST
-    code = "invalid_team"
-    message = "The team slug does not match a team in the organization"
+logger = logging.getLogger("sentry.org_roles")
 
 
 def save_team_assignments(
     organization_member: OrganizationMember,
-    teams: List[Team] | None,
-    teams_with_roles: List[Tuple[Team, str]] | None = None,
+    teams: list[Team] | None,
+    teams_with_roles: list[tuple[Team, str]] | None = None,
 ):
     # https://github.com/getsentry/sentry/pull/6054/files/8edbdb181cf898146eda76d46523a21d69ab0ec7#r145798271
     lock = locks.get(
@@ -65,19 +60,19 @@ def can_set_team_role(request: Request, team: Team, new_role: TeamRole) -> bool:
     """
     User can set a team role:
 
-    * If they are an active superuser
+    * If they are an active superuser (with the feature flag, they must be superuser write)
     * If they are an org owner/manager/admin
     * If they are a team admin on the team
     """
-    if is_active_superuser(request):
+    if superuser_has_permission(request):
         return True
 
     access: Access = request.access
     if not can_admin_team(access, team):
         return False
 
-    org_roles = access.get_organization_roles()
-    if any(org_role.can_manage_team_role(new_role) for org_role in org_roles):
+    org_role = access.get_organization_role()
+    if org_role and org_role.can_manage_team_role(new_role):
         return True
 
     team_role = access.get_team_role(team)
@@ -99,6 +94,7 @@ def get_allowed_org_roles(
     request: Request,
     organization: Organization,
     member: OrganizationMember | None = None,
+    creating_org_invite: bool = False,
 ) -> Collection[Role]:
     """
     Get the set of org-level roles that the request is allowed to manage.
@@ -106,11 +102,15 @@ def get_allowed_org_roles(
     In order to change another member's role, the returned set must include both
     the starting role and the new role. That is, the set contains the roles that
     the request is allowed to promote someone to and to demote someone from.
+
+    If the request is to invite a new member, the member:admin scope is not required.
     """
 
     if is_active_superuser(request):
         return roles.get_all()
-    if not request.access.has_scope("member:admin"):
+
+    # The member:admin scope is not required to invite a new member (when creating_org_invite is True).
+    if not request.access.has_scope("member:admin") and not creating_org_invite:
         return ()
 
     if member is None:

@@ -1,7 +1,8 @@
-import {MouseEvent, RefObject, useCallback} from 'react';
-import {CellMeasurerCache, List} from 'react-virtualized';
+import type {MouseEvent, RefObject} from 'react';
+import {useCallback} from 'react';
+import type {CellMeasurerCache, List} from 'react-virtualized';
 
-import useVirtualListDimentionChange from 'sentry/views/replays/detail/useVirtualListDimentionChange';
+import useVirtualListDimensionChange from 'sentry/views/replays/detail/useVirtualListDimensionChange';
 
 type Opts = {
   cache: CellMeasurerCache;
@@ -17,17 +18,12 @@ export type OnDimensionChange = (
 ) => void;
 
 export default function useVirtualizedInspector({cache, listRef, expandPathsRef}: Opts) {
-  const {handleDimensionChange} = useVirtualListDimentionChange({cache, listRef});
+  const {handleDimensionChange} = useVirtualListDimensionChange({cache, listRef});
 
   return {
     expandPaths: expandPathsRef.current,
     handleDimensionChange: useCallback(
-      (
-        index: number,
-        path: string,
-        expandedState: Record<string, boolean>,
-        event: MouseEvent<HTMLDivElement>
-      ) => {
+      (index: number, path: string, expandedState: Record<string, boolean>) => {
         const rowState = expandPathsRef.current?.get(index) || new Set();
         if (expandedState[path]) {
           rowState.add(path);
@@ -37,7 +33,6 @@ export default function useVirtualizedInspector({cache, listRef, expandPathsRef}
         }
         expandPathsRef.current?.set(index, rowState);
         handleDimensionChange(index);
-        event.stopPropagation();
       },
       [expandPathsRef, handleDimensionChange]
     ),

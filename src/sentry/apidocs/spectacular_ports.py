@@ -33,9 +33,12 @@ import inspect
 import typing
 from collections import defaultdict
 from enum import Enum
+from types import UnionType
 from typing import Any, Literal, Union
 from typing import get_type_hints as _get_type_hints
+from typing import is_typeddict
 
+import drf_spectacular
 from drf_spectacular.drainage import get_override
 from drf_spectacular.plumbing import (
     UnableToProceedError,
@@ -45,14 +48,8 @@ from drf_spectacular.plumbing import (
     is_basic_type,
 )
 from drf_spectacular.types import OpenApiTypes
-from typing_extensions import _TypedDictMeta  # type: ignore[attr-defined]
 
 from sentry.apidocs.utils import reload_module_with_type_checking_enabled
-
-# Until we're on 3.9 we have to use the typing extention TypedDict as
-# we are unable to tell optional fields at run time via the regular 3.8
-# implementation
-
 
 # This function is ported from the drf-spectacular library method here:
 # https://github.com/tfranzel/drf-spectacular/blob/03d315ced245db71cef1e45fd05a082b7dedc7aa/drf_spectacular/plumbing.py#L1100
@@ -60,7 +57,6 @@ from sentry.apidocs.utils import reload_module_with_type_checking_enabled
 #   grabbing description from a TypedDict __doc__
 #   support for TypedDict required fields
 #   support for excluded fields via @extend_schema_serializer
-#   warning about using typing_extension TypedDict
 
 # TODO:
 #   figure out solution for field descriptions
@@ -86,6 +82,20 @@ def get_type_hints(hint, **kwargs):
 
 def _get_type_hint_origin(hint):
     return typing.get_origin(hint), typing.get_args(hint)
+
+
+def build_choice_description_list(choices) -> str:
+    """
+    Override the default generated description for choicefields if the value and
+    label are identical to be (* `value`) instead of (* `value` - `label`).
+    """
+    return "\n".join(
+        f"* `{value}` - {label}" if value != label else f"* `{value}`" for value, label in choices
+    )
+
+
+# Monkey patch build_choice_description_list
+drf_spectacular.plumbing.build_choice_description_list = build_choice_description_list
 
 
 def resolve_type_hint(hint) -> Any:
@@ -134,7 +144,7 @@ def resolve_type_hint(hint) -> Any:
         if mixin_base_types:
             schema.update(build_basic_type(mixin_base_types[0]))
         return schema
-    elif isinstance(hint, _TypedDictMeta):
+    elif is_typeddict(hint):
         return build_object_type(
             properties={
                 k: resolve_type_hint(v)
@@ -144,18 +154,32 @@ def resolve_type_hint(hint) -> Any:
             description=inspect.cleandoc(hint.__doc__ or ""),
             required=[h for h in hint.__required_keys__ if h not in excluded_fields],
         )
-    elif origin is Union:
+    elif origin is Union or origin is UnionType:
         type_args = [arg for arg in args if arg is not type(None)]
         if len(type_args) > 1:
-            schema = {"oneOf": [resolve_type_hint(arg) for arg in type_args]}
+            # We use anyOf instead of oneOf (which DRF uses) b/c there's cases
+            # where you can have int | float | long, where a valid value can be
+            # multiple types but errors with oneOf.
+            # TODO(schew2381): Create issue in drf-spectacular to see if this
+            # fix makes sense
+            schema = {"anyOf": [resolve_type_hint(arg) for arg in type_args]}
         else:
             schema = resolve_type_hint(type_args[0])
         if type(None) in args:
-            schema["nullable"] = True
+            # There's an issue where if 3 or more types are OR'd together and one of
+            # them is None, validating the schema will fail because "nullable: true"
+            # with "anyOf" raises an error because there is no "type" key on the
+            # schema. This works around it by including a proxy null object in
+            # the "anyOf".
+            # See:
+            #   - https://github.com/tfranzel/drf-spectacular/issues/925
+            #   - https://github.com/OAI/OpenAPI-Specification/issues/1368.
+            if len(args) > 2:
+                schema["anyOf"].append({"type": "object", "nullable": True})
+            else:
+                schema["nullable"] = True
         return schema
     elif origin is collections.abc.Iterable:
         return build_array_type(resolve_type_hint(args[0]))
-    elif isinstance(hint, typing._TypedDictMeta):  # type: ignore[attr-defined]
-        raise UnableToProceedError("Wrong TypedDict class, please use typing_extensions.TypedDict")
     else:
         raise UnableToProceedError(hint)

@@ -1,4 +1,6 @@
-from datetime import datetime
+from datetime import UTC, datetime
+
+import pytest
 
 from sentry.models.release import Release
 from sentry.models.rule import Rule
@@ -7,7 +9,7 @@ from sentry.testutils.cases import RuleTestCase
 from sentry.testutils.skips import requires_snuba
 from sentry.utils.cache import cache
 
-pytestmark = [requires_snuba]
+pytestmark = [requires_snuba, pytest.mark.sentry_metrics]
 
 
 class LatestReleaseFilterTest(RuleTestCase):
@@ -18,14 +20,14 @@ class LatestReleaseFilterTest(RuleTestCase):
         oldRelease = Release.objects.create(
             organization_id=self.organization.id,
             version="1",
-            date_added=datetime(2020, 9, 1, 3, 8, 24, 880386),
+            date_added=datetime(2020, 9, 1, 3, 8, 24, 880386, tzinfo=UTC),
         )
         oldRelease.add_project(self.project)
 
         newRelease = Release.objects.create(
             organization_id=self.organization.id,
             version="2",
-            date_added=datetime(2020, 9, 2, 3, 8, 24, 880386),
+            date_added=datetime(2020, 9, 2, 3, 8, 24, 880386, tzinfo=UTC),
         )
         newRelease.add_project(self.project)
 
@@ -38,14 +40,14 @@ class LatestReleaseFilterTest(RuleTestCase):
         oldRelease = Release.objects.create(
             organization_id=self.organization.id,
             version="1",
-            date_added=datetime(2020, 9, 1, 3, 8, 24, 880386),
+            date_added=datetime(2020, 9, 1, 3, 8, 24, 880386, tzinfo=UTC),
         )
         oldRelease.add_project(self.project)
 
         newRelease = Release.objects.create(
             organization_id=self.organization.id,
             version="2",
-            date_added=datetime(2020, 9, 2, 3, 8, 24, 880386),
+            date_added=datetime(2020, 9, 2, 3, 8, 24, 880386, tzinfo=UTC),
         )
         newRelease.add_project(self.project)
 
@@ -58,7 +60,7 @@ class LatestReleaseFilterTest(RuleTestCase):
         oldRelease = Release.objects.create(
             organization_id=self.organization.id,
             version="1",
-            date_added=datetime(2020, 9, 1, 3, 8, 24, 880386),
+            date_added=datetime(2020, 9, 1, 3, 8, 24, 880386, tzinfo=UTC),
         )
         oldRelease.add_project(self.project)
         event.data["tags"] = (("release", oldRelease.version),)
@@ -68,7 +70,7 @@ class LatestReleaseFilterTest(RuleTestCase):
         newRelease = Release.objects.create(
             organization_id=self.organization.id,
             version="2",
-            date_added=datetime(2020, 9, 2, 3, 8, 24, 880386),
+            date_added=datetime(2020, 9, 2, 3, 8, 24, 880386, tzinfo=UTC),
         )
         newRelease.add_project(self.project)
 
@@ -91,21 +93,21 @@ class LatestReleaseFilterTest(RuleTestCase):
         self.create_release(
             project=event.group.project,
             version="1",
-            date_added=datetime(2020, 9, 1, 3, 8, 24, 880386),
+            date_added=datetime(2020, 9, 1, 3, 8, 24, 880386, tzinfo=UTC),
             environments=[self.environment],
         )
 
         new_release = self.create_release(
             project=event.group.project,
             version="2",
-            date_added=datetime(2020, 9, 2, 3, 8, 24, 880386),
+            date_added=datetime(2020, 9, 2, 3, 8, 24, 880386, tzinfo=UTC),
             environments=[self.environment],
         )
 
         other_env_release = self.create_release(
             project=event.group.project,
             version="4",
-            date_added=datetime(2020, 9, 3, 3, 8, 24, 880386),
+            date_added=datetime(2020, 9, 3, 3, 8, 24, 880386, tzinfo=UTC),
         )
 
         event.data["tags"] = (("release", new_release.version),)

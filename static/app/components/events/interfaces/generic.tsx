@@ -1,10 +1,10 @@
 import {useState} from 'react';
 
-import {EventDataSection} from 'sentry/components/events/eventDataSection';
 import KeyValueList from 'sentry/components/events/interfaces/keyValueList';
 import {AnnotatedText} from 'sentry/components/events/meta/annotatedText';
 import {SegmentedControl} from 'sentry/components/segmentedControl';
 import {t} from 'sentry/locale';
+import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
 
 function getView({
   data,
@@ -48,7 +48,7 @@ type View = 'report' | 'raw';
 export function Generic({type, data, meta}: Props) {
   const [view, setView] = useState<View>('report');
   return (
-    <EventDataSection
+    <InterimSection
       type={type}
       title={t('Report')}
       actions={
@@ -64,6 +64,6 @@ export function Generic({type, data, meta}: Props) {
       }
     >
       {getView({view, data, meta})}
-    </EventDataSection>
+    </InterimSection>
   );
 }

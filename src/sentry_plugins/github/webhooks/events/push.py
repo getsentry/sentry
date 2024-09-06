@@ -7,17 +7,16 @@ from dateutil.parser import parse as parse_date
 from django.db import IntegrityError, router, transaction
 from django.http import Http404
 
+from sentry.integrations.models.integration import Integration
+from sentry.integrations.services.integration import integration_service
 from sentry.models.commit import Commit
 from sentry.models.commitauthor import CommitAuthor
 from sentry.models.commitfilechange import CommitFileChange
-from sentry.models.integrations.integration import Integration
 from sentry.models.organization import Organization
 from sentry.models.repository import Repository
 from sentry.plugins.providers import RepositoryProvider
-from sentry.services.hybrid_cloud import coerce_id_from
-from sentry.services.hybrid_cloud.integration import integration_service
-from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.shared_integrations.exceptions import ApiError
+from sentry.users.services.user.service import user_service
 from sentry_plugins.github.client import GithubPluginClient
 
 from . import Webhook, get_external_id, is_anonymous_email
@@ -29,7 +28,7 @@ class PushEventWebhook(Webhook):
     def _handle(self, event, organization_id, is_apps):
         authors = {}
 
-        gh_username_cache = {}
+        gh_username_cache: dict[str, str | None] = {}
 
         try:
             repo = Repository.objects.get(
@@ -185,7 +184,7 @@ class PushEventWebhook(Webhook):
             organizations = [org.organization_id for org in integration_orgs]
 
         else:
-            organizations = [coerce_id_from(organization)]
+            organizations = [organization.id]
 
         for org_id in organizations:
             self._handle(event, org_id, is_apps)

@@ -6,7 +6,7 @@ from sentry.testutils.cases import AcceptanceTestCase, SnubaTestCase
 from sentry.testutils.silo import no_silo_test
 from sentry.utils.samples import load_data
 
-now = datetime.utcnow().replace(tzinfo=timezone.utc)
+now = datetime.now(timezone.utc)
 
 
 @no_silo_test
@@ -139,10 +139,10 @@ class IssueDetailsTest(AcceptanceTestCase, SnubaTestCase):
         self.page.visit_issue(self.org.slug, event.group.id)
         self.page.resolve_issue()
 
-    def test_ignored(self):
+    def test_archived(self):
         event = self.create_sample_event(platform="python")
         self.page.visit_issue(self.org.slug, event.group.id)
-        self.page.ignore_issue()
+        self.page.archive_issue()
 
     def test_exception_and_no_threads_event(self):
         event = self.create_sample_event(platform="exceptions-and-no-threads")

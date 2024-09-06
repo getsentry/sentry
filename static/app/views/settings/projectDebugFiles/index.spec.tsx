@@ -1,4 +1,4 @@
-import {DebugFile} from 'sentry-fixture/debugFile';
+import {DebugFileFixture} from 'sentry-fixture/debugFile';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {
@@ -34,21 +34,28 @@ describe('ProjectDebugFiles', function () {
   beforeEach(function () {
     MockApiClient.addMockResponse({
       url: endpoint,
-      body: [DebugFile()],
+      body: [DebugFileFixture()],
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/builtin-symbol-sources/`,
+      method: 'GET',
+      body: [],
     });
   });
 
-  it('renders', function () {
+  it('renders', async function () {
     render(<ProjectDebugFiles {...props} />);
 
     expect(screen.getByText('Debug Information Files')).toBeInTheDocument();
 
     // Uploaded debug files content
-    expect(screen.getByText('Uploaded debug information files')).toBeInTheDocument();
+    expect(
+      await screen.findByText('Uploaded debug information files')
+    ).toBeInTheDocument();
     expect(screen.getByText('libS.so')).toBeInTheDocument();
   });
 
-  it('renders empty', function () {
+  it('renders empty', async function () {
     MockApiClient.addMockResponse({
       url: endpoint,
       body: [],
@@ -58,7 +65,7 @@ describe('ProjectDebugFiles', function () {
 
     // Uploaded debug files content
     expect(
-      screen.getByText('There are no debug symbols for this project.')
+      await screen.findByText('There are no debug symbols for this project.')
     ).toBeInTheDocument();
   });
 
@@ -66,7 +73,7 @@ describe('ProjectDebugFiles', function () {
     const deleteMock = MockApiClient.addMockResponse({
       method: 'DELETE',
       url: `/projects/${organization.slug}/${project.slug}/files/dsyms/?id=${
-        DebugFile().id
+        DebugFileFixture().id
       }`,
     });
 
@@ -74,7 +81,7 @@ describe('ProjectDebugFiles', function () {
     renderGlobalModal();
 
     // Delete button
-    await userEvent.click(screen.getByTestId('delete-dif'));
+    await userEvent.click(await screen.findByTestId('delete-dif'));
 
     // Confirm Modal
     await screen.findByRole('dialog');
@@ -82,5 +89,39 @@ describe('ProjectDebugFiles', function () {
     await userEvent.click(screen.getByTestId('confirm-button'));
 
     expect(deleteMock).toHaveBeenCalled();
+  });
+
+  it('display error if request for dsyms fails', async function () {
+    MockApiClient.addMockResponse({
+      url: endpoint,
+      body: [DebugFileFixture()],
+      statusCode: 400,
+    });
+
+    render(<ProjectDebugFiles {...props} />);
+
+    expect(await screen.findByText(/There was an error/)).toBeInTheDocument();
+
+    expect(screen.getByRole('button', {name: 'Retry'})).toBeInTheDocument();
+  });
+
+  it('display error if request for symbol sources fails', async function () {
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/builtin-symbol-sources/`,
+      method: 'GET',
+      body: [],
+      statusCode: 400,
+    });
+
+    render(
+      <ProjectDebugFiles
+        {...props}
+        organization={{...organization, features: ['symbol-sources']}}
+      />
+    );
+
+    expect(await screen.findByText(/There was an error/)).toBeInTheDocument();
+
+    expect(screen.getByRole('button', {name: 'Retry'})).toBeInTheDocument();
   });
 });

@@ -2,11 +2,13 @@ import {memo} from 'react';
 import styled from '@emotion/styled';
 
 import Avatar from 'sentry/components/avatar';
-import {space} from 'sentry/styles/space';
-import {AvatarProject, Organization, Team} from 'sentry/types';
+import {space, type ValidSize} from 'sentry/styles/space';
+import type {Actor} from 'sentry/types/core';
+import type {Organization, Team} from 'sentry/types/organization';
+import type {AvatarProject} from 'sentry/types/project';
+import type {AvatarUser} from 'sentry/types/user';
 
 export interface BaseBadgeProps {
-  displayName: React.ReactNode;
   avatarProps?: Record<string, any>;
   avatarSize?: number;
   className?: string;
@@ -14,12 +16,18 @@ export interface BaseBadgeProps {
   // Hides the main display name
   hideAvatar?: boolean;
   hideName?: boolean;
+}
+
+interface AllBaseBadgeProps extends BaseBadgeProps {
+  displayName: React.ReactNode;
+  actor?: Actor;
   organization?: Organization;
   project?: AvatarProject;
   team?: Team;
+  user?: AvatarUser;
 }
 
-const BaseBadge = memo(
+export const BaseBadge = memo(
   ({
     displayName,
     hideName = false,
@@ -28,45 +36,45 @@ const BaseBadge = memo(
     avatarSize = 24,
     description,
     team,
+    user,
     organization,
     project,
+    actor,
     className,
-  }: BaseBadgeProps) => (
-    <Wrapper className={className}>
-      {!hideAvatar && (
-        <StyledAvatar
-          {...avatarProps}
-          size={avatarSize}
-          hideName={hideName}
-          team={team}
-          organization={organization}
-          project={project}
-          data-test-id="badge-styled-avatar"
-        />
-      )}
+  }: AllBaseBadgeProps) => {
+    // Space items appropriatley depending on avatar size
+    const wrapperGap: ValidSize = avatarSize <= 14 ? 0.5 : avatarSize <= 20 ? 0.75 : 1;
 
-      {(!hideName || !!description) && (
-        <DisplayNameAndDescription>
-          {!hideName && (
-            <DisplayName data-test-id="badge-display-name">{displayName}</DisplayName>
-          )}
-          {!!description && <Description>{description}</Description>}
-        </DisplayNameAndDescription>
-      )}
-    </Wrapper>
-  )
+    return (
+      <Wrapper className={className} style={{gap: space(wrapperGap)}}>
+        {!hideAvatar && (
+          <Avatar
+            {...avatarProps}
+            size={avatarSize}
+            team={team}
+            user={user}
+            organization={organization}
+            project={project}
+            actor={actor}
+          />
+        )}
+
+        {(!hideName || !!description) && (
+          <DisplayNameAndDescription>
+            {!hideName && (
+              <DisplayName data-test-id="badge-display-name">{displayName}</DisplayName>
+            )}
+            {!!description && <Description>{description}</Description>}
+          </DisplayNameAndDescription>
+        )}
+      </Wrapper>
+    );
+  }
 );
-
-export default BaseBadge;
 
 const Wrapper = styled('div')`
   display: flex;
   align-items: center;
-  flex-shrink: 0;
-`;
-
-const StyledAvatar = styled(Avatar)<{hideName: boolean}>`
-  margin-right: ${p => (p.hideName ? 0 : space(1))};
   flex-shrink: 0;
 `;
 

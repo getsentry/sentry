@@ -1,11 +1,9 @@
 /* eslint-env node */
-/* eslint import/no-nodejs-modules:0 */
-
-import childProcess from 'child_process';
-import path from 'path';
 
 import type {Configuration, RuleSetRule} from '@rspack/core';
 import rspack from '@rspack/core';
+import childProcess from 'node:child_process';
+import path from 'node:path';
 
 import baseConfig from '../rspack.config';
 

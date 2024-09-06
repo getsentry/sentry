@@ -1,7 +1,8 @@
-import {StacktraceLinkResult} from 'sentry/types/integrations';
-import {Organization} from 'sentry/types/organization';
-import {Project} from 'sentry/types/project';
-import {useApiQuery, UseApiQueryResult} from 'sentry/utils/queryClient';
+import type {StacktraceLinkResult} from 'sentry/types/integrations';
+import type {Organization} from 'sentry/types/organization';
+import type {Project} from 'sentry/types/project';
+import type {UseApiQueryResult} from 'sentry/utils/queryClient';
+import {useApiQuery} from 'sentry/utils/queryClient';
 import type RequestError from 'sentry/utils/requestError/requestError';
 
 interface UseSourceCodeLinkProps {

@@ -18,15 +18,15 @@ describe('UIFramesRenderer', () => {
         unit: 'nanoseconds',
         values: [
           {
-            elapsed_since_start_ns: 1,
+            elapsed: 1,
             value: 1,
           },
           {
-            elapsed_since_start_ns: 3,
+            elapsed: 3,
             value: 1,
           },
           {
-            elapsed_since_start_ns: 5.5,
+            elapsed: 5.5,
             value: 1,
           },
         ],
@@ -35,11 +35,11 @@ describe('UIFramesRenderer', () => {
         unit: 'nanoseconds',
         values: [
           {
-            elapsed_since_start_ns: 3,
+            elapsed: 3,
             value: 1,
           },
           {
-            elapsed_since_start_ns: 5,
+            elapsed: 5,
             value: 1,
           },
         ],
@@ -56,7 +56,7 @@ describe('UIFramesRenderer', () => {
     [vec2.fromValues(0.1, 0), [uiFrames.frames[0]]],
     [vec2.fromValues(2.5, 0), [uiFrames.frames[1], uiFrames.frames[2]]],
     [vec2.fromValues(4.5, 0), [uiFrames.frames[3], uiFrames.frames[4]]],
-  ])('finds hovered node', (cursor, expected) => {
+  ])('finds hovered node %p', (cursor, expected) => {
     const results = renderer.findHoveredNode(cursor, uiFrames.configSpace);
 
     if (Array.isArray(expected) && Array.isArray(results)) {

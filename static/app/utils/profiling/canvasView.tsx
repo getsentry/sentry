@@ -1,6 +1,6 @@
 import {mat3, vec2} from 'gl-matrix';
 
-import {FlamegraphCanvas} from 'sentry/utils/profiling/flamegraphCanvas';
+import type {FlamegraphCanvas} from 'sentry/utils/profiling/flamegraphCanvas';
 import {
   computeClampedConfigView,
   transformMatrixBetweenRect,

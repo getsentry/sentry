@@ -2,15 +2,14 @@ from unittest import mock
 
 import pytest
 
-from sentry.models.integrations.integration import Integration
+from sentry.integrations.models.integration import Integration
 from sentry.models.projectcodeowners import ProjectCodeOwners
-from sentry.silo import SiloMode
+from sentry.silo.base import SiloMode
 from sentry.tasks.codeowners import update_code_owners_schema
 from sentry.testutils.cases import TestCase
-from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
+from sentry.testutils.silo import assume_test_silo_mode
 
 
-@region_silo_test
 class UpdateCodeOwnersSchemaTest(TestCase):
     def setUp(self) -> None:
         self.organization = self.create_organization()

@@ -1,13 +1,12 @@
-import type {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 import pick from 'lodash/pick';
-import moment from 'moment';
+import moment from 'moment-timezone';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import Access from 'sentry/components/acl/access';
 import {Alert} from 'sentry/components/alert';
 import SnoozeAlert from 'sentry/components/alerts/snoozeAlert';
-import Breadcrumbs from 'sentry/components/breadcrumbs';
+import {Breadcrumbs} from 'sentry/components/breadcrumbs';
 import {Button, LinkButton} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import type {DateTimeObject} from 'sentry/components/charts/utils';
@@ -21,21 +20,19 @@ import LoadingIndicator from 'sentry/components/loadingIndicator';
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
-import {ChangeData, TimeRangeSelector} from 'sentry/components/timeRangeSelector';
+import type {ChangeData} from 'sentry/components/timeRangeSelector';
+import {TimeRangeSelector} from 'sentry/components/timeRangeSelector';
 import TimeSince from 'sentry/components/timeSince';
 import {IconCopy, IconEdit} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {DateString} from 'sentry/types';
 import type {IssueAlertRule} from 'sentry/types/alerts';
 import {RuleActionsCategories} from 'sentry/types/alerts';
+import type {DateString} from 'sentry/types/core';
+import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {
-  ApiQueryKey,
-  setApiQueryData,
-  useApiQuery,
-  useQueryClient,
-} from 'sentry/utils/queryClient';
+import type {ApiQueryKey} from 'sentry/utils/queryClient';
+import {setApiQueryData, useApiQuery, useQueryClient} from 'sentry/utils/queryClient';
 import useRouteAnalyticsEventNames from 'sentry/utils/routeAnalytics/useRouteAnalyticsEventNames';
 import useRouteAnalyticsParams from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
 import useApi from 'sentry/utils/useApi';
@@ -82,7 +79,7 @@ function AlertRuleDetails({params, location, router}: AlertRuleDetailsProps) {
   const {projectId: projectSlug, ruleId} = params;
   const {
     data: rule,
-    isLoading,
+    isPending,
     isError,
   } = useApiQuery<IssueAlertRule>(
     getIssueAlertDetailsQueryKey({orgSlug: organization.slug, projectSlug, ruleId}),
@@ -242,7 +239,7 @@ function AlertRuleDetails({params, location, router}: AlertRuleDetailsProps) {
     });
   }
 
-  if (isLoading || projectIsLoading) {
+  if (isPending || projectIsLoading) {
     return (
       <Layout.Body>
         <Layout.Main fullWidth>
@@ -277,7 +274,7 @@ function AlertRuleDetails({params, location, router}: AlertRuleDetailsProps) {
     query: {
       project: project.slug,
       duplicateRuleId: rule.id,
-      createFromDuplicate: true,
+      createFromDuplicate: 'true',
       referrer: 'issue_rule_details',
     },
   };
@@ -424,7 +421,7 @@ function AlertRuleDetails({params, location, router}: AlertRuleDetailsProps) {
             >
               {t('Duplicate')}
             </LinkButton>
-            <Button
+            <LinkButton
               size="sm"
               icon={<IconEdit />}
               to={`/organizations/${organization.slug}/alerts/rules/${projectSlug}/${ruleId}/`}
@@ -436,7 +433,7 @@ function AlertRuleDetails({params, location, router}: AlertRuleDetailsProps) {
               }
             >
               {rule.status === 'disabled' ? t('Edit to enable') : t('Edit Rule')}
-            </Button>
+            </LinkButton>
           </ButtonBar>
         </Layout.HeaderActions>
       </Layout.Header>
@@ -478,7 +475,6 @@ function AlertRuleDetails({params, location, router}: AlertRuleDetailsProps) {
             />
           </ErrorBoundary>
           <AlertRuleIssuesList
-            organization={organization}
             project={project}
             rule={rule}
             period={period ?? ''}
@@ -507,5 +503,5 @@ const StyledLoadingError = styled(LoadingError)`
 `;
 
 const BoldButton = styled(Button)`
-  font-weight: 600;
+  font-weight: ${p => p.theme.fontWeightBold};
 `;

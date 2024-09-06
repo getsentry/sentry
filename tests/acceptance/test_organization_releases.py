@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import UTC, datetime
 from unittest.mock import patch
 
 import pytest
@@ -12,7 +12,7 @@ pytestmark = pytest.mark.sentry_metrics
 
 @no_silo_test
 class OrganizationReleasesTest(AcceptanceTestCase):
-    release_date = datetime(2020, 5, 18, 15, 13, 58, 132928, tzinfo=timezone.utc)
+    release_date = datetime(2020, 5, 18, 15, 13, 58, 132928, tzinfo=UTC)
 
     def setUp(self):
         super().setUp()

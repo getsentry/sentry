@@ -1,10 +1,11 @@
 {% extends "sentry/emails/base.html" %}
 
 {% load i18n %}
+{% load sentry_helpers %}
 
 {% block main %}
     <h3>Organization Queued for Deletion</h3>
-    <p>The <strong>{{ organization.name }}</strong> organization has been scheduled for deletion by:</p>
+    <p>The <strong>{{ organization.name|sanitize_periods }}</strong> organization has been scheduled for deletion by:</p>
     <p><pre>User: {{ username }}
 IP: {{ user_ip_address }}
 Date: {{ deletion_datetime }}</pre></p>

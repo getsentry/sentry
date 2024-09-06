@@ -2,7 +2,8 @@ import json  # noqa: S003
 import os
 import re
 from collections import OrderedDict
-from typing import Any, Dict, List, Literal, Mapping, Set, Tuple, TypedDict
+from collections.abc import Mapping
+from typing import Any, Literal, TypedDict
 
 from drf_spectacular.generators import EndpointEnumerator, SchemaGenerator
 
@@ -18,14 +19,14 @@ from sentry.apidocs.utils import SentryApiBuildError
 HTTP_METHOD_NAME = Literal[
     "GET", "POST", "PUT", "OPTIONS", "HEAD", "DELETE", "TRACE", "CONNECT", "PATCH"
 ]
-HTTP_METHODS_SET = Set[HTTP_METHOD_NAME]
+HTTP_METHODS_SET = set[HTTP_METHOD_NAME]
 
 
 class EndpointRegistryType(TypedDict):
     methods: HTTP_METHODS_SET
 
 
-PUBLIC_ENDPOINTS: Dict[str, EndpointRegistryType] = {}
+PUBLIC_ENDPOINTS: dict[str, EndpointRegistryType] = {}
 
 _DEFINED_TAG_SET = {t["name"] for t in OPENAPI_TAGS}
 _OWNERSHIP_FILE = "api_ownership_stats_dont_modify.json"
@@ -38,50 +39,6 @@ EXCLUSION_PATH_PREFIXES = [
     # Issue URLS have an expression of group|issue that resolves to `var`
     "/api/0/{var}/{issue_id}/",
 ]
-
-
-def __get_explicit_endpoints() -> List[Tuple[str, str, str, Any]]:
-    """
-    We have a few endpoints which are wrapped by `method_dispatch`, which DRF
-    will ignore (see [0]). To still have these endpoints properly included in
-    our docs, we explicitly define them here.
-
-    XXX: This is currently just used for monitors. In the future we'll remove
-         the legacy monitor endpoints that require us to have method_dispatch
-         and we can probably remove this too.
-
-    [0]: https://github.com/encode/django-rest-framework/blob/3f8ab538c1a7e6f887af9fec41847e2d67ff674f/rest_framework/schemas/generators.py#L117-L118
-    """
-    from sentry.monitors.endpoints.monitor_ingest_checkin_details import (
-        MonitorIngestCheckInDetailsEndpoint,
-    )
-    from sentry.monitors.endpoints.monitor_ingest_checkin_index import (
-        MonitorIngestCheckInIndexEndpoint,
-    )
-    from sentry.monitors.endpoints.organization_monitor_checkin_index import (
-        OrganizationMonitorCheckInIndexEndpoint,
-    )
-
-    return [
-        (
-            "/api/0/organizations/{organization_slug}/monitors/{monitor_slug}/checkins/",
-            r"^(?P<organization_slug>[^\/]+)/monitors/(?P<monitor_slug>[^\/]+)/checkins/$",
-            "GET",
-            OrganizationMonitorCheckInIndexEndpoint.as_view(),
-        ),
-        (
-            "/api/0/organizations/{organization_slug}/monitors/{monitor_slug}/checkins/",
-            r"^(?P<organization_slug>[^\/]+)/monitors/(?P<monitor_slug>[^\/]+)/checkins/$",
-            "POST",
-            MonitorIngestCheckInIndexEndpoint.as_view(),
-        ),
-        (
-            "/api/0/organizations/{organization_slug}/monitors/{monitor_slug}/checkins/{checkin_id}/",
-            r"^(?P<organization_slug>[^\/]+)/monitors/(?P<monitor_slug>[^\/]+)/checkins/(?P<checkin_id>[^\/]+)/$",
-            "PUT",
-            MonitorIngestCheckInDetailsEndpoint.as_view(),
-        ),
-    ]
 
 
 def __get_line_count_for_team_stats(team_stats: Mapping):
@@ -107,7 +64,7 @@ def __get_line_count_for_team_stats(team_stats: Mapping):
     return line_count
 
 
-def __write_ownership_data(ownership_data: Dict[ApiOwner, Dict]):
+def __write_ownership_data(ownership_data: dict[ApiOwner, dict]):
     """
     Writes API ownership for all the teams in _OWNERSHIP_FILE.
     This file is used by Sentaur slack bot to inform teams on status of their APIs
@@ -150,8 +107,8 @@ class CustomGenerator(SchemaGenerator):
 
 def custom_preprocessing_hook(endpoints: Any) -> Any:  # TODO: organize method, rename
     filtered = []
-    ownership_data: Dict[ApiOwner, Dict] = {}
-    for (path, path_regex, method, callback) in endpoints:
+    ownership_data: dict[ApiOwner, dict] = {}
+    for path, path_regex, method, callback in endpoints:
         owner_team = callback.view_class.owner
         if owner_team not in ownership_data:
             ownership_data[owner_team] = {
@@ -204,12 +161,13 @@ def custom_preprocessing_hook(endpoints: Any) -> Any:  # TODO: organize method, 
         )
 
     __write_ownership_data(ownership_data)
-    # Register explicit ednpoints
-    filtered.extend(__get_explicit_endpoints())
     return filtered
 
 
-def dereference_schema(schema: dict, schema_components: dict) -> dict:
+def dereference_schema(
+    schema: Mapping[str, Any],
+    schema_components: Mapping[str, Any],
+) -> Mapping[str, Any]:
     """
     Dereferences the schema reference if it exists. Otherwise, returns the schema as is.
     """
@@ -220,91 +178,106 @@ def dereference_schema(schema: dict, schema_components: dict) -> dict:
     return schema
 
 
+def _validate_request_body(
+    request_body: Mapping[str, Any], schema_components: Mapping[str, Any], endpoint_name: str
+) -> None:
+    """
+    1. Dereferences schema if needed.
+    2. Requires all body parameters to have a description.
+    3. Ensures body parameters are sorted by placing required parameters first.
+    """
+    content = request_body["content"]
+    # media type can either "multipart/form-data" or "application/json"
+    if "multipart/form-data" in content:
+        schema = content["multipart/form-data"]["schema"]
+    else:
+        schema = content["application/json"]["schema"]
+
+    # Dereference schema if needed and raise error on schema component collisions
+    schema = dereference_schema(schema, schema_components)
+
+    for body_param, param_data in schema["properties"].items():
+        # Ensure body parameters have a description. Our API docs don't
+        # display body params without a description, so it's easy to miss them.
+        # We should be explicitly excluding them as better practice however.
+
+        # There is an edge case where a body param might be reference that we should ignore for now
+        if "description" not in param_data and "$ref" not in param_data:
+            raise SentryApiBuildError(
+                f"""Body parameter '{body_param}' is missing a description for endpoint {endpoint_name}. You can either:
+            1. Add a 'help_text' kwarg to the serializer field
+            2. Remove the field if you're using an inline_serializer
+            3. For a DRF serializer, you must explicitly exclude this field by decorating the request serializer with
+            @extend_schema_serializer(exclude_fields=[{body_param}])."""
+            )
+
+    # Required params are stored in a list and not in the param itself
+    required = set(schema.get("required", []))
+    if required:
+        # Explicitly sort body params by converting the dict to an ordered dict
+        schema["properties"] = OrderedDict(
+            sorted(
+                schema["properties"].items(),
+                key=lambda param: 0 if param[0] in required else 1,
+            )
+        )
+
+
 def custom_postprocessing_hook(result: Any, generator: Any, **kwargs: Any) -> Any:
     # Fetch schema component references
     schema_components = result["components"]["schemas"]
 
     for path, endpoints in result["paths"].items():
         for method_info in endpoints.values():
-            _check_tag(path, method_info)
             endpoint_name = f"'{method_info['operationId']}'"
 
-            if method_info.get("description") is None:
-                raise SentryApiBuildError(
-                    f"Please add a description via docstring to your endpoint {endpoint_name}"
-                )
+            _check_tag(method_info, endpoint_name)
+            _check_description(
+                method_info,
+                f"Please add a description to your endpoint {endpoint_name} via docstring",
+            )
 
+            # Ensure path parameters have a description
             for param in method_info.get("parameters", []):
-                # Ensure path parameters have a description
-                if param["in"] == "path" and param.get("description") is None:
-                    raise SentryApiBuildError(
-                        f"Please add a description to your path parameter '{param['name']}' for endpoint {endpoint_name}"
+                if param["in"] == "path":
+                    _check_description(
+                        param,
+                        f"Please add a description to your path parameter '{param['name']}' for endpoint {endpoint_name}",
                     )
 
-            # Ensure body parameters are sorted by placing required parameters first
-            if "requestBody" in method_info:
-                try:
-                    content = method_info["requestBody"]["content"]
-                    # media type can either "multipart/form-data" or "application/json"
-                    if "multipart/form-data" in content:
-                        schema = content["multipart/form-data"]["schema"]
-                    else:
-                        schema = content["application/json"]["schema"]
-
-                    # Dereference schema if needed
-                    schema = dereference_schema(schema, schema_components)
-
-                    for body_param, param_data in schema["properties"].items():
-                        # Ensure body parameters have a description. Our API docs don't
-                        # display body params without a description, so it's easy to miss them.
-                        # We should be explicitly excluding them as better
-                        # practice however.
-
-                        # There is an edge case where a body param might be
-                        # reference that we should ignore for now
-                        if "description" not in param_data and "$ref" not in param_data:
-                            raise SentryApiBuildError(
-                                f"""Body parameter '{body_param}' is missing a description for endpoint {endpoint_name}. You can either:
-                            1. Add a 'help_text' kwarg to the serializer field
-                            2. Remove the field if you're using an inline_serializer
-                            3. For a DRF serializer, you must explicitly exclude this field by decorating the request serializer with
-                            @extend_schema_serializer(exclude_fields=[{body_param}])."""
-                            )
-
-                    # Required params are stored in a list and not in the param itself
-                    required = set(schema.get("required", []))
-                    if required:
-                        # Explicitly sort body params by converting the dict to an ordered dict
-                        schema["properties"] = OrderedDict(
-                            sorted(
-                                schema["properties"].items(),
-                                key=lambda param: 0 if param[0] in required else 1,
-                            )
-                        )
-                except KeyError as e:
-                    raise SentryApiBuildError(
-                        f"Unable to parse body parameters due to KeyError {e} for endpoint {endpoint_name}. Please post in #discuss-apis to fix."
-                    )
+            try:
+                requestBody = method_info.get("requestBody")
+                if requestBody is not None:
+                    _validate_request_body(requestBody, schema_components, endpoint_name)
+            except KeyError as e:
+                raise SentryApiBuildError(
+                    f"Unable to parse body parameters due to KeyError {e} for endpoint {endpoint_name}. Please post in #discuss-api to fix."
+                )
     return result
 
 
-def _check_tag(path: str, method_info: Mapping[str, Any]) -> None:
+def _check_tag(method_info: Mapping[str, Any], endpoint_name: str) -> None:
     if method_info.get("tags") is None:
         raise SentryApiBuildError(
-            f"Please add a single tag to {path}. The list of tags is defined at OPENAPI_TAGS in src/sentry/apidocs/build.py "
+            f"Please add a single tag to {endpoint_name}. The list of tags is defined at OPENAPI_TAGS in src/sentry/apidocs/build.py "
         )
 
     num_of_tags = len(method_info["tags"])
 
     if num_of_tags > 1:
         raise SentryApiBuildError(
-            f"Please add only a single tag to {path}. Right now there are {num_of_tags}."
+            f"Please add only a single tag to {endpoint_name}. Right now there are {num_of_tags}."
         )
 
     tag = method_info["tags"][0]
 
     if tag not in _DEFINED_TAG_SET:
         raise SentryApiBuildError(
-            f"{tag} is not defined by OPENAPI_TAGS in src/sentry/apidocs/build.py. "
-            "Please use a suitable tag or add a new one to OPENAPI_TAGS"
+            f"""{tag} is not defined by OPENAPI_TAGS in src/sentry/apidocs/build.py for {endpoint_name}.
+            Please use a suitable tag or add a new one to OPENAPI_TAGS"""
         )
+
+
+def _check_description(json_body: Mapping[str, Any], err_str: str) -> None:
+    if json_body.get("description") is None:
+        raise SentryApiBuildError(err_str)

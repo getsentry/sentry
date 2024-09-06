@@ -66,7 +66,6 @@ describe('ProjectCspReports', function () {
 
     expect(mock).not.toHaveBeenCalled();
 
-    // Click Regenerate Token
     await userEvent.click(
       await screen.findByRole('checkbox', {name: 'Use default ignored sources'})
     );

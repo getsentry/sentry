@@ -1,10 +1,8 @@
 /* eslint-env node */
-/* eslint import/no-nodejs-modules:0 */
-
-import fs from 'fs';
-import path from 'path';
 
 import type {Compiler} from '@rspack/core';
+import fs from 'node:fs';
+import path from 'node:path';
 
 type Options = {
   basePath: string;

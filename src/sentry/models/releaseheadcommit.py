@@ -4,12 +4,12 @@ from sentry.db.models import (
     BoundedPositiveIntegerField,
     FlexibleForeignKey,
     Model,
-    region_silo_only_model,
+    region_silo_model,
     sane_repr,
 )
 
 
-@region_silo_only_model
+@region_silo_model
 class ReleaseHeadCommit(Model):
     __relocation_scope__ = RelocationScope.Excluded
 

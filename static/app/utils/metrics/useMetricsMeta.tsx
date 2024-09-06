@@ -1,58 +1,119 @@
-import {PageFilters} from 'sentry/types';
-import {useApiQuery, UseApiQueryOptions} from 'sentry/utils/queryClient';
+import {useMemo} from 'react';
+
+import type {PageFilters} from 'sentry/types/core';
+import {
+  formatMRI,
+  getUseCaseFromMRI,
+  isExtractedCustomMetric,
+} from 'sentry/utils/metrics/mri';
+import {useVirtualMetricsContext} from 'sentry/utils/metrics/virtualMetricsContext';
+import type {ApiQueryKey} from 'sentry/utils/queryClient';
+import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 
-import {MetricMeta, UseCase} from '../../types/metrics';
+import type {MetricMeta, MRI, UseCase} from '../../types/metrics';
 
-const DEFAULT_USE_CASES = ['sessions', 'transactions', 'custom', 'spans'];
+const DEFAULT_USE_CASES: UseCase[] = ['sessions', 'transactions', 'custom', 'spans'];
 
-function useMetaUseCase(
-  useCase: UseCase,
-  projects: PageFilters['projects'],
-  options: Omit<UseApiQueryOptions<MetricMeta[]>, 'staleTime'>
-) {
-  const {slug} = useOrganization();
+export function getMetricsMetaQueryKey(
+  orgSlug: string,
+  {projects}: Partial<PageFilters>,
+  useCase?: UseCase[]
+): ApiQueryKey {
+  const queryParams = projects?.length ? {useCase, project: projects} : {useCase};
+  return [`/organizations/${orgSlug}/metrics/meta/`, {query: queryParams}];
+}
 
-  const apiQueryResult = useApiQuery<MetricMeta[]>(
-    [`/organizations/${slug}/metrics/meta/`, {query: {useCase, project: projects}}],
-    {
-      ...options,
-      staleTime: Infinity,
-    }
-  );
-
-  if (apiQueryResult.data && Array.isArray(apiQueryResult.data)) {
-    apiQueryResult.data = apiQueryResult.data.sort((a, b) => a.mri.localeCompare(b.mri));
-  }
-
-  return apiQueryResult;
+function sortMeta(meta: MetricMeta[]): MetricMeta[] {
+  return meta.toSorted((a, b) => formatMRI(a.mri).localeCompare(formatMRI(b.mri)));
 }
 
 export function useMetricsMeta(
-  projects: PageFilters['projects'],
-  useCases?: UseCase[]
-): {data: MetricMeta[]; isLoading: boolean} {
-  const enabledUseCases = useCases ?? DEFAULT_USE_CASES;
+  pageFilters: Partial<PageFilters>,
+  useCases: UseCase[] = DEFAULT_USE_CASES,
+  filterBlockedMetrics = true,
+  enabled: boolean = true
+): {data: MetricMeta[]; isLoading: boolean; isRefetching: boolean; refetch: () => void} {
+  const {slug} = useOrganization();
 
-  const {data: sessionMeta = [], ...sessionsReq} = useMetaUseCase('sessions', projects, {
-    enabled: enabledUseCases.includes('sessions'),
-  });
-  const {data: txnsMeta = [], ...txnsReq} = useMetaUseCase('transactions', projects, {
-    enabled: enabledUseCases.includes('transactions'),
-  });
-  const {data: customMeta = [], ...customReq} = useMetaUseCase('custom', projects, {
-    enabled: enabledUseCases.includes('custom'),
-  });
-  const {data: spansMeta = [], ...spansReq} = useMetaUseCase('spans', projects, {
-    enabled: enabledUseCases.includes('spans'),
-  });
+  const {data, isPending, isRefetching, refetch} = useApiQuery<MetricMeta[]>(
+    getMetricsMetaQueryKey(slug, pageFilters, useCases),
+    {
+      enabled,
+      staleTime: 2000, // 2 seconds to cover page load
+    }
+  );
+
+  const meta = useMemo(() => sortMeta(data ?? []), [data]);
+
+  const filteredMeta = useMemo(
+    () =>
+      filterBlockedMetrics
+        ? meta.filter(entry => {
+            return entry.blockingStatus?.every(({isBlocked}) => !isBlocked) ?? true;
+          })
+        : meta,
+    [filterBlockedMetrics, meta]
+  );
 
   return {
-    data: [...sessionMeta, ...txnsMeta, ...customMeta, ...spansMeta],
-    isLoading:
-      (sessionsReq.isLoading && sessionsReq.fetchStatus !== 'idle') ||
-      (txnsReq.isLoading && txnsReq.fetchStatus !== 'idle') ||
-      (customReq.isLoading && customReq.fetchStatus !== 'idle') ||
-      (spansReq.isLoading && spansReq.fetchStatus !== 'idle'),
+    data: filteredMeta,
+    isLoading: isPending,
+    isRefetching,
+    refetch,
   };
+}
+
+/**
+ * Like useMetricsMeta, but it maps extracted custom metrics into a separate namespace
+ */
+export const useVirtualizedMetricsMeta = (
+  pageFilters: Partial<PageFilters>,
+  useCases: UseCase[] = DEFAULT_USE_CASES,
+  filterBlockedMetrics = true,
+  enabled: boolean = true
+): {
+  data: MetricMeta[];
+  isLoading: boolean;
+  isRefetching: boolean;
+  refetch: () => void;
+} => {
+  const {
+    virtualMeta,
+    isLoading: isVirtualMetricsContextLoading,
+    getVirtualMRI,
+  } = useVirtualMetricsContext();
+
+  const {data, isLoading, isRefetching, refetch} = useMetricsMeta(
+    pageFilters,
+    useCases,
+    filterBlockedMetrics,
+    enabled
+  );
+
+  const newMeta = useMemo(() => {
+    // Filter all metrics that have a virtual equivalent or are extracted metrics and mix them in from the virtual context
+    const otherMetrics = data.filter(meta => {
+      return !isExtractedCustomMetric(meta) && !getVirtualMRI(meta.mri);
+    });
+
+    return sortMeta([...otherMetrics, ...virtualMeta]);
+  }, [data, getVirtualMRI, virtualMeta]);
+
+  return {
+    data: newMeta,
+    isLoading: isLoading || isVirtualMetricsContextLoading,
+    isRefetching,
+    refetch,
+  };
+};
+
+export function useProjectMetric(mri: MRI, projectId: number) {
+  const useCase = getUseCaseFromMRI(mri);
+  const res = useMetricsMeta({projects: [projectId]}, [useCase ?? 'custom'], false);
+
+  const metricMeta = res.data?.find(({mri: metaMri}) => metaMri === mri);
+  const blockingStatus = metricMeta?.blockingStatus?.[0];
+
+  return {...res, data: {...metricMeta, blockingStatus}};
 }

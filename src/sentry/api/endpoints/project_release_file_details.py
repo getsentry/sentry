@@ -1,5 +1,4 @@
 import posixpath
-from typing import Optional
 from zipfile import ZipFile
 
 from django.http.response import FileResponse
@@ -28,7 +27,7 @@ class ReleaseFileSerializer(serializers.Serializer):
     name = serializers.CharField(max_length=200, required=True)
 
 
-def _entry_from_index(release: Release, dist: Optional[Distribution], url: str) -> ReleaseFile:
+def _entry_from_index(release: Release, dist: Distribution | None, url: str) -> ReleaseFile:
     index = read_artifact_index(release, dist)
     if index is None:
         raise ResourceDoesNotExist
@@ -38,7 +37,7 @@ def _entry_from_index(release: Release, dist: Optional[Distribution], url: str) 
         raise ResourceDoesNotExist
 
 
-def _get_from_index(release: Release, dist: Optional[Distribution], url: str) -> ReleaseFile:
+def _get_from_index(release: Release, dist: Distribution | None, url: str) -> ReleaseFile:
     entry = _entry_from_index(release, dist, url)
     return pseudo_releasefile(url, entry, dist)
 
@@ -218,9 +217,9 @@ class ProjectReleaseFileDetailsEndpoint(ProjectEndpoint, ReleaseFileDetailsMixin
         not actually return the contents of the file, just the associated
         metadata.
 
-        :pparam string organization_slug: the slug of the organization the
+        :pparam string organization_id_or_slug: the id or slug of the organization the
                                           release belongs to.
-        :pparam string project_slug: the slug of the project to retrieve the
+        :pparam string project_id_or_slug: the id or slug of the project to retrieve the
                                      file of.
         :pparam string version: the version identifier of the release.
         :pparam string file_id: the ID of the file to retrieve.
@@ -248,9 +247,9 @@ class ProjectReleaseFileDetailsEndpoint(ProjectEndpoint, ReleaseFileDetailsMixin
         Update metadata of an existing file.  Currently only the name of
         the file can be changed.
 
-        :pparam string organization_slug: the slug of the organization the
+        :pparam string organization_id_or_slug: the id or slug of the organization the
                                           release belongs to.
-        :pparam string project_slug: the slug of the project to update the
+        :pparam string project_id_or_slug: the id or slug of the project to update the
                                      file of.
         :pparam string version: the version identifier of the release.
         :pparam string file_id: the ID of the file to update.
@@ -277,9 +276,9 @@ class ProjectReleaseFileDetailsEndpoint(ProjectEndpoint, ReleaseFileDetailsMixin
         This will also remove the physical file from storage, except if it is
         stored as part of an artifact bundle.
 
-        :pparam string organization_slug: the slug of the organization the
+        :pparam string organization_id_or_slug: the id or slug of the organization the
                                           release belongs to.
-        :pparam string project_slug: the slug of the project to delete the
+        :pparam string project_id_or_slug: the id or slug of the project to delete the
                                      file of.
         :pparam string version: the version identifier of the release.
         :pparam string file_id: the ID of the file to delete.

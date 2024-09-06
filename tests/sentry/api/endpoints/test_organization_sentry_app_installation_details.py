@@ -7,10 +7,10 @@ from sentry import audit_log
 from sentry.constants import SentryAppInstallationStatus
 from sentry.mediators.token_exchange.grant_exchanger import GrantExchanger
 from sentry.models.auditlogentry import AuditLogEntry
-from sentry.services.hybrid_cloud.app import app_service
-from sentry.services.hybrid_cloud.user.service import user_service
+from sentry.sentry_apps.services.app import app_service
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import control_silo_test
+from sentry.users.services.user.service import user_service
 
 
 class SentryAppInstallationDetailsTest(APITestCase):
@@ -58,8 +58,26 @@ class SentryAppInstallationDetailsTest(APITestCase):
 
 @control_silo_test
 class GetSentryAppInstallationDetailsTest(SentryAppInstallationDetailsTest):
-    def test_access_within_installs_organization(self):
-        self.login_as(user=self.user)
+    def test_access_within_installs_organization_by_member(self):
+        member_user = self.create_user("member@example.com")
+        self.create_member(organization=self.org, user=member_user, role="member")
+        self.login_as(member_user)
+
+        response = self.client.get(self.url, format="json")
+
+        assert response.status_code == 200, response.content
+        assert response.data == {
+            "app": {"uuid": self.unpublished_app.uuid, "slug": self.unpublished_app.slug},
+            "organization": {"slug": self.org.slug},
+            "uuid": self.installation2.uuid,
+            "status": "pending",
+        }
+
+    def test_access_within_installs_organization_by_manager(self):
+        manager_user = self.create_user("manager@example.com")
+        self.create_member(organization=self.org, user=manager_user, role="manager")
+        self.login_as(manager_user)
+
         response = self.client.get(self.url, format="json")
 
         assert response.status_code == 200, response.content

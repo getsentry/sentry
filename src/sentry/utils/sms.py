@@ -10,17 +10,8 @@ logger = logging.getLogger(__name__)
 
 
 class InvalidPhoneNumber(Exception):
-    def __init__(self, *args):
-        if args:
-            self.message = args[0]
-        else:
-            self.message = None
-
-    def __str__(self):
-        if self.message:
-            return f"InvalidPhoneNumber: {self.message}"
-        else:
-            return "InvalidPhoneNumber"
+    def __str__(self) -> str:
+        return "InvalidPhoneNumber"
 
 
 def validate_phone_number(phone_number: str) -> bool:
@@ -50,11 +41,11 @@ def phone_number_as_e164(num: str) -> str:
         raise InvalidPhoneNumber
 
 
-def sms_available():
+def sms_available() -> bool:
     return bool(options.get("sms.twilio-account"))
 
 
-def send_sms(body, to, from_=None):
+def send_sms(body: str, to: str, from_: str | None = None) -> bool:
     account = options.get("sms.twilio-account")
     if not account:
         raise RuntimeError("SMS backend is not configured.")

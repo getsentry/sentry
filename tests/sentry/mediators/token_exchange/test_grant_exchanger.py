@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta
+from datetime import UTC, datetime, timedelta
 from unittest.mock import patch
 
 import pytest
@@ -9,7 +9,7 @@ from sentry.models.apiapplication import ApiApplication
 from sentry.models.apigrant import ApiGrant
 from sentry.models.integrations.sentry_app import SentryApp
 from sentry.models.integrations.sentry_app_installation import SentryAppInstallation
-from sentry.services.hybrid_cloud.app import app_service
+from sentry.sentry_apps.services.app import app_service
 from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import control_silo_test
 
@@ -57,7 +57,7 @@ class TestGrantExchanger(TestCase):
             self.grant_exchanger.call()
 
     def test_grant_must_be_active(self):
-        self.orm_install.api_grant.update(expires_at=(datetime.utcnow() - timedelta(hours=1)))
+        self.orm_install.api_grant.update(expires_at=(datetime.now(UTC) - timedelta(hours=1)))
 
         with pytest.raises(APIUnauthorized):
             self.grant_exchanger.call()

@@ -1,5 +1,6 @@
 from uuid import uuid4
 
+import orjson
 from drf_spectacular.utils import extend_schema
 from rest_framework import serializers
 from rest_framework.request import Request
@@ -29,12 +30,11 @@ from sentry.lang.native.sources import (
     validate_sources,
 )
 from sentry.models.project import Project
-from sentry.utils import json
 
 
 class LayoutSerializer(serializers.Serializer):
     """
-    Layout settings for the source. This is required for HTTP, GCS, and S3 sources and invalid for AppStoreConnect sources.
+    Layout settings for the source. This is required for HTTP, GCS, and S3 sources.
 
     **`type`** ***(string)*** - The layout of the folder structure. The options are:
     - `native` - Platform-Specific (SymStore / GDB / LLVM)
@@ -70,7 +70,6 @@ class LayoutSerializer(serializers.Serializer):
 class SourceSerializer(serializers.Serializer):
     type = serializers.ChoiceField(
         choices=[
-            ("appStoreConnect", "App Store Connect"),
             ("http", "SymbolServer (HTTP)"),
             ("gcs", "Google Cloud Storage"),
             ("s3", "Amazon S3"),
@@ -89,44 +88,6 @@ class SourceSerializer(serializers.Serializer):
     layout = LayoutSerializer(
         required=False,
     )
-    appconnectIssuer = serializers.CharField(
-        min_length=36,
-        max_length=36,
-        required=False,
-        help_text="The [App Store Connect Issuer ID](https://developer.apple.com/documentation/appstoreserverapi/generating_tokens_for_api_requests). Required for AppStoreConnect sources, invalid for all others.",
-    )
-    appconnectKey = (
-        serializers.CharField(
-            min_length=2,
-            max_length=20,
-            required=False,
-            help_text='The [App Store Connect API Key](https://developer.apple.com/documentation/appstoreconnectapi/creating_api_keys_for_app_store_connect_api) ID. Note that the key must have the "Developer" role for Sentry to discover the app builds. Required for AppStoreConnect sources, invalid for all others.',
-        ),
-    )
-    appconnectPrivateKey = serializers.CharField(
-        required=False,
-        help_text="The [App Store Connect API Private Key](https://developer.apple.com/documentation/appstoreconnectapi/creating_api_keys_for_app_store_connect_api). Required for AppStoreConnect sources, invalid for all others.",
-    )
-    appName = (
-        serializers.CharField(
-            min_length=1,
-            max_length=512,
-            required=False,
-            help_text="The [App Store Connect App Name](https://developer.apple.com/help/app-store-connect/create-an-app-record/add-a-new-app). Required for AppStoreConnect sources, invalid for all others.",
-        ),
-    )
-    appId = serializers.CharField(
-        min_length=1,
-        required=False,
-        help_text="The App Store Connect App ID. Required for AppStoreConnect sources, invalid for all others.",
-    )
-    bundleId = (
-        serializers.CharField(
-            min_length=1,
-            required=False,
-            help_text="The [App Store Connect App Bundle](https://developer.apple.com/help/app-store-connect/create-an-app-record/create-and-submit-app-bundles) ID. Required for AppStoreConnect sources, invalid for all others.",
-        ),
-    )
     url = serializers.CharField(
         required=False,
         help_text="The source's URL. Optional for HTTP sources, invalid for all others.",
@@ -141,7 +102,7 @@ class SourceSerializer(serializers.Serializer):
     )
     bucket = serializers.CharField(
         required=False,
-        help_text="The GCS or S3 bucket where the source resides. Required for GCS and S3 sourcse, invalid for HTTP and AppStoreConnect sources.",
+        help_text="The GCS or S3 bucket where the source resides. Required for GCS and S3 source, invalid for HTTP sources.",
     )
     region = serializers.ChoiceField(
         choices=[
@@ -180,7 +141,7 @@ class SourceSerializer(serializers.Serializer):
     )
     prefix = serializers.CharField(
         required=False,
-        help_text="The GCS or [S3](https://docs.aws.amazon.com/AmazonS3/latest/userguide/using-prefixes.html) prefix. Optional for GCS and S3 sourcse, invalid for HTTP and AppStoreConnect sources.",
+        help_text="The GCS or [S3](https://docs.aws.amazon.com/AmazonS3/latest/userguide/using-prefixes.html) prefix. Optional for GCS and S3 sourcse, invalid for HTTP.",
     )
     client_email = serializers.CharField(
         required=False,
@@ -192,19 +153,7 @@ class SourceSerializer(serializers.Serializer):
     )
 
     def validate(self, data):
-        if data["type"] == "appStoreConnect":
-            required = [
-                "type",
-                "name",
-                "appconnectIssuer",
-                "appconnectKey",
-                "appconnectPrivateKey",
-                "appName",
-                "appId",
-                "bundleId",
-            ]
-            allowed = required
-        elif data["type"] == "http":
+        if data["type"] == "http":
             required = ["type", "name", "url", "layout"]
             allowed = required + ["username", "password"]
         elif data["type"] == "s3":
@@ -232,7 +181,7 @@ class SourceSerializer(serializers.Serializer):
 @extend_schema(tags=["Projects"])
 @region_silo_endpoint
 class ProjectSymbolSourcesEndpoint(ProjectEndpoint):
-    owner = ApiOwner.OWNERS_NATIVE
+    owner = ApiOwner.OWNERS_INGEST
     publish_status = {
         "GET": ApiPublishStatus.PUBLIC,
         "DELETE": ApiPublishStatus.PUBLIC,
@@ -243,8 +192,8 @@ class ProjectSymbolSourcesEndpoint(ProjectEndpoint):
     @extend_schema(
         operation_id="Retrieve a Project's Symbol Sources",
         parameters=[
-            GlobalParams.ORG_SLUG,
-            GlobalParams.PROJECT_SLUG,
+            GlobalParams.ORG_ID_OR_SLUG,
+            GlobalParams.PROJECT_ID_OR_SLUG,
             ProjectParams.source_id(
                 "The ID of the source to look up. If this is not provided, all sources are returned.",
                 False,
@@ -263,7 +212,7 @@ class ProjectSymbolSourcesEndpoint(ProjectEndpoint):
         """
         id = request.GET.get("id")
         custom_symbol_sources_json = project.get_option("sentry:symbol_sources") or []
-        sources = parse_sources(custom_symbol_sources_json, False)
+        sources = parse_sources(custom_symbol_sources_json, filter_appconnect=False)
         redacted = redact_source_secrets(sources)
 
         if id:
@@ -277,8 +226,8 @@ class ProjectSymbolSourcesEndpoint(ProjectEndpoint):
     @extend_schema(
         operation_id="Delete a Symbol Source from a Project",
         parameters=[
-            GlobalParams.ORG_SLUG,
-            GlobalParams.PROJECT_SLUG,
+            GlobalParams.ORG_ID_OR_SLUG,
+            GlobalParams.PROJECT_ID_OR_SLUG,
             ProjectParams.source_id("The ID of the source to delete.", True),
         ],
         responses={
@@ -295,14 +244,14 @@ class ProjectSymbolSourcesEndpoint(ProjectEndpoint):
         id = request.GET.get("id")
         custom_symbol_sources_json = project.get_option("sentry:symbol_sources") or []
 
-        sources = parse_sources(custom_symbol_sources_json, False)
+        sources = parse_sources(custom_symbol_sources_json, filter_appconnect=False)
 
         if id:
             filtered_sources = [src for src in sources if src["id"] != id]
             if len(filtered_sources) == len(sources):
                 return Response(data={"error": f"Unknown source id: {id}"}, status=404)
 
-            serialized = json.dumps(filtered_sources)
+            serialized = orjson.dumps(filtered_sources).decode()
             project.update_option("sentry:symbol_sources", serialized)
             return Response(status=204)
 
@@ -310,7 +259,7 @@ class ProjectSymbolSourcesEndpoint(ProjectEndpoint):
 
     @extend_schema(
         operation_id="Add a Symbol Source to a Project",
-        parameters=[GlobalParams.ORG_SLUG, GlobalParams.PROJECT_SLUG],
+        parameters=[GlobalParams.ORG_ID_OR_SLUG, GlobalParams.PROJECT_ID_OR_SLUG],
         request=SourceSerializer,
         responses={
             201: REDACTED_SOURCE_SCHEMA,
@@ -324,7 +273,7 @@ class ProjectSymbolSourcesEndpoint(ProjectEndpoint):
         Add a custom symbol source to a project.
         """
         custom_symbol_sources_json = project.get_option("sentry:symbol_sources") or []
-        sources = parse_sources(custom_symbol_sources_json, False)
+        sources = parse_sources(custom_symbol_sources_json, filter_appconnect=False)
 
         source = request.data
 
@@ -341,7 +290,7 @@ class ProjectSymbolSourcesEndpoint(ProjectEndpoint):
         except InvalidSourcesError:
             return Response(status=400)
 
-        serialized = json.dumps(sources)
+        serialized = orjson.dumps(sources).decode()
         project.update_option("sentry:symbol_sources", serialized)
 
         redacted = redact_source_secrets([source])
@@ -350,8 +299,8 @@ class ProjectSymbolSourcesEndpoint(ProjectEndpoint):
     @extend_schema(
         operation_id="Update a Project's Symbol Source",
         parameters=[
-            GlobalParams.ORG_SLUG,
-            GlobalParams.PROJECT_SLUG,
+            GlobalParams.ORG_ID_OR_SLUG,
+            GlobalParams.PROJECT_ID_OR_SLUG,
             ProjectParams.source_id("The ID of the source to update.", True),
         ],
         request=SourceSerializer,
@@ -371,7 +320,7 @@ class ProjectSymbolSourcesEndpoint(ProjectEndpoint):
         source = request.data
 
         custom_symbol_sources_json = project.get_option("sentry:symbol_sources") or []
-        sources = parse_sources(custom_symbol_sources_json, False)
+        sources = parse_sources(custom_symbol_sources_json, filter_appconnect=False)
 
         if id is None:
             return Response(data={"error": "Missing source id"}, status=404)
@@ -402,7 +351,7 @@ class ProjectSymbolSourcesEndpoint(ProjectEndpoint):
         except InvalidSourcesError as e:
             return Response(data={"error": str(e)}, status=400)
 
-        serialized = json.dumps(sources)
+        serialized = orjson.dumps(sources).decode()
         project.update_option("sentry:symbol_sources", serialized)
 
         redacted = redact_source_secrets([source])

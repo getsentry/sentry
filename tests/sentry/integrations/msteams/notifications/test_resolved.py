@@ -53,7 +53,7 @@ class MSTeamsResolvedNotificationTest(MSTeamsActivityNotificationTest):
             in body[1]["text"]
         )
         assert (
-            f"{self.project.slug} | [Notification Settings](http://testserver/settings/account/notifications/workflow/?referrer=resolved\\_activity-msteams-user&amp;notification\\_uuid={notification_uuid})"
+            f"{self.project.slug} | [Notification Settings](http://testserver/settings/account/notifications/workflow/?referrer=resolved\\_activity-msteams-user&amp;notification\\_uuid={notification_uuid}&amp;organizationId={self.organization.id})"
             == body[3]["columns"][1]["items"][0]["text"]
         )
 
@@ -93,6 +93,6 @@ class MSTeamsResolvedNotificationTest(MSTeamsActivityNotificationTest):
         )
         notification_uuid = self.get_notification_uuid(body[3]["columns"][1]["items"][0]["text"])
         assert (
-            f"{self.project.slug} | [Notification Settings](http://testserver/settings/account/notifications/workflow/?referrer=resolved\\_in\\_release\\_activity-msteams-user&amp;notification\\_uuid={notification_uuid})"
+            f"{self.project.slug} | [Notification Settings](http://testserver/settings/account/notifications/workflow/?referrer=resolved\\_in\\_release\\_activity-msteams-user&amp;notification\\_uuid={notification_uuid}&amp;organizationId={self.organization.id})"
             == body[3]["columns"][1]["items"][0]["text"]
         )

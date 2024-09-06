@@ -3,10 +3,8 @@ import isEqual from 'lodash/isEqual';
 import sortBy from 'lodash/sortBy';
 
 import {updateEnvironments} from 'sentry/actionCreators/pageFilters';
-import {
-  HybridFilter,
-  HybridFilterProps,
-} from 'sentry/components/organizations/hybridFilter';
+import type {HybridFilterProps} from 'sentry/components/organizations/hybridFilter';
+import {HybridFilter} from 'sentry/components/organizations/hybridFilter';
 import {ALL_ACCESS_PROJECTS} from 'sentry/constants/pageFilters';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';

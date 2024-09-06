@@ -6,12 +6,12 @@ from sentry.db.models import (
     BoundedPositiveIntegerField,
     FlexibleForeignKey,
     Model,
-    region_silo_only_model,
+    region_silo_model,
 )
 from sentry.types.releaseactivity import CHOICES
 
 
-@region_silo_only_model
+@region_silo_model
 class ReleaseActivity(Model):
     __relocation_scope__ = RelocationScope.Excluded
 

@@ -1,14 +1,15 @@
 from __future__ import annotations
 
-from typing import Any, Iterable, Mapping, MutableMapping, Sequence, cast
+from collections.abc import Iterable, Mapping, MutableMapping, Sequence
+from typing import Any, cast
 
 from sentry.api.serializers import serialize
 from sentry.models.organizationmember import OrganizationMember
-from sentry.models.user import User
 from sentry.roles import organization_roles, team_roles
 from sentry.roles.manager import OrganizationRole, Role
-from sentry.services.hybrid_cloud.user import UserSerializeType
-from sentry.services.hybrid_cloud.user.service import user_service
+from sentry.users.models.user import User
+from sentry.users.services.user import UserSerializeType
+from sentry.users.services.user.service import user_service
 
 from ...role import OrganizationRoleSerializer, TeamRoleSerializer
 from .. import OrganizationMemberWithTeamsSerializer

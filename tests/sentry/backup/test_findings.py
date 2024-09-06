@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from dataclasses import asdict, dataclass
 from enum import auto, unique
-from typing import Any, Dict
+from typing import Any
 
 from sentry.backup.dependencies import get_model_name
 from sentry.backup.findings import (
@@ -13,14 +13,14 @@ from sentry.backup.findings import (
     FindingKind,
     InstanceID,
 )
-from sentry.models.email import Email
-from sentry.services.hybrid_cloud.import_export.model import (
+from sentry.backup.services.import_export.model import (
     RpcExportError,
     RpcExportErrorKind,
     RpcImportError,
     RpcImportErrorKind,
 )
 from sentry.testutils.cases import TestCase
+from sentry.users.models.email import Email
 
 encoder = FindingJSONEncoder(
     sort_keys=True,
@@ -57,7 +57,7 @@ class TestFinding(Finding):
             out += f",\n    reason: {self.reason}"
         return out + "\n)"
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         return asdict(self)
 
 

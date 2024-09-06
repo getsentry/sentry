@@ -3,9 +3,10 @@ from __future__ import annotations
 import enum
 import logging
 
-from sentry.incidents.models import AlertRuleTriggerAction, Incident, IncidentStatus
-from sentry.models.integrations.integration import Integration
-from sentry.services.hybrid_cloud.integration import integration_service
+from sentry.incidents.models.alert_rule import AlertRuleTriggerAction
+from sentry.incidents.models.incident import Incident, IncidentStatus
+from sentry.integrations.models.integration import Integration
+from sentry.integrations.services.integration import integration_service
 
 from .client import MsTeamsClient, MsTeamsPreInstallClient, get_token_data
 
@@ -103,7 +104,7 @@ def send_incident_alert_notification(
     new_status: IncidentStatus,
     notification_uuid: str | None = None,
 ) -> bool:
-    from .card_builder import build_incident_attachment
+    from .card_builder.incident_attachment import build_incident_attachment
 
     if action.target_identifier is None:
         raise ValueError("Can't send without `target_identifier`")

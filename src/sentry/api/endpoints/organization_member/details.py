@@ -1,8 +1,7 @@
 from __future__ import annotations
 
-from typing import List
-
 from django.db import router, transaction
+from django.db.models import Q
 from drf_spectacular.utils import extend_schema, inline_serializer
 from rest_framework import serializers
 from rest_framework.request import Request
@@ -15,7 +14,10 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases import OrganizationMemberEndpoint
 from sentry.api.bases.organization import OrganizationPermission
-from sentry.api.endpoints.organization_member.index import OrganizationMemberSerializer
+from sentry.api.endpoints.organization_member.index import (
+    ROLE_CHOICES,
+    OrganizationMemberRequestSerializer,
+)
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.organization_member import OrganizationMemberWithRolesSerializer
 from sentry.apidocs.constants import (
@@ -27,21 +29,22 @@ from sentry.apidocs.constants import (
 )
 from sentry.apidocs.examples.organization_examples import OrganizationExamples
 from sentry.apidocs.parameters import GlobalParams
+from sentry.auth.services.auth import auth_service
 from sentry.auth.superuser import is_active_superuser
 from sentry.models.organization import Organization
 from sentry.models.organizationmember import InviteStatus, OrganizationMember
 from sentry.models.organizationmemberteam import OrganizationMemberTeam
 from sentry.models.project import Project
 from sentry.roles import organization_roles, team_roles
-from sentry.services.hybrid_cloud.auth import auth_service
-from sentry.services.hybrid_cloud.user_option import user_option_service
+from sentry.users.services.user_option import user_option_service
 from sentry.utils import metrics
 
-from . import InvalidTeam, get_allowed_org_roles, save_team_assignments
+from . import get_allowed_org_roles, save_team_assignments
 
 ERR_NO_AUTH = "You cannot remove this member with an unauthenticated API request."
 ERR_INSUFFICIENT_ROLE = "You cannot remove a member who has more access than you."
 ERR_INSUFFICIENT_SCOPE = "You are missing the member:admin scope."
+ERR_MEMBER_INVITE = "Your role cannot remove an invitation that was sent by someone else."
 ERR_ONLY_OWNER = "You cannot remove the only remaining owner of the organization."
 ERR_UNINVITABLE = "You cannot send an invitation to a user who is already a full member."
 ERR_EXPIRED = "You cannot resend an expired invitation without regenerating the token."
@@ -66,27 +69,6 @@ Configures the team role of the member. The two roles are:
 }
 ```
 """
-
-# Required to explicitly define roles w/ descriptions because OrganizationMemberSerializer
-# has the wrong descriptions, includes deprecated admin, and excludes billing
-ROLE_CHOICES = [
-    ("billing", "Can manage payment and compliance details."),
-    (
-        "member",
-        "Can view and act on events, as well as view most other data within the organization.",
-    ),
-    (
-        "manager",
-        """Has full management access to all teams and projects. Can also manage
-        the organization's membership.""",
-    ),
-    (
-        "owner",
-        """Has unrestricted access to the organization, its data, and its
-        settings. Can add, modify, and delete projects and members, as well as
-        make billing and plan changes.""",
-    ),
-]
 
 
 class RelaxedMemberPermission(OrganizationPermission):
@@ -114,7 +96,7 @@ class OrganizationMemberDetailsEndpoint(OrganizationMemberEndpoint):
         "PUT": ApiPublishStatus.PUBLIC,
     }
     owner = ApiOwner.ENTERPRISE
-    permission_classes = [RelaxedMemberPermission]
+    permission_classes = (RelaxedMemberPermission,)
 
     def _get_member(
         self,
@@ -133,8 +115,8 @@ class OrganizationMemberDetailsEndpoint(OrganizationMemberEndpoint):
     @extend_schema(
         operation_id="Retrieve an Organization Member",
         parameters=[
-            GlobalParams.ORG_SLUG,
-            GlobalParams.member_id("The ID of the member to delete."),
+            GlobalParams.ORG_ID_OR_SLUG,
+            GlobalParams.member_id("The ID of the organization member."),
         ],
         responses={
             200: OrganizationMemberWithRolesSerializer,  # The Sentry response serializer
@@ -166,7 +148,7 @@ class OrganizationMemberDetailsEndpoint(OrganizationMemberEndpoint):
     @extend_schema(
         operation_id="Update an Organization Member's Roles",
         parameters=[
-            GlobalParams.ORG_SLUG,
+            GlobalParams.ORG_ID_OR_SLUG,
             GlobalParams.member_id("The ID of the member to update."),
         ],
         request=inline_serializer(
@@ -201,10 +183,18 @@ class OrganizationMemberDetailsEndpoint(OrganizationMemberEndpoint):
         member: OrganizationMember,
     ) -> Response:
         """
-        Update a member's organization and team-level roles.
+        Update a member's [organization-level](https://docs.sentry.io/organization/membership/#organization-level-roles) and [team-level](https://docs.sentry.io/organization/membership/#team-level-roles) roles.
+
+        Note that for changing organization-roles, this endpoint is restricted to
+        [user auth tokens](https://docs.sentry.io/account/auth-tokens/#user-auth-tokens).
+        Additionally, both the original and desired organization role must have
+        the same or lower permissions than the role of the organization user making the request
+
+        For example, an organization Manager may change someone's role from
+        Member to Manager, but not to Owner.
         """
         allowed_roles = get_allowed_org_roles(request, organization)
-        serializer = OrganizationMemberSerializer(
+        serializer = OrganizationMemberRequestSerializer(
             data=request.data,
             partial=True,
             context={
@@ -262,24 +252,36 @@ class OrganizationMemberDetailsEndpoint(OrganizationMemberEndpoint):
                 # TODO(dcramer): proper error message
                 return Response({"detail": ERR_UNINVITABLE}, status=400)
 
+        assigned_org_role = result.get("orgRole") or result.get("role")
+
         # Set the team-role before org-role. If the org-role has elevated permissions
         # on the teams, the team-roles can be overwritten later
-        if "teamRoles" in result or "teams" in result:
-            try:
-                if "teamRoles" in result:
-                    # If orgs do not have the flag, we'll set their team-roles to None
-                    team_roles = (
-                        result.get("teamRoles")
-                        if features.has("organizations:team-roles", organization)
-                        else [(team, None) for team, _ in result.get("teamRoles", [])]
-                    )
-                    save_team_assignments(member, None, team_roles)
-                elif "teams" in result:
-                    save_team_assignments(member, result.get("teams"))
-            except InvalidTeam:
-                return Response({"teams": "Invalid team"}, status=400)
+        team_roles = teams = None
+        if "teamRoles" in result:
+            # If orgs do not have the flag, we'll set their team-roles to None
+            team_roles = (
+                result.get("teamRoles")
+                if features.has("organizations:team-roles", organization)
+                else [(team, None) for team, _ in result.get("teamRoles", [])]
+            )
+        elif "teams" in result:
+            teams = result.get("teams")
 
-        assigned_org_role = result.get("orgRole") or result.get("role")
+        if teams or team_roles or (teams is None and team_roles is None and member.get_teams()):
+            new_role = assigned_org_role if assigned_org_role else member.role
+            if not organization_roles.get(new_role).is_team_roles_allowed:
+                return Response(
+                    {
+                        "detail": f"The user with a '{new_role}' role cannot have team-level permissions."
+                    },
+                    status=400,
+                )
+
+        if team_roles:
+            save_team_assignments(member, None, team_roles)
+        else:
+            save_team_assignments(member, teams)
+
         is_update_org_role = assigned_org_role and assigned_org_role != member.role
 
         if is_update_org_role:
@@ -347,7 +349,7 @@ class OrganizationMemberDetailsEndpoint(OrganizationMemberEndpoint):
             # null. We do this because such a team role would be effectively
             # invisible in the UI, and would be surprising if it were left behind
             # after the user's org role is lowered again.
-            omts: List[OrganizationMemberTeam] = []
+            omts: list[OrganizationMemberTeam] = []
             for omt in OrganizationMemberTeam.objects.filter(
                 organizationmember=member, role__in=lesser_team_roles
             ):
@@ -362,10 +364,36 @@ class OrganizationMemberDetailsEndpoint(OrganizationMemberEndpoint):
                 tags={"target_org_role": role, "count": omt_update_count},
             )
 
+    def _handle_deletion_by_member(
+        self,
+        request: Request,
+        organization: Organization,
+        member: OrganizationMember,
+        acting_member: OrganizationMember,
+    ) -> Response:
+        # Members can only delete invitations
+        if not member.inviter_id:
+            return Response({"detail": ERR_INSUFFICIENT_SCOPE}, status=400)
+        # Members can only delete invitations that they sent
+        if member.inviter_id != acting_member.user_id:
+            return Response({"detail": ERR_MEMBER_INVITE}, status=400)
+
+        audit_data = member.get_audit_log_data()
+        member.delete()
+        self.create_audit_entry(
+            request=request,
+            organization=organization,
+            target_object=member.id,
+            target_user_id=member.user_id,
+            event=audit_log.get_event_id("MEMBER_REMOVE"),
+            data=audit_data,
+        )
+        return Response(status=204)
+
     @extend_schema(
         operation_id="Delete an Organization Member",
         parameters=[
-            GlobalParams.ORG_SLUG,
+            GlobalParams.ORG_ID_OR_SLUG,
             GlobalParams.member_id("The ID of the member to delete."),
         ],
         responses={
@@ -385,6 +413,8 @@ class OrganizationMemberDetailsEndpoint(OrganizationMemberEndpoint):
         Remove an organization member.
         """
 
+        # with superuser read write separation, superuser read cannot hit this endpoint
+        # so we can keep this as is_active_superuser
         if request.user.is_authenticated and not is_active_superuser(request):
             try:
                 acting_member = OrganizationMember.objects.get(
@@ -395,14 +425,17 @@ class OrganizationMemberDetailsEndpoint(OrganizationMemberEndpoint):
             else:
                 if acting_member != member:
                     if not request.access.has_scope("member:admin"):
+                        if (
+                            features.has("organizations:members-invite-teammates", organization)
+                            and not organization.flags.disable_member_invite
+                            and request.access.has_scope("member:invite")
+                        ):
+                            return self._handle_deletion_by_member(
+                                request, organization, member, acting_member
+                            )
                         return Response({"detail": ERR_INSUFFICIENT_SCOPE}, status=400)
                     else:
-                        can_manage = False
-                        # check org roles through teams
-                        for role in acting_member.get_all_org_roles():
-                            if roles.can_manage(role, member.role):
-                                can_manage = True
-                                break
+                        can_manage = roles.can_manage(acting_member.role, member.role)
 
                         if not can_manage:
                             return Response({"detail": ERR_INSUFFICIENT_ROLE}, status=400)
@@ -450,6 +483,17 @@ class OrganizationMemberDetailsEndpoint(OrganizationMemberEndpoint):
                 lambda: user_option_service.delete_options(option_ids=[uo.id for uo in uos]),
                 using=router.db_for_write(Project),
             )
+
+        with transaction.atomic(router.db_for_write(OrganizationMember)):
+            # Delete any invite requests and pending invites by the deleted member
+            existing_invites = OrganizationMember.objects.filter(
+                Q(invite_status=InviteStatus.REQUESTED_TO_BE_INVITED.value)
+                | Q(token__isnull=False),
+                inviter_id=member.user_id,
+                organization=organization,
+            )
+            for om in existing_invites:
+                om.delete()
 
         self.create_audit_entry(
             request=request,

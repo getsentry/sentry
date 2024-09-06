@@ -1,16 +1,18 @@
-import {Organization} from 'sentry-fixture/organization';
+import {OrganizationFixture} from 'sentry-fixture/organization';
+import {RouterFixture} from 'sentry-fixture/routerFixture';
 
-import {BreadcrumbContextProvider} from 'sentry-test/providers/breadcrumbContextProvider';
-import {render, screen} from 'sentry-test/reactTestingLibrary';
+import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import * as OrgActions from 'sentry/actionCreators/organizations';
 import ConfigStore from 'sentry/stores/configStore';
-import {Organization as TOrganization} from 'sentry/types';
+import type {Organization} from 'sentry/types/organization';
 import SettingsIndex from 'sentry/views/settings/settingsIndex';
+
+import {BreadcrumbProvider} from './components/settingsBreadcrumb/context';
 
 describe('SettingsIndex', function () {
   const props = {
-    router: TestStubs.router(),
+    router: RouterFixture(),
     location: {} as any,
     routes: [],
     route: {},
@@ -20,17 +22,17 @@ describe('SettingsIndex', function () {
 
   it('renders', function () {
     render(
-      <BreadcrumbContextProvider>
-        <SettingsIndex {...props} organization={Organization()} />
-      </BreadcrumbContextProvider>
+      <BreadcrumbProvider>
+        <SettingsIndex {...props} organization={OrganizationFixture()} />
+      </BreadcrumbProvider>
     );
   });
 
   it('has loading when there is no organization', function () {
     render(
-      <BreadcrumbContextProvider>
+      <BreadcrumbProvider>
         <SettingsIndex {...props} organization={null} />
-      </BreadcrumbContextProvider>
+      </BreadcrumbProvider>
     );
 
     expect(screen.getByTestId('loading-indicator')).toBeInTheDocument();
@@ -40,9 +42,9 @@ describe('SettingsIndex', function () {
     ConfigStore.set('isSelfHosted', true);
 
     render(
-      <BreadcrumbContextProvider>
-        <SettingsIndex {...props} organization={Organization()} />
-      </BreadcrumbContextProvider>
+      <BreadcrumbProvider>
+        <SettingsIndex {...props} organization={OrganizationFixture()} />
+      </BreadcrumbProvider>
     );
 
     const formLink = screen.getByText('Community Forums');
@@ -57,7 +59,7 @@ describe('SettingsIndex', function () {
       name: 'Org Index',
       slug: 'org-index',
       features: [],
-    } as unknown as TOrganization;
+    } as unknown as Organization;
 
     const spy = jest.spyOn(OrgActions, 'fetchOrganizationDetails');
     let orgApi: jest.Mock;
@@ -70,39 +72,39 @@ describe('SettingsIndex', function () {
       });
     });
 
-    it('fetches org details for SidebarDropdown', function () {
+    it('fetches org details for SidebarDropdown', async function () {
       const {rerender} = render(
-        <BreadcrumbContextProvider>
+        <BreadcrumbProvider>
           <SettingsIndex {...props} params={{}} organization={null} />
-        </BreadcrumbContextProvider>
+        </BreadcrumbProvider>
       );
 
       // org from index endpoint, no `access` info
       rerender(
-        <BreadcrumbContextProvider>
+        <BreadcrumbProvider>
           <SettingsIndex {...props} organization={organization} />
-        </BreadcrumbContextProvider>
+        </BreadcrumbProvider>
       );
 
+      await waitFor(() => expect(orgApi).toHaveBeenCalledTimes(1));
       expect(spy).toHaveBeenCalledWith(expect.anything(), organization.slug, {
         setActive: true,
         loadProjects: true,
       });
-      expect(orgApi).toHaveBeenCalledTimes(1);
     });
 
     it('does not fetch org details for SidebarDropdown', function () {
       const {rerender} = render(
-        <BreadcrumbContextProvider>
+        <BreadcrumbProvider>
           <SettingsIndex {...props} params={{}} organization={null} />
-        </BreadcrumbContextProvider>
+        </BreadcrumbProvider>
       );
 
       // org already has details
       rerender(
-        <BreadcrumbContextProvider>
-          <SettingsIndex {...props} organization={Organization()} />
-        </BreadcrumbContextProvider>
+        <BreadcrumbProvider>
+          <SettingsIndex {...props} organization={OrganizationFixture()} />
+        </BreadcrumbProvider>
       );
 
       expect(spy).not.toHaveBeenCalledWith();

@@ -1,5 +1,4 @@
 import {Fragment, useEffect} from 'react';
-import {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
@@ -18,24 +17,22 @@ import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {IconAdd, IconArrow} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {
+import type {
   IntegrationProvider,
-  IntegrationWithConfig,
-  Organization,
+  OrganizationIntegration,
   PluginWithProjectList,
-} from 'sentry/types';
+} from 'sentry/types/integrations';
+import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
+import type {Organization} from 'sentry/types/organization';
 import {singleLineRenderer} from 'sentry/utils/marked';
-import {
-  ApiQueryKey,
-  setApiQueryData,
-  useApiQuery,
-  useQueryClient,
-} from 'sentry/utils/queryClient';
+import type {ApiQueryKey} from 'sentry/utils/queryClient';
+import {setApiQueryData, useApiQuery, useQueryClient} from 'sentry/utils/queryClient';
 import useRouteAnalyticsEventNames from 'sentry/utils/routeAnalytics/useRouteAnalyticsEventNames';
 import useRouteAnalyticsParams from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
+import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
-import {normalizeUrl} from 'sentry/utils/withDomainRequired';
+import useProjects from 'sentry/utils/useProjects';
 import BreadcrumbTitle from 'sentry/views/settings/components/settingsBreadcrumb/breadcrumbTitle';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 
@@ -85,7 +82,7 @@ function ConfigureIntegration({params, router, routes, location}: Props) {
   const {integrationId, providerKey} = params;
   const {
     data: config = {providers: []},
-    isLoading: isLoadingConfig,
+    isPending: isLoadingConfig,
     isError: isErrorConfig,
     refetch: refetchConfig,
     remove: removeConfig,
@@ -94,17 +91,17 @@ function ConfigureIntegration({params, router, routes, location}: Props) {
   }>([`/organizations/${organization.slug}/config/integrations/`], {staleTime: 0});
   const {
     data: integration,
-    isLoading: isLoadingIntegration,
+    isPending: isLoadingIntegration,
     isError: isErrorIntegration,
     refetch: refetchIntegration,
     remove: removeIntegration,
-  } = useApiQuery<IntegrationWithConfig>(
+  } = useApiQuery<OrganizationIntegration>(
     makeIntegrationQuery(organization, integrationId),
     {staleTime: 0}
   );
   const {
     data: plugins,
-    isLoading: isLoadingPlugins,
+    isPending: isLoadingPlugins,
     isError: isErrorPlugins,
     refetch: refetchPlugins,
     remove: removePlugins,
@@ -113,6 +110,7 @@ function ConfigureIntegration({params, router, routes, location}: Props) {
   });
 
   const provider = config.providers.find(p => p.key === integration?.provider.key);
+  const {projects} = useProjects();
 
   useRouteAnalyticsEventNames(
     'integrations.details_viewed',
@@ -126,6 +124,10 @@ function ConfigureIntegration({params, router, routes, location}: Props) {
         }
       : {}
   );
+
+  useEffect(() => {
+    refetchIntegration();
+  }, [projects, refetchIntegration]);
 
   useEffect(() => {
     // This page should not be accessible by members (unless its github or gitlab)
@@ -215,11 +217,12 @@ function ConfigureIntegration({params, router, routes, location}: Props) {
     }
   };
 
-  const isInstalledOpsgeniePlugin = (plugin: PluginWithProjectList) => {
-    return (
-      plugin.id === 'opsgenie' &&
-      plugin.projectList.length >= 1 &&
-      plugin.projectList.find(({enabled}) => enabled === true)
+  const isOpsgeniePluginInstalled = () => {
+    return (plugins || []).some(
+      p =>
+        p.id === 'opsgenie' &&
+        p.projectList.length >= 1 &&
+        p.projectList.some(({enabled}) => enabled === true)
     );
   };
 
@@ -236,7 +239,7 @@ function ConfigureIntegration({params, router, routes, location}: Props) {
             <Button
               priority="primary"
               size="sm"
-              icon={<IconAdd size="xs" isCircled />}
+              icon={<IconAdd isCircled />}
               onClick={() => onClick()}
             >
               {t('Add Services')}
@@ -249,9 +252,8 @@ function ConfigureIntegration({params, router, routes, location}: Props) {
     if (provider.key === 'discord') {
       return (
         <LinkButton
-          aria-label="Open this server in the Discord app"
+          aria-label={t('Open this server in the Discord app')}
           size="sm"
-          // @ts-ignore - the type of integration here is weird.
           href={`discord://discord.com/channels/${integration.externalId}`}
         >
           {t('Open in Discord')}
@@ -259,10 +261,10 @@ function ConfigureIntegration({params, router, routes, location}: Props) {
       );
     }
 
-    const shouldMigrateJiraPlugin =
+    const canMigrateJiraPlugin =
       ['jira', 'jira_server'].includes(provider.key) &&
       (plugins || []).find(({id}) => id === 'jira');
-    if (shouldMigrateJiraPlugin) {
+    if (canMigrateJiraPlugin) {
       return (
         <Access access={['org:integrations']}>
           {({hasAccess}) => (
@@ -292,7 +294,7 @@ function ConfigureIntegration({params, router, routes, location}: Props) {
                 handleJiraMigration();
               }}
             >
-              <Button priority="primary" size="md" disabled={!hasAccess}>
+              <Button priority="primary" disabled={!hasAccess}>
                 {t('Migrate Plugin')}
               </Button>
             </Confirm>
@@ -301,11 +303,9 @@ function ConfigureIntegration({params, router, routes, location}: Props) {
       );
     }
 
-    const shouldMigrateOpsgeniePlugin =
-      provider.key === 'opsgenie' &&
-      organization.features.includes('integrations-opsgenie-migration') &&
-      (plugins || []).find(isInstalledOpsgeniePlugin);
-    if (shouldMigrateOpsgeniePlugin) {
+    const canMigrateOpsgeniePlugin =
+      provider.key === 'opsgenie' && isOpsgeniePluginInstalled();
+    if (canMigrateOpsgeniePlugin) {
       return (
         <Access access={['org:integrations']}>
           {({hasAccess}) => (
@@ -335,7 +335,7 @@ function ConfigureIntegration({params, router, routes, location}: Props) {
                 handleOpsgenieMigration();
               }}
             >
-              <Button priority="primary" size="md" disabled={!hasAccess}>
+              <Button priority="primary" disabled={!hasAccess}>
                 {t('Migrate Plugin')}
               </Button>
             </Confirm>

@@ -2,7 +2,7 @@ import styled from '@emotion/styled';
 
 import {SegmentedControl} from 'sentry/components/segmentedControl';
 import {t} from 'sentry/locale';
-import {FlamegraphPreferences} from 'sentry/utils/profiling/flamegraph/flamegraphStateProvider/reducers/flamegraphPreferences';
+import type {FlamegraphPreferences} from 'sentry/utils/profiling/flamegraph/flamegraphStateProvider/reducers/flamegraphPreferences';
 
 export interface FlamegraphViewSelectMenuProps {
   onSortingChange: (sorting: FlamegraphViewSelectMenuProps['sorting']) => void;
@@ -20,7 +20,7 @@ function FlamegraphViewSelectMenu({
   return (
     <FlamegraphViewSelectMenuWrap>
       <SegmentedControl
-        aria-label="Sorting"
+        aria-label={t('Sorting')}
         size="xs"
         value={sorting}
         priority="primary"
@@ -33,7 +33,7 @@ function FlamegraphViewSelectMenu({
         <SegmentedControl.Item key="left heavy">{t('Left Heavy')}</SegmentedControl.Item>
       </SegmentedControl>
       <SegmentedControl
-        aria-label="View"
+        aria-label={t('View')}
         size="xs"
         value={view}
         onChange={onViewChange}

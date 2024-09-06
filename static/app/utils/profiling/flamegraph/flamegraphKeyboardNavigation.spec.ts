@@ -1,6 +1,6 @@
-import {DeepPartial} from 'sentry/types/utils';
+import type {DeepPartial} from 'sentry/types/utils';
 
-import {FlamegraphFrame} from '../flamegraphFrame';
+import type {FlamegraphFrame} from '../flamegraphFrame';
 
 import {selectNearestFrame} from './flamegraphKeyboardNavigation';
 

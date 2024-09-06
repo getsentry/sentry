@@ -1,4 +1,4 @@
-import {reactHooks} from 'sentry-test/reactTestingLibrary';
+import {renderHook} from 'sentry-test/reactTestingLibrary';
 
 import {getKeyCode} from 'sentry/utils/getKeyCode';
 import {useHotkeys} from 'sentry/utils/useHotkeys';
@@ -6,7 +6,7 @@ import {useHotkeys} from 'sentry/utils/useHotkeys';
 describe('useHotkeys', function () {
   let events: Record<string, (evt: EventListenerOrEventListenerObject) => void> = {};
 
-  function makeKeyEvent(keyCode, options) {
+  function makeKeyEventFixture(keyCode, options) {
     return {
       keyCode: getKeyCode(keyCode),
       preventDefault: jest.fn(),
@@ -19,7 +19,6 @@ describe('useHotkeys', function () {
     events = {};
 
     // Define the addEventListener method with a Jest mock function
-    // @ts-expect-error we are overriding the global document object
     document.addEventListener = jest.fn((event: string, callback: () => any) => {
       events[event] = callback;
     });
@@ -32,14 +31,14 @@ describe('useHotkeys', function () {
   it('handles a simple match', function () {
     const callback = jest.fn();
 
-    reactHooks.renderHook(p => useHotkeys(p, []), {
+    renderHook(p => useHotkeys(p, []), {
       initialProps: [{match: 'ctrl+s', callback}],
     });
 
     expect(events.keydown).toBeDefined();
     expect(callback).not.toHaveBeenCalled();
 
-    const evt = makeKeyEvent('s', {ctrlKey: true});
+    const evt = makeKeyEventFixture('s', {ctrlKey: true});
     events.keydown(evt);
 
     expect(evt.preventDefault).toHaveBeenCalled();
@@ -49,19 +48,19 @@ describe('useHotkeys', function () {
   it('handles multiple matches', function () {
     const callback = jest.fn();
 
-    reactHooks.renderHook(p => useHotkeys(p, []), {
+    renderHook(p => useHotkeys(p, []), {
       initialProps: [{match: ['ctrl+s', 'command+m'], callback}],
     });
 
     expect(events.keydown).toBeDefined();
     expect(callback).not.toHaveBeenCalled();
 
-    events.keydown(makeKeyEvent('s', {ctrlKey: true}));
+    events.keydown(makeKeyEventFixture('s', {ctrlKey: true}));
 
     expect(callback).toHaveBeenCalled();
     callback.mockClear();
 
-    events.keydown(makeKeyEvent('m', {metaKey: true}));
+    events.keydown(makeKeyEventFixture('m', {metaKey: true}));
 
     expect(callback).toHaveBeenCalled();
   });
@@ -69,7 +68,7 @@ describe('useHotkeys', function () {
   it('handles a complex match', function () {
     const callback = jest.fn();
 
-    reactHooks.renderHook(p => useHotkeys(p, []), {
+    renderHook(p => useHotkeys(p, []), {
       initialProps: [{match: ['command+ctrl+alt+shift+x'], callback}],
     });
 
@@ -77,7 +76,7 @@ describe('useHotkeys', function () {
     expect(callback).not.toHaveBeenCalled();
 
     events.keydown(
-      makeKeyEvent('x', {
+      makeKeyEventFixture('x', {
         altKey: true,
         metaKey: true,
         shiftKey: true,
@@ -91,7 +90,7 @@ describe('useHotkeys', function () {
   it('does not match when extra modifiers are pressed', function () {
     const callback = jest.fn();
 
-    reactHooks.renderHook(p => useHotkeys(p, []), {
+    renderHook(p => useHotkeys(p, []), {
       initialProps: [{match: ['command+shift+x'], callback}],
     });
 
@@ -99,7 +98,7 @@ describe('useHotkeys', function () {
     expect(callback).not.toHaveBeenCalled();
 
     events.keydown(
-      makeKeyEvent('x', {
+      makeKeyEventFixture('x', {
         altKey: true,
         metaKey: true,
         shiftKey: true,
@@ -113,38 +112,35 @@ describe('useHotkeys', function () {
   it('updates with rerender', function () {
     const callback = jest.fn();
 
-    const {rerender} = reactHooks.renderHook(
-      p => useHotkeys([{match: p.match, callback}], [p]),
-      {
-        initialProps: {match: 'ctrl+s'},
-      }
-    );
+    const {rerender} = renderHook(p => useHotkeys([{match: p.match, callback}], [p]), {
+      initialProps: {match: 'ctrl+s'},
+    });
 
     expect(events.keydown).toBeDefined();
     expect(callback).not.toHaveBeenCalled();
 
-    events.keydown(makeKeyEvent('s', {ctrlKey: true}));
+    events.keydown(makeKeyEventFixture('s', {ctrlKey: true}));
 
     expect(callback).toHaveBeenCalled();
     callback.mockClear();
 
     rerender({match: 'command+m'});
 
-    events.keydown(makeKeyEvent('s', {ctrlKey: true}));
+    events.keydown(makeKeyEventFixture('s', {ctrlKey: true}));
     expect(callback).not.toHaveBeenCalled();
 
-    events.keydown(makeKeyEvent('m', {metaKey: true}));
+    events.keydown(makeKeyEventFixture('m', {metaKey: true}));
     expect(callback).toHaveBeenCalled();
   });
 
   it('skips input and textarea', function () {
     const callback = jest.fn();
 
-    reactHooks.renderHook(p => useHotkeys(p, []), {
+    renderHook(p => useHotkeys(p, []), {
       initialProps: [{match: ['/'], callback}],
     });
 
-    events.keydown(makeKeyEvent('/', {target: document.createElement('input')}));
+    events.keydown(makeKeyEventFixture('/', {target: document.createElement('input')}));
 
     expect(callback).not.toHaveBeenCalled();
   });
@@ -152,11 +148,11 @@ describe('useHotkeys', function () {
   it('does not skips input and textarea with includesInputs', function () {
     const callback = jest.fn();
 
-    reactHooks.renderHook(p => useHotkeys(p, []), {
+    renderHook(p => useHotkeys(p, []), {
       initialProps: [{match: ['/'], callback, includeInputs: true}],
     });
 
-    events.keydown(makeKeyEvent('/', {target: document.createElement('input')}));
+    events.keydown(makeKeyEventFixture('/', {target: document.createElement('input')}));
 
     expect(callback).toHaveBeenCalled();
   });
@@ -164,11 +160,11 @@ describe('useHotkeys', function () {
   it('skips preventDefault', function () {
     const callback = jest.fn();
 
-    reactHooks.renderHook(p => useHotkeys(p, []), {
+    renderHook(p => useHotkeys(p, []), {
       initialProps: [{match: 'ctrl+s', callback, skipPreventDefault: true}],
     });
 
-    const evt = makeKeyEvent('s', {ctrlKey: true});
+    const evt = makeKeyEventFixture('s', {ctrlKey: true});
     events.keydown(evt);
 
     expect(evt.preventDefault).not.toHaveBeenCalled();

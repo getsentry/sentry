@@ -1,18 +1,20 @@
 import {useRef} from 'react';
-import {Location} from 'history';
+import type {Location} from 'history';
 
 import {BarChart} from 'sentry/components/charts/barChart';
 import ErrorPanel from 'sentry/components/charts/errorPanel';
 import LoadingPanel from 'sentry/components/charts/loadingPanel';
 import {IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {DateString, EventError, EventTag, Group, Organization} from 'sentry/types';
+import type {EventError, EventTag} from 'sentry/types/event';
+import type {Group} from 'sentry/types/group';
+import type {Organization} from 'sentry/types/organization';
+import toArray from 'sentry/utils/array/toArray';
 import EventView from 'sentry/utils/discover/eventView';
 import SpanCountHistogramQuery from 'sentry/utils/performance/histogram/spanCountHistogramQuery';
-import {HistogramData} from 'sentry/utils/performance/histogram/types';
+import type {HistogramData} from 'sentry/utils/performance/histogram/types';
 import {formatHistogramData} from 'sentry/utils/performance/histogram/utils';
 import theme from 'sentry/utils/theme';
-import toArray from 'sentry/utils/toArray';
 
 interface Props {
   event: EventError;
@@ -32,7 +34,7 @@ export function SpanCountChart({issue, event, location, organization}: Props) {
   const allEventsQuery = `event.type:transaction transaction:${transactionName}`;
   const affectedEventsQuery = `${allEventsQuery} ${spanHashTag.key}:${spanHashTag.value}`;
 
-  const nowRef = useRef<DateString>(new Date());
+  const nowRef = useRef(new Date());
 
   const start = issue.firstSeen;
   const end = nowRef.current?.toString();

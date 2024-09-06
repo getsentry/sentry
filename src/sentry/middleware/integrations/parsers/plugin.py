@@ -3,9 +3,11 @@ from __future__ import annotations
 import logging
 from typing import Any
 
-from sentry.middleware.integrations.parsers.base import BaseRequestParser
+from django.http import HttpResponse
+
+from sentry.hybridcloud.outbox.category import WebhookProviderIdentifier
+from sentry.integrations.middleware.hybrid_cloud.parser import BaseRequestParser
 from sentry.models.organizationmapping import OrganizationMapping
-from sentry.models.outbox import WebhookProviderIdentifier
 from sentry.types.region import RegionResolutionError, get_region_by_name
 from sentry_plugins.bitbucket.endpoints.webhook import BitbucketPluginWebhookEndpoint
 from sentry_plugins.github.webhooks.non_integration import GithubPluginWebhookEndpoint
@@ -38,7 +40,9 @@ class PluginRequestParser(BaseRequestParser):
             logging_extra["error"] = str(e)
             logging_extra["organization_id"] = organization_id
             logger.info("%s.no_mapping", self.provider, extra=logging_extra)
-            return self.get_response_from_control_silo()
+
+            # Webhook was for an org and that org no longer exists.
+            return HttpResponse(status=400)
 
         try:
             region = get_region_by_name(mapping.region_name)
@@ -47,4 +51,9 @@ class PluginRequestParser(BaseRequestParser):
             logging_extra["mapping_id"] = mapping.id
             logger.info("%s.no_region", self.provider, extra=logging_extra)
             return self.get_response_from_control_silo()
-        return self.get_response_from_outbox_creation(regions=[region])
+
+        # Because outboxes are now sharded by integration and plugins don't have one,
+        # we use the org ID as the shard ID to batch these changes.
+        return self.get_response_from_webhookpayload(
+            regions=[region], identifier=mapping.organization_id
+        )

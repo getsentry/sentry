@@ -56,6 +56,7 @@ export const NOTIFICATION_SETTINGS_TYPES = [
   'reports',
   'email',
   'spikeProtection',
+  'brokenMonitors',
 ] as const;
 
 export const SELF_NOTIFICATION_SETTINGS_TYPES = [
@@ -75,6 +76,7 @@ export const NOTIFICATION_SETTINGS_PATHNAMES: Record<NotificationSettingsType, s
   reports: 'reports',
   email: 'email',
   spikeProtection: 'spike-protection',
+  brokenMonitors: 'broken-monitors',
 };
 
 export const CONFIRMATION_MESSAGE = (
@@ -90,8 +92,9 @@ export const CONFIRMATION_MESSAGE = (
   </div>
 );
 
-export const NOTIFICATION_FEATURE_MAP: Partial<Record<NotificationSettingsType, string>> =
-  {
-    quota: 'slack-overage-notifications',
-    spikeProtection: 'spike-projections',
-  };
+export const NOTIFICATION_FEATURE_MAP: Partial<
+  Record<NotificationSettingsType, string | Array<string>>
+> = {
+  quota: ['spend-visibility-notifications', 'user-spend-notifications-settings'],
+  spikeProtection: 'spike-projections',
+};

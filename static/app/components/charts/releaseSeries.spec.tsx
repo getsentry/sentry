@@ -1,13 +1,15 @@
-import {Organization} from 'sentry-fixture/organization';
+import {OrganizationFixture} from 'sentry-fixture/organization';
+import {RouterFixture} from 'sentry-fixture/routerFixture';
 
 import {render, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import ReleaseSeries, {ReleaseSeriesProps} from 'sentry/components/charts/releaseSeries';
+import type {ReleaseSeriesProps} from 'sentry/components/charts/releaseSeries';
+import ReleaseSeries from 'sentry/components/charts/releaseSeries';
 import {lightTheme} from 'sentry/utils/theme';
 
 describe('ReleaseSeries', function () {
   const renderFunc = jest.fn(() => null);
-  const organization = Organization();
+  const organization = OrganizationFixture();
   let releases;
   let releasesMock;
 
@@ -25,10 +27,10 @@ describe('ReleaseSeries', function () {
     });
   });
 
-  const router = TestStubs.router();
+  const router = RouterFixture();
   const baseSeriesProps: ReleaseSeriesProps = {
     api: new MockApiClient(),
-    organization: Organization(),
+    organization: OrganizationFixture(),
     period: '14d',
     start: null,
     end: null,
@@ -161,7 +163,7 @@ describe('ReleaseSeries', function () {
     );
   });
 
-  it('fetches on property updates', function () {
+  it('fetches on property updates', async function () {
     const wrapper = render(
       <ReleaseSeries {...baseSeriesProps} period="14d">
         {renderFunc}
@@ -184,9 +186,11 @@ describe('ReleaseSeries', function () {
 
       expect(releasesMock).toHaveBeenCalled();
     }
+
+    await waitFor(() => expect(releasesMock).toHaveBeenCalledTimes(1));
   });
 
-  it('doesnt not refetch releases with memoize enabled', function () {
+  it('doesnt not refetch releases with memoize enabled', async function () {
     const originalPeriod = '14d';
     const updatedPeriod = '7d';
     const wrapper = render(
@@ -195,7 +199,7 @@ describe('ReleaseSeries', function () {
       </ReleaseSeries>
     );
 
-    expect(releasesMock).toHaveBeenCalledTimes(1);
+    await waitFor(() => expect(releasesMock).toHaveBeenCalledTimes(1));
 
     wrapper.rerender(
       <ReleaseSeries {...baseSeriesProps} period={updatedPeriod} memoized>
@@ -203,7 +207,7 @@ describe('ReleaseSeries', function () {
       </ReleaseSeries>
     );
 
-    expect(releasesMock).toHaveBeenCalledTimes(2);
+    await waitFor(() => expect(releasesMock).toHaveBeenCalledTimes(2));
 
     wrapper.rerender(
       <ReleaseSeries {...baseSeriesProps} period={originalPeriod} memoized>
@@ -211,7 +215,7 @@ describe('ReleaseSeries', function () {
       </ReleaseSeries>
     );
 
-    expect(releasesMock).toHaveBeenCalledTimes(2);
+    await waitFor(() => expect(releasesMock).toHaveBeenCalledTimes(2));
   });
 
   it('generates an eCharts `markLine` series from releases', async function () {

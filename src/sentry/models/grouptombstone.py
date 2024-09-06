@@ -1,4 +1,7 @@
+from __future__ import annotations
+
 import logging
+from typing import Any
 
 from django.db import models
 
@@ -10,13 +13,13 @@ from sentry.db.models import (
     FlexibleForeignKey,
     GzippedDictField,
     Model,
-    region_silo_only_model,
+    region_silo_model,
 )
 
 TOMBSTONE_FIELDS_FROM_GROUP = ("project_id", "level", "message", "culprit", "data")
 
 
-@region_silo_only_model
+@region_silo_model
 class GroupTombstone(Model):
     __relocation_scope__ = RelocationScope.Excluded
 
@@ -29,7 +32,9 @@ class GroupTombstone(Model):
     )
     message = models.TextField()
     culprit = models.CharField(max_length=MAX_CULPRIT_LENGTH, blank=True, null=True)
-    data = GzippedDictField(blank=True, null=True)
+    data: models.Field[dict[str, Any] | None, dict[str, Any]] = GzippedDictField(
+        blank=True, null=True
+    )
     actor_id = BoundedPositiveIntegerField(null=True)
 
     class Meta:

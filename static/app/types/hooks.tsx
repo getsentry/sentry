@@ -1,21 +1,29 @@
-import type {Route, RouteComponentProps, RouteContextInterface} from 'react-router';
-
 import type {ChildrenRenderFn} from 'sentry/components/acl/feature';
 import type {Guide} from 'sentry/components/assistant/types';
 import type {ButtonProps} from 'sentry/components/button';
-import {ProductSelectionProps} from 'sentry/components/onboarding/productSelection';
+import type {
+  ProductSelectionProps,
+  ProductSolution,
+} from 'sentry/components/onboarding/productSelection';
 import type SidebarItem from 'sentry/components/sidebar/sidebarItem';
 import type DateRange from 'sentry/components/timeRangeSelector/dateRange';
 import type SelectorItems from 'sentry/components/timeRangeSelector/selectorItems';
-import {SVGIconProps} from 'sentry/icons/svgIcon';
-import type {Group} from 'sentry/types';
-import {UseExperiment} from 'sentry/utils/useExperiment';
-import {OrganizationStatsProps} from 'sentry/views/organizationStats/index';
-import {RouteAnalyticsContext} from 'sentry/views/routeAnalyticsContextProvider';
+import type {SVGIconProps} from 'sentry/icons/svgIcon';
+import type {UseExperiment} from 'sentry/utils/useExperiment';
+import type {TitleableModuleNames} from 'sentry/views/insights/common/components/modulePageProviders';
+import type {StatusToggleButtonProps} from 'sentry/views/monitors/components/statusToggleButton';
+import type {OrganizationStatsProps} from 'sentry/views/organizationStats';
+import type {RouteAnalyticsContext} from 'sentry/views/routeAnalyticsContextProvider';
 import type {NavigationItem, NavigationSection} from 'sentry/views/settings/types';
 
 import type {ExperimentKey} from './experiments';
+import type {Group} from './group';
 import type {Integration, IntegrationProvider} from './integrations';
+import type {
+  Route,
+  RouteComponentProps,
+  RouteContextInterface,
+} from './legacyReactRouter';
 import type {Member, Organization} from './organization';
 import type {Project} from './project';
 import type {User} from './user';
@@ -63,6 +71,7 @@ export type RouteHooks = {
  * Component specific hooks for DateRange and SelectorItems
  * These components have plan specific overrides in getsentry
  */
+type AutofixSetupConsentStepProps = {hasConsented: boolean};
 type DateRangeProps = React.ComponentProps<typeof DateRange>;
 
 type SelectorItemsProps = React.ComponentProps<typeof SelectorItems>;
@@ -74,11 +83,6 @@ type MemberListHeaderProps = {
   organization: Organization;
 };
 
-type DisabledAppStoreConnectMultiple = {
-  children: React.ReactNode;
-  organization: Organization;
-};
-
 type DisabledCustomSymbolSources = {
   children: React.ReactNode;
   organization: Organization;
@@ -87,6 +91,8 @@ type DisabledCustomSymbolSources = {
 type DisabledMemberTooltipProps = {children: React.ReactNode};
 
 type DashboardHeadersProps = {organization: Organization};
+
+type MetricsSamplesListProps = {children: React.ReactNode; organization: Organization};
 
 type ReplayFeedbackButton = {children: React.ReactNode};
 type ReplayListPageHeaderProps = {children?: React.ReactNode};
@@ -109,9 +115,17 @@ type ProfilingAM1OrMMXUpgradeProps = {
   organization: Organization;
 };
 
+type CronsBillingBannerProps = {
+  organization: Organization;
+};
+
+type OrganizationHeaderProps = {
+  organization: Organization;
+};
+
 type ProductSelectionAvailabilityProps = Pick<
   ProductSelectionProps,
-  'lazyLoader' | 'skipLazyLoader' | 'platform' | 'withBottomMargin'
+  'platform' | 'withBottomMargin' | 'projectId'
 > & {
   organization: Organization;
 };
@@ -140,20 +154,44 @@ type QualitativeIssueFeedbackProps = {
   organization: Organization;
 };
 
+// on-create-project-product-selection
+type CreateProjectProductSelectionChangedCallback = (options: {
+  defaultProducts: ProductSolution[];
+  organization: Organization;
+  selectedProducts: ProductSolution[];
+}) => void;
+
 type GuideUpdateCallback = (nextGuide: Guide | null, opts: {dismissed?: boolean}) => void;
+
+type MonitorCreatedCallback = (organization: Organization) => void;
+
+type CronsOnboardingPanelProps = {children: React.ReactNode};
 
 type SentryLogoProps = SVGIconProps & {
   pride?: boolean;
 };
+export type ParntershipAgreementType = 'standard' | 'partner_presence';
+export type PartnershipAgreementProps = {
+  agreements: Array<ParntershipAgreementType>;
+  partnerDisplayName: string;
+  onSubmitSuccess?: () => void;
+  organizationSlug?: string;
+};
+
 /**
  * Component wrapping hooks
  */
 export type ComponentHooks = {
+  'component:autofix-setup-step-consent': () => React.ComponentType<AutofixSetupConsentStepProps> | null;
   'component:codecov-integration-settings-link': () => React.ComponentType<CodecovLinkProps>;
-  'component:codecov-integration-stacktrace-link': () => React.ComponentType<CodecovLinkProps>;
   'component:confirm-account-close': () => React.ComponentType<AttemptCloseAttemptProps>;
+  'component:crons-list-page-header': () => React.ComponentType<CronsBillingBannerProps>;
+  'component:crons-onboarding-panel': () => React.ComponentType<CronsOnboardingPanelProps>;
   'component:dashboards-header': () => React.ComponentType<DashboardHeadersProps>;
-  'component:disabled-app-store-connect-multiple': () => React.ComponentType<DisabledAppStoreConnectMultiple>;
+  'component:data-consent-banner': () => React.ComponentType<{source: string}> | null;
+  'component:data-consent-org-creation-checkbox': () => React.ComponentType<{}> | null;
+  'component:data-consent-priority-learn-more': () => React.ComponentType<{}> | null;
+  'component:ddm-metrics-samples-list': () => React.ComponentType<MetricsSamplesListProps>;
   'component:disabled-custom-symbol-sources': () => React.ComponentType<DisabledCustomSymbolSources>;
   'component:disabled-member': () => React.ComponentType<DisabledMemberViewProps>;
   'component:disabled-member-tooltip': () => React.ComponentType<DisabledMemberTooltipProps>;
@@ -163,9 +201,12 @@ export type ComponentHooks = {
   'component:first-party-integration-alert': () => React.ComponentType<FirstPartyIntegrationAlertProps>;
   'component:header-date-range': () => React.ComponentType<DateRangeProps>;
   'component:header-selector-items': () => React.ComponentType<SelectorItemsProps>;
-  'component:issue-priority-feedback': () => React.ComponentType<QualitativeIssueFeedbackProps>;
+  'component:insights-upsell-page': () => React.ComponentType<InsightsUpsellHook>;
   'component:member-list-header': () => React.ComponentType<MemberListHeaderProps>;
+  'component:monitor-status-toggle': () => React.ComponentType<StatusToggleButtonProps>;
   'component:org-stats-banner': () => React.ComponentType<DashboardHeadersProps>;
+  'component:organization-header': () => React.ComponentType<OrganizationHeaderProps>;
+  'component:partnership-agreement': React.ComponentType<PartnershipAgreementProps>;
   'component:product-selection-availability': () => React.ComponentType<ProductSelectionAvailabilityProps>;
   'component:product-unavailable-cta': () => React.ComponentType<ProductUnavailableCTAProps>;
   'component:profiling-am1-or-mmx-upgrade': () => React.ComponentType<ProfilingAM1OrMMXUpgradeProps>;
@@ -175,9 +216,11 @@ export type ComponentHooks = {
   'component:replay-list-page-header': () => React.ComponentType<ReplayListPageHeaderProps> | null;
   'component:replay-onboarding-alert': () => React.ComponentType<ReplayOnboardingAlertProps>;
   'component:replay-onboarding-cta': () => React.ComponentType<ReplayOnboardingCTAProps>;
-  'component:replay-onboarding-cta-button': () => React.ComponentType<{}> | null;
+  'component:replay-settings-alert': () => React.ComponentType<{}> | null;
   'component:sentry-logo': () => React.ComponentType<SentryLogoProps>;
   'component:superuser-access-category': React.ComponentType<any>;
+  'component:superuser-warning': React.ComponentType<any>;
+  'component:superuser-warning-excluded': SuperuserWarningExcluded;
 };
 
 /**
@@ -190,6 +233,7 @@ export type CustomizationHooks = {
   'integrations:feature-gates': IntegrationsFeatureGatesHook;
   'member-invite-button:customization': InviteButtonCustomizationHook;
   'member-invite-modal:customization': InviteModalCustomizationHook;
+  'sidebar:navigation-item': SidebarNavigationItemHook;
 };
 
 /**
@@ -210,6 +254,7 @@ export type FeatureDisabledHooks = {
   'feature-disabled:alert-wizard-performance': FeatureDisabledHook;
   'feature-disabled:alerts-page': FeatureDisabledHook;
   'feature-disabled:codecov-integration-setting': FeatureDisabledHook;
+  'feature-disabled:create-metrics-alert-tooltip': FeatureDisabledHook;
   'feature-disabled:custom-inbound-filters': FeatureDisabledHook;
   'feature-disabled:dashboards-edit': FeatureDisabledHook;
   'feature-disabled:dashboards-page': FeatureDisabledHook;
@@ -251,7 +296,6 @@ export type FeatureDisabledHooks = {
 export type InterfaceChromeHooks = {
   footer: GenericComponentHook;
   'help-modal:footer': HelpModalFooterHook;
-  'organization:header': OrganizationHeaderComponentHook;
   'sidebar:bottom-items': SidebarBottomItemsHook;
   'sidebar:help-menu': GenericOrganizationComponentHook;
   'sidebar:item-label': SidebarItemLabelHook;
@@ -263,9 +307,8 @@ export type InterfaceChromeHooks = {
  * Onboarding experience hooks
  */
 export type OnboardingHooks = {
-  'onboarding-wizard:skip-help': GenericOrganizationComponentHook;
+  'onboarding-wizard:skip-help': () => React.ComponentType<{}>;
   'onboarding:block-hide-sidebar': () => boolean;
-  'onboarding:extra-chrome': GenericComponentHook;
   'onboarding:targeted-onboarding-header': (opts: {source: string}) => React.ReactNode;
 };
 
@@ -308,7 +351,9 @@ export type ReactHooks = {
  * and perform some sort of callback logic
  */
 type CallbackHooks = {
+  'callback:on-create-project-product-selection': CreateProjectProductSelectionChangedCallback;
   'callback:on-guide-update': GuideUpdateCallback;
+  'callback:on-monitor-created': MonitorCreatedCallback;
 };
 
 /**
@@ -332,11 +377,6 @@ type GenericOrganizationComponentHook = (opts: {
  * Receives a project object and should return a React node.
  */
 type GenericProjectComponentHook = (opts: {project: Project}) => React.ReactNode;
-
-// TODO(ts): We should correct the organization header hook to conform to the
-// GenericOrganizationComponentHook, passing org as a prop object, not direct
-// as the only argument.
-type OrganizationHeaderComponentHook = (org: Organization) => React.ReactNode;
 
 /**
  * A FeatureDisabledHook returns a react element when a feature is not enabled.
@@ -366,6 +406,11 @@ type FeatureDisabledHook = (opts: {
    */
   project?: Project;
 }) => React.ReactNode;
+
+/**
+ * Called to check if the superuser warning should be excluded for the given organization.
+ */
+type SuperuserWarningExcluded = (organization: Organization | null) => boolean;
 
 /**
  * Called when the app is mounted.
@@ -590,10 +635,40 @@ type InviteButtonCustomizationHook = () => React.ComponentType<{
      */
     disabled: boolean;
     onTriggerModal: () => void;
+    /**
+     * Whether to display a message that new members must be registered via SSO
+     */
+    isSsoRequired?: boolean;
   }) => React.ReactElement;
   onTriggerModal: () => void;
   organization: Organization;
 }>;
+
+/**
+ * Sidebar navigation item customization allows passing render props to disable
+ * the link, wrap it in an upsell modal, and give it some additional content
+ * (e.g., a Business Icon) to render.
+ *
+ * TODO: We can use this to replace the sidebar label hook `sidebar:item-label`,
+ * too, since this is a more generic version.
+ */
+type SidebarNavigationItemHook = () => React.ComponentType<{
+  children: (opts: {
+    Wrapper: React.FunctionComponent<{children: React.ReactElement}>;
+    additionalContent: React.ReactElement | null;
+    disabled: boolean;
+  }) => React.ReactElement;
+  id: string;
+}>;
+
+/**
+ * Insights upsell hook takes in a insights module name
+ * and renders either the applicable upsell page or the children inside the hook.
+ */
+type InsightsUpsellHook = {
+  children: React.ReactNode;
+  moduleName: TitleableModuleNames;
+};
 
 /**
  * Invite Modal customization allows for a render-prop component to add

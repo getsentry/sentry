@@ -10,7 +10,10 @@ from sentry.integrations.discord.message_builder.base.component.select_menu impo
     DiscordSelectMenuOption,
 )
 from sentry.integrations.discord.message_builder.base.embed.base import DiscordMessageEmbed
-from sentry.integrations.discord.message_builder.base.flags import DiscordMessageFlags
+from sentry.integrations.discord.message_builder.base.flags import (
+    EPHEMERAL_FLAG,
+    DiscordMessageFlags,
+)
 from sentry.integrations.discord.requests.base import DiscordMessageComponentTypes
 from sentry.testutils.cases import TestCase
 
@@ -36,7 +39,7 @@ class TestDiscordMessageBuilder(TestCase):
             "content": "message content",
             "components": [],
             "embeds": [],
-            "flags": 1 << 6,
+            "flags": EPHEMERAL_FLAG,
         }
 
     def test_all(self):
@@ -140,5 +143,5 @@ class TestDiscordMessageBuilder(TestCase):
                     ],
                 },
             ],
-            "flags": 1 << 6,
+            "flags": EPHEMERAL_FLAG,
         }

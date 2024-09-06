@@ -1,8 +1,0 @@
-include AUTHORS requirements*.txt
-graft ./config
-graft src/sentry
-graft src/sentry_plugins
-graft src/social_auth
-graft src/bitfield
-graft src/django_picklefield
-global-exclude *.pyc

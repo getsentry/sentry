@@ -1,8 +1,10 @@
 import re
 from collections import namedtuple
+from collections.abc import Iterable, Mapping, Sequence
 from copy import copy, deepcopy
 from datetime import datetime, timezone
-from typing import Any, List, Mapping, Match, NamedTuple, Optional, Sequence, Set, Tuple, Union
+from re import Match
+from typing import Any, NamedTuple
 
 import sentry_sdk
 from sentry_relay.consts import SPAN_STATUS_NAME_TO_CODE
@@ -72,7 +74,7 @@ class PseudoField:
 
         self.validate()
 
-    def get_expression(self, params) -> Union[List[Any], Tuple[Any]]:
+    def get_expression(self, params) -> list[Any] | tuple[Any]:
         if isinstance(self.expression, (list, tuple)):
             return deepcopy(self.expression)
         elif self.expression_fn is not None:
@@ -93,7 +95,9 @@ class PseudoField:
         ), f"{self.name}: only one of expression, expression_fn is allowed"
 
 
-def project_threshold_config_expression(organization_id, project_ids):
+def project_threshold_config_expression(
+    organization_id: int | None, project_ids: list[int] | None
+) -> list[object]:
     """
     This function returns a column with the threshold and threshold metric
     for each transaction based on project level settings. If no project level
@@ -177,7 +181,7 @@ def project_threshold_config_expression(organization_id, project_ids):
         PROJECT_THRESHOLD_OVERRIDE_CONFIG_INDEX_ALIAS,
     ]
 
-    project_config_query = (
+    project_config_query: list[object] = (
         [
             "if",
             [
@@ -302,7 +306,7 @@ def team_key_transaction_expression(organization_id, team_ids, project_ids):
     ]
 
 
-def normalize_count_if_condition(args: Mapping[str, str]) -> Union[float, str, int]:
+def normalize_count_if_condition(args: Mapping[str, str]) -> float | str | int:
     """Ensures that the condition is compatible with the column type"""
     column = args["column"]
     condition = args["condition"]
@@ -312,7 +316,7 @@ def normalize_count_if_condition(args: Mapping[str, str]) -> Union[float, str, i
     return condition
 
 
-def normalize_count_if_value(args: Mapping[str, str]) -> Union[float, str, int]:
+def normalize_count_if_value(args: Mapping[str, str]) -> float | str | int:
     """Ensures that the type of the third parameter is compatible with the first
     and cast the value if needed
     eg. duration = numeric_value, and not duration = string_value
@@ -455,7 +459,7 @@ def format_column_arguments(column_args, arguments):
             column_args[i] = arguments[column_args[i].arg]
 
 
-def parse_arguments(function: str, columns: str) -> List[str]:
+def parse_arguments(function: str, columns: str) -> list[str]:
     """
     Some functions take a quoted string for their arguments that may contain commas,
     which requires special handling.
@@ -618,7 +622,7 @@ def resolve_function(field, match=None, params=None, functions_acl=False):
         return ResolvedFunction(details, addition, None)
 
 
-def parse_combinator(function: str) -> Tuple[str, Optional[str]]:
+def parse_combinator(function: str) -> tuple[str, str | None]:
     for combinator in COMBINATORS:
         kind = combinator.kind
         if function.endswith(kind):
@@ -645,7 +649,7 @@ def parse_function(field, match=None, err_msg=None):
     )
 
 
-def is_function(field: str) -> Optional[Match[str]]:
+def is_function(field: NormalizedArg) -> Match[str] | None:
     function_match = FUNCTION_PATTERN.search(field)
     if function_match:
         return function_match
@@ -692,7 +696,7 @@ def get_json_meta_type(field_alias, snuba_type, builder=None):
         return alias_definition.result_type
 
     snuba_json = get_json_type(snuba_type)
-    if snuba_json != "string":
+    if snuba_json not in ["string", "null"]:
         if function is not None:
             result_type = function.instance.get_result_type(function.field, function.arguments)
             if result_type is not None:
@@ -726,7 +730,7 @@ def reflective_result_type(index=0):
 
 class Combinator:
     # The kind of combinator this is, to be overridden in the subclasses
-    kind: Optional[str] = None
+    kind: str | None = None
 
     def __init__(self, private: bool = True):
         self.private = private
@@ -744,7 +748,7 @@ class Combinator:
 class ArrayCombinator(Combinator):
     kind = "Array"
 
-    def __init__(self, column_name: str, array_columns: Set[str], private: bool = True):
+    def __init__(self, column_name: str, array_columns: set[str], private: bool = True):
         super().__init__(private=private)
         self.column_name = column_name
         self.array_columns = array_columns
@@ -783,7 +787,7 @@ class FunctionArg:
         raise InvalidFunctionArgument(f"{self.name} has no defaults")
 
     def normalize(
-        self, value: str, params: ParamsType, combinator: Optional[Combinator]
+        self, value: str, params: ParamsType, combinator: Combinator | None
     ) -> NormalizedArg:
         return value
 
@@ -792,7 +796,7 @@ class FunctionArg:
 
 
 class FunctionAliasArg(FunctionArg):
-    def normalize(self, value: str, params: ParamsType, combinator: Optional[Combinator]) -> str:
+    def normalize(self, value: str, params: ParamsType, combinator: Combinator | None) -> str:
         if not ALIAS_PATTERN.match(value):
             raise InvalidFunctionArgument(f"{value} is not a valid function alias")
         return value
@@ -802,10 +806,10 @@ class StringArg(FunctionArg):
     def __init__(
         self,
         name: str,
-        unquote: Optional[bool] = False,
-        unescape_quotes: Optional[bool] = False,
-        optional_unquote: Optional[bool] = False,
-        allowed_strings: Optional[List[str]] = None,
+        unquote: bool | None = False,
+        unescape_quotes: bool | None = False,
+        optional_unquote: bool | None = False,
+        allowed_strings: list[str] | None = None,
     ):
         """
         :param str name: The name of the function, this refers to the name to invoke.
@@ -819,7 +823,7 @@ class StringArg(FunctionArg):
         self.optional_unquote = optional_unquote
         self.allowed_strings = allowed_strings
 
-    def normalize(self, value: str, params: ParamsType, combinator: Optional[Combinator]) -> str:
+    def normalize(self, value: str, params: ParamsType, combinator: Combinator | None) -> str:
         if self.unquote:
             if len(value) < 2 or value[0] != '"' or value[-1] != '"':
                 if not self.optional_unquote:
@@ -837,7 +841,7 @@ class StringArg(FunctionArg):
 class DateArg(FunctionArg):
     date_format = "%Y-%m-%dT%H:%M:%S"
 
-    def normalize(self, value: str, params: ParamsType, combinator: Optional[Combinator]) -> str:
+    def normalize(self, value: str, params: ParamsType, combinator: Combinator | None) -> str:
         try:
             datetime.strptime(value, self.date_format)
         except ValueError:
@@ -858,7 +862,7 @@ class ConditionArg(FunctionArg):
         "greater",
     ]
 
-    def normalize(self, value: str, params: ParamsType, combinator: Optional[Combinator]) -> str:
+    def normalize(self, value: str, params: ParamsType, combinator: Combinator | None) -> str:
         if value not in self.VALID_CONDITIONS:
             raise InvalidFunctionArgument(
                 "{} is not a valid condition, the only supported conditions are: {}".format(
@@ -884,19 +888,36 @@ class NullColumn(FunctionArg):
     def get_default(self, _) -> None:
         return None
 
-    def normalize(self, value: str, params: ParamsType, combinator: Optional[Combinator]) -> None:
+    def normalize(self, value: str, params: ParamsType, combinator: Combinator | None) -> None:
         return None
 
 
+class IntArg(FunctionArg):
+    def __init__(self, name: str, negative: bool):
+        super().__init__(name)
+        self.negative = negative
+
+    def normalize(self, value: str, params: ParamsType, combinator: Combinator | None) -> int:
+        try:
+            normalized_value = int(value)
+        except ValueError:
+            raise InvalidFunctionArgument(f"{value} is not an integer")
+
+        if not self.negative and normalized_value < 0:
+            raise InvalidFunctionArgument(f"{value} must be non negative")
+
+        return normalized_value
+
+
 class NumberRange(FunctionArg):
-    def __init__(self, name: str, start: Optional[float], end: Optional[float]):
+    def __init__(self, name: str, start: float | None, end: float | None):
         super().__init__(name)
         self.start = start
         self.end = end
 
     def normalize(
-        self, value: str, params: ParamsType, combinator: Optional[Combinator]
-    ) -> Optional[float]:
+        self, value: str, params: ParamsType, combinator: Combinator | None
+    ) -> float | None:
         try:
             normalized_value = float(value)
         except ValueError:
@@ -912,7 +933,7 @@ class NumberRange(FunctionArg):
 
 
 class NullableNumberRange(NumberRange):
-    def __init__(self, name: str, start: Optional[float], end: Optional[float]):
+    def __init__(self, name: str, start: float | None, end: float | None):
         super().__init__(name, start, end)
         self.has_default = True
 
@@ -920,15 +941,15 @@ class NullableNumberRange(NumberRange):
         return None
 
     def normalize(
-        self, value: str, params: ParamsType, combinator: Optional[Combinator]
-    ) -> Optional[float]:
+        self, value: str, params: ParamsType, combinator: Combinator | None
+    ) -> float | None:
         if value is None:
             return value
         return super().normalize(value, params, combinator)
 
 
 class IntervalDefault(NumberRange):
-    def __init__(self, name: str, start: Optional[float], end: Optional[float]):
+    def __init__(self, name: str, start: float | None, end: float | None):
         super().__init__(name, start, end)
         self.has_default = True
 
@@ -949,8 +970,8 @@ class TimestampArg(FunctionArg):
         super().__init__(name)
 
     def normalize(
-        self, value: str, params: ParamsType, combinator: Optional[Combinator]
-    ) -> Optional[float]:
+        self, value: str, params: ParamsType, combinator: Combinator | None
+    ) -> float | None:
         if not params or not params.get("start") or not params.get("end"):
             raise InvalidFunctionArgument("function called without date range")
 
@@ -973,8 +994,8 @@ class ColumnArg(FunctionArg):
     def __init__(
         self,
         name: str,
-        allowed_columns: Optional[Sequence[str]] = None,
-        validate_only: Optional[bool] = True,
+        allowed_columns: Sequence[str] | None = None,
+        validate_only: bool | None = True,
     ):
         """
         :param name: The name of the function, this refers to the name to invoke.
@@ -991,7 +1012,7 @@ class ColumnArg(FunctionArg):
         # Normalize the value to check if it is valid, but return the value as-is
         self.validate_only = validate_only
 
-    def normalize(self, value: str, params: ParamsType, combinator: Optional[Combinator]) -> str:
+    def normalize(self, value: str, params: ParamsType, combinator: Combinator | None) -> str:
         snuba_column = SEARCH_MAP.get(value)
         if len(self.allowed_columns) > 0:
             if (
@@ -1015,7 +1036,7 @@ class ColumnArg(FunctionArg):
 class ColumnTagArg(ColumnArg):
     """Validate that the argument is either a column or a valid tag"""
 
-    def normalize(self, value: str, params: ParamsType, combinator: Optional[Combinator]) -> str:
+    def normalize(self, value: str, params: ParamsType, combinator: Combinator | None) -> str:
         if TAG_KEY_RE.match(value) or VALID_FIELD_PATTERN.match(value):
             return value
         return super().normalize(value, params, combinator)
@@ -1029,7 +1050,7 @@ class CountColumn(ColumnArg):
     def get_default(self, _) -> None:
         return None
 
-    def normalize(self, value: str, params: ParamsType, combinator: Optional[Combinator]) -> str:
+    def normalize(self, value: str, params: ParamsType, combinator: Combinator | None) -> str:
         if value is None:
             raise InvalidFunctionArgument("a column is required")
 
@@ -1077,8 +1098,8 @@ class NumericColumn(ColumnArg):
     def __init__(
         self,
         name: str,
-        allow_array_value: Optional[bool] = False,
-        spans: Optional[bool] = False,
+        allow_array_value: bool | None = False,
+        spans: bool | None = False,
         **kwargs,
     ):
         self.spans = spans
@@ -1107,7 +1128,7 @@ class NumericColumn(ColumnArg):
             raise InvalidFunctionArgument(f"{value} is not a numeric column")
         return snuba_column
 
-    def normalize(self, value: str, params: ParamsType, combinator: Optional[Combinator]) -> str:
+    def normalize(self, value: str, params: ParamsType, combinator: Combinator | None) -> str:
         snuba_column = None
 
         if combinator is not None and combinator.validate_argument(value):
@@ -1158,7 +1179,7 @@ class NumericColumn(ColumnArg):
 
 
 class DurationColumn(ColumnArg):
-    def normalize(self, value: str, params: ParamsType, combinator: Optional[Combinator]) -> str:
+    def normalize(self, value: str, params: ParamsType, combinator: Combinator | None) -> str:
         snuba_column = SEARCH_MAP.get(value)
         if not snuba_column and is_duration_measurement(value):
             return value
@@ -1185,7 +1206,7 @@ class StringArrayColumn(ColumnArg):
         "spans_group",
     }
 
-    def normalize(self, value: str, params: ParamsType, combinator: Optional[Combinator]) -> str:
+    def normalize(self, value: str, params: ParamsType, combinator: Combinator | None) -> str:
         if value in self.string_array_columns:
             return value
         raise InvalidFunctionArgument(f"{value} is not a valid string array column")
@@ -1195,7 +1216,7 @@ class SessionColumnArg(ColumnArg):
     # XXX(ahmed): hack to get this to work with crash rate alerts over the sessions dataset until
     # we deprecate the logic that is tightly coupled with the events dataset. At which point,
     # we will just rely on dataset specific logic and refactor this class out
-    def normalize(self, value: str, params: ParamsType, combinator: Optional[Combinator]) -> str:
+    def normalize(self, value: str, params: ParamsType, combinator: Combinator | None) -> str:
         if value in SESSIONS_SNUBA_MAP:
             return value
         raise InvalidFunctionArgument(f"{value} is not a valid sessions dataset column")
@@ -1210,7 +1231,7 @@ def with_default(default, argument):
 # TODO(snql-migration): Remove these Arg classes in favour for their
 # non SnQL specific types
 class SnQLStringArg(StringArg):
-    def normalize(self, value: str, params: ParamsType, combinator: Optional[Combinator]) -> str:
+    def normalize(self, value: str, params: ParamsType, combinator: Combinator | None) -> str:
         value = super().normalize(value, params, combinator)
         # SnQL interprets string types as string, so strip the
         # quotes added in StringArg.normalize.
@@ -1218,7 +1239,7 @@ class SnQLStringArg(StringArg):
 
 
 class SnQLDateArg(DateArg):
-    def normalize(self, value: str, params: ParamsType, combinator: Optional[Combinator]) -> str:
+    def normalize(self, value: str, params: ParamsType, combinator: Combinator | None) -> str:
         value = super().normalize(value, params, combinator)
         # SnQL interprets string types as string, so strip the
         # quotes added in StringArg.normalize.
@@ -1226,7 +1247,7 @@ class SnQLDateArg(DateArg):
 
 
 class SnQLFieldColumn(FieldColumn):
-    def normalize(self, value: str, params: ParamsType, combinator: Optional[Combinator]) -> str:
+    def normalize(self, value: str, params: ParamsType, combinator: Combinator | None) -> str:
         if value is None:
             raise InvalidFunctionArgument("a column is required")
 
@@ -1320,8 +1341,8 @@ class DiscoverFunction:
         return alias
 
     def add_default_arguments(
-        self, field: str, columns: List[str], params: ParamsType
-    ) -> List[str]:
+        self, field: str, columns: list[str], params: ParamsType
+    ) -> list[str]:
         # make sure to validate the argument count first to
         # ensure the right number of arguments have been passed
         self.validate_argument_count(field, columns)
@@ -1343,10 +1364,10 @@ class DiscoverFunction:
     def format_as_arguments(
         self,
         field: str,
-        columns: List[str],
+        columns: list[str],
         params: ParamsType,
-        combinator: Optional[Combinator] = None,
-    ) -> Mapping[str, NormalizedArg]:
+        combinator: Combinator | None = None,
+    ) -> dict[str, NormalizedArg]:
         columns = self.add_default_arguments(field, columns, params)
 
         arguments = {}
@@ -1371,7 +1392,7 @@ class DiscoverFunction:
 
         return arguments
 
-    def get_result_type(self, field=None, arguments=None) -> Optional[str]:
+    def get_result_type(self, field=None, arguments=None) -> str | None:
         if field is None or arguments is None or self.result_type_fn is None:
             return self.default_result_type
 
@@ -1419,7 +1440,7 @@ class DiscoverFunction:
 
         self.validate_result_type(self.default_result_type)
 
-    def validate_argument_count(self, field: str, arguments: List[str]) -> None:
+    def validate_argument_count(self, field: str, arguments: list[str]) -> None:
         """
         Validate the number of required arguments the function defines against
         provided arguments. Raise an exception if there is a mismatch in the
@@ -1436,14 +1457,16 @@ class DiscoverFunction:
         if args_count != total_args_count:
             required_args_count = self.required_args_count
             if required_args_count == total_args_count:
-                raise InvalidSearchQuery(f"{field}: expected {total_args_count:g} argument(s)")
+                raise InvalidSearchQuery(
+                    f"{field}: expected {total_args_count:g} argument(s) but got {args_count:g} argument(s)"
+                )
             elif args_count < required_args_count:
                 raise InvalidSearchQuery(
-                    f"{field}: expected at least {required_args_count:g} argument(s)"
+                    f"{field}: expected at least {required_args_count:g} argument(s) but got {args_count:g} argument(s)"
                 )
             elif args_count > total_args_count:
                 raise InvalidSearchQuery(
-                    f"{field}: expected at most {total_args_count:g} argument(s)"
+                    f"{field}: expected at most {total_args_count:g} argument(s) but got {args_count:g} argument(s)"
                 )
 
     def validate_result_type(self, result_type):
@@ -1453,8 +1476,8 @@ class DiscoverFunction:
 
     def is_accessible(
         self,
-        acl: Optional[List[str]] = None,
-        combinator: Optional[Combinator] = None,
+        acl: list[str] | None = None,
+        combinator: Combinator | None = None,
     ) -> bool:
         name = self.name
         is_combinator_private = False
@@ -1473,7 +1496,7 @@ class DiscoverFunction:
 
         return name in acl
 
-    def find_combinator(self, kind: Optional[str]) -> Optional[Combinator]:
+    def find_combinator(self, kind: str | None) -> Combinator | None:
         if kind is None or self.combinators is None:
             return None
 
@@ -1510,6 +1533,14 @@ FUNCTIONS = {
             "p75",
             optional_args=[with_default("transaction.duration", NumericColumn("column"))],
             aggregate=["quantile(0.75)", ArgValue("column"), None],
+            result_type_fn=reflective_result_type(),
+            default_result_type="duration",
+            redundant_grouping=True,
+        ),
+        DiscoverFunction(
+            "p90",
+            optional_args=[with_default("transaction.duration", NumericColumn("column"))],
+            aggregate=["quantile(0.90)", ArgValue("column"), None],
             result_type_fn=reflective_result_type(),
             default_result_type="duration",
             redundant_grouping=True,
@@ -2084,6 +2115,29 @@ def normalize_percentile_alias(args: Mapping[str, str]) -> str:
     return f"{match.group(1)}({aggregate_arg})"
 
 
+def custom_time_processor(interval, time_column):
+    """For when snuba doesn't have a time processor for a dataset"""
+    return Function(
+        "toDateTime",
+        [
+            Function(
+                "multiply",
+                [
+                    Function(
+                        "intDiv",
+                        [
+                            time_column,
+                            interval,
+                        ],
+                    ),
+                    interval,
+                ],
+            ),
+        ],
+        "time",
+    )
+
+
 class SnQLFunction(DiscoverFunction):
     def __init__(self, *args, **kwargs) -> None:
         self.snql_aggregate = kwargs.pop("snql_aggregate", None)
@@ -2115,9 +2169,9 @@ class MetricArg(FunctionArg):
     def __init__(
         self,
         name: str,
-        allowed_columns: Optional[Sequence[str]] = None,
-        allow_custom_measurements: Optional[bool] = True,
-        validate_only: Optional[bool] = True,
+        allowed_columns: Iterable[str] | None = None,
+        allow_custom_measurements: bool | None = True,
+        validate_only: bool | None = True,
         allow_mri: bool = True,
     ):
         """
@@ -2138,7 +2192,7 @@ class MetricArg(FunctionArg):
         # Allows the metric argument to be any MRI.
         self.allow_mri = allow_mri
 
-    def normalize(self, value: str, params: ParamsType, combinator: Optional[Combinator]) -> str:
+    def normalize(self, value: str, params: ParamsType, combinator: Combinator | None) -> str:
         from sentry.snuba.metrics.naming_layer.mri import is_mri
 
         allowed_column = True
@@ -2166,6 +2220,7 @@ class MetricsFunction(SnQLFunction):
         self.snql_distribution = kwargs.pop("snql_distribution", None)
         self.snql_set = kwargs.pop("snql_set", None)
         self.snql_counter = kwargs.pop("snql_counter", None)
+        self.snql_gauge = kwargs.pop("snql_gauge", None)
         self.snql_metric_layer = kwargs.pop("snql_metric_layer", None)
         self.is_percentile = kwargs.pop("is_percentile", False)
         super().__init__(*args, **kwargs)
@@ -2183,11 +2238,12 @@ class MetricsFunction(SnQLFunction):
                     self.snql_distribution is not None,
                     self.snql_set is not None,
                     self.snql_counter is not None,
+                    self.snql_gauge is not None,
                     self.snql_column is not None,
                     self.snql_metric_layer is not None,
                 ]
             )
-            == 1
+            >= 1
         )
 
         # assert that no duplicate argument names are used
@@ -2205,3 +2261,39 @@ class FunctionDetails(NamedTuple):
     field: str
     instance: DiscoverFunction
     arguments: Mapping[str, NormalizedArg]
+
+
+def resolve_datetime64(
+    raw_value: datetime | str | float | None, precision: int = 6
+) -> Function | None:
+    """
+    This is normally handled by the snuba-sdk but it assumes that the underlying
+    table uses DateTime. Because we use DateTime64(6) as the underlying column,
+    we need to cast to the same type or we risk truncating the timestamp which
+    can lead to subtle errors.
+
+    raw_value - Can be one of several types
+        - None: Resolves to `None`
+        - float: Assumed to be a epoch timestamp in seconds with fractional parts
+        - str: Assumed to be isoformat timestamp in UTC time (without timezone info)
+        - datetime: Will be formatted as a isoformat timestamp in UTC time
+    """
+
+    value: str | float | None = None
+
+    if isinstance(raw_value, datetime):
+        if raw_value.tzinfo is not None:
+            # This is adapted from snuba-sdk
+            # See https://github.com/getsentry/snuba-sdk/blob/2f7f014920b4f527a87f18c05b6aa818212bec6e/snuba_sdk/visitors.py#L168-L172
+            delta = raw_value.utcoffset()
+            assert delta is not None
+            raw_value -= delta
+            raw_value = raw_value.replace(tzinfo=None)
+        value = raw_value.isoformat()
+    elif isinstance(raw_value, float):
+        value = raw_value
+
+    if value is None:
+        return None
+
+    return Function("toDateTime64", [value, precision])

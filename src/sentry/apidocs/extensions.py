@@ -1,4 +1,4 @@
-from typing import Any, Dict, List, Optional, Union, get_type_hints
+from typing import Any, get_type_hints
 
 from drf_spectacular.extensions import OpenApiAuthenticationExtension, OpenApiSerializerExtension
 from drf_spectacular.openapi import AutoSchema
@@ -16,7 +16,7 @@ class TokenAuthExtension(OpenApiAuthenticationExtension):
     target_class = "sentry.api.authentication.UserAuthTokenAuthentication"
     name = "auth_token"
 
-    def get_security_requirement(self, auto_schema: AutoSchema) -> Dict[str, List[Any]]:
+    def get_security_requirement(self, auto_schema: AutoSchema) -> dict[str, list[Any]]:
         scopes = set()
         for permission in auto_schema.view.get_permissions():
             for s in permission.scope_map.get(auto_schema.method, []):
@@ -28,7 +28,7 @@ class TokenAuthExtension(OpenApiAuthenticationExtension):
 
     def get_security_definition(
         self, auto_schema: AutoSchema
-    ) -> Union[Dict[str, Any], List[Dict[str, Any]]]:
+    ) -> dict[str, Any] | list[dict[str, Any]]:
         return {"type": "http", "scheme": "bearer"}
 
 
@@ -43,7 +43,7 @@ class SentryResponseSerializerExtension(OpenApiSerializerExtension):
     target_class = "sentry.api.serializers.base.Serializer"
     match_subclasses = True
 
-    def get_name(self, auto_schema: AutoSchema, direction: Direction) -> Optional[str]:
+    def get_name(self, auto_schema: AutoSchema, direction: Direction) -> str | None:
         return self.target.__name__
 
     def map_serializer(self, auto_schema: AutoSchema, direction: Direction) -> Any:
@@ -64,7 +64,7 @@ class SentryInlineResponseSerializerExtension(OpenApiSerializerExtension):
     target_class = "sentry.apidocs.utils._RawSchema"
     match_subclasses = True
 
-    def get_name(self, auto_schema: AutoSchema, direction: Direction) -> Optional[str]:
+    def get_name(self, auto_schema: AutoSchema, direction: Direction) -> str | None:
         return self.target.__name__
 
     def map_serializer(self, auto_schema: AutoSchema, direction: Direction) -> Any:

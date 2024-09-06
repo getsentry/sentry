@@ -5,7 +5,7 @@ import uniqBy from 'lodash/uniqBy';
 import {Alert} from 'sentry/components/alert';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {space} from 'sentry/styles/space';
-import {CodeOwner, RepositoryProjectPathConfig} from 'sentry/types';
+import type {CodeOwner, RepositoryProjectPathConfig} from 'sentry/types/integrations';
 
 type CodeOwnerErrorKeys = keyof CodeOwner['errors'];
 
@@ -124,7 +124,7 @@ export function CodeOwnerErrors({
       case 'teams_without_access':
         return (
           <ErrorMessageList
-            message={`The following team do not have access to the project: ${projectSlug}`}
+            message={`The following teams do not have access to the project: ${projectSlug}`}
             values={values}
             linkFunction={value =>
               `/settings/${orgSlug}/teams/${value.slice(1)}/projects/`
@@ -172,7 +172,9 @@ export function CodeOwnerErrors({
               </AlertContentContainer>
             }
           >
-            {`There were ${errorCount} ownership issues within Sentry on the latest sync with the CODEOWNERS file`}
+            {errorCount === 1
+              ? `There was ${errorCount} ownership issue within Sentry on the latest sync with the CODEOWNERS file`
+              : `There were ${errorCount} ownership issues within Sentry on the latest sync with the CODEOWNERS file`}
           </Alert>
         );
       })}

@@ -1,7 +1,6 @@
-import type {RouteComponentProps} from 'react-router';
-
 import LoadingIndicator from 'sentry/components/loadingIndicator';
-import type {Organization} from 'sentry/types';
+import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
+import type {Organization} from 'sentry/types/organization';
 import withOrganizations from 'sentry/utils/withOrganizations';
 
 import NotificationSettings from './notificationSettings';

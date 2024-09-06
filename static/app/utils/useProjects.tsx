@@ -1,14 +1,14 @@
 import {useEffect, useRef, useState} from 'react';
 import uniqBy from 'lodash/uniqBy';
 
-import {Client} from 'sentry/api';
-import OrganizationStore from 'sentry/stores/organizationStore';
+import type {Client} from 'sentry/api';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
-import {AvatarProject, Project} from 'sentry/types';
+import type {AvatarProject, Project} from 'sentry/types/project';
 import parseLinkHeader from 'sentry/utils/parseLinkHeader';
-import RequestError from 'sentry/utils/requestError/requestError';
+import type RequestError from 'sentry/utils/requestError/requestError';
 import useApi from 'sentry/utils/useApi';
+import useOrganization from 'sentry/utils/useOrganization';
 
 type ProjectPlaceholder = AvatarProject;
 
@@ -58,6 +58,10 @@ type Result = {
    * The loaded projects list
    */
   projects: Project[];
+  /**
+   * Allows consumers to force refetch project data.
+   */
+  reloadProjects: () => Promise<void>;
 } & Pick<State, 'fetching' | 'hasMore' | 'fetchError' | 'initiallyLoaded'>;
 
 type Options = {
@@ -100,7 +104,7 @@ async function fetchProjects(
     query?: string;
   } = {
     // Never return latestDeploys project property from api
-    collapse: ['latestDeploys'],
+    collapse: ['latestDeploys', 'unusedFeatures'],
   };
 
   if (slugs !== undefined && slugs.length > 0) {
@@ -150,10 +154,10 @@ async function fetchProjects(
 function useProjects({limit, slugs, orgId: propOrgId}: Options = {}) {
   const api = useApi();
 
-  const {organization} = useLegacyStore(OrganizationStore);
+  const organization = useOrganization({allowNull: true});
   const store = useLegacyStore(ProjectsStore);
 
-  const orgId = propOrgId ?? organization?.slug;
+  const orgId = propOrgId ?? organization?.slug ?? organization?.slug;
 
   const storeSlugs = new Set(store.projects.map(t => t.slug));
   const slugsToLoad = slugs?.filter(slug => !storeSlugs.has(slug)) ?? [];
@@ -199,7 +203,8 @@ function useProjects({limit, slugs, orgId: propOrgId}: Options = {}) {
         limit,
       });
 
-      const fetchedProjects = uniqBy([...store.projects, ...results], ({slug}) => slug);
+      // Note the order of uniqBy: we prioritize project data recently fetched over previously cached data
+      const fetchedProjects = uniqBy([...results, ...store.projects], ({slug}) => slug);
       ProjectsStore.loadInitialData(fetchedProjects);
 
       setState(prev => ({
@@ -273,6 +278,7 @@ function useProjects({limit, slugs, orgId: propOrgId}: Options = {}) {
       loadProjectsBySlug();
       return;
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [slugsRef.current]);
 
   // Update initiallyLoaded when we finish loading within the projectStore
@@ -288,6 +294,7 @@ function useProjects({limit, slugs, orgId: propOrgId}: Options = {}) {
     }
 
     setState(prev => ({...prev, initiallyLoaded: storeLoaded}));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [store.loading]);
 
   const {initiallyLoaded, fetching, fetchError, hasMore} = state;
@@ -306,6 +313,7 @@ function useProjects({limit, slugs, orgId: propOrgId}: Options = {}) {
     fetchError,
     hasMore,
     onSearch: handleSearch,
+    reloadProjects: loadProjectsBySlug,
   };
 
   return result;

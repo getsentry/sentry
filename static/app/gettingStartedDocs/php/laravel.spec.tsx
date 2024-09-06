@@ -1,22 +1,37 @@
-import {render, screen} from 'sentry-test/reactTestingLibrary';
+import {renderWithOnboardingLayout} from 'sentry-test/onboarding/renderWithOnboardingLayout';
+import {screen} from 'sentry-test/reactTestingLibrary';
+import {textWithMarkupMatcher} from 'sentry-test/utils';
 
-import {StepTitle} from 'sentry/components/onboarding/gettingStartedDoc/step';
+import docs from './laravel';
 
-import {GettingStartedWithLaravel, steps} from './laravel';
-
-describe('GettingStartedWithLaravel', function () {
+describe('laravel onboarding docs', function () {
   it('renders doc correctly', function () {
-    render(<GettingStartedWithLaravel dsn="test-dsn" projectSlug="test-project" />);
+    renderWithOnboardingLayout(docs);
 
-    // Steps
-    for (const step of steps({
-      dsn: 'test-dsn',
-      hasPerformance: true,
-      hasProfiling: true,
-    })) {
-      expect(
-        screen.getByRole('heading', {name: step.title ?? StepTitle[step.type]})
-      ).toBeInTheDocument();
-    }
+    // Renders main headings
+    expect(screen.getByRole('heading', {name: 'Install'})).toBeInTheDocument();
+    expect(screen.getByRole('heading', {name: 'Configure SDK'})).toBeInTheDocument();
+    expect(screen.getByRole('heading', {name: 'Verify'})).toBeInTheDocument();
+
+    // Renders install instructions
+    expect(
+      screen.getByText(textWithMarkupMatcher(/composer require sentry\/sentry-laravel/))
+    ).toBeInTheDocument();
+  });
+
+  it('renders without tracing', function () {
+    renderWithOnboardingLayout(docs, {
+      selectedProducts: [],
+    });
+
+    // Does not render config option
+    expect(
+      screen.queryByText(textWithMarkupMatcher(/SENTRY_TRACES_SAMPLE_RATE=1\.0,/))
+    ).not.toBeInTheDocument();
+
+    // Does not render config option
+    expect(
+      screen.queryByText(textWithMarkupMatcher(/SENTRY_PROFILES_SAMPLE_RATE=1\.0,/))
+    ).not.toBeInTheDocument();
   });
 });

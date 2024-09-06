@@ -1,4 +1,4 @@
-import type {GroupStatus} from 'sentry/types';
+import type {GroupStatus} from 'sentry/types/group';
 import type {CommonGroupAnalyticsData} from 'sentry/utils/events';
 import type {Tab} from 'sentry/views/issueDetails/types';
 
@@ -21,6 +21,7 @@ export type BaseEventAnalyticsParams = {
   event_id: string;
   has_commit: boolean;
   has_exception_group: boolean;
+  has_local_variables: boolean;
   has_next_event: boolean;
   has_previous_event: boolean;
   has_profile: boolean;
@@ -46,6 +47,7 @@ export type BaseEventAnalyticsParams = {
   frames_without_source_maps_percent?: number;
   has_graphql_request?: boolean;
   has_otel?: boolean;
+  mobile?: boolean;
   release_user_agent?: string;
   sdk_name?: string;
   sdk_version?: string;
@@ -68,6 +70,11 @@ export type TeamInsightsEventParameters = {
   'alert_stream.viewed': {};
   'alert_wizard.option_selected': {alert_type: string};
   'edit_alert_rule.add_row': {
+    name: string;
+    project_id: string;
+    type: string;
+  };
+  'edit_alert_rule.delete_row': {
     name: string;
     project_id: string;
     type: string;
@@ -103,6 +110,13 @@ export type TeamInsightsEventParameters = {
   'issue_details.issue_tab.screenshot_modal_deleted': {};
   'issue_details.issue_tab.screenshot_modal_download': {};
   'issue_details.issue_tab.screenshot_modal_opened': {};
+  'issue_details.issue_tab.trace_timeline_clicked': {
+    event_id: string;
+    group_id: string;
+  };
+  'issue_details.issue_tab.trace_timeline_more_events_clicked': {
+    num_hidden: number;
+  };
   'issue_details.merged_tab.unmerge_clicked': {
     /**
      * comma separated list of event ids that were unmerged
@@ -120,6 +134,7 @@ export type TeamInsightsEventParameters = {
     suspect_commit_calculation: string;
     suspect_commit_index: number;
   };
+  'issue_details.suspect_commits.missing_user': {link: string};
   'issue_details.suspect_commits.pull_request_clicked': IssueDetailsWithAlert & {
     suspect_commit_calculation: string;
     suspect_commit_index: number;
@@ -127,6 +142,7 @@ export type TeamInsightsEventParameters = {
   'issue_details.tab_changed': IssueDetailsWithAlert & {
     tab: Tab;
   };
+  'issue_stream.updated_empty_state_viewed': {platform: string};
   'project_creation_page.created': {
     issue_alert: 'Default' | 'Custom' | 'No Rule';
     project_id: string;
@@ -158,6 +174,7 @@ export const workflowEventMap: Record<TeamInsightsEventKey, string | null> = {
   'alert_stream.viewed': 'Alert Stream: Viewed',
   'alert_wizard.option_selected': 'Alert Wizard: Option Selected',
   'edit_alert_rule.add_row': 'Edit Alert Rule: Add Row',
+  'edit_alert_rule.delete_row': 'Edit Alert Rule: Delete Row',
   'edit_alert_rule.viewed': 'Edit Alert Rule: Viewed',
   'edit_alert_rule.incompatible_rule': 'Edit Alert Rule: Incompatible Rule',
   'edit_alert_rule.notification_test': 'Edit Alert Rule: Notification Test',
@@ -183,12 +200,19 @@ export const workflowEventMap: Record<TeamInsightsEventKey, string | null> = {
     'Issue Details: Screenshot downloaded from modal',
   'issue_details.issue_tab.screenshot_modal_opened':
     'Issue Details: Screenshot modal opened',
+  'issue_details.issue_tab.trace_timeline_clicked':
+    'Issue Details: Trace Timeline Clicked',
+  'issue_details.issue_tab.trace_timeline_more_events_clicked':
+    'Issue Details: Trace Timeline More Events Clicked',
   'issue_details.resources_link_clicked': 'Issue Details: Resources Link Clicked',
   'issue_details.suspect_commits.commit_clicked': 'Issue Details: Suspect Commit Clicked',
   'issue_details.suspect_commits.pull_request_clicked':
     'Issue Details: Suspect Pull Request Clicked',
+  'issue_details.suspect_commits.missing_user':
+    'Issue Details: Suspect Commits Missing User',
   'issue_details.tab_changed': 'Issue Details: Tab Changed',
   'issue_details.merged_tab.unmerge_clicked': 'Issue Details: Unmerge Clicked',
+  'issue_stream.updated_empty_state_viewed': 'Issue Stream: Updated Empty State Viewed',
   'project_creation_page.created': 'Project Create: Project Created',
   'project_detail.open_issues': 'Project Detail: Open issues from project detail',
   'project_detail.open_discover': 'Project Detail: Open discover from project detail',

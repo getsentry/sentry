@@ -1,5 +1,3 @@
-from typing import Dict
-
 from django.urls import reverse
 from rest_framework import status
 
@@ -137,6 +135,7 @@ class OrgAuthTokenCreateTest(APITestCase):
         assert tokenDb.token_hashed is not None
         assert tokenDb.token_hashed != token.get("token")
         assert tokenDb.get_scopes() == token.get("scopes")
+        assert tokenDb.created_by is not None
         assert tokenDb.created_by.id == self.user.id
 
         # Assert that region and control URLs are both set correctly
@@ -146,7 +145,7 @@ class OrgAuthTokenCreateTest(APITestCase):
         assert token_payload.get("url") == options.get("system.url-prefix")
 
     def test_no_name(self):
-        payload: Dict[str, str] = {}
+        payload: dict[str, str] = {}
 
         self.login_as(self.user)
         response = self.get_error_response(

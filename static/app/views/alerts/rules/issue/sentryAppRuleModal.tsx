@@ -1,12 +1,11 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import {closeModal, ModalRenderProps} from 'sentry/actionCreators/modal';
+import type {ModalRenderProps} from 'sentry/actionCreators/modal';
+import {closeModal} from 'sentry/actionCreators/modal';
 import {tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
-import SentryAppExternalForm, {
-  SchemaFormConfig,
-} from 'sentry/views/settings/organizationIntegrations/sentryAppExternalForm';
+import type {SchemaFormConfig} from 'sentry/views/settings/organizationIntegrations/sentryAppExternalForm';
+import SentryAppExternalForm from 'sentry/views/settings/organizationIntegrations/sentryAppExternalForm';
 
 type Props = ModalRenderProps & {
   appName: string;
@@ -50,7 +49,7 @@ function SentryAppRuleModal({
 }
 
 const Description = styled('div')`
-  padding-top: ${space(0)};
+  padding-top: 0;
   color: ${p => p.theme.subText};
 `;
 

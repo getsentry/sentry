@@ -2,16 +2,17 @@ import {forwardRef, useRef} from 'react';
 import styled from '@emotion/styled';
 import {useButton} from '@react-aria/button';
 import {useLocale} from '@react-aria/i18n';
-import {AriaNumberFieldProps, useNumberField} from '@react-aria/numberfield';
+import type {AriaNumberFieldProps} from '@react-aria/numberfield';
+import {useNumberField} from '@react-aria/numberfield';
 import {useNumberFieldState} from '@react-stately/numberfield';
 
 import {Button} from 'sentry/components/button';
-import {InputStylesProps} from 'sentry/components/input';
+import type {InputStylesProps} from 'sentry/components/input';
 import {InputGroup} from 'sentry/components/inputGroup';
 import {IconChevron} from 'sentry/icons/iconChevron';
 import {space} from 'sentry/styles/space';
 import mergeRefs from 'sentry/utils/mergeRefs';
-import {FormSize} from 'sentry/utils/theme';
+import type {FormSize} from 'sentry/utils/theme';
 
 export interface NumberInputProps
   extends InputStylesProps,

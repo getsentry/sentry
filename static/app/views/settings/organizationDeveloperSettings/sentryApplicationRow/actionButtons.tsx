@@ -1,11 +1,12 @@
 import styled from '@emotion/styled';
 
-import {Button} from 'sentry/components/button';
+import {Button, LinkButton} from 'sentry/components/button';
 import ConfirmDelete from 'sentry/components/confirmDelete';
 import {IconDelete, IconStats, IconUpgrade} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {Organization, SentryApp} from 'sentry/types';
+import type {SentryApp} from 'sentry/types/integrations';
+import type {Organization} from 'sentry/types/organization';
 
 type Props = {
   app: SentryApp;
@@ -31,13 +32,13 @@ function ActionButtons({
   disableDeleteReason,
 }: Props) {
   const appDashboardButton = (
-    <StyledButton
+    <StyledLinkButton
       size="xs"
       icon={<IconStats />}
       to={`/settings/${org.slug}/developer-settings/${app.slug}/dashboard/`}
     >
       {t('Dashboard')}
-    </StyledButton>
+    </StyledLinkButton>
   );
 
   const publishRequestButton = showPublish ? (
@@ -63,7 +64,7 @@ function ActionButtons({
         title={disableDeleteReason}
         size="xs"
         icon={<IconDelete />}
-        aria-label="Delete"
+        aria-label={t('Delete')}
       />
     ) : (
       onDelete && (
@@ -73,7 +74,7 @@ function ActionButtons({
           priority="danger"
           onConfirm={() => onDelete(app)}
         >
-          <StyledButton size="xs" icon={<IconDelete />} aria-label="Delete" />
+          <StyledButton size="xs" icon={<IconDelete />} aria-label={t('Delete')} />
         </ConfirmDelete>
       )
     )
@@ -97,6 +98,10 @@ const ButtonHolder = styled('div')`
 `;
 
 const StyledButton = styled(Button)`
+  color: ${p => p.theme.subText};
+`;
+
+const StyledLinkButton = styled(LinkButton)`
   color: ${p => p.theme.subText};
 `;
 

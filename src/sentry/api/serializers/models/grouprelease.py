@@ -1,6 +1,5 @@
 from collections import namedtuple
 from datetime import timedelta
-from typing import Dict, List
 
 from django.utils import timezone
 
@@ -16,7 +15,7 @@ StatsPeriod = namedtuple("StatsPeriod", ("segments", "interval"))
 
 @register(GroupRelease)
 class GroupReleaseSerializer(Serializer):
-    def get_attrs(self, item_list, user):
+    def get_attrs(self, item_list, user, **kwargs):
         release_list = list(Release.objects.filter(id__in=[i.release_id for i in item_list]))
         releases = {r.id: d for r, d in zip(release_list, serialize(release_list, user))}
 
@@ -25,7 +24,7 @@ class GroupReleaseSerializer(Serializer):
             result[item] = {"release": releases.get(item.release_id)}
         return result
 
-    def serialize(self, obj, attrs, user):
+    def serialize(self, obj, attrs, user, **kwargs):
         return {
             "release": attrs["release"],
             "environment": obj.environment,
@@ -44,7 +43,7 @@ class GroupReleaseWithStatsSerializer(GroupReleaseSerializer):
         self.since = since
         self.until = until
 
-    def get_attrs(self, item_list, user):
+    def get_attrs(self, item_list, user, **kwargs):
         attrs = super().get_attrs(item_list, user)
 
         tenant_ids = (
@@ -57,7 +56,7 @@ class GroupReleaseWithStatsSerializer(GroupReleaseSerializer):
             else None
         )
 
-        items: Dict[str, List[str]] = {}
+        items: dict[str, list[str]] = {}
         for item in item_list:
             items.setdefault(item.group_id, []).append(item.id)
             attrs[item]["stats"] = {}
@@ -86,7 +85,7 @@ class GroupReleaseWithStatsSerializer(GroupReleaseSerializer):
                 ]
         return attrs
 
-    def serialize(self, obj, attrs, user):
+    def serialize(self, obj, attrs, user, **kwargs):
         result = super().serialize(obj, attrs, user)
         result["stats"] = attrs["stats"]
         return result

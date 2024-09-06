@@ -1,4 +1,4 @@
-import {AxisOption} from '../../data';
+import type {AxisOption} from '../../data';
 
 export function getAxisOrBackupAxis(axis: AxisOption, usingBackupAxis: boolean) {
   const displayedAxis = usingBackupAxis ? getBackupAxisOption(axis) ?? axis : axis;

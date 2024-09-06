@@ -5,7 +5,6 @@ import pytest
 
 from sentry.analytics import Attribute, Event, Map
 from sentry.testutils.cases import TestCase
-from sentry.testutils.silo import region_silo_test
 
 
 class ExampleEvent(Event):
@@ -22,7 +21,6 @@ class DummyType:
     key = "value"
 
 
-@region_silo_test
 class EventTest(TestCase):
     @patch("sentry.analytics.event.uuid1")
     def test_simple(self, mock_uuid1):

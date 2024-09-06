@@ -1,4 +1,6 @@
-from typing import List, Optional, Tuple
+from typing import Any
+
+from symbolic.proguard import ProguardMapper
 
 JAVA_BASE_TYPES = {
     "Z": "boolean",
@@ -15,12 +17,16 @@ JAVA_BASE_TYPES = {
 
 # parse_obfuscated_signature will parse an obfuscated signatures into parameter
 # and return types that can be then deobfuscated
-def parse_obfuscated_signature(signature: str) -> Tuple[List[str], str]:
+def parse_obfuscated_signature(signature: str) -> tuple[list[str], str]:
     if signature[0] != "(":
         return [], ""
 
     signature = signature[1:]
-    parameter_types, return_type = signature.rsplit(")", 1)
+    try:
+        parameter_types, return_type = signature.rsplit(")", 1)
+    except ValueError:
+        # the lack of `)` indicates a malformed signature
+        return [], ""
     types = []
     i = 0
     arrays = 0
@@ -53,7 +59,7 @@ def parse_obfuscated_signature(signature: str) -> Tuple[List[str], str]:
 
 
 # format_signature formats the types into a human-readable signature
-def format_signature(types: Optional[Tuple[List[str], str]]) -> str:
+def format_signature(types: tuple[list[str], str] | None) -> str:
     if types is None:
         return ""
     parameter_java_types, return_java_type = types
@@ -63,7 +69,7 @@ def format_signature(types: Optional[Tuple[List[str], str]]) -> str:
     return signature
 
 
-def byte_code_type_to_java_type(byte_code_type: str, mapper=None) -> str:
+def byte_code_type_to_java_type(byte_code_type: str, mapper: ProguardMapper | None = None) -> str:
     if not byte_code_type:
         return ""
 
@@ -89,7 +95,9 @@ def byte_code_type_to_java_type(byte_code_type: str, mapper=None) -> str:
 # deobfuscate_signature will parse and deobfuscate a signature
 # returns a tuple where the first element is the list of the function
 # parameters and the second one is the return type
-def deobfuscate_signature(signature: str, mapper=None) -> Optional[Tuple[List[str], str]]:
+def deobfuscate_signature(
+    signature: str, mapper: ProguardMapper | None = None
+) -> tuple[list[str], str] | None:
     if not signature:
         return None
 
@@ -104,3 +112,54 @@ def deobfuscate_signature(signature: str, mapper=None) -> Optional[Tuple[List[st
 
     return_java_type = byte_code_type_to_java_type(return_type, mapper)
     return parameter_java_types, return_java_type
+
+
+def convert_android_methods_to_jvm_frames(methods: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    frames = []
+    for i, m in enumerate(methods):
+        f = {
+            "function": m["name"],
+            "index": i,
+            "module": m["class_name"],
+        }
+        if "signature" in m:
+            f["signature"] = m["signature"]
+        if "source_line" in m:
+            f["lineno"] = m["source_line"]
+        if "source_file" in m:
+            f["filename"] = m["source_file"]
+        frames.append(f)
+    return frames
+
+
+def _merge_jvm_frame_and_android_method(f: dict[str, Any], m: dict[str, Any]) -> None:
+    m["class_name"] = f["module"]
+    m["data"] = {"deobfuscation_status": "deobfuscated"}
+    m["name"] = f["function"]
+    if "signature" in f:
+        m["signature"] = f["signature"]
+    if "filename" in f:
+        m["source_file"] = f["filename"]
+    if "lineno" in f and f["lineno"] != 0:
+        m["source_line"] = f["lineno"]
+    if "in_app" in f:
+        m["in_app"] = f["in_app"]
+
+
+def merge_jvm_frames_with_android_methods(
+    frames: list[dict[str, Any]], methods: list[dict[str, Any]]
+) -> None:
+    for f in frames:
+        m = methods[f["index"]]
+        # Update the method if it's the first time we see it.
+        if m.get("data", {}).get("deobfuscation_status", "") != "deobfuscated":
+            _merge_jvm_frame_and_android_method(f, m)
+        # Otherwise, it's an additional method returned, we add it to the inline frames.
+        else:
+            # We copy the frame triggering the inline ones so we only have to
+            # look at this field later one to construct a stack trace.
+            if "inline_frames" not in m:
+                m["inline_frames"] = [m.copy()]
+            im: dict[str, Any] = {}
+            _merge_jvm_frame_and_android_method(f, im)
+            m["inline_frames"].append(im)

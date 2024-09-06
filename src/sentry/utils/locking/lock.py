@@ -1,25 +1,31 @@
+from __future__ import annotations
+
 import logging
 import random
 import time
+from collections.abc import Generator
 from contextlib import contextmanager
-from typing import Optional
+from typing import ContextManager
 
 from sentry.utils.locking import UnableToAcquireLock
+from sentry.utils.locking.backends import LockBackend
 
 logger = logging.getLogger(__name__)
 
 
 class Lock:
-    def __init__(self, backend, key: str, duration: int, routing_key: Optional[str] = None) -> None:
+    def __init__(
+        self, backend: LockBackend, key: str, duration: int, routing_key: str | None = None
+    ) -> None:
         self.backend = backend
         self.key = key
         self.duration = duration
         self.routing_key = routing_key
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return f"<Lock: {self.key!r}>"
 
-    def acquire(self):
+    def acquire(self) -> ContextManager[None]:
         """
         Attempt to acquire the lock.
 
@@ -36,7 +42,7 @@ class Lock:
             ) from error
 
         @contextmanager
-        def releaser():
+        def releaser() -> Generator[None]:
             try:
                 yield
             finally:
@@ -44,7 +50,9 @@ class Lock:
 
         return releaser()
 
-    def blocking_acquire(self, initial_delay: float, timeout: float, exp_base=1.6):
+    def blocking_acquire(
+        self, initial_delay: float, timeout: float, exp_base: float = 1.6
+    ) -> ContextManager[None]:
         """
         Try to acquire the lock in a polling loop.
 
@@ -71,7 +79,7 @@ class Lock:
 
         raise UnableToAcquireLock(f"Unable to acquire {self!r} because of timeout")
 
-    def release(self):
+    def release(self) -> None:
         """
         Attempt to release the lock.
 
@@ -83,7 +91,7 @@ class Lock:
         except Exception as error:
             logger.warning("Failed to release %r due to error: %r", self, error, exc_info=True)
 
-    def locked(self):
+    def locked(self) -> bool:
         """
         See if the lock has been taken somewhere else.
         """

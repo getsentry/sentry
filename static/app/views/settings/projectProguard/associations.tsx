@@ -1,9 +1,9 @@
-import {Link} from 'react-router';
 import styled from '@emotion/styled';
 
 import ClippedBox from 'sentry/components/clippedBox';
 import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
 import {Hovercard} from 'sentry/components/hovercard';
+import Link from 'sentry/components/links/link';
 import List from 'sentry/components/list';
 import ListItem from 'sentry/components/list/listItem';
 import Placeholder from 'sentry/components/placeholder';
@@ -11,7 +11,7 @@ import TextOverflow from 'sentry/components/textOverflow';
 import {t, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import useOrganization from 'sentry/utils/useOrganization';
-import {ProguardMappingAssociation} from 'sentry/views/settings/projectProguard';
+import type {ProguardMappingAssociation} from 'sentry/views/settings/projectProguard';
 
 function ProguardAssociationsBody({
   associations,

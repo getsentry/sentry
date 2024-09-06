@@ -8,14 +8,12 @@ from sentry.models.transaction_threshold import (
 )
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.datetime import before_now
-from sentry.testutils.silo import region_silo_test
 from sentry.testutils.skips import requires_snuba
 from sentry.utils.samples import load_data
 
 pytestmark = [requires_snuba]
 
 
-@region_silo_test
 class ProjectTransactionThresholdOverrideTest(APITestCase):
     feature_name = "organizations:performance-view"
 

@@ -1,12 +1,13 @@
-import {Link} from 'react-router';
 import styled from '@emotion/styled';
 
 import EmptyMessage from 'sentry/components/emptyMessage';
+import Link from 'sentry/components/links/link';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Panel from 'sentry/components/panels/panel';
 import {IconList} from 'sentry/icons';
 import {space} from 'sentry/styles/space';
-import {DebugIdBundle, Project} from 'sentry/types';
+import type {Project} from 'sentry/types/project';
+import type {DebugIdBundle} from 'sentry/types/sourceMaps';
 import useOrganization from 'sentry/utils/useOrganization';
 import {DebugIdBundleDeleteButton} from 'sentry/views/settings/projectSourceMaps/debugIdBundleDeleteButton';
 import {DebugIdBundleDetails} from 'sentry/views/settings/projectSourceMaps/debugIdBundleDetails';

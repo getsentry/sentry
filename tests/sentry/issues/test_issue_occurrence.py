@@ -1,10 +1,9 @@
 from sentry.issues.issue_occurrence import DEFAULT_LEVEL, IssueEvidence, IssueOccurrence
 from sentry.testutils.cases import TestCase
-from sentry.testutils.silo import region_silo_test
+from sentry.types.actor import Actor, ActorType
 from tests.sentry.issues.test_utils import OccurrenceTestMixin
 
 
-@region_silo_test
 class IssueOccurrenceSerializeTest(OccurrenceTestMixin, TestCase):
     def test(self) -> None:
         occurrence = self.build_occurrence()
@@ -18,8 +17,36 @@ class IssueOccurrenceSerializeTest(OccurrenceTestMixin, TestCase):
         occurrence = IssueOccurrence.from_dict(occurrence_data)
         assert occurrence.level == DEFAULT_LEVEL
 
+    def test_assignee(self) -> None:
+        occurrence_data = self.build_occurrence_data()
+        occurrence_data["assignee"] = f"user:{self.user.id}"
+        occurrence = IssueOccurrence.from_dict(occurrence_data)
+        assert occurrence.assignee == Actor(id=self.user.id, actor_type=ActorType.USER)
+        occurrence_data["assignee"] = f"{self.user.id}"
+        occurrence = IssueOccurrence.from_dict(occurrence_data)
+        assert occurrence.assignee == Actor(id=self.user.id, actor_type=ActorType.USER)
+        occurrence_data["assignee"] = f"{self.user.email}"
+        occurrence = IssueOccurrence.from_dict(occurrence_data)
+        assert occurrence.assignee == Actor(id=self.user.id, actor_type=ActorType.USER)
+        occurrence_data["assignee"] = f"{self.user.username}"
+        occurrence = IssueOccurrence.from_dict(occurrence_data)
+        assert occurrence.assignee == Actor(id=self.user.id, actor_type=ActorType.USER)
+        occurrence_data["assignee"] = f"team:{self.team.id}"
+        occurrence = IssueOccurrence.from_dict(occurrence_data)
+        assert occurrence.assignee == Actor(id=self.team.id, actor_type=ActorType.TEAM)
 
-@region_silo_test
+    def test_assignee_none(self) -> None:
+        occurrence_data = self.build_occurrence_data()
+        occurrence = IssueOccurrence.from_dict(occurrence_data)
+        assert occurrence.assignee is None
+        occurrence_data["assignee"] = None
+        occurrence = IssueOccurrence.from_dict(occurrence_data)
+        assert occurrence.assignee is None
+        occurrence_data["assignee"] = ""
+        occurrence = IssueOccurrence.from_dict(occurrence_data)
+        assert occurrence.assignee is None
+
+
 class IssueOccurrenceSaveAndFetchTest(OccurrenceTestMixin, TestCase):
     def test(self) -> None:
         occurrence = self.build_occurrence()
@@ -29,7 +56,6 @@ class IssueOccurrenceSaveAndFetchTest(OccurrenceTestMixin, TestCase):
         self.assert_occurrences_identical(occurrence, fetched_occurrence)
 
 
-@region_silo_test
 class IssueOccurrenceEvidenceDisplayPrimaryTest(OccurrenceTestMixin, TestCase):
     def test(self) -> None:
         important_evidence = IssueEvidence("Hello", "Hi", True)

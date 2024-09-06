@@ -1,11 +1,12 @@
 from __future__ import annotations
 
-from typing import Any, Dict, Sequence
+from collections.abc import Sequence
+from typing import Any
 
 from django import forms
 
 from sentry.eventstore.models import GroupEvent
-from sentry.rules import MATCH_CHOICES, EventState, MatchType
+from sentry.rules import MATCH_CHOICES, EventState, MatchType, match_values
 from sentry.rules.conditions.base import EventCondition
 from sentry.rules.history.preview_strategy import DATASET_TO_COLUMN_NAME, get_dataset_columns
 from sentry.snuba.dataset import Dataset
@@ -38,6 +39,8 @@ ATTR_CHOICES = {
     "stacktrace.package": Columns.STACK_PACKAGE,
     "unreal.crashtype": Columns.UNREAL_CRASH_TYPE,
     "app.in_foreground": Columns.APP_IN_FOREGROUND,
+    "os.distribution.name": Columns.OS_DISTRIBUTION_NAME,
+    "os.distribution.version": Columns.OS_DISTRIBUTION_VERSION,
 }
 
 
@@ -111,14 +114,16 @@ class EventAttributeCondition(EventCondition):
                 return value
             return [value]
 
-        elif len(path) != 2:
-            return []
+        elif len(path) < 2:
+            return []  # all attribute paths below have at least 2 elements
 
         elif path[0] == "exception":
             if path[1] not in ("type", "value"):
                 return []
 
-            return [getattr(e, path[1]) for e in event.interfaces["exception"].values]
+            return [
+                getattr(e, path[1]) for e in event.interfaces["exception"].values if e is not None
+            ]
 
         elif path[0] == "error":
             # TODO: add support for error.main_thread
@@ -208,6 +213,23 @@ class EventAttributeCondition(EventCondition):
                     response = {}
                 return [response.get(path[1])]
 
+        elif len(path) < 3:
+            return []  # all attribute paths below have at least 3 elements
+
+        elif path[0] == "os":
+            if path[1] in ("distribution"):
+                if path[2] in ("name", "version"):
+                    contexts = event.data["contexts"]
+                    os_context = contexts.get("os")
+                    if os_context is None:
+                        os_context = {}
+
+                    distribution = os_context.get(path[1])
+                    if distribution is None:
+                        distribution = {}
+
+                    return [distribution.get(path[2])]
+                return []
             return []
 
         return []
@@ -221,71 +243,29 @@ class EventAttributeCondition(EventCondition):
         return self.label.format(**data)
 
     def _passes(self, attribute_values: Sequence[object | None]) -> bool:
-        match = self.get_option("match")
-        value = self.get_option("value")
+        option_match = self.get_option("match")
+        option_value = self.get_option("value")
 
-        if not ((match and value) or (match in (MatchType.IS_SET, MatchType.NOT_SET))):
+        if not (
+            (option_match and option_value)
+            or (option_match in (MatchType.IS_SET, MatchType.NOT_SET))
+        ):
             return False
 
-        value = value.lower()
+        option_value = option_value.lower()
 
-        values = [str(v).lower() for v in attribute_values if v is not None]
+        attr_values = [str(v).lower() for v in attribute_values if v is not None]
 
-        if match == MatchType.EQUAL:
-            for a_value in values:
-                if a_value == value:
-                    return True
-            return False
+        # NOTE: IS_SET condition differs btw tagged_event and event_attribute so not handled by match_values
+        if option_match == MatchType.IS_SET:
+            return bool(attr_values)
 
-        elif match == MatchType.NOT_EQUAL:
-            for a_value in values:
-                if a_value == value:
-                    return False
-            return True
+        elif option_match == MatchType.NOT_SET:
+            return not attr_values
 
-        elif match == MatchType.STARTS_WITH:
-            for a_value in values:
-                if a_value.startswith(value):
-                    return True
-            return False
-
-        elif match == MatchType.NOT_STARTS_WITH:
-            for a_value in values:
-                if a_value.startswith(value):
-                    return False
-            return True
-
-        elif match == MatchType.ENDS_WITH:
-            for a_value in values:
-                if a_value.endswith(value):
-                    return True
-            return False
-
-        elif match == MatchType.NOT_ENDS_WITH:
-            for a_value in values:
-                if a_value.endswith(value):
-                    return False
-            return True
-
-        elif match == MatchType.CONTAINS:
-            for a_value in values:
-                if value in a_value:
-                    return True
-            return False
-
-        elif match == MatchType.NOT_CONTAINS:
-            for a_value in values:
-                if value in a_value:
-                    return False
-            return True
-
-        elif match == MatchType.IS_SET:
-            return bool(values)
-
-        elif match == MatchType.NOT_SET:
-            return not values
-
-        raise RuntimeError("Invalid Match")
+        return match_values(
+            group_values=attr_values, match_value=option_value, match_type=option_match
+        )
 
     def passes(self, event: GroupEvent, state: EventState, **kwargs: Any) -> bool:
         attr = self.get_option("attribute", "")
@@ -297,7 +277,7 @@ class EventAttributeCondition(EventCondition):
         return self._passes(attribute_values)
 
     def passes_activity(
-        self, condition_activity: ConditionActivity, event_map: Dict[str, Any]
+        self, condition_activity: ConditionActivity, event_map: dict[str, Any]
     ) -> bool:
         try:
             attr = self.get_option("attribute").lower()
@@ -320,10 +300,10 @@ class EventAttributeCondition(EventCondition):
         except (TypeError, KeyError):
             return False
 
-    def get_event_columns(self) -> Dict[Dataset, Sequence[str]]:
+    def get_event_columns(self) -> dict[Dataset, Sequence[str]]:
         attr = self.get_option("attribute")
         column = ATTR_CHOICES[attr]
         if column is None:
             raise NotImplementedError
-        columns: Dict[Dataset, Sequence[str]] = get_dataset_columns([column])
+        columns: dict[Dataset, Sequence[str]] = get_dataset_columns([column])
         return columns

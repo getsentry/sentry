@@ -7,6 +7,8 @@ export enum SidebarPanelKey {
   PERFORMANCE_ONBOARDING = 'performance_onboarding',
   REPLAYS_ONBOARDING = 'replays_onboarding',
   PROFILING_ONBOARDING = 'profiling_onboarding',
+  METRICS_ONBOARDING = 'metrics_onboarding',
+  FEEDBACK_ONBOARDING = 'feedback_onboarding',
 }
 
 export type CommonSidebarProps = {
@@ -30,4 +32,8 @@ export type CommonSidebarProps = {
    * The orientation of the sidebar
    */
   orientation: SidebarOrientation;
+  /**
+   * Alternate collapsed state
+   */
+  hasNewNav?: boolean;
 };

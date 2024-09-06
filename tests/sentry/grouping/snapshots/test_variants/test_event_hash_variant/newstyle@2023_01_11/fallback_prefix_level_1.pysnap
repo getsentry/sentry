@@ -1,5 +1,5 @@
 ---
-created: '2023-02-01T08:22:03.397605Z'
+created: '2023-12-12T14:07:26.922870Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -18,13 +18,13 @@ app:
           frame (non app frame)
             function*
               "UIApplicationMain"
-          frame (marked as prefix frame by stack trace rule (category:ui +sentinel +prefix))
+          frame (non app frame)
             function*
               "-[UIApplication _run]"
           frame (non app frame)
             function*
               "GSEventRunModal"
-          frame (marked as prefix frame by stack trace rule (category:free +prefix))
+          frame (non app frame)
             function*
               "objc_release"
         type*
@@ -45,13 +45,13 @@ system:
           frame (ignored by stack trace rule (category:threadbase -group v-group))
             function*
               "UIApplicationMain"
-          frame* (marked as prefix frame by stack trace rule (category:ui +sentinel +prefix))
+          frame*
             function*
               "-[UIApplication _run]"
           frame (ignored by stack trace rule (category:internals -group))
             function*
               "GSEventRunModal"
-          frame* (marked as prefix frame by stack trace rule (category:free +prefix))
+          frame*
             function*
               "objc_release"
         type*

@@ -1,19 +1,14 @@
 from unittest import mock
 
+from sentry.integrations.discord.message_builder.base.flags import EPHEMERAL_FLAG
 from sentry.integrations.discord.requests.base import DiscordRequestTypes
 from sentry.integrations.discord.webhooks.command import HELP_MESSAGE, NOT_LINKED_MESSAGE
 from sentry.integrations.discord.webhooks.types import DiscordResponseTypes
 from sentry.testutils.cases import APITestCase
-from sentry.testutils.silo import region_silo_test
 
 WEBHOOK_URL = "/extensions/discord/interactions/"
 
-# https://discord.com/developers/docs/resources/channel#message-object-message-flags
-# this message is only visible to the user who invoked the Interaction
-EPHEMERAL_FLAG = 1 << 6
 
-
-@region_silo_test
 class DiscordCommandInteractionTest(APITestCase):
     @mock.patch("sentry.integrations.discord.requests.base.verify_signature")
     def test_command_interaction(self, mock_verify_signature):
@@ -47,7 +42,7 @@ class DiscordCommandInteractionTest(APITestCase):
                 HTTP_X_SIGNATURE_ED25519="signature",
                 HTTP_X_SIGNATURE_TIMESTAMP="timestamp",
             )
-        assert resp.status_code == 400
+        assert resp.status_code == 200
 
     def test_link_no_user_id(self):
         guild_id = "guild-id"
@@ -72,7 +67,7 @@ class DiscordCommandInteractionTest(APITestCase):
                 HTTP_X_SIGNATURE_ED25519="signature",
                 HTTP_X_SIGNATURE_TIMESTAMP="timestamp",
             )
-        assert resp.status_code == 400
+        assert resp.status_code == 200
 
     def test_link_guild(self):
         guild_id = "guild-id"

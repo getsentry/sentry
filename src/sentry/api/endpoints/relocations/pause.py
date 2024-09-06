@@ -1,3 +1,4 @@
+import logging
 from string import Template
 
 from django.db import DatabaseError
@@ -13,7 +14,7 @@ from sentry.api.endpoints.relocations import (
     ERR_UNKNOWN_RELOCATION_STEP,
 )
 from sentry.api.exceptions import ResourceDoesNotExist
-from sentry.api.permissions import SuperuserPermission
+from sentry.api.permissions import SuperuserOrStaffFeatureFlaggedPermission
 from sentry.api.serializers import serialize
 from sentry.models.relocation import Relocation
 
@@ -25,15 +26,17 @@ ERR_COULD_NOT_PAUSE_RELOCATION = (
     "Could not pause relocation, perhaps because it is no longer in-progress."
 )
 
+logger = logging.getLogger(__name__)
+
 
 @region_silo_endpoint
 class RelocationPauseEndpoint(Endpoint):
-    owner = ApiOwner.RELOCATION
+    owner = ApiOwner.OPEN_SOURCE
     publish_status = {
         # TODO(getsentry/team-ospo#214): Stabilize before GA.
         "PUT": ApiPublishStatus.EXPERIMENTAL,
     }
-    permission_classes = (SuperuserPermission,)
+    permission_classes = (SuperuserOrStaffFeatureFlaggedPermission,)
 
     def put(self, request: Request, relocation_uuid: str) -> Response:
         """
@@ -51,6 +54,8 @@ class RelocationPauseEndpoint(Endpoint):
 
         :auth: required
         """
+
+        logger.info("relocations.pause.put.start", extra={"caller": request.user.id})
 
         try:
             relocation: Relocation = Relocation.objects.get(uuid=relocation_uuid)
@@ -98,7 +103,6 @@ class RelocationPauseEndpoint(Endpoint):
                     {"detail": ERR_COULD_NOT_PAUSE_RELOCATION_AT_STEP.substitute(step=step.name)},
                     status=400,
                 )
-            pass
         else:
             try:
                 updated = Relocation.objects.filter(

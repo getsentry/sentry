@@ -1,21 +1,25 @@
-import {ComponentProps, Fragment, useState} from 'react';
+import type {ComponentProps} from 'react';
+import {Fragment, useState} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {ModalRenderProps} from 'sentry/actionCreators/modal';
-import {Button} from 'sentry/components/button';
+import type {ModalRenderProps} from 'sentry/actionCreators/modal';
+import {Button, LinkButton} from 'sentry/components/button';
 import Buttonbar from 'sentry/components/buttonBar';
 import Confirm from 'sentry/components/confirm';
-import DateTime from 'sentry/components/dateTime';
+import {DateTime} from 'sentry/components/dateTime';
 import {getRelativeTimeFromEventDateCreated} from 'sentry/components/events/contexts/utils';
 import Link from 'sentry/components/links/link';
 import NotAvailable from 'sentry/components/notAvailable';
-import {CursorHandler} from 'sentry/components/pagination';
+import type {CursorHandler} from 'sentry/components/pagination';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {EventAttachment, IssueAttachment, Organization, Project} from 'sentry/types';
-import {Event} from 'sentry/types/event';
-import {defined, formatBytesBase2} from 'sentry/utils';
+import type {Event} from 'sentry/types/event';
+import type {EventAttachment, IssueAttachment} from 'sentry/types/group';
+import type {Organization} from 'sentry/types/organization';
+import type {Project} from 'sentry/types/project';
+import {defined} from 'sentry/utils';
+import {formatBytesBase2} from 'sentry/utils/bytes/formatBytesBase2';
 import getDynamicText from 'sentry/utils/getDynamicText';
 import parseLinkHeader from 'sentry/utils/parseLinkHeader';
 import useApi from 'sentry/utils/useApi';
@@ -40,7 +44,7 @@ type Props = ModalRenderProps & {
   pageLinks?: string | null | undefined;
 };
 
-function Modal({
+export default function ScreenshotModal({
   eventAttachment,
   orgSlug,
   projectSlug,
@@ -223,16 +227,14 @@ function Modal({
           >
             <Button priority="danger">{t('Delete')}</Button>
           </Confirm>
-          <Button onClick={onDownload} href={downloadUrl}>
+          <LinkButton onClick={onDownload} href={downloadUrl}>
             {t('Download')}
-          </Button>
+          </LinkButton>
         </Buttonbar>
       </Footer>
     </Fragment>
   );
 }
-
-export default Modal;
 
 const StyledHeaderWrapper = styled('div')<{hasPagination: boolean}>`
   ${p =>
@@ -279,7 +281,7 @@ const StyledImageVisualization = styled(ImageVisualization)`
 
 const Title = styled(Link)`
   ${p => p.theme.overflowEllipsis};
-  font-weight: normal;
+  font-weight: ${p => p.theme.fontWeightNormal};
 `;
 
 export const modalCss = css`

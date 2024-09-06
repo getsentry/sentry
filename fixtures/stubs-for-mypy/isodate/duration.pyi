@@ -8,19 +8,17 @@ class Duration:
     tdelta: datetime.timedelta
 
     def __init__(
-            self,
-            days: int,
-            seconds: int,
-            microseconds: int,
-            milliseconds: int,
-            minutes: int,
-            hours: int,
-            weeks: int,
-            months: int | decimal.Decimal,
-            years: int | decimal.Decimal,
-    ) -> None:
-        ...
-
+        self,
+        days: int,
+        seconds: int,
+        microseconds: int,
+        milliseconds: int,
+        minutes: int,
+        hours: int,
+        weeks: int,
+        months: int | decimal.Decimal,
+        years: int | decimal.Decimal,
+    ) -> None: ...
     @overload
     def __add__(self, other: datetime.datetime) -> datetime.datetime: ...
     @overload

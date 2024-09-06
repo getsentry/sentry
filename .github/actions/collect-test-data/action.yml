@@ -1,0 +1,35 @@
+name: 'Collect Test Data'
+description: 'Collects test data and uploads it to our internal test data collection service.'
+
+inputs:
+  artifact_path:
+    description: 'Path to test data output artifact to upload to our internal test data collection service'
+    required: true
+  gcs_bucket:
+    description: 'The GCS bucket to upload the test data to'
+    required: true
+  gcp_project_id:
+    description: 'The GCP project ID to use for uploading the test data'
+    required: true
+  workload_identity_provider:
+    description: 'The workload identity provider to use for uploading the test data'
+    required: true
+  service_account_email:
+    description: 'The service account email to use for uploading the test data'
+    required: true
+  matrix_instance_number:
+    description: 'The instance number of the matrix job'
+    required: false
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Collect test data
+      uses: getsentry/action-collect-test-data@c0a2fd3f79d3867e2c8b486ccb1c4bf925477742 # v0.3.0
+      with:
+        path: ${{ inputs.artifact_path }}
+        gcs_path: ${{ inputs.gcs_bucket }}/pytest/${{ github.repository }}/${{ github.workflow }}/${{ github.job }}${{ inputs.matrix_instance_number != '' && '/instance' || '' }}${{ inputs.matrix_instance_number != '' && inputs.matrix_instance_number || '' }}/${{ github.repository_id }}/${{ github.run_id }}/${{ github.run_attempt }}
+        gcp_project_id: ${{ inputs.gcp_project_id }}
+        workload_identity_provider: ${{ inputs.workload_identity_provider }}
+        service_account_email: ${{ inputs.service_account_email }}
+      continue-on-error: true

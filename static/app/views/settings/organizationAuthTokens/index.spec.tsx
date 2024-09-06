@@ -1,4 +1,4 @@
-import {Organization} from 'sentry-fixture/organization';
+import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {
@@ -12,7 +12,7 @@ import {textWithMarkupMatcher} from 'sentry-test/utils';
 
 import * as indicators from 'sentry/actionCreators/indicator';
 import OrganizationsStore from 'sentry/stores/organizationsStore';
-import {OrgAuthToken} from 'sentry/types';
+import type {OrgAuthToken} from 'sentry/types/user';
 import {OrganizationAuthTokensIndex} from 'sentry/views/settings/organizationAuthTokens';
 
 describe('OrganizationAuthTokensIndex', function () {
@@ -278,7 +278,7 @@ describe('OrganizationAuthTokensIndex', function () {
     });
 
     it('does not allow to revoke without permission', async function () {
-      const org = Organization({
+      const org = OrganizationFixture({
         access: ['org:read'],
       });
 

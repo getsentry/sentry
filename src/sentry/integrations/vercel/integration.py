@@ -10,25 +10,25 @@ from rest_framework.serializers import ValidationError
 from sentry import options
 from sentry.constants import ObjectStatus
 from sentry.identity.pipeline import IdentityProviderPipeline
-from sentry.integrations import (
+from sentry.integrations.base import (
     FeatureDescription,
     IntegrationFeatures,
     IntegrationInstallation,
     IntegrationMetadata,
     IntegrationProvider,
 )
-from sentry.models.integrations.integration import Integration
+from sentry.integrations.models.integration import Integration
+from sentry.integrations.services.integration import integration_service
 from sentry.models.integrations.sentry_app_installation import SentryAppInstallation
 from sentry.models.integrations.sentry_app_installation_for_provider import (
     SentryAppInstallationForProvider,
 )
 from sentry.models.integrations.sentry_app_installation_token import SentryAppInstallationToken
-from sentry.models.user import User
+from sentry.organizations.services.organization import RpcOrganizationSummary
 from sentry.pipeline import NestedPipelineView
-from sentry.services.hybrid_cloud.integration import integration_service
-from sentry.services.hybrid_cloud.organization import RpcOrganizationSummary
-from sentry.services.hybrid_cloud.project_key import project_key_service
+from sentry.projects.services.project_key import project_key_service
 from sentry.shared_integrations.exceptions import ApiError, IntegrationError
+from sentry.users.models.user import User
 from sentry.utils.http import absolute_uri
 
 from ...sentry_apps.apps import SentryAppCreator
@@ -65,7 +65,6 @@ external_install = {
 
 
 configure_integration = {"title": _("Connect Your Projects")}
-create_project_instruction = _("Don't have a project yet? Click [here]({}) to create one.")
 install_source_code_integration = _(
     "Install a [source code integration]({}) and configure your repositories."
 )
@@ -98,11 +97,9 @@ class VercelIntegration(IntegrationInstallation):
     def get_dynamic_display_information(self):
         qs = urlencode({"category": "source code management"})
         source_code_link = absolute_uri(f"/settings/{self.organization.slug}/integrations/?{qs}")
-        add_project_link = absolute_uri(f"/organizations/{self.organization.slug}/projects/new/")
         return {
             "configure_integration": {
                 "instructions": [
-                    create_project_instruction.format(add_project_link),
                     install_source_code_integration.format(source_code_link),
                 ]
             }
@@ -312,7 +309,7 @@ class VercelIntegration(IntegrationInstallation):
             if error.code == 403:
                 pass
             else:
-                raise error
+                raise
 
 
 class VercelIntegrationProvider(IntegrationProvider):

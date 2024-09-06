@@ -1,4 +1,5 @@
 from django.db import router
+from django.utils.functional import cached_property
 
 from sentry import analytics
 from sentry.coreapi import APIUnauthorized
@@ -10,9 +11,8 @@ from sentry.models.apiapplication import ApiApplication
 from sentry.models.apitoken import ApiToken
 from sentry.models.integrations.sentry_app import SentryApp
 from sentry.models.integrations.sentry_app_installation import SentryAppInstallation
-from sentry.models.user import User
-from sentry.services.hybrid_cloud.app import RpcSentryAppInstallation
-from sentry.utils.cache import memoize
+from sentry.sentry_apps.services.app import RpcSentryAppInstallation
+from sentry.users.models.user import User
 
 
 class Refresher(Mediator):
@@ -63,14 +63,14 @@ class Refresher(Mediator):
             pass
         return token
 
-    @memoize
+    @cached_property
     def token(self):
         try:
             return ApiToken.objects.get(refresh_token=self.refresh_token)
         except ApiToken.DoesNotExist:
             raise APIUnauthorized
 
-    @memoize
+    @cached_property
     def application(self):
         try:
             return ApiApplication.objects.get(client_id=self.client_id)

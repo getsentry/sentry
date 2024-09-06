@@ -1,4 +1,5 @@
-import {Calendar, CalendarProps} from 'react-date-range';
+import type {CalendarProps} from 'react-date-range';
+import {Calendar} from 'react-date-range';
 
 import CalendarStylesWrapper from './calendarStylesWrapper';
 

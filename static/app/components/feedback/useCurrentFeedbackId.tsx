@@ -1,11 +1,12 @@
-import decodeFeedbackId from 'sentry/components/feedback/decodeFeedbackId';
+import decodeFeedbackSlug from 'sentry/components/feedback/decodeFeedbackSlug';
 import useLocationQuery from 'sentry/utils/url/useLocationQuery';
 
+// See also: useCurrentFeedbackProject()
+
 export default function useCurrentFeedbackId() {
-  const {feedbackSlug} = useLocationQuery({
-    fields: {
-      feedbackSlug: decodeFeedbackId,
-    },
+  const {feedbackSlug: feedbackId} = useLocationQuery({
+    fields: {feedbackSlug: val => decodeFeedbackSlug(val).feedbackId ?? ''},
   });
-  return feedbackSlug;
+
+  return feedbackId;
 }

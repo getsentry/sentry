@@ -56,7 +56,13 @@
           "application/json": {
             "schema": {
               "type": "object",
-              "required": ["id", "issueId", "serviceType", "displayName", "webUrl"],
+              "required": [
+                "id",
+                "issueId",
+                "serviceType",
+                "displayName",
+                "webUrl"
+              ],
               "properties": {
                 "id": {
                   "type": "string"

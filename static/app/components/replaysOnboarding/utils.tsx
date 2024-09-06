@@ -1,27 +1,16 @@
-import partition from 'lodash/partition';
+import {replayFrontendPlatforms} from 'sentry/data/platformCategories';
+import platforms from 'sentry/data/platforms';
+import type {PlatformIntegration} from 'sentry/types/project';
 
-import {replayPlatforms} from 'sentry/data/platformCategories';
-import {PlatformIntegration, PlatformKey, Project} from 'sentry/types';
+export function replayJsFrameworkOptions(): PlatformIntegration[] {
+  // the platforms array is sorted alphabetically, but we want javascript to be
+  // at the front so that it shows up by default in the onboarding.
+  const frameworks = platforms.filter(p => replayFrontendPlatforms.includes(p.id));
+  const jsPlatformIdx = frameworks.findIndex(p => p.id === 'javascript');
+  const jsPlatform = frameworks[jsPlatformIdx];
 
-export function generateDocKeys(platform: PlatformKey): string[] {
-  const platformKey = platform.startsWith('javascript')
-    ? platform
-    : 'javascript-' + platform;
-  return ['1-install', '2-configure'].map(
-    key => `${platformKey}-replay-onboarding-${key}`
-  );
-}
-
-export function isPlatformSupported(platform: undefined | PlatformIntegration) {
-  return platform?.id ? replayPlatforms.includes(platform?.id) : false;
-}
-
-export function splitProjectsByReplaySupport(projects: Project[]) {
-  const [supported, unsupported] = partition(projects, project =>
-    replayPlatforms.includes(project.platform!)
-  );
-  return {
-    supported,
-    unsupported,
-  };
+  // move javascript to the front
+  frameworks.splice(jsPlatformIdx, 1);
+  frameworks.unshift(jsPlatform);
+  return frameworks;
 }

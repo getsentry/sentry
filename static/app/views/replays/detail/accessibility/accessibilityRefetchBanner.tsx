@@ -2,12 +2,12 @@ import {useCallback, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/button';
-import {Flex} from 'sentry/components/profiling/flex';
+import {Flex} from 'sentry/components/container/flex';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
-import {showPlayerTime} from 'sentry/components/replays/utils';
 import Well from 'sentry/components/well';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import formatDuration from 'sentry/utils/duration/formatDuration';
 import TimestampButton from 'sentry/views/replays/detail/timestampButton';
 
 interface Props {
@@ -32,8 +32,11 @@ export default function AccessibilityRefetchBanner({initialOffsetMs, refetch}: P
     setCurrentTime(lastOffsetMs);
   }, [setCurrentTime, lastOffsetMs]);
 
-  const now = showPlayerTime(startTimestampMs + currentTime, startTimestampMs, false);
-
+  const now = formatDuration({
+    duration: [currentTime, 'ms'],
+    precision: 'sec',
+    style: 'hh:mm:ss',
+  });
   return (
     <StyledWell>
       <Flex
@@ -55,12 +58,7 @@ export default function AccessibilityRefetchBanner({initialOffsetMs, refetch}: P
             ),
           })}
         </Flex>
-        <Button
-          size="xs"
-          priority="primary"
-          onClick={handleClickRefetch}
-          disabled={currentTime === lastOffsetMs}
-        >
+        <Button size="xs" priority="primary" onClick={handleClickRefetch}>
           {isPlaying
             ? tct('Pause and run validation for [now]', {now})
             : tct('Run validation for [now]', {now})}

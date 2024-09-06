@@ -11,7 +11,7 @@ class DummyForm(forms.Form):
     textarea = forms.CharField(widget=forms.Textarea, required=False)
     password = forms.CharField(label="A Password", widget=forms.PasswordInput)
     choice = forms.ChoiceField(choices=((1, "one"), (2, "two")))
-    url = forms.URLField()
+    url = forms.URLField(assume_scheme="https")
 
 
 class DummyPlugin(Plugin2):

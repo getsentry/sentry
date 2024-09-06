@@ -7,7 +7,7 @@ describe('NarrowLayout', function () {
     jest.spyOn(window.location, 'assign').mockImplementation(() => {});
   });
   afterAll(function () {
-    (window.location.assign as jest.Mock).mockRestore();
+    jest.mocked(window.location.assign).mockRestore();
   });
 
   it('renders without logout', function () {

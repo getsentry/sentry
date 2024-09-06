@@ -87,12 +87,12 @@ const TitleWrapper = styled('div')`
 `;
 
 const Title = styled('div')<TitleProps>`
-  ${p => !p.styled && `font-size: 20px; font-weight: 600;`};
+  ${p => !p.styled && `font-size: 20px; font-weight: ${p.theme.fontWeightBold};`};
   margin: ${space(4)} ${space(2)} ${space(3)} 0;
 `;
 const Subtitle = styled('div')<{colorSubtitle?: boolean}>`
   color: ${p => (p.colorSubtitle ? p.theme.purple400 : p.theme.gray400)};
-  font-weight: 400;
+  font-weight: ${p => p.theme.fontWeightNormal};
   font-size: ${p => p.theme.fontSizeLarge};
   padding: ${space(1.5)} 0 0;
 `;

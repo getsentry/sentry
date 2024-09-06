@@ -10,7 +10,7 @@ def get_provider_label(obj: UserSocialAuth) -> str:
 
 @register(UserSocialAuth)
 class UserSocialAuthSerializer(Serializer):
-    def serialize(self, obj, attrs, user):
+    def serialize(self, obj, attrs, user, **kwargs):
         return {
             "id": str(obj.id),
             "provider": obj.provider,

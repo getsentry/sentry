@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import logging
-from typing import Callable
+from collections.abc import Callable
 
 from django.core.exceptions import DisallowedHost
 from django.http import HttpResponseRedirect
@@ -54,8 +54,7 @@ class SubdomainMiddleware:
 
         subdomain = host[: -len(self.base_hostname)].rstrip(".")
 
-        if len(subdomain) == 0:
-            subdomain = None
+        if len(subdomain) > 0:
+            request.subdomain = subdomain
 
-        request.subdomain = subdomain
         return self.get_response(request)

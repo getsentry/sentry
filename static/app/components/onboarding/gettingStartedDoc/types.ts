@@ -1,6 +1,7 @@
 import type {StepProps} from 'sentry/components/onboarding/gettingStartedDoc/step';
 import type {ReleaseRegistrySdk} from 'sentry/components/onboarding/gettingStartedDoc/useSourcePackageRegistries';
-import type {Organization, PlatformKey, Project} from 'sentry/types';
+import type {Organization} from 'sentry/types/organization';
+import type {PlatformKey, Project, ProjectKey} from 'sentry/types/project';
 
 type GeneratorFunction<T, Params> = (params: Params) => T;
 type WithGeneratorProperties<T extends Record<string, any>, Params> = {
@@ -33,20 +34,40 @@ export type SelectedPlatformOptions<
   [key in keyof PlatformOptions]: PlatformOptions[key]['items'][number]['value'];
 };
 
+export enum DocsPageLocation {
+  PROFILING_PAGE = 1,
+}
+
 export interface DocsParams<
   PlatformOptions extends BasePlatformOptions = BasePlatformOptions,
 > {
-  dsn: string;
+  dsn: ProjectKey['dsn'];
+  isFeedbackSelected: boolean;
   isPerformanceSelected: boolean;
   isProfilingSelected: boolean;
   isReplaySelected: boolean;
+  isSelfHosted: boolean;
   organization: Organization;
   platformKey: PlatformKey;
   platformOptions: SelectedPlatformOptions<PlatformOptions>;
   projectId: Project['id'];
   projectSlug: Project['slug'];
   sourcePackageRegistries: {isLoading: boolean; data?: ReleaseRegistrySdk};
+  urlPrefix: string;
+  /**
+   * The page where the docs are being displayed
+   */
+  docsLocation?: DocsPageLocation;
+  feedbackOptions?: {
+    email?: boolean;
+    name?: boolean;
+    screenshot?: boolean;
+  };
   newOrg?: boolean;
+  replayOptions?: {
+    block?: boolean;
+    mask?: boolean;
+  };
 }
 
 export interface NextStep {
@@ -63,15 +84,27 @@ export interface OnboardingConfig<
       install: StepProps[];
       verify: StepProps[];
       introduction?: React.ReactNode | React.ReactNode[];
-      nextSteps?: NextStep[];
+      nextSteps?: (NextStep | null)[];
     },
     DocsParams<PlatformOptions>
   > {}
 
 export interface Docs<PlatformOptions extends BasePlatformOptions = BasePlatformOptions> {
   onboarding: OnboardingConfig<PlatformOptions>;
+  crashReportOnboarding?: OnboardingConfig<PlatformOptions>;
+  customMetricsOnboarding?: OnboardingConfig<PlatformOptions>;
+  feedbackOnboardingCrashApi?: OnboardingConfig<PlatformOptions>;
+  feedbackOnboardingNpm?: OnboardingConfig<PlatformOptions>;
   platformOptions?: PlatformOptions;
   replayOnboarding?: OnboardingConfig<PlatformOptions>;
+  replayOnboardingJsLoader?: OnboardingConfig<PlatformOptions>;
 }
 
-export type ConfigType = 'onboarding' | 'replayOnboarding';
+export type ConfigType =
+  | 'onboarding'
+  | 'feedbackOnboardingNpm'
+  | 'feedbackOnboardingCrashApi'
+  | 'crashReportOnboarding'
+  | 'replayOnboarding'
+  | 'replayOnboardingJsLoader'
+  | 'customMetricsOnboarding';

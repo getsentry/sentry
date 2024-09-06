@@ -10,8 +10,8 @@ import PanelFooter from 'sentry/components/panels/panelFooter';
 import Placeholder from 'sentry/components/placeholder';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {Project} from 'sentry/types';
 import type {IssueAlertRule, ProjectAlertRuleStats} from 'sentry/types/alerts';
+import type {Project} from 'sentry/types/project';
 import getDynamicText from 'sentry/utils/getDynamicText';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -35,7 +35,7 @@ export function IssueAlertDetailsChart({
   const router = useRouter();
   const {
     data: ruleFireHistory,
-    isLoading,
+    isPending,
     isError,
     error,
   } = useApiQuery<ProjectAlertRuleStats[]>(
@@ -67,7 +67,7 @@ export function IssueAlertDetailsChart({
           <HeaderTitleLegend>{t('Alerts Triggered')}</HeaderTitleLegend>
         </ChartHeader>
         {getDynamicText({
-          value: isLoading ? (
+          value: isPending ? (
             <Placeholder height="200px" />
           ) : (
             <ChartZoom
@@ -115,7 +115,7 @@ export function IssueAlertDetailsChart({
       <ChartFooter>
         <FooterHeader>{t('Total Alerts')}</FooterHeader>
         <FooterValue>
-          {isLoading ? (
+          {isPending ? (
             <Placeholder height="16px" width="50px" />
           ) : (
             totalAlertsTriggered.toLocaleString()
@@ -140,7 +140,7 @@ const FooterHeader = styled(SectionHeading)`
   display: flex;
   align-items: center;
   margin: 0;
-  font-weight: bold;
+  font-weight: ${p => p.theme.fontWeightBold};
   font-size: ${p => p.theme.fontSizeMedium};
   line-height: 1;
 `;

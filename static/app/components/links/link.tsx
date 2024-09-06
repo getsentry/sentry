@@ -1,10 +1,12 @@
-import {forwardRef, useContext} from 'react';
+import {forwardRef} from 'react';
 import {Link as RouterLink} from 'react-router';
+import {Link as Router6Link} from 'react-router-dom';
 import styled from '@emotion/styled';
-import {Location, LocationDescriptor} from 'history';
+import type {LocationDescriptor} from 'history';
 
-import {normalizeUrl} from 'sentry/utils/withDomainRequired';
-import {RouteContext} from 'sentry/views/routeContext';
+import {locationDescriptorToTo} from 'sentry/utils/reactRouter6Compat/location';
+import normalizeUrl from 'sentry/utils/url/normalizeUrl';
+import {useLocation} from 'sentry/utils/useLocation';
 
 import {linkStyles} from './styles';
 
@@ -22,7 +24,7 @@ export interface LinkProps
    * work in environments that do have customer-domains (saas) and those without
    * customer-domains (single-tenant).
    */
-  to: ((location: Location) => LocationDescriptor) | LocationDescriptor;
+  to: LocationDescriptor;
   /**
    * Style applied to the component's root
    */
@@ -42,11 +44,20 @@ export interface LinkProps
  * back to <a> if there is no router present
  */
 function BaseLink({disabled, to, forwardedRef, ...props}: LinkProps): React.ReactElement {
-  const route = useContext(RouteContext);
-  const location = route?.location;
+  const location = useLocation();
   to = normalizeUrl(to, location);
 
   if (!disabled && location) {
+    if (window.__SENTRY_USING_REACT_ROUTER_SIX) {
+      return (
+        <Router6Link
+          to={locationDescriptorToTo(to)}
+          ref={forwardedRef as any}
+          {...props}
+        />
+      );
+    }
+
     return <RouterLink to={to} ref={forwardedRef as any} {...props} />;
   }
 

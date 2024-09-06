@@ -31,10 +31,10 @@ describe('RedirectToProjectModal', function () {
       ))
     );
 
-    jest.advanceTimersByTime(4900);
+    act(() => jest.advanceTimersByTime(4900));
     expect(window.location.assign).not.toHaveBeenCalled();
 
-    jest.advanceTimersByTime(200);
+    act(() => jest.advanceTimersByTime(200));
     expect(window.location.assign).toHaveBeenCalledTimes(1);
     expect(window.location.assign).toHaveBeenCalledWith('/org-slug/new-slug/');
   });

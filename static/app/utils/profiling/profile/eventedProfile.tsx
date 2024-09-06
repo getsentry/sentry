@@ -1,10 +1,10 @@
-import {lastOfArray} from 'sentry/utils';
+import {lastOfArray} from 'sentry/utils/array/lastOfArray';
 import {CallTreeNode} from 'sentry/utils/profiling/callTreeNode';
-import {Frame} from 'sentry/utils/profiling/frame';
-import {formatTo} from 'sentry/utils/profiling/units/units';
+import type {Frame} from 'sentry/utils/profiling/frame';
+import {assertValidProfilingUnit, formatTo} from 'sentry/utils/profiling/units/units';
 
 import {Profile} from './profile';
-import {createFrameIndex} from './utils';
+import type {createFrameIndex} from './utils';
 
 export class EventedProfile extends Profile {
   calltree: CallTreeNode[] = [this.callTree];
@@ -21,6 +21,7 @@ export class EventedProfile extends Profile {
       frameFilter?: (frame: Frame) => boolean;
     }
   ): EventedProfile {
+    assertValidProfilingUnit(eventedProfile.unit);
     const profile = new EventedProfile({
       duration: eventedProfile.endValue - eventedProfile.startValue,
       startedAt: eventedProfile.startValue,

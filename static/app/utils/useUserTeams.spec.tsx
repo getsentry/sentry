@@ -1,13 +1,18 @@
-import {Organization} from 'sentry-fixture/organization';
-import {Team} from 'sentry-fixture/team';
+import {OrganizationFixture} from 'sentry-fixture/organization';
+import {TeamFixture} from 'sentry-fixture/team';
 
-import {reactHooks} from 'sentry-test/reactTestingLibrary';
+import {act, renderHook, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import OrganizationStore from 'sentry/stores/organizationStore';
 import TeamStore from 'sentry/stores/teamStore';
+import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
 import {QueryClient, QueryClientProvider} from 'sentry/utils/queryClient';
 
 import {useUserTeams} from './useUserTeams';
+
+jest.mock('sentry/utils/isActiveSuperuser', () => ({
+  isActiveSuperuser: jest.fn(),
+}));
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -18,7 +23,9 @@ const queryClient = new QueryClient({
 });
 
 describe('useUserTeams', () => {
-  const org = Organization();
+  const org = OrganizationFixture({
+    access: [],
+  });
   const wrapper = ({children}: {children?: any}) => (
     <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
   );
@@ -31,39 +38,74 @@ describe('useUserTeams', () => {
   });
 
   it('does not request user teams until the store has loaded', async function () {
-    const userTeams = [Team({id: '1', isMember: true})];
-    const nonUserTeams = [Team({id: '2', isMember: false})];
+    const userTeams = [TeamFixture({id: '1', isMember: true})];
+    const nonUserTeams = [TeamFixture({id: '2', isMember: false})];
     const mockapi = MockApiClient.addMockResponse({
       url: `/organizations/org-slug/user-teams/`,
       body: userTeams,
     });
 
-    const {result, waitFor} = reactHooks.renderHook(useUserTeams, {wrapper});
+    const {result} = renderHook(useUserTeams, {wrapper});
     const {teams} = result.current;
     expect(teams.length).toBe(0);
 
     expect(TeamStore.getState().loading).toBe(true);
     expect(mockapi).toHaveBeenCalledTimes(0);
-    reactHooks.act(() => TeamStore.loadInitialData(nonUserTeams, true, null));
+    act(() => TeamStore.loadInitialData(nonUserTeams, true, null));
     expect(TeamStore.getState().loading).toBe(false);
     expect(TeamStore.getState().loadedUserTeams).toBe(false);
 
     await waitFor(() => result.current.teams.length === 1);
     expect(mockapi).toHaveBeenCalledTimes(1);
-    expect(result.current.teams).toEqual(userTeams);
+    await waitFor(() => expect(result.current.teams).toEqual(userTeams));
   });
 
   it('provides only the users teams', function () {
-    const userTeams = [Team({id: '1', isMember: true})];
-    const nonUserTeams = [Team({id: '2', isMember: false})];
+    const userTeams = [TeamFixture({id: '1', isMember: true})];
+    const nonUserTeams = [TeamFixture({id: '2', isMember: false})];
     // User teams marked loaded because hasMore is false
     TeamStore.loadInitialData([...userTeams, ...nonUserTeams], false, null);
     expect(TeamStore.getState().loadedUserTeams).toBe(true);
 
-    const {result} = reactHooks.renderHook(useUserTeams, {wrapper});
+    const {result} = renderHook(useUserTeams, {wrapper});
     const {teams} = result.current;
 
     expect(teams.length).toBe(1);
     expect(teams).toEqual(userTeams);
+  });
+
+  it('superuser loads all teams', function () {
+    jest.mocked(isActiveSuperuser).mockReturnValue(true);
+
+    const userTeams = [TeamFixture({id: '1', isMember: true})];
+    const nonUserTeams = [TeamFixture({id: '2', isMember: false})];
+    // User teams marked loaded because hasMore is false
+    TeamStore.loadInitialData([...userTeams, ...nonUserTeams], false, null);
+    expect(TeamStore.getState().loadedUserTeams).toBe(true);
+
+    const {result} = renderHook(useUserTeams, {wrapper});
+    const {teams} = result.current;
+
+    expect(teams.length).toBe(2);
+    expect(teams).toEqual(userTeams.concat(nonUserTeams));
+  });
+
+  it('org owner loads all teams', function () {
+    const userTeams = [TeamFixture({id: '1', isMember: true})];
+    const nonUserTeams = [TeamFixture({id: '2', isMember: false})];
+    // User teams marked loaded because hasMore is false
+    TeamStore.loadInitialData([...userTeams, ...nonUserTeams], false, null);
+    expect(TeamStore.getState().loadedUserTeams).toBe(true);
+
+    const organization = OrganizationFixture({
+      access: ['org:admin'],
+    });
+    OrganizationStore.onUpdate(organization, {replace: true});
+
+    const {result} = renderHook(() => useUserTeams(), {wrapper});
+    const {teams} = result.current;
+
+    expect(teams.length).toBe(2);
+    expect(teams).toEqual(userTeams.concat(nonUserTeams));
   });
 });

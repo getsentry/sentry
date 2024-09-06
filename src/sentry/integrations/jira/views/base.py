@@ -25,28 +25,23 @@ class JiraSentryUIBaseView(View):
         ]
         sources = [s for s in sources if s and ";" not in s]  # Filter out None and invalid sources
 
-        if "csp.middleware.CSPMiddleware" in settings.MIDDLEWARE:
-            csp_frame_ancestors = [
-                "'self'",
-            ] + sources
-            csp_style_src = list(settings.CSP_STYLE_SRC)
+        csp_frame_ancestors = [
+            "'self'",
+        ] + sources
+        csp_style_src = list(settings.CSP_STYLE_SRC)
 
-            if settings.STATIC_FRONTEND_APP_URL.startswith("https://"):
-                origin = "/".join(settings.STATIC_FRONTEND_APP_URL.split("/")[0:3])
-                csp_style_src.append(origin)
+        if settings.STATIC_FRONTEND_APP_URL.startswith("https://"):
+            origin = "/".join(settings.STATIC_FRONTEND_APP_URL.split("/")[0:3])
+            csp_style_src.append(origin)
 
-            middleware = CSPMiddleware(placeholder_get_response)
-            middleware.process_request(self.request)  # adds nonce
+        middleware = CSPMiddleware(placeholder_get_response)
+        middleware.process_request(self.request)  # adds nonce
 
-            response = render_to_response(self.html_file, context, self.request)
-            response._csp_replace = {
-                "frame-ancestors": csp_frame_ancestors,
-                "style-src": csp_style_src,
-            }
+        response = render_to_response(self.html_file, context, self.request)
+        response._csp_replace = {
+            "frame-ancestors": csp_frame_ancestors,
+            "style-src": csp_style_src,
+        }
 
-            middleware.process_response(self.request, response)
-        else:
-            response = render_to_response(self.html_file, context, self.request)
-            sources_string = " ".join(sources)
-            response["Content-Security-Policy"] = f"frame-ancestors 'self' {sources_string}"
+        middleware.process_response(self.request, response)
         return response

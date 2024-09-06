@@ -7,7 +7,7 @@ from django.apps import apps
 from django.conf import settings
 from django.db import models
 
-from sentry.db.models import control_silo_only_model
+from sentry.db.models import control_silo_model
 
 from .fields import JSONField
 from .utils import setting
@@ -22,7 +22,7 @@ ASSOCIATION_HANDLE_LENGTH = setting("SOCIAL_AUTH_ASSOCIATION_HANDLE_LENGTH", 255
 CLEAN_USERNAME_REGEX = re.compile(r"[^\w.@+-_]+", re.UNICODE)
 
 
-@control_silo_only_model
+@control_silo_model
 class UserSocialAuth(models.Model):
     """Social Auth association model"""
 
@@ -30,7 +30,7 @@ class UserSocialAuth(models.Model):
     user = models.ForeignKey(AUTH_USER_MODEL, related_name="social_auth", on_delete=models.CASCADE)
     provider = models.CharField(max_length=32)
     uid = models.CharField(max_length=UID_LENGTH)
-    extra_data: models.Field[dict[str, Any], dict[str, Any]] = JSONField(default="{}")
+    extra_data: models.Field[dict[str, Any] | None, dict[str, Any]] = JSONField(default="{}")
 
     class Meta:
         """Meta data"""
@@ -52,11 +52,6 @@ class UserSocialAuth(models.Model):
         from .utils import tokens
 
         return tokens(instance=self)
-
-    def expiration_datetime(self):
-        from .utils import expiration_datetime
-
-        return expiration_datetime(instance=self)
 
     def revoke_token(self, drop_token=True):
         """Attempts to revoke permissions for provider."""

@@ -1,8 +1,16 @@
-import type {QueryClientConfig, QueryFunctionContext} from '@tanstack/react-query';
-import * as reactQuery from '@tanstack/react-query';
-import {useInfiniteQuery, useQuery} from '@tanstack/react-query';
+import type {
+  QueryClient,
+  QueryClientConfig,
+  QueryFunctionContext,
+  SetDataOptions,
+  Updater,
+  UseInfiniteQueryResult as _UseInfiniteQueryResult,
+  UseQueryOptions,
+  UseQueryResult,
+} from '@tanstack/react-query';
+import {useInfiniteQuery, useQueries, useQuery} from '@tanstack/react-query';
 
-import type {ApiResult, Client, ResponseMeta} from 'sentry/api';
+import type {APIRequestMethod, ApiResult, Client, ResponseMeta} from 'sentry/api';
 import type {ParsedHeader} from 'sentry/utils/parseLinkHeader';
 import parseLinkHeader from 'sentry/utils/parseLinkHeader';
 import type RequestError from 'sentry/utils/requestError/requestError';
@@ -33,11 +41,15 @@ export const DEFAULT_QUERY_CLIENT_CONFIG: QueryClientConfig = {
 //      [0]: https://tanstack.com/query/v4/docs/guides/query-cancellation#default-behavior
 const PERSIST_IN_FLIGHT = true;
 
-type QueryKeyEndpointOptions<
+export type QueryKeyEndpointOptions<
   Headers = Record<string, string>,
   Query = Record<string, any>,
+  Data = Record<string, any>,
 > = {
+  data?: Data;
   headers?: Headers;
+  host?: string;
+  method?: APIRequestMethod;
   query?: Query;
 };
 
@@ -45,12 +57,27 @@ export type ApiQueryKey =
   | readonly [url: string]
   | readonly [
       url: string,
-      options: QueryKeyEndpointOptions<Record<string, string>, Record<string, any>>,
+      options: QueryKeyEndpointOptions<
+        Record<string, string>,
+        Record<string, any>,
+        Record<string, any>
+      >,
     ];
+
+/**
+ * isLoading is renamed to isPending in v5, this backports the type to v4
+ *
+ * TODO(react-query): Remove this when we upgrade to react-query v5
+ *
+ * @link https://tanstack.com/query/v5/docs/framework/react/guides/migrating-to-v5
+ */
+type BackportIsPending<T> = T extends {isLoading: boolean}
+  ? T & {isPending: T['isLoading']}
+  : T;
 
 export interface UseApiQueryOptions<TApiResponse, TError = RequestError>
   extends Omit<
-    reactQuery.UseQueryOptions<
+    UseQueryOptions<
       ApiResult<TApiResponse>,
       TError,
       ApiResult<TApiResponse>,
@@ -63,6 +90,10 @@ export interface UseApiQueryOptions<TApiResponse, TError = RequestError>
     // We do not include the select option as this is difficult to make interop
     // with the way we extract data out of the ApiResult tuple
     | 'select'
+    // onSuccess and onError are gone in v5, avoid using
+    // TODO(react-query): Remove this when we upgrade to react-query v5
+    | 'onSuccess'
+    | 'onError'
   > {
   /**
    * staleTime is the amount of time (in ms) before cached data gets marked as stale.
@@ -82,9 +113,8 @@ export interface UseApiQueryOptions<TApiResponse, TError = RequestError>
   staleTime: number;
 }
 
-export type UseApiQueryResult<TData, TError> = reactQuery.UseQueryResult<
-  TData,
-  TError
+export type UseApiQueryResult<TData, TError> = BackportIsPending<
+  UseQueryResult<TData, TError>
 > & {
   /**
    * Get a header value from the response
@@ -113,11 +143,18 @@ export function useApiQuery<TResponseData, TError = RequestError>(
   const api = useApi({persistInFlight: PERSIST_IN_FLIGHT});
   const queryFn = fetchDataQuery(api);
 
-  const {data, ...rest} = useQuery(queryKey, queryFn, options);
+  const {data, ...rest} = useQuery({
+    queryKey,
+    queryFn,
+    ...options,
+  });
 
   const queryResult = {
     data: data?.[0],
     getResponseHeader: data?.[2]?.getResponseHeader,
+    // Backport isLoading to isPending
+    // TODO(react-query): Remove this when we upgrade to react-query v5 as it will already exist
+    isPending: rest.isLoading,
     ...rest,
   };
 
@@ -127,9 +164,40 @@ export function useApiQuery<TResponseData, TError = RequestError>(
   return queryResult as UseApiQueryResult<TResponseData, TError>;
 }
 
+export function useApiQueries<TResponseData, TError = RequestError>(
+  queryKeys: ApiQueryKey[],
+  options: UseApiQueryOptions<TResponseData, TError>
+): UseApiQueryResult<TResponseData, TError>[] {
+  const api = useApi({persistInFlight: PERSIST_IN_FLIGHT});
+  const queryFn = fetchDataQuery(api);
+
+  const results = useQueries({
+    queries: queryKeys.map(queryKey => {
+      return {
+        queryKey,
+        queryFn,
+        ...options,
+      };
+    }),
+  });
+
+  return results.map(({data, ...rest}) => {
+    const queryResult = {
+      data: data?.[0],
+      getResponseHeader: data?.[2]?.getResponseHeader,
+      ...rest,
+    };
+
+    // XXX: We need to cast here because unwrapping `data` breaks the type returned by
+    //      useQuery above. The react-query library's UseQueryResult is a union type and
+    //      too complex to recreate here so casting the entire object is more appropriate.
+    return queryResult as UseApiQueryResult<TResponseData, TError>;
+  });
+}
+
 /**
  * This method, given an `api` will return a new method which can be used as a
- * default `queryFn` with `useApiQuery` or even the raw `reactQuery.useQuery` hook.
+ * default `queryFn` with `useApiQuery` or even the raw `useQuery` hook.
  *
  * This returned method, the `queryFn`, unwraps react-query's `QueryFunctionContext`
  * type into parts that will be passed into api.requestPromise
@@ -142,7 +210,9 @@ export function fetchDataQuery(api: Client) {
 
     return api.requestPromise(url, {
       includeAllArgs: true,
-      method: 'GET',
+      host: opts?.host,
+      method: opts?.method ?? 'GET',
+      data: opts?.data,
       query: opts?.query,
       headers: opts?.headers,
     });
@@ -155,7 +225,7 @@ export function fetchDataQuery(api: Client) {
  * manually call queryClient.getQueryData.
  */
 export function getApiQueryData<TResponseData>(
-  queryClient: reactQuery.QueryClient,
+  queryClient: QueryClient,
   queryKey: ApiQueryKey
 ): TResponseData | undefined {
   return queryClient.getQueryData<ApiResult<TResponseData>>(queryKey)?.[0];
@@ -166,10 +236,10 @@ export function getApiQueryData<TResponseData>(
  * response data without needing to provide a request object.
  */
 export function setApiQueryData<TResponseData>(
-  queryClient: reactQuery.QueryClient,
+  queryClient: QueryClient,
   queryKey: ApiQueryKey,
-  updater: reactQuery.Updater<TResponseData, TResponseData>,
-  options?: reactQuery.SetDataOptions
+  updater: Updater<TResponseData, TResponseData>,
+  options?: SetDataOptions
 ): TResponseData | undefined {
   const previous = queryClient.getQueryData<ApiResult<TResponseData>>(queryKey);
 
@@ -193,7 +263,7 @@ export function setApiQueryData<TResponseData>(
 
 /**
  * This method, given an `api` will return a new method which can be used as a
- * default `queryFn` with `reactQuery.useInfiniteQuery` hook.
+ * default `queryFn` with `useInfiniteQuery` hook.
  *
  * This returned method, the `queryFn`, unwraps react-query's `QueryFunctionContext`
  * type into parts that will be passed into api.requestPromise including the next
@@ -223,9 +293,14 @@ export function fetchInfiniteQuery<TResponseData>(api: Client) {
 function parsePageParam(dir: 'previous' | 'next') {
   return ([, , resp]: ApiResult<unknown>) => {
     const parsed = parseLinkHeader(resp?.getResponseHeader('Link') ?? null);
-    return parsed[dir].results ? parsed[dir] : null;
+    return parsed[dir]?.results ? parsed[dir] : null;
   };
 }
+
+// TODO(react-query): Remove this when we upgrade to react-query v5
+export type UseInfiniteQueryResult<TData, TError> = BackportIsPending<
+  _UseInfiniteQueryResult<TData, TError>
+>;
 
 /**
  * Wraps React Query's useInfiniteQuery for consistent usage in the Sentry app.
@@ -236,30 +311,33 @@ function parsePageParam(dir: 'previous' | 'next') {
  */
 export function useInfiniteApiQuery<TResponseData>({queryKey}: {queryKey: ApiQueryKey}) {
   const api = useApi({persistInFlight: PERSIST_IN_FLIGHT});
-  return useInfiniteQuery({
+  const query = useInfiniteQuery({
     queryKey,
     queryFn: fetchInfiniteQuery<TResponseData>(api),
     getPreviousPageParam: parsePageParam('previous'),
     getNextPageParam: parsePageParam('next'),
   });
+
+  // TODO(react-query): Remove this when we upgrade to react-query v5
+  // @ts-expect-error: This is a backport of react-query v5
+  query.isPending = query.isLoading;
+
+  // TODO(react-query): Remove casting when we upgrade to react-query v5
+  return query as UseInfiniteQueryResult<ApiResult<TResponseData>, unknown>;
 }
 
 type ApiMutationVariables<
   Headers = Record<string, string>,
   Query = Record<string, any>,
+  Data = Record<string, unknown>,
 > =
   | ['PUT' | 'POST' | 'DELETE', string]
   | ['PUT' | 'POST' | 'DELETE', string, QueryKeyEndpointOptions<Headers, Query>]
-  | [
-      'PUT' | 'POST',
-      string,
-      QueryKeyEndpointOptions<Headers, Query>,
-      Record<string, unknown>,
-    ];
+  | ['PUT' | 'POST' | 'DELETE', string, QueryKeyEndpointOptions<Headers, Query>, Data];
 
 /**
  * This method, given an `api` will return a new method which can be used as a
- * default `queryFn` with `reactQuery.useMutation` hook.
+ * default `queryFn` with `useMutation` hook.
  *
  * This returned method, the `queryFn`, unwraps react-query's `QueryFunctionContext`
  * type into parts that will be passed into api.requestPromise including different

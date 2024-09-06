@@ -1,17 +1,19 @@
+import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import {indexMembersByProject} from 'sentry/actionCreators/members';
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
 import GroupListHeader from 'sentry/components/issues/groupListHeader';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
-import Pagination, {CursorHandler} from 'sentry/components/pagination';
+import type {CursorHandler} from 'sentry/components/pagination';
+import Pagination from 'sentry/components/pagination';
 import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';
-import IssuesReplayCountProvider from 'sentry/components/replays/issuesReplayCountProvider';
 import StreamGroup from 'sentry/components/stream/group';
 import {t, tct} from 'sentry/locale';
 import GroupStore from 'sentry/stores/groupStore';
-import {Group, Member} from 'sentry/types';
+import type {Group} from 'sentry/types/group';
+import type {Member} from 'sentry/types/organization';
 
 type Props = {
   error: string | null;
@@ -69,6 +71,7 @@ function PreviewTable({
           withChart={false}
           canSelect={false}
           showLastTriggered
+          withColumns={['assignee', 'event', 'lastTriggered', 'users']}
         />
       );
     });
@@ -97,7 +100,7 @@ function PreviewTable({
   };
 
   return (
-    <IssuesReplayCountProvider groupIds={previewGroups || []}>
+    <Fragment>
       <Panel>
         <GroupListHeader
           withChart={false}
@@ -106,7 +109,7 @@ function PreviewTable({
         <PanelBody>{renderBody()}</PanelBody>
       </Panel>
       {renderPagination()}
-    </IssuesReplayCountProvider>
+    </Fragment>
   );
 }
 

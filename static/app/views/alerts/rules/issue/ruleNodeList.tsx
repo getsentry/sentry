@@ -1,13 +1,11 @@
-import {Component, Fragment} from 'react';
+import type React from 'react';
+import {Component, Fragment, type ReactNode} from 'react';
 import styled from '@emotion/styled';
 
 import SelectControl from 'sentry/components/forms/controls/selectControl';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {IssueOwnership, Organization, Project} from 'sentry/types';
-import {
-  IssueAlertActionType,
-  IssueAlertConditionType,
+import type {
   IssueAlertConfiguration,
   IssueAlertGenericConditionConfig,
   IssueAlertRuleAction,
@@ -15,6 +13,9 @@ import {
   IssueAlertRuleCondition,
   IssueAlertRuleConditionTemplate,
 } from 'sentry/types/alerts';
+import {IssueAlertActionType, IssueAlertConditionType} from 'sentry/types/alerts';
+import type {Organization} from 'sentry/types/organization';
+import type {Project} from 'sentry/types/project';
 import {
   CHANGE_ALERT_CONDITION_IDS,
   COMPARISON_INTERVAL_CHOICES,
@@ -24,7 +25,7 @@ import {
 
 import {AlertRuleComparisonType} from '../metric/types';
 
-import RuleNode, {hasStreamlineTargeting} from './ruleNode';
+import RuleNode from './ruleNode';
 
 type Props = {
   disabled: boolean;
@@ -49,35 +50,35 @@ type Props = {
    */
   placeholder: string;
   project: Project;
+  additionalAction?: {
+    label: ReactNode;
+    onClick: () => void;
+    option: {
+      label: ReactNode;
+      value: IssueAlertRuleActionTemplate;
+    };
+  };
   incompatibleBanner?: number | null;
   incompatibleRules?: number[] | null;
-  ownership?: null | IssueOwnership;
   selectType?: 'grouped';
 };
 
 const createSelectOptions = (
-  actions: IssueAlertRuleActionTemplate[],
-  organization: Organization
+  actions: IssueAlertRuleActionTemplate[]
 ): Array<{
   label: React.ReactNode;
   value: IssueAlertRuleActionTemplate;
 }> => {
   return actions.map(node => {
     if (node.id === IssueAlertActionType.NOTIFY_EMAIL) {
-      let label = t('Issue Owners, Team, or Member');
-      if (hasStreamlineTargeting(organization)) {
-        label = t('Suggested Assignees, Team, or Member');
-      }
+      const label = t('Suggested Assignees, Team, or Member');
       return {
         value: node,
         label,
       };
     }
 
-    if (
-      node.id === IssueAlertConditionType.REAPPEARED_EVENT &&
-      organization.features.includes('escalating-issues')
-    ) {
+    if (node.id === IssueAlertConditionType.REAPPEARED_EVENT) {
       const label = t('The issue changes state from archived to escalating');
       return {
         value: node,
@@ -103,10 +104,7 @@ const groupLabels = {
 /**
  * Group options by category
  */
-const groupSelectOptions = (
-  actions: IssueAlertRuleActionTemplate[],
-  organization: Organization
-) => {
+const groupSelectOptions = (actions: IssueAlertRuleActionTemplate[]) => {
   const grouped = actions.reduce<
     Record<
       keyof typeof groupLabels,
@@ -146,7 +144,7 @@ const groupSelectOptions = (
     .map(([key, values]) => {
       return {
         label: groupLabels[key],
-        options: createSelectOptions(values, organization),
+        options: createSelectOptions(values),
       };
     });
 };
@@ -251,11 +249,11 @@ class RuleNodeList extends Component<Props> {
       onResetRow,
       onDeleteRow,
       onPropertyChange,
+      additionalAction,
       nodes,
       placeholder,
       items,
       organization,
-      ownership,
       project,
       disabled,
       error,
@@ -266,10 +264,20 @@ class RuleNodeList extends Component<Props> {
 
     const enabledNodes = nodes ? nodes.filter(({enabled}) => enabled) : [];
 
-    const options =
-      selectType === 'grouped'
-        ? groupSelectOptions(enabledNodes, organization)
-        : createSelectOptions(enabledNodes, organization);
+    let options;
+    if (selectType === 'grouped') {
+      options = groupSelectOptions(enabledNodes);
+      if (additionalAction) {
+        const optionToModify = options.find(
+          option => option.label === additionalAction.label
+        );
+        if (optionToModify) {
+          optionToModify.options.push(additionalAction.option);
+        }
+      }
+    } else {
+      options = createSelectOptions(enabledNodes);
+    }
 
     return (
       <Fragment>
@@ -288,18 +296,20 @@ class RuleNodeList extends Component<Props> {
                 organization={organization}
                 project={project}
                 disabled={disabled}
-                ownership={ownership}
                 incompatibleRule={incompatibleRules?.includes(idx)}
                 incompatibleBanner={incompatibleBanner === idx}
               />
             )
           )}
         </RuleNodes>
+
         <StyledSelectControl
           placeholder={placeholder}
           value={null}
           onChange={obj => {
-            onAddRow(obj.value);
+            additionalAction && obj === additionalAction.option
+              ? additionalAction.onClick()
+              : onAddRow(obj.value);
           }}
           options={options}
           disabled={disabled}

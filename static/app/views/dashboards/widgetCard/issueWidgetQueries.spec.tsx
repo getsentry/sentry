@@ -1,10 +1,10 @@
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {render, screen} from 'sentry-test/reactTestingLibrary';
+import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 
+import type {Widget} from 'sentry/views/dashboards/types';
 import {
   DashboardFilterKeys,
   DisplayType,
-  Widget,
   WidgetType,
 } from 'sentry/views/dashboards/types';
 import IssueWidgetQueries from 'sentry/views/dashboards/widgetCard/issueWidgetQueries';
@@ -95,26 +95,27 @@ describe('IssueWidgetQueries', function () {
       </IssueWidgetQueries>
     );
 
-    await tick();
-    expect(mockFunction).toHaveBeenCalledWith(
-      expect.objectContaining({
-        tableResults: [
-          expect.objectContaining({
-            data: [
-              expect.objectContaining({
-                id: '1',
-                title: 'Error: Failed',
-                status: 'unresolved',
-                lifetimeEvents: 10,
-                lifetimeUsers: 5,
-                events: 6,
-                users: 3,
-                firstSeen: '2022-01-01T13:04:02Z',
-              }),
-            ],
-          }),
-        ],
-      })
+    await waitFor(() =>
+      expect(mockFunction).toHaveBeenCalledWith(
+        expect.objectContaining({
+          tableResults: [
+            expect.objectContaining({
+              data: [
+                expect.objectContaining({
+                  id: '1',
+                  title: 'Error: Failed',
+                  status: 'unresolved',
+                  lifetimeEvents: 10,
+                  lifetimeUsers: 5,
+                  events: 6,
+                  users: 3,
+                  firstSeen: '2022-01-01T13:04:02Z',
+                }),
+              ],
+            }),
+          ],
+        })
+      )
     );
   });
 

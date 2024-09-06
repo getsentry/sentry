@@ -1,11 +1,12 @@
-import {Theme} from '@emotion/react';
+import type {Theme} from '@emotion/react';
 import Color from 'color';
 
-import {DurationDisplay} from 'sentry/components/performance/waterfall/types';
+import type {DurationDisplay} from 'sentry/components/performance/waterfall/types';
 import {CHART_PALETTE} from 'sentry/constants/chartPalette';
 import {space} from 'sentry/styles/space';
 
-import {getSpanBarColours, SpanBarType} from './constants';
+import type {SpanBarType} from './constants';
+import {getSpanBarColours} from './constants';
 
 export const getBackgroundColor = ({
   showStriping,
@@ -253,10 +254,10 @@ export const pickBarColor = (input: string | undefined): string => {
     return barColors[input];
   }
 
-  const letterIndex1 = getLetterIndex(input.slice(0, 1));
-  const letterIndex2 = getLetterIndex(input.slice(1, 2));
-  const letterIndex3 = getLetterIndex(input.slice(2, 3));
-  const letterIndex4 = getLetterIndex(input.slice(3, 4));
+  const letterIndex1 = getLetterIndex(input[0]);
+  const letterIndex2 = getLetterIndex(input[1]);
+  const letterIndex3 = getLetterIndex(input[2]);
+  const letterIndex4 = getLetterIndex(input[3]);
 
   return colorsAsArray[
     (letterIndex1 + letterIndex2 + letterIndex3 + letterIndex4) % colorsAsArray.length

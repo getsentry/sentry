@@ -1,5 +1,4 @@
 import {Component} from 'react';
-import {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 import * as qs from 'query-string';
 
@@ -8,9 +7,13 @@ import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import QueryCount from 'sentry/components/queryCount';
 import {t, tct} from 'sentry/locale';
-import GroupingStore, {Fingerprint} from 'sentry/stores/groupingStore';
+import type {Fingerprint} from 'sentry/stores/groupingStore';
+import GroupingStore from 'sentry/stores/groupingStore';
 import {space} from 'sentry/styles/space';
-import {Group, Organization, Project} from 'sentry/types';
+import type {Group} from 'sentry/types/group';
+import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
+import type {Organization} from 'sentry/types/organization';
+import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import withOrganization from 'sentry/utils/withOrganization';
 

@@ -1,4 +1,3 @@
-from datetime import timezone
 from unittest import mock
 
 import pytest
@@ -7,14 +6,13 @@ from rest_framework.exceptions import ParseError
 
 from sentry.issues.grouptype import ProfileFileIOGroupType
 from sentry.testutils.cases import APITestCase, SnubaTestCase
+from sentry.testutils.helpers import override_options
 from sentry.testutils.helpers.datetime import before_now, iso_format
-from sentry.testutils.silo import region_silo_test
 from tests.sentry.issues.test_utils import SearchIssueTestMixin
 
 pytestmark = pytest.mark.sentry_metrics
 
 
-@region_silo_test
 class OrganizationEventsMetaEndpoint(APITestCase, SnubaTestCase, SearchIssueTestMixin):
     def setUp(self):
         super().setUp()
@@ -23,7 +21,7 @@ class OrganizationEventsMetaEndpoint(APITestCase, SnubaTestCase, SearchIssueTest
         self.project = self.create_project()
         self.url = reverse(
             "sentry-api-0-organization-events-meta",
-            kwargs={"organization_slug": self.project.organization.slug},
+            kwargs={"organization_id_or_slug": self.project.organization.slug},
         )
         self.features = {"organizations:discover-basic": True}
 
@@ -72,7 +70,9 @@ class OrganizationEventsMetaEndpoint(APITestCase, SnubaTestCase, SearchIssueTest
 
     def test_invalid_query(self):
         with self.feature(self.features):
-            response = self.client.get(self.url, {"query": "is:unresolved"}, format="json")
+            response = self.client.get(
+                self.url, {"query": "is:unresolved priority:[high, medium]"}, format="json"
+            )
 
         assert response.status_code == 400, response.content
 
@@ -81,7 +81,7 @@ class OrganizationEventsMetaEndpoint(APITestCase, SnubaTestCase, SearchIssueTest
 
         url = reverse(
             "sentry-api-0-organization-events-meta",
-            kwargs={"organization_slug": no_project_org.slug},
+            kwargs={"organization_id_or_slug": no_project_org.slug},
         )
         with self.feature(self.features):
             response = self.client.get(url, format="json")
@@ -103,7 +103,7 @@ class OrganizationEventsMetaEndpoint(APITestCase, SnubaTestCase, SearchIssueTest
         self.store_event(data=data, project_id=self.project.id)
         url = reverse(
             "sentry-api-0-organization-events-meta",
-            kwargs={"organization_slug": self.project.organization.slug},
+            kwargs={"organization_id_or_slug": self.project.organization.slug},
         )
         with self.feature(self.features):
             response = self.client.get(url, {"query": "transaction.duration:>1"}, format="json")
@@ -118,12 +118,12 @@ class OrganizationEventsMetaEndpoint(APITestCase, SnubaTestCase, SearchIssueTest
             self.user.id,
             [f"{ProfileFileIOGroupType.type_id}-group1"],
             "prod",
-            before_now(hours=1).replace(tzinfo=timezone.utc),
+            before_now(hours=1),
         )
         assert group_info is not None
         url = reverse(
             "sentry-api-0-organization-events-meta",
-            kwargs={"organization_slug": self.project.organization.slug},
+            kwargs={"organization_id_or_slug": self.project.organization.slug},
         )
         with self.feature(self.features):
             response = self.client.get(
@@ -146,7 +146,7 @@ class OrganizationEventsMetaEndpoint(APITestCase, SnubaTestCase, SearchIssueTest
             ).group
         url = reverse(
             "sentry-api-0-organization-events-meta",
-            kwargs={"organization_slug": self.project.organization.slug},
+            kwargs={"organization_id_or_slug": self.project.organization.slug},
         )
         with self.feature(self.features):
             response = self.client.get(
@@ -194,7 +194,7 @@ class OrganizationEventsMetaEndpoint(APITestCase, SnubaTestCase, SearchIssueTest
                 )
         assert response.status_code == 400
 
-    @mock.patch("sentry.search.events.builder.discover.raw_snql_query")
+    @mock.patch("sentry.search.events.builder.base.raw_snql_query")
     def test_handling_snuba_errors(self, mock_snql_query):
         mock_snql_query.side_effect = ParseError("test")
         with self.feature(self.features):
@@ -204,7 +204,7 @@ class OrganizationEventsMetaEndpoint(APITestCase, SnubaTestCase, SearchIssueTest
 
     @mock.patch("sentry.utils.snuba.quantize_time")
     def test_quantize_dates(self, mock_quantize):
-        mock_quantize.return_value = before_now(days=1).replace(tzinfo=timezone.utc)
+        mock_quantize.return_value = before_now(days=1)
         with self.feature(self.features):
             # Don't quantize short time periods
             self.client.get(
@@ -236,7 +236,6 @@ class OrganizationEventsMetaEndpoint(APITestCase, SnubaTestCase, SearchIssueTest
             assert len(mock_quantize.mock_calls) == 2
 
 
-@region_silo_test
 class OrganizationEventsRelatedIssuesEndpoint(APITestCase, SnubaTestCase):
     def setUp(self):
         super().setUp()
@@ -252,7 +251,7 @@ class OrganizationEventsRelatedIssuesEndpoint(APITestCase, SnubaTestCase):
 
         url = reverse(
             "sentry-api-0-organization-related-issues",
-            kwargs={"organization_slug": project.organization.slug},
+            kwargs={"organization_id_or_slug": project.organization.slug},
         )
         response = self.client.get(url, {"transaction": "/beth/sanchez"}, format="json")
 
@@ -272,7 +271,7 @@ class OrganizationEventsRelatedIssuesEndpoint(APITestCase, SnubaTestCase):
 
         url = reverse(
             "sentry-api-0-organization-related-issues",
-            kwargs={"organization_slug": project.organization.slug},
+            kwargs={"organization_id_or_slug": project.organization.slug},
         )
         response = self.client.get(url, format="json")
 
@@ -293,7 +292,7 @@ class OrganizationEventsRelatedIssuesEndpoint(APITestCase, SnubaTestCase):
 
         url = reverse(
             "sentry-api-0-organization-related-issues",
-            kwargs={"organization_slug": project.organization.slug},
+            kwargs={"organization_id_or_slug": project.organization.slug},
         )
         response = self.client.get(url, {"transaction": "/morty/sanchez"}, format="json")
 
@@ -323,7 +322,7 @@ class OrganizationEventsRelatedIssuesEndpoint(APITestCase, SnubaTestCase):
 
         url = reverse(
             "sentry-api-0-organization-related-issues",
-            kwargs={"organization_slug": project.organization.slug},
+            kwargs={"organization_id_or_slug": project.organization.slug},
         )
         response = self.client.get(
             url, {"transaction": "/beth/sanchez", "statsPeriod": "24h"}, format="json"
@@ -358,11 +357,11 @@ class OrganizationEventsRelatedIssuesEndpoint(APITestCase, SnubaTestCase):
 
         url = reverse(
             "sentry-api-0-organization-related-issues",
-            kwargs={"organization_slug": project1.organization.slug},
+            kwargs={"organization_id_or_slug": project1.organization.slug},
         )
         response = self.client.get(
             url,
-            {"transaction": "/beth/sanchez", "project": project1.id},
+            {"transaction": "/beth/sanchez", "project": str(project1.id)},
             format="json",
         )
 
@@ -386,11 +385,11 @@ class OrganizationEventsRelatedIssuesEndpoint(APITestCase, SnubaTestCase):
 
         url = reverse(
             "sentry-api-0-organization-related-issues",
-            kwargs={"organization_slug": project.organization.slug},
+            kwargs={"organization_id_or_slug": project.organization.slug},
         )
         response = self.client.get(
             url,
-            {"transaction": '/beth/"sanchez"', "project": project.id},
+            {"transaction": '/beth/"sanchez"', "project": str(project.id)},
             format="json",
         )
 
@@ -401,11 +400,11 @@ class OrganizationEventsRelatedIssuesEndpoint(APITestCase, SnubaTestCase):
 
         url = reverse(
             "sentry-api-0-organization-related-issues",
-            kwargs={"organization_slug": project.organization.slug},
+            kwargs={"organization_id_or_slug": project.organization.slug},
         )
         response = self.client.get(
             url,
-            {"transaction": '/beth/\\"sanchez\\"', "project": project.id},
+            {"transaction": '/beth/\\"sanchez\\"', "project": str(project.id)},
             format="json",
         )
 
@@ -418,11 +417,11 @@ class OrganizationEventsRelatedIssuesEndpoint(APITestCase, SnubaTestCase):
 class OrganizationSpansSamplesEndpoint(APITestCase, SnubaTestCase):
     url_name = "sentry-api-0-organization-spans-samples"
 
-    @mock.patch("sentry.search.events.builder.discover.raw_snql_query")
+    @mock.patch("sentry.search.events.builder.base.raw_snql_query")
     def test_is_segment_properly_converted_in_filter(self, mock_raw_snql_query):
         self.login_as(user=self.user)
         project = self.create_project()
-        url = reverse(self.url_name, kwargs={"organization_slug": project.organization.slug})
+        url = reverse(self.url_name, kwargs={"organization_id_or_slug": project.organization.slug})
 
         response = self.client.get(
             url,
@@ -445,3 +444,48 @@ class OrganizationSpansSamplesEndpoint(APITestCase, SnubaTestCase):
             "is_segment = 1" in call_args[0][0].serialize()
             for call_args in mock_raw_snql_query.call_args_list
         )
+
+    def test_is_using_sample_rate(self):
+        self.login_as(user=self.user)
+        project = self.create_project()
+        url = reverse(self.url_name, kwargs={"organization_id_or_slug": project.organization.slug})
+
+        def request():
+
+            return self.client.get(
+                url,
+                {
+                    "query": "span.is_segment:1 transaction:api/0/foo",
+                    "lowerBound": "0",
+                    "firstBound": "10",
+                    "secondBound": "20",
+                    "upperBound": "200",
+                    "column": "span.duration",
+                },
+                format="json",
+                extra={"project": [project.id]},
+            )
+
+        response = request()
+
+        assert response.status_code == 200, response.content
+
+        with mock.patch("sentry.search.events.builder.base.raw_snql_query") as mock_raw_snql_query:
+
+            response = request()
+            assert response.status_code == 200, response.content
+
+            assert "MATCH (spans)" in mock_raw_snql_query.call_args_list[0][0][0].serialize()
+
+        with (
+            override_options({"insights.span-samples-query.sample-rate": 100_000_000.0}),
+            mock.patch("sentry.search.events.builder.base.raw_snql_query") as mock_raw_snql_query,
+        ):
+
+            response = request()
+            assert response.status_code == 200, response.content
+
+            assert (
+                "MATCH (spans SAMPLE 100000000.0)"
+                in mock_raw_snql_query.call_args_list[0][0][0].serialize()
+            )

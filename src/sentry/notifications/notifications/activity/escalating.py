@@ -1,9 +1,10 @@
 from __future__ import annotations
 
-from typing import Any, Mapping, Optional
+from collections.abc import Mapping
+from typing import Any
 
-from sentry.services.hybrid_cloud.actor import RpcActor
-from sentry.types.integrations import ExternalProviders
+from sentry.integrations.types import ExternalProviders
+from sentry.types.actor import Actor
 
 from .base import GroupActivityNotification
 
@@ -19,7 +20,7 @@ class EscalatingActivityNotification(GroupActivityNotification):
 
         return self.title
 
-    def get_description(self) -> tuple[str, Optional[str], Mapping[str, Any]]:
+    def get_description(self) -> tuple[str, str | None, Mapping[str, Any]]:
         forecast = int(self.activity.data.get("forecast", 0))
         expired_snooze = self.activity.data.get("expired_snooze")
 
@@ -40,5 +41,5 @@ class EscalatingActivityNotification(GroupActivityNotification):
         # Return a default basic message
         return ("Sentry flagged this issue as escalating.", None, {})
 
-    def get_message_description(self, recipient: RpcActor, provider: ExternalProviders) -> Any:
+    def get_message_description(self, recipient: Actor, provider: ExternalProviders) -> Any:
         return self.get_context()["text_description"]

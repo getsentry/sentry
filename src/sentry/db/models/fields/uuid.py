@@ -27,6 +27,8 @@ ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 """
+from __future__ import annotations
+
 import importlib
 from uuid import UUID, uuid4
 
@@ -126,8 +128,10 @@ class UUIDField(models.Field):
         # This is the standard case; just use the superclass logic.
         return super().pre_save(instance, add)
 
-    def contribute_to_class(self, cls, name):
-        super().contribute_to_class(cls, name)
+    def contribute_to_class(
+        self, cls: type[models.Model], name: str, private_only: bool = False
+    ) -> None:
+        super().contribute_to_class(cls, name, private_only=private_only)
         setattr(cls, name, Creator(self))
 
     def to_python(self, value):

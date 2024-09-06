@@ -1,6 +1,6 @@
 from drf_spectacular.utils import OpenApiExample
 
-key_with_rate_limiting = {
+KEY_RATE_LIMIT = {
     "id": "60120449b6b1d5e45f75561e6dabd80b",
     "name": "Liked Pegasus",
     "label": "Liked Pegasus",
@@ -18,6 +18,7 @@ key_with_rate_limiting = {
         "nel": "https://o4504765715316736.ingest.sentry.io/api/4505281256090153/nel/?sentry_key=a785682ddda719b7a8a4011110d75598",
         "unreal": "https://o4504765715316736.ingest.sentry.io/api/4505281256090153/unreal/a785682ddda719b7a8a4011110d75598/",
         "cdn": "https://js.sentry-cdn.com/a785682ddda719b7a8a4011110d75598.min.js",
+        "crons": "https://o4504765715316736.ingest.sentry.io/api/4505281256090153/crons/___MONITOR_SLUG___/a785682ddda719b7a8a4011110d75598/",
     },
     "browserSdkVersion": "7.x",
     "browserSdk": {"choices": [["latest", "latest"], ["7.x", "7.x"]]},
@@ -29,36 +30,17 @@ key_with_rate_limiting = {
     },
 }
 
-key_wo_rate_limiting = {
+KEY_NO_RATE_LIMIT = {
+    **KEY_RATE_LIMIT,
     "id": "da8d69cb17e80677b76e08fde4656b93",
     "name": "Bold Oarfish",
     "label": "Bold Oarfish",
     "public": "da8d69cb17e80677b76e08fde4656b93",
     "secret": "5c241ebc42ccfbec281cbefbedc7ab96",
-    "projectId": 4505281256090153,
-    "isActive": True,
     "rateLimit": None,
-    "dsn": {
-        "secret": "https://a785682ddda742d7a8a4088810e67701:bcd99b3790b3441c85ce4b1eaa854f66@o4504765715316736.ingest.sentry.io/4505281256090153",
-        "public": "https://a785682ddda742d7a8a4088810e67791@o4504765715316736.ingest.sentry.io/4505281256090153",
-        "csp": "https://o4504765715316736.ingest.sentry.io/api/4505281256090153/csp-report/?sentry_key=a785682ddda719b7a8a4011110d75598",
-        "security": "https://o4504765715316736.ingest.sentry.io/api/4505281256090153/security/?sentry_key=a785682ddda719b7a8a4011110d75598",
-        "minidump": "https://o4504765715316736.ingest.sentry.io/api/4505281256090153/minidump/?sentry_key=a785682ddda719b7a8a4011110d75598",
-        "nel": "https://o4504765715316736.ingest.sentry.io/api/4505281256090153/nel/?sentry_key=a785682ddda719b7a8a4011110d75598",
-        "unreal": "https://o4504765715316736.ingest.sentry.io/api/4505281256090153/unreal/a785682ddda719b7a8a4011110d75598/",
-        "cdn": "https://js.sentry-cdn.com/a785682ddda719b7a8a4011110d75598.min.js",
-    },
-    "browserSdkVersion": "7.x",
-    "browserSdk": {"choices": [["latest", "latest"], ["7.x", "7.x"]]},
-    "dateCreated": "2023-06-21T18:17:52.707298Z",
-    "dynamicSdkLoaderOptions": {
-        "hasReplay": True,
-        "hasPerformance": True,
-        "hasDebug": False,
-    },
 }
 
-project = {
+BASE_PROJECT = {
     "id": "4505321021243392",
     "slug": "the-spoiled-yoghurt",
     "name": "The Spoiled Yoghurt",
@@ -101,10 +83,22 @@ project = {
     ],
     "hasAccess": True,
     "hasMinifiedStackTrace": False,
+    "hasCustomMetrics": False,
+    "hasFeedbacks": False,
     "hasMonitors": False,
+    "hasNewFeedbacks": False,
     "hasProfiles": False,
     "hasReplays": False,
     "hasSessions": False,
+    "hasInsightsHttp": True,
+    "hasInsightsDb": False,
+    "hasInsightsAssets": True,
+    "hasInsightsAppStart": False,
+    "hasInsightsScreenLoad": False,
+    "hasInsightsVitals": False,
+    "hasInsightsCaches": False,
+    "hasInsightsQueues": False,
+    "hasInsightsLlmMonitoring": False,
     "isInternal": False,
     "isPublic": False,
     "avatar": {"avatarType": "letter_avatar", "avatarUuid": None},
@@ -112,59 +106,20 @@ project = {
     "status": "active",
 }
 
-detailed_project = {
+DETAILED_PROJECT = {
+    **BASE_PROJECT,
     "id": "4505278496",
     "slug": "pump-station",
     "name": "Pump Station",
-    "platform": "python",
     "dateCreated": "2021-01-14T22:08:52.711809Z",
-    "isBookmarked": False,
-    "isMember": True,
-    "features": [
-        "alert-filters",
-        "custom-inbound-filters",
-        "data-forwarding",
-        "discard-groups",
-        "minidump",
-        "race-free-group-creation",
-        "rate-limits",
-        "servicehooks",
-        "similarity-indexing",
-        "similarity-view",
-        "span-metrics-extraction",
-        "releases",
-    ],
     "firstEvent": "2021-01-14T22:08:52.711809Z",
     "firstTransactionEvent": True,
-    "access": [
-        "project:releases",
-        "event:read",
-        "project:read",
-        "member:read",
-        "team:read",
-        "event:write",
-        "org:read",
-        "alerts:read",
-    ],
-    "hasAccess": True,
-    "hasMinifiedStackTrace": False,
-    "hasMonitors": True,
-    "hasProfiles": True,
-    "hasReplays": False,
-    "hasSessions": True,
-    "isInternal": True,
-    "isPublic": False,
-    "avatar": {"avatarType": "letter_avatar", "avatarUuid": None},
-    "color": "#3fbf67",
-    "status": "active",
     "team": {"id": "2", "name": "Powerful Abolitionist", "slug": "powerful-abolitionist"},
     "teams": [{"id": "2", "name": "Powerful Abolitionist", "slug": "powerful-abolitionist"}],
     "latestRelease": {
         "version": "backend@3e90a5d9e767ebcfa70e921d7a7ff6c037461168",
     },
     "options": {
-        "sentry:grouping_auto_update": False,
-        "sentry:span_description_cluster_rules": [],
         "sentry:transaction_name_cluster_rules": [],
         "digests:mail:maximum_delay": 600,
         "sentry:scrub_defaults": False,
@@ -188,7 +143,6 @@ detailed_project = {
         "sentry:verify_ssl": True,
         "sentry:csp_ignored_sources_defaults": True,
         "sentry:csp_ignored_sources": "",
-        "sentry:reprocessing_active": False,
         "filters:blacklisted_ips": "",
         "filters:react-hydration-errors": True,
         "filters:chunk-load-error": True,
@@ -217,8 +171,8 @@ detailed_project = {
     "groupingEnhancementsBase": None,
     "secondaryGroupingExpiry": 1687010243,
     "secondaryGroupingConfig": "newstyle:2019-10-29",
-    "groupingAutoUpdate": False,
     "fingerprintingRules": "",
+    "uptimeAutodetection": True,
     "organization": {
         "id": "1",
         "slug": "sentry",
@@ -227,12 +181,10 @@ detailed_project = {
         "dateCreated": "2014-12-15T04:06:24.263571Z",
         "isEarlyAdopter": True,
         "require2FA": False,
-        "requireEmailVerification": False,
         "avatar": {"avatarType": "upload", "avatarUuid": "24f6f762f7a7473888b259c566da5adb"},
         "features": [
             "performance-uncompressed-assets-ingest",
             "dashboards-rh-widget",
-            "org-subdomains",
             "performance-db-main-thread-visible",
             "transaction-name-mark-scrubbed-as-sanitized",
             "sentry-pride-logo-footer",
@@ -240,7 +192,6 @@ detailed_project = {
             "mep-rollout-flag",
             "performance-issues-m-n-plus-one-db-detector",
             "session-replay-ui",
-            "release-health-drop-sessions",
             "alert-crash-free-metrics",
             "performance-n-plus-one-db-queries-visible",
             "session-replay-recording-scrubbing",
@@ -260,7 +211,6 @@ detailed_project = {
             "promotion-be-adoption-enabled",
             "monitors",
             "am2-billing",
-            "project-stats",
             "profiling-ga",
             "performance-new-trends",
             "performance-n-plus-one-api-calls-post-process-group",
@@ -268,19 +218,17 @@ detailed_project = {
             "performance-metrics-backed-transaction-summary",
             "performance-db-main-thread-detector",
             "issue-platform",
-            "streamline-targeting-context",
             "performance-consecutive-db-issue",
             "performance-consecutive-http-post-process-group",
             "performance-n-plus-one-api-calls-detector",
             "performance-render-blocking-asset-span-post-process-group",
             "performance-uncompressed-assets-post-process-group",
-            "performance-issues-search",
             "performance-slow-db-issue",
             "performance-db-main-thread-ingest",
             "session-replay",
             "sql-format",
             "performance-consecutive-db-queries-visible",
-            "slack-overage-notifications",
+            "user-spend-notifications-settings",
             "performance-m-n-plus-one-db-queries-post-process-group",
             "transaction-metrics-extraction",
             "performance-consecutive-db-queries-post-process-group",
@@ -341,9 +289,7 @@ detailed_project = {
             "performance-large-http-payload-ingest",
             "crons-issue-platform",
             "profile-file-io-main-thread-ingest",
-            "customer-domains",
             "performance-file-io-main-thread-post-process-group",
-            "issue-alert-fallback-targeting",
             "performance-render-blocking-asset-span-visible",
             "ds-sliding-window-org",
             "performance-consecutive-http-ingest",
@@ -424,7 +370,7 @@ detailed_project = {
     "symbolSources": "[]",
 }
 
-symbol_sources = [
+SYMBOL_SOURCES = [
     {
         "id": "honk",
         "name": "honk source",
@@ -464,48 +410,13 @@ def project_with_team(extra_team: bool = False):
         },
     ]
     return {
+        **BASE_PROJECT,
         "id": "6758470122493650",
         "slug": "The Spoiled Yoghurt",
         "name": "the-spoiled-yoghurt",
         "platform": "javascript",
         "dateCreated": "2023-03-29T15:25:21.344565Z",
-        "isBookmarked": False,
-        "isMember": True,
-        "features": [
-            "alert-filters",
-            "custom-inbound-filters",
-            "data-forwarding",
-            "discard-groups",
-            "minidump",
-            "race-free-group-creation",
-            "rate-limits",
-            "servicehooks",
-            "similarity-indexing",
-            "similarity-view",
-        ],
-        "firstEvent": None,
-        "firstTransactionEvent": True,
-        "access": [
-            "project:read",
-            "event:read",
-            "team:read",
-            "alerts:read",
-            "org:read",
-            "event:write",
-            "project:releases",
-            "member:read",
-        ],
-        "hasAccess": True,
-        "hasMinifiedStackTrace": False,
-        "hasMonitors": False,
-        "hasProfiles": False,
-        "hasReplays": False,
-        "hasSessions": False,
-        "isInternal": False,
-        "isPublic": False,
-        "avatar": {"avatarType": "letter_avatar", "avatarUuid": None},
         "color": "#5cbf3f",
-        "status": "active",
         "team": {
             "id": "2349234102",
             "name": "Prime Mover",
@@ -516,10 +427,10 @@ def project_with_team(extra_team: bool = False):
 
 
 class ProjectExamples:
-    BASE_KEY = [
+    CLIENT_KEY_RESPONSE = [
         OpenApiExample(
             "Client key with rate limiting",
-            value=key_with_rate_limiting,
+            value=KEY_RATE_LIMIT,
             status_codes=["200", "201"],
             response_only=True,
         ),
@@ -528,7 +439,7 @@ class ProjectExamples:
     DETAILED_PROJECT = [
         OpenApiExample(
             "Get detailed view about a Project",
-            value=detailed_project,
+            value=DETAILED_PROJECT,
             status_codes=["200"],
             response_only=True,
         ),
@@ -537,7 +448,7 @@ class ProjectExamples:
     CREATE_PROJECT = [
         OpenApiExample(
             "Project successfully created",
-            value=project,
+            value=BASE_PROJECT,
             status_codes=["201"],
             response_only=True,
         ),
@@ -547,18 +458,9 @@ class ProjectExamples:
         OpenApiExample(
             "List Client Keys for a Project",
             value=[
-                key_with_rate_limiting,
-                key_wo_rate_limiting,
+                KEY_RATE_LIMIT,
+                KEY_NO_RATE_LIMIT,
             ],
-            status_codes=["200"],
-            response_only=True,
-        ),
-    ]
-
-    RETREVE_CLIENT_KEY = [
-        OpenApiExample(
-            "Retrieve an Existing Client Key",
-            value=key_wo_rate_limiting,
             status_codes=["200"],
             response_only=True,
         ),
@@ -585,7 +487,7 @@ class ProjectExamples:
     GET_SYMBOL_SOURCES = [
         OpenApiExample(
             "List custom symbol sources configured for a project.",
-            value=symbol_sources,
+            value=SYMBOL_SOURCES,
             status_codes=["200"],
             response_only=True,
         ),
@@ -594,7 +496,7 @@ class ProjectExamples:
     ADD_SYMBOL_SOURCE = [
         OpenApiExample(
             "List custom symbol sources configured for a project.",
-            value=symbol_sources[0],
+            value=SYMBOL_SOURCES[0],
             status_codes=["201"],
             response_only=True,
         ),
@@ -603,7 +505,7 @@ class ProjectExamples:
     ADD_SYMBOL_SOURCE = [
         OpenApiExample(
             "Add a custom symbol source to a project.",
-            value=symbol_sources[0],
+            value=SYMBOL_SOURCES[0],
             status_codes=["201"],
             response_only=True,
         ),
@@ -612,7 +514,7 @@ class ProjectExamples:
     UPDATE_SYMBOL_SOURCE = [
         OpenApiExample(
             "Update a custom symbol source in a project.",
-            value=symbol_sources[0],
+            value=SYMBOL_SOURCES[0],
             status_codes=["200"],
             response_only=True,
         ),

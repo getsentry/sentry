@@ -1,17 +1,19 @@
-import {RouteComponentProps} from 'react-router';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
-import {LocationDescriptorObject} from 'history';
+import type {LocationDescriptorObject} from 'history';
 import pick from 'lodash/pick';
-import uniq from 'lodash/uniq';
-import moment from 'moment';
+import moment from 'moment-timezone';
 
 import SelectControl from 'sentry/components/forms/controls/selectControl';
 import TeamSelector from 'sentry/components/teamSelector';
-import {ChangeData, TimeRangeSelector} from 'sentry/components/timeRangeSelector';
+import type {ChangeData} from 'sentry/components/timeRangeSelector';
+import {TimeRangeSelector} from 'sentry/components/timeRangeSelector';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {DateString, TeamWithProjects} from 'sentry/types';
+import type {DateString} from 'sentry/types/core';
+import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
+import type {TeamWithProjects} from 'sentry/types/project';
+import {uniq} from 'sentry/utils/array/uniq';
 import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
 import localStorage from 'sentry/utils/localStorage';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -125,18 +127,23 @@ function TeamStatsControls({
   }
 
   const {period, start, end, utc} = dataDatetime(query);
-  const environmentOptions = uniq(
-    projects.map(project => project.environments).flat()
-  ).map(env => ({label: env, value: env}));
+  const environmentOptions = uniq(projects.flatMap(project => project.environments)).map(
+    env => ({label: env, value: env})
+  );
+
+  // org:admin is a unique scope that only org owners have
+  const isOrgOwner = organization.access.includes('org:admin');
 
   return (
     <ControlsWrapper showEnvironment={showEnvironment}>
-      <StyledTeamSelector
+      <TeamSelector
         name="select-team"
         inFieldLabel={t('Team: ')}
         value={currentTeam?.slug}
         onChange={choice => handleChangeTeam(choice.actor.id)}
-        teamFilter={isSuperuser ? undefined : filterTeam => filterTeam.isMember}
+        teamFilter={
+          isSuperuser || isOrgOwner ? undefined : filterTeam => filterTeam.isMember
+        }
         styles={{
           singleValue(provided: any) {
             const custom = {
@@ -239,12 +246,6 @@ const ControlsWrapper = styled('div')<{showEnvironment?: boolean}>`
 
   @media (min-width: ${p => p.theme.breakpoints.small}) {
     grid-template-columns: 246px ${p => (p.showEnvironment ? '246px' : '')} 1fr;
-  }
-`;
-
-const StyledTeamSelector = styled(TeamSelector)`
-  & > div {
-    box-shadow: ${p => p.theme.dropShadowMedium};
   }
 `;
 

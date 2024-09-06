@@ -1,11 +1,12 @@
-import {DataScrubbingRelayPiiConfig} from 'sentry-fixture/dataScrubbingRelayPiiConfig';
-import {Event as EventFixture} from 'sentry-fixture/event';
+import {DataScrubbingRelayPiiConfigFixture} from 'sentry-fixture/dataScrubbingRelayPiiConfig';
+import {EventFixture} from 'sentry-fixture/event';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
 import {Request} from 'sentry/components/events/interfaces/request';
-import {EntryRequest, EntryType} from 'sentry/types/event';
+import type {EntryRequest} from 'sentry/types/event';
+import {EntryType} from 'sentry/types/event';
 
 jest.unmock('prismjs');
 
@@ -52,48 +53,50 @@ describe('Request entry', function () {
               url: null,
               query: null,
               data: {
-                a: {
-                  '': {
-                    rem: [['organization:0', 's', 0, 0]],
-                    len: 1,
-                    chunks: [
-                      {
-                        type: 'redaction',
-                        text: '',
-                        rule_id: 'organization:0',
-                        remark: 's',
-                      },
-                    ],
-                  },
-                },
-                c: {
-                  0: {
-                    d: {
-                      '': {
-                        rem: [['organization:0', 's', 0, 0]],
-                        len: 1,
-                        chunks: [
-                          {
-                            type: 'redaction',
-                            text: '',
-                            rule_id: 'organization:0',
-                            remark: 's',
-                          },
-                        ],
-                      },
+                0: {
+                  a: {
+                    '': {
+                      rem: [['organization:0', 's', 0, 0]],
+                      len: 1,
+                      chunks: [
+                        {
+                          type: 'redaction',
+                          text: '',
+                          rule_id: 'organization:0',
+                          remark: 's',
+                        },
+                      ],
                     },
-                    f: {
-                      '': {
-                        rem: [['organization:0', 's', 0, 0]],
-                        len: 1,
-                        chunks: [
-                          {
-                            type: 'redaction',
-                            text: '',
-                            rule_id: 'organization:0',
-                            remark: 's',
-                          },
-                        ],
+                  },
+                  c: {
+                    0: {
+                      d: {
+                        '': {
+                          rem: [['organization:0', 's', 0, 0]],
+                          len: 1,
+                          chunks: [
+                            {
+                              type: 'redaction',
+                              text: '',
+                              rule_id: 'organization:0',
+                              remark: 's',
+                            },
+                          ],
+                        },
+                      },
+                      f: {
+                        '': {
+                          rem: [['organization:0', 's', 0, 0]],
+                          len: 1,
+                          chunks: [
+                            {
+                              type: 'redaction',
+                              text: '',
+                              rule_id: 'organization:0',
+                              remark: 's',
+                            },
+                          ],
+                        },
                       },
                     },
                   },
@@ -165,12 +168,14 @@ describe('Request entry', function () {
 
     render(<Request event={event} data={event.entries[0].data} />, {
       organization: {
-        relayPiiConfig: JSON.stringify(DataScrubbingRelayPiiConfig()),
+        relayPiiConfig: JSON.stringify(DataScrubbingRelayPiiConfigFixture()),
       },
     });
 
     expect(screen.getAllByText(/redacted/)).toHaveLength(5);
 
+    // Expand two levels down
+    await userEvent.click(await screen.findByLabelText('Expand'));
     await userEvent.click(await screen.findByLabelText('Expand'));
 
     expect(screen.getAllByText(/redacted/)).toHaveLength(7);
@@ -212,7 +217,7 @@ describe('Request entry', function () {
 
       render(<Request event={event} data={event.entries[0].data} />, {
         organization: {
-          relayPiiConfig: JSON.stringify(DataScrubbingRelayPiiConfig()),
+          relayPiiConfig: JSON.stringify(DataScrubbingRelayPiiConfigFixture()),
         },
       });
 
@@ -246,7 +251,7 @@ describe('Request entry', function () {
 
       render(<Request event={event} data={event.entries[0].data} />, {
         organization: {
-          relayPiiConfig: JSON.stringify(DataScrubbingRelayPiiConfig()),
+          relayPiiConfig: JSON.stringify(DataScrubbingRelayPiiConfigFixture()),
         },
       });
 
@@ -280,7 +285,7 @@ describe('Request entry', function () {
 
       render(<Request event={event} data={event.entries[0].data} />, {
         organization: {
-          relayPiiConfig: JSON.stringify(DataScrubbingRelayPiiConfig()),
+          relayPiiConfig: JSON.stringify(DataScrubbingRelayPiiConfigFixture()),
         },
       });
 
@@ -316,7 +321,7 @@ describe('Request entry', function () {
       expect(() =>
         render(<Request event={event} data={event.entries[0].data} />, {
           organization: {
-            relayPiiConfig: JSON.stringify(DataScrubbingRelayPiiConfig()),
+            relayPiiConfig: JSON.stringify(DataScrubbingRelayPiiConfigFixture()),
           },
         })
       ).not.toThrow();
@@ -347,7 +352,7 @@ describe('Request entry', function () {
       expect(() =>
         render(<Request event={event} data={event.entries[0].data} />, {
           organization: {
-            relayPiiConfig: JSON.stringify(DataScrubbingRelayPiiConfig()),
+            relayPiiConfig: JSON.stringify(DataScrubbingRelayPiiConfigFixture()),
           },
         })
       ).not.toThrow();

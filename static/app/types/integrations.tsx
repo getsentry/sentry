@@ -1,6 +1,5 @@
 import type {AlertProps} from 'sentry/components/alert';
 import type {Field} from 'sentry/components/forms/types';
-import {PlatformKey} from 'sentry/types/project';
 import type {
   DISABLED as DISABLED_STATUS,
   INSTALLED,
@@ -11,6 +10,7 @@ import type {
 
 import type {Avatar, Choice, Choices, ObjectStatus, Scope} from './core';
 import type {ParsedOwnershipRule} from './group';
+import type {PlatformKey} from './project';
 import type {BaseRelease} from './release';
 import type {User} from './user';
 
@@ -181,14 +181,13 @@ export interface CodecovResponse {
   lineCoverage?: LineCoverage[];
 }
 
-export type StacktraceLinkResult = {
+export interface StacktraceLinkResult {
   integrations: Integration[];
   attemptedUrl?: string;
-  codecov?: CodecovResponse;
   config?: RepositoryProjectPathConfigWithIntegration;
   error?: StacktraceErrorMessage;
   sourceUrl?: string;
-};
+}
 
 export type StacktraceErrorMessage =
   | 'file_not_found'
@@ -356,16 +355,19 @@ export interface OrganizationIntegrationProvider extends BaseIntegrationProvider
   aspects: IntegrationAspects;
 }
 
-export interface Integration {
-  accountType: string;
-  domainName: string;
-  gracePeriodEnd: string;
-  icon: string;
+interface CommonIntegration {
+  accountType: string | null;
+  domainName: string | null;
+  gracePeriodEnd: string | null;
+  icon: string | null;
   id: string;
   name: string;
   organizationIntegrationStatus: ObjectStatus;
   provider: OrganizationIntegrationProvider;
   status: ObjectStatus;
+}
+
+export interface Integration extends CommonIntegration {
   dynamicDisplayInformation?: {
     configure_integration?: {
       instructions: string[];
@@ -381,21 +383,12 @@ type ConfigData = {
   installationType?: string;
 };
 
-export type OrganizationIntegration = {
-  accountType: string | null;
+export interface OrganizationIntegration extends Integration {
   configData: ConfigData | null;
   configOrganization: Field[];
-  domainName: string | null;
   externalId: string;
-  gracePeriodEnd: string;
-  icon: string | null;
-  id: string;
-  name: string;
   organizationId: string;
-  organizationIntegrationStatus: ObjectStatus;
-  provider: OrganizationIntegrationProvider;
-  status: ObjectStatus;
-};
+}
 
 // we include the configOrganization when we need it
 export interface IntegrationWithConfig extends Integration {
@@ -425,6 +418,16 @@ export type PlatformExternalIssue = {
   issueId: string;
   serviceType: string;
   webUrl: string;
+};
+
+export type ExternalIssue = {
+  description: string;
+  displayName: string;
+  id: string;
+  integrationKey: string;
+  integrationName: string;
+  key: string;
+  title: string;
 };
 
 /**
@@ -470,7 +473,6 @@ export type PluginNoProject = {
   name: string;
   shortName: string;
   slug: string;
-  // TODO(ts)
   status: string;
   type: string;
   altIsSentryApp?: boolean;
@@ -478,6 +480,12 @@ export type PluginNoProject = {
   deprecationDate?: string;
   description?: string;
   firstPartyAlternative?: string;
+  issue?: {
+    issue_id: string;
+    // TODO(TS): Label can be an object, unknown shape
+    label: string | any;
+    url: string;
+  };
   resourceLinks?: Array<{title: string; url: string}>;
   version?: string;
 };
@@ -587,17 +595,4 @@ export type ServerlessFunction = {
   outOfDate: boolean;
   runtime: string;
   version: number;
-};
-
-export type SentryFunction = {
-  author: string;
-  code: string;
-  name: string;
-  slug: string;
-  env_variables?: Array<{
-    name: string;
-    value: string;
-  }>;
-  events?: string[];
-  overview?: string;
 };

@@ -4,11 +4,12 @@ import sortBy from 'lodash/sortBy';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {openModal} from 'sentry/actionCreators/modal';
-import {Button} from 'sentry/components/button';
+import {Button, LinkButton} from 'sentry/components/button';
 import DeprecatedAsyncComponent from 'sentry/components/deprecatedAsyncComponent';
 import EmptyMessage from 'sentry/components/emptyMessage';
 import ExternalLink from 'sentry/components/links/externalLink';
-import Pagination, {CursorHandler} from 'sentry/components/pagination';
+import type {CursorHandler} from 'sentry/components/pagination';
+import Pagination from 'sentry/components/pagination';
 import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';
 import PanelHeader from 'sentry/components/panels/panelHeader';
@@ -16,18 +17,17 @@ import PanelItem from 'sentry/components/panels/panelItem';
 import {IconAdd} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {
+import type {
   Integration,
-  Organization,
-  Project,
   Repository,
   RepositoryProjectPathConfig,
-} from 'sentry/types';
+} from 'sentry/types/integrations';
+import type {Organization} from 'sentry/types/organization';
+import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {getIntegrationIcon} from 'sentry/utils/integrationUtil';
-import withRouteAnalytics, {
-  WithRouteAnalyticsProps,
-} from 'sentry/utils/routeAnalytics/withRouteAnalytics';
+import type {WithRouteAnalyticsProps} from 'sentry/utils/routeAnalytics/withRouteAnalytics';
+import withRouteAnalytics from 'sentry/utils/routeAnalytics/withRouteAnalytics';
 import withOrganization from 'sentry/utils/withOrganization';
 import withProjects from 'sentry/utils/withProjects';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
@@ -242,7 +242,7 @@ class IntegrationCodeMappings extends DeprecatedAsyncComponent<Props, State> {
                   data-test-id="add-mapping-button"
                   onClick={() => this.openModal()}
                   size="xs"
-                  icon={<IconAdd size="xs" isCircled />}
+                  icon={<IconAdd isCircled />}
                 >
                   {t('Add Code Mapping')}
                 </Button>
@@ -254,14 +254,14 @@ class IntegrationCodeMappings extends DeprecatedAsyncComponent<Props, State> {
               <EmptyMessage
                 icon={getIntegrationIcon(integration.provider.key, 'lg')}
                 action={
-                  <Button
+                  <LinkButton
                     href={docsLink}
                     size="sm"
                     external
                     onClick={this.trackDocsClick}
                   >
                     {t('View Documentation')}
-                  </Button>
+                  </LinkButton>
                 }
               >
                 {t('Set up stack trace linking by adding a code mapping.')}

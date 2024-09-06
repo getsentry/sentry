@@ -1,7 +1,9 @@
-import {GlobalSelection} from 'sentry-fixture/globalSelection';
-import {Organization} from 'sentry-fixture/organization';
+import {GlobalSelectionFixture} from 'sentry-fixture/globalSelection';
+import {GroupFixture} from 'sentry-fixture/group';
+import {OrganizationFixture} from 'sentry-fixture/organization';
+import {ProjectFixture} from 'sentry-fixture/project';
 
-import {GroupStatus} from 'sentry/types';
+import {GroupStatus} from 'sentry/types/group';
 import {transformIssuesResponseToTable} from 'sentry/views/dashboards/datasetConfig/issues';
 
 describe('transformIssuesResponseToTable', function () {
@@ -9,10 +11,10 @@ describe('transformIssuesResponseToTable', function () {
     expect(
       transformIssuesResponseToTable(
         [
-          TestStubs.Group({
+          GroupFixture({
             id: '1',
             title: 'Error: Failed',
-            project: TestStubs.Project({
+            project: ProjectFixture({
               id: '3',
             }),
             status: GroupStatus.UNRESOLVED,
@@ -37,8 +39,8 @@ describe('transformIssuesResponseToTable', function () {
           conditions: 'assigned_or_suggested:#visibility timesSeen:>100',
           orderby: '',
         },
-        Organization(),
-        GlobalSelection()
+        OrganizationFixture(),
+        GlobalSelectionFixture()
       )
     ).toEqual(
       expect.objectContaining({
@@ -50,7 +52,7 @@ describe('transformIssuesResponseToTable', function () {
             id: '1',
             'issue.id': '1',
             lifetimeUsers: 5,
-            links: '',
+            links: [],
             period: '',
             projectId: '3',
             status: 'unresolved',

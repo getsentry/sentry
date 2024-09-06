@@ -1,12 +1,14 @@
+import {ConfigFixture} from 'sentry-fixture/config';
+import {UserFixture} from 'sentry-fixture/user';
+
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {fireEvent, render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {TimeRangeSelector} from 'sentry/components/timeRangeSelector';
 import ConfigStore from 'sentry/stores/configStore';
 
-const {organization, routerContext} = initializeOrg({
+const {organization, router} = initializeOrg({
   organization: {features: ['global-views', 'open-membership']},
-  project: undefined,
   projects: [
     {id: '1', slug: 'project-1', isMember: true},
     {id: '2', slug: 'project-2', isMember: true},
@@ -29,26 +31,30 @@ describe('TimeRangeSelector', function () {
   }
 
   function renderComponent(props = {}) {
-    return render(getComponent(props), {context: routerContext});
+    return render(getComponent(props), {router});
   }
 
   beforeEach(function () {
     ConfigStore.loadInitialData(
-      TestStubs.Config({
-        user: {options: {timezone: 'America/New_York'}},
+      ConfigFixture({
+        user: UserFixture({
+          options: {...UserFixture().options, timezone: 'America/New_York'},
+        }),
       })
     );
     onChange.mockReset();
   });
 
-  it('renders when given relative period', function () {
+  it('renders when given relative period', async function () {
     renderComponent({relative: '9d'});
-    expect(screen.getByRole('button', {name: '9D'})).toBeInTheDocument();
+    expect(await screen.findByRole('button', {name: '9D'})).toBeInTheDocument();
   });
 
-  it('renders when given an invalid relative period', function () {
-    render(<TimeRangeSelector relative="1y" />, {context: routerContext, organization});
-    expect(screen.getByRole('button', {name: 'Invalid Period'})).toBeInTheDocument();
+  it('renders when given an invalid relative period', async function () {
+    render(<TimeRangeSelector relative="1y" />, {router, organization});
+    expect(
+      await screen.findByRole('button', {name: 'Invalid Period'})
+    ).toBeInTheDocument();
   });
 
   it('hides relative options', async function () {

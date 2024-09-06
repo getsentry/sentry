@@ -1,7 +1,7 @@
 import logging
 import sys
+from collections.abc import Sequence
 from enum import Enum
-from typing import Optional, Sequence, Tuple
 
 from django.conf import settings
 
@@ -41,7 +41,7 @@ class UpdateChannel(Enum):
     KILLSWITCH = "killswitch"
 
     @classmethod
-    def choices(cls) -> Sequence[Tuple[str, str]]:
+    def choices(cls) -> Sequence[tuple[str, str]]:
         return [(i.name, i.value) for i in cls]
 
 
@@ -106,9 +106,12 @@ FLAG_RATE = 1 << 9
 FLAG_BOOL = 1 << 10
 # Value can be dynamically updated by automator
 FLAG_AUTOMATOR_MODIFIABLE = 1 << 11
+# Values that are scalar numeric integer values
+FLAG_SCALAR = 1 << 12
 
 FLAG_MODIFIABLE_RATE = FLAG_ADMIN_MODIFIABLE | FLAG_RATE
 FLAG_MODIFIABLE_BOOL = FLAG_ADMIN_MODIFIABLE | FLAG_BOOL
+FLAG_MODIFIABLE_SCALAR = FLAG_ADMIN_MODIFIABLE | FLAG_SCALAR
 
 # These flags combinations prevent the `register` method from succeeding.
 INVALID_COMBINATIONS = {
@@ -118,6 +121,10 @@ INVALID_COMBINATIONS = {
     FLAG_AUTOMATOR_MODIFIABLE | FLAG_NOSTORE,
     FLAG_AUTOMATOR_MODIFIABLE | FLAG_IMMUTABLE,
     FLAG_AUTOMATOR_MODIFIABLE | FLAG_CREDENTIAL,
+    # A flag may only be one of a bool, rate, or scalar.
+    FLAG_RATE | FLAG_BOOL,
+    FLAG_BOOL | FLAG_SCALAR,
+    FLAG_SCALAR | FLAG_RATE,
     # An option being required does not strictly mean that it cannot be updated by
     # the Automator. The issue is on why they exist. Most of them are set by the
     # application itself during the first initialization.
@@ -209,7 +216,6 @@ class OptionsManager:
         try:
             return self.registry[key]
         except KeyError:
-
             # HACK: Historically, Options were used for random ad hoc things.
             # Fortunately, they all share the same prefix, 'sentry:', so
             # we special case them here and construct a faux key until we migrate.
@@ -245,7 +251,9 @@ class OptionsManager:
 
     def isset(self, key: str) -> bool:
         """
-        Check if a key has been set to a value and not inheriting from its default.
+        Check if a key is set on the local cache, network cache, or db in that order.
+        Keep in mind that if an option is deleted, any new calls to options.get()
+        will repopulate the cache, resulting in this method to return true.
         """
         opt = self.lookup_key(key)
 
@@ -254,6 +262,12 @@ class OptionsManager:
             if result is not None:
                 return True
 
+        return self.is_set_on_disk(key)
+
+    def is_set_on_disk(self, key: str) -> bool:
+        """
+        Check if a key is set on disk.
+        """
         return key in settings.SENTRY_OPTIONS
 
     def get(self, key: str, silent=False):
@@ -431,7 +445,7 @@ class OptionsManager:
         """
         return self.registry.values()
 
-    def filter(self, flag: Optional[int] = None):
+    def filter(self, flag: int | None = None):
         """
         Return an iterator that's filtered by which flags are set on a key.
         """
@@ -441,7 +455,7 @@ class OptionsManager:
             return (k for k in self.all() if k.flags is DEFAULT_FLAGS)
         return (k for k in self.all() if k.flags & flag)
 
-    def get_last_update_channel(self, key: str) -> Optional[UpdateChannel]:
+    def get_last_update_channel(self, key: str) -> UpdateChannel | None:
         """
         Checks how the given key was last changed
         (by automator, legacy, or CLI)
@@ -451,7 +465,7 @@ class OptionsManager:
         opt = self.lookup_key(key)
         return self.store.get_last_update_channel(opt)
 
-    def can_update(self, key: str, value, channel: UpdateChannel) -> Optional[NotWritableReason]:
+    def can_update(self, key: str, value, channel: UpdateChannel) -> NotWritableReason | None:
         """
         Return the reason the provided channel cannot update the option
         to the provided value or None if there is no reason and the update
@@ -462,7 +476,7 @@ class OptionsManager:
         opt = self.lookup_key(key)
         if opt.has_any_flag({FLAG_NOSTORE, FLAG_IMMUTABLE}):
             return NotWritableReason.READONLY
-        if opt.has_any_flag({FLAG_PRIORITIZE_DISK}) and settings.SENTRY_OPTIONS.get(key):
+        if opt.has_any_flag({FLAG_PRIORITIZE_DISK}) and key in settings.SENTRY_OPTIONS:
             # FLAG_PRIORITIZE_DISK does not prevent the option to be updated
             # in any circumstance. If the option is not on disk (which
             # means not in settings.SENTRY_OPTION), it can be updated.

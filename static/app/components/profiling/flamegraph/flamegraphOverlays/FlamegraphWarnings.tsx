@@ -2,28 +2,28 @@ import styled from '@emotion/styled';
 
 import {ExportProfileButton} from 'sentry/components/profiling/exportProfileButton';
 import {t} from 'sentry/locale';
-import {Flamegraph} from 'sentry/utils/profiling/flamegraph';
+import type {RequestState} from 'sentry/types/core';
+import type {Flamegraph} from 'sentry/utils/profiling/flamegraph';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
-import {useProfiles} from 'sentry/views/profiling/profilesProvider';
 
 interface FlamegraphWarningProps {
   flamegraph: Flamegraph;
+  requestState: RequestState<any>;
 }
 
 export function FlamegraphWarnings(props: FlamegraphWarningProps) {
   const orgSlug = useOrganization().slug;
   const params = useParams();
-  const profiles = useProfiles();
 
-  if (profiles.type === 'loading') {
+  if (props.requestState.type === 'loading') {
     return null;
   }
 
-  if (profiles.type === 'errored') {
+  if (props.requestState.type === 'errored') {
     return (
       <Overlay>
-        <p>{profiles.error || t('Failed to load profile')}</p>
+        <p>{props.requestState.error || t('Failed to load profile')}</p>
       </Overlay>
     );
   }

@@ -19,7 +19,7 @@ from sentry.models.repository import Repository
 class CommitFileChangeEndpoint(OrganizationReleasesBaseEndpoint):
     owner = ApiOwner.ISSUES
     publish_status = {
-        "GET": ApiPublishStatus.UNKNOWN,
+        "GET": ApiPublishStatus.PRIVATE,
     }
 
     def get(self, request: Request, organization, version) -> Response:
@@ -29,7 +29,7 @@ class CommitFileChangeEndpoint(OrganizationReleasesBaseEndpoint):
 
         Retrieve a list of files that were changed in a given release's commits.
 
-        :pparam string organization_slug: the slug of the organization the
+        :pparam string organization_id_or_slug: the id or slug of the organization the
                                           release belongs to.
         :pparam string version: the version identifier of the release.
 

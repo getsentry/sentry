@@ -12,7 +12,7 @@ The magic happens in the [`IntegrationControlMiddleware`](src/sentry/middleware/
 
 - If an HTTP request is received to `/extensions/*` (which is the prefix for all our webhooks) it is further inspected. If not, we fall through this middleware.
 - Next, we try to identify the parser from the provider, since these requests follow the pattern `/extensions/provider/webhook-path/`. If no parser is registered, we fall through this middleware
-- If we've found a parser ([`BaseRequestParser`](src/sentry/middleware/integrations/parsers/base.py)), we defer to it for responding to the request, rather than falling through.
+- If we've found a parser ([`BaseRequestParser`](src/sentry/integrations/middleware/hybrid_cloud/parsers.py)), we defer to it for responding to the request, rather than falling through.
 
 The parsers vary per integration but they follow the same basic steps:
 
@@ -22,7 +22,7 @@ The parsers vary per integration but they follow the same basic steps:
 - Lastly, identify the relevant Region Silos we need to forward to from looking at the `OrganizationMapping`s.
 - Now, depending on the payload we can choose how to respond to the initial request:
   - Some requests will require synchronous responses with an expected response pattern, (e.g. Slack).
-  - Others don't care about the response, and we may opt to handle them asynchronously via the [`ControlOutbox` model](src/sentry/models/outbox.py), (e.g. GitHub).
+  - Others don't care about the response, and we may opt to handle them asynchronously via the [`ControlOutbox` model](src/sentry/hybridcloud/models/outbox.py), (e.g. GitHub).
   - And others may require fanning out identical webhooks to multiple regions where the integration is installed on an organization, (e.g. Jira).
 
 ## Adding Integration Parsers

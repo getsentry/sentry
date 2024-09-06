@@ -1,0 +1,33 @@
+name: frontend-lint-burndown
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '0 4 * * 1'
+
+env:
+  NODE_OPTIONS: '--max-old-space-size=4096'
+
+jobs:
+  deprecations:
+    name: Lint @deprecated callsites
+    timeout-minutes: 30
+    # Make sure this matches the runner that runs frontend tests
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
+
+      - name: Install dependencies & inject eslint-plugin-deprecation
+        id: dependencies
+        run: yarn add --dev eslint-plugin-deprecation
+
+      # Setup custom tsc matcher, see https://github.com/actions/setup-node/issues/97
+      - name: setup matchers
+        run: |
+          echo "::remove-matcher owner=masters::"
+          echo "::add-matcher::.github/eslint-stylish.json"
+
+      - name: ESLint
+        env:
+          SENTRY_DETECT_DEPRECATIONS: 1
+        run: yarn lint:js

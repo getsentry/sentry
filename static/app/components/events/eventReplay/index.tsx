@@ -1,94 +1,55 @@
-import {useCallback} from 'react';
+import {lazy, useEffect} from 'react';
 
 import ErrorBoundary from 'sentry/components/errorBoundary';
-import {EventReplaySection} from 'sentry/components/events/eventReplay/eventReplaySection';
+import {ReplayClipSection} from 'sentry/components/events/eventReplay/replayClipSection';
 import LazyLoad from 'sentry/components/lazyLoad';
-import {Group} from 'sentry/types';
-import {Event} from 'sentry/types/event';
-import {getAnalyticsDataForEvent, getAnalyticsDataForGroup} from 'sentry/utils/events';
+import type {Event} from 'sentry/types/event';
+import type {Group} from 'sentry/types/group';
+import useEventCanShowReplayUpsell from 'sentry/utils/event/useEventCanShowReplayUpsell';
 import {getReplayIdFromEvent} from 'sentry/utils/replays/getReplayIdFromEvent';
-import {useHasOrganizationSentAnyReplayEvents} from 'sentry/utils/replays/hooks/useReplayOnboarding';
-import {projectCanUpsellReplay} from 'sentry/utils/replays/projectSupportsReplay';
-import useOrganization from 'sentry/utils/useOrganization';
-import useProjectFromSlug from 'sentry/utils/useProjectFromSlug';
+import {useHaveSelectedProjectsSentAnyReplayEvents} from 'sentry/utils/replays/hooks/useReplayOnboarding';
+import useUrlParams from 'sentry/utils/useUrlParams';
+import {useIsSampleEvent} from 'sentry/views/issueDetails/utils';
 
-type Props = {
+interface Props {
   event: Event;
   projectSlug: string;
   group?: Group;
-};
-
-function EventReplayContent({
-  event,
-  group,
-  replayId,
-}: Props & {replayId: undefined | string}) {
-  const organization = useOrganization();
-  const {hasOrgSentReplays, fetching} = useHasOrganizationSentAnyReplayEvents();
-
-  const onboardingPanel = useCallback(() => import('./replayInlineOnboardingPanel'), []);
-  const replayPreview = useCallback(() => import('./replayPreview'), []);
-
-  if (fetching) {
-    return null;
-  }
-
-  if (!hasOrgSentReplays) {
-    return (
-      <ErrorBoundary mini>
-        <LazyLoad component={onboardingPanel} />
-      </ErrorBoundary>
-    );
-  }
-
-  if (!replayId) {
-    return null;
-  }
-
-  const startTimestampMS =
-    'startTimestamp' in event ? event.startTimestamp * 1000 : undefined;
-  const timeOfEvent = event.dateCreated ?? startTimestampMS ?? event.dateReceived;
-  const eventTimestampMs = timeOfEvent ? Math.floor(new Date(timeOfEvent).getTime()) : 0;
-
-  return (
-    <EventReplaySection>
-      <ErrorBoundary mini>
-        <LazyLoad
-          component={replayPreview}
-          replaySlug={replayId}
-          orgSlug={organization.slug}
-          eventTimestampMs={eventTimestampMs}
-          buttonProps={{
-            analyticsEventKey: 'issue_details.open_replay_details_clicked',
-            analyticsEventName: 'Issue Details: Open Replay Details Clicked',
-            analyticsParams: {
-              ...getAnalyticsDataForEvent(event),
-              ...getAnalyticsDataForGroup(group),
-              organization,
-            },
-          }}
-        />
-      </ErrorBoundary>
-    </EventReplaySection>
-  );
 }
 
+const ReplayOnboardingPanel = lazy(() => import('./replayInlineOnboardingPanel'));
+
 export default function EventReplay({event, group, projectSlug}: Props) {
-  const organization = useOrganization();
-  const hasReplaysFeature = organization.features.includes('session-replay');
-
-  const project = useProjectFromSlug({organization, projectSlug});
-  const canUpsellReplay = projectCanUpsellReplay(project);
   const replayId = getReplayIdFromEvent(event);
+  const {hasSentOneReplay} = useHaveSelectedProjectsSentAnyReplayEvents();
+  const {canShowUpsell, upsellPlatform, upsellProjectId} = useEventCanShowReplayUpsell({
+    event,
+    group,
+    projectSlug,
+  });
+  const isSampleError = useIsSampleEvent();
 
-  if (hasReplaysFeature && (replayId || canUpsellReplay)) {
+  const {setParamValue: setProjectId} = useUrlParams('project');
+
+  useEffect(() => {
+    if (canShowUpsell) {
+      setProjectId(upsellProjectId);
+    }
+  }, [upsellProjectId, setProjectId, canShowUpsell]);
+
+  if (replayId) {
+    return <ReplayClipSection event={event} replayId={replayId} group={group} />;
+  }
+
+  if (canShowUpsell && !hasSentOneReplay && !isSampleError) {
     return (
-      <EventReplayContent
-        event={event}
-        group={group}
-        projectSlug={projectSlug}
-        replayId={replayId}
-      />
+      <ErrorBoundary mini>
+        <LazyLoad
+          LazyComponent={ReplayOnboardingPanel}
+          platform={upsellPlatform}
+          projectId={upsellProjectId}
+        />
+      </ErrorBoundary>
     );
   }
 

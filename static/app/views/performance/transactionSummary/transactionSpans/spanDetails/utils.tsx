@@ -1,8 +1,8 @@
-import {Query} from 'history';
+import type {Query} from 'history';
 
-import {SpanSlug} from 'sentry/utils/performance/suspectSpans/types';
+import type {SpanSlug} from 'sentry/utils/performance/suspectSpans/types';
 
-export function generateSpanDetailsRoute({
+function generateSpanDetailsRoute({
   orgSlug,
   spanSlug,
 }: {
@@ -52,7 +52,7 @@ export function generateQuerySummaryRoute({
   group: string;
   orgSlug: string;
 }): string {
-  return `/organizations/${orgSlug}/performance/database/spans/span/${group}/`;
+  return `/organizations/${orgSlug}/insights/database/spans/span/${group}/`;
 }
 
 export function querySummaryRouteWithQuery({
@@ -84,28 +84,28 @@ export function querySummaryRouteWithQuery({
 }
 
 export function generateResourceSummaryRoute({
-  orgSlug,
+  baseUrl,
   group,
 }: {
+  baseUrl: string;
   group: string;
-  orgSlug: string;
 }): string {
-  return `/organizations/${orgSlug}/performance/browser/resources/spans/span/${group}/`;
+  return `${baseUrl}/spans/span/${group}/`;
 }
 
 export function resourceSummaryRouteWithQuery({
-  orgSlug,
+  baseUrl,
   query,
   group,
   projectID,
 }: {
+  baseUrl: string;
   group: string;
-  orgSlug: string;
   query: Query;
   projectID?: string | string[];
 }) {
   const pathname = generateResourceSummaryRoute({
-    orgSlug,
+    baseUrl,
     group,
   });
 
@@ -124,4 +124,6 @@ export function resourceSummaryRouteWithQuery({
 export enum ZoomKeys {
   MIN = 'min',
   MAX = 'max',
+  START = 'start',
+  END = 'end',
 }

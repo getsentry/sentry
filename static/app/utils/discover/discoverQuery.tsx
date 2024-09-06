@@ -1,11 +1,8 @@
-import {EventsMetaType, MetaType} from 'sentry/utils/discover/eventView';
-import {TransactionThresholdMetric} from 'sentry/views/performance/transactionSummary/transactionThresholdModal';
+import type {EventsMetaType, MetaType} from 'sentry/utils/discover/eventView';
+import type {TransactionThresholdMetric} from 'sentry/views/performance/transactionSummary/transactionThresholdModal';
 
-import GenericDiscoverQuery, {
-  DiscoverQueryProps,
-  GenericChildrenProps,
-  useGenericDiscoverQuery,
-} from './genericDiscoverQuery';
+import type {DiscoverQueryProps, GenericChildrenProps} from './genericDiscoverQuery';
+import GenericDiscoverQuery, {useGenericDiscoverQuery} from './genericDiscoverQuery';
 
 /**
  * An individual row in a DiscoverQuery result

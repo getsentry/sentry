@@ -1,6 +1,6 @@
 import {Fragment} from 'react';
 
-import {ModalRenderProps} from 'sentry/actionCreators/modal';
+import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import FeatureDisabled from 'sentry/components/acl/featureDisabled';
 import {Button} from 'sentry/components/button';
 import {t} from 'sentry/locale';
@@ -33,7 +33,7 @@ export function FeatureDisabledModal({
         />
       </Body>
       <Footer>
-        <Button size="md" priority="primary" onClick={closeModal}>
+        <Button priority="primary" onClick={closeModal}>
           {t('Got it')}
         </Button>
       </Footer>

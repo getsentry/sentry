@@ -1,7 +1,7 @@
 import styled from '@emotion/styled';
 
 const ActivityAuthor = styled('span')`
-  font-weight: 600;
+  font-weight: ${p => p.theme.fontWeightBold};
   font-size: ${p => p.theme.fontSizeMedium};
 `;
 

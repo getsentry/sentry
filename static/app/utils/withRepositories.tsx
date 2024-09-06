@@ -1,9 +1,10 @@
 import {Component} from 'react';
 
 import {getRepositories} from 'sentry/actionCreators/repositories';
-import {Client} from 'sentry/api';
+import type {Client} from 'sentry/api';
 import RepositoryStore from 'sentry/stores/repositoryStore';
-import {Organization, Repository} from 'sentry/types';
+import type {Repository} from 'sentry/types/integrations';
+import type {Organization} from 'sentry/types/organization';
 import getDisplayName from 'sentry/utils/getDisplayName';
 
 type DependentProps = {

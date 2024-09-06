@@ -1,19 +1,22 @@
 from __future__ import annotations
 
 import logging
-from typing import Callable, Sequence
+from collections.abc import Callable, Sequence
 
 from rest_framework.response import Response
 
+from sentry import options
 from sentry.constants import ObjectStatus
 from sentry.eventstore.models import GroupEvent
-from sentry.integrations import IntegrationInstallation
+from sentry.integrations.base import IntegrationInstallation
+from sentry.integrations.models.external_issue import ExternalIssue
+from sentry.integrations.services.integration.model import RpcIntegration
+from sentry.integrations.services.integration.service import integration_service
 from sentry.models.grouplink import GroupLink
-from sentry.models.integrations.external_issue import ExternalIssue
-from sentry.services.hybrid_cloud.integration.model import RpcIntegration
-from sentry.services.hybrid_cloud.integration.service import integration_service
-from sentry.services.hybrid_cloud.util import region_silo_function
+from sentry.shared_integrations.exceptions import IntegrationFormError
+from sentry.silo.base import region_silo_function
 from sentry.types.rules import RuleFuture
+from sentry.utils import metrics
 
 logger = logging.getLogger("sentry.rules")
 
@@ -35,10 +38,13 @@ def create_link(
         - key: String. The unique ID of the external resource
         - metadata: Optional Object. Can contain `display_name`.
     """
+
+    external_issue_key = installation.make_external_key(response)
+
     external_issue = ExternalIssue.objects.create(
         organization_id=event.group.project.organization_id,
         integration_id=integration.id,
-        key=response["key"],
+        key=external_issue_key,
         title=event.title,
         description=installation.get_group_description(event.group, event),
         metadata=response.get("metadata"),
@@ -102,7 +108,7 @@ def create_issue(event: GroupEvent, futures: Sequence[RuleFuture]) -> None:
         if ExternalIssue.objects.has_linked_issue(event, integration):
             logger.info(
                 "%s.rule_trigger.link_already_exists",
-                integration.provider,
+                provider,
                 extra={
                     "rule_id": rule_id,
                     "project_id": event.group.project.id,
@@ -110,7 +116,32 @@ def create_issue(event: GroupEvent, futures: Sequence[RuleFuture]) -> None:
                 },
             )
             return
-        response = installation.create_issue(data)
+        try:
+            response = installation.create_issue(data)
+        except IntegrationFormError as e:
+            logger.info(
+                "%s.rule_trigger.create_ticket.failure",
+                provider,
+                extra={
+                    "rule_id": rule_id,
+                    "provider": provider,
+                    "integration_id": integration.id,
+                    "error_message": str(e),
+                },
+            )
+            metrics.incr(
+                f"{provider}.rule_trigger.create_ticket.failure",
+                tags={
+                    "provider": provider,
+                },
+            )
+
+            # Testing out if this results in a lot of noisy sentry issues
+            # when enabled.
+            if options.get("ecosystem:enable_integration_form_error_raise"):
+                raise
+            else:
+                return
 
         if not event.get_tag("sample_event") == "yes":
             create_link(integration, installation, event, response)

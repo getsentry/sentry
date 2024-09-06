@@ -1,11 +1,12 @@
 import {useEffect, useMemo, useState} from 'react';
 import * as Sentry from '@sentry/react';
 
-import {EventDataSection} from 'sentry/components/events/eventDataSection';
 import {COL_WIDTH_UNDEFINED} from 'sentry/components/gridEditable';
 import {SegmentedControl} from 'sentry/components/segmentedControl';
 import {t} from 'sentry/locale';
-import {Event, Group, Project} from 'sentry/types';
+import type {Event} from 'sentry/types/event';
+import type {Group} from 'sentry/types/group';
+import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useProfileTopEventsStats} from 'sentry/utils/profiling/hooks/useProfileTopEventsStats';
@@ -16,6 +17,8 @@ import {
 } from 'sentry/utils/profiling/routes';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import useOrganization from 'sentry/utils/useOrganization';
+import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
+import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
 
 import {RELATIVE_DAYS_WINDOW} from './consts';
 import {EventRegressionTable} from './eventRegressionTable';
@@ -135,7 +138,7 @@ function EventAffectedTransactionsInner({
     others: false,
     referrer: 'api.profiling.functions.regression.transaction-stats',
     topEvents: TRANSACTIONS_LIMIT,
-    yAxes: ['worst()'],
+    yAxes: ['examples()'],
   });
 
   const examplesByTransaction = useMemo(() => {
@@ -153,7 +156,7 @@ function EventAffectedTransactionsInner({
     transactionsDeltaQuery.data?.data?.forEach(row => {
       const transaction = row.transaction as string;
       const data = functionStats.data.data.find(
-        ({axis, label}) => axis === 'worst()' && label === transaction
+        ({axis, label}) => axis === 'examples()' && label === transaction
       );
       if (!defined(data)) {
         return;
@@ -265,8 +268,8 @@ function EventAffectedTransactionsInner({
   }, [organization, project, frameName, framePackage]);
 
   return (
-    <EventDataSection
-      type="most-affected"
+    <InterimSection
+      type={SectionKey.REGRESSION_AFFECTED_TRANSACTIONS}
       title={t('Most Affected')}
       actions={
         <SegmentedControl
@@ -288,11 +291,11 @@ function EventAffectedTransactionsInner({
         causeType={causeType}
         columns={ADDITIONAL_COLUMNS}
         data={tableData || []}
-        isLoading={transactionsDeltaQuery.isLoading}
+        isLoading={transactionsDeltaQuery.isPending}
         isError={transactionsDeltaQuery.isError}
         options={options}
       />
-    </EventDataSection>
+    </InterimSection>
   );
 }
 
@@ -309,15 +312,15 @@ function EventAffectedTransactionsInner({
  * @param window the window around the breakpoint to deprioritize
  */
 function findExamplePair(
-  examples: string[],
+  examples: string[][],
   breakpointIndex,
   window = 3
 ): [string | null, string | null] {
   let before: string | null = null;
 
   for (let i = breakpointIndex - window; i < examples.length && i >= 0; i--) {
-    if (examples[i]) {
-      before = examples[i];
+    if (Array.isArray(examples[i]) && examples[i].length > 0) {
+      before = examples[i][0];
       break;
     }
   }
@@ -328,8 +331,8 @@ function findExamplePair(
       i < examples.length && i > breakpointIndex - window;
       i--
     ) {
-      if (examples[i]) {
-        before = examples[i];
+      if (Array.isArray(examples[i]) && examples[i].length > 0) {
+        before = examples[i][0];
         break;
       }
     }
@@ -338,16 +341,16 @@ function findExamplePair(
   let after: string | null = null;
 
   for (let i = breakpointIndex + window; i < examples.length; i++) {
-    if (examples[i]) {
-      after = examples[i];
+    if (Array.isArray(examples[i]) && examples[i].length > 0) {
+      after = examples[i][0];
       break;
     }
   }
 
   if (!defined(before)) {
     for (let i = breakpointIndex; i < breakpointIndex + window; i++) {
-      if (examples[i]) {
-        after = examples[i];
+      if (Array.isArray(examples[i]) && examples[i].length > 0) {
+        after = examples[i][0];
         break;
       }
     }

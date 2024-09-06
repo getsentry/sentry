@@ -1,20 +1,23 @@
-import {Event as EventFixture} from 'sentry-fixture/event';
-import {Organization} from 'sentry-fixture/organization';
+import {EventFixture} from 'sentry-fixture/event';
+import {EntryDebugMetaFixture, EventEntryFixture} from 'sentry-fixture/eventEntry';
+import {LocationFixture} from 'sentry-fixture/locationFixture';
+import {OrganizationFixture} from 'sentry-fixture/organization';
+import {ProjectFixture} from 'sentry-fixture/project';
 
-import {render, screen} from 'sentry-test/reactTestingLibrary';
+import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {EventEntries} from 'sentry/components/events/eventEntries';
 
 describe('EventEntries', function () {
   const defaultProps = {
-    organization: Organization(),
-    project: TestStubs.Project(),
+    organization: OrganizationFixture(),
+    project: ProjectFixture(),
     event: EventFixture(),
-    location: TestStubs.location(),
+    location: LocationFixture(),
   };
 
   beforeEach(function () {
-    const project = TestStubs.Project({platform: 'javascript'});
+    const project = ProjectFixture({platform: 'javascript'});
 
     MockApiClient.addMockResponse({
       url: '/projects/org-slug/project-slug/events/1/grouping-info/',
@@ -27,31 +30,38 @@ describe('EventEntries', function () {
       url: '/organizations/org-slug/projects/',
       body: [project],
     });
+    MockApiClient.addMockResponse({
+      url: '/projects/org-slug/project-slug/events/1/actionable-items/',
+    });
   });
 
   it('renders the replay section in the correct place', async function () {
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/prompts-activity/',
+      body: {data: {dismissed_ts: null}},
+    });
     render(
       <EventEntries
         {...defaultProps}
         event={EventFixture({
-          entries: [TestStubs.EventEntry(), TestStubs.EventEntryDebugMeta()],
+          entries: [EventEntryFixture(), EntryDebugMetaFixture()],
           contexts: {
             replay_id: 1,
           },
         })}
       />,
-      {organization: Organization({features: ['session-replay']})}
+      {organization: OrganizationFixture({features: ['session-replay']})}
     );
 
-    await screen.findByText(/message/i);
+    await waitFor(() => {
+      expect(screen.getAllByTestId(/event-section/)).toHaveLength(4); //  event tags + 2 entries + event grouping
+    });
 
     const sections = screen.getAllByTestId(/event-section/);
 
-    expect(sections).toHaveLength(5); //  event tags + 3 entries + event grouping
-
     // Replay should be after message but before images loaded
-    expect(sections[1]).toHaveTextContent(/message/i);
-    expect(sections[2]).toHaveTextContent(/replay/i);
-    expect(sections[3]).toHaveTextContent(/images loaded/i);
+    expect(sections[0]).toHaveTextContent(/message/i);
+    expect(sections[1]).toHaveTextContent(/replay/i);
+    expect(sections[2]).toHaveTextContent(/images loaded/i);
   });
 });

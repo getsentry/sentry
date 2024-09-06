@@ -9,14 +9,14 @@ import Version from 'sentry/components/version';
 import {IconCheckmark} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {
+import type {
   GroupActivity,
   GroupActivitySetByResolvedInNextSemverRelease,
   GroupActivitySetByResolvedInRelease,
-  GroupActivityType,
-  Repository,
   ResolvedStatusDetails,
-} from 'sentry/types';
+} from 'sentry/types/group';
+import {GroupActivityType} from 'sentry/types/group';
+import type {Repository} from 'sentry/types/integrations';
 
 type Props = {
   projectId: string;
@@ -74,6 +74,15 @@ function renderReason(
         })
       : t('This issue has been marked as resolved in the upcoming release.');
   }
+
+  if (statusDetails.inUpcomingRelease) {
+    return actor
+      ? tct('[actor] marked this issue as resolved in the upcoming release.', {
+          actor,
+        })
+      : t('This issue has been marked as resolved in the upcoming release.');
+  }
+
   if (statusDetails.inRelease) {
     const version = (
       <Version

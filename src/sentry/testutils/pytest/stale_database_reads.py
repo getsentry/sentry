@@ -1,6 +1,6 @@
 import dataclasses
 from threading import local
-from typing import Any, List, Tuple
+from typing import Any
 
 import pytest
 from celery.app.task import Task
@@ -13,8 +13,8 @@ _SEP_LINE = "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 @dataclasses.dataclass
 class StaleDatabaseReads:
-    model_signal_handlers: List[Tuple[Any, Any]]
-    transaction_blocks: List[Any]
+    model_signal_handlers: list[tuple[Any, Any]]
+    transaction_blocks: list[Any]
 
     def clear(self):
         self.model_signal_handlers.clear()

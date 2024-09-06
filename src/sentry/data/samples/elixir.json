@@ -1,5 +1,5 @@
 {
-  "sentry.interfaces.Exception": {
+  "exception": {
     "exc_omitted": null,
     "values": [
       {

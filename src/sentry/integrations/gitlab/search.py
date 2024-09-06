@@ -6,9 +6,10 @@ from rest_framework.response import Response
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import control_silo_endpoint
-from sentry.api.bases.integration import IntegrationEndpoint
-from sentry.models.integrations.integration import Integration
-from sentry.services.hybrid_cloud.organization import RpcOrganization
+from sentry.integrations.api.bases.integration import IntegrationEndpoint
+from sentry.integrations.gitlab.integration import GitlabIntegration
+from sentry.integrations.models.integration import Integration
+from sentry.organizations.services.organization import RpcOrganization
 from sentry.shared_integrations.exceptions import ApiError
 
 
@@ -16,7 +17,7 @@ from sentry.shared_integrations.exceptions import ApiError
 class GitlabIssueSearchEndpoint(IntegrationEndpoint):
     owner = ApiOwner.INTEGRATIONS
     publish_status = {
-        "GET": ApiPublishStatus.UNKNOWN,
+        "GET": ApiPublishStatus.PRIVATE,
     }
 
     def get(
@@ -39,6 +40,7 @@ class GitlabIssueSearchEndpoint(IntegrationEndpoint):
             return Response({"detail": "query is a required parameter"}, status=400)
 
         installation = integration.get_installation(organization.id)
+        assert isinstance(installation, GitlabIntegration), installation
 
         if field == "externalIssue":
             project = request.GET.get("project")

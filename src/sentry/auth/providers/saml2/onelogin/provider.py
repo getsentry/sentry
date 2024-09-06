@@ -7,7 +7,7 @@ from sentry.auth.providers.saml2.views import make_simple_setup
 
 # Onelogin specifically calls their Metadata URL a 'Issuer URL'
 class OneLoginURLMetadataForm(URLMetadataForm):
-    metadata_url = forms.URLField(label="Issuer URL")
+    metadata_url = forms.URLField(label="Issuer URL", assume_scheme="https")
 
 
 SelectIdP = make_simple_setup(OneLoginURLMetadataForm, "sentry_auth_onelogin/select-idp.html")

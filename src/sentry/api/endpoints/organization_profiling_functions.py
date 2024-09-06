@@ -2,28 +2,30 @@ from __future__ import annotations
 
 from datetime import timedelta
 from enum import Enum
-from typing import Any, List
+from typing import Any
 
 from rest_framework import serializers
 from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import features
+from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases import NoProjects, OrganizationEventsV2EndpointBase
 from sentry.api.paginator import GenericOffsetPaginator
+from sentry.api.utils import handle_query_errors
 from sentry.exceptions import InvalidSearchQuery
 from sentry.models.organization import Organization
-from sentry.search.events.builder import ProfileTopFunctionsTimeseriesQueryBuilder
+from sentry.search.events.builder.profile_functions import ProfileTopFunctionsTimeseriesQueryBuilder
 from sentry.search.events.types import QueryBuilderConfig
-from sentry.seer.utils import BreakpointData, detect_breakpoints
+from sentry.seer.breakpoints import BreakpointData, BreakpointRequest, detect_breakpoints
 from sentry.snuba import functions
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.referrer import Referrer
 from sentry.utils.dates import parse_stats_period, validate_interval
 from sentry.utils.sdk import set_measurement
-from sentry.utils.snuba import bulk_snql_query
+from sentry.utils.snuba import bulk_snuba_queries
 
 TOP_FUNCTIONS_LIMIT = 50
 FUNCTIONS_PER_QUERY = 10
@@ -65,9 +67,11 @@ class FunctionTrendsSerializer(serializers.Serializer):
 
 @region_silo_endpoint
 class OrganizationProfilingFunctionTrendsEndpoint(OrganizationEventsV2EndpointBase):
+    owner = ApiOwner.PROFILING
     publish_status = {
-        "GET": ApiPublishStatus.UNKNOWN,
+        "GET": ApiPublishStatus.PRIVATE,
     }
+    snuba_methods = ["GET"]
 
     def has_feature(self, organization: Organization, request: Request):
         return features.has(
@@ -79,7 +83,7 @@ class OrganizationProfilingFunctionTrendsEndpoint(OrganizationEventsV2EndpointBa
             return Response(status=404)
 
         try:
-            params = self.get_snuba_params(request, organization)
+            snuba_params = self.get_snuba_params(request, organization)
         except NoProjects:
             return Response({})
 
@@ -88,27 +92,30 @@ class OrganizationProfilingFunctionTrendsEndpoint(OrganizationEventsV2EndpointBa
             return Response(serializer.errors, status=400)
         data = serializer.validated_data
 
-        top_functions = functions.query(
-            selected_columns=[
-                "project.id",
-                "fingerprint",
-                "package",
-                "function",
-                "count()",
-                "examples()",
-            ],
-            query=data.get("query"),
-            params=params,
-            orderby=["-count()"],
-            limit=TOP_FUNCTIONS_LIMIT,
-            referrer=Referrer.API_PROFILING_FUNCTION_TRENDS_TOP_EVENTS.value,
-            auto_aggregations=True,
-            use_aggregate_conditions=True,
-            transform_alias_to_input_format=True,
-        )
+        with handle_query_errors():
+            top_functions = functions.query(
+                selected_columns=[
+                    "project.id",
+                    "fingerprint",
+                    "package",
+                    "function",
+                    "count()",
+                    "examples()",
+                ],
+                query=data.get("query"),
+                snuba_params=snuba_params,
+                orderby=["-count()"],
+                limit=TOP_FUNCTIONS_LIMIT,
+                referrer=Referrer.API_PROFILING_FUNCTION_TRENDS_TOP_EVENTS.value,
+                auto_aggregations=True,
+                use_aggregate_conditions=True,
+                transform_alias_to_input_format=True,
+            )
 
-        def get_event_stats(_columns, query, params, _rollup, zerofill_results, _comparison_delta):
-            rollup = get_rollup_from_range(params["end"] - params["start"])
+        def get_event_stats(
+            _columns, query, snuba_params, _rollup, zerofill_results, _comparison_delta
+        ):
+            rollup = get_rollup_from_range(snuba_params.date_range)
 
             chunks = [
                 top_functions["data"][i : i + FUNCTIONS_PER_QUERY]
@@ -118,7 +125,8 @@ class OrganizationProfilingFunctionTrendsEndpoint(OrganizationEventsV2EndpointBa
             builders = [
                 ProfileTopFunctionsTimeseriesQueryBuilder(
                     dataset=Dataset.Functions,
-                    params=params,
+                    params={},
+                    snuba_params=snuba_params,
                     interval=rollup,
                     top_events=chunk,
                     other=False,
@@ -127,14 +135,14 @@ class OrganizationProfilingFunctionTrendsEndpoint(OrganizationEventsV2EndpointBa
                     # It's possible to override the columns via
                     # the `yAxis` qs. So we explicitly ignore the
                     # columns, and hard code in the columns we want.
-                    timeseries_columns=[data["function"], "worst()"],
+                    timeseries_columns=[data["function"], "examples()"],
                     config=QueryBuilderConfig(
                         skip_tag_resolution=True,
                     ),
                 )
                 for chunk in chunks
             ]
-            bulk_results = bulk_snql_query(
+            bulk_results = bulk_snuba_queries(
                 [builder.get_snql_query() for builder in builders],
                 Referrer.API_PROFILING_FUNCTION_TRENDS_STATS.value,
             )
@@ -145,8 +153,8 @@ class OrganizationProfilingFunctionTrendsEndpoint(OrganizationEventsV2EndpointBa
                 formatted_results = functions.format_top_events_timeseries_results(
                     result,
                     builder,
-                    params,
-                    rollup,
+                    rollup=rollup,
+                    snuba_params=snuba_params,
                     top_events={"data": chunk},
                     result_key_order=["project.id", "fingerprint"],
                 )
@@ -155,11 +163,11 @@ class OrganizationProfilingFunctionTrendsEndpoint(OrganizationEventsV2EndpointBa
 
             return results
 
-        def get_trends_data(stats_data) -> List[BreakpointData]:
+        def get_trends_data(stats_data) -> list[BreakpointData]:
             if not stats_data:
                 return []
 
-            trends_request = {
+            trends_request: BreakpointRequest = {
                 "data": {
                     k: {
                         "data": v[data["function"]]["data"],
@@ -178,7 +186,6 @@ class OrganizationProfilingFunctionTrendsEndpoint(OrganizationEventsV2EndpointBa
                     if v[data["function"]]["data"]
                 },
                 "sort": data["trend"].as_sort(),
-                "trendFunction": data["function"],
             }
 
             return detect_breakpoints(trends_request)["data"]
@@ -189,8 +196,8 @@ class OrganizationProfilingFunctionTrendsEndpoint(OrganizationEventsV2EndpointBa
             get_event_stats,
             top_events=FUNCTIONS_PER_QUERY,
             query_column=data["function"],
-            additional_query_column="worst()",
-            params=params,
+            additional_query_column="examples()",
+            snuba_params=snuba_params,
             query=data.get("query"),
         )
 
@@ -238,8 +245,8 @@ class OrganizationProfilingFunctionTrendsEndpoint(OrganizationEventsV2EndpointBa
                 formatted_result = {
                     "stats": stats_data[key][data["function"]],
                     "worst": [
-                        (ts, data[0]["count"])
-                        for (ts, data) in stats_data[key]["worst()"]["data"]
+                        (ts, data[0]["count"][0])
+                        for ts, data in stats_data[key]["examples()"]["data"]
                         if data[0]["count"]  # filter out entries without an example
                     ],
                 }
@@ -268,7 +275,7 @@ class OrganizationProfilingFunctionTrendsEndpoint(OrganizationEventsV2EndpointBa
                 formatted_results.append(formatted_result)
             return formatted_results
 
-        with self.handle_query_errors():
+        with handle_query_errors():
             return self.paginate(
                 request=request,
                 paginator=GenericOffsetPaginator(data_fn=paginate_trending_events),

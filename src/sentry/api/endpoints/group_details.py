@@ -1,7 +1,7 @@
 import functools
 import logging
+from collections.abc import Sequence
 from datetime import timedelta
-from typing import Sequence
 
 from django.utils import timezone
 from rest_framework.exceptions import ValidationError
@@ -22,26 +22,37 @@ from sentry.api.helpers.group_index import (
 )
 from sentry.api.serializers import GroupSerializer, GroupSerializerSnuba, serialize
 from sentry.api.serializers.models.group_stream import get_actions, get_available_issue_plugins
+from sentry.api.serializers.models.platformexternalissue import PlatformExternalIssueSerializer
 from sentry.api.serializers.models.plugin import PluginSerializer
 from sentry.api.serializers.models.team import TeamSerializer
+from sentry.integrations.api.serializers.models.external_issue import ExternalIssueSerializer
+from sentry.integrations.models.external_issue import ExternalIssue
 from sentry.issues.constants import get_issue_tsdb_group_model
 from sentry.issues.escalating_group_forecast import EscalatingGroupForecast
 from sentry.issues.grouptype import GroupCategory
 from sentry.models.activity import Activity
+from sentry.models.eventattachment import EventAttachment
 from sentry.models.group import Group
 from sentry.models.groupinbox import get_inbox_details
+from sentry.models.grouplink import GroupLink
 from sentry.models.groupowner import get_owner_details
 from sentry.models.groupseen import GroupSeen
 from sentry.models.groupsubscription import GroupSubscriptionManager
+from sentry.models.platformexternalissue import PlatformExternalIssue
 from sentry.models.team import Team
 from sentry.models.userreport import UserReport
 from sentry.plugins.base import plugins
-from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.tasks.post_process import fetch_buffered_group_stats
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
+from sentry.users.services.user.service import user_service
 from sentry.utils import metrics
 
 delete_logger = logging.getLogger("sentry.deletions.api")
+
+
+def get_group_global_count(group: Group) -> str:
+    fetch_buffered_group_stats(group)
+    return str(group.times_seen_with_pending)
 
 
 @region_silo_endpoint
@@ -54,19 +65,19 @@ class GroupDetailsEndpoint(GroupEndpoint, EnvironmentMixin):
     enforce_rate_limit = True
     rate_limits = {
         "GET": {
-            RateLimitCategory.IP: RateLimit(5, 1),
-            RateLimitCategory.USER: RateLimit(5, 1),
-            RateLimitCategory.ORGANIZATION: RateLimit(5, 1),
+            RateLimitCategory.IP: RateLimit(limit=5, window=1),
+            RateLimitCategory.USER: RateLimit(limit=5, window=1),
+            RateLimitCategory.ORGANIZATION: RateLimit(limit=5, window=1),
         },
         "PUT": {
-            RateLimitCategory.IP: RateLimit(5, 1),
-            RateLimitCategory.USER: RateLimit(5, 1),
-            RateLimitCategory.ORGANIZATION: RateLimit(5, 1),
+            RateLimitCategory.IP: RateLimit(limit=5, window=1),
+            RateLimitCategory.USER: RateLimit(limit=5, window=1),
+            RateLimitCategory.ORGANIZATION: RateLimit(limit=5, window=1),
         },
         "DELETE": {
-            RateLimitCategory.IP: RateLimit(5, 5),
-            RateLimitCategory.USER: RateLimit(5, 5),
-            RateLimitCategory.ORGANIZATION: RateLimit(5, 5),
+            RateLimitCategory.IP: RateLimit(limit=5, window=5),
+            RateLimitCategory.USER: RateLimit(limit=5, window=5),
+            RateLimitCategory.ORGANIZATION: RateLimit(limit=5, window=5),
         },
     }
 
@@ -75,7 +86,7 @@ class GroupDetailsEndpoint(GroupEndpoint, EnvironmentMixin):
 
     def _get_seen_by(self, request: Request, group):
         seen_by = list(GroupSeen.objects.filter(group=group).order_by("-last_seen"))
-        return serialize(seen_by, request.user)
+        return [seen for seen in serialize(seen_by, request.user) if seen is not None]
 
     def _get_context_plugins(self, request: Request, group):
         project = group.project
@@ -93,33 +104,32 @@ class GroupDetailsEndpoint(GroupEndpoint, EnvironmentMixin):
 
     @staticmethod
     def __group_hourly_daily_stats(group: Group, environment_ids: Sequence[int]):
-        get_range = functools.partial(
-            tsdb.get_range,
-            environment_ids=environment_ids,
-            tenant_ids={"organization_id": group.project.organization_id},
-        )
         model = get_issue_tsdb_group_model(group.issue_category)
         now = timezone.now()
-        hourly_stats = tsdb.rollup(
-            get_range(model=model, keys=[group.id], end=now, start=now - timedelta(days=1)),
+        hourly_stats = tsdb.backend.rollup(
+            tsdb.backend.get_range(
+                model=model,
+                keys=[group.id],
+                end=now,
+                start=now - timedelta(days=1),
+                environment_ids=environment_ids,
+                tenant_ids={"organization_id": group.project.organization_id},
+            ),
             3600,
         )[group.id]
-        daily_stats = tsdb.rollup(
-            get_range(
+        daily_stats = tsdb.backend.rollup(
+            tsdb.backend.get_range(
                 model=model,
                 keys=[group.id],
                 end=now,
                 start=now - timedelta(days=30),
+                environment_ids=environment_ids,
+                tenant_ids={"organization_id": group.project.organization_id},
             ),
             3600 * 24,
         )[group.id]
 
         return hourly_stats, daily_stats
-
-    @staticmethod
-    def __get_group_global_count(group: Group) -> str:
-        fetch_buffered_group_stats(group)
-        return str(group.times_seen_with_pending)
 
     def get(self, request: Request, group) -> Response:
         """
@@ -130,7 +140,7 @@ class GroupDetailsEndpoint(GroupEndpoint, EnvironmentMixin):
         the issue (title, last seen, first seen), some overall numbers (number
         of comments, user reports) as well as the summarized event data.
 
-        :pparam string organization_slug: The slug of the organization.
+        :pparam string organization_id_or_slug: the id or slug of the organization.
         :pparam string issue_id: the ID of the issue to retrieve.
         :auth: required
         """
@@ -165,7 +175,7 @@ class GroupDetailsEndpoint(GroupEndpoint, EnvironmentMixin):
                 )
 
             if "tags" not in collapse:
-                tags = tagstore.get_group_tag_keys(
+                tags = tagstore.backend.get_group_tag_keys(
                     group,
                     environment_ids,
                     limit=100,
@@ -197,20 +207,55 @@ class GroupDetailsEndpoint(GroupEndpoint, EnvironmentMixin):
                 owners = owner_details.get(group.id)
                 data.update({"owners": owners})
 
-            if "forecast" in expand and features.has(
-                "organizations:escalating-issues", group.organization
-            ):
+            if "forecast" in expand:
                 fetched_forecast = EscalatingGroupForecast.fetch(group.project_id, group.id)
                 if fetched_forecast:
-                    fetched_forecast = fetched_forecast.to_dict()
+                    fetched_forecast_dict = fetched_forecast.to_dict()
                     data.update(
                         {
                             "forecast": {
-                                "data": fetched_forecast.get("forecast"),
-                                "date_added": fetched_forecast.get("date_added"),
+                                "data": fetched_forecast_dict.get("forecast"),
+                                "date_added": fetched_forecast_dict.get("date_added"),
                             }
                         }
                     )
+
+            if "integrationIssues" in expand:
+                external_issues = ExternalIssue.objects.filter(
+                    id__in=GroupLink.objects.filter(group_id__in=[group.id]).values_list(
+                        "linked_id", flat=True
+                    ),
+                )
+                integration_issues = serialize(
+                    external_issues,
+                    request,
+                    serializer=ExternalIssueSerializer(),
+                )
+                data.update({"integrationIssues": integration_issues})
+
+            if "sentryAppIssues" in expand:
+                platform_external_issues = PlatformExternalIssue.objects.filter(group_id=group.id)
+                sentry_app_issues = serialize(
+                    list(platform_external_issues),
+                    request,
+                    serializer=PlatformExternalIssueSerializer(),
+                )
+                data.update({"sentryAppIssues": sentry_app_issues})
+
+            if "latestEventHasAttachments" in expand:
+                if not features.has(
+                    "organizations:event-attachments",
+                    group.project.organization,
+                    actor=request.user,
+                ):
+                    return self.respond(status=404)
+
+                latest_event = group.get_latest_event()
+                if latest_event is not None:
+                    num_attachments = EventAttachment.objects.filter(
+                        project_id=latest_event.project_id, event_id=latest_event.event_id
+                    ).count()
+                    data.update({"latestEventHasAttachments": num_attachments > 0})
 
             data.update(
                 {
@@ -221,7 +266,7 @@ class GroupDetailsEndpoint(GroupEndpoint, EnvironmentMixin):
                     "pluginContexts": self._get_context_plugins(request, group),
                     "userReportCount": user_reports.count(),
                     "stats": {"24h": hourly_stats, "30d": daily_stats},
-                    "count": self.__get_group_global_count(group),
+                    "count": get_group_global_count(group),
                 }
             )
 
@@ -336,8 +381,6 @@ class GroupDetailsEndpoint(GroupEndpoint, EnvironmentMixin):
                 "group_details:put client.ApiError",
             )
             return Response(e.body, status=e.status_code)
-        except Exception:
-            raise
 
     def delete(self, request: Request, group) -> Response:
         """
@@ -352,7 +395,7 @@ class GroupDetailsEndpoint(GroupEndpoint, EnvironmentMixin):
         from sentry.utils import snuba
 
         if group.issue_category != GroupCategory.ERROR:
-            raise ValidationError(detail="Only error issues can be deleted.", code=400)
+            raise ValidationError(detail="Only error issues can be deleted.")
 
         try:
             delete_group_list(request, group.project, [group], "delete")

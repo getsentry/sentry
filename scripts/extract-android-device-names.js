@@ -1,9 +1,9 @@
-const csv = require("csv-parser");
-const fs = require("fs");
+const csv = require('csv-parser');
+const fs = require('node:fs');
 
-const transformResults = (res) => {
+const transformResults = res => {
   const deviceMapping = {};
-  res.map(({ name, model }) => {
+  res.forEach(({name, model}) => {
     if (name && model) {
       deviceMapping[model] = name;
     }
@@ -11,9 +11,9 @@ const transformResults = (res) => {
   return deviceMapping;
 };
 const results = [];
-fs.createReadStream("supported_devices.csv")
+fs.createReadStream('supported_devices.csv')
   .pipe(csv())
-  .on("data", (data) => results.push(data))
-  .on("end", () => {
-    fs.writeFileSync("devices.json", JSON.stringify(transformResults(results)));
+  .on('data', data => results.push(data))
+  .on('end', () => {
+    fs.writeFileSync('devices.json', JSON.stringify(transformResults(results)));
   });

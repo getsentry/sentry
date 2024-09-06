@@ -3,10 +3,11 @@ from __future__ import annotations
 import logging
 import os
 import time
+from collections.abc import Callable, Iterable, Mapping, MutableMapping, Sequence
 from functools import partial
 from operator import attrgetter
 from random import randrange
-from typing import Any, Callable, Iterable, Mapping, MutableMapping, Sequence
+from typing import Any
 
 import lxml.html
 import toronado
@@ -248,7 +249,7 @@ class MessageBuilder:
             send_email_task = send_email.delay
             if SiloMode.get_current_mode() == SiloMode.CONTROL:
                 send_email_task = send_email_control.delay
-            safe_execute(send_email_task, message=message, _with_transaction=False)
+            safe_execute(send_email_task, message=message)
             extra["message_id"] = message.extra_headers["Message-Id"]
             metrics.incr("email.queued", instance=self.type, skip_internal=False)
             if fmt == LoggingFormat.HUMAN:

@@ -1,6 +1,5 @@
 declare namespace Profiling {
   type Release = import('sentry/types').Release;
-  type SpeedscopeSchema = import('sentry/utils/profiling/speedscope').SpeedscopeSchema;
 
   type Image = import('sentry/types/debugImage').Image;
 
@@ -12,9 +11,19 @@ declare namespace Profiling {
     value: number;
   };
 
+  type ContinuousMeasurementValue = {
+    timestamp: number;
+    value: number;
+  };
+
   type Measurement = {
     unit: string;
     values: MeasurementValue[];
+  };
+
+  type ContinuousMeasurement = {
+    unit: string;
+    values: ContinuousMeasurementValue[];
   };
 
   type Measurements = {
@@ -26,6 +35,15 @@ declare namespace Profiling {
     [key: string]: Measurement;
   };
 
+  type ContinuousMeasurements = {
+    cpu_usage?: ContinuousMeasurement;
+    memory_footprint?: ContinuousMeasurement;
+    frozen_frame_renders?: ContinuousMeasurement;
+    screen_frame_rates?: ContinuousMeasurement;
+    slow_frame_renders?: ContinuousMeasurement;
+    [key: string]: ContinuousMeasurement;
+  };
+
   type SentrySampledProfileSample = {
     stack_id: number;
     thread_id: string;
@@ -33,18 +51,27 @@ declare namespace Profiling {
     queue_address?: string;
   };
 
-  type SentrySampledProfileStack = number[];
+  type SentrySampledProfileChunkSample = {
+    stack_id: number;
+    thread_id: string;
+    timestamp: number;
+  };
 
   type SentrySampledProfileFrame = {
     in_app: boolean;
+    // These differ slightly from the speedscope schema, but just
+    // override them right now as we don't use the speedscope schema anymore
+    abs_path?: string;
+    col?: number;
     colno?: number;
+    column?: number;
     filename?: string;
     function?: string;
     instruction_addr?: string;
     lineno?: number;
     module?: string;
     package?: string;
-    abs_path?: string;
+    platform?: string;
     status?: SymbolicatorStatus;
     sym_addr?: string;
     symbol?: string;
@@ -96,6 +123,24 @@ declare namespace Profiling {
     measurements?: Measurements;
   };
 
+  interface SentryContinousProfileChunk {
+    chunk_id: string;
+    environment: string;
+    project_id: number;
+    received: number;
+    release: string;
+    organization_id: number;
+    retention_days: number;
+    project_id: string;
+    version: '2';
+    debug_meta?: {
+      images: Image[];
+    };
+    platform: string;
+    measurements?: ContinuousMeasurements;
+    profile: ContinuousProfile;
+  }
+
   ////////////////
   interface RawProfileBase {
     endValue: number;
@@ -118,9 +163,17 @@ declare namespace Profiling {
     weights: number[];
     samples: number[][];
     samples_profiles?: number[][];
+    samples_examples?: number[][];
     sample_durations_ns?: number[];
     type: 'sampled';
   }
+
+  type ContinuousProfile = {
+    samples: SentrySampledProfileChunkSample[];
+    frames: SentrySampledProfileFrame[];
+    stacks: SentrySampledProfileStack[];
+    thread_metadata?: Record<string, {name?: string; priority?: number}>;
+  };
 
   type Event = {at: number; frame: number; type: 'O' | 'C'};
 
@@ -134,26 +187,28 @@ declare namespace Profiling {
   };
 
   type FrameInfo = {
-    key: string | number;
-    name: string;
-    file?: string;
-    path?: string;
-    line?: number;
+    col?: number;
+    colno?: number;
     column?: number;
-    is_application?: boolean;
-    resource?: string;
-    threadId?: number;
+    file?: string;
+    image?: string;
     inline?: boolean;
     instructionAddr?: string;
+    is_application?: boolean;
+    key: string | number;
+    line?: number;
+    // This is the import path for the module
+    module?: string;
+    name: string;
+    // This is used for native platforms to indicate the name of the assembly, path of the dylib, etc
+    package?: string;
+    path?: string;
+    platform?: string;
+    resource?: string;
     symbol?: string;
     symbolAddr?: string;
     symbolicatorStatus?: SymbolicatorStatus;
-
-    image?: string;
-    // This is used for native platforms to indicate the name of the assembly, path of the dylib, etc
-    package?: string;
-    // This is the import path for the module
-    module?: string;
+    threadId?: number;
 
     // nodejs only
     columnNumber?: number;
@@ -162,10 +217,25 @@ declare namespace Profiling {
     scriptId?: number;
   };
 
+  type FunctionMetric = {
+    avg: number;
+    count: number;
+    examples: Exclude<ProfileReference, string>[];
+    fingerprint: number;
+    in_app: boolean;
+    name: string;
+    p75: number;
+    p95: number;
+    p99: number;
+    package: string;
+    sum: number;
+  };
+
   type ProfileInput =
     | Profiling.Schema
     | JSSelfProfiling.Trace
-    | Profiling.SentrySampledProfile;
+    | Profiling.SentrySampledProfile
+    | Profiling.SentryContinousProfileChunk;
 
   type ImportedProfiles = {
     name: string;
@@ -174,8 +244,28 @@ declare namespace Profiling {
     profiles: ReadonlyArray<ProfileInput>;
   };
 
+  type TransactionProfileReference = {
+    project_id: number;
+    profile_id: string;
+  };
+
+  type ContinuousProfileReference = {
+    project_id: number;
+    profiler_id: string;
+    transaction_id: string | undefined;
+    start: number;
+    chunk_id: string;
+    end: number;
+    thread_id: string;
+  };
+
+  type ProfileReference =
+    | TransactionProfileReference
+    | ContinuousProfileReference
+    | string;
+
   // We have extended the speedscope schema to include some additional metadata and measurements
-  interface Schema extends SpeedscopeSchema {
+  interface Schema {
     metadata: {
       androidAPILevel: number;
       deviceClassification: string;
@@ -194,9 +284,22 @@ declare namespace Profiling {
       traceID: string;
       transactionID: string;
       transactionName: string;
+      timestamp?: string;
     };
     profileID: string;
     projectID: number;
     measurements?: Measurements;
+    profiles: ReadonlyArray<
+      Readonly<
+        Profiling.EventedProfile | Profiling.SampledProfile | JSSelfProfiling.Trace
+      >
+    >;
+    shared: {
+      frames: ReadonlyArray<Omit<Profiling.FrameInfo, 'key'>>;
+      profile_ids?: ReadonlyArray<string>[];
+      profiles?: ReadonlyArray<ProfileReference>;
+    };
+    activeProfileIndex?: number;
+    metrics?: FunctionMetric[];
   }
 }

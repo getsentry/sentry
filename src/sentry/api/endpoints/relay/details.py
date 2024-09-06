@@ -12,7 +12,7 @@ from sentry.models.relay import Relay
 @region_silo_endpoint
 class RelayDetailsEndpoint(Endpoint):
     publish_status = {
-        "DELETE": ApiPublishStatus.UNKNOWN,
+        "DELETE": ApiPublishStatus.PRIVATE,
     }
     permission_classes = (SuperuserPermission,)
     owner = ApiOwner.OWNERS_INGEST

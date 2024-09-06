@@ -11,7 +11,7 @@ from sentry.api.base import control_silo_endpoint
 from sentry.api.bases import SentryAppInstallationBaseEndpoint
 from sentry.api.serializers import serialize
 from sentry.api.serializers.rest_framework import SentryAppInstallationSerializer
-from sentry.mediators import InstallationNotifier
+from sentry.mediators.sentry_app_installations.installation_notifier import InstallationNotifier
 from sentry.mediators.sentry_app_installations.updater import Updater
 from sentry.models.integrations.sentry_app_installation import SentryAppInstallation
 from sentry.utils.audit import create_audit_entry
@@ -27,7 +27,9 @@ class SentryAppInstallationDetailsEndpoint(SentryAppInstallationBaseEndpoint):
     }
 
     def get(self, request: Request, installation) -> Response:
-        return Response(serialize(SentryAppInstallation.objects.get(id=installation.id)))
+        return Response(
+            serialize(SentryAppInstallation.objects.get(id=installation.id), access=request.access)
+        )
 
     def delete(self, request: Request, installation) -> Response:
         installation = SentryAppInstallation.objects.get(id=installation.id)

@@ -1,4 +1,5 @@
-import {Fragment, ReactNode, useCallback, useEffect, useMemo} from 'react';
+import type {ReactNode} from 'react';
+import {Fragment, useCallback, useEffect, useMemo} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
@@ -11,11 +12,13 @@ import ExternalLink from 'sentry/components/links/externalLink';
 import {Tooltip} from 'sentry/components/tooltip';
 import {IconQuestion} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
+import ConfigStore from 'sentry/stores/configStore';
+import HookStore from 'sentry/stores/hookStore';
 import {space} from 'sentry/styles/space';
-import type {PlatformKey} from 'sentry/types';
-import {Organization} from 'sentry/types';
-import {decodeList} from 'sentry/utils/queryString';
-import useRouter from 'sentry/utils/useRouter';
+import type {Organization} from 'sentry/types/organization';
+import type {PlatformKey} from 'sentry/types/project';
+import {trackAnalytics} from 'sentry/utils/analytics';
+import {useOnboardingQueryParams} from 'sentry/views/onboarding/components/useOnboardingQueryParams';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
 
 // TODO(aknaus): move to types
@@ -38,13 +41,24 @@ function getDisabledProducts(organization: Organization): DisabledProducts {
   const hasSessionReplay = organization.features.includes('session-replay');
   const hasPerformance = organization.features.includes('performance-view');
   const hasProfiling = organization.features.includes('profiling-view');
+  const isSelfHostedErrorsOnly = ConfigStore.get('isSelfHostedErrorsOnly');
 
-  const reason = t('This feature is not enabled on your Sentry installation.');
+  let reason = t('This feature is not enabled on your Sentry installation.');
   const createClickHandler = (feature: string, featureName: string) => () => {
     openModal(deps => (
       <FeatureDisabledModal {...deps} features={[feature]} featureName={featureName} />
     ));
   };
+
+  if (isSelfHostedErrorsOnly) {
+    reason = t('This feature is disabled for errors only self-hosted');
+    return Object.values(ProductSolution)
+      .filter(product => product !== ProductSolution.ERROR_MONITORING)
+      .reduce((acc, prod) => {
+        acc[prod] = {reason};
+        return acc;
+      }, {});
+  }
 
   if (!hasSessionReplay) {
     disabledProducts[ProductSolution.SESSION_REPLAY] = {
@@ -55,10 +69,7 @@ function getDisabledProducts(organization: Organization): DisabledProducts {
   if (!hasPerformance) {
     disabledProducts[ProductSolution.PERFORMANCE_MONITORING] = {
       reason,
-      onClick: createClickHandler(
-        'organizations:performance-view',
-        'Performance Monitoring'
-      ),
+      onClick: createClickHandler('organizations:performance-view', 'Tracing'),
     };
   }
   if (!hasProfiling) {
@@ -75,8 +86,31 @@ function getDisabledProducts(organization: Organization): DisabledProducts {
 // NOTE: Please keep the prefix in alphabetical order
 export const platformProductAvailability = {
   android: [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
+  'apple-ios': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
+  'apple-macos': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
   bun: [ProductSolution.PERFORMANCE_MONITORING],
+  capacitor: [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.SESSION_REPLAY],
+  dotnet: [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
+  'dotnet-aspnet': [ProductSolution.PERFORMANCE_MONITORING],
+  'dotnet-aspnetcore': [ProductSolution.PERFORMANCE_MONITORING],
+  'dotnet-awslambda': [ProductSolution.PERFORMANCE_MONITORING],
+  'dotnet-gcpfunctions': [ProductSolution.PERFORMANCE_MONITORING],
+  'dotnet-maui': [ProductSolution.PERFORMANCE_MONITORING],
+  'dotnet-uwp': [ProductSolution.PERFORMANCE_MONITORING],
+  'dotnet-winforms': [ProductSolution.PERFORMANCE_MONITORING],
+  'dotnet-wpf': [ProductSolution.PERFORMANCE_MONITORING],
+  'dotnet-xamarin': [ProductSolution.PERFORMANCE_MONITORING],
+  flutter: [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
   kotlin: [ProductSolution.PERFORMANCE_MONITORING],
+  go: [ProductSolution.PERFORMANCE_MONITORING],
+  'go-echo': [ProductSolution.PERFORMANCE_MONITORING],
+  'go-fasthttp': [ProductSolution.PERFORMANCE_MONITORING],
+  'go-gin': [ProductSolution.PERFORMANCE_MONITORING],
+  'go-http': [ProductSolution.PERFORMANCE_MONITORING],
+  'go-iris': [ProductSolution.PERFORMANCE_MONITORING],
+  'go-martini': [ProductSolution.PERFORMANCE_MONITORING],
+  'go-negroni': [ProductSolution.PERFORMANCE_MONITORING],
+  ionic: [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.SESSION_REPLAY],
   java: [ProductSolution.PERFORMANCE_MONITORING],
   'java-spring-boot': [ProductSolution.PERFORMANCE_MONITORING],
   javascript: [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.SESSION_REPLAY],
@@ -92,12 +126,19 @@ export const platformProductAvailability = {
     ProductSolution.PERFORMANCE_MONITORING,
     ProductSolution.SESSION_REPLAY,
   ],
-  capacitor: [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.SESSION_REPLAY],
   'javascript-ember': [
     ProductSolution.PERFORMANCE_MONITORING,
     ProductSolution.SESSION_REPLAY,
   ],
   'javascript-gatsby': [
+    ProductSolution.PERFORMANCE_MONITORING,
+    ProductSolution.SESSION_REPLAY,
+  ],
+  'javascript-solid': [
+    ProductSolution.PERFORMANCE_MONITORING,
+    ProductSolution.SESSION_REPLAY,
+  ],
+  'javascript-solidstart': [
     ProductSolution.PERFORMANCE_MONITORING,
     ProductSolution.SESSION_REPLAY,
   ],
@@ -117,20 +158,24 @@ export const platformProductAvailability = {
   'node-awslambda': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
   'node-connect': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
   'node-express': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
+  'node-fastify': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
   'node-gcpfunctions': [
     ProductSolution.PERFORMANCE_MONITORING,
     ProductSolution.PROFILING,
   ],
+  'node-hapi': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
   'node-koa': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
+  'node-nestjs': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
   php: [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
   'php-laravel': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
   ['php-symfony']: [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
   python: [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
   'python-aiohttp': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
-  'python-asgi': [ProductSolution.PERFORMANCE_MONITORING],
+  'python-asgi': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
   'python-awslambda': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
   'python-bottle': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
   'python-celery': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
+  'python-chalice': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
   'python-django': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
   'python-falcon': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
   'python-fastapi': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
@@ -148,6 +193,10 @@ export const platformProductAvailability = {
   'python-tornado': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
   'python-starlette': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
   'python-wsgi': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
+  'react-native': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
+  ruby: [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
+  'ruby-rack': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
+  'ruby-rails': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
 } as Record<PlatformKey, ProductSolution[]>;
 
 type ProductProps = {
@@ -193,8 +242,8 @@ function Product({
   const ProductWrapper = permanentDisabled
     ? PermanentDisabledProductWrapper
     : disabled
-    ? DisabledProductWrapper
-    : ProductButtonWrapper;
+      ? DisabledProductWrapper
+      : ProductButtonWrapper;
 
   return (
     <Tooltip
@@ -238,13 +287,13 @@ export type ProductSelectionProps = {
    */
   organization: Organization;
   /**
+   * The id of the current project
+   */
+  projectId: string;
+  /**
    * List of products that are disabled. All of them have to contain a reason by default and optionally an onClick handler.
    */
   disabledProducts?: DisabledProducts;
-  /**
-   * If true, the loader script is used instead of the npm/yarn guide.
-   */
-  lazyLoader?: boolean;
   /**
    * The platform key of the project (e.g. javascript-react, python-django, etc.)
    */
@@ -253,7 +302,6 @@ export type ProductSelectionProps = {
    * A custom list of products per platform. If not provided, the default list is used.
    */
   productsPerPlatform?: Record<PlatformKey, ProductSolution[]>;
-  skipLazyLoader?: () => void;
   /**
    * If true, the component has a bottom margin of 20px
    */
@@ -262,14 +310,15 @@ export type ProductSelectionProps = {
 
 export function ProductSelection({
   disabledProducts: disabledProductsProp,
-  lazyLoader,
   organization,
   platform,
   productsPerPlatform = platformProductAvailability,
-  skipLazyLoader,
+  projectId,
 }: ProductSelectionProps) {
-  const router = useRouter();
-  const urlProducts = decodeList(router.location.query.product);
+  const [params, setParams] = useOnboardingQueryParams();
+  const urlProducts = useMemo(() => params.product ?? [], [params.product]);
+  const supportLoader = platform === 'javascript';
+
   const products: ProductSolution[] | undefined = platform
     ? productsPerPlatform[platform]
     : undefined;
@@ -283,16 +332,14 @@ export function ProductSelection({
   }, [products, disabledProducts]);
 
   useEffect(() => {
-    router.replace({
-      pathname: router.location.pathname,
-      query: {
-        ...router.location.query,
-        product: defaultProducts,
-      },
+    setParams({
+      showLoader:
+        supportLoader && params.showLoader === undefined ? true : params.showLoader,
+      product: defaultProducts,
     });
     // Adding defaultProducts to the dependency array causes an max-depth error
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [router]);
+  }, []);
 
   const handleClickProduct = useCallback(
     (product: ProductSolution) => {
@@ -303,7 +350,7 @@ export function ProductSelection({
       );
 
       if (defaultProducts?.includes(ProductSolution.PROFILING)) {
-        // Ensure that if profiling is enabled, performance monitoring is also enabled
+        // Ensure that if profiling is enabled, tracing is also enabled
         if (
           product === ProductSolution.PROFILING &&
           newProduct.has(ProductSolution.PROFILING)
@@ -317,16 +364,29 @@ export function ProductSelection({
         }
       }
 
-      router.replace({
-        pathname: router.location.pathname,
-        query: {
-          ...router.location.query,
-          product: [...newProduct],
-        },
-      });
+      const selectedProducts = [...newProduct] as ProductSolution[];
+      setParams({product: selectedProducts});
+
+      if (organization.features.includes('project-create-replay-feedback')) {
+        HookStore.get('callback:on-create-project-product-selection').map(cb =>
+          cb({defaultProducts, organization, selectedProducts})
+        );
+      }
     },
-    [router, urlProducts, defaultProducts]
+    [defaultProducts, organization, setParams, urlProducts]
   );
+
+  const handleToggleLoader = useCallback(() => {
+    if (!params.showLoader === false && platform) {
+      trackAnalytics('onboarding.js_loader_npm_docs_shown', {
+        organization,
+        platform,
+        project_id: projectId,
+      });
+    }
+
+    setParams({showLoader: !params.showLoader});
+  }, [setParams, platform, projectId, organization, params.showLoader]);
 
   if (!products) {
     // if the platform does not support any product, we don't render anything
@@ -346,7 +406,7 @@ export function ProductSelection({
     <Fragment>
       {showPackageManagerInfo && (
         <TextBlock noMargin>
-          {lazyLoader
+          {supportLoader
             ? tct('In this quick guide you’ll use our [loaderScript] to set up:', {
                 loaderScript: <strong>Loader Script</strong>,
               })
@@ -372,11 +432,11 @@ export function ProductSelection({
         />
         {products.includes(ProductSolution.PERFORMANCE_MONITORING) && (
           <Product
-            label={t('Performance Monitoring')}
+            label={t('Tracing')}
             description={t(
               'Automatic performance issue detection across services and context on who is impacted, outliers, regressions, and the root cause of your slowdown.'
             )}
-            docLink="https://docs.sentry.io/platforms/javascript/guides/react/performance/"
+            docLink="https://docs.sentry.io/platforms/javascript/guides/react/tracing/"
             onClick={() => handleClickProduct(ProductSolution.PERFORMANCE_MONITORING)}
             disabled={disabledProducts[ProductSolution.PERFORMANCE_MONITORING]}
             checked={urlProducts.includes(ProductSolution.PERFORMANCE_MONITORING)}
@@ -398,7 +458,7 @@ export function ProductSelection({
           <Product
             label={t('Profiling')}
             description={tct(
-              '[strong:Requires Performance Monitoring]\nSee the exact lines of code causing your performance bottlenecks, for faster troubleshooting and resource optimization.',
+              '[strong:Requires Tracing]\nSee the exact lines of code causing your performance bottlenecks, for faster troubleshooting and resource optimization.',
               {
                 strong: <strong />,
               }
@@ -410,22 +470,43 @@ export function ProductSelection({
           />
         )}
       </Products>
-      {showPackageManagerInfo && lazyLoader && (
+      {showPackageManagerInfo && supportLoader && (
         <AlternativeInstallationAlert type="info" showIcon>
-          {tct('Prefer to set up Sentry using [npm:npm] or [yarn:yarn]? [goHere].', {
-            npm: <strong />,
-            yarn: <strong />,
-            goHere: (
-              <Button onClick={skipLazyLoader} priority="link">
-                {t('Go here')}
-              </Button>
-            ),
-          })}
+          {params.showLoader
+            ? tct('Prefer to set up Sentry using [npm:npm] or [yarn:yarn]? [goHere]', {
+                npm: <strong />,
+                yarn: <strong />,
+                goHere: (
+                  <SkipLazyLoaderButton
+                    onClick={handleToggleLoader}
+                    size="xs"
+                    priority="default"
+                  >
+                    {t('View npm/yarn instructions')}
+                  </SkipLazyLoaderButton>
+                ),
+              })
+            : tct('Prefer to set up Sentry using [bold:Loader Script]? [goHere]', {
+                bold: <strong />,
+                goHere: (
+                  <SkipLazyLoaderButton
+                    onClick={handleToggleLoader}
+                    size="xs"
+                    priority="default"
+                  >
+                    {t('View loader instructions')}
+                  </SkipLazyLoaderButton>
+                ),
+              })}
         </AlternativeInstallationAlert>
       )}
     </Fragment>
   );
 }
+
+const SkipLazyLoaderButton = styled(Button)`
+  margin-left: ${space(1)};
+`;
 
 const Products = styled('div')`
   display: flex;
@@ -486,4 +567,12 @@ const TooltipDescription = styled('div')`
 
 const AlternativeInstallationAlert = styled(Alert)`
   margin-bottom: 0px;
+  /*
+   * The first child is the icon.
+   * We render a button within the message, so to ensure proper alignment,
+   * the height of the first child (icon) needs to be set to 'auto'.
+   */
+  > *:first-child {
+    height: auto;
+  }
 `;

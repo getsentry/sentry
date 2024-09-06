@@ -1,4 +1,5 @@
-import {css, Theme} from '@emotion/react';
+import type {Theme} from '@emotion/react';
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {growIn} from 'sentry/styles/animations';
@@ -39,7 +40,7 @@ const Radio = styled('input')<CheckedProps>`
   margin: 0 !important;
 
   &:focus,
-  &.focus-visible {
+  &:focus-visible {
     outline: none;
     border-color: ${p => p.theme.focusBorder};
     box-shadow: ${p => p.theme.focusBorder} 0 0 0 1px;

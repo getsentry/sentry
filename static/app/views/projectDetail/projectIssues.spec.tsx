@@ -1,3 +1,5 @@
+import {GroupFixture} from 'sentry-fixture/group';
+
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
@@ -8,7 +10,7 @@ describe('ProjectDetail > ProjectIssues', function () {
     filteredEndpointMock: ReturnType<typeof MockApiClient.addMockResponse>,
     newIssuesEndpointMock: ReturnType<typeof MockApiClient.addMockResponse>;
 
-  const {organization, router, project, routerContext} = initializeOrg({
+  const {organization, router, project} = initializeOrg({
     organization: {
       features: ['discover-basic'],
     },
@@ -17,17 +19,17 @@ describe('ProjectDetail > ProjectIssues', function () {
   beforeEach(function () {
     endpointMock = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/issues/?limit=5&query=error.unhandled%3Atrue%20is%3Aunresolved&sort=freq&statsPeriod=14d`,
-      body: [TestStubs.Group(), TestStubs.Group({id: '2'})],
+      body: [GroupFixture(), GroupFixture({id: '2'})],
     });
 
     filteredEndpointMock = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/issues/?environment=staging&limit=5&query=error.unhandled%3Atrue%20is%3Aunresolved&sort=freq&statsPeriod=7d`,
-      body: [TestStubs.Group(), TestStubs.Group({id: '2'})],
+      body: [GroupFixture(), GroupFixture({id: '2'})],
     });
 
     newIssuesEndpointMock = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/issues/?limit=5&query=is%3Aunresolved%20is%3Afor_review&sort=freq&statsPeriod=14d`,
-      body: [TestStubs.Group(), TestStubs.Group({id: '2'})],
+      body: [GroupFixture(), GroupFixture({id: '2'})],
     });
 
     MockApiClient.addMockResponse({
@@ -54,17 +56,17 @@ describe('ProjectDetail > ProjectIssues', function () {
   it('renders a list', async function () {
     MockApiClient.addMockResponse({
       url: `/organizations/org-slug/issues/?limit=5&query=error.unhandled%3Atrue%20is%3Aunresolved&sort=freq&statsPeriod=14d`,
-      body: [TestStubs.Group(), TestStubs.Group({id: '2'})],
+      body: [GroupFixture(), GroupFixture({id: '2'})],
     });
     render(
       <ProjectIssues
         api={new MockApiClient()}
         organization={organization}
         location={router.location}
-        projectId={project.id}
+        projectId={parseInt(project.id, 10)}
       />,
       {
-        context: routerContext,
+        router,
         organization,
       }
     );
@@ -77,11 +79,11 @@ describe('ProjectDetail > ProjectIssues', function () {
       <ProjectIssues
         api={new MockApiClient()}
         organization={organization}
-        projectId={project.id}
+        projectId={parseInt(project.id, 10)}
         location={router.location}
       />,
       {
-        context: routerContext,
+        router,
         organization,
       }
     );
@@ -93,7 +95,7 @@ describe('ProjectDetail > ProjectIssues', function () {
     expect(router.push).toHaveBeenCalledWith({
       pathname: '/organizations/org-slug/issues/',
       query: {
-        limit: 5,
+        limit: '5',
         query: 'error.unhandled:true is:unresolved',
         sort: 'freq',
         statsPeriod: '14d',
@@ -107,10 +109,10 @@ describe('ProjectDetail > ProjectIssues', function () {
         api={new MockApiClient()}
         organization={organization}
         location={router.location}
-        projectId={project.id}
+        projectId={parseInt(project.id, 10)}
       />,
       {
-        context: routerContext,
+        router,
         organization,
       }
     );
@@ -137,10 +139,10 @@ describe('ProjectDetail > ProjectIssues', function () {
         api={new MockApiClient()}
         organization={organization}
         location={router.location}
-        projectId={project.id}
+        projectId={parseInt(project.id, 10)}
       />,
       {
-        context: routerContext,
+        router,
         organization,
       }
     );
@@ -156,7 +158,7 @@ describe('ProjectDetail > ProjectIssues', function () {
         field: ['issue', 'title', 'count()', 'count_unique(user)', 'project'],
         name: 'Frequent Unhandled Issues',
         query: 'event.type:error error.unhandled:true',
-        sort: ['-count'],
+        sort: '-count',
         statsPeriod: '14d',
       },
     });
@@ -167,13 +169,13 @@ describe('ProjectDetail > ProjectIssues', function () {
       <ProjectIssues
         organization={organization}
         api={new MockApiClient()}
-        projectId={project.id}
+        projectId={parseInt(project.id, 10)}
         location={{
           ...router.location,
           query: {statsPeriod: '7d', environment: 'staging', somethingBad: 'nope'},
         }}
       />,
-      {context: routerContext, organization}
+      {router, organization}
     );
 
     expect(endpointMock).toHaveBeenCalledTimes(0);
@@ -186,7 +188,7 @@ describe('ProjectDetail > ProjectIssues', function () {
     expect(router.push).toHaveBeenCalledWith({
       pathname: `/organizations/${organization.slug}/issues/`,
       query: {
-        limit: 5,
+        limit: '5',
         environment: 'staging',
         statsPeriod: '7d',
         query: 'error.unhandled:true is:unresolved',

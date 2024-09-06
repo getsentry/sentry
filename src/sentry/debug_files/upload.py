@@ -1,5 +1,5 @@
+from collections.abc import Sequence
 from datetime import timedelta
-from typing import Sequence
 
 from django.utils import timezone
 

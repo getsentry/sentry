@@ -1,15 +1,28 @@
+from __future__ import annotations
+
+from typing import TYPE_CHECKING
+
 import click
 
 from sentry.runner.decorators import configuration
 
+if TYPE_CHECKING:
+    from django.db.models.fields import Field
 
-def _get_field(field_name):
-    from sentry.models.user import User
-
-    return User._meta.get_field(field_name)
+    from sentry.users.models.user import User
 
 
-def _get_email():
+def _get_field(field_name: str) -> Field[str, str]:
+    from django.db.models.fields import Field
+
+    from sentry.users.models.user import User
+
+    ret = User._meta.get_field(field_name)
+    assert isinstance(ret, Field), ret
+    return ret
+
+
+def _get_email() -> list[str]:
     from django.core.exceptions import ValidationError
 
     rv = click.prompt("Email")
@@ -20,7 +33,7 @@ def _get_email():
         raise click.ClickException("; ".join(e.messages))
 
 
-def _get_password():
+def _get_password() -> str:
     from django.core.exceptions import ValidationError
 
     rv = click.prompt("Password", hide_input=True, confirmation_prompt=True)
@@ -31,16 +44,16 @@ def _get_password():
         raise click.ClickException("; ".join(e.messages))
 
 
-def _get_superuser():
+def _get_superuser() -> bool:
     return click.confirm("Should this user be a superuser?", default=False)
 
 
-def _set_superadmin(user):
+def _set_superadmin(user: User) -> None:
     """
     superadmin role approximates superuser (model attribute) but leveraging
     Sentry's role system.
     """
-    from sentry.models.userrole import UserRole, UserRoleUser
+    from sentry.users.models.userrole import UserRole, UserRoleUser
 
     role = UserRole.objects.get(name="Super Admin")
     UserRoleUser.objects.create(user=user, role=role)
@@ -78,7 +91,16 @@ def _set_superadmin(user):
     "--force-update", default=False, is_flag=True, help="If true, will update existing users."
 )
 @configuration
-def createuser(emails, org_id, password, superuser, staff, no_password, no_input, force_update):
+def createuser(
+    emails: list[str] | None,
+    org_id: str | None,
+    password: str | None,
+    superuser: bool | None,
+    staff: bool | None,
+    no_password: bool,
+    no_input: bool,
+    force_update: bool,
+) -> None:
     "Create a new user."
 
     from django.conf import settings
@@ -113,7 +135,7 @@ def createuser(emails, org_id, password, superuser, staff, no_password, no_input
         raise click.ClickException("No password set and --no-password not passed.")
 
     from sentry import roles
-    from sentry.models.user import User
+    from sentry.users.models.user import User
 
     # Loop through the email list provided.
     for email in emails:
@@ -147,11 +169,13 @@ def createuser(emails, org_id, password, superuser, staff, no_password, no_input
 
             # TODO(dcramer): kill this when we improve flows
             if settings.SENTRY_SINGLE_ORGANIZATION:
-                from sentry.services.hybrid_cloud.organization import organization_service
+                from sentry.organizations.services.organization import organization_service
 
                 # Get the org if specified, otherwise use the default.
                 if org_id:
-                    org_context = organization_service.get_organization_by_id(id=org_id)
+                    org_context = organization_service.get_organization_by_id(
+                        id=org_id, include_teams=False, include_projects=False
+                    )
                     if org_context is None:
                         raise Exception("Organization ID not found")
                     org = org_context.organization

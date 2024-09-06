@@ -1,32 +1,36 @@
-import {InjectedRouter} from 'react-router';
 import styled from '@emotion/styled';
-import {Location} from 'history';
+import type {Location} from 'history';
 
 import {openDashboardWidgetQuerySelectorModal} from 'sentry/actionCreators/modal';
+import Tag from 'sentry/components/badge/tag';
 import {Button} from 'sentry/components/button';
 import {openConfirmModal} from 'sentry/components/confirm';
-import {DropdownMenu, MenuItemProps} from 'sentry/components/dropdownMenu';
+import type {MenuItemProps} from 'sentry/components/dropdownMenu';
+import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import {isWidgetViewerPath} from 'sentry/components/modals/widgetViewerModal/utils';
-import Tag from 'sentry/components/tag';
 import {IconEllipsis, IconExpand} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {Organization, PageFilters} from 'sentry/types';
-import {Series} from 'sentry/types/echarts';
+import type {PageFilters} from 'sentry/types/core';
+import type {Series} from 'sentry/types/echarts';
+import type {InjectedRouter} from 'sentry/types/legacyReactRouter';
+import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
-import {AggregationOutputType} from 'sentry/utils/discover/fields';
+import type {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
+import type {AggregationOutputType} from 'sentry/utils/discover/fields';
 import {
   MEPConsumer,
   MEPState,
 } from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import {
-  getWidgetDDMUrl,
   getWidgetDiscoverUrl,
   getWidgetIssueUrl,
+  getWidgetMetricsUrl,
+  hasDatasetSelector,
 } from 'sentry/views/dashboards/utils';
 
-import {Widget, WidgetType} from '../types';
+import type {Widget} from '../types';
+import {WidgetType} from '../types';
 import {WidgetViewerContext} from '../widgetViewer/widgetViewerContext';
 
 import {useDashboardsMEPContext} from './dashboardsMEPContext';
@@ -71,6 +75,7 @@ function WidgetCardContextMenu({
   seriesResultsType,
 }: Props) {
   const {isMetricsData} = useDashboardsMEPContext();
+
   if (!showContextMenu) {
     return null;
   }
@@ -130,7 +135,7 @@ function WidgetCardContextMenu({
                   aria-label={t('Open Widget Viewer')}
                   borderless
                   size="xs"
-                  icon={<IconExpand size="xs" />}
+                  icon={<IconExpand />}
                   onClick={() => {
                     (seriesData || tableData) &&
                       setData({
@@ -153,8 +158,13 @@ function WidgetCardContextMenu({
 
   if (
     organization.features.includes('discover-basic') &&
-    widget.widgetType === WidgetType.DISCOVER
+    widget.widgetType &&
+    [WidgetType.DISCOVER, WidgetType.ERRORS, WidgetType.TRANSACTIONS].includes(
+      widget.widgetType
+    )
   ) {
+    const optionDisabled =
+      hasDatasetSelector(organization) && widget.widgetType === WidgetType.DISCOVER;
     // Open Widget in Discover
     if (widget.queries.length) {
       const discoverPath = getWidgetDiscoverUrl(
@@ -167,7 +177,17 @@ function WidgetCardContextMenu({
       menuOptions.push({
         key: 'open-in-discover',
         label: t('Open in Discover'),
-        to: widget.queries.length === 1 ? discoverPath : undefined,
+        to: optionDisabled
+          ? undefined
+          : widget.queries.length === 1
+            ? discoverPath
+            : undefined,
+        tooltip: t(
+          'We are splitting datasets to make them easier to digest. Please confirm the dataset for this widget by clicking Edit Widget.'
+        ),
+        tooltipOptions: {disabled: !optionDisabled},
+        disabled: optionDisabled,
+        showDetailsInOverlay: true,
         onAction: () => {
           if (widget.queries.length === 1) {
             trackAnalytics('dashboards_views.open_in_discover.opened', {
@@ -198,12 +218,12 @@ function WidgetCardContextMenu({
   }
 
   if (widget.widgetType === WidgetType.METRICS) {
-    const ddmLocation = getWidgetDDMUrl(widget, selection, organization);
+    const metricsLocation = getWidgetMetricsUrl(widget, selection, organization);
 
     menuOptions.push({
-      key: 'open-in-ddm',
-      label: t('Open in DDM'),
-      to: ddmLocation,
+      key: 'open-in-metrics',
+      label: t('Open in Metrics'),
+      to: metricsLocation,
     });
   }
 
@@ -272,7 +292,7 @@ function WidgetCardContextMenu({
                 aria-label={t('Open Widget Viewer')}
                 borderless
                 size="xs"
-                icon={<IconExpand size="xs" />}
+                icon={<IconExpand />}
                 onClick={() => {
                   setData({
                     seriesData,

@@ -116,3 +116,12 @@ class SentryAppPublishRequestTest(APITestCase):
             == "Must upload an icon for issue and stack trace linking integrations."
         )
         send_mail.asssert_not_called()
+
+    def test_cannot_publish_by_manager(self):
+        self.user_manager = self.create_user("manager@example.com", is_superuser=False)
+        self.create_member(user=self.user_manager, organization=self.org, role="manager", teams=[])
+        self.login_as(self.user_manager)
+
+        url = reverse("sentry-api-0-sentry-app-publish-request", args=[self.sentry_app.slug])
+        response = self.client.post(url, format="json")
+        assert response.status_code == 403

@@ -1,14 +1,15 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import {Button} from 'sentry/components/button';
+import {LinkButton} from 'sentry/components/button';
 import TextOverflow from 'sentry/components/textOverflow';
 import TimeSince from 'sentry/components/timeSince';
 import Version from 'sentry/components/version';
 import {IconReleases} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {Deploy as DeployType, Project} from 'sentry/types';
+import type {Project} from 'sentry/types/project';
+import type {Deploy as DeployType} from 'sentry/types/release';
 import getDynamicText from 'sentry/utils/getDynamicText';
 
 const DEPLOY_COUNT = 2;
@@ -88,9 +89,9 @@ function Deploy({deploy, project, shorten}: DeployProps) {
 function NoDeploys() {
   return (
     <GetStarted>
-      <Button size="sm" href="https://docs.sentry.io/product/releases/" external>
+      <LinkButton size="sm" href="https://docs.sentry.io/product/releases/" external>
         {t('Track Deploys')}
-      </Button>
+      </LinkButton>
     </GetStarted>
   );
 }

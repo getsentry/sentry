@@ -1,0 +1,17 @@
+Your Cron Monitors Have Been Muted
+
+The Cron Monitors below have not processed a successful check-in for multiple weeks. We have automatically muted the failing environments for these monitors:
+{% for monitor_name, project_slug, monitor_url, earliest_incident_start_date in muted_monitors %}
+* {{monitor_name}}
+{{project_slug}} {{monitor_url}} | Failing since {{earliest_incident_start_date|date:"N j, Y, g:i:s a e"}}
+{% endfor %}
+
+To unmute your monitors, please head over to Crons and manually unmute your monitors.
+
+View Monitors: {{ view_monitors_link }}
+
+Note that muted monitors will still count towards on-demand budget, but can be disabled in order to preserve your on-demand budget for the next billing cycle.
+
+We recommend checking out our troubleshooting guide and our FAQs: "https://docs.sentry.io/product/crons/troubleshooting/" for further information on how you can bring your monitors back to a healthy status.
+
+Still facing issues? Reach out to our support team "https://sentry.zendesk.com/hc/en-us/requests/new".

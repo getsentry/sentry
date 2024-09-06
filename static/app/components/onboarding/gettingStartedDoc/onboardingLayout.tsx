@@ -7,7 +7,7 @@ import List from 'sentry/components/list';
 import ListItem from 'sentry/components/list/listItem';
 import {AuthTokenGeneratorProvider} from 'sentry/components/onboarding/gettingStartedDoc/authTokenGenerator';
 import {Step} from 'sentry/components/onboarding/gettingStartedDoc/step';
-import {
+import type {
   ConfigType,
   Docs,
   DocsParams,
@@ -22,8 +22,10 @@ import {
   ProductSolution,
 } from 'sentry/components/onboarding/productSelection';
 import {t} from 'sentry/locale';
+import ConfigStore from 'sentry/stores/configStore';
+import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import {space} from 'sentry/styles/space';
-import type {PlatformKey, Project} from 'sentry/types';
+import type {PlatformKey, Project, ProjectKey} from 'sentry/types/project';
 import useOrganization from 'sentry/utils/useOrganization';
 
 const ProductSelectionAvailabilityHook = HookOrDefault({
@@ -33,7 +35,7 @@ const ProductSelectionAvailabilityHook = HookOrDefault({
 
 export type OnboardingLayoutProps = {
   docsConfig: Docs<any>;
-  dsn: string;
+  dsn: ProjectKey['dsn'];
   platformKey: PlatformKey;
   projectId: Project['id'];
   projectSlug: Project['slug'];
@@ -55,11 +57,11 @@ export function OnboardingLayout({
   configType = 'onboarding',
 }: OnboardingLayoutProps) {
   const organization = useOrganization();
-  const {isLoading: isLoadingRegistry, data: registryData} =
+  const {isPending: isLoadingRegistry, data: registryData} =
     useSourcePackageRegistries(organization);
   const selectedOptions = useUrlPlatformOptions(docsConfig.platformOptions);
-
   const {platformOptions} = docsConfig;
+  const {urlPrefix, isSelfHosted} = useLegacyStore(ConfigStore);
 
   const {introduction, steps, nextSteps} = useMemo(() => {
     const doc = docsConfig[configType] ?? docsConfig.onboarding;
@@ -70,6 +72,7 @@ export function OnboardingLayout({
       platformKey,
       projectId,
       projectSlug,
+      isFeedbackSelected: false,
       isPerformanceSelected: activeProductSelection.includes(
         ProductSolution.PERFORMANCE_MONITORING
       ),
@@ -79,8 +82,11 @@ export function OnboardingLayout({
         isLoading: isLoadingRegistry,
         data: registryData,
       },
+      urlPrefix,
+      isSelfHosted,
       platformOptions: selectedOptions,
       newOrg,
+      replayOptions: {block: true, mask: true},
     };
 
     return {
@@ -105,6 +111,8 @@ export function OnboardingLayout({
     registryData,
     selectedOptions,
     configType,
+    urlPrefix,
+    isSelfHosted,
   ]);
 
   return (
@@ -116,9 +124,10 @@ export function OnboardingLayout({
             <ProductSelectionAvailabilityHook
               organization={organization}
               platform={platformKey}
+              projectId={projectId}
             />
           )}
-          {platformOptions ? (
+          {platformOptions && !['customMetricsOnboarding'].includes(configType) ? (
             <PlatformOptionsControl platformOptions={platformOptions} />
           ) : null}
         </Header>
@@ -133,13 +142,15 @@ export function OnboardingLayout({
             <Divider />
             <h4>{t('Next Steps')}</h4>
             <List symbol="bullet">
-              {nextSteps.map(step => (
-                <ListItem key={step.name}>
-                  <ExternalLink href={step.link}>{step.name}</ExternalLink>
-                  {': '}
-                  {step.description}
-                </ListItem>
-              ))}
+              {nextSteps
+                .filter((step): step is Exclude<typeof step, null> => step !== null)
+                .map(step => (
+                  <ListItem key={step.name}>
+                    <ExternalLink href={step.link}>{step.name}</ExternalLink>
+                    {': '}
+                    {step.description}
+                  </ListItem>
+                ))}
             </List>
           </Fragment>
         )}

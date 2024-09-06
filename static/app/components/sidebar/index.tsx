@@ -5,28 +5,31 @@ import styled from '@emotion/styled';
 import {hideSidebar, showSidebar} from 'sentry/actionCreators/preferences';
 import Feature from 'sentry/components/acl/feature';
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
+import {Chevron} from 'sentry/components/chevron';
+import FeedbackOnboardingSidebar from 'sentry/components/feedback/feedbackOnboarding/sidebar';
+import Hook from 'sentry/components/hook';
 import {OnboardingContext} from 'sentry/components/onboarding/onboardingContext';
 import {getMergedTasks} from 'sentry/components/onboardingWizard/taskConfig';
 import PerformanceOnboardingSidebar from 'sentry/components/performanceOnboarding/sidebar';
 import ReplaysOnboardingSidebar from 'sentry/components/replaysOnboarding/sidebar';
+import {
+  ExpandedContext,
+  ExpandedContextProvider,
+} from 'sentry/components/sidebar/expandedContextProvider';
 import {isDone} from 'sentry/components/sidebar/utils';
 import {
-  IconChevron,
   IconDashboard,
   IconGraph,
   IconIssues,
   IconLightning,
   IconMegaphone,
-  IconPlay,
-  IconProfiling,
   IconProject,
   IconReleases,
+  IconSearch,
   IconSettings,
   IconSiren,
-  IconStar,
   IconStats,
   IconSupport,
-  IconTelescope,
   IconTimer,
 } from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -37,18 +40,23 @@ import PreferencesStore from 'sentry/stores/preferencesStore';
 import SidebarPanelStore from 'sentry/stores/sidebarPanelStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import {space} from 'sentry/styles/space';
-import {Organization} from 'sentry/types';
+import type {Organization} from 'sentry/types/organization';
 import {isDemoWalkthrough} from 'sentry/utils/demoMode';
 import {getDiscoverLandingUrl} from 'sentry/utils/discover/urls';
 import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
+import {hasCustomMetrics} from 'sentry/utils/metrics/features';
 import theme from 'sentry/utils/theme';
+import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import {useLocation} from 'sentry/utils/useLocation';
 import useMedia from 'sentry/utils/useMedia';
+import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
-import {RELEASE_LEVEL as WEBVITALS_RELEASE_LEVEL} from 'sentry/views/performance/browser/webVitals/settings';
-import {SCREENS_RELEASE_LEVEL} from 'sentry/views/performance/mobile/settings';
+import {useModuleURLBuilder} from 'sentry/views/insights/common/utils/useModuleURL';
+import {MODULE_SIDEBAR_TITLE as HTTP_MODULE_SIDEBAR_TITLE} from 'sentry/views/insights/http/settings';
+import {MODULE_TITLES} from 'sentry/views/insights/settings';
+import MetricsOnboardingSidebar from 'sentry/views/metrics/ddmOnboarding/sidebar';
 
-import {ProfilingOnboardingSidebar} from '../profiling/ProfilingOnboarding/profilingOnboardingSidebar';
+import {ProfilingOnboardingSidebar} from '../profiling/profilingOnboardingSidebar';
 
 import Broadcasts from './broadcasts';
 import SidebarHelp from './help';
@@ -57,11 +65,8 @@ import ServiceIncidents from './serviceIncidents';
 import {SidebarAccordion} from './sidebarAccordion';
 import SidebarDropdown from './sidebarDropdown';
 import SidebarItem from './sidebarItem';
-import {SidebarOrientation, SidebarPanelKey} from './types';
-
-type Props = {
-  organization?: Organization;
-};
+import type {SidebarOrientation} from './types';
+import {SidebarPanelKey} from './types';
 
 function activatePanel(panel: SidebarPanelKey) {
   SidebarPanelStore.activatePanel(panel);
@@ -71,8 +76,8 @@ function togglePanel(panel: SidebarPanelKey) {
   SidebarPanelStore.togglePanel(panel);
 }
 
-function hidePanel() {
-  SidebarPanelStore.hidePanel();
+function hidePanel(hash?: string) {
+  SidebarPanelStore.hidePanel(hash);
 }
 
 function useOpenOnboardingSidebar(organization?: Organization) {
@@ -108,15 +113,38 @@ function useOpenOnboardingSidebar(organization?: Organization) {
   }, [openOnboardingSidebar]);
 }
 
-function Sidebar({organization}: Props) {
+function Sidebar() {
   const location = useLocation();
-  const config = useLegacyStore(ConfigStore);
   const preferences = useLegacyStore(PreferencesStore);
   const activePanel = useLegacyStore(SidebarPanelStore);
+  const organization = useOrganization({allowNull: true});
+  const {shouldAccordionFloat} = useContext(ExpandedContext);
+  const hasNewNav = organization?.features.includes('navigation-sidebar-v2');
+  const hasOrganization = !!organization;
+  const isSelfHostedErrorsOnly = ConfigStore.get('isSelfHostedErrorsOnly');
 
-  const collapsed = !!preferences.collapsed;
+  const collapsed = hasNewNav ? true : !!preferences.collapsed;
   const horizontal = useMedia(`(max-width: ${theme.breakpoints.medium})`);
-  const hasSuperuserSession = isActiveSuperuser(organization);
+  // Panel determines whether to highlight
+  const hasPanel = !!activePanel;
+  const orientation: SidebarOrientation = horizontal ? 'top' : 'left';
+
+  const sidebarItemProps = {
+    orientation,
+    collapsed,
+    hasPanel,
+    organization,
+    hasNewNav,
+  };
+  // Avoid showing superuser UI on self-hosted instances
+  const showSuperuserWarning = () => {
+    return isActiveSuperuser() && !ConfigStore.get('isSelfHosted');
+  };
+
+  // Avoid showing superuser UI on certain organizations
+  const isExcludedOrg = () => {
+    return HookStore.get('component:superuser-warning-excluded')[0]?.(organization);
+  };
 
   useOpenOnboardingSidebar();
 
@@ -160,16 +188,18 @@ function Sidebar({organization}: Props) {
     return () => bcl.remove('collapsed');
   }, [collapsed]);
 
-  const hasPanel = !!activePanel;
-  const hasOrganization = !!organization;
-  const orientation: SidebarOrientation = horizontal ? 'top' : 'left';
+  // Add sidebar hasNewNav classname to body
+  useEffect(() => {
+    const bcl = document.body.classList;
 
-  const sidebarItemProps = {
-    orientation,
-    collapsed,
-    hasPanel,
-    organization,
-  };
+    if (hasNewNav) {
+      bcl.add('hasNewNav');
+    } else {
+      bcl.remove('hasNewNav');
+    }
+
+    return () => bcl.remove('hasNewNav');
+  }, [hasNewNav]);
 
   const sidebarAnchor = isDemoWalkthrough() ? (
     <GuideAnchor target="projects" disabled={!DemoWalkthroughStore.get('sidebar')}>
@@ -198,6 +228,7 @@ function Sidebar({organization}: Props) {
       to={`/organizations/${organization.slug}/issues/`}
       search="?referrer=sidebar"
       id="issues"
+      hasNewNav={hasNewNav}
     />
   );
 
@@ -209,10 +240,185 @@ function Sidebar({organization}: Props) {
     >
       <SidebarItem
         {...sidebarItemProps}
-        icon={<IconTelescope />}
+        icon={<SubitemDot collapsed />}
         label={<GuideAnchor target="discover">{t('Discover')}</GuideAnchor>}
         to={getDiscoverLandingUrl(organization)}
         id="discover-v2"
+      />
+    </Feature>
+  );
+
+  const moduleURLBuilder = useModuleURLBuilder(true);
+
+  const queries = hasOrganization && (
+    <Feature key="db" features="insights-entry-points" organization={organization}>
+      <SidebarItem
+        {...sidebarItemProps}
+        label={
+          <GuideAnchor target="performance-database">{MODULE_TITLES.db}</GuideAnchor>
+        }
+        to={`/organizations/${organization.slug}/${moduleURLBuilder('db')}/`}
+        id="performance-database"
+        icon={<SubitemDot collapsed />}
+      />
+    </Feature>
+  );
+
+  const requests = hasOrganization && (
+    <Feature key="http" features="insights-entry-points" organization={organization}>
+      <SidebarItem
+        {...sidebarItemProps}
+        label={
+          <GuideAnchor target="performance-http">{HTTP_MODULE_SIDEBAR_TITLE}</GuideAnchor>
+        }
+        to={`/organizations/${organization.slug}/${moduleURLBuilder('http')}/`}
+        id="performance-http"
+        icon={<SubitemDot collapsed />}
+      />
+    </Feature>
+  );
+
+  const caches = hasOrganization && (
+    <Feature key="cache" features="insights-entry-points" organization={organization}>
+      <SidebarItem
+        {...sidebarItemProps}
+        label={
+          <GuideAnchor target="performance-cache">{MODULE_TITLES.cache}</GuideAnchor>
+        }
+        to={`/organizations/${organization.slug}/${moduleURLBuilder('cache')}/`}
+        id="performance-cache"
+        icon={<SubitemDot collapsed />}
+      />
+    </Feature>
+  );
+
+  const webVitals = hasOrganization && (
+    <Feature key="vital" features="insights-entry-points" organization={organization}>
+      <SidebarItem
+        {...sidebarItemProps}
+        label={
+          <GuideAnchor target="performance-webvitals">{MODULE_TITLES.vital}</GuideAnchor>
+        }
+        to={`/organizations/${organization.slug}/${moduleURLBuilder('vital')}/`}
+        id="performance-webvitals"
+        icon={<SubitemDot collapsed />}
+      />
+    </Feature>
+  );
+
+  const queues = hasOrganization && (
+    <Feature key="queue" features="insights-entry-points" organization={organization}>
+      <SidebarItem
+        {...sidebarItemProps}
+        label={
+          <GuideAnchor target="performance-queues">{MODULE_TITLES.queue}</GuideAnchor>
+        }
+        to={`/organizations/${organization.slug}/${moduleURLBuilder('queue')}/`}
+        id="performance-queues"
+        icon={<SubitemDot collapsed />}
+      />
+    </Feature>
+  );
+
+  // the mobile screens module is meant to be as a replacement for screen load, app start, and mobile ui
+  // so if mobile screens is enabled, we should not show the other mobile modules
+  const hasMobileScreensModule =
+    hasOrganization && organization.features.includes('insights-mobile-screens-module');
+
+  const screenLoads = hasOrganization && !hasMobileScreensModule && (
+    <Feature
+      key="screen_load"
+      features="insights-entry-points"
+      organization={organization}
+    >
+      <SidebarItem
+        {...sidebarItemProps}
+        label={MODULE_TITLES.screen_load}
+        to={`/organizations/${organization.slug}/${moduleURLBuilder('screen_load')}/`}
+        id="performance-mobile-screens"
+        icon={<SubitemDot collapsed />}
+      />
+    </Feature>
+  );
+
+  const appStarts = hasOrganization && !hasMobileScreensModule && (
+    <Feature key="app_start" features="insights-entry-points" organization={organization}>
+      <SidebarItem
+        {...sidebarItemProps}
+        label={MODULE_TITLES.app_start}
+        to={`/organizations/${organization.slug}/${moduleURLBuilder('app_start')}/`}
+        id="performance-mobile-app-startup"
+        icon={<SubitemDot collapsed />}
+      />
+    </Feature>
+  );
+
+  const mobileUI = hasOrganization && !hasMobileScreensModule && (
+    <Feature
+      key="mobile-ui"
+      features={['insights-entry-points', 'starfish-mobile-ui-module']}
+      organization={organization}
+    >
+      <SidebarItem
+        {...sidebarItemProps}
+        label={MODULE_TITLES['mobile-ui']}
+        to={`/organizations/${organization.slug}/${moduleURLBuilder('mobile-ui')}/`}
+        id="performance-mobile-ui"
+        icon={<SubitemDot collapsed />}
+        isAlpha
+      />
+    </Feature>
+  );
+
+  const mobileScreens = hasOrganization && hasMobileScreensModule && (
+    <Feature
+      key="mobile-screens"
+      features={['insights-entry-points']}
+      organization={organization}
+    >
+      <SidebarItem
+        {...sidebarItemProps}
+        label={MODULE_TITLES['mobile-screens']}
+        to={`/organizations/${organization.slug}/${moduleURLBuilder('mobile-screens')}/`}
+        id="performance-mobile-screens"
+        icon={<SubitemDot collapsed />}
+      />
+    </Feature>
+  );
+
+  const resources = hasOrganization && (
+    <Feature key="resource" features="insights-entry-points">
+      <SidebarItem
+        {...sidebarItemProps}
+        label={<GuideAnchor target="starfish">{MODULE_TITLES.resource}</GuideAnchor>}
+        to={`/organizations/${organization.slug}/${moduleURLBuilder('resource')}/`}
+        id="performance-browser-resources"
+        icon={<SubitemDot collapsed />}
+      />
+    </Feature>
+  );
+
+  const traces = hasOrganization && (
+    <Feature features="performance-trace-explorer">
+      <SidebarItem
+        {...sidebarItemProps}
+        label={<GuideAnchor target="traces">{t('Traces')}</GuideAnchor>}
+        to={`/organizations/${organization.slug}/traces/`}
+        id="performance-trace-explorer"
+        icon={<SubitemDot collapsed />}
+        isBeta
+      />
+    </Feature>
+  );
+
+  const llmMonitoring = hasOrganization && (
+    <Feature features={['insights-entry-points']} organization={organization}>
+      <SidebarItem
+        {...sidebarItemProps}
+        icon={<SubitemDot collapsed />}
+        label={MODULE_TITLES.ai}
+        to={`/organizations/${organization.slug}/${moduleURLBuilder('ai')}/`}
+        id="llm-monitoring"
       />
     </Feature>
   );
@@ -223,129 +429,17 @@ function Sidebar({organization}: Props) {
       features="performance-view"
       organization={organization}
     >
-      {(() => {
-        // If Database View or Web Vitals View is enabled, show a Performance accordion with a Database and/or Web Vitals sub-item
-        if (
-          organization.features.includes('performance-database-view') ||
-          organization.features.includes('starfish-browser-webvitals') ||
-          organization.features.includes('performance-screens-view')
-        ) {
-          return (
-            <SidebarAccordion
-              {...sidebarItemProps}
-              icon={<IconLightning />}
-              label={<GuideAnchor target="performance">{t('Performance')}</GuideAnchor>}
-              to={`/organizations/${organization.slug}/performance/`}
-              id="performance"
-            >
-              <Feature features="performance-database-view" organization={organization}>
-                <SidebarItem
-                  {...sidebarItemProps}
-                  label={
-                    <GuideAnchor target="performance-database">
-                      {t('Queries')}
-                    </GuideAnchor>
-                  }
-                  to={`/organizations/${organization.slug}/performance/database/`}
-                  id="performance-database"
-                  // collapsed controls whether the dot is visible or not.
-                  // We always want it visible for these sidebar items so force it to true.
-                  icon={<SubitemDot collapsed />}
-                />
-              </Feature>
-              <Feature features="starfish-browser-webvitals" organization={organization}>
-                <SidebarItem
-                  {...sidebarItemProps}
-                  isAlpha={WEBVITALS_RELEASE_LEVEL === 'alpha'}
-                  isBeta={WEBVITALS_RELEASE_LEVEL === 'beta'}
-                  isNew={WEBVITALS_RELEASE_LEVEL === 'new'}
-                  label={
-                    <GuideAnchor target="performance-webvitals">
-                      {t('Web Vitals')}
-                    </GuideAnchor>
-                  }
-                  to={`/organizations/${organization.slug}/performance/browser/pageloads/`}
-                  id="performance-webvitals"
-                  icon={<SubitemDot collapsed />}
-                />
-              </Feature>
-              <Feature features="performance-screens-view" organization={organization}>
-                <SidebarItem
-                  {...sidebarItemProps}
-                  isAlpha={SCREENS_RELEASE_LEVEL === 'alpha'}
-                  isBeta={SCREENS_RELEASE_LEVEL === 'beta'}
-                  isNew={SCREENS_RELEASE_LEVEL === 'new'}
-                  label={t('Mobile')}
-                  to={`/organizations/${organization.slug}/performance/mobile/screens/`}
-                  id="performance-mobile-screens"
-                  icon={<SubitemDot collapsed />}
-                />
-              </Feature>
-              <Feature features="starfish-browser-resource-module-ui">
-                <SidebarItem
-                  {...sidebarItemProps}
-                  isNew
-                  label={<GuideAnchor target="starfish">{t('Resources')}</GuideAnchor>}
-                  to={`/organizations/${organization.slug}/performance/browser/resources`}
-                  id="performance-browser-resources"
-                  icon={<SubitemDot collapsed />}
-                />
-              </Feature>
-            </SidebarAccordion>
-          );
-        }
-
-        // Otherwise, show a regular sidebar link to the Performance landing page
-        return (
-          <SidebarItem
-            {...sidebarItemProps}
-            icon={<IconLightning />}
-            label={<GuideAnchor target="performance">{t('Performance')}</GuideAnchor>}
-            to={`/organizations/${organization.slug}/performance/`}
-            id="performance"
-          />
-        );
-      })()}
-    </Feature>
-  );
-
-  const starfish = hasOrganization && (
-    <Feature
-      hookName="feature-disabled:starfish-view"
-      features="starfish-view"
-      organization={organization}
-    >
-      <SidebarAccordion
+      <SidebarItem
         {...sidebarItemProps}
-        icon={<IconStar />}
-        aria-label={t('Starfish')}
-        label={<GuideAnchor target="starfish">{t('Starfish')}</GuideAnchor>}
-        to={`/organizations/${organization.slug}/starfish/`}
-        id="starfish"
-        exact
-      >
-        <SidebarItem
-          {...sidebarItemProps}
-          label={<GuideAnchor target="starfish">{t('Database')}</GuideAnchor>}
-          to={`/organizations/${organization.slug}/performance/database/`}
-          id="performance-database"
-          icon={<SubitemDot collapsed={collapsed} />}
-        />
-        <SidebarItem
-          {...sidebarItemProps}
-          label={<GuideAnchor target="starfish">{t('Interactions')}</GuideAnchor>}
-          to={`/organizations/${organization.slug}/performance/browser/interactions`}
-          id="performance-browser-interactions"
-          icon={<SubitemDot collapsed={collapsed} />}
-        />
-        <SidebarItem
-          {...sidebarItemProps}
-          label={<GuideAnchor target="starfish">{t('App Startup')}</GuideAnchor>}
-          to={`/organizations/${organization.slug}/starfish/appStartup`}
-          id="performance-mobile-app-startup"
-          icon={<SubitemDot collapsed={collapsed} />}
-        />
-      </SidebarAccordion>
+        icon={<IconLightning />}
+        label={
+          <GuideAnchor target="performance">
+            {hasNewNav ? 'Perf.' : t('Performance')}
+          </GuideAnchor>
+        }
+        to={`/organizations/${organization.slug}/performance/`}
+        id="performance"
+      />
     </Feature>
   );
 
@@ -377,7 +471,6 @@ function Sidebar({organization}: Props) {
         {...sidebarItemProps}
         icon={<IconMegaphone />}
         label={t('User Feedback')}
-        isBeta
         variant="short"
         to={`/organizations/${organization.slug}/feedback/`}
         id="feedback"
@@ -396,16 +489,13 @@ function Sidebar({organization}: Props) {
   );
 
   const monitors = hasOrganization && (
-    <Feature features="monitors" organization={organization}>
-      <SidebarItem
-        {...sidebarItemProps}
-        icon={<IconTimer />}
-        label={t('Crons')}
-        to={`/organizations/${organization.slug}/crons/`}
-        id="crons"
-        isBeta
-      />
-    </Feature>
+    <SidebarItem
+      {...sidebarItemProps}
+      icon={<IconTimer />}
+      label={t('Crons')}
+      to={`/organizations/${organization.slug}/crons/`}
+      id="crons"
+    />
   );
 
   const replays = hasOrganization && (
@@ -417,7 +507,7 @@ function Sidebar({organization}: Props) {
     >
       <SidebarItem
         {...sidebarItemProps}
-        icon={<IconPlay />}
+        icon={<SubitemDot collapsed />}
         label={t('Replays')}
         to={`/organizations/${organization.slug}/replays/`}
         id="replays"
@@ -425,21 +515,21 @@ function Sidebar({organization}: Props) {
     </Feature>
   );
 
-  const ddm = hasOrganization && (
-    <Feature
-      features={['ddm-ui', 'custom-metrics']}
-      organization={organization}
-      requireAll
-    >
-      <SidebarItem
-        {...sidebarItemProps}
-        icon={<IconGraph />}
-        label={t('DDM')}
-        to={`/organizations/${organization.slug}/ddm/`}
-        id="ddm"
-        isAlpha
-      />
-    </Feature>
+  const metricsPath = `/organizations/${organization?.slug}/metrics/`;
+
+  const metrics = hasOrganization && hasCustomMetrics(organization) && (
+    <SidebarItem
+      {...sidebarItemProps}
+      icon={<SubitemDot collapsed />}
+      label={t('Metrics')}
+      to={metricsPath}
+      search={location?.pathname === normalizeUrl(metricsPath) ? location.search : ''}
+      id="metrics"
+      badgeTitle={t(
+        'The Metrics beta will end and we will retire the current solution on October 7th, 2024'
+      )}
+      isBeta
+    />
   );
 
   const dashboards = hasOrganization && (
@@ -453,7 +543,7 @@ function Sidebar({organization}: Props) {
         {...sidebarItemProps}
         index
         icon={<IconDashboard />}
-        label={t('Dashboards')}
+        label={hasNewNav ? 'Dash.' : t('Dashboards')}
         to={`/organizations/${organization.slug}/dashboards/`}
         id="customizable-dashboards"
       />
@@ -470,8 +560,8 @@ function Sidebar({organization}: Props) {
       <SidebarItem
         {...sidebarItemProps}
         index
-        icon={<IconProfiling />}
-        label={t('Profiling')}
+        icon={<SubitemDot collapsed />}
+        label={t('Profiles')}
         to={`/organizations/${organization.slug}/profiling/`}
         id="profiling"
       />
@@ -498,133 +588,207 @@ function Sidebar({organization}: Props) {
     />
   );
 
+  const insights = hasOrganization && (
+    <Feature key="insights" features="insights-entry-points" organization={organization}>
+      <SidebarAccordion
+        {...sidebarItemProps}
+        icon={<IconGraph />}
+        label={<GuideAnchor target="insights">{t('Insights')}</GuideAnchor>}
+        id="insights"
+        initiallyExpanded={false}
+        exact={!shouldAccordionFloat}
+      >
+        {requests}
+        {queries}
+        {resources}
+        {appStarts}
+        {screenLoads}
+        {webVitals}
+        {caches}
+        {queues}
+        {mobileUI}
+        {mobileScreens}
+        {llmMonitoring}
+      </SidebarAccordion>
+    </Feature>
+  );
+
+  // Sidebar accordion includes a secondary list of nav items
+  // TODO: replace with a secondary panel
+  const explore = (
+    <SidebarAccordion
+      {...sidebarItemProps}
+      icon={<IconSearch />}
+      label={<GuideAnchor target="explore">{t('Explore')}</GuideAnchor>}
+      id="explore"
+      exact={!shouldAccordionFloat}
+    >
+      {traces}
+      {metrics}
+      {profiling}
+      {replays}
+      {discover2}
+    </SidebarAccordion>
+  );
+
   return (
     <SidebarWrapper
       aria-label={t('Primary Navigation')}
       collapsed={collapsed}
-      isSuperuser={hasSuperuserSession}
+      hasNewNav={hasNewNav}
     >
-      <SidebarSectionGroupPrimary>
-        <SidebarSection>
-          <SidebarDropdown
-            orientation={orientation}
-            collapsed={collapsed}
-            org={organization}
-            user={config.user}
-            config={config}
-          />
-        </SidebarSection>
+      <ExpandedContextProvider>
+        <SidebarSectionGroupPrimary>
+          <DropdownSidebarSection
+            isSuperuser={showSuperuserWarning() && !isExcludedOrg()}
+            hasNewNav={hasNewNav}
+          >
+            <SidebarDropdown
+              orientation={orientation}
+              collapsed={hasNewNav || collapsed}
+            />
 
-        <PrimaryItems>
-          {hasOrganization && (
-            <Fragment>
-              <SidebarSection>
-                {issues}
-                {projects}
-              </SidebarSection>
+            {showSuperuserWarning() && !isExcludedOrg() && (
+              <Hook name="component:superuser-warning" organization={organization} />
+            )}
+          </DropdownSidebarSection>
 
-              <SidebarSection>
-                {performance}
-                {starfish}
-                {profiling}
-                {ddm}
-                {replays}
-                {feedback}
-                {monitors}
-                {alerts}
-              </SidebarSection>
+          <PrimaryItems>
+            {hasOrganization && (
+              <Fragment>
+                <SidebarSection hasNewNav={hasNewNav}>
+                  {issues}
+                  {projects}
+                </SidebarSection>
 
-              <SidebarSection>
-                {discover2}
-                {dashboards}
-                {releases}
-                {userFeedback}
-              </SidebarSection>
+                {!isSelfHostedErrorsOnly && (
+                  <Fragment>
+                    <SidebarSection hasNewNav={hasNewNav}>
+                      {explore}
+                      {insights}
+                    </SidebarSection>
 
-              <SidebarSection>
-                {stats}
-                {settings}
-              </SidebarSection>
-            </Fragment>
-          )}
-        </PrimaryItems>
-      </SidebarSectionGroupPrimary>
+                    <SidebarSection hasNewNav={hasNewNav}>
+                      {performance}
+                      {feedback}
+                      {monitors}
+                      {alerts}
+                      {dashboards}
+                      {releases}
+                    </SidebarSection>
+                  </Fragment>
+                )}
 
-      {hasOrganization && (
-        <SidebarSectionGroup>
-          <PerformanceOnboardingSidebar
-            currentPanel={activePanel}
-            onShowPanel={() => togglePanel(SidebarPanelKey.PERFORMANCE_ONBOARDING)}
-            hidePanel={hidePanel}
-            {...sidebarItemProps}
-          />
-          <ReplaysOnboardingSidebar
-            currentPanel={activePanel}
-            onShowPanel={() => togglePanel(SidebarPanelKey.REPLAYS_ONBOARDING)}
-            hidePanel={hidePanel}
-            {...sidebarItemProps}
-          />
-          <ProfilingOnboardingSidebar
-            currentPanel={activePanel}
-            onShowPanel={() => togglePanel(SidebarPanelKey.REPLAYS_ONBOARDING)}
-            hidePanel={hidePanel}
-            {...sidebarItemProps}
-          />
-          <SidebarSection noMargin noPadding>
-            <OnboardingStatus
-              org={organization}
+                {isSelfHostedErrorsOnly && (
+                  <Fragment>
+                    <SidebarSection hasNewNav={hasNewNav}>
+                      {alerts}
+                      {discover2}
+                      {dashboards}
+                      {releases}
+                      {userFeedback}
+                    </SidebarSection>
+                  </Fragment>
+                )}
+
+                <SidebarSection hasNewNav={hasNewNav}>
+                  {stats}
+                  {settings}
+                </SidebarSection>
+              </Fragment>
+            )}
+          </PrimaryItems>
+        </SidebarSectionGroupPrimary>
+
+        {hasOrganization && (
+          <SidebarSectionGroup hasNewNav={hasNewNav}>
+            {/* What are the onboarding sidebars? */}
+            <PerformanceOnboardingSidebar
               currentPanel={activePanel}
-              onShowPanel={() => togglePanel(SidebarPanelKey.ONBOARDING_WIZARD)}
+              onShowPanel={() => togglePanel(SidebarPanelKey.PERFORMANCE_ONBOARDING)}
+              hidePanel={() => hidePanel('performance-sidequest')}
+              {...sidebarItemProps}
+            />
+            <FeedbackOnboardingSidebar
+              currentPanel={activePanel}
+              onShowPanel={() => togglePanel(SidebarPanelKey.FEEDBACK_ONBOARDING)}
               hidePanel={hidePanel}
               {...sidebarItemProps}
             />
-          </SidebarSection>
-
-          <SidebarSection>
-            {HookStore.get('sidebar:bottom-items').length > 0 &&
-              HookStore.get('sidebar:bottom-items')[0]({
-                orientation,
-                collapsed,
-                hasPanel,
-                organization,
-              })}
-            <SidebarHelp
-              orientation={orientation}
-              collapsed={collapsed}
-              hidePanel={hidePanel}
-              organization={organization}
-            />
-            <Broadcasts
-              orientation={orientation}
-              collapsed={collapsed}
+            <ReplaysOnboardingSidebar
               currentPanel={activePanel}
-              onShowPanel={() => togglePanel(SidebarPanelKey.BROADCASTS)}
+              onShowPanel={() => togglePanel(SidebarPanelKey.REPLAYS_ONBOARDING)}
               hidePanel={hidePanel}
-              organization={organization}
+              {...sidebarItemProps}
             />
-            <ServiceIncidents
-              orientation={orientation}
-              collapsed={collapsed}
+            <ProfilingOnboardingSidebar
               currentPanel={activePanel}
-              onShowPanel={() => togglePanel(SidebarPanelKey.SERVICE_INCIDENTS)}
+              onShowPanel={() => togglePanel(SidebarPanelKey.PROFILING_ONBOARDING)}
               hidePanel={hidePanel}
+              {...sidebarItemProps}
             />
-          </SidebarSection>
-
-          {!horizontal && (
-            <SidebarSection>
-              <SidebarCollapseItem
-                id="collapse"
-                data-test-id="sidebar-collapse"
+            <MetricsOnboardingSidebar
+              currentPanel={activePanel}
+              onShowPanel={() => togglePanel(SidebarPanelKey.METRICS_ONBOARDING)}
+              hidePanel={hidePanel}
+              {...sidebarItemProps}
+            />
+            <SidebarSection hasNewNav={hasNewNav} noMargin noPadding>
+              <OnboardingStatus
+                org={organization}
+                currentPanel={activePanel}
+                onShowPanel={() => togglePanel(SidebarPanelKey.ONBOARDING_WIZARD)}
+                hidePanel={hidePanel}
                 {...sidebarItemProps}
-                icon={<IconChevron direction={collapsed ? 'right' : 'left'} size="sm" />}
-                label={collapsed ? t('Expand') : t('Collapse')}
-                onClick={toggleCollapse}
               />
             </SidebarSection>
-          )}
-        </SidebarSectionGroup>
-      )}
+
+            <SidebarSection hasNewNav={hasNewNav}>
+              {HookStore.get('sidebar:bottom-items').length > 0 &&
+                HookStore.get('sidebar:bottom-items')[0]({
+                  orientation,
+                  collapsed,
+                  hasPanel,
+                  organization,
+                })}
+              <SidebarHelp
+                orientation={orientation}
+                collapsed={collapsed}
+                hidePanel={hidePanel}
+                organization={organization}
+              />
+              <Broadcasts
+                orientation={orientation}
+                collapsed={collapsed}
+                currentPanel={activePanel}
+                onShowPanel={() => togglePanel(SidebarPanelKey.BROADCASTS)}
+                hidePanel={hidePanel}
+                organization={organization}
+              />
+              <ServiceIncidents
+                orientation={orientation}
+                collapsed={collapsed}
+                currentPanel={activePanel}
+                onShowPanel={() => togglePanel(SidebarPanelKey.SERVICE_INCIDENTS)}
+                hidePanel={hidePanel}
+              />
+            </SidebarSection>
+
+            {!horizontal && !hasNewNav && (
+              <SidebarSection hasNewNav={hasNewNav}>
+                <SidebarCollapseItem
+                  id="collapse"
+                  data-test-id="sidebar-collapse"
+                  {...sidebarItemProps}
+                  icon={<Chevron direction={collapsed ? 'right' : 'left'} />}
+                  label={collapsed ? t('Expand') : t('Collapse')}
+                  onClick={toggleCollapse}
+                />
+              </SidebarSection>
+            )}
+          </SidebarSectionGroup>
+        )}
+      </ExpandedContextProvider>
     </SidebarWrapper>
   );
 }
@@ -640,13 +804,19 @@ const responsiveFlex = css`
   }
 `;
 
-export const SidebarWrapper = styled('nav')<{collapsed: boolean; isSuperuser?: boolean}>`
-  background: ${p =>
-    p.isSuperuser ? p.theme.superuserSidebar : p.theme.sidebarGradient};
-  color: ${p => (p.isSuperuser ? 'white' : p.theme.sidebar.color)};
+export const SidebarWrapper = styled('nav')<{collapsed: boolean; hasNewNav?: boolean}>`
+  background: ${p => p.theme.sidebarGradient};
+  color: ${p => p.theme.sidebar.color};
   line-height: 1;
   padding: 12px 0 2px; /* Allows for 32px avatars  */
-  width: ${p => p.theme.sidebar[p.collapsed ? 'collapsedWidth' : 'expandedWidth']};
+  width: ${p =>
+    p.theme.sidebar[
+      p.hasNewNav
+        ? 'semiCollapsedWidth'
+        : p.collapsed
+          ? 'collapsedWidth'
+          : 'expandedWidth'
+    ]};
   position: fixed;
   top: ${p => (ConfigStore.get('demoMode') ? p.theme.demo.headerSize : 0)};
   left: 0;
@@ -670,10 +840,11 @@ export const SidebarWrapper = styled('nav')<{collapsed: boolean; isSuperuser?: b
   }
 `;
 
-const SidebarSectionGroup = styled('div')`
+const SidebarSectionGroup = styled('div')<{hasNewNav?: boolean}>`
   ${responsiveFlex};
   flex-shrink: 0; /* prevents shrinking on Safari */
   gap: 1px;
+  ${p => p.hasNewNav && `align-items: center;`}
 `;
 
 const SidebarSectionGroupPrimary = styled('div')`
@@ -690,23 +861,30 @@ const SidebarSectionGroupPrimary = styled('div')`
 `;
 
 const PrimaryItems = styled('div')`
-  overflow: auto;
+  overflow-y: auto;
+  overflow-x: hidden;
   flex: 1;
   display: flex;
   flex-direction: column;
   gap: 1px;
   -ms-overflow-style: -ms-autohiding-scrollbar;
+
+  scrollbar-color: ${p => p.theme.sidebar.scrollbarThumbColor}
+    ${p => p.theme.sidebar.scrollbarColorTrack};
+  scrollbar-width: ${p => p.theme.sidebar.scrollbarWidth};
+
   @media (max-height: 675px) and (min-width: ${p => p.theme.breakpoints.medium}) {
-    border-bottom: 1px solid ${p => p.theme.gray400};
+    border-bottom: 1px solid ${p => p.theme.sidebarBorder};
     padding-bottom: ${space(1)};
     box-shadow: rgba(0, 0, 0, 0.15) 0px -10px 10px inset;
   }
   @media (max-width: ${p => p.theme.breakpoints.medium}) {
-    overflow-y: visible;
+    overflow-y: hidden;
+    overflow-x: auto;
     flex-direction: row;
     height: 100%;
     align-items: center;
-    border-right: 1px solid ${p => p.theme.gray400};
+    border-right: 1px solid ${p => p.theme.sidebarBorder};
     padding-right: ${space(1)};
     margin-right: ${space(0.5)};
     box-shadow: rgba(0, 0, 0, 0.15) -10px 0px 10px inset;
@@ -729,20 +907,51 @@ const SubitemDot = styled('div')<{collapsed: boolean}>`
 `;
 
 const SidebarSection = styled(SidebarSectionGroup)<{
+  hasNewNav?: boolean;
   noMargin?: boolean;
   noPadding?: boolean;
 }>`
-  ${p => !p.noMargin && `margin: ${space(1)} 0`};
-  ${p => !p.noPadding && `padding: 0 ${space(2)}`};
+  ${p => !p.noMargin && !p.hasNewNav && `margin: ${space(1)} 0`};
+  ${p => !p.noPadding && !p.hasNewNav && `padding: 0 ${space(2)}`};
 
   @media (max-width: ${p => p.theme.breakpoints.small}) {
     margin: 0;
     padding: 0;
   }
+  ${p =>
+    p.hasNewNav &&
+    css`
+      @media (max-width: ${p.theme.breakpoints.medium}) {
+        margin: 0;
+        padding: 0;
+      }
+    `}
 
   &:empty {
     display: none;
   }
+`;
+
+const DropdownSidebarSection = styled(SidebarSection)<{
+  hasNewNav?: boolean;
+  isSuperuser?: boolean;
+}>`
+  position: relative;
+  margin: 0;
+  padding: ${space(1)} ${space(2)};
+
+  ${p =>
+    p.isSuperuser &&
+    css`
+      &:before {
+        content: '';
+        position: absolute;
+        inset: 0 ${space(1)};
+        border-radius: ${p.theme.borderRadius};
+        background: ${p.theme.superuserSidebar};
+      }
+    `}
+  ${p => p.hasNewNav && `align-items: center;`}
 `;
 
 const SidebarCollapseItem = styled(SidebarItem)`

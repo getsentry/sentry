@@ -11,9 +11,10 @@ from rest_framework.response import Response
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
-from sentry.api.bases import OrganizationEventsEndpointBase
 from sentry.api.bases.organization import OrganizationEndpoint
+from sentry.api.utils import handle_query_errors
 from sentry.sdk_updates import SdkIndexState, SdkSetupState, get_sdk_index, get_suggested_updates
+from sentry.search.events.types import SnubaParams
 from sentry.snuba import discover
 from sentry.utils.numbers import format_grouped_length
 
@@ -70,9 +71,11 @@ def serialize(data, projects):
 
 
 @region_silo_endpoint
-class OrganizationSdkUpdatesEndpoint(OrganizationEventsEndpointBase):
+class OrganizationSdkUpdatesEndpoint(OrganizationEndpoint):
+    owner = ApiOwner.TELEMETRY_EXPERIENCE
+
     publish_status = {
-        "GET": ApiPublishStatus.UNKNOWN,
+        "GET": ApiPublishStatus.PRIVATE,
     }
 
     def get(self, request: Request, organization) -> Response:
@@ -85,7 +88,7 @@ class OrganizationSdkUpdatesEndpoint(OrganizationEventsEndpointBase):
         if len(projects) == 0:
             return Response([])
 
-        with self.handle_query_errors():
+        with handle_query_errors():
             result = discover.query(
                 query="has:sdk.version",
                 selected_columns=[
@@ -95,13 +98,13 @@ class OrganizationSdkUpdatesEndpoint(OrganizationEventsEndpointBase):
                     "sdk.version",
                     "last_seen()",
                 ],
-                orderby="-project",
-                params={
-                    "start": timezone.now() - timedelta(days=1),
-                    "end": timezone.now(),
-                    "organization_id": organization.id,
-                    "project_id": [p.id for p in projects],
-                },
+                orderby=["-project"],
+                snuba_params=SnubaParams(
+                    start=timezone.now() - timedelta(days=1),
+                    end=timezone.now(),
+                    organization=organization,
+                    projects=projects,
+                ),
                 referrer="api.organization-sdk-updates",
             )
 

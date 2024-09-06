@@ -1,7 +1,8 @@
 from __future__ import annotations
 
 import logging
-from typing import Any, Mapping
+from collections.abc import Mapping
+from typing import Any
 
 import sentry_sdk
 from django.conf import settings
@@ -26,7 +27,7 @@ logger = logging.getLogger(__name__)
 class JiraIssueUpdatedWebhook(JiraWebhookBase):
     owner = ApiOwner.INTEGRATIONS
     publish_status = {
-        "POST": ApiPublishStatus.UNKNOWN,
+        "POST": ApiPublishStatus.PRIVATE,
     }
     """
     Webhook hit by Jira whenever an issue is updated in Jira's database.

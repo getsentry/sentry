@@ -1,14 +1,15 @@
 import type {
   AggregateSpanType,
+  MetricsSummary,
   RawSpanType,
   TraceContextType,
 } from 'sentry/components/events/interfaces/spans/types';
 import type {SymbolicatorStatus} from 'sentry/components/events/interfaces/types';
-import type {IssueType, PlatformKey} from 'sentry/types';
 
 import type {RawCrumb} from './breadcrumbs';
 import type {Image} from './debugImage';
-import type {IssueAttachment, IssueCategory} from './group';
+import type {IssueAttachment, IssueCategory, IssueType} from './group';
+import type {PlatformKey} from './project';
 import type {Release} from './release';
 import type {RawStacktrace, StackTraceMechanism, StacktraceType} from './stacktrace';
 
@@ -47,12 +48,18 @@ export type VariantEvidence = {
   parent_span_ids?: string[];
 };
 
-type EventGroupVariantKey = 'custom-fingerprint' | 'app' | 'default' | 'system';
+type EventGroupVariantKey =
+  | 'built-in-fingerprint'
+  | 'custom-fingerprint'
+  | 'app'
+  | 'default'
+  | 'system';
 
 export enum EventGroupVariantType {
   CHECKSUM = 'checksum',
   FALLBACK = 'fallback',
   CUSTOM_FINGERPRINT = 'custom-fingerprint',
+  BUILT_IN_FINGERPRINT = 'built-in-fingerprint',
   COMPONENT = 'component',
   SALTED_COMPONENT = 'salted-component',
   PERFORMANCE_PROBLEM = 'performance-problem',
@@ -90,6 +97,10 @@ interface CustomFingerprintVariant extends BaseVariant, HasComponentGrouping {
   type: EventGroupVariantType.CUSTOM_FINGERPRINT;
 }
 
+interface BuiltInFingerprintVariant extends BaseVariant, HasComponentGrouping {
+  type: EventGroupVariantType.BUILT_IN_FINGERPRINT;
+}
+
 interface SaltedComponentVariant extends BaseVariant, HasComponentGrouping {
   type: EventGroupVariantType.SALTED_COMPONENT;
 }
@@ -105,6 +116,7 @@ export type EventGroupVariant =
   | ComponentVariant
   | SaltedComponentVariant
   | CustomFingerprintVariant
+  | BuiltInFingerprintVariant
   | PerformanceProblemVariant;
 
 export type EventGroupInfo = Record<EventGroupVariantKey, EventGroupVariant>;
@@ -221,29 +233,11 @@ export type ExceptionType = {
   values?: Array<ExceptionValue>;
 };
 
-export type TreeLabelPart =
-  | string
-  | {
-      classbase?: string;
-      datapath?: (string | number)[];
-      filebase?: string;
-      function?: string;
-      is_prefix?: boolean;
-      // is_sentinel is no longer being used,
-      // but we will still assess whether we will use this property in the near future.
-      is_sentinel?: boolean;
-      package?: string;
-      type?: string;
-    };
-
 // This type is incomplete
 export type EventMetadata = {
   current_level?: number;
-  current_tree_label?: TreeLabelPart[];
   directive?: string;
-  display_title_with_tree_label?: boolean;
   filename?: string;
-  finest_tree_label?: TreeLabelPart[];
   function?: string;
   message?: string;
   origin?: string;
@@ -296,7 +290,7 @@ export type EntryDebugMeta = {
   type: EntryType.DEBUGMETA;
 };
 
-type EntryBreadcrumbs = {
+export type EntryBreadcrumbs = {
   data: {
     values: Array<RawCrumb>;
   };
@@ -620,14 +614,20 @@ export interface ThreadPoolInfoContext {
 
 export enum ProfileContextKey {
   PROFILE_ID = 'profile_id',
+  PROFILER_ID = 'profiler_id',
 }
 
 export interface ProfileContext {
   [ProfileContextKey.PROFILE_ID]?: string;
+  [ProfileContextKey.PROFILER_ID]?: string;
+}
+
+export enum ReplayContextKey {
+  REPLAY_ID = 'replay_id',
 }
 
 export interface ReplayContext {
-  replay_id: string;
+  [ReplayContextKey.REPLAY_ID]: string;
   type: string;
 }
 export interface BrowserContext {
@@ -640,7 +640,7 @@ export interface ResponseContext {
   type: 'response';
 }
 
-type EventContexts = {
+export type EventContexts = {
   'Memory Info'?: MemoryInfoContext;
   'ThreadPool Info'?: ThreadPoolInfoContext;
   browser?: BrowserContext;
@@ -662,7 +662,7 @@ type EventContexts = {
   unity?: UnityContext;
 };
 
-export type Measurement = {value: number; unit?: string};
+export type Measurement = {value: number; type?: string; unit?: string};
 
 export type EventTag = {key: string; value: string};
 
@@ -795,9 +795,16 @@ export interface EventTransaction
   endTimestamp: number;
   // EntryDebugMeta is required for profiles to render in the span
   // waterfall with the correct symbolication statuses
-  entries: (EntrySpans | EntryRequest | EntryDebugMeta | AggregateEntrySpans)[];
+  entries: (
+    | EntrySpans
+    | EntryRequest
+    | EntryDebugMeta
+    | AggregateEntrySpans
+    | EntryBreadcrumbs
+  )[];
   startTimestamp: number;
   type: EventOrGroupType.TRANSACTION;
+  _metrics_summary?: MetricsSummary;
   perfProblem?: PerformanceDetectorData;
 }
 

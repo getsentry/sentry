@@ -1,6 +1,7 @@
 import {forwardRef} from 'react';
 
-import {SvgIcon, SVGIconProps} from './svgIcon';
+import type {SVGIconProps} from './svgIcon';
+import {SvgIcon} from './svgIcon';
 
 const IconWindow = forwardRef<SVGSVGElement, SVGIconProps>((props, ref) => {
   return (

@@ -1,11 +1,11 @@
-import {Organization} from 'sentry-fixture/organization';
+import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {BreadcrumbContextProvider} from 'sentry-test/providers/breadcrumbContextProvider';
-import {render} from 'sentry-test/reactTestingLibrary';
+import {render, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import * as OrgActions from 'sentry/actionCreators/organizations';
 import AccountSettingsLayout from 'sentry/views/settings/account/accountSettingsLayout';
+import {BreadcrumbProvider} from 'sentry/views/settings/components/settingsBreadcrumb/context';
 
 describe('AccountSettingsLayout', function () {
   let spy: jest.SpyInstance;
@@ -13,7 +13,7 @@ describe('AccountSettingsLayout', function () {
 
   const {routerProps} = initializeOrg();
 
-  const organization = Organization({
+  const organization = OrganizationFixture({
     id: '44',
     name: 'Org Index',
     slug: 'org-index',
@@ -27,42 +27,42 @@ describe('AccountSettingsLayout', function () {
     });
   });
 
-  it('fetches org details for SidebarDropdown', function () {
+  it('fetches org details for SidebarDropdown', async function () {
     const {rerender} = render(
-      <BreadcrumbContextProvider>
+      <BreadcrumbProvider>
         <AccountSettingsLayout {...routerProps}>content</AccountSettingsLayout>
-      </BreadcrumbContextProvider>
+      </BreadcrumbProvider>
     );
 
     // org from index endpoint, no `access` info
     rerender(
-      <BreadcrumbContextProvider>
+      <BreadcrumbProvider>
         <AccountSettingsLayout {...routerProps} organization={organization}>
           content
         </AccountSettingsLayout>
-      </BreadcrumbContextProvider>
+      </BreadcrumbProvider>
     );
 
+    await waitFor(() => expect(api).toHaveBeenCalledTimes(1));
     expect(spy).toHaveBeenCalledWith(expect.anything(), organization.slug, {
       setActive: true,
       loadProjects: true,
     });
-    expect(api).toHaveBeenCalledTimes(1);
   });
 
   it('does not fetch org details for SidebarDropdown', function () {
     const {rerender} = render(
-      <BreadcrumbContextProvider>
+      <BreadcrumbProvider>
         <AccountSettingsLayout {...routerProps}>content</AccountSettingsLayout>
-      </BreadcrumbContextProvider>
+      </BreadcrumbProvider>
     );
 
     rerender(
-      <BreadcrumbContextProvider>
-        <AccountSettingsLayout {...routerProps} organization={Organization()}>
+      <BreadcrumbProvider>
+        <AccountSettingsLayout {...routerProps} organization={OrganizationFixture()}>
           content
         </AccountSettingsLayout>
-      </BreadcrumbContextProvider>
+      </BreadcrumbProvider>
     );
 
     expect(spy).not.toHaveBeenCalledWith();

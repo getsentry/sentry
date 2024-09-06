@@ -8,10 +8,8 @@ from django.urls import reverse
 from sentry.api.endpoints.organization_transaction_anomaly_detection import get_time_params
 from sentry.testutils.cases import APITestCase, SnubaTestCase
 from sentry.testutils.helpers.datetime import freeze_time
-from sentry.testutils.silo import region_silo_test
 
 
-@region_silo_test
 @freeze_time("2022-02-21")
 class OrganizationTransactionAnomalyDetectionEndpointTest(APITestCase, SnubaTestCase):
     endpoint = "sentry-api-0-organization-transaction-anomaly-detection"
@@ -26,7 +24,7 @@ class OrganizationTransactionAnomalyDetectionEndpointTest(APITestCase, SnubaTest
     def do_request(self, data, url=None, features=None):
         self.url = reverse(
             "sentry-api-0-organization-transaction-anomaly-detection",
-            kwargs={"organization_slug": self.project.organization.slug},
+            kwargs={"organization_id_or_slug": self.project.organization.slug},
         )
 
         if features is None:
@@ -41,7 +39,7 @@ class OrganizationTransactionAnomalyDetectionEndpointTest(APITestCase, SnubaTest
     def test_without_feature(self):
         self.url = reverse(
             "sentry-api-0-organization-transaction-anomaly-detection",
-            kwargs={"organization_slug": self.project.organization.slug},
+            kwargs={"organization_id_or_slug": self.project.organization.slug},
         )
 
         response = self.client.get(self.url, data={}, format="json")

@@ -1,11 +1,11 @@
 import styled from '@emotion/styled';
 
-import {Button} from 'sentry/components/button';
+import {LinkButton} from 'sentry/components/button';
 import PageAlertBar from 'sentry/components/pageAlertBar';
 import {IconLightning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {Organization} from 'sentry/types';
+import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 
 export default function FinishSetupAlert({
@@ -23,7 +23,7 @@ export default function FinishSetupAlert({
           'You are viewing a sample transaction. Configure performance to start viewing real transactions.'
         )}
       </TextWrapper>
-      <Button
+      <LinkButton
         size="xs"
         priority="primary"
         external
@@ -36,7 +36,7 @@ export default function FinishSetupAlert({
         }
       >
         {t('Get Started')}
-      </Button>
+      </LinkButton>
     </PageAlertBar>
   );
 }

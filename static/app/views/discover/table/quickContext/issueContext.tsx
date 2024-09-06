@@ -4,7 +4,7 @@ import styled from '@emotion/styled';
 import ActorAvatar from 'sentry/components/avatar/actorAvatar';
 import Count from 'sentry/components/count';
 import {QuickContextCommitRow} from 'sentry/components/discover/quickContextCommitRow';
-import {DataSection, SuspectCommitHeader} from 'sentry/components/events/styles';
+import {SuspectCommitHeader} from 'sentry/components/events/styles';
 import {StyledPanel, SuspectCommits} from 'sentry/components/events/suspectCommits';
 import {getAssignedToDisplayName} from 'sentry/components/group/assignedTo';
 import Panel from 'sentry/components/panels/panel';
@@ -14,7 +14,8 @@ import {Tooltip} from 'sentry/components/tooltip';
 import {IconCheckmark, IconMute, IconNot, IconUser} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {Event, Group} from 'sentry/types';
+import type {Event} from 'sentry/types/event';
+import type {Group} from 'sentry/types/group';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useApiQuery} from 'sentry/utils/queryClient';
 
@@ -27,7 +28,8 @@ import {
   ContextTitle,
   Wrapper,
 } from './styles';
-import {BaseContextProps, ContextType, tenSecondInMs} from './utils';
+import type {BaseContextProps} from './utils';
+import {ContextType, tenSecondInMs} from './utils';
 
 function IssueContext(props: BaseContextProps) {
   const {dataRow, organization} = props;
@@ -40,7 +42,7 @@ function IssueContext(props: BaseContextProps) {
   }, [organization]);
 
   const {
-    isLoading: issueLoading,
+    isPending: issueLoading,
     isError: issueError,
     data: issue,
   } = useApiQuery<Group>(
@@ -61,7 +63,7 @@ function IssueContext(props: BaseContextProps) {
   // NOTE: Suspect commits are generated from the first event of an issue.
   // Therefore, all events for an issue have the same suspect commits.
   const {
-    isLoading: eventLoading,
+    isPending: eventLoading,
     isError: eventError,
     data: event,
   } = useApiQuery<Event>([`/issues/${dataRow['issue.id']}/events/oldest/`], {
@@ -153,8 +155,7 @@ function IssueContext(props: BaseContextProps) {
     );
 
   const renderSuspectCommits = () =>
-    event &&
-    event.eventID &&
+    event?.eventID &&
     issue && (
       <SuspectCommitsContainer data-test-id="quick-context-suspect-commits-container">
         <SuspectCommits
@@ -189,10 +190,6 @@ const SuspectCommitsContainer = styled(ContextContainer)`
   ${StyledPanel} {
     border: none;
     box-shadow: none;
-  }
-
-  ${DataSection} {
-    padding: 0;
   }
 
   ${SuspectCommitHeader} {

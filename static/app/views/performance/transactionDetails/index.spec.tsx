@@ -1,5 +1,7 @@
-import {Event as EventFixture} from 'sentry-fixture/event';
-import {Organization} from 'sentry-fixture/organization';
+import {EventFixture} from 'sentry-fixture/event';
+import {OrganizationFixture} from 'sentry-fixture/organization';
+import {ProjectFixture} from 'sentry-fixture/project';
+import {RouteComponentPropsFixture} from 'sentry-fixture/routeComponentPropsFixture';
 
 import {act, render, screen} from 'sentry-test/reactTestingLibrary';
 
@@ -10,10 +12,9 @@ const alertText =
   'You are viewing a sample transaction. Configure performance to start viewing real transactions.';
 
 describe('EventDetails', () => {
-  const project = TestStubs.Project();
-  const organization = Organization({
+  const project = ProjectFixture();
+  const organization = OrganizationFixture({
     features: ['performance-view'],
-    projects: [project],
   });
 
   beforeEach(() => {
@@ -32,6 +33,13 @@ describe('EventDetails', () => {
       url: `/projects/${organization.slug}/latest/events/1/committers/`,
       statusCode: 200,
       body: [],
+    });
+
+    MockApiClient.addMockResponse({
+      url: `/projects/${organization.slug}/latest/events/1/actionable-items/`,
+      body: {
+        errors: [],
+      },
     });
   });
 
@@ -53,18 +61,16 @@ describe('EventDetails', () => {
     });
 
     render(
-      <EventDetails
-        {...TestStubs.routeComponentProps({params: {eventSlug: 'latest'}})}
-      />,
+      <EventDetails {...RouteComponentPropsFixture({params: {eventSlug: 'latest'}})} />,
       {organization}
     );
-    expect(screen.getByText(alertText)).toBeInTheDocument();
+    expect(await screen.findByText(alertText)).toBeInTheDocument();
 
     // Expect stores to be updated
     await act(tick);
   });
 
-  it('does not reender alert if already received transaction', async () => {
+  it('does not render alert if already received transaction', async () => {
     const event = EventFixture();
 
     MockApiClient.addMockResponse({
@@ -76,9 +82,7 @@ describe('EventDetails', () => {
     });
 
     render(
-      <EventDetails
-        {...TestStubs.routeComponentProps({params: {eventSlug: 'latest'}})}
-      />,
+      <EventDetails {...RouteComponentPropsFixture({params: {eventSlug: 'latest'}})} />,
       {organization}
     );
     expect(screen.queryByText(alertText)).not.toBeInTheDocument();

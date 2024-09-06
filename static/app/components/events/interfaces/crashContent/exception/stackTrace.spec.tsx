@@ -1,4 +1,4 @@
-import {Event as EventFixture} from 'sentry-fixture/event';
+import {EventFixture} from 'sentry-fixture/event';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
@@ -85,7 +85,6 @@ const props: React.ComponentProps<typeof ExceptionStacktraceContent> = {
   }),
   data: stacktrace,
   stacktrace,
-  hasHierarchicalGrouping: false,
   groupingCurrentLevel: undefined,
   meta: undefined,
 };

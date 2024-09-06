@@ -1,6 +1,7 @@
-import {ReactNode, useCallback, useMemo} from 'react';
+import type {ReactNode} from 'react';
+import {useCallback, useMemo} from 'react';
 import styled from '@emotion/styled';
-import {LocationDescriptor} from 'history';
+import type {LocationDescriptor} from 'history';
 
 import EmptyMessage from 'sentry/components/emptyMessage';
 import {KeyValueTable} from 'sentry/components/keyValueTable';
@@ -8,8 +9,8 @@ import Placeholder from 'sentry/components/placeholder';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
 import ReplayTagsTableRow from 'sentry/components/replays/replayTagsTableRow';
 import {t} from 'sentry/locale';
+import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import useOrganization from 'sentry/utils/useOrganization';
-import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import FluidHeight from 'sentry/views/replays/detail/layout/fluidHeight';
 import FluidPanel from 'sentry/views/replays/detail/layout/fluidPanel';
 import TabItemContainer from 'sentry/views/replays/detail/tabItemContainer';
@@ -47,6 +48,7 @@ const notSearchable = [
   'sdk.networkRequestHasHeaders',
   'sdk.networkResponseHasHeaders',
   'sdk.sessionSampleRate',
+  'sdk.shouldRecordCanvas',
   'sdk.useCompression',
   'sdk.useCompressionOption',
 ];

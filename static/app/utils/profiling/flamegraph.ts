@@ -1,5 +1,5 @@
 import {trimPackage} from 'sentry/components/events/interfaces/frame/utils';
-import {FlamegraphFrame} from 'sentry/utils/profiling/flamegraphFrame';
+import type {FlamegraphFrame} from 'sentry/utils/profiling/flamegraphFrame';
 
 import {Profile} from './profile/profile';
 import {SampledProfile} from './profile/sampledProfile';
@@ -13,7 +13,7 @@ function sortByTotalWeight(a: CallTreeNode, b: CallTreeNode) {
 }
 
 export function sortFlamegraphAlphabetically(a: CallTreeNode, b: CallTreeNode) {
-  return a.frame.name.localeCompare(b.frame.name);
+  return (a.frame.name + a.frame.file).localeCompare(b.frame.name + b.frame.file);
 }
 
 function makeTreeSort(sortFn: (a: CallTreeNode, b: CallTreeNode) => number) {
@@ -157,10 +157,10 @@ export class Flamegraph {
         this.profile.unit === 'nanoseconds'
           ? 1e9
           : this.profile.unit === 'microseconds'
-          ? 1e6
-          : this.profile.unit === 'milliseconds'
-          ? 1e3
-          : 1;
+            ? 1e6
+            : this.profile.unit === 'milliseconds'
+              ? 1e3
+              : 1;
     }
 
     this.configSpace = new Rect(0, 0, width, this.depth);

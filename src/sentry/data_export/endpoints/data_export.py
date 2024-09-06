@@ -9,11 +9,12 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import EnvironmentMixin, region_silo_endpoint
 from sentry.api.bases.organization import OrganizationDataExportPermission, OrganizationEndpoint
 from sentry.api.serializers import serialize
-from sentry.api.utils import InvalidParams, get_date_range_from_params
+from sentry.api.utils import get_date_range_from_params
 from sentry.discover.arithmetic import categorize_columns
-from sentry.exceptions import InvalidSearchQuery
+from sentry.exceptions import InvalidParams, InvalidSearchQuery
 from sentry.models.environment import Environment
-from sentry.search.events.builder import QueryBuilder
+from sentry.search.events.builder.discover import DiscoverQueryBuilder
+from sentry.search.events.builder.errors import ErrorsQueryBuilder
 from sentry.search.events.types import QueryBuilderConfig
 from sentry.snuba.dataset import Dataset
 from sentry.utils import metrics
@@ -23,6 +24,14 @@ from ..base import ExportQueryType
 from ..models import ExportedData
 from ..processors.discover import DiscoverProcessor
 from ..tasks import assemble_download
+
+# To support more datasets we may need to change the QueryBuilder being used
+SUPPORTED_DATASETS = {
+    "discover": Dataset.Discover,
+    "issuePlatform": Dataset.IssuePlatform,
+    "transactions": Dataset.Transactions,
+    "errors": Dataset.Events,
+}
 
 
 class DataExportQuerySerializer(serializers.Serializer):
@@ -86,16 +95,24 @@ class DataExportQuerySerializer(serializers.Serializer):
                 del query_info["statsPeriodEnd"]
             query_info["start"] = start.isoformat()
             query_info["end"] = end.isoformat()
+            dataset = query_info.get("dataset", "discover")
+            if dataset not in SUPPORTED_DATASETS:
+                raise serializers.ValidationError(f"{dataset} is not supported for csv exports")
 
             # validate the query string by trying to parse it
             processor = DiscoverProcessor(
                 discover_query=query_info,
-                organization_id=organization.id,
+                organization=organization,
             )
             try:
-                builder = QueryBuilder(
-                    Dataset.Discover,
-                    processor.params,
+                query_builder_cls = DiscoverQueryBuilder
+                if dataset == "errors":
+                    query_builder_cls = ErrorsQueryBuilder
+
+                builder = query_builder_cls(
+                    SUPPORTED_DATASETS[dataset],
+                    params={},
+                    snuba_params=processor.snuba_params,
                     query=query_info["query"],
                     selected_columns=fields.copy(),
                     equations=equations,
@@ -114,7 +131,7 @@ class DataExportQuerySerializer(serializers.Serializer):
 @region_silo_endpoint
 class DataExportEndpoint(OrganizationEndpoint, EnvironmentMixin):
     publish_status = {
-        "POST": ApiPublishStatus.UNKNOWN,
+        "POST": ApiPublishStatus.PRIVATE,
     }
     permission_classes = (OrganizationDataExportPermission,)
 
@@ -140,8 +157,8 @@ class DataExportEndpoint(OrganizationEndpoint, EnvironmentMixin):
             data=request.data,
             context={
                 "organization": organization,
-                "get_projects_by_id": lambda project_query: self._get_projects_by_id(
-                    project_query, request, organization
+                "get_projects_by_id": lambda project_query: self.get_projects(
+                    request=request, organization=organization, project_ids=project_query
                 ),
                 "get_projects": lambda: self.get_projects(request, organization),
             },

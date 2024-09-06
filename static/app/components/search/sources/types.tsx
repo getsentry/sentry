@@ -20,7 +20,8 @@ export type ResultItem = {
     | 'help-docs'
     | 'help-develop'
     | 'help-help-center'
-    | 'help-blog';
+    | 'help-blog'
+    | 'help-zendesk_sentry_articles';
   /**
    * The source that created the result.
    */

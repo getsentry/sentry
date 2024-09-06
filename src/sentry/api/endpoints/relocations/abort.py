@@ -1,3 +1,5 @@
+import logging
+
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -5,7 +7,7 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import Endpoint, region_silo_endpoint
 from sentry.api.exceptions import ResourceDoesNotExist
-from sentry.api.permissions import SuperuserPermission
+from sentry.api.permissions import SuperuserOrStaffFeatureFlaggedPermission
 from sentry.api.serializers import serialize
 from sentry.models.relocation import Relocation
 
@@ -13,15 +15,17 @@ ERR_NOT_ABORTABLE_STATUS = (
     "Relocations can only be cancelled if they are not yet complete; this relocation is `SUCCESS`."
 )
 
+logger = logging.getLogger(__name__)
+
 
 @region_silo_endpoint
 class RelocationAbortEndpoint(Endpoint):
-    owner = ApiOwner.RELOCATION
+    owner = ApiOwner.OPEN_SOURCE
     publish_status = {
         # TODO(getsentry/team-ospo#214): Stabilize before GA.
         "PUT": ApiPublishStatus.EXPERIMENTAL,
     }
-    permission_classes = (SuperuserPermission,)
+    permission_classes = (SuperuserOrStaffFeatureFlaggedPermission,)
 
     def put(self, request: Request, relocation_uuid: str) -> Response:
         """
@@ -38,6 +42,8 @@ class RelocationAbortEndpoint(Endpoint):
 
         :auth: required
         """
+
+        logger.info("relocations.abort.put.start", extra={"caller": request.user.id})
 
         try:
             relocation: Relocation = Relocation.objects.get(uuid=relocation_uuid)

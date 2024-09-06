@@ -1,12 +1,7 @@
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import {
-  FilterType,
-  ParseResult,
-  TermOperator,
-  Token,
-  TokenResult,
-} from 'sentry/components/searchSyntax/parser';
+import type {ParseResult, TokenResult} from 'sentry/components/searchSyntax/parser';
+import {FilterType, TermOperator, Token} from 'sentry/components/searchSyntax/parser';
 
 import HighlightQuery from './renderer';
 

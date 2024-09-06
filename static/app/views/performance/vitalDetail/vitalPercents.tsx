@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {WebVital} from 'sentry/utils/fields';
-import {formatPercentage} from 'sentry/utils/formatters';
+import {formatPercentage} from 'sentry/utils/number/formatPercentage';
 
 import {VitalState, vitalStateIcons, webVitalMeh, webVitalPoor} from './utils';
 

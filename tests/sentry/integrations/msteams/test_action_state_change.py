@@ -1,12 +1,14 @@
 import time
 from unittest.mock import patch
 
+import orjson
 import responses
 from django.http import HttpResponse
 from django.urls import reverse
 
 from sentry.api.client import ApiClient
 from sentry.integrations.msteams.card_builder.identity import build_linking_card
+from sentry.integrations.msteams.constants import SALT
 from sentry.integrations.msteams.link_identity import build_linking_url
 from sentry.integrations.msteams.utils import ACTION_TYPE
 from sentry.models.activity import Activity, ActivityIntegration
@@ -14,20 +16,16 @@ from sentry.models.authidentity import AuthIdentity
 from sentry.models.authprovider import AuthProvider
 from sentry.models.group import Group, GroupStatus
 from sentry.models.groupassignee import GroupAssignee
-from sentry.models.identity import Identity, IdentityProvider, IdentityStatus
-from sentry.models.integrations.integration import Integration
-from sentry.models.integrations.organization_integration import OrganizationIntegration
-from sentry.silo import SiloMode
+from sentry.silo.base import SiloMode
 from sentry.testutils.asserts import assert_mock_called_once_with_partial
 from sentry.testutils.cases import APITestCase
-from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
+from sentry.testutils.silo import assume_test_silo_mode
 from sentry.testutils.skips import requires_snuba
-from sentry.utils import json
+from sentry.users.models.identity import Identity, IdentityStatus
 
 pytestmark = [requires_snuba]
 
 
-@region_silo_test
 class StatusActionTest(APITestCase):
     def setUp(self):
         super().setUp()
@@ -37,7 +35,7 @@ class StatusActionTest(APITestCase):
         self.team = self.create_team(organization=self.org, members=[self.user])
 
         with assume_test_silo_mode(SiloMode.CONTROL):
-            self.integration = Integration.objects.create(
+            self.integration = self.create_provider_integration(
                 provider="msteams",
                 name="Fellowship of the Ring",
                 external_id="f3ll0wsh1p",
@@ -47,13 +45,11 @@ class StatusActionTest(APITestCase):
                     "expires_at": int(time.time()) + 86400,
                 },
             )
-            OrganizationIntegration.objects.create(
+            self.create_organization_integration(
                 organization_id=self.org.id, integration=self.integration
             )
 
-            self.idp = IdentityProvider.objects.create(
-                type="msteams", external_id="f3ll0wsh1p", config={}
-            )
+            self.idp = self.create_identity_provider(type="msteams", external_id="f3ll0wsh1p")
             self.identity = Identity.objects.create(
                 external_id="g4nd4lf",
                 idp=self.idp,
@@ -130,12 +126,12 @@ class StatusActionTest(APITestCase):
         sign.return_value = "signed_parameters"
 
         def user_conversation_id_callback(request):
-            payload = json.loads(request.body)
+            payload = orjson.loads(request.body)
             if payload["members"] == [{"id": "s4ur0n"}] and payload["channelData"] == {
                 "tenant": {"id": "7h3_gr347"}
             }:
-                return (200, {}, json.dumps({"id": "d4rk_l0rd"}))
-            return (404, {}, json.dumps({}))
+                return 200, {}, orjson.dumps({"id": "d4rk_l0rd"}).decode()
+            return 404, {}, orjson.dumps({}).decode()
 
         responses.add_callback(
             method=responses.POST,
@@ -153,6 +149,7 @@ class StatusActionTest(APITestCase):
         resp = self.post_webhook(user_id="s4ur0n", tenant_id="7h3_gr347")
         # assert sign is called with the right arguments
         assert sign.call_args.kwargs == {
+            "salt": SALT,
             "integration_id": self.integration.id,
             "organization_id": self.org.id,
             "teams_user_id": "s4ur0n",
@@ -164,7 +161,7 @@ class StatusActionTest(APITestCase):
             self.integration, self.org, "s4ur0n", "f3ll0wsh1p", "7h3_gr347"
         )
 
-        data = json.loads(responses.calls[1].request.body)
+        data = orjson.loads(responses.calls[1].request.body)
 
         assert resp.status_code == 201
         assert "attachments" in data
@@ -221,7 +218,7 @@ class StatusActionTest(APITestCase):
 
         assert resp.status_code == 200, resp.content
         assert GroupAssignee.objects.filter(group=self.group1, team=self.team).exists()
-        activity = Activity.objects.filter(group=self.group1).first()
+        activity = Activity.objects.get(group=self.group1)
         assert activity.data == {
             "assignee": str(self.team.id),
             "assigneeEmail": None,
@@ -239,7 +236,7 @@ class StatusActionTest(APITestCase):
 
         assert b"Unassign" in responses.calls[0].request.body
         assert f"Assigned to {self.user.email}".encode() in responses.calls[0].request.body
-        activity = Activity.objects.filter(group=self.group1).first()
+        activity = Activity.objects.get(group=self.group1)
         assert activity.data == {
             "assignee": str(self.user.id),
             "assigneeEmail": self.user.email,
@@ -281,7 +278,7 @@ class StatusActionTest(APITestCase):
         org2 = self.create_organization(owner=None)
 
         with assume_test_silo_mode(SiloMode.CONTROL):
-            integration2 = Integration.objects.create(
+            integration2 = self.create_provider_integration(
                 provider="msteams",
                 name="Army of Mordor",
                 external_id="54rum4n",
@@ -291,11 +288,9 @@ class StatusActionTest(APITestCase):
                     "expires_at": int(time.time()) + 86400,
                 },
             )
-            OrganizationIntegration.objects.create(
-                organization_id=org2.id, integration=integration2
-            )
+            self.create_organization_integration(organization_id=org2.id, integration=integration2)
 
-            idp2 = IdentityProvider.objects.create(type="msteams", external_id="54rum4n", config={})
+            idp2 = self.create_identity_provider(type="msteams", external_id="54rum4n")
             Identity.objects.create(
                 external_id="7h3_gr3y",
                 idp=idp2,

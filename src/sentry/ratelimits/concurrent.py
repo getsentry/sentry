@@ -15,7 +15,7 @@ logger = logging.getLogger(__name__)
 ErrorLimit = float("inf")
 DEFAULT_MAX_TTL_SECONDS = 30
 
-rate_limit_info = redis.load_script("ratelimits/api_limiter.lua")
+rate_limit_info = redis.load_redis_script("ratelimits/api_limiter.lua")
 
 
 @dataclass
@@ -46,7 +46,7 @@ class ConcurrentRateLimiter:
         current_executions, request_allowed, cleaned_up_requests = (-1, True, 0)
         try:
             current_executions, request_allowed, cleaned_up_requests = rate_limit_info(
-                self.client, [redis_key], [limit, request_uid, time(), self.max_ttl_seconds]
+                [redis_key], [limit, request_uid, time(), self.max_ttl_seconds], self.client
             )
         except Exception:
             logger.exception(

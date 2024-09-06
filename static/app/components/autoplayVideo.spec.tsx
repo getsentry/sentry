@@ -11,6 +11,13 @@ jest.mock('react', () => {
     useRef: jest.fn(),
   };
 });
+// XXX: Mocking useRef throws an error for AnimatePrecense, so it must be mocked as well
+jest.mock('framer-motion', () => {
+  return {
+    ...jest.requireActual('framer-motion'),
+    AnimatePresence: jest.fn().mockImplementation(({children}) => <div>{children}</div>),
+  };
+});
 
 // Use a proxy to prevent <video ref={ref}/> from overriding our ref.current
 const makeProxyMock = (video: Partial<HTMLVideoElement>) => {

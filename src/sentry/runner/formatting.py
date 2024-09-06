@@ -1,4 +1,10 @@
+from __future__ import annotations
+
 import re
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    import honcho.printer
 
 # Sentry colors taken from our design system. Might not look good on all
 # terminal themes tbh
@@ -18,7 +24,7 @@ SERVICE_COLORS = {
 }
 
 
-def colorize_code(pattern):
+def colorize_code(pattern: re.Match[str]) -> str:
     code = int(pattern.group("code"))
     method = pattern.group("method")
 
@@ -40,7 +46,7 @@ def colorize_code(pattern):
     )
 
 
-def colorize_reboot(pattern):
+def colorize_reboot(pattern: re.Match[str]) -> str:
     return "{bg}{fg}[ RELOADING ]{reset} {info_fg}{info}".format(
         bg="\x1b[48;2;%s;%s;%sm" % COLORS["red"],
         fg="\x1b[38;2;%s;%s;%sm" % COLORS["white"],
@@ -50,7 +56,7 @@ def colorize_reboot(pattern):
     )
 
 
-def colorize_booted(pattern):
+def colorize_booted(pattern: re.Match[str]) -> str:
     return "{bg}{fg}[ UWSGI READY ]{reset} {info_fg}{info}".format(
         bg="\x1b[48;2;%s;%s;%sm" % COLORS["green"],
         fg="\x1b[38;2;%s;%s;%sm" % COLORS["white"],
@@ -60,7 +66,7 @@ def colorize_booted(pattern):
     )
 
 
-def colorize_traceback(pattern):
+def colorize_traceback(pattern: re.Match[str]) -> str:
     return "{bg}  {reset} {info_fg}{info}".format(
         bg="\x1b[48;2;%s;%s;%sm" % COLORS["red"],
         info_fg="\x1b[38;2;%s;%s;%sm" % COLORS["red"],
@@ -69,34 +75,46 @@ def colorize_traceback(pattern):
     )
 
 
-def monkeypatch_honcho_write(self, message):
-    name = message.name if message.name is not None else ""
-    name = name.rjust(self.width)
+def get_honcho_printer(*, prefix: bool, pretty: bool) -> honcho.printer.Printer:
+    import honcho.printer
 
-    if isinstance(message.data, bytes):
-        string = message.data.decode("utf-8", "replace")
-    else:
-        string = message.data
+    class SentryPrinter(honcho.printer.Printer):
+        def write(self, message: honcho.printer.Message) -> None:
+            if not pretty:
+                super().write(message)
+                return
 
-    # Colorize requests
-    string = re.sub(
-        r"(?P<method>GET|POST|PUT|HEAD|DELETE) (?P<code>[0-9]{3})", colorize_code, string
-    )
-    # Colorize reboots
-    string = re.sub(r"Gracefully killing worker [0-9]+ .*\.\.\.", colorize_reboot, string)
-    # Colorize reboot complete
-    string = re.sub(r"WSGI app [0-9]+ \(.*\) ready in [0-9]+ seconds .*", colorize_booted, string)
-    # Mark python tracebacks
-    string = re.sub(r"Traceback \(most recent call last\).*", colorize_traceback, string)
+            name = message.name if message.name is not None else ""
+            name = name.rjust(self.width)
 
-    blank_color = (74, 62, 86)
+            if isinstance(message.data, bytes):
+                string = message.data.decode("utf-8", "replace")
+            else:
+                string = message.data
 
-    prefix = "{name_fg}{name}{reset} {indicator_bg} {reset} ".format(
-        name=name.ljust(self.width),
-        name_fg="\x1b[38;2;%s;%s;%sm" % SERVICE_COLORS.get(message.name, blank_color),
-        indicator_bg="\x1b[48;2;%s;%s;%sm" % SERVICE_COLORS.get(message.name, blank_color),
-        reset="\x1b[0m",
-    )
+            # Colorize requests
+            string = re.sub(
+                r"(?P<method>GET|POST|PUT|HEAD|DELETE) (?P<code>[0-9]{3})", colorize_code, string
+            )
+            # Colorize reboots
+            string = re.sub(r"Gracefully killing worker [0-9]+ .*\.\.\.", colorize_reboot, string)
+            # Colorize reboot complete
+            string = re.sub(
+                r"WSGI app [0-9]+ \(.*\) ready in [0-9]+ seconds .*", colorize_booted, string
+            )
+            # Mark python tracebacks
+            string = re.sub(r"Traceback \(most recent call last\).*", colorize_traceback, string)
 
-    for line in string.splitlines():
-        self.output.write(f"{prefix}{line}\n")
+            blank_color = (74, 62, 86)
+
+            prefix = "{name_fg}{name}{reset} {indicator_bg} {reset} ".format(
+                name=name.ljust(self.width),
+                name_fg="\x1b[38;2;%s;%s;%sm" % SERVICE_COLORS.get(name, blank_color),
+                indicator_bg="\x1b[48;2;%s;%s;%sm" % SERVICE_COLORS.get(name, blank_color),
+                reset="\x1b[0m",
+            )
+
+            for line in string.splitlines():
+                self.output.write(f"{prefix}{line}\n")
+
+    return SentryPrinter(prefix=prefix)

@@ -1,6 +1,4 @@
 ---
-created: '2020-02-26T19:54:37.543865Z'
-creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
 default:
@@ -14,4 +12,4 @@ default:
         uri*
           "use.fontawesome.com"
       message (csp takes precedence)
-        "Blocked 'style' from 'use.fontawesome.com'"
+        "Blocked 'style' from '<hostname>'"

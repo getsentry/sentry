@@ -1,6 +1,7 @@
 from __future__ import annotations
 
-from typing import Any, Mapping, Optional
+from collections.abc import Mapping
+from typing import Any
 
 from sentry.api.serializers import Serializer
 from sentry.models.notificationsettingoption import NotificationSettingOption
@@ -13,7 +14,7 @@ class NotificationSettingsBaseSerializer(Serializer):
         obj: Any,
         *args: Any,
         **kwargs: Any,
-    ) -> Mapping[str, Optional[str]]:
+    ) -> Mapping[str, str | None]:
         return {
             "id": str(obj.id),
             "scopeType": obj.scope_type,
@@ -31,7 +32,7 @@ class NotificationSettingsOptionSerializer(NotificationSettingsBaseSerializer):
         obj: NotificationSettingOption,
         *args: Any,
         **kwargs: Any,
-    ) -> Mapping[str, Optional[str]]:
+    ) -> Mapping[str, str | None]:
         return super().serialize(obj, **kwargs)
 
 
@@ -41,7 +42,7 @@ class NotificationSettingsProviderSerializer(NotificationSettingsBaseSerializer)
         obj: NotificationSettingProvider,
         *args: Any,
         **kwargs: Any,
-    ) -> Mapping[str, Optional[str]]:
+    ) -> Mapping[str, str | None]:
         output = super().serialize(obj, **kwargs)
         return {
             **output,

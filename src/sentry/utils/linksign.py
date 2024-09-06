@@ -9,8 +9,8 @@ from sentry_sdk.api import capture_exception
 
 from sentry import features, options
 from sentry.models.organization import Organization
-from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.types.region import get_local_region
+from sentry.users.services.user.service import user_service
 from sentry.utils.numbers import base36_decode, base36_encode
 
 
@@ -68,7 +68,7 @@ def generate_signed_unsubscribe_link(
     html_viewname = f"sentry-organization-unsubscribe-{resource}"
     api_endpointname = f"sentry-api-0-organization-unsubscribe-{resource}"
     url_args = [organization.slug, resource_id]
-    if features.has("organizations:customer-domains", organization):
+    if features.has("system:multi-region"):
         url_args = [resource_id]
         html_viewname = f"sentry-customer-domain-unsubscribe-{resource}"
 

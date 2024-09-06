@@ -1,14 +1,14 @@
 from __future__ import annotations
 
 import logging
+from collections.abc import Mapping
 from html import escape
-from typing import ClassVar, List, Optional, Union
+from typing import Any, ClassVar, Union
 
 from django.conf import settings
+from django.utils.functional import classproperty
 from django.utils.translation import gettext as _
 
-from sentry.utils.canonical import get_canonical_name
-from sentry.utils.decorators import classproperty
 from sentry.utils.imports import import_string
 from sentry.utils.json import prune_empty_keys
 from sentry.utils.safe import get_path, safe_execute
@@ -16,12 +16,11 @@ from sentry.utils.safe import get_path, safe_execute
 logger = logging.getLogger("sentry.events")
 interface_logger = logging.getLogger("sentry.interfaces")
 
-DataPath = List[Union[str, int]]
+DataPath = list[Union[str, int]]
 
 
-def get_interface(name):
+def get_interface(name: str) -> type[Interface]:
     try:
-        name = get_canonical_name(name)
         import_path = settings.SENTRY_INTERFACES[name]
     except KeyError:
         raise ValueError(f"Invalid interface name: {name}")
@@ -34,9 +33,9 @@ def get_interface(name):
     return interface
 
 
-def get_interfaces(data):
+def get_interfaces(event: Mapping[str, Any]) -> dict[str, Interface]:
     result = []
-    for key, data in data.items():
+    for key, data in event.items():
         # Skip invalid interfaces that were nulled out during normalization
         if data is None:
             continue
@@ -46,7 +45,7 @@ def get_interfaces(data):
         except ValueError:
             continue
 
-        value = safe_execute(cls.to_python, data, datapath=[key], _with_transaction=False)
+        value = safe_execute(cls.to_python, data, datapath=[key])
         if not value:
             continue
 
@@ -109,7 +108,7 @@ class Interface:
             self._data[name] = value
 
     @classmethod
-    def to_python(cls, data, datapath: Optional[DataPath] = None):
+    def to_python(cls, data, datapath: DataPath | None = None):
         """Creates a python interface object from the given raw data.
 
         This function can assume fully normalized and valid data. It can create
@@ -124,7 +123,7 @@ class Interface:
         return rv
 
     @classmethod
-    def to_python_subpath(cls, data, path: DataPath, datapath: Optional[DataPath] = None):
+    def to_python_subpath(cls, data, path: DataPath, datapath: DataPath | None = None):
         if data is None:
             return None
 
@@ -156,7 +155,7 @@ class Interface:
     def iter_tags(self):
         return iter(())
 
-    def to_string(self, event, is_public=False, **kwargs):
+    def to_string(self, event) -> str:
         return ""
 
     def to_email_html(self, event, **kwargs):
@@ -164,24 +163,3 @@ class Interface:
         if not body:
             return ""
         return f"<pre>{escape(body)}</pre>"
-
-    # deprecated stuff.  These were deprecated in late 2018, once
-    # determined they are unused we can kill them.
-
-    def get_path(self):
-        from warnings import warn
-
-        warn(DeprecationWarning("Replaced with .path"))
-        return self.path
-
-    def get_alias(self):
-        from warnings import warn
-
-        warn(DeprecationWarning("Replaced with .path"))
-        return self.path
-
-    def get_slug(self):
-        from warnings import warn
-
-        warn(DeprecationWarning("Replaced with .path"))
-        return self.path

@@ -1,14 +1,15 @@
-import {MouseEvent, useEffect, useMemo} from 'react';
+import type {MouseEvent} from 'react';
+import {useEffect, useMemo} from 'react';
 import queryString from 'query-string';
 
-import ObjectInspector from 'sentry/components/objectInspector';
-import {Flex} from 'sentry/components/profiling/flex';
+import {Flex} from 'sentry/components/container/flex';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
+import StructuredEventData from 'sentry/components/structuredEventData';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {formatBytesBase10} from 'sentry/utils';
-import {
+import {formatBytesBase10} from 'sentry/utils/bytes/formatBytesBase10';
+import type {
   NetworkMetaWarning,
   ReplayNetworkRequestOrResponse,
 } from 'sentry/utils/replays/replay';
@@ -19,10 +20,11 @@ import {
   isRequestFrame,
 } from 'sentry/utils/replays/resourceFrame';
 import type {SpanFrame} from 'sentry/utils/replays/types';
+import type {KeyValueTuple} from 'sentry/views/replays/detail/network/details/components';
 import {
   Indent,
+  InspectorMargin,
   keyValueTableOrNotFound,
-  KeyValueTuple,
   SectionItem,
   SizeTooltip,
   Warning,
@@ -35,6 +37,12 @@ export type SectionProps = {
   item: SpanFrame;
   projectId: string;
   startTimestampMs: number;
+};
+
+const config = {
+  isString: (v: any) => {
+    return typeof v === 'string';
+  },
 };
 
 const UNKNOWN_STATUS = 'unknown';
@@ -53,7 +61,9 @@ export function GeneralSection({item, startTimestampMs}: SectionProps) {
       key: t('Request Body Size'),
       value: (
         <SizeTooltip>
-          {formatBytesBase10(requestFrame?.data?.request?.size ?? 0)}
+          {formatBytesBase10(
+            requestFrame?.data?.request?.size ?? requestFrame?.data?.requestBodySize ?? 0
+          )}
         </SizeTooltip>
       ),
     },
@@ -61,7 +71,11 @@ export function GeneralSection({item, startTimestampMs}: SectionProps) {
       key: t('Response Body Size'),
       value: (
         <SizeTooltip>
-          {formatBytesBase10(requestFrame?.data?.response?.size ?? 0)}
+          {formatBytesBase10(
+            requestFrame?.data?.response?.size ??
+              requestFrame?.data?.responseBodySize ??
+              0
+          )}
         </SizeTooltip>
       ),
     },
@@ -73,7 +87,7 @@ export function GeneralSection({item, startTimestampMs}: SectionProps) {
       key: t('Timestamp'),
       value: (
         <TimestampButton
-          format="mm:ss.SSS"
+          precision="ms"
           onClick={(event: MouseEvent) => {
             event.stopPropagation();
             setCurrentTime(item.offsetMs);
@@ -170,7 +184,13 @@ export function QueryParamsSection({item}: SectionProps) {
   return (
     <SectionItem title={t('Query String Parameters')}>
       <Indent>
-        <ObjectInspector data={queryParams} expandLevel={3} showCopyButton />
+        <StructuredEventData
+          data={queryParams}
+          showCopyButton
+          forceDefaultExpand
+          maxDefaultDepth={3}
+          config={config}
+        />
       </Indent>
     </SectionItem>
   );
@@ -200,7 +220,13 @@ export function RequestPayloadSection({item}: SectionProps) {
       <Indent>
         <Warning warnings={warnings} />
         {'request' in data ? (
-          <ObjectInspector data={body} expandLevel={2} showCopyButton />
+          <StructuredEventData
+            data={body}
+            forceDefaultExpand
+            maxDefaultDepth={2}
+            showCopyButton
+            config={config}
+          />
         ) : (
           t('Request body not found.')
         )}
@@ -230,14 +256,20 @@ export function ResponsePayloadSection({item}: SectionProps) {
         </SizeTooltip>
       }
     >
-      <Indent>
+      <InspectorMargin>
         <Warning warnings={warnings} />
         {'response' in data ? (
-          <ObjectInspector data={body} expandLevel={2} showCopyButton />
+          <StructuredEventData
+            data={body}
+            forceDefaultExpand
+            maxDefaultDepth={2}
+            showCopyButton
+            config={config}
+          />
         ) : (
           t('Response body not found.')
         )}
-      </Indent>
+      </InspectorMargin>
     </SectionItem>
   );
 }

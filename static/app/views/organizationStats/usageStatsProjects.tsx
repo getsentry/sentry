@@ -1,27 +1,33 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
-import {LocationDescriptorObject} from 'history';
+import type {LocationDescriptorObject} from 'history';
 import isEqual from 'lodash/isEqual';
 
-import {DateTimeObject, getSeriesApiInterval} from 'sentry/components/charts/utils';
+import type {DateTimeObject} from 'sentry/components/charts/utils';
+import {getSeriesApiInterval} from 'sentry/components/charts/utils';
 import DeprecatedAsyncComponent from 'sentry/components/deprecatedAsyncComponent';
-import SortLink, {Alignments, Directions} from 'sentry/components/gridEditable/sortLink';
+import type {Alignments, Directions} from 'sentry/components/gridEditable/sortLink';
+import SortLink from 'sentry/components/gridEditable/sortLink';
 import Pagination from 'sentry/components/pagination';
 import SearchBar from 'sentry/components/searchBar';
 import {DATA_CATEGORY_INFO, DEFAULT_STATS_PERIOD} from 'sentry/constants';
 import {ALL_ACCESS_PROJECTS} from 'sentry/constants/pageFilters';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {DataCategoryInfo, Organization, Outcome, Project} from 'sentry/types';
+import type {DataCategoryInfo} from 'sentry/types/core';
+import {Outcome} from 'sentry/types/core';
+import type {Organization} from 'sentry/types/organization';
+import type {Project} from 'sentry/types/project';
 import withProjects from 'sentry/utils/withProjects';
 
-import {UsageSeries} from './types';
-import UsageTable, {CellProject, CellStat, TableStat} from './usageTable';
+import type {UsageSeries} from './types';
+import type {TableStat} from './usageTable';
+import UsageTable, {CellProject, CellStat} from './usageTable';
 import {getOffsetFromCursor, getPaginationPageLink} from './utils';
 
 type Props = {
-  dataCategory: DataCategoryInfo['plural'];
+  dataCategory: DataCategoryInfo;
   dataCategoryName: string;
   dataDatetime: DateTimeObject;
   getNextLocations: (project: Project) => Record<string, LocationDescriptorObject>;
@@ -52,7 +58,6 @@ export enum SortBy {
   TOTAL = 'total',
   ACCEPTED = 'accepted',
   FILTERED = 'filtered',
-  DROPPED = 'dropped',
   INVALID = 'invalid',
   RATE_LIMITED = 'rate_limited',
 }
@@ -115,7 +120,7 @@ class UsageStatsProjects extends DeprecatedAsyncComponent<Props, State> {
       field: ['sum(quantity)'],
       // If only one project is in selected, display the entire project list
       project: isSingleProject ? [ALL_ACCESS_PROJECTS] : projectIds,
-      category: dataCategory.slice(0, -1), // backend is singular
+      category: dataCategory.apiName,
     };
   }
 
@@ -154,7 +159,8 @@ class UsageStatsProjects extends DeprecatedAsyncComponent<Props, State> {
       case SortBy.TOTAL:
       case SortBy.ACCEPTED:
       case SortBy.FILTERED:
-      case SortBy.DROPPED:
+      case SortBy.INVALID:
+      case SortBy.RATE_LIMITED:
         return {key, direction};
       default:
         return {key: SortBy.ACCEPTED, direction: -1};
@@ -246,11 +252,18 @@ class UsageStatsProjects extends DeprecatedAsyncComponent<Props, State> {
         onClick: () => this.handleChangeSort(SortBy.FILTERED),
       },
       {
-        key: SortBy.DROPPED,
-        title: t('Dropped'),
+        key: SortBy.RATE_LIMITED,
+        title: t('Rate Limited'),
         align: 'right',
-        direction: getArrowDirection(SortBy.DROPPED),
-        onClick: () => this.handleChangeSort(SortBy.DROPPED),
+        direction: getArrowDirection(SortBy.RATE_LIMITED),
+        onClick: () => this.handleChangeSort(SortBy.RATE_LIMITED),
+      },
+      {
+        key: SortBy.INVALID,
+        title: t('Invalid'),
+        align: 'right',
+        direction: getArrowDirection(SortBy.INVALID),
+        onClick: () => this.handleChangeSort(SortBy.INVALID),
       },
     ]
       .map(h => {
@@ -276,7 +289,7 @@ class UsageStatsProjects extends DeprecatedAsyncComponent<Props, State> {
     const {performance, projectDetail, settings} = getNextLocations(project);
 
     if (
-      dataCategory === DATA_CATEGORY_INFO.transaction.plural &&
+      dataCategory === DATA_CATEGORY_INFO.transaction &&
       organization.features.includes('performance-view')
     ) {
       return {
@@ -342,7 +355,8 @@ class UsageStatsProjects extends DeprecatedAsyncComponent<Props, State> {
         [SortBy.TOTAL]: 0,
         [SortBy.ACCEPTED]: 0,
         [SortBy.FILTERED]: 0,
-        [SortBy.DROPPED]: 0,
+        [SortBy.INVALID]: 0,
+        [SortBy.RATE_LIMITED]: 0,
       };
 
       const projectList = this.filteredProjects;
@@ -364,14 +378,20 @@ class UsageStatsProjects extends DeprecatedAsyncComponent<Props, State> {
           stats[projectId].total += group.totals['sum(quantity)'];
         }
 
-        if (outcome === Outcome.ACCEPTED || outcome === Outcome.FILTERED) {
-          stats[projectId][outcome] += group.totals['sum(quantity)'];
-        } else if (
-          outcome === Outcome.RATE_LIMITED ||
-          outcome === Outcome.INVALID ||
-          outcome === Outcome.DROPPED
+        if (
+          outcome === Outcome.ACCEPTED ||
+          outcome === Outcome.FILTERED ||
+          outcome === Outcome.INVALID
         ) {
-          stats[projectId][SortBy.DROPPED] += group.totals['sum(quantity)'];
+          stats[projectId][outcome] += group.totals['sum(quantity)'];
+        }
+
+        if (
+          outcome === Outcome.RATE_LIMITED ||
+          outcome === Outcome.CARDINALITY_LIMITED ||
+          outcome === Outcome.ABUSE
+        ) {
+          stats[projectId][SortBy.RATE_LIMITED] += group.totals['sum(quantity)'];
         }
       });
 
@@ -435,6 +455,7 @@ class UsageStatsProjects extends DeprecatedAsyncComponent<Props, State> {
               defaultQuery=""
               query={tableQuery}
               placeholder={t('Filter your projects')}
+              aria-label={t('Filter projects')}
               onSearch={this.handleSearch}
             />
           </Container>
@@ -463,7 +484,7 @@ const Container = styled('div')`
 `;
 
 const Title = styled('div')`
-  font-weight: bold;
+  font-weight: ${p => p.theme.fontWeightBold};
   font-size: ${p => p.theme.fontSizeLarge};
   color: ${p => p.theme.gray400};
   display: flex;

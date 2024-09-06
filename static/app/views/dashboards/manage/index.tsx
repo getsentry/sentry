@@ -1,17 +1,17 @@
-import {browserHistory, InjectedRouter} from 'react-router';
 import styled from '@emotion/styled';
-import {Location} from 'history';
+import type {Location} from 'history';
 import pick from 'lodash/pick';
 
 import {createDashboard} from 'sentry/actionCreators/dashboards';
 import {addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {openImportDashboardFromFileModal} from 'sentry/actionCreators/modal';
-import {Client} from 'sentry/api';
+import type {Client} from 'sentry/api';
 import Feature from 'sentry/components/acl/feature';
 import {Alert} from 'sentry/components/alert';
 import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import {CompactSelect} from 'sentry/components/compactSelect';
+import FeedbackWidgetButton from 'sentry/components/feedback/widget/feedbackWidgetButton';
 import * as Layout from 'sentry/components/layouts/thirds';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import NoProjectMessage from 'sentry/components/noProjectMessage';
@@ -22,17 +22,21 @@ import Switch from 'sentry/components/switchButton';
 import {IconAdd} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {Organization, SelectValue} from 'sentry/types';
+import type {SelectValue} from 'sentry/types/core';
+import type {InjectedRouter} from 'sentry/types/legacyReactRouter';
+import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {browserHistory} from 'sentry/utils/browserHistory';
 import {decodeScalar} from 'sentry/utils/queryString';
+import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import withApi from 'sentry/utils/withApi';
-import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import withOrganization from 'sentry/utils/withOrganization';
+import {DashboardImportButton} from 'sentry/views/dashboards/manage/dashboardImport';
 import DeprecatedAsyncView from 'sentry/views/deprecatedAsyncView';
 
-import {DASHBOARDS_TEMPLATES} from '../data';
+import {getDashboardTemplates} from '../data';
 import {assignDefaultLayout, getInitialColumnDepths} from '../layoutUtils';
-import {DashboardDetails, DashboardListItem} from '../types';
+import type {DashboardDetails, DashboardListItem} from '../types';
 
 import DashboardList from './dashboardList';
 import TemplateCard from './templateCard';
@@ -146,9 +150,10 @@ class ManageDashboards extends DeprecatedAsyncView<Props, State> {
   }
 
   renderTemplates() {
+    const {organization} = this.props;
     return (
       <TemplateContainer>
-        {DASHBOARDS_TEMPLATES.map(dashboard => (
+        {getDashboardTemplates(organization).map(dashboard => (
           <TemplateCard
             title={dashboard.title}
             description={dashboard.description}
@@ -313,6 +318,8 @@ class ManageDashboards extends DeprecatedAsyncView<Props, State> {
                         toggle={this.toggleTemplates}
                       />
                     </TemplateSwitch>
+                    <FeedbackWidgetButton />
+                    <DashboardImportButton />
                     <Button
                       data-test-id="dashboard-create"
                       onClick={event => {
@@ -371,7 +378,7 @@ const StyledActions = styled('div')`
 `;
 
 const TemplateSwitch = styled('label')`
-  font-weight: normal;
+  font-weight: ${p => p.theme.fontWeightNormal};
   font-size: ${p => p.theme.fontSizeLarge};
   display: flex;
   align-items: center;

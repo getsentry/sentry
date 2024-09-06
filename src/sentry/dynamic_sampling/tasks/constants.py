@@ -25,5 +25,3 @@ CHUNK_SIZE = 9998
 
 # Time interval of queries for boost low volume transactions.
 BOOST_LOW_VOLUME_TRANSACTIONS_QUERY_INTERVAL = timedelta(hours=1)
-# Time interval of queries for recalibrate orgs.
-RECALIBRATE_ORGS_QUERY_INTERVAL = timedelta(minutes=5)

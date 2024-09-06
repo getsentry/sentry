@@ -1,14 +1,14 @@
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.user import DetailedSelfUserSerializer, DetailedUserSerializer
 from sentry.auth.authenticators import available_authenticators
-from sentry.models.authenticator import Authenticator
 from sentry.models.authidentity import AuthIdentity
 from sentry.models.authprovider import AuthProvider
-from sentry.models.avatars.user_avatar import UserAvatar
-from sentry.models.useremail import UserEmail
-from sentry.models.userpermission import UserPermission
 from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import control_silo_test
+from sentry.users.models.authenticator import Authenticator
+from sentry.users.models.user_avatar import UserAvatar
+from sentry.users.models.useremail import UserEmail
+from sentry.users.models.userpermission import UserPermission
 
 
 @control_silo_test
@@ -101,31 +101,34 @@ class DetailedUserSerializerTest(TestCase):
 
 @control_silo_test
 class DetailedSelfUserSerializerTest(TestCase):
-    def test_simple(self):
-        user = self.create_user()
-        UserPermission.objects.create(user=user, permission="foo")
+    def setUp(self):
+        super().setUp()
+        self.user = self.create_user()
+        UserPermission.objects.create(user=self.user, permission="foo")
 
-        org = self.create_organization(owner=user)
+        org = self.create_organization(owner=self.user)
 
         auth_provider = AuthProvider.objects.create(organization_id=org.id, provider="dummy")
-        auth_identity = AuthIdentity.objects.create(
-            auth_provider=auth_provider, ident=user.email, user=user
+        self.auth_identity = AuthIdentity.objects.create(
+            auth_provider=auth_provider, ident=self.user.email, user=self.user
         )
-        auth = Authenticator.objects.create(
-            type=available_authenticators(ignore_backup=True)[0].type, user=user
+        self.auth = Authenticator.objects.create(
+            type=available_authenticators(ignore_backup=True)[0].type, user=self.user
         )
 
-        result = serialize(user, user, DetailedSelfUserSerializer())
-        assert result["id"] == str(user.id)
+    def test_simple(self):
+        result = serialize(self.user, self.user, DetailedSelfUserSerializer())
+
+        assert result["id"] == str(self.user.id)
         assert result["has2fa"] is True
         assert len(result["emails"]) == 1
-        assert result["emails"][0]["email"] == user.email
+        assert result["emails"][0]["email"] == self.user.email
         assert result["emails"][0]["is_verified"]
         assert "identities" in result
         assert len(result["identities"]) == 1
-        assert result["identities"][0]["id"] == str(auth_identity.id)
-        assert result["identities"][0]["name"] == auth_identity.ident
+        assert result["identities"][0]["id"] == str(self.auth_identity.id)
+        assert result["identities"][0]["name"] == self.auth_identity.ident
         assert "authenticators" in result
         assert len(result["authenticators"]) == 1
-        assert result["authenticators"][0]["id"] == str(auth.id)
+        assert result["authenticators"][0]["id"] == str(self.auth.id)
         assert result["permissions"] == ["foo"]

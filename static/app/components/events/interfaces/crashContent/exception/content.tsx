@@ -2,18 +2,23 @@ import {useState} from 'react';
 import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/button';
+import ErrorBoundary from 'sentry/components/errorBoundary';
+import {StacktraceBanners} from 'sentry/components/events/interfaces/crashContent/exception/banners/stacktraceBanners';
 import {
   prepareSourceMapDebuggerFrameInformation,
   useSourceMapDebuggerData,
 } from 'sentry/components/events/interfaces/crashContent/exception/useSourceMapDebuggerData';
+import {renderLinksInText} from 'sentry/components/events/interfaces/crashContent/exception/utils';
+import {getStacktracePlatform} from 'sentry/components/events/interfaces/utils';
 import {AnnotatedText} from 'sentry/components/events/meta/annotatedText';
 import {Tooltip} from 'sentry/components/tooltip';
 import {tct, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {ExceptionType, Project} from 'sentry/types';
-import {Event, ExceptionValue} from 'sentry/types/event';
+import type {Event, ExceptionType, ExceptionValue} from 'sentry/types/event';
+import type {Project} from 'sentry/types/project';
 import {StackType} from 'sentry/types/stacktrace';
 import {defined} from 'sentry/utils';
+import {useIsSampleEvent} from 'sentry/views/issueDetails/utils';
 
 import {Mechanism} from './mechanism';
 import {RelatedExceptions} from './relatedExceptions';
@@ -23,7 +28,6 @@ type StackTraceProps = React.ComponentProps<typeof StackTrace>;
 
 type Props = {
   event: Event;
-  platform: StackTraceProps['platform'];
   projectSlug: Project['slug'];
   type: StackType;
   meta?: Record<any, any>;
@@ -31,10 +35,7 @@ type Props = {
   stackView?: StackTraceProps['stackView'];
   threadId?: number;
 } & Pick<ExceptionType, 'values'> &
-  Pick<
-    React.ComponentProps<typeof StackTrace>,
-    'groupingCurrentLevel' | 'hasHierarchicalGrouping'
-  >;
+  Pick<React.ComponentProps<typeof StackTrace>, 'groupingCurrentLevel'>;
 
 type CollapsedExceptionMap = {[exceptionId: number]: boolean};
 
@@ -123,8 +124,6 @@ export function Content({
   event,
   stackView,
   groupingCurrentLevel,
-  hasHierarchicalGrouping,
-  platform,
   projectSlug,
   values,
   type,
@@ -135,6 +134,8 @@ export function Content({
     useCollapsedExceptions(values);
 
   const sourceMapDebuggerData = useSourceMapDebuggerData(event, projectSlug);
+
+  const isSampleError = useIsSampleEvent();
 
   // Organization context may be unavailable for the shared event view, so we
   // avoid using the `useOrganization` hook here and directly useContext
@@ -157,10 +158,18 @@ export function Content({
         event
       )
     );
+    const exceptionValue = exc.value
+      ? renderLinksInText({exceptionText: exc.value})
+      : null;
 
     if (exc.mechanism?.parent_id && collapsedExceptions[exc.mechanism.parent_id]) {
       return null;
     }
+
+    const platform = getStacktracePlatform(event, exc.stacktrace);
+
+    // The banners should appear on the top exception only
+    const isTopException = newestFirst ? excIdx === values.length - 1 : excIdx === 0;
 
     return (
       <div key={excIdx} className="exception" data-test-id="exception-value">
@@ -175,7 +184,7 @@ export function Content({
           {meta?.[excIdx]?.value?.[''] && !exc.value ? (
             <AnnotatedText value={exc.value} meta={meta?.[excIdx]?.value?.['']} />
           ) : (
-            exc.value
+            exceptionValue
           )}
         </StyledPre>
         <ToggleExceptionButton
@@ -190,6 +199,11 @@ export function Content({
           newestFirst={newestFirst}
           onExceptionClick={expandException}
         />
+        {exc.stacktrace && isTopException && !isSampleError && (
+          <ErrorBoundary customComponent={null}>
+            <StacktraceBanners event={event} stacktrace={exc.stacktrace} />
+          </ErrorBoundary>
+        )}
         <StackTrace
           data={
             type === StackType.ORIGINAL
@@ -203,7 +217,6 @@ export function Content({
           newestFirst={newestFirst}
           event={event}
           chainedException={values.length > 1}
-          hasHierarchicalGrouping={hasHierarchicalGrouping}
           groupingCurrentLevel={groupingCurrentLevel}
           meta={meta?.[excIdx]?.stacktrace}
           threadId={threadId}

@@ -1,11 +1,12 @@
 import {Fragment, useCallback} from 'react';
 
 import {Button} from 'sentry/components/button';
-import {CompactSelect, SelectOption} from 'sentry/components/compactSelect';
+import type {SelectOption} from 'sentry/components/compactSelect';
+import {CompactSelect} from 'sentry/components/compactSelect';
 import {IconSliders} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {CanvasPoolManager} from 'sentry/utils/profiling/canvasScheduler';
-import {FlamegraphPreferences} from 'sentry/utils/profiling/flamegraph/flamegraphStateProvider/reducers/flamegraphPreferences';
+import type {CanvasPoolManager} from 'sentry/utils/profiling/canvasScheduler';
+import type {FlamegraphPreferences} from 'sentry/utils/profiling/flamegraph/flamegraphStateProvider/reducers/flamegraphPreferences';
 import {useFlamegraphPreferences} from 'sentry/utils/profiling/flamegraph/hooks/useFlamegraphPreferences';
 import {useDispatchFlamegraphState} from 'sentry/utils/profiling/flamegraph/hooks/useFlamegraphState';
 
@@ -40,7 +41,7 @@ function FlamegraphOptionsMenu({
       </Button>
       <CompactSelect
         triggerLabel={t('Color Coding')}
-        triggerProps={{icon: <IconSliders size="xs" />, size: 'xs'}}
+        triggerProps={{icon: <IconSliders />, size: 'xs'}}
         options={colorCodingOptions}
         position="bottom-end"
         value={colorCoding}

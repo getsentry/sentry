@@ -1,4 +1,4 @@
-import {ComponentProps} from 'react';
+import type {ComponentProps} from 'react';
 import styled from '@emotion/styled';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';

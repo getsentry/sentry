@@ -1,0 +1,15 @@
+{
+  "stacktrace": {
+    "frames": [
+      {
+        "function": "SentryExceptionFactory.getSentryException",
+        "package": "sentry",
+        "filename": "sentry_exception_factory.dart",
+        "abs_path": "package:sentry_flutter/src/sentry_exception_factory.dart",
+        "lineno": 43,
+        "in_app": true
+      }
+    ]
+  },
+  "platform": "other"
+}

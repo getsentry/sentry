@@ -1,18 +1,26 @@
-import {RefObject, useEffect} from 'react';
-import {Feedback, getCurrentHub} from '@sentry/react';
+import type {RefObject} from 'react';
+import {useEffect} from 'react';
 
-import {t} from 'sentry/locale';
-import ConfigStore from 'sentry/stores/configStore';
-import {useLegacyStore} from 'sentry/stores/useLegacyStore';
+import type {UseFeedbackOptions} from 'sentry/components/feedback/widget/useFeedback';
+import {useFeedback} from 'sentry/components/feedback/widget/useFeedback';
 
 interface Props {
-  buttonRef?: RefObject<HTMLButtonElement>;
+  buttonRef?: RefObject<HTMLButtonElement> | RefObject<HTMLAnchorElement>;
+  formTitle?: string;
+  messagePlaceholder?: string;
+  optionOverrides?: UseFeedbackOptions;
 }
 
-export default function useFeedbackWidget({buttonRef}: Props) {
-  const config = useLegacyStore(ConfigStore);
-  const hub = getCurrentHub();
-  const feedback = hub.getIntegration(Feedback);
+export default function useFeedbackWidget({
+  buttonRef,
+  formTitle,
+  messagePlaceholder,
+  optionOverrides,
+}: Props) {
+  const {feedback, options: defaultOptions} = useFeedback({
+    formTitle,
+    messagePlaceholder,
+  });
 
   useEffect(() => {
     if (!feedback) {
@@ -20,29 +28,27 @@ export default function useFeedbackWidget({buttonRef}: Props) {
     }
 
     const options = {
-      colorScheme: config.theme === 'dark' ? ('dark' as const) : ('light' as const),
-      buttonLabel: t('Give Feedback'),
-      submitButtonLabel: t('Send Feedback'),
-      messagePlaceholder: t('What did you expect?'),
-      formTitle: t('Give Feedback'),
+      ...defaultOptions,
+      ...optionOverrides,
+      tags: {
+        ...defaultOptions.tags,
+        ...optionOverrides?.tags,
+      },
     };
 
     if (buttonRef) {
       if (buttonRef.current) {
-        const widget = feedback.attachTo(buttonRef.current, options);
-        return () => {
-          feedback.removeWidget(widget);
-        };
+        return feedback.attachTo(buttonRef.current, options);
       }
     } else {
       const widget = feedback.createWidget(options);
       return () => {
-        feedback.removeWidget(widget);
+        widget.removeFromDom();
       };
     }
 
     return undefined;
-  }, [buttonRef, config.theme, feedback]);
+  }, [buttonRef, feedback, defaultOptions, optionOverrides]);
 
   return feedback;
 }

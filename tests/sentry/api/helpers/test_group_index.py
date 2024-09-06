@@ -1,10 +1,11 @@
-from datetime import datetime, timedelta
+from datetime import UTC, datetime, timedelta
 from unittest.mock import MagicMock, Mock, patch
 
 import pytest
 from django.http import QueryDict
 
 from sentry.api.helpers.group_index import update_groups, validate_search_filter_permissions
+from sentry.api.helpers.group_index.delete import delete_groups
 from sentry.api.helpers.group_index.update import (
     handle_assigned_to,
     handle_has_seen,
@@ -15,10 +16,10 @@ from sentry.api.helpers.group_index.update import (
 from sentry.api.helpers.group_index.validators import ValidationError
 from sentry.api.issue_search import parse_search_query
 from sentry.models.activity import Activity
-from sentry.models.actor import ActorTuple
-from sentry.models.group import GroupStatus
+from sentry.models.group import Group, GroupStatus
 from sentry.models.groupassignee import GroupAssignee
 from sentry.models.groupbookmark import GroupBookmark
+from sentry.models.grouphash import GroupHash
 from sentry.models.groupinbox import GroupInbox, GroupInboxReason, add_group_to_inbox
 from sentry.models.groupseen import GroupSeen
 from sentry.models.groupshare import GroupShare
@@ -29,6 +30,7 @@ from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.skips import requires_snuba
 from sentry.types.activity import ActivityType
+from sentry.types.actor import Actor
 from sentry.types.group import GroupSubStatus
 
 pytestmark = [requires_snuba]
@@ -134,7 +136,8 @@ class UpdateGroupsTest(TestCase):
         assert send_robust.called
 
     @patch("sentry.signals.issue_ignored.send_robust")
-    def test_ignoring_group_archived_forever(self, send_robust: Mock) -> None:
+    @patch("sentry.issues.status_change.post_save")
+    def test_ignoring_group_archived_forever(self, post_save: Mock, send_robust: Mock) -> None:
         group = self.create_group()
         add_group_to_inbox(group, GroupInboxReason.NEW)
 
@@ -153,6 +156,12 @@ class UpdateGroupsTest(TestCase):
         assert group.status == GroupStatus.IGNORED
         assert group.substatus == GroupSubStatus.FOREVER
         assert send_robust.called
+        post_save.send.assert_called_with(
+            sender=Group,
+            instance=group,
+            created=False,
+            update_fields=["status", "substatus"],
+        )
         assert not GroupInbox.objects.filter(group=group).exists()
 
     @patch("sentry.signals.issue_ignored.send_robust")
@@ -187,20 +196,22 @@ class UpdateGroupsTest(TestCase):
         for data in [
             {
                 "group": self.create_group(
-                    status=GroupStatus.IGNORED, first_seen=datetime.now() - timedelta(days=8)
+                    status=GroupStatus.IGNORED, first_seen=datetime.now(UTC) - timedelta(days=8)
                 ),
                 "request_data": {"status": "unresolved"},
                 "expected_substatus": GroupSubStatus.ONGOING,
             },
             {
                 "group": self.create_group(
-                    status=GroupStatus.IGNORED, first_seen=datetime.now() - timedelta(days=8)
+                    status=GroupStatus.IGNORED, first_seen=datetime.now(UTC) - timedelta(days=8)
                 ),
                 "request_data": {"status": "unresolved", "substatus": "ongoing"},
                 "expected_substatus": GroupSubStatus.ONGOING,
             },
             {
-                "group": self.create_group(status=GroupStatus.IGNORED, first_seen=datetime.now()),
+                "group": self.create_group(
+                    status=GroupStatus.IGNORED, first_seen=datetime.now(UTC)
+                ),
                 "request_data": {"status": "unresolved"},
                 "expected_substatus": GroupSubStatus.NEW,
             },
@@ -241,7 +252,6 @@ class UpdateGroupsTest(TestCase):
         assert not GroupInbox.objects.filter(group=group).exists()
         assert send_robust.called
 
-    @with_feature("organizations:escalating-issues")
     @patch("sentry.signals.issue_ignored.send_robust")
     def test_ignore_with_substatus_archived_until_escalating(self, send_robust: Mock) -> None:
         group = self.create_group()
@@ -499,7 +509,7 @@ class TestHandleAssignedTo(TestCase):
     @patch("sentry.analytics.record")
     def test_assigned_to(self, mock_record: Mock) -> None:
         assigned_to = handle_assigned_to(
-            ActorTuple.from_actor_identifier(self.user.id),
+            Actor.from_identifier(self.user.id),
             None,
             None,
             self.group_list,
@@ -534,7 +544,7 @@ class TestHandleAssignedTo(TestCase):
     def test_unassign(self, mock_record: Mock) -> None:
         # first assign the issue
         handle_assigned_to(
-            ActorTuple.from_actor_identifier(self.user.id),
+            Actor.from_identifier(self.user.id),
             None,
             None,
             self.group_list,
@@ -584,7 +594,7 @@ class TestHandleAssignedTo(TestCase):
 
         # first assign the issue to team1
         assigned_to = handle_assigned_to(
-            (ActorTuple.from_actor_identifier(f"team:{team1.id}")),
+            Actor.from_identifier(f"team:{team1.id}"),
             None,
             None,
             self.group_list,
@@ -648,7 +658,7 @@ class TestHandleAssignedTo(TestCase):
 
         # first assign the issue to team1
         assigned_to = handle_assigned_to(
-            (ActorTuple.from_actor_identifier(f"team:{team1.id}")),
+            Actor.from_identifier(f"team:{team1.id}"),
             None,
             None,
             self.group_list,
@@ -693,7 +703,7 @@ class TestHandleAssignedTo(TestCase):
 
         # first assign the issue
         assigned_to = handle_assigned_to(
-            ActorTuple.from_actor_identifier(self.user.id),
+            Actor.from_identifier(self.user.id),
             None,
             None,
             self.group_list,
@@ -711,7 +721,7 @@ class TestHandleAssignedTo(TestCase):
 
         # then assign it to someone else
         assigned_to = handle_assigned_to(
-            ActorTuple.from_actor_identifier(user2.id),
+            Actor.from_identifier(user2.id),
             None,
             None,
             self.group_list,
@@ -750,7 +760,7 @@ class TestHandleAssignedTo(TestCase):
         )
         # pass assignedTo but it's the same as the existing assignee
         assigned_to = handle_assigned_to(
-            ActorTuple.from_actor_identifier(user2.id),
+            Actor.from_identifier(user2.id),
             None,
             None,
             self.group_list,
@@ -808,7 +818,7 @@ class TestHandleAssignedTo(TestCase):
 
         # first assign the issue to team1
         assigned_to = handle_assigned_to(
-            (ActorTuple.from_actor_identifier(f"team:{team1.id}")),
+            Actor.from_identifier(f"team:{team1.id}"),
             None,
             None,
             self.group_list,
@@ -832,7 +842,7 @@ class TestHandleAssignedTo(TestCase):
 
         # then assign it to team2
         assigned_to = handle_assigned_to(
-            ActorTuple.from_actor_identifier(f"team:{team2.id}"),
+            Actor.from_identifier(f"team:{team2.id}"),
             None,
             None,
             self.group_list,
@@ -903,7 +913,7 @@ class TestHandleAssignedTo(TestCase):
 
         # first assign the issue to team1
         assigned_to = handle_assigned_to(
-            (ActorTuple.from_actor_identifier(f"team:{team1.id}")),
+            Actor.from_identifier(f"team:{team1.id}"),
             None,
             None,
             self.group_list,
@@ -921,7 +931,7 @@ class TestHandleAssignedTo(TestCase):
 
         # then assign it to team2
         assigned_to = handle_assigned_to(
-            ActorTuple.from_actor_identifier(f"team:{team2.id}"),
+            Actor.from_identifier(f"team:{team2.id}"),
             None,
             None,
             self.group_list,
@@ -971,7 +981,7 @@ class TestHandleAssignedTo(TestCase):
 
         # assign the issue to the team
         assigned_to = handle_assigned_to(
-            (ActorTuple.from_actor_identifier(f"team:{team1.id}")),
+            Actor.from_identifier(f"team:{team1.id}"),
             None,
             None,
             self.group_list,
@@ -995,7 +1005,7 @@ class TestHandleAssignedTo(TestCase):
 
         # then assign it to user1
         assigned_to = handle_assigned_to(
-            ActorTuple.from_actor_identifier(user1.id),
+            Actor.from_identifier(user1.id),
             None,
             None,
             self.group_list,
@@ -1027,7 +1037,7 @@ class TestHandleAssignedTo(TestCase):
 
         # assign the issue back to the team
         assigned_to = handle_assigned_to(
-            (ActorTuple.from_actor_identifier(f"team:{team1.id}")),
+            Actor.from_identifier(f"team:{team1.id}"),
             None,
             None,
             self.group_list,
@@ -1047,3 +1057,69 @@ class TestHandleAssignedTo(TestCase):
             user_id=user2.id,
             reason=GroupSubscriptionReason.assigned,
         ).exists()
+
+
+class DeleteGroupsTest(TestCase):
+    @patch("sentry.signals.issue_deleted.send_robust")
+    def test_delete_groups_simple(self, send_robust: Mock):
+        groups = [self.create_group(), self.create_group()]
+        group_ids = [group.id for group in groups]
+        request = self.make_request(user=self.user, method="GET")
+        request.user = self.user
+        request.GET = QueryDict(f"id={group_ids[0]}&id={group_ids[1]}")
+        hashes = ["0" * 32, "1" * 32]
+        for i, group in enumerate(groups):
+            GroupHash.objects.create(project=self.project, group=group, hash=hashes[i])
+            add_group_to_inbox(group, GroupInboxReason.NEW)
+
+        search_fn = Mock()
+        delete_groups(request, [self.project], self.organization.id, search_fn)
+
+        assert (
+            len(GroupHash.objects.filter(project_id=self.project.id, group_id__in=group_ids).all())
+            == 0
+        )
+        assert (
+            len(GroupInbox.objects.filter(project_id=self.project.id, group_id__in=group_ids).all())
+            == 0
+        )
+        assert send_robust.called
+
+    @with_feature("projects:similarity-embeddings-grouping")
+    @patch(
+        "sentry.tasks.delete_seer_grouping_records.delete_seer_grouping_records_by_hash.apply_async"
+    )
+    @patch("sentry.tasks.delete_seer_grouping_records.logger")
+    @patch("sentry.signals.issue_deleted.send_robust")
+    def test_delete_groups_deletes_seer_records_by_hash(
+        self, send_robust: Mock, mock_logger: Mock, mock_delete_seer_grouping_records_by_hash
+    ):
+        groups = [self.create_group(), self.create_group()]
+        group_ids = [group.id for group in groups]
+        request = self.make_request(user=self.user, method="GET")
+        request.user = self.user
+        request.GET = QueryDict(f"id={group_ids[0]}&id={group_ids[1]}")
+        hashes = ["0" * 32, "1" * 32]
+        for i, group in enumerate(groups):
+            GroupHash.objects.create(project=self.project, group=group, hash=hashes[i])
+            add_group_to_inbox(group, GroupInboxReason.NEW)
+
+        search_fn = Mock()
+        delete_groups(request, [self.project], self.organization.id, search_fn)
+
+        assert (
+            len(GroupHash.objects.filter(project_id=self.project.id, group_id__in=group_ids).all())
+            == 0
+        )
+        assert (
+            len(GroupInbox.objects.filter(project_id=self.project.id, group_id__in=group_ids).all())
+            == 0
+        )
+        assert send_robust.called
+        mock_logger.info.assert_called_with(
+            "calling seer record deletion by hash",
+            extra={"project_id": self.project.id, "hashes": hashes},
+        )
+        mock_delete_seer_grouping_records_by_hash.assert_called_with(
+            args=[self.project.id, hashes, 0]
+        )

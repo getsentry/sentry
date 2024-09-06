@@ -1,22 +1,19 @@
 from __future__ import annotations
 
 import contextlib
-import dataclasses
 import functools
-from typing import Any, List
+from typing import Any
 
 from django.conf import settings
 from django.core.handlers.wsgi import WSGIRequest
 
-from sentry.models.outbox import (
-    ControlOutbox,
-    OutboxBase,
-    OutboxCategory,
-    OutboxScope,
-    WebhookProviderIdentifier,
+from sentry.hybridcloud.models.outbox import OutboxBase
+from sentry.hybridcloud.models.webhookpayload import THE_PAST, WebhookPayload
+from sentry.hybridcloud.tasks.deliver_from_outbox import (
+    enqueue_outbox_jobs,
+    enqueue_outbox_jobs_control,
 )
-from sentry.silo import SiloMode
-from sentry.tasks.deliver_from_outbox import enqueue_outbox_jobs, enqueue_outbox_jobs_control
+from sentry.silo.base import SiloMode
 from sentry.testutils.silo import assume_test_silo_mode
 
 
@@ -59,30 +56,44 @@ def outbox_runner(wrapped: Any | None = None) -> Any:
             raise OutboxRecursionLimitError
 
 
-def assert_webhook_outboxes(
-    factory_request: WSGIRequest,
-    webhook_identifier: WebhookProviderIdentifier,
-    region_names: List[str],
+def assert_no_webhook_payloads():
+    messages = WebhookPayload.objects.filter().count()
+    assert messages == 0, "No webhookpayload messages should be created"
+
+
+def assert_webhook_payloads_for_mailbox(
+    request: WSGIRequest,
+    mailbox_name: str,
+    region_names: list[str],
 ):
-    expected_payload = ControlOutbox.get_webhook_payload_from_request(request=factory_request)
-    expected_payload_dict = dataclasses.asdict(expected_payload)
+    """
+    A test method for asserting that a webhook payload is properly queued for
+     the given request
+
+    :param request:
+    :param mailbox_name: The mailbox name that messages should be found in.
+    :param region_names: The regions each messages should be queued for
+    """
+    expected_payload = WebhookPayload.get_attributes_from_request(request=request)
     region_names_set = set(region_names)
-    outboxes = ControlOutbox.objects.filter(category=OutboxCategory.WEBHOOK_PROXY)
-    cob_count = outboxes.count()
-    if cob_count != len(region_names_set):
+    messages = WebhookPayload.objects.filter(mailbox_name=mailbox_name)
+    message_count = messages.count()
+    if message_count != len(region_names_set):
         raise Exception(
-            f"Mismatch: Found {cob_count} ControlOutboxes but {len(region_names_set)} region_names"
+            f"Mismatch: Found {message_count} WebhookPayload but {len(region_names_set)} region_names"
         )
-    for cob in outboxes:
-        assert cob.payload == expected_payload_dict
-        assert cob.shard_scope == OutboxScope.WEBHOOK_SCOPE
-        assert cob.shard_identifier == webhook_identifier
-        assert cob.category == OutboxCategory.WEBHOOK_PROXY
+    for message in messages:
+        assert message.request_method == expected_payload["request_method"]
+        assert message.request_path == expected_payload["request_path"]
+        assert message.request_headers == expected_payload["request_headers"]
+        assert message.request_body == expected_payload["request_body"]
+        assert message.schedule_for == THE_PAST
+        assert message.attempts == 0
         try:
-            region_names_set.remove(cob.region_name)
+            region_names_set.remove(message.region_name)
         except KeyError:
             raise Exception(
-                f"Found ControlOutbox for '{cob.region_name}', which was not in region_names: {str(region_names_set)}"
+                f"Found ControlOutbox for '{message.region_name}', which was not in region_names: {str(region_names_set)}"
             )
     if len(region_names_set) != 0:
-        raise Exception(f"ControlOutbox not found for some region_names: {str(region_names_set)}")
+        raise Exception(f"WebhookPayload not found for some region_names: {str(region_names_set)}")

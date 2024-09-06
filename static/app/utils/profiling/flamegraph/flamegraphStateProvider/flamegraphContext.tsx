@@ -2,7 +2,10 @@ import {createContext} from 'react';
 
 import {Rect} from 'sentry/utils/profiling/speedscope';
 import {makeCombinedReducers} from 'sentry/utils/useCombinedReducer';
-import {UndoableReducer, UndoableReducerAction} from 'sentry/utils/useUndoableReducer';
+import type {
+  UndoableReducer,
+  UndoableReducerAction,
+} from 'sentry/utils/useUndoableReducer';
 
 import {flamegraphPreferencesReducer} from './reducers/flamegraphPreferences';
 import {flamegraphProfilesReducer} from './reducers/flamegraphProfiles';
@@ -19,12 +22,12 @@ export const DEFAULT_FLAMEGRAPH_STATE: FlamegraphState = {
   },
   preferences: {
     timelines: {
-      battery_chart: true,
-      ui_frames: true,
+      battery_chart: false,
+      cpu_chart: false,
+      memory_chart: false,
       minimap: true,
       transaction_spans: true,
-      cpu_chart: true,
-      memory_chart: true,
+      ui_frames: false,
     },
     colorCoding: 'by system vs application frame',
     sorting: 'call order',

@@ -1,6 +1,8 @@
-import {RouteComponentProps} from 'react-router';
-
-import {OnboardingRecentCreatedProject, OnboardingSelectedSDK} from 'sentry/types';
+import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
+import type {
+  OnboardingRecentCreatedProject,
+  OnboardingSelectedSDK,
+} from 'sentry/types/onboarding';
 
 export type StepData = {
   platform?: OnboardingSelectedSDK | null;

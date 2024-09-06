@@ -1,32 +1,39 @@
-import selectEvent from 'react-select-event';
-import {EventsStats} from 'sentry-fixture/events';
-import {IncidentTrigger} from 'sentry-fixture/incidentTrigger';
-import {MetricRule} from 'sentry-fixture/metricRule';
+import {EventsStatsFixture} from 'sentry-fixture/events';
+import {IncidentTriggerFixture} from 'sentry-fixture/incidentTrigger';
+import {MetricRuleFixture} from 'sentry-fixture/metricRule';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
+import selectEvent from 'sentry-test/selectEvent';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
-import FormModel from 'sentry/components/forms/model';
+import type FormModel from 'sentry/components/forms/model';
 import ProjectsStore from 'sentry/stores/projectsStore';
+import {ActivationConditionType, MonitorType} from 'sentry/types/alerts';
 import {metric} from 'sentry/utils/analytics';
 import RuleFormContainer from 'sentry/views/alerts/rules/metric/ruleForm';
-import {Dataset} from 'sentry/views/alerts/rules/metric/types';
+import {
+  AlertRuleComparisonType,
+  AlertRuleSeasonality,
+  AlertRuleSensitivity,
+  Dataset,
+} from 'sentry/views/alerts/rules/metric/types';
 import {permissionAlertText} from 'sentry/views/settings/project/permissionAlert';
 
 jest.mock('sentry/actionCreators/indicator');
 jest.mock('sentry/utils/analytics', () => ({
   metric: {
-    startTransaction: jest.fn(() => ({
+    startSpan: jest.fn(() => ({
       setTag: jest.fn(),
       setData: jest.fn(),
     })),
-    endTransaction: jest.fn(),
+    endSpan: jest.fn(),
   },
 }));
 
 describe('Incident Rules Form', () => {
-  let organization, project, routerContext, location;
+  let organization, project, router, location;
+  // create wrapper
   const createWrapper = props =>
     render(
       <RuleFormContainer
@@ -36,7 +43,7 @@ describe('Incident Rules Form', () => {
         project={project}
         {...props}
       />,
-      {context: routerContext}
+      {router, organization}
     );
 
   beforeEach(() => {
@@ -47,7 +54,7 @@ describe('Incident Rules Form', () => {
     project = initialData.project;
     location = initialData.router.location;
     ProjectsStore.loadInitialData([project]);
-    routerContext = initialData.routerContext;
+    router = initialData.router;
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/tags/',
       body: [],
@@ -62,7 +69,7 @@ describe('Incident Rules Form', () => {
     });
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/events-stats/',
-      body: EventsStats({
+      body: EventsStatsFixture({
         isMetricsData: true,
       }),
     });
@@ -83,7 +90,15 @@ describe('Incident Rules Form', () => {
     });
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/metrics-estimation-stats/',
-      body: EventsStats(),
+      body: EventsStatsFixture(),
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/metrics/meta/',
+      body: [],
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/metrics/tags/',
+      body: [],
     });
   });
 
@@ -93,33 +108,50 @@ describe('Incident Rules Form', () => {
   });
 
   describe('Viewing the rule', () => {
-    const rule = MetricRule();
+    const rule = MetricRuleFixture();
 
-    it('is enabled without org-level alerts:write', () => {
+    it('is enabled without org-level alerts:write', async () => {
       organization.access = [];
       project.access = [];
       createWrapper({rule});
 
-      expect(screen.queryByText(permissionAlertText)).toBeInTheDocument();
+      expect(await screen.findByText(permissionAlertText)).toBeInTheDocument();
       expect(screen.queryByLabelText('Save Rule')).toBeDisabled();
     });
 
-    it('is enabled with org-level alerts:write', () => {
+    it('is enabled with org-level alerts:write', async () => {
       organization.access = ['alerts:write'];
       project.access = [];
       createWrapper({rule});
 
+      expect(await screen.findByLabelText('Save Rule')).toBeEnabled();
       expect(screen.queryByText(permissionAlertText)).not.toBeInTheDocument();
-      expect(screen.queryByLabelText('Save Rule')).toBeEnabled();
     });
 
-    it('is enabled with project-level alerts:write', () => {
+    it('is enabled with project-level alerts:write', async () => {
       organization.access = [];
       project.access = ['alerts:write'];
       createWrapper({rule});
 
+      expect(await screen.findByLabelText('Save Rule')).toBeEnabled();
       expect(screen.queryByText(permissionAlertText)).not.toBeInTheDocument();
-      expect(screen.queryByLabelText('Save Rule')).toBeEnabled();
+    });
+
+    it('renders time window', async () => {
+      createWrapper({rule});
+
+      expect(await screen.findByText('1 hour interval')).toBeInTheDocument();
+    });
+
+    it('renders time window for activated alerts', async () => {
+      createWrapper({
+        rule: {
+          ...rule,
+          monitorType: MonitorType.CONTINUOUS,
+        },
+      });
+
+      expect(await screen.findByText('1 hour interval')).toBeInTheDocument();
     });
   });
 
@@ -148,7 +180,7 @@ describe('Incident Rules Form', () => {
      * Note this isn't necessarily the desired behavior, as it is just documenting the behavior
      */
     it('creates a rule', async () => {
-      const rule = MetricRule();
+      const rule = MetricRuleFixture();
       createWrapper({
         rule: {
           ...rule,
@@ -182,11 +214,11 @@ describe('Incident Rules Form', () => {
           }),
         })
       );
-      expect(metric.startTransaction).toHaveBeenCalledWith({name: 'saveAlertRule'});
+      expect(metric.startSpan).toHaveBeenCalledWith({name: 'saveAlertRule'});
     });
 
     it('can create a rule for a different project', async () => {
-      const rule = MetricRule();
+      const rule = MetricRuleFixture();
       createWrapper({
         rule: {
           ...rule,
@@ -219,12 +251,12 @@ describe('Incident Rules Form', () => {
           }),
         })
       );
-      expect(metric.startTransaction).toHaveBeenCalledWith({name: 'saveAlertRule'});
+      expect(metric.startSpan).toHaveBeenCalledWith({name: 'saveAlertRule'});
     });
 
     it('creates a rule with generic_metrics dataset', async () => {
       organization.features = [...organization.features, 'mep-rollout-flag'];
-      const rule = MetricRule();
+      const rule = MetricRuleFixture();
       createWrapper({
         rule: {
           ...rule,
@@ -254,9 +286,128 @@ describe('Incident Rules Form', () => {
       );
     });
 
+    // Activation condition
+    it('creates a rule with an activation condition', async () => {
+      organization.features = [
+        ...organization.features,
+        'mep-rollout-flag',
+        'activated-alert-rules',
+      ];
+      const rule = MetricRuleFixture({
+        monitorType: MonitorType.ACTIVATED,
+        activationCondition: ActivationConditionType.RELEASE_CREATION,
+      });
+      createWrapper({
+        rule: {
+          ...rule,
+          id: undefined,
+          aggregate: 'count()',
+          eventTypes: ['transaction'],
+          dataset: 'transactions',
+        },
+      });
+
+      expect(await screen.findByTestId('alert-total-events')).toHaveTextContent('Total5');
+
+      await userEvent.click(screen.getByLabelText('Save Rule'));
+
+      expect(createRule).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.objectContaining({
+          data: expect.objectContaining({
+            name: 'My Incident Rule',
+            projects: ['project-slug'],
+            aggregate: 'count()',
+            eventTypes: ['transaction'],
+            dataset: 'generic_metrics',
+            thresholdPeriod: 1,
+          }),
+        })
+      );
+    });
+
+    it('creates a continuous rule with activated rules enabled', async () => {
+      organization.features = [
+        ...organization.features,
+        'mep-rollout-flag',
+        'activated-alert-rules',
+      ];
+      const rule = MetricRuleFixture({
+        monitorType: MonitorType.CONTINUOUS,
+      });
+      createWrapper({
+        rule: {
+          ...rule,
+          id: undefined,
+          aggregate: 'count()',
+          eventTypes: ['transaction'],
+          dataset: 'transactions',
+        },
+      });
+
+      expect(await screen.findByTestId('alert-total-events')).toHaveTextContent('Total5');
+
+      await userEvent.click(screen.getByLabelText('Save Rule'));
+
+      expect(createRule).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.objectContaining({
+          data: expect.objectContaining({
+            name: 'My Incident Rule',
+            projects: ['project-slug'],
+            aggregate: 'count()',
+            eventTypes: ['transaction'],
+            dataset: 'generic_metrics',
+            thresholdPeriod: 1,
+          }),
+        })
+      );
+    });
+
+    it('creates an anomaly detection rule', async () => {
+      organization.features = [...organization.features, 'anomaly-detection-alerts'];
+      const rule = MetricRuleFixture({
+        sensitivity: AlertRuleSensitivity.MEDIUM,
+        seasonality: AlertRuleSeasonality.AUTO,
+      });
+      createWrapper({
+        rule: {
+          ...rule,
+          id: undefined,
+          aggregate: 'count()',
+          eventTypes: ['error'],
+          dataset: 'events',
+        },
+      });
+      expect(
+        await screen.findByLabelText(
+          'Anomaly: whenever values are outside of expected bounds'
+        )
+      ).toBeChecked();
+      expect(
+        await screen.findByRole('textbox', {name: 'Level of responsiveness'})
+      ).toBeInTheDocument();
+      await userEvent.click(screen.getByLabelText('Save Rule'));
+
+      expect(createRule).toHaveBeenLastCalledWith(
+        expect.anything(),
+        expect.objectContaining({
+          data: expect.objectContaining({
+            aggregate: 'count()',
+            dataset: 'events',
+            environment: null,
+            eventTypes: ['error'],
+            detectionType: AlertRuleComparisonType.DYNAMIC,
+            sensitivity: AlertRuleSensitivity.MEDIUM,
+            seasonality: AlertRuleSeasonality.AUTO,
+          }),
+        })
+      );
+    });
+
     it('switches to custom metric and selects event.type:error', async () => {
       organization.features = [...organization.features, 'performance-view'];
-      const rule = MetricRule();
+      const rule = MetricRuleFixture();
       createWrapper({
         rule: {
           ...rule,
@@ -291,12 +442,54 @@ describe('Incident Rules Form', () => {
         })
       );
     });
+
+    it('creates an insights metric rule', async () => {
+      const rule = MetricRuleFixture();
+      createWrapper({
+        rule: {
+          ...rule,
+          id: undefined,
+          eventTypes: ['transaction'],
+          aggregate: 'avg(d:spans/exclusive_time@millisecond)',
+          dataset: Dataset.GENERIC_METRICS,
+        },
+      });
+
+      // Clear field
+      await userEvent.clear(screen.getByPlaceholderText('Enter Alert Name'));
+
+      // Enter in name so we can submit
+      await userEvent.type(
+        screen.getByPlaceholderText('Enter Alert Name'),
+        'Insights Incident Rule'
+      );
+
+      // Set thresholdPeriod
+      await selectEvent.select(screen.getAllByText('For 1 minute')[0], 'For 10 minutes');
+
+      await userEvent.click(screen.getByLabelText('Save Rule'));
+
+      expect(createRule).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.objectContaining({
+          data: expect.objectContaining({
+            name: 'Insights Incident Rule',
+            projects: ['project-slug'],
+            eventTypes: ['transaction'],
+            thresholdPeriod: 10,
+            alertType: 'insights_metrics',
+            dataset: 'generic_metrics',
+          }),
+        })
+      );
+      expect(metric.startSpan).toHaveBeenCalledWith({name: 'saveAlertRule'});
+    });
   });
 
   describe('Editing a rule', () => {
     let editRule;
     let editTrigger;
-    const rule = MetricRule();
+    const rule = MetricRuleFixture();
 
     beforeEach(() => {
       editRule = MockApiClient.addMockResponse({
@@ -307,7 +500,7 @@ describe('Incident Rules Form', () => {
       editTrigger = MockApiClient.addMockResponse({
         url: `/organizations/org-slug/alert-rules/${rule.id}/triggers/1/`,
         method: 'PUT',
-        body: IncidentTrigger({id: '1'}),
+        body: IncidentTriggerFixture({id: '1'}),
       });
     });
     afterEach(() => {
@@ -370,6 +563,21 @@ describe('Incident Rules Form', () => {
       );
     });
 
+    it('switches to anomaly detection threshold', async () => {
+      organization.features = [...organization.features, 'anomaly-detection-alerts'];
+      createWrapper({
+        rule: {
+          ...rule,
+          id: undefined,
+          eventTypes: ['default'],
+        },
+      });
+      const anomaly_option = await screen.findByText(
+        'Anomaly: whenever values are outside of expected bounds'
+      );
+      expect(anomaly_option).toBeInTheDocument();
+    });
+
     it('switches event type from error to default', async () => {
       createWrapper({
         ruleId: rule.id,
@@ -395,7 +603,7 @@ describe('Incident Rules Form', () => {
     });
 
     it('saves a valid on demand metric rule', async () => {
-      const validOnDemandMetricRule = MetricRule({
+      const validOnDemandMetricRule = MetricRuleFixture({
         query: 'transaction.duration:<1s',
       });
 
@@ -414,34 +622,11 @@ describe('Incident Rules Form', () => {
       expect(onSubmitSuccess).toHaveBeenCalled();
     });
 
-    it('shows errors for an invalid on demand metric rule', async () => {
-      const invalidOnDemandMetricRule = TestStubs.MetricRule({
-        aggregate: 'percentile()',
-        query: 'transaction.duration:<1s',
-        dataset: 'generic_metrics',
-      });
-
-      const onSubmitSuccess = jest.fn();
-
-      createWrapper({
-        ruleId: invalidOnDemandMetricRule.id,
-        rule: {
-          ...invalidOnDemandMetricRule,
-          eventTypes: ['transaction'],
-        },
-        onSubmitSuccess,
-      });
-
-      await userEvent.click(screen.getByLabelText('Save Rule'), {delay: null});
-      expect(onSubmitSuccess).not.toHaveBeenCalled();
-    });
-
     it('hides fields when migrating error metric alerts to filter archived issues', async () => {
-      const errorAlert = MetricRule({
+      const errorAlert = MetricRuleFixture({
         dataset: Dataset.ERRORS,
         query: 'example-error',
       });
-      organization.features = [...organization.features, 'metric-alert-ignore-archived'];
       location = {...location, query: {migration: '1'}};
 
       const onSubmitSuccess = jest.fn();
@@ -475,12 +660,11 @@ describe('Incident Rules Form', () => {
     });
 
     afterEach(() => {
-      jest.runOnlyPendingTimers();
       jest.useRealTimers();
     });
 
     it('success status updates the rule', async () => {
-      const alertRule = MetricRule({name: 'Slack Alert Rule'});
+      const alertRule = MetricRuleFixture({name: 'Slack Alert Rule'});
       MockApiClient.addMockResponse({
         url: `/organizations/org-slug/alert-rules/${alertRule.id}/`,
         method: 'PUT',
@@ -502,8 +686,9 @@ describe('Incident Rules Form', () => {
         onSubmitSuccess,
       });
 
+      act(jest.runAllTimers);
       await userEvent.type(
-        screen.getByPlaceholderText('Enter Alert Name'),
+        await screen.findByPlaceholderText('Enter Alert Name'),
         'Slack Alert Rule',
         {delay: null}
       );
@@ -526,8 +711,8 @@ describe('Incident Rules Form', () => {
       );
     });
 
-    it('pending status keeps loading true', () => {
-      const alertRule = MetricRule({name: 'Slack Alert Rule'});
+    it('pending status keeps loading true', async () => {
+      const alertRule = MetricRuleFixture({name: 'Slack Alert Rule'});
       MockApiClient.addMockResponse({
         url: `/organizations/org-slug/alert-rules/${alertRule.id}/`,
         method: 'PUT',
@@ -548,12 +733,13 @@ describe('Incident Rules Form', () => {
         onSubmitSuccess,
       });
 
-      expect(screen.getByTestId('loading-indicator')).toBeInTheDocument();
+      act(jest.runAllTimers);
+      expect(await screen.findByTestId('loading-indicator')).toBeInTheDocument();
       expect(onSubmitSuccess).not.toHaveBeenCalled();
     });
 
     it('failed status renders error message', async () => {
-      const alertRule = MetricRule({name: 'Slack Alert Rule'});
+      const alertRule = MetricRuleFixture({name: 'Slack Alert Rule'});
       MockApiClient.addMockResponse({
         url: `/organizations/org-slug/alert-rules/${alertRule.id}/`,
         method: 'PUT',
@@ -574,8 +760,9 @@ describe('Incident Rules Form', () => {
         rule: alertRule,
         onSubmitSuccess,
       });
+      act(jest.runAllTimers);
       await userEvent.type(
-        screen.getByPlaceholderText('Enter Alert Name'),
+        await screen.findByPlaceholderText('Enter Alert Name'),
         'Slack Alert Rule',
         {delay: null}
       );

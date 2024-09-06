@@ -1,5 +1,5 @@
-import {EventOrGroupType} from 'sentry/types';
-import {ContextType} from 'sentry/views/discover/table/quickContext/utils';
+import type {EventOrGroupType} from 'sentry/types/event';
+import type {ContextType} from 'sentry/views/discover/table/quickContext/utils';
 
 type SaveQueryParams = {
   fields?: readonly string[];
@@ -30,15 +30,17 @@ export type DiscoverEventParameters = SaveQueryEventParameters & {
     search_source: string;
     search_type: string;
   };
+  'discover_search.success': {
+    has_results: boolean;
+    search_source: string;
+    search_type: string;
+  };
   'discover_v2.add_equation': {};
   'discover_v2.build_new_query': {};
   'discover_v2.change_sort': {sort: string};
   'discover_v2.column_editor.open': {};
   'discover_v2.create_alert_clicked': {status: string};
-  'discover_v2.event_details': {event_type: EventOrGroupType};
-  'discover_v2.facet_map.clicked': {tag: string};
   'discover_v2.prebuilt_query_click': {query_name?: string};
-  'discover_v2.processed_baseline_toggle.clicked': {toggled: string};
   'discover_v2.quick_context_add_column': {column: string};
   'discover_v2.quick_context_header_copy': {clipBoardTitle: string};
   'discover_v2.quick_context_hover_contexts': {
@@ -64,8 +66,6 @@ export type DiscoverEventParameters = SaveQueryEventParameters & {
   'discover_v2.update_columns': {};
   'discover_v2.view_saved_queries': {};
   'discover_v2.y_axis_change': {y_axis_value: string[]};
-  'discover_views.add_to_dashboard.confirm': {};
-  'discover_views.add_to_dashboard.modal_open': {saved_query: boolean};
 };
 
 export type DiscoverEventKey = keyof DiscoverEventParameters;
@@ -74,10 +74,7 @@ export const discoverEventMap: Record<DiscoverEventKey, string | null> = {
   'discover_v2.add_equation': 'Dicoverv2: Equation added',
   'discover_v2.build_new_query': 'Discoverv2: Build a new Discover Query',
   'discover_v2.change_sort': 'Discoverv2: Sort By Changed',
-  'discover_v2.facet_map.clicked': 'Discoverv2: Clicked on a tag on the facet map',
   'discover_v2.prebuilt_query_click': 'Discoverv2: Click a pre-built query',
-  'discover_v2.processed_baseline_toggle.clicked':
-    'Discoverv2: Clicked processed baseline toggle',
   'discover_v2.tour.advance': 'Discoverv2: Tour Advance',
   'discover_v2.tour.close': 'Discoverv2: Tour Close',
   'discover_v2.tour.start': 'Discoverv2: Tour Start',
@@ -86,10 +83,6 @@ export const discoverEventMap: Record<DiscoverEventKey, string | null> = {
   'discover_v2.set_as_default': 'Discoverv2: Click set as default',
   'discover_v2.remove_default': 'Discoverv2: Click remove default',
   'discover_v2.results.toggle_tag_facets': 'Discoverv2: Toggle Tag Facets',
-  'discover_views.add_to_dashboard.modal_open':
-    'Discover2: Add to Dashboard modal opened',
-  'discover_views.add_to_dashboard.confirm':
-    'Discover2: Add to Dashboard modal form submitted',
   'discover_v2.quick_context_hover_contexts': 'Discover2: Hover over Quick Context',
   'discover_v2.quick_context_add_column': 'Discover2: Add column from Quick Context',
   'discover_v2.quick_context_header_copy':
@@ -116,11 +109,11 @@ export const discoverEventMap: Record<DiscoverEventKey, string | null> = {
   'discover_v2.delete_query_failed': 'Discoverv2: Failed to delete a saved query',
   'discover_v2.delete_query_request': 'Discoverv2: Request to delete a saved query',
   'discover_v2.create_alert_clicked': 'Discoverv2: Create alert clicked',
-  'discover_v2.event_details': 'Discoverv2: Opened Event Details',
   'discover_v2.column_editor.open': 'Discoverv2: Open column editor',
   'discover_v2.results.download_csv': 'Discoverv2: Download CSV',
   'discover_v2.results.cellaction': 'Discoverv2: Cell Action Clicked',
   'discover_v2.results.drilldown': 'Discoverv2: Click aggregate drilldown',
   'discover_v2.update_columns': 'Discoverv2: Update columns',
   'discover_search.failed': 'Discover Search: Failed',
+  'discover_search.success': 'Discover Search: Succeeded',
 };

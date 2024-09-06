@@ -1,18 +1,20 @@
-import {useMemo} from 'react';
-import {Location} from 'history';
-import moment from 'moment';
+import {Fragment, useMemo} from 'react';
+import type {Location} from 'history';
+import moment from 'moment-timezone';
 
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {IconWarning} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {Organization, Project} from 'sentry/types';
+import type {Organization} from 'sentry/types/organization';
+import type {Project} from 'sentry/types/project';
+import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {parsePeriodToHours} from 'sentry/utils/dates';
 import {useDiscoverQuery} from 'sentry/utils/discover/discoverQuery';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
-import {EventsResultsDataRow, Sort} from 'sentry/utils/profiling/hooks/types';
+import {parsePeriodToHours} from 'sentry/utils/duration/parsePeriodToHours';
+import type {EventsResultsDataRow, Sort} from 'sentry/utils/profiling/hooks/types';
 import {useProfileFunctions} from 'sentry/utils/profiling/hooks/useProfileFunctions';
 import {generateProfileFlamechartRouteWithQuery} from 'sentry/utils/profiling/routes';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
@@ -27,11 +29,11 @@ import {
   ListLink,
   TimeDifference,
 } from 'sentry/views/performance/trends/changeExplorerUtils/spansList';
-import {
+import type {
   NormalizedTrendsTransaction,
-  TrendChangeType,
   TrendView,
 } from 'sentry/views/performance/trends/types';
+import {TrendChangeType} from 'sentry/views/performance/trends/types';
 import {getTrendProjectId} from 'sentry/views/performance/trends/utils';
 
 type FunctionsListProps = {
@@ -110,7 +112,7 @@ export function FunctionsList(props: FunctionsListProps) {
 
   const {
     data: totalTransactionsBefore,
-    isLoading: transactionsLoadingBefore,
+    isPending: transactionsLoadingBefore,
     isError: transactionsErrorBefore,
   } = useDiscoverQuery(
     getQueryParams(
@@ -132,7 +134,7 @@ export function FunctionsList(props: FunctionsListProps) {
 
   const {
     data: totalTransactionsAfter,
-    isLoading: transactionsLoadingAfter,
+    isPending: transactionsLoadingAfter,
     isError: transactionsErrorAfter,
   } = useDiscoverQuery(
     getQueryParams(
@@ -239,8 +241,8 @@ export function FunctionsList(props: FunctionsListProps) {
         isLoading={
           transactionsLoadingBefore ||
           transactionsLoadingAfter ||
-          beforeFunctionsQuery.isLoading ||
-          afterFunctionsQuery.isLoading
+          beforeFunctionsQuery.isPending ||
+          afterFunctionsQuery.isPending
         }
         isError={
           transactionsErrorBefore ||
@@ -388,28 +390,37 @@ export function NumberedFunctionsList(props: NumberedFunctionsListProps) {
     .map((func, index) => {
       const profiles = func['examples()'] as string[];
 
-      const functionSummaryView = generateProfileFlamechartRouteWithQuery({
-        orgSlug: organization.slug,
-        projectSlug: project?.slug || '',
-        profileId: profiles[0],
-        query: {
-          frameName: func.function as string,
-          framePackage: func.package as string,
-        },
-      });
+      let rendered = <Fragment>{func.function}</Fragment>;
+      if (defined(profiles[0])) {
+        const functionSummaryView = generateProfileFlamechartRouteWithQuery({
+          orgSlug: organization.slug,
+          projectSlug: project?.slug || '',
+          profileId: profiles[0],
+          query: {
+            frameName: func.function as string,
+            framePackage: func.package as string,
+          },
+        });
 
-      const handleClickAnalytics = () => {
-        trackAnalytics(
-          'performance_views.performance_change_explorer.function_link_clicked',
-          {
-            organization,
-            transaction: transactionName,
-            package: func.package as string,
-            function: func.function as string,
-            profile_id: profiles[0],
-          }
+        const handleClickAnalytics = () => {
+          trackAnalytics(
+            'performance_views.performance_change_explorer.function_link_clicked',
+            {
+              organization,
+              transaction: transactionName,
+              package: func.package as string,
+              function: func.function as string,
+              profile_id: profiles[0],
+            }
+          );
+        };
+
+        rendered = (
+          <ListLink to={functionSummaryView} onClick={handleClickAnalytics}>
+            {rendered}
+          </ListLink>
         );
-      };
+      }
 
       return (
         <li key={`list-item-${index}`}>
@@ -417,9 +428,7 @@ export function NumberedFunctionsList(props: NumberedFunctionsListProps) {
             <p style={{marginLeft: space(2)}}>
               {tct('[changeType] suspect function', {changeType: func.changeType})}
             </p>
-            <ListLink to={functionSummaryView} onClick={handleClickAnalytics}>
-              {func.function}
-            </ListLink>
+            {rendered}
             <TimeDifference difference={func.avgTimeDifference / 1000000} />
           </ListItemWrapper>
         </li>

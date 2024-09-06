@@ -1,9 +1,7 @@
-from typing import List, Union
-
 from snuba_sdk import Column, Function, Identifier, Lambda
 
 
-def union_find(arrs: List[Column], values: List[Union[str, List[str]]]) -> Function:
+def union_find(arrs: list[Column], values: list[str | list[str]]) -> Function:
     """Return a row if a union can be formed out of the sets.
 
     Accepts as input:
@@ -52,7 +50,7 @@ def union_find(arrs: List[Column], values: List[Union[str, List[str]]]) -> Funct
     )
 
 
-def _map_bitmask_operation(arr: Column, value: Union[str, List[str]]) -> Function:
+def _map_bitmask_operation(arr: Column, value: str | list[str]) -> Function:
     """List type values require special handling.
 
     This is only applicable to the class array.
@@ -63,7 +61,7 @@ def _map_bitmask_operation(arr: Column, value: Union[str, List[str]]) -> Functio
         return _apply_scalar_bitmask(arr, value)
 
 
-def _apply_array_bitmask(arr: Column, subset: List[str]) -> Function:
+def _apply_array_bitmask(arr: Column, subset: list[str]) -> Function:
     """Return `1` for the index position if the subset is contained within the set.
 
     Accepts as input:

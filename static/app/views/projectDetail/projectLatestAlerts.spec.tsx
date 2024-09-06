@@ -1,4 +1,6 @@
-import {MetricRule} from 'sentry-fixture/metricRule';
+import {IncidentFixture} from 'sentry-fixture/incident';
+import {LocationFixture} from 'sentry-fixture/locationFixture';
+import {MetricRuleFixture} from 'sentry-fixture/metricRule';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
@@ -9,20 +11,20 @@ import ProjectLatestAlerts from './projectLatestAlerts';
 describe('ProjectDetail > ProjectLatestAlerts', function () {
   let endpointMock: jest.Mock;
   let rulesEndpointMock: jest.Mock;
-  const {organization, project, router, routerContext} = initializeOrg();
+  const {organization, project, router} = initializeOrg();
 
   beforeEach(function () {
     endpointMock = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/incidents/`,
       body: [
-        TestStubs.Incident({id: 1, status: 20}), // critical
-        TestStubs.Incident({id: 2, status: 10}), // warning
-        TestStubs.Incident({id: 3, status: 2}), // closed
+        IncidentFixture({id: '1', status: 20}), // critical
+        IncidentFixture({id: '2', status: 10}), // warning
+        IncidentFixture({id: '3', status: 2}), // closed
       ],
     });
     rulesEndpointMock = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/alert-rules/`,
-      body: [MetricRule()],
+      body: [MetricRuleFixture()],
     });
   });
 
@@ -38,7 +40,7 @@ describe('ProjectDetail > ProjectLatestAlerts', function () {
         location={router.location}
         isProjectStabilized
       />,
-      {context: routerContext}
+      {router}
     );
 
     expect(endpointMock).toHaveBeenCalledTimes(2); // one for closed, one for open
@@ -115,7 +117,7 @@ describe('ProjectDetail > ProjectLatestAlerts', function () {
         location={router.location}
         isProjectStabilized
       />,
-      {context: routerContext}
+      {router}
     );
 
     expect(await screen.findByRole('button', {name: 'Create Alert'})).toHaveAttribute(
@@ -134,7 +136,7 @@ describe('ProjectDetail > ProjectLatestAlerts', function () {
       <ProjectLatestAlerts
         organization={organization}
         projectSlug={project.slug}
-        location={TestStubs.location({
+        location={LocationFixture({
           query: {statsPeriod: '7d', environment: 'staging', somethingBad: 'nope'},
         })}
         isProjectStabilized
@@ -153,9 +155,9 @@ describe('ProjectDetail > ProjectLatestAlerts', function () {
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/incidents/`,
       body: [
-        TestStubs.Incident({id: 1, status: 20}), // critical
-        TestStubs.Incident({id: 2, status: 10}), // warning
-        TestStubs.Incident({id: 3, status: 2, dateClosed: null}), // closed with null dateClosed
+        IncidentFixture({id: '1', status: 20}), // critical
+        IncidentFixture({id: '2', status: 10}), // warning
+        IncidentFixture({id: '3', status: 2, dateClosed: null}), // closed with null dateClosed
       ],
     });
 

@@ -1,5 +1,4 @@
 import {useState} from 'react';
-import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 
 import {Alert} from 'sentry/components/alert';
@@ -10,7 +9,8 @@ import Form from 'sentry/components/forms/form';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {t, tct} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
-import {AuthConfig} from 'sentry/types';
+import type {AuthConfig} from 'sentry/types/auth';
+import {browserHistory} from 'sentry/utils/browserHistory';
 
 type Props = {
   authConfig: AuthConfig;

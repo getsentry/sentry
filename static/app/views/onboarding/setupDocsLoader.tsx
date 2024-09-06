@@ -1,7 +1,7 @@
 import {Fragment, useCallback, useEffect, useState} from 'react';
 import styled from '@emotion/styled';
 import {motion} from 'framer-motion';
-import {Location} from 'history';
+import type {Location} from 'history';
 import beautify from 'js-beautify';
 
 import {Button} from 'sentry/components/button';
@@ -17,8 +17,8 @@ import {
 import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {PlatformKey} from 'sentry/types';
-import {Organization, Project, ProjectKey} from 'sentry/types';
+import type {Organization} from 'sentry/types/organization';
+import type {PlatformKey, Project, ProjectKey} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {handleXhrErrorResponse} from 'sentry/utils/handleXhrErrorResponse';
 import {decodeList} from 'sentry/utils/queryString';
@@ -34,9 +34,7 @@ export function SetupDocsLoader({
   location,
   project,
   platform,
-  close,
 }: {
-  close: () => void;
   location: Location;
   organization: Organization;
   platform: PlatformKey | null;
@@ -146,9 +144,8 @@ export function SetupDocsLoader({
       <Header>
         <ProductSelectionAvailabilityHook
           organization={organization}
-          lazyLoader
-          skipLazyLoader={close}
           platform={currentPlatform}
+          projectId={project.id}
         />
       </Header>
       <Divider />
@@ -210,7 +207,7 @@ Sentry.onLoad(function() {
   }${
     hasPerformance
       ? `
-    // Performance Monitoring
+    // Tracing
     tracesSampleRate: 1.0, // Capture 100% of the transactions`
       : ''
   }${
@@ -315,8 +312,8 @@ Sentry.onLoad(function() {
           </li>
           {!products.includes(ProductSolution.PERFORMANCE_MONITORING) && (
             <li>
-              <ExternalLink href="https://docs.sentry.io/platforms/javascript/performance/">
-                {t('Performance Monitoring')}
+              <ExternalLink href="https://docs.sentry.io/platforms/javascript/tracing/">
+                {t('Tracing')}
               </ExternalLink>
               {': '}
               {t(

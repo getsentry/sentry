@@ -1,10 +1,12 @@
-import {Location} from 'history';
-import {Event as EventFixture} from 'sentry-fixture/event';
-import {Organization} from 'sentry-fixture/organization';
+import type {Location} from 'history';
+import {EventFixture} from 'sentry-fixture/event';
+import {GroupFixture} from 'sentry-fixture/group';
+import {OrganizationFixture} from 'sentry-fixture/organization';
 
-import {reactHooks} from 'sentry-test/reactTestingLibrary';
+import {act, renderHook, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import {EventOccurrence, IssueCategory} from 'sentry/types';
+import type {EventOccurrence} from 'sentry/types/event';
+import {IssueCategory} from 'sentry/types/group';
 import {useLocation} from 'sentry/utils/useLocation';
 import useReplaysForRegressionIssue from 'sentry/views/issueDetails/groupReplays/useReplaysForRegressionIssue';
 
@@ -22,7 +24,7 @@ describe('useReplaysForRegressionIssue', () => {
   };
   jest.mocked(useLocation).mockReturnValue(location);
 
-  const organization = Organization({
+  const organization = OrganizationFixture({
     features: ['session-replay'],
   });
 
@@ -47,7 +49,7 @@ describe('useReplaysForRegressionIssue', () => {
   };
 
   it('should fetch a list of replay ids', async () => {
-    const MOCK_GROUP = TestStubs.Group({issueCategory: IssueCategory.PERFORMANCE});
+    const MOCK_GROUP = GroupFixture({issueCategory: IssueCategory.PERFORMANCE});
 
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/replay-count/`,
@@ -57,17 +59,14 @@ describe('useReplaysForRegressionIssue', () => {
       },
     });
 
-    const {result, waitForNextUpdate} = reactHooks.renderHook(
-      useReplaysForRegressionIssue,
-      {
-        initialProps: {
-          group: MOCK_GROUP,
-          location,
-          organization,
-          event: mockEvent,
-        },
-      }
-    );
+    const {result} = renderHook(useReplaysForRegressionIssue, {
+      initialProps: {
+        group: MOCK_GROUP,
+        location,
+        organization,
+        event: mockEvent,
+      },
+    });
 
     expect(result.current).toEqual({
       eventView: null,
@@ -75,19 +74,19 @@ describe('useReplaysForRegressionIssue', () => {
       pageLinks: null,
     });
 
-    await waitForNextUpdate();
-
-    expect(result.current).toEqual({
-      eventView: expect.objectContaining({
-        query: 'id:[replay42,replay256]',
-      }),
-      fetchError: undefined,
-      pageLinks: null,
-    });
+    await waitFor(() =>
+      expect(result.current).toEqual({
+        eventView: expect.objectContaining({
+          query: 'id:[replay42,replay256]',
+        }),
+        fetchError: undefined,
+        pageLinks: null,
+      })
+    );
   });
 
   it('should return an empty EventView when there are no replay_ids returned from the count endpoint', async () => {
-    const MOCK_GROUP = TestStubs.Group({issueCategory: IssueCategory.PERFORMANCE});
+    const MOCK_GROUP = GroupFixture({issueCategory: IssueCategory.PERFORMANCE});
 
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/replay-count/`,
@@ -95,17 +94,14 @@ describe('useReplaysForRegressionIssue', () => {
       body: {},
     });
 
-    const {result, waitForNextUpdate} = reactHooks.renderHook(
-      useReplaysForRegressionIssue,
-      {
-        initialProps: {
-          group: MOCK_GROUP,
-          location,
-          organization,
-          event: mockEvent,
-        },
-      }
-    );
+    const {result} = renderHook(useReplaysForRegressionIssue, {
+      initialProps: {
+        group: MOCK_GROUP,
+        location,
+        organization,
+        event: mockEvent,
+      },
+    });
 
     expect(result.current).toEqual({
       eventView: null,
@@ -113,19 +109,19 @@ describe('useReplaysForRegressionIssue', () => {
       pageLinks: null,
     });
 
-    await waitForNextUpdate();
-
-    expect(result.current).toEqual({
-      eventView: expect.objectContaining({
-        query: 'id:[]',
-      }),
-      fetchError: undefined,
-      pageLinks: null,
-    });
+    await waitFor(() =>
+      expect(result.current).toEqual({
+        eventView: expect.objectContaining({
+          query: 'id:[]',
+        }),
+        fetchError: undefined,
+        pageLinks: null,
+      })
+    );
   });
 
   it('queries using start and end date strings if passed in', async () => {
-    const MOCK_GROUP = TestStubs.Group({issueCategory: IssueCategory.PERFORMANCE});
+    const MOCK_GROUP = GroupFixture({issueCategory: IssueCategory.PERFORMANCE});
     const replayCountRequest = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/replay-count/`,
       method: 'GET',
@@ -134,7 +130,7 @@ describe('useReplaysForRegressionIssue', () => {
       },
     });
 
-    const {waitForNextUpdate} = reactHooks.renderHook(useReplaysForRegressionIssue, {
+    renderHook(useReplaysForRegressionIssue, {
       initialProps: {
         group: MOCK_GROUP,
         location,
@@ -155,11 +151,11 @@ describe('useReplaysForRegressionIssue', () => {
       })
     );
 
-    await waitForNextUpdate();
+    await act(tick);
   });
 
   it('queries the transaction name with event type and duration filters', async () => {
-    const MOCK_GROUP = TestStubs.Group({issueCategory: IssueCategory.PERFORMANCE});
+    const MOCK_GROUP = GroupFixture({issueCategory: IssueCategory.PERFORMANCE});
     const replayCountRequest = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/replay-count/`,
       method: 'GET',
@@ -168,7 +164,7 @@ describe('useReplaysForRegressionIssue', () => {
       },
     });
 
-    const {waitForNextUpdate} = reactHooks.renderHook(useReplaysForRegressionIssue, {
+    renderHook(useReplaysForRegressionIssue, {
       initialProps: {
         group: MOCK_GROUP,
         location,
@@ -187,6 +183,6 @@ describe('useReplaysForRegressionIssue', () => {
       })
     );
 
-    await waitForNextUpdate();
+    await act(tick);
   });
 });

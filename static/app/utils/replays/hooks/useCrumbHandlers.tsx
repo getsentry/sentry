@@ -1,6 +1,7 @@
 import {useCallback, useRef} from 'react';
 
 import {useReplayContext} from 'sentry/components/replays/replayContext';
+import useCurrentHoverTime from 'sentry/utils/replays/playback/providers/useCurrentHoverTime';
 
 type RecordType = {
   offsetMs: number;
@@ -35,20 +36,18 @@ function getNodeIdAndLabel(record: RecordType) {
     };
   }
   if ('nodeId' in data) {
-    return {nodeId: data.nodeId, annotation: record.data.label};
+    return {nodeIds: [data.nodeId], annotation: record.data.label};
+  }
+  if ('nodeIds' in data) {
+    return {nodeIds: data.nodeIds, annotation: record.data.label};
   }
   return undefined;
 }
 
 function useCrumbHandlers() {
-  const {
-    replay,
-    clearAllHighlights,
-    addHighlight,
-    removeHighlight,
-    setCurrentTime,
-    setCurrentHoverTime,
-  } = useReplayContext();
+  const {replay, clearAllHighlights, addHighlight, removeHighlight, setCurrentTime} =
+    useReplayContext();
+  const [, setCurrentHoverTime] = useCurrentHoverTime();
   const startTimestampMs = replay?.getReplay()?.started_at?.getTime() || 0;
 
   const mouseEnterCallback = useRef<{
@@ -60,7 +59,7 @@ function useCrumbHandlers() {
   });
 
   const onMouseEnter = useCallback(
-    (record: RecordType) => {
+    (record: RecordType, nodeId?: number) => {
       // This debounces the mouseEnter callback in unison with mouseLeave.
       // We ensure the pointer remains over the target element before dispatching
       // state events in order to minimize unnecessary renders. This helps during
@@ -72,7 +71,9 @@ function useCrumbHandlers() {
           setCurrentHoverTime(record.offsetMs);
         }
 
-        const metadata = getNodeIdAndLabel(record);
+        const metadata = nodeId
+          ? {annotations: undefined, nodeIds: [nodeId]}
+          : getNodeIdAndLabel(record);
         if (metadata) {
           // XXX: Kind of hacky, but mouseLeave does not fire if you move from a
           // crumb to a tooltip
@@ -87,7 +88,7 @@ function useCrumbHandlers() {
   );
 
   const onMouseLeave = useCallback(
-    (record: RecordType) => {
+    (record: RecordType, nodeId?: number) => {
       if (mouseEnterCallback.current.id === record) {
         // If there is a mouseEnter callback queued and we're leaving the node
         // just cancel the timeout.
@@ -98,7 +99,9 @@ function useCrumbHandlers() {
         mouseEnterCallback.current.timeoutId = null;
       } else {
         setCurrentHoverTime(undefined);
-        const metadata = getNodeIdAndLabel(record);
+        const metadata = nodeId
+          ? {annotations: undefined, nodeIds: [nodeId]}
+          : getNodeIdAndLabel(record);
         if (metadata) {
           removeHighlight(metadata);
         }

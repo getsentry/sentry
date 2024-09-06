@@ -1,4 +1,5 @@
-import {CSSProperties, forwardRef, ReactNode} from 'react';
+import type {CSSProperties, ReactNode} from 'react';
+import {forwardRef} from 'react';
 import styled from '@emotion/styled';
 
 import {Tooltip} from 'sentry/components/tooltip';
@@ -58,7 +59,7 @@ const HeaderButton = styled('button')`
   color: ${p => p.theme.subText};
 
   font-size: ${p => p.theme.fontSizeSmall};
-  font-weight: 600;
+  font-weight: ${p => p.theme.fontWeightBold};
   line-height: 16px;
   text-align: unset;
   text-transform: uppercase;

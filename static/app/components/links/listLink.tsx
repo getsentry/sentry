@@ -1,58 +1,66 @@
 import {Link as RouterLink} from 'react-router';
+import {NavLink} from 'react-router-dom';
 import styled from '@emotion/styled';
 import classNames from 'classnames';
-import {LocationDescriptor} from 'history';
-import * as qs from 'query-string';
+import type {LocationDescriptor} from 'history';
 
+import {locationDescriptorToTo} from 'sentry/utils/reactRouter6Compat/location';
+import normalizeUrl from 'sentry/utils/url/normalizeUrl';
+import {useLocation} from 'sentry/utils/useLocation';
 import useRouter from 'sentry/utils/useRouter';
-import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 
-type LinkProps = Omit<React.ComponentProps<typeof RouterLink>, 'to'>;
-
-type Props = LinkProps & {
+interface ListLinkProps
+  extends Omit<
+    React.DetailedHTMLProps<React.HTMLAttributes<HTMLAnchorElement>, HTMLAnchorElement>,
+    'href' | 'target' | 'as' | 'css' | 'ref'
+  > {
   /**
    * Link target. We don't want to expose the ToLocationFunction on this component.
    */
   to: LocationDescriptor;
-  /**
-   * The class to apply when the link is 'active'
-   */
-  activeClassName?: string;
   disabled?: boolean;
   index?: boolean;
   /**
    * Should be should be supplied by the parent component
    */
   isActive?: (location: LocationDescriptor, indexOnly?: boolean) => boolean;
-  query?: string;
-};
+}
 
 function ListLink({
   children,
   className,
   isActive,
-  query,
   to,
-  activeClassName = 'active',
   index = false,
   disabled = false,
   ...props
-}: Props) {
+}: ListLinkProps) {
   const router = useRouter();
-  const queryData = query ? qs.parse(query) : undefined;
-  const targetLocation = typeof to === 'string' ? {pathname: to, query: queryData} : to;
+  const location = useLocation();
+  const targetLocation = typeof to === 'string' ? {pathname: to} : to;
   const target = normalizeUrl(targetLocation);
 
-  const active = isActive?.(target, index) ?? router.isActive(target, index);
+  const active =
+    isActive?.(target, index) ??
+    // XXX(epurkhiser): our shim for router.isActive will throw an error in
+    // react-router 6. Fallback to manually checking if the path is active
+    (window.__SENTRY_USING_REACT_ROUTER_SIX
+      ? location.pathname === (typeof target === 'string' ? target : target.pathname)
+      : router.isActive(target, index));
+
+  const link = window.__SENTRY_USING_REACT_ROUTER_SIX ? (
+    <NavLink {...props} to={disabled ? '' : locationDescriptorToTo(target)}>
+      {children}
+    </NavLink>
+  ) : (
+    <RouterLink {...props} onlyActiveOnIndex={index} to={disabled ? '' : target}>
+      {children}
+    </RouterLink>
+  );
 
   return (
-    <StyledLi
-      className={classNames({[activeClassName]: active}, className)}
-      disabled={disabled}
-    >
-      <RouterLink {...props} onlyActiveOnIndex={index} to={disabled ? '' : target}>
-        {children}
-      </RouterLink>
+    <StyledLi className={classNames({active}, className)} disabled={disabled}>
+      {link}
     </StyledLi>
   );
 }
@@ -65,12 +73,16 @@ const StyledLi = styled('li', {
   ${p =>
     p.disabled &&
     `
-   a {
-    color:${p.theme.disabled} !important;
-    pointer-events: none;
-    :hover {
-      color: ${p.theme.disabled}  !important;
+  a {
+      color:${p.theme.disabled} !important;
+      :hover {
+        color: ${p.theme.disabled}  !important;
+      }
+      cursor: default !important;
     }
-   }
+
+  a:active {
+    pointer-events: none;
+  }
 `}
 `;

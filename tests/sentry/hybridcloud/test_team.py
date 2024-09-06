@@ -1,14 +1,12 @@
 from sentry.models.organizationmemberteam import OrganizationMemberTeam
 from sentry.models.team import Team, TeamStatus
-from sentry.services.hybrid_cloud.organization import organization_service
+from sentry.organizations.services.organization import organization_service
 from sentry.testutils.factories import Factories
 from sentry.testutils.pytest.fixtures import django_db_all
-from sentry.testutils.silo import region_silo_test
 
 
 @django_db_all(transaction=True)
-@region_silo_test
-def test_get_or_create_team_member():
+def test_get_or_create_team_member() -> None:
     org = Factories.create_organization()
     user = Factories.create_user(email="test@sentry.io")
     member = Factories.create_member(organization=org, user_id=user.id)
@@ -35,8 +33,7 @@ def test_get_or_create_team_member():
 
 
 @django_db_all(transaction=True)
-@region_silo_test
-def test_get_or_create_default_team():
+def test_get_or_create_default_team() -> None:
     org = Factories.create_organization()
     team = Factories.create_team(org)
     team.update(status=TeamStatus.PENDING_DELETION)

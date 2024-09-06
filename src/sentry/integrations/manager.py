@@ -1,9 +1,10 @@
 from __future__ import annotations
 
-from typing import Any, Iterable, Iterator
+from collections.abc import Iterable, Iterator
+from typing import Any
 
 from sentry.exceptions import NotRegistered
-from sentry.integrations import IntegrationProvider
+from sentry.integrations.base import IntegrationProvider
 
 __all__ = ["IntegrationManager"]
 
@@ -45,3 +46,11 @@ class IntegrationManager:
             # we gracefully handle a missing provider
             return
         del self.__values[cls.key]
+
+
+default_manager = IntegrationManager()
+all = default_manager.all
+get = default_manager.get
+exists = default_manager.exists
+register = default_manager.register
+unregister = default_manager.unregister

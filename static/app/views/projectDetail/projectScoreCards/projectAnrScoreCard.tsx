@@ -1,10 +1,10 @@
 import {Fragment, useEffect, useState} from 'react';
-import {Location} from 'history';
+import type {Location} from 'history';
 import pick from 'lodash/pick';
 import round from 'lodash/round';
 
 import {doSessionsRequest} from 'sentry/actionCreators/sessions';
-import {Button} from 'sentry/components/button';
+import {LinkButton} from 'sentry/components/button';
 import {shouldFetchPreviousPeriod} from 'sentry/components/charts/utils';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import ScoreCard from 'sentry/components/scoreCard';
@@ -12,11 +12,12 @@ import {parseStatsPeriod} from 'sentry/components/timeRangeSelector/utils';
 import {URL_PARAM} from 'sentry/constants/pageFilters';
 import {IconArrow} from 'sentry/icons/iconArrow';
 import {t} from 'sentry/locale';
-import {PageFilters} from 'sentry/types';
-import {Organization, SessionApiResponse} from 'sentry/types/organization';
+import type {PageFilters} from 'sentry/types/core';
+import type {Organization, SessionApiResponse} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {formatAbbreviatedNumber, formatPercentage} from 'sentry/utils/formatters';
-import {getPeriod} from 'sentry/utils/getPeriod';
+import {getPeriod} from 'sentry/utils/duration/getPeriod';
+import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
+import {formatPercentage} from 'sentry/utils/number/formatPercentage';
 import useApi from 'sentry/utils/useApi';
 import {
   getSessionTermDescription,
@@ -162,7 +163,7 @@ export function ProjectAnrScoreCard({
 
   function renderButton() {
     return (
-      <Button
+      <LinkButton
         data-test-id="issues-open"
         size="xs"
         to={issueSearch}
@@ -173,7 +174,7 @@ export function ProjectAnrScoreCard({
         }}
       >
         {t('View Issues')}
-      </Button>
+      </LinkButton>
     );
   }
 

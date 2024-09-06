@@ -1,4 +1,6 @@
 from sentry.constants import SentryAppStatus
+from sentry.hybridcloud.models.outbox import ControlOutbox
+from sentry.hybridcloud.outbox.category import OutboxCategory
 from sentry.models.apiapplication import ApiApplication
 from sentry.models.integrations.sentry_app import SentryApp
 from sentry.testutils.cases import TestCase
@@ -72,3 +74,13 @@ class SentryAppTest(TestCase):
             organization=other_org, slug=self.sentry_app.slug, prevent_token_exchange=True
         )
         assert not self.sentry_app.is_installed_on(self.org)
+
+    def test_save_outbox_update(self):
+        # Clear the outbox created in setup()
+        ControlOutbox.objects.filter(category=OutboxCategory.SENTRY_APP_UPDATE).delete()
+
+        self.sentry_app.update(name="NoneDB")
+        outboxes = ControlOutbox.objects.filter(category=OutboxCategory.SENTRY_APP_UPDATE).all()
+        assert len(outboxes) == 1
+        assert outboxes[0].shard_identifier == self.sentry_app.id
+        assert outboxes[0].region_name

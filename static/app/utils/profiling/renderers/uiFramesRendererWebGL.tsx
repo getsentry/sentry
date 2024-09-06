@@ -1,7 +1,7 @@
 import * as Sentry from '@sentry/react';
 import {mat3} from 'gl-matrix';
 
-import {FlamegraphTheme} from 'sentry/utils/profiling/flamegraph/flamegraphTheme';
+import type {FlamegraphTheme} from 'sentry/utils/profiling/flamegraph/flamegraphTheme';
 import {
   createAndBindBuffer,
   createProgram,
@@ -15,7 +15,7 @@ import {
 } from 'sentry/utils/profiling/gl/utils';
 import {UIFramesRenderer} from 'sentry/utils/profiling/renderers/UIFramesRenderer';
 import {Rect} from 'sentry/utils/profiling/speedscope';
-import {UIFrames} from 'sentry/utils/profiling/uiFrames';
+import type {UIFrames} from 'sentry/utils/profiling/uiFrames';
 
 import {uiFramesFragment, uiFramesVertext} from './shaders';
 
@@ -225,6 +225,7 @@ class UIFramesRendererWebGL extends UIFramesRenderer {
     });
 
     // Use shader program
+    // biome-ignore lint/correctness/useHookAtTopLevel: not a hook
     this.ctx.useProgram(this.program);
   }
 
@@ -251,6 +252,7 @@ class UIFramesRendererWebGL extends UIFramesRenderer {
       return;
     }
 
+    // biome-ignore lint/correctness/useHookAtTopLevel: not a hook
     this.ctx.useProgram(this.program);
 
     const projectionMatrix = makeProjectionMatrix(

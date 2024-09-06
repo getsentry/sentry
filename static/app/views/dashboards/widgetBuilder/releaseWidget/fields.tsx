@@ -1,15 +1,16 @@
 import invert from 'lodash/invert';
 
-import {
-  SelectValue,
+import type {SelectValue} from 'sentry/types/core';
+import {SessionStatus} from 'sentry/types/organization';
+import type {
   SessionAggregationColumn,
-  SessionField,
   SessionsMeta,
   SessionsOperation,
-  SessionStatus,
-} from 'sentry/types';
+} from 'sentry/types/sessions';
+import {SessionField} from 'sentry/types/sessions';
 import {defined} from 'sentry/utils';
-import {FieldValue, FieldValueKind} from 'sentry/views/discover/table/types';
+import type {FieldValue} from 'sentry/views/discover/table/types';
+import {FieldValueKind} from 'sentry/views/discover/table/types';
 
 enum SessionMetric {
   ANR_RATE = 'session.anr_rate',

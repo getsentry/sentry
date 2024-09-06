@@ -1,4 +1,5 @@
-import {ExceptionType, ExceptionValue, PlatformKey} from 'sentry/types';
+import {getStacktracePlatform} from 'sentry/components/events/interfaces/utils';
+import type {ExceptionType, ExceptionValue} from 'sentry/types/event';
 
 import {ExceptionContent} from './exception';
 import {StackTraceContent} from './stackTrace';
@@ -12,7 +13,6 @@ type Props = Pick<
   | 'event'
   | 'newestFirst'
   | 'groupingCurrentLevel'
-  | 'hasHierarchicalGrouping'
 > & {
   exception?: ExceptionType;
   stacktrace?: ExceptionValue['stacktrace'];
@@ -25,12 +25,9 @@ export function CrashContent({
   newestFirst,
   projectSlug,
   groupingCurrentLevel,
-  hasHierarchicalGrouping,
   exception,
   stacktrace,
 }: Props) {
-  const platform = (event.platform ?? 'other') as PlatformKey;
-
   if (exception) {
     return (
       <ExceptionContent
@@ -39,15 +36,15 @@ export function CrashContent({
         projectSlug={projectSlug}
         newestFirst={newestFirst}
         event={event}
-        platform={platform}
         values={exception.values}
         groupingCurrentLevel={groupingCurrentLevel}
-        hasHierarchicalGrouping={hasHierarchicalGrouping}
       />
     );
   }
 
   if (stacktrace) {
+    const platform = getStacktracePlatform(event, stacktrace);
+
     return (
       <StackTraceContent
         stacktrace={stacktrace}
@@ -56,7 +53,6 @@ export function CrashContent({
         event={event}
         platform={platform}
         groupingCurrentLevel={groupingCurrentLevel}
-        hasHierarchicalGrouping={hasHierarchicalGrouping}
       />
     );
   }

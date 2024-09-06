@@ -1,0 +1,119 @@
+import {Fragment, useMemo} from 'react';
+import styled from '@emotion/styled';
+
+import {CodeSnippet} from 'sentry/components/codeSnippet';
+import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {space} from 'sentry/styles/space';
+import {SQLishFormatter} from 'sentry/utils/sqlish/SQLishFormatter';
+import {MutableSearch} from 'sentry/utils/tokenizeSearch';
+import {useSpansIndexed} from 'sentry/views/insights/common/queries/useDiscover';
+import {useFullSpanFromTrace} from 'sentry/views/insights/common/queries/useFullSpanFromTrace';
+import {
+  MissingFrame,
+  StackTraceMiniFrame,
+} from 'sentry/views/insights/database/components/stackTraceMiniFrame';
+import type {SpanIndexedFieldTypes} from 'sentry/views/insights/types';
+import {SpanIndexedField} from 'sentry/views/insights/types';
+
+interface Props {
+  groupId: SpanIndexedFieldTypes[SpanIndexedField.SPAN_GROUP];
+  op: SpanIndexedFieldTypes[SpanIndexedField.SPAN_OP];
+  preliminaryDescription?: string;
+}
+
+export function SpanDescription(props: Props) {
+  const {op, preliminaryDescription} = props;
+
+  if (op.startsWith('db')) {
+    return <DatabaseSpanDescription {...props} />;
+  }
+
+  return <WordBreak>{preliminaryDescription ?? ''}</WordBreak>;
+}
+
+const formatter = new SQLishFormatter();
+
+export function DatabaseSpanDescription({
+  groupId,
+  preliminaryDescription,
+}: Omit<Props, 'op'>) {
+  const {data: indexedSpans, isFetching: areIndexedSpansLoading} = useSpansIndexed(
+    {
+      search: MutableSearch.fromQueryObject({'span.group': groupId}),
+      limit: 1,
+      fields: [
+        SpanIndexedField.PROJECT_ID,
+        SpanIndexedField.TRANSACTION_ID,
+        SpanIndexedField.SPAN_DESCRIPTION,
+      ],
+    },
+    'api.starfish.span-description'
+  );
+  const indexedSpan = indexedSpans?.[0];
+
+  // NOTE: We only need this for `span.data`! If this info existed in indexed spans, we could skip it
+  const {data: rawSpan, isFetching: isRawSpanLoading} = useFullSpanFromTrace(
+    groupId,
+    [INDEXED_SPAN_SORT],
+    Boolean(indexedSpan)
+  );
+
+  const rawDescription =
+    rawSpan?.description || indexedSpan?.['span.description'] || preliminaryDescription;
+
+  const formatterDescription = useMemo(() => {
+    return formatter.toString(rawDescription ?? '');
+  }, [rawDescription]);
+
+  return (
+    <Frame>
+      {areIndexedSpansLoading ? (
+        <WithPadding>
+          <LoadingIndicator mini />
+        </WithPadding>
+      ) : (
+        <CodeSnippet language="sql" isRounded={false}>
+          {formatterDescription}
+        </CodeSnippet>
+      )}
+
+      {!areIndexedSpansLoading && !isRawSpanLoading && (
+        <Fragment>
+          {rawSpan?.data?.['code.filepath'] ? (
+            <StackTraceMiniFrame
+              projectId={indexedSpan?.project_id?.toString()}
+              eventId={indexedSpan?.['transaction.id']}
+              frame={{
+                filename: rawSpan?.data?.['code.filepath'],
+                lineNo: rawSpan?.data?.['code.lineno'],
+                function: rawSpan?.data?.['code.function'],
+              }}
+            />
+          ) : (
+            <MissingFrame />
+          )}
+        </Fragment>
+      )}
+    </Frame>
+  );
+}
+
+const INDEXED_SPAN_SORT = {
+  field: 'span.self_time',
+  kind: 'desc' as const,
+};
+
+export const Frame = styled('div')`
+  border: solid 1px ${p => p.theme.border};
+  border-radius: ${p => p.theme.borderRadius};
+  overflow: hidden;
+`;
+
+const WithPadding = styled('div')`
+  display: flex;
+  padding: ${space(1)} ${space(2)};
+`;
+
+const WordBreak = styled('div')`
+  word-break: break-word;
+`;

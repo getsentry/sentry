@@ -9,41 +9,43 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import EnvironmentMixin, region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint, ProjectEventPermission
 from sentry.api.helpers.group_index import (
-    ValidationError,
     delete_groups,
     get_by_short_id,
     prep_search,
     track_slo_response,
     update_groups,
 )
+from sentry.api.helpers.group_index.validators import ValidationError
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.group_stream import StreamGroupSerializer
 from sentry.models.environment import Environment
 from sentry.models.group import QUERY_STATUS_LOOKUP, Group, GroupStatus
+from sentry.models.grouphash import GroupHash
 from sentry.search.events.constants import EQUALITY_OPERATORS
 from sentry.signals import advanced_search
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
 from sentry.utils.validators import normalize_event_id
 
 ERR_INVALID_STATS_PERIOD = "Invalid stats_period. Valid choices are '', '24h', and '14d'"
+ERR_HASHES_AND_OTHER_QUERY = "Cannot use 'hash' with 'query'"
 
 
 @region_silo_endpoint
 class ProjectGroupIndexEndpoint(ProjectEndpoint, EnvironmentMixin):
     owner = ApiOwner.ISSUES
     publish_status = {
-        "DELETE": ApiPublishStatus.UNKNOWN,
-        "GET": ApiPublishStatus.UNKNOWN,
-        "PUT": ApiPublishStatus.UNKNOWN,
+        "DELETE": ApiPublishStatus.EXPERIMENTAL,
+        "GET": ApiPublishStatus.EXPERIMENTAL,
+        "PUT": ApiPublishStatus.EXPERIMENTAL,
     }
     permission_classes = (ProjectEventPermission,)
     enforce_rate_limit = True
 
     rate_limits = {
         "GET": {
-            RateLimitCategory.IP: RateLimit(5, 1),
-            RateLimitCategory.USER: RateLimit(5, 1),
-            RateLimitCategory.ORGANIZATION: RateLimit(5, 1),
+            RateLimitCategory.IP: RateLimit(limit=5, window=1),
+            RateLimitCategory.USER: RateLimit(limit=5, window=1),
+            RateLimitCategory.ORGANIZATION: RateLimit(limit=5, window=1),
         }
     }
 
@@ -77,9 +79,10 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint, EnvironmentMixin):
                                    ``"is:unresolved"`` is assumed.)
         :qparam string environment: this restricts the issues to ones containing
                                     events from this environment
-        :pparam string organization_slug: the slug of the organization the
+        :qparam list hashes: hashes of groups to return, overrides 'query' parameter, only returning list of groups found from hashes. The maximum number of hashes that can be sent is 100. If more are sent, only the first 100 will be used.
+        :pparam string organization_id_or_slug: the id or slug of the organization the
                                           issues belong to.
-        :pparam string project_slug: the slug of the project the issues
+        :pparam string project_id_or_slug: the id or slug of the project the issues
                                      belong to.
         :auth: required
         """
@@ -99,7 +102,27 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint, EnvironmentMixin):
             stats_period=stats_period,
         )
 
+        hashes = request.GET.getlist("hashes", [])
         query = request.GET.get("query", "").strip()
+
+        if hashes:
+            if query:
+                return Response({"detail": ERR_HASHES_AND_OTHER_QUERY}, status=400)
+
+            # limit to 100 hashes
+            hashes = hashes[:100]
+            groups_from_hashes = GroupHash.objects.filter(
+                hash__in=hashes, project=project
+            ).values_list("group_id", flat=True)
+            groups = list(Group.objects.filter(id__in=groups_from_hashes))
+
+            serialized_groups = serialize(
+                groups,
+                request.user,
+                serializer(),
+            )
+            return Response(serialized_groups)
+
         if query:
             matching_group = None
             matching_event = None
@@ -114,7 +137,7 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint, EnvironmentMixin):
                     matching_event = eventstore.backend.get_event_by_id(project.id, event_id)
             elif matching_group is None:
                 matching_group = get_by_short_id(
-                    project.organization_id, request.GET.get("shortIdLookup"), query
+                    project.organization_id, request.GET.get("shortIdLookup", "0"), query
                 )
                 if matching_group is not None and matching_group.project_id != project.id:
                     matching_group = None
@@ -214,9 +237,9 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint, EnvironmentMixin):
                                specified status.  Valid values are
                                ``"resolved"``, ``"unresolved"`` and
                                ``"ignored"``.
-        :pparam string organization_slug: the slug of the organization the
+        :pparam string organization_id_or_slug: the id or slug of the organization the
                                           issues belong to.
-        :pparam string project_slug: the slug of the project the issues
+        :pparam string project_id_or_slug: the id or slug of the project the issues
                                      belong to.
         :param string status: the new status for the issues.  Valid values
                               are ``"resolved"``, ``"resolvedInNextRelease"``,
@@ -271,9 +294,9 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint, EnvironmentMixin):
 
         :qparam int id: a list of IDs of the issues to be removed.  This
                         parameter shall be repeated for each issue.
-        :pparam string organization_slug: the slug of the organization the
+        :pparam string organization_id_or_slug: the id or slug of the organization the
                                           issues belong to.
-        :pparam string project_slug: the slug of the project the issues
+        :pparam string project_id_or_slug: the id or slug of the project the issues
                                      belong to.
         :auth: required
         """

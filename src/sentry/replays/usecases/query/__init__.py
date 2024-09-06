@@ -12,12 +12,14 @@ external source, makes decisions around what to query and when, and is responsib
 intelligible output for the "post_process" module.  More information on its implementation can be
 found in the function.
 """
+
 from __future__ import annotations
 
-from collections import namedtuple
+from collections.abc import Mapping, Sequence
 from datetime import datetime, timedelta
-from typing import Any, Mapping, Sequence, Union, cast
+from typing import Any, Literal, cast
 
+import sentry_sdk
 from rest_framework.exceptions import ParseError
 from snuba_sdk import (
     And,
@@ -38,14 +40,59 @@ from snuba_sdk.expressions import Expression
 from sentry.api.event_search import ParenExpression, SearchFilter, SearchKey, SearchValue
 from sentry.models.organization import Organization
 from sentry.replays.lib.new_query.errors import CouldNotParseValue, OperatorNotSupported
-from sentry.replays.lib.new_query.fields import ColumnField, FieldProtocol
+from sentry.replays.lib.new_query.fields import ColumnField, ExpressionField, FieldProtocol
 from sentry.replays.usecases.query.fields import ComputedField, TagField
-from sentry.utils.snuba import raw_snql_query
+from sentry.utils.snuba import RateLimitExceeded, raw_snql_query
+
+VIEWED_BY_ME_KEY_ALIASES = ["viewed_by_me", "seen_by_me"]
+NULL_VIEWED_BY_ID_VALUE = 0  # default value in clickhouse
+DEFAULT_SORT_FIELD = "started_at"
+
+PREFERRED_SOURCE = Literal["aggregated", "materialized-view", "scalar"]
+
+
+def handle_viewed_by_me_filters(
+    search_filters: Sequence[SearchFilter | str | ParenExpression], request_user_id: int | None
+) -> Sequence[SearchFilter | str | ParenExpression]:
+    """Translate "viewed_by_me" as it's not a valid Snuba field, but a convenience alias for the frontend"""
+    new_filters = []
+    for search_filter in search_filters:
+        if (
+            not isinstance(search_filter, SearchFilter)
+            or search_filter.key.name not in VIEWED_BY_ME_KEY_ALIASES
+        ):
+            new_filters.append(search_filter)
+            continue
+
+        # since the value is boolean, negations (!) are not supported
+        if search_filter.operator != "=":
+            raise ParseError(f"Invalid operator specified for `{search_filter.key.name}`")
+
+        value = search_filter.value.value
+        if not isinstance(value, str) or value.lower() not in ["true", "false"]:
+            raise ParseError(f"Could not parse value for `{search_filter.key.name}`")
+        value = value.lower() == "true"
+
+        if request_user_id is None:
+            # This case will only occur from programmer error.
+            # Note the replay index endpoint returns 401 automatically for unauthorized and anonymous users.
+            raise ValueError("Invalid user id")
+
+        operator = "=" if value else "!="
+        new_filters.append(
+            SearchFilter(
+                SearchKey("viewed_by_id"),
+                operator,
+                SearchValue(request_user_id),
+            )
+        )
+
+    return new_filters
 
 
 def handle_search_filters(
     search_config: dict[str, FieldProtocol],
-    search_filters: Sequence[Union[SearchFilter, str, ParenExpression]],
+    search_filters: Sequence[SearchFilter | str | ParenExpression],
 ) -> list[Condition]:
     """Convert search filters to snuba conditions."""
     result: list[Condition] = []
@@ -57,6 +104,8 @@ def handle_search_filters(
         if isinstance(search_filter, SearchFilter):
             try:
                 condition = search_filter_to_condition(search_config, search_filter)
+                if condition is None:
+                    raise ParseError(f"Unsupported search field: {search_filter.key.name}")
             except OperatorNotSupported:
                 raise ParseError(f"Invalid operator specified for `{search_filter.key.name}`")
             except CouldNotParseValue:
@@ -89,7 +138,7 @@ def handle_search_filters(
 def attempt_compressed_condition(
     result: list[Expression],
     condition: Condition,
-    condition_type: Union[And, Or],
+    condition_type: And | Or,
 ):
     """Unnecessary query optimization.
 
@@ -107,30 +156,23 @@ def attempt_compressed_condition(
 def search_filter_to_condition(
     search_config: dict[str, FieldProtocol],
     search_filter: SearchFilter,
-) -> Condition:
-    # The field-name is whatever the API says it is.  We take it at face value.
-    field_name = search_filter.key.name
-
-    # If the field-name is in the search config then we can apply the search filter and return a
-    # result.  If its not then its a tag and the same operation is performed only with a few more
-    # steps.
-    field = search_config.get(field_name)
-    if isinstance(field, (ColumnField, ComputedField)):
+) -> Condition | None:
+    field = search_config.get(search_filter.key.name)
+    if isinstance(field, (ColumnField, ExpressionField, ComputedField)):
         return field.apply(search_filter)
 
-    if field is None:
-        # Tags are represented with an "*" field by convention.  We could name it `tags` and
-        # update our search config to point to this field-name.
+    if "*" in search_config:
         field = cast(TagField, search_config["*"])
+        return field.apply(search_filter)
 
-    # The field_name in this case does not represent a column_name but instead it represents a
-    # dynamic value in the tags.key array.  For this reason we need to pass it into our "apply"
-    # function.
-    return field.apply(search_filter)
+    return None
 
 
 # Everything below here will move to replays/query.py once we deprecate the old query behavior.
 # Leaving it here for now so this is easier to review/remove.
+import dataclasses
+
+from sentry.replays.usecases.query.configs import materialized_view as mv
 from sentry.replays.usecases.query.configs.aggregate import search_config as agg_search_config
 from sentry.replays.usecases.query.configs.aggregate_sort import sort_config as agg_sort_config
 from sentry.replays.usecases.query.configs.aggregate_sort import sort_is_scalar_compatible
@@ -139,19 +181,32 @@ from sentry.replays.usecases.query.configs.scalar import (
     scalar_search_config,
 )
 
-Paginators = namedtuple("Paginators", ("limit", "offset"))
+
+@dataclasses.dataclass
+class Paginators:
+    limit: int
+    offset: int
+
+
+@dataclasses.dataclass
+class QueryResponse:
+    response: list[Any]
+    has_more: bool
+    source: str
 
 
 def query_using_optimized_search(
     fields: list[str],
-    search_filters: Sequence[Union[SearchFilter, str, ParenExpression]],
+    search_filters: Sequence[SearchFilter | str | ParenExpression],
     environments: list[str],
     sort: str | None,
-    pagination: Paginators | None,
+    pagination: Paginators,
     organization: Organization | None,
     project_ids: list[int],
     period_start: datetime,
     period_stop: datetime,
+    request_user_id: int | None = None,
+    preferred_source: PREFERRED_SOURCE = "scalar",
 ):
     tenant_id = _make_tenant_id(organization)
 
@@ -163,38 +218,53 @@ def query_using_optimized_search(
             SearchFilter(SearchKey("environment"), "IN", SearchValue(environments)),
         ]
 
-    can_scalar_sort = sort_is_scalar_compatible(sort or "started_at")
-    can_scalar_search = can_scalar_search_subquery(search_filters)
+    # Translate "viewed_by_me" filters, which are aliases for "viewed_by_id"
+    search_filters = handle_viewed_by_me_filters(search_filters, request_user_id)
 
-    if can_scalar_sort and can_scalar_search:
-        query = make_scalar_search_conditions_query(
-            search_filters=search_filters,
-            sort=sort,
-            project_ids=project_ids,
-            period_start=period_start,
-            period_stop=period_stop,
+    if preferred_source == "materialized-view":
+        query, referrer, source = _query_using_materialized_view_strategy(
+            search_filters,
+            sort,
+            project_ids,
+            period_start,
+            period_stop,
         )
-        referrer = "replays.query.browse_scalar_conditions_subquery"
+    elif preferred_source == "aggregated":
+        query, referrer, source = _query_using_aggregated_strategy(
+            search_filters,
+            sort,
+            project_ids,
+            period_start,
+            period_stop,
+        )
     else:
-        query = make_aggregate_search_conditions_query(
-            search_filters=search_filters,
-            sort=sort,
-            project_ids=project_ids,
-            period_start=period_start,
-            period_stop=period_stop,
+        query, referrer, source = _query_using_scalar_strategy(
+            search_filters,
+            sort,
+            project_ids,
+            period_start,
+            period_stop,
         )
-        referrer = "replays.query.browse_aggregated_conditions_subquery"
 
-    if pagination:
-        query = query.set_limit(pagination.limit)
-        query = query.set_offset(pagination.offset)
+    query = query.set_limit(pagination.limit)
+    query = query.set_offset(pagination.offset)
 
     subquery_response = execute_query(query, tenant_id, referrer)
+
+    # The query "has more rows" if the number of rows found matches the limit (which is
+    # the requested limit + 1).
+    has_more = len(subquery_response.get("data", [])) == pagination.limit
+    if has_more:
+        subquery_response["data"].pop()
 
     # These replay_ids are ordered by the OrderBy expression in the query above.
     replay_ids = [row["replay_id"] for row in subquery_response.get("data", [])]
     if not replay_ids:
-        return []
+        return QueryResponse(
+            response=[],
+            has_more=has_more,
+            source=source,
+        )
 
     # The final aggregation step.  Here we pass the replay_ids as the only filter.  In this step
     # we select everything and use as much memory as we need to complete the operation.
@@ -208,21 +278,78 @@ def query_using_optimized_search(
             project_ids=project_ids,
             period_start=period_start,
             period_end=period_stop,
+            request_user_id=request_user_id,
         ),
         tenant_id,
         referrer="replays.query.browse_query",
     )["data"]
 
-    return _make_ordered(replay_ids, results)
+    return QueryResponse(
+        response=_make_ordered(replay_ids, results),
+        has_more=has_more,
+        source=source,
+    )
 
 
-def make_scalar_search_conditions_query(
-    search_filters: Sequence[Union[SearchFilter, str, ParenExpression]],
+def _query_using_materialized_view_strategy(
+    search_filters: Sequence[SearchFilter | str | ParenExpression],
     sort: str | None,
     project_ids: list[int],
     period_start: datetime,
     period_stop: datetime,
-) -> Query:
+):
+    if not mv.can_search(search_filters) or not mv.can_sort(sort or DEFAULT_SORT_FIELD):
+        return _query_using_scalar_strategy(
+            search_filters,
+            sort,
+            project_ids,
+            period_start,
+            period_stop,
+        )
+
+    orderby = handle_ordering(mv.sort_config, sort or "-" + DEFAULT_SORT_FIELD)
+
+    having: list[Condition] = handle_search_filters(mv.search_config, search_filters)
+    having.append(Condition(Function("minMerge", parameters=[Column("min_segment_id")]), Op.EQ, 0))
+
+    query = Query(
+        match=Entity("replays_aggregated"),
+        select=[Column("replay_id")],
+        where=[
+            Condition(Column("project_id"), Op.IN, project_ids),
+            Condition(Column("to_hour_timestamp"), Op.LT, period_stop),
+            Condition(Column("to_hour_timestamp"), Op.GTE, period_start),
+        ],
+        having=having,
+        orderby=orderby,
+        groupby=[Column("replay_id")],
+    )
+
+    return (
+        query,
+        "replays.query.browse_materialized_view_conditions_subquery",
+        "materialized-view",
+    )
+
+
+def _query_using_scalar_strategy(
+    search_filters: Sequence[SearchFilter | str | ParenExpression],
+    sort: str | None,
+    project_ids: list[int],
+    period_start: datetime,
+    period_stop: datetime,
+):
+    if not can_scalar_search_subquery(search_filters) or not sort_is_scalar_compatible(
+        sort or DEFAULT_SORT_FIELD
+    ):
+        return _query_using_aggregated_strategy(
+            search_filters,
+            sort,
+            project_ids,
+            period_start,
+            period_stop,
+        )
+
     # NOTE: This query may return replay-ids which do not have a segment_id 0 row. These replays
     # will be removed from the final output and could lead to pagination peculiarities. In
     # practice, this is not expected to be noticable by the end-user.
@@ -231,9 +358,9 @@ def make_scalar_search_conditions_query(
     # "segment_id = 0" condition to the WHERE clause.
 
     where = handle_search_filters(scalar_search_config, search_filters)
-    orderby = handle_ordering(agg_sort_config, sort or "-started_at")
+    orderby = handle_ordering(agg_sort_config, sort or "-" + DEFAULT_SORT_FIELD)
 
-    return Query(
+    query = Query(
         match=Entity("replays"),
         select=[Column("replay_id")],
         where=[
@@ -247,20 +374,22 @@ def make_scalar_search_conditions_query(
         granularity=Granularity(3600),
     )
 
+    return (query, "replays.query.browse_scalar_conditions_subquery", "scalar-subquery")
 
-def make_aggregate_search_conditions_query(
-    search_filters: Sequence[Union[SearchFilter, str, ParenExpression]],
+
+def _query_using_aggregated_strategy(
+    search_filters: Sequence[SearchFilter | str | ParenExpression],
     sort: str | None,
     project_ids: list[int],
     period_start: datetime,
     period_stop: datetime,
-) -> Query:
-    orderby = handle_ordering(agg_sort_config, sort or "-started_at")
+):
+    orderby = handle_ordering(agg_sort_config, sort or "-" + DEFAULT_SORT_FIELD)
 
     having: list[Condition] = handle_search_filters(agg_search_config, search_filters)
     having.append(Condition(Function("min", parameters=[Column("segment_id")]), Op.EQ, 0))
 
-    return Query(
+    query = Query(
         match=Entity("replays"),
         select=[Column("replay_id")],
         where=[
@@ -274,6 +403,8 @@ def make_aggregate_search_conditions_query(
         granularity=Granularity(3600),
     )
 
+    return (query, "replays.query.browse_aggregated_conditions_subquery", "aggregated-subquery")
+
 
 def make_full_aggregation_query(
     fields: list[str],
@@ -281,15 +412,20 @@ def make_full_aggregation_query(
     project_ids: list[int],
     period_start: datetime,
     period_end: datetime,
+    request_user_id: int | None,
 ) -> Query:
-    """Return a query to fetch every replay in the set."""
-    from sentry.replays.query import QUERY_ALIAS_COLUMN_MAP, select_from_fields
+    """Return a query to fetch every replay in the set.
 
-    def _select_from_fields() -> list[Union[Column, Function]]:
+    Arguments:
+        fields -- if non-empty, used to query a subset of fields. Corresponds to the keys in QUERY_ALIAS_COLUMN_MAP.
+    """
+    from sentry.replays.query import QUERY_ALIAS_COLUMN_MAP, compute_has_viewed, select_from_fields
+
+    def _select_from_fields() -> list[Column | Function]:
         if fields:
-            return select_from_fields(list(set(fields)))
+            return select_from_fields(list(set(fields)), user_id=request_user_id)
         else:
-            return list(QUERY_ALIAS_COLUMN_MAP.values())
+            return list(QUERY_ALIAS_COLUMN_MAP.values()) + [compute_has_viewed(request_user_id)]
 
     return Query(
         match=Entity("replays"),
@@ -309,21 +445,28 @@ def make_full_aggregation_query(
         #
         # This condition ensures that every replay shown to the user is valid.
         having=[Condition(Function("min", parameters=[Column("segment_id")]), Op.EQ, 0)],
-        groupby=[Column("project_id"), Column("replay_id")],
+        groupby=[Column("replay_id")],
         granularity=Granularity(3600),
     )
 
 
 def execute_query(query: Query, tenant_id: dict[str, int], referrer: str) -> Mapping[str, Any]:
-    return raw_snql_query(
-        Request(
-            dataset="replays",
-            app_id="replay-backend-web",
-            query=query,
-            tenant_ids=tenant_id,
-        ),
-        referrer,
-    )
+    try:
+        return raw_snql_query(
+            Request(
+                dataset="replays",
+                app_id="replay-backend-web",
+                query=query,
+                tenant_ids=tenant_id,
+            ),
+            referrer,
+        )
+    except RateLimitExceeded as exc:
+        sentry_sdk.set_tag("replay-rate-limit-exceeded", True)
+        sentry_sdk.set_tag("org_id", tenant_id.get("organization_id"))
+        sentry_sdk.set_extra("referrer", referrer)
+        sentry_sdk.capture_exception(exc)
+        raise
 
 
 def handle_ordering(config: dict[str, Expression], sort: str) -> list[OrderBy]:

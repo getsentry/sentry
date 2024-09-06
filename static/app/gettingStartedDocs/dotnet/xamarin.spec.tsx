@@ -5,7 +5,7 @@ import {textWithMarkupMatcher} from 'sentry-test/utils';
 import docs from './xamarin';
 
 describe('xamarin onboarding docs', function () {
-  it('renders docs correctly', async function () {
+  it('renders errors onboarding docs correctly', async function () {
     renderWithOnboardingLayout(docs, {
       releaseRegistry: {
         'sentry.dotnet.xamarin-forms': {
@@ -18,9 +18,7 @@ describe('xamarin onboarding docs', function () {
     expect(screen.getByRole('heading', {name: 'Install'})).toBeInTheDocument();
     expect(screen.getByRole('heading', {name: 'Configure SDK'})).toBeInTheDocument();
     expect(screen.getByRole('heading', {name: 'Verify'})).toBeInTheDocument();
-    expect(
-      screen.getByRole('heading', {name: 'Performance Monitoring'})
-    ).toBeInTheDocument();
+    expect(screen.getByRole('heading', {name: 'Tracing'})).toBeInTheDocument();
     expect(screen.getByRole('heading', {name: 'Documentation'})).toBeInTheDocument();
     expect(screen.getByRole('heading', {name: 'Limitations'})).toBeInTheDocument();
     expect(screen.getByRole('heading', {name: 'Samples'})).toBeInTheDocument();

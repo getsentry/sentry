@@ -5,8 +5,8 @@ from rest_framework.serializers import Serializer, ValidationError
 from sentry.api.fields.avatar import AvatarField
 from sentry.api.serializers.rest_framework.base import camel_to_snake_case
 from sentry.api.validators.sentry_apps.schema import validate_ui_element_schema
+from sentry.integrations.models.integration_feature import Feature
 from sentry.models.apiscopes import ApiScopes
-from sentry.models.integrations.integration_feature import Feature
 from sentry.models.integrations.sentry_app import (
     REQUIRED_EVENT_PERMISSIONS,
     UUID_CHARS_IN_SLUG,
@@ -96,8 +96,8 @@ class SentryAppSerializer(Serializer):
     )
 
     def __init__(self, *args, **kwargs):
-        self.access = kwargs["access"]
-        del kwargs["access"]
+        self.active_staff = kwargs.pop("active_staff", False)
+        self.access = kwargs.pop("access")
         Serializer.__init__(self, *args, **kwargs)
 
     # an abstraction to pull fields from attrs if they are available or the sentry_app if not
@@ -136,7 +136,7 @@ class SentryAppSerializer(Serializer):
             if self.instance and self.instance.has_scope(scope):
                 continue
             # add an error if the requester lacks permissions being requested
-            if not self.access.has_scope(scope):
+            if not self.access.has_scope(scope) and not self.active_staff:
                 validation_errors.append(
                     "Requested permission of %s exceeds requester's permission. Please contact an administrator to make the requested change."
                     % (scope)

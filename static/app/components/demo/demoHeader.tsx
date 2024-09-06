@@ -1,6 +1,6 @@
 import styled from '@emotion/styled';
 
-import {Button} from 'sentry/components/button';
+import {Button, LinkButton} from 'sentry/components/button';
 import LogoSentry from 'sentry/components/logoSentry';
 import {t} from 'sentry/locale';
 import PreferencesStore from 'sentry/stores/preferencesStore';
@@ -126,23 +126,22 @@ const FreeTrialTextShort = styled('span')`
 
 const FreeTrialTextLong = styled('span')``;
 
-const NewBaseButton = styled(Button)`
+const NewRequestDemoBtn = styled(LinkButton)`
   text-transform: uppercase;
-`;
-
-const NewRequestDemoBtn = styled(NewBaseButton)`
   @media (max-width: ${p => p.theme.breakpoints.small}) {
     display: none;
   }
 `;
 
-const DocsDemoBtn = styled(NewBaseButton)`
+const DocsDemoBtn = styled(LinkButton)`
+  text-transform: uppercase;
   @media (max-width: 500px) {
     display: none;
   }
 `;
 
-const FreeTrial = styled(NewBaseButton)`
+const FreeTrial = styled(Button)`
+  text-transform: uppercase;
   border-color: transparent;
   background-color: #6c5fc7;
   color: #fff;

@@ -3,17 +3,18 @@ import styled from '@emotion/styled';
 
 import Access from 'sentry/components/acl/access';
 import {Role} from 'sentry/components/acl/role';
-import ActionButton from 'sentry/components/actions/button';
 import MenuItemActionLink from 'sentry/components/actions/menuItemActionLink';
-import {Button} from 'sentry/components/button';
+import {Button, LinkButton} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import Confirm from 'sentry/components/confirm';
 import DropdownLink from 'sentry/components/dropdownLink';
 import {Tooltip} from 'sentry/components/tooltip';
 import {IconDelete, IconDownload, IconEllipsis} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {Organization, Project} from 'sentry/types';
-import {CandidateDownloadStatus, ImageCandidate} from 'sentry/types/debugImage';
+import type {ImageCandidate} from 'sentry/types/debugImage';
+import {CandidateDownloadStatus} from 'sentry/types/debugImage';
+import type {Organization} from 'sentry/types/organization';
+import type {Project} from 'sentry/types/project';
 
 const noPermissionToDownloadDebugFilesInfo = t(
   'You do not have permission to download debug files'
@@ -61,10 +62,11 @@ function Actions({
               <StyledDropdownLink
                 caret={false}
                 customTitle={
-                  <ActionButton
+                  <Button
+                    size="xs"
                     aria-label={t('Actions')}
                     disabled={deleted}
-                    icon={<IconEllipsis size="sm" />}
+                    icon={<IconEllipsis />}
                   />
                 }
                 anchorRight
@@ -97,14 +99,14 @@ function Actions({
               </StyledDropdownLink>
               <StyledButtonBar gap={1}>
                 <Tooltip disabled={hasRole} title={noPermissionToDownloadDebugFilesInfo}>
-                  <Button
+                  <LinkButton
                     size="xs"
-                    icon={<IconDownload size="xs" />}
+                    icon={<IconDownload />}
                     href={downloadUrl}
                     disabled={!hasRole}
                   >
                     {t('Download')}
-                  </Button>
+                  </LinkButton>
                 </Tooltip>
                 <Tooltip disabled={hasAccess} title={noPermissionToDeleteDebugFilesInfo}>
                   <Confirm
@@ -115,7 +117,7 @@ function Actions({
                   >
                     <Button
                       priority="danger"
-                      icon={<IconDelete size="xs" />}
+                      icon={<IconDelete />}
                       size="xs"
                       disabled={!hasAccess}
                       aria-label={t('Delete')}

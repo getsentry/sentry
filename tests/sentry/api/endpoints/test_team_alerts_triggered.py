@@ -1,20 +1,16 @@
-from datetime import timezone
-
-from sentry.incidents.models import (
+from sentry.incidents.models.alert_rule import AlertRuleThresholdType
+from sentry.incidents.models.incident import (
     INCIDENT_STATUS,
-    AlertRuleThresholdType,
     IncidentActivity,
     IncidentActivityType,
     IncidentStatus,
 )
-from sentry.models.actor import ActorTuple
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.datetime import before_now, freeze_time
-from sentry.testutils.silo import region_silo_test
+from sentry.types.actor import Actor
 
 
 @freeze_time()
-@region_silo_test
 class TeamAlertsTriggeredTotalsEndpointTest(APITestCase):
     endpoint = "sentry-api-0-team-alerts-triggered"
 
@@ -32,7 +28,7 @@ class TeamAlertsTriggeredTotalsEndpointTest(APITestCase):
             threshold_type=AlertRuleThresholdType.ABOVE,
             resolve_threshold=10,
             threshold_period=1,
-            owner=ActorTuple.from_actor_identifier(self.user.id),
+            owner=Actor.from_identifier(self.user.id),
         )
         user_owned_incident = self.create_incident(status=20, alert_rule=user_owned_rule)
         activities = []
@@ -53,11 +49,9 @@ class TeamAlertsTriggeredTotalsEndpointTest(APITestCase):
         for i in range(1, 9):
             assert (
                 response.data[
-                    str(
-                        before_now(days=i)
-                        .replace(hour=0, minute=0, second=0, microsecond=0, tzinfo=timezone.utc)
-                        .isoformat()
-                    )
+                    before_now(days=i)
+                    .replace(hour=0, minute=0, second=0, microsecond=0)
+                    .isoformat()
                 ]
                 == 1
             )
@@ -65,11 +59,9 @@ class TeamAlertsTriggeredTotalsEndpointTest(APITestCase):
         for i in range(10, 90):
             assert (
                 response.data[
-                    str(
-                        before_now(days=i)
-                        .replace(hour=0, minute=0, second=0, microsecond=0, tzinfo=timezone.utc)
-                        .isoformat()
-                    )
+                    before_now(days=i)
+                    .replace(hour=0, minute=0, second=0, microsecond=0)
+                    .isoformat()
                 ]
                 == 0
             )
@@ -80,22 +72,16 @@ class TeamAlertsTriggeredTotalsEndpointTest(APITestCase):
         assert len(response.data) == 7
         assert (
             response.data[
-                str(
-                    before_now(days=0)
-                    .replace(hour=0, minute=0, second=0, microsecond=0, tzinfo=timezone.utc)
-                    .isoformat()
-                )
+                before_now(days=0).replace(hour=0, minute=0, second=0, microsecond=0).isoformat()
             ]
             == 0
         )
         for i in range(1, 6):
             assert (
                 response.data[
-                    str(
-                        before_now(days=i)
-                        .replace(hour=0, minute=0, second=0, microsecond=0, tzinfo=timezone.utc)
-                        .isoformat()
-                    )
+                    before_now(days=i)
+                    .replace(hour=0, minute=0, second=0, microsecond=0)
+                    .isoformat()
                 ]
                 == 1
             )
@@ -124,7 +110,7 @@ class TeamAlertsTriggeredTotalsEndpointTest(APITestCase):
             threshold_type=AlertRuleThresholdType.ABOVE,
             resolve_threshold=10,
             threshold_period=1,
-            owner=ActorTuple.from_actor_identifier(self.user.id),
+            owner=Actor.from_identifier(self.user.id),
         )
         user_owned_incident = self.create_incident(
             projects=[project2], status=20, alert_rule=user_owned_rule
@@ -139,7 +125,7 @@ class TeamAlertsTriggeredTotalsEndpointTest(APITestCase):
             threshold_type=AlertRuleThresholdType.ABOVE,
             resolve_threshold=10,
             threshold_period=1,
-            owner=ActorTuple.from_actor_identifier(f"team:{self.team.id}"),
+            owner=Actor.from_identifier(f"team:{self.team.id}"),
         )
         team_owned_incident = self.create_incident(
             projects=[project1], status=20, alert_rule=team_owned_rule
@@ -161,11 +147,7 @@ class TeamAlertsTriggeredTotalsEndpointTest(APITestCase):
         assert len(response.data) == 90
         assert (
             response.data[
-                str(
-                    before_now(days=2)
-                    .replace(hour=0, minute=0, second=0, microsecond=0, tzinfo=timezone.utc)
-                    .isoformat()
-                )
+                before_now(days=2).replace(hour=0, minute=0, second=0, microsecond=0).isoformat()
             ]
             == 1
         )
@@ -174,18 +156,15 @@ class TeamAlertsTriggeredTotalsEndpointTest(APITestCase):
             if i != 2:
                 assert (
                     response.data[
-                        str(
-                            before_now(days=i)
-                            .replace(hour=0, minute=0, second=0, microsecond=0, tzinfo=timezone.utc)
-                            .isoformat()
-                        )
+                        before_now(days=i)
+                        .replace(hour=0, minute=0, second=0, microsecond=0)
+                        .isoformat()
                     ]
                     == 0
                 )
 
 
 @freeze_time()
-@region_silo_test
 class TeamAlertsTriggeredIndexEndpointTest(APITestCase):
     endpoint = "sentry-api-0-team-alerts-triggered-index"
 
@@ -195,7 +174,7 @@ class TeamAlertsTriggeredIndexEndpointTest(APITestCase):
             organization=self.organization,
             projects=[project1],
             name="user owned rule",
-            owner=ActorTuple.from_actor_identifier(self.user.id),
+            owner=Actor.from_identifier(self.user.id),
         )
 
         user_owned_incident = self.create_incident(status=20, alert_rule=user_owned_rule)
@@ -213,7 +192,7 @@ class TeamAlertsTriggeredIndexEndpointTest(APITestCase):
             organization=self.organization,
             projects=[project1],
             name="team owned rule",
-            owner=ActorTuple.from_actor_identifier(f"team:{self.team.id}"),
+            owner=Actor.from_identifier(f"team:{self.team.id}"),
         )
         team_owned_incident = self.create_incident(status=20, alert_rule=team_owned_rule)
         activities.append(

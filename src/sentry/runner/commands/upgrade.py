@@ -5,10 +5,10 @@ from django.db.utils import ProgrammingError
 
 from sentry.runner.decorators import configuration
 from sentry.signals import post_upgrade
-from sentry.silo import SiloMode
+from sentry.silo.base import SiloMode
 
 
-def _check_history():
+def _check_history() -> None:
     connection = connections["default"]
     cursor = connection.cursor()
     try:
@@ -25,8 +25,11 @@ def _check_history():
         raise click.ClickException("Could not determine migration state. Aborting")
 
     # Either of these migrations need to have been run for us to proceed.
-    # The first migration is 'pre-squash' and the second is the new squash
-    migration_heads = ("0200_release_indices", "0001_squashed_0200_release_indices")
+    migration_heads = (
+        # not a squash, but migration history was "rebased" before this to eliminate
+        # `index_together` for django 5.1 upgrade
+        "0642_index_together_release",
+    )
 
     # If we haven't run all the migration up to the latest squash abort.
     # As we squash more history this should be updated.
@@ -39,7 +42,15 @@ def _check_history():
         )
 
 
-def _upgrade(interactive, traceback, verbosity, repair, run_post_upgrade, with_nodestore):
+def _upgrade(
+    interactive: bool,
+    traceback: bool,
+    verbosity: int,
+    repair: bool,
+    run_post_upgrade: bool,
+    with_nodestore: bool,
+    create_kafka_topics: bool,
+) -> None:
     from django.core.management import call_command as dj_call_command
 
     _check_history()
@@ -61,6 +72,15 @@ def _upgrade(interactive, traceback, verbosity, repair, run_post_upgrade, with_n
         from sentry import nodestore
 
         nodestore.backend.bootstrap()
+
+    if create_kafka_topics:
+        from sentry.conf.types.kafka_definition import Topic
+        from sentry.utils.batching_kafka_consumer import create_topics
+        from sentry.utils.kafka_config import get_topic_definition
+
+        for topic in Topic:
+            topic_defn = get_topic_definition(topic)
+            create_topics(topic_defn["cluster"], [topic_defn["real_topic_name"]])
 
     if repair:
         from sentry.runner import call_command
@@ -91,18 +111,27 @@ def _upgrade(interactive, traceback, verbosity, repair, run_post_upgrade, with_n
     help="Skip post migration database initialization.",
 )
 @click.option("--with-nodestore", default=False, is_flag=True, help="Bootstrap nodestore.")
+@click.option("--create-kafka-topics", default=False, is_flag=True, help="Create kafka topics.")
 @configuration
-@click.pass_context
-def upgrade(ctx, verbosity, traceback, noinput, lock, no_repair, no_post_upgrade, with_nodestore):
+def upgrade(
+    verbosity: int,
+    traceback: bool,
+    noinput: bool,
+    lock: bool,
+    no_repair: bool,
+    no_post_upgrade: bool,
+    with_nodestore: bool,
+    create_kafka_topics: bool,
+) -> None:
     "Perform any pending database migrations and upgrades."
 
     if lock:
         from sentry.locks import locks
         from sentry.utils.locking import UnableToAcquireLock
 
-        lock = locks.get("upgrade", duration=0, name="command_upgrade")
+        lock_inst = locks.get("upgrade", duration=0, name="command_upgrade")
         try:
-            with lock.acquire():
+            with lock_inst.acquire():
                 _upgrade(
                     not noinput,
                     traceback,
@@ -110,10 +139,17 @@ def upgrade(ctx, verbosity, traceback, noinput, lock, no_repair, no_post_upgrade
                     not no_repair,
                     not no_post_upgrade,
                     with_nodestore,
+                    create_kafka_topics,
                 )
         except UnableToAcquireLock:
             raise click.ClickException("Unable to acquire `upgrade` lock.")
     else:
         _upgrade(
-            not noinput, traceback, verbosity, not no_repair, not no_post_upgrade, with_nodestore
+            not noinput,
+            traceback,
+            verbosity,
+            not no_repair,
+            not no_post_upgrade,
+            with_nodestore,
+            create_kafka_topics,
         )

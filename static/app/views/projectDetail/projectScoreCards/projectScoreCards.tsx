@@ -1,13 +1,11 @@
 import styled from '@emotion/styled';
-import {Location} from 'history';
+import type {Location} from 'history';
 
 import {space} from 'sentry/styles/space';
-import {
-  Organization,
-  PageFilters,
-  Project,
-  SessionFieldWithOperation,
-} from 'sentry/types';
+import type {PageFilters} from 'sentry/types/core';
+import type {Organization} from 'sentry/types/organization';
+import {SessionFieldWithOperation} from 'sentry/types/organization';
+import type {Project} from 'sentry/types/project';
 import {isPlatformANRCompatible} from 'sentry/views/projectDetail/utils';
 
 import {ProjectAnrScoreCard} from './projectAnrScoreCard';
@@ -44,6 +42,7 @@ function ProjectScoreCards({
         hasSessions={hasSessions}
         query={query}
         field={SessionFieldWithOperation.CRASH_FREE_RATE_SESSIONS}
+        project={project}
       />
 
       <ProjectStabilityScoreCard
@@ -52,6 +51,7 @@ function ProjectScoreCards({
         hasSessions={hasSessions}
         query={query}
         field={SessionFieldWithOperation.CRASH_FREE_RATE_USERS}
+        project={project}
       />
 
       <ProjectVelocityScoreCard

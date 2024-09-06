@@ -1,11 +1,11 @@
-import {useMemo} from 'react';
 import LazyLoad from 'react-lazyload';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
-import {Location} from 'history';
+import type {Location} from 'history';
 
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
-import {Button} from 'sentry/components/button';
+import Tag from 'sentry/components/badge/tag';
+import {LinkButton} from 'sentry/components/button';
 import MiniBarChart from 'sentry/components/charts/miniBarChart';
 import Count from 'sentry/components/count';
 import GlobalSelectionLink from 'sentry/components/globalSelectionLink';
@@ -15,12 +15,12 @@ import NotAvailable from 'sentry/components/notAvailable';
 import {extractSelectionParameters} from 'sentry/components/organizations/pageFilters/utils';
 import PanelItem from 'sentry/components/panels/panelItem';
 import Placeholder from 'sentry/components/placeholder';
-import Tag from 'sentry/components/tag';
 import {Tooltip} from 'sentry/components/tooltip';
 import {IconCheckmark, IconFire, IconWarning} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {Deploy, Organization, Release, ReleaseProject} from 'sentry/types';
+import type {Organization} from 'sentry/types/organization';
+import type {Release, ReleaseProject} from 'sentry/types/release';
 import {defined} from 'sentry/utils';
 import type {IconSize} from 'sentry/utils/theme';
 
@@ -31,9 +31,8 @@ import {
   getReleaseUnhandledIssuesUrl,
   isMobileRelease,
 } from '../../utils';
-import {ThresholdStatus} from '../../utils/types';
 import {ReleasesDisplayOption} from '../releasesDisplayOptions';
-import {ReleasesRequestRenderProps} from '../releasesRequest';
+import type {ReleasesRequestRenderProps} from '../releasesRequest';
 
 import {
   AdoptionColumn,
@@ -63,7 +62,6 @@ function getCrashFreeIcon(crashFreePercent: number, iconSize: IconSize = 'sm') {
 type Props = {
   activeDisplay: ReleasesDisplayOption;
   getHealthData: ReleasesRequestRenderProps['getHealthData'];
-  hasThresholds: boolean;
   index: number;
   isTopRelease: boolean;
   location: Location;
@@ -72,26 +70,21 @@ type Props = {
   releaseVersion: string;
   showPlaceholders: boolean;
   showReleaseAdoptionStages: boolean;
-  thresholdStatuses: ThresholdStatus[];
   adoptionStages?: Release['adoptionStages'];
-  lastDeploy?: Deploy | undefined;
 };
 
 function ReleaseCardProjectRow({
   activeDisplay,
   adoptionStages,
   getHealthData,
-  hasThresholds,
   index,
   isTopRelease,
-  lastDeploy,
   location,
   organization,
   project,
   releaseVersion,
   showPlaceholders,
   showReleaseAdoptionStages,
-  thresholdStatuses,
 }: Props) {
   const theme = useTheme();
   const {id, newGroups} = project;
@@ -101,22 +94,6 @@ function ReleaseCardProjectRow({
     id,
     ReleasesDisplayOption.SESSIONS
   );
-
-  const thresholds = useMemo(() => {
-    return (
-      thresholdStatuses?.filter(status => {
-        return status.environment?.name === lastDeploy?.environment;
-      }) || []
-    );
-  }, [thresholdStatuses, lastDeploy]);
-
-  const healthyThresholds = thresholds.filter(status => {
-    return status.is_healthy;
-  });
-
-  const pendingThresholds = thresholds.filter(status => {
-    return new Date(status.end || '') > new Date();
-  });
 
   const crashFreeRate = getHealthData.getCrashFreeRate(releaseVersion, id, activeDisplay);
   const get24hCountByProject = getHealthData.get24hCountByProject(id, activeDisplay);
@@ -135,10 +112,7 @@ function ReleaseCardProjectRow({
 
   return (
     <ProjectRow data-test-id="release-card-project-row">
-      <ReleaseProjectsLayout
-        showReleaseAdoptionStages={showReleaseAdoptionStages}
-        hasThresholds={hasThresholds}
-      >
+      <ReleaseProjectsLayout showReleaseAdoptionStages={showReleaseAdoptionStages}>
         <ReleaseProjectColumn>
           <ProjectBadge project={project} avatarSize={16} />
         </ReleaseProjectColumn>
@@ -236,43 +210,9 @@ function ReleaseCardProjectRow({
           </Tooltip>
         </NewIssuesColumn>
 
-        {hasThresholds && (
-          <DisplaySmallCol>
-            {/* TODO: link to release details page */}
-            {thresholds && thresholds.length > 0 && (
-              <Tooltip
-                title={
-                  <div>
-                    <div>
-                      {pendingThresholds.length !== thresholds.length &&
-                        `${healthyThresholds.length - pendingThresholds.length} / ${
-                          thresholds.length
-                        } ` + t('thresholds succeeded')}
-                    </div>
-                    {pendingThresholds.length > 0 && (
-                      <div>
-                        {`${pendingThresholds.length} / ${thresholds.length} ` +
-                          t('still pending')}
-                      </div>
-                    )}
-                    {t('Open in Release Details')}
-                  </div>
-                }
-              >
-                <ThresholdHealth
-                  allHealthy={healthyThresholds.length === thresholds.length}
-                  allThresholdsFinished={pendingThresholds.length === 0}
-                >
-                  {healthyThresholds.length} / {thresholds && thresholds.length}
-                </ThresholdHealth>
-              </Tooltip>
-            )}
-          </DisplaySmallCol>
-        )}
-
         <ViewColumn>
           <GuideAnchor disabled={!isTopRelease || index !== 0} target="view_release">
-            <Button
+            <LinkButton
               size="xs"
               to={{
                 pathname: `/organizations/${
@@ -286,7 +226,7 @@ function ReleaseCardProjectRow({
               }}
             >
               {t('View')}
-            </Button>
+            </LinkButton>
           </GuideAnchor>
         </ViewColumn>
       </ReleaseProjectsLayout>
@@ -333,19 +273,4 @@ const ViewColumn = styled('div')`
   ${p => p.theme.overflowEllipsis};
   line-height: 20px;
   text-align: right;
-`;
-
-const ThresholdHealth = styled('div')<{
-  allHealthy?: boolean;
-  allThresholdsFinished?: boolean;
-}>`
-  color: ${p => {
-    if (!p.allHealthy) {
-      return p.theme.errorText;
-    }
-    if (p.allThresholdsFinished) {
-      return p.theme.successText;
-    }
-    return p.theme.activeText;
-  }};
 `;

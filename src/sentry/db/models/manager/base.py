@@ -3,34 +3,24 @@ from __future__ import annotations
 import logging
 import threading
 import weakref
+from collections.abc import Callable, Collection, Generator, Mapping, MutableMapping, Sequence
 from contextlib import contextmanager
 from enum import IntEnum, auto
-from typing import (
-    Any,
-    Callable,
-    Collection,
-    Dict,
-    Generator,
-    Generic,
-    Mapping,
-    MutableMapping,
-    Optional,
-    Sequence,
-    Tuple,
-    Type,
-)
+from typing import Any
 
 from django.conf import settings
 from django.db import models, router
 from django.db.models import Model
-from django.db.models.manager import BaseManager as DjangoBaseManager
+from django.db.models.fields import Field
+from django.db.models.manager import Manager as DjangoBaseManager
 from django.db.models.signals import class_prepared, post_delete, post_init, post_save
+from django.utils.encoding import smart_str
 
-from sentry.db.models.manager import M, make_key
 from sentry.db.models.manager.base_query_set import BaseQuerySet
+from sentry.db.models.manager.types import M
 from sentry.db.models.query import create_or_update
 from sentry.db.postgres.transactions import django_test_transaction_water_mark
-from sentry.silo import SiloLimit
+from sentry.silo.base import SiloLimit
 from sentry.utils.cache import cache
 from sentry.utils.hashlib import md5_text
 
@@ -41,7 +31,7 @@ _local_cache_generation = 0
 _local_cache_enabled = False
 
 
-def flush_manager_local_cache():
+def flush_manager_local_cache() -> None:
     global _local_cache
     _local_cache = threading.local()
 
@@ -52,35 +42,68 @@ class ModelManagerTriggerCondition(IntEnum):
     DELETE = auto()
 
 
-ModelManagerTriggerAction = Callable[[Type[Model]], None]
+ModelManagerTriggerAction = Callable[[type[Model]], None]
 
 
-class BaseManager(DjangoBaseManager.from_queryset(BaseQuerySet), Generic[M]):  # type: ignore
+def __prep_value(model: Any, key: str, value: Model | int | str) -> str:
+    val = value
+    if isinstance(value, Model):
+        val = value.pk
+    return str(val)
+
+
+def __prep_key(model: Any, key: str) -> str:
+    if key == "pk":
+        return str(model._meta.pk.name)
+    return key
+
+
+def make_key(model: Any, prefix: str, kwargs: Mapping[str, Model | int | str]) -> str:
+    kwargs_bits = []
+    for k, v in sorted(kwargs.items()):
+        k = __prep_key(model, k)
+        v = smart_str(__prep_value(model, k, v))
+        kwargs_bits.append(f"{k}={v}")
+    kwargs_bits_str = ":".join(kwargs_bits)
+
+    return f"{prefix}:{model.__name__}:{md5_text(kwargs_bits_str).hexdigest()}"
+
+
+_base_manager_base = DjangoBaseManager.from_queryset(BaseQuerySet, "_base_manager_base")
+
+
+class BaseManager(_base_manager_base[M]):
     lookup_handlers = {"iexact": lambda x: x.upper()}
     use_for_related_fields = True
 
     _queryset_class = BaseQuerySet
 
-    def __init__(self, *args: Any, **kwargs: Any) -> None:
+    def __init__(
+        self,
+        *args: Any,
+        cache_fields: Sequence[str] | None = None,
+        cache_ttl: int = 60 * 5,
+        **kwargs: Any,
+    ) -> None:
         #: Model fields for which we should build up a cache to be used with
         #: Model.objects.get_from_cache(fieldname=value)`.
         #:
         #: Note that each field by its own needs to be a potential primary key
         #: (uniquely identify a row), so for example organization slug is ok,
         #: project slug is not.
-        self.cache_fields = kwargs.pop("cache_fields", [])
-        self.cache_ttl = kwargs.pop("cache_ttl", 60 * 5)
-        self._cache_version: Optional[str] = kwargs.pop("cache_version", None)
+        self.cache_fields = cache_fields if cache_fields is not None else ()
+        self.cache_ttl = cache_ttl
+        self._cache_version: str | None = kwargs.pop("cache_version", None)
         self.__local_cache = threading.local()
 
-        self._triggers: Dict[
-            object, Tuple[ModelManagerTriggerCondition, ModelManagerTriggerAction]
+        self._triggers: dict[
+            object, tuple[ModelManagerTriggerCondition, ModelManagerTriggerAction]
         ] = {}
         super().__init__(*args, **kwargs)
 
     @staticmethod
     @contextmanager
-    def local_cache() -> Generator[None, None, None]:
+    def local_cache() -> Generator[None]:
         """Enables local caching for the entire process."""
         global _local_cache_enabled, _local_cache_generation
         if _local_cache_enabled:
@@ -92,7 +115,7 @@ class BaseManager(DjangoBaseManager.from_queryset(BaseQuerySet), Generic[M]):  #
             _local_cache_enabled = False
             _local_cache_generation += 1
 
-    def _get_local_cache(self) -> Optional[MutableMapping[str, M]]:
+    def _get_local_cache(self) -> MutableMapping[str, M] | None:
         if not _local_cache_enabled:
             return None
 
@@ -134,7 +157,7 @@ class BaseManager(DjangoBaseManager.from_queryset(BaseQuerySet), Generic[M]):  #
     def __setstate__(self, state: Mapping[str, Any]) -> None:
         self.__dict__.update(state)
         # TODO(typing): Basically everywhere else we set this to `threading.local()`.
-        self.__local_cache = weakref.WeakKeyDictionary()  # type: ignore
+        self.__local_cache = weakref.WeakKeyDictionary()  # type: ignore[assignment]
 
     def __class_prepared(self, sender: Any, **kwargs: Any) -> None:
         """
@@ -250,6 +273,7 @@ class BaseManager(DjangoBaseManager.from_queryset(BaseQuerySet), Generic[M]):  #
         if key == "pk":
             return instance.pk
         field = instance._meta.get_field(key)
+        assert isinstance(field, Field), field
         return getattr(instance, field.attname)
 
     def contribute_to_class(self, model: type[Model], name: str) -> None:
@@ -281,7 +305,10 @@ class BaseManager(DjangoBaseManager.from_queryset(BaseQuerySet), Generic[M]):  #
 
             if settings.DEBUG:
                 raise ValueError("Unexpected value type returned from cache")
-            logger.error("Cache response returned invalid value", extra={"instance": inst})
+            logger.error(
+                "Cache response returned invalid value",
+                extra={"instance": inst, "key": key, "model": str(self.model)},
+            )
             if local_cache is not None and cache_key in local_cache:
                 del local_cache[cache_key]
             cache.delete(cache_key, version=self.cache_version)
@@ -317,7 +344,7 @@ class BaseManager(DjangoBaseManager.from_queryset(BaseQuerySet), Generic[M]):  #
 
         return retval
 
-    def _get_cacheable_kv_from_kwargs(self, kwargs: Mapping[str, Any]):
+    def _get_cacheable_kv_from_kwargs(self, kwargs: Mapping[str, Any]) -> tuple[str, str, int]:
         if not kwargs or len(kwargs) > 1:
             raise ValueError("We cannot cache this query. Just hit the database.")
 
@@ -450,7 +477,7 @@ class BaseManager(DjangoBaseManager.from_queryset(BaseQuerySet), Generic[M]):  #
 
         return final_results
 
-    def create_or_update(self, **kwargs: Any) -> Tuple[Any, bool]:
+    def create_or_update(self, **kwargs: Any) -> tuple[Any, bool]:
         return create_or_update(self.model, **kwargs)
 
     def uncache_object(self, instance_id: int) -> None:
@@ -458,17 +485,17 @@ class BaseManager(DjangoBaseManager.from_queryset(BaseQuerySet), Generic[M]):  #
         cache_key = self.__get_lookup_cache_key(**{pk_name: instance_id})
         cache.delete(cache_key, version=self.cache_version)
 
-    def post_save(self, instance: M, **kwargs: Any) -> None:
+    def post_save(self, *, instance: M, created: bool, **kwargs: object) -> None:  # type: ignore[misc]  # python/mypy#6178
         """
         Triggered when a model bound to this manager is saved.
         """
 
-    def post_delete(self, instance: M, **kwargs: Any) -> None:
+    def post_delete(self, instance: M, **kwargs: Any) -> None:  # type: ignore[misc]  # python/mypy#6178
         """
         Triggered when a model bound to this manager is deleted.
         """
 
-    def get_queryset(self) -> BaseQuerySet:
+    def get_queryset(self) -> BaseQuerySet[M]:
         """
         Returns a new QuerySet object.  Subclasses can override this method to
         easily customize the behavior of the Manager.
@@ -486,7 +513,7 @@ class BaseManager(DjangoBaseManager.from_queryset(BaseQuerySet), Generic[M]):  #
     @contextmanager
     def register_trigger(
         self, condition: ModelManagerTriggerCondition, action: ModelManagerTriggerAction
-    ) -> Generator[None, None, None]:
+    ) -> Generator[None]:
         """Register a callback for when an operation is executed inside the context.
 
         There is no guarantee whether the action will be called before or after the

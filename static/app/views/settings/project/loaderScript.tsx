@@ -11,13 +11,13 @@ import PanelAlert from 'sentry/components/panels/panelAlert';
 import PanelBody from 'sentry/components/panels/panelBody';
 import PanelHeader from 'sentry/components/panels/panelHeader';
 import {t, tct} from 'sentry/locale';
-import {Organization, Project} from 'sentry/types';
+import type {Organization} from 'sentry/types/organization';
+import type {Project, ProjectKey} from 'sentry/types/project';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
 import {LoaderSettings} from 'sentry/views/settings/project/projectKeys/details/loaderSettings';
-import {ProjectKey} from 'sentry/views/settings/project/projectKeys/types';
 
 export function ProjectLoaderScript({project}: {project: Project}) {
   const organization = useOrganization();
@@ -26,7 +26,7 @@ export function ProjectLoaderScript({project}: {project: Project}) {
 
   const {
     data: projectKeys,
-    isLoading,
+    isPending,
     error,
     refetch: refetchProjectKeys,
   } = useApiQuery<ProjectKey[]>([apiEndpoint], {
@@ -70,14 +70,14 @@ export function ProjectLoaderScript({project}: {project: Project}) {
         )}
       </TextBlock>
 
-      {isLoading && <LoadingIndicator />}
+      {isPending && <LoadingIndicator />}
       {!!error && (
         <LoadingError
           message={t('Failed to load project keys.')}
           onRetry={refetchProjectKeys}
         />
       )}
-      {!isLoading && !error && !projectKeys?.length && (
+      {!isPending && !error && !projectKeys?.length && (
         <EmptyMessage title={t('There are no keys active for this project.')} />
       )}
 

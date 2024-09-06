@@ -15,7 +15,7 @@ from .mail import COMMIT_EXAMPLE, MailPreview, get_shared_context, make_performa
 
 class DebugPerformanceIssueEmailView(View):
     def get(self, request, sample_name="transaction-n-plus-one"):
-        project = Project.objects.first()
+        project = Project.objects.get(id=1)
         org = project.organization
         perf_event = make_performance_event(project, sample_name)
         if request.GET.get("is_test", False):

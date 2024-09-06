@@ -1,27 +1,21 @@
-from sentry.backup.scopes import RelocationScope
-from sentry.db.models import region_silo_only_model
-
-"""
-sentry.models.deploy
-~~~~~~~~~~~~~~~~~~~~
-"""
-
-
 from django.db import models
 from django.utils import timezone
 
+from sentry.backup.scopes import RelocationScope
 from sentry.db.models import (
     BoundedBigIntegerField,
     BoundedPositiveIntegerField,
     FlexibleForeignKey,
     Model,
+    region_silo_model,
 )
 from sentry.locks import locks
+from sentry.models.environment import Environment
 from sentry.types.activity import ActivityType
 from sentry.utils.retries import TimedRetryPolicy
 
 
-@region_silo_only_model
+@region_silo_model
 class Deploy(Model):
     __relocation_scope__ = RelocationScope.Excluded
 
@@ -49,7 +43,6 @@ class Deploy(Model):
         if they haven't been sent
         """
         from sentry.models.activity import Activity
-        from sentry.models.environment import Environment
         from sentry.models.releasecommit import ReleaseCommit
         from sentry.models.releaseheadcommit import ReleaseHeadCommit
 

@@ -1,11 +1,14 @@
 import re
 from abc import ABC, abstractmethod
-from typing import Set
 
 
 class PathReplacer(ABC):
+    """
+    Replaces SDK frame paths with a new path. Runs only for SDK frames.
+    """
+
     @abstractmethod
-    def replace_path(self, path: str) -> str:
+    def replace_path(self, path_field: str, path_value: str) -> str | None:
         pass
 
 
@@ -16,7 +19,7 @@ class FixedPathReplacer(PathReplacer):
     ):
         self.path = path
 
-    def replace_path(self, path: str) -> str:
+    def replace_path(self, path_field: str, path_value: str) -> str | None:
         return self.path
 
 
@@ -32,15 +35,25 @@ class KeepAfterPatternMatchPathReplacer(PathReplacer):
 
     def __init__(
         self,
-        patterns: Set[str],
+        patterns: set[str],
         fallback_path: str,
     ):
         self.patterns = {re.compile(element, re.IGNORECASE) for element in patterns}
         self.fallback_path = fallback_path
 
-    def replace_path(self, path: str) -> str:
+    def replace_path(self, path_field: str, path_value: str) -> str | None:
         for pattern in self.patterns:
-            match = pattern.search(path)
+            match = pattern.search(path_value)
             if match:
-                return path[match.start() :]
+                return path_value[match.start() :]
         return self.fallback_path
+
+
+class KeepFieldPathReplacer(PathReplacer):
+    def __init__(self, fields: set[str]):
+        self.fields = fields
+
+    def replace_path(self, path_field: str, path_value: str) -> str | None:
+        if path_field in self.fields:
+            return path_value
+        return None

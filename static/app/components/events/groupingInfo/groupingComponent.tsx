@@ -1,7 +1,7 @@
 import styled from '@emotion/styled';
 
 import {space} from 'sentry/styles/space';
-import {EventGroupComponent} from 'sentry/types';
+import type {EventGroupComponent} from 'sentry/types/event';
 
 import GroupingComponentChildren from './groupingComponentChildren';
 import GroupingComponentStacktrace from './groupingComponentStacktrace';
@@ -71,7 +71,7 @@ export const GroupingValue = styled('code')<{valueType: string}>`
   ${({valueType}) =>
     (valueType === 'function' || valueType === 'symbol') &&
     `
-    font-weight: bold;
+    font-weight: ${p => p.theme.fontWeightBold};
     color: ${p => p.theme.textColor};
   `}
 `;

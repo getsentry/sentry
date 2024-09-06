@@ -30,7 +30,7 @@ describe('Projects ActionCreators', function () {
     );
   });
 
-  it('loadStatsForProject() with additional query', function () {
+  it('loadStatsForProjectFixture() with additional query', function () {
     jest.useFakeTimers();
     const mock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/projects/',

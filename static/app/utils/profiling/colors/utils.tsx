@@ -1,11 +1,11 @@
-import {
+import type {
   ColorChannels,
   ColorMapFn,
   FlamegraphTheme,
 } from 'sentry/utils/profiling/flamegraph/flamegraphTheme';
-import {SpanChart, SpanChartNode} from 'sentry/utils/profiling/spanChart';
+import type {SpanChart, SpanChartNode} from 'sentry/utils/profiling/spanChart';
 
-import {FlamegraphFrame} from '../flamegraphFrame';
+import type {FlamegraphFrame} from '../flamegraphFrame';
 
 function uniqueCountBy<T>(
   arr: ReadonlyArray<T>,

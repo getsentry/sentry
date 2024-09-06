@@ -40,15 +40,6 @@
   }
 },
 {
-  "model": "sentry.actor",
-  "pk": 1,
-  "fields": {
-    "type": 0,
-    "user_id": null,
-    "team": 1
-  }
-},
-{
   "model": "sentry.email",
   "pk": 1,
   "fields": {
@@ -62,6 +53,14 @@
   "fields": {
     "email": "member@example.com",
     "date_added": "2023-06-22T22:59:56.531Z"
+  }
+},
+{
+  "model": "sentry.email",
+  "pk": 3,
+  "fields": {
+    "email": "superadmin@example.com",
+    "date_added": "2023-06-22T22:59:57.531Z"
   }
 },
 {
@@ -123,6 +122,31 @@
     "session_nonce": null,
     "date_joined": "2023-06-22T22:59:56.488Z",
     "last_active": "2023-06-22T22:59:56.489Z",
+    "avatar_type": 0,
+    "avatar_url": null
+  }
+},
+{
+  "model": "sentry.user",
+  "pk": 3,
+  "fields": {
+    "password": "pbkdf2_sha256$720000$Qr71byRoUAtqx37gux7FZLx3Wa7mVU1gL2KbL8Iozk/Fw9dVd/93cwBk=",
+    "last_login": null,
+    "username": "superadmin@example.com",
+    "name": "",
+    "email": "superadmin@example.com",
+    "is_staff": true,
+    "is_active": true,
+    "is_superuser": true,
+    "is_managed": false,
+    "is_sentry_app": null,
+    "is_password_expired": false,
+    "is_unclaimed": false,
+    "last_password_change": "2023-06-22T22:59:59.023Z",
+    "flags": "0",
+    "session_nonce": null,
+    "date_joined": "2023-06-22T22:59:57.488Z",
+    "last_active": "2023-06-22T22:59:57.489Z",
     "avatar_type": 0,
     "avatar_url": null
   }
@@ -194,6 +218,17 @@
   }
 },
 {
+  "model": "sentry.useremail",
+  "pk": 3,
+  "fields": {
+    "user": 3,
+    "email": "superadmin@example.com",
+    "validation_hash": "VSj0hfPGiq1UdkHDg8p49sOP9saYvIwH",
+    "date_hash_added": "2023-06-22T22:59:57.521Z",
+    "is_verified": true
+  }
+},
+{
   "model": "sentry.userrole",
   "pk": 1,
   "fields": {
@@ -214,6 +249,16 @@
   }
 },
 {
+  "model": "sentry.userroleuser",
+  "pk": 2,
+  "fields": {
+    "date_updated": "2023-06-22T23:00:00.456Z",
+    "date_added": "2023-06-22T22:59:58.000Z",
+    "user": 3,
+    "role": 1
+  }
+},
+{
   "model": "sentry.team",
   "pk": 1,
   "fields": {
@@ -223,8 +268,7 @@
     "status": 0,
     "actor": 1,
     "idp_provisioned": false,
-    "date_added": "2023-06-22T22:54:28.821Z",
-    "org_role": null
+    "date_added": "2023-06-22T22:54:28.821Z"
   }
 },
 {
@@ -260,11 +304,31 @@
     "date_added": "2023-06-22T22:59:56.561Z",
     "token_expires_at": null,
     "has_global_access": true,
-    "inviter_id": null,
+    "inviter_id": 3,
     "invite_status": 0,
     "type": 50,
     "user_is_active": true,
     "user_email": "member@example.com"
+  }
+},
+{
+  "model": "sentry.organizationmember",
+  "pk": 3,
+  "fields": {
+    "organization": 1,
+    "user_id": null,
+    "email": "pending@example.com",
+    "role": "member",
+    "flags": "0",
+    "token": null,
+    "date_added": "2023-06-22T22:59:56.561Z",
+    "token_expires_at": null,
+    "has_global_access": true,
+    "inviter_id": 1,
+    "invite_status": 1,
+    "type": 50,
+    "user_is_active": true,
+    "user_email": null
   }
 },
 {
@@ -344,24 +408,6 @@
     "organizationmember": 2,
     "is_active": true,
     "role": null
-  }
-},
-{
-  "model": "sentry.projectoption",
-  "pk": 1,
-  "fields": {
-    "project": 1,
-    "key": "sentry:relay-rev",
-    "value": "\"883653e754e441f9aa54052b52482bdb\""
-  }
-},
-{
-  "model": "sentry.projectoption",
-  "pk": 2,
-  "fields": {
-    "project": 1,
-    "key": "sentry:relay-rev-lastchange",
-    "value": "\"2023-06-22T22:54:29.060271Z\""
   }
 },
 {

@@ -1,12 +1,25 @@
-import type {Organization} from 'sentry/types';
+import type {Organization} from 'sentry/types/organization';
 import {Dataset} from 'sentry/views/alerts/rules/metric/types';
+import type {AlertType} from 'sentry/views/alerts/wizard/options';
 
-export function hasDDMExperimentalFeature(organization: Organization) {
-  return organization.features.includes('ddm-experimental');
+export function hasMetricsExperimentalFeature(organization: Organization) {
+  return organization.features.includes('custom-metrics-experimental');
 }
 
-export function hasDDMFeature(organization: Organization) {
-  return organization.features.includes('ddm-ui');
+export function hasCustomMetrics(organization: Organization) {
+  return organization.features.includes('custom-metrics');
+}
+
+export function hasMetricAlertFeature(organization: Organization) {
+  return organization.features.includes('incidents');
+}
+
+export function hasMetricsNewInputs(organization: Organization) {
+  return organization.features.includes('metrics-new-inputs');
+}
+
+export function hasMetricsNewSearchQueryBuilder(organization: Organization) {
+  return organization.features.includes('search-query-builder-metrics');
 }
 
 /**
@@ -17,10 +30,12 @@ export function hasDDMFeature(organization: Organization) {
  */
 export function getForceMetricsLayerQueryExtras(
   organization: Organization,
-  alertDataset: Dataset
+  alertDataset: Dataset,
+  alertType: AlertType
 ): {forceMetricsLayer: 'true'} | Record<string, never> {
-  return hasDDMExperimentalFeature(organization) &&
-    alertDataset === Dataset.GENERIC_METRICS
+  return hasCustomMetrics(organization) &&
+    alertDataset === Dataset.GENERIC_METRICS &&
+    alertType !== 'insights_metrics'
     ? {forceMetricsLayer: 'true'}
     : {};
 }

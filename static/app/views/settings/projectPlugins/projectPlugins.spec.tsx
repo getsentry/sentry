@@ -1,4 +1,4 @@
-import {Plugins} from 'sentry-fixture/plugins';
+import {PluginsFixture} from 'sentry-fixture/plugins';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
@@ -20,7 +20,7 @@ describe('ProjectPlugins', function () {
         onChange={jest.fn()}
         loading={false}
         error={undefined}
-        plugins={Plugins()}
+        plugins={PluginsFixture()}
       />
     );
 

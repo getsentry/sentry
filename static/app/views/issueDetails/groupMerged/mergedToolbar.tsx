@@ -1,3 +1,5 @@
+import type {Location} from 'history';
+
 import {openDiffModal} from 'sentry/actionCreators/modal';
 import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
@@ -6,10 +8,13 @@ import PanelHeader from 'sentry/components/panels/panelHeader';
 import {t, tct} from 'sentry/locale';
 import GroupingStore from 'sentry/stores/groupingStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
-import {Group, Organization, Project} from 'sentry/types';
+import type {Group} from 'sentry/types/group';
+import type {Organization} from 'sentry/types/organization';
+import type {Project} from 'sentry/types/project';
 
 type Props = {
   groupId: Group['id'];
+  location: Location;
   onToggleCollapse: () => void;
   onUnmerge: () => void;
   orgId: Organization['slug'];
@@ -22,6 +27,7 @@ export function MergedToolbar({
   orgId,
   onUnmerge,
   onToggleCollapse,
+  location,
 }: Props) {
   const {
     unmergeList,
@@ -55,6 +61,7 @@ export function MergedToolbar({
       orgId,
       baseEventId,
       targetEventId,
+      location,
     });
   }
 
@@ -62,10 +69,10 @@ export function MergedToolbar({
     mergedItems.length <= 1
       ? t('To unmerge, the list must contain 2 or more items')
       : unmergeList.size === 0
-      ? t('To unmerge, 1 or more items must be selected')
-      : GroupingStore.isAllUnmergedSelected()
-      ? t('We are unable to unmerge all items at once')
-      : undefined;
+        ? t('To unmerge, 1 or more items must be selected')
+        : GroupingStore.isAllUnmergedSelected()
+          ? t('We are unable to unmerge all items at once')
+          : undefined;
 
   return (
     <PanelHeader hasButtons>

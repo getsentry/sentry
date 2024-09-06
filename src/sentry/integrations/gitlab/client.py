@@ -1,21 +1,27 @@
 from __future__ import annotations
 
 import logging
-from typing import TYPE_CHECKING, Any, Mapping, Sequence
+from collections.abc import Mapping, Sequence
+from typing import TYPE_CHECKING, Any
 from urllib.parse import quote
 
 from django.urls import reverse
 from requests import PreparedRequest
 
+from sentry.identity.services.identity.model import RpcIdentity
 from sentry.integrations.gitlab.blame import fetch_file_blames
 from sentry.integrations.gitlab.utils import GitLabApiClientPath
-from sentry.integrations.mixins.commit_context import FileBlameInfo, SourceLineInfo
+from sentry.integrations.source_code_management.commit_context import (
+    CommitContextClient,
+    FileBlameInfo,
+    SourceLineInfo,
+)
+from sentry.integrations.source_code_management.repository import RepositoryClient
 from sentry.models.repository import Repository
-from sentry.services.hybrid_cloud.identity.model import RpcIdentity
-from sentry.services.hybrid_cloud.util import control_silo_function
+from sentry.shared_integrations.client.base import BaseApiResponseX
 from sentry.shared_integrations.client.proxy import IntegrationProxyClient
 from sentry.shared_integrations.exceptions import ApiError, ApiUnauthorized
-from sentry.silo.base import SiloMode
+from sentry.silo.base import SiloMode, control_silo_function
 from sentry.utils import metrics
 from sentry.utils.http import absolute_uri
 
@@ -25,7 +31,7 @@ if TYPE_CHECKING:
 logger = logging.getLogger("sentry.integrations.gitlab")
 
 
-class GitlabProxySetupClient(IntegrationProxyClient):
+class GitLabSetupApiClient(IntegrationProxyClient):
     """
     API Client that doesn't require an installation.
     This client is used during integration setup to fetch data
@@ -61,9 +67,7 @@ class GitlabProxySetupClient(IntegrationProxyClient):
         return self.get(path)
 
 
-class GitLabProxyApiClient(IntegrationProxyClient):
-    integration_name = "gitlab"
-
+class GitLabApiClient(IntegrationProxyClient, RepositoryClient, CommitContextClient):
     def __init__(self, installation: GitlabIntegration):
         self.installation = installation
         verify_ssl = self.metadata["verify_ssl"]
@@ -71,6 +75,8 @@ class GitLabProxyApiClient(IntegrationProxyClient):
         self.refreshed_identity: RpcIdentity | None = None
         self.base_url = self.metadata["base_url"]
         org_integration_id = installation.org_integration.id
+        self.integration_name = "gitlab"
+
         super().__init__(
             integration_id=installation.model.id,
             org_integration_id=org_integration_id,
@@ -115,23 +121,44 @@ class GitLabProxyApiClient(IntegrationProxyClient):
 
     def request(self, *args: Any, **kwargs: Any):
         if SiloMode.get_current_mode() == SiloMode.REGION:
+            # Skip token refreshes in Region silo, as these will
+            # be handled below by the control silo when the
+            # integration proxy invokes the client code.
             return super().request(*args, **kwargs)
-        # Only perform the refresh token flow in either monolithic or the control silo mode.
+
+        return self._issue_request_with_auto_token_refresh(*args, **kwargs)
+
+    def _issue_request_with_auto_token_refresh(self, *args: Any, **kwargs: Any):
         try:
-            return super().request(*args, **kwargs)
-        except ApiUnauthorized as e:
-            if self.is_refreshing_token:
-                raise e
-
-            self.is_refreshing_token = True
-            self.refreshed_identity = self._refresh_auth()
-
             response = super().request(*args, **kwargs)
+        except ApiUnauthorized:
+            if self.is_refreshing_token:
+                raise
+            return self._attempt_request_after_refreshing_token(*args, **kwargs)
 
-            self.is_refreshing_token = False
-            self.refreshed_identity = None
+        if (
+            kwargs.get("raw_response", False)
+            and response.status_code == 401
+            and not self.is_refreshing_token
+        ):
+            # Because the caller may make the request with the raw_response
+            # option, we need to manually check the response status code and
+            # refresh the token if an auth error occurs.
+            return self._attempt_request_after_refreshing_token(*args, **kwargs)
 
-            return response
+        return response
+
+    def _attempt_request_after_refreshing_token(self, *args: Any, **kwargs: Any):
+        assert not self.is_refreshing_token, "A token refresh is already occurring"
+        self.is_refreshing_token = True
+        self.refreshed_identity = self._refresh_auth()
+
+        response = super().request(*args, **kwargs)
+
+        self.is_refreshing_token = False
+        self.refreshed_identity = None
+
+        return response
 
     def get_user(self):
         """Get a user
@@ -286,53 +313,39 @@ class GitLabProxyApiClient(IntegrationProxyClient):
         path = GitLabApiClientPath.diff.format(project=project_id, sha=sha)
         return self.get(path)
 
-    def check_file(self, repo: Repository, path: str, ref: str) -> str | None:
+    def check_file(self, repo: Repository, path: str, version: str | None) -> BaseApiResponseX:
         """Fetch a file for stacktrace linking
 
         See https://docs.gitlab.com/ee/api/repository_files.html#get-file-from-repository
         Path requires file path and ref
         file_path must also be URL encoded Ex. lib%2Fclass%2Erb
         """
-        try:
-            project_id = repo.config["project_id"]
-            encoded_path = quote(path, safe="")
+        project_id = repo.config["project_id"]
+        encoded_path = quote(path, safe="")
 
-            request_path = GitLabApiClientPath.file.format(project=project_id, path=encoded_path)
-            return self.head_cached(request_path, params={"ref": ref})
-        except ApiError as e:
-            # Gitlab can return 404 or 400 if the file doesn't exist
-            if e.code != 400:
-                raise
-            return None
+        request_path = GitLabApiClientPath.file.format(project=project_id, path=encoded_path)
 
-    def get_file(self, repo: Repository, path: str, ref: str) -> str:
+        # Gitlab can return 404 or 400 if the file doesn't exist
+        return self.head_cached(request_path, params={"ref": version})
+
+    def get_file(
+        self, repo: Repository, path: str, ref: str | None, codeowners: bool = False
+    ) -> str:
         """Get the contents of a file
 
         See https://docs.gitlab.com/ee/api/repository_files.html#get-file-from-repository
         Path requires file path and ref
         file_path must also be URL encoded Ex. lib%2Fclass%2Erb
         """
-        from base64 import b64decode
 
         project_id = repo.config["project_id"]
         encoded_path = quote(path, safe="")
-        request_path = GitLabApiClientPath.file.format(project=project_id, path=encoded_path)
-        contents = self.get(request_path, params={"ref": ref})
+        request_path = GitLabApiClientPath.file_raw.format(project=project_id, path=encoded_path)
 
-        encoded_content = contents["content"]
-        return b64decode(encoded_content).decode("utf-8")
+        contents = self.get(request_path, params={"ref": ref}, raw_response=True)
+        result = contents.content.decode("utf-8")
 
-    def get_blame_for_file(
-        self, repo: Repository, path: str, ref: str, lineno: int
-    ) -> Sequence[Mapping[str, Any]]:
-        project_id = repo.config["project_id"]
-        encoded_path = quote(path, safe="")
-        request_path = GitLabApiClientPath.blame.format(project=project_id, path=encoded_path)
-        contents = self.get(
-            request_path, params={"ref": ref, "range[start]": lineno, "range[end]": lineno}
-        )
-
-        return contents or []
+        return result
 
     def get_blame_for_files(
         self, files: Sequence[SourceLineInfo], extra: Mapping[str, Any]

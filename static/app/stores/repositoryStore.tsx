@@ -1,6 +1,7 @@
-import {createStore, StoreDefinition} from 'reflux';
+import type {StoreDefinition} from 'reflux';
+import {createStore} from 'reflux';
 
-import {Repository} from 'sentry/types';
+import type {Repository} from 'sentry/types/integrations';
 
 type State = {
   orgSlug?: string;

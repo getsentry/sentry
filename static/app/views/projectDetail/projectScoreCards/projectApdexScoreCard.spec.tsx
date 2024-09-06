@@ -1,4 +1,4 @@
-import {Organization} from 'sentry-fixture/organization';
+import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {render} from 'sentry-test/reactTestingLibrary';
 
@@ -6,7 +6,7 @@ import ProjectApdexScoreCard from 'sentry/views/projectDetail/projectScoreCards/
 
 describe('ProjectDetail > ProjectApdex', function () {
   let endpointMock: jest.Mock;
-  const organization = Organization();
+  const organization = OrganizationFixture();
 
   const selection = {
     projects: [1],

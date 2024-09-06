@@ -1,5 +1,6 @@
 from rest_framework import status
 
+from sentry.integrations.types import ExternalProviderEnum
 from sentry.models.notificationsettingprovider import NotificationSettingProvider
 from sentry.notifications.types import (
     NotificationScopeEnum,
@@ -8,7 +9,6 @@ from sentry.notifications.types import (
 )
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import control_silo_test
-from sentry.types.integrations import ExternalProviderEnum
 
 
 class UserNotificationSettingsProvidersBaseTest(APITestCase):

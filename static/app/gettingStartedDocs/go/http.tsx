@@ -9,6 +9,12 @@ import type {
   DocsParams,
   OnboardingConfig,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
+import {
+  getCrashReportGenericInstallStep,
+  getCrashReportModalConfigDescription,
+  getCrashReportModalIntroduction,
+} from 'sentry/components/onboarding/gettingStartedDoc/utils/feedbackOnboarding';
+import replayOnboardingJsLoader from 'sentry/gettingStartedDocs/javascript/jsLoader/jsLoader';
 import {t, tct} from 'sentry/locale';
 
 type Params = DocsParams;
@@ -24,14 +30,17 @@ import (
 
 // To initialize Sentry's handler, you need to initialize Sentry itself beforehand
 if err := sentry.Init(sentry.ClientOptions{
-  Dsn: "${params.dsn}",
-  EnableTracing: true,
+  Dsn: "${params.dsn.public}",${
+    params.isPerformanceSelected
+      ? `
   // Set TracesSampleRate to 1.0 to capture 100%
-  // of transactions for performance monitoring.
+  // of transactions for tracing.
   // We recommend adjusting this value in production,
-  TracesSampleRate: 1.0,
+  TracesSampleRate: 1.0,`
+      : ''
+  }
 }); err != nil {
-  fmt.Printf("Sentry initialization failed: %v\n", err)
+  fmt.Printf("Sentry initialization failed: %v\\n", err)
 }
 
 // Create an instance of sentryhttp
@@ -103,7 +112,7 @@ if err := http.ListenAndServe(":3000", nil); err != nil {
 
 const getBeforeSendSnippet = params => `
 sentry.Init(sentry.ClientOptions{
-  Dsn: "${params.dsn}",
+  Dsn: "${params.dsn.public}",
   BeforeSend: func(event *sentry.Event, hint *sentry.EventHint) *sentry.Event {
     if hint.Context != nil {
       if req, ok := hint.Context.Value(sentry.RequestContextKey).(*http.Request); ok {
@@ -169,7 +178,7 @@ const onboarding: OnboardingConfig = {
               {
                 sentryHttpCode: <code />,
                 sentryHubLink: (
-                  <ExternalLink href="https://godoc.org/github.com/getsentry/sentry-go#Hub" />
+                  <ExternalLink href="https://pkg.go.dev/github.com/getsentry/sentry-go#Hub" />
                 ),
                 getHubFromContextCode: <code />,
                 captureMessageCode: <code />,
@@ -207,8 +216,25 @@ const onboarding: OnboardingConfig = {
   verify: () => [],
 };
 
+const crashReportOnboarding: OnboardingConfig = {
+  introduction: () => getCrashReportModalIntroduction(),
+  install: (params: Params) => getCrashReportGenericInstallStep(params),
+  configure: () => [
+    {
+      type: StepType.CONFIGURE,
+      description: getCrashReportModalConfigDescription({
+        link: 'https://docs.sentry.io/platforms/go/guides/http/user-feedback/configuration/#crash-report-modal',
+      }),
+    },
+  ],
+  verify: () => [],
+  nextSteps: () => [],
+};
+
 const docs: Docs = {
   onboarding,
+  replayOnboardingJsLoader,
+  crashReportOnboarding,
 };
 
 export default docs;

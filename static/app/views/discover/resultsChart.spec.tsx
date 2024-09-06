@@ -1,4 +1,6 @@
-import {Organization} from 'sentry-fixture/organization';
+import {LocationFixture} from 'sentry-fixture/locationFixture';
+import {OrganizationFixture} from 'sentry-fixture/organization';
+import {RouterFixture} from 'sentry-fixture/routerFixture';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
@@ -9,15 +11,12 @@ import ResultsChart from 'sentry/views/discover/resultsChart';
 
 describe('Discover > ResultsChart', function () {
   const features = ['discover-basic'];
-  const location = TestStubs.location({
+  const location = LocationFixture({
     query: {query: 'tag:value'},
     pathname: '/',
   });
 
-  const organization = Organization({
-    features,
-    projects: [TestStubs.Project()],
-  });
+  const organization = OrganizationFixture({features});
 
   const initialData = initializeOrg({
     organization,
@@ -44,7 +43,7 @@ describe('Discover > ResultsChart', function () {
   it('only allows default, daily, previous period, and bar display modes when multiple y axis are selected', async function () {
     render(
       <ResultsChart
-        router={TestStubs.router()}
+        router={RouterFixture()}
         organization={organization}
         eventView={eventView}
         location={location}
@@ -56,7 +55,7 @@ describe('Discover > ResultsChart', function () {
         yAxis={['count()', 'failure_count()']}
         onTopEventsChange={() => {}}
       />,
-      {context: initialData.routerContext}
+      {router: initialData.router}
     );
 
     await userEvent.click(screen.getByText(/Display/));
@@ -75,10 +74,10 @@ describe('Discover > ResultsChart', function () {
     });
   });
 
-  it('does not display a chart if no y axis is selected', function () {
+  it('does not display a chart if no y axis is selected', async function () {
     render(
       <ResultsChart
-        router={TestStubs.router()}
+        router={RouterFixture()}
         organization={organization}
         eventView={eventView}
         location={location}
@@ -90,9 +89,9 @@ describe('Discover > ResultsChart', function () {
         yAxis={[]}
         onTopEventsChange={() => {}}
       />,
-      {context: initialData.routerContext}
+      {router: initialData.router}
     );
 
-    expect(screen.getByText(/No Y-Axis selected/)).toBeInTheDocument();
+    expect(await screen.findByText(/No Y-Axis selected/)).toBeInTheDocument();
   });
 });

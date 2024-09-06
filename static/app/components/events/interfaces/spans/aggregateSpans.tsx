@@ -12,7 +12,9 @@ import {tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
 import {useApiQuery} from 'sentry/utils/queryClient';
+import {decodeScalar} from 'sentry/utils/queryString';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
+import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 
@@ -32,6 +34,8 @@ type AggregateSpanRow = {
   start_ms: number;
 };
 
+const ALLOWED_BACKENDS = ['indexedSpans', 'nodestore'];
+
 export function useAggregateSpans({
   transaction,
   httpMethod,
@@ -41,11 +45,14 @@ export function useAggregateSpans({
 }) {
   const organization = useOrganization();
   const {selection} = usePageFilters();
+  const location = useLocation();
+  const backend = decodeScalar(location.query.backend);
 
   const endpointOptions = {
     query: {
       transaction,
       ...(defined(httpMethod) ? {'http.method': httpMethod} : null),
+      ...(defined(backend) && ALLOWED_BACKENDS.includes(backend) ? {backend} : null),
       project: selection.projects,
       environment: selection.environments,
       ...normalizeDateTimeParams(selection.datetime),
@@ -99,7 +106,7 @@ export function AggregateSpans({transaction, httpMethod}: Props) {
           trailingItems={<StyledCloseButton onClick={() => setIsBannerOpen(false)} />}
         >
           {tct(
-            'This is an aggregate view across [x] events. You can see how frequent each span appears in the aggregate and identify any outliers.',
+            'This is an aggregate view across [x] events. You can see how frequently each span appears in the aggregate and identify any outliers.',
             {x: event.count}
           )}
         </StyledAlert>

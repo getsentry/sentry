@@ -2,7 +2,7 @@ import {createStore} from 'reflux';
 
 import GroupStore from 'sentry/stores/groupStore';
 
-import {CommonStoreDefinition} from './types';
+import type {StrictStoreDefinition} from './types';
 
 interface InternalDefinition {
   /**
@@ -16,15 +16,12 @@ interface InternalDefinition {
   records: Map<string, boolean>;
 }
 
-interface SelectedGroupStoreDefinition
-  extends CommonStoreDefinition<Record<string, boolean>>,
-    InternalDefinition {
+interface SelectedGroupStoreDefinition extends StrictStoreDefinition<InternalDefinition> {
   add(ids: string[]): void;
   allSelected(): boolean;
   anySelected(): boolean;
   deselectAll(): void;
   getSelectedIds(): Set<string>;
-  init(): void;
   isSelected(itemId: string): boolean;
   multiSelected(): boolean;
   onGroupChange(itemIds: Set<string>): void;
@@ -36,9 +33,7 @@ interface SelectedGroupStoreDefinition
 }
 
 const storeConfig: SelectedGroupStoreDefinition = {
-  records: new Map(),
-  lastSelected: null,
-  unsubscribeListeners: [],
+  state: {records: new Map(), lastSelected: null},
 
   init() {
     // XXX: Do not use `this.listenTo` in this store. We avoid usage of reflux
@@ -48,12 +43,11 @@ const storeConfig: SelectedGroupStoreDefinition = {
   },
 
   reset() {
-    this.records = new Map();
-    this.lastSelected = null;
+    this.state = {records: new Map(), lastSelected: null};
   },
 
   getState() {
-    return Object.fromEntries(this.records);
+    return this.state;
   },
 
   onGroupChange(itemIds) {
@@ -65,29 +59,27 @@ const storeConfig: SelectedGroupStoreDefinition = {
   add(ids) {
     const allSelected = this.allSelected();
 
-    ids
-      .filter(id => !this.records.has(id))
-      .forEach(id => this.records.set(id, allSelected));
+    const newRecords = new Map(this.state.records);
+    ids.filter(id => !newRecords.has(id)).forEach(id => newRecords.set(id, allSelected));
+    this.state = {...this.state, records: newRecords};
   },
 
   prune() {
     const existingIds = new Set(GroupStore.getAllItemIds());
-    this.lastSelected = null;
 
     // Remove everything that no longer exists
-    [...this.records.keys()]
+    const newRecords = new Map(this.state.records);
+    [...this.state.records.keys()]
       .filter(id => !existingIds.has(id))
-      .forEach(id => this.records.delete(id));
+      .forEach(id => newRecords.delete(id));
+
+    this.state = {...this.state, lastSelected: null, records: newRecords};
   },
 
   allSelected() {
     const itemIds = this.getSelectedIds();
 
-    return itemIds.size > 0 && itemIds.size === this.records.size;
-  },
-
-  numSelected() {
-    return this.getSelectedIds().size;
+    return itemIds.size > 0 && itemIds.size === this.state.records.size;
   },
 
   anySelected() {
@@ -99,66 +91,73 @@ const storeConfig: SelectedGroupStoreDefinition = {
   },
 
   getSelectedIds() {
-    return new Set([...this.records.keys()].filter(id => this.records.get(id)));
+    return new Set(
+      [...this.state.records.keys()].filter(id => this.state.records.get(id))
+    );
   },
 
   isSelected(itemId) {
-    return !!this.records.get(itemId);
+    return !!this.state.records.get(itemId);
   },
 
   deselectAll() {
-    this.records.forEach((_, id) => this.records.set(id, false));
+    const newRecords = new Map(this.state.records);
+    this.state.records.forEach((_, id) => newRecords.set(id, false));
+    this.state = {...this.state, records: newRecords};
     this.trigger();
   },
 
   toggleSelect(itemId) {
-    if (!this.records.has(itemId)) {
+    if (!this.state.records.has(itemId)) {
       return;
     }
 
-    const newState = !this.records.get(itemId);
-    this.records.set(itemId, newState);
-    this.lastSelected = itemId;
+    const newSelectedState = !this.state.records.get(itemId);
+    const newRecords = new Map(this.state.records);
+    newRecords.set(itemId, newSelectedState);
 
+    this.state = {...this.state, records: newRecords, lastSelected: itemId};
     this.trigger();
   },
 
   toggleSelectAll() {
     const allSelected = !this.allSelected();
-    this.lastSelected = null;
 
-    this.records.forEach((_, id) => this.records.set(id, allSelected));
+    const newRecords = new Map(this.state.records);
+    newRecords.forEach((_, id) => newRecords.set(id, allSelected));
+    this.state = {...this.state, records: newRecords, lastSelected: null};
     this.trigger();
   },
 
   shiftToggleItems(itemId) {
-    if (!this.records.has(itemId)) {
+    if (!this.state.records.has(itemId)) {
       return;
     }
-    if (!this.lastSelected) {
+    if (!this.state.lastSelected) {
       this.toggleSelect(itemId);
       return;
     }
 
     const ids = GroupStore.getAllItemIds();
-    const lastIdx = ids.findIndex(id => id === this.lastSelected);
+    const lastIdx = ids.findIndex(id => id === this.state.lastSelected);
     const currentIdx = ids.findIndex(id => id === itemId);
 
     if (lastIdx === -1 || currentIdx === -1) {
       return;
     }
 
-    const newValue = !this.records.get(itemId);
+    const newValue = !this.state.records.get(itemId);
     const selected =
       lastIdx < currentIdx
         ? ids.slice(lastIdx, currentIdx)
         : ids.slice(currentIdx, lastIdx);
 
-    [...selected, this.lastSelected, itemId]
-      .filter(id => this.records.has(id))
-      .forEach(id => this.records.set(id, newValue));
+    const newRecords = new Map(this.state.records);
+    [...selected, this.state.lastSelected, itemId]
+      .filter(id => newRecords.has(id))
+      .forEach(id => newRecords.set(id, newValue));
 
-    this.lastSelected = itemId;
+    this.state = {...this.state, records: newRecords, lastSelected: itemId};
     this.trigger();
   },
 };

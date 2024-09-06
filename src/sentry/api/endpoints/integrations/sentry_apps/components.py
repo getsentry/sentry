@@ -11,11 +11,11 @@ from sentry.api.serializers import serialize
 from sentry.coreapi import APIError
 from sentry.models.integrations.sentry_app_component import SentryAppComponent
 from sentry.models.integrations.sentry_app_installation import SentryAppInstallation
-from sentry.sentry_apps.components import SentryAppComponentPreparer
-from sentry.services.hybrid_cloud.organization.model import (
+from sentry.organizations.services.organization.model import (
     RpcOrganization,
     RpcUserOrganizationContext,
 )
+from sentry.sentry_apps.components import SentryAppComponentPreparer
 
 
 # TODO(mgaeta): These endpoints are doing the same thing, but one takes a
@@ -25,7 +25,7 @@ from sentry.services.hybrid_cloud.organization.model import (
 class SentryAppComponentsEndpoint(SentryAppBaseEndpoint):
     owner = ApiOwner.INTEGRATIONS
     publish_status = {
-        "GET": ApiPublishStatus.UNKNOWN,
+        "GET": ApiPublishStatus.PRIVATE,
     }
 
     def get(self, request: Request, sentry_app) -> Response:
@@ -41,7 +41,7 @@ class SentryAppComponentsEndpoint(SentryAppBaseEndpoint):
 class OrganizationSentryAppComponentsEndpoint(ControlSiloOrganizationEndpoint):
     owner = ApiOwner.INTEGRATIONS
     publish_status = {
-        "GET": ApiPublishStatus.UNKNOWN,
+        "GET": ApiPublishStatus.PRIVATE,
     }
 
     @add_integration_platform_metric_tag

@@ -1,25 +1,26 @@
 import {useCallback} from 'react';
-import {Location} from 'history';
+import type {Location} from 'history';
 
 import Count from 'sentry/components/count';
-import DateTime from 'sentry/components/dateTime';
-import GridEditable, {
-  COL_WIDTH_UNDEFINED,
-  GridColumnOrder,
-  GridColumnSortBy,
-} from 'sentry/components/gridEditable';
+import {DateTime} from 'sentry/components/dateTime';
+import type {GridColumnOrder, GridColumnSortBy} from 'sentry/components/gridEditable';
+import GridEditable, {COL_WIDTH_UNDEFINED} from 'sentry/components/gridEditable';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import Link from 'sentry/components/links/link';
 import PerformanceDuration from 'sentry/components/performanceDuration';
 import UserMisery from 'sentry/components/userMisery';
 import Version from 'sentry/components/version';
 import {t} from 'sentry/locale';
-import {Organization, Project} from 'sentry/types';
+import type {Organization} from 'sentry/types/organization';
+import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
+import {getTimeStampFromTableDateField} from 'sentry/utils/dates';
+import EventView from 'sentry/utils/discover/eventView';
 import {DURATION_UNITS} from 'sentry/utils/discover/fieldRenderers';
 import {Container, NumberContainer} from 'sentry/utils/discover/styles';
+import {generateLinkToEventInTraceView} from 'sentry/utils/discover/urls';
 import {getShortEventId} from 'sentry/utils/events';
-import {EventsResults} from 'sentry/utils/profiling/hooks/types';
+import type {EventsResults} from 'sentry/utils/profiling/hooks/types';
 import {generateProfileFlamechartRoute} from 'sentry/utils/profiling/routes';
 import {renderTableHead} from 'sentry/utils/profiling/tableRenderer';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -27,6 +28,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 import {QuickContextHoverWrapper} from 'sentry/views/discover/table/quickContext/quickContextWrapper';
 import {ContextType} from 'sentry/views/discover/table/quickContext/utils';
+import {getTraceDetailsUrl} from 'sentry/views/performance/traceDetails/utils';
 
 import {ProfilingTransactionHovercard} from './profilingTransactionHovercard';
 
@@ -82,7 +84,6 @@ export function ProfileEventsTable<F extends FieldType>(
           {location, organization, projects}
         ),
       }}
-      location={location}
     />
   );
 }
@@ -122,7 +123,9 @@ interface ProfileEventsCellProps<F extends FieldType> {
   baggage: RenderBagger;
   column: GridColumnOrder<F>;
   columnIndex: number;
-  dataRow: Record<F, any>;
+  dataRow: {
+    [key: string]: any;
+  };
   meta: EventsResults<F>['meta'];
   rowIndex: number;
 }
@@ -155,14 +158,28 @@ function ProfileEventsCell<F extends FieldType>(props: ProfileEventsCellProps<F>
   }
 
   if (key === 'trace') {
-    const traceId = getShortEventId(props.dataRow[key] ?? '');
+    const traceId = props.dataRow[key] ?? '';
     if (!traceId) {
       return <Container>{t('n/a')}</Container>;
     }
+    const timestamp = getTimeStampFromTableDateField(props.dataRow.timestamp);
+    const dataSelection = EventView.fromLocation(
+      props.baggage.location
+    ).normalizeDateSelection(props.baggage.location);
 
     return (
       <Container>
-        <Link to={`/performance/trace/${props.dataRow[key]}`}>{traceId}</Link>
+        <Link
+          to={getTraceDetailsUrl({
+            organization: props.baggage.organization,
+            traceSlug: traceId,
+            dateSelection: dataSelection,
+            timestamp,
+            location: props.baggage.location,
+          })}
+        >
+          {getShortEventId(traceId)}
+        </Link>
       </Container>
     );
   }
@@ -176,7 +193,17 @@ function ProfileEventsCell<F extends FieldType>(props: ProfileEventsCellProps<F>
 
     return (
       <Container>
-        <Link to={`/performance/${project.slug}:${props.dataRow[key]}`}>
+        <Link
+          to={generateLinkToEventInTraceView({
+            projectSlug: project.slug,
+            eventId: props.dataRow[key],
+            traceSlug: props.dataRow.trace,
+            timestamp: props.dataRow.timestamp,
+            location: props.baggage.location,
+            transactionName: props.dataRow.transaction,
+            organization: props.baggage.organization,
+          })}
+        >
           {transactionId}
         </Link>
       </Container>
@@ -292,10 +319,14 @@ function getProjectForRow<F extends FieldType>(
 const FIELDS = [
   'id',
   'profile.id',
+  'profiler.id',
+  'thread.id',
   'trace.transaction',
   'trace',
   'transaction',
   'transaction.duration',
+  'precise.start_ts',
+  'precise.finish_ts',
   'profile.duration',
   'project',
   'project.id',
@@ -313,6 +344,7 @@ const FIELDS = [
   'os.name',
   'os.version',
   'last_seen()',
+  'p50()',
   'p75()',
   'p95()',
   'p99()',
@@ -325,6 +357,7 @@ type FieldType = (typeof FIELDS)[number];
 const RIGHT_ALIGNED_FIELDS = new Set<FieldType>([
   'transaction.duration',
   'profile.duration',
+  'p50()',
   'p75()',
   'p95()',
   'p99()',
@@ -341,6 +374,16 @@ const COLUMN_ORDERS: Record<FieldType, GridColumnOrder<FieldType>> = {
   'profile.id': {
     key: 'profile.id',
     name: t('Profile ID'),
+    width: COL_WIDTH_UNDEFINED,
+  },
+  'profiler.id': {
+    key: 'profiler.id',
+    name: t('Profiler ID'),
+    width: COL_WIDTH_UNDEFINED,
+  },
+  'thread.id': {
+    key: 'thread.id',
+    name: t('Thread ID'),
     width: COL_WIDTH_UNDEFINED,
   },
   transaction: {
@@ -361,6 +404,16 @@ const COLUMN_ORDERS: Record<FieldType, GridColumnOrder<FieldType>> = {
   'trace.transaction': {
     key: 'trace.transaction',
     name: t('Transaction ID'),
+    width: COL_WIDTH_UNDEFINED,
+  },
+  'precise.start_ts': {
+    key: 'precise.start_ts',
+    name: t('Precise Start Timestamp'),
+    width: COL_WIDTH_UNDEFINED,
+  },
+  'precise.finish_ts': {
+    key: 'precise.finish_ts',
+    name: t('Precise Finish Timestamp'),
     width: COL_WIDTH_UNDEFINED,
   },
   'profile.duration': {
@@ -446,6 +499,11 @@ const COLUMN_ORDERS: Record<FieldType, GridColumnOrder<FieldType>> = {
   'last_seen()': {
     key: 'last_seen()',
     name: t('Last Seen'),
+    width: COL_WIDTH_UNDEFINED,
+  },
+  'p50()': {
+    key: 'p50()',
+    name: t('P50()'),
     width: COL_WIDTH_UNDEFINED,
   },
   'p75()': {

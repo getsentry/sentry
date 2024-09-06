@@ -1,7 +1,8 @@
 import logging
 import time
+from collections.abc import Mapping, MutableMapping
 from functools import partial
-from typing import Any, Mapping, MutableMapping, Optional, Union
+from typing import Any
 
 from arroyo.backends.abstract import Producer as AbstractProducer
 from arroyo.backends.kafka import KafkaPayload
@@ -9,6 +10,7 @@ from arroyo.processing.strategies import ProcessingStrategy as ProcessingStep
 from arroyo.types import Commit, FilteredPayload, Message, Partition
 from confluent_kafka import Producer
 
+from sentry.conf.types.kafka_definition import Topic
 from sentry.utils import kafka_config, metrics
 
 logger = logging.getLogger(__name__)
@@ -17,15 +19,15 @@ logger = logging.getLogger(__name__)
 class SimpleProduceStep(ProcessingStep[KafkaPayload]):
     def __init__(
         self,
-        output_topic: str,
+        output_topic: Topic,
         commit_function: Commit,
-        producer: Optional[AbstractProducer[KafkaPayload]] = None,
+        producer: AbstractProducer[KafkaPayload] | None = None,
     ) -> None:
         snuba_metrics = kafka_config.get_topic_definition(output_topic)
         self.__producer = Producer(
             kafka_config.get_kafka_producer_cluster_options(snuba_metrics["cluster"]),
         )
-        self.__producer_topic = output_topic
+        self.__producer_topic = snuba_metrics["real_topic_name"]
         self.__commit_function = commit_function
 
         self.__closed = False
@@ -68,9 +70,9 @@ class SimpleProduceStep(ProcessingStep[KafkaPayload]):
             self.__commit_function(self.__produced_message_offsets)
             self.__produced_message_offsets = {}
 
-    def submit(self, message: Message[Union[KafkaPayload, FilteredPayload]]) -> None:
+    def submit(self, message: Message[KafkaPayload | FilteredPayload]) -> None:
         if isinstance(message.payload, FilteredPayload):
-            # FilteredPayload will not be commited, this may cause the the indexer to consume
+            # FilteredPayload will not be commited, this may cause the indexer to consume
             # and produce invalid message to the DLQ twice if the last messages it consume
             # are invalid and is then shutdown. But it will never produce valid messages
             # twice to snuba
@@ -96,7 +98,7 @@ class SimpleProduceStep(ProcessingStep[KafkaPayload]):
     def close(self) -> None:
         self.__closed = True
 
-    def join(self, timeout: Optional[float] = None) -> None:
+    def join(self, timeout: float | None = None) -> None:
         """
         We ignore the timeout provided by the caller because we want to allow the producer to
         have at least 5 seconds to flush all messages.

@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Optional
+from typing import TYPE_CHECKING
 
 from django.db import models
 from django.utils import timezone
@@ -8,15 +8,15 @@ from django.utils import timezone
 from sentry import roles
 from sentry.backup.scopes import RelocationScope
 from sentry.db.models import BoundedBigIntegerField, sane_repr
-from sentry.db.models.base import Model, control_silo_only_model
+from sentry.db.models.base import Model, control_silo_model
+from sentry.hybridcloud.rpc import IDEMPOTENCY_KEY_LENGTH, REGION_NAME_LENGTH
 from sentry.models.organization import OrganizationStatus
-from sentry.services.hybrid_cloud import IDEMPOTENCY_KEY_LENGTH, REGION_NAME_LENGTH
 
 if TYPE_CHECKING:
-    from sentry.services.hybrid_cloud.organization import RpcOrganizationMappingFlags
+    from sentry.organizations.services.organization import RpcOrganizationMappingFlags
 
 
-@control_silo_only_model
+@control_silo_model
 class OrganizationMapping(Model):
     """
     This model is used to:
@@ -49,6 +49,9 @@ class OrganizationMapping(Model):
     disable_new_visibility_features = models.BooleanField(default=False)
     require_email_verification = models.BooleanField(default=False)
     codecov_access = models.BooleanField(default=False)
+    disable_member_project_creation = models.BooleanField(default=False)
+    prevent_superuser_access = models.BooleanField(default=False)
+    disable_member_invite = models.BooleanField(default=False)
 
     class Meta:
         app_label = "sentry"
@@ -57,7 +60,7 @@ class OrganizationMapping(Model):
     __repr__ = sane_repr("organization_id", "slug", "region_name", "verified")
 
     @staticmethod
-    def find_expected_provisioned(user_id: int, slug: str) -> Optional[OrganizationMapping]:
+    def find_expected_provisioned(user_id: int, slug: str) -> OrganizationMapping | None:
         """
         Attempts to find an already provisioned organization by the given slug that is owned by the user_id
         Returns None if
@@ -86,7 +89,7 @@ class OrganizationMapping(Model):
 
     @property
     def flags(self) -> RpcOrganizationMappingFlags:
-        from sentry.services.hybrid_cloud.organization_mapping.serial import (
+        from sentry.hybridcloud.services.organization_mapping.serial import (
             serialize_organization_mapping_flags,
         )
 

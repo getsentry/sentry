@@ -6,7 +6,7 @@ import {
   userEvent,
 } from 'sentry-test/reactTestingLibrary';
 
-import {Organization} from 'sentry/types';
+import type {Organization} from 'sentry/types/organization';
 import PluginDetailedView from 'sentry/views/settings/organizationIntegrations/pluginDetailedView';
 
 function renderMockRequests(orgSlug: Organization['slug']) {
@@ -62,14 +62,14 @@ function renderMockRequests(orgSlug: Organization['slug']) {
 
 describe('PluginDetailedView', function () {
   it('shows the Integration name and install status', async function () {
-    const {route, router, organization} = initializeOrg();
+    const {router, organization} = initializeOrg();
 
     renderMockRequests(organization.slug);
 
     render(
       <PluginDetailedView
         params={{integrationSlug: 'pagerduty'}}
-        route={route}
+        route={{}}
         routes={[]}
         routeParams={{}}
         router={router}
@@ -89,7 +89,7 @@ describe('PluginDetailedView', function () {
   });
 
   it('view configurations', function () {
-    const {route, router, organization} = initializeOrg({
+    const {router, organization} = initializeOrg({
       router: {location: {query: {tab: 'configurations'}}},
     });
 
@@ -98,7 +98,7 @@ describe('PluginDetailedView', function () {
     render(
       <PluginDetailedView
         params={{integrationSlug: 'pagerduty'}}
-        route={route}
+        route={{}}
         routes={[]}
         routeParams={{}}
         router={router}

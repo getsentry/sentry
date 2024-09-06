@@ -1,7 +1,9 @@
-import {browserHistory} from 'react-router';
 import type {Location} from 'history';
+import {LocationFixture} from 'sentry-fixture/locationFixture';
 
-import {reactHooks} from 'sentry-test/reactTestingLibrary';
+import {renderHook} from 'sentry-test/reactTestingLibrary';
+
+import {browserHistory} from 'sentry/utils/browserHistory';
 
 import useCleanQueryParamsOnRouteLeave, {
   handleRouteLeave,
@@ -28,7 +30,7 @@ describe('useCleanQueryParamsOnRouteLeave', () => {
     const unsubscriber = jest.fn();
     MockBrowserHistoryListen.mockReturnValue(unsubscriber);
 
-    const {unmount} = reactHooks.renderHook(useCleanQueryParamsOnRouteLeave, {
+    const {unmount} = renderHook(useCleanQueryParamsOnRouteLeave, {
       initialProps: {
         fieldsToClean: ['cursor'],
       },
@@ -45,7 +47,7 @@ describe('useCleanQueryParamsOnRouteLeave', () => {
   it('should not update the history if shouldLeave returns false', () => {
     MockBrowserHistoryListen.mockImplementation(onRouteLeave => {
       onRouteLeave(
-        TestStubs.location({
+        LocationFixture({
           pathname: '/next',
           query: {
             cursor: '0:1:0',
@@ -56,7 +58,7 @@ describe('useCleanQueryParamsOnRouteLeave', () => {
       return () => {};
     });
 
-    reactHooks.renderHook(useCleanQueryParamsOnRouteLeave, {
+    renderHook(useCleanQueryParamsOnRouteLeave, {
       initialProps: {
         fieldsToClean: ['cursor'],
         shouldClean: () => false,

@@ -1,3 +1,4 @@
+import logging
 from string import Template
 
 from django.db import DatabaseError
@@ -10,7 +11,7 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import Endpoint, region_silo_endpoint
 from sentry.api.endpoints.relocations import ERR_UNKNOWN_RELOCATION_STEP
 from sentry.api.exceptions import ResourceDoesNotExist
-from sentry.api.permissions import SuperuserPermission
+from sentry.api.permissions import SuperuserOrStaffFeatureFlaggedPermission
 from sentry.api.serializers import serialize
 from sentry.models.relocation import Relocation
 
@@ -25,15 +26,17 @@ ERR_COULD_NOT_CANCEL_RELOCATION_AT_STEP = Template(
     started."""
 )
 
+logger = logging.getLogger(__name__)
+
 
 @region_silo_endpoint
 class RelocationCancelEndpoint(Endpoint):
-    owner = ApiOwner.RELOCATION
+    owner = ApiOwner.OPEN_SOURCE
     publish_status = {
         # TODO(getsentry/team-ospo#214): Stabilize before GA.
         "PUT": ApiPublishStatus.EXPERIMENTAL,
     }
-    permission_classes = (SuperuserPermission,)
+    permission_classes = (SuperuserOrStaffFeatureFlaggedPermission,)
 
     def put(self, request: Request, relocation_uuid: str) -> Response:
         """
@@ -53,6 +56,8 @@ class RelocationCancelEndpoint(Endpoint):
 
         :auth: required
         """
+
+        logger.info("relocations.cancel.put.start", extra={"caller": request.user.id})
 
         try:
             relocation: Relocation = Relocation.objects.get(uuid=relocation_uuid)
@@ -95,7 +100,6 @@ class RelocationCancelEndpoint(Endpoint):
                     {"detail": ERR_COULD_NOT_CANCEL_RELOCATION},
                     status=400,
                 )
-            pass
         else:
             try:
                 updated = Relocation.objects.filter(

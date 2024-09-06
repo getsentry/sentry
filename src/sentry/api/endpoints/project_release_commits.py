@@ -26,9 +26,9 @@ class ProjectReleaseCommitsEndpoint(ProjectEndpoint):
 
         Retrieve a list of commits for a given release.
 
-        :pparam string organization_slug: the slug of the organization the
+        :pparam string organization_id_or_slug: the id or slug of the organization the
                                           release belongs to.
-        :pparam string project_slug: the slug of the project to list the
+        :pparam string project_id_or_slug: the id or slug of the project to list the
                                      release files of.
         :pparam string version: the version identifier of the release.
 
@@ -54,23 +54,30 @@ class ProjectReleaseCommitsEndpoint(ProjectEndpoint):
         repo_name = request.query_params.get("repo_name")
 
         # prefer repo external ID to name
+        # NOTE: We filter on Repository here instead of using get b/c sometimes,
+        # we have have multiple repos for the same external_id/name that differ
+        # in other fields that differ such as 'provider' or 'config'.
         if repo_id:
-            try:
-                repo = Repository.objects.get(
-                    organization_id=organization_id, external_id=repo_id, status=ObjectStatus.ACTIVE
-                )
-                queryset = queryset.filter(commit__repository_id=repo.id)
-            except Repository.DoesNotExist:
+            repos = Repository.objects.filter(
+                organization_id=organization_id, external_id=repo_id, status=ObjectStatus.ACTIVE
+            ).order_by("-date_added")
+
+            latest_repo = repos.first()
+            if latest_repo is None:
                 raise ResourceDoesNotExist
 
-        elif repo_name:
-            try:
-                repo = Repository.objects.get(
-                    organization_id=organization_id, name=repo_name, status=ObjectStatus.ACTIVE
-                )
-                queryset = queryset.filter(commit__repository_id=repo.id)
-            except Repository.DoesNotExist:
+            queryset = queryset.filter(commit__repository_id=latest_repo.id)
+
+        if repo_name:
+            repos = Repository.objects.filter(
+                organization_id=organization_id, name=repo_name, status=ObjectStatus.ACTIVE
+            ).order_by("-date_added")
+
+            latest_repo = repos.first()
+            if latest_repo is None:
                 raise ResourceDoesNotExist
+
+            queryset = queryset.filter(commit__repository_id=latest_repo.id)
 
         return self.paginate(
             request=request,

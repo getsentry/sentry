@@ -1,14 +1,17 @@
 import * as Sentry from '@sentry/react';
-import isNil from 'lodash/isNil';
 
-import {Tag} from 'sentry/actionCreators/events';
-import {Client, RequestCallbacks, RequestOptions} from 'sentry/api';
-import {getSampleEventQuery} from 'sentry/components/events/eventStatisticalDetector/eventComparison/eventDisplay';
+import type {Tag} from 'sentry/actionCreators/events';
+import type {RequestCallbacks, RequestOptions} from 'sentry/api';
+import {Client} from 'sentry/api';
 import GroupStore from 'sentry/stores/groupStore';
-import {Actor, Group, Member, Note, Tag as GroupTag, TagValue, User} from 'sentry/types';
+import type {Actor} from 'sentry/types/core';
+import type {Group, Note, Tag as GroupTag, TagValue} from 'sentry/types/group';
+import type {Member} from 'sentry/types/organization';
+import type {User} from 'sentry/types/user';
 import {buildTeamId, buildUserId, defined} from 'sentry/utils';
 import {uniqueId} from 'sentry/utils/guid';
-import {ApiQueryKey, useApiQuery, UseApiQueryOptions} from 'sentry/utils/queryClient';
+import type {ApiQueryKey, UseApiQueryOptions} from 'sentry/utils/queryClient';
+import {useApiQuery} from 'sentry/utils/queryClient';
 
 type AssignedBy = 'suggested_assignee' | 'assignee_selector';
 type AssignToUserParams = {
@@ -30,7 +33,7 @@ export function assignToUser(params: AssignToUserParams) {
   const id = uniqueId();
 
   GroupStore.onAssignTo(id, params.id, {
-    email: (params.member && params.member.email) || '',
+    email: params.member?.email ?? '',
   });
 
   const request = api.requestPromise(endpoint, {
@@ -206,7 +209,7 @@ export function updateNote(
 type ParamsType = {
   environment?: string | string[] | null;
   itemIds?: string[];
-  project?: number[] | null;
+  project?: number[] | string[] | null;
   query?: string;
 };
 
@@ -219,16 +222,16 @@ type QueryArgs =
   | {
       query: string;
       environment?: string | Array<string>;
-      project?: Array<number>;
+      project?: Array<number | string>;
     }
   | {
       id: Array<number> | Array<string>;
       environment?: string | Array<string>;
-      project?: Array<number>;
+      project?: Array<number | string>;
     }
   | {
       environment?: string | Array<string>;
-      project?: Array<number>;
+      project?: Array<number | string>;
     };
 
 /**
@@ -238,11 +241,11 @@ export function paramsToQueryArgs(params: ParamsType): QueryArgs {
   const p: QueryArgs = params.itemIds
     ? {id: params.itemIds} // items matching array of itemids
     : params.query
-    ? {query: params.query} // items matching search query
-    : {}; // all items
+      ? {query: params.query} // items matching search query
+      : {}; // all items
 
   // only include environment if it is not null/undefined
-  if (params.query && !isNil(params.environment)) {
+  if (params.query && params.environment !== null && params.environment !== undefined) {
     p.environment = params.environment;
   }
 
@@ -254,7 +257,7 @@ export function paramsToQueryArgs(params: ParamsType): QueryArgs {
   // only include date filters if they are not null/undefined
   if (params.query) {
     ['start', 'end', 'period', 'utc'].forEach(prop => {
-      if (!isNil(params[prop])) {
+      if (params[prop] !== null && params[prop] !== undefined) {
         p[prop === 'period' ? 'statsPeriod' : prop] = params[prop];
       }
     });
@@ -437,32 +440,6 @@ export const makeFetchIssueTagsQueryKey = ({
   {query: {environment, readable, limit}},
 ];
 
-const makeFetchStatisticalDetectorTagsQueryKey = ({
-  orgSlug,
-  environment,
-  statisticalDetectorParameters,
-}: FetchIssueTagsParameters): ApiQueryKey => {
-  const {transaction, durationBaseline, start, end} = statisticalDetectorParameters ?? {
-    transaction: '',
-    durationBaseline: 0,
-    start: undefined,
-    end: undefined,
-  };
-  return [
-    `/organizations/${orgSlug}/events-facets/`,
-    {
-      query: {
-        environment,
-        transaction,
-        includeAll: true,
-        query: getSampleEventQuery({transaction, durationBaseline, addUpperBound: false}),
-        start,
-        end,
-      },
-    },
-  ];
-};
-
 export const useFetchIssueTags = (
   parameters: FetchIssueTagsParameters,
   {
@@ -470,13 +447,7 @@ export const useFetchIssueTags = (
     ...options
   }: Partial<UseApiQueryOptions<GroupTagsResponse | Tag[]>> = {}
 ) => {
-  let queryKey = makeFetchIssueTagsQueryKey(parameters);
-  if (parameters.isStatisticalDetector) {
-    // Statistical detector issues need to use a Discover query for tags
-    queryKey = makeFetchStatisticalDetectorTagsQueryKey(parameters);
-  }
-
-  return useApiQuery<GroupTagsResponse | Tag[]>(queryKey, {
+  return useApiQuery<GroupTagsResponse | Tag[]>(makeFetchIssueTagsQueryKey(parameters), {
     staleTime: 30000,
     enabled: defined(parameters.groupId) && enabled,
     ...options,

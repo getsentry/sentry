@@ -2,8 +2,9 @@ from __future__ import annotations
 
 import logging
 import re
+from collections.abc import Mapping, MutableMapping, Sequence
 from time import time
-from typing import Any, Collection, Mapping, MutableMapping, Sequence
+from typing import Any
 from urllib.parse import parse_qs, quote, urlencode, urlparse
 
 from django import forms
@@ -15,35 +16,33 @@ from sentry import features, http
 from sentry.auth.exceptions import IdentityNotValid
 from sentry.constants import ObjectStatus
 from sentry.identity.pipeline import IdentityProviderPipeline
+from sentry.identity.services.identity.model import RpcIdentity
 from sentry.identity.vsts.provider import get_user_info
-from sentry.integrations import (
+from sentry.integrations.base import (
     FeatureDescription,
     IntegrationFeatures,
-    IntegrationInstallation,
     IntegrationMetadata,
     IntegrationProvider,
 )
-from sentry.integrations.mixins import RepositoryMixin
-from sentry.integrations.vsts.issues import VstsIssueSync
+from sentry.integrations.models.integration import Integration as IntegrationModel
+from sentry.integrations.models.integration_external_project import IntegrationExternalProject
+from sentry.integrations.models.organization_integration import OrganizationIntegration
+from sentry.integrations.services.integration import RpcOrganizationIntegration, integration_service
+from sentry.integrations.services.repository import RpcRepository, repository_service
+from sentry.integrations.source_code_management.repository import RepositoryIntegration
+from sentry.integrations.tasks.migrate_repo import migrate_repo
+from sentry.integrations.vsts.issues import VstsIssuesSpec
 from sentry.models.apitoken import generate_token
-from sentry.models.integrations.integration import Integration as IntegrationModel
-from sentry.models.integrations.integration_external_project import IntegrationExternalProject
-from sentry.models.integrations.organization_integration import OrganizationIntegration
 from sentry.models.repository import Repository
+from sentry.organizations.services.organization import RpcOrganizationSummary
 from sentry.pipeline import NestedPipelineView, Pipeline, PipelineView
-from sentry.services.hybrid_cloud.identity.model import RpcIdentity
-from sentry.services.hybrid_cloud.integration import RpcOrganizationIntegration, integration_service
-from sentry.services.hybrid_cloud.organization import RpcOrganizationSummary
-from sentry.services.hybrid_cloud.repository import RpcRepository, repository_service
 from sentry.shared_integrations.exceptions import (
     ApiError,
     IntegrationError,
     IntegrationProviderError,
 )
-from sentry.silo import SiloMode
-from sentry.tasks.integrations import migrate_repo
+from sentry.silo.base import SiloMode
 from sentry.utils.http import absolute_uri
-from sentry.utils.json import JSONData
 from sentry.web.helpers import render_to_response
 
 from .client import VstsApiClient, VstsSetupApiClient
@@ -115,7 +114,7 @@ metadata = IntegrationMetadata(
 logger = logging.getLogger("sentry.integrations")
 
 
-class VstsIntegration(IntegrationInstallation, RepositoryMixin, VstsIssueSync):
+class VstsIntegration(RepositoryIntegration, VstsIssuesSpec):
     logger = logger
     comment_key = "sync_comments"
     outbound_status_key = "sync_status_forward"
@@ -128,51 +127,16 @@ class VstsIntegration(IntegrationInstallation, RepositoryMixin, VstsIssueSync):
         self.org_integration: RpcOrganizationIntegration | None
         self.default_identity: RpcIdentity | None = None
 
-    def reinstall(self) -> None:
-        self.reinstall_repositories()
+    @property
+    def integration_name(self) -> str:
+        return "vsts"
 
-    def all_repos_migrated(self) -> bool:
-        return not self.get_unmigratable_repositories()
-
-    def get_repositories(self, query: str | None = None) -> Sequence[Mapping[str, str]]:
-        try:
-            repos = self.get_client(base_url=self.instance).get_repos()
-        except (ApiError, IdentityNotValid) as e:
-            raise IntegrationError(self.message_from_error(e))
-        data = []
-        for repo in repos["value"]:
-            data.append(
-                {
-                    "name": "{}/{}".format(repo["project"]["name"], repo["name"]),
-                    "identifier": repo["id"],
-                }
-            )
-        return data
-
-    def get_unmigratable_repositories(self) -> Collection[RpcRepository]:
-        repos = repository_service.get_repositories(
-            organization_id=self.organization_id, providers=["visualstudio"]
-        )
-        identifiers_to_exclude = {r["identifier"] for r in self.get_repositories()}
-        return [repo for repo in repos if repo.external_id not in identifiers_to_exclude]
-
-    def has_repo_access(self, repo: RpcRepository) -> bool:
-        client = self.get_client(base_url=self.instance)
-        try:
-            # since we don't actually use webhooks for vsts commits,
-            # just verify repo access
-            client.get_repo(repo.config["name"], project=repo.config["project"])
-        except (ApiError, IdentityNotValid):
-            return False
-        return True
-
-    def get_client(self, base_url: str | None = None) -> VstsApiClient:
-        if base_url is None:
-            base_url = self.instance
+    def get_client(self) -> VstsApiClient:
+        base_url = self.instance
         if SiloMode.get_current_mode() != SiloMode.REGION:
             if self.default_identity is None:
                 self.default_identity = self.get_default_identity()
-            self.check_domain_name(self.default_identity)
+            self._check_domain_name(self.default_identity)
 
         if self.org_integration is None:
             raise Exception("self.org_integration is not defined")
@@ -185,19 +149,10 @@ class VstsIntegration(IntegrationInstallation, RepositoryMixin, VstsIssueSync):
             identity_id=self.org_integration.default_auth_id,
         )
 
-    def check_domain_name(self, default_identity: RpcIdentity) -> None:
-        if re.match("^https://.+/$", self.model.metadata["domain_name"]):
-            return
-
-        base_url = VstsIntegrationProvider.get_base_url(
-            default_identity.data["access_token"], self.model.external_id
-        )
-        self.model.metadata["domain_name"] = base_url
-        self.model.save()
+    # IntegrationInstallation methods
 
     def get_organization_config(self) -> Sequence[Mapping[str, Any]]:
-        instance = self.model.metadata["domain_name"]
-        client = self.get_client(base_url=instance)
+        client = self.get_client()
 
         project_selector = []
         all_states_set = set()
@@ -335,10 +290,44 @@ class VstsIntegration(IntegrationInstallation, RepositoryMixin, VstsIssueSync):
         config["sync_status_forward"] = sync_status_forward
         return config
 
+    # RepositoryIntegration methods
+
+    def get_repositories(self, query: str | None = None) -> Sequence[Mapping[str, str]]:
+        try:
+            repos = self.get_client().get_repos()
+        except (ApiError, IdentityNotValid) as e:
+            raise IntegrationError(self.message_from_error(e))
+        data = []
+        for repo in repos["value"]:
+            data.append(
+                {
+                    "name": "{}/{}".format(repo["project"]["name"], repo["name"]),
+                    "identifier": repo["id"],
+                }
+            )
+        return data
+
+    def get_unmigratable_repositories(self) -> list[RpcRepository]:
+        repos = repository_service.get_repositories(
+            organization_id=self.organization_id, providers=["visualstudio"]
+        )
+        identifiers_to_exclude = {r["identifier"] for r in self.get_repositories()}
+        return [repo for repo in repos if repo.external_id not in identifiers_to_exclude]
+
+    def has_repo_access(self, repo: RpcRepository) -> bool:
+        client = self.get_client()
+        try:
+            # since we don't actually use webhooks for vsts commits,
+            # just verify repo access
+            client.get_repo(repo.config["name"], project=repo.config["project"])
+        except (ApiError, IdentityNotValid):
+            return False
+        return True
+
     def source_url_matches(self, url: str) -> bool:
         return url.startswith(self.model.metadata["domain_name"])
 
-    def format_source_url(self, repo: Repository, filepath: str, branch: str) -> str:
+    def format_source_url(self, repo: Repository, filepath: str, branch: str | None) -> str:
         filepath = filepath.lstrip("/")
         project = quote(repo.config["project"])
         repo_id = quote(repo.config["name"])
@@ -363,6 +352,18 @@ class VstsIntegration(IntegrationInstallation, RepositoryMixin, VstsIssueSync):
         if "path" in qs and len(qs["path"]) == 1:
             return qs["path"][0].lstrip("/")
         return ""
+
+    # Azure DevOps only methods
+
+    def _check_domain_name(self, default_identity: RpcIdentity) -> None:
+        if re.match("^https://.+/$", self.model.metadata["domain_name"]):
+            return
+
+        base_url = VstsIntegrationProvider.get_base_url(
+            default_identity.data["access_token"], self.model.external_id
+        )
+        self.model.metadata["domain_name"] = base_url
+        self.model.save()
 
     @property
     def instance(self) -> str:
@@ -518,7 +519,7 @@ class VstsIntegrationProvider(IntegrationProvider):
                     "Please ensure third-party app access via OAuth is enabled \n"
                     "in the organization's security policy."
                 )
-            raise e
+            raise
 
         subscription_id = subscription["id"]
         return subscription_id, shared_secret
@@ -609,7 +610,7 @@ class AccountConfigView(PipelineView):
                 return account
         return None
 
-    def get_accounts(self, access_token: str, user_id: int) -> JSONData | None:
+    def get_accounts(self, access_token: str, user_id: int) -> Any | None:
         url = (
             f"https://app.vssps.visualstudio.com/_apis/accounts?memberId={user_id}&api-version=4.1"
         )

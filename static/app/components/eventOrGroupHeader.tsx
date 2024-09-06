@@ -4,35 +4,30 @@ import styled from '@emotion/styled';
 
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import EventOrGroupTitle from 'sentry/components/eventOrGroupTitle';
-import ErrorLevel from 'sentry/components/events/errorLevel';
+import EventMessage from 'sentry/components/events/eventMessage';
 import GlobalSelectionLink from 'sentry/components/globalSelectionLink';
-import {IconMute, IconStar} from 'sentry/icons';
+import {IconStar} from 'sentry/icons';
 import {tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {Group, GroupTombstoneHelper, Level, Organization} from 'sentry/types';
-import {Event} from 'sentry/types/event';
+import type {Event} from 'sentry/types/event';
+import type {Group, GroupTombstoneHelper} from 'sentry/types/group';
+import type {Organization} from 'sentry/types/organization';
 import {getLocation, getMessage, isTombstone} from 'sentry/utils/events';
 import {useLocation} from 'sentry/utils/useLocation';
 import withOrganization from 'sentry/utils/withOrganization';
-import {TagAndMessageWrapper} from 'sentry/views/issueDetails/unhandledTag';
 
 import EventTitleError from './eventTitleError';
-
-type Size = 'small' | 'normal';
 
 interface EventOrGroupHeaderProps {
   data: Event | Group | GroupTombstoneHelper;
   organization: Organization;
   eventId?: string;
-  /* is issue breakdown? */
-  grouping?: boolean;
   hideIcons?: boolean;
   hideLevel?: boolean;
   index?: number;
   /** Group link clicked */
   onClick?: () => void;
   query?: string;
-  size?: Size;
   source?: string;
 }
 
@@ -46,39 +41,26 @@ function EventOrGroupHeader({
   query,
   onClick,
   hideIcons,
-  hideLevel,
   eventId,
-  size = 'normal',
-  grouping = false,
   source,
 }: EventOrGroupHeaderProps) {
   const location = useLocation();
 
   function getTitleChildren() {
-    const {level, status, isBookmarked, hasSeen} = data as Group;
+    const {isBookmarked, hasSeen} = data as Group;
     return (
       <Fragment>
-        {!hideLevel && level && <GroupLevel level={level} />}
-        {!hideIcons &&
-          status === 'ignored' &&
-          !organization.features.includes('escalating-issues') && (
-            <IconWrapper>
-              <IconMute color="red400" />
-            </IconWrapper>
-          )}
         {!hideIcons && isBookmarked && (
           <IconWrapper>
-            <IconStar isSolid color="yellow400" />
+            <IconStar isSolid color="yellow300" />
           </IconWrapper>
         )}
         <ErrorBoundary customComponent={<EventTitleError />} mini>
           <StyledEventOrGroupTitle
             data={data}
-            organization={organization}
             // hasSeen is undefined for GroupTombstone
             hasSeen={hasSeen === undefined ? true : hasSeen}
             withStackTracePreview
-            grouping={grouping}
             query={query}
           />
         </ErrorBoundary>
@@ -89,14 +71,9 @@ function EventOrGroupHeader({
   function getTitle() {
     const {id, status} = data as Group;
     const {eventID: latestEventId, groupID} = data as Event;
-    const hasEscalatingIssues = organization.features.includes('escalating-issues');
 
     const commonEleProps = {
       'data-test-id': status === 'resolved' ? 'resolved-issue' : null,
-      style:
-        status === 'resolved' && !hasEscalatingIssues
-          ? {textDecoration: 'line-through'}
-          : undefined,
     };
 
     if (isTombstone(data)) {
@@ -139,17 +116,17 @@ function EventOrGroupHeader({
   }
 
   const eventLocation = getLocation(data);
-  const message = getMessage(data);
 
   return (
     <div data-test-id="event-issue-header">
       <Title>{getTitle()}</Title>
-      {eventLocation && <Location size={size}>{eventLocation}</Location>}
-      {message && (
-        <StyledTagAndMessageWrapper size={size}>
-          {message && <Message>{message}</Message>}
-        </StyledTagAndMessageWrapper>
-      )}
+      {eventLocation && <Location>{eventLocation}</Location>}
+      <StyledEventMessage
+        level={'level' in data ? data.level : undefined}
+        message={getMessage(data)}
+        type={data.type}
+        levelIndicatorSize="9px"
+      />
     </div>
   );
 }
@@ -161,27 +138,19 @@ const truncateStyles = css`
   white-space: nowrap;
 `;
 
-const getMargin = ({size}: {size: Size}) => {
-  if (size === 'small') {
-    return 'margin: 0;';
-  }
-
-  return 'margin: 0 0 5px';
-};
-
 const Title = styled('div')`
   margin-bottom: ${space(0.25)};
   & em {
     font-size: ${p => p.theme.fontSizeMedium};
     font-style: normal;
-    font-weight: 300;
+    font-weight: ${p => p.theme.fontWeightNormal};
     color: ${p => p.theme.subText};
   }
 `;
 
 const LocationWrapper = styled('div')`
   ${truncateStyles};
-  ${getMargin};
+  margin: 0 0 5px;
   direction: rtl;
   text-align: left;
   font-size: ${p => p.theme.fontSizeMedium};
@@ -202,27 +171,14 @@ function Location(props) {
   );
 }
 
-const StyledTagAndMessageWrapper = styled(TagAndMessageWrapper)`
-  ${getMargin};
-  line-height: 1.2;
-`;
-
-const Message = styled('div')`
-  ${truncateStyles};
-  font-size: ${p => p.theme.fontSizeMedium};
+const StyledEventMessage = styled(EventMessage)`
+  margin: 0 0 5px;
+  gap: ${space(0.5)};
 `;
 
 const IconWrapper = styled('span')`
   position: relative;
   margin-right: 5px;
-`;
-
-const GroupLevel = styled(ErrorLevel)<{level: Level}>`
-  position: absolute;
-  left: -1px;
-  width: 9px;
-  height: 15px;
-  border-radius: 0 3px 3px 0;
 `;
 
 const TitleWithLink = styled(GlobalSelectionLink)`

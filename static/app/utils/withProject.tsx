@@ -1,35 +1,27 @@
-import {Component} from 'react';
+import {useContext} from 'react';
 
-import SentryTypes from 'sentry/sentryTypes';
-import {Project} from 'sentry/types';
+import type {Project} from 'sentry/types/project';
 import getDisplayName from 'sentry/utils/getDisplayName';
+import {ProjectContext} from 'sentry/views/projects/projectContext';
 
 type InjectedProjectProps = {
   project?: Project;
 };
 
-/**
- * Currently wraps component with project from context
- */
-const withProject = <P extends InjectedProjectProps>(
+function withProject<P extends InjectedProjectProps>(
   WrappedComponent: React.ComponentType<P>
-) =>
-  class extends Component<
-    Omit<P, keyof InjectedProjectProps> & Partial<InjectedProjectProps>
-  > {
-    static displayName = `withProject(${getDisplayName(WrappedComponent)})`;
-    static contextTypes = {
-      project: SentryTypes.Project,
-    };
+) {
+  type Props = Omit<P, keyof InjectedProjectProps> & Partial<InjectedProjectProps>;
 
-    render() {
-      const {project, ...props} = this.props;
-      return (
-        <WrappedComponent
-          {...({project: project ?? this.context.project, ...props} as P)}
-        />
-      );
-    }
-  };
+  function Wrapper(props: Props) {
+    const project = useContext(ProjectContext);
+
+    return <WrappedComponent project={project} {...(props as P)} />;
+  }
+
+  Wrapper.displayName = `withProject(${getDisplayName(WrappedComponent)})`;
+
+  return Wrapper;
+}
 
 export default withProject;

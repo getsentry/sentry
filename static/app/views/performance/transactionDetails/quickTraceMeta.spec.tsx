@@ -1,19 +1,19 @@
-import {Event as EventFixture} from 'sentry-fixture/event';
-import RouterContextFixture from 'sentry-fixture/routerContextFixture';
+import {EventFixture} from 'sentry-fixture/event';
+import {LocationFixture} from 'sentry-fixture/locationFixture';
+import {ProjectFixture} from 'sentry-fixture/project';
 
 import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
 
 import {QueryError} from 'sentry/utils/discover/genericDiscoverQuery';
-import {
+import type {
   QuickTraceQueryChildrenProps,
   TraceMeta,
 } from 'sentry/utils/performance/quickTrace/types';
 import QuickTraceMeta from 'sentry/views/performance/transactionDetails/quickTraceMeta';
 
 describe('QuickTraceMeta', function () {
-  const routerContext = RouterContextFixture();
-  const location = routerContext.context.location;
-  const project = TestStubs.Project({platform: 'javascript'});
+  const location = LocationFixture();
+  const project = ProjectFixture({platform: 'javascript'});
   const event = EventFixture({contexts: {trace: {trace_id: 'a'.repeat(32)}}});
   const emptyQuickTrace: QuickTraceQueryChildrenProps = {
     isLoading: false,
@@ -27,6 +27,7 @@ describe('QuickTraceMeta', function () {
     transactions: 0,
     errors: 0,
     performance_issues: 0,
+    transactiontoSpanChildrenCount: {},
   };
 
   it('renders basic UI', function () {
@@ -112,6 +113,7 @@ describe('QuickTraceMeta', function () {
               generation: 0,
               errors: [],
               performance_issues: [],
+              timestamp: 123213123,
             },
           ],
         }}
@@ -120,6 +122,7 @@ describe('QuickTraceMeta', function () {
           transactions: 1,
           errors: 0,
           performance_issues: 0,
+          transactiontoSpanChildrenCount: {},
         }}
         anchor="left"
         errorDest="issue"
@@ -166,8 +169,7 @@ describe('QuickTraceMeta', function () {
         anchor="left"
         errorDest="issue"
         transactionDest="performance"
-      />,
-      {context: routerContext}
+      />
     );
 
     expect(screen.getByRole('heading', {name: 'Trace Navigator'})).toBeInTheDocument();
@@ -180,13 +182,11 @@ describe('QuickTraceMeta', function () {
       throw new Error('child is null');
     }
     await userEvent.hover(child as HTMLElement);
-    expect(
-      await screen.findByText('Requires performance monitoring.')
-    ).toBeInTheDocument();
+    expect(await screen.findByText('Requires tracing.')).toBeInTheDocument();
   });
 
   it('does not render when platform does not support tracing', function () {
-    const newProject = TestStubs.Project();
+    const newProject = ProjectFixture();
     const newEvent = EventFixture();
     const result = render(
       <QuickTraceMeta

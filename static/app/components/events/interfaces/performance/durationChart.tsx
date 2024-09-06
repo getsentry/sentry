@@ -1,17 +1,20 @@
 import {useRef} from 'react';
 import {useTheme} from '@emotion/react';
-import {YAXisComponentOption} from 'echarts';
-import {Location} from 'history';
-import moment from 'moment';
+import type {YAXisComponentOption} from 'echarts';
+import type {Location} from 'history';
+import moment from 'moment-timezone';
 
 import EventsRequest from 'sentry/components/charts/eventsRequest';
-import {LineChart, LineChartSeries} from 'sentry/components/charts/lineChart';
+import type {LineChartSeries} from 'sentry/components/charts/lineChart';
+import {LineChart} from 'sentry/components/charts/lineChart';
 import LoadingPanel from 'sentry/components/charts/loadingPanel';
 import {getInterval} from 'sentry/components/charts/utils';
 import {IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {DateString, EventError, Group, Organization} from 'sentry/types';
-import {Series} from 'sentry/types/echarts';
+import type {Series} from 'sentry/types/echarts';
+import type {EventError} from 'sentry/types/event';
+import type {Group} from 'sentry/types/group';
+import type {Organization} from 'sentry/types/organization';
 import {
   findRangeOfMultiSeries,
   getDurationUnit,
@@ -42,7 +45,7 @@ export function DurationChart({issue, event, organization}: Props) {
   const allEventsApi = useApi();
   const affectedEventsApi = useApi();
 
-  const nowRef = useRef<DateString>(new Date());
+  const nowRef = useRef(new Date());
 
   // TODO (udameli): Project ID is hardcoded to sentry for the experiment
   // because performance issues from sentry project are sent to a different project
@@ -162,11 +165,7 @@ function Content({affectedEvents, allEvents, errored, loading}: ContentProps) {
         valueFormatter: (value, seriesName) => {
           return tooltipFormatter(
             value,
-            aggregateOutputType(
-              affectedEvents && affectedEvents.length
-                ? affectedEvents[0].seriesName
-                : seriesName
-            )
+            aggregateOutputType(affectedEvents.at(0)?.seriesName ?? seriesName)
           );
         },
       }}

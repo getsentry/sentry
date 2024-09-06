@@ -1,9 +1,11 @@
 from __future__ import annotations
 
-from typing import Any
+from enum import Enum
+from typing import Any, ClassVar
 
 from django.contrib.postgres.fields import ArrayField as DjangoArrayField
 from django.db import models
+from django.db.models import Q
 from django.utils import timezone
 from django.utils.translation import gettext_lazy
 
@@ -13,12 +15,15 @@ from sentry.db.models import (
     BoundedPositiveIntegerField,
     FlexibleForeignKey,
     Model,
-    region_silo_only_model,
+    region_silo_model,
     sane_repr,
 )
 from sentry.db.models.fields import JSONField
+from sentry.db.models.manager.base import BaseManager
+from sentry.db.models.manager.base_query_set import BaseQuerySet
+from sentry.models.organization import Organization
 
-_ON_DEMAND_ENABLED_KEY = "enabled"
+ON_DEMAND_ENABLED_KEY = "enabled"
 
 
 class TypesClass:
@@ -47,9 +52,21 @@ class TypesClass:
 
 class DashboardWidgetTypes(TypesClass):
     DISCOVER = 0
+    """
+    Old way of accessing error events and transaction events simultaneously @deprecated. Use ERROR_EVENTS or TRANSACTION_LIKE instead.
+    """
     ISSUE = 1
     RELEASE_HEALTH = 2
     METRICS = 3
+    ERROR_EVENTS = 100
+    """
+     Error side of the split from Discover.
+    """
+    TRANSACTION_LIKE = 101
+    """
+    This targets transaction-like data from the split from discover. Itt may either use 'Transactions' events or 'PerformanceMetrics' depending on on-demand, MEP metrics, etc.
+    """
+
     TYPES = [
         (DISCOVER, "discover"),
         (ISSUE, "issue"),
@@ -58,8 +75,45 @@ class DashboardWidgetTypes(TypesClass):
             "metrics",
         ),  # TODO(ddm): rename RELEASE to 'release', and METRICS to 'metrics'
         (METRICS, "custom-metrics"),
+        (ERROR_EVENTS, "error-events"),
+        (TRANSACTION_LIKE, "transaction-like"),
     ]
     TYPE_NAMES = [t[1] for t in TYPES]
+
+
+class DatasetSourcesTypes(Enum):
+    """
+    Ambiguous queries that haven't been or couldn't be categorized into a
+    specific dataset.
+    """
+
+    UNKNOWN = 0
+    """
+     Dataset inferred by either running the query or using heuristics.
+    """
+    INFERRED = 1
+    """
+     Canonical dataset, user explicitly selected it.
+    """
+    USER = 2
+    """
+     Was an ambiguous dataset forced to split (i.e. we picked a default)
+    """
+    FORCED = 3
+
+    @classmethod
+    def as_choices(cls):
+        return tuple((source.value, source.name.lower()) for source in cls)
+
+
+# TODO: Can eventually be replaced solely with TRANSACTION_MULTI once no more dashboards use Discover.
+TransactionWidgetType = [DashboardWidgetTypes.DISCOVER, DashboardWidgetTypes.TRANSACTION_LIKE]
+# TODO: Can be replaced once conditions are replaced at all callsite to split transaction and error behaviour, and once dashboard no longer have saved Discover dataset.
+DiscoverFullFallbackWidgetType = [
+    DashboardWidgetTypes.DISCOVER,
+    DashboardWidgetTypes.ERROR_EVENTS,
+    DashboardWidgetTypes.TRANSACTION_LIKE,
+]
 
 
 class DashboardWidgetDisplayTypes(TypesClass):
@@ -82,7 +136,7 @@ class DashboardWidgetDisplayTypes(TypesClass):
     TYPE_NAMES = [t[1] for t in TYPES]
 
 
-@region_silo_only_model
+@region_silo_model
 class DashboardWidgetQuery(Model):
     """
     A query in a dashboard widget.
@@ -108,6 +162,9 @@ class DashboardWidgetQuery(Model):
     # Order of the widget query in the widget.
     order = BoundedPositiveIntegerField()
     date_added = models.DateTimeField(default=timezone.now)
+    date_modified = models.DateTimeField(default=timezone.now)
+    # Whether this query is hidden from the UI, used by metric widgets
+    is_hidden = models.BooleanField(default=False)
 
     class Meta:
         app_label = "sentry"
@@ -117,7 +174,7 @@ class DashboardWidgetQuery(Model):
     __repr__ = sane_repr("widget", "type", "name")
 
 
-@region_silo_only_model
+@region_silo_model
 class DashboardWidgetQueryOnDemand(Model):
     """
     Tracks on_demand state and values for dashboard widget queries.
@@ -151,23 +208,57 @@ class DashboardWidgetQueryOnDemand(Model):
         ENABLED_MANUAL = "enabled:manual", gettext_lazy("enabled:manual")
         """ This widget query was enabled manually post creation or otherwise. """
 
+    spec_version = models.IntegerField(null=True)
     extraction_state = models.CharField(max_length=30, choices=OnDemandExtractionState.choices)
     date_modified = models.DateTimeField(default=timezone.now)
+    date_added = models.DateTimeField(default=timezone.now)
+
+    def can_extraction_be_auto_overridden(self):
+        """Determines whether tasks can override extraction state"""
+        if self.extraction_state == self.OnDemandExtractionState.DISABLED_MANUAL:
+            # Manually disabling a widget will cause it to stay off until manually re-enabled.
+            return False
+
+        if self.extraction_state == self.OnDemandExtractionState.DISABLED_HIGH_CARDINALITY:
+            # High cardinality should remain off until manually re-enabled.
+            return False
+
+        if self.extraction_state == self.OnDemandExtractionState.DISABLED_SPEC_LIMIT:
+            # Spec limits also can only be re-enabled manually.
+            return False
+
+        return True
 
     def extraction_enabled(self):
         """Whether on-demand is enabled or disabled for this widget.
         If this is enabled, Relay should be extracting metrics from events matching the associated widget_query upon ingest.
         """
-        return self.extraction_state.startswith(_ON_DEMAND_ENABLED_KEY)
+        return self.extraction_state.startswith(ON_DEMAND_ENABLED_KEY)
 
     class Meta:
         app_label = "sentry"
         db_table = "sentry_dashboardwidgetqueryondemand"
 
-    __repr__ = sane_repr("extraction_state", "extraction_enabled")
+    __repr__ = sane_repr("extraction_state", "spec_hashes")
 
 
-@region_silo_only_model
+class DashboardWidgetManager(BaseManager["DashboardWidget"]):
+    def get_for_metrics(
+        self, organization: Organization, metric_mris: list[str]
+    ) -> BaseQuerySet[DashboardWidget]:
+        widget_query_query = Q()
+        for metric_mri in metric_mris:
+            widget_query_query |= Q(aggregates__element_contains=metric_mri)
+
+        widget_ids = (
+            DashboardWidgetQuery.objects.filter(widget__dashboard__organization=organization)
+            .filter(widget_query_query)
+            .values_list("widget_id", flat=True)
+        )
+        return self.filter(id__in=widget_ids)
+
+
+@region_silo_model
 class DashboardWidget(Model):
     """
     A dashboard widget.
@@ -186,6 +277,15 @@ class DashboardWidget(Model):
     widget_type = BoundedPositiveIntegerField(choices=DashboardWidgetTypes.as_choices(), null=True)
     limit = models.IntegerField(null=True)
     detail: models.Field[dict[str, Any], dict[str, Any]] = JSONField(null=True)
+    discover_widget_split = BoundedPositiveIntegerField(
+        choices=DashboardWidgetTypes.as_choices(), null=True
+    )
+
+    # The method of which the discover split datasets was decided
+    dataset_source = BoundedPositiveIntegerField(
+        choices=DatasetSourcesTypes.as_choices(), default=DatasetSourcesTypes.UNKNOWN.value
+    )
+    objects: ClassVar[DashboardWidgetManager] = DashboardWidgetManager()
 
     class Meta:
         app_label = "sentry"

@@ -1,11 +1,11 @@
 from functools import cached_property
 from urllib.parse import parse_qsl, urlparse
 
+import orjson
 import responses
 from django.test import RequestFactory
 
 from sentry.testutils.cases import PluginTestCase
-from sentry.utils import json
 from sentry_plugins.trello.plugin import TrelloPlugin
 
 
@@ -37,20 +37,18 @@ class TrelloPluginTest(TrelloPluginTestBase):
 
     def test_get_issue_url(self):
         group = self.create_group(message="Hello world", culprit="foo.bar")
-        # test new and old format
         assert self.plugin.get_issue_url(group, "rPPDb") == "https://trello.com/c/rPPDb"
-        assert self.plugin.get_issue_url(group, {"id": "rPPDb"}) == "https://trello.com/c/rPPDb"
         assert (
             self.plugin.get_issue_url(group, "5dafd/https://trello.com/c/rPPDb/75-title")
             == "https://trello.com/c/rPPDb/75-title"
         )
 
     def test_is_configured(self):
-        assert self.plugin.is_configured(None, self.project) is False
+        assert self.plugin.is_configured(self.project) is False
         self.plugin.set_option("token", "7c8951d1", self.project)
-        assert self.plugin.is_configured(None, self.project) is False
+        assert self.plugin.is_configured(self.project) is False
         self.plugin.set_option("key", "39g", self.project)
-        assert self.plugin.is_configured(None, self.project) is True
+        assert self.plugin.is_configured(self.project) is True
 
 
 class TrelloPluginApiTests(TrelloPluginTestBase):
@@ -93,7 +91,7 @@ class TrelloPluginApiTests(TrelloPluginTestBase):
             "https://api.trello.com/1/members/me/organizations",
             json=[{"name": "team 1", "id": "2d8e"}, {"name": "team 2", "id": "d0cc"}],
         )
-        out = self.plugin.get_config(self.project, add_additial_fields=True)
+        out = self.plugin.get_config(self.project, add_additional_fields=True)
         assert out == [
             {
                 "default": "39g",
@@ -136,7 +134,7 @@ class TrelloPluginApiTests(TrelloPluginTestBase):
         assert self.plugin.create_issue(request, self.group, form_data) == "rds43"
         responses_request = responses.calls[0].request
         assert responses_request.url == "https://api.trello.com/1/cards?token=7c8951d1&key=39g"
-        payload = json.loads(responses_request.body)
+        payload = orjson.loads(responses_request.body)
         assert payload == {"name": "Hello", "desc": "Fix this.", "idList": "23tds"}
 
     @responses.activate

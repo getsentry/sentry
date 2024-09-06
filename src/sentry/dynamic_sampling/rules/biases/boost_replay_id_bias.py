@@ -1,5 +1,3 @@
-from typing import List
-
 from sentry.dynamic_sampling.rules.biases.base import Bias
 from sentry.dynamic_sampling.rules.utils import RESERVED_IDS, PolymorphicRule, RuleType
 from sentry.models.project import Project
@@ -10,7 +8,7 @@ class BoostReplayIdBias(Bias):
     Boosts at 100% sample rate all the traces that have a replay_id.
     """
 
-    def generate_rules(self, project: Project, base_sample_rate: float) -> List[PolymorphicRule]:
+    def generate_rules(self, project: Project, base_sample_rate: float) -> list[PolymorphicRule]:
         return [
             {
                 "samplingValue": {"type": "sampleRate", "value": 1.0},

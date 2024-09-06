@@ -1,17 +1,18 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, ClassVar, List
+from typing import TYPE_CHECKING, ClassVar
 
 from django.db.models import QuerySet
 
 from sentry.backup.scopes import RelocationScope
-from sentry.db.models import BaseManager, FlexibleForeignKey, control_silo_only_model
-from sentry.db.models.outboxes import ControlOutboxProducingModel
+from sentry.db.models import FlexibleForeignKey, control_silo_model
+from sentry.db.models.manager.base import BaseManager
+from sentry.hybridcloud.models.outbox import ControlOutboxBase
+from sentry.hybridcloud.outbox.base import ControlOutboxProducingModel
 from sentry.models.apitoken import ApiToken
-from sentry.models.outbox import ControlOutboxBase
 
 if TYPE_CHECKING:
-    from sentry.services.hybrid_cloud.auth import AuthenticatedToken
+    from sentry.auth.services.auth import AuthenticatedToken
 
 
 class SentryAppInstallationTokenManager(BaseManager["SentryAppInstallationToken"]):
@@ -61,7 +62,7 @@ class SentryAppInstallationTokenManager(BaseManager["SentryAppInstallationToken"
         return install_token.sentry_app_installation.organization_id == organization_id
 
 
-@control_silo_only_model
+@control_silo_model
 class SentryAppInstallationToken(ControlOutboxProducingModel):
     __relocation_scope__ = RelocationScope.Excluded
 
@@ -75,7 +76,7 @@ class SentryAppInstallationToken(ControlOutboxProducingModel):
         db_table = "sentry_sentryappinstallationtoken"
         unique_together = (("sentry_app_installation", "api_token"),)
 
-    def outboxes_for_update(self, shard_identifier: int | None = None) -> List[ControlOutboxBase]:
+    def outboxes_for_update(self, shard_identifier: int | None = None) -> list[ControlOutboxBase]:
         try:
             return self.api_token.outboxes_for_update()
         except ApiToken.DoesNotExist:

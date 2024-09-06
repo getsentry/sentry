@@ -25,13 +25,13 @@ describe('UnsubscribeProject', function () {
     });
   });
 
-  it('loads data from the the API based on URL parameters', async function () {
-    const {router, routerProps, routerContext} = initializeOrg({
+  it('loads data from the API based on URL parameters', async function () {
+    const {router, routerProps} = initializeOrg({
       router: {location: {query: {_: 'signature-value'}}, params},
     });
     render(
       <UnsubscribeProject {...routerProps} location={router.location} params={params} />,
-      {context: routerContext}
+      {router}
     );
 
     expect(await screen.findByText('acme / react')).toBeInTheDocument();
@@ -40,12 +40,12 @@ describe('UnsubscribeProject', function () {
   });
 
   it('makes an API request when the form is submitted', async function () {
-    const {router, routerProps, routerContext} = initializeOrg({
+    const {router, routerProps} = initializeOrg({
       router: {location: {query: {_: 'signature-value'}}, params},
     });
     render(
       <UnsubscribeProject {...routerProps} location={router.location} params={params} />,
-      {context: routerContext}
+      {router}
     );
 
     expect(await screen.findByText('acme / react')).toBeInTheDocument();

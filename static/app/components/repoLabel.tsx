@@ -2,7 +2,7 @@ import styled from '@emotion/styled';
 
 const RepoLabel = styled('span')`
   /* label mixin from bootstrap */
-  font-weight: 700;
+  font-weight: ${p => p.theme.fontWeightBold};
   color: ${p => p.theme.white};
   text-align: center;
   white-space: nowrap;

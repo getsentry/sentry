@@ -5,7 +5,6 @@ import responses
 from django.urls import reverse
 
 from fixtures.integrations.stub_service import StubService
-from sentry.models.integrations.integration import Integration
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import control_silo_test
 
@@ -14,7 +13,7 @@ from sentry.testutils.silo import control_silo_test
 class JiraSearchEndpointTest(APITestCase):
     @cached_property
     def integration(self):
-        integration = Integration.objects.create(
+        integration = self.create_provider_integration(
             provider="jira",
             name="Jira Cloud",
             metadata={

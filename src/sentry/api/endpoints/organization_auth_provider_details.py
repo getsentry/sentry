@@ -8,14 +8,14 @@ from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.organization import OrganizationAuthProviderPermission, OrganizationEndpoint
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.auth_provider import AuthProviderSerializer
+from sentry.auth.services.auth.service import auth_service
 from sentry.models.organization import Organization
-from sentry.services.hybrid_cloud.auth.service import auth_service
 
 
 @region_silo_endpoint
 class OrganizationAuthProviderDetailsEndpoint(OrganizationEndpoint):
     publish_status = {
-        "GET": ApiPublishStatus.UNKNOWN,
+        "GET": ApiPublishStatus.PRIVATE,
     }
     owner = ApiOwner.ENTERPRISE
     permission_classes = (OrganizationAuthProviderPermission,)
@@ -26,7 +26,7 @@ class OrganizationAuthProviderDetailsEndpoint(OrganizationEndpoint):
         currently installed auth_provider
         ``````````````````````````````````````````````````````
 
-        :pparam string organization_slug: the organization short name
+        :pparam string organization_id_or_slug: the id or slug of the organization
         :auth: required
         """
         auth_provider = auth_service.get_auth_provider(organization_id=organization.id)

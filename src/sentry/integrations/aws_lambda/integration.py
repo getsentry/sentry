@@ -11,7 +11,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import analytics, options
-from sentry.integrations import (
+from sentry.integrations.base import (
     FeatureDescription,
     IntegrationFeatures,
     IntegrationInstallation,
@@ -19,17 +19,17 @@ from sentry.integrations import (
     IntegrationProvider,
 )
 from sentry.integrations.mixins import ServerlessMixin
-from sentry.models.integrations.integration import Integration
-from sentry.models.integrations.organization_integration import OrganizationIntegration
-from sentry.models.user import User
+from sentry.integrations.models.integration import Integration
+from sentry.integrations.models.organization_integration import OrganizationIntegration
+from sentry.organizations.services.organization import RpcOrganizationSummary, organization_service
 from sentry.pipeline import PipelineView
-from sentry.services.hybrid_cloud.organization import RpcOrganizationSummary, organization_service
-from sentry.services.hybrid_cloud.project import project_service
-from sentry.services.hybrid_cloud.user.serial import serialize_rpc_user
-from sentry.services.hybrid_cloud.util import control_silo_function
+from sentry.projects.services.project import project_service
+from sentry.silo.base import control_silo_function
+from sentry.users.models.user import User
+from sentry.users.services.user.serial import serialize_rpc_user
 from sentry.utils.sdk import capture_exception
 
-from .client import AwsLambdaProxyClient, ConfigurationError, gen_aws_client
+from .client import ConfigurationError, gen_aws_client
 from .utils import (
     ALL_AWS_REGIONS,
     disable_single_lambda,
@@ -87,15 +87,15 @@ class AwsLambdaIntegration(IntegrationInstallation, ServerlessMixin):
             region = self.metadata["region"]
             account_number = self.metadata["account_number"]
             aws_external_id = self.metadata["aws_external_id"]
-            self._client = AwsLambdaProxyClient(
-                org_integration_id=self.org_integration.id,
+            self._client = gen_aws_client(
                 account_number=account_number,
                 region=region,
                 aws_external_id=aws_external_id,
             )
+
         return self._client
 
-    def get_client(self) -> AwsLambdaProxyClient:
+    def get_client(self) -> Any:
         return self.client
 
     def get_one_lambda_function(self, name):
@@ -289,9 +289,9 @@ class AwsLambdaCloudFormationPipelineView(PipelineView):
         def render_response(error=None):
             serialized_organization = organization_service.serialize_organization(
                 id=pipeline.organization.id,
-                as_user=serialize_rpc_user(request.user)
-                if isinstance(request.user, User)
-                else None,
+                as_user=(
+                    serialize_rpc_user(request.user) if isinstance(request.user, User) else None
+                ),
             )
             template_url = options.get("aws-lambda.cloudformation-url")
             context = {

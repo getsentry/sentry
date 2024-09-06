@@ -1,7 +1,9 @@
 import datetime
+from typing import Literal
 
+from django.contrib.auth.models import AnonymousUser
 from rest_framework import serializers, status
-from rest_framework.exceptions import PermissionDenied
+from rest_framework.exceptions import NotFound, PermissionDenied
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -10,13 +12,46 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectAlertRulePermission, ProjectEndpoint
+from sentry.api.exceptions import BadRequest
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.api.serializers.rest_framework.base import CamelSnakeSerializer
-from sentry.incidents.models import AlertRule
+from sentry.incidents.models.alert_rule import AlertRule
 from sentry.models.organization import Organization
 from sentry.models.organizationmember import OrganizationMember
+from sentry.models.project import Project
 from sentry.models.rule import Rule
 from sentry.models.rulesnooze import RuleSnooze
+
+
+def can_edit_alert_rule(organization, request):
+    mute_for_user = request.data.get("target") == "me"
+    user = request.user
+
+    # Skip scope and user validation if using token authentication, excluding
+    # user tokens.
+    if request.auth and (isinstance(user, AnonymousUser) or user.is_sentry_app):
+        # Raise an exception if the user is anonymous, but the request is to mute for the user.
+        if mute_for_user:
+            raise BadRequest(
+                {
+                    "detail": "Cannot mute for the request user because the user is anonymous.",
+                }
+            )
+        return True
+
+    # Ensure that the user has the 'alerts:write' scope.
+    try:
+        org_member = OrganizationMember.objects.get(organization=organization, user_id=user.id)
+        if "alerts:write" not in org_member.get_scopes():
+            return False
+    except OrganizationMember.DoesNotExist:
+        pass
+    # if the goal is to mute the rule just for the user, ensure they belong to the organization
+    if mute_for_user:
+        return organization in Organization.objects.get_for_user(user)
+    # if the rule is owned by a team, allow edit (same permission as delete)
+    # if the rule is unassigned, anyone can edit it
+    return True
 
 
 class RuleSnoozeValidator(CamelSnakeSerializer):
@@ -38,58 +73,49 @@ class RuleSnoozeSerializer(Serializer):
         return result
 
 
-def can_edit_alert_rule(rule, organization, user_id, user):
-    # make sure user has 'alert:write' scope
-    try:
-        org_member = OrganizationMember.objects.get(organization=organization, user_id=user.id)
-        if "alerts:write" not in org_member.get_scopes():
-            return False
-    except OrganizationMember.DoesNotExist:
-        pass
-    # if the goal is to mute the rule just for the user, ensure they belong to the organization
-    if user_id:
-        if organization not in Organization.objects.get_for_user(user):
-            return False
-        return True
-    # if the rule is owned by a team, allow edit (same permission as delete)
-    # if the rule is unassigned, anyone can edit it
-    return True
-
-
 @region_silo_endpoint
 class BaseRuleSnoozeEndpoint(ProjectEndpoint):
     permission_classes = (ProjectAlertRulePermission,)
+    rule_model = type[Rule] | type[AlertRule]
+    rule_field = Literal["rule", "alert_rule"]
 
-    def get_rule(self, rule_id):
+    def convert_args(self, request: Request, rule_id: int, *args, **kwargs):
+        (args, kwargs) = super().convert_args(request, *args, **kwargs)
+        project = kwargs["project"]
         try:
-            rule = self.rule_model.objects.get(id=rule_id)
+            if self.rule_model is AlertRule:
+                queryset = self.rule_model.objects.fetch_for_project(project)
+            else:
+                queryset = self.rule_model.objects.filter(project=project)
+            rule = queryset.get(id=rule_id)
         except self.rule_model.DoesNotExist:
-            raise serializers.ValidationError("Rule does not exist")
+            raise NotFound(detail="Rule does not exist")
 
-        return rule
+        kwargs["rule"] = rule
 
-    def post(self, request: Request, project, rule_id) -> Response:
+        return (args, kwargs)
+
+    def post(self, request: Request, project: Project, rule: Rule | AlertRule) -> Response:
         serializer = RuleSnoozeValidator(data=request.data)
         if not serializer.is_valid():
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
         data = serializer.validated_data
-        rule = self.get_rule(rule_id)
 
-        user_id = request.user.id if data.get("target") == "me" else None
-        if not can_edit_alert_rule(rule, project.organization, user_id, request.user):
+        if not can_edit_alert_rule(project.organization, request):
             raise PermissionDenied(
                 detail="Requesting user cannot mute this rule.", code=status.HTTP_403_FORBIDDEN
             )
 
         kwargs = {self.rule_field: rule}
 
+        user_id = request.user.id if data.get("target") == "me" else None
         rule_snooze, created = RuleSnooze.objects.get_or_create(
             user_id=user_id,
             defaults={
                 "owner_id": request.user.id,
                 "until": data.get("until"),
-                "date_added": datetime.datetime.now(),
+                "date_added": datetime.datetime.now(datetime.UTC),
             },
             **kwargs,
         )
@@ -117,7 +143,7 @@ class BaseRuleSnoozeEndpoint(ProjectEndpoint):
             user_id=request.user.id,
             organization_id=project.organization_id,
             project_id=project.id,
-            rule_id=rule_id,
+            rule_id=rule.id,
             rule_type=self.rule_field,
             target=data.get("target"),
             until=data.get("until"),
@@ -128,9 +154,7 @@ class BaseRuleSnoozeEndpoint(ProjectEndpoint):
             status=status.HTTP_201_CREATED,
         )
 
-    def delete(self, request: Request, project, rule_id) -> Response:
-        rule = self.get_rule(rule_id)
-
+    def delete(self, request: Request, project: Project, rule: Rule | AlertRule) -> Response:
         # find if there is a mute for all that I can remove
         shared_snooze = None
         deletion_type = None
@@ -141,7 +165,7 @@ class BaseRuleSnoozeEndpoint(ProjectEndpoint):
             pass
 
         # if user can edit then delete it
-        if shared_snooze and can_edit_alert_rule(rule, project.organization, None, request.user):
+        if shared_snooze and can_edit_alert_rule(project.organization, request):
             shared_snooze.delete()
             deletion_type = "everyone"
 
@@ -164,7 +188,7 @@ class BaseRuleSnoozeEndpoint(ProjectEndpoint):
                 user_id=request.user.id,
                 organization_id=project.organization_id,
                 project_id=project.id,
-                rule_id=rule_id,
+                rule_id=rule.id,
                 rule_type=self.rule_field,
                 target=deletion_type,
             )

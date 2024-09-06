@@ -1,7 +1,9 @@
+from collections.abc import Mapping, Sequence
+from typing import Any
 from uuid import uuid4
 
 from sentry.exceptions import DeleteAborted
-from sentry.silo import SiloMode
+from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task, retry, track_group_async_operation
 from sentry.tasks.deletion.scheduled import MAX_RETRIES, logger
 
@@ -16,7 +18,12 @@ from sentry.tasks.deletion.scheduled import MAX_RETRIES, logger
 )
 @retry(exclude=(DeleteAborted,))
 @track_group_async_operation
-def delete_groups(object_ids, transaction_id=None, eventstream_state=None, **kwargs):
+def delete_groups(
+    object_ids: Sequence[int],
+    transaction_id: str | None = None,
+    eventstream_state: Mapping[str, Any] | None = None,
+    **kwargs: Any,
+) -> None:
     from sentry import deletions, eventstream
     from sentry.models.group import Group
 

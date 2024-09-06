@@ -1,3 +1,5 @@
+import {ProjectFixture} from 'sentry-fixture/project';
+
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import ProjectsStore from 'sentry/stores/projectsStore';
@@ -5,7 +7,7 @@ import {SlowestFunctionsWidget} from 'sentry/views/profiling/landing/slowestFunc
 
 describe('SlowestFunctionsWidget', function () {
   beforeEach(function () {
-    const project = TestStubs.Project({
+    const project = ProjectFixture({
       id: '1',
       slug: 'proj-slug',
     });
@@ -24,7 +26,7 @@ describe('SlowestFunctionsWidget', function () {
       statusCode: 400,
     });
 
-    render(<SlowestFunctionsWidget widgetHeight="100px" />);
+    render(<SlowestFunctionsWidget widgetHeight="100px" breakdownFunction="p75()" />);
 
     // starts by rendering loading
     expect(screen.getByTestId('loading-indicator')).toBeInTheDocument();
@@ -48,7 +50,7 @@ describe('SlowestFunctionsWidget', function () {
       ],
     });
 
-    render(<SlowestFunctionsWidget widgetHeight="100px" />);
+    render(<SlowestFunctionsWidget widgetHeight="100px" breakdownFunction="p75()" />);
 
     // starts by rendering loading
     expect(screen.getByTestId('loading-indicator')).toBeInTheDocument();
@@ -128,7 +130,7 @@ describe('SlowestFunctionsWidget', function () {
         MockApiClient.matchQuery({
           dataset: 'profileFunctions',
           query: 'project.id:1 fingerprint:123',
-          field: ['transaction', 'count()', 'p75()', 'sum()', 'examples()'],
+          field: ['transaction', 'count()', 'sum()', 'examples()', 'p75()'],
         }),
       ],
     });
@@ -161,12 +163,12 @@ describe('SlowestFunctionsWidget', function () {
         MockApiClient.matchQuery({
           dataset: 'profileFunctions',
           query: 'project.id:1 fingerprint:456',
-          field: ['transaction', 'count()', 'p75()', 'sum()', 'examples()'],
+          field: ['transaction', 'count()', 'sum()', 'examples()', 'p75()'],
         }),
       ],
     });
 
-    render(<SlowestFunctionsWidget widgetHeight="100px" />);
+    render(<SlowestFunctionsWidget widgetHeight="100px" breakdownFunction="p75()" />);
 
     // starts by rendering loading
     expect(screen.getByTestId('loading-indicator')).toBeInTheDocument();

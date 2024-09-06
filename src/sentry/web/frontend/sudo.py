@@ -4,11 +4,14 @@ from typing import Any
 
 from django.http.request import HttpRequest
 
-from sentry.models.authenticator import Authenticator
+from sentry.auth.authenticators.u2f import U2fInterface
+from sentry.users.models.authenticator import Authenticator
 from sentry.utils import json
+from sentry.web.frontend.base import control_silo_view
 from sudo.views import SudoView as BaseSudoView
 
 
+@control_silo_view
 class SudoView(BaseSudoView):
     template_name = "sentry/account/sudo.html"
 
@@ -18,6 +21,7 @@ class SudoView(BaseSudoView):
 
         try:
             interface = Authenticator.objects.get_interface(request.user, "u2f")
+            assert isinstance(interface, U2fInterface), "Must be U2F interface to check if enrolled"
             if not interface.is_enrolled():
                 raise LookupError()
         except LookupError:

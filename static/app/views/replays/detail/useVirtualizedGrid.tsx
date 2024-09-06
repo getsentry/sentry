@@ -1,12 +1,7 @@
-import {
-  DependencyList,
-  RefObject,
-  useCallback,
-  useEffect,
-  useMemo,
-  useState,
-} from 'react';
-import {CellMeasurerCache, CellMeasurerCacheParams, MultiGrid} from 'react-virtualized';
+import type {DependencyList, RefObject} from 'react';
+import {useCallback, useEffect, useMemo, useState} from 'react';
+import type {CellMeasurerCacheParams, MultiGrid} from 'react-virtualized';
+import {CellMeasurerCache} from 'react-virtualized';
 
 type Opts = {
   /**

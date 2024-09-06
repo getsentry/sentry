@@ -1,0 +1,55 @@
+{
+  "stacktrace": {
+    "frames": [
+      {
+        "function": "SentryLogging.log",
+        "package": "sentry_logging",
+        "filename": "sentry_logging.dart",
+        "abs_path": "package:sentry_logging/src/sentry_logging.dart",
+        "in_app": true
+      },
+      {
+        "function": "SentryDio.dio",
+        "package": "sentry_dio",
+        "filename": "sentry_dio.dart",
+        "abs_path": "package:sentry_dio/src/sentry_dio.dart",
+        "in_app": true
+      },
+      {
+        "function": "SentryFile.file",
+        "package": "sentry_file",
+        "filename": "sentry_file.dart",
+        "abs_path": "package:sentry_file/src/sentry_file.dart",
+        "in_app": true
+      },
+      {
+        "function": "SentryHive.hive",
+        "package": "sentry_hive",
+        "filename": "sentry_hive.dart",
+        "abs_path": "package:sentry_hive/src/sentry_hive.dart",
+        "in_app": true
+      },{
+        "function": "SentryIsar.isar",
+        "package": "sentry_isar",
+        "filename": "sentry_isar.dart",
+        "abs_path": "package:sentry_isar/src/sentry_isar.dart",
+        "in_app": true
+      },
+      {
+        "function": "SentrySqflite.sqflite",
+        "package": "sentry_sqflite",
+        "filename": "sentry_sqflite.dart",
+        "abs_path": "package:sentry_sqflite/src/sentry_sqflite.dart",
+        "in_app": true
+      },
+      {
+        "function": "SentryDrift.drift",
+        "package": "sentry_drift",
+        "filename": "sentry_drift.dart",
+        "abs_path": "package:sentry_drift/src/sentry_drift.dart",
+        "in_app": true
+      }
+    ]
+  },
+  "platform": "other"
+}

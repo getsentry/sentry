@@ -1,44 +1,69 @@
 import {Fragment, PureComponent} from 'react';
-import {InjectedRouter} from 'react-router';
 import {components} from 'react-select';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
+import omit from 'lodash/omit';
 import pick from 'lodash/pick';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
-import {Client} from 'sentry/api';
+import {fetchTagValues} from 'sentry/actionCreators/tags';
+import type {Client} from 'sentry/api';
 import {
   OnDemandMetricAlert,
   OnDemandWarningIcon,
 } from 'sentry/components/alerts/onDemandMetricAlert';
-import SearchBar from 'sentry/components/events/searchBar';
+import SearchBar, {getHasTag} from 'sentry/components/events/searchBar';
+import {
+  STATIC_FIELD_TAGS,
+  STATIC_FIELD_TAGS_WITHOUT_ERROR_FIELDS,
+  STATIC_FIELD_TAGS_WITHOUT_TRACING,
+  STATIC_FIELD_TAGS_WITHOUT_TRANSACTION_FIELDS,
+  STATIC_SEMVER_TAGS,
+  STATIC_SPAN_TAGS,
+} from 'sentry/components/events/searchBarFieldConstants';
 import SelectControl from 'sentry/components/forms/controls/selectControl';
 import SelectField from 'sentry/components/forms/fields/selectField';
 import FormField from 'sentry/components/forms/formField';
 import IdBadge from 'sentry/components/idBadge';
 import ListItem from 'sentry/components/list/listItem';
+import {MetricSearchBar} from 'sentry/components/metrics/metricSearchBar';
+import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';
+import {SearchQueryBuilder} from 'sentry/components/searchQueryBuilder';
 import {InvalidReason} from 'sentry/components/searchSyntax/parser';
 import {SearchInvalidTag} from 'sentry/components/smartSearchBar/searchInvalidTag';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {Environment, Organization, Project, SelectValue} from 'sentry/types';
+import {ActivationConditionType, MonitorType} from 'sentry/types/alerts';
+import type {SelectValue} from 'sentry/types/core';
+import type {Tag, TagCollection} from 'sentry/types/group';
+import type {InjectedRouter} from 'sentry/types/legacyReactRouter';
+import type {Organization} from 'sentry/types/organization';
+import type {Environment, Project} from 'sentry/types/project';
+import {defined} from 'sentry/utils';
+import {isAggregateField, isMeasurement} from 'sentry/utils/discover/fields';
 import {getDisplayName} from 'sentry/utils/environment';
-import {hasDDMFeature} from 'sentry/utils/metrics/features';
+import {DEVICE_CLASS_TAG_VALUES, FieldKind, isDeviceClass} from 'sentry/utils/fields';
+import {
+  getMeasurements,
+  type MeasurementCollection,
+} from 'sentry/utils/measurements/measurements';
+import {hasCustomMetrics} from 'sentry/utils/metrics/features';
 import {getMRI} from 'sentry/utils/metrics/mri';
 import {getOnDemandKeys, isOnDemandQueryString} from 'sentry/utils/onDemandMetrics';
 import {hasOnDemandMetricAlertFeature} from 'sentry/utils/onDemandMetrics/features';
 import withApi from 'sentry/utils/withApi';
 import withProjects from 'sentry/utils/withProjects';
+import withTags from 'sentry/utils/withTags';
 import WizardField from 'sentry/views/alerts/rules/metric/wizardField';
 import {
   convertDatasetEventTypesToSource,
   DATA_SOURCE_LABELS,
   DATA_SOURCE_TO_SET_AND_EVENT_TYPES,
 } from 'sentry/views/alerts/utils';
-import {AlertType, getSupportedAndOmittedTags} from 'sentry/views/alerts/wizard/options';
-import {MetricSearchBar} from 'sentry/views/ddm/queryBuilder';
+import type {AlertType} from 'sentry/views/alerts/wizard/options';
+import {getSupportedAndOmittedTags} from 'sentry/views/alerts/wizard/options';
 
 import {getProjectOptions} from '../utils';
 
@@ -65,35 +90,54 @@ type Props = {
   comparisonType: AlertRuleComparisonType;
   dataset: Dataset;
   disabled: boolean;
+  isEditing: boolean;
   onComparisonDeltaChange: (value: number) => void;
   onFilterSearch: (query: string, isQueryValid) => void;
+  onMonitorTypeSelect: (activatedAlertFields: {
+    activationCondition?: ActivationConditionType | undefined;
+    monitorType?: MonitorType;
+    monitorWindowSuffix?: string | undefined;
+    monitorWindowValue?: number | undefined;
+  }) => void;
   onTimeWindowChange: (value: number) => void;
   organization: Organization;
   project: Project;
   projects: Project[];
   router: InjectedRouter;
+  tags: TagCollection;
   thresholdChart: React.ReactNode;
   timeWindow: number;
+  // optional props
+  activationCondition?: ActivationConditionType;
   allowChangeEventTypes?: boolean;
   comparisonDelta?: number;
   disableProjectSelector?: boolean;
   isErrorMigration?: boolean;
   isExtrapolatedChartData?: boolean;
+  isForLlmMetric?: boolean;
   isTransactionMigration?: boolean;
   loadingProjects?: boolean;
+  monitorType?: number;
 };
 
 type State = {
   environments: Environment[] | null;
+  filterKeys: TagCollection;
+  measurements: MeasurementCollection;
 };
 
 class RuleConditionsForm extends PureComponent<Props, State> {
   state: State = {
     environments: null,
+    measurements: {},
+    filterKeys: {},
   };
 
   componentDidMount() {
     this.fetchData();
+    const measurements = getMeasurements();
+    const filterKeys = this.getFilterKeys();
+    this.setState({measurements, filterKeys});
   }
 
   componentDidUpdate(prevProps: Props) {
@@ -103,6 +147,52 @@ class RuleConditionsForm extends PureComponent<Props, State> {
 
     this.fetchData();
   }
+
+  getFilterKeys = () => {
+    const {organization, dataset, tags} = this.props;
+    const {measurements} = this.state;
+    const measurementsWithKind = Object.keys(measurements).reduce(
+      (measurement_tags, key) => {
+        measurement_tags[key] = {
+          ...measurements[key],
+          kind: FieldKind.MEASUREMENT,
+        };
+        return measurement_tags;
+      },
+      {}
+    );
+    const orgHasPerformanceView = organization.features.includes('performance-view');
+    const combinedTags: TagCollection =
+      dataset === Dataset.ERRORS
+        ? Object.assign({}, STATIC_FIELD_TAGS_WITHOUT_TRANSACTION_FIELDS)
+        : dataset === Dataset.TRANSACTIONS
+          ? Object.assign(
+              {},
+              measurementsWithKind,
+              STATIC_SPAN_TAGS,
+              STATIC_FIELD_TAGS_WITHOUT_ERROR_FIELDS
+            )
+          : orgHasPerformanceView
+            ? Object.assign({}, measurementsWithKind, STATIC_SPAN_TAGS, STATIC_FIELD_TAGS)
+            : Object.assign({}, STATIC_FIELD_TAGS_WITHOUT_TRACING);
+
+    const tagsWithKind = Object.keys(tags).reduce<Record<string, Tag>>((acc, key) => {
+      acc[key] = {
+        ...tags[key],
+        kind: FieldKind.TAG,
+      };
+      return acc;
+    }, {});
+
+    const {omitTags} = getSupportedAndOmittedTags(dataset, organization);
+
+    Object.assign(combinedTags, tagsWithKind, STATIC_SEMVER_TAGS);
+    combinedTags.has = getHasTag(combinedTags);
+
+    const list =
+      omitTags && omitTags.length > 0 ? omit(combinedTags, omitTags) : combinedTags;
+    return list;
+  };
 
   formElemBaseStyle = {
     padding: `${space(0.5)}`,
@@ -127,8 +217,44 @@ class RuleConditionsForm extends PureComponent<Props, State> {
     }
   }
 
+  getEventFieldValues = async (tag, query): Promise<string[]> => {
+    const {api, organization, project, dataset, router} = this.props;
+
+    if (isAggregateField(tag.key) || isMeasurement(tag.key)) {
+      // We can't really auto suggest values for aggregate fields
+      // or measurements, so we simply don't
+      // NOTE: these in particular are for discover queries. We may not need/support these
+      return Promise.resolve([]);
+    }
+
+    // device.class is stored as "numbers" in snuba, but we want to suggest high, medium,
+    // and low search filter values because discover maps device.class to these values.
+    if (isDeviceClass(tag.key)) {
+      return Promise.resolve(DEVICE_CLASS_TAG_VALUES);
+    }
+
+    const values = await fetchTagValues({
+      api,
+      orgSlug: organization.slug,
+      tagKey: tag.key,
+      search: query,
+      projectIds: [project.id],
+      endpointParams: normalizeDateTimeParams(router.location.query), // allows searching for tags on transactions as well
+      includeTransactions: true, // allows searching for tags on sessions as well
+      includeSessions: dataset === Dataset.SESSIONS,
+    });
+
+    return values.filter(({name}) => defined(name)).map(({name}) => name);
+  };
+
   get timeWindowOptions() {
     let options: Record<string, string> = TIME_WINDOW_MAP;
+    const {alertType} = this.props;
+
+    if (alertType === 'custom_metrics' || alertType === 'insights_metrics') {
+      // Do not show ONE MINUTE interval as an option for custom_metrics alert
+      options = omit(options, TimeWindow.ONE_MINUTE.toString());
+    }
 
     if (isCrashFreeAlert(this.props.dataset)) {
       options = pick(TIME_WINDOW_MAP, [
@@ -137,6 +263,14 @@ class RuleConditionsForm extends PureComponent<Props, State> {
         TimeWindow.TWO_HOURS,
         TimeWindow.FOUR_HOURS,
         TimeWindow.ONE_DAY,
+      ]);
+    }
+
+    if (this.props.comparisonType === AlertRuleComparisonType.DYNAMIC) {
+      options = pick(TIME_WINDOW_MAP, [
+        TimeWindow.FIFTEEN_MINUTES,
+        TimeWindow.THIRTY_MINUTES,
+        TimeWindow.ONE_HOUR,
       ]);
     }
 
@@ -155,10 +289,23 @@ class RuleConditionsForm extends PureComponent<Props, State> {
       case Dataset.METRICS:
       case Dataset.SESSIONS:
         return t('Filter sessions by release version\u2026');
-      case Dataset.TRANSACTIONS:
       default:
         return t('Filter transactions by URL, tags, and other properties\u2026');
     }
+  }
+
+  get selectControlStyles() {
+    return {
+      control: (provided: {[x: string]: string | number | boolean}) => ({
+        ...provided,
+        minWidth: 200,
+        maxWidth: 300,
+      }),
+      container: (provided: {[x: string]: string | number | boolean}) => ({
+        ...provided,
+        margin: `${space(0.5)}`,
+      }),
+    };
   }
 
   renderEventTypeFilter() {
@@ -255,7 +402,7 @@ class RuleConditionsForm extends PureComponent<Props, State> {
   renderProjectSelector() {
     const {
       project: _selectedProject,
-      projects,
+      projects, // note: org projects
       disabled,
       organization,
       disableProjectSelector,
@@ -325,8 +472,16 @@ class RuleConditionsForm extends PureComponent<Props, State> {
   }
 
   renderInterval() {
-    const {organization, disabled, alertType, timeWindow, onTimeWindowChange, project} =
-      this.props;
+    const {
+      organization,
+      disabled,
+      alertType,
+      timeWindow,
+      onTimeWindowChange,
+      project,
+      monitorType,
+      isForLlmMetric,
+    } = this.props;
 
     return (
       <Fragment>
@@ -336,43 +491,136 @@ class RuleConditionsForm extends PureComponent<Props, State> {
           </StyledListTitle>
         </StyledListItem>
         <FormRow>
-          <WizardField
-            name="aggregate"
-            help={null}
-            organization={organization}
-            disabled={disabled}
-            project={project}
-            style={{
-              ...this.formElemBaseStyle,
-              flex: 1,
-            }}
-            inline={false}
-            flexibleControlStateSize
-            columnWidth={200}
-            alertType={alertType}
-            required
-          />
-          <SelectControl
-            name="timeWindow"
-            styles={{
-              control: (provided: {[x: string]: string | number | boolean}) => ({
-                ...provided,
-                minWidth: 200,
-                maxWidth: 300,
-              }),
-              container: (provided: {[x: string]: string | number | boolean}) => ({
-                ...provided,
-                margin: `${space(0.5)}`,
-              }),
-            }}
-            options={this.timeWindowOptions}
-            required
-            isDisabled={disabled}
-            value={timeWindow}
-            onChange={({value}) => onTimeWindowChange(value)}
-            inline={false}
-            flexibleControlStateSize
-          />
+          {isForLlmMetric ? null : (
+            <WizardField
+              name="aggregate"
+              help={null}
+              organization={organization}
+              disabled={disabled}
+              project={project}
+              style={{
+                ...this.formElemBaseStyle,
+                flex: 1,
+              }}
+              inline={false}
+              flexibleControlStateSize
+              columnWidth={200}
+              alertType={alertType}
+              required
+            />
+          )}
+
+          {monitorType !== MonitorType.ACTIVATED && (
+            <SelectControl
+              name="timeWindow"
+              styles={this.selectControlStyles}
+              options={this.timeWindowOptions}
+              required={monitorType === MonitorType.CONTINUOUS}
+              isDisabled={disabled}
+              value={timeWindow}
+              onChange={({value}) => onTimeWindowChange(value)}
+              inline={false}
+              flexibleControlStateSize
+            />
+          )}
+        </FormRow>
+      </Fragment>
+    );
+  }
+
+  renderMonitorTypeSelect() {
+    // TODO: disable select on edit
+    const {
+      activationCondition,
+      isEditing,
+      monitorType,
+      onMonitorTypeSelect,
+      onTimeWindowChange,
+      timeWindow,
+    } = this.props;
+
+    return (
+      <Fragment>
+        <StyledListItem>
+          <StyledListTitle>
+            <div>{t('Select Monitor Type')}</div>
+          </StyledListTitle>
+        </StyledListItem>
+        <FormRow>
+          <MonitorSelect>
+            <MonitorCard
+              disabled={isEditing}
+              position="left"
+              isSelected={monitorType === MonitorType.CONTINUOUS}
+              onClick={() =>
+                isEditing
+                  ? null
+                  : onMonitorTypeSelect({
+                      monitorType: MonitorType.CONTINUOUS,
+                    })
+              }
+            >
+              <strong>{t('Continuous')}</strong>
+              <div>{t('Continuously monitor trends for the metrics outlined below')}</div>
+            </MonitorCard>
+            <MonitorCard
+              disabled={isEditing}
+              position="right"
+              isSelected={monitorType === MonitorType.ACTIVATED}
+              onClick={() =>
+                isEditing
+                  ? null
+                  : onMonitorTypeSelect({
+                      monitorType: MonitorType.ACTIVATED,
+                    })
+              }
+            >
+              <strong>Conditional</strong>
+              {monitorType === MonitorType.ACTIVATED ? (
+                <ActivatedAlertFields>
+                  {`${t('Monitor')} `}
+                  <SelectControl
+                    name="activationCondition"
+                    styles={this.selectControlStyles}
+                    disabled={isEditing}
+                    options={[
+                      {
+                        value: ActivationConditionType.RELEASE_CREATION,
+                        label: t('New Release'),
+                      },
+                      {
+                        value: ActivationConditionType.DEPLOY_CREATION,
+                        label: t('New Deploy'),
+                      },
+                    ]}
+                    required
+                    value={activationCondition}
+                    onChange={({value}) =>
+                      onMonitorTypeSelect({activationCondition: value})
+                    }
+                    inline={false}
+                    flexibleControlStateSize
+                    size="xs"
+                  />
+                  {` ${t('for')} `}
+                  <SelectControl
+                    name="timeWindow"
+                    styles={this.selectControlStyles}
+                    options={this.timeWindowOptions}
+                    value={timeWindow}
+                    onChange={({value}) => onTimeWindowChange(value)}
+                    inline={false}
+                    flexibleControlStateSize
+                    size="xs"
+                  />
+                </ActivatedAlertFields>
+              ) : (
+                <div>
+                  {t('Temporarily monitor specified query given activation condition')}
+                </div>
+              )}
+            </MonitorCard>
+          </MonitorSelect>
         </FormRow>
       </Fragment>
     );
@@ -393,7 +641,8 @@ class RuleConditionsForm extends PureComponent<Props, State> {
       project,
     } = this.props;
 
-    const {environments} = this.state;
+    const {environments, filterKeys} = this.state;
+    const hasActivatedAlerts = organization.features.includes('activated-alert-rules');
 
     const environmentOptions: SelectValue<string | null>[] = [
       {
@@ -424,6 +673,7 @@ class RuleConditionsForm extends PureComponent<Props, State> {
                 )}
               />
             )}
+            {hasActivatedAlerts && this.renderMonitorTypeSelect()}
             {!isErrorMigration && this.renderInterval()}
             <StyledListItem>{t('Filter events')}</StyledListItem>
             <FormRow noMargin columns={1 + (allowChangeEventTypes ? 1 : 0) + 1}>
@@ -465,7 +715,9 @@ class RuleConditionsForm extends PureComponent<Props, State> {
                 flexibleControlStateSize
               >
                 {({onChange, onBlur, onKeyDown, initialData, value}) => {
-                  return hasDDMFeature(organization) && alertType === 'custom_metrics' ? (
+                  return (hasCustomMetrics(organization) &&
+                    alertType === 'custom_metrics') ||
+                    alertType === 'insights_metrics' ? (
                     <MetricSearchBar
                       mri={getMRI(aggregate)}
                       projectIds={[project.id]}
@@ -481,75 +733,111 @@ class RuleConditionsForm extends PureComponent<Props, State> {
                     />
                   ) : (
                     <SearchContainer>
-                      <StyledSearchBar
-                        disallowWildcard={dataset === Dataset.SESSIONS}
-                        invalidMessages={{
-                          [InvalidReason.WILDCARD_NOT_ALLOWED]: t(
-                            'The wildcard operator is not supported here.'
-                          ),
-                        }}
-                        customInvalidTagMessage={item => {
-                          if (
-                            ![Dataset.GENERIC_METRICS, Dataset.TRANSACTIONS].includes(
-                              dataset
-                            )
-                          ) {
-                            return null;
+                      {organization.features.includes('search-query-builder-alerts') ? (
+                        <SearchQueryBuilder
+                          initialQuery={initialData?.query ?? ''}
+                          getTagValues={this.getEventFieldValues}
+                          placeholder={this.searchPlaceholder}
+                          searchSource="alert_builder"
+                          filterKeys={filterKeys}
+                          disabled={disabled || isErrorMigration}
+                          onChange={onChange}
+                          invalidMessages={{
+                            [InvalidReason.WILDCARD_NOT_ALLOWED]: t(
+                              'The wildcard operator is not supported here.'
+                            ),
+                            [InvalidReason.FREE_TEXT_NOT_ALLOWED]: t(
+                              'Free text search is not allowed. If you want to partially match transaction names, use glob patterns like "transaction:*transaction-name*"'
+                            ),
+                          }}
+                          onSearch={query => {
+                            onFilterSearch(query, true);
+                            onChange(query, {});
+                          }}
+                          onBlur={(query, {parsedQuery}) => {
+                            onFilterSearch(query, parsedQuery);
+                            onBlur(query);
+                          }}
+                          // We only need strict validation for Transaction queries, everything else is fine
+                          disallowUnsupportedFilters={
+                            organization.features.includes('alert-allow-indexed') ||
+                            (hasOnDemandMetricAlertFeature(organization) &&
+                              isOnDemandQueryString(value))
+                              ? false
+                              : dataset === Dataset.GENERIC_METRICS
                           }
-                          return (
-                            <SearchInvalidTag
-                              message={tct(
-                                "The field [field] isn't supported for performance alerts.",
-                                {
-                                  field: <code>{item.desc}</code>,
-                                }
-                              )}
-                              docLink="https://docs.sentry.io/product/alerts/create-alerts/metric-alert-config/#tags--properties"
-                            />
-                          );
-                        }}
-                        searchSource="alert_builder"
-                        defaultQuery={initialData?.query ?? ''}
-                        {...getSupportedAndOmittedTags(dataset, organization)}
-                        includeSessionTagsValues={dataset === Dataset.SESSIONS}
-                        disabled={disabled || isErrorMigration}
-                        useFormWrapper={false}
-                        organization={organization}
-                        placeholder={this.searchPlaceholder}
-                        onChange={onChange}
-                        query={initialData.query}
-                        // We only need strict validation for Transaction queries, everything else is fine
-                        highlightUnsupportedTags={
-                          organization.features.includes('alert-allow-indexed') ||
-                          (hasOnDemandMetricAlertFeature(organization) &&
-                            isOnDemandQueryString(initialData.query))
-                            ? false
-                            : [Dataset.GENERIC_METRICS, Dataset.TRANSACTIONS].includes(
-                                dataset
-                              )
-                        }
-                        onKeyDown={e => {
-                          /**
-                           * Do not allow enter key to submit the alerts form since it is unlikely
-                           * users will be ready to create the rule as this sits above required fields.
-                           */
-                          if (e.key === 'Enter') {
-                            e.preventDefault();
-                            e.stopPropagation();
+                        />
+                      ) : (
+                        <StyledSearchBar
+                          disallowWildcard={dataset === Dataset.SESSIONS}
+                          disallowFreeText={[
+                            Dataset.GENERIC_METRICS,
+                            Dataset.TRANSACTIONS,
+                          ].includes(dataset)}
+                          invalidMessages={{
+                            [InvalidReason.WILDCARD_NOT_ALLOWED]: t(
+                              'The wildcard operator is not supported here.'
+                            ),
+                            [InvalidReason.FREE_TEXT_NOT_ALLOWED]: t(
+                              'Free text search is not allowed. If you want to partially match transaction names, use glob patterns like "transaction:*transaction-name*"'
+                            ),
+                          }}
+                          customInvalidTagMessage={item => {
+                            if (dataset !== Dataset.GENERIC_METRICS) {
+                              return null;
+                            }
+                            return (
+                              <SearchInvalidTag
+                                message={tct(
+                                  "The field [field] isn't supported for performance alerts.",
+                                  {
+                                    field: <code>{item.desc}</code>,
+                                  }
+                                )}
+                                docLink="https://docs.sentry.io/product/alerts/create-alerts/metric-alert-config/#tags--properties"
+                              />
+                            );
+                          }}
+                          searchSource="alert_builder"
+                          defaultQuery={initialData?.query ?? ''}
+                          {...getSupportedAndOmittedTags(dataset, organization)}
+                          includeSessionTagsValues={dataset === Dataset.SESSIONS}
+                          disabled={disabled || isErrorMigration}
+                          useFormWrapper={false}
+                          organization={organization}
+                          placeholder={this.searchPlaceholder}
+                          onChange={onChange}
+                          query={initialData.query}
+                          // We only need strict validation for Transaction queries, everything else is fine
+                          highlightUnsupportedTags={
+                            organization.features.includes('alert-allow-indexed') ||
+                            (hasOnDemandMetricAlertFeature(organization) &&
+                              isOnDemandQueryString(value))
+                              ? false
+                              : dataset === Dataset.GENERIC_METRICS
                           }
-
-                          onKeyDown?.(e);
-                        }}
-                        onClose={(query, {validSearch}) => {
-                          onFilterSearch(query, validSearch);
-                          onBlur(query);
-                        }}
-                        onSearch={query => {
-                          onFilterSearch(query, true);
-                          onChange(query, {});
-                        }}
-                        hasRecentSearches={dataset !== Dataset.SESSIONS}
-                      />
+                          onKeyDown={e => {
+                            /**
+                             * Do not allow enter key to submit the alerts form since it is unlikely
+                             * users will be ready to create the rule as this sits above required fields.
+                             */
+                            if (e.key === 'Enter') {
+                              e.preventDefault();
+                              e.stopPropagation();
+                            }
+                            onKeyDown?.(e);
+                          }}
+                          onClose={(query, {validSearch}) => {
+                            onFilterSearch(query, validSearch);
+                            onBlur(query);
+                          }}
+                          onSearch={query => {
+                            onFilterSearch(query, true);
+                            onChange(query, {});
+                          }}
+                          hasRecentSearches={dataset !== Dataset.SESSIONS}
+                        />
+                      )}
                       {isExtrapolatedChartData && isOnDemandQueryString(value) && (
                         <OnDemandWarningIcon
                           color="gray500"
@@ -588,7 +876,7 @@ const StyledListTitle = styled('div')`
 `;
 
 // This is a temporary hacky solution to hide list items without changing the numbering of the rest of the list
-// TODO(telemetry-experience): Remove this once the migration is complete
+// TODO(issues): Remove this once the migration is complete
 const HiddenListItem = styled(ListItem)`
   position: absolute;
   width: 0px;
@@ -650,4 +938,58 @@ const FormRow = styled('div')<{columns?: number; noMargin?: boolean}>`
     `}
 `;
 
-export default withApi(withProjects(RuleConditionsForm));
+const MonitorSelect = styled('div')`
+  border-radius: ${p => p.theme.borderRadius};
+  border: 1px solid ${p => p.theme.border};
+  width: 100%;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  height: 5rem;
+`;
+
+type MonitorCardProps = {
+  isSelected: boolean;
+  /**
+   * Adds hover and focus states to the card
+   */
+  position: 'left' | 'right';
+  disabled?: boolean;
+};
+
+const MonitorCard = styled('div')<MonitorCardProps>`
+  padding: ${space(1)} ${space(2)};
+  display: flex;
+  flex-grow: 1;
+  flex-direction: column;
+  cursor: ${p => (p.disabled || p.isSelected ? 'default' : 'pointer')};
+  justify-content: center;
+  background-color: ${p =>
+    p.disabled && !p.isSelected ? p.theme.backgroundSecondary : p.theme.background};
+
+  &:focus,
+  &:hover {
+    ${p =>
+      p.disabled || p.isSelected
+        ? ''
+        : `
+        outline: 1px solid ${p.theme.purple200};
+        background-color: ${p.theme.backgroundSecondary};
+        `}
+  }
+
+  border-top-left-radius: ${p => (p.position === 'left' ? p.theme.borderRadius : 0)};
+  border-bottom-left-radius: ${p => (p.position === 'left' ? p.theme.borderRadius : 0)};
+  border-top-right-radius: ${p => (p.position !== 'left' ? p.theme.borderRadius : 0)};
+  border-bottom-right-radius: ${p => (p.position !== 'left' ? p.theme.borderRadius : 0)};
+  margin: ${p =>
+    p.isSelected ? (p.position === 'left' ? '1px 2px 1px 0' : '1px 0 1px 2px') : 0};
+  outline: ${p => (p.isSelected ? `2px solid ${p.theme.purple400}` : 'none')};
+`;
+
+const ActivatedAlertFields = styled('div')`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+`;
+
+export default withApi(withProjects(withTags(RuleConditionsForm)));

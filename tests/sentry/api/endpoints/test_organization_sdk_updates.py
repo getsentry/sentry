@@ -6,10 +6,8 @@ from django.urls import reverse
 from sentry.sdk_updates import SdkIndexState
 from sentry.testutils.cases import APITestCase, SnubaTestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
-from sentry.testutils.silo import region_silo_test
 
 
-@region_silo_test
 class OrganizationSdkUpdates(APITestCase, SnubaTestCase):
     def setUp(self):
         super().setUp()
@@ -18,7 +16,7 @@ class OrganizationSdkUpdates(APITestCase, SnubaTestCase):
 
         self.url = reverse(
             "sentry-api-0-organization-sdk-updates",
-            kwargs={"organization_slug": self.organization.slug},
+            kwargs={"organization_id_or_slug": self.organization.slug},
         )
         self.features = {}
 
@@ -83,7 +81,7 @@ class OrganizationSdkUpdates(APITestCase, SnubaTestCase):
 
         url = reverse(
             "sentry-api-0-organization-sdk-updates",
-            kwargs={"organization_slug": org.slug},
+            kwargs={"organization_id_or_slug": org.slug},
         )
 
         with self.feature(self.features):
@@ -234,7 +232,6 @@ class OrganizationSdkUpdates(APITestCase, SnubaTestCase):
         assert len(update_suggestions) == 0
 
 
-@region_silo_test
 class OrganizationSdks(APITestCase):
     endpoint = "sentry-api-0-organization-sdks"
 

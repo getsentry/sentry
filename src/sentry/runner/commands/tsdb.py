@@ -1,3 +1,4 @@
+from collections.abc import Iterable
 from datetime import datetime, timedelta, timezone
 
 import click
@@ -10,7 +11,12 @@ from sentry.utils.iterators import chunked
 class DateTimeParamType(click.ParamType):
     name = "datetime"
 
-    def convert(self, context, option, value):
+    def convert(
+        self,
+        value: str | datetime | None,
+        param: click.Parameter | None,
+        context: click.Context | None,
+    ) -> datetime | None:
         if value is None:
             return value
         elif isinstance(value, datetime):
@@ -19,7 +25,7 @@ class DateTimeParamType(click.ParamType):
         try:
             result = parse(value)
         except Exception:
-            self.fail(f"{value!r} is not a valid datetime", option, context)
+            self.fail(f"{value!r} is not a valid datetime", param, context)
 
         if result.tzinfo is None:
             # TODO: We should probably warn about this? Also note that this
@@ -31,12 +37,12 @@ class DateTimeParamType(click.ParamType):
 
 
 @click.group()
-def tsdb():
+def tsdb() -> None:
     """Tools for interacting with the time series database."""
 
 
 @tsdb.group()
-def query():
+def query() -> None:
     """Execute queries against the time series database."""
 
 
@@ -55,7 +61,7 @@ def query():
 @click.option("--since", callback=DateTimeParamType())
 @click.option("--until", callback=DateTimeParamType())
 @configuration
-def organizations(metrics, since, until):
+def organizations(metrics: tuple[str, ...], since: datetime | None, until: datetime | None) -> None:
     """
     Fetch metrics for organizations.
     """
@@ -68,11 +74,11 @@ def organizations(metrics, since, until):
     stdout = click.get_text_stream("stdout")
     stderr = click.get_text_stream("stderr")
 
-    def aggregate(series):
+    def aggregate(series: Iterable[tuple[object, float]]) -> float:
         return sum(value for timestamp, value in series)
 
-    metrics = {name: getattr(TSDBModel, name) for name in metrics}
-    if not metrics:
+    metrics_dct = {name: getattr(TSDBModel, name) for name in metrics}
+    if not metrics_dct:
         return
 
     if until is None:
@@ -84,7 +90,7 @@ def organizations(metrics, since, until):
     if until < since:
         raise click.ClickException(f"invalid time range provided: {since} to {until}")
 
-    stderr.write("Dumping {} from {} to {}...\n".format(", ".join(metrics.keys()), since, until))
+    stderr.write("Dumping {} from {} to {}...\n".format(", ".join(metrics_dct), since, until))
 
     objects = Organization.objects.all()
 
@@ -92,12 +98,12 @@ def organizations(metrics, since, until):
         instances = {instance.pk: instance for instance in chunk}
 
         results = {}
-        for metric in metrics.values():
+        for metric in metrics_dct.values():
             results[metric] = tsdb.backend.get_range(metric, list(instances.keys()), since, until)
 
         for key, instance in instances.items():
             values = []
-            for metric in metrics.values():
+            for metric in metrics_dct.values():
                 values.append(aggregate(results[metric][key]))
 
             stdout.write(

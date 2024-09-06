@@ -3,8 +3,7 @@ from __future__ import annotations
 import importlib.metadata
 import logging
 import os
-import sys
-from typing import Any
+from typing import IO, Any
 
 import click
 from django.conf import settings
@@ -16,7 +15,7 @@ from sentry.utils.warnings import DeprecatedSettingWarning
 
 
 class ConfigurationError(ValueError, click.ClickException):
-    def show(self, file=None):
+    def show(self, file: IO[str] | None = None) -> None:
         if file is None:
             from click._compat import get_text_stderr
 
@@ -54,7 +53,7 @@ def register_plugins(settings: Any, raise_on_plugin_load_failure: bool = False) 
     for plugin in plugins.all(version=None):
         init_plugin(plugin)
 
-    from sentry import integrations
+    from sentry.integrations.manager import default_manager as integrations
     from sentry.utils.imports import import_string
 
     for integration_path in settings.SENTRY_DEFAULT_INTEGRATIONS:
@@ -276,7 +275,7 @@ def configure_structlog() -> None:
     if lvl and lvl not in logging._nameToLevel:
         raise AttributeError("%s is not a valid logging level." % lvl)
 
-    settings.LOGGING["root"].update({"level": lvl or settings.LOGGING["default_level"]})  # type: ignore[union-attr]  # https://github.com/python/typeshed/pull/6193/files#r1408253621
+    settings.LOGGING["root"].update({"level": lvl or settings.LOGGING["default_level"]})
 
     if lvl:
         for logger in settings.LOGGING["overridable"]:
@@ -306,11 +305,6 @@ def show_big_error(message: str | list[str]) -> None:
 
 def initialize_app(config: dict[str, Any], skip_service_validation: bool = False) -> None:
     settings = config["settings"]
-
-    if settings.DEBUG and hasattr(sys.stderr, "fileno"):
-        # Enable line buffering for stderr, TODO(py3.9) can be removed after py3.9, see bpo-13601
-        sys.stderr = os.fdopen(sys.stderr.fileno(), "w", 1)
-        sys.stdout = os.fdopen(sys.stdout.fileno(), "w", 1)
 
     # Just reuse the integration app for Single Org / Self-Hosted as
     # it doesn't make much sense to use 2 separate apps for SSO and
@@ -399,6 +393,17 @@ def initialize_app(config: dict[str, Any], skip_service_validation: bool = False
 
     from sentry.app import env
     from sentry.runner.settings import get_sentry_conf
+
+    # Hacky workaround to dynamically set the CSRF_TRUSTED_ORIGINS for self hosted
+    if settings.SENTRY_SELF_HOSTED and not settings.CSRF_TRUSTED_ORIGINS:
+        from sentry import options
+
+        system_url_prefix = options.get("system.url-prefix")
+        if system_url_prefix:
+            settings.CSRF_TRUSTED_ORIGINS = [system_url_prefix]
+        else:
+            # For first time users that have not yet set system url prefix, let's default to localhost url
+            settings.CSRF_TRUSTED_ORIGINS = ["http://localhost:9000", "http://127.0.0.1:9000"]
 
     env.data["config"] = get_sentry_conf()
     env.data["start_date"] = timezone.now()
@@ -544,6 +549,8 @@ def apply_legacy_settings(settings: Any) -> None:
         ("MAILGUN_API_KEY", "mail.mailgun-api-key"),
         ("SENTRY_FILESTORE", "filestore.backend"),
         ("SENTRY_FILESTORE_OPTIONS", "filestore.options"),
+        ("SENTRY_RELOCATION_BACKEND", "filestore.relocation-backend"),
+        ("SENTRY_RELOCATION_OPTIONS", "filestore.relocation-options"),
         ("GOOGLE_CLIENT_ID", "auth-google.client-id"),
         ("GOOGLE_CLIENT_SECRET", "auth-google.client-secret"),
     ):
@@ -649,29 +656,6 @@ def validate_snuba() -> None:
     if has_all_snuba_required_backends and eventstream_is_snuba:
         return
 
-    from sentry.features import requires_snuba as snuba_features
-
-    snuba_enabled_features = set()
-
-    for feature in snuba_features:
-        if settings.SENTRY_FEATURES.get(feature, False):
-            snuba_enabled_features.add(feature)
-
-    if snuba_enabled_features and not eventstream_is_snuba:
-        show_big_error(
-            """
-You have features enabled which require Snuba,
-but you don't have any Snuba compatible configuration.
-
-Features you have enabled:
-%s
-
-See: https://github.com/getsentry/snuba#sentry--snuba
-"""
-            % "\n".join(snuba_enabled_features)
-        )
-        raise ConfigurationError("Cannot continue without Snuba configured.")
-
     if not eventstream_is_snuba:
         show_big_error(
             """
@@ -719,8 +703,8 @@ See: https://github.com/getsentry/snuba#sentry--snuba"""
         )
 
 
-def validate_outbox_config():
-    from sentry.models.outbox import ControlOutboxBase, RegionOutboxBase
+def validate_outbox_config() -> None:
+    from sentry.hybridcloud.models.outbox import ControlOutboxBase, RegionOutboxBase
 
     for outbox_name in settings.SENTRY_OUTBOX_MODELS["CONTROL"]:
         ControlOutboxBase.from_outbox_name(outbox_name)

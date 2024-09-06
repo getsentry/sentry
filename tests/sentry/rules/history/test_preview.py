@@ -25,7 +25,6 @@ from sentry.rules.history.preview import (
 from sentry.snuba.dataset import Dataset
 from sentry.testutils.cases import PerformanceIssueTestCase, SnubaTestCase, TestCase
 from sentry.testutils.helpers.datetime import freeze_time, iso_format
-from sentry.testutils.silo import region_silo_test
 from sentry.types.activity import ActivityType
 from sentry.types.condition_activity import ConditionActivity, ConditionActivityType
 from sentry.utils.samples import load_data
@@ -38,7 +37,6 @@ def get_hours(time: timedelta) -> int:
     return time.days * 24 + time.seconds // (60 * 60)
 
 
-@region_silo_test
 @freeze_time()
 class ProjectRulePreviewTest(TestCase, SnubaTestCase, PerformanceIssueTestCase):
     def setUp(self):
@@ -56,7 +54,7 @@ class ProjectRulePreviewTest(TestCase, SnubaTestCase, PerformanceIssueTestCase):
             )
         return hours
 
-    def _set_up_activity(self, condition_type):
+    def _set_up_activity(self, condition_type, data=None):
         hours = get_hours(PREVIEW_TIME_RANGE)
         for i in range(hours):
             group = Group.objects.create(id=i, project=self.project)
@@ -65,6 +63,7 @@ class ProjectRulePreviewTest(TestCase, SnubaTestCase, PerformanceIssueTestCase):
                 group=group,
                 type=condition_type.value,
                 datetime=timezone.now() - timedelta(hours=i + 1),
+                data=data or {},
             )
         return hours
 
@@ -349,6 +348,56 @@ class ProjectRulePreviewTest(TestCase, SnubaTestCase, PerformanceIssueTestCase):
         assert result is not None
         assert len(result) == 0
 
+    def test_conditions_with_priority(self):
+        invalid_conditions = [
+            [
+                {"id": "sentry.rules.conditions.first_seen_event.FirstSeenEventCondition"},
+                {
+                    "id": "sentry.rules.conditions.high_priority_issue.ExistingHighPriorityIssueCondition"
+                },
+            ],
+            [
+                {"id": "sentry.rules.conditions.high_priority_issue.NewHighPriorityIssueCondition"},
+                {"id": "sentry.rules.conditions.reappeared_event.ReappearedEventCondition"},
+            ],
+            [
+                {"id": "sentry.rules.conditions.high_priority_issue.NewHighPriorityIssueCondition"},
+                {
+                    "id": "sentry.rules.conditions.high_priority_issue.ExistingHighPriorityIssueCondition"
+                },
+            ],
+        ]
+
+        for condition in invalid_conditions:
+            result = preview(self.project, condition, [], "all", "all", 60)
+            assert result is not None
+            assert len(result) == 0
+
+        hours = self._set_up_first_seen()
+        new_high_priority = [
+            {"id": "sentry.rules.conditions.high_priority_issue.NewHighPriorityIssueCondition"},
+            {"id": "sentry.rules.conditions.first_seen_event.FirstSeenEventCondition"},
+        ]
+
+        result = preview(self.project, new_high_priority, [], "all", "all", 60)
+        assert result is not None
+        assert len(result) == hours
+
+        existing_high_priority = [
+            {
+                "id": "sentry.rules.conditions.high_priority_issue.ExistingHighPriorityIssueCondition"
+            },
+            {"id": "sentry.rules.conditions.reappeared_event.ReappearedEventCondition"},
+        ]
+
+        Group.objects.all().delete()
+        hours = self._set_up_activity(
+            ActivityType.SET_PRIORITY, data={"priority": "high", "reason": "escalating"}
+        )
+        result = preview(self.project, existing_high_priority, [], "all", "all", 60)
+        assert result is not None
+        assert len(result) == hours
+
     def test_multiple_projects(self):
         other_project = Project.objects.create(organization=self.organization)
         prev_hour = timezone.now() - timedelta(hours=1)
@@ -443,7 +492,7 @@ class ProjectRulePreviewTest(TestCase, SnubaTestCase, PerformanceIssueTestCase):
             {
                 "id": "sentry.rules.filters.event_attribute.EventAttributeFilter",
                 "attribute": "message",
-                "match": "eq",
+                "match": "co",
                 "value": "N+1 Query",
             }
         ]
@@ -528,7 +577,6 @@ class ProjectRulePreviewTest(TestCase, SnubaTestCase, PerformanceIssueTestCase):
         assert result[self.group.id] == prev_two_hour
 
 
-@region_silo_test
 @freeze_time()
 class FrequencyConditionTest(
     TestCase, SnubaTestCase, OccurrenceTestMixin, PerformanceIssueTestCase
@@ -705,42 +753,6 @@ class FrequencyConditionTest(
     def test_frequency_conditions(self):
         prev_hour = timezone.now() - timedelta(hours=1)
         prev_two_hour = timezone.now() - timedelta(hours=2)
-        group = None
-        for time in (prev_hour, prev_two_hour):
-            for i in range(5):
-                group = self.store_event(
-                    project_id=self.project.id, data={"timestamp": iso_format(time)}
-                ).group
-        assert group is not None
-
-        conditions = [
-            {
-                "id": "sentry.rules.conditions.event_frequency.EventFrequencyCondition",
-                "value": 4,
-                "interval": "5m",
-            },
-            {
-                "id": "sentry.rules.conditions.event_frequency.EventFrequencyCondition",
-                "value": 9,
-                "interval": "1d",
-            },
-        ]
-        result = preview(self.project, conditions, [], *MATCH_ARGS)
-        assert result is not None
-        assert group.id in result
-
-        conditions[0]["value"] = 5
-        result = preview(self.project, conditions, [], *MATCH_ARGS)
-        assert result is not None
-        assert group.id not in result
-
-        result = preview(self.project, conditions, [], "any", "all", 0)
-        assert result is not None
-        assert group.id in result
-
-    def test_frequency_conditions_issue_platform(self):
-        prev_hour = timezone.now() - timedelta(hours=1)
-        prev_two_hour = timezone.now() - timedelta(hours=2)
         for time in (prev_hour, prev_two_hour):
             for i in range(5):
                 event = self.store_event(
@@ -874,7 +886,6 @@ class FrequencyConditionTest(
         assert group.id not in result
 
 
-@region_silo_test
 @freeze_time()
 class GetEventsTest(TestCase, SnubaTestCase):
     def test_get_first_seen(self):

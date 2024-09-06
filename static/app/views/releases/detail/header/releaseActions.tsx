@@ -1,7 +1,6 @@
 import {Fragment} from 'react';
-import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
-import {Location} from 'history';
+import type {Location} from 'history';
 
 import {archiveRelease, restoreRelease} from 'sentry/actionCreators/release';
 import {Client} from 'sentry/api';
@@ -15,10 +14,12 @@ import {Tooltip} from 'sentry/components/tooltip';
 import {IconEllipsis} from 'sentry/icons';
 import {t, tct, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {Organization, Release, ReleaseMeta} from 'sentry/types';
+import type {Organization} from 'sentry/types/organization';
+import type {Release, ReleaseMeta} from 'sentry/types/release';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {formatVersion} from 'sentry/utils/formatters';
-import {normalizeUrl} from 'sentry/utils/withDomainRequired';
+import {browserHistory} from 'sentry/utils/browserHistory';
+import normalizeUrl from 'sentry/utils/url/normalizeUrl';
+import {formatVersion} from 'sentry/utils/versions/formatVersion';
 
 import {isReleaseArchived} from '../../utils';
 
@@ -207,7 +208,7 @@ function ReleaseActions({
         items={menuItems}
         triggerProps={{
           showChevron: false,
-          icon: <IconEllipsis size="xs" />,
+          icon: <IconEllipsis />,
           'aria-label': t('Actions'),
         }}
         position="bottom-end"

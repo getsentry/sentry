@@ -1,15 +1,19 @@
 import {useMemo} from 'react';
-import isEmpty from 'lodash/isEmpty';
 import orderBy from 'lodash/orderBy';
 
 import {bulkUpdate, useFetchIssueTags} from 'sentry/actionCreators/group';
 import {Client} from 'sentry/api';
 import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
+import GroupStore from 'sentry/stores/groupStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
-import {Group, GroupActivity} from 'sentry/types';
-import {Event} from 'sentry/types/event';
+import type {Event} from 'sentry/types/event';
+import type {Group, GroupActivity, TagValue} from 'sentry/types/group';
+import {defined} from 'sentry/utils';
 import {useLocation} from 'sentry/utils/useLocation';
+import useOrganization from 'sentry/utils/useOrganization';
+import {useParams} from 'sentry/utils/useParams';
+import {useUser} from 'sentry/utils/useUser';
 
 export function markEventSeen(
   api: Client,
@@ -48,6 +52,39 @@ export function useDefaultIssueEvent() {
   const options = user ? user.options : null;
   return options?.defaultIssueEvent ?? 'recommended';
 }
+/**
+ * Combines two TagValue arrays and combines TagValue.count upon conflict
+ */
+export function mergeAndSortTagValues(
+  tagValues1: TagValue[],
+  tagValues2: TagValue[],
+  sort: 'count' | 'lastSeen' = 'lastSeen'
+): TagValue[] {
+  const tagValueCollection = tagValues1.reduce<Record<string, TagValue>>(
+    (acc, tagValue) => {
+      acc[tagValue.value] = tagValue;
+      return acc;
+    },
+    {}
+  );
+  tagValues2.forEach(tagValue => {
+    if (tagValueCollection[tagValue.value]) {
+      tagValueCollection[tagValue.value].count += tagValue.count;
+      if (tagValue.lastSeen > tagValueCollection[tagValue.value].lastSeen) {
+        tagValueCollection[tagValue.value].lastSeen = tagValue.lastSeen;
+      }
+    } else {
+      tagValueCollection[tagValue.value] = tagValue;
+    }
+  });
+  const allTagValues: TagValue[] = Object.values(tagValueCollection);
+  if (sort === 'count') {
+    allTagValues.sort((a, b) => b.count - a.count);
+  } else {
+    allTagValues.sort((a, b) => (b.lastSeen < a.lastSeen ? -1 : 1));
+  }
+  return allTagValues;
+}
 
 /**
  * Returns the environment name for an event or null
@@ -84,7 +121,7 @@ const SUBSCRIPTION_REASONS = {
  * @returns Reason for subscription
  */
 export function getSubscriptionReason(group: Group) {
-  if (group.subscriptionDetails && group.subscriptionDetails.disabled) {
+  if (group.subscriptionDetails?.disabled) {
     return t('You have disabled workflow notifications for this project.');
   }
 
@@ -110,9 +147,13 @@ export function getSubscriptionReason(group: Group) {
   );
 }
 
-export function getGroupMostRecentActivity(activities: GroupActivity[]) {
+export function getGroupMostRecentActivity(
+  activities: GroupActivity[] | undefined
+): GroupActivity | undefined {
   // Most recent activity
-  return orderBy([...activities], ({dateCreated}) => new Date(dateCreated), ['desc'])[0];
+  return activities
+    ? orderBy([...activities], ({dateCreated}) => new Date(dateCreated), ['desc'])[0]
+    : undefined;
 }
 
 export enum ReprocessingStatus {
@@ -202,7 +243,7 @@ export function getGroupDetailsQueryData({
 } = {}): Record<string, string | string[]> {
   // Note, we do not want to include the environment key at all if there are no environments
   const query: Record<string, string | string[]> = {
-    ...(!isEmpty(environments) ? {environment: environments} : {}),
+    ...(environments && environments.length > 0 ? {environment: environments} : {}),
     expand: ['inbox', 'owners'],
     collapse: ['release', 'tags'],
   };
@@ -224,9 +265,41 @@ export function getGroupEventDetailsQueryData({
     ...(query ? {query} : {}),
   };
 
-  if (!environments || isEmpty(environments)) {
+  if (!environments || environments.length === 0) {
     return defaultParams;
   }
 
   return {...defaultParams, environment: environments};
+}
+
+export function useHasStreamlinedUI() {
+  const location = useLocation();
+  const user = useUser();
+  if (location.query.streamline === '0') {
+    return false;
+  }
+  return (
+    location.query.streamline === '1' || !!user?.options?.prefersIssueDetailsStreamlinedUI
+  );
+}
+
+export function useIsSampleEvent(): boolean {
+  const params = useParams();
+  const organization = useOrganization();
+  const environments = useEnvironmentsFromUrl();
+
+  const groupId = params.groupId;
+
+  const group = GroupStore.get(groupId);
+
+  const {data} = useFetchIssueTagsForDetailsPage(
+    {
+      groupId: groupId,
+      orgSlug: organization.slug,
+      environment: environments,
+    },
+    // Don't want this query to take precedence over the main requests
+    {enabled: defined(group)}
+  );
+  return data?.some(tag => tag.key === 'sample_event') ?? false;
 }

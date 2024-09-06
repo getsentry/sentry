@@ -1,18 +1,17 @@
 import * as Sentry from '@sentry/react';
 import keyBy from 'lodash/keyBy';
 
+import type {EntrySpans, EventTransaction} from 'sentry/types/event';
+import {EntryType} from 'sentry/types/event';
 import {
-  EntrySpans,
-  EntryType,
-  EventTransaction,
   getIssueTypeFromOccurrenceType,
   IssueCategory,
   IssueType,
-} from 'sentry/types';
+} from 'sentry/types/group';
 
-import {RawSpanType} from '../spans/types';
+import type {RawSpanType} from '../spans/types';
 
-import {TraceContextSpanProxy} from './spanEvidence';
+import type {TraceContextSpanProxy} from './spanEvidence';
 
 export function getSpanInfoFromTransactionEvent(
   event: Pick<
@@ -45,7 +44,7 @@ export function getSpanInfoFromTransactionEvent(
     ? [...spanEntry.data]
     : [];
 
-  if (event?.contexts?.trace && event?.contexts?.trace?.span_id) {
+  if (event?.contexts?.trace?.span_id) {
     // TODO: Fix this conditional and check if span_id is ever actually undefined.
     spans.push(event.contexts.trace as TraceContextSpanProxy);
   }

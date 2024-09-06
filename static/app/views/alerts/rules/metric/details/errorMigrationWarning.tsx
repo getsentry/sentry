@@ -1,8 +1,8 @@
 import styled from '@emotion/styled';
 
+import type {PromptResponse} from 'sentry/actionCreators/prompts';
 import {
   makePromptsCheckQueryKey,
-  PromptResponse,
   promptsUpdate,
   usePromptsCheck,
 } from 'sentry/actionCreators/prompts';
@@ -11,16 +11,13 @@ import {Button, LinkButton} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import {IconClose, IconEdit} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import type {Project} from 'sentry/types';
+import type {Project} from 'sentry/types/project';
 import {promptIsDismissed} from 'sentry/utils/promptIsDismissed';
 import {setApiQueryData, useQueryClient} from 'sentry/utils/queryClient';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 import type {MetricRule} from 'sentry/views/alerts/rules/metric/types';
-import {
-  hasIgnoreArchivedFeatureFlag,
-  ruleNeedsErrorMigration,
-} from 'sentry/views/alerts/utils/migrationUi';
+import {ruleNeedsErrorMigration} from 'sentry/views/alerts/utils/migrationUi';
 
 interface ErrorMigrationWarningProps {
   project?: Project;
@@ -45,13 +42,12 @@ export function ErrorMigrationWarning({project, rule}: ErrorMigrationWarningProp
   const api = useApi();
   const organization = useOrganization();
   const queryClient = useQueryClient();
-  const showErrorMigrationWarning =
-    rule && hasIgnoreArchivedFeatureFlag(organization) && ruleNeedsErrorMigration(rule);
+  const showErrorMigrationWarning = rule && ruleNeedsErrorMigration(rule);
   const isCreatedAfterMigration = rule && createdOrModifiedAfterMigration(rule);
   const prompt = usePromptsCheck(
     {
+      organization,
       feature: METRIC_ALERT_IGNORE_ARCHIVED_ISSUES,
-      organizationId: organization.id,
       projectId: project?.id,
     },
     {staleTime: Infinity, enabled: showErrorMigrationWarning && !isCreatedAfterMigration}
@@ -76,7 +72,7 @@ export function ErrorMigrationWarning({project, rule}: ErrorMigrationWarningProp
 
   const dismissPrompt = () => {
     promptsUpdate(api, {
-      organizationId: organization.id,
+      organization,
       projectId: project?.id,
       feature: METRIC_ALERT_IGNORE_ARCHIVED_ISSUES,
       status: 'dismissed',
@@ -86,8 +82,8 @@ export function ErrorMigrationWarning({project, rule}: ErrorMigrationWarningProp
     setApiQueryData<PromptResponse>(
       queryClient,
       makePromptsCheckQueryKey({
+        organization,
         feature: METRIC_ALERT_IGNORE_ARCHIVED_ISSUES,
-        organizationId: organization.id,
         projectId: project?.id,
       }),
       () => {
@@ -114,7 +110,7 @@ export function ErrorMigrationWarning({project, rule}: ErrorMigrationWarningProp
               query: {migration: '1'},
             }}
             size="xs"
-            icon={<IconEdit size="xs" />}
+            icon={<IconEdit />}
           >
             {t('Exclude archived issues')}
           </LinkButton>
@@ -136,10 +132,9 @@ export function ErrorMigrationWarning({project, rule}: ErrorMigrationWarningProp
 }
 
 const DismissButton = styled(Button)`
-  color: ${p => p.theme.alert.warning.iconColor};
+  color: ${p => p.theme.alert.warning.color};
   pointer-events: all;
   &:hover {
-    color: ${p => p.theme.alert.warning.iconHoverColor};
     opacity: 0.5;
   }
 `;

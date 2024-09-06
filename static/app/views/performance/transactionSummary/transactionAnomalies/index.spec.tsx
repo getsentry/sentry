@@ -1,7 +1,5 @@
-import {
-  initializeData as _initializeData,
-  InitializeDataSettings,
-} from 'sentry-test/performance/initializePerformanceData';
+import type {InitializeDataSettings} from 'sentry-test/performance/initializePerformanceData';
+import {initializeData as _initializeData} from 'sentry-test/performance/initializePerformanceData';
 import {act, cleanup, render, screen} from 'sentry-test/reactTestingLibrary';
 
 import ProjectsStore from 'sentry/stores/projectsStore';
@@ -10,7 +8,7 @@ import TransactionAnomalies from 'sentry/views/performance/transactionSummary/tr
 const initializeData = (settings: InitializeDataSettings) => {
   const data = _initializeData(settings);
 
-  act(() => void ProjectsStore.loadInitialData(data.organization.projects));
+  act(() => void ProjectsStore.loadInitialData(data.projects));
   return data;
 };
 
@@ -27,12 +25,16 @@ describe('AnomaliesTab', function () {
       body: [],
     });
     MockApiClient.addMockResponse({
-      url: '/prompts-activity/',
+      url: '/organizations/org-slug/prompts-activity/',
       body: {},
     });
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/events-has-measurements/',
       body: {measurements: false},
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/replay-count/',
+      body: {},
     });
     anomaliesMock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/transaction-anomaly-detection/',
@@ -47,7 +49,7 @@ describe('AnomaliesTab', function () {
     });
 
     render(<TransactionAnomalies location={initialData.router.location} />, {
-      context: initialData.routerContext,
+      router: initialData.router,
       organization: initialData.organization,
     });
 

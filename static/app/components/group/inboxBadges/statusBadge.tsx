@@ -2,7 +2,8 @@ import type {Theme} from '@emotion/react';
 
 import {GroupStatusTag} from 'sentry/components/group/inboxBadges/groupStatusTag';
 import {t} from 'sentry/locale';
-import {Group, GroupSubstatus} from 'sentry/types';
+import type {Group} from 'sentry/types/group';
+import {GroupSubstatus} from 'sentry/types/group';
 
 interface SubstatusBadgeProps {
   status: Group['status'];
@@ -10,7 +11,7 @@ interface SubstatusBadgeProps {
   substatus?: Group['substatus'];
 }
 
-function getBadgeProperties(
+export function getBadgeProperties(
   status: Group['status'],
   substatus: Group['substatus']
 ): {status: string; tagType: keyof Theme['tag']; tooltip?: string} | undefined {
@@ -52,17 +53,13 @@ function getBadgeProperties(
         substatus === GroupSubstatus.ARCHIVED_FOREVER
           ? t('Archived forever')
           : substatus === GroupSubstatus.ARCHIVED_UNTIL_ESCALATING
-          ? t('Archived until escalating')
-          : t('Archived until condition met'),
+            ? t('Archived until escalating')
+            : t('Archived until condition met'),
     };
   }
   return undefined;
 }
 
-/**
- * A replacement for the inbox badge that uses the group substatus
- * instead of the group inbox reason.
- */
 export function GroupStatusBadge(props: SubstatusBadgeProps) {
   const badge = getBadgeProperties(props.status, props.substatus);
   if (!badge) {

@@ -1,5 +1,5 @@
 from collections import defaultdict
-from typing import Mapping, Set
+from collections.abc import Mapping
 from unittest import TestCase
 
 from sentry.sentry_metrics.indexer.base import (
@@ -17,7 +17,7 @@ from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 
 
 def assert_fetch_type_for_tag_string_set(
-    meta: Mapping[str, Metadata], fetch_type: FetchType, str_set: Set[str]
+    meta: Mapping[str, Metadata], fetch_type: FetchType, str_set: set[str]
 ):
     assert all([meta[string].fetch_type == fetch_type for string in str_set])
 

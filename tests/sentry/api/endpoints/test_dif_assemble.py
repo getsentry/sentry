@@ -10,7 +10,7 @@ from sentry.models.files.file import File
 from sentry.models.files.fileblob import FileBlob
 from sentry.models.files.fileblobindex import FileBlobIndex
 from sentry.models.files.fileblobowner import FileBlobOwner
-from sentry.silo import SiloMode
+from sentry.silo.base import SiloMode
 from sentry.tasks.assemble import (
     AssembleTask,
     ChunkFileState,
@@ -20,10 +20,9 @@ from sentry.tasks.assemble import (
     set_assemble_status,
 )
 from sentry.testutils.cases import APITestCase
-from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
+from sentry.testutils.silo import assume_test_silo_mode
 
 
-@region_silo_test
 class DifAssembleEndpoint(APITestCase):
     def setUp(self):
         self.organization = self.create_organization(owner=self.user)

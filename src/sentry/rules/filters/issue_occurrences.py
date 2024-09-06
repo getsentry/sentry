@@ -1,4 +1,4 @@
-from typing import Any, Dict
+from typing import Any
 
 from django import forms
 from django.utils import timezone
@@ -33,7 +33,7 @@ class IssueOccurrencesFilter(EventFilter):
         return bool(issue_occurrences >= value)
 
     def passes_activity(
-        self, condition_activity: ConditionActivity, event_map: Dict[str, Any]
+        self, condition_activity: ConditionActivity, event_map: dict[str, Any]
     ) -> bool:
         try:
             value = int(self.get_option("value"))

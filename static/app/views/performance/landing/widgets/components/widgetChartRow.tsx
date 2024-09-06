@@ -1,16 +1,16 @@
 import {useState} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
-import {Location} from 'history';
+import type {Location} from 'history';
 
 import {PerformanceLayoutBodyRow} from 'sentry/components/performance/layouts';
 import {space} from 'sentry/styles/space';
-import EventView from 'sentry/utils/discover/eventView';
+import type EventView from 'sentry/utils/discover/eventView';
 import {usePerformanceDisplayType} from 'sentry/utils/performance/contexts/performanceDisplayContext';
-import {ProjectPerformanceType} from 'sentry/views/performance/utils';
+import type {ProjectPerformanceType} from 'sentry/views/performance/utils';
 
 import {getChartSetting} from '../utils';
-import {PerformanceWidgetSetting} from '../widgetDefinitions';
+import type {PerformanceWidgetSetting} from '../widgetDefinitions';
 
 import WidgetContainer from './widgetContainer';
 

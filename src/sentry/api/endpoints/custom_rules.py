@@ -1,20 +1,18 @@
 from datetime import datetime, timedelta, timezone
 from enum import Enum
-from typing import List, Optional
 
+import orjson
 import sentry_sdk
 from django.db import DatabaseError
 from rest_framework import serializers
-from rest_framework.permissions import BasePermission
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import features
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases import OrganizationEndpoint
-from sentry.api.event_search import SearchFilter, SearchKey, parse_search_query
+from sentry.api.bases.organization import OrganizationPermission
 from sentry.exceptions import InvalidSearchQuery
 from sentry.models.dynamicsampling import (
     CUSTOM_RULE_DATE_FORMAT,
@@ -23,14 +21,10 @@ from sentry.models.dynamicsampling import (
 )
 from sentry.models.organization import Organization
 from sentry.models.project import Project
-from sentry.snuba.metrics.extraction import RuleCondition, SearchQueryConverter
+from sentry.relay.types import RuleCondition
+from sentry.snuba.metrics.extraction import SearchQueryConverter, parse_search_query
 from sentry.tasks.relay import schedule_invalidate_project_config
-from sentry.utils import json
-from sentry.utils.dates import parse_stats_period
 
-MAX_RULE_PERIOD_STRING = "6h"
-MAX_RULE_PERIOD = parse_stats_period(MAX_RULE_PERIOD_STRING)
-DEFAULT_PERIOD_STRING = "1h"
 # the number of samples to collect per custom rule
 NUM_SAMPLES_PER_CUSTOM_RULE = 100
 
@@ -45,8 +39,6 @@ class UnsupportedSearchQuery(Exception):
         super().__init__(error_code.value, *args, **kwargs)
         self.error_code = error_code.value
 
-    pass
-
 
 class CustomRulesInputSerializer(serializers.Serializer):
     """
@@ -55,8 +47,6 @@ class CustomRulesInputSerializer(serializers.Serializer):
 
     # the query string in the same format as the Discover query
     query = serializers.CharField(required=False, allow_blank=True)
-    # desired time period for collection (it may be overriden if too long)
-    period = serializers.CharField(required=False)
     # list of project ids to collect data from
     projects = serializers.ListField(child=serializers.IntegerField(), required=False)
 
@@ -82,23 +72,10 @@ class CustomRulesInputSerializer(serializers.Serializer):
         if invalid_projects:
             raise serializers.ValidationError({"projects": invalid_projects})
 
-        period = data.get("period")
-        if period is None:
-            data["period"] = DEFAULT_PERIOD_STRING
-        else:
-            try:
-                period = parse_stats_period(period)
-            except OverflowError:
-                data["period"] = MAX_RULE_PERIOD_STRING
-            if period is None:
-                raise serializers.ValidationError("Invalid period")
-            if period > MAX_RULE_PERIOD:
-                # limit the expiry period
-                data["period"] = MAX_RULE_PERIOD_STRING
         return data
 
 
-class CustomRulePermission(BasePermission):
+class CustomRulePermission(OrganizationPermission):
     scope_map = {
         "GET": [
             "org:read",
@@ -129,19 +106,18 @@ class CustomRulesEndpoint(OrganizationEndpoint):
     permission_classes = (CustomRulePermission,)
 
     def post(self, request: Request, organization: Organization) -> Response:
-
-        if not features.has("organizations:investigation-bias", organization, actor=request.user):
-            return Response(status=404)
-
         serializer = CustomRulesInputSerializer(data=request.data)
         if not serializer.is_valid():
             return Response(serializer.errors, status=400)
 
         query = serializer.validated_data["query"]
-        projects = serializer.validated_data.get("projects")
+        project_ids = serializer.validated_data.get("projects")
+
+        # project-level permission check
+        self.get_projects(request, organization, project_ids=set(project_ids))
 
         try:
-            condition = get_condition(query)
+            condition = get_rule_condition(query)
 
             # for now delta it is fixed at 2 days (maybe in the future will base it on the query period)
             delta = timedelta(days=2)
@@ -153,7 +129,7 @@ class CustomRulesEndpoint(OrganizationEndpoint):
                 condition=condition,
                 start=start,
                 end=end,
-                project_ids=projects,
+                project_ids=project_ids,
                 organization_id=organization.id,
                 num_samples=NUM_SAMPLES_PER_CUSTOM_RULE,
                 sample_rate=1.0,
@@ -162,7 +138,7 @@ class CustomRulesEndpoint(OrganizationEndpoint):
             )
 
             # schedule update for affected project configs
-            _schedule_invalidate_project_configs(organization, projects)
+            _schedule_invalidate_project_configs(organization, project_ids)
 
             return _rule_to_response(rule)
         except UnsupportedSearchQuery as e:
@@ -197,6 +173,9 @@ class CustomRulesEndpoint(OrganizationEndpoint):
         except ValueError:
             return Response({"projects": ["Invalid project id"]}, status=400)
 
+        # project-level permission check
+        self.get_projects(request, organization, project_ids=set(requested_projects_ids))
+
         if requested_projects_ids:
             org_rule = False
             invalid_projects = []
@@ -214,7 +193,7 @@ class CustomRulesEndpoint(OrganizationEndpoint):
             org_rule = True
 
         try:
-            condition = get_condition(query)
+            condition = get_rule_condition(query)
         except UnsupportedSearchQuery as e:
             return Response({"query": [e.error_code]}, status=400)
         except InvalidSearchQuery as e:
@@ -236,7 +215,7 @@ class CustomRulesEndpoint(OrganizationEndpoint):
             return _rule_to_response(rule)
 
         if not rule.is_org_level and org_rule:
-            # we need an org rule and we have a simple rule return not found
+            # we need an org rule, and we have a simple rule return not found
             return Response(status=204)
 
         # project rule request and project rule found # see if we have all projects
@@ -252,7 +231,7 @@ class CustomRulesEndpoint(OrganizationEndpoint):
 def _rule_to_response(rule: CustomDynamicSamplingRule) -> Response:
     response_data = {
         "ruleId": rule.external_rule_id,
-        "condition": json.loads(rule.condition),
+        "condition": orjson.loads(rule.condition),
         "startDate": rule.start_date.strftime(CUSTOM_RULE_DATE_FORMAT),
         "endDate": rule.end_date.strftime(CUSTOM_RULE_DATE_FORMAT),
         "numSamples": rule.num_samples,
@@ -261,53 +240,48 @@ def _rule_to_response(rule: CustomDynamicSamplingRule) -> Response:
         "projects": [project.id for project in rule.projects.all()],
         "orgId": rule.organization.id,
     }
+
     return Response(response_data, status=200)
 
 
-def _is_not_supported(searchFilters: List[SearchFilter]) -> Optional[UnsupportedSearchQueryReason]:
+def get_rule_condition(query: str | None) -> RuleCondition:
     """
-    Check if the search query is not supported by the custom rules
+    Gets the rule condition given a query.
 
-    Curently we only support transaction queries
+    The rule returned, is in the format which is understood by Relay.
     """
-    transaction_filter = False
-
-    for searchFilter in searchFilters:
-        if searchFilter.key.name == "event.type" and searchFilter.value.value == "transaction":
-            transaction_filter = True
-            break
-    if not transaction_filter:
-        return UnsupportedSearchQueryReason.NOT_TRANSACTION_QUERY
-    return None
-
-
-def get_condition(query: Optional[str]) -> RuleCondition:
     try:
         if not query:
             raise UnsupportedSearchQuery(UnsupportedSearchQueryReason.NOT_TRANSACTION_QUERY)
-        else:
-            tokens = parse_search_query(query)
 
-            reason = _is_not_supported(tokens)
-            if reason is not None:
-                raise UnsupportedSearchQuery(reason)
-            # transform a simple message query into a transaction condition:
-            # "foo environment:development" -> "transaction:foo environment:development"
-            tokens = message_to_transaction_condition(tokens)
-            converter = SearchQueryConverter(tokens)
-            condition = converter.convert()
+        try:
+            # First we parse the query.
+            tokens = parse_search_query(
+                query=query, removed_blacklisted=True, force_transaction_event_type=True
+            )
+        except ValueError:
+            raise UnsupportedSearchQuery(UnsupportedSearchQueryReason.NOT_TRANSACTION_QUERY)
+
+        # In case there are no tokens anymore, we will return a condition that always matches.
+        if not tokens:
+            return {"op": "and", "inner": []}
+
+        # Second we convert it to the Relay's internal rules format.
+        converter = SearchQueryConverter(tokens)
+        condition = converter.convert()
+
         return condition
     except UnsupportedSearchQuery as unsupported_ex:
         # log unsupported queries with a different message so that
         # we can differentiate them from other errors
-        with sentry_sdk.push_scope() as scope:
+        with sentry_sdk.isolation_scope() as scope:
             scope.set_extra("query", query)
             scope.set_extra("error", unsupported_ex)
             message = "Unsupported search query"
             sentry_sdk.capture_message(message, level="warning")
         raise
     except Exception as ex:
-        with sentry_sdk.push_scope() as scope:
+        with sentry_sdk.isolation_scope() as scope:
             scope.set_extra("query", query)
             scope.set_extra("error", ex)
             message = "Could not convert query to custom dynamic sampling rule"
@@ -315,14 +289,15 @@ def get_condition(query: Optional[str]) -> RuleCondition:
         raise
 
 
-def _clean_project_list(project_ids: List[int]) -> List[int]:
+def _clean_project_list(project_ids: list[int]) -> list[int]:
     if len(project_ids) == 1 and project_ids[0] == -1:
         # special case for all projects convention ( sends a project id of -1)
         return []
+
     return project_ids
 
 
-def _schedule_invalidate_project_configs(organization: Organization, project_ids: List[int]):
+def _schedule_invalidate_project_configs(organization: Organization, project_ids: list[int]):
     """
     Schedule a task to update the project configs for the given projects
     """
@@ -339,28 +314,3 @@ def _schedule_invalidate_project_configs(organization: Organization, project_ids
                 trigger="dynamic_sampling:custom_rule_upsert",
                 project_id=project_id,
             )
-
-
-def message_to_transaction_condition(tokens: List[SearchFilter]) -> List[SearchFilter]:
-    """
-    Transforms queries containing messages into proper transaction queries
-
-    eg: "foo environment:development" -> "transaction:foo environment:development"
-
-    a string "foo" is parsed into a SearchFilter(key=SearchKey(name="message"), operator="=", value="foo")
-    we need to transform it into a SearchFilter(key=SearchKey(name="transaction"), operator="=", value="foo")
-
-    """
-    new_tokens = []
-    for token in tokens:
-        if token.key.name == "message" and token.operator == "=":
-            # transform the token from message to transaction
-            new_tokens.append(
-                SearchFilter(
-                    key=SearchKey("transaction"), value=token.value, operator=token.operator
-                )
-            )
-        else:
-            # nothing to change append the token as is
-            new_tokens.append(token)
-    return new_tokens

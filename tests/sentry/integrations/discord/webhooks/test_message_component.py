@@ -26,12 +26,11 @@ from sentry.integrations.discord.webhooks.message_component import (
 from sentry.models.release import Release
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase
-from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
+from sentry.testutils.silo import assume_test_silo_mode
 
 WEBHOOK_URL = "/extensions/discord/interactions/"
 
 
-@region_silo_test
 class DiscordMessageComponentInteractionTest(APITestCase):
     def setUp(self):
         patcher = mock.patch(

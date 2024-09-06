@@ -1,9 +1,9 @@
 import {forwardRef, useMemo} from 'react';
-import {PopperProps} from 'react-popper';
+import type {PopperProps} from 'react-popper';
 import styled from '@emotion/styled';
 
 import domId from 'sentry/utils/domId';
-import {ColorOrAlias} from 'sentry/utils/theme';
+import type {ColorOrAlias} from 'sentry/utils/theme';
 
 interface OverlayArrowProps extends React.ComponentPropsWithRef<'div'> {
   background?: ColorOrAlias;
@@ -110,4 +110,5 @@ const SVG = styled('svg')<{background: ColorOrAlias; border: ColorOrAlias}>`
   }
 `;
 
-export {OverlayArrow, OverlayArrowProps};
+export type {OverlayArrowProps};
+export {OverlayArrow};

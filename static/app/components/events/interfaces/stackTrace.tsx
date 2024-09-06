@@ -1,10 +1,12 @@
-import {CrashContent} from 'sentry/components/events/interfaces/crashContent';
+import type {CrashContent} from 'sentry/components/events/interfaces/crashContent';
 import {t} from 'sentry/locale';
-import {Group, PlatformKey, Project} from 'sentry/types';
-import {EntryType, Event} from 'sentry/types/event';
+import type {Event} from 'sentry/types/event';
+import {EntryType} from 'sentry/types/event';
+import type {Group} from 'sentry/types/group';
+import type {PlatformKey, Project} from 'sentry/types/project';
 import {StackView} from 'sentry/types/stacktrace';
 
-import {PermalinkTitle, TraceEventDataSection} from '../traceEventDataSection';
+import {TraceEventDataSection} from '../traceEventDataSection';
 
 import {StackTraceContent} from './crashContent/stackTrace';
 import NoStackTraceMessage from './noStackTraceMessage';
@@ -12,10 +14,7 @@ import {isStacktraceNewestFirst} from './utils';
 
 type CrashContentProps = React.ComponentProps<typeof CrashContent>;
 
-type Props = Pick<
-  CrashContentProps,
-  'groupingCurrentLevel' | 'hasHierarchicalGrouping'
-> & {
+type Props = Pick<CrashContentProps, 'groupingCurrentLevel'> & {
   data: NonNullable<CrashContentProps['stacktrace']>;
   event: Event;
   projectSlug: Project['slug'];
@@ -23,13 +22,7 @@ type Props = Pick<
   hideGuide?: boolean;
 };
 
-export function StackTrace({
-  projectSlug,
-  event,
-  data,
-  hasHierarchicalGrouping,
-  groupingCurrentLevel,
-}: Props) {
+export function StackTrace({projectSlug, event, data, groupingCurrentLevel}: Props) {
   const entryIndex = event.entries.findIndex(
     eventEntry => eventEntry.type === EntryType.STACKTRACE
   );
@@ -53,8 +46,7 @@ export function StackTrace({
       stackTraceNotFound={stackTraceNotFound}
       recentFirst={isStacktraceNewestFirst()}
       fullStackTrace={!data.hasSystemFrames}
-      title={<PermalinkTitle>{t('Stack Trace')}</PermalinkTitle>}
-      wrapTitle={false}
+      title={t('Stack Trace')}
       hasMinified={false}
       hasVerboseFunctionNames={
         !!data.frames?.some(
@@ -81,13 +73,12 @@ export function StackTrace({
               display.includes('raw-stack-trace')
                 ? StackView.RAW
                 : fullStackTrace
-                ? StackView.FULL
-                : StackView.APP
+                  ? StackView.FULL
+                  : StackView.APP
             }
             newestFirst={recentFirst}
             stacktrace={data}
             groupingCurrentLevel={groupingCurrentLevel}
-            hasHierarchicalGrouping={hasHierarchicalGrouping}
           />
         )
       }

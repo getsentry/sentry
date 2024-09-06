@@ -10,7 +10,7 @@ from sentry.testutils.cases import AcceptanceTestCase, SnubaTestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.silo import no_silo_test
 
-event_time = before_now(days=3).replace(tzinfo=timezone.utc)
+event_time = before_now(days=3)
 
 
 @no_silo_test
@@ -280,7 +280,7 @@ class OrganizationGlobalHeaderTest(AcceptanceTestCase, SnubaTestCase):
         "My Projects" in issues list.
         """
         with self.feature("organizations:global-views"):
-            mock_now.return_value = datetime.utcnow().replace(tzinfo=timezone.utc)
+            mock_now.return_value = datetime.now(timezone.utc)
             self.create_issues()
             self.issues_list.visit_issue_list(self.org.slug)
             self.issues_list.wait_for_issue()
@@ -313,7 +313,7 @@ class OrganizationGlobalHeaderTest(AcceptanceTestCase, SnubaTestCase):
         If user has a project defined in URL, if they visit an issue and then
         return back to issues list, that project id should still exist in URL
         """
-        mock_now.return_value = datetime.utcnow().replace(tzinfo=timezone.utc)
+        mock_now.return_value = datetime.now(timezone.utc)
         self.create_issues()
         self.issues_list.visit_issue_list(self.org.slug, query=f"?project={self.project_2.id}")
         self.issues_list.wait_for_issue()
@@ -347,7 +347,7 @@ class OrganizationGlobalHeaderTest(AcceptanceTestCase, SnubaTestCase):
         When navigating back to issues stream, should keep environment and project in context.
         """
 
-        mock_now.return_value = datetime.utcnow().replace(tzinfo=timezone.utc)
+        mock_now.return_value = datetime.now(timezone.utc)
         self.create_issues()
         self.issue_details.visit_issue_in_environment(self.org.slug, self.issue_2.group.id, "prod")
 
@@ -378,7 +378,7 @@ class OrganizationGlobalHeaderTest(AcceptanceTestCase, SnubaTestCase):
         """
 
         with self.feature("organizations:global-views"):
-            mock_now.return_value = datetime.utcnow().replace(tzinfo=timezone.utc)
+            mock_now.return_value = datetime.now(timezone.utc)
             self.create_issues()
             self.issue_details.visit_issue_in_environment(
                 self.org.slug, self.issue_2.group.id, "prod"

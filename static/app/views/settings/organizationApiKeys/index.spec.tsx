@@ -1,4 +1,4 @@
-import {DeprecatedApiKey} from 'sentry-fixture/deprecatedApiKey';
+import {DeprecatedApiKeyFixture} from 'sentry-fixture/deprecatedApiKey';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {
@@ -8,7 +8,7 @@ import {
   userEvent,
 } from 'sentry-test/reactTestingLibrary';
 
-import {RouteWithName} from 'sentry/views/settings/components/settingsBreadcrumb/types';
+import type {RouteWithName} from 'sentry/views/settings/components/settingsBreadcrumb/types';
 import OrganizationApiKeys from 'sentry/views/settings/organizationApiKeys';
 
 const routes: RouteWithName[] = [
@@ -28,12 +28,12 @@ describe('OrganizationApiKeys', function () {
     getMock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/api-keys/',
       method: 'GET',
-      body: [DeprecatedApiKey()],
+      body: [DeprecatedApiKeyFixture()],
     });
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/api-keys/1/',
       method: 'GET',
-      body: DeprecatedApiKey(),
+      body: DeprecatedApiKeyFixture(),
     });
     deleteMock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/api-keys/1/',

@@ -81,8 +81,12 @@ describe('handleXhrErrorResponse', function () {
     const mockScope = new Sentry.Scope();
     const setExtrasSpy = jest.spyOn(mockScope, 'setExtras');
     const setTagsSpy = jest.spyOn(mockScope, 'setTags');
-    const hub = Sentry.getCurrentHub();
-    jest.spyOn(hub, 'pushScope').mockReturnValueOnce(mockScope);
+    // @ts-expect-error this is fine...
+    jest.spyOn(Sentry, 'withScope').mockImplementation(function (
+      callback: (scope: Sentry.Scope) => any
+    ) {
+      return callback(mockScope);
+    });
 
     handleXhrErrorResponse("Can't fetch ball", err);
 

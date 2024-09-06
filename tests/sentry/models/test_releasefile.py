@@ -20,37 +20,45 @@ from sentry.models.releasefile import (
     update_artifact_index,
 )
 from sentry.testutils.cases import TestCase, TransactionTestCase
-from sentry.testutils.silo import region_silo_test
 from sentry.utils import json
 
 
-@region_silo_test
-class ReleaseFileTestCase(TestCase):
-    def test_normalize(self):
-        n = ReleaseFile.normalize
-
-        assert n("http://example.com") == ["http://example.com", "~"]
-        assert n("http://example.com/foo.js") == ["http://example.com/foo.js", "~/foo.js"]
-        assert n("http://example.com/foo.js?bar") == [
+@pytest.mark.parametrize(
+    ("s", "expected"),
+    (
+        ("http://example.com", ["http://example.com", "~"]),
+        ("http://example.com/foo.js", ["http://example.com/foo.js", "~/foo.js"]),
+        (
             "http://example.com/foo.js?bar",
-            "http://example.com/foo.js",
-            "~/foo.js?bar",
-            "~/foo.js",
-        ]
-        assert n("/foo.js") == ["/foo.js", "~/foo.js"]
-
-        assert n("http://example.com/foo.js?bar#baz") == [
-            "http://example.com/foo.js?bar",
-            "http://example.com/foo.js",
-            "~/foo.js?bar",
-            "~/foo.js",
-        ]
-
+            [
+                "http://example.com/foo.js?bar",
+                "http://example.com/foo.js",
+                "~/foo.js?bar",
+                "~/foo.js",
+            ],
+        ),
+        ("/foo.js", ["/foo.js", "~/foo.js"]),
+        (
+            "http://example.com/foo.js?bar#baz",
+            [
+                "http://example.com/foo.js?bar",
+                "http://example.com/foo.js",
+                "~/foo.js?bar",
+                "~/foo.js",
+            ],
+        ),
         # This is the current behavior, but seems weird to me.
         # unclear if we actually experience this case in the real
         # world, but worth documenting the behavior
-        assert n("foo.js") == ["foo.js", "~foo.js"]
+        ("foo.js", ["foo.js", "~foo.js"]),
+        pytest.param("app://[native_code]", ["app://[native_code]", "~"], id="invalid hostname"),
+    ),
+)
+def test_normalize(s, expected):
+    assert ReleaseFile.normalize(s) == expected
 
+
+class ReleaseFileTestCase(TestCase):
     def test_count_artifacts(self):
         assert self.release.count_artifacts() == 0
         for count in (3, 1, None, 0):

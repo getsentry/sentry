@@ -8,7 +8,6 @@ import requests
 from rest_framework.exceptions import ParseError
 from rest_framework.request import Request
 from rest_framework.response import Response
-from sentry_sdk import metrics
 
 from sentry import features, options
 from sentry.api.api_owners import ApiOwner
@@ -16,13 +15,14 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.models.project import Project
-from sentry.replays.lib.storage import make_filename
+from sentry.replays.lib.storage import make_recording_filename
 from sentry.replays.usecases.reader import (
     fetch_direct_storage_segments_meta,
     segment_row_to_storage_meta,
 )
 from sentry.replays.usecases.segment import query_segment_storage_meta_by_timestamp
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
+from sentry.utils import metrics
 from sentry.utils.cursors import Cursor, CursorResult
 
 REFERRER = "replays.query.query_replay_clicks_dataset"
@@ -42,9 +42,9 @@ class ProjectReplayAccessibilityIssuesEndpoint(ProjectEndpoint):
     enforce_rate_limit = True
     rate_limits = {
         "GET": {
-            RateLimitCategory.IP: RateLimit(5, 1),
-            RateLimitCategory.USER: RateLimit(5, 1),
-            RateLimitCategory.ORGANIZATION: RateLimit(5, 1),
+            RateLimitCategory.IP: RateLimit(limit=5, window=1),
+            RateLimitCategory.USER: RateLimit(limit=5, window=1),
+            RateLimitCategory.ORGANIZATION: RateLimit(limit=5, window=1),
         }
     }
 
@@ -116,7 +116,9 @@ class ProjectReplayAccessibilityIssuesEndpoint(ProjectEndpoint):
             # Make a POST request to the replay-analyzer service. The files will be downloaded
             # and evaluated on the remote system. The accessibility output is then redirected to
             # the client.
-            return request_accessibility_issues([make_filename(segment) for segment in segments])
+            return request_accessibility_issues(
+                [make_recording_filename(segment) for segment in segments]
+            )
 
         return self.paginate(
             request=request,

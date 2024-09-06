@@ -1,16 +1,21 @@
-import selectEvent from 'react-select-event';
 import pick from 'lodash/pick';
-import {Organization} from 'sentry-fixture/organization';
-import {SentryApp} from 'sentry-fixture/sentryApp';
+import {ConfigFixture} from 'sentry-fixture/config';
+import {OrganizationFixture} from 'sentry-fixture/organization';
+import {RouteComponentPropsFixture} from 'sentry-fixture/routeComponentPropsFixture';
+import {SentryAppFixture} from 'sentry-fixture/sentryApp';
 
+import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
+import selectEvent from 'sentry-test/selectEvent';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
-import type {Organization as TOrganization} from 'sentry/types';
+import ConfigStore from 'sentry/stores/configStore';
+import type {Organization as TOrganization} from 'sentry/types/organization';
+import {generateOrgSlugUrl} from 'sentry/utils';
 import SentryAppExternalInstallation from 'sentry/views/sentryAppExternalInstallation';
 
 describe('SentryAppExternalInstallation', () => {
-  let sentryApp: ReturnType<typeof TestStubs.SentryApp>,
+  let sentryApp: ReturnType<typeof SentryAppFixture>,
     getOrgsMock: ReturnType<typeof MockApiClient.addMockResponse>,
     getOrgMock: ReturnType<typeof MockApiClient.addMockResponse>,
     getAppMock: ReturnType<typeof MockApiClient.addMockResponse>,
@@ -24,12 +29,12 @@ describe('SentryAppExternalInstallation', () => {
   beforeEach(() => {
     MockApiClient.clearMockResponses();
 
-    org1 = Organization({
+    org1 = OrganizationFixture({
       slug: 'org1',
       name: 'Organization 1',
     });
 
-    org2 = Organization({
+    org2 = OrganizationFixture({
       slug: 'org2',
       name: 'Organization 2',
     });
@@ -37,7 +42,7 @@ describe('SentryAppExternalInstallation', () => {
     org1Lite = pick(org1, ['slug', 'name', 'id']);
     org2Lite = pick(org2, ['slug', 'name', 'id']);
 
-    sentryApp = SentryApp({
+    sentryApp = SentryAppFixture({
       status: 'published',
       redirectUrl: 'https://google.com',
     });
@@ -76,27 +81,41 @@ describe('SentryAppExternalInstallation', () => {
         url: `/organizations/${org1.slug}/sentry-app-installations/`,
         body: [],
       });
+
+      window.__initialData = ConfigFixture({
+        customerDomain: {
+          subdomain: 'org1',
+          organizationUrl: 'https://org1.sentry.io',
+          sentryUrl: 'https://sentry.io',
+        },
+        links: {
+          ...(window.__initialData?.links ?? {}),
+          sentryUrl: 'https://sentry.io',
+        },
+      });
+      ConfigStore.loadInitialData(window.__initialData);
     });
 
-    it('sets the org automatically', () => {
+    it('sets the org automatically', async () => {
       render(
         <SentryAppExternalInstallation
-          {...TestStubs.routeComponentProps()}
+          {...RouteComponentPropsFixture()}
           params={{sentryAppSlug: sentryApp.slug}}
         />
       );
+      await waitFor(() => expect(getInstallationsMock).toHaveBeenCalled());
 
-      expect(getAppMock).toHaveBeenCalled();
-      expect(getOrgsMock).toHaveBeenCalled();
-      expect(getOrgMock).toHaveBeenCalled();
-      expect(getInstallationsMock).toHaveBeenCalled();
       expect(
-        screen.getByText(
+        await screen.findByText(
           textWithMarkupMatcher(
             'You are installing Sample App for organization Organization 1'
           )
         )
       ).toBeInTheDocument();
+      expect(getAppMock).toHaveBeenCalled();
+      expect(getOrgsMock).toHaveBeenCalled();
+      expect(getOrgMock).toHaveBeenCalled();
+      expect(getInstallationsMock).toHaveBeenCalled();
       expect(screen.queryByText('Select an organization')).not.toBeInTheDocument();
     });
 
@@ -114,12 +133,13 @@ describe('SentryAppExternalInstallation', () => {
 
       render(
         <SentryAppExternalInstallation
-          {...TestStubs.routeComponentProps()}
+          {...RouteComponentPropsFixture()}
           params={{sentryAppSlug: sentryApp.slug}}
         />
       );
+      await waitFor(() => expect(getInstallationsMock).toHaveBeenCalled());
 
-      await userEvent.click(await screen.findByTestId('install'));
+      await userEvent.click(await screen.findByTestId('install')); // failing currently
 
       expect(installMock).toHaveBeenCalledWith(
         installUrl,
@@ -134,7 +154,54 @@ describe('SentryAppExternalInstallation', () => {
         );
       });
 
-      (window.location.assign as jest.Mock).mockClear();
+      jest.mocked(window.location.assign).mockClear();
+    });
+
+    it('installs and redirects with state', async () => {
+      const installUrl = `/organizations/${org1.slug}/sentry-app-installations/`;
+      const install = {
+        uuid: 'fake-id',
+        code: 'some-code',
+      };
+      const installMock = MockApiClient.addMockResponse({
+        url: installUrl,
+        method: 'POST',
+        body: install,
+      });
+
+      const state = 'some-state';
+      const location = {
+        ...RouteComponentPropsFixture(),
+        location: {
+          ...RouteComponentPropsFixture().location,
+          query: {state},
+        },
+      };
+
+      render(
+        <SentryAppExternalInstallation
+          {...location}
+          params={{sentryAppSlug: sentryApp.slug}}
+        />
+      );
+      await waitFor(() => expect(getInstallationsMock).toHaveBeenCalled());
+
+      await userEvent.click(await screen.findByTestId('install')); // failing currently
+
+      expect(installMock).toHaveBeenCalledWith(
+        installUrl,
+        expect.objectContaining({
+          data: {slug: sentryApp.slug},
+        })
+      );
+
+      await waitFor(() => {
+        expect(window.location.assign).toHaveBeenCalledWith(
+          `https://google.com/?code=${install.code}&installationId=${install.uuid}&orgSlug=${org1.slug}&state=${state}`
+        );
+      });
+
+      jest.mocked(window.location.assign).mockClear();
     });
   });
 
@@ -144,50 +211,117 @@ describe('SentryAppExternalInstallation', () => {
         url: '/organizations/',
         body: [org1Lite, org2Lite],
       });
-    });
 
-    it('renders org dropdown', () => {
-      render(
-        <SentryAppExternalInstallation
-          {...TestStubs.routeComponentProps()}
-          params={{sentryAppSlug: sentryApp.slug}}
-        />
-      );
-
-      expect(getAppMock).toHaveBeenCalled();
-      expect(getOrgsMock).toHaveBeenCalled();
-      expect(screen.getByText('Select an organization')).toBeInTheDocument();
-    });
-
-    it('selecting org from dropdown loads the org through the API', async () => {
       getOrgMock = MockApiClient.addMockResponse({
-        url: `/organizations/${org2.slug}/`,
-        body: org2,
+        url: `/organizations/${org1.slug}/`,
+        body: org1,
       });
 
       getInstallationsMock = MockApiClient.addMockResponse({
-        url: `/organizations/${org2.slug}/sentry-app-installations/`,
+        url: `/organizations/${org1.slug}/sentry-app-installations/`,
+        body: [],
+      });
+
+      window.__initialData = ConfigFixture({
+        customerDomain: {
+          subdomain: 'org1',
+          organizationUrl: 'https://org1.sentry.io',
+          sentryUrl: 'https://sentry.io',
+        },
+        links: {
+          ...(window.__initialData?.links ?? {}),
+          sentryUrl: 'https://sentry.io',
+        },
+      });
+      ConfigStore.loadInitialData(window.__initialData);
+    });
+
+    it('sets the org automatically', async () => {
+      render(
+        <SentryAppExternalInstallation
+          {...RouteComponentPropsFixture()}
+          params={{sentryAppSlug: sentryApp.slug}}
+        />
+      );
+      await waitFor(() => expect(getInstallationsMock).toHaveBeenCalled());
+
+      expect(getAppMock).toHaveBeenCalled();
+      expect(getOrgsMock).toHaveBeenCalled();
+      expect(getOrgMock).toHaveBeenCalled();
+      expect(getInstallationsMock).toHaveBeenCalled();
+      expect(screen.queryByText('Select an organization')).not.toBeInTheDocument();
+      await waitFor(() => expect(screen.getByTestId('install')).toBeEnabled());
+    });
+
+    it('loads orgs from multiple regions', async () => {
+      window.__initialData = {
+        ...window.__initialData,
+        memberRegions: [
+          {name: 'us', url: 'https://us.example.org'},
+          {name: 'de', url: 'https://de.example.org'},
+        ],
+      };
+      ConfigStore.loadInitialData(window.__initialData);
+
+      const deorg = OrganizationFixture({slug: 'de-org'});
+      const getDeOrgs = MockApiClient.addMockResponse({
+        url: '/organizations/',
+        body: [deorg],
+        match: [
+          function (_url: string, options: Record<string, any>) {
+            return options.host === 'https://de.example.org';
+          },
+        ],
+      });
+
+      render(
+        <SentryAppExternalInstallation
+          {...RouteComponentPropsFixture()}
+          params={{sentryAppSlug: sentryApp.slug}}
+        />
+      );
+      await waitFor(() => expect(getInstallationsMock).toHaveBeenCalled());
+
+      expect(getDeOrgs).toHaveBeenCalled();
+    });
+
+    it('selecting org changes the url', async () => {
+      const preselectedOrg = OrganizationFixture();
+      const {routerProps} = initializeOrg({organization: preselectedOrg});
+
+      window.__initialData = ConfigFixture({
+        customerDomain: {
+          subdomain: 'org1',
+          organizationUrl: 'https://org1.sentry.io',
+          sentryUrl: 'https://sentry.io',
+        },
+        links: {
+          ...(window.__initialData?.links ?? {}),
+          sentryUrl: 'https://sentry.io',
+        },
+      });
+      ConfigStore.loadInitialData(window.__initialData);
+
+      getOrgMock = MockApiClient.addMockResponse({
+        url: `/organizations/org1/`,
+        body: preselectedOrg,
+      });
+      getInstallationsMock = MockApiClient.addMockResponse({
+        url: `/organizations/${org1.slug}/sentry-app-installations/`,
         body: [],
       });
 
       render(
         <SentryAppExternalInstallation
-          {...TestStubs.routeComponentProps()}
+          {...routerProps}
           params={{sentryAppSlug: sentryApp.slug}}
         />
       );
+      await waitFor(() => expect(getInstallationsMock).toHaveBeenCalled());
 
-      await selectEvent.select(screen.getByText('Select an organization'), 'org2');
-
-      expect(getOrgMock).toHaveBeenCalledTimes(1);
-      expect(getOrgMock).toHaveBeenLastCalledWith(
-        '/organizations/org2/',
-        expect.anything()
-      );
-      expect(getInstallationsMock).toHaveBeenCalled();
+      await selectEvent.select(screen.getByRole('textbox'), 'org2');
+      expect(window.location.assign).toHaveBeenCalledWith(generateOrgSlugUrl('org2'));
       expect(getFeaturesMock).toHaveBeenCalled();
-
-      await waitFor(() => expect(screen.getByTestId('install')).toBeEnabled());
     });
   });
 });

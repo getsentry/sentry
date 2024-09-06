@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta
+from datetime import UTC, datetime, timedelta
 
 import pytest
 from django.db import IntegrityError, router, transaction
@@ -11,7 +11,7 @@ from sentry.testutils.cases import APITestCase
 class RuleSnoozeTest(APITestCase):
     def setUp(self):
         self.issue_alert_rule = Rule.objects.create(
-            label="test rule", project=self.project, owner=self.team.actor
+            label="test rule", project=self.project, owner_team=self.team
         )
         self.metric_alert_rule = self.create_alert_rule(
             organization=self.project.organization, projects=[self.project]
@@ -24,12 +24,12 @@ class RuleSnoozeTest(APITestCase):
             user_id=self.user.id,
             owner_id=self.user.id,
             rule=self.issue_alert_rule,
-            until=datetime.now() + timedelta(days=10),
+            until=datetime.now(UTC) + timedelta(days=10),
         )
         issue_alert_rule_snooze_all = self.snooze_rule(
             owner_id=self.user2.id,
             rule=self.issue_alert_rule,
-            until=datetime.now() + timedelta(days=1),
+            until=datetime.now(UTC) + timedelta(days=1),
         )
         assert RuleSnooze.objects.filter(id=issue_alert_rule_snooze_user.id).exists()
         assert RuleSnooze.objects.filter(id=issue_alert_rule_snooze_all.id).exists()
@@ -39,12 +39,14 @@ class RuleSnoozeTest(APITestCase):
             user_id=self.user.id,
             owner_id=self.user.id,
             rule=self.issue_alert_rule,
-            until=datetime.now() + timedelta(days=1),
+            until=datetime.now(UTC) + timedelta(days=1),
         )
         assert RuleSnooze.objects.filter(id=issue_alert_rule_snooze_user_until.id).exists()
 
         issue_alert_rule2 = Rule.objects.create(
-            label="test rule", project=self.project, owner=self.team.actor
+            label="test rule",
+            project=self.project,
+            owner_team=self.team,
         )
         issue_alert_rule_snooze_user_forever = self.snooze_rule(
             user_id=self.user.id, owner_id=self.user.id, rule=issue_alert_rule2
@@ -56,7 +58,7 @@ class RuleSnoozeTest(APITestCase):
             user_id=self.user.id,
             owner_id=self.user.id,
             alert_rule=self.metric_alert_rule,
-            until=datetime.now() + timedelta(days=1),
+            until=datetime.now(UTC) + timedelta(days=1),
         )
         assert RuleSnooze.objects.filter(id=metric_alert_rule_snooze_user.id).exists()
 
@@ -105,4 +107,4 @@ class RuleSnoozeTest(APITestCase):
             )
 
         with pytest.raises(IntegrityError), transaction.atomic(router.db_for_write(RuleSnooze)):
-            self.snooze_rule(owner_id=self.user.id, until=datetime.now() + timedelta(days=1))
+            self.snooze_rule(owner_id=self.user.id, until=datetime.now(UTC) + timedelta(days=1))

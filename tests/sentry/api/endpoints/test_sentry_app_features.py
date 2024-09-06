@@ -1,6 +1,6 @@
 from django.urls import reverse
 
-from sentry.models.integrations.integration_feature import (
+from sentry.integrations.models.integration_feature import (
     Feature,
     IntegrationFeature,
     IntegrationTypes,

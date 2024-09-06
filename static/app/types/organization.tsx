@@ -1,11 +1,16 @@
-import {Project} from 'sentry/types/project';
-import {AggregationOutputType} from 'sentry/utils/discover/fields';
-import {DiscoverDatasets} from 'sentry/utils/discover/types';
+import type {AggregationOutputType} from 'sentry/utils/discover/fields';
+import type {
+  DatasetSource,
+  DiscoverDatasets,
+  SavedQueryDatasets,
+} from 'sentry/utils/discover/types';
+import type {WidgetType} from 'sentry/views/dashboards/types';
 
 import type {Actor, Avatar, ObjectStatus, Scope} from './core';
 import type {OrgExperiments} from './experiments';
 import type {ExternalTeam} from './integrations';
 import type {OnboardingTaskStatus} from './onboarding';
+import type {Project} from './project';
 import type {Relay} from './relay';
 import type {User} from './user';
 
@@ -23,10 +28,12 @@ export interface OrganizationSummary {
   githubPRBot: boolean;
   id: string;
   isEarlyAdopter: boolean;
+  issueAlertsThreadFlag: boolean;
   links: {
     organizationUrl: string;
     regionUrl: string;
   };
+  metricAlertsThreadFlag: boolean;
   name: string;
   require2FA: boolean;
   slug: string;
@@ -34,6 +41,7 @@ export interface OrganizationSummary {
     id: ObjectStatus;
     name: string;
   };
+  uptimeAutodetection?: boolean;
 }
 
 /**
@@ -41,11 +49,16 @@ export interface OrganizationSummary {
  */
 export interface Organization extends OrganizationSummary {
   access: Scope[];
+  aggregatedDataConsent: boolean;
   alertsMemberWrite: boolean;
   allowJoinRequests: boolean;
+  allowMemberInvite: boolean;
+  allowMemberProjectCreation: boolean;
   allowSharedIssues: boolean;
+  allowSuperuserAccess: boolean;
   attachmentsRole: string;
-  availableRoles: {id: string; name: string}[]; // Deprecated, use orgRoleList
+  /** @deprecated use orgRoleList instead. */
+  availableRoles: {id: string; name: string}[];
   dataScrubber: boolean;
   dataScrubberDefaults: boolean;
   debugFilesRole: string;
@@ -53,6 +66,7 @@ export interface Organization extends OrganizationSummary {
   enhancedPrivacy: boolean;
   eventsMemberAdmin: boolean;
   experiments: Partial<OrgExperiments>;
+  genAIConsent: boolean;
   isDefault: boolean;
   isDynamicallySampled: boolean;
   onboardingTasks: OnboardingTaskStatus[];
@@ -66,6 +80,7 @@ export interface Organization extends OrganizationSummary {
     projectLimit: number | null;
   };
   relayPiiConfig: string | null;
+  requiresSso: boolean;
   safeFields: string[];
   scrapeJavaScript: boolean;
   scrubIPAddresses: boolean;
@@ -75,12 +90,14 @@ export interface Organization extends OrganizationSummary {
   trustedRelays: Relay[];
   desiredSampleRate?: number | null;
   effectiveSampleRate?: number | null;
+  extraOptions?: {
+    traces: {
+      checkSpanExtractionDate: boolean;
+      spansExtractionDate: number;
+    };
+  };
   orgRole?: string;
-}
-
-export interface DetailedOrganization extends Organization {
-  projects: Project[];
-  teams: Team[];
+  planSampleRate?: number | null;
 }
 
 export interface Team {
@@ -98,28 +115,26 @@ export interface Team {
   name: string;
   slug: string;
   teamRole: string | null;
-  orgRole?: string | null;
 }
 
 export interface DetailedTeam extends Team {
   projects: Project[];
 }
 
-// TODO: Rename to BaseRole
-export interface MemberRole {
+export interface BaseRole {
   desc: string;
   id: string;
   name: string;
-  allowed?: boolean; // Deprecated: use isAllowed
   isAllowed?: boolean;
   isRetired?: boolean;
+  isTeamRolesAllowed?: boolean;
 }
-export interface OrgRole extends MemberRole {
+export interface OrgRole extends BaseRole {
   minimumTeamRole: string;
   isGlobal?: boolean;
   is_global?: boolean; // Deprecated: use isGlobal
 }
-export interface TeamRole extends MemberRole {
+export interface TeamRole extends BaseRole {
   isMinimumRoleFor: string;
 }
 
@@ -173,8 +188,6 @@ export interface Member {
    * User may be null when the member represents an invited member
    */
   user: User | null;
-  // TODO: Move to global store
-  groupOrgRoles?: {role: OrgRole; teamSlug: string}[];
 }
 
 /**
@@ -239,15 +252,17 @@ export interface NewQuery {
   version: SavedQueryVersions;
   createdBy?: User;
   dataset?: DiscoverDatasets;
+  datasetSource?: DatasetSource;
   display?: string;
   end?: string | Date;
   environment?: Readonly<string[]>;
   expired?: boolean;
   id?: string;
   interval?: string;
-  orderby?: string;
+  orderby?: string | string[];
   projects?: Readonly<number[]>;
   query?: string;
+  queryDataset?: SavedQueryDatasets;
   range?: string;
   start?: string | Date;
   teams?: Readonly<('myteams' | number)[]>;
@@ -283,6 +298,7 @@ export type EventsStats = {
     isMetricsData: boolean;
     tips: {columns?: string; query?: string};
     units: Record<string, string>;
+    discoverSplitDecision?: WidgetType;
     isMetricsExtractedData?: boolean;
   };
   order?: number;

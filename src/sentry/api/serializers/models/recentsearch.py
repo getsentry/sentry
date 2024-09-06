@@ -4,7 +4,7 @@ from sentry.models.recentsearch import RecentSearch
 
 @register(RecentSearch)
 class RecentSearchSerializer(Serializer):
-    def serialize(self, obj, attrs, user):
+    def serialize(self, obj, attrs, user, **kwargs):
         return {
             "id": str(obj.id),
             "organizationId": str(obj.organization_id),

@@ -2,16 +2,17 @@ import {useMemo} from 'react';
 import omit from 'lodash/omit';
 
 import {useAggregateSpans} from 'sentry/components/events/interfaces/spans/aggregateSpans';
-import {AggregateSpanType} from 'sentry/components/events/interfaces/spans/types';
+import type {AggregateSpanType} from 'sentry/components/events/interfaces/spans/types';
 import WaterfallModel from 'sentry/components/events/interfaces/spans/waterfallModel';
-import {AggregateEventTransaction, EntryType, EventOrGroupType} from 'sentry/types';
+import type {AggregateEventTransaction} from 'sentry/types/event';
+import {EntryType, EventOrGroupType} from 'sentry/types/event';
 import {defined} from 'sentry/utils';
 
 export function useSpanWaterfallModelFromTransaction(
   transaction: string,
   httpMethod?: string
 ) {
-  const {data, isLoading} = useAggregateSpans({transaction, httpMethod});
+  const {data, isPending} = useAggregateSpans({transaction, httpMethod});
   function formatSpan(span, total) {
     const {
       node_fingerprint: span_id,
@@ -21,7 +22,8 @@ export function useSpanWaterfallModelFromTransaction(
       'avg(absolute_offset)': start_timestamp,
       'count()': count,
       'avg(duration)': duration,
-      samples,
+      sample_spans,
+      trace,
       ...rest
     } = span;
     return {
@@ -32,11 +34,11 @@ export function useSpanWaterfallModelFromTransaction(
       exclusive_time,
       timestamp: (start_timestamp + duration) / 1000,
       start_timestamp: start_timestamp / 1000,
-      trace_id: '1', // not actually trace_id just a placeholder
+      trace,
       count,
       total,
       duration,
-      samples,
+      samples: sample_spans,
       frequency: count / total,
       type: 'aggregate',
     };
@@ -109,5 +111,5 @@ export function useSpanWaterfallModelFromTransaction(
     () => new WaterfallModel(event, undefined, undefined, hiddenSpans),
     [event, hiddenSpans]
   );
-  return {waterfallModel, event, isLoading};
+  return {waterfallModel, event, isLoading: isPending};
 }

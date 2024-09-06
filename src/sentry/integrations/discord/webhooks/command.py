@@ -1,7 +1,5 @@
-from rest_framework import status
 from rest_framework.response import Response
 
-from sentry.integrations.discord.requests.base import DiscordRequestError
 from sentry.integrations.discord.views.link_identity import build_linking_url
 from sentry.integrations.discord.views.unlink_identity import build_unlinking_url
 from sentry.integrations.discord.webhooks.handler import DiscordInteractionHandler
@@ -10,6 +8,7 @@ from ..utils import logger
 
 LINK_USER_MESSAGE = "[Click here]({url}) to link your Discord account to your Sentry account."
 ALREADY_LINKED_MESSAGE = "You are already linked to the Sentry account with email: `{email}`."
+MISSING_DATA_MESSAGE = "You must be logged into your Sentry account for the link action to work."
 UNLINK_USER_MESSAGE = "[Click here]({url}) to unlink your Discord account from your Sentry Account."
 NOT_LINKED_MESSAGE = (
     "Your Discord account is not linked to a Sentry account. Use `/link` to link your accounts."
@@ -59,7 +58,14 @@ class DiscordCommandHandler(DiscordInteractionHandler):
             )
 
         if not self.request.integration or not self.request.user_id:
-            raise DiscordRequestError(status=status.HTTP_400_BAD_REQUEST)
+            logger.warning(
+                "discord.interaction.command.missing.integration",
+                extra={
+                    "hasIntegration": bool(self.request.integration),
+                    "hasUserId": self.request.user_id,
+                },
+            )
+            return self.send_message(MISSING_DATA_MESSAGE)
 
         link_url = build_linking_url(
             integration=self.request.integration,

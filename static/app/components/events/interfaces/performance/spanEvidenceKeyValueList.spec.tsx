@@ -1,3 +1,5 @@
+import {EntryRequestFixture} from 'sentry-fixture/eventEntry';
+
 import {
   MockSpan,
   ProblemSpan,
@@ -5,7 +7,7 @@ import {
 } from 'sentry-test/performance/utils';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import {EntryType, IssueType} from 'sentry/types';
+import {IssueType} from 'sentry/types/group';
 
 import {
   extractQueryParameters,
@@ -18,7 +20,7 @@ describe('SpanEvidenceKeyValueList', () => {
 
   describe('N+1 Database Queries', () => {
     const builder = new TransactionEventBuilder('a1', '/');
-    builder.getEvent().projectID = '123';
+    builder.getEventFixture().projectID = '123';
 
     const parentSpan = new MockSpan({
       startTimestamp: 0,
@@ -49,7 +51,10 @@ describe('SpanEvidenceKeyValueList', () => {
 
     it('Renders relevant fields', () => {
       render(
-        <SpanEvidenceKeyValueList event={builder.getEvent()} projectSlug={projectSlug} />
+        <SpanEvidenceKeyValueList
+          event={builder.getEventFixture()}
+          projectSlug={projectSlug}
+        />
       );
 
       expect(screen.getByRole('cell', {name: 'Transaction'})).toBeInTheDocument();
@@ -66,7 +71,7 @@ describe('SpanEvidenceKeyValueList', () => {
         screen.getByRole('button', {
           name: /view full event/i,
         })
-      ).toHaveAttribute('href', '/organizations/org-slug/performance/project:a1/?');
+      ).toHaveAttribute('href', '/organizations/org-slug/performance/project:a1/');
 
       expect(screen.getByRole('cell', {name: 'Parent Span'})).toBeInTheDocument();
       expect(
@@ -90,7 +95,7 @@ describe('SpanEvidenceKeyValueList', () => {
 
   describe('N+1 Database Queries with occurrences', () => {
     const builder = new TransactionEventBuilder('a1', '/', undefined, undefined, true);
-    builder.getEvent().projectID = '123';
+    builder.getEventFixture().projectID = '123';
 
     const parentSpan = new MockSpan({
       startTimestamp: 0,
@@ -121,7 +126,10 @@ describe('SpanEvidenceKeyValueList', () => {
 
     it('Renders relevant fields', () => {
       render(
-        <SpanEvidenceKeyValueList event={builder.getEvent()} projectSlug={projectSlug} />
+        <SpanEvidenceKeyValueList
+          event={builder.getEventFixture()}
+          projectSlug={projectSlug}
+        />
       );
 
       expect(screen.getByRole('cell', {name: 'Transaction'})).toBeInTheDocument();
@@ -138,7 +146,7 @@ describe('SpanEvidenceKeyValueList', () => {
         screen.getByRole('button', {
           name: /view full event/i,
         })
-      ).toHaveAttribute('href', '/organizations/org-slug/performance/project:a1/?');
+      ).toHaveAttribute('href', '/organizations/org-slug/performance/project:a1/');
 
       expect(screen.getByRole('cell', {name: 'Parent Span'})).toBeInTheDocument();
       expect(
@@ -162,7 +170,7 @@ describe('SpanEvidenceKeyValueList', () => {
 
   describe('MN+1 Database Queries', () => {
     const builder = new TransactionEventBuilder('a1', '/');
-    builder.getEvent().projectID = '123';
+    builder.getEventFixture().projectID = '123';
 
     const parentSpan = new MockSpan({
       startTimestamp: 0,
@@ -193,7 +201,10 @@ describe('SpanEvidenceKeyValueList', () => {
 
     it('Renders relevant fields', () => {
       render(
-        <SpanEvidenceKeyValueList event={builder.getEvent()} projectSlug={projectSlug} />
+        <SpanEvidenceKeyValueList
+          event={builder.getEventFixture()}
+          projectSlug={projectSlug}
+        />
       );
 
       expect(screen.getByRole('cell', {name: 'Transaction'})).toBeInTheDocument();
@@ -210,7 +221,7 @@ describe('SpanEvidenceKeyValueList', () => {
         screen.getByRole('button', {
           name: /view full event/i,
         })
-      ).toHaveAttribute('href', '/organizations/org-slug/performance/project:a1/?');
+      ).toHaveAttribute('href', '/organizations/org-slug/performance/project:a1/');
 
       expect(screen.getByRole('cell', {name: 'Parent Span'})).toBeInTheDocument();
       expect(
@@ -238,7 +249,7 @@ describe('SpanEvidenceKeyValueList', () => {
       '/',
       IssueType.PERFORMANCE_CONSECUTIVE_DB_QUERIES
     );
-    builder.getEvent().projectID = '123';
+    builder.getEventFixture().projectID = '123';
 
     const parentSpan = new MockSpan({
       startTimestamp: 0,
@@ -275,7 +286,10 @@ describe('SpanEvidenceKeyValueList', () => {
 
     it('Renders relevant fields', () => {
       render(
-        <SpanEvidenceKeyValueList event={builder.getEvent()} projectSlug={projectSlug} />
+        <SpanEvidenceKeyValueList
+          event={builder.getEventFixture()}
+          projectSlug={projectSlug}
+        />
       );
 
       expect(screen.getByRole('cell', {name: 'Transaction'})).toBeInTheDocument();
@@ -292,7 +306,7 @@ describe('SpanEvidenceKeyValueList', () => {
         screen.getByRole('button', {
           name: /view full event/i,
         })
-      ).toHaveAttribute('href', '/organizations/org-slug/performance/project:a1/?');
+      ).toHaveAttribute('href', '/organizations/org-slug/performance/project:a1/');
 
       expect(screen.getByRole('cell', {name: 'Starting Span'})).toBeInTheDocument();
       expect(
@@ -321,7 +335,7 @@ describe('SpanEvidenceKeyValueList', () => {
       '/',
       IssueType.PERFORMANCE_CONSECUTIVE_HTTP
     );
-    builder.getEvent().projectID = '123';
+    builder.getEventFixture().projectID = '123';
 
     const parentSpan = new MockSpan({
       startTimestamp: 0,
@@ -356,7 +370,10 @@ describe('SpanEvidenceKeyValueList', () => {
 
     it('Renders relevant fields', () => {
       render(
-        <SpanEvidenceKeyValueList event={builder.getEvent()} projectSlug={projectSlug} />
+        <SpanEvidenceKeyValueList
+          event={builder.getEventFixture()}
+          projectSlug={projectSlug}
+        />
       );
 
       const parallelizableSpanKeyValue = screen.getByTestId(
@@ -375,7 +392,7 @@ describe('SpanEvidenceKeyValueList', () => {
       '/',
       IssueType.PERFORMANCE_N_PLUS_ONE_API_CALLS
     );
-    builder.getEvent().projectID = '123';
+    builder.getEventFixture().projectID = '123';
 
     const parentSpan = new MockSpan({
       startTimestamp: 0,
@@ -403,9 +420,9 @@ describe('SpanEvidenceKeyValueList', () => {
     builder.addSpan(parentSpan);
 
     builder.addEntry(
-      TestStubs.EventEntry({
-        type: EntryType.REQUEST,
+      EntryRequestFixture({
         data: {
+          ...EntryRequestFixture().data,
           url: 'http://some.service.io',
         },
       })
@@ -413,7 +430,10 @@ describe('SpanEvidenceKeyValueList', () => {
 
     it('Renders relevant fields', () => {
       render(
-        <SpanEvidenceKeyValueList event={builder.getEvent()} projectSlug={projectSlug} />
+        <SpanEvidenceKeyValueList
+          event={builder.getEventFixture()}
+          projectSlug={projectSlug}
+        />
       );
 
       expect(screen.getByRole('cell', {name: 'Transaction'})).toBeInTheDocument();
@@ -430,7 +450,7 @@ describe('SpanEvidenceKeyValueList', () => {
         screen.getByRole('button', {
           name: /view full event/i,
         })
-      ).toHaveAttribute('href', '/organizations/org-slug/performance/project:a1/?');
+      ).toHaveAttribute('href', '/organizations/org-slug/performance/project:a1/');
 
       expect(screen.getByRole('cell', {name: 'Repeating Spans (2)'})).toBeInTheDocument();
       expect(
@@ -543,7 +563,7 @@ describe('SpanEvidenceKeyValueList', () => {
       '/',
       IssueType.PERFORMANCE_SLOW_DB_QUERY
     );
-    builder.getEvent().projectID = '123';
+    builder.getEventFixture().projectID = '123';
 
     const parentSpan = new MockSpan({
       startTimestamp: 0,
@@ -564,7 +584,10 @@ describe('SpanEvidenceKeyValueList', () => {
 
     it('Renders relevant fields', () => {
       render(
-        <SpanEvidenceKeyValueList event={builder.getEvent()} projectSlug={projectSlug} />
+        <SpanEvidenceKeyValueList
+          event={builder.getEventFixture()}
+          projectSlug={projectSlug}
+        />
       );
 
       expect(screen.getByRole('cell', {name: 'Transaction'})).toBeInTheDocument();
@@ -581,7 +604,7 @@ describe('SpanEvidenceKeyValueList', () => {
         screen.getByRole('button', {
           name: /view full event/i,
         })
-      ).toHaveAttribute('href', '/organizations/org-slug/performance/project:a1/?');
+      ).toHaveAttribute('href', '/organizations/org-slug/performance/project:a1/');
 
       expect(screen.getByRole('cell', {name: 'Slow DB Query'})).toBeInTheDocument();
       expect(
@@ -601,7 +624,7 @@ describe('SpanEvidenceKeyValueList', () => {
         fcp: 2500,
       }
     );
-    builder.getEvent().projectID = '123';
+    builder.getEventFixture().projectID = '123';
 
     const offenderSpan = new MockSpan({
       startTimestamp: 0,
@@ -615,7 +638,10 @@ describe('SpanEvidenceKeyValueList', () => {
 
     it('Renders relevant fields', () => {
       render(
-        <SpanEvidenceKeyValueList event={builder.getEvent()} projectSlug={projectSlug} />
+        <SpanEvidenceKeyValueList
+          event={builder.getEventFixture()}
+          projectSlug={projectSlug}
+        />
       );
 
       expect(screen.getByRole('cell', {name: 'Transaction'})).toBeInTheDocument();
@@ -632,7 +658,7 @@ describe('SpanEvidenceKeyValueList', () => {
         screen.getByRole('button', {
           name: /view full event/i,
         })
-      ).toHaveAttribute('href', '/organizations/org-slug/performance/project:a1/?');
+      ).toHaveAttribute('href', '/organizations/org-slug/performance/project:a1/');
 
       expect(screen.getByRole('cell', {name: 'Slow Resource Span'})).toBeInTheDocument();
       expect(
@@ -660,7 +686,7 @@ describe('SpanEvidenceKeyValueList', () => {
         duration: 0.931, // in seconds
       }
     );
-    builder.getEvent().projectID = '123';
+    builder.getEventFixture().projectID = '123';
 
     const offenderSpan = new MockSpan({
       startTimestamp: 0,
@@ -677,7 +703,10 @@ describe('SpanEvidenceKeyValueList', () => {
 
     it('Renders relevant fields', () => {
       render(
-        <SpanEvidenceKeyValueList event={builder.getEvent()} projectSlug={projectSlug} />
+        <SpanEvidenceKeyValueList
+          event={builder.getEventFixture()}
+          projectSlug={projectSlug}
+        />
       );
 
       expect(screen.getByRole('cell', {name: 'Transaction'})).toBeInTheDocument();
@@ -694,7 +723,7 @@ describe('SpanEvidenceKeyValueList', () => {
         screen.getByRole('button', {
           name: /view full event/i,
         })
-      ).toHaveAttribute('href', '/organizations/org-slug/performance/project:a1/?');
+      ).toHaveAttribute('href', '/organizations/org-slug/performance/project:a1/');
 
       expect(screen.getByRole('cell', {name: 'Slow Resource Span'})).toBeInTheDocument();
       expect(
@@ -721,7 +750,7 @@ describe('SpanEvidenceKeyValueList', () => {
           duration: 0.931, // in seconds
         }
       );
-      legacyKeyBuilder.getEvent().projectID = '123';
+      legacyKeyBuilder.getEventFixture().projectID = '123';
 
       const offenderSpanWithLegacyKey = new MockSpan({
         startTimestamp: 0,
@@ -739,7 +768,7 @@ describe('SpanEvidenceKeyValueList', () => {
       it('Renders relevant fields', () => {
         render(
           <SpanEvidenceKeyValueList
-            event={legacyKeyBuilder.getEvent()}
+            event={legacyKeyBuilder.getEventFixture()}
             projectSlug={projectSlug}
           />
         );
@@ -758,7 +787,7 @@ describe('SpanEvidenceKeyValueList', () => {
       '/',
       IssueType.PERFORMANCE_LARGE_HTTP_PAYLOAD
     );
-    builder.getEvent().projectID = '123';
+    builder.getEventFixture().projectID = '123';
 
     const offenderSpan = new MockSpan({
       startTimestamp: 0,
@@ -775,7 +804,10 @@ describe('SpanEvidenceKeyValueList', () => {
 
     it('Renders relevant fields', () => {
       render(
-        <SpanEvidenceKeyValueList event={builder.getEvent()} projectSlug={projectSlug} />
+        <SpanEvidenceKeyValueList
+          event={builder.getEventFixture()}
+          projectSlug={projectSlug}
+        />
       );
 
       expect(screen.getByRole('cell', {name: 'Transaction'})).toBeInTheDocument();
@@ -792,7 +824,7 @@ describe('SpanEvidenceKeyValueList', () => {
         screen.getByRole('button', {
           name: /view full event/i,
         })
-      ).toHaveAttribute('href', '/organizations/org-slug/performance/project:a1/?');
+      ).toHaveAttribute('href', '/organizations/org-slug/performance/project:a1/');
 
       expect(
         screen.getByRole('cell', {name: 'Large HTTP Payload Span'})
@@ -813,7 +845,7 @@ describe('SpanEvidenceKeyValueList', () => {
         '/',
         IssueType.PERFORMANCE_LARGE_HTTP_PAYLOAD
       );
-      legacyKeyBuilder.getEvent().projectID = '123';
+      legacyKeyBuilder.getEventFixture().projectID = '123';
 
       const offenderSpanWithLegacyKey = new MockSpan({
         startTimestamp: 0,
@@ -830,7 +862,7 @@ describe('SpanEvidenceKeyValueList', () => {
       it('Renders relevant fields', () => {
         render(
           <SpanEvidenceKeyValueList
-            event={legacyKeyBuilder.getEvent()}
+            event={legacyKeyBuilder.getEventFixture()}
             projectSlug={projectSlug}
           />
         );

@@ -9,6 +9,7 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases import NoProjects, OrganizationEventsV2EndpointBase
 from sentry.api.paginator import GenericOffsetPaginator
+from sentry.api.utils import handle_query_errors, update_snuba_params_with_timestamp
 from sentry.search.utils import DEVICE_CLASS
 from sentry.snuba import discover
 
@@ -16,7 +17,7 @@ from sentry.snuba import discover
 @region_silo_endpoint
 class OrganizationEventsFacetsEndpoint(OrganizationEventsV2EndpointBase):
     publish_status = {
-        "GET": ApiPublishStatus.UNKNOWN,
+        "GET": ApiPublishStatus.PRIVATE,
     }
 
     def get(self, request: Request, organization) -> Response:
@@ -24,16 +25,18 @@ class OrganizationEventsFacetsEndpoint(OrganizationEventsV2EndpointBase):
             return Response(status=404)
 
         try:
-            params = self.get_snuba_params(request, organization)
+            snuba_params = self.get_snuba_params(request, organization)
         except NoProjects:
             return Response([])
 
+        update_snuba_params_with_timestamp(request, snuba_params, timestamp_key="traceTimestamp")
+
         def data_fn(offset, limit):
             with sentry_sdk.start_span(op="discover.endpoint", description="discover_query"):
-                with self.handle_query_errors():
+                with handle_query_errors():
                     facets = discover.get_facets(
                         query=request.GET.get("query"),
-                        params=params,
+                        snuba_params=snuba_params,
                         referrer="api.organization-events-facets.top-tags",
                         per_page=limit,
                         cursor=offset,
@@ -46,10 +49,10 @@ class OrganizationEventsFacetsEndpoint(OrganizationEventsV2EndpointBase):
                 resp = defaultdict(lambda: {"key": "", "topValues": []})
                 for row in facets:
                     values = resp[row.key]
-                    values["key"] = tagstore.get_standardized_key(row.key)
+                    values["key"] = tagstore.backend.get_standardized_key(row.key)
                     values["topValues"].append(
                         {
-                            "name": tagstore.get_tag_value_label(row.key, row.value),
+                            "name": tagstore.backend.get_tag_value_label(row.key, row.value),
                             "value": row.value,
                             "count": row.count,
                         }

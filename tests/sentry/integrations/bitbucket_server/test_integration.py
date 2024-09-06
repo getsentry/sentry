@@ -3,11 +3,11 @@ from requests.exceptions import ReadTimeout
 
 from fixtures.bitbucket_server import EXAMPLE_PRIVATE_KEY
 from sentry.integrations.bitbucket_server import BitbucketServerIntegrationProvider
-from sentry.models.identity import Identity, IdentityProvider
-from sentry.models.integrations.integration import Integration
-from sentry.models.integrations.organization_integration import OrganizationIntegration
+from sentry.integrations.models.integration import Integration
+from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.testutils.cases import IntegrationTestCase
 from sentry.testutils.silo import control_silo_test
+from sentry.users.models.identity import Identity, IdentityProvider
 
 
 @control_silo_test

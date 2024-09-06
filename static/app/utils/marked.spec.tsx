@@ -1,6 +1,6 @@
 /* eslint no-script-url:0 */
 
-import marked from 'sentry/utils/marked';
+import marked, {limitedMarked} from 'sentry/utils/marked';
 
 function expectMarkdown(test) {
   expect(marked(test[0])).toEqual('<p>' + test[1] + '</p>\n');
@@ -57,5 +57,14 @@ describe('marked', function () {
         '&lt;script&gt; &lt;img &lt;script&gt; src=x onerror=alert(1) /&gt;',
       ],
     ].forEach(expectMarkdown);
+  });
+
+  it('limited renderer does not render images and hyperlinks as html', function () {
+    for (const test of [
+      ['![alt](http://example.com/rick.gif)', 'http://example.com/rick.gif'],
+      ['[click me](http://example.com)', 'http://example.com'],
+    ]) {
+      expect(limitedMarked(test[0])).toEqual('<p>' + test[1] + '</p>\n');
+    }
   });
 });

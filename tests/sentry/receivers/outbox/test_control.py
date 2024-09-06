@@ -1,20 +1,12 @@
 from unittest.mock import patch
 
-import responses
-from django.test import RequestFactory
-from pytest import raises
-from rest_framework import status
-
+from sentry.integrations.models.integration import Integration
 from sentry.models.apiapplication import ApiApplication
-from sentry.models.integrations.integration import Integration
-from sentry.models.outbox import ControlOutbox, WebhookProviderIdentifier
 from sentry.receivers.outbox.control import (
     process_api_application_updates,
-    process_async_webhooks,
     process_integration_updates,
+    process_sentry_app_updates,
 )
-from sentry.shared_integrations.exceptions.base import ApiError
-from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import control_silo_test
 from sentry.types.region import Region, RegionCategory
@@ -44,60 +36,29 @@ class ProcessControlOutboxTest(TestCase):
             ApiApplication, self.identifier, region_name=_TEST_REGION.name
         )
 
-    @responses.activate
-    def test_process_async_webhooks_success(self):
-        request = RequestFactory().post(
-            "/extensions/github/webhook/",
-            data={"installation": {"id": "github:1"}},
-            content_type="application/json",
-            HTTP_X_GITHUB_EMOTICON=">:^]",
-        )
-        [outbox] = ControlOutbox.for_webhook_update(
-            webhook_identifier=WebhookProviderIdentifier.GITHUB,
-            region_names=[_TEST_REGION.name],
-            request=request,
-        )
-        outbox.save()
-        outbox.refresh_from_db()
+    @patch("sentry.receivers.outbox.control.region_caching_service")
+    def test_process_sentry_app_updates(self, mock_caching):
+        org = self.create_organization()
+        sentry_app = self.create_sentry_app()
+        install = self.create_sentry_app_installation(slug=sentry_app.slug, organization=org)
+        install_dupe = self.create_sentry_app_installation(slug=sentry_app.slug, organization=org)
 
-        mock_response = responses.add(
-            request.method,
-            f"{_TEST_REGION.address}{request.path}",
-            status=status.HTTP_200_OK,
+        org_two = self.create_organization()
+        install_two = self.create_sentry_app_installation(
+            slug=sentry_app.slug, organization=org_two
         )
-        process_async_webhooks(payload=outbox.payload, region_name=_TEST_REGION.name)
-        request_claim = (
-            mock_response.call_count == 1
-            if SiloMode.get_current_mode() == SiloMode.CONTROL
-            else mock_response.call_count == 0
-        )
-        assert request_claim
 
-    @responses.activate
-    def test_process_async_webhooks_failure(self):
-        request = RequestFactory().post(
-            "/extensions/github/webhook/",
-            data={"installation": {"id": "github:1"}},
-            content_type="application/json",
-            HTTP_X_GITHUB_EMOTICON=">:^]",
+        process_sentry_app_updates(object_identifier=sentry_app.id, region_name=_TEST_REGION.name)
+        mock_caching.clear_key.assert_any_call(
+            key=f"app_service.get_installation:{install.id}", region_name=_TEST_REGION.name
         )
-        [outbox] = ControlOutbox.for_webhook_update(
-            webhook_identifier=WebhookProviderIdentifier.GITHUB,
-            region_names=[_TEST_REGION.name],
-            request=request,
+        mock_caching.clear_key.assert_any_call(
+            key=f"app_service.get_installation:{install_dupe.id}", region_name=_TEST_REGION.name
         )
-        outbox.save()
-        outbox.refresh_from_db()
-
-        mock_response = responses.add(
-            request.method,
-            f"{_TEST_REGION.address}{request.path}",
-            status=status.HTTP_504_GATEWAY_TIMEOUT,
+        mock_caching.clear_key.assert_any_call(
+            key=f"app_service.get_installation:{install_two.id}", region_name=_TEST_REGION.name
         )
-        if SiloMode.get_current_mode() == SiloMode.CONTROL:
-            with raises(ApiError):
-                process_async_webhooks(payload=outbox.payload, region_name=_TEST_REGION.name)
-            assert mock_response.call_count == 1
-        else:
-            process_async_webhooks(payload=outbox.payload, region_name=_TEST_REGION.name)
-            assert mock_response.call_count == 0
+        mock_caching.clear_key.assert_any_call(
+            key=f"app_service.get_by_application_id:{sentry_app.application_id}",
+            region_name=_TEST_REGION.name,
+        )

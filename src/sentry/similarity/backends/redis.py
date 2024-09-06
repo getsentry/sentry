@@ -5,9 +5,9 @@ from django.utils.encoding import force_str
 
 from sentry.similarity.backends.abstract import AbstractIndexBackend
 from sentry.utils.iterators import chunked
-from sentry.utils.redis import load_script
+from sentry.utils.redis import load_redis_script
 
-index = load_script("similarity/index.lua")
+index = load_redis_script("similarity/index.lua")
 
 
 def band(n, value):
@@ -45,7 +45,7 @@ class RedisScriptMinHashIndexBackend(AbstractIndexBackend):
         # cluster client to determine what cluster the script should be
         # executed on. The script itself will use the scope as the hashtag for
         # all redis operations.
-        return index(self.cluster, [scope], args)
+        return index([scope], args, self.cluster)
 
     def _as_search_result(self, results):
         score_replacements = {

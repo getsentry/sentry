@@ -4,26 +4,14 @@ import {ReplayRecordFixture} from 'sentry-fixture/replayRecord';
 
 import {
   countColumns,
-  divide,
+  findVideoSegmentIndex,
   flattenFrames,
-  formatTime,
   getFramesByColumn,
-  showPlayerTime,
 } from 'sentry/components/replays/utils';
 import hydrateErrors from 'sentry/utils/replays/hydrateErrors';
 import hydrateSpans from 'sentry/utils/replays/hydrateSpans';
 
 const SECOND = 1000;
-
-describe('formatTime', () => {
-  it.each([
-    ['seconds', 15 * 1000, '00:15'],
-    ['minutes', 2.5 * 60 * 1000, '02:30'],
-    ['hours', 75 * 60 * 1000, '01:15:00'],
-  ])('should format a %s long duration into a string', (_desc, duration, expected) => {
-    expect(formatTime(duration)).toEqual(expected);
-  });
-});
 
 describe('countColumns', () => {
   it('should divide 27s by 2700px to find twentyseven 1s columns, with some fraction remaining', () => {
@@ -87,7 +75,10 @@ describe('countColumns', () => {
 describe('getFramesByColumn', () => {
   const durationMs = 25710; // milliseconds
 
-  const [CRUMB_1, CRUMB_2, CRUMB_3, CRUMB_4, CRUMB_5] = hydrateErrors(
+  const {
+    errorFrames: [CRUMB_1, CRUMB_2, CRUMB_3, CRUMB_4, CRUMB_5],
+    feedbackFrames: [],
+  } = hydrateErrors(
     ReplayRecordFixture({
       started_at: new Date('2022-04-14T14:19:47.326000Z'),
     }),
@@ -257,25 +248,109 @@ describe('flattenFrames', () => {
       },
     ]);
   });
+});
 
-  const diffMs = 1652309918676;
-  describe('showPlayerTime', () => {
-    it('returns time formatted for player', () => {
-      expect(showPlayerTime('2022-05-11T23:04:27.576000Z', diffMs)).toEqual('05:48');
-    });
+describe('findVideoSegmentIndex', () => {
+  const segments = [
+    {
+      id: 0,
+      timestamp: 0,
+      duration: 5000,
+    },
+    // no gap
+    {
+      id: 1,
+      timestamp: 5000,
+      duration: 5000,
+    },
+    {
+      id: 2,
+      timestamp: 10_001,
+      duration: 5000,
+    },
+    // 5 second gap
+    {
+      id: 3,
+      timestamp: 20_000,
+      duration: 5000,
+    },
+    // 5 second gap
+    {
+      id: 4,
+      timestamp: 30_000,
+      duration: 5000,
+    },
+    {
+      id: 5,
+      timestamp: 35_002,
+      duration: 5000,
+    },
+  ];
+  const trackList = segments.map(
+    ({timestamp}, index) => [timestamp, index] as [ts: number, index: number]
+  );
 
-    it('returns 0:00 if timestamp is malformed', () => {
-      expect(showPlayerTime('20223:04:27.576000Z', diffMs)).toEqual('00:00');
-    });
+  it.each([
+    ['matches starting timestamp', 0, 0],
+    ['matches ending timestamp', 5000, 0],
+    ['is inside of a segment (between timestamps)', 7500, 1],
+    ['matches ending timestamp', 15_001, 2],
+    ['is not inside of a segment', 16_000, 2],
+    ['matches starting timestamp', 20_000, 3],
+    ['is not inside of a segment', 27_500, 3],
+    ['is not inside of a segment', 29_000, 3],
+    ['is inside of a segment', 34_999, 4],
+    ['is inside of a segment', 40_002, 5],
+    ['is after the last segment', 50_000, 5],
+  ])(
+    'should find correct segment when target timestamp %s (%s)',
+    (_desc, targetTimestamp, expected) => {
+      expect(findVideoSegmentIndex(trackList, segments, targetTimestamp)).toEqual(
+        expected
+      );
+    }
+  );
+
+  it('returns first segment if target timestamp is before the first segment when there is only a single attachment', () => {
+    const segments2 = [
+      {
+        id: 0,
+        timestamp: 5000,
+        duration: 5000,
+      },
+    ];
+    const trackList2 = segments2.map(
+      ({timestamp}, index) => [timestamp, index] as [ts: number, index: number]
+    );
+    expect(findVideoSegmentIndex(trackList2, segments2, 1000)).toEqual(-1);
   });
 
-  describe('divide', () => {
-    it('divides numbers safely', () => {
-      expect(divide(81, 9)).toEqual(9);
-    });
-
-    it('dividing by zero returns zero', () => {
-      expect(divide(81, 0)).toEqual(0);
-    });
+  it('returns first segment if target timestamp is before the first segment', () => {
+    const segments2 = [
+      {
+        id: 0,
+        timestamp: 5000,
+        duration: 5000,
+      },
+      {
+        id: 1,
+        timestamp: 10000,
+        duration: 5000,
+      },
+      {
+        id: 2,
+        timestamp: 15000,
+        duration: 5000,
+      },
+      {
+        id: 3,
+        timestamp: 25000,
+        duration: 5000,
+      },
+    ];
+    const trackList2 = segments2.map(
+      ({timestamp}, index) => [timestamp, index] as [ts: number, index: number]
+    );
+    expect(findVideoSegmentIndex(trackList2, segments2, 1000)).toEqual(-1);
   });
 });

@@ -1,9 +1,9 @@
-import {Event as EventFixture} from 'sentry-fixture/event';
+import {EventFixture} from 'sentry-fixture/event';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import {EventError} from 'sentry/types';
-import {EntryType, ExceptionType, ExceptionValue, Frame} from 'sentry/types/event';
+import type {EventError, ExceptionType, ExceptionValue, Frame} from 'sentry/types/event';
+import {EntryType} from 'sentry/types/event';
 
 import {StackTracePreview} from './stackTracePreview';
 
@@ -43,10 +43,7 @@ describe('StackTracePreview', () => {
     ).toBeInTheDocument();
   });
 
-  it.each([
-    ['stack-trace-content', []],
-    ['stack-trace-content-v2', ['grouping-stacktrace-ui']],
-  ])('renders %s', async (component, features) => {
+  it.each([['stack-trace-content', []]])('renders %s', async (component, features) => {
     const frame: Frame = {
       colNo: 0,
       filename: 'file.js',

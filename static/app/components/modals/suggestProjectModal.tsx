@@ -9,10 +9,10 @@ import {
   addLoadingMessage,
   addSuccessMessage,
 } from 'sentry/actionCreators/indicator';
-import {ModalRenderProps} from 'sentry/actionCreators/modal';
-import {Client} from 'sentry/api';
+import type {ModalRenderProps} from 'sentry/actionCreators/modal';
+import type {Client} from 'sentry/api';
 import Access from 'sentry/components/acl/access';
-import {Button} from 'sentry/components/button';
+import {Button, LinkButton} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import EmailField from 'sentry/components/forms/fields/emailField';
 import Form from 'sentry/components/forms/form';
@@ -20,7 +20,7 @@ import List from 'sentry/components/list';
 import ListItem from 'sentry/components/list/listItem';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {Organization} from 'sentry/types';
+import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import withApi from 'sentry/utils/withApi';
 
@@ -172,13 +172,13 @@ class SuggestProjectModal extends Component<Props, State> {
                   {t('Tell a Teammate')}
                 </Button>
                 {hasAccess && (
-                  <Button
+                  <LinkButton
                     href={newProjectLink}
                     onClick={this.handleGetStartedClick}
                     priority="primary"
                   >
                     {t('Get Started')}
-                  </Button>
+                  </LinkButton>
                 )}
               </ButtonBar>
             )}
