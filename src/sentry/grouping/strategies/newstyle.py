@@ -288,13 +288,6 @@ def get_function_component(
                 function_component.update(values=[new_function], hint="isolated function")
                 func = new_function
 
-        if context["native_fuzzing"]:
-            # Normalize macOS/llvm anonymous namespaces to
-            # Windows-like/msvc
-            new_function = func.replace("(anonymous namespace)", "`anonymous namespace'")
-            if new_function != func:
-                function_component.update(values=[new_function])
-
     elif context["javascript_fuzzing"] and behavior_family == "javascript":
         # This changes Object.foo or Foo.foo into foo so that we can
         # resolve some common cross browser differences
@@ -573,6 +566,9 @@ def single_exception(
             # can be continuously modified without unnecessarily creating new
             # groups.
             type_component.update(contributes=False, hint="ignored because exception is synthetic")
+            system_type_component.update(
+                contributes=False, hint="ignored because exception is synthetic"
+            )
         if interface.mechanism.meta and "ns_error" in interface.mechanism.meta:
             ns_error_component = GroupingComponent(
                 id="ns-error",

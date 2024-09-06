@@ -4,11 +4,11 @@ from django.db import models
 
 from sentry.backup.scopes import RelocationScope
 from sentry.db.models import BoundedBigIntegerField, control_silo_model, region_silo_model
-from sentry.db.models.base import DefaultFieldsModel, sane_repr
+from sentry.db.models.base import DefaultFieldsModelExisting, sane_repr
 from sentry.db.models.fields.uuid import UUIDField
 
 
-class BaseImportChunk(DefaultFieldsModel):
+class BaseImportChunk(DefaultFieldsModelExisting):
     """
     Base class representing the map of import pks to final, post-import database pks.
     """

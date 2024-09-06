@@ -1,5 +1,5 @@
 ---
-created: '2024-08-27T12:08:34.847794+00:00'
+created: '2024-09-04T19:48:05.064672+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -36,7 +36,7 @@ app-depth-max:
           "Fatal Error: EXCEPTION_ACCESS_VIOLATION_READ"
 --------------------------------------------------------------------------
 system:
-  hash: "de6d2006110595e73e5d10deabae2a1a"
+  hash: "c85e23e804b52ea4b9f290ba838e77a0"
   component:
     system*
       exception*
@@ -67,7 +67,7 @@ system:
           frame (marked as prefix frame by stack trace rule (category:driver +sentinel +prefix))
             package* (used as fallback because function name is not available)
               "nvwgf2umx.dll"
-        type*
+        type (ignored because exception is synthetic)
           "EXCEPTION_ACCESS_VIOLATION_READ"
         value (ignored because stacktrace takes precedence)
           "Fatal Error: EXCEPTION_ACCESS_VIOLATION_READ"

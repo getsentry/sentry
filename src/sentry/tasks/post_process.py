@@ -789,7 +789,7 @@ def update_event_group(event: Event, group_state: GroupState) -> GroupEvent:
 
 
 def process_inbox_adds(job: PostProcessJob) -> None:
-    from sentry.models.group import Group, GroupStatus
+    from sentry.models.group import GroupStatus
     from sentry.types.group import GroupSubStatus
 
     with sentry_sdk.start_span(op="tasks.post_process_group.add_group_to_inbox"):
@@ -815,20 +815,6 @@ def process_inbox_adds(job: PostProcessJob) -> None:
             not is_reprocessed and not has_reappeared
         ):  # If true, we added the .ONGOING reason already
             if is_new:
-                group = Group.objects.filter(id=event.group.id).exclude(
-                    substatus=GroupSubStatus.NEW
-                )
-                if group.exists():
-                    logger.warning(
-                        "incorrect_substatus: Found NEW group with incorrect substatus",
-                        extra={"group_id": event.group.id, "substatus": event.group.substatus},
-                    )
-
-                updated = group.update(status=GroupStatus.UNRESOLVED, substatus=GroupSubStatus.NEW)
-                if updated:
-                    event.group.status = GroupStatus.UNRESOLVED
-                    event.group.substatus = GroupSubStatus.NEW
-
                 add_group_to_inbox(event.group, GroupInboxReason.NEW)
             elif is_regression:
                 # we don't need to update the group since that should've already been

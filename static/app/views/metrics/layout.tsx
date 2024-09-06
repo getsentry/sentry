@@ -1,5 +1,4 @@
 import {Fragment, memo, useCallback} from 'react';
-import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 
@@ -8,7 +7,6 @@ import emptyStateImg from 'sentry-images/spot/custom-metrics-empty-state.svg';
 import Alert from 'sentry/components/alert';
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
 import FeatureBadge from 'sentry/components/badge/featureBadge';
-import Banner from 'sentry/components/banner';
 import {Button, LinkButton} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import FloatingFeedbackWidget from 'sentry/components/feedback/widget/floatingFeedbackWidget';
@@ -29,14 +27,12 @@ import {hasCustomMetrics} from 'sentry/utils/metrics/features';
 import {useVirtualMetricsContext} from 'sentry/utils/metrics/virtualMetricsContext';
 import useDismissAlert from 'sentry/utils/useDismissAlert';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
-import useMedia from 'sentry/utils/useMedia';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
-import BackgroundSpace from 'sentry/views/discover/backgroundSpace';
 import {useMetricsContext} from 'sentry/views/metrics/context';
 import {useMetricsOnboardingSidebar} from 'sentry/views/metrics/ddmOnboarding/useMetricsOnboardingSidebar';
 import {IntervalSelect} from 'sentry/views/metrics/intervalSelect';
-import {MetricsApiChangeAlert} from 'sentry/views/metrics/metricsApiChangeAlert';
+import {MetricsBetaEndAlert} from 'sentry/views/metrics/metricsBetaEndAlert';
 import {PageHeaderActions} from 'sentry/views/metrics/pageHeaderActions';
 import {Queries} from 'sentry/views/metrics/queries';
 import {MetricScratchpad} from 'sentry/views/metrics/scratchpad';
@@ -73,8 +69,6 @@ export const MetricsLayout = memo(() => {
     useDismissAlert({
       key: `${organization.id}:${selectedProjects}:metrics-empty-state-dismissed`,
     });
-  const theme = useTheme();
-  const isSmallBanner = useMedia(`(max-width: ${theme.breakpoints.medium})`);
   const [isBannerDismissed] = useLocalStorageState('metrics-banner-dismissed', false);
 
   const addCustomMetric = useCallback(
@@ -128,7 +122,12 @@ export const MetricsLayout = memo(() => {
                 'Metrics help you track and visualize the data points you care about, making it easier to monitor your application health and identify issues.'
               )}
             />
-            <FeatureBadge type="beta" />
+            <FeatureBadge
+              type="beta"
+              title={t(
+                'The Metrics beta will end and we will retire the current solution on October 7th, 2024'
+              )}
+            />
           </Layout.Title>
         </Layout.HeaderContent>
         <Layout.HeaderActions>
@@ -145,26 +144,7 @@ export const MetricsLayout = memo(() => {
       <Layout.Body>
         <FloatingFeedbackWidget />
         <Layout.Main fullWidth>
-          {isEmptyStateDismissed && !hasSentCustomMetrics && (
-            <Banner
-              title={t('Custom Metrics')}
-              subtitle={t(
-                "Track your system's behaviour and profit from the same powerful features as you do with errors, like alerting and dashboards."
-              )}
-              backgroundComponent={<BackgroundSpace />}
-              dismissKey="metrics"
-            >
-              <Button
-                size={isSmallBanner ? 'xs' : undefined}
-                translucentBorder
-                onClick={() => addCustomMetric('banner')}
-              >
-                {t('Set Up')}
-              </Button>
-            </Banner>
-          )}
-
-          <MetricsApiChangeAlert />
+          <MetricsBetaEndAlert />
 
           <FilterContainer>
             <PageFilterBar condensed>

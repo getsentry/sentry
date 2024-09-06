@@ -9,7 +9,7 @@ from sentry.discover.arithmetic import categorize_columns
 from sentry.models.organization import Organization
 from sentry.search.events.builder.spans_indexed import (
     SpansEAPQueryBuilder,
-    TimeseriesSpanIndexedQueryBuilder,
+    TimeseriesSpanEAPIndexedQueryBuilder,
     TopEventsSpanIndexedQueryBuilder,
 )
 from sentry.search.events.types import EventsResponse, QueryBuilderConfig, SnubaParams
@@ -103,7 +103,7 @@ def timeseries_query(
     equations, columns = categorize_columns(selected_columns)
 
     with sentry_sdk.start_span(op="spans_indexed", description="TimeseriesSpanIndexedQueryBuilder"):
-        querybuilder = TimeseriesSpanIndexedQueryBuilder(
+        querybuilder = TimeseriesSpanEAPIndexedQueryBuilder(
             Dataset.SpansEAP,
             {},
             rollup,
