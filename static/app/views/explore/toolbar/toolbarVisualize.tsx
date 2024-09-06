@@ -1,5 +1,4 @@
 import {useCallback, useMemo} from 'react';
-import styled from '@emotion/styled';
 
 import {CompactSelect, type SelectOption} from 'sentry/components/compactSelect';
 import {t} from 'sentry/locale';
@@ -18,6 +17,7 @@ import {
   ToolbarHeader,
   ToolbarHeaderButton,
   ToolbarHeading,
+  ToolbarRow,
   ToolbarSection,
 } from './styles';
 
@@ -79,7 +79,7 @@ export function ToolbarVisualize({}: ToolbarVisualizeProps) {
         </ToolbarHeaderButton>
       </ToolbarHeader>
       {parsedVisualizes.map((parsedVisualize, index) => (
-        <VisualizeOption key={index}>
+        <ToolbarRow rows={visualizes} setRows={setVisualizes} index={index} key={index}>
           <CompactSelect
             size="md"
             options={fieldOptions}
@@ -92,12 +92,8 @@ export function ToolbarVisualize({}: ToolbarVisualizeProps) {
             value={parsedVisualize?.name}
             onChange={newAggregate => setChartAggregate(index, newAggregate)}
           />
-        </VisualizeOption>
+        </ToolbarRow>
       ))}
     </ToolbarSection>
   );
 }
-
-const VisualizeOption = styled('div')`
-  display: flex;
-`;

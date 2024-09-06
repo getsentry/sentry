@@ -11,6 +11,7 @@ import {
   ToolbarHeader,
   ToolbarHeaderButton,
   ToolbarHeading,
+  ToolbarRow,
   ToolbarSection,
 } from './styles';
 
@@ -23,7 +24,7 @@ export function ToolbarGroupBy() {
   const options: SelectOption<Field>[] = useMemo(() => {
     return [
       // hard code in an empty option
-      {label: t('(none)'), value: ''},
+      {label: t('None'), value: ''},
       ...Object.entries(tags).map(([tagKey, tag]) => {
         return {
           label: tag.name,
@@ -55,13 +56,15 @@ export function ToolbarGroupBy() {
         </ToolbarHeaderButton>
       </ToolbarHeader>
       {groupBys.map((groupBy, index) => (
-        <CompactSelect
-          key={index}
-          size="md"
-          options={options}
-          value={groupBy}
-          onChange={newGroupBy => setGroupBy(index, newGroupBy)}
-        />
+        <ToolbarRow rows={groupBys} setRows={setGroupBys} index={index} key={index}>
+          <CompactSelect
+            searchable
+            size="md"
+            options={options}
+            value={groupBy}
+            onChange={newGroupBy => setGroupBy(index, newGroupBy)}
+          />
+        </ToolbarRow>
       ))}
     </ToolbarSection>
   );
