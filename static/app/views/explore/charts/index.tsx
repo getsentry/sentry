@@ -6,6 +6,7 @@ import {CompactSelect} from 'sentry/components/compactSelect';
 import {CHART_PALETTE} from 'sentry/constants/chartPalette';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import {dedupeArray} from 'sentry/utils/dedupeArray';
 import {aggregateOutputType} from 'sentry/utils/discover/fields';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import usePageFilters from 'sentry/utils/usePageFilters';
@@ -36,20 +37,6 @@ const exploreChartTypeOptions = [
   },
 ];
 
-function dedupe(strings: string[]): string[] {
-  const deduped: string[] = [];
-  const seen = new Set();
-  strings.forEach(s => {
-    if (seen.has(s)) {
-      return;
-    }
-
-    seen.add(s);
-    deduped.push(s);
-  });
-  return deduped;
-}
-
 // TODO: Update to support aggregate mode and multiple queries / visualizations
 export function ExploreCharts({query}: ExploreChartsProps) {
   const pageFilters = usePageFilters();
@@ -58,7 +45,7 @@ export function ExploreCharts({query}: ExploreChartsProps) {
   const [interval, setInterval, intervalOptions] = useChartInterval();
 
   const yAxes = useMemo(() => {
-    const deduped = dedupe(visualizes.flatMap(visualize => visualize.yAxes));
+    const deduped = dedupeArray(visualizes.flatMap(visualize => visualize.yAxes));
     deduped.sort();
     return deduped;
   }, [visualizes]);
@@ -76,7 +63,7 @@ export function ExploreCharts({query}: ExploreChartsProps) {
   return (
     <Fragment>
       {visualizes.map((visualize, index) => {
-        const dedupedYAxes = dedupe(visualize.yAxes);
+        const dedupedYAxes = dedupeArray(visualize.yAxes);
         return (
           <ChartContainer key={index}>
             <ChartPanel>
