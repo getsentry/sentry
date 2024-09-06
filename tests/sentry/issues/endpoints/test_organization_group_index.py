@@ -4767,7 +4767,7 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
 
     def test_set_unresolved(self) -> None:
         release = self.create_release(project=self.project, version="abc")
-        group = self.create_group(status=GroupStatus.RESOLVED)
+        group = self.create_group(status=GroupStatus.IGNORED)
         GroupResolution.objects.create(group=group, release=release)
 
         self.login_as(user=self.user)
@@ -5254,7 +5254,7 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
             group=group1, status=GroupHistoryStatus.UNRESOLVED
         ).exists()
         assert GroupHistory.objects.filter(
-            group=group2, status=GroupHistoryStatus.UNRESOLVED
+            group=group2, status=GroupHistoryStatus.REGRESSED
         ).exists()
 
     def test_update_priority(self) -> None:
