@@ -155,11 +155,6 @@ class Migration(CheckedMigration):
             old_fields=("shard_scope", "shard_identifier", "scheduled_for"),
         ),
         migrations.RenameIndex(
-            model_name="regressiongroup",
-            new_name="sentry_regr_type_3a29e7_idx",
-            old_fields=("type", "project_id", "fingerprint", "active"),
-        ),
-        migrations.RenameIndex(
             model_name="releaseartifactbundle",
             new_name="sentry_rele_organiz_291018_idx",
             old_fields=("organization_id", "release_name", "dist_name", "artifact_bundle"),
