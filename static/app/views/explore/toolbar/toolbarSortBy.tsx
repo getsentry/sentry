@@ -1,5 +1,4 @@
 import {useCallback, useMemo} from 'react';
-import styled from '@emotion/styled';
 
 import type {SelectOption} from 'sentry/components/compactSelect';
 import {CompactSelect} from 'sentry/components/compactSelect';
@@ -7,7 +6,7 @@ import {t} from 'sentry/locale';
 import type {Sort} from 'sentry/utils/discover/fields';
 import type {Field} from 'sentry/views/explore/hooks/useSampleFields';
 
-import {ToolbarHeading, ToolbarSection} from './styles';
+import {ToolbarHeader, ToolbarHeading, ToolbarRow, ToolbarSection} from './styles';
 
 interface ToolbarSortByProps {
   fields: Field[];
@@ -68,8 +67,10 @@ export function ToolbarSortBy({fields, setSorts, sorts}: ToolbarSortByProps) {
 
   return (
     <ToolbarSection data-test-id="section-sort-by">
-      <ToolbarHeading>{t('Sort By')}</ToolbarHeading>
-      <ToolbarContent>
+      <ToolbarHeader>
+        <ToolbarHeading>{t('Sort By')}</ToolbarHeading>
+      </ToolbarHeader>
+      <ToolbarRow>
         <CompactSelect
           size="md"
           options={fieldOptions}
@@ -82,11 +83,7 @@ export function ToolbarSortBy({fields, setSorts, sorts}: ToolbarSortByProps) {
           value={sorts[0]?.kind}
           onChange={newSortKind => setSortKind(0, newSortKind)}
         />
-      </ToolbarContent>
+      </ToolbarRow>
     </ToolbarSection>
   );
 }
-
-const ToolbarContent = styled('div')`
-  display: flex;
-`;

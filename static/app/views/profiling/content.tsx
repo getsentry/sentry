@@ -424,17 +424,13 @@ function ProfilingTransactionsContent(props: ProfilingTabContentProps) {
   const cursor = decodeScalar(location.query.cursor);
   const query = decodeScalar(location.query.query, '');
 
-  const continuousProfilingCompat = organization.features.includes(
-    'continuous-profiling-compat'
-  );
-
   const transactions = useProfileEvents<FieldType>({
     cursor,
     fields,
     query,
     sort,
     referrer: 'api.profiling.landing-table',
-    continuousProfilingCompat,
+    continuousProfilingCompat: true,
   });
 
   const transactionsError =
@@ -489,14 +485,14 @@ function ProfilingTransactionsContent(props: ProfilingTabContentProps) {
         <ProfilingOnboardingCTA />
       ) : (
         <Fragment>
-          {organization.features.includes('continuous-profiling-compat') ? (
+          {organization.features.includes('continuous-profiling-ui') ? (
             <Fragment>
               <ProfilesChartWidget
                 chartHeight={150}
                 referrer="api.profiling.landing-chart"
                 userQuery={query}
                 selection={selection}
-                continuousProfilingCompat={continuousProfilingCompat}
+                continuousProfilingCompat
               />
               <SlowestFunctionsTable userQuery={query} />
             </Fragment>
@@ -507,7 +503,7 @@ function ProfilingTransactionsContent(props: ProfilingTabContentProps) {
                 referrer="api.profiling.landing-chart"
                 userQuery={query}
                 selection={selection}
-                continuousProfilingCompat={continuousProfilingCompat}
+                continuousProfilingCompat
               />
               <WidgetsContainer>
                 <LandingWidgetSelector

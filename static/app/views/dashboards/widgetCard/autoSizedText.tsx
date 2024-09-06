@@ -21,6 +21,17 @@ export function AutoSizedText({children}: Props) {
       return undefined;
     }
 
+    if (!window.ResizeObserver) {
+      // `ResizeObserver` is missing in a test environment. In this case,
+      // run one iteration of the resize behaviour so a test can at least
+      // verify that the component doesn't crash.
+      const childDimensions = getElementDimensions(childElement);
+      const parentDimensions = getElementDimensions(parentElement);
+
+      adjustFontSize(childDimensions, parentDimensions);
+      return undefined;
+    }
+
     // On component first mount, register a `ResizeObserver` on the containing element. The handler fires
     // on component mount, and every time the element changes size after that
     const observer = new ResizeObserver(entries => {
@@ -46,6 +57,8 @@ export function AutoSizedText({children}: Props) {
           name: 'AutoSizedText.iterate',
           forceTransaction: true,
         });
+
+        const t1 = performance.now();
 
         // Run the resize iteration in a loop. This blocks the main UI thread and prevents
         // visible layout jitter. If this was done through a `ResizeObserver` or React State
@@ -76,10 +89,12 @@ export function AutoSizedText({children}: Props) {
 
           iterationCount += 1;
         }
+        const t2 = performance.now();
 
         scope.setTag('didExceedIterationLimit', iterationCount >= ITERATION_LIMIT);
 
         span.setAttribute('iterationCount', iterationCount);
+        span.setAttribute('durationFromPerformanceAPI', t2 - t1);
         span.end();
       });
     });

@@ -605,13 +605,17 @@ def update_groups(
                 extra={"group_id": group_list[0].id},
             )
             new_substatus = GroupSubStatus.ONGOING
-
-            # Set the group back to NEW if it was unignored withing 7 days of when it was first seen
-            if len(group_list) == 1 and group_list[0].status == GroupStatus.IGNORED:
-                is_new_group = group_list[0].first_seen > datetime.now(timezone.utc) - timedelta(
-                    days=TRANSITION_AFTER_DAYS
-                )
-                new_substatus = GroupSubStatus.NEW if is_new_group else GroupSubStatus.ONGOING
+            
+            if len(group_list) == 1:
+                g = group_list[0]
+                # Set the group back to NEW if it was unignored withing 7 days of when it was first seen
+                if g.status == GroupStatus.IGNORED:
+                    is_new_group = g.first_seen > datetime.now(timezone.utc) - timedelta(
+                        days=TRANSITION_AFTER_DAYS
+                    )
+                    new_substatus = GroupSubStatus.NEW if is_new_group else GroupSubStatus.ONGOING
+                if g.status == GroupStatus.RESOLVED:
+                    new_substatus = GroupSubStatus.REGRESSED
 
         with transaction.atomic(router.db_for_write(Group)):
             # TODO(gilbert): update() doesn't call pre_save and bypasses any substatus defaulting we have there

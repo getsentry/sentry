@@ -124,7 +124,7 @@ from sentry.models.project import Project
 from sentry.models.projectbookmark import ProjectBookmark
 from sentry.models.projectcodeowners import ProjectCodeOwners
 from sentry.models.projecttemplate import ProjectTemplate
-from sentry.models.release import Release
+from sentry.models.release import Release, ReleaseStatus
 from sentry.models.releasecommit import ReleaseCommit
 from sentry.models.releaseenvironment import ReleaseEnvironment
 from sentry.models.releasefile import ReleaseFile, update_artifact_index
@@ -144,7 +144,6 @@ from sentry.sentry_apps.installations import (
 )
 from sentry.sentry_apps.services.app.serial import serialize_sentry_app_installation
 from sentry.sentry_apps.services.hook import hook_service
-from sentry.sentry_metrics.models import SpanAttributeExtractionRuleConfig
 from sentry.signals import project_created
 from sentry.silo.base import SiloMode
 from sentry.snuba.dataset import Dataset
@@ -606,6 +605,7 @@ class Factories:
         date_released: datetime | None = None,
         adopted: datetime | None = None,
         unadopted: datetime | None = None,
+        status: int | None = ReleaseStatus.OPEN,
     ):
         if version is None:
             version = force_str(hexlify(os.urandom(20)))
@@ -621,6 +621,7 @@ class Factories:
             organization_id=project.organization_id,
             date_added=date_added,
             date_released=date_released,
+            status=status,
         )
 
         release.add_project(project)
@@ -1218,13 +1219,6 @@ class Factories:
             provider=provider,
             sentry_app_installation=installation,
         )
-
-    @staticmethod
-    @assume_test_silo_mode(SiloMode.REGION)
-    def create_span_attribute_extraction_config(
-        dictionary: dict[str, Any], user_id: int, project: Project
-    ) -> SpanAttributeExtractionRuleConfig:
-        return SpanAttributeExtractionRuleConfig.from_dict(dictionary, user_id, project)
 
     @staticmethod
     @assume_test_silo_mode(SiloMode.CONTROL)
