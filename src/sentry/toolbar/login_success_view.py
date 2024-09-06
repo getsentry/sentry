@@ -1,15 +1,6 @@
-from django.http import HttpRequest, HttpResponse
-from django.utils.decorators import method_decorator
-from django.views.decorators.csrf import csrf_exempt
-from django.views.generic import View
-
-from sentry.web.helpers import render_to_response
+from sentry.web.frontend.base import BaseView
 
 
-class LoginSuccessView(View):
-    @method_decorator(csrf_exempt)
-    def dispatch(self, request: HttpRequest, *args, **kwargs) -> HttpResponse:
-        if request.method != "GET":
-            return HttpResponse(status=405)
-
-        return render_to_response("sentry/toolbar/login_success.html")
+class LoginSuccessView(BaseView):
+    def get(self, request, organization_slug):
+        return self.respond("sentry/toolbar/login_success.html")
