@@ -2,9 +2,11 @@ import {createContext, useState} from 'react';
 
 export interface NewTabContext {
   newViewActive: boolean;
-  onNewViewSaved: (label: string, query: string) => void;
+  onNewViewSaved: (label: string, query: string, saveQueryToView: boolean) => void;
   setNewViewActive: (isActive: boolean) => void;
-  setOnNewViewSaved: (onNewViewSaved: (label: string, query: string) => void) => void;
+  setOnNewViewSaved: (
+    onNewViewSaved: (label: string, query: string, saveQueryToView: boolean) => void
+  ) => void;
 }
 
 export const NewTabContext = createContext<NewTabContext>({

@@ -278,8 +278,8 @@ function CustomViewsIssueListHeaderTabsContent({
 
   useEffect(() => {
     if (viewId?.startsWith('_')) {
-      // If the user types in query manually in the new view flow,
-      // turn off the new view page and display the issue stream
+      // If the user types in query manually while the new view flow is showing,
+      // replace the new view page with the issue stream with the query loaded
       if (newViewActive && query !== '') {
         setNewViewActive(false);
       } else {

@@ -267,21 +267,21 @@ export function DraggableTabBar({
   };
 
   const handleNewViewSaved: NewTabContext['onNewViewSaved'] = useCallback(
-    () => (label: string, query: string) => {
+    () => (label: string, query: string, saveQueryToView: boolean) => {
       setNewViewActive(false);
-      const newTabs = tabs.map(tab => {
+      const updatedTabs: Tab[] = tabs.map(tab => {
         if (tab.key === viewId) {
           return {
             ...tab,
             label: label,
-            query: query,
+            query: saveQueryToView ? query : '',
             querySort: IssueSortOptions.DATE,
-            unsavedChanges: undefined,
+            unsavedChanges: saveQueryToView ? undefined : [query, IssueSortOptions.DATE],
           };
         }
         return tab;
       });
-      setTabs(newTabs);
+      setTabs(updatedTabs);
       navigate(
         {
           ...location,
@@ -293,7 +293,7 @@ export function DraggableTabBar({
         },
         {replace: true}
       );
-      onAddView?.(newTabs);
+      onAddView?.(updatedTabs);
     },
 
     // eslint-disable-next-line react-hooks/exhaustive-deps
