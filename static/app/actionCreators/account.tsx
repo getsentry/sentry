@@ -1,3 +1,5 @@
+import {redirect} from 'react-router-dom';
+
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {Client} from 'sentry/api';
 import ConfigStore from 'sentry/stores/configStore';
@@ -50,7 +52,7 @@ export async function logout(api: Client, redirectUrl = '/auth/login/') {
   const data = await api.requestPromise('/auth/', {method: 'DELETE'});
 
   // If there's a URL for SAML Single-logout, redirect back to IdP
-  window.location.assign(data?.sloUrl || redirectUrl);
+  redirect(data?.sloUrl || redirectUrl);
 }
 
 export function removeAuthenticator(api: Client, userId: string, authId: string) {

@@ -54,6 +54,10 @@ export default function SidebarDropdown({orientation, collapsed, hideOrgLinks}: 
   const hasTeamRead = org?.access?.includes('team:read');
   const canCreateOrg = ConfigStore.get('features').has('organizations:create');
 
+  function handleLogout() {
+    logout(api);
+  }
+
   // Avatar to use: Organization --> user --> Sentry
   const avatar =
     hasOrganization || hasUser ? (
@@ -160,7 +164,7 @@ export default function SidebarDropdown({orientation, collapsed, hideOrgLinks}: 
                       )}
                       <SidebarMenuItem
                         data-test-id="sidebar-signout"
-                        onClick={() => logout(api)}
+                        onClick={handleLogout}
                       >
                         {t('Sign out')}
                       </SidebarMenuItem>

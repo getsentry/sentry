@@ -21,6 +21,10 @@ function NarrowLayout({maxWidth, showLogout, children}: Props) {
     return () => document.body.classList.remove('narrow');
   }, []);
 
+  function handleLogout() {
+    logout(api);
+  }
+
   return (
     <div className="app">
       <div className="pattern-bg" />
@@ -31,7 +35,7 @@ function NarrowLayout({maxWidth, showLogout, children}: Props) {
               <IconSentry size="lg" />
             </a>
             {showLogout && (
-              <a className="logout pull-right" onClick={() => logout(api)}>
+              <a className="logout pull-right" onClick={handleLogout}>
                 <Logout>{t('Sign out')}</Logout>
               </a>
             )}

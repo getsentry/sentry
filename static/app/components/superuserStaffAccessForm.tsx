@@ -1,6 +1,5 @@
 import React, {Component} from 'react';
 import styled from '@emotion/styled';
-import trimEnd from 'lodash/trimEnd';
 
 import {logout} from 'sentry/actionCreators/account';
 import type {Client} from 'sentry/api';
@@ -164,14 +163,16 @@ class SuperuserStaffAccessForm extends Component<Props, State> {
   };
 
   handleLogout = () => {
-    let nextUrl = `/auth/login/?next=${encodeURIComponent(window.location.href)}`;
+    const {superuserUrl} = window.__initialData?.links;
+    const urlOrigin =
+      window.__initialData?.customerDomain && superuserUrl
+        ? superuserUrl
+        : window.location.origin;
 
-    const {superuserUrl} = window.__initialData.links;
-    if (window.__initialData?.customerDomain && superuserUrl) {
-      nextUrl = `${trimEnd(superuserUrl, '/')}${nextUrl}`;
-    }
+    const nextUrl = new URL('/auth/login/', urlOrigin);
+    nextUrl.searchParams.set('next', window.location.href);
 
-    logout(this.props.api, nextUrl);
+    logout(this.props.api, nextUrl.toString());
   };
 
   async getAuthenticators() {
