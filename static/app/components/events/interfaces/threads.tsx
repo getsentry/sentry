@@ -289,7 +289,7 @@ export function Threads({data, event, projectSlug, groupingCurrentLevel}: Props)
         fullStackTrace={stackView === StackView.FULL}
         title={hasMoreThanOneThread ? t('Thread Stack Trace') : t('Stack Trace')}
         platform={platform}
-        isNestedSection
+        isNestedSection={hasMoreThanOneThread}
         hasMinified={
           !!exception?.values?.find(value => value.rawStacktrace) ||
           !!activeThread?.rawStacktrace
@@ -359,7 +359,7 @@ export function Threads({data, event, projectSlug, groupingCurrentLevel}: Props)
     </Fragment>
   );
 
-  return hasStreamlinedUI ? (
+  return hasMoreThanOneThread && hasStreamlinedUI ? (
     <InterimSection
       title={tn('Stack Trace', 'Stack Traces', threads.length)}
       type={SectionKey.STACKTRACE}
