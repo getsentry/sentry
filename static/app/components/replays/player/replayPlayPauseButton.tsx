@@ -2,9 +2,10 @@ import type {BaseButtonProps} from 'sentry/components/button';
 import {Button} from 'sentry/components/button';
 import {IconPause, IconPlay, IconRefresh} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import useReplayPlayerState, {
+import {
+  useReplayPlayerState,
   useReplayUserAction,
-} from 'sentry/utils/replays/playback/providers/useReplayPlayerState';
+} from 'sentry/utils/replays/playback/providers/replayPlayerStateContext';
 
 export default function ReplayPlayPauseButton(props: BaseButtonProps) {
   const userAction = useReplayUserAction();

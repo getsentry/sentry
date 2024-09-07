@@ -1,4 +1,4 @@
-import type {Dispatch} from 'react';
+import type {Dispatch, ReactNode} from 'react';
 import {createContext, useCallback, useContext, useReducer} from 'react';
 import type {Replayer} from '@sentry-internal/rrweb';
 import {ReplayerEvents} from '@sentry-internal/rrweb';
@@ -62,11 +62,7 @@ const StateContext = createContext<State>(createInitialState());
 const DispatchContext = createContext<Dispatch<ReplayerAction>>(() => {});
 const UserActionContext = createContext((_action: UserAction) => {});
 
-export function ReplayPlayerStateContextProvider({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
+export function ReplayPlayerStateContextProvider({children}: {children: ReactNode}) {
   const [state, dispatch] = useReducer(stateReducer, null, createInitialState);
 
   const handleUserAction = useCallback(
@@ -87,7 +83,7 @@ export function ReplayPlayerStateContextProvider({
   );
 }
 
-export default function useReplayPlayerState() {
+export function useReplayPlayerState() {
   return useContext(StateContext);
 }
 
@@ -185,22 +181,22 @@ function invokeUserAction(replayer: Replayer, userAction: UserAction): void {
       return;
 
     case 'jumpToOffset':
-      if (replayer.config.skipInactive) {
-        // If the replayer is set to skip inactive, we should turn it off before
-        // manually scrubbing, so when the player resumes playing it's not stuck
-        // fast-forwarding even through sections with activity
-        replayer.setConfig({skipInactive: false});
-        replayer.setConfig({skipInactive: true});
-      }
-
       const offsetMs = clamp(userAction.offsetMs, 0, replayer.getMetaData().totalTime);
+      // TOOD: going back to the start of the replay needs to re-build & re-render the first frame I think.
+
+      const skipInactive = replayer.config.skipInactive;
+      // If the replayer is set to skip inactive, we should turn it off before
+      // manually scrubbing, so when the player resumes playing it's not stuck
+      // fast-forwarding even through sections with activity
+      replayer.setConfig({skipInactive});
+
       if (replayer.service.state.value === 'playing') {
         replayer.play(offsetMs);
       } else {
         replayer.pause(offsetMs);
       }
 
-      // TOOD: going back to the start of the replay needs to re-build & re-render the first frame I think.
+      replayer.setConfig({skipInactive});
 
       return;
     default:

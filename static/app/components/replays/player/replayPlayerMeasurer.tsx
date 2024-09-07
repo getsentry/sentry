@@ -4,7 +4,7 @@ import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import divide from 'sentry/utils/number/divide';
-import useReplayPlayerState from 'sentry/utils/replays/playback/providers/useReplayPlayerState';
+import {useReplayPlayerState} from 'sentry/utils/replays/playback/providers/replayPlayerStateContext';
 import {useDimensions} from 'sentry/utils/useDimensions';
 
 interface Props {
