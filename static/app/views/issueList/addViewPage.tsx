@@ -88,7 +88,7 @@ function SearchSuggestionList({title, searchSuggestions}: SearchSuggestionListPr
       {searchSuggestions.map((suggestion, index) => (
         <Suggestion
           key={index}
-          onClick={() => onNewViewSaved?.(suggestion.label, suggestion.query, false)}
+          onClick={() => onNewViewSaved?.(suggestion.label, suggestion.query)}
         >
           <div style={{marginLeft: 10}}>{suggestion.label}</div>
           <QueryWrapper>
@@ -99,7 +99,7 @@ function SearchSuggestionList({title, searchSuggestions}: SearchSuggestionListPr
                   size="zero"
                   onClick={e => {
                     e.stopPropagation();
-                    onNewViewSaved?.(suggestion.label, suggestion.query, true);
+                    onNewViewSaved?.(suggestion.label, suggestion.query);
                   }}
                   borderless
                 >

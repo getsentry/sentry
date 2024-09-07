@@ -89,7 +89,7 @@ function CustomViewsIssueListHeaderTabsContent({
   // TODO(msun): Possible replace navigate with useSearchParams() in the future?
   const navigate = useNavigate();
   const location = useLocation();
-  const {setNewViewActive} = useContext(NewTabContext);
+  const {setNewViewActive, newViewActive} = useContext(NewTabContext);
 
   // TODO(msun): Use the location from useLocation instead of props router in the future
   const {cursor: _cursor, page: _page, ...queryParams} = router?.location.query;
@@ -278,12 +278,18 @@ function CustomViewsIssueListHeaderTabsContent({
 
   useEffect(() => {
     if (viewId?.startsWith('_')) {
-      setNewViewActive(true);
+      // If the user types in query manually in the new view flow,
+      // turn off the new view page and display the issue stream
+      if (newViewActive && query !== '') {
+        setNewViewActive(false);
+      } else {
+        setNewViewActive(true);
+      }
     } else {
       setNewViewActive(false);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [viewId]);
+  }, [viewId, query]);
 
   return (
     <DraggableTabBar
