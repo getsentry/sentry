@@ -228,7 +228,6 @@ def build_metric_alert_chart(
             user,
         ),
     }
-    # NOTE: 'anomaly-detection-alerts-charts' flag does not exist
     # Flag can be enabled IF we want to enable marked lines/areas for anomalies in the future
     # For now, we defer to incident lines as indicators for anomalies
     if (
