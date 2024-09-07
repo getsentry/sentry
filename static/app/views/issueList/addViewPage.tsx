@@ -9,6 +9,7 @@ import {FormattedQuery} from 'sentry/components/searchQueryBuilder/formattedQuer
 import {IconMegaphone} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import type {SavedSearch} from 'sentry/types/group';
 import {useFeedbackForm} from 'sentry/utils/useFeedbackForm';
 import {NewTabContext} from 'sentry/views/issueList/utils/newTabContext';
 
@@ -22,17 +23,19 @@ interface SearchSuggestionListProps {
   title: React.ReactNode;
 }
 
-function AddViewPage() {
-  const recommendedSearches: SearchSuggestion[] = [
-    {label: 'Assigned to Me', query: 'assigned:me'},
-    {label: 'My Bookmarks', query: 'bookmarks:me'},
-    {label: 'Errors Only', query: 'status:unresolved level:error'},
-    {
-      label: 'Unhandled',
-      query: 'status:unresolved error.unhandled:True',
-    },
-  ];
+const RECOMMENDED_SEARCHES: SearchSuggestion[] = [
+  {label: 'Assigned to Me', query: 'assigned:me'},
+  {label: 'My Bookmarks', query: 'bookmarks:me'},
+  {label: 'Errors Only', query: 'status:unresolved level:error'},
+  {
+    label: 'Unhandled',
+    query: 'status:unresolved error.unhandled:True',
+  },
+];
 
+// These saved searches are filtered down to those with visibility="owner". Ideally, we'd
+// include those created by the user, but have visibility="orga"
+function AddViewPage({savedSearches}: {savedSearches: SavedSearch[]}) {
   const savedSearchTitle = (
     <div
       style={{
@@ -69,12 +72,19 @@ function AddViewPage() {
       </StyledPanel>
       <SearchSuggestionList
         title={'Recommended Searches'}
-        searchSuggestions={recommendedSearches}
+        searchSuggestions={RECOMMENDED_SEARCHES}
       />
-      <SearchSuggestionList
-        title={savedSearchTitle}
-        searchSuggestions={recommendedSearches.map(s => ({...s, isDeletable: true}))}
-      />
+      {savedSearches && savedSearches.length !== 0 && (
+        <SearchSuggestionList
+          title={savedSearchTitle}
+          searchSuggestions={savedSearches.map(search => {
+            return {
+              label: search.name,
+              query: search.query,
+            };
+          })}
+        />
+      )}
     </AddViewWrapper>
   );
 }

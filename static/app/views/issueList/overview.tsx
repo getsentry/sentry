@@ -1284,6 +1284,9 @@ class IssueListOverview extends Component<Props, State> {
                 pageLinks={pageLinks}
                 onCursor={this.onCursorChange}
                 paginationAnalyticsEvent={this.paginationAnalyticsEvent}
+                savedSearches={this.props.savedSearches?.filter(
+                  search => search.visibility === 'owner'
+                )}
               />
             </StyledMain>
           </StyledBody>
