@@ -11,6 +11,7 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {SavedSearch} from 'sentry/types/group';
 import {useFeedbackForm} from 'sentry/utils/useFeedbackForm';
+import {OverflowEllipsisTextContainer} from 'sentry/views/insights/common/components/textAlign';
 import {NewTabContext} from 'sentry/views/issueList/utils/newTabContext';
 
 type SearchSuggestion = {
@@ -33,19 +34,9 @@ const RECOMMENDED_SEARCHES: SearchSuggestion[] = [
   },
 ];
 
-// These saved searches are filtered down to those with visibility="owner". Ideally, we'd
-// include those created by the user, but have visibility="orga"
 function AddViewPage({savedSearches}: {savedSearches: SavedSearch[]}) {
   const savedSearchTitle = (
-    <div
-      style={{
-        alignItems: 'center',
-        display: 'flex',
-        gap: space(1),
-        lineHeight: 1,
-        marginBottom: 6,
-      }}
-    >
+    <SavedSearchesTitle>
       {t('Saved Searches (will be deprecated)')}
       <InfoTooltip
         title={
@@ -56,7 +47,7 @@ function AddViewPage({savedSearches}: {savedSearches: SavedSearch[]}) {
         color="subText"
         hoverAnimation={false}
       />
-    </div>
+    </SavedSearchesTitle>
   );
 
   return (
@@ -100,7 +91,13 @@ function SearchSuggestionList({title, searchSuggestions}: SearchSuggestionListPr
           key={index}
           onClick={() => onNewViewSaved?.(suggestion.label, suggestion.query, false)}
         >
-          <div style={{marginLeft: 10}}>{suggestion.label}</div>
+          {/*
+            Saved searches have an average length of approximately 16 characters
+            This container fits 16 'a's comfortably, and 20 'a's before overflowing.
+          */}
+          <StyledOverflowEllipsisTextContainer>
+            {suggestion.label}
+          </StyledOverflowEllipsisTextContainer>
           <QueryWrapper>
             <FormattedQuery query={suggestion.query} />
             {
@@ -118,7 +115,7 @@ function SearchSuggestionList({title, searchSuggestions}: SearchSuggestionListPr
               </ActionsWrapper>
             }
           </QueryWrapper>
-          <InteractionStateLayer />
+          <StyledInteractionStateLayer />
         </Suggestion>
       ))}
     </SuggestionList>
@@ -153,16 +150,26 @@ function FeedbackButton() {
 
 export default AddViewPage;
 
+const SavedSearchesTitle = styled('div')`
+  align-items: center;
+  display: flex;
+  gap: ${space(1)};
+`;
+
+const StyledInteractionStateLayer = styled(InteractionStateLayer)`
+  border-radius: 4px;
+`;
+
+const StyledOverflowEllipsisTextContainer = styled(OverflowEllipsisTextContainer)`
+  margin-left: ${space(1)};
+`;
+
 const TitleWrapper = styled('div')`
   color: ${p => p.theme.subText};
   font-weight: 550;
   font-size: ${p => p.theme.fontSizeMedium};
   margin-bottom: ${space(0.75)};
 `;
-
-// const Pipe = styled('div')`
-//   color: ${p => p.theme.gray200};
-// `;
 
 const ActionsWrapper = styled('div')`
   display: flex;
@@ -189,16 +196,17 @@ const QueryWrapper = styled('div')`
   justify-content: space-between;
   align-items: center;
   width: 100%;
+  overflow: hidden;
 `;
 
 const Suggestion = styled('li')`
   position: relative;
   display: inline-grid;
-  grid-template-columns: 150px auto;
+  grid-template-columns: 170px auto;
   align-items: center;
   padding: ${space(1)} 0;
   border-bottom: 1px solid ${p => p.theme.innerBorder};
-  border-radius: 4px;
+  gap: ${space(1)};
 
   &:hover {
     cursor: pointer;
@@ -250,6 +258,5 @@ const AddViewWrapper = styled('div')`
     flex-direction: column;
     align-items: center;
     padding: ${space(3)};
-    text-align: center;
   }
 `;

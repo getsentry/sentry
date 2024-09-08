@@ -31,7 +31,7 @@ interface InfoTooltipProps
 function InfoTooltip({title, size, color, className, ...tooltipProps}: InfoTooltipProps) {
   return (
     <InfoIconContainer size={size} className={className}>
-      <Tooltip title={title} {...tooltipProps}>
+      <Tooltip title={title} skipWrapper {...tooltipProps}>
         <IconInfo
           size={size}
           color={color ?? 'subText'}
