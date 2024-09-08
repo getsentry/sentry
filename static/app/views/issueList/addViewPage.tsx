@@ -39,9 +39,9 @@ function AddViewPage({savedSearches}: {savedSearches: SavedSearch[]}) {
     <SavedSearchesTitle>
       {t('Saved Searches (will be deprecated)')}
       <InfoTooltip
-        title={
+        title={t(
           'Saved searches will be deprecated soon. For any you wish to return to, please save them as views.'
-        }
+        )}
         size="sm"
         position="top"
         color="subText"
