@@ -1,6 +1,8 @@
 import {useContext} from 'react';
 import styled from '@emotion/styled';
 
+import bannerStar from 'sentry-images/spot/banner-star.svg';
+
 import {Button} from 'sentry/components/button';
 import InfoTooltip from 'sentry/components/infoTooltip';
 import InteractionStateLayer from 'sentry/components/interactionStateLayer';
@@ -53,6 +55,9 @@ function AddViewPage({savedSearches}: {savedSearches: SavedSearch[]}) {
   return (
     <AddViewWrapper>
       <StyledPanel>
+        <BannerStar1 src={bannerStar} />
+        <BannerStar2 src={bannerStar} />
+        <BannerStar3 src={bannerStar} />
         <Title>{t('Find what you need, faster')}</Title>
         <SubTitle>
           {t(
@@ -258,6 +263,24 @@ const AddViewWrapper = styled('div')`
   @media (max-width: ${p => p.theme.breakpoints.small}) {
     flex-direction: column;
     align-items: center;
-    padding: ${space(3)};
   }
+`;
+
+const BannerStar1 = styled('img')`
+  position: absolute;
+  bottom: 10px;
+  right: 150px;
+  transform: scale(0.9);
+`;
+const BannerStar2 = styled('img')`
+  position: absolute;
+  top: 10px;
+  right: 120px;
+  transform: rotate(-30deg) scale(0.7);
+`;
+const BannerStar3 = styled('img')`
+  position: absolute;
+  bottom: 30px;
+  right: 80px;
+  transform: rotate(80deg) scale(0.6);
 `;
