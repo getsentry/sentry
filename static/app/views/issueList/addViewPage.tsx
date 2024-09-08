@@ -142,6 +142,7 @@ function FeedbackButton() {
           },
         })
       }
+      style={{width: 'fit-content'}}
     >
       {t('Give Feedback')}
     </Button>
