@@ -279,9 +279,20 @@ function CustomViewsIssueListHeaderTabsContent({
   useEffect(() => {
     if (viewId?.startsWith('_')) {
       // If the user types in query manually while the new view flow is showing,
-      // replace the new view page with the issue stream with the query loaded
+      // then replace the add view flow with the issue stream with the query loaded,
+      // and persist the query
       if (newViewActive && query !== '') {
         setNewViewActive(false);
+        const updatedTabs: Tab[] = draggableTabs.map(tab =>
+          tab.id === viewId
+            ? {
+                ...tab,
+                unsavedChanges: [query, sort ?? IssueSortOptions.DATE],
+              }
+            : tab
+        );
+        setDraggableTabs(updatedTabs);
+        debounceUpdateViews(updatedTabs);
       } else {
         setNewViewActive(true);
       }
