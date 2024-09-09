@@ -10,6 +10,7 @@ from sentry import eventstore, features, options
 from sentry.eventstore.models import Event, GroupEvent
 from sentry.feedback.usecases.create_feedback import (
     UNREAL_FEEDBACK_UNATTENDED_MESSAGE,
+    FeedbackCreationSource,
     shim_to_feedback,
 )
 from sentry.models.userreport import UserReport
@@ -17,6 +18,9 @@ from sentry.signals import user_feedback_received
 from sentry.utils import metrics
 from sentry.utils.db import atomic_transaction
 from sentry.utils.eventuser import EventUser
+
+# noinspection PyProtectedMember
+MAX_MESSAGE_LENGTH = UserReport._meta.get_field("comments").max_length
 
 logger = logging.getLogger(__name__)
 
@@ -28,7 +32,7 @@ class Conflict(Exception):
 def save_userreport(
     project,
     report,
-    source,
+    source: FeedbackCreationSource,
     start_time=None,
 ):
     with metrics.timer("sentry.ingest.userreport.save_userreport"):
@@ -135,6 +139,11 @@ def should_filter_user_report(comments: str):
     We don't care about empty user reports, or ones that
     the unreal SDKs send.
     """
+    if MAX_MESSAGE_LENGTH and len(comments) > MAX_MESSAGE_LENGTH:
+        metrics.incr(
+            "user_report.create_user_report.filtered", tags={"reason": "message.size-limit"}
+        )
+        return True
 
     if not options.get("feedback.filter_garbage_messages"):
         return False
