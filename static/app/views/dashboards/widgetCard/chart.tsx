@@ -424,6 +424,9 @@ class WidgetCardChart extends Component<WidgetCardChartProps, State> {
       },
       tooltip: {
         trigger: 'axis',
+        axisPointer: {
+          type: 'cross',
+        },
         formatter: (params, asyncTicket) => {
           const {chartGroup} = this.props;
           const isInGroup =
@@ -457,6 +460,17 @@ class WidgetCardChart extends Component<WidgetCardChartProps, State> {
               );
             }
             return axisLabelFormatter(value, aggregateOutputType(axisLabel), true);
+          },
+        },
+        axisPointer: {
+          type: 'line',
+          snap: false,
+          lineStyle: {
+            type: 'solid',
+            width: 0.5,
+          },
+          label: {
+            show: false,
           },
         },
         minInterval: durationUnit ?? 0,
