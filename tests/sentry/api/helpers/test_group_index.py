@@ -1,4 +1,5 @@
 from datetime import UTC, datetime, timedelta
+from time import time
 from unittest.mock import MagicMock, Mock, patch
 
 import pytest
@@ -1085,7 +1086,6 @@ class DeleteGroupsTest(TestCase):
         )
         assert send_robust.called
 
-    @with_feature("projects:similarity-embeddings-grouping")
     @patch(
         "sentry.tasks.delete_seer_grouping_records.delete_seer_grouping_records_by_hash.apply_async"
     )
@@ -1094,6 +1094,8 @@ class DeleteGroupsTest(TestCase):
     def test_delete_groups_deletes_seer_records_by_hash(
         self, send_robust: Mock, mock_logger: Mock, mock_delete_seer_grouping_records_by_hash
     ):
+        self.project.update_option("sentry:similarity_backfill_completed", int(time()))
+
         groups = [self.create_group(), self.create_group()]
         group_ids = [group.id for group in groups]
         request = self.make_request(user=self.user, method="GET")
