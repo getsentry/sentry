@@ -167,7 +167,8 @@ function SidebarItem({
   const isInFloatingAccordion = (isNested || isMainItem) && shouldAccordionFloat;
   const isInSubnav = hasNewNav && isNested;
   const hasLink = Boolean(to);
-  const isInCollapsedState = (!isInFloatingAccordion && collapsed) || hasNewNav;
+  const isInCollapsedState =
+    (!isInFloatingAccordion && collapsed) || (hasNewNav ? isInSubnav : false);
 
   const isActive = defined(active) ? active : isActiveRouter;
   const isTop = orientation === 'top' && !isInFloatingAccordion;
@@ -218,9 +219,9 @@ function SidebarItem({
   return (
     <Tooltip
       disabled={
+        hasNewNav ||
         (!isInCollapsedState && !isTop) ||
-        (shouldAccordionFloat && isOpenInFloatingSidebar) ||
-        hasNewNav
+        (shouldAccordionFloat && isOpenInFloatingSidebar)
       }
       title={
         <Flex align="center">
@@ -244,16 +245,11 @@ function SidebarItem({
             onClick={handleItemClick}
             hasNewNav={hasNewNav}
           >
-            {hasNewNav ? (
-              <StyledInteractionStateLayer
-                isPressed={isActive}
-                isInSubnav={isInSubnav}
-                color="white"
-                higherOpacity
-              />
-            ) : (
-              <InteractionStateLayer isPressed={isActive} color="white" higherOpacity />
-            )}
+            <StyledInteractionStateLayer
+              isPressed={isActive}
+              color="white"
+              higherOpacity
+            />
             <SidebarItemWrapper
               isInSubnav={isInSubnav}
               collapsed={isInCollapsedState}
@@ -273,31 +269,35 @@ function SidebarItem({
                   </LabelHook>
                 </SidebarItemLabel>
               )}
+              {!hasNewNav && (
+                <Fragment>
+                  {isInCollapsedState && isBeta && (
+                    <CollapsedFeatureBadge
+                      type="beta"
+                      variant="indicator"
+                      tooltipProps={tooltipDisabledProps}
+                    />
+                  )}
+                  {isInCollapsedState && isAlpha && (
+                    <CollapsedFeatureBadge
+                      type="alpha"
+                      variant="indicator"
+                      tooltipProps={tooltipDisabledProps}
+                    />
+                  )}
+                  {badge !== undefined && badge > 0 && (
+                    <SidebarItemBadge collapsed={isInCollapsedState}>
+                      {badge}
+                    </SidebarItemBadge>
+                  )}
+                </Fragment>
+              )}
               {isInCollapsedState && showIsNew && (
                 <CollapsedFeatureBadge
                   type="new"
                   variant="indicator"
                   tooltipProps={tooltipDisabledProps}
                 />
-              )}
-              {isInCollapsedState && isBeta && (
-                <CollapsedFeatureBadge
-                  type="beta"
-                  variant="indicator"
-                  tooltipProps={tooltipDisabledProps}
-                />
-              )}
-              {isInCollapsedState && isAlpha && (
-                <CollapsedFeatureBadge
-                  type="alpha"
-                  variant="indicator"
-                  tooltipProps={tooltipDisabledProps}
-                />
-              )}
-              {badge !== undefined && badge > 0 && (
-                <SidebarItemBadge collapsed={isInCollapsedState}>
-                  {badge}
-                </SidebarItemBadge>
               )}
               {!isInFloatingAccordion && hasNewNav && (
                 <LabelHook id={id}>
@@ -381,12 +381,13 @@ const getActiveStyle = ({
   }
   if (isInSubnav) {
     return css`
+      &&&,
       &:active,
       &:focus,
       &:hover {
-        &::before {
-          opacity: 1;
-        }
+        color: ${theme?.gray500};
+        background-color: rgba(62, 52, 70, 0.09);
+        border: 1px solid ${theme?.translucentGray100};
       }
     `;
   }
@@ -417,11 +418,10 @@ const StyledSidebarItem = styled(Link, {
     p.isInFloatingAccordion || p.isInSubnav ? '35px' : p.hasNewNav ? '40px' : '30px'};
   align-items: center;
   justify-content: center;
-  width: 100%;
   flex-shrink: 0;
   border-radius: ${p => p.theme.borderRadius};
   transition: none;
-  padding: ${p => (p.hasNewNav && p.isInSubnav ? `0 ${space(1)}` : '0')};
+  margin: ${p => (p.hasNewNav && p.isInSubnav ? `0 ${space(1)}` : '0')};
 
   ${p =>
     !p.hasNewNav &&
@@ -518,7 +518,7 @@ const SidebarItemWrapper = styled('div')<{
     p.isInSubnav &&
     css`
       height: 32px;
-      padding: 0 ${space(1.5)};
+      padding: 0 ${space(1)};
     `}
 
   ${p => !p.collapsed && `padding-right: ${space(1)};`}

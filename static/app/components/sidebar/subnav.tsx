@@ -1,36 +1,50 @@
-import {createContext, type FC, useContext, useEffect, useState} from 'react';
+import {
+  createContext,
+  Fragment,
+  type RefObject,
+  useContext,
+  useLayoutEffect,
+  useRef,
+} from 'react';
+import {createPortal} from 'react-dom';
 import styled from '@emotion/styled';
 
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 
 interface SubnavContextData {
-  setContent: any;
+  containerRef: RefObject<HTMLDivElement>;
 }
 
 const subnavContext = createContext<SubnavContextData>({
-  setContent: () => {},
+  containerRef: {current: null},
 });
 
 export function SubnavContainer({children}) {
-  const [content, setContent] = useState<ReturnType<FC>>([]);
-
+  const containerRef = useRef<HTMLDivElement>(null);
+  useLayoutEffect(() => {
+    if (!containerRef.current) return;
+    if (containerRef.current.children.length === 0) {
+      document.body.dataset.navLevel = '1';
+    } else {
+      document.body.dataset.navLevel = '2';
+    }
+  });
   return (
-    <subnavContext.Provider value={{setContent}}>
+    <subnavContext.Provider value={{containerRef}}>
       {children}
-      <SidebarSecondaryWrapper aria-label={t('Secondary Navigation')}>
-        {content}
-      </SidebarSecondaryWrapper>
+      <SidebarSecondaryWrapper
+        ref={containerRef}
+        aria-label={t('Secondary Navigation')}
+      />
     </subnavContext.Provider>
   );
 }
 
 export function SubnavPanel({children}) {
-  const ctx = useContext(subnavContext);
-  useEffect(() => {
-    ctx.setContent(children);
-  }, [children, ctx]);
-  return null;
+  const {containerRef} = useContext(subnavContext);
+  if (!containerRef.current) return null;
+  return <Fragment>{createPortal(children, containerRef.current)}</Fragment>;
 }
 
 export const SidebarSecondaryWrapper = styled('div')`
@@ -42,4 +56,8 @@ export const SidebarSecondaryWrapper = styled('div')`
   width: ${p => p.theme.sidebar.v2_panelWidth};
   height: 100%;
   padding: ${space(1)} 0;
+
+  &:empty {
+    display: none;
+  }
 `;

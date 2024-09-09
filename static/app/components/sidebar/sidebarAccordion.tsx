@@ -14,7 +14,7 @@ import {Button} from 'sentry/components/button';
 import {Chevron} from 'sentry/components/chevron';
 import {Overlay} from 'sentry/components/overlay';
 import {ExpandedContext} from 'sentry/components/sidebar/expandedContextProvider';
-import {SubnavPanel as SubnavPortal} from 'sentry/components/sidebar/subnav';
+import {SubnavPanel} from 'sentry/components/sidebar/subnav';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
@@ -66,7 +66,7 @@ function SubnavContainer({children, hasNewNav, ...itemProps}: SidebarAccordionPr
         hasNewNav={hasNewNav}
         to={to}
       />
-      {hasActiveChildren && <SubnavPortal>{childrenWithProps}</SubnavPortal>}
+      <SubnavPanel>{hasActiveChildren && childrenWithProps}</SubnavPanel>
     </Fragment>
   );
 }
