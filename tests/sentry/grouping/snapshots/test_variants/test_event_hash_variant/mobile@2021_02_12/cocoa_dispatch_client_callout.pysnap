@@ -1,0 +1,83 @@
+---
+created: '2023-12-13T15:30:28.512896Z'
+creator: sentry
+source: tests/sentry/grouping/test_variants.py
+---
+app-depth-1:
+  hash: null
+  component:
+    app-depth-1 (logentry takes precedence)
+      threads
+        stacktrace
+          frame (ignored by stack trace rule (category:internals -group))
+            function*
+              "closure"
+--------------------------------------------------------------------------
+app-depth-max:
+  hash: null
+  component:
+    app-depth-max (logentry takes precedence)
+      threads
+        stacktrace
+          frame (ignored by stack trace rule (category:internals -group))
+            function*
+              "closure"
+--------------------------------------------------------------------------
+default:
+  hash: "1356c67d7ad1638d816bfb822dd2c25d"
+  component:
+    default*
+      message*
+        "Foo"
+--------------------------------------------------------------------------
+system:
+  hash: null
+  component:
+    system (logentry takes precedence)
+      threads
+        stacktrace
+          frame (ignored by stack trace rule (category:threadbase -group v-group))
+            function*
+              "unicorn"
+          frame (ignored by stack trace rule (category:threadbase -group v-group))
+            function*
+              "UIApplicationMain"
+          frame (ignored by stack trace rule (category:threadbase -group v-group))
+            function*
+              "-[UIApplication _run]"
+          frame (ignored by stack trace rule (category:threadbase -group v-group))
+            function*
+              "_dispatch_main_queue_drain"
+          frame (ignored by stack trace rule (category:threadbase -group v-group))
+            function*
+              "_dispatch_client_callout"
+          frame (ignored by stack trace rule (category:threadbase -group v-group))
+            function*
+              "_dispatch_block_async_invoke2"
+          frame (ignored by stack trace rule (category:threadbase -group v-group))
+            function*
+              "-[NSBlockOperation main]"
+          frame (ignored by stack trace rule (category:threadbase -group v-group))
+            function*
+              "__NSBLOCKOPERATION_IS_CALLING_OUT_TO_A_BLOCK__"
+          frame (ignored by stack trace rule (category:threadbase -group v-group))
+            function*
+              "__46+[FudgeGlobalHandler setupGlobalHandlersIfNeeded]_block_invoke_2"
+          frame (ignored by stack trace rule (category:threadbase -group v-group))
+            function*
+              "FudgeLogTaggedError"
+          frame (ignored by stack trace rule (category:threadbase -group v-group))
+            function*
+              "closure"
+          frame (ignored by stack trace rule (category:threadbase -group v-group))
+            function*
+              "SentrySetupInteractor.setupSentry"
+          frame (ignored by stack trace rule (category:threadbase -group v-group))
+            function*
+              "_dispatch_lane_barrier_sync_invoke_and_complete"
+          frame (ignored by stack trace rule (category:threadbase -group v-group))
+            function*
+              "_dispatch_client_callout"
+          frame (ignored by stack trace rule (category:internals -group))
+            function*
+              "closure"

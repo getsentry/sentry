@@ -1,0 +1,34 @@
+---
+created: '2021-05-05T18:04:39.725272Z'
+creator: sentry
+source: tests/sentry/grouping/test_variants.py
+---
+app-depth-1:
+  hash: null
+  component:
+    app-depth-1
+      stacktrace
+        frame
+          filename (ignored because frame points to a URL)
+            "foo"
+--------------------------------------------------------------------------
+app-depth-max:
+  hash: null
+  component:
+    app-depth-max
+      stacktrace
+        frame
+          filename (ignored because frame points to a URL)
+            "foo"
+--------------------------------------------------------------------------
+fallback:
+  hash: "d41d8cd98f00b204e9800998ecf8427e"
+--------------------------------------------------------------------------
+system:
+  hash: null
+  component:
+    system
+      stacktrace
+        frame
+          filename (ignored because frame points to a URL)
+            "foo"

@@ -335,16 +335,32 @@ class BaseEvent(metaclass=abc.ABCMeta):
 
     def get_hashes(self, force_config: StrategyConfiguration | None = None) -> CalculatedHashes:
         """
-        Returns the calculated hashes for the event. This uses the stored
-        information if available. Grouping hashes will take into account
-        fingerprinting and checksums.
-
         Returns _all_ information that is necessary to group an event into
-        issues: An event should be sorted into a group X, if there is a GroupHash
-        matching *any* of the hashes. Hashes that do not yet have a GroupHash model get
-        one and are associated with the same group (unless they already belong to another group).
+        issues. It returns two lists of hashes, `(flat_hashes, hierarchical_hashes)`:
+
+        1. First, `hierarchical_hashes` is walked
+           *backwards* (end to start) until one hash has been found that matches
+           an existing group. Only *that* hash gets a GroupHash instance that is
+           associated with the group.
+
+        2. If no group was found, an event should be sorted into a group X, if
+           there is a GroupHash matching *any* of `flat_hashes`. Hashes that do
+           not yet have a GroupHash model get one and are associated with the same
+           group (unless they already belong to another group).
+
+           This is how regular grouping works.
+
+        Whichever group the event lands in is associated with exactly one
+        GroupHash corresponding to an entry in `hierarchical_hashes`, and an
+        arbitrary amount of hashes from `flat_hashes` depending on whether some
+        of those hashes have GroupHashes already assigned to other groups (and
+        some other things).
+
+        The returned hashes already take SDK fingerprints and checksums into
+        consideration.
 
         """
+
         # If we have hashes stored in the data we use them, otherwise we
         # fall back to generating new ones from the data.  We can only use
         # this if we do not force a different config.
@@ -357,16 +373,21 @@ class BaseEvent(metaclass=abc.ABCMeta):
         from sentry.grouping.api import sort_grouping_variants
 
         variants = self.get_grouping_variants(force_config)
-        flat_variants = sort_grouping_variants(variants)
+        flat_variants, hierarchical_variants = sort_grouping_variants(variants)
         flat_hashes = self._hashes_from_sorted_grouping_variants(flat_variants)
+        hierarchical_hashes = self._hashes_from_sorted_grouping_variants(hierarchical_variants)
 
         if flat_hashes:
             sentry_sdk.set_tag("get_hashes.flat_variant", flat_hashes[0])
+        if hierarchical_hashes:
+            sentry_sdk.set_tag("get_hashes.hierarchical_variant", hierarchical_hashes[0])
 
         flat_hashes_values = [hash_ for _, hash_ in flat_hashes]
+        hierarchical_hashes_values = [hash_ for _, hash_ in hierarchical_hashes]
 
         return CalculatedHashes(
             hashes=flat_hashes_values,
+            hierarchical_hashes=hierarchical_hashes_values,
             variants=variants,
         )
 
@@ -423,7 +444,7 @@ class BaseEvent(metaclass=abc.ABCMeta):
             from sentry.grouping.strategies.base import StrategyConfiguration
 
             if isinstance(force_config, str):
-                # A string like `"newstyle:2023-01-11"`
+                # A string like `"mobile:2021-02-12"`
                 stored_config = self.get_grouping_config()
                 grouping_config = stored_config.copy()
                 grouping_config["id"] = force_config
@@ -454,6 +475,9 @@ class BaseEvent(metaclass=abc.ABCMeta):
 
     def get_primary_hash(self) -> str | None:
         hashes = self.get_hashes()
+
+        if hashes.hierarchical_hashes:
+            return hashes.hierarchical_hashes[0]
 
         if hashes.hashes:
             return hashes.hashes[0]
