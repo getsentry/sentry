@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import dataclasses
 import logging
-from collections.abc import Mapping, MutableMapping
+from collections.abc import Mapping, MutableMapping, Sequence
 from typing import Any
 
 from rest_framework import status as status_
@@ -271,9 +271,15 @@ class SlackDMRequest(SlackRequest):
     def channel_name(self) -> str:
         return self.dm_data.get("channel_name", "")
 
+    def get_command_and_args(self) -> tuple[str, Sequence[str]]:
+        command = self.text.lower().split()
+        if not command:
+            return "", []
+        return command[0], command[1:]
+
     def get_command_input(self) -> CommandInput:
-        tokens = self.text.lower().split() or ("",)
-        return CommandInput(tokens[0], tuple(tokens[1:]))
+        cmd, args = self.get_command_and_args()
+        return CommandInput(cmd, tuple(args))
 
     def _validate_identity(self) -> None:
         self.user = self.get_identity_user()
