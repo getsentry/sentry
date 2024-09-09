@@ -63,9 +63,12 @@ function SidebarPanelItem({
         <Text>
           <ExternalLink
             href={link}
-            onClick={() =>
-              trackAnalytics('whats_new.link_clicked', {organization, title})
-            }
+            onClick={() => {
+              if (!title) {
+                return;
+              }
+              trackAnalytics('whats_new.link_clicked', {organization, title});
+            }}
           >
             {cta || t('Read More')}
           </ExternalLink>

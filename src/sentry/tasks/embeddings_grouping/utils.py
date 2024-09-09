@@ -381,20 +381,13 @@ def get_events_from_nodestore(
 def _make_seer_call(
     create_grouping_records_request: CreateGroupingRecordsRequest, project_id: int
 ) -> BulkCreateGroupingRecordsResponse | None:
-    try:
-        seer_response = _retry_operation(
-            post_bulk_grouping_records,
-            create_grouping_records_request,
-            retries=3,
-            delay=2,
-            exceptions=Exception,
-        )
-    except Exception as e:
-        logger.exception(
-            "tasks.backfill_seer_grouping_records.seer_exception_after_retries",
-            extra={"project_id": project_id, "error": e},
-        )
-        raise
+    seer_response = _retry_operation(
+        post_bulk_grouping_records,
+        create_grouping_records_request,
+        retries=3,
+        delay=2,
+        exceptions=Exception,
+    )
 
     return seer_response
 
