@@ -160,4 +160,4 @@ class DatabaseBackedProjectService(ProjectService):
             organization_id=organization_id,
             id=project_id,
         )
-        return RpcProjectFlags(project.flags)
+        return RpcProjectFlags(**project.flags)
