@@ -14,13 +14,13 @@ from sentry.models.team import Team, TeamStatus
 @region_silo_endpoint
 class OrganizationUserTeamsEndpoint(OrganizationEndpoint):
     publish_status = {
-        "GET": ApiPublishStatus.UNKNOWN,
+        "GET": ApiPublishStatus.PUBLIC,
     }
     owner = ApiOwner.ENTERPRISE
 
     def get(self, request: Request, organization) -> Response:
         """
-        List your Teams In the Current Organization
+        List your Teams in the Current Organization
         ```````````````````````````````````````````
 
         Return a list of the teams available to the authenticated session and
