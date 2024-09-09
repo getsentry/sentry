@@ -9216,6 +9216,17 @@ class Migration(CheckedMigration):
                 "unique_together": {
                     ("organization_id", "release_name", "dist_name", "artifact_bundle")
                 },
+                "indexes": [
+                    models.Index(
+                        fields=[
+                            "organization_id",
+                            "release_name",
+                            "dist_name",
+                            "artifact_bundle",
+                        ],
+                        name="sentry_rele_organiz_291018_idx",
+                    ),
+                ],
             },
         ),
         migrations.CreateModel(

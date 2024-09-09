@@ -67,8 +67,4 @@ class Migration(CheckedMigration):
             name="projectartifactbundle",
             index_together={("project_id", "artifact_bundle")},
         ),
-        migrations.AlterIndexTogether(
-            name="releaseartifactbundle",
-            index_together={("organization_id", "release_name", "dist_name", "artifact_bundle")},
-        ),
     ]
