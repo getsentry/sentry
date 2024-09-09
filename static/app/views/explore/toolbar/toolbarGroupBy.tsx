@@ -31,9 +31,9 @@ export function ToolbarGroupBy({disabled}: ToolbarGroupByProps) {
     return [
       // hard code in an empty option
       {label: t('None'), value: ''},
-      ...Object.entries(tags).map(([tagKey, tag]) => {
+      ...Object.keys(tags).map(tagKey => {
         return {
-          label: tag.name,
+          label: tagKey,
           value: tagKey,
         };
       }),

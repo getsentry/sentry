@@ -40,6 +40,7 @@ export const ToolbarFooter = styled('div')<{disabled?: boolean}>`
 export const ToolbarRow = styled('div')`
   display: flex;
   justify-content: space-between;
+  gap: ${space(0.5)};
 
   :not(:first-child) {
     padding-top: ${space(1)};
