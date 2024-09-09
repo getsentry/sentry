@@ -36,10 +36,12 @@ describe('ExploreToolbar', function () {
   });
 
   it('allows changing results mode', async function () {
-    let resultMode;
+    let resultMode, sampleFields, groupBys;
 
     function Component() {
       [resultMode] = useResultMode();
+      [sampleFields] = useSampleFields();
+      [groupBys] = useGroupBys();
       return <ExploreToolbar />;
     }
 
@@ -53,17 +55,42 @@ describe('ExploreToolbar', function () {
     expect(aggregates).not.toBeChecked();
     expect(resultMode).toEqual('samples');
 
+    expect(sampleFields).toEqual([
+      'project',
+      'span_id',
+      'span.op',
+      'span.description',
+      'span.duration',
+      'timestamp',
+    ]); // default
+
     await userEvent.click(aggregates);
     expect(samples).not.toBeChecked();
     expect(aggregates).toBeChecked();
     expect(resultMode).toEqual('aggregate');
+
+    // Add a group by, and leave one unselected
+    const groupBy = screen.getByTestId('section-group-by');
+    await userEvent.click(within(groupBy).getByRole('button', {name: 'None'}));
+    await userEvent.click(within(groupBy).getByRole('option', {name: 'release'}));
+    expect(groupBys).toEqual(['release']);
+    await userEvent.click(within(groupBy).getByRole('button', {name: '+Add Group By'}));
+    expect(groupBys).toEqual(['release', '']);
 
     await userEvent.click(samples);
     expect(samples).toBeChecked();
     expect(aggregates).not.toBeChecked();
     expect(resultMode).toEqual('samples');
 
-    // TODO: check other parts of page reflects this
+    expect(sampleFields).toEqual([
+      'project',
+      'span_id',
+      'span.op',
+      'span.description',
+      'span.duration',
+      'timestamp',
+      'release',
+    ]);
   });
 
   it('allows changing visualizes', async function () {
