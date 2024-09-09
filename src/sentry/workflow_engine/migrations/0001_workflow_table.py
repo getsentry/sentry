@@ -26,7 +26,7 @@ class Migration(CheckedMigration):
     initial = True
 
     dependencies = [
-        ("sentry", "0759_remove_appstore_connect_integration_tables"),
+        ("sentry", "0758_remove_spanattributeextraction_models"),
     ]
 
     operations = [
