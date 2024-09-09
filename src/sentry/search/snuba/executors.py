@@ -1820,23 +1820,22 @@ class GroupAttributesPostgresSnubaQueryExecutor(PostgresSnubaQueryExecutor):
             # handle types based on issue.type and issue.category
             if not is_errors:
                 raw_group_types = group_types_from(search_filters)
-                if raw_group_types is not None:
-                    # no possible groups, return empty
-                    if len(raw_group_types) == 0:
-                        metrics.incr(
-                            "snuba.search.group_attributes.no_possible_groups", skip_internal=False
-                        )
-                        return self.empty_result
-
-                    # filter out the group types that are not visible to the org/user
-                    group_types = [
-                        gt.type_id
-                        for gt in grouptype.registry.get_visible(organization, actor)
-                        if gt.type_id in raw_group_types
-                    ]
-                    where_conditions.append(
-                        Condition(Column("occurrence_type_id", joined_entity), Op.IN, group_types)
+                # no possible groups, return empty
+                if len(raw_group_types) == 0:
+                    metrics.incr(
+                        "snuba.search.group_attributes.no_possible_groups", skip_internal=False
                     )
+                    return self.empty_result
+
+                # filter out the group types that are not visible to the org/user
+                group_types = [
+                    gt.type_id
+                    for gt in grouptype.registry.get_visible(organization, actor)
+                    if gt.type_id in raw_group_types
+                ]
+                where_conditions.append(
+                    Condition(Column("occurrence_type_id", joined_entity), Op.IN, group_types)
+                )
 
             sort_func = self.get_sort_defs(joined_entity)[sort_by]
 

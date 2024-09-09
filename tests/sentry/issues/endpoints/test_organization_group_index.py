@@ -9,12 +9,15 @@ from django.urls import reverse
 from django.utils import timezone
 
 from sentry import options
+from sentry.feedback.usecases.create_feedback import FeedbackCreationSource, create_feedback_issue
 from sentry.integrations.models.external_issue import ExternalIssue
 from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.issues.grouptype import (
+    FeedbackGroup,
     PerformanceNPlusOneGroupType,
     PerformanceRenderBlockingAssetSpanGroupType,
     PerformanceSlowDBQueryGroupType,
+    ProfileFileIOGroupType,
 )
 from sentry.models.activity import Activity
 from sentry.models.apitoken import ApiToken
@@ -57,13 +60,14 @@ from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase, SnubaTestCase
 from sentry.testutils.helpers import parse_link_header
 from sentry.testutils.helpers.datetime import before_now, iso_format
-from sentry.testutils.helpers.features import apply_feature_flag_on_cls, with_feature
+from sentry.testutils.helpers.features import Feature, apply_feature_flag_on_cls, with_feature
 from sentry.testutils.helpers.options import override_options
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.types.activity import ActivityType
 from sentry.types.group import GroupSubStatus, PriorityLevel
 from sentry.users.models.user_option import UserOption
 from sentry.utils import json
+from tests.sentry.feedback.usecases.test_create_feedback import mock_feedback_event
 from tests.sentry.issues.test_utils import SearchIssueTestMixin
 
 
@@ -3145,10 +3149,11 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         self.login_as(user=self.user)
         # give time for consumers to run and propogate changes to clickhouse
         sleep(1)
-        response = self.get_success_response(
-            sort="new",
-            query="user.email:myemail@example.com",
-        )
+        with self.feature([ProfileFileIOGroupType.build_visible_feature_name()]):
+            response = self.get_success_response(
+                sort="new",
+                query="user.email:myemail@example.com",
+            )
         assert len(response.data) == 2
         assert {r["id"] for r in response.data} == {
             str(perf_group_id),
@@ -3916,6 +3921,76 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         assert response_handled_0.status_code == 200
         assert len(response_handled_0.data) == 1
         assert int(response_handled_0.data[0]["id"]) == handled_event.group.id
+
+    def run_feedback_filtered_by_default_test(self, use_group_snuba_dataset: bool):
+        with Feature(
+            {
+                FeedbackGroup.build_visible_feature_name(): True,
+                FeedbackGroup.build_ingest_feature_name(): True,
+                "organizations:issue-search-snuba": use_group_snuba_dataset,
+            }
+        ):
+            event = self.store_event(
+                data={"event_id": uuid4().hex, "timestamp": iso_format(before_now(seconds=1))},
+                project_id=self.project.id,
+            )
+            assert event.group is not None
+
+            feedback_event = mock_feedback_event(self.project.id, before_now(seconds=1))
+            create_feedback_issue(
+                feedback_event, self.project.id, FeedbackCreationSource.NEW_FEEDBACK_ENVELOPE
+            )
+            self.login_as(user=self.user)
+            res = self.get_success_response(useGroupSnubaDataset=use_group_snuba_dataset)
+
+        # test that the issue returned is NOT the feedback issue.
+        assert len(res.data) == 1
+        issue = res.data[0]
+        feedback_group = Group.objects.get(type=FeedbackGroup.type_id)
+        assert int(issue["id"]) != feedback_group.id
+        assert issue["issueCategory"] != "feedback"
+
+    def test_feedback_filtered_by_default_no_snuba_search(self, _):
+        self.run_feedback_filtered_by_default_test(False)
+
+    def test_feedback_filtered_by_default_use_snuba_search(self, _):
+        self.run_feedback_filtered_by_default_test(True)
+
+    def run_feedback_category_filter_test(self, use_group_snuba_dataset: bool):
+        with Feature(
+            {
+                FeedbackGroup.build_visible_feature_name(): True,
+                FeedbackGroup.build_ingest_feature_name(): True,
+                "organizations:issue-search-snuba": use_group_snuba_dataset,
+            }
+        ):
+            event = self.store_event(
+                data={"event_id": uuid4().hex, "timestamp": iso_format(before_now(seconds=1))},
+                project_id=self.project.id,
+            )
+            assert event.group is not None
+
+            feedback_event = mock_feedback_event(self.project.id, before_now(seconds=1))
+            create_feedback_issue(
+                feedback_event, self.project.id, FeedbackCreationSource.NEW_FEEDBACK_ENVELOPE
+            )
+            self.login_as(user=self.user)
+            res = self.get_success_response(
+                query="issue.category:feedback", useGroupSnubaDataset=use_group_snuba_dataset
+            )
+
+        # test that the issue returned IS the feedback issue.
+        assert len(res.data) == 1
+        issue = res.data[0]
+        feedback_group = Group.objects.get(type=FeedbackGroup.type_id)
+        assert int(issue["id"]) == feedback_group.id
+        assert issue["issueCategory"] == "feedback"
+
+    def test_feedback_category_filter_no_snuba_search(self, _):
+        self.run_feedback_category_filter_test(False)
+
+    def test_feedback_category_filter_use_snuba_search(self, _):
+        self.run_feedback_category_filter_test(True)
 
 
 class GroupUpdateTest(APITestCase, SnubaTestCase):
