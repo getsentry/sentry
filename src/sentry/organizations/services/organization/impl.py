@@ -73,10 +73,6 @@ from sentry.organizations.services.organization_actions.impl import (
     mark_organization_as_pending_deletion_with_outbox_message,
 )
 from sentry.sentry_apps.services.app import app_service
-from sentry.sentry_metrics.models import (
-    SpanAttributeExtractionRuleCondition,
-    SpanAttributeExtractionRuleConfig,
-)
 from sentry.silo.safety import unguarded_write
 from sentry.tasks.auth import email_unlink_notifications
 from sentry.types.region import find_regions_for_orgs
@@ -582,8 +578,6 @@ class DatabaseBackedOrganizationService(OrganizationService):
                 RuleActivity,
                 RuleSnooze,
                 SavedSearch,
-                SpanAttributeExtractionRuleCondition,
-                SpanAttributeExtractionRuleConfig,
             ]
             for model in model_list:
                 merge_users_for_model_in_org(

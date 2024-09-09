@@ -5771,57 +5771,6 @@
       ]
     ]
   },
-  "sentry.spanattributeextractionrulecondition": {
-    "dangling": false,
-    "foreign_keys": {
-      "config": {
-        "kind": "FlexibleForeignKey",
-        "model": "sentry.spanattributeextractionruleconfig",
-        "nullable": false
-      },
-      "created_by_id": {
-        "kind": "HybridCloudForeignKey",
-        "model": "sentry.user",
-        "nullable": true
-      }
-    },
-    "model": "sentry.spanattributeextractionrulecondition",
-    "relocation_dependencies": [],
-    "relocation_scope": "Organization",
-    "silos": [
-      "Region"
-    ],
-    "table_name": "sentry_spanattributeextractionrulecondition",
-    "uniques": []
-  },
-  "sentry.spanattributeextractionruleconfig": {
-    "dangling": false,
-    "foreign_keys": {
-      "created_by_id": {
-        "kind": "HybridCloudForeignKey",
-        "model": "sentry.user",
-        "nullable": true
-      },
-      "project": {
-        "kind": "FlexibleForeignKey",
-        "model": "sentry.project",
-        "nullable": false
-      }
-    },
-    "model": "sentry.spanattributeextractionruleconfig",
-    "relocation_dependencies": [],
-    "relocation_scope": "Organization",
-    "silos": [
-      "Region"
-    ],
-    "table_name": "sentry_spanattributeextractionruleconfig",
-    "uniques": [
-      [
-        "project",
-        "span_attribute"
-      ]
-    ]
-  },
   "sentry.stringindexer": {
     "dangling": false,
     "foreign_keys": {
