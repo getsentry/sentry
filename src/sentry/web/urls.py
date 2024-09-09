@@ -149,7 +149,7 @@ urlpatterns += [
         name="sentry-error-page-embed",
     ),
     re_path(
-        r"^toolbar/iframe$",
+        r"^organizations/(?P<organization_slug>[^/]+)/toolbar/iframe$",
         IframeView.as_view(),
         name="sentry-toolbar-iframe",
     ),
