@@ -4,6 +4,7 @@ import Color from 'color';
 
 import Feature from 'sentry/components/acl/feature';
 import {Breadcrumbs} from 'sentry/components/breadcrumbs';
+import Count from 'sentry/components/count';
 import EventOrGroupTitle from 'sentry/components/eventOrGroupTitle';
 import EventMessage from 'sentry/components/events/eventMessage';
 import {
@@ -12,6 +13,7 @@ import {
 } from 'sentry/components/group/assigneeSelector';
 import {GroupSummaryHeader} from 'sentry/components/group/groupSummary';
 import ParticipantList from 'sentry/components/group/streamlinedParticipantList';
+import Link from 'sentry/components/links/link';
 import Version from 'sentry/components/version';
 import VersionHoverCard from 'sentry/components/versionHoverCard';
 import {t} from 'sentry/locale';
@@ -63,6 +65,7 @@ export default function StreamlinedGroupHeader({
     }
   );
 
+  const {count: eventCount, userCount} = group;
   const {firstRelease, lastRelease} = groupReleaseData || {};
 
   const {handleAssigneeChange, assigneeLoading} = useHandleAssigneeChange({
@@ -106,53 +109,76 @@ export default function StreamlinedGroupHeader({
           {label: shortIdBreadcrumb},
         ]}
       />
-      <TitleHeading>
-        <TitleWrapper>
-          <StyledEventOrGroupTitle data={group} />
-        </TitleWrapper>
-      </TitleHeading>
-      <MessageWrapper>
-        <EventMessage
-          message={message}
-          type={group.type}
-          level={group.level}
-          showUnhandled={group.isUnhandled}
-        />
-        {firstRelease && lastRelease && (
-          <Fragment>
-            <Divider />
-            <ReleaseWrapper>
-              {firstRelease.id === lastRelease.id ? t('Release') : t('Releases')}
-              <VersionHoverCard
-                organization={organization}
-                projectSlug={project.slug}
-                releaseVersion={firstRelease.version}
-              >
-                <Version version={firstRelease.version} projectId={project.id} truncate />
-              </VersionHoverCard>
-              {firstRelease.id === lastRelease.id ? null : (
-                <Fragment>
-                  -
+      <HeadingGrid>
+        <Heading>
+          <TitleHeading>
+            <TitleWrapper>
+              <StyledEventOrGroupTitle data={group} />
+            </TitleWrapper>
+          </TitleHeading>
+          <MessageWrapper>
+            <EventMessage
+              message={message}
+              type={group.type}
+              level={group.level}
+              showUnhandled={group.isUnhandled}
+            />
+            {firstRelease && lastRelease && (
+              <Fragment>
+                <Divider />
+                <ReleaseWrapper>
+                  {firstRelease.id === lastRelease.id ? t('Release') : t('Releases')}
                   <VersionHoverCard
                     organization={organization}
                     projectSlug={project.slug}
-                    releaseVersion={lastRelease.version}
+                    releaseVersion={firstRelease.version}
                   >
                     <Version
-                      version={lastRelease.version}
+                      version={firstRelease.version}
                       projectId={project.id}
                       truncate
                     />
                   </VersionHoverCard>
-                </Fragment>
-              )}
-            </ReleaseWrapper>
-          </Fragment>
-        )}
-      </MessageWrapper>
-      <Feature features={['organizations:ai-summary']}>
-        <GroupSummaryHeader groupId={group.id} groupCategory={group.issueCategory} />
-      </Feature>
+                  {firstRelease.id === lastRelease.id ? null : (
+                    <Fragment>
+                      -
+                      <VersionHoverCard
+                        organization={organization}
+                        projectSlug={project.slug}
+                        releaseVersion={lastRelease.version}
+                      >
+                        <Version
+                          version={lastRelease.version}
+                          projectId={project.id}
+                          truncate
+                        />
+                      </VersionHoverCard>
+                    </Fragment>
+                  )}
+                </ReleaseWrapper>
+              </Fragment>
+            )}
+          </MessageWrapper>
+          <Feature features={['organizations:ai-summary']}>
+            <GroupSummaryHeader groupId={group.id} groupCategory={group.issueCategory} />
+          </Feature>
+        </Heading>
+        <AllStats>
+          <Stat>
+            <Label data-test-id="all-event-count">{t('All Events')}</Label>
+            <Link disabled={disableActions} to={eventRoute}>
+              <StatCount value={eventCount} />
+            </Link>
+          </Stat>
+          <Stat>
+            <Label>{t('All Users')}</Label>
+            <Link disabled={disableActions} to={`${baseUrl}tags/user/${location.search}`}>
+              <StatCount value={userCount} />
+            </Link>
+          </Stat>
+        </AllStats>
+      </HeadingGrid>
+
       <StyledBreak />
       <InfoWrapper
         isResolvedOrIgnored={group.status === 'resolved' || group.status === 'ignored'}
@@ -200,6 +226,36 @@ export default function StreamlinedGroupHeader({
 
 const StyledEventOrGroupTitle = styled(EventOrGroupTitle)`
   font-size: inherit;
+`;
+
+const HeadingGrid = styled('div')`
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: ${space(2)};
+  align-items: center;
+`;
+
+const Heading = styled('div')``;
+
+const AllStats = styled('div')`
+  display: flex;
+  gap: ${space(4)};
+`;
+
+const Stat = styled('div')`
+  display: inline-block;
+  font-size: ${p => p.theme.fontSizeSmall};
+`;
+
+const Label = styled('div')`
+  font-size: ${p => p.theme.fontSizeSmall};
+  font-weight: ${p => p.theme.fontWeightBold};
+  color: ${p => p.theme.subText};
+`;
+
+const StatCount = styled(Count)`
+  font-size: ${p => p.theme.headerFontSize};
+  display: block;
 `;
 
 const TitleWrapper = styled('h3')`
