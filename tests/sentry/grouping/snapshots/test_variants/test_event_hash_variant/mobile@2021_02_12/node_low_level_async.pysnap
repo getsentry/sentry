@@ -1,0 +1,89 @@
+---
+created: '2024-08-27T12:08:34.920608+00:00'
+creator: sentry
+source: tests/sentry/grouping/test_variants.py
+---
+app-depth-1:
+  hash: "990ec5d380997ca482658d52a98b8502"
+  component:
+    app-depth-1*
+      exception*
+        stacktrace*
+          frame*
+            filename*
+              "axiosinterceptor.js"
+            function*
+              "runMicrotasks"
+        type*
+          "Error"
+        value (ignored because stacktrace takes precedence)
+          "bad"
+--------------------------------------------------------------------------
+app-depth-2:
+  hash: "b3d321fab1665166fb7cacfa975db4bb"
+  component:
+    app-depth-2*
+      exception*
+        stacktrace*
+          frame*
+            module*
+              "task_queues"
+            filename (module takes precedence)
+              "task_queues"
+            function*
+              "processTicksAndRejections"
+          frame*
+            filename*
+              "axiosinterceptor.js"
+            function*
+              "runMicrotasks"
+        type*
+          "Error"
+        value (ignored because stacktrace takes precedence)
+          "bad"
+--------------------------------------------------------------------------
+app-depth-max:
+  hash: "b3d321fab1665166fb7cacfa975db4bb"
+  component:
+    app-depth-max*
+      exception*
+        stacktrace*
+          frame*
+            module*
+              "task_queues"
+            filename (module takes precedence)
+              "task_queues"
+            function*
+              "processTicksAndRejections"
+          frame*
+            filename*
+              "axiosinterceptor.js"
+            function*
+              "runMicrotasks"
+        type*
+          "Error"
+        value (ignored because stacktrace takes precedence)
+          "bad"
+--------------------------------------------------------------------------
+system:
+  hash: "b3d321fab1665166fb7cacfa975db4bb"
+  component:
+    system*
+      exception*
+        stacktrace*
+          frame*
+            module*
+              "task_queues"
+            filename (module takes precedence)
+              "task_queues"
+            function*
+              "processTicksAndRejections"
+          frame*
+            filename*
+              "axiosinterceptor.js"
+            function*
+              "runMicrotasks"
+        type*
+          "Error"
+        value (ignored because stacktrace takes precedence)
+          "bad"

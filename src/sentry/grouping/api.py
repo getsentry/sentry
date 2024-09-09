@@ -21,6 +21,7 @@ from sentry.grouping.utils import (
     resolve_fingerprint_values,
 )
 from sentry.grouping.variants import (
+    HIERARCHICAL_VARIANTS,
     BaseVariant,
     BuiltInFingerprintVariant,
     ChecksumVariant,
@@ -373,16 +374,25 @@ def get_grouping_variants_for_event(
     return rv
 
 
-def sort_grouping_variants(variants: dict[str, BaseVariant]) -> KeyedVariants:
-    """Sort a sequence of variants into flat variants"""
+def sort_grouping_variants(variants: dict[str, BaseVariant]) -> tuple[KeyedVariants, KeyedVariants]:
+    """Sort a sequence of variants into flat and hierarchical variants"""
 
     flat_variants = []
+    hierarchical_variants = []
 
     for name, variant in variants.items():
-        flat_variants.append((name, variant))
+        if name in HIERARCHICAL_VARIANTS:
+            hierarchical_variants.append((name, variant))
+        else:
+            flat_variants.append((name, variant))
 
     # Sort system variant to the back of the list to resolve ambiguities when
     # choosing primary_hash for Snuba
     flat_variants.sort(key=lambda name_and_variant: 1 if name_and_variant[0] == "system" else 0)
 
-    return flat_variants
+    # Sort hierarchical_variants by order defined in HIERARCHICAL_VARIANTS
+    hierarchical_variants.sort(
+        key=lambda name_and_variant: HIERARCHICAL_VARIANTS.index(name_and_variant[0])
+    )
+
+    return flat_variants, hierarchical_variants

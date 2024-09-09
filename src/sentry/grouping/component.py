@@ -41,6 +41,8 @@ class GroupingComponent:
         contributes: bool | None = None,
         values: Sequence[str | GroupingComponent] | None = None,
         variant_provider: bool = False,
+        is_prefix_frame: bool = False,
+        is_sentinel_frame: bool = False,
     ):
         self.id = id
 
@@ -49,11 +51,15 @@ class GroupingComponent:
         self.contributes = contributes
         self.variant_provider = variant_provider
         self.values: Sequence[str | GroupingComponent] = []
+        self.is_prefix_frame = is_prefix_frame
+        self.is_sentinel_frame = is_sentinel_frame
 
         self.update(
             hint=hint,
             contributes=contributes,
             values=values,
+            is_prefix_frame=is_prefix_frame,
+            is_sentinel_frame=is_sentinel_frame,
         )
 
     @property
@@ -107,6 +113,8 @@ class GroupingComponent:
         hint: str | None = None,
         contributes: bool | None = None,
         values: Sequence[str | GroupingComponent] | None = None,
+        is_prefix_frame: bool | None = None,
+        is_sentinel_frame: bool | None = None,
     ) -> None:
         """Updates an already existing component with new values."""
         if hint is not None:
@@ -117,6 +125,10 @@ class GroupingComponent:
             self.values = values
         if contributes is not None:
             self.contributes = contributes
+        if is_prefix_frame is not None:
+            self.is_prefix_frame = is_prefix_frame
+        if is_sentinel_frame is not None:
+            self.is_sentinel_frame = is_sentinel_frame
 
     def shallow_copy(self) -> GroupingComponent:
         """Creates a shallow copy."""

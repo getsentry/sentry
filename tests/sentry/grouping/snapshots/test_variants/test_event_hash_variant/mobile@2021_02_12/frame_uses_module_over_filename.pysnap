@@ -1,0 +1,37 @@
+---
+created: '2021-06-30T15:56:05.898376Z'
+creator: sentry
+source: tests/sentry/grouping/test_variants.py
+---
+app-depth-1:
+  hash: "acbd18db4cc2f85cedef654fccc4a4d8"
+  component:
+    app-depth-1*
+      stacktrace*
+        frame*
+          module*
+            "foo"
+          filename (module takes precedence)
+            "foo.py"
+--------------------------------------------------------------------------
+app-depth-max:
+  hash: "acbd18db4cc2f85cedef654fccc4a4d8"
+  component:
+    app-depth-max*
+      stacktrace*
+        frame*
+          module*
+            "foo"
+          filename (module takes precedence)
+            "foo.py"
+--------------------------------------------------------------------------
+system:
+  hash: "acbd18db4cc2f85cedef654fccc4a4d8"
+  component:
+    system*
+      stacktrace*
+        frame*
+          module*
+            "foo"
+          filename (module takes precedence)
+            "foo.py"
