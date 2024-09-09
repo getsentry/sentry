@@ -163,7 +163,6 @@ function SidebarItem({
   const isActiveRouter =
     !hasPanel && router && isItemActive({to, label: labelString}, exact);
 
-  // TODO: floating accordion should be transformed into secondary panel
   const isInFloatingAccordion = (isNested || isMainItem) && shouldAccordionFloat;
   const isInSubnav = hasNewNav && isNested;
   const hasLink = Boolean(to);
@@ -299,7 +298,7 @@ function SidebarItem({
                   tooltipProps={tooltipDisabledProps}
                 />
               )}
-              {!isInFloatingAccordion && hasNewNav && (
+              {hasNewNav && (
                 <LabelHook id={id}>
                   <TruncatedLabel hasNewNav={hasNewNav}>{label}</TruncatedLabel>
                   {additionalContent ?? badges}
@@ -370,24 +369,24 @@ const getActiveStyle = ({
   if (!active) {
     return '';
   }
+  if (isInSubnav) {
+    return css`
+      &,
+      &:active,
+      &:focus,
+      &:hover {
+        color: ${theme?.gray500};
+        background-color: ${theme?.hover};
+        border: 1px solid ${theme?.translucentGray100};
+      }
+    `;
+  }
   if (isInFloatingAccordion) {
     return css`
       &:active,
       &:focus,
       &:hover {
         color: ${theme?.gray400};
-      }
-    `;
-  }
-  if (isInSubnav) {
-    return css`
-      &&&,
-      &:active,
-      &:focus,
-      &:hover {
-        color: ${theme?.gray500};
-        background-color: rgba(62, 52, 70, 0.09);
-        border: 1px solid ${theme?.translucentGray100};
       }
     `;
   }
@@ -442,6 +441,8 @@ const StyledSidebarItem = styled(Link, {
   ${p =>
     p.hasNewNav &&
     css`
+      border: 1px solid transparent;
+
       &:before {
         background-color: ${p.theme.gray500};
         border: 1px solid ${p.theme.translucentGray200};
@@ -463,9 +464,9 @@ const StyledSidebarItem = styled(Link, {
   &:hover,
   &:focus-visible {
     ${p => {
-      if (p.isInFloatingAccordion || p.isInSubnav) {
+      if (p.isInFloatingAccordion) {
         return css`
-          background-color: ${p.isInSubnav ? 'transparent' : p.theme.hover};
+          background-color: ${p.theme.hover};
           color: ${p.theme.gray400};
         `;
       }
@@ -487,7 +488,7 @@ const StyledSidebarItem = styled(Link, {
   ${p => {
     if (p.hasNewNav && !p.isInSubnav) {
       return css`
-        &&& {
+        & {
           font-size: 11px;
           align-self: center;
           justify-content: center;
