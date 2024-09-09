@@ -1,0 +1,37 @@
+---
+created: '2024-08-27T12:08:35.487838+00:00'
+creator: sentry
+source: tests/sentry/grouping/test_variants.py
+---
+app-depth-1:
+  hash: "d1fe4234d1bddc3823d08dcc529fb161"
+  component:
+    app-depth-1*
+      stacktrace*
+        frame*
+          filename*
+            "sentry_exception_factory.dart"
+          function*
+            "SentryExceptionFactory.getSentryException"
+--------------------------------------------------------------------------
+app-depth-max:
+  hash: "d1fe4234d1bddc3823d08dcc529fb161"
+  component:
+    app-depth-max*
+      stacktrace*
+        frame*
+          filename*
+            "sentry_exception_factory.dart"
+          function*
+            "SentryExceptionFactory.getSentryException"
+--------------------------------------------------------------------------
+system:
+  hash: "d1fe4234d1bddc3823d08dcc529fb161"
+  component:
+    system*
+      stacktrace*
+        frame*
+          filename*
+            "sentry_exception_factory.dart"
+          function*
+            "SentryExceptionFactory.getSentryException"
