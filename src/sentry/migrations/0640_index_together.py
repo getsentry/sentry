@@ -24,11 +24,6 @@ class Migration(CheckedMigration):
 
     operations = [
         migrations.RenameIndex(
-            model_name="artifactbundleindex",
-            new_name="sentry_arti_url_7e628a_idx",
-            old_fields=("url", "artifact_bundle"),
-        ),
-        migrations.RenameIndex(
             model_name="controloutbox",
             new_name="sentry_cont_region__0c4512_idx",
             old_fields=("region_name", "shard_scope", "shard_identifier", "scheduled_for"),
