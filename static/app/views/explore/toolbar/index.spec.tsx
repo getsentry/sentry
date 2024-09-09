@@ -134,13 +134,13 @@ describe('ExploreToolbar', function () {
 
     // this is the default
     expect(within(section).getByRole('button', {name: 'timestamp'})).toBeInTheDocument();
-    expect(within(section).getByRole('button', {name: 'Descending'})).toBeInTheDocument();
+    expect(within(section).getByRole('button', {name: 'Desc'})).toBeInTheDocument();
     expect(sorts).toEqual([{field: 'timestamp', kind: 'desc'}]);
 
     // check the default field options
     const fields = [
       'project',
-      'id',
+      'span_id',
       'span.op',
       'span.description',
       'span.duration',
@@ -156,20 +156,20 @@ describe('ExploreToolbar', function () {
     // try changing the field
     await userEvent.click(within(section).getByRole('option', {name: 'span.op'}));
     expect(within(section).getByRole('button', {name: 'span.op'})).toBeInTheDocument();
-    expect(within(section).getByRole('button', {name: 'Descending'})).toBeInTheDocument();
+    expect(within(section).getByRole('button', {name: 'Desc'})).toBeInTheDocument();
     expect(sorts).toEqual([{field: 'span.op', kind: 'desc'}]);
 
     // check the kind options
-    await userEvent.click(within(section).getByRole('button', {name: 'Descending'}));
+    await userEvent.click(within(section).getByRole('button', {name: 'Desc'}));
     const kindOptions = await within(section).findAllByRole('option');
     expect(kindOptions).toHaveLength(2);
-    expect(kindOptions[0]).toHaveTextContent('Descending');
-    expect(kindOptions[1]).toHaveTextContent('Ascending');
+    expect(kindOptions[0]).toHaveTextContent('Desc');
+    expect(kindOptions[1]).toHaveTextContent('Asc');
 
     // try changing the kind
-    await userEvent.click(within(section).getByRole('option', {name: 'Ascending'}));
+    await userEvent.click(within(section).getByRole('option', {name: 'Asc'}));
     expect(within(section).getByRole('button', {name: 'span.op'})).toBeInTheDocument();
-    expect(within(section).getByRole('button', {name: 'Ascending'})).toBeInTheDocument();
+    expect(within(section).getByRole('button', {name: 'Asc'})).toBeInTheDocument();
     expect(sorts).toEqual([{field: 'span.op', kind: 'asc'}]);
   });
 
@@ -186,6 +186,16 @@ describe('ExploreToolbar', function () {
 
     expect(within(section).getByRole('button', {name: 'None'})).toBeInTheDocument();
     expect(groupBys).toEqual(['']);
+
+    // disabled in the samples mode
+    expect(within(section).getByRole('button', {name: 'None'})).toBeDisabled();
+
+    // click the aggregates mode to enable
+    await userEvent.click(
+      within(screen.getByTestId('section-result-mode')).getByRole('radio', {
+        name: 'Aggregate',
+      })
+    );
 
     await userEvent.click(within(section).getByRole('button', {name: 'None'}));
     const groupByOptions1 = await within(section).findAllByRole('option');
@@ -209,5 +219,11 @@ describe('ExploreToolbar', function () {
       within(section).getByRole('button', {name: 'span.description'})
     ).toBeInTheDocument();
     expect(groupBys).toEqual(['span.op', 'span.description']);
+
+    await userEvent.click(within(section).getAllByLabelText('Remove')[0]);
+    expect(groupBys).toEqual(['span.description']);
+
+    // only one left so cant be deleted
+    expect(within(section).getByLabelText('Remove')).toBeDisabled();
   });
 });
