@@ -54,11 +54,16 @@ def infer_substatus(
         new_substatus = GroupSubStatus.ONGOING
 
         # Set the group substatus back to NEW if it was unignored withing 7 days of when it was first seen
-        if len(group_list) == 1 and group_list[0].status == GroupStatus.IGNORED:
-            is_new_group = group_list[0].first_seen > datetime.now(timezone.utc) - timedelta(
-                days=TRANSITION_AFTER_DAYS
-            )
-            return GroupSubStatus.NEW if is_new_group else GroupSubStatus.ONGOING
+        if len(group_list) == 1:
+            if group_list[0].status == GroupStatus.IGNORED:
+                is_new_group = group_list[0].first_seen > datetime.now(timezone.utc) - timedelta(
+                    days=TRANSITION_AFTER_DAYS
+                )
+                return GroupSubStatus.NEW if is_new_group else GroupSubStatus.ONGOING
+            if group_list[0].status == GroupStatus.RESOLVED:
+                return GroupSubStatus.REGRESSED
+
+            return GroupSubStatus.ONGOING
 
 
 def handle_status_update(
