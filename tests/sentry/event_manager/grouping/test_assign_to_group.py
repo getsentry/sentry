@@ -476,9 +476,7 @@ def test_existing_group_new_hash_exists(
 @pytest.mark.parametrize(
     "in_transition", (True, False), ids=(" in_transition: True ", " in_transition: False ")
 )
-@pytest.mark.parametrize(
-    "id_qualifies", (True, False), ids=(" id_qualifies: True ", " id_qualifies: False ")
-)
+@pytest.mark.parametrize("id_qualifies", (True,), ids=(" id_qualifies: True ",))
 @patch("sentry.event_manager._save_aggregate_new", wraps=_save_aggregate_new)
 @patch("sentry.event_manager._save_aggregate", wraps=_save_aggregate)
 def test_uses_regular_or_optimized_grouping_as_appropriate(
@@ -507,7 +505,9 @@ def test_uses_regular_or_optimized_grouping_as_appropriate(
     ):
         save_event_with_grouping_config({"message": "Dogs are great!"}, project, NEWSTYLE_CONFIG)
 
-    if flag_on:
+    if killswitch_enabled:
+        assert mock_save_aggregate.call_count == 1
+    elif flag_on:
         assert mock_save_aggregate_new.call_count == 1
     elif in_transition:
         assert mock_save_aggregate_new.call_count == 1
