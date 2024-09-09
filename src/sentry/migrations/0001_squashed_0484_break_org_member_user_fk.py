@@ -2618,6 +2618,14 @@ class Migration(CheckedMigration):
             options={
                 "db_table": "sentry_grouprelease",
                 "unique_together": {("group_id", "release_id", "environment")},
+                "indexes": [
+                    models.Index(
+                        fields=["group_id", "first_seen"], name="sentry_grou_group_i_6eaff8_idx"
+                    ),
+                    models.Index(
+                        fields=["group_id", "last_seen"], name="sentry_grou_group_i_f10abe_idx"
+                    ),
+                ],
             },
         ),
         migrations.CreateModel(
@@ -6406,9 +6414,11 @@ class Migration(CheckedMigration):
             name="display_type",
             field=sentry.db.models.fields.bounded.BoundedPositiveIntegerField(),
         ),
-        migrations.AlterIndexTogether(
-            name="groupinbox",
-            index_together={("project", "date_added")},
+        migrations.AddIndex(
+            model_name="groupinbox",
+            index=models.Index(
+                fields=["project", "date_added"], name="sentry_grou_project_a9fe16_idx"
+            ),
         ),
         migrations.AddField(
             model_name="dashboardwidgetquery",
@@ -6766,26 +6776,6 @@ class Migration(CheckedMigration):
                 migrations.AlterUniqueTogether(
                     name="fileblobowner",
                     unique_together={("blob", "organization_id")},
-                ),
-            ],
-        ),
-        migrations.SeparateDatabaseAndState(
-            database_operations=[
-                migrations.RunSQL(
-                    sql="\n                    CREATE INDEX CONCURRENTLY IF NOT EXISTS sentry_grouprelease_group_id_first_seen_53fc35ds\n                    ON sentry_grouprelease USING btree (group_id, first_seen);\n                    ",
-                    reverse_sql="\n                    DROP INDEX CONCURRENTLY IF EXISTS sentry_grouprelease_group_id_first_seen_53fc35ds;\n                    ",
-                    hints={"tables": ["sentry_grouprelease"]},
-                ),
-                migrations.RunSQL(
-                    sql="\n                    CREATE INDEX CONCURRENTLY IF NOT EXISTS sentry_grouprelease_group_id_last_seen_g8v2sk7c\n                    ON sentry_grouprelease USING btree (group_id, last_seen DESC);\n                    ",
-                    reverse_sql="\n                    DROP INDEX CONCURRENTLY IF EXISTS sentry_grouprelease_group_id_last_seen_g8v2sk7c;\n                    ",
-                    hints={"tables": ["sentry_grouprelease"]},
-                ),
-            ],
-            state_operations=[
-                migrations.AlterIndexTogether(
-                    name="grouprelease",
-                    index_together={("group_id", "first_seen"), ("group_id", "last_seen")},
                 ),
             ],
         ),
@@ -7192,10 +7182,6 @@ class Migration(CheckedMigration):
                     field=models.DateTimeField(blank=True, null=True),
                 ),
                 migrations.AlterIndexTogether(
-                    name="releaseproject",
-                    index_together={("project", "adopted"), ("project", "unadopted")},
-                ),
-                migrations.AlterIndexTogether(
                     name="releaseprojectenvironment",
                     index_together={
                         ("project", "adopted", "environment"),
@@ -7381,28 +7367,11 @@ class Migration(CheckedMigration):
                 ),
             ],
         ),
-        migrations.SeparateDatabaseAndState(
-            database_operations=[
-                migrations.RunSQL(
-                    sql='\n                    CREATE INDEX CONCURRENTLY "sentry_activity_project_id_datetime_c00585e4_idx" ON "sentry_activity" ("project_id", "datetime");\n                    ',
-                    reverse_sql="\n                DROP INDEX CONCURRENTLY IF EXISTS sentry_activity_project_id_datetime_c00585e4_idx;\n                ",
-                    hints={"tables": ["sentry_activity"]},
-                ),
-            ],
-            state_operations=[
-                migrations.AlterIndexTogether(
-                    name="activity",
-                    index_together={("project", "type", "datetime")},
-                ),
-            ],
-        ),
-        migrations.SeparateDatabaseAndState(
-            state_operations=[
-                migrations.AlterIndexTogether(
-                    name="activity",
-                    index_together={("project", "datetime")},
-                ),
-            ],
+        migrations.AddIndex(
+            model_name="activity",
+            index=models.Index(
+                fields=["project", "datetime"], name="sentry_acti_project_cd8457_idx"
+            ),
         ),
         migrations.SeparateDatabaseAndState(
             database_operations=[],
@@ -8723,13 +8692,23 @@ class Migration(CheckedMigration):
             name="first_seen_transaction",
             field=models.DateTimeField(blank=True, null=True),
         ),
-        migrations.AlterIndexTogether(
-            name="releaseproject",
-            index_together={
-                ("project", "adopted"),
-                ("project", "first_seen_transaction"),
-                ("project", "unadopted"),
-            },
+        migrations.AddIndex(
+            model_name="releaseproject",
+            index=models.Index(
+                fields=["project", "adopted"], name="sentry_rele_project_a80825_idx"
+            ),
+        ),
+        migrations.AddIndex(
+            model_name="releaseproject",
+            index=models.Index(
+                fields=["project", "unadopted"], name="sentry_rele_project_2ca122_idx"
+            ),
+        ),
+        migrations.AddIndex(
+            model_name="releaseproject",
+            index=models.Index(
+                fields=["project", "first_seen_transaction"], name="sentry_rele_project_3143eb_idx"
+            ),
         ),
         migrations.SeparateDatabaseAndState(
             database_operations=[

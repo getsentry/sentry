@@ -1,10 +1,10 @@
 ---
-created: '2024-09-04T19:48:06.008727+00:00'
+created: '2024-09-05T13:39:11.700156+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
 app-depth-1:
-  hash: "e0b1ea961231b18c64222df5f9dd6062"
+  hash: "da1c09a081c9f6f666ba9cc7953fa0df"
   component:
     app-depth-1*
       exception*
@@ -12,18 +12,50 @@ app-depth-1:
           frame*
             function*
               "CD3D11LayeredChild<T>::LUCBeginLayerDestruction"
-            package (ignored because function takes precedence)
-              "d3d11.dll"
-          frame* (marked as prefix frame by stack trace rule (category:driver +sentinel +prefix))
-            package* (used as fallback because function name is not available)
-              "nvwgf2umx.dll"
+        type (ignored because exception is synthetic)
+          "EXCEPTION_ACCESS_VIOLATION_READ"
+        value (ignored because stacktrace takes precedence)
+          "Fatal Error: EXCEPTION_ACCESS_VIOLATION_READ"
+--------------------------------------------------------------------------
+app-depth-2:
+  hash: "b9e00b84218ca5cca42fc7bccbf75df7"
+  component:
+    app-depth-2*
+      exception*
+        stacktrace*
+          frame*
+            function*
+              "destructor'"
+          frame*
+            function*
+              "CD3D11LayeredChild<T>::LUCBeginLayerDestruction"
+        type (ignored because exception is synthetic)
+          "EXCEPTION_ACCESS_VIOLATION_READ"
+        value (ignored because stacktrace takes precedence)
+          "Fatal Error: EXCEPTION_ACCESS_VIOLATION_READ"
+--------------------------------------------------------------------------
+app-depth-3:
+  hash: "2e0d26cae5986fcda5edf66612a78268"
+  component:
+    app-depth-3*
+      exception*
+        stacktrace*
+          frame*
+            function*
+              "CUseCountedObject<T>::UCDestroy"
+          frame*
+            function*
+              "destructor'"
+          frame*
+            function*
+              "CD3D11LayeredChild<T>::LUCBeginLayerDestruction"
         type (ignored because exception is synthetic)
           "EXCEPTION_ACCESS_VIOLATION_READ"
         value (ignored because stacktrace takes precedence)
           "Fatal Error: EXCEPTION_ACCESS_VIOLATION_READ"
 --------------------------------------------------------------------------
 app-depth-max:
-  hash: "dace415c7739d08199fdcba4a694e255"
+  hash: "2e0d26cae5986fcda5edf66612a78268"
   component:
     app-depth-max*
       exception*
@@ -31,43 +63,19 @@ app-depth-max:
           frame*
             function*
               "CUseCountedObject<T>::UCDestroy"
-            package (ignored because function takes precedence)
-              "d3d11.dll"
           frame*
             function*
               "destructor'"
-            package (ignored because function takes precedence)
-              "d3d11.dll"
           frame*
             function*
               "CD3D11LayeredChild<T>::LUCBeginLayerDestruction"
-            package (ignored because function takes precedence)
-              "d3d11.dll"
-          frame (ignored by stack trace rule (category:internals -group))
-            function*
-              "CContext::LUCBeginLayerDestruction"
-            package (ignored because function takes precedence)
-              "d3d11.dll"
-          frame (ignored by stack trace rule (category:internals -group))
-            function*
-              "NDXGI::CDevice::DestroyDriverInstance"
-            package (ignored because function takes precedence)
-              "d3d11.dll"
-          frame (ignored by stack trace rule (category:internals -group))
-            function*
-              "OpenAdapter10"
-            package (ignored because function takes precedence)
-              "nvwgf2umx.dll"
-          frame* (marked as prefix frame by stack trace rule (category:driver +sentinel +prefix))
-            package* (used as fallback because function name is not available)
-              "nvwgf2umx.dll"
         type (ignored because exception is synthetic)
           "EXCEPTION_ACCESS_VIOLATION_READ"
         value (ignored because stacktrace takes precedence)
           "Fatal Error: EXCEPTION_ACCESS_VIOLATION_READ"
 --------------------------------------------------------------------------
 system:
-  hash: "dace415c7739d08199fdcba4a694e255"
+  hash: "2e0d26cae5986fcda5edf66612a78268"
   component:
     system*
       exception*
@@ -75,36 +83,22 @@ system:
           frame*
             function*
               "CUseCountedObject<T>::UCDestroy"
-            package (ignored because function takes precedence)
-              "d3d11.dll"
           frame*
             function*
               "destructor'"
-            package (ignored because function takes precedence)
-              "d3d11.dll"
           frame*
             function*
               "CD3D11LayeredChild<T>::LUCBeginLayerDestruction"
-            package (ignored because function takes precedence)
-              "d3d11.dll"
           frame (ignored by stack trace rule (category:internals -group))
             function*
               "CContext::LUCBeginLayerDestruction"
-            package (ignored because function takes precedence)
-              "d3d11.dll"
           frame (ignored by stack trace rule (category:internals -group))
             function*
               "NDXGI::CDevice::DestroyDriverInstance"
-            package (ignored because function takes precedence)
-              "d3d11.dll"
           frame (ignored by stack trace rule (category:internals -group))
             function*
               "OpenAdapter10"
-            package (ignored because function takes precedence)
-              "nvwgf2umx.dll"
-          frame* (marked as prefix frame by stack trace rule (category:driver +sentinel +prefix))
-            package* (used as fallback because function name is not available)
-              "nvwgf2umx.dll"
+          frame (marked as prefix frame by stack trace rule (category:driver +sentinel +prefix))
         type (ignored because exception is synthetic)
           "EXCEPTION_ACCESS_VIOLATION_READ"
         value (ignored because stacktrace takes precedence)

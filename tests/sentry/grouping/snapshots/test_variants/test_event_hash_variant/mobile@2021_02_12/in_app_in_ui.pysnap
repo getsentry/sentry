@@ -1,16 +1,16 @@
 ---
-created: '2024-09-04T19:48:06.259057+00:00'
+created: '2024-09-06T11:37:51.787853+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
 app-depth-1:
-  hash: "2063c1608d6e0baf80249c42e2be5804"
+  hash: "2e6ec14cee36b77af5543dd575ad0d6a"
   component:
     app-depth-1*
       exception*
         stacktrace*
           frame*
-            filename (discarded native filename for grouping stability)
+            filename*
               "currentuserprofile.swift"
             function*
               "value"
@@ -20,18 +20,18 @@ app-depth-1:
           "autoplayOption"
 --------------------------------------------------------------------------
 app-depth-2:
-  hash: "ce1bd3de2f794a0e1d6d33f5a32e6192"
+  hash: "03bc6068f9d376e3c82f407634198871"
   component:
     app-depth-2*
       exception*
         stacktrace*
           frame*
-            filename (discarded native filename for grouping stability)
+            filename*
               "currentuserprofile.swift"
             function*
               "CurrentUserProfile.isVideoAutoplay.getter"
           frame*
-            filename (discarded native filename for grouping stability)
+            filename*
               "currentuserprofile.swift"
             function*
               "value"
@@ -41,23 +41,23 @@ app-depth-2:
           "autoplayOption"
 --------------------------------------------------------------------------
 app-depth-3:
-  hash: "bc66cfec46fe5377f58aa034c119b9af"
+  hash: "3be1fc191718208eb478e53ac66ab311"
   component:
     app-depth-3*
       exception*
         stacktrace*
           frame*
-            filename (discarded native filename for grouping stability)
+            filename*
               "<compiler-generated>"
             function*
               "CurrentUserProfile.isVideoAutoplay.getter"
           frame*
-            filename (discarded native filename for grouping stability)
+            filename*
               "currentuserprofile.swift"
             function*
               "CurrentUserProfile.isVideoAutoplay.getter"
           frame*
-            filename (discarded native filename for grouping stability)
+            filename*
               "currentuserprofile.swift"
             function*
               "value"
@@ -67,28 +67,28 @@ app-depth-3:
           "autoplayOption"
 --------------------------------------------------------------------------
 app-depth-4:
-  hash: "668b6b60a8035b7352f8d2565b33c6f8"
+  hash: "f7cbd317d459f83aa63d4c580d30cd0f"
   component:
     app-depth-4*
       exception*
         stacktrace*
           frame*
-            filename (discarded native filename for grouping stability)
+            filename*
               "mediaslideshow+extensions.swift"
             function*
               "MediaSlideshow.toSource"
           frame*
-            filename (discarded native filename for grouping stability)
+            filename*
               "<compiler-generated>"
             function*
               "CurrentUserProfile.isVideoAutoplay.getter"
           frame*
-            filename (discarded native filename for grouping stability)
+            filename*
               "currentuserprofile.swift"
             function*
               "CurrentUserProfile.isVideoAutoplay.getter"
           frame*
-            filename (discarded native filename for grouping stability)
+            filename*
               "currentuserprofile.swift"
             function*
               "value"
@@ -98,33 +98,33 @@ app-depth-4:
           "autoplayOption"
 --------------------------------------------------------------------------
 app-depth-5:
-  hash: "ff47d4310694f340fc1e34176292f270"
+  hash: "97ead781c5c2a5a05b7e5bc031be46b0"
   component:
     app-depth-5*
       exception*
         stacktrace*
           frame*
-            filename (discarded native filename for grouping stability)
+            filename*
               "mediaslideshow+extensions.swift"
             function*
               "MediaSlideshow.toSources"
           frame*
-            filename (discarded native filename for grouping stability)
+            filename*
               "mediaslideshow+extensions.swift"
             function*
               "MediaSlideshow.toSource"
           frame*
-            filename (discarded native filename for grouping stability)
+            filename*
               "<compiler-generated>"
             function*
               "CurrentUserProfile.isVideoAutoplay.getter"
           frame*
-            filename (discarded native filename for grouping stability)
+            filename*
               "currentuserprofile.swift"
             function*
               "CurrentUserProfile.isVideoAutoplay.getter"
           frame*
-            filename (discarded native filename for grouping stability)
+            filename*
               "currentuserprofile.swift"
             function*
               "value"
@@ -134,68 +134,68 @@ app-depth-5:
           "autoplayOption"
 --------------------------------------------------------------------------
 app-depth-max:
-  hash: "a4b8f7cba448e74848f45e204ae9dc26"
+  hash: "5b032559156688c9eabe4e4bd5ae6bd4"
   component:
     app-depth-max*
       exception*
         stacktrace*
           frame*
-            filename (discarded native filename for grouping stability)
+            filename*
               "<compiler-generated>"
             function*
               "TableView.layoutSubviews"
           frame*
-            filename (discarded native filename for grouping stability)
+            filename*
               "<compiler-generated>"
             function*
               "AnyTableViewController.tableView"
           frame*
-            filename (discarded native filename for grouping stability)
+            filename*
               "anytableviewcontroller.swift"
             function*
               "AnyTableViewController.tableView"
           frame*
-            filename (discarded native filename for grouping stability)
+            filename*
               "dailydigesttableviewsection.swift"
             function*
               "DailyDigestTableViewSection.photoCell"
           frame*
-            filename (discarded native filename for grouping stability)
+            filename*
               "<compiler-generated>"
             function*
               "MediaSlideshow.toSources"
           frame*
-            filename (discarded native filename for grouping stability)
+            filename*
               "mediaslideshow+extensions.swift"
             function*
               "MediaSlideshow.toSources"
           frame*
-            filename (discarded native filename for grouping stability)
+            filename*
               "<compiler-generated>"
             function*
               "Sequence.compactMap<T>"
           frame*
-            filename (discarded native filename for grouping stability)
+            filename*
               "mediaslideshow+extensions.swift"
             function*
               "MediaSlideshow.toSources"
           frame*
-            filename (discarded native filename for grouping stability)
+            filename*
               "mediaslideshow+extensions.swift"
             function*
               "MediaSlideshow.toSource"
           frame*
-            filename (discarded native filename for grouping stability)
+            filename*
               "<compiler-generated>"
             function*
               "CurrentUserProfile.isVideoAutoplay.getter"
           frame*
-            filename (discarded native filename for grouping stability)
+            filename*
               "currentuserprofile.swift"
             function*
               "CurrentUserProfile.isVideoAutoplay.getter"
           frame*
-            filename (discarded native filename for grouping stability)
+            filename*
               "currentuserprofile.swift"
             function*
               "value"
@@ -205,7 +205,7 @@ app-depth-max:
           "autoplayOption"
 --------------------------------------------------------------------------
 system:
-  hash: "a8c8d09a9cb9715bacc7c85ddf5211a4"
+  hash: "1921b991270e24c19ea1ed6863892d71"
   component:
     system*
       exception*
@@ -214,7 +214,7 @@ system:
             function*
               "start"
           frame (ignored by stack trace rule (category:threadbase -group v-group))
-            filename (discarded native filename for grouping stability)
+            filename*
               "main.m"
             function*
               "main"
@@ -261,7 +261,7 @@ system:
             function*
               "-[UIView(CALayerDelegate) layoutSublayersOfLayer:]"
           frame*
-            filename (discarded native filename for grouping stability)
+            filename*
               "<compiler-generated>"
             function*
               "TableView.layoutSubviews"
@@ -275,72 +275,72 @@ system:
             function*
               "-[UITableView _createPreparedCellForGlobalRow:withIndexPath:willDisplay:]"
           frame*
-            filename (discarded native filename for grouping stability)
+            filename*
               "<compiler-generated>"
             function*
               "AnyTableViewController.tableView"
           frame (ignored due to recursion)
-            filename (discarded native filename for grouping stability)
+            filename*
               "<compiler-generated>"
             function*
               "AnyTableViewController.tableView"
           frame*
-            filename (discarded native filename for grouping stability)
+            filename*
               "anytableviewcontroller.swift"
             function*
               "AnyTableViewController.tableView"
           frame (ignored by stack trace rule (category:internals -group))
-            filename (discarded native filename for grouping stability)
+            filename*
               "<compiler-generated>"
             function*
               "closure"
           frame*
-            filename (discarded native filename for grouping stability)
+            filename*
               "dailydigesttableviewsection.swift"
             function*
               "DailyDigestTableViewSection.photoCell"
           frame*
-            filename (discarded native filename for grouping stability)
+            filename*
               "<compiler-generated>"
             function*
               "MediaSlideshow.toSources"
           frame*
-            filename (discarded native filename for grouping stability)
+            filename*
               "mediaslideshow+extensions.swift"
             function*
               "MediaSlideshow.toSources"
           frame*
-            filename (discarded native filename for grouping stability)
+            filename*
               "<compiler-generated>"
             function*
               "Sequence.compactMap<T>"
           frame (ignored by stack trace rule (category:internals -group))
-            filename (discarded native filename for grouping stability)
+            filename*
               "<compiler-generated>"
             function*
               "closure"
           frame*
-            filename (discarded native filename for grouping stability)
+            filename*
               "mediaslideshow+extensions.swift"
             function*
               "MediaSlideshow.toSources"
           frame*
-            filename (discarded native filename for grouping stability)
+            filename*
               "mediaslideshow+extensions.swift"
             function*
               "MediaSlideshow.toSource"
           frame*
-            filename (discarded native filename for grouping stability)
+            filename*
               "<compiler-generated>"
             function*
               "CurrentUserProfile.isVideoAutoplay.getter"
           frame*
-            filename (discarded native filename for grouping stability)
+            filename*
               "currentuserprofile.swift"
             function*
               "CurrentUserProfile.isVideoAutoplay.getter"
           frame*
-            filename (discarded native filename for grouping stability)
+            filename*
               "currentuserprofile.swift"
             function*
               "value"
