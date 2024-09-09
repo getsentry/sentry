@@ -24,6 +24,7 @@ import {
 import {
   getReplayConfigOptions,
   getReplayConfigureDescription,
+  getReplayVerifyStep,
 } from 'sentry/components/onboarding/gettingStartedDoc/utils/replayOnboarding';
 import {ProductSolution} from 'sentry/components/onboarding/productSelection';
 import {t, tct} from 'sentry/locale';
@@ -53,20 +54,6 @@ const platformOptions: Record<PlatformOptionKey, PlatformOption> = {
 
 type PlatformOptions = typeof platformOptions;
 type Params = DocsParams<PlatformOptions>;
-
-const getVerifyReplaySnippet = () => `
-// ...
-<button @click="throwError">Throw error</button>
-// ...
-
-export default {
-  // ...
-  methods: {
-    throwError() {
-      throw new Error('Sentry Error');
-    }
-  }
-};`;
 
 const getSentryInitLayout = (params: Params, siblingOption: string): string => {
   return `Sentry.init({
@@ -325,27 +312,7 @@ const replayOnboarding: OnboardingConfig<PlatformOptions> = {
       additionalInfo: <TracePropagationMessage />,
     },
   ],
-  verify: () => [
-    {
-      type: StepType.VERIFY,
-      description: t(
-        'With the settings above, session replays with errors are always captured. You can verify this by adding the following button to your app and pressing it:'
-      ),
-      configurations: [
-        {
-          code: [
-            {
-              label: 'JavaScript',
-              value: 'javascript',
-              language: 'javascript',
-              filename: 'App.vue',
-              code: getVerifyReplaySnippet(),
-            },
-          ],
-        },
-      ],
-    },
-  ],
+  verify: getReplayVerifyStep(),
   nextSteps: () => [],
 };
 

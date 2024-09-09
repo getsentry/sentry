@@ -23,6 +23,7 @@ import {
 import {
   getReplayConfigOptions,
   getReplayConfigureDescription,
+  getReplayVerifyStep,
 } from 'sentry/components/onboarding/gettingStartedDoc/utils/replayOnboarding';
 import {t, tct} from 'sentry/locale';
 
@@ -245,32 +246,7 @@ const replayOnboarding: OnboardingConfig = {
       ],
     },
   ],
-  verify: () => [
-    {
-      type: StepType.VERIFY,
-      description: t(
-        'To verify your Replay setup, trigger an error on your page and watch Sentry capture the event along with a recording of the user interaction.'
-      ),
-      configurations: [
-        {
-          description: t(
-            'You can simulate an error by adding the following code to one of your components:'
-          ),
-          code: [
-            {
-              label: 'Svelte',
-              value: 'html',
-              language: 'html',
-              code: getVerifySnippet(),
-            },
-          ],
-          additionalInfo: t(
-            'After clicking the button, wait a few moments, and you\'ll see a new session appear on the "Replays" page.'
-          ),
-        },
-      ],
-    },
-  ],
+  verify: getReplayVerifyStep(),
   nextSteps: () => [],
 };
 

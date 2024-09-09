@@ -24,18 +24,12 @@ import {getJSMetricsOnboarding} from 'sentry/components/onboarding/gettingStarte
 import {
   getReplayConfigureDescription,
   getReplaySDKSetupSnippet,
+  getReplayVerifyStep,
 } from 'sentry/components/onboarding/gettingStartedDoc/utils/replayOnboarding';
 import TextCopyInput from 'sentry/components/textCopyInput';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
-
-const getVerifyReplaySnippet = () => `
-<button onClick={() => {
-  throw new Error('This is a test error');
-}}>
-  Trigger Test Error
-</button>`;
 
 type Params = DocsParams;
 
@@ -207,32 +201,7 @@ const replayOnboarding: OnboardingConfig = {
       ),
     },
   ],
-  verify: () => [
-    {
-      type: StepType.VERIFY,
-      description: t(
-        'To verify your Replay setup, trigger an error on your page and watch Sentry capture the event along with a recording of the user interaction.'
-      ),
-      configurations: [
-        {
-          description: t(
-            'You can simulate an error by adding the following code to one of your components:'
-          ),
-          code: [
-            {
-              label: 'JavaScript',
-              value: 'javascript',
-              language: 'jsx',
-              code: getVerifyReplaySnippet(),
-            },
-          ],
-          additionalInfo: t(
-            'After clicking the button, wait a few moments, and you\'ll see a new session appear on the "Replays" page.'
-          ),
-        },
-      ],
-    },
-  ],
+  verify: getReplayVerifyStep(),
   nextSteps: () => [],
 };
 

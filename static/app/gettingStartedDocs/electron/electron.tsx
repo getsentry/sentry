@@ -21,6 +21,7 @@ import {metricTagsExplanation} from 'sentry/components/onboarding/gettingStarted
 import {
   getReplayConfigureDescription,
   getReplaySDKSetupSnippet,
+  getReplayVerifyStep,
 } from 'sentry/components/onboarding/gettingStartedDoc/utils/replayOnboarding';
 import {t, tct} from 'sentry/locale';
 
@@ -44,12 +45,6 @@ Sentry.init({
   //   metricsAggregator: true,
   // },
 });`;
-
-const getVerifyReplaySnippet = () => `
-setTimeout(() => {
-  throw new Error("Sentry Test Error");
-});
-`;
 
 const getInstallConfig = () => [
   {
@@ -174,26 +169,7 @@ const replayOnboarding: OnboardingConfig = {
       ],
     },
   ],
-  verify: () => [
-    {
-      type: StepType.VERIFY,
-      description: t(
-        'With the settings above, session replays with errors are always captured. You can verify this by adding the following snippet anywhere in your renderer code and running it:'
-      ),
-      configurations: [
-        {
-          code: [
-            {
-              label: 'JavaScript',
-              value: 'javascript',
-              language: 'javascript',
-              code: getVerifyReplaySnippet(),
-            },
-          ],
-        },
-      ],
-    },
-  ],
+  verify: getReplayVerifyStep(),
   nextSteps: () => [],
 };
 
