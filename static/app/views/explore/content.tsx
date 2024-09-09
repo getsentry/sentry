@@ -1,7 +1,10 @@
-import {useMemo} from 'react';
+import {useCallback, useMemo} from 'react';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
 
+import {Button} from 'sentry/components/button';
+import ButtonBar from 'sentry/components/buttonBar';
+import FeedbackWidgetButton from 'sentry/components/feedback/widget/feedbackWidgetButton';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
 import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
@@ -12,6 +15,8 @@ import {SpanSearchQueryBuilder} from 'sentry/components/performance/spanSearchQu
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import {useLocation} from 'sentry/utils/useLocation';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 
@@ -28,6 +33,8 @@ interface ExploreContentProps {
 }
 
 export function ExploreContent({}: ExploreContentProps) {
+  const location = useLocation();
+  const navigate = useNavigate();
   const organization = useOrganization();
   const {selection} = usePageFilters();
   const [groupBys] = useGroupBys();
@@ -46,31 +53,49 @@ export function ExploreContent({}: ExploreContentProps) {
     ? ['dataset toggle' as const]
     : [];
 
+  const switchToOldTraceExplorer = useCallback(() => {
+    navigate({
+      ...location,
+      query: {
+        ...location.query,
+        view: 'trace',
+      },
+    });
+  }, [location, navigate]);
+
   return (
     <SentryDocumentTitle title={t('Explore')} orgSlug={organization.slug}>
       <PageFiltersContainer>
         <Layout.Page>
           <Layout.Header>
-            <HeaderContent>
+            <Layout.HeaderContent>
               <Title>{t('Explore')}</Title>
-              <FilterActions>
-                <PageFilterBar condensed>
-                  <ProjectPageFilter />
-                  <EnvironmentPageFilter />
-                  <DatePageFilter />
-                </PageFilterBar>
-                <SpanSearchQueryBuilder
-                  fields={fields}
-                  allowAggregateFunctions={resultsMode === 'aggregate'}
-                  projects={selection.projects}
-                  initialQuery={userQuery}
-                  onSearch={setUserQuery}
-                  searchSource="explore"
-                />
-              </FilterActions>
-            </HeaderContent>
+            </Layout.HeaderContent>
+            <Layout.HeaderActions>
+              <ButtonBar gap={1}>
+                <Button onClick={switchToOldTraceExplorer}>
+                  {t('Switch to old Trace Explore')}
+                </Button>
+                <FeedbackWidgetButton />
+              </ButtonBar>
+            </Layout.HeaderActions>
           </Layout.Header>
           <Body>
+            <FilterActions>
+              <PageFilterBar condensed>
+                <ProjectPageFilter />
+                <EnvironmentPageFilter />
+                <DatePageFilter />
+              </PageFilterBar>
+              <SpanSearchQueryBuilder
+                fields={fields}
+                allowAggregateFunctions={resultsMode === 'aggregate'}
+                projects={selection.projects}
+                initialQuery={userQuery}
+                onSearch={setUserQuery}
+                searchSource="explore"
+              />
+            </FilterActions>
             <Side>
               <ExploreToolbar extras={toolbarExtras} />
             </Side>
@@ -85,15 +110,12 @@ export function ExploreContent({}: ExploreContentProps) {
   );
 }
 
-const HeaderContent = styled(Layout.HeaderContent)`
-  overflow: visible;
-`;
-
 const Title = styled(Layout.Title)`
   margin-bottom: ${space(2)};
 `;
 
 const FilterActions = styled('div')`
+  grid-column: 1 / -1;
   display: grid;
   gap: ${space(2)};
   grid-template-columns: auto;
