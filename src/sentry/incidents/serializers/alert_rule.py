@@ -507,7 +507,7 @@ class AlertRuleSerializer(CamelSnakeModelSerializer[AlertRule]):
                 raise serializers.ValidationError(e.error_list[0].message)
             except Exception as e:
                 logger.exception(
-                    "Error without specific catch when creating alert rule",
+                    "Error when creating alert rule",
                     extra={"details": str(e)},
                 )
                 raise BadRequest
@@ -539,7 +539,7 @@ class AlertRuleSerializer(CamelSnakeModelSerializer[AlertRule]):
                 raise serializers.ValidationError(e.error_list[0].message)
             except Exception as e:
                 logger.exception(
-                    "Error without specific catch when updating alert rule",
+                    "Error when updating alert rule",
                     extra={"details": str(e)},
                 )
                 raise BadRequest
