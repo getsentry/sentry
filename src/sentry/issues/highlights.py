@@ -40,7 +40,7 @@ BACKEND_HIGHLIGHTS: HighlightPreset = {
 }
 FRONTEND_HIGHLIGHTS: HighlightPreset = {
     "tags": SENTRY_TAGS + ["url", "transaction", "browser", "user"],
-    "context": {"browser": ["name"], "user": ["email"]},
+    "context": {"user": ["email"]},
 }
 MOBILE_HIGHLIGHTS: HighlightPreset = {
     "tags": SENTRY_TAGS + ["mobile", "main_thread"],
