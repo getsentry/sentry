@@ -53,7 +53,7 @@
 /src/sentry/api/permissions.py                           @getsentry/security @getsentry/enterprise
 /src/sentry/api/authentication.py                        @getsentry/security @getsentry/enterprise
 /src/sentry/api/endpoints/auth*                          @getsentry/security @getsentry/enterprise
-/src/sentry/api/endpoints/user_permission*               @getsentry/security @getsentry/enterprise
+/src/sentry/users/api/endpoints/user_permission*         @getsentry/security @getsentry/enterprise
 /src/sentry/web/frontend/auth_close.py                   @getsentry/security
 /src/sentry/web/frontend/auth_login.py                   @getsentry/security
 /src/sentry/web/frontend/auth_logout.py                  @getsentry/security
@@ -360,7 +360,7 @@ tests/sentry/api/endpoints/test_organization_dashboard_widget_details.py     @ge
 /src/sentry/plugins/                                                 @getsentry/ecosystem
 /src/sentry/shared_integrations/                                     @getsentry/ecosystem
 
-/src/sentry/models/identity.py                                       @getsentry/enterprise
+/src/sentry/users/models/identity.py                                 @getsentry/enterprise
 
 /src/sentry/tasks/digests.py                                         @getsentry/alerts-notifications
 /src/sentry/tasks/email.py                                           @getsentry/alerts-notifications
@@ -391,7 +391,7 @@ tests/sentry/api/endpoints/test_organization_dashboard_widget_details.py     @ge
 /src/sentry/models/project.py                 @getsentry/data @getsentry/telemetry-experience
 /src/sentry/models/projectoption.py           @getsentry/data
 /src/sentry/models/release.py                 @getsentry/data
-/src/sentry/models/user.py                    @getsentry/data
+/src/sentry/users/models/user.py              @getsentry/data
 ## End of Data
 
 
