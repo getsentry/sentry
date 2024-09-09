@@ -159,9 +159,4 @@ class Migration(CheckedMigration):
             new_name="sentry_rele_project_4bea8e_idx",
             old_fields=("project", "adopted", "environment"),
         ),
-        migrations.RenameIndex(
-            model_name="rule",
-            new_name="sentry_rule_project_676d0d_idx",
-            old_fields=("project", "status", "owner"),
-        ),
     ]
