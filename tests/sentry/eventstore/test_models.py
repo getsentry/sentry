@@ -14,7 +14,6 @@ from sentry.grouping.variants import ComponentVariant
 from sentry.interfaces.user import User
 from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.models.environment import Environment
-from sentry.projectoptions.defaults import DEFAULT_GROUPING_CONFIG
 from sentry.snuba.dataset import Dataset
 from sentry.testutils.cases import PerformanceIssueTestCase, TestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
@@ -378,7 +377,7 @@ class EventTest(TestCase, PerformanceIssueTestCase):
         )
         grouping_config: GroupingConfig = {
             "enhancements": enhancement.dumps(),
-            "id": DEFAULT_GROUPING_CONFIG,
+            "id": NEWSTYLE_GROUPING_CONFIG,
         }
 
         event1 = Event(
@@ -396,7 +395,8 @@ class EventTest(TestCase, PerformanceIssueTestCase):
         event2.interfaces  # Populate cache
         variants2 = event2.get_grouping_variants(grouping_config, normalize_stacktraces=True)
 
-        assert variants1["app"].as_dict()["hash"] == variants2["app"].as_dict()["hash"] is None
+        assert variants1["app"].as_dict()["hash"] is None
+        assert variants2["app"].as_dict()["hash"] is None
         assert variants1["system"].as_dict()["hash"] == variants2["system"].as_dict()["hash"]
 
     def test_get_hashes_pulls_existing_hashes(self):
