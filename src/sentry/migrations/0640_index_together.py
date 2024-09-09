@@ -24,27 +24,6 @@ class Migration(CheckedMigration):
 
     operations = [
         migrations.RenameIndex(
-            model_name="controloutbox",
-            new_name="sentry_cont_region__0c4512_idx",
-            old_fields=("region_name", "shard_scope", "shard_identifier", "scheduled_for"),
-        ),
-        migrations.RenameIndex(
-            model_name="controloutbox",
-            new_name="sentry_cont_region__a95d82_idx",
-            old_fields=("region_name", "shard_scope", "shard_identifier", "id"),
-        ),
-        migrations.RenameIndex(
-            model_name="controloutbox",
-            new_name="sentry_cont_region__1c1c72_idx",
-            old_fields=(
-                "region_name",
-                "shard_scope",
-                "shard_identifier",
-                "category",
-                "object_identifier",
-            ),
-        ),
-        migrations.RenameIndex(
             model_name="group",
             new_name="sentry_grou_project_5eb75b_idx",
             old_fields=("project", "status", "substatus", "last_seen", "id"),
