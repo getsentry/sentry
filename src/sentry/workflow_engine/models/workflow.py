@@ -18,8 +18,8 @@ class Workflow(DefaultFieldsModel):
     __repr__ = sane_repr("name", "organization_id")
 
     class Meta:
-        app_label = "sentry"
-        db_table = "sentry_workflow"
+        app_label = "workflow_engine"
+        db_table = "workflow_engine_workflow"
 
         constraints = [
             models.UniqueConstraint(
