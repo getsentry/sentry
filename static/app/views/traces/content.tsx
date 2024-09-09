@@ -37,9 +37,13 @@ const DEFAULT_STATS_PERIOD = '24h';
 const DEFAULT_PER_PAGE = 50;
 
 export default function Wrapper(props) {
+  const location = useLocation();
   const organization = useOrganization();
 
-  if (organization.features.includes('visibility-explore-view')) {
+  if (
+    location.query.view !== 'trace' &&
+    organization.features.includes('visibility-explore-view')
+  ) {
     return <ExploreContent {...props} />;
   }
 
