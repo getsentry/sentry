@@ -207,6 +207,9 @@ def resolved_in_pull_request(instance, created, **kwargs):
         if link.group_id not in group_ids:
             remove_resolved_link(link)
 
+    if len(groups) == 0:
+        return
+
     try:
         repo = Repository.objects.get(id=instance.repository_id)
     except Repository.DoesNotExist:
