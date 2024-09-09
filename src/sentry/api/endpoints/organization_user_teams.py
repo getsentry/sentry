@@ -40,12 +40,10 @@ class OrganizationUserTeamsEndpoint(OrganizationEndpoint):
     def get(self, request: Request, organization) -> Response:
         """
         List your Teams in the Current Organization
-        ```````````````````````````````````````````
-
-        Return a list of the teams available to the authenticated session and
-        with the supplied organization. If the user is a super user, then all
-        teams within the organization are returned.
         """
+        # Return a list of the teams available to the authenticated session and
+        # with the supplied organization. If the user is a super user, then all
+        # teams within the organization are returned.
         if is_active_superuser(request):
             # retrieve all teams within the organization
             queryset = Team.objects.filter(
