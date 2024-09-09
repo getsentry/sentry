@@ -11,7 +11,10 @@ import type {
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {MobileBetaBanner} from 'sentry/components/onboarding/gettingStartedDoc/utils';
 import {metricTagsExplanation} from 'sentry/components/onboarding/gettingStartedDoc/utils/metricsOnboarding';
-import {getReplayMobileConfigureDescription} from 'sentry/components/onboarding/gettingStartedDoc/utils/replayOnboarding';
+import {
+  getReplayMobileConfigureDescription,
+  getReplayVerifyStep,
+} from 'sentry/components/onboarding/gettingStartedDoc/utils/replayOnboarding';
 import {appleFeedbackOnboarding} from 'sentry/gettingStartedDocs/apple/macos';
 import {t, tct} from 'sentry/locale';
 import {getPackageVersion} from 'sentry/utils/gettingStartedDocs/getPackageVersion';
@@ -713,33 +716,12 @@ const replayOnboarding: OnboardingConfig<PlatformOptions> = {
       ],
     },
   ],
-  verify: () => [
-    {
-      type: StepType.VERIFY,
-      description: t(
-        'To verify your Replay setup, trigger an error in your app and watch Sentry capture the event along with a recording of the user interaction.'
-      ),
-      configurations: [
-        {
-          description: tct(
-            'You can simulate an error by adding the following code to your main [code: ViewController]:',
-            {code: <code />}
-          ),
-          code: [
-            {
-              label: 'Swift',
-              value: 'swift',
-              language: 'swift',
-              code: getVerifySnippet(),
-            },
-          ],
-          additionalInfo: t(
-            'After clicking the button, wait a few moments, and you\'ll see a new session appear on the "Replays" page.'
-          ),
-        },
-      ],
-    },
-  ],
+  verify: getReplayVerifyStep({
+    replayOnErrorSampleRateName:
+      'options\u200b.experimental\u200b.sessionReplay\u200b.onErrorSampleRate',
+    replaySessionSampleRateName:
+      'options\u200b.experimental\u200b.sessionReplay\u200b.sessionSampleRate',
+  }),
   nextSteps: () => [],
 };
 

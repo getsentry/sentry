@@ -19,6 +19,7 @@ import {
 import {
   getReplayConfigOptions,
   getReplayConfigureDescription,
+  getReplayVerifyStep,
 } from 'sentry/components/onboarding/gettingStartedDoc/utils/replayOnboarding';
 import {t, tct} from 'sentry/locale';
 
@@ -62,12 +63,6 @@ const platformOptions: Record<PlatformOptionKey, PlatformOption> = {
 
 type PlatformOptions = typeof platformOptions;
 type Params = DocsParams<PlatformOptions>;
-
-const getVerifyReplaySnippet = () => `
-setTimeout(() => {
-  throw new Error("Sentry Test Error");
-});
-`;
 
 function getIntegrations(params: Params, siblingOption: string) {
   const integrations: string[] = ['SentrySibling.browserTracingIntegration()'];
@@ -442,26 +437,7 @@ const replayOnboarding: OnboardingConfig<PlatformOptions> = {
       additionalInfo: <TracePropagationMessage />,
     },
   ],
-  verify: () => [
-    {
-      type: StepType.VERIFY,
-      description: t(
-        'Session replays with errors, will always be captured with the settings above. You can verify this by adding the following snippet anywhere in your code and running it:'
-      ),
-      configurations: [
-        {
-          code: [
-            {
-              label: 'JavaScript',
-              value: 'javascript',
-              language: 'javascript',
-              code: getVerifyReplaySnippet(),
-            },
-          ],
-        },
-      ],
-    },
-  ],
+  verify: getReplayVerifyStep(),
   nextSteps: () => [],
 };
 
