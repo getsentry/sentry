@@ -3,7 +3,6 @@ import type {TagCollection} from 'sentry/types/group';
 import {SpanIndexedField} from 'sentry/views/insights/types';
 
 import {CONDITIONS_ARGUMENTS, WEB_VITALS_QUALITY} from '../discover/types';
-
 // Don't forget to update https://docs.sentry.io/product/sentry-basics/search/searchable-properties/ for any changes made here
 
 export enum FieldKind {
@@ -789,6 +788,80 @@ export const AGGREGATION_FIELDS: Record<AggregationKey, FieldDefinition> = {
   },
 };
 
+// TODO: Extend the two lists below with more options upon backend support
+export const ALLOWED_EXPLORE_VISUALIZE_FIELDS: SpanIndexedField[] = [
+  SpanIndexedField.SPAN_DURATION,
+  SpanIndexedField.SPAN_SELF_TIME,
+];
+
+export const ALLOWED_EXPLORE_VISUALIZE_AGGREGATES: AggregationKey[] = [
+  AggregationKey.COUNT,
+  AggregationKey.MIN,
+  AggregationKey.MAX,
+  AggregationKey.AVG,
+];
+
+export const SPAN_AGGREGATION_FIELDS: Record<AggregationKey, FieldDefinition> = {
+  ...AGGREGATION_FIELDS,
+  [AggregationKey.COUNT]: {
+    ...AGGREGATION_FIELDS[AggregationKey.COUNT],
+    valueType: FieldValueType.NUMBER,
+    parameters: [
+      {
+        name: 'column',
+        kind: 'column',
+        columnTypes: function ({key}): boolean {
+          return ALLOWED_EXPLORE_VISUALIZE_FIELDS.includes(key as SpanIndexedField);
+        },
+        defaultValue: 'span.duration',
+        required: true,
+      },
+    ],
+  },
+  [AggregationKey.MIN]: {
+    ...AGGREGATION_FIELDS[AggregationKey.MIN],
+    parameters: [
+      {
+        name: 'column',
+        kind: 'column',
+        columnTypes: function ({key}): boolean {
+          return ALLOWED_EXPLORE_VISUALIZE_FIELDS.includes(key as SpanIndexedField);
+        },
+        defaultValue: 'span.duration',
+        required: true,
+      },
+    ],
+  },
+  [AggregationKey.MAX]: {
+    ...AGGREGATION_FIELDS[AggregationKey.MAX],
+    parameters: [
+      {
+        name: 'column',
+        kind: 'column',
+        columnTypes: function ({key}): boolean {
+          return ALLOWED_EXPLORE_VISUALIZE_FIELDS.includes(key as SpanIndexedField);
+        },
+        defaultValue: 'span.duration',
+        required: true,
+      },
+    ],
+  },
+  [AggregationKey.AVG]: {
+    ...AGGREGATION_FIELDS[AggregationKey.AVG],
+    parameters: [
+      {
+        name: 'column',
+        kind: 'column',
+        columnTypes: function ({key}): boolean {
+          return ALLOWED_EXPLORE_VISUALIZE_FIELDS.includes(key as SpanIndexedField);
+        },
+        defaultValue: 'span.duration',
+        required: true,
+      },
+    ],
+  },
+};
+
 export const MEASUREMENT_FIELDS: Record<WebVital | MobileVital, FieldDefinition> = {
   [WebVital.FP]: {
     desc: t('Web Vital First Paint'),
@@ -1549,6 +1622,11 @@ const EVENT_FIELD_DEFINITIONS: Record<AllEventFieldKeys, FieldDefinition> = {
   },
 };
 
+const SPAN_FIELD_DEFINITIONS: Record<AllEventFieldKeys, FieldDefinition> = {
+  ...EVENT_FIELD_DEFINITIONS,
+  ...SPAN_AGGREGATION_FIELDS,
+};
+
 export const ISSUE_PROPERTY_FIELDS: FieldKey[] = [
   FieldKey.AGE,
   FieldKey.ASSIGNED_OR_SUGGESTED,
@@ -2090,7 +2168,7 @@ const FEEDBACK_FIELD_DEFINITIONS: Record<FeedbackFieldKey, FieldDefinition> = {
 
 export const getFieldDefinition = (
   key: string,
-  type: 'event' | 'replay' | 'replay_click' | 'feedback' = 'event'
+  type: 'event' | 'replay' | 'replay_click' | 'feedback' | 'span' = 'event'
 ): FieldDefinition | null => {
   switch (type) {
     case 'replay':
@@ -2112,6 +2190,8 @@ export const getFieldDefinition = (
         return EVENT_FIELD_DEFINITIONS[key];
       }
       return null;
+    case 'span':
+      return SPAN_FIELD_DEFINITIONS[key] ?? null;
     case 'event':
     default:
       return EVENT_FIELD_DEFINITIONS[key] ?? null;
