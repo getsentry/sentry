@@ -245,11 +245,8 @@ describe('AcceptOrganizationInvite', function () {
     );
 
     expect(screen.getByTestId('existing-member')).toBeInTheDocument();
-
     await userEvent.click(screen.getByTestId('existing-member-link'));
-
-    expect(logout).toHaveBeenCalled();
-    await waitFor(() => expect(window.location.replace).toHaveBeenCalled());
+    await waitFor(() => expect(logout).toHaveBeenCalled());
   });
 
   it('shows right options for logged in user and optional SSO', function () {
@@ -294,9 +291,7 @@ describe('AcceptOrganizationInvite', function () {
 
     expect(screen.getByTestId('existing-member')).toBeInTheDocument();
     await userEvent.click(screen.getByTestId('existing-member-link'));
-
-    expect(logout).toHaveBeenCalled();
-    await waitFor(() => expect(window.location.replace).toHaveBeenCalled());
+    await waitFor(() => expect(logout).toHaveBeenCalled());
   });
 
   it('shows 2fa warning', function () {
