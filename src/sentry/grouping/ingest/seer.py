@@ -5,7 +5,7 @@ from typing import Any
 import sentry_sdk
 from django.conf import settings
 
-from sentry import features, options
+from sentry import options
 from sentry import ratelimits as ratelimiter
 from sentry.conf.server import SEER_SIMILARITY_MODEL_VERSION
 from sentry.eventstore.models import Event
@@ -61,21 +61,19 @@ def should_call_seer_for_grouping(event: Event, primary_hashes: CalculatedHashes
 
 
 def _project_has_similarity_grouping_enabled(project: Project) -> bool:
-    has_seer_grouping_flag_on = features.has("projects:similarity-embeddings-grouping", project)
-
     # TODO: This is a hack to get ingest to turn on for projects as soon as they're backfilled. When
     # the backfill script completes, we turn on this option, enabling ingest immediately rather than
     # forcing the project to wait until it's been manually added to a feature handler. Once all
     # projects have been backfilled, the option (and this check) can go away.
-    has_been_backfilled = project.get_option("sentry:similarity_backfill_completed")
+    has_been_backfilled = bool(project.get_option("sentry:similarity_backfill_completed"))
 
     metrics.incr(
         "grouping.similarity.event_project_backfill_status",
         sample_rate=options.get("seer.similarity.metrics_sample_rate"),
-        tags={"backfilled": bool(has_seer_grouping_flag_on or has_been_backfilled)},
+        tags={"backfilled": has_been_backfilled},
     )
 
-    return has_seer_grouping_flag_on or has_been_backfilled
+    return has_been_backfilled
 
 
 # TODO: Here we're including events with hybrid fingerprints (ones which are `{{ default }}`
