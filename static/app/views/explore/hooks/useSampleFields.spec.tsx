@@ -33,7 +33,7 @@ describe('useSampleFields', function () {
 
     expect(sampleFields).toEqual([
       'project',
-      'id',
+      'span_id',
       'span.op',
       'span.description',
       'span.duration',
@@ -46,7 +46,7 @@ describe('useSampleFields', function () {
     act(() => setSampleFields([]));
     expect(sampleFields).toEqual([
       'project',
-      'id',
+      'span_id',
       'span.op',
       'span.description',
       'span.duration',

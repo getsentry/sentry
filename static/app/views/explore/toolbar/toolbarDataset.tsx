@@ -15,7 +15,12 @@ export function ToolbarDataset({dataset, setDataset}: ToolbarDatasetProps) {
       <ToolbarHeader>
         <ToolbarHeading>{t('Dataset')}</ToolbarHeading>
       </ToolbarHeader>
-      <SegmentedControl aria-label={t('Dataset')} value={dataset} onChange={setDataset}>
+      <SegmentedControl
+        size="sm"
+        aria-label={t('Dataset')}
+        value={dataset}
+        onChange={setDataset}
+      >
         <SegmentedControl.Item key={DiscoverDatasets.SPANS_INDEXED}>
           {t('Indexed Spans')}
         </SegmentedControl.Item>

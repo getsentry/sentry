@@ -46,7 +46,7 @@ export function ExploreToolbar({extras}: ExploreToolbarProps) {
       )}
       <ToolbarResults resultMode={resultMode} setResultMode={setResultMode} />
       <ToolbarVisualize />
-      <ToolbarGroupBy />
+      <ToolbarGroupBy disabled={resultMode !== 'aggregate'} />
       <ToolbarSortBy fields={fields} sorts={sorts} setSorts={setSorts} />
       <ToolbarLimitTo />
     </div>
