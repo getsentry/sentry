@@ -7695,7 +7695,16 @@ class Migration(CheckedMigration):
             ],
             options={
                 "db_table": "sentry_grouphistory",
-                "index_together": {("project", "status", "release")},
+                "indexes": [
+                    models.Index(
+                        fields=["project", "status", "release"],
+                        name="sentry_grou_project_bbcf30_idx",
+                    ),
+                    models.Index(fields=["group", "status"], name="sentry_grou_group_i_c61acb_idx"),
+                    models.Index(
+                        fields=["project", "date_added"], name="sentry_grou_project_20b3f8_idx"
+                    ),
+                ],
             },
         ),
         migrations.CreateModel(
@@ -7741,10 +7750,6 @@ class Migration(CheckedMigration):
                     hints={"tables": ["sentry_scheduleddeletion"]},
                 ),
             ],
-        ),
-        migrations.AlterIndexTogether(
-            name="grouphistory",
-            index_together={("project", "status", "release"), ("group", "status")},
         ),
         migrations.AlterField(
             model_name="grouphistory",
@@ -7992,14 +7997,6 @@ class Migration(CheckedMigration):
                 name="sentry_release_version_btree",
                 opclasses=["", "text_pattern_ops"],
             ),
-        ),
-        migrations.AlterIndexTogether(
-            name="grouphistory",
-            index_together={
-                ("project", "status", "release"),
-                ("group", "status"),
-                ("project", "date_added"),
-            },
         ),
         migrations.SeparateDatabaseAndState(
             database_operations=[
