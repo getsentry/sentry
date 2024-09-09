@@ -7149,16 +7149,6 @@ class Migration(CheckedMigration):
                     reverse_sql="DROP INDEX CONCURRENTLY IF EXISTS sentry_release_project_proj_id_unadopted_8h5g84ee",
                     hints={"tables": ["sentry_release_project"]},
                 ),
-                migrations.RunSQL(
-                    sql='\n                    CREATE INDEX CONCURRENTLY IF NOT EXISTS "sentry_releaseprojectenvironment_proj_id_env_id_adopted_j6h89s3" ON "sentry_releaseprojectenvironment" ("project_id", "adopted", "environment_id");\n                    ',
-                    reverse_sql="DROP INDEX CONCURRENTLY IF EXISTS sentry_releaseprojectenvironment_proj_id_env_id_adopted_j6h89s3",
-                    hints={"tables": ["sentry_releaseprojectenvironment"]},
-                ),
-                migrations.RunSQL(
-                    sql='\n                    CREATE INDEX CONCURRENTLY IF NOT EXISTS "sentry_releaseprojectenvironment_proj_id_env_id_unadopted_kyh5m" ON "sentry_releaseprojectenvironment" ("project_id", "unadopted", "environment_id");\n                    ',
-                    reverse_sql="DROP INDEX CONCURRENTLY IF EXISTS sentry_releaseprojectenvironment_proj_id_env_id_unadopted_kyh5m",
-                    hints={"tables": ["sentry_releaseprojectenvironment"]},
-                ),
             ],
             state_operations=[
                 migrations.AddField(
@@ -7181,14 +7171,20 @@ class Migration(CheckedMigration):
                     name="unadopted",
                     field=models.DateTimeField(blank=True, null=True),
                 ),
-                migrations.AlterIndexTogether(
-                    name="releaseprojectenvironment",
-                    index_together={
-                        ("project", "adopted", "environment"),
-                        ("project", "unadopted", "environment"),
-                    },
-                ),
             ],
+        ),
+        migrations.AddIndex(
+            model_name="releaseprojectenvironment",
+            index=models.Index(
+                fields=["project", "adopted", "environment"], name="sentry_rele_project_4bea8e_idx"
+            ),
+        ),
+        migrations.AddIndex(
+            model_name="releaseprojectenvironment",
+            index=models.Index(
+                fields=["project", "unadopted", "environment"],
+                name="sentry_rele_project_922a6a_idx",
+            ),
         ),
         migrations.SeparateDatabaseAndState(
             database_operations=[
