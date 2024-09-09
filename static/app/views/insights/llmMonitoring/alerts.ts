@@ -1,4 +1,7 @@
-export const ALERTS = {
+import type {AlertConfig} from 'sentry/views/insights/common/components/chartPanel';
+import {SpanMetricsField} from 'sentry/views/insights/types';
+
+export const ALERTS: Record<string, AlertConfig> = {
   spm: {
     aggregate: 'spm()',
   },
@@ -6,6 +9,6 @@ export const ALERTS = {
     aggregate: 'avg(d:spans/duration@millisecond)',
   },
   tokensUsed: {
-    aggregate: 'sum(c:spans/ai.total_tokens.used@none)',
+    aggregate: `sum(c:spans/${SpanMetricsField.AI_TOTAL_TOKENS_USED}@none)`,
   },
 };
