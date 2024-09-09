@@ -33,6 +33,7 @@ from sentry.incidents.logic import (
     WARNING_TRIGGER_LABEL,
     WINDOWED_STATS_DATA_POINTS,
     AlertRuleTriggerLabelAlreadyUsedError,
+    AlertTarget,
     ChannelLookupTimeoutError,
     InvalidTriggerActionError,
     ProjectsNotAssociatedWithAlertRuleError,
@@ -2364,7 +2365,7 @@ class CreateAlertRuleTriggerActionTest(BaseAlertRuleTriggerActionTest):
             )
         type = AlertRuleTriggerAction.Type.PAGERDUTY
         target_type = AlertRuleTriggerAction.TargetType.SPECIFIC
-        target_identifier = service["id"]
+        target_identifier = str(service["id"])
         action = create_alert_rule_trigger_action(
             self.trigger,
             type,
@@ -2468,7 +2469,7 @@ class CreateAlertRuleTriggerActionTest(BaseAlertRuleTriggerActionTest):
 
     @patch(
         "sentry.incidents.logic.get_target_identifier_display_for_integration",
-        return_value=("123", "test"),
+        return_value=AlertTarget("123", "test"),
     )
     def test_supported_priority(self, mock_get):
         alert_rule = self.create_alert_rule()
