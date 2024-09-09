@@ -421,6 +421,7 @@ INSTALLED_APPS: tuple[str, ...] = (
     "sentry.hybridcloud",
     "sentry.remote_subscriptions.apps.Config",
     "sentry.data_secrecy",
+    "sentry.workflow_engine",
 )
 
 # Silence internal hints from Django's system checks
@@ -749,8 +750,6 @@ CELERY_IMPORTS = (
     "sentry.replays.tasks",
     "sentry.monitors.tasks.clock_pulse",
     "sentry.monitors.tasks.detect_broken_monitor_envs",
-    # TODO(@anonrig): Remove this when AppStore integration is removed.
-    "sentry.tasks.app_store_connect",
     "sentry.tasks.assemble",
     "sentry.tasks.auth",
     "sentry.tasks.auto_remove_inbox",
@@ -853,8 +852,6 @@ CELERY_QUEUES_REGION = [
     Queue("auth", routing_key="auth"),
     Queue("alerts", routing_key="alerts"),
     Queue("app_platform", routing_key="app_platform"),
-    # TODO(@anonrig): Remove this when all AppStore connect data is removed.
-    Queue("appstoreconnect", routing_key="sentry.tasks.app_store_connect.#"),
     Queue("assemble", routing_key="assemble"),
     Queue("backfill_seer_grouping_records", routing_key="backfill_seer_grouping_records"),
     Queue("buffers.process_pending", routing_key="buffers.process_pending"),
@@ -1128,12 +1125,6 @@ CELERYBEAT_SCHEDULE_REGION = {
         "schedule": crontab(minute="0", hour="12", day_of_week="sat"),
         "options": {"expires": 60 * 60 * 3},
     },
-    # "schedule-daily-organization-reports": {
-    #     "task": "sentry.tasks.summaries.daily_summary.schedule_organizations",
-    #     # Run every 1 hour on business days
-    #     "schedule": crontab(minute=0, hour="*/1", day_of_week="mon-fri"),
-    #     "options": {"expires": 60 * 60 * 3},
-    # },
     "schedule-hybrid-cloud-foreign-key-jobs": {
         "task": "sentry.tasks.deletion.hybrid_cloud.schedule_hybrid_cloud_foreign_key_jobs",
         # Run every 15 minutes
@@ -1263,6 +1254,9 @@ else:
 for queue in CELERY_QUEUES:
     queue.durable = False
 
+# set celery max durations for tasks
+CELERY_TASK_SOFT_TIME_LIMIT = int(timedelta(hours=3).total_seconds())
+CELERY_TASK_TIME_LIMIT = int(timedelta(hours=3, seconds=15).total_seconds())
 
 # Queues that belong to the processing pipeline and need to be monitored
 # for backpressure management
@@ -1531,10 +1525,6 @@ SENTRY_RELAY_TASK_APM_SAMPLING = 0
 
 # sample rate for ingest consumer processing functions
 SENTRY_INGEST_CONSUMER_APM_SAMPLING = 0
-
-# TODO(@anonrig): Remove this when all AppStore connect data is removed.
-# sample rate for Apple App Store Connect tasks transactions
-SENTRY_APPCONNECT_APM_SAMPLING = SENTRY_BACKEND_APM_SAMPLING
 
 # sample rate for suspect commits task
 SENTRY_SUSPECT_COMMITS_APM_SAMPLING = 0
@@ -2932,6 +2922,7 @@ MIGRATIONS_LOCKFILE_APP_WHITELIST = (
     "hybridcloud",
     "remote_subscriptions",
     "uptime",
+    "workflow_engine",
 )
 # Where to write the lockfile to.
 MIGRATIONS_LOCKFILE_PATH = os.path.join(PROJECT_ROOT, os.path.pardir, os.path.pardir)
@@ -3156,7 +3147,7 @@ SEER_GROUPING_BACKFILL_URL = SEER_DEFAULT_URL
 
 SEER_ANOMALY_DETECTION_MODEL_VERSION = "v1"
 SEER_ANOMALY_DETECTION_URL = SEER_DEFAULT_URL  # for local development, these share a URL
-SEER_ANOMALY_DETECTION_TIMEOUT = 5
+SEER_ANOMALY_DETECTION_TIMEOUT = 15
 
 SEER_ANOMALY_DETECTION_ENDPOINT_URL = (
     f"/{SEER_ANOMALY_DETECTION_MODEL_VERSION}/anomaly-detection/detect"

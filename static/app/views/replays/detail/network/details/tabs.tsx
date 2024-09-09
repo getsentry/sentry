@@ -1,5 +1,4 @@
 import styled from '@emotion/styled';
-import queryString from 'query-string';
 
 import ListLink from 'sentry/components/links/listLink';
 import ScrollableTabs from 'sentry/components/replays/scrollableTabs';
@@ -32,7 +31,10 @@ function NetworkDetailsTabs({className, underlined = true}: Props) {
         <ListLink
           key={tab}
           isActive={() => tab === activeTab}
-          to={`${pathname}?${queryString.stringify({...query, t_main: tab})}`}
+          to={{
+            pathname,
+            query: {...query, t_main: tab},
+          }}
           onClick={e => {
             e.preventDefault();
             setParamValue(tab);

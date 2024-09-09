@@ -6,6 +6,7 @@ from collections.abc import Mapping, Sequence
 from operator import attrgetter
 from typing import Any
 
+import sentry_sdk
 from django.conf import settings
 from django.urls import reverse
 from django.utils.functional import classproperty
@@ -19,6 +20,7 @@ from sentry.integrations.base import (
     IntegrationMetadata,
     IntegrationProvider,
 )
+from sentry.integrations.jira.models.create_issue_metadata import JiraIssueTypeMetadata
 from sentry.integrations.jira.tasks import migrate_issues
 from sentry.integrations.mixins.issues import MAX_CHAR, IssueSyncIntegration, ResolveSyncAction
 from sentry.integrations.models.external_issue import ExternalIssue
@@ -570,6 +572,7 @@ class JiraIntegration(IssueSyncIntegration):
         return fkwargs
 
     def get_issue_type_meta(self, issue_type, meta):
+        self.parse_jira_issue_metadata(meta)
         issue_types = meta["issuetypes"]
         issue_type_meta = None
         if issue_type:
@@ -1038,6 +1041,13 @@ class JiraIntegration(IssueSyncIntegration):
                 "organization_id": self.organization_id,
             }
         )
+
+    def parse_jira_issue_metadata(self, meta: dict[str, Any]) -> list[JiraIssueTypeMetadata] | None:
+        try:
+            return JiraIssueTypeMetadata.from_jira_meta_config(meta)
+        except Exception as e:
+            sentry_sdk.capture_exception(e)
+            return None
 
 
 class JiraIntegrationProvider(IntegrationProvider):

@@ -24,6 +24,7 @@ import {getJSMetricsOnboarding} from 'sentry/components/onboarding/gettingStarte
 import {
   getReplayConfigureDescription,
   getReplaySDKSetupSnippet,
+  getReplayVerifyStep,
 } from 'sentry/components/onboarding/gettingStartedDoc/utils/replayOnboarding';
 import TextCopyInput from 'sentry/components/textCopyInput';
 import {t, tct} from 'sentry/locale';
@@ -32,20 +33,24 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 
 type Params = DocsParams;
 
-const getInstallConfig = () => [
-  {
-    description: tct(
-      'Configure your app automatically with the [wizardLink:Sentry wizard].',
-      {
-        wizardLink: (
-          <ExternalLink href="https://docs.sentry.io/platforms/javascript/guides/nextjs/#install" />
-        ),
-      }
-    ),
-    language: 'bash',
-    code: `npx @sentry/wizard@latest -i nextjs`,
-  },
-];
+const getInstallConfig = ({isSelfHosted, urlPrefix}: Params) => {
+  const urlParam = !isSelfHosted && urlPrefix ? `--url ${urlPrefix}` : '';
+
+  return [
+    {
+      description: tct(
+        'Configure your app automatically with the [wizardLink:Sentry wizard].',
+        {
+          wizardLink: (
+            <ExternalLink href="https://docs.sentry.io/platforms/javascript/guides/nextjs/#install" />
+          ),
+        }
+      ),
+      language: 'bash',
+      code: `npx @sentry/wizard@latest -i nextjs ${urlParam}`,
+    },
+  ];
+};
 
 const getManualInstallConfig = () => [
   {
@@ -71,7 +76,7 @@ const onboarding: OnboardingConfig = {
   install: (params: Params) => [
     {
       type: StepType.INSTALL,
-      configurations: getInstallConfig(),
+      configurations: getInstallConfig(params),
       additionalInfo: (
         <Fragment>
           {t(
@@ -157,7 +162,9 @@ const onboarding: OnboardingConfig = {
 };
 
 const replayOnboarding: OnboardingConfig = {
-  install: () => [{type: StepType.INSTALL, configurations: getInstallConfig()}],
+  install: (params: Params) => [
+    {type: StepType.INSTALL, configurations: getInstallConfig(params)},
+  ],
   configure: (params: Params) => [
     {
       type: StepType.CONFIGURE,
@@ -194,12 +201,12 @@ const replayOnboarding: OnboardingConfig = {
       ),
     },
   ],
-  verify: () => [],
+  verify: getReplayVerifyStep(),
   nextSteps: () => [],
 };
 
 const feedbackOnboarding: OnboardingConfig = {
-  install: () => [
+  install: (params: Params) => [
     {
       type: StepType.INSTALL,
       description: tct(
@@ -208,7 +215,7 @@ const feedbackOnboarding: OnboardingConfig = {
           code: <code />,
         }
       ),
-      configurations: getInstallConfig(),
+      configurations: getInstallConfig(params),
     },
   ],
   configure: (params: Params) => [

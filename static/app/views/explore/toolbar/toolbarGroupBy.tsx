@@ -1,7 +1,9 @@
 import {useCallback, useMemo} from 'react';
 
+import {Button} from 'sentry/components/button';
 import type {SelectOption} from 'sentry/components/compactSelect';
 import {CompactSelect} from 'sentry/components/compactSelect';
+import {IconDelete} from 'sentry/icons/iconDelete';
 import {t} from 'sentry/locale';
 import {useGroupBys} from 'sentry/views/explore/hooks/useGroupBys';
 import type {Field} from 'sentry/views/explore/hooks/useSampleFields';
@@ -11,10 +13,15 @@ import {
   ToolbarHeader,
   ToolbarHeaderButton,
   ToolbarHeading,
+  ToolbarRow,
   ToolbarSection,
 } from './styles';
 
-export function ToolbarGroupBy() {
+interface ToolbarGroupByProps {
+  disabled?: boolean;
+}
+
+export function ToolbarGroupBy({disabled}: ToolbarGroupByProps) {
   // TODO: This should be loaded from context to avoid loading tags twice.
   const tags = useSpanFieldSupportedTags();
 
@@ -23,7 +30,7 @@ export function ToolbarGroupBy() {
   const options: SelectOption<Field>[] = useMemo(() => {
     return [
       // hard code in an empty option
-      {label: t('(none)'), value: ''},
+      {label: t('None'), value: ''},
       ...Object.entries(tags).map(([tagKey, tag]) => {
         return {
           label: tag.name,
@@ -46,23 +53,49 @@ export function ToolbarGroupBy() {
     [setGroupBys, groupBys]
   );
 
+  const deleteGroupBy = useCallback(
+    (index: number) => {
+      const newGroupBys = groupBys.filter((_, orgIndex) => index !== orgIndex);
+      setGroupBys?.(newGroupBys);
+    },
+    [setGroupBys, groupBys]
+  );
+
   return (
     <ToolbarSection data-test-id="section-group-by">
       <ToolbarHeader>
-        <ToolbarHeading>{t('Group By')}</ToolbarHeading>
-        <ToolbarHeaderButton size="xs" onClick={addGroupBy} borderless>
+        <ToolbarHeading disabled={disabled}>{t('Group By')}</ToolbarHeading>
+        <ToolbarHeaderButton
+          disabled={disabled}
+          size="xs"
+          onClick={addGroupBy}
+          borderless
+        >
           {t('+Add Group By')}
         </ToolbarHeaderButton>
       </ToolbarHeader>
-      {groupBys.map((groupBy, index) => (
-        <CompactSelect
-          key={index}
-          size="md"
-          options={options}
-          value={groupBy}
-          onChange={newGroupBy => setGroupBy(index, newGroupBy)}
-        />
-      ))}
+      <div>
+        {groupBys.map((groupBy, index) => (
+          <ToolbarRow key={index}>
+            <CompactSelect
+              searchable
+              disabled={disabled}
+              size="sm"
+              options={options}
+              value={groupBy}
+              onChange={newGroupBy => setGroupBy(index, newGroupBy)}
+            />
+            <Button
+              borderless
+              icon={<IconDelete />}
+              size="zero"
+              disabled={disabled || groupBys.length <= 1}
+              onClick={() => deleteGroupBy(index)}
+              aria-label={t('Remove')}
+            />
+          </ToolbarRow>
+        ))}
+      </div>
     </ToolbarSection>
   );
 }
