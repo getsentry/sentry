@@ -4893,7 +4893,9 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
 
         group = Group.objects.get(id=group.id)
         assert group.status == GroupStatus.IGNORED
-        assert GroupHistory.objects.filter(group=group, status=GroupHistoryStatus.IGNORED).exists()
+        assert GroupHistory.objects.filter(
+            group=group, status=GroupHistoryStatus.ARCHIVED_FOREVER
+        ).exists()
 
         assert response.data == {"status": "ignored", "statusDetails": {}, "inbox": None}
 
