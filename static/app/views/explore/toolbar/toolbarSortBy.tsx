@@ -41,11 +41,11 @@ export function ToolbarSortBy({fields, setSorts, sorts}: ToolbarSortByProps) {
   const kindOptions: SelectOption<Sort['kind']>[] = useMemo(() => {
     return [
       {
-        label: 'Descending',
+        label: 'Desc',
         value: 'desc',
       },
       {
-        label: 'Ascending',
+        label: 'Asc',
         value: 'asc',
       },
     ];
@@ -70,20 +70,22 @@ export function ToolbarSortBy({fields, setSorts, sorts}: ToolbarSortByProps) {
       <ToolbarHeader>
         <ToolbarHeading>{t('Sort By')}</ToolbarHeading>
       </ToolbarHeader>
-      <ToolbarRow>
-        <CompactSelect
-          size="md"
-          options={fieldOptions}
-          value={sorts[0]?.field}
-          onChange={newSortField => setSortField(0, newSortField)}
-        />
-        <CompactSelect
-          size="md"
-          options={kindOptions}
-          value={sorts[0]?.kind}
-          onChange={newSortKind => setSortKind(0, newSortKind)}
-        />
-      </ToolbarRow>
+      <div>
+        <ToolbarRow>
+          <CompactSelect
+            size="sm"
+            options={fieldOptions}
+            value={sorts[0]?.field}
+            onChange={newSortField => setSortField(0, newSortField)}
+          />
+          <CompactSelect
+            size="sm"
+            options={kindOptions}
+            value={sorts[0]?.kind}
+            onChange={newSortKind => setSortKind(0, newSortKind)}
+          />
+        </ToolbarRow>
+      </div>
     </ToolbarSection>
   );
 }

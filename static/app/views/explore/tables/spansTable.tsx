@@ -36,11 +36,16 @@ export function SpansTable({}: SpansTableProps) {
   const [sorts] = useSorts({fields});
   const [query] = useUserQuery();
 
-  const queryFields = useMemo(() => {
-    return [...fields, 'project', 'trace', 'transaction.id', 'span_id', 'timestamp'];
-  }, [fields]);
-
   const eventView = useMemo(() => {
+    const queryFields = [
+      ...fields,
+      'project',
+      'trace',
+      'transaction.id',
+      'span_id',
+      'timestamp',
+    ];
+
     const discoverQuery: NewQuery = {
       id: undefined,
       name: 'Explore - Span Samples',
@@ -52,7 +57,7 @@ export function SpansTable({}: SpansTableProps) {
     };
 
     return EventView.fromNewQueryWithPageFilters(discoverQuery, selection);
-  }, [dataset, queryFields, sorts, query, selection]);
+  }, [dataset, fields, sorts, query, selection]);
 
   const result = useSpansQuery({
     eventView,
