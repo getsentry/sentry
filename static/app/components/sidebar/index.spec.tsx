@@ -323,9 +323,7 @@ describe('Sidebar', function () {
         expect(apiMocks.broadcasts).toHaveBeenCalled();
       });
 
-      expect(
-        screen.getByRole('navigation', {name: 'Primary Navigation'})
-      ).toBeInTheDocument();
+      expect(screen.getByTitle('Primary Navigation')).toBeInTheDocument();
     });
 
     it('in self-hosted-errors-only mode, only shows links to basic features', async function () {
