@@ -5,7 +5,7 @@ from django.contrib import messages
 from django.contrib.auth import authenticate
 from django.contrib.auth import login as login_user
 from django.db import router, transaction
-from django.http import HttpResponse, HttpResponseRedirect
+from django.http import HttpRequest, HttpResponse, HttpResponseRedirect
 from django.urls import reverse
 from django.utils.translation import gettext as _
 from django.views.decorators.http import require_http_methods
@@ -21,9 +21,13 @@ from sentry.users.models.user import User
 from sentry.users.models.useremail import UserEmail
 from sentry.users.services.lost_password_hash import lost_password_hash_service
 from sentry.users.services.user.service import user_service
+from sentry.users.web.accounts_form import (
+    ChangePasswordRecoverForm,
+    RecoverPasswordForm,
+    RelocationForm,
+)
 from sentry.utils import auth
 from sentry.web.decorators import login_required, set_referrer_policy
-from sentry.web.forms.accounts import ChangePasswordRecoverForm, RecoverPasswordForm, RelocationForm
 from sentry.web.helpers import render_to_response
 
 logger = logging.getLogger("sentry.accounts")
@@ -38,19 +42,19 @@ class InvalidRequest(Exception):
     pass
 
 
-def get_template(mode, name):
+def get_template(mode: str, name: str) -> str:
     return f"sentry/account/{mode}/{name}.html"
 
 
 @login_required
 @control_silo_function
-def login_redirect(request):
+def login_redirect(request: HttpRequest) -> HttpResponseRedirect:
     login_url = auth.get_login_redirect(request)
     return HttpResponseRedirect(login_url)
 
 
 @control_silo_function
-def expired(request, user):
+def expired(request: HttpRequest, user: User) -> HttpResponse:
     hash = lost_password_hash_service.get_or_create(user_id=user.id).hash
     LostPasswordHash.send_recover_password_email(user, hash, request.META["REMOTE_ADDR"])
 
@@ -59,7 +63,7 @@ def expired(request, user):
 
 
 @control_silo_function
-def recover(request):
+def recover(request: HttpRequest) -> HttpResponse:
     from sentry import ratelimits as ratelimiter
 
     extra = {
@@ -112,7 +116,7 @@ def recover(request):
 
 @set_referrer_policy("strict-origin-when-cross-origin")
 @control_silo_function
-def relocate_reclaim(request, user_id):
+def relocate_reclaim(request: HttpRequest, user_id: int) -> HttpResponse:
     """
     Ask to receive a new "claim this user" email.
     """
@@ -176,7 +180,9 @@ def relocate_reclaim(request, user_id):
 
 @set_referrer_policy("strict-origin-when-cross-origin")
 @control_silo_function
-def recover_confirm(request, user_id, hash, mode="recover"):
+def recover_confirm(
+    request: HttpRequest, user_id: int, hash: str, mode: str = "recover"
+) -> HttpResponse:
     from sentry import ratelimits as ratelimiter
 
     try:
@@ -285,7 +291,7 @@ relocate_confirm = partial(recover_confirm, mode="relocate")
 @login_required
 @require_http_methods(["POST"])
 @control_silo_function
-def start_confirm_email(request):
+def start_confirm_email(request: HttpRequest) -> HttpResponse:
     from sentry import ratelimits as ratelimiter
 
     if ratelimiter.backend.is_limited(
@@ -299,6 +305,9 @@ def start_confirm_email(request):
             status=429,
         )
 
+    assert isinstance(
+        request.user, User
+    ), "User must have an associated email to send confirm emails to"
     if "primary-email" in request.POST:
         email = request.POST.get("email")
         try:
@@ -334,7 +343,7 @@ def start_confirm_email(request):
 @set_referrer_policy("strict-origin-when-cross-origin")
 @login_required
 @control_silo_function
-def confirm_email(request, user_id, hash):
+def confirm_email(request: HttpRequest, user_id: int, hash: str) -> HttpResponseRedirect:
     msg = _("Thanks for confirming your email")
     level = messages.SUCCESS
     try:

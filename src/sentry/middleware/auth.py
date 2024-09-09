@@ -86,7 +86,7 @@ class AuthenticationMiddleware(MiddlewareMixin):
         self, request: HttpRequest, exception: Exception
     ) -> HttpResponseBase | None:
         if isinstance(exception, AuthUserPasswordExpired):
-            from sentry.web.frontend.accounts import expired
+            from sentry.users.web.accounts import expired
 
             return expired(request, exception.user)
         else:
