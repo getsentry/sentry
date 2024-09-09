@@ -24,6 +24,8 @@ export const INSIGHTS_METRICS = [
   'g:spans/mobile.total_frames@none',
   'g:spans/mobile.frozen_frames@none',
   'g:spans/mobile.slow_frames@none',
+  'c:spans/ai.total_tokens.used@none',
+  'c:spans/ai.total_cost@usd',
 ];
 
 export const isInsightsMetricAlert = (aggregate: string) => {
