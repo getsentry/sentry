@@ -12,8 +12,19 @@
     if (!window.opener) {
       return;
     }
-    window.opener.postMessage('iframe_no_auth'); // this will be used by the main frame
+    window.opener.postMessage('iframe_no_auth', '*'); // this will be used by the main frame
   })();
+
+  window.addEventListener('message', (event) => {
+    if (event.origin !== 'http://dev.getsentry.net:8080') {
+      return;
+    }
+    console.log('iframe received msg. ', event.origin, event.data);
+
+    if (event.data === 'login_success') {
+      window.location.reload();
+    }
+  });
   </script>
   {% endscript %}
 </body>
