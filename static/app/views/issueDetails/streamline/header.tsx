@@ -165,7 +165,7 @@ export default function StreamlinedGroupHeader({
         </Heading>
         <AllStats>
           <Stat>
-            <Label>{t('All Events')}</Label>
+            <Label data-test-id="all-event-count">{t('All Events')}</Label>
             <Link disabled={disableActions} to={eventRoute}>
               <StatCount value={eventCount} />
             </Link>
