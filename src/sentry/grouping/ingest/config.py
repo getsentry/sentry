@@ -86,6 +86,9 @@ def is_in_transition(project: Project) -> bool:
 
 
 def project_uses_optimized_grouping(project: Project) -> bool:
+    if options.get("grouping.config_transition.killswitch_enabled"):
+        return False
+
     return (
         features.has(
             "organizations:grouping-suppress-unnecessary-secondary-hash",
