@@ -1,6 +1,4 @@
 import logging
-import zoneinfo
-from datetime import datetime
 from typing import Any
 
 from django.conf import settings
@@ -31,27 +29,13 @@ from sentry.users.models.user import User
 from sentry.users.models.user_option import UserOption
 from sentry.users.models.useremail import UserEmail
 from sentry.users.services.user.serial import serialize_generic_user
-from sentry.utils.dates import AVAILABLE_TIMEZONES
+from sentry.utils.dates import get_timezone_choices
 
 audit_logger = logging.getLogger("sentry.audit.user")
 delete_logger = logging.getLogger("sentry.deletions.api")
 
 
-def _get_timezone_choices() -> list[tuple[str, str]]:
-    build_results = []
-    for tz in AVAILABLE_TIMEZONES:
-        now = datetime.now(zoneinfo.ZoneInfo(tz))
-        offset = now.strftime("%z")
-        build_results.append((int(offset), tz, f"(UTC{offset}) {tz}"))
-    build_results.sort()
-
-    results: list[tuple[str, str]] = []
-    for item in build_results:
-        results.append(item[1:])
-    return results
-
-
-TIMEZONE_CHOICES = _get_timezone_choices()
+TIMEZONE_CHOICES = get_timezone_choices()
 
 
 class UserOptionsSerializer(serializers.Serializer[UserOption]):

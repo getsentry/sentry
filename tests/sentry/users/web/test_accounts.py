@@ -13,7 +13,7 @@ from sentry.testutils.helpers.task_runner import BurstTaskRunner
 from sentry.testutils.silo import control_silo_test
 from sentry.users.models.lostpasswordhash import LostPasswordHash
 from sentry.users.models.useremail import UserEmail
-from sentry.web.frontend.accounts import recover_confirm
+from sentry.users.web.accounts import recover_confirm
 
 
 @control_silo_test

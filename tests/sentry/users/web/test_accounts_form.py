@@ -1,6 +1,6 @@
 from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import control_silo_test
-from sentry.web.forms.accounts import RelocationForm
+from sentry.users.web.accounts_form import RelocationForm
 
 
 @control_silo_test
