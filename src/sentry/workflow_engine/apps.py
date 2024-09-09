@@ -5,4 +5,4 @@ class Config(AppConfig):
     name = "sentry.workflow_engine"
 
     def ready(self):
-        pass
+        import sentry.workflow_engine.models.workflow  # noqa
