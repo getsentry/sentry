@@ -685,15 +685,17 @@ export class Results extends Component<Props, State> {
 
     if (organization.features.includes('search-query-builder-discover')) {
       return (
-        <StyledResultsSearchQueryBuilder
-          projectIds={eventView.project}
-          query={eventView.query}
-          fields={fields}
-          onSearch={this.handleSearch}
-          customMeasurements={customMeasurements}
-          dataset={eventView.dataset}
-          includeTransactions
-        />
+        <Wrapper>
+          <ResultsSearchQueryBuilder
+            projectIds={eventView.project}
+            query={eventView.query}
+            fields={fields}
+            onSearch={this.handleSearch}
+            customMeasurements={customMeasurements}
+            dataset={eventView.dataset}
+            includeTransactions
+          />
+        </Wrapper>
       );
     }
 
@@ -870,10 +872,6 @@ const Wrapper = styled('div')`
     display: grid;
     grid-auto-flow: row;
   }
-`;
-
-const StyledResultsSearchQueryBuilder = styled(ResultsSearchQueryBuilder)`
-  margin-bottom: ${space(2)};
 `;
 
 const StyledSearchBar = styled(SearchBar)`
