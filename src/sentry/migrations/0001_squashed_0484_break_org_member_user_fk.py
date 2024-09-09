@@ -7352,20 +7352,11 @@ class Migration(CheckedMigration):
                 "db_table": "sentry_appconnectbuild",
             },
         ),
-        migrations.SeparateDatabaseAndState(
-            database_operations=[
-                migrations.RunSQL(
-                    sql='\n                    CREATE INDEX CONCURRENTLY  "sentry_rule_project_id_status_owner_id_82f20db5_idx" ON "sentry_rule" ("project_id", "status", "owner_id");\n                    ',
-                    reverse_sql="\n                    DROP INDEX CONCURRENTLY IF EXISTS sentry_rule_project_id_status_owner_id_82f20db5_idx;\n                    ",
-                    hints={"tables": ["sentry_rule"]},
-                ),
-            ],
-            state_operations=[
-                migrations.AlterIndexTogether(
-                    name="rule",
-                    index_together={("project", "status", "owner")},
-                ),
-            ],
+        migrations.AddIndex(
+            model_name="rule",
+            index=models.Index(
+                fields=["project", "status", "owner"], name="sentry_rule_project_676d0d_idx"
+            ),
         ),
         migrations.AddIndex(
             model_name="activity",
