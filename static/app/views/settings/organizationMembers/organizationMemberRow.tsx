@@ -104,7 +104,8 @@ export default class OrganizationMemberRow extends PureComponent<Props, State> {
       canAddMembers,
     } = this.props;
 
-    const {id, flags, email, name, pending, user} = member;
+    const {id, flags, email, name, pending, user, inviterName} = member;
+    const {access} = organization;
 
     // if member is not the only owner, they can leave
     const isIdpProvisioned = flags['idp:provisioned'];
@@ -113,8 +114,14 @@ export default class OrganizationMemberRow extends PureComponent<Props, State> {
     const isCurrentUser = currentUser.email === email;
     const showRemoveButton = !isCurrentUser;
     const showLeaveButton = isCurrentUser;
+    const isInvite = inviterName !== null;
+    const canRemoveInvite =
+      organization.features?.includes('members-invite-teammates') &&
+      access.includes('member:invite') &&
+      inviterName === currentUser.name;
     const canRemoveMember =
-      canRemoveMembers && !isCurrentUser && !isIdpProvisioned && !isPartnershipUser;
+      (canRemoveMembers && !isCurrentUser && !isIdpProvisioned && !isPartnershipUser) ||
+      canRemoveInvite;
     // member has a `user` property if they are registered with sentry
     // i.e. has accepted an invite to join org
     const has2fa = user?.has2fa;
@@ -204,7 +211,9 @@ export default class OrganizationMemberRow extends PureComponent<Props, State> {
                       )
                     : isPartnershipUser
                       ? t('You cannot make changes to this partner-provisioned user.')
-                      : t('You do not have access to remove members')
+                      : isInvite
+                        ? t('Your role cannot modify this invite.')
+                        : t('You do not have access to remove members')
                 }
                 icon={<IconSubtract isCircled />}
               >
