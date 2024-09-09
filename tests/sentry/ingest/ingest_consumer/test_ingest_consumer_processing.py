@@ -6,7 +6,7 @@ import uuid
 import zipfile
 from io import BytesIO
 from typing import Any
-from unittest.mock import Mock, patch
+from unittest.mock import Mock
 
 import orjson
 import pytest
@@ -19,7 +19,6 @@ from django.conf import settings
 from sentry import eventstore
 from sentry.event_manager import EventManager
 from sentry.ingest.consumer.processors import (
-    collect_span_metrics,
     process_attachment_chunk,
     process_event,
     process_individual_attachment,
@@ -29,7 +28,6 @@ from sentry.models.debugfile import create_files_from_dif_zip
 from sentry.models.eventattachment import EventAttachment
 from sentry.models.userreport import UserReport
 from sentry.options import set
-from sentry.testutils.helpers.features import Feature
 from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.testutils.skips import requires_snuba, requires_symbolicator
 from sentry.usage_accountant import accountant
@@ -597,19 +595,3 @@ def test_individual_attachments_missing_chunks(default_project, factories, monke
     attachments = list(EventAttachment.objects.filter(project_id=project_id, event_id=event_id))
 
     assert not attachments
-
-
-@django_db_all
-def test_collect_span_metrics(default_project):
-    with Feature({"organizations:dynamic-sampling": True, "organization:am3-tier": True}):
-        with patch("sentry.ingest.consumer.processors.metrics") as mock_metrics:
-            assert mock_metrics.incr.call_count == 0
-            collect_span_metrics(default_project, {"spans": [1, 2, 3]})
-            assert mock_metrics.incr.call_count == 0
-
-    with Feature({"organizations:dynamic-sampling": False, "organization:am3-tier": False}):
-        with patch("sentry.ingest.consumer.processors.metrics") as mock_metrics:
-
-            assert mock_metrics.incr.call_count == 0
-            collect_span_metrics(default_project, {"spans": [1, 2, 3]})
-            assert mock_metrics.incr.call_count == 1
