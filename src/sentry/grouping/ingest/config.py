@@ -19,7 +19,7 @@ logger = logging.getLogger("sentry.events.grouping")
 Job = MutableMapping[str, Any]
 
 # Used to migrate projects that have no activity via getsentry scripts
-CONFIGS_TO_DEPRECATE = ("mobile:2021-02-12",)
+CONFIGS_TO_DEPRECATE = ()
 
 
 # Used by getsentry script. Remove it once the script has been updated to call update_grouping_config_if_needed
@@ -86,11 +86,7 @@ def is_in_transition(project: Project) -> bool:
 
 
 def project_uses_optimized_grouping(project: Project) -> bool:
-    primary_grouping_config = project.get_option("sentry:grouping_config")
-    secondary_grouping_config = project.get_option("sentry:secondary_grouping_config")
-    has_mobile_config = "mobile:2021-02-12" in [primary_grouping_config, secondary_grouping_config]
-
-    if has_mobile_config or options.get("grouping.config_transition.killswitch_enabled"):
+    if options.get("grouping.config_transition.killswitch_enabled"):
         return False
 
     return (
