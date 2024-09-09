@@ -10,6 +10,7 @@ from sentry.grouping.ingest.hashing import (
     _calculate_secondary_hash,
 )
 from sentry.models.group import Group
+from sentry.projectoptions.defaults import LEGACY_GROUPING_CONFIG
 from sentry.testutils.cases import TestCase
 from sentry.testutils.skips import requires_snuba
 
@@ -30,7 +31,7 @@ class BackgroundGroupingTest(TestCase):
 
         with self.options(
             {
-                "store.background-grouping-config-id": "mobile:2021-02-12",
+                "store.background-grouping-config-id": LEGACY_GROUPING_CONFIG,
                 "store.background-grouping-sample-rate": 1.0,
             }
         ):
@@ -54,7 +55,7 @@ class BackgroundGroupingTest(TestCase):
 
             with self.options(
                 {
-                    "store.background-grouping-config-id": "mobile:2021-02-12",
+                    "store.background-grouping-config-id": LEGACY_GROUPING_CONFIG,
                     "store.background-grouping-sample-rate": 1.0,
                 }
             ):
@@ -76,7 +77,7 @@ class BackgroundGroupingTest(TestCase):
 
         with self.options(
             {
-                "store.background-grouping-config-id": "mobile:2021-02-12",
+                "store.background-grouping-config-id": LEGACY_GROUPING_CONFIG,
                 "store.background-grouping-sample-rate": 0.0,
             }
         ):
