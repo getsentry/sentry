@@ -78,7 +78,18 @@ export function OpenReplayComparisonButton({
 }
 
 const modalCss = css`
-  width: 95vw;
-  min-height: 80vh;
-  max-height: 95vh;
+  /* Swap typical modal margin and padding
+   * We want a minimal space around the modal (hence, 30px 16px)
+   * But this space should also be clickable, so it's not the padding.
+   */
+  margin: 30px 16px !important;
+  padding: 0 !important;
+  height: calc(100% - 60px);
+  width: calc(100% - 32px);
+  display: flex;
+  & > * {
+    flex-grow: 1;
+    display: grid;
+    grid-template-rows: max-content 1fr;
+  }
 `;

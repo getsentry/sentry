@@ -21,13 +21,20 @@ interface Props {
   leftOffsetMs: number;
   replay: null | ReplayReader;
   rightOffsetMs: number;
+  minHeight?: `${number}px` | `${number}%`;
 }
 
-export function ReplaySliderDiff({leftOffsetMs, replay, rightOffsetMs}: Props) {
+export function ReplaySliderDiff({
+  minHeight = '0px',
+  leftOffsetMs,
+  replay,
+  rightOffsetMs,
+}: Props) {
   const positionedRef = useRef<HTMLDivElement>(null);
   const viewDimensions = useDimensions({elementRef: positionedRef});
 
   const width = toPixels(viewDimensions.width);
+
   return (
     <Fragment>
       <Header>
@@ -43,7 +50,7 @@ export function ReplaySliderDiff({leftOffsetMs, replay, rightOffsetMs}: Props) {
         </Tooltip>
       </Header>
       <WithPadding>
-        <Positioned ref={positionedRef}>
+        <Positioned style={{minHeight}} ref={positionedRef}>
           {viewDimensions.width ? (
             <DiffSides
               leftOffsetMs={leftOffsetMs}
@@ -107,8 +114,8 @@ function DiffSides({leftOffsetMs, replay, rightOffsetMs, viewDimensions, width})
           <Cover style={{width}}>
             <Placement style={{width}}>
               <ReplayPlayerStateContextProvider>
-                <NegativeSpaceContainer>
-                  <ReplayPlayerMeasurer measure="width">
+                <NegativeSpaceContainer style={{height: '100%'}}>
+                  <ReplayPlayerMeasurer measure="both">
                     {style => <ReplayPlayer style={style} offsetMs={leftOffsetMs} />}
                   </ReplayPlayerMeasurer>
                 </NegativeSpaceContainer>
@@ -118,8 +125,8 @@ function DiffSides({leftOffsetMs, replay, rightOffsetMs, viewDimensions, width})
           <Cover ref={rightSideElem} style={{width: 0}}>
             <Placement style={{width}}>
               <ReplayPlayerStateContextProvider>
-                <NegativeSpaceContainer>
-                  <ReplayPlayerMeasurer measure="width">
+                <NegativeSpaceContainer style={{height: '100%'}}>
+                  <ReplayPlayerMeasurer measure="both">
                     {style => <ReplayPlayer style={style} offsetMs={rightOffsetMs} />}
                   </ReplayPlayerMeasurer>
                 </NegativeSpaceContainer>
@@ -136,10 +143,11 @@ function DiffSides({leftOffsetMs, replay, rightOffsetMs, viewDimensions, width})
 const WithPadding = styled(NegativeSpaceContainer)`
   padding-block: ${space(1.5)};
   overflow: visible;
+  height: 100%;
 `;
 
 const Positioned = styled('div')`
-  min-height: 335px;
+  height: 100%;
   position: relative;
   width: 100%;
 `;
