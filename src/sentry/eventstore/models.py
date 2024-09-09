@@ -356,8 +356,8 @@ class BaseEvent(metaclass=abc.ABCMeta):
         # Create fresh hashes
         from sentry.grouping.api import sort_grouping_variants
 
-        variants = self.get_grouping_variants(force_config)
-        variants = sort_grouping_variants(variants)
+        _variants = self.get_grouping_variants(force_config)
+        variants = sort_grouping_variants(_variants)
         hashes = self._hashes_from_sorted_grouping_variants(variants)
         hashes_values = [hash_ for _, hash_ in hashes]
 

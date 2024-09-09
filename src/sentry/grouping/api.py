@@ -373,12 +373,12 @@ def get_grouping_variants_for_event(
     return rv
 
 
-def sort_grouping_variants(variants: dict[str, BaseVariant]) -> KeyedVariants:
+def sort_grouping_variants(variants_dict: dict[str, BaseVariant]) -> KeyedVariants:
     """Sort a sequence of variants into flat variants"""
 
     variants = []
 
-    for name, variant in variants.items():
+    for name, variant in variants_dict.items():
         variants.append((name, variant))
 
     # Sort system variant to the back of the list to resolve ambiguities when
