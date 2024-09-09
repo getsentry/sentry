@@ -238,10 +238,9 @@ def before_send(event: Event, _: Hint) -> Event | None:
         if settings.SENTRY_REGION:
             event["tags"]["sentry_region"] = settings.SENTRY_REGION
 
-    if "contexts" in event:
-        event["contexts"]["flags"] = get_flags_serialized()
-    else:
-        event["contexts"] = {"flags": get_flags_serialized()}
+    if "contexts" not in event:
+        event["contexts"] = {}
+    event["contexts"]["flags"] = get_flags_serialized()
 
     return event
 
