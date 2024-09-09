@@ -58,15 +58,6 @@ const FieldWrapper = styled('div')<FieldWrapperProps>`
     `}
 
 
-  /* Better padding with form inside of a modal */
-  ${p =>
-    !p.hasControlState &&
-    css`
-      [role='document'] & {
-        padding-right: 0;
-      }
-    `}
-
   &:last-child {
     border-bottom: none;
     ${p => (p.stacked ? 'padding-bottom: 0' : '')};
