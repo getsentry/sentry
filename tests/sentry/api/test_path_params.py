@@ -33,7 +33,12 @@ def extract_all_url_patterns(
 @no_silo_test
 class TestPathParams(TestCase):
 
-    IGNORE_CLASS_PREFIXES = ("sentry.web", "sentry.integrations.web", "sentry.auth")
+    IGNORE_CLASS_PREFIXES = (
+        "sentry.web",
+        "sentry.integrations.web",
+        "sentry.users.web",
+        "sentry.auth",
+    )
 
     def test_if_sentry_endpoints_have_id_or_slug_path_params(self):
         """

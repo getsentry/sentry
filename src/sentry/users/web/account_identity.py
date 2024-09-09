@@ -1,10 +1,11 @@
+from django.http.request import HttpRequest
 from django.http.response import HttpResponseBase
 from django.urls import reverse
 from django.utils.decorators import method_decorator
 from django.views.decorators.cache import never_cache
-from rest_framework.request import Request
 
 from sentry.identity.pipeline import IdentityProviderPipeline
+from sentry.models.organization import Organization
 from sentry.users.models.identity import IdentityProvider
 from sentry.web.frontend.base import ControlSiloOrganizationView, control_silo_view
 from sentry.web.helpers import render_to_response
@@ -13,7 +14,9 @@ from sentry.web.helpers import render_to_response
 @control_silo_view
 class AccountIdentityAssociateView(ControlSiloOrganizationView):
     @method_decorator(never_cache)
-    def handle(self, request: Request, organization, provider_key, external_id) -> HttpResponseBase:
+    def handle(
+        self, request: HttpRequest, organization: Organization, provider_key: str, external_id: str
+    ) -> HttpResponseBase:
         try:
             provider_model = IdentityProvider.objects.get(
                 type=provider_key, external_id=external_id
