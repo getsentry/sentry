@@ -24,9 +24,6 @@ import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {isCustomMeasurement} from 'sentry/views/dashboards/utils';
-import {useGroupBys} from 'sentry/views/explore/hooks/useGroupBys';
-import {useResultMode} from 'sentry/views/explore/hooks/useResultsMode';
-import {useVisualizes} from 'sentry/views/explore/hooks/useVisualizes';
 import {SPANS_FILTER_KEY_SECTIONS} from 'sentry/views/insights/constants';
 import {
   useSpanFieldCustomTags,
@@ -38,8 +35,10 @@ import {STATIC_FIELD_TAGS_SET} from '../events/searchBarFieldConstants';
 interface SpanSearchQueryBuilderProps {
   initialQuery: string;
   searchSource: string;
+  allowAggregateFunctions?: boolean;
   datetime?: PageFilters['datetime'];
   disableLoadingTags?: boolean;
+  fields?: string[];
   onSearch?: (query: string, state: CallbackSearchState) => void;
   placeholder?: string;
   projects?: PageFilters['projects'];
@@ -80,23 +79,16 @@ export function SpanSearchQueryBuilder({
   onSearch,
   placeholder,
   projects,
+  fields = [],
+  allowAggregateFunctions,
 }: SpanSearchQueryBuilderProps) {
   const api = useApi();
   const organization = useOrganization();
   const {selection} = usePageFilters();
-  const [groupBys] = useGroupBys();
-  const [visualizes] = useVisualizes();
-  const [resultsMode] = useResultMode();
-
-  const fields = useMemo(() => {
-    return [...groupBys, ...visualizes.flatMap(visualize => visualize.yAxes)].filter(
-      Boolean
-    );
-  }, [groupBys, visualizes]);
 
   const functionTags = useMemo(() => {
-    return resultsMode === 'samples' ? [] : getFunctionTags(fields);
-  }, [fields, resultsMode]);
+    return allowAggregateFunctions ? getFunctionTags(fields) : [];
+  }, [fields, allowAggregateFunctions]);
 
   const placeholderText = useMemo(() => {
     return placeholder ?? t('Search for spans, users, tags, and more');
