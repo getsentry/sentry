@@ -1,9 +1,9 @@
 from __future__ import annotations
 
+import logging
 import re
 from collections import defaultdict
 from collections.abc import Mapping, MutableMapping, Sequence
-from datetime import datetime, timedelta, timezone
 from typing import Any
 from urllib.parse import urlparse
 
@@ -25,9 +25,8 @@ from sentry.integrations.tasks.kick_off_status_syncs import kick_off_status_sync
 from sentry.issues.grouptype import GroupCategory
 from sentry.issues.ignored import handle_archived_until_escalating, handle_ignored
 from sentry.issues.merge import handle_merge
-from sentry.issues.ongoing import TRANSITION_AFTER_DAYS
 from sentry.issues.priority import update_priority
-from sentry.issues.status_change import handle_status_update
+from sentry.issues.status_change import handle_status_update, infer_substatus
 from sentry.issues.update_inbox import update_inbox
 from sentry.models.activity import Activity, ActivityIntegration
 from sentry.models.group import STATUS_UPDATE_CHOICES, Group, GroupStatus
@@ -58,6 +57,8 @@ from sentry.utils import metrics
 
 from . import ACTIVITIES_COUNT, BULK_MUTATION_LIMIT, SearchFunction, delete_group_list
 from .validators import GroupValidator, ValidationError
+
+logger = logging.getLogger(__name__)
 
 
 def handle_discard(
@@ -584,17 +585,7 @@ def update_groups(
         new_substatus = (
             SUBSTATUS_UPDATE_CHOICES[result.get("substatus")] if result.get("substatus") else None
         )
-        if new_substatus is None and new_status == GroupStatus.UNRESOLVED:
-            new_substatus = GroupSubStatus.ONGOING
-            if len(group_list) == 1:
-                g = group_list[0]
-                if g.status == GroupStatus.IGNORED:
-                    is_new_group = g.first_seen > datetime.now(timezone.utc) - timedelta(
-                        days=TRANSITION_AFTER_DAYS
-                    )
-                    new_substatus = GroupSubStatus.NEW if is_new_group else GroupSubStatus.ONGOING
-                if g.status == GroupStatus.RESOLVED:
-                    new_substatus = GroupSubStatus.REGRESSED
+        new_substatus = infer_substatus(new_status, new_substatus, status_details, group_list)
 
         with transaction.atomic(router.db_for_write(Group)):
             # TODO(gilbert): update() doesn't call pre_save and bypasses any substatus defaulting we have there
