@@ -1,4 +1,4 @@
-from datetime import timedelta
+from datetime import datetime, timedelta
 from unittest.mock import patch
 
 from django.utils import timezone
@@ -6,23 +6,30 @@ from django.utils import timezone
 from sentry.models.userreport import UserReport
 from sentry.tasks.update_user_reports import update_user_reports
 from sentry.testutils.cases import TestCase
+from sentry.testutils.helpers.datetime import iso_format
 from sentry.testutils.skips import requires_snuba
 
 pytestmark = [requires_snuba]
 
 
 class UpdateUserReportTest(TestCase):
+    def create_event_and_report(
+        self, project_id: int, event_dt: datetime | None = None, report_dt: datetime | None = None
+    ):
+        event_dt = event_dt or timezone.now()
+        report_dt = report_dt or timezone.now()
+        event = self.store_event(data={"timestamp": iso_format(event_dt)}, project_id=project_id)
+        report = UserReport.objects.create(
+            project_id=project_id, event_id=event.event_id, date_added=report_dt
+        )
+        return event, report
+
     def test_simple(self):
         now = timezone.now()
         project = self.create_project()
-        event1 = self.store_event(data={}, project_id=project.id)
-        UserReport.objects.create(project_id=project.id, event_id=event1.event_id)
-        event2 = self.store_event(data={}, project_id=project.id)
-        UserReport.objects.create(project_id=project.id, event_id=event2.event_id)
-        event3 = self.store_event(data={}, project_id=project.id)
-        UserReport.objects.create(
-            project_id=project.id, event_id=event3.event_id, date_added=now - timedelta(days=2)
-        )
+        event1, _ = self.create_event_and_report(project.id)
+        event2, _ = self.create_event_and_report(project.id)
+        event3, _ = self.create_event_and_report(project.id, report_dt=now - timedelta(days=2))
 
         with self.tasks():
             update_user_reports(max_events=2)
@@ -37,35 +44,32 @@ class UpdateUserReportTest(TestCase):
         assert report3.group_id is None
         assert report3.environment_id is None
 
-    def test_start_end(self):
+    def test_start_end_reports(self):
+        # The task should only update UserReports added in the given time range.
         now = timezone.now()
+        start = now - timedelta(days=3)
+        end = now - timedelta(days=2)
+        event_dt = start + timedelta(minutes=5)  # an arbitrary time in [start, end]
+
         project = self.create_project()
-        event1 = self.store_event(data={}, project_id=project.id)
-        UserReport.objects.create(
-            project_id=project.id, event_id=event1.event_id, date_added=now - timedelta(days=4)
+        event1, _ = self.create_event_and_report(
+            project.id, event_dt=event_dt, report_dt=start - timedelta(days=1)
         )
-        event2 = self.store_event(data={}, project_id=project.id)
-        UserReport.objects.create(
-            project_id=project.id, event_id=event2.event_id, date_added=now - timedelta(days=3)
+        event2, _ = self.create_event_and_report(project.id, event_dt=event_dt, report_dt=start)
+        event3, _ = self.create_event_and_report(
+            project.id, event_dt=event_dt, report_dt=start + timedelta(days=1)
         )
-        event3 = self.store_event(data={}, project_id=project.id)
-        UserReport.objects.create(
-            project_id=project.id, event_id=event3.event_id, date_added=now - timedelta(days=2)
+        event4, _ = self.create_event_and_report(
+            project.id, event_dt=event_dt, report_dt=end + timedelta(days=1)
         )
-        event4 = self.store_event(data={}, project_id=project.id)
-        UserReport.objects.create(
-            project_id=project.id, event_id=event4.event_id, date_added=now - timedelta(days=1)
-        )
-        event5 = self.store_event(data={}, project_id=project.id)
-        UserReport.objects.create(project_id=project.id, event_id=event5.event_id, date_added=now)
+
         with self.tasks():
-            update_user_reports(start=now - timedelta(days=3), end=now - timedelta(days=2))
+            update_user_reports(start=start, end=end)
 
         report1 = UserReport.objects.get(project_id=project.id, event_id=event1.event_id)
         report2 = UserReport.objects.get(project_id=project.id, event_id=event2.event_id)
         report3 = UserReport.objects.get(project_id=project.id, event_id=event3.event_id)
         report4 = UserReport.objects.get(project_id=project.id, event_id=event4.event_id)
-        report5 = UserReport.objects.get(project_id=project.id, event_id=event5.event_id)
 
         assert report1.group_id is None
         assert report1.environment_id is None
@@ -75,8 +79,48 @@ class UpdateUserReportTest(TestCase):
         assert report3.environment_id == event3.get_environment().id
         assert report4.group_id is None
         assert report4.environment_id is None
-        assert report5.group_id is None
-        assert report5.environment_id is None
+
+    def test_start_end_events(self):
+        # The task should only query associated events from the given time range, or up to 1 day older.
+        event_start_offset = timedelta(days=1)
+
+        now = timezone.now()
+        start = now - timedelta(days=3)
+        end = now - timedelta(days=2)
+        report_dt = start + timedelta(hours=2)  # an arbitrary time in [start, end]
+
+        project = self.create_project()
+        event1, _ = self.create_event_and_report(
+            project.id,
+            event_dt=start - event_start_offset - timedelta(hours=1),
+            report_dt=report_dt,
+        )
+        event2, _ = self.create_event_and_report(
+            project.id, event_dt=start - event_start_offset, report_dt=report_dt
+        )
+        event3, _ = self.create_event_and_report(
+            project.id, event_dt=start + timedelta(hours=1), report_dt=report_dt
+        )
+        event4, _ = self.create_event_and_report(
+            project.id, event_dt=end + timedelta(hours=1), report_dt=report_dt
+        )
+
+        with self.tasks():
+            update_user_reports(start=start, end=end)
+
+        report1 = UserReport.objects.get(project_id=project.id, event_id=event1.event_id)
+        report2 = UserReport.objects.get(project_id=project.id, event_id=event2.event_id)
+        report3 = UserReport.objects.get(project_id=project.id, event_id=event3.event_id)
+        report4 = UserReport.objects.get(project_id=project.id, event_id=event4.event_id)
+
+        assert report1.group_id is None
+        assert report1.environment_id is None
+        assert report2.group_id == event2.group_id
+        assert report2.environment_id == event2.get_environment().id
+        assert report3.group_id == event3.group_id
+        assert report3.environment_id == event3.get_environment().id
+        assert report4.group_id is None
+        assert report4.environment_id is None
 
     @patch("sentry.feedback.usecases.create_feedback.produce_occurrence_to_kafka")
     def test_simple_calls_feedback_shim_if_ff_enabled(self, mock_produce_occurrence_to_kafka):
