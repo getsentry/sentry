@@ -19,13 +19,13 @@ import {useResizableDrawer} from 'sentry/utils/useResizableDrawer';
 
 interface Props {
   leftOffsetMs: number;
-  minHeight: `${number}px` | undefined;
   replay: null | ReplayReader;
   rightOffsetMs: number;
+  minHeight?: `${number}px` | `${number}%`;
 }
 
 export function ReplaySliderDiff({
-  minHeight,
+  minHeight = '0px',
   leftOffsetMs,
   replay,
   rightOffsetMs,

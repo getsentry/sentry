@@ -59,7 +59,6 @@ export default function ReplayDiffChooser({
           </TabPanels.Item>
           <TabPanels.Item key={DiffType.SLIDER}>
             <ReplaySliderDiff
-              minHeight={undefined}
               leftOffsetMs={leftOffsetMs}
               replay={replay}
               rightOffsetMs={rightOffsetMs}
