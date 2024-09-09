@@ -31,7 +31,7 @@ action           = flag_action / var_action
 var_action       = _ var_name _ "=" _ ident
 var_name         = "max-frames" / "min-frames" / "invert-stacktrace" / "category"
 flag_action      = _ range? flag flag_action_name
-flag_action_name = "group" / "app"
+flag_action_name = "group" / "app" / "prefix" / "sentinel"
 flag             = "+" / "-"
 range            = "^" / "v"
 

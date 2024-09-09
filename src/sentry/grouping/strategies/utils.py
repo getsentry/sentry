@@ -1,4 +1,5 @@
 from sentry.grouping.strategies.base import ReturnedVariants
+from sentry.grouping.variants import HIERARCHICAL_VARIANTS
 
 
 def remove_non_stacktrace_variants(variants: ReturnedVariants) -> ReturnedVariants:
@@ -21,7 +22,7 @@ def remove_non_stacktrace_variants(variants: ReturnedVariants) -> ReturnedVarian
         if next(stacktrace_iter, None) is not None:
             any_stacktrace_contributes = True
             stacktrace_variants.add(key)
-        else:
+        elif key not in HIERARCHICAL_VARIANTS:
             non_contributing_components.append(component)
 
     if any_stacktrace_contributes:

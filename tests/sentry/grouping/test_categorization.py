@@ -84,7 +84,7 @@ _CONFIG: StrategyConfiguration | None = None
 def get_config() -> StrategyConfiguration:
     global _CONFIG
     if _CONFIG is None:
-        _CONFIG = load_grouping_config(get_default_grouping_config_dict())
+        _CONFIG = load_grouping_config(get_default_grouping_config_dict("mobile:2021-02-12"))
     return _CONFIG
 
 

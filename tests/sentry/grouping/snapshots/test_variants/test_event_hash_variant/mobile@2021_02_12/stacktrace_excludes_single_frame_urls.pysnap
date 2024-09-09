@@ -1,0 +1,37 @@
+---
+created: '2021-06-30T15:56:05.808197Z'
+creator: sentry
+source: tests/sentry/grouping/test_variants.py
+---
+app-depth-1:
+  hash: "cd2a9fd0cdaa8cd55ed22b101fc65882"
+  component:
+    app-depth-1*
+      stacktrace*
+        frame*
+          module*
+            "<unknown module>"
+          filename (ignored because frame points to a URL)
+            ""
+--------------------------------------------------------------------------
+app-depth-max:
+  hash: "cd2a9fd0cdaa8cd55ed22b101fc65882"
+  component:
+    app-depth-max*
+      stacktrace*
+        frame*
+          module*
+            "<unknown module>"
+          filename (ignored because frame points to a URL)
+            ""
+--------------------------------------------------------------------------
+system:
+  hash: "cd2a9fd0cdaa8cd55ed22b101fc65882"
+  component:
+    system*
+      stacktrace*
+        frame*
+          module*
+            "<unknown module>"
+          filename (ignored because frame points to a URL)
+            ""

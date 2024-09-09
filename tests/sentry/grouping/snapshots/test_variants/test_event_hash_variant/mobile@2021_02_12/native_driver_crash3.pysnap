@@ -1,0 +1,106 @@
+---
+created: '2024-09-05T13:39:11.288703+00:00'
+creator: sentry
+source: tests/sentry/grouping/test_variants.py
+---
+app-depth-1:
+  hash: "3ad3b9f0af034c9a66e5cb59e87e3fe3"
+  component:
+    app-depth-1*
+      exception*
+        stacktrace*
+          frame*
+            function*
+              "NOutermost::CDeviceChild::LUCBeginLayerDestruction"
+        type (ignored because exception is synthetic)
+          "EXCEPTION_ACCESS_VIOLATION_READ"
+        value (ignored because stacktrace takes precedence)
+          "Fatal Error: EXCEPTION_ACCESS_VIOLATION_READ"
+--------------------------------------------------------------------------
+app-depth-2:
+  hash: "da951bd4a520f1803b59bb83feee620e"
+  component:
+    app-depth-2*
+      exception*
+        stacktrace*
+          frame*
+            function*
+              "destructor'"
+          frame*
+            function*
+              "NOutermost::CDeviceChild::LUCBeginLayerDestruction"
+        type (ignored because exception is synthetic)
+          "EXCEPTION_ACCESS_VIOLATION_READ"
+        value (ignored because stacktrace takes precedence)
+          "Fatal Error: EXCEPTION_ACCESS_VIOLATION_READ"
+--------------------------------------------------------------------------
+app-depth-3:
+  hash: "784442a33bd16c15013bb8f69f68e7d6"
+  component:
+    app-depth-3*
+      exception*
+        stacktrace*
+          frame*
+            function*
+              "CUseCountedObject<T>::UCDestroy"
+          frame*
+            function*
+              "destructor'"
+          frame*
+            function*
+              "NOutermost::CDeviceChild::LUCBeginLayerDestruction"
+        type (ignored because exception is synthetic)
+          "EXCEPTION_ACCESS_VIOLATION_READ"
+        value (ignored because stacktrace takes precedence)
+          "Fatal Error: EXCEPTION_ACCESS_VIOLATION_READ"
+--------------------------------------------------------------------------
+app-depth-max:
+  hash: "784442a33bd16c15013bb8f69f68e7d6"
+  component:
+    app-depth-max*
+      exception*
+        stacktrace*
+          frame*
+            function*
+              "CUseCountedObject<T>::UCDestroy"
+          frame*
+            function*
+              "destructor'"
+          frame*
+            function*
+              "NOutermost::CDeviceChild::LUCBeginLayerDestruction"
+        type (ignored because exception is synthetic)
+          "EXCEPTION_ACCESS_VIOLATION_READ"
+        value (ignored because stacktrace takes precedence)
+          "Fatal Error: EXCEPTION_ACCESS_VIOLATION_READ"
+--------------------------------------------------------------------------
+system:
+  hash: "784442a33bd16c15013bb8f69f68e7d6"
+  component:
+    system*
+      exception*
+        stacktrace*
+          frame*
+            function*
+              "CUseCountedObject<T>::UCDestroy"
+          frame*
+            function*
+              "destructor'"
+          frame*
+            function*
+              "NOutermost::CDeviceChild::LUCBeginLayerDestruction"
+          frame (ignored by stack trace rule (category:internals -group))
+            function*
+              "CContext::LUCBeginLayerDestruction"
+          frame (ignored by stack trace rule (category:internals -group))
+            function*
+              "NDXGI::CDevice::DestroyDriverInstance"
+          frame
+          frame (ignored by stack trace rule (category:internals -group))
+            function*
+              "OpenAdapter12"
+          frame (marked as prefix frame by stack trace rule (category:driver +sentinel +prefix))
+        type (ignored because exception is synthetic)
+          "EXCEPTION_ACCESS_VIOLATION_READ"
+        value (ignored because stacktrace takes precedence)
+          "Fatal Error: EXCEPTION_ACCESS_VIOLATION_READ"
