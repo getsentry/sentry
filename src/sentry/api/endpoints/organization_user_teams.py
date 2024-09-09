@@ -1,3 +1,4 @@
+from drf_spectacular.utils import extend_schema
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -7,10 +8,15 @@ from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.team import TeamWithProjectsSerializer
+from sentry.apidocs.constants import RESPONSE_BAD_REQUEST, RESPONSE_FORBIDDEN
+from sentry.apidocs.examples.team_examples import TeamExamples
+from sentry.apidocs.parameters import GlobalParams
+from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.auth.superuser import is_active_superuser
 from sentry.models.team import Team, TeamStatus
 
 
+@extend_schema(tags=["Teams"])
 @region_silo_endpoint
 class OrganizationUserTeamsEndpoint(OrganizationEndpoint):
     publish_status = {
@@ -18,6 +24,19 @@ class OrganizationUserTeamsEndpoint(OrganizationEndpoint):
     }
     owner = ApiOwner.ENTERPRISE
 
+    @extend_schema(
+        operation_id="List an Organization's Teams for user",
+        parameters=[GlobalParams.ORG_ID_OR_SLUG],
+        request=None,
+        responses={
+            200: inline_sentry_response_serializer(
+                "ListOrgTeamResponse", list[TeamWithProjectsSerializer]
+            ),
+            400: RESPONSE_BAD_REQUEST,
+            403: RESPONSE_FORBIDDEN,
+        },
+        examples=TeamExamples.LIST_ORG_TEAMS,
+    )
     def get(self, request: Request, organization) -> Response:
         """
         List your Teams in the Current Organization

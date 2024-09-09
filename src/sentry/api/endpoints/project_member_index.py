@@ -1,4 +1,5 @@
 from django.db.models import Q
+from drf_spectacular.utils import extend_schema
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -7,9 +8,15 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.serializers import serialize
+from sentry.api.serializers.models.organization_member.response import OrganizationMemberResponse
+from sentry.apidocs.constants import RESPONSE_BAD_REQUEST, RESPONSE_FORBIDDEN
+from sentry.apidocs.examples.organization_member_examples import OrganizationMemberExamples
+from sentry.apidocs.parameters import GlobalParams
+from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.models.organizationmember import OrganizationMember
 
 
+@extend_schema(tags=["Projects"])
 @region_silo_endpoint
 class ProjectMemberIndexEndpoint(ProjectEndpoint):
     publish_status = {
@@ -17,6 +24,19 @@ class ProjectMemberIndexEndpoint(ProjectEndpoint):
     }
     owner = ApiOwner.ENTERPRISE
 
+    @extend_schema(
+        operation_id="List an Organization's Members for Project",
+        parameters=[GlobalParams.ORG_ID_OR_SLUG, GlobalParams.PROJECT_ID_OR_SLUG],
+        request=None,
+        responses={
+            200: inline_sentry_response_serializer(
+                "ListOrgMembersResponse", list[OrganizationMemberResponse]
+            ),
+            400: RESPONSE_BAD_REQUEST,
+            403: RESPONSE_FORBIDDEN,
+        },
+        examples=OrganizationMemberExamples.LIST_ORG_MEMBERS,
+    )
     def get(self, request: Request, project) -> Response:
         """
         List your Members in the requested Project
