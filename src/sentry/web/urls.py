@@ -148,16 +148,6 @@ urlpatterns += [
         ErrorPageEmbedView.as_view(),
         name="sentry-error-page-embed",
     ),
-    re_path(
-        r"^organizations/(?P<organization_slug>[^/]+)/toolbar/iframe$",
-        IframeView.as_view(),
-        name="sentry-toolbar-iframe",
-    ),
-    re_path(
-        r"^organizations/(?P<organization_slug>[^/]+)/toolbar/login-success/$",
-        LoginSuccessView.as_view(),
-        name="sentry-toolbar-login-success",
-    ),
     # OAuth
     re_path(
         r"^oauth/",
@@ -1036,6 +1026,17 @@ urlpatterns += [
                     r"^(?P<organization_slug>[\w_-]+)/replays/rage-clicks/$",
                     react_page_view,
                     name="sentry-organization-replay-rage-clicks",
+                ),
+                # Templates + auth for installing dev toolbar on 3rd party sites
+                re_path(
+                    r"^(?P<organization_slug>[^/]+)/toolbar/iframe$",
+                    IframeView.as_view(),
+                    name="sentry-organization-toolbar-iframe",
+                ),
+                re_path(
+                    r"^(?P<organization_slug>[^/]+)/toolbar/login-success/$",
+                    LoginSuccessView.as_view(),
+                    name="sentry-organization-toolbar-login-success",
                 ),
                 re_path(
                     r"^(?P<organization_slug>[\w_-]+)/crons/$",
