@@ -70,7 +70,7 @@ export default function ReplayComparisonModal({
           {isSameTimestamp ? (
             <Alert type="warning" showIcon>
               {t(
-                "Sentry wasn't able to identify the correct event to display a diff for this hydration error."
+                "Cannot display diff for this hydration error. Sentry wasn't able to identify the correct event."
               )}
             </Alert>
           ) : (
