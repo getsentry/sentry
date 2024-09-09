@@ -1,5 +1,9 @@
 import ExternalLink from 'sentry/components/links/externalLink';
-import type {DocsParams} from 'sentry/components/onboarding/gettingStartedDoc/types';
+import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/step';
+import type {
+  DocsParams,
+  OnboardingConfig,
+} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {tct} from 'sentry/locale';
 
 export const getReplayMobileConfigureDescription = ({link}: {link: string}) =>
@@ -32,6 +36,28 @@ export const getReplayJsLoaderSdkSetupSnippet = (params: DocsParams) => `
     });
   });
 </script>`;
+
+export const getReplayVerifyStep = ({
+  replayOnErrorSampleRateName = 'replaysOnErrorSampleRate',
+  replaySessionSampleRateName = 'replaysSessionSampleRate',
+}: {
+  replayOnErrorSampleRateName?: string;
+  replaySessionSampleRateName?: string;
+} = {}): OnboardingConfig['verify'] => {
+  return () => [
+    {
+      type: StepType.VERIFY,
+      description: tct(
+        "While you're testing, we recommend that you set [codeSampleRate] to [code:1.0]. This ensures that every user session will be sent to Sentry.",
+        {codeSampleRate: <code>{replaySessionSampleRateName}</code>, code: <code />}
+      ),
+      additionalInfo: tct(
+        'Once testing is complete, we recommend lowering this value in production. We still recommend keeping [codeErrorSampleRate] set to [code:1.0].',
+        {codeErrorSampleRate: <code>{replayOnErrorSampleRateName}</code>, code: <code />}
+      ),
+    },
+  ];
+};
 
 export const getReplaySDKSetupSnippet = ({
   importStatement,
