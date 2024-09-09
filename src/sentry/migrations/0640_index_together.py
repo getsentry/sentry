@@ -105,11 +105,6 @@ class Migration(CheckedMigration):
             old_fields=("project", "date_added"),
         ),
         migrations.RenameIndex(
-            model_name="incidenttrigger",
-            new_name="sentry_inci_alert_r_33da01_idx",
-            old_fields=("alert_rule_trigger", "incident_id"),
-        ),
-        migrations.RenameIndex(
             model_name="organizationmembermapping",
             new_name="sentry_orga_organiz_ae9fe7_idx",
             old_fields=("organization_id", "user"),
