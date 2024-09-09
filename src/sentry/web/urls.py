@@ -1029,7 +1029,7 @@ urlpatterns += [
                 ),
                 # Templates + auth for installing dev toolbar on 3rd party sites
                 re_path(
-                    r"^(?P<organization_slug>[^/]+)/toolbar/iframe$",
+                    r"^(?P<organization_slug>[^/]+)/toolbar/iframe/$",
                     IframeView.as_view(),
                     name="sentry-organization-toolbar-iframe",
                 ),
