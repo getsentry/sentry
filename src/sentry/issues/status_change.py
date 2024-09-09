@@ -65,6 +65,8 @@ def infer_substatus(
 
             return GroupSubStatus.ONGOING
 
+    return new_substatus
+
 
 def handle_status_update(
     group_list: Sequence[Group],
