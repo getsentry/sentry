@@ -37,8 +37,7 @@ function ListLink({
 }: ListLinkProps) {
   const router = useRouter();
   const location = useLocation();
-  const targetLocation = typeof to === 'string' ? {pathname: to} : to;
-  const target = normalizeUrl(targetLocation);
+  const target = normalizeUrl(to);
 
   const active =
     isActive?.(target, index) ??
