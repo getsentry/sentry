@@ -104,7 +104,7 @@ class ProjectService(RpcService):
 
     @regional_rpc_method(resolve=ByOrganizationId())
     @abstractmethod
-    def get_flags(organization_id: int, project_id: id) -> RpcProjectFlags:
+    def get_flags(self, organization_id: int, project_id: id) -> RpcProjectFlags:
         pass
 
 
