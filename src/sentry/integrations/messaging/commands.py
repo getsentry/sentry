@@ -1,3 +1,4 @@
+import itertools
 from abc import ABC, abstractmethod
 from collections.abc import Callable, Iterable
 from dataclasses import dataclass
@@ -29,11 +30,14 @@ class MessagingIntegrationCommand:
     aliases: tuple[str, ...] = ()
 
     def does_match(self, cmd_input: CommandInput) -> bool:
-        command_matches = (cmd_input.cmd_value == self.cmd_token) or (
-            cmd_input.cmd_value in self.aliases
+        command_matches = any(
+            cmd_input.cmd_value.casefold() == token.casefold()
+            for token in itertools.chain((self.cmd_token,), self.aliases)
         )
-        arg_prefix = tuple(cmd_input.arg_values)[: len(self.arg_tokens)]
-        arg_prefix_matches = arg_prefix == self.arg_tokens
+
+        arg_prefix = [token.casefold() for token in cmd_input.arg_values[: len(self.arg_tokens)]]
+        arg_prefix_matches = arg_prefix == [token.casefold() for token in self.arg_tokens]
+
         return command_matches and arg_prefix_matches
 
 
