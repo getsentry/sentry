@@ -1,4 +1,7 @@
-export const ALERTS = {
+import {t} from 'sentry/locale';
+import type {AlertConfig} from 'sentry/views/insights/common/components/chartPanel';
+
+export const ALERTS: Record<string, AlertConfig> = {
   missRate: {
     aggregate: 'cache_miss_rate()',
     query: 'span.op:[cache.get_item,cache.get]',
@@ -9,5 +12,6 @@ export const ALERTS = {
   },
   duration: {
     aggregate: 'avg(transaction.duration)',
+    name: t('Create Average Duration Alert'),
   },
 };
