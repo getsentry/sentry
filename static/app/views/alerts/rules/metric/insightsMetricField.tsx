@@ -53,7 +53,7 @@ const OPERATIONS = [
 ];
 
 function aggregateRequiresArgs(aggregation?: string) {
-  return aggregation !== 'spm';
+  return !['spm', 'cache_miss_rate'].includes(aggregation ?? '');
 }
 
 function InsightsMetricField({aggregate, project, onChange}: Props) {
