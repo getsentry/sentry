@@ -103,14 +103,4 @@ class Migration(CheckedMigration):
             new_name="sentry_rele_organiz_291018_idx",
             old_fields=("organization_id", "release_name", "dist_name", "artifact_bundle"),
         ),
-        migrations.RenameIndex(
-            model_name="releaseprojectenvironment",
-            new_name="sentry_rele_project_922a6a_idx",
-            old_fields=("project", "unadopted", "environment"),
-        ),
-        migrations.RenameIndex(
-            model_name="releaseprojectenvironment",
-            new_name="sentry_rele_project_4bea8e_idx",
-            old_fields=("project", "adopted", "environment"),
-        ),
     ]
