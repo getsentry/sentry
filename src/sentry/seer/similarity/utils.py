@@ -4,6 +4,7 @@ from typing import Any, TypeVar
 from sentry import options
 from sentry.eventstore.models import Event
 from sentry.killswitches import killswitch_matches_context
+from sentry.models.project import Project
 from sentry.utils import metrics
 from sentry.utils.safe import get_path
 
@@ -265,3 +266,16 @@ def _is_snipped_context_line(context_line: str) -> bool:
     # is only added in the JS processor. See
     # https://github.com/getsentry/sentry/blob/d077a5bb7e13a5927794b35d9ae667a4f181feb7/src/sentry/lang/javascript/utils.py#L72-L77.
     return context_line.startswith("{snip}") or context_line.endswith("{snip}")
+
+
+def project_is_seer_eligible(project: Project) -> bool:
+    """
+    Return True if the project hasn't already been backfilled, is a Seer-eligible platform, and
+    the feature is enabled in the region.
+    """
+    # TODO: use this check in team_projects
+    is_backfill_completed = project.get_option("sentry:similarity_backfill_completed")
+    is_seer_eligible_platform = project.platform in SEER_ELIGIBLE_PLATFORMS
+    is_region_enabled = options.get("similarity.new_project_seer_grouping.enabled")
+
+    return not is_backfill_completed and is_seer_eligible_platform and is_region_enabled

@@ -2661,6 +2661,11 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(
+    "similarity.backfill_project_cohort_size",
+    default=1000,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
     "similarity.new_project_seer_grouping.enabled",
     default=False,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
