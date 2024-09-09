@@ -156,16 +156,16 @@ function TraceDataSection({
 
   useEffect(() => {
     if (isError) {
-      trackAnalytics('feedback.trace_section.error', {organization});
+      trackAnalytics('feedback.trace-section.error', {organization});
     } else if (!isLoading) {
       if (traceEvents.length > 1) {
-        trackAnalytics('feedback.trace_section.loaded', {
+        trackAnalytics('feedback.trace-section.loaded', {
           numEvents: traceEvents.length - 1,
           organization,
         });
       }
       if (hasProject && !!crashReportId && oneOtherIssueEvent?.id === crashReportId) {
-        trackAnalytics('feedback.trace_section.crash_report_dup', {organization});
+        trackAnalytics('feedback.trace-section.crash-report-dup', {organization});
       }
     }
   }, [
