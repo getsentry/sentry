@@ -25,6 +25,7 @@ coverage:
     - src/social_auth/
     - static/app/routes.tsx
     - static/app/**/*.stories.tsx
+    - static/app/**/__stories__/
     - tests/
 
 component_management:
