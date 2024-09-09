@@ -230,7 +230,10 @@ function isServerRequestHandlerTransactionNode(
 }
 
 function isBrowserRequestSpan(value: TraceTree.Span): boolean {
-  return value.op === 'browser' && value.description === 'request';
+  return (
+    value.op === 'browser' &&
+    (value.description === 'request' || value.description === 'browser.request')
+  );
 }
 
 function getPageloadTransactionChildCount(
