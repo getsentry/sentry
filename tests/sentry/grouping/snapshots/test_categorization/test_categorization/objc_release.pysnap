@@ -1,5 +1,5 @@
 ---
-created: '2021-07-26T19:20:01.901302Z'
+created: '2024-09-06T16:28:16.377463+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_categorization.py
 ---
@@ -15,7 +15,7 @@ EXC_BAD_ACCESS:Exception 1, Code 913472160, Subcode 8 (thread_id:_, crashed:_)
                               CoreFoundation  __CFRunLoopRun category=internals
                               CoreFoundation  __CFRUNLOOP_IS_SERVICING_THE_MAIN_DISPATCH_QUEUE__ category=internals
                            libdispatch.dylib  _dispatch_main_queue_callback_4CF$VARIANT$mp category=internals
-                           libdispatch.dylib  _dispatch_client_callout category=threadbase
+                           libdispatch.dylib  _dispatch_client_callout category=internals
                            libdispatch.dylib  _dispatch_call_block_and_release category=internals
                                               __swift_project_boxed_opaque_existential_1 category=internals
                                               block_destroy_helper category=internals

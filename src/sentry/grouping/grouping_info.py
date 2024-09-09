@@ -15,7 +15,7 @@ logger = logging.getLogger(__name__)
 def get_grouping_info(
     config_name: str | None, project: Project, event: Event | GroupEvent
 ) -> dict[str, dict[str, Any]]:
-    # We always fetch the stored hashes here.  The reason for this is
+    # We always fetch the stored hashes here. The reason for this is
     # that we want to show in the UI if the forced grouping algorithm
     # produced hashes that would normally also appear in the event.
     hashes = event.get_hashes()
@@ -50,9 +50,7 @@ def get_grouping_info(
     # that we recalculate hashes/variants on the fly since we don't store the variants as part of
     # event data. If the grouping config has been changed since the event was ingested, we may get
     # different hashes here than the ones stored on the event.
-    _check_for_mismatched_hashes(
-        event, project, grouping_info, hashes.hashes, hashes.hierarchical_hashes
-    )
+    _check_for_mismatched_hashes(event, project, grouping_info, hashes.hashes)
 
     return grouping_info
 
@@ -62,11 +60,9 @@ def _check_for_mismatched_hashes(
     project: Project,
     grouping_info: dict[str, dict[str, Any]],
     hashes: list[str],
-    hierarchical_hashes: list[str],
 ) -> None:
     """
-    Given a dictionary of variant data, check each variant's hash value to make sure it is one of
-    the known values from either `hashes` or `hierarchical_hashes`.
+    Given a dictionary of variant data, check each variant's hash value to make sure it is `hashes`.
 
     The result is stored with each variant and recorded as a metric.
     """
@@ -74,10 +70,11 @@ def _check_for_mismatched_hashes(
     for variant_dict in grouping_info.values():
         hash_value = variant_dict["hash"]
 
+        # Since the hashes are generated on the fly and might no
+        # longer match the stored ones we indicate if the hash
+        # generation caused the hash to mismatch.
         variant_dict["hashMismatch"] = hash_mismatch = (
-            hash_value is not None
-            and hash_value not in hashes
-            and hash_value not in hierarchical_hashes
+            hash_value is not None and hash_value not in hashes
         )
 
         if hash_mismatch:

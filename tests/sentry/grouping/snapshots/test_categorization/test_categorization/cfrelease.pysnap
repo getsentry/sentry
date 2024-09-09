@@ -1,5 +1,5 @@
 ---
-created: '2021-08-02T11:09:20.944919Z'
+created: '2024-09-06T16:28:15.877156+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_categorization.py
 ---
@@ -12,7 +12,7 @@ Attempted to dereference garbage pointer 0x1fef9f0. (thread_id:_, crashed:_)
                            libdispatch.dylib  _dispatch_root_queue_drain category=internals
                            libdispatch.dylib  _dispatch_async_redirect_invoke category=internals
                            libdispatch.dylib  _dispatch_continuation_pop$VARIANT$mp category=internals
-                           libdispatch.dylib  _dispatch_client_callout category=threadbase
+                           libdispatch.dylib  _dispatch_client_callout category=internals
                            libdispatch.dylib  _dispatch_block_async_invoke2 category=internals
                                   Foundation  __NSOQSchedule_f category=internals
                                   Foundation  __NSOPERATIONQUEUE_IS_STARTING_AN_OPERATION__ category=internals
