@@ -1906,18 +1906,13 @@ def get_slack_channel_ids(organization, user, data):
     mapped_slack_channels = {}
     for action in slack_actions:
         if not action["target_identifier"] in mapped_slack_channels:
-            (
-                mapped_slack_channels[action["target_identifier"]],
-                _,
-            ) = get_target_identifier_display_for_integration(
+            target = get_target_identifier_display_for_integration(
                 action["type"].value,
                 action["target_identifier"],
                 organization,
                 action["integration_id"],
-                use_async_lookup=True,
-                input_channel_id=None,
-                integrations=None,
             )
+            mapped_slack_channels[action["target_identifier"]] = target.identifier
     return mapped_slack_channels
 
 
