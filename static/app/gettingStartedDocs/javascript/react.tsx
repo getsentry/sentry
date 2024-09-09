@@ -23,6 +23,7 @@ import {
 import {
   getReplayConfigOptions,
   getReplayConfigureDescription,
+  getReplayVerifyStep,
 } from 'sentry/components/onboarding/gettingStartedDoc/utils/replayOnboarding';
 import {t, tct} from 'sentry/locale';
 
@@ -91,9 +92,9 @@ const root = createRoot(container);
 root.render(<App />);
 `;
 
-const getVerifyReactSnippet = () => `
+const getVerifySnippet = () => `
 return <button onClick={() => methodDoesNotExist()}>Break the world</button>;
-        `;
+`;
 
 const getInstallConfig = () => [
   {
@@ -121,11 +122,8 @@ const onboarding: OnboardingConfig = {
     {
       type: StepType.INSTALL,
       description: tct(
-        'Add the Sentry SDK as a dependency using [codeNpm:npm] or [codeYarn:yarn]:',
-        {
-          codeYarn: <code />,
-          codeNpm: <code />,
-        }
+        'Add the Sentry SDK as a dependency using [code:npm] or [code:yarn]:',
+        {code: <code />}
       ),
       configurations: getInstallConfig(),
     },
@@ -169,7 +167,7 @@ const onboarding: OnboardingConfig = {
               label: 'React',
               value: 'react',
               language: 'javascript',
-              code: getVerifyReactSnippet(),
+              code: getVerifySnippet(),
             },
           ],
         },
@@ -215,12 +213,8 @@ const replayOnboarding: OnboardingConfig = {
     {
       type: StepType.INSTALL,
       description: tct(
-        'Add the Sentry SDK as a dependency using [codeNpm:npm] or [codeYarn:yarn]. You need a minimum version 7.27.0 of [code:@sentry/react] in order to use Session Replay. You do not need to install any additional packages.',
-        {
-          code: <code />,
-          codeYarn: <code />,
-          codeNpm: <code />,
-        }
+        'Add the Sentry SDK as a dependency using [code:npm] or [code:yarn]. You need a minimum version 7.27.0 of [code:@sentry/react] in order to use Session Replay. You do not need to install any additional packages.',
+        {code: <code />}
       ),
       configurations: getInstallConfig(),
     },
@@ -246,7 +240,7 @@ const replayOnboarding: OnboardingConfig = {
       ],
     },
   ],
-  verify: () => [],
+  verify: getReplayVerifyStep(),
   nextSteps: () => [],
 };
 
