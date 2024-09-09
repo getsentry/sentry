@@ -51,9 +51,11 @@ class Migration(CheckedMigration):
             name="releaseartifactbundle",
             unique_together=set(),
         ),
-        migrations.AlterIndexTogether(
-            name="artifactbundleindex",
-            index_together={("url", "artifact_bundle")},
+        migrations.AddIndex(
+            model_name="artifactbundleindex",
+            index=models.Index(
+                fields=["url", "artifact_bundle"], name="sentry_arti_url_7e628a_idx"
+            ),
         ),
         migrations.AddIndex(
             model_name="debugidartifactbundle",
