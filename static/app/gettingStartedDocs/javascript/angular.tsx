@@ -26,6 +26,7 @@ import {
 import {
   getReplayConfigOptions,
   getReplayConfigureDescription,
+  getReplayVerifyStep,
 } from 'sentry/components/onboarding/gettingStartedDoc/utils/replayOnboarding';
 import {ProductSolution} from 'sentry/components/onboarding/productSelection';
 import {t, tct} from 'sentry/locale';
@@ -356,19 +357,7 @@ const replayOnboarding: OnboardingConfig = {
       additionalInfo: <TracePropagationMessage />,
     },
   ],
-  verify: () => [
-    {
-      type: StepType.VERIFY,
-      configurations: [
-        getVerifyConfiguration(),
-        {
-          description: t(
-            'After clicking the button, wait a few moments, and you\'ll see a new session appear on the "Replays" page.'
-          ),
-        },
-      ],
-    },
-  ],
+  verify: getReplayVerifyStep(),
   nextSteps: () => [],
 };
 

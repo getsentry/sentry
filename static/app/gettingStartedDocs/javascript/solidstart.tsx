@@ -23,6 +23,7 @@ import {
 import {
   getReplayConfigOptions,
   getReplayConfigureDescription,
+  getReplayVerifyStep,
 } from 'sentry/components/onboarding/gettingStartedDoc/utils/replayOnboarding';
 import {t, tct} from 'sentry/locale';
 
@@ -153,7 +154,7 @@ const getSdkRun = () => `
 }
 `;
 
-const getVerifySolidSnippet = () => `
+const getVerifySnippet = () => `
 <button
   type="button"
   onClick={() => {
@@ -337,7 +338,7 @@ const onboarding: OnboardingConfig = {
               label: 'JavaScript',
               value: 'javascript',
               language: 'javascript',
-              code: getVerifySolidSnippet(),
+              code: getVerifySnippet(),
             },
           ],
         },
@@ -404,7 +405,7 @@ const replayOnboarding: OnboardingConfig = {
       ],
     },
   ],
-  verify: () => [],
+  verify: getReplayVerifyStep(),
   nextSteps: () => [],
 };
 
