@@ -25,6 +25,7 @@ import sentry.db.models.fields.onetoone
 import sentry.db.models.fields.picklefield
 import sentry.db.models.fields.text
 import sentry.db.models.fields.uuid
+import sentry.db.models.indexes
 import sentry.models.apiapplication
 import sentry.models.apigrant
 import sentry.models.apitoken
@@ -6956,105 +6957,73 @@ class Migration(CheckedMigration):
             name="revision",
             field=models.BigIntegerField(null=True),
         ),
-        migrations.SeparateDatabaseAndState(
-            database_operations=[
-                migrations.RunSQL(
-                    sql='\n                    CREATE INDEX CONCURRENTLY IF NOT EXISTS "sentry_release_organization_id_major_mi_38715957_idx"\n                    ON "sentry_release" ("organization_id", "major" DESC, "minor" DESC, "patch" DESC, "revision" DESC);\n                    ',
-                    reverse_sql="DROP INDEX CONCURRENTLY IF EXISTS sentry_release_organization_id_major_mi_38715957_idx",
-                    hints={"tables": ["sentry_release"]},
-                ),
-                migrations.RunSQL(
-                    sql='\n                    CREATE INDEX CONCURRENTLY IF NOT EXISTS "sentry_release_organization_id_build_code_f93815e5_idx" ON "sentry_release" ("organization_id", "build_code");\n                    ',
-                    reverse_sql="DROP INDEX CONCURRENTLY IF EXISTS sentry_release_organization_id_build_code_f93815e5_idx",
-                    hints={"tables": ["sentry_release"]},
-                ),
-                migrations.RunSQL(
-                    sql='\n                    CREATE INDEX CONCURRENTLY IF NOT EXISTS "sentry_release_organization_id_build_number_e1646551_idx" ON "sentry_release" ("organization_id", "build_number");\n                    ',
-                    reverse_sql="DROP INDEX CONCURRENTLY IF EXISTS sentry_release_organization_id_build_number_e1646551_idx",
-                    hints={"tables": ["sentry_release"]},
-                ),
-            ],
-            state_operations=[
-                migrations.AlterIndexTogether(
-                    name="release",
-                    index_together={
-                        ("organization", "major", "minor", "patch", "revision"),
-                        ("organization", "build_number"),
-                        ("organization", "build_code"),
-                    },
-                ),
-            ],
-        ),
-        migrations.SeparateDatabaseAndState(
-            database_operations=[
-                migrations.RunSQL(
-                    sql='\n                    CREATE INDEX CONCURRENTLY IF NOT EXISTS "sentry_release_organization_id_status_3c637259_idx" ON "sentry_release" ("organization_id", "status");\n                    ',
-                    reverse_sql="DROP INDEX CONCURRENTLY IF EXISTS sentry_release_organization_id_status_3c637259_idx",
-                    hints={"tables": ["sentry_release"]},
-                ),
-                migrations.RunSQL(
-                    sql='\n                    CREATE INDEX CONCURRENTLY IF NOT EXISTS "sentry_release_organization_id_date_added_8ebd273a_idx" ON "sentry_release" ("organization_id", "date_added");\n                    ',
-                    reverse_sql="DROP INDEX CONCURRENTLY IF EXISTS sentry_release_organization_id_date_added_8ebd273a_idx",
-                    hints={"tables": ["sentry_release"]},
-                ),
-            ],
-            state_operations=[
-                migrations.AlterIndexTogether(
-                    name="release",
-                    index_together={
-                        ("organization", "build_number"),
-                        ("organization", "date_added"),
-                        ("organization", "major", "minor", "patch", "revision"),
-                        ("organization", "build_code"),
-                        ("organization", "status"),
-                    },
-                ),
-            ],
-        ),
         migrations.AddField(
             model_name="release",
             name="package",
             field=models.TextField(null=True),
         ),
-        migrations.SeparateDatabaseAndState(
-            database_operations=[
-                migrations.RunSQL(
-                    sql='\n                    DROP INDEX CONCURRENTLY IF EXISTS "sentry_release_organization_id_major_mi_38715957_idx";\n                    ',
-                    reverse_sql='\n                    CREATE INDEX CONCURRENTLY IF NOT EXISTS "sentry_release_organization_id_major_mi_38715957_idx"\n                    ON "sentry_release" ("organization_id", "major" DESC, "minor" DESC, "patch" DESC, "revision" DESC);\n                    ',
-                    hints={"tables": ["sentry_release"]},
+        migrations.AddIndex(
+            model_name="release",
+            index=models.Index(
+                fields=["organization", "version"],
+                name="sentry_release_version_btree",
+                opclasses=["", "text_pattern_ops"],
+            ),
+        ),
+        migrations.AddIndex(
+            model_name="release",
+            index=sentry.db.models.indexes.IndexWithPostgresNameLimits(
+                models.F("organization"),
+                models.F("package"),
+                models.OrderBy(models.F("major"), descending=True),
+                models.OrderBy(models.F("minor"), descending=True),
+                models.OrderBy(models.F("patch"), descending=True),
+                models.OrderBy(models.F("revision"), descending=True),
+                models.OrderBy(
+                    models.Case(models.When(prerelease="", then=1), default=0), descending=True
                 ),
-                migrations.RunSQL(
-                    sql='\n                    CREATE INDEX CONCURRENTLY IF NOT EXISTS "sentry_release_semver_idx"\n                    ON "sentry_release" (\n                    "organization_id",\n                    "major" DESC,\n                    "minor" DESC,\n                    "patch" DESC,\n                    "revision" DESC,\n                    (CASE\n                        WHEN prerelease = \'\'::text THEN 1\n                        ELSE 0\n                    END) DESC,\n                    prerelease DESC);\n                    ',
-                    reverse_sql="DROP INDEX CONCURRENTLY IF EXISTS sentry_release_semver_idx",
-                    hints={"tables": ["sentry_release"]},
+                models.OrderBy(models.F("prerelease"), descending=True),
+                name="sentry_release_semver_by_package_idx",
+            ),
+        ),
+        migrations.AddIndex(
+            model_name="release",
+            index=models.Index(
+                models.F("organization"),
+                models.OrderBy(models.F("major"), descending=True),
+                models.OrderBy(models.F("minor"), descending=True),
+                models.OrderBy(models.F("patch"), descending=True),
+                models.OrderBy(models.F("revision"), descending=True),
+                models.OrderBy(
+                    models.Case(models.When(prerelease="", then=1), default=0), descending=True
                 ),
-                migrations.RunSQL(
-                    sql='\n                    CREATE INDEX CONCURRENTLY IF NOT EXISTS "sentry_release_semver_by_package_idx"\n                    ON "sentry_release" (\n                    "organization_id",\n                    "package",\n                    "major" DESC,\n                    "minor" DESC,\n                    "patch" DESC,\n                    "revision" DESC,\n                    (CASE\n                        WHEN prerelease = \'\'::text THEN 1\n                        ELSE 0\n                    END) DESC,\n                    prerelease DESC);\n                    ',
-                    reverse_sql="DROP INDEX CONCURRENTLY IF EXISTS sentry_release_semver_by_package_idx",
-                    hints={"tables": ["sentry_release"]},
-                ),
-            ],
-            state_operations=[
-                migrations.AlterIndexTogether(
-                    name="release",
-                    index_together={
-                        ("organization", "build_number"),
-                        ("organization", "date_added"),
-                        ("organization", "major", "minor", "patch", "revision", "prerelease"),
-                        ("organization", "build_code"),
-                        (
-                            "organization",
-                            "package",
-                            "major",
-                            "minor",
-                            "patch",
-                            "revision",
-                            "prerelease",
-                        ),
-                        ("organization", "status"),
-                    },
-                ),
-            ],
+                models.OrderBy(models.F("prerelease"), descending=True),
+                name="sentry_release_semver_idx",
+            ),
+        ),
+        migrations.AddIndex(
+            model_name="release",
+            index=models.Index(
+                fields=["organization", "build_code"], name="sentry_rele_organiz_ffeeb2_idx"
+            ),
+        ),
+        migrations.AddIndex(
+            model_name="release",
+            index=models.Index(
+                fields=["organization", "build_number"], name="sentry_rele_organiz_6b035f_idx"
+            ),
+        ),
+        migrations.AddIndex(
+            model_name="release",
+            index=models.Index(
+                fields=["organization", "date_added"], name="sentry_rele_organiz_4ed947_idx"
+            ),
+        ),
+        migrations.AddIndex(
+            model_name="release",
+            index=models.Index(
+                fields=["organization", "status"], name="sentry_rele_organiz_6975e7_idx"
+            ),
         ),
         migrations.RunSQL(
             sql='\n            CREATE INDEX CONCURRENTLY IF NOT EXISTS "sentry_organization_slug_upper_idx"\n            ON "sentry_organization" (UPPER(("slug"::text)));\n            ',
@@ -7989,14 +7958,6 @@ class Migration(CheckedMigration):
             model_name="dashboardwidget",
             name="detail",
             field=sentry.db.models.fields.jsonfield.JSONField(null=True),
-        ),
-        migrations.AddIndex(
-            model_name="release",
-            index=models.Index(
-                fields=["organization", "version"],
-                name="sentry_release_version_btree",
-                opclasses=["", "text_pattern_ops"],
-            ),
         ),
         migrations.SeparateDatabaseAndState(
             database_operations=[
