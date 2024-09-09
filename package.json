@@ -179,7 +179,7 @@
   },
   "devDependencies": {
     "@biomejs/biome": "^1.8.3",
-    "@codecov/webpack-plugin": "^0.0.1-beta.10",
+    "@codecov/webpack-plugin": "^1.0.0",
     "@pmmmwh/react-refresh-webpack-plugin": "0.5.15",
     "@sentry/jest-environment": "6.0.0",
     "@sentry/profiling-node": "^8.28.0",
