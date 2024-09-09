@@ -29,7 +29,7 @@ class Migration(CheckedMigration):
             """
             DROP TABLE "sentry_spanattributeextractionrulecondition";
             """,
-            reverse_sql="CREATE TABLE sentry_spanattributeextractionruleconfig (fake_col int)",
+            reverse_sql="CREATE TABLE sentry_spanattributeextractionrulecondition (fake_col int)",
             # We just create a fake table here so that the DROP will work if we roll back the migration.
         ),
         migrations.RunSQL(
