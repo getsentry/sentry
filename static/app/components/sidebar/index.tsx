@@ -55,6 +55,7 @@ import useProjects from 'sentry/utils/useProjects';
 import {useModuleURLBuilder} from 'sentry/views/insights/common/utils/useModuleURL';
 import {MODULE_SIDEBAR_TITLE as HTTP_MODULE_SIDEBAR_TITLE} from 'sentry/views/insights/http/settings';
 import {MODULE_TITLES} from 'sentry/views/insights/settings';
+import {getIssueCategoryFilter, IssueCategory} from 'sentry/views/issueList/utils';
 import MetricsOnboardingSidebar from 'sentry/views/metrics/ddmOnboarding/sidebar';
 
 import {ProfilingOnboardingSidebar} from '../profiling/profilingOnboardingSidebar';
@@ -151,12 +152,13 @@ function Sidebar() {
   useOpenOnboardingSidebar();
 
   const toggleCollapse = useCallback(() => {
+    if (hasNewNav) return;
     if (collapsed) {
       showSidebar();
     } else {
       hideSidebar();
     }
-  }, [collapsed]);
+  }, [collapsed, hasNewNav]);
 
   // Close panel on any navigation
   useEffect(() => void hidePanel(), [location?.pathname]);
@@ -222,67 +224,82 @@ function Sidebar() {
     />
   );
 
-  const issues = hasOrganization && (
-    <SubnavMenu
+  let issues = hasOrganization && (
+    <SidebarItem
       {...sidebarItemProps}
       icon={<IconIssues />}
       label={<GuideAnchor target="issues">{t('Issues')}</GuideAnchor>}
       to={`/organizations/${organization.slug}/issues/`}
       search="?referrer=sidebar"
       id="issues"
-      hasNewNav={hasNewNav}
-    >
-      <SidebarItem
+    />
+  );
+  if (hasNewNav && hasOrganization) {
+    issues = (
+      <SubnavMenu
         {...sidebarItemProps}
         icon={<IconIssues />}
-        label={<GuideAnchor target="issues">{t('All')}</GuideAnchor>}
+        label={<GuideAnchor target="issues">{t('Issues')}</GuideAnchor>}
         to={`/organizations/${organization.slug}/issues/`}
         search="?referrer=sidebar"
         id="issues"
-        hasNewNav={hasNewNav}
-      />
-      <SidebarItem
-        {...sidebarItemProps}
-        icon={<IconIssues />}
-        label={<GuideAnchor target="issues">{t('Errors & Outages')}</GuideAnchor>}
-        to={`/organizations/${organization.slug}/issues/`}
-        id="errors-outages"
-        hasNewNav={hasNewNav}
-      />
-      <SidebarItem
-        {...sidebarItemProps}
-        icon={<IconIssues />}
-        label={<GuideAnchor target="issues">{t('Trends')}</GuideAnchor>}
-        to={`/organizations/${organization.slug}/issues/`}
-        id="trends"
-        hasNewNav={hasNewNav}
-      />
-      <SidebarItem
-        {...sidebarItemProps}
-        icon={<IconIssues />}
-        label={<GuideAnchor target="issues">{t('Craftsmanship')}</GuideAnchor>}
-        to={`/organizations/${organization.slug}/issues/`}
-        id="craftsmanship"
-        hasNewNav={hasNewNav}
-      />
-      <SidebarItem
-        {...sidebarItemProps}
-        icon={<IconIssues />}
-        label={<GuideAnchor target="issues">{t('Security')}</GuideAnchor>}
-        to={`/organizations/${organization.slug}/issues/`}
-        id="security"
-        hasNewNav={hasNewNav}
-      />
-      <SidebarItem
-        {...sidebarItemProps}
-        icon={<IconMegaphone />}
-        label={t('Feedback')}
-        variant="short"
-        to={`/organizations/${organization.slug}/feedback/`}
-        id="feedback"
-      />
-    </SubnavMenu>
-  );
+      >
+        <SidebarItem
+          {...sidebarItemProps}
+          icon={<IconIssues />}
+          label={<GuideAnchor target="issues">{t('All')}</GuideAnchor>}
+          to={`/organizations/${organization.slug}/issues/`}
+          search="?referrer=sidebar"
+          id="issues"
+          hasNewNav={hasNewNav}
+        />
+        <SidebarItem
+          {...sidebarItemProps}
+          icon={<IconIssues />}
+          label={<GuideAnchor target="issues">{t('Errors & Outages')}</GuideAnchor>}
+          to={`/organizations/${organization.slug}/issues/`}
+          search={`query=${getIssueCategoryFilter(IssueCategory.ERRORS_OUTAGES)}`}
+          id="errors-outages"
+          hasNewNav={hasNewNav}
+        />
+        <SidebarItem
+          {...sidebarItemProps}
+          icon={<IconIssues />}
+          label={<GuideAnchor target="issues">{t('Trends')}</GuideAnchor>}
+          to={`/organizations/${organization.slug}/issues/`}
+          search={`query=${getIssueCategoryFilter(IssueCategory.TRENDS)}`}
+          id="trends"
+          hasNewNav={hasNewNav}
+        />
+        <SidebarItem
+          {...sidebarItemProps}
+          icon={<IconIssues />}
+          label={<GuideAnchor target="issues">{t('Craftsmanship')}</GuideAnchor>}
+          to={`/organizations/${organization.slug}/issues/`}
+          search={`query=${getIssueCategoryFilter(IssueCategory.CRAFTSMANSHIP)}`}
+          id="craftsmanship"
+          hasNewNav={hasNewNav}
+        />
+        <SidebarItem
+          {...sidebarItemProps}
+          icon={<IconIssues />}
+          label={<GuideAnchor target="issues">{t('Security')}</GuideAnchor>}
+          to={`/organizations/${organization.slug}/issues/`}
+          search={`query=${getIssueCategoryFilter(IssueCategory.SECURITY)}`}
+          id="security"
+          hasNewNav={hasNewNav}
+        />
+        <SidebarItem
+          {...sidebarItemProps}
+          icon={<IconMegaphone />}
+          label={t('Feedback')}
+          variant="short"
+          to={`/organizations/${organization.slug}/feedback/`}
+          id="feedback"
+        />
+      </SubnavMenu>
+    );
+  }
 
   const discover2 = hasOrganization && (
     <Feature
@@ -595,7 +612,7 @@ function Sidebar() {
         {...sidebarItemProps}
         index
         icon={<IconDashboard />}
-        label={hasNewNav ? 'Boards' : t('Dashboards')}
+        label={hasNewNav ? t('Boards') : t('Dashboards')}
         to={`/organizations/${organization.slug}/dashboards/`}
         id="customizable-dashboards"
       />
@@ -683,27 +700,6 @@ function Sidebar() {
       {discover2}
     </SubnavMenu>
   );
-
-  // if (hasOrganization && hasNewNav) {
-  //   insights = (
-  //     <SidebarItem
-  //       {...sidebarItemProps}
-  //       icon={<IconGraph />}
-  //       label={<GuideAnchor target="insights">{t('Insights')}</GuideAnchor>}
-  //       to={`/organizations/${organization.slug}/${moduleURLBuilder('http')}/`}
-  //       id="insights"
-  //     />
-  //   );
-  //   explore = (
-  //     <SidebarItem
-  //       {...sidebarItemProps}
-  //       icon={<IconSearch />}
-  //       label={<GuideAnchor target="explore">{t('Explore')}</GuideAnchor>}
-  //       to={`/organizations/${organization.slug}/traces/`}
-  //       id="explore"
-  //     />
-  //   );
-  // }
 
   return (
     <SidebarWrapper>

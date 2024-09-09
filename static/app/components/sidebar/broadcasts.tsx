@@ -116,7 +116,8 @@ class Broadcasts extends Component<Props, State> {
   }
 
   render() {
-    const {orientation, collapsed, currentPanel, hidePanel, organization, hasNewNav} = this.props;
+    const {orientation, collapsed, currentPanel, hidePanel, organization, hasNewNav} =
+      this.props;
     const {broadcasts, loading} = this.state;
 
     const unseenPosts = this.unseenIds;

@@ -217,3 +217,28 @@ export const FOR_REVIEW_QUERIES: string[] = [Query.FOR_REVIEW];
 
 export const SAVED_SEARCHES_SIDEBAR_OPEN_LOCALSTORAGE_KEY =
   'issue-stream-saved-searches-sidebar-open';
+
+export enum IssueCategory {
+  ALL = 'all',
+  ERRORS_OUTAGES = 'errors_outages',
+  TRENDS = 'trends',
+  CRAFTSMANSHIP = 'craftsmanship',
+  SECURITY = 'security',
+}
+
+const IssueCategoryFilter: Record<IssueCategory, string> = {
+  [IssueCategory.ALL]: '',
+  [IssueCategory.ERRORS_OUTAGES]: 'issue.category:[error,cron,uptime]',
+  [IssueCategory.TRENDS]:
+    'issue.type:[profile_function_regression,performance_p95_endpoint_regression,performance_n_plus_one_db_queries]',
+  [IssueCategory.CRAFTSMANSHIP]:
+    'issue.category:replay issue.type:[performance_n_plus_one_db_queries,performance_n_plus_one_api_calls,performance_consecutive_db_queries,performance_render_blocking_asset_span,performance_uncompressed_assets,profile_file_io_main_thread,profile_image_decode_main_thread,profile_json_decode_main_thread,profile_regex_main_thread]',
+  [IssueCategory.SECURITY]: 'event.type:[nel,csp]',
+};
+
+export function getIssueCategoryFilter(category: IssueCategory): string {
+  if (!Object.hasOwn(IssueCategoryFilter, category)) {
+    throw new Error(`Unknown issue category "${category}"`);
+  }
+  return IssueCategoryFilter[category];
+}
