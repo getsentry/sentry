@@ -29,6 +29,7 @@ import {EventTagsAndScreenshot} from 'sentry/components/events/eventTagsAndScree
 import {ScreenshotDataSection} from 'sentry/components/events/eventTagsAndScreenshot/screenshot/screenshotDataSection';
 import EventTagsDataSection from 'sentry/components/events/eventTagsAndScreenshot/tags';
 import {EventViewHierarchy} from 'sentry/components/events/eventViewHierarchy';
+import {EventFeatureFlagList} from 'sentry/components/events/featureFlags/eventFeatureFlagList';
 import {EventGroupingInfo} from 'sentry/components/events/groupingInfo';
 import HighlightsDataSection from 'sentry/components/events/highlights/highlightsDataSection';
 import {HighlightsIconSummary} from 'sentry/components/events/highlights/highlightsIconSummary';
@@ -115,6 +116,7 @@ export function EventDetailsContent({
   const isANR = mechanism === 'ANR' || mechanism === 'AppExitInfo';
   const showPossibleSolutionsHigher = shouldShowCustomErrorResourceConfig(group, project);
   const groupingCurrentLevel = group?.metadata?.current_level;
+  const hasFeatureFlagSection = true; // TODO: make feature flag
 
   const hasActionableItems = actionableItemsEnabled({
     eventId: event.id,
@@ -294,6 +296,7 @@ export function EventDetailsContent({
           projectSlug={project.slug}
         />
       )}
+      {hasFeatureFlagSection && <EventFeatureFlagList event={event} />}
       <EventHydrationDiff event={event} group={group} />
       {issueTypeConfig.replays.enabled && (
         <EventReplay event={event} group={group} projectSlug={project.slug} />
