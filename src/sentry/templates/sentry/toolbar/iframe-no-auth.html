@@ -1,0 +1,20 @@
+{% load sentry_helpers %}
+{% load sentry_assets %}
+<!DOCTYPE html>
+<html>
+<head>
+  <title></title>
+</head>
+<body>
+  {% script %}
+  <script>
+  (function() {
+    if (!window.opener) {
+      return;
+    }
+    window.opener.postMessage('iframe_no_auth'); // this will be used by the main frame
+  })();
+  </script>
+  {% endscript %}
+</body>
+</html>
