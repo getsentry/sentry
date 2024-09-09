@@ -7,6 +7,7 @@ from typing import TypedDict
 
 from django.db import IntegrityError, router
 
+from sentry import features
 from sentry.constants import ObjectStatus
 from sentry.db.postgres.transactions import in_test_hide_transaction_boundary
 from sentry.locks import locks
@@ -57,14 +58,19 @@ def set_commits(release, commit_list):
         # the same release rapidly for different projects.
         raise ReleaseCommitError
 
-    create_repositories(commit_list, release)
-    create_commit_authors(commit_list, release)
+    if features.has("organizations:set-commits-updated", release.organization):
+        create_repositories(commit_list, release)
+        create_commit_authors(commit_list, release)
 
     with TimedRetryPolicy(10)(lock.acquire):
         with (
             atomic_transaction(using=router.db_for_write(type(release))),
             in_test_hide_transaction_boundary(),
         ):
+            if not features.has("organizations:set-commits-updated", release.organization):
+                create_repositories(commit_list, release)
+                create_commit_authors(commit_list, release)
+
             head_commit_by_repo, commit_author_by_commit = set_commits_on_release(
                 release, commit_list
             )
