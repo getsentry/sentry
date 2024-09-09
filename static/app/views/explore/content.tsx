@@ -1,4 +1,4 @@
-import {useCallback} from 'react';
+import {useCallback, useMemo} from 'react';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
 
@@ -15,11 +15,13 @@ import {SpanSearchQueryBuilder} from 'sentry/components/performance/spanSearchQu
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import {ALLOWED_EXPLORE_VISUALIZE_AGGREGATES} from 'sentry/utils/fields';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 
+import {useResultMode} from './hooks/useResultsMode';
 import {useUserQuery} from './hooks/useUserQuery';
 import {ExploreCharts} from './charts';
 import {ExploreTables} from './tables';
@@ -34,6 +36,11 @@ export function ExploreContent({}: ExploreContentProps) {
   const navigate = useNavigate();
   const organization = useOrganization();
   const {selection} = usePageFilters();
+  const [resultsMode] = useResultMode();
+
+  const supportedAggregates = useMemo(() => {
+    return resultsMode === 'aggregate' ? ALLOWED_EXPLORE_VISUALIZE_AGGREGATES : [];
+  }, [resultsMode]);
 
   const [userQuery, setUserQuery] = useUserQuery();
 
@@ -76,6 +83,7 @@ export function ExploreContent({}: ExploreContentProps) {
                 <DatePageFilter />
               </PageFilterBar>
               <SpanSearchQueryBuilder
+                supportedAggregates={supportedAggregates}
                 projects={selection.projects}
                 initialQuery={userQuery}
                 onSearch={setUserQuery}
