@@ -1,6 +1,9 @@
 import asyncio
 import concurrent.futures as cf
 
+from django.urls import reverse
+
+from sentry.testutils.cases import APITestCase
 from sentry.utils import flag
 
 
@@ -107,3 +110,20 @@ def test_flag_manager_thread_isolation():
         {"flag": "j", "result": True},
         {"flag": "k", "result": True},
     ]
+
+
+class E2EAPITestCase(APITestCase):
+    endpoint = "sentry-api-0-organization-replay-index"
+
+    def setUp(self):
+        super().setUp()
+        self.login_as(user=self.user)
+        self.url = reverse(self.endpoint, args=(self.organization.slug,))
+
+    def test_contextvar_initialized(self):
+        """Test replays must be used with a project(s)."""
+        self.client.get(self.url)
+
+        flags = flag.get_flags_serialized()
+        assert flags[-1]["flag"] == "organizations:session-replay"
+        assert flags[-1]["result"] is False
