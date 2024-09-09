@@ -6414,9 +6414,11 @@ class Migration(CheckedMigration):
             name="display_type",
             field=sentry.db.models.fields.bounded.BoundedPositiveIntegerField(),
         ),
-        migrations.AlterIndexTogether(
-            name="groupinbox",
-            index_together={("project", "date_added")},
+        migrations.AddIndex(
+            model_name="groupinbox",
+            index=models.Index(
+                fields=["project", "date_added"], name="sentry_grou_project_a9fe16_idx"
+            ),
         ),
         migrations.AddField(
             model_name="dashboardwidgetquery",
@@ -7147,16 +7149,6 @@ class Migration(CheckedMigration):
                     reverse_sql="DROP INDEX CONCURRENTLY IF EXISTS sentry_release_project_proj_id_unadopted_8h5g84ee",
                     hints={"tables": ["sentry_release_project"]},
                 ),
-                migrations.RunSQL(
-                    sql='\n                    CREATE INDEX CONCURRENTLY IF NOT EXISTS "sentry_releaseprojectenvironment_proj_id_env_id_adopted_j6h89s3" ON "sentry_releaseprojectenvironment" ("project_id", "adopted", "environment_id");\n                    ',
-                    reverse_sql="DROP INDEX CONCURRENTLY IF EXISTS sentry_releaseprojectenvironment_proj_id_env_id_adopted_j6h89s3",
-                    hints={"tables": ["sentry_releaseprojectenvironment"]},
-                ),
-                migrations.RunSQL(
-                    sql='\n                    CREATE INDEX CONCURRENTLY IF NOT EXISTS "sentry_releaseprojectenvironment_proj_id_env_id_unadopted_kyh5m" ON "sentry_releaseprojectenvironment" ("project_id", "unadopted", "environment_id");\n                    ',
-                    reverse_sql="DROP INDEX CONCURRENTLY IF EXISTS sentry_releaseprojectenvironment_proj_id_env_id_unadopted_kyh5m",
-                    hints={"tables": ["sentry_releaseprojectenvironment"]},
-                ),
             ],
             state_operations=[
                 migrations.AddField(
@@ -7179,18 +7171,20 @@ class Migration(CheckedMigration):
                     name="unadopted",
                     field=models.DateTimeField(blank=True, null=True),
                 ),
-                migrations.AlterIndexTogether(
-                    name="releaseproject",
-                    index_together={("project", "adopted"), ("project", "unadopted")},
-                ),
-                migrations.AlterIndexTogether(
-                    name="releaseprojectenvironment",
-                    index_together={
-                        ("project", "adopted", "environment"),
-                        ("project", "unadopted", "environment"),
-                    },
-                ),
             ],
+        ),
+        migrations.AddIndex(
+            model_name="releaseprojectenvironment",
+            index=models.Index(
+                fields=["project", "adopted", "environment"], name="sentry_rele_project_4bea8e_idx"
+            ),
+        ),
+        migrations.AddIndex(
+            model_name="releaseprojectenvironment",
+            index=models.Index(
+                fields=["project", "unadopted", "environment"],
+                name="sentry_rele_project_922a6a_idx",
+            ),
         ),
         migrations.SeparateDatabaseAndState(
             database_operations=[
@@ -7354,43 +7348,17 @@ class Migration(CheckedMigration):
                 "db_table": "sentry_appconnectbuild",
             },
         ),
-        migrations.SeparateDatabaseAndState(
-            database_operations=[
-                migrations.RunSQL(
-                    sql='\n                    CREATE INDEX CONCURRENTLY  "sentry_rule_project_id_status_owner_id_82f20db5_idx" ON "sentry_rule" ("project_id", "status", "owner_id");\n                    ',
-                    reverse_sql="\n                    DROP INDEX CONCURRENTLY IF EXISTS sentry_rule_project_id_status_owner_id_82f20db5_idx;\n                    ",
-                    hints={"tables": ["sentry_rule"]},
-                ),
-            ],
-            state_operations=[
-                migrations.AlterIndexTogether(
-                    name="rule",
-                    index_together={("project", "status", "owner")},
-                ),
-            ],
+        migrations.AddIndex(
+            model_name="rule",
+            index=models.Index(
+                fields=["project", "status", "owner"], name="sentry_rule_project_676d0d_idx"
+            ),
         ),
-        migrations.SeparateDatabaseAndState(
-            database_operations=[
-                migrations.RunSQL(
-                    sql='\n                    CREATE INDEX CONCURRENTLY "sentry_activity_project_id_datetime_c00585e4_idx" ON "sentry_activity" ("project_id", "datetime");\n                    ',
-                    reverse_sql="\n                DROP INDEX CONCURRENTLY IF EXISTS sentry_activity_project_id_datetime_c00585e4_idx;\n                ",
-                    hints={"tables": ["sentry_activity"]},
-                ),
-            ],
-            state_operations=[
-                migrations.AlterIndexTogether(
-                    name="activity",
-                    index_together={("project", "type", "datetime")},
-                ),
-            ],
-        ),
-        migrations.SeparateDatabaseAndState(
-            state_operations=[
-                migrations.AlterIndexTogether(
-                    name="activity",
-                    index_together={("project", "datetime")},
-                ),
-            ],
+        migrations.AddIndex(
+            model_name="activity",
+            index=models.Index(
+                fields=["project", "datetime"], name="sentry_acti_project_cd8457_idx"
+            ),
         ),
         migrations.SeparateDatabaseAndState(
             database_operations=[],
@@ -7542,27 +7510,11 @@ class Migration(CheckedMigration):
             name="uploaded_to_appstore",
             field=models.DateTimeField(default=django.utils.timezone.now),
         ),
-        migrations.SeparateDatabaseAndState(
-            database_operations=[
-                migrations.RunSQL(
-                    sql='\n                    CREATE INDEX CONCURRENTLY "sentry_audi_organiz_c8bd18_idx" ON "sentry_auditlogentry" ("organization_id", "datetime");\n                    ',
-                    reverse_sql="\n                    DROP INDEX CONCURRENTLY IF EXISTS sentry_audi_organiz_c8bd18_idx;\n                    ",
-                    hints={"tables": ["sentry_auditlogentry"]},
-                ),
-            ],
-            state_operations=[
-                migrations.AlterIndexTogether(
-                    name="auditlogentry",
-                    index_together=set(),
-                ),
-                migrations.AddIndex(
-                    model_name="auditlogentry",
-                    index=models.Index(
-                        fields=["organization_id", "datetime"],
-                        name="sentry_audi_organiz_c8bd18_idx",
-                    ),
-                ),
-            ],
+        migrations.AddIndex(
+            model_name="auditlogentry",
+            index=models.Index(
+                fields=["organization_id", "datetime"], name="sentry_audi_organiz_c8bd18_idx"
+            ),
         ),
         migrations.AlterField(
             model_name="project",
@@ -7656,23 +7608,12 @@ class Migration(CheckedMigration):
                 ),
             ],
         ),
-        migrations.SeparateDatabaseAndState(
-            database_operations=[
-                migrations.RunSQL(
-                    sql='\n                    CREATE INDEX CONCURRENTLY "sentry_audi_organiz_588b1e_idx" ON "sentry_auditlogentry" ("organization_id", "event", "datetime");\n                    ',
-                    reverse_sql="\n                    DROP INDEX CONCURRENTLY IF EXISTS sentry_audi_organiz_588b1e_idx;\n                    ",
-                    hints={"tables": ["sentry_auditlogentry"]},
-                ),
-            ],
-            state_operations=[
-                migrations.AddIndex(
-                    model_name="auditlogentry",
-                    index=models.Index(
-                        fields=["organization_id", "event", "datetime"],
-                        name="sentry_audi_organiz_588b1e_idx",
-                    ),
-                ),
-            ],
+        migrations.AddIndex(
+            model_name="auditlogentry",
+            index=models.Index(
+                fields=["organization_id", "event", "datetime"],
+                name="sentry_audi_organiz_588b1e_idx",
+            ),
         ),
         migrations.RunSQL(
             sql='\n                DROP TABLE IF EXISTS "jira_ac_tenant";\n                ',
@@ -7754,7 +7695,16 @@ class Migration(CheckedMigration):
             ],
             options={
                 "db_table": "sentry_grouphistory",
-                "index_together": {("project", "status", "release")},
+                "indexes": [
+                    models.Index(
+                        fields=["project", "status", "release"],
+                        name="sentry_grou_project_bbcf30_idx",
+                    ),
+                    models.Index(fields=["group", "status"], name="sentry_grou_group_i_c61acb_idx"),
+                    models.Index(
+                        fields=["project", "date_added"], name="sentry_grou_project_20b3f8_idx"
+                    ),
+                ],
             },
         ),
         migrations.CreateModel(
@@ -7800,10 +7750,6 @@ class Migration(CheckedMigration):
                     hints={"tables": ["sentry_scheduleddeletion"]},
                 ),
             ],
-        ),
-        migrations.AlterIndexTogether(
-            name="grouphistory",
-            index_together={("project", "status", "release"), ("group", "status")},
         ),
         migrations.AlterField(
             model_name="grouphistory",
@@ -8051,14 +7997,6 @@ class Migration(CheckedMigration):
                 name="sentry_release_version_btree",
                 opclasses=["", "text_pattern_ops"],
             ),
-        ),
-        migrations.AlterIndexTogether(
-            name="grouphistory",
-            index_together={
-                ("project", "status", "release"),
-                ("group", "status"),
-                ("project", "date_added"),
-            },
         ),
         migrations.SeparateDatabaseAndState(
             database_operations=[
@@ -8711,13 +8649,23 @@ class Migration(CheckedMigration):
             name="first_seen_transaction",
             field=models.DateTimeField(blank=True, null=True),
         ),
-        migrations.AlterIndexTogether(
-            name="releaseproject",
-            index_together={
-                ("project", "adopted"),
-                ("project", "first_seen_transaction"),
-                ("project", "unadopted"),
-            },
+        migrations.AddIndex(
+            model_name="releaseproject",
+            index=models.Index(
+                fields=["project", "adopted"], name="sentry_rele_project_a80825_idx"
+            ),
+        ),
+        migrations.AddIndex(
+            model_name="releaseproject",
+            index=models.Index(
+                fields=["project", "unadopted"], name="sentry_rele_project_2ca122_idx"
+            ),
+        ),
+        migrations.AddIndex(
+            model_name="releaseproject",
+            index=models.Index(
+                fields=["project", "first_seen_transaction"], name="sentry_rele_project_3143eb_idx"
+            ),
         ),
         migrations.SeparateDatabaseAndState(
             database_operations=[
@@ -8975,11 +8923,20 @@ class Migration(CheckedMigration):
             ],
             options={
                 "db_table": "sentry_regionoutbox",
-                "index_together": {
-                    ("shard_scope", "shard_identifier", "id"),
-                    ("shard_scope", "shard_identifier", "scheduled_for"),
-                    ("shard_scope", "shard_identifier", "category", "object_identifier"),
-                },
+                "indexes": [
+                    models.Index(
+                        fields=["shard_scope", "shard_identifier", "id"],
+                        name="sentry_regi_shard_s_e7412f_idx",
+                    ),
+                    models.Index(
+                        fields=["shard_scope", "shard_identifier", "scheduled_for"],
+                        name="sentry_regi_shard_s_cd9995_idx",
+                    ),
+                    models.Index(
+                        fields=["shard_scope", "shard_identifier", "category", "object_identifier"],
+                        name="sentry_regi_shard_s_bfff84_idx",
+                    ),
+                ],
             },
         ),
         migrations.CreateModel(
@@ -9007,17 +8964,26 @@ class Migration(CheckedMigration):
             ],
             options={
                 "db_table": "sentry_controloutbox",
-                "index_together": {
-                    ("region_name", "shard_scope", "shard_identifier", "scheduled_for"),
-                    (
-                        "region_name",
-                        "shard_scope",
-                        "shard_identifier",
-                        "category",
-                        "object_identifier",
+                "indexes": [
+                    models.Index(
+                        fields=[
+                            "region_name",
+                            "shard_scope",
+                            "shard_identifier",
+                            "category",
+                            "object_identifier",
+                        ],
+                        name="sentry_cont_region__1c1c72_idx",
                     ),
-                    ("region_name", "shard_scope", "shard_identifier", "id"),
-                },
+                    models.Index(
+                        fields=["region_name", "shard_scope", "shard_identifier", "scheduled_for"],
+                        name="sentry_cont_region__0c4512_idx",
+                    ),
+                    models.Index(
+                        fields=["region_name", "shard_scope", "shard_identifier", "id"],
+                        name="sentry_cont_region__a95d82_idx",
+                    ),
+                ],
             },
         ),
         migrations.AlterField(
@@ -9247,6 +9213,17 @@ class Migration(CheckedMigration):
                 "unique_together": {
                     ("organization_id", "release_name", "dist_name", "artifact_bundle")
                 },
+                "indexes": [
+                    models.Index(
+                        fields=[
+                            "organization_id",
+                            "release_name",
+                            "dist_name",
+                            "artifact_bundle",
+                        ],
+                        name="sentry_rele_organiz_291018_idx",
+                    ),
+                ],
             },
         ),
         migrations.CreateModel(
@@ -9277,6 +9254,12 @@ class Migration(CheckedMigration):
             options={
                 "db_table": "sentry_projectartifactbundle",
                 "unique_together": {("project_id", "artifact_bundle")},
+                "indexes": [
+                    models.Index(
+                        fields=["project_id", "artifact_bundle"],
+                        name="sentry_proj_project_f73d36_idx",
+                    )
+                ],
             },
         ),
         migrations.CreateModel(

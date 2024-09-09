@@ -505,7 +505,11 @@ class AlertRuleSerializer(CamelSnakeModelSerializer[AlertRule]):
             except forms.ValidationError as e:
                 # if we fail in create_metric_alert, then only one message is ever returned
                 raise serializers.ValidationError(e.error_list[0].message)
-            except Exception:
+            except Exception as e:
+                logger.exception(
+                    "Error when creating alert rule",
+                    extra={"details": str(e)},
+                )
                 raise BadRequest
             self._handle_triggers(alert_rule, triggers)
             return alert_rule
@@ -533,7 +537,11 @@ class AlertRuleSerializer(CamelSnakeModelSerializer[AlertRule]):
             except forms.ValidationError as e:
                 # if we fail in update_metric_alert, then only one message is ever returned
                 raise serializers.ValidationError(e.error_list[0].message)
-            except Exception:
+            except Exception as e:
+                logger.exception(
+                    "Error when updating alert rule",
+                    extra={"details": str(e)},
+                )
                 raise BadRequest
             self._handle_triggers(alert_rule, triggers)
             return alert_rule

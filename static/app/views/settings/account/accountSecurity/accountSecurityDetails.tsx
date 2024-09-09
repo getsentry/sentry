@@ -69,8 +69,8 @@ function AccountSecurityDetails({deleteDisabled, onRegenerateBackupCodes}: Props
     staleTime: 0,
   });
 
-  const {mutate: remove, isLoading: isRemoveLoading} = useMutation(
-    ({id, device}: {id: string; device?: AuthenticatorDevice}) => {
+  const {mutate: remove, isLoading: isRemoveLoading} = useMutation({
+    mutationFn: ({id, device}: {id: string; device?: AuthenticatorDevice}) => {
       // if the device is defined, it means that U2f is being removed
       // reason for adding a trailing slash is a result of the endpoint on line 109 needing it but it can't be set there as if deviceId is None, the route will end with '//'
       const deviceId = device ? `${device.key_handle}/` : '';
@@ -78,23 +78,29 @@ function AccountSecurityDetails({deleteDisabled, onRegenerateBackupCodes}: Props
         method: 'DELETE',
       });
     },
-    {
-      onSuccess: (_, {device}) => {
-        const deviceName = device ? device.name : t('Authenticator');
-        addSuccessMessage(t('%s has been removed', deviceName));
-      },
-      onError: (_, {device}) => {
-        const deviceName = device ? device.name : t('Authenticator');
-        addErrorMessage(t('Error removing %s', deviceName));
-      },
-      onSettled: () => {
-        queryClient.invalidateQueries(getAuthenticatorQueryKey(authId));
-      },
-    }
-  );
+    onSuccess: (_, {device}) => {
+      const deviceName = device ? device.name : t('Authenticator');
+      addSuccessMessage(t('%s has been removed', deviceName));
+    },
+    onError: (_, {device}) => {
+      const deviceName = device ? device.name : t('Authenticator');
+      addErrorMessage(t('Error removing %s', deviceName));
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries(getAuthenticatorQueryKey(authId));
+    },
+  });
 
-  const {mutate: rename, isLoading: isRenameLoading} = useMutation(
-    ({id, device, name}: {device: AuthenticatorDevice; id: string; name: string}) => {
+  const {mutate: rename, isLoading: isRenameLoading} = useMutation({
+    mutationFn: ({
+      id,
+      device,
+      name,
+    }: {
+      device: AuthenticatorDevice;
+      id: string;
+      name: string;
+    }) => {
       return api.requestPromise(`${ENDPOINT}${id}/${device.key_handle}/`, {
         method: 'PUT',
         data: {
@@ -102,19 +108,17 @@ function AccountSecurityDetails({deleteDisabled, onRegenerateBackupCodes}: Props
         },
       });
     },
-    {
-      onSuccess: () => {
-        navigate(`/settings/account/security/mfa/${authId}`);
-        addSuccessMessage(t('Device was renamed'));
-      },
-      onError: () => {
-        addErrorMessage(t('Error renaming the device'));
-      },
-      onSettled: () => {
-        queryClient.invalidateQueries(getAuthenticatorQueryKey(authId));
-      },
-    }
-  );
+    onSuccess: () => {
+      navigate(`/settings/account/security/mfa/${authId}`);
+      addSuccessMessage(t('Device was renamed'));
+    },
+    onError: () => {
+      addErrorMessage(t('Error renaming the device'));
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries(getAuthenticatorQueryKey(authId));
+    },
+  });
 
   const handleRemove = (device?: AuthenticatorDevice) => {
     if (!authenticator?.authId) {

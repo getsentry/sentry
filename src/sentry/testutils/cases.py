@@ -1729,6 +1729,7 @@ class BaseMetricsTestCase(SnubaTestCase):
         timestamp: int,
         value: Any,
         aggregation_option: AggregationOption | None = None,
+        sampling_weight: int | None = None,
     ) -> None:
 
         parsed = parse_mri(mri)
@@ -1813,6 +1814,9 @@ class BaseMetricsTestCase(SnubaTestCase):
 
         if aggregation_option:
             msg["aggregation_option"] = aggregation_option.value
+
+        if sampling_weight:
+            msg["sampling_weight"] = sampling_weight
 
         if METRIC_PATH_MAPPING[use_case_id] == UseCaseKey.PERFORMANCE:
             entity = f"generic_metrics_{cls.ENTITY_SHORTHANDS[metric_type]}s"

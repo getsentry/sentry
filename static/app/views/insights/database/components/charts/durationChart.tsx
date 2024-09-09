@@ -3,17 +3,23 @@ import {AVG_COLOR} from 'sentry/views/insights/colors';
 import Chart, {ChartType} from 'sentry/views/insights/common/components/chart';
 import ChartPanel from 'sentry/views/insights/common/components/chartPanel';
 import {getDurationChartTitle} from 'sentry/views/insights/common/views/spans/types';
+import {ALERTS} from 'sentry/views/insights/database/alerts';
 import {CHART_HEIGHT} from 'sentry/views/insights/database/settings';
 
 interface Props {
   isLoading: boolean;
   series: Series[];
   error?: Error | null;
+  groupId?: string;
 }
 
-export function DurationChart({series, isLoading, error}: Props) {
+export function DurationChart({series, isLoading, error, groupId}: Props) {
+  let alertConfig = ALERTS.duration;
+  if (groupId) {
+    alertConfig = {...alertConfig, query: `${alertConfig.query} span.group:${groupId}`};
+  }
   return (
-    <ChartPanel title={getDurationChartTitle('db')}>
+    <ChartPanel title={getDurationChartTitle('db')} alertConfigs={[alertConfig]}>
       <Chart
         height={CHART_HEIGHT}
         grid={{
