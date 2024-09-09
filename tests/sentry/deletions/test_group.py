@@ -1,3 +1,4 @@
+from time import time
 from unittest import mock
 from uuid import uuid4
 
@@ -16,7 +17,6 @@ from sentry.models.userreport import UserReport
 from sentry.tasks.deletion.groups import delete_groups
 from sentry.testutils.cases import SnubaTestCase, TestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
-from sentry.testutils.helpers.features import with_feature
 
 
 class DeleteGroupTest(TestCase, SnubaTestCase):
@@ -170,13 +170,13 @@ class DeleteGroupTest(TestCase, SnubaTestCase):
 
         assert nodestore_delete_multi.call_count == 0
 
-    @with_feature("projects:similarity-embeddings-grouping")
     @mock.patch(
         "sentry.tasks.delete_seer_grouping_records.delete_seer_grouping_records_by_hash.apply_async"
     )
     def test_delete_groups_delete_grouping_records_by_hash(
         self, mock_delete_seer_grouping_records_by_hash_apply_async
     ):
+        self.project.update_option("sentry:similarity_backfill_completed", int(time()))
         other_event = self.store_event(
             data={
                 "event_id": "d" * 32,

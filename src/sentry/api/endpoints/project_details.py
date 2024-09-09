@@ -954,9 +954,7 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
             project.rename_on_pending_deletion()
 
             # Tell seer to delete all the project's grouping records
-            if features.has(
-                "projects:similarity-embeddings-grouping", project
-            ) or project.get_option("sentry:similarity_backfill_completed"):
+            if project.get_option("sentry:similarity_backfill_completed"):
                 call_seer_delete_project_grouping_records.apply_async(args=[project.id])
 
         return Response(status=204)

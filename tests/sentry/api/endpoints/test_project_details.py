@@ -1591,13 +1591,13 @@ class ProjectDeleteTest(APITestCase):
             model_name="Project", object_id=self.project.id
         ).exists()
 
-    @with_feature("projects:similarity-embeddings-grouping")
     @mock.patch(
         "sentry.tasks.delete_seer_grouping_records.call_seer_delete_project_grouping_records.apply_async"
     )
     def test_delete_project_and_delete_grouping_records(
         self, mock_call_seer_delete_project_grouping_records
     ):
+        self.project.update_option("sentry:similarity_backfill_completed", int(time()))
         self._delete_project_and_assert_deleted()
         mock_call_seer_delete_project_grouping_records.assert_called_with(args=[self.project.id])
 

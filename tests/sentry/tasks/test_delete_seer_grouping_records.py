@@ -1,3 +1,4 @@
+from time import time
 from unittest.mock import patch
 
 from sentry.models.grouphash import GroupHash
@@ -7,7 +8,6 @@ from sentry.tasks.delete_seer_grouping_records import (
     delete_seer_grouping_records_by_hash,
 )
 from sentry.testutils.cases import TestCase
-from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.pytest.fixtures import django_db_all
 
 
@@ -33,9 +33,10 @@ class TestDeleteSeerGroupingRecordsByHash(TestCase):
             "args": [project_id, hashes, 100]
         }
 
-    @with_feature("projects:similarity-embeddings-grouping")
     @patch("sentry.tasks.delete_seer_grouping_records.logger")
     def test_call_delete_seer_grouping_records_by_hash_simple(self, mock_logger):
+        self.project.update_option("sentry:similarity_backfill_completed", int(time()))
+
         group_ids, hashes = [], []
         for i in range(5):
             group = self.create_group(project=self.project)
@@ -50,12 +51,13 @@ class TestDeleteSeerGroupingRecordsByHash(TestCase):
             extra={"project_id": self.project.id, "hashes": hashes},
         )
 
-    @with_feature("projects:similarity-embeddings-grouping")
     @patch("sentry.tasks.delete_seer_grouping_records.delete_seer_grouping_records_by_hash")
     @patch("sentry.tasks.delete_seer_grouping_records.logger")
     def test_call_delete_seer_grouping_records_by_hash_no_hashes(
         self, mock_logger, mock_delete_seer_grouping_records_by_hash
     ):
+        self.project.update_option("sentry:similarity_backfill_completed", int(time()))
+
         group_ids = []
         for _ in range(5):
             group = self.create_group(project=self.project)
