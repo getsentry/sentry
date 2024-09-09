@@ -797,14 +797,6 @@
   "sentry.snubaqueryeventtype": [
     "sentry.snubaquery"
   ],
-  "sentry.spanattributeextractionrulecondition": [
-    "sentry.spanattributeextractionruleconfig",
-    "sentry.user"
-  ],
-  "sentry.spanattributeextractionruleconfig": [
-    "sentry.project",
-    "sentry.user"
-  ],
   "sentry.stringindexer": [
     "sentry.organization"
   ],

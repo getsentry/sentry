@@ -1,5 +1,5 @@
 ---
-created: '2024-08-06T16:58:28.527320+00:00'
+created: '2024-09-06T08:51:38.342973+00:00'
 creator: sentry
 source: tests/sentry/backup/test_sanitize.py
 ---
@@ -509,16 +509,6 @@ source: tests/sentry/backup/test_sanitize.py
   - date_hash_added
   - email
   - validation_hash
-- model_name: sentry.spanattributeextractionruleconfig
-  ordinal: 1
-  sanitized_fields:
-  - date_added
-  - date_updated
-- model_name: sentry.spanattributeextractionrulecondition
-  ordinal: 1
-  sanitized_fields:
-  - date_added
-  - date_updated
 - model_name: sentry.snubaquery
   ordinal: 1
   sanitized_fields:

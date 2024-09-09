@@ -102,8 +102,6 @@
   "uptime.projectuptimesubscription",
   "sentry.useroption",
   "sentry.useremail",
-  "sentry.spanattributeextractionruleconfig",
-  "sentry.spanattributeextractionrulecondition",
   "sentry.snubaquery",
   "sentry.sentryapp",
   "sentry.rule",
