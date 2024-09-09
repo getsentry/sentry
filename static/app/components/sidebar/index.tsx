@@ -121,8 +121,7 @@ function Sidebar() {
   const activePanel = useLegacyStore(SidebarPanelStore);
   const organization = useOrganization({allowNull: true});
   const {shouldAccordionFloat} = useContext(ExpandedContext);
-  // const hasNewNav = organization?.features.includes('navigation-sidebar-v2') ?? false;
-  const hasNewNav = true;
+  const hasNewNav = organization?.features.includes('navigation-sidebar-v2') ?? false;
   const collapsed = hasNewNav ? true : !!preferences.collapsed;
   const hasOrganization = !!organization;
   const isSelfHostedErrorsOnly = ConfigStore.get('isSelfHostedErrorsOnly');
