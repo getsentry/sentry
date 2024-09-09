@@ -2,7 +2,9 @@ import {useContext} from 'react';
 import styled from '@emotion/styled';
 
 import Access from 'sentry/components/acl/access';
+import {LinkButton} from 'sentry/components/button';
 import PluginIcon from 'sentry/plugins/components/pluginIcon';
+import ConfigStore from 'sentry/stores/configStore';
 import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -15,6 +17,7 @@ type Props = {
 
 function AddIntegrationRow({onClick}: Props) {
   const organization = useOrganization();
+  const {isSelfHosted} = ConfigStore.getState();
   const integration = useContext(IntegrationContext);
   if (!integration) {
     return null;
@@ -31,6 +34,12 @@ function AddIntegrationRow({onClick}: Props) {
     });
     onClick();
   };
+  const onSelfHostedClick = () => {
+    trackAnalytics('onboarding.messaging_integration_self_hosted_clicked', {
+      provider_key: provider.key,
+      organization,
+    });
+  };
 
   const buttonProps = {
     size: 'sm',
@@ -46,12 +55,21 @@ function AddIntegrationRow({onClick}: Props) {
       </IconTextWrapper>
       <Access access={['org:integrations']} organization={organization}>
         {({hasAccess}) => {
-          return (
+          return isSelfHosted ? (
+            <LinkButton
+              href={`https://develop.sentry.dev/integrations/${provider.slug}`}
+              priority="primary"
+              external
+              onClick={onSelfHostedClick}
+            >
+              Add {provider.metadata.noun}
+            </LinkButton>
+          ) : (
             <StyledButton
               userHasAccess={hasAccess}
               onAddIntegration={onAddIntegration}
               onExternalClick={onExternalClick}
-              externalInstallText="Add Installation"
+              externalInstallText={`Add ${provider.metadata.noun}`}
               buttonProps={buttonProps}
             />
           );
