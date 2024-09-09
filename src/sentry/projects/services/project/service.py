@@ -14,7 +14,12 @@ from sentry.hybridcloud.rpc.resolvers import (
     ByRegionName,
 )
 from sentry.hybridcloud.rpc.service import RpcService, regional_rpc_method
-from sentry.projects.services.project import ProjectFilterArgs, RpcProject, RpcProjectOptionValue
+from sentry.projects.services.project import (
+    ProjectFilterArgs,
+    RpcProject,
+    RpcProjectFlags,
+    RpcProjectOptionValue,
+)
 from sentry.silo.base import SiloMode
 from sentry.users.services.user import RpcUser
 
@@ -95,6 +100,11 @@ class ProjectService(RpcService):
         user_id: int,
         add_org_default_team: bool | None = False,
     ) -> RpcProject:
+        pass
+
+    @regional_rpc_method(resolve=ByOrganizationId())
+    @abstractmethod
+    def get_flags(organization_id: int, project_id: id) -> RpcProjectFlags:
         pass
 
 

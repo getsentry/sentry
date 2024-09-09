@@ -14,6 +14,7 @@ from sentry.projects.services.project import (
     ProjectFilterArgs,
     ProjectService,
     RpcProject,
+    RpcProjectFlags,
     RpcProjectOptionValue,
 )
 from sentry.projects.services.project.serial import serialize_project
@@ -153,3 +154,10 @@ class DatabaseBackedProjectService(ProjectService):
             user_id=user_id,
             add_org_default_team=add_org_default_team,
         )
+
+    def get_flags(self, organization_id: int, project_id: id) -> RpcProjectFlags:
+        project = Project.objects.filter(
+            organization_id=organization_id,
+            id=project_id,
+        )
+        return RpcProjectFlags(project.flags)
