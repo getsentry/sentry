@@ -3,6 +3,7 @@ import styled from '@emotion/styled';
 
 import {CodeSnippet} from 'sentry/components/codeSnippet';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
+import StructuredEventData from 'sentry/components/structuredEventData';
 import {space} from 'sentry/styles/space';
 import {SQLishFormatter} from 'sentry/utils/sqlish/SQLishFormatter';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
@@ -58,24 +59,62 @@ export function DatabaseSpanDescription({
     Boolean(indexedSpan)
   );
 
-  const rawDescription =
-    rawSpan?.description || indexedSpan?.['span.description'] || preliminaryDescription;
+  const system = rawSpan?.data?.['db.system'];
 
-  const formatterDescription = useMemo(() => {
+  const formattedDescription = useMemo(() => {
+    // MongoDB span descriptions are in JSON and should not have SQLish formatting applied
+    if (!system || system === 'mongodb') {
+      // TODO: We should transform the data a bit for mongodb queries.
+      // For example, it would be better if we display the operation on the collection as the
+      // first key value pair in the JSON, since this is not guaranteed by the backend
+      return preliminaryDescription;
+    }
+
+    const rawDescription =
+      rawSpan?.description || indexedSpan?.['span.description'] || preliminaryDescription;
     return formatter.toString(rawDescription ?? '');
-  }, [rawDescription]);
+  }, [preliminaryDescription, rawSpan, indexedSpan, system]);
 
-  return (
-    <Frame>
-      {areIndexedSpansLoading ? (
+  const mongoQueryConfig = useMemo(
+    () => ({
+      isBoolean: value => typeof value === 'boolean',
+      isNull: value => value === null,
+      isString: value => typeof value === 'string',
+      isNumber: value => typeof value === 'number',
+    }),
+    []
+  );
+
+  const renderQueryDescription = () => {
+    if (areIndexedSpansLoading || !system) {
+      return (
         <WithPadding>
           <LoadingIndicator mini />
         </WithPadding>
-      ) : (
-        <CodeSnippet language="sql" isRounded={false}>
-          {formatterDescription}
-        </CodeSnippet>
-      )}
+      );
+    }
+
+    if (system === 'mongodb') {
+      return (
+        <StructuredEventData
+          config={mongoQueryConfig}
+          data={JSON.parse(preliminaryDescription || '{}')}
+          forceDefaultExpand
+          maxDefaultDepth={3}
+        />
+      );
+    }
+
+    return (
+      <CodeSnippet language="sql" isRounded={false}>
+        {formattedDescription ?? ''}
+      </CodeSnippet>
+    );
+  };
+
+  return (
+    <Frame>
+      {renderQueryDescription()}
 
       {!areIndexedSpansLoading && !isRawSpanLoading && (
         <Fragment>
