@@ -140,7 +140,7 @@ describe('ExploreToolbar', function () {
     // check the default field options
     const fields = [
       'project',
-      'span_id',
+      'id',
       'span.op',
       'span.description',
       'span.duration',
