@@ -19,7 +19,10 @@ import {
 } from 'sentry/components/onboarding/gettingStartedDoc/utils/feedbackOnboarding';
 import {getJSMetricsOnboarding} from 'sentry/components/onboarding/gettingStartedDoc/utils/metricsOnboarding';
 import {getProfilingDocumentHeaderConfigurationStep} from 'sentry/components/onboarding/gettingStartedDoc/utils/profilingOnboarding';
-import {getReplaySDKSetupSnippet} from 'sentry/components/onboarding/gettingStartedDoc/utils/replayOnboarding';
+import {
+  getReplaySDKSetupSnippet,
+  getReplayVerifyStep,
+} from 'sentry/components/onboarding/gettingStartedDoc/utils/replayOnboarding';
 import {t, tct} from 'sentry/locale';
 
 type Params = DocsParams;
@@ -52,7 +55,7 @@ export default defineConfig({
 });
 `;
 
-const getVerifyAstroSnippet = () => `
+const getVerifySnippet = () => `
 <!-- your-page.astro -->
 ---
 ---
@@ -160,7 +163,7 @@ const onboarding: OnboardingConfig = {
               label: 'Astro',
               value: 'html',
               language: 'html',
-              code: getVerifyAstroSnippet(),
+              code: getVerifySnippet(),
             },
           ],
         },
@@ -302,7 +305,7 @@ import * as Sentry from "@sentry/astro";`,
       isOptional: true,
     },
   ],
-  verify: () => [],
+  verify: getReplayVerifyStep(),
   nextSteps: () => [],
 };
 
