@@ -24,11 +24,6 @@ class Migration(CheckedMigration):
 
     operations = [
         migrations.RenameIndex(
-            model_name="artifactbundleindex",
-            new_name="sentry_arti_url_7e628a_idx",
-            old_fields=("url", "artifact_bundle"),
-        ),
-        migrations.RenameIndex(
             model_name="controloutbox",
             new_name="sentry_cont_region__0c4512_idx",
             old_fields=("region_name", "shard_scope", "shard_identifier", "scheduled_for"),
@@ -110,11 +105,6 @@ class Migration(CheckedMigration):
             old_fields=("project", "date_added"),
         ),
         migrations.RenameIndex(
-            model_name="incidenttrigger",
-            new_name="sentry_inci_alert_r_33da01_idx",
-            old_fields=("alert_rule_trigger", "incident_id"),
-        ),
-        migrations.RenameIndex(
             model_name="organizationmembermapping",
             new_name="sentry_orga_organiz_ae9fe7_idx",
             old_fields=("organization_id", "user"),
@@ -158,10 +148,5 @@ class Migration(CheckedMigration):
             model_name="releaseprojectenvironment",
             new_name="sentry_rele_project_4bea8e_idx",
             old_fields=("project", "adopted", "environment"),
-        ),
-        migrations.RenameIndex(
-            model_name="rule",
-            new_name="sentry_rule_project_676d0d_idx",
-            old_fields=("project", "status", "owner"),
         ),
     ]
