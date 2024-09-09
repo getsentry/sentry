@@ -99,21 +99,6 @@ class Migration(CheckedMigration):
             old_fields=("project_id", "artifact_bundle"),
         ),
         migrations.RenameIndex(
-            model_name="regionoutbox",
-            new_name="sentry_regi_shard_s_e7412f_idx",
-            old_fields=("shard_scope", "shard_identifier", "id"),
-        ),
-        migrations.RenameIndex(
-            model_name="regionoutbox",
-            new_name="sentry_regi_shard_s_bfff84_idx",
-            old_fields=("shard_scope", "shard_identifier", "category", "object_identifier"),
-        ),
-        migrations.RenameIndex(
-            model_name="regionoutbox",
-            new_name="sentry_regi_shard_s_cd9995_idx",
-            old_fields=("shard_scope", "shard_identifier", "scheduled_for"),
-        ),
-        migrations.RenameIndex(
             model_name="releaseartifactbundle",
             new_name="sentry_rele_organiz_291018_idx",
             old_fields=("organization_id", "release_name", "dist_name", "artifact_bundle"),

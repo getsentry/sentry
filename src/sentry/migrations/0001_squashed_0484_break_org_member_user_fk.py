@@ -8957,11 +8957,20 @@ class Migration(CheckedMigration):
             ],
             options={
                 "db_table": "sentry_regionoutbox",
-                "index_together": {
-                    ("shard_scope", "shard_identifier", "id"),
-                    ("shard_scope", "shard_identifier", "scheduled_for"),
-                    ("shard_scope", "shard_identifier", "category", "object_identifier"),
-                },
+                "indexes": [
+                    models.Index(
+                        fields=["shard_scope", "shard_identifier", "id"],
+                        name="sentry_regi_shard_s_e7412f_idx",
+                    ),
+                    models.Index(
+                        fields=["shard_scope", "shard_identifier", "scheduled_for"],
+                        name="sentry_regi_shard_s_cd9995_idx",
+                    ),
+                    models.Index(
+                        fields=["shard_scope", "shard_identifier", "category", "object_identifier"],
+                        name="sentry_regi_shard_s_bfff84_idx",
+                    ),
+                ],
             },
         ),
         migrations.CreateModel(
