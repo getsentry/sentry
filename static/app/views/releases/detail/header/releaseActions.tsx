@@ -2,7 +2,11 @@ import {Fragment} from 'react';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
 
-import {archiveRelease, restoreRelease} from 'sentry/actionCreators/release';
+import {
+  archiveRelease,
+  deleteRelease,
+  restoreRelease,
+} from 'sentry/actionCreators/release';
 import {Client} from 'sentry/api';
 import ButtonBar from 'sentry/components/buttonBar';
 import {openConfirmModal} from 'sentry/components/confirm';
@@ -61,6 +65,19 @@ function ReleaseActions({
         releaseVersion: release.version,
       });
       refetchData();
+    } catch {
+      // do nothing, action creator is already displaying error message
+    }
+  }
+
+  async function handleDelete() {
+    try {
+      await deleteRelease(new Client(), {
+        orgSlug: organization.slug,
+        projectSlug,
+        releaseVersion: release.version,
+      });
+      browserHistory.push(normalizeUrl(`/organizations/${organization.slug}/releases/`));
     } catch {
       // do nothing, action creator is already displaying error message
     }
@@ -177,6 +194,28 @@ function ReleaseActions({
               confirmText: t('Archive'),
             }),
         },
+    {
+      key: 'delete',
+      label: t('Delete'),
+      onAction: () =>
+        openConfirmModal({
+          onConfirm: handleDelete,
+          header: getModalHeader(
+            tct('Delete Release [release]', {
+              release: formatVersion(release.version),
+            })
+          ),
+          message: getModalMessage(
+            tn(
+              'You are deleting this release for the following project:',
+              'By deleting this release, you are also deleting it for the following projects:',
+              releaseMeta.projects.length
+            )
+          ),
+          cancelText: t('Nevermind'),
+          confirmText: t('Delete'),
+        }),
+    },
   ];
 
   const {

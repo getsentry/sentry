@@ -142,3 +142,26 @@ export function restoreRelease(api: Client, params: ParamsGet) {
       throw error;
     });
 }
+
+export function deleteRelease(api: Client, params: ParamsGet) {
+  const {orgSlug, projectSlug, releaseVersion} = params;
+
+  ReleaseStore.loadRelease(orgSlug, projectSlug, releaseVersion);
+  addLoadingMessage(t('Deleting Release\u2026'));
+
+  return api
+    .requestPromise(`/organizations/${orgSlug}/releases/${releaseVersion}/`, {
+      method: 'DELETE',
+    })
+    .then(() => {
+      ReleaseStore.loadReleaseSuccess(projectSlug, releaseVersion, null);
+      addSuccessMessage(t('Release was successfully deleted.'));
+    })
+    .catch(error => {
+      ReleaseStore.loadReleaseError(projectSlug, releaseVersion, error);
+      addErrorMessage(
+        error.responseJSON?.detail ?? t('Release could not be be deleted.')
+      );
+      throw error;
+    });
+}
