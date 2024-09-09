@@ -16,7 +16,7 @@
     if (!window.opener) {
       return;
     }
-    window.opener.postMessage('login_success', '*'); // in the future this will be used by the main frame to auto-reload the iframe.
+    window.opener.postMessage('login_success', '*'); // the main frame uses this to reload the iframe content.
     window.close();
   })();
 </script>
