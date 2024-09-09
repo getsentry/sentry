@@ -1,6 +1,5 @@
 from sentry.grouping.strategies.base import (
     RISK_LEVEL_HIGH,
-    RISK_LEVEL_LOW,
     RISK_LEVEL_MEDIUM,
     StrategyConfiguration,
     create_strategy_configuration,
@@ -53,10 +52,6 @@ BASE_STRATEGY = create_strategy_configuration(
         # newstyle: turns on falling back to exception values when there
         # is no stacktrace.
         "with_exception_value_fallback": False,
-        # Whether the strategy should produce special variants that are
-        # considered for hierarchical grouping (see HIERARCHICAL_VARIANTS
-        # constant)
-        "hierarchical_grouping": False,
         # Stacktrace is produced in the context of this exception
         "exception_data": None,
         # replaces generated IDs in Java stack frames related to CGLIB and hibernate
@@ -142,32 +137,6 @@ register_strategy_config(
         "php_detect_anonymous_classes": True,
         "with_context_line_file_origin_bug": False,
     },
-)
-
-register_strategy_config(
-    id="mobile:2021-02-12",
-    base="newstyle:2019-10-29",
-    # XXX(markus): Low risk because fallback grouping is supposed to take care
-    # of this, for the hierarchical grouping rollout. Really we should get rid
-    # of strategy risks entirely.
-    risk=RISK_LEVEL_LOW,
-    changelog="""
-        * Groups by a single frame to create fewer duplicate issues, usually
-          the top in-app frame.
-        * Provides a [breakdown of issues](https://docs.sentry.io/product/data-management-settings/event-grouping/grouping-breakdown/)
-          into unique call hierarchies in the _Grouping_ tab.
-        * Filenames in native events are no longer used because they differ
-          between platforms, and package (dll basename) is used as fallback for a
-          frame if a function name is not available.
-        * For mobile and native projects: Error codes on crash signals are now
-          ignored to unify platform differences.
-        * For native projects: Anonymous namespaces from different compilers now
-          no longer result in different issues.
-    """,
-    initial_context={
-        "hierarchical_grouping": True,
-    },
-    enhancements_base="mobile:2021-04-02",
 )
 
 register_strategy_config(
