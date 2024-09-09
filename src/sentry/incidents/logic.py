@@ -327,22 +327,6 @@ def create_incident_activity(
     return activity
 
 
-def update_comment(activity, comment):
-    """
-    Specifically updates an IncidentActivity with type IncidentActivityType.COMMENT
-    """
-
-    return activity.update(comment=comment)
-
-
-def delete_comment(activity):
-    """
-    Specifically deletes an IncidentActivity with type IncidentActivityType.COMMENT
-    """
-
-    return activity.delete()
-
-
 def build_incident_query_builder(
     incident: Incident,
     entity_subscription: EntitySubscription,
