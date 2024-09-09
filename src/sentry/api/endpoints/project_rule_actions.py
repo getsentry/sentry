@@ -66,7 +66,7 @@ class ProjectRuleActionsEndpoint(ProjectEndpoint):
         )
 
         if features.has(
-            "projects:verbose-test-alert-reporting", project=project, user=request.user
+            "projects:verbose-test-alert-reporting", project=project, actor=request.user
         ):
             return self.execute_future_on_test_event(test_event, rule)
         else:
