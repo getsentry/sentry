@@ -53,7 +53,7 @@
 /src/sentry/api/permissions.py                           @getsentry/security @getsentry/enterprise
 /src/sentry/api/authentication.py                        @getsentry/security @getsentry/enterprise
 /src/sentry/api/endpoints/auth*                          @getsentry/security @getsentry/enterprise
-/src/sentry/users/api/endpoints/user_permission*               @getsentry/security @getsentry/enterprise
+/src/sentry/users/api/endpoints/user_permission*         @getsentry/security @getsentry/enterprise
 /src/sentry/web/frontend/auth_close.py                   @getsentry/security
 /src/sentry/web/frontend/auth_login.py                   @getsentry/security
 /src/sentry/web/frontend/auth_logout.py                  @getsentry/security
