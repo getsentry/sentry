@@ -24,7 +24,7 @@ TEST_CARD = {"type": "test_card"}
 
 @control_silo_test
 @patch(
-    "sentry.integrations.msteams.MSTeamsNotificationsMessageBuilder.build_notification_card",
+    "sentry.integrations.msteams.card_builder.notifications.MSTeamsNotificationsMessageBuilder.build_notification_card",
     Mock(return_value=TEST_CARD),
 )
 @patch(
