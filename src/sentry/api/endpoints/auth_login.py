@@ -8,9 +8,9 @@ from sentry.api.base import Endpoint, control_silo_endpoint
 from sentry.api.serializers.base import serialize
 from sentry.api.serializers.models.user import DetailedSelfUserSerializer
 from sentry.models.organization import Organization
-from sentry.users.web.accounts_form import AuthenticationForm
 from sentry.utils import auth, metrics
 from sentry.utils.hashlib import md5_text
+from sentry.web.forms.accounts import AuthenticationForm
 from sentry.web.frontend.base import OrganizationMixin
 
 

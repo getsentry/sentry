@@ -14,11 +14,11 @@ from sentry.auth.authenticators.sms import SMSRateLimitExceeded
 from sentry.auth.authenticators.u2f import U2fInterface
 from sentry.silo.base import control_silo_function
 from sentry.users.models.authenticator import Authenticator
-from sentry.users.web.accounts_form import TwoFactorForm
 from sentry.utils import auth, json
 from sentry.utils.email import MessageBuilder
 from sentry.utils.geo import geo_by_addr
 from sentry.utils.http import absolute_uri
+from sentry.web.forms.accounts import TwoFactorForm
 from sentry.web.frontend.base import BaseView, control_silo_view
 from sentry.web.helpers import render_to_response
 

@@ -53,7 +53,6 @@ from sentry.pipeline.provider import PipelineProvider
 from sentry.signals import sso_enabled, user_signup
 from sentry.tasks.auth import email_missing_links_control
 from sentry.users.models.user import User
-from sentry.users.web.accounts_form import AuthenticationForm
 from sentry.utils import auth, metrics
 from sentry.utils.audit import create_audit_entry
 from sentry.utils.hashlib import md5_text
@@ -61,6 +60,7 @@ from sentry.utils.http import absolute_uri
 from sentry.utils.retries import TimedRetryPolicy
 from sentry.utils.session_store import redis_property
 from sentry.utils.urls import add_params_to_url
+from sentry.web.forms.accounts import AuthenticationForm
 from sentry.web.helpers import render_to_response
 
 from . import manager
