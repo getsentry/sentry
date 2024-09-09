@@ -25,6 +25,7 @@ from sentry.tasks.embeddings_grouping.utils import (
 
 BACKFILL_NAME = "backfill_grouping_records"
 BULK_DELETE_METADATA_CHUNK_SIZE = 100
+SEER_ACCEPTABLE_FAILURE_REASONS = ["Gateway Timeout"]
 
 logger = logging.getLogger(__name__)
 
@@ -224,20 +225,22 @@ def backfill_seer_grouping_records_for_project(
         logger.info(
             "backfill_seer_grouping_records.seer_failed",
             extra={
+                "reason": seer_response.get("reason"),
                 "current_project_id": current_project_id,
                 "last_processed_project_index": last_processed_project_index,
-                "reason": seer_response.get("reason"),
             },
         )
         sentry_sdk.capture_exception(Exception("Seer failed during backfill"))
-        return
 
-    update_groups(
-        project,
-        seer_response,
-        groups_to_backfill_with_no_embedding_has_snuba_row_and_nodestore_row,
-        group_hashes_dict,
-    )
+        if seer_response.get("reason") not in SEER_ACCEPTABLE_FAILURE_REASONS:
+            return
+    else:
+        update_groups(
+            project,
+            seer_response,
+            groups_to_backfill_with_no_embedding_has_snuba_row_and_nodestore_row,
+            group_hashes_dict,
+        )
 
     logger.info(
         "about to call next backfill",
