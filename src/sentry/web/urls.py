@@ -815,6 +815,24 @@ urlpatterns += [
         react_page_view,
         name="replays-selectors",
     ),
+    # Dev toolbar
+    re_path(
+        r"^toolbar/",
+        include(
+            [
+                re_path(
+                    r"^(?P<organization_slug>[^/\.]+)/(?P<project_slug>[^/\.]+)/iframe/$",
+                    IframeView.as_view(),
+                    name="sentry-toolbar-iframe",
+                ),
+                re_path(
+                    r"^(?P<organization_slug>[^/\.]+)/(?P<project_slug>[^/\.]+)/login-success/$",
+                    LoginSuccessView.as_view(),
+                    name="sentry-toolbar-login-success",
+                ),
+            ]
+        ),
+    ),
     # Crons
     re_path(
         r"^crons/",
@@ -1026,17 +1044,6 @@ urlpatterns += [
                     r"^(?P<organization_slug>[\w_-]+)/replays/rage-clicks/$",
                     react_page_view,
                     name="sentry-organization-replay-rage-clicks",
-                ),
-                # Templates + auth for installing dev toolbar on 3rd party sites
-                re_path(
-                    r"^(?P<organization_slug>[^/]+)/toolbar/iframe/$",
-                    IframeView.as_view(),
-                    name="sentry-organization-toolbar-iframe",
-                ),
-                re_path(
-                    r"^(?P<organization_slug>[^/]+)/toolbar/login-success/$",
-                    LoginSuccessView.as_view(),
-                    name="sentry-organization-toolbar-login-success",
                 ),
                 re_path(
                     r"^(?P<organization_slug>[\w_-]+)/crons/$",
