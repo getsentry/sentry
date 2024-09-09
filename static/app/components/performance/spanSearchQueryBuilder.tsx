@@ -8,16 +8,32 @@ import {t} from 'sentry/locale';
 import type {PageFilters} from 'sentry/types/core';
 import {SavedSearchType, type Tag, type TagCollection} from 'sentry/types/group';
 import {defined} from 'sentry/utils';
-import {isAggregateField, isMeasurement} from 'sentry/utils/discover/fields';
-import {DEVICE_CLASS_TAG_VALUES, isDeviceClass} from 'sentry/utils/fields';
+import {
+  isAggregateField,
+  isEquation,
+  isMeasurement,
+  parseFunction,
+} from 'sentry/utils/discover/fields';
+import {
+  DEVICE_CLASS_TAG_VALUES,
+  FieldKind,
+  getFieldDefinition,
+  isDeviceClass,
+} from 'sentry/utils/fields';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
+import {isCustomMeasurement} from 'sentry/views/dashboards/utils';
+import {useGroupBys} from 'sentry/views/explore/hooks/useGroupBys';
+import {useResultMode} from 'sentry/views/explore/hooks/useResultsMode';
+import {useVisualizes} from 'sentry/views/explore/hooks/useVisualizes';
 import {SPANS_FILTER_KEY_SECTIONS} from 'sentry/views/insights/constants';
 import {
   useSpanFieldCustomTags,
   useSpanFieldSupportedTags,
 } from 'sentry/views/performance/utils/useSpanFieldSupportedTags';
+
+import {STATIC_FIELD_TAGS_SET} from '../events/searchBarFieldConstants';
 
 interface SpanSearchQueryBuilderProps {
   initialQuery: string;
@@ -28,6 +44,30 @@ interface SpanSearchQueryBuilderProps {
   placeholder?: string;
   projects?: PageFilters['projects'];
 }
+
+const getFunctionTags = (fields: string[]) => {
+  if (!fields?.length) {
+    return [];
+  }
+  return fields.reduce((acc, item) => {
+    if (
+      !STATIC_FIELD_TAGS_SET.has(item) &&
+      !isEquation(item) &&
+      !isCustomMeasurement(item)
+    ) {
+      const parsedFunction = parseFunction(item);
+      if (parsedFunction) {
+        acc[parsedFunction.name] = {
+          key: parsedFunction.name,
+          name: parsedFunction.name,
+          kind: FieldKind.FUNCTION,
+        };
+      }
+    }
+
+    return acc;
+  }, {});
+};
 
 export function SpanSearchQueryBuilder({
   initialQuery,
@@ -40,6 +80,19 @@ export function SpanSearchQueryBuilder({
   const api = useApi();
   const organization = useOrganization();
   const {selection} = usePageFilters();
+  const [groupBys] = useGroupBys();
+  const [visualizes] = useVisualizes();
+  const [resultsMode] = useResultMode();
+
+  const fields = useMemo(() => {
+    return [...groupBys, ...visualizes.flatMap(visualize => visualize.yAxes)].filter(
+      Boolean
+    );
+  }, [groupBys, visualizes]);
+
+  const functionTags = useMemo(() => {
+    return resultsMode === 'samples' ? [] : getFunctionTags(fields);
+  }, [fields, resultsMode]);
 
   const placeholderText = useMemo(() => {
     return placeholder ?? t('Search for spans, users, tags, and more');
@@ -54,8 +107,8 @@ export function SpanSearchQueryBuilder({
   });
 
   const filterTags: TagCollection = useMemo(() => {
-    return {...supportedTags};
-  }, [supportedTags]);
+    return Object.assign({}, functionTags, supportedTags);
+  }, [supportedTags, functionTags]);
 
   const filterKeySections = useMemo(() => {
     return [
@@ -104,6 +157,7 @@ export function SpanSearchQueryBuilder({
       placeholder={placeholderText}
       filterKeys={filterTags}
       initialQuery={initialQuery}
+      fieldDefinitionGetter={(key: string) => getFieldDefinition(key, 'span')}
       onSearch={onSearch}
       searchSource={searchSource}
       filterKeySections={filterKeySections}
