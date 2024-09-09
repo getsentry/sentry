@@ -34,9 +34,7 @@ export function SetupDocsLoader({
   location,
   project,
   platform,
-  close,
 }: {
-  close: () => void;
   location: Location;
   organization: Organization;
   platform: PlatformKey | null;
@@ -146,9 +144,8 @@ export function SetupDocsLoader({
       <Header>
         <ProductSelectionAvailabilityHook
           organization={organization}
-          lazyLoader
-          skipLazyLoader={close}
           platform={currentPlatform}
+          projectId={project.id}
         />
       </Header>
       <Divider />

@@ -49,7 +49,7 @@ class RatelimitMiddleware:
     ) -> HttpResponseBase | None:
         """Check if the endpoint call will violate."""
 
-        with metrics.timer("middleware.ratelimit.process_view"):
+        with metrics.timer("middleware.ratelimit.process_view", sample_rate=0.01):
             try:
                 with sentry_sdk.start_span(op="ratelimit.early_return"):
                     # TODO: put these fields into their own object
@@ -134,7 +134,7 @@ class RatelimitMiddleware:
     def process_response(
         self, request: HttpRequest, response: HttpResponseBase
     ) -> HttpResponseBase:
-        with metrics.timer("middleware.ratelimit.process_response"):
+        with metrics.timer("middleware.ratelimit.process_response", sample_rate=0.01):
             try:
                 rate_limit_metadata: RateLimitMeta | None = getattr(
                     request, "rate_limit_metadata", None

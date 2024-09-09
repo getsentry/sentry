@@ -1,7 +1,11 @@
 import styled from '@emotion/styled';
 
+import {Button} from 'sentry/components/button';
 import {DropdownMenu, type MenuItemProps} from 'sentry/components/dropdownMenu';
-import {IconEllipsis} from 'sentry/icons';
+import {IconEllipsis, IconMegaphone} from 'sentry/icons';
+import {t} from 'sentry/locale';
+import {space} from 'sentry/styles/space';
+import {useFeedbackForm} from 'sentry/utils/useFeedbackForm';
 
 interface DraggableTabMenuButtonProps {
   menuOptions: MenuItemProps[];
@@ -33,11 +37,49 @@ export function DraggableTabMenuButton({
         }}
         items={menuOptions}
         offset={[-10, 5]}
+        menuFooter={<FeedbackFooter />}
         usePortal
       />
     </TriggerIconWrap>
   );
 }
+
+function FeedbackFooter() {
+  const openForm = useFeedbackForm();
+
+  if (!openForm) {
+    return null;
+  }
+
+  return (
+    <SectionedOverlayFooter>
+      <Button
+        size="xs"
+        icon={<IconMegaphone />}
+        onClick={() =>
+          openForm({
+            messagePlaceholder: t('How can we make custom views better for you?'),
+            tags: {
+              ['feedback.source']: 'custom_views',
+              ['feedback.owner']: 'issues',
+            },
+          })
+        }
+      >
+        {t('Give Feedback')}
+      </Button>
+    </SectionedOverlayFooter>
+  );
+}
+
+const SectionedOverlayFooter = styled('div')`
+  grid-area: footer;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  padding: ${space(1)};
+  border-top: 1px solid ${p => p.theme.innerBorder};
+`;
 
 const StyledDropdownMenu = styled(DropdownMenu)`
   font-weight: ${p => p.theme.fontWeightNormal};

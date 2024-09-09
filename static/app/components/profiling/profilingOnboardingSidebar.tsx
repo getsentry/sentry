@@ -7,7 +7,10 @@ import IdBadge from 'sentry/components/idBadge';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {Step} from 'sentry/components/onboarding/gettingStartedDoc/step';
-import type {DocsParams} from 'sentry/components/onboarding/gettingStartedDoc/types';
+import {
+  DocsPageLocation,
+  type DocsParams,
+} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {useLoadGettingStarted} from 'sentry/components/onboarding/gettingStartedDoc/utils/useLoadGettingStarted';
 import {ProductSolution} from 'sentry/components/onboarding/productSelection';
 import {TaskSidebar} from 'sentry/components/sidebar/taskSidebar';
@@ -16,6 +19,8 @@ import {SidebarPanelKey} from 'sentry/components/sidebar/types';
 import {ALL_ACCESS_PROJECTS} from 'sentry/constants/pageFilters';
 import platforms from 'sentry/data/platforms';
 import {t} from 'sentry/locale';
+import ConfigStore from 'sentry/stores/configStore';
+import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import {space} from 'sentry/styles/space';
 import type {SelectValue} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
@@ -222,6 +227,7 @@ function ProfilingOnboardingContent(props: ProfilingOnboardingContentProps) {
     projSlug: props.projectSlug,
     platform: props.platform,
   });
+  const {isSelfHosted, urlPrefix} = useLegacyStore(ConfigStore);
 
   if (isLoading) {
     return <LoadingIndicator />;
@@ -275,6 +281,12 @@ function ProfilingOnboardingContent(props: ProfilingOnboardingContentProps) {
     platformOptions: PROFILING_ONBOARDING_STEPS,
     newOrg: false,
     feedbackOptions: {},
+    /**
+     * Page where the docs will be rendered
+     */
+    docsLocation: DocsPageLocation.PROFILING_PAGE,
+    urlPrefix,
+    isSelfHosted,
   };
 
   const steps = [

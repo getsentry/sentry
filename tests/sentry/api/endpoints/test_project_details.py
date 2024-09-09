@@ -1325,21 +1325,6 @@ class ProjectUpdateTest(APITestCase):
             assert resp.status_code == 200
             assert project.get_option("sentry:symbol_sources", orjson.dumps([source1]).decode())
 
-    @with_feature("organizations:metrics-extrapolation")
-    def test_extrapolate_metrics_with_permission(self):
-        # test when the value is set to False
-        resp = self.get_success_response(self.org_slug, self.proj_slug, extrapolateMetrics=False)
-        assert self.project.get_option("sentry:extrapolate_metrics") is False
-        assert resp.data["extrapolateMetrics"] is False
-        # test when the value is set to True
-        resp = self.get_success_response(self.org_slug, self.proj_slug, extrapolateMetrics=True)
-        assert self.project.get_option("sentry:extrapolate_metrics") is True
-        assert resp.data["extrapolateMetrics"] is True
-
-    def test_extrapolate_metrics_without_permission(self):
-        resp = self.get_response(self.org_slug, self.proj_slug, extrapolateMetrics=True)
-        assert resp.status_code == 400
-
     @with_feature("organizations:uptime-settings")
     def test_uptime_settings(self):
         # test when the value is set to False
@@ -1606,13 +1591,13 @@ class ProjectDeleteTest(APITestCase):
             model_name="Project", object_id=self.project.id
         ).exists()
 
-    @with_feature("projects:similarity-embeddings-grouping")
     @mock.patch(
         "sentry.tasks.delete_seer_grouping_records.call_seer_delete_project_grouping_records.apply_async"
     )
     def test_delete_project_and_delete_grouping_records(
         self, mock_call_seer_delete_project_grouping_records
     ):
+        self.project.update_option("sentry:similarity_backfill_completed", int(time()))
         self._delete_project_and_assert_deleted()
         mock_call_seer_delete_project_grouping_records.assert_called_with(args=[self.project.id])
 

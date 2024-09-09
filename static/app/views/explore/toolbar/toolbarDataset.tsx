@@ -2,7 +2,7 @@ import {SegmentedControl} from 'sentry/components/segmentedControl';
 import {t} from 'sentry/locale';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 
-import {ToolbarHeading, ToolbarSection} from './styles';
+import {ToolbarHeader, ToolbarHeading, ToolbarSection} from './styles';
 
 interface ToolbarDatasetProps {
   dataset: DiscoverDatasets;
@@ -12,8 +12,15 @@ interface ToolbarDatasetProps {
 export function ToolbarDataset({dataset, setDataset}: ToolbarDatasetProps) {
   return (
     <ToolbarSection data-test-id="section-dataset">
-      <ToolbarHeading>{t('Dataset')}</ToolbarHeading>
-      <SegmentedControl aria-label={t('Dataset')} value={dataset} onChange={setDataset}>
+      <ToolbarHeader>
+        <ToolbarHeading>{t('Dataset')}</ToolbarHeading>
+      </ToolbarHeader>
+      <SegmentedControl
+        size="sm"
+        aria-label={t('Dataset')}
+        value={dataset}
+        onChange={setDataset}
+      >
         <SegmentedControl.Item key={DiscoverDatasets.SPANS_INDEXED}>
           {t('Indexed Spans')}
         </SegmentedControl.Item>

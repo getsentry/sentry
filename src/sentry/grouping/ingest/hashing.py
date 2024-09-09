@@ -7,6 +7,7 @@ from typing import TYPE_CHECKING
 
 import sentry_sdk
 
+from sentry import features, options
 from sentry.exceptions import HashDiscarded
 from sentry.features.rollout import in_random_rollout
 from sentry.grouping.api import (
@@ -17,7 +18,6 @@ from sentry.grouping.api import (
     GroupingConfigNotFound,
     SecondaryGroupingConfigLoader,
     apply_server_fingerprinting,
-    detect_synthetic_exception,
     get_fingerprinting_config_for_project,
     get_grouping_config_dict_for_project,
     load_grouping_config,
@@ -27,6 +27,7 @@ from sentry.grouping.ingest.metrics import record_hash_calculation_metrics
 from sentry.grouping.ingest.utils import extract_hashes
 from sentry.grouping.result import CalculatedHashes
 from sentry.models.grouphash import GroupHash
+from sentry.models.grouphashmetadata import GroupHashMetadata
 from sentry.models.project import Project
 from sentry.utils import metrics
 from sentry.utils.metrics import MutableTags
@@ -58,9 +59,6 @@ def _calculate_event_grouping(
         with metrics.timer("event_manager.normalize_stacktraces_for_grouping", tags=metric_tags):
             with sentry_sdk.start_span(op="event_manager.normalize_stacktraces_for_grouping"):
                 event.normalize_stacktraces_for_grouping(loaded_grouping_config)
-
-        # Detect & set synthetic marker if necessary
-        detect_synthetic_exception(event.data, loaded_grouping_config)
 
         with metrics.timer("event_manager.apply_server_fingerprinting", tags=metric_tags):
             # The active grouping config was put into the event in the
@@ -334,3 +332,26 @@ def get_hash_values(
     )
 
     return (primary_hashes, secondary_hashes, all_hashes)
+
+
+def get_or_create_grouphashes(
+    project: Project, calculated_hashes: CalculatedHashes
+) -> list[GroupHash]:
+    grouphashes = []
+
+    for hash_value in extract_hashes(calculated_hashes):
+        grouphash, created = GroupHash.objects.get_or_create(project=project, hash=hash_value)
+
+        # TODO: Do we want to expand this to backfill metadata for existing grouphashes? If we do,
+        # we'll have to override the metadata creation date for them.
+        if (
+            created
+            and options.get("grouping.grouphash_metadata.ingestion_writes_enabled")
+            and features.has("organizations:grouphash-metadata-creation", project.organization)
+        ):
+            # For now, this just creates a record with a creation timestamp
+            GroupHashMetadata.objects.create(grouphash=grouphash)
+
+        grouphashes.append(grouphash)
+
+    return grouphashes

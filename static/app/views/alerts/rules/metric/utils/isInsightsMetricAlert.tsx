@@ -5,6 +5,10 @@ export const INSIGHTS_METRICS_OPERATIONS = [
     label: 'spm',
     value: 'spm',
   },
+  {
+    label: 'cache_miss_rate',
+    value: 'cache_miss_rate',
+  },
 ];
 
 export const INSIGHTS_METRICS = [

@@ -37,6 +37,30 @@ class TestParseFeatureConfig:
 
         assert not feature.match(EvaluationContext(dict()))
 
+    def test_feature_with_default_rollout(self):
+        feature = Feature.from_feature_config_json(
+            "foo",
+            """
+            {
+                "owner": "test-user",
+                "created_at": "2023-10-12T00:00:00.000Z",
+                "segments": [{
+                    "name": "always_pass_segment",
+                    "conditions": [{
+                        "name": "Always true",
+                        "property": "is_true",
+                        "operator": "equals",
+                        "value": true
+                    }]
+                }]
+            }
+            """,
+        )
+
+        context_builder = self.get_is_true_context_builder(is_true_value=True)
+        assert feature.segments[0].rollout == 100
+        assert feature.match(context_builder.build(SimpleTestContextData()))
+
     def test_feature_with_rollout_zero(self):
         feature = Feature.from_feature_config_json(
             "foobar",

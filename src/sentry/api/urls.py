@@ -34,7 +34,6 @@ from sentry.api.endpoints.organization_unsubscribe import (
 from sentry.api.endpoints.project_backfill_similar_issues_embeddings_records import (
     ProjectBackfillSimilarIssuesEmbeddingsRecords,
 )
-from sentry.api.endpoints.project_metrics_usage import ProjectMetricsUsageEndpoint
 from sentry.api.endpoints.project_stacktrace_coverage import ProjectStacktraceCoverageEndpoint
 from sentry.api.endpoints.project_statistical_detectors import ProjectStatisticalDetectors
 from sentry.api.endpoints.project_template_detail import OrganizationProjectTemplateDetailEndpoint
@@ -80,6 +79,9 @@ from sentry.discover.endpoints.discover_saved_query_detail import (
 )
 from sentry.incidents.endpoints.organization_alert_rule_activations import (
     OrganizationAlertRuleActivationsEndpoint,
+)
+from sentry.incidents.endpoints.organization_alert_rule_anomalies import (
+    OrganizationAlertRuleAnomaliesEndpoint,
 )
 from sentry.incidents.endpoints.organization_alert_rule_available_action_index import (
     OrganizationAlertRuleAvailableActionIndexEndpoint,
@@ -474,9 +476,6 @@ from .endpoints.organization_member_unreleased_commits import (
 )
 from .endpoints.organization_metrics_code_locations import OrganizationMetricsCodeLocationsEndpoint
 from .endpoints.organization_metrics_details import OrganizationMetricsDetailsEndpoint
-from .endpoints.organization_metrics_extraction_rules import (
-    OrganizationMetricsExtractionRulesEndpoint,
-)
 from .endpoints.organization_metrics_meta import (
     OrganizationMetricsCompatibility,
     OrganizationMetricsCompatibilitySums,
@@ -581,7 +580,6 @@ from .endpoints.project_key_stats import ProjectKeyStatsEndpoint
 from .endpoints.project_keys import ProjectKeysEndpoint
 from .endpoints.project_member_index import ProjectMemberIndexEndpoint
 from .endpoints.project_metrics import ProjectMetricsVisibilityEndpoint
-from .endpoints.project_metrics_extraction_rules import ProjectMetricsExtractionRulesEndpoint
 from .endpoints.project_ownership import ProjectOwnershipEndpoint
 from .endpoints.project_performance_general_settings import (
     ProjectPerformanceGeneralSettingsEndpoint,
@@ -1174,6 +1172,11 @@ ORGANIZATION_URLS = [
         OrganizationAlertRuleActivationsEndpoint.as_view(),
         name="sentry-api-0-organization-alert-rule-activations",
     ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^\/]+)/alert-rules/(?P<alert_rule_id>[^\/]+)/anomalies/$",
+        OrganizationAlertRuleAnomaliesEndpoint.as_view(),
+        name="sentry-api-0-organization-alert-rule-anomalies",
+    ),
     re_path(  # fetch combined metric and issue alert rules
         r"^(?P<organization_id_or_slug>[^\/]+)/combined-rules/$",
         OrganizationCombinedRuleIndexEndpoint.as_view(),
@@ -1525,11 +1528,6 @@ ORGANIZATION_URLS = [
         r"^(?P<organization_id_or_slug>[^\/]+)/metrics-compatibility-sums/$",
         OrganizationMetricsCompatibilitySums.as_view(),
         name="sentry-api-0-organization-metrics-compatibility-sums",
-    ),
-    re_path(
-        r"^(?P<organization_id_or_slug>[^/]+)/metrics/extraction-rules/$",
-        OrganizationMetricsExtractionRulesEndpoint.as_view(),
-        name="sentry-api-0-organization-metrics-extraction-rules",
     ),
     re_path(
         r"^(?P<organization_id_or_slug>[^\/]+)/missing-members/$",
@@ -2428,16 +2426,6 @@ PROJECT_URLS: list[URLPattern | URLResolver] = [
         r"^(?P<organization_id_or_slug>[^/]+)/(?P<project_id_or_slug>[^/]+)/metrics/visibility/$",
         ProjectMetricsVisibilityEndpoint.as_view(),
         name="sentry-api-0-project-metrics-visibility",
-    ),
-    re_path(
-        r"^(?P<organization_id_or_slug>[^/]+)/(?P<project_id_or_slug>[^/]+)/metrics/extraction-rules/$",
-        ProjectMetricsExtractionRulesEndpoint.as_view(),
-        name="sentry-api-0-project-metrics-extraction-rules",
-    ),
-    re_path(
-        r"^(?P<organization_id_or_slug>[^\/]+)/(?P<project_id_or_slug>[^\/]+)/metrics-usage/(?P<span_attribute>[^\/]+)/$",
-        ProjectMetricsUsageEndpoint.as_view(),
-        name="sentry-api-0-project-metrics-usage",
     ),
     re_path(
         r"^(?P<organization_id_or_slug>[^\/]+)/(?P<project_id_or_slug>[^\/]+)/releases/$",
