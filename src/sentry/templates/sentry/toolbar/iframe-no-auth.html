@@ -9,10 +9,10 @@
   {% script %}
   <script>
   (function() {
-    if (!window.opener) {
+    if (!window.parent) {
       return;
     }
-    window.opener.postMessage('iframe_no_auth', '*'); // this will be used by the main frame
+    window.parent.postMessage('iframe_no_auth', '*'); // this will be used by the main frame
   })();
 
   window.addEventListener('message', (event) => {
