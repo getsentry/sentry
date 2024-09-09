@@ -1,7 +1,6 @@
 import {useCallback, useMemo} from 'react';
 import type {Location} from 'history';
 
-import {dedupeArray} from 'sentry/utils/dedupeArray';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
@@ -43,10 +42,14 @@ function useResultModeImpl({
       // When switching from the aggregates to samples mode, carry
       // over any group bys as they are helpful context when looking
       // for examples.
-      const fields =
-        newMode === 'samples'
-          ? dedupeArray([...sampleFields, ...groupBys].filter(Boolean))
-          : sampleFields.slice();
+      const fields = [...sampleFields];
+      if (newMode === 'samples') {
+        for (const groupBy of groupBys) {
+          if (groupBy && !fields.includes(groupBy)) {
+            fields.push(groupBy);
+          }
+        }
+      }
 
       navigate({
         ...location,
