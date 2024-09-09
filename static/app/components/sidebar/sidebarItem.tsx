@@ -612,9 +612,6 @@ const CollapsedFeatureBadge = styled(FeatureBadge)`
 `;
 
 const StyledInteractionStateLayer = styled(InteractionStateLayer)`
-  height: ${16 * 2 + 40}px;
-  width: 70px;
-
   .sidebar-v2 & {
     height: 53px;
     width: 58px;
