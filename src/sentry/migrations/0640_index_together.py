@@ -68,19 +68,4 @@ class Migration(CheckedMigration):
             new_name="sentry_grou_project_17d28d_idx",
             old_fields=("project", "status", "type", "last_seen", "id"),
         ),
-        migrations.RenameIndex(
-            model_name="grouphistory",
-            new_name="sentry_grou_project_bbcf30_idx",
-            old_fields=("project", "status", "release"),
-        ),
-        migrations.RenameIndex(
-            model_name="grouphistory",
-            new_name="sentry_grou_group_i_c61acb_idx",
-            old_fields=("group", "status"),
-        ),
-        migrations.RenameIndex(
-            model_name="grouphistory",
-            new_name="sentry_grou_project_20b3f8_idx",
-            old_fields=("project", "date_added"),
-        ),
     ]
