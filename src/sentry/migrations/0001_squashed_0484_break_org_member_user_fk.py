@@ -8989,17 +8989,26 @@ class Migration(CheckedMigration):
             ],
             options={
                 "db_table": "sentry_controloutbox",
-                "index_together": {
-                    ("region_name", "shard_scope", "shard_identifier", "scheduled_for"),
-                    (
-                        "region_name",
-                        "shard_scope",
-                        "shard_identifier",
-                        "category",
-                        "object_identifier",
+                "indexes": [
+                    models.Index(
+                        fields=[
+                            "region_name",
+                            "shard_scope",
+                            "shard_identifier",
+                            "category",
+                            "object_identifier",
+                        ],
+                        name="sentry_cont_region__1c1c72_idx",
                     ),
-                    ("region_name", "shard_scope", "shard_identifier", "id"),
-                },
+                    models.Index(
+                        fields=["region_name", "shard_scope", "shard_identifier", "scheduled_for"],
+                        name="sentry_cont_region__0c4512_idx",
+                    ),
+                    models.Index(
+                        fields=["region_name", "shard_scope", "shard_identifier", "id"],
+                        name="sentry_cont_region__a95d82_idx",
+                    ),
+                ],
             },
         ),
         migrations.AlterField(
