@@ -9257,6 +9257,12 @@ class Migration(CheckedMigration):
             options={
                 "db_table": "sentry_projectartifactbundle",
                 "unique_together": {("project_id", "artifact_bundle")},
+                "indexes": [
+                    models.Index(
+                        fields=["project_id", "artifact_bundle"],
+                        name="sentry_proj_project_f73d36_idx",
+                    )
+                ],
             },
         ),
         migrations.CreateModel(

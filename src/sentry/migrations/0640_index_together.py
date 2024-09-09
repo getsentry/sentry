@@ -93,9 +93,4 @@ class Migration(CheckedMigration):
             new_name="sentry_orga_organiz_7de26b_idx",
             old_fields=("organization_id", "email"),
         ),
-        migrations.RenameIndex(
-            model_name="projectartifactbundle",
-            new_name="sentry_proj_project_f73d36_idx",
-            old_fields=("project_id", "artifact_bundle"),
-        ),
     ]

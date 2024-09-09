@@ -63,8 +63,4 @@ class Migration(CheckedMigration):
                 fields=["debug_id", "artifact_bundle"], name="sentry_debu_debug_i_8c6c44_idx"
             ),
         ),
-        migrations.AlterIndexTogether(
-            name="projectartifactbundle",
-            index_together={("project_id", "artifact_bundle")},
-        ),
     ]
