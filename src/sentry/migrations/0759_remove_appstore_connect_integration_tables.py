@@ -27,10 +27,12 @@ class Migration(CheckedMigration):
     operations = [
         migrations.RunSQL(
             sql='DROP TABLE IF EXISTS "sentry_latestappconnectbuildscheck"',
+            reverse_sql="CREATE TABLE sentry_latestappconnectbuildscheck (id BIGSERIAL)",
             hints={"tables": ["sentry_latestappconnectbuildscheck"]},
         ),
         migrations.RunSQL(
             sql='DROP TABLE IF EXISTS "sentry_appconnectbuild"',
+            reverse_sql="CREATE TABLE sentry_appconnectbuild (id BIGSERIAL)",
             hints={"tables": ["sentry_appconnectbuild"]},
         ),
     ]
