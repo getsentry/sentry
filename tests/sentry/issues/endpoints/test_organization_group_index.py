@@ -17,6 +17,7 @@ from sentry.issues.grouptype import (
     PerformanceNPlusOneGroupType,
     PerformanceRenderBlockingAssetSpanGroupType,
     PerformanceSlowDBQueryGroupType,
+    ProfileFileIOGroupType,
 )
 from sentry.models.activity import Activity
 from sentry.models.apitoken import ApiToken
@@ -3148,10 +3149,11 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         self.login_as(user=self.user)
         # give time for consumers to run and propogate changes to clickhouse
         sleep(1)
-        response = self.get_success_response(
-            sort="new",
-            query="user.email:myemail@example.com",
-        )
+        with self.feature([ProfileFileIOGroupType.build_visible_feature_name()]):
+            response = self.get_success_response(
+                sort="new",
+                query="user.email:myemail@example.com",
+            )
         assert len(response.data) == 2
         assert {r["id"] for r in response.data} == {
             str(perf_group_id),
@@ -3923,8 +3925,8 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
     def run_feedback_filtered_by_default_test(self, use_group_snuba_dataset: bool):
         with Feature(
             {
-                "organizations:feedback-ingest": True,
-                "organizations:feedback-visible": True,
+                FeedbackGroup.build_visible_feature_name(): True,
+                FeedbackGroup.build_ingest_feature_name(): True,
                 "organizations:issue-search-snuba": use_group_snuba_dataset,
             }
         ):
@@ -3957,8 +3959,8 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
     def run_feedback_category_filter_test(self, use_group_snuba_dataset: bool):
         with Feature(
             {
-                "organizations:feedback-ingest": True,
-                "organizations:feedback-visible": True,
+                FeedbackGroup.build_visible_feature_name(): True,
+                FeedbackGroup.build_ingest_feature_name(): True,
                 "organizations:issue-search-snuba": use_group_snuba_dataset,
             }
         ):
