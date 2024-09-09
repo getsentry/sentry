@@ -69,6 +69,10 @@ const getFunctionTags = (fields: string[]) => {
   }, {});
 };
 
+const getSpanFieldDefinition = (key: string) => {
+  return getFieldDefinition(key, 'span');
+};
+
 export function SpanSearchQueryBuilder({
   initialQuery,
   searchSource,
@@ -107,7 +111,7 @@ export function SpanSearchQueryBuilder({
   });
 
   const filterTags: TagCollection = useMemo(() => {
-    return Object.assign({}, functionTags, supportedTags);
+    return {...functionTags, ...supportedTags};
   }, [supportedTags, functionTags]);
 
   const filterKeySections = useMemo(() => {
@@ -157,7 +161,7 @@ export function SpanSearchQueryBuilder({
       placeholder={placeholderText}
       filterKeys={filterTags}
       initialQuery={initialQuery}
-      fieldDefinitionGetter={(key: string) => getFieldDefinition(key, 'span')}
+      fieldDefinitionGetter={getSpanFieldDefinition}
       onSearch={onSearch}
       searchSource={searchSource}
       filterKeySections={filterKeySections}
