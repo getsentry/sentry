@@ -7,9 +7,10 @@ describe('getAlertsUrl', function () {
   it('should return a url to the alert rule page prepopulated with DB params', function () {
     const aggregate = 'avg(d:spans/duration@millisecond)';
     const query = 'span.module:db';
-    const url = getAlertsUrl({project, aggregate, query});
+    const orgSlug = 'orgSlug';
+    const url = getAlertsUrl({project, aggregate, query, orgSlug});
     expect(url).toEqual(
-      '/alerts/new/metric/?aggregate=avg%28d%3Aspans%2Fduration%40millisecond%29&dataset=generic_metrics&eventTypes=transaction&project=project-slug&query=span.module%3Adb'
+      '/organizations/orgSlug/alerts/new/metric/?aggregate=avg%28d%3Aspans%2Fduration%40millisecond%29&dataset=generic_metrics&eventTypes=transaction&project=project-slug&query=span.module%3Adb'
     );
   });
 });

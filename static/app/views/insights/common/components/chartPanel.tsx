@@ -49,15 +49,23 @@ export default function ChartPanel({
   const alertsUrls =
     alertConfigs?.map(alertConfig => {
       // Alerts only support single project selection
+      const singleProject = selection.projects.length === 1 && project;
       const alertsUrl =
-        alertConfig && selection.projects.length === 1 && project
-          ? getAlertsUrl({project, ...alertConfig})
+        alertConfig && singleProject
+          ? getAlertsUrl({project, orgSlug: organization.slug, ...alertConfig})
           : undefined;
       const name = alertConfig.name ?? 'Create Alert';
+      const disabled = !singleProject;
       return {
         key: name,
         label: name,
         to: alertsUrl,
+        disabled,
+        tooltip: disabled
+          ? t(
+              'Alerts are only available for single project selection. Update your project filter to create an alert.'
+            )
+          : undefined,
       };
     }) ?? [];
 
