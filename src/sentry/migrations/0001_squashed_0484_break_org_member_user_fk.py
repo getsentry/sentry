@@ -7514,27 +7514,11 @@ class Migration(CheckedMigration):
             name="uploaded_to_appstore",
             field=models.DateTimeField(default=django.utils.timezone.now),
         ),
-        migrations.SeparateDatabaseAndState(
-            database_operations=[
-                migrations.RunSQL(
-                    sql='\n                    CREATE INDEX CONCURRENTLY "sentry_audi_organiz_c8bd18_idx" ON "sentry_auditlogentry" ("organization_id", "datetime");\n                    ',
-                    reverse_sql="\n                    DROP INDEX CONCURRENTLY IF EXISTS sentry_audi_organiz_c8bd18_idx;\n                    ",
-                    hints={"tables": ["sentry_auditlogentry"]},
-                ),
-            ],
-            state_operations=[
-                migrations.AlterIndexTogether(
-                    name="auditlogentry",
-                    index_together=set(),
-                ),
-                migrations.AddIndex(
-                    model_name="auditlogentry",
-                    index=models.Index(
-                        fields=["organization_id", "datetime"],
-                        name="sentry_audi_organiz_c8bd18_idx",
-                    ),
-                ),
-            ],
+        migrations.AddIndex(
+            model_name="auditlogentry",
+            index=models.Index(
+                fields=["organization_id", "datetime"], name="sentry_audi_organiz_c8bd18_idx"
+            ),
         ),
         migrations.AlterField(
             model_name="project",
@@ -7628,23 +7612,12 @@ class Migration(CheckedMigration):
                 ),
             ],
         ),
-        migrations.SeparateDatabaseAndState(
-            database_operations=[
-                migrations.RunSQL(
-                    sql='\n                    CREATE INDEX CONCURRENTLY "sentry_audi_organiz_588b1e_idx" ON "sentry_auditlogentry" ("organization_id", "event", "datetime");\n                    ',
-                    reverse_sql="\n                    DROP INDEX CONCURRENTLY IF EXISTS sentry_audi_organiz_588b1e_idx;\n                    ",
-                    hints={"tables": ["sentry_auditlogentry"]},
-                ),
-            ],
-            state_operations=[
-                migrations.AddIndex(
-                    model_name="auditlogentry",
-                    index=models.Index(
-                        fields=["organization_id", "event", "datetime"],
-                        name="sentry_audi_organiz_588b1e_idx",
-                    ),
-                ),
-            ],
+        migrations.AddIndex(
+            model_name="auditlogentry",
+            index=models.Index(
+                fields=["organization_id", "event", "datetime"],
+                name="sentry_audi_organiz_588b1e_idx",
+            ),
         ),
         migrations.RunSQL(
             sql='\n                DROP TABLE IF EXISTS "jira_ac_tenant";\n                ',
