@@ -1432,7 +1432,7 @@ export class TraceTree {
           return result;
         }
 
-        return null;
+        return result;
       }
     );
   }
@@ -2591,15 +2591,14 @@ function hasEventWithEventId(
 function findInTreeByEventId(start: TraceTreeNode<TraceTree.NodeValue>, eventId: string) {
   return TraceTreeNode.Find(start, node => {
     if (isTransactionNode(node)) {
-      if (node.value.event_id === eventId) {
-        return true;
-      }
-    } else if (isSpanNode(node)) {
-      return node.value.span_id === eventId;
-    } else if (isTraceErrorNode(node)) {
       return node.value.event_id === eventId;
     }
-
+    if (isSpanNode(node)) {
+      return node.value.span_id === eventId;
+    }
+    if (isTraceErrorNode(node)) {
+      return node.value.event_id === eventId;
+    }
     return hasEventWithEventId(node, eventId);
   });
 }
