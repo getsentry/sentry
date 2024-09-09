@@ -8,13 +8,9 @@ import {t} from 'sentry/locale';
 import type {PageFilters} from 'sentry/types/core';
 import {SavedSearchType, type Tag, type TagCollection} from 'sentry/types/group';
 import {defined} from 'sentry/utils';
+import {isAggregateField, isMeasurement} from 'sentry/utils/discover/fields';
 import {
-  isAggregateField,
-  isEquation,
-  isMeasurement,
-  parseFunction,
-} from 'sentry/utils/discover/fields';
-import {
+  type AggregationKey,
   DEVICE_CLASS_TAG_VALUES,
   FieldKind,
   getFieldDefinition,
@@ -23,47 +19,34 @@ import {
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
-import {isCustomMeasurement} from 'sentry/views/dashboards/utils';
 import {SPANS_FILTER_KEY_SECTIONS} from 'sentry/views/insights/constants';
 import {
   useSpanFieldCustomTags,
   useSpanFieldSupportedTags,
 } from 'sentry/views/performance/utils/useSpanFieldSupportedTags';
 
-import {STATIC_FIELD_TAGS_SET} from '../events/searchBarFieldConstants';
-
 interface SpanSearchQueryBuilderProps {
   initialQuery: string;
   searchSource: string;
-  allowAggregateFunctions?: boolean;
   datetime?: PageFilters['datetime'];
   disableLoadingTags?: boolean;
-  fields?: string[];
   onSearch?: (query: string, state: CallbackSearchState) => void;
   placeholder?: string;
   projects?: PageFilters['projects'];
+  supportedAggregates?: AggregationKey[];
 }
 
-const getFunctionTags = (fields: string[]) => {
-  if (!fields?.length) {
-    return [];
+const getFunctionTags = (supportedAggregates: AggregationKey[] | undefined) => {
+  if (!supportedAggregates?.length) {
+    return {};
   }
-  return fields.reduce((acc, item) => {
-    if (
-      !STATIC_FIELD_TAGS_SET.has(item) &&
-      !isEquation(item) &&
-      !isCustomMeasurement(item)
-    ) {
-      const parsedFunction = parseFunction(item);
-      if (parsedFunction) {
-        acc[parsedFunction.name] = {
-          key: parsedFunction.name,
-          name: parsedFunction.name,
-          kind: FieldKind.FUNCTION,
-        };
-      }
-    }
 
+  return supportedAggregates.reduce((acc, item) => {
+    acc[item] = {
+      key: item,
+      name: item,
+      kind: FieldKind.FUNCTION,
+    };
     return acc;
   }, {});
 };
@@ -79,16 +62,15 @@ export function SpanSearchQueryBuilder({
   onSearch,
   placeholder,
   projects,
-  fields = [],
-  allowAggregateFunctions,
+  supportedAggregates,
 }: SpanSearchQueryBuilderProps) {
   const api = useApi();
   const organization = useOrganization();
   const {selection} = usePageFilters();
 
   const functionTags = useMemo(() => {
-    return allowAggregateFunctions ? getFunctionTags(fields) : [];
-  }, [fields, allowAggregateFunctions]);
+    return getFunctionTags(supportedAggregates);
+  }, [supportedAggregates]);
 
   const placeholderText = useMemo(() => {
     return placeholder ?? t('Search for spans, users, tags, and more');

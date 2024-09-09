@@ -15,15 +15,14 @@ import {SpanSearchQueryBuilder} from 'sentry/components/performance/spanSearchQu
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import {ALLOWED_EXPLORE_VISUALIZE_AGGREGATES} from 'sentry/utils/fields';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 
-import {useGroupBys} from './hooks/useGroupBys';
 import {useResultMode} from './hooks/useResultsMode';
 import {useUserQuery} from './hooks/useUserQuery';
-import {useVisualizes} from './hooks/useVisualizes';
 import {ExploreCharts} from './charts';
 import {ExploreTables} from './tables';
 import {ExploreToolbar} from './toolbar';
@@ -37,15 +36,11 @@ export function ExploreContent({}: ExploreContentProps) {
   const navigate = useNavigate();
   const organization = useOrganization();
   const {selection} = usePageFilters();
-  const [groupBys] = useGroupBys();
-  const [visualizes] = useVisualizes();
   const [resultsMode] = useResultMode();
 
-  const fields = useMemo(() => {
-    return [...groupBys, ...visualizes.flatMap(visualize => visualize.yAxes)].filter(
-      Boolean
-    );
-  }, [groupBys, visualizes]);
+  const supportedAggregates = useMemo(() => {
+    return resultsMode === 'aggregate' ? ALLOWED_EXPLORE_VISUALIZE_AGGREGATES : [];
+  }, [resultsMode]);
 
   const [userQuery, setUserQuery] = useUserQuery();
 
@@ -88,8 +83,7 @@ export function ExploreContent({}: ExploreContentProps) {
                 <DatePageFilter />
               </PageFilterBar>
               <SpanSearchQueryBuilder
-                fields={fields}
-                allowAggregateFunctions={resultsMode === 'aggregate'}
+                supportedAggregates={supportedAggregates}
                 projects={selection.projects}
                 initialQuery={userQuery}
                 onSearch={setUserQuery}
