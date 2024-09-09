@@ -94,7 +94,7 @@ const formGroups: JsonFormObject[] = [
       {
         name: 'allowMemberInvite',
         type: 'boolean',
-        label: t('Let Members Invite Freely'),
+        label: t('Let Members Invite Others'),
         help: t(
           'Allow organization members to invite other members via email without needing org owner or manager approval.'
         ),
