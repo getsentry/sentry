@@ -61,10 +61,9 @@ class AcceptOrganizationInvite extends DeprecatedAsyncView<Props, State> {
     return t('Accept Organization Invite');
   }
 
-  handleLogout = async (e: React.MouseEvent) => {
+  handleLogout = (e: React.MouseEvent) => {
     e.preventDefault();
-    await logout(this.api);
-    window.location.replace('/auth/login/');
+    logout(this.api);
   };
 
   handleAcceptInvite = async () => {
