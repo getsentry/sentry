@@ -12,6 +12,7 @@ from django.db.models import Q
 from django.test import override_settings
 from google.api_core.exceptions import DeadlineExceeded, ServiceUnavailable
 from snuba_sdk import Column, Condition, Entity, Limit, Op, Query, Request
+from urllib3.response import HTTPResponse
 
 from sentry import options
 from sentry.conf.server import SEER_SIMILARITY_MODEL_VERSION
@@ -1586,29 +1587,6 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
         assert self.project.get_option("sentry:similarity_backfill_completed") is None
 
     @with_feature("projects:similarity-embeddings-backfill")
-    @patch("time.sleep", return_value=None)
-    @patch("sentry.tasks.embeddings_grouping.utils.logger")
-    @patch("sentry.tasks.embeddings_grouping.utils.post_bulk_grouping_records")
-    def test_backfill_seer_grouping_records_seer_exception(
-        self, mock_post_bulk_grouping_records, mock_logger, mock_sleep
-    ):
-        """
-        Test log after seer exception and retries.
-        """
-        exception = ServiceUnavailable(message="Service Unavailable")
-        mock_post_bulk_grouping_records.side_effect = exception
-        with pytest.raises(Exception), TaskRunner():
-            backfill_seer_grouping_records_for_project(self.project.id, None)
-
-        mock_logger.exception.assert_called_with(
-            "tasks.backfill_seer_grouping_records.seer_exception_after_retries",
-            extra={
-                "project_id": self.project.id,
-                "error": exception,
-            },
-        )
-
-    @with_feature("projects:similarity-embeddings-backfill")
     @patch("sentry.tasks.embeddings_grouping.backfill_seer_grouping_records_for_project.logger")
     def test_backfill_seer_grouping_records_skip_project_already_processed(self, mock_logger):
         """
@@ -1878,3 +1856,107 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
         assert groups_to_backfill_batch == []
         assert batch_end_group_id == deleted_group.id
         assert backfill_batch_raw_length == 1
+
+    @with_feature("projects:similarity-embeddings-backfill")
+    @patch("sentry.tasks.embeddings_grouping.backfill_seer_grouping_records_for_project.logger")
+    @patch("sentry.seer.similarity.grouping_records.seer_grouping_connection_pool.urlopen")
+    def test_backfill_seer_grouping_records_gateway_timeout(self, mock_seer_request, mock_logger):
+        """
+        Test that if the backfill fails due to a Seer Gateway Timeout error, that the backfill continues.
+        """
+        mock_seer_request.return_value = HTTPResponse(
+            b"<!doctype html>\n<html lang=en>\n<title>Gateway Timeout</title>\n",
+            reason="Gateway Timeout",
+            status=500,
+        )
+        with TaskRunner():
+            backfill_seer_grouping_records_for_project(self.project.id, None)
+
+        project_group_ids = sorted(
+            [group.id for group in Group.objects.filter(project_id=self.project.id)], reverse=True
+        )
+        expected_call_args_list = [
+            call(
+                "backfill_seer_grouping_records",
+                extra={
+                    "current_project_id": self.project.id,
+                    "last_processed_group_id": None,
+                    "cohort": None,
+                    "last_processed_project_index": None,
+                    "only_delete": False,
+                    "skip_processed_projects": False,
+                    "skip_project_ids": None,
+                },
+            ),
+            call(
+                "backfill_seer_grouping_records.seer_failed",
+                extra={
+                    "reason": "Gateway Timeout",
+                    "current_project_id": self.project.id,
+                    "last_processed_project_index": 0,
+                },
+            ),
+            call("about to call next backfill", extra={"project_id": self.project.id}),
+            call(
+                "calling next backfill task",
+                extra={
+                    "project_id": self.project.id,
+                    "last_processed_group_id": project_group_ids[-1],
+                },
+            ),
+            call(
+                "backfill_seer_grouping_records",
+                extra={
+                    "current_project_id": self.project.id,
+                    "last_processed_group_id": project_group_ids[-1],
+                    "cohort": None,
+                    "last_processed_project_index": 0,
+                    "only_delete": False,
+                    "skip_processed_projects": False,
+                    "skip_project_ids": None,
+                },
+            ),
+            call("backfill finished, no cohort", extra={"project_id": self.project.id}),
+        ]
+
+        assert mock_logger.info.call_args_list == expected_call_args_list
+
+    @with_feature("projects:similarity-embeddings-backfill")
+    @patch("sentry.tasks.embeddings_grouping.backfill_seer_grouping_records_for_project.logger")
+    @patch("sentry.seer.similarity.grouping_records.seer_grouping_connection_pool.urlopen")
+    def test_backfill_seer_grouping_records_internal_error(self, mock_seer_request, mock_logger):
+        """
+        Test that if the backfill fails due to a non-Gateway Timeout error, that the backfill stops.
+        """
+        mock_seer_request.return_value = HTTPResponse(
+            b"<!doctype html>\n<html lang=en>\n<title>500 Internal Server Error</title>\n",
+            reason="Internal Error",
+            status=500,
+        )
+        with TaskRunner():
+            backfill_seer_grouping_records_for_project(self.project.id, None)
+
+        expected_call_args_list = [
+            call(
+                "backfill_seer_grouping_records",
+                extra={
+                    "current_project_id": self.project.id,
+                    "last_processed_group_id": None,
+                    "cohort": None,
+                    "last_processed_project_index": None,
+                    "only_delete": False,
+                    "skip_processed_projects": False,
+                    "skip_project_ids": None,
+                },
+            ),
+            call(
+                "backfill_seer_grouping_records.seer_failed",
+                extra={
+                    "reason": "Internal Error",
+                    "current_project_id": self.project.id,
+                    "last_processed_project_index": 0,
+                },
+            ),
+        ]
+
+        assert mock_logger.info.call_args_list == expected_call_args_list
