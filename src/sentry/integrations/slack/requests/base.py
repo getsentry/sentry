@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import dataclasses
 import logging
-from collections.abc import Mapping, MutableMapping, Sequence
+from collections.abc import Mapping, MutableMapping
 from typing import Any
 
 from rest_framework import status as status_
@@ -12,6 +12,7 @@ from slack_sdk.signature import SignatureVerifier
 from sentry import options
 from sentry.identity.services.identity import RpcIdentity, identity_service
 from sentry.identity.services.identity.model import RpcIdentityProvider
+from sentry.integrations.messaging.commands import CommandInput
 from sentry.integrations.services.integration import RpcIntegration, integration_service
 from sentry.users.services.user import RpcUser
 from sentry.users.services.user.service import user_service
@@ -270,11 +271,9 @@ class SlackDMRequest(SlackRequest):
     def channel_name(self) -> str:
         return self.dm_data.get("channel_name", "")
 
-    def get_command_and_args(self) -> tuple[str, Sequence[str]]:
-        command = self.text.lower().split()
-        if not command:
-            return "", []
-        return command[0], command[1:]
+    def get_command_input(self) -> CommandInput:
+        tokens = self.text.lower().split() or ("",)
+        return CommandInput(tokens[0], tuple(tokens[1:]))
 
     def _validate_identity(self) -> None:
         self.user = self.get_identity_user()
