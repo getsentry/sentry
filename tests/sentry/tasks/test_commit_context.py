@@ -8,6 +8,7 @@ import responses
 from celery.exceptions import Retry
 from django.utils import timezone
 
+from sentry.constants import ObjectStatus
 from sentry.integrations.github.integration import GitHubIntegrationProvider
 from sentry.integrations.services.integration import integration_service
 from sentry.integrations.source_code_management.commit_context import (
@@ -27,6 +28,7 @@ from sentry.models.pullrequest import (
 )
 from sentry.models.repository import Repository
 from sentry.shared_integrations.exceptions import ApiError
+from sentry.silo.base import SiloMode
 from sentry.tasks.commit_context import (
     PR_COMMENT_WINDOW,
     process_commit_context,
@@ -34,6 +36,7 @@ from sentry.tasks.commit_context import (
 )
 from sentry.testutils.cases import IntegrationTestCase, TestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.testutils.silo import assume_test_silo_mode
 from sentry.testutils.skips import requires_snuba
 from sentry.utils.committers import get_frame_paths
 
@@ -158,6 +161,37 @@ class TestCommitContextAllFrames(TestCommitContextIntegration):
                 commitAuthorEmail="admin2@localhost",
             ),
         )
+
+    @patch(
+        "sentry.integrations.github.GitHubIntegration.get_commit_context_all_frames",
+    )
+    def test_inactive_integration(self, mock_get_commit_context):
+        """
+        Early return if the integration is not active
+        """
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            self.integration.update(status=ObjectStatus.DISABLED)
+
+        with self.tasks():
+            assert not GroupOwner.objects.filter(group=self.event.group).exists()
+            existing_commit = self.create_commit(
+                project=self.project,
+                repo=self.repo,
+                author=self.commit_author,
+                key="existing-commit",
+            )
+            existing_commit.update(message="")
+            assert Commit.objects.count() == 2
+            event_frames = get_frame_paths(self.event)
+            process_commit_context(
+                event_id=self.event.event_id,
+                event_platform=self.event.platform,
+                event_frames=event_frames,
+                group_id=self.event.group_id,
+                project_id=self.event.project_id,
+            )
+
+        assert not mock_get_commit_context.called
 
     @patch("sentry.analytics.record")
     @patch(
