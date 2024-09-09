@@ -39,6 +39,6 @@ export function ReplayPreferencesContextProvider({
   );
 }
 
-export default function useReplayPrefs() {
+export function useReplayPrefs() {
   return useContext(StateContext);
 }

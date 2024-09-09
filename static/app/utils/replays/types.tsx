@@ -122,6 +122,12 @@ export type RawSpanFrame =
   | CompatibleReplayWebVitalFrame;
 export type SpanFrameEvent = TSpanFrameEvent;
 
+export type CustomEvent<T = RecordingFrame> = T extends RecordingFrame & {
+  type: EventType.Custom;
+}
+  ? T
+  : never;
+
 export function isRecordingFrame(
   attachment: Record<string, any>
 ): attachment is RecordingFrame {
