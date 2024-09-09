@@ -1,0 +1,235 @@
+---
+created: '2024-08-27T12:08:35.699510+00:00'
+creator: sentry
+source: tests/sentry/grouping/test_variants.py
+---
+app-depth-1:
+  hash: "bd53ce6ba0864834150964b0f6089eff"
+  component:
+    app-depth-1*
+      stacktrace*
+        frame*
+          module*
+            "com.example.Application"
+          filename (module takes precedence)
+            "application.java"
+          function*
+            "throwError"
+--------------------------------------------------------------------------
+app-depth-2:
+  hash: "937d42d999fd58698bbecfd38420277d"
+  component:
+    app-depth-2*
+      stacktrace*
+        frame*
+          module*
+            "com.example.Application"
+          filename (module takes precedence)
+            "application.java"
+          function*
+            "recurFunc"
+        frame*
+          module*
+            "com.example.Application"
+          filename (module takes precedence)
+            "application.java"
+          function*
+            "throwError"
+--------------------------------------------------------------------------
+app-depth-3:
+  hash: "06954690264f9745166373289a01ea64"
+  component:
+    app-depth-3*
+      stacktrace*
+        frame*
+          module*
+            "com.example.Application"
+          filename (module takes precedence)
+            "application.java"
+          function*
+            "recurFunc"
+        frame*
+          module*
+            "com.example.Application"
+          filename (module takes precedence)
+            "application.java"
+          function*
+            "recurFunc"
+        frame*
+          module*
+            "com.example.Application"
+          filename (module takes precedence)
+            "application.java"
+          function*
+            "throwError"
+--------------------------------------------------------------------------
+app-depth-4:
+  hash: "319f9ce02504182ef024834948b06556"
+  component:
+    app-depth-4*
+      stacktrace*
+        frame*
+          module*
+            "com.example.Application"
+          filename (module takes precedence)
+            "application.java"
+          function*
+            "normalFunc"
+        frame*
+          module*
+            "com.example.Application"
+          filename (module takes precedence)
+            "application.java"
+          function*
+            "recurFunc"
+        frame*
+          module*
+            "com.example.Application"
+          filename (module takes precedence)
+            "application.java"
+          function*
+            "recurFunc"
+        frame*
+          module*
+            "com.example.Application"
+          filename (module takes precedence)
+            "application.java"
+          function*
+            "throwError"
+--------------------------------------------------------------------------
+app-depth-5:
+  hash: "9bdadae4fa003cef6cf460ff1325e54b"
+  component:
+    app-depth-5*
+      stacktrace*
+        frame*
+          module*
+            "com.example.Application"
+          filename (module takes precedence)
+            "application.java"
+          function*
+            "main"
+        frame*
+          module*
+            "com.example.Application"
+          filename (module takes precedence)
+            "application.java"
+          function*
+            "normalFunc"
+        frame*
+          module*
+            "com.example.Application"
+          filename (module takes precedence)
+            "application.java"
+          function*
+            "recurFunc"
+        frame*
+          module*
+            "com.example.Application"
+          filename (module takes precedence)
+            "application.java"
+          function*
+            "recurFunc"
+        frame*
+          module*
+            "com.example.Application"
+          filename (module takes precedence)
+            "application.java"
+          function*
+            "throwError"
+--------------------------------------------------------------------------
+app-depth-max:
+  hash: "9bdadae4fa003cef6cf460ff1325e54b"
+  component:
+    app-depth-max*
+      stacktrace*
+        frame*
+          module*
+            "com.example.Application"
+          filename (module takes precedence)
+            "application.java"
+          function*
+            "main"
+        frame*
+          module*
+            "com.example.Application"
+          filename (module takes precedence)
+            "application.java"
+          function*
+            "normalFunc"
+        frame*
+          module*
+            "com.example.Application"
+          filename (module takes precedence)
+            "application.java"
+          function*
+            "recurFunc"
+        frame*
+          module*
+            "com.example.Application"
+          filename (module takes precedence)
+            "application.java"
+          function*
+            "recurFunc"
+        frame*
+          module*
+            "com.example.Application"
+          filename (module takes precedence)
+            "application.java"
+          function*
+            "throwError"
+--------------------------------------------------------------------------
+system:
+  hash: "9bdadae4fa003cef6cf460ff1325e54b"
+  component:
+    system*
+      stacktrace*
+        frame*
+          module*
+            "com.example.Application"
+          filename (module takes precedence)
+            "application.java"
+          function*
+            "main"
+        frame*
+          module*
+            "com.example.Application"
+          filename (module takes precedence)
+            "application.java"
+          function*
+            "normalFunc"
+        frame*
+          module*
+            "com.example.Application"
+          filename (module takes precedence)
+            "application.java"
+          function*
+            "recurFunc"
+        frame (ignored due to recursion)
+          module*
+            "com.example.Application"
+          filename (module takes precedence)
+            "application.java"
+          function*
+            "recurFunc"
+        frame (ignored due to recursion)
+          module*
+            "com.example.Application"
+          filename (module takes precedence)
+            "application.java"
+          function*
+            "recurFunc"
+        frame*
+          module*
+            "com.example.Application"
+          filename (module takes precedence)
+            "application.java"
+          function*
+            "recurFunc"
+        frame*
+          module*
+            "com.example.Application"
+          filename (module takes precedence)
+            "application.java"
+          function*
+            "throwError"

@@ -1,0 +1,25 @@
+---
+created: '2023-05-04T20:21:21.904829Z'
+creator: sentry
+source: tests/sentry/grouping/test_variants.py
+---
+app:
+  hash: "17022e0561e9b6e6351723a08aa81b18"
+  component:
+    app*
+      chained-exception*
+        exception*
+          type*
+            "MyApp.Exception"
+          value* (stripped event-specific values)
+            "Test <int>"
+        exception*
+          type*
+            "MyApp.Exception"
+          value*
+            "And now for something completely different."
+        exception*
+          type*
+            "System.AggregateException"
+          value*
+            "One or more errors occurred."

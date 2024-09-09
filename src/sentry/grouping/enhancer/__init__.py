@@ -138,11 +138,10 @@ class Enhancements:
         """
         match_frames = [create_match_frame(frame, platform) for frame in frames]
 
-        # TODO: Update the Rust component to not take the two values
         rust_components = [
             RustComponent(
-                is_prefix_frame=False,
-                is_sentinel_frame=False,
+                is_prefix_frame=c.is_prefix_frame or False,
+                is_sentinel_frame=c.is_sentinel_frame or False,
                 contributes=c.contributes,
             )
             for c in components
@@ -153,7 +152,12 @@ class Enhancements:
         )
 
         for py_component, rust_component in zip(components, rust_components):
-            py_component.update(contributes=rust_component.contributes, hint=rust_component.hint)
+            py_component.update(
+                contributes=rust_component.contributes,
+                hint=rust_component.hint,
+                is_prefix_frame=rust_component.is_prefix_frame,
+                is_sentinel_frame=rust_component.is_sentinel_frame,
+            )
 
         component = GroupingComponent(
             id="stacktrace",

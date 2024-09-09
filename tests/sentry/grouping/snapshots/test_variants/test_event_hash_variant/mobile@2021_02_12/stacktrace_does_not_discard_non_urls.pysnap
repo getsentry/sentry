@@ -1,0 +1,31 @@
+---
+created: '2024-08-27T12:08:35.536615+00:00'
+creator: sentry
+source: tests/sentry/grouping/test_variants.py
+---
+app-depth-1:
+  hash: "acbd18db4cc2f85cedef654fccc4a4d8"
+  component:
+    app-depth-1*
+      stacktrace*
+        frame*
+          filename*
+            "foo"
+--------------------------------------------------------------------------
+app-depth-max:
+  hash: "acbd18db4cc2f85cedef654fccc4a4d8"
+  component:
+    app-depth-max*
+      stacktrace*
+        frame*
+          filename*
+            "foo"
+--------------------------------------------------------------------------
+system:
+  hash: "acbd18db4cc2f85cedef654fccc4a4d8"
+  component:
+    system*
+      stacktrace*
+        frame*
+          filename*
+            "foo"

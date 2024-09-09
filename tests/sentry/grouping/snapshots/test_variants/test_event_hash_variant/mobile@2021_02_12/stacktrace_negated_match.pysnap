@@ -1,0 +1,64 @@
+---
+created: '2024-09-05T13:39:11.978587+00:00'
+creator: sentry
+source: tests/sentry/grouping/test_variants.py
+---
+app-depth-1:
+  hash: "eb87c1031dba55b67df86fb9fff59dc6"
+  component:
+    app-depth-1*
+      exception*
+        stacktrace*
+          frame*
+            function*
+              "log_demo::main"
+        type*
+          "log_demo"
+        value (ignored because stacktrace takes precedence)
+          "Holy shit everything is on fire!"
+--------------------------------------------------------------------------
+app-depth-max:
+  hash: "eb87c1031dba55b67df86fb9fff59dc6"
+  component:
+    app-depth-max*
+      exception*
+        stacktrace*
+          frame*
+            function*
+              "log_demo::main"
+        type*
+          "log_demo"
+        value (ignored because stacktrace takes precedence)
+          "Holy shit everything is on fire!"
+--------------------------------------------------------------------------
+system:
+  hash: "eb87c1031dba55b67df86fb9fff59dc6"
+  component:
+    system*
+      exception*
+        stacktrace*
+          frame (ignored by stack trace rule (!function:log_demo::* -group))
+            function*
+              "_main"
+          frame (ignored by stack trace rule (!function:log_demo::* -group))
+            function*
+              "std::rt::lang_start_internal"
+          frame (ignored by stack trace rule (!function:log_demo::* -group))
+            function*
+              "___rust_maybe_catch_panic"
+          frame (ignored by stack trace rule (!function:log_demo::* -group))
+            function*
+              "std::panicking::try::do_call"
+          frame (ignored by stack trace rule (category:internals -group))
+            function*
+              "std::rt::lang_start::{{closure}}"
+          frame*
+            function*
+              "log_demo::main"
+          frame (ignored by stack trace rule (!function:log_demo::* -group))
+            function*
+              "log::__private_api_log"
+        type*
+          "log_demo"
+        value (ignored because stacktrace takes precedence)
+          "Holy shit everything is on fire!"

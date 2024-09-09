@@ -1,0 +1,40 @@
+---
+created: '2021-09-20T11:55:50.492942Z'
+creator: sentry
+source: tests/sentry/grouping/test_variants.py
+---
+app-depth-1:
+  hash: null
+  component:
+    app-depth-1
+      stacktrace
+        frame (ignored by stack trace rule (family:javascript path:org-dartlang-sdk:///** -app -group))
+          filename*
+            "async_patch.dart"
+          function*
+            "_asyncStartSync"
+--------------------------------------------------------------------------
+app-depth-max:
+  hash: null
+  component:
+    app-depth-max
+      stacktrace
+        frame (ignored by stack trace rule (family:javascript path:org-dartlang-sdk:///** -app -group))
+          filename*
+            "async_patch.dart"
+          function*
+            "_asyncStartSync"
+--------------------------------------------------------------------------
+fallback:
+  hash: "d41d8cd98f00b204e9800998ecf8427e"
+--------------------------------------------------------------------------
+system:
+  hash: null
+  component:
+    system
+      stacktrace
+        frame (ignored by stack trace rule (family:javascript path:org-dartlang-sdk:///** -app -group))
+          filename*
+            "async_patch.dart"
+          function*
+            "_asyncStartSync"

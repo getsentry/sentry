@@ -1,0 +1,100 @@
+---
+created: '2024-09-05T13:39:10.870733+00:00'
+creator: sentry
+source: tests/sentry/grouping/test_variants.py
+---
+app-depth-1:
+  hash: "534735884d341071762ede7af01c53e8"
+  component:
+    app-depth-1*
+      exception*
+        stacktrace*
+          frame*
+            function*
+              "kill"
+        type (ignored because exception is synthetic)
+          "SIGSEGV"
+        value (ignored because stacktrace takes precedence)
+          "Segfault"
+--------------------------------------------------------------------------
+app-depth-2:
+  hash: "5fe18d8a5d2a24744675e650fc46afc6"
+  component:
+    app-depth-2*
+      exception*
+        stacktrace*
+          frame*
+            function*
+              "__kernel_rt_sigreturn"
+          frame*
+            function*
+              "kill"
+        type (ignored because exception is synthetic)
+          "SIGSEGV"
+        value (ignored because stacktrace takes precedence)
+          "Segfault"
+--------------------------------------------------------------------------
+app-depth-3:
+  hash: "d9c9b0f9ba46e32fddd7cd1512fad235"
+  component:
+    app-depth-3*
+      exception*
+        stacktrace*
+          frame*
+            function*
+              "stripped_application_code"
+          frame*
+            function*
+              "__kernel_rt_sigreturn"
+          frame*
+            function*
+              "kill"
+        type (ignored because exception is synthetic)
+          "SIGSEGV"
+        value (ignored because stacktrace takes precedence)
+          "Segfault"
+--------------------------------------------------------------------------
+app-depth-max:
+  hash: "d9c9b0f9ba46e32fddd7cd1512fad235"
+  component:
+    app-depth-max*
+      exception*
+        stacktrace*
+          frame*
+            function*
+              "stripped_application_code"
+          frame*
+            function*
+              "__kernel_rt_sigreturn"
+          frame*
+            function*
+              "kill"
+        type (ignored because exception is synthetic)
+          "SIGSEGV"
+        value (ignored because stacktrace takes precedence)
+          "Segfault"
+--------------------------------------------------------------------------
+system:
+  hash: "d9c9b0f9ba46e32fddd7cd1512fad235"
+  component:
+    system*
+      exception*
+        stacktrace*
+          frame
+          frame
+          frame (ignored due to recursion)
+          frame*
+            function*
+              "stripped_application_code"
+          frame*
+            function*
+              "__kernel_rt_sigreturn"
+          frame
+          frame (marked out of app by stack trace rule (family:native package:/lib/** -app))
+          frame*
+            function*
+              "kill"
+        type (ignored because exception is synthetic)
+          "SIGSEGV"
+        value (ignored because stacktrace takes precedence)
+          "Segfault"

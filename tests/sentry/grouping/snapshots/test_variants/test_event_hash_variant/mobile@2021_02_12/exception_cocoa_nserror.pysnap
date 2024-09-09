@@ -1,0 +1,113 @@
+---
+created: '2021-08-04T15:51:32.427414Z'
+creator: sentry
+source: tests/sentry/grouping/test_variants.py
+---
+app:
+  hash: "029f3b967068b1539f96957b7c0451d7"
+  component:
+    app*
+      exception*
+        type*
+          "iOS_Swift.SampleError"
+        ns-error*
+          "iOS_Swift.SampleError"
+          0
+        value (ignored because ns-error info takes precedence)
+          "Code=<int> Description=The operation couldn\u2019t be completed. (iOS_Swift.SampleError error <int>.)"
+--------------------------------------------------------------------------
+app-depth-1:
+  hash: null
+  component:
+    app-depth-1 (exception of app takes precedence)
+      threads (exception of app takes precedence)
+        stacktrace*
+          frame*
+            function*
+              "ViewController.captureError"
+--------------------------------------------------------------------------
+app-depth-max:
+  hash: null
+  component:
+    app-depth-max (exception of app takes precedence)
+      threads (exception of app takes precedence)
+        stacktrace*
+          frame*
+            function*
+              "ViewController.captureError"
+--------------------------------------------------------------------------
+system:
+  hash: null
+  component:
+    system (exception of app takes precedence)
+      threads (exception of app takes precedence)
+        stacktrace*
+          frame (ignored by stack trace rule (category:threadbase -group v-group))
+            function*
+              "start"
+          frame (ignored by stack trace rule (category:threadbase -group v-group))
+            function*
+              "main"
+          frame (ignored by stack trace rule (category:threadbase -group v-group))
+            function*
+              "UIApplicationMain"
+          frame* (marked as prefix frame by stack trace rule (category:ui +sentinel +prefix))
+            function*
+              "-[UIApplication _run]"
+          frame (ignored by stack trace rule (category:internals -group))
+            function*
+              "GSEventRunModal"
+          frame (ignored by stack trace rule (category:indirection -group))
+            function*
+              "CFRunLoopRunSpecific"
+          frame (ignored by stack trace rule (category:internals -group))
+            function*
+              "__CFRunLoopRun"
+          frame (ignored by stack trace rule (category:internals -group))
+            function*
+              "__CFRunLoopDoSources0"
+          frame (ignored by stack trace rule (category:internals -group))
+            function*
+              "__CFRunLoopDoSource0"
+          frame (ignored by stack trace rule (category:internals -group))
+            function*
+              "__CFRUNLOOP_IS_CALLING_OUT_TO_A_SOURCE0_PERFORM_FUNCTION__"
+          frame (ignored by stack trace rule (category:internals -group))
+            function*
+              "__eventFetcherSourceCallback"
+          frame (ignored by stack trace rule (category:internals -group))
+            function*
+              "__processEventQueue"
+          frame (ignored by stack trace rule (category:internals -group))
+            function*
+              "-[UIApplicationAccessibility sendEvent:]"
+          frame (ignored by stack trace rule (category:internals -group))
+            function*
+              "-[UIApplication sendEvent:]"
+          frame (ignored by stack trace rule (category:internals -group))
+            function*
+              "-[UIWindow sendEvent:]"
+          frame (ignored by stack trace rule (category:internals -group))
+            function*
+              "-[UIWindow _sendTouchesForEvent:]"
+          frame (ignored by stack trace rule (category:internals -group))
+            function*
+              "-[UIControl touchesEnded:withEvent:]"
+          frame (ignored by stack trace rule (category:internals -group))
+            function*
+              "-[UIControl _sendActionsForEvents:withEvent:]"
+          frame (ignored by stack trace rule (category:internals -group))
+            function*
+              "-[UIControl sendAction:to:forEvent:]"
+          frame (ignored by stack trace rule (category:internals -group))
+            function*
+              "__44-[SentryBreadcrumbTracker swizzleSendAction]_block_invoke_2"
+          frame (ignored by stack trace rule (category:internals -group))
+            function*
+              "-[UIApplication sendAction:to:from:forEvent:]"
+          frame*
+            function*
+              "ViewController.captureError"
+          frame (ignored due to recursion)
+            function*
+              "ViewController.captureError"

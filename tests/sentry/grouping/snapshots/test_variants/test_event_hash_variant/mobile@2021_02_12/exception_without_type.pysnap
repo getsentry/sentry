@@ -1,0 +1,12 @@
+---
+created: '2021-03-18T10:36:26.062883Z'
+creator: sentry
+source: tests/sentry/grouping/test_variants.py
+---
+app:
+  hash: "5eb63bbbe01eeed093cb22bb8f5acdc3"
+  component:
+    app*
+      exception*
+        value*
+          "hello world"
