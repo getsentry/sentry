@@ -30,6 +30,7 @@ class Migration(CheckedMigration):
             DROP TABLE "sentry_spanattributeextractionrulecondition";
             """,
             reverse_sql="CREATE TABLE sentry_spanattributeextractionrulecondition (fake_col int)",
+            hints={"tables": ["sentry_spanattributeextractionrulecondition"]},
             # We just create a fake table here so that the DROP will work if we roll back the migration.
         ),
         migrations.RunSQL(
@@ -37,6 +38,7 @@ class Migration(CheckedMigration):
             DROP TABLE "sentry_spanattributeextractionruleconfig";
             """,
             reverse_sql="CREATE TABLE sentry_spanattributeextractionruleconfig (fake_col int)",
+            hints={"tables": ["sentry_spanattributeextractionruleconfig"]},
             # We just create a fake table here so that the DROP will work if we roll back the migration.
         ),
     ]
