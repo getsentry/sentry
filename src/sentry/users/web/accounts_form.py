@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import re
+from typing import Any
 
 from django import forms
 from django.conf import settings
@@ -22,20 +23,20 @@ class RecoverPasswordForm(forms.Form):
         widget=forms.TextInput(attrs={"placeholder": _("username or email")}),
     )
 
-    def clean_user(self):
+    def clean_user(self) -> User | None:
         value = (self.cleaned_data.get("user") or "").strip()
         if not value:
-            return
+            return None
         users = find_users(value, with_valid_password=False)
         if not users:
-            return
+            return None
 
         # If we find more than one user, we likely matched on email address.
         # We silently bail here as we emailing the 'wrong' person isn't great.
         # They will have to retry with their username which is guaranteed
         # to be unique
         if len(users) > 1:
-            return
+            return None
 
         users = [u for u in users if not u.is_managed]
         if not users:
@@ -50,11 +51,11 @@ class RecoverPasswordForm(forms.Form):
 class ChangePasswordRecoverForm(forms.Form):
     password = forms.CharField(widget=forms.PasswordInput())
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
         self.user = kwargs.pop("user", None)
         super().__init__(*args, **kwargs)
 
-    def clean_password(self):
+    def clean_password(self) -> str:
         password = self.cleaned_data["password"]
         password_validation.validate_password(password, user=self.user)
         return password
@@ -74,7 +75,7 @@ class EmailForm(forms.Form):
         required=True,
     )
 
-    def __init__(self, user, *args, **kwargs):
+    def __init__(self, user: User, *args: Any, **kwargs: Any) -> None:
         self.user = user
         super().__init__(*args, **kwargs)
 
@@ -83,7 +84,7 @@ class EmailForm(forms.Form):
         if not needs_password:
             del self.fields["password"]
 
-    def clean_password(self):
+    def clean_password(self) -> str:
         value = self.cleaned_data.get("password")
         if value and not self.user.check_password(value):
             raise forms.ValidationError(_("The password you entered is not correct."))
@@ -106,28 +107,29 @@ class RelocationForm(forms.Form):
         initial=False,
     )
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
         self.user = kwargs.pop("user", None)
         super().__init__(*args, **kwargs)
         self.fields["username"].widget.attrs.update(placeholder=self.user.username)
 
-    def clean_username(self):
+    def clean_username(self) -> str | None:
         value = self.cleaned_data.get("username") or self.user.username
         value = re.sub(r"[ \n\t\r\0]*", "", value)
         if not value:
-            return
+            return None
         if User.objects.filter(username__iexact=value).exclude(id=self.user.id).exists():
             raise forms.ValidationError(_("An account is already registered with that username."))
         return value.lower()
 
-    def clean_password(self):
+    def clean_password(self) -> str:
         password = self.cleaned_data["password"]
         password_validation.validate_password(password, user=self.user)
         return password
 
-    def clean_tos_check(self):
+    def clean_tos_check(self) -> None:
         value = self.cleaned_data.get("tos_check")
         if not value:
             raise forms.ValidationError(
                 _("You must agree to the Terms of Service and Privacy Policy before proceeding.")
             )
+        return None
