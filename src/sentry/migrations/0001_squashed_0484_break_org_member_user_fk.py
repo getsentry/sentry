@@ -4243,10 +4243,6 @@ class Migration(CheckedMigration):
             name="group",
             unique_together={("project", "short_id")},
         ),
-        migrations.AlterIndexTogether(
-            name="group",
-            index_together={("project", "first_release")},
-        ),
         migrations.CreateModel(
             name="FileBlobOwner",
             fields=[
@@ -5032,10 +5028,6 @@ class Migration(CheckedMigration):
         migrations.AlterUniqueTogether(
             name="groupredirect",
             unique_together={("organization_id", "previous_short_id", "previous_project_slug")},
-        ),
-        migrations.AlterIndexTogether(
-            name="group",
-            index_together={("project", "first_release"), ("project", "id")},
         ),
         migrations.CreateModel(
             name="IncidentSnapshot",
@@ -7030,25 +7022,6 @@ class Migration(CheckedMigration):
             reverse_sql="DROP INDEX CONCURRENTLY IF EXISTS sentry_organization_slug_upper_idx",
             hints={"tables": ["sentry_organization"]},
         ),
-        migrations.SeparateDatabaseAndState(
-            database_operations=[
-                migrations.RunSQL(
-                    sql='\n                    CREATE INDEX CONCURRENTLY IF NOT EXISTS "sentry_groupedmessage_project_id_status_last_s_6b8195a7_idx" ON "sentry_groupedmessage" ("project_id", "status", "last_seen", "id");\n                    ',
-                    reverse_sql="DROP INDEX CONCURRENTLY IF EXISTS sentry_groupedmessage_project_id_status_last_s_6b8195a7_idx",
-                    hints={"tables": ["sentry_groupedmessage"]},
-                ),
-            ],
-            state_operations=[
-                migrations.AlterIndexTogether(
-                    name="group",
-                    index_together={
-                        ("project", "first_release"),
-                        ("project", "id"),
-                        ("project", "status", "last_seen", "id"),
-                    },
-                ),
-            ],
-        ),
         migrations.AlterField(
             model_name="organization",
             name="flags",
@@ -8526,26 +8499,6 @@ class Migration(CheckedMigration):
             name="context",
             field=sentry.db.models.fields.jsonfield.JSONField(null=True),
         ),
-        migrations.SeparateDatabaseAndState(
-            database_operations=[
-                migrations.RunSQL(
-                    sql='\n                    CREATE INDEX CONCURRENTLY IF NOT EXISTS "sentry_groupedmessage_project_id_type_status_l_074196b6_idx" ON "sentry_groupedmessage" ("project_id", "status", "type", "last_seen", "id");\n                    ',
-                    reverse_sql="DROP INDEX CONCURRENTLY IF EXISTS sentry_groupedmessage_project_id_type_status_l_074196b6_idx",
-                    hints={"tables": ["sentry_groupedmessage"]},
-                ),
-            ],
-            state_operations=[
-                migrations.AlterIndexTogether(
-                    name="group",
-                    index_together={
-                        ("project", "first_release"),
-                        ("project", "id"),
-                        ("project", "status", "type", "last_seen", "id"),
-                        ("project", "status", "last_seen", "id"),
-                    },
-                ),
-            ],
-        ),
         migrations.AddField(
             model_name="discoversavedquery",
             name="is_homepage",
@@ -9674,17 +9627,6 @@ class Migration(CheckedMigration):
             model_name="group",
             name="substatus",
             field=sentry.db.models.fields.bounded.BoundedIntegerField(null=True),
-        ),
-        migrations.AlterIndexTogether(
-            name="group",
-            index_together={
-                ("project", "first_release"),
-                ("project", "id"),
-                ("project", "status", "type", "last_seen", "id"),
-                ("project", "status", "substatus", "type", "last_seen", "id"),
-                ("project", "status", "last_seen", "id"),
-                ("project", "status", "substatus", "last_seen", "id"),
-            },
         ),
         migrations.AlterField(
             model_name="groupsnooze",
