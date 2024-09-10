@@ -42,6 +42,7 @@ interface ReplayPlayerContextProps extends HighlightCallbacks {
    * Original dimensions in pixels of the captured browser window
    */
   dimensions: Dimensions;
+
   /**
    * The calculated speed of the player when fast-forwarding through idle moments in the video
    * The value is set to `0` when the video is not fast-forwarding
