@@ -241,6 +241,9 @@ class IntegrationDetailedView extends AbstractIntegrationDetailedView<
 
   renderTopButton(disabledFromFeatures: boolean, userHasAccess: boolean) {
     const provider = this.provider;
+    const location = this.props.location;
+    const queryParams = new URLSearchParams(location.search);
+    const referrer = queryParams.get('referrer');
 
     const buttonProps = {
       size: 'sm',
@@ -258,6 +261,7 @@ class IntegrationDetailedView extends AbstractIntegrationDetailedView<
           analyticsParams: {
             view: 'integrations_directory_integration_detail',
             already_installed: this.installationStatus !== 'Not Installed',
+            ...(referrer && {referrer}),
           },
         }}
       >
