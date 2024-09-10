@@ -152,16 +152,17 @@ const Positioned = styled('div')`
 `;
 
 const Cover = styled('div')`
-  border: 1px solid;
+  border: 3px solid;
+  border-radius: ${space(0.5)};
   height: 100%;
   overflow: hidden;
   position: absolute;
   right: 0px;
   top: 0px;
 
-  border-color: red;
+  border-color: ${p => p.theme.red300};
   & + & {
-    border-color: green;
+    border-color: ${p => p.theme.green300};
     border-left-color: transparent;
   }
 `;
@@ -213,7 +214,7 @@ const Header = styled('div')`
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin: 14px 0;
+  padding: 14px 0;
 `;
 
 const Before = styled('div')`
