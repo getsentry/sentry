@@ -1,4 +1,4 @@
-import {Children, isValidElement, type ReactNode, useRef, useState} from 'react';
+import {Children, type ReactNode, useRef, useState} from 'react';
 import React from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
@@ -159,36 +159,21 @@ export function Card({
   );
 }
 
-type ReactFCWithProps = React.FC<KeyValueDataCardProps>;
-
-const isReactComponent = (type): type is ReactFCWithProps => {
-  return (
-    typeof type === 'function' ||
-    (typeof type === 'object' && type !== null && 'render' in type)
-  );
-};
-
-// Returns an array of children where null/undefined children and children returning null are filtered out.
+// Returns an array of children where null/undefined children are filtered out.
 // For example:
 // <Component1/> --> returns a <Card/>
 // {null}
-// <Component2/> --> returns null
-// Gives us back [<Component1/>]
+// <Component2/> --> returns a <Card/>
+// Gives us back [<Component1/>, <Component2/>]
 const filterChildren = (children: ReactNode): ReactNode[] => {
-  return Children.toArray(children).filter((child: React.ReactNode) => {
-    if (isValidElement(child) && isReactComponent(child.type)) {
-      // Render the child and check if it returns null
-      const renderedChild = child.type(child.props);
-      return renderedChild !== null;
-    }
-
-    return child != null;
-  });
+  return Children.toArray(children).filter(
+    (child: ReactNode) => child !== null && child !== undefined
+  );
 };
 
-// Note: When rendered children have hooks, we need to ensure that there are no hook count mismatches between renders.
-// Instead of rendering rendering {condition ? <Component/> : null}, we should render
-// if(!condition) return null inside Component itself, where Component renders a Card.
+// Note: When conditionally rendering children, instead of returning
+// if(!condition) return null inside Component, we should render  {condition ? <Component/> : null}
+// where Component returns a <Card/>. {null} is ignored when distributing cards into columns.
 export function Container({children}: {children: React.ReactNode}) {
   const containerRef = useRef<HTMLDivElement>(null);
   const columnCount = useIssueDetailsColumnCount(containerRef);
