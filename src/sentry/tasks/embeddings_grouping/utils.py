@@ -511,13 +511,6 @@ def update_groups(project, seer_response, group_id_batch_filtered, group_hashes_
             "request_hash": group_hashes_dict[group.id],
         }
         if str(group.id) in groups_with_neighbor:
-            logger.info(
-                "backfill_seer_grouping_records.found_neighbor",
-                extra={
-                    "project_id": project.id,
-                    "group_id": group.id,
-                },
-            )
             # TODO: remove this try catch once the helper is made
             try:
                 seer_similarity["results"] = [
