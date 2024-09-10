@@ -78,33 +78,17 @@ export function DatabaseSpanDescription({
     return formatter.toString(rawDescription ?? '');
   }, [preliminaryDescription, rawSpan, indexedSpan, system]);
 
-  const renderQueryDescription = () => {
-    if (areIndexedSpansLoading || !system) {
-      return (
+  return (
+    <Frame>
+      {areIndexedSpansLoading || !system ? (
         <WithPadding>
           <LoadingIndicator mini />
         </WithPadding>
-      );
-    }
-
-    if (system === 'mongodb') {
-      return (
-        <CodeSnippet language="json" isRounded={false}>
+      ) : (
+        <CodeSnippet language={system === 'mongodb' ? 'json' : 'sql'} isRounded={false}>
           {formattedDescription}
         </CodeSnippet>
-      );
-    }
-
-    return (
-      <CodeSnippet language="sql" isRounded={false}>
-        {formattedDescription}
-      </CodeSnippet>
-    );
-  };
-
-  return (
-    <Frame>
-      {renderQueryDescription()}
+      )}
 
       {!areIndexedSpansLoading && !isRawSpanLoading && (
         <Fragment>
