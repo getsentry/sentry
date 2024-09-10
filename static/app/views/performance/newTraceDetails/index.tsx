@@ -271,7 +271,7 @@ type TraceViewWaterfallProps = {
   traceSlug: string | undefined;
   replayTraces?: ReplayTrace[];
   /**
-   * Instead of using query parameters to scroll to a specific node, we can pass the node directly
+   * Ignore query parameters and use the provided node to scroll to
    * Must be set at component mount, no reactivity
    */
   scrollToNode?: {eventId?: string; path?: TraceTree.NodePath[]};
