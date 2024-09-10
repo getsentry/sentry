@@ -6,14 +6,9 @@ import {textWithMarkupMatcher} from 'sentry-test/utils';
 
 import {EntryType} from 'sentry/types/event';
 import usePageFilters from 'sentry/utils/usePageFilters';
-import {
-  DatabaseSpanDescription,
-  formatJsonQuery,
-} from 'sentry/views/insights/common/components/spanDescription';
-import {useFullSpanFromTrace} from 'sentry/views/insights/common/queries/useFullSpanFromTrace';
+import {DatabaseSpanDescription} from 'sentry/views/insights/common/components/spanDescription';
 
 jest.mock('sentry/utils/usePageFilters');
-jest.mock('sentry/views/insights/common/queries/useFullSpanFromTrace');
 
 describe('DatabaseSpanDescription', function () {
   beforeEach(() => {
@@ -38,20 +33,6 @@ describe('DatabaseSpanDescription', function () {
       },
       environments: [],
       projects: [],
-    },
-  });
-
-  jest.mocked(useFullSpanFromTrace).mockReturnValue({
-    isLoading: false,
-    isFetching: false,
-    isError: false,
-    data: {
-      description: undefined,
-      data: {'db.operation': 'SELECT', 'db.system': 'postgresql'},
-      span_id: '1',
-      start_timestamp: 1,
-      timestamp: 10,
-      trace_id: '1',
     },
   });
 
@@ -110,20 +91,6 @@ describe('DatabaseSpanDescription', function () {
       },
     });
 
-    jest.mocked(useFullSpanFromTrace).mockReturnValue({
-      isLoading: false,
-      isFetching: false,
-      isError: false,
-      data: {
-        description: 'SELECT users FROM my_table LIMIT 1;',
-        data: {'db.operation': 'SELECT', 'db.system': 'postgresql'},
-        span_id: '1',
-        start_timestamp: 1,
-        timestamp: 10,
-        trace_id: '1',
-      },
-    });
-
     render(
       <DatabaseSpanDescription
         groupId={groupId}
@@ -175,25 +142,6 @@ describe('DatabaseSpanDescription', function () {
       },
     });
 
-    jest.mocked(useFullSpanFromTrace).mockReturnValue({
-      isLoading: false,
-      isFetching: false,
-      isError: false,
-      data: {
-        description: 'SELECT users FROM my_table LIMIT 1;',
-        data: {
-          'db.operation': 'SELECT',
-          'db.system': 'postgresql',
-          'code.filepath': '/app/views/users.py',
-          'code.lineno': 78,
-        },
-        span_id: '1',
-        start_timestamp: 1,
-        timestamp: 10,
-        trace_id: '1',
-      },
-    });
-
     render(
       <DatabaseSpanDescription
         groupId={groupId}
@@ -228,20 +176,6 @@ describe('DatabaseSpanDescription', function () {
 
     const sampleMongoDBQuery = `{"a": "?", "insert": "documents"}`;
 
-    jest.mocked(useFullSpanFromTrace).mockReturnValue({
-      isLoading: false,
-      isFetching: false,
-      isError: false,
-      data: {
-        description: sampleMongoDBQuery,
-        data: {'db.operation': 'insert', 'db.system': 'mongodb'},
-        span_id: '1',
-        start_timestamp: 1,
-        timestamp: 10,
-        trace_id: '1',
-      },
-    });
-
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/events/${project.slug}:${eventId}/`,
       body: {
@@ -253,7 +187,9 @@ describe('DatabaseSpanDescription', function () {
               {
                 span_id: spanId,
                 description: sampleMongoDBQuery,
-                'db.system': 'mongodb',
+                data: {
+                  'db.system': 'mongodb',
+                },
               },
             ],
           },
@@ -271,7 +207,11 @@ describe('DatabaseSpanDescription', function () {
 
     await waitForElementToBeRemoved(() => screen.getByTestId('loading-indicator'));
 
-    const formattedQuery = formatJsonQuery(sampleMongoDBQuery);
-    expect(await screen.findByText(formattedQuery)).toBeInTheDocument();
+    // expect(await screen.findBy).toBeInTheDocument();
+    const mongoQuerySnippet = await screen.findByText(
+      /\{ "a": "\?", "insert": "documents" \}/i
+    );
+    expect(mongoQuerySnippet).toBeInTheDocument();
+    expect(mongoQuerySnippet).toHaveClass('language-json');
   });
 });
