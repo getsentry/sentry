@@ -42,7 +42,7 @@ class DiscordCommandHandler(DiscordInteractionHandler):
     def handle(self) -> Response:
         command_name = self.request.get_command_name()
         cmd_input = CommandInput(command_name)
-        dispatcher = MsTeamsCommandDispatcher(self.request)
+        dispatcher = DiscordCommandDispatcher(self.request)
         try:
             message = dispatcher.dispatch(cmd_input)
         except CommandNotMatchedError:
@@ -56,7 +56,7 @@ class DiscordCommandHandler(DiscordInteractionHandler):
 
 
 @dataclass(frozen=True)
-class MsTeamsCommandDispatcher(MessagingIntegrationCommandDispatcher[str]):
+class DiscordCommandDispatcher(MessagingIntegrationCommandDispatcher[str]):
     request: DiscordRequest
 
     @property
