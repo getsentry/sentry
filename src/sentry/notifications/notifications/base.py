@@ -32,6 +32,14 @@ def alert_page_needs_org_id(fine_tuning_key: NotificationSettingEnum | FineTunin
     )
 
 
+def get_fine_tuning_key(notification_setting_type_enum: NotificationSettingEnum) -> str:
+    if notification_setting_type_enum == NotificationSettingEnum.QUOTA_SPEND_ALLOCATIONS:
+        # for quota spend allocations, we want to go to the `quota` page, `quotaSpendAllocations` doesn't exist
+        return NotificationSettingEnum.QUOTA.value
+    else:
+        return notification_setting_type_enum.value
+
+
 # TODO: add abstractmethod decorators
 class BaseNotification(abc.ABC):
     provider_to_url_format = {
@@ -221,7 +229,7 @@ class BaseNotification(abc.ABC):
             if self.notification_setting_type_enum:
                 fine_tuning_key = self.notification_setting_type_enum
                 if fine_tuning_key:
-                    url_str += f"{fine_tuning_key.value}/"
+                    url_str += f"{get_fine_tuning_key(fine_tuning_key)}/"
 
                 set_organization_id = alert_page_needs_org_id(fine_tuning_key)
 
