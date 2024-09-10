@@ -396,6 +396,15 @@ def _handle_breadcrumb(
 ) -> ReplayActionsEventPayloadClick | None:
 
     click = None
+    project = Project.objects.get(id=project_id)
+    dead_click_timeout = (
+        5000
+        if features.has(
+            "organizations:session-replay-dead-click-reduced-timeout",
+            project.organization,
+        )
+        else 7000
+    )
 
     payload = event["data"].get("payload", {})
     if not isinstance(payload, dict):
@@ -412,7 +421,8 @@ def _handle_breadcrumb(
         timeout = payload["data"].get("timeAfterClickMs", 0) or payload["data"].get(
             "timeafterclickms", 0
         )
-        if is_timeout_reason and is_target_tagname and timeout >= 7000:
+
+        if is_timeout_reason and is_target_tagname and timeout >= dead_click_timeout:
             is_rage = (
                 payload["data"].get("clickCount", 0) or payload["data"].get("clickcount", 0)
             ) >= 5
