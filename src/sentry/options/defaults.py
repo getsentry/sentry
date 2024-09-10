@@ -2700,3 +2700,10 @@ register(
 register(
     "ecosystem:enable_integration_form_error_raise", default=False, flags=FLAG_AUTOMATOR_MODIFIABLE
 )
+
+# Controls the rate of using the sentry api shared secret for communicating to sentry.
+register(
+    "seer.api.use-nonce-signature",
+    default=0.0,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
