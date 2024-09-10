@@ -1,4 +1,5 @@
 import {Fragment, useMemo} from 'react';
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import beautify from 'js-beautify';
 
@@ -17,6 +18,7 @@ interface Props {
 }
 
 export function ReplayTextDiff({replay, leftOffsetMs, rightOffsetMs}: Props) {
+  const theme = useTheme();
   const {data} = useExtractPageHtml({
     replay,
     offsetMsToStopAt: [leftOffsetMs, rightOffsetMs],
@@ -30,8 +32,8 @@ export function ReplayTextDiff({replay, leftOffsetMs, rightOffsetMs}: Props) {
   return (
     <Fragment>
       <DiffHeader>
-        <Flex flex="1" align="center">
-          {t('Before Hydration')}
+        <Flex flex="1" align="center" css={{color: `${theme.red300}`}}>
+          {t('Before')}
           <CopyToClipboardButton
             text={leftBody ?? ''}
             size="xs"
@@ -40,8 +42,8 @@ export function ReplayTextDiff({replay, leftOffsetMs, rightOffsetMs}: Props) {
             aria-label={t('Copy Before')}
           />
         </Flex>
-        <Flex flex="1" align="center">
-          {t('After Hydration')}
+        <Flex flex="1" align="center" css={{color: `${theme.green300}`}}>
+          {t('After')}
           <CopyToClipboardButton
             text={rightBody ?? ''}
             size="xs"

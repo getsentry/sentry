@@ -1,3 +1,4 @@
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Flex} from 'sentry/components/container/flex';
@@ -15,15 +16,16 @@ interface Props {
 
 export function ReplaySideBySideImageDiff({leftOffsetMs, replay, rightOffsetMs}: Props) {
   const fetching = false;
+  const theme = useTheme();
 
   return (
     <Flex gap={space(2)} column>
       <DiffHeader>
-        <Flex flex="1" align="center">
-          {t('Before Hydration')}
+        <Flex flex="1" align="center" css={{color: `${theme.red300}`}}>
+          {t('Before')}
         </Flex>
-        <Flex flex="1" align="center">
-          {t('After Hydration')}
+        <Flex flex="1" align="center" css={{color: `${theme.green300}`}}>
+          {t('After')}
         </Flex>
       </DiffHeader>
 
