@@ -91,11 +91,11 @@ export const After = styled(Flex)`
 `;
 
 const Border = styled('span')`
-  border: 5px solid;
+  border: 3px solid;
   border-radius: ${space(0.5)};
-  border-color: ${p => p.theme.red200};
+  border-color: ${p => p.theme.red300};
   & + & {
-    border-color: ${p => p.theme.green200};
+    border-color: ${p => p.theme.green300};
   }
   overflow: hidden;
 `;

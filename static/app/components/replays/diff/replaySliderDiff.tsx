@@ -152,7 +152,7 @@ const Positioned = styled('div')`
 `;
 
 const Cover = styled('div')`
-  border: 5px solid;
+  border: 3px solid;
   border-radius: ${space(0.5)};
   height: 100%;
   overflow: hidden;
@@ -160,9 +160,9 @@ const Cover = styled('div')`
   right: 0px;
   top: 0px;
 
-  border-color: ${p => p.theme.red200};
+  border-color: ${p => p.theme.red300};
   & + & {
-    border-color: ${p => p.theme.green200};
+    border-color: ${p => p.theme.green300};
     border-left-color: transparent;
   }
 `;
