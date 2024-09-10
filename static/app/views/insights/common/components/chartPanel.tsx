@@ -25,6 +25,7 @@ type Props = {
   children: React.ReactNode;
   alertConfigs?: AlertConfig[];
   button?: JSX.Element;
+  className?: string;
   subtitle?: React.ReactNode;
   title?: React.ReactNode;
 };
@@ -35,6 +36,7 @@ export default function ChartPanel({
   button,
   subtitle,
   alertConfigs,
+  className,
 }: Props) {
   const organization = useOrganization();
   const {selection} = usePageFilters();
@@ -72,7 +74,7 @@ export default function ChartPanel({
   const dropdownMenuItems = hasInsightsAlerts(organization) ? alertsUrls : [];
 
   return (
-    <PanelWithNoPadding>
+    <PanelWithNoPadding className={className}>
       <PanelBody>
         {title && (
           <Header data-test-id="chart-panel-header">
@@ -87,15 +89,6 @@ export default function ChartPanel({
             )}
             <MenuContainer>
               {button}
-              <Button
-                aria-label={t('Expand Insight Chart')}
-                borderless
-                size="xs"
-                icon={<IconExpand />}
-                onClick={() => {
-                  openInsightChartModal({title, children});
-                }}
-              />
               {dropdownMenuItems.length > 0 && (
                 <DropdownMenu
                   triggerProps={{
@@ -109,6 +102,15 @@ export default function ChartPanel({
                   items={dropdownMenuItems}
                 />
               )}
+              <Button
+                aria-label={t('Expand Insight Chart')}
+                borderless
+                size="xs"
+                icon={<IconExpand />}
+                onClick={() => {
+                  openInsightChartModal({title, children});
+                }}
+              />
             </MenuContainer>
           </Header>
         )}
