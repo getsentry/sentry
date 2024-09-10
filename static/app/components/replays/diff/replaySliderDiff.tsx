@@ -142,7 +142,7 @@ function DiffSides({leftOffsetMs, replay, rightOffsetMs, viewDimensions, width})
 const WithPadding = styled(NegativeSpaceContainer)`
   padding-block: ${space(1.5)};
   overflow: visible;
-  height: 95%;
+  height: 100%;
 `;
 
 const Positioned = styled('div')`
@@ -214,7 +214,7 @@ const Header = styled('div')`
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin: 14px 0;
+  padding: 14px 0;
 `;
 
 const Before = styled('div')`

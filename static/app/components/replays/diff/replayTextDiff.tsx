@@ -79,5 +79,5 @@ const DiffHeader = styled('div')`
     padding-left: ${space(2)};
   }
 
-  margin: 10px 0;
+  padding: 10px 0;
 `;
