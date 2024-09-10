@@ -2385,7 +2385,7 @@ class CreateAlertRuleTriggerActionTest(BaseAlertRuleTriggerActionTest):
             )
         type = AlertRuleTriggerAction.Type.PAGERDUTY
         target_type = AlertRuleTriggerAction.TargetType.SPECIFIC
-        target_identifier = service["id"]
+        target_identifier = str(service["id"])
         action = create_alert_rule_trigger_action(
             self.trigger,
             type,

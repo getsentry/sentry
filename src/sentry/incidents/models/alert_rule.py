@@ -10,7 +10,7 @@ from typing import TYPE_CHECKING, Any, ClassVar, Protocol, Self
 from django.conf import settings
 from django.core.cache import cache
 from django.db import models
-from django.db.models import Q, QuerySet
+from django.db.models import QuerySet
 from django.db.models.signals import post_delete, post_save
 from django.utils import timezone
 from django.utils.translation import gettext_lazy
@@ -223,20 +223,6 @@ class AlertRuleManager(BaseManager["AlertRule"]):
                 },
             )
         return []
-
-    def get_for_metrics(
-        self, organization: Organization, metric_mris: list[str]
-    ) -> BaseQuerySet[AlertRule]:
-        """
-        Fetches AlertRules associated with the metric MRIs
-        """
-
-        alert_query = Q()
-        for metric_mri in metric_mris:
-            alert_query |= Q(snuba_query__aggregate__contains=metric_mri)
-
-        queryset = self.filter(organization=organization).filter(alert_query)
-        return queryset
 
 
 @region_silo_model
