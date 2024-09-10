@@ -3,7 +3,6 @@ import styled from '@emotion/styled';
 
 import {CodeSnippet} from 'sentry/components/codeSnippet';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
-import StructuredEventData from 'sentry/components/structuredEventData';
 import {space} from 'sentry/styles/space';
 import {SQLishFormatter} from 'sentry/utils/sqlish/SQLishFormatter';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
@@ -75,16 +74,6 @@ export function DatabaseSpanDescription({
     return formatter.toString(rawDescription ?? '');
   }, [preliminaryDescription, rawSpan, indexedSpan, system]);
 
-  const mongoQueryConfig = useMemo(
-    () => ({
-      isBoolean: value => typeof value === 'boolean',
-      isNull: value => value === null,
-      isString: value => typeof value === 'string',
-      isNumber: value => typeof value === 'number',
-    }),
-    []
-  );
-
   const renderQueryDescription = () => {
     if (areIndexedSpansLoading || !system) {
       return (
@@ -96,12 +85,9 @@ export function DatabaseSpanDescription({
 
     if (system === 'mongodb') {
       return (
-        <MongoQuery
-          config={mongoQueryConfig}
-          data={JSON.parse(preliminaryDescription || '{}')}
-          forceDefaultExpand
-          maxDefaultDepth={3}
-        />
+        <CodeSnippet language="json" isRounded={false}>
+          {JSON.stringify(JSON.parse(preliminaryDescription ?? ''), null, 4) ?? ''}
+        </CodeSnippet>
       );
     }
 
@@ -155,8 +141,4 @@ const WithPadding = styled('div')`
 
 const WordBreak = styled('div')`
   word-break: break-word;
-`;
-
-const MongoQuery = styled(StructuredEventData)`
-  margin: 0;
 `;
