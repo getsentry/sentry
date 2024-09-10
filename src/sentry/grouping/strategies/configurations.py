@@ -59,14 +59,6 @@ BASE_STRATEGY = create_strategy_configuration(
         "hierarchical_grouping": False,
         # Stacktrace is produced in the context of this exception
         "exception_data": None,
-        # Whether to discard filenames of native events for grouping if
-        # function is present.
-        "discard_native_filename": False,
-        # Use the `package` component of a frame as fallback where other
-        # information would be used but is not available.
-        "use_package_fallback": False,
-        # Remove platform differences in native frames
-        "native_fuzzing": False,
         # replaces generated IDs in Java stack frames related to CGLIB and hibernate
         "java_cglib_hibernate_logic": False,
     },
@@ -174,9 +166,6 @@ register_strategy_config(
     """,
     initial_context={
         "hierarchical_grouping": True,
-        "discard_native_filename": True,
-        "use_package_fallback": True,
-        "native_fuzzing": True,
     },
     enhancements_base="mobile:2021-04-02",
 )

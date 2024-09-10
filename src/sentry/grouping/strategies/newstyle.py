@@ -288,13 +288,6 @@ def get_function_component(
                 function_component.update(values=[new_function], hint="isolated function")
                 func = new_function
 
-        if context["native_fuzzing"]:
-            # Normalize macOS/llvm anonymous namespaces to
-            # Windows-like/msvc
-            new_function = func.replace("(anonymous namespace)", "`anonymous namespace'")
-            if new_function != func:
-                function_component.update(values=[new_function])
-
     elif context["javascript_fuzzing"] and behavior_family == "javascript":
         # This changes Object.foo or Foo.foo into foo so that we can
         # resolve some common cross browser differences
@@ -364,35 +357,6 @@ def frame(
     values = [module_component, filename_component, function_component]
     if context_line_component is not None:
         values.append(context_line_component)
-
-    if (
-        context["discard_native_filename"]
-        and get_behavior_family_for_platform(platform) == "native"
-        and function_component.contributes
-        and filename_component.contributes
-    ):
-        # In native, function names usually describe a full namespace. Adding
-        # the filename there just brings extra instability into grouping.
-        filename_component.update(
-            contributes=False, hint="discarded native filename for grouping stability"
-        )
-
-    if context["use_package_fallback"] and frame.package:
-        # If function did not symbolicate properly and we also have no filename, use package as fallback.
-        package_component = get_package_component(package=frame.package, platform=platform)
-        if package_component.contributes:
-            use_package_component = all(not component.contributes for component in values)
-
-            if use_package_component:
-                package_component.update(
-                    hint="used as fallback because function name is not available"
-                )
-            else:
-                package_component.update(
-                    contributes=False, hint="ignored because function takes precedence"
-                )
-
-            values.append(package_component)
 
     rv = GroupingComponent(id="frame", values=values)
 

@@ -7,6 +7,7 @@ from sentry.api.bases.user import UserEndpoint
 from sentry.api.decorators import sudo_required
 from sentry.api.paginator import DateTimePaginator
 from sentry.api.serializers import serialize
+from sentry.users.api.serializers.userip import UserIPSerializer
 from sentry.users.models.user import User
 from sentry.users.models.userip import UserIP
 
@@ -35,5 +36,5 @@ class UserIPsEndpoint(UserEndpoint):
             queryset=queryset,
             order_by="-last_seen",
             paginator_cls=DateTimePaginator,
-            on_results=lambda x: serialize(x, request),
+            on_results=lambda x: serialize(x, request, serializer=UserIPSerializer()),
         )

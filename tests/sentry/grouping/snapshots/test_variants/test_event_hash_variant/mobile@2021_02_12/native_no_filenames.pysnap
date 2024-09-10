@@ -1,5 +1,5 @@
 ---
-created: '2024-09-04T19:48:05.673960+00:00'
+created: '2024-09-05T13:39:11.383146+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -12,8 +12,6 @@ app-depth-1:
           frame*
             function*
               "log::__private_api_log"
-            package (ignored because function takes precedence)
-              "log"
         type (ignored because exception is synthetic)
           "log_demo"
         value (ignored because stacktrace takes precedence)
@@ -28,13 +26,9 @@ app-depth-2:
           frame*
             function*
               "log_demo::main"
-            package (ignored because function takes precedence)
-              "log_demo"
           frame*
             function*
               "log::__private_api_log"
-            package (ignored because function takes precedence)
-              "log"
         type (ignored because exception is synthetic)
           "log_demo"
         value (ignored because stacktrace takes precedence)
@@ -52,13 +46,9 @@ app-depth-3:
           frame*
             function*
               "log_demo::main"
-            package (ignored because function takes precedence)
-              "log_demo"
           frame*
             function*
               "log::__private_api_log"
-            package (ignored because function takes precedence)
-              "log"
         type (ignored because exception is synthetic)
           "log_demo"
         value (ignored because stacktrace takes precedence)
@@ -79,13 +69,9 @@ app-depth-4:
           frame*
             function*
               "log_demo::main"
-            package (ignored because function takes precedence)
-              "log_demo"
           frame*
             function*
               "log::__private_api_log"
-            package (ignored because function takes precedence)
-              "log"
         type (ignored because exception is synthetic)
           "log_demo"
         value (ignored because stacktrace takes precedence)
@@ -106,20 +92,16 @@ app-depth-max:
           frame*
             function*
               "log_demo::main"
-            package (ignored because function takes precedence)
-              "log_demo"
           frame*
             function*
               "log::__private_api_log"
-            package (ignored because function takes precedence)
-              "log"
         type (ignored because exception is synthetic)
           "log_demo"
         value (ignored because stacktrace takes precedence)
           "Holy shit everything is on fire!"
 --------------------------------------------------------------------------
 system:
-  hash: "a12f03cf6be0c16305a3c6c5c69538e8"
+  hash: "bbcdb2e1d8df09ffe0fffd30fb361d4b"
   component:
     system*
       exception*
@@ -130,64 +112,42 @@ system:
           frame*
             function*
               "std::rt::lang_start"
-            package (ignored because function takes precedence)
-              "std"
           frame (ignored by stack trace rule (category:internals -group))
             function*
               "std::rt::lang_start_internal"
-            package (ignored because function takes precedence)
-              "std"
           frame*
             function*
               "___rust_maybe_catch_panic"
           frame*
             function*
               "std::panicking::try::do_call"
-            package (ignored because function takes precedence)
-              "std"
           frame (ignored by stack trace rule (category:internals -group))
             function*
               "std::rt::lang_start::{{closure}}"
-            package (ignored because function takes precedence)
-              "std"
           frame*
             function*
               "log_demo::main"
-            package (ignored because function takes precedence)
-              "log_demo"
           frame*
             function*
               "log::__private_api_log"
-            package (ignored because function takes precedence)
-              "log"
           frame*
             function*
               "sentry::integrations::log::Logger::log"
           frame*
             function*
               "sentry::hub::Hub::with_active"
-            package (ignored because function takes precedence)
-              "sentry"
           frame*
             function*
               "sentry::hub::Hub::with"
-            package (ignored because function takes precedence)
-              "sentry"
           frame*
             function*
               "sentry::hub::Hub::with_active::{{closure}}"
-            package (ignored because function takes precedence)
-              "sentry"
-          frame*
+          frame
             function (ignored unknown function)
               "<unknown>"
-            package* (used as fallback because function name is not available)
-              "sentry"
-          frame*
+          frame
             function (ignored unknown function)
               "<redacted>"
-            package* (used as fallback because function name is not available)
-              "something"
         type (ignored because exception is synthetic)
           "log_demo"
         value (ignored because stacktrace takes precedence)

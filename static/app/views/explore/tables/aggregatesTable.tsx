@@ -4,6 +4,7 @@ import Pagination from 'sentry/components/pagination';
 import type {NewQuery} from 'sentry/types/organization';
 import EventView from 'sentry/utils/discover/eventView';
 import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
+import {getAggregateAlias, type Sort} from 'sentry/utils/discover/fields';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
@@ -23,6 +24,11 @@ import {useUserQuery} from 'sentry/views/explore/hooks/useUserQuery';
 import {useVisualizes} from 'sentry/views/explore/hooks/useVisualizes';
 import {useSpansQuery} from 'sentry/views/insights/common/queries/useSpansQuery';
 
+function formatSort(sort: Sort): string {
+  const direction = sort.kind === 'desc' ? '-' : '';
+  return `${direction}${getAggregateAlias(sort.field)}`;
+}
+
 interface AggregatesTableProps {}
 
 export function AggregatesTable({}: AggregatesTableProps) {
@@ -34,7 +40,9 @@ export function AggregatesTable({}: AggregatesTableProps) {
   const [groupBys] = useGroupBys();
   const [visualizes] = useVisualizes();
   const fields = useMemo(() => {
-    return [...groupBys, ...visualizes].filter(Boolean);
+    return [...groupBys, ...visualizes.flatMap(visualize => visualize.yAxes)].filter(
+      Boolean
+    );
   }, [groupBys, visualizes]);
   const [sorts] = useSorts({fields});
   const [query] = useUserQuery();
@@ -44,7 +52,7 @@ export function AggregatesTable({}: AggregatesTableProps) {
       id: undefined,
       name: 'Explore - Span Aggregates',
       fields,
-      orderby: sorts.map(sort => `${sort.kind === 'desc' ? '-' : ''}${sort.field}`),
+      orderby: sorts.map(formatSort),
       query,
       version: 2,
       dataset,

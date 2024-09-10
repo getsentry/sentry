@@ -496,9 +496,7 @@ def test_existing_group_new_hash_exists(
 @pytest.mark.parametrize(
     "mobile_config", (True, False), ids=(" mobile_config: True ", " mobile_config: False ")
 )
-@pytest.mark.parametrize(
-    "id_qualifies", (True, False), ids=(" id_qualifies: True ", " id_qualifies: False ")
-)
+@pytest.mark.parametrize("id_qualifies", (True,), ids=(" id_qualifies: True ",))
 @patch("sentry.event_manager._save_aggregate_new", wraps=_save_aggregate_new)
 @patch("sentry.event_manager._save_aggregate", wraps=_save_aggregate)
 def test_uses_regular_or_optimized_grouping_as_appropriate(
@@ -518,7 +516,7 @@ def test_uses_regular_or_optimized_grouping_as_appropriate(
         # Keep making projects until we get an id which matches `id_qualifies`
         org = Factories.create_organization()
         project = Factories.create_project(organization=org)
-        while (project.id % 5 >= 4) if id_qualifies else (project.id % 5 < 4):
+        while (project.id % 5 >= 5) if id_qualifies else (project.id % 5 < 5):
             project = Factories.create_project(organization=org)
 
     with (

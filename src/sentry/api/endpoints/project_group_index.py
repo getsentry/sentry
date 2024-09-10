@@ -27,7 +27,7 @@ from sentry.types.ratelimit import RateLimit, RateLimitCategory
 from sentry.utils.validators import normalize_event_id
 
 ERR_INVALID_STATS_PERIOD = "Invalid stats_period. Valid choices are '', '24h', and '14d'"
-ERR_HASHES_AND_OTHER_QUERY = "Cannot use 'hash' with 'query'"
+ERR_HASHES_AND_OTHER_QUERY = "Cannot use 'hashes' with 'query'"
 
 
 @region_silo_endpoint
