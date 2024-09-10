@@ -61,12 +61,16 @@ export function DatabaseSpanDescription({
   const system = rawSpan?.data?.['db.system'];
 
   const formattedDescription = useMemo(() => {
+    if (!system) {
+      return preliminaryDescription ?? '';
+    }
+
     // MongoDB span descriptions are in JSON and should not have SQLish formatting applied
-    if (!system || system === 'mongodb') {
+    if (system === 'mongodb') {
       // TODO: We should transform the data a bit for mongodb queries.
       // For example, it would be better if we display the operation on the collection as the
       // first key value pair in the JSON, since this is not guaranteed by the backend
-      return preliminaryDescription;
+      return JSON.stringify(JSON.parse(preliminaryDescription ?? ''), null, 4) ?? '';
     }
 
     const rawDescription =
@@ -86,14 +90,14 @@ export function DatabaseSpanDescription({
     if (system === 'mongodb') {
       return (
         <CodeSnippet language="json" isRounded={false}>
-          {JSON.stringify(JSON.parse(preliminaryDescription ?? ''), null, 4) ?? ''}
+          {formattedDescription}
         </CodeSnippet>
       );
     }
 
     return (
       <CodeSnippet language="sql" isRounded={false}>
-        {formattedDescription ?? ''}
+        {formattedDescription}
       </CodeSnippet>
     );
   };
