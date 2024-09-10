@@ -166,5 +166,5 @@ export function EventTraceView({
 const TraceViewWaterfallWrapper = styled('div')`
   display: flex;
   flex-direction: column;
-  height: 600px;
+  height: 500px;
 `;
