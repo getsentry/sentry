@@ -49,9 +49,7 @@ export function ApiTokens() {
     },
     onMutate: token => {
       addLoadingMessage();
-      queryClient.cancelQueries({
-        queryKey: API_TOKEN_QUERY_KEY,
-      });
+      queryClient.cancelQueries({queryKey: API_TOKEN_QUERY_KEY});
 
       const previous = getApiQueryData<InternalAppApiToken[]>(
         queryClient,
@@ -83,9 +81,7 @@ export function ApiTokens() {
       }
     },
     onSettled: () => {
-      queryClient.invalidateQueries({
-        queryKey: API_TOKEN_QUERY_KEY,
-      });
+      queryClient.invalidateQueries({queryKey: API_TOKEN_QUERY_KEY});
     },
   });
 

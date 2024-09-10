@@ -87,9 +87,7 @@ function AccountSecurityDetails({deleteDisabled, onRegenerateBackupCodes}: Props
       addErrorMessage(t('Error removing %s', deviceName));
     },
     onSettled: () => {
-      queryClient.invalidateQueries({
-        queryKey: getAuthenticatorQueryKey(authId),
-      });
+      queryClient.invalidateQueries({queryKey: getAuthenticatorQueryKey(authId)});
     },
   });
 

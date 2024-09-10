@@ -32,7 +32,7 @@
       "title": "Created At",
       "description": "The datetime when this feature was created.",
       "type": "string",
-      "format": "date-time"
+      "pattern": "^\\d{4}-\\d{2}-\\d{2}(?:T\\d{2}:\\d{2}:\\d{2}(?:\\.\\d+)?)?$"
     }
   },
   "required": [

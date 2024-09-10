@@ -26,6 +26,8 @@ import {type ModuleName, SpanMetricsField} from 'sentry/views/insights/types';
 type Props = {
   moduleName: ModuleName;
   additionalQuery?: string[];
+  // Optional prop to override the default name of the selector label
+  domainAlias?: string;
   emptyOptionLocation?: 'top' | 'bottom';
   spanCategory?: string;
   value?: string;
@@ -41,6 +43,7 @@ export function DomainSelector({
   spanCategory,
   additionalQuery = [],
   emptyOptionLocation = 'bottom',
+  domainAlias,
 }: Props) {
   const location = useLocation();
   const organization = useOrganization();
@@ -106,7 +109,9 @@ export function DomainSelector({
   const emptyOption = {
     value: EMPTY_OPTION_VALUE,
     label: (
-      <EmptyContainer>{t('(No %s)', LABEL_FOR_MODULE_NAME[moduleName])}</EmptyContainer>
+      <EmptyContainer>
+        {t('(No %s)', domainAlias ?? LABEL_FOR_MODULE_NAME[moduleName])}
+      </EmptyContainer>
     ),
   };
 
@@ -125,15 +130,16 @@ export function DomainSelector({
       emptyMessage={t('No results')}
       loading={isPending}
       searchable
-      menuTitle={LABEL_FOR_MODULE_NAME[moduleName]}
+      menuTitle={domainAlias ?? LABEL_FOR_MODULE_NAME[moduleName]}
       maxMenuWidth={'500px'}
+      data-test-id="domain-selector"
       onSearch={newValue => {
         if (!wasSearchSpaceExhausted) {
           debouncedSetSearch(newValue);
         }
       }}
       triggerProps={{
-        prefix: LABEL_FOR_MODULE_NAME[moduleName],
+        prefix: domainAlias ?? LABEL_FOR_MODULE_NAME[moduleName],
       }}
       onChange={newValue => {
         trackAnalytics('insight.general.select_domain_value', {

@@ -1,9 +1,16 @@
 import {Fragment, useMemo} from 'react';
 
+import EmptyStateWarning from 'sentry/components/emptyStateWarning';
+import Link from 'sentry/components/links/link';
+import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Pagination from 'sentry/components/pagination';
+import {IconWarning} from 'sentry/icons';
+import {t} from 'sentry/locale';
 import type {NewQuery} from 'sentry/types/organization';
+import type {EventData} from 'sentry/utils/discover/eventView';
 import EventView from 'sentry/utils/discover/eventView';
 import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
+import {generateLinkToEventInTraceView} from 'sentry/utils/discover/urls';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
@@ -14,6 +21,7 @@ import {
   TableHead,
   TableHeadCell,
   TableRow,
+  TableStatus,
   useTableStyles,
 } from 'sentry/views/explore/components/table';
 import {useDataset} from 'sentry/views/explore/hooks/useDataset';
@@ -21,12 +29,11 @@ import {useSampleFields} from 'sentry/views/explore/hooks/useSampleFields';
 import {useSorts} from 'sentry/views/explore/hooks/useSorts';
 import {useUserQuery} from 'sentry/views/explore/hooks/useUserQuery';
 import {useSpansQuery} from 'sentry/views/insights/common/queries/useSpansQuery';
+import {TraceViewSources} from 'sentry/views/performance/newTraceDetails/traceMetadataHeader';
 
 interface SpansTableProps {}
 
 export function SpansTable({}: SpansTableProps) {
-  const location = useLocation();
-  const organization = useOrganization();
   const {selection} = usePageFilters();
 
   const [dataset] = useDataset();
@@ -35,10 +42,19 @@ export function SpansTable({}: SpansTableProps) {
   const [query] = useUserQuery();
 
   const eventView = useMemo(() => {
+    const queryFields = [
+      ...fields,
+      'project',
+      'trace',
+      'transaction.id',
+      'span_id',
+      'timestamp',
+    ];
+
     const discoverQuery: NewQuery = {
       id: undefined,
       name: 'Explore - Span Samples',
-      fields,
+      fields: queryFields,
       orderby: sorts.map(sort => `${sort.kind === 'desc' ? '-' : ''}${sort.field}`),
       query,
       version: 2,
@@ -78,25 +94,77 @@ export function SpansTable({}: SpansTableProps) {
           </TableRow>
         </TableHead>
         <TableBody>
-          {result.data?.map((row, i) => (
-            <TableRow key={i}>
-              {fields.map((field, j) => {
-                const renderer = getFieldRenderer(field, meta.fields, false);
-                return (
-                  <TableBodyCell key={j}>
-                    {renderer(row, {
-                      location,
-                      organization,
-                      unit: meta?.units?.[field],
-                    })}
-                  </TableBodyCell>
-                );
-              })}
-            </TableRow>
-          ))}
+          {result.isPending ? (
+            <TableStatus>
+              <LoadingIndicator />
+            </TableStatus>
+          ) : result.isError ? (
+            <TableStatus>
+              <IconWarning data-test-id="error-indicator" color="gray300" size="lg" />
+            </TableStatus>
+          ) : result.isFetched && result.data?.length ? (
+            result.data?.map((row, i) => (
+              <TableRow key={i}>
+                {fields.map((field, j) => {
+                  return (
+                    <TableBodyCell key={j}>
+                      <Field
+                        data={row}
+                        field={field}
+                        unit={meta?.units?.[field]}
+                        meta={fields}
+                      />
+                    </TableBodyCell>
+                  );
+                })}
+              </TableRow>
+            ))
+          ) : (
+            <TableStatus>
+              <EmptyStateWarning>
+                <p>{t('No spans found')}</p>
+              </EmptyStateWarning>
+            </TableStatus>
+          )}
         </TableBody>
       </Table>
       <Pagination pageLinks={result.pageLinks} />
     </Fragment>
   );
+}
+
+interface FieldProps {
+  data: EventData;
+  field: string;
+  meta: string[];
+  unit?: string;
+}
+
+function Field({data, field, meta, unit}: FieldProps) {
+  const location = useLocation();
+  const organization = useOrganization();
+  const renderer = getFieldRenderer(field, meta, false);
+
+  let rendered = renderer(data, {
+    location,
+    organization,
+    unit,
+  });
+
+  if (field === 'id' || field === 'span_id') {
+    const target = generateLinkToEventInTraceView({
+      projectSlug: data.project,
+      traceSlug: data.trace,
+      timestamp: data.timestamp,
+      eventId: data['transaction.id'],
+      organization,
+      location,
+      spanId: data.span_id,
+      source: TraceViewSources.TRACES,
+    });
+
+    rendered = <Link to={target}>{rendered}</Link>;
+  }
+
+  return <Fragment>{rendered}</Fragment>;
 }
