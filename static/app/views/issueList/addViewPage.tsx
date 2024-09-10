@@ -234,6 +234,7 @@ const SuggestionList = styled('ul')`
 `;
 
 const Banner = styled('div')`
+  position: relative;
   display: flex;
   flex-direction: column;
   margin-bottom: 0;
