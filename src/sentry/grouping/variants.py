@@ -201,23 +201,3 @@ class SaltedComponentVariant(ComponentVariant):
         rv = ComponentVariant._get_metadata_as_dict(self)
         rv.update(expose_fingerprint_dict(self.values, self.info))
         return rv
-
-
-# defines the order of hierarchical grouping hashes, globally. variant names
-# defined in this list
-#
-# 1) will be persisted in snuba for split/unsplit operations
-# 2) in save_event, will be traversed bottom-to-top, and the first GroupHash
-#    found is used to find/create group
-#
-# variants outside of this list are assumed to not contribute to any sort of
-# hierarchy, their hashes are always persisted as GroupHash (and used to find
-# existing groups)
-HIERARCHICAL_VARIANTS = [
-    "app-depth-1",  # hashing by 1 level of stacktrace (eg just crashing frame)
-    "app-depth-2",
-    "app-depth-3",
-    "app-depth-4",
-    "app-depth-5",
-    "app-depth-max",  # hashing by full stacktrace
-]

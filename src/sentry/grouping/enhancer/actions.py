@@ -8,7 +8,7 @@ from sentry.utils.safe import get_path, set_path
 
 from .exceptions import InvalidEnhancerConfig
 
-ACTIONS = ["group", "app", "prefix", "sentinel"]
+ACTIONS = ["group", "app"]
 ACTION_BITSIZE = 8
 assert len(ACTIONS) < 1 << ACTION_BITSIZE
 ACTION_FLAGS = {
@@ -64,7 +64,7 @@ class Action:
 class FlagAction(Action):
     def __init__(self, key: str, flag: bool, range: str | None) -> None:
         self.key = key
-        self._is_updater = key in {"group", "app", "prefix", "sentinel"}
+        self._is_updater = key in {"group", "app"}
         self._is_modifier = key == "app"
         self.flag = flag
         self.range = range  # e.g. None, "up", "down"
@@ -133,16 +133,6 @@ class FlagAction(Action):
             elif self.key == "app" and self._in_app_changed(frame, component):
                 component.update(
                     hint="marked {} by {}".format(self.flag and "in-app" or "out of app", rule_hint)
-                )
-
-            elif self.key == "prefix":
-                component.update(
-                    is_prefix_frame=self.flag, hint=f"marked as prefix frame by {rule_hint}"
-                )
-
-            elif self.key == "sentinel":
-                component.update(
-                    is_sentinel_frame=self.flag, hint=f"marked as sentinel frame by {rule_hint}"
                 )
 
 
