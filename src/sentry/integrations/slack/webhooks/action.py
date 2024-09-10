@@ -393,6 +393,20 @@ class SlackActionEndpoint(Endpoint):
             # If the external_id is not found, Slack we send `not_found` error
             # https://api.slack.com/methods/views.update
             if unpack_slack_api_error(e) == MODAL_NOT_FOUND:
+                metrics.incr(
+                    SLACK_WEBHOOK_GROUP_ACTIONS_FAILURE_DATADOG_METRIC,
+                    sample_rate=1.0,
+                    tags={"type": "update_modal"},
+                )
+                _logger.exception(
+                    "slack.action.update-modal-not-found",
+                    extra={
+                        "organization_id": slack_request.organization.id,
+                        "integration_id": slack_request.integration.id,
+                        "trigger_id": slack_request.data["trigger_id"],
+                        "dialog": "resolve",
+                    },
+                )
                 # The modal was not found, so we need to open a new one
                 self._open_view(slack_client, modal_payload, slack_request)
             else:
