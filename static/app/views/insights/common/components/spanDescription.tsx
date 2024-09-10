@@ -159,4 +159,5 @@ const WordBreak = styled('div')`
 
 const MongoQuery = styled(StructuredEventData)`
   margin: 0;
+  background: ${p => p.theme.white};
 `;
