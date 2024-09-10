@@ -304,8 +304,7 @@ def _get_and_save_split_decision_for_query(
     saved_query: DiscoverSavedQuery, dry_run: bool
 ) -> tuple[int, bool]:
     """
-    This function is called by the split_discover_query_dataset task
-    in tasks/split_discover_query_dataset.py. It contains logic specifically
+    This function is called by the SplitDiscoverDataset job in getsentry. It contains logic specifically
     to split a Discover Saved Query with "Discover" dataset type into
     either Errors or Transactions.
     """
