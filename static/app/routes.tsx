@@ -421,7 +421,6 @@ function buildRoutes() {
             )}
           />
         </Route>
-        {hook('routes:api')}
       </Route>
       <Route
         path="close-account/"
