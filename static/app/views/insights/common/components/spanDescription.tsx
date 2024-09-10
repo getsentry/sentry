@@ -64,25 +64,24 @@ export function DatabaseSpanDescription({
     try {
       return JSON.stringify(JSON.parse(queryString), null, 4);
     } catch (error) {
-      throw Error('Failed to parse JSON: ', error);
+      throw Error(`Failed to parse JSON: ${queryString}`);
     }
   };
 
   const formattedDescription = useMemo(() => {
-    if (!preliminaryDescription) {
-      return '...';
-    }
+    const rawDescription =
+      rawSpan?.description || indexedSpan?.['span.description'] || preliminaryDescription;
 
     if (!system) {
       // If the span data has not loaded, we can still infer that this is a NoSQL query
       if (
-        preliminaryDescription.startsWith('{') &&
-        preliminaryDescription.endsWith('}')
+        preliminaryDescription?.startsWith('{') &&
+        preliminaryDescription?.endsWith('}')
       ) {
         return formatJsonQuery(preliminaryDescription);
       }
 
-      return preliminaryDescription;
+      return rawDescription;
     }
 
     // MongoDB span descriptions are in JSON and should not have SQLish formatting applied
@@ -90,11 +89,9 @@ export function DatabaseSpanDescription({
       // TODO: We should transform the data a bit for mongodb queries.
       // For example, it would be better if we display the operation on the collection as the
       // first key value pair in the JSON, since this is not guaranteed by the backend
-      return formatJsonQuery(preliminaryDescription);
+      return formatJsonQuery(preliminaryDescription ?? '{}');
     }
 
-    const rawDescription =
-      rawSpan?.description || indexedSpan?.['span.description'] || preliminaryDescription;
     return formatter.toString(rawDescription ?? '');
   }, [preliminaryDescription, rawSpan, indexedSpan, system]);
 
@@ -106,7 +103,7 @@ export function DatabaseSpanDescription({
         </WithPadding>
       ) : (
         <CodeSnippet language={system === 'mongodb' ? 'json' : 'sql'} isRounded={false}>
-          {formattedDescription}
+          {formattedDescription ?? ''}
         </CodeSnippet>
       )}
 
