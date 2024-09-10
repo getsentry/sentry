@@ -633,6 +633,9 @@ class Fixtures:
     def create_dashboard_widget_query(self, *args, **kwargs):
         return Factories.create_dashboard_widget_query(*args, **kwargs)
 
+    def create_workflow(self, *args, **kwargs):
+        return Factories.create_workflow(*args, **kwargs)
+
     def create_uptime_subscription(
         self,
         type: str = "test",
