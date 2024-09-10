@@ -76,7 +76,7 @@ class SpansIndexedDatasetConfig(DatasetConfig):
         }
 
     @property
-    def function_converter(self) -> Mapping[str, SnQLFunction]:
+    def function_converter(self) -> dict[str, SnQLFunction]:
         function_converter = {
             function.name: function
             for function in [
@@ -156,6 +156,16 @@ class SpansIndexedDatasetConfig(DatasetConfig):
                         with_default("span.duration", NumericColumn("column", spans=True)),
                     ],
                     snql_aggregate=lambda args, alias: self._resolve_percentile(args, alias, 0.75),
+                    result_type_fn=self.reflective_result_type(),
+                    default_result_type="duration",
+                    redundant_grouping=True,
+                ),
+                SnQLFunction(
+                    "p90",
+                    optional_args=[
+                        with_default("span.duration", NumericColumn("column", spans=True)),
+                    ],
+                    snql_aggregate=lambda args, alias: self._resolve_percentile(args, alias, 0.90),
                     result_type_fn=self.reflective_result_type(),
                     default_result_type="duration",
                     redundant_grouping=True,
@@ -543,5 +553,173 @@ class SpansEAPDatasetConfig(SpansIndexedDatasetConfig):
                 self_time,
                 duration,
             ],
+            alias,
+        )
+
+    @property
+    def function_converter(self) -> dict[str, SnQLFunction]:
+        existing_functions = super().function_converter
+        sampling_weight = Column("sampling_weight")
+        function_converter = {
+            function.name: function
+            for function in [
+                SnQLFunction(
+                    "count_weighted",
+                    optional_args=[NullColumn("column")],
+                    snql_aggregate=lambda _, alias: Function(
+                        "sum",
+                        [Function("multiply", [Column("sign"), sampling_weight])],
+                        alias,
+                    ),
+                    default_result_type="integer",
+                ),
+                SnQLFunction(
+                    "sum_weighted",
+                    required_args=[NumericColumn("column", spans=True)],
+                    result_type_fn=self.reflective_result_type(),
+                    snql_aggregate=lambda args, alias: Function(
+                        "sum",
+                        [Function("multiply", [Column("sign"), args["column"], sampling_weight])],
+                        alias,
+                    ),
+                    default_result_type="duration",
+                ),
+                SnQLFunction(
+                    "avg_weighted",
+                    required_args=[NumericColumn("column", spans=True)],
+                    result_type_fn=self.reflective_result_type(),
+                    snql_aggregate=lambda args, alias: Function(
+                        "divide",
+                        [
+                            Function(
+                                "sum",
+                                [
+                                    Function(
+                                        "multiply",
+                                        [Column("sign"), args["column"], sampling_weight],
+                                    )
+                                ],
+                            ),
+                            Function("multiply", [Column("sign"), sampling_weight]),
+                        ],
+                        alias,
+                    ),
+                    default_result_type="duration",
+                ),
+                SnQLFunction(
+                    "percentile_weighted",
+                    required_args=[
+                        NumericColumn("column", spans=True),
+                        NumberRange("percentile", 0, 1),
+                    ],
+                    snql_aggregate=self._resolve_percentile_weighted,
+                    result_type_fn=self.reflective_result_type(),
+                    default_result_type="duration",
+                    redundant_grouping=True,
+                ),
+                SnQLFunction(
+                    "p50_weighted",
+                    optional_args=[
+                        with_default("span.duration", NumericColumn("column", spans=True)),
+                    ],
+                    snql_aggregate=lambda args, alias: self._resolve_percentile_weighted(
+                        args, alias, 0.5
+                    ),
+                    result_type_fn=self.reflective_result_type(),
+                    default_result_type="duration",
+                    redundant_grouping=True,
+                ),
+                SnQLFunction(
+                    "p75_weighted",
+                    optional_args=[
+                        with_default("span.duration", NumericColumn("column", spans=True)),
+                    ],
+                    snql_aggregate=lambda args, alias: self._resolve_percentile_weighted(
+                        args, alias, 0.75
+                    ),
+                    result_type_fn=self.reflective_result_type(),
+                    default_result_type="duration",
+                    redundant_grouping=True,
+                ),
+                SnQLFunction(
+                    "p90_weighted",
+                    optional_args=[
+                        with_default("span.duration", NumericColumn("column", spans=True)),
+                    ],
+                    snql_aggregate=lambda args, alias: self._resolve_percentile_weighted(
+                        args, alias, 0.90
+                    ),
+                    result_type_fn=self.reflective_result_type(),
+                    default_result_type="duration",
+                    redundant_grouping=True,
+                ),
+                SnQLFunction(
+                    "p95_weighted",
+                    optional_args=[
+                        with_default("span.duration", NumericColumn("column", spans=True)),
+                    ],
+                    snql_aggregate=lambda args, alias: self._resolve_percentile_weighted(
+                        args, alias, 0.95
+                    ),
+                    result_type_fn=self.reflective_result_type(),
+                    default_result_type="duration",
+                    redundant_grouping=True,
+                ),
+                SnQLFunction(
+                    "p99_weighted",
+                    optional_args=[
+                        with_default("span.duration", NumericColumn("column", spans=True)),
+                    ],
+                    snql_aggregate=lambda args, alias: self._resolve_percentile_weighted(
+                        args, alias, 0.99
+                    ),
+                    result_type_fn=self.reflective_result_type(),
+                    default_result_type="duration",
+                    redundant_grouping=True,
+                ),
+                SnQLFunction(
+                    "p100_weighted",
+                    optional_args=[
+                        with_default("span.duration", NumericColumn("column", spans=True)),
+                    ],
+                    snql_aggregate=lambda args, alias: self._resolve_percentile_weighted(
+                        args, alias, 1.0
+                    ),
+                    result_type_fn=self.reflective_result_type(),
+                    default_result_type="duration",
+                    redundant_grouping=True,
+                ),
+                # Min and Max are identical to their existing implementations
+                SnQLFunction(
+                    "min_weighted",
+                    required_args=[NumericColumn("column", spans=True)],
+                    snql_aggregate=lambda args, alias: Function("min", [args["column"]], alias),
+                    result_type_fn=self.reflective_result_type(),
+                    default_result_type="duration",
+                    redundant_grouping=True,
+                ),
+                SnQLFunction(
+                    "max_weighted",
+                    required_args=[NumericColumn("column", spans=True)],
+                    snql_aggregate=lambda args, alias: Function("max", [args["column"]], alias),
+                    result_type_fn=self.reflective_result_type(),
+                    default_result_type="duration",
+                    redundant_grouping=True,
+                ),
+            ]
+        }
+
+        existing_functions.update(function_converter)
+        return existing_functions
+
+    def _resolve_percentile_weighted(
+        self,
+        args: Mapping[str, str | Column | SelectType | int | float],
+        alias: str,
+        fixed_percentile: float | None = None,
+    ) -> SelectType:
+        return Function(
+            f'quantileTDigestWeighted({fixed_percentile if fixed_percentile is not None else args["percentile"]})',
+            [args["column"], Column("sampling_weight")],
             alias,
         )
