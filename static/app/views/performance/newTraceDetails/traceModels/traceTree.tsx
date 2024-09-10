@@ -230,7 +230,11 @@ function isServerRequestHandlerTransactionNode(
 }
 
 function isBrowserRequestSpan(value: TraceTree.Span): boolean {
-  return value.op === 'browser' && value.description === 'request';
+  return (
+    // Adjust for SDK changes in https://github.com/getsentry/sentry-javascript/pull/13527
+    value.op === 'browser.request' ||
+    (value.op === 'browser' && value.description === 'request')
+  );
 }
 
 function getPageloadTransactionChildCount(
