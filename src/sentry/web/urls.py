@@ -821,6 +821,7 @@ urlpatterns += [
         r"^toolbar/",
         include(
             [
+                # Although the pattern looks project-scoped, these are OrganizationViews (auth and perms are org-scoped).
                 re_path(
                     r"^(?P<organization_slug>[^/\.]+)/(?P<project_id_or_slug>[^/\.]+)/iframe/$",
                     IframeView.as_view(),
