@@ -38,7 +38,7 @@ def make_signed_seer_api_request(
     ):
         return connection_pool.urlopen(
             "POST",
-            "/" + parsed.path + "?" + parsed.query,
+            parsed.path + "?" + parsed.query,
             body=body,
             headers={"content-type": "application/json;charset=utf-8", **auth_headers},
             **timeout_options,
