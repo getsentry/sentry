@@ -384,7 +384,12 @@ class BaseView(View, OrganizationMixin):
         try:
             request.access = self.get_access(request, *args, **kwargs)
         except DataSecrecyError:
-            return render_to_response("sentry/data-secrecy.html", status=403, request=request)
+            return render_to_response(
+                "sentry/data-secrecy.html",
+                context={"organization_slug": organization_slug},
+                status=403,
+                request=request,
+            )
 
         if not self.has_permission(request, *args, **kwargs):
             return self.handle_permission_required(request, *args, **kwargs)
