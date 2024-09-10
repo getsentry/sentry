@@ -30,7 +30,7 @@ Retrieve a collection of flag logs.
 
 | Column           | Type   | Description                                      |
 | ---------------- | ------ | ------------------------------------------------ |
-| action           | string | Enum of `created` or `modified`.                |
+| action           | string | Enum of `created` or `modified`.                 |
 | environment      | string | The environment the change applies to.           |
 | flag             | string | The name of the flag changed.                    |
 | modified_at      | string | ISO-8601 timestamp of when the flag was changed. |
