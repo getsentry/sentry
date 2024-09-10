@@ -70,7 +70,9 @@ export function DatabaseSpanDescription({
       // TODO: We should transform the data a bit for mongodb queries.
       // For example, it would be better if we display the operation on the collection as the
       // first key value pair in the JSON, since this is not guaranteed by the backend
-      return JSON.stringify(JSON.parse(preliminaryDescription ?? ''), null, 4) ?? '';
+      return preliminaryDescription
+        ? JSON.stringify(JSON.parse(preliminaryDescription), null, 4)
+        : '{ ... }';
     }
 
     const rawDescription =
