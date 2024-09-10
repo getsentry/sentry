@@ -5,6 +5,10 @@ import {isEmptyObject} from 'sentry/utils/object/isEmptyObject';
 
 import {type SectionCardKeyValueList, TraceDrawerComponents} from '../../styles';
 
+export function hasSDKContext(event: EventTransaction) {
+  return !!event.sdk && !isEmptyObject(event.sdk);
+}
+
 export function Sdk({event}: {event: EventTransaction}) {
   if (!event.sdk || isEmptyObject(event.sdk)) {
     return null;
