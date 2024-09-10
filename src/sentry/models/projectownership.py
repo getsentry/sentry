@@ -348,6 +348,7 @@ class ProjectOwnership(Model):
                     organization_id=organization_id or ownership.project.organization_id,
                     project_id=project_id,
                     group_id=group.id,
+                    updated_assignment=assignment["updated_assignment"],
                 )
 
     @classmethod
