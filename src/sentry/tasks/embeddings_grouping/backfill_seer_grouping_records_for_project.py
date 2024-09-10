@@ -41,7 +41,7 @@ logger = logging.getLogger(__name__)
     acks_late=True,
 )
 def backfill_seer_grouping_records_for_project(
-    current_project_id: int,
+    current_project_id: int | None,
     last_processed_group_id_input: int | None,
     cohort: str | list[int] | None = None,
     last_processed_project_index_input: int | None = None,
@@ -59,11 +59,6 @@ def backfill_seer_grouping_records_for_project(
     Pass in last_processed_group_id = None if calling for the first time. This function will spawn
     child tasks that will pass the last_processed_group_id
     """
-    if options.get("seer.similarity-backfill-killswitch.enabled") or killswitch_enabled(
-        current_project_id
-    ):
-        logger.info("backfill_seer_grouping_records.killswitch_enabled")
-        return
 
     if cohort is None and worker_number is not None:
         cohort = create_project_cohort(worker_number, last_processed_project_id)
@@ -76,6 +71,13 @@ def backfill_seer_grouping_records_for_project(
             )
             return
         current_project_id = cohort[0]
+    assert current_project_id is not None
+
+    if options.get("seer.similarity-backfill-killswitch.enabled") or killswitch_enabled(
+        current_project_id
+    ):
+        logger.info("backfill_seer_grouping_records.killswitch_enabled")
+        return
 
     logger.info(
         "backfill_seer_grouping_records",
