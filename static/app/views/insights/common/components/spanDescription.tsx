@@ -96,7 +96,7 @@ export function DatabaseSpanDescription({
 
     if (system === 'mongodb') {
       return (
-        <StructuredEventData
+        <MongoQuery
           config={mongoQueryConfig}
           data={JSON.parse(preliminaryDescription || '{}')}
           forceDefaultExpand
@@ -155,4 +155,8 @@ const WithPadding = styled('div')`
 
 const WordBreak = styled('div')`
   word-break: break-word;
+`;
+
+const MongoQuery = styled(StructuredEventData)`
+  margin: 0;
 `;
