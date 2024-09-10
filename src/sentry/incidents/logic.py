@@ -43,7 +43,6 @@ from sentry.incidents.models.incident import (
     IncidentActivity,
     IncidentActivityType,
     IncidentProject,
-    IncidentSeen,
     IncidentStatus,
     IncidentStatusMethod,
     IncidentSubscription,
@@ -235,35 +234,6 @@ def update_incident_status(
             trigger_incident_triggers(incident)
 
         return incident
-
-
-def set_incident_seen(incident, user=None):
-    """
-    Updates the incident to be seen
-    """
-
-    is_org_member = incident.organization.has_access(user)
-
-    if is_org_member:
-        is_project_member = False
-        for incident_project in IncidentProject.objects.filter(incident=incident).select_related(
-            "project"
-        ):
-            if incident_project.project.member_set.filter(
-                user_id=user.id if user else None
-            ).exists():
-                is_project_member = True
-                break
-
-        if is_project_member:
-            incident_seen, created = IncidentSeen.objects.create_or_update(
-                incident=incident,
-                user_id=user.id if user else None,
-                values={"last_seen": django_timezone.now()},
-            )
-            return incident_seen
-
-    return False
 
 
 @transaction.atomic(router.db_for_write(Incident))
