@@ -34,7 +34,9 @@ export function ReplaySideBySideImageDiff({leftOffsetMs, replay, rightOffsetMs}:
           isFetching={fetching}
           replay={replay}
         >
-          <ReplayPlayer isPreview />
+          <Border>
+            <ReplayPlayer isPreview />
+          </Border>
         </ReplayContextProvider>
 
         <ReplayContextProvider
@@ -43,7 +45,13 @@ export function ReplaySideBySideImageDiff({leftOffsetMs, replay, rightOffsetMs}:
           isFetching={fetching}
           replay={replay}
         >
-          {rightOffsetMs > 0 ? <ReplayPlayer isPreview /> : <div />}
+          {rightOffsetMs > 0 ? (
+            <Border>
+              <ReplayPlayer isPreview />
+            </Border>
+          ) : (
+            <div />
+          )}
         </ReplayContextProvider>
       </ReplayGrid>
     </Flex>
@@ -80,4 +88,14 @@ export const Before = styled(Flex)`
 
 export const After = styled(Flex)`
   color: ${p => p.theme.green300};
+`;
+
+const Border = styled('span')`
+  border: 5px solid;
+  border-radius: ${space(0.5)};
+  border-color: ${p => p.theme.red200};
+  & + & {
+    border-color: ${p => p.theme.green200};
+  }
+  overflow: hidden;
 `;

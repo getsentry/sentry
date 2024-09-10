@@ -142,7 +142,7 @@ function DiffSides({leftOffsetMs, replay, rightOffsetMs, viewDimensions, width})
 const WithPadding = styled(NegativeSpaceContainer)`
   padding-block: ${space(1.5)};
   overflow: visible;
-  height: 100%;
+  height: 95%;
 `;
 
 const Positioned = styled('div')`
@@ -152,16 +152,17 @@ const Positioned = styled('div')`
 `;
 
 const Cover = styled('div')`
-  border: 1px solid;
+  border: 5px solid;
+  border-radius: ${space(0.5)};
   height: 100%;
   overflow: hidden;
   position: absolute;
   right: 0px;
   top: 0px;
 
-  border-color: red;
+  border-color: ${p => p.theme.red200};
   & + & {
-    border-color: green;
+    border-color: ${p => p.theme.green200};
     border-left-color: transparent;
   }
 `;
