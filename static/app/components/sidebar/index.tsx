@@ -780,7 +780,6 @@ function Sidebar() {
 
             {hasOrganization && (
               <SidebarSectionGroup hasNewNav={hasNewNav}>
-                {/* What are the onboarding sidebars? */}
                 <PerformanceOnboardingSidebar
                   currentPanel={activePanel}
                   onShowPanel={() => togglePanel(SidebarPanelKey.PERFORMANCE_ONBOARDING)}
