@@ -6,7 +6,15 @@ import shlex
 import subprocess
 
 from devenv import constants
-from devenv.lib import colima, config, fs, limactl, node, proc, venv
+from devenv.lib import colima, config, fs, limactl, proc, venv
+
+devenv_supports_node = True
+try:
+    from devenv.lib import node
+except ImportError:
+    from devenv.lib import volta
+
+    devenv_supports_node = False
 
 
 # TODO: need to replace this with a nicer process executor in devenv.lib
@@ -89,14 +97,18 @@ def main(context: dict[str, str]) -> int:
     print(f"ensuring {repo} venv at {venv_dir}...")
     venv.ensure(venv_dir, python_version, url, sha256)
 
-    node.install(
-        repo_config["node"]["version"],
-        repo_config["node"][constants.SYSTEM_MACHINE],
-        repo_config["node"][f"{constants.SYSTEM_MACHINE}_sha256"],
-        reporoot,
-    )
-
-    node.install_yarn(repo_config["node"]["yarn_version"], reporoot)
+    # repo-local devenv needs to update itself first with a successful sync
+    # so it'll take 2 syncs to get onto devenv-managed node, it is what it is
+    if devenv_supports_node:
+        node.install(
+            repo_config["node"]["version"],
+            repo_config["node"][constants.SYSTEM_MACHINE],
+            repo_config["node"][f"{constants.SYSTEM_MACHINE}_sha256"],
+            reporoot,
+        )
+        node.install_yarn(repo_config["node"]["yarn_version"], reporoot)
+    else:
+        volta.install(reporoot)
 
     if constants.DARWIN:
         try:
