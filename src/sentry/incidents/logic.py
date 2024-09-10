@@ -889,9 +889,9 @@ def update_alert_rule(
             updated_fields["seasonality"] = AlertRuleSeasonality.AUTO
             updated_fields["comparison_delta"] = None
             if (
-                time_window not in DYNAMIC_TIME_WINDOWS
-                or time_window is None
-                and alert_rule.snuba_query.time_window not in DYNAMIC_TIME_WINDOWS_SECONDS
+                (time_window not in DYNAMIC_TIME_WINDOWS)
+                if time_window is not None
+                else (alert_rule.snuba_query.time_window not in DYNAMIC_TIME_WINDOWS_SECONDS)
             ):
                 raise ValidationError(INVALID_TIME_WINDOW)
 
