@@ -118,13 +118,15 @@ def get_autofix_state_from_pr_id(provider: str, pr_id: int) -> AutofixState | No
             "pr_id": pr_id,
         }
     ).encode("utf-8")
+
+    url, salt = get_seer_salted_url(f"{settings.SEER_AUTOFIX_URL}{path}")
     response = requests.post(
-        f"{settings.SEER_AUTOFIX_URL}{path}",
+        url,
         data=body,
         headers={
             "content-type": "application/json;charset=utf-8",
             **sign_with_seer_secret(
-                url=f"{settings.SEER_AUTOFIX_URL}{path}",
+                salt=salt,
                 body=body,
             ),
         },
