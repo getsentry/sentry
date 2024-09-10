@@ -9,7 +9,7 @@ from sentry.utils import flag
 
 def test_flag_tracking():
     """Assert the ring buffer works."""
-    flag.initialize_flag_manager(3)
+    flag.initialize_flag_manager(capacity=3)
 
     flag.process_flag_result("a", True)
     flags = flag.get_flags_serialized()
