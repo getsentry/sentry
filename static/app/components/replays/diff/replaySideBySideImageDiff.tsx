@@ -17,7 +17,7 @@ export function ReplaySideBySideImageDiff({leftOffsetMs, replay, rightOffsetMs}:
   const fetching = false;
 
   return (
-    <Flex gap={space(2)} column>
+    <Flex column>
       <DiffHeader>
         <Before flex="1" align="center">
           {t('Before')}
@@ -74,7 +74,7 @@ const DiffHeader = styled('div')`
     padding-left: ${space(2)};
   }
 
-  padding: 10px 0 0 0;
+  padding: 10px 0;
 `;
 
 const ReplayGrid = styled('div')`
