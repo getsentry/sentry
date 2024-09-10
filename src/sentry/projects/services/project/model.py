@@ -87,7 +87,7 @@ class RpcProject(RpcModel):
     def get_flags(self, organization_id: int, project_id: int) -> RpcProjectFlags:
         from sentry.projects.services.project import project_service
 
-        return project_service.get_flags(self, organization_id, project_id)
+        return project_service.get_flags(organization_id=organization_id, project_id=project_id)
 
 
 class RpcProjectOptionValue(RpcModel):
