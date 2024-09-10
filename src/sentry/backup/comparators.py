@@ -865,6 +865,7 @@ def get_default_comparators() -> dict[str, list[JSONScrubbingComparator]]:
             ],
             "sentry.userrole": [DateUpdatedComparator("date_updated")],
             "sentry.userroleuser": [DateUpdatedComparator("date_updated")],
+            "workflow_engine.workflow": [DateUpdatedComparator("date_updated", "date_added")],
         },
     )
 

@@ -608,6 +608,8 @@ class ExhaustiveFixtures(Fixtures):
             access_end=timezone.now() + timedelta(days=1),
         )
 
+        self.create_workflow(organization=org)
+
         return org
 
     @assume_test_silo_mode(SiloMode.CONTROL)

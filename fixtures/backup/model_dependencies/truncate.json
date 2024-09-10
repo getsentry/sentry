@@ -49,6 +49,7 @@
   "sentry_userrole_users",
   "social_auth_usersocialauth",
   "uptime_uptimesubscription",
+  "workflow_engine_workflow",
   "sentry_savedsearch",
   "sentry_relocation",
   "sentry_recentsearch",
