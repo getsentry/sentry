@@ -4,6 +4,7 @@ import logging
 from random import random
 from typing import Any
 from urllib.parse import urlparse
+from uuid import uuid4
 
 from django.conf import settings
 from urllib3 import BaseHTTPResponse, HTTPConnectionPool
@@ -20,7 +21,10 @@ def make_signed_seer_api_request(
     host = connection_pool.host
     if connection_pool.port:
         host += ":" + str(connection_pool.port)
-    auth_headers = sign_with_seer_secret(f"{connection_pool.scheme}://{host}{path}", body)
+
+    url, salt = get_seer_salted_url(f"{connection_pool.scheme}://{host}{path}")
+    parsed = urlparse(url)
+    auth_headers = sign_with_seer_secret(salt, body)
 
     timeout_options: dict[str, Any] = {}
     if timeout:
@@ -30,22 +34,32 @@ def make_signed_seer_api_request(
         "seer.request_to_seer",
         sample_rate=1.0,
         # Pull off query params, if any
-        tags={"endpoint": urlparse(path).path},
+        tags={"endpoint": parsed.path},
     ):
         return connection_pool.urlopen(
             "POST",
-            path,
+            parsed.path + "?" + parsed.query,
             body=body,
             headers={"content-type": "application/json;charset=utf-8", **auth_headers},
             **timeout_options,
         )
 
 
-def sign_with_seer_secret(url: str, body: bytes):
+def get_seer_salted_url(url: str) -> tuple[str, str]:
+    if random() < options.get("seer.api.use-nonce-signature"):
+        salt = uuid4().hex
+        url += "?nonce=" + salt
+    else:
+        salt = url
+    return url, salt
+
+
+def sign_with_seer_secret(salt: str, body: bytes):
     auth_headers: dict[str, str] = {}
     if random() < options.get("seer.api.use-shared-secret"):
         if settings.SEER_API_SHARED_SECRET:
-            signature_input = b"%s:%s" % (url.encode("utf8"), body)
+            # if random() < options.get("seer.api.use-nonce-signature"):
+            signature_input = b"%s:%s" % (salt.encode("utf8"), body)
             signature = hmac.new(
                 settings.SEER_API_SHARED_SECRET.encode("utf-8"), signature_input, hashlib.sha256
             ).hexdigest()
