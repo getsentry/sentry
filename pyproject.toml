@@ -217,7 +217,6 @@ module = [
     "sentry.eventstore.models",
     "sentry.features.handler",
     "sentry.features.manager",
-    "sentry.grouping.strategies.hierarchical",
     "sentry.grouping.strategies.legacy",
     "sentry.identity.bitbucket.provider",
     "sentry.identity.github_enterprise.provider",

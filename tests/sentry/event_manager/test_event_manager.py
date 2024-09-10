@@ -74,6 +74,7 @@ from sentry.models.releasecommit import ReleaseCommit
 from sentry.models.releaseheadcommit import ReleaseHeadCommit
 from sentry.models.releaseprojectenvironment import ReleaseProjectEnvironment
 from sentry.options import set
+from sentry.projectoptions.defaults import DEFAULT_GROUPING_CONFIG
 from sentry.spans.grouping.utils import hash_values
 from sentry.testutils.asserts import assert_mock_called_once_with_partial
 from sentry.testutils.cases import (
@@ -998,14 +999,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
             """
         ).dumps()
 
-        # TODO: Really we should use DEFAULT_GROUPING_CONFIG here as the id (so that we don't have
-        # to update the test every time we change the default), but there's something about the
-        # mobile config, over and above the enhancements hardcoded above, that makes this test pass.
-        # We'll have to figure this out before we can delete the config.
-        grouping_config = {
-            "id": "mobile:2021-02-12",
-            "enhancements": enhancements_str,
-        }
+        grouping_config = {"id": DEFAULT_GROUPING_CONFIG, "enhancements": enhancements_str}
 
         with patch(
             "sentry.grouping.ingest.hashing.get_grouping_config_dict_for_project",
@@ -2067,14 +2061,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
             """
         ).dumps()
 
-        # TODO: Really we should use DEFAULT_GROUPING_CONFIG here as the id (so that we don't have
-        # to update the test every time we change the default), but there's something about the
-        # mobile config, over and above the enhancements hardcoded above, that makes this test pass.
-        # We'll have to figure this out before we can delete the config.
-        grouping_config = {
-            "id": "mobile:2021-02-12",
-            "enhancements": enhancements_str,
-        }
+        grouping_config = {"id": DEFAULT_GROUPING_CONFIG, "enhancements": enhancements_str}
 
         with patch(
             "sentry.grouping.ingest.hashing.get_grouping_config_dict_for_project",
@@ -2149,14 +2136,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
             """
         ).dumps()
 
-        # TODO: Really we should use DEFAULT_GROUPING_CONFIG here as the id (so that we don't have
-        # to update the test every time we change the default), but there's something about the
-        # mobile config, over and above the enhancements hardcoded above, that makes this test pass.
-        # We'll have to figure this out before we can delete the config.
-        grouping_config = {
-            "id": "mobile:2021-02-12",
-            "enhancements": enhancements_str,
-        }
+        grouping_config = {"id": DEFAULT_GROUPING_CONFIG, "enhancements": enhancements_str}
 
         with patch(
             "sentry.grouping.ingest.hashing.get_grouping_config_dict_for_project",
