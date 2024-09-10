@@ -358,11 +358,9 @@ class BaseEvent(metaclass=abc.ABCMeta):
 
         _variants = self.get_grouping_variants(force_config)
         variants = sort_grouping_variants(_variants)
-        hashes = self._hashes_from_sorted_grouping_variants(variants)
-        hashes_values = [hash_ for _, hash_ in hashes]
 
         return CalculatedHashes(
-            hashes=hashes_values,
+            hashes=self._hashes_from_sorted_grouping_variants(variants),
             variants=variants,
         )
 
@@ -382,7 +380,7 @@ class BaseEvent(metaclass=abc.ABCMeta):
             seen_hashes.add(hash_)
             filtered_hashes.append((name, hash_))
 
-        return filtered_hashes
+        return [hash_ for _, hash_ in filtered_hashes]
 
     def normalize_stacktraces_for_grouping(self, grouping_config: StrategyConfiguration) -> None:
         """Normalize stacktraces and clear memoized interfaces
