@@ -6,6 +6,7 @@ import {getContextIcon, getContextSummary} from 'sentry/components/events/contex
 import {ScrollCarousel} from 'sentry/components/scrollCarousel';
 import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
+import {isMobilePlatform, isNativePlatform} from 'sentry/utils/platform';
 import {SectionDivider} from 'sentry/views/issueDetails/streamline/foldSection';
 
 interface HighlightsIconSummaryProps {
@@ -13,6 +14,9 @@ interface HighlightsIconSummaryProps {
 }
 
 export function HighlightsIconSummary({event}: HighlightsIconSummaryProps) {
+  // Hide device for non-native platforms since it's mostly duplicate of the client_os or os context
+  const shouldDisplayDevice =
+    isMobilePlatform(event.platform) || isNativePlatform(event.platform);
   // For now, highlight icons are only interpretted from context. We should extend this to tags
   // eventually, but for now, it'll match the previous expectations.
   const items = getOrderedContextItems(event)
@@ -28,14 +32,14 @@ export function HighlightsIconSummary({event}: HighlightsIconSummaryProps) {
         },
       }),
     }))
-    .filter(item => item.icon !== null && Boolean(item.title || item.subtitle));
+    .filter(item => {
+      const hasData = item.icon !== null && Boolean(item.title || item.subtitle);
+      if (item.alias === 'device') {
+        return hasData && shouldDisplayDevice;
+      }
 
-  const deviceIndex = items.findIndex(item => item.alias === 'device');
-  const clientOsIndex = items.findIndex(item => item.alias === 'client_os');
-  // Remove device if client_os is also present
-  if (deviceIndex !== -1 && clientOsIndex !== -1) {
-    items.splice(deviceIndex, 1);
-  }
+      return hasData;
+    });
 
   return items.length ? (
     <Fragment>
