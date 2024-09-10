@@ -62,6 +62,7 @@ export type HookName = keyof Hooks;
  * Route hooks.
  */
 export type RouteHooks = {
+  'routes:legacy-organization-redirects': RoutesHook;
   'routes:organization': RoutesHook;
   'routes:root': RoutesHook;
   'routes:settings': RoutesHook;
