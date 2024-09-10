@@ -53,6 +53,9 @@ export type OnboardingEventParameters = {
     platform: string;
     project_id: string;
   };
+  'onboarding.slack_setup_clicked': {
+    project_id: string;
+  };
   'onboarding.source_maps_wizard_button_copy_clicked': {
     platform: string;
     project_id: string;
@@ -110,4 +113,5 @@ export const onboardingEventMap: Record<keyof OnboardingEventParameters, string>
     'Onboarding: Take Me to Performance Clicked',
   'onboarding.take_me_to_session_replay_clicked':
     'Onboarding: Take Me to Session Replay Clicked',
+  'onboarding.slack_setup_clicked': 'Onboarding: Slack Setup Clicked',
 };
