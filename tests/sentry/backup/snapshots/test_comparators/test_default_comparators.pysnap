@@ -1,5 +1,5 @@
 ---
-created: '2024-09-09T23:22:05.089006+00:00'
+created: '2024-09-10T21:15:42.206677+00:00'
 creator: sentry
 source: tests/sentry/backup/test_comparators.py
 ---
@@ -1608,6 +1608,10 @@ source: tests/sentry/backup/test_comparators.py
     fields: []
   model_name: uptime.uptimesubscription
 - comparators:
+  - class: DateUpdatedComparator
+    fields:
+    - date_added
+    - date_updated
   - class: ForeignKeyComparator
     fields:
     - organization
