@@ -20,4 +20,7 @@ class DataSource(DefaultFieldsModel):
     query_id = BoundedBigIntegerField()
     type = models.SmallIntegerField(choices=Type.choices)
 
-    indexes = [models.Index(fields=("type", "query_id"))]
+    indexes = [
+        models.Index(fields=("type", "query_id")),
+        models.Index(fields=("organization", "type", "query_id")),
+    ]
