@@ -218,7 +218,7 @@ export const FOR_REVIEW_QUERIES: string[] = [Query.FOR_REVIEW];
 export const SAVED_SEARCHES_SIDEBAR_OPEN_LOCALSTORAGE_KEY =
   'issue-stream-saved-searches-sidebar-open';
 
-export enum IssueCategory {
+export enum IssueGroup {
   ALL = 'all',
   ERRORS_OUTAGES = 'errors_outages',
   TRENDS = 'trends',
@@ -226,19 +226,23 @@ export enum IssueCategory {
   SECURITY = 'security',
 }
 
-const IssueCategoryFilter: Record<IssueCategory, string> = {
-  [IssueCategory.ALL]: '',
-  [IssueCategory.ERRORS_OUTAGES]: 'issue.category:[error,cron,uptime]',
-  [IssueCategory.TRENDS]:
+const IssueGroupFilter: Record<IssueGroup, string> = {
+  [IssueGroup.ALL]: '',
+  [IssueGroup.ERRORS_OUTAGES]: 'issue.category:[error,cron,uptime]',
+  [IssueGroup.TRENDS]:
     'issue.type:[profile_function_regression,performance_p95_endpoint_regression,performance_n_plus_one_db_queries]',
-  [IssueCategory.CRAFTSMANSHIP]:
+  [IssueGroup.CRAFTSMANSHIP]:
     'issue.category:replay issue.type:[performance_n_plus_one_db_queries,performance_n_plus_one_api_calls,performance_consecutive_db_queries,performance_render_blocking_asset_span,performance_uncompressed_assets,profile_file_io_main_thread,profile_image_decode_main_thread,profile_json_decode_main_thread,profile_regex_main_thread]',
-  [IssueCategory.SECURITY]: 'event.type:[nel,csp]',
+  [IssueGroup.SECURITY]: 'event.type:[nel,csp]',
 };
 
-export function getIssueCategoryFilter(category: IssueCategory): string {
-  if (!Object.hasOwn(IssueCategoryFilter, category)) {
-    throw new Error(`Unknown issue category "${category}"`);
+function getIssueGroupFilter(group: IssueGroup): string {
+  if (!Object.hasOwn(IssueGroupFilter, group)) {
+    throw new Error(`Unknown issue group "${group}"`);
   }
-  return IssueCategoryFilter[category];
+  return IssueGroupFilter[group];
+}
+
+export function getSearchForIssueGroup(group: IssueGroup): string {
+  return `?query=is:unresolved+${getIssueGroupFilter(group)}`;
 }

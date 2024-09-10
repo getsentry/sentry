@@ -55,7 +55,7 @@ import useProjects from 'sentry/utils/useProjects';
 import {useModuleURLBuilder} from 'sentry/views/insights/common/utils/useModuleURL';
 import {MODULE_SIDEBAR_TITLE as HTTP_MODULE_SIDEBAR_TITLE} from 'sentry/views/insights/http/settings';
 import {MODULE_TITLES} from 'sentry/views/insights/settings';
-import {getIssueCategoryFilter, IssueCategory} from 'sentry/views/issueList/utils';
+import {getSearchForIssueGroup, IssueGroup} from 'sentry/views/issueList/utils';
 import MetricsOnboardingSidebar from 'sentry/views/metrics/ddmOnboarding/sidebar';
 
 import {ProfilingOnboardingSidebar} from '../profiling/profilingOnboardingSidebar';
@@ -121,7 +121,8 @@ function Sidebar() {
   const activePanel = useLegacyStore(SidebarPanelStore);
   const organization = useOrganization({allowNull: true});
   const {shouldAccordionFloat} = useContext(ExpandedContext);
-  const hasNewNav = organization?.features.includes('navigation-sidebar-v2') ?? false;
+  // const hasNewNav = organization?.features.includes('navigation-sidebar-v2') ?? false;
+  const hasNewNav = true;
   const collapsed = hasNewNav ? true : !!preferences.collapsed;
   const hasOrganization = !!organization;
   const isSelfHostedErrorsOnly = ConfigStore.get('isSelfHostedErrorsOnly');
@@ -257,7 +258,7 @@ function Sidebar() {
           icon={<IconIssues />}
           label={<GuideAnchor target="issues">{t('Errors & Outages')}</GuideAnchor>}
           to={`/organizations/${organization.slug}/issues/`}
-          search={`query=${getIssueCategoryFilter(IssueCategory.ERRORS_OUTAGES)}`}
+          search={getSearchForIssueGroup(IssueGroup.ERRORS_OUTAGES)}
           id="errors-outages"
           hasNewNav={hasNewNav}
         />
@@ -266,7 +267,7 @@ function Sidebar() {
           icon={<IconIssues />}
           label={<GuideAnchor target="issues">{t('Trends')}</GuideAnchor>}
           to={`/organizations/${organization.slug}/issues/`}
-          search={`query=${getIssueCategoryFilter(IssueCategory.TRENDS)}`}
+          search={getSearchForIssueGroup(IssueGroup.TRENDS)}
           id="trends"
           hasNewNav={hasNewNav}
         />
@@ -275,7 +276,7 @@ function Sidebar() {
           icon={<IconIssues />}
           label={<GuideAnchor target="issues">{t('Craftsmanship')}</GuideAnchor>}
           to={`/organizations/${organization.slug}/issues/`}
-          search={`query=${getIssueCategoryFilter(IssueCategory.CRAFTSMANSHIP)}`}
+          search={getSearchForIssueGroup(IssueGroup.CRAFTSMANSHIP)}
           id="craftsmanship"
           hasNewNav={hasNewNav}
         />
@@ -284,7 +285,7 @@ function Sidebar() {
           icon={<IconIssues />}
           label={<GuideAnchor target="issues">{t('Security')}</GuideAnchor>}
           to={`/organizations/${organization.slug}/issues/`}
-          search={`query=${getIssueCategoryFilter(IssueCategory.SECURITY)}`}
+          search={getSearchForIssueGroup(IssueGroup.SECURITY)}
           id="security"
           hasNewNav={hasNewNav}
         />
