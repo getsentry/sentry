@@ -54,7 +54,7 @@ export function FullSpanDescription({
       return (
         <CodeSnippet language="json">
           {JSON.stringify(
-            JSON.parse(fullSpan?.sentry_tags?.description ?? ''),
+            JSON.parse(fullSpan?.sentry_tags?.description ?? fullSpan?.description ?? ''),
             null,
             4
           ) ?? ''}
