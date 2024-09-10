@@ -3,6 +3,7 @@ import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
+import DateTime from 'sentry/components/dateTime';
 import Duration from 'sentry/components/duration/duration';
 import ReplayTimeline from 'sentry/components/replays/breadcrumbs/replayTimeline';
 import {PlayerScrubber} from 'sentry/components/replays/player/scrubber';
@@ -14,6 +15,7 @@ import {space} from 'sentry/styles/space';
 import useTimelineScale, {
   TimelineScaleContextProvider,
 } from 'sentry/utils/replays/hooks/useTimelineScale';
+import {useReplayPrefs} from 'sentry/utils/replays/playback/providers/replayPreferencesContext';
 
 type TimeAndScrubberGridProps = {
   isCompact?: boolean;
@@ -59,6 +61,9 @@ export default function TimeAndScrubberGrid({
   showZoom = false,
 }: TimeAndScrubberGridProps) {
   const {currentTime, replay} = useReplayContext();
+  const [prefs] = useReplayPrefs();
+  const timestampType = prefs.timestampType;
+  const startTimestamp = replay?.getStartTimestampMs() ?? 0;
   const durationMs = replay?.getDurationMs();
   const elem = useRef<HTMLDivElement>(null);
   const mouseTrackingProps = useScrubberMouseTracking({elem});
@@ -67,7 +72,11 @@ export default function TimeAndScrubberGrid({
     <TimelineScaleContextProvider>
       <Grid id="replay-timeline-player" isCompact={isCompact}>
         <Numeric style={{gridArea: 'currentTime'}}>
-          <Duration duration={[currentTime, 'ms']} precision="sec" />
+          {timestampType === 'absolute' ? (
+            <DateTime timeOnly seconds date={startTimestamp + currentTime} />
+          ) : (
+            <Duration duration={[currentTime, 'ms']} precision="sec" />
+          )}
         </Numeric>
 
         <div style={{gridArea: 'timeline'}}>
@@ -82,6 +91,8 @@ export default function TimeAndScrubberGrid({
         <Numeric style={{gridArea: 'duration'}}>
           {durationMs === undefined ? (
             '--:--'
+          ) : timestampType === 'absolute' ? (
+            <DateTime timeOnly seconds date={startTimestamp + durationMs} />
           ) : (
             <Duration duration={[durationMs, 'ms']} precision="sec" />
           )}
