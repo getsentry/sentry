@@ -401,7 +401,6 @@ class SlackActionEndpoint(Endpoint):
                 _logger.exception(
                     "slack.action.update-modal-not-found",
                     extra={
-                        "organization_id": slack_request.organization.id,
                         "integration_id": slack_request.integration.id,
                         "trigger_id": slack_request.data["trigger_id"],
                         "dialog": "resolve",
