@@ -253,7 +253,7 @@ class Project(Model, PendingDeletionMixin):
     template = FlexibleForeignKey("sentry.ProjectTemplate", null=True)
 
     class flags(TypedClassBitField):
-        # WARyNING: Only add flags to the bottom of this list
+        # WARNING: Only add flags to the bottom of this list
         # bitfield flags are dependent on their order and inserting/removing
         # flags from the middle of the list will cause bits to shift corrupting
         # existing data.
