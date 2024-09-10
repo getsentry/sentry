@@ -1,13 +1,14 @@
 import {createContext, useCallback, useState} from 'react';
+import styled from '@emotion/styled';
 
 import {LinkButton} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import {CompactSelect} from 'sentry/components/compactSelect';
-import {EventDataSection} from 'sentry/components/events/eventDataSection';
 import {SegmentedControl} from 'sentry/components/segmentedControl';
 import {Tooltip} from 'sentry/components/tooltip';
 import {IconEllipsis, IconSort} from 'sentry/icons';
 import {t} from 'sentry/locale';
+import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
 import type {PlatformKey, Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -354,7 +355,7 @@ export function TraceEventDataSection({
     fullStackTrace: state.fullStackTrace,
   };
 
-  const SectionComponent = isNestedSection ? EventDataSection : InterimSection;
+  const SectionComponent = isNestedSection ? InlineThreadSection : InterimSection;
 
   return (
     <SectionComponent
@@ -443,3 +444,39 @@ export function TraceEventDataSection({
     </SectionComponent>
   );
 }
+
+function InlineThreadSection({
+  children,
+  title,
+  actions,
+}: {
+  actions: React.ReactNode;
+  children: React.ReactNode;
+  title: React.ReactNode;
+}) {
+  return (
+    <Wrapper>
+      <InlineSectionHeaderWrapper>
+        <ThreadHeading>{title}</ThreadHeading>
+        {actions}
+      </InlineSectionHeaderWrapper>
+      {children}
+    </Wrapper>
+  );
+}
+
+const Wrapper = styled('div')``;
+
+const ThreadHeading = styled('h3')`
+  color: ${p => p.theme.subText};
+  font-size: ${p => p.theme.fontSizeMedium};
+  font-weight: ${p => p.theme.fontWeightBold};
+  margin-bottom: ${space(1)};
+`;
+
+const InlineSectionHeaderWrapper = styled('div')`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: ${space(1)};
+`;
