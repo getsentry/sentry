@@ -16,6 +16,7 @@ from sentry.auth.access import from_user
 from sentry.incidents.logic import (
     DEFAULT_ALERT_RULE_RESOLUTION,
     DEFAULT_CMP_ALERT_RULE_RESOLUTION_MULTIPLIER,
+    AlertTarget,
     ChannelLookupTimeoutError,
     create_alert_rule_trigger,
 )
@@ -1044,7 +1045,7 @@ class TestAlertRuleTriggerActionSerializer(TestAlertRuleSerializerBase):
 
     @patch(
         "sentry.incidents.logic.get_target_identifier_display_for_integration",
-        return_value=("test", "test"),
+        return_value=AlertTarget("test", "test"),
     )
     def test_pagerduty_valid_priority(self, mock_get):
         params = {
@@ -1062,7 +1063,7 @@ class TestAlertRuleTriggerActionSerializer(TestAlertRuleSerializerBase):
 
     @patch(
         "sentry.incidents.logic.get_target_identifier_display_for_integration",
-        return_value=("test", "test"),
+        return_value=AlertTarget("test", "test"),
     )
     def test_opsgenie_valid_priority(self, mock_get):
         params = {
