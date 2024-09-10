@@ -383,6 +383,4 @@ def sort_grouping_variants(variants_dict: dict[str, BaseVariant]) -> KeyedVarian
 
     # Sort system variant to the back of the list to resolve ambiguities when
     # choosing primary_hash for Snuba
-    variants.sort(key=lambda name_and_variant: 1 if name_and_variant[0] == "system" else 0)
-
-    return variants
+    return variants.sort(key=lambda name_and_variant: 1 if name_and_variant[0] == "system" else 0)
