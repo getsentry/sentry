@@ -6199,5 +6199,28 @@
         "subscription_id"
       ]
     ]
+  },
+  "workflow_engine.workflow": {
+    "dangling": false,
+    "foreign_keys": {
+      "organization": {
+        "kind": "FlexibleForeignKey",
+        "model": "sentry.organization",
+        "nullable": false
+      }
+    },
+    "model": "workflow_engine.workflow",
+    "relocation_dependencies": [],
+    "relocation_scope": "Organization",
+    "silos": [
+      "Region"
+    ],
+    "table_name": "workflow_engine_workflow",
+    "uniques": [
+      [
+        "name",
+        "organization"
+      ]
+    ]
   }
 }
