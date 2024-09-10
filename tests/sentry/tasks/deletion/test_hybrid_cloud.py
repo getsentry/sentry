@@ -34,7 +34,6 @@ from sentry.tasks.deletion.hybrid_cloud import (
 )
 from sentry.testutils.cases import TestCase
 from sentry.testutils.factories import Factories
-from sentry.testutils.helpers import override_options
 from sentry.testutils.helpers.task_runner import BurstTaskRunner
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.pytest.fixtures import django_db_all
@@ -154,7 +153,6 @@ def setup_deletable_objects(
 
 
 @django_db_all
-@override_options({"hybrid_cloud.allow_cross_db_tombstones": True})
 def test_region_processing(task_runner):
     reset_watermarks()
 
@@ -233,7 +231,6 @@ def setup_deletion_test():
 
 
 @django_db_all
-@override_options({"hybrid_cloud.allow_cross_db_tombstones": True})
 def test_cascade_deletion_behavior(task_runner):
     data = setup_deletion_test()
     integration = data["integration"]
@@ -255,7 +252,6 @@ def test_cascade_deletion_behavior(task_runner):
 
 
 @django_db_all
-@override_options({"hybrid_cloud.allow_cross_db_tombstones": True})
 def test_do_nothing_deletion_behavior(task_runner):
     data = setup_deletion_test()
     integration = data["integration"]
@@ -279,7 +275,6 @@ def test_do_nothing_deletion_behavior(task_runner):
 
 
 @django_db_all
-@override_options({"hybrid_cloud.allow_cross_db_tombstones": True})
 def test_set_null_deletion_behavior(task_runner):
     data = setup_deletion_test()
     user = data["user"]
@@ -380,31 +375,10 @@ class TestCrossDatabaseTombstoneCascadeBehavior(TestCase):
             assert monitor.owner_user_id is None
 
     def run_hybrid_cloud_fk_jobs(self) -> None:
-        with override_options({"hybrid_cloud.allow_cross_db_tombstones": True}):
-            with BurstTaskRunner() as burst:
-                schedule_hybrid_cloud_foreign_key_jobs()
+        with BurstTaskRunner() as burst:
+            schedule_hybrid_cloud_foreign_key_jobs()
 
-                burst()
-
-    def test_raises_when_option_disabled(self):
-        data = setup_cross_db_deletion_data()
-        user, monitor = itemgetter("user", "monitor")(data)
-        with assume_test_silo_mode_of(User), outbox_runner():
-            User.objects.get(id=user.id).delete()
-
-        assert Monitor.objects.filter(id=monitor.id).exists()
-
-        with (
-            pytest.raises(Exception) as exc,
-            override_options({"hybrid_cloud.allow_cross_db_tombstones": False}),
-        ):
-            with BurstTaskRunner() as burst:
-                schedule_hybrid_cloud_foreign_key_jobs()
-
-                burst()
-
-        assert exc.match("Cannot process tombstones due to model living in separate database.")
-        assert Monitor.objects.filter(id=monitor.id).exists()
+            burst()
 
     def test_cross_db_deletion(self):
         data = setup_cross_db_deletion_data()

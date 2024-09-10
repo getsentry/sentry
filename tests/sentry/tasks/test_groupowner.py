@@ -11,7 +11,6 @@ from sentry.tasks.groupowner import PREFERRED_GROUP_OWNER_AGE, process_suspect_c
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers import TaskRunner
 from sentry.testutils.helpers.datetime import before_now, iso_format
-from sentry.testutils.helpers.options import override_options
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.testutils.skips import requires_snuba
@@ -101,7 +100,6 @@ class TestGroupOwners(TestCase):
             type=GroupOwnerType.SUSPECT_COMMIT.value,
         )
 
-    @override_options({"hybrid_cloud.allow_cross_db_tombstones": True})
     def test_user_deletion_cascade(self):
         other_user = self.create_user()
         group = self.create_group()
