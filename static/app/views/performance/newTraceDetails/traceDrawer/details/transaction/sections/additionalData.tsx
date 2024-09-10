@@ -45,6 +45,10 @@ function getEventExtraDataKnownDataDetails({
   }
 }
 
+export function hasAdditionalData(event: EventTransaction) {
+  return !!event.context && !isEmptyObject(event.context);
+}
+
 export function AdditionalData({event}: {event: EventTransaction}) {
   const [raw, setRaw] = useState(false);
 

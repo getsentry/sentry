@@ -4,7 +4,10 @@ import {EventContexts} from 'sentry/components/events/contexts';
 import {SpanProfileDetails} from 'sentry/components/events/interfaces/spans/spanProfileDetails';
 import {getSpanOperation} from 'sentry/components/events/interfaces/spans/utils';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
-import {CustomMetricsEventData} from 'sentry/components/metrics/customMetricsEventData';
+import {
+  CustomMetricsEventData,
+  eventHasCustomMetrics,
+} from 'sentry/components/metrics/customMetricsEventData';
 import {Tooltip} from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
@@ -23,11 +26,11 @@ import {TraceDrawerComponents} from '.././styles';
 import {IssueList} from '../issues/issues';
 
 import Alerts from './sections/alerts';
-import {SpanDescription} from './sections/description';
+import {hasFormattedSpanDescription, SpanDescription} from './sections/description';
 import {GeneralInfo} from './sections/generalInfo';
-import {SpanHTTPInfo} from './sections/http';
-import {SpanKeys} from './sections/keys';
-import {Tags} from './sections/tags';
+import {hasSpanHTTPInfo, SpanHTTPInfo} from './sections/http';
+import {hasSpanKeys, SpanKeys} from './sections/keys';
+import {hasSpanTags, Tags} from './sections/tags';
 
 function SpanNodeDetailHeader({
   node,
@@ -109,25 +112,31 @@ export function SpanNodeDetails({
                   <IssueList organization={organization} issues={issues} node={node} />
                 ) : null}
                 <TraceDrawerComponents.SectionCardGroup>
-                  <SpanDescription
-                    node={node}
-                    organization={organization}
-                    location={location}
-                  />
+                  {hasFormattedSpanDescription(node) ? (
+                    <SpanDescription
+                      node={node}
+                      organization={organization}
+                      location={location}
+                    />
+                  ) : null}
                   <GeneralInfo
                     node={node}
                     organization={organization}
                     location={location}
                     onParentClick={onParentClick}
                   />
-                  <SpanHTTPInfo span={node.value} />
-                  <Tags span={node.value} />
-                  <SpanKeys node={node} />
-                  <CustomMetricsEventData
-                    projectId={project?.id || ''}
-                    metricsSummary={node.value._metrics_summary}
-                    startTimestamp={node.value.start_timestamp}
-                  />
+                  {hasSpanHTTPInfo(node.value) ? (
+                    <SpanHTTPInfo span={node.value} />
+                  ) : null}
+                  {hasSpanTags(node.value) ? <Tags span={node.value} /> : null}
+                  {hasSpanKeys(node) ? <SpanKeys node={node} /> : null}
+                  {eventHasCustomMetrics(organization, node.value._metrics_summary) ? (
+                    <CustomMetricsEventData
+                      projectId={project?.id || ''}
+                      metricsSummary={node.value._metrics_summary}
+                      startTimestamp={node.value.start_timestamp}
+                    />
+                  ) : null}
                 </TraceDrawerComponents.SectionCardGroup>
                 <EventContexts event={node.value.event} />
                 {organization.features.includes('profiling') ? (

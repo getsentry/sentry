@@ -21,6 +21,7 @@ import type {
   MetricType,
   MRI,
 } from 'sentry/types/metrics';
+import type {Organization} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
 import {getDefaultAggregation, getMetricsUrl} from 'sentry/utils/metrics';
 import {hasCustomMetrics} from 'sentry/utils/metrics/features';
@@ -53,6 +54,17 @@ function flattenMetricsSummary(
 
 function tagToQuery(tagKey: string, tagValue: string) {
   return `${tagKey}:"${tagValue}"`;
+}
+
+export function eventHasCustomMetrics(
+  organization: Organization,
+  metricsSummary: MetricsSummary | undefined
+) {
+  return (
+    hasCustomMetrics(organization) &&
+    metricsSummary &&
+    flattenMetricsSummary(metricsSummary).length > 0
+  );
 }
 
 const HALF_HOUR_IN_MS = 30 * 60 * 1000;

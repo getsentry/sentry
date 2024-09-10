@@ -26,6 +26,24 @@ import {TraceDrawerComponents} from '../../styles';
 
 const formatter = new SQLishFormatter();
 
+export function hasFormattedSpanDescription(node: TraceTreeNode<TraceTree.Span>) {
+  const span = node.value;
+  const resolvedModule: ModuleName = resolveSpanModule(
+    span.sentry_tags?.op,
+    span.sentry_tags?.category
+  );
+
+  const formattedDescription =
+    resolvedModule !== ModuleName.DB
+      ? span.description ?? ''
+      : formatter.toString(span.description ?? '');
+
+  return (
+    !!formattedDescription &&
+    [ModuleName.DB, ModuleName.RESOURCE].includes(resolvedModule)
+  );
+}
+
 export function SpanDescription({
   node,
   organization,
@@ -50,10 +68,7 @@ export function SpanDescription({
     return formatter.toString(span.description ?? '');
   }, [span.description, resolvedModule]);
 
-  if (
-    !formattedDescription ||
-    ![ModuleName.DB, ModuleName.RESOURCE].includes(resolvedModule)
-  ) {
+  if (!hasFormattedSpanDescription(node)) {
     return null;
   }
 

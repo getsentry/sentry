@@ -47,6 +47,16 @@ function generateLinkWithQuery(
   });
 }
 
+export function hasMeasurements(event: EventTransaction) {
+  const measurementNames = Object.keys(event.measurements ?? {})
+    .filter(name => isCustomMeasurement(`measurements.${name}`))
+    .filter(isNotMarkMeasurement)
+    .filter(isNotPerformanceScoreMeasurement)
+    .sort();
+
+  return measurementNames.length > 0;
+}
+
 export function Measurements({event, location, organization}: MeasurementsProps) {
   const measurementNames = Object.keys(event.measurements ?? {})
     .filter(name => isCustomMeasurement(`measurements.${name}`))
