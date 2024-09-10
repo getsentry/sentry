@@ -8,7 +8,7 @@
  *
  * If the URL is invalid or the image fails to load, the promise is rejected with an error.
  */
-export function fetchImageData(url: string): Promise<{height: number; width: number}> {
+export function fetchImageData(url: string): Promise<HTMLImageElement> {
   return new Promise((resolve, reject) => {
     const img = new Image();
     let isCanceled = false;
