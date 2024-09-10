@@ -1,6 +1,5 @@
 import type React from 'react';
 import {Component} from 'react';
-import type {InjectedRouter} from 'react-router';
 import type {Theme} from '@emotion/react';
 import {withTheme} from '@emotion/react';
 import styled from '@emotion/styled';
@@ -31,6 +30,7 @@ import type {
   ReactEchartsRef,
   Series,
 } from 'sentry/types/echarts';
+import type {InjectedRouter} from 'sentry/types/legacyReactRouter';
 import type {Organization} from 'sentry/types/organization';
 import {
   axisLabelFormatter,
@@ -424,6 +424,9 @@ class WidgetCardChart extends Component<WidgetCardChartProps, State> {
       },
       tooltip: {
         trigger: 'axis',
+        axisPointer: {
+          type: 'cross',
+        },
         formatter: (params, asyncTicket) => {
           const {chartGroup} = this.props;
           const isInGroup =
@@ -457,6 +460,17 @@ class WidgetCardChart extends Component<WidgetCardChartProps, State> {
               );
             }
             return axisLabelFormatter(value, aggregateOutputType(axisLabel), true);
+          },
+        },
+        axisPointer: {
+          type: 'line',
+          snap: false,
+          lineStyle: {
+            type: 'solid',
+            width: 0.5,
+          },
+          label: {
+            show: false,
           },
         },
         minInterval: durationUnit ?? 0,
@@ -593,10 +607,10 @@ const LoadingPlaceholder = styled(({className}: PlaceholderProps) => (
 `;
 
 const BigNumberResizeWrapper = styled('div')`
-  height: 100%;
-  width: 100%;
+  flex-grow: 1;
   overflow: hidden;
   position: relative;
+  margin: ${space(1)} ${space(3)} ${space(3)} ${space(3)};
 `;
 
 const BigNumber = styled('div')`
@@ -617,7 +631,7 @@ const BigNumber = styled('div')`
 const AutoResizeParent = styled('div')`
   position: absolute;
   color: ${p => p.theme.headingColor};
-  inset: ${space(1)} ${space(3)} 0 ${space(3)};
+  inset: 0;
 
   * {
     line-height: 1;

@@ -29,7 +29,6 @@ from sentry.integrations.slack.metrics import (
     SLACK_METRIC_ALERT_SUCCESS_DATADOG_METRIC,
 )
 from sentry.integrations.slack.sdk_client import SlackSdkClient
-from sentry.integrations.slack.utils.errors import EXPIRED_URL, unpack_slack_api_error
 from sentry.models.options.organization_option import OrganizationOption
 from sentry.utils import metrics
 
@@ -194,13 +193,12 @@ def respond_to_slack_command(
                 tags={"type": "webhook", "command": command_response.command},
             )
         except (SlackApiError, SlackRequestError) as e:
-            if unpack_slack_api_error(e) != EXPIRED_URL:
-                metrics.incr(
-                    SLACK_LINK_IDENTITY_MSG_FAILURE_DATADOG_METRIC,
-                    sample_rate=1.0,
-                    tags={"type": "webhook", "command": command_response.command},
-                )
-                _logger.exception(log_msg("error"), extra={"error": str(e)})
+            metrics.incr(
+                SLACK_LINK_IDENTITY_MSG_FAILURE_DATADOG_METRIC,
+                sample_rate=1.0,
+                tags={"type": "webhook", "command": command_response.command},
+            )
+            _logger.exception(log_msg("error"), extra={"error": str(e)})
     else:
         _logger.info(log_msg("respond-ephemeral"))
         try:
@@ -217,10 +215,9 @@ def respond_to_slack_command(
                 tags={"type": "ephemeral", "command": command_response.command},
             )
         except SlackApiError as e:
-            if unpack_slack_api_error(e) != EXPIRED_URL:
-                metrics.incr(
-                    SLACK_LINK_IDENTITY_MSG_FAILURE_DATADOG_METRIC,
-                    sample_rate=1.0,
-                    tags={"type": "ephemeral", "command": command_response.command},
-                )
-                _logger.exception(log_msg("error"), extra={"error": str(e)})
+            metrics.incr(
+                SLACK_LINK_IDENTITY_MSG_FAILURE_DATADOG_METRIC,
+                sample_rate=1.0,
+                tags={"type": "ephemeral", "command": command_response.command},
+            )
+            _logger.exception(log_msg("error"), extra={"error": str(e)})

@@ -518,3 +518,30 @@ class SpansIndexedDatasetConfig(DatasetConfig):
                 index,
             ],
         )
+
+
+class SpansEAPDatasetConfig(SpansIndexedDatasetConfig):
+    """Eventually should just write the eap dataset from scratch, but inheriting for now to move fast"""
+
+    def _resolve_span_duration(self, alias: str) -> SelectType:
+        # In ClickHouse, duration is an UInt32 whereas self time is a Float64.
+        # This creates a situation where a sub-millisecond duration is truncated
+        # to but the self time is not.
+        #
+        # To remedy this, we take the greater of the duration and self time as
+        # this is the only situation where the self time can be greater than
+        # the duration.
+        #
+        # Also avoids strange situations on the frontend where duration is less
+        # than the self time.
+        duration = Column("duration_ms")
+        self_time = self.builder.column("span.self_time")
+        return Function(
+            "if",
+            [
+                Function("greater", [self_time, duration]),
+                self_time,
+                duration,
+            ],
+            alias,
+        )

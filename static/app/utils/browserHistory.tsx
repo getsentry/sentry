@@ -2,7 +2,10 @@ import {browserHistory as react3BrowserHistory} from 'react-router';
 import type {Router} from '@remix-run/router/dist/router';
 import type {History} from 'history';
 
-import {locationDescriptorToTo} from './reactRouter6Compat/location';
+import {
+  location6ToLocation3,
+  locationDescriptorToTo,
+} from './reactRouter6Compat/location';
 
 /**
  * @deprecated Prefer using useNavigate
@@ -35,14 +38,8 @@ export function DANGEROUS_SET_REACT_ROUTER_6_HISTORY(router: Router) {
     goBack: () => router.navigate(-1),
     goForward: () => router.navigate(1),
 
-    // XXX(epurkhiser): react-router 6's BrowserHistory does not let you create
-    // multiple listeners. This implementation is similar but allows multiple
-    // listeners.
-    listen: _listener => {
-      // eslint-disable-next-line no-console
-      console.error('browserHistory.listen not implemented on react-router 6 shim');
-      return () => {};
-    },
+    listen: listener =>
+      router.subscribe(state => listener(location6ToLocation3(state.location))),
 
     listenBefore: _hook => {
       // eslint-disable-next-line no-console

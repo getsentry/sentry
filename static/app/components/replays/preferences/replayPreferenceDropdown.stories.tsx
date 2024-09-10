@@ -10,9 +10,10 @@ import {
 import JSXNode from 'sentry/components/stories/jsxNode';
 import SideBySide from 'sentry/components/stories/sideBySide';
 import storyBook from 'sentry/stories/storyBook';
-import useReplayPrefs, {
+import {
   ReplayPreferencesContextProvider,
-} from 'sentry/utils/replays/playback/providers/useReplayPrefs';
+  useReplayPrefs,
+} from 'sentry/utils/replays/playback/providers/replayPreferencesContext';
 
 export default storyBook(ReplayPreferenceDropdown, story => {
   story('Default - LocalStorageReplayPreferences', () => {

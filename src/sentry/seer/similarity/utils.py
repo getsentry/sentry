@@ -3,6 +3,7 @@ from typing import Any, TypeVar
 
 from sentry import options
 from sentry.eventstore.models import Event
+from sentry.killswitches import killswitch_matches_context
 from sentry.utils import metrics
 from sentry.utils.safe import get_path
 
@@ -165,11 +166,26 @@ def event_content_is_seer_eligible(event: Event) -> bool:
     """
     # TODO: Determine if we want to filter out non-sourcemapped events
     if not event_content_has_stacktrace(event):
+        metrics.incr(
+            "grouping.similarity.event_content_seer_eligible",
+            sample_rate=options.get("seer.similarity.metrics_sample_rate"),
+            tags={"eligible": False, "blocker": "no-stacktrace"},
+        )
         return False
 
     if event.platform not in SEER_ELIGIBLE_PLATFORMS:
+        metrics.incr(
+            "grouping.similarity.event_content_seer_eligible",
+            sample_rate=options.get("seer.similarity.metrics_sample_rate"),
+            tags={"eligible": False, "blocker": "unsupported-platform"},
+        )
         return False
 
+    metrics.incr(
+        "grouping.similarity.event_content_seer_eligible",
+        sample_rate=options.get("seer.similarity.metrics_sample_rate"),
+        tags={"eligible": True, "blocker": "none"},
+    )
     return True
 
 
@@ -201,6 +217,20 @@ def killswitch_enabled(project_id: int, event: Event | None = None) -> bool:
             "grouping.similarity.did_call_seer",
             sample_rate=options.get("seer.similarity.metrics_sample_rate"),
             tags={"call_made": False, "blocker": "similarity-killswitch"},
+        )
+        return True
+
+    if killswitch_matches_context(
+        "seer.similarity.grouping_killswitch_projects", {"project_id": project_id}
+    ):
+        logger.warning(
+            "should_call_seer_for_grouping.seer_similarity_project_killswitch_enabled",
+            extra=logger_extra,
+        )
+        metrics.incr(
+            "grouping.similarity.did_call_seer",
+            sample_rate=options.get("seer.similarity.metrics_sample_rate"),
+            tags={"call_made": False, "blocker": "project-killswitch"},
         )
         return True
 

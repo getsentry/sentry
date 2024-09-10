@@ -13,6 +13,8 @@ import {useSourcePackageRegistries} from 'sentry/components/onboarding/gettingSt
 import {useLoadGettingStarted} from 'sentry/components/onboarding/gettingStartedDoc/utils/useLoadGettingStarted';
 import platforms from 'sentry/data/platforms';
 import {t} from 'sentry/locale';
+import ConfigStore from 'sentry/stores/configStore';
+import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import {space} from 'sentry/styles/space';
 import type {PlatformIntegration, Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -24,6 +26,8 @@ export default function UpdatedEmptyState({project}: {project?: Project}) {
 
   const {isPending: isLoadingRegistry, data: registryData} =
     useSourcePackageRegistries(organization);
+
+  const {isSelfHosted, urlPrefix} = useLegacyStore(ConfigStore);
 
   const currentPlatformKey = project?.platform ?? 'other';
   const currentPlatform = platforms.find(
@@ -71,6 +75,8 @@ export default function UpdatedEmptyState({project}: {project?: Project}) {
     platformOptions: {installationMode: 'auto'},
     newOrg: false,
     replayOptions: {block: true, mask: true},
+    isSelfHosted,
+    urlPrefix,
   };
 
   if (currentPlatformKey === 'java' || currentPlatformKey === 'java-spring-boot') {

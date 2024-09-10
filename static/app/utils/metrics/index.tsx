@@ -1,5 +1,4 @@
 import {useCallback, useRef} from 'react';
-import type {InjectedRouter} from 'react-router';
 import moment from 'moment-timezone';
 import * as qs from 'query-string';
 
@@ -21,6 +20,7 @@ import {
 } from 'sentry/components/organizations/pageFilters/parse';
 import {t} from 'sentry/locale';
 import type {PageFilters} from 'sentry/types/core';
+import type {InjectedRouter} from 'sentry/types/legacyReactRouter';
 import type {
   MetricAggregation,
   MetricMeta,

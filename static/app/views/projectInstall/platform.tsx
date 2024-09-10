@@ -1,4 +1,4 @@
-import {Fragment, useCallback, useContext, useEffect, useMemo, useState} from 'react';
+import {Fragment, useCallback, useContext, useEffect, useMemo} from 'react';
 import styled from '@emotion/styled';
 import type {LocationDescriptorObject} from 'history';
 import omit from 'lodash/omit';
@@ -62,10 +62,7 @@ export function ProjectInstallPlatform({
 
   const isSelfHosted = ConfigStore.get('isSelfHosted');
   const isSelfHostedErrorsOnly = ConfigStore.get('isSelfHostedErrorsOnly');
-
-  const [showLoaderOnboarding, setShowLoaderOnboarding] = useState(
-    currentPlatform?.id === 'javascript'
-  );
+  const showLoaderOnboarding = location.query.showLoader === 'true';
 
   const products = useMemo(
     () => decodeList(location.query.product ?? []) as ProductSolution[],
@@ -83,10 +80,6 @@ export function ProjectInstallPlatform({
       staleTime: 0,
     }
   );
-
-  useEffect(() => {
-    setShowLoaderOnboarding(currentPlatform?.id === 'javascript');
-  }, [currentPlatform?.id]);
 
   useEffect(() => {
     if (!project || projectAlertRulesIsLoading || projectAlertRulesIsError) {
@@ -130,20 +123,6 @@ export function ProjectInstallPlatform({
     name: currentPlatform?.name,
     link: currentPlatform?.link,
   };
-
-  const hideLoaderOnboarding = useCallback(() => {
-    setShowLoaderOnboarding(false);
-
-    if (!project?.id || !currentPlatform) {
-      return;
-    }
-
-    trackAnalytics('onboarding.js_loader_npm_docs_shown', {
-      organization,
-      platform: currentPlatform.id,
-      project_id: project?.id,
-    });
-  }, [organization, currentPlatform, project?.id]);
 
   const redirectWithProjectSelection = useCallback(
     (to: LocationDescriptorObject) => {
@@ -206,7 +185,6 @@ export function ProjectInstallPlatform({
           project={project}
           location={location}
           platform={currentPlatform.id}
-          close={hideLoaderOnboarding}
         />
       ) : (
         <SdkDocumentation
@@ -242,6 +220,11 @@ export function ProjectInstallPlatform({
             priority="primary"
             busy={loading}
             onClick={() => {
+              trackAnalytics('onboarding.take_me_to_issues_clicked', {
+                organization,
+                platform: platform.name ?? 'unknown',
+                project_id: project.id,
+              });
               redirectWithProjectSelection({
                 pathname: issueStreamLink,
                 hash: '#welcome',
@@ -254,6 +237,11 @@ export function ProjectInstallPlatform({
             <Button
               busy={loading}
               onClick={() => {
+                trackAnalytics('onboarding.take_me_to_performance_clicked', {
+                  organization,
+                  platform: platform.name ?? 'unknown',
+                  project_id: project.id,
+                });
                 redirectWithProjectSelection({
                   pathname: performanceOverviewLink,
                 });
@@ -266,6 +254,11 @@ export function ProjectInstallPlatform({
             <Button
               busy={loading}
               onClick={() => {
+                trackAnalytics('onboarding.take_me_to_session_replay_clicked', {
+                  organization,
+                  platform: platform.name ?? 'unknown',
+                  project_id: project.id,
+                });
                 redirectWithProjectSelection({
                   pathname: replayLink,
                 });

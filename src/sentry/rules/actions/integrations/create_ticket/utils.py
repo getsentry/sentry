@@ -5,6 +5,7 @@ from collections.abc import Callable, Sequence
 
 from rest_framework.response import Response
 
+from sentry import options
 from sentry.constants import ObjectStatus
 from sentry.eventstore.models import GroupEvent
 from sentry.integrations.base import IntegrationInstallation
@@ -134,7 +135,13 @@ def create_issue(event: GroupEvent, futures: Sequence[RuleFuture]) -> None:
                     "provider": provider,
                 },
             )
-            return
+
+            # Testing out if this results in a lot of noisy sentry issues
+            # when enabled.
+            if options.get("ecosystem:enable_integration_form_error_raise"):
+                raise
+            else:
+                return
 
         if not event.get_tag("sample_event") == "yes":
             create_link(integration, installation, event, response)

@@ -21,6 +21,17 @@ export function AutoSizedText({children}: Props) {
       return undefined;
     }
 
+    if (!window.ResizeObserver) {
+      // `ResizeObserver` is missing in a test environment. In this case,
+      // run one iteration of the resize behaviour so a test can at least
+      // verify that the component doesn't crash.
+      const childDimensions = getElementDimensions(childElement);
+      const parentDimensions = getElementDimensions(parentElement);
+
+      adjustFontSize(childDimensions, parentDimensions);
+      return undefined;
+    }
+
     // On component first mount, register a `ResizeObserver` on the containing element. The handler fires
     // on component mount, and every time the element changes size after that
     const observer = new ResizeObserver(entries => {
@@ -40,43 +51,52 @@ export function AutoSizedText({children}: Props) {
 
       let iterationCount = 0;
 
-      const span = Sentry.startInactiveSpan({
-        op: 'function',
-        name: 'AutoSizedText.iterate',
-      });
+      Sentry.withScope(scope => {
+        const span = Sentry.startInactiveSpan({
+          op: 'function',
+          name: 'AutoSizedText.iterate',
+          forceTransaction: true,
+        });
 
-      // Run the resize iteration in a loop. This blocks the main UI thread and prevents
-      // visible layout jitter. If this was done through a `ResizeObserver` or React State
-      // each step in the resize iteration would be visible to the user
-      while (iterationCount <= ITERATION_LIMIT) {
-        const childDimensions = getElementDimensions(childElement);
+        const t1 = performance.now();
 
-        const widthDifference = parentDimensions.width - childDimensions.width;
-        const heightDifference = parentDimensions.height - childDimensions.height;
+        // Run the resize iteration in a loop. This blocks the main UI thread and prevents
+        // visible layout jitter. If this was done through a `ResizeObserver` or React State
+        // each step in the resize iteration would be visible to the user
+        while (iterationCount <= ITERATION_LIMIT) {
+          const childDimensions = getElementDimensions(childElement);
 
-        const childFitsIntoParent = heightDifference > 0 && widthDifference > 0;
-        const childIsWithinWidthTolerance =
-          Math.abs(widthDifference) <= MAXIMUM_DIFFERENCE;
-        const childIsWithinHeightTolerance =
-          Math.abs(heightDifference) <= MAXIMUM_DIFFERENCE;
+          const widthDifference = parentDimensions.width - childDimensions.width;
+          const heightDifference = parentDimensions.height - childDimensions.height;
 
-        if (
-          childFitsIntoParent &&
-          (childIsWithinWidthTolerance || childIsWithinHeightTolerance)
-        ) {
-          // Stop the iteration, we've found a fit!
-          span.setAttribute('widthDifference', widthDifference);
-          span.setAttribute('heightDifference', heightDifference);
-          break;
+          const childFitsIntoParent = heightDifference > 0 && widthDifference > 0;
+          const childIsWithinWidthTolerance =
+            Math.abs(widthDifference) <= MAXIMUM_DIFFERENCE;
+          const childIsWithinHeightTolerance =
+            Math.abs(heightDifference) <= MAXIMUM_DIFFERENCE;
+
+          if (
+            childFitsIntoParent &&
+            (childIsWithinWidthTolerance || childIsWithinHeightTolerance)
+          ) {
+            // Stop the iteration, we've found a fit!
+            span.setAttribute('widthDifference', widthDifference);
+            span.setAttribute('heightDifference', heightDifference);
+            break;
+          }
+
+          adjustFontSize(childDimensions, parentDimensions);
+
+          iterationCount += 1;
         }
+        const t2 = performance.now();
 
-        adjustFontSize(childDimensions, parentDimensions);
+        scope.setTag('didExceedIterationLimit', iterationCount >= ITERATION_LIMIT);
 
-        iterationCount += 1;
-      }
-
-      span.setAttribute('iterationCount', iterationCount);
-      span.end();
+        span.setAttribute('iterationCount', iterationCount);
+        span.setAttribute('durationFromPerformanceAPI', t2 - t1);
+        span.end();
+      });
     });
 
     observer.observe(parentElement);

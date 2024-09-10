@@ -1,5 +1,4 @@
 import {Component, Fragment} from 'react';
-import type {WithRouterProps} from 'react-router';
 import type {useSortable} from '@dnd-kit/sortable';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
@@ -21,16 +20,13 @@ import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {PageFilters} from 'sentry/types/core';
 import type {Series} from 'sentry/types/echarts';
+import type {WithRouterProps} from 'sentry/types/legacyReactRouter';
 import type {Organization} from 'sentry/types/organization';
 import {getFormattedDate} from 'sentry/utils/dates';
 import type {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
 import type {AggregationOutputType} from 'sentry/utils/discover/fields';
 import {parseFunction} from 'sentry/utils/discover/fields';
-import {
-  hasCustomMetrics,
-  hasCustomMetricsExtractionRules,
-} from 'sentry/utils/metrics/features';
-import {VirtualMetricsContextProvider} from 'sentry/utils/metrics/virtualMetricsContext';
+import {hasCustomMetrics} from 'sentry/utils/metrics/features';
 import {hasOnDemandMetricWidgetFeature} from 'sentry/utils/onDemandMetrics/features';
 import {ExtractedMetricsTag} from 'sentry/utils/performance/contexts/metricsEnhancedPerformanceDataContext';
 import {
@@ -282,25 +278,7 @@ class WidgetCard extends Component<Props, State> {
 
     if (widget.widgetType === WidgetType.METRICS) {
       if (hasCustomMetrics(organization)) {
-        return hasCustomMetricsExtractionRules(organization) ? (
-          <VirtualMetricsContextProvider>
-            <MetricWidgetCard
-              index={this.props.index}
-              isEditingDashboard={this.props.isEditingDashboard}
-              onEdit={this.props.onEdit}
-              onDelete={this.props.onDelete}
-              onDuplicate={this.props.onDuplicate}
-              router={this.props.router}
-              location={this.props.location}
-              organization={organization}
-              selection={selection}
-              widget={widget}
-              dashboardFilters={dashboardFilters}
-              renderErrorMessage={renderErrorMessage}
-              showContextMenu={this.props.showContextMenu}
-            />
-          </VirtualMetricsContextProvider>
-        ) : (
+        return (
           <MetricWidgetCard
             index={this.props.index}
             isEditingDashboard={this.props.isEditingDashboard}

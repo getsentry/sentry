@@ -22,6 +22,7 @@ from sentry.snuba import (
     metrics_enhanced_performance,
     metrics_performance,
     profile_functions_metrics,
+    spans_eap,
     spans_indexed,
     spans_metrics,
     transactions,
@@ -125,7 +126,7 @@ SENTRY_BACKEND_REFERRERS = [
 @region_silo_endpoint
 class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):
     publish_status = {
-        "GET": ApiPublishStatus.UNKNOWN,
+        "GET": ApiPublishStatus.EXPERIMENTAL,
     }
     sunba_methods = ["GET"]
 
@@ -253,6 +254,7 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):
                         profile_functions_metrics,
                         spans_indexed,
                         spans_metrics,
+                        spans_eap,
                         errors,
                         transactions,
                     ]

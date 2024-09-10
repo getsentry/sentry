@@ -421,6 +421,7 @@ INSTALLED_APPS: tuple[str, ...] = (
     "sentry.hybridcloud",
     "sentry.remote_subscriptions.apps.Config",
     "sentry.data_secrecy",
+    "sentry.workflow_engine",
 )
 
 # Silence internal hints from Django's system checks
@@ -1127,12 +1128,6 @@ CELERYBEAT_SCHEDULE_REGION = {
         "schedule": crontab(minute="0", hour="12", day_of_week="sat"),
         "options": {"expires": 60 * 60 * 3},
     },
-    # "schedule-daily-organization-reports": {
-    #     "task": "sentry.tasks.summaries.daily_summary.schedule_organizations",
-    #     # Run every 1 hour on business days
-    #     "schedule": crontab(minute=0, hour="*/1", day_of_week="mon-fri"),
-    #     "options": {"expires": 60 * 60 * 3},
-    # },
     "schedule-hybrid-cloud-foreign-key-jobs": {
         "task": "sentry.tasks.deletion.hybrid_cloud.schedule_hybrid_cloud_foreign_key_jobs",
         # Run every 15 minutes
@@ -1262,6 +1257,9 @@ else:
 for queue in CELERY_QUEUES:
     queue.durable = False
 
+# set celery max durations for tasks
+CELERY_TASK_SOFT_TIME_LIMIT = int(timedelta(hours=3).total_seconds())
+CELERY_TASK_TIME_LIMIT = int(timedelta(hours=3, seconds=15).total_seconds())
 
 # Queues that belong to the processing pipeline and need to be monitored
 # for backpressure management
@@ -1820,7 +1818,7 @@ SENTRY_MANAGED_USER_FIELDS = ()
 OPENAI_API_KEY: str | None = None
 
 # AI Suggested Fix default model
-SENTRY_AI_SUGGESTED_FIX_MODEL: str = os.getenv("SENTRY_AI_SUGGESTED_FIX_MODEL", "gpt-3.5-turbo-16k")
+SENTRY_AI_SUGGESTED_FIX_MODEL: str = os.getenv("SENTRY_AI_SUGGESTED_FIX_MODEL", "gpt-4o-mini")
 
 SENTRY_API_PAGINATION_ALLOWLIST = SENTRY_API_PAGINATION_ALLOWLIST_DO_NOT_MODIFY
 
@@ -2931,6 +2929,7 @@ MIGRATIONS_LOCKFILE_APP_WHITELIST = (
     "hybridcloud",
     "remote_subscriptions",
     "uptime",
+    "workflow_engine",
 )
 # Where to write the lockfile to.
 MIGRATIONS_LOCKFILE_PATH = os.path.join(PROJECT_ROOT, os.path.pardir, os.path.pardir)
@@ -2978,6 +2977,7 @@ SENTRY_REQUEST_METRIC_ALLOWED_PATHS = (
     "sentry.monitors.endpoints",
     "sentry.issues.endpoints",
     "sentry.integrations.api.endpoints",
+    "sentry.users.api.endpoints",
 )
 SENTRY_MAIL_ADAPTER_BACKEND = "sentry.mail.adapter.MailAdapter"
 
@@ -3154,7 +3154,7 @@ SEER_GROUPING_BACKFILL_URL = SEER_DEFAULT_URL
 
 SEER_ANOMALY_DETECTION_MODEL_VERSION = "v1"
 SEER_ANOMALY_DETECTION_URL = SEER_DEFAULT_URL  # for local development, these share a URL
-SEER_ANOMALY_DETECTION_TIMEOUT = 5
+SEER_ANOMALY_DETECTION_TIMEOUT = 15
 
 SEER_ANOMALY_DETECTION_ENDPOINT_URL = (
     f"/{SEER_ANOMALY_DETECTION_MODEL_VERSION}/anomaly-detection/detect"

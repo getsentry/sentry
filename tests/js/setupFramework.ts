@@ -31,6 +31,11 @@ failOnConsole({
       return true;
     }
 
+    // TODO: Remove this after updating jsdom, currently it cannot handle @container queries
+    if (/Error: Could not parse CSS stylesheet/.test(errorMessage)) {
+      return true;
+    }
+
     return false;
   },
 });

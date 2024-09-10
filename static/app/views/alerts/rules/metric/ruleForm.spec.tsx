@@ -92,6 +92,14 @@ describe('Incident Rules Form', () => {
       url: '/organizations/org-slug/metrics-estimation-stats/',
       body: EventsStatsFixture(),
     });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/metrics/meta/',
+      body: [],
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/metrics/tags/',
+      body: [],
+    });
   });
 
   afterEach(() => {
@@ -433,6 +441,48 @@ describe('Incident Rules Form', () => {
           }),
         })
       );
+    });
+
+    it('creates an insights metric rule', async () => {
+      const rule = MetricRuleFixture();
+      createWrapper({
+        rule: {
+          ...rule,
+          id: undefined,
+          eventTypes: ['transaction'],
+          aggregate: 'avg(d:spans/exclusive_time@millisecond)',
+          dataset: Dataset.GENERIC_METRICS,
+        },
+      });
+
+      // Clear field
+      await userEvent.clear(screen.getByPlaceholderText('Enter Alert Name'));
+
+      // Enter in name so we can submit
+      await userEvent.type(
+        screen.getByPlaceholderText('Enter Alert Name'),
+        'Insights Incident Rule'
+      );
+
+      // Set thresholdPeriod
+      await selectEvent.select(screen.getAllByText('For 1 minute')[0], 'For 10 minutes');
+
+      await userEvent.click(screen.getByLabelText('Save Rule'));
+
+      expect(createRule).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.objectContaining({
+          data: expect.objectContaining({
+            name: 'Insights Incident Rule',
+            projects: ['project-slug'],
+            eventTypes: ['transaction'],
+            thresholdPeriod: 10,
+            alertType: 'insights_metrics',
+            dataset: 'generic_metrics',
+          }),
+        })
+      );
+      expect(metric.startSpan).toHaveBeenCalledWith({name: 'saveAlertRule'});
     });
   });
 

@@ -286,31 +286,31 @@ const MAPPER_FOR_FRAME: Record<string, (frame) => Details> = {
       case 'good':
         return {
           color: 'green300',
-          description: tct('Good [value]ms', {
+          description: tct('[value]ms (Good)', {
             value: frame.data.value.toFixed(2),
           }),
           tabKey: TabKey.NETWORK,
-          title: toTitleCase(explodeSlug(frame.description)),
+          title: 'Web Vital: ' + toTitleCase(explodeSlug(frame.description)),
           icon: <IconHappy size="xs" />,
         };
       case 'needs-improvement':
         return {
           color: 'yellow300',
-          description: tct('Meh [value]ms', {
+          description: tct('[value]ms (Meh)', {
             value: frame.data.value.toFixed(2),
           }),
           tabKey: TabKey.NETWORK,
-          title: toTitleCase(explodeSlug(frame.description)),
+          title: 'Web Vital: ' + toTitleCase(explodeSlug(frame.description)),
           icon: <IconMeh size="xs" />,
         };
       default:
         return {
           color: 'red300',
-          description: tct('Poor [value]ms', {
+          description: tct('[value]ms (Poor)', {
             value: frame.data.value.toFixed(2),
           }),
           tabKey: TabKey.NETWORK,
-          title: toTitleCase(explodeSlug(frame.description)),
+          title: 'Web Vital: ' + toTitleCase(explodeSlug(frame.description)),
           icon: <IconSad size="xs" />,
         };
     }

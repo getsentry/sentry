@@ -7,7 +7,7 @@ from django.db import models
 from django.db.models import Q
 
 from sentry.backup.scopes import RelocationScope
-from sentry.db.models import DefaultFieldsModel, FlexibleForeignKey, region_silo_model
+from sentry.db.models import DefaultFieldsModelExisting, FlexibleForeignKey, region_silo_model
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
 from sentry.db.models.manager.base import BaseManager
 from sentry.models.organization import Organization
@@ -17,13 +17,22 @@ from sentry.utils.function_cache import cache_func_for_models
 
 
 @region_silo_model
-class UptimeSubscription(BaseRemoteSubscription, DefaultFieldsModel):
+class UptimeSubscription(BaseRemoteSubscription, DefaultFieldsModelExisting):
     # TODO: This should be included in export/import, but right now it has no relation to
     # any projects/orgs. Will fix this in a later pr
     __relocation_scope__ = RelocationScope.Excluded
 
     # The url to check
     url = models.CharField(max_length=255)
+    # The domain of the url, extracted via TLDExtract
+    url_domain = models.CharField(max_length=255, db_index=True, default="")
+    # The suffix of the url, extracted via TLDExtract. This can be a public suffix, such as .com, .gov.uk, .com.au, or
+    # a private suffix, such as vercel.dev
+    url_domain_suffix = models.CharField(max_length=255, db_index=True, default="")
+    # Org name of the host of the url
+    host_whois_orgname = models.CharField(max_length=255, db_index=True, default="")
+    # Org id of the host of the url
+    host_whois_orgid = models.CharField(max_length=255, db_index=True, default="")
     # How frequently to run the check in seconds
     interval_seconds = models.IntegerField()
     # How long to wait for a response from the url before we assume a timeout
@@ -61,7 +70,7 @@ class UptimeStatus(enum.IntEnum):
 
 
 @region_silo_model
-class ProjectUptimeSubscription(DefaultFieldsModel):
+class ProjectUptimeSubscription(DefaultFieldsModelExisting):
     # TODO: This should be included in export/import, but right now it has no relation to
     # any projects/orgs. Will fix this in a later pr
     __relocation_scope__ = RelocationScope.Excluded

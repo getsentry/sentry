@@ -21,7 +21,6 @@ import * as ModuleLayout from 'sentry/views/insights/common/components/moduleLay
 import {ModulePageFilterBar} from 'sentry/views/insights/common/components/modulePageFilterBar';
 import {ModulePageProviders} from 'sentry/views/insights/common/components/modulePageProviders';
 import {ModulesOnboarding} from 'sentry/views/insights/common/components/modulesOnboarding';
-import {ToolRibbon} from 'sentry/views/insights/common/components/ribbon';
 import {useSpanMetrics} from 'sentry/views/insights/common/queries/useDiscover';
 import {useSpanMetricsSeries} from 'sentry/views/insights/common/queries/useDiscoverSeries';
 import {useHasFirstSpan} from 'sentry/views/insights/common/queries/useHasFirstSpan';
@@ -38,6 +37,7 @@ import {
   isAValidSort,
   QueriesTable,
 } from 'sentry/views/insights/database/components/tables/queriesTable';
+import {useSystemSelectorOptions} from 'sentry/views/insights/database/components/useSystemSelectorOptions';
 import {
   BASE_FILTERS,
   DEFAULT_DURATION_AGGREGATE,
@@ -45,6 +45,7 @@ import {
   MODULE_DOC_LINK,
   MODULE_TITLE,
 } from 'sentry/views/insights/database/settings';
+import {SupportedDatabaseSystems} from 'sentry/views/insights/database/utils/constants';
 import {ModuleName, SpanMetricsField} from 'sentry/views/insights/types';
 
 export function DatabaseLandingPage() {
@@ -60,6 +61,12 @@ export function DatabaseLandingPage() {
   const spanDomain = decodeScalar(location.query?.['span.domain']);
 
   const sortField = decodeScalar(location.query?.[QueryParameterNames.SPANS_SORT]);
+
+  // If there is no query parameter for the system, retrieve the current value from the hook instead
+  const systemQueryParam = decodeScalar(location.query?.[SpanMetricsField.SPAN_SYSTEM]);
+  const {selectedSystem} = useSystemSelectorOptions();
+
+  const system = systemQueryParam ?? selectedSystem;
 
   let sort = decodeSorts(sortField).filter(isAValidSort)[0];
   if (!sort) {
@@ -82,13 +89,19 @@ export function DatabaseLandingPage() {
     });
   };
 
-  const chartFilters = BASE_FILTERS;
+  const chartFilters = {
+    ...BASE_FILTERS,
+    'span.action': spanAction,
+    'span.domain': spanDomain,
+    'span.system': system,
+  };
 
   const tableFilters = {
     ...BASE_FILTERS,
     'span.action': spanAction,
     'span.domain': spanDomain,
     'span.description': spanDescription ? `*${spanDescription}*` : undefined,
+    'span.system': system,
   };
 
   const cursor = decodeScalar(location.query?.[QueryParameterNames.SPANS_CURSOR]);
@@ -184,9 +197,21 @@ export function DatabaseLandingPage() {
             <ModuleLayout.Full>
               <PageFilterWrapper>
                 <ModulePageFilterBar moduleName={ModuleName.DB} />
-                {organization.features.includes(
-                  'performance-queries-mongodb-extraction'
-                ) && <DatabaseSystemSelector />}
+                <DbFilterWrapper>
+                  {organization.features.includes(
+                    'performance-queries-mongodb-extraction'
+                  ) && <DatabaseSystemSelector />}
+                  <ActionSelector moduleName={moduleName} value={spanAction ?? ''} />
+                  <DomainSelector
+                    moduleName={moduleName}
+                    value={spanDomain ?? ''}
+                    domainAlias={
+                      system === SupportedDatabaseSystems.MONGODB
+                        ? t('Collection')
+                        : t('Table')
+                    }
+                  />
+                </DbFilterWrapper>
               </PageFilterWrapper>
             </ModuleLayout.Full>
             <ModulesOnboarding moduleName={ModuleName.DB}>
@@ -205,13 +230,6 @@ export function DatabaseLandingPage() {
                   error={durationError}
                 />
               </ModuleLayout.Half>
-
-              <ModuleLayout.Full>
-                <ToolRibbon>
-                  <ActionSelector moduleName={moduleName} value={spanAction ?? ''} />
-                  <DomainSelector moduleName={moduleName} value={spanDomain ?? ''} />
-                </ToolRibbon>
-              </ModuleLayout.Full>
 
               <ModuleLayout.Full>
                 <SearchBar
@@ -262,6 +280,13 @@ function PageWithProviders() {
 const PageFilterWrapper = styled('div')`
   display: flex;
   gap: ${space(3)};
+  flex-wrap: wrap;
+`;
+
+const DbFilterWrapper = styled('div')`
+  display: flex;
+  gap: ${space(3)};
+  flex-wrap: wrap;
 `;
 
 export default PageWithProviders;
