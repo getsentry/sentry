@@ -6,11 +6,20 @@ import {textWithMarkupMatcher} from 'sentry-test/utils';
 
 import {EntryType} from 'sentry/types/event';
 import usePageFilters from 'sentry/utils/usePageFilters';
-import {DatabaseSpanDescription} from 'sentry/views/insights/common/components/spanDescription';
+import {
+  DatabaseSpanDescription,
+  formatJsonQuery,
+} from 'sentry/views/insights/common/components/spanDescription';
+import {useFullSpanFromTrace} from 'sentry/views/insights/common/queries/useFullSpanFromTrace';
 
 jest.mock('sentry/utils/usePageFilters');
+jest.mock('sentry/views/insights/common/queries/useFullSpanFromTrace');
 
 describe('DatabaseSpanDescription', function () {
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
   const organization = OrganizationFixture();
 
   const project = ProjectFixture();
@@ -29,6 +38,20 @@ describe('DatabaseSpanDescription', function () {
       },
       environments: [],
       projects: [],
+    },
+  });
+
+  jest.mocked(useFullSpanFromTrace).mockReturnValue({
+    isLoading: false,
+    isFetching: false,
+    isError: false,
+    data: {
+      description: undefined,
+      data: {'db.operation': 'SELECT', 'db.system': 'postgresql'},
+      span_id: '1',
+      start_timestamp: 1,
+      timestamp: 10,
+      trace_id: '1',
     },
   });
 
@@ -84,6 +107,20 @@ describe('DatabaseSpanDescription', function () {
             ],
           },
         ],
+      },
+    });
+
+    jest.mocked(useFullSpanFromTrace).mockReturnValue({
+      isLoading: false,
+      isFetching: false,
+      isError: false,
+      data: {
+        description: undefined,
+        data: {'db.operation': 'SELECT', 'db.system': 'postgresql'},
+        span_id: '1',
+        start_timestamp: 1,
+        timestamp: 10,
+        trace_id: '1',
       },
     });
 
@@ -154,5 +191,68 @@ describe('DatabaseSpanDescription', function () {
     expect(
       screen.getByText(textWithMarkupMatcher('/app/views/users.py at line 78'))
     ).toBeInTheDocument();
+  });
+
+  it('correctly formats and displays MongoDB queries', async function () {
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/events/`,
+      body: {
+        data: [
+          {
+            'transaction.id': eventId,
+            project: project.slug,
+            span_id: spanId,
+          },
+        ],
+      },
+    });
+
+    const sampleMongoDBQuery = `{"a": "?", "insert": "documents"}`;
+
+    jest.mocked(useFullSpanFromTrace).mockReturnValue({
+      isLoading: false,
+      isFetching: false,
+      isError: false,
+      data: {
+        description: sampleMongoDBQuery,
+        data: {'db.operation': 'insert', 'db.system': 'mongodb'},
+        span_id: '1',
+        start_timestamp: 1,
+        timestamp: 10,
+        trace_id: '1',
+      },
+    });
+
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/events/${project.slug}:${eventId}/`,
+      body: {
+        id: eventId,
+        entries: [
+          {
+            type: EntryType.SPANS,
+            data: [
+              {
+                span_id: spanId,
+                description: sampleMongoDBQuery,
+                'db.system': 'mongodb',
+              },
+            ],
+          },
+        ],
+      },
+    });
+
+    render(
+      <DatabaseSpanDescription
+        groupId={groupId}
+        preliminaryDescription={sampleMongoDBQuery}
+      />,
+      {organization}
+    );
+
+    await waitForElementToBeRemoved(() => screen.getByTestId('loading-indicator'));
+
+    const formattedQuery = formatJsonQuery(sampleMongoDBQuery);
+    expect(await screen.findByText(formattedQuery)).toBeInTheDocument();
   });
 });

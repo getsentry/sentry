@@ -60,40 +60,20 @@ export function DatabaseSpanDescription({
 
   const system = rawSpan?.data?.['db.system'];
 
-  const formatJsonQuery = (queryString: string) => {
-    try {
-      return JSON.stringify(JSON.parse(queryString), null, 4);
-    } catch (error) {
-      throw Error(`Failed to parse JSON: ${queryString}`);
-    }
-  };
-
   const formattedDescription = useMemo(() => {
     const rawDescription =
       rawSpan?.description || indexedSpan?.['span.description'] || preliminaryDescription;
 
-    if (!system) {
-      // If the span data has not loaded, we can still infer that this is a NoSQL query
-      if (
-        preliminaryDescription?.startsWith('{') &&
-        preliminaryDescription?.endsWith('}')
-      ) {
-        return formatJsonQuery(preliminaryDescription);
-      }
-
-      return rawDescription;
+    if (preliminaryDescription && isNoSQLQuery(preliminaryDescription)) {
+      return formatJsonQuery(preliminaryDescription);
     }
 
-    // MongoDB span descriptions are in JSON and should not have SQLish formatting applied
-    if (system === 'mongodb') {
-      // TODO: We should transform the data a bit for mongodb queries.
-      // For example, it would be better if we display the operation on the collection as the
-      // first key value pair in the JSON, since this is not guaranteed by the backend
-      return formatJsonQuery(preliminaryDescription ?? '{}');
+    if (rawSpan?.description && isNoSQLQuery(rawSpan?.description)) {
+      return formatJsonQuery(rawSpan?.description);
     }
 
     return formatter.toString(rawDescription ?? '');
-  }, [preliminaryDescription, rawSpan, indexedSpan, system]);
+  }, [preliminaryDescription, rawSpan, indexedSpan]);
 
   return (
     <Frame>
@@ -126,6 +106,30 @@ export function DatabaseSpanDescription({
       )}
     </Frame>
   );
+}
+
+// TODO: We should transform the data a bit for mongodb queries.
+// For example, it would be better if we display the operation on the collection as the
+// first key value pair in the JSON, since this is not guaranteed by the backend
+export function formatJsonQuery(queryString: string) {
+  try {
+    return JSON.stringify(JSON.parse(queryString), null, 4);
+  } catch (error) {
+    throw Error(`Failed to parse JSON: ${queryString}`);
+  }
+}
+
+function isNoSQLQuery(queryString?: string, system?: string) {
+  if (system && system === 'mongodb') {
+    return true;
+  }
+
+  // If the system isn't provided, we can at least infer that it is valid JSON if it is enclosed in parentheses
+  if (queryString?.startsWith('{') && queryString.endsWith('}')) {
+    return true;
+  }
+
+  return false;
 }
 
 const INDEXED_SPAN_SORT = {
