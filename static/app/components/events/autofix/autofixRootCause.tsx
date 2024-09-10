@@ -1,4 +1,4 @@
-import {type ReactNode, useState} from 'react';
+import {Fragment, type ReactNode, useState} from 'react';
 import {css, keyframes} from '@emotion/react';
 import styled from '@emotion/styled';
 import {AnimatePresence, type AnimationProps, motion} from 'framer-motion';
@@ -153,6 +153,30 @@ function getLinesToHighlight(suggestedFix: AutofixRootCauseCodeContext): number[
   return lineNumbersToHighlight;
 }
 
+function RootCauseDescription({cause}: {cause: AutofixRootCauseData}) {
+  return (
+    <Fragment>
+      <CauseDescription
+        dangerouslySetInnerHTML={{
+          __html: marked(cause.description),
+        }}
+      />
+      {cause.reproduction && (
+        <Fragment>
+          <CauseReproductionHeader>
+            {t('How to reproduce this root cause')}
+          </CauseReproductionHeader>
+          <CauseDescription
+            dangerouslySetInnerHTML={{
+              __html: marked(cause.reproduction),
+            }}
+          />
+        </Fragment>
+      )}
+    </Fragment>
+  );
+}
+
 function RootCauseContent({
   selected,
   children,
@@ -265,11 +289,7 @@ function CauseOption({
         </RootCauseOptionsRow>
       </RootCauseOptionHeader>
       <RootCauseContent selected={selected}>
-        <CauseDescription
-          dangerouslySetInnerHTML={{
-            __html: marked(cause.description),
-          }}
-        />
+        <RootCauseDescription cause={cause} />
         <AutofixRootCauseCodeContexts codeContext={cause.code_context} repos={repos} />
       </RootCauseContent>
     </RootCauseOption>
@@ -559,6 +579,11 @@ const Title = styled('div')`
 
 const CauseDescription = styled('div')`
   font-size: ${p => p.theme.fontSizeMedium};
+  margin-top: ${space(1)};
+`;
+
+const CauseReproductionHeader = styled('div')`
+  font-weight: ${p => p.theme.fontWeightBold};
   margin-top: ${space(1)};
 `;
 

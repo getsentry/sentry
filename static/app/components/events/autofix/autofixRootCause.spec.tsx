@@ -135,4 +135,34 @@ describe('AutofixRootCause', function () {
 
     expect(screen.queryByRole('link', {name: 'GitHub'})).not.toBeInTheDocument();
   });
+
+  it('shows reproduction steps when applicable', function () {
+    render(
+      <AutofixRootCause
+        {...{
+          ...defaultProps,
+          causes: [AutofixRootCauseData()],
+        }}
+      />
+    );
+
+    expect(
+      screen.getByText('This is the reproduction of a root cause.')
+    ).toBeInTheDocument();
+  });
+
+  it('does not show reproduction steps when not applicable', function () {
+    render(
+      <AutofixRootCause
+        {...{
+          ...defaultProps,
+          causes: [AutofixRootCauseData({reproduction: undefined})],
+        }}
+      />
+    );
+
+    expect(
+      screen.queryByText('This is the reproduction of a root cause.')
+    ).not.toBeInTheDocument();
+  });
 });

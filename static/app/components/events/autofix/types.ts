@@ -150,6 +150,7 @@ export type AutofixRootCauseData = {
   id: string;
   likelihood: number;
   title: string;
+  reproduction?: string;
 };
 
 export type EventMetadataWithAutofix = EventMetadata & {
