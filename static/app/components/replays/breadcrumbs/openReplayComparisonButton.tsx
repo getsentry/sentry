@@ -2,9 +2,9 @@ import {Fragment, lazy, type ReactNode, Suspense} from 'react';
 import {css} from '@emotion/react';
 
 import {openModal} from 'sentry/actionCreators/modal';
-import FeatureBadge from 'sentry/components/badge/featureBadge';
 import {Button, type ButtonProps} from 'sentry/components/button';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {t} from 'sentry/locale';
 import type ReplayReader from 'sentry/utils/replays/replayReader';
 import useOrganization from 'sentry/utils/useOrganization';
 
@@ -47,10 +47,7 @@ export function OpenReplayComparisonButton({
                 <Fragment>
                   <deps.Header closeButton>
                     <deps.Header>
-                      <h4>
-                        Hydration Error
-                        <FeatureBadge type="beta" />
-                      </h4>
+                      <h4>{t('Hydration Error')}</h4>
                     </deps.Header>
                   </deps.Header>
                   <deps.Body>
