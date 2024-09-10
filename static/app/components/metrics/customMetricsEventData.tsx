@@ -60,7 +60,11 @@ export function eventHasCustomMetrics(
   organization: Organization,
   metricsSummary: MetricsSummary | undefined
 ) {
-  return hasCustomMetrics(organization) && metricsSummary && flattenMetricsSummary(metricsSummary).length > 0;
+  return (
+    hasCustomMetrics(organization) &&
+    metricsSummary &&
+    flattenMetricsSummary(metricsSummary).length > 0
+  );
 }
 
 const HALF_HOUR_IN_MS = 30 * 60 * 1000;
