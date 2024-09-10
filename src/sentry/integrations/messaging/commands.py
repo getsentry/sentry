@@ -10,10 +10,16 @@ class CommandInput:
     cmd_value: str
     arg_values: tuple[str, ...] = ()
 
-    def trim_command_args(self, cmd_obj: "MessagingIntegrationCommand") -> "CommandInput":
-        """Remove the arg constants that identify which command to execute."""
-        trimmed_args = self.arg_values[len(cmd_obj.arg_tokens) :]
-        return CommandInput(self.cmd_value, trimmed_args)
+    def get_all_tokens(self) -> Iterable[str]:
+        yield self.cmd_value
+        yield from self.arg_values
+
+    def adjust(self, slug: "CommandSlug") -> "CommandInput":
+        """Remove the args that are part of a slug."""
+        token_count = len(slug.tokens) - 1
+        slug_part = [self.cmd_value] + list(self.arg_values)[:token_count]
+        remaining_args = self.arg_values[token_count:]
+        return CommandInput(" ".join(slug_part), remaining_args)
 
 
 class CommandNotMatchedError(Exception):
@@ -22,31 +28,44 @@ class CommandNotMatchedError(Exception):
         self.unmatched_input = unmatched_input
 
 
-@dataclass(frozen=True, eq=True)
-class MessagingIntegrationCommand:
-    name: str
-    cmd_token: str
-    arg_tokens: tuple[str, ...] = ()
-    aliases: tuple[str, ...] = ()
+class CommandSlug:
+    def __init__(self, text: str) -> None:
+        self.tokens = tuple(token.casefold() for token in text.strip().split())
 
     def does_match(self, cmd_input: CommandInput) -> bool:
-        command_matches = any(
-            cmd_input.cmd_value.casefold() == token.casefold()
-            for token in itertools.chain((self.cmd_token,), self.aliases)
-        )
+        if not self.tokens:
+            return cmd_input.cmd_value == "" and not cmd_input.arg_values
+        cmd_prefix = itertools.islice(cmd_input.get_all_tokens(), 0, len(self.tokens))
+        cmd_tokens = tuple(token.casefold() for token in cmd_prefix)
+        return self.tokens == cmd_tokens
 
-        arg_prefix = [token.casefold() for token in cmd_input.arg_values[: len(self.arg_tokens)]]
-        arg_prefix_matches = arg_prefix == [token.casefold() for token in self.arg_tokens]
+    def __repr__(self):
+        joined_tokens = " ".join(self.tokens)
+        return f"{type(self).__name__}({joined_tokens!r})"
 
-        return command_matches and arg_prefix_matches
+
+class MessagingIntegrationCommand:
+    def __init__(self, name: str, command_text: str, aliases: Iterable[str] = ()) -> None:
+        super().__init__()
+        self.name = name
+        self.command_slug = CommandSlug(command_text)
+        self.aliases = frozenset(CommandSlug(alias) for alias in aliases)
+
+    @staticmethod
+    def _to_tokens(text: str) -> tuple[str, ...]:
+        return tuple(token.casefold() for token in text.strip().split())
+
+    def get_all_command_slugs(self) -> Iterable[CommandSlug]:
+        yield self.command_slug
+        yield from self.aliases
 
 
 MESSAGING_INTEGRATION_COMMANDS = (
     HELP := MessagingIntegrationCommand("HELP", "help", aliases=("", "support", "docs")),
     LINK_IDENTITY := MessagingIntegrationCommand("LINK_IDENTITY", "link"),
     UNLINK_IDENTITY := MessagingIntegrationCommand("UNLINK_IDENTITY", "unlink"),
-    LINK_TEAM := MessagingIntegrationCommand("LINK_TEAM", "link", ("team",)),
-    UNLINK_TEAM := MessagingIntegrationCommand("UNLINK_TEAM", "unlink", ("team",)),
+    LINK_TEAM := MessagingIntegrationCommand("LINK_TEAM", "link team"),
+    UNLINK_TEAM := MessagingIntegrationCommand("UNLINK_TEAM", "unlink team"),
 )
 
 R = TypeVar("R")  # response
@@ -63,17 +82,21 @@ class MessagingIntegrationCommandDispatcher(Generic[R], ABC):
         raise NotImplementedError
 
     def dispatch(self, cmd_input: CommandInput) -> R:
-        def parsing_order(
-            handler: tuple[MessagingIntegrationCommand, Callable[[CommandInput], R]]
-        ) -> int:
-            # Sort by descending length of arg tokens, so that we check for required
-            # args before defaulting to ones without.
-            command, _ = handler
-            return -len(command.arg_tokens)
+        candidate_handlers: list[tuple[CommandSlug, Callable[[CommandInput], R]]] = []
+        for (command, callback) in self.command_handlers:
+            for slug in command.get_all_command_slugs():
+                candidate_handlers.append((slug, callback))
 
-        parsing_sequence = sorted(self.command_handlers, key=parsing_order)
-        for (command, callback) in parsing_sequence:
-            if command.does_match(cmd_input):
-                arg_input = cmd_input.trim_command_args(command)
+        def parsing_order(handler: tuple[CommandSlug, Callable[[CommandInput], R]]) -> int:
+            # Sort by descending length of arg tokens. If one slug is a prefix of
+            # another (e.g., "link" and "link team"), we must check for the longer
+            # one first.
+            slug, _ = handler
+            return -len(slug.tokens)
+
+        candidate_handlers.sort(key=parsing_order)
+        for (slug, callback) in candidate_handlers:
+            if slug.does_match(cmd_input):
+                arg_input = cmd_input.adjust(slug)
                 return callback(arg_input)
         raise CommandNotMatchedError(f"{cmd_input=!r}", cmd_input)
