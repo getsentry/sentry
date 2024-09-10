@@ -28,12 +28,10 @@ from sentry.integrations.models.integration import Integration
 from sentry.integrations.services.integration import RpcIntegration, integration_service
 from sentry.integrations.types import ExternalProviderEnum, ExternalProviders
 from sentry.integrations.utils.identities import get_identity_or_404
-from sentry.models.identity import Identity, IdentityProvider
 from sentry.models.notificationaction import ActionService, ActionTarget
 from sentry.models.organizationmember import OrganizationMember
 from sentry.models.project import Project
 from sentry.models.team import Team
-from sentry.models.user import User
 from sentry.notifications.notificationcontroller import NotificationController
 from sentry.notifications.notifications.integration_nudge import IntegrationNudgeNotification
 from sentry.notifications.services import notifications_service
@@ -42,6 +40,8 @@ from sentry.organizations.services.organization import RpcOrganization
 from sentry.rules import rules
 from sentry.rules.actions import IntegrationEventAction
 from sentry.types.actor import ActorType
+from sentry.users.models.identity import Identity, IdentityProvider
+from sentry.users.models.user import User
 from sentry.users.services.user import RpcUser
 from sentry.users.services.user.serial import serialize_generic_user
 from sentry.utils import metrics
