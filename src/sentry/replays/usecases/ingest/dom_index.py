@@ -421,7 +421,6 @@ def _handle_breadcrumb(
         timeout = payload["data"].get("timeAfterClickMs", 0) or payload["data"].get(
             "timeafterclickms", 0
         )
-
         if is_timeout_reason and is_target_tagname and timeout >= dead_click_timeout:
             is_rage = (
                 payload["data"].get("clickCount", 0) or payload["data"].get("clickcount", 0)
