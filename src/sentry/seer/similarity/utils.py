@@ -361,7 +361,6 @@ def project_is_seer_eligible(project: Project) -> bool:
     Return True if the project hasn't already been backfilled, is a Seer-eligible platform, and
     the feature is enabled in the region.
     """
-    # TODO: use this check in team_projects
     is_backfill_completed = project.get_option("sentry:similarity_backfill_completed")
     is_seer_eligible_platform = project.platform in SEER_ELIGIBLE_PLATFORMS
     is_region_enabled = options.get("similarity.new_project_seer_grouping.enabled")
