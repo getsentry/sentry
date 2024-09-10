@@ -6,7 +6,6 @@ import bannerStar from 'sentry-images/spot/banner-star.svg';
 import {Button} from 'sentry/components/button';
 import InfoTooltip from 'sentry/components/infoTooltip';
 import InteractionStateLayer from 'sentry/components/interactionStateLayer';
-import Panel from 'sentry/components/panels/panel';
 import {FormattedQuery} from 'sentry/components/searchQueryBuilder/formattedQuery';
 import {IconMegaphone} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -54,7 +53,7 @@ function AddViewPage({savedSearches}: {savedSearches: SavedSearch[]}) {
 
   return (
     <AddViewWrapper>
-      <StyledPanel>
+      <Banner>
         <BannerStar1 src={bannerStar} />
         <BannerStar2 src={bannerStar} />
         <BannerStar3 src={bannerStar} />
@@ -65,7 +64,7 @@ function AddViewPage({savedSearches}: {savedSearches: SavedSearch[]}) {
           )}
         </SubTitle>
         <FeedbackButton />
-      </StyledPanel>
+      </Banner>
       <SearchSuggestionList
         title={'Recommended Searches'}
         searchSuggestions={RECOMMENDED_SEARCHES}
@@ -89,24 +88,24 @@ function SearchSuggestionList({title, searchSuggestions}: SearchSuggestionListPr
   const {onNewViewSaved} = useContext(NewTabContext);
 
   return (
-    <SuggestionList>
+    <Suggestions>
       <TitleWrapper>{title}</TitleWrapper>
-      {searchSuggestions.map((suggestion, index) => (
-        <Suggestion
-          key={index}
-          onClick={() => onNewViewSaved?.(suggestion.label, suggestion.query, false)}
-        >
-          {/*
-            Saved searches have an average length of approximately 16 characters
+      <SuggestionList>
+        {searchSuggestions.map((suggestion, index) => (
+          <Suggestion
+            key={index}
+            onClick={() => onNewViewSaved?.(suggestion.label, suggestion.query, false)}
+          >
+            {/*
+            Saved search labels have an average length of approximately 16 characters
             This container fits 16 'a's comfortably, and 20 'a's before overflowing.
           */}
-          <StyledOverflowEllipsisTextContainer>
-            {suggestion.label}
-          </StyledOverflowEllipsisTextContainer>
-          <QueryWrapper>
-            <FormattedQuery query={suggestion.query} />
-            {
-              <ActionsWrapper>
+            <StyledOverflowEllipsisTextContainer>
+              {suggestion.label}
+            </StyledOverflowEllipsisTextContainer>
+            <QueryWrapper>
+              <FormattedQuery query={suggestion.query} />
+              <ActionsWrapper className="data-actions-wrapper">
                 <StyledButton
                   size="zero"
                   onClick={e => {
@@ -118,12 +117,12 @@ function SearchSuggestionList({title, searchSuggestions}: SearchSuggestionListPr
                   {t('Save as new view')}
                 </StyledButton>
               </ActionsWrapper>
-            }
-          </QueryWrapper>
-          <StyledInteractionStateLayer />
-        </Suggestion>
-      ))}
-    </SuggestionList>
+            </QueryWrapper>
+            <StyledInteractionStateLayer />
+          </Suggestion>
+        ))}
+      </SuggestionList>
+    </Suggestions>
   );
 }
 
@@ -156,6 +155,10 @@ function FeedbackButton() {
 
 export default AddViewPage;
 
+const Suggestions = styled('section')`
+  width: 100%;
+`;
+
 const SavedSearchesTitle = styled('div')`
   align-items: center;
   display: flex;
@@ -168,6 +171,7 @@ const StyledInteractionStateLayer = styled(InteractionStateLayer)`
 
 const StyledOverflowEllipsisTextContainer = styled(OverflowEllipsisTextContainer)`
   margin-left: ${space(1)};
+  width: 170px;
 `;
 
 const TitleWrapper = styled('div')`
@@ -218,7 +222,7 @@ const Suggestion = styled('li')`
     cursor: pointer;
   }
 
-  &:hover ${ActionsWrapper} {
+  &:hover .data-actions-wrapper {
     visibility: visible;
   }
 `;
@@ -229,13 +233,14 @@ const SuggestionList = styled('ul')`
   padding: 0;
 `;
 
-const StyledPanel = styled(Panel)`
-  display: inline-flex;
+const Banner = styled('div')`
+  display: flex;
   flex-direction: column;
   margin-bottom: 0;
   padding: 12px;
   gap: ${space(0.5)};
   border: 1px solid ${p => p.theme.border};
+  border-radius: ${p => p.theme.panelBorderRadius};
 
   background: linear-gradient(
     269.35deg,
@@ -251,13 +256,11 @@ const Title = styled('div')`
 const SubTitle = styled('div')`
   font-weight: ${p => p.theme.fontWeightNormal};
   font-size: ${p => p.theme.fontSizeMedium};
-  margin: 0;
 `;
 
 const AddViewWrapper = styled('div')`
   display: flex;
   flex-direction: column;
-  border: 0;
   gap: ${space(2)};
 
   @media (max-width: ${p => p.theme.breakpoints.small}) {
