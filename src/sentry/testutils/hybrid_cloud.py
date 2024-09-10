@@ -122,7 +122,7 @@ class EnforceNoCrossTransactionWrapper:
             raise CrossTransactionAssertionError(
                 f"Found mixed open transactions between dbs {open_transactions}"
             )
-        if open_transactions and not (self.alias in open_transactions):
+        if open_transactions and self.alias not in open_transactions:
             raise CrossTransactionAssertionError(
                 f"Transaction opened for db {open_transactions}, but command running against db {self.alias}"
             )
