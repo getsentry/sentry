@@ -1963,7 +1963,6 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
         assert mock_logger.info.call_args_list == expected_call_args_list
 
     @override_options({"similarity.new_project_seer_grouping.enabled": True})
-    @override_options({"similarity.backfill_seer_threads": 5})
     @with_feature("projects:similarity-embeddings-backfill")
     @patch("sentry.tasks.embeddings_grouping.backfill_seer_grouping_records_for_project.logger")
     @patch("sentry.tasks.embeddings_grouping.utils.post_bulk_grouping_records")
@@ -1975,7 +1974,7 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
         project_id % thread_number == worker_number
         """
         # Create 2 seer eligible projects that project_id % thread_number == worker_number
-        thread_number = options.get("similarity.backfill_seer_threads")
+        thread_number = options.get("similarity.backfill_total_worker_count")
         worker_number = self.project.id % thread_number
         self.project.platform = "python"
         self.project.save()
@@ -2088,7 +2087,6 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
         assert mock_logger.info.call_args_list == expected_call_args_list
 
     @override_options({"similarity.new_project_seer_grouping.enabled": True})
-    @override_options({"similarity.backfill_seer_threads": 5})
     @with_feature("projects:similarity-embeddings-backfill")
     @patch("sentry.tasks.embeddings_grouping.backfill_seer_grouping_records_for_project.logger")
     @patch("sentry.tasks.embeddings_grouping.utils.post_bulk_grouping_records")
@@ -2099,7 +2097,7 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
         Test that non Seer eligible projects are not processed when worker_number is provided.
         """
         # Create 1 seer eligible project that project_id % thread_number == worker_number
-        thread_number = options.get("similarity.backfill_seer_threads")
+        thread_number = options.get("similarity.backfill_total_worker_count")
         worker_number = self.project.id % thread_number
         self.project.platform = "python"
         self.project.save()
@@ -2195,7 +2193,6 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
         assert mock_logger.info.call_args_list == expected_call_args_list
 
     @override_options({"similarity.new_project_seer_grouping.enabled": True})
-    @override_options({"similarity.backfill_seer_threads": 5})
     @override_options({"similarity.backfill_project_cohort_size": 1})
     @with_feature("projects:similarity-embeddings-backfill")
     @patch("sentry.tasks.embeddings_grouping.backfill_seer_grouping_records_for_project.logger")
@@ -2207,7 +2204,7 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
         Test that when the cohort size is 1, multiple cohorts of size 1 are created and processed.
         """
         # Create 2 seer eligible projects that project_id % thread_number == worker_number
-        thread_number = options.get("similarity.backfill_seer_threads")
+        thread_number = options.get("similarity.backfill_total_worker_count")
         worker_number = self.project.id % thread_number
         self.project.platform = "python"
         self.project.save()

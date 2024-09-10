@@ -104,13 +104,13 @@ def create_project_cohort(worker_number: int, last_processed_project_id: int | N
     project_id_filter = Q()
     if last_processed_project_id is not None:
         project_id_filter = Q(id__gt=last_processed_project_id)
-    thread_number = options.get("similarity.backfill_seer_threads")
+    total_worker_count = options.get("similarity.backfill_total_worker_count")
     cohort_size = options.get("similarity.backfill_project_cohort_size")
 
     project_cohort_list = (
         Project.objects.filter(project_id_filter)
         .values_list("id", flat=True)
-        .extra(where=["id %% %s = %s"], params=[thread_number, worker_number])
+        .extra(where=["id %% %s = %s"], params=[total_worker_count, worker_number])
         .order_by("id")[:cohort_size]
     )
     return list(project_cohort_list)
