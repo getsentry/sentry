@@ -106,10 +106,6 @@ def pytest_configure(config: pytest.Config) -> None:
 
     config.addinivalue_line("markers", "migrations: requires --migrations")
 
-    if not config.getvalue("nomigrations"):
-        # XXX: ignore warnings in historic migrations
-        config.addinivalue_line("filterwarnings", "ignore:.*index_together.*")
-
     if sys.platform == "darwin" and shutil.which("colima"):
         # This is the only way other than pytest --basetemp to change
         # the temproot. We'd like to keep invocations to just "pytest".
