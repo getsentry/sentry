@@ -2,7 +2,6 @@ import styled from '@emotion/styled';
 
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import Alert from 'sentry/components/alert';
-import FeatureBadge from 'sentry/components/badge/featureBadge';
 import FeedbackWidgetButton from 'sentry/components/feedback/widget/feedbackWidgetButton';
 import {useGlobalModal} from 'sentry/components/globalModal/useGlobalModal';
 import ReplayDiffChooser from 'sentry/components/replays/diff/replayDiffChooser';
@@ -37,10 +36,7 @@ export default function ReplayComparisonModal({
     <OrganizationContext.Provider value={organization}>
       <Header closeButton>
         <ModalHeader>
-          <h4>
-            Hydration Error
-            <FeatureBadge type="beta" />
-          </h4>
+          <h4>{t('Hydration Error')}</h4>
           {focusTrap ? (
             <FeedbackWidgetButton
               optionOverrides={{
