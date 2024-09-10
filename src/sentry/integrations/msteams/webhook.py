@@ -143,8 +143,6 @@ def verify_signature(request):
 
 
 class MsTeamsWebhookMixin:
-    provider = "msteams"
-
     @classmethod
     def infer_team_id_from_channel_data(cls, data: Mapping[str, Any]) -> str | None:
         try:

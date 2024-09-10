@@ -88,7 +88,7 @@ class BaseRequestParserTest(TestCase):
 
     @override_settings(SILO_MODE=SiloMode.CONTROL)
     def test_get_response_from_webhookpayload_creation(self):
-        with pytest.raises(NotImplementedError):
+        with pytest.raises(AttributeError):
             self.parser.get_response_from_webhookpayload(regions=self.region_config)
 
         class MockParser(BaseRequestParser):
