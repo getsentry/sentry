@@ -473,7 +473,7 @@ function NodeActions(props: {
     };
 
     const continuousProfileLink: MenuItemProps | null =
-      organization.features.includes('continuous-profiling-ui') && !profileLink
+      organization.features.includes('continuous-profiling-ui') && !!profileLink
         ? {
             key: 'continuous-profile',
             onAction: () => {
