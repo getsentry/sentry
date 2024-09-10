@@ -312,6 +312,16 @@ describe('Sidebar', function () {
       expect(screen.getByLabelText('Primary Navigation')).toBeInTheDocument();
     });
 
+    it('does not render a secondary subnav', async function () {
+      renderSidebar({organization});
+
+      await waitFor(function () {
+        expect(apiMocks.broadcasts).toHaveBeenCalled();
+      });
+
+      expect(screen.queryByLabelText('Secondary Navigation')).not.toBeInTheDocument();
+    });
+
     it('in self-hosted-errors-only mode, only shows links to basic features', async function () {
       ConfigStore.set('isSelfHostedErrorsOnly', true);
 
@@ -422,30 +432,34 @@ describe('Sidebar', function () {
   });
 
   describe('Stacked navigation with navigation-sidebar-v2 flag', () => {
-    it('renders secondary subnav for issues', async function () {
-      renderSidebar({
-        organization: {...organization, features: ['navigation-sidebar-v2']},
-      });
+    it('renders all primary nav items with visible text', async function () {
+      renderSidebarWithFeatures(['navigation-sidebar-v2']);
 
-      expect(await screen.findByText('Issues')).toBeInTheDocument();
-      expect(await screen.findByLabelText('Secondary Navigation')).toBeInTheDocument();
+      const nav = await screen.findByLabelText('Primary Navigation');
+      const links = nav.querySelectorAll('a');
+      const labels = [...links].map(link => link.textContent);
+      expect(labels).toStrictEqual([
+        'Issues',
+        'Projects',
+        'Explore',
+        'Alerts',
+        'Help',
+        'New',
+        'Service status',
+        'Stats',
+        'Settings',
+      ]);
     });
 
-    it('does not render secondary subnav for projects', async function () {
-      renderSidebar({
-        organization: {...organization, features: ['navigation-sidebar-v2']},
-      });
-      mockUseLocation.mockReturnValue({...LocationFixture(), pathname: '/projects'});
+    it('renders a secondary subnav', async function () {
+      renderSidebarWithFeatures(['navigation-sidebar-v2']);
 
-      expect(
-        await screen.findByLabelText('Secondary Navigation')
-      ).not.toBeInTheDocument();
+      const subnav = await screen.findByLabelText('Secondary Navigation');
+      expect(subnav).toBeInTheDocument();
     });
 
     it('does not render collapse with navigation-sidebar-v2 flag', async function () {
-      renderSidebar({
-        organization: {...organization, features: ['navigation-sidebar-v2']},
-      });
+      renderSidebarWithFeatures(['navigation-sidebar-v2']);
 
       expect(await screen.findByText('Issues')).toBeInTheDocument();
       // Check that the user name is no longer visible
