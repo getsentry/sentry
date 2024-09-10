@@ -549,7 +549,22 @@ tests/sentry/api/endpoints/test_organization_dashboard_widget_details.py     @ge
 /tests/sentry/event_manager/                                @getsentry/issues
 /tests/sentry/grouping/                                     @getsentry/issues
 /tests/sentry/search/                                       @getsentry/issues
+/tests/sentry/tasks/test_auto_ongoing_issues.py             @getsentry/issues
+/tests/sentry/tasks/test_auto_remove_inbox.py               @getsentry/issues
+/tests/sentry/tasks/test_auto_resolve_issues.py             @getsentry/issues
+/tests/sentry/tasks/test_check_new_issue_threshold_met.py   @getsentry/issues
+/tests/sentry/tasks/test_clear_expired_resolutions.py       @getsentry/issues
+/tests/sentry/tasks/test_clear_expired_rulesnoozes.py       @getsentry/issues
+/tests/sentry/tasks/test_clear_expired_snoozes.py           @getsentry/issues
+/tests/sentry/tasks/test_code_owners.py                     @getsentry/issues
+/tests/sentry/tasks/test_commit_context.py                  @getsentry/issues
+/tests/sentry/tasks/test_commits.py                         @getsentry/issues
+/tests/sentry/tasks/test_delete_seer_grouping_records.py    @getsentry/issues
+/tests/sentry/tasks/test_derive_code_mappings.py            @getsentry/issues
+/tests/sentry/tasks/test_groupowner.py                      @getsentry/issues
+/tests/sentry/tasks/test_merge.py                           @getsentry/issues
 /tests/sentry/tasks/test_post_process.py                    @getsentry/issues
+/tests/sentry/tasks/test_weekly_escalating_forecast.py      @getsentry/issues
 /tests/snuba/search/                                        @getsentry/issues
 ## End of Issues
 
