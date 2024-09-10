@@ -198,8 +198,6 @@ export type Frame = {
   trust: any | null;
   vars: Record<string, any> | null;
   addrMode?: string;
-  isPrefix?: boolean;
-  isSentinel?: boolean;
   lock?: Lock | null;
   // map exists if the frame has a source map
   map?: string | null;
@@ -211,8 +209,6 @@ export type Frame = {
 };
 
 export enum FrameBadge {
-  SENTINEL = 'sentinel',
-  PREFIX = 'prefix',
   GROUPING = 'grouping',
 }
 
