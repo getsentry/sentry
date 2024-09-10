@@ -66,20 +66,20 @@ export default function TimeAndScrubberGrid({
   return (
     <TimelineScaleContextProvider>
       <Grid id="replay-timeline-player" isCompact={isCompact}>
-        <Numeric style={{gridArea: 'currentTime', paddingInline: space(1.5)}}>
+        <Numeric style={{gridArea: 'currentTime'}}>
           <Duration duration={[currentTime, 'ms']} precision="sec" />
         </Numeric>
 
         <div style={{gridArea: 'timeline'}}>
           <ReplayTimeline />
         </div>
-        <div style={{gridArea: 'timelineSize', fontVariantNumeric: 'tabular-nums'}}>
+        <TimelineSize style={{gridArea: 'timelineSize'}}>
           {showZoom ? <TimelineSizeBar /> : null}
-        </div>
+        </TimelineSize>
         <StyledScrubber style={{gridArea: 'scrubber'}} ref={elem} {...mouseTrackingProps}>
           <PlayerScrubber showZoomIndicators={showZoom} />
         </StyledScrubber>
-        <Numeric style={{gridArea: 'duration', paddingInline: space(1.5)}}>
+        <Numeric style={{gridArea: 'duration'}}>
           {durationMs === undefined ? (
             '--:--'
           ) : (
@@ -121,4 +121,9 @@ const Numeric = styled('span')`
   font-size: ${p => p.theme.fontSizeSmall};
   font-variant-numeric: tabular-nums;
   font-weight: ${p => p.theme.fontWeightBold};
+  padding-inline: ${space(1.5)};
+`;
+
+const TimelineSize = styled('div')`
+  font-variant-numeric: tabular-nums;
 `;
