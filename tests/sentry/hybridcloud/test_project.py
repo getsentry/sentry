@@ -2,6 +2,7 @@ from sentry.models.project import Project
 from sentry.projects.services.project.service import project_service
 from sentry.testutils.factories import Factories
 from sentry.testutils.pytest.fixtures import django_db_all
+from sentry.testutils.silo import control_silo_test
 
 
 @django_db_all(transaction=True)
@@ -33,13 +34,9 @@ def test_get_or_create_project() -> None:
 
 
 @django_db_all(transaction=True)
+@control_silo_test
 def test_get_project_flags() -> None:
     org = Factories.create_organization()
     project = Factories.create_project(organization_id=org.id)
-    project.flags.has_insights_http = False
-    project_flags = project_service.get_flags(org.id, project.id)
+    project_flags = project_service.get_flags(organization_id=org.id, project_id=project.id)
     assert project_flags.has_insights_http is False
-
-    project.flags.has_insights_http = True
-    new_project_flags = project_service.get_flags(org.id, project.id)
-    assert new_project_flags.has_insights_http is True

@@ -84,10 +84,10 @@ class RpcProject(RpcModel):
 
         project_service.delete_option(self, key)
 
-    def get_flags(self) -> RpcProjectFlags:
+    def get_flags(self, organization_id: int, project_id: int) -> RpcProjectFlags:
         from sentry.projects.services.project import project_service
 
-        return project_service.get_flags(self.organization_id, self.id)
+        return project_service.get_flags(self, organization_id, project_id)
 
 
 class RpcProjectOptionValue(RpcModel):
