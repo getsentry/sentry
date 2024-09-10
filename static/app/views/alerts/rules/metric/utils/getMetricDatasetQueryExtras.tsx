@@ -5,6 +5,7 @@ import {hasCustomMetrics} from 'sentry/utils/metrics/features';
 import {hasOnDemandMetricAlertFeature} from 'sentry/utils/onDemandMetrics/features';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {getMEPAlertsDataset} from 'sentry/views/alerts/wizard/options';
+import {hasInsightsAlerts} from 'sentry/views/insights/common/utils/hasInsightsAlerts';
 
 import type {MetricRule} from '../types';
 
@@ -24,7 +25,8 @@ export function getMetricDatasetQueryExtras({
   const hasMetricDataset =
     hasOnDemandMetricAlertFeature(organization) ||
     hasCustomMetrics(organization) ||
-    organization.features.includes('mep-rollout-flag');
+    organization.features.includes('mep-rollout-flag') ||
+    hasInsightsAlerts(organization);
   const disableMetricDataset =
     decodeScalar(location?.query?.disableMetricDataset) === 'true';
 
