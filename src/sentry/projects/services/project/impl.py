@@ -155,7 +155,7 @@ class DatabaseBackedProjectService(ProjectService):
             add_org_default_team=add_org_default_team,
         )
 
-    def get_flags(self, *, organization_id: int, project_id: id) -> RpcProjectFlags:
+    def get_flags(self, *, organization_id: int, project_id: int) -> RpcProjectFlags:
         project = Project.objects.filter(
             organization_id=organization_id,
             id=project_id,
