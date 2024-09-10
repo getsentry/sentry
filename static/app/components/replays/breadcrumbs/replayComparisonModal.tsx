@@ -1,3 +1,4 @@
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
@@ -30,6 +31,7 @@ export default function ReplayComparisonModal({
   // Callbacks set by GlobalModal on-render.
   // We need these to interact with feedback opened while a modal is active.
   const {focusTrap} = useGlobalModal();
+  const theme = useTheme();
 
   const isSameTimestamp = leftOffsetMs === rightOffsetMs;
 
@@ -59,10 +61,10 @@ export default function ReplayComparisonModal({
         <Grid>
           <StyledParagraph>
             {tct(
-              'This modal helps with debugging hydration errors by diffing the dom before and after the app hydrated. [boldBefore:Before Hydration] refers to the html rendered on the server. [boldAfter:After Hydration] refers to the html rendered on the client. This feature is actively being developed; please share any questions or feedback to the discussion linked above.',
+              'This modal helps with debugging hydration errors by diffing the dom before and after the app hydrated. [boldBefore:Before] refers to the html rendered on the server. [boldAfter:After] refers to the html rendered on the client. This feature is actively being developed; please share any questions or feedback to the discussion linked above.',
               {
-                boldBefore: <strong />,
-                boldAfter: <strong />,
+                boldBefore: <strong css={{color: `${theme.red300}`}} />,
+                boldAfter: <strong css={{color: `${theme.green300}`}} />,
               }
             )}
           </StyledParagraph>
