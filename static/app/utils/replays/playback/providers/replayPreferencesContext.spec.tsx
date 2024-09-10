@@ -49,7 +49,7 @@ describe('replayPlayerPluginsContext', () => {
     });
 
     expect(result.current).toEqual([
-      {isSkippingInactive: true, playbackSpeed: 1},
+      {isSkippingInactive: true, playbackSpeed: 1, timestamp: 'relative'},
       expect.any(Function),
     ]);
 
