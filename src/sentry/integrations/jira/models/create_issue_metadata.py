@@ -16,6 +16,7 @@ class JiraSchemaTypes(str, Enum):
     date = "date"
     team = "team"
     number = "number"
+    json = "json"
     any = "any"
 
 
@@ -156,8 +157,8 @@ class JiraIssueTypeMetadata:
         )
 
     @classmethod
-    def from_jira_meta_config(cls, meta_config: dict[str, Any]) -> list[JiraIssueTypeMetadata]:
+    def from_jira_meta_config(cls, meta_config: dict[str, Any]) -> dict[str, JiraIssueTypeMetadata]:
         issue_types_list = meta_config.get("issuetypes", {})
         issue_configs = [cls.from_dict(it) for it in issue_types_list]
 
-        return issue_configs
+        return {it.id: it for it in issue_configs}
