@@ -171,6 +171,7 @@ const LinkedFeedbackCard = styled(Link)`
   position: relative;
   padding: ${space(1)} ${space(3)} ${space(1)} ${space(1.5)};
   border: 1px solid transparent;
+  border-radius: ${space(0.75)};
 
   color: ${p => p.theme.textColor};
   &:hover {
