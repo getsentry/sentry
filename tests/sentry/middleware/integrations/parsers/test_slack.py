@@ -130,7 +130,7 @@ class SlackRequestParserTest(TestCase):
                 "response_url": response_url,
             }
         )
-        assert response.status_code == status.HTTP_202_ACCEPTED
+        assert response.status_code == status.HTTP_200_OK
 
     @patch("sentry.middleware.integrations.parsers.slack.convert_to_async_slack_response")
     @patch.object(

@@ -131,3 +131,16 @@ class SlackActionRequest(SlackRequest):
                 if tag_key.strip().endswith(":"):
                     tags.add(tag_key.strip(": "))
         return tags
+
+    def get_action_ts(self) -> str | None:
+        """
+        Get the action timestamp from the Slack request data.
+
+        Returns:
+            str | None: The action timestamp if available, None otherwise.
+        """
+        actions = self.data.get("actions", [])
+        if actions and isinstance(actions, list) and len(actions) > 0:
+            (action,) = actions
+            return action.get("action_ts")
+        return None
