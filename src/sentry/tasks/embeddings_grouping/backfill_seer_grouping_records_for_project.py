@@ -6,11 +6,12 @@ from django.conf import settings
 
 from sentry import options
 from sentry.models.project import Project
-from sentry.seer.similarity.utils import killswitch_enabled
+from sentry.seer.similarity.utils import killswitch_enabled, project_is_seer_eligible
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
 from sentry.tasks.embeddings_grouping.utils import (
     FeatureError,
+    create_project_cohort,
     delete_seer_grouping_records,
     filter_snuba_results,
     get_current_batch_groups_from_postgres,
@@ -40,7 +41,7 @@ logger = logging.getLogger(__name__)
     acks_late=True,
 )
 def backfill_seer_grouping_records_for_project(
-    current_project_id: int,
+    current_project_id: int | None,
     last_processed_group_id_input: int | None,
     cohort: str | list[int] | None = None,
     last_processed_project_index_input: int | None = None,
@@ -48,6 +49,8 @@ def backfill_seer_grouping_records_for_project(
     enable_ingestion: bool = False,
     skip_processed_projects: bool = False,
     skip_project_ids: list[int] | None = None,
+    worker_number: int | None = None,
+    last_processed_project_id: int | None = None,
     *args: Any,
     **kwargs: Any,
 ) -> None:
@@ -56,6 +59,20 @@ def backfill_seer_grouping_records_for_project(
     Pass in last_processed_group_id = None if calling for the first time. This function will spawn
     child tasks that will pass the last_processed_group_id
     """
+
+    if cohort is None and worker_number is not None:
+        cohort = create_project_cohort(worker_number, last_processed_project_id)
+        if not cohort:
+            logger.info(
+                "reached the end of the projects in cohort",
+                extra={
+                    "worker_number": worker_number,
+                },
+            )
+            return
+        current_project_id = cohort[0]
+    assert current_project_id is not None
+
     if options.get("seer.similarity-backfill-killswitch.enabled") or killswitch_enabled(
         current_project_id
     ):
@@ -103,6 +120,7 @@ def backfill_seer_grouping_records_for_project(
             enable_ingestion=enable_ingestion,
             skip_processed_projects=skip_processed_projects,
             skip_project_ids=skip_project_ids,
+            worker_number=worker_number,
         )
         return
 
@@ -120,17 +138,6 @@ def backfill_seer_grouping_records_for_project(
                 "project_manually_skipped": is_project_skipped,
             },
         )
-        call_next_backfill(
-            last_processed_group_id=None,
-            project_id=current_project_id,
-            last_processed_project_index=last_processed_project_index,
-            cohort=cohort,
-            only_delete=only_delete,
-            enable_ingestion=enable_ingestion,
-            skip_processed_projects=skip_processed_projects,
-            skip_project_ids=skip_project_ids,
-        )
-        return
 
     if only_delete:
         delete_seer_grouping_records(current_project_id)
@@ -138,6 +145,19 @@ def backfill_seer_grouping_records_for_project(
             "backfill_seer_grouping_records.deleted_all_records",
             extra={"current_project_id": current_project_id},
         )
+
+    # Only check if project is seer eligible if we are running the GA backfill
+    # ie. worker number is not None
+    is_project_seer_eligible = True
+    if worker_number is not None:
+        is_project_seer_eligible = project_is_seer_eligible(project)
+        if not is_project_seer_eligible:
+            logger.info(
+                "backfill_seer_grouping_records.project_is_not_seer_eligible",
+                extra={"project_id": project.id},
+            )
+
+    if is_project_processed or is_project_skipped or only_delete or not is_project_seer_eligible:
         call_next_backfill(
             last_processed_group_id=None,
             project_id=current_project_id,
@@ -147,6 +167,7 @@ def backfill_seer_grouping_records_for_project(
             enable_ingestion=enable_ingestion,
             skip_processed_projects=skip_processed_projects,
             skip_project_ids=skip_project_ids,
+            worker_number=worker_number,
         )
         return
 
@@ -165,6 +186,7 @@ def backfill_seer_grouping_records_for_project(
             enable_ingestion=enable_ingestion,
             skip_processed_projects=skip_processed_projects,
             skip_project_ids=skip_project_ids,
+            worker_number=worker_number,
         )
         return
 
@@ -184,6 +206,7 @@ def backfill_seer_grouping_records_for_project(
             enable_ingestion=enable_ingestion,
             skip_processed_projects=skip_processed_projects,
             skip_project_ids=skip_project_ids,
+            worker_number=worker_number,
         )
         return
 
@@ -199,6 +222,7 @@ def backfill_seer_grouping_records_for_project(
             enable_ingestion=enable_ingestion,
             skip_processed_projects=skip_processed_projects,
             skip_project_ids=skip_project_ids,
+            worker_number=worker_number,
         )
         return
 
@@ -256,6 +280,7 @@ def backfill_seer_grouping_records_for_project(
         enable_ingestion=enable_ingestion,
         skip_processed_projects=skip_processed_projects,
         skip_project_ids=skip_project_ids,
+        worker_number=worker_number,
     )
 
 
@@ -269,6 +294,8 @@ def call_next_backfill(
     enable_ingestion: bool = False,
     skip_processed_projects: bool = False,
     skip_project_ids: list[int] | None = None,
+    last_processed_project_id: int | None = None,
+    worker_number: int | None = None,
 ):
     if last_processed_group_id is not None:
         logger.info(
@@ -288,6 +315,8 @@ def call_next_backfill(
                 enable_ingestion,
                 skip_processed_projects,
                 skip_project_ids,
+                worker_number,
+                last_processed_project_id,
             ],
             headers={"sentry-propagate-traces": False},
         )
@@ -309,7 +338,7 @@ def call_next_backfill(
             last_processed_project_index, cohort_projects
         )
 
-        if batch_project_id is None:
+        if batch_project_id is None and worker_number is None:
             logger.info(
                 "reached the end of the project list",
                 extra={
@@ -319,6 +348,9 @@ def call_next_backfill(
             )
             # we're at the end of the project list
             return
+        elif batch_project_id is None:
+            cohort = None
+            last_processed_project_id = project_id
 
         backfill_seer_grouping_records_for_project.apply_async(
             args=[
@@ -330,6 +362,8 @@ def call_next_backfill(
                 enable_ingestion,
                 skip_processed_projects,
                 skip_project_ids,
+                worker_number,
+                last_processed_project_id,
             ],
             headers={"sentry-propagate-traces": False},
         )
