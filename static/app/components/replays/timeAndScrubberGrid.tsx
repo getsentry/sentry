@@ -15,6 +15,7 @@ import {space} from 'sentry/styles/space';
 import useTimelineScale, {
   TimelineScaleContextProvider,
 } from 'sentry/utils/replays/hooks/useTimelineScale';
+import {useReplayPrefs} from 'sentry/utils/replays/playback/providers/replayPreferencesContext';
 
 type TimeAndScrubberGridProps = {
   isCompact?: boolean;
@@ -59,7 +60,9 @@ export default function TimeAndScrubberGrid({
   isCompact = false,
   showZoom = false,
 }: TimeAndScrubberGridProps) {
-  const {currentTime, replay, timestampType} = useReplayContext();
+  const {currentTime, replay} = useReplayContext();
+  const [prefs] = useReplayPrefs();
+  const timestampType = prefs.timestampType;
   const startTimestamp = replay?.getStartTimestampMs() ?? 0;
   const durationMs = replay?.getDurationMs();
   const elem = useRef<HTMLDivElement>(null);

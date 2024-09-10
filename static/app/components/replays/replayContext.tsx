@@ -105,11 +105,6 @@ interface ReplayPlayerContextProps extends HighlightCallbacks {
   setRoot: (root: RootElem) => void;
 
   /**
-   * The way the timestamps are displayed: relative to the duration of the replay or absolute time
-   */
-  timestampType: 'relative' | 'absolute';
-
-  /**
    * Start or stop playback
    *
    * @param play
@@ -136,7 +131,6 @@ const ReplayPlayerContext = createContext<ReplayPlayerContextProps>({
   setCurrentTime: () => {},
   setRoot: () => {},
   togglePlayPause: () => {},
-  timestampType: 'relative',
 });
 
 type Props = {
@@ -620,7 +614,6 @@ export function Provider({
           restart,
           setCurrentTime,
           togglePlayPause,
-          timestampType: prefs.timestamp,
           ...value,
         }}
       >

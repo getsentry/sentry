@@ -5,19 +5,19 @@ const LOCAL_STORAGE_KEY = 'replay-config';
 export type ReplayPrefs = {
   isSkippingInactive: boolean;
   playbackSpeed: number;
-  timestamp: 'relative' | 'absolute';
+  timestampType: 'relative' | 'absolute';
 };
 
 const CAN_SKIP_PREFS: ReplayPrefs = {
   isSkippingInactive: true,
   playbackSpeed: 1,
-  timestamp: 'relative',
+  timestampType: 'relative',
 };
 
 const NO_SKIP_PREFS: ReplayPrefs = {
   isSkippingInactive: false,
   playbackSpeed: 1,
-  timestamp: 'relative',
+  timestampType: 'relative',
 };
 
 export interface PrefsStrategy {

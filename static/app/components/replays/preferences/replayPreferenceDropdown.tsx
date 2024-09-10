@@ -41,8 +41,8 @@ export default function ReplayPreferenceDropdown({
       />
       <CompositeSelect.Region
         label={t('Timestamps')}
-        value={prefs.timestamp}
-        onChange={opt => setPrefs({timestamp: opt.value})}
+        value={prefs.timestampType}
+        onChange={opt => setPrefs({timestampType: opt.value})}
         options={timestampOptions.map(option => ({
           label: `${toTitleCase(option)}`,
           value: option,

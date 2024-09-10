@@ -3,17 +3,17 @@ import styled from '@emotion/styled';
 
 import {DateTime} from 'sentry/components/dateTime';
 import Duration from 'sentry/components/duration/duration';
-import {useReplayContext} from 'sentry/components/replays/replayContext';
 import {Tooltip} from 'sentry/components/tooltip';
 import {IconPlay} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {getFormat, getFormattedDate} from 'sentry/utils/dates';
 import formatDuration from 'sentry/utils/duration/formatDuration';
+import {useReplayPrefs} from 'sentry/utils/replays/playback/providers/replayPreferencesContext';
 
 type Props = {
   startTimestampMs: number;
-  timestampMs: string | number | Date;
+  timestampMs: number;
   className?: string;
   onClick?: (event: MouseEvent) => void;
   precision?: 'sec' | 'ms';
@@ -26,34 +26,34 @@ export default function TimestampButton({
   startTimestampMs,
   timestampMs,
 }: Props) {
-  const {timestampType} = useReplayContext();
-  const timestampMsAsTime = new Date(timestampMs).getTime();
+  const [prefs] = useReplayPrefs();
+  const timestampType = prefs.timestampType;
   return (
     <Tooltip
       title={
         <div>
-          <div>
+          <TooltipTime>
             {t(
               'Date: %s',
               getFormattedDate(
-                timestampMsAsTime,
+                timestampMs,
                 `${getFormat({year: true, seconds: true, timeZone: true})}`,
                 {
                   local: true,
                 }
               )
             )}
-          </div>
-          <div>
+          </TooltipTime>
+          <TooltipTime>
             {t(
               'Time within replay: %s',
               formatDuration({
-                duration: [Math.abs(timestampMsAsTime - startTimestampMs), 'ms'],
+                duration: [Math.abs(timestampMs - startTimestampMs), 'ms'],
                 precision: 'ms',
                 style: 'hh:mm:ss.sss',
               })
             )}
-          </div>
+          </TooltipTime>
         </div>
       }
       skipWrapper
@@ -65,10 +65,10 @@ export default function TimestampButton({
       >
         <IconPlay size="xs" />
         {timestampType === 'absolute' ? (
-          <DateTime timeOnly seconds date={timestampMsAsTime} />
+          <DateTime timeOnly seconds date={timestampMs} />
         ) : (
           <Duration
-            duration={[Math.abs(timestampMsAsTime - startTimestampMs), 'ms']}
+            duration={[Math.abs(timestampMs - startTimestampMs), 'ms']}
             precision={precision}
           />
         )}
@@ -76,6 +76,10 @@ export default function TimestampButton({
     </Tooltip>
   );
 }
+
+const TooltipTime = styled('div')`
+  text-align: left;
+`;
 
 const StyledButton = styled('button')`
   background: transparent;

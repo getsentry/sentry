@@ -13,6 +13,7 @@ import formatDuration from 'sentry/utils/duration/formatDuration';
 import divide from 'sentry/utils/number/divide';
 import toPercent from 'sentry/utils/number/toPercent';
 import useTimelineScale from 'sentry/utils/replays/hooks/useTimelineScale';
+import {useReplayPrefs} from 'sentry/utils/replays/playback/providers/replayPreferencesContext';
 import useCurrentHoverTime from 'sentry/utils/replays/playback/providers/useCurrentHoverTime';
 
 type Props = {
@@ -21,7 +22,9 @@ type Props = {
 };
 
 function Scrubber({className, showZoomIndicators = false}: Props) {
-  const {replay, currentTime, setCurrentTime, timestampType} = useReplayContext();
+  const {replay, currentTime, setCurrentTime} = useReplayContext();
+  const [prefs] = useReplayPrefs();
+  const timestampType = prefs.timestampType;
   const [currentHoverTime] = useCurrentHoverTime();
   const [timelineScale] = useTimelineScale();
 
