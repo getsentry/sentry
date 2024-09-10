@@ -449,7 +449,7 @@ export function ProjectSourceMaps({location, router, project}: Props) {
               onDelete={handleDeleteReleaseArtifacts}
               link={`/settings/${organization.slug}/projects/${
                 project.slug
-              }/source-maps/release-bundles/${encodeURIComponent(data.name)}`}
+              }/source-maps/release-bundles/${encodeURIComponent(data.name)}/`}
             />
           ))}
         </Table>

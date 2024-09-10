@@ -46,7 +46,7 @@ export function DebugIdBundleList({
                 project.slug
               }/source-maps/artifact-bundles/${encodeURIComponent(
                 debugIdBundle.bundleId
-              )}`}
+              )}/`}
             >
               <IconList /> {debugIdBundle.bundleId}
             </ItemTitle>

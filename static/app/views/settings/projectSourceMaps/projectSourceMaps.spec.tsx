@@ -280,7 +280,7 @@ describe('ProjectSourceMaps', function () {
         })
       );
       expect(router.push).toHaveBeenLastCalledWith(
-        '/settings/org-slug/projects/project-slug/source-maps/artifact-bundles/b916a646-2c6b-4e45-af4c-409830a44e0e'
+        '/settings/org-slug/projects/project-slug/source-maps/artifact-bundles/b916a646-2c6b-4e45-af4c-409830a44e0e/'
       );
 
       renderGlobalModal();
