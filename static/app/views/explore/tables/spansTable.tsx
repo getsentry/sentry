@@ -1,7 +1,11 @@
 import {Fragment, useMemo} from 'react';
 
+import EmptyStateWarning from 'sentry/components/emptyStateWarning';
 import Link from 'sentry/components/links/link';
+import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Pagination from 'sentry/components/pagination';
+import {IconWarning} from 'sentry/icons';
+import {t} from 'sentry/locale';
 import type {NewQuery} from 'sentry/types/organization';
 import type {EventData} from 'sentry/utils/discover/eventView';
 import EventView from 'sentry/utils/discover/eventView';
@@ -17,6 +21,7 @@ import {
   TableHead,
   TableHeadCell,
   TableRow,
+  TableStatus,
   useTableStyles,
 } from 'sentry/views/explore/components/table';
 import {useDataset} from 'sentry/views/explore/hooks/useDataset';
@@ -89,22 +94,38 @@ export function SpansTable({}: SpansTableProps) {
           </TableRow>
         </TableHead>
         <TableBody>
-          {result.data?.map((row, i) => (
-            <TableRow key={i}>
-              {fields.map((field, j) => {
-                return (
-                  <TableBodyCell key={j}>
-                    <Field
-                      data={row}
-                      field={field}
-                      unit={meta?.units?.[field]}
-                      meta={fields}
-                    />
-                  </TableBodyCell>
-                );
-              })}
-            </TableRow>
-          ))}
+          {result.isPending ? (
+            <TableStatus>
+              <LoadingIndicator />
+            </TableStatus>
+          ) : result.isError ? (
+            <TableStatus>
+              <IconWarning data-test-id="error-indicator" color="gray300" size="lg" />
+            </TableStatus>
+          ) : result.isFetched && result.data?.length ? (
+            result.data?.map((row, i) => (
+              <TableRow key={i}>
+                {fields.map((field, j) => {
+                  return (
+                    <TableBodyCell key={j}>
+                      <Field
+                        data={row}
+                        field={field}
+                        unit={meta?.units?.[field]}
+                        meta={fields}
+                      />
+                    </TableBodyCell>
+                  );
+                })}
+              </TableRow>
+            ))
+          ) : (
+            <TableStatus>
+              <EmptyStateWarning>
+                <p>{t('No spans found')}</p>
+              </EmptyStateWarning>
+            </TableStatus>
+          )}
         </TableBody>
       </Table>
       <Pagination pageLinks={result.pageLinks} />
