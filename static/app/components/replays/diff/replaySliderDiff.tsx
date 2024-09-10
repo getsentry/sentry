@@ -1,4 +1,5 @@
 import {Fragment, useCallback, useRef} from 'react';
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import NegativeSpaceContainer from 'sentry/components/container/negativeSpaceContainer';
@@ -23,20 +24,21 @@ interface Props {
 export function ReplaySliderDiff({leftOffsetMs, replay, rightOffsetMs}: Props) {
   const positionedRef = useRef<HTMLDivElement>(null);
   const viewDimensions = useDimensions({elementRef: positionedRef});
+  const theme = useTheme();
 
   const width = toPixels(viewDimensions.width);
   return (
     <Fragment>
       <Header>
         <Tooltip title={t('How the initial server-rendered page looked.')}>
-          <div style={{color: 'red'}}>{t('Before')}</div>
+          <div style={{color: `${theme.red300}`, fontWeight: 'bold'}}>{t('Before')}</div>
         </Tooltip>
         <Tooltip
           title={t(
             'How React re-rendered the page on your browser, after detecting a hydration error.'
           )}
         >
-          <div style={{color: 'green'}}>{t('After')}</div>
+          <div style={{color: `${theme.green300}`, fontWeight: 'bold'}}>{t('After')}</div>
         </Tooltip>
       </Header>
       <WithPadding>
