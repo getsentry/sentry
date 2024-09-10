@@ -3,9 +3,13 @@ import styled from '@emotion/styled';
 
 import {DateTime} from 'sentry/components/dateTime';
 import Duration from 'sentry/components/duration/duration';
+import {useReplayContext} from 'sentry/components/replays/replayContext';
 import {Tooltip} from 'sentry/components/tooltip';
 import {IconPlay} from 'sentry/icons';
+import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import {getFormat, getFormattedDate} from 'sentry/utils/dates';
+import formatDuration from 'sentry/utils/duration/formatDuration';
 
 type Props = {
   startTimestampMs: number;
@@ -22,18 +26,52 @@ export default function TimestampButton({
   startTimestampMs,
   timestampMs,
 }: Props) {
+  const {timestampType} = useReplayContext();
+  const timestampMsAsTime = new Date(timestampMs).getTime();
   return (
-    <Tooltip title={<DateTime seconds date={timestampMs} />} skipWrapper>
+    <Tooltip
+      title={
+        <div>
+          <div>
+            {t(
+              'Date: %s',
+              getFormattedDate(
+                timestampMsAsTime,
+                `${getFormat({year: true, seconds: true, timeZone: true})}`,
+                {
+                  local: true,
+                }
+              )
+            )}
+          </div>
+          <div>
+            {t(
+              'Time within replay: %s',
+              formatDuration({
+                duration: [Math.abs(timestampMsAsTime - startTimestampMs), 'ms'],
+                precision: 'ms',
+                style: 'hh:mm:ss.sss',
+              })
+            )}
+          </div>
+        </div>
+      }
+      skipWrapper
+    >
       <StyledButton
         as={onClick ? 'button' : 'span'}
         onClick={onClick}
         className={className}
       >
         <IconPlay size="xs" />
-        <Duration
-          duration={[Math.abs(new Date(timestampMs).getTime() - startTimestampMs), 'ms']}
-          precision={precision}
-        />
+        {timestampType === 'absolute' ? (
+          <DateTime timeOnly seconds date={timestampMsAsTime} />
+        ) : (
+          <Duration
+            duration={[Math.abs(timestampMsAsTime - startTimestampMs), 'ms']}
+            precision={precision}
+          />
+        )}
       </StyledButton>
     </Tooltip>
   );
