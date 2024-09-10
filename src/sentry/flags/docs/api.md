@@ -28,13 +28,14 @@ Retrieve a collection of flag logs.
 
 **Attributes**
 
-| Column      | Type   | Description                                      |
-| ----------- | ------ | ------------------------------------------------ |
-| action      | string | Enum of `created` or `modified`.                 |
-| environment | string | The environment the change applies to.           |
-| flag        | string | The name of the flag changed.                    |
-| modified_at | string | ISO-8601 timestamp of when the flag was changed. |
-| modified_by | string | The user responsible for the change.             |
+| Column           | Type   | Description                                      |
+| ---------------- | ------ | ------------------------------------------------ |
+| action           | string | Enum of `created` or `modified`.                |
+| environment      | string | The environment the change applies to.           |
+| flag             | string | The name of the flag changed.                    |
+| modified_at      | string | ISO-8601 timestamp of when the flag was changed. |
+| modified_by      | string | The user responsible for the change.             |
+| modified_by_type | string | Enum of `email`, `id`, or `name`.                |
 
 - Response 200
 
@@ -46,7 +47,8 @@ Retrieve a collection of flag logs.
         "environment": "production",
         "flag": "my-flag-name",
         "modified_at": "2024-01-01T05:12:33",
-        "modified_by": "2552"
+        "modified_by": "2552",
+        "modified_by_type": "id"
       }
     ]
   }
@@ -67,7 +69,8 @@ Retrieve a single flag log instance.
       "environment": "development",
       "flag": "new-flag-name",
       "modified_at": "2024-11-19T19:12:55",
-      "modified_by": "user@site.com"
+      "modified_by": "user@site.com",
+      "modified_by_type": "email"
     }
   }
   ```
