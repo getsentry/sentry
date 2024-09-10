@@ -109,20 +109,6 @@ describe('Sidebar', function () {
     await userEvent.click(screen.getByTestId('sidebar-dropdown'));
   });
 
-  it('does not render collapse with navigation-sidebar-v2 flag', async function () {
-    renderSidebar({
-      organization: {...organization, features: ['navigation-sidebar-v2']},
-    });
-
-    // await for the page to be rendered
-    expect(await screen.findByText('Issues')).toBeInTheDocument();
-    // Check that the user name is no longer visible
-    expect(screen.queryByText(user.name)).not.toBeInTheDocument();
-    // Check that the organization name is no longer visible
-    expect(screen.queryByText(organization.name)).not.toBeInTheDocument();
-    expect(screen.queryByTestId('sidebar-collapse')).not.toBeInTheDocument();
-  });
-
   it('has can logout', async function () {
     renderSidebar({
       organization: OrganizationFixture({access: ['member:read']}),
@@ -323,7 +309,7 @@ describe('Sidebar', function () {
         expect(apiMocks.broadcasts).toHaveBeenCalled();
       });
 
-      expect(screen.getByTitle('Primary Navigation')).toBeInTheDocument();
+      expect(screen.getByLabelText('Primary Navigation')).toBeInTheDocument();
     });
 
     it('in self-hosted-errors-only mode, only shows links to basic features', async function () {
@@ -432,6 +418,41 @@ describe('Sidebar', function () {
       await userEvent.click(screen.getByTestId('sidebar-collapse'));
       await userEvent.click(screen.getByTestId('sidebar-accordion-insights-item'));
       expect(await screen.findByTestId('floating-accordion')).toBeInTheDocument();
+    });
+  });
+
+  describe('Stacked navigation with navigation-sidebar-v2 flag', () => {
+    it('renders secondary subnav for issues', async function () {
+      renderSidebar({
+        organization: {...organization, features: ['navigation-sidebar-v2']},
+      });
+
+      expect(await screen.findByText('Issues')).toBeInTheDocument();
+      expect(await screen.findByLabelText('Secondary Navigation')).toBeInTheDocument();
+    });
+
+    it('does not render secondary subnav for projects', async function () {
+      renderSidebar({
+        organization: {...organization, features: ['navigation-sidebar-v2']},
+      });
+      mockUseLocation.mockReturnValue({...LocationFixture(), pathname: '/projects'});
+
+      expect(
+        await screen.findByLabelText('Secondary Navigation')
+      ).not.toBeInTheDocument();
+    });
+
+    it('does not render collapse with navigation-sidebar-v2 flag', async function () {
+      renderSidebar({
+        organization: {...organization, features: ['navigation-sidebar-v2']},
+      });
+
+      expect(await screen.findByText('Issues')).toBeInTheDocument();
+      // Check that the user name is no longer visible
+      expect(screen.queryByText(user.name)).not.toBeInTheDocument();
+      // Check that the organization name is no longer visible
+      expect(screen.queryByText(organization.name)).not.toBeInTheDocument();
+      expect(screen.queryByTestId('sidebar-collapse')).not.toBeInTheDocument();
     });
   });
 });
