@@ -65,13 +65,14 @@
 /src/sentry/web/frontend/openidtoken.py                  @getsentry/security
 
 ## Dev
+/devenv/                                                 @getsentry/owners-sentry-dev @getsentry/dev-infra
 /.github/                                                @getsentry/owners-sentry-dev
 /config/hooks/                                           @getsentry/owners-sentry-dev
 /scripts/                                                @getsentry/owners-sentry-dev
 /tools/                                                  @getsentry/owners-sentry-dev
-Makefile                                                 @getsentry/owners-sentry-dev
-.envrc                                                   @getsentry/owners-sentry-dev
-.pre-commit-config.yaml                                  @getsentry/owners-sentry-dev
+Makefile                                                 @getsentry/owners-sentry-dev @getsentry/dev-infra
+.envrc                                                   @getsentry/owners-sentry-dev @getsentry/dev-infra
+.pre-commit-config.yaml                                  @getsentry/owners-sentry-dev @getsentry/dev-infra
 .git-blame-ignore-revs                                   @getsentry/owners-sentry-dev
 
 /fixtures/stubs-for-mypy                                 @getsentry/python-typing
