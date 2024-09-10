@@ -20,16 +20,18 @@ const subnavContext = createContext<SubnavContextData>({
   containerRef: {current: null},
 });
 
-export function SubnavContainer({children}) {
+export function SubnavContainer({children, hasNewNav}) {
   const containerRef = useRef<HTMLDivElement>(null);
   useLayoutEffect(() => {
+    if (!hasNewNav) return;
     if (!containerRef.current) return;
     if (containerRef.current.children.length === 0) {
       document.body.dataset.navLevel = '1';
     } else {
       document.body.dataset.navLevel = '2';
     }
-  });
+  }, [hasNewNav]);
+  if (!hasNewNav) return <Fragment>{children}</Fragment>;
   return (
     <subnavContext.Provider value={{containerRef}}>
       {children}

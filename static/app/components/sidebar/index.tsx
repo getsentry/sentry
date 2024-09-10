@@ -249,7 +249,7 @@ function Sidebar() {
           label={<GuideAnchor target="issues">{t('All')}</GuideAnchor>}
           to={`/organizations/${organization.slug}/issues/`}
           search="?referrer=sidebar"
-          id="issues"
+          id="issues-all"
           hasNewNav={hasNewNav}
         />
         <SidebarItem
@@ -258,7 +258,7 @@ function Sidebar() {
           label={<GuideAnchor target="issues">{t('Errors & Outages')}</GuideAnchor>}
           to={`/organizations/${organization.slug}/issues/`}
           search={getSearchForIssueGroup(IssueGroup.ERRORS_OUTAGES)}
-          id="errors-outages"
+          id="issues-errors-outages"
           hasNewNav={hasNewNav}
         />
         <SidebarItem
@@ -267,7 +267,7 @@ function Sidebar() {
           label={<GuideAnchor target="issues">{t('Trends')}</GuideAnchor>}
           to={`/organizations/${organization.slug}/issues/`}
           search={getSearchForIssueGroup(IssueGroup.TRENDS)}
-          id="trends"
+          id="issues-trends"
           hasNewNav={hasNewNav}
         />
         <SidebarItem
@@ -276,7 +276,7 @@ function Sidebar() {
           label={<GuideAnchor target="issues">{t('Craftsmanship')}</GuideAnchor>}
           to={`/organizations/${organization.slug}/issues/`}
           search={getSearchForIssueGroup(IssueGroup.CRAFTSMANSHIP)}
-          id="craftsmanship"
+          id="issues-craftsmanship"
           hasNewNav={hasNewNav}
         />
         <SidebarItem
@@ -285,7 +285,7 @@ function Sidebar() {
           label={<GuideAnchor target="issues">{t('Security')}</GuideAnchor>}
           to={`/organizations/${organization.slug}/issues/`}
           search={getSearchForIssueGroup(IssueGroup.SECURITY)}
-          id="security"
+          id="issues-security"
           hasNewNav={hasNewNav}
         />
         <SidebarItem
@@ -294,7 +294,7 @@ function Sidebar() {
           label={t('Feedback')}
           variant="short"
           to={`/organizations/${organization.slug}/feedback/`}
-          id="feedback"
+          id="issues-feedback"
         />
       </SubnavMenu>
     );
@@ -702,7 +702,7 @@ function Sidebar() {
 
   return (
     <SidebarWrapper>
-      <SubnavContainer>
+      <SubnavContainer hasNewNav={hasNewNav}>
         <SidebarPrimaryWrapper
           aria-label={t('Primary Navigation')}
           collapsed={collapsed}
