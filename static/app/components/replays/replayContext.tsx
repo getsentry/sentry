@@ -42,7 +42,6 @@ interface ReplayPlayerContextProps extends HighlightCallbacks {
    * Original dimensions in pixels of the captured browser window
    */
   dimensions: Dimensions;
-
   /**
    * The calculated speed of the player when fast-forwarding through idle moments in the video
    * The value is set to `0` when the video is not fast-forwarding
@@ -105,6 +104,11 @@ interface ReplayPlayerContextProps extends HighlightCallbacks {
   setRoot: (root: RootElem) => void;
 
   /**
+   * The way the timestamps are displayed: relative to the duration of the replay or absolute time
+   */
+  timestampType: 'relative' | 'absolute';
+
+  /**
    * Start or stop playback
    *
    * @param play
@@ -131,6 +135,7 @@ const ReplayPlayerContext = createContext<ReplayPlayerContextProps>({
   setCurrentTime: () => {},
   setRoot: () => {},
   togglePlayPause: () => {},
+  timestampType: 'relative',
 });
 
 type Props = {
@@ -614,6 +619,7 @@ export function Provider({
           restart,
           setCurrentTime,
           togglePlayPause,
+          timestampType: prefs.timestamp,
           ...value,
         }}
       >
