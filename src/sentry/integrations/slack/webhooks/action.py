@@ -15,7 +15,7 @@ from slack_sdk.errors import SlackApiError
 from slack_sdk.models.views import View
 from slack_sdk.webhook import WebhookClient
 
-from sentry import analytics
+from sentry import analytics, options
 from sentry.api import client
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
@@ -34,6 +34,7 @@ from sentry.integrations.slack.metrics import (
 from sentry.integrations.slack.requests.action import SlackActionRequest
 from sentry.integrations.slack.requests.base import SlackRequestError
 from sentry.integrations.slack.sdk_client import SlackSdkClient
+from sentry.integrations.slack.utils.errors import MODAL_NOT_FOUND, unpack_slack_api_error
 from sentry.integrations.types import ExternalProviderEnum
 from sentry.integrations.utils.scope import bind_org_context_from_integration
 from sentry.models.activity import ActivityIntegration
@@ -376,6 +377,50 @@ class SlackActionEndpoint(Endpoint):
             metadata=metadata,
         )
 
+    def _update_modal(
+        self,
+        slack_client: SlackSdkClient,
+        external_id: str,
+        modal_payload: View,
+        slack_request: SlackActionRequest,
+    ) -> None:
+        try:
+            slack_client.views_update(
+                external_id=external_id,
+                view=modal_payload,
+            )
+        except SlackApiError as e:
+            # If the external_id is not found, Slack we send `not_found` error
+            # https://api.slack.com/methods/views.update
+            if unpack_slack_api_error(e) == MODAL_NOT_FOUND:
+                metrics.incr(
+                    SLACK_WEBHOOK_GROUP_ACTIONS_FAILURE_DATADOG_METRIC,
+                    sample_rate=1.0,
+                    tags={"type": "update_modal"},
+                )
+                _logger.exception(
+                    "slack.action.update-modal-not-found",
+                    extra={
+                        "organization_id": slack_request.organization.id,
+                        "integration_id": slack_request.integration.id,
+                        "trigger_id": slack_request.data["trigger_id"],
+                        "dialog": "resolve",
+                    },
+                )
+                # The modal was not found, so we need to open a new one
+                self._open_view(slack_client, modal_payload, slack_request)
+            else:
+                raise
+
+    def _open_view(
+        self, slack_client: SlackSdkClient, modal_payload: View, slack_request: SlackActionRequest
+    ) -> None:
+        # Error handling is done in the calling function
+        slack_client.views_open(
+            trigger_id=slack_request.data["trigger_id"],
+            view=modal_payload,
+        )
+
     def open_resolve_dialog(self, slack_request: SlackActionRequest, group: Group) -> None:
         # XXX(epurkhiser): In order to update the original message we have to
         # keep track of the response_url in the callback_id. Definitely hacky,
@@ -402,10 +447,15 @@ class SlackActionEndpoint(Endpoint):
         modal_payload = self.build_resolve_modal_payload(callback_id, metadata=metadata)
         slack_client = SlackSdkClient(integration_id=slack_request.integration.id)
         try:
-            slack_client.views_open(
-                trigger_id=slack_request.data["trigger_id"],
-                view=modal_payload,
-            )
+            # We need to use the action_ts as the external_id to update the modal
+            # We passed this in control when we sent the loading modal to beat the 3 second timeout
+            external_id = slack_request.get_action_ts()
+
+            if options.get("send-slack-response-from-control-silo"):
+                self._update_modal(slack_client, external_id, modal_payload, slack_request)
+            else:
+                self._open_view(slack_client, modal_payload, slack_request)
+
             metrics.incr(
                 SLACK_WEBHOOK_GROUP_ACTIONS_SUCCESS_DATADOG_METRIC,
                 sample_rate=1.0,
@@ -449,10 +499,15 @@ class SlackActionEndpoint(Endpoint):
         modal_payload = self.build_archive_modal_payload(callback_id, metadata=metadata)
         slack_client = SlackSdkClient(integration_id=slack_request.integration.id)
         try:
-            slack_client.views_open(
-                trigger_id=slack_request.data["trigger_id"],
-                view=modal_payload,
-            )
+            # We need to use the action_ts as the external_id to update the modal
+            # We passed this in control when we sent the loading modal to beat the 3 second timeout
+            external_id = slack_request.get_action_ts()
+
+            if options.get("send-slack-response-from-control-silo"):
+                self._update_modal(slack_client, external_id, modal_payload, slack_request)
+            else:
+                self._open_view(slack_client, modal_payload, slack_request)
+
             metrics.incr(
                 SLACK_WEBHOOK_GROUP_ACTIONS_SUCCESS_DATADOG_METRIC,
                 sample_rate=1.0,
