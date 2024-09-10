@@ -11,6 +11,7 @@ export type IntegrationContextProps = {
       | 'messaging_integration_onboarding'
       | 'onboarding'
       | 'project_creation';
+    referrer?: string;
   };
   installStatus: string;
   provider: IntegrationProvider;
