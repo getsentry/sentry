@@ -2857,9 +2857,9 @@ describe('TraceTree', () => {
       expect(serverHandlerTransaction.parent).toBe(pageloadTransaction);
     });
     describe('expanded', () => {
-      it.each([['request'], ['browser.request']])(
+      it.each([['browser'], ['browser.request']])(
         'server handler transaction becomes a child of %s span if present',
-        async span_description => {
+        async span_op => {
           const tree: TraceTree = TraceTree.FromTrace(
             makeTrace({
               transactions: [
@@ -2884,9 +2884,7 @@ describe('TraceTree', () => {
           MockApiClient.addMockResponse({
             url: '/organizations/org-slug/events/js:ssr/?averageColumn=span.self_time&averageColumn=span.duration',
             method: 'GET',
-            body: makeEvent({}, [
-              makeSpan({description: span_description, op: 'browser'}),
-            ]),
+            body: makeEvent({}, [makeSpan({description: 'request', op: span_op})]),
           });
 
           tree.zoomIn(tree.list[1], true, {

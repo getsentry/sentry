@@ -231,8 +231,9 @@ function isServerRequestHandlerTransactionNode(
 
 function isBrowserRequestSpan(value: TraceTree.Span): boolean {
   return (
-    value.op === 'browser' &&
-    (value.description === 'request' || value.description === 'browser.request')
+    // Adjust for SDK changes in https://github.com/getsentry/sentry-javascript/pull/13527
+    value.op === 'browser.request' ||
+    (value.op === 'browser' && value.description === 'request')
   );
 }
 
