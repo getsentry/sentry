@@ -60,9 +60,29 @@ export function DatabaseSpanDescription({
 
   const system = rawSpan?.data?.['db.system'];
 
+  const formatJsonQuery = (queryString: string) => {
+    try {
+      return JSON.stringify(JSON.parse(queryString), null, 4);
+    } catch (error) {
+      throw Error('Failed to parse JSON: ', error);
+    }
+  };
+
   const formattedDescription = useMemo(() => {
+    if (!preliminaryDescription) {
+      return '...';
+    }
+
     if (!system) {
-      return preliminaryDescription ?? '';
+      // If the span data has not loaded, we can still infer that this is a NoSQL query
+      if (
+        preliminaryDescription.startsWith('{') &&
+        preliminaryDescription.endsWith('}')
+      ) {
+        return formatJsonQuery(preliminaryDescription);
+      }
+
+      return preliminaryDescription;
     }
 
     // MongoDB span descriptions are in JSON and should not have SQLish formatting applied
@@ -70,9 +90,7 @@ export function DatabaseSpanDescription({
       // TODO: We should transform the data a bit for mongodb queries.
       // For example, it would be better if we display the operation on the collection as the
       // first key value pair in the JSON, since this is not guaranteed by the backend
-      return preliminaryDescription
-        ? JSON.stringify(JSON.parse(preliminaryDescription), null, 4)
-        : '{ ... }';
+      return formatJsonQuery(preliminaryDescription);
     }
 
     const rawDescription =
@@ -82,7 +100,7 @@ export function DatabaseSpanDescription({
 
   return (
     <Frame>
-      {areIndexedSpansLoading || !system ? (
+      {areIndexedSpansLoading || !preliminaryDescription ? (
         <WithPadding>
           <LoadingIndicator mini />
         </WithPadding>
