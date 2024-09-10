@@ -159,9 +159,14 @@ function SidebarItem({
   if (isValidElement(label)) {
     labelString = label?.props?.children ?? label;
   }
+
   // If there is no active panel open and if path is active according to react-router
-  const isActiveRouter =
-    !hasPanel && router && isItemActive({to, label: labelString}, exact);
+  let isActiveRouter =
+    !hasPanel && router && isItemActive({to, label: labelString, search}, exact);
+
+  if (hasNewNav && !hasPanel) {
+    isActiveRouter = router && isItemActive({to, label: labelString, search}, exact);
+  }
 
   const isInFloatingAccordion = (isNested || isMainItem) && shouldAccordionFloat;
   const isInSubnav = hasNewNav && isNested;
@@ -314,9 +319,28 @@ function SidebarItem({
 }
 
 export function isItemActive(
-  item: Pick<SidebarItemProps, 'to' | 'label'>,
+  item: Pick<SidebarItemProps, 'to' | 'label' | 'search'>,
   exact?: boolean
 ): boolean {
+  // issue subnav matches against issue groups in search params
+  if (location.pathname.startsWith('/issues/') && item?.to?.includes('/issues/')) {
+    const search = new URLSearchParams(location.search);
+    const itemSearch = new URLSearchParams(item.search);
+    const itemQuery = itemSearch.get('query');
+    const query = search.get('query');
+    if (item?.label === 'All') {
+      return !query && !itemQuery;
+    }
+    if (itemQuery && query) {
+      let match = false;
+      for (const key of itemQuery?.split(' ')) {
+        match = query.includes(key);
+        if (!match) break;
+      }
+      return match;
+    }
+    return !itemQuery;
+  }
   // take off the query params for matching
   const toPathWithoutReferrer = item?.to?.split('?')[0];
   if (!toPathWithoutReferrer) {
@@ -464,7 +488,7 @@ const StyledSidebarItem = styled(Link, {
   &:hover,
   &:focus-visible {
     ${p => {
-      if (p.isInFloatingAccordion) {
+      if (p.isInFloatingAccordion || p.isInSubnav) {
         return css`
           background-color: ${p.theme.hover};
           color: ${p.theme.gray400};
