@@ -822,12 +822,12 @@ urlpatterns += [
         include(
             [
                 re_path(
-                    r"^(?P<organization_slug>[^/\.]+)/(?P<project_slug>[^/\.]+)/iframe/$",
+                    r"^(?P<organization_slug>[^/\.]+)/(?P<project_id_or_slug>[^/\.]+)/iframe/$",
                     IframeView.as_view(),
                     name="sentry-toolbar-iframe",
                 ),
                 re_path(
-                    r"^(?P<organization_slug>[^/\.]+)/(?P<project_slug>[^/\.]+)/login-success/$",
+                    r"^(?P<organization_slug>[^/\.]+)/(?P<project_id_or_slug>[^/\.]+)/login-success/$",
                     LoginSuccessView.as_view(),
                     name="sentry-toolbar-login-success",
                 ),

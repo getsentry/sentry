@@ -1,0 +1,24 @@
+{% load sentry_helpers %}
+{% load sentry_assets %}
+<!DOCTYPE html>
+<html>
+<head>
+  <title></title>
+</head>
+<body>
+  <div>
+    <p>Logged in, but either you don't have the permissions for this org or project, or the project does not exist!</p>
+  </div>
+  {% script %}
+  <script>
+  (function() {
+    if (!window.opener) {
+      return;
+    }
+    window.opener.postMessage('no_perms', '*');
+    window.close();
+  })();
+  </script>
+  {% endscript %}
+</body>
+</html>
