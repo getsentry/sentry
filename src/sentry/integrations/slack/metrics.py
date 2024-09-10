@@ -74,3 +74,8 @@ SLACK_UTILS_GET_USER_LIST_SUCCESS_DATADOG_METRIC = "sentry.integrations.slack.ut
 SLACK_UTILS_GET_USER_LIST_FAILURE_DATADOG_METRIC = "sentry.integrations.slack.utils.users.failure"
 SLACK_UTILS_CHANNEL_SUCCESS_DATADOG_METRIC = "sentry.integrations.slack.utils.channel.success"
 SLACK_UTILS_CHANNEL_FAILURE_DATADOG_METRIC = "sentry.integrations.slack.utils.channel.failure"
+
+
+# Middleware Parsers
+SLACK_MIDDLE_PARSERS_SUCCESS_DATADOG_METRIC = "sentry.middleware.integrations.slack.parsers.success"
+SLACK_MIDDLE_PARSERS_FAILURE_DATADOG_METRIC = "sentry.middleware.integrations.slack.parsers.failure"

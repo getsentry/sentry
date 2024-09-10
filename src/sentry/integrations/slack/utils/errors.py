@@ -15,6 +15,7 @@ class SlackSdkErrorCategory:
 SLACK_SDK_ERROR_CATEGORIES = (
     RATE_LIMITED := SlackSdkErrorCategory("ratelimited"),
     CHANNEL_NOT_FOUND := SlackSdkErrorCategory("channel_not_found"),
+    MODAL_NOT_FOUND := SlackSdkErrorCategory("not_found"),
 )
 
 _CATEGORIES_BY_MESSAGE = {c.message: c for c in SLACK_SDK_ERROR_CATEGORIES}
