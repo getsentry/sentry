@@ -809,7 +809,7 @@ const commonTheme = {
     semiCollapsedWidth: '100px',
     expandedWidth: '220px',
     v2_width: '80px',
-    v2_panelWidth: '150px',
+    v2_panelWidth: '160px',
     mobileHeightNumber: 54,
     mobileHeight: '54px',
     menuSpacing: '15px',
