@@ -96,6 +96,26 @@ def filter_snuba_results(snuba_results, groups_to_backfill_with_no_embedding, pr
     return filtered_snuba_results, groups_to_backfill_with_no_embedding_has_snuba_row
 
 
+def create_project_cohort(worker_number: int, last_processed_project_id: int | None) -> list[int]:
+    """
+    Create project cohort by the following calculation: project_id % threads == worker_number
+    to assign projects uniquely to available threads
+    """
+    project_id_filter = Q()
+    if last_processed_project_id is not None:
+        project_id_filter = Q(id__gt=last_processed_project_id)
+    total_worker_count = options.get("similarity.backfill_total_worker_count")
+    cohort_size = options.get("similarity.backfill_project_cohort_size")
+
+    project_cohort_list = (
+        Project.objects.filter(project_id_filter)
+        .values_list("id", flat=True)
+        .extra(where=["id %% %s = %s"], params=[total_worker_count, worker_number])
+        .order_by("id")[:cohort_size]
+    )
+    return list(project_cohort_list)
+
+
 @sentry_sdk.tracing.trace
 def initialize_backfill(
     project_id: int,
@@ -491,13 +511,6 @@ def update_groups(project, seer_response, group_id_batch_filtered, group_hashes_
             "request_hash": group_hashes_dict[group.id],
         }
         if str(group.id) in groups_with_neighbor:
-            logger.info(
-                "backfill_seer_grouping_records.found_neighbor",
-                extra={
-                    "project_id": project.id,
-                    "group_id": group.id,
-                },
-            )
             # TODO: remove this try catch once the helper is made
             try:
                 seer_similarity["results"] = [

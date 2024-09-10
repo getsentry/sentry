@@ -59,10 +59,10 @@ export default function ReplayComparisonModal({
         <Grid>
           <StyledParagraph>
             {tct(
-              'This modal helps with debugging hydration errors by diffing the dom before and after the app hydrated. [boldBefore:Before Hydration] refers to the html rendered on the server. [boldAfter:After Hydration] refers to the html rendered on the client. This feature is actively being developed; please share any questions or feedback to the discussion linked above.',
+              'This modal helps with debugging hydration errors by diffing the dom before and after the app hydrated. [boldBefore:Before] refers to the html rendered on the server. [boldAfter:After] refers to the html rendered on the client. This feature is actively being developed; please share any questions or feedback to the discussion linked above.',
               {
-                boldBefore: <strong />,
-                boldAfter: <strong />,
+                boldBefore: <Before />,
+                boldAfter: <After />,
               }
             )}
           </StyledParagraph>
@@ -105,4 +105,12 @@ const Grid = styled('div')`
 const StyledParagraph = styled('p')`
   padding-top: ${space(0.5)};
   margin-bottom: ${space(1)};
+`;
+
+const Before = styled('strong')`
+  color: ${p => p.theme.red300};
+`;
+
+const After = styled('strong')`
+  color: ${p => p.theme.green300};
 `;

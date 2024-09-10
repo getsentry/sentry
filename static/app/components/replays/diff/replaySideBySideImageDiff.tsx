@@ -19,12 +19,12 @@ export function ReplaySideBySideImageDiff({leftOffsetMs, replay, rightOffsetMs}:
   return (
     <Flex gap={space(2)} column>
       <DiffHeader>
-        <Flex flex="1" align="center">
-          {t('Before Hydration')}
-        </Flex>
-        <Flex flex="1" align="center">
-          {t('After Hydration')}
-        </Flex>
+        <Before flex="1" align="center">
+          {t('Before')}
+        </Before>
+        <After flex="1" align="center">
+          {t('After')}
+        </After>
       </DiffHeader>
 
       <ReplayGrid>
@@ -65,9 +65,19 @@ const DiffHeader = styled('div')`
   div:last-child {
     padding-left: ${space(2)};
   }
+
+  margin: 10px 0;
 `;
 
 const ReplayGrid = styled('div')`
   display: grid;
   grid-template-columns: 1fr 1fr;
+`;
+
+export const Before = styled(Flex)`
+  color: ${p => p.theme.red300};
+`;
+
+export const After = styled(Flex)`
+  color: ${p => p.theme.green300};
 `;
