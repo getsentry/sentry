@@ -13,7 +13,7 @@ from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint, ProjectPermission
 from sentry.autofix.utils import get_autofix_repos_from_project_code_mappings
 from sentry.models.project import Project
-from sentry.seer.signed_seer_api import sign_with_seer_secret
+from sentry.seer.signed_seer_api import get_seer_salted_url, sign_with_seer_secret
 
 logger = logging.getLogger(__name__)
 
@@ -52,13 +52,15 @@ class ProjectAutofixCreateCodebaseIndexEndpoint(ProjectEndpoint):
                     "repo": repo,
                 }
             )
+
+            url, salt = get_seer_salted_url(f"{settings.SEER_AUTOFIX_URL}{path}")
             response = requests.post(
-                f"{settings.SEER_AUTOFIX_URL}{path}",
+                url,
                 data=body,
                 headers={
                     "content-type": "application/json;charset=utf-8",
                     **sign_with_seer_secret(
-                        url=f"{settings.SEER_AUTOFIX_URL}{path}",
+                        salt,
                         body=body,
                     ),
                 },
