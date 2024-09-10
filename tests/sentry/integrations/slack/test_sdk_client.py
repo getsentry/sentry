@@ -4,6 +4,7 @@ import orjson
 import pytest
 from slack_sdk.errors import SlackApiError
 
+from sentry.constants import ObjectStatus
 from sentry.integrations.slack.sdk_client import SLACK_DATADOG_METRIC, SlackSdkClient
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase
@@ -24,6 +25,13 @@ class SlackClientTest(TestCase):
     def test_no_integration_found_error(self):
         with pytest.raises(ValueError):
             SlackSdkClient(integration_id=2)
+
+    def test_inactive_integration_error(self):
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            self.integration.update(status=ObjectStatus.DISABLED)
+
+        with pytest.raises(ValueError):
+            SlackSdkClient(self.integration.id)
 
     def test_no_access_token_error(self):
         with assume_test_silo_mode(SiloMode.CONTROL):

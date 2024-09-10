@@ -8,6 +8,7 @@ import responses
 from django.utils import timezone
 
 from fixtures.github import COMPARE_COMMITS_EXAMPLE, GET_COMMIT_EXAMPLE, GET_LAST_COMMITS_EXAMPLE
+from sentry.constants import ObjectStatus
 from sentry.integrations.github.repository import GitHubRepositoryProvider
 from sentry.models.pullrequest import PullRequest
 from sentry.models.repository import Repository
@@ -100,6 +101,13 @@ class GitHubAppsProviderTest(TestCase):
         )
         with pytest.raises(IntegrationError):
             self.provider.compare_commits(self.repository, None, "abcdef")
+
+    def test_compare_commits_inactive_integration(self):
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            self.integration.update(status=ObjectStatus.DISABLED)
+
+        with pytest.raises(NotImplementedError):
+            self.provider.compare_commits(self.repository, "xyz123", "abcdef")
 
     @mock.patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
     @responses.activate
