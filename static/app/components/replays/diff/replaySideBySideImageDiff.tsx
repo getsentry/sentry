@@ -1,4 +1,3 @@
-import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Flex} from 'sentry/components/container/flex';
@@ -16,17 +15,16 @@ interface Props {
 
 export function ReplaySideBySideImageDiff({leftOffsetMs, replay, rightOffsetMs}: Props) {
   const fetching = false;
-  const theme = useTheme();
 
   return (
     <Flex gap={space(2)} column>
       <DiffHeader>
-        <Flex flex="1" align="center" css={{color: `${theme.red300}`}}>
+        <Before flex="1" align="center">
           {t('Before')}
-        </Flex>
-        <Flex flex="1" align="center" css={{color: `${theme.green300}`}}>
+        </Before>
+        <After flex="1" align="center">
           {t('After')}
-        </Flex>
+        </After>
       </DiffHeader>
 
       <ReplayGrid>
@@ -67,9 +65,19 @@ const DiffHeader = styled('div')`
   div:last-child {
     padding-left: ${space(2)};
   }
+
+  margin: 10px 0;
 `;
 
 const ReplayGrid = styled('div')`
   display: grid;
   grid-template-columns: 1fr 1fr;
+`;
+
+export const Before = styled(Flex)`
+  color: ${p => p.theme.red300};
+`;
+
+export const After = styled(Flex)`
+  color: ${p => p.theme.green300};
 `;
