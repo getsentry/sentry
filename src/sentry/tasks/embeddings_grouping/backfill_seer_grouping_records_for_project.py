@@ -266,12 +266,6 @@ def backfill_seer_grouping_records_for_project(
             group_hashes_dict,
         )
 
-    logger.info(
-        "about to call next backfill",
-        extra={
-            "project_id": current_project_id,
-        },
-    )
     call_next_backfill(
         last_processed_group_id=batch_end_id,
         project_id=current_project_id,
@@ -298,13 +292,6 @@ def call_next_backfill(
     worker_number: int | None = None,
 ):
     if last_processed_group_id is not None:
-        logger.info(
-            "calling next backfill task",
-            extra={
-                "project_id": project_id,
-                "last_processed_group_id": last_processed_group_id,
-            },
-        )
         backfill_seer_grouping_records_for_project.apply_async(
             args=[
                 project_id,
