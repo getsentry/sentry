@@ -850,5 +850,8 @@
     "sentry.user",
     "uptime.uptimesubscription"
   ],
-  "uptime.uptimesubscription": []
+  "uptime.uptimesubscription": [],
+  "workflow_engine.workflow": [
+    "sentry.organization"
+  ]
 }
