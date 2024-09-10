@@ -6200,6 +6200,24 @@
       ]
     ]
   },
+  "workflow_engine.datasource": {
+    "dangling": false,
+    "foreign_keys": {
+      "organization": {
+        "kind": "FlexibleForeignKey",
+        "model": "sentry.organization",
+        "nullable": false
+      }
+    },
+    "model": "workflow_engine.datasource",
+    "relocation_dependencies": [],
+    "relocation_scope": "Organization",
+    "silos": [
+      "Region"
+    ],
+    "table_name": "workflow_engine_datasource",
+    "uniques": []
+  },
   "workflow_engine.workflow": {
     "dangling": false,
     "foreign_keys": {
