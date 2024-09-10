@@ -76,7 +76,7 @@ class SpansIndexedDatasetConfig(DatasetConfig):
         }
 
     @property
-    def function_converter(self) -> Mapping[str, SnQLFunction]:
+    def function_converter(self) -> dict[str, SnQLFunction]:
         function_converter = {
             function.name: function
             for function in [
@@ -557,7 +557,7 @@ class SpansEAPDatasetConfig(SpansIndexedDatasetConfig):
         )
 
     @property
-    def function_converter(self) -> Mapping[str, SnQLFunction]:
+    def function_converter(self) -> dict[str, SnQLFunction]:
         existing_functions = super().function_converter
         sampling_weight = Column("sampling_weight")
         function_converter = {
