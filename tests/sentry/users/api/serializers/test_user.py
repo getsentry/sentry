@@ -1,10 +1,10 @@
 from sentry.api.serializers import serialize
-from sentry.api.serializers.models.user import DetailedSelfUserSerializer, DetailedUserSerializer
 from sentry.auth.authenticators import available_authenticators
 from sentry.models.authidentity import AuthIdentity
 from sentry.models.authprovider import AuthProvider
 from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import control_silo_test
+from sentry.users.api.serializers.user import DetailedSelfUserSerializer, DetailedUserSerializer
 from sentry.users.models.authenticator import Authenticator
 from sentry.users.models.user_avatar import UserAvatar
 from sentry.users.models.useremail import UserEmail

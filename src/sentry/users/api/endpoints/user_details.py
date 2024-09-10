@@ -16,7 +16,6 @@ from sentry.api.bases.user import UserAndStaffPermission, UserEndpoint
 from sentry.api.decorators import sudo_required
 from sentry.api.endpoints.organization_details import post_org_pending_deletion
 from sentry.api.serializers import serialize
-from sentry.api.serializers.models.user import DetailedSelfUserSerializer
 from sentry.api.serializers.rest_framework import CamelSnakeModelSerializer
 from sentry.auth.elevated_mode import has_elevated_mode
 from sentry.constants import LANGUAGES
@@ -25,6 +24,7 @@ from sentry.models.organizationmapping import OrganizationMapping
 from sentry.models.organizationmembermapping import OrganizationMemberMapping
 from sentry.organizations.services.organization import organization_service
 from sentry.organizations.services.organization.model import RpcOrganizationDeleteState
+from sentry.users.api.serializers.user import DetailedSelfUserSerializer
 from sentry.users.models.user import User
 from sentry.users.models.user_option import UserOption
 from sentry.users.models.useremail import UserEmail

@@ -11,7 +11,6 @@ from django.db.models import Sum
 
 from sentry import release_health, tagstore
 from sentry.api.serializers import Serializer, register, serialize
-from sentry.api.serializers.models.user import UserSerializerResponse
 from sentry.api.serializers.types import ReleaseSerializerResponse
 from sentry.models.commit import Commit
 from sentry.models.commitauthor import CommitAuthor
@@ -21,6 +20,7 @@ from sentry.models.release import Release, ReleaseStatus
 from sentry.models.releaseprojectenvironment import ReleaseProjectEnvironment
 from sentry.models.releases.release_project import ReleaseProject
 from sentry.release_health.base import ReleaseHealthOverview
+from sentry.users.api.serializers.user import UserSerializerResponse
 from sentry.users.services.user.serial import serialize_generic_user
 from sentry.users.services.user.service import user_service
 from sentry.utils import metrics

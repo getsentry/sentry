@@ -23,6 +23,7 @@ from sentry.auth.authenticators.totp import TotpInterface
 from sentry.auth.authenticators.u2f import U2fInterface
 from sentry.organizations.services.organization import organization_service
 from sentry.security.utils import capture_security_activity
+from sentry.users.api.serializers.authenticator import get_interface_serializer
 from sentry.users.models.authenticator import Authenticator
 from sentry.users.models.user import User
 from sentry.utils.auth import MFA_SESSION_KEY
@@ -150,7 +151,7 @@ class UserAuthenticatorEnrollEndpoint(UserEndpoint):
 
         # User is not enrolled in auth interface:
         # - display configuration form
-        response = serialize(interface)
+        response = serialize(interface, serializer=get_interface_serializer(interface))
         response["form"] = get_serializer_field_metadata(serializer_map[interface_id]())
 
         # U2fInterface has no 'secret' attribute

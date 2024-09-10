@@ -201,8 +201,6 @@ module = [
     "sentry.api.serializers.models.rule",
     "sentry.api.serializers.models.sentry_app",
     "sentry.api.serializers.models.team",
-    "sentry.api.serializers.models.user",
-    "sentry.api.serializers.models.user_identity_config",
     "sentry.api.serializers.rest_framework.mentions",
     "sentry.api.serializers.rest_framework.notification_action",
     "sentry.api.serializers.rest_framework.rule",
