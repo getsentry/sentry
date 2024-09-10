@@ -333,7 +333,12 @@ class ProjectAdminSerializer(ProjectMemberSerializer):
         # * negative cache entries (eg auth errors) are retried immediately.
         # * positive caches are re-fetches as well, making it less effective.
         for source in added_or_modified_sources:
-            source["id"] = str(uuid4())
+            # This should only apply to sources which are being fed to symbolicator.
+            # App Store Connect in particular is managed in a completely different
+            # way, and needs its `id` to stay valid for a longer time.
+            # TODO(@anonrig): Remove this when all AppStore connect data is removed.
+            if source["type"] != "appStoreConnect":
+                source["id"] = str(uuid4())
 
         sources_json = orjson.dumps(sources).decode() if sources else ""
 
@@ -954,9 +959,7 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
             project.rename_on_pending_deletion()
 
             # Tell seer to delete all the project's grouping records
-            if features.has(
-                "projects:similarity-embeddings-grouping", project
-            ) or project.get_option("sentry:similarity_backfill_completed"):
+            if project.get_option("sentry:similarity_backfill_completed"):
                 call_seer_delete_project_grouping_records.apply_async(args=[project.id])
 
         return Response(status=204)

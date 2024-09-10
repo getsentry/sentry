@@ -68,39 +68,4 @@ class Migration(CheckedMigration):
             new_name="sentry_grou_project_17d28d_idx",
             old_fields=("project", "status", "type", "last_seen", "id"),
         ),
-        migrations.RenameIndex(
-            model_name="grouphistory",
-            new_name="sentry_grou_project_bbcf30_idx",
-            old_fields=("project", "status", "release"),
-        ),
-        migrations.RenameIndex(
-            model_name="grouphistory",
-            new_name="sentry_grou_group_i_c61acb_idx",
-            old_fields=("group", "status"),
-        ),
-        migrations.RenameIndex(
-            model_name="grouphistory",
-            new_name="sentry_grou_project_20b3f8_idx",
-            old_fields=("project", "date_added"),
-        ),
-        migrations.RenameIndex(
-            model_name="organizationmembermapping",
-            new_name="sentry_orga_organiz_ae9fe7_idx",
-            old_fields=("organization_id", "user"),
-        ),
-        migrations.RenameIndex(
-            model_name="organizationmembermapping",
-            new_name="sentry_orga_organiz_7de26b_idx",
-            old_fields=("organization_id", "email"),
-        ),
-        migrations.RenameIndex(
-            model_name="projectartifactbundle",
-            new_name="sentry_proj_project_f73d36_idx",
-            old_fields=("project_id", "artifact_bundle"),
-        ),
-        migrations.RenameIndex(
-            model_name="releaseartifactbundle",
-            new_name="sentry_rele_organiz_291018_idx",
-            old_fields=("organization_id", "release_name", "dist_name", "artifact_bundle"),
-        ),
     ]
