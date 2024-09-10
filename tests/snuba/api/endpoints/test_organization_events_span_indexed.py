@@ -557,3 +557,31 @@ class OrganizationEventsEAPSpanEndpointTest(OrganizationEventsSpanIndexedEndpoin
             },
         ]
         assert meta["dataset"] == self.dataset
+
+    def test_extrapolation_smoke(self):
+        """This is a hack, we just want to make sure nothing errors from using the weighted functions"""
+        for function in [
+            "count_weighted()",
+            "sum_weighted()",
+            "avg_weighted(span.duration)",
+            "percentile_weighted(0.23, span.duration)",
+            "p50_weighted()",
+            "p75_weighted()",
+            "p90_weighted()",
+            "p95_weighted()",
+            "p99_weighted()",
+            "p100_weighted()",
+            "min_weighted()",
+            "max_weighted()",
+        ]:
+            response = self.do_request(
+                {
+                    "field": ["span.duration", "description", "count_weighted()"],
+                    "query": "",
+                    "orderby": "description",
+                    "project": self.project.id,
+                    "dataset": self.dataset,
+                }
+            )
+
+            assert response.status_code == 200, f"error: {response.content}\naggregate: {function}"
