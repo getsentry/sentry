@@ -4,6 +4,7 @@ from typing import Any, TypeVar
 from sentry import options
 from sentry.eventstore.models import Event
 from sentry.killswitches import killswitch_matches_context
+from sentry.models.project import Project
 from sentry.utils import metrics
 from sentry.utils.safe import get_path
 
@@ -12,7 +13,95 @@ logger = logging.getLogger(__name__)
 MAX_FRAME_COUNT = 30
 MAX_EXCEPTION_COUNT = 30
 FULLY_MINIFIED_STACKTRACE_MAX_FRAME_COUNT = 20
-SEER_ELIGIBLE_PLATFORMS = frozenset(["python", "javascript", "node", "ruby"])
+SEER_ELIGIBLE_PLATFORMS_EVENTS = frozenset(["python", "javascript", "node", "ruby"])
+SEER_ELIGIBLE_PLATFORMS = frozenset(
+    [
+        "bun",
+        "deno",
+        "django",
+        "javascript",
+        "javascript-angular",
+        "javascript-angularjs",
+        "javascript-astro",
+        "javascript-backbone",
+        "javascript-browser",
+        "javascript-electron",
+        "javascript-ember",
+        "javascript-gatsby",
+        "javascript-nextjs",
+        "javascript-performance-onboarding-1-install",
+        "javascript-performance-onboarding-2-configure",
+        "javascript-performance-onboarding-3-verify",
+        "javascript-react",
+        "javascript-react-performance-onboarding-1-install",
+        "javascript-react-performance-onboarding-2-configure",
+        "javascript-react-performance-onboarding-3-verify",
+        "javascript-react-with-error-monitoring",
+        "javascript-react-with-error-monitoring-performance-and-replay",
+        "javascript-remix",
+        "javascript-replay-onboarding-1-install",
+        "javascript-replay-onboarding-2-configure",
+        "javascript-solid",
+        "javascript-svelte",
+        "javascript-sveltekit",
+        "javascript-vue",
+        "javascript-vue-with-error-monitoring",
+        "node",
+        "node-awslambda",
+        "node-azurefunctions",
+        "node-connect",
+        "node-express",
+        "node-fastify",
+        "node-gcpfunctions",
+        "node-hapi",
+        "node-koa",
+        "node-nestjs",
+        "node-nodeawslambda",
+        "node-nodegcpfunctions",
+        "node-profiling-onboarding-0-alert",
+        "node-profiling-onboarding-1-install",
+        "node-profiling-onboarding-2-configure-performance",
+        "node-profiling-onboarding-3-configure-profiling",
+        "node-serverlesscloud",
+        "python",
+        "python-aiohttp",
+        "python-asgi",
+        "python-awslambda",
+        "python-azurefunctions",
+        "python-bottle",
+        "python-celery",
+        "python-chalice",
+        "python-django",
+        "python-falcon",
+        "python-fastapi",
+        "python-flask",
+        "python-gcpfunctions",
+        "python-profiling-onboarding-0-alert",
+        "python-profiling-onboarding-1-install",
+        "python-profiling-onboarding-3-configure-profiling",
+        "python-pylons",
+        "python-pymongo",
+        "python-pyramid",
+        "python-pythonawslambda",
+        "python-pythonazurefunctions",
+        "python-pythongcpfunctions",
+        "python-pythonserverless",
+        "python-quart",
+        "python-rq",
+        "python-sanic",
+        "python-serverless",
+        "python-starlette",
+        "python-tornado",
+        "python-tryton",
+        "python-wsgi",
+        "react",
+        "react-native",
+        "react-native-tracing",
+        "ruby",
+        "ruby-rack",
+        "ruby-rails",
+    ]
+)
 BASE64_ENCODED_PREFIXES = [
     "data:text/html;base64",
     "data:text/javascript;base64",
@@ -173,7 +262,7 @@ def event_content_is_seer_eligible(event: Event) -> bool:
         )
         return False
 
-    if event.platform not in SEER_ELIGIBLE_PLATFORMS:
+    if event.platform not in SEER_ELIGIBLE_PLATFORMS_EVENTS:
         metrics.incr(
             "grouping.similarity.event_content_seer_eligible",
             sample_rate=options.get("seer.similarity.metrics_sample_rate"),
@@ -265,3 +354,16 @@ def _is_snipped_context_line(context_line: str) -> bool:
     # is only added in the JS processor. See
     # https://github.com/getsentry/sentry/blob/d077a5bb7e13a5927794b35d9ae667a4f181feb7/src/sentry/lang/javascript/utils.py#L72-L77.
     return context_line.startswith("{snip}") or context_line.endswith("{snip}")
+
+
+def project_is_seer_eligible(project: Project) -> bool:
+    """
+    Return True if the project hasn't already been backfilled, is a Seer-eligible platform, and
+    the feature is enabled in the region.
+    """
+    # TODO: use this check in team_projects
+    is_backfill_completed = project.get_option("sentry:similarity_backfill_completed")
+    is_seer_eligible_platform = project.platform in SEER_ELIGIBLE_PLATFORMS
+    is_region_enabled = options.get("similarity.new_project_seer_grouping.enabled")
+
+    return not is_backfill_completed and is_seer_eligible_platform and is_region_enabled
