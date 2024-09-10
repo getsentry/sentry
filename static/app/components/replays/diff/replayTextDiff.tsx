@@ -1,10 +1,9 @@
 import {Fragment, useMemo} from 'react';
-import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import beautify from 'js-beautify';
 
-import {Flex} from 'sentry/components/container/flex';
 import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
+import {After, Before} from 'sentry/components/replays/diff/replaySideBySideImageDiff';
 import SplitDiff from 'sentry/components/splitDiff';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -18,7 +17,6 @@ interface Props {
 }
 
 export function ReplayTextDiff({replay, leftOffsetMs, rightOffsetMs}: Props) {
-  const theme = useTheme();
   const {data} = useExtractPageHtml({
     replay,
     offsetMsToStopAt: [leftOffsetMs, rightOffsetMs],
@@ -32,7 +30,7 @@ export function ReplayTextDiff({replay, leftOffsetMs, rightOffsetMs}: Props) {
   return (
     <Fragment>
       <DiffHeader>
-        <Flex flex="1" align="center" css={{color: `${theme.red300}`}}>
+        <Before flex="1" align="center">
           {t('Before')}
           <CopyToClipboardButton
             text={leftBody ?? ''}
@@ -41,8 +39,8 @@ export function ReplayTextDiff({replay, leftOffsetMs, rightOffsetMs}: Props) {
             borderless
             aria-label={t('Copy Before')}
           />
-        </Flex>
-        <Flex flex="1" align="center" css={{color: `${theme.green300}`}}>
+        </Before>
+        <After flex="1" align="center">
           {t('After')}
           <CopyToClipboardButton
             text={rightBody ?? ''}
@@ -51,7 +49,7 @@ export function ReplayTextDiff({replay, leftOffsetMs, rightOffsetMs}: Props) {
             borderless
             aria-label={t('Copy After')}
           />
-        </Flex>
+        </After>
       </DiffHeader>
       <SplitDiffScrollWrapper>
         <SplitDiff base={leftBody ?? ''} target={rightBody ?? ''} type="words" />
@@ -80,4 +78,6 @@ const DiffHeader = styled('div')`
   div:last-child {
     padding-left: ${space(2)};
   }
+
+  margin: 10px 0;
 `;

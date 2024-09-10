@@ -103,7 +103,7 @@ function ReplayTable({
       data-test-id="replay-table"
       emptyMessage={emptyMessage}
       gridRows={isFetching ? undefined : gridRows}
-      loader={<LoadingIndicator style={{margin: '54px auto'}} />}
+      loader={<StyledLoadingIndicator />}
       disableHeaderBorderBottom
     >
       {replays?.map(
@@ -273,3 +273,7 @@ const Row = styled('div')<{
 `;
 
 export default ReplayTable;
+
+const StyledLoadingIndicator = styled(LoadingIndicator)`
+  margin: 54px auto;
+`;
