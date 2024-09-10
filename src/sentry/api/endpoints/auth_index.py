@@ -295,9 +295,14 @@ class AuthIndexEndpoint(BaseAuthIndexEndpoint):
 
         Deauthenticate all active sessions for this user.
         """
-        handle_saml_single_logout(request)
+        # If there is an SLO URL, return it to frontend so the browser can redirect
+        # the user back to the IdP site to delete the IdP session cookie
+        slo_url = handle_saml_single_logout(request)
 
         # For signals to work here, we must promote the request.user to a full user object
         logout(request._request)
         request.user = AnonymousUser()
+
+        if slo_url:
+            return Response(status=status.HTTP_200_OK, data={"sloUrl": slo_url})
         return Response(status=status.HTTP_204_NO_CONTENT)

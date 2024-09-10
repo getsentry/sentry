@@ -375,7 +375,6 @@ module = [
     "sentry.utils.committers",
     "sentry.utils.services",
     "sentry.web.forms.accounts",
-    "sentry.web.frontend.account_identity",
     "sentry.web.frontend.auth_close",
     "sentry.web.frontend.auth_login",
     "sentry.web.frontend.auth_logout",

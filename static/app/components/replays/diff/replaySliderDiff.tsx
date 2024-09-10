@@ -2,13 +2,16 @@ import {Fragment, useCallback, useRef} from 'react';
 import styled from '@emotion/styled';
 
 import NegativeSpaceContainer from 'sentry/components/container/negativeSpaceContainer';
-import ReplayIFrameRoot from 'sentry/components/replays/player/replayIFrameRoot';
-import {Provider as ReplayContextProvider} from 'sentry/components/replays/replayContext';
+import ReplayPlayer from 'sentry/components/replays/player/replayPlayer';
+import ReplayPlayerMeasurer from 'sentry/components/replays/player/replayPlayerMeasurer';
 import {Tooltip} from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import toPixels from 'sentry/utils/number/toPixels';
+import {ReplayPlayerEventsContextProvider} from 'sentry/utils/replays/playback/providers/replayPlayerEventsContext';
+import {ReplayPlayerPluginsContextProvider} from 'sentry/utils/replays/playback/providers/replayPlayerPluginsContext';
+import {ReplayPlayerStateContextProvider} from 'sentry/utils/replays/playback/providers/replayPlayerStateContext';
 import type ReplayReader from 'sentry/utils/replays/replayReader';
 import {useDimensions} from 'sentry/utils/useDimensions';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -18,13 +21,20 @@ interface Props {
   leftOffsetMs: number;
   replay: null | ReplayReader;
   rightOffsetMs: number;
+  minHeight?: `${number}px` | `${number}%`;
 }
 
-export function ReplaySliderDiff({leftOffsetMs, replay, rightOffsetMs}: Props) {
+export function ReplaySliderDiff({
+  minHeight = '0px',
+  leftOffsetMs,
+  replay,
+  rightOffsetMs,
+}: Props) {
   const positionedRef = useRef<HTMLDivElement>(null);
   const viewDimensions = useDimensions({elementRef: positionedRef});
 
   const width = toPixels(viewDimensions.width);
+
   return (
     <Fragment>
       <Header>
@@ -40,7 +50,7 @@ export function ReplaySliderDiff({leftOffsetMs, replay, rightOffsetMs}: Props) {
         </Tooltip>
       </Header>
       <WithPadding>
-        <Positioned ref={positionedRef}>
+        <Positioned style={{minHeight}} ref={positionedRef}>
           {viewDimensions.width ? (
             <DiffSides
               leftOffsetMs={leftOffsetMs}
@@ -99,30 +109,32 @@ function DiffSides({leftOffsetMs, replay, rightOffsetMs, viewDimensions, width})
 
   return (
     <Fragment>
-      <Cover style={{width}}>
-        <Placement style={{width}}>
-          <ReplayContextProvider
-            analyticsContext="replay_comparison_modal_left"
-            initialTimeOffsetMs={{offsetMs: leftOffsetMs}}
-            isFetching={false}
-            replay={replay}
-          >
-            <ReplayIFrameRoot viewDimensions={viewDimensions} />
-          </ReplayContextProvider>
-        </Placement>
-      </Cover>
-      <Cover ref={rightSideElem} style={{width: 0}}>
-        <Placement style={{width}}>
-          <ReplayContextProvider
-            analyticsContext="replay_comparison_modal_right"
-            initialTimeOffsetMs={{offsetMs: rightOffsetMs}}
-            isFetching={false}
-            replay={replay}
-          >
-            <ReplayIFrameRoot viewDimensions={viewDimensions} />
-          </ReplayContextProvider>
-        </Placement>
-      </Cover>
+      <ReplayPlayerPluginsContextProvider>
+        <ReplayPlayerEventsContextProvider replay={replay}>
+          <Cover style={{width}}>
+            <Placement style={{width}}>
+              <ReplayPlayerStateContextProvider>
+                <NegativeSpaceContainer style={{height: '100%'}}>
+                  <ReplayPlayerMeasurer measure="both">
+                    {style => <ReplayPlayer style={style} offsetMs={leftOffsetMs} />}
+                  </ReplayPlayerMeasurer>
+                </NegativeSpaceContainer>
+              </ReplayPlayerStateContextProvider>
+            </Placement>
+          </Cover>
+          <Cover ref={rightSideElem} style={{width: 0}}>
+            <Placement style={{width}}>
+              <ReplayPlayerStateContextProvider>
+                <NegativeSpaceContainer style={{height: '100%'}}>
+                  <ReplayPlayerMeasurer measure="both">
+                    {style => <ReplayPlayer style={style} offsetMs={rightOffsetMs} />}
+                  </ReplayPlayerMeasurer>
+                </NegativeSpaceContainer>
+              </ReplayPlayerStateContextProvider>
+            </Placement>
+          </Cover>
+        </ReplayPlayerEventsContextProvider>
+      </ReplayPlayerPluginsContextProvider>
       <Divider ref={dividerElem} onMouseDown={onDividerMouseDownWithAnalytics} />
     </Fragment>
   );
@@ -131,10 +143,11 @@ function DiffSides({leftOffsetMs, replay, rightOffsetMs, viewDimensions, width})
 const WithPadding = styled(NegativeSpaceContainer)`
   padding-block: ${space(1.5)};
   overflow: visible;
+  height: 100%;
 `;
 
 const Positioned = styled('div')`
-  min-height: 335px;
+  height: 100%;
   position: relative;
   width: 100%;
 `;
