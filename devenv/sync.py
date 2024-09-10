@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import configparser
 import os
 import shlex
 import subprocess
@@ -74,8 +73,7 @@ failed command (code {p.returncode}):
 def main(context: dict[str, str]) -> int:
     repo = context["repo"]
     reporoot = context["reporoot"]
-    repo_config = configparser.ConfigParser()
-    repo_config.read(f"{reporoot}/devenv/config.ini")
+    repo_config = config.get_config(f"{reporoot}/devenv/config.ini")
 
     # TODO: context["verbose"]
     verbose = os.environ.get("SENTRY_DEVENV_VERBOSE") is not None
