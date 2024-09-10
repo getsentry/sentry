@@ -24,7 +24,7 @@ class DogStatsdMetricsBackend(MetricsBackend):
     def __init__(self, prefix: str | None = None, **kwargs: Any) -> None:
         # TODO(dcramer): it'd be nice if the initialize call wasn't a global
         self.tags = kwargs.pop("tags", None)
-        kwargs["disable_buffering"] = False
+        kwargs["statsd_disable_buffering"] = False
 
         initialize(**kwargs)
         statsd.disable_telemetry()
