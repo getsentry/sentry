@@ -34,6 +34,5 @@ export default function useInfiniteIssuesList({query}: Props) {
       ],
       [environment, mailbox, organizationSlug, projectId, query]
     ),
-    initialPageParam: undefined,
   });
 }

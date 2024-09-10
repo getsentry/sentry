@@ -39,6 +39,5 @@ export default function useInfiniteFeedbackList({query}: Props) {
       ],
       [environment, mailbox, organizationSlug, projectId, query]
     ),
-    initialPageParam: undefined,
   });
 }
