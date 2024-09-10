@@ -105,7 +105,9 @@ class SafeHTTPSConnection(SafeConnectionMixin, HTTPSConnection):
     pass
 
 
-class InjectIPAddressMixin:
+class SafeHTTPConnectionPool(HTTPConnectionPool):
+    ConnectionCls = SafeHTTPConnection
+
     def __init__(self, *args, is_ipaddress_permitted: IsIpAddressPermitted = None, **kwargs):
         super().__init__(*args, **kwargs)
         self.ConnectionCls = partial(
@@ -113,12 +115,14 @@ class InjectIPAddressMixin:
         )
 
 
-class SafeHTTPConnectionPool(InjectIPAddressMixin, HTTPConnectionPool):
-    ConnectionCls = SafeHTTPConnection
-
-
-class SafeHTTPSConnectionPool(InjectIPAddressMixin, HTTPSConnectionPool):
+class SafeHTTPSConnectionPool(HTTPSConnectionPool):
     ConnectionCls = SafeHTTPSConnection
+
+    def __init__(self, *args, is_ipaddress_permitted: IsIpAddressPermitted = None, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.ConnectionCls = partial(
+            self.ConnectionCls, is_ipaddress_permitted=is_ipaddress_permitted
+        )
 
 
 class SafePoolManager(PoolManager):
