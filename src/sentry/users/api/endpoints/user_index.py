@@ -9,6 +9,7 @@ from sentry.api.permissions import SuperuserOrStaffFeatureFlaggedPermission
 from sentry.api.serializers import serialize
 from sentry.db.models.query import in_iexact
 from sentry.search.utils import tokenize_query
+from sentry.users.api.serializers.user import UserSerializer
 from sentry.users.models.user import User
 
 
@@ -70,6 +71,6 @@ class UserIndexEndpoint(Endpoint):
             request=request,
             queryset=queryset,
             order_by=order_by,
-            on_results=lambda x: serialize(x, request.user),
+            on_results=lambda x: serialize(x, request.user, UserSerializer()),
             paginator_cls=paginator_cls,
         )

@@ -4,7 +4,6 @@ from typing import Any
 from django.contrib.auth.models import AnonymousUser
 
 from sentry.api.serializers import Serializer, register
-from sentry.api.serializers.models.user import manytoone_to_dict
 from sentry.models.notificationaction import (
     ActionService,
     ActionTarget,
@@ -12,6 +11,7 @@ from sentry.models.notificationaction import (
     NotificationAction,
     NotificationActionProject,
 )
+from sentry.utils.serializers import manytoone_to_dict
 
 
 @register(NotificationAction)

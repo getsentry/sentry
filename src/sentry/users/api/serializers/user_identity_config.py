@@ -1,25 +1,27 @@
 from __future__ import annotations
 
-from collections.abc import MutableMapping
+from collections.abc import Mapping, MutableMapping, Sequence
 from dataclasses import dataclass
 from datetime import datetime
 from enum import Enum
-from typing import Any, Union
+from typing import TYPE_CHECKING, Any, TypedDict, Union
 
 from django.db.models.base import Model
 
 from sentry.api.serializers import Serializer, register, serialize
-from sentry.api.serializers.models import ControlSiloOrganizationSerializer
-from sentry.auth.provider import Provider
+from sentry.api.serializers.models.user_social_auth import get_provider_label
 from sentry.exceptions import NotRegistered
 from sentry.hybridcloud.services.organization_mapping import organization_mapping_service
 from sentry.identity import is_login_provider
 from sentry.integrations.manager import default_manager as integrations
 from sentry.models.authidentity import AuthIdentity
+from sentry.pipeline.provider import PipelineProvider
 from sentry.users.models.identity import Identity
+from sentry.users.models.user import User
 from social_auth.models import UserSocialAuth
 
-from . import user_social_auth
+if TYPE_CHECKING:
+    from sentry.api.serializers.models.organization import ControlSiloOrganizationSerializerResponse
 
 
 class Status(Enum):
@@ -49,8 +51,13 @@ class UserIdentityProvider:
     name: str
 
     @classmethod
-    def adapt(cls, provider: Provider) -> UserIdentityProvider:
+    def adapt(cls, provider: PipelineProvider) -> UserIdentityProvider:
         return cls(provider.key, provider.name)
+
+
+class UserIdentityProviderSerializerResponse(TypedDict):
+    key: str
+    name: str
 
 
 @dataclass(eq=True, frozen=True)
@@ -68,7 +75,9 @@ class UserIdentityConfig:
 
     @classmethod
     def wrap(cls, identity: IdentityType, status: Status) -> UserIdentityConfig:
-        def base(**kwargs):
+        provider: PipelineProvider
+
+        def base(**kwargs: Any) -> UserIdentityConfig:
             return cls(
                 category=_IDENTITY_CATEGORY_KEYS[type(identity)],
                 id=identity.id,
@@ -78,9 +87,7 @@ class UserIdentityConfig:
 
         if isinstance(identity, UserSocialAuth):
             return base(
-                provider=UserIdentityProvider(
-                    identity.provider, user_social_auth.get_provider_label(identity)
-                ),
+                provider=UserIdentityProvider(identity.provider, get_provider_label(identity)),
                 name=identity.uid,
                 is_login=False,
             )
@@ -114,10 +121,23 @@ class UserIdentityConfig:
         return _IDENTITY_CATEGORIES_BY_KEY[self.category]
 
 
+class UserIdentityConfigSerializerResponse(TypedDict):
+    id: str
+    category: str
+    provider: UserIdentityProviderSerializerResponse
+    name: str
+    status: str
+    isLogin: bool
+    organization: ControlSiloOrganizationSerializerResponse
+    dateAdded: datetime | None
+    dateVerified: datetime | None
+    dateSynced: datetime | None
+
+
 @register(UserIdentityConfig)
 class UserIdentityConfigSerializer(Serializer):
     def get_attrs(
-        self, item_list: list[UserIdentityConfig], user: Any, **kwargs: Any
+        self, item_list: Sequence[UserIdentityConfig], user: Any, **kwargs: Any
     ) -> MutableMapping[Any, Any]:
         result: MutableMapping[UserIdentityConfig, Any] = {}
         organizations = {
@@ -127,11 +147,20 @@ class UserIdentityConfigSerializer(Serializer):
             )
         }
         for item in item_list:
-            result[item] = dict(organization=organizations.get(item.organization_id))
+            # check if org_id exists bc mypy gets unhappy if .get() is given a None type
+            result[item] = (
+                dict(organization=organizations.get(item.organization_id))
+                if item.organization_id
+                else dict(organization=None)
+            )
 
         return result
 
-    def serialize(self, obj: UserIdentityConfig, attrs, user, **kwargs):
+    def serialize(
+        self, obj: UserIdentityConfig, attrs: Mapping[str, Any], user: User, **kwargs: Any
+    ) -> UserIdentityConfigSerializerResponse:
+        from sentry.api.serializers.models.organization import ControlSiloOrganizationSerializer
+
         return {
             "category": obj.category,
             "id": str(obj.id),
