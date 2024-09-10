@@ -115,7 +115,7 @@ describe('DatabaseSpanDescription', function () {
       isFetching: false,
       isError: false,
       data: {
-        description: undefined,
+        description: 'SELECT users FROM my_table LIMIT 1;',
         data: {'db.operation': 'SELECT', 'db.system': 'postgresql'},
         span_id: '1',
         start_timestamp: 1,
@@ -172,6 +172,25 @@ describe('DatabaseSpanDescription', function () {
             ],
           },
         ],
+      },
+    });
+
+    jest.mocked(useFullSpanFromTrace).mockReturnValue({
+      isLoading: false,
+      isFetching: false,
+      isError: false,
+      data: {
+        description: 'SELECT users FROM my_table LIMIT 1;',
+        data: {
+          'db.operation': 'SELECT',
+          'db.system': 'postgresql',
+          'code.filepath': '/app/views/users.py',
+          'code.lineno': 78,
+        },
+        span_id: '1',
+        start_timestamp: 1,
+        timestamp: 10,
+        trace_id: '1',
       },
     });
 
