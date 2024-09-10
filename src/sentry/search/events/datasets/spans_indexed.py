@@ -689,6 +689,7 @@ class SpansEAPDatasetConfig(SpansIndexedDatasetConfig):
                     default_result_type="duration",
                     redundant_grouping=True,
                 ),
+                # Min and Max are identical to their existing implementations
                 SnQLFunction(
                     "min_weighted",
                     required_args=[NumericColumn("column", spans=True)],
