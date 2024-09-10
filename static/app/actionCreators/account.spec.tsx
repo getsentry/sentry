@@ -1,5 +1,3 @@
-import {redirect} from 'react-router-dom';
-
 import {waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {logout} from './account';
@@ -8,15 +6,16 @@ jest.mock('react-router-dom');
 
 describe('logout', () => {
   it('has can logout', async function () {
-    const mock = MockApiClient.addMockResponse({
+    jest.spyOn(window.location, 'assign').mockImplementation(() => {});
+    const mockApi = new MockApiClient();
+    const mockApiDelete = MockApiClient.addMockResponse({
       url: '/auth/',
       method: 'DELETE',
     });
 
-    const api = new MockApiClient();
-    logout(api);
+    logout(mockApi);
 
-    await waitFor(() => expect(mock).toHaveBeenCalled());
-    await waitFor(() => expect(redirect).toHaveBeenCalled());
+    await waitFor(() => expect(mockApiDelete).toHaveBeenCalled());
+    expect(window.location.assign).toHaveBeenCalledWith('/auth/login/');
   });
 });
