@@ -16,6 +16,7 @@ export function ToolbarResults({resultMode, setResultMode}: ToolbarResultsProps)
         <ToolbarHeading>{t('Results')}</ToolbarHeading>
       </ToolbarHeader>
       <SegmentedControl
+        size="sm"
         aria-label={t('Result Mode')}
         value={resultMode}
         onChange={setResultMode}

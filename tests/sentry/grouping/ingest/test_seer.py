@@ -1,4 +1,5 @@
 from dataclasses import asdict
+from time import time
 from unittest.mock import MagicMock, patch
 
 from sentry.conf.server import SEER_SIMILARITY_MODEL_VERSION
@@ -8,9 +9,7 @@ from sentry.grouping.result import CalculatedHashes
 from sentry.models.grouphash import GroupHash
 from sentry.seer.similarity.types import SeerSimilarIssueData
 from sentry.testutils.cases import TestCase
-from sentry.testutils.helpers import Feature
 from sentry.testutils.helpers.eventprocessing import save_new_event
-from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.helpers.options import override_options
 from sentry.utils.types import NonNone
 
@@ -47,23 +46,17 @@ class ShouldCallSeerTest(TestCase):
         self.primary_hashes = self.event.get_hashes()
 
     def test_obeys_feature_enablement_check(self):
-        for grouping_flag, backfill_completed_option, expected_result in [
-            (False, None, False),
-            (True, None, True),
-            (False, 11211231, True),
-            (True, 11211231, True),
-        ]:
-            with Feature({"projects:similarity-embeddings-grouping": grouping_flag}):
-                self.project.update_option(
-                    "sentry:similarity_backfill_completed", backfill_completed_option
-                )
-                assert (
-                    should_call_seer_for_grouping(self.event, self.primary_hashes)
-                    is expected_result
-                ), f"Case (grouping {grouping_flag}, backfill completed {backfill_completed_option}) failed."
+        for backfill_completed_option, expected_result in [(None, False), (11211231, True)]:
+            self.project.update_option(
+                "sentry:similarity_backfill_completed", backfill_completed_option
+            )
+            assert (
+                should_call_seer_for_grouping(self.event, self.primary_hashes) is expected_result
+            ), f"Case {backfill_completed_option} failed."
 
-    @with_feature("projects:similarity-embeddings-grouping")
     def test_obeys_content_filter(self):
+        self.project.update_option("sentry:similarity_backfill_completed", int(time()))
+
         for content_eligibility, expected_result in [(True, True), (False, False)]:
             with patch(
                 "sentry.grouping.ingest.seer.event_content_is_seer_eligible",
@@ -74,8 +67,9 @@ class ShouldCallSeerTest(TestCase):
                     is expected_result
                 )
 
-    @with_feature("projects:similarity-embeddings-grouping")
     def test_obeys_global_seer_killswitch(self):
+        self.project.update_option("sentry:similarity_backfill_completed", int(time()))
+
         for killswitch_enabled, expected_result in [(True, False), (False, True)]:
             with override_options({"seer.global-killswitch.enabled": killswitch_enabled}):
                 assert (
@@ -83,8 +77,9 @@ class ShouldCallSeerTest(TestCase):
                     is expected_result
                 )
 
-    @with_feature("projects:similarity-embeddings-grouping")
     def test_obeys_similarity_service_killswitch(self):
+        self.project.update_option("sentry:similarity_backfill_completed", int(time()))
+
         for killswitch_enabled, expected_result in [(True, False), (False, True)]:
             with override_options({"seer.similarity-killswitch.enabled": killswitch_enabled}):
                 assert (
@@ -92,8 +87,9 @@ class ShouldCallSeerTest(TestCase):
                     is expected_result
                 )
 
-    @with_feature("projects:similarity-embeddings-grouping")
     def test_obeys_project_specific_killswitch(self):
+        self.project.update_option("sentry:similarity_backfill_completed", int(time()))
+
         for blocked_projects, expected_result in [([self.project.id], False), ([], True)]:
             with override_options(
                 {"seer.similarity.grouping_killswitch_projects": blocked_projects}
@@ -103,8 +99,9 @@ class ShouldCallSeerTest(TestCase):
                     is expected_result
                 )
 
-    @with_feature("projects:similarity-embeddings-grouping")
     def test_obeys_global_ratelimit(self):
+        self.project.update_option("sentry:similarity_backfill_completed", int(time()))
+
         for ratelimit_enabled, expected_result in [(True, False), (False, True)]:
             with patch(
                 "sentry.grouping.ingest.seer.ratelimiter.backend.is_limited",
@@ -117,8 +114,9 @@ class ShouldCallSeerTest(TestCase):
                     is expected_result
                 )
 
-    @with_feature("projects:similarity-embeddings-grouping")
     def test_obeys_project_ratelimit(self):
+        self.project.update_option("sentry:similarity_backfill_completed", int(time()))
+
         for ratelimit_enabled, expected_result in [(True, False), (False, True)]:
             with patch(
                 "sentry.grouping.ingest.seer.ratelimiter.backend.is_limited",
@@ -133,8 +131,9 @@ class ShouldCallSeerTest(TestCase):
                     is expected_result
                 )
 
-    @with_feature("projects:similarity-embeddings-grouping")
     def test_obeys_circuit_breaker(self):
+        self.project.update_option("sentry:similarity_backfill_completed", int(time()))
+
         for request_allowed, expected_result in [(True, True), (False, False)]:
             with patch(
                 "sentry.grouping.ingest.seer.CircuitBreaker.should_allow_request",
@@ -145,8 +144,9 @@ class ShouldCallSeerTest(TestCase):
                     is expected_result
                 )
 
-    @with_feature("projects:similarity-embeddings-grouping")
     def test_obeys_customized_fingerprint_check(self):
+        self.project.update_option("sentry:similarity_backfill_completed", int(time()))
+
         default_fingerprint_event = Event(
             project_id=self.project.id,
             event_id="11212012123120120415201309082013",

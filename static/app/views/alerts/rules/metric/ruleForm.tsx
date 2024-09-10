@@ -1173,6 +1173,7 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
 
     const thresholdTypeForm = (disabled: boolean) => (
       <ThresholdTypeForm
+        alertType={alertType}
         comparisonType={comparisonType}
         dataset={dataset}
         disabled={disabled}
@@ -1262,7 +1263,10 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
               isEditing={Boolean(ruleId)}
               isErrorMigration={showErrorMigrationWarning}
               isExtrapolatedChartData={isExtrapolatedChartData}
-              isForLlmMetric={aggregate.includes(':spans/ai.')}
+              isForLlmMetric={[
+                'sum(ai.total_tokens.used)',
+                'sum(ai.total_cost)',
+              ].includes(aggregate)}
               isTransactionMigration={isMigration && !showErrorMigrationWarning}
               monitorType={monitorType}
               onComparisonDeltaChange={value =>

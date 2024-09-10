@@ -72,7 +72,7 @@ _ORGANIZATION_SCOPE_PREFIX = "organizations:"
 logger = logging.getLogger(__name__)
 
 if TYPE_CHECKING:
-    from sentry.api.serializers import UserSerializerResponse, UserSerializerResponseSelf
+    from sentry.users.api.serializers.user import UserSerializerResponse, UserSerializerResponseSelf
 
 # A mapping of OrganizationOption keys to a list of frontend features, and functions to apply the feature.
 # Enabling feature-flagging frontend components without an extra API call/endpoint to verify
