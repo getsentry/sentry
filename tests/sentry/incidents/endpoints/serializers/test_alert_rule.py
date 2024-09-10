@@ -5,7 +5,11 @@ from sentry.incidents.endpoints.serializers.alert_rule import (
     CombinedRuleSerializer,
     DetailedAlertRuleSerializer,
 )
-from sentry.incidents.logic import create_alert_rule_trigger, create_alert_rule_trigger_action
+from sentry.incidents.logic import (
+    AlertTarget,
+    create_alert_rule_trigger,
+    create_alert_rule_trigger_action,
+)
 from sentry.incidents.models.alert_rule import (
     AlertRule,
     AlertRuleDetectionType,
@@ -292,7 +296,7 @@ class DetailedAlertRuleSerializerTest(BaseAlertRuleSerializerTest, TestCase):
 
     @patch(
         "sentry.incidents.logic.get_target_identifier_display_for_integration",
-        return_value=(123, "test"),
+        return_value=AlertTarget(123, "test"),
     )
     def test_trigger_actions(self, mock_get):
         alert_rule = self.create_alert_rule()
