@@ -423,7 +423,6 @@ disable_error_code = [
     "call-arg",
     "call-overload",
     "dict-item",
-    "has-type",
     "index",
     "misc",
     "operator",
