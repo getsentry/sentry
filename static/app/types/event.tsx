@@ -643,7 +643,7 @@ export type EventContexts = {
   client_os?: OSContext;
   device?: DeviceContext;
   feedback?: Record<string, any>;
-  flags?: Record<string, boolean>[];
+  flags?: {flag: string; result: boolean}[];
   memory_info?: MemoryInfoContext;
   os?: OSContext;
   otel?: OtelContext;

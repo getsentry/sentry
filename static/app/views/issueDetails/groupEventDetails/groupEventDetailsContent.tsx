@@ -117,7 +117,8 @@ export function EventDetailsContent({
   const isANR = mechanism === 'ANR' || mechanism === 'AppExitInfo';
   const showPossibleSolutionsHigher = shouldShowCustomErrorResourceConfig(group, project);
   const groupingCurrentLevel = group?.metadata?.current_level;
-  const hasFeatureFlagSection = true; // TODO: make feature flag
+  // const hasFeatureFlagSection = organization.features.includes('feature-flag-ui');
+  const hasFeatureFlagSection = true;
 
   const hasActionableItems = actionableItemsEnabled({
     eventId: event.id,
@@ -297,7 +298,7 @@ export function EventDetailsContent({
           projectSlug={project.slug}
         />
       )}
-      {hasFeatureFlagSection && <EventFeatureFlagList _event={event} />}
+      {hasFeatureFlagSection && <EventFeatureFlagList event={event} />}
       <EventHydrationDiff event={event} group={group} />
       {issueTypeConfig.replays.enabled && (
         <EventReplay event={event} group={group} projectSlug={project.slug} />
