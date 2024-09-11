@@ -371,9 +371,12 @@ def shim_to_feedback(
             feedback_event["platform"] = event.platform
             feedback_event["level"] = event.data["level"]
             feedback_event["environment"] = event.get_environment().name
-            feedback_event["tags"] = [list(item) for item in event.tags]
 
-        else:
+            tags = {}
+            for [k, v] in event.tags:
+                tags[k] = v
+            feedback_event["tags"] = tags
+
             metrics.incr(
                 "feedback.user_report.missing_event",
                 sample_rate=1.0,

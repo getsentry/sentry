@@ -559,7 +559,6 @@ class SpansEAPDatasetConfig(SpansIndexedDatasetConfig):
     @property
     def function_converter(self) -> dict[str, SnQLFunction]:
         existing_functions = super().function_converter
-        sampling_weight = Column("sampling_weight")
         function_converter = {
             function.name: function
             for function in [
@@ -568,7 +567,7 @@ class SpansEAPDatasetConfig(SpansIndexedDatasetConfig):
                     optional_args=[NullColumn("column")],
                     snql_aggregate=lambda _, alias: Function(
                         "sum",
-                        [Function("multiply", [Column("sign"), sampling_weight])],
+                        [Function("multiply", [Column("sign"), Column("sampling_weight")])],
                         alias,
                     ),
                     default_result_type="integer",
@@ -577,11 +576,7 @@ class SpansEAPDatasetConfig(SpansIndexedDatasetConfig):
                     "sum_weighted",
                     required_args=[NumericColumn("column", spans=True)],
                     result_type_fn=self.reflective_result_type(),
-                    snql_aggregate=lambda args, alias: Function(
-                        "sum",
-                        [Function("multiply", [Column("sign"), args["column"], sampling_weight])],
-                        alias,
-                    ),
+                    snql_aggregate=lambda args, alias: self._resolve_sum_weighted(args, alias),
                     default_result_type="duration",
                 ),
                 SnQLFunction(
@@ -591,16 +586,11 @@ class SpansEAPDatasetConfig(SpansIndexedDatasetConfig):
                     snql_aggregate=lambda args, alias: Function(
                         "divide",
                         [
+                            self._resolve_sum_weighted(args),
                             Function(
                                 "sum",
-                                [
-                                    Function(
-                                        "multiply",
-                                        [Column("sign"), args["column"], sampling_weight],
-                                    )
-                                ],
+                                [Function("multiply", [Column("sign"), Column("sampling_weight")])],
                             ),
-                            Function("multiply", [Column("sign"), sampling_weight]),
                         ],
                         alias,
                     ),
@@ -711,6 +701,25 @@ class SpansEAPDatasetConfig(SpansIndexedDatasetConfig):
 
         existing_functions.update(function_converter)
         return existing_functions
+
+    def _resolve_sum_weighted(
+        self,
+        args: Mapping[str, str | Column | SelectType | int | float],
+        alias: str | None = None,
+    ) -> SelectType:
+        return Function(
+            "sum",
+            [
+                Function(
+                    "multiply",
+                    [
+                        Column("sign"),
+                        Function("multiply", [args["column"], Column("sampling_weight")]),
+                    ],
+                )
+            ],
+            alias,
+        )
 
     def _resolve_percentile_weighted(
         self,
