@@ -147,7 +147,8 @@ def fix_for_issue_platform(event_data):
         if not ret_event["user"].get("email", ""):
             ret_event["user"]["email"] = contact_email
 
-        # Set the user.email tag
+        # Set the user.email tag since we want to be able to display user.email on the feedback UI as a tag
+        # as well as be able to write alert conditions on it
         if not ret_event["tags"].get("user.email"):
             ret_event["tags"]["user.email"] = contact_email
 
