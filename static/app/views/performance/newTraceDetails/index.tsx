@@ -240,6 +240,7 @@ export function TraceView() {
                 metaResults={meta}
                 replayRecord={null}
                 source="performance"
+                isEmbedded={false}
               />
             </TraceInnerLayout>
           </TraceExternalLayout>
@@ -260,6 +261,7 @@ const VITALS_TAB: TraceReducerState['tabs']['tabs'][0] = {
 };
 
 type TraceViewWaterfallProps = {
+  isEmbedded: boolean;
   metaResults: TraceMetaQueryResults;
   organization: Organization;
   replayRecord: ReplayRecord | null;
@@ -1023,6 +1025,7 @@ export function TraceViewWaterfall(props: TraceViewWaterfallProps) {
           manager={viewManager}
           scheduler={traceScheduler}
           forceRerender={forceRender}
+          isEmbedded={props.isEmbedded}
         />
 
         {tree.type === 'error' ? (

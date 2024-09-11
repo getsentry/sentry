@@ -117,6 +117,7 @@ function EventTraceViewInner({
                   }
                 : undefined
             }
+            isEmbedded
           />
         </TraceViewWaterfallWrapper>
       </TraceStateProvider>
