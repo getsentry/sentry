@@ -24,27 +24,23 @@ export function useRoutes(): PlainRoute<any>[] {
   // biome-ignore lint/correctness/useHookAtTopLevel: react-router-6 migration
   return useMemo(
     () =>
-      matches.reduce<PlainRoute[]>((acc, match) => {
-        const currentPrefix = acc.map(route => route.path ?? '').join('');
-
-        // In react-router 6 each pathname is the full matching path. In
-        // react-router 3 each match object just has the matching part. We can
-        // reconstruct this by removing the prefix from the previous routes as
-        // we build them
-        let path = match.pathname.slice(currentPrefix.length);
-
-        // XXX: Another difference we have to account for is trailing slashes.
-        // I'm not 100% sure why but react-router 6 seems to trim slashes.
-        // Let's ensure if we have a route that it ends with a slash
-        if (path !== '' && !path.endsWith('/')) {
-          path = `${path}/`;
-        }
-
+      matches.map<PlainRoute>(match => {
         // We put things like `name` (for breadcrumbs) in the handle. Extract
         // it out here
         const extra: any = match.handle;
 
-        return [...acc, {path, ...extra}];
+        // In react-router 6 the match returns a `pathname`, but the route is
+        // resolved, so it does not include the parameter slug (like
+        // `:issueId`) and has the prefixing route, so if the route part is
+        // just `:issueId`, but is nested under `/issues/` it will be
+        // `/issues/:issueId`, which is not what react-router 3 did.
+        //
+        // To shim for this, we are storing the unresolved `path` of the route
+        // in the user-data `handle` object, so we can just extract it from
+        // there
+        const path: string = extra.path ?? '';
+
+        return {path, ...extra};
       }, []),
     [matches]
   );
