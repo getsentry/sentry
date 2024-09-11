@@ -29,13 +29,18 @@ export function DatabasePageFilters(props: Props) {
         {organization.features.includes('performance-queries-mongodb-extraction') && (
           <DatabaseSystemSelector />
         )}
-        <ActionSelector moduleName={ModuleName.DB} value={databaseCommand ?? ''} />
+        <ActionSelector
+          moduleName={ModuleName.DB}
+          value={databaseCommand ?? ''}
+          filters={{'span.system': system}}
+        />
         <DomainSelector
           moduleName={ModuleName.DB}
           value={table ?? ''}
           domainAlias={
             system === SupportedDatabaseSystems.MONGODB ? t('Collection') : t('Table')
           }
+          additionalQuery={[`span.system:${system}`]}
         />
       </PageFilterBar>
     </PageFilterWrapper>

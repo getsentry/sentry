@@ -104,7 +104,7 @@ export function DomainSelector({
 
   useEffect(() => {
     clearDomainOptionsCache();
-  }, [pageFilters.selection.projects, clearDomainOptionsCache]);
+  }, [pageFilters.selection.projects, clearDomainOptionsCache, additionalQuery]);
 
   const emptyOption = {
     value: EMPTY_OPTION_VALUE,
