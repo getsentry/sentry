@@ -1507,7 +1507,9 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         ]
 
         # Test multiple semver in same filter
-        response = self.get_response(sort_by="date", limit=10, query=f"{SEMVER_ALIAS}:[1.2.3,1.2.5]")
+        response = self.get_response(
+            sort_by="date", limit=10, query=f"{SEMVER_ALIAS}:[1.2.3,1.2.5]"
+        )
         assert response.status_code == 200, response.content
         assert [int(r["id"]) for r in response.json()] == [
             release_1_g_1,
@@ -1518,7 +1520,9 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
             release_3_g_2,
         ]
 
-        response = self.get_response(sort_by="date", limit=10, query=f"{SEMVER_ALIAS}:[>1.2.3,<2.0.0]")
+        response = self.get_response(
+            sort_by="date", limit=10, query=f"{SEMVER_ALIAS}:[>1.2.3,<2.0.0]"
+        )
         assert response.status_code == 200, response.content
         assert [int(r["id"]) for r in response.json()] == [
             release_2_g_1,
@@ -1527,7 +1531,9 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
             release_3_g_2,
         ]
 
-        response = self.get_response(sort_by="date", limit=10, query=f"{SEMVER_ALIAS}:[1.2.3,>2.0.0]")
+        response = self.get_response(
+            sort_by="date", limit=10, query=f"{SEMVER_ALIAS}:[1.2.3,>2.0.0]"
+        )
         assert response.status_code == 200, response.content
         assert [int(r["id"]) for r in response.json()] == [
             release_1_g_1,
