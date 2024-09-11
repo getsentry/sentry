@@ -48,9 +48,14 @@ export const useSpanIndexedSeries = <
   Fields extends SpanIndexedField[] | SpanFunctions[] | string[],
 >(
   options: UseMetricsSeriesOptions<Fields> = {},
-  referrer: string
+  referrer: string,
+  dataset?: DiscoverDatasets
 ) => {
-  return useDiscoverSeries<Fields>(options, DiscoverDatasets.SPANS_INDEXED, referrer);
+  return useDiscoverSeries<Fields>(
+    options,
+    dataset ?? DiscoverDatasets.SPANS_INDEXED,
+    referrer
+  );
 };
 
 const useDiscoverSeries = <T extends string[]>(

@@ -12,6 +12,7 @@ import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {useChartInterval} from 'sentry/views/explore/hooks/useChartInterval';
 import {useChartType} from 'sentry/views/explore/hooks/useChartType';
+import {useDataset} from 'sentry/views/explore/hooks/useDataset';
 import {useVisualizes} from 'sentry/views/explore/hooks/useVisualizes';
 import Chart, {ChartType} from 'sentry/views/insights/common/components/chart';
 import ChartPanel from 'sentry/views/insights/common/components/chartPanel';
@@ -40,6 +41,8 @@ const exploreChartTypeOptions = [
 // TODO: Update to support aggregate mode and multiple queries / visualizations
 export function ExploreCharts({query}: ExploreChartsProps) {
   const pageFilters = usePageFilters();
+
+  const [dataset] = useDataset();
   const [visualizes] = useVisualizes();
   const [chartType, setChartType] = useChartType();
   const [interval, setInterval, intervalOptions] = useChartInterval();
@@ -57,7 +60,8 @@ export function ExploreCharts({query}: ExploreChartsProps) {
       interval: interval ?? getInterval(pageFilters.selection.datetime, 'metrics'),
       enabled: true,
     },
-    'api.explorer.stats'
+    'api.explorer.stats',
+    dataset
   );
 
   return (
