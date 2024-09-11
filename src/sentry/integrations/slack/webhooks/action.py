@@ -221,9 +221,9 @@ class SlackActionEndpoint(Endpoint):
             text = UNLINK_IDENTITY_MESSAGE.format(
                 associate_url=build_unlinking_url(
                     slack_request.integration.id,
-                    user_id,
-                    channel,
-                    resp_url,
+                    slack_id=user_id,
+                    channel_id=channel,
+                    response_url=resp_url,
                 ),
                 user_email=user.email,
                 org_name=group.organization.name,
@@ -233,13 +233,13 @@ class SlackActionEndpoint(Endpoint):
 
     def get_first_error_text(self, error_detail) -> str:
         if isinstance(error_detail, dict):
-            # If it's a dictionary, get the first value
+            # if it's a dictionary, get the first value
             return str(next(iter(error_detail.values())))
         elif isinstance(error_detail, list):
-            # If it's a list, get the first item
+            # if it's a list, get the first item
             return str(error_detail[0]) if error_detail else ""
         else:
-            # If it's neither, return an empty string or raise an exception
+            # if it's neither, return an empty string
             return ""
 
     def validation_error(
