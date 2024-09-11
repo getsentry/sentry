@@ -323,6 +323,7 @@ USE_TZ = True
 # This is because CommonMiddleware Sets the Content-Length header for non-streaming responses.
 MIDDLEWARE: tuple[str, ...] = (
     "csp.middleware.CSPMiddleware",
+    "sentry.middleware.flag.FlagMiddleware",
     "sentry.middleware.health.HealthCheck",
     "sentry.middleware.security.SecurityHeadersMiddleware",
     "sentry.middleware.env.SentryEnvMiddleware",
@@ -750,6 +751,8 @@ CELERY_IMPORTS = (
     "sentry.replays.tasks",
     "sentry.monitors.tasks.clock_pulse",
     "sentry.monitors.tasks.detect_broken_monitor_envs",
+    # TODO(@anonrig): Remove this when AppStore integration is removed.
+    "sentry.tasks.app_store_connect",
     "sentry.tasks.assemble",
     "sentry.tasks.auth",
     "sentry.tasks.auto_remove_inbox",
@@ -852,6 +855,8 @@ CELERY_QUEUES_REGION = [
     Queue("auth", routing_key="auth"),
     Queue("alerts", routing_key="alerts"),
     Queue("app_platform", routing_key="app_platform"),
+    # TODO(@anonrig): Remove this when all AppStore connect data is removed.
+    Queue("appstoreconnect", routing_key="sentry.tasks.app_store_connect.#"),
     Queue("assemble", routing_key="assemble"),
     Queue("backfill_seer_grouping_records", routing_key="backfill_seer_grouping_records"),
     Queue("buffers.process_pending", routing_key="buffers.process_pending"),
@@ -957,7 +962,6 @@ CELERY_QUEUES_REGION = [
     Queue("on_demand_metrics", routing_key="on_demand_metrics"),
     Queue("check_new_issue_threshold_met", routing_key="check_new_issue_threshold_met"),
     Queue("integrations_slack_activity_notify", routing_key="integrations_slack_activity_notify"),
-    Queue("split_discover_query_dataset", routing_key="split_discover_query_dataset"),
 ]
 
 from celery.schedules import crontab
@@ -1526,6 +1530,10 @@ SENTRY_RELAY_TASK_APM_SAMPLING = 0
 # sample rate for ingest consumer processing functions
 SENTRY_INGEST_CONSUMER_APM_SAMPLING = 0
 
+# TODO(@anonrig): Remove this when all AppStore connect data is removed.
+# sample rate for Apple App Store Connect tasks transactions
+SENTRY_APPCONNECT_APM_SAMPLING = SENTRY_BACKEND_APM_SAMPLING
+
 # sample rate for suspect commits task
 SENTRY_SUSPECT_COMMITS_APM_SAMPLING = 0
 
@@ -1811,7 +1819,7 @@ SENTRY_MANAGED_USER_FIELDS = ()
 OPENAI_API_KEY: str | None = None
 
 # AI Suggested Fix default model
-SENTRY_AI_SUGGESTED_FIX_MODEL: str = os.getenv("SENTRY_AI_SUGGESTED_FIX_MODEL", "gpt-3.5-turbo-16k")
+SENTRY_AI_SUGGESTED_FIX_MODEL: str = os.getenv("SENTRY_AI_SUGGESTED_FIX_MODEL", "gpt-4o-mini")
 
 SENTRY_API_PAGINATION_ALLOWLIST = SENTRY_API_PAGINATION_ALLOWLIST_DO_NOT_MODIFY
 

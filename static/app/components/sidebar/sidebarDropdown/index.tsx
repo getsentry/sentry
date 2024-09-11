@@ -44,11 +44,6 @@ export default function SidebarDropdown({orientation, collapsed, hideOrgLinks}: 
   const user = useUser();
   const {projects} = useProjects();
 
-  const handleLogout = async () => {
-    await logout(api);
-    window.location.assign('/auth/login/');
-  };
-
   const hasOrganization = !!org;
   const hasUser = !!user;
 
@@ -58,6 +53,10 @@ export default function SidebarDropdown({orientation, collapsed, hideOrgLinks}: 
   const hasMemberRead = org?.access?.includes('member:read');
   const hasTeamRead = org?.access?.includes('team:read');
   const canCreateOrg = ConfigStore.get('features').has('organizations:create');
+
+  function handleLogout() {
+    logout(api);
+  }
 
   // Avatar to use: Organization --> user --> Sentry
   const avatar =

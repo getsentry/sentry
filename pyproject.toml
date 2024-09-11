@@ -43,6 +43,9 @@ filterwarnings = [
 
   # pytest has not yet implemented the replacement for this yet
   "ignore:The --looponfail command line argument.*",
+
+  # this cannot be addressed until django 5.1
+  "ignore:CheckConstraint.check is deprecated.*",
 ]
 looponfailroots = ["src", "tests"]
 
@@ -201,8 +204,6 @@ module = [
     "sentry.api.serializers.models.rule",
     "sentry.api.serializers.models.sentry_app",
     "sentry.api.serializers.models.team",
-    "sentry.api.serializers.models.user",
-    "sentry.api.serializers.models.user_identity_config",
     "sentry.api.serializers.rest_framework.mentions",
     "sentry.api.serializers.rest_framework.notification_action",
     "sentry.api.serializers.rest_framework.rule",
@@ -232,7 +233,6 @@ module = [
     "sentry.incidents.endpoints.organization_alert_rule_index",
     "sentry.incidents.endpoints.organization_incident_comment_details",
     "sentry.incidents.endpoints.organization_incident_index",
-    "sentry.incidents.logic",
     "sentry.incidents.subscription_processor",
     "sentry.incidents.tasks",
     "sentry.integrations.api.bases.integration",
@@ -374,7 +374,6 @@ module = [
     "sentry.utils.committers",
     "sentry.utils.services",
     "sentry.web.forms.accounts",
-    "sentry.web.frontend.account_identity",
     "sentry.web.frontend.auth_close",
     "sentry.web.frontend.auth_login",
     "sentry.web.frontend.auth_logout",
@@ -426,7 +425,6 @@ disable_error_code = [
     "call-arg",
     "call-overload",
     "dict-item",
-    "has-type",
     "index",
     "misc",
     "operator",
