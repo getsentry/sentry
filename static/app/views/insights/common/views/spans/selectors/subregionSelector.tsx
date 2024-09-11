@@ -7,8 +7,7 @@ import {
   type SelectOption,
   type SelectProps,
 } from 'sentry/components/compactSelect';
-import {Tooltip} from 'sentry/components/tooltip';
-import {IconInfo} from 'sentry/icons';
+import QuestionTooltip from 'sentry/components/questionTooltip';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -78,12 +77,10 @@ export default function SubregionSelector({size}: Props) {
       value={value}
       triggerLabel={value.length === 0 ? t('All') : undefined}
       menuTitle={
-        <Fragment>
+        <MenuTitleContainer>
           {t('Filter region')}
-          <Tooltip title={tooltip}>
-            <StyledInfoIcon size="xs" />
-          </Tooltip>
-        </Fragment>
+          <QuestionTooltip title={tooltip} size="xs" />
+        </MenuTitleContainer>
       }
       options={options}
       onChange={(selectedOptions: SelectOption<string>[]) => {
@@ -110,6 +107,8 @@ const StyledFeatureBadge = styled(FeatureBadge)`
   margin-right: ${space(1)};
 `;
 
-const StyledInfoIcon = styled(IconInfo)`
-  margin-left: ${space(0.5)};
+const MenuTitleContainer = styled('div')`
+  display: flex;
+  align-items: center;
+  gap: ${space(0.5)};
 `;
