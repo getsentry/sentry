@@ -1887,7 +1887,10 @@ def check_aggregate_column_support(aggregate: str, allow_mri: bool = False) -> b
         or column in SUPPORTED_COLUMNS
         or column in TRANSLATABLE_COLUMNS
         or (is_mri(column) and allow_mri)
-        or (column in INSIGHTS_FUNCTION_VALID_ARGS_MAP.get(function, []))
+        or (
+            isinstance(function, str)
+            and column in INSIGHTS_FUNCTION_VALID_ARGS_MAP.get(function, [])
+        )
     )
 
 
