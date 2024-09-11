@@ -51,7 +51,7 @@ from sentry.models.repository import Repository
 from sentry.models.rule import Rule
 from sentry.models.team import Team
 from sentry.notifications.notifications.base import ProjectNotification
-from sentry.notifications.utils.actions import MessageAction
+from sentry.notifications.utils.actions import BlockKitMessageAction, MessageAction
 from sentry.notifications.utils.participants import (
     dedupe_suggested_assignees,
     get_suspect_commit_users,
@@ -421,7 +421,7 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
         event: Event | GroupEvent | None = None,
         tags: set[str] | None = None,
         identity: RpcIdentity | None = None,
-        actions: Sequence[MessageAction] | None = None,
+        actions: Sequence[MessageAction | BlockKitMessageAction] | None = None,
         rules: list[Rule] | None = None,
         link_to_event: bool = False,
         issue_details: bool = False,
