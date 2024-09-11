@@ -171,7 +171,6 @@ def cleanup(
         from sentry.constants import ObjectStatus
         from sentry.data_export.models import ExportedData
         from sentry.db.deletion import BulkDeleteQuery
-        from sentry.models.notificationmessage import NotificationMessage
         from sentry.models.rulefirehistory import RuleFireHistory
         from sentry.monitors import models as monitor_models
         from sentry.replays import models as replay_models
@@ -211,8 +210,6 @@ def cleanup(
         BULK_QUERY_DELETES = [
             (models.UserReport, "date_added", None),
             (models.GroupEmailThread, "date", None),
-            (NotificationMessage, "date_added", "-id"),
-            (RuleFireHistory, "date_added", None),
         ] + additional_bulk_query_deletes
 
         # Deletions that use the `deletions` code path (which handles their child relations)
@@ -223,6 +220,7 @@ def cleanup(
             (models.ArtifactBundle, "date_added", "date_added"),
             (monitor_models.MonitorCheckIn, "date_added", "date_added"),
             (models.GroupRuleStatus, "date_added", "date_added"),
+            (RuleFireHistory, "date_added", "date_added"),
         ]
         # Deletions that we run per project. In some cases we can't use an index on just the date
         # column, so as an alternative we use `(project_id, <date_col>)` instead
