@@ -27,8 +27,8 @@ export function DatabaseSystemSelector() {
             ...location.query,
             [SPAN_SYSTEM]: option.value,
             // Reset the table and command since they won't be valid if the DB system changes
-            [SPAN_DOMAIN]: null,
-            [SPAN_ACTION]: null,
+            [SPAN_DOMAIN]: undefined,
+            [SPAN_ACTION]: undefined,
           },
         });
       }}
