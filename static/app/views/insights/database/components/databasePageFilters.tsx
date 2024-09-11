@@ -1,5 +1,6 @@
 import styled from '@emotion/styled';
 
+import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -24,7 +25,7 @@ export function DatabasePageFilters(props: Props) {
   return (
     <PageFilterWrapper>
       <ModulePageFilterBar moduleName={ModuleName.DB} />
-      <DbFilterWrapper>
+      <PageFilterBar condensed>
         {organization.features.includes('performance-queries-mongodb-extraction') && (
           <DatabaseSystemSelector />
         )}
@@ -36,18 +37,12 @@ export function DatabasePageFilters(props: Props) {
             system === SupportedDatabaseSystems.MONGODB ? t('Collection') : t('Table')
           }
         />
-      </DbFilterWrapper>
+      </PageFilterBar>
     </PageFilterWrapper>
   );
 }
 
 const PageFilterWrapper = styled('div')`
-  display: flex;
-  gap: ${space(3)};
-  flex-wrap: wrap;
-`;
-
-const DbFilterWrapper = styled('div')`
   display: flex;
   gap: ${space(3)};
   flex-wrap: wrap;
