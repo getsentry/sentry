@@ -963,35 +963,20 @@ class Group(Model):
 def pre_save_group_default_substatus(instance, sender, *args, **kwargs):
     # TODO(snigdha): Replace the logging with a ValueError once we are confident that this is working as expected.
     if instance:
-        # We only support substatuses for UNRESOLVED and IGNORED groups
-        if (
-            instance.status not in [GroupStatus.UNRESOLVED, GroupStatus.IGNORED]
-            and instance.substatus is not None
-        ):
-            logger.error(
-                "No substatus allowed for group",
-                extra={"status": instance.status, "substatus": instance.substatus},
-            )
-
-        if (
-            instance.status == GroupStatus.IGNORED
-            and instance.substatus not in IGNORED_SUBSTATUS_CHOICES
-        ):
-            logger.error(
-                "Invalid substatus for IGNORED group.", extra={"substatus": instance.substatus}
-            )
-
-        if instance.status == GroupStatus.UNRESOLVED:
-            if instance.substatus is None:
-                logger.warning(
-                    "no_substatus: Found UNRESOLVED group with no substatus",
-                    extra={"group_id": instance.id},
+        if instance.status == GroupStatus.IGNORED:
+            if instance.substatus not in IGNORED_SUBSTATUS_CHOICES:
+                logger.error(
+                    "Invalid substatus for IGNORED group.", extra={"substatus": instance.substatus}
                 )
-                instance.substatus = GroupSubStatus.ONGOING
-
-            # UNRESOLVED groups must have a substatus
+        elif instance.status == GroupStatus.UNRESOLVED:
             if instance.substatus not in UNRESOLVED_SUBSTATUS_CHOICES:
                 logger.error(
                     "Invalid substatus for UNRESOLVED group",
                     extra={"substatus": instance.substatus},
                 )
+        # We only support substatuses for UNRESOLVED and IGNORED groups
+        elif instance.substatus is not None:
+            logger.error(
+                "No substatus allowed for group",
+                extra={"status": instance.status, "substatus": instance.substatus},
+            )
