@@ -36,8 +36,8 @@ class SourceCodeSearchEndpoint(IntegrationEndpoint, Generic[T], ABC):
 
     # not used in VSTS
     @property
-    def repository_field(self) -> str:
-        raise NotImplementedError
+    def repository_field(self) -> str | None:
+        return None
 
     @property
     @abstractmethod
