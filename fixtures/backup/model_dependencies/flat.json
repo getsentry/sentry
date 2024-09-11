@@ -861,5 +861,8 @@
   ],
   "workflow_engine.workflow": [
     "sentry.organization"
+  ],
+  "workflow_engine.workflowaction": [
+    "workflow_engine.workflow"
   ]
 }
