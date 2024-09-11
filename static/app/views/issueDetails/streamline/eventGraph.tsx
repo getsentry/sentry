@@ -77,7 +77,7 @@ export function EventGraph({groupStats}: {groupStats: MultiSeriesEventsStats}) {
             setVisibleSeries({...visibleSeries, event: !visibleSeries.event})
           }
           enabled={visibleSeries.event}
-          canInteract={visibleSeries.user}
+          disabled={!visibleSeries.user}
         >
           <InteractionStateLayer hidden={!visibleSeries.user} />
           <Label>{tn('Event', 'Events', eventCount)}</Label>
@@ -89,7 +89,7 @@ export function EventGraph({groupStats}: {groupStats: MultiSeriesEventsStats}) {
             setVisibleSeries({...visibleSeries, user: !visibleSeries.user})
           }
           enabled={visibleSeries.user}
-          canInteract={visibleSeries.event}
+          disabled={!visibleSeries.event}
         >
           <InteractionStateLayer hidden={!visibleSeries.event} />
           <Label>{tn('User', 'Users', userCount)}</Label>
@@ -130,8 +130,8 @@ const SummaryContainer = styled('div')`
   margin-right: space(1);
 `;
 
-const Callout = styled('button')<{canInteract: boolean; enabled: boolean}>`
-  cursor: ${p => (p.canInteract ? 'pointer' : 'initial')};
+const Callout = styled('button')<{disabled: boolean; enabled: boolean}>`
+  cursor: ${p => (p.disabled ? 'initial' : 'pointer')};
   opacity: ${p => (p.enabled ? 1 : 0.5)};
   user-select: none;
   background: ${p => p.theme.background};
@@ -152,6 +152,7 @@ const Label = styled('div')`
 
 const Count = styled('div')`
   font-size: ${p => p.theme.headerFontSize};
+  margin-top: ${space(0.5)};
   line-height: 1;
 `;
 

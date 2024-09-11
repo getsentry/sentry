@@ -13,6 +13,14 @@ import ProjectsStore from 'sentry/stores/projectsStore';
 import {EventDetails} from 'sentry/views/issueDetails/streamline/eventDetails';
 
 jest.mock('sentry/views/issueDetails/groupEventDetails/groupEventDetailsContent');
+jest.mock('screenfull', () => ({
+  enabled: true,
+  isFullscreen: false,
+  request: jest.fn(),
+  exit: jest.fn(),
+  on: jest.fn(),
+  off: jest.fn(),
+}));
 
 describe('EventDetails', function () {
   const organization = OrganizationFixture();
