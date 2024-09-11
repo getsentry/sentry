@@ -36,10 +36,10 @@ function QuestionTooltip({
   return (
     <QuestionIconContainer size={size} className={className}>
       <Tooltip title={title} {...tooltipProps}>
-        {icon === 'question' ? (
-          <IconQuestion size={size} color="subText" data-test-id="more-information" />
-        ) : (
+        {icon === 'info' ? (
           <IconInfo size={size} color="subText" data-test-id="more-information" />
+        ) : (
+          <IconQuestion size={size} color="subText" data-test-id="more-information" />
         )}
       </Tooltip>
     </QuestionIconContainer>
