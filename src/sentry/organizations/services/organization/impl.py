@@ -356,9 +356,10 @@ class DatabaseBackedOrganizationService(OrganizationService):
         """We need to do some bitfield magic here to convert the aggregate flag into the correct format, because the
         original class does not let us instantiate without being tied to the database/django:
         1. Convert the integer into a binary representation
-        2. Pad the string with the number of leading zeros MAX_BIGINT has so the calculated flags line up with the BitField
+        2. Pad the string with the number of leading zeros so the length of the binary representation lines up with the
+           number of bits of MAX_BIGINT / the BitField
         3. Reverse the binary representation to correctly assign flags based on the order
-        4. Serialize as an RpcProjectFlags objecct
+        4. Serialize as an RpcProjectFlags object
         """
         flag_keys = list(Project.flags)
 
