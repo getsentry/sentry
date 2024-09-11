@@ -77,7 +77,7 @@ export function useEventQuery({group}: {group: Group}): string {
     return true;
   });
 
-  return joinQuery(validQuery);
+  return joinQuery(validQuery, false, true);
 }
 
 function useEventSearchFilterKeys(data) {
