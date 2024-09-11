@@ -5,6 +5,7 @@ import pytest
 import responses
 from django.utils import timezone
 
+from sentry.constants import ObjectStatus
 from sentry.integrations.github.constants import STACKFRAME_COUNT
 from sentry.integrations.github.tasks.language_parsers import PATCH_PARSERS
 from sentry.integrations.github.tasks.open_pr_comment import (
@@ -18,11 +19,13 @@ from sentry.integrations.github.tasks.open_pr_comment import (
     safe_for_comment,
 )
 from sentry.integrations.github.tasks.utils import PullRequestFile, PullRequestIssue
+from sentry.integrations.models.integration import Integration
 from sentry.models.group import Group, GroupStatus
 from sentry.models.pullrequest import CommentType, PullRequest, PullRequestComment
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.testutils.cases import IntegrationTestCase, TestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.testutils.silo import assume_test_silo_mode_of
 from sentry.testutils.skips import requires_snuba
 from tests.sentry.integrations.github.tasks.test_pr_comment import GithubCommentTestCase
 
@@ -1178,9 +1181,9 @@ class TestOpenPRCommentWorkflow(IntegrationTestCase, CreateEventTestCase):
         mock_reverse_codemappings,
         mock_pr_filenames,
     ):
-        # invalid integration id
-        self.gh_repo.integration_id = 0
-        self.gh_repo.save()
+        # inactive integration
+        with assume_test_silo_mode_of(Integration):
+            self.integration.update(status=ObjectStatus.DISABLED)
 
         open_pr_comment_workflow(self.pr.id)
 

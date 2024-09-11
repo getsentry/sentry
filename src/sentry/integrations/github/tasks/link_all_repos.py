@@ -1,5 +1,6 @@
 import logging
 
+from sentry.constants import ObjectStatus
 from sentry.integrations.services.integration import integration_service
 from sentry.organizations.services.organization import organization_service
 from sentry.plugins.providers.integration_repository import (
@@ -34,7 +35,9 @@ def link_all_repos(
     integration_id: int,
     organization_id: int,
 ):
-    integration = integration_service.get_integration(integration_id=integration_id)
+    integration = integration_service.get_integration(
+        integration_id=integration_id, status=ObjectStatus.ACTIVE
+    )
     if not integration:
         logger.error(
             "%s.link_all_repos.integration_missing",

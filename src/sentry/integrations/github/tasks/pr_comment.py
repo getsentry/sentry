@@ -9,6 +9,7 @@ from django.db import connection
 from snuba_sdk import Column, Condition, Direction, Entity, Function, Op, OrderBy, Query
 from snuba_sdk import Request as SnubaRequest
 
+from sentry.constants import ObjectStatus
 from sentry.integrations.github.constants import ISSUE_LOCKED_ERROR_MESSAGE, RATE_LIMITED_MESSAGE
 from sentry.integrations.github.tasks.utils import PullRequestIssue, create_or_update_comment
 from sentry.integrations.services.integration import integration_service
@@ -184,7 +185,9 @@ def github_comment_workflow(pullrequest_id: int, project_id: int):
         metrics.incr(MERGED_PR_METRICS_BASE.format(key="error"), tags={"type": "missing_repo"})
         return
 
-    integration = integration_service.get_integration(integration_id=repo.integration_id)
+    integration = integration_service.get_integration(
+        integration_id=repo.integration_id, status=ObjectStatus.ACTIVE
+    )
     if not integration:
         cache.delete(cache_key)
         logger.info("github.pr_comment.integration_missing", extra={"organization_id": org_id})
@@ -254,7 +257,9 @@ def github_comment_reactions():
             metrics.incr("github_pr_comment.comment_reactions.missing_repo")
             continue
 
-        integration = integration_service.get_integration(integration_id=repo.integration_id)
+        integration = integration_service.get_integration(
+            integration_id=repo.integration_id, status=ObjectStatus.ACTIVE
+        )
         if not integration:
             logger.info(
                 "github.pr_comment.comment_reactions.integration_missing",

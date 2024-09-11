@@ -6,6 +6,7 @@ import pytest
 import responses
 from django.utils import timezone
 
+from sentry.constants import ObjectStatus
 from sentry.integrations.github.integration import GitHubIntegrationProvider
 from sentry.integrations.github.tasks.pr_comment import (
     format_comment,
@@ -16,6 +17,7 @@ from sentry.integrations.github.tasks.pr_comment import (
     pr_to_issue_query,
 )
 from sentry.integrations.github.tasks.utils import PullRequestIssue
+from sentry.integrations.models.integration import Integration
 from sentry.models.commit import Commit
 from sentry.models.group import Group
 from sentry.models.groupowner import GroupOwner, GroupOwnerType
@@ -32,6 +34,7 @@ from sentry.shared_integrations.exceptions import ApiError
 from sentry.tasks.commit_context import DEBOUNCE_PR_COMMENT_CACHE_KEY
 from sentry.testutils.cases import IntegrationTestCase, SnubaTestCase, TestCase
 from sentry.testutils.helpers.datetime import before_now, freeze_time, iso_format
+from sentry.testutils.silo import assume_test_silo_mode_of
 from sentry.testutils.skips import requires_snuba
 from sentry.utils.cache import cache
 
@@ -622,9 +625,9 @@ class TestCommentWorkflow(GithubCommentTestCase):
         # missing integration should trigger the cache to release the key
         cache.set(self.cache_key, True, timedelta(minutes=5).total_seconds())
 
-        # invalid integration id
-        self.gh_repo.integration_id = 0
-        self.gh_repo.save()
+        # inactive integration
+        with assume_test_silo_mode_of(Integration):
+            self.integration.update(status=ObjectStatus.DISABLED)
 
         mock_issues.return_value = [
             {"group_id": g.id, "event_count": 10} for g in Group.objects.all()

@@ -91,8 +91,10 @@ def _get_channel_and_integration_by_team(
     except ExternalActor.DoesNotExist:
         return {}
 
-    integration = integration_service.get_integration(integration_id=external_actor.integration_id)
-    if integration.status != ObjectStatus.ACTIVE:
+    integration = integration_service.get_integration(
+        integration_id=external_actor.integration_id, status=ObjectStatus.ACTIVE
+    )
+    if not integration:
         return {}
     return {external_actor.external_id: integration}
 
