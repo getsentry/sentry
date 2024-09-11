@@ -50,10 +50,11 @@ def build_incident_attachment(
 def attach_custom_priority(
     data: dict[str, Any], action: AlertRuleTriggerAction, new_status: IncidentStatus
 ) -> dict[str, Any]:
-    if new_status == IncidentStatus.CLOSED or action.sentry_app_config is None:
+    app_config = action.get_single_sentry_app_config()
+    if new_status == IncidentStatus.CLOSED or app_config is None:
         return data
 
-    priority = action.sentry_app_config.get("priority", OPSGENIE_DEFAULT_PRIORITY)
+    priority = app_config.get("priority", OPSGENIE_DEFAULT_PRIORITY)
     data["priority"] = priority
     return data
 
