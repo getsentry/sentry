@@ -42,7 +42,7 @@ class Migration(CheckedMigration):
         migrations.AddConstraint(
             model_name="monitor",
             constraint=models.CheckConstraint(
-                check=models.Q(
+                condition=models.Q(
                     models.Q(("owner_team_id__isnull", False), ("owner_user_id__isnull", True)),
                     models.Q(("owner_team_id__isnull", True), ("owner_user_id__isnull", False)),
                     models.Q(("owner_team_id__isnull", True), ("owner_user_id__isnull", True)),

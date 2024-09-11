@@ -42,7 +42,7 @@ class Migration(CheckedMigration):
         migrations.AddConstraint(
             model_name="externalactor",
             constraint=models.CheckConstraint(
-                check=models.Q(
+                condition=models.Q(
                     ("user_id__isnull", False), ("team_id__isnull", False), _connector="OR"
                 ),
                 name="external_actor_team_or_user",

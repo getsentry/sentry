@@ -45,7 +45,7 @@ class Migration(CheckedMigration):
         migrations.AddConstraint(
             model_name="rule",
             constraint=models.CheckConstraint(
-                check=models.Q(
+                condition=models.Q(
                     models.Q(("owner_team__isnull", False), ("owner_user_id__isnull", True)),
                     models.Q(("owner_team__isnull", True), ("owner_user_id__isnull", False)),
                     models.Q(("owner_team__isnull", True), ("owner_user_id__isnull", True)),

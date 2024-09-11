@@ -275,7 +275,7 @@ class Monitor(Model):
         ]
         constraints = [
             models.CheckConstraint(
-                check=(
+                condition=(
                     models.Q(owner_team_id__isnull=False, owner_user_id__isnull=True)
                     | models.Q(owner_team_id__isnull=True, owner_user_id__isnull=False)
                     | models.Q(owner_team_id__isnull=True, owner_user_id__isnull=True)
