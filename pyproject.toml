@@ -43,9 +43,6 @@ filterwarnings = [
 
   # pytest has not yet implemented the replacement for this yet
   "ignore:The --looponfail command line argument.*",
-
-  # this cannot be addressed until django 5.1
-  "ignore:CheckConstraint.check is deprecated.*",
 ]
 looponfailroots = ["src", "tests"]
 
