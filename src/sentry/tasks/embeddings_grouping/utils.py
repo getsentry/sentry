@@ -404,8 +404,8 @@ def _make_seer_call(
     seer_response = _retry_operation(
         post_bulk_grouping_records,
         create_grouping_records_request,
-        retries=3,
-        delay=2,
+        retries=5,
+        delay=4,
         exceptions=Exception,
     )
 
