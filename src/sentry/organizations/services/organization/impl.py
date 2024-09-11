@@ -363,9 +363,8 @@ class DatabaseBackedOrganizationService(OrganizationService):
         """
         flag_keys = cast(list[str], Project.flags)
 
-        org = Organization.objects.filter(id=organization_id).get()
-        projects = org.project_set
-        if org.project_set.count() > 0:
+        projects = Project.objects.filter(organization_id=organization_id)
+        if projects.count() > 0:
             aggregate_flag = projects.aggregate(bitor_result=BitOr(F("flags")))
             binary_repr = str(bin(aggregate_flag["bitor_result"]))[2:]
             padded_binary_repr = "0" * (64 - len(binary_repr)) + binary_repr
