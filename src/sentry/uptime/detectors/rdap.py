@@ -71,7 +71,7 @@ def resolve_rdap_network_details(hostname: str):
             "hostname": hostname,
             "resolved_addr": addr,
             "rdap_provider_url": rdap_provider_url,
-            **details,
+            "details": details,
         },
     )
 
