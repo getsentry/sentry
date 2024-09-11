@@ -26,13 +26,13 @@ export function EventFeatureFlagList({_event}: {_event: Event}) {
   // TODO: open panel when view all clicked
   const actions = (
     <ButtonBar gap={1}>
-      <Button size="xs" aria-label={'View All'} onClick={() => {}}>
+      <Button size="xs" aria-label={t('View All')} onClick={() => {}}>
         {t('View All')}
       </Button>
       <DropdownButton
         size="xs"
         icon={<IconSort />}
-        aria-label={'Sort'}
+        aria-label={t('Sort')}
         onChange={() => {}}
       >
         {t('Alphabetical')}
@@ -40,7 +40,7 @@ export function EventFeatureFlagList({_event}: {_event: Event}) {
       <Button
         size="xs"
         icon={<IconChevron direction={isCollapsed ? 'down' : 'up'} />}
-        aria-label={'Collapse Section'}
+        aria-label={t('Collapse Section')}
         onClick={() => setIsCollapsed(!isCollapsed)}
         borderless
       />
@@ -59,7 +59,7 @@ export function EventFeatureFlagList({_event}: {_event: Event}) {
 
   return (
     <ErrorBoundary mini message={t('There was a problem loading event tags.')}>
-      <EventDataSection title="Feature Flags" type="feature-flags" actions={actions}>
+      <EventDataSection title={t('Feature Flags')} type="feature-flags" actions={actions}>
         {!isCollapsed && (
           <CardContainer>
             <KeyValueData.Card contentItems={contentItems} />
