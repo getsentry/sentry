@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import Mapping
-from typing import Any
+from typing import Any, cast
 
 from django.contrib.postgres.aggregates import BitOr
 from django.db import models, router, transaction
@@ -361,7 +361,7 @@ class DatabaseBackedOrganizationService(OrganizationService):
         3. Reverse the binary representation to correctly assign flags based on the order
         4. Serialize as an RpcProjectFlags object
         """
-        flag_keys = list(Project.flags)
+        flag_keys = cast(list[str], Project.flags)
 
         org = Organization.objects.filter(id=organization_id).get()
         projects = org.project_set
@@ -372,7 +372,7 @@ class DatabaseBackedOrganizationService(OrganizationService):
             flag_values = list(padded_binary_repr)[::-1]
 
         else:
-            flag_values = [False] * len(flag_keys)
+            flag_values = ["0"] * len(flag_keys)
 
         flag_dict = dict(zip(flag_keys, flag_values))
         return RpcProjectFlags(**flag_dict)
