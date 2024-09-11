@@ -11,7 +11,6 @@ import {
 } from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
-import {useEnvironmentsFromUrl} from 'sentry/views/issueDetails/utils';
 
 interface UseFetchEventStatsParameters {
   group: Group;
@@ -38,7 +37,6 @@ export function useFetchEventStats({
 }) {
   const organization = useOrganization();
   const {selection: pageFilters} = usePageFilters();
-  const environment = useEnvironmentsFromUrl() ?? pageFilters.environments;
   const periodQuery = getPeriod(pageFilters.datetime);
   const interval = getInterval(pageFilters.datetime, 'low');
   const config = getConfigForIssueType(group, group.project);
@@ -46,7 +44,7 @@ export function useFetchEventStats({
     ...periodQuery,
     interval,
     referrer,
-    environment,
+    environment: pageFilters.environments,
     yAxis: ['count()', 'count_unique(user)'],
     dataset: config.usesIssuePlatform
       ? DiscoverDatasets.ISSUE_PLATFORM

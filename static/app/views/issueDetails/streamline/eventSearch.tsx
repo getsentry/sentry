@@ -38,8 +38,8 @@ interface EventSearchProps {
 export function useEventQuery({group}: {group: Group}): string {
   const organization = useOrganization();
   const {selection} = usePageFilters();
-  const environments = selection.environments;
   const location = useLocation();
+  const environments = selection.environments;
   const {query: locationQuery} = location.query;
 
   let eventQuery = '';
@@ -55,10 +55,13 @@ export function useEventQuery({group}: {group: Group}): string {
     environment: environments,
   });
   const filterKeys = useEventSearchFilterKeys(data);
-  const parsedQuery =
-    parseQueryBuilderValue(eventQuery, getFieldDefinition, {
-      filterKeys,
-    }) ?? [];
+  const parsedQuery = useMemo(
+    () =>
+      parseQueryBuilderValue(eventQuery, getFieldDefinition, {
+        filterKeys,
+      }) ?? [],
+    [eventQuery, filterKeys]
+  );
 
   // Removes invalid tokens from an issue stream query in an attempt to convert it to an event query.
   // For example: "is:unresolved browser.name:firefox" -> "browser.name:firefox"
@@ -187,6 +190,7 @@ export function EventSearch({
       filterKeySections={filterKeySections}
       getTagValues={getTagValues}
       placeholder={t('Search events...')}
+      label={t('Search events')}
       searchSource="issue_events_tab"
       className={className}
       {...queryBuilderProps}

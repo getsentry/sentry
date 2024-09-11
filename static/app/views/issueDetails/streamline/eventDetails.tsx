@@ -3,9 +3,11 @@ import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {CommitRow} from 'sentry/components/commitRow';
+import ErrorBoundary from 'sentry/components/errorBoundary';
 import {SuspectCommits} from 'sentry/components/events/suspectCommits';
 import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
 import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
+import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {useLocation} from 'sentry/utils/useLocation';
 import useMedia from 'sentry/utils/useMedia';
@@ -61,30 +63,36 @@ export function EventDetails({
 
   return (
     <EventDetailsContext.Provider value={{...eventDetails, dispatch}}>
-      <SuspectCommits
-        project={project}
-        eventId={event.id}
-        group={group}
-        commitRow={CommitRow}
-      />
-      <FilterContainer>
-        <EnvironmentPageFilter />
-        <SearchFilter
+      <ErrorBoundary mini message={t('There was an error loading the suspect commits')}>
+        <SuspectCommits
+          project={project}
+          eventId={event.id}
           group={group}
-          handleSearch={query =>
-            navigate({...location, query: {...location.query, query}})
-          }
-          environments={environments}
-          query={searchQuery}
-          queryBuilderProps={{
-            disallowFreeText: true,
-          }}
+          commitRow={CommitRow}
         />
-        <DatePageFilter />
-      </FilterContainer>
+      </ErrorBoundary>
+      <ErrorBoundary mini message={t('There was an error loading the event filters')}>
+        <FilterContainer>
+          <EnvironmentPageFilter />
+          <SearchFilter
+            group={group}
+            handleSearch={query => {
+              navigate({...location, query: {...location.query, query}}, {replace: true});
+            }}
+            environments={environments}
+            query={searchQuery}
+            queryBuilderProps={{
+              disallowFreeText: true,
+            }}
+          />
+          <DatePageFilter />
+        </FilterContainer>
+      </ErrorBoundary>
       {!isLoadingStats && groupStats && (
         <GraphPadding>
-          <EventGraph groupStats={groupStats} />
+          <ErrorBoundary mini message={t('There was an error loading the event graph')}>
+            <EventGraph groupStats={groupStats} />
+          </ErrorBoundary>
         </GraphPadding>
       )}
       <GroupContent navHeight={nav?.offsetHeight}>

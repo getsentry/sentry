@@ -96,7 +96,7 @@ export function EventGraph({groupStats}: {groupStats: MultiSeriesEventsStats}) {
           <Count>{formatAbbreviatedNumber(userCount)}</Count>
         </Callout>
       </SummaryContainer>
-      <ChartContainer>
+      <ChartContainer role="figure">
         <BarChart
           height={80}
           series={series}
