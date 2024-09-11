@@ -142,7 +142,7 @@ class Matcher(namedtuple("Matcher", "type pattern")):
     ) -> bool:
         """
         Temporary function to test pre-munging data performance in production. will remove
-        and combine with test if the test goes well.
+        and combine with test if prod deployment goes well.
         """
         if self.type == URL:
             return self.test_url(data)
