@@ -39,10 +39,10 @@ export default function ReplayDiffChooser({
         <TabList>
           <TabList.Item key={DiffType.SLIDER}>{t('Slider Diff')}</TabList.Item>
           <TabList.Item key={DiffType.VISUAL}>{t('Side By Side Diff')}</TabList.Item>
-          <TabList.Item key={DiffType.HTML}>{t('Html Diff')}</TabList.Item>
+          <TabList.Item key={DiffType.HTML}>{t('HTML Diff')}</TabList.Item>
         </TabList>
 
-        <TabPanels>
+        <StyledTabPanels>
           <TabPanels.Item key={DiffType.VISUAL}>
             <ReplaySideBySideImageDiff
               leftOffsetMs={leftOffsetMs}
@@ -64,7 +64,7 @@ export default function ReplayDiffChooser({
               rightOffsetMs={rightOffsetMs}
             />
           </TabPanels.Item>
-        </TabPanels>
+        </StyledTabPanels>
       </TabStateProvider>
     </Grid>
   );
@@ -74,4 +74,9 @@ const Grid = styled('div')`
   display: grid;
   grid-template-rows: max-content 1fr;
   height: 100%;
+`;
+
+const StyledTabPanels = styled(TabPanels)`
+  display: flex;
+  flex-direction: column;
 `;

@@ -447,8 +447,7 @@ def _semver_package_filter_converter(
 
     organization_id: int = params["organization_id"]
     project_ids: list[int] | None = params.get("project_id")
-    package: str = search_filter.value.raw_value
-
+    package: str | list[str] = search_filter.value.raw_value
     versions = list(
         Release.objects.filter_by_semver(
             organization_id,
