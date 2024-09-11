@@ -10,11 +10,7 @@ class IframeView(OrganizationView):
     # TODO: For perms check. This is just an example and we might not need it.
     # required_scope = "org:read,org:integrations"
 
-    security_headers = {
-        "X-Frame-Options": "ALLOWALL",
-        # TODO: # Not working, seems to get overridden by a BaseView wrapper
-        # "Content-Security-Policy": "frame-ancestors http://dev.getsentry.net/ http: https:",
-    }
+    security_headers = {"X-Frame-Options": "ALLOWALL"}
 
     def respond(self, template: str, context: dict[str, Any] | None = None, status: int = 200):
         response = super().respond(template, context=context, status=status)
@@ -26,14 +22,14 @@ class IframeView(OrganizationView):
         # Override redirects to login
         if request.method == "GET":
             self.default_context = {}
-            return self.respond("sentry/toolbar/iframe-no-auth.html", status=401)
+            return self.respond("sentry/toolbar/iframe.html", status=401)
         return HttpResponse(status=401)
 
     def handle_permission_required(self, request: HttpRequest, *args, **kwargs):
         # Override redirects to login
         if request.method == "GET":
             self.default_context = {}
-            return self.respond("sentry/toolbar/iframe-no-auth.html", status=403)
+            return self.respond("sentry/toolbar/iframe.html", status=403)
         return HttpResponse(status=403)
 
     def get(self, request: HttpRequest, organization, project_id_or_slug):
