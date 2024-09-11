@@ -28,7 +28,6 @@ import RouteNotFound from 'sentry/views/routeNotFound';
 import SettingsWrapper from 'sentry/views/settings/components/settingsWrapper';
 
 import {IndexRoute, Route} from './components/route';
-import {buildReactRouter6Routes} from './utils/reactRouter6Compat/router';
 
 const hook = (name: HookName) => HookStore.get(name).map(cb => cb());
 
@@ -2280,10 +2279,6 @@ function buildRoutes() {
 // We load routes both when initializing the SDK (for routing integrations) and
 // when the app renders Main. Memoize to avoid rebuilding the route tree.
 export const routes = memoize(buildRoutes);
-
-// XXX(epurkhiser): Transforms the legacy react-router 3 routest tree into a
-// react-router 6 style routes tree.
-export const routes6 = buildReactRouter6Routes(buildRoutes());
 
 // Exported for use in tests.
 export {buildRoutes};
