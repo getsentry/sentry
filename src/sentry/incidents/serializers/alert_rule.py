@@ -159,6 +159,10 @@ class AlertRuleSerializer(CamelSnakeModelSerializer[AlertRule]):
             "organizations:custom-metrics",
             self.context["organization"],
             actor=self.context.get("user", None),
+        ) or features.has(
+            "organizations:insights-alerts",
+            self.context["organization"],
+            actor=self.context.get("user", None),
         )
 
         try:
@@ -291,6 +295,10 @@ class AlertRuleSerializer(CamelSnakeModelSerializer[AlertRule]):
 
         if features.has(
             "organizations:custom-metrics",
+            self.context["organization"],
+            actor=self.context.get("user", None),
+        ) or features.has(
+            "organizations:insights-alerts",
             self.context["organization"],
             actor=self.context.get("user", None),
         ):
