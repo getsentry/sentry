@@ -21,7 +21,7 @@ from snuba_sdk import (
 )
 from snuba_sdk import Request as SnubaRequest
 
-from sentry.constants import EXTENSION_LANGUAGE_MAP
+from sentry.constants import EXTENSION_LANGUAGE_MAP, ObjectStatus
 from sentry.integrations.github.client import GitHubApiClient
 from sentry.integrations.github.constants import (
     ISSUE_LOCKED_ERROR_MESSAGE,
@@ -439,7 +439,9 @@ def open_pr_comment_workflow(pr_id: int) -> None:
         return
 
     # check integration exists to hit Github API with client
-    integration = integration_service.get_integration(integration_id=repo.integration_id)
+    integration = integration_service.get_integration(
+        integration_id=repo.integration_id, status=ObjectStatus.ACTIVE
+    )
     if not integration:
         logger.info("github.open_pr_comment.integration_missing", extra={"organization_id": org_id})
         metrics.incr(OPEN_PR_METRICS_BASE.format(key="error"), tags={"type": "missing_integration"})
