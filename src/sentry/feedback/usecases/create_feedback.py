@@ -367,7 +367,6 @@ def shim_to_feedback(
                 feedback_event["contexts"]["trace"] = event.data["contexts"]["trace"]
 
             feedback_event["timestamp"] = event.datetime.timestamp()
-            feedback_event["level"] = event.data["level"]
             feedback_event["platform"] = event.platform
             feedback_event["level"] = event.data["level"]
             feedback_event["environment"] = event.get_environment().name
@@ -384,7 +383,6 @@ def shim_to_feedback(
             )
 
             feedback_event["timestamp"] = datetime.utcnow().timestamp()
-            feedback_event["platform"] = "other"
 
             if report.get("event_id"):
                 feedback_event["contexts"]["feedback"]["associated_event_id"] = report["event_id"]
