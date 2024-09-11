@@ -558,7 +558,9 @@ const NoValue = styled('span')`
 `;
 
 const SearchBarContainer = styled('div')`
+  display: flex;
   margin-bottom: ${space(2)};
+  gap: ${space(1)};
 `;
 
 const StyledSearchBar = styled('div')`
