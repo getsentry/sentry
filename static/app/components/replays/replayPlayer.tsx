@@ -20,6 +20,9 @@ type Dimensions = ReturnType<typeof useReplayContext>['dimensions'];
 
 interface Props {
   className?: string;
+  /**
+   * Use when the player is shown in an embedded preview context.
+   */
   isPreview?: boolean;
   overlayContent?: React.ReactNode;
 }
