@@ -75,7 +75,6 @@ function ReplayPreviewPlayer({
       referrer: getRouteStringFromRoutes(routes),
       t_main: fromFeedback ? TabKey.BREADCRUMBS : TabKey.ERRORS,
       t: (currentTime + startOffsetMs) / 1000,
-      f_b_type: fromFeedback ? 'feedback' : undefined,
     },
   };
 
@@ -114,7 +113,7 @@ function ReplayPreviewPlayer({
               </ContextContainer>
             ) : null}
             <StaticPanel>
-              <ReplayPlayer overlayContent={overlayContent} />
+              <ReplayPlayer overlayContent={overlayContent} isPreview />
             </StaticPanel>
           </PlayerContextContainer>
           {isFullscreen && isSidebarOpen ? <Breadcrumbs /> : null}

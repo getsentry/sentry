@@ -61,7 +61,7 @@ export function SpanDescriptionCell({
           <FullSpanDescription
             group={group}
             shortDescription={rawDescription}
-            language="sql"
+            moduleName={moduleName}
           />
         }
       >
@@ -80,7 +80,7 @@ export function SpanDescriptionCell({
             <FullSpanDescription
               group={group}
               shortDescription={rawDescription}
-              language="http"
+              moduleName={moduleName}
               filters={spanOp ? {[SPAN_OP]: spanOp} : undefined}
             />
           </Fragment>
