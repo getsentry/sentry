@@ -7,6 +7,8 @@ import {
   type SelectOption,
   type SelectProps,
 } from 'sentry/components/compactSelect';
+import {Tooltip} from 'sentry/components/tooltip';
+import {IconInfo} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -56,6 +58,8 @@ export default function SubregionSelector({size}: Props) {
     return <Fragment />;
   }
 
+  const tooltip = t('These correspond to the subregions of the UN M49 standard.');
+
   return (
     <CompactSelect
       size={size}
@@ -73,7 +77,14 @@ export default function SubregionSelector({size}: Props) {
       clearable
       value={value}
       triggerLabel={value.length === 0 ? t('All') : undefined}
-      menuTitle={t('Filter region')}
+      menuTitle={
+        <Fragment>
+          {t('Filter region')}
+          <Tooltip title={tooltip}>
+            <StyledInfoIcon size="xs" />
+          </Tooltip>
+        </Fragment>
+      }
       options={options}
       onChange={(selectedOptions: SelectOption<string>[]) => {
         trackAnalytics('insight.vital.select_browser_value', {
@@ -97,4 +108,8 @@ export default function SubregionSelector({size}: Props) {
 
 const StyledFeatureBadge = styled(FeatureBadge)`
   margin-right: ${space(1)};
+`;
+
+const StyledInfoIcon = styled(IconInfo)`
+  margin-left: ${space(0.5)};
 `;
