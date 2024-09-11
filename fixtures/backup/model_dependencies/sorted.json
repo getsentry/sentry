@@ -50,6 +50,7 @@
   "social_auth.usersocialauth",
   "uptime.uptimesubscription",
   "workflow_engine.datasource",
+  "workflow_engine.detector",
   "workflow_engine.workflow",
   "sentry.savedsearch",
   "sentry.relocation",

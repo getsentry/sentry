@@ -639,6 +639,9 @@ class Fixtures:
     def create_datasource(self, *args, **kwargs):
         return Factories.create_datasource(*args, **kwargs)
 
+    def create_detector(self, *args, **kwargs):
+        return Factories.create_detector(*args, **kwargs)
+
     def create_uptime_subscription(
         self,
         type: str = "test",
