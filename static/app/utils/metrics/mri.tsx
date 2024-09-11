@@ -7,6 +7,8 @@ import type {
   UseCase,
 } from 'sentry/types/metrics';
 import {parseFunction} from 'sentry/utils/discover/fields';
+import {SPAN_DURATION_MRI} from 'sentry/utils/metrics/constants';
+import {INSIGHTS_METRICS_OPERATIONS} from 'sentry/views/alerts/rules/metric/utils/isInsightsMetricAlert';
 
 export const DEFAULT_MRI: MRI = 'c:custom/sentry_metric@none';
 export const DEFAULT_SPAN_MRI: MRI = 'c:custom/span_attribute_0@none';
@@ -116,11 +118,20 @@ export function isMRIField(field: string): boolean {
 
 // convenience function to get the MRI from a field, returns defaut MRI if it fails
 export function getMRI(field: string): MRI {
-  // spm() doesn't take an argument and it always operates on the spans exclusive time mri
-  if (['spm()', 'cache_miss_rate()'].includes(field)) {
-    return 'd:spans/exclusive_time@millisecond';
-  }
   const parsed = parseField(field);
+  // Insights functions don't always take an MRI as an argument.
+  // In these cases, we need to default to a specific MRI.
+  if (parsed?.aggregation) {
+    const operation = INSIGHTS_METRICS_OPERATIONS.find(({value}) => {
+      return value === parsed?.aggregation;
+    });
+    if (operation) {
+      if (operation.mri) {
+        return operation.mri as MRI;
+      }
+      return SPAN_DURATION_MRI;
+    }
+  }
   return parsed?.mri ?? DEFAULT_MRI;
 }
 

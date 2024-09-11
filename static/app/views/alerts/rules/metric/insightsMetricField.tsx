@@ -5,16 +5,17 @@ import Tag from 'sentry/components/badge/tag';
 import SelectControl from 'sentry/components/forms/controls/selectControl';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {MetricMeta, ParsedMRI} from 'sentry/types/metrics';
+import type {MetricAggregation, MetricMeta, ParsedMRI} from 'sentry/types/metrics';
 import type {Project} from 'sentry/types/project';
+import {parseFunction} from 'sentry/utils/discover/fields';
 import {getDefaultAggregation} from 'sentry/utils/metrics';
 import {getReadableMetricType} from 'sentry/utils/metrics/formatters';
 import {
   DEFAULT_INSIGHTS_METRICS_ALERT_FIELD,
   DEFAULT_INSIGHTS_MRI,
   formatMRI,
+  isMRI,
   MRIToField,
-  parseField,
   parseMRI,
 } from 'sentry/utils/metrics/mri';
 import {useVirtualizedMetricsMeta} from 'sentry/utils/metrics/useMetricsMeta';
@@ -22,6 +23,8 @@ import {middleEllipsis} from 'sentry/utils/string/middleEllipsis';
 import {
   INSIGHTS_METRICS,
   INSIGHTS_METRICS_OPERATIONS,
+  INSIGHTS_METRICS_OPERATIONS_WITH_CUSTOM_ARGS,
+  INSIGHTS_METRICS_OPERATIONS_WITHOUT_ARGS,
 } from 'sentry/views/alerts/rules/metric/utils/isInsightsMetricAlert';
 
 interface Props {
@@ -49,11 +52,19 @@ const OPERATIONS = [
     label: 'max',
     value: 'max',
   },
-  ...INSIGHTS_METRICS_OPERATIONS,
+  ...INSIGHTS_METRICS_OPERATIONS.map(({label, value}) => ({label, value})),
 ];
 
 function aggregateRequiresArgs(aggregation?: string) {
-  return !['spm', 'cache_miss_rate'].includes(aggregation ?? '');
+  return !INSIGHTS_METRICS_OPERATIONS_WITHOUT_ARGS.some(
+    ({value}) => value === aggregation
+  );
+}
+
+function aggregateHasCustomArgs(aggregation?: string) {
+  return INSIGHTS_METRICS_OPERATIONS_WITH_CUSTOM_ARGS.some(
+    ({value}) => value === aggregation
+  );
 }
 
 function InsightsMetricField({aggregate, project, onChange}: Props) {
@@ -74,17 +85,31 @@ function InsightsMetricField({aggregate, project, onChange}: Props) {
       .filter(metric => INSIGHTS_METRICS.includes(metric.mri));
   }, [meta]);
 
-  const selectedValues = parseField(aggregate);
+  // We parse out the aggregation and field from the aggregate string.
+  // This only works for aggregates with <= 1 argument.
+  const {
+    name: aggregation,
+    arguments: [field],
+  } = parseFunction(aggregate) ?? {arguments: [undefined]};
 
   const selectedMriMeta = useMemo(() => {
-    return meta.find(metric => metric.mri === selectedValues?.mri);
-  }, [meta, selectedValues?.mri]);
+    return meta.find(metric => metric.mri === field);
+  }, [meta, field]);
 
   useEffect(() => {
-    if (!aggregateRequiresArgs(selectedValues?.aggregation)) {
+    if (!aggregateRequiresArgs(aggregation)) {
       return;
     }
-    if (selectedValues?.mri && !selectedMriMeta && !isLoading) {
+    if (aggregation && aggregateHasCustomArgs(aggregation)) {
+      const options = INSIGHTS_METRICS_OPERATIONS_WITH_CUSTOM_ARGS.find(
+        ({value}) => value === aggregation
+      )?.options;
+      if (options && !options.some(({value}) => value === field)) {
+        onChange(`${aggregation}(${options?.[0].value})`, {});
+      }
+      return;
+    }
+    if (field && !selectedMriMeta && !isLoading) {
       const newSelection = metaArr[0];
       if (newSelection) {
         onChange(MRIToField(newSelection.mri, 'avg'), {});
@@ -92,15 +117,7 @@ function InsightsMetricField({aggregate, project, onChange}: Props) {
         onChange(DEFAULT_INSIGHTS_METRICS_ALERT_FIELD, {});
       }
     }
-  }, [
-    metaArr,
-    onChange,
-    isLoading,
-    aggregate,
-    selectedValues?.mri,
-    selectedMriMeta,
-    selectedValues?.aggregation,
-  ]);
+  }, [metaArr, onChange, isLoading, aggregate, selectedMriMeta, aggregation, field]);
 
   const handleMriChange = useCallback(
     option => {
@@ -110,13 +127,23 @@ function InsightsMetricField({aggregate, project, onChange}: Props) {
       }
       const newType = parseMRI(option.value)?.type;
       // If the type is the same, we can keep the current aggregate
-      if (newType === selectedMeta.type && selectedValues?.aggregation) {
-        onChange(MRIToField(option.value, selectedValues?.aggregation), {});
+      if (newType === selectedMeta.type && aggregation) {
+        onChange(MRIToField(option.value, aggregation as MetricAggregation), {});
       } else {
         onChange(MRIToField(option.value, getDefaultAggregation(option.value)), {});
       }
     },
-    [meta, onChange, selectedValues?.aggregation]
+    [meta, onChange, aggregation]
+  );
+
+  const handleOptionChange = useCallback(
+    option => {
+      if (!option || !aggregation) {
+        return;
+      }
+      onChange(`${aggregation}(${option.value})`, {});
+    },
+    [onChange, aggregation]
   );
 
   // As SelectControl does not support an options size limit out of the box
@@ -159,9 +186,9 @@ function InsightsMetricField({aggregate, project, onChange}: Props) {
   );
 
   // When using the async variant of SelectControl, we need to pass in an option object instead of just the value
-  const selectedMriOption = selectedValues?.mri && {
-    label: formatMRI(selectedValues.mri),
-    value: selectedValues.mri,
+  const selectedOption = field && {
+    label: isMRI(field) ? formatMRI(field) : field,
+    value: field,
   };
 
   return (
@@ -171,33 +198,51 @@ function InsightsMetricField({aggregate, project, onChange}: Props) {
         isDisabled={isLoading}
         placeholder={t('Select an operation')}
         options={OPERATIONS}
-        value={selectedValues?.aggregation}
+        value={aggregation}
         onChange={option => {
           if (!aggregateRequiresArgs(option.value)) {
             onChange(`${option.value}()`, {});
-          } else if (selectedValues?.mri) {
-            onChange(MRIToField(selectedValues.mri, option.value), {});
+          } else if (aggregateHasCustomArgs(option.value)) {
+            const options = INSIGHTS_METRICS_OPERATIONS_WITH_CUSTOM_ARGS.find(
+              ({value}) => value === option.value
+            )?.options;
+            onChange(`${option.value}(${options?.[0].value})`, {});
+          } else if (field && isMRI(field)) {
+            onChange(MRIToField(field, option.value), {});
           } else {
             onChange(MRIToField(DEFAULT_INSIGHTS_MRI, option.value), {});
           }
         }}
       />
-      {aggregateRequiresArgs(selectedValues?.aggregation) && (
-        <StyledSelectControl
-          searchable
-          isDisabled={isLoading}
-          placeholder={t('Select a metric')}
-          noOptionsMessage={() =>
-            metaArr.length === 0 ? t('No metrics in this project') : t('No options')
-          }
-          async
-          defaultOptions={getMriOptions('')}
-          loadOptions={searchText => Promise.resolve(getMriOptions(searchText))}
-          filterOption={() => true}
-          value={selectedMriOption}
-          onChange={handleMriChange}
-        />
-      )}
+      {aggregateRequiresArgs(aggregation) &&
+        (aggregateHasCustomArgs(aggregation) ? (
+          <StyledSelectControl
+            searchable
+            placeholder={t('Select an option')}
+            options={
+              INSIGHTS_METRICS_OPERATIONS_WITH_CUSTOM_ARGS.find(
+                ({value}) => value === aggregation
+              )?.options
+            }
+            value={selectedOption}
+            onChange={handleOptionChange}
+          />
+        ) : (
+          <StyledSelectControl
+            searchable
+            isDisabled={isLoading}
+            placeholder={t('Select a metric')}
+            noOptionsMessage={() =>
+              metaArr.length === 0 ? t('No metrics in this project') : t('No options')
+            }
+            async
+            defaultOptions={getMriOptions('')}
+            loadOptions={searchText => Promise.resolve(getMriOptions(searchText))}
+            filterOption={() => true}
+            value={selectedOption}
+            onChange={handleMriChange}
+          />
+        ))}
     </Wrapper>
   );
 }
