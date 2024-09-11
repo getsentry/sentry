@@ -836,7 +836,7 @@ class SubscriptionProcessor:
 
                 self.active_incident = create_incident(
                     organization=self.alert_rule.organization,
-                    type_=IncidentType.ALERT_TRIGGERED,
+                    incident_type=IncidentType.ALERT_TRIGGERED,
                     # TODO: Include more info in name?
                     title=self.alert_rule.name,
                     alert_rule=self.alert_rule,

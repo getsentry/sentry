@@ -352,7 +352,7 @@ class AlertRule(Model):
 
     def subscribe_projects(
         self,
-        projects: list[Project],
+        projects: Iterable[Project],
         monitor_type: AlertRuleMonitorTypeInt = AlertRuleMonitorTypeInt.CONTINUOUS,
         query_extra: str | None = None,
         activation_condition: AlertRuleActivationConditionType | None = None,
@@ -603,9 +603,11 @@ class AlertRuleTriggerAction(AbstractNotificationAction):
     alert_rule_trigger = FlexibleForeignKey("sentry.AlertRuleTrigger")
 
     date_added = models.DateTimeField(default=timezone.now)
-    sentry_app_config = JSONField(
-        null=True
-    )  # list of dicts if this is a sentry app, otherwise can be singular dict
+    sentry_app_config: models.Field[
+        # list of dicts if this is a sentry app, otherwise can be singular dict
+        dict[str, Any] | list[dict[str, Any]] | None,
+        dict[str, Any] | list[dict[str, Any]] | None,
+    ] = JSONField(null=True)
     status = BoundedPositiveIntegerField(
         default=ObjectStatus.ACTIVE, choices=ObjectStatus.as_choices()
     )
@@ -668,6 +670,12 @@ class AlertRuleTriggerAction(AbstractNotificationAction):
         handler = self.build_handler(action, incident, project)
         if handler:
             return handler.resolve(metric_value, new_status, notification_uuid)
+
+    def get_single_sentry_app_config(self) -> dict[str, Any] | None:
+        value = self.sentry_app_config
+        if isinstance(value, list):
+            raise ValueError("Sentry app actions have a list of configs")
+        return value
 
     @classmethod
     def register_factory(cls, factory: ActionHandlerFactory) -> None:

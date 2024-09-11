@@ -758,7 +758,7 @@ def create_metric_alert_rule(organization: Organization, project: Project) -> No
     create_alert_rule_trigger(alert_rule, "critical", 10)
     create_incident(
         organization,
-        type_=IncidentType.DETECTED,
+        incident_type=IncidentType.DETECTED,
         title="My Incident",
         date_started=datetime.now(timezone.utc),
         alert_rule=alert_rule,
