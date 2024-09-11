@@ -11,19 +11,14 @@ class WorkflowAction(DefaultFieldsModel):
     These will be executed in order as part of a workflow.
     """
 
-    # TODO - Should this live here or should we just define it as the model name?
+    __relocation_scope__ = RelocationScope.Organization
+
     class Type(models.TextChoices):
         NOTIFICATION = "SendNotificationAction"
 
-    __relocation_scope__ = RelocationScope.Organization
+    required = models.BooleanField(default=False)
     workflow = FlexibleForeignKey("workflow_engine.Workflow")
     type = models.TextField(choices=Type.choices)
-
-    # TODO - Invesigate alert rule trigger actions
-    # action = models.TextField()
+    data = models.JSONField(default=dict)
 
     __repr__ = sane_repr("workflow_id", "type")
-
-    class Meta:
-        app_label = "sentry.workflow_engine"
-        db_table = "workflow_engine_workflowaction"
