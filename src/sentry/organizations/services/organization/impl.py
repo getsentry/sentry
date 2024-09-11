@@ -372,7 +372,7 @@ class DatabaseBackedOrganizationService(OrganizationService):
             flag_values = list(padded_binary_repr)[::-1]
 
         else:
-            flag_values = ["0"] * len(flag_keys)
+            flag_values = ["0"] * len(list(flag_keys))
 
         flag_dict = dict(zip(flag_keys, flag_values))
         return RpcProjectFlags(**flag_dict)
