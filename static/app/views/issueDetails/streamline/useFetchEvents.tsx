@@ -50,7 +50,7 @@ export function useFetchEventStats({
       ? DiscoverDatasets.ISSUE_PLATFORM
       : DiscoverDatasets.ERRORS,
     project: group.project.id,
-    query: query,
+    query: `${query} issue:${group.shortId}`,
   };
   const queryKey = makeFetchEventStatsQueryKey({
     organizationSlug: organization.slug,
