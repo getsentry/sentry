@@ -28,6 +28,7 @@ export function ReplayClipPreviewWrapper(props: Props) {
 
   return (
     <ReplayClipPreviewPlayer
+      replayReaderResult={replayReaderData}
       overlayContent={props.overlayContent}
       orgSlug={props.orgSlug}
       showNextAndPrevious
@@ -47,7 +48,6 @@ export function ReplayClipPreviewWrapper(props: Props) {
       }
       analyticsContext={analyticsContext}
       isLarge
-      {...replayReaderData}
     />
   );
 }

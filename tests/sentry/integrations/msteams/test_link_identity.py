@@ -40,7 +40,7 @@ class MsTeamsIntegrationLinkIdentityTest(TestCase):
         self.idp = self.create_identity_provider(type="msteams", external_id="1_50l3mnly_5w34r")
 
     @responses.activate
-    @patch("sentry.integrations.messaging.unsign")
+    @patch("sentry.integrations.messaging.linkage.unsign")
     def test_basic_flow(self, unsign):
         unsign.return_value = {
             "integration_id": self.integration.id,
@@ -93,7 +93,7 @@ class MsTeamsIntegrationLinkIdentityTest(TestCase):
         assert len(responses.calls) == 2
 
     @responses.activate
-    @patch("sentry.integrations.messaging.unsign")
+    @patch("sentry.integrations.messaging.linkage.unsign")
     def test_overwrites_existing_identities(self, unsign):
         Identity.objects.create(
             user=self.user1, idp=self.idp, external_id="h_p", status=IdentityStatus.VALID
