@@ -14,7 +14,6 @@ from sentry.projects.services.project import (
     ProjectFilterArgs,
     ProjectService,
     RpcProject,
-    RpcProjectFlags,
     RpcProjectOptionValue,
 )
 from sentry.projects.services.project.serial import serialize_project
@@ -153,45 +152,4 @@ class DatabaseBackedProjectService(ProjectService):
             platform=platform,
             user_id=user_id,
             add_org_default_team=add_org_default_team,
-        )
-
-    def get_flags(self, *, organization_id: int, project_id: int) -> RpcProjectFlags:
-        project = Project.objects.filter(
-            organization_id=organization_id,
-            id=project_id,
-        ).get()
-        return RpcProjectFlags(
-            has_releases=bool(project.flags.has_releases),
-            has_issue_alerts_targeting=bool(project.flags.has_issue_alerts_targeting),
-            has_transactions=bool(project.flags.has_transactions),
-            has_alert_filters=bool(project.flags.has_alert_filters),
-            has_sessions=bool(project.flags.has_sessions),
-            has_profiles=bool(project.flags.has_profiles),
-            has_replays=bool(project.flags.has_replays),
-            has_feedbacks=bool(project.flags.has_feedbacks),
-            has_new_feedbacks=bool(project.flags.has_new_feedbacks),
-            spike_protection_error_currently_active=bool(
-                project.flags.spike_protection_error_currently_active
-            ),
-            spike_protection_transaction_currently_active=bool(
-                project.flags.spike_protection_transaction_currently_active
-            ),
-            spike_protection_attachment_currently_active=bool(
-                project.flags.spike_protection_attachment_currently_active
-            ),
-            has_minified_stack_trace=bool(project.flags.has_minified_stack_trace),
-            has_cron_monitors=bool(project.flags.has_cron_monitors),
-            has_cron_checkins=bool(project.flags.has_cron_checkins),
-            has_sourcemaps=bool(project.flags.has_sourcemaps),
-            has_custom_metrics=bool(project.flags.has_custom_metrics),
-            has_high_priority_alerts=bool(project.flags.has_high_priority_alerts),
-            has_insights_http=bool(project.flags.has_insights_http),
-            has_insights_db=bool(project.flags.has_insights_db),
-            has_insights_assets=bool(project.flags.has_insights_assets),
-            has_insights_app_start=bool(project.flags.has_insights_app_start),
-            has_insights_screen_load=bool(project.flags.has_insights_screen_load),
-            has_insights_vitals=bool(project.flags.has_insights_vitals),
-            has_insights_caches=bool(project.flags.has_insights_caches),
-            has_insights_queues=bool(project.flags.has_insights_queues),
-            has_insights_llm_monitoring=bool(project.flags.has_insights_llm_monitoring),
         )

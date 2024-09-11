@@ -1,10 +1,7 @@
-from django.db.models import F
-
 from sentry.models.project import Project
 from sentry.projects.services.project.service import project_service
 from sentry.testutils.factories import Factories
 from sentry.testutils.pytest.fixtures import django_db_all
-from sentry.testutils.silo import assume_test_silo_mode_of, control_silo_test
 
 
 @django_db_all(transaction=True)
@@ -33,19 +30,3 @@ def test_get_or_create_project() -> None:
         add_org_default_team=True,
     )
     assert Project.objects.all().count() == 1
-
-
-@django_db_all(transaction=True)
-@control_silo_test
-def test_get_project_flags() -> None:
-    org = Factories.create_organization()
-    project = Factories.create_project(organization_id=org.id)
-    project_flags = project_service.get_flags(organization_id=org.id, project_id=project.id)
-    assert project_flags.has_insights_http is False
-
-    with assume_test_silo_mode_of(Project):
-        project.flags.has_insights_http = True
-        project.update(flags=F("flags").bitor(Project.flags.has_insights_http))
-
-    project_flags = project_service.get_flags(organization_id=org.id, project_id=project.id)
-    assert project_flags.has_insights_http is True
