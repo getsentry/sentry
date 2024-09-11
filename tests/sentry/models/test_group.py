@@ -312,8 +312,12 @@ class GroupTest(TestCase, SnubaTestCase):
 
         assert group2.get_last_release() is None
 
-    def test_group_substatus_defaults(self):
-        assert self.create_group(status=GroupStatus.UNRESOLVED).substatus is GroupSubStatus.ONGOING
+    @patch("sentry.models.group.logger.error")
+    def test_group_substatus_defaults(self, mock_logger):
+        group = self.create_group(status=GroupStatus.UNRESOLVED)
+        assert group.substatus is None
+        assert mock_logger.call_count == 1
+
         for nullable_status in (
             GroupStatus.IGNORED,
             GroupStatus.MUTED,
