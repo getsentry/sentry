@@ -758,6 +758,8 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         project = self.project
         release1 = Release.objects.create(organization=project.organization, version="foo@1.0.0.0")
         release2 = Release.objects.create(organization=project.organization, version="bar@1.2.0.0")
+        release3 = Release.objects.create(organization=project.organization, version="cat@1.2.0.0")
+
         release1.add_project(project)
         release2.add_project(project)
 
@@ -774,6 +776,14 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
                 "release": release2.version,
                 "timestamp": iso_format(before_now(seconds=2)),
                 "fingerprint": ["2"],
+            },
+            project_id=project.id,
+        )
+        self.store_event(
+            data={
+                "release": release3.version,
+                "timestamp": iso_format(before_now(seconds=2)),
+                "fingerprint": ["3"],
             },
             project_id=project.id,
         )
