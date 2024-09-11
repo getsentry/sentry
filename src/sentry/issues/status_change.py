@@ -47,10 +47,6 @@ def infer_substatus(
         return GroupSubStatus.FOREVER
 
     if new_status == GroupStatus.UNRESOLVED:
-        logger.warning(
-            "no_substatus: Updating group to UNRESOLVED without substatus",
-            extra={"group_id": group_list[0].id},
-        )
         new_substatus = GroupSubStatus.ONGOING
 
         # Set the group substatus back to NEW if it was unignored withing 7 days of when it was first seen
