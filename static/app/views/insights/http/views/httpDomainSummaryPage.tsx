@@ -284,6 +284,7 @@ export function HTTPDomainSummaryPage() {
                 series={throughputData['spm()']}
                 isLoading={isThroughputDataLoading}
                 error={throughputError}
+                filters={filters}
               />
             </ModuleLayout.Third>
 
@@ -292,6 +293,7 @@ export function HTTPDomainSummaryPage() {
                 series={[durationData[`avg(${SpanMetricsField.SPAN_SELF_TIME})`]]}
                 isLoading={isDurationDataLoading}
                 error={durationError}
+                filters={filters}
               />
             </ModuleLayout.Third>
 
@@ -313,6 +315,7 @@ export function HTTPDomainSummaryPage() {
                 ]}
                 isLoading={isResponseCodeDataLoading}
                 error={responseCodeError}
+                filters={filters}
               />
             </ModuleLayout.Third>
 
