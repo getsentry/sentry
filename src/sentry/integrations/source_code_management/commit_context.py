@@ -48,6 +48,11 @@ class CommitContextIntegration(ABC):
     Base class for integrations that include commit context features: suspect commits, suspect PR comments
     """
 
+    @property
+    @abstractmethod
+    def integration_name(self) -> str:
+        raise NotImplementedError
+
     @abstractmethod
     def get_client(self) -> CommitContextClient:
         raise NotImplementedError
@@ -88,7 +93,7 @@ class CommitContextIntegration(ABC):
         issue_list: list[int],
         metrics_base: str,
         comment_type: int = CommentType.MERGED_PR,
-        language: str | None = "not found",
+        language: str | None = None,
     ):
         client = self.get_client()
 
@@ -112,7 +117,9 @@ class CommitContextIntegration(ABC):
                 group_ids=issue_list,
                 comment_type=comment_type,
             )
-            metrics.incr(metrics_base.format(key="comment_created"))
+            metrics.incr(
+                metrics_base.format(integration=self.integration_name, key="comment_created")
+            )
 
             if comment_type == CommentType.OPEN_PR:
                 analytics.record(
@@ -120,7 +127,7 @@ class CommitContextIntegration(ABC):
                     comment_id=comment.id,
                     org_id=repo.organization_id,
                     pr_id=pullrequest_id,
-                    language=language,
+                    language=(language or "not found"),
                 )
         else:
             resp = client.update_comment(
@@ -129,12 +136,16 @@ class CommitContextIntegration(ABC):
                 comment_id=pr_comment.external_id,
                 data={"body": comment_body},
             )
-            metrics.incr(metrics_base.format(key="comment_updated"))
+            metrics.incr(
+                metrics_base.format(integration=self.integration_name, key="comment_updated")
+            )
             pr_comment.updated_at = timezone.now()
             pr_comment.group_ids = issue_list
             pr_comment.save()
 
-        logger_event = metrics_base.format(key="create_or_update_comment")
+        logger_event = metrics_base.format(
+            integration=self.integration_name, key="create_or_update_comment"
+        )
         logger.info(
             logger_event,
             extra={"new_comment": pr_comment is None, "pr_key": pr_key, "repo": repo.name},
