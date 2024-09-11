@@ -111,17 +111,17 @@ class BaseModel(models.Model):
         # for when you would like to inspect the cache.
         # In production, you should guard `model.field` with an
         # `if model.is_field_cached`.
-        name = self._get_relational_field(field_name).cache_name  # type: ignore[attr-defined]  # django-stubs#2365
+        name = self._get_relational_field(field_name).cache_name
         return self._state.fields_cache.get(name, None)
 
     def delete_cached_field_value(self, field_name: str) -> None:
-        name = self._get_relational_field(field_name).cache_name  # type: ignore[attr-defined]  # django-stubs#2365
+        name = self._get_relational_field(field_name).cache_name
         if name in self._state.fields_cache:
             del self._state.fields_cache[name]
 
     def is_field_cached(self, field_name: str) -> bool:
         # Ask if a relational field has a cached value.
-        name = self._get_relational_field(field_name).cache_name  # type: ignore[attr-defined]  # django-stubs#2365
+        name = self._get_relational_field(field_name).cache_name
         return name in self._state.fields_cache
 
     def get_relocation_scope(self) -> RelocationScope:

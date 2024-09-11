@@ -9518,7 +9518,7 @@ class Migration(CheckedMigration):
         migrations.AddConstraint(
             model_name="rulesnooze",
             constraint=models.CheckConstraint(
-                check=models.Q(
+                condition=models.Q(
                     models.Q(("alert_rule__isnull", True), ("rule__isnull", False)),
                     models.Q(("alert_rule__isnull", False), ("rule__isnull", True)),
                     _connector="OR",
@@ -9834,7 +9834,7 @@ class Migration(CheckedMigration):
         migrations.AddConstraint(
             model_name="notificationsetting",
             constraint=models.CheckConstraint(
-                check=models.Q(
+                condition=models.Q(
                     models.Q(("team_id__isnull", False), ("user_id__isnull", True)),
                     models.Q(("team_id__isnull", True), ("user_id__isnull", False)),
                     _connector="OR",

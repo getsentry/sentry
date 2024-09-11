@@ -58,7 +58,7 @@ class ExternalActor(ReplicatedRegionModel):
 
         constraints = [
             models.CheckConstraint(
-                check=Q(user_id__isnull=False) | Q(team_id__isnull=False),
+                condition=Q(user_id__isnull=False) | Q(team_id__isnull=False),
                 name="external_actor_team_or_user",
             ),
         ]

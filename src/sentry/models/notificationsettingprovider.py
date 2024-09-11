@@ -27,7 +27,7 @@ class NotificationSettingProvider(NotificationSettingBase):
         )
         constraints = [
             models.CheckConstraint(
-                check=models.Q(team_id__isnull=False, user_id__isnull=True)
+                condition=models.Q(team_id__isnull=False, user_id__isnull=True)
                 | models.Q(team_id__isnull=True, user_id__isnull=False),
                 name="notification_setting_provider_team_or_user_check",
             )
