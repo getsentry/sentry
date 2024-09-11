@@ -274,16 +274,28 @@ const BannerStar1 = styled('img')`
   bottom: 10px;
   right: 150px;
   transform: scale(0.9);
+
+  @media (max-width: ${p => p.theme.breakpoints.large}) {
+    display: none;
+  }
 `;
 const BannerStar2 = styled('img')`
   position: absolute;
   top: 10px;
   right: 120px;
   transform: rotate(-30deg) scale(0.7);
+
+  @media (max-width: ${p => p.theme.breakpoints.large}) {
+    display: none;
+  }
 `;
 const BannerStar3 = styled('img')`
   position: absolute;
   bottom: 30px;
   right: 80px;
   transform: rotate(80deg) scale(0.6);
+
+  @media (max-width: ${p => p.theme.breakpoints.large}) {
+    display: none;
+  }
 `;
