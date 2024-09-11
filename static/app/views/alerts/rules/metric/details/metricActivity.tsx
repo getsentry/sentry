@@ -116,21 +116,25 @@ function MetricAlertActivity({organization, incident}: MetricAlertActivityProps)
         </Link>
       </Cell>
       <Cell>
-        {incident.alertRule.comparisonDelta ? (
-          <Fragment>
-            {alertName} {curentTrigger?.alertThreshold}%
-            {t(
-              ' %s in %s compared to the ',
-              incident.alertRule.thresholdType === AlertRuleThresholdType.ABOVE
-                ? t('higher')
-                : t('lower'),
-              timeWindow
-            )}
-            {COMPARISON_DELTA_OPTIONS.find(
-              ({value}) => value === incident.alertRule.comparisonDelta
-            )?.label ?? COMPARISON_DELTA_OPTIONS[0].label}
-          </Fragment>
-        ) : (
+        {/* If an alert rule is a % detection type */}
+        {incident.alertRule.detectionType === 'percent' &&
+          incident.alertRule.comparisonDelta && (
+            <Fragment>
+              {alertName} {curentTrigger?.alertThreshold}%
+              {t(
+                ' %s in %s compared to the ',
+                incident.alertRule.thresholdType === AlertRuleThresholdType.ABOVE
+                  ? t('higher')
+                  : t('lower'),
+                timeWindow
+              )}
+              {COMPARISON_DELTA_OPTIONS.find(
+                ({value}) => value === incident.alertRule.comparisonDelta
+              )?.label ?? COMPARISON_DELTA_OPTIONS[0].label}
+            </Fragment>
+          )}
+        {/* If an alert rule is a static detection type */}
+        {incident.alertRule.detectionType === 'static' && (
           <Fragment>
             {alertName}{' '}
             {incident.alertRule.thresholdType === AlertRuleThresholdType.ABOVE
@@ -138,6 +142,13 @@ function MetricAlertActivity({organization, incident}: MetricAlertActivityProps)
               : t('below')}{' '}
             {curentTrigger?.alertThreshold || '_'} {t('within')} {timeWindow}
             {activationBlock}
+          </Fragment>
+        )}
+        {/* If an alert rule is a dynamic detection type */}
+        {incident.alertRule.detectionType === 'dynamic' && (
+          <Fragment>
+            {t('Detected an anomaly in the query for ')}
+            {alertName}
           </Fragment>
         )}
       </Cell>
