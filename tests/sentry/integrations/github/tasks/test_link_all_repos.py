@@ -4,6 +4,7 @@ import pytest
 import responses
 from django.db import IntegrityError
 
+from sentry.constants import ObjectStatus
 from sentry.integrations.github.integration import GitHubIntegrationProvider
 from sentry.integrations.github.tasks.link_all_repos import link_all_repos
 from sentry.models.repository import Repository
@@ -38,6 +39,20 @@ class LinkAllReposTestCase(IntegrationTestCase):
                     },
                 ],
             },
+        )
+
+    @patch("sentry.integrations.github.tasks.link_all_repos.metrics")
+    def test_link_all_repos_inactive_integration(self, mock_metrics, _):
+        self.integration.update(status=ObjectStatus.DISABLED)
+
+        link_all_repos(
+            integration_key=self.key,
+            integration_id=self.integration.id,
+            organization_id=self.organization.id,
+        )
+
+        mock_metrics.incr.assert_called_with(
+            "github.link_all_repos.error", tags={"type": "missing_integration"}
         )
 
     @responses.activate
