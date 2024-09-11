@@ -320,6 +320,7 @@ DEFAULT_METRIC_TAGS = {
     "device.class",
     "environment",
     "geo.country_code",
+    "user.geo.subregion",
     "has_profile",
     "histogram_outlier",
     "http.method",
