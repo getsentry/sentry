@@ -2,7 +2,8 @@ from abc import ABC, abstractmethod
 from collections.abc import Mapping
 from typing import Any
 
-from sentry.integrations.messaging import IdentityLinkageView, LinkageView, MessagingIntegrationSpec
+from sentry.integrations.messaging.linkage import IdentityLinkageView, LinkageView
+from sentry.integrations.messaging.spec import MessagingIntegrationSpec
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.slack.utils.notifications import (
     SlackCommandResponse,

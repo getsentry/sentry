@@ -2,7 +2,7 @@ import logging
 from collections.abc import Mapping
 from typing import Any
 
-from sentry.integrations.messaging import UnlinkIdentityView
+from sentry.integrations.messaging.linkage import UnlinkIdentityView
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.slack.utils.notifications import SlackCommandResponse
 from sentry.integrations.slack.views import build_linking_url as base_build_linking_url

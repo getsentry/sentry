@@ -203,12 +203,12 @@ class GroupActivityNotification(ActivityNotification, abc.ABC):
         return format_html(description, **context)
 
     def get_title_link(self, recipient: Actor, provider: ExternalProviders) -> str | None:
-        from sentry.integrations.message_builder import get_title_link
+        from sentry.integrations.messaging.message_builder import get_title_link
 
         return get_title_link(self.group, None, False, True, self, provider)
 
     def build_attachment_title(self, recipient: Actor) -> str:
-        from sentry.integrations.message_builder import build_attachment_title
+        from sentry.integrations.messaging.message_builder import build_attachment_title
 
         return build_attachment_title(self.group)
 
