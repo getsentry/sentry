@@ -32,7 +32,7 @@ import {
 import {ProductSolution} from 'sentry/components/onboarding/productSelection';
 import {t, tct} from 'sentry/locale';
 
-export enum AppType {
+export enum AngularAppType {
   STANDALONE = 'standalone',
   MODULE = 'module',
 }
@@ -40,15 +40,15 @@ export enum AppType {
 const platformOptions = {
   appType: {
     label: t('App Type'),
-    defaultValue: AppType.STANDALONE,
+    defaultValue: AngularAppType.STANDALONE,
     items: [
       {
         label: 'Standalone',
-        value: AppType.STANDALONE,
+        value: AngularAppType.STANDALONE,
       },
       {
         label: 'Module',
-        value: AppType.MODULE,
+        value: AngularAppType.MODULE,
       },
     ],
   },
@@ -58,7 +58,7 @@ type PlatformOptions = typeof platformOptions;
 type Params = DocsParams<PlatformOptions>;
 
 function isModuleApp(params: Params) {
-  return params.platformOptions.appType === AppType.MODULE;
+  return params.platformOptions.appType === AngularAppType.MODULE;
 }
 
 function getSdkSetupSnippet(params: Params) {
