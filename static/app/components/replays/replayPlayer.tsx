@@ -21,8 +21,7 @@ type Dimensions = ReturnType<typeof useReplayContext>['dimensions'];
 interface Props {
   className?: string;
   /**
-   * Hides a banner shown on the replay details page.
-   * Use when the player is shown in an embedded context.
+   * Use when the player is shown in an embedded preview context.
    */
   isPreview?: boolean;
   overlayContent?: React.ReactNode;
