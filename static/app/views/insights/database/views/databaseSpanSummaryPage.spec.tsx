@@ -65,6 +65,7 @@ describe('DatabaseSpanSummaryPage', function () {
         data: [
           {
             'span.op': 'db',
+            'span.description': 'SELECT thing FROM my_table;',
           },
         ],
       },
