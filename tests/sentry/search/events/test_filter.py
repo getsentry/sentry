@@ -421,6 +421,15 @@ class SemverPackageFilterConverterTest(BaseSemverConverterTest):
             project_id=[self.project.id, project_2.id],
         )
 
+    def test_in(self):
+        release_1 = self.create_release(version="foo@1.0.0.0")
+        release_2 = self.create_release(version="bar@1.2.0.0")
+        self.run_test("IN", ["foo"], "IN", [release_1.version])
+        self.run_test("IN", ["foo", "bar"], "IN", [release_1.version, release_2.version])
+        self.run_test(
+            "IN", ["foo", "bar", "notathing"], "IN", [release_1.version, release_2.version]
+        )
+
 
 class SemverBuildFilterConverterTest(BaseSemverConverterTest):
     key = SEMVER_BUILD_ALIAS

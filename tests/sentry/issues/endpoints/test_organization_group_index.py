@@ -753,6 +753,48 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         assert len(issues) == 1
         assert int(issues[0]["id"]) == event.group.id
 
+    def test_release_package_in(self, _: MagicMock) -> None:
+        self.login_as(self.user)
+        project = self.project
+        release1 = Release.objects.create(organization=project.organization, version="foo@1.0.0.0")
+        release2 = Release.objects.create(organization=project.organization, version="bar@1.2.0.0")
+        release3 = Release.objects.create(organization=project.organization, version="cat@1.2.0.0")
+
+        release1.add_project(project)
+        release2.add_project(project)
+
+        event1 = self.store_event(
+            data={
+                "release": release1.version,
+                "timestamp": iso_format(before_now(seconds=3)),
+                "fingerprint": ["1"],
+            },
+            project_id=project.id,
+        )
+        event2 = self.store_event(
+            data={
+                "release": release2.version,
+                "timestamp": iso_format(before_now(seconds=2)),
+                "fingerprint": ["2"],
+            },
+            project_id=project.id,
+        )
+        self.store_event(
+            data={
+                "release": release3.version,
+                "timestamp": iso_format(before_now(seconds=2)),
+                "fingerprint": ["3"],
+            },
+            project_id=project.id,
+        )
+
+        with self.feature("organizations:global-views"):
+            response = self.get_success_response(**{"query": 'release.package:["foo", "bar"]'})
+        issues = json.loads(response.content)
+        assert len(issues) == 2
+        assert int(issues[0]["id"]) == event2.group.id
+        assert int(issues[1]["id"]) == event1.group.id
+
     def test_lookup_by_release_wildcard(self, _: MagicMock) -> None:
         self.login_as(self.user)
         project = self.project
