@@ -9,6 +9,7 @@ from django.db import models
 from django.db.models.signals import post_delete, post_save
 from django.utils import timezone
 
+from sentry import options  # noqa
 from sentry.backup.scopes import RelocationScope
 from sentry.db.models import Model, region_silo_model, sane_repr
 from sentry.db.models.fields import FlexibleForeignKey, JSONField
@@ -16,7 +17,7 @@ from sentry.eventstore.models import Event, GroupEvent
 from sentry.models.activity import Activity
 from sentry.models.group import Group
 from sentry.models.groupowner import OwnerRuleType
-from sentry.ownership.grammar import Rule, load_schema, resolve_actors
+from sentry.ownership.grammar import Matcher, Rule, load_schema, resolve_actors
 from sentry.types.activity import ActivityType
 from sentry.types.actor import Actor
 from sentry.utils import metrics
@@ -202,6 +203,7 @@ class ProjectOwnership(Model):
                 *hydrated_ownership_rules[::-1],
                 *hydrated_codeowners_rules[::-1],
             ]
+
             rules_with_owners = list(
                 filter(
                     lambda item: len(item[1]) > 0,
@@ -358,10 +360,12 @@ class ProjectOwnership(Model):
         data: Mapping[str, Any],
     ) -> Sequence[Rule]:
         rules = []
-
         if ownership.schema is not None:
+            munged_data = None
+            if options.get("ownership.munge_data_for_performance"):
+                munged_data = Matcher.munge_if_needed(data)
             for rule in load_schema(ownership.schema):
-                if rule.test(data):
+                if rule.test(data, munged_data):
                     rules.append(rule)
 
         return rules
