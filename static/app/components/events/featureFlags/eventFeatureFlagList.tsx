@@ -22,7 +22,7 @@ export function EventFeatureFlagList({_event}: {_event: Event}) {
     return {flag: f, result: true};
   });
 
-  // TODO: add more sorting options here
+  // TODO: add more sorting options here. default sorting should be recently changed
   // TODO: open panel when view all clicked
   const actions = (
     <ButtonBar gap={1}>
@@ -55,7 +55,7 @@ export function EventFeatureFlagList({_event}: {_event: Event}) {
     return {item: {key: f.flag, subject: f.flag, value: f.result}};
   });
 
-  // TODO: columns
+  // TODO: ui should be able to handle 2 columns, 10 rows max for the preview
 
   return (
     <ErrorBoundary mini message={t('There was a problem loading event tags.')}>
