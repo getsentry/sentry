@@ -3,8 +3,6 @@ from django.db import models
 from sentry.backup.scopes import RelocationScope
 from sentry.db.models import DefaultFieldsModel, FlexibleForeignKey, region_silo_model, sane_repr
 
-# TODO - evaluate the AlertRuleActivityAction model to see if we can use it as the base abstraction here
-
 
 @region_silo_model
 class WorkflowAction(DefaultFieldsModel):
@@ -18,8 +16,11 @@ class WorkflowAction(DefaultFieldsModel):
         NOTIFICATION = "SendNotificationAction"
 
     __relocation_scope__ = RelocationScope.Organization
-    workflow = FlexibleForeignKey("sentry.workflow_engine.Workflow")
+    workflow = FlexibleForeignKey("workflow_engine.Workflow")
     type = models.TextField(choices=Type.choices)
+
+    # TODO - Invesigate alert rule trigger actions
+    # action = models.TextField()
 
     __repr__ = sane_repr("workflow_id", "type")
 
