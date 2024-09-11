@@ -48,7 +48,7 @@ class DomainAddressDetails(TypedDict):
     """
 
 
-def resolve_rdap_network_details(hostname: str):
+def resolve_rdap_network_details(hostname: str) -> DomainAddressDetails:
     addr = resolve_hostname(hostname)
     rdap_provider_url = resolve_rdap_provider(addr)
 
