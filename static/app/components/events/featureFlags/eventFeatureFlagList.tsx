@@ -36,7 +36,6 @@ export function EventFeatureFlagList({}: {event: Event}) {
     return sort === 'recent' ? t('Recently Changed') : t('Alphabetical');
   };
 
-  // TODO: add more sorting options here. default sorting should be recently changed
   // TODO: open panel when view all clicked
   const actions = (
     <ButtonBar gap={1}>
