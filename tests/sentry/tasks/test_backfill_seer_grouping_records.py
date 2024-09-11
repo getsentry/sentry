@@ -548,14 +548,6 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
                     "skip_project_ids": None,
                 },
             ),
-            call("about to call next backfill", extra={"project_id": self.project.id}),
-            call(
-                "calling next backfill task",
-                extra={
-                    "project_id": self.project.id,
-                    "last_processed_group_id": project_group_ids[0],
-                },
-            ),
             call(
                 "backfill_seer_grouping_records",
                 extra={
@@ -579,11 +571,6 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
                     "skip_processed_projects": False,
                     "skip_project_ids": None,
                 },
-            ),
-            call("about to call next backfill", extra={"project_id": project2.id}),
-            call(
-                "calling next backfill task",
-                extra={"project_id": project2.id, "last_processed_group_id": project2_group_ids[0]},
             ),
             call(
                 "backfill_seer_grouping_records",
@@ -660,14 +647,6 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
                     "only_delete": False,
                     "skip_processed_projects": False,
                     "skip_project_ids": None,
-                },
-            ),
-            call("about to call next backfill", extra={"project_id": self.project.id}),
-            call(
-                "calling next backfill task",
-                extra={
-                    "project_id": self.project.id,
-                    "last_processed_group_id": last_processed_group_id,
                 },
             ),
             call(
@@ -754,14 +733,6 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
                     "skip_project_ids": None,
                 },
             ),
-            call("about to call next backfill", extra={"project_id": self.project.id}),
-            call(
-                "calling next backfill task",
-                extra={
-                    "project_id": self.project.id,
-                    "last_processed_group_id": project_group_ids[0],
-                },
-            ),
             call(
                 "backfill_seer_grouping_records",
                 extra={
@@ -785,11 +756,6 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
                     "skip_processed_projects": False,
                     "skip_project_ids": None,
                 },
-            ),
-            call("about to call next backfill", extra={"project_id": project2.id}),
-            call(
-                "calling next backfill task",
-                extra={"project_id": project2.id, "last_processed_group_id": project2_group_ids[0]},
             ),
             call(
                 "backfill_seer_grouping_records",
@@ -1073,14 +1039,6 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
                     "skip_project_ids": None,
                 },
             ),
-            call("about to call next backfill", extra={"project_id": self.project.id}),
-            call(
-                "calling next backfill task",
-                extra={
-                    "project_id": self.project.id,
-                    "last_processed_group_id": project_group_ids[batch_size - 1],
-                },
-            ),
             call(
                 "backfill_seer_grouping_records",
                 extra={
@@ -1091,14 +1049,6 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
                     "only_delete": False,
                     "skip_processed_projects": True,
                     "skip_project_ids": None,
-                },
-            ),
-            call("about to call next backfill", extra={"project_id": self.project.id}),
-            call(
-                "calling next backfill task",
-                extra={
-                    "project_id": self.project.id,
-                    "last_processed_group_id": project_group_ids[-1],
                 },
             ),
             call(
@@ -1656,11 +1606,6 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
                     "skip_project_ids": None,
                 },
             ),
-            call("about to call next backfill", extra={"project_id": self.project.id}),
-            call(
-                "calling next backfill task",
-                extra={"project_id": self.project.id, "last_processed_group_id": last_group_id},
-            ),
             call(
                 "backfill_seer_grouping_records",
                 extra={
@@ -1897,14 +1842,6 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
                     "last_processed_project_index": 0,
                 },
             ),
-            call("about to call next backfill", extra={"project_id": self.project.id}),
-            call(
-                "calling next backfill task",
-                extra={
-                    "project_id": self.project.id,
-                    "last_processed_group_id": project_group_ids[-1],
-                },
-            ),
             call(
                 "backfill_seer_grouping_records",
                 extra={
@@ -2027,14 +1964,6 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
                     "skip_project_ids": None,
                 },
             ),
-            call("about to call next backfill", extra={"project_id": self.project.id}),
-            call(
-                "calling next backfill task",
-                extra={
-                    "project_id": self.project.id,
-                    "last_processed_group_id": project_last_group_id,
-                },
-            ),
             call(
                 "backfill_seer_grouping_records",
                 extra={
@@ -2057,14 +1986,6 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
                     "only_delete": False,
                     "skip_processed_projects": False,
                     "skip_project_ids": None,
-                },
-            ),
-            call("about to call next backfill", extra={"project_id": project_same_cohort.id}),
-            call(
-                "calling next backfill task",
-                extra={
-                    "project_id": project_same_cohort.id,
-                    "last_processed_group_id": project_same_cohort_last_group_id,
                 },
             ),
             call(
@@ -2147,14 +2068,6 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
                     "only_delete": False,
                     "skip_processed_projects": False,
                     "skip_project_ids": None,
-                },
-            ),
-            call("about to call next backfill", extra={"project_id": self.project.id}),
-            call(
-                "calling next backfill task",
-                extra={
-                    "project_id": self.project.id,
-                    "last_processed_group_id": project_last_group_id,
                 },
             ),
             call(
@@ -2256,14 +2169,6 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
                     "skip_project_ids": None,
                 },
             ),
-            call("about to call next backfill", extra={"project_id": self.project.id}),
-            call(
-                "calling next backfill task",
-                extra={
-                    "project_id": self.project.id,
-                    "last_processed_group_id": project_last_group_id,
-                },
-            ),
             call(
                 "backfill_seer_grouping_records",
                 extra={
@@ -2286,14 +2191,6 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
                     "only_delete": False,
                     "skip_processed_projects": False,
                     "skip_project_ids": None,
-                },
-            ),
-            call("about to call next backfill", extra={"project_id": project_same_worker.id}),
-            call(
-                "calling next backfill task",
-                extra={
-                    "project_id": project_same_worker.id,
-                    "last_processed_group_id": project_same_cohort_last_group_id,
                 },
             ),
             call(

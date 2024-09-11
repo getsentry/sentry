@@ -3,6 +3,9 @@ import {CompositeSelect} from 'sentry/components/compactSelect/composite';
 import {IconSettings} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {useReplayPrefs} from 'sentry/utils/replays/playback/providers/replayPreferencesContext';
+import {toTitleCase} from 'sentry/utils/string/toTitleCase';
+
+const timestampOptions: ('relative' | 'absolute')[] = ['relative', 'absolute'];
 
 export default function ReplayPreferenceDropdown({
   speedOptions,
@@ -33,6 +36,15 @@ export default function ReplayPreferenceDropdown({
         onChange={opt => setPrefs({playbackSpeed: opt.value})}
         options={speedOptions.map(option => ({
           label: `${option}x`,
+          value: option,
+        }))}
+      />
+      <CompositeSelect.Region
+        label={t('Timestamps')}
+        value={prefs.timestampType}
+        onChange={opt => setPrefs({timestampType: opt.value})}
+        options={timestampOptions.map(option => ({
+          label: `${toTitleCase(option)}`,
           value: option,
         }))}
       />

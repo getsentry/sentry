@@ -15,7 +15,10 @@ from sentry.incidents.models.alert_rule import (
     AlertRuleSensitivity,
 )
 from sentry.incidents.models.incident import IncidentStatus
-from sentry.integrations.message_builder import build_attachment_text, build_attachment_title
+from sentry.integrations.messaging.message_builder import (
+    build_attachment_text,
+    build_attachment_title,
+)
 from sentry.integrations.slack.message_builder.incidents import SlackIncidentsMessageBuilder
 from sentry.integrations.slack.message_builder.issues import (
     SlackIssuesMessageBuilder,
