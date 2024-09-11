@@ -8,11 +8,13 @@ import Panel from 'sentry/components/panels/panel';
 import {IconEllipsis, IconExpand} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
 import {getAlertsUrl} from 'sentry/views/insights/common/utils/getAlertsUrl';
 import {hasInsightsAlerts} from 'sentry/views/insights/common/utils/hasInsightsAlerts';
+import {useModuleNameFromUrl} from 'sentry/views/insights/common/utils/useModuleNameFromUrl';
 import {Subtitle} from 'sentry/views/performance/landing/widgets/widgets/singleFieldAreaWidget';
 
 export type AlertConfig = {
@@ -48,6 +50,7 @@ export default function ChartPanel({
         : undefined,
     [projects, selection.projects]
   );
+  const moduleName = useModuleNameFromUrl();
   const alertsUrls =
     alertConfigs?.map(alertConfig => {
       // Alerts only support single project selection
@@ -68,6 +71,14 @@ export default function ChartPanel({
               'Alerts are only available for single project selection. Update your project filter to create an alert.'
             )
           : undefined,
+        onClick: () => {
+          trackAnalytics('insight.general.create_alert', {
+            organization,
+            chart_name: typeof title === 'string' ? title : undefined,
+            alert_name: name,
+            source: moduleName ?? undefined,
+          });
+        },
       };
     }) ?? [];
 
