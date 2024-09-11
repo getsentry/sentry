@@ -58,6 +58,7 @@ import withPageFilters from 'sentry/utils/withPageFilters';
 import withSavedSearches from 'sentry/utils/withSavedSearches';
 import CustomViewsIssueListHeader from 'sentry/views/issueList/customViewsHeader';
 import IssueListTable from 'sentry/views/issueList/issueListTable';
+import SavedIssueSearches from 'sentry/views/issueList/savedIssueSearches';
 import type {IssueUpdateData} from 'sentry/views/issueList/types';
 import {NewTabContextProvider} from 'sentry/views/issueList/utils/newTabContext';
 import {parseIssuePrioritySearch} from 'sentry/views/issueList/utils/parseIssuePrioritySearch';
@@ -1289,6 +1290,11 @@ class IssueListOverview extends Component<Props, State> {
                 )}
               />
             </StyledMain>
+            <SavedIssueSearches
+              {...{organization, query}}
+              onSavedSearchSelect={this.onSavedSearchSelect}
+              sort={this.getSort()}
+            />
           </StyledBody>
         </Layout.Page>
       </NewTabContextProvider>
