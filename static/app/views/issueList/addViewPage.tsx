@@ -167,10 +167,10 @@ const SavedSearchesTitle = styled('div')`
 
 const StyledInteractionStateLayer = styled(InteractionStateLayer)`
   border-radius: 4px;
+  width: 100.8%;
 `;
 
 const StyledOverflowEllipsisTextContainer = styled(OverflowEllipsisTextContainer)`
-  margin-left: ${space(1)};
   width: 170px;
 `;
 
@@ -194,7 +194,6 @@ const StyledButton = styled(Button)`
   font-weight: ${p => p.theme.fontWeightNormal};
   padding: ${space(0.5)};
   border: none;
-  margin-right: ${space(1.5)};
 
   &:hover {
     color: ${p => p.theme.subText};
