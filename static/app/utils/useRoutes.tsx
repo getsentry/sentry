@@ -38,7 +38,7 @@ export function useRoutes(): PlainRoute<any>[] {
         // To shim for this, we are storing the unresolved `path` of the route
         // in the user-data `handle` object, so we can just extract it from
         // there
-        const path: string = extra.path ?? '';
+        const path: string = extra?.path ?? '';
 
         return {path, ...extra};
       }, []),
