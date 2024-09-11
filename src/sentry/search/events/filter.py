@@ -329,6 +329,9 @@ def _semver_filter_converter(
     operator: str = search_filter.operator
 
     def get_versions(v: str, op: str) -> tuple[str, list[str]]:
+        # Note that we sort this such that if we end up fetching more than
+        # MAX_SEMVER_SEARCH_RELEASES, we will return the releases that are closest to
+        # the passed filter.
         order_by = Release.SEMVER_COLS
         if op.startswith("<"):
             order_by = list(map(_flip_field_sort, order_by))
@@ -344,7 +347,14 @@ def _semver_filter_converter(
         versions = list(qs)
         final_operator = "IN"
         if len(versions) == MAX_SEARCH_RELEASES:
+            # We want to limit how many versions we pass through to Snuba. If we've hit
+            # the limit, make an extra query and see whether the inverse has fewer ids.
+            # If so, we can do a NOT IN query with these ids instead. Otherwise, we just
+            # do our best.
             op = OPERATOR_NEGATION_MAP[op]
+            # Note that the `order_by` here is important for index usage. Postgres seems
+            # to seq scan with this query if the `order_by` isn't included, so we
+            # include it even though we don't really care about order for this query
             qs_flipped = (
                 Release.objects.filter_by_semver(organization_id, parse_semver(v, op))
                 .order_by(*map(_flip_field_sort, order_by))
@@ -458,9 +468,6 @@ def parse_semver(version, operator) -> SemverFilter:
      - 1.2.3.4-alpha
      - 1.*
     """
-    import traceback
-
-    traceback.print_stack()
     (operator, negated) = handle_operator_negation(operator)
     try:
         operator = OPERATOR_TO_DJANGO[operator]
