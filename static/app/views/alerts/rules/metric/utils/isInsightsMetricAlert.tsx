@@ -4,10 +4,12 @@ export const INSIGHTS_METRICS_OPERATIONS_WITHOUT_ARGS = [
   {
     label: 'spm',
     value: 'spm',
+    mri: 'd:spans/duration@millisecond',
   },
   {
     label: 'cache_miss_rate',
     value: 'cache_miss_rate',
+    mri: 'd:spans/duration@millisecond',
   },
 ];
 
@@ -20,7 +22,7 @@ export const INSIGHTS_METRICS_OPERATIONS_WITH_CUSTOM_ARGS = [
       {label: '4', value: '4'},
       {label: '5', value: '5'},
     ],
-    mri: 'd:spans/exclusive_time@millisecond',
+    mri: 'd:spans/duration@millisecond',
   },
   {
     label: 'performance_score',
@@ -33,6 +35,7 @@ export const INSIGHTS_METRICS_OPERATIONS_WITH_CUSTOM_ARGS = [
       {label: 'measurements.score.ttfb', value: 'measurements.score.ttfb'},
       {label: 'measurements.score.total', value: 'measurements.score.total'},
     ],
+    mri: 'd:transactions/measurements.score.total@ratio',
   },
 ];
 
