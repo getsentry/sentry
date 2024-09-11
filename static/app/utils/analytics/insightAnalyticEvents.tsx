@@ -8,6 +8,11 @@ export type InsightEventParameters = {
   'insight.asset.filter_by_page': {};
   'insight.asset.filter_by_type': {filter: string};
   'insight.general.chart_zoom': {chart_name: string; source: string};
+  'insight.general.create_alert': {
+    alert_name: string;
+    chart_name?: string;
+    source?: string;
+  };
   'insight.general.search': {query: string; source: string};
   'insight.general.select_action_value': {source: string; value: string};
   // Don't specify domain because domains are arbitrary values
@@ -77,4 +82,5 @@ export const insightEventMap: Record<InsightEventKey, string | null> = {
   'insight.vital.overview.toggle_data_type':
     'Insights: Web Vitals Overview - toggle data type',
   'insight.vital.select_browser_value': 'Insights: Web Vitals - filter by browser type',
+  'insight.general.create_alert': 'Insights: Create Alert clicked',
 };
