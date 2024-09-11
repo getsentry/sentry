@@ -279,6 +279,10 @@ class AlertRuleSerializer(Serializer):
             "organizations:custom-metrics",
             obj.organization,
             actor=user,
+        ) or features.has(
+            "organizations:insights-alerts",
+            obj.organization,
+            actor=user,
         )
         # Temporary: Translate aggregate back here from `tags[sentry:user]` to `user` for the frontend.
         aggregate = translate_aggregate_field(
