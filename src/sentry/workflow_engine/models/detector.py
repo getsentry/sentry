@@ -22,4 +22,3 @@ class Detector(DefaultFieldsModel, OwnerModel):
                 name="workflow_engine_detector_org_name",
             )
         ]
-

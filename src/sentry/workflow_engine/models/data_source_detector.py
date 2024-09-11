@@ -8,7 +8,7 @@ from sentry.db.models import DefaultFieldsModel, FlexibleForeignKey, region_silo
 class DataSourceDetector(DefaultFieldsModel):
     __relocation_scope__ = RelocationScope.Organization
 
-    data_source = FlexibleForeignKey("workflow_engine.Datasource")
+    data_source = FlexibleForeignKey("workflow_engine.DataSource")
     detector = FlexibleForeignKey("workflow_engine.Detector")
 
     class Meta:

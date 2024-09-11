@@ -21,7 +21,7 @@ class DataSource(DefaultFieldsModel):
     query_id = BoundedBigIntegerField()
     type = models.SmallIntegerField(choices=Type.choices)
 
-    detectors = models.ManyToManyField("workflow_engine.DataSource", through=DataSourceDetector)
+    detectors = models.ManyToManyField("workflow_engine.Detector", through=DataSourceDetector)
 
     indexes = [
         models.Index(fields=("type", "query_id")),
