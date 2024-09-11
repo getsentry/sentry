@@ -135,7 +135,7 @@ function MetricAlertActivity({organization, incident}: MetricAlertActivityProps)
           )}
         {/* If an alert rule is a static detection type */}
         {incident.alertRule.detectionType !== 'dynamic' &&
-          incident.alertRule.detectionType === 'static' && (
+          !incident.alertRule.comparisonDelta && (
             <Fragment>
               {alertName}{' '}
               {incident.alertRule.thresholdType === AlertRuleThresholdType.ABOVE
