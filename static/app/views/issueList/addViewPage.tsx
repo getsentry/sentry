@@ -4,8 +4,8 @@ import styled from '@emotion/styled';
 import bannerStar from 'sentry-images/spot/banner-star.svg';
 
 import {Button} from 'sentry/components/button';
-import InfoTooltip from 'sentry/components/infoTooltip';
 import InteractionStateLayer from 'sentry/components/interactionStateLayer';
+import QuestionTooltip from 'sentry/components/questionTooltip';
 import {FormattedQuery} from 'sentry/components/searchQueryBuilder/formattedQuery';
 import {IconMegaphone} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -39,14 +39,14 @@ function AddViewPage({savedSearches}: {savedSearches: SavedSearch[]}) {
   const savedSearchTitle = (
     <SavedSearchesTitle>
       {t('Saved Searches (will be deprecated)')}
-      <InfoTooltip
+      <QuestionTooltip
+        icon="info"
         title={t(
           'Saved searches will be deprecated soon. For any you wish to return to, please save them as views.'
         )}
         size="sm"
         position="top"
-        color="subText"
-        hoverAnimation={false}
+        skipWrapper
       />
     </SavedSearchesTitle>
   );
