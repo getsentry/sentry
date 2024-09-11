@@ -19,6 +19,7 @@ from sentry.grouping.ingest.hashing import (
 from sentry.grouping.ingest.metrics import record_calculation_metric_with_result
 from sentry.models.grouphash import GroupHash
 from sentry.models.project import Project
+from sentry.projectoptions.defaults import DEFAULT_GROUPING_CONFIG, LEGACY_GROUPING_CONFIG
 from sentry.testutils.factories import Factories
 from sentry.testutils.helpers.eventprocessing import save_new_event
 from sentry.testutils.helpers.features import Feature
@@ -28,10 +29,6 @@ from sentry.testutils.pytest.mocking import capture_results
 from sentry.testutils.skips import requires_snuba
 
 pytestmark = [requires_snuba]
-
-
-LEGACY_CONFIG = "legacy:2019-03-12"
-NEWSTYLE_CONFIG = "newstyle:2023-01-11"
 
 
 @contextmanager
@@ -269,8 +266,8 @@ def test_new_group(
     results = get_results_from_saving_event(
         event_data=event_data,
         project=project,
-        primary_config=NEWSTYLE_CONFIG,
-        secondary_config=LEGACY_CONFIG,
+        primary_config=DEFAULT_GROUPING_CONFIG,
+        secondary_config=LEGACY_GROUPING_CONFIG,
         in_transition=in_transition,
         new_logic_enabled=new_logic_enabled,
     )
@@ -328,14 +325,14 @@ def test_existing_group_no_new_hash(
     event_data = {"message": "testing, testing, 123"}
 
     # Set the stage by creating a group with the soon-to-be-secondary hash
-    existing_event = save_event_with_grouping_config(event_data, project, LEGACY_CONFIG)
+    existing_event = save_event_with_grouping_config(event_data, project, LEGACY_GROUPING_CONFIG)
 
     # Now save a new, identical, event with an updated grouping config
     results = get_results_from_saving_event(
         event_data=event_data,
         project=project,
-        primary_config=NEWSTYLE_CONFIG,
-        secondary_config=LEGACY_CONFIG,
+        primary_config=DEFAULT_GROUPING_CONFIG,
+        secondary_config=LEGACY_GROUPING_CONFIG,
         in_transition=in_transition,
         existing_group_id=existing_event.group_id,
         new_logic_enabled=new_logic_enabled,
@@ -400,7 +397,7 @@ def test_existing_group_new_hash_exists(
     # Set the stage by creating a group tied to the new hash (and possibly the legacy hash as well)
     if secondary_hash_exists:
         existing_event = save_event_with_grouping_config(
-            event_data, project, NEWSTYLE_CONFIG, LEGACY_CONFIG, True
+            event_data, project, DEFAULT_GROUPING_CONFIG, LEGACY_GROUPING_CONFIG, True
         )
         assert existing_event.group_id is not None
         assert (
@@ -410,7 +407,9 @@ def test_existing_group_new_hash_exists(
             == 2
         )
     else:
-        existing_event = save_event_with_grouping_config(event_data, project, NEWSTYLE_CONFIG)
+        existing_event = save_event_with_grouping_config(
+            event_data, project, DEFAULT_GROUPING_CONFIG
+        )
         assert existing_event.group_id is not None
         assert (
             GroupHash.objects.filter(
@@ -423,8 +422,8 @@ def test_existing_group_new_hash_exists(
     results = get_results_from_saving_event(
         event_data=event_data,
         project=project,
-        primary_config=NEWSTYLE_CONFIG,
-        secondary_config=LEGACY_CONFIG,
+        primary_config=DEFAULT_GROUPING_CONFIG,
+        secondary_config=LEGACY_GROUPING_CONFIG,
         in_transition=in_transition,
         existing_group_id=existing_event.group_id,
         new_logic_enabled=new_logic_enabled,
@@ -503,7 +502,9 @@ def test_uses_regular_or_optimized_grouping_as_appropriate(
         patch("sentry.grouping.ingest.config.is_in_transition", return_value=in_transition),
         override_options({"grouping.config_transition.killswitch_enabled": killswitch_enabled}),
     ):
-        save_event_with_grouping_config({"message": "Dogs are great!"}, project, NEWSTYLE_CONFIG)
+        save_event_with_grouping_config(
+            {"message": "Dogs are great!"}, project, DEFAULT_GROUPING_CONFIG
+        )
 
     if killswitch_enabled:
         assert mock_save_aggregate.call_count == 1
