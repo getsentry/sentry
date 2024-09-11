@@ -3,7 +3,7 @@ from typing import Any
 
 from django.urls import reverse
 
-from sentry.integrations.messaging import LinkIdentityView
+from sentry.integrations.messaging.linkage import LinkIdentityView
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.msteams.linkage import MsTeamsIdentityLinkageView
 from sentry.models.organization import Organization

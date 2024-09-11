@@ -8,7 +8,10 @@ import orjson
 from sentry_relay.processing import parse_release
 
 from sentry import features
-from sentry.integrations.message_builder import build_attachment_text, build_attachment_title
+from sentry.integrations.messaging.message_builder import (
+    build_attachment_text,
+    build_attachment_title,
+)
 from sentry.integrations.slack.message_builder.types import SlackBlock
 from sentry.integrations.slack.utils.escape import escape_slack_text
 from sentry.integrations.types import ExternalProviders

@@ -8,7 +8,7 @@ from django import forms
 from django.http import HttpRequest, HttpResponse
 from slack_sdk.errors import SlackApiError
 
-from sentry.integrations.messaging import LinkTeamView
+from sentry.integrations.messaging.linkage import LinkTeamView
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.services.integration import RpcIntegration
 from sentry.integrations.slack.metrics import (

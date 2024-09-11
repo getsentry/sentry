@@ -6,7 +6,7 @@ from datetime import datetime
 from typing import Any
 
 from sentry.eventstore.models import Event
-from sentry.integrations.message_builder import (
+from sentry.integrations.messaging.message_builder import (
     build_attachment_text,
     build_attachment_title,
     build_footer,

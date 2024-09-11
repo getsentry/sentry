@@ -14,7 +14,7 @@ from sentry.api.endpoints.group_details import get_group_global_count
 from sentry.constants import LOG_LEVELS
 from sentry.eventstore.models import Event, GroupEvent
 from sentry.identity.services.identity import RpcIdentity, identity_service
-from sentry.integrations.message_builder import (
+from sentry.integrations.messaging.message_builder import (
     build_attachment_replay_link,
     build_attachment_text,
     build_attachment_title,

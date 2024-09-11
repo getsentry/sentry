@@ -10,7 +10,11 @@ from sentry.integrations.discord.actions.issue_alert.notification import Discord
 from sentry.integrations.discord.client import MESSAGE_URL
 from sentry.integrations.discord.message_builder import LEVEL_TO_COLOR
 from sentry.integrations.discord.message_builder.base.component import DiscordComponentCustomIds
-from sentry.integrations.message_builder import build_attachment_title, build_footer, get_title_link
+from sentry.integrations.messaging.message_builder import (
+    build_attachment_title,
+    build_footer,
+    get_title_link,
+)
 from sentry.integrations.services.integration import integration_service
 from sentry.integrations.types import ExternalProviders
 from sentry.models.group import GroupStatus
