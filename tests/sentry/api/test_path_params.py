@@ -38,6 +38,7 @@ class TestPathParams(TestCase):
         "sentry.integrations.web",
         "sentry.users.web",
         "sentry.auth",
+        "sentry.toolbar",
     )
 
     def test_if_sentry_endpoints_have_id_or_slug_path_params(self):
