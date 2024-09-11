@@ -6244,7 +6244,12 @@
       "Region"
     ],
     "table_name": "workflow_engine_detector",
-    "uniques": []
+    "uniques": [
+      [
+        "name",
+        "organization"
+      ]
+    ]
   },
   "workflow_engine.workflow": {
     "dangling": false,
