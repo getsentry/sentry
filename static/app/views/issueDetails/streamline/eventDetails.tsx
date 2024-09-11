@@ -29,6 +29,7 @@ import {
   useEventQuery,
 } from 'sentry/views/issueDetails/streamline/eventSearch';
 import {useFetchEventStats} from 'sentry/views/issueDetails/streamline/useFetchEventStats';
+import {IssueContent} from 'sentry/views/issueDetails/streamline/issueContent';
 
 export function EventDetails({
   group,
@@ -119,10 +120,15 @@ export function EventDetails({
           ref={setNav}
           query={searchQuery}
         />
-        <GroupContentPadding>
+        <ContentPadding>
           <EventDetailsContent group={group} event={event} project={project} />
-        </GroupContentPadding>
+        </ContentPadding>
       </GroupContent>
+      <ExtraContent>
+        <ContentPadding>
+          <IssueContent group={group} project={project} />
+        </ContentPadding>
+      </ExtraContent>
     </EventDetailsContext.Provider>
   );
 }
@@ -153,14 +159,16 @@ const GraphAlert = styled(Alert)`
   border: 1px solid ${p => p.theme.translucentBorder};
 `;
 
-const GroupContent = styled('div')<{navHeight?: number}>`
+const ExtraContent = styled('div')`
   border: 1px solid ${p => p.theme.translucentBorder};
   background: ${p => p.theme.background};
   border-radius: ${p => p.theme.borderRadius};
-  position: relative;
 `;
 
-const GroupContentPadding = styled('div')`
+const GroupContent = styled(ExtraContent)<{navHeight?: number}>`
+  position: relative;
+`;
+const ContentPadding = styled('div')`
   padding: ${space(1)} ${space(1.5)};
 `;
 
