@@ -1,12 +1,11 @@
 from __future__ import annotations
 
-import configparser
 import os
 import shlex
 import subprocess
 
 from devenv import constants
-from devenv.lib import colima, config, fs, limactl, proc, venv, volta
+from devenv.lib import colima, config, fs, limactl, proc, venv
 
 
 # TODO: need to replace this with a nicer process executor in devenv.lib
@@ -30,7 +29,6 @@ def run_procs(
             **constants.user_environ,
             **proc.base_env,
             "VIRTUAL_ENV": venv_path,
-            "VOLTA_HOME": f"{reporoot}/.devenv/bin/volta-home",
             "PATH": f"{venv_path}/bin:{reporoot}/.devenv/bin:{proc.base_path}",
         }
         if extra_env:
@@ -75,6 +73,7 @@ failed command (code {p.returncode}):
 def main(context: dict[str, str]) -> int:
     repo = context["repo"]
     reporoot = context["reporoot"]
+    repo_config = config.get_config(f"{reporoot}/devenv/config.ini")
 
     # TODO: context["verbose"]
     verbose = os.environ.get("SENTRY_DEVENV_VERBOSE") is not None
@@ -88,17 +87,24 @@ def main(context: dict[str, str]) -> int:
     print(f"ensuring {repo} venv at {venv_dir}...")
     venv.ensure(venv_dir, python_version, url, sha256)
 
-    # TODO: move volta version into per-repo config
+    # repo-local devenv needs to update itself first with a successful sync
+    # so it'll take 2 syncs to get onto devenv-managed node, it is what it is
     try:
+        from devenv.lib import node
+
+        node.install(
+            repo_config["node"]["version"],
+            repo_config["node"][constants.SYSTEM_MACHINE],
+            repo_config["node"][f"{constants.SYSTEM_MACHINE}_sha256"],
+            reporoot,
+        )
+        node.install_yarn(repo_config["node"]["yarn_version"], reporoot)
+    except ImportError:
+        from devenv.lib import volta
+
         volta.install(reporoot)
-    except TypeError:
-        # this is needed for devenv <=1.4.0,>1.2.3 to finish syncing and therefore update itself
-        volta.install()
 
     if constants.DARWIN:
-        repo_config = configparser.ConfigParser()
-        repo_config.read(f"{reporoot}/devenv/config.ini")
-
         try:
             colima.install(
                 repo_config["colima"]["version"],
