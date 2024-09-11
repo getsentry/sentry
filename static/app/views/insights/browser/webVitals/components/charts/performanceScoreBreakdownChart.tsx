@@ -13,6 +13,7 @@ import {
   useProjectWebVitalsScoresTimeseriesQuery,
   type WebVitalsScoreBreakdown,
 } from 'sentry/views/insights/browser/webVitals/queries/storedScoreQueries/useProjectWebVitalsScoresTimeseriesQuery';
+import {DEFAULT_QUERY_FILTER} from 'sentry/views/insights/browser/webVitals/settings';
 import {applyStaticWeightsToTimeseries} from 'sentry/views/insights/browser/webVitals/utils/applyStaticWeightsToTimeseries';
 import type {BrowserType} from 'sentry/views/insights/browser/webVitals/utils/queryParameterDecoders/browserType';
 import {PERFORMANCE_SCORE_WEIGHTS} from 'sentry/views/insights/browser/webVitals/utils/scoreThresholds';
@@ -93,6 +94,7 @@ export function PerformanceScoreBreakdownChart({
     return {name, value};
   });
 
+  // We need to reproduce the same query filters that were used to fetch the timeseries data so that they can be propagated to the alerts
   const search = new MutableSearch(ALERTS.total.query ?? '');
   if (transaction) {
     search.addFilterValue('transaction', transaction);
@@ -103,7 +105,7 @@ export function PerformanceScoreBreakdownChart({
   if (browserTypes) {
     search.addDisjunctionFilterValues(SpanMetricsField.BROWSER_NAME, browserTypes);
   }
-  const query = search.formatString();
+  const query = [DEFAULT_QUERY_FILTER, search.formatString()].join(' ').trim();
 
   return (
     <StyledChartPanel
