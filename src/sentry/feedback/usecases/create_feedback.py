@@ -146,12 +146,8 @@ def fix_for_issue_platform(event_data):
         ret_event["user"]["email"] = contact_email
 
     # Set the user.email tag
-    if ret_event["tags"].get("user"):
-        if not ret_event["tags"]["user"].get("email"):
-            ret_event["tags"]["user"]["email"] = contact_email
-    else:
-        ret_event["tags"]["user"] = {}
-        ret_event["tags"]["user"]["email"] = contact_email
+    if not ret_event["tags"].get("user.email"):
+        ret_event["tags"]["user.email"] = contact_email
 
     # Set the event message to the feedback message.
     ret_event["logentry"] = {"message": feedback_obj.get("message")}
