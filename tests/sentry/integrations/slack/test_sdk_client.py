@@ -5,10 +5,11 @@ import pytest
 from slack_sdk.errors import SlackApiError
 
 from sentry.constants import ObjectStatus
+from sentry.integrations.models.integration import Integration
 from sentry.integrations.slack.sdk_client import SLACK_DATADOG_METRIC, SlackSdkClient
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase
-from sentry.testutils.silo import assume_test_silo_mode
+from sentry.testutils.silo import assume_test_silo_mode, assume_test_silo_mode_of
 
 
 class SlackClientTest(TestCase):
@@ -27,7 +28,7 @@ class SlackClientTest(TestCase):
             SlackSdkClient(integration_id=2)
 
     def test_inactive_integration_error(self):
-        with assume_test_silo_mode(SiloMode.CONTROL):
+        with assume_test_silo_mode_of(Integration):
             self.integration.update(status=ObjectStatus.DISABLED)
 
         with pytest.raises(ValueError):

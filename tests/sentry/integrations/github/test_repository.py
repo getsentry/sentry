@@ -10,13 +10,14 @@ from django.utils import timezone
 from fixtures.github import COMPARE_COMMITS_EXAMPLE, GET_COMMIT_EXAMPLE, GET_LAST_COMMITS_EXAMPLE
 from sentry.constants import ObjectStatus
 from sentry.integrations.github.repository import GitHubRepositoryProvider
+from sentry.integrations.models.integration import Integration
 from sentry.models.pullrequest import PullRequest
 from sentry.models.repository import Repository
 from sentry.shared_integrations.exceptions import IntegrationError
 from sentry.silo.base import SiloMode
 from sentry.testutils.asserts import assert_commit_shape
 from sentry.testutils.cases import TestCase
-from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
+from sentry.testutils.silo import assume_test_silo_mode, assume_test_silo_mode_of, control_silo_test
 
 
 @control_silo_test
@@ -103,7 +104,7 @@ class GitHubAppsProviderTest(TestCase):
             self.provider.compare_commits(self.repository, None, "abcdef")
 
     def test_compare_commits_inactive_integration(self):
-        with assume_test_silo_mode(SiloMode.CONTROL):
+        with assume_test_silo_mode_of(Integration):
             self.integration.update(status=ObjectStatus.DISABLED)
 
         with pytest.raises(NotImplementedError):

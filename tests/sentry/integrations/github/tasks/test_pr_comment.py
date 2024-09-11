@@ -17,6 +17,7 @@ from sentry.integrations.github.tasks.pr_comment import (
     pr_to_issue_query,
 )
 from sentry.integrations.github.tasks.utils import PullRequestIssue
+from sentry.integrations.models.integration import Integration
 from sentry.models.commit import Commit
 from sentry.models.group import Group
 from sentry.models.groupowner import GroupOwner, GroupOwnerType
@@ -30,11 +31,10 @@ from sentry.models.pullrequest import (
 )
 from sentry.models.repository import Repository
 from sentry.shared_integrations.exceptions import ApiError
-from sentry.silo.base import SiloMode
 from sentry.tasks.commit_context import DEBOUNCE_PR_COMMENT_CACHE_KEY
 from sentry.testutils.cases import IntegrationTestCase, SnubaTestCase, TestCase
 from sentry.testutils.helpers.datetime import before_now, freeze_time, iso_format
-from sentry.testutils.silo import assume_test_silo_mode
+from sentry.testutils.silo import assume_test_silo_mode_of
 from sentry.testutils.skips import requires_snuba
 from sentry.utils.cache import cache
 
@@ -626,7 +626,7 @@ class TestCommentWorkflow(GithubCommentTestCase):
         cache.set(self.cache_key, True, timedelta(minutes=5).total_seconds())
 
         # inactive integration
-        with assume_test_silo_mode(SiloMode.CONTROL):
+        with assume_test_silo_mode_of(Integration):
             self.integration.update(status=ObjectStatus.DISABLED)
 
         mock_issues.return_value = [
