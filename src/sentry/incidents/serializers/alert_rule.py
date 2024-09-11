@@ -16,7 +16,11 @@ from sentry.api.fields.actor import ActorField
 from sentry.api.serializers.rest_framework.base import CamelSnakeModelSerializer
 from sentry.api.serializers.rest_framework.environment import EnvironmentField
 from sentry.api.serializers.rest_framework.project import ProjectField
-from sentry.exceptions import InvalidSearchQuery, UnsupportedQuerySubscription
+from sentry.exceptions import (
+    IncompatibleMetricsQuery,
+    InvalidSearchQuery,
+    UnsupportedQuerySubscription,
+)
 from sentry.incidents.logic import (
     CRITICAL_TRIGGER_LABEL,
     WARNING_TRIGGER_LABEL,
@@ -356,7 +360,7 @@ class AlertRuleSerializer(CamelSnakeModelSerializer[AlertRule]):
                     "end": end,
                 },
             )
-        except (InvalidSearchQuery, ValueError) as e:
+        except (InvalidSearchQuery, ValueError, IncompatibleMetricsQuery) as e:
             raise serializers.ValidationError(f"Invalid Query or Metric: {e}")
 
         if not query_builder.are_columns_resolved():
@@ -505,7 +509,11 @@ class AlertRuleSerializer(CamelSnakeModelSerializer[AlertRule]):
             except forms.ValidationError as e:
                 # if we fail in create_metric_alert, then only one message is ever returned
                 raise serializers.ValidationError(e.error_list[0].message)
-            except Exception:
+            except Exception as e:
+                logger.exception(
+                    "Error when creating alert rule",
+                    extra={"details": str(e)},
+                )
                 raise BadRequest
             self._handle_triggers(alert_rule, triggers)
             return alert_rule
@@ -533,7 +541,11 @@ class AlertRuleSerializer(CamelSnakeModelSerializer[AlertRule]):
             except forms.ValidationError as e:
                 # if we fail in update_metric_alert, then only one message is ever returned
                 raise serializers.ValidationError(e.error_list[0].message)
-            except Exception:
+            except Exception as e:
+                logger.exception(
+                    "Error when updating alert rule",
+                    extra={"details": str(e)},
+                )
                 raise BadRequest
             self._handle_triggers(alert_rule, triggers)
             return alert_rule

@@ -1,5 +1,4 @@
 import {useCallback, useMemo} from 'react';
-import styled from '@emotion/styled';
 
 import type {SelectOption} from 'sentry/components/compactSelect';
 import {CompactSelect} from 'sentry/components/compactSelect';
@@ -7,7 +6,7 @@ import {t} from 'sentry/locale';
 import type {Sort} from 'sentry/utils/discover/fields';
 import type {Field} from 'sentry/views/explore/hooks/useSampleFields';
 
-import {ToolbarHeader, ToolbarHeading, ToolbarSection} from './styles';
+import {ToolbarHeader, ToolbarHeading, ToolbarRow, ToolbarSection} from './styles';
 
 interface ToolbarSortByProps {
   fields: Field[];
@@ -42,11 +41,11 @@ export function ToolbarSortBy({fields, setSorts, sorts}: ToolbarSortByProps) {
   const kindOptions: SelectOption<Sort['kind']>[] = useMemo(() => {
     return [
       {
-        label: 'Descending',
+        label: 'Desc',
         value: 'desc',
       },
       {
-        label: 'Ascending',
+        label: 'Asc',
         value: 'asc',
       },
     ];
@@ -71,24 +70,22 @@ export function ToolbarSortBy({fields, setSorts, sorts}: ToolbarSortByProps) {
       <ToolbarHeader>
         <ToolbarHeading>{t('Sort By')}</ToolbarHeading>
       </ToolbarHeader>
-      <ToolbarContent>
-        <CompactSelect
-          size="md"
-          options={fieldOptions}
-          value={sorts[0]?.field}
-          onChange={newSortField => setSortField(0, newSortField)}
-        />
-        <CompactSelect
-          size="md"
-          options={kindOptions}
-          value={sorts[0]?.kind}
-          onChange={newSortKind => setSortKind(0, newSortKind)}
-        />
-      </ToolbarContent>
+      <div>
+        <ToolbarRow>
+          <CompactSelect
+            size="sm"
+            options={fieldOptions}
+            value={sorts[0]?.field}
+            onChange={newSortField => setSortField(0, newSortField)}
+          />
+          <CompactSelect
+            size="sm"
+            options={kindOptions}
+            value={sorts[0]?.kind}
+            onChange={newSortKind => setSortKind(0, newSortKind)}
+          />
+        </ToolbarRow>
+      </div>
     </ToolbarSection>
   );
 }
-
-const ToolbarContent = styled('div')`
-  display: flex;
-`;

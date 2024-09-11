@@ -421,7 +421,6 @@ function buildRoutes() {
             )}
           />
         </Route>
-        {hook('routes:api')}
       </Route>
       <Route
         path="close-account/"
@@ -682,6 +681,7 @@ function buildRoutes() {
         () => import('sentry/views/settings/organization/organizationSettingsLayout')
       )}
     >
+      {hook('routes:settings')}
       {hook('routes:organization')}
       {!USING_CUSTOMER_DOMAIN && (
         <IndexRoute

@@ -3,14 +3,14 @@ from django.db.models import UniqueConstraint
 
 from sentry.backup.scopes import RelocationScope
 from sentry.db.models import region_silo_model
-from sentry.db.models.base import DefaultFieldsModel
+from sentry.db.models.base import DefaultFieldsModelExisting
 from sentry.db.models.fields.foreignkey import FlexibleForeignKey
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
 from sentry.models.savedsearch import SortOptions
 
 
 @region_silo_model
-class GroupSearchView(DefaultFieldsModel):
+class GroupSearchView(DefaultFieldsModelExisting):
     """
     A model for a user's view of the issue stream
     """

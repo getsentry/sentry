@@ -243,16 +243,33 @@ class CreateSubscriptionInSnubaTest(BaseSnubaTaskTest):
                     assert request_body["granularity"] == expected_granularity
 
     def test_insights_query_spm(self):
+        time_window = 3600
         sub = self.create_subscription(
             QuerySubscription.Status.CREATING,
             query="span.module:db",
             aggregate="spm()",
             dataset=Dataset.PerformanceMetrics,
+            time_window=time_window,
         )
-        create_subscription_in_snuba(sub.id)
-        sub = QuerySubscription.objects.get(id=sub.id)
-        assert sub.status == QuerySubscription.Status.ACTIVE.value
-        assert sub.subscription_id is not None
+        with patch("sentry.snuba.tasks._snuba_pool") as pool:
+            resp = Mock()
+            resp.status = 202
+            resp.data = json.dumps({"subscription_id": "123"})
+            pool.urlopen.return_value = resp
+
+            create_subscription_in_snuba(sub.id)
+            request_body = json.loads(pool.urlopen.call_args[1]["body"])
+            # Validate that the spm function uses the correct time window
+            assert (
+                "divide(countIf(value, equals(metric_id, 9223372036854776213)), divide(3600, 60)) AS `spm`"
+                in request_body["query"]
+            )
+            assert request_body["granularity"] == 60
+            assert request_body["time_window"] == time_window
+
+            sub = QuerySubscription.objects.get(id=sub.id)
+            assert sub.status == QuerySubscription.Status.ACTIVE.value
+            assert sub.subscription_id is not None
 
 
 class UpdateSubscriptionInSnubaTest(BaseSnubaTaskTest):

@@ -797,14 +797,6 @@
   "sentry.snubaqueryeventtype": [
     "sentry.snubaquery"
   ],
-  "sentry.spanattributeextractionrulecondition": [
-    "sentry.spanattributeextractionruleconfig",
-    "sentry.user"
-  ],
-  "sentry.spanattributeextractionruleconfig": [
-    "sentry.project",
-    "sentry.user"
-  ],
   "sentry.stringindexer": [
     "sentry.organization"
   ],
@@ -858,5 +850,11 @@
     "sentry.user",
     "uptime.uptimesubscription"
   ],
-  "uptime.uptimesubscription": []
+  "uptime.uptimesubscription": [],
+  "workflow_engine.datasource": [
+    "sentry.organization"
+  ],
+  "workflow_engine.workflow": [
+    "sentry.organization"
+  ]
 }
