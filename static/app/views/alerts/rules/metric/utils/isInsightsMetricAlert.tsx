@@ -59,6 +59,12 @@ export const INSIGHTS_METRICS = [
   'g:spans/mobile.slow_frames@none',
   'c:spans/ai.total_tokens.used@none',
   'c:spans/ai.total_cost@usd',
+  'd:transactions/measurements.score.lcp@ratio',
+  'd:transactions/measurements.score.fcp@ratio',
+  'd:transactions/measurements.score.cls@ratio',
+  'd:transactions/measurements.score.ttfb@ratio',
+  'd:transactions/measurements.score.inp@ratio',
+  'd:transactions/measurements.score.total@ratio',
 ];
 
 export const isInsightsMetricAlert = (aggregate: string) => {

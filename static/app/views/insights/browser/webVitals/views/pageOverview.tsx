@@ -200,7 +200,11 @@ export function PageOverview() {
                 <SubregionSelector />
               </TopMenuContainer>
               <Flex>
-                <PerformanceScoreBreakdownChart transaction={transaction} />
+                <PerformanceScoreBreakdownChart
+                  transaction={transaction}
+                  browserTypes={browserTypes}
+                  subregions={subregions}
+                />
               </Flex>
               <WebVitalMetersContainer>
                 <WebVitalMeters
