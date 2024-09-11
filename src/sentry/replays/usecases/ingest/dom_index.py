@@ -8,7 +8,7 @@ from collections.abc import Generator
 from hashlib import md5
 from typing import Any, Literal, TypedDict
 
-from sentry import features
+from sentry import features, options
 from sentry.conf.types.kafka_definition import Topic
 from sentry.models.project import Project
 from sentry.replays.usecases.ingest.issue_creation import (
@@ -401,6 +401,9 @@ def _handle_breadcrumb(
     if not isinstance(payload, dict):
         return None
 
+    reduced_dead_click_timeout = options.get("feedback.dead-click.reduced-timeout-ms")
+    default_dead_click_timeout = 7000
+
     category = payload.get("category")
     if category == "ui.slowClickDetected":
         is_timeout_reason = payload["data"].get("endReason") == "timeout"
@@ -412,28 +415,38 @@ def _handle_breadcrumb(
         timeout = payload["data"].get("timeAfterClickMs", 0) or payload["data"].get(
             "timeafterclickms", 0
         )
-        if is_timeout_reason and is_target_tagname and timeout >= 7000:
-            is_rage = (
-                payload["data"].get("clickCount", 0) or payload["data"].get("clickcount", 0)
-            ) >= 5
-            click = create_click_event(
-                payload, replay_id, is_dead=True, is_rage=is_rage, project_id=project_id
+        if is_timeout_reason and is_target_tagname:
+            organization = Project.objects.get(id=project_id).organization
+            dead_click_timeout = (
+                reduced_dead_click_timeout
+                if organization.slug in options.get("feedback.dead-click.reduced-timeout-org-list")
+                else default_dead_click_timeout
             )
-            if click is not None:
-                if is_rage:
-                    metrics.incr("replay.rage_click_detected")
-                    if _should_report_rage_click_issue(project_id):
-                        if replay_event is not None:
-                            report_rage_click_issue_with_replay_event(
-                                project_id,
-                                replay_id,
-                                payload["timestamp"],
-                                payload["message"],
-                                payload["data"]["url"],
-                                payload["data"]["node"],
-                                payload["data"]["node"]["attributes"].get("data-sentry-component"),
-                                replay_event,
-                            )
+
+            if timeout >= dead_click_timeout:
+                is_rage = (
+                    payload["data"].get("clickCount", 0) or payload["data"].get("clickcount", 0)
+                ) >= 5
+                click = create_click_event(
+                    payload, replay_id, is_dead=True, is_rage=is_rage, project_id=project_id
+                )
+                if click is not None:
+                    if is_rage:
+                        metrics.incr("replay.rage_click_detected")
+                        if _should_report_rage_click_issue(project_id):
+                            if replay_event is not None:
+                                report_rage_click_issue_with_replay_event(
+                                    project_id,
+                                    replay_id,
+                                    payload["timestamp"],
+                                    payload["message"],
+                                    payload["data"]["url"],
+                                    payload["data"]["node"],
+                                    payload["data"]["node"]["attributes"].get(
+                                        "data-sentry-component"
+                                    ),
+                                    replay_event,
+                                )
         # Log the event for tracking.
         log = event["data"].get("payload", {}).copy()
         log["project_id"] = project_id
