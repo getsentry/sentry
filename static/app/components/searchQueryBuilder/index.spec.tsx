@@ -108,6 +108,16 @@ function getLastInput() {
 }
 
 describe('SearchQueryBuilder', function () {
+  beforeAll(() => {
+    window.ResizeObserver =
+      window.ResizeObserver ||
+      jest.fn().mockImplementation(() => ({
+        disconnect: jest.fn(),
+        observe: jest.fn(),
+        unobserve: jest.fn(),
+      }));
+  });
+
   beforeEach(() => {
     // `useDimensions` is used to hide things when the component is too small, so we need to mock a large width
     Object.defineProperty(Element.prototype, 'clientWidth', {value: 1000});
