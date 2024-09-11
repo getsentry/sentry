@@ -305,6 +305,20 @@ export function PagePerformanceTable() {
           onSearch={handleSearch}
           defaultQuery={query}
         />
+      </SearchBarContainer>
+      <GridContainer>
+        <GridEditable
+          aria-label={t('Pages')}
+          isLoading={isTransactionWebVitalsQueryLoading}
+          columnOrder={columnOrder}
+          columnSortBy={[]}
+          data={tableData}
+          grid={{
+            renderHeadCell,
+            renderBodyCell,
+          }}
+        />
+        <Pagination pageLinks={pageLinks} disabled={isTransactionWebVitalsQueryLoading} />
         {/* The Pagination component disappears if pageLinks is not defined,
         which happens any time the table data is loading. So we render a
         disabled button bar if pageLinks is not defined to minimize ui shifting */}
@@ -324,20 +338,6 @@ export function PagePerformanceTable() {
             </ButtonBar>
           </Wrapper>
         )}
-      </SearchBarContainer>
-      <GridContainer>
-        <GridEditable
-          aria-label={t('Pages')}
-          isLoading={isTransactionWebVitalsQueryLoading}
-          columnOrder={columnOrder}
-          columnSortBy={[]}
-          data={tableData}
-          grid={{
-            renderHeadCell,
-            renderBodyCell,
-          }}
-        />
-        <Pagination pageLinks={pageLinks} disabled={isTransactionWebVitalsQueryLoading} />
       </GridContainer>
     </span>
   );
