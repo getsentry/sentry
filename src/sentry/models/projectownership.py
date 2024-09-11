@@ -361,8 +361,8 @@ class ProjectOwnership(Model):
         rules = []
         if ownership.schema is not None:
             munged_data = None
-            # if options.get("ownership.munge_data_for_performance"): comment out to see if this tess pass
-            munged_data = Matcher.munge_if_needed(data)
+            if options.get("ownership.munge_data_for_performance"):
+                munged_data = Matcher.munge_if_needed(data)
             for rule in load_schema(ownership.schema):
                 if rule.test(data, munged_data):
                     rules.append(rule)
