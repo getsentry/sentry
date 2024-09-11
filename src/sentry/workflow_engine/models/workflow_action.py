@@ -13,18 +13,16 @@ class WorkflowAction(DefaultFieldsModel):
     These will be executed in order as part of a workflow.
     """
 
+    # TODO - Should this live here or should we just define it as the model name?
+    class Type(models.TextChoices):
+        NOTIFICATION = "SendNotificationAction"
+
     __relocation_scope__ = RelocationScope.Organization
     workflow = FlexibleForeignKey("sentry.workflow_engine.Workflow")
-    type = models.CharField(max_length=64)
+    type = models.TextField(choices=Type.choices)
 
-    __repr__ = sane_repr("workflow_id", "action_type")
+    __repr__ = sane_repr("workflow_id", "type")
 
     class Meta:
         app_label = "sentry.workflow_engine"
         db_table = "workflow_engine_workflowaction"
-
-        constraints = [
-            models.UniqueConstraint(
-                fields=["workflow", "action_type"], name="unique_workflow_action_per_workflow"
-            )
-        ]
