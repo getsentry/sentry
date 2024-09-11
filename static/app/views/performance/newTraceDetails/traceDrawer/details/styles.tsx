@@ -31,6 +31,7 @@ import type {Organization} from 'sentry/types/organization';
 import {formatBytesBase10} from 'sentry/utils/bytes/formatBytesBase10';
 import getDuration from 'sentry/utils/duration/getDuration';
 import type {ColorOrAlias} from 'sentry/utils/theme';
+import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {
@@ -510,7 +511,7 @@ function NodeActions(props: {
     <ActionsContainer>
       <Actions className="Actions">
         {organization.features.includes('continuous-profiling-ui') && !!profileLink ? (
-          <LinkButton size="xs" to={profileLink}>
+          <LinkButton size="xs" to={normalizeUrl(profileLink)}>
             {t('Continuous Profile')}
           </LinkButton>
         ) : null}
