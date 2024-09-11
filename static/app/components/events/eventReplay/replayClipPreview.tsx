@@ -4,17 +4,18 @@ import ReplayClipPreviewPlayer from 'sentry/components/events/eventReplay/replay
 import {Provider as ReplayContextProvider} from 'sentry/components/replays/replayContext';
 import useReplayReader from 'sentry/utils/replays/hooks/useReplayReader';
 
-type Props = {
+interface ReplayClipPreviewProps
+  extends Omit<
+    React.ComponentProps<typeof ReplayClipPreviewPlayer>,
+    'replayReaderResult'
+  > {
   clipOffsets: {
     durationAfterMs: number;
     durationBeforeMs: number;
   };
   eventTimestampMs: number;
   replaySlug: string;
-} & Omit<
-  React.ComponentProps<typeof ReplayClipPreviewPlayer>,
-  keyof ReturnType<typeof useReplayReader>
->;
+}
 
 function ReplayClipPreview({
   analyticsContext,
@@ -23,7 +24,7 @@ function ReplayClipPreview({
   orgSlug,
   replaySlug,
   ...props
-}: Props) {
+}: ReplayClipPreviewProps) {
   const clipWindow = useMemo(
     () => ({
       startTimestampMs: eventTimestampMs - clipOffsets.durationBeforeMs,
@@ -32,13 +33,13 @@ function ReplayClipPreview({
     [clipOffsets.durationBeforeMs, clipOffsets.durationAfterMs, eventTimestampMs]
   );
 
-  const replayContext = useReplayReader({
+  const replayReaderResult = useReplayReader({
     orgSlug,
     replaySlug,
     clipWindow,
   });
 
-  const {fetching, replay} = replayContext;
+  const {fetching, replay} = replayReaderResult;
 
   return (
     <ReplayContextProvider
@@ -47,10 +48,10 @@ function ReplayClipPreview({
       replay={replay}
     >
       <ReplayClipPreviewPlayer
+        replayReaderResult={replayReaderResult}
         analyticsContext={analyticsContext}
         orgSlug={orgSlug}
         {...props}
-        {...replayContext}
       />
     </ReplayContextProvider>
   );

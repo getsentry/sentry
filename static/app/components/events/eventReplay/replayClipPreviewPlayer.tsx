@@ -26,9 +26,10 @@ import useOrganization from 'sentry/utils/useOrganization';
 import FluidHeight from 'sentry/views/replays/detail/layout/fluidHeight';
 import type {ReplayRecord} from 'sentry/views/replays/types';
 
-type Props = {
+interface ReplayClipPreviewPlayerProps {
   analyticsContext: string;
   orgSlug: string;
+  replayReaderResult: ReturnType<typeof useReplayReader>;
   focusTab?: TabKey;
   fullReplayButtonProps?: Partial<ComponentProps<typeof LinkButton>>;
   handleBackClick?: () => void;
@@ -37,7 +38,7 @@ type Props = {
   onClickNextReplay?: () => void;
   overlayContent?: React.ReactNode;
   showNextAndPrevious?: boolean;
-} & ReturnType<typeof useReplayReader>;
+}
 
 function getReplayAnalyticsStatus({
   fetchError,
@@ -68,19 +69,18 @@ function ReplayClipPreviewPlayer({
   handleForwardClick,
   handleBackClick,
   overlayContent,
-  fetching,
-  replay,
-  replayRecord,
-  fetchError,
-  replayId,
+  replayReaderResult,
   showNextAndPrevious,
-}: Props) {
+}: ReplayClipPreviewPlayerProps) {
   useRouteAnalyticsParams({
-    event_replay_status: getReplayAnalyticsStatus({fetchError, replayRecord}),
+    event_replay_status: getReplayAnalyticsStatus({
+      fetchError: replayReaderResult.fetchError,
+      replayRecord: replayReaderResult.replayRecord,
+    }),
   });
   const organization = useOrganization();
 
-  if (replayRecord?.is_archived) {
+  if (replayReaderResult.replayRecord?.is_archived) {
     return (
       <Alert type="warning" data-test-id="replay-error">
         <Flex gap={space(0.5)}>
@@ -91,7 +91,7 @@ function ReplayClipPreviewPlayer({
     );
   }
 
-  if (fetchError) {
+  if (replayReaderResult.fetchError) {
     trackAnalytics('replay.render-missing-replay-alert', {
       organization,
       surface: 'issue details - clip preview',
@@ -99,7 +99,11 @@ function ReplayClipPreviewPlayer({
     return <MissingReplayAlert orgSlug={orgSlug} />;
   }
 
-  if (fetching || !replayRecord || !replay) {
+  if (
+    replayReaderResult.fetching ||
+    !replayReaderResult.replayRecord ||
+    !replayReaderResult.replay
+  ) {
     return (
       <StyledNegativeSpaceContainer
         data-test-id="replay-loading-placeholder"
@@ -110,13 +114,13 @@ function ReplayClipPreviewPlayer({
     );
   }
 
-  if (replay.getDurationMs() <= 0) {
+  if (replayReaderResult.replay.getDurationMs() <= 0) {
     return (
       <StaticReplayPreview
         analyticsContext={analyticsContext}
         isFetching={false}
-        replay={replay}
-        replayId={replayId}
+        replay={replayReaderResult.replay}
+        replayId={replayReaderResult.replayId}
         fullReplayButtonProps={fullReplayButtonProps}
         initialTimeOffsetMs={0}
       />
@@ -125,13 +129,15 @@ function ReplayClipPreviewPlayer({
 
   return (
     <PlayerContainer data-test-id="player-container" isLarge={isLarge}>
-      {replay?.hasProcessingErrors() ? (
-        <ReplayProcessingError processingErrors={replay.processingErrors()} />
+      {replayReaderResult.replay?.hasProcessingErrors() ? (
+        <ReplayProcessingError
+          processingErrors={replayReaderResult.replay.processingErrors()}
+        />
       ) : (
         <ReplayPreviewPlayer
-          replayId={replayId}
+          replayId={replayReaderResult.replayId}
           fullReplayButtonProps={fullReplayButtonProps}
-          replayRecord={replayRecord}
+          replayRecord={replayReaderResult.replayRecord}
           handleBackClick={handleBackClick}
           handleForwardClick={handleForwardClick}
           overlayContent={overlayContent}
