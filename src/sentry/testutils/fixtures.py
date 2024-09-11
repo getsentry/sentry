@@ -645,6 +645,9 @@ class Fixtures:
     def create_detector(self, *args, **kwargs):
         return Factories.create_detector(*args, **kwargs)
 
+    def create_data_source_detector(self, *args, **kwargs):
+        return Factories.create_data_source_detector(*args, **kwargs)
+
     def create_uptime_subscription(
         self,
         type: str = "test",
