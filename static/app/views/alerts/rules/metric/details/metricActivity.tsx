@@ -116,8 +116,8 @@ function MetricAlertActivity({organization, incident}: MetricAlertActivityProps)
         </Link>
       </Cell>
       <Cell>
-        {/* If an alert rule is a % detection type */}
-        {incident.alertRule.detectionType === 'percent' &&
+        {/* If an alert rule is a % comparison based detection type */}
+        {incident.alertRule.detectionType !== 'dynamic' &&
           incident.alertRule.comparisonDelta && (
             <Fragment>
               {alertName} {curentTrigger?.alertThreshold}%
@@ -134,16 +134,17 @@ function MetricAlertActivity({organization, incident}: MetricAlertActivityProps)
             </Fragment>
           )}
         {/* If an alert rule is a static detection type */}
-        {incident.alertRule.detectionType === 'static' && (
-          <Fragment>
-            {alertName}{' '}
-            {incident.alertRule.thresholdType === AlertRuleThresholdType.ABOVE
-              ? t('above')
-              : t('below')}{' '}
-            {curentTrigger?.alertThreshold || '_'} {t('within')} {timeWindow}
-            {activationBlock}
-          </Fragment>
-        )}
+        {incident.alertRule.detectionType !== 'dynamic' &&
+          incident.alertRule.detectionType === 'static' && (
+            <Fragment>
+              {alertName}{' '}
+              {incident.alertRule.thresholdType === AlertRuleThresholdType.ABOVE
+                ? t('above')
+                : t('below')}{' '}
+              {curentTrigger?.alertThreshold || '_'} {t('within')} {timeWindow}
+              {activationBlock}
+            </Fragment>
+          )}
         {/* If an alert rule is a dynamic detection type */}
         {incident.alertRule.detectionType === 'dynamic' && (
           <Fragment>
