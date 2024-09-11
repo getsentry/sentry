@@ -358,6 +358,10 @@ export function MessageSpanSamplesPanel() {
               }}
               isLoading={isDurationDataFetching}
               error={durationError}
+              filters={timeseriesFilters.getFilterKeys().reduce((acc, key) => {
+                acc[key] = timeseriesFilters.getFilterValues(key)[0];
+                return acc;
+              }, {})}
             />
           </ModuleLayout.Full>
 

@@ -194,6 +194,7 @@ export function HTTPLandingPage() {
                   series={throughputData['spm()']}
                   isLoading={isThroughputDataLoading}
                   error={throughputError}
+                  filters={chartFilters}
                 />
               </ModuleLayout.Third>
 
@@ -202,6 +203,7 @@ export function HTTPLandingPage() {
                   series={[durationData[`avg(span.self_time)`]]}
                   isLoading={isDurationDataLoading}
                   error={durationError}
+                  filters={chartFilters}
                 />
               </ModuleLayout.Third>
 
@@ -223,6 +225,7 @@ export function HTTPLandingPage() {
                   ]}
                   isLoading={isResponseCodeDataLoading}
                   error={responseCodeError}
+                  filters={chartFilters}
                 />
               </ModuleLayout.Third>
 

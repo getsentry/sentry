@@ -89,4 +89,21 @@ describe('InsightsMetricField', () => {
     userEvent.click(await screen.findByText('spm'));
     await waitFor(() => expect(onChange).toHaveBeenCalledWith('spm()', {}));
   });
+
+  it('should call onChange using the http_response_rate function defaulting with argument 3 when switching to http_response_rate', async () => {
+    const {project} = initializeOrg();
+    const onChange = jest.fn();
+    render(
+      <InsightsMetricField
+        aggregate={'avg(d:spans/exclusive_time@millisecond)'}
+        onChange={onChange}
+        project={project}
+      />
+    );
+    userEvent.click(screen.getByText('avg'));
+    userEvent.click(await screen.findByText('http_response_rate'));
+    await waitFor(() =>
+      expect(onChange).toHaveBeenCalledWith('http_response_rate(3)', {})
+    );
+  });
 });
