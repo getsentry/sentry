@@ -1,0 +1,25 @@
+{% load sentry_helpers %}
+{% load sentry_assets %}
+<!DOCTYPE html>
+<html>
+<head>
+  <title></title>
+</head>
+<body>
+  <div>
+    <p>You are logged in!</p>
+    <p>If this window stays open, check the console for errors.</p>
+  </div>
+  {% script %}
+  <script>
+  (function() {
+    if (!window.opener) {
+      return;
+    }
+    window.opener.postMessage('login_success', '*'); // the main frame uses this to reload the iframe content.
+    window.close();
+  })();
+</script>
+  {% endscript %}
+</body>
+</html>
