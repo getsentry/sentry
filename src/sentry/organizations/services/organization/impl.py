@@ -353,19 +353,26 @@ class DatabaseBackedOrganizationService(OrganizationService):
             Organization(id=organization_id).outbox_for_update().save()
 
     def get_aggregate_project_flags(self, *, organization_id: int) -> RpcProjectFlags:
-        """We need ot do some bitfield magic here to convert the aggregate flag into the correct format, because the
+        """We need to do some bitfield magic here to convert the aggregate flag into the correct format, because the
         original class does not let us instantiate without being tied to the database/django:
         1. Convert the integer into a binary representation
         2. Pad the string with the number of leading zeros MAX_BIGINT has so the calculated flags line up with the BitField
         3. Reverse the binary representation to correctly assign flags based on the order
         4. Serialize as an RpcProjectFlags objecct
         """
+        flag_keys = list(Project.flags)
+
         org = Organization.objects.filter(id=organization_id).get()
-        aggregate_flag = org.project_set.aggregate(bitor_result=BitOr(F("flags")))
-        binary_repr = str(bin(aggregate_flag["bitor_result"]))[2:]
-        padded_binary_repr = "0" * (64 - len(binary_repr)) + binary_repr
-        flag_values = list(padded_binary_repr)[::-1]
-        flag_keys = Project.flags
+        projects = org.project_set
+        if org.project_set.count() > 0:
+            aggregate_flag = projects.aggregate(bitor_result=BitOr(F("flags")))
+            binary_repr = str(bin(aggregate_flag["bitor_result"]))[2:]
+            padded_binary_repr = "0" * (64 - len(binary_repr)) + binary_repr
+            flag_values = list(padded_binary_repr)[::-1]
+
+        else:
+            flag_values = [False] * len(flag_keys)
+
         flag_dict = dict(zip(flag_keys, flag_values))
         return RpcProjectFlags(**flag_dict)
 
