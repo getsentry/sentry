@@ -29,10 +29,6 @@ class UptimeSubscription(BaseRemoteSubscription, DefaultFieldsModelExisting):
     # The suffix of the url, extracted via TLDExtract. This can be a public
     # suffix, such as com, gov.uk, com.au, or a private suffix, such as vercel.dev
     url_domain_suffix = models.CharField(max_length=255, db_index=True, default="")
-    # DEPRECATED Org name of the host of the url
-    host_whois_orgname = models.CharField(max_length=255, db_index=True, default="")
-    # DEPRECATED Org id of the host of the url
-    host_whois_orgid = models.CharField(max_length=255, db_index=True, default="")
     # A unique identifier for the provider hosting the domain
     host_provider_id = models.CharField(max_length=255, db_index=True, null=True)
     # The name of the provider hosting this domain
