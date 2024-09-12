@@ -33,12 +33,5 @@ class MessageAction:
 
 
 @dataclass
-class BlockKitMessageAction:
-    name: str
-    label: str
-    type: Literal["button", "select"] = "button"
-    url: str | None = None
-    value: str | None = None
-    action_id: str | None = None
+class BlockKitMessageAction(MessageAction):
     block_id: str | None = None
-    selected_options: Sequence[Mapping[str, Any]] | None = None

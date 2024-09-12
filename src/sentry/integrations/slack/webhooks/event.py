@@ -84,7 +84,7 @@ class SlackEventEndpoint(SlackDMEndpoint):
     def prompt_link(self, slack_request: SlackDMRequest) -> None:
         associate_url = build_linking_url(
             integration=slack_request.integration,
-            slack_id=slack_request.user_id,
+            slack_id=slack_request.require_user_id(),
             channel_id=slack_request.channel_id,
             response_url=slack_request.response_url,
         )
@@ -112,7 +112,7 @@ class SlackEventEndpoint(SlackDMEndpoint):
         try:
             client.chat_postEphemeral(
                 channel=slack_request.channel_id,
-                user=slack_request.user_id,
+                user=slack_request.require_user_id(),
                 text=payload["text"],
                 **SlackPromptLinkMessageBuilder(associate_url).as_payload(),
             )

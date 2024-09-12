@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+from typing import Any
 
 from rest_framework import status
 from rest_framework.request import Request
@@ -85,7 +86,7 @@ class SlackCommandsEndpoint(SlackDMEndpoint):
         if slack_request.channel_name == DIRECT_MESSAGE_CHANNEL_NAME:
             return self.reply(slack_request, LINK_FROM_CHANNEL_MESSAGE)
 
-        logger_params = {
+        logger_params: dict[str, Any] = {
             "slack_request": slack_request,
         }
 
@@ -117,7 +118,7 @@ class SlackCommandsEndpoint(SlackDMEndpoint):
 
         associate_url = build_team_linking_url(
             integration=integration,
-            slack_id=slack_request.user_id,
+            slack_id=slack_request.require_user_id(),
             channel_id=slack_request.channel_id,
             channel_name=slack_request.channel_name,
             response_url=slack_request.response_url,
@@ -152,8 +153,8 @@ class SlackCommandsEndpoint(SlackDMEndpoint):
 
         associate_url = build_team_unlinking_url(
             integration=integration,
-            organization_id=found.organization.id,
-            slack_id=slack_request.user_id,
+            organization_id=str(found.organization.id),
+            slack_id=slack_request.require_user_id(),
             channel_id=slack_request.channel_id,
             channel_name=slack_request.channel_name,
             response_url=slack_request.response_url,

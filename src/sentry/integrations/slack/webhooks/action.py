@@ -26,7 +26,7 @@ from sentry.auth.access import from_member
 from sentry.exceptions import UnableToAcceptMemberInvitationException
 from sentry.integrations.services.integration import integration_service
 from sentry.integrations.slack.message_builder.issues import SlackIssuesMessageBuilder
-from sentry.integrations.slack.message_builder.types import SlackBody
+from sentry.integrations.slack.message_builder.types import SlackBlock, SlackBody
 from sentry.integrations.slack.metrics import (
     SLACK_WEBHOOK_GROUP_ACTIONS_FAILURE_DATADOG_METRIC,
     SLACK_WEBHOOK_GROUP_ACTIONS_SUCCESS_DATADOG_METRIC,
@@ -212,7 +212,7 @@ class SlackActionEndpoint(Endpoint):
             text = UNLINK_IDENTITY_MESSAGE.format(
                 associate_url=build_unlinking_url(
                     slack_request.integration.id,
-                    slack_request.user_id,
+                    slack_request.require_user_id(),
                     channel_id or slack_request.channel_id,
                     response_url or slack_request.response_url,
                 ),
@@ -240,8 +240,19 @@ class SlackActionEndpoint(Endpoint):
             },
         )
 
-        text: str = list(*error.detail.values())[0]
+        text = self._unpack_error_text(error)
         return self.respond_ephemeral(text)
+
+    @staticmethod
+    def _unpack_error_text(validation_error: serializers.ValidationError) -> str:
+        detail = validation_error.detail
+        while True:
+            if isinstance(detail, dict):
+                detail = list(detail.values())
+            element = detail[0]
+            if isinstance(element, str):
+                return element
+            detail = element
 
     def on_assign(
         self, request: Request, user: RpcUser, group: Group, action: MessageAction
@@ -380,7 +391,7 @@ class SlackActionEndpoint(Endpoint):
     def _update_modal(
         self,
         slack_client: SlackSdkClient,
-        external_id: str,
+        external_id: str | None,
         modal_payload: View,
         slack_request: SlackActionRequest,
     ) -> None:
@@ -566,7 +577,7 @@ class SlackActionEndpoint(Endpoint):
         if not identity or not identity_user:
             associate_url = build_linking_url(
                 integration=slack_request.integration,
-                slack_id=slack_request.user_id,
+                slack_id=slack_request.require_user_id(),
                 channel_id=slack_request.channel_id,
                 response_url=slack_request.response_url,
             )
@@ -616,12 +627,8 @@ class SlackActionEndpoint(Endpoint):
             ).build()
 
             # use the original response_url to update the link attachment
-            json_blocks = orjson.dumps(blocks.get("blocks")).decode()
             try:
-                webhook_client = WebhookClient(private_metadata["orig_response_url"])
-                webhook_client.send(
-                    blocks=json_blocks, delete_original=False, replace_original=True
-                )
+                self._send_blocks(blocks, private_metadata["orig_response_url"])
                 metrics.incr(
                     SLACK_WEBHOOK_GROUP_ACTIONS_SUCCESS_DATADOG_METRIC,
                     sample_rate=1.0,
@@ -700,15 +707,8 @@ class SlackActionEndpoint(Endpoint):
             return self.respond()
 
         response_url = slack_request.data["response_url"]
-        json_blocks = orjson.dumps(response.get("blocks")).decode()
-        webhook_client = WebhookClient(response_url)
         try:
-            webhook_client.send(
-                blocks=json_blocks,
-                text=response.get("text"),
-                delete_original=False,
-                replace_original=True,
-            )
+            json_blocks = self._send_blocks(response, response_url, response.get("text"))
             _logger.info(
                 "slack.webhook.update_status.success",
                 extra={"integration_id": slack_request.integration.id, "blocks": json_blocks},
@@ -727,6 +727,17 @@ class SlackActionEndpoint(Endpoint):
             _logger.exception("slack.webhook.update_status.response-error")
 
         return self.respond(response)
+
+    def _send_blocks(self, response: SlackBlock, response_url: str, text: str | None = None) -> str:
+        json_blocks = orjson.dumps(response.get("blocks")).decode()
+        webhook_client = WebhookClient(response_url)
+        webhook_client.send(
+            blocks=json_blocks,  # type: ignore[arg-type]
+            text=text,
+            delete_original=False,
+            replace_original=True,
+        )
+        return json_blocks
 
     def handle_unfurl(self, slack_request: SlackActionRequest, action: str) -> Response:
         organization_integrations = integration_service.get_organization_integrations(
@@ -764,7 +775,7 @@ class SlackActionEndpoint(Endpoint):
             # XXX(CEO): this is here for backwards compatibility - if a user performs an action with an "older"
             # style issue alert but the block kit flag is enabled, we don't want to fall into this code path
             if action_data[0].get("action_id"):
-                action_list = []
+                action_list: list[MessageAction] = []
                 for action_data in action_data:
                     if action_data.get("type") in ("static_select", "external_select"):
                         action = BlockKitMessageAction(
@@ -900,9 +911,10 @@ class SlackActionEndpoint(Endpoint):
                 member.approve_member_invitation(identity_user, referrer="slack")
             else:
                 member.reject_member_invitation(identity_user)
-        except Exception:
+        except Exception as e:
             # shouldn't error but if it does, respond to the user
             _logger.exception(
+                str(e),
                 extra={
                     "organization_id": organization.id,
                     "member_id": member.id,

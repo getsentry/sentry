@@ -65,7 +65,7 @@ def handle_discard(
     request: Request,
     group_list: Sequence[Group],
     projects: Sequence[Project],
-    user: User,
+    user: User | RpcUser,
 ) -> Response:
     for project in projects:
         if not features.has("projects:discard-groups", project, actor=user):
@@ -170,7 +170,7 @@ def update_groups(
     projects: Sequence[Project],
     organization_id: int,
     search_fn: SearchFunction | None,
-    user: User | None = None,
+    user: User | RpcUser | None = None,
     data: Mapping[str, Any] | None = None,
 ) -> Response:
     # If `user` and `data` are passed as parameters then they should override
