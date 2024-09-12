@@ -283,6 +283,12 @@ export interface FieldDefinition {
    */
   allowComparisonOperators?: boolean;
   /**
+   * Allow wildcard (*) matching for this field.
+   * This is only valid for string fields and will default to true.
+   * Note that the `disallowWilcard` setting will override this.
+   */
+  allowWildcard?: boolean;
+  /**
    * Default value for the field
    */
   defaultValue?: string;
@@ -1100,11 +1106,13 @@ const EVENT_FIELD_DEFINITIONS: Record<AllEventFieldKeys, FieldDefinition> = {
     desc: t('Assignee of the issue as a user ID'),
     kind: FieldKind.FIELD,
     valueType: FieldValueType.STRING,
+    allowWildcard: false,
   },
   [FieldKey.ASSIGNED_OR_SUGGESTED]: {
     desc: t('Assignee or suggestee of the issue as a user ID'),
     kind: FieldKind.FIELD,
     valueType: FieldValueType.STRING,
+    allowWildcard: false,
   },
   [FieldKey.CULPRIT]: {
     deprecated: true,
@@ -1115,6 +1123,7 @@ const EVENT_FIELD_DEFINITIONS: Record<AllEventFieldKeys, FieldDefinition> = {
     desc: t('The issues bookmarked by a user ID'),
     kind: FieldKind.FIELD,
     valueType: FieldValueType.STRING,
+    allowWildcard: false,
   },
   [FieldKey.BROWSER_NAME]: {
     desc: t('Name of the browser'),
@@ -1314,28 +1323,33 @@ const EVENT_FIELD_DEFINITIONS: Record<AllEventFieldKeys, FieldDefinition> = {
     valueType: FieldValueType.STRING,
     keywords: ['ignored', 'assigned', 'for_review', 'unassigned', 'linked', 'unlinked'],
     defaultValue: 'unresolved',
+    allowWildcard: false,
   },
   [FieldKey.ISSUE]: {
     desc: t('The issue identification short code'),
     kind: FieldKind.FIELD,
     valueType: FieldValueType.STRING,
+    allowWildcard: false,
   },
   [FieldKey.ISSUE_CATEGORY]: {
     desc: t('Category of issue (error or performance)'),
     kind: FieldKind.FIELD,
     valueType: FieldValueType.STRING,
     keywords: ['error', 'performance'],
+    allowWildcard: false,
   },
   [FieldKey.ISSUE_PRIORITY]: {
     desc: t('The priority of the issue'),
     kind: FieldKind.FIELD,
     valueType: FieldValueType.STRING,
     keywords: ['high', 'medium', 'low'],
+    allowWildcard: false,
   },
   [FieldKey.ISSUE_TYPE]: {
     desc: t('Type of problem the issue represents (i.e. N+1 Query)'),
     kind: FieldKind.FIELD,
     valueType: FieldValueType.STRING,
+    allowWildcard: false,
   },
   [FieldKey.LAST_SEEN]: {
     desc: t('Issues last seen at a given time'),
@@ -1405,6 +1419,7 @@ const EVENT_FIELD_DEFINITIONS: Record<AllEventFieldKeys, FieldDefinition> = {
     desc: t('Determines if a tag or field exists in an event'),
     kind: FieldKind.FIELD,
     valueType: FieldValueType.STRING,
+    allowWildcard: false,
   },
   [FieldKey.OS_NAME]: {
     desc: t('Name of the Operating System'),
