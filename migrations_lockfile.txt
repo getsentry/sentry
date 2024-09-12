@@ -12,5 +12,5 @@ remote_subscriptions: 0003_drop_remote_subscription
 replays: 0004_index_together
 sentry: 0759_remove_spanattributeextraction_tables
 social_auth: 0002_default_auto_field
-uptime: 0008_uptime_url_suffix
+uptime: 0009_better_name_for_uptime_rdap_columns
 workflow_engine: 0004_workflowactions
