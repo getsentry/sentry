@@ -12,6 +12,7 @@ class WorkflowAction(DefaultFieldsModel):
     """
 
     __relocation_scope__ = RelocationScope.Organization
+    __repr__ = sane_repr("workflow_id", "type")
 
     class Type(models.TextChoices):
         NOTIFICATION = "SendNotificationAction"
@@ -20,5 +21,3 @@ class WorkflowAction(DefaultFieldsModel):
     workflow = FlexibleForeignKey("workflow_engine.Workflow")
     type = models.TextField(choices=Type.choices)
     data = models.JSONField(default=dict)
-
-    __repr__ = sane_repr("workflow_id", "type")

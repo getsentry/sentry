@@ -1,5 +1,6 @@
-__all__ = ["DataSource", "DataSourceDetector", "Detector", "Workflow", "WorkflowAction"]
+__all__ = ["DataCondition", "DataSource", "DataSourceDetector", "Detector", "Workflow", "WorkflowAction"]
 
+from .data_condition import DataCondition
 from .data_source import DataSource
 from .data_source_detector import DataSourceDetector
 from .detector import Detector

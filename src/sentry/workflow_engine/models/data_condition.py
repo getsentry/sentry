@@ -3,6 +3,9 @@ from django.db import models
 from sentry.backup.scopes import RelocationScope
 from sentry.db.models import DefaultFieldsModel, region_silo_model, sane_repr
 
+from .detector import Detector
+from .workflow_action import WorkflowAction
+
 
 @region_silo_model
 class DataCondition(DefaultFieldsModel):
@@ -17,3 +20,8 @@ class DataCondition(DefaultFieldsModel):
     threshold = models.FloatField()
     condition_result = models.JSONField()
     type = models.CharField(max_length=200)
+
+    detector = models.ForeignKey(Detector, on_delete=models.CASCADE, blank=True, null=True)
+    workflow_action = models.ForeignKey(
+        WorkflowAction, on_delete=models.CASCADE, blank=True, null=True
+    )
