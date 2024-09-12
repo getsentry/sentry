@@ -5,7 +5,6 @@ from collections.abc import Callable, Sequence
 
 from rest_framework.response import Response
 
-from sentry import options
 from sentry.constants import ObjectStatus
 from sentry.eventstore.models import GroupEvent
 from sentry.integrations.base import IntegrationInstallation
@@ -118,7 +117,7 @@ def create_issue(event: GroupEvent, futures: Sequence[RuleFuture]) -> None:
             return
         try:
             response = installation.create_issue(data)
-        except IntegrationFormError as e:
+        except Exception as e:
             logger.info(
                 "%s.rule_trigger.create_ticket.failure",
                 provider,
@@ -136,9 +135,8 @@ def create_issue(event: GroupEvent, futures: Sequence[RuleFuture]) -> None:
                 },
             )
 
-            # Testing out if this results in a lot of noisy sentry issues
-            # when enabled.
-            if options.get("ecosystem:enable_integration_form_error_raise"):
+            # Only raise IntegrationFormErrors, as these are exceptions we can handle
+            if isinstance(e, IntegrationFormError):
                 raise
             else:
                 return
