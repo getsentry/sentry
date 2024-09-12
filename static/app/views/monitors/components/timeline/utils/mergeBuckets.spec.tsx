@@ -1,6 +1,6 @@
 import {CheckInStatus} from 'sentry/views/monitors/types';
 
-import type {MonitorBucketData} from '../types';
+import type {MonitorBucket} from '../types';
 
 import {mergeBuckets} from './mergeBuckets';
 
@@ -35,7 +35,7 @@ function generateJobRun(envName: string, jobStatus: CheckInStatus) {
 
 describe('mergeBuckets', function () {
   it('does not generate ticks less than 3px width', function () {
-    const bucketData: MonitorBucketData = [
+    const bucketData: MonitorBucket[] = [
       [1, generateJobRun('prod', CheckInStatus.OK)],
       [2, generateJobRun('prod', CheckInStatus.OK)],
       [3, generateJobRun('prod', CheckInStatus.OK)],
@@ -61,7 +61,7 @@ describe('mergeBuckets', function () {
   });
 
   it('generates adjacent ticks without border radius', function () {
-    const bucketData: MonitorBucketData = [
+    const bucketData: MonitorBucket[] = [
       [1, generateJobRun('prod', CheckInStatus.OK)],
       [2, generateJobRun('prod', CheckInStatus.OK)],
       [3, generateJobRun('prod', CheckInStatus.OK)],
@@ -95,7 +95,7 @@ describe('mergeBuckets', function () {
   });
 
   it('does not generate a separate tick if the next generated tick would be the same status', function () {
-    const bucketData: MonitorBucketData = [
+    const bucketData: MonitorBucket[] = [
       [1, generateJobRun('prod', CheckInStatus.TIMEOUT)],
       [2, generateJobRun('prod', CheckInStatus.TIMEOUT)],
       [3, generateJobRun('prod', CheckInStatus.TIMEOUT)],
@@ -121,7 +121,7 @@ describe('mergeBuckets', function () {
   });
 
   it('filters off environment', function () {
-    const bucketData: MonitorBucketData = [
+    const bucketData: MonitorBucket[] = [
       [
         1,
         {
