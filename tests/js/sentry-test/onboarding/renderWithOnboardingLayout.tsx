@@ -60,6 +60,7 @@ export function renderWithOnboardingLayout<
       platformKey="java-spring-boot"
       projectId="test-project-id"
       activeProductSelection={selectedProducts}
+      projectKeyId="test-project-key-id"
     />,
     {
       organization,
