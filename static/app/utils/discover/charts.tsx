@@ -88,14 +88,14 @@ export function axisLabelFormatterUsingAggregateOutputType(
   abbreviation: boolean = false,
   durationUnit?: number,
   rateUnit?: RateUnit,
-  decimalPlaces?: number
+  decimalPlaces: number = 0
 ): string {
   switch (type) {
     case 'integer':
     case 'number':
       return abbreviation ? formatAbbreviatedNumber(value) : value.toLocaleString();
     case 'percentage':
-      return formatPercentage(value, decimalPlaces ?? 0);
+      return formatPercentage(value, decimalPlaces);
     case 'duration':
       return axisDuration(value, durationUnit);
     case 'size':
