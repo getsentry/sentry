@@ -49,8 +49,8 @@ def _get_snuba_dataclass_for_dashboard_widget(
         start = parse_timestamp(filters["start"])
         end = parse_timestamp(filters["end"])
 
-    environment = filters.get("environment", []) if filters else []
-    period = filters.get("period") if filters else []
+    environment: str | list[str] = filters.get("environment", []) if filters else []
+    period = filters.get("period") if filters else None
 
     return _get_snuba_dataclass(dashboard.organization, projects, start, end, period, environment)
 
@@ -114,18 +114,16 @@ def _get_and_save_split_decision_for_dashboard_widget(
     )
 
     if dataset_inferred_from_query is not None:
-        dataset_inferred_from_query = SPLIT_DATASET_TO_DASHBOARDS_DATASET_MAP[
-            dataset_inferred_from_query
-        ]
+        widget_dataset = SPLIT_DATASET_TO_DASHBOARDS_DATASET_MAP[dataset_inferred_from_query]
         if dry_run:
-            logger.info("Split decision for %s: %s", widget.id, dataset_inferred_from_query)
+            logger.info("Split decision for %s: %s", widget.id, widget_dataset)
         else:
             _save_split_decision_for_widget(
                 widget,
-                dataset_inferred_from_query,
+                widget_dataset,
                 DatasetSourcesTypes.INFERRED,
             )
-        return dataset_inferred_from_query, False
+        return widget_dataset, False
 
     if (
         features.has("organizations:dynamic-sampling", dashboard.organization, actor=None)

@@ -233,6 +233,8 @@ def _check_event_type_filter(errors_builder) -> SplitDataset | None:
                 if _check_event_type_condition(cond, Dataset.Transactions):
                     return SplitDataset.Transactions
 
+    return None
+
 
 def _dataset_split_decision_inferred_from_query(
     errors_builder: ErrorsQueryBuilder, transactions_builder: DiscoverQueryBuilder
@@ -385,18 +387,16 @@ def _get_and_save_split_decision_for_query(
     )
 
     if dataset_inferred_from_query is not None:
-        dataset_inferred_from_query = SPLIT_DATASET_TO_DISCOVER_DATASET_MAP[
-            dataset_inferred_from_query
-        ]
+        discover_dataset = SPLIT_DATASET_TO_DISCOVER_DATASET_MAP[dataset_inferred_from_query]
         if dry_run:
-            logger.info("Split decision for %s: %s", saved_query.id, dataset_inferred_from_query)
+            logger.info("Split decision for %s: %s", saved_query.id, discover_dataset)
         else:
             _save_split_decision_for_query(
                 saved_query,
-                dataset_inferred_from_query,
+                discover_dataset,
                 DatasetSourcesTypes.INFERRED,
             )
-        return dataset_inferred_from_query, False
+        return discover_dataset, False
 
     has_errors = False
     try:
