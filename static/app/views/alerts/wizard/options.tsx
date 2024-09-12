@@ -122,6 +122,7 @@ export const getAlertWizardCategories = (org: Organization) => {
         'fid',
         'cls',
         ...(hasCustomMetrics(org) ? (['custom_transactions'] satisfies AlertType[]) : []),
+        ...(hasInsightsAlerts(org) ? ['insights_metrics' as const] : []),
       ],
     });
     if (org.features.includes('insights-addon-modules')) {
@@ -132,10 +133,7 @@ export const getAlertWizardCategories = (org: Organization) => {
     }
     result.push({
       categoryHeading: hasCustomMetrics(org) ? t('Metrics') : t('Custom'),
-      options: [
-        hasCustomMetrics(org) ? 'custom_metrics' : 'custom_transactions',
-        ...(hasInsightsAlerts(org) ? ['insights_metrics' as const] : []),
-      ],
+      options: [hasCustomMetrics(org) ? 'custom_metrics' : 'custom_transactions'],
     });
   }
   return result;
