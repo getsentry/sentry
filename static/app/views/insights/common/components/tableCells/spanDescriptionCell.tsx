@@ -47,7 +47,7 @@ export function SpanDescriptionCell({
     }
 
     return formatter.toSimpleMarkup(rawDescription);
-  }, [moduleName, rawDescription]);
+  }, [moduleName, rawDescription, spanAction, system]);
 
   if (!rawDescription) {
     return NULL_DESCRIPTION;

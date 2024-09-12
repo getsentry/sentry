@@ -10,7 +10,6 @@ import type {ReactElement} from 'react';
  */
 export function formatMongoDBQuery(query: string, command: string) {
   const queryObject = JSON.parse(query);
-  console.dir(queryObject);
 
   const tokens: ReactElement[] = [];
 
@@ -28,8 +27,6 @@ export function formatMongoDBQuery(query: string, command: string) {
   }
 
   const collection = queryObject[commandKey];
-  console.log(commandKey);
-  console.log(collection);
 
   processAndInsertKeyValueTokens(tokens, commandKey, collection, true);
 
@@ -37,10 +34,7 @@ export function formatMongoDBQuery(query: string, command: string) {
   Object.keys(queryObject).forEach(key => {
     if (key.toLowerCase() !== command.toLowerCase()) {
       const value = queryObject[key];
-
-      if (typeof value === 'string') {
-        processAndInsertKeyValueTokens(tokens, key, value);
-      }
+      processAndInsertKeyValueTokens(tokens, key, value);
     }
   });
 
@@ -55,6 +49,7 @@ function processAndInsertKeyValueTokens(
   tokens: ReactElement[],
   key: string,
   value: string | number | object,
+  // Use isBold only for non-object kv pairs
   isBold?: boolean
 ) {
   // Case 1: Value is a string
@@ -69,11 +64,20 @@ function processAndInsertKeyValueTokens(
 
   // Case 2 (recursion case): Value is an object
   if (typeof value === 'object') {
+    if (Object.keys(value).length === 0) {
+      processAndInsertKeyValueTokens(tokens, key, '{}');
+    } else {
+      tokens.push(<span>{`"${key}": { `}</span>);
+      Object.keys(value).forEach(_key => {
+        processAndInsertKeyValueTokens(tokens, _key, value[_key]);
+      });
+      // Pop the trailing comma
+      tokens.pop();
+
+      tokens.push(<span>{' }'}</span>);
+      tokens.push(<span>{', '}</span>);
+    }
   }
 
   return tokens;
 }
-
-// function createKeyValueToken(key: string, value: string): ReactElement {
-//   return [<span></span>]
-// }
