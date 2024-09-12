@@ -178,12 +178,7 @@ function Tabs({
               onDrag={() => setIsDragging(true)}
               onDragEnd={() => setIsDragging(false)}
             >
-              <div
-                key={item.key}
-                style={
-                  overflowingTabs.some(tab => tab.key === item.key) ? {opacity: 0} : {}
-                }
-              >
+              <div key={item.key}>
                 <Tab
                   key={item.key}
                   item={item}
@@ -354,7 +349,9 @@ export function DraggableTabList({items, onAddView, ...props}: DraggableTabListP
 
 DraggableTabList.Item = Item;
 
-const TabItemWrap = styled(Reorder.Item)<{isSelected: boolean}>`
+const TabItemWrap = styled(Reorder.Item, {
+  shouldForwardProp: prop => prop !== 'isSelected',
+})<{isSelected: boolean}>`
   display: flex;
   position: relative;
   z-index: ${p => (p.isSelected ? 1 : 0)};
