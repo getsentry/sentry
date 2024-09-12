@@ -11,13 +11,9 @@ class DataCondition(DefaultFieldsModel):
     """
 
     __relocation_scope__ = RelocationScope.Organization
-    __repr__ = sane_repr("name", "organization_id")
+    __repr__ = sane_repr("type", "condition")
 
-    # TODO - map this to snuba Condition
     condition = models.CharField(max_length=200)
-
-    # This should only store primitives; it may be boolean, string, number, etc.
-    condition_result = models.JSONField()
-
     threshold = models.FloatField()
+    condition_result = models.JSONField()
     type = models.CharField(max_length=200)
