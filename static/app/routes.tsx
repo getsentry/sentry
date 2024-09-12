@@ -259,25 +259,24 @@ function buildRoutes() {
         <Route path=":step/" component={make(() => import('sentry/views/relocation'))} />
       </Route>
       {USING_CUSTOMER_DOMAIN && (
-        <Route
-          path="/onboarding/"
-          component={errorHandler(withDomainRequired(OrganizationContainer))}
-          key="orgless-onboarding"
-        >
-          <IndexRedirect to="welcome/" />
+        <Fragment>
+          <Redirect from="/onboarding/" to="/onboarding/welcome/" />
           <Route
-            path=":step/"
-            component={make(() => import('sentry/views/onboarding'))}
-          />
-        </Route>
+            path="/onboarding/:step/"
+            component={errorHandler(withDomainRequired(OrganizationContainer))}
+            key="orgless-onboarding"
+          >
+            <IndexRoute component={make(() => import('sentry/views/onboarding'))} />
+          </Route>
+        </Fragment>
       )}
+      <Redirect from="/onboarding/:orgId/" to="/onboarding/:orgId/welcome/" />
       <Route
-        path="/onboarding/:orgId/"
+        path="/onboarding/:orgId/:step/"
         component={withDomainRedirect(errorHandler(OrganizationContainer))}
         key="org-onboarding"
       >
-        <IndexRedirect to="welcome/" />
-        <Route path=":step/" component={make(() => import('sentry/views/onboarding'))} />
+        <IndexRoute component={make(() => import('sentry/views/onboarding'))} />
       </Route>
       <Route
         path="/stories/"
