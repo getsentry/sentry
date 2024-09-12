@@ -39,6 +39,7 @@ describe('EventGraph', () => {
   });
   const group = GroupFixture();
   const event = EventFixture({id: 'event-id'});
+  const persistantQuery = ` issue:${group.shortId}`;
   const defaultProps = {project, group, event};
 
   let mockEventStats;
@@ -113,7 +114,7 @@ describe('EventGraph', () => {
           environment: [],
           interval: '12h',
           project: '2',
-          query: '',
+          query: persistantQuery,
           referrer: 'issue_details.streamline',
           statsPeriod: '14d',
           yAxis: ['count()', 'count_unique(user)'],
@@ -185,7 +186,7 @@ describe('EventGraph', () => {
       '/organizations/org-slug/events-stats/',
       expect.objectContaining({
         query: expect.objectContaining({
-          query: locationQuery.query.query,
+          query: locationQuery.query.query + persistantQuery,
         }),
       })
     );
