@@ -60,6 +60,8 @@ function CustomViewsIssueListHeader({
     ? t('Pause real-time updates')
     : t('Enable real-time updates');
 
+  const {newViewActive} = useContext(NewTabContext);
+
   return (
     <Layout.Header
       noActionWrap
@@ -80,16 +82,18 @@ function CustomViewsIssueListHeader({
         </Layout.Title>
       </Layout.HeaderContent>
       <Layout.HeaderActions>
-        <ButtonBar gap={1}>
-          <Button
-            size="sm"
-            data-test-id="real-time"
-            title={realtimeTitle}
-            aria-label={realtimeTitle}
-            icon={realtimeActive ? <IconPause /> : <IconPlay />}
-            onClick={() => onRealtimeChange(!realtimeActive)}
-          />
-        </ButtonBar>
+        {!newViewActive && (
+          <ButtonBar gap={1}>
+            <Button
+              size="sm"
+              data-test-id="real-time"
+              title={realtimeTitle}
+              aria-label={realtimeTitle}
+              icon={realtimeActive ? <IconPause /> : <IconPlay />}
+              onClick={() => onRealtimeChange(!realtimeActive)}
+            />
+          </ButtonBar>
+        )}
       </Layout.HeaderActions>
       <StyledGlobalEventProcessingAlert projects={selectedProjects} />
       {groupSearchViews ? (
