@@ -78,7 +78,7 @@ export function EventFeatureFlagList({
 
   const handleSortAlphabetical = () => {
     setFlags(
-      flags.sort((a, b) => {
+      [...flags].sort((a, b) => {
         return a.item.key.localeCompare(b.item.key);
       })
     );
