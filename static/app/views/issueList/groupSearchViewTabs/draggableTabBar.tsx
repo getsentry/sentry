@@ -1,6 +1,6 @@
 import 'intersection-observer'; // polyfill
 
-import {useContext, useState} from 'react';
+import {useCallback, useContext, useEffect, useState} from 'react';
 import styled from '@emotion/styled';
 import type {Node} from '@react-types/shared';
 
@@ -16,7 +16,8 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {DraggableTabMenuButton} from 'sentry/views/issueList/groupSearchViewTabs/draggableTabMenuButton';
 import EditableTabTitle from 'sentry/views/issueList/groupSearchViewTabs/editableTabTitle';
-import type {IssueSortOptions} from 'sentry/views/issueList/utils';
+import {IssueSortOptions} from 'sentry/views/issueList/utils';
+import {NewTabContext} from 'sentry/views/issueList/utils/newTabContext';
 
 export interface Tab {
   id: string;
@@ -108,8 +109,10 @@ export function DraggableTabBar({
   const location = useLocation();
 
   const {cursor: _cursor, page: _page, ...queryParams} = router?.location?.query ?? {};
+  const {viewId} = queryParams;
 
   const {tabListState} = useContext(TabsContext);
+  const {setNewViewActive, setOnNewViewSaved} = useContext(NewTabContext);
 
   const handleOnReorder = (newOrder: Node<DraggableTabListItemProps>[]) => {
     const newTabs = newOrder
@@ -234,7 +237,9 @@ export function DraggableTabBar({
     onDiscardTempView?.();
   };
 
-  const handleOnAddView = () => {
+  const handleCreateNewView = () => {
+    // Triggers the add view flow page
+    setNewViewActive(true);
     const tempId = generateTempViewId();
     const currentTab = tabs.find(tab => tab.key === tabListState?.selectedKey);
     if (currentTab) {
@@ -244,26 +249,60 @@ export function DraggableTabBar({
           id: tempId,
           key: tempId,
           label: 'New View',
-          query: currentTab.unsavedChanges
-            ? currentTab.unsavedChanges[0]
-            : currentTab.query,
-          querySort: currentTab.unsavedChanges
-            ? currentTab.unsavedChanges[1]
-            : currentTab.querySort,
+          query: '',
+          querySort: IssueSortOptions.DATE,
         },
       ];
       navigate({
         ...location,
         query: {
           ...queryParams,
+          query: '',
           viewId: tempId,
         },
       });
       setTabs(newTabs);
       tabListState?.setSelectedKey(tempId);
-      onAddView?.(newTabs);
     }
   };
+
+  const handleNewViewSaved: NewTabContext['onNewViewSaved'] = useCallback(
+    () => (label: string, query: string, saveQueryToView: boolean) => {
+      setNewViewActive(false);
+      const updatedTabs: Tab[] = tabs.map(tab => {
+        if (tab.key === viewId) {
+          return {
+            ...tab,
+            label: label,
+            query: saveQueryToView ? query : '',
+            querySort: IssueSortOptions.DATE,
+            unsavedChanges: saveQueryToView ? undefined : [query, IssueSortOptions.DATE],
+          };
+        }
+        return tab;
+      });
+      setTabs(updatedTabs);
+      navigate(
+        {
+          ...location,
+          query: {
+            ...queryParams,
+            query: query,
+            sort: IssueSortOptions.DATE,
+          },
+        },
+        {replace: true}
+      );
+      onAddView?.(updatedTabs);
+    },
+
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [location, navigate, onAddView, setNewViewActive, setTabs, tabs, viewId]
+  );
+
+  useEffect(() => {
+    setOnNewViewSaved(handleNewViewSaved);
+  }, [setOnNewViewSaved, handleNewViewSaved]);
 
   const makeMenuOptions = (tab: Tab): MenuItemProps[] => {
     if (tab.key === 'temporary-tab') {
@@ -294,7 +333,7 @@ export function DraggableTabBar({
     <DraggableTabList
       onReorder={handleOnReorder}
       defaultSelectedKey={initialTabKey}
-      onAddView={handleOnAddView}
+      onAddView={handleCreateNewView}
       orientation="horizontal"
       hideBorder
     >

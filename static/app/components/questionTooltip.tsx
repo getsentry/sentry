@@ -2,14 +2,14 @@ import styled from '@emotion/styled';
 
 import type {TooltipProps} from 'sentry/components/tooltip';
 import {Tooltip} from 'sentry/components/tooltip';
-import {IconQuestion} from 'sentry/icons';
+import {IconInfo, IconQuestion} from 'sentry/icons';
 import type {IconSize} from 'sentry/utils/theme';
 
 interface QuestionProps
   extends Partial<
     Pick<
       TooltipProps,
-      'containerDisplayMode' | 'isHoverable' | 'overlayStyle' | 'position'
+      'containerDisplayMode' | 'isHoverable' | 'overlayStyle' | 'position' | 'skipWrapper'
     >
   > {
   /**
@@ -23,13 +23,24 @@ interface QuestionProps
    */
   title: React.ReactNode;
   className?: string;
+  icon?: 'question' | 'info';
 }
 
-function QuestionTooltip({title, size, className, ...tooltipProps}: QuestionProps) {
+function QuestionTooltip({
+  title,
+  size,
+  className,
+  icon = 'question',
+  ...tooltipProps
+}: QuestionProps) {
   return (
     <QuestionIconContainer size={size} className={className}>
       <Tooltip title={title} {...tooltipProps}>
-        <IconQuestion size={size} color="subText" data-test-id="more-information" />
+        {icon === 'info' ? (
+          <IconInfo size={size} color="subText" data-test-id="more-information" />
+        ) : (
+          <IconQuestion size={size} color="subText" data-test-id="more-information" />
+        )}
       </Tooltip>
     </QuestionIconContainer>
   );

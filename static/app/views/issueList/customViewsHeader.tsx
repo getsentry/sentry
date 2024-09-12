@@ -20,6 +20,7 @@ import {
 import {useUpdateGroupSearchViews} from 'sentry/views/issueList/mutations/useUpdateGroupSearchViews';
 import {useFetchGroupSearchViews} from 'sentry/views/issueList/queries/useFetchGroupSearchViews';
 import type {UpdateGroupSearchViewPayload} from 'sentry/views/issueList/types';
+import {NewTabContext} from 'sentry/views/issueList/utils/newTabContext';
 
 import {IssueSortOptions} from './utils';
 
@@ -88,6 +89,7 @@ function CustomViewsIssueListHeaderTabsContent({
   // TODO(msun): Possible replace navigate with useSearchParams() in the future?
   const navigate = useNavigate();
   const location = useLocation();
+  const {setNewViewActive, newViewActive} = useContext(NewTabContext);
 
   // TODO(msun): Use the location from useLocation instead of props router in the future
   const {cursor: _cursor, page: _page, ...queryParams} = router?.location.query;
@@ -257,19 +259,48 @@ function CustomViewsIssueListHeaderTabsContent({
               tab.id = view.id;
             }
           });
-          navigate({
-            ...location,
-            query: {
-              ...queryParams,
-              viewId: tab.id,
+          navigate(
+            {
+              ...location,
+              query: {
+                ...queryParams,
+                viewId: tab.id,
+              },
             },
-          });
+            {replace: true}
+          );
         }
         return tab;
       })
     );
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [views]);
+
+  useEffect(() => {
+    if (viewId?.startsWith('_')) {
+      // If the user types in query manually while the new view flow is showing,
+      // then replace the add view flow with the issue stream with the query loaded,
+      // and persist the query
+      if (newViewActive && query !== '') {
+        setNewViewActive(false);
+        const updatedTabs: Tab[] = draggableTabs.map(tab =>
+          tab.id === viewId
+            ? {
+                ...tab,
+                unsavedChanges: [query, sort ?? IssueSortOptions.DATE],
+              }
+            : tab
+        );
+        setDraggableTabs(updatedTabs);
+        debounceUpdateViews(updatedTabs);
+      } else {
+        setNewViewActive(true);
+      }
+    } else {
+      setNewViewActive(false);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [viewId, query]);
 
   return (
     <DraggableTabBar
