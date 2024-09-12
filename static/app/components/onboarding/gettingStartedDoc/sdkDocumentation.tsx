@@ -28,7 +28,7 @@ export function SdkDocumentation({
   configType,
   organization,
 }: SdkDocumentationProps) {
-  const {isLoading, isError, dsn, docs, refetch} = useLoadGettingStarted({
+  const {isLoading, isError, dsn, docs, refetch, projectKeyId} = useLoadGettingStarted({
     orgSlug: organization.slug,
     projSlug: projectSlug,
     platform,
@@ -69,6 +69,17 @@ export function SdkDocumentation({
     );
   }
 
+  if (!projectKeyId) {
+    return (
+      <LoadingError
+        message={t(
+          'We encountered an issue while loading Client Keys for this getting started documentation.'
+        )}
+        onRetry={refetch}
+      />
+    );
+  }
+
   return (
     <OnboardingLayout
       docsConfig={docs}
@@ -79,6 +90,7 @@ export function SdkDocumentation({
       projectId={projectId}
       projectSlug={projectSlug}
       configType={configType}
+      projectKeyId={projectKeyId}
     />
   );
 }
