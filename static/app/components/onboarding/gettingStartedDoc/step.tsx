@@ -135,6 +135,11 @@ interface BaseStepProps {
    * Whether the step is optional
    */
   isOptional?: boolean;
+  /**
+   * Fired when the optional toggle is clicked.
+   * Useful for when we want to fire analytics events.
+   */
+  onOptionalToggleClick?: (showOptionalConfig: boolean) => void;
 }
 interface StepPropsWithTitle extends BaseStepProps {
   title: string;
@@ -199,6 +204,7 @@ export function Step({
   configurations,
   additionalInfo,
   description,
+  onOptionalToggleClick,
   isOptional = false,
   codeHeader,
 }: StepProps) {
@@ -251,7 +257,10 @@ export function Step({
           size="zero"
           icon={<IconChevron direction={showOptionalConfig ? 'down' : 'right'} />}
           aria-label={t('Toggle optional configuration')}
-          onClick={() => setShowOptionalConfig(!showOptionalConfig)}
+          onClick={() => {
+            onOptionalToggleClick?.(!showOptionalConfig);
+            setShowOptionalConfig(!showOptionalConfig);
+          }}
         >
           <h4 style={{marginBottom: 0}}>
             {title ?? StepTitle[type]}
