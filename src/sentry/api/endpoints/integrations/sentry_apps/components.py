@@ -1,3 +1,4 @@
+import sentry_sdk
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -54,23 +55,29 @@ class OrganizationSentryAppComponentsEndpoint(ControlSiloOrganizationEndpoint):
         components = []
         errors = []
 
-        for install in SentryAppInstallation.objects.get_installed_for_organization(
-            organization.id
-        ).order_by("pk"):
-            _components = SentryAppComponent.objects.filter(
-                sentry_app_id=install.sentry_app_id
-            ).order_by("pk")
+        with sentry_sdk.start_transaction(name="sentry.api.sentry_app_components.get"):
+            with sentry_sdk.start_span(op="sentry-app-components.get_installs"):
+                installs = SentryAppInstallation.objects.get_installed_for_organization(
+                    organization.id
+                ).order_by("pk")
 
-            if "filter" in request.GET:
-                _components = _components.filter(type=request.GET["filter"])
+            for install in installs:
+                with sentry_sdk.start_span(op="sentry-app-components.filter_components"):
+                    _components = SentryAppComponent.objects.filter(
+                        sentry_app_id=install.sentry_app_id
+                    ).order_by("pk")
 
-            for component in _components:
-                try:
-                    SentryAppComponentPreparer(component=component, install=install).run()
-                except APIError:
-                    errors.append(str(component.uuid))
+                    if "filter" in request.GET:
+                        _components = _components.filter(type=request.GET["filter"])
 
-                components.append(component)
+                for component in _components:
+                    with sentry_sdk.start_span(op="sentry-app-components.prepare_components"):
+                        try:
+                            SentryAppComponentPreparer(component=component, install=install).run()
+                        except APIError:
+                            errors.append(str(component.uuid))
+
+                        components.append(component)
 
         return self.paginate(
             request=request,
