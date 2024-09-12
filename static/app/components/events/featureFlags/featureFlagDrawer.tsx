@@ -55,36 +55,35 @@ export const enum FlagControlOptions {
 
 interface FlagDrawerProps {
   event: Event;
-  featureFlags: KeyValueDataContentProps[];
   group: Group;
-  initialFlags: KeyValueDataContentProps[];
+  hydratedFlags: KeyValueDataContentProps[];
+  initialSort: FlagSort;
   project: Project;
-  sort: FlagSort;
 }
 
 export function FeatureFlagDrawer({
-  featureFlags,
   group,
   event,
   project,
-  sort,
-  initialFlags,
+  initialSort,
+  hydratedFlags,
 }: FlagDrawerProps) {
-  const [sortMethod, setSortMethod] = useState<FlagSort>(sort);
-  const [flags, setFlags] = useState<KeyValueDataContentProps[]>(featureFlags);
+  const [sortMethod, setSortMethod] = useState<FlagSort>(initialSort);
   const [search, setSearch] = useState('');
 
-  const handleSortEval = () => {
-    setFlags(initialFlags);
+  const handleSortAlphabetical = (flags: KeyValueDataContentProps[]) => {
+    return [...flags].sort((a, b) => {
+      return a.item.key.localeCompare(b.item.key);
+    });
   };
 
-  const handleSortAlphabetical = () => {
-    setFlags(
-      [...flags].sort((a, b) => {
-        return a.item.key.localeCompare(b.item.key);
-      })
-    );
-  };
+  let sortedFlags;
+  if (sortMethod === FlagSort.ALPHA) {
+    sortedFlags = handleSortAlphabetical(hydratedFlags);
+  } else {
+    sortedFlags = hydratedFlags;
+  }
+  const searchResults = sortedFlags.filter(f => f.item.key.includes(search));
 
   const actions = (
     <ButtonBar gap={1}>
@@ -95,7 +94,6 @@ export function FeatureFlagDrawer({
           onChange={e => {
             // good spot to track analytics
             setSearch(e.target.value.toLowerCase());
-            setFlags(featureFlags.filter(f => f.item.key.includes(search)));
           }}
           aria-label={t('Search Flags')}
         />
@@ -110,7 +108,6 @@ export function FeatureFlagDrawer({
         onChange={selection => {
           // good spot to track analytics
           setSortMethod(selection.value);
-          selection.value === FlagSort.EVAL ? handleSortEval() : handleSortAlphabetical();
         }}
         trigger={triggerProps => (
           <DropdownButton {...triggerProps} size="xs" icon={<IconSort />}>
@@ -147,7 +144,7 @@ export function FeatureFlagDrawer({
       </EventNavigator>
       <EventDrawerBody>
         <CardContainer numCols={1}>
-          <KeyValueData.Card contentItems={flags} />
+          <KeyValueData.Card contentItems={searchResults} />
         </CardContainer>
       </EventDrawerBody>
     </EventDrawerContainer>

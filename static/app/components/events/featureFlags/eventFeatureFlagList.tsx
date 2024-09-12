@@ -1,4 +1,4 @@
-import {useCallback, useRef, useState} from 'react';
+import {useCallback, useMemo, useRef, useState} from 'react';
 
 import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
@@ -47,20 +47,23 @@ export function EventFeatureFlagList({
     });
   };
 
-  const initialFlags = hydrateFlags(event.contexts?.flags?.values);
-  const [flags, setFlags] = useState<KeyValueDataContentProps[]>(initialFlags);
+  const hydratedFlags = useMemo(
+    () => hydrateFlags(event.contexts?.flags?.values),
+    [event]
+  );
 
-  const handleSortEval = () => {
-    setFlags(initialFlags);
+  const handleSortAlphabetical = (flags: KeyValueDataContentProps[]) => {
+    return [...flags].sort((a, b) => {
+      return a.item.key.localeCompare(b.item.key);
+    });
   };
 
-  const handleSortAlphabetical = () => {
-    setFlags(
-      [...flags].sort((a, b) => {
-        return a.item.key.localeCompare(b.item.key);
-      })
-    );
-  };
+  let sortedFlags;
+  if (sortMethod === FlagSort.ALPHA) {
+    sortedFlags = handleSortAlphabetical(hydratedFlags);
+  } else {
+    sortedFlags = hydratedFlags;
+  }
 
   const onViewAllFlags = useCallback(() => {
     // good spot to track analytics
@@ -70,9 +73,8 @@ export function EventFeatureFlagList({
           group={group}
           event={event}
           project={project}
-          featureFlags={flags}
-          initialFlags={initialFlags}
-          sort={sortMethod}
+          hydratedFlags={hydratedFlags}
+          initialSort={sortMethod}
         />
       ),
       {
@@ -89,9 +91,9 @@ export function EventFeatureFlagList({
         transitionProps: {stiffness: 1000},
       }
     );
-  }, [openDrawer, flags, event, group, project, sortMethod, initialFlags]);
+  }, [openDrawer, event, group, project, sortMethod, hydratedFlags]);
 
-  if (!flags || !flags.length) {
+  if (!hydratedFlags.length) {
     return null;
   }
 
@@ -116,7 +118,7 @@ export function EventFeatureFlagList({
         onChange={selection => {
           // good spot to track analytics
           setSortMethod(selection.value);
-          selection.value === FlagSort.EVAL ? handleSortEval() : handleSortAlphabetical();
+          // selection.value === FlagSort.EVAL ? handleSortEval() : handleSortAlphabetical();
         }}
         trigger={triggerProps => (
           <DropdownButton {...triggerProps} size="xs" icon={<IconSort />}>
@@ -138,7 +140,7 @@ export function EventFeatureFlagList({
   );
 
   // Split the flags list into two columns for display
-  const truncatedItems = flags.slice(0, 20);
+  const truncatedItems = sortedFlags.slice(0, 20);
   const columnOne = truncatedItems.slice(0, 10);
   let columnTwo: any[] = [];
   if (truncatedItems.length > 10) {
