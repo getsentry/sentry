@@ -106,6 +106,12 @@ export function DomainSelector({
     clearDomainOptionsCache();
   }, [pageFilters.selection.projects, clearDomainOptionsCache]);
 
+  useEffect(() => {
+    if (additionalQuery.length > 0) {
+      clearDomainOptionsCache();
+    }
+  }, [additionalQuery, clearDomainOptionsCache]);
+
   const emptyOption = {
     value: EMPTY_OPTION_VALUE,
     label: (
