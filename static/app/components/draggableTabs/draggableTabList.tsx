@@ -421,7 +421,7 @@ const AddViewButton = styled(Button)`
   color: ${p => p.theme.gray300};
   font-weight: normal;
   padding: ${space(0.5)};
-  margin-right: ${space(0.5)};
+  margin-top: ${space(0.25)};
 `;
 
 const StyledIconAdd = styled(IconAdd)`
