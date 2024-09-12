@@ -44,6 +44,7 @@ import type {
 } from 'sentry/utils/replays/types';
 import {
   getFrameOpOrCategory,
+  isCLSFrame,
   isDeadClick,
   isDeadRageClick,
   isRageClick,
@@ -286,8 +287,9 @@ const MAPPER_FOR_FRAME: Record<string, (frame) => Details> = {
       case 'good':
         return {
           color: 'green300',
-          description: tct('[value]ms (Good)', {
+          description: tct('[value][unit] (Good)', {
             value: frame.data.value.toFixed(2),
+            unit: isCLSFrame(frame) ? '' : 'ms',
           }),
           tabKey: TabKey.NETWORK,
           title: 'Web Vital: ' + toTitleCase(explodeSlug(frame.description)),
@@ -296,8 +298,9 @@ const MAPPER_FOR_FRAME: Record<string, (frame) => Details> = {
       case 'needs-improvement':
         return {
           color: 'yellow300',
-          description: tct('[value]ms (Meh)', {
+          description: tct('[value][unit] (Meh)', {
             value: frame.data.value.toFixed(2),
+            unit: isCLSFrame(frame) ? '' : 'ms',
           }),
           tabKey: TabKey.NETWORK,
           title: 'Web Vital: ' + toTitleCase(explodeSlug(frame.description)),
@@ -306,8 +309,9 @@ const MAPPER_FOR_FRAME: Record<string, (frame) => Details> = {
       default:
         return {
           color: 'red300',
-          description: tct('[value]ms (Poor)', {
+          description: tct('[value][unit] (Poor)', {
             value: frame.data.value.toFixed(2),
+            unit: isCLSFrame(frame) ? '' : 'ms',
           }),
           tabKey: TabKey.NETWORK,
           title: 'Web Vital: ' + toTitleCase(explodeSlug(frame.description)),
