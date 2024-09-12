@@ -21,24 +21,24 @@ import type {Project} from 'sentry/types/project';
 import useOrganization from 'sentry/utils/useOrganization';
 
 export enum FlagSort {
-  RECENT = 'recent',
+  EVAL = 'eval',
   ALPHA = 'alphabetical',
 }
 
+export const getLabel = (sort: string) => {
+  return sort === FlagSort.EVAL ? t('Evaluation Order') : t('Alphabetical');
+};
+
 export const FLAG_SORT_OPTIONS = [
   {
-    label: t('Recently Changed'),
-    value: FlagSort.RECENT,
+    label: getLabel(FlagSort.EVAL),
+    value: FlagSort.EVAL,
   },
   {
-    label: t('Alphabetical'),
+    label: getLabel(FlagSort.ALPHA),
     value: FlagSort.ALPHA,
   },
 ];
-
-export const getLabel = (sort: string) => {
-  return sort === FlagSort.RECENT ? t('Recently Changed') : t('Alphabetical');
-};
 
 export function EventFeatureFlagList({
   event,
@@ -50,7 +50,7 @@ export function EventFeatureFlagList({
   project: Project;
 }) {
   const [isCollapsed, setIsCollapsed] = useState(false);
-  const [sortMethod, setSortMethod] = useState<FlagSort>(FlagSort.RECENT);
+  const [sortMethod, setSortMethod] = useState<FlagSort>(FlagSort.EVAL);
   const {closeDrawer, isDrawerOpen, openDrawer} = useDrawer();
   const viewAllButtonRef = useRef<HTMLButtonElement>(null);
 
@@ -69,10 +69,10 @@ export function EventFeatureFlagList({
   const initialFlags = hydrateFlags(flagsMap);
   //----------------------------
 
-  // const initialFlags = hydrateFlags(event.contexts?.flags);
+  // const initialFlags = hydrateFlags(event.contexts?.flags.values);
   const [flags, setFlags] = useState<KeyValueDataContentProps[]>(initialFlags);
 
-  const handleSortRecent = () => {
+  const handleSortEval = () => {
     setFlags(initialFlags);
   };
 
@@ -134,14 +134,11 @@ export function EventFeatureFlagList({
         options={FLAG_SORT_OPTIONS}
         triggerProps={{
           'aria-label': t('Sort Flags'),
-          showChevron: false,
         }}
         onChange={selection => {
           // good spot to track analytics
           setSortMethod(selection.value);
-          selection.value === FlagSort.RECENT
-            ? handleSortRecent()
-            : handleSortAlphabetical();
+          selection.value === FlagSort.EVAL ? handleSortEval() : handleSortAlphabetical();
         }}
         trigger={triggerProps => (
           <DropdownButton {...triggerProps} size="xs" icon={<IconSort />}>

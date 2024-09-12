@@ -58,7 +58,7 @@ export function FeatureFlagDrawer({
   const [flags, setFlags] = useState<KeyValueDataContentProps[]>(featureFlags);
   const [search, setSearch] = useState('');
 
-  const handleSortRecent = () => {
+  const handleSortEval = () => {
     setFlags(initialFlags);
   };
 
@@ -90,14 +90,11 @@ export function FeatureFlagDrawer({
       <CompactSelect
         triggerProps={{
           'aria-label': t('Sort Flags'),
-          showChevron: false,
         }}
         onChange={selection => {
           // good spot to track analytics
           setSortMethod(selection.value);
-          selection.value === FlagSort.RECENT
-            ? handleSortRecent()
-            : handleSortAlphabetical();
+          selection.value === FlagSort.EVAL ? handleSortEval() : handleSortAlphabetical();
         }}
         trigger={triggerProps => (
           <DropdownButton {...triggerProps} size="xs" icon={<IconSort />}>
