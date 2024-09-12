@@ -57,7 +57,7 @@ interface OperatorProps {
   middle?: boolean;
 }
 
-const MENU_OFFSET = [0, 12] as [number, number];
+const MENU_OFFSET: [number, number] = [0, 12];
 
 const OP_LABELS = {
   [TermOperator.DEFAULT]: 'is',
