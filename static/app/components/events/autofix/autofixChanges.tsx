@@ -27,7 +27,6 @@ type AutofixChangesProps = {
   groupId: string;
   onRetry: () => void;
   step: AutofixChangesStep;
-  isLastStep?: boolean;
 };
 
 function CreatePullRequestButton({
@@ -109,11 +108,9 @@ function CreatePullRequestButton({
 function PullRequestLinkOrCreateButton({
   change,
   groupId,
-  isLastStep,
 }: {
   change: AutofixCodebaseChange;
   groupId: string;
-  isLastStep?: boolean;
 }) {
   const {data} = useAutofixSetup({groupId});
 
@@ -131,10 +128,6 @@ function PullRequestLinkOrCreateButton({
         {t('View Pull Request')}
       </LinkButton>
     );
-  }
-
-  if (!isLastStep) {
-    return null;
   }
 
   if (
@@ -172,11 +165,9 @@ function PullRequestLinkOrCreateButton({
 function AutofixRepoChange({
   change,
   groupId,
-  isLastStep,
 }: {
   change: AutofixCodebaseChange;
   groupId: string;
-  isLastStep?: boolean;
 }) {
   return (
     <Content>
@@ -185,23 +176,14 @@ function AutofixRepoChange({
           <Title>{change.repo_name}</Title>
           <PullRequestTitle>{change.title}</PullRequestTitle>
         </div>
-        <PullRequestLinkOrCreateButton
-          change={change}
-          groupId={groupId}
-          isLastStep={isLastStep}
-        />
+        <PullRequestLinkOrCreateButton change={change} groupId={groupId} />
       </RepoChangesHeader>
       <AutofixDiff diff={change.diff} />
     </Content>
   );
 }
 
-export function AutofixChanges({
-  step,
-  onRetry,
-  groupId,
-  isLastStep,
-}: AutofixChangesProps) {
+export function AutofixChanges({step, onRetry, groupId}: AutofixChangesProps) {
   const data = useAutofixData({groupId});
 
   if (step.status === 'ERROR' || data?.status === 'ERROR') {
@@ -242,14 +224,15 @@ export function AutofixChanges({
   }
 
   return (
-    <Content>
+    <ChangesContainer>
+      <h6>Fixes</h6>
       {step.changes.map((change, i) => (
         <Fragment key={change.repo_external_id}>
           {i > 0 && <Separator />}
-          <AutofixRepoChange change={change} groupId={groupId} isLastStep={isLastStep} />
+          <AutofixRepoChange change={change} groupId={groupId} />
         </Fragment>
       ))}
-    </Content>
+    </ChangesContainer>
   );
 }
 
@@ -261,6 +244,14 @@ const PreviewContent = styled('div')`
 `;
 
 const PrefixText = styled('span')``;
+
+const ChangesContainer = styled('div')`
+  border: 1px solid ${p => p.theme.innerBorder};
+  border-radius: ${p => p.theme.borderRadius};
+  overflow: hidden;
+  box-shadow: ${p => p.theme.dropShadowHeavy};
+  padding: ${space(2)};
+`;
 
 const Content = styled('div')`
   padding: 0 ${space(1)} ${space(1)} ${space(1)};

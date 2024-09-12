@@ -7,14 +7,15 @@ import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import Alert from 'sentry/components/alert';
 import {Button} from 'sentry/components/button';
 import {CodeSnippet} from 'sentry/components/codeSnippet';
+import {ExpandableInsightContext} from 'sentry/components/events/autofix/autofixInsightCards';
 import {AutofixShowMore} from 'sentry/components/events/autofix/autofixShowMore';
 import {
   type AutofixRepository,
   type AutofixRootCauseCodeContext,
-  type AutofixRootCauseCodeContextSnippet,
   type AutofixRootCauseData,
   type AutofixRootCauseSelection,
   AutofixStepType,
+  type CodeSnippetContext,
 } from 'sentry/components/events/autofix/types';
 import {
   type AutofixResponse,
@@ -25,7 +26,7 @@ import InteractionStateLayer from 'sentry/components/interactionStateLayer';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {Tooltip} from 'sentry/components/tooltip';
 import {IconChevron} from 'sentry/icons';
-import {t, tn} from 'sentry/locale';
+import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {getFileExtension} from 'sentry/utils/fileExtension';
 import {getIntegrationIcon} from 'sentry/utils/integrationUtil';
@@ -197,14 +198,16 @@ function RootCauseContent({
   );
 }
 
-function SuggestedFixSnippet({
+export function SuggestedFixSnippet({
   snippet,
   linesToHighlight,
   repos,
+  icon,
 }: {
   linesToHighlight: number[];
   repos: AutofixRepository[];
-  snippet: AutofixRootCauseCodeContextSnippet;
+  snippet: CodeSnippetContext;
+  icon?: React.ReactNode;
 }) {
   function getSourceLink() {
     if (!repos) return undefined;
@@ -215,16 +218,17 @@ function SuggestedFixSnippet({
     return `${repo.url}/blob/${repo.default_branch}/${snippet.file_path}`;
   }
   const extension = getFileExtension(snippet.file_path);
-  const lanugage = extension ? getPrismLanguage(extension) : undefined;
+  const language = extension ? getPrismLanguage(extension) : undefined;
   const sourceLink = getSourceLink();
 
   return (
     <CodeSnippetWrapper>
       <StyledCodeSnippet
         filename={snippet.file_path}
-        language={lanugage}
+        language={language}
         hideCopyButton
         linesToHighlight={linesToHighlight}
+        icon={icon}
       >
         {snippet.snippet}
       </StyledCodeSnippet>
@@ -281,7 +285,6 @@ function CauseOption({
           <Button
             icon={<IconChevron size="xs" direction={selected ? 'down' : 'right'} />}
             aria-label={t('Select root cause')}
-            aria-expanded={selected}
             size="zero"
             borderless
             style={{marginLeft: 8}}
@@ -290,7 +293,9 @@ function CauseOption({
       </RootCauseOptionHeader>
       <RootCauseContent selected={selected}>
         <RootCauseDescription cause={cause} />
-        <AutofixRootCauseCodeContexts codeContext={cause.code_context} repos={repos} />
+        <ExpandableInsightContext>
+          <AutofixRootCauseCodeContexts codeContext={cause.code_context} repos={repos} />
+        </ExpandableInsightContext>
       </RootCauseContent>
     </RootCauseOption>
   );
@@ -307,9 +312,9 @@ function SelectedRootCauseOption({
 }) {
   return (
     <RootCauseOption selected>
-      <Title
+      <h6
         dangerouslySetInnerHTML={{
-          __html: singleLineRenderer(t('Selected Cause: %s', selectedCause.title)),
+          __html: singleLineRenderer(t('Root Cause: %s', selectedCause.title)),
         }}
       />
       <CauseDescription
@@ -317,7 +322,9 @@ function SelectedRootCauseOption({
           __html: marked(selectedCause.description),
         }}
       />
-      <AutofixRootCauseCodeContexts codeContext={codeContext} repos={repos} />
+      <ExpandableInsightContext>
+        <AutofixRootCauseCodeContexts codeContext={codeContext} repos={repos} />
+      </ExpandableInsightContext>
     </RootCauseOption>
   );
 }
@@ -344,7 +351,6 @@ function ProvideYourOwn({
         <Button
           icon={<IconChevron size="xs" direction={selected ? 'down' : 'right'} />}
           aria-label={t('Provide your own root cause')}
-          aria-expanded={selected}
           size="zero"
           borderless
         />
@@ -394,7 +400,7 @@ function AutofixRootCauseDisplay({
       return (
         <CausesContainer>
           <CustomRootCausePadding>
-            <Title>{t('Custom Response Provided')}</Title>
+            <h6>{t('Custom Root Cause')}</h6>
             <CauseDescription>{rootCauseSelection.custom_root_cause}</CauseDescription>
           </CustomRootCausePadding>
         </CausesContainer>
@@ -443,10 +449,12 @@ function AutofixRootCauseDisplay({
                     __html: marked(cause.description),
                   }}
                 />
-                <AutofixRootCauseCodeContexts
-                  codeContext={cause.code_context}
-                  repos={repos}
-                />
+                <ExpandableInsightContext>
+                  <AutofixRootCauseCodeContexts
+                    codeContext={cause.code_context}
+                    repos={repos}
+                  />
+                </ExpandableInsightContext>
               </RootCauseOption>
             ))}
           </AutofixShowMore>
@@ -456,15 +464,9 @@ function AutofixRootCauseDisplay({
   }
 
   return (
-    <CausesContainer>
-      <CausesHeader>
-        {tn(
-          'Sentry has identified %s potential root cause. You may select the presented root cause or provide your own.',
-          'Sentry has identified %s potential root causes. You may select one of the presented root causes or provide your own.',
-          causes.length
-        )}
-      </CausesHeader>
+    <PotentialCausesContainer>
       <OptionsPadding>
+        <h6>{t('Potential Root Cause')}</h6>
         <OptionsWrapper>
           {causes.map(cause => (
             <CauseOption
@@ -485,7 +487,7 @@ function AutofixRootCauseDisplay({
           />
         </OptionsWrapper>
       </OptionsPadding>
-    </CausesContainer>
+    </PotentialCausesContainer>
   );
 }
 
@@ -539,10 +541,15 @@ const NoCausesPadding = styled('div')`
   padding: 0 ${space(2)};
 `;
 
-const CausesContainer = styled('div')``;
+const CausesContainer = styled('div')`
+  border: 1px solid ${p => p.theme.innerBorder};
+  border-radius: ${p => p.theme.borderRadius};
+  overflow: hidden;
+  box-shadow: ${p => p.theme.dropShadowHeavy};
+`;
 
-const CausesHeader = styled('div')`
-  padding: 0 ${space(2)};
+const PotentialCausesContainer = styled(CausesContainer)`
+  border: 1px solid ${p => p.theme.alert.info.background};
 `;
 
 const OptionsPadding = styled('div')`
@@ -588,12 +595,8 @@ const CauseReproductionHeader = styled('div')`
 `;
 
 const SuggestedFixWrapper = styled('div')`
-  padding: ${space(2)};
-  border: 1px solid ${p => p.theme.alert.info.border};
-  background-color: ${p => p.theme.alert.info.backgroundLight};
-  border-radius: ${p => p.theme.borderRadius};
   margin-top: ${space(1)};
-
+  margin-bottom: ${space(4)};
   p {
     margin: ${space(1)} 0 0 0;
   }
@@ -636,7 +639,7 @@ const OptionFooter = styled('div')`
 `;
 
 const CustomRootCausePadding = styled('div')`
-  padding: 0 ${space(2)} ${space(2)} ${space(2)};
+  padding: ${space(2)} ${space(2)} ${space(2)} ${space(2)};
 `;
 
 const RootCauseOptionsRow = styled('div')`
