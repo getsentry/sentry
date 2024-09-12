@@ -1,4 +1,4 @@
-import {Fragment, useMemo} from 'react';
+import {Fragment, useCallback, useMemo} from 'react';
 import styled from '@emotion/styled';
 
 import {getInterval} from 'sentry/components/charts/utils';
@@ -11,7 +11,6 @@ import {aggregateOutputType} from 'sentry/utils/discover/fields';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {useChartInterval} from 'sentry/views/explore/hooks/useChartInterval';
-import {useChartType} from 'sentry/views/explore/hooks/useChartType';
 import {useDataset} from 'sentry/views/explore/hooks/useDataset';
 import {useVisualizes} from 'sentry/views/explore/hooks/useVisualizes';
 import Chart, {ChartType} from 'sentry/views/insights/common/components/chart';
@@ -43,8 +42,7 @@ export function ExploreCharts({query}: ExploreChartsProps) {
   const pageFilters = usePageFilters();
 
   const [dataset] = useDataset();
-  const [visualizes] = useVisualizes();
-  const [chartType, setChartType] = useChartType();
+  const [visualizes, setVisualizes] = useVisualizes();
   const [interval, setInterval, intervalOptions] = useChartInterval();
 
   const yAxes = useMemo(() => {
@@ -64,10 +62,20 @@ export function ExploreCharts({query}: ExploreChartsProps) {
     dataset
   );
 
+  const handleChartTypeChange = useCallback(
+    (chartType: ChartType, index: number) => {
+      const newVisualizes = visualizes.slice();
+      newVisualizes[index] = {...newVisualizes[index], chartType};
+      setVisualizes(newVisualizes);
+    },
+    [visualizes, setVisualizes]
+  );
+
   return (
     <Fragment>
       {visualizes.map((visualize, index) => {
         const dedupedYAxes = dedupeArray(visualize.yAxes);
+        const {chartType} = visualize;
         return (
           <ChartContainer key={index}>
             <ChartPanel>
@@ -79,7 +87,7 @@ export function ExploreCharts({query}: ExploreChartsProps) {
                     triggerProps={{prefix: t('Display')}}
                     value={chartType}
                     options={exploreChartTypeOptions}
-                    onChange={newChartType => setChartType(newChartType.value)}
+                    onChange={option => handleChartTypeChange(option.value, index)}
                   />
                   <CompactSelect
                     size="xs"

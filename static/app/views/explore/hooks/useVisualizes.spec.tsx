@@ -3,6 +3,7 @@ import {createMemoryHistory, Route, Router, RouterContext} from 'react-router';
 import {act, render} from 'sentry-test/reactTestingLibrary';
 
 import {useVisualizes} from 'sentry/views/explore/hooks/useVisualizes';
+import {ChartType} from 'sentry/views/insights/common/components/chart';
 import {RouteContext} from 'sentry/views/routeContext';
 
 describe('useVisualizes', function () {
@@ -31,29 +32,46 @@ describe('useVisualizes', function () {
       </Router>
     );
 
-    expect(visualizes).toEqual([{yAxes: ['count(span.duration)']}]); // default
+    expect(visualizes).toEqual([
+      {yAxes: ['count(span.duration)'], chartType: ChartType.LINE},
+    ]); // default
 
-    act(() => setVisualizes([{yAxes: ['p75(span.duration)']}]));
-    expect(visualizes).toEqual([{yAxes: ['p75(span.duration)']}]);
+    act(() => setVisualizes([{yAxes: ['p75(span.duration)'], chartType: ChartType.BAR}]));
+    expect(visualizes).toEqual([
+      {yAxes: ['p75(span.duration)'], chartType: ChartType.BAR},
+    ]);
 
     act(() => setVisualizes([]));
-    expect(visualizes).toEqual([{yAxes: ['count(span.duration)']}]); // default
+    expect(visualizes).toEqual([
+      {yAxes: ['count(span.duration)'], chartType: ChartType.LINE},
+    ]); // default
 
     act(() => setVisualizes([{yAxes: ['count(span.duration)']}]));
-    expect(visualizes).toEqual([{yAxes: ['count(span.duration)']}]); // default
-
-    act(() => setVisualizes([{yAxes: ['count(span.duration)', 'p75(span.duration)']}]));
-    expect(visualizes).toEqual([{yAxes: ['count(span.duration)', 'p75(span.duration)']}]);
+    expect(visualizes).toEqual([
+      {yAxes: ['count(span.duration)'], chartType: ChartType.LINE},
+    ]); // default
 
     act(() =>
       setVisualizes([
-        {yAxes: ['count(span.duration)', 'p75(span.duration)']},
-        {yAxes: ['count(span.duration)']},
+        {
+          yAxes: ['count(span.duration)', 'p75(span.duration)'],
+          chartType: ChartType.LINE,
+        },
       ])
     );
     expect(visualizes).toEqual([
-      {yAxes: ['count(span.duration)', 'p75(span.duration)']},
-      {yAxes: ['count(span.duration)']},
+      {yAxes: ['count(span.duration)', 'p75(span.duration)'], chartType: ChartType.LINE},
+    ]);
+
+    act(() =>
+      setVisualizes([
+        {yAxes: ['count(span.duration)', 'p75(span.duration)'], chartType: ChartType.BAR},
+        {yAxes: ['count(span.duration)'], chartType: ChartType.AREA},
+      ])
+    );
+    expect(visualizes).toEqual([
+      {yAxes: ['count(span.duration)', 'p75(span.duration)'], chartType: ChartType.BAR},
+      {yAxes: ['count(span.duration)'], chartType: ChartType.AREA},
     ]);
   });
 });

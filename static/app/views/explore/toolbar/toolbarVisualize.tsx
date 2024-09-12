@@ -16,6 +16,7 @@ import {
   DEFAULT_VISUALIZATION,
   useVisualizes,
 } from 'sentry/views/explore/hooks/useVisualizes';
+import {ChartType} from 'sentry/views/insights/common/components/chart';
 import type {SpanIndexedField} from 'sentry/views/insights/types';
 
 import {
@@ -56,7 +57,10 @@ export function ToolbarVisualize({}: ToolbarVisualizeProps) {
     });
 
   const addChart = useCallback(() => {
-    setVisualizes([...visualizes, {yAxes: [DEFAULT_VISUALIZATION]}]);
+    setVisualizes([
+      ...visualizes,
+      {yAxes: [DEFAULT_VISUALIZATION], chartType: ChartType.LINE},
+    ]);
   }, [setVisualizes, visualizes]);
 
   const addOverlay = useCallback(
@@ -97,6 +101,7 @@ export function ToolbarVisualize({}: ToolbarVisualizeProps) {
           }
 
           return {
+            ...visualize,
             yAxes: visualize.yAxes.filter((_, orgIndex) => index !== orgIndex),
           };
         })

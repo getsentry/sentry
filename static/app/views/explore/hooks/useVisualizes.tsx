@@ -10,8 +10,10 @@ import {
 import {decodeList} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
+import {ChartType} from 'sentry/views/insights/common/components/chart';
 
 export type Visualize = {
+  chartType: ChartType;
   yAxes: string[];
 };
 
@@ -42,7 +44,9 @@ function useVisualizesImpl({
       .filter(defined)
       .filter(parsed => parsed.yAxes.length > 0);
 
-    return result.length ? result : [{yAxes: [DEFAULT_VISUALIZATION]}];
+    return result.length
+      ? result
+      : [{yAxes: [DEFAULT_VISUALIZATION], chartType: ChartType.LINE}];
   }, [location.query.visualize]);
 
   const setVisualizes = useCallback(
@@ -74,11 +78,16 @@ function parseVisualizes(raw: string): Visualize | null {
     }
 
     const yAxes = parsed.yAxes.filter(parseFunction);
-    if (yAxes.lenth <= 0) {
+    if (yAxes.length <= 0) {
       return null;
     }
 
-    return {yAxes};
+    let chartType = Number(parsed.chartType);
+    if (isNaN(chartType) || !Object.values(ChartType).includes(chartType)) {
+      chartType = ChartType.LINE;
+    }
+
+    return {yAxes, chartType};
   } catch (error) {
     return null;
   }
