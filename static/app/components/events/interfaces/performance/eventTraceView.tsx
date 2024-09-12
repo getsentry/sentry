@@ -28,7 +28,7 @@ import {SpanEvidenceKeyValueList} from './spanEvidenceKeyValueList';
 
 const DEFAULT_ISSUE_DETAILS_TRACE_VIEW_PREFERENCES: TracePreferencesState = {
   drawer: {
-    minimized: false,
+    minimized: true,
     sizes: {
       'drawer left': 0.33,
       'drawer right': 0.33,
@@ -109,6 +109,15 @@ function EventTraceViewInner({
             metaResults={meta}
             source="issues"
             replayRecord={null}
+            scrollToNode={
+              trace.data?.transactions[0]?.event_id
+                ? {
+                    // Scroll/highlight the current transaction
+                    path: [`txn-${trace.data.transactions[0].event_id}`],
+                  }
+                : undefined
+            }
+            isEmbedded
           />
         </TraceViewWaterfallWrapper>
       </TraceStateProvider>
@@ -158,5 +167,5 @@ export function EventTraceView({
 const TraceViewWaterfallWrapper = styled('div')`
   display: flex;
   flex-direction: column;
-  height: 750px;
+  height: 500px;
 `;
