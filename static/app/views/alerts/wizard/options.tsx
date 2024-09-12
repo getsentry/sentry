@@ -46,7 +46,8 @@ export type AlertType =
   | 'custom_metrics'
   | 'llm_tokens'
   | 'llm_cost'
-  | 'insights_metrics';
+  | 'insights_metrics'
+  | 'uptime_monitor';
 
 export enum MEPAlertsQueryType {
   ERROR = 0,
@@ -60,7 +61,7 @@ export enum MEPAlertsDataset {
   METRICS_ENHANCED = 'metricsEnhanced',
 }
 
-export type MetricAlertType = Exclude<AlertType, 'issues'>;
+export type MetricAlertType = Exclude<AlertType, 'issues' | 'uptime_monitor'>;
 
 export const DatasetMEPAlertQueryTypes: Record<
   Exclude<Dataset, 'search_issues' | Dataset.SESSIONS>, // IssuePlatform (search_issues) is not used in alerts, so we can exclude it here
@@ -90,6 +91,7 @@ export const AlertWizardAlertNames: Record<AlertType, string> = {
   llm_cost: t('LLM cost'),
   llm_tokens: t('LLM token usage'),
   insights_metrics: t('Insights Metric'),
+  uptime_monitor: t('Uptime Monitor'),
 };
 
 type AlertWizardCategory = {
@@ -130,6 +132,10 @@ export const getAlertWizardCategories = (org: Organization) => {
         options: ['llm_tokens', 'llm_cost'],
       });
     }
+    result.push({
+      categoryHeading: t('Uptime'),
+      options: ['uptime_monitor'],
+    });
     result.push({
       categoryHeading: hasCustomMetrics(org) ? t('Metrics') : t('Custom'),
       options: [

@@ -93,9 +93,10 @@ function RuleListRow({
 
   const ownerActor = getActor(rule);
 
-  const canEdit = ownerActor?.id
-    ? userTeams.some(team => team.id === ownerActor.id)
-    : true;
+  const canEdit = true;
+  // ownerActor?.id
+  //   ? userTeams.some(team => team.id === ownerActor.id)
+  //   : true;
 
   const activeActions = {
     [CombinedAlertType.ISSUE]: ['edit', 'duplicate', 'delete'],
@@ -199,9 +200,7 @@ function RuleListRow({
 
   const hasUptimeAutoconfigureBadge =
     rule.type === CombinedAlertType.UPTIME &&
-    [UptimeMonitorMode.AUTO_DETECTED_ACTIVE, UptimeMonitorMode.MANUAL].includes(
-      rule.mode
-    );
+    [UptimeMonitorMode.AUTO_DETECTED_ACTIVE].includes(rule.mode);
 
   const titleBadge = hasUptimeAutoconfigureBadge ? (
     <Tag

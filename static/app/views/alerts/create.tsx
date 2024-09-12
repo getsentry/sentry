@@ -17,6 +17,7 @@ import BuilderBreadCrumbs from 'sentry/views/alerts/builder/builderBreadCrumbs';
 import IssueRuleEditor from 'sentry/views/alerts/rules/issue';
 import MetricRulesCreate from 'sentry/views/alerts/rules/metric/create';
 import MetricRuleDuplicate from 'sentry/views/alerts/rules/metric/duplicate';
+import {UptimeAlertForm} from 'sentry/views/alerts/rules/uptime/uptimeAlertForm';
 import {AlertRuleType} from 'sentry/views/alerts/types';
 import type {
   AlertType as WizardAlertType,
@@ -98,7 +99,8 @@ class Create extends Component<Props, State> {
   }
 
   render() {
-    const {hasMetricAlerts, organization, project, location, members} = this.props;
+    const {hasMetricAlerts, organization, project, location, members, router} =
+      this.props;
     const {alertType} = this.state;
     const {aggregate, dataset, eventTypes, createFromWizard, createFromDiscover, query} =
       location?.query ?? {};
@@ -142,14 +144,34 @@ class Create extends Component<Props, State> {
             {({teams, initiallyLoaded}) =>
               initiallyLoaded ? (
                 <Fragment>
-                  {(!hasMetricAlerts || alertType === AlertRuleType.ISSUE) && (
-                    <IssueRuleEditor
-                      {...this.props}
+                  {alertType === AlertRuleType.UPTIME && (
+                    <UptimeAlertForm
+                      initialData={{
+                        projectSlug: project.slug,
+                        method: 'GET',
+                        intervalSeconds: 60,
+                      }}
+                      apiMethod="POST"
+                      apiUrl={`/projects/${organization.slug}/${project.slug}/uptime/`}
                       project={project}
-                      userTeamIds={teams.map(({id}) => id)}
-                      members={members}
+                      onSubmitSuccess={response => {
+                        router.push(
+                          normalizeUrl(
+                            `/organizations/${organization.slug}/alerts/rules/uptime/${project.slug}/${response.id}/details`
+                          )
+                        );
+                      }}
                     />
                   )}
+                  {alertType !== AlertRuleType.UPTIME &&
+                    (!hasMetricAlerts || alertType === AlertRuleType.ISSUE) && (
+                      <IssueRuleEditor
+                        {...this.props}
+                        project={project}
+                        userTeamIds={teams.map(({id}) => id)}
+                        members={members}
+                      />
+                    )}
 
                   {hasMetricAlerts &&
                     alertType === AlertRuleType.METRIC &&
