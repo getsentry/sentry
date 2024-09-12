@@ -214,7 +214,6 @@ module = [
     "sentry.db.postgres.base",
     "sentry.db.router",
     "sentry.discover.endpoints.discover_key_transactions",
-    "sentry.eventstore.models",
     "sentry.features.handler",
     "sentry.features.manager",
     "sentry.grouping.strategies.legacy",
