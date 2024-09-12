@@ -38,6 +38,7 @@ export type OnboardingLayoutProps = {
   dsn: ProjectKey['dsn'];
   platformKey: PlatformKey;
   projectId: Project['id'];
+  projectKeyId: ProjectKey['id'];
   projectSlug: Project['slug'];
   activeProductSelection?: ProductSolution[];
   configType?: ConfigType;
