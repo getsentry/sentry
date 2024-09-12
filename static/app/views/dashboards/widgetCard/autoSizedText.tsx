@@ -143,7 +143,7 @@ const SizedChild = styled('div')`
   display: inline-block;
 `;
 
-const ITERATION_LIMIT = 50;
+const ITERATION_LIMIT = 20;
 
 // The maximum difference strongly affects the number of iterations required.
 // A value of 10 means that matches are often found in fewer than 5 iterations.
