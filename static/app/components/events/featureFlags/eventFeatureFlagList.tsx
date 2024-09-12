@@ -7,6 +7,7 @@ import {CompactSelect} from 'sentry/components/compactSelect';
 import DropdownButton from 'sentry/components/dropdownButton';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import {EventDataSection} from 'sentry/components/events/eventDataSection';
+import {FeatureFlagDrawer} from 'sentry/components/events/featureFlags/featureFlagDrawer';
 import useDrawer from 'sentry/components/globalDrawer';
 import KeyValueData, {
   type KeyValueDataContentProps,
@@ -15,11 +16,41 @@ import {IconChevron, IconSort} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Event, FeatureFlag} from 'sentry/types/event';
+import type {Group} from 'sentry/types/group';
+import type {Project} from 'sentry/types/project';
 import useOrganization from 'sentry/utils/useOrganization';
 
-export function EventFeatureFlagList({} /* event */ : {event: Event}) {
+export enum FlagSort {
+  RECENT = 'recent',
+  ALPHA = 'alphabetical',
+}
+
+export const FLAG_SORT_OPTIONS = [
+  {
+    label: t('Recently Changed'),
+    value: FlagSort.RECENT,
+  },
+  {
+    label: t('Alphabetical'),
+    value: FlagSort.ALPHA,
+  },
+];
+
+export const getLabel = (sort: string) => {
+  return sort === FlagSort.RECENT ? t('Recently Changed') : t('Alphabetical');
+};
+
+export function EventFeatureFlagList({
+  event,
+  group,
+  project,
+}: {
+  event: Event;
+  group: Group;
+  project: Project;
+}) {
   const [isCollapsed, setIsCollapsed] = useState(false);
-  const [sortMethod, setSortMethod] = useState<'recent' | 'alphabetical'>('recent');
+  const [sortMethod, setSortMethod] = useState<FlagSort>(FlagSort.RECENT);
   const {closeDrawer, isDrawerOpen, openDrawer} = useDrawer();
   const viewAllButtonRef = useRef<HTMLButtonElement>(null);
 
@@ -53,17 +84,16 @@ export function EventFeatureFlagList({} /* event */ : {event: Event}) {
     );
   };
 
-  const getLabel = (sort: string) => {
-    return sort === 'recent' ? t('Recently Changed') : t('Alphabetical');
-  };
-
   const onViewAllFlags = useCallback(() => {
     // good spot to track analytics
     openDrawer(
       () => (
-        <CardContainer>
-          <KeyValueData.Card contentItems={flags} />
-        </CardContainer>
+        <FeatureFlagDrawer
+          group={group}
+          event={event}
+          project={project}
+          featureFlags={flags}
+        />
       ),
       {
         ariaLabel: t('Feature flags drawer'),
@@ -79,7 +109,7 @@ export function EventFeatureFlagList({} /* event */ : {event: Event}) {
         transitionProps: {stiffness: 1000},
       }
     );
-  }, [openDrawer, flags]);
+  }, [openDrawer, flags, event, group, project]);
 
   if (!flags || !flags.length) {
     return null;
@@ -91,39 +121,28 @@ export function EventFeatureFlagList({} /* event */ : {event: Event}) {
         size="xs"
         aria-label={t('View All')}
         ref={viewAllButtonRef}
-        onClick={() => (isDrawerOpen ? closeDrawer() : onViewAllFlags())}
+        onClick={() => {
+          isDrawerOpen ? closeDrawer() : onViewAllFlags();
+        }}
       >
         {t('View All')}
       </Button>
       <CompactSelect
         value={sortMethod}
-        options={[
-          {
-            textValue: 'recent',
-            label: t('Recently Changed'),
-            value: 'recent',
-          },
-          {
-            key: 'alphabetical',
-            label: t('Alphabetical'),
-            value: 'alphabetical',
-          },
-        ]}
+        options={FLAG_SORT_OPTIONS}
         triggerProps={{
-          'aria-label': t('Sort'),
+          'aria-label': t('Sort Flags'),
           showChevron: false,
         }}
         onChange={selection => {
+          // good spot to track analytics
           setSortMethod(selection.value);
-          selection.value === 'recent' ? handleSortRecent() : handleSortAlphabetical();
+          selection.value === FlagSort.RECENT
+            ? handleSortRecent()
+            : handleSortAlphabetical();
         }}
         trigger={triggerProps => (
-          <DropdownButton
-            {...triggerProps}
-            size="xs"
-            icon={<IconSort />}
-            onChange={() => {}}
-          >
+          <DropdownButton {...triggerProps} size="xs" icon={<IconSort />}>
             {getLabel(sortMethod)}
           </DropdownButton>
         )}
@@ -132,7 +151,10 @@ export function EventFeatureFlagList({} /* event */ : {event: Event}) {
         size="xs"
         icon={<IconChevron direction={isCollapsed ? 'down' : 'up'} />}
         aria-label={t('Collapse Section')}
-        onClick={() => setIsCollapsed(!isCollapsed)}
+        onClick={() => {
+          // good spot to track analytics
+          setIsCollapsed(!isCollapsed);
+        }}
         borderless
       />
     </ButtonBar>
@@ -159,7 +181,7 @@ export function EventFeatureFlagList({} /* event */ : {event: Event}) {
   );
 }
 
-const CardContainer = styled('div')`
+export const CardContainer = styled('div')`
   display: grid;
   grid-template-columns: 1fr 1fr;
   align-items: start;

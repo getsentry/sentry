@@ -297,7 +297,9 @@ export function EventDetailsContent({
           projectSlug={project.slug}
         />
       )}
-      {hasFeatureFlagSection && <EventFeatureFlagList event={event} />}
+      {hasFeatureFlagSection && (
+        <EventFeatureFlagList group={group} project={project} event={event} />
+      )}
       <EventHydrationDiff event={event} group={group} />
       {issueTypeConfig.replays.enabled && (
         <EventReplay event={event} group={group} projectSlug={project.slug} />
