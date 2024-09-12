@@ -13,10 +13,7 @@ import {SdkDocumentation} from 'sentry/components/onboarding/gettingStartedDoc/s
 import type {ProductSolution} from 'sentry/components/onboarding/productSelection';
 import {platformProductAvailability} from 'sentry/components/onboarding/productSelection';
 import {setPageFiltersStorage} from 'sentry/components/organizations/pageFilters/persistence';
-import {
-  performance as performancePlatforms,
-  replayPlatforms,
-} from 'sentry/data/platformCategories';
+import {performance as performancePlatforms} from 'sentry/data/platformCategories';
 import type {Platform} from 'sentry/data/platformPickerCategories';
 import platforms from 'sentry/data/platforms';
 import {t} from 'sentry/locale';
@@ -61,7 +58,6 @@ export function ProjectInstallPlatform({
   const gettingStartedWithProjectContext = useContext(GettingStartedWithProjectContext);
 
   const isSelfHosted = ConfigStore.get('isSelfHosted');
-  const isSelfHostedErrorsOnly = ConfigStore.get('isSelfHostedErrorsOnly');
   const showLoaderOnboarding = location.query.showLoader === 'true';
 
   const products = useMemo(
@@ -160,10 +156,7 @@ export function ProjectInstallPlatform({
   }
 
   const issueStreamLink = `/organizations/${organization.slug}/issues/`;
-  const performanceOverviewLink = `/organizations/${organization.slug}/performance/`;
-  const replayLink = `/organizations/${organization.slug}/replays/`;
   const showPerformancePrompt = performancePlatforms.includes(platform.id as PlatformKey);
-  const showReplayButton = replayPlatforms.includes(platform.id as PlatformKey);
   const isGettingStarted = window.location.href.indexOf('getting-started') > 0;
   const showDocsWithProductSelection =
     (platformProductAvailability[platform.key] ?? []).length > 0;
@@ -233,40 +226,6 @@ export function ProjectInstallPlatform({
           >
             {t('Take me to Issues')}
           </Button>
-          {!isSelfHostedErrorsOnly && (
-            <Button
-              busy={loading}
-              onClick={() => {
-                trackAnalytics('onboarding.take_me_to_performance_clicked', {
-                  organization,
-                  platform: platform.name ?? 'unknown',
-                  project_id: project.id,
-                });
-                redirectWithProjectSelection({
-                  pathname: performanceOverviewLink,
-                });
-              }}
-            >
-              {t('Take me to Performance')}
-            </Button>
-          )}
-          {!isSelfHostedErrorsOnly && showReplayButton && (
-            <Button
-              busy={loading}
-              onClick={() => {
-                trackAnalytics('onboarding.take_me_to_session_replay_clicked', {
-                  organization,
-                  platform: platform.name ?? 'unknown',
-                  project_id: project.id,
-                });
-                redirectWithProjectSelection({
-                  pathname: replayLink,
-                });
-              }}
-            >
-              {t('Take me to Session Replay')}
-            </Button>
-          )}
         </StyledButtonBar>
       </div>
     </Fragment>
