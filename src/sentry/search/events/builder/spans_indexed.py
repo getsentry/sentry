@@ -76,11 +76,19 @@ class SpansEAPQueryBuilder(SpansIndexedQueryBuilderMixin, BaseQueryBuilder):
 
     def resolve_field(self, raw_field: str, alias: bool = False) -> Column:
         # try the typed regex first
-        tag_match = constants.TYPED_TAG_KEY_RE.search(raw_field)
-        field = tag_match.group("tag") if tag_match else raw_field
-        field_type = tag_match.group("type") if tag_match else "string"
-        # attr field is less permissive than tags, we can't have - in them
-        if not constants.VALID_FIELD_PATTERN.match(field) or "-" in field:
+        if len(raw_field) <= 200:
+            tag_match = constants.TYPED_TAG_KEY_RE.search(raw_field)
+        else:
+            raise InvalidSearchQuery(f"{raw_field} is too long, can be a maximum of 200 characters")
+        field = tag_match.group("tag") if tag_match else None
+        field_type = tag_match.group("type") if tag_match else None
+        if (
+            field is None
+            or field_type is None
+            or not constants.VALID_FIELD_PATTERN.match(field)
+            # attr field is less permissive than tags, we can't have - in them
+            or "-" in field
+        ):
             return super().resolve_field(raw_field, alias)
 
         if field_type not in ["number", "string"]:
@@ -95,7 +103,8 @@ class SpansEAPQueryBuilder(SpansIndexedQueryBuilderMixin, BaseQueryBuilder):
 
         if alias:
             field_alias = f"tags_{field}@{field_type}"
-            self.tag_alias_map[field_alias] = raw_field
+            self.typed_tag_to_alias_map[raw_field] = field_alias
+            self.alias_to_typed_tag_map[field_alias] = raw_field
             return AliasedExpression(col, field_alias)
         else:
             return col
