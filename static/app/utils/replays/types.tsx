@@ -17,6 +17,11 @@ import invariant from 'invariant';
 
 import type {HydratedA11yFrame} from 'sentry/utils/replays/hydrateA11yFrame';
 
+export type Dimensions = {
+  height: number;
+  width: number;
+};
+
 // Extracting WebVitalFrame types from TRawSpanFrame so we can document/support
 // the deprecated `nodeId` data field Moving forward, `nodeIds` is the accepted
 // field.
@@ -117,6 +122,12 @@ export type RawSpanFrame =
   | CompatibleReplayWebVitalFrame;
 export type SpanFrameEvent = TSpanFrameEvent;
 
+export type CustomEvent<T = RecordingFrame> = T extends RecordingFrame & {
+  type: EventType.Custom;
+}
+  ? T
+  : never;
+
 export function isRecordingFrame(
   attachment: Record<string, any>
 ): attachment is RecordingFrame {
@@ -189,6 +200,10 @@ export function isConsoleFrame(frame: BreadcrumbFrame): frame is ConsoleFrame {
 
 export function isWebVitalFrame(frame: SpanFrame): frame is WebVitalFrame {
   return frame.op === 'web-vital';
+}
+
+export function isCLSFrame(frame: WebVitalFrame): frame is WebVitalFrame {
+  return frame.description === 'cumulative-layout-shift';
 }
 
 export function isPaintFrame(frame: SpanFrame): frame is PaintFrame {

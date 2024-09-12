@@ -1,4 +1,4 @@
-import {Fragment} from 'react';
+import {Fragment, useMemo} from 'react';
 import styled from '@emotion/styled';
 
 import {getInterval} from 'sentry/components/charts/utils';
@@ -6,11 +6,13 @@ import {CompactSelect} from 'sentry/components/compactSelect';
 import {CHART_PALETTE} from 'sentry/constants/chartPalette';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {tooltipFormatter} from 'sentry/utils/discover/charts';
+import {dedupeArray} from 'sentry/utils/dedupeArray';
+import {aggregateOutputType} from 'sentry/utils/discover/fields';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {useChartInterval} from 'sentry/views/explore/hooks/useChartInterval';
 import {useChartType} from 'sentry/views/explore/hooks/useChartType';
+import {useDataset} from 'sentry/views/explore/hooks/useDataset';
 import {useVisualizes} from 'sentry/views/explore/hooks/useVisualizes';
 import Chart, {ChartType} from 'sentry/views/insights/common/components/chart';
 import ChartPanel from 'sentry/views/insights/common/components/chartPanel';
@@ -39,68 +41,78 @@ const exploreChartTypeOptions = [
 // TODO: Update to support aggregate mode and multiple queries / visualizations
 export function ExploreCharts({query}: ExploreChartsProps) {
   const pageFilters = usePageFilters();
+
+  const [dataset] = useDataset();
   const [visualizes] = useVisualizes();
   const [chartType, setChartType] = useChartType();
   const [interval, setInterval, intervalOptions] = useChartInterval();
 
+  const yAxes = useMemo(() => {
+    const deduped = dedupeArray(visualizes.flatMap(visualize => visualize.yAxes));
+    deduped.sort();
+    return deduped;
+  }, [visualizes]);
+
   const series = useSpanIndexedSeries(
     {
       search: new MutableSearch(query ?? ''),
-      yAxis: visualizes,
+      yAxis: yAxes,
       interval: interval ?? getInterval(pageFilters.selection.datetime, 'metrics'),
       enabled: true,
     },
-    'api.explorer.stats'
+    'api.explorer.stats',
+    dataset
   );
 
   return (
     <Fragment>
-      {visualizes.map((visualize, index) => (
-        <ChartContainer key={index}>
-          <ChartPanel>
-            <ChartHeader>
-              <ChartTitle>{visualize}</ChartTitle>
-              <ChartSettingsContainer>
-                <CompactSelect
-                  size="xs"
-                  triggerProps={{prefix: t('Display')}}
-                  value={chartType}
-                  options={exploreChartTypeOptions}
-                  onChange={newChartType => setChartType(newChartType.value)}
-                />
-                <CompactSelect
-                  size="xs"
-                  value={interval}
-                  onChange={({value}) => setInterval(value)}
-                  triggerProps={{
-                    prefix: t('Interval'),
-                  }}
-                  options={intervalOptions}
-                />
-              </ChartSettingsContainer>
-            </ChartHeader>
-            <Chart
-              height={CHART_HEIGHT}
-              grid={{
-                left: '0',
-                right: '0',
-                top: '8px',
-                bottom: '0',
-              }}
-              data={[series.data[visualize]]}
-              error={series.error}
-              loading={series.isPending}
-              chartColors={CHART_PALETTE[2]}
-              type={chartType}
-              aggregateOutputFormat="number"
-              showLegend
-              tooltipFormatterOptions={{
-                valueFormatter: value => tooltipFormatter(value),
-              }}
-            />
-          </ChartPanel>
-        </ChartContainer>
-      ))}
+      {visualizes.map((visualize, index) => {
+        const dedupedYAxes = dedupeArray(visualize.yAxes);
+        return (
+          <ChartContainer key={index}>
+            <ChartPanel>
+              <ChartHeader>
+                <ChartTitle>{dedupedYAxes.join(',')}</ChartTitle>
+                <ChartSettingsContainer>
+                  <CompactSelect
+                    size="xs"
+                    triggerProps={{prefix: t('Display')}}
+                    value={chartType}
+                    options={exploreChartTypeOptions}
+                    onChange={newChartType => setChartType(newChartType.value)}
+                  />
+                  <CompactSelect
+                    size="xs"
+                    value={interval}
+                    onChange={({value}) => setInterval(value)}
+                    triggerProps={{
+                      prefix: t('Interval'),
+                    }}
+                    options={intervalOptions}
+                  />
+                </ChartSettingsContainer>
+              </ChartHeader>
+              <Chart
+                height={CHART_HEIGHT}
+                grid={{
+                  left: '0',
+                  right: '0',
+                  top: '8px',
+                  bottom: '0',
+                }}
+                data={dedupedYAxes.map(yAxis => series.data[yAxis])}
+                error={series.error}
+                loading={series.isPending}
+                chartColors={CHART_PALETTE[2]}
+                type={chartType}
+                // for now, use the first y axis unit
+                aggregateOutputFormat={aggregateOutputType(dedupedYAxes[0])}
+                showLegend
+              />
+            </ChartPanel>
+          </ChartContainer>
+        );
+      })}
     </Fragment>
   );
 }

@@ -557,3 +557,36 @@ class OrganizationEventsEAPSpanEndpointTest(OrganizationEventsSpanIndexedEndpoin
             },
         ]
         assert meta["dataset"] == self.dataset
+
+    # 2024-09-12 / shellmayr: Marked as failing because test fails in CI
+    # https://github.com/getsentry/sentry/actions/runs/10826394743/job/30037275706?pr=77376
+    @pytest.mark.xfail(
+        reason="percentile_weighted(span.duration, 0.23) causes: Invalid query. Argument to function is wrong type"
+    )
+    def test_extrapolation_smoke(self):
+        """This is a hack, we just want to make sure nothing errors from using the weighted functions"""
+        for function in [
+            "count_weighted()",
+            "sum_weighted(span.duration)",
+            "avg_weighted(span.duration)",
+            "percentile_weighted(span.duration, 0.23)",
+            "p50_weighted()",
+            "p75_weighted()",
+            "p90_weighted()",
+            "p95_weighted()",
+            "p99_weighted()",
+            "p100_weighted()",
+            "min_weighted(span.duration)",
+            "max_weighted(span.duration)",
+        ]:
+            response = self.do_request(
+                {
+                    "field": ["description", function],
+                    "query": "",
+                    "orderby": "description",
+                    "project": self.project.id,
+                    "dataset": self.dataset,
+                }
+            )
+
+            assert response.status_code == 200, f"error: {response.content}\naggregate: {function}"

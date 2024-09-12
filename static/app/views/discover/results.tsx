@@ -685,15 +685,17 @@ export class Results extends Component<Props, State> {
 
     if (organization.features.includes('search-query-builder-discover')) {
       return (
-        <ResultsSearchQueryBuilder
-          projectIds={eventView.project}
-          query={eventView.query}
-          fields={fields}
-          onSearch={this.handleSearch}
-          customMeasurements={customMeasurements}
-          dataset={eventView.dataset}
-          includeTransactions
-        />
+        <Wrapper>
+          <ResultsSearchQueryBuilder
+            projectIds={eventView.project}
+            query={eventView.query}
+            fields={fields}
+            onSearch={this.handleSearch}
+            customMeasurements={customMeasurements}
+            dataset={eventView.dataset}
+            includeTransactions
+          />
+        </Wrapper>
       );
     }
 

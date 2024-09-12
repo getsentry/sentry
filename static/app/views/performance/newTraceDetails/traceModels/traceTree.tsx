@@ -230,7 +230,11 @@ function isServerRequestHandlerTransactionNode(
 }
 
 function isBrowserRequestSpan(value: TraceTree.Span): boolean {
-  return value.op === 'browser' && value.description === 'request';
+  return (
+    // Adjust for SDK changes in https://github.com/getsentry/sentry-javascript/pull/13527
+    value.op === 'browser.request' ||
+    (value.op === 'browser' && value.description === 'request')
+  );
 }
 
 function getPageloadTransactionChildCount(
@@ -1432,7 +1436,7 @@ export class TraceTree {
           return result;
         }
 
-        return null;
+        return result;
       }
     );
   }
@@ -2591,15 +2595,14 @@ function hasEventWithEventId(
 function findInTreeByEventId(start: TraceTreeNode<TraceTree.NodeValue>, eventId: string) {
   return TraceTreeNode.Find(start, node => {
     if (isTransactionNode(node)) {
-      if (node.value.event_id === eventId) {
-        return true;
-      }
-    } else if (isSpanNode(node)) {
-      return node.value.span_id === eventId;
-    } else if (isTraceErrorNode(node)) {
       return node.value.event_id === eventId;
     }
-
+    if (isSpanNode(node)) {
+      return node.value.span_id === eventId;
+    }
+    if (isTraceErrorNode(node)) {
+      return node.value.event_id === eventId;
+    }
     return hasEventWithEventId(node, eventId);
   });
 }

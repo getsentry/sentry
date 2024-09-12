@@ -3,7 +3,7 @@ from __future__ import annotations
 import abc
 import re
 from collections.abc import Mapping
-from typing import TYPE_CHECKING, cast
+from typing import TYPE_CHECKING
 
 import sentry_sdk
 from django.http import HttpRequest, HttpResponse
@@ -92,7 +92,7 @@ class IntegrationClassification(BaseClassification):
             VercelRequestParser,
             VstsRequestParser,
         ]
-        return {cast(str, parser.provider): parser for parser in active_parsers}
+        return {parser.provider: parser for parser in active_parsers}
 
     def _identify_provider(self, request: HttpRequest) -> str | None:
         """

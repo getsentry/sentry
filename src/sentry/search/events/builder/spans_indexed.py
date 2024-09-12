@@ -86,6 +86,10 @@ class TimeseriesSpanIndexedQueryBuilder(SpansIndexedQueryBuilderMixin, Timeserie
         )
 
 
+class TimeseriesSpanEAPIndexedQueryBuilder(SpansEAPQueryBuilder, TimeseriesQueryBuilder):
+    pass
+
+
 class TopEventsSpanIndexedQueryBuilder(SpansIndexedQueryBuilderMixin, TopEventsQueryBuilder):
     config_class = SpansIndexedDatasetConfig
     uuid_fields = SPAN_UUID_FIELDS
@@ -96,3 +100,7 @@ class TopEventsSpanIndexedQueryBuilder(SpansIndexedQueryBuilderMixin, TopEventsQ
         return custom_time_processor(
             self.interval, Function("toUInt32", [Column("start_timestamp")])
         )
+
+
+class TopEventsSpanEAPQueryBuilder(SpansEAPQueryBuilder, TopEventsQueryBuilder):
+    pass
