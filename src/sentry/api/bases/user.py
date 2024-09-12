@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from django.contrib.auth.models import AnonymousUser
 from rest_framework.permissions import BasePermission
 from rest_framework.request import Request
 from typing_extensions import override
@@ -136,7 +137,7 @@ class RegionSiloUserEndpoint(Endpoint):
         user: RpcUser | User | None = None
 
         if user_id == "me":
-            if not request.user.is_authenticated:
+            if isinstance(request.user, AnonymousUser) or not request.user.is_authenticated:
                 raise ResourceDoesNotExist
             user = request.user
         elif user_id is not None:
