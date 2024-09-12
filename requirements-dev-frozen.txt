@@ -200,7 +200,7 @@ sqlparse==0.5.0
 statsd==3.3.0
 stripe==3.1.0
 structlog==22.1.0
-symbolic==12.8.0
+symbolic==12.10.0
 tiktoken==0.6.0
 time-machine==2.13.0
 tldextract==5.1.2
