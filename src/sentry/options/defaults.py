@@ -2713,3 +2713,16 @@ register(
     default=False,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
+
+# Restrict uptime issue creation for specific host provider identifiers. Items
+# in this list map to the `host_provider_id` column in the UptimeSubscription
+# table.
+#
+# This may be used to stop issue creation in the event that a network / hosting
+# provider blocks the uptime checker causing false positives.
+register(
+    "uptime.restrict-issue-creation-by-hosting-provider-id",
+    type=Sequence,
+    default=[],
+    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
+)
