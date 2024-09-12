@@ -144,5 +144,7 @@ function processAndInsertKeyValueTokens(
 }
 
 function insertToken(tokens: ReactElement[], token: string, isBold?: boolean) {
-  isBold ? tokens.push(<b>{token}</b>) : tokens.push(<span>{token}</span>);
+  isBold
+    ? tokens.push(<b key={`${token}-${tokens.length}`}>{token}</b>)
+    : tokens.push(<span key={`${token}-${tokens.length}`}>{token}</span>);
 }
