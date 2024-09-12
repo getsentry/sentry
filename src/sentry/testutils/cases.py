@@ -1525,6 +1525,8 @@ class BaseSpansTestCase(SnubaTestCase):
         sdk_name: str | None = None,
         op: str | None = None,
         status: str | None = None,
+        organization_id: int = 1,
+        is_eap: bool = False,
     ):
         if span_id is None:
             span_id = self._random_span_id()
@@ -1533,7 +1535,7 @@ class BaseSpansTestCase(SnubaTestCase):
 
         payload = {
             "project_id": project_id,
-            "organization_id": 1,
+            "organization_id": organization_id,
             "span_id": span_id,
             "trace_id": trace_id,
             "duration_ms": int(duration),
@@ -1568,7 +1570,7 @@ class BaseSpansTestCase(SnubaTestCase):
         if status is not None:
             payload["sentry_tags"]["status"] = status
 
-        self.store_span(payload)
+        self.store_span(payload, is_eap=is_eap)
 
         if "_metrics_summary" in payload:
             self.store_metrics_summary(payload)

@@ -1,6 +1,9 @@
 import sentry_sdk
+from google.protobuf.timestamp_pb2 import Timestamp
 from rest_framework.request import Request
 from rest_framework.response import Response
+from sentry_protos.snuba.v1alpha.endpoint_tags_list_pb2 import TagsListRequest, TagsListResponse
+from sentry_protos.snuba.v1alpha.request_common_pb2 import RequestMeta
 from sentry_relay.consts import SPAN_STATUS_CODE_TO_NAME
 from snuba_sdk import Condition, Op
 
@@ -18,6 +21,7 @@ from sentry.search.events.types import QueryBuilderConfig, SnubaParams
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.referrer import Referrer
 from sentry.tagstore.types import TagKey, TagValue
+from sentry.utils import snuba
 
 
 class OrganizationSpansFieldsEndpointBase(OrganizationEventsV2EndpointBase):
@@ -46,6 +50,52 @@ class OrganizationSpansFieldsEndpoint(OrganizationSpansFieldsEndpointBase):
             )
 
         max_span_tags = options.get("performance.spans-tags-key.max")
+
+        if request.GET.get("dataset") == "spans" and features.has(
+            "organizations:visibility-explore-dataset", organization, actor=request.user
+        ):
+            start_timestamp = Timestamp()
+            start_timestamp.FromDatetime(
+                snuba_params.start_date.replace(hour=0, minute=0, second=0, microsecond=0)
+            )
+
+            end_timestamp = Timestamp()
+            end_timestamp.FromDatetime(
+                snuba_params.end_date.replace(hour=0, minute=0, second=0, microsecond=0)
+            )
+
+            rpc_request = TagsListRequest(
+                meta=RequestMeta(
+                    organization_id=organization.id,
+                    cogs_category="events_analytics_platform",
+                    referrer=Referrer.API_SPANS_TAG_KEYS.value,
+                    project_ids=snuba_params.project_ids,
+                    start_timestamp=start_timestamp,
+                    end_timestamp=end_timestamp,
+                ),
+                limit=max_span_tags,
+                offset=0,
+            )
+            rpc_response = snuba.rpc(rpc_request, TagsListResponse)
+
+            paginator = ChainPaginator(
+                [
+                    [
+                        TagKey(tag.name)
+                        for tag in rpc_response.tags
+                        if tag.name and tag.type == 1  # only string types for now
+                    ],
+                ],
+                max_limit=max_span_tags,
+            )
+
+            return self.paginate(
+                request=request,
+                paginator=paginator,
+                on_results=lambda results: serialize(results, request.user),
+                default_per_page=max_span_tags,
+                max_per_page=max_span_tags,
+            )
 
         with handle_query_errors():
             # This has the limitations that we cannot paginate and
