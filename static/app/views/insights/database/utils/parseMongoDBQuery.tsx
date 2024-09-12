@@ -45,24 +45,78 @@ export function formatMongoDBQuery(query: string, command: string) {
   return tokens;
 }
 
+type JSONValue = string | number | object | boolean | null;
+
 function processAndInsertKeyValueTokens(
   tokens: ReactElement[],
   key: string,
-  value: string | number | object,
+  value: JSONValue | JSONValue[],
   // Use isBold only for non-object kv pairs
   isBold?: boolean
 ) {
-  // Case 1: Value is a string
+  // Case 1: Value is null
+  if (!value) {
+    tokens.push(<span>{`"${key}": null`}</span>);
+    tokens.push(<span>{', '}</span>);
+    return;
+  }
+
+  // Case 2: Value is a string
   if (typeof value === 'string') {
     tokens.push(<span>{`"`}</span>);
     isBold ? tokens.push(<b>{key}</b>) : tokens.push(<span>{key}</span>);
     tokens.push(<span>{`": `}</span>);
 
+    tokens.push(<span>{`"`}</span>);
     isBold ? tokens.push(<b>{value}</b>) : tokens.push(<span>{value}</span>);
+    tokens.push(<span>{`"`}</span>);
     tokens.push(<span>{', '}</span>);
+    return;
   }
 
-  // Case 2 (recursion case): Value is an object
+  // Case 3: Value is a number or boolean
+  if (typeof value === 'number' || typeof value === 'boolean') {
+    tokens.push(<span>{`"${key}": ${value}`}</span>);
+    tokens.push(<span>{', '}</span>);
+    return;
+  }
+
+  // Case 4: Value is an array
+  if (Array.isArray(value)) {
+    tokens.push(<span>{`"${key}": [`}</span>);
+    value.forEach(item => {
+      if (!item) {
+        tokens.push(<span>{'null'}</span>);
+        tokens.push(<span>{', '}</span>);
+      } else if (
+        typeof item === 'string' ||
+        typeof item === 'number' ||
+        typeof item === 'boolean'
+      ) {
+        tokens.push(<span>{`${item}`}</span>);
+        tokens.push(<span>{', '}</span>);
+      } else {
+        // We must recurse if item is an object
+        tokens.push(<span>{`"${key}": { `}</span>);
+        Object.keys(value).forEach(_key => {
+          processAndInsertKeyValueTokens(tokens, _key, value[_key]);
+        });
+        // Pop the trailing comma
+        tokens.pop();
+
+        tokens.push(<span>{' }'}</span>);
+        tokens.push(<span>{', '}</span>);
+      }
+    });
+
+    // Pop the trailing comma
+    tokens.pop();
+    tokens.push(<span>{' ]'}</span>);
+    tokens.push(<span>{', '}</span>);
+    return;
+  }
+
+  // Case 4 (recursion case): Value is an object
   if (typeof value === 'object') {
     if (Object.keys(value).length === 0) {
       processAndInsertKeyValueTokens(tokens, key, '{}');
@@ -79,5 +133,5 @@ function processAndInsertKeyValueTokens(
     }
   }
 
-  return tokens;
+  return;
 }
