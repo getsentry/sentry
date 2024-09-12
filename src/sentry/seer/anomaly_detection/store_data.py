@@ -3,6 +3,7 @@ from datetime import datetime, timedelta
 
 from django.conf import settings
 from django.core.exceptions import ValidationError
+from parsimonious.exceptions import ParseError
 
 from sentry.conf.server import SEER_ANOMALY_DETECTION_STORE_DATA_URL
 from sentry.incidents.models.alert_rule import AlertRule, AlertRuleStatus
@@ -24,6 +25,7 @@ from sentry.seer.signed_seer_api import make_signed_seer_api_request
 from sentry.snuba.models import SnubaQuery
 from sentry.snuba.utils import get_dataset
 from sentry.utils import json
+from sentry.utils.json import JSONDecodeError
 
 logger = logging.getLogger(__name__)
 
@@ -68,6 +70,7 @@ def send_historical_data_to_seer(alert_rule: AlertRule, project: Project) -> Ale
     formatted_data = format_historical_data(historical_data, dataset)
     if not formatted_data:
         raise ValidationError("Unable to get historical data for this alert.")
+
     if (
         not alert_rule.sensitivity
         or not alert_rule.seasonality
@@ -96,9 +99,21 @@ def send_historical_data_to_seer(alert_rule: AlertRule, project: Project) -> Ale
         path=SEER_ANOMALY_DETECTION_STORE_DATA_URL,
         body=json.dumps(body).encode("utf-8"),
     )
-    # TODO: this errors if we hit the Exception("Search for optimal window failed.") because response.data is text, not a dict
-    results: StoreDataResponse = json.loads(response.data.decode("utf-8"))
-    # See SEER_ANOMALY_DETECTION_TIMEOUT in sentry.conf.server.py
+    try:
+        results: StoreDataResponse = json.loads(response.data.decode("utf-8"))
+    except JSONDecodeError:
+        parse_error_string = "Failed to parse Seer store data response"
+        logger.exception(
+            parse_error_string,
+            extra={
+                "ad_config": anomaly_detection_config,
+                "alert": alert_rule.id,
+                "response_data": response.data,
+                "reponse_code": response.status,
+            },
+        )
+        raise ParseError(parse_error_string)
+
     if not results.get("success"):
         message = results.get("message", "")
         logger.error(

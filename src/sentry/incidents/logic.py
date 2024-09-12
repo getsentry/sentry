@@ -15,8 +15,8 @@ from django.db.models import QuerySet
 from django.db.models.signals import post_save
 from django.forms import ValidationError
 from django.utils import timezone as django_timezone
+from parsimonious.exceptions import ParseError
 from snuba_sdk import Column, Condition, Limit, Op
-from urllib3.exceptions import MaxRetryError, TimeoutError
 
 from sentry import analytics, audit_log, features, quotas
 from sentry.api.exceptions import ResourceDoesNotExist
@@ -664,10 +664,10 @@ def create_alert_rule(
                 if rule_status == AlertRuleStatus.NOT_ENOUGH_DATA:
                     # if we don't have at least seven days worth of data, then the dynamic alert won't fire
                     alert_rule.update(status=AlertRuleStatus.NOT_ENOUGH_DATA.value)
-            except (TimeoutError, MaxRetryError):
+            except ParseError:
                 alert_rule.delete()
-                raise TimeoutError("Failed to send data to Seer - cannot create alert rule.")
-            except ValidationError:
+                raise ParseError("Failed to parse Seer store data response")
+            except (ValidationError, Exception):
                 alert_rule.delete()
                 raise
             else:
@@ -947,9 +947,11 @@ def update_alert_rule(
                     if rule_status == AlertRuleStatus.NOT_ENOUGH_DATA:
                         # if we don't have at least seven days worth of data, then the dynamic alert won't fire
                         alert_rule.update(status=AlertRuleStatus.NOT_ENOUGH_DATA.value)
-                except (TimeoutError, MaxRetryError):
-                    raise TimeoutError("Failed to send data to Seer - cannot update alert rule.")
-                except ValidationError:
+                except ParseError:
+                    raise ParseError(
+                        "Failed to parse Seer store data response - cannot update alert rule."
+                    )
+                except (ValidationError, Exception):
                     # If there's no historical data available—something went wrong when querying snuba
                     raise ValidationError("Failed to send data to Seer - cannot update alert rule.")
         else:
