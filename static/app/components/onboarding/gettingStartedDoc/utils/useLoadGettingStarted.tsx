@@ -26,6 +26,7 @@ export function useLoadGettingStarted({
 }: Props): {
   docs: Docs<any> | null;
   dsn: ProjectKey['dsn'] | undefined;
+  id: Project['id'] | undefined;
   isError: boolean;
   isLoading: boolean;
   refetch: () => void;
@@ -73,5 +74,6 @@ export function useLoadGettingStarted({
     isError: projectKeys.isError,
     docs: module === 'none' ? null : module?.default ?? null,
     dsn: projectKeys.data?.[0]?.dsn,
+    id: projectKeys.data?.[0]?.id,
   };
 }
