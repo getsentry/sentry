@@ -240,7 +240,7 @@ def before_send(event: Event, _: Hint) -> Event | None:
 
     if "contexts" not in event:
         event["contexts"] = {}
-    event["contexts"]["flags"] = get_flags_serialized()
+    event["contexts"]["flags"] = {"values": get_flags_serialized()}
 
     return event
 

@@ -34,6 +34,7 @@ import type {
 } from 'sentry/utils/replays/types';
 import {
   isBreadcrumbFrame,
+  isCLSFrame,
   isErrorFrame,
   isFeedbackFrame,
   isHydrationErrorFrame,
@@ -237,11 +238,7 @@ function WebVitalData({
   const selectors = frameToExtraction?.get(frame)?.selectors;
 
   const webVitalData = {value: frame.data.value};
-  if (
-    frame.description === 'cumulative-layout-shift' &&
-    frame.data.attributions &&
-    selectors
-  ) {
+  if (isCLSFrame(frame) && frame.data.attributions && selectors) {
     const layoutShifts: {[x: string]: ReactNode[]}[] = [];
     for (const attr of frame.data.attributions) {
       const elements: ReactNode[] = [];

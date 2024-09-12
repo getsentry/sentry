@@ -76,6 +76,38 @@ class OrganizationEventsSpanIndexedEndpointTest(OrganizationEventsEndpointTestBa
         ]
         assert meta["dataset"] == self.dataset
 
+    def test_id_fields(self):
+        self.store_spans(
+            [
+                self.create_span(
+                    {"description": "foo", "sentry_tags": {"status": "success"}},
+                    start_ts=self.ten_mins_ago,
+                ),
+                self.create_span(
+                    {"description": "bar", "sentry_tags": {"status": "invalid_argument"}},
+                    start_ts=self.ten_mins_ago,
+                ),
+            ],
+            is_eap=self.is_eap,
+        )
+        response = self.do_request(
+            {
+                "field": ["id", "span_id"],
+                "query": "",
+                "orderby": "id",
+                "project": self.project.id,
+                "dataset": self.dataset,
+            }
+        )
+
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+        meta = response.data["meta"]
+        assert len(data) == 2
+        for obj in data:
+            assert obj["id"] == obj["span_id"]
+        assert meta["dataset"] == self.dataset
+
     def test_sentry_tags_vs_tags(self):
         self.store_spans(
             [
