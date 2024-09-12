@@ -2,11 +2,11 @@ import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import ErrorLevel from 'sentry/components/events/errorLevel';
+import {ErrorLevelText} from 'sentry/components/events/errorLevelText';
 import UnhandledTag from 'sentry/components/group/inboxBadges/unhandledTag';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {EventOrGroupType, type Level} from 'sentry/types/event';
-import {capitalize} from 'sentry/utils/string/capitalize';
 import {Divider} from 'sentry/views/issueDetails/divider';
 import {useHasStreamlinedUI} from 'sentry/views/issueDetails/utils';
 
@@ -17,9 +17,8 @@ type Props = {
   level?: Level;
   /**
    * Size of the level indicator.
-   * Text will show the level as text instead of a colored dot.
    */
-  levelIndicatorSize?: '9px' | '11px' | 'text';
+  levelIndicatorSize?: '9px' | '11px';
   showUnhandled?: boolean;
 };
 
@@ -43,15 +42,14 @@ function EventMessage({
 }: Props) {
   const hasStreamlinedUI = useHasStreamlinedUI();
   const showEventLevel = level && EVENT_TYPES_WITH_LOG_LEVEL.has(type);
-  const displayLevelAsDot = showEventLevel && levelIndicatorSize !== 'text';
   return (
     <LevelMessageContainer className={className}>
-      {displayLevelAsDot ? <ErrorLevel level={level} size={levelIndicatorSize} /> : null}
+      {!hasStreamlinedUI ? <ErrorLevel level={level} size={levelIndicatorSize} /> : null}
       {showUnhandled ? <UnhandledTag /> : null}
-      {hasStreamlinedUI && showEventLevel && !displayLevelAsDot ? (
+      {hasStreamlinedUI && showEventLevel && hasStreamlinedUI ? (
         <Fragment>
           {showUnhandled ? <Divider /> : null}
-          {capitalize(level)}
+          <ErrorLevelText level={level} />
           <Divider />
         </Fragment>
       ) : null}
