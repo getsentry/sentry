@@ -46,7 +46,7 @@ function EventMessage({
     <LevelMessageContainer className={className}>
       {!hasStreamlinedUI ? <ErrorLevel level={level} size={levelIndicatorSize} /> : null}
       {showUnhandled ? <UnhandledTag /> : null}
-      {hasStreamlinedUI && showEventLevel && hasStreamlinedUI ? (
+      {hasStreamlinedUI && showEventLevel ? (
         <Fragment>
           {showUnhandled ? <Divider /> : null}
           <ErrorLevelText level={level} />
