@@ -65,13 +65,7 @@ function processAndInsertKeyValueTokens(
 
   // Case 2: Value is a string
   if (typeof value === 'string') {
-    _insertToken(`"`);
-    _insertToken(key);
-    _insertToken(`": `);
-
-    _insertToken(`"`);
-    _insertToken(value);
-    _insertToken(`"`);
+    _insertToken(`"${key}": "${value}"`);
     _insertToken(`, `);
     return;
   }
