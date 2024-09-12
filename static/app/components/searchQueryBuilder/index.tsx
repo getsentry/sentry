@@ -1,4 +1,4 @@
-import {forwardRef, useMemo, useRef} from 'react';
+import {forwardRef, useLayoutEffect, useMemo, useRef} from 'react';
 import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/button';
@@ -23,6 +23,7 @@ import {
   queryIsValid,
 } from 'sentry/components/searchQueryBuilder/utils';
 import type {SearchConfig} from 'sentry/components/searchSyntax/parser';
+import {Tooltip} from 'sentry/components/tooltip';
 import {IconClose, IconSearch} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -102,10 +103,44 @@ export interface SearchQueryBuilderProps {
    */
   recentSearches?: SavedSearchType;
   /**
+   * When true, will display a visual indicator when there are unsaved changes.
+   * This search is considered unsubmitted when query !== initialQuery.
+   */
+  showUnsubmittedIndicator?: boolean;
+  /**
    * Render custom content in the trailing section of the search bar, located
    * to the left of the clear button.
    */
   trailingItems?: React.ReactNode;
+}
+
+function SearchIndicator({
+  initialQuery,
+  showUnsubmittedIndicator,
+}: {
+  initialQuery?: string;
+  showUnsubmittedIndicator?: boolean;
+}) {
+  const {size, query} = useSearchQueryBuilder();
+
+  if (size === 'small') {
+    return null;
+  }
+
+  const unSubmittedChanges = query !== initialQuery;
+  const showIndicator = showUnsubmittedIndicator && unSubmittedChanges;
+
+  return (
+    <PositionedSearchIconContainer>
+      <Tooltip
+        title={t('The current search query is not active. Press Enter to submit.')}
+        disabled={!showIndicator}
+      >
+        <SearchIcon size="sm" />
+        {showIndicator ? <UnSubmittedDot /> : null}
+      </Tooltip>
+    </PositionedSearchIconContainer>
+  );
 }
 
 const ActionButtons = forwardRef<HTMLDivElement, {trailingItems?: React.ReactNode}>(
@@ -156,6 +191,7 @@ export function SearchQueryBuilder({
   queryInterface = QueryInterfaceType.TOKENIZED,
   recentSearches,
   searchSource,
+  showUnsubmittedIndicator,
   trailingItems,
 }: SearchQueryBuilderProps) {
   const wrapperRef = useRef<HTMLDivElement>(null);
@@ -188,7 +224,7 @@ export function SearchQueryBuilder({
     ]
   );
 
-  useEffectAfterFirstRender(() => {
+  useLayoutEffect(() => {
     dispatch({type: 'UPDATE_QUERY', query: initialQuery});
   }, [dispatch, initialQuery]);
 
@@ -257,7 +293,10 @@ export function SearchQueryBuilder({
           ref={wrapperRef}
           aria-disabled={disabled}
         >
-          {size !== 'small' && <PositionedSearchIcon size="sm" />}
+          <SearchIndicator
+            initialQuery={initialQuery}
+            showUnsubmittedIndicator={showUnsubmittedIndicator}
+          />
           {!parsedQuery || queryInterface === QueryInterfaceType.TEXT ? (
             <PlainTextQueryInput label={label} />
           ) : (
@@ -301,10 +340,24 @@ const ActionButton = styled(Button)`
   color: ${p => p.theme.subText};
 `;
 
-const PositionedSearchIcon = styled(IconSearch)`
-  color: ${p => p.theme.subText};
+const PositionedSearchIconContainer = styled('div')`
   position: absolute;
   left: ${space(1.5)};
   top: ${space(0.75)};
+`;
+
+const SearchIcon = styled(IconSearch)`
+  color: ${p => p.theme.subText};
   height: 22px;
+`;
+
+const UnSubmittedDot = styled('div')`
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: ${p => p.theme.active};
+  border: solid 2px ${p => p.theme.background};
 `;
