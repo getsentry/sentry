@@ -1,4 +1,4 @@
-import {Fragment} from 'react';
+import {Fragment, useContext} from 'react';
 import styled from '@emotion/styled';
 
 import type {IndexedMembersByProject} from 'sentry/actionCreators/members';
@@ -7,10 +7,13 @@ import Pagination from 'sentry/components/pagination';
 import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';
 import type {PageFilters} from 'sentry/types/core';
+import type {SavedSearch} from 'sentry/types/group';
 import {VisuallyCompleteWithData} from 'sentry/utils/performanceForSentry';
 import IssueListActions from 'sentry/views/issueList/actions';
+import AddViewPage from 'sentry/views/issueList/addViewPage';
 import GroupListBody from 'sentry/views/issueList/groupListBody';
 import type {IssueUpdateData} from 'sentry/views/issueList/types';
+import {NewTabContext} from 'sentry/views/issueList/utils/newTabContext';
 
 interface IssueListTableProps {
   allResultsVisible: boolean;
@@ -30,6 +33,7 @@ interface IssueListTableProps {
   query: string;
   queryCount: number;
   refetchGroups: (fetchAllCounts?: boolean) => void;
+  savedSearches: SavedSearch[];
   selectedProjectIds: number[];
   selection: PageFilters;
   sort: string;
@@ -57,8 +61,13 @@ function IssueListTable({
   pageLinks,
   onCursor,
   paginationAnalyticsEvent,
+  savedSearches,
 }: IssueListTableProps) {
-  return (
+  const {newViewActive} = useContext(NewTabContext);
+
+  return newViewActive ? (
+    <AddViewPage savedSearches={savedSearches} />
+  ) : (
     <Fragment>
       <Panel>
         {groupIds.length !== 0 && (

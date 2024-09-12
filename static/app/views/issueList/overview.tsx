@@ -60,6 +60,7 @@ import CustomViewsIssueListHeader from 'sentry/views/issueList/customViewsHeader
 import IssueListTable from 'sentry/views/issueList/issueListTable';
 import SavedIssueSearches from 'sentry/views/issueList/savedIssueSearches';
 import type {IssueUpdateData} from 'sentry/views/issueList/types';
+import {NewTabContextProvider} from 'sentry/views/issueList/utils/newTabContext';
 import {parseIssuePrioritySearch} from 'sentry/views/issueList/utils/parseIssuePrioritySearch';
 
 import IssueListFilters from './filters';
@@ -1218,80 +1219,85 @@ class IssueListOverview extends Component<Props, State> {
     const {numPreviousIssues, numIssuesOnPage} = this.getPageCounts();
 
     return (
-      <Layout.Page>
-        {organization.features.includes('issue-stream-custom-views') ? (
-          <ErrorBoundary message={'Failed to load custom tabs'}>
-            <CustomViewsIssueListHeader
+      <NewTabContextProvider>
+        <Layout.Page>
+          {organization.features.includes('issue-stream-custom-views') ? (
+            <ErrorBoundary message={'Failed to load custom tabs'} mini>
+              <CustomViewsIssueListHeader
+                organization={organization}
+                router={router}
+                selectedProjectIds={selection.projects}
+              />
+            </ErrorBoundary>
+          ) : (
+            <IssueListHeader
               organization={organization}
-              router={router}
-              selectedProjectIds={selection.projects}
-            />
-          </ErrorBoundary>
-        ) : (
-          <IssueListHeader
-            organization={organization}
-            query={query}
-            sort={this.getSort()}
-            queryCount={queryCount}
-            queryCounts={queryCounts}
-            realtimeActive={realtimeActive}
-            onRealtimeChange={this.onRealtimeChange}
-            router={router}
-            displayReprocessingTab={showReprocessingTab}
-            selectedProjectIds={selection.projects}
-          />
-        )}
-
-        <StyledBody>
-          <StyledMain>
-            <DataConsentBanner source="issues" />
-            <IssueListFilters query={query} onSearch={this.onSearch} />
-            <IssueListTable
-              selection={selection}
               query={query}
-              queryCount={modifiedQueryCount}
-              onSelectStatsPeriod={this.onSelectStatsPeriod}
-              onActionTaken={this.onActionTaken}
-              onDelete={this.onDelete}
-              statsPeriod={this.getGroupStatsPeriod()}
-              groupIds={groupIds}
-              allResultsVisible={this.allResultsVisible()}
-              displayReprocessingActions={displayReprocessingActions}
               sort={this.getSort()}
-              onSortChange={this.onSortChange}
-              memberList={this.state.memberList}
+              queryCount={queryCount}
+              queryCounts={queryCounts}
+              realtimeActive={realtimeActive}
+              onRealtimeChange={this.onRealtimeChange}
+              router={router}
+              displayReprocessingTab={showReprocessingTab}
               selectedProjectIds={selection.projects}
-              issuesLoading={issuesLoading}
-              error={error}
-              refetchGroups={this.fetchData}
-              paginationCaption={
-                !issuesLoading && modifiedQueryCount > 0
-                  ? tct('[start]-[end] of [total]', {
-                      start: numPreviousIssues + 1,
-                      end: numPreviousIssues + numIssuesOnPage,
-                      total: (
-                        <StyledQueryCount
-                          hideParens
-                          hideIfEmpty={false}
-                          count={modifiedQueryCount}
-                          max={queryMaxCount || 100}
-                        />
-                      ),
-                    })
-                  : null
-              }
-              pageLinks={pageLinks}
-              onCursor={this.onCursorChange}
-              paginationAnalyticsEvent={this.paginationAnalyticsEvent}
             />
-          </StyledMain>
-          <SavedIssueSearches
-            {...{organization, query}}
-            onSavedSearchSelect={this.onSavedSearchSelect}
-            sort={this.getSort()}
-          />
-        </StyledBody>
-      </Layout.Page>
+          )}
+
+          <StyledBody>
+            <StyledMain>
+              <DataConsentBanner source="issues" />
+              <IssueListFilters query={query} onSearch={this.onSearch} />
+              <IssueListTable
+                selection={selection}
+                query={query}
+                queryCount={modifiedQueryCount}
+                onSelectStatsPeriod={this.onSelectStatsPeriod}
+                onActionTaken={this.onActionTaken}
+                onDelete={this.onDelete}
+                statsPeriod={this.getGroupStatsPeriod()}
+                groupIds={groupIds}
+                allResultsVisible={this.allResultsVisible()}
+                displayReprocessingActions={displayReprocessingActions}
+                sort={this.getSort()}
+                onSortChange={this.onSortChange}
+                memberList={this.state.memberList}
+                selectedProjectIds={selection.projects}
+                issuesLoading={issuesLoading}
+                error={error}
+                refetchGroups={this.fetchData}
+                paginationCaption={
+                  !issuesLoading && modifiedQueryCount > 0
+                    ? tct('[start]-[end] of [total]', {
+                        start: numPreviousIssues + 1,
+                        end: numPreviousIssues + numIssuesOnPage,
+                        total: (
+                          <StyledQueryCount
+                            hideParens
+                            hideIfEmpty={false}
+                            count={modifiedQueryCount}
+                            max={queryMaxCount || 100}
+                          />
+                        ),
+                      })
+                    : null
+                }
+                pageLinks={pageLinks}
+                onCursor={this.onCursorChange}
+                paginationAnalyticsEvent={this.paginationAnalyticsEvent}
+                savedSearches={this.props.savedSearches?.filter(
+                  search => search.visibility === 'owner'
+                )}
+              />
+            </StyledMain>
+            <SavedIssueSearches
+              {...{organization, query}}
+              onSavedSearchSelect={this.onSavedSearchSelect}
+              sort={this.getSort()}
+            />
+          </StyledBody>
+        </Layout.Page>
+      </NewTabContextProvider>
     );
   }
 }
