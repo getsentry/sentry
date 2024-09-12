@@ -59,7 +59,7 @@ export function FilterKey({item, state, token, onActiveChange}: FilterKeyProps) 
 
   return (
     <KeyButton
-      aria-label={t('Edit value for filter: %s', getKeyName(token.key))}
+      aria-label={t('Edit key for filter: %s', getKeyName(token.key))}
       onClick={() => {
         setIsEditing(true);
         onActiveChange(true);
