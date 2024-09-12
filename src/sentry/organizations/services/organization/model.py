@@ -16,7 +16,7 @@ from typing_extensions import TypedDict
 from sentry import roles
 from sentry.hybridcloud.rpc import RpcModel
 from sentry.organizations.absolute_url import has_customer_domain, organization_absolute_url
-from sentry.projects.services.project import RpcProject
+from sentry.projects.services.project import RpcProject, RpcProjectFlags
 from sentry.roles import team_roles
 from sentry.roles.manager import TeamRole
 from sentry.signals import sso_enabled
@@ -321,6 +321,11 @@ class RpcOrganization(RpcOrganizationSummary):
                 return None
             self._default_owner_id = owners[0].id
         return self._default_owner_id
+
+    def get_aggregated_project_flags(self, organization_id: int) -> RpcProjectFlags:
+        from sentry.organizations.services.organization import organization_service
+
+        return organization_service.get_aggregate_project_flags(organization_id=organization_id)
 
 
 class RpcUserOrganizationContext(RpcModel):
