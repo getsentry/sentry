@@ -36,10 +36,12 @@ describe('ExploreToolbar', function () {
   });
 
   it('allows changing results mode', async function () {
-    let resultMode;
+    let resultMode, sampleFields, groupBys;
 
     function Component() {
       [resultMode] = useResultMode();
+      [sampleFields] = useSampleFields();
+      [groupBys] = useGroupBys();
       return <ExploreToolbar />;
     }
 
@@ -53,17 +55,42 @@ describe('ExploreToolbar', function () {
     expect(aggregates).not.toBeChecked();
     expect(resultMode).toEqual('samples');
 
+    expect(sampleFields).toEqual([
+      'project',
+      'id',
+      'span.op',
+      'span.description',
+      'span.duration',
+      'timestamp',
+    ]); // default
+
     await userEvent.click(aggregates);
     expect(samples).not.toBeChecked();
     expect(aggregates).toBeChecked();
     expect(resultMode).toEqual('aggregate');
+
+    // Add a group by, and leave one unselected
+    const groupBy = screen.getByTestId('section-group-by');
+    await userEvent.click(within(groupBy).getByRole('button', {name: 'None'}));
+    await userEvent.click(within(groupBy).getByRole('option', {name: 'release'}));
+    expect(groupBys).toEqual(['release']);
+    await userEvent.click(within(groupBy).getByRole('button', {name: '+Add Group By'}));
+    expect(groupBys).toEqual(['release', '']);
 
     await userEvent.click(samples);
     expect(samples).toBeChecked();
     expect(aggregates).not.toBeChecked();
     expect(resultMode).toEqual('samples');
 
-    // TODO: check other parts of page reflects this
+    expect(sampleFields).toEqual([
+      'project',
+      'id',
+      'span.op',
+      'span.description',
+      'span.duration',
+      'timestamp',
+      'release',
+    ]);
   });
 
   it('allows changing visualizes', async function () {
@@ -78,36 +105,46 @@ describe('ExploreToolbar', function () {
     const section = screen.getByTestId('section-visualizes');
 
     // this is the default
-    expect(
-      within(section).getByRole('button', {name: 'span.duration'})
-    ).toBeInTheDocument();
-    expect(within(section).getByRole('button', {name: 'count'})).toBeInTheDocument();
-    expect(visualizes).toEqual(['count(span.duration)']);
+    expect(visualizes).toEqual([{yAxes: ['count(span.duration)']}]);
 
     // try changing the field
     await userEvent.click(within(section).getByRole('button', {name: 'span.duration'}));
     await userEvent.click(within(section).getByRole('option', {name: 'span.self_time'}));
-    expect(
-      within(section).getByRole('button', {name: 'span.self_time'})
-    ).toBeInTheDocument();
-    expect(within(section).getByRole('button', {name: 'count'})).toBeInTheDocument();
-    expect(visualizes).toEqual(['count(span.self_time)']);
+    expect(visualizes).toEqual([{yAxes: ['count(span.self_time)']}]);
 
     // try changing the aggregate
     await userEvent.click(within(section).getByRole('button', {name: 'count'}));
     await userEvent.click(within(section).getByRole('option', {name: 'avg'}));
-    expect(
-      within(section).getByRole('button', {name: 'span.self_time'})
-    ).toBeInTheDocument();
-    expect(within(section).getByRole('button', {name: 'avg'})).toBeInTheDocument();
-    expect(visualizes).toEqual(['avg(span.self_time)']);
+    expect(visualizes).toEqual([{yAxes: ['avg(span.self_time)']}]);
 
+    // try adding an overlay
+    await userEvent.click(within(section).getByRole('button', {name: '+Add Overlay'}));
+    await userEvent.click(within(section).getByRole('button', {name: 'span.duration'}));
+    await userEvent.click(within(section).getByRole('option', {name: 'span.self_time'}));
+    expect(visualizes).toEqual([
+      {yAxes: ['avg(span.self_time)', 'count(span.self_time)']},
+    ]);
+
+    // try adding a new chart
     await userEvent.click(within(section).getByRole('button', {name: '+Add Chart'}));
-    expect(
-      within(section).getByRole('button', {name: 'span.duration'})
-    ).toBeInTheDocument();
-    expect(within(section).getByRole('button', {name: 'count'})).toBeInTheDocument();
-    expect(visualizes).toEqual(['avg(span.self_time)', 'count(span.duration)']);
+    expect(visualizes).toEqual([
+      {yAxes: ['avg(span.self_time)', 'count(span.self_time)']},
+      {yAxes: ['count(span.duration)']},
+    ]);
+
+    // delete first overlay
+    await userEvent.click(within(section).getAllByLabelText('Remove')[0]);
+    expect(visualizes).toEqual([
+      {yAxes: ['count(span.self_time)']},
+      {yAxes: ['count(span.duration)']},
+    ]);
+
+    // delete second chart
+    await userEvent.click(within(section).getAllByLabelText('Remove')[1]);
+    expect(visualizes).toEqual([{yAxes: ['count(span.self_time)']}]);
+
+    // only one left so cant be deleted
+    expect(within(section).getByLabelText('Remove')).toBeDisabled();
   });
 
   it('allows changing sort by', async function () {
@@ -124,7 +161,7 @@ describe('ExploreToolbar', function () {
 
     // this is the default
     expect(within(section).getByRole('button', {name: 'timestamp'})).toBeInTheDocument();
-    expect(within(section).getByRole('button', {name: 'Descending'})).toBeInTheDocument();
+    expect(within(section).getByRole('button', {name: 'Desc'})).toBeInTheDocument();
     expect(sorts).toEqual([{field: 'timestamp', kind: 'desc'}]);
 
     // check the default field options
@@ -146,20 +183,20 @@ describe('ExploreToolbar', function () {
     // try changing the field
     await userEvent.click(within(section).getByRole('option', {name: 'span.op'}));
     expect(within(section).getByRole('button', {name: 'span.op'})).toBeInTheDocument();
-    expect(within(section).getByRole('button', {name: 'Descending'})).toBeInTheDocument();
+    expect(within(section).getByRole('button', {name: 'Desc'})).toBeInTheDocument();
     expect(sorts).toEqual([{field: 'span.op', kind: 'desc'}]);
 
     // check the kind options
-    await userEvent.click(within(section).getByRole('button', {name: 'Descending'}));
+    await userEvent.click(within(section).getByRole('button', {name: 'Desc'}));
     const kindOptions = await within(section).findAllByRole('option');
     expect(kindOptions).toHaveLength(2);
-    expect(kindOptions[0]).toHaveTextContent('Descending');
-    expect(kindOptions[1]).toHaveTextContent('Ascending');
+    expect(kindOptions[0]).toHaveTextContent('Desc');
+    expect(kindOptions[1]).toHaveTextContent('Asc');
 
     // try changing the kind
-    await userEvent.click(within(section).getByRole('option', {name: 'Ascending'}));
+    await userEvent.click(within(section).getByRole('option', {name: 'Asc'}));
     expect(within(section).getByRole('button', {name: 'span.op'})).toBeInTheDocument();
-    expect(within(section).getByRole('button', {name: 'Ascending'})).toBeInTheDocument();
+    expect(within(section).getByRole('button', {name: 'Asc'})).toBeInTheDocument();
     expect(sorts).toEqual([{field: 'span.op', kind: 'asc'}]);
   });
 
@@ -174,10 +211,20 @@ describe('ExploreToolbar', function () {
 
     const section = screen.getByTestId('section-group-by');
 
-    expect(within(section).getByRole('button', {name: '(none)'})).toBeInTheDocument();
+    expect(within(section).getByRole('button', {name: 'None'})).toBeInTheDocument();
     expect(groupBys).toEqual(['']);
 
-    await userEvent.click(within(section).getByRole('button', {name: '(none)'}));
+    // disabled in the samples mode
+    expect(within(section).getByRole('button', {name: 'None'})).toBeDisabled();
+
+    // click the aggregates mode to enable
+    await userEvent.click(
+      within(screen.getByTestId('section-result-mode')).getByRole('radio', {
+        name: 'Aggregate',
+      })
+    );
+
+    await userEvent.click(within(section).getByRole('button', {name: 'None'}));
     const groupByOptions1 = await within(section).findAllByRole('option');
     expect(groupByOptions1.length).toBeGreaterThan(0);
 
@@ -188,7 +235,7 @@ describe('ExploreToolbar', function () {
     await userEvent.click(within(section).getByRole('button', {name: '+Add Group By'}));
     expect(groupBys).toEqual(['span.op', '']);
 
-    await userEvent.click(within(section).getByRole('button', {name: '(none)'}));
+    await userEvent.click(within(section).getByRole('button', {name: 'None'}));
     const groupByOptions2 = await within(section).findAllByRole('option');
     expect(groupByOptions2.length).toBeGreaterThan(0);
 
@@ -199,5 +246,11 @@ describe('ExploreToolbar', function () {
       within(section).getByRole('button', {name: 'span.description'})
     ).toBeInTheDocument();
     expect(groupBys).toEqual(['span.op', 'span.description']);
+
+    await userEvent.click(within(section).getAllByLabelText('Remove')[0]);
+    expect(groupBys).toEqual(['span.description']);
+
+    // only one left so cant be deleted
+    expect(within(section).getByLabelText('Remove')).toBeDisabled();
   });
 });

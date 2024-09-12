@@ -170,6 +170,7 @@ from sentry.users.models.userrole import UserRole
 from sentry.users.services.user import RpcUser
 from sentry.utils import loremipsum
 from sentry.utils.performance_issues.performance_problem import PerformanceProblem
+from sentry.workflow_engine.models import DataSource, Detector, Workflow
 from social_auth.models import UserSocialAuth
 
 
@@ -2030,3 +2031,49 @@ class Factories:
         if name is None:
             name = petname.generate(2, " ", letters=10).title()
         return DashboardWidgetQuery.objects.create(widget=widget, name=name, order=order, **kwargs)
+
+    @staticmethod
+    @assume_test_silo_mode(SiloMode.REGION)
+    def create_workflow(
+        name: str | None = None,
+        organization: Organization | None = None,
+        **kwargs,
+    ) -> Workflow:
+        if organization is None:
+            organization = Factories.create_organization()
+        if name is None:
+            name = petname.generate(2, " ", letters=10).title()
+        return Workflow.objects.create(organization=organization, name=name)
+
+    @staticmethod
+    @assume_test_silo_mode(SiloMode.REGION)
+    def create_datasource(
+        organization: Organization | None = None,
+        query_id: int | None = None,
+        type: DataSource.Type | None = None,
+        **kwargs,
+    ) -> DataSource:
+        if organization is None:
+            organization = Factories.create_organization()
+        if query_id is None:
+            query_id = random.randint(1, 10000)
+        if type is None:
+            type = DataSource.Type.SNUBA_QUERY_SUBSCRIPTION
+        return DataSource.objects.create(organization=organization, query_id=query_id, type=type)
+
+    @staticmethod
+    @assume_test_silo_mode(SiloMode.REGION)
+    def create_detector(
+        organization: Organization | None = None,
+        name: str | None = None,
+        owner_user_id: int | None = None,
+        owner_team: Team | None = None,
+        **kwargs,
+    ) -> Detector:
+        if organization is None:
+            organization = Factories.create_organization()
+        if name is None:
+            name = petname.generate(2, " ", letters=10).title()
+        return Detector.objects.create(
+            organization=organization, name=name, owner_user_id=owner_user_id, owner_team=owner_team
+        )

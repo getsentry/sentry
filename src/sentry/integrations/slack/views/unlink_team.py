@@ -1,6 +1,6 @@
 import logging
 
-from sentry.integrations.messaging import UnlinkTeamView
+from sentry.integrations.messaging.linkage import UnlinkTeamView
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.slack.views.base import build_linking_url as base_build_linking_url
 from sentry.integrations.slack.views.linkage import SlackLinkageView

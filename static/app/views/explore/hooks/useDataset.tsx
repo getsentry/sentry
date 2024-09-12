@@ -25,10 +25,10 @@ function useDatasetImpl({
 }: Options): [DiscoverDatasets, (dataset: DiscoverDatasets) => void] {
   const dataset: DiscoverDatasets = useMemo(() => {
     const rawDataset = decodeScalar(location.query.dataset);
-    if (rawDataset === 'spans') {
-      return DiscoverDatasets.SPANS_EAP;
+    if (rawDataset === 'spansIndexed') {
+      return DiscoverDatasets.SPANS_INDEXED;
     }
-    return DiscoverDatasets.SPANS_INDEXED;
+    return DiscoverDatasets.SPANS_EAP;
   }, [location.query.dataset]);
 
   const setDataset = useCallback(

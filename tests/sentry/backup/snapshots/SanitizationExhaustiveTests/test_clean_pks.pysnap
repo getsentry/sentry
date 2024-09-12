@@ -1,5 +1,5 @@
 ---
-created: '2024-08-06T16:58:28.527320+00:00'
+created: '2024-09-10T23:34:32.337196+00:00'
 creator: sentry
 source: tests/sentry/backup/test_sanitize.py
 ---
@@ -212,6 +212,23 @@ source: tests/sentry/backup/test_sanitize.py
   sanitized_fields:
   - date_added
   - date_updated
+- model_name: workflow_engine.datasource
+  ordinal: 1
+  sanitized_fields:
+  - date_added
+  - date_updated
+- model_name: workflow_engine.detector
+  ordinal: 1
+  sanitized_fields:
+  - date_added
+  - date_updated
+  - name
+- model_name: workflow_engine.workflow
+  ordinal: 1
+  sanitized_fields:
+  - date_added
+  - date_updated
+  - name
 - model_name: sentry.savedsearch
   ordinal: 1
   sanitized_fields:
@@ -509,16 +526,6 @@ source: tests/sentry/backup/test_sanitize.py
   - date_hash_added
   - email
   - validation_hash
-- model_name: sentry.spanattributeextractionruleconfig
-  ordinal: 1
-  sanitized_fields:
-  - date_added
-  - date_updated
-- model_name: sentry.spanattributeextractionrulecondition
-  ordinal: 1
-  sanitized_fields:
-  - date_added
-  - date_updated
 - model_name: sentry.snubaquery
   ordinal: 1
   sanitized_fields:
