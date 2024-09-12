@@ -5,7 +5,6 @@ from unittest.mock import MagicMock, patch
 from sentry.conf.server import SEER_SIMILARITY_MODEL_VERSION
 from sentry.eventstore.models import Event
 from sentry.grouping.ingest.seer import get_seer_similar_issues, should_call_seer_for_grouping
-from sentry.grouping.result import CalculatedHashes
 from sentry.models.grouphash import GroupHash
 from sentry.seer.similarity.types import SeerSimilarIssueData
 from sentry.testutils.cases import TestCase
@@ -197,7 +196,7 @@ class GetSeerSimilarIssuesTest(TestCase):
             event_id="11212012123120120415201309082013",
             data={"message": "Adopt don't shop"},
         )
-        self.new_event_hashes = CalculatedHashes(["20130809201315042012311220122111"])
+        self.new_event_hashes = ["20130809201315042012311220122111"]
 
     @patch("sentry.grouping.ingest.seer.get_similarity_data_from_seer", return_value=[])
     def test_sends_expected_data_to_seer(self, mock_get_similarity_data: MagicMock):
@@ -226,7 +225,7 @@ class GetSeerSimilarIssuesTest(TestCase):
                 "platform": "python",
             },
         )
-        new_event_hashes = CalculatedHashes(["20130809201315042012311220122111"])
+        new_event_hashes = ["20130809201315042012311220122111"]
 
         with patch(
             "sentry.grouping.ingest.seer.get_stacktrace_string",
