@@ -28,7 +28,7 @@ export function SdkDocumentation({
   configType,
   organization,
 }: SdkDocumentationProps) {
-  const {isLoading, isError, dsn, docs, refetch, id} = useLoadGettingStarted({
+  const {isLoading, isError, dsn, docs, refetch, projectKeyId} = useLoadGettingStarted({
     orgSlug: organization.slug,
     projSlug: projectSlug,
     platform,
@@ -90,7 +90,7 @@ export function SdkDocumentation({
       projectId={projectId}
       projectSlug={projectSlug}
       configType={configType}
-      projectKeyId={id}
+      projectKeyId={projectKeyId}
     />
   );
 }
