@@ -417,6 +417,7 @@ class CreateProjectUserReportTest(APITestCase, SnubaTestCase):
         assert mock_event_data["tags"]["environment"] == self.environment.name
         assert mock_event_data["tags"]["foo"] == "bar"
         assert mock_event_data["tags"]["level"] == "error"
+        assert mock_event_data["tags"]["user.email"] == "foo@example.com"
 
         assert mock_event_data["platform"] == "other"
         assert (
