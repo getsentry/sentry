@@ -63,21 +63,18 @@ function processAndInsertKeyValueTokens(
     return;
   }
 
-  // Case 2: Value is a string
-  if (typeof value === 'string') {
+  // Case 2: Value is a primitive type
+  if (
+    typeof value === 'string' ||
+    typeof value === 'number' ||
+    typeof value === 'boolean'
+  ) {
     _insertToken(`"${key}": "${value}"`);
     _insertToken(`, `);
     return;
   }
 
-  // Case 3: Value is a number or boolean
-  if (typeof value === 'number' || typeof value === 'boolean') {
-    _insertToken(`"${key}": ${value}`);
-    _insertToken(', ');
-    return;
-  }
-
-  // Case 4: Value is an array
+  // Case 3: Value is an array
   if (Array.isArray(value)) {
     _insertToken(`"${key}": [`);
 
@@ -117,7 +114,7 @@ function processAndInsertKeyValueTokens(
     return;
   }
 
-  // Case 4 (recursion case): Value is an object
+  // Case 4: Value is an object
   if (typeof value === 'object') {
     if (Object.keys(value).length === 0) {
       processAndInsertKeyValueTokens(tokens, key, '{}');
