@@ -130,7 +130,7 @@ export function FeatureFlagDrawer({
         {actions}
       </EventNavigator>
       <EventDrawerBody>
-        <CardContainer>
+        <CardContainer numCols={1}>
           <KeyValueData.Card contentItems={flags} />
         </CardContainer>
       </EventDrawerBody>

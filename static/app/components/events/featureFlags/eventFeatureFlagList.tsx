@@ -170,7 +170,7 @@ export function EventFeatureFlagList({
     <ErrorBoundary mini message={t('There was a problem loading event tags.')}>
       <EventDataSection title={t('Feature Flags')} type="feature-flags" actions={actions}>
         {!isCollapsed && (
-          <CardContainer>
+          <CardContainer numCols={columnTwo.length ? 2 : 1}>
             <KeyValueData.Card contentItems={columnOne} />
             <KeyValueData.Card contentItems={columnTwo} />
           </CardContainer>
@@ -180,9 +180,9 @@ export function EventFeatureFlagList({
   );
 }
 
-export const CardContainer = styled('div')`
+export const CardContainer = styled('div')<{numCols: number}>`
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: repeat(${p => p.numCols}, 1fr);
   align-items: start;
 
   div {
