@@ -32,9 +32,11 @@ class InstallationNotifier(Mediator):
     @property
     def request(self) -> AppPlatformEvent:
         data = serialize(
-            [self.install], user=self.user, serializer=SentryAppInstallationSerializer()
+            [self.install],
+            user=self.user,
+            serializer=SentryAppInstallationSerializer(),
+            is_webhook=True,
         )[0]
-
         return AppPlatformEvent(
             resource="installation",
             action=self.action,
