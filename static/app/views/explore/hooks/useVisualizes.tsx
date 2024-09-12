@@ -73,7 +73,7 @@ function useVisualizesImpl({
 function parseVisualizes(raw: string): Visualize | null {
   try {
     const parsed = JSON.parse(raw);
-    if (!defined(parsed) || !Array.isArray(parsed.yAxes) || !defined(parsed.chartType)) {
+    if (!defined(parsed) || !Array.isArray(parsed.yAxes)) {
       return null;
     }
 
