@@ -481,7 +481,7 @@ function NodeActions(props: {
               traceAnalytics.trackViewContinuousProfile(props.organization);
               navigate(profileLink!);
             },
-            label: t('Continuous Profile 2'),
+            label: t('Continuous Profile'),
           }
         : null;
 
