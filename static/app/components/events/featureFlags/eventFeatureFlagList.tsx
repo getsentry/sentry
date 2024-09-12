@@ -18,7 +18,6 @@ import {space} from 'sentry/styles/space';
 import type {Event, FeatureFlag} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
-import useOrganization from 'sentry/utils/useOrganization';
 
 export enum FlagSort {
   EVAL = 'eval',
@@ -55,21 +54,16 @@ export function EventFeatureFlagList({
   const viewAllButtonRef = useRef<HTMLButtonElement>(null);
 
   // transform the flags array into something readable by the key-value component
-  const hydrateFlags = (flags: FeatureFlag[]) => {
+  const hydrateFlags = (flags: FeatureFlag[] | undefined) => {
+    if (!flags) {
+      return [];
+    }
     return flags.map(f => {
       return {item: {key: f.flag, subject: f.flag, value: f.result}};
     });
   };
 
-  // TODO: remove this chunk --
-  const organization = useOrganization();
-  const flagsMap = organization.features.map(f => {
-    return {flag: f, result: true};
-  });
-  const initialFlags = hydrateFlags(flagsMap);
-  //----------------------------
-
-  // const initialFlags = hydrateFlags(event.contexts?.flags.values);
+  const initialFlags = hydrateFlags(event.contexts?.flags?.values);
   const [flags, setFlags] = useState<KeyValueDataContentProps[]>(initialFlags);
 
   const handleSortEval = () => {
