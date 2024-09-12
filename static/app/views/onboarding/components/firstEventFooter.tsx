@@ -48,7 +48,7 @@ export default function FirstEventFooter({
       return (
         <CreateSampleEventButton
           project={project}
-          source="targted-onboarding"
+          source="targeted-onboarding"
           priority="primary"
         >
           {t('View Sample Error')}
