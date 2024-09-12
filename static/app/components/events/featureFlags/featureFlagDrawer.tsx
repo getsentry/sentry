@@ -81,7 +81,7 @@ export function FeatureFlagDrawer({
             setSearch(e.target.value.toLowerCase());
             setFlags(featureFlags.filter(f => f.item.key.includes(search)));
           }}
-          aria-label={t('Search All Flags')}
+          aria-label={t('Search Flags')}
         />
         <InputGroup.TrailingItems disablePointerEvents>
           <IconSearch size="xs" />

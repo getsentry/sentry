@@ -159,6 +159,7 @@ export function EventFeatureFlagList({
     </ButtonBar>
   );
 
+  // Split the flags list into two columns for display
   const truncatedItems = flags.slice(0, 20);
   const columnOne = truncatedItems.slice(0, 10);
   let columnTwo: any[] = [];
@@ -167,7 +168,7 @@ export function EventFeatureFlagList({
   }
 
   return (
-    <ErrorBoundary mini message={t('There was a problem loading event tags.')}>
+    <ErrorBoundary mini message={t('There was a problem loading feature flags.')}>
       <EventDataSection title={t('Feature Flags')} type="feature-flags" actions={actions}>
         {!isCollapsed && (
           <CardContainer numCols={columnTwo.length ? 2 : 1}>
