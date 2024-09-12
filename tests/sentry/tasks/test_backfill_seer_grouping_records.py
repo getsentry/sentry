@@ -697,8 +697,11 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
         group_hashes = GroupHash.objects.all().distinct("group_id")
         self.group_hashes = {group_hash.group_id: group_hash.hash for group_hash in group_hashes}
 
-        with TaskRunner(), override_settings(
-            SIMILARITY_BACKFILL_COHORT_MAP={"test": [self.project.id, project2.id]}
+        with (
+            TaskRunner(),
+            override_settings(
+                SIMILARITY_BACKFILL_COHORT_MAP={"test": [self.project.id, project2.id]}
+            ),
         ):
             backfill_seer_grouping_records_for_project(
                 current_project_id=self.project.id,
@@ -1261,6 +1264,7 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
         event = self.store_event(data=data, project_id=self.project.id, assert_no_errors=False)
         event.group.times_seen = 2
         event.group.status = GroupStatus.PENDING_DELETION
+        event.group.substatus = None
         event.group.save()
         deleted_group_ids.append(event.group.id)
 
@@ -1272,6 +1276,7 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
         event = self.store_event(data=data, project_id=self.project.id, assert_no_errors=False)
         event.group.times_seen = 2
         event.group.status = GroupStatus.DELETION_IN_PROGRESS
+        event.group.substatus = None
         event.group.save()
         deleted_group_ids.append(event.group.id)
 
@@ -1714,6 +1719,7 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
             event.group.status = (
                 GroupStatus.PENDING_DELETION if i >= batch_size / 2 else GroupStatus.UNRESOLVED
             )
+            event.group.substatus = None
             event.group.save()
             group_ids_invalid.append(event.group.id)
         group_ids_invalid.sort()
@@ -1791,6 +1797,7 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
         event = self.store_event(data=data, project_id=self.project.id, assert_no_errors=False)
         event.group.times_seen = 2
         event.group.status = GroupStatus.PENDING_DELETION
+        event.group.substatus = None
         event.group.save()
         deleted_group = event.group
 

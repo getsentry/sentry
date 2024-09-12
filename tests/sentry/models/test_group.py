@@ -6,6 +6,7 @@ from unittest.mock import patch
 import pytest
 from django.core.cache import cache
 from django.db.models import ProtectedError
+from django.db.utils import IntegrityError
 from django.utils import timezone
 
 from sentry.issues.grouptype import FeedbackGroup, ProfileFileIOGroupType
@@ -341,8 +342,7 @@ class GroupTest(TestCase, SnubaTestCase):
             group = self.create_group(status=status, substatus=substatus)
             assert group.substatus is substatus
 
-    @patch("sentry.models.group.logger")
-    def test_group_invalid_substatus(self, logger):
+    def test_group_invalid_substatus(self):
         status_substatus_pairs = [
             (GroupStatus.UNRESOLVED, GroupSubStatus.UNTIL_ESCALATING),
             (GroupStatus.IGNORED, GroupSubStatus.ONGOING),
@@ -350,9 +350,10 @@ class GroupTest(TestCase, SnubaTestCase):
         ]
 
         for status, substatus in status_substatus_pairs:
-            self.create_group(status=status, substatus=substatus)
-
-        assert logger.error.call_count == len(status_substatus_pairs)
+            with pytest.raises(IntegrityError):
+                Group.objects.create(project=self.project).update(
+                    status=status, substatus=substatus
+                )
 
 
 class GroupIsOverResolveAgeTest(TestCase):
