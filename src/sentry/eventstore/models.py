@@ -541,7 +541,7 @@ class Event(BaseEvent):
         project_id: int,
         event_id: str,
         group_id: int | None = None,
-        data: NodeData | None = None,
+        data: Mapping[str, Any] | None = None,
         snuba_data: Mapping[str, Any] | None = None,
         groups: Sequence[Group] | None = None,
     ):
