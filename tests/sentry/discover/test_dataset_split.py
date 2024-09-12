@@ -10,7 +10,6 @@ from sentry.discover.dataset_split import (
 from sentry.discover.models import DiscoverSavedQuery, DiscoverSavedQueryTypes
 from sentry.models.organization import Organization
 from sentry.models.project import Project
-from sentry.models.user import User
 from sentry.search.events.builder.discover import DiscoverQueryBuilder
 from sentry.search.events.builder.errors import ErrorsQueryBuilder
 from sentry.search.events.types import SnubaParams
@@ -20,6 +19,7 @@ from sentry.testutils.factories import Factories
 from sentry.testutils.helpers.datetime import before_now, freeze_time, iso_format
 from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.testutils.silo import assume_test_silo_mode_of
+from sentry.users.models.user import User
 from sentry.utils.samples import load_data
 
 
