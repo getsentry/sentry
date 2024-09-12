@@ -117,8 +117,7 @@ export function EventDetailsContent({
   const isANR = mechanism === 'ANR' || mechanism === 'AppExitInfo';
   const showPossibleSolutionsHigher = shouldShowCustomErrorResourceConfig(group, project);
   const groupingCurrentLevel = group?.metadata?.current_level;
-  // const hasFeatureFlagSection = organization.features.includes('feature-flag-ui');
-  const hasFeatureFlagSection = true;
+  const hasFeatureFlagSection = organization.features.includes('feature-flag-ui');
 
   const hasActionableItems = actionableItemsEnabled({
     eventId: event.id,
