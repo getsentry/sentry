@@ -41,7 +41,9 @@ interface FlagDrawerProps {
   event: Event;
   featureFlags: KeyValueDataContentProps[];
   group: Group;
+  initialFlags: KeyValueDataContentProps[];
   project: Project;
+  sort: FlagSort;
 }
 
 export function FeatureFlagDrawer({
@@ -49,13 +51,15 @@ export function FeatureFlagDrawer({
   group,
   event,
   project,
+  sort,
+  initialFlags,
 }: FlagDrawerProps) {
-  const [sortMethod, setSortMethod] = useState<FlagSort>(FlagSort.RECENT);
+  const [sortMethod, setSortMethod] = useState<FlagSort>(sort);
   const [flags, setFlags] = useState<KeyValueDataContentProps[]>(featureFlags);
   const [search, setSearch] = useState('');
 
   const handleSortRecent = () => {
-    setFlags(featureFlags);
+    setFlags(initialFlags);
   };
 
   const handleSortAlphabetical = () => {

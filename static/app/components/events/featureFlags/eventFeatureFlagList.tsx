@@ -93,6 +93,8 @@ export function EventFeatureFlagList({
           event={event}
           project={project}
           featureFlags={flags}
+          initialFlags={initialFlags}
+          sort={sortMethod}
         />
       ),
       {
@@ -109,7 +111,7 @@ export function EventFeatureFlagList({
         transitionProps: {stiffness: 1000},
       }
     );
-  }, [openDrawer, flags, event, group, project]);
+  }, [openDrawer, flags, event, group, project, sortMethod, initialFlags]);
 
   if (!flags || !flags.length) {
     return null;
