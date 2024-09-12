@@ -233,6 +233,7 @@ function IssueListSearchBar({organization, tags, onClose, ...props}: Props) {
         recentSearches={SavedSearchType.ISSUE}
         disallowLogicalOperators
         placeholder={props.placeholder}
+        showUnsubmittedIndicator
       />
     );
   }
