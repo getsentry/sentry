@@ -10,6 +10,7 @@ import type {NewQuery} from 'sentry/types/organization';
 import type {EventData} from 'sentry/utils/discover/eventView';
 import EventView from 'sentry/utils/discover/eventView';
 import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
+import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {generateLinkToEventInTraceView} from 'sentry/utils/discover/urls';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -109,6 +110,7 @@ export function SpansTable({}: SpansTableProps) {
                   return (
                     <TableBodyCell key={j}>
                       <Field
+                        dataset={dataset}
                         data={row}
                         field={field}
                         unit={meta?.units?.[field]}
@@ -135,14 +137,16 @@ export function SpansTable({}: SpansTableProps) {
 
 interface FieldProps {
   data: EventData;
+  dataset: DiscoverDatasets;
   field: string;
   meta: string[];
   unit?: string;
 }
 
-function Field({data, field, meta, unit}: FieldProps) {
+function Field({data, dataset, field, meta, unit}: FieldProps) {
   const location = useLocation();
   const organization = useOrganization();
+
   const renderer = getFieldRenderer(field, meta, false);
 
   let rendered = renderer(data, {
@@ -156,7 +160,8 @@ function Field({data, field, meta, unit}: FieldProps) {
       projectSlug: data.project,
       traceSlug: data.trace,
       timestamp: data.timestamp,
-      eventId: data['transaction.id'],
+      eventId:
+        dataset === DiscoverDatasets.SPANS_INDEXED ? data['transaction.id'] : undefined,
       organization,
       location,
       spanId: data.span_id,
