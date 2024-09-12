@@ -117,7 +117,6 @@ def fix_for_issue_platform(event_data):
             "replay_id": event_data["contexts"].get("feedback", {}).get("replay_id")
         }
     ret_event["event_id"] = event_data["event_id"]
-    ret_event["tags"] = event_data.get("tags", [])
 
     ret_event["platform"] = event_data.get("platform", "other")
     ret_event["level"] = event_data.get("level", "info")
@@ -145,6 +144,18 @@ def fix_for_issue_platform(event_data):
 
     if not ret_event["user"].get("email", ""):
         ret_event["user"]["email"] = contact_email
+
+    # Force `tags` to be a dict if it's initially a list,
+    # since we can't guarantee its type here.
+
+    tags = event_data.get("tags", {})
+    tags_dict = {}
+    if isinstance(tags, list):
+        for [k, v] in tags:
+            tags_dict[k] = v
+    else:
+        tags_dict = tags
+    ret_event["tags"] = tags_dict
 
     # Set the user.email tag since we want to be able to display user.email on the feedback UI as a tag
     # as well as be able to write alert conditions on it
@@ -257,20 +268,10 @@ def create_feedback_issue(event, project_id: int, source: FeedbackCreationSource
     )
     now = datetime.now()
 
-    # Force `tags` to be a dict if it's initially a list,
-    # since we can't guarantee its type here.
-    tags = event.get("tags", {})
-    tags_dict = {}
-    if isinstance(tags, list):
-        for [k, v] in tags:
-            tags_dict[k] = v
-    else:
-        tags_dict = tags
-
     event_data = {
         "project_id": project_id,
         "received": now.isoformat(),
-        "tags": tags_dict,
+        "tags": event.get("tags", {}),
         **event,
     }
     event_fixed = fix_for_issue_platform(event_data)
@@ -379,12 +380,7 @@ def shim_to_feedback(
             feedback_event["platform"] = event.platform
             feedback_event["level"] = event.data["level"]
             feedback_event["environment"] = event.get_environment().name
-
-            # Tags should be a dict to match the corresponding issue platform type.
-            tags = {}
-            for [k, v] in event.tags:
-                tags[k] = v
-            feedback_event["tags"] = tags
+            feedback_event["tags"] = [list(item) for item in event.tags]
 
             metrics.incr(
                 "feedback.user_report.missing_event",
