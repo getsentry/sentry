@@ -902,7 +902,9 @@ def update_alert_rule(
             updated_fields["seasonality"] = None
         elif detection_type == AlertRuleDetectionType.DYNAMIC:
             # NOTE: we set seasonality for EA
-            updated_query_fields["resolution"] = timedelta(minutes=time_window)
+            updated_query_fields["resolution"] = timedelta(
+                minutes=time_window if time_window is not None else snuba_query.time_window
+            )
             updated_fields["seasonality"] = AlertRuleSeasonality.AUTO
             updated_fields["comparison_delta"] = None
             if (
