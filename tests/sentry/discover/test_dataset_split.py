@@ -3,11 +3,12 @@ from datetime import datetime, timedelta, timezone
 import pytest
 
 from sentry.discover.dataset_split import (
+    SplitDataset,
     _dataset_split_decision_inferred_from_query,
     _get_and_save_split_decision_for_query,
-    _get_snuba_dataclass,
+    _get_snuba_dataclass_for_saved_query,
 )
-from sentry.discover.models import DiscoverSavedQuery, DiscoverSavedQueryTypes
+from sentry.discover.models import DiscoverSavedQuery
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.search.events.builder.discover import DiscoverQueryBuilder
@@ -308,17 +309,19 @@ class DiscoverSavedQueryDatasetSplitTestCase(TestCase, SnubaTestCase):
     def test_ambiguous_query_with_transactions_data(self):
         data = load_data("transaction", timestamp=self.ten_mins_ago)
         data["transaction"] = "/to_other/"
+        data["environment"] = self.environment.name
         self.store_event(data, project_id=self.project.id, assert_no_errors=False)
 
         data = load_data("transaction", timestamp=self.ten_mins_ago)
         data["transaction"] = "/to_other/2"
+        data["environment"] = self.environment.name
         self.store_event(data, project_id=self.project.id, assert_no_errors=False)
 
         query = DiscoverSavedQuery.objects.create(
             organization_id=self.organization.id,
             name="",
             query={
-                "environment": [],
+                "environment": [f"{self.environment.name}"],
                 "range": "7d",
                 "fields": [
                     "transaction",
@@ -494,7 +497,7 @@ class DiscoverSavedQueryDatasetSplitTestCase(TestCase, SnubaTestCase):
         )
 
         with self.options({"system.event-retention-days": 90}):
-            snuba_dataclass = _get_snuba_dataclass(query, self.projects)
+            snuba_dataclass = _get_snuba_dataclass_for_saved_query(query, self.projects)
 
         assert snuba_dataclass.start == datetime(2024, 4, 24, 12, 0, tzinfo=timezone.utc)
         assert snuba_dataclass.end == datetime(2024, 5, 1, 12, 0, tzinfo=timezone.utc)
@@ -521,7 +524,7 @@ class DiscoverSavedQueryDatasetSplitTestCase(TestCase, SnubaTestCase):
             is_homepage=True,
         )
 
-        snuba_dataclass = _get_snuba_dataclass(query, self.projects)
+        snuba_dataclass = _get_snuba_dataclass_for_saved_query(query, self.projects)
 
         assert snuba_dataclass.start == datetime(2024, 5, 1, 11, 0, tzinfo=timezone.utc)
         assert snuba_dataclass.end == datetime(2024, 5, 1, 12, 0, tzinfo=timezone.utc)
@@ -555,12 +558,12 @@ def project(organization: Organization) -> Project:
         pytest.param(
             "stack.filename:'../../sentry/scripts/views.js' AND (branch:foo OR branch:bar)",
             ["count()"],
-            DiscoverSavedQueryTypes.ERROR_EVENTS,
+            SplitDataset.Errors,
         ),
         pytest.param(
             "error.unhandled:true",
             ["count()"],
-            DiscoverSavedQueryTypes.ERROR_EVENTS,
+            SplitDataset.Errors,
         ),
         pytest.param(
             "(event:type:error AND branch:foo) OR (event:type:transaction AND branch:bar)",
@@ -575,37 +578,37 @@ def project(organization: Organization) -> Project:
         pytest.param(
             "branch:foo branch:bar",
             ["stack.function", "avg(transaction.duration)"],
-            DiscoverSavedQueryTypes.ERROR_EVENTS,
+            SplitDataset.Errors,
         ),
         pytest.param(
             "",
             ["error.handled", "count()"],
-            DiscoverSavedQueryTypes.ERROR_EVENTS,
+            SplitDataset.Errors,
         ),
         pytest.param(
             "transaction.duration:>100ms",
             ["count()"],
-            DiscoverSavedQueryTypes.TRANSACTION_LIKE,
+            SplitDataset.Transactions,
         ),
         pytest.param(
             "tag:value event.type:transaction",
             ["count()"],
-            DiscoverSavedQueryTypes.TRANSACTION_LIKE,
+            SplitDataset.Transactions,
         ),
         pytest.param(
             "(tag:value OR branch:foo) AND event.type:transaction",
             ["count()"],
-            DiscoverSavedQueryTypes.TRANSACTION_LIKE,
+            SplitDataset.Transactions,
         ),
         pytest.param(
             "branch:foo branch:bar",
             ["avg(transaction.duration)"],
-            DiscoverSavedQueryTypes.TRANSACTION_LIKE,
+            SplitDataset.Transactions,
         ),
         pytest.param(
             "branch:foo branch:bar",
             ["p95(measurements.app_start_cold)"],
-            DiscoverSavedQueryTypes.TRANSACTION_LIKE,
+            SplitDataset.Transactions,
         ),
     ],
 )

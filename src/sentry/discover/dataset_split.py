@@ -1,4 +1,6 @@
 import logging
+from datetime import datetime
+from enum import Enum
 from typing import Any
 
 import sentry_sdk
@@ -19,9 +21,12 @@ from sentry.constants import ObjectStatus
 from sentry.discover.arithmetic import is_equation, strip_equation
 from sentry.discover.models import DatasetSourcesTypes, DiscoverSavedQuery, DiscoverSavedQueryTypes
 from sentry.exceptions import InvalidParams
+from sentry.models.environment import Environment
+from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.search.events.builder.discover import DiscoverQueryBuilder
 from sentry.search.events.builder.errors import ErrorsQueryBuilder
+from sentry.search.events.filter import to_list
 from sentry.search.events.types import SnubaParams
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.query_sources import QuerySource
@@ -30,6 +35,16 @@ from sentry.utils.dates import outside_retention_with_modified_start, parse_time
 
 logger = logging.getLogger("sentry.tasks.split_discover_query_dataset")
 
+
+class SplitDataset(Enum):
+    Errors = 0
+    Transactions = 1
+
+
+SPLIT_DATASET_TO_DISCOVER_DATASET_MAP = {
+    SplitDataset.Errors: DiscoverSavedQueryTypes.ERROR_EVENTS,
+    SplitDataset.Transactions: DiscoverSavedQueryTypes.TRANSACTION_LIKE,
+}
 
 TRANSACTION_ONLY_FIELDS = [
     "duration",
@@ -206,7 +221,7 @@ def _check_selected_columns_match_dataset(
     return False
 
 
-def _check_event_type_filter(errors_builder):
+def _check_event_type_filter(errors_builder) -> SplitDataset | None:
     top_level_conditions = _get_top_level_filter_conditions(errors_builder)
 
     for cond in top_level_conditions:
@@ -214,14 +229,16 @@ def _check_event_type_filter(errors_builder):
             lhs = cond.lhs
             if isinstance(lhs, Column) and lhs.name == "type":
                 if _check_event_type_condition(cond, Dataset.Events):
-                    return DiscoverSavedQueryTypes.ERROR_EVENTS
+                    return SplitDataset.Errors
                 if _check_event_type_condition(cond, Dataset.Transactions):
-                    return DiscoverSavedQueryTypes.TRANSACTION_LIKE
+                    return SplitDataset.Transactions
+
+    return None
 
 
 def _dataset_split_decision_inferred_from_query(
     errors_builder: ErrorsQueryBuilder, transactions_builder: DiscoverQueryBuilder
-):
+) -> SplitDataset | None:
     """
     Infers split decision based on fields we know exclusively belong to one
     dataset or the other. Biases towards Errors dataset.
@@ -233,16 +250,16 @@ def _dataset_split_decision_inferred_from_query(
         return event_type_filter
 
     if _check_top_level_conditions_match_dataset(errors_builder, Dataset.Events):
-        return DiscoverSavedQueryTypes.ERROR_EVENTS
+        return SplitDataset.Errors
 
     if _check_selected_columns_match_dataset(errors_builder, Dataset.Events):
-        return DiscoverSavedQueryTypes.ERROR_EVENTS
+        return SplitDataset.Errors
 
     if _check_top_level_conditions_match_dataset(transactions_builder, Dataset.Transactions):
-        return DiscoverSavedQueryTypes.TRANSACTION_LIKE
+        return SplitDataset.Transactions
 
     if _check_selected_columns_match_dataset(transactions_builder, Dataset.Transactions):
-        return DiscoverSavedQueryTypes.TRANSACTION_LIKE
+        return SplitDataset.Transactions
 
     return None
 
@@ -256,47 +273,69 @@ def _get_equation_list(fields: list[str]) -> list[str]:
     return [strip_equation(field) for field in fields if is_equation(field)]
 
 
-def _get_snuba_dataclass(saved_query: DiscoverSavedQuery, projects: list[Project]) -> SnubaParams:
-    # Default
-    start, end = get_date_range_from_stats_period({"statsPeriod": "7d"})
+def _get_snuba_dataclass(
+    organization: Organization,
+    projects: list[Project],
+    start: datetime | None,
+    end: datetime | None,
+    period: str | None,
+    environment: list[str] | str | None,
+) -> SnubaParams:
+    default_start, default_end = get_date_range_from_stats_period({"statsPeriod": "7d"})
 
+    if start and end:
+        expired, _ = outside_retention_with_modified_start(start, end, organization)
+        if expired:
+            start, end = get_date_range_from_stats_period({"statsPeriod": "7d"})
+
+    elif period:
+        try:
+            start, end = get_date_range_from_stats_period({"statsPeriod": period})
+        except InvalidParams:
+            start, end = get_date_range_from_stats_period({"statsPeriod": "7d"})
+
+    filter_params: dict[str, Any] = {
+        "start": start or default_start,
+        "end": end or default_end,
+        "project_id": [p.id for p in projects],
+        "project_objects": projects,
+        "organization_id": organization.id,
+    }
+
+    if environment:
+        environment_objects = list(
+            Environment.objects.filter(
+                organization_id=organization.id,
+                name__in=to_list(environment),
+            )
+        )
+        if environment_objects:
+            filter_params["environment_objects"] = environment_objects
+
+    return SnubaParams(
+        start=filter_params["start"],
+        end=filter_params["end"],
+        environments=filter_params.get("environment_objects", []),
+        projects=filter_params["project_objects"],
+        user=None,
+        teams=[],
+        organization=organization,
+    )
+
+
+def _get_snuba_dataclass_for_saved_query(
+    saved_query: DiscoverSavedQuery, projects: list[Project]
+) -> SnubaParams:
+    start: datetime | None = None
+    end: datetime | None = None
     if "start" and "end" in saved_query.query:
         start = parse_timestamp(saved_query.query["start"]) or start
         end = parse_timestamp(saved_query.query["end"]) or end
 
-        if start and end:
-            expired, _ = outside_retention_with_modified_start(start, end, saved_query.organization)
-            if expired:
-                start, end = get_date_range_from_stats_period({"statsPeriod": "7d"})
+    environment = saved_query.query.get("environment", [])
+    period = saved_query.query.get("range")
 
-    elif "range" in saved_query.query:
-        try:
-            start, end = get_date_range_from_stats_period(
-                {"statsPeriod": saved_query.query["range"]}
-            )
-        except InvalidParams:
-            start, end = get_date_range_from_stats_period({"statsPeriod": "7d"})
-
-    with sentry_sdk.start_span(
-        op="discover.migration.split", description="filter_params(dataclass)"
-    ):
-        filter_params: dict[str, Any] = {
-            "start": start,
-            "end": end,
-            "project_id": [p.id for p in projects],
-            "project_objects": projects,
-            "organization_id": saved_query.organization.id,
-        }
-        params = SnubaParams(
-            start=filter_params["start"],
-            end=filter_params["end"],
-            environments=filter_params.get("environment_objects", []),
-            projects=filter_params["project_objects"],
-            user=None,
-            teams=[],
-            organization=saved_query.organization,
-        )
-        return params
+    return _get_snuba_dataclass(saved_query.organization, projects, start, end, period, environment)
 
 
 @sentry_sdk.trace
@@ -315,7 +354,7 @@ def _get_and_save_split_decision_for_query(
     projects = saved_query.projects.all() or Project.objects.filter(
         organization_id=saved_query.organization.id, status=ObjectStatus.ACTIVE
     )
-    snuba_dataclass = _get_snuba_dataclass(saved_query, list(projects))
+    snuba_dataclass = _get_snuba_dataclass_for_saved_query(saved_query, list(projects))
     selected_columns = _get_field_list(saved_query.query.get("fields", []))
     equations = _get_equation_list(saved_query.query.get("fields", []))
     query = saved_query.query.get("query", "")
@@ -348,15 +387,16 @@ def _get_and_save_split_decision_for_query(
     )
 
     if dataset_inferred_from_query is not None:
+        discover_dataset = SPLIT_DATASET_TO_DISCOVER_DATASET_MAP[dataset_inferred_from_query]
         if dry_run:
-            logger.info("Split decision for %s: %s", saved_query.id, dataset_inferred_from_query)
+            logger.info("Split decision for %s: %s", saved_query.id, discover_dataset)
         else:
             _save_split_decision_for_query(
                 saved_query,
-                dataset_inferred_from_query,
+                discover_dataset,
                 DatasetSourcesTypes.INFERRED,
             )
-        return dataset_inferred_from_query, False
+        return discover_dataset, False
 
     has_errors = False
     try:
