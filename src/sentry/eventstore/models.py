@@ -496,35 +496,6 @@ class BaseEvent(metaclass=abc.ABCMeta):
     def size(self) -> int:
         return len(orjson.dumps(dict(self.data)).decode())
 
-    def as_dict(self) -> dict[str, Any]:
-        """Returns the data in normalized form for external consumers."""
-        data: dict[str, Any] = {}
-        data["event_id"] = self.event_id
-        data["project"] = self.project_id
-        data["release"] = self.release
-        data["dist"] = self.dist
-        data["platform"] = self.platform
-        data["message"] = self.message
-        data["datetime"] = self.datetime
-        data["tags"] = [(k.split("sentry:", 1)[-1], v) for (k, v) in self.tags]
-        for k, v in sorted(self.data.items()):
-            if k in data:
-                continue
-            if k == "sdk":
-                v = {v_k: v_v for v_k, v_v in v.items() if v_k != "client_ip"}
-            data[k] = v
-
-        # for a long time culprit was not persisted.  In those cases put
-        # the culprit in from the group.
-        if data.get("culprit") is None and self.group_id and self.group:
-            data["culprit"] = self.group.culprit
-
-        # Override title and location with dynamically generated data
-        data["title"] = self.title
-        data["location"] = self.location
-
-        return data
-
     @cached_property
     def search_message(self) -> str:
         """
@@ -770,6 +741,35 @@ class GroupEvent(BaseEvent):
             message = augment_message_with_occurrence(message, self.occurrence)
 
         return message
+
+    def as_dict(self) -> dict[str, Any]:
+        """Returns the data in normalized form for external consumers."""
+        data: dict[str, Any] = {}
+        data["event_id"] = self.event_id
+        data["project"] = self.project_id
+        data["release"] = self.release
+        data["dist"] = self.dist
+        data["platform"] = self.platform
+        data["message"] = self.message
+        data["datetime"] = self.datetime
+        data["tags"] = [(k.split("sentry:", 1)[-1], v) for (k, v) in self.tags]
+        for k, v in sorted(self.data.items()):
+            if k in data:
+                continue
+            if k == "sdk":
+                v = {v_k: v_v for v_k, v_v in v.items() if v_k != "client_ip"}
+            data[k] = v
+
+        # for a long time culprit was not persisted.  In those cases put
+        # the culprit in from the group.
+        if data.get("culprit") is None and self.group_id and self.group:
+            data["culprit"] = self.group.culprit
+
+        # Override title and location with dynamically generated data
+        data["title"] = self.title
+        data["location"] = self.location
+
+        return data
 
 
 def augment_message_with_occurrence(message: str, occurrence: IssueOccurrence) -> str:
