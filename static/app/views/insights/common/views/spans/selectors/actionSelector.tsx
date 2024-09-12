@@ -34,8 +34,8 @@ export function ActionSelector({value = '', moduleName, spanCategory, filters}: 
   const eventView = getEventView(location, moduleName, spanCategory);
 
   if (filters) {
-    Object.keys(filters).forEach(key =>
-      eventView.additionalConditions.addFilterValue(key, filters[key])
+    Object.entries(filters).forEach(([key, val]) =>
+      eventView.additionalConditions.addFilterValue(key, val)
     );
   }
 
