@@ -533,7 +533,7 @@ export const WidgetDescription = styled('small')`
 
 const WidgetTitle = styled(HeaderTitle)`
   ${p => p.theme.overflowEllipsis};
-  font-weight: ${p => p.theme.fontWeightNormal};
+  font-weight: ${p => p.theme.fontWeightBold};
 `;
 
 const WidgetHeaderWrapper = styled('div')`
