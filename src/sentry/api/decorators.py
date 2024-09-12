@@ -19,8 +19,11 @@ def is_considered_sudo(request: Request) -> bool:
         or is_api_key_auth(request.auth)
         or is_api_token_auth(request.auth)
         or is_org_auth_token_auth(request.auth)
-        or request.user.is_authenticated
-        and not request.user.has_usable_password()
+        or (
+            request.user.is_authenticated
+            and not isinstance(request.user, AnonymousUser)
+            and not request.user.has_usable_password()
+        )
     )
 
 
