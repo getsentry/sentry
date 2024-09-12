@@ -313,16 +313,16 @@ class BaseEvent(metaclass=abc.ABCMeta):
     def get_interface(self, name: str) -> Interface | None:
         return self.interfaces.get(name)
 
-    def get_event_metadata(self) -> Mapping[str, Any]:
+    def get_event_metadata(self) -> Mapping[str, Any] | None:
         """
         Return the metadata of this event.
 
         See ``sentry.eventtypes``.
         """
         # For some inexplicable reason we have some cases where the data
-        # is completely empty.  In that case we want to hobble along
+        # is completely empty. In that case we want to hobble along
         # further.
-        return self.data.get("metadata") or {}
+        return self.data.get("metadata")
 
     def get_grouping_config(self) -> GroupingConfig:
         """Returns the event grouping config."""
