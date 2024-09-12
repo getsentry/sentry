@@ -24,8 +24,6 @@ from sentry.grouping.api import (
 )
 from sentry.grouping.ingest.config import is_in_transition
 from sentry.grouping.ingest.metrics import record_hash_calculation_metrics
-from sentry.grouping.ingest.utils import extract_hashes
-from sentry.grouping.result import CalculatedHashes
 from sentry.models.grouphash import GroupHash
 from sentry.models.grouphashmetadata import GroupHashMetadata
 from sentry.models.project import Project
@@ -42,7 +40,7 @@ logger = logging.getLogger("sentry.events.grouping")
 
 def _calculate_event_grouping(
     project: Project, event: Event, grouping_config: GroupingConfig
-) -> CalculatedHashes:
+) -> list[str]:
     """
     Main entrypoint for modifying/enhancing and grouping an event, writes
     hashes back into event payload.
@@ -85,7 +83,6 @@ def _calculate_event_grouping(
                 event.data["grouping_config"] = get_grouping_config_dict_for_project(project)
                 hashes = event.get_hashes()
 
-        hashes.write_to_event(event.data)
         return hashes
 
 
@@ -108,7 +105,7 @@ def maybe_run_background_grouping(project: Project, job: Job) -> None:
 
 def _calculate_background_grouping(
     project: Project, event: Event, config: GroupingConfig
-) -> CalculatedHashes:
+) -> list[str]:
     metric_tags: MutableTags = {
         "grouping_config": config["id"],
         "platform": event.platform or "unknown",
@@ -120,7 +117,7 @@ def _calculate_background_grouping(
 
 def maybe_run_secondary_grouping(
     project: Project, job: Job, metric_tags: MutableTags
-) -> tuple[GroupingConfig, CalculatedHashes]:
+) -> tuple[GroupingConfig, list[str]]:
     """
     If the projct is in a grouping config transition phase, calculate a set of secondary hashes for
     the job's event.
@@ -139,7 +136,7 @@ def maybe_run_secondary_grouping(
 
 def _calculate_secondary_hash(
     project: Project, job: Job, secondary_grouping_config: GroupingConfig
-) -> CalculatedHashes:
+) -> list[str]:
     """Calculate secondary hash for event using a fallback grouping config for a period of time.
     This happens when we upgrade all projects that have not opted-out to automatic upgrades plus
     when the customer changes the grouping config.
@@ -165,7 +162,7 @@ def _calculate_secondary_hash(
 
 def run_primary_grouping(
     project: Project, job: Job, metric_tags: MutableTags
-) -> tuple[GroupingConfig, CalculatedHashes]:
+) -> tuple[GroupingConfig, list[str]]:
     """
     Get the primary grouping config and primary hashes for the event.
     """
@@ -187,7 +184,7 @@ def run_primary_grouping(
 
 def _calculate_primary_hash(
     project: Project, job: Job, grouping_config: GroupingConfig
-) -> CalculatedHashes:
+) -> list[str]:
     """
     Get the primary hash for the event.
 
@@ -220,7 +217,7 @@ def get_hash_values(
     project: Project,
     job: Job,
     metric_tags: MutableTags,
-) -> tuple[CalculatedHashes, CalculatedHashes | None, CalculatedHashes]:
+) -> tuple[list[str], list[str] | None, list[str]]:
     # Background grouping is a way for us to get performance metrics for a new
     # config without having it actually affect on how events are grouped. It runs
     # either before or after the main grouping logic, depending on the option value.
@@ -239,22 +236,17 @@ def get_hash_values(
         secondary_hashes,
     )
 
-    all_hashes = CalculatedHashes(
-        hashes=extract_hashes(primary_hashes) + extract_hashes(secondary_hashes),
-        # We don't set a combo `variants` value here because one set of variants would/could
-        # partially or fully overwrite the other (it's a dictionary), and having variants from two
-        # different configs all mixed in together makes no sense.
+    return (
+        primary_hashes,
+        secondary_hashes,
+        primary_hashes + secondary_hashes,
     )
 
-    return (primary_hashes, secondary_hashes, all_hashes)
 
-
-def get_or_create_grouphashes(
-    project: Project, calculated_hashes: CalculatedHashes
-) -> list[GroupHash]:
+def get_or_create_grouphashes(project: Project, hashes: Sequence[str]) -> list[GroupHash]:
     grouphashes = []
 
-    for hash_value in extract_hashes(calculated_hashes):
+    for hash_value in hashes:
         grouphash, created = GroupHash.objects.get_or_create(project=project, hash=hash_value)
 
         # TODO: Do we want to expand this to backfill metadata for existing grouphashes? If we do,

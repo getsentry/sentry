@@ -11,7 +11,6 @@ from sentry import audit_log
 from sentry.conf.server import SENTRY_GROUPING_UPDATE_MIGRATION_PHASE
 from sentry.event_manager import _get_updated_group_title
 from sentry.eventtypes.base import DefaultEvent
-from sentry.grouping.result import CalculatedHashes
 from sentry.models.auditlogentry import AuditLogEntry
 from sentry.models.group import Group
 from sentry.models.grouphash import GroupHash
@@ -535,11 +534,11 @@ def test_records_hash_comparison_metric(
 
     with mock.patch(
         "sentry.grouping.ingest.hashing._calculate_primary_hash",
-        return_value=CalculatedHashes(primary_hashes),
+        return_value=primary_hashes,
     ):
         with mock.patch(
             "sentry.grouping.ingest.hashing._calculate_secondary_hash",
-            return_value=CalculatedHashes(secondary_hashes),
+            return_value=secondary_hashes,
         ):
             save_new_event({"message": "Dogs are great!"}, project)
 

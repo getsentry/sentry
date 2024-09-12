@@ -8,7 +8,6 @@ from sentry.db.models.fields.node import NodeData, NodeIntegrityFailure
 from sentry.eventstore.models import Event, GroupEvent
 from sentry.grouping.api import GroupingConfig, get_grouping_variants_for_event
 from sentry.grouping.enhancer import Enhancements
-from sentry.grouping.result import CalculatedHashes
 from sentry.grouping.utils import hash_from_values
 from sentry.grouping.variants import ComponentVariant
 from sentry.interfaces.user import User
@@ -410,7 +409,7 @@ class EventTest(TestCase, PerformanceIssueTestCase):
             project_id=self.project.id,
         )
 
-        assert event.get_hashes() == CalculatedHashes(hashes)
+        assert event.get_hashes() == hashes
 
     def test_get_hashes_gets_hashes_and_variants_if_none_on_event(self):
         self.project.update_option("sentry:grouping_config", NEWSTYLE_GROUPING_CONFIG)

@@ -7,8 +7,6 @@ from typing import TYPE_CHECKING, Any
 from sentry import options
 from sentry.grouping.api import GroupingConfig
 from sentry.grouping.ingest.config import is_in_transition, project_uses_optimized_grouping
-from sentry.grouping.ingest.utils import extract_hashes
-from sentry.grouping.result import CalculatedHashes
 from sentry.models.project import Project
 from sentry.utils import metrics
 from sentry.utils.tag_normalization import normalized_sdk_tag_from_event
@@ -23,11 +21,11 @@ Job = MutableMapping[str, Any]
 
 def record_hash_calculation_metrics(
     primary_config: GroupingConfig,
-    primary_hashes: CalculatedHashes,
+    primary_hashes: list[str],
     secondary_config: GroupingConfig,
-    secondary_hashes: CalculatedHashes,
-) -> None:
-    has_secondary_hashes = len(extract_hashes(secondary_hashes)) > 0
+    secondary_hashes: list[str],
+):
+    has_secondary_hashes = len(secondary_hashes) > 0
 
     if has_secondary_hashes:
         tags = {
