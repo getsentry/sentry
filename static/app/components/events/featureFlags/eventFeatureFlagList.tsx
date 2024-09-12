@@ -38,7 +38,7 @@ export function EventFeatureFlagList({
   const viewAllButtonRef = useRef<HTMLButtonElement>(null);
 
   // Transform the flags array into something readable by the key-value component
-  const hydrateFlags = (flags: FeatureFlag[] | undefined) => {
+  const hydrateFlags = (flags: FeatureFlag[] | undefined): KeyValueDataContentProps[] => {
     if (!flags) {
       return [];
     }
@@ -140,7 +140,7 @@ export function EventFeatureFlagList({
   // Split the flags list into two columns for display
   const truncatedItems = sortedFlags.slice(0, 20);
   const columnOne = truncatedItems.slice(0, 10);
-  let columnTwo: any[] = [];
+  let columnTwo: typeof truncatedItems = [];
   if (truncatedItems.length > 10) {
     columnTwo = truncatedItems.slice(10, 20);
   }
