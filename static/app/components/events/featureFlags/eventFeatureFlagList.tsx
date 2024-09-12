@@ -58,12 +58,8 @@ export function EventFeatureFlagList({
     });
   };
 
-  let sortedFlags;
-  if (sortMethod === FlagSort.ALPHA) {
-    sortedFlags = handleSortAlphabetical(hydratedFlags);
-  } else {
-    sortedFlags = hydratedFlags;
-  }
+  const sortedFlags =
+    sortMethod === FlagSort.ALPHA ? handleSortAlphabetical(hydratedFlags) : hydratedFlags;
 
   const onViewAllFlags = useCallback(() => {
     openDrawer(

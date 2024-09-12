@@ -77,12 +77,8 @@ export function FeatureFlagDrawer({
     });
   };
 
-  let sortedFlags;
-  if (sortMethod === FlagSort.ALPHA) {
-    sortedFlags = handleSortAlphabetical(hydratedFlags);
-  } else {
-    sortedFlags = hydratedFlags;
-  }
+  const sortedFlags =
+    sortMethod === FlagSort.ALPHA ? handleSortAlphabetical(hydratedFlags) : hydratedFlags;
   const searchResults = sortedFlags.filter(f => f.item.key.includes(search));
 
   const actions = (
