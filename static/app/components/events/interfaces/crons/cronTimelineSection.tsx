@@ -25,7 +25,7 @@ import {
   GridLineOverlay,
 } from 'sentry/views/monitors/components/timeline/gridLines';
 import type {
-  MonitorBucketData,
+  MonitorBucket,
   TimeWindow,
 } from 'sentry/views/monitors/components/timeline/types';
 import {getConfigFromTimeRange} from 'sentry/views/monitors/components/timeline/utils/getConfigFromTimeRange';
@@ -55,7 +55,7 @@ export function CronTimelineSection({event, organization, project}: Props) {
   const rollup = Math.floor((timeWindowConfig.elapsedMinutes * 60) / timelineWidth);
 
   const monitorStatsQueryKey = `/organizations/${organization.slug}/monitors-stats/`;
-  const {data: monitorStats, isPending} = useApiQuery<Record<string, MonitorBucketData>>(
+  const {data: monitorStats, isPending} = useApiQuery<Record<string, MonitorBucket[]>>(
     [
       monitorStatsQueryKey,
       {
