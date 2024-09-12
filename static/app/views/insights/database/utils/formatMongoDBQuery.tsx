@@ -13,7 +13,7 @@ export function formatMongoDBQuery(query: string, command: string) {
 
   const tokens: ReactElement[] = [];
 
-  tokens.push(<span>{'{ '}</span>);
+  insertToken(tokens, '{ ');
 
   // Start by finding the key-value pair that represents the operation on the collection
   // and insert it as the first token
@@ -40,7 +40,7 @@ export function formatMongoDBQuery(query: string, command: string) {
 
   // Pop the last token since it will be an extra comma
   tokens.pop();
-  tokens.push(<span>{' }'}</span>);
+  insertToken(tokens, ' }');
 
   return tokens;
 }
@@ -54,69 +54,72 @@ function processAndInsertKeyValueTokens(
   // Use isBold only for non-object kv pairs
   isBold?: boolean
 ) {
+  // Wrapper function for better readability
+  const _insertToken = (token: string) => insertToken(tokens, token, isBold);
   // Case 1: Value is null
   if (!value) {
-    tokens.push(<span>{`"${key}": null`}</span>);
-    tokens.push(<span>{', '}</span>);
+    _insertToken(`"${key}": null`);
+    _insertToken(', ');
     return;
   }
 
   // Case 2: Value is a string
   if (typeof value === 'string') {
-    tokens.push(<span>{`"`}</span>);
-    isBold ? tokens.push(<b>{key}</b>) : tokens.push(<span>{key}</span>);
-    tokens.push(<span>{`": `}</span>);
+    _insertToken(`"`);
+    _insertToken(key);
+    _insertToken(`": `);
 
-    tokens.push(<span>{`"`}</span>);
-    isBold ? tokens.push(<b>{value}</b>) : tokens.push(<span>{value}</span>);
-    tokens.push(<span>{`"`}</span>);
-    tokens.push(<span>{', '}</span>);
+    _insertToken(`"`);
+    _insertToken(value);
+    _insertToken(`"`);
+    _insertToken(`, `);
     return;
   }
 
   // Case 3: Value is a number or boolean
   if (typeof value === 'number' || typeof value === 'boolean') {
-    tokens.push(<span>{`"${key}": ${value}`}</span>);
-    tokens.push(<span>{', '}</span>);
+    _insertToken(`"${key}": ${value}`);
+    _insertToken(', ');
     return;
   }
 
   // Case 4: Value is an array
   if (Array.isArray(value)) {
-    tokens.push(<span>{`"${key}": [`}</span>);
+    _insertToken(`"${key}": [`);
+
     value.forEach(item => {
       if (!item) {
-        tokens.push(<span>{'null'}</span>);
-        tokens.push(<span>{', '}</span>);
+        _insertToken('null');
+        _insertToken(', ');
       } else if (
         typeof item === 'string' ||
         typeof item === 'number' ||
         typeof item === 'boolean'
       ) {
-        tokens.push(<span>{`${item}`}</span>);
-        tokens.push(<span>{', '}</span>);
+        _insertToken(`${item}`);
+        _insertToken(', ');
       } else {
         // We must recurse if item is an object
         if (Object.keys(item).length === 0) {
           processAndInsertKeyValueTokens(tokens, key, '{}');
         } else {
-          tokens.push(<span>{`{ `}</span>);
+          _insertToken('{ ');
           Object.keys(item).forEach(_key => {
             processAndInsertKeyValueTokens(tokens, _key, item[_key]);
           });
           // Pop the trailing comma
           tokens.pop();
 
-          tokens.push(<span>{' }'}</span>);
-          tokens.push(<span>{', '}</span>);
+          _insertToken(' }');
+          _insertToken(', ');
         }
       }
     });
 
     // Pop the trailing comma
     tokens.pop();
-    tokens.push(<span>{' ]'}</span>);
-    tokens.push(<span>{', '}</span>);
+    _insertToken(' ]');
+    _insertToken(', ');
     return;
   }
 
@@ -125,17 +128,21 @@ function processAndInsertKeyValueTokens(
     if (Object.keys(value).length === 0) {
       processAndInsertKeyValueTokens(tokens, key, '{}');
     } else {
-      tokens.push(<span>{`"${key}": { `}</span>);
+      _insertToken(`"${key}": { `);
       Object.keys(value).forEach(_key => {
         processAndInsertKeyValueTokens(tokens, _key, value[_key]);
       });
       // Pop the trailing comma
       tokens.pop();
 
-      tokens.push(<span>{' }'}</span>);
-      tokens.push(<span>{', '}</span>);
+      _insertToken(' }');
+      _insertToken(', ');
     }
   }
 
   return;
+}
+
+function insertToken(tokens: ReactElement[], token: string, isBold?: boolean) {
+  isBold ? tokens.push(<b>{token}</b>) : tokens.push(<span>{token}</span>);
 }
