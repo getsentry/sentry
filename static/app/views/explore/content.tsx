@@ -1,6 +1,5 @@
-import {useCallback, useMemo} from 'react';
+import {useCallback} from 'react';
 import styled from '@emotion/styled';
-import type {Location} from 'history';
 
 import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
@@ -15,32 +14,33 @@ import {SpanSearchQueryBuilder} from 'sentry/components/performance/spanSearchQu
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {ALLOWED_EXPLORE_VISUALIZE_AGGREGATES} from 'sentry/utils/fields';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 
-import {useResultMode} from './hooks/useResultsMode';
 import {useUserQuery} from './hooks/useUserQuery';
+import {ExploreAttributesProvider, useExploreAttributes} from './attributes';
 import {ExploreCharts} from './charts';
 import {ExploreTables} from './tables';
 import {ExploreToolbar} from './toolbar';
 
-interface ExploreContentProps {
-  location: Location;
+export function ExploreContent() {
+  const {selection} = usePageFilters();
+
+  return (
+    <ExploreAttributesProvider pageFilters={selection}>
+      <ExploreContentInner />
+    </ExploreAttributesProvider>
+  );
 }
 
-export function ExploreContent({}: ExploreContentProps) {
+function ExploreContentInner() {
   const location = useLocation();
   const navigate = useNavigate();
   const organization = useOrganization();
   const {selection} = usePageFilters();
-  const [resultsMode] = useResultMode();
-
-  const supportedAggregates = useMemo(() => {
-    return resultsMode === 'aggregate' ? ALLOWED_EXPLORE_VISUALIZE_AGGREGATES : [];
-  }, [resultsMode]);
+  const attributes = useExploreAttributes();
 
   const [userQuery, setUserQuery] = useUserQuery();
 
@@ -83,11 +83,15 @@ export function ExploreContent({}: ExploreContentProps) {
                 <DatePageFilter />
               </PageFilterBar>
               <SpanSearchQueryBuilder
-                supportedAggregates={supportedAggregates}
                 projects={selection.projects}
                 initialQuery={userQuery}
                 onSearch={setUserQuery}
                 searchSource="explore"
+                builtinNumerics={attributes.builtinNumerics}
+                builtinStrings={attributes.builtinStrings}
+                customNumerics={attributes.customNumerics}
+                customStrings={attributes.customStrings}
+                functions={attributes.functions}
               />
             </FilterActions>
             <Side>

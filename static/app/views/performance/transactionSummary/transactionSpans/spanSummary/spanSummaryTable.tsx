@@ -6,7 +6,13 @@ import SearchBar from 'sentry/components/events/searchBar';
 import type {GridColumnHeader} from 'sentry/components/gridEditable';
 import GridEditable, {COL_WIDTH_UNDEFINED} from 'sentry/components/gridEditable';
 import Pagination, {type CursorHandler} from 'sentry/components/pagination';
-import {SpanSearchQueryBuilder} from 'sentry/components/performance/spanSearchQueryBuilder';
+import {
+  SpanSearchQueryBuilder,
+  useSpanBuiltinNumericTags,
+  useSpanBuiltinStringTags,
+  useSpanCustomNumericTags,
+  useSpanCustomStringTags,
+} from 'sentry/components/performance/spanSearchQueryBuilder';
 import {ROW_HEIGHT, ROW_PADDING} from 'sentry/components/performance/waterfall/constants';
 import PerformanceDuration from 'sentry/components/performanceDuration';
 import {Tooltip} from 'sentry/components/tooltip';
@@ -45,7 +51,6 @@ import {TraceViewSources} from 'sentry/views/performance/newTraceDetails/traceMe
 import {SpanDurationBar} from 'sentry/views/performance/transactionSummary/transactionSpans/spanDetails/spanDetailsTable';
 import {SpanSummaryReferrer} from 'sentry/views/performance/transactionSummary/transactionSpans/spanSummary/referrers';
 import {useSpanSummarySort} from 'sentry/views/performance/transactionSummary/transactionSpans/spanSummary/useSpanSummarySort';
-import {useSpanFieldSupportedTags} from 'sentry/views/performance/utils/useSpanFieldSupportedTags';
 
 import Tab from '../../tabs';
 
@@ -102,7 +107,6 @@ type Props = {
 export default function SpanSummaryTable(props: Props) {
   const {project} = props;
   const organization = useOrganization();
-  const supportedTags = useSpanFieldSupportedTags();
   const {spanSlug} = useParams();
   const navigate = useNavigate();
   const [spanOp, groupId] = spanSlug.split(':');
@@ -111,6 +115,20 @@ export default function SpanSummaryTable(props: Props) {
   const {transaction} = location.query;
   const spansCursor = decodeScalar(location.query?.[QueryParameterNames.SPANS_CURSOR]);
   const spansQuery = decodeScalar(location.query.spansQuery, '');
+
+  const builtinNumerics = useSpanBuiltinNumericTags();
+  const builtinStrings = useSpanBuiltinStringTags({});
+  const customNumerics = useSpanCustomNumericTags({});
+  const customStrings = useSpanCustomStringTags({});
+
+  const supportedTags = useMemo(() => {
+    return {
+      ...builtinNumerics,
+      ...builtinStrings,
+      ...customNumerics,
+      ...customStrings,
+    };
+  }, [builtinNumerics, builtinStrings, customNumerics, customStrings]);
 
   const filters: SpanMetricsQueryFilters = {
     'span.group': groupId,
@@ -231,6 +249,10 @@ export default function SpanSummaryTable(props: Props) {
           <SpanSearchQueryBuilder
             projects={projectIds}
             initialQuery={spansQuery}
+            builtinNumerics={builtinNumerics}
+            builtinStrings={builtinStrings}
+            customNumerics={customNumerics}
+            customStrings={customStrings}
             onSearch={handleSearch}
             searchSource="transaction_span_summary"
           />

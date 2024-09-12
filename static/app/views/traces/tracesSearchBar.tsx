@@ -1,8 +1,15 @@
+import {useMemo} from 'react';
 import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/button';
 import SearchBar from 'sentry/components/events/searchBar';
-import {SpanSearchQueryBuilder} from 'sentry/components/performance/spanSearchQueryBuilder';
+import {
+  SpanSearchQueryBuilder,
+  useSpanBuiltinNumericTags,
+  useSpanBuiltinStringTags,
+  useSpanCustomNumericTags,
+  useSpanCustomStringTags,
+} from 'sentry/components/performance/spanSearchQueryBuilder';
 import {IconAdd, IconClose} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -11,7 +18,6 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
-import {useSpanFieldSupportedTags} from 'sentry/views/performance/utils/useSpanFieldSupportedTags';
 
 interface TracesSearchBarProps {
   handleClearSearch: (index: number) => boolean;
@@ -38,9 +44,19 @@ export function TracesSearchBar({
   const canAddMoreQueries = queries.length <= 2;
   const localQueries = queries.length ? queries : [''];
 
-  // Since trace explorer permits cross project searches,
-  // autocompletion should also be cross projects.
-  const supportedTags = useSpanFieldSupportedTags();
+  const builtinNumerics = useSpanBuiltinNumericTags();
+  const builtinStrings = useSpanBuiltinStringTags({});
+  const customNumerics = useSpanCustomNumericTags({});
+  const customStrings = useSpanCustomStringTags({});
+
+  const supportedTags = useMemo(() => {
+    return {
+      ...builtinNumerics,
+      ...builtinStrings,
+      ...customNumerics,
+      ...customStrings,
+    };
+  }, [builtinNumerics, builtinStrings, customNumerics, customStrings]);
 
   return (
     <TraceSearchBarsContainer>
@@ -51,6 +67,10 @@ export function TracesSearchBar({
             <SpanSearchQueryBuilder
               projects={selection.projects}
               initialQuery={query}
+              builtinNumerics={builtinNumerics}
+              builtinStrings={builtinStrings}
+              customNumerics={customNumerics}
+              customStrings={customStrings}
               onSearch={(queryString: string) => handleSearch(index, queryString)}
               searchSource="trace-explorer"
             />

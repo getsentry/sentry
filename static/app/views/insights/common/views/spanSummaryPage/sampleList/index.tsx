@@ -8,7 +8,13 @@ import ProjectAvatar from 'sentry/components/avatar/projectAvatar';
 import SearchBar from 'sentry/components/events/searchBar';
 import {COL_WIDTH_UNDEFINED} from 'sentry/components/gridEditable';
 import Link from 'sentry/components/links/link';
-import {SpanSearchQueryBuilder} from 'sentry/components/performance/spanSearchQueryBuilder';
+import {
+  SpanSearchQueryBuilder,
+  useSpanBuiltinNumericTags,
+  useSpanBuiltinStringTags,
+  useSpanCustomNumericTags,
+  useSpanCustomStringTags,
+} from 'sentry/components/performance/spanSearchQueryBuilder';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -35,7 +41,6 @@ import {
   SpanMetricsField,
   type SubregionCode,
 } from 'sentry/views/insights/types';
-import {useSpanFieldSupportedTags} from 'sentry/views/performance/utils/useSpanFieldSupportedTags';
 
 const {HTTP_RESPONSE_CONTENT_LENGTH, SPAN_DESCRIPTION} = SpanMetricsField;
 
@@ -85,7 +90,19 @@ export function SampleList({
   const {projects} = useProjects();
 
   const spanSearchQuery = decodeScalar(location.query.spanSearchQuery);
-  const supportedTags = useSpanFieldSupportedTags();
+  const builtinNumerics = useSpanBuiltinNumericTags();
+  const builtinStrings = useSpanBuiltinStringTags({});
+  const customNumerics = useSpanCustomNumericTags({});
+  const customStrings = useSpanCustomStringTags({});
+
+  const supportedTags = useMemo(() => {
+    return {
+      ...builtinNumerics,
+      ...builtinStrings,
+      ...customNumerics,
+      ...customStrings,
+    };
+  }, [builtinNumerics, builtinStrings, customNumerics, customStrings]);
 
   const project = useMemo(
     () => projects.find(p => p.id === String(location.query.project)),
@@ -229,6 +246,10 @@ export function SampleList({
             <SpanSearchQueryBuilder
               projects={selection.projects}
               initialQuery={spanSearchQuery ?? ''}
+              builtinNumerics={builtinNumerics}
+              builtinStrings={builtinStrings}
+              customNumerics={customNumerics}
+              customStrings={customStrings}
               onSearch={handleSearch}
               placeholder={t('Search for span attributes')}
               searchSource={`${moduleName}-sample-panel`}

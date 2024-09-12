@@ -1,4 +1,4 @@
-import {Fragment, useCallback} from 'react';
+import {Fragment, useCallback, useMemo} from 'react';
 import styled from '@emotion/styled';
 import * as qs from 'query-string';
 
@@ -7,7 +7,13 @@ import {Button} from 'sentry/components/button';
 import {CompactSelect} from 'sentry/components/compactSelect';
 import SearchBar from 'sentry/components/events/searchBar';
 import Link from 'sentry/components/links/link';
-import {SpanSearchQueryBuilder} from 'sentry/components/performance/spanSearchQueryBuilder';
+import {
+  SpanSearchQueryBuilder,
+  useSpanBuiltinNumericTags,
+  useSpanBuiltinStringTags,
+  useSpanCustomNumericTags,
+  useSpanCustomStringTags,
+} from 'sentry/components/performance/spanSearchQueryBuilder';
 import {SegmentedControl} from 'sentry/components/segmentedControl';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -65,7 +71,6 @@ import {
   type SpanMetricsQueryFilters,
 } from 'sentry/views/insights/types';
 import {TraceViewSources} from 'sentry/views/performance/newTraceDetails/traceMetadataHeader';
-import {useSpanFieldSupportedTags} from 'sentry/views/performance/utils/useSpanFieldSupportedTags';
 
 export function HTTPSamplesPanel() {
   const navigate = useNavigate();
@@ -88,7 +93,20 @@ export function HTTPSamplesPanel() {
 
   const {projects} = useProjects();
   const {selection} = usePageFilters();
-  const supportedTags = useSpanFieldSupportedTags();
+
+  const builtinNumerics = useSpanBuiltinNumericTags();
+  const builtinStrings = useSpanBuiltinStringTags({});
+  const customNumerics = useSpanCustomNumericTags({});
+  const customStrings = useSpanCustomStringTags({});
+
+  const supportedTags = useMemo(() => {
+    return {
+      ...builtinNumerics,
+      ...builtinStrings,
+      ...customNumerics,
+      ...customStrings,
+    };
+  }, [builtinNumerics, builtinStrings, customNumerics, customStrings]);
 
   const project = projects.find(p => query.project === p.id);
 
@@ -485,6 +503,10 @@ export function HTTPSamplesPanel() {
               <SpanSearchQueryBuilder
                 projects={selection.projects}
                 initialQuery={query.spanSearchQuery}
+                builtinNumerics={builtinNumerics}
+                builtinStrings={builtinStrings}
+                customNumerics={customNumerics}
+                customStrings={customStrings}
                 onSearch={handleSearch}
                 placeholder={t('Search for span attributes')}
                 searchSource={`${ModuleName.HTTP}-sample-panel`}

@@ -14,7 +14,7 @@ const DATASET_TO_FIELDS = {
   [DiscoverDatasets.SPANS_METRICS]: SpanMetricsField,
 };
 
-const getSpanFieldSupportedTags = (
+export const getSpanFieldSupportedTags = (
   excludedTags,
   dataset: DiscoverDatasets.SPANS_INDEXED | DiscoverDatasets.SPANS_METRICS
 ) => {

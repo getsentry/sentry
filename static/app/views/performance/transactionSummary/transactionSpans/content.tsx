@@ -11,7 +11,13 @@ import {EnvironmentPageFilter} from 'sentry/components/organizations/environment
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import Pagination from 'sentry/components/pagination';
-import {SpanSearchQueryBuilder} from 'sentry/components/performance/spanSearchQueryBuilder';
+import {
+  SpanSearchQueryBuilder,
+  useSpanBuiltinNumericTags,
+  useSpanBuiltinStringTags,
+  useSpanCustomNumericTags,
+  useSpanCustomStringTags,
+} from 'sentry/components/performance/spanSearchQueryBuilder';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
@@ -26,7 +32,6 @@ import {VisuallyCompleteWithData} from 'sentry/utils/performanceForSentry';
 import {decodeScalar} from 'sentry/utils/queryString';
 import useProjects from 'sentry/utils/useProjects';
 import SpanMetricsTable from 'sentry/views/performance/transactionSummary/transactionSpans/spanMetricsTable';
-import {useSpanMetricsFieldSupportedTags} from 'sentry/views/performance/utils/useSpanFieldSupportedTags';
 
 import type {SetStateAction} from '../types';
 
@@ -67,6 +72,11 @@ type Props = {
 function SpansContent(props: Props) {
   const {location, organization, eventView, projectId, transactionName} = props;
   const query = decodeScalar(location.query.query, '');
+
+  const builtinNumerics = useSpanBuiltinNumericTags();
+  const builtinStrings = useSpanBuiltinStringTags({});
+  const customNumerics = useSpanCustomNumericTags({});
+  const customStrings = useSpanCustomStringTags({});
 
   const handleChange = useCallback(
     (key: string) => {
@@ -136,6 +146,10 @@ function SpansContent(props: Props) {
             <SpanSearchQueryBuilder
               projects={projectIds}
               initialQuery={query}
+              builtinNumerics={builtinNumerics}
+              builtinStrings={builtinStrings}
+              customNumerics={customNumerics}
+              customStrings={customStrings}
               onSearch={onSearch}
               searchSource="transaction_spans"
             />
@@ -210,10 +224,23 @@ function SpansContent(props: Props) {
 // TODO: Temporary component while we make the switch to spans only. Will fully replace the old Spans tab when GA'd
 function SpansContentV2(props: Props) {
   const {location, organization, eventView, projectId, transactionName} = props;
-  const supportedTags = useSpanMetricsFieldSupportedTags();
   const {projects} = useProjects();
   const project = projects.find(p => p.id === projectId);
   const spansQuery = decodeScalar(location.query.spansQuery, '');
+
+  const builtinNumerics = useSpanBuiltinNumericTags();
+  const builtinStrings = useSpanBuiltinStringTags({});
+  const customNumerics = useSpanCustomNumericTags({});
+  const customStrings = useSpanCustomStringTags({});
+
+  const supportedTags = useMemo(() => {
+    return {
+      ...builtinNumerics,
+      ...builtinStrings,
+      ...customNumerics,
+      ...customStrings,
+    };
+  }, [builtinNumerics, builtinStrings, customNumerics, customStrings]);
 
   const handleChange = useCallback(
     (key: string) => {
@@ -262,6 +289,10 @@ function SpansContentV2(props: Props) {
           <SpanSearchQueryBuilder
             projects={projectIds}
             initialQuery={spansQuery}
+            builtinNumerics={builtinNumerics}
+            builtinStrings={builtinStrings}
+            customNumerics={customNumerics}
+            customStrings={customStrings}
             onSearch={onSearch}
             searchSource="transaction_spans"
           />

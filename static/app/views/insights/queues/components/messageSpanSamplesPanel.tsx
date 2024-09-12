@@ -1,4 +1,4 @@
-import {useCallback} from 'react';
+import {useCallback, useMemo} from 'react';
 import styled from '@emotion/styled';
 import * as qs from 'query-string';
 
@@ -7,7 +7,13 @@ import {Button} from 'sentry/components/button';
 import {CompactSelect, type SelectOption} from 'sentry/components/compactSelect';
 import SearchBar from 'sentry/components/events/searchBar';
 import Link from 'sentry/components/links/link';
-import {SpanSearchQueryBuilder} from 'sentry/components/performance/spanSearchQueryBuilder';
+import {
+  SpanSearchQueryBuilder,
+  useSpanBuiltinNumericTags,
+  useSpanBuiltinStringTags,
+  useSpanCustomNumericTags,
+  useSpanCustomStringTags,
+} from 'sentry/components/performance/spanSearchQueryBuilder';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -51,7 +57,6 @@ import {
   SpanIndexedField,
   type SpanMetricsResponse,
 } from 'sentry/views/insights/types';
-import {useSpanFieldSupportedTags} from 'sentry/views/performance/utils/useSpanFieldSupportedTags';
 import {Subtitle} from 'sentry/views/profiling/landing/styles';
 
 export function MessageSpanSamplesPanel() {
@@ -70,12 +75,20 @@ export function MessageSpanSamplesPanel() {
   });
   const {projects} = useProjects();
   const {selection} = usePageFilters();
-  const supportedTags = useSpanFieldSupportedTags({
-    excludedTags: [
-      SpanIndexedField.TRACE_STATUS,
-      SpanIndexedField.MESSAGING_MESSAGE_RETRY_COUNT,
-    ],
-  });
+
+  const builtinNumerics = useSpanBuiltinNumericTags();
+  const builtinStrings = useSpanBuiltinStringTags({});
+  const customNumerics = useSpanCustomNumericTags({});
+  const customStrings = useSpanCustomStringTags({});
+
+  const supportedTags = useMemo(() => {
+    return {
+      ...builtinNumerics,
+      ...builtinStrings,
+      ...customNumerics,
+      ...customStrings,
+    };
+  }, [builtinNumerics, builtinStrings, customNumerics, customStrings]);
 
   const project = projects.find(p => query.project === p.id);
 
@@ -370,6 +383,10 @@ export function MessageSpanSamplesPanel() {
               <SpanSearchQueryBuilder
                 searchSource={`${ModuleName.QUEUE}-sample-panel`}
                 initialQuery={query.spanSearchQuery}
+                builtinNumerics={builtinNumerics}
+                builtinStrings={builtinStrings}
+                customNumerics={customNumerics}
+                customStrings={customStrings}
                 onSearch={handleSearch}
                 placeholder={t('Search for span attributes')}
                 projects={selection.projects}

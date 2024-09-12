@@ -1,11 +1,17 @@
-import {Fragment, useCallback, useState} from 'react';
+import {Fragment, useCallback, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 import debounce from 'lodash/debounce';
 
 import SearchBar from 'sentry/components/events/searchBar';
 import {COL_WIDTH_UNDEFINED} from 'sentry/components/gridEditable';
 import Link from 'sentry/components/links/link';
-import {SpanSearchQueryBuilder} from 'sentry/components/performance/spanSearchQueryBuilder';
+import {
+  SpanSearchQueryBuilder,
+  useSpanBuiltinNumericTags,
+  useSpanBuiltinStringTags,
+  useSpanCustomNumericTags,
+  useSpanCustomStringTags,
+} from 'sentry/components/performance/spanSearchQueryBuilder';
 import {Tooltip} from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -32,9 +38,7 @@ import {
   SpanMetricsField,
   type SpanMetricsQueryFilters,
 } from 'sentry/views/insights/types';
-import {useSpanFieldSupportedTags} from 'sentry/views/performance/utils/useSpanFieldSupportedTags';
-
-import {TraceViewSources} from '../../../../performance/newTraceDetails/traceMetadataHeader';
+import {TraceViewSources} from 'sentry/views/performance/newTraceDetails/traceMetadataHeader';
 
 const {SPAN_SELF_TIME, SPAN_OP} = SpanMetricsField;
 
@@ -70,7 +74,20 @@ export function SpanSamplesContainer({
 
   const organization = useOrganization();
   const {selection} = usePageFilters();
-  const supportedTags = useSpanFieldSupportedTags();
+
+  const builtinNumerics = useSpanBuiltinNumericTags();
+  const builtinStrings = useSpanBuiltinStringTags({});
+  const customNumerics = useSpanCustomNumericTags({});
+  const customStrings = useSpanCustomStringTags({});
+
+  const supportedTags = useMemo(() => {
+    return {
+      ...builtinNumerics,
+      ...builtinStrings,
+      ...customNumerics,
+      ...customStrings,
+    };
+  }, [builtinNumerics, builtinStrings, customNumerics, customStrings]);
 
   const searchQuery =
     searchQueryKey !== undefined
@@ -203,6 +220,10 @@ export function SpanSamplesContainer({
           <SpanSearchQueryBuilder
             searchSource={`${moduleName}-sample-panel`}
             initialQuery={searchQuery ?? ''}
+            builtinNumerics={builtinNumerics}
+            builtinStrings={builtinStrings}
+            customNumerics={customNumerics}
+            customStrings={customStrings}
             onSearch={handleSearch}
             placeholder={t('Search for span attributes')}
             projects={selection.projects}
