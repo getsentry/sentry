@@ -641,18 +641,6 @@ class Event(BaseEvent):
     def for_group(self, group: Group) -> GroupEvent:
         return GroupEvent.from_event(self, group)
 
-    def get_email_subject(self) -> str:
-        template = self.project.get_option("mail:subject_template")
-        if template:
-            template = EventSubjectTemplate(template)
-        elif self.group and self.group.issue_category == GroupCategory.PERFORMANCE:
-            template = EventSubjectTemplate("$shortID - $issueType")
-        else:
-            template = DEFAULT_SUBJECT_TEMPLATE
-        return cast(
-            str, truncatechars(template.safe_substitute(EventSubjectTemplateData(self)), 128)
-        )
-
 
 class GroupEvent(BaseEvent):
     def __init__(
@@ -770,6 +758,18 @@ class GroupEvent(BaseEvent):
         data["location"] = self.location
 
         return data
+
+    def get_email_subject(self) -> str:
+        template = self.project.get_option("mail:subject_template")
+        if template:
+            template = EventSubjectTemplate(template)
+        elif self.group and self.group.issue_category == GroupCategory.PERFORMANCE:
+            template = EventSubjectTemplate("$shortID - $issueType")
+        else:
+            template = DEFAULT_SUBJECT_TEMPLATE
+        return cast(
+            str, truncatechars(template.safe_substitute(EventSubjectTemplateData(self)), 128)
+        )
 
 
 def augment_message_with_occurrence(message: str, occurrence: IssueOccurrence) -> str:
