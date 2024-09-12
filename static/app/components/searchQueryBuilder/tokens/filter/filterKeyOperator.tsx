@@ -57,6 +57,8 @@ interface OperatorProps {
   middle?: boolean;
 }
 
+const MENU_OFFSET = [0, 12] as [number, number];
+
 const OP_LABELS = {
   [TermOperator.DEFAULT]: 'is',
   [TermOperator.GREATER_THAN]: '>',
@@ -319,6 +321,7 @@ function OperatorSelect({
           op: option.value,
         });
       }}
+      offset={MENU_OFFSET}
     />
   );
 }
