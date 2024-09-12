@@ -224,6 +224,14 @@ function tokenSupportsMultipleValues(
   }
 }
 
+// Filters support wildcards if they are string filters and it is not explicity disallowed
+function keySupportsWildcard(fieldDefinition: FieldDefinition | null) {
+  const isStringFilter =
+    !fieldDefinition || fieldDefinition?.valueType === FieldValueType.STRING;
+
+  return isStringFilter && fieldDefinition?.allowWildcard !== false;
+}
+
 function useSelectionIndex({
   inputRef,
   inputValue,
@@ -450,6 +458,7 @@ export function SearchQueryBuilderValueCombobox({
     dispatch,
     searchSource,
     recentSearches,
+    disallowWildcard,
     wrapperRef: topLevelWrapperRef,
   } = useSearchQueryBuilder();
   const keyName = getKeyName(token.key);
@@ -459,6 +468,7 @@ export function SearchQueryBuilderValueCombobox({
     filterKeys,
     fieldDefinition
   );
+  const canUseWildard = disallowWildcard ? false : keySupportsWildcard(fieldDefinition);
   const [inputValue, setInputValue] = useState(() =>
     getInitialInputValue(token, canSelectMultipleValues)
   );
@@ -721,6 +731,7 @@ export function SearchQueryBuilderValueCombobox({
               {...props}
               isMultiSelect={canSelectMultipleValues}
               items={items}
+              canUseWildcard={canUseWildard}
             />
           );
         };
@@ -759,6 +770,7 @@ export function SearchQueryBuilderValueCombobox({
       showDatePicker,
       canSelectMultipleValues,
       items,
+      canUseWildard,
       inputValue,
       token,
       analyticsData,

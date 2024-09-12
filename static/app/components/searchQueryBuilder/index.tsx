@@ -213,6 +213,7 @@ export function SearchQueryBuilder({
     return {
       ...state,
       disabled,
+      disallowWildcard: Boolean(disallowWildcard),
       parsedQuery,
       filterKeySections: filterKeySections ?? [],
       filterKeyMenuWidth,
@@ -230,6 +231,7 @@ export function SearchQueryBuilder({
   }, [
     state,
     disabled,
+    disallowWildcard,
     parsedQuery,
     filterKeySections,
     filterKeyMenuWidth,
