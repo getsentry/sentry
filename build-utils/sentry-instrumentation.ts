@@ -6,14 +6,7 @@ import https from 'node:https';
 import os from 'node:os';
 import type webpack from 'webpack';
 
-const {
-  NODE_ENV,
-  SENTRY_INSTRUMENTATION,
-  SENTRY_WEBPACK_WEBHOOK_SECRET,
-  GITHUB_SHA,
-  GITHUB_REF,
-  SENTRY_DEV_UI_PROFILING,
-} = process.env;
+const {NODE_ENV, SENTRY_WEBPACK_WEBHOOK_SECRET, GITHUB_SHA, GITHUB_REF} = process.env;
 
 const IS_CI = !!GITHUB_SHA;
 
@@ -25,60 +18,54 @@ const createSignature = function (secret: string, payload: string) {
   return `sha1=${hmac.update(payload).digest('hex')}`;
 };
 
-const INCREMENTAL_BUILD_TXN = 'incremental-build';
-const INITIAL_BUILD_TXN = 'initial-build';
-
 class SentryInstrumentation {
   hasInitializedBuild: boolean = false;
-
   Sentry?: typeof Sentry;
-
   span?: Span;
 
   constructor() {
-    // Only run if SENTRY_INSTRUMENTATION` is set or when in ci,
-    // only in the javascript suite that runs webpack
-    if (!SENTRY_INSTRUMENTATION && !SENTRY_DEV_UI_PROFILING) {
-      return;
-    }
-
-    const sentry = require('@sentry/node') as typeof Sentry;
+    this.Sentry = require('@sentry/node') as typeof Sentry;
     const {nodeProfilingIntegration} = require('@sentry/profiling-node');
+    let profiler_id;
 
-    sentry.init({
-      dsn: 'https://3d282d186d924374800aa47006227ce9@sentry.io/2053674',
+    this.Sentry.init({
+      dsn: 'https://07898f7cdd56ebabb2761c0fb54578a1@o87286.ingest.us.sentry.io/4507936144031744',
       environment: IS_CI ? 'ci' : 'local',
       tracesSampleRate: 1.0,
+      debug: true,
       integrations: [nodeProfilingIntegration()],
-      profilesSampler: ({transactionContext}) => {
-        if (transactionContext.name === INCREMENTAL_BUILD_TXN) {
-          return 0;
-        }
-        return 1;
-      },
-      _experiments: {
-        // 5 minutes should be plenty
-        maxProfileDurationMs: 5 * 60 * 1000,
+      beforeSendTransaction(transaction) {
+        //  @ts-ignore
+        transaction.contexts.profile = {};
+        //  @ts-ignore
+        transaction.contexts.profile = {profiler_id};
+        return transaction;
       },
     });
 
+    const profilingIntegration =
+      this.Sentry.getClient()?.getIntegrationByName('ProfilingIntegration');
+    // @ts-expect-error
+    profiler_id = profilingIntegration._profiler._profilerId;
+
+    this.Sentry.profiler.startProfiler();
+
     if (IS_CI) {
-      sentry.setTag('branch', GITHUB_REF);
+      this.Sentry.setTag('branch', GITHUB_REF);
     }
 
     const cpus = os.cpus();
-    sentry.setTag('platform', os.platform());
-    sentry.setTag('arch', os.arch());
-    sentry.setTag(
+    this.Sentry.setTag('platform', os.platform());
+    this.Sentry.setTag('arch', os.arch());
+    this.Sentry.setTag(
       'cpu',
       cpus?.length ? `${cpus[0].model} (cores: ${cpus.length})}` : 'N/A'
     );
 
-    this.Sentry = sentry;
-
-    this.span = sentry.startInactiveSpan({
+    this.span = this.Sentry.startInactiveSpan({
       op: 'webpack-build',
-      name: INITIAL_BUILD_TXN,
+      name: 'initial-build',
+      forceTransaction: true,
     });
   }
 
@@ -135,7 +122,7 @@ class SentryInstrumentation {
       ? this.span
       : this.Sentry.startInactiveSpan({
           op: 'webpack-build',
-          name: INCREMENTAL_BUILD_TXN,
+          name: 'incremental-build',
           startTime,
         });
 
@@ -174,6 +161,8 @@ class SentryInstrumentation {
         }
 
         if (this.Sentry) {
+          console.log(this.Sentry.getGlobalScope());
+          this.Sentry.profiler.stopProfiler();
           this.measureBuildTime(startTime / 1000, endTime / 1000);
           await this.Sentry.flush();
         }
