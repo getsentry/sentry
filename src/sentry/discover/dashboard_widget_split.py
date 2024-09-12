@@ -3,6 +3,7 @@ from datetime import datetime
 
 import sentry_sdk
 
+from sentry import features
 from sentry.constants import ObjectStatus
 from sentry.discover.dataset_split import (
     SplitDataset,
@@ -11,7 +12,6 @@ from sentry.discover.dataset_split import (
     _get_field_list,
     _get_snuba_dataclass,
 )
-from sentry.dynamic_sampling.tasks.utils import has_dynamic_sampling
 from sentry.exceptions import IncompatibleMetricsQuery
 from sentry.models.dashboard import Dashboard
 from sentry.models.dashboard_widget import (
@@ -34,7 +34,7 @@ logger = logging.getLogger("sentry.tasks.split_discover_query_dataset")
 
 SPLIT_DATASET_TO_DASHBOARDS_DATASET_MAP = {
     SplitDataset.Errors: DashboardWidgetTypes.ERROR_EVENTS,
-    SplitDataset.Errors: DashboardWidgetTypes.TRANSACTION_LIKE,
+    SplitDataset.Transactions: DashboardWidgetTypes.TRANSACTION_LIKE,
 }
 
 
@@ -42,14 +42,15 @@ def _get_snuba_dataclass_for_dashboard_widget(
     widget: DashboardWidget, projects: list[Project]
 ) -> SnubaParams:
     dashboard = widget.dashboard
+    filters = dashboard.filters
     start: datetime | None = None
     end: datetime | None = None
-    if "start" and "end" in dashboard.filters:
-        start = parse_timestamp(dashboard.filters["start"])
-        end = parse_timestamp(dashboard.filters["end"])
+    if filters and "start" and "end" in filters:
+        start = parse_timestamp(filters["start"])
+        end = parse_timestamp(filters["end"])
 
-    environment = dashboard.filters.get("environment", [])
-    period = dashboard.filters.get("period")
+    environment = filters.get("environment", []) if filters else []
+    period = filters.get("period") if filters else []
 
     return _get_snuba_dataclass(dashboard.organization, projects, start, end, period, environment)
 
@@ -126,7 +127,10 @@ def _get_and_save_split_decision_for_dashboard_widget(
             )
         return dataset_inferred_from_query, False
 
-    if has_dynamic_sampling(dashboard.organization):
+    if (
+        features.has("organizations:dynamic-sampling", dashboard.organization, actor=None)
+        and not equations
+    ):
         try:
             metrics_query(
                 selected_columns,

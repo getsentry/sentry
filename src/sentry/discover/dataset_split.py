@@ -43,7 +43,7 @@ class SplitDataset(Enum):
 
 SPLIT_DATASET_TO_DISCOVER_DATASET_MAP = {
     SplitDataset.Errors: DiscoverSavedQueryTypes.ERROR_EVENTS,
-    SplitDataset.Errors: DiscoverSavedQueryTypes.TRANSACTION_LIKE,
+    SplitDataset.Transactions: DiscoverSavedQueryTypes.TRANSACTION_LIKE,
 }
 
 TRANSACTION_ONLY_FIELDS = [
