@@ -1,5 +1,5 @@
 ---
-created: '2024-09-10T23:35:41.229560+00:00'
+created: '2024-09-11T23:30:42.760239+00:00'
 creator: sentry
 source: tests/sentry/backup/test_comparators.py
 ---
@@ -1636,3 +1636,12 @@ source: tests/sentry/backup/test_comparators.py
     fields:
     - organization
   model_name: workflow_engine.workflow
+- comparators:
+  - class: DateUpdatedComparator
+    fields:
+    - date_added
+    - date_updated
+  - class: ForeignKeyComparator
+    fields:
+    - workflow
+  model_name: workflow_engine.workflowaction

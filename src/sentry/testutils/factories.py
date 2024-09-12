@@ -170,7 +170,7 @@ from sentry.users.models.userrole import UserRole
 from sentry.users.services.user import RpcUser
 from sentry.utils import loremipsum
 from sentry.utils.performance_issues.performance_problem import PerformanceProblem
-from sentry.workflow_engine.models import DataSource, Detector, Workflow
+from sentry.workflow_engine.models import DataSource, Detector, Workflow, WorkflowAction
 from social_auth.models import UserSocialAuth
 
 
@@ -2044,6 +2044,16 @@ class Factories:
         if name is None:
             name = petname.generate(2, " ", letters=10).title()
         return Workflow.objects.create(organization=organization, name=name)
+
+    @staticmethod
+    @assume_test_silo_mode(SiloMode.REGION)
+    def create_workflowaction(
+        workflow: Workflow | None = None,
+        **kwargs,
+    ) -> WorkflowAction:
+        if workflow is None:
+            workflow = Factories.create_workflow()
+        return WorkflowAction.objects.create(workflow=workflow, **kwargs)
 
     @staticmethod
     @assume_test_silo_mode(SiloMode.REGION)
