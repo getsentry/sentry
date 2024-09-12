@@ -457,7 +457,7 @@ function SearchQueryBuilderComboboxInner<T extends SelectOptionOrSectionWithKey<
     type: 'listbox',
     isOpen,
     position: 'bottom-start',
-    offset: [-12, 8],
+    offset: [-12, 12],
     isKeyboardDismissDisabled: true,
     shouldCloseOnBlur: true,
     shouldCloseOnInteractOutside: el => {

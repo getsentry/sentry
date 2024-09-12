@@ -144,6 +144,7 @@ function maybeFocusRow(
 interface TraceProps {
   forceRerender: number;
   initializedRef: React.MutableRefObject<boolean>;
+  isEmbedded: boolean;
   manager: VirtualizedViewManager;
   onRowClick: (
     node: TraceTreeNode<TraceTree.NodeValue>,
@@ -188,6 +189,7 @@ export function Trace({
   initializedRef,
   forceRerender,
   trace_id,
+  isEmbedded,
 }: TraceProps) {
   const theme = useTheme();
   const api = useApi();
@@ -455,6 +457,7 @@ export function Trace({
           onRowKeyDown={onRowKeyDown}
           tree={trace}
           trace_id={trace_id}
+          isEmbedded={isEmbedded}
         />
       );
     },
@@ -584,6 +587,7 @@ export function Trace({
 
 function RenderRow(props: {
   index: number;
+  isEmbedded: boolean;
   isSearchResult: boolean;
   manager: VirtualizedViewManager;
   node: TraceTreeNode<TraceTree.NodeValue>;
@@ -701,7 +705,7 @@ function RenderRow(props: {
       <div
         key={props.index}
         ref={r =>
-          props.tabIndex === 0
+          props.tabIndex === 0 && !props.isEmbedded
             ? maybeFocusRow(r, props.node, props.previouslyFocusedNodeRef)
             : null
         }
@@ -769,7 +773,7 @@ function RenderRow(props: {
       <div
         key={props.index}
         ref={r =>
-          props.tabIndex === 0
+          props.tabIndex === 0 && !props.isEmbedded
             ? maybeFocusRow(r, props.node, props.previouslyFocusedNodeRef)
             : null
         }
@@ -858,7 +862,7 @@ function RenderRow(props: {
       <div
         key={props.index}
         ref={r =>
-          props.tabIndex === 0
+          props.tabIndex === 0 && !props.isEmbedded
             ? maybeFocusRow(r, props.node, props.previouslyFocusedNodeRef)
             : null
         }
@@ -944,7 +948,7 @@ function RenderRow(props: {
       <div
         key={props.index}
         ref={r =>
-          props.tabIndex === 0
+          props.tabIndex === 0 && !props.isEmbedded
             ? maybeFocusRow(r, props.node, props.previouslyFocusedNodeRef)
             : null
         }
@@ -994,7 +998,7 @@ function RenderRow(props: {
       <div
         key={props.index}
         ref={r =>
-          props.tabIndex === 0
+          props.tabIndex === 0 && !props.isEmbedded
             ? maybeFocusRow(r, props.node, props.previouslyFocusedNodeRef)
             : null
         }
@@ -1069,7 +1073,7 @@ function RenderRow(props: {
       <div
         key={props.index}
         ref={r =>
-          props.tabIndex === 0
+          props.tabIndex === 0 && !props.isEmbedded
             ? maybeFocusRow(r, props.node, props.previouslyFocusedNodeRef)
             : null
         }

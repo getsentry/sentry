@@ -8,6 +8,7 @@ import {useSampleFields} from 'sentry/views/explore/hooks/useSampleFields';
 import {useSorts} from 'sentry/views/explore/hooks/useSorts';
 import {useVisualizes} from 'sentry/views/explore/hooks/useVisualizes';
 import {ExploreToolbar} from 'sentry/views/explore/toolbar';
+import {ChartType} from 'sentry/views/insights/common/components/chart';
 import {RouteContext} from 'sentry/views/routeContext';
 
 function renderWithRouter(component) {
@@ -105,43 +106,57 @@ describe('ExploreToolbar', function () {
     const section = screen.getByTestId('section-visualizes');
 
     // this is the default
-    expect(visualizes).toEqual([{yAxes: ['count(span.duration)']}]);
+    expect(visualizes).toEqual([
+      {yAxes: ['count(span.duration)'], chartType: ChartType.LINE},
+    ]);
 
     // try changing the field
     await userEvent.click(within(section).getByRole('button', {name: 'span.duration'}));
     await userEvent.click(within(section).getByRole('option', {name: 'span.self_time'}));
-    expect(visualizes).toEqual([{yAxes: ['count(span.self_time)']}]);
+    expect(visualizes).toEqual([
+      {yAxes: ['count(span.self_time)'], chartType: ChartType.LINE},
+    ]);
 
     // try changing the aggregate
     await userEvent.click(within(section).getByRole('button', {name: 'count'}));
     await userEvent.click(within(section).getByRole('option', {name: 'avg'}));
-    expect(visualizes).toEqual([{yAxes: ['avg(span.self_time)']}]);
+    expect(visualizes).toEqual([
+      {yAxes: ['avg(span.self_time)'], chartType: ChartType.LINE},
+    ]);
 
     // try adding an overlay
     await userEvent.click(within(section).getByRole('button', {name: '+Add Overlay'}));
     await userEvent.click(within(section).getByRole('button', {name: 'span.duration'}));
     await userEvent.click(within(section).getByRole('option', {name: 'span.self_time'}));
     expect(visualizes).toEqual([
-      {yAxes: ['avg(span.self_time)', 'count(span.self_time)']},
+      {
+        yAxes: ['avg(span.self_time)', 'count(span.self_time)'],
+        chartType: ChartType.LINE,
+      },
     ]);
 
     // try adding a new chart
     await userEvent.click(within(section).getByRole('button', {name: '+Add Chart'}));
     expect(visualizes).toEqual([
-      {yAxes: ['avg(span.self_time)', 'count(span.self_time)']},
-      {yAxes: ['count(span.duration)']},
+      {
+        yAxes: ['avg(span.self_time)', 'count(span.self_time)'],
+        chartType: ChartType.LINE,
+      },
+      {yAxes: ['count(span.duration)'], chartType: ChartType.LINE},
     ]);
 
     // delete first overlay
     await userEvent.click(within(section).getAllByLabelText('Remove')[0]);
     expect(visualizes).toEqual([
-      {yAxes: ['count(span.self_time)']},
-      {yAxes: ['count(span.duration)']},
+      {yAxes: ['count(span.self_time)'], chartType: ChartType.LINE},
+      {yAxes: ['count(span.duration)'], chartType: ChartType.LINE},
     ]);
 
     // delete second chart
     await userEvent.click(within(section).getAllByLabelText('Remove')[1]);
-    expect(visualizes).toEqual([{yAxes: ['count(span.self_time)']}]);
+    expect(visualizes).toEqual([
+      {yAxes: ['count(span.self_time)'], chartType: ChartType.LINE},
+    ]);
 
     // only one left so cant be deleted
     expect(within(section).getByLabelText('Remove')).toBeDisabled();
