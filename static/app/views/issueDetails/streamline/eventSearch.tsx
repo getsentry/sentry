@@ -193,6 +193,7 @@ export function EventSearch({
       label={t('Search events')}
       searchSource="issue_events_tab"
       className={className}
+      showUnsubmittedIndicator
       {...queryBuilderProps}
     />
   );
