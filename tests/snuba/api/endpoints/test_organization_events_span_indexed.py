@@ -584,4 +584,6 @@ class OrganizationEventsEAPSpanEndpointTest(OrganizationEventsSpanIndexedEndpoin
                 }
             )
 
-            assert response.status_code == 200, f"error: {response.content}\naggregate: {function}"
+            assert (
+                response.status_code == 200
+            ), f"error: {response.content.decode('utf-8')}\naggregate: {function}"
