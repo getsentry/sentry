@@ -547,8 +547,8 @@ class Event(BaseEvent):
     ):
         super().__init__(project_id, event_id, snuba_data=snuba_data)
         self.group_id = group_id
-        self.groups = groups
-        self.data = data
+        self.groups = groups or []
+        self.data = data or {}
 
     def __getstate__(self) -> Mapping[str, Any]:
         state = super().__getstate__()
