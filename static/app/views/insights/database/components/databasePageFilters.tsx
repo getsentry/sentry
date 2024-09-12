@@ -1,3 +1,4 @@
+import {useMemo} from 'react';
 import styled from '@emotion/styled';
 
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
@@ -22,6 +23,8 @@ export function DatabasePageFilters(props: Props) {
 
   const {system, databaseCommand, table} = props;
 
+  const additionalQuery = useMemo(() => [`span.system:${system}`], [system]);
+
   return (
     <PageFilterWrapper>
       <ModulePageFilterBar moduleName={ModuleName.DB} />
@@ -29,13 +32,18 @@ export function DatabasePageFilters(props: Props) {
         {organization.features.includes('performance-queries-mongodb-extraction') && (
           <DatabaseSystemSelector />
         )}
-        <ActionSelector moduleName={ModuleName.DB} value={databaseCommand ?? ''} />
+        <ActionSelector
+          moduleName={ModuleName.DB}
+          value={databaseCommand ?? ''}
+          filters={{'span.system': system}}
+        />
         <DomainSelector
           moduleName={ModuleName.DB}
           value={table ?? ''}
           domainAlias={
             system === SupportedDatabaseSystems.MONGODB ? t('Collection') : t('Table')
           }
+          additionalQuery={additionalQuery}
         />
       </PageFilterBar>
     </PageFilterWrapper>
