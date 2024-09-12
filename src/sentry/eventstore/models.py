@@ -634,7 +634,7 @@ class Event(BaseEvent):
         return groups
 
     @groups.setter
-    def groups(self, values: Sequence[Group] | None):
+    def groups(self, values: Sequence[Group]) -> None:
         self._groups_cache = values
         self._group_ids = [group.id for group in values] if values else None
 
