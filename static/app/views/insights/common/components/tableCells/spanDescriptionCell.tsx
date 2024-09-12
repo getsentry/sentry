@@ -8,7 +8,7 @@ import {SQLishFormatter} from 'sentry/utils/sqlish/SQLishFormatter';
 import {FullSpanDescription} from 'sentry/views/insights/common/components/fullSpanDescription';
 import {SpanGroupDetailsLink} from 'sentry/views/insights/common/components/spanGroupDetailsLink';
 import {SupportedDatabaseSystem} from 'sentry/views/insights/database/utils/constants';
-import {formatMongoDBQuery} from 'sentry/views/insights/database/utils/parseMongoDBQuery';
+import {formatMongoDBQuery} from 'sentry/views/insights/database/utils/formatMongoDBQuery';
 import {ModuleName, SpanMetricsField} from 'sentry/views/insights/types';
 
 const formatter = new SQLishFormatter();
