@@ -63,7 +63,6 @@ class DashboardWidgetDatasetSplitTestCase(TestCase, SnubaTestCase):
             widget_type=DashboardWidgetTypes.DISCOVER,
             interval="1d",
             detail={"layout": {"x": 0, "y": 0, "w": 1, "h": 1, "minH": 2}},
-            discover_widget_split=DashboardWidgetTypes.ERROR_EVENTS,
         )
         errors_widget_query = DashboardWidgetQuery.objects.create(
             widget=error_widget,
@@ -76,7 +75,11 @@ class DashboardWidgetDatasetSplitTestCase(TestCase, SnubaTestCase):
 
         _get_and_save_split_decision_for_dashboard_widget(errors_widget_query, self.dry_run)
         error_widget.refresh_from_db()
-        assert error_widget.widget_type == 0 if self.dry_run else error_widget.widget_type == 100
+        assert (
+            error_widget.discover_widget_split is None
+            if self.dry_run
+            else error_widget.discover_widget_split == 100
+        )
 
     def test_metrics_compatible_query(self):
         metrics_widget = DashboardWidget.objects.create(
@@ -87,7 +90,6 @@ class DashboardWidgetDatasetSplitTestCase(TestCase, SnubaTestCase):
             widget_type=DashboardWidgetTypes.DISCOVER,
             interval="1d",
             detail={"layout": {"x": 0, "y": 0, "w": 1, "h": 1, "minH": 2}},
-            discover_widget_split=DashboardWidgetTypes.ERROR_EVENTS,
         )
         metrics_query = DashboardWidgetQuery.objects.create(
             widget=metrics_widget,
@@ -104,7 +106,9 @@ class DashboardWidgetDatasetSplitTestCase(TestCase, SnubaTestCase):
             )
         metrics_widget.refresh_from_db()
         assert (
-            metrics_widget.widget_type == 0 if self.dry_run else metrics_widget.widget_type == 101
+            metrics_widget.discover_widget_split is None
+            if self.dry_run
+            else metrics_widget.discover_widget_split == 101
         )
         assert queried_snuba
 
@@ -117,7 +121,6 @@ class DashboardWidgetDatasetSplitTestCase(TestCase, SnubaTestCase):
             widget_type=DashboardWidgetTypes.DISCOVER,
             interval="1d",
             detail={"layout": {"x": 0, "y": 0, "w": 1, "h": 1, "minH": 2}},
-            discover_widget_split=DashboardWidgetTypes.ERROR_EVENTS,
         )
         metrics_query = DashboardWidgetQuery.objects.create(
             widget=metrics_widget,
@@ -134,7 +137,9 @@ class DashboardWidgetDatasetSplitTestCase(TestCase, SnubaTestCase):
             )
         metrics_widget.refresh_from_db()
         assert (
-            metrics_widget.widget_type == 0 if self.dry_run else metrics_widget.widget_type == 100
+            metrics_widget.discover_widget_split is None
+            if self.dry_run
+            else metrics_widget.discover_widget_split == 100
         )
         assert queried_snuba
 
@@ -155,7 +160,6 @@ class DashboardWidgetDatasetSplitTestCase(TestCase, SnubaTestCase):
             widget_type=DashboardWidgetTypes.DISCOVER,
             interval="1d",
             detail={"layout": {"x": 0, "y": 0, "w": 1, "h": 1, "minH": 2}},
-            discover_widget_split=DashboardWidgetTypes.ERROR_EVENTS,
         )
         errors_widget_query = DashboardWidgetQuery.objects.create(
             widget=error_widget,
@@ -170,7 +174,11 @@ class DashboardWidgetDatasetSplitTestCase(TestCase, SnubaTestCase):
             errors_widget_query, self.dry_run
         )
         error_widget.refresh_from_db()
-        assert error_widget.widget_type == 0 if self.dry_run else error_widget.widget_type == 100
+        assert (
+            error_widget.discover_widget_split is None
+            if self.dry_run
+            else error_widget.discover_widget_split == 100
+        )
         assert queried_snuba
 
     def test_ambiguous_widget_with_transactions_data(self):
@@ -190,7 +198,6 @@ class DashboardWidgetDatasetSplitTestCase(TestCase, SnubaTestCase):
             widget_type=DashboardWidgetTypes.DISCOVER,
             interval="1d",
             detail={"layout": {"x": 0, "y": 0, "w": 1, "h": 1, "minH": 2}},
-            discover_widget_split=DashboardWidgetTypes.ERROR_EVENTS,
         )
         errors_widget_query = DashboardWidgetQuery.objects.create(
             widget=error_widget,
@@ -205,7 +212,11 @@ class DashboardWidgetDatasetSplitTestCase(TestCase, SnubaTestCase):
             errors_widget_query, self.dry_run
         )
         error_widget.refresh_from_db()
-        assert error_widget.widget_type == 0 if self.dry_run else error_widget.widget_type == 101
+        assert (
+            error_widget.discover_widget_split is None
+            if self.dry_run
+            else error_widget.discover_widget_split == 101
+        )
         assert queried_snuba
 
     @freeze_time("2024-05-01 12:00:00")
@@ -225,7 +236,6 @@ class DashboardWidgetDatasetSplitTestCase(TestCase, SnubaTestCase):
             widget_type=DashboardWidgetTypes.DISCOVER,
             interval="1d",
             detail={"layout": {"x": 0, "y": 0, "w": 1, "h": 1, "minH": 2}},
-            discover_widget_split=DashboardWidgetTypes.ERROR_EVENTS,
         )
 
         with self.options({"system.event-retention-days": 90}):
@@ -252,7 +262,6 @@ class DashboardWidgetDatasetSplitTestCase(TestCase, SnubaTestCase):
             widget_type=DashboardWidgetTypes.DISCOVER,
             interval="1d",
             detail={"layout": {"x": 0, "y": 0, "w": 1, "h": 1, "minH": 2}},
-            discover_widget_split=DashboardWidgetTypes.ERROR_EVENTS,
         )
 
         snuba_dataclass = _get_snuba_dataclass_for_dashboard_widget(error_widget, self.projects)

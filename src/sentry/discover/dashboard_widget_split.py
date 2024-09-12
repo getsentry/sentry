@@ -61,7 +61,7 @@ def _save_split_decision_for_widget(
     dataset_source: DatasetSourcesTypes | None,
 ):
     if split_decision is not None:
-        widget.widget_type = split_decision
+        widget.discover_widget_split = split_decision
     if dataset_source is not None:
         widget.dataset_source = dataset_source.value
 
