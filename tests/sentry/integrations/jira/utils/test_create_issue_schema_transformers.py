@@ -8,7 +8,10 @@ from sentry.integrations.jira.models.create_issue_metadata import (
     JiraSchema,
     JiraSchemaTypes,
 )
-from sentry.integrations.jira.utils.create_issue_schema_transformers import transform_fields
+from sentry.integrations.jira.utils.create_issue_schema_transformers import (
+    JIRA_CUSTOM_FIELD_TYPES,
+    transform_fields,
+)
 from sentry.shared_integrations.exceptions import IntegrationFormError
 from sentry.testutils.cases import TestCase
 
@@ -134,3 +137,26 @@ class TestDataTransformer(TestCase):
         )
 
         assert transformed_data == {"project": {"id": "abcd"}}
+
+    def test_sprint_custom_field(self):
+        sprint_field = JiraField(
+            schema=JiraSchema(
+                custom_id=1001,
+                custom=JIRA_CUSTOM_FIELD_TYPES["sprint"],
+                schema_type=JiraSchemaTypes.array,
+                items=JiraSchemaTypes.json,
+            ),
+            name="sprint",
+            key="sprint",
+            required=False,
+            has_default_value=False,
+            operations=[],
+        )
+
+        transformed_data = transform_fields(
+            self.client.user_id_field(),
+            jira_fields=[sprint_field],
+            **{"sprint": 2},
+        )
+
+        assert transformed_data == {"sprint": 2}

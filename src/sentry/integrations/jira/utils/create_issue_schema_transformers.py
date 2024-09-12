@@ -21,9 +21,9 @@ class JiraSchemaParseError(Exception):
     pass
 
 
-def parse_number_field(num_str: str) -> int | float:
+def parse_number_field(num_str: Any) -> int | float:
     try:
-        if "." in num_str:
+        if isinstance(num_str, str) and "." in num_str:
             return float(num_str)
 
         return int(num_str)
@@ -60,10 +60,8 @@ def get_type_transformer_mappings(user_id_field: str) -> TransformerType:
 def get_custom_field_transformer_mappings() -> TransformerType:
     transformers = {
         # JIRA_CUSTOM_FIELD_TYPES["select"]: identity_transformer,
-        # JIRA_CUSTOM_FIELD_TYPES["textarea"]: identity_transformer,
-        # JIRA_CUSTOM_FIELD_TYPES["multiuserpicker"]: identity_transformer,
         JIRA_CUSTOM_FIELD_TYPES["tempo_account"]: parse_number_field,
-        # JIRA_CUSTOM_FIELD_TYPES["sprint"]: identity_transformer,
+        JIRA_CUSTOM_FIELD_TYPES["sprint"]: parse_number_field,
         # JIRA_CUSTOM_FIELD_TYPES["epic"]: identity_transformer,
         JIRA_CUSTOM_FIELD_TYPES["rank"]: id_obj_transformer,
     }
@@ -116,7 +114,13 @@ def transform_fields(
         )
 
         try:
-            if field.schema.schema_type.lower() == JiraSchemaTypes.array:
+            # We need to handle array types, but for whatever reason `Sprint`
+            # fields have a type of array/json, but expect a single value, so we
+            # have to special case them.
+            if (
+                field.schema.schema_type.lower() == JiraSchemaTypes.array
+                and field.schema.custom != JIRA_CUSTOM_FIELD_TYPES["sprint"]
+            ):
                 transformed_value = []
 
                 if not isinstance(field_data, list):

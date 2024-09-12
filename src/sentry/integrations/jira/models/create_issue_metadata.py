@@ -40,7 +40,7 @@ class JiraSchema:
     The very long custom field name corresponding to some namespace, plugin,
     and custom field name.
     """
-    custom_id: str | None = None
+    custom_id: int | None = None
     """
     A unique identifier for a field on an issue, in the form of 'customfield_<int>'
     """
