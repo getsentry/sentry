@@ -66,7 +66,6 @@ export function EventFeatureFlagList({
   }
 
   const onViewAllFlags = useCallback(() => {
-    // good spot to track analytics
     openDrawer(
       () => (
         <FeatureFlagDrawer
@@ -116,9 +115,7 @@ export function EventFeatureFlagList({
           'aria-label': t('Sort Flags'),
         }}
         onChange={selection => {
-          // good spot to track analytics
           setSortMethod(selection.value);
-          // selection.value === FlagSort.EVAL ? handleSortEval() : handleSortAlphabetical();
         }}
         trigger={triggerProps => (
           <DropdownButton {...triggerProps} size="xs" icon={<IconSort />}>
@@ -131,7 +128,6 @@ export function EventFeatureFlagList({
         icon={<IconChevron direction={isCollapsed ? 'down' : 'up'} />}
         aria-label={t('Collapse Section')}
         onClick={() => {
-          // good spot to track analytics
           setIsCollapsed(!isCollapsed);
         }}
         borderless

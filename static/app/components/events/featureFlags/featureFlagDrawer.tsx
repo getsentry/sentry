@@ -92,7 +92,6 @@ export function FeatureFlagDrawer({
           size="xs"
           value={search}
           onChange={e => {
-            // good spot to track analytics
             setSearch(e.target.value.toLowerCase());
           }}
           aria-label={t('Search Flags')}
@@ -106,7 +105,6 @@ export function FeatureFlagDrawer({
           'aria-label': t('Sort Flags'),
         }}
         onChange={selection => {
-          // good spot to track analytics
           setSortMethod(selection.value);
         }}
         trigger={triggerProps => (
