@@ -362,7 +362,7 @@ def _get_and_save_split_decision_for_query(
     try:
         error_results = errors_builder.process_results(
             errors_builder.run_query(
-                "backfill_discover_dataset", query_source=QuerySource.SENTRY_BACKEND
+                "tasks.performance.split_discover_dataset", query_source=QuerySource.SENTRY_BACKEND
             )
         )
         has_errors = len(error_results["data"]) > 0
@@ -388,7 +388,7 @@ def _get_and_save_split_decision_for_query(
     try:
         transaction_results = transactions_builder.process_results(
             transactions_builder.run_query(
-                "backfill_discover_dataset", query_source=QuerySource.SENTRY_BACKEND
+                "tasks.performance.split_discover_dataset", query_source=QuerySource.SENTRY_BACKEND
             )
         )
         has_transactions = len(transaction_results["data"]) > 0
