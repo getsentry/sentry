@@ -37,7 +37,7 @@ export function EventFeatureFlagList({
   const {closeDrawer, isDrawerOpen, openDrawer} = useDrawer();
   const viewAllButtonRef = useRef<HTMLButtonElement>(null);
 
-  // transform the flags array into something readable by the key-value component
+  // Transform the flags array into something readable by the key-value component
   const hydrateFlags = (flags: FeatureFlag[] | undefined) => {
     if (!flags) {
       return [];
@@ -47,8 +47,14 @@ export function EventFeatureFlagList({
     });
   };
 
+  // Remove duplicates
   const hydratedFlags = useMemo(
-    () => hydrateFlags(event.contexts?.flags?.values),
+    () =>
+      hydrateFlags(
+        event.contexts?.flags?.values.filter(
+          (a, i, arr) => arr.findIndex(b => b.flag === a.flag) === i
+        )
+      ),
     [event]
   );
 

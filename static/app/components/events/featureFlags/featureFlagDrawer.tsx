@@ -156,6 +156,7 @@ export const CardContainer = styled('div')<{numCols: number}>`
   }
 
   > * {
+    padding-left: 0px;
     :not(:first-child) {
       border-left: 1.5px solid ${p => p.theme.innerBorder};
       padding-left: ${space(2)};
