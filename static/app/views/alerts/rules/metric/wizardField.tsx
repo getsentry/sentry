@@ -118,6 +118,14 @@ export default function WizardField({
               },
             ]
           : []),
+        ...(hasInsightsAlerts(organization)
+          ? [
+              {
+                label: AlertWizardAlertNames.insights_metrics,
+                value: 'insights_metrics' as const,
+              },
+            ]
+          : []),
       ],
     },
     {
@@ -132,14 +140,6 @@ export default function WizardField({
               label: AlertWizardAlertNames.custom_transactions,
               value: 'custom_transactions',
             },
-        ...(hasInsightsAlerts(organization)
-          ? [
-              {
-                label: AlertWizardAlertNames.insights_metrics,
-                value: 'insights_metrics' as const,
-              },
-            ]
-          : []),
       ],
     },
   ];
