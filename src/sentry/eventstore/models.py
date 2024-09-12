@@ -365,10 +365,7 @@ class BaseEvent(metaclass=abc.ABCMeta):
 
         flat_hashes_values = [hash_ for _, hash_ in flat_hashes]
 
-        return CalculatedHashes(
-            hashes=flat_hashes_values,
-            variants=variants,
-        )
+        return CalculatedHashes(hashes=flat_hashes_values)
 
     @staticmethod
     def _hashes_from_sorted_grouping_variants(
