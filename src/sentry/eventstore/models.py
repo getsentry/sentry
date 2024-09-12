@@ -725,7 +725,7 @@ class GroupEvent(BaseEvent):
     @property
     def occurrence_id(self) -> str | None:
         if self._occurrence:
-            return self.occurrence.id
+            return self._occurrence.id
 
         column = self._get_column_name(Columns.OCCURRENCE_ID)
         if column in self._snuba_data:
