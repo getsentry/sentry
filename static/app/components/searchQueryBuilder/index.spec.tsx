@@ -1480,6 +1480,54 @@ describe('SearchQueryBuilder', function () {
         expect(within(valueButton).getByText('Chrome')).toBeInTheDocument();
       });
 
+      it('can modify the key by clicking into it', async function () {
+        render(
+          <SearchQueryBuilder {...defaultProps} initialQuery="browser.name:firefox" />
+        );
+
+        await userEvent.click(
+          screen.getByRole('button', {name: 'Edit key for filter: browser.name'})
+        );
+        // Should start with an empty input
+        await waitFor(() => {
+          expect(screen.getByRole('combobox', {name: 'Edit filter key'})).toHaveValue('');
+        });
+
+        // Type "custom" so that the custom_tag_name option appears
+        await userEvent.keyboard('custom');
+        await userEvent.click(screen.getByRole('option', {name: 'custom_tag_name'}));
+
+        await waitFor(() => {
+          expect(
+            screen.getByRole('row', {name: 'custom_tag_name:firefox'})
+          ).toBeInTheDocument();
+        });
+        expect(getLastInput()).toHaveFocus();
+      });
+
+      it('resets the filter value when changing filter key to a different type', async function () {
+        render(
+          <SearchQueryBuilder {...defaultProps} initialQuery="browser.name:firefox" />
+        );
+
+        await userEvent.click(
+          screen.getByRole('button', {name: 'Edit key for filter: browser.name'})
+        );
+        // Should start with an empty input
+        await waitFor(() => {
+          expect(screen.getByRole('combobox', {name: 'Edit filter key'})).toHaveValue('');
+        });
+
+        await userEvent.keyboard('age');
+        await userEvent.click(screen.getByRole('option', {name: 'age'}));
+
+        await waitFor(() => {
+          expect(screen.getByRole('row', {name: 'age:-24h'})).toBeInTheDocument();
+        });
+        // Filter value should have focus
+        expect(screen.getByRole('combobox', {name: 'Edit filter value'})).toHaveFocus();
+      });
+
       it('keeps focus inside value when multi-selecting with checkboxes', async function () {
         render(
           <SearchQueryBuilder {...defaultProps} initialQuery="browser.name:firefox" />
