@@ -69,7 +69,7 @@ export function SdkDocumentation({
     );
   }
 
-  if (!id) {
+  if (!projectKeyId) {
     return (
       <LoadingError
         message={t(
