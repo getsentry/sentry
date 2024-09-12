@@ -99,7 +99,7 @@ class BaseEvent(metaclass=abc.ABCMeta):
         column = self._get_column_name(Columns.PLATFORM)
         if column in self._snuba_data:
             return cast(str, self._snuba_data[column])
-        return cast(str, self.data.get("platform", None))
+        return self.data.get("platform")
 
     @property
     def message(self) -> str:
@@ -226,7 +226,7 @@ class BaseEvent(metaclass=abc.ABCMeta):
         column = self._get_column_name(Columns.TYPE)
         if column in self._snuba_data:
             return cast(str, self._snuba_data[column])
-        return cast(str, self.data.get("type", "default"))
+        return self.data.get("type", "default")
 
     @property
     def ip_address(self) -> str | None:
@@ -480,7 +480,7 @@ class BaseEvent(metaclass=abc.ABCMeta):
 
     @property
     def version(self) -> str:
-        return cast(str, self.data.get("version", "5"))
+        return self.data.get("version", "5")
 
     def get_raw_data(self, for_stream: bool = False) -> Mapping[str, Any]:
         """Returns the internal raw event data dict."""
@@ -767,9 +767,9 @@ class GroupEvent(BaseEvent):
             template = EventSubjectTemplate("$shortID - $issueType")
         else:
             template = DEFAULT_SUBJECT_TEMPLATE
-        return cast(
-            str, truncatechars(template.safe_substitute(EventSubjectTemplateData(self)), 128)
-        )
+
+        template_data = EventSubjectTemplateData(self)
+        return truncatechars(template.safe_substitute(template_data), 128)
 
 
 def augment_message_with_occurrence(message: str, occurrence: IssueOccurrence) -> str:
