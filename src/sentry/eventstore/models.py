@@ -61,7 +61,7 @@ class BaseEvent(metaclass=abc.ABCMeta):
         project_id: int,
         event_id: str,
         snuba_data: Mapping[str, Any] | None = None,
-    ):
+    ) -> None:
         self.project_id = project_id
         self.event_id = event_id
         self._snuba_data = snuba_data or {}
@@ -303,10 +303,12 @@ class BaseEvent(metaclass=abc.ABCMeta):
         return get_interfaces(self.data)
 
     @overload
-    def get_interface(self, name: Literal["user"]) -> User: ...
+    def get_interface(self, name: Literal["user"]) -> User:
+        ...
 
     @overload
-    def get_interface(self, name: str) -> Interface | None: ...
+    def get_interface(self, name: str) -> Interface | None:
+        ...
 
     def get_interface(self, name: str) -> Interface | None:
         return self.interfaces.get(name)
@@ -494,18 +496,6 @@ class BaseEvent(metaclass=abc.ABCMeta):
     def size(self) -> int:
         return len(orjson.dumps(dict(self.data)).decode())
 
-    def get_email_subject(self) -> str:
-        template = self.project.get_option("mail:subject_template")
-        if template:
-            template = EventSubjectTemplate(template)
-        elif self.group.issue_category == GroupCategory.PERFORMANCE:
-            template = EventSubjectTemplate("$shortID - $issueType")
-        else:
-            template = DEFAULT_SUBJECT_TEMPLATE
-        return cast(
-            str, truncatechars(template.safe_substitute(EventSubjectTemplateData(self)), 128)
-        )
-
     def as_dict(self) -> dict[str, Any]:
         """Returns the data in normalized form for external consumers."""
         data: dict[str, Any] = {}
@@ -679,6 +669,18 @@ class Event(BaseEvent):
 
     def for_group(self, group: Group) -> GroupEvent:
         return GroupEvent.from_event(self, group)
+
+    def get_email_subject(self) -> str:
+        template = self.project.get_option("mail:subject_template")
+        if template:
+            template = EventSubjectTemplate(template)
+        elif self.group.issue_category == GroupCategory.PERFORMANCE:
+            template = EventSubjectTemplate("$shortID - $issueType")
+        else:
+            template = DEFAULT_SUBJECT_TEMPLATE
+        return cast(
+            str, truncatechars(template.safe_substitute(EventSubjectTemplateData(self)), 128)
+        )
 
 
 class GroupEvent(BaseEvent):
