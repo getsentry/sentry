@@ -1,5 +1,4 @@
 import {useCallback, useRef, useState} from 'react';
-import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
@@ -7,37 +6,22 @@ import {CompactSelect} from 'sentry/components/compactSelect';
 import DropdownButton from 'sentry/components/dropdownButton';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import {EventDataSection} from 'sentry/components/events/eventDataSection';
-import {FeatureFlagDrawer} from 'sentry/components/events/featureFlags/featureFlagDrawer';
+import {
+  CardContainer,
+  FeatureFlagDrawer,
+  FLAG_SORT_OPTIONS,
+  FlagSort,
+  getLabel,
+} from 'sentry/components/events/featureFlags/featureFlagDrawer';
 import useDrawer from 'sentry/components/globalDrawer';
 import KeyValueData, {
   type KeyValueDataContentProps,
 } from 'sentry/components/keyValueData';
 import {IconChevron, IconSort} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Event, FeatureFlag} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
-
-export enum FlagSort {
-  EVAL = 'eval',
-  ALPHA = 'alphabetical',
-}
-
-export const getLabel = (sort: string) => {
-  return sort === FlagSort.EVAL ? t('Evaluation Order') : t('Alphabetical');
-};
-
-export const FLAG_SORT_OPTIONS = [
-  {
-    label: getLabel(FlagSort.EVAL),
-    value: FlagSort.EVAL,
-  },
-  {
-    label: getLabel(FlagSort.ALPHA),
-    value: FlagSort.ALPHA,
-  },
-];
 
 export function EventFeatureFlagList({
   event,
@@ -174,26 +158,3 @@ export function EventFeatureFlagList({
     </ErrorBoundary>
   );
 }
-
-export const CardContainer = styled('div')<{numCols: number}>`
-  display: grid;
-  grid-template-columns: repeat(${p => p.numCols}, 1fr);
-  align-items: start;
-
-  div {
-    border: none;
-    border-radius: 0;
-  }
-
-  > * {
-    :not(:first-child) {
-      border-left: 1.5px solid ${p => p.theme.innerBorder};
-      padding-left: ${space(2)};
-      margin-left: -1px;
-    }
-    :not(:last-child) {
-      border-right: 1.5px solid ${p => p.theme.innerBorder};
-      padding-right: ${space(2)};
-    }
-  }
-`;

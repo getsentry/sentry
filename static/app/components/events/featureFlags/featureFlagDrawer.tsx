@@ -1,4 +1,5 @@
 import {useState} from 'react';
+import styled from '@emotion/styled';
 
 import ProjectAvatar from 'sentry/components/avatar/projectAvatar';
 import ButtonBar from 'sentry/components/buttonBar';
@@ -15,22 +16,37 @@ import {
   SearchInput,
   ShortId,
 } from 'sentry/components/events/breadcrumbs/breadcrumbsDrawer';
-import {
-  CardContainer,
-  FLAG_SORT_OPTIONS,
-  FlagSort,
-  getLabel,
-} from 'sentry/components/events/featureFlags/eventFeatureFlagList';
 import {InputGroup} from 'sentry/components/inputGroup';
 import KeyValueData, {
   type KeyValueDataContentProps,
 } from 'sentry/components/keyValueData';
 import {IconSearch, IconSort} from 'sentry/icons';
 import {t} from 'sentry/locale';
+import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
 import {getShortEventId} from 'sentry/utils/events';
+
+export enum FlagSort {
+  EVAL = 'eval',
+  ALPHA = 'alphabetical',
+}
+
+export const getLabel = (sort: string) => {
+  return sort === FlagSort.EVAL ? t('Evaluation Order') : t('Alphabetical');
+};
+
+export const FLAG_SORT_OPTIONS = [
+  {
+    label: getLabel(FlagSort.EVAL),
+    value: FlagSort.EVAL,
+  },
+  {
+    label: getLabel(FlagSort.ALPHA),
+    value: FlagSort.ALPHA,
+  },
+];
 
 export const enum FlagControlOptions {
   SEARCH = 'search',
@@ -137,3 +153,26 @@ export function FeatureFlagDrawer({
     </EventDrawerContainer>
   );
 }
+
+export const CardContainer = styled('div')<{numCols: number}>`
+  display: grid;
+  grid-template-columns: repeat(${p => p.numCols}, 1fr);
+  align-items: start;
+
+  div {
+    border: none;
+    border-radius: 0;
+  }
+
+  > * {
+    :not(:first-child) {
+      border-left: 1.5px solid ${p => p.theme.innerBorder};
+      padding-left: ${space(2)};
+      margin-left: -1px;
+    }
+    :not(:last-child) {
+      border-right: 1.5px solid ${p => p.theme.innerBorder};
+      padding-right: ${space(2)};
+    }
+  }
+`;
