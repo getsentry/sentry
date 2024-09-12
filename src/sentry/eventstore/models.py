@@ -66,7 +66,7 @@ class BaseEvent(metaclass=abc.ABCMeta):
         self.event_id = event_id
         self._snuba_data = snuba_data or {}
 
-    def __getstate__(self) -> Mapping[str, Any]:
+    def __getstate__(self) -> dict[str, Any]:
         state = self.__dict__.copy()
         # do not pickle cached info.  We want to fetch this on demand
         # again.
@@ -550,7 +550,7 @@ class Event(BaseEvent):
         self.groups = groups or []
         self.data = data or {}
 
-    def __getstate__(self) -> Mapping[str, Any]:
+    def __getstate__(self) -> dict[str, Any]:
         state = super().__getstate__()
         state.pop("_group_cache", None)
         state.pop("_groups_cache", None)
