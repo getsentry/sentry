@@ -257,10 +257,20 @@ def create_feedback_issue(event, project_id: int, source: FeedbackCreationSource
     )
     now = datetime.now()
 
+    # Force `tags` to be a dict if it's initially a list,
+    # since we can't guarantee its type here.
+    tags = event.get("tags", {})
+    tags_dict = {}
+    if isinstance(tags, list):
+        for [k, v] in tags:
+            tags_dict[k] = v
+    else:
+        tags_dict = tags
+
     event_data = {
         "project_id": project_id,
         "received": now.isoformat(),
-        "tags": event.get("tags", {}),
+        "tags": tags_dict,
         **event,
     }
     event_fixed = fix_for_issue_platform(event_data)
