@@ -143,6 +143,7 @@ export function SpanSearchQueryBuilder({
       disallowFreeText
       disallowUnsupportedFilters
       recentSearches={SavedSearchType.SPAN}
+      showUnsubmittedIndicator
     />
   );
 }

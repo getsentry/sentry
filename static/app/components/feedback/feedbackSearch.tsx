@@ -228,6 +228,7 @@ export default function FeedbackSearch({className, style}: Props) {
         onSearch={onSearch}
         searchSource={'feedback-list'}
         placeholder={t('Search Feedback')}
+        showUnsubmittedIndicator
       />
     );
   }
