@@ -97,15 +97,19 @@ function processAndInsertKeyValueTokens(
         tokens.push(<span>{', '}</span>);
       } else {
         // We must recurse if item is an object
-        tokens.push(<span>{`"${key}": { `}</span>);
-        Object.keys(value).forEach(_key => {
-          processAndInsertKeyValueTokens(tokens, _key, value[_key]);
-        });
-        // Pop the trailing comma
-        tokens.pop();
+        if (Object.keys(item).length === 0) {
+          processAndInsertKeyValueTokens(tokens, key, '{}');
+        } else {
+          tokens.push(<span>{`{ `}</span>);
+          Object.keys(item).forEach(_key => {
+            processAndInsertKeyValueTokens(tokens, _key, item[_key]);
+          });
+          // Pop the trailing comma
+          tokens.pop();
 
-        tokens.push(<span>{' }'}</span>);
-        tokens.push(<span>{', '}</span>);
+          tokens.push(<span>{' }'}</span>);
+          tokens.push(<span>{', '}</span>);
+        }
       }
     });
 
