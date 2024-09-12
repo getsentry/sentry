@@ -339,7 +339,7 @@ export function DraggableTabBar({
     >
       {allTabs.map(tab => (
         <DraggableTabList.Item
-          textValue={`${tab.label} tab`}
+          textValue={tab.label}
           key={tab.key}
           to={normalizeUrl({
             query: {
