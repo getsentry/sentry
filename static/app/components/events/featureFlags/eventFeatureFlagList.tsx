@@ -91,14 +91,21 @@ export function EventFeatureFlagList({}: {event: Event}) {
     return {item: {key: f.flag, subject: f.flag, value: f.result}};
   });
 
-  // TODO: ui should be able to handle 2 columns, 10 rows max for the preview
+  const truncatedItems = contentItems.slice(0, 20);
+  const columnOne = truncatedItems.slice(0, 10);
+  let columnTwo: any[] = [];
+  if (truncatedItems.length > 10) {
+    columnTwo = truncatedItems.slice(10, 20);
+  }
 
+  // TODO: add border in middle
   return (
     <ErrorBoundary mini message={t('There was a problem loading event tags.')}>
       <EventDataSection title={t('Feature Flags')} type="feature-flags" actions={actions}>
         {!isCollapsed && (
           <CardContainer>
-            <KeyValueData.Card contentItems={contentItems} />
+            <KeyValueData.Card contentItems={columnOne} />
+            <KeyValueData.Card contentItems={columnTwo} />
           </CardContainer>
         )}
       </EventDataSection>
@@ -106,7 +113,11 @@ export function EventFeatureFlagList({}: {event: Event}) {
   );
 }
 
-export const CardContainer = styled('div')`
+const CardContainer = styled('div')`
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  align-items: start;
+
   div {
     border: none;
   }
