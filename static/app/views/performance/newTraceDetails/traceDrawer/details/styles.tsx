@@ -1,5 +1,4 @@
 import {Fragment, type PropsWithChildren, useMemo} from 'react';
-import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 import type {LocationDescriptor} from 'history';
 
@@ -31,6 +30,7 @@ import type {Organization} from 'sentry/types/organization';
 import {formatBytesBase10} from 'sentry/utils/bytes/formatBytesBase10';
 import getDuration from 'sentry/utils/duration/getDuration';
 import type {ColorOrAlias} from 'sentry/utils/theme';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {
@@ -416,6 +416,7 @@ function NodeActions(props: {
   organization: Organization;
   eventSize?: number | undefined;
 }) {
+  const navigate = useNavigate();
   const organization = useOrganization();
   const params = useParams<{traceSlug?: string}>();
 
@@ -478,7 +479,7 @@ function NodeActions(props: {
             key: 'continuous-profile',
             onAction: () => {
               traceAnalytics.trackViewContinuousProfile(props.organization);
-              browserHistory.push(profileLink!);
+              navigate(profileLink!);
             },
             label: t('Continuous Profile'),
           }
@@ -504,7 +505,7 @@ function NodeActions(props: {
     }
 
     return [showInView];
-  }, [props, profileLink, organization.features]);
+  }, [props, profileLink, navigate, organization.features]);
 
   return (
     <ActionsContainer>
