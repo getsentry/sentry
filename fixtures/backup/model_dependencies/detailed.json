@@ -6273,5 +6273,23 @@
         "organization"
       ]
     ]
+  },
+  "workflow_engine.workflowaction": {
+    "dangling": false,
+    "foreign_keys": {
+      "workflow": {
+        "kind": "FlexibleForeignKey",
+        "model": "workflow_engine.workflow",
+        "nullable": false
+      }
+    },
+    "model": "workflow_engine.workflowaction",
+    "relocation_dependencies": [],
+    "relocation_scope": "Organization",
+    "silos": [
+      "Region"
+    ],
+    "table_name": "workflow_engine_workflowaction",
+    "uniques": []
   }
 }
