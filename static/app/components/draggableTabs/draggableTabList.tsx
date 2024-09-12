@@ -38,34 +38,6 @@ interface BaseDraggableTabListProps extends DraggableTabListProps {
   items: DraggableTabListItemProps[];
 }
 
-function useIsDragging(ref: React.RefObject<HTMLElement>) {
-  const [isDragging, setIsDragging] = useState(false);
-
-  useEffect(() => {
-    const element = ref.current;
-
-    if (!element) {
-      return () => {};
-    }
-
-    const handlePointerDown = () => {
-      setIsDragging(true);
-    };
-    const handlePointerUp = () => {
-      setIsDragging(false);
-    };
-    element.addEventListener('pointerdown', handlePointerDown);
-    document.addEventListener('pointerup', handlePointerUp);
-
-    return () => {
-      element.removeEventListener('pointerdown', handlePointerDown);
-      document.removeEventListener('pointerup', handlePointerUp);
-    };
-  }, [ref]);
-
-  return isDragging;
-}
-
 function useOverflowingTabs({state}: {state: TabListState<DraggableTabListItemProps>}) {
   const persistentTabs = [...state.collection].filter(
     item => item.key !== 'temporary-tab'
@@ -171,7 +143,7 @@ function Tabs({
 
   const values = useMemo(() => [...state.collection], [state.collection]);
 
-  const isDragging = useIsDragging(tabListRef);
+  const [isDragging, setIsDragging] = useState(false);
 
   // Only apply this while dragging, because it causes tabs to stay within the container
   // which we do not want (we hide tabs once they overflow
@@ -203,6 +175,8 @@ function Tabs({
               dragTransition={{bounceStiffness: 400, bounceDamping: 40}} // Recovers spring behavior thats lost when using dragElastic=0
               transition={{delay: -0.1}} // Skips the first few frames of the animation that make the tab appear to shrink before growing
               layout
+              onDrag={() => setIsDragging(true)}
+              onDragEnd={() => setIsDragging(false)}
             >
               <div
                 key={item.key}
