@@ -3,8 +3,8 @@ import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
+import {CompactSelect} from 'sentry/components/compactSelect';
 import DropdownButton from 'sentry/components/dropdownButton';
-import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import {EventDataSection} from 'sentry/components/events/eventDataSection';
 import useDrawer from 'sentry/components/globalDrawer';
@@ -42,12 +42,10 @@ export function EventFeatureFlagList({} /* event */ : {event: Event}) {
   const [flags, setFlags] = useState<KeyValueDataContentProps[]>(initialFlags);
 
   const handleSortRecent = () => {
-    setSortMethod('recent');
     setFlags(initialFlags);
   };
 
   const handleSortAlphabetical = () => {
-    setSortMethod('alphabetical');
     setFlags(
       flags.sort((a, b) => {
         return a.item.key.localeCompare(b.item.key);
@@ -97,25 +95,27 @@ export function EventFeatureFlagList({} /* event */ : {event: Event}) {
       >
         {t('View All')}
       </Button>
-      <DropdownMenu
-        items={[
+      <CompactSelect
+        value={sortMethod}
+        options={[
           {
-            key: 'recent',
+            textValue: 'recent',
             label: t('Recently Changed'),
-            onAction: handleSortRecent,
+            value: 'recent',
           },
           {
             key: 'alphabetical',
             label: t('Alphabetical'),
-            onAction: handleSortAlphabetical,
+            value: 'alphabetical',
           },
         ]}
         triggerProps={{
           'aria-label': t('Sort'),
           showChevron: false,
         }}
-        onSelectionChange={selection => {
-          setSortMethod(selection[0]);
+        onChange={selection => {
+          setSortMethod(selection.value);
+          selection.value === 'recent' ? handleSortRecent() : handleSortAlphabetical();
         }}
         trigger={triggerProps => (
           <DropdownButton
