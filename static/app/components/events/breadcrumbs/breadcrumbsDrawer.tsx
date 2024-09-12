@@ -3,7 +3,6 @@ import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import ProjectAvatar from 'sentry/components/avatar/projectAvatar';
-import {Breadcrumbs as NavigationBreadcrumbs} from 'sentry/components/breadcrumbs';
 import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import {CompactSelect} from 'sentry/components/compactSelect';
@@ -16,12 +15,22 @@ import {
   useBreadcrumbFilters,
 } from 'sentry/components/events/breadcrumbs/utils';
 import {
+  CrumbContainer,
+  EventDrawerBody,
+  EventDrawerContainer,
+  EventDrawerHeader,
+  EventNavigator,
+  Header,
+  NavigationCrumbs,
+  SearchInput,
+  ShortId,
+} from 'sentry/components/events/eventReplay/eventDrawer';
+import {
   applyBreadcrumbSearch,
   BREADCRUMB_SORT_LOCALSTORAGE_KEY,
   BREADCRUMB_SORT_OPTIONS,
   BreadcrumbSort,
 } from 'sentry/components/events/interfaces/breadcrumbs';
-import {DrawerBody, DrawerHeader} from 'sentry/components/globalDrawer/components';
 import {InputGroup} from 'sentry/components/inputGroup';
 import {IconClock, IconFilter, IconSearch, IconSort, IconTimer} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -33,7 +42,6 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import {getShortEventId} from 'sentry/utils/events';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import useOrganization from 'sentry/utils/useOrganization';
-import {MIN_NAV_HEIGHT} from 'sentry/views/issueDetails/streamline/eventNavigation';
 
 export const enum BreadcrumbControlOptions {
   SEARCH = 'search',
@@ -265,55 +273,6 @@ const VisibleFocusButton = styled(Button)`
     0 0 1px;
 `;
 
-export const EventDrawerContainer = styled('div')`
-  height: 100%;
-  display: grid;
-  grid-template-rows: auto auto 1fr;
-`;
-
-export const EventDrawerHeader = styled(DrawerHeader)`
-  position: unset;
-  max-height: ${MIN_NAV_HEIGHT}px;
-  box-shadow: none;
-  border-bottom: 1px solid ${p => p.theme.border};
-`;
-
-export const EventNavigator = styled('div')`
-  display: grid;
-  grid-template-columns: 1fr auto;
-  align-items: center;
-  column-gap: ${space(1)};
-  padding: ${space(0.75)} 24px;
-  background: ${p => p.theme.background};
-  z-index: 1;
-  min-height: ${MIN_NAV_HEIGHT}px;
-  box-shadow: ${p => p.theme.translucentBorder} 0 1px;
-`;
-
-export const EventDrawerBody = styled(DrawerBody)`
-  overflow: auto;
-  overscroll-behavior: contain;
-  /* Move the scrollbar to the left edge */
-  scroll-margin: 0 ${space(2)};
-  direction: rtl;
-  * {
-    direction: ltr;
-  }
-`;
-
-export const Header = styled('h3')`
-  display: block;
-  font-size: ${p => p.theme.fontSizeExtraLarge};
-  font-weight: ${p => p.theme.fontWeightBold};
-  margin: 0;
-`;
-
-export const SearchInput = styled(InputGroup.Input)`
-  border: 0;
-  box-shadow: unset;
-  color: inherit;
-`;
-
 const TimelineContainer = styled('div')`
   grid-column: span 2;
 `;
@@ -325,21 +284,4 @@ const EmptyMessage = styled('div')`
   align-items: center;
   color: ${p => p.theme.subText};
   padding: ${space(3)} ${space(1)};
-`;
-
-export const NavigationCrumbs = styled(NavigationBreadcrumbs)`
-  margin: 0;
-  padding: 0;
-`;
-
-export const CrumbContainer = styled('div')`
-  display: flex;
-  gap: ${space(1)};
-  align-items: center;
-`;
-
-export const ShortId = styled('div')`
-  font-family: ${p => p.theme.text.family};
-  font-size: ${p => p.theme.fontSizeMedium};
-  line-height: 1;
 `;

@@ -15,7 +15,7 @@ import {
   NavigationCrumbs,
   SearchInput,
   ShortId,
-} from 'sentry/components/events/breadcrumbs/breadcrumbsDrawer';
+} from 'sentry/components/events/eventReplay/eventDrawer';
 import {InputGroup} from 'sentry/components/inputGroup';
 import KeyValueData, {
   type KeyValueDataContentProps,
