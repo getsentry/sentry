@@ -1,4 +1,4 @@
-import type {JobTickData, MonitorBucketData} from '../types';
+import type {JobTickData, MonitorBucket} from '../types';
 
 import {filterMonitorStatsBucketByEnv} from './filterMonitorStatsBucketByEnv';
 import {getAggregateStatus} from './getAggregateStatus';
@@ -7,7 +7,7 @@ import {isEnvMappingEmpty} from './isEnvMappingEmpty';
 import {mergeEnvMappings} from './mergeEnvMappings';
 
 function generateJobTickFromBucket(
-  bucket: MonitorBucketData[number],
+  bucket: MonitorBucket,
   options?: Partial<JobTickData>
 ) {
   const [timestamp, envMapping] = bucket;
@@ -22,7 +22,7 @@ function generateJobTickFromBucket(
   };
 }
 
-export function mergeBuckets(data: MonitorBucketData, environment: string) {
+export function mergeBuckets(data: MonitorBucket[], environment: string) {
   const minTickWidth = 4;
 
   const jobTicks: JobTickData[] = [];
