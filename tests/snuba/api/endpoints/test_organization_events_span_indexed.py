@@ -590,11 +590,6 @@ class OrganizationEventsEAPSpanEndpointTest(OrganizationEventsSpanIndexedEndpoin
         ]
         assert meta["dataset"] == self.dataset
 
-    # 2024-09-12 / shellmayr: Marked as failing because test fails in CI
-    # https://github.com/getsentry/sentry/actions/runs/10826394743/job/30037275706?pr=77376
-    @pytest.mark.xfail(
-        reason="percentile_weighted(span.duration, 0.23) causes: Invalid query. Argument to function is wrong type"
-    )
     def test_extrapolation_smoke(self):
         """This is a hack, we just want to make sure nothing errors from using the weighted functions"""
         for function in [
