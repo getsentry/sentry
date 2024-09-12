@@ -541,14 +541,14 @@ class Event(BaseEvent):
         project_id: int,
         event_id: str,
         group_id: int | None = None,
-        data: Mapping[str, Any] | None = None,
+        data: NodeData | None = None,
         snuba_data: Mapping[str, Any] | None = None,
         groups: Sequence[Group] | None = None,
     ):
         super().__init__(project_id, event_id, snuba_data=snuba_data)
         self.group_id = group_id
         self.groups = groups or []
-        self.data = data or {}
+        self.data = data
 
     def __getstate__(self) -> dict[str, Any]:
         state = super().__getstate__()
