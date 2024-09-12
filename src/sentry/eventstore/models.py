@@ -645,7 +645,7 @@ class Event(BaseEvent):
         template = self.project.get_option("mail:subject_template")
         if template:
             template = EventSubjectTemplate(template)
-        elif self.group.issue_category == GroupCategory.PERFORMANCE:
+        elif self.group and self.group.issue_category == GroupCategory.PERFORMANCE:
             template = EventSubjectTemplate("$shortID - $issueType")
         else:
             template = DEFAULT_SUBJECT_TEMPLATE
