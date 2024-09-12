@@ -15,6 +15,6 @@ class DataSourceDetector(DefaultFieldsModel):
         constraints = [
             models.UniqueConstraint(
                 fields=["data_source", "detector"],
-                name="workflow_engine_uniq_data_source_detector",
+                name="workflow_engine_uniq_datasource_detector",
             )
         ]
