@@ -260,6 +260,10 @@ class BaseQueryBuilder:
         self.prefixed_to_tag_map: dict[str, str] = {}
         self.tag_to_prefixed_map: dict[str, str] = {}
 
+        # Tags with their type in them can't be passed to clickhouse because of the space
+        # This map is so we can convert those back before the user sees the internal alias
+        self.tag_alias_map: dict[str, str] = {}
+
         self.requires_other_aggregates = False
         self.limit = self.resolve_limit(limit)
         self.offset = None if offset is None else Offset(offset)
@@ -1525,12 +1529,14 @@ class BaseQueryBuilder:
     def process_results(self, results: Any) -> EventsResponse:
         with sentry_sdk.start_span(op="QueryBuilder", description="process_results") as span:
             span.set_data("result_count", len(results.get("data", [])))
-            translated_columns = {}
+            translated_columns = self.tag_alias_map
             if self.builder_config.transform_alias_to_input_format:
-                translated_columns = {
-                    column: function_details.field
-                    for column, function_details in self.function_alias_map.items()
-                }
+                translated_columns.update(
+                    {
+                        column: function_details.field
+                        for column, function_details in self.function_alias_map.items()
+                    }
+                )
 
                 for column in list(self.function_alias_map):
                     translated_column = translated_columns.get(column, column)

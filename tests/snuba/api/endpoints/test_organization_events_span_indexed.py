@@ -590,3 +590,59 @@ class OrganizationEventsEAPSpanEndpointTest(OrganizationEventsSpanIndexedEndpoin
             )
 
             assert response.status_code == 200, f"error: {response.content}\naggregate: {function}"
+
+    def test_numeric_attr(self):
+        self.store_spans(
+            [
+                self.create_span(
+                    {"description": "foo", "sentry_tags": {"status": "success", "foo": "five"}},
+                    measurements={"foo": {"value": 5}},
+                    start_ts=self.ten_mins_ago,
+                ),
+            ],
+            is_eap=self.is_eap,
+        )
+
+        response = self.do_request(
+            {
+                "field": ["description", "tags[foo, number]", "tags[foo, string]", "tags[foo]"],
+                "query": "",
+                "project": self.project.id,
+                "dataset": self.dataset,
+            }
+        )
+
+        assert response.status_code == 200, response.content
+        assert len(response.data["data"]) == 1
+        data = response.data["data"]
+        assert data[0]["tags[foo, number]"] == 5
+        assert data[0]["tags[foo, string]"] == "five"
+        assert data[0]["tags[foo]"] == "five"
+
+    def test_numeric_attr_without_space(self):
+        self.store_spans(
+            [
+                self.create_span(
+                    {"description": "foo", "sentry_tags": {"status": "success", "foo": "five"}},
+                    measurements={"foo": {"value": 5}},
+                    start_ts=self.ten_mins_ago,
+                ),
+            ],
+            is_eap=self.is_eap,
+        )
+
+        response = self.do_request(
+            {
+                "field": ["description", "tags[foo,number]", "tags[foo,string]", "tags[foo]"],
+                "query": "",
+                "project": self.project.id,
+                "dataset": self.dataset,
+            }
+        )
+
+        assert response.status_code == 200, response.content
+        assert len(response.data["data"]) == 1
+        data = response.data["data"]
+        assert data[0]["tags[foo,number]"] == 5
+        assert data[0]["tags[foo,string]"] == "five"
+        assert data[0]["tags[foo]"] == "five"
