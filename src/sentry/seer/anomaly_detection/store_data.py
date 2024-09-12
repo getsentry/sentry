@@ -3,7 +3,6 @@ from datetime import datetime, timedelta
 
 from django.conf import settings
 from django.core.exceptions import ValidationError
-from urllib3.exceptions import MaxRetryError, TimeoutError
 
 from sentry.conf.server import SEER_ANOMALY_DETECTION_STORE_DATA_URL
 from sentry.incidents.models.alert_rule import AlertRule, AlertRuleStatus
@@ -14,6 +13,7 @@ from sentry.seer.anomaly_detection.types import (
     AnomalyDetectionConfig,
     StoreDataRequest,
     TimeSeriesPoint,
+    StoreDataResponse,
 )
 from sentry.seer.anomaly_detection.utils import (
     fetch_historical_data,
@@ -91,22 +91,25 @@ def send_historical_data_to_seer(alert_rule: AlertRule, project: Project) -> Ale
         config=anomaly_detection_config,
         timeseries=formatted_data,
     )
-    try:
-        make_signed_seer_api_request(
-            connection_pool=seer_anomaly_detection_connection_pool,
-            path=SEER_ANOMALY_DETECTION_STORE_DATA_URL,
-            body=json.dumps(body).encode("utf-8"),
-        )
+    response = make_signed_seer_api_request(
+        connection_pool=seer_anomaly_detection_connection_pool,
+        path=SEER_ANOMALY_DETECTION_STORE_DATA_URL,
+        body=json.dumps(body).encode("utf-8"),
+    )
+    # TODO: this errors if we hit the Exception("Search for optimal window failed.") because response.data is text, not a dict
+    results: StoreDataResponse = json.loads(response.data.decode("utf-8"))
     # See SEER_ANOMALY_DETECTION_TIMEOUT in sentry.conf.server.py
-    except (TimeoutError, MaxRetryError):
-        logger.warning(
-            "Timeout error when hitting Seer store data endpoint",
+    if not results.get("success"):
+        message = results.get("message", "")
+        logger.error(
+            "Error when hitting Seer store data endpoint",
             extra={
                 "rule_id": alert_rule.id,
                 "project_id": project.id,
+                "error_message": message,
             },
         )
-        raise TimeoutError
+        raise Exception(message)
 
     MIN_DAYS = 7
     data_start_index, data_end_index = _get_start_and_end_indices(formatted_data)

@@ -52,7 +52,11 @@ from sentry.incidents.subscription_processor import (
 )
 from sentry.incidents.utils.types import AlertRuleActivationConditionType
 from sentry.models.project import Project
-from sentry.seer.anomaly_detection.types import AnomalyType, TimeSeriesPoint
+from sentry.seer.anomaly_detection.types import (
+    AnomalyType,
+    DetectAnomaliesResponse,
+    TimeSeriesPoint,
+)
 from sentry.seer.anomaly_detection.utils import translate_direction
 from sentry.sentry_metrics.configuration import UseCaseKey
 from sentry.sentry_metrics.indexer.postgres.models import MetricsKeyIndexer
@@ -485,7 +489,8 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
             AlertRuleTriggerAction.TargetType.USER,
             str(self.user.id),
         )
-        seer_return_value_1 = {
+        seer_return_value_1: DetectAnomaliesResponse = {
+            "success": True,
             "timeseries": [
                 {
                     "anomaly": {
@@ -495,7 +500,7 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
                     "timestamp": 1,
                     "value": 5,
                 }
-            ]
+            ],
         }
 
         mock_seer_request.return_value = HTTPResponse(orjson.dumps(seer_return_value_1), status=200)
@@ -525,7 +530,8 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
         )
 
         # trigger critical
-        seer_return_value_2 = {
+        seer_return_value_2: DetectAnomaliesResponse = {
+            "success": True,
             "timeseries": [
                 {
                     "anomaly": {
@@ -535,7 +541,7 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
                     "timestamp": 1,
                     "value": 10,
                 }
-            ]
+            ],
         }
 
         mock_seer_request.return_value = HTTPResponse(orjson.dumps(seer_return_value_2), status=200)
@@ -565,14 +571,15 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
         )
 
         # trigger a resolution
-        seer_return_value_3 = {
+        seer_return_value_3: DetectAnomaliesResponse = {
+            "success": True,
             "timeseries": [
                 {
                     "anomaly": {"anomaly_score": 0.5, "anomaly_type": AnomalyType.NONE.value},
                     "timestamp": 1,
                     "value": 1,
                 }
-            ]
+            ],
         }
 
         mock_seer_request.return_value = HTTPResponse(orjson.dumps(seer_return_value_3), status=200)
@@ -609,7 +616,8 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
         throughput_rule = self.dynamic_rule
         throughput_rule.snuba_query.update(time_window=15 * 60, dataset=Dataset.Transactions)
         # trigger critical
-        seer_return_value = {
+        seer_return_value: DetectAnomaliesResponse = {
+            "success": True,
             "timeseries": [
                 {
                     "anomaly": {
@@ -619,7 +627,7 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
                     "timestamp": 1,
                     "value": 10,
                 }
-            ]
+            ],
         }
 
         mock_seer_request.return_value = HTTPResponse(orjson.dumps(seer_return_value), status=200)
@@ -652,14 +660,15 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
         )
 
         # trigger a resolution
-        seer_return_value_2 = {
+        seer_return_value_2: DetectAnomaliesResponse = {
+            "success": True,
             "timeseries": [
                 {
                     "anomaly": {"anomaly_score": 0.5, "anomaly_type": AnomalyType.NONE.value},
                     "timestamp": 1,
                     "value": 1,
                 }
-            ]
+            ],
         }
 
         mock_seer_request.return_value = HTTPResponse(orjson.dumps(seer_return_value_2), status=200)

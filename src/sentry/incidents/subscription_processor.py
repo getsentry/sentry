@@ -12,7 +12,6 @@ from django.db import router, transaction
 from django.utils import timezone
 from sentry_redis_tools.retrying_cluster import RetryingRedisCluster
 from snuba_sdk import Column, Condition, Limit, Op
-from urllib3.exceptions import MaxRetryError, TimeoutError
 
 from sentry import features
 from sentry.conf.server import SEER_ANOMALY_DETECTION_ENDPOINT_URL
@@ -53,6 +52,7 @@ from sentry.seer.anomaly_detection.types import (
     AnomalyDetectionConfig,
     AnomalyType,
     DetectAnomaliesRequest,
+    DetectAnomaliesResponse,
     TimeSeriesPoint,
 )
 from sentry.seer.anomaly_detection.utils import translate_direction
@@ -681,7 +681,9 @@ class SubscriptionProcessor:
         anomaly_type = anomaly.get("anomaly", {}).get("anomaly_type")
         return anomaly_type != AnomalyType.NO_DATA.value
 
-    def get_anomaly_data_from_seer(self, aggregation_value: float | None):
+    def get_anomaly_data_from_seer(
+        self, aggregation_value: float | None
+    ) -> list[TimeSeriesPoint] | None:
         anomaly_detection_config = AnomalyDetectionConfig(
             time_period=int(self.alert_rule.snuba_query.time_window / 60),
             sensitivity=self.alert_rule.sensitivity,
@@ -700,51 +702,14 @@ class SubscriptionProcessor:
             config=anomaly_detection_config,
             context=context,
         )
+        response = make_signed_seer_api_request(
+            self.seer_anomaly_detection_connection_pool,
+            SEER_ANOMALY_DETECTION_ENDPOINT_URL,
+            json.dumps(detect_anomalies_request).encode("utf-8"),
+        )
         try:
-            response = make_signed_seer_api_request(
-                self.seer_anomaly_detection_connection_pool,
-                SEER_ANOMALY_DETECTION_ENDPOINT_URL,
-                json.dumps(detect_anomalies_request).encode("utf-8"),
-            )
-        except (TimeoutError, MaxRetryError):
-            logger.warning(
-                "Timeout error when hitting anomaly detection endpoint",
-                extra={
-                    "subscription_id": self.subscription.id,
-                    "dataset": self.subscription.snuba_query.dataset,
-                    "organization_id": self.subscription.project.organization.id,
-                    "project_id": self.subscription.project_id,
-                    "alert_rule_id": self.alert_rule.id,
-                },
-            )
-            return None
-
-        if response.status != 200:
-            logger.error(
-                f"Received {response.status} when calling Seer endpoint {SEER_ANOMALY_DETECTION_ENDPOINT_URL}.",  # noqa
-                extra={"response_data": response.data},
-            )
-            return None
-
-        try:
-            results = json.loads(response.data.decode("utf-8")).get("timeseries")
-            if not results:
-                logger.warning(
-                    "Seer anomaly detection response returned no potential anomalies",
-                    extra={
-                        "ad_config": anomaly_detection_config,
-                        "context": context,
-                        "response_data": response.data,
-                        "reponse_code": response.status,
-                    },
-                )
-                return None
-            return results
-        except (
-            AttributeError,
-            UnicodeError,
-            JSONDecodeError,
-        ):
+            results: DetectAnomaliesResponse = json.loads(response.data.decode("utf-8"))
+        except JSONDecodeError:
             logger.exception(
                 "Failed to parse Seer anomaly detection response",
                 extra={
@@ -755,6 +720,33 @@ class SubscriptionProcessor:
                 },
             )
             return None
+
+        if not results.get("success"):
+            logger.error(
+                "Error when hitting Seer detect anomalies endpoint",
+                extra={
+                    "subscription_id": self.subscription.id,
+                    "dataset": self.subscription.snuba_query.dataset,
+                    "organization_id": self.subscription.project.organization.id,
+                    "project_id": self.subscription.project_id,
+                    "alert_rule_id": self.alert_rule.id,
+                    "error_message": results.get("message", ""),
+                },
+            )
+            return None
+
+        ts = results.get("timeseries")
+        if not ts:
+            logger.warning(
+                "Seer anomaly detection response returned no potential anomalies",
+                extra={
+                    "ad_config": anomaly_detection_config,
+                    "context": context,
+                    "response_data": results.get("message"),
+                },
+            )
+            return None
+        return ts
 
     def calculate_event_date_from_update_date(self, update_date: datetime) -> datetime:
         """
