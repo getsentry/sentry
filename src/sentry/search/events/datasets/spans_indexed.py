@@ -533,6 +533,8 @@ class SpansIndexedDatasetConfig(DatasetConfig):
 class SpansEAPDatasetConfig(SpansIndexedDatasetConfig):
     """Eventually should just write the eap dataset from scratch, but inheriting for now to move fast"""
 
+    sampling_weight = Function("toUInt64", [Column("sampling_weight")])
+
     def _resolve_span_duration(self, alias: str) -> SelectType:
         # In ClickHouse, duration is an UInt32 whereas self time is a Float64.
         # This creates a situation where a sub-millisecond duration is truncated
@@ -567,7 +569,7 @@ class SpansEAPDatasetConfig(SpansIndexedDatasetConfig):
                     optional_args=[NullColumn("column")],
                     snql_aggregate=lambda _, alias: Function(
                         "sum",
-                        [Function("multiply", [Column("sign"), Column("sampling_weight")])],
+                        [Function("multiply", [Column("sign"), self.sampling_weight])],
                         alias,
                     ),
                     default_result_type="integer",
@@ -589,7 +591,7 @@ class SpansEAPDatasetConfig(SpansIndexedDatasetConfig):
                             self._resolve_sum_weighted(args),
                             Function(
                                 "sum",
-                                [Function("multiply", [Column("sign"), Column("sampling_weight")])],
+                                [Function("multiply", [Column("sign"), self.sampling_weight])],
                             ),
                         ],
                         alias,
@@ -714,7 +716,7 @@ class SpansEAPDatasetConfig(SpansIndexedDatasetConfig):
                     "multiply",
                     [
                         Column("sign"),
-                        Function("multiply", [args["column"], Column("sampling_weight")]),
+                        Function("multiply", [args["column"], self.sampling_weight]),
                     ],
                 )
             ],
@@ -729,6 +731,6 @@ class SpansEAPDatasetConfig(SpansIndexedDatasetConfig):
     ) -> SelectType:
         return Function(
             f'quantileTDigestWeighted({fixed_percentile if fixed_percentile is not None else args["percentile"]})',
-            [args["column"], Column("sampling_weight")],
+            [args["column"], self.sampling_weight],
             alias,
         )
