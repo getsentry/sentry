@@ -788,7 +788,7 @@ class EventSubjectTemplate(string.Template):
 class EventSubjectTemplateData:
     tag_aliases = {"release": "sentry:release", "dist": "sentry:dist", "user": "sentry:user"}
 
-    def __init__(self, event: Event):
+    def __init__(self, event: GroupEvent):
         self.event = event
 
     def __getitem__(self, name: str) -> str:
@@ -810,7 +810,7 @@ class EventSubjectTemplateData:
         elif name == "orgID":
             return self.event.organization.slug
         elif name == "title":
-            if getattr(self.event, "occurrence", None):
+            if getattr(self.event, "occurrence", None) and self.event.occurrence is not None:
                 return self.event.occurrence.issue_title
             else:
                 return self.event.title
