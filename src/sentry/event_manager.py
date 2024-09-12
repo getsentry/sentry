@@ -78,7 +78,6 @@ from sentry.grouping.ingest.utils import (
     check_for_group_creation_load_shed,
     extract_hashes,
 )
-from sentry.grouping.result import CalculatedHashes
 from sentry.ingest.inbound_filters import FilterStatKeys
 from sentry.integrations.tasks.kick_off_status_syncs import kick_off_status_syncs
 from sentry.issues.grouptype import ErrorGroupType, GroupCategory
@@ -1695,7 +1694,7 @@ def get_hashes_and_grouphashes(
     job: Job,
     hash_calculation_function: Callable[
         [Project, Job, MutableTags],
-        tuple[GroupingConfig, CalculatedHashes],
+        tuple[GroupingConfig, list[str]],
     ],
     metric_tags: MutableTags,
 ) -> GroupHashInfo:

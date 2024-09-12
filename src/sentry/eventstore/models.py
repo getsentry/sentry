@@ -18,7 +18,6 @@ from django.utils.functional import cached_property
 
 from sentry import eventtypes
 from sentry.db.models import NodeData
-from sentry.grouping.result import CalculatedHashes
 from sentry.grouping.variants import BaseVariant, KeyedVariants
 from sentry.interfaces.base import Interface, get_interfaces
 from sentry.issues.grouptype import GroupCategory
@@ -343,9 +342,9 @@ class BaseEvent(metaclass=abc.ABCMeta):
         # fall back to generating new ones from the data.  We can only use
         # this if we do not force a different config.
         if force_config is None:
-            rv = CalculatedHashes.from_event(self.data)
-            if rv is not None:
-                return rv
+            hashes = self.data.get("hashes")
+            if hashes is not None:
+                return hashes
 
         # Create fresh hashes
         from sentry.grouping.api import sort_grouping_variants

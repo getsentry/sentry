@@ -10,7 +10,6 @@ from sentry import ratelimits as ratelimiter
 from sentry.conf.server import SEER_SIMILARITY_MODEL_VERSION
 from sentry.eventstore.models import Event
 from sentry.grouping.grouping_info import get_grouping_info_from_variants
-from sentry.grouping.result import CalculatedHashes
 from sentry.models.grouphash import GroupHash
 from sentry.models.project import Project
 from sentry.seer.similarity.similar_issues import get_similarity_data_from_seer
@@ -28,7 +27,7 @@ from sentry.utils.safe import get_path
 logger = logging.getLogger("sentry.events.grouping")
 
 
-def should_call_seer_for_grouping(event: Event, primary_hashes: CalculatedHashes) -> bool:
+def should_call_seer_for_grouping(event: Event, primary_hashes: list[str]) -> bool:
     """
     Use event content, feature flags, rate limits, killswitches, seer health, etc. to determine
     whether a call to Seer should be made.
@@ -80,7 +79,7 @@ def _project_has_similarity_grouping_enabled(project: Project) -> bool:
 # combined with some other value). To the extent to which we're then using this function to decide
 # whether or not to call Seer, this means that the calculations giving rise to the default part of
 # the value never involve Seer input. In the long run, we probably want to change that.
-def _has_customized_fingerprint(event: Event, primary_hashes: CalculatedHashes) -> bool:
+def _has_customized_fingerprint(event: Event, primary_hashes: list[str]) -> bool:
     fingerprint = event.data.get("fingerprint", [])
 
     if "{{ default }}" in fingerprint:
@@ -180,7 +179,7 @@ def _circuit_breaker_broken(event: Event, project: Project) -> bool:
 
 def get_seer_similar_issues(
     event: Event,
-    primary_hashes: CalculatedHashes,
+    primary_hashes: list[str],
     num_neighbors: int = 1,
 ) -> tuple[dict[str, Any], GroupHash | None]:
     """
@@ -237,7 +236,7 @@ def get_seer_similar_issues(
 
 
 def maybe_check_seer_for_matching_grouphash(
-    event: Event, primary_hashes: CalculatedHashes
+    event: Event, primary_hashes: list[str]
 ) -> GroupHash | None:
     seer_matched_grouphash = None
 
