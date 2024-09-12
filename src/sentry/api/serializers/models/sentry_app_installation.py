@@ -45,7 +45,9 @@ class SentryAppInstallationSerializer(Serializer):
             "status": SentryAppInstallationStatus.as_str(obj.status),
         }
 
-        if obj.api_grant and access and access.has_scope("org:integrations"):
+        is_webhook = "is_webhook" in kwargs and kwargs["is_webhook"]
+
+        if obj.api_grant and ((access and access.has_scope("org:integrations")) or is_webhook):
             data["code"] = obj.api_grant.code
 
         return data
