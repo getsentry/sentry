@@ -26,7 +26,9 @@ class SentryInstrumentation {
   constructor() {
     this.Sentry = require('@sentry/node') as typeof Sentry;
     const {nodeProfilingIntegration} = require('@sentry/profiling-node');
-    let profiler_id;
+    // @ts-ignore
+    // eslint-disable-next-line
+    let profiler_id: string | undefined;
 
     this.Sentry.init({
       dsn: 'https://07898f7cdd56ebabb2761c0fb54578a1@o87286.ingest.us.sentry.io/4507936144031744',
@@ -45,7 +47,8 @@ class SentryInstrumentation {
 
     const profilingIntegration =
       this.Sentry.getClient()?.getIntegrationByName('ProfilingIntegration');
-    // @ts-expect-error
+    // @ts-ignore
+    // eslint-disable-next-line
     profiler_id = profilingIntegration._profiler._profilerId;
 
     this.Sentry.profiler.startProfiler();
@@ -161,6 +164,8 @@ class SentryInstrumentation {
         }
 
         if (this.Sentry) {
+          // @ts-ignore
+          // eslint-disable-next-line
           console.log(this.Sentry.getGlobalScope());
           this.Sentry.profiler.stopProfiler();
           this.measureBuildTime(startTime / 1000, endTime / 1000);
