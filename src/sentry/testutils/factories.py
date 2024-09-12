@@ -171,6 +171,7 @@ from sentry.users.services.user import RpcUser
 from sentry.utils import loremipsum
 from sentry.utils.performance_issues.performance_problem import PerformanceProblem
 from sentry.workflow_engine.models import (
+    DataCondition,
     DataSource,
     DataSourceDetector,
     Detector,
@@ -2065,13 +2066,20 @@ class Factories:
 
     @staticmethod
     @assume_test_silo_mode(SiloMode.REGION)
-    def create_workflowaction(
+    def create_workflow_action(
         workflow: Workflow | None = None,
         **kwargs,
     ) -> WorkflowAction:
         if workflow is None:
             workflow = Factories.create_workflow()
         return WorkflowAction.objects.create(workflow=workflow, **kwargs)
+
+    @staticmethod
+    @assume_test_silo_mode(SiloMode.REGION)
+    def create_data_condition(
+        **kwargs,
+    ) -> DataCondition:
+        return DataCondition.objects.create(**kwargs)
 
     @staticmethod
     @assume_test_silo_mode(SiloMode.REGION)
