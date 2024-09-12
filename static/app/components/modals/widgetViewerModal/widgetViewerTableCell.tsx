@@ -34,6 +34,7 @@ import {
   generateEventSlug,
 } from 'sentry/utils/discover/urls';
 import {formatMRIField, parseField} from 'sentry/utils/metrics/mri';
+import {getCustomEventsFieldRenderer} from 'sentry/views/dashboards/datasetConfig/errorsAndTransactions';
 import type {Widget} from 'sentry/views/dashboards/types';
 import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
 import {eventViewFromWidget} from 'sentry/views/dashboards/utils';
@@ -202,18 +203,17 @@ export const renderGridBodyCell = ({
         )(dataRow, {organization, location});
         break;
       case WidgetType.DISCOVER:
+      case WidgetType.TRANSACTIONS:
+      case WidgetType.ERRORS:
       default:
         if (!tableData || !tableData.meta) {
           return dataRow[column.key];
         }
         const unit = tableData.meta.units?.[column.key];
-        cell = getFieldRenderer(
-          columnKey,
-          tableData.meta,
-          false
-        )(dataRow, {
+        cell = getCustomEventsFieldRenderer(columnKey, tableData.meta)(dataRow, {
           organization,
           location,
+          eventView,
           unit,
         });
 
