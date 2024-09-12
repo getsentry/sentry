@@ -62,6 +62,7 @@ import {DisplayType} from '../types';
 import type {GenericWidgetQueriesChildrenProps} from './genericWidgetQueries';
 
 const OTHER = 'Other';
+const PERCENTAGE_DECIMAL_POINTS = 3;
 export const SLIDER_HEIGHT = 60;
 
 export type AugmentedEChartDataZoomHandler = (
@@ -456,10 +457,19 @@ class WidgetCardChart extends Component<WidgetCardChartProps, State> {
                 value,
                 outputType,
                 true,
-                durationUnit
+                durationUnit,
+                undefined,
+                PERCENTAGE_DECIMAL_POINTS
               );
             }
-            return axisLabelFormatter(value, aggregateOutputType(axisLabel), true);
+            return axisLabelFormatter(
+              value,
+              aggregateOutputType(axisLabel),
+              true,
+              undefined,
+              undefined,
+              PERCENTAGE_DECIMAL_POINTS
+            );
           },
         },
         axisPointer: {
