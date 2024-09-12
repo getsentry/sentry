@@ -572,6 +572,11 @@
   "sentry.apiapplication": {
     "dangling": false,
     "foreign_keys": {
+      "organization_id": {
+        "kind": "HybridCloudForeignKey",
+        "model": "sentry.organization",
+        "nullable": true
+      },
       "owner": {
         "kind": "FlexibleForeignKey",
         "model": "sentry.user",
@@ -597,6 +602,11 @@
       "application": {
         "kind": "FlexibleForeignKey",
         "model": "sentry.apiapplication",
+        "nullable": true
+      },
+      "organization_id": {
+        "kind": "HybridCloudForeignKey",
+        "model": "sentry.organization",
         "nullable": true
       },
       "user": {
@@ -629,6 +639,11 @@
         "kind": "FlexibleForeignKey",
         "model": "sentry.apiapplication",
         "nullable": false
+      },
+      "organization_id": {
+        "kind": "HybridCloudForeignKey",
+        "model": "sentry.organization",
+        "nullable": true
       },
       "user": {
         "kind": "FlexibleForeignKey",
@@ -673,6 +688,11 @@
       "application": {
         "kind": "FlexibleForeignKey",
         "model": "sentry.apiapplication",
+        "nullable": true
+      },
+      "scoping_organization_id": {
+        "kind": "HybridCloudForeignKey",
+        "model": "sentry.organization",
         "nullable": true
       },
       "user": {

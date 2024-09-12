@@ -1,5 +1,9 @@
 ---
+<<<<<<< HEAD
 created: '2024-09-17T12:19:51.014511+00:00'
+=======
+created: '2024-09-13T18:54:42.196428+00:00'
+>>>>>>> 2b539135d0b (feat(auth): add org level api access)
 creator: sentry
 source: tests/sentry/backup/test_comparators.py
 ---
@@ -148,18 +152,21 @@ source: tests/sentry/backup/test_comparators.py
     - date_added
   - class: ForeignKeyComparator
     fields:
+    - organization_id
     - owner
   model_name: sentry.apiapplication
 - comparators:
   - class: ForeignKeyComparator
     fields:
     - application
+    - organization_id
     - user
   model_name: sentry.apiauthorization
 - comparators:
   - class: ForeignKeyComparator
     fields:
     - application
+    - organization_id
     - user
   model_name: sentry.apigrant
 - comparators:
@@ -187,6 +194,7 @@ source: tests/sentry/backup/test_comparators.py
   - class: ForeignKeyComparator
     fields:
     - application
+    - scoping_organization_id
     - user
   model_name: sentry.apitoken
 - comparators:
