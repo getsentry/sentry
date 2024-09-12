@@ -176,6 +176,7 @@ SPAN_COLUMN_MAP = {
 
 SPAN_EAP_COLUMN_MAP = {
     "id": "span_id",
+    "span_id": "span_id",  # ideally this would be temporary, but unfortunately its heavily hardcoded in the FE
     "organization.id": "organization_id",
     "project": "project_id",
     "project.id": "project_id",
