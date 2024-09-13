@@ -233,14 +233,6 @@ def replay_recording_segment_cache_id(project_id: int, replay_id: str, segment_i
     return f"{project_id}:{replay_id}:{segment_id}"
 
 
-def decompress(data: bytes) -> bytes:
-    """Return decompressed bytes."""
-    if data.startswith(b"["):
-        return data
-    else:
-        return zlib.decompress(data, zlib.MAX_WBITS | 32)
-
-
 def _report_size_metrics(
     size_compressed: int | None = None, size_uncompressed: int | None = None
 ) -> None:
