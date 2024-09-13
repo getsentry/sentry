@@ -17,6 +17,7 @@ import type {
 import {getKeyName} from 'sentry/components/searchSyntax/utils';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import {FieldKey} from 'sentry/utils/fields';
 
 type KeyComboboxProps = {
   item: Node<ParseResultToken>;
@@ -40,7 +41,18 @@ export function FilterKeyCombobox({token, onCommit, item}: KeyComboboxProps) {
       const newFieldDef = getFieldDefinition(keyName);
       const newFilterValueType = getFilterValueType(token, newFieldDef);
 
-      if (newFilterValueType === currentFilterValueType) {
+      if (keyName === getKeyName(token.key)) {
+        onCommit();
+        return;
+      }
+
+      if (
+        newFilterValueType === currentFilterValueType &&
+        // IS and HAS filters are strings, but treated differently and will break
+        // if we prevserve the value.
+        keyName !== FieldKey.IS &&
+        keyName !== FieldKey.HAS
+      ) {
         dispatch({
           type: 'UPDATE_FILTER_KEY',
           token,
