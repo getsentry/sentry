@@ -32,23 +32,23 @@ import {
 import {ProductSolution} from 'sentry/components/onboarding/productSelection';
 import {t, tct} from 'sentry/locale';
 
-export enum AngularAppType {
-  STANDALONE = 'standalone',
+export enum AngularConfigType {
+  APP = 'standalone',
   MODULE = 'module',
 }
 
 const platformOptions = {
-  appType: {
-    label: t('App Type'),
-    defaultValue: AngularAppType.STANDALONE,
+  configType: {
+    label: t('Config Type'),
+    defaultValue: AngularConfigType.APP,
     items: [
       {
-        label: 'Standalone',
-        value: AngularAppType.STANDALONE,
+        label: 'App Config',
+        value: AngularConfigType.APP,
       },
       {
-        label: 'Module',
-        value: AngularAppType.MODULE,
+        label: 'NGModule Config',
+        value: AngularConfigType.MODULE,
       },
     ],
   },
@@ -57,20 +57,18 @@ const platformOptions = {
 type PlatformOptions = typeof platformOptions;
 type Params = DocsParams<PlatformOptions>;
 
-function isModuleApp(params: Params) {
-  return params.platformOptions.appType === AngularAppType.MODULE;
+function isModuleConfig(params: Params) {
+  return params.platformOptions.configType === AngularConfigType.MODULE;
 }
 
 function getSdkSetupSnippet(params: Params) {
-  const imports = isModuleApp(params)
+  const imports = isModuleConfig(params)
     ? `
-import { enableProdMode } from "@angular/core";
 import { platformBrowserDynamic } from "@angular/platform-browser-dynamic";
 import * as Sentry from "@sentry/angular";
 
 import { AppModule } from "./app/app.module";`
     : `
-import { enableProdMode } from '@angular/core';
 import { bootstrapApplication } from '@angular/platform-browser';
 import * as Sentry from "@sentry/angular";
 
@@ -78,14 +76,12 @@ import { appConfig } from './app/app.config';
 import { AppComponent } from './app/app.component';
   `;
 
-  const appInit = isModuleApp(params)
+  const appInit = isModuleConfig(params)
     ? `
-enableProdMode();
 platformBrowserDynamic()
   .bootstrapModule(AppModule)
   .catch((err) => console.error(err));`
     : `
-enableProdMode();
 bootstrapApplication(appConfig, AppComponent)
   .catch((err) => console.error(err));`;
 
@@ -327,7 +323,7 @@ const onboarding: OnboardingConfig<PlatformOptions> = {
           code: getSdkSetupSnippet(params),
         },
         {
-          description: isModuleApp(params)
+          description: isModuleConfig(params)
             ? tct(
                 "Register the Sentry Angular SDK's ErrorHandler and Tracing providers in your [code:app.module.ts] file:",
                 {code: <code />}
@@ -337,7 +333,7 @@ const onboarding: OnboardingConfig<PlatformOptions> = {
                 {code: <code />}
               ),
           language: 'javascript',
-          code: isModuleApp(params)
+          code: isModuleConfig(params)
             ? getConfigureAppModuleSnippet()
             : getConfigureAppConfigSnippet(),
         },

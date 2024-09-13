@@ -4,7 +4,7 @@ import {textWithMarkupMatcher} from 'sentry-test/utils';
 
 import {ProductSolution} from 'sentry/components/onboarding/productSelection';
 
-import docs, {AngularAppType} from './angular';
+import docs, {AngularConfigType} from './angular';
 
 describe('javascript-angular onboarding docs', function () {
   it('renders onboarding docs correctly', () => {
@@ -27,7 +27,7 @@ describe('javascript-angular onboarding docs', function () {
   it('displays sample rates by default', () => {
     renderWithOnboardingLayout(docs, {
       selectedOptions: {
-        appType: AngularAppType.STANDALONE,
+        configType: AngularConfigType.APP,
       },
       selectedProducts: [
         ProductSolution.ERROR_MONITORING,
@@ -50,7 +50,7 @@ describe('javascript-angular onboarding docs', function () {
   it('enables performance setting the tracesSampleRate to 1', () => {
     renderWithOnboardingLayout(docs, {
       selectedOptions: {
-        appType: AngularAppType.STANDALONE,
+        configType: AngularConfigType.APP,
       },
       selectedProducts: [
         ProductSolution.ERROR_MONITORING,
@@ -66,7 +66,7 @@ describe('javascript-angular onboarding docs', function () {
   it('enables replay by setting replay samplerates', () => {
     renderWithOnboardingLayout(docs, {
       selectedOptions: {
-        appType: AngularAppType.STANDALONE,
+        configType: AngularConfigType.APP,
       },
       selectedProducts: [
         ProductSolution.ERROR_MONITORING,
@@ -85,7 +85,7 @@ describe('javascript-angular onboarding docs', function () {
   it('enables profiling by setting profiling sample rates', () => {
     renderWithOnboardingLayout(docs, {
       selectedOptions: {
-        appType: AngularAppType.STANDALONE,
+        configType: AngularConfigType.APP,
       },
       selectedProducts: [ProductSolution.ERROR_MONITORING, ProductSolution.PROFILING],
     });
