@@ -3,7 +3,8 @@ import {t} from 'sentry/locale';
 import slugify from 'sentry/utils/slugify';
 
 // Export route to make these forms searchable by label/help
-export const route = '/settings/:orgId/teams/:teamId/settings/';
+// TODO: :teamId is not a valid route parameter
+// export const route = '/settings/:orgId/teams/:teamId/settings/';
 
 const formGroups: JsonFormObject[] = [
   {
