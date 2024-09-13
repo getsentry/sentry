@@ -360,7 +360,7 @@ class BaseEvent(metaclass=abc.ABCMeta):
         hashes = self._hashes_from_sorted_grouping_variants(sort_grouping_variants(variants))
 
         return CalculatedHashes(
-            hashes=hashes,
+            hashes=[hash_ for _, hash_ in hashes],
             variants=variants,
         )
 
