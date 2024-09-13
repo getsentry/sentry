@@ -1,4 +1,5 @@
 import type {ReactElement} from 'react';
+import * as Sentry from '@sentry/react';
 
 /**
  * Takes in a MongoDB query JSON string and outputs it as HTML tokens.
@@ -9,6 +10,15 @@ import type {ReactElement} from 'react';
  * @param command The DB command, e.g. `find`. This is available as a tag on database spans
  */
 export function formatMongoDBQuery(query: string, command: string) {
+  const sentrySpan = Sentry.startInactiveSpan({
+    op: 'function',
+    name: 'formatMongoDBQuery',
+    attributes: {
+      query,
+    },
+    onlyIfParent: true,
+  });
+
   const queryObject = JSON.parse(query);
 
   const tokens: ReactElement[] = [];
@@ -41,6 +51,8 @@ export function formatMongoDBQuery(query: string, command: string) {
   // Pop the last token since it will be an extra comma
   tokens.pop();
   insertToken(tokens, ' }');
+
+  sentrySpan.end();
 
   return tokens;
 }
