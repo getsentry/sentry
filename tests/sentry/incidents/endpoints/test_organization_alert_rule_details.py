@@ -66,7 +66,11 @@ class AlertRuleDetailsBase(AlertRuleBase):
 
     endpoint = "sentry-api-0-organization-alert-rule-details"
 
-    def new_alert_rule(self, data=None):
+    @patch(
+        "sentry.seer.anomaly_detection.store_data.seer_anomaly_detection_connection_pool.urlopen"
+    )
+    def new_alert_rule(self, mock_seer_request, data=None):
+        mock_seer_request.return_value = HTTPResponse(orjson.dumps({"success": True}), status=200)
         if data is None:
             data = deepcopy(self.alert_rule_dict)
 
@@ -831,9 +835,9 @@ class AlertRuleDetailsPutEndpointTest(AlertRuleDetailsBase):
         self.login_as(self.user)
         alert_rule = self.dynamic_alert_rule
         # We need the IDs to force update instead of create, so we just get the rule using our own API. Like frontend would.
-        mock_seer_request.side_effect = TimeoutError
+        mock_seer_request.return_value = HTTPResponse(orjson.dumps({"success": True}), status=200)
         data = self.get_serialized_alert_rule()
-
+        mock_seer_request.side_effect = TimeoutError
         resp = self.get_error_response(
             self.organization.slug,
             alert_rule.id,
@@ -841,7 +845,7 @@ class AlertRuleDetailsPutEndpointTest(AlertRuleDetailsBase):
             **data,
         )
         assert resp.data["detail"]["message"] == "Proxied request timed out"
-        assert mock_seer_request.call_count == 2  # one for create, one for update
+        assert mock_seer_request.call_count == 1
 
     @with_feature("organizations:anomaly-detection-alerts")
     @with_feature("organizations:incidents")
@@ -853,6 +857,7 @@ class AlertRuleDetailsPutEndpointTest(AlertRuleDetailsBase):
         self.login_as(self.user)
         alert_rule = self.dynamic_alert_rule
         # We need the IDs to force update instead of create, so we just get the rule using our own API. Like frontend would.
+
         mock_seer_request.side_effect = MaxRetryError(
             seer_anomaly_detection_connection_pool, SEER_ANOMALY_DETECTION_STORE_DATA_URL
         )
@@ -865,7 +870,7 @@ class AlertRuleDetailsPutEndpointTest(AlertRuleDetailsBase):
             **data,
         )
         assert resp.data["detail"]["message"] == "Proxied request timed out"
-        assert mock_seer_request.call_count == 2
+        assert mock_seer_request.call_count == 1
 
     @with_feature("organizations:anomaly-detection-alerts")
     @with_feature("organizations:incidents")
@@ -889,8 +894,10 @@ class AlertRuleDetailsPutEndpointTest(AlertRuleDetailsBase):
             status_code=400,
             **data,
         )
-        assert resp.data["detail"]["message"] == "Invalid request"
-        assert mock_seer_request.call_count == 2
+        assert resp.data[0] == ErrorDetail(
+            string="Failed to send data to Seer - cannot update alert rule.", code="invalid"
+        )
+        assert mock_seer_request.call_count == 1
 
     @with_feature("organizations:anomaly-detection-alerts")
     @with_feature("organizations:incidents")
@@ -916,7 +923,7 @@ class AlertRuleDetailsPutEndpointTest(AlertRuleDetailsBase):
             == "Invalid time window for dynamic alert (valid windows are 60, 30, 15 minutes)"
         )
         # We don't call send_historical_data_to_seer if we encounter a validation error.
-        assert mock_seer_request.call_count == 1
+        assert mock_seer_request.call_count == 0
 
     def test_delete_action(self):
         self.create_member(

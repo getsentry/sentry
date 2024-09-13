@@ -923,7 +923,7 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
     @mock.patch("sentry.incidents.subscription_processor.logger")
     def test_seer_call_empty_list(self, mock_logger, mock_seer_request):
         processor = SubscriptionProcessor(self.sub)
-        seer_return_value: dict[str, list] = {"success": True, "timeseries": []}
+        seer_return_value: DetectAnomaliesResponse = {"success": True, "timeseries": []}
         mock_seer_request.return_value = HTTPResponse(orjson.dumps(seer_return_value), status=200)
         result = processor.get_anomaly_data_from_seer(10)
         assert mock_logger.warning.call_args[0] == (
@@ -3096,7 +3096,7 @@ class MetricsCrashRateAlertProcessUpdateTest(ProcessUpdateBaseClass, BaseMetrics
         self.assert_trigger_exists_with_status(incident, trigger, TriggerStatus.ACTIVE)
 
         # Close the metric alert
-        seer_return_value: DetectAnomaliesResponse = {
+        seer_return_value2: DetectAnomaliesResponse = {
             "success": True,
             "timeseries": [
                 {
@@ -3109,7 +3109,7 @@ class MetricsCrashRateAlertProcessUpdateTest(ProcessUpdateBaseClass, BaseMetrics
                 }
             ],
         }
-        mock_seer_request.return_value = HTTPResponse(orjson.dumps(seer_return_value), status=200)
+        mock_seer_request.return_value = HTTPResponse(orjson.dumps(seer_return_value2), status=200)
         update_value = (1 - trigger.alert_threshold / 100) - 0.05
         self.send_crash_rate_alert_update(
             rule=rule,
