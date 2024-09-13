@@ -63,13 +63,16 @@ function processAndInsertKeyValueTokens(
     return;
   }
 
-  // Case 2: Value is a primitive type
-  if (
-    typeof value === 'string' ||
-    typeof value === 'number' ||
-    typeof value === 'boolean'
-  ) {
+  // Case 2: Value is a string
+  if (typeof value === 'string') {
     _insertToken(`"${key}": "${value}"`);
+    _insertToken(`, `);
+    return;
+  }
+
+  // Case 3: Value is one of the other primitive types
+  if (typeof value === 'number' || typeof value === 'boolean') {
+    _insertToken(`"${key}": ${value}`);
     _insertToken(`, `);
     return;
   }
