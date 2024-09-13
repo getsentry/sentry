@@ -1,6 +1,8 @@
 import type {ReactElement} from 'react';
 import * as Sentry from '@sentry/react';
 
+type JSONValue = string | number | object | boolean | null;
+
 /**
  * Takes in a MongoDB query JSON string and outputs it as HTML tokens.
  * Performs some processing to surface the DB operation and collection so they are the first key-value
@@ -20,7 +22,7 @@ export function formatMongoDBQuery(query: string, command: string) {
     onlyIfParent: true,
   });
 
-  let queryObject;
+  let queryObject: Record<string, JSONValue> = {};
   try {
     queryObject = JSON.parse(query);
   } catch {
@@ -28,136 +30,109 @@ export function formatMongoDBQuery(query: string, command: string) {
   }
 
   const tokens: ReactElement[] = [];
+  const tempTokens: ReactElement[] = [];
 
-  insertToken(tokens, '{ ');
+  const queryEntries = Object.entries(queryObject);
+  queryEntries.forEach(([key, val], index) => {
+    const isBoldedEntry = key.toLowerCase() === command.toLowerCase();
 
-  // Start by finding the key-value pair that represents the operation on the collection
-  // and insert it as the first token
-  const commandKey = Object.keys(queryObject).find(
-    key => key.toLowerCase() === command.toLowerCase()
-  );
-
-  // If the command was somehow not found in the query, return it as a raw string since no formatting can be applied
-  if (!commandKey) {
-    return query;
-  }
-
-  const collection = queryObject[commandKey];
-
-  processAndInsertKeyValueTokens(tokens, commandKey, collection, true);
-
-  // Create the remaining tokens by iterating over all keys and skipping the command key
-  Object.keys(queryObject).forEach(key => {
-    if (key.toLowerCase() !== command.toLowerCase()) {
-      const value = queryObject[key];
-      processAndInsertKeyValueTokens(tokens, key, value);
+    if (index === queryEntries.length - 1) {
+      tempTokens.push(jsonEntryToToken(key, val, isBoldedEntry));
+      return;
     }
+
+    // Push the bolded entry into tokens so it is the first entry displayed.
+    // The other tokens will be pushed into tempTokens, and then copied into tokens afterwards
+    if (isBoldedEntry) {
+      tokens.push(jsonEntryToToken(key, val, true));
+      tokens.push(stringToToken(', '));
+      return;
+    }
+
+    tempTokens.push(jsonEntryToToken(key, val));
+    tempTokens.push(stringToToken(', '));
   });
 
-  // Pop the last token since it will be an extra comma
-  tokens.pop();
-  insertToken(tokens, ' }');
+  tempTokens.forEach(token => tokens.push(token));
 
   sentrySpan.end();
 
   return tokens;
 }
 
-type JSONValue = string | number | object | boolean | null;
+function jsonEntryToToken(key: string, value: JSONValue, isBold?: boolean) {
+  const tokenString = jsonToTokenizedString(value, key);
+  return stringToToken(tokenString, isBold);
+}
 
-function processAndInsertKeyValueTokens(
-  tokens: ReactElement[],
-  key: string,
-  value: JSONValue | JSONValue[],
-  // Use isBold only for non-object kv pairs
-  isBold?: boolean
-) {
-  // Wrapper function for better readability
-  const _insertToken = (token: string) => insertToken(tokens, token, isBold);
+function jsonToTokenizedString(value: JSONValue | JSONValue[], key?: string): string {
+  let result = '';
+  if (key) {
+    result = `"${key}": `;
+  }
+
   // Case 1: Value is null
   if (!value) {
-    _insertToken(`"${key}": null`);
-    _insertToken(', ');
-    return;
+    result += 'null';
+    return result;
   }
 
   // Case 2: Value is a string
   if (typeof value === 'string') {
-    _insertToken(`"${key}": "${value}"`);
-    _insertToken(`, `);
-    return;
+    result += `"${value}"`;
+    return result;
   }
 
   // Case 3: Value is one of the other primitive types
   if (typeof value === 'number' || typeof value === 'boolean') {
-    _insertToken(`"${key}": ${value}`);
-    _insertToken(`, `);
-    return;
+    result += `${value}`;
+    return result;
   }
 
-  // Case 3: Value is an array
+  // Case 4: Value is an array
   if (Array.isArray(value)) {
-    _insertToken(`"${key}": [`);
+    result += '[';
 
-    value.forEach(item => {
-      if (!item) {
-        _insertToken('null');
-        _insertToken(', ');
-      } else if (
-        typeof item === 'string' ||
-        typeof item === 'number' ||
-        typeof item === 'boolean'
-      ) {
-        _insertToken(`${item}`);
-        _insertToken(', ');
+    value.forEach((item, index) => {
+      if (index === value.length - 1) {
+        result += jsonToTokenizedString(item);
       } else {
-        // We must recurse if item is an object
-        if (Object.keys(item).length === 0) {
-          processAndInsertKeyValueTokens(tokens, key, '{}');
-        } else {
-          _insertToken('{ ');
-          Object.keys(item).forEach(_key => {
-            processAndInsertKeyValueTokens(tokens, _key, item[_key]);
-          });
-          // Pop the trailing comma
-          tokens.pop();
-
-          _insertToken(' }');
-          _insertToken(', ');
-        }
+        result += `${jsonToTokenizedString(item)}, `;
       }
     });
 
-    // Pop the trailing comma
-    tokens.pop();
-    _insertToken(' ]');
-    _insertToken(', ');
-    return;
+    result += ']';
+
+    return result;
   }
 
-  // Case 4: Value is an object
+  // Case 5: Value is an object
   if (typeof value === 'object') {
-    if (Object.keys(value).length === 0) {
-      _insertToken(`"${key}": {}`);
-      _insertToken(', ');
-      return;
-    }
-    _insertToken(`"${key}": { `);
-    Object.keys(value).forEach(_key => {
-      processAndInsertKeyValueTokens(tokens, _key, value[_key]);
-    });
-    // Pop the trailing comma
-    tokens.pop();
+    const entries = Object.entries(value);
 
-    _insertToken(' }');
-    _insertToken(', ');
+    if (entries.length === 0) {
+      result += '{}';
+      return result;
+    }
+
+    result += '{ ';
+
+    entries.forEach(([_key, val], index) => {
+      if (index === entries.length - 1) {
+        result += jsonToTokenizedString(val, _key);
+      } else {
+        result += `${jsonToTokenizedString(val, _key)}, `;
+      }
+    });
+
+    result += ' }';
+    return result;
   }
 
-  return;
+  // This branch should never be reached
+  return '';
 }
 
-function insertToken(tokens: ReactElement[], token: string, isBold?: boolean) {
-  isBold
-    ? tokens.push(<b key={`${token}-${tokens.length}`}>{token}</b>)
-    : tokens.push(<span key={`${token}-${tokens.length}`}>{token}</span>);
+function stringToToken(str: string, isBold?: boolean): ReactElement {
+  return isBold ? <b>{str}</b> : <span>{str}</span>;
 }
