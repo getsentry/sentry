@@ -2,8 +2,12 @@ import sentry_sdk
 from google.protobuf.timestamp_pb2 import Timestamp
 from rest_framework.request import Request
 from rest_framework.response import Response
-from sentry_protos.snuba.v1alpha.endpoint_tags_list_pb2 import TagsListRequest, TagsListResponse
-from sentry_protos.snuba.v1alpha.request_common_pb2 import RequestMeta
+from sentry_protos.snuba.v1alpha.endpoint_tags_list_pb2 import (
+    TraceItemAttributesRequest,
+    TraceItemAttributesResponse,
+)
+from sentry_protos.snuba.v1alpha.request_common_pb2 import RequestMeta, TraceItemName
+from sentry_protos.snuba.v1alpha.trace_item_attribute_pb2 import AttributeKey
 from sentry_relay.consts import SPAN_STATUS_CODE_TO_NAME
 from snuba_sdk import Condition, Op
 
@@ -64,27 +68,25 @@ class OrganizationSpansFieldsEndpoint(OrganizationSpansFieldsEndpointBase):
                 snuba_params.end_date.replace(hour=0, minute=0, second=0, microsecond=0)
             )
 
-            rpc_request = TagsListRequest(
+            rpc_request = TraceItemAttributesRequest(
                 meta=RequestMeta(
                     organization_id=organization.id,
-                    cogs_category="events_analytics_platform",
+                    cogs_category="performance",
                     referrer=Referrer.API_SPANS_TAG_KEYS.value,
                     project_ids=snuba_params.project_ids,
                     start_timestamp=start_timestamp,
                     end_timestamp=end_timestamp,
+                    trace_item_name=TraceItemName.TRACE_ITEM_NAME_EAP_SPANS,
                 ),
                 limit=max_span_tags,
                 offset=0,
+                type=AttributeKey.Type.TYPE_STRING,
             )
-            rpc_response = snuba.rpc(rpc_request, TagsListResponse)
+            rpc_response = snuba.rpc(rpc_request, TraceItemAttributesResponse)
 
             paginator = ChainPaginator(
                 [
-                    [
-                        TagKey(tag.name)
-                        for tag in rpc_response.tags
-                        if tag.name and tag.type == 1  # only string types for now
-                    ],
+                    [TagKey(tag.name) for tag in rpc_response.tags if tag.name],
                 ],
                 max_limit=max_span_tags,
             )
