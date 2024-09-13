@@ -18,8 +18,8 @@ payloads and can be returned as is.
 
 from enum import Enum
 
-ISIZE = 4  # Integer word size.
-HEADER_OFFSET = ISIZE + 1  # word size + type byte.
+USIZE = 4  # Unsigned integer word size.
+HEADER_OFFSET = USIZE + 1  # word size + type byte.
 
 
 class Encoding(Enum):
@@ -29,7 +29,7 @@ class Encoding(Enum):
 
 def pack(rrweb: bytes, video: bytes | None) -> bytes:
     def _to_uint_bytes(length):
-        return bytes([(length >> (i * 8)) & 0xFF for i in range(ISIZE - 1, -1, -1)])
+        return bytes([(length >> (i * 8)) & 0xFF for i in range(USIZE - 1, -1, -1)])
 
     if video is None:
         return b"\x00" + rrweb
