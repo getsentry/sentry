@@ -5,7 +5,6 @@ import ButtonBar from 'sentry/components/buttonBar';
 import {CompactSelect} from 'sentry/components/compactSelect';
 import DropdownButton from 'sentry/components/dropdownButton';
 import ErrorBoundary from 'sentry/components/errorBoundary';
-import {EventDataSection} from 'sentry/components/events/eventDataSection';
 import {
   CardContainer,
   FeatureFlagDrawer,
@@ -17,11 +16,12 @@ import useDrawer from 'sentry/components/globalDrawer';
 import KeyValueData, {
   type KeyValueDataContentProps,
 } from 'sentry/components/keyValueData';
-import {IconChevron, IconSort} from 'sentry/icons';
+import {IconSort} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Event, FeatureFlag} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
+import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
 
 export function EventFeatureFlagList({
   event,
@@ -32,7 +32,6 @@ export function EventFeatureFlagList({
   group: Group;
   project: Project;
 }) {
-  const [isCollapsed, setIsCollapsed] = useState(false);
   const [sortMethod, setSortMethod] = useState<FlagSort>(FlagSort.EVAL);
   const {closeDrawer, isDrawerOpen, openDrawer} = useDrawer();
   const viewAllButtonRef = useRef<HTMLButtonElement>(null);
@@ -43,18 +42,15 @@ export function EventFeatureFlagList({
       return [];
     }
     return flags.map(f => {
-      return {item: {key: f.flag, subject: f.flag, value: f.result}};
+      return {
+        item: {key: f.flag, subject: f.flag, value: f.result.toString()},
+      };
     });
   };
 
   // Remove duplicates
   const hydratedFlags = useMemo(
-    () =>
-      hydrateFlags(
-        event.contexts?.flags?.values.filter(
-          (a, i, arr) => arr.findIndex(b => b.flag === a.flag) === i
-        )
-      ),
+    () => hydrateFlags(event.contexts?.flags?.values),
     [event]
   );
 
@@ -125,15 +121,6 @@ export function EventFeatureFlagList({
           </DropdownButton>
         )}
       />
-      <Button
-        size="xs"
-        icon={<IconChevron direction={isCollapsed ? 'down' : 'up'} />}
-        aria-label={t('Collapse Section')}
-        onClick={() => {
-          setIsCollapsed(!isCollapsed);
-        }}
-        borderless
-      />
     </ButtonBar>
   );
 
@@ -147,14 +134,12 @@ export function EventFeatureFlagList({
 
   return (
     <ErrorBoundary mini message={t('There was a problem loading feature flags.')}>
-      <EventDataSection title={t('Feature Flags')} type="feature-flags" actions={actions}>
-        {!isCollapsed && (
-          <CardContainer numCols={columnTwo.length ? 2 : 1}>
-            <KeyValueData.Card contentItems={columnOne} />
-            <KeyValueData.Card contentItems={columnTwo} />
-          </CardContainer>
-        )}
-      </EventDataSection>
+      <InterimSection title={t('Feature Flags')} type="feature-flags" actions={actions}>
+        <CardContainer numCols={columnTwo.length ? 2 : 1}>
+          <KeyValueData.Card contentItems={columnOne} />
+          <KeyValueData.Card contentItems={columnTwo} />
+        </CardContainer>
+      </InterimSection>
     </ErrorBoundary>
   );
 }
