@@ -184,7 +184,7 @@ sentry-forked-django-stubs==5.0.4.post2
 sentry-forked-djangorestframework-stubs==3.15.1.post1
 sentry-kafka-schemas==0.1.106
 sentry-ophio==0.2.7
-sentry-protos==0.1.19
+sentry-protos==0.1.21
 sentry-redis-tools==0.1.7
 sentry-relay==0.9.1
 sentry-sdk==2.12.0
