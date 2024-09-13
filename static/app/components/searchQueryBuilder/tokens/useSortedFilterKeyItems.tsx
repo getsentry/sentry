@@ -4,6 +4,7 @@ import type Fuse from 'fuse.js';
 import {useSearchQueryBuilder} from 'sentry/components/searchQueryBuilder/context';
 import type {KeyItem} from 'sentry/components/searchQueryBuilder/tokens/filterKeyListBox/types';
 import {createItem} from 'sentry/components/searchQueryBuilder/tokens/filterKeyListBox/utils';
+import {defined} from 'sentry/utils';
 import {useFuzzySearch} from 'sentry/utils/fuzzySearch';
 
 const FUZZY_SEARCH_OPTIONS: Fuse.IFuseOptions<KeyItem> = {
@@ -14,7 +15,7 @@ const FUZZY_SEARCH_OPTIONS: Fuse.IFuseOptions<KeyItem> = {
 };
 
 export function useSortedFilterKeyItems({filterValue}: {filterValue: string}): KeyItem[] {
-  const {filterKeys, getFieldDefinition} = useSearchQueryBuilder();
+  const {filterKeys, getFieldDefinition, filterKeySections} = useSearchQueryBuilder();
   const flatItems = useMemo<KeyItem[]>(
     () =>
       Object.values(filterKeys).map(filterKey =>
@@ -26,9 +27,16 @@ export function useSortedFilterKeyItems({filterValue}: {filterValue: string}): K
 
   return useMemo(() => {
     if (!filterValue || !search) {
-      return flatItems;
+      if (!filterKeySections.length) {
+        return flatItems.sort((a, b) => a.textValue.localeCompare(b.textValue));
+      }
+
+      return filterKeySections
+        .flatMap(section => section.children)
+        .map(key => flatItems.find(item => item.key === key))
+        .filter(defined);
     }
 
     return search.search(filterValue).map(({item}) => item);
-  }, [filterValue, flatItems, search]);
+  }, [filterKeySections, filterValue, flatItems, search]);
 }

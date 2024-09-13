@@ -1,4 +1,4 @@
-import {useCallback, useMemo, useRef, useState} from 'react';
+import {useCallback, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import {Item} from '@react-stately/collections';
 import type {Node} from '@react-types/shared';
@@ -80,16 +80,11 @@ export function FilterKeyCombobox({token, onCommit, item}: KeyComboboxProps) {
     onCommit();
   }, [onCommit]);
 
-  const items = useMemo(
-    () => (inputValue ? sortedFilterKeys : []),
-    [inputValue, sortedFilterKeys]
-  );
-
   return (
     <EditingWrapper>
       <SearchQueryBuilderCombobox
         ref={inputRef}
-        items={items}
+        items={sortedFilterKeys}
         placeholder={getKeyName(token.key)}
         onOptionSelected={onOptionSelected}
         onCustomValueCommitted={handleSelectKey}
@@ -99,7 +94,7 @@ export function FilterKeyCombobox({token, onCommit, item}: KeyComboboxProps) {
         token={token}
         inputLabel={t('Edit filter key')}
         onInputChange={e => setInputValue(e.target.value)}
-        maxOptions={8}
+        maxOptions={50}
         shouldFilterResults={false}
         autoFocus
         openOnFocus

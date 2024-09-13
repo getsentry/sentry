@@ -1493,8 +1493,6 @@ describe('SearchQueryBuilder', function () {
           expect(screen.getByRole('combobox', {name: 'Edit filter key'})).toHaveValue('');
         });
 
-        // Type "custom" so that the custom_tag_name option appears
-        await userEvent.keyboard('custom');
         await userEvent.click(screen.getByRole('option', {name: 'custom_tag_name'}));
 
         await waitFor(() => {
@@ -1518,7 +1516,6 @@ describe('SearchQueryBuilder', function () {
           expect(screen.getByRole('combobox', {name: 'Edit filter key'})).toHaveValue('');
         });
 
-        await userEvent.keyboard('age');
         await userEvent.click(screen.getByRole('option', {name: 'age'}));
 
         await waitFor(() => {
