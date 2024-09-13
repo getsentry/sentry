@@ -5,6 +5,10 @@ import HookStore from 'sentry/stores/hookStore';
 import type {Hooks} from 'sentry/types/hooks';
 import type {DDMEventParameters} from 'sentry/utils/analytics/ddmAnalyticsEvents';
 import {ddmEventMap} from 'sentry/utils/analytics/ddmAnalyticsEvents';
+import {
+  featureFlagEventMap,
+  type FeatureFlagEventParameters,
+} from 'sentry/utils/analytics/featureFlagAnalyticsEvents';
 
 import type {AiSuggestedSolutionEventParameters} from './analytics/aiSuggestedSolutionAnalyticsEvents';
 import {aiSuggestedSolutionEventMap} from './analytics/aiSuggestedSolutionAnalyticsEvents';
@@ -62,6 +66,7 @@ interface EventParameters
     DashboardsEventParameters,
     DDMEventParameters,
     DiscoverEventParameters,
+    FeatureFlagEventParameters,
     FeedbackEventParameters,
     InsightEventParameters,
     IssueEventParameters,
@@ -89,6 +94,7 @@ const allEventMap: Record<string, string | null> = {
   ...dashboardsEventMap,
   ...ddmEventMap,
   ...discoverEventMap,
+  ...featureFlagEventMap,
   ...feedbackEventMap,
   ...growthEventMap,
   ...insightEventMap,
