@@ -17,6 +17,7 @@ from django.forms import ValidationError
 from django.utils import timezone as django_timezone
 from parsimonious.exceptions import ParseError
 from snuba_sdk import Column, Condition, Limit, Op
+from urllib3.exceptions import MaxRetryError, TimeoutError
 
 from sentry import analytics, audit_log, features, quotas
 from sentry.api.exceptions import ResourceDoesNotExist
@@ -664,6 +665,9 @@ def create_alert_rule(
                 if rule_status == AlertRuleStatus.NOT_ENOUGH_DATA:
                     # if we don't have at least seven days worth of data, then the dynamic alert won't fire
                     alert_rule.update(status=AlertRuleStatus.NOT_ENOUGH_DATA.value)
+            except (TimeoutError, MaxRetryError):
+                alert_rule.delete()
+                raise TimeoutError("Failed to send data to Seer - cannot create alert rule.")
             except ParseError:
                 alert_rule.delete()
                 raise ParseError("Failed to parse Seer store data response")
@@ -947,6 +951,8 @@ def update_alert_rule(
                     if rule_status == AlertRuleStatus.NOT_ENOUGH_DATA:
                         # if we don't have at least seven days worth of data, then the dynamic alert won't fire
                         alert_rule.update(status=AlertRuleStatus.NOT_ENOUGH_DATA.value)
+                except (TimeoutError, MaxRetryError):
+                    raise TimeoutError("Failed to send data to Seer - cannot update alert rule.")
                 except ParseError:
                     raise ParseError(
                         "Failed to parse Seer store data response - cannot update alert rule."

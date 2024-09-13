@@ -813,7 +813,8 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
         rule.refresh_from_db()
 
         # test that we activate but don't fire an alert if we get "none"
-        seer_return_value = {
+        seer_return_value: DetectAnomaliesResponse = {
+            "success": True,
             "timeseries": [
                 {
                     "anomaly": {
@@ -823,7 +824,7 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
                     "timestamp": 1,
                     "value": 5,
                 }
-            ]
+            ],
         }
 
         mock_seer_request.return_value = HTTPResponse(orjson.dumps(seer_return_value), status=200)
@@ -846,7 +847,8 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
         rule.refresh_from_db()
 
         # test that we can activate and fire an alert
-        seer_return_value = {
+        seer_return_value: DetectAnomaliesResponse = {
+            "success": True,
             "timeseries": [
                 {
                     "anomaly": {
@@ -856,7 +858,7 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
                     "timestamp": 1,
                     "value": 10,
                 }
-            ]
+            ],
         }
 
         mock_seer_request.return_value = HTTPResponse(orjson.dumps(seer_return_value), status=200)
@@ -886,7 +888,8 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
         """
         rule = self.dynamic_rule
         value = 10
-        seer_return_value = {
+        seer_return_value: DetectAnomaliesResponse = {
+            "success": True,
             "timeseries": [
                 {
                     "anomaly": {
@@ -896,7 +899,7 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
                     "timestamp": 1,
                     "value": value,
                 }
-            ]
+            ],
         }
         mock_seer_request.return_value = HTTPResponse(orjson.dumps(seer_return_value), status=200)
         processor = self.send_update(rule, value)
@@ -920,7 +923,7 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
     @mock.patch("sentry.incidents.subscription_processor.logger")
     def test_seer_call_empty_list(self, mock_logger, mock_seer_request):
         processor = SubscriptionProcessor(self.sub)
-        seer_return_value: dict[str, list] = {"timeseries": []}
+        seer_return_value: dict[str, list] = {"success": True, "timeseries": []}
         mock_seer_request.return_value = HTTPResponse(orjson.dumps(seer_return_value), status=200)
         result = processor.get_anomaly_data_from_seer(10)
         assert mock_logger.warning.call_args[0] == (
@@ -935,11 +938,17 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
     @mock.patch("sentry.incidents.subscription_processor.logger")
     def test_seer_call_bad_status(self, mock_logger, mock_seer_request):
         processor = SubscriptionProcessor(self.sub)
-        mock_seer_request.return_value = HTTPResponse("You flew too close to the sun", status=403)
+        mock_seer_request.return_value = HTTPResponse(status=403)
         result = processor.get_anomaly_data_from_seer(10)
         mock_logger.error.assert_called_with(
-            f"Received 403 when calling Seer endpoint {SEER_ANOMALY_DETECTION_ENDPOINT_URL}.",
-            extra={"response_data": "You flew too close to the sun"},
+            "Error when hitting Seer detect anomalies endpoint",
+            extra={
+                "subscription_id": self.sub.id,
+                "dataset": "events",
+                "organization_id": self.organization.id,
+                "project_id": self.project.id,
+                "alert_rule_id": self.rule.id,
+            },
         )
         assert result is None
 
@@ -3055,7 +3064,8 @@ class MetricsCrashRateAlertProcessUpdateTest(ProcessUpdateBaseClass, BaseMetrics
         action_critical = self.crash_rate_alert_critical_action
 
         # Send Critical Update
-        seer_return_value = {
+        seer_return_value: DetectAnomaliesResponse = {
+            "success": True,
             "timeseries": [
                 {
                     "anomaly": {
@@ -3065,7 +3075,7 @@ class MetricsCrashRateAlertProcessUpdateTest(ProcessUpdateBaseClass, BaseMetrics
                     "timestamp": 1,
                     "value": 10,
                 }
-            ]
+            ],
         }
 
         mock_seer_request.return_value = HTTPResponse(orjson.dumps(seer_return_value), status=200)
@@ -3086,7 +3096,8 @@ class MetricsCrashRateAlertProcessUpdateTest(ProcessUpdateBaseClass, BaseMetrics
         self.assert_trigger_exists_with_status(incident, trigger, TriggerStatus.ACTIVE)
 
         # Close the metric alert
-        seer_return_value = {
+        seer_return_value: DetectAnomaliesResponse = {
+            "success": True,
             "timeseries": [
                 {
                     "anomaly": {
@@ -3096,7 +3107,7 @@ class MetricsCrashRateAlertProcessUpdateTest(ProcessUpdateBaseClass, BaseMetrics
                     "timestamp": 1,
                     "value": 5,
                 }
-            ]
+            ],
         }
         mock_seer_request.return_value = HTTPResponse(orjson.dumps(seer_return_value), status=200)
         update_value = (1 - trigger.alert_threshold / 100) - 0.05

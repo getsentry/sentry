@@ -6,6 +6,7 @@ from typing import Any
 from unittest import mock
 from unittest.mock import patch
 
+import orjson
 import pytest
 import responses
 from django.conf import settings
@@ -46,6 +47,7 @@ from sentry.integrations.slack.utils.channel import SlackChannelIdData
 from sentry.models.auditlogentry import AuditLogEntry
 from sentry.models.organizationmemberteam import OrganizationMemberTeam
 from sentry.seer.anomaly_detection.store_data import seer_anomaly_detection_connection_pool
+from sentry.seer.anomaly_detection.types import StoreDataResponse
 from sentry.sentry_apps.services.app import app_service
 from sentry.silo.base import SiloMode
 from sentry.testutils.abstract import Abstract
@@ -301,7 +303,8 @@ class AlertRuleDetailsGetEndpointTest(AlertRuleDetailsBase):
         "sentry.seer.anomaly_detection.store_data.seer_anomaly_detection_connection_pool.urlopen"
     )
     def test_dynamic_detection_type(self, mock_seer_request):
-        mock_seer_request.return_value = HTTPResponse(status=200)
+        seer_return_value: StoreDataResponse = {"success": True}
+        mock_seer_request.return_value = HTTPResponse(orjson.dumps(seer_return_value), status=200)
 
         self.create_team(organization=self.organization, members=[self.user])
         self.login_as(self.user)

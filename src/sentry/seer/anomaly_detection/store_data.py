@@ -4,6 +4,7 @@ from datetime import datetime, timedelta
 from django.conf import settings
 from django.core.exceptions import ValidationError
 from parsimonious.exceptions import ParseError
+from urllib3.exceptions import MaxRetryError, TimeoutError
 
 from sentry.conf.server import SEER_ANOMALY_DETECTION_STORE_DATA_URL
 from sentry.incidents.models.alert_rule import AlertRule, AlertRuleStatus
@@ -94,13 +95,46 @@ def send_historical_data_to_seer(alert_rule: AlertRule, project: Project) -> Ale
         config=anomaly_detection_config,
         timeseries=formatted_data,
     )
-    response = make_signed_seer_api_request(
-        connection_pool=seer_anomaly_detection_connection_pool,
-        path=SEER_ANOMALY_DETECTION_STORE_DATA_URL,
-        body=json.dumps(body).encode("utf-8"),
-    )
     try:
-        results: StoreDataResponse = json.loads(response.data.decode("utf-8"))
+        response = make_signed_seer_api_request(
+            connection_pool=seer_anomaly_detection_connection_pool,
+            path=SEER_ANOMALY_DETECTION_STORE_DATA_URL,
+            body=json.dumps(body).encode("utf-8"),
+        )
+    except (TimeoutError, MaxRetryError):
+        logger.warning(
+            "Timeout error when hitting Seer store data endpoint",
+            extra={
+                "rule_id": alert_rule.id,
+                "project_id": project.id,
+            },
+        )
+        raise TimeoutError
+
+    if response.status > 400:
+        logger.error(
+            "Error when hitting Seer detect anomalies endpoint",
+            extra={"response_code": response.status},
+        )
+        raise Exception("Error when hitting Seer detect anomalies endpoint")
+
+    try:
+        decoded_data = response.data.decode("utf-8")
+    except AttributeError:
+        data_format_error_string = "Seer store data response data is malformed"
+        logger.exception(
+            data_format_error_string,
+            extra={
+                "ad_config": anomaly_detection_config,
+                "alert": alert_rule.id,
+                "response_data": response.data,
+                "reponse_code": response.status,
+            },
+        )
+        raise AttributeError(data_format_error_string)
+
+    try:
+        results: StoreDataResponse = json.loads(decoded_data)
     except JSONDecodeError:
         parse_error_string = "Failed to parse Seer store data response"
         logger.exception(
