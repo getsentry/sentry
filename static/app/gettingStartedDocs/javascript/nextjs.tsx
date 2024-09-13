@@ -33,7 +33,7 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 
 type Params = DocsParams;
 
-const getInstallConfig = ({isSelfHosted, urlPrefix}: Params) => {
+const getInstallConfig = ({isSelfHosted, urlPrefix, projectSlug}: Params) => {
   const urlParam = !isSelfHosted && urlPrefix ? `--url ${urlPrefix}` : '';
 
   return [
@@ -47,7 +47,7 @@ const getInstallConfig = ({isSelfHosted, urlPrefix}: Params) => {
         }
       ),
       language: 'bash',
-      code: `npx @sentry/wizard@latest -i nextjs ${urlParam}`,
+      code: `npx @sentry/wizard@latest -i nextjs ${urlParam} --project ${projectSlug}`,
     },
   ];
 };

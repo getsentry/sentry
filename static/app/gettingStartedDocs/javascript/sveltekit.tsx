@@ -29,7 +29,7 @@ import {t, tct} from 'sentry/locale';
 
 type Params = DocsParams;
 
-const getInstallConfig = ({isSelfHosted, urlPrefix}: Params) => {
+const getInstallConfig = ({isSelfHosted, urlPrefix, projectSlug}: Params) => {
   const urlParam = !isSelfHosted && urlPrefix ? `--url ${urlPrefix}` : '';
 
   return [
@@ -46,7 +46,7 @@ const getInstallConfig = ({isSelfHosted, urlPrefix}: Params) => {
       configurations: [
         {
           language: 'bash',
-          code: `npx @sentry/wizard@latest -i sveltekit ${urlParam}`,
+          code: `npx @sentry/wizard@latest -i sveltekit ${urlParam} --project ${projectSlug}`,
         },
       ],
     },
