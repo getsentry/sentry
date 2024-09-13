@@ -2697,7 +2697,7 @@ register(
 )
 
 register(
-    "ecosystem:enable_integration_form_error_raise", default=False, flags=FLAG_AUTOMATOR_MODIFIABLE
+    "ecosystem:enable_integration_form_error_raise", default=True, flags=FLAG_AUTOMATOR_MODIFIABLE
 )
 
 # Controls the rate of using the sentry api shared secret for communicating to sentry.
