@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta
+from datetime import timedelta
 from typing import NotRequired, TypedDict
 
 from django.utils import timezone
@@ -20,6 +20,7 @@ from sentry.ingest.userreport import Conflict, save_userreport
 from sentry.models.environment import Environment
 from sentry.models.projectkey import ProjectKey
 from sentry.models.userreport import UserReport
+from sentry.utils.dates import epoch
 
 
 class UserReportSerializer(serializers.ModelSerializer):
@@ -65,9 +66,7 @@ class ProjectUserReportsEndpoint(ProjectEndpoint, EnvironmentMixin):
             queryset = UserReport.objects.none()
         else:
             retention = quotas.backend.get_event_retention(organization=project.organization)
-            start = (
-                timezone.now() - timedelta(days=retention) if retention else datetime(1970, 1, 1)
-            )
+            start = timezone.now() - timedelta(days=retention) if retention else epoch
             queryset = UserReport.objects.filter(
                 project_id=project.id, group_id__isnull=False, date_added__gte=start
             )
