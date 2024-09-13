@@ -111,18 +111,6 @@ def get_basename(string: str) -> str:
     return _basename_re.split(string)[-1]
 
 
-def get_package_component(package: str, platform: str | None) -> GroupingComponent:
-    if package is None or platform != "native":
-        return GroupingComponent(id="package")
-
-    package = get_basename(package).lower()
-    package_component = GroupingComponent(
-        id="package",
-        values=[package],
-    )
-    return package_component
-
-
 def get_filename_component(
     abs_path: str,
     filename: str | None,
