@@ -54,7 +54,7 @@ def test_org_denylist_not_in_list(set_sentry_option, default_project):
 
 
 @django_db_all
-def test_save_userreport_no_event(set_sentry_option, default_project, monkeypatch):
+def test_save_userreport_no_event(default_project, monkeypatch):
     # Mocking dependencies and setting up test data
     monkeypatch.setattr("sentry.ingest.userreport.is_org_in_denylist", lambda org: False)
     monkeypatch.setattr("sentry.ingest.userreport.should_filter_user_report", lambda message: False)
@@ -88,7 +88,7 @@ def test_save_userreport_no_event(set_sentry_option, default_project, monkeypatc
 
 
 @django_db_all
-def test_save_userreport_with_event(set_sentry_option, default_project, monkeypatch):
+def test_save_userreport_with_event(default_project, monkeypatch):
     monkeypatch.setattr("sentry.ingest.userreport.is_org_in_denylist", lambda org: False)
     monkeypatch.setattr("sentry.ingest.userreport.should_filter_user_report", lambda message: False)
 
@@ -119,7 +119,7 @@ def test_save_userreport_with_event(set_sentry_option, default_project, monkeypa
 
 
 @django_db_all
-def test_save_userreport_old_event(set_sentry_option, default_project, monkeypatch):
+def test_save_userreport_old_event(default_project, monkeypatch):
     monkeypatch.setattr("sentry.ingest.userreport.is_org_in_denylist", lambda org: False)
     monkeypatch.setattr("sentry.ingest.userreport.should_filter_user_report", lambda message: False)
 
@@ -140,7 +140,7 @@ def test_save_userreport_old_event(set_sentry_option, default_project, monkeypat
 
 
 @django_db_all
-def test_save_userreport_existing_too_old(set_sentry_option, default_project, monkeypatch):
+def test_save_userreport_existing_too_old(default_project, monkeypatch):
     monkeypatch.setattr("sentry.ingest.userreport.is_org_in_denylist", lambda org: False)
     monkeypatch.setattr("sentry.ingest.userreport.should_filter_user_report", lambda message: False)
 
@@ -163,7 +163,7 @@ def test_save_userreport_existing_too_old(set_sentry_option, default_project, mo
 
 
 @django_db_all
-def test_save_userreport_denylist(set_sentry_option, default_project, monkeypatch):
+def test_save_userreport_denylist(default_project, monkeypatch):
     monkeypatch.setattr("sentry.ingest.userreport.is_org_in_denylist", lambda org: True)
     report = {
         "event_id": "123456",
