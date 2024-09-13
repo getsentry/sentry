@@ -78,8 +78,8 @@ class OrganizationPermission(SentryPermission):
 
     def has_object_permission(
         self,
-        request: Request,
-        view: object,
+        request: HttpRequest,
+        view: object | None,
         organization: Organization | RpcOrganization | RpcUserOrganizationContext,
     ) -> bool:
         self.determine_access(request, organization)
