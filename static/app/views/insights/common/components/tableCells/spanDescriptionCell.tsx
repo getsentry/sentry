@@ -20,7 +20,6 @@ interface Props {
   moduleName: ModuleName.DB | ModuleName.RESOURCE;
   projectId: number;
   extraLinkQueryParams?: Record<string, string>;
-  // extra query params to add to the link
   group?: string;
   spanAction?: string;
   spanOp?: string;
