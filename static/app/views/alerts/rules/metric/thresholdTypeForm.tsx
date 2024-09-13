@@ -47,6 +47,7 @@ function ThresholdTypeForm({
     'fid',
     'cls',
     'custom_transactions',
+    'insights_metrics',
   ]);
 
   const hasAnomalyDetection = organization.features.includes('anomaly-detection-alerts');
