@@ -2,6 +2,7 @@ import logging
 from datetime import datetime
 
 import sentry_sdk
+from snuba_sdk.query_visitors import InvalidQueryError
 
 from sentry import features
 from sentry.constants import ObjectStatus
@@ -12,7 +13,7 @@ from sentry.discover.dataset_split import (
     _get_field_list,
     _get_snuba_dataclass,
 )
-from sentry.exceptions import IncompatibleMetricsQuery
+from sentry.exceptions import IncompatibleMetricsQuery, InvalidSearchQuery
 from sentry.models.dashboard import Dashboard
 from sentry.models.dashboard_widget import (
     DashboardWidget,
@@ -86,28 +87,43 @@ def _get_and_save_split_decision_for_dashboard_widget(
     equations = _get_equation_list(widget_query.fields or [])
     query = widget_query.conditions
 
-    # Optimizing the query we're running a little - we're omitting the order by
-    # and setting limit = 1 since the only check happening with the data returned
-    # is if data exists.
-    errors_builder = ErrorsQueryBuilder(
-        Dataset.Events,
-        params={},
-        snuba_params=snuba_dataclass,
-        query=query,
-        selected_columns=selected_columns,
-        equations=equations,
-        limit=1,
-    )
+    try:
+        # Optimizing the query we're running a little - we're omitting the order by
+        # and setting limit = 1 since the only check happening with the data returned
+        # is if data exists.
+        errors_builder = ErrorsQueryBuilder(
+            Dataset.Events,
+            params={},
+            snuba_params=snuba_dataclass,
+            query=query,
+            selected_columns=selected_columns,
+            equations=equations,
+            limit=1,
+        )
 
-    transactions_builder = DiscoverQueryBuilder(
-        Dataset.Transactions,
-        params={},
-        snuba_params=snuba_dataclass,
-        query=query,
-        selected_columns=selected_columns,
-        equations=equations,
-        limit=1,
-    )
+        transactions_builder = DiscoverQueryBuilder(
+            Dataset.Transactions,
+            params={},
+            snuba_params=snuba_dataclass,
+            query=query,
+            selected_columns=selected_columns,
+            equations=equations,
+            limit=1,
+        )
+    except (InvalidSearchQuery, InvalidQueryError):
+        if dry_run:
+            logger.info(
+                "Split decision for %s: %s (forced)",
+                widget.id,
+                DashboardWidgetTypes.ERROR_EVENTS,
+            )
+        else:
+            _save_split_decision_for_widget(
+                widget,
+                DashboardWidgetTypes.ERROR_EVENTS,
+                DatasetSourcesTypes.FORCED,
+            )
+        return DashboardWidgetTypes.ERROR_EVENTS, False
 
     dataset_inferred_from_query = _dataset_split_decision_inferred_from_query(
         errors_builder, transactions_builder
