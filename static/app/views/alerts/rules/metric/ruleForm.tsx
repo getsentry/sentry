@@ -843,7 +843,7 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
             : Object.values(err?.responseJSON)
           : [];
         let apiErrors = '';
-        if (typeof errors[0] === 'object') {
+        if (typeof errors[0] === 'object' && !Array.isArray(errors[0])) {
           // NOTE: this occurs if we get a TimeoutError when attempting to hit the Seer API
           apiErrors = ': ' + errors[0].message;
         } else {
