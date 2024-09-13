@@ -450,7 +450,7 @@ class BaseEvent(metaclass=abc.ABCMeta):
             return get_grouping_variants_for_event(self, loaded_grouping_config)
 
     def get_primary_hash(self) -> str:
-        return self.get_hashes()[0]
+        return self.get_hashes().hashes[0]
 
     def get_span_groupings(
         self, force_config: str | Mapping[str, Any] | None = None
