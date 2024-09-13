@@ -3,9 +3,9 @@ from rest_framework.response import Response
 
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import control_silo_endpoint
-from sentry.api.bases.user import UserEndpoint
 from sentry.api.permissions import SuperuserPermission
 from sentry.api.serializers import serialize
+from sentry.users.api.bases.user import UserEndpoint
 from sentry.users.api.serializers.userrole import UserRoleSerializer
 from sentry.users.models.user import User
 from sentry.users.models.userrole import UserRole
