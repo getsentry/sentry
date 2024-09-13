@@ -731,6 +731,7 @@ export function SearchQueryBuilderValueCombobox({
               {...props}
               isMultiSelect={canSelectMultipleValues}
               items={items}
+              isLoading={isFetching}
               canUseWildcard={canUseWildard}
             />
           );
@@ -770,6 +771,7 @@ export function SearchQueryBuilderValueCombobox({
       showDatePicker,
       canSelectMultipleValues,
       items,
+      isFetching,
       canUseWildard,
       inputValue,
       token,
@@ -799,7 +801,6 @@ export function SearchQueryBuilderValueCombobox({
         autoFocus
         maxOptions={50}
         openOnFocus
-        isLoading={isFetching}
         customMenu={customMenu}
         shouldCloseOnInteractOutside={shouldCloseOnInteractOutside}
       >
