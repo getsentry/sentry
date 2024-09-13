@@ -1,5 +1,6 @@
 import type {ReactElement} from 'react';
 import {Fragment} from 'react';
+// biome-ignore lint/nursery/noRestrictedImports: Will be removed with react router 6
 import {Link as RouterLink} from 'react-router';
 import {NavLink as Router6NavLink} from 'react-router-dom';
 import styled from '@emotion/styled';
