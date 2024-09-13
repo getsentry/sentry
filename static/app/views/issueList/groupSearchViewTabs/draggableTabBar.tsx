@@ -226,6 +226,7 @@ export function DraggableTabBar({
       };
       const newTabs = [...tabs, newTab];
       setTabs(newTabs);
+      setTempTab(undefined);
       tabListState?.setSelectedKey(tempId);
       onSaveTempView?.(newTabs);
     }
@@ -346,7 +347,7 @@ export function DraggableTabBar({
               ...queryParams,
               query: tab.unsavedChanges?.[0] ?? tab.query,
               sort: tab.unsavedChanges?.[1] ?? tab.querySort,
-              ...(tab.id !== 'temporary-tab' ? {viewId: tab.id} : {}),
+              viewId: tab.id !== 'temporary-tab' ? tab.id : undefined,
             },
             pathname: `/organizations/${orgSlug}/issues/`,
           })}

@@ -273,7 +273,7 @@ function BaseDraggableTabList({
         overflowingTabs={overflowingTabs}
       />
       <AddViewTempTabWrap ref={addViewTempTabRef}>
-        <MotionWrapper>
+        <MotionWrapper style={{marginTop: 2}}>
           <AddViewButton borderless size="zero" onClick={onAddView}>
             <StyledIconAdd size="xs" />
             {t('Add View')}
@@ -282,7 +282,7 @@ function BaseDraggableTabList({
         <MotionWrapper>
           {tempTab && (
             <Tab
-              key={tempTab.key}
+              key={'temporary-tab'}
               item={tempTab}
               state={state}
               orientation={orientation}
@@ -399,6 +399,7 @@ const AddViewTempTabWrap = styled('div')`
   grid-auto-flow: column;
   justify-content: start;
   align-items: center;
+  top: -1px;
 `;
 
 const TabListWrap = styled('ul')`
@@ -422,6 +423,8 @@ const AddViewButton = styled(Button)`
   font-weight: normal;
   padding: ${space(0.5)};
   margin-right: ${space(0.5)};
+  border: none;
+  bottom: -1px;
 `;
 
 const StyledIconAdd = styled(IconAdd)`
