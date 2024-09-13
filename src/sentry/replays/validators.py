@@ -106,6 +106,8 @@ class ReplaySelectorValidator(serializers.Serializer):
         required=False,
     )
     project = serializers.ListField(
-        required=False, help_text="The ID of the projects to filter by."
+        required=False,
+        help_text="The ID of the projects to filter by.",
+        child=serializers.IntegerField(),
     )
     sort = serializers.CharField(help_text="The field to sort the output by.", required=False)
