@@ -23,7 +23,7 @@ class ApiAuthorization(Model, HasApiScopes):
     user = FlexibleForeignKey("sentry.User")
     date_added = models.DateTimeField(default=timezone.now)
 
-    # APIAuthorization is usually per user but in cases of some pplication permissions
+    # APIAuthorization is usually per user but in cases of some application permissions
     # we want to limit it to one organization of that user. If null the authorization is user level
     organization_id = HybridCloudForeignKey(
         "sentry.Organization",

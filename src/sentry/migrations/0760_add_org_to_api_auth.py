@@ -27,13 +27,6 @@ class Migration(CheckedMigration):
 
     operations = [
         migrations.AddField(
-            model_name="apiapplication",
-            name="organization_id",
-            field=sentry.db.models.fields.hybrid_cloud_foreign_key.HybridCloudForeignKey(
-                "sentry.Organization", db_index=True, null=True, on_delete="CASCADE"
-            ),
-        ),
-        migrations.AddField(
             model_name="apiauthorization",
             name="organization_id",
             field=sentry.db.models.fields.hybrid_cloud_foreign_key.HybridCloudForeignKey(

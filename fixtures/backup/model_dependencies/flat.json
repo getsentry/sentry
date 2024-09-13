@@ -82,7 +82,6 @@
     "sentry.querysubscription"
   ],
   "sentry.apiapplication": [
-    "sentry.organization",
     "sentry.user"
   ],
   "sentry.apiauthorization": [
