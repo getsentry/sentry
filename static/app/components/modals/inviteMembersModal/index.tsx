@@ -4,6 +4,7 @@ import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
+import InviteMembersModalNew from 'sentry/components/modals/inviteMembersModal/inviteMembersModalNew';
 import InviteMembersModalView from 'sentry/components/modals/inviteMembersModal/inviteMembersModalview';
 import type {InviteRow} from 'sentry/components/modals/inviteMembersModal/types';
 import useInviteModal from 'sentry/components/modals/inviteMembersModal/useInviteModal';
@@ -19,6 +20,8 @@ interface InviteMembersModalProps extends ModalRenderProps {
 }
 
 function InviteMembersModal({
+  Header,
+  Body,
   closeModal,
   initialData,
   source,
@@ -70,7 +73,28 @@ function InviteMembersModal({
         onSendInvites={sendInvites}
       >
         {({sendInvites: _sendInvites, canSend, headerInfo}) => {
-          return (
+          return organization.features.includes('invite-members-new-modal') ? (
+            <InviteMembersModalNew
+              canSend={canSend}
+              Header={Header}
+              Body={Body}
+              complete={complete}
+              Footer={Footer}
+              headerInfo={headerInfo}
+              invites={invites}
+              inviteStatus={inviteStatus}
+              member={memberResult.data}
+              pendingInvites={pendingInvites}
+              reset={reset}
+              sendingInvites={sendingInvites}
+              sendInvites={sendInvites}
+              setEmails={setEmails}
+              setRole={setRole}
+              setTeams={setTeams}
+              willInvite={willInvite}
+              error={error}
+            />
+          ) : (
             <InviteMembersModalView
               addInviteRow={addInviteRow}
               canSend={canSend}
