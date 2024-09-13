@@ -28,7 +28,6 @@ type Props = CommonSidebarProps & {
 
 type State = {
   broadcasts: Broadcast[];
-  error: boolean;
   loading: boolean;
 };
 
@@ -36,7 +35,6 @@ class Broadcasts extends Component<Props, State> {
   state: State = {
     broadcasts: [],
     loading: true,
-    error: false,
   };
 
   componentDidMount() {
@@ -75,7 +73,7 @@ class Broadcasts extends Component<Props, State> {
       const data = await getAllBroadcasts(this.props.api, this.props.organization.slug);
       this.setState({loading: false, broadcasts: data || []});
     } catch {
-      this.setState({loading: false, error: true});
+      this.setState({loading: false});
     }
 
     this.startPolling();
@@ -103,10 +101,6 @@ class Broadcasts extends Component<Props, State> {
     }
 
     await markBroadcastsAsSeen(this.props.api, unseenBroadcastIds);
-
-    this.setState(state => ({
-      broadcasts: state.broadcasts.map(item => ({...item, hasSeen: true})),
-    }));
   };
 
   get unseenIds() {
