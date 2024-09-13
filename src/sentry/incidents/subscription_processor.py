@@ -725,7 +725,10 @@ class SubscriptionProcessor:
         if response.status > 400:
             logger.error(
                 "Error when hitting Seer detect anomalies endpoint",
-                extra=extra_data,
+                extra={
+                    "response_data": response.data,
+                    **extra_data,
+                },
             )
             return None
         try:
