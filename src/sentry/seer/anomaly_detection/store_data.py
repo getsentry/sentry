@@ -14,8 +14,8 @@ from sentry.seer.anomaly_detection.types import (
     AlertInSeer,
     AnomalyDetectionConfig,
     StoreDataRequest,
-    TimeSeriesPoint,
     StoreDataResponse,
+    TimeSeriesPoint,
 )
 from sentry.seer.anomaly_detection.utils import (
     fetch_historical_data,
@@ -101,6 +101,7 @@ def send_historical_data_to_seer(alert_rule: AlertRule, project: Project) -> Ale
             path=SEER_ANOMALY_DETECTION_STORE_DATA_URL,
             body=json.dumps(body).encode("utf-8"),
         )
+    # See SEER_ANOMALY_DETECTION_TIMEOUT in sentry.conf.server.py
     except (TimeoutError, MaxRetryError):
         logger.warning(
             "Timeout error when hitting Seer store data endpoint",
