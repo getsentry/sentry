@@ -1,5 +1,6 @@
 from unittest import mock
 
+import pytest
 import responses
 
 from sentry.uptime.detectors.rdap import (
@@ -83,23 +84,26 @@ SIMPLE_RDAP_RESPONSE = {
 }
 
 
-@responses.activate
-def test_resolve_rdap_bootstrap_registry():
-    mock_request = responses.add(
-        "GET",
-        RDAP_BOOTSTRAP_REGSITRY,
-        json=SIMPLE_RDAP_BOOTSTRAP_RESPONSE,
-    )
+@pytest.fixture(autouse=True)
+def mocked_rdap_registry():
+    with responses.mock:
+        yield responses.add(
+            "GET",
+            RDAP_BOOTSTRAP_REGSITRY,
+            json=SIMPLE_RDAP_BOOTSTRAP_RESPONSE,
+        )
 
+
+def test_resolve_rdap_bootstrap_registry(mocked_rdap_registry):
     assert resolve_rdap_bootstrap_registry() == SIMPLE_RDAP_BOOTSTRAP_RESPONSE["services"]
-    assert mock_request.call_count == 1
+    assert mocked_rdap_registry.call_count == 1
 
     # Second call is cached, call count does not increase
     assert resolve_rdap_bootstrap_registry() == SIMPLE_RDAP_BOOTSTRAP_RESPONSE["services"]
-    assert mock_request.call_count == 1
+    assert mocked_rdap_registry.call_count == 1
 
 
-def test_resolve_rdap_provider():
+def test_resolve_rdap_provider(mocked_rdap_registry):
     assert resolve_rdap_provider("1.10.20.30") == "https://rdap.example.net/rdap/"
     assert resolve_rdap_provider("2.10.20.30") == "https://rdap.other-example.net/"
     assert resolve_rdap_provider("6.0.0.0") is None
