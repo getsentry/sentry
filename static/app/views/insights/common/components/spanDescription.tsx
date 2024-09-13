@@ -100,7 +100,7 @@ export function DatabaseSpanDescription({
               }}
             />
           ) : (
-            <MissingFrame />
+            <MissingFrame system={system} />
           )}
         </Fragment>
       )}

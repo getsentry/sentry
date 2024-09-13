@@ -55,17 +55,27 @@ export function StackTraceMiniFrame({frame, eventId, projectId}: Props) {
   );
 }
 
-export function MissingFrame() {
+type MissingFrameProps = {
+  system?: string;
+};
+
+export function MissingFrame({system}: MissingFrameProps) {
+  const documentation = <ExternalLink href={`${MODULE_DOC_LINK}#query-sources`} />;
+
+  const errorMessage =
+    system === 'mongodb'
+      ? tct(
+          'Query sources are not currently supported for MongoDB queries. Learn more in our [documentation:documentation].',
+          {documentation}
+        )
+      : tct(
+          'Could not find query source in the selected date range. Learn more in our [documentation:documentation].',
+          {documentation}
+        );
+
   return (
     <FrameContainer>
-      <Deemphasize>
-        {tct(
-          'Could not find query source in the selected date range. Learn more in our [documentation:documentation].',
-          {
-            documentation: <ExternalLink href={`${MODULE_DOC_LINK}#query-sources`} />,
-          }
-        )}
-      </Deemphasize>
+      <Deemphasize>{errorMessage}</Deemphasize>
     </FrameContainer>
   );
 }
