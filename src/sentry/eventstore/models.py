@@ -452,24 +452,8 @@ class BaseEvent(metaclass=abc.ABCMeta):
 
             return get_grouping_variants_for_event(self, loaded_grouping_config)
 
-    def get_primary_hash(self) -> str | None:
-        hashes = self.get_hashes()
-
-        if hashes.hashes:
-            return hashes.hashes[0]
-
-        # Temporary investigative measure, to try to figure out when this would happen
-        logger.info(
-            "Event with no primary hash",
-            stack_info=True,
-            extra={
-                "event_id": self.event_id,
-                "event_type": type(self),
-                "group_id": getattr(self, "group_id", None),
-                "project_id": self.project_id,
-            },
-        )
-        return None
+    def get_primary_hash(self) -> str:
+        return self.get_hashes().hashes[0]
 
     def get_span_groupings(
         self, force_config: str | Mapping[str, Any] | None = None
