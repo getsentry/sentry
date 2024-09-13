@@ -1,4 +1,4 @@
-from sentry.replays.usecases.pack import Encoding, pack, unpack
+from sentry.replays.usecases.pack import HEADER_OFFSET, Encoding, pack, unpack
 
 
 def test_pack_rrweb():
@@ -11,9 +11,9 @@ def test_pack_rrweb_video():
     result = pack(b"hello", b"world")
     assert result[0] == Encoding.VIDEO.value
 
-    length = int.from_bytes(result[1:9])
-    assert result[9 : 9 + length] == b"world"
-    assert result[9 + length :] == b"hello"
+    length = int.from_bytes(result[1:HEADER_OFFSET])
+    assert result[HEADER_OFFSET : HEADER_OFFSET + length] == b"world"
+    assert result[HEADER_OFFSET + length :] == b"hello"
 
 
 def test_unpack_rrweb():
