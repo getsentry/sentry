@@ -177,6 +177,10 @@ def get_user_actions(
             "textContent": "Helloworld!"
         }
     """
+    # Feature flag and project option queries
+    should_report_rage_click_issue = _should_report_rage_click_issue(project)
+    should_report_hydration_error_issue = _should_report_hydration_error_issue(project)
+
     result: list[ReplayActionsEventPayloadClick] = []
     for event in _iter_custom_events(events):
         if len(result) == 20:
@@ -185,7 +189,14 @@ def get_user_actions(
         tag = event.get("data", {}).get("tag")
 
         if tag == "breadcrumb":
-            click = _handle_breadcrumb(event, project, replay_id, replay_event)
+            click = _handle_breadcrumb(
+                event,
+                project,
+                replay_id,
+                replay_event,
+                should_report_rage_click_issue=should_report_rage_click_issue,
+                should_report_hydration_error_issue=should_report_hydration_error_issue,
+            )
             if click is not None:
                 result.append(click)
         # look for request / response breadcrumbs and report metrics on them
@@ -384,6 +395,8 @@ def _handle_breadcrumb(
     project: Project,
     replay_id: str,
     replay_event: dict[str, Any] | None,
+    should_report_rage_click_issue=False,
+    should_report_hydration_error_issue=False,
 ) -> ReplayActionsEventPayloadClick | None:
 
     click = None
@@ -413,7 +426,7 @@ def _handle_breadcrumb(
             if click is not None:
                 if is_rage:
                     metrics.incr("replay.rage_click_detected")
-                    if _should_report_rage_click_issue(project):
+                    if should_report_rage_click_issue:
                         if replay_event is not None:
                             report_rage_click_issue_with_replay_event(
                                 project.id,
@@ -442,7 +455,7 @@ def _handle_breadcrumb(
 
     elif category == "replay.hydrate-error":
         metrics.incr("replay.hydration_error_breadcrumb")
-        if replay_event is not None and _should_report_hydration_error_issue(project):
+        if replay_event is not None and should_report_hydration_error_issue:
             report_hydration_error_issue_with_replay_event(
                 project.id,
                 replay_id,
