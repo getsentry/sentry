@@ -14,20 +14,25 @@ const DATASET_TO_FIELDS = {
   [DiscoverDatasets.SPANS_METRICS]: SpanMetricsField,
 };
 
-const getSpanFieldSupportedTags = (
-  excludedTags,
-  dataset: DiscoverDatasets.SPANS_INDEXED | DiscoverDatasets.SPANS_METRICS
-) => {
-  const fields = DATASET_TO_FIELDS[dataset];
+export function useSpanFieldBuiltinTags(options?: {
+  dataset?: DiscoverDatasets.SPANS_INDEXED | DiscoverDatasets.SPANS_METRICS;
+  excludedTags?: string[];
+}): TagCollection {
+  const {dataset = DiscoverDatasets.SPANS_INDEXED, excludedTags = []} = options || {};
 
-  const tags: TagCollection = Object.fromEntries(
-    Object.values(fields)
-      .filter(v => !excludedTags.includes(v))
-      .map(v => [v, {key: v, name: v}])
-  );
-  tags.has = getHasTag(tags);
-  return tags;
-};
+  const builtinTags: TagCollection = useMemo(() => {
+    const fields = DATASET_TO_FIELDS[dataset];
+    const tags: TagCollection = Object.fromEntries(
+      Object.values(fields)
+        .filter(v => !excludedTags?.includes(v))
+        .map(v => [v, {key: v, name: v}])
+    );
+    tags.has = getHasTag(tags);
+    return tags;
+  }, [dataset, excludedTags]);
+
+  return builtinTags;
+}
 
 interface SpanFieldEntry {
   key: string;
@@ -54,10 +59,10 @@ export function useSpanMetricsFieldSupportedTags(options?: {excludedTags?: strin
   const {excludedTags = []} = options || {};
 
   // we do not yet support span field search by SPAN_AI_PIPELINE_GROUP
-  return getSpanFieldSupportedTags(
-    [SpanIndexedField.SPAN_AI_PIPELINE_GROUP, ...excludedTags],
-    DiscoverDatasets.SPANS_METRICS
-  );
+  return useSpanFieldBuiltinTags({
+    dataset: DiscoverDatasets.SPANS_METRICS,
+    excludedTags: [SpanIndexedField.SPAN_AI_PIPELINE_GROUP, ...excludedTags],
+  });
 }
 
 export function useSpanFieldCustomTags(options?: {
@@ -97,15 +102,15 @@ export function useSpanFieldSupportedTags(options?: {
 }): TagCollection {
   const {excludedTags = [], projects} = options || {};
   // we do not yet support span field search by SPAN_AI_PIPELINE_GROUP and SPAN_CATEGORY should not be surfaced to users
-  const staticTags = getSpanFieldSupportedTags(
-    [
+  const staticTags = useSpanFieldBuiltinTags({
+    dataset: DiscoverDatasets.SPANS_INDEXED,
+    excludedTags: [
       SpanIndexedField.SPAN_AI_PIPELINE_GROUP,
       SpanIndexedField.SPAN_CATEGORY,
       SpanIndexedField.SPAN_GROUP,
       ...excludedTags,
     ],
-    DiscoverDatasets.SPANS_INDEXED
-  );
+  });
 
   const customTags = useSpanFieldCustomTags({projects});
 

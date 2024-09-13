@@ -1,4 +1,4 @@
-import {useCallback, useMemo} from 'react';
+import {useCallback} from 'react';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
 
@@ -11,17 +11,21 @@ import {EnvironmentPageFilter} from 'sentry/components/organizations/environment
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
 import {ProjectPageFilter} from 'sentry/components/organizations/projectPageFilter';
-import {SpanSearchQueryBuilder} from 'sentry/components/performance/spanSearchQueryBuilder';
+import {
+  SpanEAPSearchQueryBuilder,
+  SpanSearchQueryBuilder,
+} from 'sentry/components/performance/spanSearchQueryBuilder';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {ALLOWED_EXPLORE_VISUALIZE_AGGREGATES} from 'sentry/utils/fields';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 
-import {useResultMode} from './hooks/useResultsMode';
+import {useDataset} from './hooks/useDataset';
 import {useUserQuery} from './hooks/useUserQuery';
 import {ExploreCharts} from './charts';
 import {ExploreTables} from './tables';
@@ -36,11 +40,7 @@ export function ExploreContent({}: ExploreContentProps) {
   const navigate = useNavigate();
   const organization = useOrganization();
   const {selection} = usePageFilters();
-  const [resultsMode] = useResultMode();
-
-  const supportedAggregates = useMemo(() => {
-    return resultsMode === 'aggregate' ? ALLOWED_EXPLORE_VISUALIZE_AGGREGATES : [];
-  }, [resultsMode]);
+  const [dataset] = useDataset();
 
   const [userQuery, setUserQuery] = useUserQuery();
 
@@ -82,13 +82,23 @@ export function ExploreContent({}: ExploreContentProps) {
                 <EnvironmentPageFilter />
                 <DatePageFilter />
               </PageFilterBar>
-              <SpanSearchQueryBuilder
-                supportedAggregates={supportedAggregates}
-                projects={selection.projects}
-                initialQuery={userQuery}
-                onSearch={setUserQuery}
-                searchSource="explore"
-              />
+              {dataset === DiscoverDatasets.SPANS_EAP ? (
+                <SpanEAPSearchQueryBuilder
+                  supportedAggregates={ALLOWED_EXPLORE_VISUALIZE_AGGREGATES}
+                  projects={selection.projects}
+                  initialQuery={userQuery}
+                  onSearch={setUserQuery}
+                  searchSource="explore"
+                />
+              ) : (
+                <SpanSearchQueryBuilder
+                  supportedAggregates={ALLOWED_EXPLORE_VISUALIZE_AGGREGATES}
+                  projects={selection.projects}
+                  initialQuery={userQuery}
+                  onSearch={setUserQuery}
+                  searchSource="explore"
+                />
+              )}
             </FilterActions>
             <Side>
               <ExploreToolbar extras={toolbarExtras} />

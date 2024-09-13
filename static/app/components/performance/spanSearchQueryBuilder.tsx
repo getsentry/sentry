@@ -20,9 +20,10 @@ import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {SPANS_FILTER_KEY_SECTIONS} from 'sentry/views/insights/constants';
+import {SpanIndexedField} from 'sentry/views/insights/types';
 import {
+  useSpanFieldBuiltinTags,
   useSpanFieldCustomTags,
-  useSpanFieldSupportedTags,
 } from 'sentry/views/performance/utils/useSpanFieldSupportedTags';
 
 interface SpanSearchQueryBuilderProps {
@@ -72,21 +73,21 @@ export function SpanSearchQueryBuilder({
     return getFunctionTags(supportedAggregates);
   }, [supportedAggregates]);
 
-  const placeholderText = useMemo(() => {
-    return placeholder ?? t('Search for spans, users, tags, and more');
-  }, [placeholder]);
-
   const customTags = useSpanFieldCustomTags({
     projects: projects ?? selection.projects,
   });
 
-  const supportedTags = useSpanFieldSupportedTags({
-    projects: projects ?? selection.projects,
+  const builtinTags = useSpanFieldBuiltinTags({
+    excludedTags: [
+      SpanIndexedField.SPAN_AI_PIPELINE_GROUP,
+      SpanIndexedField.SPAN_CATEGORY,
+      SpanIndexedField.SPAN_GROUP,
+    ],
   });
 
   const filterTags: TagCollection = useMemo(() => {
-    return {...functionTags, ...supportedTags};
-  }, [supportedTags, functionTags]);
+    return {...builtinTags, ...customTags, ...functionTags};
+  }, [builtinTags, customTags, functionTags]);
 
   const filterKeySections = useMemo(() => {
     return [
@@ -132,7 +133,70 @@ export function SpanSearchQueryBuilder({
 
   return (
     <SearchQueryBuilder
-      placeholder={placeholderText}
+      placeholder={placeholder ?? t('Search for spans, users, tags, and more')}
+      filterKeys={filterTags}
+      initialQuery={initialQuery}
+      fieldDefinitionGetter={getSpanFieldDefinition}
+      onSearch={onSearch}
+      searchSource={searchSource}
+      filterKeySections={filterKeySections}
+      getTagValues={getSpanFilterTagValues}
+      disallowFreeText
+      disallowUnsupportedFilters
+      recentSearches={SavedSearchType.SPAN}
+    />
+  );
+}
+
+export function SpanEAPSearchQueryBuilder({
+  initialQuery,
+  searchSource,
+  datetime,
+  onSearch,
+  placeholder,
+  projects,
+  supportedAggregates,
+}: SpanSearchQueryBuilderProps) {
+  const builtinTags = useSpanFieldBuiltinTags({
+    excludedTags: [
+      SpanIndexedField.SPAN_AI_PIPELINE_GROUP,
+      SpanIndexedField.SPAN_CATEGORY,
+      SpanIndexedField.SPAN_GROUP,
+    ],
+  });
+
+  const customTags: TagCollection = useMemo(() => {
+    // TODO
+    return {};
+  }, []);
+
+  const functionTags = useMemo(() => {
+    return getFunctionTags(supportedAggregates);
+  }, [supportedAggregates]);
+
+  const filterTags: TagCollection = useMemo(() => {
+    return {...builtinTags, ...customTags, ...functionTags};
+  }, [builtinTags, customTags, functionTags]);
+
+  const filterKeySections = useMemo(() => {
+    return [
+      ...SPANS_FILTER_KEY_SECTIONS,
+      {
+        value: 'custom_fields',
+        label: 'Custom Tags',
+        children: Object.keys(customTags),
+      },
+    ];
+  }, [customTags]);
+
+  const getSpanFilterTagValues = useCallback(async (tag: Tag, queryString: string) => {
+    // TODO
+    return Promise.resolve([]);
+  }, []);
+
+  return (
+    <SearchQueryBuilder
+      placeholder={placeholder ?? t('Search for spans, users, tags, and more')}
       filterKeys={filterTags}
       initialQuery={initialQuery}
       fieldDefinitionGetter={getSpanFieldDefinition}
