@@ -120,18 +120,19 @@ function processAndInsertKeyValueTokens(
   // Case 4: Value is an object
   if (typeof value === 'object') {
     if (Object.keys(value).length === 0) {
-      processAndInsertKeyValueTokens(tokens, key, '{}');
-    } else {
-      _insertToken(`"${key}": { `);
-      Object.keys(value).forEach(_key => {
-        processAndInsertKeyValueTokens(tokens, _key, value[_key]);
-      });
-      // Pop the trailing comma
-      tokens.pop();
-
-      _insertToken(' }');
+      _insertToken(`"${key}": {}`);
       _insertToken(', ');
+      return;
     }
+    _insertToken(`"${key}": { `);
+    Object.keys(value).forEach(_key => {
+      processAndInsertKeyValueTokens(tokens, _key, value[_key]);
+    });
+    // Pop the trailing comma
+    tokens.pop();
+
+    _insertToken(' }');
+    _insertToken(', ');
   }
 
   return;
