@@ -76,6 +76,7 @@ class OrganizationEAPSpansTagsEndpointTest(OrganizationSpansTagsEndpointTest):
         if query is None:
             query = {}
         query["dataset"] = "spans"
+        query["type"] = "string"
 
         with self.feature(features):
             return self.client.get(

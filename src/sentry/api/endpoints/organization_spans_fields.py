@@ -2,6 +2,8 @@ from datetime import timedelta
 
 import sentry_sdk
 from google.protobuf.timestamp_pb2 import Timestamp
+from rest_framework import serializers
+from rest_framework.exceptions import ParseError
 from rest_framework.request import Request
 from rest_framework.response import Response
 from sentry_protos.snuba.v1alpha.endpoint_tags_list_pb2 import (
@@ -37,6 +39,18 @@ class OrganizationSpansFieldsEndpointBase(OrganizationEventsV2EndpointBase):
     owner = ApiOwner.PERFORMANCE
 
 
+class OrganizationSpansFieldsEndpointSerializer(serializers.Serializer):
+    dataset = serializers.ChoiceField(
+        ["spans", "spansIndexed"], required=False, default="spansIndexed"
+    )
+    type = serializers.ChoiceField(["string", "number"], required=False)
+
+    def validate(self, attrs):
+        if attrs["dataset"] == "spans" and attrs.get("type") is None:
+            raise ParseError(detail='type is required when using dataset="spans"')
+        return attrs
+
+
 @region_silo_endpoint
 class OrganizationSpansFieldsEndpoint(OrganizationSpansFieldsEndpointBase):
     snuba_methods = ["GET"]
@@ -55,9 +69,14 @@ class OrganizationSpansFieldsEndpoint(OrganizationSpansFieldsEndpointBase):
                 paginator=ChainPaginator([]),
             )
 
+        serializer = OrganizationSpansFieldsEndpointSerializer(data=request.GET)
+        if not serializer.is_valid():
+            return Response(serializer.errors, status=400)
+        serialized = serializer.validated_data
+
         max_span_tags = options.get("performance.spans-tags-key.max")
 
-        if request.GET.get("dataset") == "spans" and features.has(
+        if serialized["dataset"] == "spans" and features.has(
             "organizations:visibility-explore-dataset", organization, actor=request.user
         ):
             start_timestamp = Timestamp()
