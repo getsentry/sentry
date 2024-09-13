@@ -225,6 +225,12 @@ window.IntersectionObserver = class IntersectionObserver {
   disconnect() {}
 };
 
+window.ResizeObserver = class ResizeObserver {
+  observe() {}
+  unobserve() {}
+  disconnect() {}
+};
+
 // Mock the crypto.subtle API for Gravatar
 Object.defineProperty(global.self, 'crypto', {
   value: {
