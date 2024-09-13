@@ -29,6 +29,9 @@ class Conflict(Exception):
 # if the event is more than 30 minutes old, we don't allow updates as it might be abusive
 EVENT_MAX_AGE = timedelta(minutes=30)
 
+# if an existing report was submitted >5 minutes ago, we don't allow updates as it might be abusive (replay attacks)
+DUP_REPORT_MAX_AGE = timedelta(minutes=5)
+
 
 def save_userreport(
     project,
@@ -79,9 +82,7 @@ def save_userreport(
                 project_id=report["project_id"], event_id=report["event_id"]
             )
 
-            # if the existing report was submitted more than 5 minutes ago, we dont
-            # allow updates as it might be abusive (replay attacks)
-            if existing_report.date_added < timezone.now() - timedelta(minutes=5):
+            if existing_report.date_added < timezone.now() - DUP_REPORT_MAX_AGE:
                 raise Conflict("Feedback for this event cannot be modified.")
 
             existing_report.update(

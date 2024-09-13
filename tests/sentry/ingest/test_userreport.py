@@ -8,6 +8,7 @@ from sentry.feedback.usecases.create_feedback import (
     FeedbackCreationSource,
 )
 from sentry.ingest.userreport import (
+    DUP_REPORT_MAX_AGE,
     EVENT_MAX_AGE,
     Conflict,
     is_org_in_denylist,
@@ -88,6 +89,9 @@ def test_save_userreport_no_event(set_sentry_option, default_project, monkeypatc
 
 @django_db_all
 def test_save_userreport_with_event(set_sentry_option, default_project, monkeypatch):
+    monkeypatch.setattr("sentry.ingest.userreport.is_org_in_denylist", lambda org: False)
+    monkeypatch.setattr("sentry.ingest.userreport.should_filter_user_report", lambda message: False)
+
     test_start = timezone.now()
     event = Factories.store_event(data={}, project_id=default_project.id)
     report_dict = {
@@ -116,11 +120,14 @@ def test_save_userreport_with_event(set_sentry_option, default_project, monkeypa
 
 @django_db_all
 def test_save_userreport_old_event(set_sentry_option, default_project, monkeypatch):
+    monkeypatch.setattr("sentry.ingest.userreport.is_org_in_denylist", lambda org: False)
+    monkeypatch.setattr("sentry.ingest.userreport.should_filter_user_report", lambda message: False)
+
     event_dt = timezone.now() - EVENT_MAX_AGE - timedelta(minutes=1)
     event = Factories.store_event(
         data={"timestamp": iso_format(event_dt)}, project_id=default_project.id
     )
-    report = {
+    report_dict = {
         "event_id": event.event_id,
         "name": "Test User",
         "email": "test@example.com",
@@ -129,7 +136,30 @@ def test_save_userreport_old_event(set_sentry_option, default_project, monkeypat
     }
 
     with pytest.raises(Conflict):
-        save_userreport(default_project, report, FeedbackCreationSource.USER_REPORT_ENVELOPE)
+        save_userreport(default_project, report_dict, FeedbackCreationSource.USER_REPORT_ENVELOPE)
+
+
+@django_db_all
+def test_save_userreport_existing_too_old(set_sentry_option, default_project, monkeypatch):
+    monkeypatch.setattr("sentry.ingest.userreport.is_org_in_denylist", lambda org: False)
+    monkeypatch.setattr("sentry.ingest.userreport.should_filter_user_report", lambda message: False)
+
+    event_id = "a" * 32
+    UserReport.objects.create(
+        project_id=default_project.id,
+        event_id=event_id,
+        date_added=timezone.now() - DUP_REPORT_MAX_AGE - timedelta(minutes=1),
+    )
+    report_dict = {
+        "event_id": event_id,
+        "name": "Test User",
+        "email": "test@example.com",
+        "comments": "This is a test feedback",
+        "project_id": default_project.id,
+    }
+
+    with pytest.raises(Conflict):
+        save_userreport(default_project, report_dict, FeedbackCreationSource.USER_REPORT_ENVELOPE)
 
 
 @django_db_all
