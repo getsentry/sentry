@@ -1,7 +1,6 @@
 import {useCallback} from 'react';
 import styled from '@emotion/styled';
 
-import Badge from 'sentry/components/badge/badge';
 import Tag from 'sentry/components/badge/tag';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {t} from 'sentry/locale';
@@ -41,12 +40,7 @@ export function BroadcastPanelItem({
   return (
     <SidebarPanelItemRoot>
       <TextBlock>
-        {category &&
-          (hasSeen ? (
-            <CategoryTag>{BROADCAST_CATEGORIES[category]}</CategoryTag>
-          ) : (
-            <CategoryBadge type="new">{BROADCAST_CATEGORIES[category]}</CategoryBadge>
-          ))}
+        {category && <CategoryTag>{BROADCAST_CATEGORIES[category]}</CategoryTag>}
         <Title hasSeen={hasSeen} href={link} onClick={handlePanelClicked}>
           {title}
         </Title>
@@ -82,6 +76,7 @@ const TextBlock = styled('div')`
   margin-bottom: ${space(1.5)};
   display: flex;
   flex-direction: column;
+  align-items: flex-start;
 `;
 
 const Media = styled('img')`
@@ -91,10 +86,5 @@ const Media = styled('img')`
 `;
 
 const CategoryTag = styled(Tag)`
-  margin-bottom: ${space(1)};
-`;
-
-const CategoryBadge = styled(Badge)`
-  margin-left: 0;
   margin-bottom: ${space(1)};
 `;
