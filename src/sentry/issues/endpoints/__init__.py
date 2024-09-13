@@ -4,6 +4,7 @@ from .organization_group_index import OrganizationGroupIndexEndpoint
 from .organization_group_search_views import OrganizationGroupSearchViewsEndpoint
 from .organization_release_previous_commits import OrganizationReleasePreviousCommitsEndpoint
 from .organization_searches import OrganizationSearchesEndpoint
+from .project_group_index import ProjectGroupIndexEndpoint
 from .project_stacktrace_link import ProjectStacktraceLinkEndpoint
 from .source_map_debug import SourceMapDebugEndpoint
 
@@ -14,6 +15,7 @@ __all__ = (
     "OrganizationGroupSearchViewsEndpoint",
     "OrganizationReleasePreviousCommitsEndpoint",
     "OrganizationSearchesEndpoint",
+    "ProjectGroupIndexEndpoint",
     "ProjectStacktraceLinkEndpoint",
     "SourceMapDebugEndpoint",
 )

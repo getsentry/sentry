@@ -177,6 +177,7 @@ from sentry.issues.endpoints import (
     OrganizationGroupSearchViewsEndpoint,
     OrganizationReleasePreviousCommitsEndpoint,
     OrganizationSearchesEndpoint,
+    ProjectGroupIndexEndpoint,
     ProjectStacktraceLinkEndpoint,
     SourceMapDebugEndpoint,
 )
@@ -570,7 +571,6 @@ from .endpoints.project_event_details import EventJsonEndpoint, ProjectEventDeta
 from .endpoints.project_events import ProjectEventsEndpoint
 from .endpoints.project_filter_details import ProjectFilterDetailsEndpoint
 from .endpoints.project_filters import ProjectFiltersEndpoint
-from .endpoints.project_group_index import ProjectGroupIndexEndpoint
 from .endpoints.project_group_stats import ProjectGroupStatsEndpoint
 from .endpoints.project_grouping_configs import ProjectGroupingConfigsEndpoint
 from .endpoints.project_index import ProjectIndexEndpoint
