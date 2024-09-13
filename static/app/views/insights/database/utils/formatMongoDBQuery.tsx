@@ -45,12 +45,12 @@ export function formatMongoDBQuery(query: string, command: string) {
     // The other tokens will be pushed into tempTokens, and then copied into tokens afterwards
     if (isBoldedEntry) {
       tokens.push(jsonEntryToToken(key, val, true));
-      tokens.push(stringToToken(', '));
+      tokens.push(stringToToken(', ', `${key}:${val},`));
       return;
     }
 
     tempTokens.push(jsonEntryToToken(key, val));
-    tempTokens.push(stringToToken(', '));
+    tempTokens.push(stringToToken(', ', `${key}:${val},`));
   });
 
   tempTokens.forEach(token => tokens.push(token));
@@ -62,7 +62,7 @@ export function formatMongoDBQuery(query: string, command: string) {
 
 function jsonEntryToToken(key: string, value: JSONValue, isBold?: boolean) {
   const tokenString = jsonToTokenizedString(value, key);
-  return stringToToken(tokenString, isBold);
+  return stringToToken(tokenString, `${key}:${value}`, isBold);
 }
 
 function jsonToTokenizedString(value: JSONValue | JSONValue[], key?: string): string {
@@ -133,6 +133,6 @@ function jsonToTokenizedString(value: JSONValue | JSONValue[], key?: string): st
   return '';
 }
 
-function stringToToken(str: string, isBold?: boolean): ReactElement {
-  return isBold ? <b>{str}</b> : <span>{str}</span>;
+function stringToToken(str: string, keyProp: string, isBold?: boolean): ReactElement {
+  return isBold ? <b key={keyProp}>{str}</b> : <span key={keyProp}>{str}</span>;
 }
