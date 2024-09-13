@@ -36,13 +36,13 @@ class DomainAddressDetails(TypedDict):
     This dictionary encapsulates the details of a rdap request that we care about
     """
 
-    name: str
+    handle: str
     """
     A string representing an identifier assigned to the network registration by
     the registration holder.
     """
 
-    owner_name: str
+    owner_name: str | None
     """
     The human readible name of the owner of the network registration.
     """
@@ -55,14 +55,18 @@ def resolve_rdap_network_details(hostname: str) -> DomainAddressDetails:
     resp = requests.get(f"{rdap_provider_url}ip/{addr}")
     result: Mapping[str, Any] = resp.json()
 
-    # We only extract the jCard from the FIRST entity, there may be more with
+    # We only extract details from the FIRST entity, there may be more with
     # other information about the network registration, but for now we're just
     # going to look at the first and assume it's the most relevant
-    entity = parse_jcard_to_dict(result["entities"][0]["vcardArray"][1])
+    entity = result["entities"][0]
+
+    jcard: Mapping[str, str] = {}
+    if "vcardArray" in entity:
+        jcard = parse_jcard_to_dict(entity["vcardArray"][1])
 
     details: DomainAddressDetails = {
-        "name": result["name"],
-        "owner_name": entity["fn"],
+        "handle": entity["handle"],
+        "owner_name": jcard.get("fn"),
     }
 
     logger.info(
