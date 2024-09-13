@@ -117,7 +117,6 @@ def fix_for_issue_platform(event_data):
             "replay_id": event_data["contexts"].get("feedback", {}).get("replay_id")
         }
     ret_event["event_id"] = event_data["event_id"]
-    ret_event["tags"] = event_data.get("tags", [])
 
     ret_event["platform"] = event_data.get("platform", "other")
     ret_event["level"] = event_data.get("level", "info")
@@ -142,8 +141,26 @@ def fix_for_issue_platform(event_data):
     # If no user email was provided specify the contact-email as the user-email.
     feedback_obj = event_data.get("contexts", {}).get("feedback", {})
     contact_email = feedback_obj.get("contact_email")
+
     if not ret_event["user"].get("email", ""):
         ret_event["user"]["email"] = contact_email
+
+    # Force `tags` to be a dict if it's initially a list,
+    # since we can't guarantee its type here.
+
+    tags = event_data.get("tags", {})
+    tags_dict = {}
+    if isinstance(tags, list):
+        for [k, v] in tags:
+            tags_dict[k] = v
+    else:
+        tags_dict = tags
+    ret_event["tags"] = tags_dict
+
+    # Set the user.email tag since we want to be able to display user.email on the feedback UI as a tag
+    # as well as be able to write alert conditions on it
+    if not ret_event["tags"].get("user.email"):
+        ret_event["tags"]["user.email"] = contact_email
 
     # Set the event message to the feedback message.
     ret_event["logentry"] = {"message": feedback_obj.get("message")}
