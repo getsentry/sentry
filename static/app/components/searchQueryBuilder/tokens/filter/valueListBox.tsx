@@ -125,6 +125,7 @@ const LoadingWrapper = styled('div')`
   justify-content: center;
   align-items: center;
   height: 140px;
+  width: 200px;
 `;
 
 const Label = styled('div')``;
