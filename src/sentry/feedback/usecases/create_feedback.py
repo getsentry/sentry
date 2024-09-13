@@ -342,7 +342,7 @@ class UserReportShimDict(TypedDict):
 
 def shim_to_feedback(
     report: UserReportShimDict,
-    event: Event | GroupEvent | None,
+    event: Event | GroupEvent,
     project: Project,
     source: FeedbackCreationSource,
 ):
