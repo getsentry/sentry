@@ -253,7 +253,11 @@ def segment_row_to_storage_meta(
 def download_segments(segments: list[RecordingSegmentStorageMeta]) -> Iterator[bytes]:
     """Download segment data from remote storage."""
     yield b"["
-    for i, result in enumerate(_download_segments(segments)):
+
+    with ThreadPoolExecutor(max_workers=10) as pool:
+        segment_data = pool.map(_download_segment, segments)
+
+    for i, result in enumerate(segment_data):
         if result is None:
             yield b"[]"
         else:
@@ -281,11 +285,6 @@ def download_video(segment: RecordingSegmentStorageMeta) -> bytes | None:
         return storage_kv.get(make_video_filename(segment))
     else:
         return video
-
-
-def _download_segments(segments: list[RecordingSegmentStorageMeta]) -> Iterator[bytes]:
-    with ThreadPoolExecutor(max_workers=10) as pool:
-        return pool.map(_download_segment, segments)
 
 
 def _download_segment(segment: RecordingSegmentStorageMeta) -> tuple[bytes | None, bytes] | None:
