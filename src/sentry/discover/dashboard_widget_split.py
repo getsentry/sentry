@@ -123,7 +123,7 @@ def _get_and_save_split_decision_for_dashboard_widget(
                 DashboardWidgetTypes.ERROR_EVENTS,
                 DatasetSourcesTypes.FORCED,
             )
-        return DashboardWidgetTypes.ERROR_EVENTS, True
+        return DashboardWidgetTypes.ERROR_EVENTS, False
 
     dataset_inferred_from_query = _dataset_split_decision_inferred_from_query(
         errors_builder, transactions_builder

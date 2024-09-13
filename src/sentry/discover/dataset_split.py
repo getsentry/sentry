@@ -396,7 +396,7 @@ def _get_and_save_split_decision_for_query(
                 DiscoverSavedQueryTypes.ERROR_EVENTS,
                 DatasetSourcesTypes.FORCED,
             )
-        return DiscoverSavedQueryTypes.ERROR_EVENTS, True
+        return DiscoverSavedQueryTypes.ERROR_EVENTS, False
 
     dataset_inferred_from_query = _dataset_split_decision_inferred_from_query(
         errors_builder, transactions_builder
