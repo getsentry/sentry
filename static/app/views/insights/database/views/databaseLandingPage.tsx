@@ -201,6 +201,7 @@ export function DatabaseLandingPage() {
                   series={throughputData['spm()']}
                   isLoading={isThroughputDataLoading}
                   error={throughputError}
+                  filters={chartFilters}
                 />
               </ModuleLayout.Half>
 
@@ -209,6 +210,7 @@ export function DatabaseLandingPage() {
                   series={[durationData[`${selectedAggregate}(span.self_time)`]]}
                   isLoading={isDurationDataLoading}
                   error={durationError}
+                  filters={chartFilters}
                 />
               </ModuleLayout.Half>
 
