@@ -84,7 +84,7 @@ from .manager import DeletionTaskManager
 default_manager = DeletionTaskManager(default_task=ModelDeletionTask)
 
 
-def load_defaults():
+def load_defaults() -> None:
     from sentry import models
     from sentry.discover.models import DiscoverSavedQuery
     from sentry.incidents.models.alert_rule import (
