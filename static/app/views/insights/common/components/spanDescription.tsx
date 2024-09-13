@@ -58,22 +58,32 @@ export function DatabaseSpanDescription({
     Boolean(indexedSpan)
   );
 
-  const rawDescription =
-    rawSpan?.description || indexedSpan?.['span.description'] || preliminaryDescription;
+  const system = rawSpan?.data?.['db.system'];
 
-  const formatterDescription = useMemo(() => {
+  const formattedDescription = useMemo(() => {
+    const rawDescription =
+      rawSpan?.description || indexedSpan?.['span.description'] || preliminaryDescription;
+
+    if (preliminaryDescription && isNoSQLQuery(preliminaryDescription)) {
+      return formatJsonQuery(preliminaryDescription);
+    }
+
+    if (rawSpan?.description && isNoSQLQuery(rawSpan?.description)) {
+      return formatJsonQuery(rawSpan?.description);
+    }
+
     return formatter.toString(rawDescription ?? '');
-  }, [rawDescription]);
+  }, [preliminaryDescription, rawSpan, indexedSpan]);
 
   return (
     <Frame>
-      {areIndexedSpansLoading ? (
+      {areIndexedSpansLoading || !preliminaryDescription ? (
         <WithPadding>
           <LoadingIndicator mini />
         </WithPadding>
       ) : (
-        <CodeSnippet language="sql" isRounded={false}>
-          {formatterDescription}
+        <CodeSnippet language={system === 'mongodb' ? 'json' : 'sql'} isRounded={false}>
+          {formattedDescription ?? ''}
         </CodeSnippet>
       )}
 
@@ -96,6 +106,30 @@ export function DatabaseSpanDescription({
       )}
     </Frame>
   );
+}
+
+// TODO: We should transform the data a bit for mongodb queries.
+// For example, it would be better if we display the operation on the collection as the
+// first key value pair in the JSON, since this is not guaranteed by the backend
+export function formatJsonQuery(queryString: string) {
+  try {
+    return JSON.stringify(JSON.parse(queryString), null, 4);
+  } catch (error) {
+    throw Error(`Failed to parse JSON: ${queryString}`);
+  }
+}
+
+function isNoSQLQuery(queryString?: string, system?: string) {
+  if (system && system === 'mongodb') {
+    return true;
+  }
+
+  // If the system isn't provided, we can at least infer that it is valid JSON if it is enclosed in parentheses
+  if (queryString?.startsWith('{') && queryString.endsWith('}')) {
+    return true;
+  }
+
+  return false;
 }
 
 const INDEXED_SPAN_SORT = {

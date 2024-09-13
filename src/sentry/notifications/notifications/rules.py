@@ -277,7 +277,7 @@ class AlertRuleNotification(ProjectNotification):
     def get_notification_title(
         self, provider: ExternalProviders, context: Mapping[str, Any] | None = None
     ) -> str:
-        from sentry.integrations.message_builder import build_rule_url
+        from sentry.integrations.messaging.message_builder import build_rule_url
 
         title_str = "Alert triggered"
 

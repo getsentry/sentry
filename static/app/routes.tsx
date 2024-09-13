@@ -28,7 +28,6 @@ import RouteNotFound from 'sentry/views/routeNotFound';
 import SettingsWrapper from 'sentry/views/settings/components/settingsWrapper';
 
 import {IndexRoute, Route} from './components/route';
-import {buildReactRouter6Routes} from './utils/reactRouter6Compat/router';
 
 const hook = (name: HookName) => HookStore.get(name).map(cb => cb());
 
@@ -260,25 +259,24 @@ function buildRoutes() {
         <Route path=":step/" component={make(() => import('sentry/views/relocation'))} />
       </Route>
       {USING_CUSTOMER_DOMAIN && (
-        <Route
-          path="/onboarding/"
-          component={errorHandler(withDomainRequired(OrganizationContainer))}
-          key="orgless-onboarding"
-        >
-          <IndexRedirect to="welcome/" />
+        <Fragment>
+          <Redirect from="/onboarding/" to="/onboarding/welcome/" />
           <Route
-            path=":step/"
-            component={make(() => import('sentry/views/onboarding'))}
-          />
-        </Route>
+            path="/onboarding/:step/"
+            component={errorHandler(withDomainRequired(OrganizationContainer))}
+            key="orgless-onboarding"
+          >
+            <IndexRoute component={make(() => import('sentry/views/onboarding'))} />
+          </Route>
+        </Fragment>
       )}
+      <Redirect from="/onboarding/:orgId/" to="/onboarding/:orgId/welcome/" />
       <Route
-        path="/onboarding/:orgId/"
+        path="/onboarding/:orgId/:step/"
         component={withDomainRedirect(errorHandler(OrganizationContainer))}
         key="org-onboarding"
       >
-        <IndexRedirect to="welcome/" />
-        <Route path=":step/" component={make(() => import('sentry/views/onboarding'))} />
+        <IndexRoute component={make(() => import('sentry/views/onboarding'))} />
       </Route>
       <Route
         path="/stories/"
@@ -682,7 +680,6 @@ function buildRoutes() {
       )}
     >
       {hook('routes:settings')}
-      {hook('routes:organization')}
       {!USING_CUSTOMER_DOMAIN && (
         <IndexRoute
           name={t('General')}
@@ -1917,7 +1914,7 @@ function buildRoutes() {
     <Route component={errorHandler(OrganizationRoot)}>
       <Redirect from="/organizations/:orgId/teams/new/" to="/settings/:orgId/teams/" />
       <Route path="/organizations/:orgId/">
-        {hook('routes:organization')}
+        {hook('routes:legacy-organization-redirects')}
         <IndexRedirect to="issues/" />
         <Redirect from="teams/" to="/settings/:orgId/teams/" />
         <Redirect from="teams/your-teams/" to="/settings/:orgId/teams/" />
@@ -2281,10 +2278,6 @@ function buildRoutes() {
 // We load routes both when initializing the SDK (for routing integrations) and
 // when the app renders Main. Memoize to avoid rebuilding the route tree.
 export const routes = memoize(buildRoutes);
-
-// XXX(epurkhiser): Transforms the legacy react-router 3 routest tree into a
-// react-router 6 style routes tree.
-export const routes6 = buildReactRouter6Routes(buildRoutes());
 
 // Exported for use in tests.
 export {buildRoutes};

@@ -71,11 +71,13 @@ class ProcessResultTest(UptimeTestCase, ProducerTestMixin):
             self.subscription.subscription_id,
             scheduled_check_time=datetime.now() - timedelta(minutes=5),
         )
-        with mock.patch(
-            "sentry.uptime.consumers.results_consumer.metrics"
-        ) as metrics, self.feature("organizations:uptime-create-issues"), mock.patch(
-            "sentry.uptime.consumers.results_consumer.ACTIVE_FAILURE_THRESHOLD",
-            new=2,
+        with (
+            mock.patch("sentry.uptime.consumers.results_consumer.metrics") as metrics,
+            self.feature("organizations:uptime-create-issues"),
+            mock.patch(
+                "sentry.uptime.consumers.results_consumer.ACTIVE_FAILURE_THRESHOLD",
+                new=2,
+            ),
         ):
             self.send_result(result)
             metrics.incr.assert_has_calls(
@@ -124,9 +126,10 @@ class ProcessResultTest(UptimeTestCase, ProducerTestMixin):
         assert self.project_subscription.uptime_status == UptimeStatus.FAILED
 
     def test_reset_fail_count(self):
-        with mock.patch(
-            "sentry.uptime.consumers.results_consumer.metrics"
-        ) as metrics, self.feature("organizations:uptime-create-issues"):
+        with (
+            mock.patch("sentry.uptime.consumers.results_consumer.metrics") as metrics,
+            self.feature("organizations:uptime-create-issues"),
+        ):
             self.send_result(
                 self.create_uptime_result(
                     self.subscription.subscription_id,
@@ -206,9 +209,12 @@ class ProcessResultTest(UptimeTestCase, ProducerTestMixin):
 
     def test_no_create_issues_feature(self):
         result = self.create_uptime_result(self.subscription.subscription_id)
-        with mock.patch("sentry.uptime.consumers.results_consumer.metrics") as metrics, mock.patch(
-            "sentry.uptime.consumers.results_consumer.ACTIVE_FAILURE_THRESHOLD",
-            new=1,
+        with (
+            mock.patch("sentry.uptime.consumers.results_consumer.metrics") as metrics,
+            mock.patch(
+                "sentry.uptime.consumers.results_consumer.ACTIVE_FAILURE_THRESHOLD",
+                new=1,
+            ),
         ):
             self.send_result(result)
             metrics.incr.assert_has_calls(
@@ -232,11 +238,13 @@ class ProcessResultTest(UptimeTestCase, ProducerTestMixin):
         assert self.project_subscription.uptime_status == UptimeStatus.FAILED
 
     def test_resolve(self):
-        with mock.patch(
-            "sentry.uptime.consumers.results_consumer.metrics"
-        ) as metrics, self.feature("organizations:uptime-create-issues"), mock.patch(
-            "sentry.uptime.consumers.results_consumer.ACTIVE_FAILURE_THRESHOLD",
-            new=2,
+        with (
+            mock.patch("sentry.uptime.consumers.results_consumer.metrics") as metrics,
+            self.feature("organizations:uptime-create-issues"),
+            mock.patch(
+                "sentry.uptime.consumers.results_consumer.ACTIVE_FAILURE_THRESHOLD",
+                new=2,
+            ),
         ):
             self.send_result(
                 self.create_uptime_result(
@@ -315,9 +323,10 @@ class ProcessResultTest(UptimeTestCase, ProducerTestMixin):
     def test_no_subscription(self):
         subscription_id = uuid.uuid4().hex
         result = self.create_uptime_result(subscription_id)
-        with mock.patch(
-            "sentry.uptime.consumers.results_consumer.metrics"
-        ) as metrics, self.feature("organizations:uptime-create-issues"):
+        with (
+            mock.patch("sentry.uptime.consumers.results_consumer.metrics") as metrics,
+            self.feature("organizations:uptime-create-issues"),
+        ):
             self.send_result(result)
             metrics.incr.assert_has_calls(
                 [call("uptime.result_processor.subscription_not_found", sample_rate=1.0)]
@@ -330,9 +339,10 @@ class ProcessResultTest(UptimeTestCase, ProducerTestMixin):
             build_last_update_key(self.project_subscription),
             int(result["scheduled_check_time_ms"]),
         )
-        with mock.patch(
-            "sentry.uptime.consumers.results_consumer.metrics"
-        ) as metrics, self.feature("organizations:uptime-create-issues"):
+        with (
+            mock.patch("sentry.uptime.consumers.results_consumer.metrics") as metrics,
+            self.feature("organizations:uptime-create-issues"),
+        ):
             self.send_result(result)
             metrics.incr.assert_has_calls(
                 [
@@ -396,9 +406,10 @@ class ProcessResultTest(UptimeTestCase, ProducerTestMixin):
         redis = _get_cluster()
         key = build_onboarding_failure_key(self.project_subscription)
         assert redis.get(key) is None
-        with mock.patch(
-            "sentry.uptime.consumers.results_consumer.metrics"
-        ) as metrics, self.feature("organizations:uptime-create-issues"):
+        with (
+            mock.patch("sentry.uptime.consumers.results_consumer.metrics") as metrics,
+            self.feature("organizations:uptime-create-issues"),
+        ):
             self.send_result(result)
             metrics.incr.assert_has_calls(
                 [
@@ -475,9 +486,10 @@ class ProcessResultTest(UptimeTestCase, ProducerTestMixin):
         redis = _get_cluster()
         key = build_onboarding_failure_key(self.project_subscription)
         assert redis.get(key) is None
-        with mock.patch(
-            "sentry.uptime.consumers.results_consumer.metrics"
-        ) as metrics, self.feature("organizations:uptime-create-issues"):
+        with (
+            mock.patch("sentry.uptime.consumers.results_consumer.metrics") as metrics,
+            self.feature("organizations:uptime-create-issues"),
+        ):
             self.send_result(result)
             metrics.incr.assert_has_calls(
                 [
@@ -513,9 +525,11 @@ class ProcessResultTest(UptimeTestCase, ProducerTestMixin):
         redis = _get_cluster()
         key = build_onboarding_failure_key(self.project_subscription)
         assert redis.get(key) is None
-        with mock.patch(
-            "sentry.uptime.consumers.results_consumer.metrics"
-        ) as metrics, self.tasks(), self.feature("organizations:uptime-create-issues"):
+        with (
+            mock.patch("sentry.uptime.consumers.results_consumer.metrics") as metrics,
+            self.tasks(),
+            self.feature("organizations:uptime-create-issues"),
+        ):
             self.send_result(result)
             metrics.incr.assert_has_calls(
                 [

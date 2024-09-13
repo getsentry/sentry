@@ -202,6 +202,10 @@ export function isWebVitalFrame(frame: SpanFrame): frame is WebVitalFrame {
   return frame.op === 'web-vital';
 }
 
+export function isCLSFrame(frame: WebVitalFrame): frame is WebVitalFrame {
+  return frame.description === 'cumulative-layout-shift';
+}
+
 export function isPaintFrame(frame: SpanFrame): frame is PaintFrame {
   return frame.op === 'paint';
 }

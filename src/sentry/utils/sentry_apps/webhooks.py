@@ -149,6 +149,7 @@ def send_and_save_webhook_request(
                 "error_type": error_type,
                 "organization_id": org_id,
                 "integration_slug": sentry_app.slug,
+                "url": url,
             },
         )
         track_response_code(error_type, slug, event)

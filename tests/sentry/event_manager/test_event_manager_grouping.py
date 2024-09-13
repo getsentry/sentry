@@ -29,10 +29,6 @@ from sentry.testutils.skips import requires_snuba
 pytestmark = [requires_snuba]
 
 
-LEGACY_CONFIG = "legacy:2019-03-12"
-NEWSTYLE_CONFIG = "newstyle:2023-01-11"
-
-
 def get_relevant_metrics_calls(mock_fn: MagicMock, key: str) -> list[mock._Call]:
     """
     Given a mock metrics function, grab only the calls which record the metric with the given key.
@@ -407,8 +403,8 @@ class EventManagerGroupingMetricsTest(TestCase):
         project = self.project
 
         cases: list[Any] = [
-            ["Dogs are great!", LEGACY_CONFIG, None, None, 1],
-            ["Adopt don't shop", NEWSTYLE_CONFIG, LEGACY_CONFIG, time() + 3600, 2],
+            ["Dogs are great!", LEGACY_GROUPING_CONFIG, None, None, 1],
+            ["Adopt don't shop", DEFAULT_GROUPING_CONFIG, LEGACY_GROUPING_CONFIG, time() + 3600, 2],
         ]
 
         for (
@@ -454,8 +450,13 @@ class EventManagerGroupingMetricsTest(TestCase):
         project = self.project
 
         in_transition_cases: list[Any] = [
-            [LEGACY_CONFIG, None, None, "False"],  # Not in transition
-            [NEWSTYLE_CONFIG, LEGACY_CONFIG, time() + 3600, "True"],  # In transition
+            [LEGACY_GROUPING_CONFIG, None, None, "False"],  # Not in transition
+            [
+                DEFAULT_GROUPING_CONFIG,
+                LEGACY_GROUPING_CONFIG,
+                time() + 3600,
+                "True",
+            ],  # In transition
         ]
         optimized_logic_cases = [
             [True, "True"],
@@ -521,8 +522,8 @@ def test_records_hash_comparison_metric(
     default_project: Project,
 ):
     project = default_project
-    project.update_option("sentry:grouping_config", NEWSTYLE_CONFIG)
-    project.update_option("sentry:secondary_grouping_config", LEGACY_CONFIG)
+    project.update_option("sentry:grouping_config", DEFAULT_GROUPING_CONFIG)
+    project.update_option("sentry:secondary_grouping_config", LEGACY_GROUPING_CONFIG)
     project.update_option("sentry:secondary_grouping_expiry", time() + 3600)
 
     with mock.patch(
