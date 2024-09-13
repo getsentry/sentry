@@ -3,10 +3,12 @@ import styled from '@emotion/styled';
 import {motion} from 'framer-motion';
 
 import Link from 'sentry/components/links/link';
-import type {SubmenuItem} from 'sentry/components/nav/types';
 import {useIndicator} from 'sentry/components/nav/useIndicator';
+import type {SubmenuItem} from 'sentry/components/nav/utils';
+import {isActive} from 'sentry/components/nav/utils';
 import {space} from 'sentry/styles/space';
 import theme from 'sentry/utils/theme';
+import {useLocation} from 'sentry/utils/useLocation';
 
 const Submenu = styled(motion.div)`
   position: relative;
@@ -16,6 +18,7 @@ const Submenu = styled(motion.div)`
   align-items: stretch;
   justify-content: space-between;
   flex-direction: column;
+  width: 150px;
   z-index: ${theme.zIndex.sidebarPanel};
 `;
 
@@ -42,9 +45,14 @@ const ItemList = styled('ul')`
 `;
 
 function Item({to, label, ...props}: React.PropsWithChildren<SubmenuItem>) {
+  const location = useLocation();
   return (
     <ItemWrapper>
-      <Link to={to} {...props}>
+      <Link
+        to={to}
+        aria-current={isActive({to, label}, location) ? 'page' : undefined}
+        {...props}
+      >
         {label}
       </Link>
     </ItemWrapper>
@@ -62,6 +70,7 @@ const ItemWrapper = styled('li')`
     font-weight: ${theme.fontWeightNormal};
     line-height: 177.75%;
     margin-inline: ${space(1)};
+    border: 1px solid transparent;
     border-radius: ${theme.borderRadius};
 
     &:hover {

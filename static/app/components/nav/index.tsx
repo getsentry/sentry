@@ -1,10 +1,11 @@
 import styled from '@emotion/styled';
+import {AnimatePresence} from 'framer-motion';
 
 import OrganizationAvatar from 'sentry/components/avatar/organizationAvatar';
 import Sidebar from 'sentry/components/nav/sidebar';
 import Submenu from 'sentry/components/nav/submenu';
-import type {NavItems, SidebarItem, SubmenuItem} from 'sentry/components/nav/types';
-import {NAV_DIVIDER} from 'sentry/components/nav/types';
+import type {NavItems} from 'sentry/components/nav/utils';
+import {isActive, NAV_DIVIDER, splitAtDivider} from 'sentry/components/nav/utils';
 import {
   IconBroadcast,
   IconDashboard,
@@ -33,30 +34,27 @@ const items: NavItems = [
       {label: t('Trend'), to: '/issues/trends/'},
       {label: t('Craftsmanship'), to: '/issues/craftsmanship/'},
       {label: t('Security'), to: '/issues/security/'},
-      {label: t('Feedback'), to: '/user-feedback'},
-      NAV_DIVIDER,
-      {label: t('Rules'), to: '/issues/rules'},
-      {label: t('Automations'), to: '/issues/automations'},
+      {label: t('Feedback'), to: '/user-feedback/'},
     ],
   },
   {label: t('Projects'), to: '/projects/', icon: <IconProject />},
   {
     label: t('Explore'),
-    to: '/explore/',
+    to: '/traces/',
     icon: <IconSearch />,
     submenu: [
       {label: t('Traces'), to: '/traces/'},
       {label: t('Metrics'), to: '/metrics/'},
       {label: t('Profiles'), to: '/profiles/'},
       {label: t('Replays'), to: '/replays/'},
-      {label: t('Discover'), to: '/discover/'},
+      {label: t('Discover'), to: '/discover/homepage/'},
       {label: t('Releases'), to: '/releases/'},
       {label: t('Crons'), to: '/crons/'},
     ],
   },
   {
     label: t('Insights'),
-    to: '/insights/',
+    to: '/insights/http/',
     icon: <IconGraph />,
     submenu: [
       {label: t('Requests'), to: '/insights/http/'},
@@ -74,48 +72,18 @@ const items: NavItems = [
   {label: t('Boards'), to: '/dashboards/', icon: <IconDashboard />},
   {label: t('Alerts'), to: '/alerts/', icon: <IconSiren />},
   NAV_DIVIDER,
-  {label: t('Help'), to: '/help/', icon: <IconQuestion />},
-  {label: t('New'), to: '/new/', icon: <IconBroadcast />},
-  {label: t('Stats'), to: '/stats/', icon: <IconStats />},
-  {label: t('Settings'), to: '/settings/', icon: <IconSettings />},
+  {label: t('Help'), to: '', icon: <IconQuestion />},
+  {label: t('New'), to: '', icon: <IconBroadcast />},
+  {label: t('Stats'), to: '', icon: <IconStats />},
+  {label: t('Settings'), to: '/settings/organization/', icon: <IconSettings />},
 ];
-
-function splitAtDivider<T>(arr: (T | typeof NAV_DIVIDER)[]): [T[], T[]] {
-  const body: T[] = [];
-  const footer: T[] = [];
-  let current = body;
-  for (const item of arr) {
-    if (item === NAV_DIVIDER) {
-      current = footer;
-      continue;
-    }
-    current.push(item);
-  }
-  return [body, footer];
-}
-
-function isActive(
-  item: SidebarItem | SubmenuItem,
-  location: ReturnType<typeof useLocation>
-): boolean {
-  if (item.to === location.pathname) return true;
-  if (
-    'submenu' in item &&
-    item.submenu?.find(
-      subitem => typeof subitem === 'object' && isActive(subitem, location)
-    )
-  ) {
-    return true;
-  }
-  return false;
-}
 
 function Nav() {
   const organization = useOrganization();
   const location = useLocation();
 
   const [body, footer] = splitAtDivider(items);
-  const {submenu = []} = [...body, ...footer].find(item => isActive(item, location)) ?? {
+  const {submenu = []} = body.find(item => isActive(item, location)) ?? {
     submenu: [],
   };
   const [submenuBody, submenuFooter] = splitAtDivider(submenu);
@@ -123,10 +91,10 @@ function Nav() {
   return (
     <NavContainer>
       <Sidebar>
+        <Sidebar.Header>
+          <OrganizationAvatar organization={organization} size={32} />
+        </Sidebar.Header>
         <Sidebar.Body>
-          <Sidebar.Header>
-            <OrganizationAvatar organization={organization} size={32} />
-          </Sidebar.Header>
           {body.map(item => (
             <Sidebar.Item key={item.to} {...item} />
           ))}
@@ -137,18 +105,24 @@ function Nav() {
           ))}
         </Sidebar.Footer>
       </Sidebar>
-      <Submenu>
-        <Submenu.Body>
-          {submenuBody.map(item => (
-            <Submenu.Item key={item.to} {...item} />
-          ))}
-        </Submenu.Body>
-        <Submenu.Footer>
-          {submenuFooter.map(item => (
-            <Submenu.Item key={item.to} {...item} />
-          ))}
-        </Submenu.Footer>
-      </Submenu>
+      <AnimatePresence>
+        {submenu.length > 0 && (
+          <Submenu>
+            <Submenu.Body>
+              {submenuBody.map(item => (
+                <Submenu.Item key={item.to} {...item} />
+              ))}
+            </Submenu.Body>
+            {submenuFooter.length > 0 && (
+              <Submenu.Footer>
+                {submenuFooter.map(item => (
+                  <Submenu.Item key={item.to} {...item} />
+                ))}
+              </Submenu.Footer>
+            )}
+          </Submenu>
+        )}
+      </AnimatePresence>
     </NavContainer>
   );
 }

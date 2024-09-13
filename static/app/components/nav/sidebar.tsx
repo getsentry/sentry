@@ -3,10 +3,11 @@ import styled from '@emotion/styled';
 import {motion} from 'framer-motion';
 
 import Link from 'sentry/components/links/link';
-import type {SidebarItem} from 'sentry/components/nav/types';
 import {useIndicator} from 'sentry/components/nav/useIndicator';
+import {isActive, type SidebarItem} from 'sentry/components/nav/utils';
 import {space} from 'sentry/styles/space';
 import theme from 'sentry/utils/theme';
+import {useLocation} from 'sentry/utils/useLocation';
 
 const Sidebar = styled('div')`
   width: 74px;
@@ -55,12 +56,17 @@ function Item({
   to,
   label,
   icon,
-  submenu: _,
+  submenu,
   ...props
 }: React.PropsWithChildren<SidebarItem>) {
+  const location = useLocation();
   return (
     <ItemWrapper>
-      <Link to={to} {...props}>
+      <Link
+        to={to}
+        aria-current={isActive({to, label, submenu}, location) ? 'page' : undefined}
+        {...props}
+      >
         {icon}
         {label}
       </Link>
@@ -132,7 +138,11 @@ const Header = styled('header')`
 `;
 
 function Body({children}) {
-  return <Items>{children}</Items>;
+  return (
+    <div>
+      <Items>{children}</Items>
+    </div>
+  );
 }
 
 function Footer({children}) {
