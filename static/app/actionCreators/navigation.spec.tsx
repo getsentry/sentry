@@ -120,4 +120,22 @@ describe('navigation ActionCreator', () => {
     expect(openModal).not.toHaveBeenCalled();
     expect(router.push).toHaveBeenCalledWith('/settings/projects/project-slug/alerts/');
   });
+
+  it('preserves query parameters in path object', function () {
+    router.location.query.project = '2';
+    expect(
+      navigateTo(
+        {
+          pathname: '/settings/:projectId/alert?project=:project#performance-sidequest',
+          query: {referrer: 'onboarding_task'},
+        },
+        router
+      )
+    ).toBe(undefined);
+    expect(openModal).not.toHaveBeenCalled();
+    expect(router.push).toHaveBeenCalledWith({
+      pathname: '/settings/project-slug/alert?project=2#performance-sidequest',
+      query: {referrer: 'onboarding_task'},
+    });
+  });
 });
