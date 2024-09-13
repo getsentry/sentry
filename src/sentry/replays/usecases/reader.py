@@ -249,21 +249,6 @@ def segment_row_to_storage_meta(
 # BLOB DOWNLOAD BEHAVIOR.
 
 
-def download_video(segment: RecordingSegmentStorageMeta) -> bytes | None:
-    result = download_segment(segment)
-    if result is None:
-        return storage_kv.get(make_video_filename(segment))
-
-    video, _ = result
-    if video is None:
-        # Fallback -- video was saved separately. This could be removed
-        # post GA if we don't care about breaking beta customers old
-        # replays.
-        return storage_kv.get(make_video_filename(segment))
-    else:
-        return video
-
-
 def download_segments(segments: list[RecordingSegmentStorageMeta]) -> Iterator[bytes]:
     """Download segment data from remote storage."""
     yield b"["
@@ -277,12 +262,32 @@ def download_segments(segments: list[RecordingSegmentStorageMeta]) -> Iterator[b
     yield b"]"
 
 
+def download_segment(segment: RecordingSegmentStorageMeta) -> bytes:
+    results = _download_segment(segment)
+    return results[1] if results is not None else b"[]"
+
+
+def download_video(segment: RecordingSegmentStorageMeta) -> bytes | None:
+    result = _download_segment(segment)
+    if result is None:
+        return storage_kv.get(make_video_filename(segment))
+
+    video, _ = result
+    if video is None:
+        # Fallback -- video was saved separately. This could be removed
+        # post GA if we don't care about breaking beta customers old
+        # replays.
+        return storage_kv.get(make_video_filename(segment))
+    else:
+        return video
+
+
 def _download_segments(segments: list[RecordingSegmentStorageMeta]) -> Iterator[bytes]:
     with ThreadPoolExecutor(max_workers=10) as pool:
-        return pool.map(download_segment, segments)
+        return pool.map(_download_segment, segments)
 
 
-def download_segment(segment: RecordingSegmentStorageMeta) -> tuple[bytes | None, bytes] | None:
+def _download_segment(segment: RecordingSegmentStorageMeta) -> tuple[bytes | None, bytes] | None:
     driver = filestore if segment.file_id else storage
 
     result = driver.get(segment)
