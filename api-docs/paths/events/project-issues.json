@@ -1,7 +1,7 @@
 {
   "get": {
     "tags": ["Events"],
-    "description": "Return a list of issues (groups) bound to a project.  All parameters are supplied as query string parameters. \n\n A default query of ``is:unresolved`` is applied. To return results with other statuses send an new query value (i.e. ``?query=`` for all results).\n\nThe ``statsPeriod`` parameter can be used to select the timeline stats which should be present. Possible values are: ``\"\"`` (disable),``\"24h\"``, ``\"14d\"``",
+    "description": "Return a list of issues (groups) bound to a project.  All parameters are supplied as query string parameters. \n\n A default query of ``is:unresolved`` is applied. To return results with other statuses send an new query value (i.e. ``?query=`` for all results).\n\nThe ``statsPeriod`` parameter can be used to select the timeline stats which should be present. Possible values are: ``\"\"`` (disable),``\"24h\"`` (default), ``\"14d\"``",
     "operationId": "List a Project's Issues",
     "parameters": [
       {
@@ -25,7 +25,7 @@
       {
         "name": "statsPeriod",
         "in": "query",
-        "description": "An optional stat period (can be one of `\"24h\"`, `\"14d\"`, and `\"\"`). If not provided, the API will return the max time period for the project (90 days for paid accounts, 30 days for free).",
+        "description": "An optional stat period (can be one of `\"24h\"`, `\"14d\"`, and `\"\"`), defaults to \"24h\" if not provided.",
         "schema": {
           "type": "string"
         }
