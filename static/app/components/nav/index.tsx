@@ -1,5 +1,4 @@
 import styled from '@emotion/styled';
-import {AnimatePresence} from 'framer-motion';
 
 import OrganizationAvatar from 'sentry/components/avatar/organizationAvatar';
 import Sidebar from 'sentry/components/nav/sidebar';
@@ -105,24 +104,22 @@ function Nav() {
           ))}
         </Sidebar.Footer>
       </Sidebar>
-      <AnimatePresence>
-        {submenu.length > 0 && (
-          <Submenu>
-            <Submenu.Body>
-              {submenuBody.map(item => (
+      {submenu.length > 0 && (
+        <Submenu>
+          <Submenu.Body>
+            {submenuBody.map(item => (
+              <Submenu.Item key={item.to} {...item} />
+            ))}
+          </Submenu.Body>
+          {submenuFooter.length > 0 && (
+            <Submenu.Footer>
+              {submenuFooter.map(item => (
                 <Submenu.Item key={item.to} {...item} />
               ))}
-            </Submenu.Body>
-            {submenuFooter.length > 0 && (
-              <Submenu.Footer>
-                {submenuFooter.map(item => (
-                  <Submenu.Item key={item.to} {...item} />
-                ))}
-              </Submenu.Footer>
-            )}
-          </Submenu>
-        )}
-      </AnimatePresence>
+            </Submenu.Footer>
+          )}
+        </Submenu>
+      )}
     </NavContainer>
   );
 }
