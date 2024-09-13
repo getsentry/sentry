@@ -208,7 +208,7 @@ class OrganizationSpansFieldValuesEndpoint(OrganizationSpansFieldsEndpointBase):
                 meta=RequestMeta(
                     organization_id=organization.id,
                     cogs_category="performance",
-                    referrer=Referrer.API_SPANS_TAG_KEYS.value,
+                    referrer=Referrer.API_SPANS_TAG_VALUES_RPC.value,
                     project_ids=snuba_params.project_ids,
                     start_timestamp=start_timestamp,
                     end_timestamp=end_timestamp,
@@ -390,7 +390,7 @@ class SpanFieldValuesAutocompletionExecutor:
 
     def get_autocomplete_results(self, query: BaseQueryBuilder) -> list[TagValue]:
         with handle_query_errors():
-            results = query.process_results(query.run_query(Referrer.API_SPANS_TAG_KEYS.value))
+            results = query.process_results(query.run_query(Referrer.API_SPANS_TAG_VALUES.value))
 
         return [
             TagValue(
