@@ -56,7 +56,7 @@ class OrganizationReplayCountEndpoint(OrganizationEventsV2EndpointBase):
 
     @extend_schema(
         examples=ReplayExamples.GET_REPLAY_COUNTS,
-        operation_id="Return a Count of Replays",
+        operation_id="Retrieve a Count of Replays",
         parameters=[
             GlobalParams.END,
             GlobalParams.ENVIRONMENT,
@@ -73,7 +73,7 @@ class OrganizationReplayCountEndpoint(OrganizationEventsV2EndpointBase):
         },
     )
     def get(self, request: Request, organization: Organization) -> Response:
-        """Return a count of replays for the given issue or transaction id."""
+        """Return a count of replays for the given issue or transaction ID."""
         if not features.has("organizations:session-replay", organization, actor=request.user):
             return Response(status=404)
 
