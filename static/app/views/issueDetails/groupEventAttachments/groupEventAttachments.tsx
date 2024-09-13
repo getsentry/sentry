@@ -1,16 +1,12 @@
-import {useState} from 'react';
 import styled from '@emotion/styled';
 import pick from 'lodash/pick';
 import xor from 'lodash/xor';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
-import * as Layout from 'sentry/components/layouts/thirds';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Pagination from 'sentry/components/pagination';
-import Panel from 'sentry/components/panels/panel';
-import PanelBody from 'sentry/components/panels/panelBody';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {IssueAttachment} from 'sentry/types/group';
@@ -58,20 +54,19 @@ function useActiveAttachmentsTab() {
 
 function GroupEventAttachments({project}: GroupEventAttachmentsProps) {
   const location = useLocation();
-  const {groupId, orgId} = useParams<{groupId: string; orgId: string}>();
+  const {groupId, orgId: orgSlug} = useParams<{groupId: string; orgId: string}>();
   const activeAttachmentsTab = useActiveAttachmentsTab();
-  const [deletedAttachments, setDeletedAttachments] = useState<string[]>([]);
   const api = useApi();
 
   const {
-    data: eventAttachments,
+    data: eventAttachments = [],
     isPending,
     isError,
     getResponseHeader,
     refetch,
   } = useApiQuery<IssueAttachment[]>(
     [
-      `/organizations/${orgId}/issues/${groupId}/attachments/`,
+      `/organizations/${orgSlug}/issues/${groupId}/attachments/`,
       {
         query:
           activeAttachmentsTab === EventAttachmentFilter.SCREENSHOTS
@@ -87,13 +82,13 @@ function GroupEventAttachments({project}: GroupEventAttachmentsProps) {
               },
       },
     ],
-    {staleTime: 0}
+    {staleTime: 60_000}
   );
 
   const {mutate: deleteAttachment} = useMutation({
     mutationFn: ({attachmentId, eventId}: {attachmentId: string; eventId: string}) =>
       api.requestPromise(
-        `/projects/${orgId}/${project.slug}/events/${eventId}/attachments/${attachmentId}/`,
+        `/projects/${orgSlug}/${project.slug}/events/${eventId}/attachments/${attachmentId}/`,
         {
           method: 'DELETE',
         }
@@ -109,42 +104,10 @@ function GroupEventAttachments({project}: GroupEventAttachmentsProps) {
       return;
     }
 
-    setDeletedAttachments(prevState => [...prevState, deletedAttachmentId]);
+    // TODO handle delete optimistically
+    // setDeletedAttachments(prevState => [...prevState, deletedAttachmentId]);
 
     deleteAttachment({attachmentId: attachment.id, eventId: attachment.event_id});
-  };
-
-  const renderInnerBody = () => {
-    if (isPending) {
-      return <LoadingIndicator />;
-    }
-
-    if (eventAttachments && eventAttachments.length > 0) {
-      return (
-        <GroupEventAttachmentsTable
-          attachments={eventAttachments}
-          orgId={orgId}
-          projectSlug={project.slug}
-          groupId={groupId}
-          onDelete={handleDelete}
-          deletedAttachments={deletedAttachments}
-        />
-      );
-    }
-
-    if (activeAttachmentsTab === EventAttachmentFilter.CRASH_REPORTS) {
-      return (
-        <EmptyStateWarning>
-          <p>{t('No crash reports found')}</p>
-        </EmptyStateWarning>
-      );
-    }
-
-    return (
-      <EmptyStateWarning>
-        <p>{t('No attachments found')}</p>
-      </EmptyStateWarning>
-    );
   };
 
   const renderAttachmentsTable = () => {
@@ -153,9 +116,19 @@ function GroupEventAttachments({project}: GroupEventAttachmentsProps) {
     }
 
     return (
-      <Panel className="event-list">
-        <PanelBody>{renderInnerBody()}</PanelBody>
-      </Panel>
+      <GroupEventAttachmentsTable
+        isLoading={isPending}
+        attachments={eventAttachments}
+        orgSlug={orgSlug}
+        projectSlug={project.slug}
+        groupId={groupId}
+        onDelete={handleDelete}
+        emptyMessage={
+          activeAttachmentsTab === EventAttachmentFilter.CRASH_REPORTS
+            ? t('No crash reports found')
+            : t('No attachments found')
+        }
+      />
     );
   };
 
@@ -198,15 +171,13 @@ function GroupEventAttachments({project}: GroupEventAttachmentsProps) {
   };
 
   return (
-    <Layout.Body>
-      <Layout.Main fullWidth>
-        <GroupEventAttachmentsFilter project={project} />
-        {activeAttachmentsTab === EventAttachmentFilter.SCREENSHOTS
-          ? renderScreenshotGallery()
-          : renderAttachmentsTable()}
-        <Pagination pageLinks={getResponseHeader?.('Link')} />
-      </Layout.Main>
-    </Layout.Body>
+    <Wrapper>
+      <GroupEventAttachmentsFilter project={project} />
+      {activeAttachmentsTab === EventAttachmentFilter.SCREENSHOTS
+        ? renderScreenshotGallery()
+        : renderAttachmentsTable()}
+      <NoMarginPagination pageLinks={getResponseHeader?.('Link')} />
+    </Wrapper>
   );
 }
 
@@ -229,4 +200,14 @@ const ScreenshotGrid = styled('div')`
   @media (min-width: ${p => p.theme.breakpoints.xxlarge}) {
     grid-template-columns: repeat(6, minmax(100px, 1fr));
   }
+`;
+
+const NoMarginPagination = styled(Pagination)`
+  margin: 0;
+`;
+
+const Wrapper = styled('div')`
+  display: flex;
+  flex-direction: column;
+  gap: ${space(2)};
 `;
