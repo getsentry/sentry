@@ -37,7 +37,9 @@ function FilterKey({token}: {token: TokenResult<Token.FILTER>}) {
   }
 
   return isAggregateFilterToken(token) ? (
-    <AggregateKeyVisual token={token} />
+    <div>
+      <AggregateKeyVisual token={token} />
+    </div>
   ) : (
     <div>{getKeyName(token.key)}</div>
   );
@@ -46,8 +48,7 @@ function FilterKey({token}: {token: TokenResult<Token.FILTER>}) {
 function Filter({token}: {token: TokenResult<Token.FILTER>}) {
   return (
     <FilterWrapper aria-label={token.text}>
-      <FilterKey token={token} />
-      {getOperatorInfo(token).label}
+      <FilterKey token={token} /> {getOperatorInfo(token).label}{' '}
       <FilterValue>
         <FilterValueText token={token} />
       </FilterValue>
