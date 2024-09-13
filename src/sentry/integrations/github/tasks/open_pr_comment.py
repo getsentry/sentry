@@ -34,10 +34,10 @@ from sentry.integrations.github.tasks.utils import (
     GithubAPIErrorType,
     PullRequestFile,
     PullRequestIssue,
-    create_or_update_comment,
 )
 from sentry.integrations.models.repository_project_path_config import RepositoryProjectPathConfig
 from sentry.integrations.services.integration import integration_service
+from sentry.integrations.source_code_management.commit_context import CommitContextIntegration
 from sentry.models.group import Group, GroupStatus
 from sentry.models.organization import Organization
 from sentry.models.project import Project
@@ -55,7 +55,7 @@ from sentry.utils.snuba import raw_snql_query
 
 logger = logging.getLogger(__name__)
 
-OPEN_PR_METRICS_BASE = "github_open_pr_comment.{key}"
+OPEN_PR_METRICS_BASE = "{integration}.open_pr_comment.{key}"
 
 # Caps the number of files that can be modified in a PR to leave a comment
 OPEN_PR_MAX_FILES_CHANGED = 7
@@ -175,17 +175,17 @@ def safe_for_comment(
         logger.info("github.open_pr_comment.api_error")
         if e.json and RATE_LIMITED_MESSAGE in e.json.get("message", ""):
             metrics.incr(
-                OPEN_PR_METRICS_BASE.format(key="api_error"),
+                OPEN_PR_METRICS_BASE.format(integration="github", key="api_error"),
                 tags={"type": GithubAPIErrorType.RATE_LIMITED.value, "code": e.code},
             )
         elif e.code == 404:
             metrics.incr(
-                OPEN_PR_METRICS_BASE.format(key="api_error"),
+                OPEN_PR_METRICS_BASE.format(integration="github", key="api_error"),
                 tags={"type": GithubAPIErrorType.MISSING_PULL_REQUEST.value, "code": e.code},
             )
         else:
             metrics.incr(
-                OPEN_PR_METRICS_BASE.format(key="api_error"),
+                OPEN_PR_METRICS_BASE.format(integration="github", key="api_error"),
                 tags={"type": GithubAPIErrorType.UNKNOWN.value, "code": e.code},
             )
             logger.exception("github.open_pr_comment.unknown_api_error", extra={"error": str(e)})
@@ -211,13 +211,13 @@ def safe_for_comment(
 
         if changed_file_count > OPEN_PR_MAX_FILES_CHANGED:
             metrics.incr(
-                OPEN_PR_METRICS_BASE.format(key="rejected_comment"),
+                OPEN_PR_METRICS_BASE.format(integration="github", key="rejected_comment"),
                 tags={"reason": "too_many_files"},
             )
             return []
         if changed_lines_count > OPEN_PR_MAX_LINES_CHANGED:
             metrics.incr(
-                OPEN_PR_METRICS_BASE.format(key="rejected_comment"),
+                OPEN_PR_METRICS_BASE.format(integration="github", key="rejected_comment"),
                 tags={"reason": "too_many_lines"},
             )
             return []
@@ -418,7 +418,10 @@ def open_pr_comment_workflow(pr_id: int) -> None:
         pull_request = PullRequest.objects.get(id=pr_id)
     except PullRequest.DoesNotExist:
         logger.info("github.open_pr_comment.pr_missing")
-        metrics.incr(OPEN_PR_METRICS_BASE.format(key="error"), tags={"type": "missing_pr"})
+        metrics.incr(
+            OPEN_PR_METRICS_BASE.format(integration="github", key="error"),
+            tags={"type": "missing_pr"},
+        )
         return
 
     # check org option
@@ -427,7 +430,10 @@ def open_pr_comment_workflow(pr_id: int) -> None:
         Organization.objects.get_from_cache(id=org_id)
     except Organization.DoesNotExist:
         logger.exception("github.open_pr_comment.org_missing")
-        metrics.incr(OPEN_PR_METRICS_BASE.format(key="error"), tags={"type": "missing_org"})
+        metrics.incr(
+            OPEN_PR_METRICS_BASE.format(integration="github", key="error"),
+            tags={"type": "missing_org"},
+        )
         return
 
     # check PR repo exists to get repo name
@@ -435,7 +441,10 @@ def open_pr_comment_workflow(pr_id: int) -> None:
         repo = Repository.objects.get(id=pull_request.repository_id)
     except Repository.DoesNotExist:
         logger.info("github.open_pr_comment.repo_missing", extra={"organization_id": org_id})
-        metrics.incr(OPEN_PR_METRICS_BASE.format(key="error"), tags={"type": "missing_repo"})
+        metrics.incr(
+            OPEN_PR_METRICS_BASE.format(integration="github", key="error"),
+            tags={"type": "missing_repo"},
+        )
         return
 
     # check integration exists to hit Github API with client
@@ -444,10 +453,14 @@ def open_pr_comment_workflow(pr_id: int) -> None:
     )
     if not integration:
         logger.info("github.open_pr_comment.integration_missing", extra={"organization_id": org_id})
-        metrics.incr(OPEN_PR_METRICS_BASE.format(key="error"), tags={"type": "missing_integration"})
+        metrics.incr(
+            OPEN_PR_METRICS_BASE.format(integration="github", key="error"),
+            tags={"type": "missing_integration"},
+        )
         return
 
     installation = integration.get_installation(organization_id=org_id)
+    assert isinstance(installation, CommitContextIntegration)
 
     client = installation.get_client()
 
@@ -461,7 +474,7 @@ def open_pr_comment_workflow(pr_id: int) -> None:
             "github.open_pr_comment.not_safe_for_comment", extra={"file_count": len(pr_files)}
         )
         metrics.incr(
-            OPEN_PR_METRICS_BASE.format(key="error"),
+            OPEN_PR_METRICS_BASE.format(integration="github", key="error"),
             tags={"type": "unsafe_for_comment"},
         )
         return
@@ -499,7 +512,7 @@ def open_pr_comment_workflow(pr_id: int) -> None:
                 "github.open_pr_comment.missing_parser", extra={"extension": file_extension}
             )
             metrics.incr(
-                OPEN_PR_METRICS_BASE.format(key="missing_parser"),
+                OPEN_PR_METRICS_BASE.format(integration="github", key="missing_parser"),
                 tags={"extension": file_extension},
             )
             continue
@@ -556,7 +569,7 @@ def open_pr_comment_workflow(pr_id: int) -> None:
     if not len(issue_table_contents):
         logger.info("github.open_pr_comment.no_issues")
         # don't leave a comment if no issues for files in PR
-        metrics.incr(OPEN_PR_METRICS_BASE.format(key="no_issues"))
+        metrics.incr(OPEN_PR_METRICS_BASE.format(integration="github", key="no_issues"))
         return
 
     # format issues per file into comment
@@ -597,8 +610,7 @@ def open_pr_comment_workflow(pr_id: int) -> None:
     language = languages[0] if len(languages) else "not found"
 
     try:
-        create_or_update_comment(
-            client=client,
+        installation.create_or_update_comment(
             repo=repo,
             pr_key=pull_request.key,
             comment_body=comment_body,
@@ -612,17 +624,20 @@ def open_pr_comment_workflow(pr_id: int) -> None:
         if e.json:
             if ISSUE_LOCKED_ERROR_MESSAGE in e.json.get("message", ""):
                 metrics.incr(
-                    OPEN_PR_METRICS_BASE.format(key="error"),
+                    OPEN_PR_METRICS_BASE.format(integration="github", key="error"),
                     tags={"type": "issue_locked_error"},
                 )
                 return
 
             elif RATE_LIMITED_MESSAGE in e.json.get("message", ""):
                 metrics.incr(
-                    OPEN_PR_METRICS_BASE.format(key="error"),
+                    OPEN_PR_METRICS_BASE.format(integration="github", key="error"),
                     tags={"type": "rate_limited_error"},
                 )
                 return
 
-        metrics.incr(OPEN_PR_METRICS_BASE.format(key="error"), tags={"type": "api_error"})
+        metrics.incr(
+            OPEN_PR_METRICS_BASE.format(integration="github", key="error"),
+            tags={"type": "api_error"},
+        )
         raise
