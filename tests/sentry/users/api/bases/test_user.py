@@ -3,16 +3,16 @@ from __future__ import annotations
 import pytest
 from django.test import override_settings
 
-from sentry.api.bases.user import (
+from sentry.api.exceptions import ResourceDoesNotExist
+from sentry.testutils.cases import DRFPermissionTestCase
+from sentry.testutils.helpers.options import override_options
+from sentry.testutils.silo import all_silo_test, control_silo_test, no_silo_test
+from sentry.users.api.bases.user import (
     RegionSiloUserEndpoint,
     UserAndStaffPermission,
     UserEndpoint,
     UserPermission,
 )
-from sentry.api.exceptions import ResourceDoesNotExist
-from sentry.testutils.cases import DRFPermissionTestCase
-from sentry.testutils.helpers.options import override_options
-from sentry.testutils.silo import all_silo_test, control_silo_test, no_silo_test
 
 
 @all_silo_test

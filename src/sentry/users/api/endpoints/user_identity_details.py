@@ -3,8 +3,8 @@ from rest_framework.response import Response
 
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import control_silo_endpoint
-from sentry.api.bases.user import UserEndpoint
 from sentry.models.authidentity import AuthIdentity
+from sentry.users.api.bases.user import UserEndpoint
 from sentry.users.models.user import User
 
 
