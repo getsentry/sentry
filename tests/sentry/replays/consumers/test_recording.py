@@ -18,8 +18,9 @@ from sentry.replays.consumers.recording_buffered import (
     RecordingBufferedStrategyFactory,
     cast_payload_from_bytes,
 )
-from sentry.replays.lib.storage import _make_recording_filename, _make_video_filename, storage_kv
+from sentry.replays.lib.storage import _make_recording_filename, storage_kv
 from sentry.replays.models import ReplayRecordingSegment
+from sentry.replays.usecases.pack import unpack
 from sentry.testutils.cases import TransactionTestCase
 
 
@@ -61,12 +62,12 @@ class RecordingTestCase(TransactionTestCase):
 
         # Assert (depending on compression) that the bytes are equal to our default mock value.
         if compressed:
-            assert zlib.decompress(bytes) == b'[{"hello":"world"}]'
+            assert bytes == b'[{"hello":"world"}]'
         else:
             assert bytes == b'[{"hello":"world"}]'
 
     def get_recording_data(self, segment_id):
-        return storage_kv.get(
+        result = storage_kv.get(
             _make_recording_filename(
                 project_id=self.project.id,
                 replay_id=self.replay_id,
@@ -74,16 +75,20 @@ class RecordingTestCase(TransactionTestCase):
                 retention_days=30,
             )
         )
+        if result:
+            return unpack(zlib.decompress(result))[1]
 
     def get_video_data(self, segment_id):
-        return storage_kv.get(
-            _make_video_filename(
+        result = storage_kv.get(
+            _make_recording_filename(
                 project_id=self.project.id,
                 replay_id=self.replay_id,
                 segment_id=segment_id,
                 retention_days=30,
             )
         )
+        if result:
+            return unpack(zlib.decompress(result))[0]
 
     def processing_factory(self):
         return ProcessReplayRecordingStrategyFactory(
@@ -250,7 +255,7 @@ class RecordingTestCase(TransactionTestCase):
 
         # Data was persisted even though an error was encountered.
         bytes = self.get_recording_data(segment_id)
-        assert bytes == zlib.compress(b"[{]")
+        assert bytes == b"[{]"
 
         # Onboarding and billing tasks were called.
         self.project.refresh_from_db()
