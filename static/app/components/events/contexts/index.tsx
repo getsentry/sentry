@@ -33,7 +33,9 @@ export function getOrderedContextItems(event: Event): ContextItem[] {
   const {user, contexts} = event;
   const {data: customUserData, ...userContext} = user ?? {};
 
-  const {feedback, response, ...otherContexts} = contexts ?? {};
+  // don't show `flags` in the contexts section
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const {feedback, response, flags, ...otherContexts} = contexts ?? {};
   const orderedContext: [ContextItem['alias'], ContextValue][] = [
     ['response', response],
     ['feedback', feedback],
