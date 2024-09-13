@@ -1,11 +1,32 @@
 from __future__ import annotations
 
+import configparser
 import os
 import shlex
 import subprocess
 
 from devenv import constants
 from devenv.lib import colima, config, fs, limactl, proc, venv
+
+# repo-local devenv needs to update itself first with a successful sync
+# so it'll take 2 syncs to get onto devenv-managed node, it is what it is
+try:
+    from devenv.lib import node
+
+    def install_node(reporoot: str, repo_config: configparser.ConfigParser) -> None:
+        node.install(
+            repo_config["node"]["version"],
+            repo_config["node"][constants.SYSTEM_MACHINE],
+            repo_config["node"][f"{constants.SYSTEM_MACHINE}_sha256"],
+            reporoot,
+        )
+        node.install_yarn(repo_config["node"]["yarn_version"], reporoot)
+
+except ImportError:
+    from devenv.lib import volta
+
+    def install_node(reporoot: str, repo_config: configparser.ConfigParser) -> None:
+        volta.install(reporoot)
 
 
 # TODO: need to replace this with a nicer process executor in devenv.lib
@@ -87,22 +108,7 @@ def main(context: dict[str, str]) -> int:
     print(f"ensuring {repo} venv at {venv_dir}...")
     venv.ensure(venv_dir, python_version, url, sha256)
 
-    # repo-local devenv needs to update itself first with a successful sync
-    # so it'll take 2 syncs to get onto devenv-managed node, it is what it is
-    try:
-        from devenv.lib import node
-
-        node.install(
-            repo_config["node"]["version"],
-            repo_config["node"][constants.SYSTEM_MACHINE],
-            repo_config["node"][f"{constants.SYSTEM_MACHINE}_sha256"],
-            reporoot,
-        )
-        node.install_yarn(repo_config["node"]["yarn_version"], reporoot)
-    except ImportError:
-        from devenv.lib import volta
-
-        volta.install(reporoot)
+    install_node(reporoot, repo_config)
 
     if constants.DARWIN:
         try:
