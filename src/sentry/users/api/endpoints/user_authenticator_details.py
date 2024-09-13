@@ -9,7 +9,6 @@ from rest_framework.response import Response
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import control_silo_endpoint
-from sentry.api.bases.user import OrganizationUserPermission, UserEndpoint
 from sentry.api.decorators import sudo_required
 from sentry.api.serializers import serialize
 from sentry.auth.authenticators.recovery_code import RecoveryCodeInterface
@@ -17,6 +16,7 @@ from sentry.auth.authenticators.u2f import U2fInterface, decode_credential_id
 from sentry.auth.staff import has_staff_option, is_active_staff
 from sentry.auth.superuser import is_active_superuser
 from sentry.security.utils import capture_security_activity
+from sentry.users.api.bases.user import OrganizationUserPermission, UserEndpoint
 from sentry.users.api.serializers.authenticator import get_interface_serializer
 from sentry.users.models.authenticator import Authenticator
 from sentry.users.models.user import User
