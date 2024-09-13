@@ -16,11 +16,12 @@ import useDrawer from 'sentry/components/globalDrawer';
 import KeyValueData, {
   type KeyValueDataContentProps,
 } from 'sentry/components/keyValueData';
-import {IconSort} from 'sentry/icons';
+import {IconMegaphone, IconSort} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Event, FeatureFlag} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
+import {useFeedbackForm} from 'sentry/utils/useFeedbackForm';
 import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
 
 export function EventFeatureFlagList({
@@ -32,6 +33,26 @@ export function EventFeatureFlagList({
   group: Group;
   project: Project;
 }) {
+  const openForm = useFeedbackForm();
+  const feedbackButton = openForm ? (
+    <Button
+      aria-label={t('Give feedback on the feature flag section')}
+      icon={<IconMegaphone />}
+      size={'xs'}
+      onClick={() =>
+        openForm({
+          messagePlaceholder: t('How can we make feature flags work better for you?'),
+          tags: {
+            ['feedback.source']: 'issue_details_feature_flags',
+            ['feedback.owner']: 'replay',
+          },
+        })
+      }
+    >
+      {t('Give Feedback')}
+    </Button>
+  ) : null;
+
   const [sortMethod, setSortMethod] = useState<FlagSort>(FlagSort.EVAL);
   const {closeDrawer, isDrawerOpen, openDrawer} = useDrawer();
   const viewAllButtonRef = useRef<HTMLButtonElement>(null);
@@ -96,6 +117,7 @@ export function EventFeatureFlagList({
 
   const actions = (
     <ButtonBar gap={1}>
+      {feedbackButton}
       <Button
         size="xs"
         aria-label={t('View All')}
