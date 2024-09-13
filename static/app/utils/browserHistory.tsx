@@ -1,3 +1,4 @@
+// biome-ignore lint/nursery/noRestrictedImports: Will be removed with react router 6
 import {browserHistory as react3BrowserHistory} from 'react-router';
 import type {Router} from '@remix-run/router/dist/router';
 import type {History} from 'history';

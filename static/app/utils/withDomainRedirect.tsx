@@ -1,3 +1,4 @@
+// biome-ignore lint/nursery/noRestrictedImports: Will be removed with react router 6
 import {formatPattern} from 'react-router';
 import trimEnd from 'lodash/trimEnd';
 import trimStart from 'lodash/trimStart';
