@@ -120,5 +120,5 @@ def test_resolve_rdap_network_details(mock_resolve_hostname):
     details = resolve_rdap_network_details("abc.com")
 
     mock_resolve_hostname.assert_called_with("abc.com")
-    assert details["name"] == "RRNY"
+    assert details["handle"] == "CC-3517"
     assert details["owner_name"] == "Charter Communications Inc"
