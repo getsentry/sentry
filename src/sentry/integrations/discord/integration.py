@@ -163,9 +163,7 @@ class DiscordIntegrationProvider(IntegrationProvider):
         auth_code = str(state.get("code"))
         if auth_code:
             discord_user_id = self._get_discord_user_id(auth_code, url)
-            if options.get(
-                "discord.validate-user"
-            ) and not self.client.check_user_bot_installation_permission(
+            if not self.client.check_user_bot_installation_permission(
                 access_token=self.access_token, guild_id=guild_id
             ):
                 raise IntegrationError("User does not have permissions to install bot.")
