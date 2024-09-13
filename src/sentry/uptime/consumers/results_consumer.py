@@ -10,7 +10,7 @@ from sentry_kafka_schemas.schema_types.uptime_results_v1 import (
     CheckResult,
 )
 
-from sentry import features
+from sentry import features, options
 from sentry.conf.types.kafka_definition import Topic
 from sentry.remote_subscriptions.consumers.result_consumer import (
     ResultProcessor,
@@ -258,9 +258,24 @@ class UptimeResultProcessor(ResultProcessor[CheckResult, UptimeSubscription]):
             if not self.has_reached_status_threshold(project_subscription, result["status"]):
                 return
 
-            if features.has(
-                "organizations:uptime-create-issues", project_subscription.project.organization
-            ):
+            issue_creation_flag_enabled = features.has(
+                "organizations:uptime-create-issues",
+                project_subscription.project.organization,
+            )
+
+            # Do not create uptime issue occurences for
+            restricted_host_provider_ids = options.get(
+                "uptime.restrict-issue-creation-by-hosting-provider-id"
+            )
+            issue_creation_restricted_by_provider = (
+                project_subscription.uptime_subscription.host_provider_id
+                in restricted_host_provider_ids
+            )
+
+            if issue_creation_restricted_by_provider:
+                metrics.incr("uptime.result_processor.restricted_by_provider", sample_rate=1.0)
+
+            if issue_creation_flag_enabled and not issue_creation_restricted_by_provider:
                 create_issue_platform_occurrence(result, project_subscription)
                 metrics.incr("uptime.result_processor.active.sent_occurrence", sample_rate=1.0)
                 logger.info(
