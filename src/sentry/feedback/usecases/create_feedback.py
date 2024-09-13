@@ -342,7 +342,7 @@ class UserReportShimDict(TypedDict):
 
 def shim_to_feedback(
     report: UserReportShimDict,
-    event: Event | GroupEvent,
+    event: Event | GroupEvent | None,
     project: Project,
     source: FeedbackCreationSource,
 ):
@@ -384,7 +384,7 @@ def shim_to_feedback(
 
         else:
             metrics.incr(
-                "feedback.user_report.missing_event",
+                "feedback.shim_to_feedback.missing_event",
                 sample_rate=1.0,
                 tags={"referrer": source.value},
             )
@@ -393,14 +393,12 @@ def shim_to_feedback(
             feedback_event["platform"] = "other"
             feedback_event["level"] = report.get("level", "info")
 
-            if report.get("event_id"):
+            if "event_id" in report:
                 feedback_event["contexts"]["feedback"]["associated_event_id"] = report["event_id"]
 
         create_feedback_issue(feedback_event, project.id, source)
     except Exception:
-        logger.exception(
-            "Error attempting to create new User Feedback from Shiming old User Report"
-        )
+        logger.exception("Error attempting to create new user feedback by shimming a user report")
         metrics.incr("feedback.shim_to_feedback.failed", tags={"referrer": source.value})
 
 
