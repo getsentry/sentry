@@ -6,7 +6,7 @@ import pytest
 from sentry import eventstore, nodestore
 from sentry.db.models.fields.node import NodeData, NodeIntegrityFailure
 from sentry.eventstore.models import Event, GroupEvent
-from sentry.grouping.api import GroupingConfig
+from sentry.grouping.api import GroupingConfig, get_grouping_variants_for_event
 from sentry.grouping.enhancer import Enhancements
 from sentry.grouping.result import CalculatedHashes
 from sentry.grouping.utils import hash_from_values
@@ -421,10 +421,15 @@ class EventTest(TestCase, PerformanceIssueTestCase):
         )
 
         calculated_hashes = event.get_hashes()
-        assert calculated_hashes.hashes == [hash_from_values(["Dogs are great!"])]
+        expected_hash_values = [hash_from_values(["Dogs are great!"])]
+        expected_variants = get_grouping_variants_for_event(event)
+
+        variants = event.get_grouping_variants()
+
+        assert calculated_hashes.hashes == expected_hash_values
+        assert expected_variants == expected_variants
 
         # Since the `variants` dictionaries are equal, it suffices to only check the values in one
-        variants = event.get_grouping_variants()
         assert "default" in variants
         default_variant = variants["default"]
 
