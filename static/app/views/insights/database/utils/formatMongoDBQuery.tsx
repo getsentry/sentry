@@ -20,7 +20,12 @@ export function formatMongoDBQuery(query: string, command: string) {
     onlyIfParent: true,
   });
 
-  const queryObject = JSON.parse(query);
+  let queryObject;
+  try {
+    queryObject = JSON.parse(query);
+  } catch {
+    return query;
+  }
 
   const tokens: ReactElement[] = [];
 
