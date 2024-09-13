@@ -692,7 +692,3 @@ class OrganizationEAPSpansTagKeyValuesEndpointTest(OrganizationSpansTagKeyValues
     @pytest.mark.skip("autcomplete transaction doesnt work yet")
     def test_transaction_keys_autocomplete_substring_with_asterisk(self):
         super().test_transaction_keys_autocomplete_substring_with_asterisk()
-
-    @pytest.mark.skip("autcomplete tags with asterisks doesnt work yet")
-    def test_tags_keys_autocomplete_substring_with_asterisks(self):
-        super().test_tags_keys_autocomplete_substring_with_asterisks()

@@ -22,6 +22,7 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases import NoProjects, OrganizationEventsV2EndpointBase
+from sentry.api.event_search import translate_escape_sequences
 from sentry.api.paginator import ChainPaginator
 from sentry.api.serializers import serialize
 from sentry.api.utils import handle_query_errors
@@ -202,6 +203,7 @@ class OrganizationSpansFieldValuesEndpoint(OrganizationSpansFieldsEndpointBase):
                 + timedelta(days=1)
             )
 
+            query = translate_escape_sequences(request.GET.get("query", ""))
             rpc_request = AttributeValuesRequest(
                 meta=RequestMeta(
                     organization_id=organization.id,
@@ -213,7 +215,7 @@ class OrganizationSpansFieldValuesEndpoint(OrganizationSpansFieldsEndpointBase):
                     trace_item_name=TraceItemName.TRACE_ITEM_NAME_EAP_SPANS,
                 ),
                 name=key,
-                value_substring_match=request.GET.get("query", ""),
+                value_substring_match=query,
                 limit=max_span_tag_values,
                 offset=0,
             )
