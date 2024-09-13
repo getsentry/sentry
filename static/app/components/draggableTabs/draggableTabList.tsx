@@ -434,6 +434,10 @@ const MotionWrapper = styled(motion.div)`
 `;
 
 const OverflowMenuTrigger = styled(DropdownButton)`
-  padding-left: ${space(1)};
-  padding-right: ${space(1)};
+  padding: ${space(0.5)} ${space(0.75)};
+  border: none;
+
+  & > span {
+    height: 26px;
+  }
 `;
