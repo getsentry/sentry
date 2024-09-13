@@ -12,7 +12,7 @@ from sentry.incidents.models.alert_rule import (
     AlertRuleSeasonality,
     AlertRuleSensitivity,
 )
-from sentry.seer.anomaly_detection.types import AnomalyType
+from sentry.seer.anomaly_detection.types import AnomalyType, StoreDataResponse
 from sentry.testutils.cases import SnubaTestCase
 from sentry.testutils.factories import EventType
 from sentry.testutils.helpers.datetime import before_now, freeze_time, iso_format
@@ -130,7 +130,10 @@ class AlertRuleAnomalyEndpointTest(AlertRuleBase, SnubaTestCase):
         )
 
         self.login_as(self.user)
-        mock_seer_store_request.return_value = HTTPResponse({"success": True}, status=200)
+        seer_return_value: StoreDataResponse = {"success": True}
+        mock_seer_store_request.return_value = HTTPResponse(
+            orjson.dumps(seer_return_value), status=200
+        )
         with outbox_runner():
             resp = self.get_success_response(
                 self.organization.slug,
@@ -188,7 +191,10 @@ class AlertRuleAnomalyEndpointTest(AlertRuleBase, SnubaTestCase):
         )
 
         self.login_as(self.user)
-        mock_seer_store_request.return_value = HTTPResponse({"success": True}, status=200)
+        seer_return_value: StoreDataResponse = {"success": True}
+        mock_seer_store_request.return_value = HTTPResponse(
+            orjson.dumps(seer_return_value), status=200
+        )
         mock_seer_request.side_effect = TimeoutError
         with outbox_runner():
             resp = self.get_error_response(
@@ -257,7 +263,10 @@ class AlertRuleAnomalyEndpointTest(AlertRuleBase, SnubaTestCase):
         )
 
         self.login_as(self.user)
-        mock_seer_store_request.return_value = HTTPResponse({"success": True}, status=200)
+        seer_return_value: StoreDataResponse = {"success": True}
+        mock_seer_store_request.return_value = HTTPResponse(
+            orjson.dumps(seer_return_value), status=200
+        )
         mock_seer_request.return_value = HTTPResponse("Bad stuff", status=500)
         with outbox_runner():
             resp = self.get_error_response(
