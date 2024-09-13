@@ -35,7 +35,6 @@ describe('formatMongoDBQuery', function () {
 
     const tokenizedQuery = formatMongoDBQuery(query, 'find');
     render(<Fragment>{tokenizedQuery}</Fragment>);
-    screen.logTestingPlaygroundURL();
 
     const boldedText = screen.getByText(/"find": "my_collection"/i);
     expect(boldedText).toBeInTheDocument();
@@ -49,5 +48,28 @@ describe('formatMongoDBQuery', function () {
     expect(objToken1).toContainHTML('<span>"objectKey": { </span>');
     expect(objToken2).toContainHTML('<span>"nestedObject": { </span>');
     expect(objToken3).toContainHTML('<span>"deeplyNested": {}</span>');
+  });
+
+  it('correctly formats MongoDB JSON strings that include arrays', function () {
+    const query =
+      '{"arrayKey":[1,2,{"objInArray":{"objInObjInArray":{}}},3,4],"somethingElse":100,"delete":"my_collection"}';
+
+    const tokenizedQuery = formatMongoDBQuery(query, 'delete');
+    render(<Fragment>{tokenizedQuery}</Fragment>);
+
+    const boldedText = screen.getByText(/"delete": "my_collection"/i);
+    expect(boldedText).toBeInTheDocument();
+    // It should be bolded and correctly spaced
+    expect(boldedText).toContainHTML('<b>"delete": "my_collection"</b>');
+
+    // I know this is a weird way of testing, but if something is not working, these tokens would not get rendered to begin with.
+    // By confirming their presence, the test ensures that the query is correctly tokenized
+    const arrayToken = screen.getByText(/"arraykey": \[/i);
+    const objInArray = screen.getByText(/"objinarray": \{/i);
+    const objInObjInArray = screen.getByText(/"objinobjinarray": \{\}/i);
+
+    expect(arrayToken).toContainHTML('<span>"arrayKey": [</span>');
+    expect(objInArray).toContainHTML('<span>"objInArray": { </span>');
+    expect(objInObjInArray).toContainHTML('<span>"objInObjInArray": {}</span>');
   });
 });
