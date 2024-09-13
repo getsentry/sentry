@@ -36,7 +36,7 @@ export function EventFeatureFlagList({
   const openForm = useFeedbackForm();
   const feedbackButton = openForm ? (
     <Button
-      aria-label={t('Give feedback on this component')}
+      aria-label={t('Give feedback on the feature flag section')}
       icon={<IconMegaphone />}
       size={'xs'}
       onClick={() =>
