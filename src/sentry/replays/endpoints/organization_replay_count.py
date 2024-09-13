@@ -58,10 +58,10 @@ class OrganizationReplayCountEndpoint(OrganizationEventsV2EndpointBase):
         examples=ReplayExamples.GET_REPLAY_COUNTS,
         operation_id="Retrieve a Count of Replays",
         parameters=[
-            GlobalParams.END,
             GlobalParams.ENVIRONMENT,
             GlobalParams.ORG_ID_OR_SLUG,
             GlobalParams.START,
+            GlobalParams.END,
             GlobalParams.STATS_PERIOD,
             OrganizationParams.PROJECT,
             VisibilityParams.QUERY,
