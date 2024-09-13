@@ -458,6 +458,8 @@ module = [
     "sentry.eventtypes.error",
     "sentry.grouping.component",
     "sentry.grouping.fingerprinting",
+    "sentry.grouping.ingest.metrics",
+    "sentry.grouping.ingest.utils",
     "sentry.grouping.parameterization",
     "sentry.hybridcloud.*",
     "sentry.ingest.slicing",
