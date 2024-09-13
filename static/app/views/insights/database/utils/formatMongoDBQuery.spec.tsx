@@ -72,4 +72,10 @@ describe('formatMongoDBQuery', function () {
     expect(objInArray).toContainHTML('<span>"objInArray": { </span>');
     expect(objInObjInArray).toContainHTML('<span>"objInObjInArray": {}</span>');
   });
+
+  it('returns an unformatted string when given invalid JSON', function () {
+    const query = "{'foo': 'bar'}";
+    const tokenizedQuery = formatMongoDBQuery(query, 'find');
+    expect(tokenizedQuery).toEqual(query);
+  });
 });
