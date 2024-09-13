@@ -36,5 +36,18 @@ describe('formatMongoDBQuery', function () {
     const tokenizedQuery = formatMongoDBQuery(query, 'find');
     render(<Fragment>{tokenizedQuery}</Fragment>);
     screen.logTestingPlaygroundURL();
+
+    const boldedText = screen.getByText(/"find": "my_collection"/i);
+    expect(boldedText).toBeInTheDocument();
+    // It should be bolded and correctly spaced
+    expect(boldedText).toContainHTML('<b>"find": "my_collection"</b>');
+
+    const objToken1 = screen.getByText(/"objectkey": \{/i);
+    const objToken2 = screen.getByText(/"nestedobject": \{/i);
+    const objToken3 = screen.getByText(/"deeplynested": \{\}/i);
+
+    expect(objToken1).toContainHTML('<span>"objectKey": { </span>');
+    expect(objToken2).toContainHTML('<span>"nestedObject": { </span>');
+    expect(objToken3).toContainHTML('<span>"deeplyNested": {}</span>');
   });
 });
