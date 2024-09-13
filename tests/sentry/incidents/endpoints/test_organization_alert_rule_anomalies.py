@@ -75,6 +75,7 @@ class AlertRuleAnomalyEndpointTest(AlertRuleBase, SnubaTestCase):
         self.login_as(self.user)
 
         seer_return_value = {
+            "success": True,
             "timeseries": [
                 {
                     "anomaly": {
@@ -92,7 +93,7 @@ class AlertRuleAnomalyEndpointTest(AlertRuleBase, SnubaTestCase):
                     "timestamp": 2,
                     "value": 1,
                 },
-            ]
+            ],
         }
         mock_seer_store_request.return_value = HTTPResponse(status=200)
         mock_seer_request.return_value = HTTPResponse(orjson.dumps(seer_return_value), status=200)
@@ -129,7 +130,7 @@ class AlertRuleAnomalyEndpointTest(AlertRuleBase, SnubaTestCase):
         )
 
         self.login_as(self.user)
-        mock_seer_store_request.return_value = HTTPResponse(status=200)
+        mock_seer_store_request.return_value = HTTPResponse({"success": True}, status=200)
         with outbox_runner():
             resp = self.get_success_response(
                 self.organization.slug,
@@ -187,7 +188,7 @@ class AlertRuleAnomalyEndpointTest(AlertRuleBase, SnubaTestCase):
         )
 
         self.login_as(self.user)
-        mock_seer_store_request.return_value = HTTPResponse(status=200)
+        mock_seer_store_request.return_value = HTTPResponse({"success": True}, status=200)
         mock_seer_request.side_effect = TimeoutError
         with outbox_runner():
             resp = self.get_error_response(
@@ -256,7 +257,7 @@ class AlertRuleAnomalyEndpointTest(AlertRuleBase, SnubaTestCase):
         )
 
         self.login_as(self.user)
-        mock_seer_store_request.return_value = HTTPResponse(status=200)
+        mock_seer_store_request.return_value = HTTPResponse({"success": True}, status=200)
         mock_seer_request.return_value = HTTPResponse("Bad stuff", status=500)
         with outbox_runner():
             resp = self.get_error_response(
