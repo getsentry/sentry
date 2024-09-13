@@ -7,7 +7,7 @@
       {
         "name": "organization_id_or_slug",
         "in": "path",
-        "description": "The id or slug of the organization the issues belong to.",
+        "description": "The ID or slug of the organization the issues belong to.",
         "required": true,
         "schema": {
           "type": "string"
@@ -16,7 +16,7 @@
       {
         "name": "project_id_or_slug",
         "in": "path",
-        "description": "The id or slug of the project the issues belong to.",
+        "description": "The ID or slug of the project the issues belong to.",
         "required": true,
         "schema": {
           "type": "string"
@@ -153,7 +153,7 @@
       {
         "name": "organization_id_or_slug",
         "in": "path",
-        "description": "The id or slug of the organization the issues belong to.",
+        "description": "The ID or slug of the organization the issues belong to.",
         "required": true,
         "schema": {
           "type": "string"
@@ -162,7 +162,7 @@
       {
         "name": "project_id_or_slug",
         "in": "path",
-        "description": "The id or slug of the project the issues belong to.",
+        "description": "The ID or slug of the project the issues belong to.",
         "required": true,
         "schema": {
           "type": "string"
@@ -314,7 +314,7 @@
       {
         "name": "organization_id_or_slug",
         "in": "path",
-        "description": "The id or slug of the organization the issues belong to.",
+        "description": "The ID or slug of the organization the issues belong to.",
         "required": true,
         "schema": {
           "type": "string"
@@ -323,7 +323,7 @@
       {
         "name": "project_id_or_slug",
         "in": "path",
-        "description": "The id or slug of the project the issues belong to.",
+        "description": "The ID or slug of the project the issues belong to.",
         "required": true,
         "schema": {
           "type": "string"
