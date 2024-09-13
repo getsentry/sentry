@@ -178,8 +178,8 @@ def get_user_actions(
         }
     """
     # Feature flag and project option queries
-    should_report_rage_click_issue = _should_report_rage_click_issue(project)
-    should_report_hydration_error_issue = _should_report_hydration_error_issue(project)
+    should_report_rage = _should_report_rage_click_issue(project)
+    should_report_hydration = _should_report_hydration_error_issue(project)
 
     result: list[ReplayActionsEventPayloadClick] = []
     for event in _iter_custom_events(events):
@@ -194,8 +194,8 @@ def get_user_actions(
                 project,
                 replay_id,
                 replay_event,
-                should_report_rage_click_issue=should_report_rage_click_issue,
-                should_report_hydration_error_issue=should_report_hydration_error_issue,
+                should_report_rage_click_issue=should_report_rage,
+                should_report_hydration_error_issue=should_report_hydration,
             )
             if click is not None:
                 result.append(click)
