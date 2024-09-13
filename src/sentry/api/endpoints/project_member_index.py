@@ -25,7 +25,7 @@ class ProjectMemberIndexEndpoint(ProjectEndpoint):
     owner = ApiOwner.ENTERPRISE
 
     @extend_schema(
-        operation_id="List an Organization's Members for Project",
+        operation_id="List a Project's Organization Members",
         parameters=[GlobalParams.ORG_ID_OR_SLUG, GlobalParams.PROJECT_ID_OR_SLUG],
         request=None,
         responses={
@@ -39,10 +39,8 @@ class ProjectMemberIndexEndpoint(ProjectEndpoint):
     )
     def get(self, request: Request, project) -> Response:
         """
-        List your Members in the requested Project
+        Returns a list of active organization member's that belong to any team assigned to the project.
         """
-        # Return a list of active organization members that belong to any team assigned
-        # to the queried project.
         queryset = OrganizationMember.objects.filter(
             Q(user_is_active=True, user_id__isnull=False) | Q(user_id__isnull=True),
             organization=project.organization,

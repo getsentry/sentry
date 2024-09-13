@@ -25,7 +25,7 @@ class OrganizationUserTeamsEndpoint(OrganizationEndpoint):
     owner = ApiOwner.ENTERPRISE
 
     @extend_schema(
-        operation_id="List an Organization's Teams for user",
+        operation_id="List a User's Teams for an Organization",
         parameters=[GlobalParams.ORG_ID_OR_SLUG],
         request=None,
         responses={
@@ -39,7 +39,8 @@ class OrganizationUserTeamsEndpoint(OrganizationEndpoint):
     )
     def get(self, request: Request, organization) -> Response:
         """
-        List your Teams in the Current Organization
+        Returns a list of teams the user has access to in the specified organization.
+        Note that this endpoint is restricted to [user auth tokens](https://docs.sentry.io/account/auth-tokens/#user-auth-tokens).
         """
         # Return a list of the teams available to the authenticated session and
         # with the supplied organization. If the user is a super user, then all
