@@ -4,6 +4,19 @@ from dataclasses import dataclass
 from enum import Enum
 from typing import Any
 
+# A list of common builtin custom field types for Jira for easy reference.
+JIRA_CUSTOM_FIELD_TYPES = {
+    "select": "com.atlassian.jira.plugin.system.customfieldtypes:select",
+    "textarea": "com.atlassian.jira.plugin.system.customfieldtypes:textarea",
+    "multiuserpicker": "com.atlassian.jira.plugin.system.customfieldtypes:multiuserpicker",
+    "tempo_account": "com.tempoplugin.tempo-accounts:accounts.customfield",
+    "sprint": "com.pyxis.greenhopper.jira:gh-sprint",
+    "epic": "com.pyxis.greenhopper.jira:gh-epic-link",
+    "team": "com.atlassian.jira.plugin.system.customfieldtypes:atlassian-team",
+    "rank": "com.pyxis.greenhopper.jira:gh-lexo-rank",
+    "development": "com.atlassian.jira.plugins.jira-development-integration-plugin:devsummarycf",
+}
+
 
 class JiraSchemaTypes(str, Enum):
     string = "string"

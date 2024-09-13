@@ -4,14 +4,12 @@ import pytest
 
 from fixtures.integrations.jira.stub_client import StubJiraApiClient
 from sentry.integrations.jira.models.create_issue_metadata import (
+    JIRA_CUSTOM_FIELD_TYPES,
     JiraField,
     JiraSchema,
     JiraSchemaTypes,
 )
-from sentry.integrations.jira.utils.create_issue_schema_transformers import (
-    JIRA_CUSTOM_FIELD_TYPES,
-    transform_fields,
-)
+from sentry.integrations.jira.utils.create_issue_schema_transformers import transform_fields
 from sentry.shared_integrations.exceptions import IntegrationFormError
 from sentry.testutils.cases import TestCase
 
