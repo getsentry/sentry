@@ -377,7 +377,6 @@ def shim_to_feedback(
                 feedback_event["contexts"]["trace"] = event.data["contexts"]["trace"]
 
             feedback_event["timestamp"] = event.datetime.timestamp()
-            feedback_event["level"] = event.data["level"]
             feedback_event["platform"] = event.platform
             feedback_event["level"] = event.data["level"]
             feedback_event["environment"] = event.get_environment().name
