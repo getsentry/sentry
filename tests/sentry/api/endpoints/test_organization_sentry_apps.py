@@ -1,7 +1,7 @@
 import orjson
 from django.urls import reverse
 
-from sentry.models.integrations.sentry_app import SentryApp
+from sentry.sentry_apps.models.sentry_app import SentryApp
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import control_silo_test
 

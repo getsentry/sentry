@@ -100,6 +100,7 @@ def load_defaults():
     from sentry.models.commitfilechange import CommitFileChange
     from sentry.models.rulefirehistory import RuleFireHistory
     from sentry.monitors import models as monitor_models
+    from sentry.sentry_apps.models.sentry_app import SentryApp
     from sentry.snuba import models as snuba_models
 
     from . import defaults
@@ -164,7 +165,7 @@ def load_defaults():
     default_manager.register(
         RepositoryProjectPathConfig, defaults.RepositoryProjectPathConfigDeletionTask
     )
-    default_manager.register(models.SentryApp, defaults.SentryAppDeletionTask)
+    default_manager.register(SentryApp, defaults.SentryAppDeletionTask)
     default_manager.register(
         models.SentryAppInstallation, defaults.SentryAppInstallationDeletionTask
     )

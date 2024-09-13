@@ -9,9 +9,9 @@ from sentry.api.bases.organization import ControlSiloOrganizationEndpoint
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
 from sentry.constants import SentryAppStatus
-from sentry.models.integrations.sentry_app import SentryApp
 from sentry.organizations.services.organization import RpcOrganization
 from sentry.organizations.services.organization.model import RpcUserOrganizationContext
+from sentry.sentry_apps.models.sentry_app import SentryApp
 
 
 @control_silo_endpoint
