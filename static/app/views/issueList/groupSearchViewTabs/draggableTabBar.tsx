@@ -226,6 +226,7 @@ export function DraggableTabBar({
       };
       const newTabs = [...tabs, newTab];
       setTabs(newTabs);
+      setTempTab(undefined);
       tabListState?.setSelectedKey(tempId);
       onSaveTempView?.(newTabs);
     }
