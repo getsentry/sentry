@@ -171,9 +171,7 @@ class Broadcasts extends Component<Props, State> {
     await markBroadcastsAsSeen(this.props.api, unseenBroadcastIds);
 
     if (!this.hasWhatsNewRevampFeature) {
-      this.setState(state => ({
-        broadcasts: state.broadcasts.map(item => ({...item, hasSeen: true})),
-      }));
+      this.handleResetCounter();
     }
   };
 
