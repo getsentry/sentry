@@ -34,15 +34,18 @@ export function formatMongoDBQuery(query: string, command: string) {
 
   const queryEntries = Object.entries(queryObject);
   queryEntries.forEach(([key, val], index) => {
+    // Push the bolded entry into tokens so it is the first entry displayed.
+    // The other tokens will be pushed into tempTokens, and then copied into tokens afterwards
     const isBoldedEntry = key.toLowerCase() === command.toLowerCase();
 
     if (index === queryEntries.length - 1) {
-      tempTokens.push(jsonEntryToToken(key, val, isBoldedEntry));
+      isBoldedEntry
+        ? tokens.push(jsonEntryToToken(key, val, true))
+        : tempTokens.push(jsonEntryToToken(key, val));
+
       return;
     }
 
-    // Push the bolded entry into tokens so it is the first entry displayed.
-    // The other tokens will be pushed into tempTokens, and then copied into tokens afterwards
     if (isBoldedEntry) {
       tokens.push(jsonEntryToToken(key, val, true));
       tokens.push(stringToToken(', ', `${key}:${val},`));
