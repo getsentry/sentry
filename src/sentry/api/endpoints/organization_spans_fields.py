@@ -94,7 +94,7 @@ class OrganizationSpansFieldsEndpoint(OrganizationSpansFieldsEndpointBase):
                 meta=RequestMeta(
                     organization_id=organization.id,
                     cogs_category="performance",
-                    referrer=Referrer.API_SPANS_TAG_KEYS.value,
+                    referrer=Referrer.API_SPANS_TAG_KEYS_RPC.value,
                     project_ids=snuba_params.project_ids,
                     start_timestamp=start_timestamp,
                     end_timestamp=end_timestamp,
