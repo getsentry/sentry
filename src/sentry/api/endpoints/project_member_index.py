@@ -39,7 +39,7 @@ class ProjectMemberIndexEndpoint(ProjectEndpoint):
     )
     def get(self, request: Request, project) -> Response:
         """
-        Returns a list of active organization member's that belong to any team assigned to the project.
+        Returns a list of active organization members that belong to any team assigned to the project.
         """
         queryset = OrganizationMember.objects.filter(
             Q(user_is_active=True, user_id__isnull=False) | Q(user_id__isnull=True),
