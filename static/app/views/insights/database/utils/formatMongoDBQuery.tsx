@@ -15,6 +15,7 @@ export function formatMongoDBQuery(query: string, command: string) {
     name: 'formatMongoDBQuery',
     attributes: {
       query,
+      command,
     },
     onlyIfParent: true,
   });
