@@ -10,6 +10,7 @@ from sentry import eventstore, features, options
 from sentry.eventstore.models import Event, GroupEvent
 from sentry.feedback.usecases.create_feedback import (
     UNREAL_FEEDBACK_UNATTENDED_MESSAGE,
+    FeedbackCreationSource,
     shim_to_feedback,
 )
 from sentry.models.userreport import UserReport
@@ -25,17 +26,21 @@ class Conflict(Exception):
     pass
 
 
+# if the event is more than 30 minutes old, we don't allow updates as it might be abusive
+EVENT_MAX_AGE = timedelta(minutes=30)
+
+
 def save_userreport(
     project,
     report,
-    source,
+    source: FeedbackCreationSource,
     start_time=None,
-):
+) -> UserReport | None:
     with metrics.timer("sentry.ingest.userreport.save_userreport"):
         if is_org_in_denylist(project.organization):
-            return
+            return None
         if should_filter_user_report(report["comments"]):
-            return
+            return None
 
         if start_time is None:
             start_time = timezone.now()
@@ -52,9 +57,7 @@ def save_userreport(
             euser.name = report["name"]
 
         if event:
-            # if the event is more than 30 minutes old, we don't allow updates
-            # as it might be abusive
-            if event.datetime < start_time - timedelta(minutes=30):
+            if event.datetime < start_time - EVENT_MAX_AGE:
                 raise Conflict("Feedback for this event cannot be modified.")
 
             report["environment_id"] = event.get_environment().id
