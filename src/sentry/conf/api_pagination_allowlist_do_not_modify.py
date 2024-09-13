@@ -104,7 +104,6 @@ SENTRY_API_PAGINATION_ALLOWLIST_DO_NOT_MODIFY = {
     "UserPermissionsConfigEndpoint",
     "UserPermissionsEndpoint",
     "UserRolesEndpoint",
-    "UserSocialIdentitiesIndexEndpoint",
     "UserSubscriptionsEndpoint",
     "UserUserRolesEndpoint",
     "VstsSearchEndpoint",
