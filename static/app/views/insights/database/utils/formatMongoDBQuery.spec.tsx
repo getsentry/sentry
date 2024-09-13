@@ -41,13 +41,11 @@ describe('formatMongoDBQuery', function () {
     // It should be bolded and correctly spaced
     expect(boldedText).toContainHTML('<b>"find": "my_collection"</b>');
 
-    const objToken1 = screen.getByText(/"objectkey": \{/i);
-    const objToken2 = screen.getByText(/"nestedobject": \{/i);
-    const objToken3 = screen.getByText(/"deeplynested": \{\}/i);
+    const objToken = screen.getByText(/"objectkey": \{/i);
 
-    expect(objToken1).toContainHTML('<span>"objectKey": { </span>');
-    expect(objToken2).toContainHTML('<span>"nestedObject": { </span>');
-    expect(objToken3).toContainHTML('<span>"deeplyNested": {}</span>');
+    expect(objToken).toContainHTML(
+      '<span>"objectKey": { "nestedObject": { "deeplyNested": {} } }</span>'
+    );
   });
 
   it('correctly formats MongoDB JSON strings that include arrays', function () {
@@ -65,12 +63,10 @@ describe('formatMongoDBQuery', function () {
     // I know this is a weird way of testing, but if something is not working, these tokens would not get rendered to begin with.
     // By confirming their presence, the test ensures that the query is correctly tokenized
     const arrayToken = screen.getByText(/"arraykey": \[/i);
-    const objInArray = screen.getByText(/"objinarray": \{/i);
-    const objInObjInArray = screen.getByText(/"objinobjinarray": \{\}/i);
 
-    expect(arrayToken).toContainHTML('<span>"arrayKey": [</span>');
-    expect(objInArray).toContainHTML('<span>"objInArray": { </span>');
-    expect(objInObjInArray).toContainHTML('<span>"objInObjInArray": {}</span>');
+    expect(arrayToken).toContainHTML(
+      '<span>"arrayKey": [1, 2, { "objInArray": { "objInObjInArray": {} } }, 3, 4]</span>'
+    );
   });
 
   it('returns an unformatted string when given invalid JSON', function () {
