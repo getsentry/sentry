@@ -1,16 +1,13 @@
 from __future__ import annotations
 
-import functools
 import uuid
 import zlib
 from collections.abc import Iterator
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timedelta
 
-import sentry_sdk
 from django.conf import settings
 from django.db.models import Prefetch
-from sentry_sdk.tracing import Span
 from snuba_sdk import (
     Column,
     Condition,
@@ -35,6 +32,7 @@ from sentry.replays.lib.storage import (
     storage_kv,
 )
 from sentry.replays.models import ReplayRecordingSegment
+from sentry.replays.usecases.pack import unpack
 from sentry.utils.snuba import raw_snql_query
 
 # METADATA QUERY BEHAVIOR.
@@ -252,59 +250,47 @@ def segment_row_to_storage_meta(
 
 
 def download_video(segment: RecordingSegmentStorageMeta) -> bytes | None:
-    return storage_kv.get(make_video_filename(segment))
+    result = download_segment(segment)
+    if result is None:
+        return storage_kv.get(make_video_filename(segment))
+
+    video, _ = result
+    if video is None:
+        # Fallback -- video was saved separately. This could be removed
+        # post GA if we don't care about breaking beta customers old
+        # replays.
+        return storage_kv.get(make_video_filename(segment))
+    else:
+        return video
 
 
 def download_segments(segments: list[RecordingSegmentStorageMeta]) -> Iterator[bytes]:
     """Download segment data from remote storage."""
-
-    # start a sentry transaction to pass to the thread pool workers
-    with sentry_sdk.start_span(op="download_segments", description="thread_pool") as span:
-        download_segment_with_fixed_args = functools.partial(
-            download_segment,
-            span=span,
-        )
-
-        yield b"["
-        # Map all of the segments to a worker process for download.
-        with ThreadPoolExecutor(max_workers=10) as exe:
-            with sentry_sdk.isolation_scope():
-                results = exe.map(download_segment_with_fixed_args, segments)
-
-            for i, result in enumerate(results):
-                if result is None:
-                    yield b"[]"
-                else:
-                    yield result
-
-                if i < len(segments) - 1:
-                    yield b","
-        yield b"]"
-
-
-def download_segment(
-    segment: RecordingSegmentStorageMeta,
-    span: Span,
-) -> bytes | None:
-    """Return the segment blob data."""
-    with span.start_child(
-        op="download_segment",
-        description="thread_task",
-    ):
-        driver = filestore if segment.file_id else storage
-        with sentry_sdk.start_span(
-            op="download_segment",
-            description="download",
-        ):
-            result = driver.get(segment)
+    yield b"["
+    for i, result in enumerate(_download_segments(segments)):
         if result is None:
-            return None
+            yield b"[]"
+        else:
+            yield result[1]
+            if i < len(segments) - 1:
+                yield b","
+    yield b"]"
 
-        with sentry_sdk.start_span(
-            op="download_segment",
-            description="decompress",
-        ):
-            return decompress(result)
+
+def _download_segments(segments: list[RecordingSegmentStorageMeta]) -> Iterator[bytes]:
+    with ThreadPoolExecutor(max_workers=10) as pool:
+        return pool.map(download_segment, segments)
+
+
+def download_segment(segment: RecordingSegmentStorageMeta) -> tuple[bytes | None, bytes] | None:
+    driver = filestore if segment.file_id else storage
+
+    result = driver.get(segment)
+    if result is None:
+        return None
+
+    decompressed = decompress(result)
+    return unpack(decompressed)
 
 
 def decompress(buffer: bytes) -> bytes:
