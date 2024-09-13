@@ -131,8 +131,10 @@ def fetch_historical_data(
 
     dataset_label = snuba_query.dataset
     if dataset_label == "events":
-        # DATSET_OPTIONS expects the name 'errors'
+        # DATASET_OPTIONS expects the name 'errors'
         dataset_label = "errors"
+    elif dataset_label == "generic_metrics":
+        dataset_label = "transactions"
     dataset = get_dataset(dataset_label)
 
     if not project or not dataset or not alert_rule.organization:

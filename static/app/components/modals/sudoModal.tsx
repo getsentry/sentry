@@ -222,22 +222,13 @@ function SudoModal({
     return authLoginPath;
   };
 
-  const handleLogout = async () => {
-    try {
-      await logout(api);
-    } catch {
-      // ignore errors
-    }
-    window.location.assign(getAuthLoginPath());
-  };
-
   const renderBodyContent = () => {
     const user = ConfigStore.get('user');
     const isSelfHosted = ConfigStore.get('isSelfHosted');
     const validateSUForm = ConfigStore.get('validateSUForm');
 
     if (errorType === ErrorCodes.INVALID_SSO_SESSION) {
-      handleLogout();
+      logout(api, getAuthLoginPath());
       return null;
     }
 

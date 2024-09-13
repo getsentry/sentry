@@ -11,6 +11,10 @@ import {DatabaseSpanDescription} from 'sentry/views/insights/common/components/s
 jest.mock('sentry/utils/usePageFilters');
 
 describe('DatabaseSpanDescription', function () {
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
   const organization = OrganizationFixture();
 
   const project = ProjectFixture();
@@ -154,5 +158,60 @@ describe('DatabaseSpanDescription', function () {
     expect(
       screen.getByText(textWithMarkupMatcher('/app/views/users.py at line 78'))
     ).toBeInTheDocument();
+  });
+
+  it('correctly formats and displays MongoDB queries', async function () {
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/events/`,
+      body: {
+        data: [
+          {
+            'transaction.id': eventId,
+            project: project.slug,
+            span_id: spanId,
+          },
+        ],
+      },
+    });
+
+    const sampleMongoDBQuery = `{"a": "?", "insert": "documents"}`;
+
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/events/${project.slug}:${eventId}/`,
+      body: {
+        id: eventId,
+        entries: [
+          {
+            type: EntryType.SPANS,
+            data: [
+              {
+                span_id: spanId,
+                description: sampleMongoDBQuery,
+                data: {
+                  'db.system': 'mongodb',
+                },
+              },
+            ],
+          },
+        ],
+      },
+    });
+
+    render(
+      <DatabaseSpanDescription
+        groupId={groupId}
+        preliminaryDescription={sampleMongoDBQuery}
+      />,
+      {organization}
+    );
+
+    await waitForElementToBeRemoved(() => screen.getByTestId('loading-indicator'));
+
+    // expect(await screen.findBy).toBeInTheDocument();
+    const mongoQuerySnippet = await screen.findByText(
+      /\{ "a": "\?", "insert": "documents" \}/i
+    );
+    expect(mongoQuerySnippet).toBeInTheDocument();
+    expect(mongoQuerySnippet).toHaveClass('language-json');
   });
 });

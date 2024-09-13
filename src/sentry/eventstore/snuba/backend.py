@@ -4,7 +4,7 @@ import logging
 import random
 from collections.abc import Mapping, Sequence
 from copy import copy, deepcopy
-from datetime import datetime, timedelta
+from datetime import UTC, datetime, timedelta
 from typing import Any, Literal, overload
 
 import sentry_sdk
@@ -241,7 +241,16 @@ class SnubaEventStorage(EventStorage):
             ]
             self.bind_nodes(event_list)
 
-            nodestore_events = [event for event in event_list if len(event.data)]
+            # Extending date filters by +- 1s since events are second-resolution.
+            start = filter.start - timedelta(seconds=1) if filter.start else datetime(1970, 1, 1)
+            end = filter.end + timedelta(seconds=1) if filter.end else timezone.now()
+            start, end = start.replace(tzinfo=UTC), end.replace(tzinfo=UTC)
+
+            nodestore_events = [
+                event
+                for event in event_list
+                if len(event.data) and start <= event.datetime.replace(tzinfo=UTC) <= end
+            ]
 
             if nodestore_events:
                 event_ids = {event.event_id for event in nodestore_events}
