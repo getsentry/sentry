@@ -306,6 +306,7 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
             detection_type=AlertRuleDetectionType.DYNAMIC,
             sensitivity=AlertRuleSensitivity.HIGH,
             seasonality=AlertRuleSeasonality.AUTO,
+            threshold_type=AlertRuleThresholdType.ABOVE_AND_BELOW.value,
         )
         # dynamic alert rules have a threshold of 0.0
         self.trigger.update(alert_threshold=0)

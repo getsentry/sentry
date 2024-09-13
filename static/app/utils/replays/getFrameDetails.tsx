@@ -1,6 +1,8 @@
-import type {ReactNode} from 'react';
+import {Fragment, type ReactNode} from 'react';
+import styled from '@emotion/styled';
 
 import ExternalLink from 'sentry/components/links/externalLink';
+import QuestionTooltip from 'sentry/components/questionTooltip';
 import CrumbErrorTitle from 'sentry/components/replays/breadcrumbs/errorTitle';
 import SelectorList from 'sentry/components/replays/breadcrumbs/selectorList';
 import {
@@ -25,6 +27,7 @@ import {
   IconWifi,
 } from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
+import {space} from 'sentry/styles/space';
 import {explodeSlug} from 'sentry/utils';
 import {TabKey} from 'sentry/utils/replays/hooks/useActiveReplayTab';
 import type {
@@ -52,6 +55,7 @@ import {
 import {toTitleCase} from 'sentry/utils/string/toTitleCase';
 import type {Color} from 'sentry/utils/theme';
 import stripURLOrigin from 'sentry/utils/url/stripURLOrigin';
+import {MODULE_DOC_LINK} from 'sentry/views/insights/browser/webVitals/settings';
 
 interface Details {
   color: Color;
@@ -292,7 +296,7 @@ const MAPPER_FOR_FRAME: Record<string, (frame) => Details> = {
             unit: isCLSFrame(frame) ? '' : 'ms',
           }),
           tabKey: TabKey.NETWORK,
-          title: 'Web Vital: ' + toTitleCase(explodeSlug(frame.description)),
+          title: WebVitalTitle(frame),
           icon: <IconHappy size="xs" />,
         };
       case 'needs-improvement':
@@ -303,7 +307,7 @@ const MAPPER_FOR_FRAME: Record<string, (frame) => Details> = {
             unit: isCLSFrame(frame) ? '' : 'ms',
           }),
           tabKey: TabKey.NETWORK,
-          title: 'Web Vital: ' + toTitleCase(explodeSlug(frame.description)),
+          title: WebVitalTitle(frame),
           icon: <IconMeh size="xs" />,
         };
       default:
@@ -314,7 +318,7 @@ const MAPPER_FOR_FRAME: Record<string, (frame) => Details> = {
             unit: isCLSFrame(frame) ? '' : 'ms',
           }),
           tabKey: TabKey.NETWORK,
-          title: 'Web Vital: ' + toTitleCase(explodeSlug(frame.description)),
+          title: WebVitalTitle(frame),
           icon: <IconSad size="xs" />,
         };
     }
@@ -472,3 +476,41 @@ function stringifyNodeAttributes(node: SlowClickFrame['data']['node']) {
       : ''
   }`;
 }
+
+function WebVitalTitle(frame: WebVitalFrame) {
+  const vitalDefinition = function () {
+    switch (frame.description) {
+      case 'cumulative-layout-shift':
+        return 'Cumulative Layout Shift (CLS) is the sum of individual layout shift scores for every unexpected element shift during the rendering process. ';
+      case 'interaction-to-next-paint':
+        return "Interaction to Next Paint (INP) is a metric that assesses a page's overall responsiveness to user interactions by observing the latency of all user interactions that occur throughout the lifespan of a user's visit to a page. ";
+      case 'largest-contentful-paint':
+        return 'Largest Contentful Paint (LCP) measures the render time for the largest content to appear in the viewport. ';
+      default:
+        return '';
+    }
+  };
+  return (
+    <Title>
+      {t('Web Vital: ') + toTitleCase(explodeSlug(frame.description))}
+      <QuestionTooltip
+        isHoverable
+        size={'xs'}
+        title={
+          <Fragment>
+            {vitalDefinition()}
+            <ExternalLink href={`${MODULE_DOC_LINK}/web-vitals-concepts/`}>
+              {t('Learn more about web vitals here.')}
+            </ExternalLink>
+          </Fragment>
+        }
+      />
+    </Title>
+  );
+}
+
+const Title = styled('div')`
+  display: flex;
+  align-items: center;
+  gap: ${space(0.5)};
+`;

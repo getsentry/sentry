@@ -4,14 +4,17 @@ import debounce from 'lodash/debounce';
 
 import GlobalEventProcessingAlert from 'sentry/components/globalEventProcessingAlert';
 import * as Layout from 'sentry/components/layouts/thirds';
+import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionTooltip';
 import {Tabs, TabsContext} from 'sentry/components/tabs';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {InjectedRouter} from 'sentry/types/legacyReactRouter';
 import type {Organization} from 'sentry/types/organization';
+import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
+import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
 import {
   DraggableTabBar,
@@ -20,6 +23,7 @@ import {
 import {useUpdateGroupSearchViews} from 'sentry/views/issueList/mutations/useUpdateGroupSearchViews';
 import {useFetchGroupSearchViews} from 'sentry/views/issueList/queries/useFetchGroupSearchViews';
 import type {UpdateGroupSearchViewPayload} from 'sentry/views/issueList/types';
+import {NewTabContext} from 'sentry/views/issueList/utils/newTabContext';
 
 import {IssueSortOptions} from './utils';
 
@@ -88,9 +92,19 @@ function CustomViewsIssueListHeaderTabsContent({
   // TODO(msun): Possible replace navigate with useSearchParams() in the future?
   const navigate = useNavigate();
   const location = useLocation();
+  const {setNewViewActive, newViewActive} = useContext(NewTabContext);
+  const pageFilters = usePageFilters();
 
   // TODO(msun): Use the location from useLocation instead of props router in the future
   const {cursor: _cursor, page: _page, ...queryParams} = router?.location.query;
+
+  const queryParamsWithPageFilters = {
+    ...queryParams,
+    project: pageFilters.selection.projects,
+    environment: pageFilters.selection.environments,
+    ...normalizeDateTimeParams(pageFilters.selection.datetime),
+  };
+
   const {query, sort, viewId} = queryParams;
 
   const viewsToTabs = views.map(
@@ -166,15 +180,15 @@ function CustomViewsIssueListHeaderTabsContent({
     // If no query, sort, or viewId is present, set the first tab as the selected tab, update query accordingly
     if (!query && !sort && !viewId) {
       navigate(
-        {
+        normalizeUrl({
           ...location,
           query: {
-            ...queryParams,
+            ...queryParamsWithPageFilters,
             query: draggableTabs[0].query,
             sort: draggableTabs[0].querySort,
             viewId: draggableTabs[0].id,
           },
-        },
+        }),
         {replace: true}
       );
       tabListState?.setSelectedKey(draggableTabs[0].key);
@@ -208,28 +222,32 @@ function CustomViewsIssueListHeaderTabsContent({
         return;
       }
       if (selectedTab && query === undefined) {
-        navigate({
-          ...location,
-          query: {
-            ...queryParams,
-            query: selectedTab.query,
-            sort: selectedTab.querySort,
-            viewId: selectedTab.id,
-          },
-        });
+        navigate(
+          normalizeUrl({
+            ...location,
+            query: {
+              ...queryParamsWithPageFilters,
+              query: selectedTab.query,
+              sort: selectedTab.querySort,
+              viewId: selectedTab.id,
+            },
+          })
+        );
         tabListState?.setSelectedKey(selectedTab.key);
         return;
       }
       if (!selectedTab) {
         // if a viewId does not exist, remove it from the query
         tabListState?.setSelectedKey('temporary-tab');
-        navigate({
-          ...location,
-          query: {
-            ...queryParams,
-            viewId: undefined,
-          },
-        });
+        navigate(
+          normalizeUrl({
+            ...location,
+            query: {
+              ...queryParamsWithPageFilters,
+              viewId: undefined,
+            },
+          })
+        );
         return;
       }
       return;
@@ -257,19 +275,48 @@ function CustomViewsIssueListHeaderTabsContent({
               tab.id = view.id;
             }
           });
-          navigate({
-            ...location,
-            query: {
-              ...queryParams,
-              viewId: tab.id,
-            },
-          });
+          navigate(
+            normalizeUrl({
+              ...location,
+              query: {
+                ...queryParamsWithPageFilters,
+                viewId: tab.id,
+              },
+            }),
+            {replace: true}
+          );
         }
         return tab;
       })
     );
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [views]);
+
+  useEffect(() => {
+    if (viewId?.startsWith('_')) {
+      // If the user types in query manually while the new view flow is showing,
+      // then replace the add view flow with the issue stream with the query loaded,
+      // and persist the query
+      if (newViewActive && query !== '') {
+        setNewViewActive(false);
+        const updatedTabs: Tab[] = draggableTabs.map(tab =>
+          tab.id === viewId
+            ? {
+                ...tab,
+                unsavedChanges: [query, sort ?? IssueSortOptions.DATE],
+              }
+            : tab
+        );
+        setDraggableTabs(updatedTabs);
+        debounceUpdateViews(updatedTabs);
+      } else {
+        setNewViewActive(true);
+      }
+    } else {
+      setNewViewActive(false);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [viewId, query]);
 
   return (
     <DraggableTabBar
