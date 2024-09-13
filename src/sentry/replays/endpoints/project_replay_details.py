@@ -85,7 +85,7 @@ class ProjectReplayDetailsEndpoint(ProjectEndpoint):
     )
     def delete(self, request: Request, project: Project, replay_id: str) -> Response:
         """
-        Delete a replay
+        Delete a replay.
         """
 
         if not features.has(
