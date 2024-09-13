@@ -566,8 +566,10 @@ def create_alert_rule(
     """
     if monitor_type == AlertRuleMonitorTypeInt.ACTIVATED and not activation_condition:
         raise ValidationError("Activation condition required for activated alert rule")
-
-    resolution = get_alert_resolution(time_window, organization)
+    if detection_type == AlertRuleDetectionType.DYNAMIC:
+        resolution = time_window
+    else:
+        resolution = get_alert_resolution(time_window, organization)
 
     if detection_type == AlertRuleDetectionType.DYNAMIC:
         # NOTE: we hardcode seasonality for EA
@@ -900,6 +902,9 @@ def update_alert_rule(
             updated_fields["seasonality"] = None
         elif detection_type == AlertRuleDetectionType.DYNAMIC:
             # NOTE: we set seasonality for EA
+            updated_query_fields["resolution"] = timedelta(
+                minutes=time_window if time_window is not None else snuba_query.time_window
+            )
             updated_fields["seasonality"] = AlertRuleSeasonality.AUTO
             updated_fields["comparison_delta"] = None
             if (
@@ -1821,6 +1826,17 @@ TRANSLATABLE_COLUMNS = {
     "dist": "tags[sentry:dist]",
     "release": "tags[sentry:release]",
 }
+INSIGHTS_FUNCTION_VALID_ARGS_MAP = {
+    "http_response_rate": ["3", "4", "5"],
+    "performance_score": [
+        "measurements.score.lcp",
+        "measurements.score.fcp",
+        "measurements.score.inp",
+        "measurements.score.cls",
+        "measurements.score.ttfb",
+        "measurements.score.total",
+    ],
+}
 
 
 def get_column_from_aggregate(aggregate: str, allow_mri: bool) -> str | None:
@@ -1868,12 +1884,18 @@ def _get_column_from_aggregate_with_mri(aggregate: str) -> str | None:
 def check_aggregate_column_support(aggregate: str, allow_mri: bool = False) -> bool:
     # TODO(ddm): remove `allow_mri` once the experimental feature flag is removed.
     column = get_column_from_aggregate(aggregate, allow_mri)
+    match = is_function(aggregate)
+    function = match.group("function") if match else None
     return (
         column is None
         or is_measurement(column)
         or column in SUPPORTED_COLUMNS
         or column in TRANSLATABLE_COLUMNS
         or (is_mri(column) and allow_mri)
+        or (
+            isinstance(function, str)
+            and column in INSIGHTS_FUNCTION_VALID_ARGS_MAP.get(function, [])
+        )
     )
 
 

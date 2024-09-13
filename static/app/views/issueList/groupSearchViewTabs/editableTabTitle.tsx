@@ -21,6 +21,10 @@ function EditableTabTitle({
 }: EditableTabTitleProps) {
   const [inputValue, setInputValue] = useState(label);
 
+  useEffect(() => {
+    setInputValue(label);
+  }, [label]);
+
   const theme = useTheme();
   const inputRef = useRef<HTMLInputElement>(null);
   const isEmpty = !inputValue.trim();
