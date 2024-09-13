@@ -42,7 +42,7 @@ from sentry.testutils.helpers.task_runner import TaskRunner
 from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.utils import json
 from sentry.utils.safe import get_path
-from sentry.utils.snuba import RateLimitExceeded, bulk_snuba_queries
+from sentry.utils.snuba import QueryTooManySimultaneous, RateLimitExceeded, bulk_snuba_queries
 
 EXCEPTION = {
     "values": [
@@ -452,18 +452,40 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
     @patch(
         "sentry.tasks.embeddings_grouping.utils.bulk_snuba_queries", side_effect=RateLimitExceeded
     )
-    def test_get_data_from_snuba_exception(self, mock_bulk_snuba_queries, mock_logger):
+    def test_get_data_from_snuba_rate_limit_exception(self, mock_bulk_snuba_queries, mock_logger):
         group_ids_last_seen = {
             group.id: group.last_seen for group in Group.objects.filter(project_id=self.project.id)
         }
         with pytest.raises(Exception):
             get_data_from_snuba(self.project, group_ids_last_seen)
         mock_logger.exception.assert_called_with(
-            "tasks.backfill_seer_grouping_records.snuba_query_exception",
+            "tasks.backfill_seer_grouping_records.snuba_query_limit_exceeded",
             extra={
                 "organization_id": self.project.organization.id,
                 "project_id": self.project.id,
                 "error": "Snuba Rate Limit Exceeded",
+            },
+        )
+
+    @patch("sentry.tasks.embeddings_grouping.utils.logger")
+    @patch(
+        "sentry.tasks.embeddings_grouping.utils.bulk_snuba_queries",
+        side_effect=QueryTooManySimultaneous,
+    )
+    def test_get_data_from_snuba_too_many_simultaneous_exception(
+        self, mock_bulk_snuba_queries, mock_logger
+    ):
+        group_ids_last_seen = {
+            group.id: group.last_seen for group in Group.objects.filter(project_id=self.project.id)
+        }
+        with pytest.raises(Exception):
+            get_data_from_snuba(self.project, group_ids_last_seen)
+        mock_logger.exception.assert_called_with(
+            "tasks.backfill_seer_grouping_records.snuba_query_limit_exceeded",
+            extra={
+                "organization_id": self.project.organization.id,
+                "project_id": self.project.id,
+                "error": "Too Many Simultaneous Snuba Queries",
             },
         )
 
