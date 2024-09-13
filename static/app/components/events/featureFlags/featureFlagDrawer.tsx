@@ -26,7 +26,9 @@ import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {getShortEventId} from 'sentry/utils/events';
+import useOrganization from 'sentry/utils/useOrganization';
 
 export enum FlagSort {
   EVAL = 'eval',
@@ -70,6 +72,7 @@ export function FeatureFlagDrawer({
 }: FlagDrawerProps) {
   const [sortMethod, setSortMethod] = useState<FlagSort>(initialSort);
   const [search, setSearch] = useState('');
+  const organization = useOrganization();
 
   const handleSortAlphabetical = (flags: KeyValueDataContentProps[]) => {
     return [...flags].sort((a, b) => {
@@ -102,6 +105,10 @@ export function FeatureFlagDrawer({
         }}
         onChange={selection => {
           setSortMethod(selection.value);
+          trackAnalytics('flags.sort-flags', {
+            organization,
+            sortMethod: selection.value,
+          });
         }}
         trigger={triggerProps => (
           <DropdownButton {...triggerProps} size="xs" icon={<IconSort />}>
