@@ -7,6 +7,8 @@ from rest_framework.exceptions import ParseError
 from rest_framework.request import Request
 from rest_framework.response import Response
 from sentry_protos.snuba.v1alpha.endpoint_tags_list_pb2 import (
+    AttributeValuesRequest,
+    AttributeValuesResponse,
     TraceItemAttributesRequest,
     TraceItemAttributesResponse,
 )
@@ -180,6 +182,67 @@ class OrganizationSpansFieldValuesEndpoint(OrganizationSpansFieldsEndpointBase):
         sentry_sdk.set_tag("query.tag_key", key)
 
         max_span_tag_values = options.get("performance.spans-tags-values.max")
+
+        serializer = OrganizationSpansFieldsEndpointSerializer(data=request.GET)
+        if not serializer.is_valid():
+            return Response(serializer.errors, status=400)
+        serialized = serializer.validated_data
+
+        if serialized["dataset"] == "spans" and features.has(
+            "organizations:visibility-explore-dataset", organization, actor=request.user
+        ):
+            start_timestamp = Timestamp()
+            start_timestamp.FromDatetime(
+                snuba_params.start_date.replace(hour=0, minute=0, second=0, microsecond=0)
+            )
+
+            end_timestamp = Timestamp()
+            end_timestamp.FromDatetime(
+                snuba_params.end_date.replace(hour=0, minute=0, second=0, microsecond=0)
+                + timedelta(days=1)
+            )
+
+            rpc_request = AttributeValuesRequest(
+                meta=RequestMeta(
+                    organization_id=organization.id,
+                    cogs_category="performance",
+                    referrer=Referrer.API_SPANS_TAG_KEYS.value,
+                    project_ids=snuba_params.project_ids,
+                    start_timestamp=start_timestamp,
+                    end_timestamp=end_timestamp,
+                    trace_item_name=TraceItemName.TRACE_ITEM_NAME_EAP_SPANS,
+                ),
+                name=key,
+                value_substring_match=request.GET.get("query", ""),
+                limit=max_span_tag_values,
+                offset=0,
+            )
+            rpc_response = snuba.rpc(rpc_request, AttributeValuesResponse)
+
+            paginator = ChainPaginator(
+                [
+                    [
+                        TagValue(
+                            key=key,
+                            value=tag_value,
+                            times_seen=None,
+                            first_seen=None,
+                            last_seen=None,
+                        )
+                        for tag_value in rpc_response.values
+                        if tag_value
+                    ]
+                ],
+                max_limit=max_span_tag_values,
+            )
+
+            return self.paginate(
+                request=request,
+                paginator=paginator,
+                on_results=lambda results: serialize(results, request.user),
+                default_per_page=max_span_tag_values,
+                max_per_page=max_span_tag_values,
+            )
 
         executor = SpanFieldValuesAutocompletionExecutor(
             snuba_params=snuba_params,
