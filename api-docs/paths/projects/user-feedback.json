@@ -7,7 +7,7 @@
       {
         "name": "organization_id_or_slug",
         "in": "path",
-        "description": "The id or slug of the organization.",
+        "description": "The ID or slug of the organization.",
         "required": true,
         "schema": {
           "type": "string"
@@ -16,7 +16,7 @@
       {
         "name": "project_id_or_slug",
         "in": "path",
-        "description": "The id or slug of the project.",
+        "description": "The ID or slug of the project.",
         "required": true,
         "schema": {
           "type": "string"
@@ -74,7 +74,7 @@
       {
         "name": "organization_id_or_slug",
         "in": "path",
-        "description": "The id or slug of the organization.",
+        "description": "The ID or slug of the organization.",
         "required": true,
         "schema": {
           "type": "string"
@@ -83,7 +83,7 @@
       {
         "name": "project_id_or_slug",
         "in": "path",
-        "description": "The id or slug of the project.",
+        "description": "The ID or slug of the project.",
         "required": true,
         "schema": {
           "type": "string"

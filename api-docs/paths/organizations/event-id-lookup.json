@@ -7,7 +7,7 @@
       {
         "name": "organization_id_or_slug",
         "in": "path",
-        "description": "The id or slug of the organization the event ID should be looked up in.",
+        "description": "The ID or slug of the organization the event ID should be looked up in.",
         "required": true,
         "schema": {
           "type": "string"

@@ -7,7 +7,7 @@
       {
         "name": "organization_id_or_slug",
         "in": "path",
-        "description": "The id or slug of the organization the client keys belong to.",
+        "description": "The ID or slug of the organization the client keys belong to.",
         "required": true,
         "schema": {
           "type": "string"
@@ -16,7 +16,7 @@
       {
         "name": "project_id_or_slug",
         "in": "path",
-        "description": "The id or slug of the project the client keys belong to.",
+        "description": "The ID or slug of the project the client keys belong to.",
         "required": true,
         "schema": {
           "type": "string"
@@ -68,7 +68,7 @@
       {
         "name": "organization_id_or_slug",
         "in": "path",
-        "description": "The id or slug of the organization the client keys belong to.",
+        "description": "The ID or slug of the organization the client keys belong to.",
         "required": true,
         "schema": {
           "type": "string"
@@ -77,7 +77,7 @@
       {
         "name": "project_id_or_slug",
         "in": "path",
-        "description": "The id or slug of the project the client keys belong to.",
+        "description": "The ID or slug of the project the client keys belong to.",
         "required": true,
         "schema": {
           "type": "string"
