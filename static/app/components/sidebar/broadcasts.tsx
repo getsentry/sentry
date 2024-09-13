@@ -47,9 +47,11 @@ function BroadcastSidebarContent({
 } & Pick<CommonSidebarProps, 'orientation' | 'collapsed' | 'hidePanel'>) {
   useEffect(() => {
     return () => {
-      onResetCounter();
+      if (whatIsNewRevampFeature) {
+        onResetCounter();
+      }
     };
-  }, [onResetCounter]);
+  }, [onResetCounter, whatIsNewRevampFeature]);
 
   return (
     <SidebarPanel
@@ -156,6 +158,10 @@ class Broadcasts extends Component<Props, State> {
     this.props.onShowPanel();
   };
 
+  get hasWhatsNewRevampFeature() {
+    return this.props.organization.features.includes('what-is-new-revamp');
+  }
+
   markSeen = async () => {
     const unseenBroadcastIds = this.unseenIds;
     if (unseenBroadcastIds.length === 0) {
@@ -163,6 +169,12 @@ class Broadcasts extends Component<Props, State> {
     }
 
     await markBroadcastsAsSeen(this.props.api, unseenBroadcastIds);
+
+    if (!this.hasWhatsNewRevampFeature) {
+      this.setState(state => ({
+        broadcasts: state.broadcasts.map(item => ({...item, hasSeen: true})),
+      }));
+    }
   };
 
   get unseenIds() {
@@ -178,11 +190,10 @@ class Broadcasts extends Component<Props, State> {
   };
 
   render() {
-    const {orientation, collapsed, currentPanel, hidePanel, organization} = this.props;
+    const {orientation, collapsed, currentPanel, hidePanel} = this.props;
     const {broadcasts, loading} = this.state;
 
     const unseenPosts = this.unseenIds;
-    const whatIsNewRevampFeature = organization.features.includes('what-is-new-revamp');
 
     return (
       <DemoModeGate>
@@ -206,7 +217,7 @@ class Broadcasts extends Component<Props, State> {
               broadcasts={broadcasts}
               collapsed={collapsed}
               orientation={orientation}
-              whatIsNewRevampFeature={whatIsNewRevampFeature}
+              whatIsNewRevampFeature={this.hasWhatsNewRevampFeature}
               onResetCounter={this.handleResetCounter}
             />
           )}
