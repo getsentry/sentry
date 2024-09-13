@@ -873,7 +873,10 @@ class CreateAlertRuleTest(TestCase, BaseIncidentsTest):
             alert_rule.snuba_query.time_window
             == self.dynamic_metric_alert_settings["time_window"] * 60
         )
-        assert alert_rule.snuba_query.resolution == 120
+        assert (
+            alert_rule.snuba_query.resolution
+            == self.dynamic_metric_alert_settings["time_window"] * 60
+        )
         assert set(alert_rule.snuba_query.event_types) == set(
             self.dynamic_metric_alert_settings["event_types"]
         )
