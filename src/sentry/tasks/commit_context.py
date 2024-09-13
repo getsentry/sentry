@@ -48,6 +48,7 @@ DEBOUNCE_PR_COMMENT_LOCK_KEY = lambda pullrequest_id: f"queue_comment_task:{pull
 PR_COMMENT_TASK_TTL = timedelta(minutes=5).total_seconds()
 PR_COMMENT_WINDOW = 14  # days
 
+# TODO: replace this with isinstance(installation, CommitContextIntegration)
 PR_COMMENT_SUPPORTED_PROVIDERS = {"integrations:github"}
 
 logger = logging.getLogger(__name__)

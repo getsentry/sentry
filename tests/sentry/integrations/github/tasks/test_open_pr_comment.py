@@ -142,7 +142,7 @@ class TestSafeForComment(GithubCommentTestCase):
         pr_files = safe_for_comment(self.gh_client, self.gh_repo, self.pr)
         assert pr_files == []  # not safe
         self.mock_metrics.incr.assert_called_with(
-            "github_open_pr_comment.rejected_comment", tags={"reason": "too_many_files"}
+            "github.open_pr_comment.rejected_comment", tags={"reason": "too_many_files"}
         )
 
     @responses.activate
@@ -160,7 +160,7 @@ class TestSafeForComment(GithubCommentTestCase):
         pr_files = safe_for_comment(self.gh_client, self.gh_repo, self.pr)
         assert pr_files == []  # not safe
         self.mock_metrics.incr.assert_called_with(
-            "github_open_pr_comment.rejected_comment", tags={"reason": "too_many_lines"}
+            "github.open_pr_comment.rejected_comment", tags={"reason": "too_many_lines"}
         )
 
     @responses.activate
@@ -185,7 +185,7 @@ class TestSafeForComment(GithubCommentTestCase):
         pr_files = safe_for_comment(self.gh_client, self.gh_repo, self.pr)
         assert pr_files == []  # not safe
         self.mock_metrics.incr.assert_any_call(
-            "github_open_pr_comment.rejected_comment", tags={"reason": "too_many_lines"}
+            "github.open_pr_comment.rejected_comment", tags={"reason": "too_many_lines"}
         )
 
     @responses.activate
@@ -203,7 +203,7 @@ class TestSafeForComment(GithubCommentTestCase):
         pr_files = safe_for_comment(self.gh_client, self.gh_repo, self.pr)
         assert pr_files == []  # not safe
         self.mock_metrics.incr.assert_called_with(
-            "github_open_pr_comment.api_error", tags={"type": "gh_rate_limited", "code": 429}
+            "github.open_pr_comment.api_error", tags={"type": "gh_rate_limited", "code": 429}
         )
 
     @responses.activate
@@ -215,7 +215,7 @@ class TestSafeForComment(GithubCommentTestCase):
         pr_files = safe_for_comment(self.gh_client, self.gh_repo, self.pr)
         assert pr_files == []  # not safe
         self.mock_metrics.incr.assert_called_with(
-            "github_open_pr_comment.api_error",
+            "github.open_pr_comment.api_error",
             tags={"type": "missing_gh_pull_request", "code": 404},
         )
 
@@ -228,7 +228,7 @@ class TestSafeForComment(GithubCommentTestCase):
         pr_files = safe_for_comment(self.gh_client, self.gh_repo, self.pr)
         assert pr_files == []  # not safe
         self.mock_metrics.incr.assert_called_with(
-            "github_open_pr_comment.api_error", tags={"type": "unknown_api_error", "code": 400}
+            "github.open_pr_comment.api_error", tags={"type": "unknown_api_error", "code": 400}
         )
 
 
@@ -236,7 +236,9 @@ class TestGetFilenames(GithubCommentTestCase):
     def setUp(self):
         super().setUp()
         self.pr = self.create_pr_issues()
-        self.mock_metrics = patch("sentry.integrations.github.tasks.pr_comment.metrics").start()
+        self.mock_metrics = patch(
+            "sentry.integrations.source_code_management.commit_context.metrics"
+        ).start()
         self.gh_path = self.base_url + "/repos/getsentry/sentry/pulls/{pull_number}/files"
         installation = self.integration.get_installation(organization_id=self.organization.id)
         self.gh_client = installation.get_client()
@@ -826,7 +828,7 @@ Your pull request is modifying functions with the following pre-existing issues:
 )
 @patch("sentry.integrations.github.tasks.open_pr_comment.get_top_5_issues_by_count_for_file")
 @patch("sentry.integrations.github.tasks.open_pr_comment.safe_for_comment")
-@patch("sentry.integrations.github.tasks.utils.metrics")
+@patch("sentry.integrations.source_code_management.commit_context.metrics")
 class TestOpenPRCommentWorkflow(IntegrationTestCase, CreateEventTestCase):
     base_url = "https://api.github.com"
 
@@ -912,7 +914,7 @@ class TestOpenPRCommentWorkflow(IntegrationTestCase, CreateEventTestCase):
         assert comment.external_id == 1
         assert comment.comment_type == CommentType.OPEN_PR
 
-        mock_metrics.incr.assert_called_with("github_open_pr_comment.comment_created")
+        mock_metrics.incr.assert_called_with("github.open_pr_comment.comment_created")
         mock_analytics.assert_any_call(
             "open_pr_comment.created",
             comment_id=comment.id,
@@ -970,7 +972,7 @@ class TestOpenPRCommentWorkflow(IntegrationTestCase, CreateEventTestCase):
         assert pr_comment.comment_type == CommentType.OPEN_PR
         assert pr_comment.created_at != pr_comment.updated_at
 
-        mock_metrics.incr.assert_called_with("github_open_pr_comment.comment_updated")
+        mock_metrics.incr.assert_called_with("github.open_pr_comment.comment_updated")
         assert not mock_analytics.called
 
     @patch("sentry.analytics.record")
@@ -994,7 +996,7 @@ class TestOpenPRCommentWorkflow(IntegrationTestCase, CreateEventTestCase):
         pull_request_comment_query = PullRequestComment.objects.all()
         assert len(pull_request_comment_query) == 0
         mock_metrics.incr.assert_called_with(
-            "github_open_pr_comment.error", tags={"type": "unsafe_for_comment"}
+            "github.open_pr_comment.error", tags={"type": "unsafe_for_comment"}
         )
 
         mock_safe_for_comment.return_value = [{}]
@@ -1008,7 +1010,7 @@ class TestOpenPRCommentWorkflow(IntegrationTestCase, CreateEventTestCase):
 
         pull_request_comment_query = PullRequestComment.objects.all()
         assert len(pull_request_comment_query) == 0
-        mock_metrics.incr.assert_called_with("github_open_pr_comment.no_issues")
+        mock_metrics.incr.assert_called_with("github.open_pr_comment.no_issues")
 
         # has codemappings but no functions in diff
         mock_reverse_codemappings.return_value = ([self.project], ["foo.py"])
@@ -1018,7 +1020,7 @@ class TestOpenPRCommentWorkflow(IntegrationTestCase, CreateEventTestCase):
 
         pull_request_comment_query = PullRequestComment.objects.all()
         assert len(pull_request_comment_query) == 0
-        mock_metrics.incr.assert_called_with("github_open_pr_comment.no_issues")
+        mock_metrics.incr.assert_called_with("github.open_pr_comment.no_issues")
 
         # has codemappings and functions but no issues
         mock_function_names.return_value = ["world"]
@@ -1027,7 +1029,7 @@ class TestOpenPRCommentWorkflow(IntegrationTestCase, CreateEventTestCase):
         pull_request_comment_query = PullRequestComment.objects.all()
         assert len(pull_request_comment_query) == 0
 
-        mock_metrics.incr.assert_called_with("github_open_pr_comment.no_issues")
+        mock_metrics.incr.assert_called_with("github.open_pr_comment.no_issues")
         assert not mock_analytics.called
 
     @patch("sentry.analytics.record")
@@ -1080,7 +1082,7 @@ class TestOpenPRCommentWorkflow(IntegrationTestCase, CreateEventTestCase):
 
         with pytest.raises(ApiError):
             open_pr_comment_workflow(self.pr.id)
-            mock_metrics.incr.assert_called_with("github_open_pr_comment.api_error")
+            mock_metrics.incr.assert_called_with("github.open_pr_comment.api_error")
 
         pr_2 = PullRequest.objects.create(
             organization_id=self.organization.id,
@@ -1091,7 +1093,7 @@ class TestOpenPRCommentWorkflow(IntegrationTestCase, CreateEventTestCase):
         # does not raise ApiError for locked issue
         open_pr_comment_workflow(pr_2.id)
         mock_metrics.incr.assert_called_with(
-            "github_open_pr_comment.error", tags={"type": "issue_locked_error"}
+            "github.open_pr_comment.error", tags={"type": "issue_locked_error"}
         )
 
         pr_3 = PullRequest.objects.create(
@@ -1104,7 +1106,7 @@ class TestOpenPRCommentWorkflow(IntegrationTestCase, CreateEventTestCase):
         open_pr_comment_workflow(pr_3.id)
 
         mock_metrics.incr.assert_called_with(
-            "github_open_pr_comment.error", tags={"type": "rate_limited_error"}
+            "github.open_pr_comment.error", tags={"type": "rate_limited_error"}
         )
         assert not mock_analytics.called
 
@@ -1125,7 +1127,7 @@ class TestOpenPRCommentWorkflow(IntegrationTestCase, CreateEventTestCase):
 
         assert not mock_pr_filenames.called
         mock_metrics.incr.assert_called_with(
-            "github_open_pr_comment.error", tags={"type": "missing_pr"}
+            "github.open_pr_comment.error", tags={"type": "missing_pr"}
         )
 
     @patch("sentry.integrations.github.tasks.open_pr_comment.metrics")
@@ -1146,7 +1148,7 @@ class TestOpenPRCommentWorkflow(IntegrationTestCase, CreateEventTestCase):
 
         assert not mock_pr_filenames.called
         mock_metrics.incr.assert_called_with(
-            "github_open_pr_comment.error", tags={"type": "missing_org"}
+            "github.open_pr_comment.error", tags={"type": "missing_org"}
         )
 
     @patch("sentry.integrations.github.tasks.open_pr_comment.metrics")
@@ -1167,7 +1169,7 @@ class TestOpenPRCommentWorkflow(IntegrationTestCase, CreateEventTestCase):
 
         assert not mock_pr_filenames.called
         mock_metrics.incr.assert_called_with(
-            "github_open_pr_comment.error", tags={"type": "missing_repo"}
+            "github.open_pr_comment.error", tags={"type": "missing_repo"}
         )
 
     @patch("sentry.integrations.github.tasks.open_pr_comment.metrics")
@@ -1189,7 +1191,7 @@ class TestOpenPRCommentWorkflow(IntegrationTestCase, CreateEventTestCase):
 
         assert not mock_pr_filenames.called
         mock_metrics.incr.assert_called_with(
-            "github_open_pr_comment.error", tags={"type": "missing_integration"}
+            "github.open_pr_comment.error", tags={"type": "missing_integration"}
         )
 
     @patch("sentry.integrations.github.tasks.open_pr_comment.metrics")
@@ -1208,5 +1210,5 @@ class TestOpenPRCommentWorkflow(IntegrationTestCase, CreateEventTestCase):
 
         assert not mock_pr_filenames.called
         mock_metrics.incr.assert_called_with(
-            "github_open_pr_comment.error", tags={"type": "unsafe_for_comment"}
+            "github.open_pr_comment.error", tags={"type": "unsafe_for_comment"}
         )
