@@ -499,6 +499,7 @@ def send_group_and_stacktrace_to_seer_multithreaded(
         for seer_response in seer_responses:
             if not seer_response["success"]:
                 aggregated_response["success"] = False
+                aggregated_response.update({"reason": seer_response["reason"]})
                 return aggregated_response
 
             aggregated_response["groups_with_neighbor"].update(
