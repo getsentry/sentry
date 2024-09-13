@@ -1,3 +1,5 @@
+from datetime import timedelta
+
 import sentry_sdk
 from google.protobuf.timestamp_pb2 import Timestamp
 from rest_framework.request import Request
@@ -66,6 +68,7 @@ class OrganizationSpansFieldsEndpoint(OrganizationSpansFieldsEndpointBase):
             end_timestamp = Timestamp()
             end_timestamp.FromDatetime(
                 snuba_params.end_date.replace(hour=0, minute=0, second=0, microsecond=0)
+                + timedelta(days=1)
             )
 
             rpc_request = TraceItemAttributesRequest(
