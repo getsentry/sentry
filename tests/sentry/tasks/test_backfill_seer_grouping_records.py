@@ -1862,6 +1862,7 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
                     "reason": "Gateway Timeout",
                     "current_project_id": self.project.id,
                     "last_processed_project_index": 0,
+                    "worker_number": None,
                 },
             ),
             call(
@@ -1915,6 +1916,7 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
                     "reason": "Internal Error",
                     "current_project_id": self.project.id,
                     "last_processed_project_index": 0,
+                    "worker_number": None,
                 },
             ),
         ]
