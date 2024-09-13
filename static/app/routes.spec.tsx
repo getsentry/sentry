@@ -1,3 +1,4 @@
+// biome-ignore lint/nursery/noRestrictedImports: Will be removed with react router 6
 import {createRoutes} from 'react-router';
 
 import * as constants from 'sentry/constants';

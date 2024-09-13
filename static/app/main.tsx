@@ -1,4 +1,5 @@
 import {useState} from 'react';
+// biome-ignore lint/nursery/noRestrictedImports: Will be removed with react router 6
 import {Router, RouterContext} from 'react-router';
 import {createBrowserRouter, RouterProvider} from 'react-router-dom';
 import {wrapCreateBrowserRouter} from '@sentry/react';

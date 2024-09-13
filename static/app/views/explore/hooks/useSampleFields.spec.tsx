@@ -1,3 +1,4 @@
+// biome-ignore lint/nursery/noRestrictedImports: Will be removed with react router 6
 import {createMemoryHistory, Route, Router, RouterContext} from 'react-router';
 
 import {act, render} from 'sentry-test/reactTestingLibrary';
