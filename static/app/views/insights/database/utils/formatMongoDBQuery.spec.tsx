@@ -60,12 +60,30 @@ describe('formatMongoDBQuery', function () {
     // It should be bolded and correctly spaced
     expect(boldedText).toContainHTML('<b>"delete": "my_collection"</b>');
 
-    // I know this is a weird way of testing, but if something is not working, these tokens would not get rendered to begin with.
-    // By confirming their presence, the test ensures that the query is correctly tokenized
     const arrayToken = screen.getByText(/"arraykey": \[/i);
-
     expect(arrayToken).toContainHTML(
       '<span>"arrayKey": [1, 2, { "objInArray": { "objInObjInArray": {} } }, 3, 4]</span>'
+    );
+  });
+
+  it('correctly formats MongoDB JSON strings that include nested arrays', function () {
+    const query =
+      '{"deeplyNestedArrayWithObjects":[1,2,3,[1,2,[null,true,[{},{},{"test":[[1,2],[3,4]]},{}]]],4],"findOneAndDelete":"my_collection"}';
+
+    const tokenizedQuery = formatMongoDBQuery(query, 'findOneAndDelete');
+    render(<Fragment>{tokenizedQuery}</Fragment>);
+
+    const boldedText = screen.getByText(/"findOneAndDelete": "my_collection"/i);
+    expect(boldedText).toBeInTheDocument();
+    // It should be bolded and correctly spaced
+    expect(boldedText).toContainHTML('<b>"findOneAndDelete": "my_collection"</b>');
+
+    const clusterFudgeToken = screen.getByText(
+      /"deeplynestedarraywithobjects": \[1, 2, 3, \[1, 2, \[null, true, \[\{\}, \{\}, \{ "test": \[\[1, 2\], \[3, 4\]\] \}, \{\}\]\]\], 4\]/i
+    );
+
+    expect(clusterFudgeToken).toContainHTML(
+      '<span>"deeplyNestedArrayWithObjects": [1, 2, 3, [1, 2, [null, true, [{}, {}, { "test": [[1, 2], [3, 4]] }, {}]]], 4]</span>'
     );
   });
 
