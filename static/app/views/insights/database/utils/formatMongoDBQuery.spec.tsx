@@ -28,4 +28,13 @@ describe('formatMongoDBQuery', function () {
     expect(booleanToken).toContainHTML('<span>"booleanKey": true</span>');
     expect(nullToken).toContainHTML('<span>"nullKey": null</span>');
   });
+
+  it('correctly formats MongoDB JSON strings that includes nested objects', function () {
+    const query =
+      '{"objectKey":{"nestedObject":{"deeplyNested":{}}},"somethingElse":100,"find":"my_collection"}';
+
+    const tokenizedQuery = formatMongoDBQuery(query, 'find');
+    render(<Fragment>{tokenizedQuery}</Fragment>);
+    screen.logTestingPlaygroundURL();
+  });
 });
