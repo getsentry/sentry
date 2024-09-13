@@ -85,7 +85,3 @@ export function DateTime({
     </time>
   );
 }
-
-const DO_NOT_USE = DateTime;
-
-export default DO_NOT_USE;
