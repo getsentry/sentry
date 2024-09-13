@@ -14,7 +14,7 @@ from sentry.users.models.userrole import UserRole
 @control_silo_endpoint
 class UserUserRolesEndpoint(UserEndpoint):
     publish_status = {
-        "GET": ApiPublishStatus.UNKNOWN,
+        "GET": ApiPublishStatus.PRIVATE,
     }
     permission_classes = (SuperuserPermission,)
 
