@@ -5,6 +5,7 @@ from unittest.mock import patch
 
 import pytest
 from django.core.cache import cache
+from django.db import router, transaction
 from django.db.models import ProtectedError
 from django.db.utils import IntegrityError
 from django.utils import timezone
@@ -343,6 +344,8 @@ class GroupTest(TestCase, SnubaTestCase):
             assert group.substatus is substatus
 
     def test_group_invalid_substatus(self):
+        project = self.create_project()
+        group = self.create_group(project=project)
         status_substatus_pairs = [
             (GroupStatus.UNRESOLVED, GroupSubStatus.UNTIL_ESCALATING),
             (GroupStatus.IGNORED, GroupSubStatus.ONGOING),
@@ -350,10 +353,8 @@ class GroupTest(TestCase, SnubaTestCase):
         ]
 
         for status, substatus in status_substatus_pairs:
-            with pytest.raises(IntegrityError):
-                Group.objects.create(project=self.project).update(
-                    status=status, substatus=substatus
-                )
+            with pytest.raises(IntegrityError), transaction.atomic(router.db_for_write(Group)):
+                group.update(status=status, substatus=substatus)
 
 
 class GroupIsOverResolveAgeTest(TestCase):
