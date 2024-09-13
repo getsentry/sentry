@@ -215,7 +215,7 @@ export function DatabaseLandingPage() {
               <ModuleLayout.Full>
                 <SearchBar
                   query={spanDescription}
-                  placeholder={t('Search for more Queries')}
+                  placeholder={t('Search for more queries')}
                   onSearch={handleSearch}
                 />
               </ModuleLayout.Full>
