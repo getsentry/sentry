@@ -1,4 +1,4 @@
-import {Component, Fragment} from 'react';
+import {Component, Fragment, useEffect} from 'react';
 
 import {getAllBroadcasts, markBroadcastsAsSeen} from 'sentry/actionCreators/broadcasts';
 import type {Client} from 'sentry/api';
@@ -30,6 +30,68 @@ type State = {
   broadcasts: Broadcast[];
   loading: boolean;
 };
+
+function BroadcastSidebarContent({
+  orientation,
+  collapsed,
+  loading,
+  broadcasts,
+  whatIsNewRevampFeature,
+  hidePanel,
+  onResetCounter,
+}: {
+  broadcasts: Broadcast[];
+  loading: boolean;
+  onResetCounter: () => void;
+  whatIsNewRevampFeature: boolean;
+} & Pick<CommonSidebarProps, 'orientation' | 'collapsed' | 'hidePanel'>) {
+  useEffect(() => {
+    return () => {
+      onResetCounter();
+    };
+  }, [onResetCounter]);
+
+  return (
+    <SidebarPanel
+      data-test-id="sidebar-broadcasts-panel"
+      orientation={orientation}
+      collapsed={collapsed}
+      title={t("What's new in Sentry")}
+      hidePanel={hidePanel}
+    >
+      {loading ? (
+        <LoadingIndicator />
+      ) : broadcasts.length === 0 ? (
+        <SidebarPanelEmpty>
+          {t('No recent updates from the Sentry team.')}
+        </SidebarPanelEmpty>
+      ) : whatIsNewRevampFeature ? (
+        broadcasts.map(item => (
+          <BroadcastPanelItem
+            key={item.id}
+            hasSeen={item.hasSeen}
+            title={item.title}
+            message={item.message}
+            link={item.link}
+            mediaUrl={item.mediaUrl}
+            category={item.category}
+          />
+        ))
+      ) : (
+        broadcasts.map(item => (
+          <SidebarPanelItem
+            key={item.id}
+            hasSeen={item.hasSeen}
+            title={item.title}
+            message={item.message}
+            link={item.link}
+            cta={item.cta}
+          />
+        ))
+      )}
+    </SidebarPanel>
+  );
+}
 
 class Broadcasts extends Component<Props, State> {
   state: State = {
@@ -109,6 +171,12 @@ class Broadcasts extends Component<Props, State> {
       : [];
   }
 
+  handleResetCounter = () => {
+    this.setState(state => ({
+      broadcasts: state.broadcasts.map(item => ({...item, hasSeen: true})),
+    }));
+  };
+
   render() {
     const {orientation, collapsed, currentPanel, hidePanel, organization} = this.props;
     const {broadcasts, loading} = this.state;
@@ -132,44 +200,15 @@ class Broadcasts extends Component<Props, State> {
           />
 
           {currentPanel === SidebarPanelKey.BROADCASTS && (
-            <SidebarPanel
-              data-test-id="sidebar-broadcasts-panel"
-              orientation={orientation}
-              collapsed={collapsed}
-              title={t("What's new in Sentry")}
+            <BroadcastSidebarContent
+              loading={loading}
               hidePanel={hidePanel}
-            >
-              {loading ? (
-                <LoadingIndicator />
-              ) : broadcasts.length === 0 ? (
-                <SidebarPanelEmpty>
-                  {t('No recent updates from the Sentry team.')}
-                </SidebarPanelEmpty>
-              ) : whatIsNewRevampFeature ? (
-                broadcasts.map(item => (
-                  <BroadcastPanelItem
-                    key={item.id}
-                    hasSeen={item.hasSeen}
-                    title={item.title}
-                    message={item.message}
-                    link={item.link}
-                    mediaUrl={item.mediaUrl}
-                    category={item.category}
-                  />
-                ))
-              ) : (
-                broadcasts.map(item => (
-                  <SidebarPanelItem
-                    key={item.id}
-                    hasSeen={item.hasSeen}
-                    title={item.title}
-                    message={item.message}
-                    link={item.link}
-                    cta={item.cta}
-                  />
-                ))
-              )}
-            </SidebarPanel>
+              broadcasts={broadcasts}
+              collapsed={collapsed}
+              orientation={orientation}
+              whatIsNewRevampFeature={whatIsNewRevampFeature}
+              onResetCounter={this.handleResetCounter}
+            />
           )}
         </Fragment>
       </DemoModeGate>
