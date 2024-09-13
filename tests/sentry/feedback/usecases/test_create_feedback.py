@@ -799,7 +799,7 @@ def test_shim_to_feedback_missing_event(default_project, monkeypatch):
 
 @django_db_all
 def test_shim_to_feedback_missing_fields(default_project, monkeypatch):
-    # Tests key errors are handled by shim_to_feedback.
+    # Email and comments are required to shim. Tests key errors are handled.
     mock_create_feedback_issue = Mock()
     monkeypatch.setattr(
         "sentry.feedback.usecases.create_feedback.create_feedback_issue", mock_create_feedback_issue
@@ -808,7 +808,6 @@ def test_shim_to_feedback_missing_fields(default_project, monkeypatch):
         "name": "andrew",
         "event_id": "a" * 32,
         "level": "error",
-        # email and comments are required to shim.
     }
     event = Event(event_id="a" * 32, project_id=default_project.id)
     shim_to_feedback(
