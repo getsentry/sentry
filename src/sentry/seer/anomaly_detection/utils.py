@@ -1,4 +1,5 @@
 from datetime import datetime, timedelta
+from random import randrange
 from typing import Any
 
 from django.utils import timezone
@@ -103,7 +104,10 @@ def format_historical_data(data: SnubaTSResult, dataset: Any) -> list[TimeSeries
             formatted_data.append(ts_point)
     else:
         for datum in nested_data:
-            ts_point = TimeSeriesPoint(timestamp=datum.get("time"), value=datum.get("count", 0))
+            #########################
+            count = randrange(1, 100)
+            #########################
+            ts_point = TimeSeriesPoint(timestamp=datum.get("time"), value=count)
             formatted_data.append(ts_point)
     return formatted_data
 
