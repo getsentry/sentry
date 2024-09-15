@@ -10,7 +10,6 @@ from sentry import eventstore, features, options
 from sentry.eventstore.models import Event, GroupEvent
 from sentry.feedback.usecases.create_feedback import (
     UNREAL_FEEDBACK_UNATTENDED_MESSAGE,
-    FeedbackCreationSource,
     shim_to_feedback,
 )
 from sentry.models.userreport import UserReport
@@ -26,24 +25,17 @@ class Conflict(Exception):
     pass
 
 
-# if the event is more than 30 minutes old, we don't allow updates as it might be abusive
-EVENT_MAX_AGE = timedelta(minutes=30)
-
-# if an existing report was submitted >5 minutes ago, we don't allow updates as it might be abusive (replay attacks)
-DUP_REPORT_MAX_AGE = timedelta(minutes=5)
-
-
 def save_userreport(
     project,
     report,
-    source: FeedbackCreationSource,
+    source,
     start_time=None,
-) -> UserReport | None:
+):
     with metrics.timer("sentry.ingest.userreport.save_userreport"):
         if is_org_in_denylist(project.organization):
-            return None
+            return
         if should_filter_user_report(report["comments"]):
-            return None
+            return
 
         if start_time is None:
             start_time = timezone.now()
@@ -60,7 +52,9 @@ def save_userreport(
             euser.name = report["name"]
 
         if event:
-            if event.datetime < start_time - EVENT_MAX_AGE:
+            # if the event is more than 30 minutes old, we don't allow updates
+            # as it might be abusive
+            if event.datetime < start_time - timedelta(minutes=30):
                 raise Conflict("Feedback for this event cannot be modified.")
 
             report["environment_id"] = event.get_environment().id
@@ -82,7 +76,9 @@ def save_userreport(
                 project_id=report["project_id"], event_id=report["event_id"]
             )
 
-            if existing_report.date_added < timezone.now() - DUP_REPORT_MAX_AGE:
+            # if the existing report was submitted more than 5 minutes ago, we dont
+            # allow updates as it might be abusive (replay attacks)
+            if existing_report.date_added < timezone.now() - timedelta(minutes=5):
                 raise Conflict("Feedback for this event cannot be modified.")
 
             existing_report.update(
