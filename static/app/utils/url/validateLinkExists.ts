@@ -1,4 +1,3 @@
-import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {t} from 'sentry/locale';
 import {handleXhrErrorResponse} from 'sentry/utils/handleXhrErrorResponse';
 
@@ -15,9 +14,7 @@ export async function validateLinkExists(url: string): Promise<boolean> {
     }
     return false;
   } catch (error) {
-    const message = t('Unable to validate ig the link exists');
-    handleXhrErrorResponse(message, error);
-    addErrorMessage(message);
+    handleXhrErrorResponse(t('Unable to validate ig the link exists'), error);
     return false;
   }
 }
