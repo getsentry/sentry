@@ -1,3 +1,35 @@
+24.9.0
+------
+
+### Various fixes & improvements
+
+- fix(custom-views): Align hover state of overflow menu with add view button (#77526) by @MichaelSun48
+- fix(issues): Align streamlined event id (#77529) by @scttcper
+- fix(similarity): Return failure reason from multithread seer call (#77522) by @jangjodi
+- test(performance): Rearrange trace keyboard test (#77519) by @scttcper
+- fix(anomaly detection): get aggregation key from snuba data (#77498) by @mifu67
+- fix(ui): Remove team slug from settings search (#77520) by @scttcper
+- fix(issues): Fix incorrect API docs for statsPeriod (#77523) by @mrduncan
+- analytics(flags): add initial analytics (#77489) by @michellewzhang
+- chore(users): Move User base endpoint file to users directory (#77501) by @Christinarlong
+- chore(apidocs): Fix inconsistencies in replay docs (#77506) by @isabellaenriquez
+- chore(apidocs): id -> ID (#77505) by @isabellaenriquez
+- fix(onboarding): Open replay panel in quick start action (#77516) by @scttcper
+- fix(anomaly detection): update alert list status to be the same as details page (#77500) by @mifu67
+- ref(js): Remove default export of DateTime (#77493) by @evanpurkhiser
+- chore(similarity): Increase seer delay and add to log (#77474) by @jangjodi
+- chore(apidocs): Make UserRole related endpoints private (#77504) by @isabellaenriquez
+- fix(custom-views): Change cursor for tab to pointer everywhere (#77513) by @MichaelSun48
+- ref: fix test pollution integrity errors due to cache leaks between tests (#77476) by @asottile-sentry
+- chore(crons): Remove sentry monitor decorator from run_escalating_forcast job (#77499) by @MichaelSun48
+- ref(js): Missed one DateTime defualt export (#77497) by @evanpurkhiser
+- feat(flags): hide flags from context and add feedback button (#77488) by @michellewzhang
+- publish api endpoints (#77179) by @nhsiehgit
+- ref(js): Remove usage of DateTime default export (#77494) by @evanpurkhiser
+- fix(ui): Inmprove spacing on code snippet header (#77492) by @evanpurkhiser
+
+_Plus 853 more_
+
 24.8.0
 ------
 
