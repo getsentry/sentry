@@ -14,7 +14,7 @@ export async function validateLinkExists(url: string): Promise<boolean> {
     }
     return false;
   } catch (error) {
-    handleXhrErrorResponse(t('Unable to validate ig the link exists'), error);
+    handleXhrErrorResponse(t('Unable to validate if the link exists'), error);
     return false;
   }
 }
