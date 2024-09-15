@@ -651,17 +651,22 @@ class Fixtures:
         subscription_id: str | None = None,
         status: UptimeSubscription.Status = UptimeSubscription.Status.ACTIVE,
         url="http://sentry.io/",
+        host_provider_id: str | None = None,
         interval_seconds=60,
         timeout_ms=100,
         date_updated: None | datetime = None,
     ) -> UptimeSubscription:
         if date_updated is None:
             date_updated = timezone.now()
+        if host_provider_id is None:
+            host_provider_id = "TEST"
+
         return Factories.create_uptime_subscription(
             type=type,
             subscription_id=subscription_id,
             status=status,
             url=url,
+            host_provider_id=host_provider_id,
             interval_seconds=interval_seconds,
             timeout_ms=timeout_ms,
             date_updated=date_updated,

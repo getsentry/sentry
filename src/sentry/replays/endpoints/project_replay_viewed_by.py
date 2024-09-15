@@ -39,7 +39,7 @@ class ProjectReplayViewedByEndpoint(ProjectEndpoint):
     permission_classes = (ProjectEventPermission,)
 
     @extend_schema(
-        operation_id="Get list of user who have viewed a replay",
+        operation_id="List Users Who Have Viewed a Replay",
         parameters=[
             GlobalParams.ORG_ID_OR_SLUG,
             GlobalParams.PROJECT_ID_OR_SLUG,

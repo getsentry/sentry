@@ -20,6 +20,7 @@ from sentry.conf.types import kafka_definition
 from sentry.issues.grouptype import UptimeDomainCheckFailure
 from sentry.models.group import Group, GroupStatus
 from sentry.testutils.cases import UptimeTestCase
+from sentry.testutils.helpers.options import override_options
 from sentry.uptime.consumers.results_consumer import (
     AUTO_DETECTED_ACTIVE_SUBSCRIPTION_INTERVAL,
     ONBOARDING_MONITOR_PERIOD,
@@ -122,6 +123,42 @@ class ProcessResultTest(UptimeTestCase, ProducerTestMixin):
         hashed_fingerprint = md5(str(self.project_subscription.id).encode("utf-8")).hexdigest()
         group = Group.objects.get(grouphash__hash=hashed_fingerprint)
         assert group.issue_type == UptimeDomainCheckFailure
+        self.project_subscription.refresh_from_db()
+        assert self.project_subscription.uptime_status == UptimeStatus.FAILED
+
+    def test_restricted_host_provider_id(self):
+        """
+        Test that we do NOT create an issue when the host provider identifier
+        has been restricted using the
+        `restrict-issue-creation-by-hosting-provider-id` option.
+        """
+        result = self.create_uptime_result(
+            self.subscription.subscription_id,
+            scheduled_check_time=datetime.now() - timedelta(minutes=5),
+        )
+        with (
+            mock.patch("sentry.uptime.consumers.results_consumer.metrics") as metrics,
+            self.feature("organizations:uptime-create-issues"),
+            mock.patch(
+                "sentry.uptime.consumers.results_consumer.ACTIVE_FAILURE_THRESHOLD",
+                new=1,
+            ),
+            override_options({"uptime.restrict-issue-creation-by-hosting-provider-id": ["TEST"]}),
+        ):
+            self.send_result(result)
+            metrics.incr.assert_has_calls(
+                [
+                    call("uptime.result_processor.restricted_by_provider", sample_rate=1.0),
+                ],
+                any_order=True,
+            )
+
+        # Issue is not created
+        hashed_fingerprint = md5(str(self.project_subscription.id).encode("utf-8")).hexdigest()
+        with pytest.raises(Group.DoesNotExist):
+            Group.objects.get(grouphash__hash=hashed_fingerprint)
+
+        # subscription status is still updated
         self.project_subscription.refresh_from_db()
         assert self.project_subscription.uptime_status == UptimeStatus.FAILED
 
