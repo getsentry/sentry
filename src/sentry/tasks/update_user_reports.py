@@ -27,10 +27,8 @@ def update_user_reports(**kwargs: Any) -> None:
     start = kwargs.get("start", now - timedelta(days=1))
     end = kwargs.get("end", now + timedelta(minutes=5))  # +5 minutes just to catch clock skew
 
-    # The event query time range is [start - event_start_offset, end].
-    event_start_offset = kwargs.get(
-        "event_start_offset", timedelta(days=1)
-    )  # time to look back for events
+    # The event query time range is [start - event_lookback, end].
+    event_lookback = kwargs.get("event_lookback", timedelta(days=1))
 
     # Filter for user reports where there was no event associated with them at
     # ingestion time
@@ -61,9 +59,9 @@ def update_user_reports(**kwargs: Any) -> None:
         report_by_event = {r.event_id: r for r in reports}
         events = []
 
-        event_start = start - event_start_offset
+        event_start = start - event_lookback
         if retention := quotas.backend.get_event_retention(organization=project.organization):
-            event_start = max(event_start_offset, now - timedelta(days=retention))
+            event_start = max(event_start, now - timedelta(days=retention))
 
         for event_id_chunk in chunked(event_ids, MAX_EVENTS):
             snuba_filter = eventstore.Filter(
