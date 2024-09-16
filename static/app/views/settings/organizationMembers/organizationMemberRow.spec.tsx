@@ -172,6 +172,32 @@ describe('OrganizationMemberRow', function () {
       expect(resendButton()).not.toBeInTheDocument();
       expect(screen.getByTestId('member-status')).toHaveTextContent('Sent!');
     });
+
+    it('has Remove button if invite was sent from curr user and feature is on', function () {
+      const org = OrganizationFixture({
+        features: ['members-invite-teammates'],
+        access: ['member:invite'],
+      });
+      render(<OrganizationMemberRow {...props} organization={org} />);
+
+      expect(removeButton()).toBeEnabled();
+    });
+
+    it('has disabled Remove button if invite was sent from other user and feature is on', function () {
+      const org = OrganizationFixture({
+        features: ['members-invite-teammates'],
+        access: ['member:invite'],
+      });
+      render(
+        <OrganizationMemberRow
+          {...props}
+          organization={org}
+          member={{...member, pending: true, inviterName: 'Other User'}}
+        />
+      );
+
+      expect(removeButton()).toBeDisabled();
+    });
   });
 
   describe('Expired user', function () {
@@ -317,32 +343,6 @@ describe('OrganizationMemberRow', function () {
       render(<OrganizationMemberRow {...props} canRemoveMembers />);
 
       expect(removeButton()).toBeEnabled();
-    });
-
-    it('has Remove button if invite was sent from curr user and feature is on', function () {
-      const org = OrganizationFixture({
-        features: ['members-invite-teammates'],
-        access: ['member:invite'],
-      });
-      render(<OrganizationMemberRow {...props} organization={org} />);
-
-      expect(removeButton()).toBeEnabled();
-    });
-
-    it('has disabled Remove button if invite was sent from other user and feature is on', function () {
-      const org = OrganizationFixture({
-        features: ['members-invite-teammates'],
-        access: ['member:invite'],
-      });
-      render(
-        <OrganizationMemberRow
-          {...props}
-          organization={org}
-          member={{...member, pending: true, inviterName: 'Other User'}}
-        />
-      );
-
-      expect(removeButton()).toBeDisabled();
     });
   });
 });
