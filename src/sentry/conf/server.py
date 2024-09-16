@@ -2487,6 +2487,7 @@ SENTRY_DEFAULT_INTEGRATIONS = (
     "sentry.integrations.jira.JiraIntegrationProvider",
     "sentry.integrations.jira_server.JiraServerIntegrationProvider",
     "sentry.integrations.vsts.VstsIntegrationProvider",
+    "sentry.integrations.azure_devops.integration.AzureDevOpsIntegrationProvider",
     "sentry.integrations.vsts_extension.VstsExtensionIntegrationProvider",
     "sentry.integrations.pagerduty.integration.PagerDutyIntegrationProvider",
     "sentry.integrations.vercel.VercelIntegrationProvider",

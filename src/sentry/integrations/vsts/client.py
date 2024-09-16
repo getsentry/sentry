@@ -294,7 +294,7 @@ class VstsApiClient(IntegrationProxyClient, VstsApiMixin, RepositoryClient):
     def get_work_item(self, id: int) -> Response:
         return self.get(VstsApiPath.work_items.format(instance=self.base_url, id=id))
 
-    def get_work_item_states(self, project: str) -> Response:
+    def get_work_item_states(self, project: str) -> BaseApiResponseX:
         # XXX: Until we add the option to enter the 'WorkItemType' for syncing status changes from
         # Sentry to Azure DevOps, we need will attempt to use the sequence below. There are certain
         # ADO configurations which don't have 'Bug' or 'Issue', hence iterating until we find a match.
@@ -318,7 +318,7 @@ class VstsApiClient(IntegrationProxyClient, VstsApiMixin, RepositoryClient):
             VstsApiPath.work_item_categories.format(instance=self.base_url, project=project)
         )
 
-    def get_repo(self, name_or_id: str, project: str | None = None) -> Response:
+    def get_repo(self, name_or_id: str, project: str | None = None) -> BaseApiResponseX:
         return self.get(
             VstsApiPath.repository.format(
                 instance=self.base_url,
@@ -327,7 +327,7 @@ class VstsApiClient(IntegrationProxyClient, VstsApiMixin, RepositoryClient):
             )
         )
 
-    def get_repos(self, project: str | None = None) -> Response:
+    def get_repos(self, project: str | None = None) -> BaseApiResponseX:
         return self.get(
             VstsApiPath.repositories.format(
                 instance=self.base_url, project=f"{project}/" if project else ""
