@@ -29,7 +29,7 @@ callee_matcher   = _ "|" _ "[" _ frame_matcher _ "]"
 actions          = action+
 action           = flag_action / var_action
 var_action       = _ var_name _ "=" _ ident
-var_name         = "max-frames" / "min-frames" / "invert-stacktrace" / "category"
+var_name         = "max-frames" / "min-frames" / "category"
 flag_action      = _ range? flag flag_action_name
 flag_action_name = "group" / "app"
 flag             = "+" / "-"
