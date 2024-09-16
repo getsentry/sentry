@@ -21,7 +21,7 @@ class Migration(CheckedMigration):
     is_post_deployment = False
 
     dependencies = [
-        ("sentry", "0758_remove_spanattributeextraction_models"),
+        ("sentry", "0759_remove_spanattributeextraction_tables"),
     ]
 
     operations = [
