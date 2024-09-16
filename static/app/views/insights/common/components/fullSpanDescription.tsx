@@ -87,10 +87,6 @@ export function FullSpanDescription({
 
 const LINE_LENGTH = 60;
 
-function prettyPrintJsonString(json: string) {
-  return JSON.stringify(JSON.parse(json), null, 4);
-}
-
 const PaddedSpinner = styled('div')`
   padding: 0 ${space(0.5)};
 `;
