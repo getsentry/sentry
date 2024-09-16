@@ -299,7 +299,7 @@ const InfoWrapper = styled('div')<{isResolvedOrIgnored: boolean}>`
   gap: ${space(1)};
   background: ${p =>
     p.isResolvedOrIgnored
-      ? `linear-gradient(to right, ${Color(p.theme.success).lighten(0.5).alpha(0.2).string()}, ${Color(p.theme.success).lighten(0.7).alpha(0.05).string()})`
+      ? `linear-gradient(to right, ${p.theme.background}, ${Color(p.theme.success).lighten(0.5).alpha(0.15).string()})`
       : p.theme.background};
   color: ${p => p.theme.gray300};
   padding: ${space(1)} 24px;
