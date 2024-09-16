@@ -170,7 +170,13 @@ from sentry.users.models.userrole import UserRole
 from sentry.users.services.user import RpcUser
 from sentry.utils import loremipsum
 from sentry.utils.performance_issues.performance_problem import PerformanceProblem
-from sentry.workflow_engine.models import DataSource, Detector, DataSourceDetector, Workflow, WorkflowAction
+from sentry.workflow_engine.models import (
+    DataSource,
+    DataSourceDetector,
+    Detector,
+    Workflow,
+    WorkflowAction,
+)
 from social_auth.models import UserSocialAuth
 
 
