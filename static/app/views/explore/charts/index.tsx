@@ -16,7 +16,13 @@ import {useVisualizes} from 'sentry/views/explore/hooks/useVisualizes';
 import Chart, {ChartType} from 'sentry/views/insights/common/components/chart';
 import ChartPanel from 'sentry/views/insights/common/components/chartPanel';
 import {useSpanIndexedSeries} from 'sentry/views/insights/common/queries/useDiscoverSeries';
+import {useSortedTopNSeries} from 'sentry/views/insights/common/queries/useSortedTopNSeries';
 import {CHART_HEIGHT} from 'sentry/views/insights/database/settings';
+
+import {useGroupBys} from '../hooks/useGroupBys';
+import {useResultMode} from '../hooks/useResultsMode';
+import {useSorts} from '../hooks/useSorts';
+import {formatSort} from '../tables/aggregatesTable';
 
 interface ExploreChartsProps {
   query: string;
@@ -37,6 +43,8 @@ const exploreChartTypeOptions = [
   },
 ];
 
+export const TOP_EVENTS_LIMIT: number = 5;
+
 // TODO: Update to support aggregate mode and multiple queries / visualizations
 export function ExploreCharts({query}: ExploreChartsProps) {
   const pageFilters = usePageFilters();
@@ -44,6 +52,39 @@ export function ExploreCharts({query}: ExploreChartsProps) {
   const [dataset] = useDataset();
   const [visualizes, setVisualizes] = useVisualizes();
   const [interval, setInterval, intervalOptions] = useChartInterval();
+  const [groupBys] = useGroupBys();
+  const [resultMode] = useResultMode();
+
+  const fields: string[] = useMemo(() => {
+    if (resultMode === 'samples') {
+      return [];
+    }
+
+    return [...groupBys, ...visualizes.flatMap(visualize => visualize.yAxes)].filter(
+      Boolean
+    );
+  }, [resultMode, groupBys, visualizes]);
+  const [sorts] = useSorts({fields});
+
+  const orderby: string | string[] | undefined = useMemo(() => {
+    if (!sorts.length) {
+      return undefined;
+    }
+
+    return sorts.map(formatSort);
+  }, [sorts]);
+
+  const topEvents: number | undefined = useMemo(() => {
+    if (resultMode === 'samples') {
+      return undefined;
+    }
+
+    // We only support top events for a single chart with no overlaps in aggregate mode and
+    // the data must be grouped by at least one field
+    return visualizes.length > 1 || (groupBys.length === 1 && groupBys[0] === '')
+      ? undefined
+      : TOP_EVENTS_LIMIT;
+  }, [visualizes, groupBys, resultMode]);
 
   const yAxes = useMemo(() => {
     const deduped = dedupeArray(visualizes.flatMap(visualize => visualize.yAxes));
@@ -51,7 +92,7 @@ export function ExploreCharts({query}: ExploreChartsProps) {
     return deduped;
   }, [visualizes]);
 
-  const series = useSpanIndexedSeries(
+  const singleSeriesResult = useSpanIndexedSeries(
     {
       search: new MutableSearch(query ?? ''),
       yAxis: yAxes,
@@ -62,6 +103,31 @@ export function ExploreCharts({query}: ExploreChartsProps) {
     dataset
   );
 
+  const topNSeriesResult = useSortedTopNSeries(
+    {
+      search: new MutableSearch(query ?? ''),
+      yAxis: yAxes,
+      interval: interval ?? getInterval(pageFilters.selection.datetime, 'metrics'),
+      enabled: topEvents !== undefined,
+      fields,
+      orderby,
+      topEvents,
+    },
+    'api.explorer.stats',
+    dataset
+  );
+
+  const getSeries = useCallback(
+    (dedupedYAxes: string[]) => {
+      if (topEvents !== undefined) {
+        return topNSeriesResult.data;
+      }
+
+      return dedupedYAxes.map(yAxis => singleSeriesResult.data[yAxis]);
+    },
+    [singleSeriesResult, topNSeriesResult, topEvents]
+  );
+
   const handleChartTypeChange = useCallback(
     (chartType: ChartType, index: number) => {
       const newVisualizes = visualizes.slice();
@@ -70,6 +136,11 @@ export function ExploreCharts({query}: ExploreChartsProps) {
     },
     [visualizes, setVisualizes]
   );
+
+  const error =
+    topEvents === undefined ? singleSeriesResult.error : topNSeriesResult.error;
+  const loading =
+    topEvents === undefined ? singleSeriesResult.isPending : topNSeriesResult.isPending;
 
   return (
     <Fragment>
@@ -108,10 +179,11 @@ export function ExploreCharts({query}: ExploreChartsProps) {
                   top: '8px',
                   bottom: '0',
                 }}
-                data={dedupedYAxes.map(yAxis => series.data[yAxis])}
-                error={series.error}
-                loading={series.isPending}
-                chartColors={CHART_PALETTE[2]}
+                data={getSeries(dedupedYAxes)}
+                error={error}
+                loading={loading}
+                // TODO Abdullah: Make chart colors dynamic, with changing topN events count and overlay count.
+                chartColors={CHART_PALETTE[4]}
                 type={chartType}
                 // for now, use the first y axis unit
                 aggregateOutputFormat={aggregateOutputType(dedupedYAxes[0])}

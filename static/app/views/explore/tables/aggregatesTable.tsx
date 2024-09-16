@@ -29,7 +29,7 @@ import {useUserQuery} from 'sentry/views/explore/hooks/useUserQuery';
 import {useVisualizes} from 'sentry/views/explore/hooks/useVisualizes';
 import {useSpansQuery} from 'sentry/views/insights/common/queries/useSpansQuery';
 
-function formatSort(sort: Sort): string {
+export function formatSort(sort: Sort): string {
   const direction = sort.kind === 'desc' ? '-' : '';
   return `${direction}${getAggregateAlias(sort.field)}`;
 }
