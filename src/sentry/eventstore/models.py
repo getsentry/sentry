@@ -357,16 +357,10 @@ class BaseEvent(metaclass=abc.ABCMeta):
         from sentry.grouping.api import sort_grouping_variants
 
         variants = self.get_grouping_variants(force_config)
-        flat_variants = sort_grouping_variants(variants)
-        flat_hashes = self._hashes_from_sorted_grouping_variants(flat_variants)
-
-        if flat_hashes:
-            sentry_sdk.set_tag("get_hashes.flat_variant", flat_hashes[0])
-
-        flat_hashes_values = [hash_ for _, hash_ in flat_hashes]
+        hashes = self._hashes_from_sorted_grouping_variants(sort_grouping_variants(variants))
 
         return CalculatedHashes(
-            hashes=flat_hashes_values,
+            hashes=[hash_ for _, hash_ in hashes],
             variants=variants,
         )
 
