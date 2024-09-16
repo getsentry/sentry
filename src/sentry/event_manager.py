@@ -1084,8 +1084,7 @@ def _tsdb_record_all_metrics(jobs: Sequence[Job]) -> None:
         user = job["user"]
 
         for group_info in job["groups"]:
-            incrs.append
-            ((TSDBModel.group, group_info.group.id))
+            incrs.append((TSDBModel.group, group_info.group.id))
             frequencies.append(
                 (
                     TSDBModel.frequent_environments_by_group,
