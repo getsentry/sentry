@@ -110,7 +110,7 @@ class GroupHashesTest(APITestCase, SnubaTestCase):
             ]
         )
 
-        with patch("sentry.api.endpoints.group_hashes.metrics.incr") as mock_metrics_incr:
+        with patch("sentry.issues.endpoints.group_hashes.metrics.incr") as mock_metrics_incr:
             response = self.client.delete(url, format="json")
 
             assert response.status_code == 202, response.content
