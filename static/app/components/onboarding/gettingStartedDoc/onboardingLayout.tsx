@@ -1,4 +1,4 @@
-import {Fragment, useMemo} from 'react';
+import {Fragment, useEffect, useMemo} from 'react';
 import styled from '@emotion/styled';
 
 import HookOrDefault from 'sentry/components/hookOrDefault';
@@ -64,7 +64,14 @@ export function OnboardingLayout({
   const {platformOptions} = docsConfig;
   const {urlPrefix, isSelfHosted} = useLegacyStore(ConfigStore);
 
-  const {introduction, steps, nextSteps} = useMemo(() => {
+  const {
+    introduction,
+    steps,
+    nextSteps,
+    onPlatformOptionsClick,
+    onProductSelectionClick,
+    onPageLoad,
+  } = useMemo(() => {
     const doc = docsConfig[configType] ?? docsConfig.onboarding;
 
     const docParams: DocsParams<any> = {
@@ -98,6 +105,9 @@ export function OnboardingLayout({
         ...doc.verify(docParams),
       ],
       nextSteps: doc.nextSteps?.(docParams) || [],
+      onPlatformOptionsClick: doc.onPlatformOptionsClick?.(docParams),
+      onProductSelectionClick: doc.onProductSelectionClick?.(docParams),
+      onPageLoad: doc.onPageLoad?.(docParams),
     };
   }, [
     activeProductSelection,
@@ -116,6 +126,10 @@ export function OnboardingLayout({
     isSelfHosted,
   ]);
 
+  useEffect(() => {
+    onPageLoad?.();
+  }, [onPageLoad]);
+
   return (
     <AuthTokenGeneratorProvider projectSlug={projectSlug}>
       <Wrapper>
@@ -126,10 +140,14 @@ export function OnboardingLayout({
               organization={organization}
               platform={platformKey}
               projectId={projectId}
+              onClick={onProductSelectionClick}
             />
           )}
           {platformOptions && !['customMetricsOnboarding'].includes(configType) ? (
-            <PlatformOptionsControl platformOptions={platformOptions} />
+            <PlatformOptionsControl
+              platformOptions={platformOptions}
+              onClick={onPlatformOptionsClick}
+            />
           ) : null}
         </Header>
         <Divider withBottomMargin />
