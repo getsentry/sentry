@@ -231,17 +231,6 @@ class SlackActionEndpoint(Endpoint):
 
         return self.respond_ephemeral(text)
 
-    def get_first_error_text(self, error_detail) -> str:
-        if isinstance(error_detail, dict):
-            # if it's a dictionary, get the first value
-            return str(next(iter(error_detail.values())))
-        elif isinstance(error_detail, list):
-            # if it's a list, get the first item
-            return str(error_detail[0]) if error_detail else ""
-        else:
-            # if it's neither, return an empty string
-            return ""
-
     def validation_error(
         self,
         slack_request: SlackActionRequest,
@@ -258,7 +247,12 @@ class SlackActionEndpoint(Endpoint):
             },
         )
 
-        text: str = self.get_first_error_text(error.detail)
+        text: str = ""
+        if isinstance(error.detail, dict):
+            text = list(*error.detail.values())[0]
+        else:
+            text = str(error.detail[0])
+
         return self.respond_ephemeral(text)
 
     def on_assign(
