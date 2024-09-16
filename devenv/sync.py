@@ -80,13 +80,6 @@ def main(context: dict[str, str]) -> int:
 
     FRONTEND_ONLY = os.environ.get("SENTRY_DEVENV_FRONTEND_ONLY") is not None
 
-    # venv's still needed for frontend because repo-local devenv and pre-commit
-    # exist inside it
-    venv_dir, python_version, requirements, editable_paths, bins = venv.get(reporoot, repo)
-    url, sha256 = config.get_python(reporoot, python_version)
-    print(f"ensuring {repo} venv at {venv_dir}...")
-    venv.ensure(venv_dir, python_version, url, sha256)
-
     # repo-local devenv needs to update itself first with a successful sync
     # so it'll take 2 syncs to get onto devenv-managed node, it is what it is
     try:
@@ -103,6 +96,16 @@ def main(context: dict[str, str]) -> int:
         from devenv.lib import volta
 
         volta.install(reporoot)
+
+    # no more imports from devenv past this point! if the venv is recreated
+    # then we won't have access to devenv libs until it gets reinstalled
+
+    # venv's still needed for frontend because repo-local devenv and pre-commit
+    # exist inside it
+    venv_dir, python_version, requirements, editable_paths, bins = venv.get(reporoot, repo)
+    url, sha256 = config.get_python(reporoot, python_version)
+    print(f"ensuring {repo} venv at {venv_dir}...")
+    venv.ensure(venv_dir, python_version, url, sha256)
 
     if constants.DARWIN:
         try:
