@@ -34,10 +34,6 @@ export default class FeatureObserver {
   }) {
     const FLAGS = this.FEATURE_FLAGS;
 
-    if (!FLAGS) {
-      return;
-    }
-
     // Track names of features that are passed into the .includes() function.
     const handler = {
       apply: function (target, orgFeatures, flagName) {
