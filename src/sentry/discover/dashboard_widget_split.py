@@ -175,6 +175,7 @@ def _get_and_save_split_decision_for_dashboard_widget(
             IncompatibleMetricsQuery,
             snuba.QueryIllegalTypeOfArgument,
             snuba.UnqualifiedQueryError,
+            InvalidQueryError,
         ):
             pass
 
@@ -186,7 +187,7 @@ def _get_and_save_split_decision_for_dashboard_widget(
             )
         )
         has_errors = len(error_results["data"]) > 0
-    except (snuba.QueryIllegalTypeOfArgument, snuba.UnqualifiedQueryError):
+    except (snuba.QueryIllegalTypeOfArgument, snuba.UnqualifiedQueryError, InvalidQueryError):
         pass
 
     if has_errors:
@@ -212,7 +213,7 @@ def _get_and_save_split_decision_for_dashboard_widget(
             )
         )
         has_transactions = len(transaction_results["data"]) > 0
-    except (snuba.QueryIllegalTypeOfArgument, snuba.UnqualifiedQueryError):
+    except (snuba.QueryIllegalTypeOfArgument, snuba.UnqualifiedQueryError, InvalidQueryError):
         pass
 
     if has_transactions:
