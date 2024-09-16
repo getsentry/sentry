@@ -296,6 +296,7 @@ def _get_calculated_grouping_variants_for_event(
     return rv
 
 
+# This is called by the Event model in get_grouping_variants()
 def get_grouping_variants_for_event(
     event: Event, config: StrategyConfiguration | None = None
 ) -> dict[str, BaseVariant]:

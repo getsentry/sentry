@@ -119,6 +119,9 @@ class ComponentVariant(BaseVariant):
     def _get_metadata_as_dict(self):
         return {"component": self.component.as_dict(), "config": self.config.as_dict()}
 
+    def __repr__(self):
+        return super().__repr__() + f" contributes={self.contributes} ({self.description})"
+
 
 def expose_fingerprint_dict(values, info=None):
     rv = {

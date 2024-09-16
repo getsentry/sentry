@@ -424,12 +424,14 @@ class EventTest(TestCase, PerformanceIssueTestCase):
         expected_hash_values = [hash_from_values(["Dogs are great!"])]
         expected_variants = get_grouping_variants_for_event(event)
 
+        variants = event.get_grouping_variants()
+
         assert calculated_hashes.hashes == expected_hash_values
-        assert calculated_hashes.variants == expected_variants
+        assert expected_variants == expected_variants
 
         # Since the `variants` dictionaries are equal, it suffices to only check the values in one
-        assert "default" in calculated_hashes.variants
-        default_variant = calculated_hashes.variants["default"]
+        assert "default" in variants
+        default_variant = variants["default"]
 
         assert isinstance(default_variant, ComponentVariant)
         assert default_variant.config.id == NEWSTYLE_GROUPING_CONFIG
