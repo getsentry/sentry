@@ -1,6 +1,7 @@
 from .actionable_items import ActionableItemsEndpoint
 from .group_event_details import GroupEventDetailsEndpoint
 from .group_events import GroupEventsEndpoint
+from .group_hashes import GroupHashesEndpoint
 from .group_similar_issues import GroupSimilarIssuesEndpoint
 from .group_similar_issues_embeddings import GroupSimilarIssuesEmbeddingsEndpoint
 from .organization_group_index import OrganizationGroupIndexEndpoint
@@ -18,6 +19,7 @@ __all__ = (
     "ActionableItemsEndpoint",
     "GroupEventsEndpoint",
     "GroupEventDetailsEndpoint",
+    "GroupHashesEndpoint",
     "GroupSimilarIssuesEndpoint",
     "GroupSimilarIssuesEmbeddingsEndpoint",
     "OrganizationGroupIndexEndpoint",
