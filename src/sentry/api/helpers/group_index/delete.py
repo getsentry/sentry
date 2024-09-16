@@ -49,13 +49,7 @@ def delete_group_list(
     # Tell seer to delete grouping records for these groups
     call_delete_seer_grouping_records_by_hash(group_ids)
 
-    # We do not want to delete split hashes as they are necessary for keeping groups... split.
-    GroupHash.objects.filter(
-        project_id=project.id, group__id__in=group_ids, state=GroupHash.State.SPLIT
-    ).update(group=None)
-    GroupHash.objects.filter(project_id=project.id, group__id__in=group_ids).exclude(
-        state=GroupHash.State.SPLIT
-    ).delete()
+    GroupHash.objects.filter(project_id=project.id, group__id__in=group_ids).delete()
 
     # We remove `GroupInbox` rows here so that they don't end up influencing queries for
     # `Group` instances that are pending deletion
