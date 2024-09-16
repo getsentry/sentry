@@ -23,19 +23,10 @@ if TYPE_CHECKING:
     from sentry.incidents.models.alert_rule import AlertRule
 
 
-def delete_rule_in_seer(alert_rule: "AlertRule", project: Project | None) -> bool:
+def delete_rule_in_seer(alert_rule: "AlertRule", project: Project) -> bool:
     """
     Send a request to delete an alert rule from Seer. Returns True if the request was successful.
     """
-    if not project:
-        logger.error(
-            "No project associated with alert rule",
-            extra={
-                "rule_id": alert_rule.id,
-            },
-        )
-        return False
-
     body = DeleteRuleRequest(
         organization_id=cast(Organization, alert_rule.organization).id,
         project_id=project.id,
