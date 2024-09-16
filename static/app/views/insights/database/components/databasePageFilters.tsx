@@ -9,7 +9,7 @@ import {ModulePageFilterBar} from 'sentry/views/insights/common/components/modul
 import {ActionSelector} from 'sentry/views/insights/common/views/spans/selectors/actionSelector';
 import {DomainSelector} from 'sentry/views/insights/common/views/spans/selectors/domainSelector';
 import {DatabaseSystemSelector} from 'sentry/views/insights/database/components/databaseSystemSelector';
-import {SupportedDatabaseSystems} from 'sentry/views/insights/database/utils/constants';
+import {SupportedDatabaseSystem} from 'sentry/views/insights/database/utils/constants';
 import {ModuleName} from 'sentry/views/insights/types';
 
 type Props = {
@@ -41,7 +41,7 @@ export function DatabasePageFilters(props: Props) {
           moduleName={ModuleName.DB}
           value={table ?? ''}
           domainAlias={
-            system === SupportedDatabaseSystems.MONGODB ? t('Collection') : t('Table')
+            system === SupportedDatabaseSystem.MONGODB ? t('Collection') : t('Table')
           }
           additionalQuery={additionalQuery}
         />
