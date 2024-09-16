@@ -49,6 +49,12 @@ const INSIGHTS_ADDITIONAL_TAG_FILTERS: MetricTag[] = [
   {
     key: SpanMetricsField.FILE_EXTENSION,
   },
+  {
+    key: SpanMetricsField.SPAN_SYSTEM,
+  },
+  {
+    key: SpanMetricsField.SPAN_GROUP,
+  },
 ];
 
 export function MetricSearchBar({
