@@ -20,6 +20,8 @@ from sentry.api.serializers.models.plugin import (
 from sentry.exceptions import InvalidIdentity, PluginError, PluginIdentityRequired
 from sentry.integrations.base import IntegrationFeatures
 from sentry.plugins.base import plugins
+from sentry.plugins.base.v1 import Plugin
+from sentry.plugins.base.v2 import Plugin2
 from sentry.signals import plugin_enabled
 from sentry.utils.http import absolute_uri
 
@@ -40,15 +42,27 @@ class ProjectPluginDetailsEndpoint(ProjectEndpoint):
         "POST": ApiPublishStatus.PRIVATE,
     }
 
-    def _get_plugin(self, plugin_id):
+    def convert_args(
+        self,
+        request: Request,
+        organization_id_or_slug: int | str,
+        project_id_or_slug: int | str,
+        plugin_id: str,
+        *args,
+        **kwargs,
+    ):
+        (args, kwargs) = super().convert_args(
+            request, organization_id_or_slug, project_id_or_slug, *args, **kwargs
+        )
         try:
-            return plugins.get(plugin_id)
+            plugin = plugins.get(plugin_id)
         except KeyError:
             raise ResourceDoesNotExist
 
-    def get(self, request: Request, project, plugin_id) -> Response:
-        plugin = self._get_plugin(plugin_id)
+        kwargs["plugin"] = plugin
+        return (args, kwargs)
 
+    def get(self, request: Request, project, plugin: Plugin | Plugin2) -> Response:
         try:
             context = serialize(plugin, request.user, PluginWithConfigSerializer(project))
         except PluginIdentityRequired as e:
@@ -61,18 +75,15 @@ class ProjectPluginDetailsEndpoint(ProjectEndpoint):
             raise Http404
         return Response(context)
 
-    def post(self, request: Request, project, plugin_id) -> Response:
+    def post(self, request: Request, project, plugin: Plugin | Plugin2) -> Response:
         """
         Enable plugin, Test plugin or Reset plugin values
         """
-        plugin = self._get_plugin(plugin_id)
-
         if request.data.get("test") and plugin.is_testable():
             test_results = plugin.test_configuration_and_get_test_results(project)
             return Response({"detail": test_results}, status=200)
 
         if request.data.get("reset"):
-            plugin = self._get_plugin(plugin_id)
             plugin.reset_options(project=project)
             context = serialize(plugin, request.user, PluginWithConfigSerializer(project))
 
@@ -81,7 +92,7 @@ class ProjectPluginDetailsEndpoint(ProjectEndpoint):
                 organization=project.organization,
                 target_object=project.id,
                 event=audit_log.get_event_id("INTEGRATION_EDIT"),
-                data={"integration": plugin_id, "project": project.slug},
+                data={"integration": plugin.slug, "project": project.slug},
             )
 
             return Response(context, status=200)
@@ -108,17 +119,15 @@ class ProjectPluginDetailsEndpoint(ProjectEndpoint):
             organization=project.organization,
             target_object=project.id,
             event=audit_log.get_event_id("INTEGRATION_ADD"),
-            data={"integration": plugin_id, "project": project.slug},
+            data={"integration": plugin.slug, "project": project.slug},
         )
 
         return Response(status=201)
 
-    def delete(self, request: Request, project, plugin_id) -> Response:
+    def delete(self, request: Request, project, plugin: Plugin | Plugin2) -> Response:
         """
         Disable plugin
         """
-        plugin = self._get_plugin(plugin_id)
-
         if not plugin.can_disable:
             return Response({"detail": ERR_ALWAYS_ENABLED}, status=400)
 
@@ -129,14 +138,12 @@ class ProjectPluginDetailsEndpoint(ProjectEndpoint):
             organization=project.organization,
             target_object=project.id,
             event=audit_log.get_event_id("INTEGRATION_REMOVE"),
-            data={"integration": plugin_id, "project": project.slug},
+            data={"integration": plugin.slug, "project": project.slug},
         )
 
         return Response(status=204)
 
-    def put(self, request: Request, project, plugin_id) -> Response:
-        plugin = self._get_plugin(plugin_id)
-
+    def put(self, request: Request, project, plugin: Plugin | Plugin2) -> Response:
         config = [
             serialize_field(project, plugin, c)
             for c in plugin.get_config(project=project, user=request.user, initial=request.data)
@@ -192,7 +199,7 @@ class ProjectPluginDetailsEndpoint(ProjectEndpoint):
             organization=project.organization,
             target_object=project.id,
             event=audit_log.get_event_id("INTEGRATION_EDIT"),
-            data={"integration": plugin_id, "project": project.slug},
+            data={"integration": plugin.slug, "project": project.slug},
         )
 
         return Response(context)
