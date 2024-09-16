@@ -6,3 +6,7 @@ export const isValidJson = (str: string) => {
   }
   return true;
 };
+
+export function prettyPrintJsonString(json: string) {
+  return JSON.stringify(JSON.parse(json), null, 4);
+}

@@ -6,7 +6,10 @@ import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {space} from 'sentry/styles/space';
 import {SQLishFormatter} from 'sentry/utils/sqlish/SQLishFormatter';
 import {useFullSpanFromTrace} from 'sentry/views/insights/common/queries/useFullSpanFromTrace';
-import {isValidJson} from 'sentry/views/insights/database/utils/isValidJson';
+import {
+  isValidJson,
+  prettyPrintJsonString,
+} from 'sentry/views/insights/database/utils/jsonUtils';
 import {ModuleName} from 'sentry/views/insights/types';
 
 const formatter = new SQLishFormatter();
@@ -83,10 +86,6 @@ export function FullSpanDescription({
 }
 
 const LINE_LENGTH = 60;
-
-function prettyPrintJsonString(json: string) {
-  return JSON.stringify(JSON.parse(json), null, 4);
-}
 
 const PaddedSpinner = styled('div')`
   padding: 0 ${space(0.5)};
