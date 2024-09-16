@@ -53,6 +53,7 @@
   "workflow_engine_detector",
   "workflow_engine_workflow",
   "workflow_engine_workflowaction",
+  "workflow_engine_datasourcedetector",
   "sentry_savedsearch",
   "sentry_relocation",
   "sentry_recentsearch",
