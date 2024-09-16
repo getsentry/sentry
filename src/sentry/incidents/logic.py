@@ -1133,7 +1133,7 @@ def delete_alert_rule(
             )
 
         if alert_rule.detection_type == AlertRuleDetectionType.DYNAMIC:
-            project = alert_rule.projects.first()
+            project = alert_rule.projects.get()
             success = delete_rule_in_seer(alert_rule=alert_rule, project=project)
             if not success:
                 # don't block deletion in Sentry
