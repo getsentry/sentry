@@ -208,7 +208,6 @@ class WidgetCardChart extends Component<WidgetCardChartProps, State> {
       return <BigNumber>{'\u2014'}</BigNumber>;
     }
 
-    const {containerHeight} = this.state;
     const {location, organization, widget, isMobile, expandNumbers} = this.props;
 
     return tableResults.map(result => {
@@ -241,24 +240,7 @@ class WidgetCardChart extends Component<WidgetCardChartProps, State> {
         return <BigNumber key={`big_number:${result.title}`}>{rendered}</BigNumber>;
       }
 
-      // The font size is the container height, minus the top and bottom padding
-      const fontSize = !expandNumbers
-        ? containerHeight - parseInt(space(1), 10) - parseInt(space(3), 10)
-        : `max(min(8vw, 90px), ${space(4)})`;
-
-      return !organization.features.includes('auto-size-big-number-widget') ? (
-        <BigNumber
-          key={`big_number:${result.title}`}
-          style={{
-            fontSize,
-            ...(expandNumbers ? {padding: `${space(1)} ${space(3)} 0 ${space(3)}`} : {}),
-          }}
-        >
-          <Tooltip title={rendered} showOnlyOnOverflow>
-            {rendered}
-          </Tooltip>
-        </BigNumber>
-      ) : expandNumbers ? (
+      return expandNumbers ? (
         <BigText>{rendered}</BigText>
       ) : (
         <AutoResizeParent key={`big_number:${result.title}`}>
