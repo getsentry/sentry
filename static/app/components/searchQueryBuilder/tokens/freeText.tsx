@@ -1,24 +1,19 @@
-import {Fragment, useCallback, useMemo, useRef, useState} from 'react';
+import {Fragment, useCallback, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import {mergeProps} from '@react-aria/utils';
 import {Item, Section} from '@react-stately/collections';
 import type {ListState} from '@react-stately/list';
 import type {KeyboardEvent, Node} from '@react-types/shared';
-import type Fuse from 'fuse.js';
 
 import {useSearchQueryBuilder} from 'sentry/components/searchQueryBuilder/context';
 import {useQueryBuilderGridItem} from 'sentry/components/searchQueryBuilder/hooks/useQueryBuilderGridItem';
 import {replaceTokensWithPadding} from 'sentry/components/searchQueryBuilder/hooks/useQueryBuilderState';
 import {SearchQueryBuilderCombobox} from 'sentry/components/searchQueryBuilder/tokens/combobox';
-import type {
-  KeyItem,
-  KeySectionItem,
-} from 'sentry/components/searchQueryBuilder/tokens/filterKeyListBox/types';
 import {useFilterKeyListBox} from 'sentry/components/searchQueryBuilder/tokens/filterKeyListBox/useFilterKeyListBox';
-import {createItem} from 'sentry/components/searchQueryBuilder/tokens/filterKeyListBox/utils';
 import {InvalidTokenTooltip} from 'sentry/components/searchQueryBuilder/tokens/invalidTokenTooltip';
+import {useSortedFilterKeyItems} from 'sentry/components/searchQueryBuilder/tokens/useSortedFilterKeyItems';
 import {
-  getDefaultFilterValue,
+  getInitialFilterText,
   itemIsSection,
   useShiftFocusToChild,
 } from 'sentry/components/searchQueryBuilder/tokens/utils';
@@ -36,10 +31,8 @@ import {
 } from 'sentry/components/searchSyntax/parser';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {type FieldDefinition, FieldKind, FieldValueType} from 'sentry/utils/fields';
-import {useFuzzySearch} from 'sentry/utils/fuzzySearch';
+import {FieldKind, FieldValueType} from 'sentry/utils/fields';
 import {isCtrlKeyPressed} from 'sentry/utils/isCtrlKeyPressed';
 import useOrganization from 'sentry/utils/useOrganization';
 
@@ -56,13 +49,6 @@ type SearchQueryBuilderInputInternalProps = {
   token: TokenResult<Token.FREE_TEXT>;
 };
 
-const FUZZY_SEARCH_OPTIONS: Fuse.IFuseOptions<KeyItem> = {
-  keys: ['label', 'description'],
-  threshold: 0.2,
-  includeMatches: false,
-  minMatchCharLength: 1,
-};
-
 function getWordAtCursorPosition(value: string, cursorPosition: number) {
   const words = value.split(' ');
 
@@ -75,55 +61,6 @@ function getWordAtCursorPosition(value: string, cursorPosition: number) {
   }
 
   return value;
-}
-
-function getInitialFilterKeyText(key: string, fieldDefinition: FieldDefinition | null) {
-  if (fieldDefinition?.kind === FieldKind.FUNCTION) {
-    if (fieldDefinition.parameters) {
-      const parametersText = fieldDefinition.parameters
-        .filter(param => defined(param.defaultValue))
-        .map(param => param.defaultValue)
-        .join(',');
-
-      return `${key}(${parametersText})`;
-    }
-
-    return `${key}()`;
-  }
-
-  return key;
-}
-
-function getInitialValueType(fieldDefinition: FieldDefinition | null) {
-  if (!fieldDefinition) {
-    return FieldValueType.STRING;
-  }
-
-  if (fieldDefinition.parameterDependentValueType) {
-    return fieldDefinition.parameterDependentValueType(
-      fieldDefinition.parameters?.map(p => p.defaultValue ?? null) ?? []
-    );
-  }
-
-  return fieldDefinition.valueType ?? FieldValueType.STRING;
-}
-
-function getInitialFilterText(key: string, fieldDefinition: FieldDefinition | null) {
-  const defaultValue = getDefaultFilterValue({fieldDefinition});
-
-  const keyText = getInitialFilterKeyText(key, fieldDefinition);
-  const valueType = getInitialValueType(fieldDefinition);
-
-  switch (valueType) {
-    case FieldValueType.INTEGER:
-    case FieldValueType.NUMBER:
-    case FieldValueType.DURATION:
-    case FieldValueType.PERCENTAGE:
-      return `${keyText}:>${defaultValue}`;
-    case FieldValueType.STRING:
-    default:
-      return `${keyText}:${defaultValue}`;
-  }
 }
 
 /**
@@ -190,30 +127,6 @@ function calculateNextFocusForParen(item: Node<ParseResultToken>): FocusOverride
   return {
     itemKey: `${Token.FREE_TEXT}:${tokenTypeIndex + 1}`,
   };
-}
-
-function useSortItems({
-  filterValue,
-}: {
-  filterValue: string;
-}): Array<KeySectionItem | KeyItem> {
-  const {filterKeys, getFieldDefinition} = useSearchQueryBuilder();
-  const flatItems = useMemo<KeyItem[]>(
-    () =>
-      Object.values(filterKeys).map(filterKey =>
-        createItem(filterKey, getFieldDefinition(filterKey.key))
-      ),
-    [filterKeys, getFieldDefinition]
-  );
-  const search = useFuzzySearch(flatItems, FUZZY_SEARCH_OPTIONS);
-
-  return useMemo(() => {
-    if (!filterValue || !search) {
-      return flatItems;
-    }
-
-    return search.search(filterValue).map(({item}) => item);
-  }, [filterValue, flatItems, search]);
 }
 
 function shouldHideInvalidTooltip({
@@ -310,7 +223,7 @@ function SearchQueryBuilderInputInternal({
   const {customMenu, sectionItems, maxOptions, onKeyDownCapture} = useFilterKeyListBox({
     filterValue,
   });
-  const sortedFilteredItems = useSortItems({filterValue});
+  const sortedFilteredItems = useSortedFilterKeyItems({filterValue});
 
   const items = customMenu ? sectionItems : sortedFilteredItems;
 
