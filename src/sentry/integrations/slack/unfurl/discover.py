@@ -199,7 +199,7 @@ def unfurl_discover(
             y_axis = params.getlist("yAxis")[0]
             if display_mode != "dailytop5":
                 display_mode = get_top5_display_mode(y_axis)
-            top_events = params.getlist("topEvents")[0]
+            top_events = int(params.getlist("topEvents")[0])
         else:
             # topEvents param persists in the URL in some cases, we want to discard
             # it if it's not a top n display type.
