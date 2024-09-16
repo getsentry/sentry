@@ -275,12 +275,12 @@ function BaseDraggableTabList({
         overflowingTabs={overflowingTabs}
       />
       <AddViewTempTabWrap ref={addViewTempTabRef}>
-        <MotionWrapper style={{marginTop: 2}}>
+        <AddViewMotionWrapper>
           <AddViewButton borderless size="zero" onClick={onAddView}>
             <StyledIconAdd size="xs" />
             {t('Add View')}
           </AddViewButton>
-        </MotionWrapper>
+        </AddViewMotionWrapper>
         <MotionWrapper>
           {tempTab && (
             <Tab
@@ -436,6 +436,12 @@ const StyledIconAdd = styled(IconAdd)`
 const MotionWrapper = styled(motion.div)`
   display: flex;
   position: relative;
+`;
+
+const AddViewMotionWrapper = styled(motion.div)`
+  display: flex;
+  position: relative;
+  margin-top: ${space(0.25)};
 `;
 
 const OverflowMenuTrigger = styled(DropdownButton)`
