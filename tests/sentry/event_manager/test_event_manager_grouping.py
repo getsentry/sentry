@@ -133,6 +133,13 @@ class EventManagerGroupingTest(TestCase):
         assert group.message == event2.message
         assert group.data["metadata"]["title"] == event2.title
 
+    def test_auto_updates_grouping_config_even_if_config_is_gone(self):
+        """This tests that setups with deprecated configs will auto-upgrade."""
+        self.project.update_option("sentry:grouping_config", "non_existing_config")
+        save_new_event({"message": "foo"}, self.project)
+        assert self.project.get_option("sentry:grouping_config") == DEFAULT_GROUPING_CONFIG
+        assert self.project.get_option("sentry:secondary_grouping_config") is None
+
     def test_auto_updates_grouping_config(self):
         self.project.update_option("sentry:grouping_config", LEGACY_GROUPING_CONFIG)
 
