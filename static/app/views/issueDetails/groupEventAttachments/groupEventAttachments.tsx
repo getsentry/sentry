@@ -8,13 +8,19 @@ import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Pagination from 'sentry/components/pagination';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import type {IssueAttachment} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
-import {useMutation} from 'sentry/utils/queryClient';
+import {
+  getApiQueryData,
+  setApiQueryData,
+  useMutation,
+  useQueryClient,
+} from 'sentry/utils/queryClient';
 import {decodeList} from 'sentry/utils/queryString';
+import type RequestError from 'sentry/utils/requestError/requestError';
 import useApi from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useParams} from 'sentry/utils/useParams';
-import {useGroupEventAttachments} from 'sentry/views/issueDetails/groupEventAttachments/useGroupEventAttachments';
 
 import GroupEventAttachmentsFilter, {
   crashReportTypes,
@@ -22,9 +28,23 @@ import GroupEventAttachmentsFilter, {
 } from './groupEventAttachmentsFilter';
 import GroupEventAttachmentsTable from './groupEventAttachmentsTable';
 import {ScreenshotCard} from './screenshotCard';
+import {
+  makeFetchGroupEventAttachmentsQueryKey,
+  useGroupEventAttachments,
+} from './useGroupEventAttachments';
 
 type GroupEventAttachmentsProps = {
   project: Project;
+};
+
+type DeleteGroupEventAttachmentVariables = Parameters<
+  typeof makeFetchGroupEventAttachmentsQueryKey
+>[0] & {
+  attachment: IssueAttachment;
+};
+
+type DeleteGroupEventAttachmentContext = {
+  previous?: IssueAttachment[];
 };
 
 const enum EventAttachmentFilter {
@@ -50,38 +70,81 @@ function useActiveAttachmentsTab() {
 }
 
 function GroupEventAttachments({project}: GroupEventAttachmentsProps) {
+  const api = useApi({persistInFlight: true});
+  const queryClient = useQueryClient();
+  const location = useLocation();
   const {groupId, orgId: orgSlug} = useParams<{groupId: string; orgId: string}>();
   const activeAttachmentsTab = useActiveAttachmentsTab();
-  const api = useApi();
   const {attachments, isPending, isError, getResponseHeader, refetch} =
     useGroupEventAttachments({
       groupId,
       activeAttachmentsTab,
     });
 
-  const {mutate: deleteAttachment} = useMutation({
-    mutationFn: ({attachmentId, eventId}: {attachmentId: string; eventId: string}) =>
+  const {mutate: deleteAttachment} = useMutation<
+    unknown,
+    RequestError,
+    DeleteGroupEventAttachmentVariables,
+    DeleteGroupEventAttachmentContext
+  >({
+    mutationFn: ({attachment}) =>
       api.requestPromise(
-        `/projects/${orgSlug}/${project.slug}/events/${eventId}/attachments/${attachmentId}/`,
+        `/projects/${orgSlug}/${project.slug}/events/${attachment.event_id}/attachments/${attachment.id}/`,
         {
           method: 'DELETE',
         }
       ),
-    onError: () => {
-      addErrorMessage('An error occurred while deleteting the attachment');
+    onMutate: async variables => {
+      await queryClient.cancelQueries({
+        queryKey: makeFetchGroupEventAttachmentsQueryKey(variables),
+      });
+
+      const previous = getApiQueryData<IssueAttachment[]>(
+        queryClient,
+        makeFetchGroupEventAttachmentsQueryKey(variables)
+      );
+
+      setApiQueryData<IssueAttachment[]>(
+        queryClient,
+        makeFetchGroupEventAttachmentsQueryKey(variables),
+        oldData => {
+          if (!Array.isArray(oldData)) {
+            return oldData;
+          }
+
+          return oldData.filter(
+            oldAttachment => oldAttachment.id !== variables.attachment.id
+          );
+        }
+      );
+
+      return {previous};
+    },
+    onError: (error, variables, context) => {
+      addErrorMessage(
+        error?.responseJSON?.detail
+          ? (error.responseJSON.detail as string)
+          : t('An error occurred while deleting the attachment')
+      );
+
+      if (context) {
+        setApiQueryData(
+          queryClient,
+          makeFetchGroupEventAttachmentsQueryKey(variables),
+          context.previous
+        );
+      }
     },
   });
 
-  const handleDelete = (deletedAttachmentId: string) => {
-    const attachment = attachments.find(item => item.id === deletedAttachmentId);
-    if (!attachment) {
-      return;
-    }
-
-    // TODO handle delete optimistically
-    // setDeletedAttachments(prevState => [...prevState, deletedAttachmentId]);
-
-    deleteAttachment({attachmentId: attachment.id, eventId: attachment.event_id});
+  const handleDelete = (attachment: IssueAttachment) => {
+    deleteAttachment({
+      attachment,
+      groupId,
+      orgSlug,
+      location,
+      activeAttachmentsTab,
+    });
   };
 
   const renderAttachmentsTable = () => {

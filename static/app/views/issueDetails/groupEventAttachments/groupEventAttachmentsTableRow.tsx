@@ -20,7 +20,7 @@ const types = {
 type Props = {
   attachment: IssueAttachment;
   groupId: string;
-  onDelete: (attachmentId: string) => void;
+  onDelete: (attachment: IssueAttachment) => void;
   orgSlug: string;
   projectSlug: string;
 };
@@ -67,7 +67,7 @@ function GroupEventAttachmentsTableRow({
         <EventAttachmentActions
           withPreviewButton
           attachment={attachment}
-          onDelete={() => onDelete(attachment.id)}
+          onDelete={() => onDelete(attachment)}
           onPreviewClick={handlePreviewClick}
           previewIsOpen={previewIsOpen}
           projectSlug={projectSlug}

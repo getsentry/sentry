@@ -1,3 +1,4 @@
+import {Role} from 'sentry/components/acl/role';
 import {Button, LinkButton} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import Confirm from 'sentry/components/confirm';
@@ -25,64 +26,65 @@ function EventAttachmentActions({
   onDelete,
 }: Props) {
   const organization = useOrganization();
-  const hasAttachmentRole = organization.orgRoleList.some(
-    role => role.id === organization.attachmentsRole
-  );
   const url = `/api/0/projects/${organization.slug}/${projectSlug}/events/${attachment.event_id}/attachments/${attachment.id}/`;
   const hasPreview = hasInlineAttachmentRenderer(attachment);
 
   return (
-    <ButtonBar gap={1}>
-      {withPreviewButton && (
-        <Button
-          size="xs"
-          disabled={!hasAttachmentRole || !hasPreview}
-          priority={previewIsOpen ? 'primary' : 'default'}
-          icon={<IconShow />}
-          onClick={onPreviewClick}
-          title={
-            !hasAttachmentRole
-              ? t('Insufficient permissions to preview attachments')
-              : !hasPreview
-                ? t('This attachment cannot be previewed')
-                : undefined
-          }
-        >
-          {t('Preview')}
-        </Button>
+    <Role role={organization.attachmentsRole}>
+      {({hasRole: hasAttachmentRole}) => (
+        <ButtonBar gap={1}>
+          {withPreviewButton && (
+            <Button
+              size="xs"
+              disabled={!hasAttachmentRole || !hasPreview}
+              priority={previewIsOpen ? 'primary' : 'default'}
+              icon={<IconShow />}
+              onClick={onPreviewClick}
+              title={
+                !hasAttachmentRole
+                  ? t('Insufficient permissions to preview attachments')
+                  : !hasPreview
+                    ? t('This attachment cannot be previewed')
+                    : undefined
+              }
+            >
+              {t('Preview')}
+            </Button>
+          )}
+          <LinkButton
+            size="xs"
+            icon={<IconDownload />}
+            href={hasAttachmentRole ? `${url}?download=1` : ''}
+            disabled={!hasAttachmentRole}
+            title={
+              hasAttachmentRole
+                ? t('Download')
+                : t('Insufficient permissions to download attachments')
+            }
+            aria-label={t('Download')}
+          />
+          <Confirm
+            confirmText={t('Delete')}
+            message={t('Are you sure you wish to delete this file?')}
+            priority="danger"
+            onConfirm={onDelete}
+            disabled={!hasAttachmentRole}
+          >
+            <Button
+              size="xs"
+              icon={<IconDelete />}
+              aria-label={t('Delete')}
+              disabled={!hasAttachmentRole}
+              title={
+                hasAttachmentRole
+                  ? t('Delete')
+                  : t('Insufficient permissions to delete attachments')
+              }
+            />
+          </Confirm>
+        </ButtonBar>
       )}
-      <LinkButton
-        size="xs"
-        icon={<IconDownload />}
-        href={hasAttachmentRole ? `${url}?download=1` : ''}
-        disabled={!hasAttachmentRole}
-        title={
-          hasAttachmentRole
-            ? t('Download')
-            : t('Insufficient permissions to download attachments')
-        }
-        aria-label={t('Download')}
-      />
-      <Confirm
-        confirmText={t('Delete')}
-        message={t('Are you sure you wish to delete this file?')}
-        priority="danger"
-        onConfirm={onDelete}
-        disabled={!hasAttachmentRole}
-      >
-        <Button
-          size="xs"
-          icon={<IconDelete />}
-          aria-label={t('Delete')}
-          disabled={!hasAttachmentRole}
-          title={
-            hasAttachmentRole
-              ? t('Delete')
-              : t('Insufficient permissions to delete attachments')
-          }
-        />
-      </Confirm>
-    </ButtonBar>
+    </Role>
   );
 }
 

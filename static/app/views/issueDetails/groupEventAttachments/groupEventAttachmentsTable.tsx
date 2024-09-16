@@ -11,7 +11,7 @@ type Props = {
   emptyMessage: string;
   groupId: string;
   isLoading: boolean;
-  onDelete: (attachmentId: string) => void;
+  onDelete: (attachment: IssueAttachment) => void;
   orgSlug: string;
   projectSlug: string;
 };
