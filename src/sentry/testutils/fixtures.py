@@ -640,7 +640,7 @@ class Fixtures:
     def create_workflow_action(self, *args, **kwargs):
         return Factories.create_workflow_action(*args, **kwargs)
 
-    def create_data_source(self, *args, **kwargs):
+    def create_data_source(self, *args, **kwargs) -> DataSource:
         return Factories.create_data_source(*args, **kwargs)
 
     def create_data_condition(self, *args, **kwargs):
