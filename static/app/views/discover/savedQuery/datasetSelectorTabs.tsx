@@ -2,7 +2,16 @@ import {TabList, Tabs} from 'sentry/components/tabs';
 import {t} from 'sentry/locale';
 import type {SavedQuery} from 'sentry/types/organization';
 import type EventView from 'sentry/utils/discover/eventView';
-import {SavedQueryDatasets} from 'sentry/utils/discover/types';
+import {
+  ERROR_ONLY_FIELDS,
+  explodeField,
+  getAggregations,
+  type QueryFieldValue,
+  TRANSACTION_ONLY_FIELDS,
+} from 'sentry/utils/discover/fields';
+import {DiscoverDatasets, SavedQueryDatasets} from 'sentry/utils/discover/types';
+import type {FieldKey, SpanOpBreakdown} from 'sentry/utils/fields';
+import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -25,6 +34,70 @@ type Props = {
   savedQuery: SavedQuery | undefined;
   splitDecision?: SavedQueryDatasets;
 };
+
+function getValidEventViewForDataset(eventView: EventView, toDataset: DiscoverDatasets) {
+  let modifiedQuery: boolean = false;
+  let to = eventView.clone();
+  const allowedAggregations = Object.keys(getAggregations(toDataset));
+  let newColumns: QueryFieldValue[] = [];
+  const search = new MutableSearch(eventView.query);
+  const denylistedFields =
+    toDataset === DiscoverDatasets.ERRORS ? TRANSACTION_ONLY_FIELDS : ERROR_ONLY_FIELDS;
+
+  const removedFields: string[] = [];
+  const equationsToCheck: string[] = [];
+  eventView.fields.forEach(field => {
+    const column = explodeField(field);
+    if (
+      column.kind === 'field' &&
+      denylistedFields.includes(column.field as FieldKey | SpanOpBreakdown)
+    ) {
+      search.removeFilter(field.field);
+      removedFields.push(field.field);
+      modifiedQuery = true;
+      return;
+    }
+    if (column.kind === 'function') {
+      if (!allowedAggregations.includes(column.function[0])) {
+        search.removeFilter(field.field);
+        removedFields.push(field.field);
+        modifiedQuery = true;
+        return;
+      }
+      if (denylistedFields.includes(column.function[1] as FieldKey | SpanOpBreakdown)) {
+        search.removeFilter(field.field);
+        removedFields.push(field.field);
+        modifiedQuery = true;
+        return;
+      }
+    }
+    if (column.kind === 'equation') {
+      equationsToCheck.push(field.field);
+    }
+    newColumns.push(column);
+  });
+
+  newColumns = newColumns.filter(column => {
+    if (column.kind !== 'equation') {
+      return true;
+    }
+    return removedFields.some(f => !column.field.includes(f));
+  });
+
+  const remainingSearchFilter = search.formatString();
+
+  for (let index = 0; index < denylistedFields.length; index++) {
+    const element = denylistedFields[index];
+    if (remainingSearchFilter.includes(element)) {
+      search.removeFilter(element);
+      modifiedQuery = true;
+    }
+  }
+
+  to = to.withColumns(newColumns);
+  to.query = search.formatString();
+  return {to, modifiedQuery};
+}
 
 export function DatasetSelectorTabs(props: Props) {
   const {savedQuery, isHomepage, splitDecision, eventView} = props;
@@ -56,8 +129,13 @@ export function DatasetSelectorTabs(props: Props) {
     <Tabs
       value={value}
       onChange={newValue => {
-        const nextEventView = eventView.withDataset(
-          getDatasetFromLocationOrSavedQueryDataset(undefined, newValue)
+        const {to: nextEventView, modifiedQuery} = getValidEventViewForDataset(
+          eventView.withDataset(
+            getDatasetFromLocationOrSavedQueryDataset(undefined, newValue)
+          ),
+          newValue === SavedQueryDatasets.ERRORS
+            ? DiscoverDatasets.ERRORS
+            : DiscoverDatasets.TRANSACTIONS
         );
         const nextLocation = nextEventView.getResultsViewUrlTarget(
           organization.slug,
@@ -68,6 +146,7 @@ export function DatasetSelectorTabs(props: Props) {
           query: {
             ...nextLocation.query,
             [DATASET_PARAM]: newValue,
+            incompatible: modifiedQuery ? modifiedQuery : undefined,
           },
         });
       }}
