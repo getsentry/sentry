@@ -10,7 +10,7 @@ hybridcloud: 0016_add_control_cacheversion
 nodestore: 0002_nodestore_no_dictfield
 remote_subscriptions: 0003_drop_remote_subscription
 replays: 0004_index_together
-sentry: 0760_remove_appstore_connect_integration_tables
+sentry: 0761_add_substatus_constraint_to_groups
 social_auth: 0002_default_auto_field
 uptime: 0011_remove_uptime_whois_columns_db
 workflow_engine: 0005_data_source_detector

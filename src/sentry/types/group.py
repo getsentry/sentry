@@ -28,8 +28,6 @@ IGNORED_SUBSTATUS_CHOICES = {
     GroupSubStatus.UNTIL_ESCALATING,
     GroupSubStatus.FOREVER,
     GroupSubStatus.UNTIL_CONDITION_MET,
-    # IGNORED groups may have no substatus for now. Remove this once the migration is complete.
-    None,
 }
 
 SUBSTATUS_UPDATE_CHOICES: Mapping[str, int] = {
