@@ -1,10 +1,10 @@
 import {type ForwardedRef, forwardRef, useCallback} from 'react';
 import {VisuallyHidden} from '@react-aria/visually-hidden';
 import type {ListState} from '@react-stately/list';
-import type {Key} from '@react-types/shared';
 
 import {useSearchQueryBuilder} from 'sentry/components/searchQueryBuilder/context';
-import {type ParseResultToken, Token} from 'sentry/components/searchSyntax/parser';
+import {findNearestFreeTextKey} from 'sentry/components/searchQueryBuilder/utils';
+import type {ParseResultToken} from 'sentry/components/searchSyntax/parser';
 import {defined} from 'sentry/utils';
 import {isCtrlKeyPressed} from 'sentry/utils/isCtrlKeyPressed';
 
@@ -12,32 +12,6 @@ type SelectionKeyHandlerProps = {
   state: ListState<ParseResultToken>;
   undo: () => void;
 };
-
-function findNearestFreeTextKey(
-  state: ListState<ParseResultToken>,
-  startKey: Key | null,
-  direction: 'right' | 'left'
-): Key | null {
-  let key: Key | null = startKey;
-  while (key) {
-    const item = state.collection.getItem(key);
-    if (!item) {
-      break;
-    }
-    if (item.value?.type === Token.FREE_TEXT) {
-      return key;
-    }
-    key = (direction === 'right' ? item.nextKey : item.prevKey) ?? null;
-  }
-
-  if (key) {
-    return key;
-  }
-
-  return direction === 'right'
-    ? state.collection.getLastKey()
-    : state.collection.getFirstKey();
-}
 
 /**
  * SelectionKeyHandler is used to handle keyboard events when a selection is
