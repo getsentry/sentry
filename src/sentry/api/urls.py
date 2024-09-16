@@ -174,9 +174,12 @@ from sentry.issues.endpoints import (
     ActionableItemsEndpoint,
     GroupEventsEndpoint,
     OrganizationGroupIndexEndpoint,
+    OrganizationGroupIndexStatsEndpoint,
     OrganizationGroupSearchViewsEndpoint,
     OrganizationReleasePreviousCommitsEndpoint,
     OrganizationSearchesEndpoint,
+    ProjectGroupIndexEndpoint,
+    ProjectGroupStatsEndpoint,
     ProjectStacktraceLinkEndpoint,
     SourceMapDebugEndpoint,
 )
@@ -456,7 +459,6 @@ from .endpoints.organization_events_trends import (
 )
 from .endpoints.organization_events_trends_v2 import OrganizationEventsNewTrendsStatsEndpoint
 from .endpoints.organization_events_vitals import OrganizationEventsVitalsEndpoint
-from .endpoints.organization_group_index_stats import OrganizationGroupIndexStatsEndpoint
 from .endpoints.organization_index import OrganizationIndexEndpoint
 from .endpoints.organization_issues_count import OrganizationIssuesCountEndpoint
 from .endpoints.organization_issues_resolved_in_release import (
@@ -570,8 +572,6 @@ from .endpoints.project_event_details import EventJsonEndpoint, ProjectEventDeta
 from .endpoints.project_events import ProjectEventsEndpoint
 from .endpoints.project_filter_details import ProjectFilterDetailsEndpoint
 from .endpoints.project_filters import ProjectFiltersEndpoint
-from .endpoints.project_group_index import ProjectGroupIndexEndpoint
-from .endpoints.project_group_stats import ProjectGroupStatsEndpoint
 from .endpoints.project_grouping_configs import ProjectGroupingConfigsEndpoint
 from .endpoints.project_index import ProjectIndexEndpoint
 from .endpoints.project_issues_resolved_in_release import ProjectIssuesResolvedInReleaseEndpoint
