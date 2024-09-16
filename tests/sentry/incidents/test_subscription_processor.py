@@ -948,6 +948,7 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
                 "organization_id": self.organization.id,
                 "project_id": self.project.id,
                 "alert_rule_id": self.rule.id,
+                "response_data": None,
             },
         )
         assert result is None
