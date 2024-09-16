@@ -1,6 +1,7 @@
 import {
   type Dispatch,
   Fragment,
+  type Key,
   type SetStateAction,
   useContext,
   useEffect,
@@ -146,6 +147,7 @@ function Tabs({
   const values = useMemo(() => [...state.collection], [state.collection]);
 
   const [isDragging, setIsDragging] = useState(false);
+  const [hoveringKey, setHoveringKey] = useState<Key | null>(null);
 
   // Only apply this while dragging, because it causes tabs to stay within the container
   // which we do not want (we hide tabs once they overflow
@@ -179,6 +181,8 @@ function Tabs({
               layout
               onDrag={() => setIsDragging(true)}
               onDragEnd={() => setIsDragging(false)}
+              onHoverStart={() => setHoveringKey(item.key)}
+              onHoverEnd={() => setHoveringKey(null)}
             >
               <div key={item.key}>
                 <Tab
@@ -193,9 +197,11 @@ function Tabs({
             </TabItemWrap>
             <TabDivider
               isVisible={
-                state.selectedKey === TEMPORARY_TAB_KEY ||
-                (state.selectedKey !== item.key &&
-                  state.collection.getKeyAfter(item.key) !== state.selectedKey)
+                (state.selectedKey === TEMPORARY_TAB_KEY ||
+                  (state.selectedKey !== item.key &&
+                    state.collection.getKeyAfter(item.key) !== state.selectedKey)) &&
+                hoveringKey !== item.key &&
+                state.collection.getKeyAfter(item.key) !== hoveringKey
               }
             />
           </Fragment>
@@ -445,6 +451,10 @@ const AddViewMotionWrapper = styled(motion.div)`
 `;
 
 const OverflowMenuTrigger = styled(DropdownButton)`
-  padding-left: ${space(1)};
-  padding-right: ${space(1)};
+  padding: ${space(0.5)} ${space(0.75)};
+  border: none;
+
+  & > span {
+    height: 26px;
+  }
 `;

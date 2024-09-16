@@ -411,8 +411,8 @@ def _make_seer_call(
     seer_response = _retry_operation(
         post_bulk_grouping_records,
         create_grouping_records_request,
-        retries=15,
-        delay=10,
+        retries=20,
+        delay=15,
         exceptions=Exception,
     )
 
@@ -499,6 +499,7 @@ def send_group_and_stacktrace_to_seer_multithreaded(
         for seer_response in seer_responses:
             if not seer_response["success"]:
                 aggregated_response["success"] = False
+                aggregated_response.update({"reason": seer_response["reason"]})
                 return aggregated_response
 
             aggregated_response["groups_with_neighbor"].update(

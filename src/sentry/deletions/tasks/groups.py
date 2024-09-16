@@ -2,14 +2,14 @@ from collections.abc import Mapping, Sequence
 from typing import Any
 from uuid import uuid4
 
+from sentry.deletions.tasks.scheduled import MAX_RETRIES, logger
 from sentry.exceptions import DeleteAborted
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task, retry, track_group_async_operation
-from sentry.tasks.deletion.scheduled import MAX_RETRIES, logger
 
 
 @instrumented_task(
-    name="sentry.tasks.deletion.delete_groups",
+    name="sentry.deletions.tasks.groups.delete_groups",
     queue="cleanup",
     default_retry_delay=60 * 5,
     max_retries=MAX_RETRIES,
@@ -18,7 +18,7 @@ from sentry.tasks.deletion.scheduled import MAX_RETRIES, logger
 )
 @retry(exclude=(DeleteAborted,))
 @track_group_async_operation
-def delete_groups(
+def delete_groups_new(
     object_ids: Sequence[int],
     transaction_id: str | None = None,
     eventstream_state: Mapping[str, Any] | None = None,
@@ -57,3 +57,22 @@ def delete_groups(
         # all groups have been deleted
         if eventstream_state:
             eventstream.backend.end_delete_groups(eventstream_state)
+
+
+@instrumented_task(
+    name="sentry.tasks.deletion.delete_groups",
+    queue="cleanup",
+    default_retry_delay=60 * 5,
+    max_retries=MAX_RETRIES,
+    acks_late=True,
+    silo_mode=SiloMode.REGION,
+)
+@retry(exclude=(DeleteAborted,))
+@track_group_async_operation
+def delete_groups(
+    object_ids: Sequence[int],
+    transaction_id: str | None = None,
+    eventstream_state: Mapping[str, Any] | None = None,
+    **kwargs: Any,
+) -> None:
+    delete_groups_new(object_ids, transaction_id, eventstream_state, **kwargs)

@@ -26,7 +26,7 @@ from sentry.tasks.embeddings_grouping.utils import (
 
 BACKFILL_NAME = "backfill_grouping_records"
 BULK_DELETE_METADATA_CHUNK_SIZE = 100
-SEER_ACCEPTABLE_FAILURE_REASONS = ["Gateway Timeout"]
+SEER_ACCEPTABLE_FAILURE_REASONS = ["Gateway Timeout", "Service Unavailable"]
 
 logger = logging.getLogger(__name__)
 
