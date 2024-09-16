@@ -1,4 +1,5 @@
 from .actionable_items import ActionableItemsEndpoint
+from .group_details import GroupDetailsEndpoint
 from .group_event_details import GroupEventDetailsEndpoint
 from .group_events import GroupEventsEndpoint
 from .group_hashes import GroupHashesEndpoint
@@ -17,6 +18,7 @@ from .source_map_debug import SourceMapDebugEndpoint
 
 __all__ = (
     "ActionableItemsEndpoint",
+    "GroupDetailsEndpoint",
     "GroupEventsEndpoint",
     "GroupEventDetailsEndpoint",
     "GroupHashesEndpoint",

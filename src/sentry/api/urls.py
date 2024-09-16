@@ -168,6 +168,7 @@ from sentry.integrations.api.endpoints.organization_repository_details import (
 )
 from sentry.issues.endpoints import (
     ActionableItemsEndpoint,
+    GroupDetailsEndpoint,
     GroupEventDetailsEndpoint,
     GroupEventsEndpoint,
     GroupHashesEndpoint,
@@ -339,7 +340,6 @@ from .endpoints.group_ai_autofix import GroupAutofixEndpoint
 from .endpoints.group_attachments import GroupAttachmentsEndpoint
 from .endpoints.group_autofix_update import GroupAutofixUpdateEndpoint
 from .endpoints.group_current_release import GroupCurrentReleaseEndpoint
-from .endpoints.group_details import GroupDetailsEndpoint
 from .endpoints.group_external_issue_details import GroupExternalIssueDetailsEndpoint
 from .endpoints.group_external_issues import GroupExternalIssuesEndpoint
 from .endpoints.group_first_last_release import GroupFirstLastReleaseEndpoint
