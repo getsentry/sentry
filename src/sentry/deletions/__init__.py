@@ -79,13 +79,12 @@ descendants, such as Event, so it can more efficiently bulk delete rows.
 """
 
 from .base import BulkModelDeletionTask, ModelDeletionTask, ModelRelation  # NOQA
-from .defaults.artifactbundle import ArtifactBundleDeletionTask
 from .manager import DeletionTaskManager
 
 default_manager = DeletionTaskManager(default_task=ModelDeletionTask)
 
 
-def load_defaults():
+def load_defaults() -> None:
     from sentry import models
     from sentry.discover.models import DiscoverSavedQuery
     from sentry.incidents.models.alert_rule import (
@@ -175,7 +174,7 @@ def load_defaults():
     default_manager.register(models.SavedSearch, BulkModelDeletionTask)
     default_manager.register(models.Team, defaults.TeamDeletionTask)
     default_manager.register(models.UserReport, BulkModelDeletionTask)
-    default_manager.register(models.ArtifactBundle, ArtifactBundleDeletionTask)
+    default_manager.register(models.ArtifactBundle, defaults.ArtifactBundleDeletionTask)
     default_manager.register(models.Rule, defaults.RuleDeletionTask)
     default_manager.register(RuleFireHistory, defaults.RuleFireHistoryDeletionTask)
 

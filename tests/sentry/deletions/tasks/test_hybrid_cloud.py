@@ -11,6 +11,15 @@ from django.db.models import Max, QuerySet
 from sentry.backup.scopes import RelocationScope
 from sentry.db.models import Model, region_silo_model
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
+from sentry.deletions.tasks.hybrid_cloud import (
+    WatermarkBatch,
+    get_ids_cross_db_for_row_watermark,
+    get_ids_cross_db_for_tombstone_watermark,
+    get_watermark,
+    schedule_hybrid_cloud_foreign_key_jobs,
+    schedule_hybrid_cloud_foreign_key_jobs_control,
+    set_watermark,
+)
 from sentry.discover.models import DiscoverSavedQuery
 from sentry.hybridcloud.models.outbox import ControlOutbox, outbox_context
 from sentry.hybridcloud.outbox.category import OutboxScope
@@ -23,15 +32,6 @@ from sentry.models.savedsearch import SavedSearch
 from sentry.models.tombstone import RegionTombstone
 from sentry.monitors.models import Monitor
 from sentry.silo.base import SiloMode
-from sentry.tasks.deletion.hybrid_cloud import (
-    WatermarkBatch,
-    get_ids_cross_db_for_row_watermark,
-    get_ids_cross_db_for_tombstone_watermark,
-    get_watermark,
-    schedule_hybrid_cloud_foreign_key_jobs,
-    schedule_hybrid_cloud_foreign_key_jobs_control,
-    set_watermark,
-)
 from sentry.testutils.cases import TestCase
 from sentry.testutils.factories import Factories
 from sentry.testutils.helpers.task_runner import BurstTaskRunner
@@ -60,7 +60,7 @@ class DoNothingIntegrationModel(Model):
 def batch_size_one():
     with (
         patch("sentry.deletions.base.ModelDeletionTask.DEFAULT_QUERY_LIMIT", new=1),
-        patch("sentry.tasks.deletion.hybrid_cloud.get_batch_size", return_value=1),
+        patch("sentry.deletions.tasks.hybrid_cloud.get_batch_size", return_value=1),
     ):
         yield
 
@@ -662,7 +662,7 @@ class TestGetIdsForTombstoneCascadeCrossDbRowWatermarking(TestCase):
         # In testing, the IDs for these models will be low, sequential values
         # so adding some seed data to space the IDs out gives better insight
         # on filter correctness.
-        desired_user_and_monitor_ids = [(10, 9), (42, 30), (77, 120)]
+        desired_user_and_monitor_ids = [(10, 9), (42, 40), (77, 120)]
         cascade_data = [
             setup_cross_db_deletion_data(desired_user_id=user_id, desired_monitor_id=monitor_id)
             for user_id, monitor_id in desired_user_and_monitor_ids

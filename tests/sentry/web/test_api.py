@@ -8,12 +8,12 @@ from django.urls import reverse
 from sentry import options
 from sentry.api.utils import generate_region_url
 from sentry.auth import superuser
+from sentry.deletions.tasks.scheduled import run_deletion
 from sentry.models.apitoken import ApiToken
 from sentry.models.organization import Organization, OrganizationStatus
 from sentry.models.organizationmember import OrganizationMember
 from sentry.models.scheduledeletion import RegionScheduledDeletion
 from sentry.silo.base import SiloMode
-from sentry.tasks.deletion.scheduled import run_deletion
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.options import override_options
 from sentry.testutils.silo import assume_test_silo_mode, create_test_regions, region_silo_test

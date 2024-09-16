@@ -1,5 +1,6 @@
 from uuid import uuid4
 
+from sentry.deletions.tasks.scheduled import run_scheduled_deletions
 from sentry.discover.models import DiscoverSavedQuery, DiscoverSavedQueryProject
 from sentry.incidents.models.alert_rule import AlertRule, AlertRuleStatus
 from sentry.integrations.models.external_issue import ExternalIssue
@@ -24,7 +25,6 @@ from sentry.models.releaseenvironment import ReleaseEnvironment
 from sentry.models.repository import Repository
 from sentry.silo.base import SiloMode
 from sentry.snuba.models import SnubaQuery
-from sentry.tasks.deletion.scheduled import run_scheduled_deletions
 from sentry.testutils.cases import TransactionTestCase
 from sentry.testutils.hybrid_cloud import HybridCloudTestMixin
 from sentry.testutils.outbox import outbox_runner
