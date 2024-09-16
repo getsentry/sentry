@@ -123,3 +123,35 @@ def check_leaked_responses_mocks():
             f"`responses` were leaked outside of the test context:\n{leaked_s}"
             f"(make sure to use `@responses.activate` or `with responses.mock:`)"
         )
+
+
+import pytest
+
+
+@pytest.hookimpl
+def pytest_configure():
+    patch_unittest_TestCase_doClassCleanup()
+
+
+def patch_unittest_TestCase_doClassCleanup():
+    """Raise/print errors caught during class cleanup
+
+    pytest ignores `TestCase.tearDown_exceptions`, which causes them to
+    pass silently.
+    """
+
+    @classmethod
+    def doClassCleanupAndRaiseLastError(cls):
+        doClassCleanups.__get__(None, cls)()
+        errors = cls.tearDown_exceptions
+        if errors:
+            if len(errors) > 1:
+                for n, (exc_type, exc, tb) in enumerate(errors[:-1], start=1):
+                    print_exception(exc_type, exc, tb)
+            raise errors[-1][1]
+
+    from traceback import print_exception
+    from unittest.case import TestCase
+
+    doClassCleanups = TestCase.__dict__["doClassCleanups"]
+    TestCase.doClassCleanups = doClassCleanupAndRaiseLastError
