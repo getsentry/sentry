@@ -148,7 +148,11 @@ class ProcessResultTest(UptimeTestCase, ProducerTestMixin):
             self.send_result(result)
             metrics.incr.assert_has_calls(
                 [
-                    call("uptime.result_processor.restricted_by_provider", sample_rate=1.0),
+                    call(
+                        "uptime.result_processor.restricted_by_provider",
+                        sample_rate=1.0,
+                        tags={"host_provider_id": "TEST"},
+                    ),
                 ],
                 any_order=True,
             )
