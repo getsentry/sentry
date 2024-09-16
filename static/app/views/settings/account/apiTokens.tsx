@@ -3,7 +3,7 @@ import {
   addLoadingMessage,
   addSuccessMessage,
 } from 'sentry/actionCreators/indicator';
-import {Button} from 'sentry/components/button';
+import {LinkButton} from 'sentry/components/button';
 import EmptyMessage from 'sentry/components/emptyMessage';
 import ExternalLink from 'sentry/components/links/externalLink';
 import LoadingError from 'sentry/components/loadingError';
@@ -35,59 +35,57 @@ export function ApiTokens() {
 
   const {
     data: tokenList,
-    isLoading,
+    isPending,
     isError,
     refetch,
   } = useApiQuery<InternalAppApiToken[]>(API_TOKEN_QUERY_KEY, {staleTime: 0});
 
-  const {mutate: deleteToken} = useMutation(
-    (token: InternalAppApiToken) => {
+  const {mutate: deleteToken} = useMutation({
+    mutationFn: (token: InternalAppApiToken) => {
       return api.requestPromise('/api-tokens/', {
         method: 'DELETE',
         data: {tokenId: token.id},
       });
     },
-    {
-      onMutate: token => {
-        addLoadingMessage();
-        queryClient.cancelQueries(API_TOKEN_QUERY_KEY);
+    onMutate: token => {
+      addLoadingMessage();
+      queryClient.cancelQueries({queryKey: API_TOKEN_QUERY_KEY});
 
-        const previous = getApiQueryData<InternalAppApiToken[]>(
-          queryClient,
-          API_TOKEN_QUERY_KEY
-        );
+      const previous = getApiQueryData<InternalAppApiToken[]>(
+        queryClient,
+        API_TOKEN_QUERY_KEY
+      );
 
+      setApiQueryData<InternalAppApiToken[]>(
+        queryClient,
+        API_TOKEN_QUERY_KEY,
+        oldTokenList => {
+          return oldTokenList?.filter(tk => tk.id !== token.id);
+        }
+      );
+
+      return {previous};
+    },
+    onSuccess: _data => {
+      addSuccessMessage(t('Removed token'));
+    },
+    onError: (_error, _variables, context) => {
+      addErrorMessage(t('Unable to remove token. Please try again.'));
+
+      if (context?.previous) {
         setApiQueryData<InternalAppApiToken[]>(
           queryClient,
           API_TOKEN_QUERY_KEY,
-          oldTokenList => {
-            return oldTokenList?.filter(tk => tk.id !== token.id);
-          }
+          context.previous
         );
+      }
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({queryKey: API_TOKEN_QUERY_KEY});
+    },
+  });
 
-        return {previous};
-      },
-      onSuccess: _data => {
-        addSuccessMessage(t('Removed token'));
-      },
-      onError: (_error, _variables, context) => {
-        addErrorMessage(t('Unable to remove token. Please try again.'));
-
-        if (context?.previous) {
-          setApiQueryData<InternalAppApiToken[]>(
-            queryClient,
-            API_TOKEN_QUERY_KEY,
-            context.previous
-          );
-        }
-      },
-      onSettled: () => {
-        queryClient.invalidateQueries(API_TOKEN_QUERY_KEY);
-      },
-    }
-  );
-
-  if (isLoading) {
+  if (isPending) {
     return <LoadingIndicator />;
   }
 
@@ -98,13 +96,13 @@ export function ApiTokens() {
   const isEmpty = !Array.isArray(tokenList) || tokenList.length === 0;
 
   const action = (
-    <Button
+    <LinkButton
       priority="primary"
       size="sm"
       to="/settings/account/api/auth-tokens/new-token/"
     >
       {t('Create New Token')}
-    </Button>
+    </LinkButton>
   );
 
   return (

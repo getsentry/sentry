@@ -1,4 +1,3 @@
-import type {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 import isEqual from 'lodash/isEqual';
 import pick from 'lodash/pick';
@@ -6,7 +5,7 @@ import pick from 'lodash/pick';
 import Feature from 'sentry/components/acl/feature';
 import {Alert} from 'sentry/components/alert';
 import {Breadcrumbs} from 'sentry/components/breadcrumbs';
-import {Button} from 'sentry/components/button';
+import {LinkButton} from 'sentry/components/button';
 import {CompactSelect} from 'sentry/components/compactSelect';
 import DeprecatedAsyncComponent from 'sentry/components/deprecatedAsyncComponent';
 import * as Layout from 'sentry/components/layouts/thirds';
@@ -16,6 +15,7 @@ import Switch from 'sentry/components/switchButton';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {SelectValue} from 'sentry/types/core';
+import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import type {NewQuery, Organization, SavedQuery} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {browserHistory} from 'sentry/utils/browserHistory';
@@ -285,7 +285,7 @@ class DiscoverLanding extends DeprecatedAsyncComponent<Props, State> {
             <Layout.Header>
               <Layout.HeaderContent>{this.renderBreadcrumbs()}</Layout.HeaderContent>
               <Layout.HeaderActions>
-                <Button
+                <LinkButton
                   data-test-id="build-new-query"
                   to={to}
                   size="sm"
@@ -297,7 +297,7 @@ class DiscoverLanding extends DeprecatedAsyncComponent<Props, State> {
                   }}
                 >
                   {t('Build a new query')}
-                </Button>
+                </LinkButton>
               </Layout.HeaderActions>
             </Layout.Header>
             <Layout.Body>

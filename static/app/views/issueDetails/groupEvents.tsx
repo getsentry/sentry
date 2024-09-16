@@ -1,12 +1,13 @@
 import {useCallback} from 'react';
-import type {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 
 import EventSearchBar from 'sentry/components/events/searchBar';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {space} from 'sentry/styles/space';
 import type {Group} from 'sentry/types/group';
+import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import {browserHistory} from 'sentry/utils/browserHistory';
+import {ISSUE_PROPERTY_FIELDS} from 'sentry/utils/fields';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import useCleanQueryParamsOnRouteLeave from 'sentry/utils/useCleanQueryParamsOnRouteLeave';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -21,11 +22,10 @@ interface Props extends RouteComponentProps<{groupId: string}, {}> {
 
 export const ALL_EVENTS_EXCLUDED_TAGS = [
   'environment',
-  'issue',
-  'issue.id',
   'performance.issue_ids',
   'transaction.op',
   'transaction.status',
+  ...ISSUE_PROPERTY_FIELDS,
 ];
 
 function GroupEvents({params, location, group, environments}: Props) {

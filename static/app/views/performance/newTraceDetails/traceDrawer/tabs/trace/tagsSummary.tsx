@@ -116,14 +116,18 @@ export function TagsSummary(props: TagSummaryProps) {
     fetchNextPage,
     hasNextPage,
     isFetchingNextPage,
-    isLoading, // If anything is loaded yet
+    isPending, // If anything is loaded yet
   } = props.tagsInfiniteQueryResults;
 
   const tags: Tag[] = useMemo(() => {
     if (!data) {
       return [];
     }
-    return data.pages.flatMap(([pageData]) => (isEmpty(pageData) ? [] : pageData));
+    // filter out replayId since we no longer want to
+    // display this trace details
+    return data.pages
+      .flatMap(([pageData]) => (isEmpty(pageData) ? [] : pageData))
+      .filter(d => d.key !== 'replayId');
   }, [data]);
 
   return (
@@ -149,7 +153,7 @@ export function TagsSummary(props: TagSummaryProps) {
                   ))}
                 </StyledTagFacetList>
               ) : null}
-              {isLoading || isFetchingNextPage ? (
+              {isPending || isFetchingNextPage ? (
                 <TagsSummaryPlaceholder />
               ) : tags.length === 0 ? (
                 <StyledEmptyStateWarning small>

@@ -132,7 +132,7 @@ function AggregateFlamegraphToolbar(props: AggregateFlamegraphToolbarProps) {
 export function LandingAggregateFlamegraph(): React.ReactNode {
   const location = useLocation();
 
-  const {data, isLoading, isError} = useAggregateFlamegraphQuery({
+  const {data, isPending, isError} = useAggregateFlamegraphQuery({
     dataSource: 'profiles',
   });
 
@@ -212,7 +212,7 @@ export function LandingAggregateFlamegraph(): React.ReactNode {
                 setHideSystemFrames={noop}
                 onHideRegressionsClick={onHideRegressionsClick}
               />
-              {isLoading ? (
+              {isPending ? (
                 <RequestStateMessageContainer>
                   <LoadingIndicator />
                 </RequestStateMessageContainer>

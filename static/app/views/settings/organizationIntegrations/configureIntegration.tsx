@@ -1,5 +1,4 @@
 import {Fragment, useEffect} from 'react';
-import type {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
@@ -23,6 +22,7 @@ import type {
   OrganizationIntegration,
   PluginWithProjectList,
 } from 'sentry/types/integrations';
+import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import type {Organization} from 'sentry/types/organization';
 import {singleLineRenderer} from 'sentry/utils/marked';
 import type {ApiQueryKey} from 'sentry/utils/queryClient';
@@ -82,29 +82,26 @@ function ConfigureIntegration({params, router, routes, location}: Props) {
   const {integrationId, providerKey} = params;
   const {
     data: config = {providers: []},
-    isLoading: isLoadingConfig,
+    isPending: isLoadingConfig,
     isError: isErrorConfig,
     refetch: refetchConfig,
-    remove: removeConfig,
   } = useApiQuery<{
     providers: IntegrationProvider[];
   }>([`/organizations/${organization.slug}/config/integrations/`], {staleTime: 0});
   const {
     data: integration,
-    isLoading: isLoadingIntegration,
+    isPending: isLoadingIntegration,
     isError: isErrorIntegration,
     refetch: refetchIntegration,
-    remove: removeIntegration,
   } = useApiQuery<OrganizationIntegration>(
     makeIntegrationQuery(organization, integrationId),
     {staleTime: 0}
   );
   const {
     data: plugins,
-    isLoading: isLoadingPlugins,
+    isPending: isLoadingPlugins,
     isError: isErrorPlugins,
     refetch: refetchPlugins,
-    remove: removePlugins,
   } = useApiQuery<PluginWithProjectList[] | null>(makePluginQuery(organization), {
     staleTime: 0,
   });
@@ -164,13 +161,17 @@ function ConfigureIntegration({params, router, routes, location}: Props) {
    * Refetch everything, this could be improved to reload only the right thing
    */
   const onUpdateIntegration = () => {
-    removePlugins();
+    queryClient.removeQueries({queryKey: makePluginQuery(organization)});
     refetchPlugins();
 
-    removeConfig();
+    queryClient.removeQueries({
+      queryKey: [`/organizations/${organization.slug}/config/integrations/`],
+    });
     refetchConfig();
 
-    removeIntegration();
+    queryClient.removeQueries({
+      queryKey: makeIntegrationQuery(organization, integrationId),
+    });
     refetchIntegration();
   };
 

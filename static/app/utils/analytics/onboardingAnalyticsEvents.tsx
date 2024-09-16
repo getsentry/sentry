@@ -53,11 +53,18 @@ export type OnboardingEventParameters = {
     platform: string;
     project_id: string;
   };
+  'onboarding.slack_setup_clicked': {
+    project_id: string;
+  };
   'onboarding.source_maps_wizard_button_copy_clicked': {
     platform: string;
     project_id: string;
   };
   'onboarding.source_maps_wizard_selected_and_copied': {
+    platform: string;
+    project_id: string;
+  };
+  'onboarding.take_me_to_issues_clicked': {
     platform: string;
     project_id: string;
   };
@@ -93,4 +100,6 @@ export const onboardingEventMap: Record<keyof OnboardingEventParameters, string>
     'Onboarding: Messaging Integration External Install Clicked',
   'onboarding.messaging_integration_steps_refreshed':
     'Onboarding: Messaging Integration Steps Refreshed',
+  'onboarding.take_me_to_issues_clicked': 'Onboarding: Take Me to Issues Clicked',
+  'onboarding.slack_setup_clicked': 'Onboarding: Slack Setup Clicked',
 };

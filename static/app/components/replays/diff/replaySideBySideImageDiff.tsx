@@ -17,14 +17,14 @@ export function ReplaySideBySideImageDiff({leftOffsetMs, replay, rightOffsetMs}:
   const fetching = false;
 
   return (
-    <Flex gap={space(2)} column>
+    <Flex column>
       <DiffHeader>
-        <Flex flex="1" align="center">
-          {t('Before Hydration')}
-        </Flex>
-        <Flex flex="1" align="center">
-          {t('After Hydration')}
-        </Flex>
+        <Before flex="1" align="center">
+          {t('Before')}
+        </Before>
+        <After flex="1" align="center">
+          {t('After')}
+        </After>
       </DiffHeader>
 
       <ReplayGrid>
@@ -34,7 +34,9 @@ export function ReplaySideBySideImageDiff({leftOffsetMs, replay, rightOffsetMs}:
           isFetching={fetching}
           replay={replay}
         >
-          <ReplayPlayer isPreview />
+          <Border>
+            <ReplayPlayer isPreview />
+          </Border>
         </ReplayContextProvider>
 
         <ReplayContextProvider
@@ -43,7 +45,13 @@ export function ReplaySideBySideImageDiff({leftOffsetMs, replay, rightOffsetMs}:
           isFetching={fetching}
           replay={replay}
         >
-          {rightOffsetMs > 0 ? <ReplayPlayer isPreview /> : <div />}
+          {rightOffsetMs > 0 ? (
+            <Border>
+              <ReplayPlayer isPreview />
+            </Border>
+          ) : (
+            <div />
+          )}
         </ReplayContextProvider>
       </ReplayGrid>
     </Flex>
@@ -65,9 +73,29 @@ const DiffHeader = styled('div')`
   div:last-child {
     padding-left: ${space(2)};
   }
+
+  padding: 10px 0;
 `;
 
 const ReplayGrid = styled('div')`
   display: grid;
   grid-template-columns: 1fr 1fr;
+`;
+
+export const Before = styled(Flex)`
+  color: ${p => p.theme.red300};
+`;
+
+export const After = styled(Flex)`
+  color: ${p => p.theme.green300};
+`;
+
+const Border = styled('span')`
+  border: 3px solid;
+  border-radius: ${space(0.5)};
+  border-color: ${p => p.theme.red300};
+  & + & {
+    border-color: ${p => p.theme.green300};
+  }
+  overflow: hidden;
 `;

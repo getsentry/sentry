@@ -1,6 +1,7 @@
 import {ChartType} from 'sentry/chartcuterie/types';
 import TransitionChart from 'sentry/components/charts/transitionChart';
 import TransparentLoadingMask from 'sentry/components/charts/transparentLoadingMask';
+import {t} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
 import type {EventsStatsData} from 'sentry/types/organization';
 import type {MetaType} from 'sentry/utils/discover/eventView';
@@ -11,9 +12,9 @@ import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {useRelativeDateTime} from 'sentry/utils/profiling/hooks/useRelativeDateTime';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
+import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
+import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
 import type {NormalizedTrendsTransaction} from 'sentry/views/performance/trends/types';
-
-import {DataSection} from '../styles';
 
 import {RELATIVE_DAYS_WINDOW} from './consts';
 import Chart from './lineChart';
@@ -55,7 +56,7 @@ function EventBreakpointChart({event}: EventBreakpointChartProps) {
     return acc;
   }, {}) as NormalizedTrendsTransaction;
 
-  const {data, isLoading} = useGenericDiscoverQuery<
+  const {data, isPending} = useGenericDiscoverQuery<
     {
       data: EventsStatsData;
       meta: MetaType;
@@ -75,9 +76,12 @@ function EventBreakpointChart({event}: EventBreakpointChartProps) {
   });
 
   return (
-    <DataSection>
-      <TransitionChart loading={isLoading} reloading>
-        <TransparentLoadingMask visible={isLoading} />
+    <InterimSection
+      type={SectionKey.REGRESSION_BREAKPOINT_CHART}
+      title={t('Regression Breakpoint Chart')}
+    >
+      <TransitionChart loading={isPending} reloading>
+        <TransparentLoadingMask visible={isPending} />
         <Chart
           percentileData={data?.['p95(transaction.duration)']?.data ?? []}
           evidenceData={normalizedOccurrenceEvent}
@@ -85,7 +89,7 @@ function EventBreakpointChart({event}: EventBreakpointChartProps) {
           chartType={ChartType.SLACK_PERFORMANCE_ENDPOINT_REGRESSION}
         />
       </TransitionChart>
-    </DataSection>
+    </InterimSection>
   );
 }
 

@@ -61,7 +61,7 @@ from sentry.models.release import Release
 from sentry.models.team import Team
 from sentry.search.events.builder.discover import UnresolvedQuery
 from sentry.search.events.filter import convert_search_filter_to_snuba_query, format_search_filter
-from sentry.search.events.types import ParamsType, SnubaParams
+from sentry.search.events.types import SnubaParams
 from sentry.snuba.dataset import Dataset
 from sentry.users.models.user import User
 from sentry.users.services.user.model import RpcUser
@@ -1195,7 +1195,7 @@ class GroupAttributesPostgresSnubaQueryExecutor(PostgresSnubaQueryExecutor):
         self,
         search_filter: SearchFilter,
         joined_entity: Entity,
-        snuba_params: ParamsType,
+        snuba_params: SnubaParams,
     ) -> Condition:
         """
         Returns the basic lookup for a search filter.
@@ -1204,6 +1204,8 @@ class GroupAttributesPostgresSnubaQueryExecutor(PostgresSnubaQueryExecutor):
         query_builder = UnresolvedQuery(
             dataset=dataset, entity=joined_entity, snuba_params=snuba_params, params={}
         )
+        query_builder.start = snuba_params.start
+        query_builder.end = snuba_params.end
         return query_builder.convert_search_filter_to_condition(search_filter)
 
     def get_assigned(
@@ -1818,23 +1820,22 @@ class GroupAttributesPostgresSnubaQueryExecutor(PostgresSnubaQueryExecutor):
             # handle types based on issue.type and issue.category
             if not is_errors:
                 raw_group_types = group_types_from(search_filters)
-                if raw_group_types is not None:
-                    # no possible groups, return empty
-                    if len(raw_group_types) == 0:
-                        metrics.incr(
-                            "snuba.search.group_attributes.no_possible_groups", skip_internal=False
-                        )
-                        return self.empty_result
-
-                    # filter out the group types that are not visible to the org/user
-                    group_types = [
-                        gt.type_id
-                        for gt in grouptype.registry.get_visible(organization, actor)
-                        if gt.type_id in raw_group_types
-                    ]
-                    where_conditions.append(
-                        Condition(Column("occurrence_type_id", joined_entity), Op.IN, group_types)
+                # no possible groups, return empty
+                if len(raw_group_types) == 0:
+                    metrics.incr(
+                        "snuba.search.group_attributes.no_possible_groups", skip_internal=False
                     )
+                    return self.empty_result
+
+                # filter out the group types that are not visible to the org/user
+                group_types = [
+                    gt.type_id
+                    for gt in grouptype.registry.get_visible(organization, actor)
+                    if gt.type_id in raw_group_types
+                ]
+                where_conditions.append(
+                    Condition(Column("occurrence_type_id", joined_entity), Op.IN, group_types)
+                )
 
             sort_func = self.get_sort_defs(joined_entity)[sort_by]
 

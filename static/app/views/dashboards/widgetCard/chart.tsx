@@ -1,5 +1,5 @@
+import type React from 'react';
 import {Component} from 'react';
-import type {InjectedRouter} from 'react-router';
 import type {Theme} from '@emotion/react';
 import {withTheme} from '@emotion/react';
 import styled from '@emotion/styled';
@@ -30,6 +30,7 @@ import type {
   ReactEchartsRef,
   Series,
 } from 'sentry/types/echarts';
+import type {InjectedRouter} from 'sentry/types/legacyReactRouter';
 import type {Organization} from 'sentry/types/organization';
 import {
   axisLabelFormatter,
@@ -51,6 +52,7 @@ import {
 } from 'sentry/utils/discover/fields';
 import getDynamicText from 'sentry/utils/getDynamicText';
 import {eventViewFromWidget} from 'sentry/views/dashboards/utils';
+import {AutoSizedText} from 'sentry/views/dashboards/widgetCard/autoSizedText';
 
 import {getFormatter} from '../../../components/charts/components/tooltip';
 import {getDatasetConfig} from '../datasetConfig/base';
@@ -60,6 +62,7 @@ import {DisplayType} from '../types';
 import type {GenericWidgetQueriesChildrenProps} from './genericWidgetQueries';
 
 const OTHER = 'Other';
+const PERCENTAGE_DECIMAL_POINTS = 3;
 export const SLIDER_HEIGHT = 60;
 
 export type AugmentedEChartDataZoomHandler = (
@@ -243,7 +246,7 @@ class WidgetCardChart extends Component<WidgetCardChartProps, State> {
         ? containerHeight - parseInt(space(1), 10) - parseInt(space(3), 10)
         : `max(min(8vw, 90px), ${space(4)})`;
 
-      return (
+      return !organization.features.includes('auto-size-big-number-widget') ? (
         <BigNumber
           key={`big_number:${result.title}`}
           style={{
@@ -255,6 +258,18 @@ class WidgetCardChart extends Component<WidgetCardChartProps, State> {
             {rendered}
           </Tooltip>
         </BigNumber>
+      ) : expandNumbers ? (
+        <BigText>{rendered}</BigText>
+      ) : (
+        <AutoResizeParent key={`big_number:${result.title}`}>
+          <AutoSizedText>
+            <NumberContainerOverride>
+              <Tooltip title={rendered} showOnlyOnOverflow>
+                {rendered}
+              </Tooltip>
+            </NumberContainerOverride>
+          </AutoSizedText>
+        </AutoResizeParent>
       );
     });
   }
@@ -410,6 +425,9 @@ class WidgetCardChart extends Component<WidgetCardChartProps, State> {
       },
       tooltip: {
         trigger: 'axis',
+        axisPointer: {
+          type: 'cross',
+        },
         formatter: (params, asyncTicket) => {
           const {chartGroup} = this.props;
           const isInGroup =
@@ -439,10 +457,30 @@ class WidgetCardChart extends Component<WidgetCardChartProps, State> {
                 value,
                 outputType,
                 true,
-                durationUnit
+                durationUnit,
+                undefined,
+                PERCENTAGE_DECIMAL_POINTS
               );
             }
-            return axisLabelFormatter(value, aggregateOutputType(axisLabel), true);
+            return axisLabelFormatter(
+              value,
+              aggregateOutputType(axisLabel),
+              true,
+              undefined,
+              undefined,
+              PERCENTAGE_DECIMAL_POINTS
+            );
+          },
+        },
+        axisPointer: {
+          type: 'line',
+          snap: false,
+          lineStyle: {
+            type: 'solid',
+            width: 0.5,
+          },
+          label: {
+            show: false,
           },
         },
         minInterval: durationUnit ?? 0,
@@ -579,9 +617,10 @@ const LoadingPlaceholder = styled(({className}: PlaceholderProps) => (
 `;
 
 const BigNumberResizeWrapper = styled('div')`
-  height: 100%;
-  width: 100%;
+  flex-grow: 1;
   overflow: hidden;
+  position: relative;
+  margin: ${space(1)} ${space(3)} ${space(3)} ${space(3)};
 `;
 
 const BigNumber = styled('div')`
@@ -596,6 +635,46 @@ const BigNumber = styled('div')`
 
   * {
     text-align: left !important;
+  }
+`;
+
+const AutoResizeParent = styled('div')`
+  position: absolute;
+  color: ${p => p.theme.headingColor};
+  inset: 0;
+
+  * {
+    line-height: 1;
+    text-align: left !important;
+  }
+`;
+
+const BigText = styled('div')`
+  display: block;
+  width: 100%;
+  color: ${p => p.theme.headingColor};
+  font-size: max(min(8vw, 90px), 30px);
+  padding: ${space(1)} ${space(3)} 0 ${space(3)};
+  white-space: nowrap;
+
+  * {
+    text-align: left !important;
+  }
+`;
+
+/**
+ * This component overrides the default behavior of `NumberContainer`,
+ * which wraps every single number in big widgets. This override forces
+ * `NumberContainer` to never truncate its values, which makes it possible
+ * to auto-size them.
+ */
+const NumberContainerOverride = styled('div')`
+  display: inline-block;
+
+  * {
+    text-overflow: clip !important;
+    display: inline;
+    white-space: nowrap;
   }
 `;
 

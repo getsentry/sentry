@@ -1,5 +1,150 @@
-interface ExploreChartsProps {}
+import {Fragment, useCallback, useMemo} from 'react';
+import styled from '@emotion/styled';
 
-export function ExploreCharts({}: ExploreChartsProps) {
-  return <div>TODO: visualize charts</div>;
+import {getInterval} from 'sentry/components/charts/utils';
+import {CompactSelect} from 'sentry/components/compactSelect';
+import {CHART_PALETTE} from 'sentry/constants/chartPalette';
+import {t} from 'sentry/locale';
+import {space} from 'sentry/styles/space';
+import {dedupeArray} from 'sentry/utils/dedupeArray';
+import {aggregateOutputType} from 'sentry/utils/discover/fields';
+import {MutableSearch} from 'sentry/utils/tokenizeSearch';
+import usePageFilters from 'sentry/utils/usePageFilters';
+import {useChartInterval} from 'sentry/views/explore/hooks/useChartInterval';
+import {useDataset} from 'sentry/views/explore/hooks/useDataset';
+import {useVisualizes} from 'sentry/views/explore/hooks/useVisualizes';
+import Chart, {ChartType} from 'sentry/views/insights/common/components/chart';
+import ChartPanel from 'sentry/views/insights/common/components/chartPanel';
+import {useSpanIndexedSeries} from 'sentry/views/insights/common/queries/useDiscoverSeries';
+import {CHART_HEIGHT} from 'sentry/views/insights/database/settings';
+
+interface ExploreChartsProps {
+  query: string;
 }
+
+const exploreChartTypeOptions = [
+  {
+    value: ChartType.LINE,
+    label: t('Line'),
+  },
+  {
+    value: ChartType.AREA,
+    label: t('Area'),
+  },
+  {
+    value: ChartType.BAR,
+    label: t('Bar'),
+  },
+];
+
+// TODO: Update to support aggregate mode and multiple queries / visualizations
+export function ExploreCharts({query}: ExploreChartsProps) {
+  const pageFilters = usePageFilters();
+
+  const [dataset] = useDataset();
+  const [visualizes, setVisualizes] = useVisualizes();
+  const [interval, setInterval, intervalOptions] = useChartInterval();
+
+  const yAxes = useMemo(() => {
+    const deduped = dedupeArray(visualizes.flatMap(visualize => visualize.yAxes));
+    deduped.sort();
+    return deduped;
+  }, [visualizes]);
+
+  const series = useSpanIndexedSeries(
+    {
+      search: new MutableSearch(query ?? ''),
+      yAxis: yAxes,
+      interval: interval ?? getInterval(pageFilters.selection.datetime, 'metrics'),
+      enabled: true,
+    },
+    'api.explorer.stats',
+    dataset
+  );
+
+  const handleChartTypeChange = useCallback(
+    (chartType: ChartType, index: number) => {
+      const newVisualizes = visualizes.slice();
+      newVisualizes[index] = {...newVisualizes[index], chartType};
+      setVisualizes(newVisualizes);
+    },
+    [visualizes, setVisualizes]
+  );
+
+  return (
+    <Fragment>
+      {visualizes.map((visualize, index) => {
+        const dedupedYAxes = dedupeArray(visualize.yAxes);
+        const {chartType} = visualize;
+        return (
+          <ChartContainer key={index}>
+            <ChartPanel>
+              <ChartHeader>
+                <ChartTitle>{dedupedYAxes.join(',')}</ChartTitle>
+                <ChartSettingsContainer>
+                  <CompactSelect
+                    size="xs"
+                    triggerProps={{prefix: t('Display')}}
+                    value={chartType}
+                    options={exploreChartTypeOptions}
+                    onChange={option => handleChartTypeChange(option.value, index)}
+                  />
+                  <CompactSelect
+                    size="xs"
+                    value={interval}
+                    onChange={({value}) => setInterval(value)}
+                    triggerProps={{
+                      prefix: t('Interval'),
+                    }}
+                    options={intervalOptions}
+                  />
+                </ChartSettingsContainer>
+              </ChartHeader>
+              <Chart
+                height={CHART_HEIGHT}
+                grid={{
+                  left: '0',
+                  right: '0',
+                  top: '8px',
+                  bottom: '0',
+                }}
+                data={dedupedYAxes.map(yAxis => series.data[yAxis])}
+                error={series.error}
+                loading={series.isPending}
+                chartColors={CHART_PALETTE[2]}
+                type={chartType}
+                // for now, use the first y axis unit
+                aggregateOutputFormat={aggregateOutputType(dedupedYAxes[0])}
+                showLegend
+              />
+            </ChartPanel>
+          </ChartContainer>
+        );
+      })}
+    </Fragment>
+  );
+}
+
+const ChartContainer = styled('div')`
+  display: grid;
+  gap: 0;
+  grid-template-columns: 1fr;
+  margin-bottom: ${space(3)};
+`;
+
+const ChartHeader = styled('div')`
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  margin-bottom: ${space(1)};
+`;
+
+const ChartTitle = styled('div')`
+  ${p => p.theme.text.cardTitle}
+`;
+
+const ChartSettingsContainer = styled('div')`
+  display: flex;
+  align-items: center;
+  gap: ${space(0.5)};
+`;

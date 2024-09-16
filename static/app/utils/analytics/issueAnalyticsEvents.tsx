@@ -2,6 +2,7 @@ import type {SourceMapProcessingIssueType} from 'sentry/components/events/interf
 import type {FieldValue} from 'sentry/components/forms/model';
 import type {PriorityLevel} from 'sentry/types/group';
 import type {IntegrationType} from 'sentry/types/integrations';
+import type {Broadcast} from 'sentry/types/system';
 import type {BaseEventAnalyticsParams} from 'sentry/utils/analytics/workflowAnalyticsEvents';
 import type {CommonGroupAnalyticsData} from 'sentry/utils/events';
 
@@ -139,6 +140,9 @@ export type IssueEventParameters = {
   'issue_details.sourcemap_wizard_copy': SourceMapWizardParam;
   'issue_details.sourcemap_wizard_dismiss': SourceMapWizardParam;
   'issue_details.sourcemap_wizard_learn_more': SourceMapWizardParam;
+  'issue_details.streamline_ui_toggle': {
+    isEnabled: boolean;
+  };
   'issue_details.view_hierarchy.hover_rendering_system': {
     platform?: string;
     user_org_role?: string;
@@ -293,7 +297,8 @@ export type IssueEventParameters = {
   'tag.clicked': {
     is_clickable: boolean;
   };
-  'whats_new.link_clicked': {title?: string};
+  'whats_new.link_clicked': Pick<Broadcast, 'title'> &
+    Partial<Pick<Broadcast, 'category'>>;
 };
 
 export type IssueEventKey = keyof IssueEventParameters;
@@ -327,6 +332,7 @@ export const issueEventMap: Record<IssueEventKey, string | null> = {
     'Issue Details: Similar Issues: Diff Clicked',
   'issue_details.similar_issues.similarity_embeddings_feedback_recieved':
     'Issue Details: Similar Issues: Similarity Embeddings Feedback Recieved',
+  'issue_details.streamline_ui_toggle': 'Streamline: UI Toggle Clicked',
   'issue_details.view_hierarchy.hover_rendering_system':
     'View Hierarchy: Hovered rendering system icon',
   'issue_details.view_hierarchy.select_from_tree': 'View Hierarchy: Selection from tree',

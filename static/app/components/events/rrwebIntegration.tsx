@@ -11,7 +11,7 @@ import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
-import {FoldSectionKey} from 'sentry/views/issueDetails/streamline/foldSection';
+import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
 import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
 
 type Props = {
@@ -25,7 +25,7 @@ const LazyReplayer = lazy(() => import('./rrwebReplayer'));
 function EventRRWebIntegrationContent({orgId, projectSlug, event}: Props) {
   const {
     data: attachmentList,
-    isLoading,
+    isPending,
     isError,
     refetch,
   } = useApiQuery<IssueAttachment[]>(
@@ -50,7 +50,7 @@ function EventRRWebIntegrationContent({orgId, projectSlug, event}: Props) {
     return <LoadingError onRetry={refetch} />;
   }
 
-  if (isLoading) {
+  if (isPending) {
     // hide loading indicator
     return null;
   }
@@ -63,7 +63,7 @@ function EventRRWebIntegrationContent({orgId, projectSlug, event}: Props) {
     `/api/0/projects/${orgId}/${projectSlug}/events/${event.id}/attachments/${attachment.id}/?download`;
 
   return (
-    <StyledReplayEventDataSection type={FoldSectionKey.RRWEB} title={t('Replay')}>
+    <StyledReplayEventDataSection type={SectionKey.RRWEB} title={t('Replay')}>
       <LazyLoad
         LazyComponent={LazyReplayer}
         urls={attachmentList.map(createAttachmentUrl)}

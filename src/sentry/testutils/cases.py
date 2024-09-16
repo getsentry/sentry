@@ -99,7 +99,6 @@ from sentry.models.deploy import Deploy
 from sentry.models.environment import Environment
 from sentry.models.files.file import File
 from sentry.models.groupmeta import GroupMeta
-from sentry.models.identity import Identity, IdentityProvider, IdentityStatus
 from sentry.models.notificationsettingoption import NotificationSettingOption
 from sentry.models.notificationsettingprovider import NotificationSettingProvider
 from sentry.models.options.project_option import ProjectOption
@@ -143,6 +142,7 @@ from sentry.testutils.helpers.notifications import TEST_ISSUE_OCCURRENCE
 from sentry.testutils.helpers.slack import install_slack
 from sentry.testutils.pytest.selenium import Browser
 from sentry.types.condition_activity import ConditionActivity, ConditionActivityType
+from sentry.users.models.identity import Identity, IdentityProvider, IdentityStatus
 from sentry.users.models.user import User
 from sentry.users.models.user_option import UserOption
 from sentry.users.models.useremail import UserEmail
@@ -1729,6 +1729,7 @@ class BaseMetricsTestCase(SnubaTestCase):
         timestamp: int,
         value: Any,
         aggregation_option: AggregationOption | None = None,
+        sampling_weight: int | None = None,
     ) -> None:
 
         parsed = parse_mri(mri)
@@ -1813,6 +1814,9 @@ class BaseMetricsTestCase(SnubaTestCase):
 
         if aggregation_option:
             msg["aggregation_option"] = aggregation_option.value
+
+        if sampling_weight:
+            msg["sampling_weight"] = sampling_weight
 
         if METRIC_PATH_MAPPING[use_case_id] == UseCaseKey.PERFORMANCE:
             entity = f"generic_metrics_{cls.ENTITY_SHORTHANDS[metric_type]}s"

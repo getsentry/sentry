@@ -6,6 +6,7 @@ from collections.abc import Mapping, Sequence
 from operator import attrgetter
 from typing import Any
 
+import sentry_sdk
 from django.conf import settings
 from django.urls import reverse
 from django.utils.functional import classproperty
@@ -16,12 +17,12 @@ from sentry.eventstore.models import GroupEvent
 from sentry.integrations.base import (
     FeatureDescription,
     IntegrationFeatures,
-    IntegrationInstallation,
     IntegrationMetadata,
     IntegrationProvider,
 )
+from sentry.integrations.jira.models.create_issue_metadata import JiraIssueTypeMetadata
 from sentry.integrations.jira.tasks import migrate_issues
-from sentry.integrations.mixins.issues import MAX_CHAR, IssueSyncMixin, ResolveSyncAction
+from sentry.integrations.mixins.issues import MAX_CHAR, IssueSyncIntegration, ResolveSyncAction
 from sentry.integrations.models.external_issue import ExternalIssue
 from sentry.integrations.models.integration_external_project import IntegrationExternalProject
 from sentry.integrations.services.integration import integration_service
@@ -119,7 +120,7 @@ JIRA_CUSTOM_FIELD_TYPES = {
 }
 
 
-class JiraIntegration(IntegrationInstallation, IssueSyncMixin):
+class JiraIntegration(IssueSyncIntegration):
     comment_key = "sync_comments"
     outbound_status_key = "sync_status_forward"
     inbound_status_key = "sync_status_reverse"
@@ -424,7 +425,7 @@ class JiraIntegration(IntegrationInstallation, IssueSyncMixin):
 
     def get_issue(self, issue_id, **kwargs):
         """
-        Jira installation's implementation of IssueSyncMixin's `get_issue`.
+        Jira installation's implementation of IssueSyncIntegration's `get_issue`.
         """
         client = self.get_client()
         issue = client.get_issue(issue_id)
@@ -452,9 +453,11 @@ class JiraIntegration(IntegrationInstallation, IssueSyncMixin):
             issue_id, group_note.data["external_id"], quoted_comment
         )
 
-    def search_issues(self, query):
+    def search_issues(self, query: str | None, **kwargs) -> dict[str, Any]:
         try:
-            return self.get_client().search_issues(query)
+            resp = self.get_client().search_issues(query)
+            assert isinstance(resp, dict)
+            return resp
         except ApiError as e:
             self.raise_error(e)
 
@@ -569,6 +572,7 @@ class JiraIntegration(IntegrationInstallation, IssueSyncMixin):
         return fkwargs
 
     def get_issue_type_meta(self, issue_type, meta):
+        self.parse_jira_issue_metadata(meta)
         issue_types = meta["issuetypes"]
         issue_type_meta = None
         if issue_type:
@@ -1037,6 +1041,13 @@ class JiraIntegration(IntegrationInstallation, IssueSyncMixin):
                 "organization_id": self.organization_id,
             }
         )
+
+    def parse_jira_issue_metadata(self, meta: dict[str, Any]) -> list[JiraIssueTypeMetadata] | None:
+        try:
+            return JiraIssueTypeMetadata.from_jira_meta_config(meta)
+        except Exception as e:
+            sentry_sdk.capture_exception(e)
+            return None
 
 
 class JiraIntegrationProvider(IntegrationProvider):

@@ -201,6 +201,7 @@ function OnboardingContent({currentProject}: {currentProject: Project}) {
     isLoading,
     docs: newDocs,
     dsn,
+    projectKeyId,
   } = useLoadGettingStarted({
     platform:
       showJsFrameworkInstructions && !crashReportOnboarding
@@ -297,7 +298,8 @@ function OnboardingContent({currentProject}: {currentProject: Project}) {
     !currentPlatform ||
     !feedbackOnboardingPlatforms.includes(currentPlatform.id) ||
     !newDocs ||
-    !dsn
+    !dsn ||
+    !projectKeyId
   ) {
     return (
       <Fragment>
@@ -334,6 +336,7 @@ function OnboardingContent({currentProject}: {currentProject: Project}) {
     ) {
       return 'feedbackOnboardingNpm';
     }
+    // TODO: update this when we add feedback to the loader
     return 'replayOnboardingJsLoader';
   }
 
@@ -348,6 +351,7 @@ function OnboardingContent({currentProject}: {currentProject: Project}) {
         projectId={currentProject.id}
         projectSlug={currentProject.slug}
         configType={getConfig()}
+        projectKeyId={projectKeyId}
       />
     </Fragment>
   );

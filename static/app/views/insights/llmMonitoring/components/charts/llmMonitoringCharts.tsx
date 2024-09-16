@@ -4,6 +4,7 @@ import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import Chart, {ChartType} from 'sentry/views/insights/common/components/chart';
 import ChartPanel from 'sentry/views/insights/common/components/chartPanel';
 import {useSpanMetricsSeries} from 'sentry/views/insights/common/queries/useDiscoverSeries';
+import {ALERTS} from 'sentry/views/insights/llmMonitoring/alerts';
 
 interface TotalTokensUsedChartProps {
   groupId?: string;
@@ -16,7 +17,7 @@ export function TotalTokensUsedChart({groupId}: TotalTokensUsedChartProps) {
   if (groupId) {
     query = `${query} span.ai.pipeline.group:"${groupId}"`;
   }
-  const {data, isLoading, error} = useSpanMetricsSeries(
+  const {data, isPending, error} = useSpanMetricsSeries(
     {
       yAxis: [aggregate],
       search: new MutableSearch(query),
@@ -25,7 +26,10 @@ export function TotalTokensUsedChart({groupId}: TotalTokensUsedChartProps) {
   );
 
   return (
-    <ChartPanel title={t('Total tokens used')}>
+    <ChartPanel
+      title={t('Total tokens used')}
+      alertConfigs={[{...ALERTS.tokensUsed, query}]}
+    >
       <Chart
         height={200}
         grid={{
@@ -35,7 +39,7 @@ export function TotalTokensUsedChart({groupId}: TotalTokensUsedChartProps) {
           bottom: '0',
         }}
         data={[data[aggregate]]}
-        loading={isLoading}
+        loading={isPending}
         error={error}
         type={ChartType.LINE}
         chartColors={[CHART_PALETTE[2][0]]}
@@ -54,7 +58,7 @@ export function NumberOfPipelinesChart({groupId}: NumberOfPipelinesChartProps) {
   if (groupId) {
     query = `${query} span.group:"${groupId}"`;
   }
-  const {data, isLoading, error} = useSpanMetricsSeries(
+  const {data, isPending, error} = useSpanMetricsSeries(
     {
       yAxis: [aggregate],
       search: new MutableSearch(query),
@@ -73,7 +77,7 @@ export function NumberOfPipelinesChart({groupId}: NumberOfPipelinesChartProps) {
           bottom: '0',
         }}
         data={[data[aggregate]]}
-        loading={isLoading}
+        loading={isPending}
         error={error}
         type={ChartType.LINE}
         chartColors={[CHART_PALETTE[2][1]]}
@@ -91,7 +95,7 @@ export function PipelineDurationChart({groupId}: PipelineDurationChartProps) {
   if (groupId) {
     query = `${query} span.group:"${groupId}"`;
   }
-  const {data, isLoading, error} = useSpanMetricsSeries(
+  const {data, isPending, error} = useSpanMetricsSeries(
     {
       yAxis: [aggregate],
       search: new MutableSearch(query),
@@ -100,7 +104,10 @@ export function PipelineDurationChart({groupId}: PipelineDurationChartProps) {
   );
 
   return (
-    <ChartPanel title={t('Pipeline Duration')}>
+    <ChartPanel
+      title={t('Pipeline Duration')}
+      alertConfigs={[{...ALERTS.duration, query}]}
+    >
       <Chart
         height={200}
         grid={{
@@ -110,7 +117,7 @@ export function PipelineDurationChart({groupId}: PipelineDurationChartProps) {
           bottom: '0',
         }}
         data={[data[aggregate]]}
-        loading={isLoading}
+        loading={isPending}
         error={error}
         type={ChartType.LINE}
         chartColors={[CHART_PALETTE[2][2]]}

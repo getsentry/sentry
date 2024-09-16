@@ -22,7 +22,7 @@ from sentry.integrations.utils.code_mapping import get_sorted_code_mapping_confi
 from sentry.models.group import Group
 from sentry.models.organization import Organization
 from sentry.models.project import Project
-from sentry.seer.signed_seer_api import sign_with_seer_secret
+from sentry.seer.signed_seer_api import get_seer_salted_url, sign_with_seer_secret
 
 logger = logging.getLogger(__name__)
 
@@ -75,13 +75,15 @@ def get_repos_and_access(project: Project) -> list[dict]:
                 "repo": repo,
             }
         )
+
+        url, salt = get_seer_salted_url(f"{settings.SEER_AUTOFIX_URL}{path}")
         response = requests.post(
-            f"{settings.SEER_AUTOFIX_URL}{path}",
+            url,
             data=body,
             headers={
                 "content-type": "application/json;charset=utf-8",
                 **sign_with_seer_secret(
-                    url=f"{settings.SEER_AUTOFIX_URL}{path}",
+                    salt,
                     body=body,
                 ),
             },
@@ -106,7 +108,10 @@ class GroupAutofixSetupCheck(GroupEndpoint):
         """
         Checks if we are able to run Autofix on the given group.
         """
-        if not features.has("projects:ai-autofix", group.project):
+        if not (
+            features.has("projects:ai-autofix", group.project)
+            or features.has("organizations:autofix", group.organization)
+        ):
             return Response({"detail": "Feature not enabled for project"}, status=403)
 
         org: Organization = request.organization

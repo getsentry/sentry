@@ -406,11 +406,7 @@ describe('SearchQueryBuilder', function () {
         });
 
         render(
-          <SearchQueryBuilder
-            {...defaultProps}
-            recentSearches={SavedSearchType.ISSUE}
-            initialQuery=""
-          />
+          <SearchQueryBuilder {...defaultProps} recentSearches={SavedSearchType.ISSUE} />
         );
 
         await userEvent.click(getLastInput());
@@ -421,9 +417,13 @@ describe('SearchQueryBuilder', function () {
         expect(recentFilterKeys[0]).toHaveTextContent('assigned');
       });
 
-      it('can navigate between filters with arrow keys', async function () {
+      it('can navigate up/down from recent filter gutter to other search keys', async function () {
         render(
-          <SearchQueryBuilder {...defaultProps} recentSearches={SavedSearchType.ISSUE} />
+          <SearchQueryBuilder
+            {...defaultProps}
+            recentSearches={SavedSearchType.ISSUE}
+            initialQuery="is:unresolved"
+          />
         );
 
         await userEvent.click(getLastInput());
@@ -465,6 +465,71 @@ describe('SearchQueryBuilder', function () {
             recentFilterKeys[0].id
           );
         });
+      });
+    });
+
+    describe('recent searches', function () {
+      beforeEach(() => {
+        MockApiClient.addMockResponse({
+          url: '/organizations/org-slug/recent-searches/',
+          body: [{query: 'assigned:me'}, {query: 'some recent query'}],
+        });
+      });
+
+      it('displays recent search queries when query is empty', async function () {
+        render(
+          <SearchQueryBuilder
+            {...defaultProps}
+            recentSearches={SavedSearchType.ISSUE}
+            initialQuery=""
+          />
+        );
+
+        await userEvent.click(getLastInput());
+
+        // Should have a "Recent" category
+        expect(await screen.findByRole('button', {name: 'Recent'})).toBeInTheDocument();
+        expect(screen.getByRole('option', {name: 'assigned:me'})).toBeInTheDocument();
+        expect(
+          screen.getByRole('option', {name: 'some recent query'})
+        ).toBeInTheDocument();
+      });
+
+      it('when selecting a recent search, should reset query and call onSearch', async function () {
+        const mockOnSearch = jest.fn();
+        const mockCreateRecentSearch = MockApiClient.addMockResponse({
+          url: '/organizations/org-slug/recent-searches/',
+          method: 'POST',
+        });
+
+        render(
+          <SearchQueryBuilder
+            {...defaultProps}
+            recentSearches={SavedSearchType.ISSUE}
+            initialQuery=""
+            onSearch={mockOnSearch}
+          />
+        );
+
+        await userEvent.click(getLastInput());
+
+        await userEvent.click(await screen.findByRole('option', {name: 'assigned:me'}));
+        await waitFor(() => {
+          expect(mockOnSearch).toHaveBeenCalledWith('assigned:me', expect.anything());
+        });
+
+        // Focus should be at the end of the query
+        await waitFor(() => {
+          expect(getLastInput()).toHaveFocus();
+        });
+
+        // Should call the endpoint to add this as a recent search
+        expect(mockCreateRecentSearch).toHaveBeenCalledWith(
+          expect.anything(),
+          expect.objectContaining({
+            data: {query: 'assigned:me', type: SavedSearchType.ISSUE},
+          })
+        );
       });
     });
   });
@@ -1454,6 +1519,55 @@ describe('SearchQueryBuilder', function () {
         await waitFor(() => {
           expect(screen.getByRole('combobox', {name: 'Edit filter value'})).toHaveValue(
             'Chrome,'
+          );
+        });
+        expect(screen.getByRole('combobox', {name: 'Edit filter value'})).toHaveFocus();
+      });
+
+      it('keeps focus inside value when multi-selecting with ctrl+enter', async function () {
+        render(
+          <SearchQueryBuilder {...defaultProps} initialQuery="browser.name:firefox" />
+        );
+
+        await userEvent.click(
+          screen.getByRole('button', {name: 'Edit value for filter: browser.name'})
+        );
+
+        // Arrow down two places to "Chrome" option
+        await userEvent.keyboard('{ArrowDown}{ArrowDown}');
+        // Pressing ctrl+enter should toggle the option and keep focus inside the input
+        await userEvent.keyboard('{Control>}{Enter}');
+        expect(
+          await screen.findByRole('row', {name: 'browser.name:[firefox,Chrome]'})
+        ).toBeInTheDocument();
+        await waitFor(() => {
+          expect(screen.getByRole('combobox', {name: 'Edit filter value'})).toHaveValue(
+            'firefox,Chrome,'
+          );
+        });
+        expect(screen.getByRole('combobox', {name: 'Edit filter value'})).toHaveFocus();
+      });
+
+      it('keeps focus inside value when multi-selecting with ctrl+click', async function () {
+        render(
+          <SearchQueryBuilder {...defaultProps} initialQuery="browser.name:firefox" />
+        );
+
+        const user = userEvent.setup();
+
+        await user.click(
+          screen.getByRole('button', {name: 'Edit value for filter: browser.name'})
+        );
+
+        // Clicking option while holding Ctrl should toggle the option and keep focus inside the input
+        await user.keyboard('{Control>}');
+        await user.click(screen.getByRole('option', {name: 'Chrome'}));
+        expect(
+          await screen.findByRole('row', {name: 'browser.name:[firefox,Chrome]'})
+        ).toBeInTheDocument();
+        await waitFor(() => {
+          expect(screen.getByRole('combobox', {name: 'Edit filter value'})).toHaveValue(
+            'firefox,Chrome,'
           );
         });
         expect(screen.getByRole('combobox', {name: 'Edit filter value'})).toHaveFocus();

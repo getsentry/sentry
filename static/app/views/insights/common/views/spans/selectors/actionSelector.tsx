@@ -21,16 +21,23 @@ const {SPAN_ACTION} = SpanMetricsField;
 
 type Props = {
   moduleName: ModuleName;
+  filters?: Record<string, string>;
   spanCategory?: string;
   value?: string;
 };
 
-export function ActionSelector({value = '', moduleName, spanCategory}: Props) {
+export function ActionSelector({value = '', moduleName, spanCategory, filters}: Props) {
   // TODO: This only returns the top 25 actions. It should either load them all, or paginate, or allow searching
   //
   const location = useLocation();
   const organization = useOrganization();
   const eventView = getEventView(location, moduleName, spanCategory);
+
+  if (filters) {
+    Object.entries(filters).forEach(([key, val]) =>
+      eventView.additionalConditions.addFilterValue(key, val)
+    );
+  }
 
   const useHTTPActions = moduleName === ModuleName.HTTP;
 
@@ -98,7 +105,7 @@ const HTTP_ACTION_OPTIONS = [
 
 const LABEL_FOR_MODULE_NAME: {[key in ModuleName]: ReactNode} = {
   http: t('HTTP Method'),
-  db: t('SQL Command'),
+  db: t('Command'),
   cache: t('Action'),
   vital: t('Action'),
   queue: t('Action'),

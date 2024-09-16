@@ -2,7 +2,6 @@ import logging
 import math
 import time
 from datetime import timedelta
-from random import randint
 from uuid import uuid4
 
 import orjson
@@ -14,7 +13,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.serializers import ListField
 
-from sentry import audit_log, features, options
+from sentry import audit_log, features
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint, ProjectPermission
@@ -125,7 +124,6 @@ class ProjectMemberSerializer(serializers.Serializer):
         "performanceIssueSendToPlatform",
         "highlightContext",
         "highlightTags",
-        "extrapolateMetrics",
         "uptimeAutodetection",
     ]
 )
@@ -217,7 +215,6 @@ class ProjectAdminSerializer(ProjectMemberSerializer):
     performanceIssueCreationRate = serializers.FloatField(required=False, min_value=0, max_value=1)
     performanceIssueCreationThroughPlatform = serializers.BooleanField(required=False)
     performanceIssueSendToPlatform = serializers.BooleanField(required=False)
-    extrapolateMetrics = serializers.BooleanField(required=False)
     uptimeAutodetection = serializers.BooleanField(required=False)
 
     # DO NOT ADD MORE TO OPTIONS
@@ -245,22 +242,6 @@ class ProjectAdminSerializer(ProjectMemberSerializer):
             )
 
         return data
-
-    def validate_extrapolateMetrics(self, value):
-        organization = self.context["project"].organization
-        request = self.context["request"]
-
-        # Metrics extrapolation can only be toggled when the metrics-extrapolation flag is enabled.
-        has_metrics_extrapolation = features.has(
-            "organizations:metrics-extrapolation", organization, actor=request.user
-        )
-
-        if not has_metrics_extrapolation:
-            raise serializers.ValidationError(
-                "Organization does not have the metrics extrapolation feature enabled"
-            )
-        else:
-            return value
 
     def validate_allowedDomains(self, value):
         value = list(filter(bool, value))
@@ -758,10 +739,6 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
                     "dynamicSamplingBiases"
                 ]
 
-        if "extrapolateMetrics" in result:
-            if project.update_option("sentry:extrapolate_metrics", result["extrapolateMetrics"]):
-                changed_proj_settings["sentry:extrapolate_metrics"] = result["extrapolateMetrics"]
-
         if result.get("uptimeAutodetection") is not None:
             if project.update_option("sentry:uptime_autodetection", result["uptimeAutodetection"]):
                 changed_proj_settings["sentry:uptime_autodetection"] = result["uptimeAutodetection"]
@@ -906,10 +883,6 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
                     data = serialize(project, request.user, DetailedProjectSerializer())
                     return Response(data)
 
-            if "sentry:extrapolate_metrics" in options:
-                project.update_option(
-                    "sentry:extrapolate_metrics", bool(options["sentry:extrapolate_metrics"])
-                )
             if "sentry:uptime_autodetection" in options:
                 project.update_option(
                     "sentry:uptime_autodetection", bool(options["sentry:uptime_autodetection"])
@@ -986,10 +959,7 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
             project.rename_on_pending_deletion()
 
             # Tell seer to delete all the project's grouping records
-            if features.has("projects:similarity-embeddings-grouping", project) or (
-                project.get_option("sentry:similarity_backfill_completed")
-                and randint(1, 100) <= options.get("similarity.delete_task_EA_rollout_percentage")
-            ):
+            if project.get_option("sentry:similarity_backfill_completed"):
                 call_seer_delete_project_grouping_records.apply_async(args=[project.id])
 
         return Response(status=204)

@@ -2104,10 +2104,9 @@ class UserReportEventLinkTestMixin(BasePostProgressGroupMixin):
             assert mock_event_data["contexts"]["feedback"]["message"] == "It Broke!!!"
             assert mock_event_data["contexts"]["feedback"]["name"] == "Foo Bar"
             assert mock_event_data["environment"] == environment.name
-            assert mock_event_data["tags"] == [
-                ["environment", environment.name],
-                ["level", "error"],
-            ]
+            assert mock_event_data["tags"]["environment"] == environment.name
+            assert mock_event_data["tags"]["level"] == "error"
+            assert mock_event_data["tags"]["user.email"] == "bar@example.com"
 
             assert mock_event_data["platform"] == "other"
             assert mock_event_data["contexts"]["feedback"]["associated_event_id"] == event.event_id

@@ -1,5 +1,3 @@
-import type {RouteComponentProps} from 'react-router';
-
 import {hasEveryAccess} from 'sentry/components/acl/access';
 import Form from 'sentry/components/forms/form';
 import JsonForm from 'sentry/components/forms/jsonForm';
@@ -11,6 +9,7 @@ import {fields} from 'sentry/data/forms/projectIssueGrouping';
 import {t, tct} from 'sentry/locale';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import type {EventGroupingConfig} from 'sentry/types/event';
+import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {useApiQuery} from 'sentry/utils/queryClient';
@@ -28,12 +27,12 @@ export default function ProjectIssueGrouping({organization, project, params}: Pr
   const queryKey = `/projects/${organization.slug}/${project.slug}/grouping-configs/`;
   const {
     data: groupingConfigs,
-    isLoading,
+    isPending,
     isError,
     refetch,
   } = useApiQuery<EventGroupingConfig[]>([queryKey], {staleTime: 0, cacheTime: 0});
 
-  if (isLoading) {
+  if (isPending) {
     return <LoadingIndicator />;
   }
 

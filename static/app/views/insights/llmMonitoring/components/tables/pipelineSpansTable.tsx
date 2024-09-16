@@ -86,7 +86,7 @@ export function PipelineSpansTable({groupId}: Props) {
     data: rawData,
     meta: rawMeta,
     error,
-    isLoading,
+    isPending,
   } = useSpansIndexed(
     {
       limit: 30,
@@ -111,10 +111,10 @@ export function PipelineSpansTable({groupId}: Props) {
     <VisuallyCompleteWithData
       id="PipelineSpansTable"
       hasData={data.length > 0}
-      isLoading={isLoading}
+      isLoading={isPending}
     >
       <GridEditable
-        isLoading={isLoading}
+        isLoading={isPending}
         error={error}
         data={data}
         columnOrder={COLUMN_ORDER}

@@ -13,7 +13,7 @@ import {IssueCategory} from 'sentry/types/group';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 import SectionToggleButton from 'sentry/views/issueDetails/sectionToggleButton';
-import {FoldSectionKey} from 'sentry/views/issueDetails/streamline/foldSection';
+import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
 import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
 import {useHasStreamlinedUI} from 'sentry/views/issueDetails/utils';
 
@@ -129,7 +129,7 @@ export function EventGroupingInfo({
     group?.issueCategory === IssueCategory.PERFORMANCE &&
     event.type === 'transaction';
 
-  const {data, isLoading, isError, isSuccess} = useApiQuery<EventGroupingInfoResponse>(
+  const {data, isPending, isError, isSuccess} = useApiQuery<EventGroupingInfoResponse>(
     [
       `/projects/${organization.slug}/${projectSlug}/events/${event.id}/grouping-info/`,
       {query: configOverride ? {config: configOverride} : {}},
@@ -161,7 +161,8 @@ export function EventGroupingInfo({
           <SectionToggleButton isExpanded={isOpen} onExpandChange={setIsOpen} />
         )
       }
-      type={FoldSectionKey.GROUPING_INFO}
+      type={SectionKey.GROUPING_INFO}
+      initialCollapse
     >
       {!openState ? <GroupInfoSummary groupInfo={groupInfo} /> : null}
       {openState ? (
@@ -186,7 +187,7 @@ export function EventGroupingInfo({
           {isError ? (
             <LoadingError message={t('Failed to fetch grouping info.')} />
           ) : null}
-          {isLoading && !hasPerformanceGrouping ? <LoadingIndicator /> : null}
+          {isPending && !hasPerformanceGrouping ? <LoadingIndicator /> : null}
           {hasPerformanceGrouping || isSuccess
             ? variants.map((variant, index) => (
                 <Fragment key={variant.key}>

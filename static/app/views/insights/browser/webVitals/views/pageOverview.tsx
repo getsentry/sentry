@@ -99,12 +99,12 @@ export function PageOverview() {
     location.query[SpanIndexedField.USER_GEO_SUBREGION]
   ) as SubregionCode[];
 
-  const {data: pageData, isLoading} = useProjectRawWebVitalsQuery({
+  const {data: pageData, isPending} = useProjectRawWebVitalsQuery({
     transaction,
     browserTypes,
     subregions,
   });
-  const {data: projectScores, isLoading: isProjectScoresLoading} =
+  const {data: projectScores, isPending: isProjectScoresLoading} =
     useProjectWebVitalsScoresQuery({transaction, browserTypes, subregions});
 
   if (transaction === undefined) {
@@ -125,7 +125,7 @@ export function PageOverview() {
     });
 
   const projectScore =
-    isProjectScoresLoading || isLoading
+    isProjectScoresLoading || isPending
       ? undefined
       : calculatePerformanceScoreFromStoredTableDataRow(projectScores?.data?.[0]);
 
@@ -200,7 +200,11 @@ export function PageOverview() {
                 <SubregionSelector />
               </TopMenuContainer>
               <Flex>
-                <PerformanceScoreBreakdownChart transaction={transaction} />
+                <PerformanceScoreBreakdownChart
+                  transaction={transaction}
+                  browserTypes={browserTypes}
+                  subregions={subregions}
+                />
               </Flex>
               <WebVitalMetersContainer>
                 <WebVitalMeters
@@ -229,7 +233,7 @@ export function PageOverview() {
               <PageOverviewSidebar
                 projectScore={projectScore}
                 transaction={transaction}
-                projectScoreIsLoading={isLoading}
+                projectScoreIsLoading={isPending}
                 browserTypes={browserTypes}
                 subregions={subregions}
               />

@@ -39,7 +39,6 @@ const topGoFrameworks: PlatformKey[] = [
   'go-gin',
   'go-http',
   'go-iris',
-  'go-martini',
   'go-negroni',
 ];
 
@@ -49,6 +48,7 @@ export const topJavascriptFrameworks: PlatformKey[] = [
   'javascript-vue',
   'javascript-angular',
   'javascript-solid',
+  'javascript-solidstart',
   'javascript-remix',
   'javascript-svelte',
   'javascript-sveltekit',

@@ -4,6 +4,7 @@ import {RateUnit} from 'sentry/utils/discover/fields';
 import {formatRate} from 'sentry/utils/formatters';
 import Chart, {ChartType} from 'sentry/views/insights/common/components/chart';
 import ChartPanel from 'sentry/views/insights/common/components/chartPanel';
+import {ALERTS} from 'sentry/views/insights/queues/alerts';
 import {useProcessQueuesTimeSeriesQuery} from 'sentry/views/insights/queues/queries/useProcessQueuesTimeSeriesQuery';
 import {usePublishQueuesTimeSeriesQuery} from 'sentry/views/insights/queues/queries/usePublishQueuesTimeSeriesQuery';
 import type {Referrer} from 'sentry/views/insights/queues/referrers';
@@ -16,18 +17,29 @@ interface Props {
 }
 
 export function ThroughputChart({error, destination, referrer}: Props) {
-  const {data: publishData, isLoading: isPublishDataLoading} =
+  const {data: publishData, isPending: isPublishDataLoading} =
     usePublishQueuesTimeSeriesQuery({
       destination,
       referrer,
     });
-  const {data: processData, isLoading: isProcessDataLoading} =
+  const {data: processData, isPending: isProcessDataLoading} =
     useProcessQueuesTimeSeriesQuery({
       destination,
       referrer,
     });
+  let {processed, published} = ALERTS;
+  if (destination) {
+    processed = {
+      ...processed,
+      query: `${processed.query} messaging.destination.name:${destination}`,
+    };
+    published = {
+      ...published,
+      query: `${published.query} messaging.destination.name:${destination}`,
+    };
+  }
   return (
-    <ChartPanel title={t('Published vs Processed')}>
+    <ChartPanel title={t('Published vs Processed')} alertConfigs={[processed, published]}>
       <Chart
         height={CHART_HEIGHT}
         grid={{
@@ -36,18 +48,16 @@ export function ThroughputChart({error, destination, referrer}: Props) {
           top: '8px',
           bottom: '0',
         }}
-        data={
-          [
-            {
-              seriesName: t('Published'),
-              data: publishData['spm()'].data,
-            },
-            {
-              seriesName: t('Processed'),
-              data: processData['spm()'].data,
-            },
-          ] ?? []
-        }
+        data={[
+          {
+            seriesName: t('Published'),
+            data: publishData['spm()'].data,
+          },
+          {
+            seriesName: t('Processed'),
+            data: processData['spm()'].data,
+          },
+        ]}
         loading={isPublishDataLoading || isProcessDataLoading}
         error={error}
         chartColors={CHART_PALETTE[2].slice(1, 3)}

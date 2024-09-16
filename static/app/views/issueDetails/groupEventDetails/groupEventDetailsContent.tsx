@@ -29,6 +29,7 @@ import {EventTagsAndScreenshot} from 'sentry/components/events/eventTagsAndScree
 import {ScreenshotDataSection} from 'sentry/components/events/eventTagsAndScreenshot/screenshot/screenshotDataSection';
 import EventTagsDataSection from 'sentry/components/events/eventTagsAndScreenshot/tags';
 import {EventViewHierarchy} from 'sentry/components/events/eventViewHierarchy';
+import {EventFeatureFlagList} from 'sentry/components/events/featureFlags/eventFeatureFlagList';
 import {EventGroupingInfo} from 'sentry/components/events/groupingInfo';
 import HighlightsDataSection from 'sentry/components/events/highlights/highlightsDataSection';
 import {HighlightsIconSummary} from 'sentry/components/events/highlights/highlightsIconSummary';
@@ -42,6 +43,7 @@ import {Exception} from 'sentry/components/events/interfaces/exception';
 import {Generic} from 'sentry/components/events/interfaces/generic';
 import {Message} from 'sentry/components/events/interfaces/message';
 import {AnrRootCause} from 'sentry/components/events/interfaces/performance/anrRootCause';
+import {EventTraceView} from 'sentry/components/events/interfaces/performance/eventTraceView';
 import {SpanEvidenceSection} from 'sentry/components/events/interfaces/performance/spanEvidence';
 import {Request} from 'sentry/components/events/interfaces/request';
 import {StackTrace} from 'sentry/components/events/interfaces/stackTrace';
@@ -75,8 +77,8 @@ import {getReplayIdFromEvent} from 'sentry/utils/replays/getReplayIdFromEvent';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {ResourcesAndPossibleSolutions} from 'sentry/views/issueDetails/resourcesAndPossibleSolutions';
+import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
 import {EventDetails} from 'sentry/views/issueDetails/streamline/eventDetails';
-import {FoldSectionKey} from 'sentry/views/issueDetails/streamline/foldSection';
 import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
 import {TraceDataSection} from 'sentry/views/issueDetails/traceDataSection';
 import {useHasStreamlinedUI} from 'sentry/views/issueDetails/utils';
@@ -114,10 +116,8 @@ export function EventDetailsContent({
   const mechanism = event.tags?.find(({key}) => key === 'mechanism')?.value;
   const isANR = mechanism === 'ANR' || mechanism === 'AppExitInfo';
   const showPossibleSolutionsHigher = shouldShowCustomErrorResourceConfig(group, project);
-  const hasHierarchicalGrouping =
-    !!organization.features?.includes('grouping-stacktrace-ui') &&
-    !!(event.metadata.current_tree_label || event.metadata.finest_tree_label);
   const groupingCurrentLevel = group?.metadata?.current_level;
+  const hasFeatureFlagSection = organization.features.includes('feature-flag-ui');
 
   const hasActionableItems = actionableItemsEnabled({
     eventId: event.id,
@@ -163,7 +163,7 @@ export function EventDetailsContent({
       {event.userReport && (
         <InterimSection
           title={t('User Feedback')}
-          type={FoldSectionKey.USER_FEEDBACK}
+          type={SectionKey.USER_FEEDBACK}
           actions={
             hasStreamlinedUI ? null : (
               <ErrorBoundary mini>
@@ -220,7 +220,7 @@ export function EventDetailsContent({
         />
       ) : null}
       {group.issueCategory === IssueCategory.UPTIME && (
-        <UptimeDataSection group={group} />
+        <UptimeDataSection event={event} project={project} group={group} />
       )}
       {group.issueCategory === IssueCategory.CRON && (
         <CronTimelineSection
@@ -250,7 +250,6 @@ export function EventDetailsContent({
             data={eventEntries[EntryType.EXCEPTION].data}
             projectSlug={projectSlug}
             groupingCurrentLevel={groupingCurrentLevel}
-            hasHierarchicalGrouping={hasHierarchicalGrouping}
           />
         </EntryErrorBoundary>
       )}
@@ -261,7 +260,6 @@ export function EventDetailsContent({
             data={eventEntries[EntryType.STACKTRACE].data}
             projectSlug={projectSlug}
             groupingCurrentLevel={groupingCurrentLevel}
-            hasHierarchicalGrouping={hasHierarchicalGrouping}
           />
         </EntryErrorBoundary>
       )}
@@ -272,7 +270,6 @@ export function EventDetailsContent({
             data={eventEntries[EntryType.THREADS].data}
             projectSlug={projectSlug}
             groupingCurrentLevel={groupingCurrentLevel}
-            hasHierarchicalGrouping={hasHierarchicalGrouping}
           />
         </EntryErrorBoundary>
       )}
@@ -350,6 +347,12 @@ export function EventDetailsContent({
           />
         </EntryErrorBoundary>
       ) : null}
+      <EventTraceView
+        group={group}
+        event={event}
+        organization={organization}
+        projectSlug={project.slug}
+      />
       {!showPossibleSolutionsHigher && (
         <ResourcesAndPossibleSolutionsIssueDetailsContent
           event={event}
@@ -380,6 +383,9 @@ export function EventDetailsContent({
         </div>
       )}
       <EventContexts group={group} event={event} />
+      {hasFeatureFlagSection && (
+        <EventFeatureFlagList group={group} project={project} event={event} />
+      )}
       <EventExtraData event={event} />
       <EventPackageData event={event} />
       <EventDevice event={event} />
@@ -426,13 +432,39 @@ function ResourcesAndPossibleSolutionsIssueDetailsContent({
   );
 }
 
+const GroupContent = styled('div')`
+  border: 1px solid ${p => p.theme.translucentBorder};
+  background: ${p => p.theme.background};
+  border-radius: ${p => p.theme.borderRadius};
+  position: relative;
+`;
+
+const GroupContentPadding = styled('div')`
+  padding: ${space(1)} ${space(1.5)};
+`;
+
+// TODO: Merge regression issues with the other event details
+function RegressionEventContainer({children}: {children: React.ReactNode}) {
+  const hasStreamlinedUI = useHasStreamlinedUI();
+
+  if (!hasStreamlinedUI) {
+    return children;
+  }
+
+  return (
+    <GroupContent>
+      <GroupContentPadding>{children}</GroupContentPadding>
+    </GroupContent>
+  );
+}
+
 function PerformanceDurationRegressionIssueDetailsContent({
   group,
   event,
   project,
 }: Required<EventDetailsContentProps>) {
   return (
-    <Fragment>
+    <RegressionEventContainer>
       <ErrorBoundary mini>
         <EventRegressionSummary event={event} group={group} />
       </ErrorBoundary>
@@ -445,7 +477,7 @@ function PerformanceDurationRegressionIssueDetailsContent({
       <ErrorBoundary mini>
         <EventComparison event={event} project={project} />
       </ErrorBoundary>
-    </Fragment>
+    </RegressionEventContainer>
   );
 }
 
@@ -454,38 +486,39 @@ function ProfilingDurationRegressionIssueDetailsContent({
   event,
   project,
 }: Required<EventDetailsContentProps>) {
-  const organization = useOrganization();
   return (
-    <TransactionsDeltaProvider event={event} project={project}>
-      <Fragment>
-        <ErrorBoundary mini>
-          <EventRegressionSummary event={event} group={group} />
-        </ErrorBoundary>
-        <ErrorBoundary mini>
-          <EventFunctionBreakpointChart event={event} />
-        </ErrorBoundary>
-        {!organization.features.includes('continuous-profiling-compat') && (
+    <RegressionEventContainer>
+      <TransactionsDeltaProvider event={event} project={project}>
+        <Fragment>
+          <ErrorBoundary mini>
+            <EventRegressionSummary event={event} group={group} />
+          </ErrorBoundary>
+          <ErrorBoundary mini>
+            <EventFunctionBreakpointChart event={event} />
+          </ErrorBoundary>
           <ErrorBoundary mini>
             <EventAffectedTransactions event={event} group={group} project={project} />
           </ErrorBoundary>
-        )}
-        <ErrorBoundary mini>
-          <DataSection>
-            <b>{t('Largest Changes in Call Stack Frequency')}</b>
-            <p>
-              {t(`See which functions changed the most before and after the regression. The
+          <ErrorBoundary mini>
+            <InterimSection
+              type={SectionKey.REGRESSION_FLAMEGRAPH}
+              title={t('Regression Flamegraph')}
+            >
+              <b>{t('Largest Changes in Call Stack Frequency')}</b>
+              <p>
+                {t(`See which functions changed the most before and after the regression. The
               frame with the largest increase in call stack population likely
               contributed to the cause for the duration regression.`)}
-            </p>
-            h
-            <EventDifferentialFlamegraph event={event} />
-          </DataSection>
-        </ErrorBoundary>
-        <ErrorBoundary mini>
-          <EventFunctionComparisonList event={event} group={group} project={project} />
-        </ErrorBoundary>
-      </Fragment>
-    </TransactionsDeltaProvider>
+              </p>
+              <EventDifferentialFlamegraph event={event} />
+            </InterimSection>
+          </ErrorBoundary>
+          <ErrorBoundary mini>
+            <EventFunctionComparisonList event={event} group={group} project={project} />
+          </ErrorBoundary>
+        </Fragment>
+      </TransactionsDeltaProvider>
+    </RegressionEventContainer>
   );
 }
 

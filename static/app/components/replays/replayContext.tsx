@@ -7,9 +7,10 @@ import {VideoReplayerWithInteractions} from 'sentry/components/replays/videoRepl
 import {trackAnalytics} from 'sentry/utils/analytics';
 import clamp from 'sentry/utils/number/clamp';
 import type useInitialOffsetMs from 'sentry/utils/replays/hooks/useInitialTimeOffsetMs';
+import {useReplayPrefs} from 'sentry/utils/replays/playback/providers/replayPreferencesContext';
 import {ReplayCurrentTimeContextProvider} from 'sentry/utils/replays/playback/providers/useCurrentHoverTime';
-import useReplayPrefs from 'sentry/utils/replays/playback/providers/useReplayPrefs';
 import type ReplayReader from 'sentry/utils/replays/replayReader';
+import type {Dimensions} from 'sentry/utils/replays/types';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePrevious from 'sentry/utils/usePrevious';
 import useProjectFromId from 'sentry/utils/useProjectFromId';
@@ -18,7 +19,6 @@ import {useUser} from 'sentry/utils/useUser';
 
 import {CanvasReplayerPlugin} from './canvasReplayerPlugin';
 
-type Dimensions = {height: number; width: number};
 type RootElem = null | HTMLDivElement;
 
 type HighlightCallbacks = ReturnType<typeof useReplayHighlighting>;
@@ -431,6 +431,10 @@ export function Provider({
         events: events ?? [],
         // common to both
         root,
+        context: {
+          sdkName: replay?.getReplay().sdk.name,
+          sdkVersion: replay?.getReplay().sdk.version,
+        },
       });
       // `.current` is marked as readonly, but it's safe to set the value from
       // inside a `useEffect` hook.
@@ -464,7 +468,8 @@ export function Provider({
       return;
     }
     if (isPlaying) {
-      replayer.pause();
+      // we need to pass in the current time when pausing for mobile replays
+      replayer.pause(getCurrentPlayerTime());
       replayer.setConfig({speed: prefs.playbackSpeed});
       replayer.play(getCurrentPlayerTime());
     } else {

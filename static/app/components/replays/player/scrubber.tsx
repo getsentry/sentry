@@ -8,10 +8,12 @@ import * as Progress from 'sentry/components/replays/progress';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import formatReplayDuration from 'sentry/utils/duration/formatReplayDuration';
+import {getFormattedDate, shouldUse24Hours} from 'sentry/utils/dates';
+import formatDuration from 'sentry/utils/duration/formatDuration';
 import divide from 'sentry/utils/number/divide';
 import toPercent from 'sentry/utils/number/toPercent';
 import useTimelineScale from 'sentry/utils/replays/hooks/useTimelineScale';
+import {useReplayPrefs} from 'sentry/utils/replays/playback/providers/replayPreferencesContext';
 import useCurrentHoverTime from 'sentry/utils/replays/playback/providers/useCurrentHoverTime';
 
 type Props = {
@@ -21,9 +23,12 @@ type Props = {
 
 function Scrubber({className, showZoomIndicators = false}: Props) {
   const {replay, currentTime, setCurrentTime} = useReplayContext();
+  const [prefs] = useReplayPrefs();
+  const timestampType = prefs.timestampType;
   const [currentHoverTime] = useCurrentHoverTime();
   const [timelineScale] = useTimelineScale();
 
+  const startTimestamp = replay?.getStartTimestampMs() ?? 0;
   const durationMs = replay?.getDurationMs() ?? 0;
   const percentComplete = divide(currentTime, durationMs);
   const hoverPlace = divide(currentHoverTime || 0, durationMs);
@@ -62,7 +67,23 @@ function Scrubber({className, showZoomIndicators = false}: Props) {
       <Meter>
         {currentHoverTime ? (
           <div>
-            <TimelineTooltip labelText={formatReplayDuration(currentHoverTime)} />
+            <TimelineTooltip
+              labelText={
+                timestampType === 'absolute'
+                  ? getFormattedDate(
+                      startTimestamp + currentHoverTime,
+                      shouldUse24Hours() ? 'HH:mm:ss.SSS' : 'hh:mm:ss.SSS',
+                      {
+                        local: true,
+                      }
+                    )
+                  : formatDuration({
+                      duration: [currentHoverTime, 'ms'],
+                      precision: 'ms',
+                      style: 'hh:mm:ss.sss',
+                    })
+              }
+            />
             <MouseTrackingValue
               style={{
                 width: toPercent(hoverPlace),

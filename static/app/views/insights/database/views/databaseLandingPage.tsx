@@ -16,25 +16,23 @@ import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useSynchronizeCharts} from 'sentry/views/insights/common/components/chart';
 import * as ModuleLayout from 'sentry/views/insights/common/components/moduleLayout';
-import {ModulePageFilterBar} from 'sentry/views/insights/common/components/modulePageFilterBar';
 import {ModulePageProviders} from 'sentry/views/insights/common/components/modulePageProviders';
 import {ModulesOnboarding} from 'sentry/views/insights/common/components/modulesOnboarding';
-import {ToolRibbon} from 'sentry/views/insights/common/components/ribbon';
 import {useSpanMetrics} from 'sentry/views/insights/common/queries/useDiscover';
 import {useSpanMetricsSeries} from 'sentry/views/insights/common/queries/useDiscoverSeries';
 import {useHasFirstSpan} from 'sentry/views/insights/common/queries/useHasFirstSpan';
 import {useOnboardingProject} from 'sentry/views/insights/common/queries/useOnboardingProject';
 import {useModuleBreadcrumbs} from 'sentry/views/insights/common/utils/useModuleBreadcrumbs';
 import {QueryParameterNames} from 'sentry/views/insights/common/views/queryParameters';
-import {ActionSelector} from 'sentry/views/insights/common/views/spans/selectors/actionSelector';
-import {DomainSelector} from 'sentry/views/insights/common/views/spans/selectors/domainSelector';
 import {DurationChart} from 'sentry/views/insights/database/components/charts/durationChart';
 import {ThroughputChart} from 'sentry/views/insights/database/components/charts/throughputChart';
+import {DatabasePageFilters} from 'sentry/views/insights/database/components/databasePageFilters';
 import {NoDataMessage} from 'sentry/views/insights/database/components/noDataMessage';
 import {
   isAValidSort,
   QueriesTable,
 } from 'sentry/views/insights/database/components/tables/queriesTable';
+import {useSystemSelectorOptions} from 'sentry/views/insights/database/components/useSystemSelectorOptions';
 import {
   BASE_FILTERS,
   DEFAULT_DURATION_AGGREGATE,
@@ -58,6 +56,12 @@ export function DatabaseLandingPage() {
 
   const sortField = decodeScalar(location.query?.[QueryParameterNames.SPANS_SORT]);
 
+  // If there is no query parameter for the system, retrieve the current value from the hook instead
+  const systemQueryParam = decodeScalar(location.query?.[SpanMetricsField.SPAN_SYSTEM]);
+  const {selectedSystem} = useSystemSelectorOptions();
+
+  const system = systemQueryParam ?? selectedSystem;
+
   let sort = decodeSorts(sortField).filter(isAValidSort)[0];
   if (!sort) {
     sort = DEFAULT_SORT;
@@ -79,13 +83,19 @@ export function DatabaseLandingPage() {
     });
   };
 
-  const chartFilters = BASE_FILTERS;
+  const chartFilters = {
+    ...BASE_FILTERS,
+    'span.action': spanAction,
+    'span.domain': spanDomain,
+    'span.system': system,
+  };
 
   const tableFilters = {
     ...BASE_FILTERS,
     'span.action': spanAction,
     'span.domain': spanDomain,
     'span.description': spanDescription ? `*${spanDescription}*` : undefined,
+    'span.system': system,
   };
 
   const cursor = decodeScalar(location.query?.[QueryParameterNames.SPANS_CURSOR]);
@@ -97,6 +107,7 @@ export function DatabaseLandingPage() {
         'project.id',
         'span.group',
         'span.description',
+        'span.action',
         'spm()',
         'avg(span.self_time)',
         'sum(span.self_time)',
@@ -110,7 +121,7 @@ export function DatabaseLandingPage() {
   );
 
   const {
-    isLoading: isThroughputDataLoading,
+    isPending: isThroughputDataLoading,
     data: throughputData,
     error: throughputError,
   } = useSpanMetricsSeries(
@@ -122,7 +133,7 @@ export function DatabaseLandingPage() {
   );
 
   const {
-    isLoading: isDurationDataLoading,
+    isPending: isDurationDataLoading,
     data: durationData,
     error: durationError,
   } = useSpanMetricsSeries(
@@ -134,7 +145,7 @@ export function DatabaseLandingPage() {
   );
 
   const isCriticalDataLoading =
-    isThroughputDataLoading || isDurationDataLoading || queryListResponse.isLoading;
+    isThroughputDataLoading || isDurationDataLoading || queryListResponse.isPending;
 
   const isAnyCriticalDataAvailable =
     (queryListResponse.data ?? []).length > 0 ||
@@ -179,7 +190,11 @@ export function DatabaseLandingPage() {
             )}
 
             <ModuleLayout.Full>
-              <ModulePageFilterBar moduleName={ModuleName.DB} />
+              <DatabasePageFilters
+                system={system}
+                databaseCommand={spanAction}
+                table={spanDomain}
+              />
             </ModuleLayout.Full>
             <ModulesOnboarding moduleName={ModuleName.DB}>
               <ModuleLayout.Half>
@@ -199,22 +214,15 @@ export function DatabaseLandingPage() {
               </ModuleLayout.Half>
 
               <ModuleLayout.Full>
-                <ToolRibbon>
-                  <ActionSelector moduleName={moduleName} value={spanAction ?? ''} />
-                  <DomainSelector moduleName={moduleName} value={spanDomain ?? ''} />
-                </ToolRibbon>
-              </ModuleLayout.Full>
-
-              <ModuleLayout.Full>
                 <SearchBar
                   query={spanDescription}
-                  placeholder={t('Search for more Queries')}
+                  placeholder={t('Search for more queries')}
                   onSearch={handleSearch}
                 />
               </ModuleLayout.Full>
 
               <ModuleLayout.Full>
-                <QueriesTable response={queryListResponse} sort={sort} />
+                <QueriesTable response={queryListResponse} sort={sort} system={system} />
               </ModuleLayout.Full>
             </ModulesOnboarding>
           </ModuleLayout.Layout>

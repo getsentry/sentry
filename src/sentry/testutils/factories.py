@@ -101,7 +101,6 @@ from sentry.models.group import Group
 from sentry.models.grouphistory import GroupHistory
 from sentry.models.grouplink import GroupLink
 from sentry.models.grouprelease import GroupRelease
-from sentry.models.identity import Identity, IdentityProvider, IdentityStatus
 from sentry.models.integrations.sentry_app import SentryApp
 from sentry.models.integrations.sentry_app_installation import SentryAppInstallation
 from sentry.models.integrations.sentry_app_installation_for_provider import (
@@ -125,7 +124,7 @@ from sentry.models.project import Project
 from sentry.models.projectbookmark import ProjectBookmark
 from sentry.models.projectcodeowners import ProjectCodeOwners
 from sentry.models.projecttemplate import ProjectTemplate
-from sentry.models.release import Release
+from sentry.models.release import Release, ReleaseStatus
 from sentry.models.releasecommit import ReleaseCommit
 from sentry.models.releaseenvironment import ReleaseEnvironment
 from sentry.models.releasefile import ReleaseFile, update_artifact_index
@@ -145,7 +144,6 @@ from sentry.sentry_apps.installations import (
 )
 from sentry.sentry_apps.services.app.serial import serialize_sentry_app_installation
 from sentry.sentry_apps.services.hook import hook_service
-from sentry.sentry_metrics.models import SpanAttributeExtractionRuleConfig
 from sentry.signals import project_created
 from sentry.silo.base import SiloMode
 from sentry.snuba.dataset import Dataset
@@ -162,6 +160,7 @@ from sentry.uptime.models import (
     UptimeStatus,
     UptimeSubscription,
 )
+from sentry.users.models.identity import Identity, IdentityProvider, IdentityStatus
 from sentry.users.models.user import User
 from sentry.users.models.user_avatar import UserAvatar
 from sentry.users.models.user_option import UserOption
@@ -171,6 +170,7 @@ from sentry.users.models.userrole import UserRole
 from sentry.users.services.user import RpcUser
 from sentry.utils import loremipsum
 from sentry.utils.performance_issues.performance_problem import PerformanceProblem
+from sentry.workflow_engine.models import DataSource, Detector, Workflow, WorkflowAction
 from social_auth.models import UserSocialAuth
 
 
@@ -606,6 +606,7 @@ class Factories:
         date_released: datetime | None = None,
         adopted: datetime | None = None,
         unadopted: datetime | None = None,
+        status: int | None = ReleaseStatus.OPEN,
     ):
         if version is None:
             version = force_str(hexlify(os.urandom(20)))
@@ -621,6 +622,7 @@ class Factories:
             organization_id=project.organization_id,
             date_added=date_added,
             date_released=date_released,
+            status=status,
         )
 
         release.add_project(project)
@@ -1218,13 +1220,6 @@ class Factories:
             provider=provider,
             sentry_app_installation=installation,
         )
-
-    @staticmethod
-    @assume_test_silo_mode(SiloMode.REGION)
-    def create_span_attribute_extraction_config(
-        dictionary: dict[str, Any], user_id: int, project: Project
-    ) -> SpanAttributeExtractionRuleConfig:
-        return SpanAttributeExtractionRuleConfig.from_dict(dictionary, user_id, project)
 
     @staticmethod
     @assume_test_silo_mode(SiloMode.CONTROL)
@@ -1943,6 +1938,7 @@ class Factories:
         subscription_id: str | None,
         status: UptimeSubscription.Status,
         url: str,
+        host_provider_id: str,
         interval_seconds: int,
         timeout_ms: int,
         date_updated: datetime,
@@ -1952,6 +1948,7 @@ class Factories:
             subscription_id=subscription_id,
             status=status.value,
             url=url,
+            host_provider_id=host_provider_id,
             interval_seconds=interval_seconds,
             timeout_ms=timeout_ms,
             date_updated=date_updated,
@@ -2036,3 +2033,59 @@ class Factories:
         if name is None:
             name = petname.generate(2, " ", letters=10).title()
         return DashboardWidgetQuery.objects.create(widget=widget, name=name, order=order, **kwargs)
+
+    @staticmethod
+    @assume_test_silo_mode(SiloMode.REGION)
+    def create_workflow(
+        name: str | None = None,
+        organization: Organization | None = None,
+        **kwargs,
+    ) -> Workflow:
+        if organization is None:
+            organization = Factories.create_organization()
+        if name is None:
+            name = petname.generate(2, " ", letters=10).title()
+        return Workflow.objects.create(organization=organization, name=name)
+
+    @staticmethod
+    @assume_test_silo_mode(SiloMode.REGION)
+    def create_workflowaction(
+        workflow: Workflow | None = None,
+        **kwargs,
+    ) -> WorkflowAction:
+        if workflow is None:
+            workflow = Factories.create_workflow()
+        return WorkflowAction.objects.create(workflow=workflow, **kwargs)
+
+    @staticmethod
+    @assume_test_silo_mode(SiloMode.REGION)
+    def create_datasource(
+        organization: Organization | None = None,
+        query_id: int | None = None,
+        type: DataSource.Type | None = None,
+        **kwargs,
+    ) -> DataSource:
+        if organization is None:
+            organization = Factories.create_organization()
+        if query_id is None:
+            query_id = random.randint(1, 10000)
+        if type is None:
+            type = DataSource.Type.SNUBA_QUERY_SUBSCRIPTION
+        return DataSource.objects.create(organization=organization, query_id=query_id, type=type)
+
+    @staticmethod
+    @assume_test_silo_mode(SiloMode.REGION)
+    def create_detector(
+        organization: Organization | None = None,
+        name: str | None = None,
+        owner_user_id: int | None = None,
+        owner_team: Team | None = None,
+        **kwargs,
+    ) -> Detector:
+        if organization is None:
+            organization = Factories.create_organization()
+        if name is None:
+            name = petname.generate(2, " ", letters=10).title()
+        return Detector.objects.create(
+            organization=organization, name=name, owner_user_id=owner_user_id, owner_team=owner_team
+        )

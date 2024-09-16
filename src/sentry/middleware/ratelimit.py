@@ -39,31 +39,31 @@ class RatelimitMiddleware:
 
     def __call__(self, request: HttpRequest) -> HttpResponseBase:
         # process_view is automatically called by Django
-        response = self.get_response(request)
-        self.process_response(request, response)
-        return response
+        with sentry_sdk.start_span(op="ratelimit.__call__"):
+            response = self.get_response(request)
+            self.process_response(request, response)
+            return response
 
     def process_view(
         self, request: HttpRequest, view_func, view_args, view_kwargs
     ) -> HttpResponseBase | None:
         """Check if the endpoint call will violate."""
 
-        with metrics.timer("middleware.ratelimit.process_view"):
+        with metrics.timer("middleware.ratelimit.process_view", sample_rate=0.01):
             try:
-                with sentry_sdk.start_span(op="ratelimit.early_return"):
-                    # TODO: put these fields into their own object
-                    request.will_be_rate_limited = False
-                    if settings.SENTRY_SELF_HOSTED:
-                        return None
-                    request.rate_limit_category = None
-                    request.rate_limit_uid = uuid.uuid4().hex
-                    view_class = getattr(view_func, "view_class", None)
-                    if not view_class:
-                        return None
+                # TODO: put these fields into their own object
+                request.will_be_rate_limited = False
+                if settings.SENTRY_SELF_HOSTED:
+                    return None
+                request.rate_limit_category = None
+                request.rate_limit_uid = uuid.uuid4().hex
+                view_class = getattr(view_func, "view_class", None)
+                if not view_class:
+                    return None
 
-                    enforce_rate_limit = getattr(view_class, "enforce_rate_limit", False)
-                    if enforce_rate_limit is False:
-                        return None
+                enforce_rate_limit = getattr(view_class, "enforce_rate_limit", False)
+                if enforce_rate_limit is False:
+                    return None
 
                 rate_limit_config = get_rate_limit_config(
                     view_class, view_args, {**view_kwargs, "request": request}
@@ -71,10 +71,9 @@ class RatelimitMiddleware:
                 rate_limit_group = (
                     rate_limit_config.group if rate_limit_config else RateLimitConfig().group
                 )
-                with sentry_sdk.start_span(op="ratelimit.get_rate_limit_key"):
-                    request.rate_limit_key = get_rate_limit_key(
-                        view_func, request, rate_limit_group, rate_limit_config
-                    )
+                request.rate_limit_key = get_rate_limit_key(
+                    view_func, request, rate_limit_group, rate_limit_config
+                )
                 if request.rate_limit_key is None:
                     return None
 
@@ -89,10 +88,9 @@ class RatelimitMiddleware:
                 if rate_limit is None:
                     return None
 
-                with sentry_sdk.start_span(op="ratelimit.above_rate_limit_check"):
-                    request.rate_limit_metadata = above_rate_limit_check(
-                        request.rate_limit_key, rate_limit, request.rate_limit_uid, rate_limit_group
-                    )
+                request.rate_limit_metadata = above_rate_limit_check(
+                    request.rate_limit_key, rate_limit, request.rate_limit_uid, rate_limit_group
+                )
 
                 # TODO: also limit by concurrent window once we have the data
                 rate_limit_cond = (
@@ -133,7 +131,7 @@ class RatelimitMiddleware:
     def process_response(
         self, request: HttpRequest, response: HttpResponseBase
     ) -> HttpResponseBase:
-        with metrics.timer("middleware.ratelimit.process_response"):
+        with metrics.timer("middleware.ratelimit.process_response", sample_rate=0.01):
             try:
                 rate_limit_metadata: RateLimitMeta | None = getattr(
                     request, "rate_limit_metadata", None

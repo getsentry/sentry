@@ -12,6 +12,7 @@ from sentry.db.models import (
     Model,
     region_silo_model,
 )
+from sentry.db.models.base import sane_repr
 
 if TYPE_CHECKING:
     from sentry.models.grouphashmetadata import GroupHashMetadata
@@ -24,9 +25,6 @@ class GroupHash(Model):
     class State:
         UNLOCKED = None
         LOCKED_IN_MIGRATION = 1
-
-        # This hierarchical grouphash should be ignored/skipped for finding the group.
-        SPLIT = 2
 
     project = FlexibleForeignKey("sentry.Project", null=True)
     hash = models.CharField(max_length=32)
@@ -49,3 +47,5 @@ class GroupHash(Model):
             return self._metadata
         except AttributeError:
             return None
+
+    __repr__ = sane_repr("group_id", "hash")

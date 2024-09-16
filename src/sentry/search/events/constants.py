@@ -262,6 +262,8 @@ FUNCTION_ALIASES = {
 
 METRICS_FUNCTION_ALIASES: dict[str, str] = {}
 
+SPAN_MODULE_CATEGORY_VALUES = ["cache", "db", "http", "queue", "resource"]
+
 SPAN_FUNCTION_ALIASES = {
     "sps": "eps",
     "spm": "epm",
@@ -318,6 +320,7 @@ DEFAULT_METRIC_TAGS = {
     "device.class",
     "environment",
     "geo.country_code",
+    "user.geo.subregion",
     "has_profile",
     "histogram_outlier",
     "http.method",

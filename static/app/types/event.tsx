@@ -198,8 +198,6 @@ export type Frame = {
   trust: any | null;
   vars: Record<string, any> | null;
   addrMode?: string;
-  isPrefix?: boolean;
-  isSentinel?: boolean;
   lock?: Lock | null;
   // map exists if the frame has a source map
   map?: string | null;
@@ -211,8 +209,6 @@ export type Frame = {
 };
 
 export enum FrameBadge {
-  SENTINEL = 'sentinel',
-  PREFIX = 'prefix',
   GROUPING = 'grouping',
 }
 
@@ -233,29 +229,11 @@ export type ExceptionType = {
   values?: Array<ExceptionValue>;
 };
 
-export type TreeLabelPart =
-  | string
-  | {
-      classbase?: string;
-      datapath?: (string | number)[];
-      filebase?: string;
-      function?: string;
-      is_prefix?: boolean;
-      // is_sentinel is no longer being used,
-      // but we will still assess whether we will use this property in the near future.
-      is_sentinel?: boolean;
-      package?: string;
-      type?: string;
-    };
-
 // This type is incomplete
 export type EventMetadata = {
   current_level?: number;
-  current_tree_label?: TreeLabelPart[];
   directive?: string;
-  display_title_with_tree_label?: boolean;
   filename?: string;
-  finest_tree_label?: TreeLabelPart[];
   function?: string;
   message?: string;
   origin?: string;
@@ -658,6 +636,9 @@ export interface ResponseContext {
   type: 'response';
 }
 
+export type FeatureFlag = {flag: string; result: boolean};
+export type Flags = {values: FeatureFlag[]};
+
 export type EventContexts = {
   'Memory Info'?: MemoryInfoContext;
   'ThreadPool Info'?: ThreadPoolInfoContext;
@@ -665,6 +646,7 @@ export type EventContexts = {
   client_os?: OSContext;
   device?: DeviceContext;
   feedback?: Record<string, any>;
+  flags?: Flags;
   memory_info?: MemoryInfoContext;
   os?: OSContext;
   otel?: OtelContext;

@@ -10,17 +10,21 @@ from django.test import override_settings
 from rest_framework import serializers
 from rest_framework.exceptions import ErrorDetail
 from slack_sdk.errors import SlackApiError
+from urllib3.response import HTTPResponse
 
 from sentry.auth.access import from_user
 from sentry.incidents.logic import (
     DEFAULT_ALERT_RULE_RESOLUTION,
     DEFAULT_CMP_ALERT_RULE_RESOLUTION_MULTIPLIER,
+    AlertTarget,
     ChannelLookupTimeoutError,
     create_alert_rule_trigger,
 )
 from sentry.incidents.models.alert_rule import (
     AlertRule,
     AlertRuleDetectionType,
+    AlertRuleSeasonality,
+    AlertRuleSensitivity,
     AlertRuleThresholdType,
     AlertRuleTriggerAction,
 )
@@ -43,6 +47,7 @@ from sentry.silo.base import SiloMode
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.models import SnubaQuery, SnubaQueryEventType
 from sentry.testutils.cases import TestCase
+from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.testutils.skips import requires_snuba
 from sentry.users.models.user import User
@@ -464,6 +469,32 @@ class TestAlertRuleSerializer(TestAlertRuleSerializerBase):
             },
         )
 
+    @with_feature("organizations:anomaly-detection-alerts")
+    @patch(
+        "sentry.seer.anomaly_detection.store_data.seer_anomaly_detection_connection_pool.urlopen"
+    )
+    def test_invalid_alert_threshold(self, mock_seer_request):
+        """
+        Anomaly detection alerts cannot have a nonzero alert rule threshold
+        """
+        mock_seer_request.return_value = HTTPResponse(status=200)
+
+        params = self.valid_params.copy()
+        params["detection_type"] = AlertRuleDetectionType.DYNAMIC
+        params["seasonality"] = AlertRuleSeasonality.AUTO
+        params["sensitivity"] = AlertRuleSensitivity.MEDIUM
+        params["time_window"] = 15
+        serializer = AlertRuleSerializer(context=self.context, data=params)
+        assert serializer.is_valid()
+
+        with pytest.raises(
+            serializers.ValidationError,
+            match="Dynamic alerts cannot have a nonzero alert threshold",
+        ):
+            serializer.save()
+
+        assert mock_seer_request.call_count == 1
+
     def test_invalid_slack_channel(self):
         # We had an error where an invalid slack channel was spitting out unclear
         # error for the user, and CREATING THE RULE. So the next save (after fixing slack action)
@@ -782,6 +813,34 @@ class TestAlertRuleSerializer(TestAlertRuleSerializerBase):
         assert alert_rule.snuba_query is not None
         assert alert_rule.snuba_query.query == "status:unresolved"
 
+    def test_http_response_rate(self):
+        with self.feature("organizations:mep-rollout-flag"):
+            params = self.valid_params.copy()
+            params["query"] = "span.module:http span.op:http.client"
+            params["aggregate"] = "http_response_rate(3)"
+            params["event_types"] = [SnubaQueryEventType.EventType.TRANSACTION.name.lower()]
+            params["dataset"] = Dataset.PerformanceMetrics.value
+            serializer = AlertRuleSerializer(context=self.context, data=params, partial=True)
+            assert serializer.is_valid(), serializer.errors
+            alert_rule = serializer.save()
+            assert alert_rule.snuba_query is not None
+            assert alert_rule.snuba_query.query == "span.module:http span.op:http.client"
+            assert alert_rule.snuba_query.aggregate == "http_response_rate(3)"
+
+    def test_performance_score(self):
+        with self.feature("organizations:mep-rollout-flag"):
+            params = self.valid_params.copy()
+            params["query"] = "has:measurements.score.total"
+            params["aggregate"] = "performance_score(measurements.score.lcp)"
+            params["event_types"] = [SnubaQueryEventType.EventType.TRANSACTION.name.lower()]
+            params["dataset"] = Dataset.PerformanceMetrics.value
+            serializer = AlertRuleSerializer(context=self.context, data=params, partial=True)
+            assert serializer.is_valid(), serializer.errors
+            alert_rule = serializer.save()
+            assert alert_rule.snuba_query is not None
+            assert alert_rule.snuba_query.query == "has:measurements.score.total"
+            assert alert_rule.snuba_query.aggregate == "performance_score(measurements.score.lcp)"
+
 
 class TestAlertRuleTriggerSerializer(TestAlertRuleSerializerBase):
     @cached_property
@@ -1014,7 +1073,7 @@ class TestAlertRuleTriggerActionSerializer(TestAlertRuleSerializerBase):
 
     @patch(
         "sentry.incidents.logic.get_target_identifier_display_for_integration",
-        return_value=("test", "test"),
+        return_value=AlertTarget("test", "test"),
     )
     def test_pagerduty_valid_priority(self, mock_get):
         params = {
@@ -1032,7 +1091,7 @@ class TestAlertRuleTriggerActionSerializer(TestAlertRuleSerializerBase):
 
     @patch(
         "sentry.incidents.logic.get_target_identifier_display_for_integration",
-        return_value=("test", "test"),
+        return_value=AlertTarget("test", "test"),
     )
     def test_opsgenie_valid_priority(self, mock_get):
         params = {

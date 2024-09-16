@@ -1,0 +1,20 @@
+{% extends "sentry/bases/modal.html" %}
+
+{% load i18n %}
+
+{% block title %}{% trans "Data Secrecy Enabled" %} | {{ block.super }}{% endblock %}
+
+{% block main %}
+  <section class="body">
+    <div class="alert alert-block alert-error">
+      <div style="font-size:24px;margin-bottom:10px">
+        <span class="icon-exclamation" style="font-size:20px;margin-right:10px;"></span>
+        <span>Data Secrecy Enabled</span>
+      </div>
+      <p>{% trans "This organization has not granted Support Access." %}</p>
+      <p>{% trans "An organization that hasn't granted Support Access cannot be accessed via superuser." %}</p>
+      <p>If you need to access the organization to help debug an issue, please contact the organization to grant a waiver under</p>
+      <a href="https://{{organization_slug}}.sentry.io/settings/security-and-privacy/"> Organization Settings -> Security & Privacy -> Support Access</a>
+    </div>
+  </section>
+{% endblock %}

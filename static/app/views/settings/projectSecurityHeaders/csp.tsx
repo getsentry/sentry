@@ -55,7 +55,7 @@ export default function ProjectCspReports() {
 
   const {
     data: keyList,
-    isLoading: isLoadingKeyList,
+    isPending: isLoadingKeyList,
     isError: isKeyListError,
     refetch: refetchKeyList,
   } = useApiQuery<ProjectKey[]>([`/projects/${organization.slug}/${projectId}/keys/`], {
@@ -63,7 +63,7 @@ export default function ProjectCspReports() {
   });
   const {
     data: project,
-    isLoading: isLoadingProject,
+    isPending: isLoadingProject,
     isError: isProjectError,
     refetch: refetchProject,
   } = useApiQuery<Project>([`/projects/${organization.slug}/${projectId}/`], {

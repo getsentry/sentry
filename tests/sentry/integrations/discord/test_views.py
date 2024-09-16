@@ -4,9 +4,9 @@ from django.core.signing import SignatureExpired
 
 from sentry.integrations.discord.views.link_identity import build_linking_url
 from sentry.integrations.discord.views.unlink_identity import build_unlinking_url
-from sentry.models.identity import Identity, IdentityStatus
 from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import control_silo_test
+from sentry.users.models.identity import Identity, IdentityStatus
 
 
 class DiscordIntegrationLinkIdentityTestBase(TestCase):
@@ -43,7 +43,7 @@ class DiscordIntegrationLinkIdentityTest(DiscordIntegrationLinkIdentityTestBase)
         assert identity[0].idp == self.provider
         assert identity[0].status == IdentityStatus.VALID
 
-    @mock.patch("sentry.integrations.discord.views.link_identity.unsign")
+    @mock.patch("sentry.integrations.messaging.linkage.unsign")
     def test_expired_signature(self, mock_sign):
         mock_sign.side_effect = SignatureExpired
         url = build_linking_url(self.discord_integration, self.discord_user_id)  # type: ignore[arg-type]
@@ -72,7 +72,7 @@ class DiscordIntegrationUnlinkIdentityTest(DiscordIntegrationLinkIdentityTestBas
             external_id=self.discord_user_id, user=self.user
         ).exists()
 
-    @mock.patch("sentry.integrations.discord.views.unlink_identity.unsign")
+    @mock.patch("sentry.integrations.messaging.linkage.unsign")
     def test_expired_signature(self, mock_sign):
         mock_sign.side_effect = SignatureExpired
         url = build_unlinking_url(self.discord_integration, self.discord_user_id)  # type: ignore[arg-type]

@@ -99,7 +99,7 @@ describe('ProjectSourceMaps', function () {
       expect(tabs[0]).not.toHaveClass('active');
       expect(within(tabs[0]).getByRole('link')).toHaveAttribute(
         'href',
-        '/settings/org-slug/projects/project-slug/source-maps/artifact-bundles/?'
+        '/settings/org-slug/projects/project-slug/source-maps/artifact-bundles/'
       );
 
       // Tab 2
@@ -107,7 +107,7 @@ describe('ProjectSourceMaps', function () {
       expect(tabs[1]).toHaveClass('active');
       expect(within(tabs[0]).getByRole('link')).toHaveAttribute(
         'href',
-        '/settings/org-slug/projects/project-slug/source-maps/artifact-bundles/?'
+        '/settings/org-slug/projects/project-slug/source-maps/artifact-bundles/'
       );
 
       // Search bar
@@ -131,13 +131,13 @@ describe('ProjectSourceMaps', function () {
       // Active tab contains correct link
       expect(screen.getByRole('link', {name: /Release Bundles/})).toHaveAttribute(
         'href',
-        '/settings/org-slug/projects/project-slug/source-maps/release-bundles/?'
+        '/settings/org-slug/projects/project-slug/source-maps/release-bundles/'
       );
 
       // Artifact Bundles Tab
       expect(screen.getByRole('link', {name: /Artifact Bundles/})).toHaveAttribute(
         'href',
-        '/settings/org-slug/projects/project-slug/source-maps/artifact-bundles/?'
+        '/settings/org-slug/projects/project-slug/source-maps/artifact-bundles/'
       );
 
       // Name
@@ -280,7 +280,7 @@ describe('ProjectSourceMaps', function () {
         })
       );
       expect(router.push).toHaveBeenLastCalledWith(
-        '/settings/org-slug/projects/project-slug/source-maps/artifact-bundles/b916a646-2c6b-4e45-af4c-409830a44e0e'
+        '/settings/org-slug/projects/project-slug/source-maps/artifact-bundles/b916a646-2c6b-4e45-af4c-409830a44e0e/'
       );
 
       renderGlobalModal();

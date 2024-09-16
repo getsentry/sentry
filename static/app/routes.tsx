@@ -259,25 +259,24 @@ function buildRoutes() {
         <Route path=":step/" component={make(() => import('sentry/views/relocation'))} />
       </Route>
       {USING_CUSTOMER_DOMAIN && (
-        <Route
-          path="/onboarding/"
-          component={errorHandler(withDomainRequired(OrganizationContainer))}
-          key="orgless-onboarding"
-        >
-          <IndexRedirect to="welcome/" />
+        <Fragment>
+          <Redirect from="/onboarding/" to="/onboarding/welcome/" />
           <Route
-            path=":step/"
-            component={make(() => import('sentry/views/onboarding'))}
-          />
-        </Route>
+            path="/onboarding/:step/"
+            component={errorHandler(withDomainRequired(OrganizationContainer))}
+            key="orgless-onboarding"
+          >
+            <IndexRoute component={make(() => import('sentry/views/onboarding'))} />
+          </Route>
+        </Fragment>
       )}
+      <Redirect from="/onboarding/:orgId/" to="/onboarding/:orgId/welcome/" />
       <Route
-        path="/onboarding/:orgId/"
+        path="/onboarding/:orgId/:step/"
         component={withDomainRedirect(errorHandler(OrganizationContainer))}
         key="org-onboarding"
       >
-        <IndexRedirect to="welcome/" />
-        <Route path=":step/" component={make(() => import('sentry/views/onboarding'))} />
+        <IndexRoute component={make(() => import('sentry/views/onboarding'))} />
       </Route>
       <Route
         path="/stories/"
@@ -420,7 +419,6 @@ function buildRoutes() {
             )}
           />
         </Route>
-        {hook('routes:api')}
       </Route>
       <Route
         path="close-account/"
@@ -681,7 +679,7 @@ function buildRoutes() {
         () => import('sentry/views/settings/organization/organizationSettingsLayout')
       )}
     >
-      {hook('routes:organization')}
+      {hook('routes:settings')}
       {!USING_CUSTOMER_DOMAIN && (
         <IndexRoute
           name={t('General')}
@@ -690,15 +688,13 @@ function buildRoutes() {
           )}
         />
       )}
-      {USING_CUSTOMER_DOMAIN && (
-        <Route
-          path="/settings/organization/"
-          name={t('General')}
-          component={make(
-            () => import('sentry/views/settings/organizationGeneralSettings')
-          )}
-        />
-      )}
+      <Route
+        path="organization/"
+        name={t('General')}
+        component={make(
+          () => import('sentry/views/settings/organizationGeneralSettings')
+        )}
+      />
       <Route
         path="projects/"
         name={t('Projects')}
@@ -1918,7 +1914,7 @@ function buildRoutes() {
     <Route component={errorHandler(OrganizationRoot)}>
       <Redirect from="/organizations/:orgId/teams/new/" to="/settings/:orgId/teams/" />
       <Route path="/organizations/:orgId/">
-        {hook('routes:organization')}
+        {hook('routes:legacy-organization-redirects')}
         <IndexRedirect to="issues/" />
         <Redirect from="teams/" to="/settings/:orgId/teams/" />
         <Redirect from="teams/your-teams/" to="/settings/:orgId/teams/" />

@@ -87,7 +87,7 @@ export function GeneralSection({item, startTimestampMs}: SectionProps) {
       key: t('Timestamp'),
       value: (
         <TimestampButton
-          format="mm:ss.SSS"
+          precision="ms"
           onClick={(event: MouseEvent) => {
             event.stopPropagation();
             setCurrentTime(item.offsetMs);

@@ -194,6 +194,7 @@ describe('DatabaseLandingPage', function () {
             'project.id',
             'span.group',
             'span.description',
+            'span.action',
             'spm()',
             'avg(span.self_time)',
             'sum(span.self_time)',
@@ -224,5 +225,155 @@ describe('DatabaseLandingPage', function () {
     expect(
       screen.getByRole('cell', {name: 'SELECT * FROM organizations'})
     ).toBeInTheDocument();
+  });
+
+  it('filters by category and action', async function () {
+    jest.mocked(useLocation).mockReturnValue({
+      pathname: '',
+      search: '',
+      query: {
+        statsPeriod: '10d',
+        'span.action': 'SELECT',
+        'span.domain': 'organizations',
+      },
+      hash: '',
+      state: undefined,
+      action: 'PUSH',
+      key: '',
+    });
+
+    jest.spyOn(console, 'error').mockImplementation(jest.fn()); // This silences pointless unique key errors that React throws because of the tokenized query descriptions
+
+    render(<DatabaseLandingPage />, {organization});
+
+    await waitForElementToBeRemoved(() => screen.queryAllByTestId('loading-indicator'));
+
+    expect(spanChartsRequestMock).toHaveBeenNthCalledWith(
+      1,
+      `/organizations/${organization.slug}/events-stats/`,
+      expect.objectContaining({
+        method: 'GET',
+        query: {
+          cursor: undefined,
+          dataset: 'spansMetrics',
+          environment: [],
+          excludeOther: 0,
+          field: [],
+          interval: '30m',
+          orderby: undefined,
+          partial: 1,
+          per_page: 50,
+          project: [],
+          query:
+            'span.module:db has:span.description span.action:SELECT span.domain:organizations',
+          referrer: 'api.starfish.span-landing-page-metrics-chart',
+          statsPeriod: '10d',
+          topEvents: undefined,
+          yAxis: 'spm()',
+        },
+      })
+    );
+
+    expect(spanChartsRequestMock).toHaveBeenNthCalledWith(
+      2,
+      `/organizations/${organization.slug}/events-stats/`,
+      expect.objectContaining({
+        method: 'GET',
+        query: {
+          cursor: undefined,
+          dataset: 'spansMetrics',
+          environment: [],
+          excludeOther: 0,
+          field: [],
+          interval: '30m',
+          orderby: undefined,
+          partial: 1,
+          per_page: 50,
+          project: [],
+          query:
+            'span.module:db has:span.description span.action:SELECT span.domain:organizations',
+          referrer: 'api.starfish.span-landing-page-metrics-chart',
+          statsPeriod: '10d',
+          topEvents: undefined,
+          yAxis: 'avg(span.self_time)',
+        },
+      })
+    );
+
+    expect(spanListRequestMock).toHaveBeenCalledWith(
+      `/organizations/${organization.slug}/events/`,
+      expect.objectContaining({
+        method: 'GET',
+        query: {
+          dataset: 'spansMetrics',
+          environment: [],
+          field: [
+            'project.id',
+            'span.group',
+            'span.description',
+            'span.action',
+            'spm()',
+            'avg(span.self_time)',
+            'sum(span.self_time)',
+            'time_spent_percentage()',
+          ],
+          per_page: 25,
+          project: [],
+          query:
+            'span.module:db has:span.description span.action:SELECT span.domain:organizations',
+          referrer: 'api.starfish.use-span-list',
+          sort: '-time_spent_percentage()',
+          statsPeriod: '10d',
+        },
+      })
+    );
+  });
+
+  it('displays the correct domain label for SQL systems', async function () {
+    jest.mocked(useLocation).mockReturnValue({
+      pathname: '',
+      search: '',
+      query: {
+        statsPeriod: '10d',
+        'span.system': 'postgresql',
+      },
+      hash: '',
+      state: undefined,
+      action: 'PUSH',
+      key: '',
+    });
+
+    jest.spyOn(console, 'error').mockImplementation(jest.fn()); // This silences pointless unique key errors that React throws because of the tokenized query descriptions
+
+    render(<DatabaseLandingPage />, {organization});
+
+    await waitForElementToBeRemoved(() => screen.queryAllByTestId('loading-indicator'));
+
+    const domainSelector = await screen.findByTestId('domain-selector');
+    expect(domainSelector).toHaveTextContent('Table');
+  });
+
+  it('displays the correct domain label for NoSQL systems', async function () {
+    jest.mocked(useLocation).mockReturnValue({
+      pathname: '',
+      search: '',
+      query: {
+        statsPeriod: '10d',
+        'span.system': 'mongodb',
+      },
+      hash: '',
+      state: undefined,
+      action: 'PUSH',
+      key: '',
+    });
+
+    jest.spyOn(console, 'error').mockImplementation(jest.fn()); // This silences pointless unique key errors that React throws because of the tokenized query descriptions
+
+    render(<DatabaseLandingPage />, {organization});
+
+    await waitForElementToBeRemoved(() => screen.queryAllByTestId('loading-indicator'));
+
+    const domainSelector = await screen.findByTestId('domain-selector');
+    expect(domainSelector).toHaveTextContent('Collection');
   });
 });

@@ -1,5 +1,4 @@
 import type {ReactNode} from 'react';
-import type {PlainRoute, RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 
@@ -27,7 +26,7 @@ import {t, tct} from 'sentry/locale';
 import IndicatorStore from 'sentry/stores/indicatorStore';
 import {space} from 'sentry/styles/space';
 import {ActivationConditionType, MonitorType} from 'sentry/types/alerts';
-import type {MetricsExtractionRule} from 'sentry/types/metrics';
+import type {PlainRoute, RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import type {
   EventsStats,
   MultiSeriesEventsStats,
@@ -38,18 +37,11 @@ import {defined} from 'sentry/utils';
 import {metric, trackAnalytics} from 'sentry/utils/analytics';
 import type EventView from 'sentry/utils/discover/eventView';
 import {AggregationKey} from 'sentry/utils/fields';
-import {findExtractionRuleCondition} from 'sentry/utils/metrics/extractionRules';
 import {
   getForceMetricsLayerQueryExtras,
   hasCustomMetrics,
-  hasCustomMetricsExtractionRules,
 } from 'sentry/utils/metrics/features';
-import {
-  DEFAULT_METRIC_ALERT_FIELD,
-  DEFAULT_SPAN_METRIC_ALERT_FIELD,
-  formatMRIField,
-  parseField,
-} from 'sentry/utils/metrics/mri';
+import {DEFAULT_METRIC_ALERT_FIELD, formatMRIField} from 'sentry/utils/metrics/mri';
 import {isOnDemandQueryString} from 'sentry/utils/onDemandMetrics';
 import {
   hasOnDemandMetricAlertFeature,
@@ -63,8 +55,9 @@ import ThresholdTypeForm from 'sentry/views/alerts/rules/metric/thresholdTypeFor
 import Triggers from 'sentry/views/alerts/rules/metric/triggers';
 import TriggersChart from 'sentry/views/alerts/rules/metric/triggers/chart';
 import {getEventTypeFilter} from 'sentry/views/alerts/rules/metric/utils/getEventTypeFilter';
-import {getFormattedSpanMetricField} from 'sentry/views/alerts/rules/metric/utils/getFormattedSpanMetric';
 import hasThresholdValue from 'sentry/views/alerts/rules/metric/utils/hasThresholdValue';
+import {isCustomMetricAlert} from 'sentry/views/alerts/rules/metric/utils/isCustomMetricAlert';
+import {isInsightsMetricAlert} from 'sentry/views/alerts/rules/metric/utils/isInsightsMetricAlert';
 import {isOnDemandMetricAlert} from 'sentry/views/alerts/rules/metric/utils/onDemandMetricAlert';
 import {AlertRuleType} from 'sentry/views/alerts/types';
 import {ruleNeedsErrorMigration} from 'sentry/views/alerts/utils/migrationUi';
@@ -74,6 +67,7 @@ import {
   DatasetMEPAlertQueryTypes,
 } from 'sentry/views/alerts/wizard/options';
 import {getAlertTypeFromAggregateDataset} from 'sentry/views/alerts/wizard/utils';
+import {MetricsBetaEndAlert} from 'sentry/views/metrics/metricsBetaEndAlert';
 import PermissionAlert from 'sentry/views/settings/project/permissionAlert';
 
 import {isCrashFreeAlert} from './utils/isCrashFreeAlert';
@@ -85,12 +79,14 @@ import {
   DEFAULT_COUNT_TIME_WINDOW,
 } from './constants';
 import RuleConditionsForm from './ruleConditionsForm';
-import type {
-  EventTypes,
-  MetricActionTemplate,
-  MetricRule,
-  Trigger,
-  UnsavedMetricRule,
+import {
+  AlertRuleSeasonality,
+  AlertRuleSensitivity,
+  type EventTypes,
+  type MetricActionTemplate,
+  type MetricRule,
+  type Trigger,
+  type UnsavedMetricRule,
 } from './types';
 import {
   AlertRuleComparisonType,
@@ -137,11 +133,10 @@ type State = {
   environment: string | null;
   eventTypes: EventTypes[];
   isQueryValid: boolean;
-  // `null` means loading
-  metricExtractionRules: MetricsExtractionRule[] | null;
   project: Project;
   query: string;
   resolveThreshold: UnsavedMetricRule['resolveThreshold'];
+  sensitivity: UnsavedMetricRule['sensitivity'];
   thresholdPeriod: UnsavedMetricRule['thresholdPeriod'];
   thresholdType: UnsavedMetricRule['thresholdType'];
   timeWindow: number;
@@ -151,6 +146,7 @@ type State = {
   comparisonDelta?: number;
   isExtrapolatedChartData?: boolean;
   monitorType?: MonitorType;
+  seasonality?: AlertRuleSeasonality;
 } & DeprecatedAsyncComponent['state'];
 
 const isEmpty = (str: unknown): boolean => str === '' || !defined(str);
@@ -168,7 +164,7 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
     const {alertType, query, eventTypes, dataset} = this.state;
     const eventTypeFilter = getEventTypeFilter(this.state.dataset, eventTypes);
     const queryWithTypeFilter = (
-      !['custom_metrics', 'span_metrics'].includes(alertType)
+      !['custom_metrics', 'span_metrics', 'insights_metrics'].includes(alertType)
         ? query
           ? `(${query}) AND (${eventTypeFilter})`
           : eventTypeFilter
@@ -233,12 +229,16 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
       metricExtractionRules: null,
       triggers: triggersClone,
       resolveThreshold: rule.resolveThreshold,
+      sensitivity: rule.sensitivity ?? undefined,
+      seasonality: rule.seasonality ?? undefined,
       thresholdType: rule.thresholdType,
       thresholdPeriod: rule.thresholdPeriod ?? 1,
       comparisonDelta: rule.comparisonDelta ?? undefined,
       comparisonType: rule.comparisonDelta
         ? AlertRuleComparisonType.CHANGE
-        : AlertRuleComparisonType.COUNT,
+        : rule.sensitivity
+          ? AlertRuleComparisonType.DYNAMIC
+          : AlertRuleComparisonType.COUNT,
       project: this.props.project,
       owner: rule.owner,
       alertType: getAlertTypeFromAggregateDataset({aggregate, dataset}),
@@ -252,7 +252,6 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
 
   getEndpoints(): ReturnType<DeprecatedAsyncComponent['getEndpoints']> {
     const {organization} = this.props;
-    const project = this.state?.project ?? this.props.project;
     // TODO(incidents): This is temporary until new API endpoints
     // We should be able to just fetch the rule if rule.id exists
 
@@ -261,14 +260,6 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
         'availableActions',
         `/organizations/${organization.slug}/alert-rules/available-actions/`,
       ],
-      ...(hasCustomMetricsExtractionRules(organization)
-        ? [
-            [
-              'metricExtractionRules',
-              `/projects/${organization.slug}/${project.slug}/metrics/extraction-rules/`,
-            ] as [string, string],
-          ]
-        : []),
     ];
   }
 
@@ -455,7 +446,25 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
   ) {
     const {comparisonType} = this.state;
     const triggerErrors = new Map();
-
+    // If we have an anomaly detection alert, then we don't need to validate the thresholds, but we do need to set them to 0
+    if (comparisonType === AlertRuleComparisonType.DYNAMIC) {
+      // NOTE: we don't support warning triggers for anomaly detection alerts yet
+      // once we do, uncomment this code and delete 475-478:
+      // triggers.forEach(trigger => {
+      //   trigger.alertThreshold = 0;
+      // });
+      const criticalTriggerIndex = triggers.findIndex(
+        ({label}) => label === AlertRuleTriggerType.CRITICAL
+      );
+      const warningTriggerIndex = criticalTriggerIndex ^ 1;
+      const triggersCopy = [...triggers];
+      const criticalTrigger = triggersCopy[criticalTriggerIndex];
+      const warningTrigger = triggersCopy[warningTriggerIndex];
+      criticalTrigger.alertThreshold = 0;
+      warningTrigger.alertThreshold = ''; // we need to set this to empty
+      this.setState({triggers: triggersCopy});
+      return triggerErrors; // return an empty map
+    }
     const requiredFields = ['label', 'alertThreshold'];
     triggers.forEach((trigger, triggerIndex) => {
       requiredFields.forEach(field => {
@@ -545,12 +554,10 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
 
     if (name === 'projectId') {
       this.setState(
-        ({project, alertType, aggregate}) => {
+        ({project}) => {
           return {
             projectId: value,
             project: projects.find(({id}) => id === value) ?? project,
-            aggregate:
-              alertType === 'span_metrics' ? DEFAULT_SPAN_METRIC_ALERT_FIELD : aggregate,
           };
         },
         () => {
@@ -725,6 +732,10 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
       eventTypes,
       monitorType,
       activationCondition,
+      sensitivity,
+      seasonality,
+      comparisonType,
+      alertType,
     } = this.state;
     // Remove empty warning trigger
     const sanitizedTriggers = triggers.filter(
@@ -761,7 +772,12 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
             activationCondition,
           };
         }
-
+        const detectionTypes = new Map([
+          [AlertRuleComparisonType.COUNT, 'static'],
+          [AlertRuleComparisonType.CHANGE, 'percent'],
+          [AlertRuleComparisonType.DYNAMIC, 'dynamic'],
+        ]);
+        const detectionType = detectionTypes.get(comparisonType) ?? '';
         const dataset = this.determinePerformanceDataset();
         this.setState({loading: true});
         // Add or update is just the PUT/POST to the org alert-rules api
@@ -775,7 +791,11 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
             ...activatedAlertFields,
             projects: [project.slug],
             triggers: sanitizedTriggers,
-            resolveThreshold: isEmpty(resolveThreshold) ? null : resolveThreshold,
+            resolveThreshold:
+              isEmpty(resolveThreshold) ||
+              detectionType === AlertRuleComparisonType.DYNAMIC
+                ? null
+                : resolveThreshold,
             thresholdType,
             thresholdPeriod,
             comparisonDelta: comparisonDelta ?? null,
@@ -785,13 +805,16 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
             eventTypes: isCrashFreeAlert(rule.dataset) ? undefined : eventTypes,
             dataset,
             queryType: DatasetMEPAlertQueryTypes[dataset],
+            sensitivity: sensitivity ?? null,
+            seasonality: seasonality ?? null,
+            detectionType: detectionType,
           },
           {
             duplicateRule: this.isDuplicateRule ? 'true' : 'false',
             wizardV3: 'true',
             referrer: location?.query?.referrer,
             sessionId,
-            ...getForceMetricsLayerQueryExtras(organization, dataset),
+            ...getForceMetricsLayerQueryExtras(organization, dataset, alertType),
           }
         );
         // if we get a 202 back it means that we have an async task
@@ -819,7 +842,13 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
             ? err?.responseJSON
             : Object.values(err?.responseJSON)
           : [];
-        const apiErrors = errors.length > 0 ? `: ${errors.join(', ')}` : '';
+        let apiErrors = '';
+        if (typeof errors[0] === 'object' && !Array.isArray(errors[0])) {
+          // NOTE: this occurs if we get a TimeoutError when attempting to hit the Seer API
+          apiErrors = ': ' + errors[0].message;
+        } else {
+          apiErrors = errors.length > 0 ? `: ${errors.join(', ')}` : '';
+        }
         this.handleRuleSaveFailure(t('Unable to save alert%s', apiErrors));
       }
     });
@@ -848,6 +877,10 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
 
       return {triggers, triggerErrors, triggersHaveChanged: true};
     });
+  };
+
+  handleSensitivityChange = (sensitivity: AlertRuleSensitivity) => {
+    this.setState({sensitivity});
   };
 
   handleThresholdTypeChange = (thresholdType: AlertRuleThresholdType) => {
@@ -883,13 +916,25 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
 
   handleComparisonTypeChange = (value: AlertRuleComparisonType) => {
     const comparisonDelta =
-      value === AlertRuleComparisonType.COUNT
-        ? undefined
-        : this.state.comparisonDelta ?? DEFAULT_CHANGE_COMP_DELTA;
+      value === AlertRuleComparisonType.CHANGE
+        ? this.state.comparisonDelta ?? DEFAULT_CHANGE_COMP_DELTA
+        : undefined;
     const timeWindow = this.state.comparisonDelta
       ? DEFAULT_COUNT_TIME_WINDOW
       : DEFAULT_CHANGE_TIME_WINDOW;
-    this.setState({comparisonType: value, comparisonDelta, timeWindow});
+    const sensitivity =
+      value === AlertRuleComparisonType.DYNAMIC
+        ? this.state.sensitivity || AlertRuleSensitivity.MEDIUM
+        : undefined;
+    const seasonality =
+      value === AlertRuleComparisonType.DYNAMIC ? AlertRuleSeasonality.AUTO : undefined;
+    this.setState({
+      comparisonType: value,
+      comparisonDelta,
+      timeWindow,
+      sensitivity,
+      seasonality,
+    });
   };
 
   handleDeleteRule = async () => {
@@ -1009,11 +1054,6 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
     let formattedAggregate = aggregate;
     if (alertType === 'custom_metrics') {
       formattedAggregate = formatMRIField(aggregate);
-    } else if (alertType === 'span_metrics') {
-      formattedAggregate = getFormattedSpanMetricField(
-        aggregate,
-        this.state.metricExtractionRules
-      );
     }
 
     const chartProps = {
@@ -1040,16 +1080,8 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
     };
 
     let formattedQuery = `event.type:${eventTypes?.join(',')}`;
-    if (alertType === 'custom_metrics') {
+    if (alertType === 'custom_metrics' || alertType === 'insights_metrics') {
       formattedQuery = '';
-    }
-    if (alertType === 'span_metrics') {
-      const mri = parseField(aggregate)!.mri;
-      const condition = findExtractionRuleCondition(
-        mri,
-        this.state.metricExtractionRules || []
-      );
-      formattedQuery = condition?.value || '';
     }
 
     const wizardBuilderChart = (
@@ -1096,6 +1128,7 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
       comparisonDelta,
       comparisonType,
       resolveThreshold,
+      sensitivity,
       loading,
       eventTypes,
       dataset,
@@ -1120,6 +1153,7 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
         aggregate={aggregate}
         isMigration={isMigration}
         resolveThreshold={resolveThreshold}
+        sensitivity={sensitivity}
         thresholdPeriod={thresholdPeriod}
         thresholdType={thresholdType}
         comparisonType={comparisonType}
@@ -1130,6 +1164,7 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
         onThresholdTypeChange={this.handleThresholdTypeChange}
         onThresholdPeriodChange={this.handleThresholdPeriodChange}
         onResolveThresholdChange={this.handleResolveThresholdChange}
+        onSensitivityChange={this.handleSensitivityChange}
       />
     );
 
@@ -1139,6 +1174,7 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
 
     const thresholdTypeForm = (disabled: boolean) => (
       <ThresholdTypeForm
+        alertType={alertType}
         comparisonType={comparisonType}
         dataset={dataset}
         disabled={disabled}
@@ -1162,6 +1198,8 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
     return (
       <Main fullWidth>
         <PermissionAlert access={['alerts:write']} project={project} />
+        {isCustomMetricAlert(rule.aggregate) &&
+          !isInsightsMetricAlert(rule.aggregate) && <MetricsBetaEndAlert />}
 
         {eventView && <IncompatibleAlertQuery eventView={eventView} />}
         <Form
@@ -1227,7 +1265,10 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
               isEditing={Boolean(ruleId)}
               isErrorMigration={showErrorMigrationWarning}
               isExtrapolatedChartData={isExtrapolatedChartData}
-              isForSpanMetric={aggregate.includes(':spans/')}
+              isForLlmMetric={[
+                'sum(ai.total_tokens.used)',
+                'sum(ai.total_cost)',
+              ].includes(aggregate)}
               isTransactionMigration={isMigration && !showErrorMigrationWarning}
               monitorType={monitorType}
               onComparisonDeltaChange={value =>

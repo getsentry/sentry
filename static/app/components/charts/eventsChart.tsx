@@ -1,5 +1,4 @@
 import {Component, isValidElement} from 'react';
-import type {InjectedRouter} from 'react-router';
 import type {Theme} from '@emotion/react';
 import {withTheme} from '@emotion/react';
 import type {
@@ -30,6 +29,7 @@ import {IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {DateString} from 'sentry/types/core';
 import type {Series} from 'sentry/types/echarts';
+import type {InjectedRouter} from 'sentry/types/legacyReactRouter';
 import type {OrganizationSummary} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
 import {

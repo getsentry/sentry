@@ -12,7 +12,6 @@ from sentry.integrations.models.external_issue import ExternalIssue
 from sentry.integrations.services.integration.model import RpcIntegration
 from sentry.integrations.services.integration.service import integration_service
 from sentry.models.grouplink import GroupLink
-from sentry.shared_integrations.exceptions import IntegrationFormError
 from sentry.silo.base import region_silo_function
 from sentry.types.rules import RuleFuture
 from sentry.utils import metrics
@@ -117,7 +116,7 @@ def create_issue(event: GroupEvent, futures: Sequence[RuleFuture]) -> None:
             return
         try:
             response = installation.create_issue(data)
-        except IntegrationFormError as e:
+        except Exception as e:
             logger.info(
                 "%s.rule_trigger.create_ticket.failure",
                 provider,
@@ -134,7 +133,8 @@ def create_issue(event: GroupEvent, futures: Sequence[RuleFuture]) -> None:
                     "provider": provider,
                 },
             )
-            return
+
+            raise
 
         if not event.get_tag("sample_event") == "yes":
             create_link(integration, installation, event, response)

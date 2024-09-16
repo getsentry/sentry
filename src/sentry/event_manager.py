@@ -60,8 +60,8 @@ from sentry.grouping.ingest.config import (
 )
 from sentry.grouping.ingest.hashing import (
     find_existing_grouphash,
-    find_existing_grouphash_new,
     get_hash_values,
+    get_or_create_grouphashes,
     maybe_run_background_grouping,
     maybe_run_secondary_grouping,
     run_primary_grouping,
@@ -904,12 +904,6 @@ def _materialize_metadata_many(jobs: Sequence[Job]) -> None:
         event_metadata = event_type.get_metadata(data)
         job["event_metadata"] = dict(event_metadata)
 
-        # In save_aggregate we store current_tree_label for the group metadata,
-        # and finest_tree_label for the event's own title.
-
-        if "finest_tree_label" in job:
-            event_metadata["finest_tree_label"] = job["finest_tree_label"]
-
         data.update(materialize_metadata(data, event_type, event_metadata))
         job["culprit"] = data["culprit"]
 
@@ -938,6 +932,10 @@ def _get_group_processing_kwargs(job: Job) -> dict[str, Any]:
     """
     Pull together all the metadata used when creating a group or updating a group's metadata based
     on a new event.
+
+    Note: Must be called *after* grouping has run, because the grouping process can affect the title
+    (by setting `main_exception_id` or by setting the title directly using a custom fingerprint
+    rule).
     """
     _materialize_metadata_many([job])
 
@@ -1410,45 +1408,9 @@ def _save_aggregate(
 
     group_creation_kwargs = _get_group_creation_kwargs(job)
 
-    # Because this logic is not complex enough we want to special case the situation where we
-    # migrate from a hierarchical hash to a non hierarchical hash.  The reason being that
-    # there needs to be special logic to not create orphaned hashes in migration cases
-    # but it wants a different logic to implement splitting of hierarchical hashes.
-    migrate_off_hierarchical = bool(
-        secondary_hashes
-        and secondary_hashes.hierarchical_hashes
-        and not primary_hashes.hierarchical_hashes
-    )
+    grouphashes = get_or_create_grouphashes(project, hashes)
 
-    flat_grouphashes = [
-        GroupHash.objects.get_or_create(project=project, hash=hash)[0] for hash in hashes.hashes
-    ]
-
-    # The root_hierarchical_hash is the least specific hash within the tree, so
-    # typically hierarchical_hashes[0], unless a hash `n` has been split in
-    # which case `root_hierarchical_hash = hierarchical_hashes[n + 1]`. Chosing
-    # this for select_for_update mostly provides sufficient synchronization
-    # when groups are created and also relieves contention by locking a more
-    # specific hash than `hierarchical_hashes[0]`.
-    existing_grouphash, root_hierarchical_hash = find_existing_grouphash(
-        project, flat_grouphashes, hashes.hierarchical_hashes
-    )
-
-    if root_hierarchical_hash is not None:
-        root_hierarchical_grouphash = GroupHash.objects.get_or_create(
-            project=project, hash=root_hierarchical_hash
-        )[0]
-
-        metadata.update(
-            hashes.group_metadata_from_hash(
-                existing_grouphash.hash
-                if existing_grouphash is not None
-                else root_hierarchical_hash
-            )
-        )
-
-    else:
-        root_hierarchical_grouphash = None
+    existing_grouphash = find_existing_grouphash(grouphashes)
 
     # In principle the group gets the same metadata as the event, so common
     # attributes can be defined in eventtypes.
@@ -1491,9 +1453,7 @@ def _save_aggregate(
             span.set_tag("outcome", "wait_for_lock")
             metric_tags["outcome"] = "wait_for_lock"
 
-            all_grouphash_ids = [h.id for h in flat_grouphashes]
-            if root_hierarchical_grouphash is not None:
-                all_grouphash_ids.append(root_hierarchical_grouphash.id)
+            grouphash_ids = [h.id for h in grouphashes]
 
             # If we're in this branch, we checked our grouphashes and didn't find one with a group
             # attached. We thus want to either ask seer for a nearest neighbor group (and create a
@@ -1508,10 +1468,10 @@ def _save_aggregate(
             # has grabbed the lock before us, we'll block here until it's done. If not, we've now
             # got the lock and other identically-hashed events will have to wait for us.
             all_grouphashes = list(
-                GroupHash.objects.filter(id__in=all_grouphash_ids).select_for_update()
+                GroupHash.objects.filter(id__in=grouphash_ids).select_for_update()
             )
 
-            flat_grouphashes = [gh for gh in all_grouphashes if gh.hash in hashes.hashes]
+            grouphashes = [gh for gh in all_grouphashes if gh.hash in hashes.hashes]
 
             # Now check again to see if any of our grouphashes have a group. If we got the lock, the
             # result won't have changed and we still won't find anything. If we didn't get it, we'll
@@ -1519,16 +1479,7 @@ def _save_aggregate(
             # created a new group for our hashes or assigned them to a neighboring group suggessted
             # by seer. If that happens, we'll skip this whole branch and jump down to the same one
             # we would have landed in had we found a group to begin with.
-            existing_grouphash, root_hierarchical_hash = find_existing_grouphash(
-                project, flat_grouphashes, hashes.hierarchical_hashes
-            )
-
-            if root_hierarchical_hash is not None:
-                root_hierarchical_grouphash = GroupHash.objects.get_or_create(
-                    project=project, hash=root_hierarchical_hash
-                )[0]
-            else:
-                root_hierarchical_grouphash = None
+            existing_grouphash = find_existing_grouphash(grouphashes)
 
             # If we still haven't found a matching grouphash, we're now safe to go ahead and talk to
             # seer and/or create the group.
@@ -1544,10 +1495,7 @@ def _save_aggregate(
 
                 group = seer_matched_group or _create_group(project, event, **group_creation_kwargs)
 
-                if root_hierarchical_grouphash is not None:
-                    new_hashes = [root_hierarchical_grouphash]
-                else:
-                    new_hashes = list(flat_grouphashes)
+                new_hashes = list(grouphashes)
 
                 GroupHash.objects.filter(id__in=[h.id for h in new_hashes]).exclude(
                     state=GroupHash.State.LOCKED_IN_MIGRATION
@@ -1624,22 +1572,7 @@ def _save_aggregate(
 
     is_new = False
 
-    # For the migration from hierarchical to non hierarchical we want to associate
-    # all group hashes
-    if migrate_off_hierarchical:
-        new_hashes = [h for h in flat_grouphashes if h.group_id is None]
-        if root_hierarchical_grouphash and root_hierarchical_grouphash.group_id is None:
-            new_hashes.append(root_hierarchical_grouphash)
-    elif root_hierarchical_grouphash is None:
-        # No hierarchical grouping was run, only consider flat hashes
-        new_hashes = [h for h in flat_grouphashes if h.group_id is None]
-    elif root_hierarchical_grouphash.group_id is None:
-        # The root hash is not assigned to a group.
-        # We ran multiple grouping algorithms
-        # (see secondary grouping), and the hierarchical hash is new
-        new_hashes = [root_hierarchical_grouphash]
-    else:
-        new_hashes = []
+    new_hashes = [h for h in grouphashes if h.group_id is None]
 
     primary_hash_values = set(extract_hashes(primary_hashes))
     new_hash_values = {gh.hash for gh in new_hashes}
@@ -1703,16 +1636,12 @@ def _save_aggregate_new(
     project = event.project
     secondary = NULL_GROUPHASH_INFO
 
-    group_processing_kwargs = _get_group_processing_kwargs(job)
-
     # Try looking for an existing group using the current grouping config
     primary = get_hashes_and_grouphashes(job, run_primary_grouping, metric_tags)
 
     # If we've found one, great. No need to do any more calculations
     if primary.existing_grouphash:
-        group_info = handle_existing_grouphash(
-            job, primary.existing_grouphash, primary.grouphashes, group_processing_kwargs
-        )
+        group_info = handle_existing_grouphash(job, primary.existing_grouphash, primary.grouphashes)
         result = "found_primary"
     # If we haven't, try again using the secondary config
     else:
@@ -1721,7 +1650,7 @@ def _save_aggregate_new(
 
         if secondary.existing_grouphash:
             group_info = handle_existing_grouphash(
-                job, secondary.existing_grouphash, all_grouphashes, group_processing_kwargs
+                job, secondary.existing_grouphash, all_grouphashes
             )
             result = "found_secondary"
         # If we still haven't found a group, ask Seer for a match (if enabled for the project)
@@ -1729,14 +1658,10 @@ def _save_aggregate_new(
             seer_matched_grouphash = maybe_check_seer_for_matching_grouphash(event, primary.hashes)
 
             if seer_matched_grouphash:
-                group_info = handle_existing_grouphash(
-                    job, seer_matched_grouphash, all_grouphashes, group_processing_kwargs
-                )
+                group_info = handle_existing_grouphash(job, seer_matched_grouphash, all_grouphashes)
             # If we *still* haven't found a group into which to put the event, create a new group
             else:
-                group_info = create_group_with_grouphashes(
-                    job, all_grouphashes, group_processing_kwargs
-                )
+                group_info = create_group_with_grouphashes(job, all_grouphashes)
             result = "no_match"
 
     # From here on out, we're just doing housekeeping
@@ -1788,12 +1713,9 @@ def get_hashes_and_grouphashes(
     grouping_config, hashes = hash_calculation_function(project, job, metric_tags)
 
     if extract_hashes(hashes):
-        grouphashes = [
-            GroupHash.objects.get_or_create(project=project, hash=hash)[0]
-            for hash in extract_hashes(hashes)
-        ]
+        grouphashes = get_or_create_grouphashes(project, hashes)
 
-        existing_grouphash = find_existing_grouphash_new(grouphashes)
+        existing_grouphash = find_existing_grouphash(grouphashes)
 
         return GroupHashInfo(grouping_config, hashes, grouphashes, existing_grouphash)
     else:
@@ -1804,7 +1726,6 @@ def handle_existing_grouphash(
     job: Job,
     existing_grouphash: GroupHash,
     all_grouphashes: list[GroupHash],
-    group_processing_kwargs: dict[str, Any],
 ) -> GroupInfo | None:
     """
     Handle the case where an incoming event matches an existing group, by assigning the event to the
@@ -1845,19 +1766,16 @@ def handle_existing_grouphash(
     is_regression = _process_existing_aggregate(
         group=group,
         event=job["event"],
-        incoming_group_values=group_processing_kwargs,
+        incoming_group_values=_get_group_processing_kwargs(job),
         release=job["release"],
     )
 
     return GroupInfo(group=group, is_new=False, is_regression=is_regression)
 
 
-def create_group_with_grouphashes(
-    job: Job, grouphashes: list[GroupHash], group_processing_kwargs: dict[str, Any]
-) -> GroupInfo | None:
+def create_group_with_grouphashes(job: Job, grouphashes: list[GroupHash]) -> GroupInfo | None:
     """
-    Create a group from the data in `job` and `group_processing_kwargs` and link it to the given
-    grouphashes.
+    Create a group from the data in `job` and link it to the given grouphashes.
 
     In very rare circumstances, we can end up in a race condition with another process trying to
     create the same group. If the current process loses the race, this function will update the
@@ -1900,7 +1818,7 @@ def create_group_with_grouphashes(
         # condition scenario above, we'll have been blocked long enough for the other event to
         # have created the group and updated our grouphashes with a group id, which means this
         # time, we'll find something.
-        existing_grouphash = find_existing_grouphash_new(grouphashes)
+        existing_grouphash = find_existing_grouphash(grouphashes)
 
         # If we still haven't found a matching grouphash, we're now safe to go ahead and create
         # the group.
@@ -1909,7 +1827,7 @@ def create_group_with_grouphashes(
             metrics_timer_tags["outcome"] = "new_group"
             record_new_group_metrics(event)
 
-            group = _create_group(project, event, **group_processing_kwargs)
+            group = _create_group(project, event, **_get_group_processing_kwargs(job))
             add_group_id_to_grouphashes(group, grouphashes)
 
             return GroupInfo(group=group, is_new=True, is_regression=False)
@@ -1919,9 +1837,7 @@ def create_group_with_grouphashes(
         # this function at all)
         else:
             # TODO: should we be setting tags here, too?
-            return handle_existing_grouphash(
-                job, existing_grouphash, grouphashes, group_processing_kwargs
-            )
+            return handle_existing_grouphash(job, existing_grouphash, grouphashes)
 
 
 def _create_group(
@@ -2361,7 +2277,9 @@ def _get_severity_metadata_for_group(
     """
     from sentry.receivers.rules import PLATFORMS_WITH_PRIORITY_ALERTS
 
-    if killswitch_matches_context("issues.skip-seer-requests", {"project_id": event.project_id}):
+    if killswitch_matches_context(
+        "issues.severity.skip-seer-requests", {"project_id": event.project_id}
+    ):
         logger.warning(
             "get_severity_metadata_for_group.seer_killswitch_enabled",
             extra={"event_id": event.event_id, "project_id": project_id},

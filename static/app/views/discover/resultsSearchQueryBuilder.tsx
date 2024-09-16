@@ -1,5 +1,4 @@
 import {useCallback, useMemo} from 'react';
-import styled from '@emotion/styled';
 import omit from 'lodash/omit';
 
 import {fetchSpanFieldValues, fetchTagValues} from 'sentry/actionCreators/tags';
@@ -14,16 +13,18 @@ import {
 } from 'sentry/components/events/searchBarFieldConstants';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import {SearchQueryBuilder} from 'sentry/components/searchQueryBuilder';
-import type {FilterKeySection} from 'sentry/components/searchQueryBuilder/types';
+import type {
+  CallbackSearchState,
+  FilterKeySection,
+} from 'sentry/components/searchQueryBuilder/types';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {SavedSearchType, type TagCollection} from 'sentry/types/group';
 import {defined} from 'sentry/utils';
 import type {CustomMeasurementCollection} from 'sentry/utils/customMeasurements/customMeasurements';
 import type {Field} from 'sentry/utils/discover/fields';
 import {
   ALL_INSIGHTS_FILTER_KEY_SECTIONS,
-  COMMON_DATASET_FILTER_KEY_SECTIONS,
+  COMBINED_DATASET_FILTER_KEY_SECTIONS,
   ERRORS_DATASET_FILTER_KEY_SECTIONS,
   isAggregateField,
   isEquation,
@@ -112,16 +113,18 @@ export const getHasTag = (tags: TagCollection) => ({
 });
 
 type Props = {
-  onSearch: (query: string) => void;
   customMeasurements?: CustomMeasurementCollection;
   dataset?: DiscoverDatasets;
   fields?: Readonly<Field[]>;
   includeSessionTagsValues?: boolean;
   includeTransactions?: boolean;
   omitTags?: string[];
+  onChange?: (query: string, state: CallbackSearchState) => void;
+  onSearch?: (query: string) => void;
   placeholder?: string;
   projectIds?: number[] | Readonly<number[]>;
   query?: string;
+  searchSource?: string;
   supportedTags?: TagCollection | undefined;
 };
 
@@ -273,25 +276,23 @@ function ResultsSearchQueryBuilder(props: Props) {
       return [...ERRORS_DATASET_FILTER_KEY_SECTIONS, customTagsSection];
     }
 
-    return [...COMMON_DATASET_FILTER_KEY_SECTIONS, customTagsSection];
+    return [...COMBINED_DATASET_FILTER_KEY_SECTIONS, customTagsSection];
   }, [filteredTags, dataset]);
 
   return (
-    <StyledResultsSearchQueryBuilder
+    <SearchQueryBuilder
       placeholder={placeholderText}
       filterKeys={getTagList}
       initialQuery={props.query ?? ''}
       onSearch={props.onSearch}
-      searchSource={'eventsv2'}
+      onChange={props.onChange}
+      searchSource={props.searchSource || 'eventsv2'}
       filterKeySections={filterKeySections}
       getTagValues={getEventFieldValues}
       recentSearches={SavedSearchType.EVENT}
+      showUnsubmittedIndicator
     />
   );
 }
-
-const StyledResultsSearchQueryBuilder = styled(SearchQueryBuilder)`
-  margin-bottom: ${space(2)};
-`;
 
 export default ResultsSearchQueryBuilder;
