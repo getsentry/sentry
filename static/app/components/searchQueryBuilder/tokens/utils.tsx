@@ -9,7 +9,7 @@ import type {
 } from 'sentry/components/compactSelect/types';
 import type {ParseResultToken} from 'sentry/components/searchSyntax/parser';
 import {defined} from 'sentry/utils';
-import {type FieldDefinition, FieldValueType} from 'sentry/utils/fields';
+import {type FieldDefinition, FieldKind, FieldValueType} from 'sentry/utils/fields';
 
 export function shiftFocusToChild(
   element: HTMLElement,
@@ -76,6 +76,58 @@ export function getDefaultFilterValue({
   }
 
   return getDefaultValueForValueType(fieldDefinition.valueType);
+}
+
+function getInitialFilterKeyText(key: string, fieldDefinition: FieldDefinition | null) {
+  if (fieldDefinition?.kind === FieldKind.FUNCTION) {
+    if (fieldDefinition.parameters) {
+      const parametersText = fieldDefinition.parameters
+        .filter(param => defined(param.defaultValue))
+        .map(param => param.defaultValue)
+        .join(',');
+
+      return `${key}(${parametersText})`;
+    }
+
+    return `${key}()`;
+  }
+
+  return key;
+}
+
+function getInitialValueType(fieldDefinition: FieldDefinition | null) {
+  if (!fieldDefinition) {
+    return FieldValueType.STRING;
+  }
+
+  if (fieldDefinition.parameterDependentValueType) {
+    return fieldDefinition.parameterDependentValueType(
+      fieldDefinition.parameters?.map(p => p.defaultValue ?? null) ?? []
+    );
+  }
+
+  return fieldDefinition.valueType ?? FieldValueType.STRING;
+}
+
+export function getInitialFilterText(
+  key: string,
+  fieldDefinition: FieldDefinition | null
+) {
+  const defaultValue = getDefaultFilterValue({fieldDefinition});
+
+  const keyText = getInitialFilterKeyText(key, fieldDefinition);
+  const valueType = getInitialValueType(fieldDefinition);
+
+  switch (valueType) {
+    case FieldValueType.INTEGER:
+    case FieldValueType.NUMBER:
+    case FieldValueType.DURATION:
+    case FieldValueType.PERCENTAGE:
+      return `${keyText}:>${defaultValue}`;
+    case FieldValueType.STRING:
+    default:
+      return `${keyText}:${defaultValue}`;
+  }
 }
 
 export function mergeSets<T>(...sets: Set<T>[]) {
