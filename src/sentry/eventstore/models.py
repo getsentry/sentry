@@ -336,11 +336,13 @@ class BaseEvent(metaclass=abc.ABCMeta):
         """
         Returns the calculated hashes for the event. This uses the stored
         information if available. Grouping hashes will take into account
+        fingerprinting and checksums.
 
         Returns _all_ information that is necessary to group an event into
         issues: An event should be sorted into a group X, if there is a GroupHash
         matching *any* of the hashes. Hashes that do not yet have a GroupHash model get
         one and are associated with the same group (unless they already belong to another group).
+
         """
         # If we have hashes stored in the data we use them, otherwise we
         # fall back to generating new ones from the data.  We can only use
