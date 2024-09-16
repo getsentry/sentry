@@ -22,7 +22,7 @@ import {CHART_HEIGHT} from 'sentry/views/insights/database/settings';
 import {useGroupBys} from '../hooks/useGroupBys';
 import {useResultMode} from '../hooks/useResultsMode';
 import {useSorts} from '../hooks/useSorts';
-import {useTopEvents} from '../hooks/useTopEvents';
+import {TOP_EVENTS_LIMIT, useTopEvents} from '../hooks/useTopEvents';
 import {formatSort} from '../tables/aggregatesTable';
 
 interface ExploreChartsProps {
@@ -171,7 +171,7 @@ export function ExploreCharts({query}: ExploreChartsProps) {
                 error={error}
                 loading={loading}
                 // TODO Abdullah: Make chart colors dynamic, with changing topN events count and overlay count.
-                chartColors={CHART_PALETTE[4]}
+                chartColors={CHART_PALETTE[TOP_EVENTS_LIMIT - 1]}
                 type={chartType}
                 // for now, use the first y axis unit
                 aggregateOutputFormat={aggregateOutputType(dedupedYAxes[0])}

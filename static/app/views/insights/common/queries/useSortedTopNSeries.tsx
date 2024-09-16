@@ -119,7 +119,7 @@ function transformToSeries(result: MultiSeriesEventsStats | undefined): Series[]
     }
 
     const processsedData: Series = {
-      seriesName: seriesName || 'Current',
+      seriesName: seriesName || '(empty string)',
       data: seriesData.data.map(([timestamp, countsForTimestamp]) => ({
         name: timestamp * 1000,
         value: countsForTimestamp.reduce((acc, {count}) => acc + count, 0) * scale,
