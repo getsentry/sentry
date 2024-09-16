@@ -9,6 +9,7 @@ from django.conf import settings
 from django.core.cache import cache
 
 from sentry import features, options
+from sentry.grouping.strategies.configurations import CONFIGURATIONS
 from sentry.locks import locks
 from sentry.models.project import Project
 from sentry.projectoptions.defaults import BETA_GROUPING_CONFIG, DEFAULT_GROUPING_CONFIG
@@ -56,11 +57,15 @@ def update_grouping_config_if_needed(project: Project, source: str) -> None:
         # preserve group continuity).
         expiry = int(time.time()) + settings.SENTRY_GROUPING_UPDATE_MIGRATION_PHASE
 
-        changes = {
-            "sentry:secondary_grouping_config": current_config,
-            "sentry:secondary_grouping_expiry": expiry,
-            "sentry:grouping_config": new_config,
-        }
+        changes: dict[str, str | int] = {"sentry:grouping_config": new_config}
+        # If the current config is valid we will have a migration period
+        if current_config in CONFIGURATIONS.keys():
+            changes.update(
+                {
+                    "sentry:secondary_grouping_config": current_config,
+                    "sentry:secondary_grouping_expiry": expiry,
+                }
+            )
 
         for key, value in changes.items():
             project.update_option(key, value)
