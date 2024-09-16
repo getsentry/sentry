@@ -76,5 +76,21 @@ describe('FeatureObserver', () => {
         {flag: 'spam-ingest', result: false},
       ]);
     });
+
+    it('should not change the functionality of `includes`', () => {
+      const inst = new FeatureObserver();
+      inst.observeFlags({organization, bufferSize: 3});
+      expect(inst.getFeatureFlags().values).toEqual([]);
+
+      organization.features.includes('enable-issues');
+      organization.features.includes('replay-mobile-ui');
+      expect(inst.getFeatureFlags().values).toEqual([
+        {flag: 'enable-issues', result: true},
+        {flag: 'replay-mobile-ui', result: false},
+      ]);
+
+      expect(organization.features.includes('enable-issues')).toBe(true);
+      expect(organization.features.includes('replay-mobile-ui')).toBe(false);
+    });
   });
 });
