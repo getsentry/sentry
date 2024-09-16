@@ -298,7 +298,6 @@ function OverlayContent<T extends SelectOptionOrSectionWithKey<string>>({
           hiddenOptions={hiddenOptions}
           keyDownHandler={() => true}
           overlayIsOpen={isOpen}
-          showSectionHeaders={!filterValue}
           size="sm"
         />
       </ListBoxOverlay>
