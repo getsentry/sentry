@@ -966,6 +966,14 @@ def update_alert_rule(
                     # If there's no historical data available—something went wrong when querying snuba
                     raise ValidationError("Failed to send data to Seer - cannot update alert rule.")
         else:
+            # if this was a dynamic rule, delete the data in Seer
+            if alert_rule.detection_type == AlertRuleDetectionType.DYNAMIC:
+                success = delete_rule_in_seer(
+                    alert_rule=alert_rule,
+                    project=projects[0] if projects else alert_rule.projects.get(),
+                )
+                if not success:
+                    raise SeerFailureError()
             # if this alert was previously a dynamic alert, then we should update the rule to be ready
             if alert_rule.status == AlertRuleStatus.NOT_ENOUGH_DATA.value:
                 alert_rule.update(status=AlertRuleStatus.PENDING.value)
