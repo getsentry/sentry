@@ -19,7 +19,6 @@ from sentry_kafka_schemas.schema_types.uptime_results_v1 import (
 from sentry.conf.types import kafka_definition
 from sentry.issues.grouptype import UptimeDomainCheckFailure
 from sentry.models.group import Group, GroupStatus
-from sentry.testutils.cases import UptimeTestCase
 from sentry.testutils.helpers.options import override_options
 from sentry.uptime.consumers.results_consumer import (
     AUTO_DETECTED_ACTIVE_SUBSCRIPTION_INTERVAL,
@@ -39,7 +38,7 @@ from sentry.uptime.models import (
 from tests.sentry.uptime.subscriptions.test_tasks import ProducerTestMixin
 
 
-class ProcessResultTest(UptimeTestCase, ProducerTestMixin):
+class ProcessResultTest(ProducerTestMixin):
     def setUp(self):
         super().setUp()
         self.partition = Partition(Topic("test"), 0)
