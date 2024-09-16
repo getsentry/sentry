@@ -2,15 +2,17 @@ from __future__ import annotations
 
 import os
 import time
+from collections.abc import Callable
 from datetime import timedelta
 from multiprocessing import JoinableQueue as Queue
 from multiprocessing import Process
-from typing import Final, Literal, TypeAlias
+from typing import Any, Final, Literal, TypeAlias
 from uuid import uuid4
 
 import click
 import sentry_sdk
 from django.conf import settings
+from django.db.models import Model, QuerySet
 from django.utils import timezone
 
 from sentry.runner.decorators import log_options
@@ -163,28 +165,23 @@ def cleanup(
 
         configure()
 
-        from django.apps import apps
         from django.db import router as db_router
-        from django.db.models import Model
 
-        from sentry import models, nodestore
-        from sentry.constants import ObjectStatus
-        from sentry.data_export.models import ExportedData
         from sentry.db.deletion import BulkDeleteQuery
-        from sentry.models.rulefirehistory import RuleFireHistory
-        from sentry.monitors import models as monitor_models
-        from sentry.replays import models as replay_models
-        from sentry.users.models.lostpasswordhash import LostPasswordHash
         from sentry.utils import metrics
         from sentry.utils.query import RangeQuerySetWrapper
 
         start_time = None
         if timed:
             start_time = time.time()
-        transaction = sentry_sdk.start_transaction(op="cleanup", name="cleanup")
-        transaction.__enter__()
-        transaction.set_tag("router", router)
-        transaction.set_tag("model", model)
+
+        transaction = None
+        # Making sure we're not running in local dev to prevent a local error
+        if not os.environ.get("SENTRY_DEVENV_HOME"):
+            transaction = sentry_sdk.start_transaction(op="cleanup", name="cleanup")
+            transaction.__enter__()
+            transaction.set_tag("router", router)
+            transaction.set_tag("model", model)
 
         # list of models which this query is restricted to
         model_list = {m.lower() for m in model}
@@ -199,120 +196,30 @@ def cleanup(
                 return False
             return model.__name__.lower() not in model_list
 
-        # Deletions that use `BulkDeleteQuery` (and don't need to worry about child relations)
-        # (model, datetime_field, order_by)
-        additional_bulk_query_deletes = []
-        for entry in settings.ADDITIONAL_BULK_QUERY_DELETES:
-            app_name, model_name = entry[0].split(".")
-            model_tp = apps.get_model(app_name, model_name)
-            additional_bulk_query_deletes.append((model_tp, entry[1], entry[2]))
+        bulk_query_deletes = generate_bulk_query_deletes()
 
-        BULK_QUERY_DELETES = [
-            (models.UserReport, "date_added", None),
-            (models.GroupEmailThread, "date", None),
-        ] + additional_bulk_query_deletes
+        deletes = models_which_use_deletions_code_path()
 
-        # Deletions that use the `deletions` code path (which handles their child relations)
-        # (model, datetime_field, order_by)
-        DELETES = [
-            (models.EventAttachment, "date_added", "date_added"),
-            (replay_models.ReplayRecordingSegment, "date_added", "date_added"),
-            (models.ArtifactBundle, "date_added", "date_added"),
-            (monitor_models.MonitorCheckIn, "date_added", "date_added"),
-            (models.GroupRuleStatus, "date_added", "date_added"),
-            (RuleFireHistory, "date_added", "date_added"),
-        ]
-        # Deletions that we run per project. In some cases we can't use an index on just the date
-        # column, so as an alternative we use `(project_id, <date_col>)` instead
-        DELETES_BY_PROJECT = [
-            # Having an index on `last_seen` sometimes caused the planner to make a bad plan that
-            # used this index instead of a more appropriate one. This was causing a lot of postgres
-            # load, so we had to remove it.
-            (models.Group, "last_seen", "last_seen"),
-            (models.ProjectDebugFile, "date_accessed", "date_accessed"),
-        ]
+        remove_expired_values_for_lost_passwords(is_filtered)
 
-        debug_output("Removing expired values for LostPasswordHash")
-        if is_filtered(LostPasswordHash):
-            debug_output(">> Skipping LostPasswordHash")
-        else:
-            LostPasswordHash.objects.filter(
-                date_added__lte=timezone.now() - timedelta(hours=48)
-            ).delete()
+        remove_expired_values_for_org_members(is_filtered, days)
 
-        debug_output("Removing expired values for OrganizationMember")
-        if is_filtered(models.OrganizationMember):
-            debug_output(">> Skipping OrganizationMember")
-        else:
-            expired_threshold = timezone.now() - timedelta(days=days)
-            models.OrganizationMember.objects.delete_expired(expired_threshold)
+        delete_api_models(is_filtered)
 
-        for model_tp in (models.ApiGrant, models.ApiToken):
-            debug_output(f"Removing expired values for {model_tp.__name__}")
-
-            if is_filtered(model_tp):
-                debug_output(f">> Skipping {model_tp.__name__}")
-            else:
-                queryset = model_tp.objects.filter(
-                    expires_at__lt=(timezone.now() - timedelta(days=API_TOKEN_TTL_IN_DAYS))
-                )
-
-                # SentryAppInstallations are associated to ApiTokens. We're okay
-                # with these tokens sticking around so that the Integration can
-                # refresh them, but all other non-associated tokens should be
-                # deleted.
-                if model_tp is models.ApiToken:
-                    queryset = queryset.filter(sentry_app_installation__isnull=True)
-
-                queryset.delete()
-
-        if not silent:
-            click.echo("Removing expired files associated with ExportedData")
-
-        if is_filtered(ExportedData):
-            debug_output(">> Skipping ExportedData files")
-        else:
-            export_data_queryset = ExportedData.objects.filter(date_expired__lt=(timezone.now()))
-            for item in export_data_queryset:
-                item.delete_file()
+        exported_data(is_filtered, silent)
 
         project_id = None
         if SiloMode.get_current_mode() != SiloMode.CONTROL:
             if project:
-                click.echo("Bulk NodeStore deletion not available for project selection", err=True)
-                project_id = get_project(project)
-                # These models span across projects, so let's skip them
-                DELETES.remove((models.ArtifactBundle, "date_added", "date_added"))
-                if project_id is None:
-                    click.echo("Error: Project not found", err=True)
-                    raise click.Abort()
+                remove_cross_project_models(deletes)
+                project_id = get_project_id_or_fail(project)
             else:
-                debug_output("Removing old NodeStore values")
+                remove_old_nodestore_values(days)
 
-                cutoff = timezone.now() - timedelta(days=days)
-                try:
-                    nodestore.backend.cleanup(cutoff)
-                except NotImplementedError:
-                    click.echo("NodeStore backend does not support cleanup operation", err=True)
-
-        debug_output("Running bulk query deletes in BULK_QUERY_DELETES")
-        for model_tp, dtfield, order_by in BULK_QUERY_DELETES:
-            chunk_size = 10000
-
-            debug_output(f"Removing {model_tp.__name__} for days={days} project={project or '*'}")
-            if is_filtered(model_tp):
-                debug_output(">> Skipping %s" % model_tp.__name__)
-            else:
-                BulkDeleteQuery(
-                    model=model_tp,
-                    dtfield=dtfield,
-                    days=days,
-                    project_id=project_id,
-                    order_by=order_by,
-                ).execute(chunk_size=chunk_size)
+        run_bulk_query_deletes(bulk_query_deletes, is_filtered, days, project, project_id)
 
         debug_output("Running bulk deletes in DELETES")
-        for model_tp, dtfield, order_by in DELETES:
+        for model_tp, dtfield, order_by in deletes:
             debug_output(f"Removing {model_tp.__name__} for days={days} project={project or '*'}")
 
             if is_filtered(model_tp):
@@ -333,19 +240,9 @@ def cleanup(
 
                 task_queue.join()
 
-        project_deletion_query = None
-        to_delete_by_project = []
-        if SiloMode.get_current_mode() != SiloMode.CONTROL:
-            debug_output("Preparing DELETES_BY_PROJECT context")
-            project_deletion_query = models.Project.objects.filter(status=ObjectStatus.ACTIVE)
-            if project:
-                project_deletion_query = models.Project.objects.filter(id=project_id)
-
-            for model_tp_tup in DELETES_BY_PROJECT:
-                if is_filtered(model_tp_tup[0]):
-                    debug_output(">> Skipping %s" % model_tp_tup[0].__name__)
-                else:
-                    to_delete_by_project.append(model_tp_tup)
+        project_deletion_query, to_delete_by_project = prepare_deletes_by_project(
+            project, project_id, is_filtered
+        )
 
         if project_deletion_query is not None and len(to_delete_by_project):
             debug_output("Running bulk deletes in DELETES_BY_PROJECT")
@@ -373,13 +270,8 @@ def cleanup(
 
         task_queue.join()
 
-        # Clean up FileBlob instances which are no longer used and aren't super
-        # recent (as there could be a race between blob creation and reference)
-        debug_output("Cleaning up unused FileBlob references")
-        if is_filtered(models.FileBlob):
-            debug_output(">> Skipping FileBlob")
-        else:
-            cleanup_unused_files(silent)
+        remove_file_blobs(is_filtered, silent)
+
     finally:
         # Shut down our pool
         for _ in pool:
@@ -396,6 +288,214 @@ def cleanup(
 
     if transaction:
         transaction.__exit__(None, None, None)
+
+
+def remove_expired_values_for_lost_passwords(is_filtered: Callable[[type[Model]], bool]) -> None:
+    from sentry.users.models.lostpasswordhash import LostPasswordHash
+
+    debug_output("Removing expired values for LostPasswordHash")
+    if is_filtered(LostPasswordHash):
+        debug_output(">> Skipping LostPasswordHash")
+    else:
+        LostPasswordHash.objects.filter(
+            date_added__lte=timezone.now() - timedelta(hours=48)
+        ).delete()
+
+
+def remove_expired_values_for_org_members(
+    is_filtered: Callable[[type[Model]], bool], days: int
+) -> None:
+    from sentry.models.organizationmember import OrganizationMember
+
+    debug_output("Removing expired values for OrganizationMember")
+    if is_filtered(OrganizationMember):
+        debug_output(">> Skipping OrganizationMember")
+    else:
+        expired_threshold = timezone.now() - timedelta(days=days)
+        OrganizationMember.objects.delete_expired(expired_threshold)
+
+
+def delete_api_models(is_filtered: Callable[[type[Model]], bool]) -> None:
+    from sentry.models.apigrant import ApiGrant
+    from sentry.models.apitoken import ApiToken
+
+    for model_tp in (ApiGrant, ApiToken):
+        debug_output(f"Removing expired values for {model_tp.__name__}")
+
+        if is_filtered(model_tp):
+            debug_output(f">> Skipping {model_tp.__name__}")
+        else:
+            queryset = model_tp.objects.filter(
+                expires_at__lt=(timezone.now() - timedelta(days=API_TOKEN_TTL_IN_DAYS))
+            )
+
+            # SentryAppInstallations are associated to ApiTokens. We're okay
+            # with these tokens sticking around so that the Integration can
+            # refresh them, but all other non-associated tokens should be
+            # deleted.
+            if model_tp is ApiToken:
+                queryset = queryset.filter(sentry_app_installation__isnull=True)
+
+            queryset.delete()
+
+
+def exported_data(is_filtered: Callable[[type[Model]], bool], silent: bool) -> None:
+    from sentry.data_export.models import ExportedData
+
+    if not silent:
+        click.echo("Removing expired files associated with ExportedData")
+
+    if is_filtered(ExportedData):
+        debug_output(">> Skipping ExportedData files")
+    else:
+        export_data_queryset = ExportedData.objects.filter(date_expired__lt=(timezone.now()))
+        for item in export_data_queryset:
+            item.delete_file()
+
+
+def models_which_use_deletions_code_path() -> list[tuple[type[Model], str, str]]:
+    from sentry.models.artifactbundle import ArtifactBundle
+    from sentry.models.eventattachment import EventAttachment
+    from sentry.models.grouprulestatus import GroupRuleStatus
+    from sentry.models.rulefirehistory import RuleFireHistory
+    from sentry.monitors.models import MonitorCheckIn
+    from sentry.replays.models import ReplayRecordingSegment
+
+    # Deletions that use the `deletions` code path (which handles their child relations)
+    # (model, datetime_field, order_by)
+    return [
+        (EventAttachment, "date_added", "date_added"),
+        (ReplayRecordingSegment, "date_added", "date_added"),
+        (ArtifactBundle, "date_added", "date_added"),
+        (MonitorCheckIn, "date_added", "date_added"),
+        (GroupRuleStatus, "date_added", "date_added"),
+        (RuleFireHistory, "date_added", "date_added"),
+    ]
+
+
+def remove_cross_project_models(
+    deletes: list[tuple[type[Model], str, str]]
+) -> list[tuple[type[Model], str, str]]:
+    from sentry.models.artifactbundle import ArtifactBundle
+
+    # These models span across projects, so let's skip them
+    deletes.remove((ArtifactBundle, "date_added", "date_added"))
+    return deletes
+
+
+def get_project_id_or_fail(project: str) -> int:
+    click.echo("Bulk NodeStore deletion not available for project selection", err=True)
+    project_id = get_project(project)
+    if project_id is None:
+        click.echo("Error: Project not found", err=True)
+        raise click.Abort()
+    return project_id
+
+
+def remove_old_nodestore_values(days: int) -> None:
+    from sentry import nodestore
+
+    debug_output("Removing old NodeStore values")
+
+    cutoff = timezone.now() - timedelta(days=days)
+    try:
+        nodestore.backend.cleanup(cutoff)
+    except NotImplementedError:
+        click.echo("NodeStore backend does not support cleanup operation", err=True)
+
+
+def generate_bulk_query_deletes() -> list[tuple[type[Model], str, str | None]]:
+    from django.apps import apps
+
+    from sentry.models.groupemailthread import GroupEmailThread
+    from sentry.models.userreport import UserReport
+
+    # Deletions that use `BulkDeleteQuery` (and don't need to worry about child relations)
+    # (model, datetime_field, order_by)
+    additional_bulk_query_deletes = []
+    for entry in settings.ADDITIONAL_BULK_QUERY_DELETES:
+        app_name, model_name = entry[0].split(".")
+        model_tp = apps.get_model(app_name, model_name)
+        additional_bulk_query_deletes.append((model_tp, entry[1], entry[2]))
+
+    BULK_QUERY_DELETES = [
+        (UserReport, "date_added", None),
+        (GroupEmailThread, "date", None),
+    ] + additional_bulk_query_deletes
+
+    return BULK_QUERY_DELETES
+
+
+def run_bulk_query_deletes(
+    bulk_query_deletes: list[tuple[type[Model], str, str | None]],
+    is_filtered: Callable[[type[Model]], bool],
+    days: int,
+    project: str | None,
+    project_id: int | None,
+) -> None:
+    from sentry.db.deletion import BulkDeleteQuery
+
+    debug_output("Running bulk query deletes in bulk_query_deletes")
+    for model_tp, dtfield, order_by in bulk_query_deletes:
+        chunk_size = 10000
+
+        debug_output(f"Removing {model_tp.__name__} for days={days} project={project or '*'}")
+        if is_filtered(model_tp):
+            debug_output(">> Skipping %s" % model_tp.__name__)
+        else:
+            BulkDeleteQuery(
+                model=model_tp,
+                dtfield=dtfield,
+                days=days,
+                project_id=project_id,
+                order_by=order_by,
+            ).execute(chunk_size=chunk_size)
+
+
+def prepare_deletes_by_project(
+    project: str | None, project_id: int | None, is_filtered: Callable[[type[Model]], bool]
+) -> tuple[QuerySet[Any] | None, list[tuple[Any, str, str]]]:
+    from sentry.constants import ObjectStatus
+    from sentry.models.debugfile import ProjectDebugFile
+    from sentry.models.group import Group
+    from sentry.models.project import Project
+
+    # Deletions that we run per project. In some cases we can't use an index on just the date
+    # column, so as an alternative we use `(project_id, <date_col>)` instead
+    DELETES_BY_PROJECT = [
+        # Having an index on `last_seen` sometimes caused the planner to make a bad plan that
+        # used this index instead of a more appropriate one. This was causing a lot of postgres
+        # load, so we had to remove it.
+        (Group, "last_seen", "last_seen"),
+        (ProjectDebugFile, "date_accessed", "date_accessed"),
+    ]
+    project_deletion_query = None
+    to_delete_by_project = []
+    if SiloMode.get_current_mode() != SiloMode.CONTROL:
+        debug_output("Preparing DELETES_BY_PROJECT context")
+        project_deletion_query = Project.objects.filter(status=ObjectStatus.ACTIVE)
+        if project:
+            project_deletion_query = Project.objects.filter(id=project_id)
+
+        for model_tp_tup in DELETES_BY_PROJECT:
+            if is_filtered(model_tp_tup[0]):
+                debug_output(f">> Skipping {model_tp_tup[0].__name__}")
+            else:
+                to_delete_by_project.append(model_tp_tup)
+
+    return project_deletion_query, to_delete_by_project
+
+
+def remove_file_blobs(is_filtered: Callable[[type[Model]], bool], silent: bool) -> None:
+    from sentry.models.file import FileBlob
+
+    # Clean up FileBlob instances which are no longer used and aren't super
+    # recent (as there could be a race between blob creation and reference)
+    debug_output("Cleaning up unused FileBlob references")
+    if is_filtered(FileBlob):
+        debug_output(">> Skipping FileBlob")
+    else:
+        cleanup_unused_files(silent)
 
 
 def cleanup_unused_files(quiet: bool = False) -> None:
