@@ -610,8 +610,11 @@ class ExhaustiveFixtures(Fixtures):
 
         workflow = self.create_workflow(organization=org)
         self.create_workflowaction(workflow=workflow)
-        self.create_datasource(organization=org)
-        self.create_detector(organization=org)
+        self.create_workflow(organization=org)
+        self.create_data_source_detector(
+            self.create_data_source(organization=org),
+            self.create_detector(organization=org),
+        )
 
         return org
 

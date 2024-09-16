@@ -854,6 +854,10 @@
   "workflow_engine.datasource": [
     "sentry.organization"
   ],
+  "workflow_engine.datasourcedetector": [
+    "workflow_engine.datasource",
+    "workflow_engine.detector"
+  ],
   "workflow_engine.detector": [
     "sentry.organization",
     "sentry.team",
