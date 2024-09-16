@@ -27,6 +27,7 @@ type Row = Pick<
   | 'project.id'
   | 'span.description'
   | 'span.group'
+  | 'span.action'
   | 'spm()'
   | 'avg(span.self_time)'
   | 'sum(span.self_time)'
@@ -79,9 +80,10 @@ interface Props {
     pageLinks?: string;
   };
   sort: ValidSort;
+  system: string;
 }
 
-export function QueriesTable({response, sort}: Props) {
+export function QueriesTable({response, sort, system}: Props) {
   const {data, isLoading, meta, pageLinks} = response;
   const location = useLocation();
   const organization = useOrganization();
@@ -119,7 +121,7 @@ export function QueriesTable({response, sort}: Props) {
               sortParameterName: QueryParameterNames.SPANS_SORT,
             }),
           renderBodyCell: (column, row) =>
-            renderBodyCell(column, row, meta, location, organization),
+            renderBodyCell(column, row, meta, location, organization, system),
         }}
       />
       <Pagination
@@ -142,7 +144,8 @@ function renderBodyCell(
   row: Row,
   meta: EventsMetaType | undefined,
   location: Location,
-  organization: Organization
+  organization: Organization,
+  system: string
 ) {
   if (column.key === 'span.description') {
     return (
@@ -151,6 +154,8 @@ function renderBodyCell(
         description={row['span.description']}
         group={row['span.group']}
         projectId={row['project.id']}
+        system={system}
+        spanAction={row['span.action']}
       />
     );
   }
