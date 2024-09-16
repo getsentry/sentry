@@ -35,16 +35,15 @@ type Props = {
   splitDecision?: SavedQueryDatasets;
 };
 
-export function validEventViewForDataset(
-  eventView: EventView,
-  toDataset: DiscoverDatasets
-) {
+function getValidEventViewForDataset(eventView: EventView, toDataset: DiscoverDatasets) {
+  let modifiedQuery: boolean = false;
   let to = eventView.clone();
   const allowedAggregations = Object.keys(getAggregations(toDataset));
   let newColumns: QueryFieldValue[] = [];
   const search = new MutableSearch(eventView.query);
   const denylistedFields =
     toDataset === DiscoverDatasets.ERRORS ? TRANSACTION_ONLY_FIELDS : ERROR_ONLY_FIELDS;
+
   const removedFields: string[] = [];
   const equationsToCheck: string[] = [];
   eventView.fields.forEach(field => {
@@ -55,17 +54,20 @@ export function validEventViewForDataset(
     ) {
       search.removeFilter(field.field);
       removedFields.push(field.field);
+      modifiedQuery = true;
       return;
     }
     if (column.kind === 'function') {
       if (!allowedAggregations.includes(column.function[0])) {
         search.removeFilter(field.field);
         removedFields.push(field.field);
+        modifiedQuery = true;
         return;
       }
       if (denylistedFields.includes(column.function[1] as FieldKey | SpanOpBreakdown)) {
         search.removeFilter(field.field);
         removedFields.push(field.field);
+        modifiedQuery = true;
         return;
       }
     }
@@ -82,9 +84,19 @@ export function validEventViewForDataset(
     return removedFields.some(f => !column.field.includes(f));
   });
 
+  const remainingSearchFilter = search.formatString();
+
+  for (let index = 0; index < denylistedFields.length; index++) {
+    const element = denylistedFields[index];
+    if (remainingSearchFilter.includes(element)) {
+      search.removeFilter(element);
+      modifiedQuery = true;
+    }
+  }
+
   to = to.withColumns(newColumns);
   to.query = search.formatString();
-  return to;
+  return {to, modifiedQuery};
 }
 
 export function DatasetSelectorTabs(props: Props) {
@@ -117,7 +129,7 @@ export function DatasetSelectorTabs(props: Props) {
     <Tabs
       value={value}
       onChange={newValue => {
-        const nextEventView = validEventViewForDataset(
+        const {to: nextEventView, modifiedQuery} = getValidEventViewForDataset(
           eventView.withDataset(
             getDatasetFromLocationOrSavedQueryDataset(undefined, newValue)
           ),
@@ -134,6 +146,7 @@ export function DatasetSelectorTabs(props: Props) {
           query: {
             ...nextLocation.query,
             [DATASET_PARAM]: newValue,
+            incompatible: modifiedQuery ? modifiedQuery : undefined,
           },
         });
       }}
