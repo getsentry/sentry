@@ -55,7 +55,7 @@ export function EventFeatureFlagList({
     </Button>
   ) : null;
 
-  const [sortMethod, setSortMethod] = useState<FlagSort>(FlagSort.EVAL);
+  const [sortMethod, setSortMethod] = useState<FlagSort>(FlagSort.NEWEST);
   const {closeDrawer, isDrawerOpen, openDrawer} = useDrawer();
   const viewAllButtonRef = useRef<HTMLButtonElement>(null);
   const organization = useOrganization();
@@ -72,9 +72,9 @@ export function EventFeatureFlagList({
     });
   };
 
-  // Remove duplicates
+  // Reverse the flags to show newest at the top by default
   const hydratedFlags = useMemo(
-    () => hydrateFlags(event.contexts?.flags?.values),
+    () => hydrateFlags(event.contexts?.flags?.values.reverse()),
     [event]
   );
 
@@ -85,7 +85,11 @@ export function EventFeatureFlagList({
   };
 
   const sortedFlags =
-    sortMethod === FlagSort.ALPHA ? handleSortAlphabetical(hydratedFlags) : hydratedFlags;
+    sortMethod === FlagSort.ALPHA
+      ? handleSortAlphabetical(hydratedFlags)
+      : sortMethod === FlagSort.OLDEST
+        ? [...hydratedFlags].reverse()
+        : hydratedFlags;
 
   const onViewAllFlags = useCallback(() => {
     trackAnalytics('flags.view-all-clicked', {
@@ -166,7 +170,15 @@ export function EventFeatureFlagList({
 
   return (
     <ErrorBoundary mini message={t('There was a problem loading feature flags.')}>
-      <InterimSection title={t('Feature Flags')} type="feature-flags" actions={actions}>
+      <InterimSection
+        help={t(
+          "The last 10 flags evaluated in the user's session leading up to this event."
+        )}
+        isHelpHoverable
+        title={t('Feature Flags')}
+        type="feature-flags"
+        actions={actions}
+      >
         <CardContainer numCols={columnTwo.length ? 2 : 1}>
           <KeyValueData.Card contentItems={columnOne} />
           <KeyValueData.Card contentItems={columnTwo} />
