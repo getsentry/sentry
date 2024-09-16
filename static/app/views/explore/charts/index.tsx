@@ -22,6 +22,7 @@ import {CHART_HEIGHT} from 'sentry/views/insights/database/settings';
 import {useGroupBys} from '../hooks/useGroupBys';
 import {useResultMode} from '../hooks/useResultsMode';
 import {useSorts} from '../hooks/useSorts';
+import {useTopEvents} from '../hooks/useTopEvents';
 import {formatSort} from '../tables/aggregatesTable';
 
 interface ExploreChartsProps {
@@ -43,8 +44,6 @@ const exploreChartTypeOptions = [
   },
 ];
 
-export const TOP_EVENTS_LIMIT: number = 5;
-
 // TODO: Update to support aggregate mode and multiple queries / visualizations
 export function ExploreCharts({query}: ExploreChartsProps) {
   const pageFilters = usePageFilters();
@@ -54,6 +53,7 @@ export function ExploreCharts({query}: ExploreChartsProps) {
   const [interval, setInterval, intervalOptions] = useChartInterval();
   const [groupBys] = useGroupBys();
   const [resultMode] = useResultMode();
+  const topEvents = useTopEvents();
 
   const fields: string[] = useMemo(() => {
     if (resultMode === 'samples') {
@@ -73,18 +73,6 @@ export function ExploreCharts({query}: ExploreChartsProps) {
 
     return sorts.map(formatSort);
   }, [sorts]);
-
-  const topEvents: number | undefined = useMemo(() => {
-    if (resultMode === 'samples') {
-      return undefined;
-    }
-
-    // We only support top events for a single chart with no overlaps in aggregate mode and
-    // the data must be grouped by at least one field
-    return visualizes.length > 1 || (groupBys.length === 1 && groupBys[0] === '')
-      ? undefined
-      : TOP_EVENTS_LIMIT;
-  }, [visualizes, groupBys, resultMode]);
 
   const yAxes = useMemo(() => {
     const deduped = dedupeArray(visualizes.flatMap(visualize => visualize.yAxes));
