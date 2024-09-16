@@ -377,12 +377,16 @@ function SearchQueryBuilderInputInternal({
       e.preventDefault();
       e.stopPropagation();
 
-      const text = e.clipboardData.getData('text/plain').replace('\n', '').trim();
+      const clipboardText = e.clipboardData
+        .getData('text/plain')
+        .replace('\n', '')
+        .trim();
+      const currentText = inputRef.current?.value ?? '';
 
       dispatch({
         type: 'REPLACE_TOKENS_WITH_TEXT',
         tokens: [token],
-        text,
+        text: currentText + clipboardText,
       });
       resetInputValue();
     },
