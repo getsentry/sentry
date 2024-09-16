@@ -359,10 +359,7 @@ class BaseEvent(metaclass=abc.ABCMeta):
         variants = self.get_grouping_variants(force_config)
         hashes = self._hashes_from_sorted_grouping_variants(sort_grouping_variants(variants))
 
-        return CalculatedHashes(
-            hashes=[hash_ for _, hash_ in hashes],
-            variants=variants,
-        )
+        return CalculatedHashes(hashes=[hash_ for _, hash_ in hashes])
 
     @staticmethod
     def _hashes_from_sorted_grouping_variants(

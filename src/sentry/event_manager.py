@@ -1484,9 +1484,7 @@ def _save_aggregate(
             # If we still haven't found a matching grouphash, we're now safe to go ahead and talk to
             # seer and/or create the group.
             if existing_grouphash is None:
-                seer_matched_grouphash = maybe_check_seer_for_matching_grouphash(
-                    event, primary_hashes
-                )
+                seer_matched_grouphash = maybe_check_seer_for_matching_grouphash(event)
                 seer_matched_group = (
                     Group.objects.filter(id=seer_matched_grouphash.group_id).first()
                     if seer_matched_grouphash
@@ -1655,7 +1653,7 @@ def _save_aggregate_new(
             result = "found_secondary"
         # If we still haven't found a group, ask Seer for a match (if enabled for the project)
         else:
-            seer_matched_grouphash = maybe_check_seer_for_matching_grouphash(event, primary.hashes)
+            seer_matched_grouphash = maybe_check_seer_for_matching_grouphash(event)
 
             if seer_matched_grouphash:
                 group_info = handle_existing_grouphash(job, seer_matched_grouphash, all_grouphashes)
