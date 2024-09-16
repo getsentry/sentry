@@ -51,7 +51,7 @@ export function AutoSizedText({children}: Props) {
 
       let iterationCount = 0;
 
-      Sentry.withScope(scope => {
+      Sentry.withScope(() => {
         const span = Sentry.startInactiveSpan({
           op: 'function',
           name: 'AutoSizedText.iterate',
@@ -90,8 +90,6 @@ export function AutoSizedText({children}: Props) {
           iterationCount += 1;
         }
         const t2 = performance.now();
-
-        scope.setTag('didExceedIterationLimit', iterationCount >= ITERATION_LIMIT);
 
         span.setAttribute('iterationCount', iterationCount);
         span.setAttribute('durationFromPerformanceAPI', t2 - t1);
