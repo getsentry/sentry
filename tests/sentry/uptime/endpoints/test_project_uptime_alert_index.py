@@ -1,17 +1,13 @@
 from rest_framework.exceptions import ErrorDetail
 
-from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers import with_feature
 from sentry.uptime.models import ProjectUptimeSubscription, ProjectUptimeSubscriptionMode
 from sentry.uptime.subscriptions.subscriptions import DEFAULT_SUBSCRIPTION_TIMEOUT_MS
+from tests.sentry.uptime.endpoints import UptimeAlertBaseEndpointTest
 
 
-class ProjectUptimeAlertIndexBaseEndpointTest(APITestCase):
+class ProjectUptimeAlertIndexBaseEndpointTest(UptimeAlertBaseEndpointTest):
     endpoint = "sentry-api-0-project-uptime-alert-index"
-
-    def setUp(self):
-        super().setUp()
-        self.login_as(user=self.user)
 
 
 class ProjectUptimeAlertIndexPostEndpointTest(ProjectUptimeAlertIndexBaseEndpointTest):
