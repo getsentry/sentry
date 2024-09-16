@@ -10,8 +10,8 @@ import {
   within,
 } from 'sentry-test/reactTestingLibrary';
 
-import {openModal} from 'sentry/actionCreators/modal';
 import GroupStore from 'sentry/stores/groupStore';
+import ModalStore from 'sentry/stores/modalStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import type {Project} from 'sentry/types/project';
 
@@ -51,6 +51,7 @@ describe('GroupEventAttachments > Screenshots', function () {
 
   afterEach(() => {
     MockApiClient.clearMockResponses();
+    ModalStore.reset();
   });
 
   it('calls attachments api with screenshot filter', async function () {
@@ -82,8 +83,9 @@ describe('GroupEventAttachments > Screenshots', function () {
       router: screenshotRouter,
       organization,
     });
+    renderGlobalModal();
     await userEvent.click(await screen.findByTestId('screenshot-1'));
-    expect(openModal).toHaveBeenCalled();
+    expect(await screen.findByRole('dialog')).toBeInTheDocument();
   });
 
   it('links event id to event detail', async function () {
@@ -91,9 +93,7 @@ describe('GroupEventAttachments > Screenshots', function () {
       router,
       organization,
     });
-    expect(
-      (await screen.findByText('12345678901234567890123456789012')).closest('a')
-    ).toHaveAttribute(
+    expect(await screen.findByRole('link', {name: '12345678'})).toHaveAttribute(
       'href',
       '/organizations/org-slug/issues/group-id/events/12345678901234567890123456789012/'
     );
@@ -101,7 +101,7 @@ describe('GroupEventAttachments > Screenshots', function () {
 
   it('links to the download URL', async function () {
     render(<GroupEventAttachments project={project} />, {
-      router,
+      router: screenshotRouter,
       organization,
     });
     await userEvent.click(await screen.findByLabelText('Actions'));

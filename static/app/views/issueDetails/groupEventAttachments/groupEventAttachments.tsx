@@ -1,7 +1,7 @@
 import styled from '@emotion/styled';
 import xor from 'lodash/xor';
 
-import {addErrorMessage} from 'sentry/actionCreators/indicator';
+import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
@@ -119,6 +119,9 @@ function GroupEventAttachments({project}: GroupEventAttachmentsProps) {
       );
 
       return {previous};
+    },
+    onSuccess: () => {
+      addSuccessMessage(t('Attachment deleted'));
     },
     onError: (error, variables, context) => {
       addErrorMessage(

@@ -53,7 +53,7 @@ export function ScreenshotCard({
     trackAnalytics('issue_details.attachment_tab.screenshot_modal_deleted', {
       organization,
     });
-    onDelete(eventAttachment.id);
+    onDelete(eventAttachment);
   }
 
   function openVisualizationModal() {
