@@ -2,7 +2,7 @@ import type {ComponentProps} from 'react';
 import {useEffect, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 
-import {Button, LinkButton} from 'sentry/components/button';
+import {Button, LinkButton, type LinkButtonProps} from 'sentry/components/button';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import Panel from 'sentry/components/panels/panel';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
@@ -44,7 +44,7 @@ function ReplayPreviewPlayer({
 }: {
   replayId: string;
   replayRecord: ReplayRecord;
-  fullReplayButtonProps?: Partial<ComponentProps<typeof LinkButton>>;
+  fullReplayButtonProps?: Partial<Omit<LinkButtonProps, 'external'>>;
   handleBackClick?: () => void;
   handleForwardClick?: () => void;
   overlayContent?: React.ReactNode;

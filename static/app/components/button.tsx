@@ -148,6 +148,7 @@ interface ToLinkButtonProps extends BaseLinkButtonProps {
    * Similar to `href`, but for internal links within the app.
    */
   to: string | object;
+  external?: never;
 }
 
 interface HrefLinkButtonProps extends BaseLinkButtonProps {

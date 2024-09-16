@@ -161,7 +161,7 @@ function TeamAlertsTriggered({
             <LinkButton
               size="sm"
               external
-              to="https://docs.sentry.io/product/alerts/create-alerts/"
+              href="https://docs.sentry.io/product/alerts/create-alerts/"
             >
               {t('Learn more')}
             </LinkButton>
