@@ -118,9 +118,9 @@ class PluginDetailedView extends AbstractIntegrationDetailedView<
           nextPath={`/settings/${organization.slug}/projects/:projectId/plugins/${plugin.id}/`}
           needProject
           needOrg={false}
-          onFinish={path => {
+          onFinish={to => {
             modalProps.closeModal();
-            router.push(normalizeUrl(path));
+            router.push(normalizeUrl(to));
           }}
         />
       ),

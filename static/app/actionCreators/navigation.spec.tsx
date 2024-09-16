@@ -34,19 +34,17 @@ describe('navigation ActionCreator', () => {
 
   it('should get project from query parameters', () => {
     router.location.query.project = '2';
-    expect(navigateTo('/settings/:projectId/alert', router)).toBe(undefined);
+    navigateTo('/settings/:projectId/alert', router);
     expect(openModal).not.toHaveBeenCalled();
     expect(router.push).toHaveBeenCalledWith('/settings/project-slug/alert');
   });
 
   it('should get project id from query parameters', () => {
     router.location.query.project = '2';
-    expect(
-      navigateTo(
-        '/organizations/albertos-apples/performance/?project=:project#performance-sidequest',
-        router
-      )
-    ).toBe(undefined);
+    navigateTo(
+      '/organizations/albertos-apples/performance/?project=:project#performance-sidequest',
+      router
+    );
     expect(openModal).not.toHaveBeenCalled();
     expect(router.push).toHaveBeenCalledWith(
       '/organizations/albertos-apples/performance/?project=2#performance-sidequest'
@@ -55,12 +53,10 @@ describe('navigation ActionCreator', () => {
 
   it('should get project and project id from query parameters', () => {
     router.location.query.project = '2';
-    expect(
-      navigateTo(
-        '/settings/:projectId/alert?project=:project#performance-sidequest',
-        router
-      )
-    ).toBe(undefined);
+    navigateTo(
+      '/settings/:projectId/alert?project=:project#performance-sidequest',
+      router
+    );
     expect(openModal).not.toHaveBeenCalled();
     expect(router.push).toHaveBeenCalledWith(
       '/settings/project-slug/alert?project=2#performance-sidequest'
@@ -69,39 +65,37 @@ describe('navigation ActionCreator', () => {
 
   it('should open modal if the store is somehow missing selected projectId', () => {
     router.location.query.project = '911';
-    expect(navigateTo('/settings/:projectId/alert', router)).toBe(undefined);
+    navigateTo('/settings/:projectId/alert', router);
     expect(openModal).toHaveBeenCalled();
   });
 
   it('should open modal when no project is selected', () => {
-    expect(navigateTo('/settings/:projectId/alert', router)).toBe(undefined);
+    navigateTo('/settings/:projectId/alert', router);
     expect(openModal).toHaveBeenCalled();
   });
 
   it('should open modal when no project id is selected', () => {
-    expect(
-      navigateTo(
-        '/organizations/albertos-apples/performance/?project=:project#performance-sidequest',
-        router
-      )
-    ).toBe(undefined);
+    navigateTo(
+      '/organizations/albertos-apples/performance/?project=:project#performance-sidequest',
+      router
+    );
     expect(openModal).toHaveBeenCalled();
   });
 
   it('should open modal if more than one project is selected', () => {
     router.location.query.project = ['1', '2', '3'];
-    expect(navigateTo('/settings/:projectId/alert', router)).toBe(undefined);
+    navigateTo('/settings/:projectId/alert', router);
     expect(openModal).toHaveBeenCalled();
   });
 
   it('should not open modal if url does not require project id', () => {
-    expect(navigateTo('/settings/alert', router)).toBe(undefined);
+    navigateTo('/settings/alert', router);
     expect(openModal).not.toHaveBeenCalled();
     expect(router.push).toHaveBeenCalledWith('/settings/alert');
   });
 
   it('should open modal for orgId', () => {
-    expect(navigateTo('/settings/:orgId', router)).toBe(undefined);
+    navigateTo('/settings/:orgId', router);
     expect(openModal).toHaveBeenCalled();
   });
 
@@ -119,5 +113,21 @@ describe('navigation ActionCreator', () => {
     navigateTo('/settings/org-slug/projects/:projectId/alerts/', router);
     expect(openModal).not.toHaveBeenCalled();
     expect(router.push).toHaveBeenCalledWith('/settings/projects/project-slug/alerts/');
+  });
+
+  it('preserves query parameters in path object', function () {
+    router.location.query.project = '2';
+    navigateTo(
+      {
+        pathname: '/settings/:projectId/alert?project=:project#performance-sidequest',
+        query: {referrer: 'onboarding_task'},
+      },
+      router
+    );
+    expect(openModal).not.toHaveBeenCalled();
+    expect(router.push).toHaveBeenCalledWith({
+      pathname: '/settings/project-slug/alert?project=2#performance-sidequest',
+      query: {referrer: 'onboarding_task'},
+    });
   });
 });

@@ -1,3 +1,5 @@
+import type {Query} from 'history';
+
 import type {OnboardingContextProps} from 'sentry/components/onboarding/onboardingContext';
 import type {Category} from 'sentry/components/platformPicker';
 import type {InjectedRouter} from 'sentry/types/legacyReactRouter';
@@ -89,13 +91,19 @@ interface OnboardingTypeDescriptorWithAction extends OnboardingTaskDescriptorBas
 }
 
 interface OnboardingTypeDescriptorWithExternal extends OnboardingTaskDescriptorBase {
-  actionType: 'app' | 'external';
+  actionType: 'external';
   location: string;
+}
+
+interface OnboardingTypeDescriptorWithAppLink extends OnboardingTaskDescriptorBase {
+  actionType: 'app';
+  location: string | {pathname: string; query?: Query};
 }
 
 export type OnboardingTaskDescriptor =
   | OnboardingTypeDescriptorWithAction
-  | OnboardingTypeDescriptorWithExternal;
+  | OnboardingTypeDescriptorWithExternal
+  | OnboardingTypeDescriptorWithAppLink;
 
 export interface OnboardingTaskStatus {
   status: 'skipped' | 'pending' | 'complete';
@@ -126,7 +134,16 @@ interface OnboardingTaskWithExternal
   requisiteTasks: OnboardingTaskDescriptor[];
 }
 
-export type OnboardingTask = OnboardingTaskWithAction | OnboardingTaskWithExternal;
+interface OnboardingTaskWithAppLink
+  extends OnboardingTaskStatus,
+    OnboardingTypeDescriptorWithAppLink {
+  requisiteTasks: OnboardingTaskDescriptor[];
+}
+
+export type OnboardingTask =
+  | OnboardingTaskWithAction
+  | OnboardingTaskWithExternal
+  | OnboardingTaskWithAppLink;
 
 export enum OnboardingProjectStatus {
   WAITING = 'waiting',

@@ -101,7 +101,12 @@ function getMetricAlertUrl({projects, organization}: Options) {
     project => !!project.firstTransactionEvent
   );
   const project = firstProjectWithEvents ?? projects[0];
-  return `/organizations/${organization.slug}/alerts/${project.slug}/wizard/?alert_option=trans_duration`;
+  return {
+    pathname: `/organizations/${organization.slug}/alerts/${project.slug}/wizard/`,
+    query: {
+      alert_option: 'trans_duration',
+    },
+  };
 }
 
 export function getOnboardingTasks({
