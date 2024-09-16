@@ -3,7 +3,7 @@ from unittest import mock
 import pytest
 import responses
 
-from sentry.uptime.detectors.rdap import (
+from sentry.uptime.rdap.query import (
     RDAP_BOOTSTRAP_REGSITRY,
     resolve_rdap_bootstrap_registry,
     resolve_rdap_network_details,
@@ -110,7 +110,7 @@ def test_resolve_rdap_provider(mocked_rdap_registry):
 
 
 @responses.activate
-@mock.patch("sentry.uptime.detectors.rdap.resolve_hostname", return_value="1.0.0.0")
+@mock.patch("sentry.uptime.rdap.query.resolve_hostname", return_value="1.0.0.0")
 def test_resolve_rdap_network_details(mock_resolve_hostname):
     responses.add(
         "GET",
