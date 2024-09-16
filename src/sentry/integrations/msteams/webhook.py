@@ -7,6 +7,7 @@ from enum import Enum
 from typing import Any, cast
 
 import orjson
+from django.http import HttpRequest, HttpResponse
 from django.views.decorators.csrf import csrf_exempt
 from rest_framework.exceptions import AuthenticationFailed, NotAuthenticated
 from rest_framework.request import Request
@@ -254,7 +255,7 @@ class MsTeamsWebhookEndpoint(Endpoint, MsTeamsWebhookMixin):
         }
 
     @csrf_exempt
-    def dispatch(self, request: Request, *args, **kwargs) -> Response:  # type: ignore[override]
+    def dispatch(self, request: HttpRequest, *args, **kwargs) -> HttpResponse:
         return super().dispatch(request, *args, **kwargs)
 
     def post(self, request: Request) -> Response:
