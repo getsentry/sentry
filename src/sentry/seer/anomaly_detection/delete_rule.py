@@ -1,4 +1,5 @@
 import logging
+from typing import TYPE_CHECKING
 
 from django.conf import settings
 from urllib3.exceptions import MaxRetryError, TimeoutError
@@ -19,8 +20,11 @@ seer_anomaly_detection_connection_pool = connection_from_url(
     settings.SEER_ANOMALY_DETECTION_URL, timeout=settings.SEER_DEFAULT_TIMEOUT
 )
 
+if TYPE_CHECKING:
+    from sentry.incidents.models.alert_rule import AlertRule
 
-def delete_rule_in_seer(alert_rule, project: Project | None) -> bool:
+
+def delete_rule_in_seer(alert_rule: AlertRule, project: Project | None) -> bool:
     """
     Send a request to delete an alert rule from Seer. Returns True if the request was successful.
     """
