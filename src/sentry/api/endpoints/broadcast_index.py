@@ -179,7 +179,7 @@ class BroadcastIndexEndpoint(ControlSiloOrganizationEndpoint):
                 title=result["title"],
                 message=result["message"],
                 link=result["link"],
-                cta=result["cta"],
+                cta=result.get("cta"),
                 is_active=result.get("isActive") or False,
                 date_expires=result.get("dateExpires"),
                 media_url=result.get("mediaUrl"),
