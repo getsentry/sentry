@@ -124,7 +124,7 @@ class CodeOwnersTest(TestCase):
         assert code_owners.date_updated == mock_now
 
     @patch(
-        "sentry.integrations.github.GitHubIntegration.get_codeowner_file",
+        "sentry.integrations.github.integration.GitHubIntegration.get_codeowner_file",
         return_value=None,
     )
     @patch("sentry.notifications.notifications.codeowners_auto_sync.AutoSyncNotification.send")
