@@ -75,7 +75,7 @@ class Fixtures:
         return team
 
     @cached_property
-    def project(self) -> Project:
+    def project(self):
         return self.create_project(
             name="Bar", slug="bar", teams=[self.team], fire_project_created=True
         )
