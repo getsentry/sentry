@@ -12,6 +12,11 @@ import {
   MissingFrame,
   StackTraceMiniFrame,
 } from 'sentry/views/insights/database/components/stackTraceMiniFrame';
+import {SupportedDatabaseSystem} from 'sentry/views/insights/database/utils/constants';
+import {
+  isValidJson,
+  prettyPrintJsonString,
+} from 'sentry/views/insights/database/utils/jsonUtils';
 import type {SpanIndexedFieldTypes} from 'sentry/views/insights/types';
 import {SpanIndexedField} from 'sentry/views/insights/types';
 
@@ -64,20 +69,36 @@ export function DatabaseSpanDescription({
     const rawDescription =
       rawSpan?.description || indexedSpan?.['span.description'] || preliminaryDescription;
 
-    if (preliminaryDescription && isNoSQLQuery(preliminaryDescription)) {
-      return formatJsonQuery(preliminaryDescription);
-    }
+    if (system === SupportedDatabaseSystem.MONGODB) {
+      let bestDescription = '';
 
-    if (rawSpan?.description && isNoSQLQuery(rawSpan?.description)) {
-      return formatJsonQuery(rawSpan?.description);
+      if (
+        rawSpan?.sentry_tags?.description &&
+        isValidJson(rawSpan.sentry_tags.description)
+      ) {
+        bestDescription = rawSpan.sentry_tags.description;
+      } else if (preliminaryDescription && isValidJson(preliminaryDescription)) {
+        bestDescription = preliminaryDescription;
+      } else if (
+        indexedSpan?.['span.description'] &&
+        isValidJson(indexedSpan?.['span.description'])
+      ) {
+        bestDescription = indexedSpan?.['span.description'];
+      } else if (rawSpan?.description && isValidJson(rawSpan.description)) {
+        bestDescription = rawSpan?.description;
+      } else {
+        return rawDescription ?? 'N/A';
+      }
+
+      return prettyPrintJsonString(bestDescription);
     }
 
     return formatter.toString(rawDescription ?? '');
-  }, [preliminaryDescription, rawSpan, indexedSpan]);
+  }, [preliminaryDescription, rawSpan, indexedSpan, system]);
 
   return (
     <Frame>
-      {areIndexedSpansLoading || !preliminaryDescription ? (
+      {areIndexedSpansLoading || isRawSpanLoading ? (
         <WithPadding>
           <LoadingIndicator mini />
         </WithPadding>
@@ -106,30 +127,6 @@ export function DatabaseSpanDescription({
       )}
     </Frame>
   );
-}
-
-// TODO: We should transform the data a bit for mongodb queries.
-// For example, it would be better if we display the operation on the collection as the
-// first key value pair in the JSON, since this is not guaranteed by the backend
-export function formatJsonQuery(queryString: string) {
-  try {
-    return JSON.stringify(JSON.parse(queryString), null, 4);
-  } catch (error) {
-    throw Error(`Failed to parse JSON: ${queryString}`);
-  }
-}
-
-function isNoSQLQuery(queryString?: string, system?: string) {
-  if (system && system === 'mongodb') {
-    return true;
-  }
-
-  // If the system isn't provided, we can at least infer that it is valid JSON if it is enclosed in parentheses
-  if (queryString?.startsWith('{') && queryString.endsWith('}')) {
-    return true;
-  }
-
-  return false;
 }
 
 const INDEXED_SPAN_SORT = {
