@@ -4,12 +4,13 @@ import logging
 import time
 from collections.abc import Callable, Mapping
 from enum import Enum
-from typing import Any
+from typing import Any, cast
 
 import orjson
-from django.http import HttpRequest, HttpResponse
 from django.views.decorators.csrf import csrf_exempt
 from rest_framework.exceptions import AuthenticationFailed, NotAuthenticated
+from rest_framework.request import Request
+from rest_framework.response import Response
 
 from sentry import analytics, audit_log, eventstore, options
 from sentry.api import client
@@ -87,7 +88,7 @@ analytics.register(MsTeamsIntegrationUnresolve)
 analytics.register(MsTeamsIntegrationUnassign)
 
 
-def verify_signature(request):
+def verify_signature(request) -> bool:
     # docs for jwt authentication here: https://docs.microsoft.com/en-us/azure/bot-service/rest-api/bot-framework-rest-connector-authentication?view=azure-bot-service-4.0#bot-to-connector
     token = request.META.get("HTTP_AUTHORIZATION", "").replace("Bearer ", "")
     if not token:
@@ -103,7 +104,7 @@ def verify_signature(request):
     # get the open id config and jwks
     client = MsTeamsJwtClient()
     open_id_config = client.get_open_id_config()
-    jwks = client.get_cached(open_id_config["jwks_uri"])
+    jwks = cast(Mapping[str, Any], client.get_cached(open_id_config["jwks_uri"]))
 
     # create a mapping of all the keys
     # taken from: https://renzolucioni.com/verifying-jwts-with-jwks-and-pyjwt/
@@ -143,6 +144,8 @@ def verify_signature(request):
 
 
 class MsTeamsWebhookMixin:
+    provider: str
+
     @classmethod
     def infer_team_id_from_channel_data(cls, data: Mapping[str, Any]) -> str | None:
         try:
@@ -243,25 +246,25 @@ class MsTeamsWebhookEndpoint(Endpoint, MsTeamsWebhookMixin):
 
     def __init__(self, **kwargs) -> None:
         super().__init__(**kwargs)
-        self._event_handlers: dict[MsTeamsEvents, Callable[[HttpRequest], HttpResponse]] = {
-            MsTeamsEvents.MESSAGE: self.handle_message_event,
-            MsTeamsEvents.CONVERSATION_UPDATE: self.handle_conversation_update_event,
-            MsTeamsEvents.INSTALLATION_UPDATE: self.handle_installation_update_event,
-            MsTeamsEvents.UNKNOWN: self.handle_unknown_event,
+        self._event_handlers: dict[MsTeamsEvents, Callable[[Request], Response]] = {
+            MsTeamsEvents.MESSAGE: self._handle_message_event,
+            MsTeamsEvents.CONVERSATION_UPDATE: self._handle_conversation_update_event,
+            MsTeamsEvents.INSTALLATION_UPDATE: self._handle_installation_update_event,
+            MsTeamsEvents.UNKNOWN: self._handle_unknown_event,
         }
 
     @csrf_exempt
-    def dispatch(self, request: HttpRequest, *args, **kwargs) -> HttpResponse:
+    def dispatch(self, request: Request, *args, **kwargs) -> Response:  # type: ignore[override]
         return super().dispatch(request, *args, **kwargs)
 
-    def post(self, request: HttpRequest) -> HttpResponse:
+    def post(self, request: Request) -> Response:
         """
         POST webhook handler for MSTeams bot.
         The events are broadcast to MSTeams from Microsoft, and are documented at https://learn.microsoft.com/en-us/microsoftteams/platform/resources/bot-v3/bots-notifications
         """
 
         # verify_signature will raise the exception corresponding to the error
-        self.verify_webhook_request(request)
+        self._verify_webhook_request(request)
 
         data = request.data
         raw_event_type = data["type"]
@@ -274,7 +277,7 @@ class MsTeamsWebhookEndpoint(Endpoint, MsTeamsWebhookMixin):
         return response if response else self.respond(status=204)
 
     @classmethod
-    def _get_team_installation_request_data(cls, data: dict[str, Any]) -> dict:
+    def _get_team_installation_request_data(cls, data: dict[str, Any]) -> dict[str, Any]:
         """
         Helper method that will construct the installation request for a MsTeams team channel.
         We want the KeyError exception to be raised if the key does not exist.
@@ -302,7 +305,7 @@ class MsTeamsWebhookEndpoint(Endpoint, MsTeamsWebhookMixin):
         }
         return params
 
-    def handle_installation_update_event(self, request: HttpRequest) -> HttpResponse:
+    def _handle_installation_update_event(self, request: Request) -> Response:
         data = request.data
         action = data.get("action", None)
         if action is None or action != "add":
@@ -334,7 +337,7 @@ class MsTeamsWebhookEndpoint(Endpoint, MsTeamsWebhookMixin):
 
         return self.respond(status=201)
 
-    def handle_message_event(self, request: HttpRequest) -> HttpResponse:
+    def _handle_message_event(self, request: Request) -> Response:
         data = request.data
         conversation = data.get("conversation", {})
         conversation_type = conversation.get("conversationType")
@@ -346,13 +349,13 @@ class MsTeamsWebhookEndpoint(Endpoint, MsTeamsWebhookMixin):
             # Processing card actions can only occur in the Region silo.
             if SiloMode.get_current_mode() == SiloMode.CONTROL:
                 return self.respond(status=400)
-            return self.handle_action_submitted(request)
+            return self._handle_action_submitted(request)
         elif conversation_type == "channel":
-            return self.handle_channel_message(request)
+            return self._handle_channel_message(request)
 
-        return self.handle_personal_message(request)
+        return self._handle_personal_message(request)
 
-    def handle_conversation_update_event(self, request: HttpRequest) -> HttpResponse:
+    def _handle_conversation_update_event(self, request: Request) -> Response:
         data = request.data
         conversation = data.get("conversation", {})
         conversation_type = conversation.get("conversationType")
@@ -360,25 +363,25 @@ class MsTeamsWebhookEndpoint(Endpoint, MsTeamsWebhookMixin):
         event = channel_data.get("eventType")
 
         if event == "teamMemberAdded":
-            return self.handle_team_member_added(request)
+            return self._handle_team_member_added(request)
         elif event == "teamMemberRemoved":
             if SiloMode.get_current_mode() == SiloMode.CONTROL:
                 return self.respond(status=400)
-            return self.handle_team_member_removed(request)
+            return self._handle_team_member_removed(request)
         elif (
             data.get("membersAdded") and conversation_type == "personal"
         ):  # no explicit event for user adding app unfortunately
-            return self.handle_personal_member_add(request)
+            return self._handle_personal_member_add(request)
 
         return self.respond(status=204)
 
-    def handle_unknown_event(self, request: HttpRequest) -> HttpResponse:
+    def _handle_unknown_event(self, request: Request) -> Response:
         return self.respond(status=204)
 
-    def verify_webhook_request(self, request: HttpRequest) -> bool:
+    def _verify_webhook_request(self, request: Request) -> bool:
         return verify_signature(request)
 
-    def handle_personal_member_add(self, request: HttpRequest):
+    def _handle_personal_member_add(self, request: Request):
         data = request.data
         data["conversation_id"] = data["conversation"]["id"]
         tenant_id = data["conversation"]["tenantId"]
@@ -388,9 +391,9 @@ class MsTeamsWebhookEndpoint(Endpoint, MsTeamsWebhookMixin):
             "external_name": f"{tenant_id} (Microsoft Tenant)",
             "installation_type": "tenant",
         }
-        return self.handle_member_add(data, params, build_personal_installation_message)
+        return self._handle_member_add(data, params, build_personal_installation_message)
 
-    def handle_team_member_added(self, request: HttpRequest):
+    def _handle_team_member_added(self, request: Request) -> Response:
         data = request.data
         team = data["channelData"]["team"]
         data["conversation_id"] = team["id"]
@@ -401,14 +404,14 @@ class MsTeamsWebhookEndpoint(Endpoint, MsTeamsWebhookMixin):
             "installation_type": "team",
         }
 
-        return self.handle_member_add(data, params, build_team_installation_message)
+        return self._handle_member_add(data, params, build_team_installation_message)
 
-    def handle_member_add(
+    def _handle_member_add(
         self,
-        data: Mapping[str, str],
-        params: Mapping[str, str],
+        data: Mapping[str, Any],
+        params: dict[str, str],
         build_installation_card: Callable[[str], AdaptiveCard],
-    ) -> HttpResponse:
+    ) -> Response:
         # only care if our bot is the new member added
         matches = list(filter(lambda x: x["id"] == data["recipient"]["id"], data["membersAdded"]))
         if not matches:
@@ -442,7 +445,7 @@ class MsTeamsWebhookEndpoint(Endpoint, MsTeamsWebhookMixin):
 
         return self.respond(status=201)
 
-    def handle_team_member_removed(self, request: HttpRequest):
+    def _handle_team_member_removed(self, request: Request) -> Response:
         data = request.data
         channel_data = data["channelData"]
         # only care if our bot is the new member removed
@@ -487,8 +490,8 @@ class MsTeamsWebhookEndpoint(Endpoint, MsTeamsWebhookMixin):
         integration_service.delete_integration(integration_id=integration.id)
         return self.respond(status=204)
 
-    def make_action_data(self, data, user_id):
-        action_data = {}
+    def _make_action_data(self, data: Mapping[str, Any], user_id: int) -> dict[str, Any]:
+        action_data: dict[str, Any] = {}
         action_type = data["payload"]["actionType"]
         if action_type == ACTION_TYPE.UNRESOLVE:
             action_data = {"status": "unresolved"}
@@ -519,7 +522,7 @@ class MsTeamsWebhookEndpoint(Endpoint, MsTeamsWebhookMixin):
             action_data = {"assignedTo": ""}
         return action_data
 
-    def issue_state_change(self, group: Group, identity: RpcIdentity, data):
+    def _issue_state_change(self, group: Group, identity: RpcIdentity, data) -> Response:
         event_write_key = ApiKey(
             organization_id=group.project.organization_id, scope_list=["event:write"]
         )
@@ -533,7 +536,7 @@ class MsTeamsWebhookEndpoint(Endpoint, MsTeamsWebhookMixin):
             ACTION_TYPE.UNRESOLVE: "unresolve",
             ACTION_TYPE.UNASSIGN: "unassign",
         }
-        action_data = self.make_action_data(data, identity.user_id)
+        action_data = self._make_action_data(data, identity.user_id)
         status = action_types[data["payload"]["actionType"]]
         analytics_event = f"integrations.msteams.{status}"
         analytics.record(
@@ -550,7 +553,7 @@ class MsTeamsWebhookEndpoint(Endpoint, MsTeamsWebhookMixin):
             auth=event_write_key,
         )
 
-    def handle_action_submitted(self, request: HttpRequest):
+    def _handle_action_submitted(self, request: Request) -> Response:
         # pull out parameters
         data = request.data
         channel_data = data["channelData"]
@@ -582,10 +585,13 @@ class MsTeamsWebhookEndpoint(Endpoint, MsTeamsWebhookMixin):
             if integration is None:
                 group = None
 
-        if not group:
+        if integration is None or group is None:
             logger.info(
                 "msteams.action.invalid-issue",
-                extra={"team_id": team_id, "integration_id": integration.id},
+                extra={
+                    "team_id": team_id,
+                    "integration_id": (integration.id if integration else None),
+                },
             )
             return self.respond(status=404)
 
@@ -615,10 +621,10 @@ class MsTeamsWebhookEndpoint(Endpoint, MsTeamsWebhookMixin):
             return self.respond(status=201)
 
         # update the state of the issue
-        issue_change_response = self.issue_state_change(group, identity, data["value"])
+        issue_change_response = self._issue_state_change(group, identity, data["value"])
 
         # get the rules from the payload
-        rules = Rule.objects.filter(id__in=payload["rules"])
+        rules = tuple(Rule.objects.filter(id__in=payload["rules"]))
 
         # pull the event based off our payload
         event = eventstore.backend.get_event_by_id(group.project_id, payload["eventId"])
@@ -642,7 +648,7 @@ class MsTeamsWebhookEndpoint(Endpoint, MsTeamsWebhookMixin):
 
         return issue_change_response
 
-    def handle_channel_message(self, request: HttpRequest):
+    def _handle_channel_message(self, request: Request) -> Response:
         data = request.data
 
         # check to see if we are mentioned
@@ -668,7 +674,7 @@ class MsTeamsWebhookEndpoint(Endpoint, MsTeamsWebhookMixin):
 
         return self.respond(status=204)
 
-    def handle_personal_message(self, request: HttpRequest):
+    def _handle_personal_message(self, request: Request) -> Response:
         data = request.data
         command_text = data.get("text", "").strip()
         lowercase_command = command_text.lower()
