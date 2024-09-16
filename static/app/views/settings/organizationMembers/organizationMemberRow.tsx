@@ -115,14 +115,14 @@ export default class OrganizationMemberRow extends PureComponent<Props, State> {
     const showRemoveButton = !isCurrentUser;
     const showLeaveButton = isCurrentUser;
     const isInviteFromCurrentUser = inviterName === currentUser.name;
-    const canRemoveInvites =
+    const canInvite =
       organization.features?.includes('members-invite-teammates') &&
       organization.allowMemberInvite &&
       access.includes('member:invite');
     const canRemoveMember =
       (canRemoveMembers && !isCurrentUser && !isIdpProvisioned && !isPartnershipUser) ||
       // members can remove invites they sent if allowMemberInvite is true
-      (canRemoveInvites && isInviteFromCurrentUser);
+      (canInvite && isInviteFromCurrentUser);
     // member has a `user` property if they are registered with sentry
     // i.e. has accepted an invite to join org
     const has2fa = user?.has2fa;
@@ -159,7 +159,7 @@ export default class OrganizationMemberRow extends PureComponent<Props, State> {
               {isInviteSuccessful && <span>{t('Sent!')}</span>}
               {!isInviting && !isInviteSuccessful && (
                 <Button
-                  disabled={!canAddMembers || !isInviteFromCurrentUser}
+                  disabled={!canAddMembers && !(canInvite && isInviteFromCurrentUser)}
                   priority="primary"
                   size="sm"
                   onClick={this.handleSendInvite}
@@ -213,7 +213,7 @@ export default class OrganizationMemberRow extends PureComponent<Props, State> {
                     : isPartnershipUser
                       ? t('You cannot make changes to this partner-provisioned user.')
                       : // only show this message if member can remove invites but invite was not sent by them
-                        pending && canRemoveInvites && !isInviteFromCurrentUser
+                        pending && canInvite && !isInviteFromCurrentUser
                         ? t('Your role cannot modify this invite.')
                         : t('You do not have access to remove members')
                 }
