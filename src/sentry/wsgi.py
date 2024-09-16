@@ -1,3 +1,4 @@
+import io
 import os.path
 import sys
 
@@ -16,3 +17,16 @@ from django.core.handlers.wsgi import WSGIHandler
 
 # Run WSGI handler for the application
 application = WSGIHandler()
+
+# trigger a warmup of the application
+application(
+    {
+        "PATH_INFO": "/_health/",
+        "REQUEST_METHOD": "GET",
+        "SERVER_NAME": "127.0.0.1",
+        "SERVER_PORT": "9001",
+        "wsgi.input": io.BytesIO(),
+        "wsgi.url_scheme": "https",
+    },
+    lambda status, response_headers, exc_info=None: lambda bts: None,
+)
