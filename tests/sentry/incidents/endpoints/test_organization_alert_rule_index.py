@@ -391,7 +391,7 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase, SnubaTestCase):
         assert not AlertRule.objects.filter(detection_type=AlertRuleDetectionType.DYNAMIC).exists()
         assert (
             resp.data[0]
-            == "Invalid time window for dynamic alert (valid windows are 60, 30, 15 minutes)"
+            == "Invalid time window for dynamic alert (valid windows are 60, 5, 30, 15 minutes)"
         )
 
     def test_monitor_type_with_condition(self):

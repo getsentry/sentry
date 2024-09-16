@@ -920,7 +920,7 @@ class AlertRuleDetailsPutEndpointTest(AlertRuleDetailsBase):
         )
         assert (
             resp.data[0]
-            == "Invalid time window for dynamic alert (valid windows are 60, 30, 15 minutes)"
+            == "Invalid time window for dynamic alert (valid windows are 60, 5, 30, 15 minutes)"
         )
         # We don't call send_historical_data_to_seer if we encounter a validation error.
         assert mock_seer_request.call_count == 0
