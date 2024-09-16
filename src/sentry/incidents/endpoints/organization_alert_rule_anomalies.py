@@ -1,5 +1,4 @@
 from drf_spectacular.utils import extend_schema
-from pydantic import BaseModel
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -25,11 +24,7 @@ from sentry.models.organization import Organization
 from sentry.seer.anomaly_detection.get_historical_anomalies import (
     get_historical_anomaly_data_from_seer,
 )
-from sentry.seer.anomaly_detection.types import TimeSeriesPoint
-
-
-class DetectAnomaliesResponse(BaseModel):
-    timeseries: list[TimeSeriesPoint]
+from sentry.seer.anomaly_detection.types import DetectAnomaliesResponse
 
 
 @region_silo_endpoint

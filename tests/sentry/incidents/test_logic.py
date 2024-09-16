@@ -95,6 +95,7 @@ from sentry.integrations.pagerduty.utils import add_service
 from sentry.integrations.services.integration.serial import serialize_integration
 from sentry.models.group import GroupStatus
 from sentry.seer.anomaly_detection.store_data import seer_anomaly_detection_connection_pool
+from sentry.seer.anomaly_detection.types import StoreDataResponse
 from sentry.shared_integrations.exceptions import ApiRateLimitedError, ApiTimeoutError
 from sentry.silo.base import SiloMode
 from sentry.snuba.dataset import Dataset
@@ -842,7 +843,8 @@ class CreateAlertRuleTest(TestCase, BaseIncidentsTest):
         "sentry.seer.anomaly_detection.store_data.seer_anomaly_detection_connection_pool.urlopen"
     )
     def test_create_alert_rule_anomaly_detection(self, mock_seer_request):
-        mock_seer_request.return_value = HTTPResponse(status=200)
+        seer_return_value: StoreDataResponse = {"success": True}
+        mock_seer_request.return_value = HTTPResponse(orjson.dumps(seer_return_value), status=200)
 
         two_weeks_ago = before_now(days=14).replace(hour=10, minute=0, second=0, microsecond=0)
         self.create_event(two_weeks_ago + timedelta(minutes=1))
@@ -890,7 +892,8 @@ class CreateAlertRuleTest(TestCase, BaseIncidentsTest):
         "sentry.seer.anomaly_detection.store_data.seer_anomaly_detection_connection_pool.urlopen"
     )
     def test_create_alert_rule_anomaly_detection_not_enough_data(self, mock_seer_request):
-        mock_seer_request.return_value = HTTPResponse(status=200)
+        seer_return_value: StoreDataResponse = {"success": True}
+        mock_seer_request.return_value = HTTPResponse(orjson.dumps(seer_return_value), status=200)
 
         two_days_ago = before_now(days=2).replace(hour=10, minute=0, second=0, microsecond=0)
         self.create_event(two_days_ago + timedelta(minutes=1))
@@ -911,7 +914,8 @@ class CreateAlertRuleTest(TestCase, BaseIncidentsTest):
         "sentry.seer.anomaly_detection.store_data.seer_anomaly_detection_connection_pool.urlopen"
     )
     def test_create_alert_rule_anomaly_detection_no_data(self, mock_seer_request):
-        mock_seer_request.return_value = HTTPResponse(status=200)
+        seer_return_value: StoreDataResponse = {"success": True}
+        mock_seer_request.return_value = HTTPResponse(orjson.dumps(seer_return_value), status=200)
 
         # no events, so we expect _get_start_and_end to return -1, -1
         alert_rule = create_alert_rule(
@@ -1470,7 +1474,8 @@ class UpdateAlertRuleTest(TestCase, BaseIncidentsTest):
         "sentry.seer.anomaly_detection.store_data.seer_anomaly_detection_connection_pool.urlopen"
     )
     def test_update_detection_type(self, mock_seer_request):
-        mock_seer_request.return_value = HTTPResponse(status=200)
+        seer_return_value: StoreDataResponse = {"success": True}
+        mock_seer_request.return_value = HTTPResponse(orjson.dumps(seer_return_value), status=200)
         comparison_delta = 60
         # test percent to dynamic
         rule = self.create_alert_rule(
@@ -1579,7 +1584,8 @@ class UpdateAlertRuleTest(TestCase, BaseIncidentsTest):
         "sentry.seer.anomaly_detection.store_data.seer_anomaly_detection_connection_pool.urlopen"
     )
     def test_update_infer_detection_type(self, mock_seer_request):
-        mock_seer_request.return_value = HTTPResponse(status=200)
+        seer_return_value: StoreDataResponse = {"success": True}
+        mock_seer_request.return_value = HTTPResponse(orjson.dumps(seer_return_value), status=200)
         # static to static
         rule = self.create_alert_rule()
         updated_rule = update_alert_rule(rule, time_window=15)
@@ -1637,7 +1643,8 @@ class UpdateAlertRuleTest(TestCase, BaseIncidentsTest):
         "sentry.seer.anomaly_detection.store_data.seer_anomaly_detection_connection_pool.urlopen"
     )
     def test_update_dynamic_alerts(self, mock_seer_request):
-        mock_seer_request.return_value = HTTPResponse(status=200)
+        seer_return_value: StoreDataResponse = {"success": True}
+        mock_seer_request.return_value = HTTPResponse(orjson.dumps(seer_return_value), status=200)
 
         dynamic_rule = self.create_alert_rule(
             sensitivity=AlertRuleSensitivity.HIGH,
@@ -1678,7 +1685,8 @@ class UpdateAlertRuleTest(TestCase, BaseIncidentsTest):
         "sentry.seer.anomaly_detection.store_data.seer_anomaly_detection_connection_pool.urlopen"
     )
     def test_update_dynamic_alert_static_to_dynamic(self, mock_seer_request):
-        mock_seer_request.return_value = HTTPResponse(status=200)
+        seer_return_value: StoreDataResponse = {"success": True}
+        mock_seer_request.return_value = HTTPResponse(orjson.dumps(seer_return_value), status=200)
 
         static_rule = self.create_alert_rule(time_window=30)
         update_alert_rule(
@@ -1695,7 +1703,8 @@ class UpdateAlertRuleTest(TestCase, BaseIncidentsTest):
         "sentry.seer.anomaly_detection.store_data.seer_anomaly_detection_connection_pool.urlopen"
     )
     def test_update_dynamic_alert_percent_to_dynamic(self, mock_seer_request):
-        mock_seer_request.return_value = HTTPResponse(status=200)
+        seer_return_value: StoreDataResponse = {"success": True}
+        mock_seer_request.return_value = HTTPResponse(orjson.dumps(seer_return_value), status=200)
         percent_rule = self.create_alert_rule(
             comparison_delta=60, time_window=30, detection_type=AlertRuleDetectionType.PERCENT
         )
@@ -1716,7 +1725,8 @@ class UpdateAlertRuleTest(TestCase, BaseIncidentsTest):
         """
         Assert that the status is PENDING if enough data exists.
         """
-        mock_seer_request.return_value = HTTPResponse(status=200)
+        seer_return_value: StoreDataResponse = {"success": True}
+        mock_seer_request.return_value = HTTPResponse(orjson.dumps(seer_return_value), status=200)
 
         two_weeks_ago = before_now(days=14).replace(hour=10, minute=0, second=0, microsecond=0)
         self.create_event(two_weeks_ago + timedelta(minutes=1))
@@ -1743,7 +1753,8 @@ class UpdateAlertRuleTest(TestCase, BaseIncidentsTest):
         """
         Assert that the status is NOT_ENOUGH_DATA if we don't have 7 days of data.
         """
-        mock_seer_request.return_value = HTTPResponse(status=200)
+        seer_return_value: StoreDataResponse = {"success": True}
+        mock_seer_request.return_value = HTTPResponse(orjson.dumps(seer_return_value), status=200)
 
         two_days_ago = before_now(days=2).replace(hour=10, minute=0, second=0, microsecond=0)
         self.create_event(two_days_ago + timedelta(minutes=1))
@@ -1771,7 +1782,8 @@ class UpdateAlertRuleTest(TestCase, BaseIncidentsTest):
         Assert that the alert rule status changes to PENDING if we switch from a dynamic alert to another type of alert.
         """
         # just setting up an alert
-        mock_seer_request.return_value = HTTPResponse(status=200)
+        seer_return_value: StoreDataResponse = {"success": True}
+        mock_seer_request.return_value = HTTPResponse(orjson.dumps(seer_return_value), status=200)
 
         two_days_ago = before_now(days=2).replace(hour=10, minute=0, second=0, microsecond=0)
         self.create_event(two_days_ago + timedelta(minutes=1))
@@ -1805,7 +1817,8 @@ class UpdateAlertRuleTest(TestCase, BaseIncidentsTest):
     def test_update_alert_rule_anomaly_detection_seer_timeout_max_retry(
         self, mock_logger, mock_seer_request
     ):
-        mock_seer_request.return_value = HTTPResponse(status=200)
+        seer_return_value: StoreDataResponse = {"success": True}
+        mock_seer_request.return_value = HTTPResponse(orjson.dumps(seer_return_value), status=200)
         dynamic_rule = self.create_alert_rule(
             sensitivity=AlertRuleSensitivity.HIGH,
             seasonality=AlertRuleSeasonality.AUTO,
@@ -1897,7 +1910,8 @@ class UpdateAlertRuleTest(TestCase, BaseIncidentsTest):
         "sentry.seer.anomaly_detection.store_data.seer_anomaly_detection_connection_pool.urlopen"
     )
     def test_update_invalid_time_window(self, mock_seer_request):
-        mock_seer_request.return_value = HTTPResponse(status=200)
+        seer_return_value: StoreDataResponse = {"success": True}
+        mock_seer_request.return_value = HTTPResponse(orjson.dumps(seer_return_value), status=200)
 
         rule = self.create_alert_rule(
             sensitivity=AlertRuleSensitivity.HIGH,
@@ -2043,7 +2057,8 @@ class CreateAlertRuleTriggerTest(TestCase):
         "sentry.seer.anomaly_detection.store_data.seer_anomaly_detection_connection_pool.urlopen"
     )
     def test_invalid_threshold_dynamic_alert(self, mock_seer_request):
-        mock_seer_request.return_value = HTTPResponse(status=200)
+        seer_return_value: StoreDataResponse = {"success": True}
+        mock_seer_request.return_value = HTTPResponse(orjson.dumps(seer_return_value), status=200)
 
         rule = self.create_alert_rule(
             time_window=15,
@@ -2114,7 +2129,8 @@ class UpdateAlertRuleTriggerTest(TestCase):
         "sentry.seer.anomaly_detection.store_data.seer_anomaly_detection_connection_pool.urlopen"
     )
     def test_invalid_threshold_dynamic_alert(self, mock_seer_request):
-        mock_seer_request.return_value = HTTPResponse(status=200)
+        seer_return_value: StoreDataResponse = {"success": True}
+        mock_seer_request.return_value = HTTPResponse(orjson.dumps(seer_return_value), status=200)
 
         rule = self.create_alert_rule(
             time_window=15,
