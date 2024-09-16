@@ -24,6 +24,4 @@ def fetch_subscription_rdap_info(subscription_id: int):
     host = f"{sub.url_domain}.{sub.url_domain_suffix}"
     details = resolve_rdap_network_details(host)
 
-    sub.host_provider_id = details["handle"]
-    sub.host_provider_name = details["owner_name"]
-    sub.save()
+    sub.update(host_provider_id=details["handle"], host_provider_name=details["owner_name"])
