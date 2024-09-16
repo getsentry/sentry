@@ -2,7 +2,10 @@ import type {SelectOption} from 'sentry/components/compactSelect';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import {useSpanMetrics} from 'sentry/views/insights/common/queries/useDiscover';
-import {DATABASE_SYSTEM_TO_LABEL} from 'sentry/views/insights/database/utils/constants';
+import {
+  DATABASE_SYSTEM_TO_LABEL,
+  SupportedDatabaseSystem,
+} from 'sentry/views/insights/database/utils/constants';
 import {SpanMetricsField} from 'sentry/views/insights/types';
 
 export function useSystemSelectorOptions() {
@@ -28,7 +31,13 @@ export function useSystemSelectorOptions() {
       const label: string =
         system in DATABASE_SYSTEM_TO_LABEL ? DATABASE_SYSTEM_TO_LABEL[system] : system;
 
-      options.push({value: system, label, textValue: label});
+      const supportedSystemSet: Set<string> = new Set(
+        Object.values(SupportedDatabaseSystem)
+      );
+
+      if (supportedSystemSet.has(system)) {
+        options.push({value: system, label, textValue: label});
+      }
     }
   });
 
