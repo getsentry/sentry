@@ -397,7 +397,6 @@ INSTALLED_APPS: tuple[str, ...] = (
     "sentry.nodestore",
     "sentry.users",
     "sentry.integrations",
-    "sentry.sentry_apps",
     "sentry.monitors",
     "sentry.uptime",
     "sentry.replays",
