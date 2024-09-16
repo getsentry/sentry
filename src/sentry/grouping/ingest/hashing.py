@@ -12,7 +12,6 @@ from sentry.exceptions import HashDiscarded
 from sentry.features.rollout import in_random_rollout
 from sentry.grouping.api import (
     NULL_GROUPING_CONFIG,
-    NULL_HASHES,
     BackgroundGroupingConfigLoader,
     GroupingConfig,
     GroupingConfigNotFound,
@@ -124,17 +123,17 @@ def maybe_run_secondary_grouping(
     """
 
     secondary_grouping_config = NULL_GROUPING_CONFIG
-    secondary_hashes = NULL_HASHES
+    secondary_hashes = []
 
     if is_in_transition(project):
         with metrics.timer("event_manager.secondary_grouping", tags=metric_tags):
             secondary_grouping_config = SecondaryGroupingConfigLoader().get_config_dict(project)
-            secondary_hashes = _calculate_secondary_hash(project, job, secondary_grouping_config)
+            secondary_hashes = _calculate_secondary_hashes(project, job, secondary_grouping_config)
 
     return (secondary_grouping_config, secondary_hashes)
 
 
-def _calculate_secondary_hash(
+def _calculate_secondary_hashes(
     project: Project, job: Job, secondary_grouping_config: GroupingConfig
 ) -> list[str]:
     """Calculate secondary hash for event using a fallback grouping config for a period of time.
@@ -142,7 +141,7 @@ def _calculate_secondary_hash(
     when the customer changes the grouping config.
     This causes extra load in save_event processing.
     """
-    secondary_hashes = NULL_HASHES
+    secondary_hashes = []
     try:
         with sentry_sdk.start_span(
             op="event_manager",
@@ -177,12 +176,12 @@ def run_primary_grouping(
         ),
         metrics.timer("event_manager.calculate_event_grouping", tags=metric_tags),
     ):
-        hashes = _calculate_primary_hash(project, job, grouping_config)
+        hashes = _calculate_primary_hashes(project, job, grouping_config)
 
     return (grouping_config, hashes)
 
 
-def _calculate_primary_hash(
+def _calculate_primary_hashes(
     project: Project, job: Job, grouping_config: GroupingConfig
 ) -> list[str]:
     """
@@ -217,7 +216,7 @@ def get_hash_values(
     project: Project,
     job: Job,
     metric_tags: MutableTags,
-) -> tuple[list[str], list[str] | None, list[str]]:
+) -> tuple[list[str], list[str], list[str]]:
     # Background grouping is a way for us to get performance metrics for a new
     # config without having it actually affect on how events are grouped. It runs
     # either before or after the main grouping logic, depending on the option value.

@@ -24,7 +24,7 @@ def record_hash_calculation_metrics(
     primary_hashes: list[str],
     secondary_config: GroupingConfig,
     secondary_hashes: list[str],
-):
+) -> None:
     has_secondary_hashes = len(secondary_hashes) > 0
 
     if has_secondary_hashes:

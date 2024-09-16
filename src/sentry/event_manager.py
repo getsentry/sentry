@@ -1469,7 +1469,7 @@ def _save_aggregate(
                 GroupHash.objects.filter(id__in=grouphash_ids).select_for_update()
             )
 
-            grouphashes = [gh for gh in all_grouphashes if gh.hash in hashes.hashes]
+            grouphashes = [gh for gh in all_grouphashes if gh.hash in hashes]
 
             # Now check again to see if any of our grouphashes have a group. If we got the lock, the
             # result won't have changed and we still won't find anything. If we didn't get it, we'll
