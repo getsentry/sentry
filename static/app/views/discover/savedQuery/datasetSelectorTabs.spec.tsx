@@ -59,7 +59,7 @@ describe('Discover DatasetSelector', function () {
       query: '(error.type:bar AND project:foo)',
       start: undefined,
       team: [],
-      sorts: [],
+      sorts: [{field: 'error.mechanism', kind: 'asc'}],
       statsPeriod: undefined,
       topEvents: undefined,
       id: undefined,
@@ -83,6 +83,7 @@ describe('Discover DatasetSelector', function () {
           field: ['transaction', 'project'],
           query: 'project:foo',
           queryDataset: 'transaction-like',
+          sort: '-transaction',
           incompatible: true,
         }),
       })
