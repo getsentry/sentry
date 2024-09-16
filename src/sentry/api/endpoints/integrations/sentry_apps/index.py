@@ -16,7 +16,7 @@ from sentry.api.serializers.rest_framework import SentryAppSerializer
 from sentry.auth.staff import is_active_staff
 from sentry.auth.superuser import is_active_superuser
 from sentry.constants import SentryAppStatus
-from sentry.sentry_apps.apps import SentryAppCreator
+from sentry.sentry_apps.logic import SentryAppCreator
 from sentry.sentry_apps.models.sentry_app import SentryApp
 from sentry.users.services.user.service import user_service
 

@@ -8,7 +8,7 @@ from sentry.coreapi import APIError
 from sentry.models.apitoken import ApiToken
 from sentry.models.integrations.sentry_app_component import SentryAppComponent
 from sentry.models.servicehook import ServiceHook
-from sentry.sentry_apps.apps import SentryAppUpdater, expand_events
+from sentry.sentry_apps.logic import SentryAppUpdater, expand_events
 from sentry.sentry_apps.models.sentry_app import SentryApp
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase

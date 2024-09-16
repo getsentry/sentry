@@ -31,7 +31,7 @@ from sentry.shared_integrations.exceptions import ApiError, IntegrationError
 from sentry.users.models.user import User
 from sentry.utils.http import absolute_uri
 
-from ...sentry_apps.apps import SentryAppCreator
+from ...sentry_apps.logic import SentryAppCreator
 from .client import VercelClient
 
 logger = logging.getLogger("sentry.integrations.vercel")
