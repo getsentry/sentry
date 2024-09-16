@@ -184,6 +184,7 @@ class BroadcastIndexEndpoint(ControlSiloOrganizationEndpoint):
                 date_expires=result.get("dateExpires"),
                 media_url=result.get("mediaUrl"),
                 category=result.get("category"),
+                created_by_id=request.user.id,
             )
             logger.info(
                 "broadcasts.create",
