@@ -252,6 +252,7 @@ def backfill_seer_grouping_records_for_project(
                 "reason": seer_response.get("reason"),
                 "current_project_id": current_project_id,
                 "last_processed_project_index": last_processed_project_index,
+                "worker_number": worker_number,
             },
         )
         sentry_sdk.capture_exception(Exception("Seer failed during backfill"))

@@ -99,8 +99,7 @@ const StyledGrowingInput = styled(GrowingInput)<{isSelected: boolean}>`
   min-height: 0px;
   height: 20px;
   border-radius: 0px;
-
-  cursor: ${p => (p.isSelected ? 'auto' : 'pointer')};
+  cursor: pointer;
 
   &,
   &:focus,

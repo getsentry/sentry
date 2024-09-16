@@ -636,6 +636,9 @@ export interface ResponseContext {
   type: 'response';
 }
 
+export type FeatureFlag = {flag: string; result: boolean};
+export type Flags = {values: FeatureFlag[]};
+
 export type EventContexts = {
   'Memory Info'?: MemoryInfoContext;
   'ThreadPool Info'?: ThreadPoolInfoContext;
@@ -643,6 +646,7 @@ export type EventContexts = {
   client_os?: OSContext;
   device?: DeviceContext;
   feedback?: Record<string, any>;
+  flags?: Flags;
   memory_info?: MemoryInfoContext;
   os?: OSContext;
   otel?: OtelContext;

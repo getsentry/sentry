@@ -6,6 +6,12 @@ from unittest.mock import Mock
 from django.db.models import QuerySet
 
 from sentry.constants import ObjectStatus
+from sentry.deletions.tasks.scheduled import (
+    reattempt_deletions,
+    reattempt_deletions_control,
+    run_scheduled_deletions,
+    run_scheduled_deletions_control,
+)
 from sentry.models.apiapplication import ApiApplication, ApiApplicationStatus
 from sentry.models.repository import Repository
 from sentry.models.scheduledeletion import (
@@ -15,12 +21,6 @@ from sentry.models.scheduledeletion import (
 )
 from sentry.models.team import Team
 from sentry.signals import pending_delete
-from sentry.tasks.deletion.scheduled import (
-    reattempt_deletions,
-    reattempt_deletions_control,
-    run_scheduled_deletions,
-    run_scheduled_deletions_control,
-)
 from sentry.testutils.abstract import Abstract
 from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import control_silo_test

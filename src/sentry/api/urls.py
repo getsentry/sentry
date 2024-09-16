@@ -668,8 +668,6 @@ from .endpoints.user_notification_settings_providers import (
 )
 from .endpoints.user_organizationintegrations import UserOrganizationIntegrationsEndpoint
 from .endpoints.user_organizations import UserOrganizationsEndpoint
-from .endpoints.user_social_identities_index import UserSocialIdentitiesIndexEndpoint
-from .endpoints.user_social_identity_details import UserSocialIdentityDetailsEndpoint
 from .endpoints.user_subscriptions import UserSubscriptionsEndpoint
 
 __all__ = ("urlpatterns",)
@@ -1090,16 +1088,6 @@ USER_URLS = [
         r"^(?P<user_id>[^\/]+)/roles/(?P<role_name>[^\/]+)/$",
         UserUserRoleDetailsEndpoint.as_view(),
         name="sentry-api-0-user-userrole-details",
-    ),
-    re_path(
-        r"^(?P<user_id>[^\/]+)/social-identities/$",
-        UserSocialIdentitiesIndexEndpoint.as_view(),
-        name="sentry-api-0-user-social-identities-index",
-    ),
-    re_path(
-        r"^(?P<user_id>[^\/]+)/social-identities/(?P<identity_id>[^\/]+)/$",
-        UserSocialIdentityDetailsEndpoint.as_view(),
-        name="sentry-api-0-user-social-identity-details",
     ),
     re_path(
         r"^(?P<user_id>[^\/]+)/subscriptions/$",
