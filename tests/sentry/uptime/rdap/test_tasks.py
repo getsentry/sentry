@@ -1,11 +1,11 @@
 from unittest import mock
 
-from sentry.testutils.cases import TestCase
+from sentry.testutils.cases import UptimeTestCase
 from sentry.uptime.rdap.query import DomainAddressDetails
 from sentry.uptime.rdap.tasks import fetch_subscription_rdap_info
 
 
-class RDAPTasksTest(TestCase):
+class RDAPTasksTest(UptimeTestCase):
     @mock.patch(
         "sentry.uptime.rdap.tasks.resolve_rdap_network_details",
     )
