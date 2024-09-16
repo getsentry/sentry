@@ -19,14 +19,12 @@ import GroupEventAttachments from './groupEventAttachments';
 import {MAX_SCREENSHOTS_PER_PAGE} from './useGroupEventAttachments';
 
 describe('GroupEventAttachments > Screenshots', function () {
+  const groupId = 'group-id';
   const {organization, router} = initializeOrg({
     organization: {
       features: ['event-attachments'],
       orgRole: 'member',
       attachmentsRole: 'member',
-    },
-    router: {
-      params: {orgId: 'org-slug', groupId: 'group-id'},
     },
   });
   const {router: screenshotRouter} = initializeOrg({
@@ -44,7 +42,7 @@ describe('GroupEventAttachments > Screenshots', function () {
     GroupStore.init();
 
     getAttachmentsMock = MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/issues/group-id/attachments/',
+      url: `/organizations/org-slug/issues/${groupId}/attachments/`,
       body: [EventAttachmentFixture()],
     });
   });
@@ -55,7 +53,7 @@ describe('GroupEventAttachments > Screenshots', function () {
   });
 
   it('calls attachments api with screenshot filter', async function () {
-    render(<GroupEventAttachments project={project} />, {
+    render(<GroupEventAttachments project={project} groupId={groupId} />, {
       router: screenshotRouter,
       organization,
     });
@@ -71,7 +69,7 @@ describe('GroupEventAttachments > Screenshots', function () {
 
   it('does not render screenshots tab if not mobile platform', function () {
     project.platform = 'javascript';
-    render(<GroupEventAttachments project={project} />, {
+    render(<GroupEventAttachments project={project} groupId={groupId} />, {
       router: screenshotRouter,
       organization,
     });
@@ -79,7 +77,7 @@ describe('GroupEventAttachments > Screenshots', function () {
   });
 
   it('calls opens modal when clicking on panel body', async function () {
-    render(<GroupEventAttachments project={project} />, {
+    render(<GroupEventAttachments project={project} groupId={groupId} />, {
       router: screenshotRouter,
       organization,
     });
@@ -89,7 +87,7 @@ describe('GroupEventAttachments > Screenshots', function () {
   });
 
   it('links event id to event detail', async function () {
-    render(<GroupEventAttachments project={project} />, {
+    render(<GroupEventAttachments project={project} groupId={groupId} />, {
       router,
       organization,
     });
@@ -100,7 +98,7 @@ describe('GroupEventAttachments > Screenshots', function () {
   });
 
   it('links to the download URL', async function () {
-    render(<GroupEventAttachments project={project} />, {
+    render(<GroupEventAttachments project={project} groupId={groupId} />, {
       router: screenshotRouter,
       organization,
     });
@@ -116,7 +114,7 @@ describe('GroupEventAttachments > Screenshots', function () {
       url: '/organizations/org-slug/issues/group-id/attachments/',
       statusCode: 500,
     });
-    render(<GroupEventAttachments project={project} />, {
+    render(<GroupEventAttachments project={project} groupId={groupId} />, {
       router,
       organization,
     });
@@ -128,7 +126,7 @@ describe('GroupEventAttachments > Screenshots', function () {
       url: '/projects/org-slug/project-slug/events/12345678901234567890123456789012/attachments/1/',
       method: 'DELETE',
     });
-    render(<GroupEventAttachments project={project} />, {
+    render(<GroupEventAttachments project={project} groupId={groupId} />, {
       router,
       organization,
     });

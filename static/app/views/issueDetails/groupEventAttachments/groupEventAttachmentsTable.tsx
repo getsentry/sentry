@@ -12,14 +12,12 @@ type Props = {
   groupId: string;
   isLoading: boolean;
   onDelete: (attachment: IssueAttachment) => void;
-  orgSlug: string;
   projectSlug: string;
 };
 
 function GroupEventAttachmentsTable({
   isLoading,
   attachments,
-  orgSlug,
   projectSlug,
   groupId,
   emptyMessage,
@@ -36,7 +34,6 @@ function GroupEventAttachmentsTable({
         <GroupEventAttachmentsTableRow
           key={attachment.id}
           attachment={attachment}
-          orgSlug={orgSlug}
           projectSlug={projectSlug}
           groupId={groupId}
           onDelete={onDelete}

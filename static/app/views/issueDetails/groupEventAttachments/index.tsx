@@ -5,7 +5,8 @@ import {t} from 'sentry/locale';
 import type {Group} from 'sentry/types/group';
 import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import useOrganization from 'sentry/utils/useOrganization';
-import GroupEventAttachments from 'sentry/views/issueDetails/groupEventAttachments/groupEventAttachments';
+
+import GroupEventAttachments from './groupEventAttachments';
 
 type Props = RouteComponentProps<{groupId: string}, {}> & {
   group: Group;
@@ -23,7 +24,7 @@ function GroupEventAttachmentsContainer({group}: Props) {
     >
       <Layout.Body>
         <Layout.Main fullWidth>
-          <GroupEventAttachments project={group.project} />
+          <GroupEventAttachments project={group.project} groupId={group.id} />
         </Layout.Main>
       </Layout.Body>
     </Feature>

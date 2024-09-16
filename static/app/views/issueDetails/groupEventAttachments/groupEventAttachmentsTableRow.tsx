@@ -9,6 +9,7 @@ import {Tooltip} from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
 import type {IssueAttachment} from 'sentry/types/group';
 import {getShortEventId} from 'sentry/utils/events';
+import useOrganization from 'sentry/utils/useOrganization';
 import {InlineEventAttachment} from 'sentry/views/issueDetails/groupEventAttachments/inlineEventAttachment';
 
 const friendlyAttachmentType = {
@@ -21,7 +22,6 @@ type Props = {
   attachment: IssueAttachment;
   groupId: string;
   onDelete: (attachment: IssueAttachment) => void;
-  orgSlug: string;
   projectSlug: string;
 };
 
@@ -29,9 +29,9 @@ function GroupEventAttachmentsTableRow({
   attachment,
   projectSlug,
   onDelete,
-  orgSlug,
   groupId,
 }: Props) {
+  const organization = useOrganization();
   const [previewIsOpen, setPreviewIsOpen] = useState(false);
 
   const handlePreviewClick = () => {
@@ -48,7 +48,7 @@ function GroupEventAttachmentsTableRow({
           <div>
             <DateTime date={attachment.dateCreated} /> &middot;{' '}
             <Link
-              to={`/organizations/${orgSlug}/issues/${groupId}/events/${attachment.event_id}/`}
+              to={`/organizations/${organization.slug}/issues/${groupId}/events/${attachment.event_id}/`}
             >
               <Tooltip skipWrapper title={t('View Event')}>
                 {getShortEventId(attachment.event_id)}

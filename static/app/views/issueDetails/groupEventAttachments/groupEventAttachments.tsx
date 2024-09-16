@@ -20,7 +20,7 @@ import {decodeList} from 'sentry/utils/queryString';
 import type RequestError from 'sentry/utils/requestError/requestError';
 import useApi from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
-import {useParams} from 'sentry/utils/useParams';
+import useOrganization from 'sentry/utils/useOrganization';
 
 import GroupEventAttachmentsFilter, {
   crashReportTypes,
@@ -34,6 +34,7 @@ import {
 } from './useGroupEventAttachments';
 
 type GroupEventAttachmentsProps = {
+  groupId: string;
   project: Project;
 };
 
@@ -69,11 +70,11 @@ function useActiveAttachmentsTab() {
   return EventAttachmentFilter.ALL;
 }
 
-function GroupEventAttachments({project}: GroupEventAttachmentsProps) {
+function GroupEventAttachments({project, groupId}: GroupEventAttachmentsProps) {
   const api = useApi({persistInFlight: true});
   const queryClient = useQueryClient();
   const location = useLocation();
-  const {groupId, orgId: orgSlug} = useParams<{groupId: string; orgId: string}>();
+  const organization = useOrganization();
   const activeAttachmentsTab = useActiveAttachmentsTab();
   const {attachments, isPending, isError, getResponseHeader, refetch} =
     useGroupEventAttachments({
@@ -87,9 +88,9 @@ function GroupEventAttachments({project}: GroupEventAttachmentsProps) {
     DeleteGroupEventAttachmentVariables,
     DeleteGroupEventAttachmentContext
   >({
-    mutationFn: ({attachment}) =>
+    mutationFn: variables =>
       api.requestPromise(
-        `/projects/${orgSlug}/${project.slug}/events/${attachment.event_id}/attachments/${attachment.id}/`,
+        `/projects/${variables.orgSlug}/${project.slug}/events/${variables.attachment.event_id}/attachments/${variables.attachment.id}/`,
         {
           method: 'DELETE',
         }
@@ -144,7 +145,7 @@ function GroupEventAttachments({project}: GroupEventAttachmentsProps) {
     deleteAttachment({
       attachment,
       groupId,
-      orgSlug,
+      orgSlug: organization.slug,
       location,
       activeAttachmentsTab,
     });
@@ -159,7 +160,6 @@ function GroupEventAttachments({project}: GroupEventAttachmentsProps) {
       <GroupEventAttachmentsTable
         isLoading={isPending}
         attachments={attachments}
-        orgSlug={orgSlug}
         projectSlug={project.slug}
         groupId={groupId}
         onDelete={handleDelete}
