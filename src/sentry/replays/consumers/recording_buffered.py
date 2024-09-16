@@ -43,7 +43,7 @@ import time
 import zlib
 from collections.abc import Mapping
 from concurrent.futures import ThreadPoolExecutor
-from typing import Any, TypedDict
+from typing import Any, TypedDict, cast
 
 import sentry_sdk
 from arroyo.backends.kafka.consumer import KafkaPayload
@@ -282,9 +282,9 @@ def process_message(buffer: RecordingBuffer, message: bytes) -> None:
             unit="byte",
         )
 
-        dat = zlib.compress(pack(rrweb=recording_data, video=replay_video))
+        dat = zlib.compress(pack(rrweb=recording_data, video=cast(bytes, replay_video)))
         buffer.upload_events.append(
-            {"key": make_recording_filename(recording_segment), "value": dat}  # type: ignore[typeddict-item]
+            {"key": make_recording_filename(recording_segment), "value": dat}
         )
 
         # Track combined payload size.
