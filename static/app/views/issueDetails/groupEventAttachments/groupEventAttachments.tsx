@@ -1,5 +1,4 @@
 import styled from '@emotion/styled';
-import pick from 'lodash/pick';
 import xor from 'lodash/xor';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
@@ -9,13 +8,13 @@ import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Pagination from 'sentry/components/pagination';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {IssueAttachment} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
-import {useApiQuery, useMutation} from 'sentry/utils/queryClient';
+import {useMutation} from 'sentry/utils/queryClient';
 import {decodeList} from 'sentry/utils/queryString';
 import useApi from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useParams} from 'sentry/utils/useParams';
+import {useGroupEventAttachments} from 'sentry/views/issueDetails/groupEventAttachments/useGroupEventAttachments';
 
 import GroupEventAttachmentsFilter, {
   crashReportTypes,
@@ -28,13 +27,11 @@ type GroupEventAttachmentsProps = {
   project: Project;
 };
 
-enum EventAttachmentFilter {
+const enum EventAttachmentFilter {
   ALL = 'all',
   CRASH_REPORTS = 'onlyCrash',
   SCREENSHOTS = 'screenshot',
 }
-
-export const MAX_SCREENSHOTS_PER_PAGE = 12;
 
 function useActiveAttachmentsTab() {
   const location = useLocation();
@@ -53,37 +50,14 @@ function useActiveAttachmentsTab() {
 }
 
 function GroupEventAttachments({project}: GroupEventAttachmentsProps) {
-  const location = useLocation();
   const {groupId, orgId: orgSlug} = useParams<{groupId: string; orgId: string}>();
   const activeAttachmentsTab = useActiveAttachmentsTab();
   const api = useApi();
-
-  const {
-    data: eventAttachments = [],
-    isPending,
-    isError,
-    getResponseHeader,
-    refetch,
-  } = useApiQuery<IssueAttachment[]>(
-    [
-      `/organizations/${orgSlug}/issues/${groupId}/attachments/`,
-      {
-        query:
-          activeAttachmentsTab === EventAttachmentFilter.SCREENSHOTS
-            ? {
-                ...location.query,
-                types: undefined, // need to explicitly set this to undefined because AsyncComponent adds location query back into the params
-                screenshot: 1,
-                per_page: MAX_SCREENSHOTS_PER_PAGE,
-              }
-            : {
-                ...pick(location.query, ['cursor', 'environment', 'types']),
-                per_page: 50,
-              },
-      },
-    ],
-    {staleTime: 60_000}
-  );
+  const {attachments, isPending, isError, getResponseHeader, refetch} =
+    useGroupEventAttachments({
+      groupId,
+      activeAttachmentsTab,
+    });
 
   const {mutate: deleteAttachment} = useMutation({
     mutationFn: ({attachmentId, eventId}: {attachmentId: string; eventId: string}) =>
@@ -99,7 +73,7 @@ function GroupEventAttachments({project}: GroupEventAttachmentsProps) {
   });
 
   const handleDelete = (deletedAttachmentId: string) => {
-    const attachment = eventAttachments?.find(item => item.id === deletedAttachmentId);
+    const attachment = attachments.find(item => item.id === deletedAttachmentId);
     if (!attachment) {
       return;
     }
@@ -118,7 +92,7 @@ function GroupEventAttachments({project}: GroupEventAttachmentsProps) {
     return (
       <GroupEventAttachmentsTable
         isLoading={isPending}
-        attachments={eventAttachments}
+        attachments={attachments}
         orgSlug={orgSlug}
         projectSlug={project.slug}
         groupId={groupId}
@@ -141,10 +115,10 @@ function GroupEventAttachments({project}: GroupEventAttachmentsProps) {
       return <LoadingIndicator />;
     }
 
-    if (eventAttachments && eventAttachments.length > 0) {
+    if (attachments.length > 0) {
       return (
         <ScreenshotGrid>
-          {eventAttachments?.map((screenshot, index) => {
+          {attachments.map((screenshot, index) => {
             return (
               <ScreenshotCard
                 key={`${index}-${screenshot.id}`}
@@ -154,7 +128,7 @@ function GroupEventAttachments({project}: GroupEventAttachmentsProps) {
                 groupId={groupId}
                 onDelete={handleDelete}
                 pageLinks={getResponseHeader?.('Link')}
-                attachments={eventAttachments}
+                attachments={attachments}
                 attachmentIndex={index}
               />
             );
