@@ -419,13 +419,13 @@ class EventTest(TestCase, PerformanceIssueTestCase):
             project_id=self.project.id,
         )
 
-        calculated_hashes = event.get_hashes()
+        hashes = event.get_hashes()
         expected_hash_values = [hash_from_values(["Dogs are great!"])]
         expected_variants = get_grouping_variants_for_event(event)
 
         variants = event.get_grouping_variants()
 
-        assert calculated_hashes.hashes == expected_hash_values
+        assert hashes == expected_hash_values
         assert expected_variants == expected_variants
 
         # Since the `variants` dictionaries are equal, it suffices to only check the values in one

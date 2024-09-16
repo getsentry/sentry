@@ -32,8 +32,8 @@ def record_hash_calculation_metrics(
             "primary_config": primary_config["id"],
             "secondary_config": secondary_config["id"],
         }
-        current_values = primary_hashes.hashes
-        secondary_values = secondary_hashes.hashes
+        current_values = primary_hashes
+        secondary_values = secondary_hashes
         hashes_match = current_values == secondary_values
 
         if hashes_match:
