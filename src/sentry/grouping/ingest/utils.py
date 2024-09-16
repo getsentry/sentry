@@ -39,7 +39,7 @@ def add_group_id_to_grouphashes(
     ).update(group=group)
 
 
-def check_for_group_creation_load_shed(project: Project, event: Event):
+def check_for_group_creation_load_shed(project: Project, event: Event) -> None:
     """
     Raise a `HashDiscarded` error if the load-shed killswitch is enabled
     """
