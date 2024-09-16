@@ -133,10 +133,6 @@ class AlreadyDeletedError(Exception):
     pass
 
 
-class SeerFailureError(Exception):
-    pass
-
-
 class InvalidTriggerActionError(Exception):
     pass
 
@@ -968,12 +964,19 @@ def update_alert_rule(
         else:
             # if this was a dynamic rule, delete the data in Seer
             if alert_rule.detection_type == AlertRuleDetectionType.DYNAMIC:
+                project = projects[0] if projects else alert_rule.projects.get()
                 success = delete_rule_in_seer(
                     alert_rule=alert_rule,
-                    project=projects[0] if projects else alert_rule.projects.get(),
+                    project=project,
                 )
                 if not success:
-                    raise SeerFailureError()
+                    logger.error(
+                        "Call to delete rule data in Seer failed",
+                        extra={
+                            "rule_id": alert_rule.id,
+                            "project_id": project.id,
+                        },
+                    )
             # if this alert was previously a dynamic alert, then we should update the rule to be ready
             if alert_rule.status == AlertRuleStatus.NOT_ENOUGH_DATA.value:
                 alert_rule.update(status=AlertRuleStatus.PENDING.value)
@@ -1130,11 +1133,17 @@ def delete_alert_rule(
             )
 
         if alert_rule.detection_type == AlertRuleDetectionType.DYNAMIC:
-            success = delete_rule_in_seer(
-                alert_rule=alert_rule, project=alert_rule.projects.first()
-            )
+            project = alert_rule.projects.first()
+            success = delete_rule_in_seer(alert_rule=alert_rule, project=project)
             if not success:
-                raise SeerFailureError()
+                # don't block deletion in Sentry
+                logger.error(
+                    "Call to delete rule data in Seer failed",
+                    extra={
+                        "rule_id": alert_rule.id,
+                        "project_id": project.id,
+                    },
+                )
 
         subscriptions = _unpack_snuba_query(alert_rule).subscriptions.all()
         bulk_delete_snuba_subscriptions(subscriptions)
