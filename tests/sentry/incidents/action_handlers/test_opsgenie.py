@@ -1,5 +1,6 @@
 from unittest.mock import patch
 
+import orjson
 import responses
 from urllib3.response import HTTPResponse
 
@@ -14,6 +15,7 @@ from sentry.incidents.models.alert_rule import (
 from sentry.incidents.models.incident import IncidentStatus, IncidentStatusMethod
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.models.organization_integration import OrganizationIntegration
+from sentry.seer.anomaly_detection.types import StoreDataResponse
 from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.silo import assume_test_silo_mode_of
@@ -109,7 +111,8 @@ class OpsgenieActionHandlerTest(FireTest):
     def test_build_incident_attachment_dynamic_alert(self, mock_seer_request):
         from sentry.integrations.opsgenie.utils import build_incident_attachment
 
-        mock_seer_request.return_value = HTTPResponse(status=200)
+        seer_return_value: StoreDataResponse = {"success": True}
+        mock_seer_request.return_value = HTTPResponse(orjson.dumps(seer_return_value), status=200)
         alert_rule = self.create_alert_rule(
             detection_type=AlertRuleDetectionType.DYNAMIC,
             time_window=30,
