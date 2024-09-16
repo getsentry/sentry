@@ -181,6 +181,23 @@ class BroadcastCreateTest(APITestCase):
 
         assert response.status_code == 200, response.data
 
+    def test_not_required_cta(self):
+        self.add_user_permission(user=self.user, permission="broadcasts.admin")
+        self.login_as(user=self.user, superuser=True)
+
+        response = self.client.post(
+            "/api/0/broadcasts/",
+            {
+                "title": "bar",
+                "message": "foo",
+                "link": "http://example.com",
+                "mediaUrl": "http://example.com/image.png",
+                "category": "announcement",
+            },
+        )
+
+        assert response.status_code == 200, response.data
+
 
 @control_silo_test
 class BroadcastUpdateTest(APITestCase):
