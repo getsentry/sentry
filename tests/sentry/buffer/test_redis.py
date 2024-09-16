@@ -424,7 +424,15 @@ class TestRedisBuffer:
 
         mock_make_key.return_value = f"b:k:{_get_model_key(model=Group)}:md5"
 
-        redis_buffer_router.assign_queue(model=Group, queue="group-counters-0")
+        num_of_calls = 0
+
+        def generate_group_queue(model_key: str) -> str | None:
+            nonlocal num_of_calls
+            num_of_calls += 1
+            assert model_key == "sentry.group"
+            return "group-counters-0"
+
+        redis_buffer_router.assign_queue(model=Group, generate_queue=generate_group_queue)
 
         times_seen_incr = 5
 
@@ -461,6 +469,7 @@ class TestRedisBuffer:
         ]
 
         redis_buffer_router._routers = original_routers
+        assert num_of_calls == 1
 
     @django_db_all
     @freeze_time()
@@ -478,7 +487,15 @@ class TestRedisBuffer:
         original_routers = redis_buffer_router._routers
         redis_buffer_router._routers = dict()
 
-        redis_buffer_router.assign_queue(model=Group, queue="group-counters-0")
+        num_of_calls = 0
+
+        def generate_group_queue(model_key: str) -> str | None:
+            nonlocal num_of_calls
+            num_of_calls += 1
+            assert model_key == "sentry.group"
+            return "group-counters-0"
+
+        redis_buffer_router.assign_queue(model=Group, generate_queue=generate_group_queue)
 
         times_seen_incr = 5
 
@@ -524,6 +541,70 @@ class TestRedisBuffer:
         ]
 
         redis_buffer_router._routers = original_routers
+        assert num_of_calls == 1
+
+    @django_db_all
+    @freeze_time()
+    @mock.patch("sentry.buffer.redis.RedisBuffer._make_key")
+    @mock.patch("sentry.buffer.redis.process_incr")
+    def test_custom_queue_function_fallback(
+        self,
+        mock_process_incr: mock.MagicMock,
+        mock_make_key: mock.MagicMock,
+        default_group,
+        task_runner,
+    ):
+        original_routers = redis_buffer_router._routers
+        redis_buffer_router._routers = dict()
+
+        mock_make_key.return_value = f"b:k:{_get_model_key(model=Group)}:md5"
+
+        num_of_calls = 0
+
+        def generate_group_queue(model_key: str) -> str | None:
+            nonlocal num_of_calls
+            num_of_calls += 1
+            assert model_key == "sentry.group"
+            # Return None to fallback to the default queue
+            return None
+
+        redis_buffer_router.assign_queue(model=Group, generate_queue=generate_group_queue)
+
+        times_seen_incr = 5
+
+        mock_make_key.return_value = f"b:k:{_get_model_key(model=Group)}:md5"
+        self.buf.incr(
+            Group,
+            {"times_seen": times_seen_incr},
+            {"pk": default_group.id},
+            {"last_seen": timezone.now()},
+        )
+
+        # Project model is not assigned to a dedicated queue
+        mock_make_key.return_value = f"b:k:{_get_model_key(model=Project)}:md5"
+        self.buf.incr(
+            Project,
+            {"times_seen": times_seen_incr},
+            {"pk": default_group.id},
+            {"last_seen": timezone.now()},
+        )
+        with task_runner(), mock.patch("sentry.buffer", self.buf):
+            self.buf.process_pending()
+
+        assert len(mock_process_incr.apply_async.mock_calls) == 2
+        assert mock_process_incr.apply_async.mock_calls == [
+            mock.call(
+                kwargs={"batch_keys": ["b:k:sentry.group:md5"]},
+                headers={"sentry-propagate-traces": False},
+            ),
+            mock.call(
+                kwargs={"batch_keys": ["b:k:sentry.project:md5"]},
+                headers={"sentry-propagate-traces": False},
+            ),
+        ]
+
+        redis_buffer_router._routers = original_routers
+        assert num_of_calls == 1
 
     @django_db_all
     @freeze_time()

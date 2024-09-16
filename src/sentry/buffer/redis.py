@@ -82,11 +82,16 @@ class BufferHookRegistry:
 redis_buffer_registry = BufferHookRegistry()
 
 
+# Callable to get the queue name for the given model_key.
+# May return None to not assign a queue for the given model_key.
+ChooseQueueFunction = Callable[[str], str | None]
+
+
 @dataclass
 class PendingBufferValue:
     model_key: str | None
     pending_buffer: PendingBuffer
-    queue: str | None
+    generate_queue: ChooseQueueFunction | None
 
 
 class PendingBufferRouter:
@@ -96,14 +101,14 @@ class PendingBufferRouter:
         # map of model_key to PendingBufferValue
         self.pending_buffer_router: dict[str, PendingBufferValue] = dict()
 
-    def create_pending_buffer(self, model_key: str, queue: str) -> None:
+    def create_pending_buffer(self, model_key: str, generate_queue: ChooseQueueFunction) -> None:
         """
         Create a PendingBuffer for the given model_key and queue name.
         We assume that there will be a dedicated queue for the given model associated with the model_key.
         """
         pending_buffer = PendingBuffer(self.incr_batch_size)
         self.pending_buffer_router[model_key] = PendingBufferValue(
-            model_key=model_key, pending_buffer=pending_buffer, queue=queue
+            model_key=model_key, pending_buffer=pending_buffer, generate_queue=generate_queue
         )
 
     def get_pending_buffer(self, model_key: str | None) -> PendingBuffer:
@@ -119,14 +124,16 @@ class PendingBufferRouter:
         Get the queue name for the given model_key.
         """
         if model_key in self.pending_buffer_router:
-            return self.pending_buffer_router[model_key].queue
+            generate_queue = self.pending_buffer_router[model_key].generate_queue
+            if generate_queue is not None:
+                return generate_queue(model_key)
         return None
 
     def pending_buffers(self) -> list[PendingBufferValue]:
         pending_buffers = list(self.pending_buffer_router.values())
         pending_buffers.append(
             PendingBufferValue(
-                model_key=None, pending_buffer=self.default_pending_buffer, queue=None
+                model_key=None, pending_buffer=self.default_pending_buffer, generate_queue=None
             )
         )
         return pending_buffers
@@ -135,9 +142,9 @@ class PendingBufferRouter:
 class RedisBufferRouter:
     def __init__(self) -> None:
         # map of model_key (generated from _get_model_key function) to queue name
-        self._routers: dict[str, str] = dict()
+        self._routers: dict[str, ChooseQueueFunction] = dict()
 
-    def assign_queue(self, model: type[models.Model], queue: str) -> None:
+    def assign_queue(self, model: type[models.Model], generate_queue: ChooseQueueFunction) -> None:
         """
         RedisBuffer is shared among multiple models.
         Thus, the process_incr task and the default assigned queue for it is shared among multiple models.
@@ -147,9 +154,11 @@ class RedisBufferRouter:
         If a dedicated queue is assigned, the process_incr task will be processed in the assigned queue.
         On the other hand, if no dedicated queue is assigned, the process_incr task will be processed in
         the default queue (i.e. counters-0 queue).
+
+        A queue can be assigned to a model by passing in the generate_queue function.
         """
         key = _get_model_key(model=model)
-        self._routers[key] = queue
+        self._routers[key] = generate_queue
 
     def create_pending_buffers_router(self, incr_batch_size: int) -> PendingBufferRouter:
         """
@@ -160,8 +169,10 @@ class RedisBufferRouter:
         These PendingBuffers are wrapped in a PendingBufferRouter.
         """
         pending_buffers_router = PendingBufferRouter(incr_batch_size=incr_batch_size)
-        for model_key, queue in self._routers.items():
-            pending_buffers_router.create_pending_buffer(model_key=model_key, queue=queue)
+        for model_key, generate_queue in self._routers.items():
+            pending_buffers_router.create_pending_buffer(
+                model_key=model_key, generate_queue=generate_queue
+            )
         return pending_buffers_router
 
 
