@@ -57,13 +57,10 @@ export function FullSpanDescription({
     if (system === 'mongodb') {
       let stringifiedQuery = '';
 
-      if (isValidJson(description)) {
-        stringifiedQuery = prettyPrintJsonString(description);
-      } else if (
-        fullSpan?.sentry_tags &&
-        isValidJson(fullSpan?.sentry_tags?.description)
-      ) {
+      if (fullSpan?.sentry_tags && isValidJson(fullSpan?.sentry_tags?.description)) {
         stringifiedQuery = prettyPrintJsonString(fullSpan?.sentry_tags?.description);
+      } else if (isValidJson(description)) {
+        stringifiedQuery = prettyPrintJsonString(description);
       } else {
         stringifiedQuery = description || fullSpan?.sentry_tags?.description || 'N/A';
       }
