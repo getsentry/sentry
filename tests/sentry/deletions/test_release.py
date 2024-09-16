@@ -1,3 +1,5 @@
+from sentry.deletions.tasks.hybrid_cloud import schedule_hybrid_cloud_foreign_key_jobs
+from sentry.deletions.tasks.scheduled import run_scheduled_deletions
 from sentry.models.environment import Environment
 from sentry.models.project import Project
 from sentry.models.release import Release
@@ -5,8 +7,6 @@ from sentry.models.releasecommit import ReleaseCommit
 from sentry.models.releaseenvironment import ReleaseEnvironment
 from sentry.models.releasefile import ReleaseFile
 from sentry.silo.base import SiloMode
-from sentry.tasks.deletion.hybrid_cloud import schedule_hybrid_cloud_foreign_key_jobs
-from sentry.tasks.deletion.scheduled import run_scheduled_deletions
 from sentry.testutils.cases import TransactionTestCase
 from sentry.testutils.helpers import TaskRunner
 from sentry.testutils.hybrid_cloud import HybridCloudTestMixin
