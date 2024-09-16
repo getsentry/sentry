@@ -166,7 +166,15 @@ export function EventFeatureFlagList({
 
   return (
     <ErrorBoundary mini message={t('There was a problem loading feature flags.')}>
-      <InterimSection title={t('Feature Flags')} type="feature-flags" actions={actions}>
+      <InterimSection
+        help={t(
+          "The last 10 flags evaluated in the user's session leading up to this event."
+        )}
+        isHelpHoverable
+        title={t('Feature Flags')}
+        type="feature-flags"
+        actions={actions}
+      >
         <CardContainer numCols={columnTwo.length ? 2 : 1}>
           <KeyValueData.Card contentItems={columnOne} />
           <KeyValueData.Card contentItems={columnTwo} />
