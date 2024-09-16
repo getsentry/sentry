@@ -17,7 +17,7 @@ from sentry.models.group import Group
 from sentry.models.grouphash import GroupHash
 from sentry.models.grouphashmetadata import GroupHashMetadata
 from sentry.models.project import Project
-from sentry.projectoptions.defaults import DEFAULT_GROUPING_CONFIG
+from sentry.projectoptions.defaults import DEFAULT_GROUPING_CONFIG, LEGACY_GROUPING_CONFIG
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers import Feature
 from sentry.testutils.helpers.eventprocessing import save_new_event
@@ -27,10 +27,6 @@ from sentry.testutils.silo import assume_test_silo_mode_of
 from sentry.testutils.skips import requires_snuba
 
 pytestmark = [requires_snuba]
-
-
-LEGACY_CONFIG = "legacy:2019-03-12"
-NEWSTYLE_CONFIG = "newstyle:2023-01-11"
 
 
 def get_relevant_metrics_calls(mock_fn: MagicMock, key: str) -> list[mock._Call]:
@@ -137,8 +133,15 @@ class EventManagerGroupingTest(TestCase):
         assert group.message == event2.message
         assert group.data["metadata"]["title"] == event2.title
 
+    def test_auto_updates_grouping_config_even_if_config_is_gone(self):
+        """This tests that setups with deprecated configs will auto-upgrade."""
+        self.project.update_option("sentry:grouping_config", "non_existing_config")
+        save_new_event({"message": "foo"}, self.project)
+        assert self.project.get_option("sentry:grouping_config") == DEFAULT_GROUPING_CONFIG
+        assert self.project.get_option("sentry:secondary_grouping_config") is None
+
     def test_auto_updates_grouping_config(self):
-        self.project.update_option("sentry:grouping_config", "mobile:2021-02-12")
+        self.project.update_option("sentry:grouping_config", LEGACY_GROUPING_CONFIG)
 
         save_new_event({"message": "Adopt don't shop"}, self.project)
         assert self.project.get_option("sentry:grouping_config") == DEFAULT_GROUPING_CONFIG
@@ -151,7 +154,7 @@ class EventManagerGroupingTest(TestCase):
 
         assert audit_log_entry.data == {
             "sentry:grouping_config": DEFAULT_GROUPING_CONFIG,
-            "sentry:secondary_grouping_config": "mobile:2021-02-12",
+            "sentry:secondary_grouping_config": LEGACY_GROUPING_CONFIG,
             "sentry:secondary_grouping_expiry": ANY,  # tested separately below
             "id": self.project.id,
             "slug": self.project.slug,
@@ -407,8 +410,8 @@ class EventManagerGroupingMetricsTest(TestCase):
         project = self.project
 
         cases: list[Any] = [
-            ["Dogs are great!", LEGACY_CONFIG, None, None, 1],
-            ["Adopt don't shop", NEWSTYLE_CONFIG, LEGACY_CONFIG, time() + 3600, 2],
+            ["Dogs are great!", LEGACY_GROUPING_CONFIG, None, None, 1],
+            ["Adopt don't shop", DEFAULT_GROUPING_CONFIG, LEGACY_GROUPING_CONFIG, time() + 3600, 2],
         ]
 
         for (
@@ -454,8 +457,13 @@ class EventManagerGroupingMetricsTest(TestCase):
         project = self.project
 
         in_transition_cases: list[Any] = [
-            [LEGACY_CONFIG, None, None, "False"],  # Not in transition
-            [NEWSTYLE_CONFIG, LEGACY_CONFIG, time() + 3600, "True"],  # In transition
+            [LEGACY_GROUPING_CONFIG, None, None, "False"],  # Not in transition
+            [
+                DEFAULT_GROUPING_CONFIG,
+                LEGACY_GROUPING_CONFIG,
+                time() + 3600,
+                "True",
+            ],  # In transition
         ]
         optimized_logic_cases = [
             [True, "True"],
@@ -521,8 +529,8 @@ def test_records_hash_comparison_metric(
     default_project: Project,
 ):
     project = default_project
-    project.update_option("sentry:grouping_config", NEWSTYLE_CONFIG)
-    project.update_option("sentry:secondary_grouping_config", LEGACY_CONFIG)
+    project.update_option("sentry:grouping_config", DEFAULT_GROUPING_CONFIG)
+    project.update_option("sentry:secondary_grouping_config", LEGACY_GROUPING_CONFIG)
     project.update_option("sentry:secondary_grouping_expiry", time() + 3600)
 
     with mock.patch(

@@ -548,9 +548,12 @@ class SubscriptionProcessor:
             return
 
         # OVER/UNDER value trigger
-        alert_operator, resolve_operator = self.THRESHOLD_TYPE_OPERATORS[
-            AlertRuleThresholdType(self.alert_rule.threshold_type)
-        ]
+        alert_operator = None
+        resolve_operator = None
+        if not potential_anomalies:
+            alert_operator, resolve_operator = self.THRESHOLD_TYPE_OPERATORS[
+                AlertRuleThresholdType(self.alert_rule.threshold_type)
+            ]
         fired_incident_triggers = []
         with transaction.atomic(router.db_for_write(AlertRule)):
             # Triggers is the threshold - NOT an instance of a trigger
@@ -836,7 +839,7 @@ class SubscriptionProcessor:
 
                 self.active_incident = create_incident(
                     organization=self.alert_rule.organization,
-                    type_=IncidentType.ALERT_TRIGGERED,
+                    incident_type=IncidentType.ALERT_TRIGGERED,
                     # TODO: Include more info in name?
                     title=self.alert_rule.name,
                     alert_rule=self.alert_rule,

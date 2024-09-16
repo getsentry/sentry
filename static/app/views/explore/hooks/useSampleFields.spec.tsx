@@ -1,3 +1,4 @@
+// biome-ignore lint/nursery/noRestrictedImports: Will be removed with react router 6
 import {createMemoryHistory, Route, Router, RouterContext} from 'react-router';
 
 import {act, render} from 'sentry-test/reactTestingLibrary';
@@ -33,7 +34,7 @@ describe('useSampleFields', function () {
 
     expect(sampleFields).toEqual([
       'project',
-      'span_id',
+      'id',
       'span.op',
       'span.description',
       'span.duration',
@@ -46,7 +47,7 @@ describe('useSampleFields', function () {
     act(() => setSampleFields([]));
     expect(sampleFields).toEqual([
       'project',
-      'span_id',
+      'id',
       'span.op',
       'span.description',
       'span.duration',

@@ -16,6 +16,7 @@ from sentry.auth.access import from_user
 from sentry.incidents.logic import (
     DEFAULT_ALERT_RULE_RESOLUTION,
     DEFAULT_CMP_ALERT_RULE_RESOLUTION_MULTIPLIER,
+    AlertTarget,
     ChannelLookupTimeoutError,
     create_alert_rule_trigger,
 )
@@ -812,6 +813,34 @@ class TestAlertRuleSerializer(TestAlertRuleSerializerBase):
         assert alert_rule.snuba_query is not None
         assert alert_rule.snuba_query.query == "status:unresolved"
 
+    def test_http_response_rate(self):
+        with self.feature("organizations:mep-rollout-flag"):
+            params = self.valid_params.copy()
+            params["query"] = "span.module:http span.op:http.client"
+            params["aggregate"] = "http_response_rate(3)"
+            params["event_types"] = [SnubaQueryEventType.EventType.TRANSACTION.name.lower()]
+            params["dataset"] = Dataset.PerformanceMetrics.value
+            serializer = AlertRuleSerializer(context=self.context, data=params, partial=True)
+            assert serializer.is_valid(), serializer.errors
+            alert_rule = serializer.save()
+            assert alert_rule.snuba_query is not None
+            assert alert_rule.snuba_query.query == "span.module:http span.op:http.client"
+            assert alert_rule.snuba_query.aggregate == "http_response_rate(3)"
+
+    def test_performance_score(self):
+        with self.feature("organizations:mep-rollout-flag"):
+            params = self.valid_params.copy()
+            params["query"] = "has:measurements.score.total"
+            params["aggregate"] = "performance_score(measurements.score.lcp)"
+            params["event_types"] = [SnubaQueryEventType.EventType.TRANSACTION.name.lower()]
+            params["dataset"] = Dataset.PerformanceMetrics.value
+            serializer = AlertRuleSerializer(context=self.context, data=params, partial=True)
+            assert serializer.is_valid(), serializer.errors
+            alert_rule = serializer.save()
+            assert alert_rule.snuba_query is not None
+            assert alert_rule.snuba_query.query == "has:measurements.score.total"
+            assert alert_rule.snuba_query.aggregate == "performance_score(measurements.score.lcp)"
+
 
 class TestAlertRuleTriggerSerializer(TestAlertRuleSerializerBase):
     @cached_property
@@ -1044,7 +1073,7 @@ class TestAlertRuleTriggerActionSerializer(TestAlertRuleSerializerBase):
 
     @patch(
         "sentry.incidents.logic.get_target_identifier_display_for_integration",
-        return_value=("test", "test"),
+        return_value=AlertTarget("test", "test"),
     )
     def test_pagerduty_valid_priority(self, mock_get):
         params = {
@@ -1062,7 +1091,7 @@ class TestAlertRuleTriggerActionSerializer(TestAlertRuleSerializerBase):
 
     @patch(
         "sentry.incidents.logic.get_target_identifier_display_for_integration",
-        return_value=("test", "test"),
+        return_value=AlertTarget("test", "test"),
     )
     def test_opsgenie_valid_priority(self, mock_get):
         params = {

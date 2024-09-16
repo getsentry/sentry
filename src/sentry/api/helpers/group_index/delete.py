@@ -9,6 +9,7 @@ from rest_framework.response import Response
 
 from sentry import audit_log, eventstream
 from sentry.api.base import audit_logger
+from sentry.deletions.tasks.groups import delete_groups as delete_groups_task
 from sentry.issues.grouptype import GroupCategory
 from sentry.models.group import Group, GroupStatus
 from sentry.models.grouphash import GroupHash
@@ -16,7 +17,6 @@ from sentry.models.groupinbox import GroupInbox
 from sentry.models.project import Project
 from sentry.signals import issue_deleted
 from sentry.tasks.delete_seer_grouping_records import call_delete_seer_grouping_records_by_hash
-from sentry.tasks.deletion.groups import delete_groups as delete_groups_task
 from sentry.utils.audit import create_audit_entry
 
 from . import BULK_MUTATION_LIMIT, SearchFunction
@@ -49,13 +49,7 @@ def delete_group_list(
     # Tell seer to delete grouping records for these groups
     call_delete_seer_grouping_records_by_hash(group_ids)
 
-    # We do not want to delete split hashes as they are necessary for keeping groups... split.
-    GroupHash.objects.filter(
-        project_id=project.id, group__id__in=group_ids, state=GroupHash.State.SPLIT
-    ).update(group=None)
-    GroupHash.objects.filter(project_id=project.id, group__id__in=group_ids).exclude(
-        state=GroupHash.State.SPLIT
-    ).delete()
+    GroupHash.objects.filter(project_id=project.id, group__id__in=group_ids).delete()
 
     # We remove `GroupInbox` rows here so that they don't end up influencing queries for
     # `Group` instances that are pending deletion

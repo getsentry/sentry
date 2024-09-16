@@ -1,3 +1,4 @@
+// biome-ignore lint/nursery/noRestrictedImports: Will be removed with react router 6
 import {Link as RouterLink} from 'react-router';
 import {NavLink} from 'react-router-dom';
 import styled from '@emotion/styled';

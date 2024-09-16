@@ -323,6 +323,7 @@ USE_TZ = True
 # This is because CommonMiddleware Sets the Content-Length header for non-streaming responses.
 MIDDLEWARE: tuple[str, ...] = (
     "csp.middleware.CSPMiddleware",
+    "sentry.middleware.flag.FlagMiddleware",
     "sentry.middleware.health.HealthCheck",
     "sentry.middleware.security.SecurityHeadersMiddleware",
     "sentry.middleware.env.SentryEnvMiddleware",
@@ -738,6 +739,9 @@ CELERY_ACCEPT_CONTENT = {"pickle"}
 CELERY_IMPORTS = (
     "sentry.data_export.tasks",
     "sentry.discover.tasks",
+    "sentry.deletions.tasks.groups",
+    "sentry.deletions.tasks.scheduled",
+    "sentry.deletions.tasks.hybrid_cloud",
     "sentry.hybridcloud.tasks.deliver_webhooks",
     "sentry.hybridcloud.tasks.backfill_outboxes",
     "sentry.hybridcloud.tasks.deliver_from_outbox",
@@ -765,10 +769,6 @@ CELERY_IMPORTS = (
     "sentry.tasks.collect_project_platforms",
     "sentry.tasks.commits",
     "sentry.tasks.commit_context",
-    "sentry.tasks.deletion",
-    "sentry.tasks.deletion.scheduled",
-    "sentry.tasks.deletion.groups",
-    "sentry.tasks.deletion.hybrid_cloud",
     "sentry.tasks.digests",
     "sentry.tasks.email",
     "sentry.tasks.files",
@@ -957,7 +957,6 @@ CELERY_QUEUES_REGION = [
     Queue("on_demand_metrics", routing_key="on_demand_metrics"),
     Queue("check_new_issue_threshold_met", routing_key="check_new_issue_threshold_met"),
     Queue("integrations_slack_activity_notify", routing_key="integrations_slack_activity_notify"),
-    Queue("split_discover_query_dataset", routing_key="split_discover_query_dataset"),
 ]
 
 from celery.schedules import crontab
@@ -1811,7 +1810,7 @@ SENTRY_MANAGED_USER_FIELDS = ()
 OPENAI_API_KEY: str | None = None
 
 # AI Suggested Fix default model
-SENTRY_AI_SUGGESTED_FIX_MODEL: str = os.getenv("SENTRY_AI_SUGGESTED_FIX_MODEL", "gpt-3.5-turbo-16k")
+SENTRY_AI_SUGGESTED_FIX_MODEL: str = os.getenv("SENTRY_AI_SUGGESTED_FIX_MODEL", "gpt-4o-mini")
 
 SENTRY_API_PAGINATION_ALLOWLIST = SENTRY_API_PAGINATION_ALLOWLIST_DO_NOT_MODIFY
 

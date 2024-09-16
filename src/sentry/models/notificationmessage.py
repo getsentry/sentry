@@ -64,7 +64,7 @@ class NotificationMessage(Model):
         # A notification message should exist for either issue or metric alert, but never both
         constraints = [
             CheckConstraint(
-                check=(
+                condition=(
                     (
                         Q(incident__isnull=False, trigger_action__isnull=False)
                         & Q(rule_fire_history__isnull=True, rule_action_uuid__isnull=True)

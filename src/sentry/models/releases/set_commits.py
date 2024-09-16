@@ -7,6 +7,7 @@ from typing import TypedDict
 
 from django.db import IntegrityError, router
 
+from sentry import features
 from sentry.constants import ObjectStatus
 from sentry.db.postgres.transactions import in_test_hide_transaction_boundary
 from sentry.locks import locks
@@ -56,11 +57,20 @@ def set_commits(release, commit_list):
         # of timeouts and prevent web worker exhaustion when customers create
         # the same release rapidly for different projects.
         raise ReleaseCommitError
+
+    if features.has("organizations:set-commits-updated", release.organization):
+        create_repositories(commit_list, release)
+        create_commit_authors(commit_list, release)
+
     with TimedRetryPolicy(10)(lock.acquire):
         with (
             atomic_transaction(using=router.db_for_write(type(release))),
             in_test_hide_transaction_boundary(),
         ):
+            if not features.has("organizations:set-commits-updated", release.organization):
+                create_repositories(commit_list, release)
+                create_commit_authors(commit_list, release)
+
             head_commit_by_repo, commit_author_by_commit = set_commits_on_release(
                 release, commit_list
             )
@@ -77,9 +87,6 @@ def set_commits_on_release(release, commit_list):
 
     commit_author_by_commit = {}
     head_commit_by_repo: dict[int, int] = {}
-
-    create_repositories(commit_list, release)
-    create_commit_authors(commit_list, release)
 
     latest_commit = None
     for idx, data in enumerate(commit_list):

@@ -125,6 +125,8 @@ def register_temporary_features(manager: FeatureManager):
     manager.add("organizations:escalating-issues-v2", OrganizationFeature, FeatureHandlerStrategy.INTERNAL, api_expose=False)
     # Enable emiting escalating data to the metrics backend
     manager.add("organizations:escalating-metrics-backend", OrganizationFeature, FeatureHandlerStrategy.INTERNAL, api_expose=False)
+    # Enable feature flag UI in issue details
+    manager.add("organizations:feature-flag-ui", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable disabling gitlab integrations when broken is detected
     manager.add("organizations:gitlab-disable-on-broken", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Enable only calculating a secondary hash when needed
@@ -146,6 +148,8 @@ def register_temporary_features(manager: FeatureManager):
     manager.add("organizations:integrations-msteams-tenant", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Enable inviting members to organizations.
     manager.add("organizations:invite-members", OrganizationFeature, FeatureHandlerStrategy.INTERNAL, default=True, api_expose=True)
+    # Enable new invite members modal.
+    manager.add("organizations:invite-members-new-modal", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable rate limits for inviting members.
     manager.add("organizations:invite-members-rate-limits", OrganizationFeature, FeatureHandlerStrategy.INTERNAL, default=True, api_expose=False)
     # Enable displaying the trace view on issue details
@@ -399,6 +403,8 @@ def register_temporary_features(manager: FeatureManager):
     manager.add("organizations:session-replay-new-event-counts", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Enable Rage Click Issue Creation In Recording Consumer
     manager.add("organizations:session-replay-rage-click-issue-creation", OrganizationFeature, FeatureHandlerStrategy.INTERNAL, api_expose=False)
+    # Enable a reduced timeout when waiting for the DOM, before reporting Rage and Dead clicks
+    manager.add("organizations:session-replay-dead-click-reduced-timeout", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, default=False, api_expose=False)
     # Enable data scrubbing of replay recording payloads in Relay.
     manager.add("organizations:session-replay-recording-scrubbing", OrganizationFeature, FeatureHandlerStrategy.INTERNAL, api_expose=False)
     # Enable core Session Replay SDK for recording on sentry.io
@@ -411,6 +417,8 @@ def register_temporary_features(manager: FeatureManager):
     manager.add("organizations:session-replay-ui", OrganizationFeature, FeatureHandlerStrategy.INTERNAL, default=True, api_expose=True)
     # Enable replay web vital breadcrumbs
     manager.add("organizations:session-replay-web-vitals", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, default=False, api_expose=True)
+    # Enable Dev Toolbar frontend features (ex project settings page)
+    manager.add("organizations:dev-toolbar-ui", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, default=False, api_expose=True)
     # Lets organizations manage grouping configs
     manager.add("organizations:set-grouping-config", OrganizationFeature, FeatureHandlerStrategy.INTERNAL, api_expose=True)
     # Enable description field in Slack metric alerts
@@ -543,8 +551,6 @@ def register_temporary_features(manager: FeatureManager):
     manager.add("projects:similarity-embeddings", ProjectFeature, FeatureHandlerStrategy.INTERNAL, default=False, api_expose=True)
     manager.add("projects:similarity-embeddings-backfill", ProjectFeature, FeatureHandlerStrategy.OPTIONS, api_expose=False)
     manager.add("projects:similarity-embeddings-delete-by-hash", ProjectFeature, FeatureHandlerStrategy.OPTIONS, api_expose=False)
-    # Enable using Seer to group events
-    manager.add("projects:similarity-embeddings-grouping", ProjectFeature, FeatureHandlerStrategy.INTERNAL, default=False, api_expose=False)
     manager.add("projects:similarity-indexing", ProjectFeature, FeatureHandlerStrategy.INTERNAL, api_expose=False)
     manager.add("projects:similarity-view", ProjectFeature, FeatureHandlerStrategy.INTERNAL, api_expose=True)
     # Starfish: extract metrics from the spans

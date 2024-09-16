@@ -20,6 +20,7 @@ from urllib3.response import HTTPResponse
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.conf.server import SEER_ANOMALY_DETECTION_STORE_DATA_URL
 from sentry.constants import ObjectStatus
+from sentry.deletions.tasks.scheduled import run_scheduled_deletions
 from sentry.incidents.events import (
     IncidentCommentCreatedEvent,
     IncidentCreatedEvent,
@@ -33,6 +34,7 @@ from sentry.incidents.logic import (
     WARNING_TRIGGER_LABEL,
     WINDOWED_STATS_DATA_POINTS,
     AlertRuleTriggerLabelAlreadyUsedError,
+    AlertTarget,
     ChannelLookupTimeoutError,
     InvalidTriggerActionError,
     ProjectsNotAssociatedWithAlertRuleError,
@@ -97,7 +99,6 @@ from sentry.shared_integrations.exceptions import ApiRateLimitedError, ApiTimeou
 from sentry.silo.base import SiloMode
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.models import QuerySubscription, SnubaQuery, SnubaQueryEventType
-from sentry.tasks.deletion.scheduled import run_scheduled_deletions
 from sentry.testutils.cases import BaseIncidentsTest, BaseMetricsTestCase, TestCase
 from sentry.testutils.helpers.datetime import before_now, freeze_time
 from sentry.testutils.helpers.features import with_feature
@@ -124,7 +125,7 @@ class CreateIncidentTest(TestCase):
         self.record_event.reset_mock()
         incident = create_incident(
             self.organization,
-            type_=incident_type,
+            incident_type=incident_type,
             title=title,
             date_started=date_started,
             date_detected=date_detected,
@@ -460,7 +461,7 @@ class GetIncidentSubscribersTest(TestCase, BaseIncidentsTest):
     def test_simple(self):
         incident = self.create_incident()
         assert list(get_incident_subscribers(incident)) == []
-        subscription = subscribe_to_incident(incident, self.user.id)[0]
+        subscription = subscribe_to_incident(incident, self.user.id)
         assert list(get_incident_subscribers(incident)) == [subscription]
 
 
@@ -538,6 +539,7 @@ class CreateAlertRuleTest(TestCase, BaseIncidentsTest):
             assert alert_rule.user_id is None
             assert alert_rule.team_id is None
             assert alert_rule.status == AlertRuleStatus.PENDING.value
+            assert alert_rule.snuba_query is not None
             if alert_rule.snuba_query.subscriptions.exists():
                 assert alert_rule.snuba_query.subscriptions.get().project == self.project
                 assert alert_rule.snuba_query.subscriptions.all().count() == 1
@@ -600,6 +602,7 @@ class CreateAlertRuleTest(TestCase, BaseIncidentsTest):
             resolve_threshold=resolve_threshold,
             event_types=event_types,
         )
+        assert alert_rule.snuba_query is not None
         assert alert_rule.snuba_query.subscriptions.get().project == self.project
         assert alert_rule.name == name
         assert alert_rule.user_id is None
@@ -638,6 +641,7 @@ class CreateAlertRuleTest(TestCase, BaseIncidentsTest):
             resolve_threshold=resolve_threshold,
             event_types=event_types,
         )
+        assert alert_rule.snuba_query is not None
         assert alert_rule.snuba_query.subscriptions.get().project == self.project
         assert alert_rule.name == name
         assert alert_rule.user_id is None
@@ -744,6 +748,7 @@ class CreateAlertRuleTest(TestCase, BaseIncidentsTest):
             comparison_delta=comparison_delta,
             detection_type=AlertRuleDetectionType.PERCENT,
         )
+        assert alert_rule.snuba_query is not None
         assert alert_rule.snuba_query.subscriptions.get().project == self.project
         assert alert_rule.comparison_delta == comparison_delta * 60
         assert (
@@ -763,6 +768,7 @@ class CreateAlertRuleTest(TestCase, BaseIncidentsTest):
             query_type=SnubaQuery.Type.PERFORMANCE,
             dataset=Dataset.PerformanceMetrics,
         )
+        assert alert_rule.snuba_query is not None
         assert alert_rule.snuba_query.type == SnubaQuery.Type.PERFORMANCE.value
         assert alert_rule.snuba_query.dataset == Dataset.PerformanceMetrics.value
 
@@ -799,6 +805,7 @@ class CreateAlertRuleTest(TestCase, BaseIncidentsTest):
             dataset=Dataset.Metrics,
         )
 
+        assert alert_rule.snuba_query is not None
         assert (
             alert_rule.snuba_query.resolution
             == DEFAULT_ALERT_RULE_WINDOW_TO_RESOLUTION[time_window] * 60
@@ -822,6 +829,7 @@ class CreateAlertRuleTest(TestCase, BaseIncidentsTest):
             detection_type=AlertRuleDetectionType.PERCENT,
         )
 
+        assert alert_rule.snuba_query is not None
         assert (
             alert_rule.snuba_query.resolution
             == DEFAULT_ALERT_RULE_WINDOW_TO_RESOLUTION[time_window]
@@ -854,6 +862,7 @@ class CreateAlertRuleTest(TestCase, BaseIncidentsTest):
         assert alert_rule.sensitivity == self.dynamic_metric_alert_settings["sensitivity"]
         assert alert_rule.seasonality == self.dynamic_metric_alert_settings["seasonality"]
         assert alert_rule.detection_type == AlertRuleDetectionType.DYNAMIC
+        assert alert_rule.snuba_query is not None
         assert alert_rule.snuba_query.subscriptions.get().project == self.project
         assert alert_rule.snuba_query.subscriptions.all().count() == 1
         assert alert_rule.snuba_query.type == SnubaQuery.Type.ERROR.value
@@ -864,7 +873,10 @@ class CreateAlertRuleTest(TestCase, BaseIncidentsTest):
             alert_rule.snuba_query.time_window
             == self.dynamic_metric_alert_settings["time_window"] * 60
         )
-        assert alert_rule.snuba_query.resolution == 120
+        assert (
+            alert_rule.snuba_query.resolution
+            == self.dynamic_metric_alert_settings["time_window"] * 60
+        )
         assert set(alert_rule.snuba_query.event_types) == set(
             self.dynamic_metric_alert_settings["event_types"]
         )
@@ -1041,6 +1053,7 @@ class UpdateAlertRuleTest(TestCase, BaseIncidentsTest):
 
     def test_empty_query(self):
         alert_rule = update_alert_rule(self.alert_rule, query="")
+        assert alert_rule.snuba_query is not None
         assert alert_rule.snuba_query.query == ""
 
     def test_delete_projects(self):
@@ -1227,7 +1240,9 @@ class UpdateAlertRuleTest(TestCase, BaseIncidentsTest):
         assert alert_rule.team_id == self.team.id
         assert alert_rule.user_id is None
 
-        update_alert_rule(
+        # Ignore "unreachable" because Mypy sees the `user_id` field declaration on
+        # the AlertRule model class and assumes that it's always non-null.
+        update_alert_rule(  # type: ignore[unreachable]
             alert_rule=alert_rule,
             owner=Actor.from_identifier(f"user:{self.user.id}"),
         )
@@ -1296,6 +1311,7 @@ class UpdateAlertRuleTest(TestCase, BaseIncidentsTest):
             query_type=SnubaQuery.Type.PERFORMANCE,
             dataset=Dataset.PerformanceMetrics,
         )
+        assert alert_rule.snuba_query is not None
         assert alert_rule.snuba_query.type == SnubaQuery.Type.PERFORMANCE.value
         assert alert_rule.snuba_query.dataset == Dataset.PerformanceMetrics.value
 
@@ -1337,6 +1353,7 @@ class UpdateAlertRuleTest(TestCase, BaseIncidentsTest):
             dataset=Dataset.Metrics,
         )
 
+        assert alert_rule.snuba_query is not None
         assert (
             alert_rule.snuba_query.resolution
             == DEFAULT_ALERT_RULE_WINDOW_TO_RESOLUTION[time_window] * 60
@@ -1344,6 +1361,7 @@ class UpdateAlertRuleTest(TestCase, BaseIncidentsTest):
 
         time_window = 90
         updated_alert_rule = update_alert_rule(alert_rule, time_window=time_window)
+        assert updated_alert_rule.snuba_query is not None
         assert (
             updated_alert_rule.snuba_query.resolution
             == DEFAULT_ALERT_RULE_WINDOW_TO_RESOLUTION[time_window] * 60
@@ -1367,6 +1385,7 @@ class UpdateAlertRuleTest(TestCase, BaseIncidentsTest):
             detection_type=AlertRuleDetectionType.PERCENT,
         )
 
+        assert alert_rule.snuba_query is not None
         assert (
             alert_rule.snuba_query.resolution
             == DEFAULT_ALERT_RULE_WINDOW_TO_RESOLUTION[time_window]
@@ -1377,6 +1396,7 @@ class UpdateAlertRuleTest(TestCase, BaseIncidentsTest):
         time_window = 90
         updated_alert_rule = update_alert_rule(alert_rule, time_window=time_window)
 
+        assert updated_alert_rule.snuba_query is not None
         assert (
             updated_alert_rule.snuba_query.resolution
             == DEFAULT_ALERT_RULE_WINDOW_TO_RESOLUTION[time_window]
@@ -1402,8 +1422,10 @@ class UpdateAlertRuleTest(TestCase, BaseIncidentsTest):
             detection_type=AlertRuleDetectionType.PERCENT,
         )
 
+        assert alert_rule.snuba_query is not None
         assert alert_rule.snuba_query.resolution == 1800
         updated_alert_rule = update_alert_rule(alert_rule, comparison_delta=90)
+        assert updated_alert_rule.snuba_query is not None
         assert (
             updated_alert_rule.snuba_query.resolution
             == DEFAULT_ALERT_RULE_WINDOW_TO_RESOLUTION[time_window]
@@ -1429,11 +1451,13 @@ class UpdateAlertRuleTest(TestCase, BaseIncidentsTest):
             detection_type=AlertRuleDetectionType.PERCENT,
         )
 
+        assert alert_rule.snuba_query is not None
         assert alert_rule.snuba_query.resolution == 1800
         time_window = 30
         updated_alert_rule = update_alert_rule(
             alert_rule, time_window=time_window, comparison_delta=90
         )
+        assert updated_alert_rule.snuba_query is not None
         assert (
             updated_alert_rule.snuba_query.resolution
             == DEFAULT_ALERT_RULE_WINDOW_TO_RESOLUTION[time_window]
@@ -2364,7 +2388,7 @@ class CreateAlertRuleTriggerActionTest(BaseAlertRuleTriggerActionTest):
             )
         type = AlertRuleTriggerAction.Type.PAGERDUTY
         target_type = AlertRuleTriggerAction.TargetType.SPECIFIC
-        target_identifier = service["id"]
+        target_identifier = str(service["id"])
         action = create_alert_rule_trigger_action(
             self.trigger,
             type,
@@ -2375,7 +2399,7 @@ class CreateAlertRuleTriggerActionTest(BaseAlertRuleTriggerActionTest):
         assert action.alert_rule_trigger == self.trigger
         assert action.type == type.value
         assert action.target_type == target_type.value
-        assert action.target_identifier == target_identifier
+        assert action.target_identifier == str(target_identifier)
         assert action.target_display == "hellboi"
         assert action.integration_id == integration.id
 
@@ -2468,7 +2492,7 @@ class CreateAlertRuleTriggerActionTest(BaseAlertRuleTriggerActionTest):
 
     @patch(
         "sentry.incidents.logic.get_target_identifier_display_for_integration",
-        return_value=("123", "test"),
+        return_value=AlertTarget("123", "test"),
     )
     def test_supported_priority(self, mock_get):
         alert_rule = self.create_alert_rule()
@@ -2481,7 +2505,9 @@ class CreateAlertRuleTriggerActionTest(BaseAlertRuleTriggerActionTest):
             priority=priority,
             target_identifier="123",
         )
-        assert action.sentry_app_config["priority"] == priority
+        app_config = action.get_single_sentry_app_config()
+        assert app_config is not None
+        assert app_config["priority"] == priority
 
     def test_unsupported_priority(self):
         # doesn't save priority if the action type doesn't use it
@@ -3090,7 +3116,9 @@ class UpdateAlertRuleTriggerAction(BaseAlertRuleTriggerActionTest):
         assert action.target_identifier == team["id"]
         assert action.target_display == "cool-team"
         assert action.integration_id == integration.id
-        assert action.sentry_app_config["priority"] == priority  # priority stored in config
+        app_config = action.get_single_sentry_app_config()
+        assert app_config is not None
+        assert app_config["priority"] == priority  # priority stored in config
 
     @patch("sentry.integrations.msteams.utils.get_channel_id", return_value="some_id")
     def test_unsupported_priority(self, mock_get_channel_id):
