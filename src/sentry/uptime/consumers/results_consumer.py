@@ -267,13 +267,15 @@ class UptimeResultProcessor(ResultProcessor[CheckResult, UptimeSubscription]):
             restricted_host_provider_ids = options.get(
                 "uptime.restrict-issue-creation-by-hosting-provider-id"
             )
-            issue_creation_restricted_by_provider = (
-                project_subscription.uptime_subscription.host_provider_id
-                in restricted_host_provider_ids
-            )
+            host_provider_id = project_subscription.uptime_subscription.host_provider_id
+            issue_creation_restricted_by_provider = host_provider_id in restricted_host_provider_ids
 
             if issue_creation_restricted_by_provider:
-                metrics.incr("uptime.result_processor.restricted_by_provider", sample_rate=1.0)
+                metrics.incr(
+                    "uptime.result_processor.restricted_by_provider",
+                    sample_rate=1.0,
+                    tags={"host_provider_id": host_provider_id},
+                )
 
             if issue_creation_flag_enabled and not issue_creation_restricted_by_provider:
                 create_issue_platform_occurrence(result, project_subscription)
