@@ -168,10 +168,6 @@ def cleanup(
         from django.db import router as db_router
 
         from sentry.db.deletion import BulkDeleteQuery
-        from sentry.models.rulefirehistory import RuleFireHistory
-        from sentry.monitors import models as monitor_models
-        from sentry.replays import models as replay_models
-        from sentry.users.models.lostpasswordhash import LostPasswordHash
         from sentry.utils import metrics
         from sentry.utils.query import RangeQuerySetWrapper
 
@@ -412,8 +408,6 @@ def generate_bulk_query_deletes() -> list[tuple[type[Model], str, str | None]]:
     from django.apps import apps
 
     from sentry.models.groupemailthread import GroupEmailThread
-    from sentry.models.notificationmessage import NotificationMessage
-    from sentry.models.rulefirehistory import RuleFireHistory
     from sentry.models.userreport import UserReport
 
     # Deletions that use `BulkDeleteQuery` (and don't need to worry about child relations)
@@ -427,8 +421,6 @@ def generate_bulk_query_deletes() -> list[tuple[type[Model], str, str | None]]:
     BULK_QUERY_DELETES = [
         (UserReport, "date_added", None),
         (GroupEmailThread, "date", None),
-        (NotificationMessage, "date_added", None),
-        (RuleFireHistory, "date_added", None),
     ] + additional_bulk_query_deletes
 
     return BULK_QUERY_DELETES
