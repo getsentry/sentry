@@ -114,9 +114,6 @@ export default class OrganizationMemberRow extends PureComponent<Props, State> {
     const isCurrentUser = currentUser.email === email;
     const showRemoveButton = !isCurrentUser;
     const showLeaveButton = isCurrentUser;
-    // member has a `user` property if they are registered with sentry
-    // i.e. has accepted an invite to join org
-    const isInvite = !user;
     const isInviteFromCurrentUser = inviterName === currentUser.name;
     const canRemoveInvites =
       organization.features?.includes('members-invite-teammates') &&
@@ -126,6 +123,8 @@ export default class OrganizationMemberRow extends PureComponent<Props, State> {
       (canRemoveMembers && !isCurrentUser && !isIdpProvisioned && !isPartnershipUser) ||
       // members can remove invites they sent if allowMemberInvite is true
       (canRemoveInvites && isInviteFromCurrentUser);
+    // member has a `user` property if they are registered with sentry
+    // i.e. has accepted an invite to join org
     const has2fa = user?.has2fa;
     const detailsUrl = `/settings/${organization.slug}/members/${id}/`;
     const isInviteSuccessful = status === 'success';
@@ -160,7 +159,7 @@ export default class OrganizationMemberRow extends PureComponent<Props, State> {
               {isInviteSuccessful && <span>{t('Sent!')}</span>}
               {!isInviting && !isInviteSuccessful && (
                 <Button
-                  disabled={!canAddMembers}
+                  disabled={!canAddMembers || !isInviteFromCurrentUser}
                   priority="primary"
                   size="sm"
                   onClick={this.handleSendInvite}
@@ -214,7 +213,7 @@ export default class OrganizationMemberRow extends PureComponent<Props, State> {
                     : isPartnershipUser
                       ? t('You cannot make changes to this partner-provisioned user.')
                       : // only show this message if member can remove invites but invite was not sent by them
-                        isInvite && canRemoveInvites && !isInviteFromCurrentUser
+                        pending && canRemoveInvites && !isInviteFromCurrentUser
                         ? t('Your role cannot modify this invite.')
                         : t('You do not have access to remove members')
                 }

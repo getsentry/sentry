@@ -277,7 +277,11 @@ class OrganizationMembersList extends DeprecatedAsyncView<Props, State> {
     const {membersPageLinks, members, member: currentMember, inviteRequests} = this.state;
     const {access} = organization;
 
-    const canAddMembers = access.includes('member:write');
+    const canAddMembers =
+      access.includes('member:write') ||
+      (organization.features?.includes('members-invite-teammates') &&
+        organization.allowMemberInvite &&
+        access.includes('member:invite'));
     const canRemove = access.includes('member:admin');
     const currentUser = ConfigStore.get('user');
 
