@@ -5,6 +5,7 @@ from django.db.models import Q
 import sentry.hybridcloud.rpc.caching as caching_module
 from sentry.backup.dependencies import NormalizedModelName, dependencies, get_model_name
 from sentry.db.models.base import Model
+from sentry.deletions.tasks.hybrid_cloud import schedule_hybrid_cloud_foreign_key_jobs
 from sentry.incidents.models.alert_rule import AlertRule, AlertRuleActivity
 from sentry.incidents.models.incident import IncidentActivity, IncidentSubscription
 from sentry.models.activity import Activity
@@ -29,7 +30,6 @@ from sentry.models.savedsearch import SavedSearch
 from sentry.models.tombstone import RegionTombstone
 from sentry.monitors.models import Monitor
 from sentry.silo.base import SiloMode
-from sentry.tasks.deletion.hybrid_cloud import schedule_hybrid_cloud_foreign_key_jobs
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.backups import BackupTestCase
 from sentry.testutils.hybrid_cloud import HybridCloudTestMixin

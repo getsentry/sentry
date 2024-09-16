@@ -1,6 +1,9 @@
+from __future__ import annotations
+
 import logging
 from collections import defaultdict
 from collections.abc import Sequence
+from typing import Literal
 from uuid import uuid4
 
 import rest_framework
@@ -9,6 +12,7 @@ from rest_framework.response import Response
 
 from sentry import audit_log, eventstream
 from sentry.api.base import audit_logger
+from sentry.deletions.tasks.groups import delete_groups as delete_groups_task
 from sentry.issues.grouptype import GroupCategory
 from sentry.models.group import Group, GroupStatus
 from sentry.models.grouphash import GroupHash
@@ -16,7 +20,6 @@ from sentry.models.groupinbox import GroupInbox
 from sentry.models.project import Project
 from sentry.signals import issue_deleted
 from sentry.tasks.delete_seer_grouping_records import call_delete_seer_grouping_records_by_hash
-from sentry.tasks.deletion.groups import delete_groups as delete_groups_task
 from sentry.utils.audit import create_audit_entry
 
 from . import BULK_MUTATION_LIMIT, SearchFunction
@@ -27,10 +30,17 @@ delete_logger = logging.getLogger("sentry.deletions.api")
 
 def delete_group_list(
     request: Request,
-    project: "Project",
-    group_list: list["Group"],
-    delete_type: str,
+    project: Project,
+    group_list: list[Group],
+    delete_type: Literal["delete", "discard"],
 ) -> None:
+    """Deletes a list of groups which belong to a single project.
+
+    :param request: The request object.
+    :param project: The project the groups belong to.
+    :param group_list: The list of groups to delete.
+    :param delete_type: The type of deletion to perform. This is used to determine the type of audit log to create.
+    """
     if not group_list:
         return
 
@@ -49,13 +59,7 @@ def delete_group_list(
     # Tell seer to delete grouping records for these groups
     call_delete_seer_grouping_records_by_hash(group_ids)
 
-    # We do not want to delete split hashes as they are necessary for keeping groups... split.
-    GroupHash.objects.filter(
-        project_id=project.id, group__id__in=group_ids, state=GroupHash.State.SPLIT
-    ).update(group=None)
-    GroupHash.objects.filter(project_id=project.id, group__id__in=group_ids).exclude(
-        state=GroupHash.State.SPLIT
-    ).delete()
+    GroupHash.objects.filter(project_id=project.id, group__id__in=group_ids).delete()
 
     # We remove `GroupInbox` rows here so that they don't end up influencing queries for
     # `Group` instances that are pending deletion
@@ -101,7 +105,7 @@ def delete_group_list(
 
 def delete_groups(
     request: Request,
-    projects: Sequence["Project"],
+    projects: Sequence[Project],
     organization_id: int,
     search_fn: SearchFunction,
 ) -> Response:

@@ -59,7 +59,7 @@ class ProjectRuleActionsEndpointTest(APITestCase):
             "projects:verbose-test-alert-reporting": True,
         }
     )
-    def test_sample_event_raises_bad_request_error_when_reporting_flag_set(self, mock_create_issue):
+    def test_sample_event_raises_exceptions(self, mock_create_issue):
         with assume_test_silo_mode(SiloMode.CONTROL):
             self.jira_integration = self.create_provider_integration(
                 provider="jira", name="Jira", external_id="jira:1"
@@ -77,19 +77,21 @@ class ProjectRuleActionsEndpointTest(APITestCase):
             }
         ]
 
+        response = self.get_error_response(
+            self.organization.slug, self.project.slug, actions=action_data
+        )
+        assert response.status_code == 400
+        assert mock_create_issue.call_count == 1
+        assert response.data == {"actions": [str(form_errors)]}
+
+        # TODO(Gabe): look into changing this and returning 500 errors.
+        # Unexpected exceptions shouldn't be buried for the user
+        mock_create_issue.side_effect = Exception("Something went wrong")
         response = self.get_success_response(
             self.organization.slug, self.project.slug, actions=action_data
         )
-        assert mock_create_issue.call_count == 1
+        assert response.status_code == 200
         assert response.data is None
-
-        # With error propagation option enabled
-        with self.options({"ecosystem:enable_integration_form_error_raise": True}):
-            response = self.get_error_response(
-                self.organization.slug, self.project.slug, actions=action_data
-            )
-            assert mock_create_issue.call_count == 2
-            assert response.data == {"actions": [str(form_errors)]}
 
     @mock.patch.object(JiraIntegration, "create_issue")
     def test_success_response_when_client_raises(self, mock_create_issue):

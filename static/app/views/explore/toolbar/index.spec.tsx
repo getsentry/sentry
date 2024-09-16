@@ -1,3 +1,4 @@
+// biome-ignore lint/nursery/noRestrictedImports: Will be removed with react router 6
 import {createMemoryHistory, Route, Router, RouterContext} from 'react-router';
 
 import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
@@ -265,7 +266,13 @@ describe('ExploreToolbar', function () {
     await userEvent.click(within(section).getAllByLabelText('Remove')[0]);
     expect(groupBys).toEqual(['span.description']);
 
-    // only one left so cant be deleted
+    // only 1 left but it's not empty
+    expect(within(section).getByLabelText('Remove')).toBeEnabled();
+
+    await userEvent.click(within(section).getByLabelText('Remove'));
+    expect(groupBys).toEqual(['']);
+
+    // last one and it's empty
     expect(within(section).getByLabelText('Remove')).toBeDisabled();
   });
 });

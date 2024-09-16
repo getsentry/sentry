@@ -1,16 +1,20 @@
 import {useMemo} from 'react';
 import styled from '@emotion/styled';
 
+import {AggregateKeyVisual} from 'sentry/components/searchQueryBuilder/tokens/filter/aggregateKey';
 import {FilterValueText} from 'sentry/components/searchQueryBuilder/tokens/filter/filter';
-import {FilterKeyOperatorVisual} from 'sentry/components/searchQueryBuilder/tokens/filter/filterKeyOperator';
+import {getOperatorInfo} from 'sentry/components/searchQueryBuilder/tokens/filter/filterOperator';
+import {isAggregateFilterToken} from 'sentry/components/searchQueryBuilder/tokens/filter/utils';
 import {SearchQueryBuilderParenIcon} from 'sentry/components/searchQueryBuilder/tokens/paren';
 import type {FieldDefinitionGetter} from 'sentry/components/searchQueryBuilder/types';
 import {parseQueryBuilderValue} from 'sentry/components/searchQueryBuilder/utils';
 import {
+  FilterType,
   type ParseResultToken,
   Token,
   type TokenResult,
 } from 'sentry/components/searchSyntax/parser';
+import {getKeyName} from 'sentry/components/searchSyntax/utils';
 import {space} from 'sentry/styles/space';
 import type {TagCollection} from 'sentry/types/group';
 import {getFieldDefinition} from 'sentry/utils/fields';
@@ -27,10 +31,24 @@ type TokenProps = {
 
 const EMPTY_FILTER_KEYS: TagCollection = {};
 
+function FilterKey({token}: {token: TokenResult<Token.FILTER>}) {
+  if (token.filter === FilterType.IS || token.filter === FilterType.HAS) {
+    return null;
+  }
+
+  return isAggregateFilterToken(token) ? (
+    <div>
+      <AggregateKeyVisual token={token} />
+    </div>
+  ) : (
+    <div>{getKeyName(token.key)}</div>
+  );
+}
+
 function Filter({token}: {token: TokenResult<Token.FILTER>}) {
   return (
     <FilterWrapper aria-label={token.text}>
-      <FilterKeyOperatorVisual token={token} />{' '}
+      <FilterKey token={token} /> {getOperatorInfo(token).label}{' '}
       <FilterValue>
         <FilterValueText token={token} />
       </FilterValue>
@@ -99,8 +117,8 @@ const QueryWrapper = styled('div')`
 `;
 
 const FilterWrapper = styled('div')`
-  display: grid;
-  grid-template-columns: auto 1fr;
+  display: flex;
+  align-items: center;
   gap: ${space(0.5)};
   background: ${p => p.theme.background};
   padding: ${space(0.25)} ${space(0.5)};

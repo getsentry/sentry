@@ -23,6 +23,7 @@ from sentry import audit_log
 from sentry.api.serializers import serialize
 from sentry.auth.access import OrganizationGlobalAccess
 from sentry.conf.server import SEER_ANOMALY_DETECTION_STORE_DATA_URL
+from sentry.deletions.tasks.scheduled import run_scheduled_deletions
 from sentry.incidents.endpoints.serializers.alert_rule import DetailedAlertRuleSerializer
 from sentry.incidents.models.alert_rule import (
     AlertRule,
@@ -47,7 +48,6 @@ from sentry.models.organizationmemberteam import OrganizationMemberTeam
 from sentry.seer.anomaly_detection.store_data import seer_anomaly_detection_connection_pool
 from sentry.sentry_apps.services.app import app_service
 from sentry.silo.base import SiloMode
-from sentry.tasks.deletion.scheduled import run_scheduled_deletions
 from sentry.testutils.abstract import Abstract
 from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.outbox import outbox_runner

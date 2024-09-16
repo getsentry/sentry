@@ -577,7 +577,7 @@ describe('SearchQueryBuilder', function () {
       await userEvent.click(
         screen.getByRole('button', {name: 'Edit operator for filter: browser.name'})
       );
-      await userEvent.click(screen.getByRole('option', {name: 'browser.name is not'}));
+      await userEvent.click(screen.getByRole('option', {name: 'is not'}));
 
       // Token should be modified to be negated
       expect(
@@ -914,6 +914,12 @@ describe('SearchQueryBuilder', function () {
       await userEvent.keyboard('{arrowleft}');
       expect(
         screen.getByRole('button', {name: 'Edit operator for filter: assigned'})
+      ).toHaveFocus();
+
+      // Left again focuses the assigned key
+      await userEvent.keyboard('{arrowleft}');
+      expect(
+        screen.getByRole('button', {name: 'Edit key for filter: assigned'})
       ).toHaveFocus();
 
       // Left again goes to the next text input between tokens
@@ -1424,7 +1430,7 @@ describe('SearchQueryBuilder', function () {
         await userEvent.click(
           screen.getByRole('button', {name: 'Edit operator for filter: browser.name'})
         );
-        await userEvent.click(screen.getByRole('option', {name: 'browser.name is not'}));
+        await userEvent.click(screen.getByRole('option', {name: 'is not'}));
 
         // Token should be modified to be negated
         expect(
@@ -1472,6 +1478,51 @@ describe('SearchQueryBuilder', function () {
         expect(within(valueButton).getByText('firefox')).toBeInTheDocument();
         expect(within(valueButton).getByText('or')).toBeInTheDocument();
         expect(within(valueButton).getByText('Chrome')).toBeInTheDocument();
+      });
+
+      it('can modify the key by clicking into it', async function () {
+        render(
+          <SearchQueryBuilder {...defaultProps} initialQuery="browser.name:firefox" />
+        );
+
+        await userEvent.click(
+          screen.getByRole('button', {name: 'Edit key for filter: browser.name'})
+        );
+        // Should start with an empty input
+        await waitFor(() => {
+          expect(screen.getByRole('combobox', {name: 'Edit filter key'})).toHaveValue('');
+        });
+
+        await userEvent.click(screen.getByRole('option', {name: 'custom_tag_name'}));
+
+        await waitFor(() => {
+          expect(
+            screen.getByRole('row', {name: 'custom_tag_name:firefox'})
+          ).toBeInTheDocument();
+        });
+        expect(getLastInput()).toHaveFocus();
+      });
+
+      it('resets the filter value when changing filter key to a different type', async function () {
+        render(
+          <SearchQueryBuilder {...defaultProps} initialQuery="browser.name:firefox" />
+        );
+
+        await userEvent.click(
+          screen.getByRole('button', {name: 'Edit key for filter: browser.name'})
+        );
+        // Should start with an empty input
+        await waitFor(() => {
+          expect(screen.getByRole('combobox', {name: 'Edit filter key'})).toHaveValue('');
+        });
+
+        await userEvent.click(screen.getByRole('option', {name: 'age'}));
+
+        await waitFor(() => {
+          expect(screen.getByRole('row', {name: 'age:-24h'})).toBeInTheDocument();
+        });
+        // Filter value should have focus
+        expect(screen.getByRole('combobox', {name: 'Edit filter value'})).toHaveFocus();
       });
 
       it('keeps focus inside value when multi-selecting with checkboxes', async function () {
@@ -1681,10 +1732,8 @@ describe('SearchQueryBuilder', function () {
         );
 
         // Normally text filters only have 'is' and 'is not' as options
-        expect(
-          await screen.findByRole('option', {name: 'release.version >'})
-        ).toBeInTheDocument();
-        await userEvent.click(screen.getByRole('option', {name: 'release.version >'}));
+        expect(await screen.findByRole('option', {name: '>'})).toBeInTheDocument();
+        await userEvent.click(screen.getByRole('option', {name: '>'}));
 
         expect(
           await screen.findByRole('row', {name: 'release.version:>1.0'})
@@ -1752,7 +1801,7 @@ describe('SearchQueryBuilder', function () {
         await userEvent.click(
           screen.getByRole('button', {name: 'Edit operator for filter: timesSeen'})
         );
-        await userEvent.click(screen.getByRole('option', {name: 'timesSeen <='}));
+        await userEvent.click(screen.getByRole('option', {name: '<='}));
 
         expect(
           await screen.findByRole('row', {name: 'timesSeen:<=100k'})
@@ -1797,14 +1846,12 @@ describe('SearchQueryBuilder', function () {
           screen.getByRole('button', {name: 'Edit operator for filter: duration'})
         );
 
-        expect(
-          await screen.findByRole('option', {name: 'duration is'})
-        ).toBeInTheDocument();
-        expect(screen.getByRole('option', {name: 'duration is not'})).toBeInTheDocument();
-        expect(screen.getByRole('option', {name: 'duration >'})).toBeInTheDocument();
-        expect(screen.getByRole('option', {name: 'duration <'})).toBeInTheDocument();
-        expect(screen.getByRole('option', {name: 'duration >='})).toBeInTheDocument();
-        expect(screen.getByRole('option', {name: 'duration <='})).toBeInTheDocument();
+        expect(await screen.findByRole('option', {name: 'is'})).toBeInTheDocument();
+        expect(screen.getByRole('option', {name: 'is not'})).toBeInTheDocument();
+        expect(screen.getByRole('option', {name: '>'})).toBeInTheDocument();
+        expect(screen.getByRole('option', {name: '<'})).toBeInTheDocument();
+        expect(screen.getByRole('option', {name: '>='})).toBeInTheDocument();
+        expect(screen.getByRole('option', {name: '<='})).toBeInTheDocument();
       });
 
       it('duration filters have the correct value suggestions', async function () {
@@ -1833,7 +1880,7 @@ describe('SearchQueryBuilder', function () {
           screen.getByRole('button', {name: 'Edit operator for filter: duration'})
         );
 
-        await userEvent.click(await screen.findByRole('option', {name: 'duration <='}));
+        await userEvent.click(await screen.findByRole('option', {name: '<='}));
 
         expect(
           await screen.findByRole('row', {name: 'duration:<=100ms'})
@@ -1934,12 +1981,12 @@ describe('SearchQueryBuilder', function () {
           screen.getByRole('button', {name: 'Edit operator for filter: rate'})
         );
 
-        expect(await screen.findByRole('option', {name: 'rate is'})).toBeInTheDocument();
-        expect(screen.getByRole('option', {name: 'rate is not'})).toBeInTheDocument();
-        expect(screen.getByRole('option', {name: 'rate >'})).toBeInTheDocument();
-        expect(screen.getByRole('option', {name: 'rate <'})).toBeInTheDocument();
-        expect(screen.getByRole('option', {name: 'rate >='})).toBeInTheDocument();
-        expect(screen.getByRole('option', {name: 'rate <='})).toBeInTheDocument();
+        expect(await screen.findByRole('option', {name: 'is'})).toBeInTheDocument();
+        expect(screen.getByRole('option', {name: 'is not'})).toBeInTheDocument();
+        expect(screen.getByRole('option', {name: '>'})).toBeInTheDocument();
+        expect(screen.getByRole('option', {name: '<'})).toBeInTheDocument();
+        expect(screen.getByRole('option', {name: '>='})).toBeInTheDocument();
+        expect(screen.getByRole('option', {name: '<='})).toBeInTheDocument();
       });
 
       it('percentage filters can change operator', async function () {
@@ -1948,7 +1995,7 @@ describe('SearchQueryBuilder', function () {
           screen.getByRole('button', {name: 'Edit operator for filter: rate'})
         );
 
-        await userEvent.click(await screen.findByRole('option', {name: 'rate <='}));
+        await userEvent.click(await screen.findByRole('option', {name: '<='}));
 
         expect(await screen.findByRole('row', {name: 'rate:<=0.5'})).toBeInTheDocument();
       });
@@ -2086,7 +2133,7 @@ describe('SearchQueryBuilder', function () {
         await userEvent.click(
           screen.getByRole('button', {name: 'Edit operator for filter: age'})
         );
-        await userEvent.click(await screen.findByRole('option', {name: 'age is before'}));
+        await userEvent.click(await screen.findByRole('option', {name: 'is before'}));
 
         // Should flip from "-" to "+"
         expect(await screen.findByRole('row', {name: 'age:+24h'})).toBeInTheDocument();
@@ -2098,7 +2145,7 @@ describe('SearchQueryBuilder', function () {
           screen.getByRole('button', {name: 'Edit operator for filter: age'})
         );
         await userEvent.click(
-          await screen.findByRole('option', {name: 'age is on or after'})
+          await screen.findByRole('option', {name: 'is on or after'})
         );
 
         // Changes operator and fills in the current date (ISO format)
