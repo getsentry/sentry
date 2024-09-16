@@ -114,9 +114,9 @@ export default class OrganizationMemberRow extends PureComponent<Props, State> {
     const isCurrentUser = currentUser.email === email;
     const showRemoveButton = !isCurrentUser;
     const showLeaveButton = isCurrentUser;
-    // inviterName is null if this is not a pending invite
-    // i.e. invite has been accepted
-    const isInvite = inviterName !== null;
+    // member has a `user` property if they are registered with sentry
+    // i.e. has accepted an invite to join org
+    const isInvite = !user;
     const isInviteFromCurrentUser = inviterName === currentUser.name;
     const canRemoveInvites =
       organization.features?.includes('members-invite-teammates') &&
@@ -126,8 +126,6 @@ export default class OrganizationMemberRow extends PureComponent<Props, State> {
       (canRemoveMembers && !isCurrentUser && !isIdpProvisioned && !isPartnershipUser) ||
       // members can remove invites they sent if allowMemberInvite is true
       (canRemoveInvites && isInviteFromCurrentUser);
-    // member has a `user` property if they are registered with sentry
-    // i.e. has accepted an invite to join org
     const has2fa = user?.has2fa;
     const detailsUrl = `/settings/${organization.slug}/members/${id}/`;
     const isInviteSuccessful = status === 'success';
