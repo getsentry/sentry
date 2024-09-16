@@ -11,7 +11,7 @@ import type {IssueAttachment} from 'sentry/types/group';
 import {getShortEventId} from 'sentry/utils/events';
 import {InlineEventAttachment} from 'sentry/views/issueDetails/groupEventAttachments/inlineEventAttachment';
 
-const types = {
+const friendlyAttachmentType = {
   'event.minidump': t('Minidump'),
   'event.applecrashreport': t('Apple Crash Report'),
   'event.attachment': t('Other'),
@@ -58,7 +58,7 @@ function GroupEventAttachmentsTableRow({
         </div>
       </FlexCenter>
       <FlexCenter className={sharedClassName}>
-        {types[attachment.type] || t('Other')}
+        {friendlyAttachmentType[attachment.type] ?? t('Other')}
       </FlexCenter>
       <FlexCenter className={sharedClassName}>
         <FileSize bytes={attachment.size} />
