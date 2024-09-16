@@ -172,18 +172,16 @@ class AlertRuleManager(BaseManager["AlertRule"]):
                 for sub_id in subscription_ids
             )
 
-    def delete_data_in_seer(self, project: Project, **kwargs: Any) -> None:
-        dynamic_alert_rules: QuerySet[AlertRule] = self.filter(
-            projects=project,
-            detection_type=AlertRuleDetectionType.DYNAMIC,
-        )
-        for alert_rule in dynamic_alert_rules:
-            success = delete_rule_in_seer(alert_rule=alert_rule, project=project)
+    @classmethod
+    def delete_data_in_seer(cls, instance: AlertRule, **kwargs: Any) -> None:
+        if instance.detection_type == AlertRuleDetectionType.DYNAMIC:
+            project = instance.projects.get()
+            success = delete_rule_in_seer(alert_rule=instance, project=project)
             if not success:
                 logger.error(
                     "Call to delete rule data in Seer failed",
                     extra={
-                        "rule_id": alert_rule.id,
+                        "rule_id": instance.id,
                         "project_id": project.id,
                     },
                 )
