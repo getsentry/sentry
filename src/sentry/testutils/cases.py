@@ -3319,6 +3319,7 @@ class UptimeTestCase(TestCase):
             "subscription_id": subscription_id,
             "status": status,
             "status_reason": {"type": CHECKSTATUSREASONTYPE_TIMEOUT, "description": "it timed out"},
+            "span_id": uuid.uuid4().hex,
             "trace_id": uuid.uuid4().hex,
             "scheduled_check_time_ms": int(scheduled_check_time.timestamp() * 1000),
             "actual_check_time_ms": int(datetime.now().replace(microsecond=0).timestamp() * 1000),
