@@ -206,6 +206,9 @@ class SentryAppUpdater:
         except SentryAppInstallation.DoesNotExist:
             return
 
+        assert (
+            self.sentry_app.webhook_url
+        ), "SentryApp must have a webhook_url to update service hooks"
         create_or_update_service_hooks_for_installation(
             installation=installation,
             webhook_url=self.sentry_app.webhook_url,
@@ -235,7 +238,7 @@ class SentryAppUpdater:
             self.sentry_app.overview = self.overview
 
     def _update_allowed_origins(self) -> None:
-        if self.allowed_origins is not None:
+        if self.allowed_origins and self.sentry_app.application:
             self.sentry_app.application.allowed_origins = "\n".join(self.allowed_origins)
             self.sentry_app.application.save()
 
@@ -321,6 +324,7 @@ class SentryAppCreator:
             if self.is_internal:
                 install = self._install(slug=slug, user=user, request=request)
                 if not skip_default_auth_token:
+                    assert request, "Request must exist to create access token"
                     self._create_access_token(user=user, install=install, request=request)
 
             self.audit(request=request, sentry_app=sentry_app)
@@ -407,7 +411,7 @@ class SentryAppCreator:
                 sentry_sdk.capture_message("IntegrityError while creating IntegrationFeature")
 
     def _install(
-        self, *, slug: str, user: User, request: HttpRequest | None
+        self, *, slug: str, user: User | RpcUser, request: HttpRequest | None
     ) -> SentryAppInstallation:
         return SentryAppInstallationCreator(
             organization_id=self.organization_id,
@@ -416,7 +420,7 @@ class SentryAppCreator:
         ).run(user=user, request=request)
 
     def _create_access_token(
-        self, user: User, install: SentryAppInstallation, request: HttpRequest
+        self, user: User | RpcUser, install: SentryAppInstallation, request: HttpRequest
     ) -> None:
         install.api_token = SentryAppInstallationTokenCreator(sentry_app_installation=install).run(
             request=request, user=user
@@ -444,7 +448,7 @@ class SentryAppCreator:
                     data={"name": sentry_app.name},
                 )
 
-    def record_analytics(self, user: User, sentry_app: SentryApp) -> None:
+    def record_analytics(self, user: User | RpcUser, sentry_app: SentryApp) -> None:
         analytics.record(
             "sentry_app.created",
             user_id=user.id,
