@@ -29,7 +29,6 @@ class DiscordSetupTestCase(IntegrationTestCase):
         options.set("discord.public-key", self.public_key)
         options.set("discord.bot-token", self.bot_token)
         options.set("discord.client-secret", self.client_secret)
-        options.set("discord.validate-user", True)
 
     @mock.patch("sentry.integrations.discord.client.DiscordClient.set_application_command")
     def assert_setup_flow(
