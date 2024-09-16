@@ -1729,6 +1729,7 @@ class BaseMetricsTestCase(SnubaTestCase):
         timestamp: int,
         value: Any,
         aggregation_option: AggregationOption | None = None,
+        sampling_weight: int | None = None,
     ) -> None:
 
         parsed = parse_mri(mri)
@@ -1813,6 +1814,9 @@ class BaseMetricsTestCase(SnubaTestCase):
 
         if aggregation_option:
             msg["aggregation_option"] = aggregation_option.value
+
+        if sampling_weight:
+            msg["sampling_weight"] = sampling_weight
 
         if METRIC_PATH_MAPPING[use_case_id] == UseCaseKey.PERFORMANCE:
             entity = f"generic_metrics_{cls.ENTITY_SHORTHANDS[metric_type]}s"
@@ -3299,7 +3303,29 @@ class MonitorIngestTestCase(MonitorTestCase):
         self.token = self.create_internal_integration_token(install=app, user=self.user)
 
 
-class UptimeTestCase(TestCase):
+class UptimeTestCaseMixin:
+    def setUp(self):
+        super().setUp()
+        self.mock_resolve_hostname_ctx = mock.patch(
+            "sentry.uptime.rdap.query.resolve_hostname", return_value="192.168.0.1"
+        )
+        self.mock_resolve_rdap_provider_ctx = mock.patch(
+            "sentry.uptime.rdap.query.resolve_rdap_provider", return_value="https://fake.com/"
+        )
+        self.mock_requests_get_ctx = mock.patch("sentry.uptime.rdap.query.requests.get")
+        self.mock_resolve_hostname = self.mock_resolve_hostname_ctx.__enter__()
+        self.mock_resolve_rdap_provider = self.mock_resolve_rdap_provider_ctx.__enter__()
+        self.mock_requests_get = self.mock_requests_get_ctx.__enter__()
+        self.mock_requests_get.return_value.json.return_value = {"entities": [{"handle": "hi"}]}
+
+    def tearDown(self):
+        super().tearDown()
+        self.mock_resolve_hostname_ctx.__exit__(None, None, None)
+        self.mock_resolve_rdap_provider_ctx.__exit__(None, None, None)
+        self.mock_requests_get_ctx.__exit__(None, None, None)
+
+
+class UptimeTestCase(UptimeTestCaseMixin, TestCase):
     def create_uptime_result(
         self,
         subscription_id: str | None = None,
@@ -3315,6 +3341,7 @@ class UptimeTestCase(TestCase):
             "subscription_id": subscription_id,
             "status": status,
             "status_reason": {"type": CHECKSTATUSREASONTYPE_TIMEOUT, "description": "it timed out"},
+            "span_id": uuid.uuid4().hex,
             "trace_id": uuid.uuid4().hex,
             "scheduled_check_time_ms": int(scheduled_check_time.timestamp() * 1000),
             "actual_check_time_ms": int(datetime.now().replace(microsecond=0).timestamp() * 1000),

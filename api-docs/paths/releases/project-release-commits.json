@@ -7,7 +7,7 @@
       {
         "name": "organization_id_or_slug",
         "in": "path",
-        "description": "The id or slug of the organization the release belongs to.",
+        "description": "The ID or slug of the organization the release belongs to.",
         "required": true,
         "schema": {
           "type": "string"
@@ -16,7 +16,7 @@
       {
         "name": "project_id_or_slug",
         "in": "path",
-        "description": "The id or slug of the project the release belongs to.",
+        "description": "The ID or slug of the project the release belongs to.",
         "required": true,
         "schema": {
           "type": "string"

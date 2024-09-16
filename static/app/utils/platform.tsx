@@ -17,19 +17,19 @@ export function platformToCategory(platform: PlatformKey | undefined): PlatformC
   if (!platform) {
     return PlatformCategory.OTHER;
   }
-  if (([...frontend] as string[]).includes(platform)) {
+  if ((frontend as string[]).includes(platform)) {
     return PlatformCategory.FRONTEND;
   }
-  if (([...backend] as string[]).includes(platform)) {
+  if ((backend as string[]).includes(platform)) {
     return PlatformCategory.BACKEND;
   }
-  if (([...serverless] as string[]).includes(platform)) {
+  if ((serverless as string[]).includes(platform)) {
     return PlatformCategory.SERVERLESS;
   }
-  if (([...mobile] as string[]).includes(platform)) {
+  if ((mobile as string[]).includes(platform)) {
     return PlatformCategory.MOBILE;
   }
-  if (([...desktop] as string[]).includes(platform)) {
+  if ((desktop as string[]).includes(platform)) {
     return PlatformCategory.DESKTOP;
   }
   return PlatformCategory.OTHER;
@@ -54,5 +54,5 @@ export function isMobilePlatform(platform: string | undefined) {
     return false;
   }
 
-  return ([...mobile] as string[]).includes(platform);
+  return (mobile as string[]).includes(platform);
 }

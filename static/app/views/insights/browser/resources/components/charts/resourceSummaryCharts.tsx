@@ -5,6 +5,7 @@ import {formatBytesBase2} from 'sentry/utils/bytes/formatBytesBase2';
 import {formatRate} from 'sentry/utils/formatters';
 import getDynamicText from 'sentry/utils/getDynamicText';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
+import {ALERTS} from 'sentry/views/insights/browser/resources/alerts';
 import {Referrer} from 'sentry/views/insights/browser/resources/referrer';
 import {
   DATA_TYPE,
@@ -34,23 +35,24 @@ const {
 function ResourceSummaryCharts(props: {groupId: string}) {
   const filters = useResourceModuleFilters();
 
+  const mutableSearch = MutableSearch.fromQueryObject({
+    'span.group': props.groupId,
+    ...(filters[RESOURCE_RENDER_BLOCKING_STATUS]
+      ? {
+          [RESOURCE_RENDER_BLOCKING_STATUS]: filters[RESOURCE_RENDER_BLOCKING_STATUS],
+        }
+      : {}),
+    ...(filters[SpanMetricsField.USER_GEO_SUBREGION]
+      ? {
+          [SpanMetricsField.USER_GEO_SUBREGION]: `[${filters[SpanMetricsField.USER_GEO_SUBREGION].join(',')}]`,
+        }
+      : {}),
+  });
+
   const {data: spanMetricsSeriesData, isPending: areSpanMetricsSeriesLoading} =
     useSpanMetricsSeries(
       {
-        search: MutableSearch.fromQueryObject({
-          'span.group': props.groupId,
-          ...(filters[RESOURCE_RENDER_BLOCKING_STATUS]
-            ? {
-                [RESOURCE_RENDER_BLOCKING_STATUS]:
-                  filters[RESOURCE_RENDER_BLOCKING_STATUS],
-              }
-            : {}),
-          ...(filters[SpanMetricsField.USER_GEO_SUBREGION]
-            ? {
-                [SpanMetricsField.USER_GEO_SUBREGION]: `[${filters[SpanMetricsField.USER_GEO_SUBREGION].join(',')}]`,
-              }
-            : {}),
-        }),
+        search: mutableSearch,
         yAxis: [
           `spm()`,
           `avg(${SPAN_SELF_TIME})`,
@@ -75,7 +77,10 @@ function ResourceSummaryCharts(props: {groupId: string}) {
   return (
     <Fragment>
       <ModuleLayout.Third>
-        <ChartPanel title={getThroughputChartTitle('http', RESOURCE_THROUGHPUT_UNIT)}>
+        <ChartPanel
+          title={getThroughputChartTitle('http', RESOURCE_THROUGHPUT_UNIT)}
+          alertConfigs={[{...ALERTS.spm, query: mutableSearch.formatString()}]}
+        >
           <Chart
             height={160}
             data={[spanMetricsSeriesData?.[`spm()`]]}
@@ -95,7 +100,10 @@ function ResourceSummaryCharts(props: {groupId: string}) {
       </ModuleLayout.Third>
 
       <ModuleLayout.Third>
-        <ChartPanel title={getDurationChartTitle('http')}>
+        <ChartPanel
+          title={getDurationChartTitle('http')}
+          alertConfigs={[{...ALERTS.duration, query: mutableSearch.formatString()}]}
+        >
           <Chart
             height={160}
             data={[spanMetricsSeriesData?.[`avg(${SPAN_SELF_TIME})`]]}
@@ -108,7 +116,14 @@ function ResourceSummaryCharts(props: {groupId: string}) {
       </ModuleLayout.Third>
 
       <ModuleLayout.Third>
-        <ChartPanel title={tct('Average [dataType] Size', {dataType: DATA_TYPE})}>
+        <ChartPanel
+          title={tct('Average [dataType] Size', {dataType: DATA_TYPE})}
+          alertConfigs={[
+            {...ALERTS.decodedSize, query: mutableSearch.formatString()},
+            {...ALERTS.transferSize, query: mutableSearch.formatString()},
+            {...ALERTS.encodedSize, query: mutableSearch.formatString()},
+          ]}
+        >
           <Chart
             height={160}
             aggregateOutputFormat="size"

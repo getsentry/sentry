@@ -79,13 +79,12 @@ descendants, such as Event, so it can more efficiently bulk delete rows.
 """
 
 from .base import BulkModelDeletionTask, ModelDeletionTask, ModelRelation  # NOQA
-from .defaults.artifactbundle import ArtifactBundleDeletionTask
 from .manager import DeletionTaskManager
 
 default_manager = DeletionTaskManager(default_task=ModelDeletionTask)
 
 
-def load_defaults():
+def load_defaults() -> None:
     from sentry import models
     from sentry.discover.models import DiscoverSavedQuery
     from sentry.incidents.models.alert_rule import (
@@ -98,6 +97,7 @@ def load_defaults():
         RepositoryProjectPathConfig,
     )
     from sentry.models.commitfilechange import CommitFileChange
+    from sentry.models.rulefirehistory import RuleFireHistory
     from sentry.monitors import models as monitor_models
     from sentry.snuba import models as snuba_models
 
@@ -126,7 +126,7 @@ def load_defaults():
     default_manager.register(models.GroupEnvironment, BulkModelDeletionTask)
     default_manager.register(models.GroupHash, defaults.GroupHashDeletionTask)
     default_manager.register(models.GroupHashMetadata, BulkModelDeletionTask)
-    default_manager.register(models.GroupHistory, BulkModelDeletionTask)
+    default_manager.register(models.GroupHistory, defaults.GroupHistoryDeletionTask)
     default_manager.register(models.GroupLink, BulkModelDeletionTask)
     default_manager.register(models.GroupMeta, BulkModelDeletionTask)
     default_manager.register(models.GroupRedirect, BulkModelDeletionTask)
@@ -174,8 +174,9 @@ def load_defaults():
     default_manager.register(models.SavedSearch, BulkModelDeletionTask)
     default_manager.register(models.Team, defaults.TeamDeletionTask)
     default_manager.register(models.UserReport, BulkModelDeletionTask)
-    default_manager.register(models.ArtifactBundle, ArtifactBundleDeletionTask)
+    default_manager.register(models.ArtifactBundle, defaults.ArtifactBundleDeletionTask)
     default_manager.register(models.Rule, defaults.RuleDeletionTask)
+    default_manager.register(RuleFireHistory, defaults.RuleFireHistoryDeletionTask)
 
 
 load_defaults()

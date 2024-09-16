@@ -6,6 +6,7 @@ from typing import Any
 from unittest import mock
 from unittest.mock import patch
 
+import orjson
 import pytest
 import responses
 from django.conf import settings
@@ -23,7 +24,9 @@ from sentry import audit_log
 from sentry.api.serializers import serialize
 from sentry.auth.access import OrganizationGlobalAccess
 from sentry.conf.server import SEER_ANOMALY_DETECTION_STORE_DATA_URL
+from sentry.deletions.tasks.scheduled import run_scheduled_deletions
 from sentry.incidents.endpoints.serializers.alert_rule import DetailedAlertRuleSerializer
+from sentry.incidents.logic import INVALID_TIME_WINDOW
 from sentry.incidents.models.alert_rule import (
     AlertRule,
     AlertRuleDetectionType,
@@ -45,9 +48,9 @@ from sentry.integrations.slack.utils.channel import SlackChannelIdData
 from sentry.models.auditlogentry import AuditLogEntry
 from sentry.models.organizationmemberteam import OrganizationMemberTeam
 from sentry.seer.anomaly_detection.store_data import seer_anomaly_detection_connection_pool
+from sentry.seer.anomaly_detection.types import StoreDataResponse
 from sentry.sentry_apps.services.app import app_service
 from sentry.silo.base import SiloMode
-from sentry.tasks.deletion.scheduled import run_scheduled_deletions
 from sentry.testutils.abstract import Abstract
 from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.outbox import outbox_runner
@@ -64,7 +67,11 @@ class AlertRuleDetailsBase(AlertRuleBase):
 
     endpoint = "sentry-api-0-organization-alert-rule-details"
 
-    def new_alert_rule(self, data=None):
+    @patch(
+        "sentry.seer.anomaly_detection.store_data.seer_anomaly_detection_connection_pool.urlopen"
+    )
+    def new_alert_rule(self, mock_seer_request, data=None):
+        mock_seer_request.return_value = HTTPResponse(orjson.dumps({"success": True}), status=200)
         if data is None:
             data = deepcopy(self.alert_rule_dict)
 
@@ -243,7 +250,7 @@ class AlertRuleDetailsGetEndpointTest(AlertRuleDetailsBase):
 
         with pytest.raises(
             ValidationError,
-            match="Sensitivity and seasonality are not valid fields for this alert type",
+            match="Sensitivity is not a valid field for this alert type",
         ):
             # STATIC detection types shouldn't have seasonality or sensitivity
             self.create_alert_rule(
@@ -277,7 +284,7 @@ class AlertRuleDetailsGetEndpointTest(AlertRuleDetailsBase):
 
         with pytest.raises(
             ValidationError,
-            match="Sensitivity and seasonality are not valid fields for this alert type",
+            match="Sensitivity is not a valid field for this alert type",
         ):
             # PERCENT detection type should not have sensitivity or seasonality
             self.create_alert_rule(
@@ -301,7 +308,8 @@ class AlertRuleDetailsGetEndpointTest(AlertRuleDetailsBase):
         "sentry.seer.anomaly_detection.store_data.seer_anomaly_detection_connection_pool.urlopen"
     )
     def test_dynamic_detection_type(self, mock_seer_request):
-        mock_seer_request.return_value = HTTPResponse(status=200)
+        seer_return_value: StoreDataResponse = {"success": True}
+        mock_seer_request.return_value = HTTPResponse(orjson.dumps(seer_return_value), status=200)
 
         self.create_team(organization=self.organization, members=[self.user])
         self.login_as(self.user)
@@ -317,27 +325,24 @@ class AlertRuleDetailsGetEndpointTest(AlertRuleDetailsBase):
         resp = self.get_success_response(self.organization.slug, rule.id)
         assert rule.detection_type == resp.data.get("detectionType")
 
-        with pytest.raises(
-            ValidationError, match="Dynamic alerts require both sensitivity and seasonality"
-        ):
+        with pytest.raises(ValidationError, match="Dynamic alerts require a sensitivity level"):
             self.create_alert_rule(
                 seasonality=AlertRuleSeasonality.AUTO,
                 detection_type=AlertRuleDetectionType.DYNAMIC,
                 time_window=30,
             )  # Require both seasonality and sensitivity
 
-        with pytest.raises(
-            ValidationError, match="Dynamic alerts require both sensitivity and seasonality"
-        ):
-            self.create_alert_rule(
-                sensitivity=AlertRuleSensitivity.MEDIUM,
-                detection_type=AlertRuleDetectionType.DYNAMIC,
-                time_window=30,
-            )  # Require both seasonality and sensitivity
+        # TODO: uncomment this test when seasonality becomes a supported field
+        # with pytest.raises(
+        #     ValidationError, match="Dynamic alerts require both sensitivity and seasonality"
+        # ):
+        #     self.create_alert_rule(
+        #         sensitivity=AlertRuleSensitivity.MEDIUM,
+        #         detection_type=AlertRuleDetectionType.DYNAMIC,
+        #         time_window=30,
+        #     )  # Require both seasonality and sensitivity
 
-        with pytest.raises(
-            ValidationError, match="Dynamic alerts require both sensitivity and seasonality"
-        ):
+        with pytest.raises(ValidationError, match="Dynamic alerts require a sensitivity level"):
             self.create_alert_rule(
                 detection_type=AlertRuleDetectionType.DYNAMIC,
                 time_window=30,
@@ -831,9 +836,9 @@ class AlertRuleDetailsPutEndpointTest(AlertRuleDetailsBase):
         self.login_as(self.user)
         alert_rule = self.dynamic_alert_rule
         # We need the IDs to force update instead of create, so we just get the rule using our own API. Like frontend would.
-        mock_seer_request.side_effect = TimeoutError
+        mock_seer_request.return_value = HTTPResponse(orjson.dumps({"success": True}), status=200)
         data = self.get_serialized_alert_rule()
-
+        mock_seer_request.side_effect = TimeoutError
         resp = self.get_error_response(
             self.organization.slug,
             alert_rule.id,
@@ -841,7 +846,7 @@ class AlertRuleDetailsPutEndpointTest(AlertRuleDetailsBase):
             **data,
         )
         assert resp.data["detail"]["message"] == "Proxied request timed out"
-        assert mock_seer_request.call_count == 2  # one for create, one for update
+        assert mock_seer_request.call_count == 1
 
     @with_feature("organizations:anomaly-detection-alerts")
     @with_feature("organizations:incidents")
@@ -853,6 +858,7 @@ class AlertRuleDetailsPutEndpointTest(AlertRuleDetailsBase):
         self.login_as(self.user)
         alert_rule = self.dynamic_alert_rule
         # We need the IDs to force update instead of create, so we just get the rule using our own API. Like frontend would.
+
         mock_seer_request.side_effect = MaxRetryError(
             seer_anomaly_detection_connection_pool, SEER_ANOMALY_DETECTION_STORE_DATA_URL
         )
@@ -865,7 +871,7 @@ class AlertRuleDetailsPutEndpointTest(AlertRuleDetailsBase):
             **data,
         )
         assert resp.data["detail"]["message"] == "Proxied request timed out"
-        assert mock_seer_request.call_count == 2
+        assert mock_seer_request.call_count == 1
 
     @with_feature("organizations:anomaly-detection-alerts")
     @with_feature("organizations:incidents")
@@ -889,8 +895,10 @@ class AlertRuleDetailsPutEndpointTest(AlertRuleDetailsBase):
             status_code=400,
             **data,
         )
-        assert resp.data["detail"]["message"] == "Invalid request"
-        assert mock_seer_request.call_count == 2
+        assert resp.data[0] == ErrorDetail(
+            string="Failed to send data to Seer - cannot update alert rule.", code="invalid"
+        )
+        assert mock_seer_request.call_count == 1
 
     @with_feature("organizations:anomaly-detection-alerts")
     @with_feature("organizations:incidents")
@@ -911,12 +919,9 @@ class AlertRuleDetailsPutEndpointTest(AlertRuleDetailsBase):
             status_code=400,
             **data,
         )
-        assert (
-            resp.data[0]
-            == "Invalid time window for dynamic alert (valid windows are 60, 30, 15 minutes)"
-        )
+        assert resp.data[0] == INVALID_TIME_WINDOW
         # We don't call send_historical_data_to_seer if we encounter a validation error.
-        assert mock_seer_request.call_count == 1
+        assert mock_seer_request.call_count == 0
 
     def test_delete_action(self):
         self.create_member(

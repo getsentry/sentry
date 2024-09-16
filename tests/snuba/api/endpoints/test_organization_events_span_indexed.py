@@ -76,6 +76,38 @@ class OrganizationEventsSpanIndexedEndpointTest(OrganizationEventsEndpointTestBa
         ]
         assert meta["dataset"] == self.dataset
 
+    def test_id_fields(self):
+        self.store_spans(
+            [
+                self.create_span(
+                    {"description": "foo", "sentry_tags": {"status": "success"}},
+                    start_ts=self.ten_mins_ago,
+                ),
+                self.create_span(
+                    {"description": "bar", "sentry_tags": {"status": "invalid_argument"}},
+                    start_ts=self.ten_mins_ago,
+                ),
+            ],
+            is_eap=self.is_eap,
+        )
+        response = self.do_request(
+            {
+                "field": ["id", "span_id"],
+                "query": "",
+                "orderby": "id",
+                "project": self.project.id,
+                "dataset": self.dataset,
+            }
+        )
+
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+        meta = response.data["meta"]
+        assert len(data) == 2
+        for obj in data:
+            assert obj["id"] == obj["span_id"]
+        assert meta["dataset"] == self.dataset
+
     def test_sentry_tags_vs_tags(self):
         self.store_spans(
             [
@@ -515,3 +547,73 @@ class OrganizationEventsEAPSpanEndpointTest(OrganizationEventsSpanIndexedEndpoin
     @pytest.mark.xfail(reason="event_id isn't being written to the new table")
     def test_id_filtering(self):
         super().test_id_filtering()
+
+    def test_span_duration(self):
+        self.store_spans(
+            [
+                self.create_span(
+                    {"description": "foo", "sentry_tags": {"status": "success"}},
+                    start_ts=self.ten_mins_ago,
+                ),
+                self.create_span(
+                    {"description": "bar", "sentry_tags": {"status": "invalid_argument"}},
+                    start_ts=self.ten_mins_ago,
+                ),
+            ],
+            is_eap=self.is_eap,
+        )
+        response = self.do_request(
+            {
+                "field": ["span.duration", "description", "count()"],
+                "query": "",
+                "orderby": "description",
+                "project": self.project.id,
+                "dataset": self.dataset,
+            }
+        )
+
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+        meta = response.data["meta"]
+        assert len(data) == 2
+        assert data == [
+            {
+                "span.duration": 1000,
+                "description": "bar",
+                "count()": 1,
+            },
+            {
+                "span.duration": 1000,
+                "description": "foo",
+                "count()": 1,
+            },
+        ]
+        assert meta["dataset"] == self.dataset
+
+    def test_extrapolation_smoke(self):
+        """This is a hack, we just want to make sure nothing errors from using the weighted functions"""
+        for function in [
+            "count_weighted()",
+            "sum_weighted(span.duration)",
+            "avg_weighted(span.duration)",
+            "percentile_weighted(span.duration, 0.23)",
+            "p50_weighted()",
+            "p75_weighted()",
+            "p90_weighted()",
+            "p95_weighted()",
+            "p99_weighted()",
+            "p100_weighted()",
+            "min_weighted(span.duration)",
+            "max_weighted(span.duration)",
+        ]:
+            response = self.do_request(
+                {
+                    "field": ["description", function],
+                    "query": "",
+                    "orderby": "description",
+                    "project": self.project.id,
+                    "dataset": self.dataset,
+                }
+            )
+
+            assert response.status_code == 200, f"error: {response.content}\naggregate: {function}"

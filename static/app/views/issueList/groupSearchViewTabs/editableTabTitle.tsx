@@ -21,6 +21,10 @@ function EditableTabTitle({
 }: EditableTabTitleProps) {
   const [inputValue, setInputValue] = useState(label);
 
+  useEffect(() => {
+    setInputValue(label);
+  }, [label]);
+
   const theme = useTheme();
   const inputRef = useRef<HTMLInputElement>(null);
   const isEmpty = !inputValue.trim();
@@ -95,8 +99,7 @@ const StyledGrowingInput = styled(GrowingInput)<{isSelected: boolean}>`
   min-height: 0px;
   height: 20px;
   border-radius: 0px;
-
-  cursor: ${p => (p.isSelected ? 'auto' : 'pointer')};
+  cursor: pointer;
 
   &,
   &:focus,

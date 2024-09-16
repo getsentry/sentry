@@ -838,8 +838,6 @@ def get_default_comparators() -> dict[str, list[JSONScrubbingComparator]]:
             ],
             "sentry.sentryappinstallation": [DateUpdatedComparator("date_updated")],
             "sentry.servicehook": [HashObfuscatingComparator("secret")],
-            "sentry.spanattributeextractionruleconfig": [DateUpdatedComparator("date_updated")],
-            "sentry.spanattributeextractionrulecondition": [DateUpdatedComparator("date_updated")],
             "sentry.team": [
                 # TODO(getsentry/sentry#66247): Remove once self-hosted 24.4.0 is released.
                 IgnoredComparator("org_role"),
@@ -867,6 +865,13 @@ def get_default_comparators() -> dict[str, list[JSONScrubbingComparator]]:
             ],
             "sentry.userrole": [DateUpdatedComparator("date_updated")],
             "sentry.userroleuser": [DateUpdatedComparator("date_updated")],
+            "workflow_engine.datasource": [DateUpdatedComparator("date_updated", "date_added")],
+            "workflow_engine.datasourcedetector": [
+                DateUpdatedComparator("date_updated", "date_added")
+            ],
+            "workflow_engine.detector": [DateUpdatedComparator("date_updated", "date_added")],
+            "workflow_engine.workflow": [DateUpdatedComparator("date_updated", "date_added")],
+            "workflow_engine.workflowaction": [DateUpdatedComparator("date_updated", "date_added")],
         },
     )
 

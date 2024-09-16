@@ -5,6 +5,7 @@ from django.db.models import Q
 import sentry.hybridcloud.rpc.caching as caching_module
 from sentry.backup.dependencies import NormalizedModelName, dependencies, get_model_name
 from sentry.db.models.base import Model
+from sentry.deletions.tasks.hybrid_cloud import schedule_hybrid_cloud_foreign_key_jobs
 from sentry.incidents.models.alert_rule import AlertRule, AlertRuleActivity
 from sentry.incidents.models.incident import IncidentActivity, IncidentSubscription
 from sentry.models.activity import Activity
@@ -28,15 +29,9 @@ from sentry.models.rulesnooze import RuleSnooze
 from sentry.models.savedsearch import SavedSearch
 from sentry.models.tombstone import RegionTombstone
 from sentry.monitors.models import Monitor
-from sentry.sentry_metrics.models import (
-    SpanAttributeExtractionRuleCondition,
-    SpanAttributeExtractionRuleConfig,
-)
 from sentry.silo.base import SiloMode
-from sentry.tasks.deletion.hybrid_cloud import schedule_hybrid_cloud_foreign_key_jobs
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.backups import BackupTestCase
-from sentry.testutils.helpers.options import override_options
 from sentry.testutils.hybrid_cloud import HybridCloudTestMixin
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import assume_test_silo_mode, assume_test_silo_mode_of, control_silo_test
@@ -77,7 +72,6 @@ class UserHybridCloudDeletionTest(TestCase):
     def get_user_saved_search_count(self) -> int:
         return SavedSearch.objects.filter(owner_id=self.user_id).count()
 
-    @override_options({"hybrid_cloud.allow_cross_db_tombstones": True})
     def test_simple(self):
         assert not self.user_tombstone_exists(user_id=self.user_id)
         with outbox_runner():
@@ -94,7 +88,6 @@ class UserHybridCloudDeletionTest(TestCase):
         # Ensure they are all now gone.
         assert self.get_user_saved_search_count() == 0
 
-    @override_options({"hybrid_cloud.allow_cross_db_tombstones": True})
     def test_unrelated_saved_search_is_not_deleted(self):
         another_user = self.create_user()
         self.create_member(user=another_user, organization=self.organization)
@@ -110,7 +103,6 @@ class UserHybridCloudDeletionTest(TestCase):
         with assume_test_silo_mode(SiloMode.REGION):
             assert SavedSearch.objects.filter(owner_id=another_user.id).exists()
 
-    @override_options({"hybrid_cloud.allow_cross_db_tombstones": True})
     def test_cascades_to_multiple_regions(self):
         eu_org = self.create_organization(region=_TEST_REGIONS[1])
         self.create_member(user=self.user, organization=eu_org)
@@ -124,7 +116,6 @@ class UserHybridCloudDeletionTest(TestCase):
             schedule_hybrid_cloud_foreign_key_jobs()
         assert self.get_user_saved_search_count() == 0
 
-    @override_options({"hybrid_cloud.allow_cross_db_tombstones": True})
     def test_deletions_create_tombstones_in_regions_for_user_with_no_orgs(self):
         # Create a user with no org memberships
         user_to_delete = self.create_user("foo@example.com")
@@ -134,7 +125,6 @@ class UserHybridCloudDeletionTest(TestCase):
 
         assert self.user_tombstone_exists(user_id=user_id)
 
-    @override_options({"hybrid_cloud.allow_cross_db_tombstones": True})
     def test_cascades_to_regions_even_if_user_ownership_revoked(self):
         eu_org = self.create_organization(region=_TEST_REGIONS[1])
         self.create_member(user=self.user, organization=eu_org)
@@ -353,8 +343,6 @@ class UserMergeToTest(BackupTestCase, HybridCloudTestMixin):
         RuleActivity,
         RuleSnooze,
         SavedSearch,
-        SpanAttributeExtractionRuleCondition,
-        SpanAttributeExtractionRuleConfig,
     )
     def test_only_source_user_is_member_of_organization(self, expected_models: list[type[Model]]):
         from_user = self.create_exhaustive_user("foo@example.com")
@@ -395,8 +383,6 @@ class UserMergeToTest(BackupTestCase, HybridCloudTestMixin):
         RuleActivity,
         RuleSnooze,
         SavedSearch,
-        SpanAttributeExtractionRuleCondition,
-        SpanAttributeExtractionRuleConfig,
     )
     def test_both_users_are_members_of_organization(self, expected_models: list[type[Model]]):
         from_user = self.create_exhaustive_user("foo@example.com")

@@ -8,7 +8,6 @@ from typing import TYPE_CHECKING, TypedDict
 import sentry_sdk
 
 from sentry import options
-from sentry.db.models.fields.node import NodeData
 from sentry.grouping.component import GroupingComponent
 from sentry.grouping.enhancer import LATEST_VERSION, Enhancements
 from sentry.grouping.enhancer.exceptions import InvalidEnhancerConfig
@@ -22,7 +21,6 @@ from sentry.grouping.utils import (
     resolve_fingerprint_values,
 )
 from sentry.grouping.variants import (
-    HIERARCHICAL_VARIANTS,
     BaseVariant,
     BuiltInFingerprintVariant,
     ChecksumVariant,
@@ -33,7 +31,6 @@ from sentry.grouping.variants import (
     SaltedComponentVariant,
 )
 from sentry.models.grouphash import GroupHash
-from sentry.utils.safe import get_path
 
 if TYPE_CHECKING:
     from sentry.eventstore.models import Event
@@ -42,25 +39,6 @@ if TYPE_CHECKING:
     from sentry.models.project import Project
 
 HASH_RE = re.compile(r"^[0-9a-f]{32}$")
-
-# Synthetic exceptions should be marked by the SDK, but
-# are also detected here as a fallback
-_synthetic_exception_type_re = re.compile(
-    r"""
-    ^
-    (
-        EXC_ |
-        EXCEPTION_ |
-        SIG |
-        KERN_ |
-        ILL_
-
-    # e.g. "EXC_BAD_ACCESS / 0x00000032"
-    ) [A-Z0-9_ /x]+
-    $
-    """,
-    re.X,
-)
 
 
 @dataclass
@@ -318,6 +296,7 @@ def _get_calculated_grouping_variants_for_event(
     return rv
 
 
+# This is called by the Event model in get_grouping_variants()
 def get_grouping_variants_for_event(
     event: Event, config: StrategyConfiguration | None = None
 ) -> dict[str, BaseVariant]:
@@ -395,45 +374,16 @@ def get_grouping_variants_for_event(
     return rv
 
 
-def sort_grouping_variants(variants: dict[str, BaseVariant]) -> tuple[KeyedVariants, KeyedVariants]:
-    """Sort a sequence of variants into flat and hierarchical variants"""
+def sort_grouping_variants(variants: dict[str, BaseVariant]) -> KeyedVariants:
+    """Sort a sequence of variants into flat variants"""
 
     flat_variants = []
-    hierarchical_variants = []
 
     for name, variant in variants.items():
-        if name in HIERARCHICAL_VARIANTS:
-            hierarchical_variants.append((name, variant))
-        else:
-            flat_variants.append((name, variant))
+        flat_variants.append((name, variant))
 
     # Sort system variant to the back of the list to resolve ambiguities when
     # choosing primary_hash for Snuba
     flat_variants.sort(key=lambda name_and_variant: 1 if name_and_variant[0] == "system" else 0)
 
-    # Sort hierarchical_variants by order defined in HIERARCHICAL_VARIANTS
-    hierarchical_variants.sort(
-        key=lambda name_and_variant: HIERARCHICAL_VARIANTS.index(name_and_variant[0])
-    )
-
-    return flat_variants, hierarchical_variants
-
-
-def detect_synthetic_exception(event_data: NodeData, loaded_grouping_config: StrategyConfiguration):
-    """Detect synthetic exception and write marker to event data
-
-    This only runs if detect_synthetic_exception_types is True, so
-    it is effectively only enabled for grouping strategy mobile:2021-04-02.
-
-    """
-    should_detect = loaded_grouping_config.initial_context["detect_synthetic_exception_types"]
-    if not should_detect:
-        return
-
-    for exception in get_path(event_data, "exception", "values", filter=True, default=[]):
-        mechanism = get_path(exception, "mechanism")
-        # Only detect if undecided:
-        if mechanism is not None and mechanism.get("synthetic") is None:
-            exception_type = exception.get("type")
-            if exception_type and _synthetic_exception_type_re.match(exception_type):
-                mechanism["synthetic"] = True
+    return flat_variants

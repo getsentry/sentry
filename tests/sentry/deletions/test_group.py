@@ -1,21 +1,22 @@
+from time import time
 from unittest import mock
 from uuid import uuid4
 
 from sentry import nodestore
 from sentry.deletions.defaults.group import EventDataDeletionTask
+from sentry.deletions.tasks.groups import delete_groups
 from sentry.eventstore.models import Event
 from sentry.models.eventattachment import EventAttachment
 from sentry.models.files.file import File
 from sentry.models.group import Group
 from sentry.models.groupassignee import GroupAssignee
 from sentry.models.grouphash import GroupHash
+from sentry.models.grouphistory import GroupHistory, GroupHistoryStatus
 from sentry.models.groupmeta import GroupMeta
 from sentry.models.groupredirect import GroupRedirect
 from sentry.models.userreport import UserReport
-from sentry.tasks.deletion.groups import delete_groups
 from sentry.testutils.cases import SnubaTestCase, TestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
-from sentry.testutils.helpers.features import with_feature
 
 
 class DeleteGroupTest(TestCase, SnubaTestCase):
@@ -125,6 +126,39 @@ class DeleteGroupTest(TestCase, SnubaTestCase):
         assert Group.objects.filter(id=self.keep_event.group_id).exists()
         assert nodestore.backend.get(keep_node_id)
 
+    def test_grouphistory_relation(self):
+        other_event = self.store_event(
+            data={
+                "event_id": "d" * 32,
+                "timestamp": iso_format(before_now(minutes=1)),
+                "fingerprint": ["group3"],
+            },
+            project_id=self.project.id,
+        )
+        other_group = other_event.group
+        group = self.event.group
+        history_one = self.create_group_history(group=group, status=GroupHistoryStatus.ONGOING)
+        history_two = self.create_group_history(
+            group=group,
+            status=GroupHistoryStatus.RESOLVED,
+            prev_history=history_one,
+        )
+        other_history_one = self.create_group_history(
+            group=other_group, status=GroupHistoryStatus.ONGOING
+        )
+        other_history_two = self.create_group_history(
+            group=other_group,
+            status=GroupHistoryStatus.RESOLVED,
+            prev_history=other_history_one,
+        )
+        with self.tasks():
+            delete_groups(object_ids=[group.id, other_group.id])
+
+        assert GroupHistory.objects.filter(id=history_one.id).exists() is False
+        assert GroupHistory.objects.filter(id=history_two.id).exists() is False
+        assert GroupHistory.objects.filter(id=other_history_one.id).exists() is False
+        assert GroupHistory.objects.filter(id=other_history_two.id).exists() is False
+
     @mock.patch("os.environ.get")
     @mock.patch("sentry.nodestore.delete_multi")
     def test_cleanup(self, nodestore_delete_multi, os_environ):
@@ -136,13 +170,13 @@ class DeleteGroupTest(TestCase, SnubaTestCase):
 
         assert nodestore_delete_multi.call_count == 0
 
-    @with_feature("projects:similarity-embeddings-grouping")
     @mock.patch(
         "sentry.tasks.delete_seer_grouping_records.delete_seer_grouping_records_by_hash.apply_async"
     )
     def test_delete_groups_delete_grouping_records_by_hash(
         self, mock_delete_seer_grouping_records_by_hash_apply_async
     ):
+        self.project.update_option("sentry:similarity_backfill_completed", int(time()))
         other_event = self.store_event(
             data={
                 "event_id": "d" * 32,

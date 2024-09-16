@@ -200,7 +200,11 @@ export function PageOverview() {
                 <SubregionSelector />
               </TopMenuContainer>
               <Flex>
-                <PerformanceScoreBreakdownChart transaction={transaction} />
+                <PerformanceScoreBreakdownChart
+                  transaction={transaction}
+                  browserTypes={browserTypes}
+                  subregions={subregions}
+                />
               </Flex>
               <WebVitalMetersContainer>
                 <WebVitalMeters
@@ -280,5 +284,5 @@ const PageSamplePerformanceTableContainer = styled('div')`
 `;
 
 const WebVitalMetersContainer = styled('div')`
-  margin: ${space(2)} 0 ${space(4)} 0;
+  margin: ${space(2)} 0;
 `;

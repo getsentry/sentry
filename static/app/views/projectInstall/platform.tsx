@@ -1,4 +1,4 @@
-import {Fragment, useCallback, useContext, useEffect, useMemo, useState} from 'react';
+import {Fragment, useCallback, useContext, useEffect, useMemo} from 'react';
 import styled from '@emotion/styled';
 import type {LocationDescriptorObject} from 'history';
 import omit from 'lodash/omit';
@@ -13,10 +13,7 @@ import {SdkDocumentation} from 'sentry/components/onboarding/gettingStartedDoc/s
 import type {ProductSolution} from 'sentry/components/onboarding/productSelection';
 import {platformProductAvailability} from 'sentry/components/onboarding/productSelection';
 import {setPageFiltersStorage} from 'sentry/components/organizations/pageFilters/persistence';
-import {
-  performance as performancePlatforms,
-  replayPlatforms,
-} from 'sentry/data/platformCategories';
+import {performance as performancePlatforms} from 'sentry/data/platformCategories';
 import type {Platform} from 'sentry/data/platformPickerCategories';
 import platforms from 'sentry/data/platforms';
 import {t} from 'sentry/locale';
@@ -61,11 +58,7 @@ export function ProjectInstallPlatform({
   const gettingStartedWithProjectContext = useContext(GettingStartedWithProjectContext);
 
   const isSelfHosted = ConfigStore.get('isSelfHosted');
-  const isSelfHostedErrorsOnly = ConfigStore.get('isSelfHostedErrorsOnly');
-
-  const [showLoaderOnboarding, setShowLoaderOnboarding] = useState(
-    currentPlatform?.id === 'javascript'
-  );
+  const showLoaderOnboarding = location.query.showLoader === 'true';
 
   const products = useMemo(
     () => decodeList(location.query.product ?? []) as ProductSolution[],
@@ -83,10 +76,6 @@ export function ProjectInstallPlatform({
       staleTime: 0,
     }
   );
-
-  useEffect(() => {
-    setShowLoaderOnboarding(currentPlatform?.id === 'javascript');
-  }, [currentPlatform?.id]);
 
   useEffect(() => {
     if (!project || projectAlertRulesIsLoading || projectAlertRulesIsError) {
@@ -131,20 +120,6 @@ export function ProjectInstallPlatform({
     link: currentPlatform?.link,
   };
 
-  const hideLoaderOnboarding = useCallback(() => {
-    setShowLoaderOnboarding(false);
-
-    if (!project?.id || !currentPlatform) {
-      return;
-    }
-
-    trackAnalytics('onboarding.js_loader_npm_docs_shown', {
-      organization,
-      platform: currentPlatform.id,
-      project_id: project?.id,
-    });
-  }, [organization, currentPlatform, project?.id]);
-
   const redirectWithProjectSelection = useCallback(
     (to: LocationDescriptorObject) => {
       if (!project?.id) {
@@ -181,10 +156,7 @@ export function ProjectInstallPlatform({
   }
 
   const issueStreamLink = `/organizations/${organization.slug}/issues/`;
-  const performanceOverviewLink = `/organizations/${organization.slug}/performance/`;
-  const replayLink = `/organizations/${organization.slug}/replays/`;
   const showPerformancePrompt = performancePlatforms.includes(platform.id as PlatformKey);
-  const showReplayButton = replayPlatforms.includes(platform.id as PlatformKey);
   const isGettingStarted = window.location.href.indexOf('getting-started') > 0;
   const showDocsWithProductSelection =
     (platformProductAvailability[platform.key] ?? []).length > 0;
@@ -206,7 +178,6 @@ export function ProjectInstallPlatform({
           project={project}
           location={location}
           platform={currentPlatform.id}
-          close={hideLoaderOnboarding}
         />
       ) : (
         <SdkDocumentation
@@ -242,6 +213,11 @@ export function ProjectInstallPlatform({
             priority="primary"
             busy={loading}
             onClick={() => {
+              trackAnalytics('onboarding.take_me_to_issues_clicked', {
+                organization,
+                platform: platform.name ?? 'unknown',
+                project_id: project.id,
+              });
               redirectWithProjectSelection({
                 pathname: issueStreamLink,
                 hash: '#welcome',
@@ -250,30 +226,6 @@ export function ProjectInstallPlatform({
           >
             {t('Take me to Issues')}
           </Button>
-          {!isSelfHostedErrorsOnly && (
-            <Button
-              busy={loading}
-              onClick={() => {
-                redirectWithProjectSelection({
-                  pathname: performanceOverviewLink,
-                });
-              }}
-            >
-              {t('Take me to Performance')}
-            </Button>
-          )}
-          {!isSelfHostedErrorsOnly && showReplayButton && (
-            <Button
-              busy={loading}
-              onClick={() => {
-                redirectWithProjectSelection({
-                  pathname: replayLink,
-                });
-              }}
-            >
-              {t('Take me to Session Replay')}
-            </Button>
-          )}
         </StyledButtonBar>
       </div>
     </Fragment>

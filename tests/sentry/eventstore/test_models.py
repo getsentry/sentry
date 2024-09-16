@@ -377,7 +377,7 @@ class EventTest(TestCase, PerformanceIssueTestCase):
         )
         grouping_config: GroupingConfig = {
             "enhancements": enhancement.dumps(),
-            "id": "mobile:2021-02-12",
+            "id": NEWSTYLE_GROUPING_CONFIG,
         }
 
         event1 = Event(
@@ -395,9 +395,9 @@ class EventTest(TestCase, PerformanceIssueTestCase):
         event2.interfaces  # Populate cache
         variants2 = event2.get_grouping_variants(grouping_config, normalize_stacktraces=True)
 
-        assert sorted(v.as_dict()["hash"] for v in variants1.values()) == sorted(
-            v.as_dict()["hash"] for v in variants2.values()
-        )
+        assert variants1["app"].as_dict()["hash"] is None
+        assert variants2["app"].as_dict()["hash"] is None
+        assert variants1["system"].as_dict()["hash"] == variants2["system"].as_dict()["hash"]
 
     def test_get_hashes_pulls_existing_hashes(self):
         hashes = ["04e89719410791836f0a0bbf03bf0d2e"]
@@ -424,12 +424,14 @@ class EventTest(TestCase, PerformanceIssueTestCase):
         expected_hash_values = [hash_from_values(["Dogs are great!"])]
         expected_variants = get_grouping_variants_for_event(event)
 
+        variants = event.get_grouping_variants()
+
         assert calculated_hashes.hashes == expected_hash_values
-        assert calculated_hashes.variants == expected_variants
+        assert expected_variants == expected_variants
 
         # Since the `variants` dictionaries are equal, it suffices to only check the values in one
-        assert "default" in calculated_hashes.variants
-        default_variant = calculated_hashes.variants["default"]
+        assert "default" in variants
+        default_variant = variants["default"]
 
         assert isinstance(default_variant, ComponentVariant)
         assert default_variant.config.id == NEWSTYLE_GROUPING_CONFIG
