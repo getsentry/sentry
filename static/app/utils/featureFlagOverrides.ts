@@ -138,7 +138,7 @@ export default class FeatureFlagOverrides {
         }
 
         // Check if the flag is already in the buffer
-        const index = FEATURE_FLAGS.values.findIndex(f => f.flag === flagName);
+        const index = FEATURE_FLAGS.values.findIndex(f => f.flag === flagName[0]);
 
         // The flag is already in the buffer
         if (index !== -1) {
@@ -147,7 +147,7 @@ export default class FeatureFlagOverrides {
 
         // Store the flag and its result in the buffer
         FEATURE_FLAGS.values.push({
-          flag: flagName,
+          flag: flagName[0],
           result: flagResult,
         });
 
