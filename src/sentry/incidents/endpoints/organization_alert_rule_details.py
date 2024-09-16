@@ -25,6 +25,7 @@ from sentry.incidents.endpoints.serializers.alert_rule import (
 )
 from sentry.incidents.logic import (
     AlreadyDeletedError,
+    SeerFailureError,
     delete_alert_rule,
     get_slack_actions_with_async_lookups,
 )
@@ -109,6 +110,11 @@ def remove_alert_rule(request: Request, organization, alert_rule):
         return Response(status=status.HTTP_204_NO_CONTENT)
     except AlreadyDeletedError:
         return Response("This rule has already been deleted", status=status.HTTP_400_BAD_REQUEST)
+    except SeerFailureError:
+        return Response(
+            "Something went wrong when deleting rule data in Seer",
+            status=status.HTTP_400_BAD_REQUEST,
+        )
 
 
 @extend_schema_serializer(exclude_fields=["excludedProjects", "thresholdPeriod"])

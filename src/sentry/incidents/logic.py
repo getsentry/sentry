@@ -70,6 +70,7 @@ from sentry.search.events.constants import (
     SPANS_METRICS_FUNCTIONS,
 )
 from sentry.search.events.fields import is_function, resolve_field
+from sentry.seer.anomaly_detection.delete_rule import delete_rule_in_seer
 from sentry.seer.anomaly_detection.store_data import send_historical_data_to_seer
 from sentry.sentry_apps.services.app import RpcSentryAppInstallation, app_service
 from sentry.shared_integrations.exceptions import (
@@ -129,6 +130,10 @@ logger = logging.getLogger(__name__)
 
 
 class AlreadyDeletedError(Exception):
+    pass
+
+
+class SeerFailureError(Exception):
     pass
 
 
@@ -1115,6 +1120,13 @@ def delete_alert_rule(
                 data=alert_rule.get_audit_log_data(),
                 event=audit_log.get_event_id("ALERT_RULE_REMOVE"),
             )
+
+        if alert_rule.detection_type == AlertRuleDetectionType.DYNAMIC:
+            success = delete_rule_in_seer(
+                alert_rule=alert_rule, project=alert_rule.projects.first()
+            )
+            if not success:
+                raise SeerFailureError()
 
         subscriptions = _unpack_snuba_query(alert_rule).subscriptions.all()
         bulk_delete_snuba_subscriptions(subscriptions)
