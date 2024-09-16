@@ -6,6 +6,7 @@ import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {space} from 'sentry/styles/space';
 import {SQLishFormatter} from 'sentry/utils/sqlish/SQLishFormatter';
 import {useFullSpanFromTrace} from 'sentry/views/insights/common/queries/useFullSpanFromTrace';
+import {isValidJson} from 'sentry/views/insights/database/utils/isValidJson';
 import {ModuleName} from 'sentry/views/insights/types';
 
 const formatter = new SQLishFormatter();
@@ -51,15 +52,20 @@ export function FullSpanDescription({
 
   if (moduleName === ModuleName.DB) {
     if (system === 'mongodb') {
-      return (
-        <CodeSnippet language="json">
-          {JSON.stringify(
-            JSON.parse(fullSpan?.sentry_tags?.description ?? fullSpan?.description ?? ''),
-            null,
-            4
-          ) ?? ''}
-        </CodeSnippet>
-      );
+      let stringifiedQuery = '';
+
+      if (isValidJson(description)) {
+        stringifiedQuery = prettyPrintJsonString(description);
+      } else if (
+        fullSpan?.sentry_tags &&
+        isValidJson(fullSpan?.sentry_tags?.description)
+      ) {
+        stringifiedQuery = prettyPrintJsonString(fullSpan?.sentry_tags?.description);
+      } else {
+        stringifiedQuery = description || fullSpan?.sentry_tags?.description || 'N/A';
+      }
+
+      return <CodeSnippet language="json">{stringifiedQuery}</CodeSnippet>;
     }
 
     return (
@@ -77,6 +83,10 @@ export function FullSpanDescription({
 }
 
 const LINE_LENGTH = 60;
+
+function prettyPrintJsonString(json: string) {
+  return JSON.stringify(JSON.parse(json), null, 4);
+}
 
 const PaddedSpinner = styled('div')`
   padding: 0 ${space(0.5)};
