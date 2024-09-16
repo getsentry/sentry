@@ -1,14 +1,21 @@
 from enum import Enum
-from typing import TypedDict
+from typing import NotRequired, TypedDict
 
 
-class AlertInSeer(TypedDict):
-    id: int
+class Anomaly(TypedDict):
+    anomaly_type: str
+    anomaly_score: float
 
 
 class TimeSeriesPoint(TypedDict):
     timestamp: float
     value: float
+    anomaly: NotRequired[Anomaly]
+
+
+class AlertInSeer(TypedDict):
+    id: int
+    cur_window: NotRequired[TimeSeriesPoint]
 
 
 class AnomalyDetectionConfig(TypedDict):
@@ -24,6 +31,13 @@ class StoreDataRequest(TypedDict):
     alert: AlertInSeer
     config: AnomalyDetectionConfig
     timeseries: list[TimeSeriesPoint]
+
+
+class DetectAnomaliesRequest(TypedDict):
+    organization_id: int
+    project_id: int
+    config: AnomalyDetectionConfig
+    context: AlertInSeer | list[TimeSeriesPoint]
 
 
 class AnomalyType(Enum):

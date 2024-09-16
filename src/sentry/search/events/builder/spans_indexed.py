@@ -4,7 +4,10 @@ from snuba_sdk import Column, Function
 from sentry.search.events import constants
 from sentry.search.events.builder.base import BaseQueryBuilder
 from sentry.search.events.builder.discover import TimeseriesQueryBuilder, TopEventsQueryBuilder
-from sentry.search.events.datasets.spans_indexed import SpansIndexedDatasetConfig
+from sentry.search.events.datasets.spans_indexed import (
+    SpansEAPDatasetConfig,
+    SpansIndexedDatasetConfig,
+)
 from sentry.search.events.fields import custom_time_processor
 from sentry.search.events.types import SelectType
 from sentry.snuba.dataset import Dataset
@@ -60,7 +63,7 @@ class SpansEAPQueryBuilder(SpansIndexedQueryBuilderMixin, BaseQueryBuilder):
     requires_organization_condition = True
     uuid_fields = SPAN_UUID_FIELDS
     span_id_fields = SPAN_ID_FIELDS
-    config_class = SpansIndexedDatasetConfig
+    config_class = SpansEAPDatasetConfig
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -83,6 +86,10 @@ class TimeseriesSpanIndexedQueryBuilder(SpansIndexedQueryBuilderMixin, Timeserie
         )
 
 
+class TimeseriesSpanEAPIndexedQueryBuilder(SpansEAPQueryBuilder, TimeseriesQueryBuilder):
+    pass
+
+
 class TopEventsSpanIndexedQueryBuilder(SpansIndexedQueryBuilderMixin, TopEventsQueryBuilder):
     config_class = SpansIndexedDatasetConfig
     uuid_fields = SPAN_UUID_FIELDS
@@ -93,3 +100,7 @@ class TopEventsSpanIndexedQueryBuilder(SpansIndexedQueryBuilderMixin, TopEventsQ
         return custom_time_processor(
             self.interval, Function("toUInt32", [Column("start_timestamp")])
         )
+
+
+class TopEventsSpanEAPQueryBuilder(SpansEAPQueryBuilder, TopEventsQueryBuilder):
+    pass

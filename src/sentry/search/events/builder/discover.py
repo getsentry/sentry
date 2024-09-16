@@ -129,6 +129,11 @@ class DiscoverQueryBuilder(BaseQueryBuilder):
             name = f"tags[{name}]"
 
         if name in constants.TIMESTAMP_FIELDS:
+            if not self.start or not self.end:
+                raise InvalidSearchQuery(
+                    f"Cannot query the {name} field without a valid date range"
+                )
+
             if (
                 operator in ["<", "<="]
                 and value < self.start
@@ -216,7 +221,7 @@ class TimeseriesQueryBuilder(UnresolvedQuery):
 
     def get_snql_query(self) -> Request:
         return Request(
-            dataset=self.dataset.value,
+            dataset=self._get_dataset_name(),
             app_id="default",
             query=Query(
                 match=Entity(self.dataset.value),

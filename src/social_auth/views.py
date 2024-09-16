@@ -24,7 +24,7 @@ ASSOCIATE_ERROR_URL = setting("SOCIAL_AUTH_ASSOCIATE_ERROR_URL")
 PIPELINE_KEY = setting("SOCIAL_AUTH_PARTIAL_PIPELINE_KEY", "partial_pipeline")
 
 
-@dsa_view(setting("SOCIAL_AUTH_COMPLETE_URL_NAME", "socialauth_associate_complete"))
+@dsa_view(setting("SOCIAL_AUTH_COMPLETE_URL_NAME", "socialauth_associate_complete_auth_sso"))
 def auth(request, backend):
     """Authenticate using social backend"""
     data = request.POST if request.method == "POST" else request.GET

@@ -1,5 +1,4 @@
 import {Component} from 'react';
-import type {InjectedRouter} from 'react-router';
 import type {
   DataZoomComponentOption,
   ECharts,
@@ -21,6 +20,7 @@ import type {
   EChartFinishedHandler,
   EChartRestoreHandler,
 } from 'sentry/types/echarts';
+import type {InjectedRouter} from 'sentry/types/legacyReactRouter';
 import {getUtcDateString, getUtcToLocalDateObject} from 'sentry/utils/dates';
 
 const getDate = date =>
@@ -108,7 +108,7 @@ class ChartZoom extends Component<Props> {
   }
 
   chart?: ECharts;
-  $chart?: HTMLDivElement;
+  $chart?: HTMLElement;
   isCancellingZoom?: boolean;
   history: Period[];
   currentPeriod?: Period;
@@ -194,15 +194,11 @@ class ChartZoom extends Component<Props> {
   /**
    * Enable zoom immediately instead of having to toggle to zoom
    */
-  handleChartReady = chart => {
+  handleChartReady = (chart: ECharts) => {
     this.props.onChartReady?.(chart);
 
-    // The DOM element is also available via chart._dom but TypeScript hates that, since
-    // _dom is technically private. Instead, use `querySelector` to get the element
     this.chart = chart;
-    this.$chart = document.querySelector(
-      `div[_echarts_instance_="${chart.id}"]`
-    ) as HTMLDivElement;
+    this.$chart = chart.getDom();
 
     this.$chart.addEventListener('mousedown', this.handleMouseDown);
   };

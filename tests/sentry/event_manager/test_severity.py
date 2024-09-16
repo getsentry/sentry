@@ -68,7 +68,7 @@ class TestGetEventSeverity(TestCase):
 
         mock_urlopen.assert_called_with(
             "POST",
-            "/v0/issues/severity-score",
+            "/v0/issues/severity-score?",
             body=orjson.dumps(payload),
             headers={"content-type": "application/json;charset=utf-8"},
             timeout=0.2,
@@ -83,7 +83,7 @@ class TestGetEventSeverity(TestCase):
             _get_severity_score(event)
             mock_urlopen.assert_called_with(
                 "POST",
-                "/v0/issues/severity-score",
+                "/v0/issues/severity-score?",
                 body=orjson.dumps(payload),
                 headers={
                     "content-type": "application/json;charset=utf-8",
@@ -119,7 +119,7 @@ class TestGetEventSeverity(TestCase):
 
             mock_urlopen.assert_called_with(
                 "POST",
-                "/v0/issues/severity-score",
+                "/v0/issues/severity-score?",
                 body=orjson.dumps(payload),
                 headers={"content-type": "application/json;charset=utf-8"},
                 timeout=0.2,
@@ -424,7 +424,7 @@ class TestEventManagerSeverity(TestCase):
 
     @patch("sentry.event_manager._get_severity_score")
     def test_killswitch_on(self, mock_get_severity_score: MagicMock):
-        options.set("issues.skip-seer-requests", [self.project.id])
+        options.set("issues.severity.skip-seer-requests", [self.project.id])
         event = EventManager(
             make_event(
                 exception={"values": [{"type": "NopeError", "value": "Nopey McNopeface"}]},

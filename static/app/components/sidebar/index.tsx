@@ -525,6 +525,9 @@ function Sidebar() {
       to={metricsPath}
       search={location?.pathname === normalizeUrl(metricsPath) ? location.search : ''}
       id="metrics"
+      badgeTitle={t(
+        'The Metrics beta will end and we will retire the current solution on October 7th, 2024'
+      )}
       isBeta
     />
   );
@@ -865,6 +868,11 @@ const PrimaryItems = styled('div')`
   flex-direction: column;
   gap: 1px;
   -ms-overflow-style: -ms-autohiding-scrollbar;
+
+  scrollbar-color: ${p => p.theme.sidebar.scrollbarThumbColor}
+    ${p => p.theme.sidebar.scrollbarColorTrack};
+  scrollbar-width: ${p => p.theme.sidebar.scrollbarWidth};
+
   @media (max-height: 675px) and (min-width: ${p => p.theme.breakpoints.medium}) {
     border-bottom: 1px solid ${p => p.theme.sidebarBorder};
     padding-bottom: ${space(1)};
