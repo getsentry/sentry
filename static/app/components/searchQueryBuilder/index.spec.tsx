@@ -2139,6 +2139,17 @@ describe('SearchQueryBuilder', function () {
         expect(await screen.findByRole('row', {name: 'age:+24h'})).toBeInTheDocument();
       });
 
+      it('can type relative date shorthand (7d)', async function () {
+        render(<SearchQueryBuilder {...defaultProps} initialQuery="age:-24h" />);
+        await userEvent.click(
+          screen.getByRole('button', {name: 'Edit value for filter: age'})
+        );
+
+        await userEvent.keyboard('7d{Enter}');
+
+        expect(await screen.findByRole('row', {name: 'age:-7d'})).toBeInTheDocument();
+      });
+
       it('switches to an absolute date when choosing operator with equality', async function () {
         render(<SearchQueryBuilder {...defaultProps} initialQuery="age:-24h" />);
         await userEvent.click(

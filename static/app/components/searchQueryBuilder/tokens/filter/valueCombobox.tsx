@@ -95,7 +95,7 @@ function prepareInputValueForSaving(valueType: FieldValueType, inputValue: strin
   const values = uniq(
     inputValue
       .split(',')
-      .map(v => cleanFilterValue(valueType, v.trim()))
+      .map(v => cleanFilterValue({valueType, value: v.trim()}))
       .filter(v => v && v.length > 0)
   );
 
@@ -536,10 +536,11 @@ export function SearchQueryBuilderValueCombobox({
 
   const updateFilterValue = useCallback(
     (value: string) => {
-      const cleanedValue = cleanFilterValue(
-        getFilterValueType(token, fieldDefinition),
-        value
-      );
+      const cleanedValue = cleanFilterValue({
+        valueType: getFilterValueType(token, fieldDefinition),
+        value,
+        token,
+      });
 
       // TODO(malwilley): Add visual feedback for invalid values
       if (cleanedValue === null) {
