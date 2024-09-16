@@ -7,6 +7,8 @@ import {space} from 'sentry/styles/space';
 import {SQLishFormatter} from 'sentry/utils/sqlish/SQLishFormatter';
 import {FullSpanDescription} from 'sentry/views/insights/common/components/fullSpanDescription';
 import {SpanGroupDetailsLink} from 'sentry/views/insights/common/components/spanGroupDetailsLink';
+import {SupportedDatabaseSystem} from 'sentry/views/insights/database/utils/constants';
+import {formatMongoDBQuery} from 'sentry/views/insights/database/utils/formatMongoDBQuery';
 import {ModuleName, SpanMetricsField} from 'sentry/views/insights/types';
 
 const formatter = new SQLishFormatter();
@@ -17,9 +19,11 @@ interface Props {
   description: string;
   moduleName: ModuleName.DB | ModuleName.RESOURCE;
   projectId: number;
-  extraLinkQueryParams?: Record<string, string>; // extra query params to add to the link
+  extraLinkQueryParams?: Record<string, string>;
   group?: string;
+  spanAction?: string;
   spanOp?: string;
+  system?: string;
 }
 
 export function SpanDescriptionCell({
@@ -28,6 +32,8 @@ export function SpanDescriptionCell({
   moduleName,
   spanOp,
   projectId,
+  system,
+  spanAction,
   extraLinkQueryParams,
 }: Props) {
   const formatterDescription = useMemo(() => {
@@ -35,8 +41,12 @@ export function SpanDescriptionCell({
       return rawDescription;
     }
 
+    if (system === SupportedDatabaseSystem.MONGODB) {
+      return spanAction ? formatMongoDBQuery(rawDescription, spanAction) : rawDescription;
+    }
+
     return formatter.toSimpleMarkup(rawDescription);
-  }, [moduleName, rawDescription]);
+  }, [moduleName, rawDescription, spanAction, system]);
 
   if (!rawDescription) {
     return NULL_DESCRIPTION;

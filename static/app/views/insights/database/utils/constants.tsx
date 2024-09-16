@@ -4,7 +4,7 @@
  *
  * https://github.com/getsentry/sentry-python/blob/master/sentry_sdk/integrations/sqlalchemy.py#L125
  */
-export enum SupportedDatabaseSystems {
+export enum SupportedDatabaseSystem {
   // SQL
   SQLITE = 'sqlite',
   POSTGRESQL = 'postgresql',
@@ -15,11 +15,11 @@ export enum SupportedDatabaseSystems {
   MONGODB = 'mongodb',
 }
 
-export const DATABASE_SYSTEM_TO_LABEL: Record<SupportedDatabaseSystems, string> = {
-  [SupportedDatabaseSystems.SQLITE]: 'SQLite',
-  [SupportedDatabaseSystems.POSTGRESQL]: 'PostgreSQL',
-  [SupportedDatabaseSystems.MARIADB]: 'MariaDB',
-  [SupportedDatabaseSystems.MYSQL]: 'MySQL',
-  [SupportedDatabaseSystems.ORACLE]: 'Oracle',
-  [SupportedDatabaseSystems.MONGODB]: 'MongoDB',
+export const DATABASE_SYSTEM_TO_LABEL: Record<SupportedDatabaseSystem, string> = {
+  [SupportedDatabaseSystem.SQLITE]: 'SQLite',
+  [SupportedDatabaseSystem.POSTGRESQL]: 'PostgreSQL',
+  [SupportedDatabaseSystem.MARIADB]: 'MariaDB',
+  [SupportedDatabaseSystem.MYSQL]: 'MySQL',
+  [SupportedDatabaseSystem.ORACLE]: 'Oracle',
+  [SupportedDatabaseSystem.MONGODB]: 'MongoDB',
 };
