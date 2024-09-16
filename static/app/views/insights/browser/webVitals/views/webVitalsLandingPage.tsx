@@ -196,7 +196,7 @@ const MainContentContainer = styled('div')`
 `;
 
 const WebVitalMetersContainer = styled('div')`
-  margin-bottom: ${space(4)};
+  margin-bottom: ${space(2)};
 `;
 
 export const AlertContent = styled('div')`
