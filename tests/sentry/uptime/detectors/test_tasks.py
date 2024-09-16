@@ -10,7 +10,7 @@ from django.utils import timezone
 from sentry.locks import locks
 from sentry.models.organization import Organization
 from sentry.models.project import Project
-from sentry.testutils.cases import TestCase
+from sentry.testutils.cases import UptimeTestCase
 from sentry.testutils.helpers import with_feature
 from sentry.testutils.helpers.datetime import freeze_time
 from sentry.uptime.detectors.ranking import (
@@ -41,7 +41,7 @@ from sentry.uptime.subscriptions.subscriptions import (
 
 
 @freeze_time()
-class ScheduleDetectionsTest(TestCase):
+class ScheduleDetectionsTest(UptimeTestCase):
     def test_no_last_processed(self):
         # The first time this runs we don't expect much to happen,
         # just that it'll update the last processed date in redis
@@ -90,7 +90,7 @@ class ScheduleDetectionsTest(TestCase):
 
 
 @freeze_time()
-class ProcessDetectionBucketTest(TestCase):
+class ProcessDetectionBucketTest(UptimeTestCase):
     def test_empty_bucket(self):
         with mock.patch(
             "sentry.uptime.detectors.tasks.process_organization_url_ranking"
@@ -123,7 +123,7 @@ class ProcessDetectionBucketTest(TestCase):
 
 
 @freeze_time()
-class ProcessOrganizationUrlRankingTest(TestCase):
+class ProcessOrganizationUrlRankingTest(UptimeTestCase):
     def test(self):
         # TODO: Better testing for this function when we implement things that happen on success
         url_1 = "https://sentry.io"
@@ -179,7 +179,7 @@ class ProcessOrganizationUrlRankingTest(TestCase):
 
 
 @freeze_time()
-class ProcessProjectUrlRankingTest(TestCase):
+class ProcessProjectUrlRankingTest(UptimeTestCase):
     def test(self):
         # TODO: Better testing for this function when we implement things that happen on success
         url_1 = "https://sentry.io"
@@ -209,7 +209,7 @@ class ProcessProjectUrlRankingTest(TestCase):
 
 
 @freeze_time()
-class ProcessCandidateUrlTest(TestCase):
+class ProcessCandidateUrlTest(UptimeTestCase):
     @with_feature("organizations:uptime-automatic-subscription-creation")
     def test_succeeds_new(self):
         url = "https://sentry.io"
@@ -321,7 +321,7 @@ class ProcessCandidateUrlTest(TestCase):
             assert process_candidate_url(self.project, 100, url, 50)
 
 
-class TestFailedUrl(TestCase):
+class TestFailedUrl(UptimeTestCase):
     def test(self):
         url = "https://sentry.io"
         assert not is_failed_url(url)
@@ -330,7 +330,7 @@ class TestFailedUrl(TestCase):
         assert not is_failed_url("https://sentry.sentry.io")
 
 
-class TestMonitorUrlForProject(TestCase):
+class TestMonitorUrlForProject(UptimeTestCase):
     def test(self):
         url = "http://sentry.io"
         assert not is_url_auto_monitored_for_project(self.project, url)
