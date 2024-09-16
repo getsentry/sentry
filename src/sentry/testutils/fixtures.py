@@ -639,11 +639,14 @@ class Fixtures:
     def create_workflowaction(self, *args, **kwargs):
         return Factories.create_workflowaction(*args, **kwargs)
 
-    def create_datasource(self, *args, **kwargs):
-        return Factories.create_datasource(*args, **kwargs)
+    def create_data_source(self, *args, **kwargs):
+        return Factories.create_data_source(*args, **kwargs)
 
     def create_detector(self, *args, **kwargs):
         return Factories.create_detector(*args, **kwargs)
+
+    def create_data_source_detector(self, *args, **kwargs):
+        return Factories.create_data_source_detector(*args, **kwargs)
 
     def create_uptime_subscription(
         self,
