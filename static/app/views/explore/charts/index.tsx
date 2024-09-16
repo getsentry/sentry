@@ -10,6 +10,7 @@ import {dedupeArray} from 'sentry/utils/dedupeArray';
 import {aggregateOutputType} from 'sentry/utils/discover/fields';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import usePageFilters from 'sentry/utils/usePageFilters';
+import {formatVersion} from 'sentry/utils/versions/formatVersion';
 import {useChartInterval} from 'sentry/views/explore/hooks/useChartInterval';
 import {useDataset} from 'sentry/views/explore/hooks/useDataset';
 import {useVisualizes} from 'sentry/views/explore/hooks/useVisualizes';
@@ -167,6 +168,7 @@ export function ExploreCharts({query}: ExploreChartsProps) {
                   top: '8px',
                   bottom: '0',
                 }}
+                legendFormatter={value => formatVersion(value)}
                 data={getSeries(dedupedYAxes)}
                 error={error}
                 loading={loading}
