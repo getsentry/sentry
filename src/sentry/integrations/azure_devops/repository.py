@@ -21,7 +21,10 @@ class AzureDevOpsRepositoryProvider(IntegrationRepositoryProvider):
     def get_repository_data(
         self, organization: Organization, config: MutableMapping[str, Any]
     ) -> Mapping[str, str]:
+        from sentry.integrations.azure_devops.integration import AzureDevOpsIntegration
+
         installation = self.get_installation(config.get("installation"), organization.id)
+        assert isinstance(installation, AzureDevOpsIntegration)
 
         client = installation.get_client()
 
