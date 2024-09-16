@@ -13,6 +13,7 @@ from sentry.seer.anomaly_detection.types import (
     AlertInSeer,
     AnomalyDetectionConfig,
     StoreDataRequest,
+    TimeSeriesPoint,
 )
 from sentry.seer.anomaly_detection.utils import (
     fetch_historical_data,
@@ -23,7 +24,6 @@ from sentry.seer.signed_seer_api import make_signed_seer_api_request
 from sentry.snuba.models import SnubaQuery
 from sentry.snuba.utils import get_dataset
 from sentry.utils import json
-from sentry.utils.snuba import SnubaTSResult
 
 logger = logging.getLogger(__name__)
 
@@ -34,23 +34,23 @@ seer_anomaly_detection_connection_pool = connection_from_url(
 NUM_DAYS = 28
 
 
-def _get_start_and_end_indices(data: SnubaTSResult) -> tuple[int, int]:
+def _get_start_and_end_indices(data: list[TimeSeriesPoint]) -> tuple[int, int]:
     """
     Helper to return the first and last data points that have event counts.
     Used to determine whether we have at least a week's worth of data.
     """
     start, end = -1, -1
     indices_with_results = []
-    for i, datum in enumerate(data.data.get("data", [])):
-        if "count" in datum:
+    for i, datum in enumerate(data):
+        if datum.get("value", 0) != 0:
             indices_with_results.append(i)
     if not indices_with_results:
         return start, end
-    else:
-        start = indices_with_results[0]
-        end = indices_with_results[-1]
-        assert start <= end
-        return start, end
+
+    start = indices_with_results[0]
+    end = indices_with_results[-1]
+    assert start <= end
+    return start, end
 
 
 def send_historical_data_to_seer(alert_rule: AlertRule, project: Project) -> AlertRuleStatus:
@@ -109,7 +109,7 @@ def send_historical_data_to_seer(alert_rule: AlertRule, project: Project) -> Ale
         raise TimeoutError
 
     MIN_DAYS = 7
-    data_start_index, data_end_index = _get_start_and_end_indices(historical_data)
+    data_start_index, data_end_index = _get_start_and_end_indices(formatted_data)
     if data_start_index == -1:
         return AlertRuleStatus.NOT_ENOUGH_DATA
 
