@@ -2,16 +2,12 @@ import pytest
 from rest_framework.exceptions import ErrorDetail
 
 from sentry.api.serializers import serialize
-from sentry.testutils.cases import APITestCase
 from sentry.uptime.models import ProjectUptimeSubscription
+from tests.sentry.uptime.endpoints import UptimeAlertBaseEndpointTest
 
 
-class ProjectUptimeAlertDetailsBaseEndpointTest(APITestCase):
+class ProjectUptimeAlertDetailsBaseEndpointTest(UptimeAlertBaseEndpointTest):
     endpoint = "sentry-api-0-project-uptime-alert-details"
-
-    def setUp(self):
-        super().setUp()
-        self.login_as(user=self.user)
 
 
 class ProjectUptimeAlertDetailsGetEndpointTest(ProjectUptimeAlertDetailsBaseEndpointTest):

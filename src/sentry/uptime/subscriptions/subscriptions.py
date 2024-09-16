@@ -9,6 +9,7 @@ from sentry.uptime.models import (
     ProjectUptimeSubscriptionMode,
     UptimeSubscription,
 )
+from sentry.uptime.rdap.tasks import fetch_subscription_rdap_info
 from sentry.uptime.subscriptions.tasks import (
     create_remote_uptime_subscription,
     delete_remote_uptime_subscription,
@@ -53,6 +54,7 @@ def create_uptime_subscription(
 
     if created:
         create_remote_uptime_subscription.delay(subscription.id)
+        fetch_subscription_rdap_info.delay(subscription.id)
     return subscription
 
 
