@@ -553,16 +553,6 @@ class EventManager:
     ) -> Event:
         jobs = [job]
 
-        if is_sample_event(job):
-            logger.info(
-                "save_error_events: processing sample event",
-                extra={
-                    "event.id": job["event"].event_id,
-                    "project_id": project.id,
-                    "sample_event": True,
-                },
-            )
-
         is_reprocessed = is_reprocessed_event(job["data"])
 
         _get_or_create_release_many(jobs, projects)
@@ -595,15 +585,6 @@ class EventManager:
             raise
 
         if not group_info:
-            if is_sample_event(job):
-                logger.info(
-                    "save_error_events: no groupinfo found, returning event",
-                    extra={
-                        "event.id": job["event"].event_id,
-                        "project_id": project.id,
-                        "sample_event": True,
-                    },
-                )
             return job["event"]
 
         # store a reference to the group id to guarantee validation of isolation
@@ -1175,15 +1156,6 @@ def _nodestore_save_many(jobs: Sequence[Job], app_feature: str) -> None:
 
 def _eventstream_insert_many(jobs: Sequence[Job]) -> None:
     for job in jobs:
-        if is_sample_event(job):
-            logger.info(
-                "_eventstream_insert_many: attempting to insert event into eventstream",
-                extra={
-                    "event.id": job["event"].event_id,
-                    "project_id": job["event"].project_id,
-                    "sample_event": True,
-                },
-            )
 
         if job["event"].project_id == settings.SENTRY_PROJECT:
             metrics.incr(
@@ -1216,16 +1188,6 @@ def _eventstream_insert_many(jobs: Sequence[Job]) -> None:
                 for gi in job["groups"]
                 if gi is not None
             ]
-
-        if is_sample_event(job):
-            logger.info(
-                "_eventstream_insert_many: inserting into evenstream",
-                extra={
-                    "event.id": job["event"].event_id,
-                    "project_id": job["event"].project_id,
-                    "sample_event": True,
-                },
-            )
 
         # Skip running grouping for "transaction" events:
         primary_hash = (
