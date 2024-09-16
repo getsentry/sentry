@@ -52,7 +52,7 @@ class ProducerTestMixin(UptimeTestCase):
         assert expected_payloads == passed_payloads
 
 
-class BaseUptimeSubscriptionTaskTest(ProducerTestMixin, UptimeTestCase, metaclass=abc.ABCMeta):
+class BaseUptimeSubscriptionTaskTest(ProducerTestMixin, metaclass=abc.ABCMeta):
     __test__ = Abstract(__module__, __qualname__)
 
     status_translations = {
