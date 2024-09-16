@@ -15,8 +15,7 @@ let __SINGLETON: FeatureFlagOverrides | null = null;
 const BUFFER_SIZE = 10;
 
 // do we need to initialize the array with empty objects?
-const FEATURE_FLAGS: Flags = {values: new Array(10)};
-let buffer_idx = 0;
+const FEATURE_FLAGS: Flags = {values: []};
 export default class FeatureFlagOverrides {
   /**
    * Return the same instance of FeatureFlagOverrides in each part of the app.
@@ -135,13 +134,15 @@ export default class FeatureFlagOverrides {
 
         // Check that the flag is not already in the buffer
         if (!FEATURE_FLAGS.values.some(f => f.flag === flagName)) {
+          // If at capacity, we need to remove the earliest flag
+          if (FEATURE_FLAGS.values.length === BUFFER_SIZE) {
+            FEATURE_FLAGS.values.shift();
+          }
           // Store the flag and its result in the buffer
-          FEATURE_FLAGS.values[buffer_idx] = {
+          FEATURE_FLAGS.values.push({
             flag: flagName,
             result: flagResult,
-          };
-          // Increment the buffer index for next time
-          buffer_idx = (buffer_idx + 1) % BUFFER_SIZE;
+          });
         }
         return flagResult;
       },
