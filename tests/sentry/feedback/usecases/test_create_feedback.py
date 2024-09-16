@@ -188,6 +188,7 @@ def test_fix_for_issue_platform():
     fixed_event = fix_for_issue_platform(event)
     validate_issue_platform_event_schema(fixed_event)
     assert fixed_event["contexts"]["replay"]["replay_id"] == "3d621c61593c4ff9b43f8490a78ae18e"
+    assert fixed_event["tags"]["user.email"] == "josh.ferge@sentry.io"
     assert fixed_event["contexts"]["feedback"] == {
         "contact_email": "josh.ferge@sentry.io",
         "name": "Josh Ferge",

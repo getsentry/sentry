@@ -107,6 +107,7 @@ export function DatabaseLandingPage() {
         'project.id',
         'span.group',
         'span.description',
+        'span.action',
         'spm()',
         'avg(span.self_time)',
         'sum(span.self_time)',
@@ -215,13 +216,13 @@ export function DatabaseLandingPage() {
               <ModuleLayout.Full>
                 <SearchBar
                   query={spanDescription}
-                  placeholder={t('Search for more Queries')}
+                  placeholder={t('Search for more queries')}
                   onSearch={handleSearch}
                 />
               </ModuleLayout.Full>
 
               <ModuleLayout.Full>
-                <QueriesTable response={queryListResponse} sort={sort} />
+                <QueriesTable response={queryListResponse} sort={sort} system={system} />
               </ModuleLayout.Full>
             </ModulesOnboarding>
           </ModuleLayout.Layout>

@@ -10,7 +10,6 @@ from sentry import ratelimits as ratelimiter
 from sentry.conf.server import SEER_SIMILARITY_MODEL_VERSION
 from sentry.eventstore.models import Event
 from sentry.grouping.grouping_info import get_grouping_info_from_variants
-from sentry.grouping.result import CalculatedHashes
 from sentry.models.grouphash import GroupHash
 from sentry.models.project import Project
 from sentry.seer.similarity.similar_issues import get_similarity_data_from_seer
@@ -28,7 +27,7 @@ from sentry.utils.safe import get_path
 logger = logging.getLogger("sentry.events.grouping")
 
 
-def should_call_seer_for_grouping(event: Event, primary_hashes: CalculatedHashes) -> bool:
+def should_call_seer_for_grouping(event: Event) -> bool:
     """
     Use event content, feature flags, rate limits, killswitches, seer health, etc. to determine
     whether a call to Seer should be made.
@@ -43,7 +42,7 @@ def should_call_seer_for_grouping(event: Event, primary_hashes: CalculatedHashes
         return False
 
     if (
-        _has_customized_fingerprint(event, primary_hashes)
+        _has_customized_fingerprint(event)
         or killswitch_enabled(project.id, event)
         or _circuit_breaker_broken(event, project)
         # **Do not add any new checks after this.** The rate limit check MUST remain the last of all
@@ -80,7 +79,7 @@ def _project_has_similarity_grouping_enabled(project: Project) -> bool:
 # combined with some other value). To the extent to which we're then using this function to decide
 # whether or not to call Seer, this means that the calculations giving rise to the default part of
 # the value never involve Seer input. In the long run, we probably want to change that.
-def _has_customized_fingerprint(event: Event, primary_hashes: CalculatedHashes) -> bool:
+def _has_customized_fingerprint(event: Event) -> bool:
     fingerprint = event.data.get("fingerprint", [])
 
     if "{{ default }}" in fingerprint:
@@ -98,9 +97,8 @@ def _has_customized_fingerprint(event: Event, primary_hashes: CalculatedHashes) 
             return True
 
     # Fully customized fingerprint (from either us or the user)
-    fingerprint_variant = primary_hashes.variants.get(
-        "custom-fingerprint"
-    ) or primary_hashes.variants.get("built-in-fingerprint")
+    variants = event.get_grouping_variants()
+    fingerprint_variant = variants.get("custom-fingerprint") or variants.get("built-in-fingerprint")
 
     if fingerprint_variant:
         metrics.incr(
@@ -180,7 +178,6 @@ def _circuit_breaker_broken(event: Event, project: Project) -> bool:
 
 def get_seer_similar_issues(
     event: Event,
-    primary_hashes: CalculatedHashes,
     num_neighbors: int = 1,
 ) -> tuple[dict[str, Any], GroupHash | None]:
     """
@@ -188,10 +185,9 @@ def get_seer_similar_issues(
     with the best matches first, along with a grouphash linked to the group Seer decided the event
     should go in (if any), or None if no neighbor was near enough.
     """
-
-    event_hash = primary_hashes.hashes[0]
+    event_hash = event.get_primary_hash()
     stacktrace_string = get_stacktrace_string(
-        get_grouping_info_from_variants(primary_hashes.variants)
+        get_grouping_info_from_variants(event.get_grouping_variants())
     )
     exception_type = get_path(event.data, "exception", "values", -1, "type")
 
@@ -236,12 +232,10 @@ def get_seer_similar_issues(
     return (similar_issues_metadata, parent_grouphash)
 
 
-def maybe_check_seer_for_matching_grouphash(
-    event: Event, primary_hashes: CalculatedHashes
-) -> GroupHash | None:
+def maybe_check_seer_for_matching_grouphash(event: Event) -> GroupHash | None:
     seer_matched_grouphash = None
 
-    if should_call_seer_for_grouping(event, primary_hashes):
+    if should_call_seer_for_grouping(event):
         metrics.incr(
             "grouping.similarity.did_call_seer",
             sample_rate=options.get("seer.similarity.metrics_sample_rate"),
@@ -250,9 +244,7 @@ def maybe_check_seer_for_matching_grouphash(
         try:
             # If no matching group is found in Seer, we'll still get back result
             # metadata, but `seer_matched_grouphash` will be None
-            seer_response_data, seer_matched_grouphash = get_seer_similar_issues(
-                event, primary_hashes
-            )
+            seer_response_data, seer_matched_grouphash = get_seer_similar_issues(event)
             event.data["seer_similarity"] = seer_response_data
 
         # Insurance - in theory we shouldn't ever land here

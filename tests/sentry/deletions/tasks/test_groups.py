@@ -1,6 +1,7 @@
 from uuid import uuid4
 
 from sentry import nodestore
+from sentry.deletions.tasks.groups import delete_groups
 from sentry.eventstore.models import Event
 from sentry.models.group import Group, GroupStatus
 from sentry.models.groupassignee import GroupAssignee
@@ -8,7 +9,6 @@ from sentry.models.grouphash import GroupHash
 from sentry.models.grouphashmetadata import GroupHashMetadata
 from sentry.models.groupmeta import GroupMeta
 from sentry.models.groupredirect import GroupRedirect
-from sentry.tasks.deletion.groups import delete_groups
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.skips import requires_snuba

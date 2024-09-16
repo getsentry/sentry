@@ -58,6 +58,22 @@ class AnomalyDetectionStoreDataTest(AlertRuleBase, BaseMetricsTestCase, Performa
         result = format_historical_data(data, errors)
         assert result == expected_return_value
 
+    def test_anomaly_detection_format_historical_data_two(self):
+        """
+        Test a different aggregation key.
+        """
+        expected_return_value = [
+            {"timestamp": self.time_1_ts, "value": 0},
+            {"timestamp": self.time_2_ts, "value": 1},
+        ]
+        snuba_raw_data = [
+            {"time": self.time_1_ts},
+            {"count_unique_tags_sentry_user": 1, "time": self.time_2_ts},
+        ]
+        data = SnubaTSResult({"data": snuba_raw_data}, self.time_1_ts, self.time_2_ts, 3600)
+        result = format_historical_data(data, errors)
+        assert result == expected_return_value
+
     def test_anomaly_detection_fetch_historical_data(self):
         alert_rule = self.create_alert_rule(organization=self.organization, projects=[self.project])
         snuba_query = SnubaQuery.objects.get(id=alert_rule.snuba_query_id)
