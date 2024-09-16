@@ -568,6 +568,7 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
                     "only_delete": False,
                     "skip_processed_projects": False,
                     "skip_project_ids": None,
+                    "worker_number": None,
                 },
             ),
             call(
@@ -580,6 +581,7 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
                     "only_delete": False,
                     "skip_processed_projects": False,
                     "skip_project_ids": None,
+                    "worker_number": None,
                 },
             ),
             call(
@@ -592,6 +594,7 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
                     "only_delete": False,
                     "skip_processed_projects": False,
                     "skip_project_ids": None,
+                    "worker_number": None,
                 },
             ),
             call(
@@ -604,6 +607,7 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
                     "only_delete": False,
                     "skip_processed_projects": False,
                     "skip_project_ids": None,
+                    "worker_number": None,
                 },
             ),
             call(
@@ -653,6 +657,7 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
                     "only_delete": False,
                     "skip_processed_projects": False,
                     "skip_project_ids": None,
+                    "worker_number": None,
                 },
             ),
             call(
@@ -669,6 +674,7 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
                     "only_delete": False,
                     "skip_processed_projects": False,
                     "skip_project_ids": None,
+                    "worker_number": None,
                 },
             ),
             call(
@@ -681,6 +687,7 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
                     "only_delete": False,
                     "skip_processed_projects": False,
                     "skip_project_ids": None,
+                    "worker_number": None,
                 },
             ),
             call(
@@ -756,6 +763,7 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
                     "only_delete": False,
                     "skip_processed_projects": False,
                     "skip_project_ids": None,
+                    "worker_number": None,
                 },
             ),
             call(
@@ -768,6 +776,7 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
                     "only_delete": False,
                     "skip_processed_projects": False,
                     "skip_project_ids": None,
+                    "worker_number": None,
                 },
             ),
             call(
@@ -780,6 +789,7 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
                     "only_delete": False,
                     "skip_processed_projects": False,
                     "skip_project_ids": None,
+                    "worker_number": None,
                 },
             ),
             call(
@@ -792,6 +802,7 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
                     "only_delete": False,
                     "skip_processed_projects": False,
                     "skip_project_ids": None,
+                    "worker_number": None,
                 },
             ),
             call(
@@ -1062,6 +1073,7 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
                     "only_delete": False,
                     "skip_processed_projects": True,
                     "skip_project_ids": None,
+                    "worker_number": None,
                 },
             ),
             call(
@@ -1074,6 +1086,7 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
                     "only_delete": False,
                     "skip_processed_projects": True,
                     "skip_project_ids": None,
+                    "worker_number": None,
                 },
             ),
             call(
@@ -1086,6 +1099,7 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
                     "only_delete": False,
                     "skip_processed_projects": True,
                     "skip_project_ids": None,
+                    "worker_number": None,
                 },
             ),
             call("backfill finished, no cohort", extra={"project_id": self.project.id}),
@@ -1235,6 +1249,7 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
                     "only_delete": True,
                     "skip_processed_projects": False,
                     "skip_project_ids": None,
+                    "worker_number": None,
                 },
             ),
             call(
@@ -1251,6 +1266,7 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
                     "only_delete": True,
                     "skip_processed_projects": False,
                     "skip_project_ids": None,
+                    "worker_number": None,
                 },
             ),
             call(
@@ -1588,6 +1604,7 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
                     "only_delete": False,
                     "skip_processed_projects": True,
                     "skip_project_ids": None,
+                    "worker_number": None,
                 },
             ),
             call(
@@ -1631,6 +1648,7 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
                     "only_delete": False,
                     "skip_processed_projects": False,
                     "skip_project_ids": None,
+                    "worker_number": None,
                 },
             ),
             call(
@@ -1643,6 +1661,7 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
                     "only_delete": False,
                     "skip_processed_projects": False,
                     "skip_project_ids": None,
+                    "worker_number": None,
                 },
             ),
             call("backfill finished, no cohort", extra={"project_id": self.project.id}),
@@ -1671,6 +1690,7 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
                     "only_delete": False,
                     "skip_processed_projects": False,
                     "skip_project_ids": [self.project.id],
+                    "worker_number": None,
                 },
             ),
             call(
@@ -1861,6 +1881,7 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
                     "only_delete": False,
                     "skip_processed_projects": False,
                     "skip_project_ids": None,
+                    "worker_number": None,
                 },
             ),
             call(
@@ -1882,6 +1903,7 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
                     "only_delete": False,
                     "skip_processed_projects": False,
                     "skip_project_ids": None,
+                    "worker_number": None,
                 },
             ),
             call("backfill finished, no cohort", extra={"project_id": self.project.id}),
@@ -1915,6 +1937,7 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
                     "only_delete": False,
                     "skip_processed_projects": False,
                     "skip_project_ids": None,
+                    "worker_number": None,
                 },
             ),
             call(
@@ -1993,6 +2016,7 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
                     "only_delete": False,
                     "skip_processed_projects": False,
                     "skip_project_ids": None,
+                    "worker_number": worker_number,
                 },
             ),
             call(
@@ -2005,6 +2029,7 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
                     "only_delete": False,
                     "skip_processed_projects": False,
                     "skip_project_ids": None,
+                    "worker_number": worker_number,
                 },
             ),
             call(
@@ -2017,6 +2042,7 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
                     "only_delete": False,
                     "skip_processed_projects": False,
                     "skip_project_ids": None,
+                    "worker_number": worker_number,
                 },
             ),
             call(
@@ -2029,6 +2055,7 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
                     "only_delete": False,
                     "skip_processed_projects": False,
                     "skip_project_ids": None,
+                    "worker_number": worker_number,
                 },
             ),
             call(
@@ -2099,6 +2126,7 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
                     "only_delete": False,
                     "skip_processed_projects": False,
                     "skip_project_ids": None,
+                    "worker_number": worker_number,
                 },
             ),
             call(
@@ -2111,6 +2139,7 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
                     "only_delete": False,
                     "skip_processed_projects": False,
                     "skip_project_ids": None,
+                    "worker_number": worker_number,
                 },
             ),
             call(
@@ -2123,6 +2152,7 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
                     "only_delete": False,
                     "skip_processed_projects": False,
                     "skip_project_ids": None,
+                    "worker_number": worker_number,
                 },
             ),
             call(
@@ -2198,6 +2228,7 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
                     "only_delete": False,
                     "skip_processed_projects": False,
                     "skip_project_ids": None,
+                    "worker_number": worker_number,
                 },
             ),
             call(
@@ -2210,6 +2241,7 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
                     "only_delete": False,
                     "skip_processed_projects": False,
                     "skip_project_ids": None,
+                    "worker_number": worker_number,
                 },
             ),
             call(
@@ -2222,6 +2254,7 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
                     "only_delete": False,
                     "skip_processed_projects": False,
                     "skip_project_ids": None,
+                    "worker_number": worker_number,
                 },
             ),
             call(
@@ -2234,6 +2267,7 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
                     "only_delete": False,
                     "skip_processed_projects": False,
                     "skip_project_ids": None,
+                    "worker_number": worker_number,
                 },
             ),
             call(
