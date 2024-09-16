@@ -83,17 +83,6 @@ type UpdateTokenValueAction = {
   value: string;
 };
 
-type MultiSelectFilterValueAction = {
-  token: TokenResult<Token.FILTER>;
-  type: 'TOGGLE_FILTER_VALUE';
-  value: string;
-};
-
-type DeleteLastMultiSelectFilterValueAction = {
-  token: TokenResult<Token.FILTER>;
-  type: 'DELETE_LAST_MULTI_SELECT_FILTER_VALUE';
-};
-
 type UpdateAggregateArgsAction = {
   token: AggregateFilter;
   type: 'UPDATE_AGGREGATE_ARGS';
@@ -111,9 +100,7 @@ export type QueryBuilderActions =
   | UpdateFilterKeyAction
   | UpdateFilterOpAction
   | UpdateTokenValueAction
-  | UpdateAggregateArgsAction
-  | MultiSelectFilterValueAction
-  | DeleteLastMultiSelectFilterValueAction;
+  | UpdateAggregateArgsAction;
 
 function removeQueryToken(query: string, token: TokenResult<Token>): string {
   return removeExcessWhitespaceFromParts(
@@ -352,70 +339,6 @@ function modifyFilterValue(
   return replaceQueryToken(query, token.value, newValue);
 }
 
-function updateFilterMultipleValues(
-  state: QueryBuilderState,
-  token: TokenResult<Token.FILTER>,
-  values: string[]
-) {
-  const uniqNonEmptyValues = Array.from(
-    new Set(values.filter(value => value.length > 0))
-  );
-  if (uniqNonEmptyValues.length === 0) {
-    return {...state, query: replaceQueryToken(state.query, token.value, '""')};
-  }
-
-  const newValue =
-    uniqNonEmptyValues.length > 1
-      ? `[${uniqNonEmptyValues.join(',')}]`
-      : uniqNonEmptyValues[0];
-
-  return {...state, query: replaceQueryToken(state.query, token.value, newValue)};
-}
-
-function multiSelectTokenValue(
-  state: QueryBuilderState,
-  action: MultiSelectFilterValueAction
-) {
-  const tokenValue = action.token.value;
-
-  switch (tokenValue.type) {
-    case Token.VALUE_TEXT_LIST:
-    case Token.VALUE_NUMBER_LIST:
-      const values = tokenValue.items.map(item => item.value?.text ?? '');
-      const containsValue = values.includes(action.value);
-      const newValues = containsValue
-        ? values.filter(value => value !== action.value)
-        : [...values, action.value];
-
-      return updateFilterMultipleValues(state, action.token, newValues);
-    default:
-      if (tokenValue.text === action.value) {
-        return updateFilterMultipleValues(state, action.token, ['']);
-      }
-      const newValue = tokenValue.value
-        ? [tokenValue.text, action.value]
-        : [action.value];
-      return updateFilterMultipleValues(state, action.token, newValue);
-  }
-}
-
-function deleteLastMultiSelectTokenValue(
-  state: QueryBuilderState,
-  action: DeleteLastMultiSelectFilterValueAction
-) {
-  const tokenValue = action.token.value;
-
-  switch (tokenValue.type) {
-    case Token.VALUE_TEXT_LIST:
-    case Token.VALUE_NUMBER_LIST:
-      const newValues = tokenValue.items.slice(0, -1).map(item => item.value?.text ?? '');
-
-      return updateFilterMultipleValues(state, action.token, newValues);
-    default:
-      return updateFilterMultipleValues(state, action.token, ['']);
-  }
-}
-
 function updateAggregateArgs(
   state: QueryBuilderState,
   action: UpdateAggregateArgsAction,
@@ -522,10 +445,6 @@ export function useQueryBuilderState({
           };
         case 'UPDATE_AGGREGATE_ARGS':
           return updateAggregateArgs(state, action, {getFieldDefinition});
-        case 'TOGGLE_FILTER_VALUE':
-          return multiSelectTokenValue(state, action);
-        case 'DELETE_LAST_MULTI_SELECT_FILTER_VALUE':
-          return deleteLastMultiSelectTokenValue(state, action);
         default:
           return state;
       }

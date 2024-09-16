@@ -8,13 +8,13 @@ import Checkbox from 'sentry/components/checkbox';
 import type {SelectOptionWithKey} from 'sentry/components/compactSelect/types';
 import {getItemsWithKeys} from 'sentry/components/compactSelect/utils';
 import {useSearchQueryBuilder} from 'sentry/components/searchQueryBuilder/context';
+import type {QueryBuilderActions} from 'sentry/components/searchQueryBuilder/hooks/useQueryBuilderState';
 import {
   type CustomComboboxMenu,
   SearchQueryBuilderCombobox,
 } from 'sentry/components/searchQueryBuilder/tokens/combobox';
 import SpecificDatePicker from 'sentry/components/searchQueryBuilder/tokens/filter/specificDatePicker';
 import {
-  escapeTagValue,
   formatFilterValue,
   getFilterValueType,
   replaceCommaSeparatedValue,
@@ -105,6 +105,7 @@ function prepareInputValueForSaving(valueType: FieldValueType, inputValue: strin
 function getSelectedValuesFromText(text: string) {
   return text
     .split(',')
+    .slice(0, -1)
     .map(v => unescapeTagValue(v.trim()))
     .filter(v => v.length > 0);
 }
@@ -232,24 +233,62 @@ function keySupportsWildcard(fieldDefinition: FieldDefinition | null) {
   return isStringFilter && fieldDefinition?.allowWildcard !== false;
 }
 
+function getNewMultiSelectValues(inputValue: string, value: string): string[] {
+  const existingValues = getSelectedValuesFromText(inputValue);
+
+  const containsValue = existingValues.includes(value);
+  return containsValue
+    ? existingValues.filter(val => val !== value)
+    : [...existingValues, value];
+}
+
+function toggleMultiSelectValue({
+  token,
+  dispatch,
+  inputRef,
+  value,
+  setInputValue,
+  updateSelectionIndex,
+  fieldDefinition,
+}: {
+  dispatch: React.Dispatch<QueryBuilderActions>;
+  fieldDefinition: FieldDefinition | null;
+  inputRef: React.RefObject<HTMLInputElement>;
+  setInputValue: (value: string) => void;
+  token: TokenResult<Token.FILTER>;
+  updateSelectionIndex: () => void;
+  value: string;
+}) {
+  const inputValue = inputRef.current?.value ?? '';
+  const newValues = getNewMultiSelectValues(inputValue, value);
+  const newValue = newValues.length > 0 ? newValues.join(',') + ',' : '';
+  setInputValue(newValue);
+  const newSelectionIndex = newValue.length;
+  if (inputRef.current) {
+    inputRef.current.value = newValue;
+    inputRef.current.setSelectionRange(newSelectionIndex, newSelectionIndex);
+    updateSelectionIndex();
+  }
+  dispatch({
+    type: 'UPDATE_TOKEN_VALUE',
+    token: token,
+    value: prepareInputValueForSaving(
+      getFilterValueType(token, fieldDefinition),
+      newValue
+    ),
+  });
+}
+
 function useSelectionIndex({
   inputRef,
   inputValue,
-  canSelectMultipleValues,
 }: {
-  canSelectMultipleValues: boolean;
   inputRef: React.RefObject<HTMLInputElement>;
   inputValue: string;
 }) {
   const [selectionIndex, setSelectionIndex] = useState<number | null>(
     () => inputValue.length
   );
-
-  useEffect(() => {
-    if (canSelectMultipleValues) {
-      setSelectionIndex(inputValue.length);
-    }
-  }, [canSelectMultipleValues, inputValue]);
 
   const updateSelectionIndex = useCallback(() => {
     if (inputRef.current?.selectionStart !== inputRef.current?.selectionEnd) {
@@ -270,9 +309,11 @@ function useFilterSuggestions({
   filterValue,
   selectedValues,
   ctrlKeyPressed,
+  handleMultiSelect,
 }: {
   ctrlKeyPressed: boolean;
   filterValue: string;
+  handleMultiSelect: (value: string) => void;
   selectedValues: string[];
   token: TokenResult<Token.FILTER>;
 }) {
@@ -330,16 +371,16 @@ function useFilterSuggestions({
             <ItemCheckbox
               isFocused={isFocused}
               selected={selected}
-              token={token}
               disabled={disabled}
               value={suggestion.value}
               ctrlKeyPressed={ctrlKeyPressed}
+              handleMultiSelect={handleMultiSelect}
             />
           );
         },
       };
     },
-    [canSelectMultipleValues, token, ctrlKeyPressed]
+    [canSelectMultipleValues, ctrlKeyPressed, handleMultiSelect]
   );
 
   const suggestionGroups: SuggestionSection[] = useMemo(() => {
@@ -388,22 +429,20 @@ function useFilterSuggestions({
 }
 
 function ItemCheckbox({
-  token,
   isFocused,
   selected,
   disabled,
   value,
   ctrlKeyPressed,
+  handleMultiSelect,
 }: {
   ctrlKeyPressed: boolean;
   disabled: boolean;
+  handleMultiSelect: (value: string) => void;
   isFocused: boolean;
   selected: boolean;
-  token: TokenResult<Token.FILTER>;
   value: string;
 }) {
-  const {dispatch} = useSearchQueryBuilder();
-
   return (
     <TrailingWrap
       onPointerUp={e => e.stopPropagation()}
@@ -415,13 +454,7 @@ function ItemCheckbox({
           size="sm"
           checked={selected}
           disabled={disabled}
-          onChange={() => {
-            dispatch({
-              type: 'TOGGLE_FILTER_VALUE',
-              token: token,
-              value: escapeTagValue(value),
-            });
-          }}
+          onChange={() => handleMultiSelect(value)}
           aria-label={t('Toggle %s', value)}
           tabIndex={-1}
         />
@@ -472,10 +505,10 @@ export function SearchQueryBuilderValueCombobox({
   const [inputValue, setInputValue] = useState(() =>
     getInitialInputValue(token, canSelectMultipleValues)
   );
+
   const {selectionIndex, updateSelectionIndex} = useSelectionIndex({
     inputRef,
     inputValue,
-    canSelectMultipleValues,
   });
 
   const [showDatePicker, setShowDatePicker] = useState(() => {
@@ -514,11 +547,27 @@ export function SearchQueryBuilderValueCombobox({
     }
   }, []);
 
+  const handleMultiSelect = useCallback(
+    (value: string) => {
+      toggleMultiSelectValue({
+        token,
+        dispatch,
+        inputRef,
+        setInputValue,
+        value,
+        updateSelectionIndex,
+        fieldDefinition,
+      });
+    },
+    [dispatch, fieldDefinition, token, updateSelectionIndex]
+  );
+
   const {items, suggestionSectionItems, isFetching} = useFilterSuggestions({
     token,
     filterValue,
     selectedValues,
     ctrlKeyPressed,
+    handleMultiSelect,
   });
 
   const analyticsData = useMemo(
@@ -553,6 +602,10 @@ export function SearchQueryBuilderValueCombobox({
       }
 
       if (canSelectMultipleValues) {
+        if (ctrlKeyPressed) {
+          handleMultiSelect(value);
+          return true;
+        }
         if (selectedValues.includes(value)) {
           const newValue = prepareInputValueForSaving(
             getFilterValueType(token, fieldDefinition),
@@ -564,7 +617,7 @@ export function SearchQueryBuilderValueCombobox({
             value: newValue,
           });
 
-          if (newValue && newValue !== '""' && !ctrlKeyPressed) {
+          if (newValue && newValue !== '""') {
             onCommit();
           }
 
@@ -580,9 +633,7 @@ export function SearchQueryBuilderValueCombobox({
           ),
         });
 
-        if (!ctrlKeyPressed) {
-          onCommit();
-        }
+        onCommit();
       } else {
         dispatch({
           type: 'UPDATE_TOKEN_VALUE',
@@ -595,16 +646,17 @@ export function SearchQueryBuilderValueCombobox({
       return true;
     },
     [
-      analyticsData,
-      canSelectMultipleValues,
-      dispatch,
-      fieldDefinition,
-      inputValue,
-      onCommit,
-      selectedValues,
-      selectionIndex,
       token,
+      fieldDefinition,
+      canSelectMultipleValues,
+      analyticsData,
       ctrlKeyPressed,
+      selectedValues,
+      dispatch,
+      inputValue,
+      selectionIndex,
+      onCommit,
+      handleMultiSelect,
     ]
   );
 

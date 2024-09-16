@@ -364,7 +364,7 @@ function SearchQueryBuilderComboboxInner<T extends SelectOptionOrSectionWithKey<
   const comboBoxProps: Partial<AriaComboBoxProps<T>> = {
     items,
     autoFocus,
-    inputValue: filterValue,
+    inputValue,
     onSelectionChange,
     allowsCustomValue: true,
     disabledKeys,
@@ -426,7 +426,7 @@ function SearchQueryBuilderComboboxInner<T extends SelectOptionOrSectionWithKey<
   const previousInputValue = usePrevious(inputValue);
   useEffect(() => {
     if (inputValue !== previousInputValue) {
-      state.selectionManager.setFocusedKey(null);
+      // state.selectionManager.setFocusedKey(null);
     }
   }, [inputValue, previousInputValue, state.selectionManager]);
 
