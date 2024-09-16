@@ -143,7 +143,7 @@ pyjwt==2.4.0
 pymemcache==4.0.0
 pyparsing==3.0.9
 pysocks==1.7.1
-pytest==8.2.2
+git+https://github.com/pytest-dev/pytest@b63bea952
 pytest-cov==4.0.0
 pytest-django==4.9.0
 pytest-fail-slow==0.3.0
