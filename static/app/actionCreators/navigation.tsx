@@ -1,4 +1,4 @@
-import type {Location} from 'history';
+import type {Location, Query} from 'history';
 
 import {openModal} from 'sentry/actionCreators/modal';
 import ContextPickerModal from 'sentry/components/contextPickerModal';
@@ -9,13 +9,19 @@ import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 
 // TODO(ts): figure out better typing for react-router here
 export function navigateTo(
-  to: string,
+  to: string | {pathname: string; query?: Query},
   router: InjectedRouter & {location?: Location},
   configUrl?: string
 ) {
+  let pathname: string;
+  if (typeof to === 'string') {
+    pathname = to;
+  } else {
+    pathname = to.pathname;
+  }
   // Check for placeholder params
-  const needOrg = to.includes(':orgId');
-  const needProject = to.includes(':projectId') || to.includes(':project');
+  const needOrg = pathname.includes(':orgId');
+  const needProject = pathname.includes(':projectId') || pathname.includes(':project');
   const comingFromProjectId = router?.location?.query?.project;
   const needProjectId = !comingFromProjectId || Array.isArray(comingFromProjectId);
 
@@ -40,11 +46,12 @@ export function navigateTo(
     );
   } else {
     if (projectById) {
-      to = replaceRouterParams(to, {
+      pathname = replaceRouterParams(pathname, {
         projectId: projectById.slug,
         project: projectById.id,
       });
     }
-    router.push(normalizeUrl(to));
+    // Preserve query string
+    router.push(normalizeUrl(typeof to === 'string' ? pathname : {...to, pathname}));
   }
 }
