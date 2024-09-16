@@ -4,7 +4,7 @@ import logging
 import time
 from collections.abc import Callable, Mapping
 from enum import Enum
-from typing import Any, cast
+from typing import Any, ClassVar, cast
 
 import orjson
 from django.http import HttpRequest, HttpResponse
@@ -145,7 +145,7 @@ def verify_signature(request) -> bool:
 
 
 class MsTeamsWebhookMixin:
-    provider: str
+    provider: ClassVar[str]
 
     @classmethod
     def infer_team_id_from_channel_data(cls, data: Mapping[str, Any]) -> str | None:
