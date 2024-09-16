@@ -2483,7 +2483,7 @@ SENTRY_DEFAULT_INTEGRATIONS = (
     "sentry.integrations.slack.SlackIntegrationProvider",
     "sentry.integrations.github.integration.GitHubIntegrationProvider",
     "sentry.integrations.github_enterprise.integration.GitHubEnterpriseIntegrationProvider",
-    "sentry.integrations.gitlab.GitlabIntegrationProvider",
+    "sentry.integrations.gitlab.integration.GitlabIntegrationProvider",
     "sentry.integrations.jira.JiraIntegrationProvider",
     "sentry.integrations.jira_server.JiraServerIntegrationProvider",
     "sentry.integrations.vsts.VstsIntegrationProvider",
