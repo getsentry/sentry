@@ -167,7 +167,7 @@ function Onboarding({organization, project}: Props) {
           SidebarPanelStore.activatePanel(SidebarPanelKey.PERFORMANCE_ONBOARDING);
         }}
       >
-        {t('Setup Tracing')}
+        {t('Set Up Tracing')}
       </Button>
     );
   }

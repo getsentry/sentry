@@ -119,7 +119,7 @@ function PerformanceSetupBanner({
       localStorageKey={LOCAL_STORAGE_KEY}
       docsRoute="https://docs.sentry.io/product/performance/"
       organization={organization}
-      primaryButtonText={t('Setup Tracing')}
+      primaryButtonText={t('Set Up Tracing')}
     />
   );
 }
