@@ -3303,7 +3303,7 @@ class MonitorIngestTestCase(MonitorTestCase):
         self.token = self.create_internal_integration_token(install=app, user=self.user)
 
 
-class UptimeTestCase(TestCase):
+class UptimeTestCaseMixin:
     def setUp(self):
         super().setUp()
         self.mock_resolve_hostname_ctx = mock.patch(
@@ -3324,6 +3324,8 @@ class UptimeTestCase(TestCase):
         self.mock_resolve_rdap_provider_ctx.__exit__(None, None, None)
         self.mock_requests_get_ctx.__exit__(None, None, None)
 
+
+class UptimeTestCase(UptimeTestCaseMixin, TestCase):
     def create_uptime_result(
         self,
         subscription_id: str | None = None,
