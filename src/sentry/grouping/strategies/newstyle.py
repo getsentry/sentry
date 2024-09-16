@@ -90,7 +90,7 @@ RECURSION_COMPARISON_FIELDS = [
 StacktraceEncoderReturnValue = Any
 
 
-def is_recursion_v1(frame1: Frame, frame2: Frame | None) -> bool:
+def is_recursive_frames(frame1: Frame, frame2: Frame | None) -> bool:
     """
     Returns a boolean indicating whether frames are recursive calls.
     """
@@ -109,18 +109,6 @@ def get_basename(string: str) -> str:
     Returns best-effort basename of a string irrespective of platform.
     """
     return _basename_re.split(string)[-1]
-
-
-def get_package_component(package: str, platform: str | None) -> GroupingComponent:
-    if package is None or platform != "native":
-        return GroupingComponent(id="package")
-
-    package = get_basename(package).lower()
-    package_component = GroupingComponent(
-        id="package",
-        values=[package],
-    )
-    return package_component
 
 
 def get_filename_component(
@@ -450,7 +438,7 @@ def _single_stacktrace_variant(
     frames_for_filtering = []
     for frame in frames:
         with context:
-            context["is_recursion"] = is_recursion_v1(frame, prev_frame)
+            context["is_recursion"] = is_recursive_frames(frame, prev_frame)
             frame_component = context.get_single_grouping_component(frame, event=event, **meta)
 
         if variant == "app" and not frame.in_app:

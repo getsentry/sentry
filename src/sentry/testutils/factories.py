@@ -170,7 +170,13 @@ from sentry.users.models.userrole import UserRole
 from sentry.users.services.user import RpcUser
 from sentry.utils import loremipsum
 from sentry.utils.performance_issues.performance_problem import PerformanceProblem
-from sentry.workflow_engine.models import DataSource, Detector, Workflow
+from sentry.workflow_engine.models import (
+    DataSource,
+    DataSourceDetector,
+    Detector,
+    Workflow,
+    WorkflowAction,
+)
 from social_auth.models import UserSocialAuth
 
 
@@ -1938,6 +1944,7 @@ class Factories:
         subscription_id: str | None,
         status: UptimeSubscription.Status,
         url: str,
+        host_provider_id: str,
         interval_seconds: int,
         timeout_ms: int,
         date_updated: datetime,
@@ -1947,6 +1954,7 @@ class Factories:
             subscription_id=subscription_id,
             status=status.value,
             url=url,
+            host_provider_id=host_provider_id,
             interval_seconds=interval_seconds,
             timeout_ms=timeout_ms,
             date_updated=date_updated,
@@ -2047,7 +2055,17 @@ class Factories:
 
     @staticmethod
     @assume_test_silo_mode(SiloMode.REGION)
-    def create_datasource(
+    def create_workflowaction(
+        workflow: Workflow | None = None,
+        **kwargs,
+    ) -> WorkflowAction:
+        if workflow is None:
+            workflow = Factories.create_workflow()
+        return WorkflowAction.objects.create(workflow=workflow, **kwargs)
+
+    @staticmethod
+    @assume_test_silo_mode(SiloMode.REGION)
+    def create_data_source(
         organization: Organization | None = None,
         query_id: int | None = None,
         type: DataSource.Type | None = None,
@@ -2077,3 +2095,16 @@ class Factories:
         return Detector.objects.create(
             organization=organization, name=name, owner_user_id=owner_user_id, owner_team=owner_team
         )
+
+    @staticmethod
+    @assume_test_silo_mode(SiloMode.REGION)
+    def create_data_source_detector(
+        data_source: DataSource | None = None,
+        detector: Detector | None = None,
+        **kwargs,
+    ) -> DataSourceDetector:
+        if data_source is None:
+            data_source = Factories.create_data_source()
+        if detector is None:
+            detector = Factories.create_detector()
+        return DataSourceDetector.objects.create(data_source=data_source, detector=detector)
