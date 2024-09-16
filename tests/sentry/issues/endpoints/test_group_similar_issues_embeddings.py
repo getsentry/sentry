@@ -6,11 +6,11 @@ import orjson
 from urllib3.response import HTTPResponse
 
 from sentry import options
-from sentry.api.endpoints.group_similar_issues_embeddings import (
-    GroupSimilarIssuesEmbeddingsEndpoint,
-)
 from sentry.api.serializers.base import serialize
 from sentry.conf.server import SEER_SIMILAR_ISSUES_URL
+from sentry.issues.endpoints.group_similar_issues_embeddings import (
+    GroupSimilarIssuesEmbeddingsEndpoint,
+)
 from sentry.models.group import Group
 from sentry.models.grouphash import GroupHash
 from sentry.seer.similarity.types import SeerSimilarIssueData, SimilarIssuesEmbeddingsResponse
@@ -195,7 +195,7 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
 
     @mock.patch("sentry.seer.similarity.similar_issues.metrics.incr")
     @mock.patch("sentry.seer.similarity.similar_issues.seer_grouping_connection_pool.urlopen")
-    @mock.patch("sentry.api.endpoints.group_similar_issues_embeddings.logger")
+    @mock.patch("sentry.issues.endpoints.group_similar_issues_embeddings.logger")
     def test_simple(self, mock_logger, mock_seer_request, mock_metrics_incr):
         seer_return_value: SimilarIssuesEmbeddingsResponse = {
             "responses": [
@@ -566,7 +566,7 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
 
         assert response.data == []
 
-    @mock.patch("sentry.api.endpoints.group_similar_issues_embeddings.get_stacktrace_string")
+    @mock.patch("sentry.issues.endpoints.group_similar_issues_embeddings.get_stacktrace_string")
     def test_no_stacktrace_string(self, mock_get_stacktrace_string):
         mock_get_stacktrace_string.return_value = ""
 
