@@ -1,7 +1,7 @@
 import type {Flags} from 'sentry/types/event';
 import type {Organization} from 'sentry/types/organization';
 
-const BUFFER_SIZE = 10;
+const DEFAULT_BUFFER_SIZE = 10;
 let __SINGLETON: FeatureObserver | null = null;
 
 export default class FeatureObserver {
@@ -25,7 +25,13 @@ export default class FeatureObserver {
     return this.FEATURE_FLAGS;
   }
 
-  public observeFlags(organization: Organization) {
+  public observeFlags({
+    organization,
+    bufferSize = DEFAULT_BUFFER_SIZE,
+  }: {
+    organization: Organization;
+    bufferSize?: number;
+  }) {
     const FLAGS = this.FEATURE_FLAGS;
 
     if (!FLAGS) {
@@ -38,13 +44,13 @@ export default class FeatureObserver {
         // Evaluate the result of .includes()
         const flagResult = target.apply(orgFeatures, flagName);
 
-        // If at capacity, we need to remove the earliest flag
-        if (FLAGS.values.length === BUFFER_SIZE) {
-          FLAGS.values.shift();
-        }
-
         // Check if the flag is already in the buffer
         const index = FLAGS.values.findIndex(f => f.flag === flagName[0]);
+
+        // If at capacity AND the duplicate is not at the end, we need to remove the earliest flag
+        if (FLAGS.values.length === bufferSize && !(index === bufferSize - 1)) {
+          FLAGS.values.shift();
+        }
 
         // The flag is already in the buffer
         if (index !== -1) {
