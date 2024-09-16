@@ -3,7 +3,6 @@ from __future__ import annotations
 from collections.abc import Callable, Sequence
 from typing import Any
 
-from sentry.grouping.utils import get_rule_bool
 from sentry.utils.safe import get_path, set_path
 
 from .exceptions import InvalidEnhancerConfig
@@ -142,7 +141,6 @@ class VarAction(Action):
     _VALUE_PARSERS: dict[str, Callable[[Any], Any]] = {
         "max-frames": int,
         "min-frames": int,
-        "invert-stacktrace": get_rule_bool,
         "category": lambda x: x,
     }
 
