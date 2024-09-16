@@ -1,4 +1,3 @@
-import type {Flags} from 'sentry/types/event';
 import type {Organization} from 'sentry/types/organization';
 import localStorageWrapper from 'sentry/utils/localStorage';
 
@@ -12,10 +11,6 @@ const LOCALSTORAGE_KEY = 'feature-flag-overrides';
 
 let __SINGLETON: FeatureFlagOverrides | null = null;
 
-const BUFFER_SIZE = 10;
-
-// do we need to initialize the array with empty objects?
-const FEATURE_FLAGS: Flags = {values: []};
 export default class FeatureFlagOverrides {
   /**
    * Return the same instance of FeatureFlagOverrides in each part of the app.
@@ -115,46 +110,9 @@ export default class FeatureFlagOverrides {
   }
 
   /**
-   * Return list of recently accessed feature flags.
-   */
-  public getFeatureFlags() {
-    return FEATURE_FLAGS;
-  }
-
-  /**
    * Stash the original list of features & override organization.features with the effective list of features
    */
   public loadOrg(organization: Organization) {
     organization.features = this.getEnabledFeatureFlagList(organization);
-    // Track names of features that are passed into the .includes() function.
-    const handler = {
-      apply: function (target, orgFeatures, flagName) {
-        // Evaluate the result of .includes()
-        const flagResult = target.apply(orgFeatures, flagName);
-
-        // If at capacity, we need to remove the earliest flag
-        if (FEATURE_FLAGS.values.length === BUFFER_SIZE) {
-          FEATURE_FLAGS.values.shift();
-        }
-
-        // Check if the flag is already in the buffer
-        const index = FEATURE_FLAGS.values.findIndex(f => f.flag === flagName[0]);
-
-        // The flag is already in the buffer
-        if (index !== -1) {
-          FEATURE_FLAGS.values.splice(index, 1);
-        }
-
-        // Store the flag and its result in the buffer
-        FEATURE_FLAGS.values.push({
-          flag: flagName[0],
-          result: flagResult,
-        });
-
-        return flagResult;
-      },
-    };
-    const proxy = new Proxy(organization.features.includes, handler);
-    organization.features.includes = proxy;
   }
 }

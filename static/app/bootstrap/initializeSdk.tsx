@@ -16,7 +16,7 @@ import {
   useNavigationType,
 } from 'react-router-dom';
 import {useEffect} from 'react';
-import FeatureFlagOverrides from 'sentry/utils/featureFlagOverrides';
+import FeatureObserver from 'sentry/utils/featureObserver';
 
 const SPA_MODE_ALLOW_URLS = [
   'localhost',
@@ -198,7 +198,7 @@ export function initializeSdk(config: Config, {routes}: {routes?: Function} = {}
 
       // attach feature flags to the event context
       if (event.contexts) {
-        const flags = FeatureFlagOverrides.singleton().getFeatureFlags();
+        const flags = FeatureObserver.singleton().getFeatureFlags();
         event.contexts.flags = flags;
       }
 
