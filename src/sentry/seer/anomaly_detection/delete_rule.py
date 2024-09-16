@@ -4,7 +4,8 @@ from django.conf import settings
 from urllib3.exceptions import MaxRetryError, TimeoutError
 
 from sentry.conf.server import SEER_ALERT_DELETION_URL
-from sentry.incidents.models.alert_rule import AlertRule
+
+# from sentry.incidents.models.alert_rule import AlertRule
 from sentry.models.project import Project
 from sentry.net.http import connection_from_url
 from sentry.seer.anomaly_detection.types import DeleteRuleRequest
@@ -19,10 +20,19 @@ seer_anomaly_detection_connection_pool = connection_from_url(
 )
 
 
-def delete_rule_in_seer(alert_rule: AlertRule, project: Project) -> bool:
+def delete_rule_in_seer(alert_rule, project: Project | None) -> bool:
     """
     Send a request to delete an alert rule from Seer. Returns True if the request was successful.
     """
+    if not project:
+        logger.error(
+            "No project associated with alert rule",
+            extra={
+                "rule_id": alert_rule.id,
+            },
+        )
+        return False
+
     body = DeleteRuleRequest(
         organization_id=alert_rule.organization.id,
         project_id=project.id,

@@ -36,6 +36,7 @@ from sentry.models.notificationaction import AbstractNotificationAction, ActionS
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.models.team import Team
+from sentry.seer.anomaly_detection.delete_rule import delete_rule_in_seer
 from sentry.snuba.models import QuerySubscription
 from sentry.snuba.subscriptions import bulk_create_snuba_subscriptions, delete_snuba_subscription
 from sentry.types.actor import Actor
@@ -170,6 +171,22 @@ class AlertRuleManager(BaseManager["AlertRule"]):
                 cache.get(cls.__build_subscription_cache_key(sub_id)) is None
                 for sub_id in subscription_ids
             )
+
+    def delete_data_in_seer(self, project: Project, **kwargs: Any) -> None:
+        dynamic_alert_rules: QuerySet[AlertRule] = self.filter(
+            projects=project,
+            detection_type=AlertRuleDetectionType.DYNAMIC,
+        )
+        for alert_rule in dynamic_alert_rules:
+            success = delete_rule_in_seer(alert_rule=alert_rule, project=project)
+            if not success:
+                logger.error(
+                    "Call to delete rule data in Seer failed",
+                    extra={
+                        "rule_id": alert_rule.id,
+                        "project_id": project.id,
+                    },
+                )
 
     def conditionally_subscribe_project_to_alert_rules(
         self,
@@ -797,6 +814,7 @@ def update_alert_activations(
 
 
 post_delete.connect(AlertRuleManager.clear_subscription_cache, sender=QuerySubscription)
+post_delete.connect(AlertRuleManager.delete_data_in_seer, sender=AlertRule)
 post_save.connect(AlertRuleManager.clear_subscription_cache, sender=QuerySubscription)
 post_save.connect(AlertRuleManager.clear_alert_rule_subscription_caches, sender=AlertRule)
 post_delete.connect(AlertRuleManager.clear_alert_rule_subscription_caches, sender=AlertRule)
