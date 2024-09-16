@@ -474,35 +474,6 @@ export function PageSamplePerformanceTable({transaction, search, limit = 9}: Pro
             />
           )}
         </StyledSearchBar>
-
-        <StyledPagination
-          pageLinks={
-            datatype === Datatype.INTERACTIONS ? interactionsPageLinks : pageLinks
-          }
-          disabled={
-            datatype === Datatype.INTERACTIONS ? isInteractionsLoading : isLoading
-          }
-          size="md"
-        />
-        {/* The Pagination component disappears if pageLinks is not defined,
-        which happens any time the table data is loading. So we render a
-        disabled button bar if pageLinks is not defined to minimize ui shifting */}
-        {!(datatype === Datatype.INTERACTIONS ? interactionsPageLinks : pageLinks) && (
-          <Wrapper>
-            <ButtonBar merged>
-              <Button
-                icon={<IconChevron direction="left" />}
-                disabled
-                aria-label={t('Previous')}
-              />
-              <Button
-                icon={<IconChevron direction="right" />}
-                disabled
-                aria-label={t('Next')}
-              />
-            </ButtonBar>
-          </Wrapper>
-        )}
       </SearchBarContainer>
       {datatype === Datatype.PAGELOADS && (
         <GridEditable
@@ -529,6 +500,29 @@ export function PageSamplePerformanceTable({transaction, search, limit = 9}: Pro
           }}
           minimumColWidth={70}
         />
+      )}
+      <StyledPagination
+        pageLinks={datatype === Datatype.INTERACTIONS ? interactionsPageLinks : pageLinks}
+        disabled={datatype === Datatype.INTERACTIONS ? isInteractionsLoading : isLoading}
+      />
+      {/* The Pagination component disappears if pageLinks is not defined,
+        which happens any time the table data is loading. So we render a
+        disabled button bar if pageLinks is not defined to minimize ui shifting */}
+      {!(datatype === Datatype.INTERACTIONS ? interactionsPageLinks : pageLinks) && (
+        <Wrapper>
+          <ButtonBar merged>
+            <Button
+              icon={<IconChevron direction="left" />}
+              disabled
+              aria-label={t('Previous')}
+            />
+            <Button
+              icon={<IconChevron direction="right" />}
+              disabled
+              aria-label={t('Next')}
+            />
+          </ButtonBar>
+        </Wrapper>
       )}
     </span>
   );
@@ -565,8 +559,7 @@ const NoValue = styled('span')`
 
 const SearchBarContainer = styled('div')`
   display: flex;
-  margin-top: ${space(2)};
-  margin-bottom: ${space(1)};
+  margin-bottom: ${space(2)};
   gap: ${space(1)};
 `;
 
