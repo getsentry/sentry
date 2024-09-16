@@ -132,18 +132,25 @@ export default class FeatureFlagOverrides {
         // Evaluate the result of .includes()
         const flagResult = target.apply(orgFeatures, flagName);
 
-        // Check that the flag is not already in the buffer
-        if (!FEATURE_FLAGS.values.some(f => f.flag === flagName)) {
-          // If at capacity, we need to remove the earliest flag
-          if (FEATURE_FLAGS.values.length === BUFFER_SIZE) {
-            FEATURE_FLAGS.values.shift();
-          }
-          // Store the flag and its result in the buffer
-          FEATURE_FLAGS.values.push({
-            flag: flagName,
-            result: flagResult,
-          });
+        // If at capacity, we need to remove the earliest flag
+        if (FEATURE_FLAGS.values.length === BUFFER_SIZE) {
+          FEATURE_FLAGS.values.shift();
         }
+
+        // Check if the flag is already in the buffer
+        const index = FEATURE_FLAGS.values.findIndex(f => f.flag === flagName);
+
+        // The flag is already in the buffer
+        if (index !== -1) {
+          FEATURE_FLAGS.values.splice(index, 1);
+        }
+
+        // Store the flag and its result in the buffer
+        FEATURE_FLAGS.values.push({
+          flag: flagName,
+          result: flagResult,
+        });
+
         return flagResult;
       },
     };
