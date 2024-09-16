@@ -4,7 +4,10 @@ import {useCallback, useContext, useEffect, useState} from 'react';
 import styled from '@emotion/styled';
 import type {Node} from '@react-types/shared';
 
-import {DraggableTabList} from 'sentry/components/draggableTabs/draggableTabList';
+import {
+  DraggableTabList,
+  TEMPORARY_TAB_KEY,
+} from 'sentry/components/draggableTabs/draggableTabList';
 import type {DraggableTabListItemProps} from 'sentry/components/draggableTabs/item';
 import type {MenuItemProps} from 'sentry/components/dropdownMenu';
 import {TabsContext} from 'sentry/components/tabs';
@@ -306,7 +309,7 @@ export function DraggableTabBar({
   }, [setOnNewViewSaved, handleNewViewSaved]);
 
   const makeMenuOptions = (tab: Tab): MenuItemProps[] => {
-    if (tab.key === 'temporary-tab') {
+    if (tab.key === TEMPORARY_TAB_KEY) {
       return makeTempViewMenuOptions({
         onSaveTempView: handleOnSaveTempView,
         onDiscardTempView: handleOnDiscardTempView,
@@ -347,7 +350,7 @@ export function DraggableTabBar({
               ...queryParams,
               query: tab.unsavedChanges?.[0] ?? tab.query,
               sort: tab.unsavedChanges?.[1] ?? tab.querySort,
-              viewId: tab.id !== 'temporary-tab' ? tab.id : undefined,
+              viewId: tab.id !== TEMPORARY_TAB_KEY ? tab.id : undefined,
             },
             pathname: `/organizations/${orgSlug}/issues/`,
           })}
