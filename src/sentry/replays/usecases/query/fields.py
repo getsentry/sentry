@@ -9,7 +9,6 @@ from snuba_sdk import Condition
 from sentry.api.event_search import SearchFilter
 from sentry.replays.lib.new_query.errors import OperatorNotSupported
 from sentry.replays.lib.new_query.parsers import parse_str
-from sentry.replays.usecases.query.conditions import SumOfTagScalar
 from sentry.replays.usecases.query.conditions.base import ComputedBase
 
 T = TypeVar("T")
@@ -95,9 +94,9 @@ class ComputedField(Generic[T]):
 
 
 class TagField:
-    def __init__(self) -> None:
+    def __init__(self, query: type[ComputedBase]) -> None:
         self.parse = parse_str
-        self.query = SumOfTagScalar
+        self.query = query
 
     def apply(self, search_filter: SearchFilter) -> Condition:
         """Apply a search operation against any named expression.

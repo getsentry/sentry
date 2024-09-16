@@ -1,4 +1,5 @@
 """Scalar query filtering configuration module."""
+
 from __future__ import annotations
 
 from collections.abc import Sequence
@@ -20,7 +21,9 @@ from sentry.replays.usecases.query.conditions import (
     RageClickSelectorComposite,
 )
 from sentry.replays.usecases.query.conditions.event_ids import ErrorIdScalar
-from sentry.replays.usecases.query.fields import ComputedField
+from sentry.replays.usecases.query.conditions.tags import TagScalar
+from sentry.replays.usecases.query.configs.aggregate import search_config as aggregate_search_config
+from sentry.replays.usecases.query.fields import ComputedField, TagField
 
 
 def string_field(column_name: str) -> StringColumnField:
@@ -71,6 +74,7 @@ varying_search_config["trace_id"] = varying_search_config["trace_ids"]
 varying_search_config["trace"] = varying_search_config["trace_ids"]
 varying_search_config["url"] = varying_search_config["urls"]
 varying_search_config["user.ip"] = varying_search_config["user.ip_address"]
+varying_search_config["*"] = TagField(query=TagScalar)
 
 
 # Click Search Config
@@ -115,8 +119,14 @@ def can_scalar_search_subquery(
         else:
             name = search_filter.key.name
 
-            # If the search-filter does not exist in either configuration then return false.
-            if name not in static_search_config and name not in varying_search_config:
+            # If the search-filter does not exist in either configuration then return false. To
+            # account for tags, which are generically named, we look the field up in the aggregate
+            # config. If the field appears its a named field and this strategy should fail.
+            if (
+                name not in static_search_config
+                and name not in varying_search_config
+                and name in aggregate_search_config
+            ):
                 return False
 
             if name in varying_search_config:
