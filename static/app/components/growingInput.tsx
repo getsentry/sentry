@@ -33,7 +33,8 @@ function resize(input: HTMLInputElement) {
     // parseInt is save here as the computed styles are always in px
     parseInt(computedStyles.paddingLeft, 10) +
     parseInt(computedStyles.paddingRight, 10) +
-    parseInt(computedStyles.borderWidth, 10) * 2;
+    parseInt(computedStyles.borderWidth, 10) * 2 +
+    1; // Add 1px to account for cursor width in Safari
 
   document.body.removeChild(sizingDiv);
 
