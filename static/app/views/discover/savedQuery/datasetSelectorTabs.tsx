@@ -2,7 +2,16 @@ import {TabList, Tabs} from 'sentry/components/tabs';
 import {t} from 'sentry/locale';
 import type {SavedQuery} from 'sentry/types/organization';
 import type EventView from 'sentry/utils/discover/eventView';
-import {SavedQueryDatasets} from 'sentry/utils/discover/types';
+import {
+  ERROR_ONLY_FIELDS,
+  explodeField,
+  getAggregations,
+  type QueryFieldValue,
+  TRANSACTION_ONLY_FIELDS,
+} from 'sentry/utils/discover/fields';
+import {DiscoverDatasets, SavedQueryDatasets} from 'sentry/utils/discover/types';
+import type {FieldKey, SpanOpBreakdown} from 'sentry/utils/fields';
+import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -25,6 +34,58 @@ type Props = {
   savedQuery: SavedQuery | undefined;
   splitDecision?: SavedQueryDatasets;
 };
+
+export function validEventViewForDataset(
+  eventView: EventView,
+  toDataset: DiscoverDatasets
+) {
+  let to = eventView.clone();
+  const allowedAggregations = Object.keys(getAggregations(toDataset));
+  let newColumns: QueryFieldValue[] = [];
+  const search = new MutableSearch(eventView.query);
+  const denylistedFields =
+    toDataset === DiscoverDatasets.ERRORS ? TRANSACTION_ONLY_FIELDS : ERROR_ONLY_FIELDS;
+  const removedFields: string[] = [];
+  const equationsToCheck: string[] = [];
+  eventView.fields.forEach(field => {
+    const column = explodeField(field);
+    if (
+      column.kind === 'field' &&
+      denylistedFields.includes(column.field as FieldKey | SpanOpBreakdown)
+    ) {
+      search.removeFilter(field.field);
+      removedFields.push(field.field);
+      return;
+    }
+    if (column.kind === 'function') {
+      if (!allowedAggregations.includes(column.function[0])) {
+        search.removeFilter(field.field);
+        removedFields.push(field.field);
+        return;
+      }
+      if (denylistedFields.includes(column.function[1] as FieldKey | SpanOpBreakdown)) {
+        search.removeFilter(field.field);
+        removedFields.push(field.field);
+        return;
+      }
+    }
+    if (column.kind === 'equation') {
+      equationsToCheck.push(field.field);
+    }
+    newColumns.push(column);
+  });
+
+  newColumns = newColumns.filter(column => {
+    if (column.kind !== 'equation') {
+      return true;
+    }
+    return removedFields.some(f => !column.field.includes(f));
+  });
+
+  to = to.withColumns(newColumns);
+  to.query = search.formatString();
+  return to;
+}
 
 export function DatasetSelectorTabs(props: Props) {
   const {savedQuery, isHomepage, splitDecision, eventView} = props;
@@ -56,8 +117,13 @@ export function DatasetSelectorTabs(props: Props) {
     <Tabs
       value={value}
       onChange={newValue => {
-        const nextEventView = eventView.withDataset(
-          getDatasetFromLocationOrSavedQueryDataset(undefined, newValue)
+        const nextEventView = validEventViewForDataset(
+          eventView.withDataset(
+            getDatasetFromLocationOrSavedQueryDataset(undefined, newValue)
+          ),
+          newValue === SavedQueryDatasets.ERRORS
+            ? DiscoverDatasets.ERRORS
+            : DiscoverDatasets.TRANSACTIONS
         );
         const nextLocation = nextEventView.getResultsViewUrlTarget(
           organization.slug,
