@@ -1,8 +1,8 @@
-import type {ComponentProps, ReactNode} from 'react';
+import type {ReactNode} from 'react';
 import {useState} from 'react';
 import styled from '@emotion/styled';
 
-import {LinkButton} from 'sentry/components/button';
+import {LinkButton, type LinkButtonProps} from 'sentry/components/button';
 import {Flex} from 'sentry/components/container/flex';
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
 import Placeholder from 'sentry/components/placeholder';
@@ -215,7 +215,7 @@ function SearchButton({
   label: ReactNode;
   path: string;
   sort: string;
-} & Omit<ComponentProps<typeof LinkButton>, 'size' | 'to'>) {
+} & Omit<LinkButtonProps, 'size' | 'to' | 'external'>) {
   const location = useLocation();
   const organization = useOrganization();
 
