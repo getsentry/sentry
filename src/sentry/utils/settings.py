@@ -1,4 +1,14 @@
 def is_self_hosted() -> bool:
+    """Determines if the application is self-hosted.
+
+    This function checks the SENTRY_SELF_HOSTED setting from the Django
+    settings to determine if the application is running in a self-hosted
+    environment. It provides backcompat for consumers that rely on the
+    previous naming convention, particularly for single-tenant setups.
+
+    Returns:
+        bool: True if the application is self-hosted, False otherwise.
+    """
     # Backcompat for rename to support old consumers, particularly single-tenant.
     from django.conf import settings
 

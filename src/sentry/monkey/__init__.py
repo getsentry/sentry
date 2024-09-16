@@ -1,4 +1,15 @@
 def register_scheme(name: str) -> None:
+    """Registers a new URL scheme by adding it to the appropriate lists.
+
+    This function checks the predefined lists of URL schemes and appends the
+    specified scheme name if it is not already present.
+
+    Args:
+        name: The name of the URL scheme to register.
+
+    Returns:
+        None
+    """
     from urllib import parse as urlparse
 
     uses = urlparse.uses_netloc, urlparse.uses_query, urlparse.uses_relative, urlparse.uses_fragment
