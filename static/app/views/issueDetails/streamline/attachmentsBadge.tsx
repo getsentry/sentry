@@ -1,31 +1,38 @@
-import {Fragment} from 'react';
+import {Fragment, useRef} from 'react';
 import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/button';
-import useDrawer from 'sentry/components/globalDrawer';
 import {IconAttachment} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Group} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
 import parseLinkHeader from 'sentry/utils/parseLinkHeader';
 import {Divider} from 'sentry/views/issueDetails/divider';
-import {GroupEventAttachmentsDrawer} from 'sentry/views/issueDetails/groupEventAttachments/groupEventAttachmentsDrawer';
 import {useGroupEventAttachments} from 'sentry/views/issueDetails/groupEventAttachments/useGroupEventAttachments';
+import {useGroupEventAttachmentsDrawer} from 'sentry/views/issueDetails/groupEventAttachments/useGroupEventAttachmentsDrawer';
 
 export function AttachmentsBadge({group, project}: {group: Group; project: Project}) {
-  const {openDrawer} = useDrawer();
   const attachments = useGroupEventAttachments({
     groupId: group.id,
     activeAttachmentsTab: 'all',
+    options: {keepPreviousData: true},
   });
+  const openButtonRef = useRef<HTMLButtonElement>(null);
+  const {openAttachmentDrawer} = useGroupEventAttachmentsDrawer({
+    project,
+    group,
+    openButtonRef,
+  });
+
   const attachmentPagination = parseLinkHeader(
     attachments.getResponseHeader?.('Link') ?? null
   );
 
-  const hasAttachments =
-    attachmentPagination.next?.results || attachments.attachments.length > 0;
+  // Since we reuse whatever page the user was on, we can look at pagination to determine if there are more attachments
+  const hasManyAttachments =
+    attachmentPagination.next?.results || attachmentPagination.previous?.results;
 
-  if (!hasAttachments) {
+  if (!attachments.attachments.length && !hasManyAttachments) {
     return null;
   }
 
@@ -33,23 +40,16 @@ export function AttachmentsBadge({group, project}: {group: Group; project: Proje
     <Fragment>
       <Divider />
       <AttachmentButton
+        ref={openButtonRef}
         type="button"
         priority="link"
         size="zero"
         icon={<IconAttachment size="xs" />}
         onClick={() => {
-          openDrawer(
-            () => <GroupEventAttachmentsDrawer project={project} groupId={group.id} />,
-            {
-              ariaLabel: 'breadcrumb drawer',
-            }
-          );
+          openAttachmentDrawer();
         }}
       >
-        {t(
-          '%s Attachments',
-          attachmentPagination.next?.results ? '50+' : attachments.attachments.length
-        )}
+        {t('%s Attachments', hasManyAttachments ? '50+' : attachments.attachments.length)}
       </AttachmentButton>
     </Fragment>
   );

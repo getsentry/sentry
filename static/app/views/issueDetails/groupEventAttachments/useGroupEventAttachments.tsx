@@ -1,5 +1,11 @@
+import type {Attachment} from '@sentry/types';
+
 import type {IssueAttachment} from 'sentry/types/group';
-import {type ApiQueryKey, useApiQuery} from 'sentry/utils/queryClient';
+import {
+  type ApiQueryKey,
+  useApiQuery,
+  type UseApiQueryOptions,
+} from 'sentry/utils/queryClient';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 
@@ -8,6 +14,7 @@ export const MAX_SCREENSHOTS_PER_PAGE = 12;
 interface UseGroupEventAttachmentsOptions {
   activeAttachmentsTab: 'all' | 'onlyCrash' | 'screenshot';
   groupId: string;
+  options?: Pick<UseApiQueryOptions<Attachment[]>, 'keepPreviousData'>;
 }
 
 interface MakeFetchGroupEventAttachmentsQueryKeyOptions
@@ -59,6 +66,7 @@ export const makeFetchGroupEventAttachmentsQueryKey = ({
 export function useGroupEventAttachments({
   groupId,
   activeAttachmentsTab,
+  options,
 }: UseGroupEventAttachmentsOptions) {
   const organization = useOrganization();
   const location = useLocation();
@@ -76,7 +84,7 @@ export function useGroupEventAttachments({
       cursor: location.query.cursor as string | undefined,
       environment: location.query.environment as string[] | string | undefined,
     }),
-    {staleTime: 60_000}
+    {...options, staleTime: 60_000}
   );
   return {
     attachments,
