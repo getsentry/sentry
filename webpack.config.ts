@@ -498,7 +498,11 @@ const appConfig: webpack.Configuration = {
       }),
     ],
   },
-  devtool: IS_PRODUCTION ? 'source-map' : 'eval-cheap-module-source-map',
+  devtool: IS_ACCEPTANCE_TEST
+    ? undefined
+    : IS_PRODUCTION
+      ? 'source-map'
+      : 'eval-cheap-module-source-map',
 };
 
 if (IS_TEST) {
