@@ -373,3 +373,7 @@ export const subregionCodeToName = {
 };
 
 export type SubregionCode = keyof typeof subregionCodeToName;
+
+export type InsightLandingProps = {
+  disableHeader?: boolean;
+};
