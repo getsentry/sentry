@@ -9,6 +9,30 @@ import type {SelectOptionWithKey} from 'sentry/components/compactSelect/types';
 import {getItemsWithKeys} from 'sentry/components/compactSelect/utils';
 import {useSearchQueryBuilder} from 'sentry/components/searchQueryBuilder/context';
 import {
+  type CustomComboboxMenu,
+  SearchQueryBuilderCombobox,
+} from 'sentry/components/searchQueryBuilder/tokens/combobox';
+import SpecificDatePicker from 'sentry/components/searchQueryBuilder/tokens/filter/specificDatePicker';
+import {
+  escapeTagValue,
+  formatFilterValue,
+  getFilterValueType,
+  replaceCommaSeparatedValue,
+  unescapeTagValue,
+} from 'sentry/components/searchQueryBuilder/tokens/filter/utils';
+import {ValueListBox} from 'sentry/components/searchQueryBuilder/tokens/filter/valueListBox';
+import {getDefaultAbsoluteDateValue} from 'sentry/components/searchQueryBuilder/tokens/filter/valueSuggestions/date';
+import type {
+  SuggestionItem,
+  SuggestionSection,
+  SuggestionSectionItem,
+} from 'sentry/components/searchQueryBuilder/tokens/filter/valueSuggestions/types';
+import {
+  cleanFilterValue,
+  getValueSuggestions,
+} from 'sentry/components/searchQueryBuilder/tokens/filter/valueSuggestions/utils';
+import {getDefaultFilterValue} from 'sentry/components/searchQueryBuilder/tokens/utils';
+import {
   isDateToken,
   recentSearchTypeToLabel,
 } from 'sentry/components/searchQueryBuilder/utils';
@@ -35,26 +59,6 @@ import {keepPreviousData, type QueryKey, useQuery} from 'sentry/utils/queryClien
 import {useDebouncedValue} from 'sentry/utils/useDebouncedValue';
 import useKeyPress from 'sentry/utils/useKeyPress';
 import useOrganization from 'sentry/utils/useOrganization';
-
-import {type CustomComboboxMenu, SearchQueryBuilderCombobox} from '../combobox';
-import {getDefaultFilterValue} from '../utils';
-
-import {getDefaultAbsoluteDateValue} from './valueSuggestions/date';
-import type {
-  SuggestionItem,
-  SuggestionSection,
-  SuggestionSectionItem,
-} from './valueSuggestions/types';
-import {cleanFilterValue, getValueSuggestions} from './valueSuggestions/utils';
-import SpecificDatePicker from './specificDatePicker';
-import {
-  escapeTagValue,
-  formatFilterValue,
-  getFilterValueType,
-  replaceCommaSeparatedValue,
-  unescapeTagValue,
-} from './utils';
-import {ValueListBox} from './valueListBox';
 
 type SearchQueryValueBuilderProps = {
   onCommit: () => void;
