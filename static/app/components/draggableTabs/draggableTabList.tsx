@@ -155,7 +155,13 @@ function Tabs({
 
   return (
     <TabListWrap {...tabListProps} className={className} ref={tabListRef}>
-      <ReorderGroup axis="x" values={values} onReorder={onReorder} as="div">
+      <ReorderGroup
+        axis="x"
+        values={values}
+        onReorder={onReorder}
+        as="div"
+        initial={false}
+      >
         {tabs.map((item, i) => (
           <Fragment key={item.key}>
             <TabItemWrap
@@ -183,6 +189,7 @@ function Tabs({
               onDragEnd={() => setIsDragging(false)}
               onHoverStart={() => setHoveringKey(item.key)}
               onHoverEnd={() => setHoveringKey(null)}
+              initial={false}
             >
               <div key={item.key}>
                 <Tab
@@ -203,6 +210,7 @@ function Tabs({
                 hoveringKey !== item.key &&
                 state.collection.getKeyAfter(item.key) !== hoveringKey
               }
+              initial={false}
             />
           </Fragment>
         ))}
