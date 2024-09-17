@@ -7,7 +7,7 @@
       {
         "name": "organization_id_or_slug",
         "in": "path",
-        "description": "The id or slug of the organization the file belongs to.",
+        "description": "The ID or slug of the organization the file belongs to.",
         "required": true,
         "schema": {
           "type": "string"
@@ -16,7 +16,7 @@
       {
         "name": "project_id_or_slug",
         "in": "path",
-        "description": "The id or slug of the project to list the DIFs of.",
+        "description": "The ID or slug of the project to list the DIFs of.",
         "required": true,
         "schema": {
           "type": "string"
@@ -51,7 +51,7 @@
       {
         "name": "organization_id_or_slug",
         "in": "path",
-        "description": "The id or slug of the organization the project belongs to.",
+        "description": "The ID or slug of the organization the project belongs to.",
         "required": true,
         "schema": {
           "type": "string"
@@ -60,7 +60,7 @@
       {
         "name": "project_id_or_slug",
         "in": "path",
-        "description": "The id or slug of the project to upload a file to.",
+        "description": "The ID or slug of the project to upload a file to.",
         "required": true,
         "schema": {
           "type": "string"
@@ -119,7 +119,7 @@
       {
         "name": "organization_id_or_slug",
         "in": "path",
-        "description": "The id or slug of the organization the file belongs to.",
+        "description": "The ID or slug of the organization the file belongs to.",
         "required": true,
         "schema": {
           "type": "string"
@@ -128,7 +128,7 @@
       {
         "name": "project_id_or_slug",
         "in": "path",
-        "description": "The id or slug of the project to delete the DIF.",
+        "description": "The ID or slug of the project to delete the DIF.",
         "required": true,
         "schema": {
           "type": "string"

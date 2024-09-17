@@ -11,7 +11,6 @@ from sentry import audit_log
 from sentry.conf.server import SENTRY_GROUPING_UPDATE_MIGRATION_PHASE
 from sentry.event_manager import _get_updated_group_title
 from sentry.eventtypes.base import DefaultEvent
-from sentry.grouping.result import CalculatedHashes
 from sentry.models.auditlogentry import AuditLogEntry
 from sentry.models.group import Group
 from sentry.models.grouphash import GroupHash
@@ -132,6 +131,13 @@ class EventManagerGroupingTest(TestCase):
         assert group.last_seen == event2.datetime
         assert group.message == event2.message
         assert group.data["metadata"]["title"] == event2.title
+
+    def test_auto_updates_grouping_config_even_if_config_is_gone(self):
+        """This tests that setups with deprecated configs will auto-upgrade."""
+        self.project.update_option("sentry:grouping_config", "non_existing_config")
+        save_new_event({"message": "foo"}, self.project)
+        assert self.project.get_option("sentry:grouping_config") == DEFAULT_GROUPING_CONFIG
+        assert self.project.get_option("sentry:secondary_grouping_config") is None
 
     def test_auto_updates_grouping_config(self):
         self.project.update_option("sentry:grouping_config", LEGACY_GROUPING_CONFIG)
@@ -527,12 +533,12 @@ def test_records_hash_comparison_metric(
     project.update_option("sentry:secondary_grouping_expiry", time() + 3600)
 
     with mock.patch(
-        "sentry.grouping.ingest.hashing._calculate_primary_hash",
-        return_value=CalculatedHashes(primary_hashes),
+        "sentry.grouping.ingest.hashing._calculate_primary_hashes",
+        return_value=primary_hashes,
     ):
         with mock.patch(
-            "sentry.grouping.ingest.hashing._calculate_secondary_hash",
-            return_value=CalculatedHashes(secondary_hashes),
+            "sentry.grouping.ingest.hashing._calculate_secondary_hashes",
+            return_value=secondary_hashes,
         ):
             save_new_event({"message": "Dogs are great!"}, project)
 

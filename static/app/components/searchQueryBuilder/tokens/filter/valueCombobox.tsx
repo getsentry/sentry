@@ -95,7 +95,7 @@ function prepareInputValueForSaving(valueType: FieldValueType, inputValue: strin
   const values = uniq(
     inputValue
       .split(',')
-      .map(v => cleanFilterValue(valueType, v.trim()))
+      .map(v => cleanFilterValue({valueType, value: v.trim()}))
       .filter(v => v && v.length > 0)
   );
 
@@ -536,10 +536,11 @@ export function SearchQueryBuilderValueCombobox({
 
   const updateFilterValue = useCallback(
     (value: string) => {
-      const cleanedValue = cleanFilterValue(
-        getFilterValueType(token, fieldDefinition),
-        value
-      );
+      const cleanedValue = cleanFilterValue({
+        valueType: getFilterValueType(token, fieldDefinition),
+        value,
+        token,
+      });
 
       // TODO(malwilley): Add visual feedback for invalid values
       if (cleanedValue === null) {
@@ -731,6 +732,7 @@ export function SearchQueryBuilderValueCombobox({
               {...props}
               isMultiSelect={canSelectMultipleValues}
               items={items}
+              isLoading={isFetching}
               canUseWildcard={canUseWildard}
             />
           );
@@ -770,6 +772,7 @@ export function SearchQueryBuilderValueCombobox({
       showDatePicker,
       canSelectMultipleValues,
       items,
+      isFetching,
       canUseWildard,
       inputValue,
       token,
@@ -799,7 +802,6 @@ export function SearchQueryBuilderValueCombobox({
         autoFocus
         maxOptions={50}
         openOnFocus
-        isLoading={isFetching}
         customMenu={customMenu}
         shouldCloseOnInteractOutside={shouldCloseOnInteractOutside}
       >

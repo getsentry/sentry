@@ -7,13 +7,19 @@ from django.db import models
 from django.db.models import Q
 
 from sentry.backup.scopes import RelocationScope
-from sentry.db.models import DefaultFieldsModelExisting, FlexibleForeignKey, region_silo_model
+from sentry.db.models import (
+    DefaultFieldsModelExisting,
+    FlexibleForeignKey,
+    JSONField,
+    region_silo_model,
+)
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
 from sentry.db.models.manager.base import BaseManager
 from sentry.models.organization import Organization
 from sentry.remote_subscriptions.models import BaseRemoteSubscription
 from sentry.types.actor import Actor
 from sentry.utils.function_cache import cache_func_for_models
+from sentry.utils.json import JSONEncoder
 
 
 @region_silo_model
@@ -37,6 +43,19 @@ class UptimeSubscription(BaseRemoteSubscription, DefaultFieldsModelExisting):
     interval_seconds = models.IntegerField()
     # How long to wait for a response from the url before we assume a timeout
     timeout_ms = models.IntegerField()
+    # HTTP method to perform the check with
+    method = models.CharField(max_length=20, db_default="GET")
+    # HTTP headers to send when performing the check
+    headers = JSONField(
+        json_dumps=JSONEncoder(
+            separators=(",", ":"),
+            # We sort the keys here so that we can deterministically compare headers
+            sort_keys=True,
+        ).encode,
+        db_default={},
+    )
+    # HTTP body to send when performing the check
+    body = models.TextField(null=True)
 
     objects: ClassVar[BaseManager[Self]] = BaseManager(
         cache_fields=["pk", "subscription_id"],

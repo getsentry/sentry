@@ -89,7 +89,7 @@ export function ToolbarGroupBy({disabled}: ToolbarGroupByProps) {
               borderless
               icon={<IconDelete />}
               size="zero"
-              disabled={disabled || groupBys.length <= 1}
+              disabled={disabled || (groupBys.length <= 1 && groupBy === '')}
               onClick={() => deleteGroupBy(index)}
               aria-label={t('Remove')}
             />

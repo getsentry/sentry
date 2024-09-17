@@ -157,4 +157,13 @@ export class Frame {
       this.name = t('<unknown>');
     }
   }
+
+  getSourceLocation(): string {
+    const packageFileOrPath: string =
+      this.file ?? this.module ?? this.package ?? this.path ?? '<unknown>';
+
+    const line = typeof this.line === 'number' ? this.line : '<unknown line>';
+    const column = typeof this.column === 'number' ? this.column : '<unknown column>';
+    return `${packageFileOrPath}:${line}:${column}`;
+  }
 }
