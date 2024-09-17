@@ -197,7 +197,7 @@ class SimpleStorageBlob:
             result = blob.read()
             blob.close()
         except Exception:
-            logger.warning("Storage GET error.")
+            logger.warning("Storage GET error: %s", repr(e))
             return None
         else:
             return result
