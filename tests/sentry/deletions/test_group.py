@@ -22,7 +22,7 @@ from sentry.testutils.helpers.datetime import before_now, iso_format
 class DeleteGroupTest(TestCase, SnubaTestCase):
     def setUp(self):
         super().setUp()
-        group1_data = {"fingerprint": ["group1"], "timestamp": iso_format(before_now(minutes=1))}
+        group1_data = {"timestamp": iso_format(before_now(minutes=1)), "fingerprint": ["group1"]}
         group2_data = {"timestamp": iso_format(before_now(minutes=1)), "fingerprint": ["group2"]}
         self.project = self.create_project()
 
