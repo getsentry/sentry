@@ -12,7 +12,6 @@ import MenuListItem, {
   InnerWrap as MenuListItemInnerWrap,
 } from 'sentry/components/menuListItem';
 import {IconChevron} from 'sentry/icons';
-import {defined} from 'sentry/utils';
 import mergeRefs from 'sentry/utils/mergeRefs';
 import usePrevious from 'sentry/utils/usePrevious';
 
@@ -52,7 +51,7 @@ export interface MenuItemProps extends MenuListItemProps {
    * Function to call when user selects/clicks/taps on the menu item. The
    * item's key is passed as an argument.
    */
-  onAction?: (key: MenuItemProps['key']) => void;
+  onAction?: () => void;
   /**
    * Passed as the `menuTitle` prop onto the associated sub-menu (applicable
    * if `children` is defined and `isSubmenu` is true)
@@ -128,7 +127,7 @@ function BaseDropdownMenuItem(
       state.selectionManager.toggleSelection(node.key);
       return;
     }
-    defined(key) && onAction?.(key);
+    onAction?.();
   };
 
   // Open submenu on hover

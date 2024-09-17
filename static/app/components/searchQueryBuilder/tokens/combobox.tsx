@@ -352,7 +352,11 @@ function SearchQueryBuilderComboboxInner<T extends SelectOptionOrSectionWithKey<
   });
 
   const onSelectionChange = useCallback(
-    (key: Key) => {
+    (key: Key | null) => {
+      if (!key) {
+        return;
+      }
+
       const selectedOption = findItemInSections(items, key);
       if (selectedOption) {
         onOptionSelected(selectedOption);
