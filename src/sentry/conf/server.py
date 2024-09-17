@@ -983,13 +983,13 @@ CELERYBEAT_SCHEDULE_CONTROL = {
         "options": {"expires": 60, "queue": "outbox.control"},
     },
     "schedule-deletions-control": {
-        "task": "sentry.tasks.deletion.run_scheduled_deletions_control",
+        "task": "sentry.deletions.tasks.run_scheduled_deletions_control",
         # Run every 15 minutes
         "schedule": crontab(minute="*/15"),
         "options": {"expires": 60 * 25, "queue": "cleanup.control"},
     },
     "reattempt-deletions-control": {
-        "task": "sentry.tasks.deletion.reattempt_deletions_control",
+        "task": "sentry.deletions.tasks.reattempt_deletions_control",
         # 03:00 PDT, 07:00 EDT, 10:00 UTC
         "schedule": crontab(hour="10", minute="0"),
         "options": {"expires": 60 * 25, "queue": "cleanup.control"},
@@ -1107,13 +1107,13 @@ CELERYBEAT_SCHEDULE_REGION = {
         "options": {"expires": 60 * 25},
     },
     "schedule-deletions": {
-        "task": "sentry.tasks.deletion.run_scheduled_deletions",
+        "task": "sentry.deletions.tasks.run_scheduled_deletions",
         # Run every 15 minutes
         "schedule": crontab(minute="*/15"),
         "options": {"expires": 60 * 25},
     },
     "reattempt-deletions": {
-        "task": "sentry.tasks.deletion.reattempt_deletions",
+        "task": "sentry.deletions.tasks.reattempt_deletions",
         # 03:00 PDT, 07:00 EDT, 10:00 UTC
         "schedule": crontab(hour="10", minute="0"),
         "options": {"expires": 60 * 25},
