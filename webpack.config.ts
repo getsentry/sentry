@@ -413,10 +413,14 @@ const appConfig: webpack.Configuration = {
       ],
     }),
 
-    WebpackReactSourcemapsPlugin({
-      mode: IS_PRODUCTION ? 'strict' : undefined,
-      debug: false,
-    }),
+    ...(IS_ACCEPTANCE_TEST
+      ? []
+      : [
+          WebpackReactSourcemapsPlugin({
+            mode: IS_PRODUCTION ? 'strict' : undefined,
+            debug: false,
+          }),
+        ]),
   ],
 
   resolve: {
