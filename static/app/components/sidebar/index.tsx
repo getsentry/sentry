@@ -53,6 +53,10 @@ import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 import {useModuleURLBuilder} from 'sentry/views/insights/common/utils/useModuleURL';
 import {MODULE_SIDEBAR_TITLE as HTTP_MODULE_SIDEBAR_TITLE} from 'sentry/views/insights/http/settings';
+import {AI_LANDING_SUB_PATH} from 'sentry/views/insights/pages/aiLandingPage';
+import {MOBILE_LANDING_SUB_PATH} from 'sentry/views/insights/pages/mobileLandingPage';
+import {PLATFORM_LANDING_SUB_PATH} from 'sentry/views/insights/pages/platformLandingPage';
+import {WEB_LANDING_SUB_PATH} from 'sentry/views/insights/pages/webLandingPage';
 import {MODULE_TITLES} from 'sentry/views/insights/settings';
 import MetricsOnboardingSidebar from 'sentry/views/metrics/ddmOnboarding/sidebar';
 
@@ -588,6 +592,48 @@ function Sidebar() {
     />
   );
 
+  const performanceDomains = hasOrganization && (
+    <Feature features="insights-domain-view" organization={organization}>
+      <SidebarAccordion
+        {...sidebarItemProps}
+        icon={<IconGraph />}
+        label={t('Performance')}
+        id="performance-domains"
+        initiallyExpanded={false}
+        exact={!shouldAccordionFloat}
+      >
+        <SidebarItem
+          {...sidebarItemProps}
+          label={t('Web')}
+          to={`/organizations/${organization.slug}/performance/${WEB_LANDING_SUB_PATH}/`}
+          id="performance-domains-web"
+          icon={<SubitemDot collapsed />}
+        />
+        <SidebarItem
+          {...sidebarItemProps}
+          label={t('Platform')}
+          to={`/organizations/${organization.slug}/performance/${PLATFORM_LANDING_SUB_PATH}/`}
+          id="performance-domains-platform"
+          icon={<SubitemDot collapsed />}
+        />
+        <SidebarItem
+          {...sidebarItemProps}
+          label={t('Mobile')}
+          to={`/organizations/${organization.slug}/performance/${MOBILE_LANDING_SUB_PATH}/`}
+          id="performance-domains-mobile"
+          icon={<SubitemDot collapsed />}
+        />
+        <SidebarItem
+          {...sidebarItemProps}
+          label={t('Ai')}
+          to={`/organizations/${organization.slug}/performance/${AI_LANDING_SUB_PATH}/`}
+          id="performance-domains-ai"
+          icon={<SubitemDot collapsed />}
+        />
+      </SidebarAccordion>
+    </Feature>
+  );
+
   const insights = hasOrganization && (
     <Feature key="insights" features="insights-entry-points" organization={organization}>
       <SidebarAccordion
@@ -666,6 +712,7 @@ function Sidebar() {
                     <SidebarSection hasNewNav={hasNewNav}>
                       {explore}
                       {insights}
+                      {performanceDomains}
                     </SidebarSection>
 
                     <SidebarSection hasNewNav={hasNewNav}>

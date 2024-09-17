@@ -14,6 +14,10 @@ import withDomainRequired from 'sentry/utils/withDomainRequired';
 import App from 'sentry/views/app';
 import AuthLayout from 'sentry/views/auth/layout';
 import {MODULE_BASE_URLS} from 'sentry/views/insights/common/utils/useModuleURL';
+import {AI_LANDING_SUB_PATH} from 'sentry/views/insights/pages/aiLandingPage';
+import {MOBILE_LANDING_SUB_PATH} from 'sentry/views/insights/pages/mobileLandingPage';
+import {PLATFORM_LANDING_SUB_PATH} from 'sentry/views/insights/pages/platformLandingPage';
+import {WEB_LANDING_SUB_PATH} from 'sentry/views/insights/pages/webLandingPage';
 import {INSIGHTS_BASE_URL} from 'sentry/views/insights/settings';
 import {ModuleName} from 'sentry/views/insights/types';
 import {Tab, TabPaths} from 'sentry/views/issueDetails/types';
@@ -1630,6 +1634,22 @@ function buildRoutes() {
       <Route
         path="trends/"
         component={make(() => import('sentry/views/performance/trends'))}
+      />
+      <Route
+        path={`${WEB_LANDING_SUB_PATH}/`}
+        component={make(() => import('sentry/views/insights/pages/webLandingPage'))}
+      />
+      <Route
+        path={`${PLATFORM_LANDING_SUB_PATH}/`}
+        component={make(() => import('sentry/views/insights/pages/platformLandingPage'))}
+      />
+      <Route
+        path={`${MOBILE_LANDING_SUB_PATH}/`}
+        component={make(() => import('sentry/views/insights/pages/mobileLandingPage'))}
+      />
+      <Route
+        path={`${AI_LANDING_SUB_PATH}/`}
+        component={make(() => import('sentry/views/insights/pages/aiLandingPage'))}
       />
       <Route path="summary/">
         <IndexRoute
