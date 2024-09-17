@@ -91,7 +91,7 @@ function prepareInputValueForSaving(valueType: FieldValueType, inputValue: strin
   const values = uniq(
     inputValue
       .split(',')
-      .map(v => cleanFilterValue(valueType, v.trim()))
+      .map(v => cleanFilterValue({valueType, value: v.trim()}))
       .filter(v => v && v.length > 0)
   );
 
@@ -218,6 +218,14 @@ function tokenSupportsMultipleValues(
     default:
       return false;
   }
+}
+
+// Filters support wildcards if they are string filters and it is not explicity disallowed
+function keySupportsWildcard(fieldDefinition: FieldDefinition | null) {
+  const isStringFilter =
+    !fieldDefinition || fieldDefinition?.valueType === FieldValueType.STRING;
+
+  return isStringFilter && fieldDefinition?.allowWildcard !== false;
 }
 
 function useSelectionIndex({
@@ -446,6 +454,7 @@ export function SearchQueryBuilderValueCombobox({
     dispatch,
     searchSource,
     recentSearches,
+    disallowWildcard,
     wrapperRef: topLevelWrapperRef,
   } = useSearchQueryBuilder();
   const keyName = getKeyName(token.key);
@@ -455,6 +464,7 @@ export function SearchQueryBuilderValueCombobox({
     filterKeys,
     fieldDefinition
   );
+  const canUseWildard = disallowWildcard ? false : keySupportsWildcard(fieldDefinition);
   const [inputValue, setInputValue] = useState(() =>
     getInitialInputValue(token, canSelectMultipleValues)
   );
@@ -522,10 +532,11 @@ export function SearchQueryBuilderValueCombobox({
 
   const updateFilterValue = useCallback(
     (value: string) => {
-      const cleanedValue = cleanFilterValue(
-        getFilterValueType(token, fieldDefinition),
-        value
-      );
+      const cleanedValue = cleanFilterValue({
+        valueType: getFilterValueType(token, fieldDefinition),
+        value,
+        token,
+      });
 
       // TODO(malwilley): Add visual feedback for invalid values
       if (cleanedValue === null) {
@@ -717,6 +728,8 @@ export function SearchQueryBuilderValueCombobox({
               {...props}
               isMultiSelect={canSelectMultipleValues}
               items={items}
+              isLoading={isFetching}
+              canUseWildcard={canUseWildard}
             />
           );
         };
@@ -755,6 +768,8 @@ export function SearchQueryBuilderValueCombobox({
       showDatePicker,
       canSelectMultipleValues,
       items,
+      isFetching,
+      canUseWildard,
       inputValue,
       token,
       analyticsData,
@@ -783,7 +798,6 @@ export function SearchQueryBuilderValueCombobox({
         autoFocus
         maxOptions={50}
         openOnFocus
-        isLoading={isFetching}
         customMenu={customMenu}
         shouldCloseOnInteractOutside={shouldCloseOnInteractOutside}
       >

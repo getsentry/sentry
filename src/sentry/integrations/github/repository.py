@@ -3,6 +3,7 @@ from __future__ import annotations
 from collections.abc import Mapping, MutableMapping, Sequence
 from typing import Any
 
+from sentry.constants import ObjectStatus
 from sentry.integrations.base import IntegrationInstallation
 from sentry.integrations.services.integration import integration_service
 from sentry.models.organization import Organization
@@ -75,9 +76,13 @@ class GitHubRepositoryProvider(IntegrationRepositoryProvider):
         integration_id = repo.integration_id
         if integration_id is None:
             raise NotImplementedError("GitHub apps requires an integration id to fetch commits")
-        integration = integration_service.get_integration(integration_id=integration_id)
+        integration = integration_service.get_integration(
+            integration_id=integration_id, status=ObjectStatus.ACTIVE
+        )
         if integration is None:
-            raise NotImplementedError("GitHub apps requires a valid integration to fetch commits")
+            raise NotImplementedError(
+                "GitHub apps requires a valid active integration to fetch commits"
+            )
 
         installation = integration.get_installation(organization_id=repo.organization_id)
         client = installation.get_client()

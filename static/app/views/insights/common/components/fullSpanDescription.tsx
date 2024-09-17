@@ -6,17 +6,40 @@ import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {space} from 'sentry/styles/space';
 import {SQLishFormatter} from 'sentry/utils/sqlish/SQLishFormatter';
 import {useFullSpanFromTrace} from 'sentry/views/insights/common/queries/useFullSpanFromTrace';
+import {
+  isValidJson,
+  prettyPrintJsonString,
+} from 'sentry/views/insights/database/utils/jsonUtils';
+import {ModuleName} from 'sentry/views/insights/types';
 
 const formatter = new SQLishFormatter();
 
-export function FullSpanDescription({group, shortDescription, language, filters}: Props) {
+const INDEXED_SPAN_SORT = {
+  field: 'span.self_time',
+  kind: 'desc' as const,
+};
+
+interface Props {
+  moduleName: ModuleName;
+  filters?: Record<string, string>;
+  group?: string;
+  shortDescription?: string;
+}
+
+export function FullSpanDescription({
+  group,
+  shortDescription,
+  filters,
+  moduleName,
+}: Props) {
   const {
     data: fullSpan,
     isLoading,
     isFetching,
-  } = useFullSpanFromTrace(group, undefined, Boolean(group), filters);
+  } = useFullSpanFromTrace(group, [INDEXED_SPAN_SORT], Boolean(group), filters);
 
   const description = fullSpan?.description ?? shortDescription;
+  const system = fullSpan?.data?.['db.system'];
 
   if (isLoading && isFetching) {
     return (
@@ -30,26 +53,33 @@ export function FullSpanDescription({group, shortDescription, language, filters}
     return null;
   }
 
-  if (language === 'sql') {
+  if (moduleName === ModuleName.DB) {
+    if (system === 'mongodb') {
+      let stringifiedQuery = '';
+
+      if (fullSpan?.sentry_tags && isValidJson(fullSpan?.sentry_tags?.description)) {
+        stringifiedQuery = prettyPrintJsonString(fullSpan?.sentry_tags?.description);
+      } else if (isValidJson(description)) {
+        stringifiedQuery = prettyPrintJsonString(description);
+      } else {
+        stringifiedQuery = description || fullSpan?.sentry_tags?.description || 'N/A';
+      }
+
+      return <CodeSnippet language="json">{stringifiedQuery}</CodeSnippet>;
+    }
+
     return (
-      <CodeSnippet language={language}>
+      <CodeSnippet language="sql">
         {formatter.toString(description, {maxLineLength: LINE_LENGTH})}
       </CodeSnippet>
     );
   }
 
-  if (language) {
-    return <CodeSnippet language={language}>{description}</CodeSnippet>;
+  if (moduleName === ModuleName.RESOURCE) {
+    return <CodeSnippet language="http">{description}</CodeSnippet>;
   }
 
   return <Fragment>{description}</Fragment>;
-}
-
-interface Props {
-  filters?: Record<string, string>;
-  group?: string;
-  language?: 'sql' | 'http';
-  shortDescription?: string;
 }
 
 const LINE_LENGTH = 60;

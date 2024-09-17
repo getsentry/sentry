@@ -67,7 +67,6 @@ const DiffHeader = styled('div')`
   display: flex;
   flex-direction: row;
   align-items: center;
-  flex: 1;
   font-weight: ${p => p.theme.fontWeightBold};
   line-height: 1.2;
 
@@ -79,5 +78,5 @@ const DiffHeader = styled('div')`
     padding-left: ${space(2)};
   }
 
-  margin: 10px 0;
+  padding: 10px 0;
 `;

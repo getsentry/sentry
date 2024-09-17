@@ -102,8 +102,21 @@ def format_historical_data(data: SnubaTSResult, dataset: Any) -> list[TimeSeries
             ts_point = TimeSeriesPoint(timestamp=date.timestamp(), value=count)
             formatted_data.append(ts_point)
     else:
+        # we don't know what the aggregation key of the query is
+        # so we should see it when we see a data point that has a value
+        agg_key = ""
         for datum in nested_data:
-            ts_point = TimeSeriesPoint(timestamp=datum.get("time"), value=datum.get("count", 0))
+            if len(datum) == 1:
+                # this data point has no value
+                ts_point = TimeSeriesPoint(timestamp=datum.get("time"), value=0)
+            else:
+                # if we don't know the aggregation key yet, we should set it
+                if not agg_key:
+                    for key in datum:  # only two keys in this dict
+                        if key != "time":
+                            agg_key = key
+                            break
+                ts_point = TimeSeriesPoint(timestamp=datum.get("time"), value=datum.get(agg_key, 0))
             formatted_data.append(ts_point)
     return formatted_data
 
@@ -131,8 +144,10 @@ def fetch_historical_data(
 
     dataset_label = snuba_query.dataset
     if dataset_label == "events":
-        # DATSET_OPTIONS expects the name 'errors'
+        # DATASET_OPTIONS expects the name 'errors'
         dataset_label = "errors"
+    elif dataset_label == "generic_metrics":
+        dataset_label = "transactions"
     dataset = get_dataset(dataset_label)
 
     if not project or not dataset or not alert_rule.organization:

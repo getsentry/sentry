@@ -240,6 +240,7 @@ export function TraceView() {
                 metaResults={meta}
                 replayRecord={null}
                 source="performance"
+                isEmbedded={false}
               />
             </TraceInnerLayout>
           </TraceExternalLayout>
@@ -260,6 +261,7 @@ const VITALS_TAB: TraceReducerState['tabs']['tabs'][0] = {
 };
 
 type TraceViewWaterfallProps = {
+  isEmbedded: boolean;
   metaResults: TraceMetaQueryResults;
   organization: Organization;
   replayRecord: ReplayRecord | null;
@@ -270,6 +272,11 @@ type TraceViewWaterfallProps = {
   traceEventView: EventView;
   traceSlug: string | undefined;
   replayTraces?: ReplayTrace[];
+  /**
+   * Ignore eventId or path query parameters and use the provided node.
+   * Must be set at component mount, no reactivity
+   */
+  scrollToNode?: {eventId?: string; path?: TraceTree.NodePath[]};
 };
 
 export function TraceViewWaterfall(props: TraceViewWaterfallProps) {
@@ -298,17 +305,25 @@ export function TraceViewWaterfall(props: TraceViewWaterfallProps) {
 
   const initializedRef = useRef(false);
   const scrollQueueRef = useRef<
-    {eventId?: string; path?: TraceTree.NodePath[]} | null | undefined
+    TraceViewWaterfallProps['scrollToNode'] | null | undefined
   >(undefined);
 
   if (scrollQueueRef.current === undefined) {
-    const queryParams = qs.parse(location.search);
-    const maybeQueue = decodeScrollQueue(queryParams.node);
+    let scrollToNode: TraceViewWaterfallProps['scrollToNode'] = props.scrollToNode;
+    if (!props.scrollToNode) {
+      const queryParams = qs.parse(location.search);
+      scrollToNode = {
+        eventId: queryParams.eventId as string | undefined,
+        path: decodeScrollQueue(
+          queryParams.node
+        ) as TraceTreeNode<TraceTree.NodeValue>['path'],
+      };
+    }
 
-    if (maybeQueue || queryParams.eventId) {
+    if (scrollToNode && (scrollToNode.path || scrollToNode.eventId)) {
       scrollQueueRef.current = {
-        eventId: queryParams.eventId as string,
-        path: maybeQueue as TraceTreeNode<TraceTree.NodeValue>['path'],
+        eventId: scrollToNode.eventId as string,
+        path: scrollToNode.path,
       };
     } else {
       scrollQueueRef.current = null;
@@ -1010,6 +1025,7 @@ export function TraceViewWaterfall(props: TraceViewWaterfallProps) {
           manager={viewManager}
           scheduler={traceScheduler}
           forceRerender={forceRender}
+          isEmbedded={props.isEmbedded}
         />
 
         {tree.type === 'error' ? (

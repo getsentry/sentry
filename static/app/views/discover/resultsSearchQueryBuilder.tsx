@@ -290,6 +290,7 @@ function ResultsSearchQueryBuilder(props: Props) {
       filterKeySections={filterKeySections}
       getTagValues={getEventFieldValues}
       recentSearches={SavedSearchType.EVENT}
+      showUnsubmittedIndicator
     />
   );
 }

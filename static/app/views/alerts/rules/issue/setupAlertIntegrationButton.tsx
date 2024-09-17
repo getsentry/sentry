@@ -6,6 +6,7 @@ import PluginIcon from 'sentry/plugins/components/pluginIcon';
 import ConfigStore from 'sentry/stores/configStore';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
+import {trackAnalytics} from 'sentry/utils/analytics';
 
 type Props = DeprecatedAsyncComponent['props'] & {
   organization: Organization;
@@ -66,6 +67,15 @@ export default class SetupAlertIntegrationButton extends DeprecatedAsyncComponen
       : {
           to: `/settings/${organization.slug}/integrations/slack/${referrerQuery}`,
         };
+
+    const onClickHandler = () => {
+      if (!isSelfHosted) {
+        trackAnalytics('onboarding.slack_setup_clicked', {
+          project_id: detailedProject.id,
+          organization,
+        });
+      }
+    };
     // TOOD(Steve): need to use the Tooltip component because adding a title to the button
     // puts the tooltip in the upper left hand corner of the page instead of the button
     return (
@@ -73,6 +83,7 @@ export default class SetupAlertIntegrationButton extends DeprecatedAsyncComponen
         <Button
           size="sm"
           icon={<PluginIcon pluginId="slack" size={16} />}
+          onClick={onClickHandler}
           {...buttonProps}
         >
           {t('Set Up Slack Now')}
