@@ -4,7 +4,7 @@ import Color from 'color';
 
 import Feature from 'sentry/components/acl/feature';
 import {Breadcrumbs} from 'sentry/components/breadcrumbs';
-import {Button, LinkButton} from 'sentry/components/button';
+import {Button} from 'sentry/components/button';
 import Count from 'sentry/components/count';
 import EventOrGroupTitle from 'sentry/components/eventOrGroupTitle';
 import EventMessage from 'sentry/components/events/eventMessage';
@@ -30,7 +30,7 @@ import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import GroupActions from 'sentry/views/issueDetails/actions/index';
 import {Divider} from 'sentry/views/issueDetails/divider';
-import GroupEventAttachments from 'sentry/views/issueDetails/groupEventAttachments/groupEventAttachments';
+import {GroupEventAttachmentsDrawer} from 'sentry/views/issueDetails/groupEventAttachments/groupEventAttachmentsDrawer';
 import GroupPriority from 'sentry/views/issueDetails/groupPriority';
 import {GroupHeaderTabs} from 'sentry/views/issueDetails/header';
 import {useIssueDetailsHeader} from 'sentry/views/issueDetails/useIssueDetailsHeader';
@@ -58,7 +58,7 @@ export default function StreamlinedGroupHeader({
 }: GroupHeaderProps) {
   const location = useLocation();
   const organization = useOrganization();
-  const {closeDrawer, isDrawerOpen, openDrawer} = useDrawer();
+  const {openDrawer} = useDrawer();
   const {sort: _sort, ...query} = location.query;
 
   const {data: groupReleaseData} = useApiQuery<GroupRelease>(
@@ -168,7 +168,9 @@ export default function StreamlinedGroupHeader({
               size="zero"
               onClick={() => {
                 openDrawer(
-                  () => <GroupEventAttachments project={project} groupId={group.id} />,
+                  () => (
+                    <GroupEventAttachmentsDrawer project={project} groupId={group.id} />
+                  ),
                   {
                     ariaLabel: 'breadcrumb drawer',
                   }
