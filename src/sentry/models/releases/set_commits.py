@@ -57,10 +57,10 @@ def set_commits(release, commit_list):
         # the same release rapidly for different projects.
         raise ReleaseCommitError
 
-    create_repositories(commit_list, release)
-    create_commit_authors(commit_list, release)
-
     with TimedRetryPolicy(10)(lock.acquire):
+        create_repositories(commit_list, release)
+        create_commit_authors(commit_list, release)
+
         with (
             atomic_transaction(using=router.db_for_write(type(release))),
             in_test_hide_transaction_boundary(),
