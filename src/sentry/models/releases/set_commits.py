@@ -7,6 +7,7 @@ from typing import TypedDict
 
 from django.db import IntegrityError, router
 
+from sentry import features
 from sentry.constants import ObjectStatus
 from sentry.db.postgres.transactions import in_test_hide_transaction_boundary
 from sentry.locks import locks
@@ -60,14 +61,19 @@ def set_commits(release, commit_list):
     with TimedRetryPolicy(10)(lock.acquire):
         create_repositories(commit_list, release)
         create_commit_authors(commit_list, release)
-
-        with (
-            atomic_transaction(using=router.db_for_write(type(release))),
-            in_test_hide_transaction_boundary(),
-        ):
-            head_commit_by_repo, commit_author_by_commit = set_commits_on_release(
-                release, commit_list
-            )
+        if features.has("organizations:set-commits-updated"):
+            (
+                head_commit_by_repo,
+                commit_author_by_commit,
+            ) = set_commits_on_release_with_transaction_per_commit(release, commit_list)
+        else:
+            with (
+                atomic_transaction(using=router.db_for_write(type(release))),
+                in_test_hide_transaction_boundary(),
+            ):
+                head_commit_by_repo, commit_author_by_commit = set_commits_on_release(
+                    release, commit_list
+                )
 
     fill_in_missing_release_head_commits(release, head_commit_by_repo)
     update_group_resolutions(release, commit_author_by_commit)
@@ -85,6 +91,42 @@ def set_commits_on_release(release, commit_list):
     latest_commit = None
     for idx, data in enumerate(commit_list):
         commit = set_commit(idx, data, release)
+
+        if idx == 0:
+            latest_commit = commit
+
+        commit_author_by_commit[commit.id] = commit.author
+        head_commit_by_repo.setdefault(data["repo_model"].id, commit.id)
+
+    release.update(
+        commit_count=len(commit_list),
+        authors=[
+            str(a_id)
+            for a_id in ReleaseCommit.objects.filter(
+                release=release, commit__author_id__isnull=False
+            )
+            .values_list("commit__author_id", flat=True)
+            .distinct()
+        ],
+        last_commit_id=latest_commit.id if latest_commit else None,
+    )
+    return head_commit_by_repo, commit_author_by_commit
+
+
+@metrics.wraps("set_commits_on_release")
+def set_commits_on_release_with_transaction_per_commit(release, commit_list):
+    # TODO(dcramer): would be good to optimize the logic to avoid these
+    # deletes but not overly important
+    ReleaseCommit.objects.filter(release=release).delete()
+
+    commit_author_by_commit = {}
+    head_commit_by_repo: dict[int, int] = {}
+
+    latest_commit = None
+    for idx, data in enumerate(commit_list):
+        with atomic_transaction(router.db_for_write(type(release))):
+            commit = set_commit(idx, data, release)
+
         if idx == 0:
             latest_commit = commit
 
