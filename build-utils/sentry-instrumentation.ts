@@ -38,10 +38,6 @@ class SentryInstrumentation {
   constructor() {
     // Only run if SENTRY_INSTRUMENTATION` is set or when in ci,
     // only in the javascript suite that runs webpack
-    if (!SENTRY_INSTRUMENTATION && !SENTRY_DEV_UI_PROFILING) {
-      return;
-    }
-
     const sentry = require('@sentry/node') as typeof Sentry;
     const {nodeProfilingIntegration} = require('@sentry/profiling-node');
 
@@ -55,10 +51,6 @@ class SentryInstrumentation {
           return 0;
         }
         return 1;
-      },
-      _experiments: {
-        // 5 minutes should be plenty
-        maxProfileDurationMs: 5 * 60 * 1000,
       },
     });
 
