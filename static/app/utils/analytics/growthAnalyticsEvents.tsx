@@ -101,7 +101,9 @@ export type GrowthEventParameters = {
   'growth.onboarding_start_onboarding': {
     source?: string;
   };
-  'growth.onboarding_take_to_error': {};
+  'growth.onboarding_take_to_error': {
+    platform?: string;
+  };
   'growth.onboarding_view_full_docs': {};
   'growth.onboarding_view_sample_event': SampleEventParam;
   'growth.platformpicker_category': PlatformCategory;

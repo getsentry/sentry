@@ -4,7 +4,10 @@ import {useCallback, useContext, useEffect, useState} from 'react';
 import styled from '@emotion/styled';
 import type {Node} from '@react-types/shared';
 
-import {DraggableTabList} from 'sentry/components/draggableTabs/draggableTabList';
+import {
+  DraggableTabList,
+  TEMPORARY_TAB_KEY,
+} from 'sentry/components/draggableTabs/draggableTabList';
 import type {DraggableTabListItemProps} from 'sentry/components/draggableTabs/item';
 import type {MenuItemProps} from 'sentry/components/dropdownMenu';
 import {TabsContext} from 'sentry/components/tabs';
@@ -226,6 +229,7 @@ export function DraggableTabBar({
       };
       const newTabs = [...tabs, newTab];
       setTabs(newTabs);
+      setTempTab(undefined);
       tabListState?.setSelectedKey(tempId);
       onSaveTempView?.(newTabs);
     }
@@ -305,7 +309,7 @@ export function DraggableTabBar({
   }, [setOnNewViewSaved, handleNewViewSaved]);
 
   const makeMenuOptions = (tab: Tab): MenuItemProps[] => {
-    if (tab.key === 'temporary-tab') {
+    if (tab.key === TEMPORARY_TAB_KEY) {
       return makeTempViewMenuOptions({
         onSaveTempView: handleOnSaveTempView,
         onDiscardTempView: handleOnDiscardTempView,
@@ -346,10 +350,11 @@ export function DraggableTabBar({
               ...queryParams,
               query: tab.unsavedChanges?.[0] ?? tab.query,
               sort: tab.unsavedChanges?.[1] ?? tab.querySort,
-              ...(tab.id !== 'temporary-tab' ? {viewId: tab.id} : {}),
+              viewId: tab.id !== TEMPORARY_TAB_KEY ? tab.id : undefined,
             },
             pathname: `/organizations/${orgSlug}/issues/`,
           })}
+          disabled={tab.key === editingTabKey}
         >
           <TabContentWrap>
             <EditableTabTitle
@@ -357,9 +362,14 @@ export function DraggableTabBar({
               isEditing={editingTabKey === tab.key}
               setIsEditing={isEditing => setEditingTabKey(isEditing ? tab.key : null)}
               onChange={newLabel => handleOnTabRenamed(newLabel.trim(), tab.key)}
-              isSelected={tabListState?.selectedKey === tab.key}
+              tabKey={tab.key}
             />
-            {tabListState?.selectedKey === tab.key && (
+            {/* If tablistState isn't initialized, we want to load the elipsis menu
+                for the initial tab, that way it won't load in a second later
+                and cause the tabs to shift and animate on load.
+            */}
+            {((tabListState && tabListState?.selectedKey === tab.key) ||
+              (!tabListState && tab.key === initialTabKey)) && (
               <DraggableTabMenuButton
                 hasUnsavedChanges={!!tab.unsavedChanges}
                 menuOptions={makeMenuOptions(tab)}

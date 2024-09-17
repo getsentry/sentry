@@ -2169,10 +2169,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
             event1 = manager.save(self.project.id)
             event2 = Event(event1.project_id, event1.event_id, data=event1.data)
 
-            assert (
-                event1.get_hashes().hashes
-                == event2.get_hashes(load_grouping_config(grouping_config)).hashes
-            )
+            assert event1.get_hashes() == event2.get_hashes(load_grouping_config(grouping_config))
 
     @override_options({"performance.issues.all.problem-detection": 1.0})
     @override_options({"performance.issues.n_plus_one_db.problem-creation": 1.0})
