@@ -35,6 +35,8 @@ import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
 
+import {updateDynamicSdkLoaderOptions} from './jsLoader/updateDynamicSdkLoaderOptions';
+
 export enum InstallationMode {
   AUTO = 'auto',
   MANUAL = 'manual',
@@ -281,6 +283,26 @@ const loaderScriptOnboarding: OnboardingConfig<PlatformOptions> = {
       link: 'https://docs.sentry.io/platforms/javascript/session-replay/',
     },
   ],
+  onPageLoad: params => {
+    return () => {
+      trackAnalytics('onboarding.setup_loader_docs_rendered', {
+        organization: params.organization,
+        platform: params.platformKey,
+        project_id: params.projectId,
+      });
+    };
+  },
+  onProductSelectionChange: params => {
+    return products => {
+      updateDynamicSdkLoaderOptions({
+        orgSlug: params.organization.slug,
+        projectSlug: params.projectSlug,
+        products,
+        projectKey: params.projectKeyId,
+        api: params.api,
+      });
+    };
+  },
 };
 
 const packageManagerOnboarding: OnboardingConfig<PlatformOptions> = {
@@ -342,6 +364,15 @@ const packageManagerOnboarding: OnboardingConfig<PlatformOptions> = {
       link: 'https://docs.sentry.io/platforms/javascript/session-replay/',
     },
   ],
+  onPageLoad: params => {
+    return () => {
+      trackAnalytics('onboarding.js_loader_npm_docs_shown', {
+        organization: params.organization,
+        platform: params.platformKey,
+        project_id: params.projectId,
+      });
+    };
+  },
 };
 
 const onboarding: OnboardingConfig<PlatformOptions> = {

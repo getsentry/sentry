@@ -5,7 +5,7 @@ import type {Organization} from 'sentry/types/organization';
 import type {Project, ProjectKey} from 'sentry/types/project';
 import {handleXhrErrorResponse} from 'sentry/utils/handleXhrErrorResponse';
 
-async function updateDynamicSdkLoaderOptions({
+export async function updateDynamicSdkLoaderOptions({
   orgSlug,
   projectSlug,
   products,
