@@ -1227,6 +1227,8 @@ class IssueListOverview extends Component<Props, State> {
                 organization={organization}
                 router={router}
                 selectedProjectIds={selection.projects}
+                realtimeActive={realtimeActive}
+                onRealtimeChange={this.onRealtimeChange}
               />
             </ErrorBoundary>
           ) : (
@@ -1237,10 +1239,10 @@ class IssueListOverview extends Component<Props, State> {
               queryCount={queryCount}
               queryCounts={queryCounts}
               realtimeActive={realtimeActive}
-              onRealtimeChange={this.onRealtimeChange}
               router={router}
               displayReprocessingTab={showReprocessingTab}
               selectedProjectIds={selection.projects}
+              onRealtimeChange={this.onRealtimeChange}
             />
           )}
 

@@ -333,12 +333,7 @@ class ProjectAdminSerializer(ProjectMemberSerializer):
         # * negative cache entries (eg auth errors) are retried immediately.
         # * positive caches are re-fetches as well, making it less effective.
         for source in added_or_modified_sources:
-            # This should only apply to sources which are being fed to symbolicator.
-            # App Store Connect in particular is managed in a completely different
-            # way, and needs its `id` to stay valid for a longer time.
-            # TODO(@anonrig): Remove this when all AppStore connect data is removed.
-            if source["type"] != "appStoreConnect":
-                source["id"] = str(uuid4())
+            source["id"] = str(uuid4())
 
         sources_json = orjson.dumps(sources).decode() if sources else ""
 

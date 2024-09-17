@@ -83,9 +83,13 @@ function Task(props: Props) {
     }
 
     if (task.actionType === 'app') {
-      const url = new URL(task.location, window.location.origin);
-      url.searchParams.append('referrer', 'onboarding_task');
-      navigateTo(url.toString(), router);
+      // Convert all paths to a location object
+      let to =
+        typeof task.location === 'string' ? {pathname: task.location} : task.location;
+      // Add referrer to all links
+      to = {...to, query: {...to.query, referrer: 'onboarding_task'}};
+
+      navigateTo(to, router);
     }
     hidePanel();
   };
