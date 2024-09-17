@@ -206,9 +206,6 @@ class SentryAppUpdater:
         except SentryAppInstallation.DoesNotExist:
             return
 
-        assert (
-            self.sentry_app.webhook_url
-        ), "SentryApp must have a webhook_url to update service hooks"
         create_or_update_service_hooks_for_installation(
             installation=installation,
             webhook_url=self.sentry_app.webhook_url,
