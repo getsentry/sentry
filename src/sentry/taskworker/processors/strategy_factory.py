@@ -1,8 +1,7 @@
 from __future__ import annotations
 
 import logging
-from collections.abc import Mapping, MutableSequence, Sequence
-from typing import Any
+from collections.abc import Mapping, MutableSequence
 
 from arroyo.backends.kafka.consumer import KafkaPayload
 from arroyo.processing.strategies import (
@@ -28,8 +27,13 @@ from sentry.taskworker.pending_tasks import PendingTask, PendingTaskState
 logger = logging.getLogger("sentry.taskworker.consumer")
 
 
-def process_message(message: Message[KafkaPayload]):
-    return message.payload.value
+def process_message(message: Message[KafkaPayload]) -> PendingTask:
+    task = PendingTaskProto()
+    task.ParseFromString(message.payload.value)
+    ((partition, offset),) = message.committable.items()
+    return PendingTask(
+        task, PendingTaskState.PENDING, partition.topic.name, partition.index, offset
+    )
 
 
 class StrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
@@ -59,62 +63,26 @@ class StrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
         for module in settings.TASKWORKER_IMPORTS:
             __import__(module)
 
-    def transform_msg_batch(
-        self, message: Message[PendingTaskProto | None]
-    ) -> MutableSequence[Mapping[str, Any]]:
-        # TODO: clean up with create_pending_tasks_batch
-        transformed_msg_batch: MutableSequence = []
-        for msg in message.payload:
-            task = PendingTaskProto()
-            task.ParseFromString(msg)
-
-            # TODO: need to figure out if this way of getting the offset is
-            # actually referring to the message's offset,
-            # OR the highest offset per partition included in this batch
-            partition = 0
-            offset = 0
-            for partition, offset in message.committable.items():
-                partition = partition.index
-                # Lyn said the message itself's offset is always the committable - 1
-                offset = offset - 1
-            transformed_msg_batch.append((task, partition, offset))
-
-        return transformed_msg_batch
-
-    def create_pending_tasks_batch(
-        self, message: Message[MutableSequence[Mapping[str, Any]]]
-    ) -> Sequence[PendingTask]:
-        transformed_msg_batch = self.transform_msg_batch(message)
-        pending_tasks = []
-        for m, partition, offset in transformed_msg_batch:
-            pending_task = PendingTask(
-                m, PendingTaskState.PENDING, self.topic.value, partition, offset
-            )
-            pending_tasks.append(pending_task)
-
-        return pending_tasks
-
     def create_with_partitions(
-        self, commit: Commit, partitions: Mapping[Partition, int]
+        self, commit: Commit, _: Mapping[Partition, int]
     ) -> ProcessingStrategy[KafkaPayload]:
         def accumulator(
-            batched_results: MutableSequence[Mapping[str, Any]],
-            message: BaseValue[Mapping[str, Any]],
-        ) -> MutableSequence[Mapping[str, Any]]:
+            batched_results: MutableSequence[PendingTask],
+            message: BaseValue[PendingTask],
+        ) -> MutableSequence[PendingTask]:
             batched_results.append(message.payload)
             return batched_results
 
         def flush_batch(
-            message: Message[MutableSequence[Mapping[str, Any]]]
-        ) -> Message[MutableSequence[Mapping[str, Any]]]:
+            message: Message[MutableSequence[PendingTask]],
+        ) -> Message[MutableSequence[PendingTask]]:
             logger.info("Flushing batch. Messages: %r...", len(message.payload))
-            batch = self.create_pending_tasks_batch(message)
-            self.pending_task_store.store(batch)
+            self.pending_task_store.store(message.value.payload)
             return message
 
         def do_upkeep(
-            message: Message[MutableSequence[Mapping[str, Any]]]
-        ) -> Message[MutableSequence[Mapping[str, Any]]]:
+            message: Message[MutableSequence[PendingTask]],
+        ) -> Message[MutableSequence[PendingTask]]:
             self.pending_task_store.handle_processing_deadlines()
             self.pending_task_store.handle_retry_state_tasks()
             self.pending_task_store.handle_deadletter_at()
@@ -141,7 +109,6 @@ class StrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
                 next_step=upkeep_step,
             ),
         )
-
         return RunTaskWithMultiprocessing(
             function=process_message,
             next_step=collect,
