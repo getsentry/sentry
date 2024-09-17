@@ -18,7 +18,7 @@ from sentry.models.integrations.sentry_app_installation import (
     prepare_sentry_app_components,
 )
 from sentry.models.integrations.sentry_app_installation_token import SentryAppInstallationToken
-from sentry.sentry_apps.apps import SentryAppCreator
+from sentry.sentry_apps.logic import SentryAppCreator
 from sentry.sentry_apps.services.app import (
     AppService,
     RpcAlertRuleActionResult,

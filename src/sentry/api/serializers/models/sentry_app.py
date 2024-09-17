@@ -55,7 +55,7 @@ class SentryAppSerializer(Serializer):
         }
 
     def serialize(self, obj, attrs, user, access):
-        from sentry.sentry_apps.apps import consolidate_events
+        from sentry.sentry_apps.logic import consolidate_events
 
         application = attrs["application"]
 

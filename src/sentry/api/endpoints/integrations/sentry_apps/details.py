@@ -24,7 +24,7 @@ from sentry.mediators.sentry_app_installations.installation_notifier import Inst
 from sentry.models.integrations.sentry_app import SentryApp
 from sentry.models.integrations.sentry_app_installation import SentryAppInstallation
 from sentry.organizations.services.organization import organization_service
-from sentry.sentry_apps.apps import SentryAppUpdater
+from sentry.sentry_apps.logic import SentryAppUpdater
 from sentry.utils.audit import create_audit_entry
 
 logger = logging.getLogger(__name__)
