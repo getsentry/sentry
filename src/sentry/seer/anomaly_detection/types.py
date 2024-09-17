@@ -57,12 +57,6 @@ class DetectAnomaliesResponse(TypedDict):
     timeseries: list[TimeSeriesPoint]
 
 
-class DeleteRuleRequest(TypedDict):
-    organization_id: int
-    project_id: int
-    alert: dict
-
-
 class AnomalyType(Enum):
     HIGH_CONFIDENCE = "anomaly_higher_confidence"
     LOW_CONFIDENCE = "anomaly_lower_confidence"
