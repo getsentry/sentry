@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from typing import Any
+
 from django.contrib.auth.models import AnonymousUser
 from rest_framework.permissions import BasePermission
 from rest_framework.request import Request
@@ -21,7 +23,9 @@ from sentry.users.services.user.service import user_service
 
 
 class UserPermission(SentryPermission):
-    def has_object_permission(self, request: Request, view, user: User | RpcUser | None = None):
+    def has_object_permission(
+        self, request: Request, view: object | None, user: User | RpcUser | None = None
+    ) -> bool:
         if user is None or request.user.id == user.id:
             return True
         if is_system_auth(request.auth):
@@ -49,12 +53,12 @@ class UserAndStaffPermission(StaffPermissionMixin, UserPermission):
 class OrganizationUserPermission(UserAndStaffPermission):
     scope_map = {"DELETE": ["member:admin"]}
 
-    def has_org_permission(self, request: Request, user):
+    def has_org_permission(self, request: Request, user: User | RpcUser | None) -> bool:
         """
         Org can act on a user account, if the user is a member of only one org
         e.g. reset org member's 2FA
         """
-
+        assert user, "User must be provided to get organization permissions"
         organization_id = self._get_single_organization_id(user)
         if organization_id is None:
             return False
@@ -70,7 +74,7 @@ class OrganizationUserPermission(UserAndStaffPermission):
         return any(request.access.has_scope(s) for s in allowed_scopes)
 
     @staticmethod
-    def _get_single_organization_id(user) -> int | None:
+    def _get_single_organization_id(user: User | RpcUser) -> int | None:
         """If the user is a member of only one active org, return its ID."""
 
         # Multiple OrganizationMemberMappings are okay if only one
@@ -87,7 +91,9 @@ class OrganizationUserPermission(UserAndStaffPermission):
             return None
         return org_mapping.organization_id
 
-    def has_object_permission(self, request: Request, view, user=None):
+    def has_object_permission(
+        self, request: Request, view: object | None, user: User | RpcUser | None = None
+    ) -> bool:
         if super().has_object_permission(request, view, user):
             return True
         return self.has_org_permission(request, user)
@@ -103,7 +109,9 @@ class UserEndpoint(Endpoint):
     permission_classes: tuple[type[BasePermission], ...] = (UserPermission,)
 
     @override
-    def convert_args(self, request: Request, user_id: int | str | None = None, *args, **kwargs):
+    def convert_args(
+        self, request: Request, user_id: int | str | None = None, *args: Any, **kwargs: Any
+    ) -> Any:
         if user_id == "me":
             if not request.user.is_authenticated:
                 raise ResourceDoesNotExist
@@ -133,7 +141,9 @@ class RegionSiloUserEndpoint(Endpoint):
     permission_classes = (UserPermission,)
 
     @override
-    def convert_args(self, request: Request, user_id: str | None = None, *args, **kwargs):
+    def convert_args(
+        self, request: Request, user_id: str | None = None, *args: Any, **kwargs: Any
+    ) -> Any:
         user: RpcUser | User | None = None
 
         if user_id == "me":
