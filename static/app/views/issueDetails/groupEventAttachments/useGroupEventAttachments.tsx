@@ -1,5 +1,3 @@
-import pick from 'lodash/pick';
-
 import type {IssueAttachment} from 'sentry/types/group';
 import {type ApiQueryKey, useApiQuery} from 'sentry/utils/queryClient';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -14,34 +12,48 @@ interface UseGroupEventAttachmentsOptions {
 
 interface MakeFetchGroupEventAttachmentsQueryKeyOptions
   extends UseGroupEventAttachmentsOptions {
-  location: ReturnType<typeof useLocation>;
+  cursor: string | undefined;
+  environment: string[] | string | undefined;
   orgSlug: string;
+}
+
+type GroupEventAttachmentsTypeFilter =
+  | 'event.minidump'
+  | 'event.applecrashreport'
+  | 'event.screenshot';
+
+interface GroupEventAttachmentsQuery {
+  cursor?: string;
+  environment?: string[] | string;
+  per_page?: string;
+  screenshot?: '1';
+  types?: `${GroupEventAttachmentsTypeFilter}` | `${GroupEventAttachmentsTypeFilter}`[];
 }
 
 export const makeFetchGroupEventAttachmentsQueryKey = ({
   activeAttachmentsTab,
   groupId,
   orgSlug,
-  location,
+  cursor,
+  environment,
 }: MakeFetchGroupEventAttachmentsQueryKeyOptions): ApiQueryKey => {
-  return [
-    `/organizations/${orgSlug}/issues/${groupId}/attachments/`,
-    {
-      query:
-        activeAttachmentsTab === 'screenshot'
-          ? {
-              // TODO: We shouldn't use all query params since not all of them will apply
-              ...location.query,
-              types: undefined, // need to explicitly set this to undefined because AsyncComponent adds location query back into the params
-              screenshot: 1,
-              per_page: MAX_SCREENSHOTS_PER_PAGE,
-            }
-          : {
-              ...pick(location.query, ['cursor', 'environment', 'types']),
-              per_page: 50,
-            },
-    },
-  ];
+  const query: GroupEventAttachmentsQuery = {};
+  if (environment) {
+    query.environment = environment;
+  }
+
+  if (cursor) {
+    query.cursor = cursor;
+  }
+
+  if (activeAttachmentsTab === 'screenshot') {
+    query.screenshot = '1';
+    query.per_page = `${MAX_SCREENSHOTS_PER_PAGE}`;
+  } else if (activeAttachmentsTab === 'onlyCrash') {
+    query.types = ['event.minidump', 'event.applecrashreport'];
+  }
+
+  return [`/organizations/${orgSlug}/issues/${groupId}/attachments/`, {query}];
 };
 
 export function useGroupEventAttachments({
@@ -61,7 +73,8 @@ export function useGroupEventAttachments({
       activeAttachmentsTab,
       groupId,
       orgSlug: organization.slug,
-      location,
+      cursor: location.query.cursor as string | undefined,
+      environment: location.query.environment as string[] | string | undefined,
     }),
     {staleTime: 60_000}
   );

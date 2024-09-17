@@ -941,6 +941,29 @@ describe('SearchQueryBuilder', function () {
       ).toHaveFocus();
     });
 
+    it('skips over tokens when navigating with ctrl+arrow keys', async function () {
+      render(
+        <SearchQueryBuilder
+          {...defaultProps}
+          initialQuery="browser.name:firefox assigned:me"
+        />
+      );
+
+      await userEvent.click(getLastInput());
+
+      expect(getLastInput()).toHaveFocus();
+
+      // Ctrl+ArrowLeft should skip to the input to the left of assigned:me
+      await userEvent.keyboard('{Control>}{ArrowLeft}{/Control}');
+      expect(
+        screen.getAllByRole('combobox', {name: 'Add a search term'}).at(-2)
+      ).toHaveFocus();
+
+      // Ctrl+ArrowRight should go back to the last input
+      await userEvent.keyboard('{Control>}{ArrowRight}{/Control}');
+      expect(getLastInput()).toHaveFocus();
+    });
+
     it('when focus is in a filter segment, backspace first focuses the filter then deletes it', async function () {
       render(
         <SearchQueryBuilder {...defaultProps} initialQuery="browser.name:firefox" />
@@ -2137,6 +2160,17 @@ describe('SearchQueryBuilder', function () {
 
         // Should flip from "-" to "+"
         expect(await screen.findByRole('row', {name: 'age:+24h'})).toBeInTheDocument();
+      });
+
+      it('can type relative date shorthand (7d)', async function () {
+        render(<SearchQueryBuilder {...defaultProps} initialQuery="age:-24h" />);
+        await userEvent.click(
+          screen.getByRole('button', {name: 'Edit value for filter: age'})
+        );
+
+        await userEvent.keyboard('7d{Enter}');
+
+        expect(await screen.findByRole('row', {name: 'age:-7d'})).toBeInTheDocument();
       });
 
       it('switches to an absolute date when choosing operator with equality', async function () {

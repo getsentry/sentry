@@ -30,7 +30,7 @@ describe('GroupEventAttachments > Screenshots', function () {
   const {router: screenshotRouter} = initializeOrg({
     router: {
       params: {orgId: 'org-slug', groupId: 'group-id'},
-      location: {query: {types: 'event.screenshot'}},
+      location: {query: {attachmentFilter: 'screenshot'}},
     },
   });
   let project: Project;
@@ -62,7 +62,7 @@ describe('GroupEventAttachments > Screenshots', function () {
     expect(getAttachmentsMock).toHaveBeenCalledWith(
       '/organizations/org-slug/issues/group-id/attachments/',
       expect.objectContaining({
-        query: {per_page: MAX_SCREENSHOTS_PER_PAGE, screenshot: 1, types: undefined},
+        query: {per_page: `${MAX_SCREENSHOTS_PER_PAGE}`, screenshot: '1'},
       })
     );
   });

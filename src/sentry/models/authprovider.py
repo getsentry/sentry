@@ -126,7 +126,7 @@ class AuthProvider(ReplicatedControlModel):
         from sentry.models.integrations.sentry_app_installation_for_provider import (
             SentryAppInstallationForProvider,
         )
-        from sentry.sentry_apps.apps import SentryAppCreator
+        from sentry.sentry_apps.logic import SentryAppCreator
 
         if (
             not self.get_provider().can_use_scim(self.organization_id, user)

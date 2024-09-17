@@ -1,5 +1,4 @@
 import styled from '@emotion/styled';
-import xor from 'lodash/xor';
 
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
 import LoadingError from 'sentry/components/loadingError';
@@ -9,13 +8,11 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {IssueAttachment} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
-import {decodeList} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 
 import GroupEventAttachmentsFilter, {
-  crashReportTypes,
-  SCREENSHOT_TYPE,
+  EventAttachmentFilter,
 } from './groupEventAttachmentsFilter';
 import GroupEventAttachmentsTable from './groupEventAttachmentsTable';
 import {ScreenshotCard} from './screenshotCard';
@@ -27,32 +24,12 @@ type GroupEventAttachmentsProps = {
   project: Project;
 };
 
-const enum EventAttachmentFilter {
-  ALL = 'all',
-  CRASH_REPORTS = 'onlyCrash',
-  SCREENSHOTS = 'screenshot',
-}
-
-function useActiveAttachmentsTab() {
-  const location = useLocation();
-
-  const types = decodeList(location.query.types);
-  if (types.length === 0) {
-    return EventAttachmentFilter.ALL;
-  }
-  if (types[0] === SCREENSHOT_TYPE) {
-    return EventAttachmentFilter.SCREENSHOTS;
-  }
-  if (xor(crashReportTypes, types).length === 0) {
-    return EventAttachmentFilter.CRASH_REPORTS;
-  }
-  return EventAttachmentFilter.ALL;
-}
-
 function GroupEventAttachments({project, groupId}: GroupEventAttachmentsProps) {
   const location = useLocation();
   const organization = useOrganization();
-  const activeAttachmentsTab = useActiveAttachmentsTab();
+  const activeAttachmentsTab =
+    (location.query.attachmentFilter as EventAttachmentFilter | undefined) ??
+    EventAttachmentFilter.ALL;
   const {attachments, isPending, isError, getResponseHeader, refetch} =
     useGroupEventAttachments({
       groupId,
@@ -66,9 +43,10 @@ function GroupEventAttachments({project, groupId}: GroupEventAttachmentsProps) {
       attachment,
       groupId,
       orgSlug: organization.slug,
-      location,
       activeAttachmentsTab,
       projectSlug: project.slug,
+      cursor: location.query.cursor as string | undefined,
+      environment: location.query.environment as string[] | string | undefined,
     });
   };
 
@@ -134,7 +112,7 @@ function GroupEventAttachments({project, groupId}: GroupEventAttachmentsProps) {
   return (
     <Wrapper>
       <GroupEventAttachmentsFilter project={project} />
-      {activeAttachmentsTab === EventAttachmentFilter.SCREENSHOTS
+      {activeAttachmentsTab === EventAttachmentFilter.SCREENSHOT
         ? renderScreenshotGallery()
         : renderAttachmentsTable()}
       <NoMarginPagination pageLinks={getResponseHeader?.('Link')} />
