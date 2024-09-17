@@ -301,7 +301,7 @@ def process_message(buffer: RecordingBuffer, message: bytes) -> None:
                 {"key": make_recording_filename(recording_segment), "value": compressed_segment}
             )
             buffer.upload_events.append(
-                {"key": make_video_filename(recording_segment), "value": replay_video}
+                {"key": make_video_filename(recording_segment), "value": cast(bytes, replay_video)}
             )
 
     else:
