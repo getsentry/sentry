@@ -1,6 +1,7 @@
 import type {UseQueryResult} from '@tanstack/react-query';
 import {BroadcastFixture} from 'sentry-fixture/broadcast';
 import {ProjectFixture} from 'sentry-fixture/project';
+import {ProjectKeysFixture} from 'sentry-fixture/projectKeys';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {act, render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
@@ -228,6 +229,7 @@ describe('Sidebar > Performance Onboarding Checklist', function () {
     });
     ProjectsStore.loadInitialData([project]);
 
+    // TODO(aknaus): Remove old mocks when we remove the old onboarding
     const docApiMocks: any = {};
     const docKeys = generateDocKeys(project.platform!);
 
@@ -243,6 +245,11 @@ describe('Sidebar > Performance Onboarding Checklist', function () {
       url: `/projects/${organization.slug}/${project.slug}/`,
       method: 'GET',
       body: {},
+    });
+
+    MockApiClient.addMockResponse({
+      url: `/projects/${organization.slug}/${project.slug}/keys/`,
+      body: ProjectKeysFixture(),
     });
 
     renderSidebar({
@@ -261,11 +268,5 @@ describe('Sidebar > Performance Onboarding Checklist', function () {
         textWithMarkupMatcher('Adding Performance to your React project is simple.')
       )
     ).toBeInTheDocument();
-
-    for (const docKey of docKeys) {
-      expect(
-        await screen.findByText(textWithMarkupMatcher(`${docKey} content`))
-      ).toBeInTheDocument();
-    }
   });
 });

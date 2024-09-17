@@ -33,9 +33,12 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 
 type Params = DocsParams;
 
-const getInstallConfig = ({isSelfHosted, urlPrefix}: Params) => {
+const getInstallSnippet = ({isSelfHosted, urlPrefix}: Params) => {
   const urlParam = !isSelfHosted && urlPrefix ? `--url ${urlPrefix}` : '';
+  return `npx @sentry/wizard@latest -i nextjs ${urlParam}`;
+};
 
+const getInstallConfig = (params: Params) => {
   return [
     {
       description: tct(
@@ -47,7 +50,7 @@ const getInstallConfig = ({isSelfHosted, urlPrefix}: Params) => {
         }
       ),
       language: 'bash',
-      code: `npx @sentry/wizard@latest -i nextjs ${urlParam}`,
+      code: getInstallSnippet(params),
     },
   ];
 };
@@ -284,6 +287,88 @@ const crashReportOnboarding: OnboardingConfig = {
   nextSteps: () => [],
 };
 
+const performanceOnboarding: OnboardingConfig = {
+  introduction: () =>
+    t(
+      "Adding Performance to your React project is simple. Make sure you've got these basics down."
+    ),
+  install: params => [
+    {
+      type: StepType.INSTALL,
+      description: t('Install the Next.js SDK using our installation wizard:'),
+      configurations: [
+        {
+          language: 'bash',
+          code: getInstallSnippet(params),
+        },
+      ],
+    },
+  ],
+  configure: params => [
+    {
+      type: StepType.CONFIGURE,
+      description: tct(
+        'To configure, set [code:tracesSampleRate] in your config files, [code:sentry.server.config.js], [code:sentry.client.config.js], and [code:sentry.edge.config.js]:',
+        {code: <code />}
+      ),
+      configurations: [
+        {
+          language: 'javascript',
+          code: `
+import * as Sentry from "@sentry/nextjs";
+
+Sentry.init({
+  dsn: "${params.dsn.public}",
+
+  // Set tracesSampleRate to 1.0 to capture 100%
+  // of transactions for performance monitoring.
+  // We recommend adjusting this value in production
+  tracesSampleRate: 1.0,
+});
+`,
+          additionalInfo: tct(
+            'We recommend adjusting the value of [code:tracesSampleRate] in production. Learn more about tracing [linkTracingOptions:options], how to use the [linkTracesSampler:traces_sampler] function, or how to [linkSampleTransactions:sample transactions].',
+            {
+              code: <code />,
+              linkTracingOptions: (
+                <ExternalLink href="https://docs.sentry.io/platforms/javascript/guides/nextjs/configuration/options/#tracing-options" />
+              ),
+              linkTracesSampler: (
+                <ExternalLink href="https://docs.sentry.io/platforms/javascript/guides/nextjs/configuration/sampling/" />
+              ),
+              linkSampleTransactions: (
+                <ExternalLink href="https://docs.sentry.io/platforms/javascript/guides/nextjs/configuration/sampling/" />
+              ),
+            }
+          ),
+        },
+      ],
+    },
+  ],
+  verify: () => [
+    {
+      type: StepType.VERIFY,
+      description: tct(
+        'Verify that performance monitoring is working correctly with our [link:automatic instrumentation] by simply using your NextJS application.',
+        {
+          link: (
+            <ExternalLink href="https://docs.sentry.io/platforms/javascript/guides/nextjs/tracing/instrumentation/automatic-instrumentation/" />
+          ),
+        }
+      ),
+      additionalInfo: tct(
+        'You have the option to manually construct a transaction using [link:custom instrumentation].',
+        {
+          link: (
+            <ExternalLink href="https://docs.sentry.io/platforms/javascript/guides/nextjs/tracing/instrumentation/custom-instrumentation/" />
+          ),
+        }
+      ),
+    },
+  ],
+  nextSteps: () => [],
+};
+
 const docs: Docs = {
   onboarding,
   feedbackOnboardingNpm: feedbackOnboarding,
@@ -291,6 +376,7 @@ const docs: Docs = {
   customMetricsOnboarding: getJSMetricsOnboarding({
     getInstallConfig: getManualInstallConfig,
   }),
+  performanceOnboarding,
   crashReportOnboarding,
 };
 
