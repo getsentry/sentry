@@ -114,10 +114,10 @@ def send_historical_data_to_seer(alert_rule: AlertRule, project: Project) -> Ale
 
     if response.status > 400:
         logger.error(
-            "Error when hitting Seer detect anomalies endpoint",
+            "Error when hitting Seer store data endpoint",
             extra={"response_code": response.status},
         )
-        raise Exception("Error when hitting Seer detect anomalies endpoint")
+        raise Exception("Error when hitting Seer store data endpoint")
 
     try:
         decoded_data = response.data.decode("utf-8")
