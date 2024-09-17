@@ -39,7 +39,9 @@ def pack(rrweb: bytes, video: bytes | None) -> bytes:
 
 def unpack(obj: bytes):
     mv = memoryview(obj)
-    if mv[0] == Encoding.RRWEB.value:
+    if mv[0] == 91:  # Not packed.
+        return (None, mv)
+    elif mv[0] == Encoding.RRWEB.value:
         return _unpack_rrweb(mv)
     elif mv[0] == Encoding.VIDEO.value:
         return _unpack_video(mv)
