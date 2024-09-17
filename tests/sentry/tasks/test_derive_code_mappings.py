@@ -601,7 +601,7 @@ class TestPythonDeriveCodeMappings(BaseDeriveCodeMappings):
         assert mock_identify_stacktraces.call_count == 0
         assert not RepositoryProjectPathConfig.objects.filter(project_id=self.project.id).exists()
 
-    @patch("sentry.integrations.github.GitHubIntegration.get_trees_for_org")
+    @patch("sentry.integrations.github.integration.GitHubIntegration.get_trees_for_org")
     @patch(
         "sentry.integrations.utils.code_mapping.CodeMappingTreesHelper.generate_code_mappings",
         return_value=[
@@ -639,7 +639,7 @@ class TestPythonDeriveCodeMappings(BaseDeriveCodeMappings):
         assert derive_code_mappings(self.project.id, data) is None
         assert len(RepositoryProjectPathConfig.objects.filter(project_id=self.project.id)) == 0
 
-    @patch("sentry.integrations.github.GitHubIntegration.get_trees_for_org")
+    @patch("sentry.integrations.github.integration.GitHubIntegration.get_trees_for_org")
     @patch(
         "sentry.integrations.utils.code_mapping.CodeMappingTreesHelper.generate_code_mappings",
         return_value=[

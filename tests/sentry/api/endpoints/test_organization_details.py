@@ -406,7 +406,7 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
 
     @responses.activate
     @patch(
-        "sentry.integrations.github.GitHubApiClient.get_repositories",
+        "sentry.integrations.github.integration.GitHubApiClient.get_repositories",
         return_value=[{"name": "cool-repo", "full_name": "testgit/cool-repo"}],
     )
     @with_feature("organizations:codecov-integration")
@@ -540,7 +540,7 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
 
     @responses.activate
     @patch(
-        "sentry.integrations.github.GitHubApiClient.get_repositories",
+        "sentry.integrations.github.client.GitHubApiClient.get_repositories",
         return_value=[{"name": "abc", "full_name": "testgit/abc"}],
     )
     @with_feature("organizations:codecov-integration")

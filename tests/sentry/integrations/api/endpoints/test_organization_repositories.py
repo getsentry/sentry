@@ -151,7 +151,7 @@ class OrganizationRepositoriesListTest(APITestCase):
         )
 
         with patch(
-            "sentry.integrations.github.GitHubIntegration.get_unmigratable_repositories"
+            "sentry.integrations.github.integration.GitHubIntegration.get_unmigratable_repositories"
         ) as f:
             f.return_value = [unmigratable_repo]
 
@@ -174,7 +174,7 @@ class OrganizationRepositoriesListTest(APITestCase):
         )
 
         with patch(
-            "sentry.integrations.github.GitHubIntegration.get_unmigratable_repositories"
+            "sentry.integrations.github.integration.GitHubIntegration.get_unmigratable_repositories"
         ) as f:
             f.return_value = [unmigratable_repo]
 
@@ -200,7 +200,7 @@ class OrganizationRepositoriesListTest(APITestCase):
         )
 
         with patch(
-            "sentry.integrations.github.GitHubIntegration.get_unmigratable_repositories"
+            "sentry.integrations.github.integration.GitHubIntegration.get_unmigratable_repositories"
         ) as f:
             f.return_value = [unmigratable_repo]
 
@@ -229,7 +229,7 @@ class OrganizationRepositoriesListTest(APITestCase):
         )
 
         with patch(
-            "sentry.integrations.github.GitHubIntegration.get_unmigratable_repositories"
+            "sentry.integrations.github.integration.GitHubIntegration.get_unmigratable_repositories"
         ) as f:
             f.return_value = [unmigratable_repo]
 

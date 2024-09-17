@@ -5,8 +5,10 @@ from urllib.parse import parse_qs, urlencode, urlparse
 
 import responses
 
-from sentry.integrations.github_enterprise import GitHubEnterpriseIntegrationProvider
-from sentry.integrations.github_enterprise.integration import GitHubEnterpriseIntegration
+from sentry.integrations.github_enterprise.integration import (
+    GitHubEnterpriseIntegration,
+    GitHubEnterpriseIntegrationProvider,
+)
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.integrations.source_code_management.commit_context import (
