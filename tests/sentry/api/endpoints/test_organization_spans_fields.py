@@ -7,6 +7,7 @@ from sentry.testutils.helpers.datetime import before_now
 
 
 class OrganizationSpansTagsEndpointTest(BaseSpansTestCase, APITestCase):
+    is_eap = False
     view = "sentry-api-0-organization-spans-fields"
 
     def setUp(self):
@@ -33,20 +34,23 @@ class OrganizationSpansTagsEndpointTest(BaseSpansTestCase, APITestCase):
         assert response.status_code == 200, response.data
         assert response.data == []
 
-    def test_tags(self):
+    def test_tags_list(self):
         for tag in ["foo", "bar", "baz"]:
             self.store_segment(
                 self.project.id,
                 uuid4().hex,
                 uuid4().hex,
                 span_id=uuid4().hex[:15],
+                organization_id=self.organization.id,
                 parent_span_id=None,
                 timestamp=before_now(days=0, minutes=10).replace(microsecond=0),
                 transaction="foo",
                 duration=100,
                 exclusive_time=100,
                 tags={tag: tag},
+                is_eap=self.is_eap,
             )
+
         for features in [
             None,  # use the default features
             ["organizations:performance-trace-explorer"],
@@ -58,6 +62,29 @@ class OrganizationSpansTagsEndpointTest(BaseSpansTestCase, APITestCase):
                 {"key": "baz", "name": "Baz"},
                 {"key": "foo", "name": "Foo"},
             ]
+
+
+class OrganizationEAPSpansTagsEndpointTest(OrganizationSpansTagsEndpointTest):
+    is_eap = True
+
+    def do_request(self, query=None, features=None, **kwargs):
+        if features is None:
+            features = ["organizations:performance-trace-explorer"]
+
+        features.append("organizations:visibility-explore-dataset")
+
+        if query is None:
+            query = {}
+        query["dataset"] = "spans"
+        query["type"] = "string"
+
+        with self.feature(features):
+            return self.client.get(
+                reverse(self.view, kwargs={"organization_id_or_slug": self.organization.slug}),
+                query,
+                format="json",
+                **kwargs,
+            )
 
 
 class OrganizationSpansTagKeyValuesEndpointTest(BaseSpansTestCase, APITestCase):
