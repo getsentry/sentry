@@ -22,8 +22,10 @@ from sentry.testutils.helpers.datetime import before_now, iso_format
 class DeleteGroupTest(TestCase, SnubaTestCase):
     def setUp(self):
         super().setUp()
-        group1_data = {"timestamp": iso_format(before_now(minutes=1)), "fingerprint": ["group1"]}
-        group2_data = {"timestamp": iso_format(before_now(minutes=1)), "fingerprint": ["group2"]}
+        one_minute = iso_format(before_now(minutes=1))
+        group1_data = {"timestamp": one_minute, "fingerprint": ["group1"]}
+        group2_data = {"timestamp": one_minute, "fingerprint": ["group2"]}
+        group3_data = {"timestamp": one_minute, "fingerprint": ["group3"]}
         self.project = self.create_project()
 
         # Group 1 events
@@ -40,6 +42,13 @@ class DeleteGroupTest(TestCase, SnubaTestCase):
         self.keep_event = self.store_event(data=group2_data, project_id=self.project.id)
         self.event_id3 = self.keep_event.event_id
         self.node_id3 = Event.generate_node_id(self.project.id, self.event_id3)
+
+        # Group 3: issue platform event
+        self.issue_platform_event = self.store_event(
+            data=group3_data | {"type": "transaction", "start_timestamp": one_minute},
+            project_id=self.project.id,
+        )
+        self.node_id4 = Event.generate_node_id(self.project.id, self.issue_platform_event.event_id)
 
         UserReport.objects.create(
             group_id=group.id, project_id=self.event.project_id, name="With group id"
@@ -81,6 +90,17 @@ class DeleteGroupTest(TestCase, SnubaTestCase):
         assert not nodestore.backend.get(self.node_id2)
         assert nodestore.backend.get(self.node_id3), "Does not remove from second group"
         assert Group.objects.filter(id=self.keep_event.group_id).exists()
+
+    def test_issue_platform(self):
+        EventDataDeletionTask.DEFAULT_CHUNK_SIZE = 1  # test chunking logic
+        group_id = self.issue_platform_event.group_id
+        assert nodestore.backend.get(self.node_id4)
+
+        # Issue platform issues cannot be deleted
+        with self.tasks():
+            delete_groups(object_ids=[group_id])
+        assert nodestore.backend.get(self.node_id4), "Does not remove issue platform event"
+        assert Group.objects.filter(id=group_id).exists()
 
     def test_simple_multiple_groups(self):
         other_event = self.store_event(
