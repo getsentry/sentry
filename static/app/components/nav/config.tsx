@@ -26,6 +26,7 @@ import {getDiscoverLandingUrl} from 'sentry/utils/discover/urls';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useModuleURLBuilder} from 'sentry/views/insights/common/utils/useModuleURL';
+import {MODULE_SIDEBAR_TITLE} from 'sentry/views/insights/http/settings';
 import {MODULE_TITLES} from 'sentry/views/insights/settings';
 import {getSearchForIssueGroup, IssueGroup} from 'sentry/views/issueList/utils';
 
@@ -43,7 +44,7 @@ export interface NavItemsResult {
 export function useNavItems(): NavItemsResult {
   const organization = useOrganization();
   const location = useLocation();
-  const moduleURLBuilder = useModuleURLBuilder();
+  const moduleURLBuilder = useModuleURLBuilder(true);
   const prefix = `organizations/${organization.slug}`;
 
   const items = useMemo<NavItemRaw[]>(
@@ -111,20 +112,27 @@ export function useNavItems(): NavItemsResult {
         icon: <IconGraph />,
         check: {features: 'insights-entry-points'},
         submenu: [
-          {label: MODULE_TITLES.http, to: `/${moduleURLBuilder('http')}/`},
-          {label: MODULE_TITLES.db, to: `/${moduleURLBuilder('db')}/`},
-          {label: MODULE_TITLES.resource, to: `/${moduleURLBuilder('resource')}/`},
-          {label: MODULE_TITLES.app_start, to: `/${moduleURLBuilder('app_start')}/`},
+          {label: MODULE_SIDEBAR_TITLE, to: `/${prefix}/${moduleURLBuilder('http')}/`},
+          {label: MODULE_TITLES.db, to: `/${prefix}/${moduleURLBuilder('db')}/`},
+          {
+            label: MODULE_TITLES.resource,
+            to: `/${prefix}/${moduleURLBuilder('resource')}/`,
+          },
+          {
+            label: MODULE_TITLES.app_start,
+            to: `/${prefix}/${moduleURLBuilder('app_start')}/`,
+          },
           {
             label: MODULE_TITLES['mobile-screens'],
-            to: `/${moduleURLBuilder('mobile-screens')}/`,
+            to: `/${prefix}/${moduleURLBuilder('mobile-screens')}/`,
+            check: {features: 'insights-mobile-screens-module'},
           },
-          {label: MODULE_TITLES.vital, to: `/${moduleURLBuilder('vital')}/`},
-          {label: MODULE_TITLES.cache, to: `/${moduleURLBuilder('cache')}/`},
-          {label: MODULE_TITLES.queue, to: `/${moduleURLBuilder('queue')}/`},
+          {label: MODULE_TITLES.vital, to: `/${prefix}/${moduleURLBuilder('vital')}/`},
+          {label: MODULE_TITLES.cache, to: `/${prefix}/${moduleURLBuilder('cache')}/`},
+          {label: MODULE_TITLES.queue, to: `/${prefix}/${moduleURLBuilder('queue')}/`},
           {
             label: MODULE_TITLES.ai,
-            to: `/${moduleURLBuilder('ai')}/`,
+            to: `/${prefix}/${moduleURLBuilder('ai')}/`,
             check: {features: 'insights-entry-points'},
           },
         ],
