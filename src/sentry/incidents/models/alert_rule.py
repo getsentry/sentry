@@ -175,7 +175,10 @@ class AlertRuleManager(BaseManager["AlertRule"]):
     @classmethod
     def delete_data_in_seer(cls, instance: AlertRule, **kwargs: Any) -> None:
         if instance.detection_type == AlertRuleDetectionType.DYNAMIC:
-            project = instance.projects.get()
+            project = instance.projects.first()
+            # The alert rule wasn't properly created, so we don't need to delete the rule in Seer
+            if project is None:
+                return
             success = delete_rule_in_seer(alert_rule=instance, project=project)
             if not success:
                 logger.error(

@@ -1132,19 +1132,6 @@ def delete_alert_rule(
                 event=audit_log.get_event_id("ALERT_RULE_REMOVE"),
             )
 
-        if alert_rule.detection_type == AlertRuleDetectionType.DYNAMIC:
-            project = alert_rule.projects.get()
-            success = delete_rule_in_seer(alert_rule=alert_rule, project=project)
-            if not success:
-                # don't block deletion in Sentry
-                logger.error(
-                    "Call to delete rule data in Seer failed",
-                    extra={
-                        "rule_id": alert_rule.id,
-                        "project_id": project.id,
-                    },
-                )
-
         subscriptions = _unpack_snuba_query(alert_rule).subscriptions.all()
         bulk_delete_snuba_subscriptions(subscriptions)
 
