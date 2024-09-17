@@ -2478,12 +2478,12 @@ SELF_HOSTED_STABLE_VERSION = "24.9.0"
 SENTRY_USE_X_FORWARDED_FOR = True
 
 SENTRY_DEFAULT_INTEGRATIONS = (
-    "sentry.integrations.bitbucket.BitbucketIntegrationProvider",
-    "sentry.integrations.bitbucket_server.BitbucketServerIntegrationProvider",
+    "sentry.integrations.bitbucket.integration.BitbucketIntegrationProvider",
+    "sentry.integrations.bitbucket_server.integration.BitbucketServerIntegrationProvider",
     "sentry.integrations.slack.SlackIntegrationProvider",
     "sentry.integrations.github.integration.GitHubIntegrationProvider",
     "sentry.integrations.github_enterprise.integration.GitHubEnterpriseIntegrationProvider",
-    "sentry.integrations.gitlab.GitlabIntegrationProvider",
+    "sentry.integrations.gitlab.integration.GitlabIntegrationProvider",
     "sentry.integrations.jira.JiraIntegrationProvider",
     "sentry.integrations.jira_server.JiraServerIntegrationProvider",
     "sentry.integrations.vsts.VstsIntegrationProvider",
