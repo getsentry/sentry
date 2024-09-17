@@ -80,7 +80,7 @@ class CodeOwnersTest(TestCase):
 
     @patch("django.utils.timezone.now")
     @patch(
-        "sentry.integrations.github.GitHubIntegration.get_codeowner_file",
+        "sentry.integrations.github.integration.GitHubIntegration.get_codeowner_file",
         return_value=LATEST_GITHUB_CODEOWNERS,
     )
     def test_codeowners_auto_sync_successful(self, mock_get_codeowner_file, mock_timezone_now):
