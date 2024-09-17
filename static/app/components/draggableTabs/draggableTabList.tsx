@@ -35,13 +35,15 @@ import {useDimensionsMultiple} from 'sentry/utils/useDimensionsMultiple';
 import type {DraggableTabListItemProps} from './item';
 import {Item} from './item';
 
+export const TEMPORARY_TAB_KEY = 'temporary-tab';
+
 interface BaseDraggableTabListProps extends DraggableTabListProps {
   items: DraggableTabListItemProps[];
 }
 
 function useOverflowingTabs({state}: {state: TabListState<DraggableTabListItemProps>}) {
   const persistentTabs = [...state.collection].filter(
-    item => item.key !== 'temporary-tab'
+    item => item.key !== TEMPORARY_TAB_KEY
   );
   const outerRef = useRef<HTMLDivElement>(null);
   const addViewTempTabRef = useRef<HTMLDivElement>(null);
@@ -195,7 +197,7 @@ function Tabs({
             </TabItemWrap>
             <TabDivider
               isVisible={
-                (state.selectedKey === 'temporary-tab' ||
+                (state.selectedKey === TEMPORARY_TAB_KEY ||
                   (state.selectedKey !== item.key &&
                     state.collection.getKeyAfter(item.key) !== state.selectedKey)) &&
                 hoveringKey !== item.key &&
@@ -255,7 +257,7 @@ function BaseDraggableTabList({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [state.selectedKey]);
 
-  const tempTab = [...state.collection].find(item => item.key === 'temporary-tab');
+  const tempTab = [...state.collection].find(item => item.key === TEMPORARY_TAB_KEY);
 
   const {outerRef, setTabElements, persistentTabs, overflowingTabs, addViewTempTabRef} =
     useOverflowingTabs({state});
@@ -264,7 +266,7 @@ function BaseDraggableTabList({
     <TabListOuterWrap
       style={outerWrapStyles}
       hideBorder={hideBorder}
-      borderStyle={state.selectedKey === 'temporary-tab' ? 'dashed' : 'solid'}
+      borderStyle={state.selectedKey === TEMPORARY_TAB_KEY ? 'dashed' : 'solid'}
       ref={outerRef}
     >
       <Tabs
@@ -279,16 +281,16 @@ function BaseDraggableTabList({
         overflowingTabs={overflowingTabs}
       />
       <AddViewTempTabWrap ref={addViewTempTabRef}>
-        <MotionWrapper>
+        <AddViewMotionWrapper>
           <AddViewButton borderless size="zero" onClick={onAddView}>
             <StyledIconAdd size="xs" />
             {t('Add View')}
           </AddViewButton>
-        </MotionWrapper>
+        </AddViewMotionWrapper>
         <MotionWrapper>
           {tempTab && (
             <Tab
-              key={tempTab.key}
+              key={TEMPORARY_TAB_KEY}
               item={tempTab}
               state={state}
               orientation={orientation}
@@ -405,6 +407,7 @@ const AddViewTempTabWrap = styled('div')`
   grid-auto-flow: column;
   justify-content: start;
   align-items: center;
+  top: -1px;
 `;
 
 const TabListWrap = styled('ul')`
@@ -428,6 +431,8 @@ const AddViewButton = styled(Button)`
   font-weight: normal;
   padding: ${space(0.5)};
   margin-right: ${space(0.5)};
+  border: none;
+  bottom: -1px;
 `;
 
 const StyledIconAdd = styled(IconAdd)`
@@ -437,6 +442,12 @@ const StyledIconAdd = styled(IconAdd)`
 const MotionWrapper = styled(motion.div)`
   display: flex;
   position: relative;
+`;
+
+const AddViewMotionWrapper = styled(motion.div)`
+  display: flex;
+  position: relative;
+  margin-top: ${space(0.25)};
 `;
 
 const OverflowMenuTrigger = styled(DropdownButton)`
