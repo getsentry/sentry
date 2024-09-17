@@ -170,6 +170,7 @@ yarn.lock                                                @getsentry/owners-js-de
 ## Alerts & Notifications
 /static/app/views/settings/projectAlerts/                 @getsentry/alerts-notifications
 /static/app/views/alerts/                                 @getsentry/alerts-notifications
+/static/app/views/alerts/rules/uptime                     @getsentry/crons
 /static/app/views/releases/                               @getsentry/alerts-notifications
 /src/sentry/rules/processing/delayed_processing.py        @getsentry/alerts-notifications
 
