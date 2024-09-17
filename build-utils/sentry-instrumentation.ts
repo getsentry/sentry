@@ -34,6 +34,7 @@ class SentryInstrumentation {
       dsn: 'https://07898f7cdd56ebabb2761c0fb54578a1@o87286.ingest.us.sentry.io/4507936144031744',
       environment: IS_CI ? 'ci' : 'local',
       tracesSampleRate: 1.0,
+      profilesSampleRate: 1.0,
       debug: true,
       integrations: [nodeProfilingIntegration()],
       beforeSendTransaction(transaction) {
@@ -51,7 +52,7 @@ class SentryInstrumentation {
     // eslint-disable-next-line
     profiler_id = profilingIntegration._profiler._profilerId;
 
-    this.Sentry.profiler.startProfiler();
+    // this.Sentry.profiler.startProfiler();
 
     if (IS_CI) {
       this.Sentry.setTag('branch', GITHUB_REF);
@@ -70,6 +71,8 @@ class SentryInstrumentation {
       name: 'initial-build',
       forceTransaction: true,
     });
+    instrument(this.Sentry, {name: 'plugins'});
+    instrument(this.Sentry, {name: 'resolvers'});
   }
 
   /**
@@ -154,6 +157,25 @@ class SentryInstrumentation {
   }
 
   apply(compiler: webpack.Compiler) {
+    compiler.hooks.emit.tap('emit', () => instrument(this.Sentry, {name: 'emit'}));
+    compiler.hooks.afterEmit.tap('afterEmit', () =>
+      stopInstrument(this.Sentry, {name: 'emit'})
+    );
+
+    compiler.hooks.beforeCompile.tap('compile', () =>
+      instrument(this.Sentry, {name: 'compile'})
+    );
+    compiler.hooks.afterCompile.tap('afterCompile', () =>
+      instrument(this.Sentry, {name: 'compile'})
+    );
+
+    compiler.hooks.afterResolvers.tap('afterResolvers', () =>
+      instrument(this.Sentry, {name: 'resolvers'})
+    );
+    compiler.hooks.afterPlugins.tap('afterPlugins', () =>
+      instrument(this.Sentry, {name: 'plugins'})
+    );
+
     compiler.hooks.done.tapAsync(
       PLUGIN_NAME,
       async ({compilation, startTime, endTime}, done) => {
@@ -180,4 +202,21 @@ class SentryInstrumentation {
   }
 }
 
+function instrument(sentry: typeof Sentry | undefined, opt: {name: string; op?: string}) {
+  if (!sentry) return;
+  const span = sentry.startInactiveSpan({op: 'webpack', ...opt});
+  SpanLookup.set('emit', span);
+}
+function stopInstrument(
+  sentry: typeof Sentry | undefined,
+  opt: {name: string; op?: string}
+) {
+  if (!sentry) return;
+  const span = SpanLookup.get(opt.name);
+  if (!span) return;
+  SpanLookup.delete(opt.name);
+  span.end();
+}
+
+const SpanLookup = new Map<string, Sentry.Span>();
 export default SentryInstrumentation;
