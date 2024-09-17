@@ -25,12 +25,14 @@ import type {Event} from 'sentry/types/event';
 import type {Group, TeamParticipant, UserParticipant} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
 import type {Release} from 'sentry/types/release';
+import parseLinkHeader from 'sentry/utils/parseLinkHeader';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import GroupActions from 'sentry/views/issueDetails/actions/index';
 import {Divider} from 'sentry/views/issueDetails/divider';
 import {GroupEventAttachmentsDrawer} from 'sentry/views/issueDetails/groupEventAttachments/groupEventAttachmentsDrawer';
+import {useGroupEventAttachments} from 'sentry/views/issueDetails/groupEventAttachments/useGroupEventAttachments';
 import GroupPriority from 'sentry/views/issueDetails/groupPriority';
 import {GroupHeaderTabs} from 'sentry/views/issueDetails/header';
 import {useIssueDetailsHeader} from 'sentry/views/issueDetails/useIssueDetailsHeader';
@@ -59,6 +61,13 @@ export default function StreamlinedGroupHeader({
   const location = useLocation();
   const organization = useOrganization();
   const {openDrawer} = useDrawer();
+  const attachments = useGroupEventAttachments({
+    groupId: group.id,
+    activeAttachmentsTab: 'all',
+  });
+  const attachmentPagination = parseLinkHeader(
+    attachments.getResponseHeader?.('Link') ?? null
+  );
   const {sort: _sort, ...query} = location.query;
 
   const {data: groupReleaseData} = useApiQuery<GroupRelease>(
@@ -162,23 +171,30 @@ export default function StreamlinedGroupHeader({
                 </ReleaseWrapper>
               </Fragment>
             )}
-            <Button
-              type="button"
-              priority="link"
-              size="zero"
-              onClick={() => {
-                openDrawer(
-                  () => (
-                    <GroupEventAttachmentsDrawer project={project} groupId={group.id} />
-                  ),
-                  {
-                    ariaLabel: 'breadcrumb drawer',
-                  }
-                );
-              }}
-            >
-              Attachments
-            </Button>
+            {attachments.attachments.length ? (
+              <AttachmentButton
+                type="button"
+                priority="link"
+                size="zero"
+                onClick={() => {
+                  openDrawer(
+                    () => (
+                      <GroupEventAttachmentsDrawer project={project} groupId={group.id} />
+                    ),
+                    {
+                      ariaLabel: 'breadcrumb drawer',
+                    }
+                  );
+                }}
+              >
+                {t(
+                  '%s Attachments',
+                  attachmentPagination.next?.results
+                    ? '50+'
+                    : attachments.attachments.length
+                )}
+              </AttachmentButton>
+            ) : null}
           </MessageWrapper>
           <Feature features={['organizations:ai-summary']}>
             <GroupSummaryHeader groupId={group.id} groupCategory={group.issueCategory} />
@@ -367,4 +383,8 @@ const Header = styled('div')`
 
 const StyledBreadcrumbs = styled(Breadcrumbs)`
   margin-top: ${space(2)};
+`;
+
+const AttachmentButton = styled(Button)`
+  color: ${p => p.theme.gray300};
 `;
