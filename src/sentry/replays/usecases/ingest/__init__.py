@@ -150,14 +150,14 @@ def _ingest_recording(message: RecordingIngestMessage, transaction: Span) -> Non
         if message.org_id in options.get("replay.replay-video.organization-file-packing"):
             dat = zlib.compress(pack(rrweb=recording_segment, video=message.replay_video))
             storage_kv.set(make_recording_filename(segment_data), dat)
+
+            # Track combined payload size.
+            metrics.distribution(
+                "replays.recording_consumer.replay_video_event_size", len(dat), unit="byte"
+            )
         else:
             storage_kv.set(make_recording_filename(segment_data), compressed_segment)
             storage_kv.set(make_video_filename(segment_data), message.replay_video)
-
-        # Track combined payload size.
-        metrics.distribution(
-            "replays.recording_consumer.replay_video_event_size", len(dat), unit="byte"
-        )
     else:
         storage_kv.set(make_recording_filename(segment_data), compressed_segment)
 
