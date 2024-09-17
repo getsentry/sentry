@@ -16,6 +16,7 @@ import {
   useNavigationType,
 } from 'react-router-dom';
 import {useEffect} from 'react';
+import FeatureObserver from 'sentry/utils/featureObserver';
 
 const SPA_MODE_ALLOW_URLS = [
   'localhost',
@@ -194,6 +195,12 @@ export function initializeSdk(config: Config, {routes}: {routes?: Function} = {}
       addEndpointTagToRequestError(event);
 
       lastEventId = event.event_id || hint.event_id;
+
+      // attach feature flags to the event context
+      if (event.contexts) {
+        const flags = FeatureObserver.singleton().getFeatureFlags();
+        event.contexts.flags = flags;
+      }
 
       return event;
     },
