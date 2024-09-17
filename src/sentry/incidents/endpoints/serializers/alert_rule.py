@@ -397,8 +397,13 @@ class CombinedRuleSerializer(Serializer):
             user=user,
             serializer=RuleSerializer(expand=self.expand),
         )
+        # there are none results in the list of serialized issue rules
+        # something is wrong with the RuleSerializer
         serialized_issue_rule_map_by_id = {
-            serialized_rule["id"]: serialized_rule for serialized_rule in serialized_issue_rules
+            serialized_rule["id"]: serialized_rule
+            for serialized_rule in list(
+                filter(lambda item: item is not None, serialized_issue_rules)
+            )
         }
 
         serialized_uptime_monitors = serialize(
