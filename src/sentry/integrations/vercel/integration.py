@@ -23,11 +23,11 @@ from sentry.models.integrations.sentry_app_installation import SentryAppInstalla
 from sentry.models.integrations.sentry_app_installation_for_provider import (
     SentryAppInstallationForProvider,
 )
-from sentry.models.integrations.sentry_app_installation_token import SentryAppInstallationToken
 from sentry.organizations.services.organization import RpcOrganizationSummary
 from sentry.pipeline import NestedPipelineView
 from sentry.projects.services.project_key import project_key_service
 from sentry.sentry_apps.logic import SentryAppCreator
+from sentry.sentry_apps.models.sentry_app_installation_token import SentryAppInstallationToken
 from sentry.shared_integrations.exceptions import ApiError, IntegrationError
 from sentry.users.models.user import User
 from sentry.utils.http import absolute_uri

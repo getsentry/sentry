@@ -3,7 +3,6 @@ __all__ = (
     "SentryAppComponent",
     "SentryAppInstallation",
     "SentryAppInstallationForProvider",
-    "SentryAppInstallationToken",
 )
 
 
@@ -14,5 +13,4 @@ from sentry.models.integrations.sentry_app_installation import SentryAppInstalla
 from sentry.models.integrations.sentry_app_installation_for_provider import (
     SentryAppInstallationForProvider,
 )
-from sentry.models.integrations.sentry_app_installation_token import SentryAppInstallationToken
 from sentry.sentry_apps.models.sentry_app import SentryApp
