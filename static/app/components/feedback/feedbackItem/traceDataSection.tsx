@@ -60,7 +60,7 @@ export default function TraceDataSection({
   ]);
 
   return show && organization.features.includes('user-feedback-trace-section') ? (
-    <Section icon={<IconSpan size="xs" />} title={t('Data from the Same Trace')}>
+    <Section icon={<IconSpan size="xs" />} title={t('Data From The Same Trace')}>
       <IssuesTraceDataSection event={eventData} />
     </Section>
   ) : null;
