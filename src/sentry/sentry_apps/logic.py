@@ -306,7 +306,7 @@ class SentryAppCreator:
     def run(
         self,
         *,
-        user: User | RpcUser,
+        user: User,
         request: HttpRequest | None = None,
         skip_default_auth_token: bool = False,
     ) -> SentryApp:
@@ -407,7 +407,7 @@ class SentryAppCreator:
                 sentry_sdk.capture_message("IntegrityError while creating IntegrationFeature")
 
     def _install(
-        self, *, slug: str, user: User | RpcUser, request: HttpRequest | None
+        self, *, slug: str, user: User, request: HttpRequest | None
     ) -> SentryAppInstallation:
         return SentryAppInstallationCreator(
             organization_id=self.organization_id,
@@ -416,7 +416,7 @@ class SentryAppCreator:
         ).run(user=user, request=request)
 
     def _create_access_token(
-        self, user: User | RpcUser, install: SentryAppInstallation, request: HttpRequest | None
+        self, user: User, install: SentryAppInstallation, request: HttpRequest | None
     ) -> None:
         install.api_token = SentryAppInstallationTokenCreator(sentry_app_installation=install).run(
             request=request, user=user
@@ -444,7 +444,7 @@ class SentryAppCreator:
                     data={"name": sentry_app.name},
                 )
 
-    def record_analytics(self, user: User | RpcUser, sentry_app: SentryApp) -> None:
+    def record_analytics(self, user: User, sentry_app: SentryApp) -> None:
         analytics.record(
             "sentry_app.created",
             user_id=user.id,
