@@ -26,7 +26,7 @@ def get_grouping_info(
             # are not subject to grouping configs, and the only relevant
             # grouping variant is `PerformanceProblemVariant`.
 
-            problems = EventPerformanceProblem.fetch_multi([(event, h) for h in hashes.hashes])
+            problems = EventPerformanceProblem.fetch_multi([(event, h) for h in hashes])
 
             # Create a variant for every problem associated with the event
             # TODO: Generate more unique keys, in case this event has more than
@@ -50,7 +50,7 @@ def get_grouping_info(
     # that we recalculate hashes/variants on the fly since we don't store the variants as part of
     # event data. If the grouping config has been changed since the event was ingested, we may get
     # different hashes here than the ones stored on the event.
-    _check_for_mismatched_hashes(event, project, grouping_info, hashes.hashes)
+    _check_for_mismatched_hashes(event, project, grouping_info, hashes)
 
     return grouping_info
 

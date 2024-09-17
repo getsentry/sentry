@@ -5,7 +5,6 @@ from collections.abc import MutableMapping
 from typing import TYPE_CHECKING, Any
 
 from sentry.exceptions import HashDiscarded
-from sentry.grouping.result import CalculatedHashes
 from sentry.issues.grouptype import GroupCategory
 from sentry.killswitches import killswitch_matches_context
 from sentry.models.group import Group
@@ -18,10 +17,6 @@ if TYPE_CHECKING:
 logger = logging.getLogger("sentry.events.grouping")
 
 Job = MutableMapping[str, Any]
-
-
-def extract_hashes(calculated_hashes: CalculatedHashes | None) -> list[str]:
-    return [] if not calculated_hashes else list(calculated_hashes.hashes)
 
 
 def add_group_id_to_grouphashes(

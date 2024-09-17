@@ -9,7 +9,6 @@ from django.db import router, transaction
 
 from sentry.event_manager import GroupInfo, _save_aggregate, _save_aggregate_new
 from sentry.eventstore.models import Event
-from sentry.grouping.result import CalculatedHashes
 from sentry.models.grouphash import GroupHash
 from sentry.testutils.pytest.fixtures import django_db_all
 
@@ -65,7 +64,7 @@ def test_group_creation_race_new(
         "11212012123120120415201309082013",
         data={"timestamp": time.time()},
     )
-    hashes = CalculatedHashes(["pound sign", "octothorpe"])
+    hashes = ["pound sign", "octothorpe"]
 
     # Mypy has a bug and can't handle the combo of a `...` input type and a ternary for the value
     # See https://github.com/python/mypy/issues/14661
