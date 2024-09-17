@@ -26,19 +26,6 @@ export function formatWeightToProfileDuration(
   return `${Math.round((frame.totalWeight / flamegraph.profile.duration) * 100)}%`;
 }
 
-function formatFileNameAndLineColumn(frame: FlamegraphFrame): string | null {
-  if (!frame.frame.file) {
-    return '<unknown file>';
-  }
-  if (typeof frame.frame.line === 'number' && typeof frame.frame.column === 'number') {
-    return `${frame.frame.file}:${frame.frame.line}:${frame.frame.column}`;
-  }
-  if (typeof frame.frame.line === 'number') {
-    return `${frame.frame.file}:${frame.frame.line}`;
-  }
-  return `${frame.frame.file}:<unknown line>`;
-}
-
 export interface FlamegraphTooltipProps {
   canvasBounds: Rect;
   configSpaceCursor: vec2;
@@ -130,7 +117,7 @@ function DifferentialFlamegraphTooltip(props: DifferentialFlamegraphTooltipProps
       <FlamegraphTooltipTimelineInfo>
         {defined(props.frame.frame.file) && (
           <Fragment>
-            {t('source')}:{formatFileNameAndLineColumn(props.frame)}
+            {t('source')}:{props.frame.frame.getSourceLocation()}
           </Fragment>
         )}
         <FlamegraphTooltipTimelineInfo>
@@ -165,11 +152,7 @@ function AggregateFlamegraphTooltip(props: AggregateFlamegraphTooltipProps) {
         {props.frame.frame.name}
       </FlamegraphTooltipFrameMainInfo>
       <FlamegraphTooltipTimelineInfo>
-        {defined(props.frame.frame.file) && (
-          <Fragment>
-            {t('source')}:{formatFileNameAndLineColumn(props.frame)}
-          </Fragment>
-        )}
+        {t('source')}:{props.frame.frame.getSourceLocation()}
         <FlamegraphTooltipTimelineInfo>
           {props.frame.frame.is_application ? t('application frame') : t('system frame')}
         </FlamegraphTooltipTimelineInfo>
@@ -201,11 +184,7 @@ function FlamechartTooltip(props: FlamechartTooltipProps) {
         {props.frame.frame.name}
       </FlamegraphTooltipFrameMainInfo>
       <FlamegraphTooltipTimelineInfo>
-        {defined(props.frame.frame.file) && (
-          <Fragment>
-            {t('source')}:{formatFileNameAndLineColumn(props.frame)}
-          </Fragment>
-        )}
+        {t('source')}:{props.frame.frame.getSourceLocation()}
         <FlamegraphTooltipTimelineInfo>
           {props.frame.frame.is_application ? t('application frame') : t('system frame')}
         </FlamegraphTooltipTimelineInfo>
