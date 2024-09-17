@@ -124,6 +124,15 @@ describe('EventGraph', () => {
         },
       })
     );
+
+    expect(screen.queryByLabelText('Open in Discover')).not.toBeInTheDocument();
+    await userEvent.hover(screen.getByRole('figure'));
+    const discoverButton = screen.getByLabelText('Open in Discover');
+    expect(discoverButton).toBeInTheDocument();
+    expect(discoverButton).toHaveAttribute(
+      'href',
+      expect.stringContaining(`/organizations/${organization.slug}/discover/results/`)
+    );
   });
 
   it('allows filtering by environment', async function () {
