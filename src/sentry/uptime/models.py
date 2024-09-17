@@ -5,6 +5,8 @@ from typing import ClassVar, Self
 from django.conf import settings
 from django.db import models
 from django.db.models import Q
+from django.db.models.expressions import Value
+from django.db.models.functions import MD5, Coalesce
 
 from sentry.backup.scopes import RelocationScope
 from sentry.db.models import (
@@ -68,8 +70,12 @@ class UptimeSubscription(BaseRemoteSubscription, DefaultFieldsModelExisting):
 
         constraints = [
             models.UniqueConstraint(
-                fields=["url", "interval_seconds"],
-                name="uptime_uptimesubscription_unique_url_check",
+                "url",
+                "interval_seconds",
+                "method",
+                MD5("headers"),
+                Coalesce(MD5("body"), Value("")),
+                name="uptime_uptimesubscription_unique_subscription_check",
             ),
         ]
 
