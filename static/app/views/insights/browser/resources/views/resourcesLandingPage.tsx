@@ -39,7 +39,7 @@ function ResourcesLandingPage({disableHeader}: InsightLandingProps) {
   return (
     <React.Fragment>
       <PageAlertProvider>
-        {disableHeader && (
+        {!disableHeader && (
           <Layout.Header>
             <Layout.HeaderContent>
               <Breadcrumbs crumbs={crumbs} />
