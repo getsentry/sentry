@@ -217,6 +217,7 @@ export function ProjectInstallPlatform({
                 organization,
                 platform: platform.name ?? 'unknown',
                 project_id: project.id,
+                products,
               });
               redirectWithProjectSelection({
                 pathname: issueStreamLink,
