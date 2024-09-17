@@ -2,7 +2,7 @@ import responses
 from requests.exceptions import ReadTimeout
 
 from fixtures.bitbucket_server import EXAMPLE_PRIVATE_KEY
-from sentry.integrations.bitbucket_server import BitbucketServerIntegrationProvider
+from sentry.integrations.bitbucket_server.integration import BitbucketServerIntegrationProvider
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.testutils.cases import IntegrationTestCase
