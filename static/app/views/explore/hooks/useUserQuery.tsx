@@ -1,7 +1,7 @@
 import {useCallback} from 'react';
 import type {Location} from 'history';
 
-import {decodeScalar} from 'sentry/utils/queryString';
+import {decodeQuery} from 'sentry/utils/discover/eventView';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 
@@ -22,7 +22,7 @@ function useUserQueryImpl({
   location,
   navigate,
 }: Options): [string, (newQuery: string) => void] {
-  const userQuery = decodeScalar(location.query.query, '');
+  const userQuery = decodeQuery(location);
 
   const setUserQuery = useCallback(
     (newQuery: string) => {
