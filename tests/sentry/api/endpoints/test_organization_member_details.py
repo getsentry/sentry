@@ -144,25 +144,17 @@ class GetOrganizationMemberTest(OrganizationMemberTestBase):
 class UpdateOrganizationMemberTest(OrganizationMemberTestBase, HybridCloudTestMixin):
     method = "put"
 
-    def test_invalid_id(self):
-        self.get_error_response(self.organization.slug, "trash", reinvite=1, status_code=404)
+    def setUp(self):
+        super().setUp()
 
-    @patch("sentry.models.OrganizationMember.send_invite_email")
-    def test_reinvite_pending_member(self, mock_send_invite_email):
-        member_om = self.create_member(
-            organization=self.organization, email="foo@example.com", role="member"
-        )
-
-        self.get_success_response(self.organization.slug, member_om.id, reinvite=1)
-        mock_send_invite_email.assert_called_once_with()
-
-    @patch("sentry.models.OrganizationMember.send_invite_email")
-    def test_member_reinvite_pending_member(self, mock_send_invite_email):
         self.curr_user = self.create_user("member@example.com")
         self.curr_member = self.create_member(
             organization=self.organization, role="member", user=self.curr_user
         )
         self.other_user = self.create_user("other@example.com")
+        self.other_member = self.create_member(
+            organization=self.organization, role="member", user=self.other_user
+        )
 
         self.curr_invite = self.create_member(
             organization=self.organization,
@@ -179,6 +171,21 @@ class UpdateOrganizationMemberTest(OrganizationMemberTestBase, HybridCloudTestMi
             inviter_id=self.other_user.id,
         )
 
+    def test_invalid_id(self):
+        self.get_error_response(self.organization.slug, "trash", reinvite=1, status_code=404)
+
+    @patch("sentry.models.OrganizationMember.send_invite_email")
+    def test_reinvite_pending_member(self, mock_send_invite_email):
+        member_om = self.create_member(
+            organization=self.organization, email="foo@example.com", role="member"
+        )
+
+        self.get_success_response(self.organization.slug, member_om.id, reinvite=1)
+        mock_send_invite_email.assert_called_once_with()
+
+    @patch("sentry.models.OrganizationMember.send_invite_email")
+    @with_feature("organizations:members-invite-teammates")
+    def test_member_reinvite_pending_member(self, mock_send_invite_email):
         self.login_as(self.curr_user)
 
         self.organization.flags.disable_member_invite = True
@@ -188,13 +195,6 @@ class UpdateOrganizationMemberTest(OrganizationMemberTestBase, HybridCloudTestMi
         )
         self.get_error_response(
             self.organization.slug, self.other_invite.id, reinvite=1, status_code=400
-        )
-        self.get_error_response(
-            self.organization.slug,
-            self.curr_invite.id,
-            reinvite=1,
-            role="manager",
-            status_code=400,
         )
         assert not mock_send_invite_email.mock_calls
 
@@ -206,12 +206,50 @@ class UpdateOrganizationMemberTest(OrganizationMemberTestBase, HybridCloudTestMi
         self.get_error_response(
             self.organization.slug, self.other_invite.id, reinvite=1, status_code=400
         )
+        assert not mock_send_invite_email.mock_calls
+
+    @patch("sentry.models.OrganizationMember.send_invite_email")
+    @with_feature("organizations:members-invite-teammates")
+    def test_member_can_only_reinvite(self, mock_send_invite_email):
+        self.login_as(self.curr_user)
+
+        self.organization.flags.disable_member_invite = True
+        self.organization.save()
         self.get_error_response(
             self.organization.slug,
             self.curr_invite.id,
             reinvite=1,
             role="manager",
             status_code=400,
+        )
+        assert not mock_send_invite_email.mock_calls
+
+        self.organization.flags.disable_member_invite = False
+        self.organization.save()
+        self.get_error_response(
+            self.organization.slug,
+            self.curr_invite.id,
+            reinvite=1,
+            role="manager",
+            status_code=400,
+        )
+        assert not mock_send_invite_email.mock_calls
+
+    @patch("sentry.models.OrganizationMember.send_invite_email")
+    @with_feature("organizations:members-invite-teammates")
+    def test_member_cannot_reinvite_members(self, mock_send_invite_email):
+        self.login_as(self.curr_user)
+
+        self.organization.flags.disable_member_invite = True
+        self.organization.save()
+        self.get_error_response(
+            self.organization.slug, self.other_member.id, reinvite=1, status_code=400
+        )
+
+        self.organization.flags.disable_member_invite = False
+        self.organization.save()
+        self.get_error_response(
+            self.organization.slug, self.other_member.id, reinvite=1, status_code=400
         )
         assert not mock_send_invite_email.mock_calls
 
