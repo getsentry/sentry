@@ -295,9 +295,9 @@ export type ProductSelectionProps = {
    */
   disabledProducts?: DisabledProducts;
   /**
-   * Fired when the user clicks on a product.
+   * Fired when the product selection changes
    */
-  onClick?: (product: ProductSolution[]) => void;
+  onChange?: (product: ProductSolution[]) => void;
   /**
    * The platform key of the project (e.g. javascript-react, python-django, etc.)
    */
@@ -318,7 +318,7 @@ export function ProductSelection({
   platform,
   productsPerPlatform = platformProductAvailability,
   projectId,
-  onClick,
+  onChange,
 }: ProductSelectionProps) {
   const [params, setParams] = useOnboardingQueryParams();
   const urlProducts = useMemo(() => params.product ?? [], [params.product]);
@@ -371,7 +371,7 @@ export function ProductSelection({
 
       const selectedProducts = [...newProduct] as ProductSolution[];
 
-      onClick?.(selectedProducts);
+      onChange?.(selectedProducts);
       setParams({product: selectedProducts});
 
       if (organization.features.includes('project-create-replay-feedback')) {
@@ -380,7 +380,7 @@ export function ProductSelection({
         );
       }
     },
-    [defaultProducts, organization, setParams, urlProducts, onClick]
+    [defaultProducts, organization, setParams, urlProducts, onChange]
   );
 
   const handleToggleLoader = useCallback(() => {

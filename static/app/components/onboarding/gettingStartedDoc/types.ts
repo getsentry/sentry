@@ -87,10 +87,10 @@ export interface OnboardingConfig<
       introduction?: React.ReactNode | React.ReactNode[];
       nextSteps?: (NextStep | null)[];
       onPageLoad?: () => void;
-      onPlatformOptionsClick?: (
+      onPlatformOptionsChange?: (
         platformOptions: SelectedPlatformOptions<PlatformOptions>
       ) => void;
-      onProductSelectionClick?: (products: ProductSolution[]) => void;
+      onProductSelectionChange?: (products: ProductSolution[]) => void;
     },
     DocsParams<PlatformOptions>
   > {}

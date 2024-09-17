@@ -125,7 +125,7 @@ type OrganizationHeaderProps = {
 
 type ProductSelectionAvailabilityProps = Pick<
   ProductSelectionProps,
-  'platform' | 'withBottomMargin' | 'projectId' | 'onClick'
+  'platform' | 'withBottomMargin' | 'projectId' | 'onChange'
 > & {
   organization: Organization;
 };
