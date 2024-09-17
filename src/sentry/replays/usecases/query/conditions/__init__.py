@@ -16,7 +16,7 @@ __all__ = [
     "SumOfRageClickSelectorComposite",
     "SumOfStringArray",
     "SumOfStringScalar",
-    "SumOfTagScalar",
+    "SumOfTagAggregate",
     "SumOfUUIDArray",
     "TagAggregate",
 ]
@@ -44,4 +44,4 @@ from .selector import (
     SumOfDeadClickSelectorComposite,
     SumOfRageClickSelectorComposite,
 )
-from .tags import SumOfTagScalar, TagAggregate
+from .tags import SumOfTagAggregate, TagAggregate

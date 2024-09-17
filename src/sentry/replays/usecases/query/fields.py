@@ -10,6 +10,7 @@ from sentry.api.event_search import SearchFilter
 from sentry.replays.lib.new_query.errors import OperatorNotSupported
 from sentry.replays.lib.new_query.parsers import parse_str
 from sentry.replays.usecases.query.conditions.base import ComputedBase
+from sentry.replays.usecases.query.conditions.tags import SumOfTagAggregate, TagScalar
 
 T = TypeVar("T")
 
@@ -94,7 +95,7 @@ class ComputedField(Generic[T]):
 
 
 class TagField:
-    def __init__(self, query: type[ComputedBase]) -> None:
+    def __init__(self, query: type[SumOfTagAggregate] | type[TagScalar]) -> None:
         self.parse = parse_str
         self.query = query
 

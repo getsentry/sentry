@@ -71,7 +71,7 @@ class TagAggregate(GenericBase):
         return Condition(_match_key_value_wildcard(expression_name, value), Op.EQ, 0)
 
 
-class SumOfTagScalar(GenericBase):
+class SumOfTagAggregate(GenericBase):
     @staticmethod
     def visit_eq(expression: Expression, value: str) -> Condition:
         return contains(TagAggregate.visit_eq(expression, value))
