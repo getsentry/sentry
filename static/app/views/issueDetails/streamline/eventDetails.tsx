@@ -2,6 +2,7 @@ import {useLayoutEffect, useState} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import Alert from 'sentry/components/alert';
 import {CommitRow} from 'sentry/components/commitRow';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import {SuspectCommits} from 'sentry/components/events/suspectCommits';
@@ -27,7 +28,7 @@ import {
   EventSearch,
   useEventQuery,
 } from 'sentry/views/issueDetails/streamline/eventSearch';
-import {useFetchEventStats} from 'sentry/views/issueDetails/streamline/useFetchEvents';
+import {useFetchEventStats} from 'sentry/views/issueDetails/streamline/useFetchEventStats';
 
 export function EventDetails({
   group,
@@ -44,10 +45,14 @@ export function EventDetails({
 
   const searchQuery = useEventQuery({group});
   const {eventDetails, dispatch} = useEventDetailsReducer();
-  const {data: groupStats, isPending: isLoadingStats} = useFetchEventStats({
+  const {
+    data: groupStats,
+    isPending: isLoadingStats,
+    error: errorStats,
+  } = useFetchEventStats({
     params: {
       group: group,
-      referrer: 'issue_details.streamline',
+      referrer: 'issue_details.streamline_graph',
       query: searchQuery,
     },
   });
@@ -60,6 +65,16 @@ export function EventDetails({
       state: {navScrollMargin: navHeight + sidebarHeight},
     });
   }, [nav, isScreenMedium, dispatch, theme.sidebar.mobileHeightNumber]);
+
+  const {detail: errorDetail} = errorStats?.responseJSON ?? {};
+
+  const graphComponent = !isLoadingStats && groupStats && (
+    <GraphPadding>
+      <ErrorBoundary mini message={t('There was an error loading the event graph')}>
+        <EventGraph group={group} groupStats={groupStats} searchQuery={searchQuery} />
+      </ErrorBoundary>
+    </GraphPadding>
+  );
 
   return (
     <EventDetailsContext.Provider value={{...eventDetails, dispatch}}>
@@ -88,12 +103,14 @@ export function EventDetails({
           <DatePageFilter />
         </FilterContainer>
       </ErrorBoundary>
-      {!isLoadingStats && groupStats && (
-        <GraphPadding>
-          <ErrorBoundary mini message={t('There was an error loading the event graph')}>
-            <EventGraph groupStats={groupStats} />
-          </ErrorBoundary>
-        </GraphPadding>
+      {errorDetail ? (
+        <div>
+          <GraphAlert type="error" showIcon>
+            {errorDetail as string}
+          </GraphAlert>
+        </div>
+      ) : (
+        graphComponent
       )}
       <GroupContent navHeight={nav?.offsetHeight}>
         <FloatingEventNavigation
@@ -129,7 +146,11 @@ const GraphPadding = styled('div')`
   border: 1px solid ${p => p.theme.translucentBorder};
   background: ${p => p.theme.background};
   border-radius: ${p => p.theme.borderRadius};
-  padding: ${space(1.5)} ${space(1)};
+`;
+
+const GraphAlert = styled(Alert)`
+  margin: 0;
+  border: 1px solid ${p => p.theme.translucentBorder};
 `;
 
 const GroupContent = styled('div')<{navHeight?: number}>`
