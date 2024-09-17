@@ -4,7 +4,7 @@ import logging
 import time
 from collections.abc import Callable, Mapping
 from enum import Enum
-from typing import Any, ClassVar, cast
+from typing import Any, cast
 
 import orjson
 from django.http import HttpRequest, HttpResponse
@@ -143,10 +143,6 @@ def verify_signature(request) -> bool:
         raise AuthenticationFailed("Token is expired")
 
     return True
-
-
-class MsTeamsWebhookMixin:
-    provider: ClassVar[str]
 
 
 class MsTeamsEvents(Enum):
