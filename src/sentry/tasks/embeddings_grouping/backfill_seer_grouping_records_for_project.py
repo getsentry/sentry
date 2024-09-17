@@ -89,6 +89,7 @@ def backfill_seer_grouping_records_for_project(
             "only_delete": only_delete,
             "skip_processed_projects": skip_processed_projects,
             "skip_project_ids": skip_project_ids,
+            "worker_number": worker_number,
         },
     )
 
