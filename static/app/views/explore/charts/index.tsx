@@ -86,7 +86,7 @@ export function ExploreCharts({query}: ExploreChartsProps) {
       search: new MutableSearch(query ?? ''),
       yAxis: yAxes,
       interval: interval ?? getInterval(pageFilters.selection.datetime, 'metrics'),
-      enabled: true,
+      enabled: topEvents === undefined,
     },
     'api.explorer.stats',
     dataset
