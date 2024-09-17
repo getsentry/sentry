@@ -6,7 +6,7 @@ from sentry.integrations.msteams.spec import PROVIDER
 from sentry.integrations.services.integration import integration_service
 from sentry.integrations.services.integration.model import RpcIntegration
 
-logger = logging.getLogger("sentry.integrations.msteams.parsing")
+logger = logging.getLogger(__name__)
 
 
 def _infer_team_id_from_channel_data(data: Mapping[str, Any]) -> str | None:
