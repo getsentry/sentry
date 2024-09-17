@@ -3,7 +3,7 @@ from sentry.sentry_apps.services.hook import hook_service
 
 
 def create_or_update_service_hooks_for_installation(
-    installation: SentryAppInstallation, webhook_url: str, events: list[str]
+    installation: SentryAppInstallation, webhook_url: str | None, events: list[str]
 ) -> None:
     """
     This function creates or updates service hooks for a given Sentry app installation.
