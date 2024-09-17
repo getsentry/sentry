@@ -299,6 +299,7 @@ tests/sentry/api/endpoints/test_organization_dashboard_widget_details.py     @ge
 
 /static/app/views/dashboards/                                             @getsentry/dashboards
 /static/app/components/dashboards/                                        @getsentry/dashboards
+/static/app/components/modals/widgetViewerModal*                          @getsentry/dashboards
 
 /static/app/views/discover/                                               @getsentry/explore
 /static/app/utils/discover/                                               @getsentry/explore
