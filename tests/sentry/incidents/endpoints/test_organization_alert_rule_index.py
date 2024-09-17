@@ -272,6 +272,31 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase, SnubaTestCase):
         assert resp.data == serialize(alert_rule, self.user)
         assert alert_rule.description == resp.data.get("description")
 
+    @with_feature("organizations:incidents")
+    def test_invalid_threshold_type(self):
+        """
+        Test that a comparison alert (percent based) can't use the above and below threshold type
+        """
+        data = {
+            **self.alert_rule_dict,
+            "comparisonDelta": 10080.0,
+            "thresholdType": AlertRuleThresholdType.ABOVE_AND_BELOW.value,
+        }
+
+        with outbox_runner():
+            resp = self.get_error_response(
+                self.organization.slug,
+                status_code=400,
+                **data,
+            )
+        assert not AlertRule.objects.filter(
+            threshold_type=AlertRuleThresholdType.ABOVE_AND_BELOW.value
+        ).exists()
+        assert (
+            "Invalid threshold type: Allowed types for comparison alerts are above OR below"
+            in resp.data["nonFieldErrors"][0]
+        )
+
     @with_feature("organizations:anomaly-detection-alerts")
     @with_feature("organizations:incidents")
     @patch(
