@@ -87,7 +87,7 @@ function AccountSecurityDetails({deleteDisabled, onRegenerateBackupCodes}: Props
       addErrorMessage(t('Error removing %s', deviceName));
     },
     onSettled: () => {
-      queryClient.invalidateQueries(getAuthenticatorQueryKey(authId));
+      queryClient.invalidateQueries({queryKey: getAuthenticatorQueryKey(authId)});
     },
   });
 
@@ -116,7 +116,7 @@ function AccountSecurityDetails({deleteDisabled, onRegenerateBackupCodes}: Props
       addErrorMessage(t('Error renaming the device'));
     },
     onSettled: () => {
-      queryClient.invalidateQueries(getAuthenticatorQueryKey(authId));
+      queryClient.invalidateQueries({queryKey: getAuthenticatorQueryKey(authId)});
     },
   });
 
