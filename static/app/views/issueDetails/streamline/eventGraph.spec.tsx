@@ -86,18 +86,21 @@ describe('EventGraph', () => {
     const eventsToggle = screen.getByRole('button', {name: `Events ${count}`});
     const usersToggle = screen.getByRole('button', {name: `Users ${count}`});
 
-    await userEvent.click(eventsToggle);
-    expect(eventsToggle).toBeEnabled();
-    expect(usersToggle).toBeDisabled();
-
-    await userEvent.click(eventsToggle);
-    expect(eventsToggle).toBeEnabled();
-    expect(usersToggle).toBeEnabled();
-
-    await userEvent.click(usersToggle);
+    // Defaults to events graph
     expect(eventsToggle).toBeDisabled();
     expect(usersToggle).toBeEnabled();
 
+    // Switch to users graph
+    await userEvent.click(usersToggle);
+    expect(eventsToggle).toBeEnabled();
+    expect(usersToggle).toBeDisabled();
+
+    // Another click should do nothing
+    await userEvent.click(usersToggle);
+    expect(eventsToggle).toBeEnabled();
+    expect(usersToggle).toBeDisabled();
+
+    // Switch back to events
     await userEvent.click(eventsToggle);
     expect(eventsToggle).toBeDisabled();
     expect(usersToggle).toBeEnabled();
@@ -113,13 +116,22 @@ describe('EventGraph', () => {
           dataset: 'errors',
           environment: [],
           interval: '12h',
-          project: '2',
+          project: Number(project.id),
           query: persistantQuery,
-          referrer: 'issue_details.streamline',
+          referrer: 'issue_details.streamline_graph',
           statsPeriod: '14d',
           yAxis: ['count()', 'count_unique(user)'],
         },
       })
+    );
+
+    expect(screen.queryByLabelText('Open in Discover')).not.toBeInTheDocument();
+    await userEvent.hover(screen.getByRole('figure'));
+    const discoverButton = screen.getByLabelText('Open in Discover');
+    expect(discoverButton).toBeInTheDocument();
+    expect(discoverButton).toHaveAttribute(
+      'href',
+      expect.stringContaining(`/organizations/${organization.slug}/discover/results/`)
     );
   });
 

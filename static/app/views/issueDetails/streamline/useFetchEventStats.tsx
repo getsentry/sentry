@@ -18,6 +18,30 @@ interface UseFetchEventStatsParameters {
   query?: string;
 }
 
+export function useFetchEventStatsQuery({
+  group,
+  query,
+  referrer,
+}: UseFetchEventStatsParameters) {
+  const {selection: pageFilters} = usePageFilters();
+  const periodQuery = getPeriod(pageFilters.datetime);
+  const interval = getInterval(pageFilters.datetime, 'low');
+  const config = getConfigForIssueType(group, group.project);
+  const fullQuery = {
+    ...periodQuery,
+    interval,
+    referrer,
+    environment: pageFilters.environments,
+    yAxis: ['count()', 'count_unique(user)'],
+    dataset: config.usesIssuePlatform
+      ? DiscoverDatasets.ISSUE_PLATFORM
+      : DiscoverDatasets.ERRORS,
+    project: Number(group.project.id),
+    query: `${query} issue:${group.shortId}`,
+  };
+  return fullQuery;
+}
+
 function makeFetchEventStatsQueryKey({
   organizationSlug,
   query,
@@ -36,22 +60,7 @@ export function useFetchEventStats({
   options?: UseApiQueryOptions<MultiSeriesEventsStats>;
 }) {
   const organization = useOrganization();
-  const {selection: pageFilters} = usePageFilters();
-  const periodQuery = getPeriod(pageFilters.datetime);
-  const interval = getInterval(pageFilters.datetime, 'low');
-  const config = getConfigForIssueType(group, group.project);
-  const fullQuery = {
-    ...periodQuery,
-    interval,
-    referrer,
-    environment: pageFilters.environments,
-    yAxis: ['count()', 'count_unique(user)'],
-    dataset: config.usesIssuePlatform
-      ? DiscoverDatasets.ISSUE_PLATFORM
-      : DiscoverDatasets.ERRORS,
-    project: group.project.id,
-    query: `${query} issue:${group.shortId}`,
-  };
+  const fullQuery = useFetchEventStatsQuery({group, query, referrer});
   const queryKey = makeFetchEventStatsQueryKey({
     organizationSlug: organization.slug,
     query: fullQuery,

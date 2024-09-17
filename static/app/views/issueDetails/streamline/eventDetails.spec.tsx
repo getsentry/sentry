@@ -39,6 +39,7 @@ describe('EventDetails', function () {
     ],
   };
   const defaultProps = {project, group, event};
+  let mockActionableItems, mockCommitters, mockTags;
 
   beforeEach(function () {
     PageFiltersStore.init();
@@ -52,44 +53,68 @@ describe('EventDetails', function () {
     );
     ProjectsStore.loadInitialData([project]);
     MockApiClient.clearMockResponses();
-    MockApiClient.addMockResponse({
+    mockActionableItems = MockApiClient.addMockResponse({
       url: `/projects/${organization.slug}/${project.slug}/events/${event.id}/actionable-items/`,
       body: {errors: []},
       method: 'GET',
     });
-    MockApiClient.addMockResponse({
+    mockCommitters = MockApiClient.addMockResponse({
       url: `/projects/${organization.slug}/${project.slug}/events/${event.id}/committers/`,
       body: {committers: [committer]},
       method: 'GET',
     });
-    MockApiClient.addMockResponse({
+    mockTags = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/issues/${group.id}/tags/`,
       body: TagsFixture(),
-      method: 'GET',
-    });
-    MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/events-stats/`,
-      body: {'count()': EventsStatsFixture(), 'count_unique(user)': EventsStatsFixture()},
       method: 'GET',
     });
   });
 
   it('displays all basic components', async function () {
+    const mockStats = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/events-stats/`,
+      body: {'count()': EventsStatsFixture(), 'count_unique(user)': EventsStatsFixture()},
+      method: 'GET',
+    });
     render(<EventDetails {...defaultProps} />, {organization});
     await screen.findByText(event.id);
+
     // Suspect Commits
+    expect(mockCommitters).toHaveBeenCalled();
     expect(screen.getByText('Suspect Commit')).toBeInTheDocument();
     expect(screen.getByText(committer.author.name)).toBeInTheDocument();
     // Filtering
+    expect(mockTags).toHaveBeenCalled();
     expect(screen.getByTestId('page-filter-environment-selector')).toBeInTheDocument();
     expect(screen.getByLabelText('Search events')).toBeInTheDocument();
     expect(screen.getByTestId('page-filter-timerange-selector')).toBeInTheDocument();
     // Graph
+    expect(mockStats).toHaveBeenCalled();
     expect(screen.getByRole('figure')).toBeInTheDocument();
     // Navigation
     expect(screen.getByRole('tab', {name: 'Recommended Event'})).toBeInTheDocument();
     expect(screen.getByRole('tab', {name: 'First Event'})).toBeInTheDocument();
     expect(screen.getByRole('button', {name: 'Next Event'})).toBeInTheDocument();
     expect(screen.getByRole('button', {name: 'View All Events'})).toBeInTheDocument();
+    // Content
+    expect(mockActionableItems).toHaveBeenCalled();
+  });
+
+  it('displays error messages from bad queries', async function () {
+    const errorMessage = 'wrong, try again';
+    const mockErrorStats = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/events-stats/`,
+      body: {detail: errorMessage},
+      method: 'GET',
+      statusCode: 400,
+    });
+
+    render(<EventDetails {...defaultProps} />, {organization});
+    await screen.findByText(event.id);
+
+    expect(mockErrorStats).toHaveBeenCalled();
+    expect(screen.getByText(errorMessage)).toBeInTheDocument();
+    // Omit the graph
+    expect(screen.queryByRole('figure')).not.toBeInTheDocument();
   });
 });
