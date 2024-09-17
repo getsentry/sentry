@@ -18,7 +18,7 @@ import {
 import {MODULE_TITLES} from 'sentry/views/insights/settings';
 import {type InsightLandingProps, ModuleName} from 'sentry/views/insights/types';
 
-function WebLandingPage() {
+function FrontendLandingPage() {
   const filters = useFilters();
   const updateFilters = useUpdateFilters();
 
@@ -32,7 +32,7 @@ function WebLandingPage() {
     },
     {
       label: FRONTEND_LANDING_TITLE,
-      to: '/performance/web',
+      to: undefined,
       preservePageFilters: true,
     },
     {
@@ -103,7 +103,7 @@ function WebLandingPage() {
   );
 }
 
-export default WebLandingPage;
+export default FrontendLandingPage;
 
 export const FRONTEND_LANDING_SUB_PATH = 'frontend';
 export const FRONTEND_LANDING_TITLE = t('Frontend');
