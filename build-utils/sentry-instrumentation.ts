@@ -39,9 +39,9 @@ class SentryInstrumentation {
       integrations: [nodeProfilingIntegration()],
       beforeSendTransaction(transaction) {
         //  @ts-ignore
-        transaction.contexts.profile = {};
+        //  transaction.contexts.profile = {};
         //  @ts-ignore
-        transaction.contexts.profile = {profiler_id};
+        // transaction.contexts.profile = {profiler_id};
         return transaction;
       },
     });
@@ -189,7 +189,7 @@ class SentryInstrumentation {
           // @ts-ignore
           // eslint-disable-next-line
           console.log(this.Sentry.getGlobalScope());
-          this.Sentry.profiler.stopProfiler();
+          // this.Sentry.profiler.stopProfiler();
           this.measureBuildTime(startTime / 1000, endTime / 1000);
           await this.Sentry.flush();
         }
