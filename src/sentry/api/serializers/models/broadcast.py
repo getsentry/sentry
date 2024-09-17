@@ -31,7 +31,7 @@ class BroadcastSerializer(Serializer):
             "dateExpires": obj.date_expires,
             "hasSeen": attrs["seen"],
             "category": obj.category,
-            "createdBy": obj.created_by_id,
+            "createdBy": obj.created_by_id.id if obj.created_by_id else None,
         }
 
 
