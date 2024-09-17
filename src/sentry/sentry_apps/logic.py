@@ -324,7 +324,6 @@ class SentryAppCreator:
             if self.is_internal:
                 install = self._install(slug=slug, user=user, request=request)
                 if not skip_default_auth_token:
-                    assert request, "Request must exist to create access token"
                     self._create_access_token(user=user, install=install, request=request)
 
             self.audit(request=request, sentry_app=sentry_app)
@@ -420,7 +419,7 @@ class SentryAppCreator:
         ).run(user=user, request=request)
 
     def _create_access_token(
-        self, user: User | RpcUser, install: SentryAppInstallation, request: HttpRequest
+        self, user: User | RpcUser, install: SentryAppInstallation, request: HttpRequest | None
     ) -> None:
         install.api_token = SentryAppInstallationTokenCreator(sentry_app_installation=install).run(
             request=request, user=user
