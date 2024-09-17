@@ -13,6 +13,7 @@ describe('OrganizationMemberRow', function () {
     name: '',
     orgRole: 'member',
     roleName: 'Member',
+    inviterName: 'Current User',
     pending: false,
     flags: {
       'sso:linked': false,
@@ -32,6 +33,7 @@ describe('OrganizationMemberRow', function () {
   const currentUser = UserFixture({
     id: '2',
     email: 'currentUser@email.com',
+    name: 'Current User',
   });
 
   const defaultProps: React.ComponentProps<typeof OrganizationMemberRow> = {
@@ -109,11 +111,39 @@ describe('OrganizationMemberRow', function () {
       expect(resendButton()).toBeDisabled();
     });
 
-    it('has "Resend Invite" button only if `canAddMembers` is true', function () {
+    it('has "Resend Invite" button if `canAddMembers` is true', function () {
       render(<OrganizationMemberRow {...props} canAddMembers />);
 
       expect(screen.getByTestId('member-role')).toHaveTextContent('Invited Member');
       expect(resendButton()).toBeEnabled();
+    });
+
+    it('has "Resend Invite" button if invite was sent from curr user and feature is on', function () {
+      const org = OrganizationFixture({
+        features: ['members-invite-teammates'],
+        access: ['member:invite'],
+      });
+      render(<OrganizationMemberRow {...props} organization={org} />);
+
+      expect(screen.getByTestId('member-role')).toHaveTextContent('Invited Member');
+      expect(resendButton()).toBeEnabled();
+    });
+
+    it('does not have "Resend Invite" button if invite was sent from other user and feature is on', function () {
+      const org = OrganizationFixture({
+        features: ['members-invite-teammates'],
+        access: ['member:invite'],
+      });
+      render(
+        <OrganizationMemberRow
+          {...props}
+          organization={org}
+          member={{...member, pending: true, inviterName: 'Other User'}}
+        />
+      );
+
+      expect(screen.getByTestId('member-role')).toHaveTextContent('Invited Member');
+      expect(resendButton()).toBeDisabled();
     });
 
     it('has the right inviting states', function () {
@@ -141,6 +171,32 @@ describe('OrganizationMemberRow', function () {
       // No Resend Invite button
       expect(resendButton()).not.toBeInTheDocument();
       expect(screen.getByTestId('member-status')).toHaveTextContent('Sent!');
+    });
+
+    it('has Remove button if invite was sent from curr user and feature is on', function () {
+      const org = OrganizationFixture({
+        features: ['members-invite-teammates'],
+        access: ['member:invite'],
+      });
+      render(<OrganizationMemberRow {...props} organization={org} />);
+
+      expect(removeButton()).toBeEnabled();
+    });
+
+    it('has disabled Remove button if invite was sent from other user and feature is on', function () {
+      const org = OrganizationFixture({
+        features: ['members-invite-teammates'],
+        access: ['member:invite'],
+      });
+      render(
+        <OrganizationMemberRow
+          {...props}
+          organization={org}
+          member={{...member, pending: true, inviterName: 'Other User'}}
+        />
+      );
+
+      expect(removeButton()).toBeDisabled();
     });
   });
 
