@@ -363,7 +363,12 @@ export function DraggableTabBar({
               onChange={newLabel => handleOnTabRenamed(newLabel.trim(), tab.key)}
               isSelected={tabListState?.selectedKey === tab.key}
             />
-            {tabListState?.selectedKey === tab.key && (
+            {/* If tablistState isn't initialized, we want to load the elipsis menu
+                for the initial tab, that way it won't load in a second later
+                and cause the tabs to shift and animate on load.
+            */}
+            {((tabListState && tabListState?.selectedKey === tab.key) ||
+              (!tabListState && tab.key === initialTabKey)) && (
               <DraggableTabMenuButton
                 hasUnsavedChanges={!!tab.unsavedChanges}
                 menuOptions={makeMenuOptions(tab)}
