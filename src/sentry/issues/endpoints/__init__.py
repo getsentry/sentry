@@ -1,7 +1,11 @@
 from .actionable_items import ActionableItemsEndpoint
+from .group_activities import GroupActivitiesEndpoint
+from .group_details import GroupDetailsEndpoint
 from .group_event_details import GroupEventDetailsEndpoint
 from .group_events import GroupEventsEndpoint
 from .group_hashes import GroupHashesEndpoint
+from .group_notes import GroupNotesEndpoint
+from .group_notes_details import GroupNotesDetailsEndpoint
 from .group_similar_issues import GroupSimilarIssuesEndpoint
 from .group_similar_issues_embeddings import GroupSimilarIssuesEmbeddingsEndpoint
 from .organization_group_index import OrganizationGroupIndexEndpoint
@@ -17,9 +21,13 @@ from .source_map_debug import SourceMapDebugEndpoint
 
 __all__ = (
     "ActionableItemsEndpoint",
+    "GroupActivitiesEndpoint",
+    "GroupDetailsEndpoint",
     "GroupEventsEndpoint",
     "GroupEventDetailsEndpoint",
     "GroupHashesEndpoint",
+    "GroupNotesEndpoint",
+    "GroupNotesDetailsEndpoint",
     "GroupSimilarIssuesEndpoint",
     "GroupSimilarIssuesEmbeddingsEndpoint",
     "OrganizationGroupIndexEndpoint",
