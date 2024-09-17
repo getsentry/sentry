@@ -1,6 +1,9 @@
+from __future__ import annotations
+
 import logging
 from collections import defaultdict
 from collections.abc import Sequence
+from typing import Literal
 from uuid import uuid4
 
 import rest_framework
@@ -27,10 +30,17 @@ delete_logger = logging.getLogger("sentry.deletions.api")
 
 def delete_group_list(
     request: Request,
-    project: "Project",
-    group_list: list["Group"],
-    delete_type: str,
+    project: Project,
+    group_list: list[Group],
+    delete_type: Literal["delete", "discard"],
 ) -> None:
+    """Deletes a list of groups which belong to a single project.
+
+    :param request: The request object.
+    :param project: The project the groups belong to.
+    :param group_list: The list of groups to delete.
+    :param delete_type: The type of deletion to perform. This is used to determine the type of audit log to create.
+    """
     if not group_list:
         return
 
@@ -95,7 +105,7 @@ def delete_group_list(
 
 def delete_groups(
     request: Request,
-    projects: Sequence["Project"],
+    projects: Sequence[Project],
     organization_id: int,
     search_fn: SearchFunction,
 ) -> Response:
