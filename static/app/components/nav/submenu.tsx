@@ -2,10 +2,15 @@ import {Fragment} from 'react';
 import styled from '@emotion/styled';
 import {motion} from 'framer-motion';
 
+import Feature from 'sentry/components/acl/feature';
 import Link from 'sentry/components/links/link';
 import {useIndicator} from 'sentry/components/nav/useIndicator';
 import type {SubmenuItem} from 'sentry/components/nav/utils';
-import {isActive} from 'sentry/components/nav/utils';
+import {
+  getActiveProps,
+  getActiveStatus,
+  useLocationDescriptor,
+} from 'sentry/components/nav/utils';
 import {space} from 'sentry/styles/space';
 import theme from 'sentry/utils/theme';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -44,18 +49,27 @@ const ItemList = styled('ul')`
   color: ${theme.gray400};
 `;
 
-function Item({to, label, ...props}: React.PropsWithChildren<SubmenuItem>) {
+function Item({to, label, check, ...props}: React.PropsWithChildren<SubmenuItem>) {
   const location = useLocation();
+  const activeProps = getActiveProps(getActiveStatus({to, label}, location));
+  const toProps = useLocationDescriptor(to);
+
+  const FeatureGuard = check ? Feature : Fragment;
+  const featureGuardProps: any = check
+    ? {
+        features: check.features,
+        hookName: check.hook ? (`feature-disabled:${check.hook}` as const) : undefined,
+      }
+    : {};
+
   return (
-    <ItemWrapper>
-      <Link
-        to={to}
-        aria-current={isActive({to, label}, location) ? 'page' : undefined}
-        {...props}
-      >
-        {label}
-      </Link>
-    </ItemWrapper>
+    <FeatureGuard {...featureGuardProps}>
+      <ItemWrapper>
+        <Link to={toProps} {...activeProps} {...props}>
+          {label}
+        </Link>
+      </ItemWrapper>
+    </FeatureGuard>
   );
 }
 
@@ -78,7 +92,7 @@ const ItemWrapper = styled('li')`
       /* background: rgba(62, 52, 70, 0.09); */
     }
 
-    &[aria-current='page'] {
+    &.active {
       color: ${theme.gray500};
       background: rgba(62, 52, 70, 0.09);
       border: 1px solid ${theme.translucentGray100};

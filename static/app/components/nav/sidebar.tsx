@@ -2,9 +2,15 @@ import {Fragment} from 'react';
 import styled from '@emotion/styled';
 import {motion} from 'framer-motion';
 
+import Feature from 'sentry/components/acl/feature';
 import Link from 'sentry/components/links/link';
 import {useIndicator} from 'sentry/components/nav/useIndicator';
-import {isActive, type SidebarItem} from 'sentry/components/nav/utils';
+import type {SidebarItem} from 'sentry/components/nav/utils';
+import {
+  getActiveProps,
+  getActiveStatus,
+  useLocationDescriptor,
+} from 'sentry/components/nav/utils';
 import {space} from 'sentry/styles/space';
 import theme from 'sentry/utils/theme';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -19,14 +25,6 @@ const Sidebar = styled('div')`
   flex-direction: column;
   z-index: ${theme.zIndex.sidebar};
 `;
-
-// const SidebarItems = styled('ul')`
-//   list-style: none;
-//   margin: 0;
-//   padding: 0;
-//   display: flex;
-//   flex-direction: row;
-// `
 
 function Items({children}) {
   const {indicatorProps, containerProps} = useIndicator();
@@ -57,20 +55,30 @@ function Item({
   label,
   icon,
   submenu,
+  check,
   ...props
 }: React.PropsWithChildren<SidebarItem>) {
   const location = useLocation();
+  const activeProps = getActiveProps(getActiveStatus({to, label, submenu}, location));
+  const toProps = useLocationDescriptor(to);
+
+  const FeatureGuard = check ? Feature : Fragment;
+  const featureGuardProps: any = check
+    ? {
+        features: check.features,
+        hookName: check.hook ? (`feature-disabled:${check.hook}` as const) : undefined,
+      }
+    : {};
+
   return (
-    <ItemWrapper>
-      <Link
-        to={to}
-        aria-current={isActive({to, label, submenu}, location) ? 'page' : undefined}
-        {...props}
-      >
-        {icon}
-        {label}
-      </Link>
-    </ItemWrapper>
+    <FeatureGuard {...featureGuardProps}>
+      <ItemWrapper>
+        <Link to={toProps} {...props} {...activeProps}>
+          {icon}
+          {label}
+        </Link>
+      </ItemWrapper>
+    </FeatureGuard>
   );
 }
 
@@ -99,7 +107,7 @@ const ItemWrapper = styled('li')`
       /* background: rgba(62, 52, 70, 0.09); */
     }
 
-    &[aria-current='page'] {
+    &.active {
       color: ${theme.white};
       border: 1px solid rgba(255, 255, 255, 0.06);
       background: rgba(255, 255, 255, 0.1);
