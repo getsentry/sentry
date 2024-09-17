@@ -1,7 +1,6 @@
 import styled from '@emotion/styled';
 import xor from 'lodash/xor';
 
-import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
@@ -10,15 +9,7 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {IssueAttachment} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
-import {
-  getApiQueryData,
-  setApiQueryData,
-  useMutation,
-  useQueryClient,
-} from 'sentry/utils/queryClient';
 import {decodeList} from 'sentry/utils/queryString';
-import type RequestError from 'sentry/utils/requestError/requestError';
-import useApi from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 
@@ -28,24 +19,12 @@ import GroupEventAttachmentsFilter, {
 } from './groupEventAttachmentsFilter';
 import GroupEventAttachmentsTable from './groupEventAttachmentsTable';
 import {ScreenshotCard} from './screenshotCard';
-import {
-  makeFetchGroupEventAttachmentsQueryKey,
-  useGroupEventAttachments,
-} from './useGroupEventAttachments';
+import {useDeleteGroupEventAttachment} from './useDeleteGroupEventAttachment';
+import {useGroupEventAttachments} from './useGroupEventAttachments';
 
 type GroupEventAttachmentsProps = {
   groupId: string;
   project: Project;
-};
-
-type DeleteGroupEventAttachmentVariables = Parameters<
-  typeof makeFetchGroupEventAttachmentsQueryKey
->[0] & {
-  attachment: IssueAttachment;
-};
-
-type DeleteGroupEventAttachmentContext = {
-  previous?: IssueAttachment[];
 };
 
 const enum EventAttachmentFilter {
@@ -71,8 +50,6 @@ function useActiveAttachmentsTab() {
 }
 
 function GroupEventAttachments({project, groupId}: GroupEventAttachmentsProps) {
-  const api = useApi({persistInFlight: true});
-  const queryClient = useQueryClient();
   const location = useLocation();
   const organization = useOrganization();
   const activeAttachmentsTab = useActiveAttachmentsTab();
@@ -82,64 +59,7 @@ function GroupEventAttachments({project, groupId}: GroupEventAttachmentsProps) {
       activeAttachmentsTab,
     });
 
-  const {mutate: deleteAttachment} = useMutation<
-    unknown,
-    RequestError,
-    DeleteGroupEventAttachmentVariables,
-    DeleteGroupEventAttachmentContext
-  >({
-    mutationFn: variables =>
-      api.requestPromise(
-        `/projects/${variables.orgSlug}/${project.slug}/events/${variables.attachment.event_id}/attachments/${variables.attachment.id}/`,
-        {
-          method: 'DELETE',
-        }
-      ),
-    onMutate: async variables => {
-      await queryClient.cancelQueries({
-        queryKey: makeFetchGroupEventAttachmentsQueryKey(variables),
-      });
-
-      const previous = getApiQueryData<IssueAttachment[]>(
-        queryClient,
-        makeFetchGroupEventAttachmentsQueryKey(variables)
-      );
-
-      setApiQueryData<IssueAttachment[]>(
-        queryClient,
-        makeFetchGroupEventAttachmentsQueryKey(variables),
-        oldData => {
-          if (!Array.isArray(oldData)) {
-            return oldData;
-          }
-
-          return oldData.filter(
-            oldAttachment => oldAttachment.id !== variables.attachment.id
-          );
-        }
-      );
-
-      return {previous};
-    },
-    onSuccess: () => {
-      addSuccessMessage(t('Attachment deleted'));
-    },
-    onError: (error, variables, context) => {
-      addErrorMessage(
-        error?.responseJSON?.detail
-          ? (error.responseJSON.detail as string)
-          : t('An error occurred while deleting the attachment')
-      );
-
-      if (context) {
-        setApiQueryData(
-          queryClient,
-          makeFetchGroupEventAttachmentsQueryKey(variables),
-          context.previous
-        );
-      }
-    },
-  });
+  const {mutate: deleteAttachment} = useDeleteGroupEventAttachment();
 
   const handleDelete = (attachment: IssueAttachment) => {
     deleteAttachment({
@@ -148,6 +68,7 @@ function GroupEventAttachments({project, groupId}: GroupEventAttachmentsProps) {
       orgSlug: organization.slug,
       location,
       activeAttachmentsTab,
+      projectSlug: project.slug,
     });
   };
 
