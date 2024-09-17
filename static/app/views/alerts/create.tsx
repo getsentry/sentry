@@ -11,8 +11,8 @@ import EventView from 'sentry/utils/discover/eventView';
 import {uniqueId} from 'sentry/utils/guid';
 import useRouteAnalyticsEventNames from 'sentry/utils/routeAnalytics/useRouteAnalyticsEventNames';
 import useRouteAnalyticsParams from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
-import Teams from 'sentry/utils/teams';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
+import {useUserTeams} from 'sentry/utils/useUserTeams';
 import BuilderBreadCrumbs from 'sentry/views/alerts/builder/builderBreadCrumbs';
 import IssueRuleEditor from 'sentry/views/alerts/rules/issue';
 import MetricRulesCreate from 'sentry/views/alerts/rules/metric/create';
@@ -90,6 +90,8 @@ function Create(props: Props) {
     project.slug,
   ]);
 
+  const {teams, isLoading} = useUserTeams();
+
   useRouteAnalyticsParams({
     project_id: project.id,
     session_id: sessionId.current,
@@ -135,46 +137,42 @@ function Create(props: Props) {
         </Layout.HeaderContent>
       </Layout.Header>
       <Layout.Body>
-        <Teams provideUserTeams>
-          {({teams, initiallyLoaded}) =>
-            initiallyLoaded ? (
-              <Fragment>
-                {(!hasMetricAlerts || alertType === AlertRuleType.ISSUE) && (
-                  <IssueRuleEditor
-                    {...props}
-                    project={project}
-                    userTeamIds={teams.map(({id}) => id)}
-                    members={members}
-                  />
-                )}
+        {isLoading ? (
+          <LoadingIndicator />
+        ) : (
+          <Fragment>
+            {(!hasMetricAlerts || alertType === AlertRuleType.ISSUE) && (
+              <IssueRuleEditor
+                {...props}
+                project={project}
+                userTeamIds={teams.map(({id}) => id)}
+                members={members}
+              />
+            )}
 
-                {hasMetricAlerts &&
-                  alertType === AlertRuleType.METRIC &&
-                  (isDuplicateRule ? (
-                    <MetricRuleDuplicate
-                      {...props}
-                      eventView={eventView}
-                      wizardTemplate={wizardTemplate}
-                      sessionId={sessionId.current}
-                      project={project}
-                      userTeamIds={teams.map(({id}) => id)}
-                    />
-                  ) : (
-                    <MetricRulesCreate
-                      {...props}
-                      eventView={eventView}
-                      wizardTemplate={wizardTemplate}
-                      sessionId={sessionId.current}
-                      project={project}
-                      userTeamIds={teams.map(({id}) => id)}
-                    />
-                  ))}
-              </Fragment>
-            ) : (
-              <LoadingIndicator />
-            )
-          }
-        </Teams>
+            {hasMetricAlerts &&
+              alertType === AlertRuleType.METRIC &&
+              (isDuplicateRule ? (
+                <MetricRuleDuplicate
+                  {...props}
+                  eventView={eventView}
+                  wizardTemplate={wizardTemplate}
+                  sessionId={sessionId.current}
+                  project={project}
+                  userTeamIds={teams.map(({id}) => id)}
+                />
+              ) : (
+                <MetricRulesCreate
+                  {...props}
+                  eventView={eventView}
+                  wizardTemplate={wizardTemplate}
+                  sessionId={sessionId.current}
+                  project={project}
+                  userTeamIds={teams.map(({id}) => id)}
+                />
+              ))}
+          </Fragment>
+        )}
       </Layout.Body>
     </Fragment>
   );
