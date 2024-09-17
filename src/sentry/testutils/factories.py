@@ -1949,6 +1949,9 @@ class Factories:
         host_provider_id: str,
         interval_seconds: int,
         timeout_ms: int,
+        method,
+        headers,
+        body,
         date_updated: datetime,
     ):
         return UptimeSubscription.objects.create(
@@ -1962,6 +1965,9 @@ class Factories:
             interval_seconds=interval_seconds,
             timeout_ms=timeout_ms,
             date_updated=date_updated,
+            method=method,
+            headers=headers,
+            body=body,
         )
 
     @staticmethod

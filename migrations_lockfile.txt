@@ -12,5 +12,5 @@ remote_subscriptions: 0003_drop_remote_subscription
 replays: 0004_index_together
 sentry: 0762_drop_substatus_constraint_to_groups
 social_auth: 0002_default_auto_field
-uptime: 0012_uptime_subscription_request_fields
+uptime: 0013_uptime_subscription_new_unique
 workflow_engine: 0005_data_source_detector

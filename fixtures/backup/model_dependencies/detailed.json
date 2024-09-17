@@ -6191,10 +6191,7 @@
     ],
     "table_name": "uptime_uptimesubscription",
     "uniques": [
-      [
-        "interval_seconds",
-        "url"
-      ],
+      [],
       [
         "subscription_id"
       ]

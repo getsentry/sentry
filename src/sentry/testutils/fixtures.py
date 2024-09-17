@@ -659,10 +659,15 @@ class Fixtures:
         url_domain_suffix="io",
         interval_seconds=60,
         timeout_ms=100,
+        method="GET",
+        headers=None,
+        body=None,
         date_updated: None | datetime = None,
     ) -> UptimeSubscription:
         if date_updated is None:
             date_updated = timezone.now()
+        if headers is None:
+            headers = {}
 
         return Factories.create_uptime_subscription(
             type=type,
@@ -675,6 +680,9 @@ class Fixtures:
             interval_seconds=interval_seconds,
             timeout_ms=timeout_ms,
             date_updated=date_updated,
+            method=method,
+            headers=headers,
+            body=body,
         )
 
     def create_project_uptime_subscription(
