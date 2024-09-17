@@ -66,7 +66,7 @@ export function StaticReplayPreview({
         ) : (
           <Fragment>
             <StaticPanel>
-              <ReplayPlayer isPreview data-inspectable />
+              <ReplayPlayer isPreview />
             </StaticPanel>
 
             <CTAOverlay>
