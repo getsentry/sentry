@@ -54,9 +54,9 @@ import useProjects from 'sentry/utils/useProjects';
 import {useModuleURLBuilder} from 'sentry/views/insights/common/utils/useModuleURL';
 import {MODULE_SIDEBAR_TITLE as HTTP_MODULE_SIDEBAR_TITLE} from 'sentry/views/insights/http/settings';
 import {AI_LANDING_SUB_PATH} from 'sentry/views/insights/pages/aiLandingPage';
+import {PLATFORM_LANDING_SUB_PATH} from 'sentry/views/insights/pages/backendLandingPage';
+import {WEB_LANDING_SUB_PATH} from 'sentry/views/insights/pages/frontendLandingPage';
 import {MOBILE_LANDING_SUB_PATH} from 'sentry/views/insights/pages/mobileLandingPage';
-import {PLATFORM_LANDING_SUB_PATH} from 'sentry/views/insights/pages/platformLandingPage';
-import {WEB_LANDING_SUB_PATH} from 'sentry/views/insights/pages/webLandingPage';
 import {MODULE_TITLES} from 'sentry/views/insights/settings';
 import MetricsOnboardingSidebar from 'sentry/views/metrics/ddmOnboarding/sidebar';
 

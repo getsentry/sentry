@@ -6,5 +6,5 @@ function PlatformLandingPage() {
 
 export default PlatformLandingPage;
 
-export const PLATFORM_LANDING_SUB_PATH = 'platform';
-export const PLATFORM_LANDING_TITLE = t('Platform');
+export const PLATFORM_LANDING_SUB_PATH = 'backend';
+export const PLATFORM_LANDING_TITLE = t('Backend');

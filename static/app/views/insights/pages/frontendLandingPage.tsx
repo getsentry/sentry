@@ -72,14 +72,14 @@ function WebLandingPage() {
           </Layout.HeaderActions>
           <TabList>
             <TabList.Item key="overview">{'Overview'}</TabList.Item>
+            <TabList.Item key={ModuleName.VITAL}>
+              {MODULE_TITLES[ModuleName.VITAL]}
+            </TabList.Item>
             <TabList.Item key={ModuleName.HTTP}>
               {MODULE_TITLES[ModuleName.HTTP]}
             </TabList.Item>
             <TabList.Item key={ModuleName.RESOURCE}>
               {MODULE_TITLES[ModuleName.RESOURCE]}
-            </TabList.Item>
-            <TabList.Item key={ModuleName.VITAL}>
-              {MODULE_TITLES[ModuleName.VITAL]}
             </TabList.Item>
           </TabList>
         </Layout.Header>
@@ -107,5 +107,5 @@ function WebLandingPage() {
 
 export default WebLandingPage;
 
-export const WEB_LANDING_SUB_PATH = 'web';
-export const WEB_LANDING_TITLE = t('Web');
+export const WEB_LANDING_SUB_PATH = 'frontend';
+export const WEB_LANDING_TITLE = t('Frontend');
