@@ -46,7 +46,7 @@ class SentryInstrumentation {
     const {nodeProfilingIntegration} = require('@sentry/profiling-node');
 
     sentry.init({
-      dsn: 'https://3d282d186d924374800aa47006227ce9@sentry.io/2053674',
+      dsn: 'https://07898f7cdd56ebabb2761c0fb54578a1@o87286.ingest.us.sentry.io/4507936144031744',
       environment: IS_CI ? 'ci' : 'local',
       tracesSampleRate: 1.0,
       integrations: [nodeProfilingIntegration()],
