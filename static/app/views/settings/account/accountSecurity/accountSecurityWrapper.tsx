@@ -23,11 +23,11 @@ function AccountSecurityWrapper({children}: Props) {
   const api = useApi();
   const {authId} = useParams<{authId?: string}>();
 
-  const orgRequest = useQuery<OrganizationSummary[]>(
-    ['organizations'],
-    () => fetchOrganizations(api),
-    {staleTime: 0}
-  );
+  const orgRequest = useQuery<OrganizationSummary[]>({
+    queryKey: ['organizations'],
+    queryFn: () => fetchOrganizations(api),
+    staleTime: 0,
+  });
   const emailsRequest = useApiQuery<UserEmail[]>(['/users/me/emails/'], {staleTime: 0});
   const authenticatorsRequest = useApiQuery<Authenticator[]>([ENDPOINT], {staleTime: 0});
 
