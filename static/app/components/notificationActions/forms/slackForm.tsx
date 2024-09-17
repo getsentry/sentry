@@ -59,9 +59,9 @@ function SlackForm({
       .map<MenuItemProps>(service => ({
         key: service.action.integrationName ?? '',
         label: service.action.integrationName ?? '',
-        onAction: value => {
+        onAction: () => {
           onChange('integrationId', service.action.integrationId);
-          setSelectedWorkspace(value);
+          setSelectedWorkspace(service.action.integrationName ?? '');
         },
       }))
       .filter(option => option.label);
