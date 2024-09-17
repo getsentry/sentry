@@ -2,8 +2,8 @@ from __future__ import annotations
 
 import logging
 import pickle
-import threading
 from collections.abc import Callable
+from dataclasses import dataclass
 from datetime import date, datetime, timezone
 from enum import Enum
 from time import time
@@ -27,9 +27,6 @@ from sentry.utils.redis import (
     validate_dynamic_cluster,
 )
 
-_local_buffers = None
-_local_buffers_lock = threading.Lock()
-
 logger = logging.getLogger(__name__)
 
 T = TypeVar("T", str, bytes)
@@ -38,6 +35,10 @@ T = TypeVar("T", str, bytes)
 _last_validation_log: float | None = None
 Pipeline = Any
 # TODO type Pipeline instead of using Any here
+
+
+def _get_model_key(model: type[models.Model]) -> str:
+    return str(model._meta)
 
 
 def _validate_json_roundtrip(value: dict[str, Any], model: type[models.Model]) -> None:
@@ -79,6 +80,103 @@ class BufferHookRegistry:
 
 
 redis_buffer_registry = BufferHookRegistry()
+
+
+# Callable to get the queue name for the given model_key.
+# May return None to not assign a queue for the given model_key.
+ChooseQueueFunction = Callable[[str], str | None]
+
+
+@dataclass
+class PendingBufferValue:
+    model_key: str | None
+    pending_buffer: PendingBuffer
+    generate_queue: ChooseQueueFunction | None
+
+
+class PendingBufferRouter:
+    def __init__(self, incr_batch_size: int) -> None:
+        self.incr_batch_size = incr_batch_size
+        self.default_pending_buffer = PendingBuffer(self.incr_batch_size)
+        # map of model_key to PendingBufferValue
+        self.pending_buffer_router: dict[str, PendingBufferValue] = dict()
+
+    def create_pending_buffer(self, model_key: str, generate_queue: ChooseQueueFunction) -> None:
+        """
+        Create a PendingBuffer for the given model_key and queue name.
+        We assume that there will be a dedicated queue for the given model associated with the model_key.
+        """
+        pending_buffer = PendingBuffer(self.incr_batch_size)
+        self.pending_buffer_router[model_key] = PendingBufferValue(
+            model_key=model_key, pending_buffer=pending_buffer, generate_queue=generate_queue
+        )
+
+    def get_pending_buffer(self, model_key: str | None) -> PendingBuffer:
+        """
+        Get the pending buffer assigned to the given model_key.
+        """
+        if model_key is not None and model_key in self.pending_buffer_router:
+            return self.pending_buffer_router[model_key].pending_buffer
+        return self.default_pending_buffer
+
+    def queue(self, model_key: str) -> str | None:
+        """
+        Get the queue name for the given model_key.
+        """
+        if model_key in self.pending_buffer_router:
+            generate_queue = self.pending_buffer_router[model_key].generate_queue
+            if generate_queue is not None:
+                return generate_queue(model_key)
+        return None
+
+    def pending_buffers(self) -> list[PendingBufferValue]:
+        pending_buffers = list(self.pending_buffer_router.values())
+        pending_buffers.append(
+            PendingBufferValue(
+                model_key=None, pending_buffer=self.default_pending_buffer, generate_queue=None
+            )
+        )
+        return pending_buffers
+
+
+class RedisBufferRouter:
+    def __init__(self) -> None:
+        # map of model_key (generated from _get_model_key function) to queue name
+        self._routers: dict[str, ChooseQueueFunction] = dict()
+
+    def assign_queue(self, model: type[models.Model], generate_queue: ChooseQueueFunction) -> None:
+        """
+        RedisBuffer is shared among multiple models.
+        Thus, the process_incr task and the default assigned queue for it is shared among multiple models.
+        If any backlogs or slowdowns occur when incrementing counts for any specific model, other models will be affected.
+
+        To alleviate this, we can assign a dedicated queue for any given model.
+        If a dedicated queue is assigned, the process_incr task will be processed in the assigned queue.
+        On the other hand, if no dedicated queue is assigned, the process_incr task will be processed in
+        the default queue (i.e. counters-0 queue).
+
+        A queue can be assigned to a model by passing in the generate_queue function.
+        """
+        key = _get_model_key(model=model)
+        self._routers[key] = generate_queue
+
+    def create_pending_buffers_router(self, incr_batch_size: int) -> PendingBufferRouter:
+        """
+        We create a PendingBuffer (with buffer size incr_batch_size) for each model with an assigned queue.
+        In addition, we create a default PendingBuffer (with buffer size incr_batch_size) for models without an
+        assigned queue. The default PendingBuffer is implicitly assigned to the default queue of the process_incr task.
+
+        These PendingBuffers are wrapped in a PendingBufferRouter.
+        """
+        pending_buffers_router = PendingBufferRouter(incr_batch_size=incr_batch_size)
+        for model_key, generate_queue in self._routers.items():
+            pending_buffers_router.create_pending_buffer(
+                model_key=model_key, generate_queue=generate_queue
+            )
+        return pending_buffers_router
+
+
+redis_buffer_router = RedisBufferRouter()
 
 
 # Note HMSET is not supported after redis 4.0.0, after updating we can use HSET directly.
@@ -146,7 +244,22 @@ class RedisBuffer(Buffer):
         md5 = md5_text(
             "&".join(f"{k}={self._coerce_val(v)!r}" for k, v in sorted(filters.items()))
         ).hexdigest()
-        return f"b:k:{model._meta}:{md5}"
+        model_key = _get_model_key(model=model)
+        return f"b:k:{model_key}:{md5}"
+
+    def _extract_model_from_key(self, key: str) -> str | None:
+        """
+        Extracts the model metadata from a Redis key.
+        """
+        try:
+            parts = key.split(":")
+
+            if len(parts) != 4 or parts[0] != "b" or parts[1] != "k":
+                return None
+
+            return parts[2]
+        except Exception:
+            return None
 
     def _make_lock_key(self, key: str) -> str:
         return f"l:{key}"
@@ -342,7 +455,6 @@ class RedisBuffer(Buffer):
         filters: dict[str, models.Model | str | int],
         extra: dict[str, Any] | None = None,
         signal_only: bool | None = None,
-        return_incr_results: bool = True,
     ) -> None:
         """
         Increment the key by doing the following:
@@ -398,20 +510,48 @@ class RedisBuffer(Buffer):
         if not lock_key:
             return
 
-        pending_buffer = PendingBuffer(self.incr_batch_size)
+        pending_buffers_router = redis_buffer_router.create_pending_buffers_router(
+            incr_batch_size=self.incr_batch_size
+        )
+
+        def _generate_process_incr_kwargs(model_key: str | None) -> dict[str, Any]:
+            # The queue to be used for the process_incr task is determined in the following order of precedence:
+            # 1. The queue argument passed to process_incr.apply_async()
+            # 2. The queue defined on the process_incr task
+            # 3. Any defined routes in CELERY_ROUTES
+            #
+            # See: https://docs.celeryq.dev/en/latest/userguide/routing.html#specifying-task-destination
+            #
+            # Hence, we override the default queue of the process_incr task by passing in the assigned queue for the
+            # model associated with the model_key.
+            process_incr_kwargs: dict[str, Any] = dict()
+            if model_key is None:
+                metrics.incr("buffer.process-incr.model-key-missing")
+                return process_incr_kwargs
+            queue = pending_buffers_router.queue(model_key=model_key)
+            if queue is not None:
+                process_incr_kwargs["queue"] = queue
+                metrics.incr("buffer.process-incr-queue", tags={"queue": queue})
+            else:
+                metrics.incr("buffer.process-incr-default-queue")
+            return process_incr_kwargs
 
         try:
             keycount = 0
             if is_instance_redis_cluster(self.cluster, self.is_redis_cluster):
-                keys = self.cluster.zrange(self.pending_key, 0, -1)
+                keys: list[str] = self.cluster.zrange(self.pending_key, 0, -1)
                 keycount += len(keys)
 
                 for key in keys:
-                    pending_buffer.append(key)
+                    model_key = self._extract_model_from_key(key=key)
+                    pending_buffer = pending_buffers_router.get_pending_buffer(model_key=model_key)
+                    pending_buffer.append(item=key)
                     if pending_buffer.full():
+                        process_incr_kwargs = _generate_process_incr_kwargs(model_key=model_key)
                         process_incr.apply_async(
                             kwargs={"batch_keys": pending_buffer.flush()},
                             headers={"sentry-propagate-traces": False},
+                            **process_incr_kwargs,
                         )
 
                 self.cluster.zrem(self.pending_key, *keys)
@@ -425,22 +565,37 @@ class RedisBuffer(Buffer):
                             continue
                         keycount += len(keysb)
                         for keyb in keysb:
-                            pending_buffer.append(keyb.decode("utf-8"))
+                            key = keyb.decode("utf-8")
+                            model_key = self._extract_model_from_key(key=key)
+                            pending_buffer = pending_buffers_router.get_pending_buffer(
+                                model_key=model_key
+                            )
+                            pending_buffer.append(item=key)
                             if pending_buffer.full():
+                                process_incr_kwargs = _generate_process_incr_kwargs(
+                                    model_key=model_key
+                                )
                                 process_incr.apply_async(
                                     kwargs={"batch_keys": pending_buffer.flush()},
                                     headers={"sentry-propagate-traces": False},
+                                    **process_incr_kwargs,
                                 )
                         conn.target([host_id]).zrem(self.pending_key, *keysb)
             else:
                 raise AssertionError("unreachable")
 
-            # queue up remainder of pending keys
-            if not pending_buffer.empty():
-                process_incr.apply_async(
-                    kwargs={"batch_keys": pending_buffer.flush()},
-                    headers={"sentry-propagate-traces": False},
-                )
+            # process any non-empty pending buffers
+            for pending_buffer_value in pending_buffers_router.pending_buffers():
+                pending_buffer = pending_buffer_value.pending_buffer
+                model_key = pending_buffer_value.model_key
+
+                if not pending_buffer.empty():
+                    process_incr_kwargs = _generate_process_incr_kwargs(model_key=model_key)
+                    process_incr.apply_async(
+                        kwargs={"batch_keys": pending_buffer.flush()},
+                        headers={"sentry-propagate-traces": False},
+                        **process_incr_kwargs,
+                    )
 
             metrics.distribution("buffer.pending-size", keycount)
         finally:
