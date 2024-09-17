@@ -95,6 +95,7 @@ export interface Docs<PlatformOptions extends BasePlatformOptions = BasePlatform
   customMetricsOnboarding?: OnboardingConfig<PlatformOptions>;
   feedbackOnboardingCrashApi?: OnboardingConfig<PlatformOptions>;
   feedbackOnboardingNpm?: OnboardingConfig<PlatformOptions>;
+  performanceOnboarding?: OnboardingConfig<PlatformOptions>;
   platformOptions?: PlatformOptions;
   replayOnboarding?: OnboardingConfig<PlatformOptions>;
   replayOnboardingJsLoader?: OnboardingConfig<PlatformOptions>;

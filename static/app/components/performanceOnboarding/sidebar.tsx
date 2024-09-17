@@ -8,6 +8,13 @@ import type {MenuItemProps} from 'sentry/components/dropdownMenu';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import IdBadge from 'sentry/components/idBadge';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {Step} from 'sentry/components/onboarding/gettingStartedDoc/step';
+import type {
+  DocsParams,
+  OnboardingConfig,
+} from 'sentry/components/onboarding/gettingStartedDoc/types';
+import {useLoadGettingStarted} from 'sentry/components/onboarding/gettingStartedDoc/utils/useLoadGettingStarted';
+import {ProductSolution} from 'sentry/components/onboarding/productSelection';
 import {shouldShowPerformanceTasks} from 'sentry/components/onboardingWizard/filterSupportedTasks';
 import useOnboardingDocs from 'sentry/components/onboardingWizard/useOnboardingDocs';
 import OnboardingStep from 'sentry/components/sidebar/onboardingStep';
@@ -15,13 +22,14 @@ import SidebarPanel from 'sentry/components/sidebar/sidebarPanel';
 import type {CommonSidebarProps} from 'sentry/components/sidebar/types';
 import {SidebarPanelKey} from 'sentry/components/sidebar/types';
 import {withoutPerformanceSupport} from 'sentry/data/platformCategories';
-import platforms from 'sentry/data/platforms';
+import platforms, {otherPlatform} from 'sentry/data/platforms';
 import {t, tct} from 'sentry/locale';
+import ConfigStore from 'sentry/stores/configStore';
 import PageFiltersStore from 'sentry/stores/pageFiltersStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import pulsingIndicatorStyles from 'sentry/styles/pulsingIndicator';
 import {space} from 'sentry/styles/space';
-import type {Project} from 'sentry/types/project';
+import type {Project, ProjectKey} from 'sentry/types/project';
 import EventWaiter from 'sentry/utils/eventWaiter';
 import useApi from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -208,13 +216,21 @@ function OnboardingContent({currentProject}: {currentProject: Project}) {
     return currentPlatform ? generateDocKeys(currentPlatform.id) : [];
   }, [currentPlatform]);
 
+  const newDocsRequest = useLoadGettingStarted({
+    platform: currentPlatform || otherPlatform,
+    orgSlug: organization.slug,
+    projSlug: currentProject.slug,
+    productType: 'performance',
+  });
+  const newDocs = newDocsRequest.docs?.performanceOnboarding;
+
   const {docContents, isLoading, hasOnboardingContents} = useOnboardingDocs({
     project: currentProject,
     docKeys,
     isPlatformSupported: isPlatformSupported(currentPlatform),
   });
 
-  if (isLoading) {
+  if (isLoading || newDocsRequest.isLoading) {
     return <LoadingIndicator />;
   }
 
@@ -240,7 +256,7 @@ function OnboardingContent({currentProject}: {currentProject: Project}) {
     );
   }
 
-  if (!currentPlatform || !hasOnboardingContents) {
+  if (!currentPlatform || (!hasOnboardingContents && !newDocs)) {
     return (
       <Fragment>
         <div>
@@ -259,6 +275,16 @@ function OnboardingContent({currentProject}: {currentProject: Project}) {
           </LinkButton>
         </div>
       </Fragment>
+    );
+  }
+
+  if (newDocs) {
+    return (
+      <PerformanceOnboardingLayout
+        docs={newDocs}
+        currentProject={currentProject}
+        dsn={newDocsRequest.dsn!}
+      />
     );
   }
 
@@ -303,6 +329,84 @@ function OnboardingContent({currentProject}: {currentProject: Project}) {
     </Fragment>
   );
 }
+
+function PerformanceOnboardingLayout({
+  docs,
+  dsn,
+  currentProject,
+}: {
+  currentProject: Project;
+  docs: OnboardingConfig;
+  dsn: ProjectKey['dsn'];
+}) {
+  const [received, setReceived] = useState<boolean>(false);
+  const organization = useOrganization();
+  const {isSelfHosted, urlPrefix} = useLegacyStore(ConfigStore);
+  const api = useApi();
+
+  const docParams: DocsParams<any> = {
+    dsn,
+    organization: organization,
+    platformKey: currentProject.platform || 'other',
+    projectId: currentProject.id,
+    projectSlug: currentProject.slug,
+    isFeedbackSelected: false,
+    isPerformanceSelected: true,
+    isProfilingSelected: false,
+    isReplaySelected: false,
+    sourcePackageRegistries: {
+      isLoading: false,
+      data: undefined,
+    },
+    platformOptions: [ProductSolution.PERFORMANCE_MONITORING],
+    newOrg: false,
+    feedbackOptions: {},
+    urlPrefix,
+    isSelfHosted,
+  };
+
+  const steps = [
+    ...docs.install(docParams),
+    ...docs.configure(docParams),
+    ...docs.verify(docParams),
+  ];
+
+  return (
+    <Fragment>
+      {docs.introduction && <Introduction>{docs.introduction(docParams)}</Introduction>}
+      <Steps>
+        {steps.map(step => {
+          return <Step key={step.title ?? step.type} {...step} />;
+        })}
+      </Steps>
+      <EventWaiter
+        api={api}
+        organization={organization}
+        project={currentProject}
+        eventType="transaction"
+        onIssueReceived={() => {
+          setReceived(true);
+        }}
+      >
+        {() => (received ? <EventReceivedIndicator /> : <EventWaitingIndicator />)}
+      </EventWaiter>
+    </Fragment>
+  );
+}
+
+const Steps = styled('div')`
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  padding-bottom: ${space(1)};
+`;
+
+const Introduction = styled('div')`
+  display: flex;
+  flex-direction: column;
+  margin-top: ${space(2)};
+  margin-bottom: ${space(2)};
+`;
 
 const TaskSidebarPanel = styled(SidebarPanel)`
   width: 450px;

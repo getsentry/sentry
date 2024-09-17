@@ -1,3 +1,4 @@
+import ExternalLink from 'sentry/components/links/externalLink';
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/step';
 import {
   type Docs,
@@ -112,8 +113,77 @@ export const crashReportOnboardingPython: OnboardingConfig = {
   nextSteps: () => [],
 };
 
+export const performanceOnboarding: OnboardingConfig = {
+  introduction: () =>
+    t(
+      "Adding Performance to your Python project is simple. Make sure you've got these basics down."
+    ),
+  install: onboarding.install,
+  configure: params => [
+    {
+      type: StepType.CONFIGURE,
+      description: t(
+        "Configuration should happen as early as possible in your application's lifecycle."
+      ),
+      configurations: [
+        {
+          description: tct(
+            "Once this is done, Sentry's Python SDK captures all unhandled exceptions and transactions. Note that [code:enable_tracing] is available in Sentry Python SDK version [code:≥ 1.16.0]. To enable tracing in older SDK versions ([code:≥ 0.11.2]), use [code:traces_sample_rate=1.0].",
+            {code: <code />}
+          ),
+          language: 'python',
+          code: `
+import sentry-sdk
+
+sentry_sdk.init(
+  dsn: "${params.dsn.public}",
+  enable_tracing=True,
+)`,
+          additionalInfo: tct(
+            'Learn more about tracing [linkTracingOptions:options], how to use the [linkTracesSampler:traces_sampler] function, or how to [linkSampleTransactions:sample transactions].',
+            {
+              linkTracingOptions: (
+                <ExternalLink href="https://docs.sentry.io/platforms/python/configuration/options/#tracing-options" />
+              ),
+              linkTracesSampler: (
+                <ExternalLink href="https://docs.sentry.io/platforms/python/configuration/sampling/" />
+              ),
+              linkSampleTransactions: (
+                <ExternalLink href="https://docs.sentry.io/platforms/python/configuration/sampling/" />
+              ),
+            }
+          ),
+        },
+      ],
+    },
+  ],
+  verify: () => [
+    {
+      type: StepType.VERIFY,
+      description: tct(
+        'Verify that performance monitoring is working correctly with our [link:automatic instrumentation] by simply using your Python application.',
+        {
+          link: (
+            <ExternalLink href="https://docs.sentry.io/platforms/python/tracing/instrumentation/automatic-instrumentation/" />
+          ),
+        }
+      ),
+      additionalInfo: tct(
+        'You have the option to manually construct a transaction using [link:custom instrumentation].',
+        {
+          link: (
+            <ExternalLink href="https://docs.sentry.io/platforms/python/tracing/instrumentation/custom-instrumentation/" />
+          ),
+        }
+      ),
+    },
+  ],
+  nextSteps: () => [],
+};
+
 const docs: Docs = {
   onboarding,
+  performanceOnboarding,
   customMetricsOnboarding: getPythonMetricsOnboarding({
     installSnippet: getInstallSnippet(),
   }),
