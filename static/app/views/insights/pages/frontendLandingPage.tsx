@@ -83,23 +83,21 @@ function WebLandingPage() {
             </TabList.Item>
           </TabList>
         </Layout.Header>
-        <Layout.Body>
-          <Layout.Main fullWidth>
-            <PageAlert />
-            <TabPanels>
-              <TabPanels.Item key="overview">{'overview page'}</TabPanels.Item>
-              <TabPanels.Item key={ModuleName.HTTP}>
-                <HTTPLandingPage {...landingPageProps} />
-              </TabPanels.Item>
-              <TabPanels.Item key={ModuleName.RESOURCE}>
-                <ResourcesLandingPage {...landingPageProps} />
-              </TabPanels.Item>
-              <TabPanels.Item key={ModuleName.VITAL}>
-                <WebVitalsLandingPage {...landingPageProps} />
-              </TabPanels.Item>
-            </TabPanels>
-          </Layout.Main>
-        </Layout.Body>
+        <Layout.Main fullWidth>
+          <PageAlert />
+          <TabPanels>
+            <TabPanels.Item key="overview">{'overview page'}</TabPanels.Item>
+            <TabPanels.Item key={ModuleName.HTTP}>
+              <HTTPLandingPage {...landingPageProps} />
+            </TabPanels.Item>
+            <TabPanels.Item key={ModuleName.RESOURCE}>
+              <ResourcesLandingPage {...landingPageProps} />
+            </TabPanels.Item>
+            <TabPanels.Item key={ModuleName.VITAL}>
+              <WebVitalsLandingPage {...landingPageProps} />
+            </TabPanels.Item>
+          </TabPanels>
+        </Layout.Main>
       </Tabs>
     </Fragment>
   );
