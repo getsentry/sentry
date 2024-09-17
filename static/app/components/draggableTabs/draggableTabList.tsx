@@ -191,16 +191,14 @@ function Tabs({
               onHoverEnd={() => setHoveringKey(null)}
               initial={false}
             >
-              <div key={item.key}>
-                <Tab
-                  key={item.key}
-                  item={item}
-                  state={state}
-                  orientation={orientation}
-                  overflowing={overflowingTabs.some(tab => tab.key === item.key)}
-                  variant={tabVariant}
-                />
-              </div>
+              <Tab
+                key={item.key}
+                item={item}
+                state={state}
+                orientation={orientation}
+                overflowing={overflowingTabs.some(tab => tab.key === item.key)}
+                variant={tabVariant}
+              />
             </TabItemWrap>
             <TabDivider
               isVisible={
