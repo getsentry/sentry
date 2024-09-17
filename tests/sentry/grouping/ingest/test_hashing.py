@@ -7,7 +7,7 @@ from sentry.event_manager import EventManager
 from sentry.grouping.ingest.hashing import (
     _calculate_background_grouping,
     _calculate_event_grouping,
-    _calculate_secondary_hash,
+    _calculate_secondary_hashes,
 )
 from sentry.models.group import Group
 from sentry.projectoptions.defaults import LEGACY_GROUPING_CONFIG
@@ -111,7 +111,7 @@ class SecondaryGroupingTest(TestCase):
 
         # Make sure that events did get into same group because of fallback grouping, not because of
         # hashes which come from primary grouping only
-        assert not set(event.get_hashes().hashes) & set(event2.get_hashes().hashes)
+        assert not set(event.get_hashes()) & set(event2.get_hashes())
         assert event.group_id == event2.group_id
 
         group = Group.objects.get(id=event.group_id)
@@ -133,7 +133,8 @@ class SecondaryGroupingTest(TestCase):
 
     @patch("sentry_sdk.capture_exception")
     @patch(
-        "sentry.grouping.ingest.hashing._calculate_secondary_hash", wraps=_calculate_secondary_hash
+        "sentry.grouping.ingest.hashing._calculate_secondary_hashes",
+        wraps=_calculate_secondary_hashes,
     )
     def test_handles_errors_with_secondary_grouping(
         self,
