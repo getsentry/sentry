@@ -235,7 +235,7 @@ class OrganizationMemberDetailsEndpoint(OrganizationMemberEndpoint):
             if not enable_member_invite:
                 return Response({"detail": ERR_INSUFFICIENT_SCOPE}, status=400)
             if not reinvite_request_only:
-                raise ValidationError({"detail": ERR_MEMBER_REINVITE})
+                return Response({"detail": ERR_MEMBER_REINVITE}, status=400)
             if not is_invite_from_user:
                 return Response({"detail": ERR_MEMBER_INVITE}, status=400)
 
