@@ -8,16 +8,24 @@ import {
   renderGlobalModal,
   screen,
   userEvent,
+  within,
 } from 'sentry-test/reactTestingLibrary';
 
 import {DebugMeta} from 'sentry/components/events/interfaces/debugMeta';
+import ModalStore from 'sentry/stores/modalStore';
 import {ImageStatus} from 'sentry/types/debugImage';
 
 describe('DebugMeta', function () {
+  const {organization, project} = initializeOrg();
+
+  beforeEach(() => {
+    MockApiClient.clearMockResponses();
+    ModalStore.reset();
+  });
+
   it('opens details modal', async function () {
     const eventEntryDebugMeta = EntryDebugMetaFixture();
     const event = EventFixture({entries: [eventEntryDebugMeta]});
-    const {organization, project} = initializeOrg();
     const image = eventEntryDebugMeta.data.images[0];
     const mockGetDebug = MockApiClient.addMockResponse({
       url: `/projects/${organization.slug}/${project.slug}/files/dsyms/?debug_id=${image?.debug_id}`,
@@ -52,10 +60,48 @@ describe('DebugMeta', function () {
     expect(mockGetDebug).toHaveBeenCalled();
   });
 
+  it('can open debug modal when debug id and code id are missing', async function () {
+    const eventEntryDebugMeta = EntryDebugMetaFixture();
+    eventEntryDebugMeta.data.images[0] = {
+      // Missing both debug_id and code_id
+      code_file: '/data/app/code_file/code_file',
+      debug_file: '/data/app/debug_file/debug_file',
+      image_addr: '0x1337',
+      image_size: 123,
+      candidates: [],
+      debug_status: ImageStatus.MISSING,
+      features: {
+        ...eventEntryDebugMeta.data.images[0]!.features,
+      },
+      unwind_status: ImageStatus.MISSING,
+      type: 'elf',
+    };
+    const event = EventFixture({entries: [eventEntryDebugMeta]});
+
+    render(
+      <DebugMeta
+        projectSlug={project.slug}
+        event={event}
+        data={eventEntryDebugMeta.data}
+      />,
+      {organization}
+    );
+    renderGlobalModal();
+
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', {name: 'Show Details'}));
+    await userEvent.click(screen.getByRole('button', {name: 'View'}));
+    expect(await screen.findByRole('dialog')).toBeInTheDocument();
+    expect(
+      within(screen.getByRole('dialog')).getByText(
+        eventEntryDebugMeta.data.images[0].debug_file!
+      )
+    ).toBeInTheDocument();
+  });
+
   it('searches image contents', async function () {
     const eventEntryDebugMeta = EntryDebugMetaFixture();
     const event = EventFixture({entries: [eventEntryDebugMeta]});
-    const {organization, project} = initializeOrg();
     const image = eventEntryDebugMeta.data.images[0];
 
     render(
@@ -102,7 +148,6 @@ describe('DebugMeta', function () {
     };
 
     const event = EventFixture({entries: [eventEntryDebugMeta]});
-    const {organization, project} = initializeOrg();
 
     render(
       <DebugMeta
