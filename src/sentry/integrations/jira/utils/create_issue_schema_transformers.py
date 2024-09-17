@@ -100,7 +100,9 @@ def transform_fields(
     for field in jira_fields:
         field_data = data.get(field.key)
 
-        # We don't have a mapping for this field, so it's probably extraneous
+        # We don't have a mapping for this field, so it's probably extraneous.
+        # TODO(Gabe): Explore raising a sentry issue for unmapped fields in
+        #  order for us to properly filter them out.
         if field_data is None:
             continue
 
@@ -111,7 +113,7 @@ def transform_fields(
         try:
             # Handling for array types and their nested subtypes.
             # We have to skip this handling for `sprint` custom fields, as they
-            # are the only `array` type that expects a string, not a list.
+            # are the only `array` type that expects a number, not a list.
             if (
                 field.schema.schema_type.lower() == JiraSchemaTypes.array
                 and field.schema.custom != JIRA_CUSTOM_FIELD_TYPES["sprint"]
