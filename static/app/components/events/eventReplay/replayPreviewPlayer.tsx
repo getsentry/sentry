@@ -113,7 +113,7 @@ function ReplayPreviewPlayer({
               </ContextContainer>
             ) : null}
             <StaticPanel>
-              <ReplayPlayer overlayContent={overlayContent} isPreview />
+              <ReplayPlayer overlayContent={overlayContent} isPreview data-inspectable />
             </StaticPanel>
           </PlayerContextContainer>
           {isFullscreen && isSidebarOpen ? <Breadcrumbs /> : null}
