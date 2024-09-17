@@ -47,7 +47,6 @@ class DetectAnomaliesRequest(TypedDict):
 
 class DeleteRuleRequest(TypedDict):
     organization_id: int
-    project_id: int
     alert: dict
 
 
