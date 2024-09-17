@@ -31,7 +31,7 @@ function WebLandingPage() {
       preservePageFilters: true,
     },
     {
-      label: WEB_LANDING_TITLE,
+      label: FRONTEND_LANDING_TITLE,
       to: '/performance/web',
       preservePageFilters: true,
     },
@@ -63,7 +63,7 @@ function WebLandingPage() {
           <Layout.HeaderContent>
             <Breadcrumbs crumbs={crumbs} />
 
-            <Layout.Title>{WEB_LANDING_TITLE}</Layout.Title>
+            <Layout.Title>{FRONTEND_LANDING_TITLE}</Layout.Title>
           </Layout.HeaderContent>
           <Layout.HeaderActions>
             <ButtonBar gap={1}>
@@ -107,5 +107,5 @@ function WebLandingPage() {
 
 export default WebLandingPage;
 
-export const WEB_LANDING_SUB_PATH = 'frontend';
-export const WEB_LANDING_TITLE = t('Frontend');
+export const FRONTEND_LANDING_SUB_PATH = 'frontend';
+export const FRONTEND_LANDING_TITLE = t('Frontend');

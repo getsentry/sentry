@@ -53,10 +53,22 @@ import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 import {useModuleURLBuilder} from 'sentry/views/insights/common/utils/useModuleURL';
 import {MODULE_SIDEBAR_TITLE as HTTP_MODULE_SIDEBAR_TITLE} from 'sentry/views/insights/http/settings';
-import {AI_LANDING_SUB_PATH} from 'sentry/views/insights/pages/aiLandingPage';
-import {PLATFORM_LANDING_SUB_PATH} from 'sentry/views/insights/pages/backendLandingPage';
-import {WEB_LANDING_SUB_PATH} from 'sentry/views/insights/pages/frontendLandingPage';
-import {MOBILE_LANDING_SUB_PATH} from 'sentry/views/insights/pages/mobileLandingPage';
+import {
+  AI_LANDING_SUB_PATH,
+  AI_LANDING_TITLE,
+} from 'sentry/views/insights/pages/aiLandingPage';
+import {
+  BACKEND_LANDING_SUB_PATH,
+  BACKEND_LANDING_TITLE,
+} from 'sentry/views/insights/pages/backendLandingPage';
+import {
+  FRONTEND_LANDING_SUB_PATH,
+  FRONTEND_LANDING_TITLE,
+} from 'sentry/views/insights/pages/frontendLandingPage';
+import {
+  MOBILE_LANDING_SUB_PATH,
+  MOBILE_LANDING_TITLE,
+} from 'sentry/views/insights/pages/mobileLandingPage';
 import {MODULE_TITLES} from 'sentry/views/insights/settings';
 import MetricsOnboardingSidebar from 'sentry/views/metrics/ddmOnboarding/sidebar';
 
@@ -604,28 +616,28 @@ function Sidebar() {
       >
         <SidebarItem
           {...sidebarItemProps}
-          label={t('Web')}
-          to={`/organizations/${organization.slug}/performance/${WEB_LANDING_SUB_PATH}/`}
+          label={FRONTEND_LANDING_TITLE}
+          to={`/organizations/${organization.slug}/performance/${FRONTEND_LANDING_SUB_PATH}/`}
           id="performance-domains-web"
           icon={<SubitemDot collapsed />}
         />
         <SidebarItem
           {...sidebarItemProps}
-          label={t('Platform')}
-          to={`/organizations/${organization.slug}/performance/${PLATFORM_LANDING_SUB_PATH}/`}
+          label={BACKEND_LANDING_TITLE}
+          to={`/organizations/${organization.slug}/performance/${BACKEND_LANDING_SUB_PATH}/`}
           id="performance-domains-platform"
           icon={<SubitemDot collapsed />}
         />
         <SidebarItem
           {...sidebarItemProps}
-          label={t('Mobile')}
+          label={MOBILE_LANDING_TITLE}
           to={`/organizations/${organization.slug}/performance/${MOBILE_LANDING_SUB_PATH}/`}
           id="performance-domains-mobile"
           icon={<SubitemDot collapsed />}
         />
         <SidebarItem
           {...sidebarItemProps}
-          label={t('Ai')}
+          label={AI_LANDING_TITLE}
           to={`/organizations/${organization.slug}/performance/${AI_LANDING_SUB_PATH}/`}
           id="performance-domains-ai"
           icon={<SubitemDot collapsed />}
