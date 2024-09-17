@@ -209,11 +209,8 @@ class WidgetCardChart extends Component<WidgetCardChartProps> {
 
       let field = fields[0];
       if (defined(this.props.widget.queries[0].selectedAggregate)) {
-        // const index = this.props.widget.queries[0].selectedQueryIndex;
-        field =
-          this.props.widget.queries[0].aggregates[
-            this.props.widget.queries[0].selectedAggregate
-          ];
+        const index = this.props.widget.queries[0].selectedAggregate;
+        field = this.props.widget.queries[0].aggregates[index];
       }
 
       // Change tableMeta for the field from integer to string since we will be rendering with toLocaleString

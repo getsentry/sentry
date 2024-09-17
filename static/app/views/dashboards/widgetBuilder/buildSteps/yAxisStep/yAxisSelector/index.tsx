@@ -170,25 +170,6 @@ export function YAxisSelector({
           )}
         </Actions>
       )}
-
-      {/* <SubHeading> {'Customize Visualization (optional)'} </SubHeading>
-      <QueryField
-        fieldValue={defaultCustomField}
-        fieldOptions={fieldOptions}
-        onChange={value => {
-          defaultCustomField = value;
-        }}
-        filterPrimaryOptions={option =>
-          datasetConfig.filterYAxisOptions?.(displayType)(option) ||
-          injectedFunctions.has(`${option.value.kind}:${option.value.meta.name}`)
-        }
-        filterAggregateParameters={datasetConfig.filterYAxisAggregateParams?.(
-          defaultCustomField,
-          displayType
-        )}
-        otherColumns={aggregates}
-        noFieldsMessage={noFieldsMessage}
-      /> */}
     </FieldGroup>
   );
 }
@@ -206,11 +187,6 @@ const QueryFieldWrapper = styled('div')`
     margin-left: ${space(1)};
   }
 `;
-
-// const SubHeading = styled('h6')`
-//   margin-bottom: ${space(1)};
-//   color: ${p => p.theme.gray500};
-// `;
 
 const Actions = styled(ButtonBar)`
   justify-content: flex-start;
