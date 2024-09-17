@@ -80,6 +80,7 @@ export type WidgetQuery = {
   isHidden?: boolean | null;
   // Contains the on-demand entries for the widget query.
   onDemand?: WidgetQueryOnDemand[];
+  selectedAggregate?: number;
 };
 
 export type Widget = {

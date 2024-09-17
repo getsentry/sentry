@@ -298,8 +298,6 @@ export function normalizeQueries({
     queries = queries.map(query => {
       return {
         ...query,
-        fields: query.aggregates.slice(0, 1),
-        aggregates: query.aggregates.slice(0, 1),
         orderby: '',
         columns: [],
       };

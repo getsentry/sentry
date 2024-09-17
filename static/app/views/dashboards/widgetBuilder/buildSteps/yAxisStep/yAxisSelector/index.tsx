@@ -1,7 +1,9 @@
 import styled from '@emotion/styled';
 
 import ButtonBar from 'sentry/components/buttonBar';
+import {RadioLineItem} from 'sentry/components/forms/controls/radioGroup';
 import FieldGroup from 'sentry/components/forms/fieldGroup';
+import Radio from 'sentry/components/radio';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {TagCollection} from 'sentry/types/group';
@@ -25,11 +27,12 @@ interface Props {
   /**
    * Fired when aggregates are added/removed/modified/reordered.
    */
-  onChange: (aggregates: QueryFieldValue[]) => void;
+  onChange: (aggregates: QueryFieldValue[], selectedAggregate?: number) => void;
   tags: TagCollection;
   widgetType: Widget['widgetType'];
   errors?: Record<string, any>;
   noFieldsMessage?: string;
+  selectedAggregate?: number;
 }
 
 export function YAxisSelector({
@@ -40,20 +43,22 @@ export function YAxisSelector({
   onChange,
   errors,
   noFieldsMessage,
+  selectedAggregate,
 }: Props) {
   const organization = useOrganization();
   const datasetConfig = getDatasetConfig(widgetType);
 
   const {customMeasurements} = useCustomMeasurements();
 
-  function handleAddOverlay(event: React.MouseEvent) {
+  function handleAddFields(event: React.MouseEvent) {
     event.preventDefault();
 
     const newAggregates = [
       ...aggregates,
       {kind: FieldValueKind.FIELD, field: ''} as QueryFieldValue,
     ];
-    onChange(newAggregates);
+    const newSelectedAggregate = newAggregates.length - 1;
+    onChange(newAggregates, newSelectedAggregate);
   }
 
   function handleAddEquation(event: React.MouseEvent) {
@@ -61,9 +66,10 @@ export function YAxisSelector({
 
     const newAggregates = [
       ...aggregates,
-      {kind: FieldValueKind.EQUATION, field: ''} as QueryFieldValue,
+      {kind: FieldValueKind.EQUATION, field: '', selected: false} as QueryFieldValue,
     ];
-    onChange(newAggregates);
+    const newSelectedAggregate = newAggregates.length - 1;
+    onChange(newAggregates, newSelectedAggregate);
   }
 
   function handleRemoveQueryField(event: React.MouseEvent, fieldIndex: number) {
@@ -71,7 +77,11 @@ export function YAxisSelector({
 
     const newAggregates = [...aggregates];
     newAggregates.splice(fieldIndex, 1);
-    onChange(newAggregates);
+    let newSelectedAggregate = selectedAggregate;
+    if (selectedAggregate === fieldIndex) {
+      newSelectedAggregate = newAggregates.length - 1;
+    }
+    onChange(newAggregates, newSelectedAggregate);
   }
 
   function handleChangeQueryField(value: QueryFieldValue, fieldIndex: number) {
@@ -84,9 +94,8 @@ export function YAxisSelector({
   const canDelete = aggregates.length > 1;
 
   const hideAddYAxisButtons =
-    (DisplayType.BIG_NUMBER === displayType && aggregates.length === 1) ||
-    ([DisplayType.LINE, DisplayType.AREA, DisplayType.BAR].includes(displayType) &&
-      aggregates.length === 3);
+    [DisplayType.LINE, DisplayType.AREA, DisplayType.BAR].includes(displayType) &&
+    aggregates.length === 3;
 
   let injectedFunctions: Set<string> = new Set();
 
@@ -108,10 +117,24 @@ export function YAxisSelector({
     injectedFunctions = addIncompatibleFunctions(aggregates, fieldOptions);
   }
 
+  function handleOnFieldSelected(i: number) {
+    const newSelectedAggregate = i;
+    onChange(aggregates, newSelectedAggregate);
+  }
+
   return (
     <FieldGroup inline={false} flexibleControlStateSize error={fieldError} stacked>
+      {/* <SubHeading> {'Visualize'} </SubHeading> */}
       {aggregates.map((fieldValue, i) => (
         <QueryFieldWrapper key={`${fieldValue}:${i}`}>
+          {aggregates.length > 1 && (
+            <RadioLineItem index={i} role="radio">
+              <Radio
+                checked={i === selectedAggregate ? true : false}
+                onChange={() => handleOnFieldSelected(i)}
+              />
+            </RadioLineItem>
+          )}
           <QueryField
             fieldValue={fieldValue}
             fieldOptions={fieldOptions}
@@ -136,12 +159,36 @@ export function YAxisSelector({
 
       {!hideAddYAxisButtons && (
         <Actions gap={1}>
-          <AddButton title={t('Add Overlay')} onAdd={handleAddOverlay} />
+          <AddButton
+            title={
+              displayType === DisplayType.BIG_NUMBER ? t('Add Field') : t('Add Overlay')
+            }
+            onAdd={handleAddFields}
+          />
           {datasetConfig.enableEquations && (
             <AddButton title={t('Add an Equation')} onAdd={handleAddEquation} />
           )}
         </Actions>
       )}
+
+      {/* <SubHeading> {'Customize Visualization (optional)'} </SubHeading>
+      <QueryField
+        fieldValue={defaultCustomField}
+        fieldOptions={fieldOptions}
+        onChange={value => {
+          defaultCustomField = value;
+        }}
+        filterPrimaryOptions={option =>
+          datasetConfig.filterYAxisOptions?.(displayType)(option) ||
+          injectedFunctions.has(`${option.value.kind}:${option.value.meta.name}`)
+        }
+        filterAggregateParameters={datasetConfig.filterYAxisAggregateParams?.(
+          defaultCustomField,
+          displayType
+        )}
+        otherColumns={aggregates}
+        noFieldsMessage={noFieldsMessage}
+      /> */}
     </FieldGroup>
   );
 }
@@ -160,6 +207,12 @@ const QueryFieldWrapper = styled('div')`
   }
 `;
 
+// const SubHeading = styled('h6')`
+//   margin-bottom: ${space(1)};
+//   color: ${p => p.theme.gray500};
+// `;
+
 const Actions = styled(ButtonBar)`
   justify-content: flex-start;
+  margin-bottom: ${space(2)};
 `;

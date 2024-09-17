@@ -32,6 +32,7 @@ import type {
 } from 'sentry/types/echarts';
 import type {InjectedRouter} from 'sentry/types/legacyReactRouter';
 import type {Organization} from 'sentry/types/organization';
+import {defined} from 'sentry/utils';
 import {
   axisLabelFormatter,
   axisLabelFormatterUsingAggregateOutputType,
@@ -206,7 +207,14 @@ class WidgetCardChart extends Component<WidgetCardChartProps> {
       const tableMeta = {...result.meta};
       const fields = Object.keys(tableMeta);
 
-      const field = fields[0];
+      let field = fields[0];
+      if (defined(this.props.widget.queries[0].selectedAggregate)) {
+        // const index = this.props.widget.queries[0].selectedQueryIndex;
+        field =
+          this.props.widget.queries[0].aggregates[
+            this.props.widget.queries[0].selectedAggregate
+          ];
+      }
 
       // Change tableMeta for the field from integer to string since we will be rendering with toLocaleString
       const shouldExpandInteger = !!expandNumbers && tableMeta[field] === 'integer';
@@ -226,6 +234,7 @@ class WidgetCardChart extends Component<WidgetCardChartProps> {
         shouldExpandInteger ? {[field]: dataRow[field].toLocaleString()} : dataRow,
         {location, organization, unit}
       );
+      // console.log(dataRow);
 
       const isModalWidget = !(widget.id || widget.tempId);
       if (isModalWidget || isMobile) {
