@@ -17,8 +17,6 @@ import type {PlatformKey, Project} from 'sentry/types/project';
 import type {StatuspageIncident} from 'sentry/types/system';
 import * as incidentsHook from 'sentry/utils/useServiceIncidents';
 
-import {generateDocKeys} from './utils';
-
 jest.mock('sentry/utils/useServiceIncidents');
 
 describe('Sidebar > Performance Onboarding Checklist', function () {
@@ -228,18 +226,6 @@ describe('Sidebar > Performance Onboarding Checklist', function () {
       firstTransactionEvent: false,
     });
     ProjectsStore.loadInitialData([project]);
-
-    // TODO(aknaus): Remove old mocks when we remove the old onboarding
-    const docApiMocks: any = {};
-    const docKeys = generateDocKeys(project.platform!);
-
-    docKeys.forEach(docKey => {
-      docApiMocks[docKey] = MockApiClient.addMockResponse({
-        url: `/projects/${organization.slug}/${project.slug}/docs/${docKey}/`,
-        method: 'GET',
-        body: {html: `<h1>${docKey}</h1> content`},
-      });
-    });
 
     MockApiClient.addMockResponse({
       url: `/projects/${organization.slug}/${project.slug}/`,

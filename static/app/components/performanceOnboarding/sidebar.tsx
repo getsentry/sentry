@@ -9,15 +9,10 @@ import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import IdBadge from 'sentry/components/idBadge';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {Step} from 'sentry/components/onboarding/gettingStartedDoc/step';
-import type {
-  DocsParams,
-  OnboardingConfig,
-} from 'sentry/components/onboarding/gettingStartedDoc/types';
+import type {DocsParams} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {useLoadGettingStarted} from 'sentry/components/onboarding/gettingStartedDoc/utils/useLoadGettingStarted';
 import {ProductSolution} from 'sentry/components/onboarding/productSelection';
 import {shouldShowPerformanceTasks} from 'sentry/components/onboardingWizard/filterSupportedTasks';
-import useOnboardingDocs from 'sentry/components/onboardingWizard/useOnboardingDocs';
-import OnboardingStep from 'sentry/components/sidebar/onboardingStep';
 import SidebarPanel from 'sentry/components/sidebar/sidebarPanel';
 import type {CommonSidebarProps} from 'sentry/components/sidebar/types';
 import {SidebarPanelKey} from 'sentry/components/sidebar/types';
@@ -29,7 +24,7 @@ import PageFiltersStore from 'sentry/stores/pageFiltersStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import pulsingIndicatorStyles from 'sentry/styles/pulsingIndicator';
 import {space} from 'sentry/styles/space';
-import type {Project, ProjectKey} from 'sentry/types/project';
+import type {Project} from 'sentry/types/project';
 import EventWaiter from 'sentry/utils/eventWaiter';
 import useApi from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -37,7 +32,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 import usePrevious from 'sentry/utils/usePrevious';
 import useProjects from 'sentry/utils/useProjects';
 
-import {filterProjects, generateDocKeys, isPlatformSupported} from './utils';
+import {filterProjects} from './utils';
 
 function decodeProjectIds(projectIds: unknown): string[] | null {
   if (Array.isArray(projectIds)) {
@@ -199,8 +194,10 @@ function PerformanceOnboardingSidebar(props: CommonSidebarProps) {
 function OnboardingContent({currentProject}: {currentProject: Project}) {
   const api = useApi();
   const organization = useOrganization();
-  const previousProject = usePrevious(currentProject);
+  const {isSelfHosted, urlPrefix} = useLegacyStore(ConfigStore);
   const [received, setReceived] = useState<boolean>(false);
+
+  const previousProject = usePrevious(currentProject);
 
   useEffect(() => {
     if (previousProject.id !== currentProject.id) {
@@ -212,25 +209,15 @@ function OnboardingContent({currentProject}: {currentProject: Project}) {
     ? platforms.find(p => p.id === currentProject.platform)
     : undefined;
 
-  const docKeys = useMemo(() => {
-    return currentPlatform ? generateDocKeys(currentPlatform.id) : [];
-  }, [currentPlatform]);
-
-  const newDocsRequest = useLoadGettingStarted({
+  const {isLoading, docs, dsn} = useLoadGettingStarted({
     platform: currentPlatform || otherPlatform,
     orgSlug: organization.slug,
     projSlug: currentProject.slug,
     productType: 'performance',
   });
-  const newDocs = newDocsRequest.docs?.performanceOnboarding;
+  const performanceDocs = docs?.performanceOnboarding;
 
-  const {docContents, isLoading, hasOnboardingContents} = useOnboardingDocs({
-    project: currentProject,
-    docKeys,
-    isPlatformSupported: isPlatformSupported(currentPlatform),
-  });
-
-  if (isLoading || newDocsRequest.isLoading) {
+  if (isLoading) {
     return <LoadingIndicator />;
   }
 
@@ -256,7 +243,7 @@ function OnboardingContent({currentProject}: {currentProject: Project}) {
     );
   }
 
-  if (!currentPlatform || (!hasOnboardingContents && !newDocs)) {
+  if (!currentPlatform || !performanceDocs || !dsn) {
     return (
       <Fragment>
         <div>
@@ -277,72 +264,6 @@ function OnboardingContent({currentProject}: {currentProject: Project}) {
       </Fragment>
     );
   }
-
-  if (newDocs) {
-    return (
-      <PerformanceOnboardingLayout
-        docs={newDocs}
-        currentProject={currentProject}
-        dsn={newDocsRequest.dsn!}
-      />
-    );
-  }
-
-  return (
-    <Fragment>
-      <div>
-        {tct(
-          `Adding Performance to your [platform] project is simple. Make sure you've got these basics down.`,
-          {platform: currentPlatform?.name || currentProject.slug}
-        )}
-      </div>
-      {docKeys.map((docKey, index) => {
-        let footer: React.ReactNode = null;
-
-        if (index === docKeys.length - 1) {
-          footer = (
-            <EventWaiter
-              api={api}
-              organization={organization}
-              project={currentProject}
-              eventType="transaction"
-              onIssueReceived={() => {
-                setReceived(true);
-              }}
-            >
-              {() => (received ? <EventReceivedIndicator /> : <EventWaitingIndicator />)}
-            </EventWaiter>
-          );
-        }
-        return (
-          <div key={index}>
-            <OnboardingStep
-              docContent={docContents[docKey]}
-              docKey={docKey}
-              prefix="perf"
-              project={currentProject}
-            />
-            {footer}
-          </div>
-        );
-      })}
-    </Fragment>
-  );
-}
-
-function PerformanceOnboardingLayout({
-  docs,
-  dsn,
-  currentProject,
-}: {
-  currentProject: Project;
-  docs: OnboardingConfig;
-  dsn: ProjectKey['dsn'];
-}) {
-  const [received, setReceived] = useState<boolean>(false);
-  const organization = useOrganization();
-  const {isSelfHosted, urlPrefix} = useLegacyStore(ConfigStore);
-  const api = useApi();
 
   const docParams: DocsParams<any> = {
     dsn,
@@ -366,14 +287,16 @@ function PerformanceOnboardingLayout({
   };
 
   const steps = [
-    ...docs.install(docParams),
-    ...docs.configure(docParams),
-    ...docs.verify(docParams),
+    ...performanceDocs.install(docParams),
+    ...performanceDocs.configure(docParams),
+    ...performanceDocs.verify(docParams),
   ];
 
   return (
     <Fragment>
-      {docs.introduction && <Introduction>{docs.introduction(docParams)}</Introduction>}
+      {performanceDocs.introduction && (
+        <Introduction>{performanceDocs.introduction(docParams)}</Introduction>
+      )}
       <Steps>
         {steps.map(step => {
           return <Step key={step.title ?? step.type} {...step} />;
