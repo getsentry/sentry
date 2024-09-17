@@ -233,12 +233,20 @@ export function FrameworkSuggestionModal({
     closeModal();
   }, [selectedPlatform, organization, closeModal, onSkip, newOrg]);
 
+  const handleClose = useCallback(() => {
+    trackAnalytics('project_creation.select_framework_modal_close_button_clicked', {
+      platform: selectedPlatform.key,
+      organization,
+    });
+    closeModal();
+  }, [selectedPlatform, organization, closeModal]);
+
   const listEntries = [...topFrameworksOrdered, ...otherFrameworksSortedAlphabetically];
 
   return (
     <Fragment>
       <Header>
-        <CloseButton onClick={closeModal} />
+        <CloseButton onClick={handleClose} />
       </Header>
       <Body>
         <TopFrameworksImage frameworks={listEntries} />
