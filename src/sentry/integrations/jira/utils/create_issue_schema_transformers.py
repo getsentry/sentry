@@ -51,10 +51,13 @@ def get_type_transformer_mappings(user_id_field: str) -> TransformerType:
 
 def get_custom_field_transformer_mappings() -> TransformerType:
     transformers = {
+        # TODO(Gabe): `select` type fields are broken in the UI, fix this.
         # JIRA_CUSTOM_FIELD_TYPES["select"]: identity_transformer,
+        # TODO(Gabe): `epic` type fields don't currently appear in the issue
+        #  link dialog. Re-enable this if needed after testing.
+        # JIRA_CUSTOM_FIELD_TYPES["epic"]: identity_transformer,
         JIRA_CUSTOM_FIELD_TYPES["tempo_account"]: parse_number_field,
         JIRA_CUSTOM_FIELD_TYPES["sprint"]: parse_number_field,
-        # JIRA_CUSTOM_FIELD_TYPES["epic"]: identity_transformer,
         JIRA_CUSTOM_FIELD_TYPES["rank"]: id_obj_transformer,
     }
 
@@ -106,15 +109,17 @@ def transform_fields(
         )
 
         try:
-            # We need to handle array types, but for whatever reason `Sprint`
-            # fields have a type of array/json, but expect a single value, so we
-            # have to special case them.
+            # Handling for array types and their nested subtypes.
+            # We have to skip this handling for `sprint` custom fields, as they
+            # are the only `array` type that expects a string, not a list.
             if (
                 field.schema.schema_type.lower() == JiraSchemaTypes.array
                 and field.schema.custom != JIRA_CUSTOM_FIELD_TYPES["sprint"]
             ):
                 transformed_value = []
 
+                # Occasionally, our UI passes a string instead of a list, so we
+                # have to just wrap it and hope it's in the correct format.
                 if not isinstance(field_data, list):
                     field_data = [field_data]
 
