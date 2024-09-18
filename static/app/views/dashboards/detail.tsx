@@ -13,6 +13,7 @@ import {
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {openWidgetViewerModal} from 'sentry/actionCreators/modal';
 import type {Client} from 'sentry/api';
+import Feature from 'sentry/components/acl/feature';
 import {Breadcrumbs} from 'sentry/components/breadcrumbs';
 import HookOrDefault from 'sentry/components/hookOrDefault';
 import * as Layout from 'sentry/components/layouts/thirds';
@@ -34,6 +35,7 @@ import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {browserHistory} from 'sentry/utils/browserHistory';
 import EventView from 'sentry/utils/discover/eventView';
+import {DatasetSource} from 'sentry/utils/discover/types';
 import {MetricsCardinalityProvider} from 'sentry/utils/performance/contexts/metricsCardinality';
 import {MetricsResultsMetaProvider} from 'sentry/utils/performance/contexts/metricsEnhancedPerformanceDataContext';
 import {MEPSettingProvider} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
@@ -44,6 +46,7 @@ import withApi from 'sentry/utils/withApi';
 import withOrganization from 'sentry/utils/withOrganization';
 import withPageFilters from 'sentry/utils/withPageFilters';
 import withProjects from 'sentry/utils/withProjects';
+import {DiscoverSplitAlert} from 'sentry/views/dashboards/discoverSplitAlert';
 import {defaultMetricWidget} from 'sentry/views/dashboards/metrics/utils';
 import {
   cloneDashboard,
@@ -876,6 +879,10 @@ class DashboardDetail extends Component<Props, State> {
       isWidgetUsingTransactionName
     );
 
+    const hasForcedWidgets = (modifiedDashboard ?? dashboard).widgets.some(
+      widget => widget.datasetSource === DatasetSource.FORCED
+    );
+
     return (
       <SentryDocumentTitle title={dashboard.title} orgSlug={organization.slug}>
         <PageFiltersContainer
@@ -938,6 +945,12 @@ class DashboardDetail extends Component<Props, State> {
                   </Layout.Header>
                   <Layout.Body>
                     <Layout.Main fullWidth>
+                      <Feature features="performance-discover-dataset-selector">
+                        <DiscoverSplitAlert
+                          hasForcedWidgets={hasForcedWidgets}
+                          dashboardId={(modifiedDashboard ?? dashboard).id}
+                        />
+                      </Feature>
                       <MetricsCardinalityProvider
                         organization={organization}
                         location={location}
