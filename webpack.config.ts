@@ -829,6 +829,8 @@ appConfig.plugins?.push(
     bundleSizeOptimizations: {
       // This is enabled so that our SDKs send exceptions to Sentry
       excludeDebugStatements: false,
+      excludeReplayIframe: true,
+      excludeReplayShadowDom: true,
     },
   })
 );
