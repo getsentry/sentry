@@ -32,7 +32,7 @@ function ProjectToolbarSettings({organization, project, params: {projectId}}: Pr
           // additional data/props that is related to rendering of form field rather than data
           label: t('Allowed Origins'),
           help: t(
-            'Comma-separated list of URLs where the dev toolbar can be installed and access your data. Wildcards (*) are supported'
+            'Domain URLs where the dev toolbar can be installed and access your data. Wildcards (*) are supported. Please separate multiple entries with a newline.'
           ),
           getData: data => ({options: data}),
           visible({features}) {
