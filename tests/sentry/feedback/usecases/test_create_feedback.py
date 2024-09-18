@@ -778,7 +778,7 @@ def test_create_feedback_spam_detection_set_status_ignored(
 
 @django_db_all
 def test_shim_to_feedback_missing_event(default_project, monkeypatch):
-    # Not allowing this since creating feedbacks with no environment doesn't work well.
+    # Not allowing this since creating feedbacks with no environment (copied from the associated event) doesn't work well.
     mock_create_feedback_issue = Mock()
     monkeypatch.setattr(
         "sentry.feedback.usecases.create_feedback.create_feedback_issue", mock_create_feedback_issue
