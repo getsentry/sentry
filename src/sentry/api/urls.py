@@ -175,6 +175,7 @@ from sentry.issues.endpoints import (
     GroupHashesEndpoint,
     GroupNotesDetailsEndpoint,
     GroupNotesEndpoint,
+    GroupParticipantsEndpoint,
     GroupSimilarIssuesEmbeddingsEndpoint,
     GroupSimilarIssuesEndpoint,
     OrganizationGroupIndexEndpoint,
@@ -345,7 +346,6 @@ from .endpoints.group_current_release import GroupCurrentReleaseEndpoint
 from .endpoints.group_external_issue_details import GroupExternalIssueDetailsEndpoint
 from .endpoints.group_external_issues import GroupExternalIssuesEndpoint
 from .endpoints.group_first_last_release import GroupFirstLastReleaseEndpoint
-from .endpoints.group_participants import GroupParticipantsEndpoint
 from .endpoints.group_reprocessing import GroupReprocessingEndpoint
 from .endpoints.group_stats import GroupStatsEndpoint
 from .endpoints.group_tagkey_details import GroupTagKeyDetailsEndpoint

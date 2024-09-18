@@ -6,6 +6,7 @@ from .group_events import GroupEventsEndpoint
 from .group_hashes import GroupHashesEndpoint
 from .group_notes import GroupNotesEndpoint
 from .group_notes_details import GroupNotesDetailsEndpoint
+from .group_participants import GroupParticipantsEndpoint
 from .group_similar_issues import GroupSimilarIssuesEndpoint
 from .group_similar_issues_embeddings import GroupSimilarIssuesEmbeddingsEndpoint
 from .organization_group_index import OrganizationGroupIndexEndpoint
@@ -28,6 +29,7 @@ __all__ = (
     "GroupHashesEndpoint",
     "GroupNotesEndpoint",
     "GroupNotesDetailsEndpoint",
+    "GroupParticipantsEndpoint",
     "GroupSimilarIssuesEndpoint",
     "GroupSimilarIssuesEmbeddingsEndpoint",
     "OrganizationGroupIndexEndpoint",
