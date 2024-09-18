@@ -68,7 +68,7 @@ export function YAxisSelector({
 
     const newAggregates = [
       ...aggregates,
-      {kind: FieldValueKind.EQUATION, field: '', selected: false} as QueryFieldValue,
+      {kind: FieldValueKind.EQUATION, field: ''} as QueryFieldValue,
     ];
     if (displayType === DisplayType.BIG_NUMBER) {
       const newSelectedAggregate = newAggregates.length - 1;
@@ -93,7 +93,7 @@ export function YAxisSelector({
     onChange(newAggregates);
   }
 
-  function handleOnFieldSelected(i: number) {
+  function handleSelectField(i: number) {
     const newSelectedAggregate = i;
     onChange(aggregates, newSelectedAggregate);
   }
@@ -102,8 +102,9 @@ export function YAxisSelector({
   const canDelete = aggregates.length > 1;
 
   const hideAddYAxisButtons =
-    [DisplayType.LINE, DisplayType.AREA, DisplayType.BAR].includes(displayType) &&
-    aggregates.length === 3;
+    ([DisplayType.LINE, DisplayType.AREA, DisplayType.BAR].includes(displayType) &&
+      aggregates.length === 3) ||
+    (displayType === DisplayType.BIG_NUMBER && widgetType === WidgetType.RELEASE);
 
   let injectedFunctions: Set<string> = new Set();
 
@@ -133,7 +134,7 @@ export function YAxisSelector({
             <RadioLineItem index={i} role="radio">
               <Radio
                 checked={i === selectedAggregate ? true : false}
-                onChange={() => handleOnFieldSelected(i)}
+                onChange={() => handleSelectField(i)}
               />
             </RadioLineItem>
           )}
