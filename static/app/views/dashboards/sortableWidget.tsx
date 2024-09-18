@@ -2,6 +2,7 @@ import type {ComponentProps} from 'react';
 import styled from '@emotion/styled';
 
 import PanelAlert from 'sentry/components/panels/panelAlert';
+import type {Series} from 'sentry/types/echarts';
 import WidgetCard from 'sentry/views/dashboards/widgetCard';
 
 import type {DashboardFilters, Widget} from './types';
@@ -19,6 +20,7 @@ type Props = {
   dashboardFilters?: DashboardFilters;
   isMobile?: boolean;
   isPreview?: boolean;
+  releaseSeries?: Series[];
   windowWidth?: number;
 };
 
@@ -35,6 +37,7 @@ function SortableWidget(props: Props) {
     windowWidth,
     index,
     dashboardFilters,
+    releaseSeries,
   } = props;
 
   const widgetProps: ComponentProps<typeof WidgetCard> = {
@@ -58,6 +61,7 @@ function SortableWidget(props: Props) {
     isMobile,
     windowWidth,
     tableItemLimit: TABLE_ITEM_LIMIT,
+    releaseSeries,
   };
 
   return (

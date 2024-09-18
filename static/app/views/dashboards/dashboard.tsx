@@ -22,6 +22,7 @@ import {t} from 'sentry/locale';
 import GroupStore from 'sentry/stores/groupStore';
 import {space} from 'sentry/styles/space';
 import type {PageFilters} from 'sentry/types/core';
+import type {Series} from 'sentry/types/echarts';
 import type {InjectedRouter} from 'sentry/types/legacyReactRouter';
 import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -94,6 +95,7 @@ type Props = {
   onSetNewWidget?: () => void;
   paramDashboardId?: string;
   paramTemplateId?: string;
+  releaseSeries?: Series[];
 };
 
 type State = {
@@ -398,6 +400,7 @@ class Dashboard extends Component<Props, State> {
       isPreview,
 
       dashboardFilters: getDashboardFiltersFromURL(location) ?? dashboard.filters,
+      releaseSeries: this.props.releaseSeries,
     };
 
     const key = constructGridItemKey(widget);

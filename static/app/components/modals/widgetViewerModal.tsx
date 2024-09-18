@@ -103,6 +103,7 @@ export interface WidgetViewerModalOptions {
   onEdit?: () => void;
   onMetricWidgetEdit?: (widget: Widget) => void;
   pageLinks?: string;
+  releaseSeries?: Series[];
   seriesData?: Series[];
   seriesResultsType?: Record<string, AggregationOutputType>;
   tableData?: TableDataWithTitle[];
@@ -181,6 +182,7 @@ function WidgetViewerModal(props: Props) {
     pageLinks: defaultPageLinks,
     seriesResultsType,
     dashboardFilters,
+    releaseSeries,
   } = props;
   const location = useLocation();
   const {projects} = useProjects();
@@ -870,6 +872,7 @@ function WidgetViewerModal(props: Props) {
                 showSlider={shouldShowSlider}
                 noPadding
                 chartZoomOptions={chartZoomOptions}
+                releaseSeries={releaseSeries}
               />
             ) : (
               <MemoizedWidgetCardChartContainer
@@ -887,6 +890,7 @@ function WidgetViewerModal(props: Props) {
                 showSlider={shouldShowSlider}
                 noPadding
                 chartZoomOptions={chartZoomOptions}
+                releaseSeries={releaseSeries}
               />
             )}
           </Container>

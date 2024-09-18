@@ -89,6 +89,7 @@ type Props = WithRouterProps & {
   onEdit?: () => void;
   onUpdate?: (widget: Widget | null) => void;
   onWidgetSplitDecision?: (splitDecision: WidgetType) => void;
+  releaseSeries?: Series[];
   renderErrorMessage?: (errorMessage?: string) => React.ReactNode;
   shouldResize?: boolean;
   showContextMenu?: boolean;
@@ -237,6 +238,7 @@ class WidgetCard extends Component<Props, State> {
       location,
       onWidgetSplitDecision,
       shouldResize,
+      releaseSeries,
     } = this.props;
 
     if (widget.displayType === DisplayType.TOP_N) {
@@ -369,6 +371,7 @@ class WidgetCard extends Component<Props, State> {
                     chartGroup={DASHBOARD_CHART_GROUP}
                     onWidgetSplitDecision={onWidgetSplitDecision}
                     shouldResize={shouldResize}
+                    releaseSeries={releaseSeries}
                   />
                 ) : (
                   <LazyRender containerHeight={200} withoutContainer>
@@ -387,6 +390,7 @@ class WidgetCard extends Component<Props, State> {
                       chartGroup={DASHBOARD_CHART_GROUP}
                       onWidgetSplitDecision={onWidgetSplitDecision}
                       shouldResize={shouldResize}
+                      releaseSeries={releaseSeries}
                     />
                   </LazyRender>
                 )}

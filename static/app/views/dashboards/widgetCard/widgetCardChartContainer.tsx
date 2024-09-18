@@ -51,6 +51,7 @@ type Props = {
   }>;
   onWidgetSplitDecision?: (splitDecision: WidgetType) => void;
   onZoom?: AugmentedEChartDataZoomHandler;
+  releaseSeries?: Series[];
   renderErrorMessage?: (errorMessage?: string) => React.ReactNode;
   shouldResize?: boolean;
   showSlider?: boolean;
@@ -79,6 +80,7 @@ export function WidgetCardChartContainer({
   onWidgetSplitDecision,
   chartGroup,
   shouldResize,
+  releaseSeries,
 }: Props) {
   const location = useLocation();
   const router = useRouter();
@@ -151,6 +153,7 @@ export function WidgetCardChartContainer({
                 chartZoomOptions={chartZoomOptions}
                 chartGroup={chartGroup}
                 shouldResize={shouldResize}
+                releaseSeries={releaseSeries}
               />
             </Fragment>
           );
@@ -204,6 +207,7 @@ export function WidgetCardChartContainer({
               timeseriesResultsTypes={timeseriesResultsTypes}
               chartGroup={chartGroup}
               shouldResize={shouldResize}
+              releaseSeries={releaseSeries}
             />
           </Fragment>
         );
