@@ -33,7 +33,7 @@ export function DatabaseSystemSelector() {
         });
       }}
       options={options}
-      triggerProps={{prefix: t('DB System')}}
+      triggerProps={{prefix: t('System')}}
       loading={isLoading}
       disabled={isError || isLoading || options.length <= 1}
       value={systemQueryParam ?? selectedSystem}

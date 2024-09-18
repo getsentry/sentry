@@ -182,13 +182,10 @@ const PositionedLoadingIndicator = styled(LoadingIndicator)`
   position: absolute;
 `;
 
-// Base styles, to make the Replayer instance work
-const PlayerRoot = styled(BasePlayerRoot)`
+const SentryPlayerRoot = styled(BasePlayerRoot)`
+  /* Base styles, to make the Replayer instance work */
   ${baseReplayerCss}
-`;
-
-// Sentry-specific styles for the player.
-const SentryPlayerRoot = styled(PlayerRoot)`
+  /* Sentry-specific styles for the player */
   ${p => sentryReplayerCss(p.theme)}
 `;
 
