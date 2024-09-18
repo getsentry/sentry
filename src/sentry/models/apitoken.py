@@ -351,7 +351,7 @@ class ApiToken(ReplicatedControlModel, HasApiScopes):
 
     @property
     def organization_id(self) -> int | None:
-        from sentry.models.integrations.sentry_app_installation import SentryAppInstallation
+        from sentry.sentry_apps.models.sentry_app_installation import SentryAppInstallation
         from sentry.sentry_apps.models.sentry_app_installation_token import (
             SentryAppInstallationToken,
         )

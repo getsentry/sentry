@@ -175,8 +175,10 @@ export function useSortedFilterKeyItems({
 
     const keyItems = searched
       .map(({item}) => item)
-      .filter(item => item.type === 'key')
-      .map(({item}) => createItem(filterKeys[item.key], getFieldDefinition(item.key)));
+      .filter(item => item.type === 'key' && filterKeys[item.item.key])
+      .map(({item}) => {
+        return createItem(filterKeys[item.key], getFieldDefinition(item.key));
+      });
 
     if (includeSuggestions) {
       const rawSearchSection: KeySectionItem = {

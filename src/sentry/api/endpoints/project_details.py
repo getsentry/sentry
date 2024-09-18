@@ -829,6 +829,11 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
                     "sentry:feedback_ai_spam_detection",
                     bool(options["sentry:feedback_ai_spam_detection"]),
                 )
+            if "sentry:toolbar_allowed_origins" in options:
+                project.update_option(
+                    "sentry:toolbar_allowed_origins",
+                    clean_newline_inputs(options["sentry:toolbar_allowed_origins"]),
+                )
             if "filters:react-hydration-errors" in options:
                 project.update_option(
                     "filters:react-hydration-errors",

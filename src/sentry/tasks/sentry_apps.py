@@ -14,11 +14,11 @@ from sentry.constants import SentryAppInstallationStatus
 from sentry.eventstore.models import Event, GroupEvent
 from sentry.models.activity import Activity
 from sentry.models.group import Group
-from sentry.models.integrations.sentry_app_installation import SentryAppInstallation
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.models.servicehook import ServiceHook, ServiceHookProject
 from sentry.sentry_apps.models.sentry_app import VALID_EVENTS
+from sentry.sentry_apps.models.sentry_app_installation import SentryAppInstallation
 from sentry.sentry_apps.services.app.service import app_service
 from sentry.shared_integrations.exceptions import ApiHostError, ApiTimeoutError, ClientError
 from sentry.silo.base import SiloMode
