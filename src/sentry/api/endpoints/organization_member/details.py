@@ -233,11 +233,11 @@ class OrganizationMemberDetailsEndpoint(OrganizationMemberEndpoint):
 
         if is_member:
             if not enable_member_invite:
-                return Response({"detail": ERR_INSUFFICIENT_SCOPE}, status=400)
+                return Response({"detail": ERR_INSUFFICIENT_SCOPE}, status=403)
             if not reinvite_request_only:
-                return Response({"detail": ERR_MEMBER_REINVITE}, status=400)
+                return Response({"detail": ERR_MEMBER_REINVITE}, status=403)
             if not is_invite_from_user:
-                return Response({"detail": ERR_MEMBER_INVITE}, status=400)
+                return Response({"detail": ERR_MEMBER_INVITE}, status=403)
 
         # XXX(dcramer): if/when this expands beyond reinvite we need to check
         # access level
