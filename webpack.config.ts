@@ -827,7 +827,8 @@ appConfig.plugins?.push(
       enabled: true,
     },
     bundleSizeOptimizations: {
-      excludeDebugStatements: IS_PRODUCTION,
+      // This is enabled so that our SDKs send exceptions to Sentry
+      excludeDebugStatements: false,
     },
   })
 );
