@@ -13,8 +13,7 @@ This document is structured by resource with each resource having actions that c
 ## Flag Logs [/organizations/<organization_id_or_slug>/flag-log/]
 
 - Parameters
-  - environment (optional, string) - Filter the result-set by environment.
-  - project (optional, string) - Filter the result-set by project-id.
+  - query (optional, string) - Search query with space-separated field/value pairs. ie: `?query=environment:prod AND project:3`.
   - start (optional, string) - ISO 8601 format (`YYYY-MM-DDTHH:mm:ss.sssZ`)
   - end (optional, string) - ISO 8601 format. Required if `start` is set.
   - per_page (optional, number)
@@ -28,14 +27,14 @@ Retrieve a collection of flag logs.
 
 **Attributes**
 
-| Column           | Type   | Description                                      |
-| ---------------- | ------ | ------------------------------------------------ |
-| action           | string | Enum of `created` or `modified`.                 |
-| environment      | string | The environment the change applies to.           |
-| flag             | string | The name of the flag changed.                    |
-| modified_at      | string | ISO-8601 timestamp of when the flag was changed. |
-| modified_by      | string | The user responsible for the change.             |
-| modified_by_type | string | Enum of `email`, `id`, or `name`.                |
+| Column           | Type   | Description                                          |
+| ---------------- | ------ | ---------------------------------------------------- |
+| action           | string | Enum of `created` or `modified`.                     |
+| flag             | string | The name of the flag changed.                        |
+| modified_at      | string | ISO-8601 timestamp of when the flag was changed.     |
+| modified_by      | string | The user responsible for the change.                 |
+| modified_by_type | string | Enum of `email`, `id`, or `name`.                    |
+| tags             | string | A collection of provider-specified scoping metadata. |
 
 - Response 200
 
@@ -44,11 +43,13 @@ Retrieve a collection of flag logs.
     "data": [
       {
         "action": "created",
-        "environment": "production",
         "flag": "my-flag-name",
         "modified_at": "2024-01-01T05:12:33",
         "modified_by": "2552",
-        "modified_by_type": "id"
+        "modified_by_type": "id",
+        "tags": {
+          "environment": "production"
+        }
       }
     ]
   }
@@ -66,11 +67,13 @@ Retrieve a single flag log instance.
   {
     "data": {
       "action": "modified",
-      "environment": "development",
       "flag": "new-flag-name",
       "modified_at": "2024-11-19T19:12:55",
       "modified_by": "user@site.com",
-      "modified_by_type": "email"
+      "modified_by_type": "email",
+      "tags": {
+        "environment": "development"
+      }
     }
   }
   ```
@@ -81,6 +84,23 @@ Retrieve a single flag log instance.
 
 The shape of the request object varies by provider. The `<provider>` URI parameter informs the server of the shape of the request and it is on the server to handle the provider. The following providers are supported: Unleash, Split, and LaunchDarkly.
 
+**Flag Pole Example:**
+
+Flag pole is Sentry owned. It matches our audit-log resource because it is designed for that purpose.
+
 - Request (application/json)
+
+  ```json
+  {
+    "data": {
+      "action": "modified",
+      "flag": "flag-name",
+      "modified_at": "2024-11-19T19:12:55",
+      "modified_by": "colton.allen@sentry.io",
+      "modified_by_type": "email",
+      "tags": {}
+    }
+  }
+  ```
 
 - Response 201
