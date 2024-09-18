@@ -1,14 +1,37 @@
 import {useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
+import {LinkButton} from 'sentry/components/button';
 import {BarChart, type BarChartSeries} from 'sentry/components/charts/barChart';
 import InteractionStateLayer from 'sentry/components/interactionStateLayer';
+import {Tooltip} from 'sentry/components/tooltip';
+import {IconTelescope} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {SeriesDataUnit} from 'sentry/types/echarts';
-import type {EventsStats, MultiSeriesEventsStats} from 'sentry/types/organization';
+import type {Group} from 'sentry/types/group';
+import type {
+  EventsStats,
+  MultiSeriesEventsStats,
+  NewQuery,
+} from 'sentry/types/organization';
+import EventView from 'sentry/utils/discover/eventView';
+import {SavedQueryDatasets} from 'sentry/utils/discover/types';
 import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
 import theme from 'sentry/utils/theme';
+import useOrganization from 'sentry/utils/useOrganization';
+import {hasDatasetSelector} from 'sentry/views/dashboards/utils';
+import {useFetchEventStatsQuery} from 'sentry/views/issueDetails/streamline/useFetchEventStats';
+
+export const enum EventGraphSeries {
+  EVENT = 'event',
+  USER = 'user',
+}
+interface EventGraphProps {
+  group: Group;
+  groupStats: MultiSeriesEventsStats;
+  searchQuery: string;
+}
 
 function createSeriesAndCount(stats: EventsStats) {
   return stats?.data?.reduce(
@@ -29,8 +52,12 @@ function createSeriesAndCount(stats: EventsStats) {
   );
 }
 
-export function EventGraph({groupStats}: {groupStats: MultiSeriesEventsStats}) {
-  const [visibleSeries, setVisibleSeries] = useState({user: true, event: true});
+export function EventGraph({group, groupStats, searchQuery}: EventGraphProps) {
+  const organization = useOrganization();
+  const [visibleSeries, setVisibleSeries] = useState<EventGraphSeries>(
+    EventGraphSeries.EVENT
+  );
+  const [isGraphHovered, setIsGraphHovered] = useState(false);
   const eventStats = groupStats['count()'];
   const {series: eventSeries, count: eventCount} = useMemo(
     () => createSeriesAndCount(eventStats),
@@ -41,13 +68,36 @@ export function EventGraph({groupStats}: {groupStats: MultiSeriesEventsStats}) {
     () => createSeriesAndCount(userStats),
     [userStats]
   );
+  const discoverStatsQuery = useFetchEventStatsQuery({
+    group: group,
+    query: searchQuery,
+    referrer: 'issue_details.streamline_link',
+  });
+
+  const discoverUrl = useMemo(() => {
+    const discoverQuery: NewQuery = {
+      ...discoverStatsQuery,
+      version: 2,
+      projects: [discoverStatsQuery.project],
+      range: discoverStatsQuery.statsPeriod,
+      fields: ['title', 'release', 'environment', 'user.display', 'timestamp'],
+      name: group.title || group.type,
+    };
+    const discoverView = EventView.fromSavedQuery(discoverQuery);
+    return discoverView.getResultsViewUrlTarget(
+      organization.slug,
+      false,
+      hasDatasetSelector(organization) ? SavedQueryDatasets.ERRORS : undefined
+    );
+  }, [group, organization, discoverStatsQuery]);
+
   const series: BarChartSeries[] = [];
 
-  if (eventStats && visibleSeries.user) {
+  if (eventStats && visibleSeries === EventGraphSeries.USER) {
     series.push({
       seriesName: t('Users'),
       itemStyle: {
-        borderRadius: visibleSeries.event ? 0 : [2, 2, 0, 0],
+        borderRadius: [2, 2, 0, 0],
         borderColor: theme.translucentGray200,
         color: theme.purple200,
       },
@@ -55,7 +105,7 @@ export function EventGraph({groupStats}: {groupStats: MultiSeriesEventsStats}) {
       data: userSeries,
     });
   }
-  if (eventStats && visibleSeries.event) {
+  if (eventStats && visibleSeries === EventGraphSeries.EVENT) {
     series.push({
       seriesName: t('Events'),
       itemStyle: {
@@ -73,32 +123,36 @@ export function EventGraph({groupStats}: {groupStats: MultiSeriesEventsStats}) {
       <SummaryContainer>
         <Callout
           onClick={() =>
-            visibleSeries.user &&
-            setVisibleSeries({...visibleSeries, event: !visibleSeries.event})
+            visibleSeries === EventGraphSeries.USER &&
+            setVisibleSeries(EventGraphSeries.EVENT)
           }
-          enabled={visibleSeries.event}
-          disabled={!visibleSeries.user}
+          isActive={visibleSeries === EventGraphSeries.EVENT}
+          disabled={visibleSeries === EventGraphSeries.EVENT}
         >
-          <InteractionStateLayer hidden={!visibleSeries.user} />
+          <InteractionStateLayer hidden={visibleSeries === EventGraphSeries.EVENT} />
           <Label>{tn('Event', 'Events', eventCount)}</Label>
           <Count>{formatAbbreviatedNumber(eventCount)}</Count>
         </Callout>
         <Callout
           onClick={() =>
-            visibleSeries.event &&
-            setVisibleSeries({...visibleSeries, user: !visibleSeries.user})
+            visibleSeries === EventGraphSeries.EVENT &&
+            setVisibleSeries(EventGraphSeries.USER)
           }
-          enabled={visibleSeries.user}
-          disabled={!visibleSeries.event}
+          isActive={visibleSeries === EventGraphSeries.USER}
+          disabled={visibleSeries === EventGraphSeries.USER}
         >
-          <InteractionStateLayer hidden={!visibleSeries.event} />
+          <InteractionStateLayer hidden={visibleSeries === EventGraphSeries.USER} />
           <Label>{tn('User', 'Users', userCount)}</Label>
           <Count>{formatAbbreviatedNumber(userCount)}</Count>
         </Callout>
       </SummaryContainer>
-      <ChartContainer role="figure">
+      <ChartContainer
+        role="figure"
+        onMouseEnter={() => setIsGraphHovered(true)}
+        onMouseLeave={() => setIsGraphHovered(false)}
+      >
         <BarChart
-          height={80}
+          height={100}
           series={series}
           isGroupedByDate
           showTimeInTooltip
@@ -115,32 +169,52 @@ export function EventGraph({groupStats}: {groupStats: MultiSeriesEventsStats}) {
             },
           }}
         />
+        {discoverUrl && isGraphHovered && (
+          <OpenInDiscoverButton>
+            <Tooltip title={t('Open in Discover')}>
+              <LinkButton
+                size="xs"
+                icon={<IconTelescope />}
+                to={discoverUrl}
+                aria-label={t('Open in Discover')}
+              />
+            </Tooltip>
+          </OpenInDiscoverButton>
+        )}
       </ChartContainer>
     </GraphWrapper>
   );
 }
 
-const SummaryContainer = styled('div')`
+const GraphWrapper = styled('div')`
   display: grid;
-  grid-template-rows: 1fr 1fr;
-  align-items: center;
-  gap: ${space(1.5)};
-  padding: 0 ${space(1)};
-  border-right: 1px solid ${p => p.theme.border};
-  margin-right: space(1);
+  grid-template-columns: auto 1fr;
 `;
 
-const Callout = styled('button')<{disabled: boolean; enabled: boolean}>`
-  cursor: ${p => (p.disabled ? 'initial' : 'pointer')};
-  opacity: ${p => (p.enabled ? 1 : 0.5)};
-  user-select: none;
-  background: ${p => p.theme.background};
+const SummaryContainer = styled('div')`
+  display: flex;
+  flex-direction: column;
+  margin-right: space(1);
+  border-radius: ${p => p.theme.borderRadiusLeft};
+`;
+
+const Callout = styled('button')<{isActive: boolean}>`
+  flex: 1;
+  cursor: ${p => (p.isActive ? 'initial' : 'pointer')};
   outline: 0;
-  border: 0;
   position: relative;
-  border-radius: ${p => p.theme.borderRadius};
+  border: 1px solid ${p => p.theme.translucentInnerBorder};
+  background: ${p => (p.isActive ? p.theme.background : p.theme.backgroundSecondary)};
   text-align: left;
-  padding: ${space(0.25)} ${space(0.5)};
+  padding: ${space(1)} ${space(2)};
+  &:first-child {
+    border-radius: ${p => p.theme.borderRadius} 0 ${p => p.theme.borderRadius} 0;
+    border-width: ${p => (p.isActive ? '0' : '0 1px 1px 0')};
+  }
+  &:last-child {
+    border-radius: 0 ${p => p.theme.borderRadius} 0 ${p => p.theme.borderRadius};
+    border-width: ${p => (p.isActive ? '0' : '1px 1px 0 0')};
+  }
 `;
 
 const Label = styled('div')`
@@ -157,10 +231,12 @@ const Count = styled('div')`
 `;
 
 const ChartContainer = styled('div')`
-  height: 80px;
+  padding: ${space(0.75)} ${space(1)} ${space(0.75)} 0;
+  position: relative;
 `;
 
-const GraphWrapper = styled('div')`
-  display: grid;
-  grid-template-columns: auto 1fr;
+const OpenInDiscoverButton = styled('div')`
+  position: absolute;
+  top: ${space(1)};
+  right: ${space(1)};
 `;

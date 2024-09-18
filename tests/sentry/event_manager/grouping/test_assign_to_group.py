@@ -12,8 +12,8 @@ import pytest
 from sentry.event_manager import _create_group, _save_aggregate, _save_aggregate_new
 from sentry.eventstore.models import Event
 from sentry.grouping.ingest.hashing import (
-    _calculate_primary_hash,
-    _calculate_secondary_hash,
+    _calculate_primary_hashes,
+    _calculate_secondary_hashes,
     find_existing_grouphash,
 )
 from sentry.grouping.ingest.metrics import record_calculation_metric_with_result
@@ -34,8 +34,8 @@ pytestmark = [requires_snuba]
 @contextmanager
 def patch_grouping_helpers(return_values: dict[str, Any]):
     wrapped_find_existing_grouphash = capture_results(find_existing_grouphash, return_values)
-    wrapped_calculate_primary_hash = capture_results(_calculate_primary_hash, return_values)
-    wrapped_calculate_secondary_hash = capture_results(_calculate_secondary_hash, return_values)
+    wrapped_calculate_primary_hashes = capture_results(_calculate_primary_hashes, return_values)
+    wrapped_calculate_secondary_hashes = capture_results(_calculate_secondary_hashes, return_values)
 
     with (
         mock.patch(
@@ -43,13 +43,13 @@ def patch_grouping_helpers(return_values: dict[str, Any]):
             wraps=wrapped_find_existing_grouphash,
         ) as find_existing_grouphash_spy,
         mock.patch(
-            "sentry.grouping.ingest.hashing._calculate_primary_hash",
-            wraps=wrapped_calculate_primary_hash,
-        ) as calculate_primary_hash_spy,
+            "sentry.grouping.ingest.hashing._calculate_primary_hashes",
+            wraps=wrapped_calculate_primary_hashes,
+        ) as calculate_primary_hashes_spy,
         mock.patch(
-            "sentry.grouping.ingest.hashing._calculate_secondary_hash",
-            wraps=wrapped_calculate_secondary_hash,
-        ) as calculate_secondary_hash_spy,
+            "sentry.grouping.ingest.hashing._calculate_secondary_hashes",
+            wraps=wrapped_calculate_secondary_hashes,
+        ) as calculate_secondary_hashes_spy,
         mock.patch(
             "sentry.event_manager._create_group",
             # No return-value-wrapping necessary here, since all we need
@@ -64,8 +64,8 @@ def patch_grouping_helpers(return_values: dict[str, Any]):
     ):
         yield {
             "find_existing_grouphash": find_existing_grouphash_spy,
-            "_calculate_primary_hash": calculate_primary_hash_spy,
-            "_calculate_secondary_hash": calculate_secondary_hash_spy,
+            "_calculate_primary_hashes": calculate_primary_hashes_spy,
+            "_calculate_secondary_hashes": calculate_secondary_hashes_spy,
             "_create_group": create_group_spy,
             "record_calculation_metric": record_calculation_metric_spy,
         }
@@ -154,9 +154,9 @@ def get_results_from_saving_event(
             "sentry.event_manager.project_uses_optimized_grouping", return_value=new_logic_enabled
         ),
     ):
-        calculate_secondary_hash_spy = spies["_calculate_secondary_hash"]
+        calculate_secondary_hash_spy = spies["_calculate_secondary_hashes"]
         create_group_spy = spies["_create_group"]
-        calculate_primary_hash_spy = spies["_calculate_primary_hash"]
+        calculate_primary_hash_spy = spies["_calculate_primary_hashes"]
         record_calculation_metric_spy = spies["record_calculation_metric"]
 
         set_grouping_configs(
@@ -184,7 +184,7 @@ def get_results_from_saving_event(
         primary_hash_calculated = calculate_primary_hash_spy.call_count == 1
         secondary_hash_calculated = calculate_secondary_hash_spy.call_count == 1
 
-        primary_hash = return_values["_calculate_primary_hash"][0].hashes[0]
+        primary_hash = return_values["_calculate_primary_hashes"][0][0]
         primary_hash_found = bool(hash_search_result) and hash_search_result.hash == primary_hash
 
         new_group_created = create_group_spy.call_count == 1
@@ -209,7 +209,7 @@ def get_results_from_saving_event(
             )
 
         if secondary_hash_calculated:
-            secondary_hash = return_values["_calculate_secondary_hash"][0].hashes[0]
+            secondary_hash = return_values["_calculate_secondary_hashes"][0][0]
             hashes_different = secondary_hash != primary_hash
             secondary_hash_found = (
                 bool(hash_search_result) and hash_search_result.hash == secondary_hash

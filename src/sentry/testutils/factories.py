@@ -137,11 +137,11 @@ from sentry.models.servicehook import ServiceHook
 from sentry.models.team import Team
 from sentry.models.userreport import UserReport
 from sentry.organizations.services.organization import RpcOrganization, RpcUserOrganizationContext
-from sentry.sentry_apps.apps import SentryAppCreator
 from sentry.sentry_apps.installations import (
     SentryAppInstallationCreator,
     SentryAppInstallationTokenCreator,
 )
+from sentry.sentry_apps.logic import SentryAppCreator
 from sentry.sentry_apps.services.app.serial import serialize_sentry_app_installation
 from sentry.sentry_apps.services.hook import hook_service
 from sentry.signals import project_created
@@ -1949,6 +1949,9 @@ class Factories:
         host_provider_id: str,
         interval_seconds: int,
         timeout_ms: int,
+        method,
+        headers,
+        body,
         date_updated: datetime,
     ):
         return UptimeSubscription.objects.create(
@@ -1962,6 +1965,9 @@ class Factories:
             interval_seconds=interval_seconds,
             timeout_ms=timeout_ms,
             date_updated=date_updated,
+            method=method,
+            headers=headers,
+            body=body,
         )
 
     @staticmethod
