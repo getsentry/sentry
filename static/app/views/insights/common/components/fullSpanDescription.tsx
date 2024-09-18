@@ -6,10 +6,7 @@ import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {space} from 'sentry/styles/space';
 import {SQLishFormatter} from 'sentry/utils/sqlish/SQLishFormatter';
 import {useFullSpanFromTrace} from 'sentry/views/insights/common/queries/useFullSpanFromTrace';
-import {
-  isValidJson,
-  prettyPrintJsonString,
-} from 'sentry/views/insights/database/utils/jsonUtils';
+import {prettyPrintJsonString} from 'sentry/views/insights/database/utils/jsonUtils';
 import {ModuleName} from 'sentry/views/insights/types';
 
 const formatter = new SQLishFormatter();
@@ -57,10 +54,12 @@ export function FullSpanDescription({
     if (system === 'mongodb') {
       let stringifiedQuery = '';
 
-      if (fullSpan?.sentry_tags && isValidJson(fullSpan?.sentry_tags?.description)) {
+      if (fullSpan?.sentry_tags) {
         stringifiedQuery = prettyPrintJsonString(fullSpan?.sentry_tags?.description);
-      } else if (isValidJson(description)) {
+      } else if (description) {
         stringifiedQuery = prettyPrintJsonString(description);
+      } else if (fullSpan?.sentry_tags?.description) {
+        stringifiedQuery = prettyPrintJsonString(fullSpan?.sentry_tags?.description);
       } else {
         stringifiedQuery = description || fullSpan?.sentry_tags?.description || 'N/A';
       }

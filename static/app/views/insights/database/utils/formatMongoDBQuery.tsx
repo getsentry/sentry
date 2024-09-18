@@ -1,5 +1,6 @@
 import type {ReactElement} from 'react';
 import * as Sentry from '@sentry/react';
+import {jsonrepair} from 'jsonrepair';
 
 type JSONValue = string | number | object | boolean | null;
 
@@ -26,7 +27,12 @@ export function formatMongoDBQuery(query: string, command: string) {
   try {
     queryObject = JSON.parse(query);
   } catch {
-    return query;
+    try {
+      const repairedJson = jsonrepair(query);
+      queryObject = JSON.parse(repairedJson);
+    } catch {
+      return query;
+    }
   }
 
   const tokens: ReactElement[] = [];

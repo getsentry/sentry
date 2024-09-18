@@ -8688,6 +8688,11 @@ jsonfile@^6.0.1:
   optionalDependencies:
     graceful-fs "^4.1.6"
 
+jsonrepair@^3.8.0:
+  version "3.8.0"
+  resolved "https://registry.yarnpkg.com/jsonrepair/-/jsonrepair-3.8.0.tgz#33a1b0d3630c452e9945ef07d760469cdfad8823"
+  integrity sha512-89lrxpwp+IEcJ6kwglF0HH3Tl17J08JEpYfXnvvjdp4zV4rjSoGu2NdQHxBs7yTOk3ETjTn9du48pBy8iBqj1w==
+
 "jsx-ast-utils@^2.4.1 || ^3.0.0":
   version "3.3.5"
   resolved "https://registry.yarnpkg.com/jsx-ast-utils/-/jsx-ast-utils-3.3.5.tgz#4766bd05a8e2a11af222becd19e15575e52a853a"
