@@ -1,5 +1,5 @@
 import {useEffect, useRef} from 'react';
-import type {UseInfiniteQueryResult} from '@tanstack/react-query';
+import type {InfiniteData, UseInfiniteQueryResult} from '@tanstack/react-query';
 import {useVirtualizer} from '@tanstack/react-virtual';
 
 import LoadingIndicator from 'sentry/components/loadingIndicator';
@@ -14,7 +14,7 @@ import type {ApiResult} from '../types';
 
 interface Props<Data> {
   itemRenderer: ({item}: {item: Data}) => React.ReactNode;
-  queryResult: UseInfiniteQueryResult<ApiResult<Data[]>, Error>;
+  queryResult: UseInfiniteQueryResult<InfiniteData<ApiResult<Data[]>>, Error>;
   emptyMessage?: () => React.ReactNode;
   estimateSize?: () => number;
   loadingCompleteMessage?: () => React.ReactNode;

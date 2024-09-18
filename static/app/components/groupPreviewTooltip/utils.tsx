@@ -59,7 +59,7 @@ export function usePreviewEvent<T = Event>({
         }),
       },
     ],
-    {staleTime: 30000, cacheTime: 30000}
+    {staleTime: 30000, gcTime: 30000}
   );
 
   // Prefetch the group as well, but don't use the result
@@ -70,7 +70,7 @@ export function usePreviewEvent<T = Event>({
     ],
     {
       staleTime: 30000,
-      cacheTime: 30000,
+      gcTime: 30000,
       enabled: defined(groupId),
     }
   );

@@ -388,9 +388,9 @@ const makeDefaultMenuOptions = ({
   onDuplicate,
   onDelete,
 }: {
-  onDelete?: (key: string) => void;
-  onDuplicate?: (key: string) => void;
-  onRename?: (key: string) => void;
+  onDelete?: () => void;
+  onDuplicate?: () => void;
+  onRename?: () => void;
 }): MenuItemProps[] => {
   const menuOptions: MenuItemProps[] = [
     {
@@ -422,11 +422,11 @@ const makeUnsavedChangesMenuOptions = ({
   onSave,
   onDiscard,
 }: {
-  onDelete?: (key: string) => void;
-  onDiscard?: (key: string) => void;
-  onDuplicate?: (key: string) => void;
-  onRename?: (key: string) => void;
-  onSave?: (key: string) => void;
+  onDelete?: () => void;
+  onDiscard?: () => void;
+  onDuplicate?: () => void;
+  onRename?: () => void;
+  onSave?: () => void;
 }): MenuItemProps[] => {
   return [
     {

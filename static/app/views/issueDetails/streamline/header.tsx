@@ -61,7 +61,7 @@ export default function StreamlinedGroupHeader({
     [`/organizations/${organization.slug}/issues/${group.id}/first-last-release/`],
     {
       staleTime: 30000,
-      cacheTime: 30000,
+      gcTime: 30000,
     }
   );
 

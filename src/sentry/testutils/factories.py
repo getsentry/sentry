@@ -101,7 +101,6 @@ from sentry.models.group import Group
 from sentry.models.grouphistory import GroupHistory
 from sentry.models.grouplink import GroupLink
 from sentry.models.grouprelease import GroupRelease
-from sentry.models.integrations.sentry_app import SentryApp
 from sentry.models.integrations.sentry_app_installation import SentryAppInstallation
 from sentry.models.integrations.sentry_app_installation_for_provider import (
     SentryAppInstallationForProvider,
@@ -142,6 +141,7 @@ from sentry.sentry_apps.installations import (
     SentryAppInstallationTokenCreator,
 )
 from sentry.sentry_apps.logic import SentryAppCreator
+from sentry.sentry_apps.models.sentry_app import SentryApp
 from sentry.sentry_apps.services.app.serial import serialize_sentry_app_installation
 from sentry.sentry_apps.services.hook import hook_service
 from sentry.signals import project_created
