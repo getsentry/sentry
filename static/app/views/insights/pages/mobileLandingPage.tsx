@@ -8,6 +8,7 @@ import {TabList, TabPanels, Tabs} from 'sentry/components/tabs';
 import {t} from 'sentry/locale';
 import {PageAlert} from 'sentry/utils/performance/contexts/pageAlert';
 import ScreensLandingPage from 'sentry/views/insights/mobile/screens/views/screensLandingPage';
+import {OVERVIEW_PAGE_TITLE} from 'sentry/views/insights/pages/settings';
 import {
   type Filters,
   useFilters,
@@ -34,20 +35,20 @@ function MobileLandingPage() {
       preservePageFilters: true,
     },
     {
-      label: filters.module ? MODULE_TITLES[filters.module] : 'Overview',
+      label: filters.module ? MODULE_TITLES[filters.module] : OVERVIEW_PAGE_TITLE,
       to: undefined,
       preservePageFilters: true,
     },
   ];
 
   const handleTabChange: (key: Filters['module']) => void = key => {
-    if (key === filters.module || (key === 'overview' && !filters.module)) {
+    if (key === filters.module || (key === OVERVIEW_PAGE_TITLE && !filters.module)) {
       return;
     }
     if (!key) {
       return;
     }
-    if (key === 'overview') {
+    if (key === OVERVIEW_PAGE_TITLE) {
       updateFilters({module: undefined});
       return;
     }
@@ -56,7 +57,7 @@ function MobileLandingPage() {
 
   return (
     <Fragment>
-      <Tabs value={filters.module || 'overview'} onChange={handleTabChange}>
+      <Tabs value={filters.module || OVERVIEW_PAGE_TITLE} onChange={handleTabChange}>
         <Layout.Header>
           <Layout.HeaderContent>
             <Breadcrumbs crumbs={crumbs} />
@@ -69,7 +70,7 @@ function MobileLandingPage() {
             </ButtonBar>
           </Layout.HeaderActions>
           <TabList>
-            <TabList.Item key="overview">{'Overview'}</TabList.Item>
+            <TabList.Item key={OVERVIEW_PAGE_TITLE}>{OVERVIEW_PAGE_TITLE}</TabList.Item>
             <TabList.Item key={ModuleName.MOBILE_SCREENS}>
               {MODULE_TITLES[ModuleName.MOBILE_SCREENS]}
             </TabList.Item>
@@ -78,7 +79,7 @@ function MobileLandingPage() {
         <Layout.Main fullWidth>
           <PageAlert />
           <TabPanels>
-            <TabPanels.Item key="overview">{'overview page'}</TabPanels.Item>
+            <TabPanels.Item key={OVERVIEW_PAGE_TITLE}>{'overview page'}</TabPanels.Item>
             <TabPanels.Item key={ModuleName.MOBILE_SCREENS}>
               <ScreensLandingPage {...landingPageProps} />
             </TabPanels.Item>

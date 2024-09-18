@@ -10,6 +10,7 @@ import {PageAlert} from 'sentry/utils/performance/contexts/pageAlert';
 import CachesLandingPage from 'sentry/views/insights/cache/views/cacheLandingPage';
 import DatabaseLandingPage from 'sentry/views/insights/database/views//databaseLandingPage';
 import HTTPLandingPage from 'sentry/views/insights/http/views/httpLandingPage';
+import {OVERVIEW_PAGE_TITLE} from 'sentry/views/insights/pages/settings';
 import {
   type Filters,
   useFilters,
@@ -33,24 +34,24 @@ function BackendLandingPage() {
     },
     {
       label: BACKEND_LANDING_TITLE,
-      to: `/performance/${BACKEND_LANDING_SUB_PATH}`,
+      to: undefined,
       preservePageFilters: true,
     },
     {
-      label: filters.module ? MODULE_TITLES[filters.module] : 'Overview',
+      label: filters.module ? MODULE_TITLES[filters.module] : OVERVIEW_PAGE_TITLE,
       to: undefined,
       preservePageFilters: true,
     },
   ];
 
   const handleTabChange: (key: Filters['module']) => void = key => {
-    if (key === filters.module || (key === 'overview' && !filters.module)) {
+    if (key === filters.module || (key === OVERVIEW_PAGE_TITLE && !filters.module)) {
       return;
     }
     if (!key) {
       return;
     }
-    if (key === 'overview') {
+    if (key === OVERVIEW_PAGE_TITLE) {
       updateFilters({module: undefined});
       return;
     }
@@ -59,7 +60,7 @@ function BackendLandingPage() {
 
   return (
     <Fragment>
-      <Tabs value={filters.module || 'overview'} onChange={handleTabChange}>
+      <Tabs value={filters.module || OVERVIEW_PAGE_TITLE} onChange={handleTabChange}>
         <Layout.Header>
           <Layout.HeaderContent>
             <Breadcrumbs crumbs={crumbs} />
@@ -72,7 +73,7 @@ function BackendLandingPage() {
             </ButtonBar>
           </Layout.HeaderActions>
           <TabList>
-            <TabList.Item key="overview">{'Overview'}</TabList.Item>
+            <TabList.Item key={OVERVIEW_PAGE_TITLE}>{OVERVIEW_PAGE_TITLE}</TabList.Item>
             <TabList.Item key={ModuleName.DB}>
               {MODULE_TITLES[ModuleName.DB]}
             </TabList.Item>
@@ -90,7 +91,7 @@ function BackendLandingPage() {
         <Layout.Main fullWidth>
           <PageAlert />
           <TabPanels>
-            <TabPanels.Item key="overview">{'overview page'}</TabPanels.Item>
+            <TabPanels.Item key={OVERVIEW_PAGE_TITLE}>{'overview page'}</TabPanels.Item>
             <TabPanels.Item key={ModuleName.DB}>
               <DatabaseLandingPage {...landingPageProps} />
             </TabPanels.Item>
