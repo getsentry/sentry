@@ -6,6 +6,7 @@ from django.urls import reverse
 from sentry.integrations.messaging.linkage import LinkIdentityView
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.msteams.linkage import MsTeamsIdentityLinkageView
+from sentry.integrations.services.integration import RpcIntegration
 from sentry.models.organization import Organization
 from sentry.utils.http import absolute_uri
 from sentry.utils.signing import sign
@@ -15,7 +16,7 @@ from .client import MsTeamsClient
 
 
 def build_linking_url(
-    integration: Integration,
+    integration: Integration | RpcIntegration,
     organization: Organization,
     teams_user_id: str,
     team_id: str,
