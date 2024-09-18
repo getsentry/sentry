@@ -19,6 +19,7 @@ from sentry.db.models.query import in_icontains
 from sentry.models.broadcast import Broadcast, BroadcastSeen
 from sentry.organizations.services.organization.model import RpcOrganization
 from sentry.search.utils import tokenize_query
+from sentry.users.models.user import User
 
 logger = logging.getLogger("sentry")
 
@@ -184,6 +185,7 @@ class BroadcastIndexEndpoint(ControlSiloOrganizationEndpoint):
                 date_expires=result.get("dateExpires"),
                 media_url=result.get("mediaUrl"),
                 category=result.get("category"),
+                created_by_id=User.objects.get(id=request.user.id),
             )
             logger.info(
                 "broadcasts.create",
