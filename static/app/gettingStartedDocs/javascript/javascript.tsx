@@ -418,26 +418,10 @@ const onboarding: OnboardingConfig<PlatformOptions> = {
     isAutoInstall(params)
       ? loaderScriptOnboarding.configure(params)
       : packageManagerOnboarding.configure(params),
-  verify: () => [
-    {
-      type: StepType.VERIFY,
-      description: t(
-        "This snippet contains an intentional error and can be used as a test to make sure that everything's working as expected."
-      ),
-      configurations: [
-        {
-          code: [
-            {
-              label: 'Javascript',
-              value: 'javascript',
-              language: 'javascript',
-              code: getVerifyJSSnippet(),
-            },
-          ],
-        },
-      ],
-    },
-  ],
+  verify: params =>
+    isAutoInstall(params)
+      ? loaderScriptOnboarding.verify(params)
+      : packageManagerOnboarding.verify(params),
   nextSteps: params =>
     isAutoInstall(params)
       ? loaderScriptOnboarding.nextSteps?.(params)
