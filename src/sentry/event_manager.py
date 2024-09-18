@@ -1354,7 +1354,8 @@ def _save_aggregate(
 ) -> GroupInfo | None:
     project = event.project
 
-    primary_hashes, secondary_hashes, hashes = get_hash_values(project, job, metric_tags)
+    primary_hashes, secondary_hashes = get_hash_values(project, job, metric_tags)
+    hashes = primary_hashes + secondary_hashes
     has_secondary_hashes = len(secondary_hashes) > 0
 
     # Now that we've used the current and possibly secondary grouping config(s) to calculate the
