@@ -89,10 +89,6 @@ def register_temporary_features(manager: FeatureManager):
     # Delightful Developer Metrics (DDM):
     # Enables experimental WIP custom metrics related features
     manager.add("organizations:custom-metrics-experimental", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
-    # Enables generation of custom metrics extraction rules
-    manager.add("organizations:custom-metrics-extraction-rule", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
-    # Enables UI for creation of custom metrics extraction rules
-    manager.add("organizations:custom-metrics-extraction-rule-ui", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable daily summary
     manager.add("organizations:daily-summary", OrganizationFeature, FeatureHandlerStrategy.INTERNAL, api_expose=False)
     # Enables import/export functionality for dashboards
