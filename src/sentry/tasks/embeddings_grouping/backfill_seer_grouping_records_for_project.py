@@ -5,12 +5,15 @@ import sentry_sdk
 from django.conf import settings
 
 from sentry import options
+from sentry.api.exceptions import ResourceDoesNotExist
+from sentry.grouping.api import GroupingConfigNotFound
 from sentry.models.project import Project
 from sentry.seer.similarity.utils import killswitch_enabled, project_is_seer_eligible
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
 from sentry.tasks.embeddings_grouping.utils import (
     FeatureError,
+    GroupStacktraceData,
     create_project_cohort,
     delete_seer_grouping_records,
     filter_snuba_results,
@@ -23,6 +26,7 @@ from sentry.tasks.embeddings_grouping.utils import (
     send_group_and_stacktrace_to_seer_multithreaded,
     update_groups,
 )
+from sentry.utils import metrics
 
 BACKFILL_NAME = "backfill_grouping_records"
 BULK_DELETE_METADATA_CHUNK_SIZE = 100
@@ -211,9 +215,14 @@ def backfill_seer_grouping_records_for_project(
         )
         return
 
-    nodestore_results, group_hashes_dict = get_events_from_nodestore(
-        project, filtered_snuba_results, groups_to_backfill_with_no_embedding_has_snuba_row
-    )
+    try:
+        nodestore_results, group_hashes_dict = get_events_from_nodestore(
+            project, filtered_snuba_results, groups_to_backfill_with_no_embedding_has_snuba_row
+        )
+    except (GroupingConfigNotFound, ResourceDoesNotExist):
+        metrics.incr("sentry.tasks.backfill_seer_grouping_records.grouping_config_error")
+        nodestore_results, group_hashes_dict = GroupStacktraceData(data=[], stacktrace_list=[]), {}
+
     if not group_hashes_dict:
         call_next_backfill(
             last_processed_group_id=batch_end_id,
