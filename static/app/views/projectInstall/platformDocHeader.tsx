@@ -104,7 +104,7 @@ export function PlatformDocHeader({platform, projectSlug, title}: Props) {
           priority="danger"
           confirmText={t("Yes I'm sure")}
           onConfirm={handleGoBack}
-          onClose={() => {
+          onCancel={() => {
             if (!recentCreatedProject) {
               return;
             }
