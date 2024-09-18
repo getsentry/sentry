@@ -46,7 +46,12 @@ import {useOnboardingProject} from 'sentry/views/insights/common/queries/useOnbo
 import {useModuleBreadcrumbs} from 'sentry/views/insights/common/utils/useModuleBreadcrumbs';
 import {QueryParameterNames} from 'sentry/views/insights/common/views/queryParameters';
 import {DataTitles} from 'sentry/views/insights/common/views/spans/types';
-import {ModuleName, SpanFunction, SpanMetricsField} from 'sentry/views/insights/types';
+import {
+  type InsightLandingProps,
+  ModuleName,
+  SpanFunction,
+  SpanMetricsField,
+} from 'sentry/views/insights/types';
 
 const {CACHE_MISS_RATE} = SpanFunction;
 const {CACHE_ITEM_SIZE} = SpanMetricsField;
@@ -64,7 +69,7 @@ const SDK_UPDATE_ALERT = (
 
 const CACHE_ERROR_MESSAGE = 'Column cache.hit was not found in metrics indexer';
 
-export function CacheLandingPage() {
+export function CacheLandingPage({disableHeader}: InsightLandingProps) {
   const location = useLocation();
   const {setPageInfo, pageAlert} = usePageAlert();
 
@@ -181,24 +186,26 @@ export function CacheLandingPage() {
 
   return (
     <React.Fragment>
-      <Layout.Header>
-        <Layout.HeaderContent>
-          <Breadcrumbs crumbs={crumbs} />
+      {!disableHeader && (
+        <Layout.Header>
+          <Layout.HeaderContent>
+            <Breadcrumbs crumbs={crumbs} />
 
-          <Layout.Title>
-            {MODULE_TITLE}
-            <PageHeadingQuestionTooltip
-              docsUrl={MODULE_DOC_LINK}
-              title={MODULE_DESCRIPTION}
-            />
-          </Layout.Title>
-        </Layout.HeaderContent>
-        <Layout.HeaderActions>
-          <ButtonBar gap={1}>
-            <FeedbackWidgetButton />
-          </ButtonBar>
-        </Layout.HeaderActions>
-      </Layout.Header>
+            <Layout.Title>
+              {MODULE_TITLE}
+              <PageHeadingQuestionTooltip
+                docsUrl={MODULE_DOC_LINK}
+                title={MODULE_DESCRIPTION}
+              />
+            </Layout.Title>
+          </Layout.HeaderContent>
+          <Layout.HeaderActions>
+            <ButtonBar gap={1}>
+              <FeedbackWidgetButton />
+            </ButtonBar>
+          </Layout.HeaderActions>
+        </Layout.Header>
+      )}
 
       <Layout.Body>
         <Layout.Main fullWidth>
@@ -244,7 +251,7 @@ export function CacheLandingPage() {
   );
 }
 
-function PageWithProviders() {
+function PageWithProviders(props: InsightLandingProps) {
   return (
     <ModulePageProviders
       moduleName="cache"
@@ -252,7 +259,7 @@ function PageWithProviders() {
       analyticEventName="insight.page_loads.cache"
     >
       <PageAlertProvider>
-        <CacheLandingPage />
+        <CacheLandingPage {...props} />
       </PageAlertProvider>
     </ModulePageProviders>
   );
