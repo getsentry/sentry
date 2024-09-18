@@ -64,7 +64,7 @@ def set_commits(release, commit_list):
         create_repositories(commit_list, release)
         create_commit_authors(commit_list, release)
 
-        if features.has("organizations:set-commits-updated"):
+        if features.has("organizations:set-commits-updated", organization=release.organization):
             (
                 head_commit_by_repo,
                 commit_author_by_commit,
