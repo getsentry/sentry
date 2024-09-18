@@ -21,10 +21,10 @@ from sentry.api.serializers.rest_framework import SentryAppSerializer
 from sentry.auth.staff import is_active_staff
 from sentry.constants import SentryAppStatus
 from sentry.mediators.sentry_app_installations.installation_notifier import InstallationNotifier
-from sentry.models.integrations.sentry_app import SentryApp
 from sentry.models.integrations.sentry_app_installation import SentryAppInstallation
 from sentry.organizations.services.organization import organization_service
 from sentry.sentry_apps.logic import SentryAppUpdater
+from sentry.sentry_apps.models.sentry_app import SentryApp
 from sentry.utils.audit import create_audit_entry
 
 logger = logging.getLogger(__name__)

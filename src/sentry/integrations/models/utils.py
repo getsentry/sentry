@@ -10,7 +10,7 @@ if TYPE_CHECKING:
     )
     from sentry.integrations.models.integration import Integration
     from sentry.integrations.services.integration.model import RpcIntegration
-    from sentry.models.integrations.sentry_app import SentryApp
+    from sentry.sentry_apps.models.sentry_app import SentryApp
     from sentry.sentry_apps.services.app.model import RpcSentryApp
 
 
