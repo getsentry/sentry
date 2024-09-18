@@ -124,12 +124,11 @@ export function useApiQuery<TResponseData, TError = RequestError, TData = TRespo
   const {data, ...rest} = useQuery({
     queryKey,
     queryFn,
+    select: response => response[0] as any as TData,
     ...options,
   });
 
   const queryResult = {
-    // If select is provided, return the selected data, otherwise return the first element of ApiResult tuple
-    data: options.select ? data : data?.[0],
     getResponseHeader: data?.[2]?.getResponseHeader,
     ...rest,
   };
