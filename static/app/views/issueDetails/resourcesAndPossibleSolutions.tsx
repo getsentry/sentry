@@ -53,13 +53,12 @@ export function ResourcesAndPossibleSolutions({event, project, group}: Props) {
   const isSampleError = useIsSampleEvent();
   // NOTE:  Autofix is for INTERNAL testing only for now.
   const displayAiAutofix =
-    true || // TODO
-    (organization.features.includes('autofix') &&
-      organization.features.includes('issue-details-autofix-ui') &&
-      !shouldShowCustomErrorResourceConfig(group, project) &&
-      config.autofix &&
-      hasStacktraceWithFrames(event) &&
-      !isSampleError);
+    organization.features.includes('autofix') &&
+    organization.features.includes('issue-details-autofix-ui') &&
+    !shouldShowCustomErrorResourceConfig(group, project) &&
+    config.autofix &&
+    hasStacktraceWithFrames(event) &&
+    !isSampleError;
   const displayAiSuggestedSolution =
     // Skip showing AI suggested solution if the issue has a custom resource
     config.aiSuggestedSolution &&

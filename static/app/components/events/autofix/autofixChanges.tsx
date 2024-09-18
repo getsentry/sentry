@@ -227,7 +227,7 @@ export function AutofixChanges({step, onRetry, groupId}: AutofixChangesProps) {
   return (
     <ChangesContainer>
       <ClippedBox clipHeight={408}>
-        <h6>Fixes</h6>
+        <HeaderText>{t('Fixes')}</HeaderText>
         {step.changes.map((change, i) => (
           <Fragment key={change.repo_external_id}>
             {i > 0 && <Separator />}
@@ -287,6 +287,11 @@ const Separator = styled('hr')`
   border: none;
   border-top: 1px solid ${p => p.theme.innerBorder};
   margin: ${space(2)} -${space(2)} 0 -${space(2)};
+`;
+
+const HeaderText = styled('div')`
+  font-weight: bold;
+  font-size: 1.2em;
 `;
 
 const ProcessingStatusIndicator = styled(LoadingIndicator)`

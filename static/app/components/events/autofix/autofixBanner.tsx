@@ -36,7 +36,7 @@ function SuccessfulSetup({
   const openAutofix = () => {
     if (!isDrawerOpen) {
       openDrawer(() => <AutofixDrawer group={group} project={project} event={event} />, {
-        ariaLabel: 'autofix drawer',
+        ariaLabel: t('Autofix drawer'),
         // We prevent a click on the Open/Close Autofix button from closing the drawer so that
         // we don't reopen it immediately, and instead let the button handle this itself.
         shouldCloseOnInteractOutside: element => {

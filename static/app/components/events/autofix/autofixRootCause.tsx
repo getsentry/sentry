@@ -296,7 +296,7 @@ function SelectedRootCauseOption({
 }) {
   return (
     <RootCauseOption selected>
-      <h6
+      <HeaderText
         dangerouslySetInnerHTML={{
           __html: singleLineRenderer(t('Root Cause: %s', selectedCause.title)),
         }}
@@ -324,7 +324,7 @@ function AutofixRootCauseDisplay({
       return (
         <CausesContainer>
           <CustomRootCausePadding>
-            <h6>{t('Custom Root Cause')}</h6>
+            <HeaderText>{t('Custom Root Cause')}</HeaderText>
             <CauseDescription>{rootCauseSelection.custom_root_cause}</CauseDescription>
           </CustomRootCausePadding>
         </CausesContainer>
@@ -360,7 +360,7 @@ function AutofixRootCauseDisplay({
                     <Button
                       size="xs"
                       onClick={() => handleSelectFix({causeId: cause.id})}
-                      busy={isLoading}
+                      busy={isPending}
                       analyticsEventName="Autofix: Root Cause Fix Re-Selected"
                       analyticsEventKey="autofix.root_cause_fix_selected"
                       analyticsParams={{group_id: groupId}}
@@ -393,7 +393,7 @@ function AutofixRootCauseDisplay({
     <PotentialCausesContainer>
       <ClippedBox clipHeight={408}>
         <OptionsPadding>
-          <h6>{t('Potential Root Cause')}</h6>
+          <HeaderText>{t('Potential Root Cause')}</HeaderText>
           {causes.map(cause => (
             <CauseOption
               key={cause.id}
@@ -572,4 +572,9 @@ const CodeLinkWrapper = styled('div')`
 
 const CodeSnippetWrapper = styled('div')`
   position: relative;
+`;
+
+const HeaderText = styled('div')`
+  font-weight: bold;
+  font-size: 1.2em;
 `;
