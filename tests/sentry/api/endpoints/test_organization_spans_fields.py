@@ -86,6 +86,38 @@ class OrganizationEAPSpansTagsEndpointTest(OrganizationSpansTagsEndpointTest):
                 **kwargs,
             )
 
+    def test_tags_list(self):
+        for tag in ["foo", "bar", "baz"]:
+            self.store_segment(
+                self.project.id,
+                uuid4().hex,
+                uuid4().hex,
+                span_id=uuid4().hex[:15],
+                organization_id=self.organization.id,
+                parent_span_id=None,
+                timestamp=before_now(days=0, minutes=10).replace(microsecond=0),
+                transaction="foo",
+                duration=100,
+                exclusive_time=100,
+                tags={tag: tag},
+                is_eap=self.is_eap,
+            )
+
+        for features in [
+            None,  # use the default features
+            ["organizations:performance-trace-explorer"],
+        ]:
+            response = self.do_request(features=features)
+            assert response.status_code == 200, response.data
+            assert response.data == [
+                {"key": "bar", "name": "Bar"},
+                {"key": "baz", "name": "Baz"},
+                {"key": "foo", "name": "Foo"},
+                {"key": "name", "name": "Name"},
+                {"key": "segment_name", "name": "Segment Name"},
+                {"key": "service", "name": "Service"},
+            ]
+
 
 class OrganizationSpansTagKeyValuesEndpointTest(BaseSpansTestCase, APITestCase):
     view = "sentry-api-0-organization-spans-fields-values"
