@@ -23,7 +23,7 @@ from sentry.utils import metrics
 from sentry.utils.db import atomic_transaction
 from sentry.utils.retries import TimedRetryPolicy
 from sentry.utils.strings import truncatechars
-
+from sentry import features
 logger = logging.getLogger(__name__)
 from sentry.integrations.tasks.kick_off_status_syncs import kick_off_status_syncs
 from sentry.models.commit import Commit
