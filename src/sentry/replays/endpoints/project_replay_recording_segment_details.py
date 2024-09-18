@@ -83,13 +83,7 @@ class ProjectReplayRecordingSegmentDetailsEndpoint(ProjectEndpoint):
             op="download_segment",
             description="ProjectReplayRecordingSegmentDetailsEndpoint.download_segment",
         ) as child_span:
-            segment_bytes = download_segment(
-                segment,
-                span=child_span,
-            )
-            if segment_bytes is None:
-                segment_bytes = b"[]"
-
+            segment_bytes = download_segment(segment, span=child_span)
             segment_reader = BytesIO(segment_bytes)
 
             response = StreamingHttpResponse(
