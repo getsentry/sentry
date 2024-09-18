@@ -179,9 +179,13 @@ function GroupPriorityLearnMore() {
         <strong>{t('Time to prioritize!')}</strong>
       </p>
       <p>
-        {t(
-          'Use priority to make your issue stream more actionable. Sentry will automatically assign a priority score to new issues and filter low priority issues from the default view.'
-        )}
+        {organization.features.includes('issue-stream-custom-views')
+          ? t(
+              'Use priority to make your issue stream more actionable. Sentry will automatically assign a priority score to new issues.'
+            )
+          : t(
+              'Use priority to make your issue stream more actionable. Sentry will automatically assign a priority score to new issues and filter low priority issues from the default view.'
+            )}
       </p>
       <LinkButton
         href="https://docs.sentry.io/product/issues/issue-priority/"
