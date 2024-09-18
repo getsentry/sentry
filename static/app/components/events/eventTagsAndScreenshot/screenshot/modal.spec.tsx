@@ -6,7 +6,9 @@ import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
-import Modal from 'sentry/components/events/eventTagsAndScreenshot/screenshot/modal';
+import Modal, {
+  MAX_SCREENSHOTS_PER_PAGE,
+} from 'sentry/components/events/eventTagsAndScreenshot/screenshot/modal';
 import GroupStore from 'sentry/stores/groupStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import type {EventAttachment} from 'sentry/types/group';
@@ -117,25 +119,16 @@ describe('Modals -> ScreenshotModal', function () {
 
   it('fetches a new batch of screenshots correctly', async function () {
     const eventAttachment = EventAttachmentFixture();
+    const attachments = Array.from({length: MAX_SCREENSHOTS_PER_PAGE}, (_, index) =>
+      EventAttachmentFixture({id: `${index + 1}`})
+    ).concat(eventAttachment);
+
     renderModal({
       eventAttachment,
       initialData,
       projectSlug: project.slug,
-      attachmentIndex: 11,
-      attachments: [
-        EventAttachmentFixture({id: '2'}),
-        EventAttachmentFixture({id: '3'}),
-        EventAttachmentFixture({id: '4'}),
-        EventAttachmentFixture({id: '5'}),
-        EventAttachmentFixture({id: '6'}),
-        EventAttachmentFixture({id: '7'}),
-        EventAttachmentFixture({id: '8'}),
-        EventAttachmentFixture({id: '9'}),
-        EventAttachmentFixture({id: '10'}),
-        EventAttachmentFixture({id: '11'}),
-        EventAttachmentFixture({id: '12'}),
-        eventAttachment,
-      ],
+      attachmentIndex: MAX_SCREENSHOTS_PER_PAGE - 1,
+      attachments,
       enablePagination: true,
       groupId: 'group-id',
     });
