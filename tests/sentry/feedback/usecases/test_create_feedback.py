@@ -791,7 +791,7 @@ def test_shim_to_feedback_missing_event(default_project, monkeypatch):
         "level": "error",
     }
     shim_to_feedback(
-        report_dict, None, default_project, FeedbackCreationSource.USER_REPORT_ENVELOPE
+        report_dict, None, default_project, FeedbackCreationSource.USER_REPORT_ENVELOPE  # type: ignore[arg-type]
     )
     # Error is handled:
     assert mock_create_feedback_issue.call_count == 0
@@ -811,6 +811,6 @@ def test_shim_to_feedback_missing_fields(default_project, monkeypatch):
     }
     event = Event(event_id="a" * 32, project_id=default_project.id)
     shim_to_feedback(
-        report_dict, event, default_project, FeedbackCreationSource.USER_REPORT_ENVELOPE
+        report_dict, event, default_project, FeedbackCreationSource.USER_REPORT_ENVELOPE  # type: ignore[arg-type]
     )
     assert mock_create_feedback_issue.call_count == 0
