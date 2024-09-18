@@ -22,40 +22,24 @@ from sentry.testutils.helpers.datetime import before_now, iso_format
 class DeleteGroupTest(TestCase, SnubaTestCase):
     def setUp(self):
         super().setUp()
-        self.event_id = "a" * 32
-        self.event_id2 = "b" * 32
-        self.event_id3 = "c" * 32
-
+        group1_data = {"timestamp": iso_format(before_now(minutes=1)), "fingerprint": ["group1"]}
+        group2_data = {"timestamp": iso_format(before_now(minutes=1)), "fingerprint": ["group2"]}
         self.project = self.create_project()
 
+        # Group 1 events
         self.event = self.store_event(
-            data={
-                "event_id": self.event_id,
-                "tags": {"foo": "bar"},
-                "timestamp": iso_format(before_now(minutes=1)),
-                "fingerprint": ["group1"],
-            },
-            project_id=self.project.id,
+            data=group1_data | {"tags": {"foo": "bar"}}, project_id=self.project.id
         )
-
-        self.store_event(
-            data={
-                "event_id": self.event_id2,
-                "timestamp": iso_format(before_now(minutes=1)),
-                "fingerprint": ["group1"],
-            },
-            project_id=self.project.id,
-        )
-
-        self.keep_event = self.store_event(
-            data={
-                "event_id": self.event_id3,
-                "timestamp": iso_format(before_now(minutes=1)),
-                "fingerprint": ["group2"],
-            },
-            project_id=self.project.id,
-        )
+        self.event_id = self.event.event_id
+        self.node_id = Event.generate_node_id(self.project.id, self.event_id)
         group = self.event.group
+        self.event_id2 = self.store_event(data=group1_data, project_id=self.project.id).event_id
+        self.node_id2 = Event.generate_node_id(self.project.id, self.event_id2)
+
+        # Group 2 event
+        self.keep_event = self.store_event(data=group2_data, project_id=self.project.id)
+        self.event_id3 = self.keep_event.event_id
+        self.node_id3 = Event.generate_node_id(self.project.id, self.event_id3)
 
         UserReport.objects.create(
             group_id=group.id, project_id=self.event.project_id, name="With group id"
@@ -75,10 +59,6 @@ class DeleteGroupTest(TestCase, SnubaTestCase):
         GroupHash.objects.create(project=self.project, group=group, hash=uuid4().hex)
         GroupMeta.objects.create(group=group, key="foo", value="bar")
         GroupRedirect.objects.create(group_id=group.id, previous_group_id=1)
-
-        self.node_id = Event.generate_node_id(self.project.id, self.event_id)
-        self.node_id2 = Event.generate_node_id(self.project.id, self.event_id2)
-        self.node_id3 = Event.generate_node_id(self.project.id, self.event_id3)
 
     def test_simple(self):
         EventDataDeletionTask.DEFAULT_CHUNK_SIZE = 1  # test chunking logic
