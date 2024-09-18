@@ -76,16 +76,6 @@ describe('GroupEventAttachmentsDrawer', function () {
     expect(screen.queryByText('Screenshots')).not.toBeInTheDocument();
   });
 
-  it('calls opens modal when clicking on panel body', async function () {
-    render(<GroupEventAttachmentsDrawer project={project} groupId={groupId} />, {
-      router: screenshotRouter,
-      organization,
-    });
-    renderGlobalModal();
-    await userEvent.click(await screen.findByTestId('screenshot-1'));
-    expect(await screen.findByRole('dialog')).toBeInTheDocument();
-  });
-
   it('links event id to event detail', async function () {
     render(<GroupEventAttachmentsDrawer project={project} groupId={groupId} />, {
       router,
@@ -102,8 +92,7 @@ describe('GroupEventAttachmentsDrawer', function () {
       router: screenshotRouter,
       organization,
     });
-    await userEvent.click(await screen.findByLabelText('Actions'));
-    expect(screen.getByText('Download').closest('a')).toHaveAttribute(
+    expect(await screen.findByRole('button', {name: 'Download'})).toHaveAttribute(
       'href',
       '/api/0/projects/org-slug/project-slug/events/12345678901234567890123456789012/attachments/1/?download=1'
     );

@@ -1,7 +1,6 @@
 import styled from '@emotion/styled';
 
 import ProjectAvatar from 'sentry/components/avatar/projectAvatar';
-import EmptyStateWarning from 'sentry/components/emptyStateWarning';
 import {
   CrumbContainer,
   EventDrawerBody,
@@ -13,7 +12,6 @@ import {
   ShortId,
 } from 'sentry/components/events/eventReplay/eventDrawer';
 import LoadingError from 'sentry/components/loadingError';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Pagination from 'sentry/components/pagination';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -26,7 +24,6 @@ import GroupEventAttachmentsFilter, {
   EventAttachmentFilter,
 } from './groupEventAttachmentsFilter';
 import GroupEventAttachmentsTable from './groupEventAttachmentsTable';
-import {ScreenshotCard} from './screenshotCard';
 import {useDeleteGroupEventAttachment} from './useDeleteGroupEventAttachment';
 import {useGroupEventAttachments} from './useGroupEventAttachments';
 
@@ -85,44 +82,6 @@ export function GroupEventAttachmentsDrawer({
     );
   };
 
-  const renderScreenshotGallery = () => {
-    if (isError) {
-      return <LoadingError onRetry={refetch} message={t('Error loading screenshots')} />;
-    }
-
-    if (isPending) {
-      return <LoadingIndicator />;
-    }
-
-    if (attachments.length > 0) {
-      return (
-        <ScreenshotGrid>
-          {attachments.map((screenshot, index) => {
-            return (
-              <ScreenshotCard
-                key={`${index}-${screenshot.id}`}
-                eventAttachment={screenshot}
-                eventId={screenshot.event_id}
-                projectSlug={project.slug}
-                groupId={groupId}
-                onDelete={handleDelete}
-                pageLinks={getResponseHeader?.('Link')}
-                attachments={attachments}
-                attachmentIndex={index}
-              />
-            );
-          })}
-        </ScreenshotGrid>
-      );
-    }
-
-    return (
-      <EmptyStateWarning>
-        <p>{t('No screenshots found')}</p>
-      </EmptyStateWarning>
-    );
-  };
-
   return (
     <EventDrawerContainer>
       <EventDrawerHeader>
@@ -146,30 +105,14 @@ export function GroupEventAttachmentsDrawer({
       </EventNavigator>
       <EventDrawerBody>
         <Wrapper>
-          {activeAttachmentsTab === EventAttachmentFilter.SCREENSHOT
-            ? renderScreenshotGallery()
-            : renderAttachmentsTable()}
+          {/* TODO(issue-details-streamline): Bring back a grid for screenshots */}
+          {renderAttachmentsTable()}
           <NoMarginPagination pageLinks={getResponseHeader?.('Link')} />
         </Wrapper>
       </EventDrawerBody>
     </EventDrawerContainer>
   );
 }
-
-const ScreenshotGrid = styled('div')`
-  display: grid;
-  grid-template-columns: minmax(100px, 1fr);
-  grid-template-rows: repeat(2, max-content);
-  gap: ${space(2)};
-
-  @media (min-width: ${p => p.theme.breakpoints.small}) {
-    grid-template-columns: repeat(3, minmax(100px, 1fr));
-  }
-
-  @media (min-width: ${p => p.theme.breakpoints.xxlarge}) {
-    grid-template-columns: repeat(4, minmax(100px, 1fr));
-  }
-`;
 
 const NoMarginPagination = styled(Pagination)`
   margin: 0;
