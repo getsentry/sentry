@@ -17,14 +17,15 @@ from sentry.models.groupredirect import GroupRedirect
 from sentry.models.userreport import UserReport
 from sentry.testutils.cases import SnubaTestCase, TestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
+from tests.sentry.issues.test_utils import OccurrenceTestMixin
 
 
 class DeleteGroupTest(TestCase, SnubaTestCase):
     def setUp(self):
         super().setUp()
-        group1_data = {"timestamp": iso_format(before_now(minutes=1)), "fingerprint": ["group1"]}
-        group2_data = {"timestamp": iso_format(before_now(minutes=1)), "fingerprint": ["group2"]}
-        self.project = self.create_project()
+        one_minute = iso_format(before_now(minutes=1))
+        group1_data = {"timestamp": one_minute, "fingerprint": ["group1"]}
+        group2_data = {"timestamp": one_minute, "fingerprint": ["group2"]}
 
         # Group 1 events
         self.event = self.store_event(
@@ -189,3 +190,16 @@ class DeleteGroupTest(TestCase, SnubaTestCase):
         assert mock_delete_seer_grouping_records_by_hash_apply_async.call_args[1] == {
             "args": [group.project.id, hashes, 0]
         }
+
+
+class DeleteIssuePlatformTest(TestCase, SnubaTestCase, OccurrenceTestMixin):
+    def test_issue_platform(self):
+        event = self.store_event(data={}, project_id=self.project.id)
+        node_id = Event.generate_node_id(event.project_id, event.event_id)
+        self.build_occurrence(event_id=event.event_id)
+
+        with self.tasks():
+            delete_groups(object_ids=[event.group_id])
+
+        assert not nodestore.backend.get(node_id)
+        assert not Group.objects.filter(id=event.group_id).exists()
