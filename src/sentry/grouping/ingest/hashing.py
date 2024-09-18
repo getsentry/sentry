@@ -216,7 +216,7 @@ def get_hash_values(
     project: Project,
     job: Job,
     metric_tags: MutableTags,
-) -> tuple[list[str], list[str], list[str]]:
+) -> tuple[list[str], list[str]]:
     # Background grouping is a way for us to get performance metrics for a new
     # config without having it actually affect on how events are grouped. It runs
     # either before or after the main grouping logic, depending on the option value.
@@ -235,11 +235,7 @@ def get_hash_values(
         secondary_hashes,
     )
 
-    return (
-        primary_hashes,
-        secondary_hashes,
-        primary_hashes + secondary_hashes,
-    )
+    return (primary_hashes, secondary_hashes)
 
 
 def get_or_create_grouphashes(project: Project, hashes: Sequence[str]) -> list[GroupHash]:

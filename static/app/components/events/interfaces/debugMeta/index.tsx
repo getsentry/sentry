@@ -15,7 +15,7 @@ import {PanelTable} from 'sentry/components/panels/panelTable';
 import {t} from 'sentry/locale';
 import DebugMetaStore from 'sentry/stores/debugMetaStore';
 import {space} from 'sentry/styles/space';
-import type {Image} from 'sentry/types/debugImage';
+import type {Image, ImageWithCombinedStatus} from 'sentry/types/debugImage';
 import {ImageStatus} from 'sentry/types/debugImage';
 import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
@@ -40,10 +40,6 @@ import {
   shouldSkipSection,
 } from './utils';
 
-const IMAGE_INFO_UNAVAILABLE = '-1';
-
-type Images = Array<React.ComponentProps<typeof DebugImage>['image']>;
-
 interface DebugMetaProps {
   data: {
     images: Array<Image | null>;
@@ -54,7 +50,7 @@ interface DebugMetaProps {
 }
 
 interface FilterState {
-  allImages: Images;
+  allImages: ImageWithCombinedStatus[];
   filterOptions: SelectSection<string>[];
   filterSelections: SelectOption<string>[];
 }
@@ -65,7 +61,7 @@ const cache = new CellMeasurerCache({
 });
 
 function applyImageFilters(
-  images: Images,
+  images: ImageWithCombinedStatus[],
   filterSelections: SelectOption<string>[],
   searchTerm: string
 ) {
@@ -130,7 +126,7 @@ export function DebugMeta({data, projectSlug, groupId, event}: DebugMetaProps) {
     // component. Filter those out to reduce the noise. Most importantly, this
     // includes proguard images, which are rendered separately.
 
-    const relevantImages = images.filter(image => {
+    const relevantImages = images.filter((image): image is Image => {
       // in particular proguard images do not have a code file, skip them
       if (image === null || image.code_file === null || image.type === 'proguard') {
         return false;
@@ -148,13 +144,14 @@ export function DebugMeta({data, projectSlug, groupId, event}: DebugMetaProps) {
       return;
     }
 
-    const formattedRelevantImages = relevantImages.map(releventImage => {
-      const {debug_status, unwind_status} = releventImage as Image;
-      return {
-        ...releventImage,
-        status: combineStatus(debug_status, unwind_status),
-      };
-    }) as Images;
+    const formattedRelevantImages = relevantImages.map<ImageWithCombinedStatus>(
+      releventImage => {
+        return {
+          ...releventImage,
+          status: combineStatus(releventImage.debug_status, releventImage.unwind_status),
+        };
+      }
+    );
 
     // Sort images by their start address. We assume that images have
     // non-overlapping ranges. Each address is given as hex string (e.g.
@@ -163,17 +160,17 @@ export function DebugMeta({data, projectSlug, groupId, event}: DebugMetaProps) {
       (a, b) => parseAddress(a.image_addr) - parseAddress(b.image_addr)
     );
 
-    const unusedImages: Images = [];
+    const unusedImages: ImageWithCombinedStatus[] = [];
 
     const usedImages = formattedRelevantImages.filter(image => {
       if (image.debug_status === ImageStatus.UNUSED) {
-        unusedImages.push(image as Images[0]);
+        unusedImages.push(image);
         return false;
       }
       return true;
-    }) as Images;
+    });
 
-    const allImages = [...usedImages, ...unusedImages];
+    const allImages: ImageWithCombinedStatus[] = [...usedImages, ...unusedImages];
 
     const filterOptions = [
       {
@@ -227,7 +224,7 @@ export function DebugMeta({data, projectSlug, groupId, event}: DebugMetaProps) {
   }, [listRef, getScrollbarWidth]);
 
   const getEmptyMessage = useCallback(
-    images => {
+    (images: ImageWithCombinedStatus[]) => {
       const {filterSelections} = filterState;
 
       if (images.length) {
@@ -262,20 +259,7 @@ export function DebugMeta({data, projectSlug, groupId, event}: DebugMetaProps) {
   );
 
   const handleOpenImageDetailsModal = useCallback(
-    (imageCodeId: Image['code_id'], imageDebugId: Image['debug_id']) => {
-      const {allImages} = filterState;
-      if (!imageCodeId && !imageDebugId) {
-        return;
-      }
-
-      const image =
-        imageCodeId !== IMAGE_INFO_UNAVAILABLE || imageDebugId !== IMAGE_INFO_UNAVAILABLE
-          ? allImages.find(
-              ({code_id, debug_id}) =>
-                code_id === imageCodeId || debug_id === imageDebugId
-            )
-          : undefined;
-
+    (image: ImageWithCombinedStatus) => {
       openModal(
         deps => (
           <DebugImageDetails
@@ -292,7 +276,7 @@ export function DebugMeta({data, projectSlug, groupId, event}: DebugMetaProps) {
         {modalCss}
       );
     },
-    [filterState, event, groupId, handleReprocessEvent, organization, projectSlug]
+    [event, groupId, handleReprocessEvent, organization, projectSlug]
   );
 
   // This hook replaces the componentDidMount/WillUnmount calls from its class component
@@ -325,7 +309,7 @@ export function DebugMeta({data, projectSlug, groupId, event}: DebugMetaProps) {
     parent,
     style,
     images,
-  }: ListRowProps & {images: Images}) {
+  }: ListRowProps & {images: ImageWithCombinedStatus[]}) {
     return (
       <CellMeasurer
         cache={cache}
@@ -343,7 +327,7 @@ export function DebugMeta({data, projectSlug, groupId, event}: DebugMetaProps) {
     );
   }
 
-  function renderList(images: Images) {
+  function renderList(images: ImageWithCombinedStatus[]) {
     return (
       <AutoSizer disableHeight onResize={updateGrid}>
         {({width}) => (

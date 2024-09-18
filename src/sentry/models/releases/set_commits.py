@@ -15,6 +15,7 @@ from sentry.models.commitauthor import CommitAuthor
 from sentry.models.commitfilechange import CommitFileChange
 from sentry.models.grouphistory import GroupHistoryStatus, record_group_history
 from sentry.models.groupinbox import GroupInbox, GroupInboxRemoveAction, remove_group_from_inbox
+from sentry.models.release import Release
 from sentry.models.releases.exceptions import ReleaseCommitError
 from sentry.signals import issue_resolved
 from sentry.users.services.user import RpcUser
@@ -49,8 +50,9 @@ def set_commits(release, commit_list):
     commit_list = [
         c for c in commit_list if not RepositoryProvider.should_ignore_commit(c.get("message", ""))
     ]
-    lock_key = type(release).get_lock_key(release.organization_id, release.id)
-    lock = locks.get(lock_key, duration=10, name="release_set_commits")
+    lock_key = Release.get_lock_key(release.organization_id, release.id)
+    # Acquire the lock for a maximum of 10 minutes
+    lock = locks.get(lock_key, duration=10 * 60, name="release_set_commits")
     if lock.locked():
         # Signal failure to the consumer rapidly. This aims to prevent the number
         # of timeouts and prevent web worker exhaustion when customers create
@@ -65,6 +67,7 @@ def set_commits(release, commit_list):
             atomic_transaction(using=router.db_for_write(type(release))),
             in_test_hide_transaction_boundary(),
         ):
+
             head_commit_by_repo, commit_author_by_commit = set_commits_on_release(
                 release, commit_list
             )
@@ -149,12 +152,16 @@ def set_commit(idx, data, release):
             batch_size=100,
         )
 
-    ReleaseCommit.objects.get_or_create(
-        organization_id=release.organization_id,
-        release=release,
-        commit=commit,
-        order=idx,
-    )
+    try:
+        with atomic_transaction(using=router.db_for_write(ReleaseCommit)):
+            ReleaseCommit.objects.create(
+                organization_id=release.organization_id,
+                release=release,
+                commit=commit,
+                order=idx,
+            )
+    except IntegrityError:
+        pass
 
     return commit
 
