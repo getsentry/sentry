@@ -24,7 +24,6 @@ export default function useFetchInfiniteApiData<Data>(
 ) {
   const {fetchInfiniteFn, getNextPageParam, getPreviousPageParam} = useApiEndpoint();
 
-  // TODO: Not sure how to get this to work with the types
   const infiniteQueryResult = useInfiniteQuery<
     ApiResult<Data>,
     Error,
