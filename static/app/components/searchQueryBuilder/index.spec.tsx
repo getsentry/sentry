@@ -804,10 +804,8 @@ describe('SearchQueryBuilder', function () {
       // function which causes an act warning despite using userEvent.click.
       // Cannot find a way to avoid this warning.
       jest.spyOn(console, 'error').mockImplementation(jest.fn());
-      await userEvent.type(
-        screen.getByRole('combobox'),
-        'some free text brow{ArrowDown}{Enter}'
-      );
+      await userEvent.type(screen.getByRole('combobox'), 'some free text brow');
+      await userEvent.click(screen.getByRole('option', {name: 'browser.name'}));
       jest.restoreAllMocks();
 
       // Filter value should have focus
@@ -832,6 +830,50 @@ describe('SearchQueryBuilder', function () {
       expect(await screen.findByRole('row', {name: '('})).toBeInTheDocument();
 
       expect(getLastInput()).toHaveFocus();
+    });
+  });
+
+  describe('filter key suggestions', function () {
+    it('will suggest a filter key when typing its value', async function () {
+      render(<SearchQueryBuilder {...defaultProps} initialQuery="" />);
+      await userEvent.click(getLastInput());
+
+      // Typing "firefox" should show suggestions for the filter "browser.name"
+      await userEvent.type(
+        screen.getByRole('combobox', {name: 'Add a search term'}),
+        'firefox'
+      );
+      const suggestionItem = await screen.findByRole('option', {
+        name: 'browser.name:Firefox',
+      });
+
+      // Clicking it should add the filter and put focus at the end
+      await userEvent.click(suggestionItem);
+      expect(screen.getByRole('row', {name: 'browser.name:Firefox'})).toBeInTheDocument();
+      expect(getLastInput()).toHaveFocus();
+    });
+
+    it('will suggest a raw search when typing with a space', async function () {
+      const mockOnSearch = jest.fn();
+      render(
+        <SearchQueryBuilder {...defaultProps} initialQuery="" onSearch={mockOnSearch} />
+      );
+      await userEvent.click(getLastInput());
+
+      // Typing "foo bar" should show a suggestion for the raw search "foo bar"
+      await userEvent.type(
+        screen.getByRole('combobox', {name: 'Add a search term'}),
+        'foo bar'
+      );
+      const suggestionItem = await screen.findByRole('option', {
+        name: '"foo bar"',
+      });
+
+      // Clicking it should add quotes and fire the search
+      await userEvent.click(suggestionItem);
+      expect(screen.getByRole('row', {name: '"foo bar"'})).toBeInTheDocument();
+      expect(getLastInput()).toHaveFocus();
+      expect(mockOnSearch).toHaveBeenCalledWith('"foo bar"', expect.anything());
     });
   });
 
@@ -2720,6 +2762,7 @@ describe('SearchQueryBuilder', function () {
       );
 
       await userEvent.click(getLastInput());
+      await userEvent.keyboard('{Escape}'); // Dismiss suggestion menu
       expect(
         await screen.findByText('Wildcards not supported in search')
       ).toBeInTheDocument();

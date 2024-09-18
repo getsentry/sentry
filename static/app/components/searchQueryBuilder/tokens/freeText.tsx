@@ -64,6 +64,27 @@ function getWordAtCursorPosition(value: string, cursorPosition: number) {
 }
 
 /**
+ * Replaces the focused word (at cursorPosition) with the given text.
+ */
+function replaceFocusedWord(value: string, cursorPosition: number, replacement: string) {
+  const words = value.split(' ');
+
+  let characterCount = 0;
+  for (const word of words) {
+    characterCount += word.length + 1;
+    if (characterCount >= cursorPosition) {
+      return (
+        value.slice(0, characterCount - word.length - 1).trim() +
+        ` ${replacement} ` +
+        value.slice(characterCount).trim()
+      ).trim();
+    }
+  }
+
+  return value;
+}
+
+/**
  * Replaces the focused word (at cursorPosition) with the selected filter key.
  *
  * Example:
@@ -75,21 +96,11 @@ function replaceFocusedWordWithFilter(
   key: string,
   getFieldDefinition: FieldDefinitionGetter
 ) {
-  const words = value.split(' ');
-
-  let characterCount = 0;
-  for (const word of words) {
-    characterCount += word.length + 1;
-    if (characterCount >= cursorPosition) {
-      return (
-        value.slice(0, characterCount - word.length - 1).trim() +
-        ` ${getInitialFilterText(key, getFieldDefinition(key))} ` +
-        value.slice(characterCount).trim()
-      ).trim();
-    }
-  }
-
-  return value;
+  return replaceFocusedWord(
+    value,
+    cursorPosition,
+    getInitialFilterText(key, getFieldDefinition(key))
+  );
 }
 
 function countPreviousItemsOfType({
@@ -119,7 +130,7 @@ function calculateNextFocusForFilter(state: ListState<ParseResultToken>): FocusO
   };
 }
 
-function calculateNextFocusForParen(item: Node<ParseResultToken>): FocusOverride {
+function calculateNextFocusForInsertedToken(item: Node<ParseResultToken>): FocusOverride {
   const [, tokenTypeIndexStr] = item.key.toString().split(':');
 
   const tokenTypeIndex = parseInt(tokenTypeIndexStr, 10);
@@ -223,7 +234,11 @@ function SearchQueryBuilderInputInternal({
   const {customMenu, sectionItems, maxOptions, onKeyDownCapture} = useFilterKeyListBox({
     filterValue,
   });
-  const sortedFilteredItems = useSortedFilterKeyItems({filterValue});
+  const sortedFilteredItems = useSortedFilterKeyItems({
+    filterValue,
+    inputValue,
+    includeSuggestions: true,
+  });
 
   const items = customMenu ? sectionItems : sortedFilteredItems;
 
@@ -335,6 +350,27 @@ function SearchQueryBuilderInputInternal({
             return;
           }
 
+          if (option.type === 'raw-search') {
+            dispatch({type: 'UPDATE_FREE_TEXT', tokens: [token], text: option.value});
+            resetInputValue();
+
+            // Because the query does not change until a subsequent render,
+            // we need to do the replacement that is does in the reducer here
+            handleSearch(replaceTokensWithPadding(query, [token], option.value));
+            return;
+          }
+
+          if (option.type === 'filter-value' && option.textValue) {
+            dispatch({
+              type: 'UPDATE_FREE_TEXT',
+              tokens: [token],
+              text: replaceFocusedWord(inputValue, selectionIndex, option.textValue),
+              focusOverride: calculateNextFocusForInsertedToken(item),
+            });
+            resetInputValue();
+            return;
+          }
+
           const value = option.value;
 
           dispatch({
@@ -398,7 +434,7 @@ function SearchQueryBuilderInputInternal({
               type: 'UPDATE_FREE_TEXT',
               tokens: [token],
               text: e.target.value,
-              focusOverride: calculateNextFocusForParen(item),
+              focusOverride: calculateNextFocusForInsertedToken(item),
             });
             resetInputValue();
             return;

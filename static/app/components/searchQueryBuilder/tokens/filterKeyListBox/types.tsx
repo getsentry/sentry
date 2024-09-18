@@ -16,8 +16,18 @@ export interface KeyItem extends SelectOptionWithKey<string> {
 }
 
 export interface KeySectionItem extends SelectSectionWithKey<string> {
-  options: KeyItem[];
+  options: SearchKeyItem[];
   type: 'section';
+  value: string;
+}
+
+export interface RawSearchItem extends SelectOptionWithKey<string> {
+  type: 'raw-search';
+  value: string;
+}
+
+export interface FilterValueItem extends SelectOptionWithKey<string> {
+  type: 'filter-value';
   value: string;
 }
 
@@ -32,7 +42,15 @@ export interface RecentQueryItem extends SelectOptionWithKey<string> {
   value: string;
 }
 
-export type FilterKeyItem = KeyItem | RecentFilterItem | KeySectionItem | RecentQueryItem;
+export type SearchKeyItem = KeySectionItem | KeyItem | RawSearchItem | FilterValueItem;
+
+export type FilterKeyItem =
+  | KeyItem
+  | RecentFilterItem
+  | KeySectionItem
+  | RecentQueryItem
+  | RawSearchItem
+  | FilterValueItem;
 
 export type Section = {
   label: ReactNode;

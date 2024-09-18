@@ -6,7 +6,7 @@ import type {Node} from '@react-types/shared';
 import {useSearchQueryBuilder} from 'sentry/components/searchQueryBuilder/context';
 import {SearchQueryBuilderCombobox} from 'sentry/components/searchQueryBuilder/tokens/combobox';
 import {getFilterValueType} from 'sentry/components/searchQueryBuilder/tokens/filter/utils';
-import type {KeyItem} from 'sentry/components/searchQueryBuilder/tokens/filterKeyListBox/types';
+import type {SearchKeyItem} from 'sentry/components/searchQueryBuilder/tokens/filterKeyListBox/types';
 import {useSortedFilterKeyItems} from 'sentry/components/searchQueryBuilder/tokens/useSortedFilterKeyItems';
 import {getInitialFilterText} from 'sentry/components/searchQueryBuilder/tokens/utils';
 import type {
@@ -28,7 +28,11 @@ type KeyComboboxProps = {
 export function FilterKeyCombobox({token, onCommit, item}: KeyComboboxProps) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [inputValue, setInputValue] = useState('');
-  const sortedFilterKeys = useSortedFilterKeyItems({filterValue: inputValue});
+  const sortedFilterKeys = useSortedFilterKeyItems({
+    filterValue: inputValue,
+    inputValue,
+    includeSuggestions: false,
+  });
   const {dispatch, getFieldDefinition} = useSearchQueryBuilder();
 
   const currentFilterValueType = getFilterValueType(
@@ -78,7 +82,7 @@ export function FilterKeyCombobox({token, onCommit, item}: KeyComboboxProps) {
   );
 
   const onOptionSelected = useCallback(
-    (option: KeyItem) => {
+    (option: SearchKeyItem) => {
       handleSelectKey(option.value);
     },
     [handleSelectKey]
