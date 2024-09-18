@@ -1,4 +1,5 @@
 from sentry import eventstore
+from sentry.deletions.tasks.scheduled import run_scheduled_deletions
 from sentry.incidents.models.alert_rule import AlertRule
 from sentry.incidents.models.incident import Incident
 from sentry.models.commit import Commit
@@ -27,7 +28,6 @@ from sentry.monitors.models import (
     ScheduleType,
 )
 from sentry.snuba.models import QuerySubscription, SnubaQuery
-from sentry.tasks.deletion.scheduled import run_scheduled_deletions
 from sentry.testutils.cases import APITestCase, TransactionTestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.hybrid_cloud import HybridCloudTestMixin

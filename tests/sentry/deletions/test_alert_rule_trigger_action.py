@@ -1,6 +1,6 @@
+from sentry.deletions.tasks.scheduled import run_scheduled_deletions
 from sentry.incidents.models.alert_rule import AlertRuleTriggerAction
 from sentry.models.notificationmessage import NotificationMessage
-from sentry.tasks.deletion.scheduled import run_scheduled_deletions
 from sentry.testutils.cases import TestCase
 from sentry.testutils.hybrid_cloud import HybridCloudTestMixin
 

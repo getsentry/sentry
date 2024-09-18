@@ -4,6 +4,7 @@ from functools import cached_property
 from typing import Any
 from unittest.mock import patch
 
+import orjson
 import pytest
 import responses
 from django.test import override_settings
@@ -42,6 +43,7 @@ from sentry.integrations.services.integration import integration_service
 from sentry.integrations.services.integration.serial import serialize_integration
 from sentry.integrations.slack.utils.channel import SlackChannelIdData
 from sentry.models.environment import Environment
+from sentry.seer.anomaly_detection.types import StoreDataResponse
 from sentry.sentry_apps.services.app import app_service
 from sentry.silo.base import SiloMode
 from sentry.snuba.dataset import Dataset
@@ -477,7 +479,8 @@ class TestAlertRuleSerializer(TestAlertRuleSerializerBase):
         """
         Anomaly detection alerts cannot have a nonzero alert rule threshold
         """
-        mock_seer_request.return_value = HTTPResponse(status=200)
+        seer_return_value: StoreDataResponse = {"success": True}
+        mock_seer_request.return_value = HTTPResponse(orjson.dumps(seer_return_value), status=200)
 
         params = self.valid_params.copy()
         params["detection_type"] = AlertRuleDetectionType.DYNAMIC
