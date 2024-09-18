@@ -35,12 +35,7 @@
       "pattern": "^\\d{4}-\\d{2}-\\d{2}(?:T\\d{2}:\\d{2}:\\d{2}(?:\\.\\d+)?)?$"
     }
   },
-  "required": [
-    "name",
-    "owner",
-    "segments",
-    "created_at"
-  ],
+  "required": ["name", "owner", "segments", "created_at"],
   "definitions": {
     "InCondition": {
       "title": "InCondition",
@@ -54,9 +49,7 @@
         "operator": {
           "title": "Operator",
           "default": "in",
-          "enum": [
-            "in"
-          ],
+          "enum": ["in"],
           "type": "string"
         },
         "value": {
@@ -83,10 +76,7 @@
           ]
         }
       },
-      "required": [
-        "property",
-        "value"
-      ]
+      "required": ["property", "value"]
     },
     "NotInCondition": {
       "title": "NotInCondition",
@@ -100,9 +90,7 @@
         "operator": {
           "title": "Operator",
           "default": "not_in",
-          "enum": [
-            "not_in"
-          ],
+          "enum": ["not_in"],
           "type": "string"
         },
         "value": {
@@ -129,10 +117,7 @@
           ]
         }
       },
-      "required": [
-        "property",
-        "value"
-      ]
+      "required": ["property", "value"]
     },
     "ContainsCondition": {
       "title": "ContainsCondition",
@@ -146,9 +131,7 @@
         "operator": {
           "title": "Operator",
           "default": "contains",
-          "enum": [
-            "contains"
-          ],
+          "enum": ["contains"],
           "type": "string"
         },
         "value": {
@@ -166,10 +149,7 @@
           ]
         }
       },
-      "required": [
-        "property",
-        "value"
-      ]
+      "required": ["property", "value"]
     },
     "NotContainsCondition": {
       "title": "NotContainsCondition",
@@ -183,9 +163,7 @@
         "operator": {
           "title": "Operator",
           "default": "not_contains",
-          "enum": [
-            "not_contains"
-          ],
+          "enum": ["not_contains"],
           "type": "string"
         },
         "value": {
@@ -203,10 +181,7 @@
           ]
         }
       },
-      "required": [
-        "property",
-        "value"
-      ]
+      "required": ["property", "value"]
     },
     "EqualsCondition": {
       "title": "EqualsCondition",
@@ -220,9 +195,7 @@
         "operator": {
           "title": "Operator",
           "default": "equals",
-          "enum": [
-            "equals"
-          ],
+          "enum": ["equals"],
           "type": "string"
         },
         "value": {
@@ -261,10 +234,7 @@
           ]
         }
       },
-      "required": [
-        "property",
-        "value"
-      ]
+      "required": ["property", "value"]
     },
     "NotEqualsCondition": {
       "title": "NotEqualsCondition",
@@ -278,9 +248,7 @@
         "operator": {
           "title": "Operator",
           "default": "not_equals",
-          "enum": [
-            "not_equals"
-          ],
+          "enum": ["not_equals"],
           "type": "string"
         },
         "value": {
@@ -319,10 +287,7 @@
           ]
         }
       },
-      "required": [
-        "property",
-        "value"
-      ]
+      "required": ["property", "value"]
     },
     "Segment": {
       "title": "Segment",
@@ -379,10 +344,7 @@
           "type": "integer"
         }
       },
-      "required": [
-        "name",
-        "conditions"
-      ]
+      "required": ["name", "conditions"]
     }
   }
 }

@@ -1,4 +1,5 @@
-// eslint-disable-next-line simple-import-sort/imports
+/* eslint-disable simple-import-sort/imports */
+// biome-ignore lint/nursery/noRestrictedImports: ignore warning
 import {browserHistory, createRoutes, match} from 'react-router';
 import * as Sentry from '@sentry/react';
 import {_browserPerformanceTimeOriginMode} from '@sentry/utils';
