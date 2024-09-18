@@ -121,8 +121,8 @@ describe('DatabaseSystemSelector', function () {
     const dropdownOptionLabels = await screen.findAllByTestId('menu-list-item-label');
     expect(dropdownOptionLabels[0]).toHaveTextContent('PostgreSQL');
     expect(dropdownOptionLabels[1]).toHaveTextContent('MongoDB');
-    // chungusdb does not exist, so we do not expect this option to have casing
-    expect(dropdownOptionLabels[2]).toHaveTextContent('chungusdb');
+    // chungusdb should not be added as an option
+    expect(dropdownOptionLabels).toHaveLength(2);
   });
 
   it('chooses the currently selected system from localStorage', async function () {
