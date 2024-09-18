@@ -196,7 +196,7 @@ class DeleteGroupTest(TestCase, SnubaTestCase):
 class DeleteIssuePlatformTest(TestCase, SnubaTestCase, OccurrenceTestMixin):
     def test_issue_platform(self):
         event = self.store_event(data={}, project_id=self.project.id)
-        _, group_info = self.process_occurrence(
+        issue_occurrence, group_info = self.process_occurrence(
             event_id=event.event_id,
             project_id=self.project.id,
             # We are using ReplayDeadClickType as a representative of Issue Platform
@@ -218,7 +218,8 @@ class DeleteIssuePlatformTest(TestCase, SnubaTestCase, OccurrenceTestMixin):
         node_id = Event.generate_node_id(event.project_id, event.event_id)
         assert nodestore.backend.get(node_id)
 
-        # The Issue Platform group is deleted
-        # XXX: In following PRs we will be deleting other related children objects
-        assert not Group.objects.filter(id=issue_platform_group.id).exists()
+        # The Issue Platform group and occurrence are deleted
         assert issue_platform_group.issue_type == ReplayDeadClickType
+        assert not Group.objects.filter(id=issue_platform_group.id).exists()
+        node_id = Event.generate_node_id(issue_occurrence.project_id, issue_occurrence.id)
+        assert not nodestore.backend.get(node_id)
