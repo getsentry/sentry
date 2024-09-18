@@ -24,6 +24,7 @@ import {
   useEventDetailsReducer,
 } from 'sentry/views/issueDetails/streamline/context';
 import {EventGraph} from 'sentry/views/issueDetails/streamline/eventGraph';
+import {EventList} from 'sentry/views/issueDetails/streamline/eventList';
 import {EventNavigation} from 'sentry/views/issueDetails/streamline/eventNavigation';
 import {
   EventSearch,
@@ -73,11 +74,11 @@ export function EventDetails({
   }, [nav, isScreenMedium, dispatch, theme.sidebar.mobileHeightNumber]);
 
   const graphComponent = !isLoadingStats && groupStats && (
-    <GraphPadding>
+    <EventArea>
       <ErrorBoundary mini message={t('There was an error loading the event graph')}>
         <EventGraph group={group} groupStats={groupStats} searchQuery={searchQuery} />
       </ErrorBoundary>
-    </GraphPadding>
+    </EventArea>
   );
 
   return (
@@ -116,6 +117,9 @@ export function EventDetails({
       ) : (
         graphComponent
       )}
+      <ExtraContent>
+        <EventList group={group} project={project} />
+      </ExtraContent>
       <GroupContent>
         <FloatingEventNavigation
           event={event}
@@ -136,6 +140,22 @@ export function EventDetails({
   );
 }
 
+const EventArea = styled('div')`
+  border: 1px solid ${p => p.theme.translucentBorder};
+  background: ${p => p.theme.background};
+  border-radius: ${p => p.theme.borderRadius};
+`;
+
+const SearchFilter = styled(EventSearch)`
+  border-radius: ${p => p.theme.borderRadius};
+`;
+
+const FilterContainer = styled('div')`
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  gap: ${space(1)};
+`;
+
 const FloatingEventNavigation = styled(EventNavigation)`
   position: sticky;
   top: 0;
@@ -145,16 +165,6 @@ const FloatingEventNavigation = styled(EventNavigation)`
   background: ${p => p.theme.background};
   z-index: 100;
   border-radius: 6px 6px 0 0;
-`;
-
-const SearchFilter = styled(EventSearch)`
-  border-radius: ${p => p.theme.borderRadius};
-`;
-
-const GraphPadding = styled('div')`
-  border: 1px solid ${p => p.theme.translucentBorder};
-  background: ${p => p.theme.background};
-  border-radius: ${p => p.theme.borderRadius};
 `;
 
 const GraphAlert = styled(Alert)`
@@ -174,10 +184,4 @@ const GroupContent = styled(ExtraContent)`
 
 const ContentPadding = styled('div')`
   padding: ${space(1)} ${space(1.5)};
-`;
-
-const FilterContainer = styled('div')`
-  display: grid;
-  grid-template-columns: auto 1fr auto;
-  gap: ${space(1)};
 `;
