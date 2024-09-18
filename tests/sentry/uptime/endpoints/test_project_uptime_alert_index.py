@@ -101,3 +101,62 @@ class ProjectUptimeAlertIndexPostEndpointTest(ProjectUptimeAlertIndexBaseEndpoin
         assert uptime_subscription.url == "http://sentry.io"
         assert uptime_subscription.interval_seconds == 60
         assert uptime_subscription.timeout_ms == DEFAULT_SUBSCRIPTION_TIMEOUT_MS
+
+    @with_feature("organizations:uptime-api-create-update")
+    def test_headers_body_method(self):
+        resp = self.get_success_response(
+            self.organization.slug,
+            self.project.slug,
+            name="test",
+            owner=f"user:{self.user.id}",
+            url="http://sentry.io",
+            interval_seconds=60,
+            method="POST",
+            body='{"key": "value"}',
+            headers='{"header": "value"}',
+        )
+        uptime_monitor = ProjectUptimeSubscription.objects.get(id=resp.data["id"])
+        uptime_subscription = uptime_monitor.uptime_subscription
+        assert uptime_monitor.name == "test"
+        assert uptime_monitor.owner_user_id == self.user.id
+        assert uptime_monitor.owner_team_id is None
+        assert uptime_monitor.mode == ProjectUptimeSubscriptionMode.MANUAL
+        assert uptime_subscription.url == "http://sentry.io"
+        assert uptime_subscription.interval_seconds == 60
+        assert uptime_subscription.timeout_ms == DEFAULT_SUBSCRIPTION_TIMEOUT_MS
+        assert uptime_subscription.body == '{"key": "value"}'
+        assert uptime_subscription.headers == {"header": "value"}
+
+    @with_feature("organizations:uptime-api-create-update")
+    def test_bad_headers(self):
+        resp = self.get_error_response(
+            self.organization.slug,
+            self.project.slug,
+            name="test",
+            owner=f"user:{self.user.id}",
+            url="http://sentry.io",
+            interval_seconds=60,
+            method="POST",
+            body='{"key": "value"}',
+            headers='{"header: "value"}',
+        )
+        assert resp.data == {
+            "headers": [ErrorDetail(string="Headers must be valid JSON", code="invalid")]
+        }
+
+    @with_feature("organizations:uptime-api-create-update")
+    def test_size_too_big(self):
+        resp = self.get_error_response(
+            self.organization.slug,
+            self.project.slug,
+            name="test",
+            owner=f"user:{self.user.id}",
+            url="http://sentry.io",
+            interval_seconds=60,
+            method="POST",
+            body="body" * 250,
+            headers='{"header": "value"}',
+        )
+        assert resp.data == {
+            "nonFieldErrors": [ErrorDetail(string="Request is too large", code="invalid")]
+        }

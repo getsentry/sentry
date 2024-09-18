@@ -1,6 +1,12 @@
+import hashlib
 import logging
 from typing import Any
 
+from django.db import IntegrityError
+from django.db.models.expressions import Value
+from django.db.models.functions import MD5, Coalesce
+
+from sentry.db.models.fields.text import CharField
 from sentry.models.project import Project
 from sentry.types.actor import Actor
 from sentry.uptime.detectors.url_extraction import extract_domain_parts
@@ -23,8 +29,30 @@ MAX_SUBSCRIPTIONS_PER_ORG = 1
 DEFAULT_SUBSCRIPTION_TIMEOUT_MS = 10000
 
 
+def retrieve_uptime_subscription(
+    url: str, interval_seconds: int, method: str = "GET", headers: str = "{}", body: str = ""
+) -> UptimeSubscription | None:
+    headers_md5 = hashlib.md5(headers.encode("utf-8")).hexdigest()
+    body_md5 = hashlib.md5(body.encode("utf-8")).hexdigest()
+
+    filtered_qs = UptimeSubscription.objects.filter(
+        url=url, interval_seconds=interval_seconds, method=method
+    )
+    return (
+        filtered_qs.annotate(
+            headers_md5=MD5("headers"),
+            body_md5=Coalesce(MD5("body"), Value(""), output_field=CharField()),
+        )
+        .filter(
+            headers_md5=headers_md5,
+            body_md5=body_md5,
+        )
+        .first()
+    )
+
+
 def create_uptime_subscription(
-    url: str, interval_seconds: int, timeout_ms: int = DEFAULT_SUBSCRIPTION_TIMEOUT_MS
+    url: str, interval_seconds: int, timeout_ms: int = DEFAULT_SUBSCRIPTION_TIMEOUT_MS, **kwargs
 ) -> UptimeSubscription:
     """
     Creates a new uptime subscription. This creates the row in postgres, and fires a task that will send the config
@@ -33,17 +61,27 @@ def create_uptime_subscription(
     # We extract the domain and suffix of the url here. This is used to prevent there being too many checks to a single
     # domain.
     result = extract_domain_parts(url)
-    subscription, created = UptimeSubscription.objects.get_or_create(
-        url=url,
-        interval_seconds=interval_seconds,
-        defaults={
-            "status": UptimeSubscription.Status.CREATING.value,
-            "type": UPTIME_SUBSCRIPTION_TYPE,
-            "timeout_ms": timeout_ms,
-            "url_domain": result.domain,
-            "url_domain_suffix": result.suffix,
-        },
-    )
+
+    subscription = retrieve_uptime_subscription(url, interval_seconds, **kwargs)
+    created = False
+
+    if subscription is None:
+        try:
+            subscription = UptimeSubscription.objects.create(
+                url=url,
+                url_domain=result.domain,
+                url_domain_suffix=result.suffix,
+                interval_seconds=interval_seconds,
+                timeout_ms=timeout_ms,
+                status=UptimeSubscription.Status.CREATING.value,
+                type=UPTIME_SUBSCRIPTION_TYPE,
+                **kwargs,
+            )
+            created = True
+        except IntegrityError:
+            # Handle race condition where we tried to retrieve an existing subscription while it was being created
+            subscription = retrieve_uptime_subscription(url, interval_seconds, **kwargs)
+
     if subscription.status == UptimeSubscription.Status.DELETING.value:
         # This is pretty unlikely to happen, but we should avoid deleting the subscription here and just confirm it
         # exists in the checker.

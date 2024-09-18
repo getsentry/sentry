@@ -14,6 +14,7 @@ from sentry.uptime.subscriptions.subscriptions import (
     create_project_uptime_subscription,
     create_uptime_subscription,
 )
+from sentry.utils import json
 from sentry.utils.audit import create_audit_entry
 
 MAX_MONITORS_PER_DOMAIN = 100
@@ -28,6 +29,8 @@ for the domain `sentry.io` both the hosts `subdomain-one.sentry.io` and
 Importantly domains like `vercel.dev` are considered TLDs as defined by the
 public suffix list (PSL). See `extract_domain_parts` fo more details
 """
+SUPPORTED_HTTP_METHODS = {"GET", "POST", "HEAD", "PUT", "DELETE", "PATCH", "OPTIONS"}
+MAX_REQUEST_SIZE = 1000
 
 
 @extend_schema_serializer()
@@ -47,6 +50,35 @@ class UptimeMonitorValidator(CamelSnakeSerializer):
         required=True, min_value=60, max_value=int(timedelta(days=1).total_seconds())
     )
     mode = serializers.IntegerField(required=False)
+    method = serializers.CharField(required=False, max_length=20)
+    headers = serializers.JSONField(required=False)
+    body = serializers.CharField(required=False)
+
+    def validate(self, attrs):
+        request_line_size = len(f"{attrs.get('method', 'GET')} {attrs['url']} HTTP/1.1\r\n")
+
+        headers_dict = json.loads(attrs.get("headers", "{}"))
+        headers_size = sum(len(f"{key}: {value}\r\n") for key, value in headers_dict.items())
+
+        body_size = len(attrs.get("body", ""))
+
+        request_size = request_line_size + headers_size + len("\r\n") + body_size
+
+        if request_size > MAX_REQUEST_SIZE:
+            raise serializers.ValidationError("Request is too large")
+        return attrs
+
+    def validate_headers(self, headers):
+        try:
+            json.loads(headers)
+            return headers
+        except ValueError:
+            raise serializers.ValidationError("Headers must be valid JSON")
+
+    def validate_method(self, method):
+        if method not in SUPPORTED_HTTP_METHODS:
+            raise serializers.ValidationError("Specify a valid and supported HTTP method")
+        return method
 
     def validate_url(self, url):
         url_parts = extract_domain_parts(url)
@@ -73,9 +105,13 @@ class UptimeMonitorValidator(CamelSnakeSerializer):
             )
 
     def create(self, validated_data):
+        method_headers_body = {
+            k: v for k, v in validated_data.items() if k in {"method", "headers", "body"}
+        }
         uptime_subscription = create_uptime_subscription(
             url=validated_data["url"],
             interval_seconds=validated_data["interval_seconds"],
+            **method_headers_body,
         )
         uptime_monitor = create_project_uptime_subscription(
             project=self.context["project"],
