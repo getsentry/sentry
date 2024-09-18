@@ -78,8 +78,8 @@ def set_commits(release, commit_list):
                     release, commit_list
                 )
 
-        fill_in_missing_release_head_commits(release, head_commit_by_repo)
-        update_group_resolutions(release, commit_author_by_commit)
+    fill_in_missing_release_head_commits(release, head_commit_by_repo)
+    update_group_resolutions(release, commit_author_by_commit)
 
 
 @metrics.wraps("set_commits_on_release")
