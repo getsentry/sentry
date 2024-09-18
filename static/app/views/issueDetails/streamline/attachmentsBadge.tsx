@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/button';
 import {IconAttachment} from 'sentry/icons';
-import {t} from 'sentry/locale';
+import {t, tn} from 'sentry/locale';
 import type {Group} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
 import parseLinkHeader from 'sentry/utils/parseLinkHeader';
@@ -50,7 +50,9 @@ export function AttachmentsBadge({group, project}: {group: Group; project: Proje
           openAttachmentDrawer();
         }}
       >
-        {t('%s Attachments', hasManyAttachments ? '50+' : attachments.attachments.length)}
+        {hasManyAttachments
+          ? t('50+ Attachments')
+          : tn('%s Attachment', '%s Attachments', attachments.attachments.length)}
       </AttachmentButton>
     </Fragment>
   );

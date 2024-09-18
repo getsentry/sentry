@@ -7,8 +7,6 @@ import {
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 
-export const MAX_SCREENSHOTS_PER_PAGE = 12;
-
 interface UseGroupEventAttachmentsOptions {
   activeAttachmentsTab: 'all' | 'onlyCrash' | 'screenshot';
   groupId: string;
@@ -53,7 +51,6 @@ export const makeFetchGroupEventAttachmentsQueryKey = ({
 
   if (activeAttachmentsTab === 'screenshot') {
     query.screenshot = '1';
-    query.per_page = `${MAX_SCREENSHOTS_PER_PAGE}`;
   } else if (activeAttachmentsTab === 'onlyCrash') {
     query.types = ['event.minidump', 'event.applecrashreport'];
   }

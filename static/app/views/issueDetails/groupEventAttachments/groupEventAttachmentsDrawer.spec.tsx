@@ -16,7 +16,6 @@ import ProjectsStore from 'sentry/stores/projectsStore';
 import type {Project} from 'sentry/types/project';
 
 import {GroupEventAttachmentsDrawer} from './groupEventAttachmentsDrawer';
-import {MAX_SCREENSHOTS_PER_PAGE} from './useGroupEventAttachments';
 
 describe('GroupEventAttachmentsDrawer', function () {
   const groupId = 'group-id';
@@ -62,7 +61,7 @@ describe('GroupEventAttachmentsDrawer', function () {
     expect(getAttachmentsMock).toHaveBeenCalledWith(
       '/organizations/org-slug/issues/group-id/attachments/',
       expect.objectContaining({
-        query: {per_page: `${MAX_SCREENSHOTS_PER_PAGE}`, screenshot: '1'},
+        query: {screenshot: '1'},
       })
     );
   });
