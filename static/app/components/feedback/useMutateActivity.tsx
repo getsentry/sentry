@@ -73,7 +73,7 @@ export default function useMutateActivity({
       ]);
     },
     onSettled: onSettled ?? undefined,
-    cacheTime: 0,
+    gcTime: 0,
   });
 
   const handleUpdate = useCallback<UpdateCommentCallback>(

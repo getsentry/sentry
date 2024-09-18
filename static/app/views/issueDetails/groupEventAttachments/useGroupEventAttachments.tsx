@@ -1,5 +1,3 @@
-import type {Attachment} from '@sentry/types';
-
 import type {IssueAttachment} from 'sentry/types/group';
 import {
   type ApiQueryKey,
@@ -14,7 +12,7 @@ export const MAX_SCREENSHOTS_PER_PAGE = 12;
 interface UseGroupEventAttachmentsOptions {
   activeAttachmentsTab: 'all' | 'onlyCrash' | 'screenshot';
   groupId: string;
-  options?: Pick<UseApiQueryOptions<Attachment[]>, 'keepPreviousData'>;
+  options?: Pick<UseApiQueryOptions<IssueAttachment[]>, 'placeholderData'>;
 }
 
 interface MakeFetchGroupEventAttachmentsQueryKeyOptions

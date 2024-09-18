@@ -7,6 +7,7 @@ import {t} from 'sentry/locale';
 import type {Group} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
 import parseLinkHeader from 'sentry/utils/parseLinkHeader';
+import {keepPreviousData} from 'sentry/utils/queryClient';
 import {Divider} from 'sentry/views/issueDetails/divider';
 import {useGroupEventAttachments} from 'sentry/views/issueDetails/groupEventAttachments/useGroupEventAttachments';
 import {useGroupEventAttachmentsDrawer} from 'sentry/views/issueDetails/groupEventAttachments/useGroupEventAttachmentsDrawer';
@@ -15,7 +16,7 @@ export function AttachmentsBadge({group, project}: {group: Group; project: Proje
   const attachments = useGroupEventAttachments({
     groupId: group.id,
     activeAttachmentsTab: 'all',
-    options: {keepPreviousData: true},
+    options: {placeholderData: keepPreviousData},
   });
   const openButtonRef = useRef<HTMLButtonElement>(null);
   const {openAttachmentDrawer} = useGroupEventAttachmentsDrawer({

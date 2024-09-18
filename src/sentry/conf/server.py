@@ -2478,12 +2478,12 @@ SELF_HOSTED_STABLE_VERSION = "24.9.0"
 SENTRY_USE_X_FORWARDED_FOR = True
 
 SENTRY_DEFAULT_INTEGRATIONS = (
-    "sentry.integrations.bitbucket.BitbucketIntegrationProvider",
-    "sentry.integrations.bitbucket_server.BitbucketServerIntegrationProvider",
+    "sentry.integrations.bitbucket.integration.BitbucketIntegrationProvider",
+    "sentry.integrations.bitbucket_server.integration.BitbucketServerIntegrationProvider",
     "sentry.integrations.slack.SlackIntegrationProvider",
     "sentry.integrations.github.integration.GitHubIntegrationProvider",
     "sentry.integrations.github_enterprise.integration.GitHubEnterpriseIntegrationProvider",
-    "sentry.integrations.gitlab.GitlabIntegrationProvider",
+    "sentry.integrations.gitlab.integration.GitlabIntegrationProvider",
     "sentry.integrations.jira.JiraIntegrationProvider",
     "sentry.integrations.jira_server.JiraServerIntegrationProvider",
     "sentry.integrations.vsts.VstsIntegrationProvider",
@@ -3146,10 +3146,14 @@ SEER_GROUPING_BACKFILL_URL = SEER_DEFAULT_URL
 
 SEER_ANOMALY_DETECTION_MODEL_VERSION = "v1"
 SEER_ANOMALY_DETECTION_URL = SEER_DEFAULT_URL  # for local development, these share a URL
-SEER_ANOMALY_DETECTION_TIMEOUT = 15
+SEER_ANOMALY_DETECTION_TIMEOUT = 5
 
 SEER_ANOMALY_DETECTION_ENDPOINT_URL = (
     f"/{SEER_ANOMALY_DETECTION_MODEL_VERSION}/anomaly-detection/detect"
+)
+
+SEER_ALERT_DELETION_URL = (
+    f"/{SEER_ANOMALY_DETECTION_MODEL_VERSION}/anomaly-detection/delete-alert-data"
 )
 
 SEER_AUTOFIX_GITHUB_APP_USER_ID = 157164994
