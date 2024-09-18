@@ -107,9 +107,11 @@ def format_historical_data(
     #         formatted_data.append(ts_point)
 
     for data in serialized_result.get("data"):
-        ts, count = data
-        ts_point = TimeSeriesPoint(timestamp=ts, value=count[0].get("count", 0))
-        formatted_data.append(ts_point)
+        if len(data) > 1:
+            ts = data[0]
+            count = data[1]
+            ts_point = TimeSeriesPoint(timestamp=ts, value=count[0].get("count", 0))
+            formatted_data.append(ts_point)
 
     return formatted_data
 

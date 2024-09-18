@@ -153,9 +153,7 @@ class AnomalyDetectionStoreDataTest(AlertRuleBase, BaseMetricsTestCase, Performa
             "intervals": [self.time_1, self.time_2],
         }
         data = SnubaTSResult({"data": snuba_raw_data}, self.time_1, self.time_2, 3600)
-        result = format_historical_data(
-            data, ["count()"], metrics_performance, format_historical_data
-        )
+        result = format_historical_data(data, ["count()"], metrics_performance, self.organization)
         assert result == expected_return_value
 
     def test_anomaly_detection_fetch_historical_data_crash_rate_alert(self):
