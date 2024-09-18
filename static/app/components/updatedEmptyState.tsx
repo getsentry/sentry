@@ -63,8 +63,8 @@ export default function UpdatedEmptyState({project}: {project?: Project}) {
 
   const docParams: DocsParams<any> = {
     api,
-    dsn: loadGettingStarted.dsn,
     projectKeyId: loadGettingStarted.projectKeyId,
+    dsn: loadGettingStarted.dsn,
     organization,
     platformKey: currentPlatformKey,
     projectId: project.id,

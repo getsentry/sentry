@@ -79,12 +79,12 @@ export function OnboardingLayout({
 
     const docParams: DocsParams<any> = {
       api,
+      projectKeyId,
       dsn,
       organization,
       platformKey,
       projectId,
       projectSlug,
-      projectKeyId,
       isFeedbackSelected: false,
       isPerformanceSelected: activeProductSelection.includes(
         ProductSolution.PERFORMANCE_MONITORING
@@ -129,8 +129,8 @@ export function OnboardingLayout({
     configType,
     urlPrefix,
     isSelfHosted,
-    projectKeyId,
     api,
+    projectKeyId,
   ]);
 
   useEffect(() => {
