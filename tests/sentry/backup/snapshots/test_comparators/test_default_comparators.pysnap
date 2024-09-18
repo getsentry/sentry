@@ -1,5 +1,5 @@
 ---
-created: '2024-09-12T18:49:19.380477+00:00'
+created: '2024-09-17T12:19:51.014511+00:00'
 creator: sentry
 source: tests/sentry/backup/test_comparators.py
 ---
@@ -260,7 +260,8 @@ source: tests/sentry/backup/test_comparators.py
   model_name: sentry.authproviderreplica
 - comparators:
   - class: ForeignKeyComparator
-    fields: []
+    fields:
+    - created_by_id
   model_name: sentry.broadcast
 - comparators:
   - class: ForeignKeyComparator

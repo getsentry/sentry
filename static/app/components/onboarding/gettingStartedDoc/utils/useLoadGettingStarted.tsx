@@ -5,6 +5,7 @@ import type {Docs} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {
   feedbackOnboardingPlatforms,
   replayPlatforms,
+  withPerformanceOnboarding,
 } from 'sentry/data/platformCategories';
 import type {Organization} from 'sentry/types/organization';
 import type {PlatformIntegration, Project, ProjectKey} from 'sentry/types/project';
@@ -14,7 +15,7 @@ import {useProjectKeys} from 'sentry/utils/useProjectKeys';
 type Props = {
   orgSlug: Organization['slug'];
   platform: PlatformIntegration;
-  productType?: 'feedback' | 'replay';
+  productType?: 'feedback' | 'replay' | 'performance';
   projSlug?: Project['slug'];
 };
 
@@ -43,6 +44,7 @@ export function useLoadGettingStarted({
       if (
         !platformPath ||
         (productType === 'replay' && !replayPlatforms.includes(platform.id)) ||
+        (productType === 'performance' && !withPerformanceOnboarding.has(platform.id)) ||
         (productType === 'feedback' && !feedbackOnboardingPlatforms.includes(platform.id))
       ) {
         setModule('none');

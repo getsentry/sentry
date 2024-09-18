@@ -980,7 +980,13 @@
   },
   "sentry.broadcast": {
     "dangling": false,
-    "foreign_keys": {},
+    "foreign_keys": {
+      "created_by_id": {
+        "kind": "FlexibleForeignKey",
+        "model": "sentry.user",
+        "nullable": true
+      }
+    },
     "model": "sentry.broadcast",
     "relocation_dependencies": [],
     "relocation_scope": "Excluded",
@@ -6191,10 +6197,7 @@
     ],
     "table_name": "uptime_uptimesubscription",
     "uniques": [
-      [
-        "interval_seconds",
-        "url"
-      ],
+      [],
       [
         "subscription_id"
       ]

@@ -5,12 +5,8 @@ from django.urls import URLPattern, URLResolver, re_path
 
 from sentry.api.endpoints.group_ai_summary import GroupAiSummaryEndpoint
 from sentry.api.endpoints.group_autofix_setup_check import GroupAutofixSetupCheck
-from sentry.api.endpoints.group_event_details import GroupEventDetailsEndpoint
 from sentry.api.endpoints.group_integration_details import GroupIntegrationDetailsEndpoint
 from sentry.api.endpoints.group_integrations import GroupIntegrationsEndpoint
-from sentry.api.endpoints.group_similar_issues_embeddings import (
-    GroupSimilarIssuesEmbeddingsEndpoint,
-)
 from sentry.api.endpoints.issues.related_issues import RelatedIssuesEndpoint
 from sentry.api.endpoints.org_auth_token_details import OrgAuthTokenDetailsEndpoint
 from sentry.api.endpoints.org_auth_tokens import OrgAuthTokensEndpoint
@@ -172,7 +168,15 @@ from sentry.integrations.api.endpoints.organization_repository_details import (
 )
 from sentry.issues.endpoints import (
     ActionableItemsEndpoint,
+    GroupActivitiesEndpoint,
+    GroupDetailsEndpoint,
+    GroupEventDetailsEndpoint,
     GroupEventsEndpoint,
+    GroupHashesEndpoint,
+    GroupNotesDetailsEndpoint,
+    GroupNotesEndpoint,
+    GroupSimilarIssuesEmbeddingsEndpoint,
+    GroupSimilarIssuesEndpoint,
     OrganizationGroupIndexEndpoint,
     OrganizationGroupIndexStatsEndpoint,
     OrganizationGroupSearchViewsEndpoint,
@@ -181,6 +185,7 @@ from sentry.issues.endpoints import (
     ProjectGroupIndexEndpoint,
     ProjectGroupStatsEndpoint,
     ProjectStacktraceLinkEndpoint,
+    SharedGroupDetailsEndpoint,
     SourceMapDebugEndpoint,
 )
 from sentry.monitors.endpoints.monitor_ingest_checkin_attachment import (
@@ -333,21 +338,15 @@ from .endpoints.event_grouping_info import EventGroupingInfoEndpoint
 from .endpoints.event_owners import EventOwnersEndpoint
 from .endpoints.event_reprocessable import EventReprocessableEndpoint
 from .endpoints.filechange import CommitFileChangeEndpoint
-from .endpoints.group_activities import GroupActivitiesEndpoint
 from .endpoints.group_ai_autofix import GroupAutofixEndpoint
 from .endpoints.group_attachments import GroupAttachmentsEndpoint
 from .endpoints.group_autofix_update import GroupAutofixUpdateEndpoint
 from .endpoints.group_current_release import GroupCurrentReleaseEndpoint
-from .endpoints.group_details import GroupDetailsEndpoint
 from .endpoints.group_external_issue_details import GroupExternalIssueDetailsEndpoint
 from .endpoints.group_external_issues import GroupExternalIssuesEndpoint
 from .endpoints.group_first_last_release import GroupFirstLastReleaseEndpoint
-from .endpoints.group_hashes import GroupHashesEndpoint
-from .endpoints.group_notes import GroupNotesEndpoint
-from .endpoints.group_notes_details import GroupNotesDetailsEndpoint
 from .endpoints.group_participants import GroupParticipantsEndpoint
 from .endpoints.group_reprocessing import GroupReprocessingEndpoint
-from .endpoints.group_similar_issues import GroupSimilarIssuesEndpoint
 from .endpoints.group_stats import GroupStatsEndpoint
 from .endpoints.group_tagkey_details import GroupTagKeyDetailsEndpoint
 from .endpoints.group_tagkey_values import GroupTagKeyValuesEndpoint
@@ -644,7 +643,6 @@ from .endpoints.relay import (
 from .endpoints.release_deploys import ReleaseDeploysEndpoint
 from .endpoints.rule_snooze import MetricRuleSnoozeEndpoint, RuleSnoozeEndpoint
 from .endpoints.setup_wizard import SetupWizard
-from .endpoints.shared_group_details import SharedGroupDetailsEndpoint
 from .endpoints.system_health import SystemHealthEndpoint
 from .endpoints.system_options import SystemOptionsEndpoint
 from .endpoints.team_all_unresolved_issues import TeamAllUnresolvedIssuesEndpoint

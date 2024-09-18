@@ -95,6 +95,16 @@ def send_historical_data_to_seer(alert_rule: AlertRule, project: Project) -> Ale
         config=anomaly_detection_config,
         timeseries=formatted_data,
     )
+    logger.info(
+        "Sending data to Seer's store data endpoint",
+        extra={
+            "ad_config": anomaly_detection_config,
+            "alert": alert_rule.id,
+            "dataset": snuba_query.dataset,
+            "aggregate": snuba_query.aggregate,
+            "meta": json.dumps(historical_data.data.get("meta", {}).get("fields", {})),
+        },
+    )
     try:
         response = make_signed_seer_api_request(
             connection_pool=seer_anomaly_detection_connection_pool,
@@ -114,10 +124,10 @@ def send_historical_data_to_seer(alert_rule: AlertRule, project: Project) -> Ale
 
     if response.status > 400:
         logger.error(
-            "Error when hitting Seer detect anomalies endpoint",
+            "Error when hitting Seer store data endpoint",
             extra={"response_code": response.status},
         )
-        raise Exception("Error when hitting Seer detect anomalies endpoint")
+        raise Exception("Error when hitting Seer store data endpoint")
 
     try:
         decoded_data = response.data.decode("utf-8")
@@ -145,6 +155,8 @@ def send_historical_data_to_seer(alert_rule: AlertRule, project: Project) -> Ale
                 "alert": alert_rule.id,
                 "response_data": response.data,
                 "reponse_code": response.status,
+                "dataset": snuba_query.dataset,
+                "meta": json.dumps(historical_data.data.get("meta", {}).get("fields", {})),
             },
         )
         raise ParseError(parse_error_string)

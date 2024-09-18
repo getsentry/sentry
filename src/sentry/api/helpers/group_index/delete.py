@@ -59,6 +59,8 @@ def delete_group_list(
     # Tell seer to delete grouping records for these groups
     call_delete_seer_grouping_records_by_hash(group_ids)
 
+    # Removing GroupHash rows prevents new events from associating to the groups
+    # we just deleted.
     GroupHash.objects.filter(project_id=project.id, group__id__in=group_ids).delete()
 
     # We remove `GroupInbox` rows here so that they don't end up influencing queries for

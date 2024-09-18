@@ -1,5 +1,6 @@
 import type {ReactElement} from 'react';
 import * as Sentry from '@sentry/react';
+import {jsonrepair} from 'jsonrepair';
 
 type JSONValue = string | number | object | boolean | null;
 
@@ -26,37 +27,39 @@ export function formatMongoDBQuery(query: string, command: string) {
   try {
     queryObject = JSON.parse(query);
   } catch {
-    return query;
+    try {
+      const repairedJson = jsonrepair(query);
+      queryObject = JSON.parse(repairedJson);
+    } catch {
+      return query;
+    }
   }
 
   const tokens: ReactElement[] = [];
   const tempTokens: ReactElement[] = [];
 
   const queryEntries = Object.entries(queryObject);
-  queryEntries.forEach(([key, val], index) => {
-    // Push the bolded entry into tokens so it is the first entry displayed.
-    // The other tokens will be pushed into tempTokens, and then copied into tokens afterwards
+  queryEntries.forEach(([key, val]) => {
     const isBoldedEntry = key.toLowerCase() === command.toLowerCase();
 
-    if (index === queryEntries.length - 1) {
-      isBoldedEntry
-        ? tokens.push(jsonEntryToToken(key, val, true))
-        : tempTokens.push(jsonEntryToToken(key, val));
-
-      return;
-    }
-
-    if (isBoldedEntry) {
-      tokens.push(jsonEntryToToken(key, val, true));
-      tokens.push(stringToToken(', ', `${key}:${val},`));
-      return;
-    }
-
-    tempTokens.push(jsonEntryToToken(key, val));
-    tempTokens.push(stringToToken(', ', `${key}:${val},`));
+    // Push the bolded entry into tokens so it is the first entry displayed.
+    // The other tokens will be pushed into tempTokens, and then copied into tokens afterwards
+    isBoldedEntry
+      ? tokens.push(jsonEntryToToken(key, val, true))
+      : tempTokens.push(jsonEntryToToken(key, val));
   });
 
-  tempTokens.forEach(token => tokens.push(token));
+  if (tokens.length === 1 && tempTokens.length > 0) {
+    tokens.push(stringToToken(', ', `${tokens[0].key}:,`));
+  }
+
+  tempTokens.forEach((token, index) => {
+    tokens.push(token);
+
+    if (index !== tempTokens.length - 1) {
+      tokens.push(stringToToken(', ', `${token.key}:${index}`));
+    }
+  });
 
   sentrySpan.end();
 

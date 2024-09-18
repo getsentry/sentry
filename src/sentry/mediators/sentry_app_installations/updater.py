@@ -4,7 +4,7 @@ from sentry import analytics
 from sentry.constants import SentryAppInstallationStatus
 from sentry.mediators.mediator import Mediator
 from sentry.mediators.param import Param
-from sentry.models.integrations.sentry_app_installation import SentryAppInstallation
+from sentry.sentry_apps.models.sentry_app_installation import SentryAppInstallation
 from sentry.sentry_apps.services.app import RpcSentryAppInstallation
 
 

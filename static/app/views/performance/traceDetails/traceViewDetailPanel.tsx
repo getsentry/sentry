@@ -473,7 +473,9 @@ function EventDetails({detail, organization, location}: EventDetailProps) {
         />
       ) : null}
       <BreadCrumbsSection event={detail.event} organization={organization} />
-      {projectSlug && <EventAttachments event={detail.event} projectSlug={projectSlug} />}
+      {project && (
+        <EventAttachments event={detail.event} project={project} group={undefined} />
+      )}
       {project && <EventViewHierarchy event={detail.event} project={project} />}
       {projectSlug && (
         <EventRRWebIntegration

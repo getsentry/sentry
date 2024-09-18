@@ -18,7 +18,6 @@ from django.utils.functional import cached_property
 
 from sentry import eventtypes
 from sentry.db.models import NodeData
-from sentry.grouping.result import CalculatedHashes
 from sentry.grouping.variants import BaseVariant, KeyedVariants
 from sentry.interfaces.base import Interface, get_interfaces
 from sentry.issues.grouptype import GroupCategory
@@ -333,7 +332,7 @@ class BaseEvent(metaclass=abc.ABCMeta):
 
         return get_grouping_config_dict_for_event_data(self.data, self.project)
 
-    def get_hashes(self, force_config: StrategyConfiguration | None = None) -> CalculatedHashes:
+    def get_hashes(self, force_config: StrategyConfiguration | None = None) -> list[str]:
         """
         Returns the calculated hashes for the event. This uses the stored
         information if available. Grouping hashes will take into account
@@ -349,17 +348,24 @@ class BaseEvent(metaclass=abc.ABCMeta):
         # fall back to generating new ones from the data.  We can only use
         # this if we do not force a different config.
         if force_config is None:
-            rv = CalculatedHashes.from_event(self.data)
-            if rv is not None:
-                return rv
+            hashes = self.data.get("hashes")
+            if hashes is not None:
+                return hashes
 
         # Create fresh hashes
         from sentry.grouping.api import sort_grouping_variants
 
         variants = self.get_grouping_variants(force_config)
-        hashes = self._hashes_from_sorted_grouping_variants(sort_grouping_variants(variants))
+        hashes = [
+            hash_
+            for _, hash_ in self._hashes_from_sorted_grouping_variants(
+                sort_grouping_variants(variants)
+            )
+        ]
 
-        return CalculatedHashes(hashes=[hash_ for _, hash_ in hashes])
+        # Write to event before returning
+        self.data["hashes"] = hashes
+        return hashes
 
     @staticmethod
     def _hashes_from_sorted_grouping_variants(
@@ -444,7 +450,7 @@ class BaseEvent(metaclass=abc.ABCMeta):
             return get_grouping_variants_for_event(self, loaded_grouping_config)
 
     def get_primary_hash(self) -> str:
-        return self.get_hashes().hashes[0]
+        return self.get_hashes()[0]
 
     def get_span_groupings(
         self, force_config: str | Mapping[str, Any] | None = None

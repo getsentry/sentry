@@ -40,9 +40,13 @@ import {
   MODULE_DOC_LINK,
   MODULE_TITLE,
 } from 'sentry/views/insights/database/settings';
-import {ModuleName, SpanMetricsField} from 'sentry/views/insights/types';
+import {
+  type InsightLandingProps,
+  ModuleName,
+  SpanMetricsField,
+} from 'sentry/views/insights/types';
 
-export function DatabaseLandingPage() {
+export function DatabaseLandingPage({disableHeader}: InsightLandingProps) {
   const organization = useOrganization();
   const moduleName = ModuleName.DB;
   const location = useLocation();
@@ -160,24 +164,26 @@ export function DatabaseLandingPage() {
 
   return (
     <React.Fragment>
-      <Layout.Header>
-        <Layout.HeaderContent>
-          <Breadcrumbs crumbs={crumbs} />
+      {!disableHeader && (
+        <Layout.Header>
+          <Layout.HeaderContent>
+            <Breadcrumbs crumbs={crumbs} />
 
-          <Layout.Title>
-            {MODULE_TITLE}
-            <PageHeadingQuestionTooltip
-              docsUrl={MODULE_DOC_LINK}
-              title={MODULE_DESCRIPTION}
-            />
-          </Layout.Title>
-        </Layout.HeaderContent>
-        <Layout.HeaderActions>
-          <ButtonBar gap={1}>
-            <FeedbackWidgetButton />
-          </ButtonBar>
-        </Layout.HeaderActions>
-      </Layout.Header>
+            <Layout.Title>
+              {MODULE_TITLE}
+              <PageHeadingQuestionTooltip
+                docsUrl={MODULE_DOC_LINK}
+                title={MODULE_DESCRIPTION}
+              />
+            </Layout.Title>
+          </Layout.HeaderContent>
+          <Layout.HeaderActions>
+            <ButtonBar gap={1}>
+              <FeedbackWidgetButton />
+            </ButtonBar>
+          </Layout.HeaderActions>
+        </Layout.Header>
+      )}
 
       <Layout.Body>
         <Layout.Main fullWidth>
@@ -249,14 +255,14 @@ function AlertBanner(props) {
 
 const LIMIT: number = 25;
 
-function PageWithProviders() {
+function PageWithProviders(props: InsightLandingProps) {
   return (
     <ModulePageProviders
       moduleName="db"
       features="insights-initial-modules"
       analyticEventName="insight.page_loads.db"
     >
-      <DatabaseLandingPage />
+      <DatabaseLandingPage {...props} />
     </ModulePageProviders>
   );
 }

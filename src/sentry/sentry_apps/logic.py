@@ -24,19 +24,19 @@ from sentry.integrations.models.integration_feature import IntegrationFeature, I
 from sentry.models.apiapplication import ApiApplication
 from sentry.models.apiscopes import add_scope_hierarchy
 from sentry.models.apitoken import ApiToken
-from sentry.models.integrations.sentry_app import (
+from sentry.models.integrations.sentry_app_component import SentryAppComponent
+from sentry.sentry_apps.installations import (
+    SentryAppInstallationCreator,
+    SentryAppInstallationTokenCreator,
+)
+from sentry.sentry_apps.models.sentry_app import (
     EVENT_EXPANSION,
     REQUIRED_EVENT_PERMISSIONS,
     UUID_CHARS_IN_SLUG,
     SentryApp,
     default_uuid,
 )
-from sentry.models.integrations.sentry_app_component import SentryAppComponent
-from sentry.models.integrations.sentry_app_installation import SentryAppInstallation
-from sentry.sentry_apps.installations import (
-    SentryAppInstallationCreator,
-    SentryAppInstallationTokenCreator,
-)
+from sentry.sentry_apps.models.sentry_app_installation import SentryAppInstallation
 from sentry.tasks.sentry_apps import create_or_update_service_hooks_for_sentry_app
 from sentry.users.models.user import User
 from sentry.users.services.user.model import RpcUser
@@ -235,7 +235,7 @@ class SentryAppUpdater:
             self.sentry_app.overview = self.overview
 
     def _update_allowed_origins(self) -> None:
-        if self.allowed_origins is not None:
+        if self.allowed_origins and self.sentry_app.application:
             self.sentry_app.application.allowed_origins = "\n".join(self.allowed_origins)
             self.sentry_app.application.save()
 
@@ -306,7 +306,7 @@ class SentryAppCreator:
     def run(
         self,
         *,
-        user: User | RpcUser,
+        user: User,
         request: HttpRequest | None = None,
         skip_default_auth_token: bool = False,
     ) -> SentryApp:
@@ -416,7 +416,7 @@ class SentryAppCreator:
         ).run(user=user, request=request)
 
     def _create_access_token(
-        self, user: User, install: SentryAppInstallation, request: HttpRequest
+        self, user: User, install: SentryAppInstallation, request: HttpRequest | None
     ) -> None:
         install.api_token = SentryAppInstallationTokenCreator(sentry_app_installation=install).run(
             request=request, user=user

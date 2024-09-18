@@ -5,7 +5,7 @@ from sentry.coreapi import APIUnauthorized
 from sentry.mediators.mediator import Mediator
 from sentry.mediators.param import Param
 from sentry.models.apiapplication import ApiApplication
-from sentry.models.integrations.sentry_app import SentryApp
+from sentry.sentry_apps.models.sentry_app import SentryApp
 from sentry.sentry_apps.services.app import RpcSentryAppInstallation
 from sentry.users.models.user import User
 
