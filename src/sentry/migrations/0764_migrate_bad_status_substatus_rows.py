@@ -158,7 +158,7 @@ class Migration(CheckedMigration):
     is_post_deployment = True
 
     dependencies = [
-        ("sentry", "0762_drop_substatus_constraint_to_groups"),
+        ("sentry", "0763_add_created_by_to_broadcasts"),
     ]
 
     operations = [

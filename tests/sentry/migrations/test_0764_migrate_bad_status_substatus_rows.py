@@ -13,8 +13,8 @@ from sentry.types.group import GroupSubStatus
 
 
 class BackfillMissingUnresolvedSubstatusTest(TestMigrations):
-    migrate_from = "0762_drop_substatus_constraint_to_groups"
-    migrate_to = "0763_migrate_bad_status_substatus_rows"
+    migrate_from = "0763_add_created_by_to_broadcasts"
+    migrate_to = "0764_migrate_bad_status_substatus_rows"
 
     def setup_before_migration(self, app):
         self.organization = Organization.objects.create(name="test", slug="test")
