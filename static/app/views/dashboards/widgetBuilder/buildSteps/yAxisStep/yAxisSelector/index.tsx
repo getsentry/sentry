@@ -131,10 +131,11 @@ export function YAxisSelector({
       {aggregates.map((fieldValue, i) => (
         <QueryFieldWrapper key={`${fieldValue}:${i}`}>
           {aggregates.length > 1 && displayType === DisplayType.BIG_NUMBER && (
-            <RadioLineItem index={i} role="radio">
+            <RadioLineItem index={i} role="radio" aria-label="radio-label">
               <Radio
                 checked={i === selectedAggregate ? true : false}
                 onChange={() => handleSelectField(i)}
+                aria-label={'field' + i}
               />
             </RadioLineItem>
           )}
