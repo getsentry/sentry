@@ -3,9 +3,9 @@ from django.views.generic import View
 
 from sentry.constants import SentryAppStatus
 from sentry.integrations.notify_disable import get_provider_type, get_url
-from sentry.models.integrations.sentry_app import SentryApp
 from sentry.models.integrations.sentry_app_installation import SentryAppInstallation
 from sentry.models.organization import Organization
+from sentry.sentry_apps.models.sentry_app import SentryApp
 
 from .mail import MailPreview
 
@@ -38,9 +38,11 @@ class DebugSentryAppNotifyDisableView(View):
             context={
                 "integration_name": integration_name,
                 "integration_link": integration_link,
-                "webhook_url": self.sentry_app.webhook_url
-                if "sentry-app" in redis_key and self.sentry_app.webhook_url
-                else "",
+                "webhook_url": (
+                    self.sentry_app.webhook_url
+                    if "sentry-app" in redis_key and self.sentry_app.webhook_url
+                    else ""
+                ),
                 "dashboard_link": f"{integration_link}dashboard/",
             },
         ).render(request)

@@ -14,8 +14,8 @@ from sentry.api.serializers import serialize
 from sentry.auth.superuser import superuser_has_permission
 from sentry.constants import SentryAppStatus
 from sentry.models.apiapplication import generate_token
-from sentry.models.integrations.sentry_app import SentryApp
 from sentry.organizations.services.organization import organization_service
+from sentry.sentry_apps.models.sentry_app import SentryApp
 from sentry.users.services.user.service import user_service
 
 logger = logging.getLogger(__name__)

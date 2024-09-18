@@ -31,10 +31,10 @@ import sentry.models.apigrant
 import sentry.models.apitoken
 import sentry.models.broadcast
 import sentry.models.groupshare
-import sentry.models.integrations.sentry_app
 import sentry.models.integrations.sentry_app_installation
 import sentry.models.scheduledeletion
 import sentry.models.servicehook
+import sentry.sentry_apps.models.sentry_app
 import sentry.users.models.authenticator
 import sentry.users.models.user
 import sentry.utils.security.hash
@@ -1842,7 +1842,7 @@ class Migration(CheckedMigration):
                 (
                     "uuid",
                     models.CharField(
-                        default=sentry.models.integrations.sentry_app.default_uuid, max_length=64
+                        default=sentry.sentry_apps.models.sentry_app.default_uuid, max_length=64
                     ),
                 ),
                 ("redirect_url", models.URLField(null=True)),

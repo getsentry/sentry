@@ -19,12 +19,12 @@ from sentry.auth.superuser import is_active_superuser, superuser_has_permission
 from sentry.coreapi import APIError
 from sentry.integrations.api.bases.integration import PARANOID_GET
 from sentry.middleware.stats import add_request_metric_tags
-from sentry.models.integrations.sentry_app import SentryApp
 from sentry.models.organization import OrganizationStatus
 from sentry.organizations.services.organization import (
     RpcUserOrganizationContext,
     organization_service,
 )
+from sentry.sentry_apps.models.sentry_app import SentryApp
 from sentry.sentry_apps.services.app import RpcSentryApp, app_service
 from sentry.users.services.user import RpcUser
 from sentry.users.services.user.service import user_service

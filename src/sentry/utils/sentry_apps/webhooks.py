@@ -14,8 +14,8 @@ from sentry.integrations.base import is_response_error, is_response_success
 from sentry.integrations.models.utils import get_redis_key
 from sentry.integrations.notify_disable import notify_disable
 from sentry.integrations.request_buffer import IntegrationRequestBuffer
-from sentry.models.integrations.sentry_app import SentryApp, track_response_code
 from sentry.models.organization import Organization
+from sentry.sentry_apps.models.sentry_app import SentryApp, track_response_code
 from sentry.shared_integrations.exceptions import ApiHostError, ApiTimeoutError, ClientError
 from sentry.utils.audit import create_system_audit_entry
 from sentry.utils.sentry_apps import SentryAppWebhookRequestsBuffer

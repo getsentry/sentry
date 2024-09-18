@@ -2,8 +2,8 @@ from unittest import mock
 
 import sentry.hybridcloud.rpc.caching as caching_module
 from sentry.models.apiapplication import ApiApplication
-from sentry.models.integrations.sentry_app import SentryApp
 from sentry.models.integrations.sentry_app_installation import SentryAppInstallation
+from sentry.sentry_apps.models.sentry_app import SentryApp
 from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import control_silo_test
 from sentry.types.region import get_region_for_organization

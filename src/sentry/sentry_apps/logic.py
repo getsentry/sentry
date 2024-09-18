@@ -24,18 +24,18 @@ from sentry.integrations.models.integration_feature import IntegrationFeature, I
 from sentry.models.apiapplication import ApiApplication
 from sentry.models.apiscopes import add_scope_hierarchy
 from sentry.models.apitoken import ApiToken
-from sentry.models.integrations.sentry_app import (
-    EVENT_EXPANSION,
-    REQUIRED_EVENT_PERMISSIONS,
-    UUID_CHARS_IN_SLUG,
-    SentryApp,
-    default_uuid,
-)
 from sentry.models.integrations.sentry_app_component import SentryAppComponent
 from sentry.models.integrations.sentry_app_installation import SentryAppInstallation
 from sentry.sentry_apps.installations import (
     SentryAppInstallationCreator,
     SentryAppInstallationTokenCreator,
+)
+from sentry.sentry_apps.models.sentry_app import (
+    EVENT_EXPANSION,
+    REQUIRED_EVENT_PERMISSIONS,
+    UUID_CHARS_IN_SLUG,
+    SentryApp,
+    default_uuid,
 )
 from sentry.tasks.sentry_apps import create_or_update_service_hooks_for_sentry_app
 from sentry.users.models.user import User

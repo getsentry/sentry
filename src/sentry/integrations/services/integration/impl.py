@@ -34,9 +34,9 @@ from sentry.integrations.services.integration.serial import (
     serialize_integration_external_project,
     serialize_organization_integration,
 )
-from sentry.models.integrations.sentry_app import SentryApp
 from sentry.models.integrations.sentry_app_installation import SentryAppInstallation
 from sentry.rules.actions.notify_event_service import find_alert_rule_action_ui_component
+from sentry.sentry_apps.models.sentry_app import SentryApp
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.utils import json, metrics
 from sentry.utils.sentry_apps import send_and_save_webhook_request

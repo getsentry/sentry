@@ -17,7 +17,7 @@ from sentry.db.models import (
 )
 from sentry.db.models.manager.base import BaseManager
 from sentry.integrations.models.doc_integration import DocIntegration
-from sentry.models.integrations.sentry_app import SentryApp
+from sentry.sentry_apps.models.sentry_app import SentryApp
 
 
 class Feature:
@@ -209,7 +209,7 @@ class IntegrationFeature(Model):
     @property
     def description(self) -> str:
         from sentry.integrations.models.doc_integration import DocIntegration
-        from sentry.models.integrations.sentry_app import SentryApp
+        from sentry.sentry_apps.models.sentry_app import SentryApp
 
         if self.user_description:
             return self.user_description

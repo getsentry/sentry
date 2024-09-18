@@ -29,7 +29,6 @@ from sentry.auth.staff import is_active_staff
 from sentry.auth.superuser import get_superuser_scopes, is_active_superuser
 from sentry.auth.system import SystemToken, is_system_auth
 from sentry.models.apikey import ApiKey
-from sentry.models.integrations.sentry_app import SentryApp
 from sentry.models.organization import Organization
 from sentry.models.organizationmember import OrganizationMember
 from sentry.models.organizationmemberteam import OrganizationMemberTeam
@@ -39,6 +38,7 @@ from sentry.organizations.services.organization import RpcTeamMember, RpcUserOrg
 from sentry.organizations.services.organization.serial import summarize_member
 from sentry.roles import organization_roles
 from sentry.roles.manager import OrganizationRole, TeamRole
+from sentry.sentry_apps.models.sentry_app import SentryApp
 from sentry.users.models.user import User
 from sentry.users.services.user import RpcUser
 from sentry.utils import metrics
