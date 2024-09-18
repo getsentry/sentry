@@ -5,12 +5,14 @@ from django.utils import timezone
 from django.utils.datastructures import MultiValueDict
 
 from sentry import release_health
+from sentry.api.bases.organization_events import get_query_columns
 from sentry.incidents.models.alert_rule import AlertRule, AlertRuleThresholdType
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.search.events.types import SnubaParams
 from sentry.seer.anomaly_detection.types import TimeSeriesPoint
 from sentry.snuba import metrics_performance
+from sentry.snuba.metrics.extraction import MetricSpecType
 from sentry.snuba.models import SnubaQuery
 from sentry.snuba.referrer import Referrer
 from sentry.snuba.sessions_v2 import QueryDefinition
@@ -114,8 +116,14 @@ def format_historical_data(data: SnubaTSResult, dataset: Any) -> list[TimeSeries
                 if not agg_key:
                     for key in datum:  # only two keys in this dict
                         if key != "time":
+                            # CEO: this is always either time OR events.time in meta, so maybe we could pull from that
+                            # and just grab the key that isn't time or events.time
                             agg_key = key
                             break
+                # avoid None values in data which cause Seer error
+                value = datum.get(agg_key, 0)
+                if not value:
+                    value = 0
                 ts_point = TimeSeriesPoint(timestamp=datum.get("time"), value=datum.get(agg_key, 0))
             formatted_data.append(ts_point)
     return formatted_data
@@ -153,6 +161,8 @@ def fetch_historical_data(
     if not project or not dataset or not alert_rule.organization:
         return None
 
+    query_columns = get_query_columns([snuba_query.aggregate], granularity)
+
     if dataset == metrics_performance:
         return get_crash_free_historical_data(
             start, end, project, alert_rule.organization, granularity
@@ -160,13 +170,15 @@ def fetch_historical_data(
 
     else:
         historical_data = dataset.timeseries_query(
-            selected_columns=[snuba_query.aggregate],
+            selected_columns=query_columns,
             query=snuba_query.query,
             snuba_params=SnubaParams(
                 organization=alert_rule.organization,
                 projects=[project],
                 start=start,
                 end=end,
+                stats_period=None,
+                environments=[snuba_query.environment],
             ),
             rollup=granularity,
             referrer=(
@@ -175,5 +187,7 @@ def fetch_historical_data(
                 else Referrer.ANOMALY_DETECTION_RETURN_HISTORICAL_ANOMALIES.value
             ),
             zerofill_results=True,
+            allow_metric_aggregates=True,
+            on_demand_metrics_type=MetricSpecType.SIMPLE_QUERY,
         )
     return historical_data
