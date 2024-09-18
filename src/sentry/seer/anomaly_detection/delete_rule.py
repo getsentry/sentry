@@ -7,7 +7,7 @@ from urllib3.exceptions import MaxRetryError, TimeoutError
 from sentry.conf.server import SEER_ALERT_DELETION_URL
 from sentry.models.organization import Organization
 from sentry.net.http import connection_from_url
-from sentry.seer.anomaly_detection.types import DeleteRuleRequest
+from sentry.seer.anomaly_detection.types import DeleteAlertDataRequest
 from sentry.seer.signed_seer_api import make_signed_seer_api_request
 from sentry.utils import json
 from sentry.utils.json import JSONDecodeError
@@ -26,7 +26,7 @@ def delete_rule_in_seer(alert_rule: "AlertRule") -> bool:
     """
     Send a request to delete an alert rule from Seer. Returns True if the request was successful.
     """
-    body = DeleteRuleRequest(
+    body = DeleteAlertDataRequest(
         organization_id=cast(Organization, alert_rule.organization).id,
         alert={"id": alert_rule.id},
     )
