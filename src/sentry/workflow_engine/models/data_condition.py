@@ -3,14 +3,13 @@ from django.db import models
 from sentry.backup.scopes import RelocationScope
 from sentry.db.models import DefaultFieldsModel, region_silo_model, sane_repr
 
-from .detector import Detector
-from .workflow_action import WorkflowAction
+from .data_condition_group import DataConditionGroup
 
 
 @region_silo_model
 class DataCondition(DefaultFieldsModel):
     """
-    A data condition is a way to specify a condition that must be met for a workflow to execute.
+    A data condition is a way to specify a logic condition, if the condition is met, the condition_result is returned.
     """
 
     __relocation_scope__ = RelocationScope.Organization
@@ -21,7 +20,7 @@ class DataCondition(DefaultFieldsModel):
     condition_result = models.JSONField()
     type = models.CharField(max_length=200)
 
-    detector = models.ForeignKey(Detector, on_delete=models.CASCADE, blank=True, null=True)
-    workflow_action = models.ForeignKey(
-        WorkflowAction, on_delete=models.CASCADE, blank=True, null=True
+    condition_group = models.ForeignKey(
+        DataConditionGroup,
+        on_delete=models.CASCADE,
     )

@@ -14,6 +14,9 @@ class Detector(DefaultFieldsModel, OwnerModel):
     organization = FlexibleForeignKey("sentry.Organization")
     name = models.CharField(max_length=200)
     data_sources = models.ManyToManyField("workflow_engine.DataSource", through=DataSourceDetector)
+    data_condition_group = models.ForeignKey(
+        "workflow_engine.DataConditionGroup", on_delete=models.CASCADE, blank=True, null=True
+    )
 
     class Meta(OwnerModel.Meta):
         constraints = OwnerModel.Meta.constraints + [
