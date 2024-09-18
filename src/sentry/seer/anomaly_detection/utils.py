@@ -5,7 +5,8 @@ from django.utils import timezone
 from django.utils.datastructures import MultiValueDict
 
 from sentry import release_health
-from sentry.api.bases.organization_events import get_query_columns
+from sentry.api.bases.organization_events import resolve_axis_column
+from sentry.api.serializers.snuba import SnubaTSResultSerializer
 from sentry.incidents.models.alert_rule import AlertRule, AlertRuleThresholdType
 from sentry.models.organization import Organization
 from sentry.models.project import Project
@@ -77,61 +78,46 @@ def get_crash_free_historical_data(
     )
 
 
-def format_historical_data(data: SnubaTSResult, dataset: Any) -> list[TimeSeriesPoint]:
+def format_historical_data(
+    data: SnubaTSResult, query_columns: list[str], dataset: Any, organization: Organization
+) -> list[TimeSeriesPoint]:
     """
     Format Snuba data into the format the Seer API expects.
-    For errors/transactions data:
-        If there are no results, it's just the timestamp
-        {'time': 1719012000}, {'time': 1719018000}, {'time': 1719024000}
-
-        If there are results, the aggregate is added
-        {'time': 1721300400, 'count': 2}
-
-    For metrics_performance dataset/sessions data:
-        The count is stored separately from the timestamps, if there is no data the count is 0
     """
+    serializer = SnubaTSResultSerializer(organization=organization, lookup=None, user=None)
+    serialized_result = serializer.serialize(
+        data,
+        resolve_axis_column(query_columns[0]),
+        allow_partial_buckets=False,
+        zerofill_results=True,
+        extra_columns=None,
+    )
     formatted_data: list[TimeSeriesPoint] = []
-    nested_data = data.data.get("data", [])
 
-    if dataset == metrics_performance:
-        groups = nested_data.get("groups")
-        if not len(groups):
-            return formatted_data
-        series = groups[0].get("series")
+    # CEO: need to validate this is still correct for sessions data
+    # if dataset == metrics_performance:
+    #     groups = nested_data.get("groups")
+    #     if not len(groups):
+    #         return formatted_data
+    #     series = groups[0].get("series")
 
-        for time, count in zip(nested_data.get("intervals"), series.get("sum(session)", 0)):
-            date = datetime.strptime(time, "%Y-%m-%dT%H:%M:%SZ")
-            ts_point = TimeSeriesPoint(timestamp=date.timestamp(), value=count)
-            formatted_data.append(ts_point)
-    else:
-        # we don't know what the aggregation key of the query is
-        # so we should see it when we see a data point that has a value
-        agg_key = ""
-        for datum in nested_data:
-            if len(datum) == 1:
-                # this data point has no value
-                ts_point = TimeSeriesPoint(timestamp=datum.get("time"), value=0)
-            else:
-                # if we don't know the aggregation key yet, we should set it
-                if not agg_key:
-                    for key in datum:  # only two keys in this dict
-                        if key != "time":
-                            # CEO: this is always either time OR events.time in meta, so maybe we could pull from that
-                            # and just grab the key that isn't time or events.time
-                            agg_key = key
-                            break
-                # avoid None values in data which cause Seer error
-                value = datum.get(agg_key, 0)
-                if not value:
-                    value = 0
-                ts_point = TimeSeriesPoint(timestamp=datum.get("time"), value=datum.get(agg_key, 0))
-            formatted_data.append(ts_point)
+    #     for time, count in zip(nested_data.get("intervals"), series.get("sum(session)", 0)):
+    #         date = datetime.strptime(time, "%Y-%m-%dT%H:%M:%SZ")
+    #         ts_point = TimeSeriesPoint(timestamp=date.timestamp(), value=count)
+    #         formatted_data.append(ts_point)
+
+    for data in serialized_result.get("data"):
+        ts, count = data
+        ts_point = TimeSeriesPoint(timestamp=ts, value=count[0].get("count", 0))
+        formatted_data.append(ts_point)
+
     return formatted_data
 
 
 def fetch_historical_data(
     alert_rule: AlertRule,
     snuba_query: SnubaQuery,
+    query_columns: list[str],
     project: Project,
     start: datetime | None = None,
     end: datetime | None = None,
@@ -160,8 +146,6 @@ def fetch_historical_data(
 
     if not project or not dataset or not alert_rule.organization:
         return None
-
-    query_columns = get_query_columns([snuba_query.aggregate], granularity)
 
     if dataset == metrics_performance:
         return get_crash_free_historical_data(
