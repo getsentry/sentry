@@ -297,7 +297,7 @@ export type ProductSelectionProps = {
   /**
    * Fired when the product selection changes
    */
-  onChange?: () => void;
+  onChange?: (product: ProductSolution[]) => void;
   /**
    * The platform key of the project (e.g. javascript-react, python-django, etc.)
    */
@@ -371,7 +371,7 @@ export function ProductSelection({
 
       const selectedProducts = [...newProduct] as ProductSolution[];
 
-      onChange?.();
+      onChange?.(selectedProducts);
       setParams({product: selectedProducts});
 
       if (organization.features.includes('project-create-replay-feedback')) {

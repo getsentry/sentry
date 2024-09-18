@@ -388,6 +388,6 @@ describe('Onboarding Product Selection', function () {
     );
 
     await userEvent.click(screen.getByRole('checkbox', {name: 'Profiling'}));
-    expect(handleChange).toHaveBeenCalled();
+    expect(handleChange).toHaveBeenCalledWith(['performance-monitoring', 'profiling']);
   });
 });

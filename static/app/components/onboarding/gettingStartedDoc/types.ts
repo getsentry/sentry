@@ -1,5 +1,6 @@
 import type {StepProps} from 'sentry/components/onboarding/gettingStartedDoc/step';
 import type {ReleaseRegistrySdk} from 'sentry/components/onboarding/gettingStartedDoc/useSourcePackageRegistries';
+import type {ProductSolution} from 'sentry/components/onboarding/productSelection';
 import type {Organization} from 'sentry/types/organization';
 import type {PlatformKey, Project, ProjectKey} from 'sentry/types/project';
 
@@ -86,8 +87,10 @@ export interface OnboardingConfig<
       introduction?: React.ReactNode | React.ReactNode[];
       nextSteps?: (NextStep | null)[];
       onPageLoad?: () => void;
-      onPlatformOptionsChange?: () => void;
-      onProductSelectionChange?: () => void;
+      onPlatformOptionsChange?: (
+        platformOptions: SelectedPlatformOptions<PlatformOptions>
+      ) => void;
+      onProductSelectionChange?: (products: ProductSolution[]) => void;
     },
     DocsParams<PlatformOptions>
   > {}

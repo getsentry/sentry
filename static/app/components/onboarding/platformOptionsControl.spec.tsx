@@ -136,6 +136,6 @@ describe('Onboarding Product Selection', function () {
     );
 
     await userEvent.click(screen.getByRole('radio', {name: 'V2'}));
-    expect(handleChange).toHaveBeenCalled();
+    expect(handleChange).toHaveBeenCalledWith({springBoot: 'v2'});
   });
 });

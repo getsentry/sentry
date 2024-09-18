@@ -73,7 +73,7 @@ export type PlatformOptionsControlProps = {
   /**
    * Fired when the value changes
    */
-  onChange?: () => void;
+  onChange?: (options: SelectedPlatformOptions) => void;
 };
 
 export function PlatformOptionsControl({
@@ -84,7 +84,7 @@ export function PlatformOptionsControl({
   const urlOptionValues = useUrlPlatformOptions(platformOptions);
 
   const handleChange = (key: string, value: string) => {
-    onChange?.();
+    onChange?.({[key]: value});
     router.replace({
       ...router.location,
       query: {
