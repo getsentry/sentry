@@ -86,7 +86,10 @@ type BaseDiscoverQueryProps = {
    * passed, but cursor will be ignored.
    */
   noPagination?: boolean;
-  options?: Omit<UseQueryOptions, 'queryKey'>;
+  options?: Omit<
+    UseQueryOptions<[any, string | undefined, ResponseMeta<any> | undefined], QueryError>,
+    'queryKey' | 'queryFn'
+  >;
   /**
    * A container for query batching data and functions.
    */
@@ -430,7 +433,7 @@ export function useGenericDiscoverQuery<T, P>(props: Props<T, P>) {
         queryBatching: props.queryBatching,
         skipAbort: props.skipAbort,
       }),
-    ...(options as any),
+    ...options,
   });
 
   return {
