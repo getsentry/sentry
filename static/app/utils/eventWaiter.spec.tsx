@@ -5,7 +5,6 @@ import {act, render} from 'sentry-test/reactTestingLibrary';
 
 import EventWaiter from 'sentry/utils/eventWaiter';
 
-// biome-ignore lint/correctness/useHookAtTopLevel: not a hook
 jest.useFakeTimers();
 
 describe('EventWaiter', function () {

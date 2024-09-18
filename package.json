@@ -179,7 +179,7 @@
     "zxcvbn": "^4.4.2"
   },
   "devDependencies": {
-    "@biomejs/biome": "^1.8.3",
+    "@biomejs/biome": "^1.9.1",
     "@codecov/webpack-plugin": "^1.0.0",
     "@pmmmwh/react-refresh-webpack-plugin": "0.5.15",
     "@sentry/jest-environment": "6.0.0",
@@ -266,9 +266,7 @@
       "last 3 iOS major versions",
       "Firefox ESR"
     ],
-    "test": [
-      "current node"
-    ]
+    "test": ["current node"]
   },
   "volta": {
     "extends": ".volta.json"

@@ -1,4 +1,5 @@
 import {Fragment, lazy} from 'react';
+// biome-ignore lint/nursery/noRestrictedImports: warning
 import {IndexRedirect, Redirect} from 'react-router';
 import memoize from 'lodash/memoize';
 
