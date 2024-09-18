@@ -51,6 +51,7 @@ export interface DocsParams<
   organization: Organization;
   platformKey: PlatformKey;
   platformOptions: SelectedPlatformOptions<PlatformOptions>;
+  products: ProductSolution[];
   projectId: Project['id'];
   projectSlug: Project['slug'];
   sourcePackageRegistries: {isLoading: boolean; data?: ReleaseRegistrySdk};
@@ -87,10 +88,8 @@ export interface OnboardingConfig<
       introduction?: React.ReactNode | React.ReactNode[];
       nextSteps?: (NextStep | null)[];
       onPageLoad?: () => void;
-      onPlatformOptionsChange?: (
-        platformOptions: SelectedPlatformOptions<PlatformOptions>
-      ) => void;
-      onProductSelectionChange?: (products: ProductSolution[]) => void;
+      onPlatformOptionsChange?: () => void;
+      onProductSelectionChange?: () => void;
     },
     DocsParams<PlatformOptions>
   > {}
