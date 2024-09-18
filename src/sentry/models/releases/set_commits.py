@@ -127,7 +127,10 @@ def set_commits_on_release_with_transaction_per_commit(release, commit_list):
 
     latest_commit = None
     for idx, data in enumerate(commit_list):
-        with atomic_transaction(router.db_for_write(type(release))):
+        with (
+            atomic_transaction(router.db_for_write(type(release))),
+            in_test_hide_transaction_boundary(),
+        ):
             commit = set_commit(idx, data, release)
 
         if idx == 0:
