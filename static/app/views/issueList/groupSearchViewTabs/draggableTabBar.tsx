@@ -354,6 +354,7 @@ export function DraggableTabBar({
             },
             pathname: `/organizations/${orgSlug}/issues/`,
           })}
+          disabled={tab.key === editingTabKey}
         >
           <TabContentWrap>
             <EditableTabTitle
@@ -361,9 +362,14 @@ export function DraggableTabBar({
               isEditing={editingTabKey === tab.key}
               setIsEditing={isEditing => setEditingTabKey(isEditing ? tab.key : null)}
               onChange={newLabel => handleOnTabRenamed(newLabel.trim(), tab.key)}
-              isSelected={tabListState?.selectedKey === tab.key}
+              tabKey={tab.key}
             />
-            {tabListState?.selectedKey === tab.key && (
+            {/* If tablistState isn't initialized, we want to load the elipsis menu
+                for the initial tab, that way it won't load in a second later
+                and cause the tabs to shift and animate on load.
+            */}
+            {((tabListState && tabListState?.selectedKey === tab.key) ||
+              (!tabListState && tab.key === initialTabKey)) && (
               <DraggableTabMenuButton
                 hasUnsavedChanges={!!tab.unsavedChanges}
                 menuOptions={makeMenuOptions(tab)}
@@ -382,9 +388,9 @@ const makeDefaultMenuOptions = ({
   onDuplicate,
   onDelete,
 }: {
-  onDelete?: (key: string) => void;
-  onDuplicate?: (key: string) => void;
-  onRename?: (key: string) => void;
+  onDelete?: () => void;
+  onDuplicate?: () => void;
+  onRename?: () => void;
 }): MenuItemProps[] => {
   const menuOptions: MenuItemProps[] = [
     {
@@ -416,11 +422,11 @@ const makeUnsavedChangesMenuOptions = ({
   onSave,
   onDiscard,
 }: {
-  onDelete?: (key: string) => void;
-  onDiscard?: (key: string) => void;
-  onDuplicate?: (key: string) => void;
-  onRename?: (key: string) => void;
-  onSave?: (key: string) => void;
+  onDelete?: () => void;
+  onDiscard?: () => void;
+  onDuplicate?: () => void;
+  onRename?: () => void;
+  onSave?: () => void;
 }): MenuItemProps[] => {
   return [
     {
