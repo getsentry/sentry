@@ -11,7 +11,7 @@ from requests.models import Response
 from sentry.mediators.external_requests.util import send_and_save_sentry_app_request
 from sentry.mediators.mediator import Mediator
 from sentry.mediators.param import Param
-from sentry.models.integrations.sentry_app_installation import SentryAppInstallation
+from sentry.sentry_apps.models.sentry_app_installation import SentryAppInstallation
 from sentry.utils import json
 
 logger = logging.getLogger("sentry.mediators.external-requests")

@@ -7,10 +7,10 @@ from rest_framework import serializers
 from sentry.api.serializers import Serializer, register
 from sentry.constants import ObjectStatus
 from sentry.models.environment import Environment
-from sentry.models.integrations.sentry_app_installation import prepare_ui_component
 from sentry.models.rule import NeglectedRule, Rule, RuleActivity, RuleActivityType
 from sentry.models.rulefirehistory import RuleFireHistory
 from sentry.models.rulesnooze import RuleSnooze
+from sentry.sentry_apps.models.sentry_app_installation import prepare_ui_component
 from sentry.sentry_apps.services.app.model import RpcSentryAppComponentContext
 from sentry.users.services.user.service import user_service
 

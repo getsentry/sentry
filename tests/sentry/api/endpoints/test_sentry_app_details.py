@@ -8,10 +8,10 @@ from sentry.api.endpoints.integrations.sentry_apps.details import (
 )
 from sentry.constants import SentryAppStatus
 from sentry.models.auditlogentry import AuditLogEntry
-from sentry.models.integrations.sentry_app_installation import SentryAppInstallation
 from sentry.models.organizationmember import OrganizationMember
 from sentry.models.servicehook import ServiceHook
 from sentry.sentry_apps.models.sentry_app import SentryApp
+from sentry.sentry_apps.models.sentry_app_installation import SentryAppInstallation
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers import with_feature

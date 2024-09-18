@@ -122,11 +122,11 @@ class AuthProvider(ReplicatedControlModel):
         return get_scim_token(self.flags.scim_enabled, self.organization_id, self.provider)
 
     def enable_scim(self, user):
-        from sentry.models.integrations.sentry_app_installation import SentryAppInstallation
         from sentry.models.integrations.sentry_app_installation_for_provider import (
             SentryAppInstallationForProvider,
         )
         from sentry.sentry_apps.logic import SentryAppCreator
+        from sentry.sentry_apps.models.sentry_app_installation import SentryAppInstallation
 
         if (
             not self.get_provider().can_use_scim(self.organization_id, user)
