@@ -7,7 +7,6 @@ from typing import TypedDict
 
 from django.db import IntegrityError, router
 
-from sentry import features
 from sentry.constants import ObjectStatus
 from sentry.db.postgres.transactions import in_test_hide_transaction_boundary
 from sentry.locks import locks

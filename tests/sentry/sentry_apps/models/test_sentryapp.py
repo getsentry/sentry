@@ -2,7 +2,7 @@ from sentry.constants import SentryAppStatus
 from sentry.hybridcloud.models.outbox import ControlOutbox
 from sentry.hybridcloud.outbox.category import OutboxCategory
 from sentry.models.apiapplication import ApiApplication
-from sentry.models.integrations.sentry_app import SentryApp
+from sentry.sentry_apps.models.sentry_app import SentryApp
 from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import control_silo_test
 

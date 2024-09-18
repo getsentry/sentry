@@ -38,7 +38,6 @@ import decodeBrowserTypes from 'sentry/views/insights/browser/webVitals/utils/qu
 import {ModulePageProviders} from 'sentry/views/insights/common/components/modulePageProviders';
 import {useModuleBreadcrumbs} from 'sentry/views/insights/common/utils/useModuleBreadcrumbs';
 import {useModuleURL} from 'sentry/views/insights/common/utils/useModuleURL';
-import SubregionSelector from 'sentry/views/insights/common/views/spans/selectors/subregionSelector';
 import {SpanIndexedField, type SubregionCode} from 'sentry/views/insights/types';
 import {transactionSummaryRouteWithQuery} from 'sentry/views/performance/transactionSummary/utils';
 
@@ -197,7 +196,6 @@ export function PageOverview() {
                   <DatePageFilter />
                 </PageFilterBar>
                 <BrowserTypeSelector />
-                <SubregionSelector />
               </TopMenuContainer>
               <Flex>
                 <PerformanceScoreBreakdownChart
