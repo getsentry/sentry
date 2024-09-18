@@ -5,7 +5,7 @@ from collections.abc import Sequence
 from datetime import datetime
 from typing import Any
 
-from sentry.eventstore.models import BaseEvent
+from sentry.eventstore.models import Event, GroupEvent
 from sentry.integrations.messaging.message_builder import (
     build_attachment_text,
     build_attachment_title,
@@ -55,7 +55,7 @@ class MSTeamsIssueMessageBuilder(MSTeamsMessageBuilder):
     def __init__(
         self,
         group: Group,
-        event: BaseEvent,
+        event: Event | GroupEvent,
         rules: Sequence[Rule],
         integration: RpcIntegration,
     ):
