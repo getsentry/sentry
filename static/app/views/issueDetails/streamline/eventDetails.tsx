@@ -29,7 +29,10 @@ import {
   useEventQuery,
 } from 'sentry/views/issueDetails/streamline/eventSearch';
 import {IssueContent} from 'sentry/views/issueDetails/streamline/issueContent';
-import {useFetchEventStats} from 'sentry/views/issueDetails/streamline/useFetchEventStats';
+import {
+  useIssueDetailsDiscoverQuery,
+  useIssueDetailsEventView,
+} from 'sentry/views/issueDetails/streamline/useIssueDetailsDiscoverQuery';
 
 export function EventDetails({
   group,
@@ -46,15 +49,16 @@ export function EventDetails({
 
   const searchQuery = useEventQuery({group});
   const {eventDetails, dispatch} = useEventDetailsReducer();
+  const eventView = useIssueDetailsEventView({group, queryProps: {query: searchQuery}});
   const {
     data: groupStats,
     isPending: isLoadingStats,
-    error: errorStats,
-  } = useFetchEventStats({
+    error,
+  } = useIssueDetailsDiscoverQuery({
     params: {
-      group: group,
+      route: 'event-stats',
+      eventView,
       referrer: 'issue_details.streamline_graph',
-      query: searchQuery,
     },
   });
 
@@ -66,8 +70,6 @@ export function EventDetails({
       state: {navScrollMargin: navHeight + sidebarHeight},
     });
   }, [nav, isScreenMedium, dispatch, theme.sidebar.mobileHeightNumber]);
-
-  const {detail: errorDetail} = errorStats?.responseJSON ?? {};
 
   const graphComponent = !isLoadingStats && groupStats && (
     <GraphPadding>
@@ -104,10 +106,10 @@ export function EventDetails({
           <DatePageFilter />
         </FilterContainer>
       </ErrorBoundary>
-      {errorDetail ? (
+      {error ? (
         <div>
           <GraphAlert type="error" showIcon>
-            {errorDetail as string}
+            {error.message}
           </GraphAlert>
         </div>
       ) : (
