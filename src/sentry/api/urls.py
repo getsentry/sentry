@@ -168,6 +168,7 @@ from sentry.integrations.api.endpoints.organization_repository_details import (
 )
 from sentry.issues.endpoints import (
     ActionableItemsEndpoint,
+    EventJsonEndpoint,
     GroupActivitiesEndpoint,
     GroupDetailsEndpoint,
     GroupEventDetailsEndpoint,
@@ -183,6 +184,7 @@ from sentry.issues.endpoints import (
     OrganizationGroupSearchViewsEndpoint,
     OrganizationReleasePreviousCommitsEndpoint,
     OrganizationSearchesEndpoint,
+    ProjectEventDetailsEndpoint,
     ProjectGroupIndexEndpoint,
     ProjectGroupStatsEndpoint,
     ProjectStacktraceLinkEndpoint,
@@ -568,7 +570,6 @@ from .endpoints.project_details import ProjectDetailsEndpoint
 from .endpoints.project_docs_platform import ProjectDocsPlatformEndpoint
 from .endpoints.project_environment_details import ProjectEnvironmentDetailsEndpoint
 from .endpoints.project_environments import ProjectEnvironmentsEndpoint
-from .endpoints.project_event_details import EventJsonEndpoint, ProjectEventDetailsEndpoint
 from .endpoints.project_events import ProjectEventsEndpoint
 from .endpoints.project_filter_details import ProjectFilterDetailsEndpoint
 from .endpoints.project_filters import ProjectFiltersEndpoint

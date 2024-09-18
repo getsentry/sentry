@@ -14,6 +14,7 @@ from .organization_group_index_stats import OrganizationGroupIndexStatsEndpoint
 from .organization_group_search_views import OrganizationGroupSearchViewsEndpoint
 from .organization_release_previous_commits import OrganizationReleasePreviousCommitsEndpoint
 from .organization_searches import OrganizationSearchesEndpoint
+from .project_event_details import EventJsonEndpoint, ProjectEventDetailsEndpoint
 from .project_group_index import ProjectGroupIndexEndpoint
 from .project_group_stats import ProjectGroupStatsEndpoint
 from .project_stacktrace_link import ProjectStacktraceLinkEndpoint
@@ -23,6 +24,7 @@ from .team_groups_old import TeamGroupsOldEndpoint
 
 __all__ = (
     "ActionableItemsEndpoint",
+    "EventJsonEndpoint",
     "GroupActivitiesEndpoint",
     "GroupDetailsEndpoint",
     "GroupEventsEndpoint",
@@ -38,6 +40,7 @@ __all__ = (
     "OrganizationGroupSearchViewsEndpoint",
     "OrganizationReleasePreviousCommitsEndpoint",
     "OrganizationSearchesEndpoint",
+    "ProjectEventDetailsEndpoint",
     "ProjectGroupIndexEndpoint",
     "ProjectGroupStatsEndpoint",
     "ProjectStacktraceLinkEndpoint",
