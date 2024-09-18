@@ -1,12 +1,6 @@
-export type Meta<FieldNames extends string[]> = {
-  fields: {
-    [Property in FieldNames[number]]: string;
-  };
-  units: {
-    [Property in FieldNames[number]]: string | null;
-  };
+export type Meta = {
+  fields: Record<string, string>;
+  units: Record<string, string | null>;
 };
 
-export type Data<FieldNames extends string[]> = {
-  [Property in FieldNames[number]]: number | string | undefined;
-}[];
+export type Data = Record<string, number | string | undefined>[];

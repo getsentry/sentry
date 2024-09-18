@@ -10,11 +10,11 @@ import {
   WidgetFrame,
 } from 'sentry/views/dashboards/widgets/common/widgetFrame';
 
-interface Props<FieldNames extends string[]>
+interface Props
   extends Omit<WidgetFrameProps, 'children'>,
-    BigNumberWidgetContentsProps<FieldNames> {}
+    BigNumberWidgetContentsProps {}
 
-export function BigNumberWidget<FieldNames extends string[]>(props: Props<FieldNames>) {
+export function BigNumberWidget(props: Props) {
   return (
     <WidgetFrame title={props.title} description={props.description}>
       <BigNumberResizeWrapper>
