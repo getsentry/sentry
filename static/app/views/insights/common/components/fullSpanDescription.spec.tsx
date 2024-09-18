@@ -135,4 +135,51 @@ describe('FullSpanDescription', function () {
     expect(queryCodeSnippet).toBeInTheDocument();
     expect(queryCodeSnippet).toHaveClass('language-json');
   });
+
+  it('successfully handles truncated MongoDB queries', async function () {
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/events/`,
+      body: {
+        data: [
+          {
+            'transaction.id': eventId,
+            project: project.slug,
+            span_id: spanId,
+          },
+        ],
+      },
+    });
+
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/events/${project.slug}:${eventId}/`,
+      body: {
+        id: eventId,
+        entries: [
+          {
+            type: EntryType.SPANS,
+            data: [
+              {
+                span_id: spanId,
+                description: `{"insert": "my_cool_collection😎", "a": {}, "uh_oh":"the_query_is_truncated", "ohno*`,
+                data: {'db.system': 'mongodb'},
+              },
+            ],
+          },
+        ],
+      },
+    });
+
+    render(<FullSpanDescription group={groupId} moduleName={ModuleName.DB} />, {
+      organization,
+    });
+
+    await waitForElementToBeRemoved(() => screen.getByTestId('loading-indicator'));
+
+    // The last truncated entry will have a null value assigned and the JSON document is properly closed
+    const queryCodeSnippet = screen.getByText(
+      /\{ "insert": "my_cool_collection😎", "a": \{\}, "uh_oh": "the_query_is_truncated", "ohno\*": null \}/i
+    );
+    expect(queryCodeSnippet).toBeInTheDocument();
+    expect(queryCodeSnippet).toHaveClass('language-json');
+  });
 });

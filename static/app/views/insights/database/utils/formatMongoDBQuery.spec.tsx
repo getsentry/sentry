@@ -87,9 +87,18 @@ describe('formatMongoDBQuery', function () {
     );
   });
 
-  it('returns an unformatted string when given invalid JSON', function () {
-    const query = "{'foo': 'bar'}";
-    const tokenizedQuery = formatMongoDBQuery(query, 'find');
-    expect(tokenizedQuery).toEqual(query);
+  it('handles truncated MongoDB query strings by repairing the JSON', function () {
+    const query = `{"_id":{},"test":"?","insert":"some_collection","address":"?","details":{"email":"?","nam*`;
+    const tokenizedQuery = formatMongoDBQuery(query, 'insert');
+    render(<Fragment>{tokenizedQuery}</Fragment>);
+
+    const boldedText = screen.getByText(/"insert": "some_collection"/i);
+    expect(boldedText).toContainHTML('<b>"insert": "some_collection"</b>');
+
+    // The last entry in this case will be repaired by assigning a null value to the incomplete key
+    const truncatedEntry = screen.getByText(
+      /"details": \{ "email": "\?", "nam\*": null \}/i
+    );
+    expect(truncatedEntry).toBeInTheDocument();
   });
 });
