@@ -1103,6 +1103,9 @@ class DetailedProjectSerializer(ProjectWithTeamSerializer):
             "sentry:replay_hydration_error_issues": self.get_value_with_default(
                 attrs, "sentry:replay_hydration_error_issues"
             ),
+            "sentry:toolbar_allowed_origins": "\n".join(
+                self.get_value_with_default(attrs, "sentry:toolbar_allowed_origins") or []
+            ),
             "quotas:spike-protection-disabled": options.get("quotas:spike-protection-disabled"),
         }
 
