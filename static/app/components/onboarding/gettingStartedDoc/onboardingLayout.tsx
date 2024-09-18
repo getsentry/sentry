@@ -1,4 +1,4 @@
-import {Fragment, useMemo} from 'react';
+import {Fragment, useEffect, useMemo} from 'react';
 import styled from '@emotion/styled';
 
 import HookOrDefault from 'sentry/components/hookOrDefault';
@@ -26,6 +26,7 @@ import ConfigStore from 'sentry/stores/configStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import {space} from 'sentry/styles/space';
 import type {PlatformKey, Project, ProjectKey} from 'sentry/types/project';
+import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 
 const ProductSelectionAvailabilityHook = HookOrDefault({
@@ -38,6 +39,7 @@ export type OnboardingLayoutProps = {
   dsn: ProjectKey['dsn'];
   platformKey: PlatformKey;
   projectId: Project['id'];
+  projectKeyId: ProjectKey['id'];
   projectSlug: Project['slug'];
   activeProductSelection?: ProductSolution[];
   configType?: ConfigType;
@@ -54,8 +56,10 @@ export function OnboardingLayout({
   projectSlug,
   activeProductSelection = EMPTY_ARRAY,
   newOrg,
+  projectKeyId,
   configType = 'onboarding',
 }: OnboardingLayoutProps) {
+  const api = useApi();
   const organization = useOrganization();
   const {isPending: isLoadingRegistry, data: registryData} =
     useSourcePackageRegistries(organization);
@@ -63,10 +67,19 @@ export function OnboardingLayout({
   const {platformOptions} = docsConfig;
   const {urlPrefix, isSelfHosted} = useLegacyStore(ConfigStore);
 
-  const {introduction, steps, nextSteps} = useMemo(() => {
+  const {
+    introduction,
+    steps,
+    nextSteps,
+    onPlatformOptionsChange,
+    onProductSelectionChange,
+    onPageLoad,
+  } = useMemo(() => {
     const doc = docsConfig[configType] ?? docsConfig.onboarding;
 
     const docParams: DocsParams<any> = {
+      api,
+      projectKeyId,
       dsn,
       organization,
       platformKey,
@@ -97,6 +110,9 @@ export function OnboardingLayout({
         ...doc.verify(docParams),
       ],
       nextSteps: doc.nextSteps?.(docParams) || [],
+      onPlatformOptionsChange: doc.onPlatformOptionsChange?.(docParams),
+      onProductSelectionChange: doc.onProductSelectionChange?.(docParams),
+      onPageLoad: doc.onPageLoad?.(docParams),
     };
   }, [
     activeProductSelection,
@@ -113,7 +129,14 @@ export function OnboardingLayout({
     configType,
     urlPrefix,
     isSelfHosted,
+    api,
+    projectKeyId,
   ]);
+
+  useEffect(() => {
+    onPageLoad?.();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   return (
     <AuthTokenGeneratorProvider projectSlug={projectSlug}>
@@ -125,10 +148,14 @@ export function OnboardingLayout({
               organization={organization}
               platform={platformKey}
               projectId={projectId}
+              onChange={onProductSelectionChange}
             />
           )}
           {platformOptions && !['customMetricsOnboarding'].includes(configType) ? (
-            <PlatformOptionsControl platformOptions={platformOptions} />
+            <PlatformOptionsControl
+              platformOptions={platformOptions}
+              onChange={onPlatformOptionsChange}
+            />
           ) : null}
         </Header>
         <Divider withBottomMargin />

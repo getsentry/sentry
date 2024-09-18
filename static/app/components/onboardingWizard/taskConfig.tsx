@@ -7,8 +7,10 @@ import type {OnboardingContextProps} from 'sentry/components/onboarding/onboardi
 import {filterSupportedTasks} from 'sentry/components/onboardingWizard/filterSupportedTasks';
 import {taskIsDone} from 'sentry/components/onboardingWizard/utils';
 import {filterProjects} from 'sentry/components/performanceOnboarding/utils';
+import {SidebarPanelKey} from 'sentry/components/sidebar/types';
 import {sourceMaps} from 'sentry/data/platformCategories';
 import {t} from 'sentry/locale';
+import SidebarPanelStore from 'sentry/stores/sidebarPanelStore';
 import pulsingIndicatorStyles from 'sentry/styles/pulsingIndicator';
 import {space} from 'sentry/styles/space';
 import type {
@@ -99,7 +101,12 @@ function getMetricAlertUrl({projects, organization}: Options) {
     project => !!project.firstTransactionEvent
   );
   const project = firstProjectWithEvents ?? projects[0];
-  return `/organizations/${organization.slug}/alerts/${project.slug}/wizard/?alert_option=trans_duration`;
+  return {
+    pathname: `/organizations/${organization.slug}/alerts/${project.slug}/wizard/`,
+    query: {
+      alert_option: 'trans_duration',
+    },
+  };
 }
 
 export function getOnboardingTasks({
@@ -320,10 +327,20 @@ export function getOnboardingTasks({
       ),
       skippable: true,
       requisites: [OnboardingTaskKey.FIRST_PROJECT, OnboardingTaskKey.FIRST_EVENT],
-      actionType: 'app',
-      location: normalizeUrl(
-        `/organizations/${organization.slug}/replays/#replay-sidequest`
-      ),
+      actionType: 'action',
+      action: router => {
+        router.push(
+          normalizeUrl({
+            pathname: `/organizations/${organization.slug}/replays/`,
+            query: {referrer: 'onboarding_task'},
+          })
+        );
+        // Since the quick start panel is already open and closes on route change
+        // Wait for the next tick to open the replay onboarding panel
+        setTimeout(() => {
+          SidebarPanelStore.activatePanel(SidebarPanelKey.REPLAYS_ONBOARDING);
+        }, 0);
+      },
       display: organization.features?.includes('session-replay'),
       SupplementComponent: withApi(
         ({api, task, onCompleteTask}: FirstEventWaiterProps) =>

@@ -323,6 +323,7 @@ USE_TZ = True
 # This is because CommonMiddleware Sets the Content-Length header for non-streaming responses.
 MIDDLEWARE: tuple[str, ...] = (
     "csp.middleware.CSPMiddleware",
+    "sentry.middleware.flag.FlagMiddleware",
     "sentry.middleware.health.HealthCheck",
     "sentry.middleware.security.SecurityHeadersMiddleware",
     "sentry.middleware.env.SentryEnvMiddleware",
@@ -738,6 +739,9 @@ CELERY_ACCEPT_CONTENT = {"pickle"}
 CELERY_IMPORTS = (
     "sentry.data_export.tasks",
     "sentry.discover.tasks",
+    "sentry.deletions.tasks.groups",
+    "sentry.deletions.tasks.scheduled",
+    "sentry.deletions.tasks.hybrid_cloud",
     "sentry.hybridcloud.tasks.deliver_webhooks",
     "sentry.hybridcloud.tasks.backfill_outboxes",
     "sentry.hybridcloud.tasks.deliver_from_outbox",
@@ -765,10 +769,6 @@ CELERY_IMPORTS = (
     "sentry.tasks.collect_project_platforms",
     "sentry.tasks.commits",
     "sentry.tasks.commit_context",
-    "sentry.tasks.deletion",
-    "sentry.tasks.deletion.scheduled",
-    "sentry.tasks.deletion.groups",
-    "sentry.tasks.deletion.hybrid_cloud",
     "sentry.tasks.digests",
     "sentry.tasks.email",
     "sentry.tasks.files",
@@ -957,7 +957,6 @@ CELERY_QUEUES_REGION = [
     Queue("on_demand_metrics", routing_key="on_demand_metrics"),
     Queue("check_new_issue_threshold_met", routing_key="check_new_issue_threshold_met"),
     Queue("integrations_slack_activity_notify", routing_key="integrations_slack_activity_notify"),
-    Queue("split_discover_query_dataset", routing_key="split_discover_query_dataset"),
 ]
 
 from celery.schedules import crontab
@@ -984,13 +983,13 @@ CELERYBEAT_SCHEDULE_CONTROL = {
         "options": {"expires": 60, "queue": "outbox.control"},
     },
     "schedule-deletions-control": {
-        "task": "sentry.tasks.deletion.run_scheduled_deletions_control",
+        "task": "sentry.deletions.tasks.run_scheduled_deletions_control",
         # Run every 15 minutes
         "schedule": crontab(minute="*/15"),
         "options": {"expires": 60 * 25, "queue": "cleanup.control"},
     },
     "reattempt-deletions-control": {
-        "task": "sentry.tasks.deletion.reattempt_deletions_control",
+        "task": "sentry.deletions.tasks.reattempt_deletions_control",
         # 03:00 PDT, 07:00 EDT, 10:00 UTC
         "schedule": crontab(hour="10", minute="0"),
         "options": {"expires": 60 * 25, "queue": "cleanup.control"},
@@ -1108,13 +1107,13 @@ CELERYBEAT_SCHEDULE_REGION = {
         "options": {"expires": 60 * 25},
     },
     "schedule-deletions": {
-        "task": "sentry.tasks.deletion.run_scheduled_deletions",
+        "task": "sentry.deletions.tasks.run_scheduled_deletions",
         # Run every 15 minutes
         "schedule": crontab(minute="*/15"),
         "options": {"expires": 60 * 25},
     },
     "reattempt-deletions": {
-        "task": "sentry.tasks.deletion.reattempt_deletions",
+        "task": "sentry.deletions.tasks.reattempt_deletions",
         # 03:00 PDT, 07:00 EDT, 10:00 UTC
         "schedule": crontab(hour="10", minute="0"),
         "options": {"expires": 60 * 25},
@@ -1811,7 +1810,7 @@ SENTRY_MANAGED_USER_FIELDS = ()
 OPENAI_API_KEY: str | None = None
 
 # AI Suggested Fix default model
-SENTRY_AI_SUGGESTED_FIX_MODEL: str = os.getenv("SENTRY_AI_SUGGESTED_FIX_MODEL", "gpt-3.5-turbo-16k")
+SENTRY_AI_SUGGESTED_FIX_MODEL: str = os.getenv("SENTRY_AI_SUGGESTED_FIX_MODEL", "gpt-4o-mini")
 
 SENTRY_API_PAGINATION_ALLOWLIST = SENTRY_API_PAGINATION_ALLOWLIST_DO_NOT_MODIFY
 
@@ -2472,19 +2471,19 @@ SENTRY_SELF_HOSTED = True
 SENTRY_SELF_HOSTED_ERRORS_ONLY = False
 # only referenced in getsentry to provide the stable beacon version
 # updated with scripts/bump-version.sh
-SELF_HOSTED_STABLE_VERSION = "24.8.0"
+SELF_HOSTED_STABLE_VERSION = "24.9.0"
 
 # Whether we should look at X-Forwarded-For header or not
 # when checking REMOTE_ADDR ip addresses
 SENTRY_USE_X_FORWARDED_FOR = True
 
 SENTRY_DEFAULT_INTEGRATIONS = (
-    "sentry.integrations.bitbucket.BitbucketIntegrationProvider",
-    "sentry.integrations.bitbucket_server.BitbucketServerIntegrationProvider",
+    "sentry.integrations.bitbucket.integration.BitbucketIntegrationProvider",
+    "sentry.integrations.bitbucket_server.integration.BitbucketServerIntegrationProvider",
     "sentry.integrations.slack.SlackIntegrationProvider",
-    "sentry.integrations.github.GitHubIntegrationProvider",
-    "sentry.integrations.github_enterprise.GitHubEnterpriseIntegrationProvider",
-    "sentry.integrations.gitlab.GitlabIntegrationProvider",
+    "sentry.integrations.github.integration.GitHubIntegrationProvider",
+    "sentry.integrations.github_enterprise.integration.GitHubEnterpriseIntegrationProvider",
+    "sentry.integrations.gitlab.integration.GitlabIntegrationProvider",
     "sentry.integrations.jira.JiraIntegrationProvider",
     "sentry.integrations.jira_server.JiraServerIntegrationProvider",
     "sentry.integrations.vsts.VstsIntegrationProvider",

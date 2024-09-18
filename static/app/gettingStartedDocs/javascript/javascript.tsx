@@ -1,3 +1,4 @@
+import ExternalLink from 'sentry/components/links/externalLink';
 import crashReportCallout from 'sentry/components/onboarding/gettingStartedDoc/feedback/crashReportCallout';
 import widgetCallout from 'sentry/components/onboarding/gettingStartedDoc/feedback/widgetCallout';
 import TracePropagationMessage from 'sentry/components/onboarding/gettingStartedDoc/replay/tracePropagationMessage';
@@ -287,11 +288,105 @@ const crashReportOnboarding: OnboardingConfig = {
   nextSteps: () => [],
 };
 
+const performanceOnboarding: OnboardingConfig = {
+  introduction: () =>
+    t(
+      "Adding Performance to your Browser JavaScript project is simple. Make sure you've got these basics down."
+    ),
+  install: () => [
+    {
+      type: StepType.INSTALL,
+      description: tct(
+        'Install our JavaScript browser SDK using either [code:yarn] or [code:npm]:',
+        {code: <code />}
+      ),
+      configurations: getInstallConfig(),
+    },
+  ],
+  configure: params => [
+    {
+      type: StepType.CONFIGURE,
+      description: t(
+        "Configuration should happen as early as possible in your application's lifecycle."
+      ),
+      configurations: [
+        {
+          language: 'javascript',
+          code: `
+import * as Sentry from "@sentry/browser";
+
+Sentry.init({
+  dsn: "${params.dsn.public}",
+  integrations: [Sentry.browserTracingIntegration()],
+
+  // Set tracesSampleRate to 1.0 to capture 100%
+  // of transactions for performance monitoring.
+  // We recommend adjusting this value in production
+  tracesSampleRate: 1.0,
+  // Set \`tracePropagationTargets\` to control for which URLs distributed tracing should be enabled
+  tracePropagationTargets: ["localhost", /^https:\/\/yourserver\.io\/api/],
+});
+`,
+          additionalInfo: tct(
+            'We recommend adjusting the value of [code:tracesSampleRate] in production. Learn more about tracing [linkTracingOptions:options], how to use the [linkTracesSampler:traces_sampler] function, or how to [linkSampleTransactions:sample transactions].',
+            {
+              code: <code />,
+              linkTracingOptions: (
+                <ExternalLink href="https://docs.sentry.io/platforms/javascript/configuration/options/#tracing-options" />
+              ),
+              linkTracesSampler: (
+                <ExternalLink href="https://docs.sentry.io/platforms/javascript/configuration/sampling/" />
+              ),
+              linkSampleTransactions: (
+                <ExternalLink href="https://docs.sentry.io/platforms/javascript/configuration/sampling/" />
+              ),
+            }
+          ),
+        },
+      ],
+    },
+  ],
+  verify: () => [
+    {
+      type: StepType.VERIFY,
+      description: tct(
+        'Verify that performance monitoring is working correctly with our [link:automatic instrumentation] by simply using your JavaScript application.',
+        {
+          link: (
+            <ExternalLink href="https://docs.sentry.io/platforms/javascript/tracing/instrumentation/automatic-instrumentation/" />
+          ),
+        }
+      ),
+      configurations: [
+        {
+          description: tct(
+            'You have the option to manually construct a transaction using [link:custom instrumentation].',
+            {
+              link: (
+                <ExternalLink href="https://docs.sentry.io/platforms/javascript/tracing/instrumentation/custom-instrumentation/" />
+              ),
+            }
+          ),
+          language: 'javascript',
+          code: `
+const transaction = Sentry.startTransaction({ name: "test-transaction" });
+const span = transaction.startChild({ op: "functionX" }); // This function returns a Span
+// exampleFunctionCall();
+span.finish(); // Remember that only finished spans will be sent with the transaction
+transaction.finish(); // Finishing the transaction will send it to Sentry`,
+        },
+      ],
+    },
+  ],
+  nextSteps: () => [],
+};
+
 const docs: Docs = {
   onboarding,
   feedbackOnboardingNpm: feedbackOnboarding,
   replayOnboarding,
   replayOnboardingJsLoader,
+  performanceOnboarding,
   customMetricsOnboarding: getJSMetricsOnboarding({getInstallConfig}),
   crashReportOnboarding,
 };

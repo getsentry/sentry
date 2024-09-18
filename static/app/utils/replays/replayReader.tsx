@@ -41,6 +41,7 @@ import {
   EventType,
   getNodeIds,
   IncrementalSource,
+  isCLSFrame,
   isDeadClick,
   isDeadRageClick,
   isPaintFrame,
@@ -637,16 +638,21 @@ export default class ReplayReader {
       let lastTimestamp = 0;
       const groupedCls: WebVitalFrame[] = [];
 
-      for (const cls of allWebVitals) {
-        if (cls.description === 'cumulative-layout-shift') {
-          if (lastTimestamp === cls.timestampMs) {
-            groupedCls.push(cls);
+      for (const frame of allWebVitals) {
+        if (isCLSFrame(frame)) {
+          if (lastTimestamp === frame.timestampMs) {
+            groupedCls.push(frame);
           } else {
-            lastTimestamp = cls.timestampMs;
+            lastTimestamp = frame.timestampMs;
           }
         }
       }
-      return allWebVitals.filter(frame => !groupedCls.includes(frame)).reverse();
+      return allWebVitals
+        .filter(
+          frame =>
+            !groupedCls.includes(frame) && frame.description !== 'first-input-delay'
+        )
+        .reverse();
     }
     return [];
   });

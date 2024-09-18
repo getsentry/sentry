@@ -6,6 +6,7 @@ from django import forms
 from django.conf import settings
 from django.db import router, transaction
 from django.utils import timezone
+from parsimonious.exceptions import ParseError
 from rest_framework import serializers
 from snuba_sdk import Column, Condition, Entity, Limit, Op
 from urllib3.exceptions import MaxRetryError, TimeoutError
@@ -16,7 +17,11 @@ from sentry.api.fields.actor import ActorField
 from sentry.api.serializers.rest_framework.base import CamelSnakeModelSerializer
 from sentry.api.serializers.rest_framework.environment import EnvironmentField
 from sentry.api.serializers.rest_framework.project import ProjectField
-from sentry.exceptions import InvalidSearchQuery, UnsupportedQuerySubscription
+from sentry.exceptions import (
+    IncompatibleMetricsQuery,
+    InvalidSearchQuery,
+    UnsupportedQuerySubscription,
+)
 from sentry.incidents.logic import (
     CRITICAL_TRIGGER_LABEL,
     WARNING_TRIGGER_LABEL,
@@ -155,6 +160,10 @@ class AlertRuleSerializer(CamelSnakeModelSerializer[AlertRule]):
             "organizations:custom-metrics",
             self.context["organization"],
             actor=self.context.get("user", None),
+        ) or features.has(
+            "organizations:insights-alerts",
+            self.context["organization"],
+            actor=self.context.get("user", None),
         )
 
         try:
@@ -289,6 +298,10 @@ class AlertRuleSerializer(CamelSnakeModelSerializer[AlertRule]):
             "organizations:custom-metrics",
             self.context["organization"],
             actor=self.context.get("user", None),
+        ) or features.has(
+            "organizations:insights-alerts",
+            self.context["organization"],
+            actor=self.context.get("user", None),
         ):
             column = get_column_from_aggregate(data["aggregate"], allow_mri=True)
             if is_mri(column) and dataset != Dataset.PerformanceMetrics:
@@ -356,7 +369,7 @@ class AlertRuleSerializer(CamelSnakeModelSerializer[AlertRule]):
                     "end": end,
                 },
             )
-        except (InvalidSearchQuery, ValueError) as e:
+        except (InvalidSearchQuery, ValueError, IncompatibleMetricsQuery) as e:
             raise serializers.ValidationError(f"Invalid Query or Metric: {e}")
 
         if not query_builder.are_columns_resolved():
@@ -397,7 +410,12 @@ class AlertRuleSerializer(CamelSnakeModelSerializer[AlertRule]):
         if comparison_delta is None:
             return
 
-        translator = self.threshold_translators[threshold_type]
+        translator = self.threshold_translators.get(threshold_type)
+        if not translator:
+            raise serializers.ValidationError(
+                "Invalid threshold type: Allowed types for comparison alerts are above OR below"
+            )
+
         resolve_threshold = data.get("resolve_threshold")
         if resolve_threshold:
             data["resolve_threshold"] = translator(resolve_threshold)
@@ -502,10 +520,16 @@ class AlertRuleSerializer(CamelSnakeModelSerializer[AlertRule]):
                 )
             except (TimeoutError, MaxRetryError):
                 raise RequestTimeout
+            except ParseError:
+                raise serializers.ValidationError("Failed to parse Seer store data response")
             except forms.ValidationError as e:
                 # if we fail in create_metric_alert, then only one message is ever returned
                 raise serializers.ValidationError(e.error_list[0].message)
-            except Exception:
+            except Exception as e:
+                logger.exception(
+                    "Error when creating alert rule",
+                    extra={"details": str(e)},
+                )
                 raise BadRequest
             self._handle_triggers(alert_rule, triggers)
             return alert_rule
@@ -530,10 +554,16 @@ class AlertRuleSerializer(CamelSnakeModelSerializer[AlertRule]):
                 )
             except (TimeoutError, MaxRetryError):
                 raise RequestTimeout
+            except ParseError:
+                raise serializers.ValidationError("Failed to parse Seer store data response")
             except forms.ValidationError as e:
                 # if we fail in update_metric_alert, then only one message is ever returned
                 raise serializers.ValidationError(e.error_list[0].message)
-            except Exception:
+            except Exception as e:
+                logger.exception(
+                    "Error when updating alert rule",
+                    extra={"details": str(e)},
+                )
                 raise BadRequest
             self._handle_triggers(alert_rule, triggers)
             return alert_rule

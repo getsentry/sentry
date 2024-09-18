@@ -18,9 +18,7 @@ export const baseReplayerCss = css`
   .replayer-wrapper > iframe {
     border: none;
     background: white;
-  }
 
-  &[data-inspectable='true'] .replayer-wrapper > iframe {
     /* Set pointer-events to make it easier to right-click & inspect */
     pointer-events: initial !important;
   }

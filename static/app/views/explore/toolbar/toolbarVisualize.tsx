@@ -7,13 +7,16 @@ import {t} from 'sentry/locale';
 import {defined} from 'sentry/utils';
 import type {ParsedFunction} from 'sentry/utils/discover/fields';
 import {parseFunction} from 'sentry/utils/discover/fields';
+import {
+  ALLOWED_EXPLORE_VISUALIZE_AGGREGATES,
+  ALLOWED_EXPLORE_VISUALIZE_FIELDS,
+} from 'sentry/utils/fields';
 import type {Visualize} from 'sentry/views/explore/hooks/useVisualizes';
 import {
-  ALLOWED_VISUALIZE_AGGREGATES,
-  ALLOWED_VISUALIZE_FIELDS,
   DEFAULT_VISUALIZATION,
   useVisualizes,
 } from 'sentry/views/explore/hooks/useVisualizes';
+import {ChartType} from 'sentry/views/insights/common/components/chart';
 import type {SpanIndexedField} from 'sentry/views/insights/types';
 
 import {
@@ -37,26 +40,27 @@ export function ToolbarVisualize({}: ToolbarVisualizeProps) {
     );
   }, [visualizes]);
 
-  const fieldOptions: SelectOption<SpanIndexedField>[] = ALLOWED_VISUALIZE_FIELDS.map(
-    field => {
+  const fieldOptions: SelectOption<SpanIndexedField>[] =
+    ALLOWED_EXPLORE_VISUALIZE_FIELDS.map(field => {
       return {
         label: field,
         value: field,
       };
-    }
-  );
+    });
 
-  const aggregateOptions: SelectOption<string>[] = ALLOWED_VISUALIZE_AGGREGATES.map(
-    aggregate => {
+  const aggregateOptions: SelectOption<string>[] =
+    ALLOWED_EXPLORE_VISUALIZE_AGGREGATES.map(aggregate => {
       return {
         label: aggregate,
         value: aggregate,
       };
-    }
-  );
+    });
 
   const addChart = useCallback(() => {
-    setVisualizes([...visualizes, {yAxes: [DEFAULT_VISUALIZATION]}]);
+    setVisualizes([
+      ...visualizes,
+      {yAxes: [DEFAULT_VISUALIZATION], chartType: ChartType.LINE},
+    ]);
   }, [setVisualizes, visualizes]);
 
   const addOverlay = useCallback(
@@ -97,6 +101,7 @@ export function ToolbarVisualize({}: ToolbarVisualizeProps) {
           }
 
           return {
+            ...visualize,
             yAxes: visualize.yAxes.filter((_, orgIndex) => index !== orgIndex),
           };
         })

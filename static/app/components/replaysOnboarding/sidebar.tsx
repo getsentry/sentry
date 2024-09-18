@@ -210,6 +210,7 @@ function OnboardingContent({
     docs,
     dsn,
     isLoading: isProjKeysLoading,
+    projectKeyId,
   } = useLoadGettingStarted({
     platform:
       showJsFrameworkInstructions && setupMode() === 'npm'
@@ -329,7 +330,7 @@ function OnboardingContent({
   }
 
   // No platform, docs import failed, no DSN, or the platform doesn't have onboarding yet
-  if (!currentPlatform || !docs || !dsn || !hasDocs) {
+  if (!currentPlatform || !docs || !dsn || !hasDocs || !projectKeyId) {
     return (
       <Fragment>
         <div>
@@ -377,6 +378,7 @@ function OnboardingContent({
         hideMaskBlockToggles={mobilePlatform}
         docsConfig={docs}
         dsn={dsn}
+        projectKeyId={projectKeyId}
         activeProductSelection={[]}
         platformKey={currentPlatform.id}
         projectId={currentProject.id}

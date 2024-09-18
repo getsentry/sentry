@@ -248,6 +248,10 @@ def build_metric_alert_chart(
         "organizations:custom-metrics",
         organization,
         actor=user,
+    ) or features.has(
+        "organizations:insights-alerts",
+        organization,
+        actor=user,
     )
     aggregate = translate_aggregate_field(snuba_query.aggregate, reverse=True, allow_mri=allow_mri)
     # If we allow alerts to be across multiple orgs this will break

@@ -47,7 +47,6 @@ function ThresholdTypeForm({
     'fid',
     'cls',
     'custom_transactions',
-    'custom_metrics',
     'insights_metrics',
   ]);
 

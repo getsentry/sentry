@@ -1,6 +1,12 @@
 import {Fragment, useMemo} from 'react';
+import styled from '@emotion/styled';
 
+import EmptyStateWarning from 'sentry/components/emptyStateWarning';
+import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Pagination from 'sentry/components/pagination';
+import {CHART_PALETTE} from 'sentry/constants/chartPalette';
+import {IconWarning} from 'sentry/icons';
+import {t} from 'sentry/locale';
 import type {NewQuery} from 'sentry/types/organization';
 import EventView from 'sentry/utils/discover/eventView';
 import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
@@ -15,6 +21,7 @@ import {
   TableHead,
   TableHeadCell,
   TableRow,
+  TableStatus,
   useTableStyles,
 } from 'sentry/views/explore/components/table';
 import {useDataset} from 'sentry/views/explore/hooks/useDataset';
@@ -24,7 +31,9 @@ import {useUserQuery} from 'sentry/views/explore/hooks/useUserQuery';
 import {useVisualizes} from 'sentry/views/explore/hooks/useVisualizes';
 import {useSpansQuery} from 'sentry/views/insights/common/queries/useSpansQuery';
 
-function formatSort(sort: Sort): string {
+import {TOP_EVENTS_LIMIT, useTopEvents} from '../hooks/useTopEvents';
+
+export function formatSort(sort: Sort): string {
   const direction = sort.kind === 'desc' ? '-' : '';
   return `${direction}${getAggregateAlias(sort.field)}`;
 }
@@ -35,6 +44,7 @@ export function AggregatesTable({}: AggregatesTableProps) {
   const location = useLocation();
   const organization = useOrganization();
   const {selection} = usePageFilters();
+  const topEvents = useTopEvents();
 
   const [dataset] = useDataset();
   const [groupBys] = useGroupBys();
@@ -91,25 +101,57 @@ export function AggregatesTable({}: AggregatesTableProps) {
           </TableRow>
         </TableHead>
         <TableBody>
-          {result.data?.map((row, i) => (
-            <TableRow key={i}>
-              {fields.map((field, j) => {
-                const renderer = getFieldRenderer(field, meta.fields, false);
-                return (
-                  <TableBodyCell key={j}>
-                    {renderer(row, {
-                      location,
-                      organization,
-                      unit: meta?.units?.[field],
-                    })}
-                  </TableBodyCell>
-                );
-              })}
-            </TableRow>
-          ))}
+          {result.isPending ? (
+            <TableStatus>
+              <LoadingIndicator />
+            </TableStatus>
+          ) : result.isError ? (
+            <TableStatus>
+              <IconWarning data-test-id="error-indicator" color="gray300" size="lg" />
+            </TableStatus>
+          ) : result.isFetched && result.data?.length ? (
+            result.data?.map((row, i) => (
+              <TableRow key={i}>
+                {fields.map((field, j) => {
+                  const renderer = getFieldRenderer(field, meta.fields, false);
+                  return (
+                    <TableBodyCell key={j}>
+                      {topEvents && i < topEvents && j === 0 && (
+                        <TopResultsIndicator index={i} />
+                      )}
+                      {renderer(row, {
+                        location,
+                        organization,
+                        unit: meta?.units?.[field],
+                      })}
+                    </TableBodyCell>
+                  );
+                })}
+              </TableRow>
+            ))
+          ) : (
+            <TableStatus>
+              <EmptyStateWarning>
+                <p>{t('No spans found')}</p>
+              </EmptyStateWarning>
+            </TableStatus>
+          )}
         </TableBody>
       </Table>
       <Pagination pageLinks={result.pageLinks} />
     </Fragment>
   );
 }
+
+const TopResultsIndicator = styled('div')<{index: number}>`
+  position: absolute;
+  left: -1px;
+  margin-top: 4.5px;
+  width: 9px;
+  height: 15px;
+  border-radius: 0 3px 3px 0;
+
+  background-color: ${p => {
+    return CHART_PALETTE[TOP_EVENTS_LIMIT - 1][p.index];
+  }};
+`;

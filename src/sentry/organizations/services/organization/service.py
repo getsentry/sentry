@@ -34,6 +34,7 @@ from sentry.organizations.services.organization.model import (
     RpcUserInviteContext,
     RpcUserOrganizationContext,
 )
+from sentry.projects.services.project import RpcProjectFlags
 from sentry.silo.base import SiloMode
 from sentry.users.services.user.model import RpcUser
 
@@ -164,6 +165,15 @@ class OrganizationService(RpcService):
         :param flags: Dict of flags to set.
         """
         pass
+
+    @regional_rpc_method(resolve=ByOrganizationId())
+    @abstractmethod
+    def get_aggregate_project_flags(self, *, organization_id: int) -> RpcProjectFlags:
+        """
+        Get the union-aggregated project flags of an the organization
+
+        :param organization_id: The organization id
+        """
 
     @regional_rpc_method(resolve=ByOrganizationId())
     @abstractmethod

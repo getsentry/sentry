@@ -20,6 +20,9 @@ type Dimensions = ReturnType<typeof useReplayContext>['dimensions'];
 
 interface Props {
   className?: string;
+  /**
+   * Use when the player is shown in an embedded preview context.
+   */
   isPreview?: boolean;
   overlayContent?: React.ReactNode;
 }
@@ -179,13 +182,10 @@ const PositionedLoadingIndicator = styled(LoadingIndicator)`
   position: absolute;
 `;
 
-// Base styles, to make the Replayer instance work
-const PlayerRoot = styled(BasePlayerRoot)`
+const SentryPlayerRoot = styled(BasePlayerRoot)`
+  /* Base styles, to make the Replayer instance work */
   ${baseReplayerCss}
-`;
-
-// Sentry-specific styles for the player.
-const SentryPlayerRoot = styled(PlayerRoot)`
+  /* Sentry-specific styles for the player */
   ${p => sentryReplayerCss(p.theme)}
 `;
 

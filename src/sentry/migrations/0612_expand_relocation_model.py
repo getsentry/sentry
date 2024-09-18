@@ -42,7 +42,7 @@ class Migration(CheckedMigration):
         migrations.AddConstraint(
             model_name="relocation",
             constraint=models.CheckConstraint(
-                check=models.Q(
+                condition=models.Q(
                     ("scheduled_pause_at_step__gt", django.db.models.expressions.F("step")),
                     ("scheduled_pause_at_step__isnull", True),
                     _connector="OR",
@@ -53,7 +53,7 @@ class Migration(CheckedMigration):
         migrations.AddConstraint(
             model_name="relocation",
             constraint=models.CheckConstraint(
-                check=models.Q(
+                condition=models.Q(
                     ("scheduled_cancel_at_step__gt", django.db.models.expressions.F("step")),
                     ("scheduled_cancel_at_step__isnull", True),
                     _connector="OR",

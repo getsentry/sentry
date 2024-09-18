@@ -62,9 +62,9 @@ export type HookName = keyof Hooks;
  * Route hooks.
  */
 export type RouteHooks = {
-  'routes:api': RoutesHook;
-  'routes:organization': RoutesHook;
+  'routes:legacy-organization-redirects': RoutesHook;
   'routes:root': RoutesHook;
+  'routes:settings': RoutesHook;
 };
 
 /**
@@ -125,7 +125,7 @@ type OrganizationHeaderProps = {
 
 type ProductSelectionAvailabilityProps = Pick<
   ProductSelectionProps,
-  'platform' | 'withBottomMargin' | 'projectId'
+  'platform' | 'withBottomMargin' | 'projectId' | 'onChange'
 > & {
   organization: Organization;
 };
