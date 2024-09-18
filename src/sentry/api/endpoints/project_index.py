@@ -12,10 +12,10 @@ from sentry.api.serializers import ProjectWithOrganizationSerializer, serialize
 from sentry.auth.superuser import is_active_superuser
 from sentry.constants import ObjectStatus
 from sentry.db.models.query import in_iexact
-from sentry.models.integrations.sentry_app_installation import SentryAppInstallation
 from sentry.models.project import Project
 from sentry.models.projectplatform import ProjectPlatform
 from sentry.search.utils import tokenize_query
+from sentry.sentry_apps.models.sentry_app_installation import SentryAppInstallation
 
 
 @region_silo_endpoint

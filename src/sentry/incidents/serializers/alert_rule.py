@@ -6,6 +6,7 @@ from django import forms
 from django.conf import settings
 from django.db import router, transaction
 from django.utils import timezone
+from parsimonious.exceptions import ParseError
 from rest_framework import serializers
 from snuba_sdk import Column, Condition, Entity, Limit, Op
 from urllib3.exceptions import MaxRetryError, TimeoutError
@@ -409,7 +410,12 @@ class AlertRuleSerializer(CamelSnakeModelSerializer[AlertRule]):
         if comparison_delta is None:
             return
 
-        translator = self.threshold_translators[threshold_type]
+        translator = self.threshold_translators.get(threshold_type)
+        if not translator:
+            raise serializers.ValidationError(
+                "Invalid threshold type: Allowed types for comparison alerts are above OR below"
+            )
+
         resolve_threshold = data.get("resolve_threshold")
         if resolve_threshold:
             data["resolve_threshold"] = translator(resolve_threshold)
@@ -514,6 +520,8 @@ class AlertRuleSerializer(CamelSnakeModelSerializer[AlertRule]):
                 )
             except (TimeoutError, MaxRetryError):
                 raise RequestTimeout
+            except ParseError:
+                raise serializers.ValidationError("Failed to parse Seer store data response")
             except forms.ValidationError as e:
                 # if we fail in create_metric_alert, then only one message is ever returned
                 raise serializers.ValidationError(e.error_list[0].message)
@@ -546,6 +554,8 @@ class AlertRuleSerializer(CamelSnakeModelSerializer[AlertRule]):
                 )
             except (TimeoutError, MaxRetryError):
                 raise RequestTimeout
+            except ParseError:
+                raise serializers.ValidationError("Failed to parse Seer store data response")
             except forms.ValidationError as e:
                 # if we fail in update_metric_alert, then only one message is ever returned
                 raise serializers.ValidationError(e.error_list[0].message)

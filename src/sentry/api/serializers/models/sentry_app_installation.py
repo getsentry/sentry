@@ -6,8 +6,8 @@ from typing import Any
 from sentry.api.serializers import Serializer, register
 from sentry.constants import SentryAppInstallationStatus
 from sentry.hybridcloud.services.organization_mapping import organization_mapping_service
-from sentry.models.integrations.sentry_app import SentryApp
-from sentry.models.integrations.sentry_app_installation import SentryAppInstallation
+from sentry.sentry_apps.models.sentry_app import SentryApp
+from sentry.sentry_apps.models.sentry_app_installation import SentryAppInstallation
 from sentry.users.models.user import User
 from sentry.users.services.user import RpcUser
 
@@ -45,7 +45,9 @@ class SentryAppInstallationSerializer(Serializer):
             "status": SentryAppInstallationStatus.as_str(obj.status),
         }
 
-        if obj.api_grant and access and access.has_scope("org:integrations"):
+        is_webhook = "is_webhook" in kwargs and kwargs["is_webhook"]
+
+        if obj.api_grant and ((access and access.has_scope("org:integrations")) or is_webhook):
             data["code"] = obj.api_grant.code
 
         return data

@@ -28,35 +28,37 @@ import {ToolRibbon} from 'sentry/views/insights/common/components/ribbon';
 import {useModuleBreadcrumbs} from 'sentry/views/insights/common/utils/useModuleBreadcrumbs';
 import {DomainSelector} from 'sentry/views/insights/common/views/spans/selectors/domainSelector';
 import SubregionSelector from 'sentry/views/insights/common/views/spans/selectors/subregionSelector';
-import {ModuleName} from 'sentry/views/insights/types';
+import {type InsightLandingProps, ModuleName} from 'sentry/views/insights/types';
 
 const {SPAN_OP, SPAN_DOMAIN} = BrowserStarfishFields;
 
-function ResourcesLandingPage() {
+function ResourcesLandingPage({disableHeader}: InsightLandingProps) {
   const filters = useResourceModuleFilters();
   const crumbs = useModuleBreadcrumbs('resource');
 
   return (
     <React.Fragment>
       <PageAlertProvider>
-        <Layout.Header>
-          <Layout.HeaderContent>
-            <Breadcrumbs crumbs={crumbs} />
+        {!disableHeader && (
+          <Layout.Header>
+            <Layout.HeaderContent>
+              <Breadcrumbs crumbs={crumbs} />
 
-            <Layout.Title>
-              {MODULE_TITLE}
-              <PageHeadingQuestionTooltip
-                docsUrl={MODULE_DOC_LINK}
-                title={MODULE_DESCRIPTION}
-              />
-            </Layout.Title>
-          </Layout.HeaderContent>
-          <Layout.HeaderActions>
-            <ButtonBar gap={1}>
-              <FeedbackWidgetButton />
-            </ButtonBar>
-          </Layout.HeaderActions>
-        </Layout.Header>
+              <Layout.Title>
+                {MODULE_TITLE}
+                <PageHeadingQuestionTooltip
+                  docsUrl={MODULE_DOC_LINK}
+                  title={MODULE_DESCRIPTION}
+                />
+              </Layout.Title>
+            </Layout.HeaderContent>
+            <Layout.HeaderActions>
+              <ButtonBar gap={1}>
+                <FeedbackWidgetButton />
+              </ButtonBar>
+            </Layout.HeaderActions>
+          </Layout.Header>
+        )}
         <Layout.Body>
           <Layout.Main fullWidth>
             <PageAlert />
@@ -91,14 +93,14 @@ function ResourcesLandingPage() {
   );
 }
 
-function PageWithProviders() {
+function PageWithProviders(props: InsightLandingProps) {
   return (
     <ModulePageProviders
       moduleName="resource"
       features="insights-initial-modules"
       analyticEventName="insight.page_loads.assets"
     >
-      <ResourcesLandingPage />
+      <ResourcesLandingPage {...props} />
     </ModulePageProviders>
   );
 }

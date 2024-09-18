@@ -69,7 +69,7 @@ export function AutoSizedText({children}: Props) {
           const widthDifference = parentDimensions.width - childDimensions.width;
           const heightDifference = parentDimensions.height - childDimensions.height;
 
-          const childFitsIntoParent = heightDifference > 0 && widthDifference > 0;
+          const childFitsIntoParent = heightDifference >= 0 && widthDifference >= 0;
           const childIsWithinWidthTolerance =
             Math.abs(widthDifference) <= MAXIMUM_DIFFERENCE;
           const childIsWithinHeightTolerance =
@@ -143,7 +143,7 @@ const SizedChild = styled('div')`
   display: inline-block;
 `;
 
-const ITERATION_LIMIT = 50;
+const ITERATION_LIMIT = 20;
 
 // The maximum difference strongly affects the number of iterations required.
 // A value of 10 means that matches are often found in fewer than 5 iterations.

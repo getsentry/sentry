@@ -138,7 +138,9 @@
     "sentry.authprovider",
     "sentry.organization"
   ],
-  "sentry.broadcast": [],
+  "sentry.broadcast": [
+    "sentry.user"
+  ],
   "sentry.broadcastseen": [
     "sentry.broadcast",
     "sentry.user"
@@ -854,6 +856,10 @@
   "workflow_engine.datasource": [
     "sentry.organization"
   ],
+  "workflow_engine.datasourcedetector": [
+    "workflow_engine.datasource",
+    "workflow_engine.detector"
+  ],
   "workflow_engine.detector": [
     "sentry.organization",
     "sentry.team",
@@ -861,5 +867,8 @@
   ],
   "workflow_engine.workflow": [
     "sentry.organization"
+  ],
+  "workflow_engine.workflowaction": [
+    "workflow_engine.workflow"
   ]
 }

@@ -454,14 +454,8 @@ class MetricsDatasetConfig(DatasetConfig):
                         fields.MetricArg("column"),
                     ],
                     calculated_args=[resolve_metric_id],
-                    snql_distribution=lambda args, alias: Function(
-                        "maxIf",
-                        [
-                            Column("value"),
-                            Function("equals", [Column("metric_id"), args["metric_id"]]),
-                        ],
-                        alias,
-                    ),
+                    snql_distribution=self._resolve_max,
+                    snql_gauge=self._resolve_max,
                     result_type_fn=self.reflective_result_type(),
                 ),
                 fields.MetricsFunction(
@@ -470,14 +464,8 @@ class MetricsDatasetConfig(DatasetConfig):
                         fields.MetricArg("column"),
                     ],
                     calculated_args=[resolve_metric_id],
-                    snql_distribution=lambda args, alias: Function(
-                        "minIf",
-                        [
-                            Column("value"),
-                            Function("equals", [Column("metric_id"), args["metric_id"]]),
-                        ],
-                        alias,
-                    ),
+                    snql_distribution=self._resolve_min,
+                    snql_gauge=self._resolve_min,
                     result_type_fn=self.reflective_result_type(),
                 ),
                 fields.MetricsFunction(
@@ -486,14 +474,8 @@ class MetricsDatasetConfig(DatasetConfig):
                         fields.MetricArg("column"),
                     ],
                     calculated_args=[resolve_metric_id],
-                    snql_distribution=lambda args, alias: Function(
-                        "sumIf",
-                        [
-                            Column("value"),
-                            Function("equals", [Column("metric_id"), args["metric_id"]]),
-                        ],
-                        alias,
-                    ),
+                    snql_distribution=self._resolve_sum,
+                    snql_gauge=self._resolve_sum,
                     result_type_fn=self.reflective_result_type(),
                 ),
                 fields.MetricsFunction(
@@ -1171,6 +1153,48 @@ class MetricsDatasetConfig(DatasetConfig):
                         args["metric_id"],
                     ],
                 ),
+            ],
+            alias,
+        )
+
+    def _resolve_sum(
+        self,
+        args: Mapping[str, str | Column | SelectType | int | float],
+        alias: str | None = None,
+    ) -> SelectType:
+        return Function(
+            "sumIf",
+            [
+                Column("value"),
+                Function("equals", [Column("metric_id"), args["metric_id"]]),
+            ],
+            alias,
+        )
+
+    def _resolve_min(
+        self,
+        args: Mapping[str, str | Column | SelectType | int | float],
+        alias: str | None = None,
+    ) -> SelectType:
+        return Function(
+            "minIf",
+            [
+                Column("value"),
+                Function("equals", [Column("metric_id"), args["metric_id"]]),
+            ],
+            alias,
+        )
+
+    def _resolve_max(
+        self,
+        args: Mapping[str, str | Column | SelectType | int | float],
+        alias: str | None = None,
+    ) -> SelectType:
+        return Function(
+            "maxIf",
+            [
+                Column("value"),
+                Function("equals", [Column("metric_id"), args["metric_id"]]),
             ],
             alias,
         )

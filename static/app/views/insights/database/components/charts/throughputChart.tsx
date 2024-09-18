@@ -1,25 +1,25 @@
 import type {Series} from 'sentry/types/echarts';
 import {RateUnit} from 'sentry/utils/discover/fields';
 import {formatRate} from 'sentry/utils/formatters';
+import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {THROUGHPUT_COLOR} from 'sentry/views/insights/colors';
 import Chart, {ChartType} from 'sentry/views/insights/common/components/chart';
 import ChartPanel from 'sentry/views/insights/common/components/chartPanel';
 import {getThroughputChartTitle} from 'sentry/views/insights/common/views/spans/types';
 import {ALERTS} from 'sentry/views/insights/database/alerts';
 import {CHART_HEIGHT} from 'sentry/views/insights/database/settings';
+import type {SpanMetricsQueryFilters} from 'sentry/views/insights/types';
 
 interface Props {
   isLoading: boolean;
   series: Series;
   error?: Error | null;
-  groupId?: string;
+  filters?: SpanMetricsQueryFilters;
 }
 
-export function ThroughputChart({series, isLoading, groupId}: Props) {
-  let alertConfig = ALERTS.spm;
-  if (groupId) {
-    alertConfig = {...alertConfig, query: `${alertConfig.query} span.group:${groupId}`};
-  }
+export function ThroughputChart({series, isLoading, filters}: Props) {
+  const filterString = filters && MutableSearch.fromQueryObject(filters).formatString();
+  const alertConfig = {...ALERTS.spm, query: filterString ?? ALERTS.spm.query};
   return (
     <ChartPanel title={getThroughputChartTitle('db')} alertConfigs={[alertConfig]}>
       <Chart
