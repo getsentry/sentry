@@ -63,7 +63,7 @@ describe('DatabaseSystemSelector', function () {
     expect(mockSetState).not.toHaveBeenCalled();
     const dropdownButton = await screen.findByRole('button');
     expect(dropdownButton).toBeInTheDocument();
-    expect(dropdownButton).toHaveTextContent('DB SystemNone');
+    expect(dropdownButton).toHaveTextContent('SystemNone');
   });
 
   it('is disabled when only one database system is present and shows that system as selected', async function () {
@@ -208,7 +208,7 @@ describe('DatabaseSystemSelector', function () {
     render(<DatabaseSystemSelector />, {organization});
 
     const dropdownSelector = await screen.findByRole('button');
-    expect(dropdownSelector).toHaveTextContent('DB SystemMongoDB');
+    expect(dropdownSelector).toHaveTextContent('SystemMongoDB');
     expect(mockSetState).not.toHaveBeenCalledWith('mongodb');
 
     // Now that it has been confirmed that following a URL does not reset localStorage state, confirm that
@@ -219,7 +219,7 @@ describe('DatabaseSystemSelector', function () {
     expect(dropdownOptionLabels[1]).toHaveTextContent('MongoDB');
 
     await userEvent.click(dropdownOptionLabels[0]);
-    expect(dropdownSelector).toHaveTextContent('DB SystemPostgreSQL');
+    expect(dropdownSelector).toHaveTextContent('SystemPostgreSQL');
     expect(mockSetState).toHaveBeenCalledWith('postgresql');
     expect(mockNavigate).toHaveBeenCalledWith({
       action: 'POP',
