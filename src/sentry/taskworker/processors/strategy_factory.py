@@ -101,7 +101,7 @@ class StrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
             max_batch_size=2,
             max_batch_time=2,
             accumulator=accumulator,
-            initial_value=lambda: [],
+            initial_value=list,
             next_step=RunTaskInThreads(
                 processing_function=flush_batch,
                 concurrency=2,
@@ -119,5 +119,4 @@ class StrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
         )
 
     def shutdown(self):
-        self.pool.close()
         self.pool.close()
