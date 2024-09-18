@@ -4,6 +4,19 @@ from dataclasses import dataclass
 from enum import Enum
 from typing import Any
 
+# A list of common builtin custom field types for Jira for easy reference.
+JIRA_CUSTOM_FIELD_TYPES = {
+    "select": "com.atlassian.jira.plugin.system.customfieldtypes:select",
+    "textarea": "com.atlassian.jira.plugin.system.customfieldtypes:textarea",
+    "multiuserpicker": "com.atlassian.jira.plugin.system.customfieldtypes:multiuserpicker",
+    "tempo_account": "com.tempoplugin.tempo-accounts:accounts.customfield",
+    "sprint": "com.pyxis.greenhopper.jira:gh-sprint",
+    "epic": "com.pyxis.greenhopper.jira:gh-epic-link",
+    "team": "com.atlassian.jira.plugin.system.customfieldtypes:atlassian-team",
+    "rank": "com.pyxis.greenhopper.jira:gh-lexo-rank",
+    "development": "com.atlassian.jira.plugins.jira-development-integration-plugin:devsummarycf",
+}
+
 
 class JiraSchemaTypes(str, Enum):
     string = "string"
@@ -16,6 +29,7 @@ class JiraSchemaTypes(str, Enum):
     date = "date"
     team = "team"
     number = "number"
+    json = "json"
     any = "any"
 
 
@@ -39,7 +53,7 @@ class JiraSchema:
     The very long custom field name corresponding to some namespace, plugin,
     and custom field name.
     """
-    custom_id: str | None = None
+    custom_id: int | None = None
     """
     A unique identifier for a field on an issue, in the form of 'customfield_<int>'
     """
@@ -156,8 +170,8 @@ class JiraIssueTypeMetadata:
         )
 
     @classmethod
-    def from_jira_meta_config(cls, meta_config: dict[str, Any]) -> list[JiraIssueTypeMetadata]:
+    def from_jira_meta_config(cls, meta_config: dict[str, Any]) -> dict[str, JiraIssueTypeMetadata]:
         issue_types_list = meta_config.get("issuetypes", {})
         issue_configs = [cls.from_dict(it) for it in issue_types_list]
 
-        return issue_configs
+        return {it.id: it for it in issue_configs}
