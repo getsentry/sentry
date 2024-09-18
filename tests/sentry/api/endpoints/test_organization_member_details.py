@@ -190,12 +190,14 @@ class UpdateOrganizationMemberTest(OrganizationMemberTestBase, HybridCloudTestMi
 
         self.organization.flags.disable_member_invite = True
         self.organization.save()
-        self.get_error_response(
+        response = self.get_error_response(
             self.organization.slug, self.curr_invite.id, reinvite=1, status_code=403
         )
-        self.get_error_response(
+        assert response.data.get("detail") == "You do not have permission to perform this action."
+        response = self.get_error_response(
             self.organization.slug, self.other_invite.id, reinvite=1, status_code=403
         )
+        assert response.data.get("detail") == "You do not have permission to perform this action."
         assert not mock_send_invite_email.mock_calls
 
         self.organization.flags.disable_member_invite = False
@@ -203,9 +205,10 @@ class UpdateOrganizationMemberTest(OrganizationMemberTestBase, HybridCloudTestMi
         self.get_success_response(self.organization.slug, self.curr_invite.id, reinvite=1)
         mock_send_invite_email.assert_called_once_with()
         mock_send_invite_email.reset_mock()
-        self.get_error_response(
+        response = self.get_error_response(
             self.organization.slug, self.other_invite.id, reinvite=1, status_code=403
         )
+        assert response.data.get("detail") == "You cannot modify invitations sent by someone else."
         assert not mock_send_invite_email.mock_calls
 
     @patch("sentry.models.OrganizationMember.send_invite_email")
@@ -216,23 +219,28 @@ class UpdateOrganizationMemberTest(OrganizationMemberTestBase, HybridCloudTestMi
 
         self.organization.flags.disable_member_invite = True
         self.organization.save()
-        self.get_error_response(
+        response = self.get_error_response(
             self.organization.slug,
             self.curr_invite.id,
             reinvite=1,
             teams=[foo.slug],
             status_code=403,
         )
+        assert response.data.get("detail") == "You do not have permission to perform this action."
         assert not mock_send_invite_email.mock_calls
 
         self.organization.flags.disable_member_invite = False
         self.organization.save()
-        self.get_error_response(
+        response = self.get_error_response(
             self.organization.slug,
             self.curr_invite.id,
             reinvite=1,
             teams=[foo.slug],
             status_code=403,
+        )
+        assert (
+            response.data.get("detail")
+            == "You can only reinvite members; you cannot modify other member details."
         )
         assert not mock_send_invite_email.mock_calls
 
@@ -243,15 +251,17 @@ class UpdateOrganizationMemberTest(OrganizationMemberTestBase, HybridCloudTestMi
 
         self.organization.flags.disable_member_invite = True
         self.organization.save()
-        self.get_error_response(
+        response = self.get_error_response(
             self.organization.slug, self.other_member.id, reinvite=1, status_code=403
         )
+        assert response.data.get("detail") == "You do not have permission to perform this action."
 
         self.organization.flags.disable_member_invite = False
         self.organization.save()
-        self.get_error_response(
+        response = self.get_error_response(
             self.organization.slug, self.other_member.id, reinvite=1, status_code=403
         )
+        assert response.data.get("detail") == "You do not have permission to perform this action."
         assert not mock_send_invite_email.mock_calls
 
     @patch("sentry.ratelimits.for_organization_member_invite")
@@ -290,15 +300,21 @@ class UpdateOrganizationMemberTest(OrganizationMemberTestBase, HybridCloudTestMi
 
         self.organization.flags.disable_member_invite = True
         self.organization.save()
-        self.get_error_response(
+        response = self.get_error_response(
             self.organization.slug, self.curr_invite.id, reinvite=1, regenerate=1, status_code=403
         )
+        assert response.data.get("detail") == "You do not have permission to perform this action."
 
         self.organization.flags.disable_member_invite = False
         self.organization.save()
-        self.get_error_response(
-            self.organization.slug, self.curr_invite.id, reinvite=1, regenerate=1, status_code=400
+        response = self.get_error_response(
+            self.organization.slug,
+            self.curr_invite.id,
+            reinvite=1,
+            regenerate=1,
+            status_code=400,
         )
+        assert response.data.get("detail") == "You are missing the member:admin scope."
 
     @patch("sentry.models.OrganizationMember.send_invite_email")
     def test_admin_can_regenerate_pending_invite(self, mock_send_invite_email):

@@ -4,6 +4,7 @@ from django.db import router, transaction
 from django.db.models import Q
 from drf_spectacular.utils import extend_schema, inline_serializer
 from rest_framework import serializers
+from rest_framework.exceptions import PermissionDenied
 from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.serializers import ValidationError
@@ -44,7 +45,7 @@ from . import get_allowed_org_roles, save_team_assignments
 ERR_NO_AUTH = "You cannot remove this member with an unauthenticated API request."
 ERR_INSUFFICIENT_ROLE = "You cannot remove a member who has more access than you."
 ERR_INSUFFICIENT_SCOPE = "You are missing the member:admin scope."
-ERR_MEMBER_INVITE = "Your cannot modify invitations sent by someone else."
+ERR_MEMBER_INVITE = "You cannot modify invitations sent by someone else."
 ERR_MEMBER_REINVITE = "You can only reinvite members; you cannot modify other member details."
 ERR_ONLY_OWNER = "You cannot remove the only remaining owner of the organization."
 ERR_UNINVITABLE = "You cannot send an invitation to a user who is already a full member."
@@ -76,7 +77,7 @@ class RelaxedMemberPermission(OrganizationPermission):
     scope_map = {
         "GET": ["member:read", "member:write", "member:admin"],
         "POST": ["member:write", "member:admin"],
-        "PUT": ["member:write", "member:admin", "member:invite"],
+        "PUT": ["member:invite", "member:write", "member:admin"],
         # DELETE checks for role comparison as you can either remove a member
         # with a lower access role, or yourself, without having the req. scope
         "DELETE": ["member:read", "member:write", "member:admin"],
@@ -232,8 +233,8 @@ class OrganizationMemberDetailsEndpoint(OrganizationMemberEndpoint):
         is_invite_from_user = member.inviter_id == request.user.id
 
         if is_member:
-            if not enable_member_invite:
-                return Response({"detail": ERR_INSUFFICIENT_SCOPE}, status=403)
+            if not enable_member_invite or not member.is_pending:
+                raise PermissionDenied
             if not reinvite_request_only:
                 return Response({"detail": ERR_MEMBER_REINVITE}, status=403)
             if not is_invite_from_user:
