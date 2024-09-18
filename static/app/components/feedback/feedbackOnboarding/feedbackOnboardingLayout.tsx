@@ -11,6 +11,7 @@ import {useUrlPlatformOptions} from 'sentry/components/onboarding/platformOption
 import ConfigStore from 'sentry/stores/configStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import {space} from 'sentry/styles/space';
+import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 
 export function FeedbackOnboardingLayout({
@@ -20,8 +21,10 @@ export function FeedbackOnboardingLayout({
   projectId,
   projectSlug,
   newOrg,
+  projectKeyId,
   configType = 'onboarding',
 }: OnboardingLayoutProps) {
+  const api = useApi();
   const organization = useOrganization();
 
   const [email, setEmail] = useState(false);
@@ -36,6 +39,8 @@ export function FeedbackOnboardingLayout({
     const doc = docsConfig[configType] ?? docsConfig.onboarding;
 
     const docParams: DocsParams<any> = {
+      api,
+      projectKeyId,
       dsn,
       organization,
       platformKey,
@@ -81,6 +86,8 @@ export function FeedbackOnboardingLayout({
     screenshot,
     isSelfHosted,
     urlPrefix,
+    api,
+    projectKeyId,
   ]);
 
   return (
