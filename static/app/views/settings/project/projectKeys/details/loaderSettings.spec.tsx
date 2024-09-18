@@ -4,7 +4,6 @@ import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 import selectEvent from 'sentry-test/selectEvent';
 
-import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import type {Project, ProjectKey} from 'sentry/types/project';
 
@@ -71,24 +70,24 @@ describe('Loader Script Settings', function () {
     // Panel title
     expect(screen.getByText('JavaScript Loader Script')).toBeInTheDocument();
 
-    expect(screen.getByText(t('Enable Performance Monitoring'))).toBeInTheDocument();
-    expect(screen.getByText(t('Enable Session Replay'))).toBeInTheDocument();
-    expect(screen.getByText(t('Enable Debug Bundles & Logging'))).toBeInTheDocument();
+    expect(screen.getByText('Enable Performance Monitoring')).toBeInTheDocument();
+    expect(screen.getByText('Enable Session Replay')).toBeInTheDocument();
+    expect(screen.getByText('Enable Debug Bundles & Logging')).toBeInTheDocument();
 
     const performanceCheckbox = screen.getByRole('checkbox', {
-      name: t('Enable Performance Monitoring'),
+      name: 'Enable Performance Monitoring',
     });
     expect(performanceCheckbox).toBeEnabled();
     expect(performanceCheckbox).not.toBeChecked();
 
     const replayCheckbox = screen.getByRole('checkbox', {
-      name: t('Enable Session Replay'),
+      name: 'Enable Session Replay',
     });
     expect(replayCheckbox).toBeEnabled();
     expect(replayCheckbox).toBeChecked();
 
     const debugCheckbox = screen.getByRole('checkbox', {
-      name: t('Enable Debug Bundles & Logging'),
+      name: 'Enable Debug Bundles & Logging',
     });
     expect(debugCheckbox).toBeEnabled();
     expect(debugCheckbox).not.toBeChecked();
@@ -127,7 +126,7 @@ describe('Loader Script Settings', function () {
     // Toggle performance option
     await userEvent.click(
       screen.getByRole('checkbox', {
-        name: t('Enable Performance Monitoring'),
+        name: 'Enable Performance Monitoring',
       })
     );
 
@@ -236,17 +235,17 @@ describe('Loader Script Settings', function () {
     );
 
     const performanceCheckbox = screen.getByRole('checkbox', {
-      name: t('Enable Performance Monitoring'),
+      name: 'Enable Performance Monitoring',
     });
     expect(performanceCheckbox).not.toBeChecked();
 
     const replayCheckbox = screen.getByRole('checkbox', {
-      name: t('Enable Session Replay'),
+      name: 'Enable Session Replay',
     });
     expect(replayCheckbox).not.toBeChecked();
 
     const debugCheckbox = screen.getByRole('checkbox', {
-      name: t('Enable Debug Bundles & Logging'),
+      name: 'Enable Debug Bundles & Logging',
     });
     expect(debugCheckbox).toBeChecked();
 

@@ -5,7 +5,6 @@ import {
 } from 'sentry-test/reactTestingLibrary';
 
 import {COL_WIDTH_UNDEFINED} from 'sentry/components/gridEditable';
-import {t} from 'sentry/locale';
 import type {PageFilters} from 'sentry/types/core';
 import {ModuleName, SpanMetricsField} from 'sentry/views/insights/types';
 
@@ -98,17 +97,17 @@ describe('SampleTable', function () {
           columnOrder={[
             {
               key: 'transaction_id',
-              name: t('Event ID'),
+              name: 'Event ID',
               width: COL_WIDTH_UNDEFINED,
             },
             {
               key: 'profile_id',
-              name: t('Profile'),
+              name: 'Profile',
               width: COL_WIDTH_UNDEFINED,
             },
             {
               key: 'avg_comparison',
-              name: t('Compared to Average'),
+              name: 'Compared to Average',
               width: COL_WIDTH_UNDEFINED,
             },
           ]}
