@@ -805,6 +805,9 @@ describe('SearchQueryBuilder', function () {
 
       await userEvent.click(getLastInput());
 
+      // XXX(malwilley): SearchQueryBuilderInput updates state in the render
+      // function which causes an act warning despite using userEvent.click.
+      // Cannot find a way to avoid this warning.
       jest.spyOn(console, 'error').mockImplementation(jest.fn());
       await userEvent.type(screen.getByRole('combobox'), 'some free text brow');
       await userEvent.click(screen.getByRole('option', {name: 'browser.name'}));
