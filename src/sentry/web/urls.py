@@ -13,8 +13,8 @@ from sentry.auth.providers.saml2.provider import SAML2AcceptACSView, SAML2Metada
 from sentry.charts.endpoints import serve_chartcuterie_config
 from sentry.integrations.web.doc_integration_avatar import DocIntegrationAvatarPhotoView
 from sentry.integrations.web.organization_integration_setup import OrganizationIntegrationSetupView
-from sentry.toolbar.iframe_view import IframeView
-from sentry.toolbar.login_success_view import LoginSuccessView
+from sentry.toolbar.views.iframe_view import IframeView
+from sentry.toolbar.views.login_success_view import LoginSuccessView
 from sentry.users.web import accounts
 from sentry.users.web.account_identity import AccountIdentityAssociateView
 from sentry.users.web.user_avatar import UserAvatarPhotoView
