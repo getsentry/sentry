@@ -1,7 +1,7 @@
 from unittest.mock import Mock, patch
 
 from sentry.constants import TICKET_ACTIONS
-from sentry.integrations.github_enterprise import GitHubEnterpriseCreateTicketAction
+from sentry.integrations.github_enterprise.actions import GitHubEnterpriseCreateTicketAction
 from sentry.rules import MatchType
 from sentry.rules import rules as default_rules
 from sentry.rules.filters.issue_category import IssueCategoryFilter

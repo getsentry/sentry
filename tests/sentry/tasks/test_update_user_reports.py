@@ -153,11 +153,10 @@ class UpdateUserReportTest(TestCase):
         assert mock_event_data["contexts"]["feedback"]["message"] == "It broke!"
         assert mock_event_data["contexts"]["feedback"]["name"] == "Foo Bar"
         assert mock_event_data["environment"] == self.environment.name
-        assert mock_event_data["tags"] == [
-            ["environment", self.environment.name],
-            ["foo", "bar"],
-            ["level", "error"],
-        ]
+        assert mock_event_data["tags"]["environment"] == self.environment.name
+        assert mock_event_data["tags"]["foo"] == "bar"
+        assert mock_event_data["tags"]["level"] == "error"
+        assert mock_event_data["tags"]["user.email"] == "foo@example.com"
 
         assert mock_event_data["platform"] == "other"
         assert mock_event_data["contexts"]["feedback"]["associated_event_id"] == event1.event_id

@@ -26,9 +26,6 @@ class GroupHash(Model):
         UNLOCKED = None
         LOCKED_IN_MIGRATION = 1
 
-        # This hierarchical grouphash should be ignored/skipped for finding the group.
-        SPLIT = 2
-
     project = FlexibleForeignKey("sentry.Project", null=True)
     hash = models.CharField(max_length=32)
     group = FlexibleForeignKey("sentry.Group", null=True)

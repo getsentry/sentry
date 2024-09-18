@@ -4,6 +4,7 @@ from functools import cached_property
 from typing import Any
 from unittest.mock import patch
 
+import orjson
 import pytest
 import responses
 from django.test import override_settings
@@ -42,6 +43,7 @@ from sentry.integrations.services.integration import integration_service
 from sentry.integrations.services.integration.serial import serialize_integration
 from sentry.integrations.slack.utils.channel import SlackChannelIdData
 from sentry.models.environment import Environment
+from sentry.seer.anomaly_detection.types import StoreDataResponse
 from sentry.sentry_apps.services.app import app_service
 from sentry.silo.base import SiloMode
 from sentry.snuba.dataset import Dataset
@@ -477,7 +479,8 @@ class TestAlertRuleSerializer(TestAlertRuleSerializerBase):
         """
         Anomaly detection alerts cannot have a nonzero alert rule threshold
         """
-        mock_seer_request.return_value = HTTPResponse(status=200)
+        seer_return_value: StoreDataResponse = {"success": True}
+        mock_seer_request.return_value = HTTPResponse(orjson.dumps(seer_return_value), status=200)
 
         params = self.valid_params.copy()
         params["detection_type"] = AlertRuleDetectionType.DYNAMIC
@@ -812,6 +815,34 @@ class TestAlertRuleSerializer(TestAlertRuleSerializerBase):
         alert_rule = serializer.save()
         assert alert_rule.snuba_query is not None
         assert alert_rule.snuba_query.query == "status:unresolved"
+
+    def test_http_response_rate(self):
+        with self.feature("organizations:mep-rollout-flag"):
+            params = self.valid_params.copy()
+            params["query"] = "span.module:http span.op:http.client"
+            params["aggregate"] = "http_response_rate(3)"
+            params["event_types"] = [SnubaQueryEventType.EventType.TRANSACTION.name.lower()]
+            params["dataset"] = Dataset.PerformanceMetrics.value
+            serializer = AlertRuleSerializer(context=self.context, data=params, partial=True)
+            assert serializer.is_valid(), serializer.errors
+            alert_rule = serializer.save()
+            assert alert_rule.snuba_query is not None
+            assert alert_rule.snuba_query.query == "span.module:http span.op:http.client"
+            assert alert_rule.snuba_query.aggregate == "http_response_rate(3)"
+
+    def test_performance_score(self):
+        with self.feature("organizations:mep-rollout-flag"):
+            params = self.valid_params.copy()
+            params["query"] = "has:measurements.score.total"
+            params["aggregate"] = "performance_score(measurements.score.lcp)"
+            params["event_types"] = [SnubaQueryEventType.EventType.TRANSACTION.name.lower()]
+            params["dataset"] = Dataset.PerformanceMetrics.value
+            serializer = AlertRuleSerializer(context=self.context, data=params, partial=True)
+            assert serializer.is_valid(), serializer.errors
+            alert_rule = serializer.save()
+            assert alert_rule.snuba_query is not None
+            assert alert_rule.snuba_query.query == "has:measurements.score.total"
+            assert alert_rule.snuba_query.aggregate == "performance_score(measurements.score.lcp)"
 
 
 class TestAlertRuleTriggerSerializer(TestAlertRuleSerializerBase):
