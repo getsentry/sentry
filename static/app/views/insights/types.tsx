@@ -193,6 +193,7 @@ export enum SpanIndexedField {
   ID = 'span_id',
   SPAN_ACTION = 'span.action',
   SPAN_AI_PIPELINE_GROUP = 'span.ai.pipeline.group',
+  SPAN_AI_PIPELINE_GROUP_TAG = 'ai_pipeline_group',
   SDK_NAME = 'sdk.name',
   TRACE = 'trace',
   TRANSACTION_ID = 'transaction.id',

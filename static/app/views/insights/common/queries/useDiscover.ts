@@ -36,6 +36,15 @@ export const useSpansIndexed = <Fields extends SpanIndexedField[]>(
   );
 };
 
+// TODO not limiting fields for EAP spans, they are completely arbitrary for now
+export const useEAPSpans = (options: UseMetricsOptions<any> = {}, referrer: string) => {
+  return useDiscover<any, SpanIndexedResponse>(
+    options,
+    DiscoverDatasets.SPANS_EAP,
+    referrer
+  );
+};
+
 export const useSpanMetrics = <Fields extends SpanMetricsProperty[]>(
   options: UseMetricsOptions<Fields> = {},
   referrer: string
