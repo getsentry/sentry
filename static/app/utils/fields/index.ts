@@ -1321,7 +1321,6 @@ const EVENT_FIELD_DEFINITIONS: Record<AllEventFieldKeys, FieldDefinition> = {
     desc: t('The properties of an issue (i.e. Resolved, unresolved)'),
     kind: FieldKind.FIELD,
     valueType: FieldValueType.STRING,
-    keywords: ['ignored', 'assigned', 'for_review', 'unassigned', 'linked', 'unlinked'],
     defaultValue: 'unresolved',
     allowWildcard: false,
   },
@@ -1335,14 +1334,12 @@ const EVENT_FIELD_DEFINITIONS: Record<AllEventFieldKeys, FieldDefinition> = {
     desc: t('Category of issue (error or performance)'),
     kind: FieldKind.FIELD,
     valueType: FieldValueType.STRING,
-    keywords: ['error', 'performance'],
     allowWildcard: false,
   },
   [FieldKey.ISSUE_PRIORITY]: {
     desc: t('The priority of the issue'),
     kind: FieldKind.FIELD,
     valueType: FieldValueType.STRING,
-    keywords: ['high', 'medium', 'low'],
     allowWildcard: false,
   },
   [FieldKey.ISSUE_TYPE]: {
