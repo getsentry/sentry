@@ -26,13 +26,16 @@ interface SearchSuggestionListProps {
 }
 
 const RECOMMENDED_SEARCHES: SearchSuggestion[] = [
-  {label: 'Assigned to Me', query: 'assigned:me'},
-  {label: 'My Bookmarks', query: 'bookmarks:me'},
-  {label: 'Errors Only', query: 'status:unresolved level:error'},
+  {label: 'Prioritized', query: 'is:unresolved issue.priority:[high, medium]'},
+  {label: 'Assigned to Me', query: 'assigned_or_suggested:me is:unresolved'},
   {
-    label: 'Unhandled',
-    query: 'status:unresolved error.unhandled:True',
+    label: 'For Review',
+    query: 'is:unresolved is:for_review assigned_or_suggested:[me, my_teams, none]',
   },
+  {label: 'Request Errors', query: 'http.status_code:5*'},
+  {label: 'High Volume Issues', query: '!is:resolved timesSeen:>100'},
+  {label: 'Recent Errors', query: 'issue.category:error firstSeen:-24h !is:resolved'},
+  {label: 'Function Regressions', query: 'issue.type:profile_function_regression'},
 ];
 
 function AddViewPage({savedSearches}: {savedSearches: SavedSearch[]}) {
