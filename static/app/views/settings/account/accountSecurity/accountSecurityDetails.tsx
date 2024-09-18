@@ -116,9 +116,7 @@ function AccountSecurityDetails({deleteDisabled, onRegenerateBackupCodes}: Props
       addErrorMessage(t('Error renaming the device'));
     },
     onSettled: () => {
-      queryClient.invalidateQueries({
-        queryKey: getAuthenticatorQueryKey(authId),
-      });
+      queryClient.invalidateQueries({queryKey: getAuthenticatorQueryKey(authId)});
     },
   });
 
