@@ -67,7 +67,7 @@ export default function getConfiguration({
         {
           path: `${pathPrefix}/toolbar/`,
           title: t('Developer Toolbar'),
-          show: () => true || !!organization?.features?.includes('dev-toolbar-ui'),
+          show: () => !!organization?.features?.includes('dev-toolbar-ui'),
         },
       ],
     },

@@ -35,9 +35,6 @@ function ProjectToolbarSettings({organization, project, params: {projectId}}: Pr
             'Domain URLs where the dev toolbar can be installed and access your data. Wildcards (*) are supported. Please separate multiple entries with a newline.'
           ),
           getData: data => ({options: data}),
-          visible({features}) {
-            return features.has('dev-toolbar-ui');
-          },
         },
       ],
     },
