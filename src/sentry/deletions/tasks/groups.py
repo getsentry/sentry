@@ -57,22 +57,3 @@ def delete_groups(
         # all groups have been deleted
         if eventstream_state:
             eventstream.backend.end_delete_groups(eventstream_state)
-
-
-@instrumented_task(
-    name="sentry.tasks.deletion.delete_groups",
-    queue="cleanup",
-    default_retry_delay=60 * 5,
-    max_retries=MAX_RETRIES,
-    acks_late=True,
-    silo_mode=SiloMode.REGION,
-)
-@retry(exclude=(DeleteAborted,))
-@track_group_async_operation
-def delete_groups_old(
-    object_ids: Sequence[int],
-    transaction_id: str | None = None,
-    eventstream_state: Mapping[str, Any] | None = None,
-    **kwargs: Any,
-) -> None:
-    delete_groups(object_ids, transaction_id, eventstream_state, **kwargs)
