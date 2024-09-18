@@ -337,11 +337,10 @@ const ContextBody = styled('div')`
 
 const ErrorMessage = styled('div')`
   display: flex;
+  gap: ${space(1)};
 `;
 
-const ErrorMessageIcon = styled('div')`
-  margin-right: ${space(1)};
-`;
+const ErrorMessageIcon = styled('div')``;
 
 const StyledStructuredEventData = styled(StructuredEventData)`
   border-top: solid 1px ${p => p.theme.border};

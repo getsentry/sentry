@@ -2,7 +2,7 @@ import {EventFixture} from 'sentry-fixture/event';
 import {GroupFixture} from 'sentry-fixture/group';
 import {ProjectFixture} from 'sentry-fixture/project';
 
-import {render, screen} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {openModal} from 'sentry/actionCreators/modal';
 import {AutofixBanner} from 'sentry/components/events/autofix/autofixBanner';
@@ -49,7 +49,7 @@ describe('AutofixBanner', () => {
     expect(screen.getByRole('button', {name: /Run Autofix/i})).toBeInTheDocument();
   });
 
-  it('opens the AutofixSetupModal when "Set up Autofix" is clicked', () => {
+  it('opens the AutofixSetupModal when "Set up Autofix" is clicked', async () => {
     const mockOpenModal = jest.fn();
     (openModal as jest.Mock).mockImplementation(mockOpenModal);
 
@@ -62,7 +62,7 @@ describe('AutofixBanner', () => {
       />
     );
 
-    screen.getByRole('button', {name: /Set up Autofix/i}).click();
+    await userEvent.click(screen.getByRole('button', {name: /Set up Autofix/i}));
     expect(openModal).toHaveBeenCalled();
   });
 

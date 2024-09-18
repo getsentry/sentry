@@ -4,7 +4,7 @@ import {EventFixture} from 'sentry-fixture/event';
 import {GroupFixture} from 'sentry-fixture/group';
 import {ProjectFixture} from 'sentry-fixture/project';
 
-import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {AutofixDrawer} from 'sentry/components/events/autofix/autofixDrawer';
 import {t} from 'sentry/locale';
@@ -32,7 +32,7 @@ describe('AutofixDrawer', () => {
 
     expect(screen.getByText(mockEvent.id)).toBeInTheDocument();
 
-    expect(screen.getByRole('heading', {name: t('Autofix')})).toBeInTheDocument();
+    expect(screen.getByRole('heading', {name: 'Autofix'})).toBeInTheDocument();
 
     expect(screen.getByText('Ready to begin analyzing the issue?')).toBeInTheDocument();
 
@@ -55,13 +55,11 @@ describe('AutofixDrawer', () => {
     render(<AutofixDrawer event={mockEvent} group={mockGroup} project={mockProject} />);
 
     const startButton = screen.getByRole('button', {name: 'Start'});
-    act(() => {
-      userEvent.click(startButton);
-    });
+    await userEvent.click(startButton);
 
-    await expect(
-      screen.findByRole('button', {name: t('Start Over')})
-    ).resolves.toBeInTheDocument();
+    expect(
+      await screen.findByRole('button', {name: t('Start Over')})
+    ).toBeInTheDocument();
   });
 
   it('displays autofix steps and Start Over button when autofixData is available', async () => {
@@ -72,12 +70,12 @@ describe('AutofixDrawer', () => {
 
     render(<AutofixDrawer event={mockEvent} group={mockGroup} project={mockProject} />);
 
-    await expect(
-      screen.findByRole('button', {name: t('Start Over')})
-    ).resolves.toBeInTheDocument();
+    expect(
+      await screen.findByRole('button', {name: t('Start Over')})
+    ).toBeInTheDocument();
   });
 
-  it('resets autofix on clicking the start over button', () => {
+  it('resets autofix on clicking the start over button', async () => {
     MockApiClient.addMockResponse({
       url: `/issues/${mockGroup.id}/autofix/`,
       body: {autofix: mockAutofixData},
@@ -85,13 +83,11 @@ describe('AutofixDrawer', () => {
 
     render(<AutofixDrawer event={mockEvent} group={mockGroup} project={mockProject} />);
 
-    waitFor(() => {
-      const startOverButton = screen.getByRole('button', {name: t('Start Over')});
-      expect(startOverButton).toBeInTheDocument();
-      userEvent.click(startOverButton);
-    });
+    const startOverButton = await screen.findByRole('button', {name: t('Start Over')});
+    expect(startOverButton).toBeInTheDocument();
+    await userEvent.click(startOverButton);
 
-    waitFor(() => {
+    await waitFor(() => {
       expect(screen.getByText('Ready to begin analyzing the issue?')).toBeInTheDocument();
       expect(screen.getByRole('button', {name: 'Start'})).toBeInTheDocument();
     });

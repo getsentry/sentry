@@ -21,7 +21,7 @@ import {useMutation} from 'sentry/utils/queryClient';
 import useApi from 'sentry/utils/useApi';
 
 function useSendMessage({groupId, runId}: {groupId: string; runId: string}) {
-  const api = useApi();
+  const api = useApi({persistInFlight: true});
 
   return useMutation({
     mutationFn: (params: {message: string}) => {
