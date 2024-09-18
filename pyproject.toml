@@ -296,7 +296,6 @@ module = [
     "sentry.middleware.auth",
     "sentry.middleware.ratelimit",
     "sentry.middleware.superuser",
-    "sentry.models.integrations.sentry_app_installation",
     "sentry.models.organizationaccessrequest",
     "sentry.monitors.consumers.monitor_consumer",
     "sentry.monitors.endpoints.base",

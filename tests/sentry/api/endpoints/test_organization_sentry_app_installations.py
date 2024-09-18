@@ -2,8 +2,8 @@ from django.test import override_settings
 
 from sentry.constants import SentryAppStatus
 from sentry.integrations.models.integration_feature import Feature
-from sentry.models.integrations.sentry_app_installation import SentryAppInstallation
 from sentry.sentry_apps.logic import SentryAppUpdater
+from sentry.sentry_apps.models.sentry_app_installation import SentryAppInstallation
 from sentry.slug.errors import DEFAULT_SLUG_ERROR_MESSAGE
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.features import with_feature

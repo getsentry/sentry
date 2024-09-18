@@ -3,9 +3,9 @@ from django.views.generic import View
 
 from sentry.constants import SentryAppStatus
 from sentry.integrations.notify_disable import get_provider_type, get_url
-from sentry.models.integrations.sentry_app_installation import SentryAppInstallation
 from sentry.models.organization import Organization
 from sentry.sentry_apps.models.sentry_app import SentryApp
+from sentry.sentry_apps.models.sentry_app_installation import SentryAppInstallation
 
 from .mail import MailPreview
 

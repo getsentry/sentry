@@ -1,5 +1,5 @@
 from sentry.constants import SentryAppInstallationStatus
-from sentry.models.integrations.sentry_app_installation import SentryAppInstallation
+from sentry.sentry_apps.models.sentry_app_installation import SentryAppInstallation
 from sentry.sentry_apps.services.app import app_service
 from sentry.testutils.factories import Factories
 from sentry.testutils.pytest.fixtures import django_db_all

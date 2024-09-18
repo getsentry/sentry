@@ -7,8 +7,8 @@ from django.utils import timezone
 from sentry.conf.server import SENTRY_SCOPE_HIERARCHY_MAPPING, SENTRY_SCOPES
 from sentry.hybridcloud.models import ApiTokenReplica
 from sentry.models.apitoken import ApiToken, NotSupported, PlaintextSecretAlreadyRead
-from sentry.models.integrations.sentry_app_installation import SentryAppInstallation
 from sentry.models.integrations.sentry_app_installation_token import SentryAppInstallationToken
+from sentry.sentry_apps.models.sentry_app_installation import SentryAppInstallation
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase
 from sentry.testutils.outbox import outbox_runner
