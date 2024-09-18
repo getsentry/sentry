@@ -116,7 +116,7 @@ def _chunk_watermark_batch(
     acks_late=True,
     silo_mode=SiloMode.CONTROL,
 )
-def schedule_hybrid_cloud_foreign_key_jobs_control_new():
+def schedule_hybrid_cloud_foreign_key_jobs_control():
     if options.get("hybrid_cloud.disable_tombstone_cleanup"):
         return
 
@@ -131,9 +131,9 @@ def schedule_hybrid_cloud_foreign_key_jobs_control_new():
     acks_late=True,
     silo_mode=SiloMode.CONTROL,
 )
-def schedule_hybrid_cloud_foreign_key_jobs_control():
+def schedule_hybrid_cloud_foreign_key_jobs_control_old():
     # Deprecated deploy boundary shim
-    schedule_hybrid_cloud_foreign_key_jobs_control_new()
+    schedule_hybrid_cloud_foreign_key_jobs_control()
 
 
 @instrumented_task(
@@ -142,7 +142,7 @@ def schedule_hybrid_cloud_foreign_key_jobs_control():
     acks_late=True,
     silo_mode=SiloMode.REGION,
 )
-def schedule_hybrid_cloud_foreign_key_jobs_new():
+def schedule_hybrid_cloud_foreign_key_jobs():
     if options.get("hybrid_cloud.disable_tombstone_cleanup"):
         return
 
@@ -157,9 +157,9 @@ def schedule_hybrid_cloud_foreign_key_jobs_new():
     acks_late=True,
     silo_mode=SiloMode.REGION,
 )
-def schedule_hybrid_cloud_foreign_key_jobs():
+def schedule_hybrid_cloud_foreign_key_jobs_old():
     # Deprecated deploy boundary shim
-    schedule_hybrid_cloud_foreign_key_jobs_new()
+    schedule_hybrid_cloud_foreign_key_jobs()
 
 
 def _schedule_hybrid_cloud_foreign_key(silo_mode: SiloMode, cascade_task: Task) -> None:
@@ -190,7 +190,7 @@ def _schedule_hybrid_cloud_foreign_key(silo_mode: SiloMode, cascade_task: Task) 
     acks_late=True,
     silo_mode=SiloMode.CONTROL,
 )
-def process_hybrid_cloud_foreign_key_cascade_batch_control_new(
+def process_hybrid_cloud_foreign_key_cascade_batch_control(
     app_name: str, model_name: str, field_name: str, **kwargs: Any
 ) -> None:
     if options.get("hybrid_cloud.disable_tombstone_cleanup"):
@@ -211,11 +211,11 @@ def process_hybrid_cloud_foreign_key_cascade_batch_control_new(
     acks_late=True,
     silo_mode=SiloMode.CONTROL,
 )
-def process_hybrid_cloud_foreign_key_cascade_batch_control(
+def process_hybrid_cloud_foreign_key_cascade_batch_control_old(
     app_name: str, model_name: str, field_name: str, **kwargs: Any
 ) -> None:
     # Deprecated deploy boundary shim
-    process_hybrid_cloud_foreign_key_cascade_batch_control_new(
+    process_hybrid_cloud_foreign_key_cascade_batch_control(
         app_name, model_name, field_name, **kwargs
     )
 
@@ -226,7 +226,7 @@ def process_hybrid_cloud_foreign_key_cascade_batch_control(
     acks_late=True,
     silo_mode=SiloMode.REGION,
 )
-def process_hybrid_cloud_foreign_key_cascade_batch_new(
+def process_hybrid_cloud_foreign_key_cascade_batch(
     app_name: str, model_name: str, field_name: str, **kwargs: Any
 ) -> None:
     if options.get("hybrid_cloud.disable_tombstone_cleanup"):
@@ -247,11 +247,11 @@ def process_hybrid_cloud_foreign_key_cascade_batch_new(
     acks_late=True,
     silo_mode=SiloMode.REGION,
 )
-def process_hybrid_cloud_foreign_key_cascade_batch(
+def process_hybrid_cloud_foreign_key_cascade_batch_old(
     app_name: str, model_name: str, field_name: str, **kwargs: Any
 ) -> None:
     # Deprecated deploy boundary shim
-    process_hybrid_cloud_foreign_key_cascade_batch_new(app_name, model_name, field_name)
+    process_hybrid_cloud_foreign_key_cascade_batch(app_name, model_name, field_name)
 
 
 def _process_hybrid_cloud_foreign_key_cascade(
