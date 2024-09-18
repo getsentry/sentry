@@ -19,6 +19,7 @@ from .project_group_stats import ProjectGroupStatsEndpoint
 from .project_stacktrace_link import ProjectStacktraceLinkEndpoint
 from .shared_group_details import SharedGroupDetailsEndpoint
 from .source_map_debug import SourceMapDebugEndpoint
+from .team_groups_old import TeamGroupsOldEndpoint
 
 __all__ = (
     "ActionableItemsEndpoint",
@@ -42,4 +43,5 @@ __all__ = (
     "ProjectStacktraceLinkEndpoint",
     "SharedGroupDetailsEndpoint",
     "SourceMapDebugEndpoint",
+    "TeamGroupsOldEndpoint",
 )
