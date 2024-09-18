@@ -64,21 +64,16 @@ export type ApiQueryKey =
       >,
     ];
 
-export interface UseApiQueryOptions<TApiResponse, TError = RequestError>
-  extends Omit<
-    UseQueryOptions<
-      ApiResult<TApiResponse>,
-      TError,
-      ApiResult<TApiResponse>,
-      ApiQueryKey
-    >,
+export interface UseApiQueryOptions<
+  TResponseData = unknown,
+  TError = RequestError,
+  TData = TResponseData,
+> extends Omit<
+    UseQueryOptions<ApiResult<TResponseData>, TError, TData, ApiQueryKey>,
     // This is an explicit option in our function
     | 'queryKey'
     // This will always be a useApi api Query
     | 'queryFn'
-    // We do not include the select option as this is difficult to make interop
-    // with the way we extract data out of the ApiResult tuple
-    | 'select'
   > {
   /**
    * staleTime is the amount of time (in ms) before cached data gets marked as stale.
@@ -119,10 +114,10 @@ export type UseApiQueryResult<TData, TError> = UseQueryResult<TData, TError> & {
  *   {staleTime: 0}
  * );
  */
-export function useApiQuery<TResponseData, TError = RequestError>(
+export function useApiQuery<TResponseData, TError = RequestError, TData = TResponseData>(
   queryKey: ApiQueryKey,
-  options: UseApiQueryOptions<TResponseData, TError>
-): UseApiQueryResult<TResponseData, TError> {
+  options: UseApiQueryOptions<TResponseData, TError, TData>
+): UseApiQueryResult<TData, TError> {
   const api = useApi({persistInFlight: PERSIST_IN_FLIGHT});
   const queryFn = fetchDataQuery(api);
 
@@ -133,7 +128,8 @@ export function useApiQuery<TResponseData, TError = RequestError>(
   });
 
   const queryResult = {
-    data: data?.[0],
+    // If select is provided, return the selected data, otherwise return the first element of ApiResult tuple
+    data: options.select ? data : data?.[0],
     getResponseHeader: data?.[2]?.getResponseHeader,
     ...rest,
   };
@@ -141,7 +137,7 @@ export function useApiQuery<TResponseData, TError = RequestError>(
   // XXX: We need to cast here because unwrapping `data` breaks the type returned by
   //      useQuery above. The react-query library's UseQueryResult is a union type and
   //      too complex to recreate here so casting the entire object is more appropriate.
-  return queryResult as UseApiQueryResult<TResponseData, TError>;
+  return queryResult as UseApiQueryResult<TData, TError>;
 }
 
 export function useApiQueries<TResponseData, TError = RequestError>(

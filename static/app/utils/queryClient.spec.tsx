@@ -102,5 +102,39 @@ describe('queryClient', function () {
 
       expect(await screen.findByText('something bad happened')).toBeInTheDocument();
     });
+
+    it('can pass select function to return a subset of data', async function () {
+      type TestResponseData = {
+        other: string;
+        value: number;
+      };
+      MockApiClient.addMockResponse({
+        url: '/some/test/path/',
+        body: {value: 5, other: 'data'},
+      });
+
+      function TestComponent() {
+        const {isPending, data} = useApiQuery<
+          TestResponseData,
+          Error,
+          TestResponseData['other']
+        >(['/some/test/path/'], {
+          staleTime: 0,
+          select: response => {
+            return response[0].other;
+          },
+        });
+
+        if (isPending) {
+          return null;
+        }
+
+        return <div>{data}</div>;
+      }
+
+      render(<TestComponent />);
+
+      expect(await screen.findByText('data')).toBeInTheDocument();
+    });
   });
 });
