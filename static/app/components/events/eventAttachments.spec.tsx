@@ -20,7 +20,7 @@ describe('EventAttachments', function () {
       orgRole: 'member',
       attachmentsRole: 'member',
     },
-  } as any);
+  });
   const event = EventFixture({metadata: {stripped_crash: false}});
 
   const props = {
@@ -93,7 +93,7 @@ describe('EventAttachments', function () {
         orgRole: 'member',
         attachmentsRole: 'admin',
       },
-    } as any);
+    });
     const attachment = EventAttachmentFixture({
       name: 'some_file.txt',
       headers: {
