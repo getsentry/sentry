@@ -18,9 +18,6 @@ updates:
       babel-dependencies:
         patterns:
           - '@babel/*'
-      sentry-dependencies:
-        patterns:
-          - '@sentry/*'
       spectrum-dependencies:
         patterns:
           - '@react-stately/*'
@@ -63,6 +60,27 @@ updates:
       - dependency-name: 'reflux'
       - dependency-name: 'sprintf-js'
       - dependency-name: 'u2f-api'
+  # For Sentry SDK updates, we do not want to limit the open PRs
+  - package-ecosystem: npm
+    open-pull-requests-limit: 0
+    directory: '/'
+    schedule:
+      # Going to start with a high interval, and then tone it back
+      interval: daily
+      timezone: America/Los_Angeles
+      time: '15:30'
+    reviewers:
+      - '@getsentry/owners-js-deps'
+    labels: []
+    # Group dependency updates together in one PR
+    # https://docs.github.com/en/code-security/dependabot/dependabot-version-updates/configuration-options-for-the-dependabot.yml-file#groups
+    groups:
+      # The name of the group, it will be used in PR titles and branch
+      sentry-dependencies:
+        patterns:
+          - '@sentry/*'
+        update-types:
+          - 'minor'
   - package-ecosystem: 'docker'
     directory: 'self-hosted/'
     schedule:
