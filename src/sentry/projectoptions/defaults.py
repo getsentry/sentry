@@ -148,6 +148,11 @@ register(
 )
 
 register(
+    key="sentry:toolbar_allowed_origins",
+    default=[],
+)
+
+register(
     key="sentry:feedback_user_report_notifications",
     epoch_defaults={12: True},
 )
