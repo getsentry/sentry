@@ -317,7 +317,7 @@ function AutofixRootCauseDisplay({
   repos,
 }: AutofixRootCauseProps) {
   const [selectedId, setSelectedId] = useState(() => causes[0].id);
-  const {isLoading, mutate: handleSelectFix} = useSelectCause({groupId, runId});
+  const {isPending, mutate: handleSelectFix} = useSelectCause({groupId, runId});
 
   if (rootCauseSelection) {
     if ('custom_root_cause' in rootCauseSelection) {

@@ -19,7 +19,7 @@ export function useSystemSelectorOptions() {
     ''
   );
 
-  const {data, isLoading, isError} = useSpanMetrics(
+  const {data, isPending, isError} = useSpanMetrics(
     {
       search: MutableSearch.fromQueryObject({'span.op': 'db'}),
 
@@ -37,6 +37,10 @@ export function useSystemSelectorOptions() {
       const textValue =
         system in DATABASE_SYSTEM_TO_LABEL ? DATABASE_SYSTEM_TO_LABEL[system] : system;
 
+      const supportedSystemSet: Set<string> = new Set(
+        Object.values(SupportedDatabaseSystem)
+      );
+
       if (system === SupportedDatabaseSystem.MONGODB) {
         label = (
           <LabelContainer>
@@ -48,7 +52,9 @@ export function useSystemSelectorOptions() {
         label = textValue;
       }
 
-      options.push({value: system, label, textValue});
+      if (supportedSystemSet.has(system)) {
+        options.push({value: system, label, textValue});
+      }
     }
   });
 
@@ -62,7 +68,7 @@ export function useSystemSelectorOptions() {
     setSelectedSystem(options[0].value);
   }
 
-  return {selectedSystem, setSelectedSystem, options, isLoading, isError};
+  return {selectedSystem, setSelectedSystem, options, isLoading: isPending, isError};
 }
 
 const StyledFeatureBadge = styled(FeatureBadge)`
