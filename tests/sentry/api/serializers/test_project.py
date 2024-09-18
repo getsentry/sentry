@@ -794,9 +794,9 @@ class DetailedProjectSerializerTest(TestCase):
 
     def test_toolbar_allowed_origins(self):
         # Does not allow trailing newline or extra whitespace.
-        # Default is wildcard:
+        # Default is empty:
         result = serialize(self.project, self.user, DetailedProjectSerializer())
-        assert result["options"]["sentry:toolbar_allowed_origins"] == "*"
+        assert result["options"]["sentry:toolbar_allowed_origins"] == ""
 
         origins = ["*.sentry.io", "example.net", "nugettrends.com"]
         self.project.update_option("sentry:toolbar_allowed_origins", origins)

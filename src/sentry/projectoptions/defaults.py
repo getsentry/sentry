@@ -149,7 +149,7 @@ register(
 
 register(
     key="sentry:toolbar_allowed_origins",
-    default=["*"],
+    default=[],
 )
 
 register(
