@@ -31,6 +31,14 @@ describe('Dashboards > Detail', function () {
   });
   const projects = [ProjectFixture()];
 
+  beforeEach(function () {
+    MockApiClient.addMockResponse({
+      method: 'GET',
+      url: '/organizations/org-slug/releases/stats/',
+      body: [],
+    });
+  });
+
   describe('prebuilt dashboards', function () {
     let initialData;
 
