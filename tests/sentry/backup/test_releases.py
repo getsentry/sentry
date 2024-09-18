@@ -96,9 +96,9 @@ class ReleaseTests(BackupTransactionTestCase):
             # Check the export so that we can ensure that all models were seen.
             verify_models_in_output(expected_models, exported)
 
-    def test_at_24_8_0(self):
+    def test_at_24_9_0(self):
         with tempfile.TemporaryDirectory() as tmp_dir:
-            _, snapshot_refval = read_snapshot_file(self.get_snapshot_path("24.8.0"))
+            _, snapshot_refval = read_snapshot_file(self.get_snapshot_path("24.9.0"))
             snapshot_data = yaml.safe_load(snapshot_refval)
             tmp_path = Path(tmp_dir).joinpath(f"{self._testMethodName}.json")
             with open(tmp_path, "wb") as f:
@@ -107,9 +107,9 @@ class ReleaseTests(BackupTransactionTestCase):
             with open(tmp_path, "rb") as f:
                 import_in_global_scope(f, printer=NOOP_PRINTER)
 
-    def test_at_24_7_0(self):
+    def test_at_24_8_0(self):
         with tempfile.TemporaryDirectory() as tmp_dir:
-            _, snapshot_refval = read_snapshot_file(self.get_snapshot_path("24.7.0"))
+            _, snapshot_refval = read_snapshot_file(self.get_snapshot_path("24.8.0"))
             snapshot_data = yaml.safe_load(snapshot_refval)
             tmp_path = Path(tmp_dir).joinpath(f"{self._testMethodName}.json")
             with open(tmp_path, "wb") as f:
