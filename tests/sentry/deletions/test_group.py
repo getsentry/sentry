@@ -208,7 +208,7 @@ class DeleteIssuePlatformTest(TestCase, SnubaTestCase, OccurrenceTestMixin):
         )
         assert group_info is not None
         issue_platform_group = group_info.group
-        assert len(Group.objects.all()) == 2
+        assert event.group_id != issue_platform_group.id
 
         with self.tasks():
             delete_groups(object_ids=[issue_platform_group.id])
