@@ -557,6 +557,11 @@ function buildRoutes() {
         name={t('Replays')}
         component={make(() => import('sentry/views/settings/project/projectReplays'))}
       />
+      <Route
+        path="toolbar/"
+        name={t('Developer Toolbar')}
+        component={make(() => import('sentry/views/settings/project/toolbar'))}
+      />
       <Route path="source-maps/" name={t('Source Maps')}>
         <IndexRoute
           component={make(() => import('sentry/views/settings/projectSourceMaps'))}
