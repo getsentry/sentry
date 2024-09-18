@@ -37,6 +37,10 @@ export function useSystemSelectorOptions() {
       const textValue =
         system in DATABASE_SYSTEM_TO_LABEL ? DATABASE_SYSTEM_TO_LABEL[system] : system;
 
+      const supportedSystemSet: Set<string> = new Set(
+        Object.values(SupportedDatabaseSystem)
+      );
+
       if (system === SupportedDatabaseSystem.MONGODB) {
         label = (
           <LabelContainer>
@@ -48,7 +52,9 @@ export function useSystemSelectorOptions() {
         label = textValue;
       }
 
-      options.push({value: system, label, textValue});
+      if (supportedSystemSet.has(system)) {
+        options.push({value: system, label, textValue});
+      }
     }
   });
 
