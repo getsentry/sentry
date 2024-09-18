@@ -362,4 +362,32 @@ describe('Onboarding Product Selection', function () {
     expect(screen.queryByText('npm')).not.toBeInTheDocument();
     expect(screen.queryByText('yarn')).not.toBeInTheDocument();
   });
+
+  it('triggers onChange callback', async function () {
+    const {router, project} = initializeOrg({
+      router: {
+        location: {
+          query: {product: [ProductSolution.PERFORMANCE_MONITORING]},
+        },
+        params: {},
+      },
+    });
+
+    const handleChange = jest.fn();
+
+    render(
+      <ProductSelection
+        organization={organization}
+        platform="python-django"
+        projectId={project.id}
+        onChange={handleChange}
+      />,
+      {
+        router,
+      }
+    );
+
+    await userEvent.click(screen.getByRole('checkbox', {name: 'Profiling'}));
+    expect(handleChange).toHaveBeenCalledWith(['performance-monitoring', 'profiling']);
+  });
 });

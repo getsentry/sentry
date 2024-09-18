@@ -464,6 +464,13 @@ register(
     default=[],
     flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
+# Disables video packing for an organization
+register(
+    "replay.replay-video.organization-file-packing",
+    type=Sequence,
+    default=[],
+    flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
+)
 
 # User Feedback Options
 register(
@@ -504,9 +511,6 @@ register("slack.signing-secret", flags=FLAG_CREDENTIAL | FLAG_PRIORITIZE_DISK)
 
 # Slack Middleware Parser
 register("send-slack-response-from-control-silo", default=False, flags=FLAG_AUTOMATOR_MODIFIABLE)
-
-# Discord
-register("discord.validate-user", default=False, flags=FLAG_AUTOMATOR_MODIFIABLE)
 
 # Codecov Integration
 register("codecov.client-secret", flags=FLAG_CREDENTIAL | FLAG_PRIORITIZE_DISK)
@@ -1212,6 +1216,12 @@ register(
 )
 register(
     "project-abuse-quota.session-limit",
+    type=Int,
+    default=0,
+    flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "project-abuse-quota.span-limit",
     type=Int,
     default=0,
     flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,

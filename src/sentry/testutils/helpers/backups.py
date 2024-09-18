@@ -97,7 +97,7 @@ from sentry.models.savedsearch import SavedSearch, Visibility
 from sentry.models.search_common import SearchType
 from sentry.monitors.models import Monitor, MonitorType, ScheduleType
 from sentry.nodestore.django.models import Node
-from sentry.sentry_apps.apps import SentryAppUpdater
+from sentry.sentry_apps.logic import SentryAppUpdater
 from sentry.silo.base import SiloMode
 from sentry.silo.safety import unguarded_write
 from sentry.testutils.cases import TestCase, TransactionTestCase
@@ -610,8 +610,11 @@ class ExhaustiveFixtures(Fixtures):
 
         workflow = self.create_workflow(organization=org)
         self.create_workflowaction(workflow=workflow)
-        self.create_datasource(organization=org)
-        self.create_detector(organization=org)
+        self.create_workflow(organization=org)
+        self.create_data_source_detector(
+            self.create_data_source(organization=org),
+            self.create_detector(organization=org),
+        )
 
         return org
 

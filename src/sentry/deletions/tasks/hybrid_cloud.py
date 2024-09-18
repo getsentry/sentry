@@ -111,7 +111,7 @@ def _chunk_watermark_batch(
 
 
 @instrumented_task(
-    name="sentry.tasks.deletion.hybrid_cloud.schedule_hybrid_cloud_foreign_key_jobs_control",
+    name="sentry.deletions.tasks.hybrid_cloud.schedule_hybrid_cloud_foreign_key_jobs_control",
     queue="cleanup.control",
     acks_late=True,
     silo_mode=SiloMode.CONTROL,
@@ -126,7 +126,18 @@ def schedule_hybrid_cloud_foreign_key_jobs_control():
 
 
 @instrumented_task(
-    name="sentry.tasks.deletion.hybrid_cloud.schedule_hybrid_cloud_foreign_key_jobs",
+    name="sentry.tasks.deletion.hybrid_cloud.schedule_hybrid_cloud_foreign_key_jobs_control",
+    queue="cleanup.control",
+    acks_late=True,
+    silo_mode=SiloMode.CONTROL,
+)
+def schedule_hybrid_cloud_foreign_key_jobs_control_old():
+    # Deprecated deploy boundary shim
+    schedule_hybrid_cloud_foreign_key_jobs_control()
+
+
+@instrumented_task(
+    name="sentry.deletions.tasks.hybrid_cloud.schedule_hybrid_cloud_foreign_key_jobs",
     queue="cleanup",
     acks_late=True,
     silo_mode=SiloMode.REGION,
@@ -138,6 +149,17 @@ def schedule_hybrid_cloud_foreign_key_jobs():
     _schedule_hybrid_cloud_foreign_key(
         SiloMode.REGION, process_hybrid_cloud_foreign_key_cascade_batch
     )
+
+
+@instrumented_task(
+    name="sentry.tasks.deletion.hybrid_cloud.schedule_hybrid_cloud_foreign_key_jobs",
+    queue="cleanup",
+    acks_late=True,
+    silo_mode=SiloMode.REGION,
+)
+def schedule_hybrid_cloud_foreign_key_jobs_old():
+    # Deprecated deploy boundary shim
+    schedule_hybrid_cloud_foreign_key_jobs()
 
 
 def _schedule_hybrid_cloud_foreign_key(silo_mode: SiloMode, cascade_task: Task) -> None:
@@ -163,7 +185,7 @@ def _schedule_hybrid_cloud_foreign_key(silo_mode: SiloMode, cascade_task: Task) 
 
 
 @instrumented_task(
-    name="sentry.tasks.deletion.process_hybrid_cloud_foreign_key_cascade_batch_control",
+    name="sentry.deletions.tasks.hybrid_cloud.process_hybrid_cloud_foreign_key_cascade_batch_control",
     queue="cleanup.control",
     acks_late=True,
     silo_mode=SiloMode.CONTROL,
@@ -184,7 +206,22 @@ def process_hybrid_cloud_foreign_key_cascade_batch_control(
 
 
 @instrumented_task(
-    name="sentry.tasks.deletion.process_hybrid_cloud_foreign_key_cascade_batch",
+    name="sentry.tasks.deletion.process_hybrid_cloud_foreign_key_cascade_batch_control",
+    queue="cleanup.control",
+    acks_late=True,
+    silo_mode=SiloMode.CONTROL,
+)
+def process_hybrid_cloud_foreign_key_cascade_batch_control_old(
+    app_name: str, model_name: str, field_name: str, **kwargs: Any
+) -> None:
+    # Deprecated deploy boundary shim
+    process_hybrid_cloud_foreign_key_cascade_batch_control(
+        app_name, model_name, field_name, **kwargs
+    )
+
+
+@instrumented_task(
+    name="sentry.deletions.tasks.process_hybrid_cloud_foreign_key_cascade_batch",
     queue="cleanup",
     acks_late=True,
     silo_mode=SiloMode.REGION,
@@ -202,6 +239,19 @@ def process_hybrid_cloud_foreign_key_cascade_batch(
         process_task=process_hybrid_cloud_foreign_key_cascade_batch,
         silo_mode=SiloMode.REGION,
     )
+
+
+@instrumented_task(
+    name="sentry.tasks.deletion.process_hybrid_cloud_foreign_key_cascade_batch",
+    queue="cleanup",
+    acks_late=True,
+    silo_mode=SiloMode.REGION,
+)
+def process_hybrid_cloud_foreign_key_cascade_batch_old(
+    app_name: str, model_name: str, field_name: str, **kwargs: Any
+) -> None:
+    # Deprecated deploy boundary shim
+    process_hybrid_cloud_foreign_key_cascade_batch(app_name, model_name, field_name)
 
 
 def _process_hybrid_cloud_foreign_key_cascade(
