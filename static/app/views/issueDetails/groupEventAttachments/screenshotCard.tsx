@@ -29,7 +29,7 @@ type Props = {
   eventAttachment: IssueAttachment;
   eventId: string;
   groupId: string;
-  onDelete: (attachmentId: string) => void;
+  onDelete: (attachment: IssueAttachment) => void;
   projectSlug: Project['slug'];
   pageLinks?: string | null | undefined;
 };
@@ -53,7 +53,7 @@ export function ScreenshotCard({
     trackAnalytics('issue_details.attachment_tab.screenshot_modal_deleted', {
       organization,
     });
-    onDelete(eventAttachment.id);
+    onDelete(eventAttachment);
   }
 
   function openVisualizationModal() {
@@ -148,7 +148,7 @@ export function ScreenshotCard({
             shouldConfirm
             confirmPriority="danger"
             confirmLabel={t('Delete')}
-            onAction={() => onDelete(eventAttachment.id)}
+            onAction={() => onDelete(eventAttachment)}
             header={t('This image was captured around the time that the event occurred.')}
             message={t('Are you sure you wish to delete this image?')}
           >

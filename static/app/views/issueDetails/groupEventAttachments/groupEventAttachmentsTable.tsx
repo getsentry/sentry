@@ -1,50 +1,62 @@
+import styled from '@emotion/styled';
+
+import {PanelTable} from 'sentry/components/panels/panelTable';
 import {t} from 'sentry/locale';
+import {space} from 'sentry/styles/space';
 import type {IssueAttachment} from 'sentry/types/group';
 import GroupEventAttachmentsTableRow from 'sentry/views/issueDetails/groupEventAttachments/groupEventAttachmentsTableRow';
 
 type Props = {
   attachments: IssueAttachment[];
-  deletedAttachments: string[];
+  emptyMessage: string;
   groupId: string;
-  onDelete: (attachmentId: string) => void;
-  orgId: string;
+  isLoading: boolean;
+  onDelete: (attachment: IssueAttachment) => void;
   projectSlug: string;
 };
 
 function GroupEventAttachmentsTable({
+  isLoading,
   attachments,
-  orgId,
   projectSlug,
   groupId,
+  emptyMessage,
   onDelete,
-  deletedAttachments,
 }: Props) {
-  const tableRowNames = [t('Name'), t('Type'), t('Size'), t('Actions')];
-
   return (
-    <table className="table events-table">
-      <thead>
-        <tr>
-          {tableRowNames.map(name => (
-            <th key={name}>{name}</th>
-          ))}
-        </tr>
-      </thead>
-      <tbody>
-        {attachments.map(attachment => (
-          <GroupEventAttachmentsTableRow
-            key={attachment.id}
-            attachment={attachment}
-            orgId={orgId}
-            projectSlug={projectSlug}
-            groupId={groupId}
-            onDelete={onDelete}
-            isDeleted={deletedAttachments.some(id => attachment.id === id)}
-          />
-        ))}
-      </tbody>
-    </table>
+    <AttachmentsPanelTable
+      isLoading={isLoading}
+      isEmpty={attachments.length === 0}
+      emptyMessage={emptyMessage}
+      headers={[t('Name'), t('Type'), t('Size'), t('Actions')]}
+    >
+      {attachments.map(attachment => (
+        <GroupEventAttachmentsTableRow
+          key={attachment.id}
+          attachment={attachment}
+          projectSlug={projectSlug}
+          groupId={groupId}
+          onDelete={onDelete}
+        />
+      ))}
+    </AttachmentsPanelTable>
   );
 }
 
 export default GroupEventAttachmentsTable;
+
+const AttachmentsPanelTable = styled(PanelTable)`
+  grid-template-columns: 1fr repeat(3, min-content);
+  margin-bottom: 0;
+
+  & > :last-child {
+    padding: ${p => (p.isEmpty ? space(4) : undefined)};
+  }
+
+  .preview {
+    padding: 0;
+  }
+  .preview-open {
+    border-bottom: none;
+  }
+`;

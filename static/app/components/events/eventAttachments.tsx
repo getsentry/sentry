@@ -5,11 +5,6 @@ import {
   useDeleteEventAttachmentOptimistic,
   useFetchEventAttachments,
 } from 'sentry/actionCreators/events';
-import AttachmentUrl from 'sentry/components/events/attachmentUrl';
-import ImageViewer from 'sentry/components/events/attachmentViewers/imageViewer';
-import JsonViewer from 'sentry/components/events/attachmentViewers/jsonViewer';
-import LogFileViewer from 'sentry/components/events/attachmentViewers/logFileViewer';
-import RRWebJsonViewer from 'sentry/components/events/attachmentViewers/rrwebJsonViewer';
 import EventAttachmentActions from 'sentry/components/events/eventAttachmentActions';
 import FileSize from 'sentry/components/fileSize';
 import LoadingError from 'sentry/components/loadingError';
@@ -18,6 +13,7 @@ import {t} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
 import type {IssueAttachment} from 'sentry/types/group';
 import useOrganization from 'sentry/utils/useOrganization';
+import {InlineEventAttachment} from 'sentry/views/issueDetails/groupEventAttachments/inlineEventAttachment';
 import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
 import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
 
@@ -30,72 +26,12 @@ type EventAttachmentsProps = {
 
 type AttachmentPreviewOpenMap = Record<string, boolean>;
 
-interface InlineAttachmentsProps
-  extends Pick<EventAttachmentsProps, 'event' | 'projectSlug'> {
-  attachment: IssueAttachment;
-  attachmentPreviews: AttachmentPreviewOpenMap;
-}
-
-const getInlineAttachmentRenderer = (attachment: IssueAttachment) => {
-  switch (attachment.mimetype) {
-    case 'text/css':
-    case 'text/csv':
-    case 'text/html':
-    case 'text/javascript':
-    case 'text/plain':
-      return attachment.size > 0 ? LogFileViewer : undefined;
-    case 'application/json':
-    case 'application/ld+json':
-    case 'text/json':
-    case 'text/x-json':
-      if (attachment.name === 'rrweb.json' || attachment.name.startsWith('rrweb-')) {
-        return RRWebJsonViewer;
-      }
-      return JsonViewer;
-    case 'image/jpeg':
-    case 'image/png':
-    case 'image/gif':
-      return ImageViewer;
-    default:
-      return undefined;
-  }
-};
-
-const hasInlineAttachmentRenderer = (attachment: IssueAttachment): boolean => {
-  return !!getInlineAttachmentRenderer(attachment);
-};
-
 const attachmentPreviewIsOpen = (
   attachmentPreviews: Record<string, boolean>,
   attachment: IssueAttachment
 ) => {
   return attachmentPreviews[attachment.id] === true;
 };
-
-function InlineEventAttachment({
-  attachmentPreviews,
-  attachment,
-  projectSlug,
-  event,
-}: InlineAttachmentsProps) {
-  const organization = useOrganization();
-  const AttachmentComponent = getInlineAttachmentRenderer(attachment);
-
-  if (!AttachmentComponent || !attachmentPreviewIsOpen(attachmentPreviews, attachment)) {
-    return null;
-  }
-
-  return (
-    <AttachmentPreviewWrapper>
-      <AttachmentComponent
-        orgId={organization.slug}
-        projectSlug={projectSlug}
-        eventId={event.id}
-        attachment={attachment}
-      />
-    </AttachmentPreviewWrapper>
-  );
-}
 
 function EventAttachmentsContent({event, projectSlug}: EventAttachmentsProps) {
   const organization = useOrganization();
@@ -168,38 +104,30 @@ function EventAttachmentsContent({event, projectSlug}: EventAttachmentsProps) {
               <Size>
                 <FileSize bytes={attachment.size} />
               </Size>
-              <AttachmentUrl
-                projectSlug={projectSlug}
-                eventId={event.id}
-                attachment={attachment}
-              >
-                {url => (
-                  <div>
-                    <EventAttachmentActions
-                      url={url}
-                      onDelete={(attachmentId: string) =>
-                        deleteAttachment({
-                          orgSlug: organization.slug,
-                          projectSlug,
-                          eventId: event.id,
-                          attachmentId,
-                        })
-                      }
-                      onPreview={_attachmentId => togglePreview(attachment)}
-                      withPreviewButton
-                      previewIsOpen={attachmentPreviewIsOpen(
-                        attachmentPreviews,
-                        attachment
-                      )}
-                      hasPreview={hasInlineAttachmentRenderer(attachment)}
-                      attachmentId={attachment.id}
-                    />
-                  </div>
-                )}
-              </AttachmentUrl>
-              <InlineEventAttachment
-                {...{attachment, attachmentPreviews, event, projectSlug}}
-              />
+              <div>
+                <EventAttachmentActions
+                  withPreviewButton
+                  attachment={attachment}
+                  projectSlug={projectSlug}
+                  onDelete={() =>
+                    deleteAttachment({
+                      orgSlug: organization.slug,
+                      projectSlug,
+                      eventId: event.id,
+                      attachmentId: attachment.id,
+                    })
+                  }
+                  onPreviewClick={() => togglePreview(attachment)}
+                  previewIsOpen={attachmentPreviewIsOpen(attachmentPreviews, attachment)}
+                />
+              </div>
+              {attachmentPreviewIsOpen(attachmentPreviews, attachment) ? (
+                <InlineEventAttachment
+                  attachment={attachment}
+                  eventId={event.id}
+                  projectSlug={projectSlug}
+                />
+              ) : null}
               {/* XXX: hack to deal with table grid borders */}
               {lastAttachmentPreviewed && (
                 <Fragment>
@@ -245,10 +173,4 @@ const Size = styled('div')`
   align-items: center;
   justify-content: flex-end;
   white-space: nowrap;
-`;
-
-const AttachmentPreviewWrapper = styled('div')`
-  grid-column: auto / span 3;
-  border: none;
-  padding: 0;
 `;
