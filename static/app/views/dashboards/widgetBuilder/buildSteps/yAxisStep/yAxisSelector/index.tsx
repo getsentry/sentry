@@ -57,8 +57,10 @@ export function YAxisSelector({
       ...aggregates,
       {kind: FieldValueKind.FIELD, field: ''} as QueryFieldValue,
     ];
-    const newSelectedAggregate = newAggregates.length - 1;
-    onChange(newAggregates, newSelectedAggregate);
+    if (displayType === DisplayType.BIG_NUMBER) {
+      const newSelectedAggregate = newAggregates.length - 1;
+      onChange(newAggregates, newSelectedAggregate);
+    } else onChange(newAggregates);
   }
 
   function handleAddEquation(event: React.MouseEvent) {
@@ -68,8 +70,10 @@ export function YAxisSelector({
       ...aggregates,
       {kind: FieldValueKind.EQUATION, field: '', selected: false} as QueryFieldValue,
     ];
-    const newSelectedAggregate = newAggregates.length - 1;
-    onChange(newAggregates, newSelectedAggregate);
+    if (displayType === DisplayType.BIG_NUMBER) {
+      const newSelectedAggregate = newAggregates.length - 1;
+      onChange(newAggregates, newSelectedAggregate);
+    } else onChange(newAggregates);
   }
 
   function handleRemoveQueryField(event: React.MouseEvent, fieldIndex: number) {
@@ -77,17 +81,21 @@ export function YAxisSelector({
 
     const newAggregates = [...aggregates];
     newAggregates.splice(fieldIndex, 1);
-    let newSelectedAggregate = selectedAggregate;
-    if (selectedAggregate === fieldIndex) {
-      newSelectedAggregate = newAggregates.length - 1;
-    }
-    onChange(newAggregates, newSelectedAggregate);
+    if (displayType === DisplayType.BIG_NUMBER) {
+      const newSelectedAggregate = newAggregates.length - 1;
+      onChange(newAggregates, newSelectedAggregate);
+    } else onChange(newAggregates);
   }
 
   function handleChangeQueryField(value: QueryFieldValue, fieldIndex: number) {
     const newAggregates = [...aggregates];
     newAggregates[fieldIndex] = value;
     onChange(newAggregates);
+  }
+
+  function handleOnFieldSelected(i: number) {
+    const newSelectedAggregate = i;
+    onChange(aggregates, newSelectedAggregate);
   }
 
   const fieldError = errors?.find(error => error?.aggregates)?.aggregates;
@@ -117,17 +125,11 @@ export function YAxisSelector({
     injectedFunctions = addIncompatibleFunctions(aggregates, fieldOptions);
   }
 
-  function handleOnFieldSelected(i: number) {
-    const newSelectedAggregate = i;
-    onChange(aggregates, newSelectedAggregate);
-  }
-
   return (
     <FieldGroup inline={false} flexibleControlStateSize error={fieldError} stacked>
-      {/* <SubHeading> {'Visualize'} </SubHeading> */}
       {aggregates.map((fieldValue, i) => (
         <QueryFieldWrapper key={`${fieldValue}:${i}`}>
-          {aggregates.length > 1 && (
+          {aggregates.length > 1 && displayType === DisplayType.BIG_NUMBER && (
             <RadioLineItem index={i} role="radio">
               <Radio
                 checked={i === selectedAggregate ? true : false}
