@@ -209,7 +209,7 @@ function OnboardingContent({currentProject}: {currentProject: Project}) {
     ? platforms.find(p => p.id === currentProject.platform)
     : undefined;
 
-  const {isLoading, docs, dsn} = useLoadGettingStarted({
+  const {isLoading, docs, dsn, projectKeyId} = useLoadGettingStarted({
     platform: currentPlatform || otherPlatform,
     orgSlug: organization.slug,
     projSlug: currentProject.slug,
@@ -243,7 +243,7 @@ function OnboardingContent({currentProject}: {currentProject: Project}) {
     );
   }
 
-  if (!currentPlatform || !performanceDocs || !dsn) {
+  if (!currentPlatform || !performanceDocs || !dsn || !projectKeyId) {
     return (
       <Fragment>
         <div>
@@ -266,6 +266,8 @@ function OnboardingContent({currentProject}: {currentProject: Project}) {
   }
 
   const docParams: DocsParams<any> = {
+    api,
+    projectKeyId,
     dsn,
     organization: organization,
     platformKey: currentProject.platform || 'other',

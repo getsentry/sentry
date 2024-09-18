@@ -1,3 +1,4 @@
+import type {Client} from 'sentry/api';
 import type {StepProps} from 'sentry/components/onboarding/gettingStartedDoc/step';
 import type {ReleaseRegistrySdk} from 'sentry/components/onboarding/gettingStartedDoc/useSourcePackageRegistries';
 import type {ProductSolution} from 'sentry/components/onboarding/productSelection';
@@ -42,6 +43,7 @@ export enum DocsPageLocation {
 export interface DocsParams<
   PlatformOptions extends BasePlatformOptions = BasePlatformOptions,
 > {
+  api: Client;
   dsn: ProjectKey['dsn'];
   isFeedbackSelected: boolean;
   isPerformanceSelected: boolean;
@@ -52,6 +54,7 @@ export interface DocsParams<
   platformKey: PlatformKey;
   platformOptions: SelectedPlatformOptions<PlatformOptions>;
   projectId: Project['id'];
+  projectKeyId: ProjectKey['id'];
   projectSlug: Project['slug'];
   sourcePackageRegistries: {isLoading: boolean; data?: ReleaseRegistrySdk};
   urlPrefix: string;

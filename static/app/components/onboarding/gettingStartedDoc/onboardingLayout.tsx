@@ -26,6 +26,7 @@ import ConfigStore from 'sentry/stores/configStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import {space} from 'sentry/styles/space';
 import type {PlatformKey, Project, ProjectKey} from 'sentry/types/project';
+import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 
 const ProductSelectionAvailabilityHook = HookOrDefault({
@@ -55,8 +56,10 @@ export function OnboardingLayout({
   projectSlug,
   activeProductSelection = EMPTY_ARRAY,
   newOrg,
+  projectKeyId,
   configType = 'onboarding',
 }: OnboardingLayoutProps) {
+  const api = useApi();
   const organization = useOrganization();
   const {isPending: isLoadingRegistry, data: registryData} =
     useSourcePackageRegistries(organization);
@@ -75,6 +78,8 @@ export function OnboardingLayout({
     const doc = docsConfig[configType] ?? docsConfig.onboarding;
 
     const docParams: DocsParams<any> = {
+      api,
+      projectKeyId,
       dsn,
       organization,
       platformKey,
@@ -124,6 +129,8 @@ export function OnboardingLayout({
     configType,
     urlPrefix,
     isSelfHosted,
+    api,
+    projectKeyId,
   ]);
 
   useEffect(() => {
