@@ -35,7 +35,6 @@ import {ModulePageFilterBar} from 'sentry/views/insights/common/components/modul
 import {ModulePageProviders} from 'sentry/views/insights/common/components/modulePageProviders';
 import {ModulesOnboarding} from 'sentry/views/insights/common/components/modulesOnboarding';
 import {useModuleBreadcrumbs} from 'sentry/views/insights/common/utils/useModuleBreadcrumbs';
-import SubregionSelector from 'sentry/views/insights/common/views/spans/selectors/subregionSelector';
 import {
   type InsightLandingProps,
   ModuleName,
@@ -102,7 +101,6 @@ export function WebVitalsLandingPage({disableHeader}: InsightLandingProps) {
               extraFilters={
                 <Fragment>
                   <BrowserTypeSelector />
-                  <SubregionSelector />
                 </Fragment>
               }
             />
