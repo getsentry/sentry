@@ -1,6 +1,8 @@
 import {Fragment} from 'react';
+import styled from '@emotion/styled';
 
 import JSXNode from 'sentry/components/stories/jsxNode';
+import SideBySide from 'sentry/components/stories/sideBySide';
 import SizingWindow from 'sentry/components/stories/sizingWindow';
 import storyBook from 'sentry/stories/storyBook';
 import {BigNumberWidget} from 'sentry/views/dashboards/widgets/bigNumberWidget/bigNumberWidget';
@@ -15,26 +17,51 @@ export default storyBook(BigNumberWidget, story => {
           Details pages, and Organization Stats pages.
         </p>
 
-        <SizingWindow>
-          <BigNumberWidget
-            title="EPS"
-            description="Number of events per second"
-            data={[
-              {
-                'eps()': 0.01087819860850493,
-              },
-            ]}
-            meta={{
-              fields: {
-                'eps()': 'rate',
-              },
-              units: {
-                'eps()': '1/second',
-              },
-            }}
-          />
-        </SizingWindow>
+        <SideBySide>
+          <SmallSizingWindow>
+            <BigNumberWidget
+              title="EPS"
+              description="Number of events per second"
+              data={[
+                {
+                  'eps()': 0.01087819860850493,
+                },
+              ]}
+              meta={{
+                fields: {
+                  'eps()': 'rate',
+                },
+                units: {
+                  'eps()': '1/second',
+                },
+              }}
+            />
+          </SmallSizingWindow>
+          <SmallSizingWindow>
+            <BigNumberWidget
+              title="Count"
+              data={[
+                {
+                  'count()': 178451214,
+                },
+              ]}
+              meta={{
+                fields: {
+                  'count()': 'integer',
+                },
+                units: {
+                  'count()': null,
+                },
+              }}
+            />
+          </SmallSizingWindow>
+        </SideBySide>
       </Fragment>
     );
   });
 });
+
+const SmallSizingWindow = styled(SizingWindow)`
+  width: 300px;
+  height: 200px;
+`;
