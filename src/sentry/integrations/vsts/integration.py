@@ -422,6 +422,11 @@ class VstsIntegrationProvider(IntegrationProvider):
             )
 
     def get_scopes(self) -> Sequence[str]:
+        if features.has(
+            "organizations:migrate-azure-devops-integration", self.pipeline.organization.id
+        ):
+            # This is the new way we need to pass scopes to the OAuth flow
+            return ("offline_access", "499b84ac-1321-427f-aa17-267ca6975798/.default")
         return ("vso.code", "vso.graph", "vso.serviceendpoint_manage", "vso.work_write")
 
     def get_pipeline_views(self) -> Sequence[PipelineView]:
@@ -463,8 +468,36 @@ class VstsIntegrationProvider(IntegrationProvider):
             integration_model = IntegrationModel.objects.get(
                 provider="vsts", external_id=account["accountId"], status=ObjectStatus.ACTIVE
             )
-            # preserve previously created subscription information
-            integration["metadata"]["subscription"] = integration_model.metadata["subscription"]
+
+            # Get Integration Metadata
+            integration_migrated = integration_model.metadata.get("integration_migrated", False)
+            if (
+                features.has(
+                    "organizations:migrate-azure-devops-integration", self.pipeline.organization.id
+                )
+                and not integration_migrated
+            ):
+                subscription_id, subscription_secret = self.create_subscription(
+                    base_url=base_url, oauth_data=oauth_data
+                )
+                integration["metadata"]["subscription"] = {
+                    "id": subscription_id,
+                    "secret": subscription_secret,
+                }
+
+                integration["metadata"]["integration_migrated"] = True
+
+                logger.info(
+                    "vsts.build_integration.migrated",
+                    extra={
+                        "organization_id": self.pipeline.organization.id,
+                        "user_id": user["id"],
+                        "account": account,
+                    },
+                )
+            else:
+                # preserve previously created subscription information
+                integration["metadata"]["subscription"] = integration_model.metadata["subscription"]
 
             logger.info(
                 "vsts.build_integration",
