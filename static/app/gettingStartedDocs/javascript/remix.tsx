@@ -29,7 +29,7 @@ import {t, tct} from 'sentry/locale';
 
 type Params = DocsParams;
 
-const getConfigStep = ({isSelfHosted, urlPrefix, projectSlug}: Params) => {
+const getConfigStep = ({isSelfHosted, urlPrefix, organization, projectSlug}: Params) => {
   const urlParam = !isSelfHosted && urlPrefix ? `--url ${urlPrefix}` : '';
   return [
     {
@@ -42,7 +42,7 @@ const getConfigStep = ({isSelfHosted, urlPrefix, projectSlug}: Params) => {
         }
       ),
       language: 'bash',
-      code: `npx @sentry/wizard@latest -i remix ${urlParam} --project ${projectSlug}`,
+      code: `npx @sentry/wizard@latest -i remix ${urlParam}  --org ${organization.slug} --project ${projectSlug}`,
     },
   ];
 };
