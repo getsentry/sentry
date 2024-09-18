@@ -146,6 +146,7 @@ function CreateProject() {
               ? 'Custom'
               : 'No Rule',
           project_id: projectData.id,
+          platform: selectedPlatform.key,
           rule_id: ruleId || '',
         });
 
