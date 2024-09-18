@@ -141,7 +141,7 @@ function ProfilesLegacy({organization, transaction}: ProfilesProps) {
               columns={fields}
               data={profiles.status === 'success' ? profiles.data : null}
               error={profiles.status === 'error' ? t('Unable to load profiles') : null}
-              isLoading={profiles.status === 'loading'}
+              isLoading={profiles.status === 'pending'}
               sort={sort}
               sortableColumns={sortableFields}
             />
