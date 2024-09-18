@@ -82,6 +82,7 @@ class MessagingIntegrationCommandDispatcher(Generic[R], ABC):
         raise NotImplementedError
 
     def dispatch(self, cmd_input: CommandInput) -> R:
+        raise Exception()
         candidate_handlers: list[tuple[CommandSlug, Callable[[CommandInput], R]]] = []
         for (command, callback) in self.command_handlers:
             for slug in command.get_all_command_slugs():
