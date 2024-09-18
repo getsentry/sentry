@@ -204,7 +204,7 @@ class SentryApp(ParanoidModel, HasApiScopes, Model):
             return result
 
     def is_installed_on(self, organization):
-        from sentry.models.integrations.sentry_app_installation import SentryAppInstallation
+        from sentry.sentry_apps.models.sentry_app_installation import SentryAppInstallation
 
         return SentryAppInstallation.objects.filter(
             organization_id=organization.id,

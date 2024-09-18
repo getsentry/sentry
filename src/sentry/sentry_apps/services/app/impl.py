@@ -12,13 +12,13 @@ from sentry.constants import SentryAppInstallationStatus, SentryAppStatus
 from sentry.hybridcloud.rpc.filter_query import FilterQueryDatabaseImpl, OpaqueSerializedResponse
 from sentry.mediators import alert_rule_actions
 from sentry.models.integrations.sentry_app_component import SentryAppComponent
-from sentry.models.integrations.sentry_app_installation import (
-    SentryAppInstallation,
-    prepare_sentry_app_components,
-)
 from sentry.models.integrations.sentry_app_installation_token import SentryAppInstallationToken
 from sentry.sentry_apps.logic import SentryAppCreator
 from sentry.sentry_apps.models.sentry_app import SentryApp
+from sentry.sentry_apps.models.sentry_app_installation import (
+    SentryAppInstallation,
+    prepare_sentry_app_components,
+)
 from sentry.sentry_apps.services.app import (
     AppService,
     RpcAlertRuleActionResult,
@@ -307,7 +307,7 @@ class DatabaseBackedAppService(AppService):
     def prepare_sentry_app_components(
         self, *, installation_id: int, component_type: str, project_slug: str | None = None
     ) -> RpcSentryAppComponent | None:
-        from sentry.models.integrations.sentry_app_installation import prepare_sentry_app_components
+        from sentry.sentry_apps.models.sentry_app_installation import prepare_sentry_app_components
 
         installation = SentryAppInstallation.objects.get(id=installation_id)
         component = prepare_sentry_app_components(installation, component_type, project_slug)
