@@ -2,10 +2,14 @@ import {Fragment} from 'react';
 import styled from '@emotion/styled';
 import {AnimatePresence, type AnimationProps, motion} from 'framer-motion';
 
+import {Button} from 'sentry/components/button';
 import {AutofixChanges} from 'sentry/components/events/autofix/autofixChanges';
 import AutofixInsightCards from 'sentry/components/events/autofix/autofixInsightCards';
 import AutofixMessageBox from 'sentry/components/events/autofix/autofixMessageBox';
-import {AutofixRootCause} from 'sentry/components/events/autofix/autofixRootCause';
+import {
+  AutofixRootCause,
+  useSelectCause,
+} from 'sentry/components/events/autofix/autofixRootCause';
 import {
   type AutofixData,
   type AutofixProgressItem,
@@ -106,6 +110,19 @@ export function AutofixSteps({data, groupId, runId, onRetry}: AutofixStepsProps)
   const steps = data.steps;
   const repos = data.repositories;
 
+  const {mutate: handleSelectFix} = useSelectCause({groupId, runId});
+  const provideCustomRootCause = (text: string) => {
+    handleSelectFix({customRootCause: text});
+  };
+  const useSuggestedRootCause = () => {
+    if (!steps) return;
+    const step = steps[steps.length - 1];
+    if (step.type !== AutofixStepType.ROOT_CAUSE_ANALYSIS) return;
+    const cause = step.causes[0];
+    const id = cause.id;
+    handleSelectFix({causeId: id});
+  };
+
   if (!steps) {
     return null;
   }
@@ -114,6 +131,13 @@ export function AutofixSteps({data, groupId, runId, onRetry}: AutofixStepsProps)
   const logs: AutofixProgressItem[] = lastStep.progress?.filter(isProgressLog) ?? [];
   const activeLog =
     lastStep.completedMessage ?? replaceHeadersWithBold(logs.at(-1)?.message ?? '') ?? '';
+
+  const isRootCauseSelectionStep =
+    lastStep.type === AutofixStepType.ROOT_CAUSE_ANALYSIS &&
+    lastStep.status === 'COMPLETED';
+  const areCodeChangesShowing =
+    lastStep.type === AutofixStepType.CHANGES && lastStep.status === 'COMPLETED';
+  const disabled = areCodeChangesShowing ? true : false;
 
   return (
     <div>
@@ -135,12 +159,26 @@ export function AutofixSteps({data, groupId, runId, onRetry}: AutofixStepsProps)
       <AutofixMessageBox
         displayText={activeLog ?? ''}
         step={lastStep}
-        inputPlaceholder={'Say something...'}
+        inputPlaceholder={
+          !isRootCauseSelectionStep
+            ? 'Say something...'
+            : 'Propose your own root cause...'
+        }
         responseRequired={false}
-        onSend={null}
+        onSend={!isRootCauseSelectionStep ? null : provideCustomRootCause}
         actionText={'Send'}
         allowEmptyMessage={false}
-      />
+        isDisabled={disabled}
+        groupId={groupId}
+        runId={runId}
+      >
+        {isRootCauseSelectionStep && (
+          <ActionBar>
+            <Button onClick={useSuggestedRootCause}>Fix the root cause above</Button>
+            <ActionBarText>OR</ActionBarText>
+          </ActionBar>
+        )}
+      </AutofixMessageBox>
     </div>
   );
 }
@@ -174,6 +212,16 @@ const ContentWrapper = styled(motion.div)`
     padding: 0 1px;
     overflow: hidden;
   }
+`;
+
+const ActionBar = styled('div')`
+  flex-direction: row;
+  display: flex;
+`;
+const ActionBarText = styled('p')`
+  padding-left: ${space(1)};
+  padding-bottom: 0;
+  margin-top: ${space(1)};
 `;
 
 const AnimationWrapper = styled(motion.div)``;

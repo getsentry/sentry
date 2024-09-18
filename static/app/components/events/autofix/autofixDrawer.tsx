@@ -80,6 +80,9 @@ export function AutofixDrawer({group, project, event}: AutofixDrawerProps) {
             onSend={triggerAutofix}
             actionText={'Start'}
             allowEmptyMessage
+            isDisabled={false}
+            runId={''}
+            groupId={group.id}
           />
         ) : (
           <AutofixSteps

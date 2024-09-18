@@ -4,6 +4,7 @@ import styled from '@emotion/styled';
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {openModal} from 'sentry/actionCreators/modal';
 import {Button, LinkButton} from 'sentry/components/button';
+import ClippedBox from 'sentry/components/clippedBox';
 import {AutofixDiff} from 'sentry/components/events/autofix/autofixDiff';
 import {AutofixSetupWriteAccessModal} from 'sentry/components/events/autofix/autofixSetupWriteAccessModal';
 import type {
@@ -225,13 +226,15 @@ export function AutofixChanges({step, onRetry, groupId}: AutofixChangesProps) {
 
   return (
     <ChangesContainer>
-      <h6>Fixes</h6>
-      {step.changes.map((change, i) => (
-        <Fragment key={change.repo_external_id}>
-          {i > 0 && <Separator />}
-          <AutofixRepoChange change={change} groupId={groupId} />
-        </Fragment>
-      ))}
+      <ClippedBox clipHeight={408}>
+        <h6>Fixes</h6>
+        {step.changes.map((change, i) => (
+          <Fragment key={change.repo_external_id}>
+            {i > 0 && <Separator />}
+            <AutofixRepoChange change={change} groupId={groupId} />
+          </Fragment>
+        ))}
+      </ClippedBox>
     </ChangesContainer>
   );
 }

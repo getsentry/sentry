@@ -1,6 +1,7 @@
 import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
 
+import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {Button} from 'sentry/components/button';
 import {type AutofixStep, AutofixStepType} from 'sentry/components/events/autofix/types';
 import Input from 'sentry/components/input';
@@ -13,17 +14,49 @@ import {
   IconQuestion,
   IconSad,
 } from 'sentry/icons';
+import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import marked, {singleLineRenderer} from 'sentry/utils/marked';
+import {useMutation} from 'sentry/utils/queryClient';
+import useApi from 'sentry/utils/useApi';
+
+function useSendMessage({groupId, runId}: {groupId: string; runId: string}) {
+  const api = useApi();
+
+  return useMutation({
+    mutationFn: (params: {message: string}) => {
+      return api.requestPromise(`/issues/${groupId}/autofix/update/`, {
+        method: 'POST',
+        data: {
+          run_id: runId,
+          payload: {
+            type: 'user_message',
+            text: params.message,
+          },
+        },
+      });
+    },
+    onSuccess: _ => {
+      addSuccessMessage("Thanks for the input! I'll get to it right after this.");
+    },
+    onError: () => {
+      addErrorMessage(t('Something went wrong when sending Autofix your message.'));
+    },
+  });
+}
 
 interface AutofixMessageBoxProps {
   actionText: string;
   allowEmptyMessage: boolean;
   displayText: string;
+  groupId: string;
   inputPlaceholder: string;
+  isDisabled: boolean;
   onSend: ((message: string) => void) | null;
   responseRequired: boolean;
+  runId: string;
   step: AutofixStep | null;
+  children?: React.ReactNode;
 }
 
 function StepIcon({step}: {step: AutofixStep}) {
@@ -64,12 +97,23 @@ function AutofixMessageBox({
   onSend,
   actionText = 'Send',
   allowEmptyMessage = false,
+  isDisabled = false,
+  groupId,
+  runId,
+  children,
 }: AutofixMessageBoxProps) {
   const [message, setMessage] = useState('');
+  const {mutate: send} = useSendMessage({groupId, runId});
 
   const handleSend = () => {
     if (message.trim() !== '' || allowEmptyMessage) {
-      if (onSend != null) onSend(message);
+      if (onSend != null) {
+        onSend(message);
+      } else {
+        send({
+          message: message,
+        });
+      }
       setMessage('');
     }
   };
@@ -94,6 +138,7 @@ function AutofixMessageBox({
             __html: marked(displayText),
           }}
         />
+        <ActionBar>{children}</ActionBar>
       </DisplayArea>
       <InputArea>
         {!responseRequired ? (
@@ -103,8 +148,11 @@ function AutofixMessageBox({
               value={message}
               onChange={e => setMessage(e.target.value)}
               placeholder={inputPlaceholder}
+              disabled={isDisabled}
             />
-            <Button onClick={handleSend}>{actionText}</Button>
+            <Button onClick={handleSend} disabled={isDisabled}>
+              {actionText}
+            </Button>
           </Fragment>
         ) : (
           <Fragment>
@@ -113,8 +161,11 @@ function AutofixMessageBox({
               value={message}
               onChange={e => setMessage(e.target.value)}
               placeholder={'Please answer to continue...'}
+              disabled={isDisabled}
             />
-            <Button onClick={handleSend}>{actionText}</Button>
+            <Button onClick={handleSend} disabled={isDisabled}>
+              {actionText}
+            </Button>
           </Fragment>
         )}
       </InputArea>
@@ -127,7 +178,7 @@ const Container = styled('div')`
   bottom: 0;
   left: 0;
   right: 0;
-  background-color: white;
+  background: white;
   z-index: 100;
   border-top: 1px solid ${p => p.theme.border};
   padding: 16px;
@@ -200,6 +251,11 @@ const ProcessingStatusIndicator = styled(LoadingIndicator)`
     height: 14px;
     width: 14px;
   }
+`;
+
+const ActionBar = styled('div')`
+  position: absolute;
+  bottom: 4em;
 `;
 
 export default AutofixMessageBox;

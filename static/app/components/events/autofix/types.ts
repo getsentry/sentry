@@ -111,11 +111,11 @@ export type BreadcrumbContext = {
 };
 
 export type AutofixInsight = {
-  codebase_snippet_context: CodeSnippetContext[];
+  breadcrumb_context: BreadcrumbContext[];
+  codebase_context: CodeSnippetContext[];
   error_message_context: string[];
-  event_log_context: BreadcrumbContext[];
   insight: string;
-  justification_using_context: string;
+  justification: string;
   stacktrace_context: StacktraceContext[];
 };
 
@@ -161,11 +161,9 @@ export type AutofixRootCauseCodeContext = {
 };
 
 export type AutofixRootCauseData = {
-  actionability: number;
   code_context: AutofixRootCauseCodeContext[];
   description: string;
   id: string;
-  likelihood: number;
   title: string;
   reproduction?: string;
 };

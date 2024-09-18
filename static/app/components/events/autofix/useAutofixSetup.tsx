@@ -44,9 +44,9 @@ export function useAutofixSetup(
 
   return {
     ...queryData,
-    canStartAutofix: Boolean(true), // TODO
-    //   queryData.data?.integration.ok && queryData.data?.genAIConsent.ok
-    // ),
+    canStartAutofix: Boolean(
+      queryData.data?.integration.ok && queryData.data?.genAIConsent.ok
+    ),
     canCreatePullRequests: Boolean(queryData.data?.githubWriteIntegration.ok),
   };
 }

@@ -3,7 +3,10 @@ import styled from '@emotion/styled';
 import {AnimatePresence, type AnimationProps, motion} from 'framer-motion';
 
 import {Button} from 'sentry/components/button';
-import {SuggestedFixSnippet} from 'sentry/components/events/autofix/autofixRootCause';
+import {
+  replaceHeadersWithBold,
+  SuggestedFixSnippet,
+} from 'sentry/components/events/autofix/autofixRootCause';
 import type {
   AutofixInsight,
   AutofixRepository,
@@ -62,7 +65,13 @@ function AutofixBreadcrumbSnippet({breadcrumb}: AutofixBreadcrumbSnippetProps) {
   );
 }
 
-export function ExpandableInsightContext({children}: {children: React.ReactNode}) {
+export function ExpandableInsightContext({
+  children,
+  title,
+}: {
+  children: React.ReactNode;
+  title: string;
+}) {
   const [expanded, setExpanded] = useState(false);
 
   const toggleExpand = () => {
@@ -71,11 +80,11 @@ export function ExpandableInsightContext({children}: {children: React.ReactNode}
 
   return (
     <ExpandableContext>
-      <ContextHeader
-        onClick={toggleExpand}
-        icon={<IconChevron size="xs" direction={expanded ? 'down' : 'right'} />}
-      >
-        <ContextHeaderText>Context</ContextHeaderText>
+      <ContextHeader onClick={toggleExpand} name={title}>
+        <ContextHeaderWrapper>
+          <ContextHeaderText>{title}</ContextHeaderText>
+          <IconChevron size="xs" direction={expanded ? 'down' : 'right'} />
+        </ContextHeaderWrapper>
       </ContextHeader>
       {expanded && <ContextBody>{children}</ContextBody>}
     </ExpandableContext>
@@ -84,8 +93,8 @@ export function ExpandableInsightContext({children}: {children: React.ReactNode}
 
 const animationProps: AnimationProps = {
   exit: {opacity: 0},
-  initial: {opacity: 0},
-  animate: {opacity: 1},
+  initial: {opacity: 0, y: 20},
+  animate: {opacity: 1, y: 0},
   transition: testableTransition({duration: 0.3}),
 };
 
@@ -117,68 +126,76 @@ function AutofixInsightCard({
                 __html: singleLineRenderer(insight.insight),
               }}
             />
-            <ExpandableInsightContext>
+            <ExpandableInsightContext title={'Context'}>
               <p
                 dangerouslySetInnerHTML={{
-                  __html: singleLineRenderer(insight.justification_using_context),
+                  __html: singleLineRenderer(
+                    replaceHeadersWithBold(insight.justification)
+                  ),
                 }}
               />
               {insight.error_message_context &&
                 insight.error_message_context.length > 0 && (
                   <div>
-                    {insight.error_message_context.map((message, i) => {
-                      return (
-                        <BackgroundPanel key={i}>
-                          <ErrorMessage>
-                            <ErrorMessageIcon>
-                              <IconFire color="red400" size="md" />
-                            </ErrorMessageIcon>
-                            <p
-                              dangerouslySetInnerHTML={{
-                                __html: singleLineRenderer('`' + message + '`'),
-                              }}
-                            />
-                          </ErrorMessage>
-                        </BackgroundPanel>
-                      );
-                    })}
+                    {insight.error_message_context
+                      .map((message, i) => {
+                        return (
+                          <BackgroundPanel key={i}>
+                            <ErrorMessage>
+                              <ErrorMessageIcon>
+                                <IconFire color="red400" size="md" />
+                              </ErrorMessageIcon>
+                              <p
+                                dangerouslySetInnerHTML={{
+                                  __html: singleLineRenderer('`' + message + '`'),
+                                }}
+                              />
+                            </ErrorMessage>
+                          </BackgroundPanel>
+                        );
+                      })
+                      .reverse()}
                   </div>
                 )}
               {insight.stacktrace_context && insight.stacktrace_context.length > 0 && (
                 <div>
-                  {insight.stacktrace_context.map((stacktrace, i) => {
-                    return (
-                      <div key={i}>
-                        <SuggestedFixSnippet
-                          snippet={{
-                            snippet: stacktrace.code_snippet,
-                            repo_name: stacktrace.repo_name,
-                            file_path: stacktrace.file_name,
-                          }}
-                          linesToHighlight={[]}
-                          repos={repos}
-                          icon={<IconFire color="red400" />}
-                        />
-                        <StyledStructuredEventData
-                          data={JSON.parse(stacktrace.vars_as_json)}
-                          maxDefaultDepth={1}
-                        />
-                      </div>
-                    );
-                  })}
+                  {insight.stacktrace_context
+                    .map((stacktrace, i) => {
+                      return (
+                        <div key={i}>
+                          <SuggestedFixSnippet
+                            snippet={{
+                              snippet: stacktrace.code_snippet,
+                              repo_name: stacktrace.repo_name,
+                              file_path: stacktrace.file_name,
+                            }}
+                            linesToHighlight={[]}
+                            repos={repos}
+                            icon={<IconFire color="red400" />}
+                          />
+                          <StyledStructuredEventData
+                            data={JSON.parse(stacktrace.vars_as_json)}
+                            maxDefaultDepth={1}
+                          />
+                        </div>
+                      );
+                    })
+                    .reverse()}
                 </div>
               )}
-              {insight.event_log_context && insight.event_log_context.length > 0 && (
+              {insight.breadcrumb_context && insight.breadcrumb_context.length > 0 && (
                 <div>
-                  {insight.event_log_context.map((breadcrumb, i) => {
-                    return <AutofixBreadcrumbSnippet key={i} breadcrumb={breadcrumb} />;
-                  })}
+                  {insight.breadcrumb_context
+                    .map((breadcrumb, i) => {
+                      return <AutofixBreadcrumbSnippet key={i} breadcrumb={breadcrumb} />;
+                    })
+                    .reverse()}
                 </div>
               )}
-              {insight.codebase_snippet_context &&
-                insight.codebase_snippet_context.length > 0 && (
-                  <div>
-                    {insight.codebase_snippet_context.map((code, i) => {
+              {insight.codebase_context && insight.codebase_context.length > 0 && (
+                <div>
+                  {insight.codebase_context
+                    .map((code, i) => {
                       return (
                         <SuggestedFixSnippet
                           key={i}
@@ -188,9 +205,10 @@ function AutofixInsightCard({
                           icon={<IconCode color="purple400" />}
                         />
                       );
-                    })}
-                  </div>
-                )}
+                    })
+                    .reverse()}
+                </div>
+              )}
             </ExpandableInsightContext>
           </InsightContainer>
           {hasCardBelow && (
@@ -225,7 +243,7 @@ function AutofixInsightCards({
             key={index}
             insight={insight}
             hasCardBelow={index < insights.length - 1 || hasStepBelow}
-            hasCardAbove={hasStepAbove}
+            hasCardAbove={hasStepAbove && index === 0}
             repos={repos}
           />
         )
@@ -282,7 +300,6 @@ const BackgroundPanel = styled('div')`
 `;
 
 const MiniHeader = styled('p')`
-  font-weight: bold;
   padding-top: ${space(2)};
   padding-right: ${space(2)};
   padding-left: ${space(2)};
@@ -296,8 +313,6 @@ const ExpandableContext = styled('div')`
 
 const ContextHeader = styled(Button)`
   width: 100%;
-  display: flex;
-  justify-content: space-between;
   box-shadow: none;
   margin: 0;
   border: none;
@@ -305,9 +320,15 @@ const ContextHeader = styled(Button)`
   background: ${p => p.theme.backgroundSecondary};
 `;
 
+const ContextHeaderWrapper = styled('div')`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+`;
+
 const ContextHeaderText = styled('p')`
   height: 0;
-  width: 100%;
 `;
 
 const ContextBody = styled('div')`
