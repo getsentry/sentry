@@ -123,7 +123,7 @@ describe('SearchQueryBuilder', function () {
   });
 
   const defaultProps: ComponentProps<typeof SearchQueryBuilder> = {
-    getTagValues: jest.fn(),
+    getTagValues: jest.fn(() => Promise.resolve([])),
     initialQuery: '',
     filterKeySections: FITLER_KEY_SECTIONS,
     filterKeys: FILTER_KEYS,
