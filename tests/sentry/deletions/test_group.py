@@ -6,6 +6,7 @@ from sentry import nodestore
 from sentry.deletions.defaults.group import EventDataDeletionTask
 from sentry.deletions.tasks.groups import delete_groups
 from sentry.eventstore.models import Event
+from sentry.issues.grouptype import ReplayDeadClickType
 from sentry.models.eventattachment import EventAttachment
 from sentry.models.files.file import File
 from sentry.models.group import Group
@@ -195,11 +196,30 @@ class DeleteGroupTest(TestCase, SnubaTestCase):
 class DeleteIssuePlatformTest(TestCase, SnubaTestCase, OccurrenceTestMixin):
     def test_issue_platform(self):
         event = self.store_event(data={}, project_id=self.project.id)
-        node_id = Event.generate_node_id(event.project_id, event.event_id)
-        self.build_occurrence(event_id=event.event_id)
+        issue_occurrence, group_info = self.process_occurrence(
+            event_id=event.event_id,
+            project_id=self.project.id,
+            # We are using ReplayDeadClickType as a representative of Issue Platform
+            type=ReplayDeadClickType.type_id,
+            event_data={
+                "fingerprint": ["issue-platform-group"],
+                "timestamp": before_now(minutes=1).isoformat(),
+            },
+        )
+        assert group_info is not None
+        issue_platform_group = group_info.group
+        assert event.group_id != issue_platform_group.id
 
         with self.tasks():
-            delete_groups(object_ids=[event.group_id])
+            delete_groups(object_ids=[issue_platform_group.id])
 
+        # The original event and group still exist
+        assert Group.objects.filter(id=event.group_id).exists()
+        node_id = Event.generate_node_id(event.project_id, event.event_id)
+        assert nodestore.backend.get(node_id)
+
+        # The Issue Platform group and occurrence are deleted
+        assert issue_platform_group.issue_type == ReplayDeadClickType
+        assert not Group.objects.filter(id=issue_platform_group.id).exists()
+        node_id = Event.generate_node_id(issue_occurrence.project_id, issue_occurrence.id)
         assert not nodestore.backend.get(node_id)
-        assert not Group.objects.filter(id=event.group_id).exists()
