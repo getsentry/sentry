@@ -127,14 +127,20 @@ function Tabs({
   setTabRefs,
   tabs,
   overflowingTabs,
+  hoveringKey,
+  setHoveringKey,
+  tempTabActive,
 }: {
   ariaProps: AriaTabListOptions<DraggableTabListItemProps>;
+  hoveringKey: Key | 'addView' | null;
   onReorder: (newOrder: Node<DraggableTabListItemProps>[]) => void;
   orientation: 'horizontal' | 'vertical';
   overflowingTabs: Node<DraggableTabListItemProps>[];
+  setHoveringKey: (key: Key | 'addView' | null) => void;
   setTabRefs: Dispatch<SetStateAction<Array<HTMLDivElement | null>>>;
   state: TabListState<DraggableTabListItemProps>;
   tabs: Node<DraggableTabListItemProps>[];
+  tempTabActive: boolean;
   className?: string;
   disabled?: boolean;
   onChange?: (key: string | number) => void;
@@ -147,11 +153,48 @@ function Tabs({
   const values = useMemo(() => [...state.collection], [state.collection]);
 
   const [isDragging, setIsDragging] = useState(false);
-  const [hoveringKey, setHoveringKey] = useState<Key | null>(null);
 
   // Only apply this while dragging, because it causes tabs to stay within the container
   // which we do not want (we hide tabs once they overflow
   const dragConstraints = isDragging ? tabListRef : undefined;
+
+  const isTabDividerVisible = tabKey => {
+    // If the tab divider is succeeding or preceding the selected tab key
+    if (
+      state.selectedKey === tabKey ||
+      (state.selectedKey !== TEMPORARY_TAB_KEY &&
+        state.collection.getKeyAfter(tabKey) !== TEMPORARY_TAB_KEY &&
+        state.collection.getKeyAfter(tabKey) === state.selectedKey)
+    ) {
+      return false;
+    }
+
+    // If the tab divider is succeeding or preceding the hovering tab key
+    if (
+      hoveringKey !== TEMPORARY_TAB_KEY &&
+      (hoveringKey === tabKey || hoveringKey === state.collection.getKeyAfter(tabKey))
+    ) {
+      return false;
+    }
+
+    if (
+      tempTabActive &&
+      state.collection.getKeyAfter(tabKey) === TEMPORARY_TAB_KEY &&
+      hoveringKey === 'addView'
+    ) {
+      return false;
+    }
+
+    if (
+      tabKey !== TEMPORARY_TAB_KEY &&
+      !state.collection.getKeyAfter(tabKey) &&
+      hoveringKey === 'addView'
+    ) {
+      return false;
+    }
+
+    return true;
+  };
 
   return (
     <TabListWrap {...tabListProps} className={className} ref={tabListRef}>
@@ -200,16 +243,7 @@ function Tabs({
                 variant={tabVariant}
               />
             </TabItemWrap>
-            <TabDivider
-              isVisible={
-                (state.selectedKey === TEMPORARY_TAB_KEY ||
-                  (state.selectedKey !== item.key &&
-                    state.collection.getKeyAfter(item.key) !== state.selectedKey)) &&
-                hoveringKey !== item.key &&
-                state.collection.getKeyAfter(item.key) !== hoveringKey
-              }
-              initial={false}
-            />
+            <TabDivider isVisible={isTabDividerVisible(item.key)} initial={false} />
           </Fragment>
         ))}
       </ReorderGroup>
@@ -226,6 +260,7 @@ function BaseDraggableTabList({
   tabVariant = 'filled',
   ...props
 }: BaseDraggableTabListProps) {
+  const [hoveringKey, setHoveringKey] = useState<Key | null>(null);
   const {rootProps, setTabListState} = useContext(TabsContext);
   const {
     value,
@@ -285,25 +320,44 @@ function BaseDraggableTabList({
         setTabRefs={setTabElements}
         tabs={persistentTabs}
         overflowingTabs={overflowingTabs}
+        hoveringKey={hoveringKey}
+        setHoveringKey={setHoveringKey}
+        tempTabActive={!!tempTab}
       />
       <AddViewTempTabWrap ref={addViewTempTabRef}>
-        <AddViewMotionWrapper>
+        <AddViewMotionWrapper
+          onHoverStart={() => setHoveringKey('addView')}
+          onHoverEnd={() => setHoveringKey(null)}
+        >
           <AddViewButton borderless size="zero" onClick={onAddView}>
             <StyledIconAdd size="xs" />
             {t('Add View')}
           </AddViewButton>
         </AddViewMotionWrapper>
-        <MotionWrapper>
+        <TabDivider
+          isVisible={
+            defined(tempTab) &&
+            state?.selectedKey !== TEMPORARY_TAB_KEY &&
+            hoveringKey !== 'addView' &&
+            hoveringKey !== TEMPORARY_TAB_KEY
+          }
+        />
+        <MotionWrapper
+          onHoverStart={() => setHoveringKey(TEMPORARY_TAB_KEY)}
+          onHoverEnd={() => setHoveringKey(null)}
+        >
           {tempTab && (
-            <Tab
-              key={TEMPORARY_TAB_KEY}
-              item={tempTab}
-              state={state}
-              orientation={orientation}
-              overflowing={false}
-              variant={tabVariant}
-              borderStyle="dashed"
-            />
+            <TempTabWrap>
+              <Tab
+                key={TEMPORARY_TAB_KEY}
+                item={tempTab}
+                state={state}
+                orientation={orientation}
+                overflowing={false}
+                variant={tabVariant}
+                borderStyle="dashed"
+              />
+            </TempTabWrap>
           )}
         </MotionWrapper>
         {overflowingTabs.length > 0 ? (
@@ -371,6 +425,12 @@ const TabItemWrap = styled(Reorder.Item, {
   z-index: ${p => (p.isSelected ? 1 : 0)};
 `;
 
+const TempTabWrap = styled('div')`
+  display: flex;
+  position: relative;
+  line-height: 1.6;
+`;
+
 /**
  * TabDividers are only visible around NON-selected tabs. They are not visible around the selected tab,
  * but they still create some space and act as a gap between tabs.
@@ -413,7 +473,6 @@ const AddViewTempTabWrap = styled('div')`
   grid-auto-flow: column;
   justify-content: start;
   align-items: center;
-  top: -1px;
 `;
 
 const TabListWrap = styled('ul')`
@@ -435,8 +494,8 @@ const AddViewButton = styled(Button)`
   display: flex;
   color: ${p => p.theme.gray300};
   font-weight: normal;
-  padding: ${space(0.5)};
-  margin-right: ${space(0.5)};
+  padding: ${space(0.5)} ${space(1)};
+  margin-bottom: 1px;
   border: none;
   bottom: -1px;
 `;
@@ -448,6 +507,7 @@ const StyledIconAdd = styled(IconAdd)`
 const MotionWrapper = styled(motion.div)`
   display: flex;
   position: relative;
+  bottom: 1px;
 `;
 
 const AddViewMotionWrapper = styled(motion.div)`

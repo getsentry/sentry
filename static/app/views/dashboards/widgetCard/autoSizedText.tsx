@@ -69,7 +69,7 @@ export function AutoSizedText({children}: Props) {
           const widthDifference = parentDimensions.width - childDimensions.width;
           const heightDifference = parentDimensions.height - childDimensions.height;
 
-          const childFitsIntoParent = heightDifference > 0 && widthDifference > 0;
+          const childFitsIntoParent = heightDifference >= 0 && widthDifference >= 0;
           const childIsWithinWidthTolerance =
             Math.abs(widthDifference) <= MAXIMUM_DIFFERENCE;
           const childIsWithinHeightTolerance =

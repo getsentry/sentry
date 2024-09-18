@@ -22,6 +22,6 @@ export default function useCountDomNodes({
       return replay?.getCountDomNodes();
     },
     enabled: Boolean(replay),
-    cacheTime: Infinity,
+    gcTime: Infinity,
   });
 }
