@@ -11,6 +11,7 @@ import type EventView from 'sentry/utils/discover/eventView';
 import {isAPIPayloadSimilar} from 'sentry/utils/discover/eventView';
 import type {QueryBatching} from 'sentry/utils/performance/contexts/genericQueryBatcher';
 import {PerformanceEventViewContext} from 'sentry/utils/performance/contexts/performanceEventViewContext';
+import type {UseQueryOptions} from 'sentry/utils/queryClient';
 
 import useApi from '../useApi';
 import useOrganization from '../useOrganization';
@@ -85,7 +86,10 @@ type BaseDiscoverQueryProps = {
    * passed, but cursor will be ignored.
    */
   noPagination?: boolean;
-  options?: Omit<Parameters<typeof useQuery>[2], 'initialData'>;
+  options?: Omit<
+    UseQueryOptions<[any, string | undefined, ResponseMeta<any> | undefined], QueryError>,
+    'queryKey' | 'queryFn'
+  >;
   /**
    * A container for query batching data and functions.
    */
@@ -144,7 +148,7 @@ type ComponentProps<T, P> = {
    * Allows components to modify the payload before it is set.
    */
   getRequestPayload?: (props: Props<T, P>) => any;
-  options?: Omit<Parameters<typeof useQuery>[2], 'initialData'>;
+  options?: BaseDiscoverQueryProps['options'];
   /**
    * An external hook to parse errors in case there are differences for a specific api.
    */
@@ -438,7 +442,6 @@ export function useGenericDiscoverQuery<T, P>(props: Props<T, P>) {
     error: parseError(res.error),
     statusCode: res.data?.[1] ?? undefined,
     response: res.data?.[2] ?? undefined,
-    isPending: res.isLoading,
   };
 }
 

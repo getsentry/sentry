@@ -14,6 +14,6 @@ export default function useExtractDomNodes({
       return replay?.getExtractDomNodes();
     },
     enabled: Boolean(replay),
-    cacheTime: Infinity,
+    gcTime: Infinity,
   });
 }

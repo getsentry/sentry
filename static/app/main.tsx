@@ -66,7 +66,7 @@ function Main() {
           )}
         </OnboardingContextProvider>
         {USE_REACT_QUERY_DEVTOOL && (
-          <ReactQueryDevtools initialIsOpen={false} position="bottom-left" />
+          <ReactQueryDevtools initialIsOpen={false} buttonPosition="bottom-left" />
         )}
       </QueryClientProvider>
     </ThemeAndStyleProvider>

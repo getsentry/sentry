@@ -25,11 +25,11 @@ export function useRecentCreatedProject({
     {
       staleTime: 0,
       enabled: !!projectSlug,
-      refetchInterval: data => {
-        if (!data) {
+      refetchInterval: query => {
+        if (!query.state.data) {
           return false;
         }
-        const [projectData] = data;
+        const [projectData] = query.state.data;
         return projectData?.firstEvent ? false : DEFAULT_POLL_INTERVAL_MS;
       },
     }

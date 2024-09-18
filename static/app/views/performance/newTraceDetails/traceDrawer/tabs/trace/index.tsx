@@ -8,7 +8,11 @@ import type {
   TraceFullDetailed,
   TraceSplitResults,
 } from 'sentry/utils/performance/quickTrace/types';
-import type {UseApiQueryResult, UseInfiniteQueryResult} from 'sentry/utils/queryClient';
+import type {
+  InfiniteData,
+  UseApiQueryResult,
+  UseInfiniteQueryResult,
+} from 'sentry/utils/queryClient';
 import type RequestError from 'sentry/utils/requestError/requestError';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -27,7 +31,10 @@ type TraceDetailsProps = {
   metaResults: TraceMetaQueryResults;
   node: TraceTreeNode<TraceTree.NodeValue> | null;
   rootEventResults: UseApiQueryResult<EventTransaction, RequestError>;
-  tagsInfiniteQueryResults: UseInfiniteQueryResult<ApiResult<Tag[]>, unknown>;
+  tagsInfiniteQueryResults: UseInfiniteQueryResult<
+    InfiniteData<ApiResult<Tag[]>, unknown>,
+    Error
+  >;
   traceEventView: EventView;
   traceType: TraceType;
   traces: TraceSplitResults<TraceFullDetailed> | null;

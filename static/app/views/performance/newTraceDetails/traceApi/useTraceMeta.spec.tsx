@@ -80,7 +80,7 @@ describe('useTraceMeta', () => {
       data: undefined,
       errors: [],
       isLoading: true,
-      status: 'loading',
+      status: 'pending',
     });
 
     await waitFor(() => expect(result.current.isLoading).toBe(false));
@@ -130,7 +130,7 @@ describe('useTraceMeta', () => {
       data: undefined,
       errors: [],
       isLoading: true,
-      status: 'loading',
+      status: 'pending',
     });
 
     await waitFor(() => expect(result.current.isLoading).toBe(false));
@@ -193,7 +193,7 @@ describe('useTraceMeta', () => {
       data: undefined,
       errors: [],
       isLoading: true,
-      status: 'loading',
+      status: 'pending',
     });
 
     await waitFor(() => expect(result.current.isLoading).toBe(false));

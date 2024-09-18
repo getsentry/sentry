@@ -15,7 +15,7 @@ import {generateQueryWithTag} from 'sentry/utils';
 import type EventView from 'sentry/utils/discover/eventView';
 import {formatTagKey} from 'sentry/utils/discover/fields';
 import {SavedQueryDatasets} from 'sentry/utils/discover/types';
-import type {UseInfiniteQueryResult} from 'sentry/utils/queryClient';
+import type {InfiniteData, UseInfiniteQueryResult} from 'sentry/utils/queryClient';
 import {hasDatasetSelector} from 'sentry/views/dashboards/utils';
 import StyledEmptyStateWarning from 'sentry/views/replays/detail/emptyState';
 
@@ -43,7 +43,10 @@ type TagSummaryProps = {
   eventView: EventView;
   location: Location;
   organization: Organization;
-  tagsInfiniteQueryResults: UseInfiniteQueryResult<ApiResult<Tag[]>, unknown>;
+  tagsInfiniteQueryResults: UseInfiniteQueryResult<
+    InfiniteData<ApiResult<Tag[]>, unknown>,
+    Error
+  >;
   totalValues: number | null;
 };
 

@@ -56,7 +56,7 @@ export default function useMutateFeedback({
     onSettled: (_resp, _error, [ids, _payload]) => {
       invalidateCached(ids);
     },
-    cacheTime: 0,
+    gcTime: 0,
   });
 
   const markAsRead = useCallback(

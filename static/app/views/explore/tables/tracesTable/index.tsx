@@ -45,18 +45,18 @@ import {
 
 export function TracesTable() {
   const [query] = useUserQuery();
-  const {data, isLoading, isError} = useTraces({
+  const {data, isPending, isError} = useTraces({
     query,
     limit: DEFAULT_PER_PAGE,
   });
 
   const showErrorState = useMemo(() => {
-    return !isLoading && isError;
-  }, [isLoading, isError]);
+    return !isPending && isError;
+  }, [isPending, isError]);
 
   const showEmptyState = useMemo(() => {
-    return !isLoading && !showErrorState && (data?.data?.length ?? 0) === 0;
-  }, [data, isLoading, showErrorState]);
+    return !isPending && !showErrorState && (data?.data?.length ?? 0) === 0;
+  }, [data, isPending, showErrorState]);
 
   return (
     <StyledPanel>
@@ -79,7 +79,7 @@ export function TracesTable() {
         <StyledPanelHeader align="right" lightText>
           {t('Timestamp')}
         </StyledPanelHeader>
-        {isLoading && (
+        {isPending && (
           <StyledPanelItem span={6} overflow>
             <LoadingIndicator />
           </StyledPanelItem>

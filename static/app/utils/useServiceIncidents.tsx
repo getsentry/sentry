@@ -29,7 +29,7 @@ export function useServiceIncidents({
 
   return useQuery<StatuspageIncident[] | null>({
     queryKey: ['statuspage-incidents', statusFilter],
-    cacheTime: 60 * 5,
+    gcTime: 60 * 5,
     queryFn: async () => {
       const {api_host, id} = statuspage ?? {};
 

@@ -107,7 +107,7 @@ function DurationChart({
 
   const {
     data: spans,
-    isLoading: areSpanSamplesLoading,
+    isPending: areSpanSamplesLoading,
     isRefetching: areSpanSamplesRefetching,
   } = useSpanSamples({
     groupId,

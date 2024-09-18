@@ -26,7 +26,7 @@ export default function useTeams({idOrSlug}: Props, opts?: {enabled: boolean}) {
       ],
       [idOrSlug, organizationSlug]
     ),
-    cacheTime: Infinity,
+    gcTime: Infinity,
     enabled: opts?.enabled ?? true,
   });
 }

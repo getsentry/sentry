@@ -25,6 +25,6 @@ export default function useSessionStatus() {
       ],
       [organizationSlug, projectId]
     ),
-    cacheTime: 5000,
+    gcTime: 5000,
   });
 }

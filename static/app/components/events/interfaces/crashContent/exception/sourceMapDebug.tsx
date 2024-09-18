@@ -240,7 +240,7 @@ export function SourceMapDebug({debugFrames, event}: SourcemapDebugProps) {
   const organization = useOrganization();
   const results = useSourceMapDebugQueries(debugFrames.map(debug => debug.query));
 
-  const isLoading = results.every(result => result.isLoading);
+  const isLoading = results.every(result => result.isPending);
   const errorMessages = combineErrors(
     results.map(result => result.data).filter(defined),
     sdkName
