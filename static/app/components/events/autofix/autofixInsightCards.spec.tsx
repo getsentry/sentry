@@ -2,12 +2,9 @@ import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import AutofixInsightCards from 'sentry/components/events/autofix/autofixInsightCards';
 
-// Mock the necessary dependencies
 jest.mock('sentry/utils/marked', () => ({
   singleLineRenderer: jest.fn(text => text),
 }));
-
-jest.mock('sentry/utils/testableTransition', () => jest.fn(() => ({})));
 
 const sampleInsights = [
   {

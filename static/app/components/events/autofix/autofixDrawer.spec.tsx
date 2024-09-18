@@ -14,9 +14,6 @@ jest.mock('sentry/components/events/autofix/useAutofix', () => ({
   useAiAutofix: jest.fn(),
 }));
 
-// Mock the route analytics hook
-jest.mock('sentry/utils/routeAnalytics/useRouteAnalyticsParams', () => jest.fn());
-
 describe('AutofixDrawer', () => {
   const mockEvent = EventFixture();
   const mockGroup = GroupFixture();
