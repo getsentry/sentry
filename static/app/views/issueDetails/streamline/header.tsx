@@ -30,6 +30,7 @@ import GroupActions from 'sentry/views/issueDetails/actions/index';
 import {Divider} from 'sentry/views/issueDetails/divider';
 import GroupPriority from 'sentry/views/issueDetails/groupPriority';
 import {GroupHeaderTabs} from 'sentry/views/issueDetails/header';
+import {AttachmentsBadge} from 'sentry/views/issueDetails/streamline/attachmentsBadge';
 import {useIssueDetailsHeader} from 'sentry/views/issueDetails/useIssueDetailsHeader';
 import type {ReprocessingStatus} from 'sentry/views/issueDetails/utils';
 
@@ -158,6 +159,7 @@ export default function StreamlinedGroupHeader({
                 </ReleaseWrapper>
               </Fragment>
             )}
+            <AttachmentsBadge group={group} project={project} />
           </MessageWrapper>
           <Feature features={['organizations:ai-summary']}>
             <GroupSummaryHeader groupId={group.id} groupCategory={group.issueCategory} />

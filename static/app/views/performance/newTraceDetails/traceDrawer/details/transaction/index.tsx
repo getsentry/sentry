@@ -217,8 +217,8 @@ export function TransactionNodeDetails({
 
       <BreadCrumbs event={event} organization={organization} />
 
-      {event.projectSlug ? (
-        <EventAttachments event={event} projectSlug={event.projectSlug} />
+      {project ? (
+        <EventAttachments event={event} project={project} group={undefined} />
       ) : null}
 
       {project ? <EventViewHierarchy event={event} project={project} /> : null}
