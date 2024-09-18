@@ -109,4 +109,33 @@ describe('Onboarding Product Selection', function () {
       },
     });
   });
+
+  it('triggers onChange callback', async function () {
+    const {router} = initializeOrg({
+      router: {
+        location: {
+          query: {
+            springBoot: 'v3',
+            packageManager: 'gradle',
+          },
+        },
+        params: {},
+      },
+    });
+
+    const handleChange = jest.fn();
+
+    render(
+      <PlatformOptionsControl
+        platformOptions={platformOptions}
+        onChange={handleChange}
+      />,
+      {
+        router,
+      }
+    );
+
+    await userEvent.click(screen.getByRole('radio', {name: 'V2'}));
+    expect(handleChange).toHaveBeenCalledWith({springBoot: 'v2'});
+  });
 });
