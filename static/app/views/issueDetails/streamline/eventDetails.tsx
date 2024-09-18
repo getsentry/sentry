@@ -28,8 +28,8 @@ import {
   EventSearch,
   useEventQuery,
 } from 'sentry/views/issueDetails/streamline/eventSearch';
-import {useFetchEventStats} from 'sentry/views/issueDetails/streamline/useFetchEventStats';
 import {IssueContent} from 'sentry/views/issueDetails/streamline/issueContent';
+import {useFetchEventStats} from 'sentry/views/issueDetails/streamline/useFetchEventStats';
 
 export function EventDetails({
   group,
