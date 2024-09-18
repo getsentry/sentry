@@ -9,7 +9,7 @@ from sentry.api.bases import SentryAppsBaseEndpoint
 from sentry.api.permissions import SuperuserOrStaffFeatureFlaggedPermission
 from sentry.api.serializers import serialize
 from sentry.models.avatars.sentry_app_avatar import SentryAppAvatar
-from sentry.models.integrations.sentry_app import SentryApp
+from sentry.sentry_apps.models.sentry_app import SentryApp
 
 
 @control_silo_endpoint

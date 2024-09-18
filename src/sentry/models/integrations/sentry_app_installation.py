@@ -170,7 +170,7 @@ class SentryAppInstallation(ReplicatedControlModel, ParanoidModel):
 
     @property
     def api_application_id(self) -> int | None:
-        from sentry.models.integrations.sentry_app import SentryApp
+        from sentry.sentry_apps.models.sentry_app import SentryApp
 
         try:
             return self.sentry_app.application_id

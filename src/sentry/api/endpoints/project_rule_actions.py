@@ -108,7 +108,7 @@ class ProjectRuleActionsEndpoint(ProjectEndpoint):
                     # If we encounter some unexpected exception, we probably
                     # don't want to continue executing more callbacks.
                     logger.warning(
-                        "%s.test_alert.unexpected_exception", callback_name, extra={"exc": exc}
+                        "%s.test_alert.unexpected_exception", callback_name, exc_info=True
                     )
                     break
 

@@ -18,7 +18,7 @@ from sentry.tasks.base import instrumented_task, retry, track_group_async_operat
 )
 @retry(exclude=(DeleteAborted,))
 @track_group_async_operation
-def delete_groups_new(
+def delete_groups(
     object_ids: Sequence[int],
     transaction_id: str | None = None,
     eventstream_state: Mapping[str, Any] | None = None,
@@ -69,10 +69,10 @@ def delete_groups_new(
 )
 @retry(exclude=(DeleteAborted,))
 @track_group_async_operation
-def delete_groups(
+def delete_groups_old(
     object_ids: Sequence[int],
     transaction_id: str | None = None,
     eventstream_state: Mapping[str, Any] | None = None,
     **kwargs: Any,
 ) -> None:
-    delete_groups_new(object_ids, transaction_id, eventstream_state, **kwargs)
+    delete_groups(object_ids, transaction_id, eventstream_state, **kwargs)
