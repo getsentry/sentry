@@ -138,15 +138,7 @@ class Enhancements:
         """
         match_frames = [create_match_frame(frame, platform) for frame in frames]
 
-        # TODO: Update the Rust component to not take the two values
-        rust_components = [
-            RustComponent(
-                is_prefix_frame=False,
-                is_sentinel_frame=False,
-                contributes=c.contributes,
-            )
-            for c in components
-        ]
+        rust_components = [RustComponent(contributes=c.contributes) for c in components]
 
         rust_results = self.rust_enhancements.assemble_stacktrace_component(
             match_frames, make_rust_exception_data(exception_data), rust_components

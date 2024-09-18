@@ -11,4 +11,4 @@ export const MODULE_DESCRIPTION = t(
 export const MODULE_DOC_LINK = 'https://docs.sentry.io/product/insights/web-vitals/';
 
 export const DEFAULT_QUERY_FILTER =
-  'transaction.op:[pageload,""] span.op:[ui.interaction.click,ui.interaction.hover,ui.interaction.drag,ui.interaction.press,""] !transaction:"<< unparameterized >>"';
+  'transaction.op:[pageload,""] span.op:[ui.interaction.click,ui.interaction.hover,ui.interaction.drag,ui.interaction.press,ui.webvital.cls,""] !transaction:"<< unparameterized >>"';

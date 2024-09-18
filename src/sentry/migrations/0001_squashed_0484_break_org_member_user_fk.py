@@ -31,10 +31,10 @@ import sentry.models.apigrant
 import sentry.models.apitoken
 import sentry.models.broadcast
 import sentry.models.groupshare
-import sentry.models.integrations.sentry_app
-import sentry.models.integrations.sentry_app_installation
 import sentry.models.scheduledeletion
 import sentry.models.servicehook
+import sentry.sentry_apps.models.sentry_app
+import sentry.sentry_apps.models.sentry_app_installation
 import sentry.users.models.authenticator
 import sentry.users.models.user
 import sentry.utils.security.hash
@@ -1842,7 +1842,7 @@ class Migration(CheckedMigration):
                 (
                     "uuid",
                     models.CharField(
-                        default=sentry.models.integrations.sentry_app.default_uuid, max_length=64
+                        default=sentry.sentry_apps.models.sentry_app.default_uuid, max_length=64
                     ),
                 ),
                 ("redirect_url", models.URLField(null=True)),
@@ -1961,7 +1961,7 @@ class Migration(CheckedMigration):
                 (
                     "uuid",
                     models.CharField(
-                        default=sentry.models.integrations.sentry_app_installation.default_uuid,
+                        default=sentry.sentry_apps.models.sentry_app_installation.default_uuid,
                         max_length=64,
                     ),
                 ),
@@ -9518,7 +9518,7 @@ class Migration(CheckedMigration):
         migrations.AddConstraint(
             model_name="rulesnooze",
             constraint=models.CheckConstraint(
-                check=models.Q(
+                condition=models.Q(
                     models.Q(("alert_rule__isnull", True), ("rule__isnull", False)),
                     models.Q(("alert_rule__isnull", False), ("rule__isnull", True)),
                     _connector="OR",
@@ -9834,7 +9834,7 @@ class Migration(CheckedMigration):
         migrations.AddConstraint(
             model_name="notificationsetting",
             constraint=models.CheckConstraint(
-                check=models.Q(
+                condition=models.Q(
                     models.Q(("team_id__isnull", False), ("user_id__isnull", True)),
                     models.Q(("team_id__isnull", True), ("user_id__isnull", False)),
                     _connector="OR",

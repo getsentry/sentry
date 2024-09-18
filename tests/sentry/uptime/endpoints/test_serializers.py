@@ -1,8 +1,8 @@
 from sentry.api.serializers import serialize
-from sentry.testutils.cases import TestCase
+from sentry.testutils.cases import UptimeTestCase
 
 
-class ProjectUptimeSubscriptionSerializerTest(TestCase):
+class ProjectUptimeSubscriptionSerializerTest(UptimeTestCase):
     def test(self):
         uptime_monitor = self.create_project_uptime_subscription()
         result = serialize(uptime_monitor)

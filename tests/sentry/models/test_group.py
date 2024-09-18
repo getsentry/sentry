@@ -312,8 +312,12 @@ class GroupTest(TestCase, SnubaTestCase):
 
         assert group2.get_last_release() is None
 
-    def test_group_substatus_defaults(self):
-        assert self.create_group(status=GroupStatus.UNRESOLVED).substatus is GroupSubStatus.ONGOING
+    @patch("sentry.models.group.logger.error")
+    def test_group_substatus_defaults(self, mock_logger):
+        group = self.create_group(status=GroupStatus.UNRESOLVED)
+        assert group.substatus is None
+        assert mock_logger.call_count == 1
+
         for nullable_status in (
             GroupStatus.IGNORED,
             GroupStatus.MUTED,
@@ -336,19 +340,6 @@ class GroupTest(TestCase, SnubaTestCase):
         for status, substatus in desired_status_substatus_pairs:
             group = self.create_group(status=status, substatus=substatus)
             assert group.substatus is substatus
-
-    @patch("sentry.models.group.logger")
-    def test_group_invalid_substatus(self, logger):
-        status_substatus_pairs = [
-            (GroupStatus.UNRESOLVED, GroupSubStatus.UNTIL_ESCALATING),
-            (GroupStatus.IGNORED, GroupSubStatus.ONGOING),
-            (GroupStatus.IGNORED, GroupSubStatus.ESCALATING),
-        ]
-
-        for status, substatus in status_substatus_pairs:
-            self.create_group(status=status, substatus=substatus)
-
-        assert logger.error.call_count == len(status_substatus_pairs)
 
 
 class GroupIsOverResolveAgeTest(TestCase):

@@ -410,7 +410,7 @@ export function ProjectFiltersSettings({project, params, features}: Props) {
     refetch,
   } = useApiQuery<Filter[]>([`/projects/${organization.slug}/${projectSlug}/filters/`], {
     staleTime: 0,
-    cacheTime: 0,
+    gcTime: 0,
   });
 
   const filterList = filterListData ?? [];

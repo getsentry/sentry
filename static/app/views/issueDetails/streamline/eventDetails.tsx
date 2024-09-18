@@ -2,12 +2,17 @@ import {useLayoutEffect, useState} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import Alert from 'sentry/components/alert';
 import {CommitRow} from 'sentry/components/commitRow';
+import ErrorBoundary from 'sentry/components/errorBoundary';
 import {SuspectCommits} from 'sentry/components/events/suspectCommits';
 import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
 import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
+import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import {useLocation} from 'sentry/utils/useLocation';
 import useMedia from 'sentry/utils/useMedia';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {
   EventDetailsContent,
@@ -17,20 +22,40 @@ import {
   EventDetailsContext,
   useEventDetailsReducer,
 } from 'sentry/views/issueDetails/streamline/context';
+import {EventGraph} from 'sentry/views/issueDetails/streamline/eventGraph';
 import {EventNavigation} from 'sentry/views/issueDetails/streamline/eventNavigation';
-import {EventSearch} from 'sentry/views/issueDetails/streamline/eventSearch';
+import {
+  EventSearch,
+  useEventQuery,
+} from 'sentry/views/issueDetails/streamline/eventSearch';
+import {useFetchEventStats} from 'sentry/views/issueDetails/streamline/useFetchEventStats';
 
 export function EventDetails({
   group,
   event,
   project,
 }: Required<EventDetailsContentProps>) {
-  const [nav, setNav] = useState<HTMLDivElement | null>(null);
-  const {selection} = usePageFilters();
-  const {environments} = selection;
-  const {eventDetails, dispatch} = useEventDetailsReducer();
   const theme = useTheme();
+  const location = useLocation();
+  const navigate = useNavigate();
+  const {selection} = usePageFilters();
   const isScreenMedium = useMedia(`(max-width: ${theme.breakpoints.medium})`);
+  const {environments} = selection;
+  const [nav, setNav] = useState<HTMLDivElement | null>(null);
+
+  const searchQuery = useEventQuery({group});
+  const {eventDetails, dispatch} = useEventDetailsReducer();
+  const {
+    data: groupStats,
+    isPending: isLoadingStats,
+    error: errorStats,
+  } = useFetchEventStats({
+    params: {
+      group: group,
+      referrer: 'issue_details.streamline_graph',
+      query: searchQuery,
+    },
+  });
 
   useLayoutEffect(() => {
     const navHeight = nav?.offsetHeight ?? 0;
@@ -41,26 +66,59 @@ export function EventDetails({
     });
   }, [nav, isScreenMedium, dispatch, theme.sidebar.mobileHeightNumber]);
 
+  const {detail: errorDetail} = errorStats?.responseJSON ?? {};
+
+  const graphComponent = !isLoadingStats && groupStats && (
+    <GraphPadding>
+      <ErrorBoundary mini message={t('There was an error loading the event graph')}>
+        <EventGraph group={group} groupStats={groupStats} searchQuery={searchQuery} />
+      </ErrorBoundary>
+    </GraphPadding>
+  );
+
   return (
     <EventDetailsContext.Provider value={{...eventDetails, dispatch}}>
-      <SuspectCommits
-        project={project}
-        eventId={event.id}
-        group={group}
-        commitRow={CommitRow}
-      />
-      <FilterContainer>
-        <EnvironmentPageFilter />
-        <SearchFilter
+      <ErrorBoundary mini message={t('There was an error loading the suspect commits')}>
+        <SuspectCommits
+          project={project}
+          eventId={event.id}
           group={group}
-          handleSearch={() => {}}
-          environments={environments}
-          query={''}
+          commitRow={CommitRow}
         />
-        <DatePageFilter />
-      </FilterContainer>
+      </ErrorBoundary>
+      <ErrorBoundary mini message={t('There was an error loading the event filters')}>
+        <FilterContainer>
+          <EnvironmentPageFilter />
+          <SearchFilter
+            group={group}
+            handleSearch={query => {
+              navigate({...location, query: {...location.query, query}}, {replace: true});
+            }}
+            environments={environments}
+            query={searchQuery}
+            queryBuilderProps={{
+              disallowFreeText: true,
+            }}
+          />
+          <DatePageFilter />
+        </FilterContainer>
+      </ErrorBoundary>
+      {errorDetail ? (
+        <div>
+          <GraphAlert type="error" showIcon>
+            {errorDetail as string}
+          </GraphAlert>
+        </div>
+      ) : (
+        graphComponent
+      )}
       <GroupContent navHeight={nav?.offsetHeight}>
-        <FloatingEventNavigation event={event} group={group} ref={setNav} />
+        <FloatingEventNavigation
+          event={event}
+          group={group}
+          ref={setNav}
+          query={searchQuery}
+        />
         <GroupContentPadding>
           <EventDetailsContent group={group} event={event} project={project} />
         </GroupContentPadding>
@@ -82,6 +140,17 @@ const FloatingEventNavigation = styled(EventNavigation)`
 
 const SearchFilter = styled(EventSearch)`
   border-radius: ${p => p.theme.borderRadius};
+`;
+
+const GraphPadding = styled('div')`
+  border: 1px solid ${p => p.theme.translucentBorder};
+  background: ${p => p.theme.background};
+  border-radius: ${p => p.theme.borderRadius};
+`;
+
+const GraphAlert = styled(Alert)`
+  margin: 0;
+  border: 1px solid ${p => p.theme.translucentBorder};
 `;
 
 const GroupContent = styled('div')<{navHeight?: number}>`

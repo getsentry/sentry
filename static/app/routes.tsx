@@ -14,6 +14,10 @@ import withDomainRequired from 'sentry/utils/withDomainRequired';
 import App from 'sentry/views/app';
 import AuthLayout from 'sentry/views/auth/layout';
 import {MODULE_BASE_URLS} from 'sentry/views/insights/common/utils/useModuleURL';
+import {AI_LANDING_SUB_PATH} from 'sentry/views/insights/pages/aiLandingPage';
+import {BACKEND_LANDING_SUB_PATH} from 'sentry/views/insights/pages/backendLandingPage';
+import {FRONTEND_LANDING_SUB_PATH} from 'sentry/views/insights/pages/frontendLandingPage';
+import {MOBILE_LANDING_SUB_PATH} from 'sentry/views/insights/pages/mobileLandingPage';
 import {INSIGHTS_BASE_URL} from 'sentry/views/insights/settings';
 import {ModuleName} from 'sentry/views/insights/types';
 import {Tab, TabPaths} from 'sentry/views/issueDetails/types';
@@ -28,7 +32,6 @@ import RouteNotFound from 'sentry/views/routeNotFound';
 import SettingsWrapper from 'sentry/views/settings/components/settingsWrapper';
 
 import {IndexRoute, Route} from './components/route';
-import {buildReactRouter6Routes} from './utils/reactRouter6Compat/router';
 
 const hook = (name: HookName) => HookStore.get(name).map(cb => cb());
 
@@ -260,25 +263,24 @@ function buildRoutes() {
         <Route path=":step/" component={make(() => import('sentry/views/relocation'))} />
       </Route>
       {USING_CUSTOMER_DOMAIN && (
-        <Route
-          path="/onboarding/"
-          component={errorHandler(withDomainRequired(OrganizationContainer))}
-          key="orgless-onboarding"
-        >
-          <IndexRedirect to="welcome/" />
+        <Fragment>
+          <Redirect from="/onboarding/" to="/onboarding/welcome/" />
           <Route
-            path=":step/"
-            component={make(() => import('sentry/views/onboarding'))}
-          />
-        </Route>
+            path="/onboarding/:step/"
+            component={errorHandler(withDomainRequired(OrganizationContainer))}
+            key="orgless-onboarding"
+          >
+            <IndexRoute component={make(() => import('sentry/views/onboarding'))} />
+          </Route>
+        </Fragment>
       )}
+      <Redirect from="/onboarding/:orgId/" to="/onboarding/:orgId/welcome/" />
       <Route
-        path="/onboarding/:orgId/"
+        path="/onboarding/:orgId/:step/"
         component={withDomainRedirect(errorHandler(OrganizationContainer))}
         key="org-onboarding"
       >
-        <IndexRedirect to="welcome/" />
-        <Route path=":step/" component={make(() => import('sentry/views/onboarding'))} />
+        <IndexRoute component={make(() => import('sentry/views/onboarding'))} />
       </Route>
       <Route
         path="/stories/"
@@ -554,6 +556,11 @@ function buildRoutes() {
         path="replays/"
         name={t('Replays')}
         component={make(() => import('sentry/views/settings/project/projectReplays'))}
+      />
+      <Route
+        path="toolbar/"
+        name={t('Developer Toolbar')}
+        component={make(() => import('sentry/views/settings/project/toolbar'))}
       />
       <Route path="source-maps/" name={t('Source Maps')}>
         <IndexRoute
@@ -1633,6 +1640,22 @@ function buildRoutes() {
         path="trends/"
         component={make(() => import('sentry/views/performance/trends'))}
       />
+      <Route
+        path={`${FRONTEND_LANDING_SUB_PATH}/`}
+        component={make(() => import('sentry/views/insights/pages/frontendLandingPage'))}
+      />
+      <Route
+        path={`${BACKEND_LANDING_SUB_PATH}/`}
+        component={make(() => import('sentry/views/insights/pages/backendLandingPage'))}
+      />
+      <Route
+        path={`${MOBILE_LANDING_SUB_PATH}/`}
+        component={make(() => import('sentry/views/insights/pages/mobileLandingPage'))}
+      />
+      <Route
+        path={`${AI_LANDING_SUB_PATH}/`}
+        component={make(() => import('sentry/views/insights/pages/aiLandingPage'))}
+      />
       <Route path="summary/">
         <IndexRoute
           component={make(
@@ -2280,10 +2303,6 @@ function buildRoutes() {
 // We load routes both when initializing the SDK (for routing integrations) and
 // when the app renders Main. Memoize to avoid rebuilding the route tree.
 export const routes = memoize(buildRoutes);
-
-// XXX(epurkhiser): Transforms the legacy react-router 3 routest tree into a
-// react-router 6 style routes tree.
-export const routes6 = buildReactRouter6Routes(buildRoutes());
 
 // Exported for use in tests.
 export {buildRoutes};
