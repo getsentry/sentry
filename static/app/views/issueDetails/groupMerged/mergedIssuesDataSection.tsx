@@ -17,7 +17,11 @@ export function MergedIssuesDataSection({project, group}: MergedIssuesDataSectio
   const location = useLocation();
 
   return (
-    <FoldSection sectionKey={SectionKey.MERGED_ISSUES} title={t('Merged Issues')}>
+    <FoldSection
+      sectionKey={SectionKey.MERGED_ISSUES}
+      title={t('Merged Issues')}
+      initialCollapse
+    >
       <GroupMergedView
         project={project}
         params={{
