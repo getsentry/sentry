@@ -73,6 +73,7 @@ export default function UpdatedEmptyState({project}: {project?: Project}) {
       data: registryData,
     },
     platformOptions: {installationMode: 'auto'},
+    products: [],
     newOrg: false,
     replayOptions: {block: true, mask: true},
     isSelfHosted,

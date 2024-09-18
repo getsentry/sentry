@@ -280,6 +280,7 @@ function OnboardingContent({currentProject}: {currentProject: Project}) {
       data: undefined,
     },
     platformOptions: [ProductSolution.PERFORMANCE_MONITORING],
+    products: [ProductSolution.PERFORMANCE_MONITORING],
     newOrg: false,
     feedbackOptions: {},
     urlPrefix,

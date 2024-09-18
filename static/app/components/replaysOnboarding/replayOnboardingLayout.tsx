@@ -20,6 +20,7 @@ export function ReplayOnboardingLayout({
   projectId,
   projectSlug,
   newOrg,
+  activeProductSelection,
   configType = 'onboarding',
   hideMaskBlockToggles,
 }: OnboardingLayoutProps & {hideMaskBlockToggles?: boolean}) {
@@ -49,6 +50,7 @@ export function ReplayOnboardingLayout({
         data: registryData,
       },
       platformOptions: selectedOptions,
+      products: activeProductSelection ?? [],
       newOrg,
       replayOptions: {
         mask,
@@ -83,6 +85,7 @@ export function ReplayOnboardingLayout({
     block,
     urlPrefix,
     isSelfHosted,
+    activeProductSelection,
   ]);
 
   return (

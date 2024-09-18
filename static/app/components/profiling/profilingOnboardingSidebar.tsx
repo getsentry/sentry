@@ -279,6 +279,7 @@ function ProfilingOnboardingContent(props: ProfilingOnboardingContentProps) {
       data: undefined,
     },
     platformOptions: PROFILING_ONBOARDING_STEPS,
+    products: props.activeProductSelection,
     newOrg: false,
     feedbackOptions: {},
     /**

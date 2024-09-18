@@ -86,6 +86,7 @@ export function OnboardingLayout({
       urlPrefix,
       isSelfHosted,
       platformOptions: selectedOptions,
+      products: activeProductSelection,
       newOrg,
       replayOptions: {block: true, mask: true},
     };

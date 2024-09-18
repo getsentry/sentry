@@ -20,6 +20,7 @@ export function FeedbackOnboardingLayout({
   projectId,
   projectSlug,
   newOrg,
+  activeProductSelection,
   configType = 'onboarding',
 }: OnboardingLayoutProps) {
   const organization = useOrganization();
@@ -50,6 +51,7 @@ export function FeedbackOnboardingLayout({
         data: registryData,
       },
       platformOptions: selectedOptions,
+      products: activeProductSelection ?? [],
       newOrg,
       feedbackOptions: {
         email,
@@ -81,6 +83,7 @@ export function FeedbackOnboardingLayout({
     screenshot,
     isSelfHosted,
     urlPrefix,
+    activeProductSelection,
   ]);
 
   return (
