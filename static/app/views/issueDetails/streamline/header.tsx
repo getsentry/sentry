@@ -30,6 +30,7 @@ import GroupActions from 'sentry/views/issueDetails/actions/index';
 import {Divider} from 'sentry/views/issueDetails/divider';
 import GroupPriority from 'sentry/views/issueDetails/groupPriority';
 import {GroupHeaderTabs} from 'sentry/views/issueDetails/header';
+import {AttachmentsBadge} from 'sentry/views/issueDetails/streamline/attachmentsBadge';
 import {useIssueDetailsHeader} from 'sentry/views/issueDetails/useIssueDetailsHeader';
 import type {ReprocessingStatus} from 'sentry/views/issueDetails/utils';
 
@@ -61,7 +62,7 @@ export default function StreamlinedGroupHeader({
     [`/organizations/${organization.slug}/issues/${group.id}/first-last-release/`],
     {
       staleTime: 30000,
-      cacheTime: 30000,
+      gcTime: 30000,
     }
   );
 
@@ -158,6 +159,7 @@ export default function StreamlinedGroupHeader({
                 </ReleaseWrapper>
               </Fragment>
             )}
+            <AttachmentsBadge group={group} project={project} />
           </MessageWrapper>
           <Feature features={['organizations:ai-summary']}>
             <GroupSummaryHeader groupId={group.id} groupCategory={group.issueCategory} />
@@ -299,7 +301,7 @@ const InfoWrapper = styled('div')<{isResolvedOrIgnored: boolean}>`
   gap: ${space(1)};
   background: ${p =>
     p.isResolvedOrIgnored
-      ? `linear-gradient(to right, ${Color(p.theme.success).lighten(0.5).alpha(0.2).string()}, ${Color(p.theme.success).lighten(0.7).alpha(0.05).string()})`
+      ? `linear-gradient(to right, ${p.theme.background}, ${Color(p.theme.success).lighten(0.5).alpha(0.15).string()})`
       : p.theme.background};
   color: ${p => p.theme.gray300};
   padding: ${space(1)} 24px;

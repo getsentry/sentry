@@ -15,13 +15,13 @@ from django.urls import reverse
 import sentry
 from fixtures.github import INSTALLATION_EVENT_EXAMPLE
 from sentry.constants import ObjectStatus
-from sentry.integrations.github import (
+from sentry.integrations.github import client
+from sentry.integrations.github.client import MINIMUM_REQUESTS
+from sentry.integrations.github.integration import (
     API_ERRORS,
-    MINIMUM_REQUESTS,
+    GitHubIntegration,
     GitHubIntegrationProvider,
-    client,
 )
-from sentry.integrations.github.integration import GitHubIntegration
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.integrations.source_code_management.commit_context import (

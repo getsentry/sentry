@@ -64,7 +64,7 @@ function useFetchAllEnvsGroupData(organization: OrganizationSummary, group: Grou
     ],
     {
       staleTime: 30000,
-      cacheTime: 30000,
+      gcTime: 30000,
     }
   );
 }
@@ -74,7 +74,7 @@ function useFetchCurrentRelease(organization: OrganizationSummary, group: Group)
     [`/organizations/${organization.slug}/issues/${group.id}/current-release/`],
     {
       staleTime: 30000,
-      cacheTime: 30000,
+      gcTime: 30000,
     }
   );
 }

@@ -980,7 +980,13 @@
   },
   "sentry.broadcast": {
     "dangling": false,
-    "foreign_keys": {},
+    "foreign_keys": {
+      "created_by_id": {
+        "kind": "FlexibleForeignKey",
+        "model": "sentry.user",
+        "nullable": true
+      }
+    },
     "model": "sentry.broadcast",
     "relocation_dependencies": [],
     "relocation_scope": "Excluded",
@@ -6191,10 +6197,7 @@
     ],
     "table_name": "uptime_uptimesubscription",
     "uniques": [
-      [
-        "interval_seconds",
-        "url"
-      ],
+      [],
       [
         "subscription_id"
       ]
@@ -6217,6 +6220,34 @@
     ],
     "table_name": "workflow_engine_datasource",
     "uniques": []
+  },
+  "workflow_engine.datasourcedetector": {
+    "dangling": false,
+    "foreign_keys": {
+      "data_source": {
+        "kind": "FlexibleForeignKey",
+        "model": "workflow_engine.datasource",
+        "nullable": false
+      },
+      "detector": {
+        "kind": "FlexibleForeignKey",
+        "model": "workflow_engine.detector",
+        "nullable": false
+      }
+    },
+    "model": "workflow_engine.datasourcedetector",
+    "relocation_dependencies": [],
+    "relocation_scope": "Organization",
+    "silos": [
+      "Region"
+    ],
+    "table_name": "workflow_engine_datasourcedetector",
+    "uniques": [
+      [
+        "data_source",
+        "detector"
+      ]
+    ]
   },
   "workflow_engine.detector": {
     "dangling": false,

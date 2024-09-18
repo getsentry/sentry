@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 
 import UserAvatar from 'sentry/components/avatar/userAvatar';
 import {Button} from 'sentry/components/button';
-import DateTime from 'sentry/components/dateTime';
+import {DateTime} from 'sentry/components/dateTime';
 import {AutofixChanges} from 'sentry/components/events/autofix/autofixChanges';
 import {AutofixInputField} from 'sentry/components/events/autofix/autofixInputField';
 import {AutofixRootCause} from 'sentry/components/events/autofix/autofixRootCause';

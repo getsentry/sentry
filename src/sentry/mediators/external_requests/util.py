@@ -6,7 +6,7 @@ from requests.exceptions import ConnectionError, Timeout
 from requests.models import Response
 
 from sentry.http import safe_urlopen
-from sentry.models.integrations.sentry_app import SentryApp, track_response_code
+from sentry.sentry_apps.models.sentry_app import SentryApp, track_response_code
 from sentry.utils.sentry_apps import SentryAppWebhookRequestsBuffer
 from sentry.utils.sentry_apps.webhooks import TIMEOUT_STATUS_CODE
 
@@ -73,6 +73,7 @@ def send_and_save_sentry_app_request(
                 "error_type": error_type,
                 "organization_id": org_id,
                 "integration_slug": sentry_app.slug,
+                "url": url,
             },
         )
         track_response_code(error_type, slug, event)

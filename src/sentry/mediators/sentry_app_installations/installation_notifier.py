@@ -6,8 +6,8 @@ from sentry.coreapi import APIUnauthorized
 from sentry.mediators.mediator import Mediator
 from sentry.mediators.param import Param
 from sentry.models.apigrant import ApiGrant
-from sentry.models.integrations.sentry_app import SentryApp
-from sentry.models.integrations.sentry_app_installation import SentryAppInstallation
+from sentry.sentry_apps.models.sentry_app import SentryApp
+from sentry.sentry_apps.models.sentry_app_installation import SentryAppInstallation
 from sentry.users.services.user.model import RpcUser
 from sentry.utils.sentry_apps import send_and_save_webhook_request
 
@@ -32,9 +32,11 @@ class InstallationNotifier(Mediator):
     @property
     def request(self) -> AppPlatformEvent:
         data = serialize(
-            [self.install], user=self.user, serializer=SentryAppInstallationSerializer()
+            [self.install],
+            user=self.user,
+            serializer=SentryAppInstallationSerializer(),
+            is_webhook=True,
         )[0]
-
         return AppPlatformEvent(
             resource="installation",
             action=self.action,
