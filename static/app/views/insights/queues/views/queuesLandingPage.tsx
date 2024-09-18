@@ -34,14 +34,14 @@ import {
   MODULE_DOC_LINK,
   MODULE_TITLE,
 } from 'sentry/views/insights/queues/settings';
-import {ModuleName} from 'sentry/views/insights/types';
+import {type InsightLandingProps, ModuleName} from 'sentry/views/insights/types';
 
 const DEFAULT_SORT = {
   field: 'time_spent_percentage(app,span.duration)' as const,
   kind: 'desc' as const,
 };
 
-function QueuesLandingPage() {
+function QueuesLandingPage({disableHeader}: InsightLandingProps) {
   const location = useLocation();
   const organization = useOrganization();
 
@@ -83,24 +83,26 @@ function QueuesLandingPage() {
 
   return (
     <Fragment>
-      <Layout.Header>
-        <Layout.HeaderContent>
-          <Breadcrumbs crumbs={crumbs} />
+      {!disableHeader && (
+        <Layout.Header>
+          <Layout.HeaderContent>
+            <Breadcrumbs crumbs={crumbs} />
 
-          <Layout.Title>
-            {MODULE_TITLE}
-            <PageHeadingQuestionTooltip
-              docsUrl={MODULE_DOC_LINK}
-              title={MODULE_DESCRIPTION}
-            />
-          </Layout.Title>
-        </Layout.HeaderContent>
-        <Layout.HeaderActions>
-          <ButtonBar gap={1}>
-            <FeedbackWidgetButton />
-          </ButtonBar>
-        </Layout.HeaderActions>
-      </Layout.Header>
+            <Layout.Title>
+              {MODULE_TITLE}
+              <PageHeadingQuestionTooltip
+                docsUrl={MODULE_DOC_LINK}
+                title={MODULE_DESCRIPTION}
+              />
+            </Layout.Title>
+          </Layout.HeaderContent>
+          <Layout.HeaderActions>
+            <ButtonBar gap={1}>
+              <FeedbackWidgetButton />
+            </ButtonBar>
+          </Layout.HeaderActions>
+        </Layout.Header>
+      )}
 
       <Layout.Body>
         <Layout.Main fullWidth>
@@ -133,14 +135,14 @@ function QueuesLandingPage() {
   );
 }
 
-function PageWithProviders() {
+function PageWithProviders(props: InsightLandingProps) {
   return (
     <ModulePageProviders
       moduleName="queue"
       features="insights-addon-modules"
       analyticEventName="insight.page_loads.queue"
     >
-      <QueuesLandingPage />
+      <QueuesLandingPage {...props} />
     </ModulePageProviders>
   );
 }

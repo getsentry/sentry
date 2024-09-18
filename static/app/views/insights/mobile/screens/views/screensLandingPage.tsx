@@ -48,9 +48,9 @@ import {
   STATUS_UNKNOWN,
   type VitalItem,
 } from 'sentry/views/insights/mobile/screens/utils';
-import {ModuleName} from 'sentry/views/insights/types';
+import {type InsightLandingProps, ModuleName} from 'sentry/views/insights/types';
 
-export function ScreensLandingPage() {
+export function ScreensLandingPage({disableHeader}: InsightLandingProps) {
   const moduleName = ModuleName.MOBILE_SCREENS;
   const crumbs = useModuleBreadcrumbs(moduleName);
   const location = useLocation();
@@ -225,24 +225,26 @@ export function ScreensLandingPage() {
     <ModulePageProviders moduleName="mobile-screens" features={[MODULE_FEATURE]}>
       <Layout.Page>
         <PageAlertProvider>
-          <Layout.Header>
-            <Layout.HeaderContent>
-              <Breadcrumbs crumbs={crumbs} />
-              <Layout.Title>
-                {MODULE_TITLE}
-                <PageHeadingQuestionTooltip
-                  docsUrl={MODULE_DOC_LINK}
-                  title={MODULE_DESCRIPTION}
-                />
-              </Layout.Title>
-            </Layout.HeaderContent>
-            <Layout.HeaderActions>
-              <ButtonBar gap={1}>
-                {isProjectCrossPlatform && <PlatformSelector />}
-                <FeedbackWidgetButton />
-              </ButtonBar>
-            </Layout.HeaderActions>
-          </Layout.Header>
+          {!disableHeader && (
+            <Layout.Header>
+              <Layout.HeaderContent>
+                <Breadcrumbs crumbs={crumbs} />
+                <Layout.Title>
+                  {MODULE_TITLE}
+                  <PageHeadingQuestionTooltip
+                    docsUrl={MODULE_DOC_LINK}
+                    title={MODULE_DESCRIPTION}
+                  />
+                </Layout.Title>
+              </Layout.HeaderContent>
+              <Layout.HeaderActions>
+                <ButtonBar gap={1}>
+                  {isProjectCrossPlatform && <PlatformSelector />}
+                  <FeedbackWidgetButton />
+                </ButtonBar>
+              </Layout.HeaderActions>
+            </Layout.Header>
+          )}
 
           <Layout.Body>
             <Layout.Main fullWidth>
