@@ -60,9 +60,10 @@ def set_commits(release, commit_list):
         # the same release rapidly for different projects.
         raise ReleaseCommitError
 
-    if features.has("organizations:set-commits-updated", release.organization):
+    with TimedRetryPolicy(10)(lock.acquire):
         create_repositories(commit_list, release)
         create_commit_authors(commit_list, release)
+
         if features.has("organizations:set-commits-updated"):
             (
                 head_commit_by_repo,
@@ -76,8 +77,9 @@ def set_commits(release, commit_list):
                 head_commit_by_repo, commit_author_by_commit = set_commits_on_release(
                     release, commit_list
                 )
-    fill_in_missing_release_head_commits(release, head_commit_by_repo)
-    update_group_resolutions(release, commit_author_by_commit)
+
+        fill_in_missing_release_head_commits(release, head_commit_by_repo)
+        update_group_resolutions(release, commit_author_by_commit)
 
 
 @metrics.wraps("set_commits_on_release")
