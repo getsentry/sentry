@@ -7,6 +7,7 @@ from django.urls import reverse
 
 from sentry.replays.lib.storage import FilestoreBlob, RecordingSegmentStorageMeta, StorageBlob
 from sentry.replays.testutils import mock_replay
+from sentry.replays.usecases.pack import pack
 from sentry.testutils.cases import APITestCase, ReplaysSnubaTestCase, TransactionTestCase
 from sentry.testutils.helpers.response import close_streaming_response
 
@@ -100,6 +101,18 @@ class FilestoreProjectReplayRecordingSegmentIndexTestCase(TransactionTestCase):
         assert response.status_code == 200
         assert response.get("Content-Type") == "application/json"
         assert b'[[{"test":"hello 1"}],[{"test":"hello 2"}]]' == close_streaming_response(response)
+
+    def test_index_download_packed(self):
+        """Test packed segment data is readable."""
+        self.save_recording_segment(0, pack(b'[{"test":"hello 0"}]', b"video-bytes"))
+        self.save_recording_segment(1, pack(b'[{"test":"hello 1"}]', None))
+
+        with self.feature("organizations:session-replay"):
+            response = self.client.get(self.url + "?download=true")
+
+        assert response.status_code == 200
+        assert response.get("Content-Type") == "application/json"
+        assert b'[[{"test":"hello 0"}],[{"test":"hello 1"}]]' == close_streaming_response(response)
 
 
 class StorageProjectReplayRecordingSegmentIndexTestCase(
