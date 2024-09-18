@@ -185,10 +185,10 @@ const loaderScriptOnboarding: OnboardingConfig<PlatformOptions> = {
               value: 'html',
               language: 'html',
               code: `
-      <script
-        src="${params.dsn.cdn}"
-        crossorigin="anonymous"
-      ></script>`,
+<script
+  src="${params.dsn.cdn}"
+  crossorigin="anonymous"
+></script>`,
             },
           ],
         },
@@ -211,30 +211,30 @@ const loaderScriptOnboarding: OnboardingConfig<PlatformOptions> = {
               value: 'html',
               language: 'html',
               code: `
-    <script>
-      Sentry.onLoad(function() {
-        Sentry.init({${
-          !(params.isPerformanceSelected || params.isReplaySelected)
-            ? `
-            // You can add any additional configuration here`
-            : ''
-        }${
-          params.isPerformanceSelected
-            ? `
-            // Tracing
-            tracesSampleRate: 1.0, // Capture 100% of the transactions`
-            : ''
-        }${
-          params.isReplaySelected
-            ? `
-            // Session Replay
-            replaysSessionSampleRate: 0.1, // This sets the sample rate at 10%. You may want to change it to 100% while in development and then sample at a lower rate in production.
-            replaysOnErrorSampleRate: 1.0, // If you're not already sampling the entire session, change the sample rate to 100% when sampling sessions where errors occur.`
-            : ''
-        }
-          });
+<script>
+  Sentry.onLoad(function() {
+    Sentry.init({${
+      !(params.isPerformanceSelected || params.isReplaySelected)
+        ? `
+        // You can add any additional configuration here`
+        : ''
+    }${
+      params.isPerformanceSelected
+        ? `
+        // Tracing
+        tracesSampleRate: 1.0, // Capture 100% of the transactions`
+        : ''
+    }${
+      params.isReplaySelected
+        ? `
+        // Session Replay
+        replaysSessionSampleRate: 0.1, // This sets the sample rate at 10%. You may want to change it to 100% while in development and then sample at a lower rate in production.
+        replaysOnErrorSampleRate: 1.0, // If you're not already sampling the entire session, change the sample rate to 100% when sampling sessions where errors occur.`
+        : ''
+    }
       });
-    </script>`,
+  });
+</script>`,
             },
           ],
         },
@@ -253,20 +253,6 @@ const loaderScriptOnboarding: OnboardingConfig<PlatformOptions> = {
   verify: getVerifyConfig,
   nextSteps: () => [
     {
-      id: 'source-maps',
-      name: t('Source Maps'),
-      description: t('Learn how to enable readable stack traces in your Sentry errors.'),
-      link: 'https://docs.sentry.io/platforms/javascript/sourcemaps/',
-    },
-    {
-      id: 'sdk-configuration',
-      name: t('SDK Configuration'),
-      description: t(
-        'Learn about additional configuration options for the Javascript SDK.'
-      ),
-      link: 'https://docs.sentry.io/platforms/javascript/configuration/',
-    },
-    {
       id: 'performance-monitoring',
       name: t('Tracing'),
       description: t(
@@ -282,10 +268,33 @@ const loaderScriptOnboarding: OnboardingConfig<PlatformOptions> = {
       ),
       link: 'https://docs.sentry.io/platforms/javascript/session-replay/',
     },
+    {
+      id: 'source-maps',
+      name: t('Source Maps'),
+      description: t('Learn how to enable readable stack traces in your Sentry errors.'),
+      link: 'https://docs.sentry.io/platforms/javascript/sourcemaps/',
+    },
+    {
+      id: 'sdk-configuration',
+      name: t('SDK Configuration'),
+      description: t(
+        'Learn about additional configuration options for the Javascript SDK.'
+      ),
+      link: 'https://docs.sentry.io/platforms/javascript/configuration/',
+    },
   ],
   onPageLoad: params => {
     return () => {
       trackAnalytics('onboarding.setup_loader_docs_rendered', {
+        organization: params.organization,
+        platform: params.platformKey,
+        project_id: params.projectId,
+      });
+    };
+  },
+  onPlatformOptionsChange: params => {
+    return () => {
+      trackAnalytics('onboarding.js_loader_npm_docs_shown', {
         organization: params.organization,
         platform: params.platformKey,
         project_id: params.projectId,
@@ -373,6 +382,15 @@ const packageManagerOnboarding: OnboardingConfig<PlatformOptions> = {
       });
     };
   },
+  onPlatformOptionsChange: params => {
+    return () => {
+      trackAnalytics('onboarding.setup_loader_docs_rendered', {
+        organization: params.organization,
+        platform: params.platformKey,
+        project_id: params.projectId,
+      });
+    };
+  },
 };
 
 const onboarding: OnboardingConfig<PlatformOptions> = {
@@ -396,32 +414,10 @@ const onboarding: OnboardingConfig<PlatformOptions> = {
     isAutoInstall(params)
       ? loaderScriptOnboarding.install(params)
       : packageManagerOnboarding.install(params),
-  configure: (params: Params) => [
-    {
-      type: StepType.CONFIGURE,
-      description: t(
-        "Initialize Sentry as early as possible in your application's lifecycle."
-      ),
-      configurations: [
-        {
-          code: [
-            {
-              label: 'JavaScript',
-              value: 'javascript',
-              language: 'javascript',
-              code: getSdkSetupSnippet(params),
-            },
-          ],
-        },
-        ...(params.isProfilingSelected
-          ? [getProfilingDocumentHeaderConfigurationStep()]
-          : []),
-      ],
-    },
-    getUploadSourceMapsStep({
-      guideLink: 'https://docs.sentry.io/platforms/javascript/sourcemaps/',
-    }),
-  ],
+  configure: (params: Params) =>
+    isAutoInstall(params)
+      ? loaderScriptOnboarding.configure(params)
+      : packageManagerOnboarding.configure(params),
   verify: () => [
     {
       type: StepType.VERIFY,
@@ -442,24 +438,22 @@ const onboarding: OnboardingConfig<PlatformOptions> = {
       ],
     },
   ],
-  nextSteps: () => [
-    {
-      id: 'performance-monitoring',
-      name: t('Tracing'),
-      description: t(
-        'Track down transactions to connect the dots between 10-second page loads and poor-performing API calls or slow database queries.'
-      ),
-      link: 'https://docs.sentry.io/platforms/javascript/tracing/',
-    },
-    {
-      id: 'session-replay',
-      name: t('Session Replay'),
-      description: t(
-        'Get to the root cause of an error or latency issue faster by seeing all the technical details related to that issue in one visual replay on your web application.'
-      ),
-      link: 'https://docs.sentry.io/platforms/javascript/session-replay/',
-    },
-  ],
+  nextSteps: params =>
+    isAutoInstall(params)
+      ? loaderScriptOnboarding.nextSteps?.(params)
+      : packageManagerOnboarding.nextSteps?.(params),
+  onPageLoad: params =>
+    isAutoInstall(params)
+      ? loaderScriptOnboarding.onPageLoad?.(params)
+      : packageManagerOnboarding.onPageLoad?.(params),
+  onProductSelectionChange: params =>
+    isAutoInstall(params)
+      ? loaderScriptOnboarding.onProductSelectionChange?.(params)
+      : packageManagerOnboarding.onProductSelectionChange?.(params),
+  onPlatformOptionsChange: params =>
+    isAutoInstall(params)
+      ? loaderScriptOnboarding.onPlatformOptionsChange?.(params)
+      : packageManagerOnboarding.onPlatformOptionsChange?.(params),
 };
 
 const replayOnboarding: OnboardingConfig<PlatformOptions> = {
@@ -662,6 +656,7 @@ const docs: Docs<PlatformOptions> = {
   performanceOnboarding,
   customMetricsOnboarding: getJSMetricsOnboarding({getInstallConfig}),
   crashReportOnboarding,
+  platformOptions,
 };
 
 export default docs;

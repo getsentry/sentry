@@ -135,7 +135,8 @@ export function OnboardingLayout({
 
   useEffect(() => {
     onPageLoad?.();
-  }, [onPageLoad]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   return (
     <AuthTokenGeneratorProvider projectSlug={projectSlug}>

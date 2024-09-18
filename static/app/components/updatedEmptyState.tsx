@@ -18,10 +18,12 @@ import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import {space} from 'sentry/styles/space';
 import type {PlatformIntegration, Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 import FirstEventIndicator from 'sentry/views/onboarding/components/firstEventIndicator';
 
 export default function UpdatedEmptyState({project}: {project?: Project}) {
+  const api = useApi();
   const organization = useOrganization();
 
   const {isPending: isLoadingRegistry, data: registryData} =
@@ -53,13 +55,16 @@ export default function UpdatedEmptyState({project}: {project?: Project}) {
     loadGettingStarted.isError ||
     loadGettingStarted.isLoading ||
     !loadGettingStarted.docs ||
-    !loadGettingStarted.dsn
+    !loadGettingStarted.dsn ||
+    !loadGettingStarted.projectKeyId
   ) {
     return null;
   }
 
   const docParams: DocsParams<any> = {
+    api,
     dsn: loadGettingStarted.dsn,
+    projectKeyId: loadGettingStarted.projectKeyId,
     organization,
     platformKey: currentPlatformKey,
     projectId: project.id,
