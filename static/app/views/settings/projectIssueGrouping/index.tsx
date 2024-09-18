@@ -30,7 +30,7 @@ export default function ProjectIssueGrouping({organization, project, params}: Pr
     isPending,
     isError,
     refetch,
-  } = useApiQuery<EventGroupingConfig[]>([queryKey], {staleTime: 0, cacheTime: 0});
+  } = useApiQuery<EventGroupingConfig[]>([queryKey], {staleTime: 0, gcTime: 0});
 
   if (isPending) {
     return <LoadingIndicator />;

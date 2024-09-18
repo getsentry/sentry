@@ -199,7 +199,7 @@ function MetricsTable({metrics, isLoading, query, project}: MetricsTableProps) {
               <BlockButton
                 size="xs"
                 hasAccess={hasAccess}
-                disabled={blockMetricMutation.isLoading}
+                disabled={blockMetricMutation.isPending}
                 isBlocked={isBlocked}
                 blockTarget="metric"
                 onConfirm={() => {

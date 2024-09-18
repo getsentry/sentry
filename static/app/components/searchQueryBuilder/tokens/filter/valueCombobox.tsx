@@ -55,7 +55,7 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import {uniq} from 'sentry/utils/array/uniq';
 import {type FieldDefinition, FieldValueType} from 'sentry/utils/fields';
 import {isCtrlKeyPressed} from 'sentry/utils/isCtrlKeyPressed';
-import {type QueryKey, useQuery} from 'sentry/utils/queryClient';
+import {keepPreviousData, type QueryKey, useQuery} from 'sentry/utils/queryClient';
 import {useDebouncedValue} from 'sentry/utils/useDebouncedValue';
 import useKeyPress from 'sentry/utils/useKeyPress';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -308,7 +308,7 @@ function useFilterSuggestions({
   const {data, isFetching} = useQuery<string[]>({
     queryKey: debouncedQueryKey,
     queryFn: () => getTagValues(key ? key : {key: keyName, name: keyName}, filterValue),
-    keepPreviousData: true,
+    placeholderData: keepPreviousData,
     enabled: shouldFetchValues,
   });
 

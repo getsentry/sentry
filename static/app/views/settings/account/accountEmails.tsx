@@ -77,7 +77,7 @@ export function EmailAddresses() {
     isPending,
     isError,
     refetch,
-  } = useApiQuery<UserEmail[]>(makeEmailsEndpointKey(), {staleTime: 0, cacheTime: 0});
+  } = useApiQuery<UserEmail[]>(makeEmailsEndpointKey(), {staleTime: 0, gcTime: 0});
 
   if (isPending || isUpdating) {
     return (

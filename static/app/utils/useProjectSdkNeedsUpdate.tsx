@@ -19,7 +19,7 @@ function useProjectSdkNeedsUpdate({
   | {isError: false; isFetching: false; needsUpdate: boolean} {
   const path = `/organizations/${organization.slug}/sdk-updates/`;
   const api = useApi({persistInFlight: true});
-  const {data, isLoading, isError} = useQuery({
+  const {data, isPending, isError} = useQuery({
     queryKey: [path],
     queryFn: async () => {
       try {
@@ -34,7 +34,7 @@ function useProjectSdkNeedsUpdate({
     refetchOnMount: false,
   });
 
-  if (isLoading) {
+  if (isPending) {
     return {isError: false, isFetching: true, needsUpdate: undefined};
   }
 

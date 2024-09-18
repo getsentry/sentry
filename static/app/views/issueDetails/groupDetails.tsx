@@ -260,7 +260,7 @@ function useEventApiQuery({
   const latestOrRecommendedEvent = useApiQuery<Event>(queryKey, {
     // Latest/recommended event will change over time, so only cache for 30 seconds
     staleTime: 30000,
-    cacheTime: 30000,
+    gcTime: 30000,
     enabled: isOnDetailsTab && isLatestOrRecommendedEvent,
     retry: false,
   });
@@ -370,7 +370,7 @@ function useFetchGroupDetails(): FetchGroupDetailsState {
     makeFetchGroupQueryKey({organizationSlug: organization.slug, groupId, environments}),
     {
       staleTime: 30000,
-      cacheTime: 30000,
+      gcTime: 30000,
       retry: false,
     }
   );

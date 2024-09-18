@@ -27,7 +27,7 @@ import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import type {Project} from 'sentry/types/project';
 import type {SourceMapsArchive} from 'sentry/types/release';
 import type {DebugIdBundle} from 'sentry/types/sourceMaps';
-import {useApiQuery} from 'sentry/utils/queryClient';
+import {keepPreviousData, useApiQuery} from 'sentry/utils/queryClient';
 import {decodeScalar} from 'sentry/utils/queryString';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import useApi from 'sentry/utils/useApi';
@@ -198,7 +198,7 @@ export function ProjectSourceMaps({location, router, project}: Props) {
     ],
     {
       staleTime: 0,
-      keepPreviousData: true,
+      placeholderData: keepPreviousData,
       enabled: !tabDebugIdBundlesActive,
     }
   );
@@ -217,7 +217,7 @@ export function ProjectSourceMaps({location, router, project}: Props) {
     ],
     {
       staleTime: 0,
-      keepPreviousData: true,
+      placeholderData: keepPreviousData,
       enabled: tabDebugIdBundlesActive,
     }
   );

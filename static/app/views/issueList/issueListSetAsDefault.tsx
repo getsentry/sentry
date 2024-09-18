@@ -40,7 +40,7 @@ function IssueListSetAsDefault({organization, sort, query}: IssueListSetAsDefaul
     ? pinnedSearch?.id === selectedSavedSearch?.id
     : false;
 
-  const {mutate: pinSearch, isLoading: isPinning} = usePinSearch({
+  const {mutate: pinSearch, isPending: isPinning} = usePinSearch({
     onSuccess: response => {
       const {cursor: _cursor, page: _page, ...currentQuery} = location.query;
       browserHistory.replace(
@@ -52,7 +52,7 @@ function IssueListSetAsDefault({organization, sort, query}: IssueListSetAsDefaul
       );
     },
   });
-  const {mutate: unpinSearch, isLoading: isUnpinning} = useUnpinSearch({
+  const {mutate: unpinSearch, isPending: isUnpinning} = useUnpinSearch({
     onSuccess: () => {
       const {cursor: _cursor, page: _page, ...currentQuery} = location.query;
       browserHistory.replace(

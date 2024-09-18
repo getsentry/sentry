@@ -256,7 +256,7 @@ function CauseOption({
   selected: boolean;
   setSelectedId: (id: string) => void;
 }) {
-  const {isLoading, mutate: handleSelectFix} = useSelectCause({groupId, runId});
+  const {isPending, mutate: handleSelectFix} = useSelectCause({groupId, runId});
 
   return (
     <RootCauseOption selected={selected} onClick={() => setSelectedId(cause.id)}>
@@ -271,7 +271,7 @@ function CauseOption({
           <Button
             size="xs"
             onClick={() => handleSelectFix({causeId: cause.id})}
-            busy={isLoading}
+            busy={isPending}
             analyticsEventName="Autofix: Root Cause Fix Selected"
             analyticsEventKey="autofix.root_cause_fix_selected"
             analyticsParams={{group_id: groupId}}
@@ -334,7 +334,7 @@ function ProvideYourOwn({
   setSelectedId: (id: string) => void;
 }) {
   const [text, setText] = useState('');
-  const {isLoading, mutate: handleSelectFix} = useSelectCause({groupId, runId});
+  const {isPending, mutate: handleSelectFix} = useSelectCause({groupId, runId});
 
   return (
     <RootCauseOption selected={selected} onClick={() => setSelectedId('custom')}>
@@ -364,7 +364,7 @@ function ProvideYourOwn({
             size="xs"
             onClick={() => handleSelectFix({customRootCause: text})}
             disabled={!text}
-            busy={isLoading}
+            busy={isPending}
             analyticsEventName="Autofix: Root Cause Custom Cause Provided"
             analyticsEventKey="autofix.root_cause_custom_cause_provided"
             analyticsParams={{group_id: groupId}}
@@ -387,7 +387,7 @@ function AutofixRootCauseDisplay({
   repos,
 }: AutofixRootCauseProps) {
   const [selectedId, setSelectedId] = useState(() => causes[0].id);
-  const {isLoading, mutate: handleSelectFix} = useSelectCause({groupId, runId});
+  const {isPending, mutate: handleSelectFix} = useSelectCause({groupId, runId});
 
   if (rootCauseSelection) {
     if ('custom_root_cause' in rootCauseSelection) {
@@ -429,7 +429,7 @@ function AutofixRootCauseDisplay({
                   <Button
                     size="xs"
                     onClick={() => handleSelectFix({causeId: cause.id})}
-                    busy={isLoading}
+                    busy={isPending}
                     analyticsEventName="Autofix: Root Cause Fix Re-Selected"
                     analyticsEventKey="autofix.root_cause_fix_selected"
                     analyticsParams={{group_id: groupId}}

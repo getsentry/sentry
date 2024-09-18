@@ -337,7 +337,7 @@ export default function EditHighlightsModal({
 
   const organization = useOrganization();
 
-  const {mutate: saveHighlights, isLoading} = useMutateProject({
+  const {mutate: saveHighlights, isPending} = useMutateProject({
     organization,
     project,
     onSuccess: closeModal,
@@ -431,7 +431,7 @@ export default function EditHighlightsModal({
             </Button>
           )}
           <Button
-            disabled={isLoading}
+            disabled={isPending}
             onClick={() => {
               trackAnalytics('highlights.edit_modal.save_clicked', {organization});
               saveHighlights({highlightContext, highlightTags});
@@ -439,7 +439,7 @@ export default function EditHighlightsModal({
             priority="primary"
             size="sm"
           >
-            {isLoading ? t('Saving...') : t('Apply to Project')}
+            {isPending ? t('Saving...') : t('Apply to Project')}
           </Button>
         </ButtonBar>
       </Footer>

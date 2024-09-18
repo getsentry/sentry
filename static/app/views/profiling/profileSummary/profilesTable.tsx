@@ -113,7 +113,7 @@ export function ProfilesTable() {
           sort={sort}
           data={profiles.status === 'success' ? data : null}
           error={profiles.status === 'error' ? t('Unable to load profiles') : null}
-          isLoading={profiles.status === 'loading'}
+          isLoading={profiles.status === 'pending'}
           {...eventsTableProps}
         />
       </ProfileEventsTableContainer>

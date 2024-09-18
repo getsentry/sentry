@@ -147,7 +147,7 @@ export function useTraceMeta(replayTraces: ReplayTrace[]): TraceMetaQueryResults
   // used to query a demo transaction event from the backend.
   const mode = decodeScalar(normalizedParams.demo) ? 'demo' : undefined;
 
-  const {data, isLoading, status} = useQuery<
+  const {data, isPending, status} = useQuery<
     {
       apiErrors: Error[];
       metaResults: TraceMeta;
@@ -170,10 +170,10 @@ export function useTraceMeta(replayTraces: ReplayTrace[]): TraceMetaQueryResults
     return {
       data: data?.metaResults,
       errors: data?.apiErrors || [],
-      isLoading,
+      isLoading: isPending,
       status,
     };
-  }, [data, isLoading, status]);
+  }, [data, isPending, status]);
 
   // When projects don't have performance set up, we allow them to view a sample transaction.
   // The backend creates the sample transaction, however the trace is created async, so when the
