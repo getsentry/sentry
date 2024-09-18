@@ -2,7 +2,7 @@ import {EventFixture} from 'sentry-fixture/event';
 import {GroupFixture} from 'sentry-fixture/group';
 
 import {initializeData} from 'sentry-test/performance/initializePerformanceData';
-import {render, screen} from 'sentry-test/reactTestingLibrary';
+import {act, render, screen} from 'sentry-test/reactTestingLibrary';
 
 import {EntryType} from 'sentry/types/event';
 
@@ -99,5 +99,38 @@ describe('EventTraceView', () => {
 
     expect(await screen.findByText('Trace Preview')).toBeInTheDocument();
     expect(await screen.findByText('transaction')).toBeInTheDocument();
+  });
+
+  it('does not render the trace preview if it has no transactions', async () => {
+    MockApiClient.addMockResponse({
+      method: 'GET',
+      url: `/organizations/${organization.slug}/events-trace-meta/${traceId}/`,
+      body: {
+        errors: 0,
+        performance_issues: 0,
+        projects: 0,
+        transactions: 0,
+        transaction_child_count_map: [{'transaction.id': '1', count: 1}],
+      },
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/events-trace/${traceId}/`,
+      body: {
+        transactions: [],
+        orphan_errors: [],
+      },
+    });
+
+    const {container} = render(
+      <EventTraceView
+        group={group}
+        event={event}
+        organization={organization}
+        projectSlug={project.slug}
+      />
+    );
+
+    await act(tick);
+    expect(container).toBeEmptyDOMElement();
   });
 });
