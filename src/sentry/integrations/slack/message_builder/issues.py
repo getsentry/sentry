@@ -10,7 +10,6 @@ from django.core.exceptions import ObjectDoesNotExist
 from sentry_relay.processing import parse_release
 
 from sentry import tagstore
-from sentry.api.endpoints.group_details import get_group_global_count
 from sentry.constants import LOG_LEVELS
 from sentry.eventstore.models import Event, GroupEvent
 from sentry.identity.services.identity import RpcIdentity, identity_service
@@ -36,6 +35,7 @@ from sentry.integrations.slack.message_builder.types import (
 from sentry.integrations.slack.utils.escape import escape_slack_markdown_text, escape_slack_text
 from sentry.integrations.time_utils import get_approx_start_time, time_since
 from sentry.integrations.types import ExternalProviders
+from sentry.issues.endpoints.group_details import get_group_global_count
 from sentry.issues.grouptype import (
     GroupCategory,
     PerformanceP95EndpointRegressionGroupType,

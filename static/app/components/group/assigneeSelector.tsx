@@ -31,7 +31,7 @@ export function useHandleAssigneeChange({
   organization: Organization;
   onAssign?: OnAssignCallback;
 }) {
-  const {mutate: handleAssigneeChange, isLoading: assigneeLoading} = useMutation<
+  const {mutate: handleAssigneeChange, isPending: assigneeLoading} = useMutation<
     AssignableEntity | null,
     RequestError,
     AssignableEntity | null

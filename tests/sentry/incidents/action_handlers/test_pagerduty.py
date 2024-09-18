@@ -1,6 +1,7 @@
 import uuid
 from unittest.mock import patch
 
+import orjson
 import pytest
 import responses
 from django.http import Http404
@@ -16,6 +17,7 @@ from sentry.incidents.models.alert_rule import (
 )
 from sentry.incidents.models.incident import IncidentStatus, IncidentStatusMethod
 from sentry.integrations.pagerduty.utils import add_service
+from sentry.seer.anomaly_detection.types import StoreDataResponse
 from sentry.silo.base import SiloMode
 from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.helpers.features import with_feature
@@ -106,7 +108,8 @@ class PagerDutyActionHandlerTest(FireTest):
     def test_build_incident_attachment_dynamic_alert(self, mock_seer_request):
         from sentry.integrations.pagerduty.utils import build_incident_attachment
 
-        mock_seer_request.return_value = HTTPResponse(status=200)
+        seer_return_value: StoreDataResponse = {"success": True}
+        mock_seer_request.return_value = HTTPResponse(orjson.dumps(seer_return_value), status=200)
         alert_rule = self.create_alert_rule(
             detection_type=AlertRuleDetectionType.DYNAMIC,
             time_window=30,

@@ -14,9 +14,9 @@ from sentry.auth.superuser import superuser_has_permission
 from sentry.constants import SENTRY_APP_SLUG_MAX_LENGTH, SentryAppStatus
 from sentry.features.exceptions import FeatureNotRegistered
 from sentry.integrations.models.integration_feature import IntegrationFeature, IntegrationTypes
-from sentry.models.integrations.sentry_app import SentryApp
 from sentry.models.integrations.sentry_app_installation import SentryAppInstallation
 from sentry.sentry_apps.installations import SentryAppInstallationCreator
+from sentry.sentry_apps.models.sentry_app import SentryApp
 
 
 class SentryAppInstallationsSerializer(serializers.Serializer):

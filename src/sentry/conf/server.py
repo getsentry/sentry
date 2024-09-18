@@ -396,6 +396,7 @@ INSTALLED_APPS: tuple[str, ...] = (
     "sentry.analytics.events",
     "sentry.nodestore",
     "sentry.users",
+    "sentry.sentry_apps",
     "sentry.integrations",
     "sentry.monitors",
     "sentry.uptime",
@@ -739,6 +740,9 @@ CELERY_ACCEPT_CONTENT = {"pickle"}
 CELERY_IMPORTS = (
     "sentry.data_export.tasks",
     "sentry.discover.tasks",
+    "sentry.deletions.tasks.groups",
+    "sentry.deletions.tasks.scheduled",
+    "sentry.deletions.tasks.hybrid_cloud",
     "sentry.hybridcloud.tasks.deliver_webhooks",
     "sentry.hybridcloud.tasks.backfill_outboxes",
     "sentry.hybridcloud.tasks.deliver_from_outbox",
@@ -751,8 +755,6 @@ CELERY_IMPORTS = (
     "sentry.replays.tasks",
     "sentry.monitors.tasks.clock_pulse",
     "sentry.monitors.tasks.detect_broken_monitor_envs",
-    # TODO(@anonrig): Remove this when AppStore integration is removed.
-    "sentry.tasks.app_store_connect",
     "sentry.tasks.assemble",
     "sentry.tasks.auth",
     "sentry.tasks.auto_remove_inbox",
@@ -768,10 +770,6 @@ CELERY_IMPORTS = (
     "sentry.tasks.collect_project_platforms",
     "sentry.tasks.commits",
     "sentry.tasks.commit_context",
-    "sentry.tasks.deletion",
-    "sentry.tasks.deletion.scheduled",
-    "sentry.tasks.deletion.groups",
-    "sentry.tasks.deletion.hybrid_cloud",
     "sentry.tasks.digests",
     "sentry.tasks.email",
     "sentry.tasks.files",
@@ -855,8 +853,6 @@ CELERY_QUEUES_REGION = [
     Queue("auth", routing_key="auth"),
     Queue("alerts", routing_key="alerts"),
     Queue("app_platform", routing_key="app_platform"),
-    # TODO(@anonrig): Remove this when all AppStore connect data is removed.
-    Queue("appstoreconnect", routing_key="sentry.tasks.app_store_connect.#"),
     Queue("assemble", routing_key="assemble"),
     Queue("backfill_seer_grouping_records", routing_key="backfill_seer_grouping_records"),
     Queue("buffers.process_pending", routing_key="buffers.process_pending"),
@@ -988,13 +984,13 @@ CELERYBEAT_SCHEDULE_CONTROL = {
         "options": {"expires": 60, "queue": "outbox.control"},
     },
     "schedule-deletions-control": {
-        "task": "sentry.tasks.deletion.run_scheduled_deletions_control",
+        "task": "sentry.deletions.tasks.run_scheduled_deletions_control",
         # Run every 15 minutes
         "schedule": crontab(minute="*/15"),
         "options": {"expires": 60 * 25, "queue": "cleanup.control"},
     },
     "reattempt-deletions-control": {
-        "task": "sentry.tasks.deletion.reattempt_deletions_control",
+        "task": "sentry.deletions.tasks.reattempt_deletions_control",
         # 03:00 PDT, 07:00 EDT, 10:00 UTC
         "schedule": crontab(hour="10", minute="0"),
         "options": {"expires": 60 * 25, "queue": "cleanup.control"},
@@ -1112,13 +1108,13 @@ CELERYBEAT_SCHEDULE_REGION = {
         "options": {"expires": 60 * 25},
     },
     "schedule-deletions": {
-        "task": "sentry.tasks.deletion.run_scheduled_deletions",
+        "task": "sentry.deletions.tasks.run_scheduled_deletions",
         # Run every 15 minutes
         "schedule": crontab(minute="*/15"),
         "options": {"expires": 60 * 25},
     },
     "reattempt-deletions": {
-        "task": "sentry.tasks.deletion.reattempt_deletions",
+        "task": "sentry.deletions.tasks.reattempt_deletions",
         # 03:00 PDT, 07:00 EDT, 10:00 UTC
         "schedule": crontab(hour="10", minute="0"),
         "options": {"expires": 60 * 25},
@@ -1529,10 +1525,6 @@ SENTRY_RELAY_TASK_APM_SAMPLING = 0
 
 # sample rate for ingest consumer processing functions
 SENTRY_INGEST_CONSUMER_APM_SAMPLING = 0
-
-# TODO(@anonrig): Remove this when all AppStore connect data is removed.
-# sample rate for Apple App Store Connect tasks transactions
-SENTRY_APPCONNECT_APM_SAMPLING = SENTRY_BACKEND_APM_SAMPLING
 
 # sample rate for suspect commits task
 SENTRY_SUSPECT_COMMITS_APM_SAMPLING = 0
@@ -2480,19 +2472,19 @@ SENTRY_SELF_HOSTED = True
 SENTRY_SELF_HOSTED_ERRORS_ONLY = False
 # only referenced in getsentry to provide the stable beacon version
 # updated with scripts/bump-version.sh
-SELF_HOSTED_STABLE_VERSION = "24.8.0"
+SELF_HOSTED_STABLE_VERSION = "24.9.0"
 
 # Whether we should look at X-Forwarded-For header or not
 # when checking REMOTE_ADDR ip addresses
 SENTRY_USE_X_FORWARDED_FOR = True
 
 SENTRY_DEFAULT_INTEGRATIONS = (
-    "sentry.integrations.bitbucket.BitbucketIntegrationProvider",
-    "sentry.integrations.bitbucket_server.BitbucketServerIntegrationProvider",
+    "sentry.integrations.bitbucket.integration.BitbucketIntegrationProvider",
+    "sentry.integrations.bitbucket_server.integration.BitbucketServerIntegrationProvider",
     "sentry.integrations.slack.SlackIntegrationProvider",
-    "sentry.integrations.github.GitHubIntegrationProvider",
-    "sentry.integrations.github_enterprise.GitHubEnterpriseIntegrationProvider",
-    "sentry.integrations.gitlab.GitlabIntegrationProvider",
+    "sentry.integrations.github.integration.GitHubIntegrationProvider",
+    "sentry.integrations.github_enterprise.integration.GitHubEnterpriseIntegrationProvider",
+    "sentry.integrations.gitlab.integration.GitlabIntegrationProvider",
     "sentry.integrations.jira.JiraIntegrationProvider",
     "sentry.integrations.jira_server.JiraServerIntegrationProvider",
     "sentry.integrations.vsts.VstsIntegrationProvider",
@@ -3155,10 +3147,14 @@ SEER_GROUPING_BACKFILL_URL = SEER_DEFAULT_URL
 
 SEER_ANOMALY_DETECTION_MODEL_VERSION = "v1"
 SEER_ANOMALY_DETECTION_URL = SEER_DEFAULT_URL  # for local development, these share a URL
-SEER_ANOMALY_DETECTION_TIMEOUT = 15
+SEER_ANOMALY_DETECTION_TIMEOUT = 5
 
 SEER_ANOMALY_DETECTION_ENDPOINT_URL = (
     f"/{SEER_ANOMALY_DETECTION_MODEL_VERSION}/anomaly-detection/detect"
+)
+
+SEER_ALERT_DELETION_URL = (
+    f"/{SEER_ANOMALY_DETECTION_MODEL_VERSION}/anomaly-detection/delete-alert-data"
 )
 
 SEER_AUTOFIX_GITHUB_APP_USER_ID = 157164994

@@ -61,11 +61,11 @@ function MonitorDetails({params, location}: Props) {
     staleTime: 0,
     refetchOnWindowFocus: true,
     // Refetches while we are waiting for the user to send their first check-in
-    refetchInterval: data => {
-      if (!data) {
+    refetchInterval: query => {
+      if (!query.state.data) {
         return false;
       }
-      const [monitorData] = data;
+      const [monitorData] = query.state.data;
       return hasLastCheckIn(monitorData) ? false : DEFAULT_POLL_INTERVAL_MS;
     },
   });
