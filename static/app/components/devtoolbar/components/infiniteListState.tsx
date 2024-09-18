@@ -1,9 +1,5 @@
 import {Fragment} from 'react';
-import type {
-  InfiniteData,
-  UseInfiniteQueryResult,
-  UseQueryResult,
-} from '@tanstack/react-query';
+import type {UseInfiniteQueryResult, UseQueryResult} from '@tanstack/react-query';
 
 import type {ApiResult} from '../types';
 
@@ -11,7 +7,7 @@ export interface Props<Data> {
   children: React.ReactNode;
   queryResult:
     | UseQueryResult<ApiResult<Data>, Error>
-    | UseInfiniteQueryResult<InfiniteData<ApiResult<Data[]>>, Error>;
+    | UseInfiniteQueryResult<Data, Error>;
   backgroundUpdatingMessage?: () => React.ReactNode;
   errorMessage?: (props: {error: Error}) => React.ReactNode;
   loadingMessage?: () => React.ReactNode;

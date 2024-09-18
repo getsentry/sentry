@@ -1,28 +1,36 @@
-import type {
-  DefinedUseInfiniteQueryResult,
-  InfiniteData,
-  UseInfiniteQueryOptions,
+import {
+  type InfiniteData,
+  useInfiniteQuery,
+  type UseInfiniteQueryOptions,
 } from '@tanstack/react-query';
-import {useInfiniteQuery} from '@tanstack/react-query';
 
 import type {ApiEndpointQueryKey, ApiResult} from '../types';
 
-import useApiEndpoint from './useApiEndpoint';
+import useApiEndpoint, {type PageParam} from './useApiEndpoint';
 
 export default function useFetchInfiniteApiData<Data>(
   props: Omit<
-    UseInfiniteQueryOptions<ApiEndpointQueryKey, Error, ApiResult<Data>, any>,
-    'getNextPageParam' | 'getPreviousPageParam' | 'queryFn' | 'initialPageParam'
+    UseInfiniteQueryOptions<
+      ApiResult<Data>,
+      Error,
+      InfiniteData<ApiResult<Data>>,
+      // TQueryData Not sure what this one should be
+      any,
+      ApiEndpointQueryKey,
+      PageParam
+    >,
+    'getNextPageParam' | 'getPreviousPageParam' | 'queryFn' | 'initialPageParam' | 'query'
   >
-): DefinedUseInfiniteQueryResult<InfiniteData<ApiResult<Data>, unknown>, Error> {
+) {
   const {fetchInfiniteFn, getNextPageParam, getPreviousPageParam} = useApiEndpoint();
 
   // TODO: Not sure how to get this to work with the types
   const infiniteQueryResult = useInfiniteQuery<
-    ApiEndpointQueryKey,
-    Error,
     ApiResult<Data>,
-    any
+    Error,
+    InfiniteData<ApiResult<Data>>,
+    ApiEndpointQueryKey,
+    PageParam
   >({
     queryFn: fetchInfiniteFn<Data>,
     getNextPageParam,
