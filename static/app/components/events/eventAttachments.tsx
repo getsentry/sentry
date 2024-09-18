@@ -1,27 +1,35 @@
-import {Fragment, useState} from 'react';
+import {Fragment, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {
   useDeleteEventAttachmentOptimistic,
   useFetchEventAttachments,
 } from 'sentry/actionCreators/events';
+import {Button} from 'sentry/components/button';
 import EventAttachmentActions from 'sentry/components/events/eventAttachmentActions';
 import FileSize from 'sentry/components/fileSize';
 import LoadingError from 'sentry/components/loadingError';
 import {PanelTable} from 'sentry/components/panels/panelTable';
 import {t} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
-import type {IssueAttachment} from 'sentry/types/group';
+import type {Group, IssueAttachment} from 'sentry/types/group';
+import type {Project} from 'sentry/types/project';
 import useOrganization from 'sentry/utils/useOrganization';
 import {InlineEventAttachment} from 'sentry/views/issueDetails/groupEventAttachments/inlineEventAttachment';
+import {useGroupEventAttachmentsDrawer} from 'sentry/views/issueDetails/groupEventAttachments/useGroupEventAttachmentsDrawer';
 import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
 import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
+import {useHasStreamlinedUI} from 'sentry/views/issueDetails/utils';
 
 import EventAttachmentsCrashReportsNotice from './eventAttachmentsCrashReportsNotice';
 
 type EventAttachmentsProps = {
   event: Event;
-  projectSlug: string;
+  /**
+   * Group is not available everywhere this component is used
+   */
+  group: Group | undefined;
+  project: Project;
 };
 
 type AttachmentPreviewOpenMap = Record<string, boolean>;
@@ -33,7 +41,28 @@ const attachmentPreviewIsOpen = (
   return attachmentPreviews[attachment.id] === true;
 };
 
-function EventAttachmentsContent({event, projectSlug}: EventAttachmentsProps) {
+function ViewAllGroupAttachmentsButton({
+  group,
+  project,
+}: {
+  group: Group;
+  project: Project;
+}) {
+  const openButtonRef = useRef<HTMLButtonElement>(null);
+  const {openAttachmentDrawer} = useGroupEventAttachmentsDrawer({
+    project,
+    group,
+    openButtonRef,
+  });
+
+  return (
+    <Button ref={openButtonRef} onClick={openAttachmentDrawer} size="xs">
+      {t('View All Attachments')}
+    </Button>
+  );
+}
+
+function EventAttachmentsContent({event, project, group}: EventAttachmentsProps) {
   const organization = useOrganization();
   const {
     data: attachments = [],
@@ -41,13 +70,14 @@ function EventAttachmentsContent({event, projectSlug}: EventAttachmentsProps) {
     refetch,
   } = useFetchEventAttachments({
     orgSlug: organization.slug,
-    projectSlug,
+    projectSlug: project.slug,
     eventId: event.id,
   });
   const {mutate: deleteAttachment} = useDeleteEventAttachmentOptimistic();
   const [attachmentPreviews, setAttachmentPreviews] = useState<AttachmentPreviewOpenMap>(
     {}
   );
+  const hasStreamlinedUI = useHasStreamlinedUI();
   const crashFileStripped = event.metadata.stripped_crash;
 
   if (isError) {
@@ -79,11 +109,19 @@ function EventAttachmentsContent({event, projectSlug}: EventAttachmentsProps) {
   };
 
   return (
-    <InterimSection type={SectionKey.ATTACHMENTS} title={title}>
+    <InterimSection
+      type={SectionKey.ATTACHMENTS}
+      title={title}
+      actions={
+        hasStreamlinedUI && project && group ? (
+          <ViewAllGroupAttachmentsButton group={group} project={project} />
+        ) : null
+      }
+    >
       {crashFileStripped && (
         <EventAttachmentsCrashReportsNotice
           orgSlug={organization.slug}
-          projectSlug={projectSlug}
+          projectSlug={project.slug}
           groupId={event.groupID!}
         />
       )}
@@ -108,11 +146,11 @@ function EventAttachmentsContent({event, projectSlug}: EventAttachmentsProps) {
                 <EventAttachmentActions
                   withPreviewButton
                   attachment={attachment}
-                  projectSlug={projectSlug}
+                  projectSlug={project.slug}
                   onDelete={() =>
                     deleteAttachment({
                       orgSlug: organization.slug,
-                      projectSlug,
+                      projectSlug: project.slug,
                       eventId: event.id,
                       attachmentId: attachment.id,
                     })
@@ -125,7 +163,7 @@ function EventAttachmentsContent({event, projectSlug}: EventAttachmentsProps) {
                 <InlineEventAttachment
                   attachment={attachment}
                   eventId={event.id}
-                  projectSlug={projectSlug}
+                  projectSlug={project.slug}
                 />
               ) : null}
               {/* XXX: hack to deal with table grid borders */}

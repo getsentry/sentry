@@ -15,9 +15,9 @@ import ModalStore from 'sentry/stores/modalStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import type {Project} from 'sentry/types/project';
 
-import GroupEventAttachments from './groupEventAttachments';
+import {GroupEventAttachmentsDrawer} from './groupEventAttachmentsDrawer';
 
-describe('GroupEventAttachments', function () {
+describe('GroupEventAttachmentsDrawer', function () {
   const groupId = 'group-id';
   const {organization, router} = initializeOrg({
     organization: {
@@ -52,7 +52,7 @@ describe('GroupEventAttachments', function () {
   });
 
   it('calls attachments api with screenshot filter', async function () {
-    render(<GroupEventAttachments project={project} groupId={groupId} />, {
+    render(<GroupEventAttachmentsDrawer project={project} groupId={groupId} />, {
       router: screenshotRouter,
       organization,
     });
@@ -68,25 +68,15 @@ describe('GroupEventAttachments', function () {
 
   it('does not render screenshots tab if not mobile platform', function () {
     project.platform = 'javascript';
-    render(<GroupEventAttachments project={project} groupId={groupId} />, {
+    render(<GroupEventAttachmentsDrawer project={project} groupId={groupId} />, {
       router: screenshotRouter,
       organization,
     });
     expect(screen.queryByText('Screenshots')).not.toBeInTheDocument();
   });
 
-  it('calls opens modal when clicking on panel body', async function () {
-    render(<GroupEventAttachments project={project} groupId={groupId} />, {
-      router: screenshotRouter,
-      organization,
-    });
-    renderGlobalModal();
-    await userEvent.click(await screen.findByTestId('screenshot-1'));
-    expect(await screen.findByRole('dialog')).toBeInTheDocument();
-  });
-
   it('links event id to event detail', async function () {
-    render(<GroupEventAttachments project={project} groupId={groupId} />, {
+    render(<GroupEventAttachmentsDrawer project={project} groupId={groupId} />, {
       router,
       organization,
     });
@@ -97,12 +87,11 @@ describe('GroupEventAttachments', function () {
   });
 
   it('links to the download URL', async function () {
-    render(<GroupEventAttachments project={project} groupId={groupId} />, {
+    render(<GroupEventAttachmentsDrawer project={project} groupId={groupId} />, {
       router: screenshotRouter,
       organization,
     });
-    await userEvent.click(await screen.findByLabelText('Actions'));
-    expect(screen.getByText('Download').closest('a')).toHaveAttribute(
+    expect(await screen.findByRole('button', {name: 'Download'})).toHaveAttribute(
       'href',
       '/api/0/projects/org-slug/project-slug/events/12345678901234567890123456789012/attachments/1/?download=1'
     );
@@ -113,7 +102,7 @@ describe('GroupEventAttachments', function () {
       url: '/organizations/org-slug/issues/group-id/attachments/',
       statusCode: 500,
     });
-    render(<GroupEventAttachments project={project} groupId={groupId} />, {
+    render(<GroupEventAttachmentsDrawer project={project} groupId={groupId} />, {
       router,
       organization,
     });
@@ -125,7 +114,7 @@ describe('GroupEventAttachments', function () {
       url: '/projects/org-slug/project-slug/events/12345678901234567890123456789012/attachments/1/',
       method: 'DELETE',
     });
-    render(<GroupEventAttachments project={project} groupId={groupId} />, {
+    render(<GroupEventAttachmentsDrawer project={project} groupId={groupId} />, {
       router,
       organization,
     });
