@@ -70,6 +70,7 @@ from sentry.search.events.constants import (
     SPANS_METRICS_FUNCTIONS,
 )
 from sentry.search.events.fields import is_function, resolve_field
+from sentry.seer.anomaly_detection.delete_rule import delete_rule_in_seer
 from sentry.seer.anomaly_detection.store_data import send_historical_data_to_seer
 from sentry.sentry_apps.services.app import RpcSentryAppInstallation, app_service
 from sentry.shared_integrations.exceptions import (
@@ -961,6 +962,18 @@ def update_alert_rule(
                     # If there's no historical data available—something went wrong when querying snuba
                     raise ValidationError("Failed to send data to Seer - cannot update alert rule.")
         else:
+            # if this was a dynamic rule, delete the data in Seer
+            if alert_rule.detection_type == AlertRuleDetectionType.DYNAMIC:
+                success = delete_rule_in_seer(
+                    alert_rule=alert_rule,
+                )
+                if not success:
+                    logger.error(
+                        "Call to delete rule data in Seer failed",
+                        extra={
+                            "rule_id": alert_rule.id,
+                        },
+                    )
             # if this alert was previously a dynamic alert, then we should update the rule to be ready
             if alert_rule.status == AlertRuleStatus.NOT_ENOUGH_DATA.value:
                 alert_rule.update(status=AlertRuleStatus.PENDING.value)

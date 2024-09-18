@@ -1473,9 +1473,15 @@ class UpdateAlertRuleTest(TestCase, BaseIncidentsTest):
     @patch(
         "sentry.seer.anomaly_detection.store_data.seer_anomaly_detection_connection_pool.urlopen"
     )
-    def test_update_detection_type(self, mock_seer_request):
+    @patch(
+        "sentry.seer.anomaly_detection.delete_rule.seer_anomaly_detection_connection_pool.urlopen"
+    )
+    def test_update_detection_type(self, mock_seer_delete_request, mock_seer_request):
         seer_return_value: StoreDataResponse = {"success": True}
         mock_seer_request.return_value = HTTPResponse(orjson.dumps(seer_return_value), status=200)
+        mock_seer_delete_request.return_value = HTTPResponse(
+            orjson.dumps(seer_return_value), status=200
+        )
         comparison_delta = 60
         # test percent to dynamic
         rule = self.create_alert_rule(
@@ -1887,6 +1893,31 @@ class UpdateAlertRuleTest(TestCase, BaseIncidentsTest):
         static_rule.refresh_from_db()
         assert static_rule.detection_type == AlertRuleDetectionType.STATIC
 
+    @with_feature("organizations:anomaly-detection-alerts")
+    @patch(
+        "sentry.seer.anomaly_detection.delete_rule.seer_anomaly_detection_connection_pool.urlopen"
+    )
+    @patch(
+        "sentry.seer.anomaly_detection.store_data.seer_anomaly_detection_connection_pool.urlopen"
+    )
+    def test_update_alert_rule_dynamic_to_static_delete_call(
+        self, mock_store_request, mock_delete_request
+    ):
+        seer_return_value = {"success": True}
+        mock_store_request.return_value = HTTPResponse(orjson.dumps(seer_return_value), status=200)
+        mock_delete_request.return_value = HTTPResponse(orjson.dumps(seer_return_value), status=200)
+
+        alert_rule = self.create_alert_rule(
+            sensitivity=AlertRuleSensitivity.HIGH,
+            seasonality=AlertRuleSeasonality.AUTO,
+            time_window=60,
+            detection_type=AlertRuleDetectionType.DYNAMIC,
+        )
+
+        update_alert_rule(alert_rule, detection_type=AlertRuleDetectionType.STATIC)
+
+        assert mock_delete_request.call_count == 1
+
     @patch(
         "sentry.seer.anomaly_detection.store_data.seer_anomaly_detection_connection_pool.urlopen"
     )
@@ -1925,9 +1956,50 @@ class UpdateAlertRuleTest(TestCase, BaseIncidentsTest):
 
 
 class DeleteAlertRuleTest(TestCase, BaseIncidentsTest):
+    def setUp(self):
+        super().setUp()
+
+        class _DynamicMetricAlertSettings(TypedDict):
+            name: str
+            query: str
+            aggregate: str
+            time_window: int
+            threshold_type: AlertRuleThresholdType
+            threshold_period: int
+            event_types: list[SnubaQueryEventType.EventType]
+            detection_type: AlertRuleDetectionType
+            sensitivity: AlertRuleSensitivity
+            seasonality: AlertRuleSeasonality
+
+        self.dynamic_metric_alert_settings: _DynamicMetricAlertSettings = {
+            "name": "hello",
+            "query": "level:error",
+            "aggregate": "count(*)",
+            "time_window": 30,
+            "threshold_type": AlertRuleThresholdType.ABOVE,
+            "threshold_period": 1,
+            "event_types": [SnubaQueryEventType.EventType.ERROR],
+            "detection_type": AlertRuleDetectionType.DYNAMIC,
+            "sensitivity": AlertRuleSensitivity.LOW,
+            "seasonality": AlertRuleSeasonality.AUTO,
+        }
+
     @cached_property
     def alert_rule(self):
         return self.create_alert_rule()
+
+    @cached_property
+    @patch(
+        "sentry.seer.anomaly_detection.store_data.seer_anomaly_detection_connection_pool.urlopen"
+    )
+    def dynamic_alert_rule(self, mock_seer_request):
+        seer_return_value: StoreDataResponse = {"success": True}
+        mock_seer_request.return_value = HTTPResponse(orjson.dumps(seer_return_value), status=200)
+        return self.create_alert_rule(
+            self.organization,
+            [self.project],
+            **self.dynamic_metric_alert_settings,
+        )
 
     def test(self):
         alert_rule_id = self.alert_rule.id
@@ -1963,6 +2035,163 @@ class DeleteAlertRuleTest(TestCase, BaseIncidentsTest):
             delete_alert_rule(alert_rule)
 
         mocked_schedule_update_project_config.assert_called_with(alert_rule, [self.project])
+
+    @with_feature("organizations:anomaly-detection-alerts")
+    @patch(
+        "sentry.seer.anomaly_detection.delete_rule.seer_anomaly_detection_connection_pool.urlopen"
+    )
+    def test_delete_anomaly_detection_rule(self, mock_seer_request):
+        alert_rule = self.dynamic_alert_rule
+        alert_rule_id = alert_rule.id
+
+        with self.tasks():
+            delete_alert_rule(alert_rule)
+
+        assert not AlertRule.objects.filter(id=alert_rule_id).exists()
+        assert AlertRule.objects_with_snapshots.filter(id=alert_rule_id).exists()
+        seer_return_value: StoreDataResponse = {"success": True}
+        mock_seer_request.return_value = HTTPResponse(orjson.dumps(seer_return_value), status=200)
+
+        with self.tasks():
+            run_scheduled_deletions()
+
+        assert not AlertRule.objects.filter(id=alert_rule_id).exists()
+        assert not AlertRule.objects_with_snapshots.filter(id=alert_rule_id).exists()
+
+        assert mock_seer_request.call_count == 1
+
+    @with_feature("organizations:anomaly-detection-alerts")
+    @patch(
+        "sentry.seer.anomaly_detection.delete_rule.seer_anomaly_detection_connection_pool.urlopen"
+    )
+    @patch("sentry.seer.anomaly_detection.delete_rule.logger")
+    @patch("sentry.incidents.models.alert_rule.logger")
+    def test_delete_anomaly_detection_rule_timeout(
+        self, mock_model_logger, mock_seer_logger, mock_seer_request
+    ):
+        alert_rule = self.dynamic_alert_rule
+        alert_rule_id = alert_rule.id
+
+        with self.tasks():
+            delete_alert_rule(alert_rule)
+
+        mock_seer_request.side_effect = TimeoutError
+
+        with self.tasks():
+            run_scheduled_deletions()
+
+        assert not AlertRule.objects.filter(id=alert_rule_id).exists()
+        assert not AlertRule.objects_with_snapshots.filter(id=alert_rule_id).exists()
+
+        mock_seer_logger.warning.assert_called_with(
+            "Timeout error when hitting Seer delete rule data endpoint",
+            extra={"rule_id": alert_rule_id},
+        )
+        mock_model_logger.error.assert_called_with(
+            "Call to delete rule data in Seer failed",
+            extra={"rule_id": alert_rule_id},
+        )
+        assert mock_seer_request.call_count == 1
+
+    @with_feature("organizations:anomaly-detection-alerts")
+    @patch(
+        "sentry.seer.anomaly_detection.delete_rule.seer_anomaly_detection_connection_pool.urlopen"
+    )
+    @patch("sentry.seer.anomaly_detection.delete_rule.logger")
+    @patch("sentry.incidents.models.alert_rule.logger")
+    def test_delete_anomaly_detection_rule_error(
+        self, mock_model_logger, mock_seer_logger, mock_seer_request
+    ):
+        alert_rule = self.dynamic_alert_rule
+        alert_rule_id = alert_rule.id
+
+        with self.tasks():
+            delete_alert_rule(alert_rule)
+
+        mock_seer_request.return_value = HTTPResponse("Bad request", status=500)
+
+        with self.tasks():
+            run_scheduled_deletions()
+
+        assert not AlertRule.objects.filter(id=alert_rule_id).exists()
+        assert not AlertRule.objects_with_snapshots.filter(id=alert_rule_id).exists()
+
+        mock_seer_logger.error.assert_called_with(
+            "Error when hitting Seer delete rule data endpoint",
+            extra={"response_data": "Bad request", "rule_id": alert_rule_id},
+        )
+        mock_model_logger.error.assert_called_with(
+            "Call to delete rule data in Seer failed",
+            extra={"rule_id": alert_rule_id},
+        )
+        assert mock_seer_request.call_count == 1
+
+    @with_feature("organizations:anomaly-detection-alerts")
+    @patch(
+        "sentry.seer.anomaly_detection.delete_rule.seer_anomaly_detection_connection_pool.urlopen"
+    )
+    @patch("sentry.seer.anomaly_detection.delete_rule.logger")
+    @patch("sentry.incidents.models.alert_rule.logger")
+    def test_delete_anomaly_detection_rule_attribute_error(
+        self, mock_model_logger, mock_seer_logger, mock_seer_request
+    ):
+        alert_rule = self.dynamic_alert_rule
+        alert_rule_id = alert_rule.id
+
+        with self.tasks():
+            delete_alert_rule(alert_rule)
+
+        mock_seer_request.return_value = HTTPResponse(None, status=200)  # type:ignore[arg-type]
+
+        with self.tasks():
+            run_scheduled_deletions()
+
+        assert not AlertRule.objects.filter(id=alert_rule_id).exists()
+        assert not AlertRule.objects_with_snapshots.filter(id=alert_rule_id).exists()
+
+        mock_seer_logger.exception.assert_called_with(
+            "Failed to parse Seer delete rule data response",
+            extra={"rule_id": alert_rule_id},
+        )
+        mock_model_logger.error.assert_called_with(
+            "Call to delete rule data in Seer failed",
+            extra={"rule_id": alert_rule_id},
+        )
+        assert mock_seer_request.call_count == 1
+
+    @with_feature("organizations:anomaly-detection-alerts")
+    @patch(
+        "sentry.seer.anomaly_detection.delete_rule.seer_anomaly_detection_connection_pool.urlopen"
+    )
+    @patch("sentry.seer.anomaly_detection.delete_rule.logger")
+    @patch("sentry.incidents.models.alert_rule.logger")
+    def test_delete_anomaly_detection_rule_failure(
+        self, mock_model_logger, mock_seer_logger, mock_seer_request
+    ):
+        alert_rule = self.dynamic_alert_rule
+        alert_rule_id = alert_rule.id
+
+        with self.tasks():
+            delete_alert_rule(alert_rule)
+
+        seer_return_value: StoreDataResponse = {"success": False}
+        mock_seer_request.return_value = HTTPResponse(orjson.dumps(seer_return_value), status=200)
+
+        with self.tasks():
+            run_scheduled_deletions()
+
+        assert not AlertRule.objects.filter(id=alert_rule_id).exists()
+        assert not AlertRule.objects_with_snapshots.filter(id=alert_rule_id).exists()
+
+        mock_seer_logger.error.assert_called_with(
+            "Request to delete alert rule from Seer was unsuccessful",
+            extra={"rule_id": alert_rule_id},
+        )
+        mock_model_logger.error.assert_called_with(
+            "Call to delete rule data in Seer failed",
+            extra={"rule_id": alert_rule_id},
+        )
+        assert mock_seer_request.call_count == 1
 
 
 class EnableAlertRuleTest(TestCase, BaseIncidentsTest):
