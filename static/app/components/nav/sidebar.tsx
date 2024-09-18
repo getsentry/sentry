@@ -15,8 +15,9 @@ import {space} from 'sentry/styles/space';
 import theme from 'sentry/utils/theme';
 import {useLocation} from 'sentry/utils/useLocation';
 
-const Sidebar = styled('div')`
-  width: 74px;
+export const Sidebar = styled('div')`
+  height: 40px;
+  width: 100vw;
   padding: ${space(2)} 0;
   border-right: 1px solid ${theme.translucentGray100};
   background: #3e2648;
@@ -24,6 +25,11 @@ const Sidebar = styled('div')`
   display: flex;
   flex-direction: column;
   z-index: ${theme.zIndex.sidebar};
+
+  @media screen and (min-width: ${p => p.theme.breakpoints.medium}) {
+    height: unset;
+    width: 74px;
+  }
 `;
 
 function Items({children}) {

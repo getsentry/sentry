@@ -2,13 +2,23 @@ import styled from '@emotion/styled';
 
 import OrganizationAvatar from 'sentry/components/avatar/organizationAvatar';
 import {useNavItems} from 'sentry/components/nav/config';
+import {Mobile} from 'sentry/components/nav/mobile';
 import Sidebar from 'sentry/components/nav/sidebar';
 import Submenu from 'sentry/components/nav/submenu';
+import {useBreakpoints} from 'sentry/utils/metrics/useBreakpoints';
 import useOrganization from 'sentry/utils/useOrganization';
 
 function Nav() {
   const organization = useOrganization();
   const nav = useNavItems();
+  const screen = useBreakpoints();
+
+  if (!screen.medium)
+    return (
+      <NavContainer>
+        <Mobile />
+      </NavContainer>
+    );
 
   return (
     <NavContainer>
@@ -48,12 +58,16 @@ function Nav() {
 }
 
 const NavContainer = styled('nav')`
+  display: flex;
   position: sticky;
   top: 0;
-  bottom: 0;
-  height: 100vh;
-  height: 100dvh;
-  display: flex;
+  z-index: ${p => p.theme.zIndex.sidebarPanel};
+
+  @media screen and (min-width: ${p => p.theme.breakpoints.medium}) {
+    bottom: 0;
+    height: 100vh;
+    height: 100dvh;
+  }
 `;
 
 export default Nav;
