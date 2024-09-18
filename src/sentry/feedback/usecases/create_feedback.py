@@ -364,43 +364,26 @@ def shim_to_feedback(
             },
         }
 
-        if event:
-            feedback_event["contexts"]["feedback"]["associated_event_id"] = event.event_id
+        feedback_event["contexts"]["feedback"]["associated_event_id"] = event.event_id
 
-            if get_path(event.data, "contexts", "replay", "replay_id"):
-                feedback_event["contexts"]["replay"] = event.data["contexts"]["replay"]
-                feedback_event["contexts"]["feedback"]["replay_id"] = event.data["contexts"][
-                    "replay"
-                ]["replay_id"]
+        if get_path(event.data, "contexts", "replay", "replay_id"):
+            feedback_event["contexts"]["replay"] = event.data["contexts"]["replay"]
+            feedback_event["contexts"]["feedback"]["replay_id"] = event.data["contexts"]["replay"][
+                "replay_id"
+            ]
 
-            if get_path(event.data, "contexts", "trace", "trace_id"):
-                feedback_event["contexts"]["trace"] = event.data["contexts"]["trace"]
+        if get_path(event.data, "contexts", "trace", "trace_id"):
+            feedback_event["contexts"]["trace"] = event.data["contexts"]["trace"]
 
-            feedback_event["timestamp"] = event.datetime.timestamp()
-            feedback_event["platform"] = event.platform
-            feedback_event["level"] = event.data["level"]
-            feedback_event["environment"] = event.get_environment().name
-            feedback_event["tags"] = [list(item) for item in event.tags]
-
-        else:
-            metrics.incr(
-                "feedback.user_report.missing_event",
-                sample_rate=1.0,
-                tags={"referrer": source.value},
-            )
-
-            feedback_event["timestamp"] = datetime.utcnow().timestamp()
-            feedback_event["platform"] = "other"
-            feedback_event["level"] = report.get("level", "info")
-
-            if report.get("event_id"):
-                feedback_event["contexts"]["feedback"]["associated_event_id"] = report["event_id"]
+        feedback_event["timestamp"] = event.datetime.timestamp()
+        feedback_event["platform"] = event.platform
+        feedback_event["level"] = event.data["level"]
+        feedback_event["environment"] = event.get_environment().name
+        feedback_event["tags"] = [list(item) for item in event.tags]
 
         create_feedback_issue(feedback_event, project.id, source)
     except Exception:
-        logger.exception(
-            "Error attempting to create new User Feedback from Shiming old User Report"
-        )
+        logger.exception("Error attempting to create new user feedback by shimming a user report")
         metrics.incr("feedback.shim_to_feedback.failed", tags={"referrer": source.value})
 
 
