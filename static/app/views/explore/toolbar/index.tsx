@@ -8,7 +8,6 @@ import {useSorts} from 'sentry/views/explore/hooks/useSorts';
 import {useVisualizes} from 'sentry/views/explore/hooks/useVisualizes';
 import {ToolbarDataset} from 'sentry/views/explore/toolbar/toolbarDataset';
 import {ToolbarGroupBy} from 'sentry/views/explore/toolbar/toolbarGroupBy';
-import {ToolbarLimitTo} from 'sentry/views/explore/toolbar/toolbarLimitTo';
 import {ToolbarResults} from 'sentry/views/explore/toolbar/toolbarResults';
 import {ToolbarSortBy} from 'sentry/views/explore/toolbar/toolbarSortBy';
 import {ToolbarVisualize} from 'sentry/views/explore/toolbar/toolbarVisualize';
@@ -48,7 +47,6 @@ export function ExploreToolbar({extras}: ExploreToolbarProps) {
       <ToolbarVisualize />
       <ToolbarGroupBy disabled={resultMode !== 'aggregate'} />
       <ToolbarSortBy fields={fields} sorts={sorts} setSorts={setSorts} />
-      <ToolbarLimitTo />
     </div>
   );
 }
