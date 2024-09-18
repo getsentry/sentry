@@ -302,6 +302,17 @@ function SearchQueryBuilderInputInternal({
 
   const onPaste = useCallback(
     (e: React.ClipboardEvent<HTMLInputElement>) => {
+      const {selectionStart, selectionEnd} = inputRef.current ?? {};
+      const currentText = inputRef.current?.value ?? '';
+
+      const allTextSelected = selectionStart === 0 && selectionEnd === currentText.length;
+
+      // If there is text and there is a custom selection, use default paste behavior
+      if (currentText.trim() && !allTextSelected) {
+        return;
+      }
+
+      // Otherwise, we want to parse the clipboard text and replace the current token with it
       e.preventDefault();
       e.stopPropagation();
 
@@ -309,12 +320,11 @@ function SearchQueryBuilderInputInternal({
         .getData('text/plain')
         .replace('\n', '')
         .trim();
-      const currentText = inputRef.current?.value ?? '';
 
       dispatch({
         type: 'REPLACE_TOKENS_WITH_TEXT',
         tokens: [token],
-        text: currentText + clipboardText,
+        text: clipboardText,
       });
       resetInputValue();
     },
