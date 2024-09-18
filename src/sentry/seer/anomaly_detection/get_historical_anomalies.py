@@ -81,7 +81,9 @@ def get_historical_anomaly_data_from_seer(
             },
         )
         return None
-    formatted_data = format_historical_data(historical_data, query_columns, dataset)
+    formatted_data = format_historical_data(
+        historical_data, query_columns, dataset, project.organization
+    )
     if (
         not alert_rule.sensitivity
         or not alert_rule.seasonality
