@@ -3,7 +3,7 @@ export type Meta<FieldNames extends string[]> = {
     [Property in FieldNames[number]]: string;
   };
   units: {
-    [Property in FieldNames[number]]: string;
+    [Property in FieldNames[number]]: string | null;
   };
 };
 
