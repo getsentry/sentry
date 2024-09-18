@@ -34,14 +34,14 @@ class DeletionTaskManager:
     def get(
         self,
         task: type[BaseDeletionTask[Any]] | None = None,
-        model: type[Model] | None = None,
         **kwargs: Any,
     ) -> BaseDeletionTask[Any]:
         if task is None:
+            model = kwargs.get("model")
             assert model, "The model parameter is required if `task` is not provided"
             task = self.tasks.get(model, self.default_task)
-
         assert task is not None, "Task cannot be None"
+
         return task(manager=self, **kwargs)
 
     def register(self, model: type[Model], task: type[BaseDeletionTask[Any]]) -> None:
