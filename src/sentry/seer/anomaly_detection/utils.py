@@ -89,7 +89,7 @@ def format_historical_data(
         data,
         resolve_axis_column(query_columns[0]),
         allow_partial_buckets=False,
-        zerofill_results=True,
+        zerofill_results=False,
         extra_columns=None,
     )
     formatted_data: list[TimeSeriesPoint] = []
@@ -151,7 +151,6 @@ def fetch_historical_data(
         return get_crash_free_historical_data(
             start, end, project, alert_rule.organization, granularity
         )
-
     else:
         historical_data = dataset.timeseries_query(
             selected_columns=query_columns,
