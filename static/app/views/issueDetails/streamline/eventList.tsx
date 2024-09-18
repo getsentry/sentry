@@ -1,4 +1,8 @@
+import {css, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
+import {Fragment} from 'react';
+import {Button, LinkButton} from 'sentry/components/button';
+import ButtonBar from 'sentry/components/buttonBar';
 
 import GridEditable from 'sentry/components/gridEditable';
 import {
@@ -8,6 +12,8 @@ import {
   GridResizer,
 } from 'sentry/components/gridEditable/styles';
 import Panel from 'sentry/components/panels/panel';
+import {IconChevron} from 'sentry/icons';
+import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Group} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
@@ -18,22 +24,96 @@ interface EventListProps {
 }
 
 export function EventList({}: EventListProps) {
+  const currentRange = [0, 25];
+  const totalCount = 259;
+  const theme = useTheme();
+  const grayText = css`
+    color: ${theme.subText};
+    font-weight: ${theme.fontWeightNormal};
+  `;
+
   return (
-    <GridEditableStyles>
-      <GridEditable
-        columnOrder={testColumnOrder}
-        columnSortBy={[]}
-        data={testData}
-        grid={{
-          renderHeadCell: () => 'headCell',
-          renderBodyCell: () => 'bodyCell',
-        }}
-      />
-    </GridEditableStyles>
+    <Fragment>
+      <EventListHeader>
+        <EventListTitle>All Events</EventListTitle>
+        <EventListHeaderItem>
+          {tct('Showing [start]-[end] of [count]', {
+            start: currentRange[0],
+            end: currentRange[1],
+            count: totalCount,
+          })}
+        </EventListHeaderItem>
+        <EventListHeaderItem>
+          <ButtonBar gap={0.25}>
+            <LinkButton
+              aria-label={t('Previous Page')}
+              borderless
+              size="xs"
+              icon={<IconChevron direction="left" />}
+              // disabled={no previous results?}
+              // to={{
+              //   pathname: `${baseEventsPath}${event.previousEventID}/`,
+              //   query: {...location.query, referrer: 'previous-event'},
+              // }}
+              css={grayText}
+            />
+            <LinkButton
+              aria-label={t('Next Page')}
+              borderless
+              size="xs"
+              icon={<IconChevron direction="right" />}
+              css={grayText}
+              // disabled={no previous results?}
+              // to={{
+              //   pathname: `${baseEventsPath}${event.previousEventID}/`,
+              //   query: {...location.query, referrer: 'previous-event'},
+              // }}
+            />
+          </ButtonBar>
+        </EventListHeaderItem>
+        <EventListHeaderItem>
+          <Button borderless size="xs" css={grayText}>
+            {t('Close')}
+          </Button>
+        </EventListHeaderItem>
+      </EventListHeader>
+      <StreamlineGridEditable>
+        <GridEditable
+          columnOrder={testColumnOrder}
+          columnSortBy={[]}
+          data={testData}
+          grid={{
+            renderHeadCell: () => 'headCell',
+            renderBodyCell: () => 'bodyCell',
+          }}
+        />
+      </StreamlineGridEditable>
+    </Fragment>
   );
 }
 
-const GridEditableStyles = styled('div')`
+const EventListHeader = styled('div')`
+  display: grid;
+  grid-template-columns: 1fr auto auto auto;
+  gap: ${space(1.5)};
+  align-items: center;
+  padding: ${space(0.75)} ${space(2)};
+  border-bottom: 1px solid ${p => p.theme.translucentBorder};
+`;
+
+const EventListTitle = styled('div')`
+  color: ${p => p.theme.textColor};
+  font-weight: ${p => p.theme.fontWeightBold};
+  font-size: ${p => p.theme.fontSizeLarge};
+`;
+
+const EventListHeaderItem = styled('div')`
+  color: ${p => p.theme.subText};
+  font-weight: ${p => p.theme.fontWeightNormal};
+  font-size: ${p => p.theme.fontSizeSmall};
+`;
+
+const StreamlineGridEditable = styled('div')`
   ${Panel} {
     border: 0;
   }
