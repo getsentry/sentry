@@ -27,14 +27,14 @@ interface SearchSuggestionListProps {
 
 const RECOMMENDED_SEARCHES: SearchSuggestion[] = [
   {label: 'Prioritized', query: 'is:unresolved issue.priority:[high, medium]'},
-  {label: 'Assigned to Me', query: 'assigned_or_suggested:me is:unresolved'},
+  {label: 'Assigned to Me', query: 'is:unresolved assigned_or_suggested:me'},
   {
     label: 'For Review',
     query: 'is:unresolved is:for_review assigned_or_suggested:[me, my_teams, none]',
   },
-  {label: 'Request Errors', query: 'http.status_code:5*'},
-  {label: 'High Volume Issues', query: '!is:resolved timesSeen:>100'},
-  {label: 'Recent Errors', query: 'issue.category:error firstSeen:-24h !is:resolved'},
+  {label: 'Request Errors', query: 'is:unresolved http.status_code:5*'},
+  {label: 'High Volume Issues', query: 'is:unresolved timesSeen:>100'},
+  {label: 'Recent Errors', query: 'is:unresolved issue.category:error firstSeen:-24h'},
   {label: 'Function Regressions', query: 'issue.type:profile_function_regression'},
 ];
 
