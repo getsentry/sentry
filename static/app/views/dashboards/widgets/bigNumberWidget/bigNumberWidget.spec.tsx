@@ -45,7 +45,7 @@ describe('BigNumberWidget', () => {
               'p95(span.duration)': 'duration',
             },
             units: {
-              'p95(spa.duration)': 'milliseconds',
+              'p95(span.duration)': 'milliseconds',
             },
           }}
         />
