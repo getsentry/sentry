@@ -423,7 +423,7 @@ class VstsIntegrationProvider(IntegrationProvider):
 
     def get_scopes(self) -> Sequence[str]:
         if features.has(
-            "organizations:migrate-azure-devops-integration", self.pipeline.organization.id
+            "organizations:migrate-azure-devops-integration", self.pipeline.organization
         ):
             # This is the new way we need to pass scopes to the OAuth flow
             # https://stackoverflow.com/questions/75729931/get-access-token-for-azure-devops-pat
@@ -479,7 +479,7 @@ class VstsIntegrationProvider(IntegrationProvider):
 
             if (
                 features.has(
-                    "organizations:migrate-azure-devops-integration", self.pipeline.organization.id
+                    "organizations:migrate-azure-devops-integration", self.pipeline.organization
                 )
                 and integration_migration_version < CURRENT_MIGRATION_VERSION
             ):

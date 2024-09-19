@@ -41,9 +41,8 @@ class IdentityProviderPipeline(Pipeline):
     def get_provider(self, provider_key: str, **kwargs) -> PipelineProvider:
         if kwargs.get("organization"):
             organization: Organization | RpcOrganization = kwargs["organization"]
-        if (
-            features.has("organizations:migrate-azure-devops-integration", organization.id)
-            and provider_key == "vsts"
+        if provider_key == "vsts" and features.has(
+            "organizations:migrate-azure-devops-integration", organization
         ):
             provider_key = "vsts_new"
 
