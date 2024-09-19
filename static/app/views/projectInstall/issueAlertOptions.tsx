@@ -177,9 +177,7 @@ class IssueAlertOptions extends DeprecatedAsyncComponent<Props, State> {
       </CustomizeAlert>,
     ];
 
-    const default_label = this.shouldUseNewDefaultSetting()
-      ? t('Alert me on high priority issues')
-      : t('Alert me on every new issue');
+    const default_label = t('Alert me on high priority issues');
 
     const options: [string, React.ReactNode][] = [
       [RuleAction.DEFAULT_ALERT.toString(), default_label],
@@ -190,10 +188,6 @@ class IssueAlertOptions extends DeprecatedAsyncComponent<Props, State> {
       choiceValue,
       <RadioItemWrapper key={choiceValue}>{node}</RadioItemWrapper>,
     ]);
-  }
-
-  shouldUseNewDefaultSetting(): boolean {
-    return this.props.organization.features.includes('priority-ga-features');
   }
 
   getUpdatedData(): RequestDataFragment {
