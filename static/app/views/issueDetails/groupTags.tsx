@@ -1,5 +1,6 @@
 import styled from '@emotion/styled';
 
+import {useFetchIssueTags} from 'sentry/actionCreators/group';
 import {Alert} from 'sentry/components/alert';
 import Count from 'sentry/components/count';
 import {DeviceName} from 'sentry/components/deviceName';
@@ -19,7 +20,7 @@ import {space} from 'sentry/styles/space';
 import type {Group} from 'sentry/types/group';
 import {percent} from 'sentry/utils';
 import {useLocation} from 'sentry/utils/useLocation';
-import {useGroupTags} from 'sentry/views/issueDetails/groupTags/useGroupTags';
+import useOrganization from 'sentry/utils/useOrganization';
 
 type GroupTagsProps = {
   baseUrl: string;
@@ -38,7 +39,8 @@ type SimpleTag = {
   totalValues: number;
 };
 
-function GroupTagsTab({group, baseUrl, environments}: GroupTagsProps) {
+function GroupTags({group, baseUrl, environments}: GroupTagsProps) {
+  const organization = useOrganization();
   const location = useLocation();
 
   const {
@@ -46,7 +48,8 @@ function GroupTagsTab({group, baseUrl, environments}: GroupTagsProps) {
     isPending,
     isError,
     refetch,
-  } = useGroupTags({
+  } = useFetchIssueTags({
+    orgSlug: organization.slug,
     groupId: group.id,
     environment: environments,
   });
@@ -206,4 +209,4 @@ const TagBarCount = styled('div')`
   font-variant-numeric: tabular-nums;
 `;
 
-export default GroupTagsTab;
+export default GroupTags;

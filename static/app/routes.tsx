@@ -1808,9 +1808,7 @@ function buildRoutes() {
         />
         <Route
           path={TabPaths[Tab.TAGS]}
-          component={hoc(
-            make(() => import('sentry/views/issueDetails/groupTags/groupTags'))
-          )}
+          component={hoc(make(() => import('sentry/views/issueDetails/groupTags')))}
         />
         <Route
           path={`${TabPaths[Tab.TAGS]}:tagKey/`}

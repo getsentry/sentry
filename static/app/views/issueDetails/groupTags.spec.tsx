@@ -4,9 +4,9 @@ import {TagsFixture} from 'sentry-fixture/tags';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import GroupTagsTab from './groupTagsTab';
+import GroupTags from 'sentry/views/issueDetails/groupTags';
 
-describe('GroupTagsTab', function () {
+describe('GroupTags', function () {
   const {routerProps, router, organization} = initializeOrg();
   const group = GroupFixture();
   let tagsMock;
@@ -19,7 +19,7 @@ describe('GroupTagsTab', function () {
 
   it('navigates to issue details events tab with correct query params', async function () {
     render(
-      <GroupTagsTab
+      <GroupTags
         {...routerProps}
         group={group}
         environments={['dev']}
@@ -60,7 +60,7 @@ describe('GroupTagsTab', function () {
     });
 
     render(
-      <GroupTagsTab
+      <GroupTags
         {...routerProps}
         group={group}
         environments={['dev']}

@@ -1,7 +1,7 @@
 import {useMemo} from 'react';
 import orderBy from 'lodash/orderBy';
 
-import {bulkUpdate} from 'sentry/actionCreators/group';
+import {bulkUpdate, useFetchIssueTags} from 'sentry/actionCreators/group';
 import {Client} from 'sentry/api';
 import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
@@ -11,9 +11,9 @@ import type {Event} from 'sentry/types/event';
 import type {Group, GroupActivity, TagValue} from 'sentry/types/group';
 import {defined} from 'sentry/utils';
 import {useLocation} from 'sentry/utils/useLocation';
+import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {useUser} from 'sentry/utils/useUser';
-import {useGroupTagsReadable} from 'sentry/views/issueDetails/groupTags/useGroupTagsQuery';
 
 export function markEventSeen(
   api: Client,
@@ -190,6 +190,41 @@ export function getGroupReprocessingStatus(
   }
 }
 
+export const useFetchIssueTagsForDetailsPage = (
+  {
+    groupId,
+    orgSlug,
+    environment = [],
+    isStatisticalDetector = false,
+    statisticalDetectorParameters,
+  }: {
+    environment: string[];
+    orgSlug: string;
+    groupId?: string;
+    isStatisticalDetector?: boolean;
+    statisticalDetectorParameters?: {
+      durationBaseline: number;
+      end: string;
+      start: string;
+      transaction: string;
+    };
+  },
+  {enabled = true}: {enabled?: boolean} = {}
+) => {
+  return useFetchIssueTags(
+    {
+      groupId,
+      orgSlug,
+      environment,
+      readable: true,
+      limit: 4,
+      isStatisticalDetector,
+      statisticalDetectorParameters,
+    },
+    {enabled}
+  );
+};
+
 export function useEnvironmentsFromUrl(): string[] {
   const location = useLocation();
   const envs = location.query.environment;
@@ -249,16 +284,18 @@ export function useHasStreamlinedUI() {
 }
 
 export function useIsSampleEvent(): boolean {
-  const params = useParams<{groupId: string}>();
+  const params = useParams();
+  const organization = useOrganization();
   const environments = useEnvironmentsFromUrl();
 
   const groupId = params.groupId;
 
   const group = GroupStore.get(groupId);
 
-  const {data} = useGroupTagsReadable(
+  const {data} = useFetchIssueTagsForDetailsPage(
     {
       groupId: groupId,
+      orgSlug: organization.slug,
       environment: environments,
     },
     // Don't want this query to take precedence over the main requests

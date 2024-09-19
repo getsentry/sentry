@@ -1,6 +1,7 @@
 import {useCallback, useMemo} from 'react';
 import orderBy from 'lodash/orderBy';
 
+import {useFetchIssueTags} from 'sentry/actionCreators/group';
 import {fetchTagValues} from 'sentry/actionCreators/tags';
 import {
   SearchQueryBuilder,
@@ -22,7 +23,6 @@ import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {Dataset} from 'sentry/views/alerts/rules/metric/types';
 import {ALL_EVENTS_EXCLUDED_TAGS} from 'sentry/views/issueDetails/groupEvents';
-import {useGroupTags} from 'sentry/views/issueDetails/groupTags/useGroupTagsQuery';
 import {mergeAndSortTagValues} from 'sentry/views/issueDetails/utils';
 import {makeGetIssueTagValues} from 'sentry/views/issueList/utils/getIssueTagValues';
 
@@ -36,6 +36,7 @@ interface EventSearchProps {
 }
 
 export function useEventQuery({group}: {group: Group}): string {
+  const organization = useOrganization();
   const {selection} = usePageFilters();
   const location = useLocation();
   const environments = selection.environments;
@@ -48,7 +49,8 @@ export function useEventQuery({group}: {group: Group}): string {
     eventQuery = locationQuery;
   }
 
-  const {data = []} = useGroupTags({
+  const {data = []} = useFetchIssueTags({
+    orgSlug: organization.slug,
     groupId: group.id,
     environment: environments,
   });
@@ -136,7 +138,8 @@ export function EventSearch({
   const api = useApi();
   const organization = useOrganization();
 
-  const {data = []} = useGroupTags({
+  const {data = []} = useFetchIssueTags({
+    orgSlug: organization.slug,
     groupId: group.id,
     environment: environments,
   });
