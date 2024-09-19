@@ -14,6 +14,7 @@ from sentry.api.utils import get_date_range_from_stats_period
 from sentry.exceptions import InvalidParams
 from sentry.issues.endpoints.organization_group_index import ERR_INVALID_STATS_PERIOD
 from sentry.models.group import Group
+from sentry.models.organization import Organization
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
 
 
@@ -34,7 +35,7 @@ class OrganizationGroupIndexStatsEndpoint(OrganizationEndpoint):
         }
     }
 
-    def get(self, request: Request, organization) -> Response:
+    def get(self, request: Request, organization: Organization) -> Response:
         """
         Get the stats on an Organization's Issues
         `````````````````````````````

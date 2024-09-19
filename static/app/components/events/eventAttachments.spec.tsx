@@ -1,5 +1,8 @@
+import {ConfigFixture} from 'sentry-fixture/config';
 import {EventFixture} from 'sentry-fixture/event';
 import {EventAttachmentFixture} from 'sentry-fixture/eventAttachment';
+import {GroupFixture} from 'sentry-fixture/group';
+import {UserFixture} from 'sentry-fixture/user';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {
@@ -12,6 +15,7 @@ import {
 } from 'sentry-test/reactTestingLibrary';
 
 import {EventAttachments} from 'sentry/components/events/eventAttachments';
+import ConfigStore from 'sentry/stores/configStore';
 
 describe('EventAttachments', function () {
   const {router, organization, project} = initializeOrg({
@@ -23,14 +27,17 @@ describe('EventAttachments', function () {
   });
   const event = EventFixture({metadata: {stripped_crash: false}});
 
+  const defaultUser = UserFixture();
   const props = {
-    projectSlug: project.slug,
+    group: undefined,
+    project: project,
     event,
   };
 
   const attachmentsUrl = `/projects/${organization.slug}/${project.slug}/events/${event.id}/attachments/`;
 
   beforeEach(() => {
+    ConfigStore.loadInitialData(ConfigFixture());
     MockApiClient.clearMockResponses();
   });
 
@@ -56,7 +63,7 @@ describe('EventAttachments', function () {
 
     expect(screen.getByRole('link', {name: 'configure limit'})).toHaveAttribute(
       'href',
-      `/settings/org-slug/projects/${props.projectSlug}/security-and-privacy/`
+      `/settings/org-slug/projects/${project.slug}/security-and-privacy/`
     );
 
     expect(
@@ -140,7 +147,7 @@ describe('EventAttachments', function () {
     });
 
     MockApiClient.addMockResponse({
-      url: '/projects/org-slug/project-slug/events/1/attachments/1/?download',
+      url: `/projects/${organization.slug}/${project.slug}/events/${event.id}/attachments/1/?download`,
       body: 'file contents',
     });
 
@@ -186,5 +193,40 @@ describe('EventAttachments', function () {
       expect(deleteMock).toHaveBeenCalled();
       expect(screen.queryByTestId('pic_1.png')).not.toBeInTheDocument();
     });
+  });
+
+  it('can open the group attachments drawer', async function () {
+    const group = GroupFixture();
+    const attachment1 = EventAttachmentFixture();
+    MockApiClient.addMockResponse({
+      url: attachmentsUrl,
+      body: [attachment1],
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/issues/${group.id}/attachments/`,
+      body: [attachment1],
+    });
+
+    // Enable streamlined UI
+    ConfigStore.set(
+      'user',
+      UserFixture({
+        ...defaultUser,
+        options: {
+          ...defaultUser.options,
+          prefersIssueDetailsStreamlinedUI: true,
+        },
+      })
+    );
+
+    render(<EventAttachments {...props} group={group} />, {router, organization});
+
+    expect(await screen.findByText('Attachments (1)')).toBeInTheDocument();
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole('button', {name: 'View All Attachments'}));
+    expect(
+      await screen.findByRole('complementary', {name: 'attachments drawer'})
+    ).toBeInTheDocument();
   });
 });
