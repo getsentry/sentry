@@ -1,17 +1,18 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
+import ClippedBox from 'sentry/components/clippedBox';
 import {CodeSnippet} from 'sentry/components/codeSnippet';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {IconOpen} from 'sentry/icons';
+import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {SQLishFormatter} from 'sentry/utils/sqlish/SQLishFormatter';
+import {useLocation} from 'sentry/utils/useLocation';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import {useFullSpanFromTrace} from 'sentry/views/insights/common/queries/useFullSpanFromTrace';
 import {prettyPrintJsonString} from 'sentry/views/insights/database/utils/jsonUtils';
 import {ModuleName} from 'sentry/views/insights/types';
-import Alert from 'sentry/components/alert';
-import {t} from 'sentry/locale';
-import ClippedBox, {ClipFade} from 'sentry/components/clippedBox';
-import {IconOpen} from 'sentry/icons';
 
 const formatter = new SQLishFormatter();
 
@@ -38,6 +39,9 @@ export function FullSpanDescription({
     isLoading,
     isFetching,
   } = useFullSpanFromTrace(group, [INDEXED_SPAN_SORT], Boolean(group), filters);
+
+  const navigate = useNavigate();
+  const location = useLocation();
 
   const description = fullSpan?.description ?? shortDescription;
   const system = fullSpan?.data?.['db.system'];
@@ -80,9 +84,14 @@ export function FullSpanDescription({
       if (shouldDisplayTruncatedWarning) {
         return (
           <StyledClippedBox
-            onReveal={console.log}
             btnText={t('View full query')}
-            buttonProps={{icon: <IconOpen />}}
+            buttonProps={{
+              icon: <IconOpen />,
+              onClick: () =>
+                navigate({
+                  pathname: `${location.pathname}spans/span/${group}/`,
+                }),
+            }}
           >
             <CodeSnippet language="json">{stringifiedQuery}</CodeSnippet>
           </StyledClippedBox>

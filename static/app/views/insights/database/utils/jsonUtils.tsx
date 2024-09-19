@@ -10,9 +10,9 @@ export const isValidJson = (str: string) => {
 };
 
 export function prettyPrintJsonString(json: string): {
-  prettifiedQuery: string;
-  isTruncated: boolean;
   failed: boolean;
+  isTruncated: boolean;
+  prettifiedQuery: string;
 } {
   try {
     return {
