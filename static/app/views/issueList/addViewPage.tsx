@@ -11,7 +11,9 @@ import {IconMegaphone} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {SavedSearch} from 'sentry/types/group';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {useFeedbackForm} from 'sentry/utils/useFeedbackForm';
+import useOrganization from 'sentry/utils/useOrganization';
 import {OverflowEllipsisTextContainer} from 'sentry/views/insights/common/components/textAlign';
 import {NewTabContext} from 'sentry/views/issueList/utils/newTabContext';
 
@@ -23,6 +25,7 @@ type SearchSuggestion = {
 interface SearchSuggestionListProps {
   searchSuggestions: SearchSuggestion[];
   title: React.ReactNode;
+  type: 'recommended' | 'saved_searches';
 }
 
 const RECOMMENDED_SEARCHES: SearchSuggestion[] = [
@@ -71,6 +74,7 @@ function AddViewPage({savedSearches}: {savedSearches: SavedSearch[]}) {
       <SearchSuggestionList
         title={'Recommended Searches'}
         searchSuggestions={RECOMMENDED_SEARCHES}
+        type="recommended"
       />
       {savedSearches && savedSearches.length !== 0 && (
         <SearchSuggestionList
@@ -81,14 +85,20 @@ function AddViewPage({savedSearches}: {savedSearches: SavedSearch[]}) {
               query: search.query,
             };
           })}
+          type="saved_searches"
         />
       )}
     </AddViewWrapper>
   );
 }
 
-function SearchSuggestionList({title, searchSuggestions}: SearchSuggestionListProps) {
+function SearchSuggestionList({
+  title,
+  searchSuggestions,
+  type,
+}: SearchSuggestionListProps) {
   const {onNewViewSaved} = useContext(NewTabContext);
+  const organization = useOrganization();
 
   return (
     <Suggestions>
@@ -97,7 +107,19 @@ function SearchSuggestionList({title, searchSuggestions}: SearchSuggestionListPr
         {searchSuggestions.map((suggestion, index) => (
           <Suggestion
             key={index}
-            onClick={() => onNewViewSaved?.(suggestion.label, suggestion.query, false)}
+            onClick={() => {
+              onNewViewSaved?.(suggestion.label, suggestion.query, false);
+              const analyticsKey =
+                type === 'recommended'
+                  ? 'issue_views.add_view.recommended_view_saved'
+                  : 'issue_views.add_view.saved_search_saved';
+              trackAnalytics(analyticsKey, {
+                organization,
+                persisted: false,
+                label: suggestion.label,
+                query: suggestion.query,
+              });
+            }}
           >
             {/*
             Saved search labels have an average length of approximately 16 characters
@@ -114,6 +136,16 @@ function SearchSuggestionList({title, searchSuggestions}: SearchSuggestionListPr
                   onClick={e => {
                     e.stopPropagation();
                     onNewViewSaved?.(suggestion.label, suggestion.query, true);
+                    const analyticsKey =
+                      type === 'recommended'
+                        ? 'issue_views.add_view.recommended_view_saved'
+                        : 'issue_views.add_view.saved_search_saved';
+                    trackAnalytics(analyticsKey, {
+                      organization,
+                      persisted: true,
+                      label: suggestion.label,
+                      query: suggestion.query,
+                    });
                   }}
                   borderless
                 >
