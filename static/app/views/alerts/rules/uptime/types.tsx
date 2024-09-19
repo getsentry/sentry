@@ -12,8 +12,11 @@ export enum UptimeMonitorMode {
 }
 
 export interface UptimeRule {
+  body: string;
+  headers: Record<string, string>;
   id: string;
   intervalSeconds: number;
+  method: string;
   mode: UptimeMonitorMode;
   name: string;
   owner: Actor;

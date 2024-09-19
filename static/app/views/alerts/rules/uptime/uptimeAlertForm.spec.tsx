@@ -4,7 +4,7 @@ import {TeamFixture} from 'sentry-fixture/team';
 import {UptimeRuleFixture} from 'sentry-fixture/uptimeRule';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {render, screen} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import OrganizationStore from 'sentry/stores/organizationStore';
 import {UptimeAlertForm} from 'sentry/views/alerts/rules/uptime/uptimeAlertForm';
@@ -48,5 +48,35 @@ describe('Uptime Alert Form', function () {
     expect(await screen.findByRole('textbox', {name: 'URL'})).toHaveValue(
       'https://existing-url.com'
     );
+  });
+
+  it('allows multiple headers to be added', async function () {
+    const {organization, project} = initializeOrg();
+    OrganizationStore.onUpdate(organization);
+
+    const rule = UptimeRuleFixture({
+      name: 'Existing Rule',
+      url: 'https://existing-url.com',
+      projectSlug: project.slug,
+      owner: ActorFixture(),
+    });
+    render(
+      <UptimeAlertForm
+        apiMethod="PUT"
+        apiUrl={''}
+        project={project}
+        onSubmitSuccess={() => {}}
+        rule={rule}
+      />,
+      {organization}
+    );
+
+    userEvent.click(await screen.findByRole('button', {name: 'Add Header'}));
+    expect(
+      await screen.findByRole('textbox', {name: 'header_key_0'})
+    ).toBeInTheDocument();
+    expect(
+      await screen.findByRole('textbox', {name: 'header_value_0'})
+    ).toBeInTheDocument();
   });
 });
