@@ -105,6 +105,7 @@ export function PipelineSpansTable({groupId, useEAP}: Props) {
         SpanIndexedField.PROJECT,
       ],
       search: new MutableSearch(`span.category:ai.pipeline span.group:"${groupId}"`),
+      enabled: !useEAP,
     },
     'api.ai-pipelines.view'
   );
@@ -128,6 +129,7 @@ export function PipelineSpansTable({groupId, useEAP}: Props) {
         SpanIndexedField.PROJECT,
       ],
       search: new MutableSearch(`span.category:ai.pipeline span.group:"${groupId}"`),
+      enabled: useEAP,
     },
     'api.ai-pipelines.view'
   );

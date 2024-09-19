@@ -44,6 +44,7 @@ function useAIPipelineGroup({
       limit: 1,
       fields: [SpanIndexedField.SPAN_AI_PIPELINE_GROUP],
       search: new MutableSearch(`trace:${traceId} id:"${spanId}"`),
+      enabled: !useEAP,
     },
     'api.ai-pipelines.view'
   );
@@ -52,6 +53,7 @@ function useAIPipelineGroup({
       limit: 1,
       fields: [SpanIndexedField.SPAN_AI_PIPELINE_GROUP_TAG],
       search: new MutableSearch(`trace:${traceId} id:"${spanId}"`),
+      enabled: useEAP,
     },
     'api.ai-pipelines-eap.view'
   );

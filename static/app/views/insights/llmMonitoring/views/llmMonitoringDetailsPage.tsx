@@ -71,7 +71,7 @@ export function LLMMonitoringPage({params}: Props) {
         `${SpanFunction.SPM}()`,
         `avg(${SpanMetricsField.SPAN_DURATION})`,
       ],
-      enabled: Boolean(groupId),
+      enabled: Boolean(groupId) && !useEAP,
     },
     'api.ai-pipelines.details.view'
   );
@@ -85,7 +85,7 @@ export function LLMMonitoringPage({params}: Props) {
         `${SpanFunction.SPM}()`,
         `avg(${SpanMetricsField.SPAN_DURATION})`,
       ],
-      enabled: Boolean(groupId),
+      enabled: Boolean(groupId) && useEAP,
     },
     'api.ai-pipelines.details-eap.view'
   );
@@ -98,7 +98,7 @@ export function LLMMonitoringPage({params}: Props) {
         'span.ai.pipeline.group': groupId,
       }),
       fields: ['sum(ai.total_tokens.used)', 'sum(ai.total_cost)'],
-      enabled: Boolean(groupId),
+      enabled: Boolean(groupId) && !useEAP,
     },
     'api.ai-pipelines.details.view'
   );
@@ -110,7 +110,7 @@ export function LLMMonitoringPage({params}: Props) {
         'span.ai.pipeline.group': groupId,
       }),
       fields: ['sum(ai.total_tokens.used)', 'sum(ai.total_cost)'],
-      enabled: Boolean(groupId),
+      enabled: Boolean(groupId) && useEAP,
     },
     'api.ai-pipelines.details.view'
   );
