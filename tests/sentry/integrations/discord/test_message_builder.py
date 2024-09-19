@@ -13,7 +13,7 @@ from sentry.incidents.models.alert_rule import (
     AlertRuleSensitivity,
 )
 from sentry.incidents.models.incident import IncidentStatus
-from sentry.integrations.discord.message_builder import LEVEL_TO_COLOR
+from sentry.integrations.discord.message_builder.constants import LEVEL_TO_COLOR
 from sentry.integrations.discord.message_builder.metric_alerts import (
     DiscordMetricAlertMessageBuilder,
     get_started_at,
