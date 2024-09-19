@@ -211,10 +211,10 @@ class WidgetCardChart extends Component<WidgetCardChartProps> {
 
       if (
         organization.features.includes('dashboards-bignumber-equations') &&
-        defined(this.props.widget.queries[0].selectedAggregate)
+        defined(widget.queries[0].selectedAggregate)
       ) {
-        const index = this.props.widget.queries[0].selectedAggregate;
-        field = this.props.widget.queries[0].aggregates[index];
+        const index = widget.queries[0].selectedAggregate;
+        field = widget.queries[0].aggregates[index];
       }
 
       // Change tableMeta for the field from integer to string since we will be rendering with toLocaleString
