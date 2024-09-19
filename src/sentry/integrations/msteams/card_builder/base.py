@@ -10,9 +10,6 @@ from sentry.integrations.msteams.card_builder.block import (
     create_text_block,
 )
 
-ME = "ME"
-MSTEAMS_URL_FORMAT = "[{text}]({url})"
-
 
 class MSTeamsMessageBuilder:
     def build(

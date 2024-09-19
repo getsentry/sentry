@@ -5,13 +5,10 @@ from datetime import datetime
 
 from sentry.incidents.models.alert_rule import AlertRule
 from sentry.incidents.models.incident import Incident, IncidentStatus
+from sentry.integrations.discord.message_builder import INCIDENT_COLOR_MAPPING, LEVEL_TO_COLOR
 from sentry.integrations.discord.message_builder.base.base import DiscordMessageBuilder
 from sentry.integrations.discord.message_builder.base.embed.base import DiscordMessageEmbed
 from sentry.integrations.discord.message_builder.base.embed.image import DiscordMessageEmbedImage
-from sentry.integrations.discord.message_builder.constants import (
-    INCIDENT_COLOR_MAPPING,
-    LEVEL_TO_COLOR,
-)
 from sentry.integrations.metric_alerts import metric_alert_attachment_info
 
 

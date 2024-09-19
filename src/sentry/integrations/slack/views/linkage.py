@@ -9,8 +9,9 @@ from sentry.integrations.slack.utils.notifications import (
     SlackCommandResponse,
     respond_to_slack_command,
 )
-from sentry.integrations.slack.views.base import SALT
 from sentry.integrations.types import ExternalProviderEnum, ExternalProviders
+
+from . import SALT
 
 
 class SlackLinkageView(LinkageView, ABC):

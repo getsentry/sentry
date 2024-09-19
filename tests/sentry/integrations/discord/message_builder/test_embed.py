@@ -1,7 +1,7 @@
+from sentry.integrations.discord.message_builder import LEVEL_TO_COLOR
 from sentry.integrations.discord.message_builder.base.embed.base import DiscordMessageEmbed
 from sentry.integrations.discord.message_builder.base.embed.field import DiscordMessageEmbedField
 from sentry.integrations.discord.message_builder.base.embed.footer import DiscordMessageEmbedFooter
-from sentry.integrations.discord.message_builder.constants import LEVEL_TO_COLOR
 from sentry.testutils.cases import TestCase
 
 
