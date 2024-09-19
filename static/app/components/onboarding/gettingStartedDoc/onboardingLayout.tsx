@@ -142,7 +142,7 @@ export function OnboardingLayout({
     <AuthTokenGeneratorProvider projectSlug={projectSlug}>
       <Wrapper>
         <Header>
-          {introduction && <div>{introduction}</div>}
+          {introduction && <Introduction>{introduction}</Introduction>}
           {configType === 'onboarding' && (
             <ProductSelectionAvailabilityHook
               organization={organization}
@@ -217,5 +217,11 @@ const Wrapper = styled('div')`
     h5 {
       margin-bottom: 0;
     }
+  }
+`;
+
+const Introduction = styled('div')`
+  & > p:not(:last-child) {
+    margin-bottom: ${space(2)};
   }
 `;

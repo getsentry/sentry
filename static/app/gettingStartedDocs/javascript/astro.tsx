@@ -1,5 +1,4 @@
 import {Fragment} from 'react';
-import {css} from '@emotion/react';
 
 import ExternalLink from 'sentry/components/links/externalLink';
 import crashReportCallout from 'sentry/components/onboarding/gettingStartedDoc/feedback/crashReportCallout';
@@ -25,8 +24,6 @@ import {
   getReplayVerifyStep,
 } from 'sentry/components/onboarding/gettingStartedDoc/utils/replayOnboarding';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
-import TextBlock from 'sentry/views/settings/components/text/textBlock';
 
 type Params = DocsParams;
 
@@ -100,23 +97,19 @@ const getInstallConfig = () => [
 const onboarding: OnboardingConfig = {
   introduction: () => (
     <Fragment>
-      <div
-        css={css`
-          margin-bottom: ${space(2)};
-        `}
-      >
+      <p>
         {tct(
           "Sentry's integration with [astroLink:Astro] supports Astro 3.0.0 and above.",
           {
             astroLink: <ExternalLink href="https://astro.build/" />,
           }
         )}
-      </div>
-      <TextBlock noMargin>
+      </p>
+      <p>
         {tct("In this quick guide you'll use the [astrocli:astro] CLI to set up:", {
           astrocli: <strong />,
         })}
-      </TextBlock>
+      </p>
     </Fragment>
   ),
   install: () => getInstallConfig(),
