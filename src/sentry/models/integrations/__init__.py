@@ -1,13 +1,11 @@
 __all__ = (
     "SentryApp",
-    "SentryAppComponent",
     "SentryAppInstallationForProvider",
 )
 
 
 # REQUIRED for migrations to run.
 from sentry.integrations.types import ExternalProviders  # NOQA
-from sentry.models.integrations.sentry_app_component import SentryAppComponent
 from sentry.models.integrations.sentry_app_installation_for_provider import (
     SentryAppInstallationForProvider,
 )
