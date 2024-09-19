@@ -117,20 +117,6 @@ class MessagingIntegrationCommandDispatcher(Generic[R], ABC):
     ) -> Iterable[tuple[MessagingIntegrationCommand, Callable[[CommandInput], R]]]:
         raise NotImplementedError
 
-    _R = TypeVar("_R")
-
-    @dataclass(frozen=True)
-    class _CandidateHandler(Generic[_R]):
-        command: MessagingIntegrationCommand
-        slug: CommandSlug
-        callback: Callable[[CommandInput], "MessagingIntegrationCommandDispatcher._R"]
-
-        def parsing_order(self) -> int:
-            # Sort by descending length of arg tokens. If one slug is a prefix of
-            # another (e.g., "link" and "link team"), we must check for the longer
-            # one first.
-            return -len(self.slug.tokens)
-
     def get_event(self, command: MessagingIntegrationCommand) -> MessagingInteractionEvent:
         return MessagingInteractionEvent(
             interaction_type=command.interaction_type,
@@ -138,12 +124,24 @@ class MessagingIntegrationCommandDispatcher(Generic[R], ABC):
         )
 
     def dispatch(self, cmd_input: CommandInput) -> R:
+        @dataclass(frozen=True)
+        class CandidateHandler:
+            command: MessagingIntegrationCommand
+            slug: CommandSlug
+            callback: Callable[[CommandInput], R]
+
+            def parsing_order(self) -> int:
+                # Sort by descending length of arg tokens. If one slug is a prefix of
+                # another (e.g., "link" and "link team"), we must check for the longer
+                # one first.
+                return -len(self.slug.tokens)
+
         candidate_handlers = [
-            self._CandidateHandler(command, slug, callback)
+            CandidateHandler(command, slug, callback)
             for (command, callback) in self.command_handlers
             for slug in command.get_all_command_slugs()
         ]
-        candidate_handlers.sort(key=self._CandidateHandler.parsing_order)
+        candidate_handlers.sort(key=CandidateHandler.parsing_order)
 
         for handler in candidate_handlers:
             if handler.slug.does_match(cmd_input):
