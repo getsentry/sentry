@@ -34,7 +34,7 @@ export function WidgetFrame(props: Props) {
         )}
       </Header>
 
-      <Content>{children}</Content>
+      <VisualizationWrapper>{children}</VisualizationWrapper>
     </Frame>
   );
 }
@@ -81,7 +81,7 @@ const TitleText = styled(HeaderTitle)`
   font-weight: ${p => p.theme.fontWeightBold};
 `;
 
-const Content = styled('div')`
+const VisualizationWrapper = styled('div')`
   display: flex;
   flex-grow: 1;
 `;
