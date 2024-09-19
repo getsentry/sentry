@@ -8,7 +8,7 @@ from sentry.mediators.external_requests.alert_rule_action_requester import (
 )
 from sentry.mediators.mediator import Mediator
 from sentry.mediators.param import Param
-from sentry.models.integrations.sentry_app_component import SentryAppComponent
+from sentry.sentry_apps.models.sentry_app_component import SentryAppComponent
 from sentry.sentry_apps.models.sentry_app_installation import SentryAppInstallation
 
 

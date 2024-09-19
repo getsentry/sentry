@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from sentry.api.serializers import Serializer, register
 from sentry.api.serializers.base import serialize
-from sentry.models.integrations.sentry_app_component import SentryAppComponent
+from sentry.sentry_apps.models.sentry_app_component import SentryAppComponent
 from sentry.sentry_apps.services.app import SentryAppEventDataInterface
 
 
