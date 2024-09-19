@@ -106,7 +106,8 @@ function FormPanel({
               {...otherProps}
               {...additionalFieldProps}
               field={fieldConfig}
-              highlighted={otherProps.highlighted === `#${field.name}`}
+              // highlighted={otherProps.highlighted === `#${field.name}`}
+              highlighted={false}
             />
           );
         })}

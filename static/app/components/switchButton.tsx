@@ -25,16 +25,16 @@ function Switch({
   isLoading,
   isDisabled,
   toggle,
-  id,
-  name,
+  // id,
+  // name,
   className,
   ...props
 }: Props) {
   return (
     <SwitchButton
       ref={forwardedRef}
-      id={id}
-      name={name}
+      // id={id}
+      // name={name}
       type="button"
       className={className}
       onClick={isDisabled ? undefined : toggle}
