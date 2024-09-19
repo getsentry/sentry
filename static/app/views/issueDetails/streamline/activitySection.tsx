@@ -20,8 +20,7 @@ function StreamlinedActivitySection({group}: {group: Group}) {
             item,
             organization,
             group.project.id,
-            <Author>{authorName}</Author>,
-            group
+            <Author>{authorName}</Author>
           );
           return (
             <Timeline.Item

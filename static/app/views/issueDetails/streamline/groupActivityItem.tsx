@@ -11,7 +11,6 @@ import PullRequestLink from 'sentry/components/pullRequestLink';
 import Version from 'sentry/components/version';
 import {t, tct, tn} from 'sentry/locale';
 import type {
-  Group,
   GroupActivity,
   GroupActivityAssigned,
   GroupActivitySetEscalating,
@@ -28,12 +27,9 @@ export default function getGroupActivityItem(
   activity: GroupActivity,
   organization: Organization,
   projectId: Project['id'],
-  author: React.ReactNode,
-  group: Group
+  author: React.ReactNode
 ) {
   const issuesLink = `/organizations/${organization.slug}/issues/`;
-  const isFeedback = (group.issueCategory as string) === 'feedback';
-  const issueType = isFeedback ? t('feedback') : t('issue');
 
   const {teams} = useTeamsById(
     activity.type === GroupActivityType.ASSIGNED && activity.data.assigneeType === 'team'
@@ -161,7 +157,6 @@ export default function getGroupActivityItem(
       message: tct('by [author] to [assignee]. [assignedReason]', {
         author,
         assignee,
-        issueType,
         assignedReason: data.integration && integrationName[data.integration] && (
           <CodeWrapper>
             {t('Assigned via %s', integrationName[data.integration])}
@@ -277,7 +272,6 @@ export default function getGroupActivityItem(
               </Link>
             ),
             author,
-            issueType,
           });
         } else {
           resolvedMessage = tct('by [author]', {author});
@@ -373,7 +367,6 @@ export default function getGroupActivityItem(
                     repository={activity.data.commit.repository}
                   />
                 ),
-                break: <br />,
                 release: (
                   <Version
                     version={deployedReleases[0].version}
@@ -451,13 +444,12 @@ export default function getGroupActivityItem(
                 </Link>
               ),
               author,
-              issueType,
             }),
           };
         }
         return {
           title: t('Unresolved'),
-          message: tct('by [author] as unresolved', {author, issueType}),
+          message: tct('by [author] as unresolved', {author}),
         };
       }
       case GroupActivityType.SET_IGNORED: {
@@ -609,7 +601,7 @@ export default function getGroupActivityItem(
       case GroupActivityType.UNASSIGNED:
         return {
           title: t('Unassigned'),
-          message: tct('by [author]', {author, issueType}),
+          message: tct('by [author]', {author}),
         };
 
       case GroupActivityType.REPROCESS: {
