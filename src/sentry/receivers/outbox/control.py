@@ -22,12 +22,12 @@ from sentry.integrations.models.integration import Integration
 from sentry.issues.services.issue import issue_service
 from sentry.models.apiapplication import ApiApplication
 from sentry.models.files.utils import get_relocation_storage
-from sentry.models.integrations.sentry_app_installation import SentryAppInstallation
 from sentry.models.organizationmapping import OrganizationMapping
 from sentry.organizations.services.organization import RpcOrganizationSignal, organization_service
 from sentry.receivers.outbox import maybe_process_tombstone
 from sentry.relocation.services.relocation_export.service import region_relocation_export_service
 from sentry.sentry_apps.models.sentry_app import SentryApp
+from sentry.sentry_apps.models.sentry_app_installation import SentryAppInstallation
 from sentry.sentry_apps.services.app.service import get_by_application_id, get_installation
 
 logger = logging.getLogger(__name__)
@@ -165,6 +165,9 @@ def process_relocation_reply_with_export(payload: Mapping[str, Any], **kwds):
     try:
         encrypted_bytes = relocation_storage.open(path)
     except Exception:
+        # TODO(mark) remove this after the stuck outbox is cleared
+        if slug == "test-reloc-ct":
+            return
         raise FileNotFoundError("Could not open SaaS -> SaaS export in proxy relocation bucket.")
 
     with encrypted_bytes:
