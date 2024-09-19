@@ -16,6 +16,19 @@ export default storyBook(BigNumberWidget, story => {
           a single large value. Used in places like Dashboards Big Number widgets, Project
           Details pages, and Organization Stats pages.
         </p>
+      </Fragment>
+    );
+  });
+
+  story('Visualization', () => {
+    return (
+      <Fragment>
+        <p>
+          The visualization of <JSXNode name="BigNumberWidget" /> a large number, just
+          like it says on the tin. Depending on the data passed to it, it intelligently
+          rounds and humanizes the results. If the number is humanized, hovering over the
+          visualization shows a tooltip with the full value.
+        </p>
 
         <SideBySide>
           <SmallSizingWindow>
@@ -55,6 +68,25 @@ export default storyBook(BigNumberWidget, story => {
               }}
             />
           </SmallSizingWindow>
+          <SmallSizingWindow>
+            <BigNumberWidget
+              title="Query Duration"
+              description="p95(span.duration)"
+              data={[
+                {
+                  'p95(span.duration)': 17.28,
+                },
+              ]}
+              meta={{
+                fields: {
+                  'p95(span.duration)': 'duration',
+                },
+                units: {
+                  'p95(spa.duration)': 'milliseconds',
+                },
+              }}
+            />
+          </SmallSizingWindow>
         </SideBySide>
       </Fragment>
     );
@@ -62,6 +94,6 @@ export default storyBook(BigNumberWidget, story => {
 });
 
 const SmallSizingWindow = styled(SizingWindow)`
-  width: 300px;
+  width: auto;
   height: 200px;
 `;
