@@ -29,7 +29,7 @@ def sync_assignee_outbound(
     external_issue_id: int,
     user_id: int | None,
     assign: bool,
-    assignment_source: AssignmentSource | None = None,
+    assignment_source_json: str | None = None,
 ) -> None:
     # Sync Sentry assignee to an external issue.
     external_issue = ExternalIssue.objects.get(id=external_issue_id)
@@ -48,11 +48,14 @@ def sync_assignee_outbound(
     ):
         return
 
-    if installation.should_sync("outbound_assignee", assignment_source):
+    parsed_assignment_source = (
+        AssignmentSource.from_json(assignment_source_json) if assignment_source_json else None
+    )
+    if installation.should_sync("outbound_assignee", parsed_assignment_source):
         # Assume unassign if None.
         user = user_service.get_user(user_id) if user_id else None
         installation.sync_assignee_outbound(
-            external_issue, user, assign=assign, assignment_source=assignment_source
+            external_issue, user, assign=assign, assignment_source=parsed_assignment_source
         )
         analytics.record(
             "integration.issue.assignee.synced",

@@ -151,7 +151,10 @@ class GroupAssigneeTestCase(TestCase):
                 GroupAssignee.objects.assign(self.group, self.user)
 
                 mock_sync_assignee_outbound.assert_called_with(
-                    external_issue, user_service.get_user(self.user.id), assign=True
+                    external_issue,
+                    user_service.get_user(self.user.id),
+                    assign=True,
+                    assignment_source=None,
                 )
 
                 assert GroupAssignee.objects.filter(
@@ -205,7 +208,9 @@ class GroupAssigneeTestCase(TestCase):
         with self.feature({"organizations:integrations-issue-sync": True}):
             with self.tasks():
                 GroupAssignee.objects.deassign(self.group)
-                mock_sync_assignee_outbound.assert_called_with(external_issue, None, assign=False)
+                mock_sync_assignee_outbound.assert_called_with(
+                    external_issue, None, assign=False, assignment_source=None
+                )
 
                 assert not GroupAssignee.objects.filter(
                     project=self.group.project,
