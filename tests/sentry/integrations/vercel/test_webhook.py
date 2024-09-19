@@ -13,7 +13,7 @@ from fixtures.vercel import (
     SIGNATURE,
 )
 from sentry import VERSION
-from sentry.models.integrations.sentry_app_installation_token import SentryAppInstallationToken
+from sentry.sentry_apps.models.sentry_app_installation_token import SentryAppInstallationToken
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers import override_options

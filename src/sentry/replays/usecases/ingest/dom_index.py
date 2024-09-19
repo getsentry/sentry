@@ -310,6 +310,7 @@ def _should_report_hydration_error_issue(project: Project) -> bool:
     ) and project.get_option("sentry:replay_hydration_error_issues")
 
 
+<<<<<<< aliu/reduce-dom-index-queries
 def _should_report_rage_click_issue(project: Project) -> bool:
     """
     The feature is controlled by Sentry admins for release of the feature,
@@ -320,6 +321,11 @@ def _should_report_rage_click_issue(project: Project) -> bool:
         "organizations:session-replay-rage-click-issue-creation",
         project.organization,
     ) and project.get_option("sentry:replay_rage_click_issues")
+=======
+def _should_report_rage_click_issue(project_id: int) -> bool:
+    project = Project.objects.get(id=project_id)
+    return project.get_option("sentry:replay_rage_click_issues")
+>>>>>>> master
 
 
 def _iter_custom_events(events: list[dict[str, Any]]) -> Generator[dict[str, Any]]:
