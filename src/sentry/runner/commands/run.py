@@ -270,6 +270,16 @@ def taskworker(**options: Any) -> None:
 
 
 @run.command()
+@log_options()
+@configuration
+def kafka_task_grpc_server(**options: Any) -> None:
+    from sentry.taskworker.grpc_server import serve
+
+    with managed_bgtasks(role="taskworker"):
+        serve()
+
+
+@run.command()
 @click.option(
     "--pidfile",
     help=(
