@@ -7,7 +7,7 @@ from slack_sdk.errors import SlackApiError
 from slack_sdk.web.slack_response import SlackResponse
 
 from sentry.constants import ObjectStatus
-from sentry.integrations.slack import SlackNotifyServiceAction
+from sentry.integrations.slack.actions.notification import SlackNotifyServiceAction
 from sentry.integrations.slack.utils.constants import SLACK_RATE_LIMITED_MESSAGE
 from sentry.integrations.types import ExternalProviders
 from sentry.notifications.additional_attachment_manager import manager

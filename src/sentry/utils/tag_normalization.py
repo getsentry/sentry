@@ -20,6 +20,7 @@ _KNOWN_TAGS = {
     "sentry.javascript.browser",
     "sentry.javascript.capacitor",
     "sentry.javascript.cordova",
+    "sentry.javascript.cloudflare",
     "sentry.javascript.deno",
     "sentry.javascript.electron",
     "sentry.javascript.ember",

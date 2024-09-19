@@ -29,6 +29,6 @@ export default function useReleaseSessions({
       ],
       [organizationSlug, projectId, releaseVersion]
     ),
-    cacheTime: 5000,
+    gcTime: 5000,
   });
 }

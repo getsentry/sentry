@@ -1,19 +1,19 @@
 import Feature from 'sentry/components/acl/feature';
 import FeatureDisabled from 'sentry/components/acl/featureDisabled';
+import * as Layout from 'sentry/components/layouts/thirds';
 import {t} from 'sentry/locale';
 import type {Group} from 'sentry/types/group';
 import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
-import type {Organization} from 'sentry/types/organization';
-import withOrganization from 'sentry/utils/withOrganization';
+import useOrganization from 'sentry/utils/useOrganization';
 
 import GroupEventAttachments from './groupEventAttachments';
 
 type Props = RouteComponentProps<{groupId: string}, {}> & {
   group: Group;
-  organization: Organization;
 };
 
-function GroupEventAttachmentsContainer({organization, group}: Props) {
+function GroupEventAttachmentsContainer({group}: Props) {
+  const organization = useOrganization();
   return (
     <Feature
       features="event-attachments"
@@ -22,9 +22,13 @@ function GroupEventAttachmentsContainer({organization, group}: Props) {
         <FeatureDisabled {...props} featureName={t('Event Attachments')} />
       )}
     >
-      <GroupEventAttachments project={group.project} />
+      <Layout.Body>
+        <Layout.Main fullWidth>
+          <GroupEventAttachments project={group.project} groupId={group.id} />
+        </Layout.Main>
+      </Layout.Body>
     </Feature>
   );
 }
 
-export default withOrganization(GroupEventAttachmentsContainer);
+export default GroupEventAttachmentsContainer;

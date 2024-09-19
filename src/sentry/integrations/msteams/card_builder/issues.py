@@ -5,7 +5,7 @@ from collections.abc import Sequence
 from datetime import datetime
 from typing import Any
 
-from sentry.eventstore.models import Event
+from sentry.eventstore.models import Event, GroupEvent
 from sentry.integrations.messaging.message_builder import (
     build_attachment_text,
     build_attachment_title,
@@ -13,28 +13,22 @@ from sentry.integrations.messaging.message_builder import (
     format_actor_option_non_slack,
     format_actor_options_non_slack,
 )
-from sentry.integrations.msteams.card_builder import ME, MSTEAMS_URL_FORMAT
+from sentry.integrations.msteams.card_builder.base import (
+    ME,
+    MSTEAMS_URL_FORMAT,
+    MSTeamsMessageBuilder,
+)
 from sentry.integrations.msteams.card_builder.block import (
     Action,
+    ActionType,
     AdaptiveCard,
     Block,
     ColumnSetBlock,
     ContainerBlock,
+    ContentAlignment,
     ShowCardAction,
     SubmitAction,
     TextBlock,
-)
-from sentry.integrations.msteams.card_builder.utils import IssueConstants
-from sentry.integrations.services.integration import RpcIntegration
-from sentry.models.group import Group, GroupStatus
-from sentry.models.project import Project
-from sentry.models.rule import Rule
-
-from ..utils import ACTION_TYPE
-from .base import MSTeamsMessageBuilder
-from .block import (
-    ActionType,
-    ContentAlignment,
     TextSize,
     TextWeight,
     create_action_set_block,
@@ -47,13 +41,23 @@ from .block import (
     create_input_choice_set_block,
     create_text_block,
 )
+from sentry.integrations.msteams.card_builder.utils import IssueConstants
+from sentry.integrations.msteams.utils import ACTION_TYPE
+from sentry.integrations.services.integration import RpcIntegration
+from sentry.models.group import Group, GroupStatus
+from sentry.models.project import Project
+from sentry.models.rule import Rule
 
 logger = logging.getLogger(__name__)
 
 
 class MSTeamsIssueMessageBuilder(MSTeamsMessageBuilder):
     def __init__(
-        self, group: Group, event: Event, rules: Sequence[Rule], integration: RpcIntegration
+        self,
+        group: Group,
+        event: Event | GroupEvent,
+        rules: Sequence[Rule],
+        integration: RpcIntegration,
     ):
         self.group = group
         self.event = event

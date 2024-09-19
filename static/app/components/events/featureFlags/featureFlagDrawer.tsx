@@ -31,18 +31,31 @@ import {getShortEventId} from 'sentry/utils/events';
 import useOrganization from 'sentry/utils/useOrganization';
 
 export enum FlagSort {
-  EVAL = 'eval',
+  NEWEST = 'newest',
+  OLDEST = 'oldest',
   ALPHA = 'alphabetical',
 }
 
 export const getLabel = (sort: string) => {
-  return sort === FlagSort.EVAL ? t('Evaluation Order') : t('Alphabetical');
+  switch (sort) {
+    case FlagSort.OLDEST:
+      return t('Oldest First');
+    case FlagSort.ALPHA:
+      return t('Alphabetical');
+    case FlagSort.NEWEST:
+    default:
+      return t('Newest First');
+  }
 };
 
 export const FLAG_SORT_OPTIONS = [
   {
-    label: getLabel(FlagSort.EVAL),
-    value: FlagSort.EVAL,
+    label: getLabel(FlagSort.NEWEST),
+    value: FlagSort.NEWEST,
+  },
+  {
+    label: getLabel(FlagSort.OLDEST),
+    value: FlagSort.OLDEST,
   },
   {
     label: getLabel(FlagSort.ALPHA),
@@ -81,7 +94,11 @@ export function FeatureFlagDrawer({
   };
 
   const sortedFlags =
-    sortMethod === FlagSort.ALPHA ? handleSortAlphabetical(hydratedFlags) : hydratedFlags;
+    sortMethod === FlagSort.ALPHA
+      ? handleSortAlphabetical(hydratedFlags)
+      : sortMethod === FlagSort.OLDEST
+        ? [...hydratedFlags].reverse()
+        : hydratedFlags;
   const searchResults = sortedFlags.filter(f => f.item.key.includes(search));
 
   const actions = (

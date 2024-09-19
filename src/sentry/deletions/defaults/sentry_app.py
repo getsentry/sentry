@@ -4,7 +4,7 @@ from ..base import ModelDeletionTask, ModelRelation
 class SentryAppDeletionTask(ModelDeletionTask):
     def get_child_relations(self, instance):
         from sentry.models.apiapplication import ApiApplication
-        from sentry.models.integrations.sentry_app_installation import SentryAppInstallation
+        from sentry.sentry_apps.models.sentry_app_installation import SentryAppInstallation
         from sentry.users.models.user import User
 
         return [
