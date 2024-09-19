@@ -1809,7 +1809,7 @@ function buildRoutes() {
         <Route
           path={TabPaths[Tab.TAGS]}
           component={hoc(
-            make(() => import('sentry/views/issueDetails/groupTags/groupTags'))
+            make(() => import('sentry/views/issueDetails/groupTags/groupTagsTab'))
           )}
         />
         <Route
