@@ -138,16 +138,17 @@ class MessagingIntegrationCommandDispatcher(Generic[R], ABC):
         )
 
     def dispatch(self, cmd_input: CommandInput) -> R:
-        candidate_handlers: list[MessagingIntegrationCommandDispatcher._CandidateHandler[R]] = []
-        for (command, callback) in self.command_handlers:
-            for slug in command.get_all_command_slugs():
-                candidate = self._CandidateHandler(command, slug, callback)
-                candidate_handlers.append(candidate)
-
+        candidate_handlers = [
+            self._CandidateHandler(command, slug, callback)
+            for (command, callback) in self.command_handlers
+            for slug in command.get_all_command_slugs()
+        ]
         candidate_handlers.sort(key=self._CandidateHandler.parsing_order)
+
         for handler in candidate_handlers:
             if handler.slug.does_match(cmd_input):
                 arg_input = cmd_input.adjust(handler.slug)
                 with self.get_event(handler.command).capture():
                     return handler.callback(arg_input)
+
         raise CommandNotMatchedError(f"{cmd_input=!r}", cmd_input)
