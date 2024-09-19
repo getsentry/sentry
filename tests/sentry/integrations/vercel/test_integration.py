@@ -13,11 +13,11 @@ from sentry.integrations.vercel import VercelClient, VercelIntegrationProvider
 from sentry.models.integrations.sentry_app_installation_for_provider import (
     SentryAppInstallationForProvider,
 )
-from sentry.models.integrations.sentry_app_installation_token import SentryAppInstallationToken
 from sentry.models.project import Project
 from sentry.models.projectkey import ProjectKey, ProjectKeyStatus
 from sentry.models.scheduledeletion import ScheduledDeletion
 from sentry.sentry_apps.models.sentry_app_installation import SentryAppInstallation
+from sentry.sentry_apps.models.sentry_app_installation_token import SentryAppInstallationToken
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import IntegrationTestCase
 from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
