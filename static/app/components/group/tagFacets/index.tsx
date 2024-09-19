@@ -19,7 +19,7 @@ import {appendTagCondition} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {formatVersion} from 'sentry/utils/versions/formatVersion';
-import {useGroupTagsReadable} from 'sentry/views/issueDetails/groupTags/useGroupTagsQuery';
+import {useGroupTagsReadable} from 'sentry/views/issueDetails/groupTags/useGroupTags';
 
 import TagFacetsDistributionMeter from './tagFacetsDistributionMeter';
 

@@ -22,7 +22,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {Dataset} from 'sentry/views/alerts/rules/metric/types';
 import {ALL_EVENTS_EXCLUDED_TAGS} from 'sentry/views/issueDetails/groupEvents';
-import {useGroupTags} from 'sentry/views/issueDetails/groupTags/useGroupTagsQuery';
+import {useGroupTags} from 'sentry/views/issueDetails/groupTags/useGroupTags';
 import {mergeAndSortTagValues} from 'sentry/views/issueDetails/utils';
 import {makeGetIssueTagValues} from 'sentry/views/issueList/utils/getIssueTagValues';
 
