@@ -1282,8 +1282,11 @@ class BaseQueryBuilder:
         is_tag = isinstance(lhs, Column) and (
             lhs.subscriptable == "tags" or lhs.subscriptable == "sentry_tags"
         )
+        is_attr = isinstance(lhs, Column) and (
+            lhs.subscriptable == "attr_str" or lhs.subscriptable == "attr_num"
+        )
         is_context = isinstance(lhs, Column) and lhs.subscriptable == "contexts"
-        if is_tag:
+        if is_tag or is_attr:
             subscriptable = lhs.subscriptable
             if operator not in ["IN", "NOT IN"] and not isinstance(value, str):
                 sentry_sdk.set_tag("query.lhs", lhs)
@@ -1296,7 +1299,7 @@ class BaseQueryBuilder:
 
         # Handle checks for existence
         if search_filter.operator in ("=", "!=") and search_filter.value.value == "":
-            if is_tag or is_context or name in self.config.non_nullable_keys:
+            if is_tag or is_attr or is_context or name in self.config.non_nullable_keys:
                 return Condition(lhs, Op(search_filter.operator), value)
             else:
                 # If not a tag, we can just check that the column is null.
@@ -1307,6 +1310,7 @@ class BaseQueryBuilder:
         if (
             search_filter.operator in ("!=", "NOT IN")
             and not search_filter.key.is_tag
+            and not is_attr
             and not is_tag
             and name not in self.config.non_nullable_keys
         ):
