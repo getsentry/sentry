@@ -39,6 +39,12 @@ export function useGroupEventAttachmentsDrawer({
           }
         },
         shouldCloseOnInteractOutside: element => {
+          // Prevent closing the drawer when deleting an attachment
+          if (document.querySelector('[role="dialog"]')?.contains(element)) {
+            return false;
+          }
+
+          // Prevent closing the drawer when clicking the button that opens it
           const viewAllButton = openButtonRef.current;
           if (viewAllButton?.contains(element)) {
             return false;
