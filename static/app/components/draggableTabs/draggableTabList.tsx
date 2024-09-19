@@ -343,7 +343,6 @@ function BaseDraggableTabList({
             onClick={onAddView}
             analyticsEventName="Issue Views: Add View Clicked"
             analyticsEventKey="issue_views.add_view.clicked"
-            analyticsParams={{organization}}
           >
             <StyledIconAdd size="xs" />
             {t('Add View')}
