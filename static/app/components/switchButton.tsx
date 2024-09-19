@@ -25,8 +25,8 @@ function Switch({
   isLoading,
   isDisabled,
   toggle,
-  // id,
-  // name,
+  id,
+  name,
   className,
   ...props
 }: Props) {
