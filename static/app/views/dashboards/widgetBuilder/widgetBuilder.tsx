@@ -323,10 +323,11 @@ function WidgetBuilder({
         newLimit = DEFAULT_RESULTS_LIMIT;
         newDisplayType = DisplayType.AREA;
 
-        queries = normalizeQueries(organization, {
+        queries = normalizeQueries({
           displayType: newDisplayType,
           queries: widgetFromDashboard.queries,
           widgetType: widgetFromDashboard.widgetType ?? defaultWidgetType,
+          organization: organization,
         }).map(query => ({
           ...query,
           // Use the last aggregate because that's where the y-axis is stored
@@ -335,10 +336,11 @@ function WidgetBuilder({
             : [],
         }));
       } else {
-        queries = normalizeQueries(organization, {
+        queries = normalizeQueries({
           displayType: newDisplayType,
           queries: widgetFromDashboard.queries,
           widgetType: widgetFromDashboard.widgetType ?? defaultWidgetType,
+          organization: organization,
         });
       }
 
@@ -433,10 +435,11 @@ function WidgetBuilder({
         set(
           newState,
           'queries',
-          normalizeQueries(organization, {
+          normalizeQueries({
             displayType: newDisplayType,
             queries: [{...getDatasetConfig(defaultWidgetType).defaultWidgetQuery}],
             widgetType: defaultWidgetType,
+            organization: organization,
           })
         );
         set(newState, 'dataSet', defaultDataset);
@@ -444,10 +447,11 @@ function WidgetBuilder({
         return {...newState, errors: undefined};
       }
 
-      const normalized = normalizeQueries(organization, {
+      const normalized = normalizeQueries({
         displayType: newDisplayType,
         queries: prevState.queries,
         widgetType: DATA_SET_TO_WIDGET_TYPE[prevState.dataSet],
+        organization: organization,
       });
 
       if (newDisplayType === DisplayType.TOP_N) {
