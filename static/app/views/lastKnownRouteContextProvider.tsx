@@ -1,4 +1,4 @@
-import {createContext} from 'react';
+import {createContext, useContext} from 'react';
 
 import getRouteStringFromRoutes from 'sentry/utils/getRouteStringFromRoutes';
 import usePrevious from 'sentry/utils/usePrevious';
@@ -10,17 +10,19 @@ interface Props {
 
 export const LastKnownRouteContext = createContext<string>('');
 
-function useLastKnownRoute() {
-  const route = useRoutes();
-  const lastRoute = usePrevious(route);
-  return getRouteStringFromRoutes(lastRoute);
+export function useLastKnownRoute() {
+  return useContext(LastKnownRouteContext);
 }
 
+// This provider tracks the last known route that the user has navigated to.
+// This is used to better group issues when we hit "route not found" errors.
 export default function LastKnownRouteContextProvider({children}: Props) {
-  const route = useLastKnownRoute();
+  const route = useRoutes();
+  const prevRoute = usePrevious(route);
+  const lastKnownRoute = getRouteStringFromRoutes(prevRoute);
 
   return (
-    <LastKnownRouteContext.Provider value={route}>
+    <LastKnownRouteContext.Provider value={lastKnownRoute}>
       {children}
     </LastKnownRouteContext.Provider>
   );

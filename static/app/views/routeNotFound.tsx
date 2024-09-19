@@ -1,4 +1,4 @@
-import {useContext, useLayoutEffect} from 'react';
+import {useLayoutEffect} from 'react';
 import * as Sentry from '@sentry/react';
 
 import NotFound from 'sentry/components/errors/notFound';
@@ -8,13 +8,13 @@ import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import Sidebar from 'sentry/components/sidebar';
 import {t} from 'sentry/locale';
 import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
-import {LastKnownRouteContext} from 'sentry/views/lastKnownRouteContextProvider';
+import {useLastKnownRoute} from 'sentry/views/lastKnownRouteContextProvider';
 
 type Props = RouteComponentProps<{}, {}>;
 
 function RouteNotFound({router, location}: Props) {
   const {pathname, search, hash} = location;
-  const lastRoute = useContext(LastKnownRouteContext);
+  const lastRoute = useLastKnownRoute();
 
   const isMissingSlash = pathname[pathname.length - 1] !== '/';
 
