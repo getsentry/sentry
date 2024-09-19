@@ -69,10 +69,6 @@ describe('Issues Similar View', function () {
         project={project}
         params={{orgId: 'org-slug', groupId: 'group-id'}}
         location={router.location}
-        router={router}
-        routeParams={router.params}
-        routes={router.routes}
-        route={{}}
       />,
       {router}
     );
@@ -98,10 +94,6 @@ describe('Issues Similar View', function () {
         project={project}
         params={{orgId: 'org-slug', groupId: 'group-id'}}
         location={router.location}
-        router={router}
-        routeParams={router.params}
-        routes={router.routes}
-        route={{}}
       />,
       {router}
     );
@@ -131,10 +123,6 @@ describe('Issues Similar View', function () {
         project={project}
         params={{orgId: 'org-slug', groupId: 'group-id'}}
         location={router.location}
-        router={router}
-        routeParams={router.params}
-        routes={router.routes}
-        route={{}}
       />,
       {router}
     );
@@ -162,10 +150,6 @@ describe('Issues Similar View', function () {
         project={project}
         params={{orgId: 'org-slug', groupId: 'group-id'}}
         location={router.location}
-        router={router}
-        routeParams={router.params}
-        routes={router.routes}
-        route={{}}
       />,
       {router}
     );
@@ -239,10 +223,6 @@ describe('Issues Similar Embeddings View', function () {
         project={project}
         params={{orgId: 'org-slug', groupId: 'group-id'}}
         location={router.location}
-        router={router}
-        routeParams={router.params}
-        routes={router.routes}
-        route={{}}
       />,
       {router}
     );
@@ -269,10 +249,6 @@ describe('Issues Similar Embeddings View', function () {
         project={project}
         params={{orgId: 'org-slug', groupId: 'group-id'}}
         location={router.location}
-        router={router}
-        routeParams={router.params}
-        routes={router.routes}
-        route={{}}
       />,
       {router}
     );
@@ -302,10 +278,6 @@ describe('Issues Similar Embeddings View', function () {
         project={project}
         params={{orgId: 'org-slug', groupId: 'group-id'}}
         location={router.location}
-        router={router}
-        routeParams={router.params}
-        routes={router.routes}
-        route={{}}
       />,
       {router}
     );
@@ -325,10 +297,6 @@ describe('Issues Similar Embeddings View', function () {
         project={project}
         params={{orgId: 'org-slug', groupId: 'group-id'}}
         location={router.location}
-        router={router}
-        routeParams={router.params}
-        routes={router.routes}
-        route={{}}
       />,
       {router}
     );
@@ -362,10 +330,6 @@ describe('Issues Similar Embeddings View', function () {
         project={project}
         params={{orgId: 'org-slug', groupId: 'group-id'}}
         location={router.location}
-        router={router}
-        routeParams={router.params}
-        routes={router.routes}
-        route={{}}
       />,
       {router}
     );
