@@ -15,7 +15,7 @@ export interface Props {
   meta?: Meta;
 }
 
-export function BigNumberWidgetContents(props: Props) {
+export function BigNumberWidgetVisualization(props: Props) {
   const {data, meta} = props;
 
   const location = useLocation();

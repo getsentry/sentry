@@ -2,9 +2,9 @@ import styled from '@emotion/styled';
 
 import {space} from 'sentry/styles/space';
 import {
-  BigNumberWidgetContents,
+  BigNumberWidgetVisualization,
   type Props as BigNumberWidgetContentsProps,
-} from 'sentry/views/dashboards/widgets/bigNumberWidget/bigNumberWidgetContents';
+} from 'sentry/views/dashboards/widgets/bigNumberWidget/bigNumberWidgetVisualization';
 import {
   type Props as WidgetFrameProps,
   WidgetFrame,
@@ -12,13 +12,14 @@ import {
 
 interface Props
   extends Omit<WidgetFrameProps, 'children'>,
-    BigNumberWidgetContentsProps {}
+    BigNumberWidgetContentsProps,
+    StateProps {}
 
 export function BigNumberWidget(props: Props) {
   return (
     <WidgetFrame title={props.title} description={props.description}>
       <BigNumberResizeWrapper>
-        <BigNumberWidgetContents data={props.data} meta={props.meta} />
+        <BigNumberWidgetVisualization data={props.data} meta={props.meta} />
       </BigNumberResizeWrapper>
     </WidgetFrame>
   );
