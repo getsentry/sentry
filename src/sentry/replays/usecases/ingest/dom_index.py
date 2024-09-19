@@ -300,9 +300,8 @@ def _parse_classes(classes: str) -> list[str]:
 
 def _should_report_hydration_error_issue(project: Project) -> bool:
     """
-    The feature is controlled by Sentry admins for release of the feature,
-    while the project option is controlled by the project owner, and is a
-    permanent setting
+    Checks the feature that's controlled by Sentry admins for release of the feature,
+    and the permanent project option, controlled by the project owner.
     """
     return features.has(
         "organizations:session-replay-hydration-error-issue-creation",
@@ -313,9 +312,7 @@ def _should_report_hydration_error_issue(project: Project) -> bool:
 <<<<<<< aliu/reduce-dom-index-queries
 def _should_report_rage_click_issue(project: Project) -> bool:
     """
-    The feature is controlled by Sentry admins for release of the feature,
-    while the project option is controlled by the project owner, and is a
-    permanent setting
+    Checks the project option, controlled by a project owner.
     """
     return features.has(
         "organizations:session-replay-rage-click-issue-creation",
