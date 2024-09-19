@@ -17,7 +17,7 @@ from sentry.integrations.mixins import NotifyBasicMixin
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.models.integration_external_project import IntegrationExternalProject
 from sentry.integrations.models.organization_integration import OrganizationIntegration
-from sentry.integrations.msteams.client import MsTeamsClient
+from sentry.integrations.msteams import MsTeamsClient
 from sentry.integrations.services.integration import (
     IntegrationService,
     RpcIntegration,

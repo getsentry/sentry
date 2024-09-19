@@ -23,7 +23,7 @@ class MsTeamsMessagingSpec(MessagingIntegrationSpec):
 
     @property
     def integration_provider(self) -> type[IntegrationProvider]:
-        from sentry.integrations.msteams.integration import MsTeamsIntegrationProvider
+        from sentry.integrations.msteams import MsTeamsIntegrationProvider
 
         return MsTeamsIntegrationProvider
 

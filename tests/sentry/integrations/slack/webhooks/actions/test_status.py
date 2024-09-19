@@ -1154,8 +1154,7 @@ class StatusActionTest(BaseEventTest, PerformanceIssueTestCase, HybridCloudTestM
         )
 
     @patch(
-        "sentry.integrations.slack.requests.base.SlackRequest._check_signing_secret",
-        return_value=True,
+        "sentry.integrations.slack.requests.SlackRequest._check_signing_secret", return_value=True
     )
     def test_no_integration(self, check_signing_secret_mock):
         with assume_test_silo_mode(SiloMode.CONTROL):
@@ -1164,16 +1163,14 @@ class StatusActionTest(BaseEventTest, PerformanceIssueTestCase, HybridCloudTestM
         assert resp.status_code == 403
 
     @patch(
-        "sentry.integrations.slack.requests.base.SlackRequest._check_signing_secret",
-        return_value=True,
+        "sentry.integrations.slack.requests.SlackRequest._check_signing_secret", return_value=True
     )
     def test_slack_bad_payload(self, check_signing_secret_mock):
         resp = self.client.post("/extensions/slack/action/", data={"nopayload": 0})
         assert resp.status_code == 400
 
     @patch(
-        "sentry.integrations.slack.requests.base.SlackRequest._check_signing_secret",
-        return_value=True,
+        "sentry.integrations.slack.requests.SlackRequest._check_signing_secret", return_value=True
     )
     def test_sentry_docs_link_clicked(self, check_signing_secret_mock):
         payload = {
