@@ -11,7 +11,7 @@ import re
 import socket
 import sys
 import tempfile
-from collections.abc import Callable, Mapping, MutableSequence, Sequence
+from collections.abc import Callable, Mapping, MutableSequence
 from datetime import datetime, timedelta
 from typing import Any, Final, Union, overload
 from urllib.parse import urlparse
@@ -20,12 +20,17 @@ import sentry
 from sentry.conf.api_pagination_allowlist_do_not_modify import (
     SENTRY_API_PAGINATION_ALLOWLIST_DO_NOT_MODIFY,
 )
+from sentry.conf.types.celery import SplitQueueSize, SplitQueueTaskRoute
 from sentry.conf.types.kafka_definition import ConsumerDefinition
 from sentry.conf.types.logging_config import LoggingConfig
 from sentry.conf.types.role_dict import RoleDict
 from sentry.conf.types.sdk_config import ServerSdkConfig
 from sentry.utils import json  # NOQA (used in getsentry config)
-from sentry.utils.celery import crontab_with_minute_jitter
+from sentry.utils.celery import (
+    crontab_with_minute_jitter,
+    make_split_queues,
+    make_split_task_queues,
+)
 from sentry.utils.types import Type, type_from_value
 
 
@@ -819,6 +824,30 @@ CELERY_IMPORTS = (
     "sentry.integrations.tasks",
 )
 
+# tmp(michal): Default configuration for post_process* queueus split
+SENTRY_POST_PROCESS_QUEUE_SPLIT_ROUTER: dict[str, Callable[[], str]] = {}
+
+
+# Mapping from queue name to split queues to be used by SplitQueueRouter.
+# This is meant to be used in those case where we have to specify the
+# queue name when issuing a task. Example: post process.
+CELERY_SPLIT_QUEUE_ROUTES: Mapping[str, SplitQueueSize] = {
+    "post_process_transactions": {"total": 10, "in_use": 5}
+}
+# Mapping from task names to split queues. This can be used when the
+# task does not have to specify the queue and can rely on Celery to
+# do the routing.
+# Each route has a task name as key and a tuple containing a list of queues
+# and a default one as destination. The default one is used when the
+# rollout option is not active.
+CELERY_SPLIT_QUEUE_TASK_ROUTES: Mapping[str, SplitQueueTaskRoute] = {
+    "sentry.tasks.store.save_event_transaction": {
+        "default_queue": "events.save_event_transaction",
+        "queues_config": {"total": 10, "in_use": 5},
+    }
+}
+
+
 default_exchange = Exchange("default", type="direct")
 control_exchange = default_exchange
 
@@ -886,9 +915,6 @@ CELERY_QUEUES_REGION = [
     Queue("events.save_event", routing_key="events.save_event"),
     Queue("events.save_event_highcpu", routing_key="events.save_event_highcpu"),
     Queue("events.save_event_transaction", routing_key="events.save_event_transaction"),
-    Queue("events.save_event_transaction_1", routing_key="events.save_event_transaction"),
-    Queue("events.save_event_transaction_2", routing_key="events.save_event_transaction"),
-    Queue("events.save_event_transaction_3", routing_key="events.save_event_transaction"),
     Queue("events.save_event_attachments", routing_key="events.save_event_attachments"),
     Queue("events.symbolicate_event", routing_key="events.symbolicate_event"),
     Queue(
@@ -929,9 +955,6 @@ CELERY_QUEUES_REGION = [
     Queue("post_process_errors", routing_key="post_process_errors"),
     Queue("post_process_issue_platform", routing_key="post_process_issue_platform"),
     Queue("post_process_transactions", routing_key="post_process_transactions"),
-    Queue("post_process_transactions_1", routing_key="post_process_transactions"),
-    Queue("post_process_transactions_2", routing_key="post_process_transactions"),
-    Queue("post_process_transactions_3", routing_key="post_process_transactions"),
     Queue("relay_config", routing_key="relay_config"),
     Queue("relay_config_bulk", routing_key="relay_config_bulk"),
     Queue("reports.deliver", routing_key="reports.deliver"),
@@ -964,6 +987,12 @@ CELERY_QUEUES_REGION = [
     Queue("check_new_issue_threshold_met", routing_key="check_new_issue_threshold_met"),
     Queue("integrations_slack_activity_notify", routing_key="integrations_slack_activity_notify"),
 ]
+
+CELERY_QUEUES_REGION = (
+    CELERY_QUEUES_REGION
+    + make_split_queues(CELERY_SPLIT_QUEUE_ROUTES)
+    + make_split_task_queues(CELERY_SPLIT_QUEUE_TASK_ROUTES)
+)
 
 from celery.schedules import crontab
 
@@ -3519,37 +3548,5 @@ if SILO_DEVSERVER:
         SENTRY_WEB_PORT = int(bind[1])
 
     CELERYBEAT_SCHEDULE_FILENAME = f"celerybeat-schedule-{SILO_MODE}"
-
-
-# tmp(michal): Default configuration for post_process* queueus split
-SENTRY_POST_PROCESS_QUEUE_SPLIT_ROUTER: dict[str, Callable[[], str]] = {}
-
-
-# Mapping from queue name to split queues to be used by SplitQueueRouter.
-# This is meant to be used in those case where we have to specify the
-# queue name when issuing a task. Example: post process.
-CELERY_SPLIT_QUEUE_ROUTES: Mapping[str, Sequence[str]] = {
-    "post_process_transactions": [
-        "post_process_transactions_1",
-        "post_process_transactions_2",
-        "post_process_transactions_3",
-    ]
-}
-# Mapping from task names to split queues. This can be used when the
-# task does not have to specify the queue and can rely on Celery to
-# do the routing.
-# Each route has a task name as key and a tuple containing a list of queues
-# and a default one as destination. The default one is used when the
-# rollout option is not active.
-CELERY_SPLIT_QUEUE_TASK_ROUTES: Mapping[str, tuple[Sequence[str], str]] = {
-    "sentry.tasks.store.save_event_transaction": (
-        [
-            "events.save_event_transaction_1",
-            "events.save_event_transaction_2",
-            "events.save_event_transaction_3",
-        ],
-        "events.save_event_transaction",
-    )
-}
 
 CELERY_ROUTES = ("sentry.queue.routers.SplitQueueTaskRouter",)
