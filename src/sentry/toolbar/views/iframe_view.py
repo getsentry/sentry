@@ -34,13 +34,15 @@ class IframeView(OrganizationView):
     def convert_args(self, request: HttpRequest, organization_slug: str, project_id_or_slug: int | str, *args: Any, **kwargs: Any) -> tuple[tuple[Any, ...], dict[str, Any]]:  # type: ignore[override]
         args, kwargs = super().convert_args(request, organization_slug, *args, **kwargs)
         organization: Organization | None = kwargs["organization"]
-        active_project: Project | None = None
-        if organization:
-            active_project = self.get_active_project(
+        active_project: Project | None = (
+            self.get_active_project(
                 request=request,
                 organization=organization,  # type: ignore[arg-type]
                 project_id_or_slug=project_id_or_slug,
             )
+            if organization
+            else None
+        )
         kwargs["project"] = active_project
         return args, kwargs
 
