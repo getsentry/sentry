@@ -33,7 +33,7 @@ function SetupDocs({location, recentCreatedProject: project}: StepProps) {
   const currentPlatform =
     platforms.find(p => p.id === currentPlatformKey) ?? otherPlatform;
 
-  const [params, setParams] = useOnboardingQueryParams();
+  const [params] = useOnboardingQueryParams();
 
   if (!project || !currentPlatform) {
     return null;
@@ -47,13 +47,11 @@ function SetupDocs({location, recentCreatedProject: project}: StepProps) {
     <Fragment>
       <Wrapper>
         <MainContent>
-          {showIntegrationOnboarding ? (
+          {showIntegrationOnboarding && params.installationMode !== 'manual' ? (
             <IntegrationSetup
               integrationSlug={integrationSlug}
               project={project}
-              onClickManualSetup={() => {
-                setParams({showManualSetup: true});
-              }}
+              platform={currentPlatform}
             />
           ) : (
             <Fragment>
