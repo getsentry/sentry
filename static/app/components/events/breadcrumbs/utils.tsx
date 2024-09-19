@@ -228,7 +228,7 @@ export function getEnhancedBreadcrumbs(event: Event): EnhancedCrumb[] {
   }));
 }
 
-function getBreadcrumbTitle(crumb: RawCrumb) {
+export function getBreadcrumbTitle(crumb: RawCrumb) {
   if (crumb?.type === BreadcrumbType.DEFAULT) {
     return crumb?.category ?? BREADCRUMB_TITLE_PLACEHOLDER.toLocaleLowerCase();
   }
@@ -250,7 +250,7 @@ function getBreadcrumbTitle(crumb: RawCrumb) {
   }
 }
 
-function getBreadcrumbColorConfig(type?: BreadcrumbType): ColorConfig {
+export function getBreadcrumbColorConfig(type?: BreadcrumbType): ColorConfig {
   switch (type) {
     case BreadcrumbType.ERROR:
       return {title: 'red400', icon: 'red400', iconBorder: 'red200'};
@@ -277,7 +277,7 @@ function getBreadcrumbColorConfig(type?: BreadcrumbType): ColorConfig {
   }
 }
 
-function getBreadcrumbFilter(type?: BreadcrumbType) {
+export function getBreadcrumbFilter(type?: BreadcrumbType) {
   switch (type) {
     case BreadcrumbType.USER:
     case BreadcrumbType.UI:
@@ -311,7 +311,7 @@ function getBreadcrumbFilter(type?: BreadcrumbType) {
   }
 }
 
-function BreadcrumbIcon({type}: {type?: BreadcrumbType}) {
+export function BreadcrumbIcon({type}: {type?: BreadcrumbType}) {
   switch (type) {
     case BreadcrumbType.USER:
       return <IconUser size="xs" />;
@@ -346,7 +346,7 @@ function BreadcrumbIcon({type}: {type?: BreadcrumbType}) {
   }
 }
 
-const BreadcrumbLevel = styled('div')<{level: BreadcrumbLevelType}>`
+export const BreadcrumbLevel = styled('div')<{level: BreadcrumbLevelType}>`
   margin: 0 ${space(1)};
   font-weight: normal;
   font-size: ${p => p.theme.fontSizeSmall};

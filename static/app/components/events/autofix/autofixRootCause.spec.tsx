@@ -13,12 +13,7 @@ describe('AutofixRootCause', function () {
     repos: [],
   };
 
-  it('can select a relevant code snippet', async function () {
-    const mockSelectFix = MockApiClient.addMockResponse({
-      url: '/issues/1/autofix/update/',
-      method: 'POST',
-    });
-
+  it('can view a relevant code snippet', async function () {
     render(<AutofixRootCause {...defaultProps} />);
 
     // Displays all root cause and code context info
@@ -26,60 +21,18 @@ describe('AutofixRootCause', function () {
     expect(
       screen.getByText('This is the description of a root cause.')
     ).toBeInTheDocument();
+
+    await userEvent.click(
+      screen.getByRole('button', {
+        name: 'Relevant code',
+      })
+    );
     expect(
-      screen.getByText('Relevant Code #1: This is the title of a relevant code snippet.')
+      screen.getByText('Snippet #1: This is the title of a relevant code snippet.')
     ).toBeInTheDocument();
     expect(
       screen.getByText('This is the description of a relevant code snippet.')
     ).toBeInTheDocument();
-
-    await userEvent.click(screen.getByRole('button', {name: 'Find a Fix'}));
-
-    expect(mockSelectFix).toHaveBeenCalledWith(
-      expect.anything(),
-      expect.objectContaining({
-        data: {
-          run_id: '101',
-          payload: {
-            type: 'select_root_cause',
-            cause_id: '100',
-          },
-        },
-      })
-    );
-  });
-
-  it('can provide a custom root cause', async function () {
-    const mockSelectFix = MockApiClient.addMockResponse({
-      url: '/issues/1/autofix/update/',
-      method: 'POST',
-    });
-
-    render(<AutofixRootCause {...defaultProps} />);
-
-    await userEvent.click(
-      screen.getByRole('button', {name: 'Provide your own root cause'})
-    );
-    await userEvent.keyboard('custom root cause');
-    await userEvent.click(
-      screen.getByRole('button', {
-        name: 'Find a Fix',
-        description: 'Find a Fix',
-      })
-    );
-
-    expect(mockSelectFix).toHaveBeenCalledWith(
-      expect.anything(),
-      expect.objectContaining({
-        data: {
-          run_id: '101',
-          payload: {
-            type: 'select_root_cause',
-            custom_root_cause: 'custom root cause',
-          },
-        },
-      })
-    );
   });
 
   it('shows graceful error state when there are no causes', function () {
@@ -98,7 +51,7 @@ describe('AutofixRootCause', function () {
     ).toBeInTheDocument();
   });
 
-  it('shows hyperlink when matching GitHub repo available', function () {
+  it('shows hyperlink when matching GitHub repo available', async function () {
     render(
       <AutofixRootCause
         {...{
@@ -114,6 +67,12 @@ describe('AutofixRootCause', function () {
           ],
         }}
       />
+    );
+
+    await userEvent.click(
+      screen.getByRole('button', {
+        name: 'Relevant code',
+      })
     );
 
     expect(screen.queryByRole('link', {name: 'GitHub'})).toBeInTheDocument();
@@ -136,7 +95,7 @@ describe('AutofixRootCause', function () {
     expect(screen.queryByRole('link', {name: 'GitHub'})).not.toBeInTheDocument();
   });
 
-  it('shows reproduction steps when applicable', function () {
+  it('shows reproduction steps when applicable', async function () {
     render(
       <AutofixRootCause
         {...{
@@ -144,6 +103,12 @@ describe('AutofixRootCause', function () {
           causes: [AutofixRootCauseData()],
         }}
       />
+    );
+
+    await userEvent.click(
+      screen.getByRole('button', {
+        name: 'How to reproduce',
+      })
     );
 
     expect(
