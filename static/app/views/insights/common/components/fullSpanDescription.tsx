@@ -76,7 +76,6 @@ export function FullSpanDescription({
   if (moduleName === ModuleName.DB) {
     if (system === 'mongodb') {
       let stringifiedQuery = '';
-      let shouldDisplayTruncatedWarning = false;
       let result: ReturnType<typeof prettyPrintJsonString> | undefined = undefined;
 
       if (indexedSpan?.['span.description']) {
@@ -89,34 +88,26 @@ export function FullSpanDescription({
         result = prettyPrintJsonString(fullSpan?.sentry_tags?.description);
       } else {
         stringifiedQuery = description || fullSpan?.sentry_tags?.description || 'N/A';
-        shouldDisplayTruncatedWarning = false;
       }
 
       if (result) {
-        const {prettifiedQuery, isTruncated} = result;
+        const {prettifiedQuery} = result;
         stringifiedQuery = prettifiedQuery;
-        shouldDisplayTruncatedWarning = isTruncated;
       }
 
-      if (shouldDisplayTruncatedWarning) {
-        return (
-          <TruncatedQueryClipBox group={group}>
-            <CodeSnippet language="json">{stringifiedQuery}</CodeSnippet>
-          </TruncatedQueryClipBox>
-        );
-      }
-
-      return <CodeSnippet language="json">{stringifiedQuery}</CodeSnippet>;
+      return (
+        <QueryClippedBox group={group}>
+          <CodeSnippet language="json">{stringifiedQuery}</CodeSnippet>
+        </QueryClippedBox>
+      );
     }
 
-    <CodeSnippet language="sql">
-      {formatter.toString(description, {maxLineLength: LINE_LENGTH})}
-    </CodeSnippet>;
-
     return (
-      <CodeSnippet language="sql">
-        {formatter.toString(description, {maxLineLength: LINE_LENGTH})}
-      </CodeSnippet>
+      <QueryClippedBox group={group}>
+        <CodeSnippet language="sql">
+          {formatter.toString(description, {maxLineLength: LINE_LENGTH})}
+        </CodeSnippet>
+      </QueryClippedBox>
     );
   }
 
@@ -132,14 +123,14 @@ type TruncatedQueryClipBoxProps = {
   group: string | undefined;
 };
 
-function TruncatedQueryClipBox({group, children}: TruncatedQueryClipBoxProps) {
+function QueryClippedBox({group, children}: TruncatedQueryClipBoxProps) {
   const location = useLocation();
   const navigate = useNavigate();
 
   return (
     <StyledClippedBox
       btnText={t('View full query')}
-      clipHeight={320}
+      clipHeight={500}
       buttonProps={{
         icon: <IconOpen />,
         onClick: () =>
