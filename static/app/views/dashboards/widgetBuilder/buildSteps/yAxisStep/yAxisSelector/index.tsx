@@ -102,8 +102,7 @@ export function YAxisSelector({
     onChange(newAggregates);
   }
 
-  function handleSelectField(i: number) {
-    const newSelectedAggregate = i;
+  function handleSelectField(newSelectedAggregate: number) {
     onChange(aggregates, newSelectedAggregate);
   }
 
