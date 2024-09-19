@@ -1,4 +1,4 @@
-import {Fragment} from 'react';
+import {Fragment, type ReactNode} from 'react';
 import styled from '@emotion/styled';
 
 import ClippedBox from 'sentry/components/clippedBox';
@@ -40,9 +40,6 @@ export function FullSpanDescription({
     isFetching,
   } = useFullSpanFromTrace(group, [INDEXED_SPAN_SORT], Boolean(group), filters);
 
-  const navigate = useNavigate();
-  const location = useLocation();
-
   const description = fullSpan?.description ?? shortDescription;
   const system = fullSpan?.data?.['db.system'];
 
@@ -83,24 +80,18 @@ export function FullSpanDescription({
 
       if (shouldDisplayTruncatedWarning) {
         return (
-          <StyledClippedBox
-            btnText={t('View full query')}
-            clipHeight={320}
-            buttonProps={{
-              icon: <IconOpen />,
-              onClick: () =>
-                navigate({
-                  pathname: `${location.pathname}spans/span/${group}/`,
-                }),
-            }}
-          >
+          <TruncatedQueryClipBox group={group}>
             <CodeSnippet language="json">{stringifiedQuery}</CodeSnippet>
-          </StyledClippedBox>
+          </TruncatedQueryClipBox>
         );
       }
 
       return <CodeSnippet language="json">{stringifiedQuery}</CodeSnippet>;
     }
+
+    <CodeSnippet language="sql">
+      {formatter.toString(description, {maxLineLength: LINE_LENGTH})}
+    </CodeSnippet>;
 
     return (
       <CodeSnippet language="sql">
@@ -114,6 +105,32 @@ export function FullSpanDescription({
   }
 
   return <Fragment>{description}</Fragment>;
+}
+
+type TruncatedQueryClipBoxProps = {
+  children: ReactNode;
+  group: string | undefined;
+};
+
+function TruncatedQueryClipBox({group, children}: TruncatedQueryClipBoxProps) {
+  const location = useLocation();
+  const navigate = useNavigate();
+
+  return (
+    <StyledClippedBox
+      btnText={t('View full query')}
+      clipHeight={320}
+      buttonProps={{
+        icon: <IconOpen />,
+        onClick: () =>
+          navigate({
+            pathname: `${location.pathname}spans/span/${group}/`,
+          }),
+      }}
+    >
+      {children}
+    </StyledClippedBox>
+  );
 }
 
 const LINE_LENGTH = 60;
