@@ -1,6 +1,11 @@
+import logging
+from urllib.parse import urlparse
+
 from sentry.tasks.base import instrumented_task
 from sentry.uptime.models import UptimeSubscription
 from sentry.uptime.rdap.query import resolve_rdap_network_details
+
+logger = logging.getLogger(__name__)
 
 
 @instrumented_task(
@@ -21,7 +26,12 @@ def fetch_subscription_rdap_info(subscription_id: int):
         # the rdap details.
         return
 
-    host = f"{sub.url_domain}.{sub.url_domain_suffix}"
-    details = resolve_rdap_network_details(host)
+    parsed_url = urlparse(sub.url)
+
+    if parsed_url.hostname is None:
+        logger.warning("rdap_url_missing_hostname", extra={"url": sub.url})
+        return
+
+    details = resolve_rdap_network_details(parsed_url.hostname)
 
     sub.update(host_provider_id=details["handle"], host_provider_name=details["owner_name"])
