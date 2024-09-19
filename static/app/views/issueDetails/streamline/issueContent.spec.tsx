@@ -3,7 +3,7 @@ import {GroupFixture} from 'sentry-fixture/group';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
 
-import {render, screen} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {IssueContent} from 'sentry/views/issueDetails/streamline/issueContent';
 
@@ -36,12 +36,24 @@ describe('IssueContent', () => {
     });
   });
 
-  it('displays the extra data sections', async function () {
+  it('displays the extra data sections as closed by default', async function () {
     render(<IssueContent group={group} project={project} />, {organization});
-    expect(await screen.findByText('Merged Issues')).toBeInTheDocument();
+
+    const mergedIssues = await screen.findByText('Merged Issues');
+    expect(mergedIssues).toBeInTheDocument();
+    expect(
+      screen.queryByText('Fingerprints included in this issue')
+    ).not.toBeInTheDocument();
+    await userEvent.click(mergedIssues);
     expect(screen.getByText('Fingerprints included in this issue')).toBeInTheDocument();
     expect(mockMergedIssues).toHaveBeenCalled();
-    expect(await screen.findByText('Similar Issues')).toBeInTheDocument();
+
+    const similarIssues = await screen.findByText('Similar Issues');
+    expect(similarIssues).toBeInTheDocument();
+    expect(
+      screen.queryByText('Issues with a similar stack trace')
+    ).not.toBeInTheDocument();
+    await userEvent.click(similarIssues);
     expect(screen.getByText('Issues with a similar stack trace')).toBeInTheDocument();
     expect(mockSimilarIssues).toHaveBeenCalled();
   });

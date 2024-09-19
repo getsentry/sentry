@@ -113,7 +113,7 @@ export function EventDetails({
       ) : (
         graphComponent
       )}
-      <GroupContent navHeight={nav?.offsetHeight}>
+      <GroupContent>
         <FloatingEventNavigation
           event={event}
           group={group}
@@ -165,9 +165,10 @@ const ExtraContent = styled('div')`
   border-radius: ${p => p.theme.borderRadius};
 `;
 
-const GroupContent = styled(ExtraContent)<{navHeight?: number}>`
+const GroupContent = styled(ExtraContent)`
   position: relative;
 `;
+
 const ContentPadding = styled('div')`
   padding: ${space(1)} ${space(1.5)};
 `;
