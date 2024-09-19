@@ -4,6 +4,7 @@ import Color from 'color';
 
 import Feature from 'sentry/components/acl/feature';
 import {Breadcrumbs} from 'sentry/components/breadcrumbs';
+import {Button} from 'sentry/components/button';
 import EventOrGroupTitle from 'sentry/components/eventOrGroupTitle';
 import EventMessage from 'sentry/components/events/eventMessage';
 import {
@@ -14,6 +15,7 @@ import {GroupSummaryHeader} from 'sentry/components/group/groupSummary';
 import ParticipantList from 'sentry/components/group/streamlinedParticipantList';
 import Version from 'sentry/components/version';
 import VersionHoverCard from 'sentry/components/versionHoverCard';
+import {IconDashboard} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import {space} from 'sentry/styles/space';
@@ -24,6 +26,7 @@ import type {Release} from 'sentry/types/release';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
+import {useSyncedLocalStorageState} from 'sentry/utils/useSyncedLocalStorageState';
 import GroupActions from 'sentry/views/issueDetails/actions/index';
 import {Divider} from 'sentry/views/issueDetails/divider';
 import GroupPriority from 'sentry/views/issueDetails/groupPriority';
@@ -69,6 +72,11 @@ export default function StreamlinedGroupHeader({
     organization,
     group,
   });
+
+  const [sidebarOpen, setSidebarOpen] = useSyncedLocalStorageState(
+    'issue-details-sidebar-open',
+    false
+  );
 
   const {disabledTabs, message, eventRoute, disableActions, shortIdBreadcrumb} =
     useIssueDetailsHeader({
@@ -189,6 +197,13 @@ export default function StreamlinedGroupHeader({
               <ParticipantList users={displayUsers} />
             </Wrapper>
           )}
+          <Button
+            icon={<IconDashboard />}
+            aria-label={'sidebar-toggle'}
+            size="zero"
+            borderless
+            onClick={() => setSidebarOpen(!sidebarOpen)}
+          />
         </PriorityWorkflowWrapper>
       </InfoWrapper>
       <div>
