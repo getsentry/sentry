@@ -367,11 +367,11 @@ describe('Onboarding Setup Docs', function () {
         router: {
           location: {
             query: {
-              showLoader: 'true',
               product: [
                 ProductSolution.PERFORMANCE_MONITORING,
                 ProductSolution.SESSION_REPLAY,
               ],
+              installationMode: 'auto',
             },
           },
         },
@@ -398,7 +398,7 @@ describe('Onboarding Setup Docs', function () {
         orgSlug: organization.slug,
       });
 
-      const {rerender} = render(
+      render(
         <OnboardingContextProvider>
           <SetupDocs
             active
@@ -420,7 +420,7 @@ describe('Onboarding Setup Docs', function () {
       );
 
       expect(
-        await screen.findByRole('heading', {name: 'Configure Browser JavaScript SDK'})
+        await screen.findByRole('radio', {name: 'Loader Script'})
       ).toBeInTheDocument();
 
       expect(updateLoaderMock).toHaveBeenCalledTimes(1);
@@ -431,49 +431,6 @@ describe('Onboarding Setup Docs', function () {
             dynamicSdkLoaderOptions: {
               hasDebug: false,
               hasPerformance: true,
-              hasReplay: true,
-            },
-          },
-          error: expect.any(Function),
-          method: 'PUT',
-          success: expect.any(Function),
-        }
-      );
-
-      // update query in URL
-      router.location.query = {
-        showLoader: 'true',
-        product: [ProductSolution.SESSION_REPLAY],
-      };
-      rerender(
-        <OnboardingContextProvider>
-          <SetupDocs
-            active
-            onComplete={() => {}}
-            stepIndex={2}
-            router={router}
-            route={{}}
-            location={router.location}
-            genSkipOnboardingLink={() => ''}
-            orgId={organization.slug}
-            search=""
-            recentCreatedProject={project as OnboardingRecentCreatedProject}
-          />
-        </OnboardingContextProvider>
-      );
-
-      expect(
-        await screen.findByRole('heading', {name: 'Configure Browser JavaScript SDK'})
-      ).toBeInTheDocument();
-
-      expect(updateLoaderMock).toHaveBeenCalledTimes(2);
-      expect(updateLoaderMock).toHaveBeenLastCalledWith(
-        expect.any(String), // The URL
-        {
-          data: {
-            dynamicSdkLoaderOptions: {
-              hasDebug: false,
-              hasPerformance: false,
               hasReplay: true,
             },
           },
