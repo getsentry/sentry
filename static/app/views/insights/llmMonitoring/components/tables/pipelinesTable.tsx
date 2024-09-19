@@ -33,6 +33,7 @@ import {
 import {useModuleURL} from 'sentry/views/insights/common/utils/useModuleURL';
 import {QueryParameterNames} from 'sentry/views/insights/common/views/queryParameters';
 import type {SpanMetricsResponse} from 'sentry/views/insights/types';
+import {SpanIndexedField} from 'sentry/views/insights/types';
 
 type Row = Pick<
   SpanMetricsResponse,
@@ -110,12 +111,13 @@ export function EAPPipelinesTable() {
     {
       search: MutableSearch.fromQueryObject({
         'span.category': 'ai.pipeline',
-        'span.description': spanDescription ? `*${spanDescription}*` : undefined,
+        [SpanIndexedField.SPAN_DESCRIPTION]: spanDescription
+          ? `*${spanDescription}*`
+          : undefined,
       }),
       fields: [
-        'project.id',
-        'span.group',
-        'span.description',
+        SpanIndexedField.SPAN_GROUP,
+        SpanIndexedField.SPAN_DESCRIPTION,
         'spm()',
         'avg(span.duration)',
         'sum(span.duration)',
@@ -260,7 +262,6 @@ export function PipelinesTable() {
         'span.description': spanDescription ? `*${spanDescription}*` : undefined,
       }),
       fields: [
-        'project.id',
         'span.group',
         'span.description',
         'spm()',

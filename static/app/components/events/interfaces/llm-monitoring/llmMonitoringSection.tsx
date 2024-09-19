@@ -12,6 +12,7 @@ import {
 } from 'sentry/views/insights/common/queries/useDiscover';
 import {useModuleURL} from 'sentry/views/insights/common/utils/useModuleURL';
 import {
+  EAPNumberOfPipelinesChart,
   EAPTotalTokensUsedChart,
   NumberOfPipelinesChart,
   TotalTokensUsedChart,
@@ -99,10 +100,11 @@ export default function LLMMonitoringSection({event, organization}: Props) {
             )}
           </ModuleLayout.Half>
           <ModuleLayout.Half>
-            <NumberOfPipelinesChart
-              groupId={aiPipelineGroup}
-              useEAP={organization.features.includes('insights-use-eap')}
-            />
+            {useEAP ? (
+              <EAPNumberOfPipelinesChart groupId={aiPipelineGroup} />
+            ) : (
+              <NumberOfPipelinesChart groupId={aiPipelineGroup} />
+            )}
           </ModuleLayout.Half>
         </ModuleLayout.Layout>
       )}

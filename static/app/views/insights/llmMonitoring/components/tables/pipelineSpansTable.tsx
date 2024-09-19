@@ -131,7 +131,7 @@ export function PipelineSpansTable({groupId, useEAP}: Props) {
     },
     'api.ai-pipelines.view'
   );
-  const data = useEAP ? eapData : rawData ?? [];
+  const data = (useEAP ? eapData : rawData) ?? [];
   const meta = (useEAP ? eapMeta : rawMeta) as EventsMetaType;
 
   return (

@@ -6,6 +6,7 @@ import type {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {useWrappedDiscoverQuery} from 'sentry/views/insights/common/queries/useSpansQuery';
 import type {
+  EAPSpanProperty,
   MetricsProperty,
   MetricsResponse,
   SpanIndexedField,
@@ -36,9 +37,11 @@ export const useSpansIndexed = <Fields extends SpanIndexedField[]>(
   );
 };
 
-// TODO not limiting fields for EAP spans, they are completely arbitrary for now
-export const useEAPSpans = (options: UseMetricsOptions<any> = {}, referrer: string) => {
-  return useDiscover<any, SpanIndexedResponse>(
+export const useEAPSpans = <Fields extends EAPSpanProperty[]>(
+  options: UseMetricsOptions<Fields> = {},
+  referrer: string
+) => {
+  return useDiscover<Fields, SpanIndexedResponse>(
     options,
     DiscoverDatasets.SPANS_EAP,
     referrer

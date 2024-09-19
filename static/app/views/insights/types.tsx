@@ -178,6 +178,32 @@ export type MetricsFilters = {
 
 export type SpanMetricsProperty = keyof SpanMetricsResponse;
 
+export type EAPSpanResponse = {
+  [Property in SpanNumberFields as `${Aggregate}(${Property})`]: number;
+} & {
+  [Property in SpanFunctions as `${Property}()`]: number;
+} & {
+  [Property in SpanStringFields as `${Property}`]: string;
+} & {
+  [Property in SpanStringArrayFields as `${Property}`]: string[];
+} & {
+  ['project']: string;
+  ['project.id']: number;
+} & {
+  [Function in RegressionFunctions]: number;
+} & {
+  [Function in SpanAnyFunction]: string;
+} & {
+  [Property in ConditionalAggregate as
+    | `${Property}(${string})`
+    | `${Property}(${string},${string})`
+    | `${Property}(${string},${string},${string})`]: number;
+} & {
+  [SpanMetricsField.USER_GEO_SUBREGION]: SubregionCode;
+};
+
+export type EAPSpanProperty = keyof EAPSpanResponse;
+
 export enum SpanIndexedField {
   ENVIRONMENT = 'environment',
   RESOURCE_RENDER_BLOCKING_STATUS = 'resource.render_blocking_status',
