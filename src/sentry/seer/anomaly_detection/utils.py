@@ -14,11 +14,13 @@ from sentry.search.events.types import SnubaParams
 from sentry.seer.anomaly_detection.types import TimeSeriesPoint
 from sentry.snuba import metrics_performance
 from sentry.snuba.metrics.extraction import MetricSpecType
-from sentry.snuba.models import SnubaQuery
+from sentry.snuba.models import SnubaQuery, SnubaQueryEventType
 from sentry.snuba.referrer import Referrer
 from sentry.snuba.sessions_v2 import QueryDefinition
 from sentry.snuba.utils import get_dataset
 from sentry.utils.snuba import SnubaTSResult
+
+NUM_DAYS = 28
 
 
 def translate_direction(direction: int) -> str:
@@ -33,7 +35,37 @@ def translate_direction(direction: int) -> str:
     return direction_map[AlertRuleThresholdType(direction)]
 
 
-NUM_DAYS = 28
+def get_snuba_query_string(snuba_query: SnubaQuery) -> str:
+    """
+    Generate a query string that matches what events-stats does
+    """
+    SNUBA_QUERY_EVENT_TYPE_TO_STRING = {
+        SnubaQueryEventType.EventType.ERROR: "error",
+        SnubaQueryEventType.EventType.DEFAULT: "default",
+        SnubaQueryEventType.EventType.TRANSACTION: "transaction",
+    }
+
+    if len(snuba_query.event_types) > 1:
+        # e.g. (is:unresolved) AND (event.type:[error, default])
+        event_types_list = [
+            SNUBA_QUERY_EVENT_TYPE_TO_STRING[event_type] for event_type in snuba_query.event_types
+        ]
+        event_types_string = "(event.type:["
+        for event_type in event_types_list:
+            event_types_string += event_type + ","
+        event_types_string = event_types_string[:-1]  # cut off the trailing comma
+        event_types_string += "])"
+    else:
+        # e.g. (is:unresolved) AND (event.type:error)
+        snuba_query_event_type_string = SNUBA_QUERY_EVENT_TYPE_TO_STRING[snuba_query.event_types[0]]
+        event_types_string = f"(event.type:{snuba_query_event_type_string})"
+
+    if snuba_query.query:
+        snuba_query_string = f"({snuba_query.query}) AND {event_types_string}"
+    else:
+        snuba_query_string = event_types_string
+
+    return snuba_query_string
 
 
 def get_crash_free_historical_data(
@@ -145,7 +177,11 @@ def fetch_historical_data(
         # DATASET_OPTIONS expects the name 'errors'
         dataset_label = "errors"
     elif dataset_label == "generic_metrics":
+        # XXX: this is for sessions/crash rate alerts
         dataset_label = "transactions"
+    elif dataset_label == "transactions":
+        # XXX: this is for performance alerts
+        dataset_label = "discover"
     dataset = get_dataset(dataset_label)
 
     if not project or not dataset or not alert_rule.organization:
@@ -155,6 +191,16 @@ def fetch_historical_data(
     if snuba_query.environment:
         environments = [snuba_query.environment]
 
+    snuba_params = SnubaParams(
+        organization=alert_rule.organization,
+        projects=[project],
+        start=start,
+        end=end,
+        stats_period=None,
+        environments=environments,
+    )
+    snuba_query_string = get_snuba_query_string(snuba_query)
+
     if dataset == metrics_performance:
         return get_crash_free_historical_data(
             start, end, project, alert_rule.organization, granularity
@@ -162,15 +208,8 @@ def fetch_historical_data(
     else:
         historical_data = dataset.timeseries_query(
             selected_columns=query_columns,
-            query=snuba_query.query,
-            snuba_params=SnubaParams(
-                organization=alert_rule.organization,
-                projects=[project],
-                start=start,
-                end=end,
-                stats_period=None,
-                environments=environments,
-            ),
+            query=snuba_query_string,
+            snuba_params=snuba_params,
             rollup=granularity,
             referrer=(
                 Referrer.ANOMALY_DETECTION_HISTORICAL_DATA_QUERY.value
