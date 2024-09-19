@@ -12,6 +12,7 @@ export function AutofixStepFixture(params: Partial<AutofixStep> = {}): AutofixSt
     title: 'I am processing',
     status: 'PROCESSING',
     progress: [],
+    insights: [],
     ...params,
   } as AutofixDefaultStep;
 }
