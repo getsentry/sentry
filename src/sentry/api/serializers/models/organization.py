@@ -322,8 +322,6 @@ class OrganizationSerializer(Serializer):
     def serialize(
         self, obj: Organization, attrs: Mapping[str, Any], user: User, **kwargs: Any
     ) -> OrganizationSerializerResponse:
-        from sentry import features
-
         if attrs.get("avatar"):
             avatar = {
                 "avatarType": attrs["avatar"].get_avatar_type_display(),
@@ -347,10 +345,8 @@ class OrganizationSerializer(Serializer):
             "dateCreated": obj.date_added,
             "isEarlyAdopter": bool(obj.flags.early_adopter),
             "require2FA": bool(obj.flags.require_2fa),
-            "requireEmailVerification": bool(
-                features.has("organizations:required-email-verification", obj)
-                and obj.flags.require_email_verification
-            ),
+            # requireEmailVerification has been deprecated
+            "requireEmailVerification": False,
             "avatar": avatar,
             "allowMemberInvite": not obj.flags.disable_member_invite,
             "allowMemberProjectCreation": not obj.flags.disable_member_project_creation,
@@ -531,10 +527,8 @@ class DetailedOrganizationSerializer(OrganizationSerializer):
                 ),
                 "openMembership": bool(obj.flags.allow_joinleave),
                 "require2FA": bool(obj.flags.require_2fa),
-                "requireEmailVerification": bool(
-                    features.has("organizations:required-email-verification", obj)
-                    and obj.flags.require_email_verification
-                ),
+                # The requireEmailVerification feature has been removed, this field is deprecated.
+                "requireEmailVerification": False,
                 "allowSharedIssues": not obj.flags.disable_shared_issues,
                 "enhancedPrivacy": bool(obj.flags.enhanced_privacy),
                 "dataScrubber": bool(
