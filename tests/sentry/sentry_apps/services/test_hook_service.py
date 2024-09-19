@@ -1,6 +1,6 @@
-from sentry.models.integrations.sentry_app import EVENT_EXPANSION
 from sentry.models.servicehook import ServiceHook
 from sentry.sentry_apps.logic import consolidate_events, expand_events
+from sentry.sentry_apps.models.sentry_app import EVENT_EXPANSION
 from sentry.sentry_apps.services.hook import RpcServiceHook, hook_service
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase

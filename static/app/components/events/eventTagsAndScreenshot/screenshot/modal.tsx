@@ -24,10 +24,11 @@ import getDynamicText from 'sentry/utils/getDynamicText';
 import parseLinkHeader from 'sentry/utils/parseLinkHeader';
 import useApi from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
-import {MAX_SCREENSHOTS_PER_PAGE} from 'sentry/views/issueDetails/groupEventAttachments/groupEventAttachments';
 
 import ImageVisualization from './imageVisualization';
 import ScreenshotPagination from './screenshotPagination';
+
+export const MAX_SCREENSHOTS_PER_PAGE = 50;
 
 type Props = ModalRenderProps & {
   downloadUrl: string;

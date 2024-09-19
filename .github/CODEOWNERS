@@ -512,6 +512,8 @@ tests/sentry/api/endpoints/test_organization_dashboard_widget_details.py     @ge
 /src/sentry/api/helpers/group_index/                        @getsentry/issues
 /src/sentry/api/helpers/source_map_helper.py                @getsentry/issues
 /src/sentry/api/issue_search.py                             @getsentry/issues
+/src/sentry/deletions/defaults/group.py                     @getsentry/issues
+/src/sentry/deletions/tasks/groups.py                       @getsentry/issues
 /src/sentry/event_manager.py                                @getsentry/issues
 /src/sentry/eventstore/models.py                            @getsentry/issues
 /src/sentry/grouping/                                       @getsentry/issues
@@ -550,6 +552,7 @@ tests/sentry/api/endpoints/test_organization_dashboard_widget_details.py     @ge
 /static/app/utils/analytics.tsx                             @getsentry/issues
 /static/app/utils/routeAnalytics/                           @getsentry/issues
 /tests/sentry/api/test_issue_search.py                      @getsentry/issues
+/tests/sentry/deletions/test_group.py                       @getsentry/issues
 /tests/sentry/event_manager/                                @getsentry/issues
 /tests/sentry/grouping/                                     @getsentry/issues
 /tests/sentry/search/                                       @getsentry/issues

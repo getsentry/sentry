@@ -7,7 +7,7 @@ export interface Props<Data> {
   children: React.ReactNode;
   queryResult:
     | UseQueryResult<ApiResult<Data>, Error>
-    | UseInfiniteQueryResult<ApiResult<Data[]>, Error>;
+    | UseInfiniteQueryResult<Data, Error>;
   backgroundUpdatingMessage?: () => React.ReactNode;
   errorMessage?: (props: {error: Error}) => React.ReactNode;
   loadingMessage?: () => React.ReactNode;
@@ -21,7 +21,7 @@ export default function InfiniteListState<Data>({
   queryResult,
 }: Props<Data>) {
   const {status, error, isFetching} = queryResult;
-  if (status === 'loading') {
+  if (status === 'pending') {
     return loadingMessage();
   }
   if (status === 'error') {
