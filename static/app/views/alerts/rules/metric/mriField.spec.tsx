@@ -45,8 +45,8 @@ describe('MRIField', () => {
       />
     );
     await screen.findByText('Select an operation');
-    userEvent.click(screen.getByText('sum'));
-    userEvent.click(await screen.findByText('p95'));
+    await userEvent.click(screen.getByText('sum'));
+    await userEvent.click(await screen.findByText('p95'));
     await waitFor(() =>
       expect(onChange).toHaveBeenCalledWith(
         'p95(d:custom/sentry.distribution.metric@second)',
