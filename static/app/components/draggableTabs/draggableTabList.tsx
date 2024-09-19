@@ -28,9 +28,11 @@ import {IconAdd, IconEllipsis} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {browserHistory} from 'sentry/utils/browserHistory';
 import {useDimensions} from 'sentry/utils/useDimensions';
 import {useDimensionsMultiple} from 'sentry/utils/useDimensionsMultiple';
+import useOrganization from 'sentry/utils/useOrganization';
 
 import type {DraggableTabListItemProps} from './item';
 import {Item} from './item';
@@ -262,6 +264,7 @@ function BaseDraggableTabList({
 }: BaseDraggableTabListProps) {
   const [hoveringKey, setHoveringKey] = useState<Key | null>(null);
   const {rootProps, setTabListState} = useContext(TabsContext);
+  const organization = useOrganization();
   const {
     value,
     defaultValue,
@@ -284,6 +287,11 @@ function BaseDraggableTabList({
       if (!linkTo) {
         return;
       }
+
+      trackAnalytics('issue_views.switched_views', {
+        organization,
+      });
+
       browserHistory.push(linkTo);
     },
     isDisabled: disabled,
@@ -329,7 +337,13 @@ function BaseDraggableTabList({
           onHoverStart={() => setHoveringKey('addView')}
           onHoverEnd={() => setHoveringKey(null)}
         >
-          <AddViewButton borderless size="zero" onClick={onAddView}>
+          <AddViewButton
+            borderless
+            size="zero"
+            onClick={onAddView}
+            analyticsEventName="Issue Views: Add View Clicked"
+            analyticsEventKey="issue_views.add_view.clicked"
+          >
             <StyledIconAdd size="xs" />
             {t('Add View')}
           </AddViewButton>
