@@ -1113,7 +1113,12 @@ class NumericColumn(ColumnArg):
         # this even in child classes where `normalize` have been overridden.
         # Shortcutting this for now
         # TODO: handle different datasets better here
-        if self.spans and value in ["span.duration", "span.self_time"]:
+        if self.spans and value in [
+            "span.duration",
+            "span.self_time",
+            "ai.total_tokens.used",
+            "ai.total_cost",
+        ]:
             return value
         snuba_column = SEARCH_MAP.get(value)
         if not snuba_column and is_measurement(value):

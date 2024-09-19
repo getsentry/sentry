@@ -188,8 +188,8 @@ SPAN_EAP_COLUMN_MAP = {
     # message also maps to span description but gets special handling
     # to support wild card searching by default
     "message": "name",
-    "span.domain": "domain",
-    "span.group": "group",
+    "span.domain": "attr_str[domain]",
+    "span.group": "attr_str[group]",
     "span.op": "attr_str[op]",
     "span.category": "attr_str[category]",
     "span.self_time": "exclusive_time_ms",
@@ -204,6 +204,9 @@ SPAN_EAP_COLUMN_MAP = {
     "origin.transaction": "segment_name",
     "span.status_code": "attr_str[status_code]",
     "replay.id": "attr_str[replay_id]",
+    "span.ai.pipeline.group": "attr_str[ai_pipeline_group]",
+    "ai.total_tokens.used": "attr_num[ai_total_tokens_used]",
+    "ai.total_cost": "attr_num[ai_total_cost]",
 }
 
 METRICS_SUMMARIES_COLUMN_MAP = {
