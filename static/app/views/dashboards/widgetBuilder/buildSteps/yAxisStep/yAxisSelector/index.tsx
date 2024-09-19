@@ -62,8 +62,7 @@ export function YAxisSelector({
       organization.features.includes('dashboards-bignumber-equations') &&
       displayType === DisplayType.BIG_NUMBER
     ) {
-      const newSelectedAggregate = newAggregates.length - 1;
-      onChange(newAggregates, newSelectedAggregate);
+      onChange(newAggregates, newAggregates.length - 1);
     } else onChange(newAggregates);
   }
 
