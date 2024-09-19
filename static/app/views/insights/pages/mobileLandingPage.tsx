@@ -4,10 +4,10 @@ import {Breadcrumbs, type Crumb} from 'sentry/components/breadcrumbs';
 import ButtonBar from 'sentry/components/buttonBar';
 import FeedbackWidgetButton from 'sentry/components/feedback/widget/feedbackWidgetButton';
 import * as Layout from 'sentry/components/layouts/thirds';
-import {TabList, TabPanels, Tabs} from 'sentry/components/tabs';
+import {TabList, Tabs} from 'sentry/components/tabs';
 import {t} from 'sentry/locale';
 import {PageAlert} from 'sentry/utils/performance/contexts/pageAlert';
-import ScreensLandingPage from 'sentry/views/insights/mobile/screens/views/screensLandingPage';
+import {ModuleRenderer} from 'sentry/views/insights/pages/moduleRenderer';
 import {OVERVIEW_PAGE_TITLE} from 'sentry/views/insights/pages/settings';
 import {
   type Filters,
@@ -15,13 +15,11 @@ import {
   useUpdateFilters,
 } from 'sentry/views/insights/pages/useFilters';
 import {MODULE_TITLES} from 'sentry/views/insights/settings';
-import {type InsightLandingProps, ModuleName} from 'sentry/views/insights/types';
+import {ModuleName} from 'sentry/views/insights/types';
 
 function MobileLandingPage() {
   const filters = useFilters();
   const updateFilters = useUpdateFilters();
-
-  const landingPageProps: InsightLandingProps = {disableHeader: true};
 
   const crumbs: Crumb[] = [
     {
@@ -78,12 +76,8 @@ function MobileLandingPage() {
         </Layout.Header>
         <Layout.Main fullWidth>
           <PageAlert />
-          <TabPanels>
-            <TabPanels.Item key={OVERVIEW_PAGE_TITLE}>{'overview page'}</TabPanels.Item>
-            <TabPanels.Item key={ModuleName.MOBILE_SCREENS}>
-              <ScreensLandingPage {...landingPageProps} />
-            </TabPanels.Item>
-          </TabPanels>
+          {!filters.module && 'overview page'}
+          {filters.module && <ModuleRenderer />}
         </Layout.Main>
       </Tabs>
     </Fragment>
