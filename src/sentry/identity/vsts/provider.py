@@ -145,10 +145,10 @@ class VSTSNewIdentityProvider(OAuth2Provider):
     oauth_authorize_url = "https://login.microsoftonline.com/common/oauth2/v2.0/authorize"
 
     def get_oauth_client_id(self):
-        return options.get("vsts.client-id")
+        return options.get("vsts_new.client-id")
 
     def get_oauth_client_secret(self):
-        return options.get("vsts.client-secret")
+        return options.get("vsts_new.client-secret")
 
     def get_refresh_token_url(self):
         return self.oauth_access_token_url
