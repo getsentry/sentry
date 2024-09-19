@@ -97,8 +97,10 @@ class VstsIntegrationMigrationTest(VstsIntegrationTestCase):
         assert external_id == data["external_id"]
         subscription = data["metadata"]["subscription"]
         assert subscription["id"] is not None and subscription["secret"] is not None
-        assert set(data.get("metadata")["scopes"]) == set(NEW_SCOPES)
-        assert data.get("metadata")["integration_migration_version"] == 1
+        metadata = data.get("metadata")
+        assert metadata is not None
+        assert set(metadata["scopes"]) == set(NEW_SCOPES)
+        assert metadata["integration_migration_version"] == 1
 
         # Make sure the integration object is updated
         # ensure_integration will be called in _finish_pipeline
