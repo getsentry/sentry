@@ -1,11 +1,9 @@
 import type {CSSProperties, ReactNode} from 'react';
 import {isValidElement, memo, useCallback} from 'react';
 import styled from '@emotion/styled';
-import beautify from 'js-beautify';
 
 import ProjectAvatar from 'sentry/components/avatar/projectAvatar';
 import {Button} from 'sentry/components/button';
-import {CodeSnippet} from 'sentry/components/codeSnippet';
 import {Flex} from 'sentry/components/container/flex';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import Link from 'sentry/components/links/link';
@@ -20,7 +18,6 @@ import {useHasNewTimelineUI} from 'sentry/components/timeline/utils';
 import {Tooltip} from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {Extraction} from 'sentry/utils/replays/extractHtml';
 import {getReplayDiffOffsetsFromFrame} from 'sentry/utils/replays/getDiffTimestamps';
 import getFrameDetails from 'sentry/utils/replays/getFrameDetails';
 import useExtractDomNodes from 'sentry/utils/replays/hooks/useExtractDomNodes';
@@ -60,13 +57,11 @@ interface Props {
   startTimestampMs: number;
   className?: string;
   expandPaths?: string[];
-  extraction?: Extraction;
   style?: CSSProperties;
 }
 
 function BreadcrumbItem({
   className,
-  extraction,
   frame,
   expandPaths,
   onClick,
@@ -121,19 +116,6 @@ function BreadcrumbItem({
     ) : null;
   }, [expandPaths, frame, onInspectorExpanded, onMouseEnter, onMouseLeave, replay]);
 
-  const renderCodeSnippet = useCallback(() => {
-    return (
-      (!isSpanFrame(frame) || !isWebVitalFrame(frame)) &&
-      extraction?.html?.map(html => (
-        <CodeContainer key={html}>
-          <CodeSnippet language="html" hideCopyButton>
-            {beautify.html(html, {indent_size: 2})}
-          </CodeSnippet>
-        </CodeContainer>
-      ))
-    );
-  }, [extraction?.html, frame]);
-
   const renderIssueLink = useCallback(() => {
     return isErrorFrame(frame) || isFeedbackFrame(frame) ? (
       <CrumbErrorIssue frame={frame} />
@@ -173,7 +155,6 @@ function BreadcrumbItem({
           {renderDescription()}
           {renderComparisonButton()}
           {renderWebVital()}
-          {renderCodeSnippet()}
           {renderIssueLink()}
         </ErrorBoundary>
       </StyledTimelineItem>
@@ -211,7 +192,6 @@ function BreadcrumbItem({
           </Flex>
           {renderComparisonButton()}
           {renderWebVital()}
-          {renderCodeSnippet()}
           {renderIssueLink()}
         </CrumbDetails>
       </ErrorBoundary>
@@ -490,12 +470,6 @@ const CrumbItem = styled(PanelItem)<{isErrorFrame?: boolean}>`
   &:only-of-type::after {
     display: none;
   }
-`;
-
-const CodeContainer = styled('div')`
-  max-height: 400px;
-  max-width: 100%;
-  overflow: auto;
 `;
 
 const ValueObjectKey = styled('span')`
