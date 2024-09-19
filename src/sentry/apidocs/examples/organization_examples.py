@@ -1084,3 +1084,27 @@ class OrganizationExamples:
             response_only=True,
         )
     ]
+
+    GET_HISTORICAL_ANOMALIES = [
+        OpenApiExample(
+            "Identify anomalies in historical data",
+            value=[
+                {
+                    "anomaly": {
+                        "anomaly_score": -0.38810767243044786,
+                        "anomaly_type": "none",
+                    },
+                    "timestamp": 169,
+                    "value": 0.048480431,
+                },
+                {
+                    "anomaly": {
+                        "anomaly_score": -0.3890542800124323,
+                        "anomaly_type": "none",
+                    },
+                    "timestamp": 170,
+                    "value": 0.047910238,
+                },
+            ],
+        )
+    ]

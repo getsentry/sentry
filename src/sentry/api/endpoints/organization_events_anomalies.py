@@ -16,6 +16,7 @@ from sentry.apidocs.constants import (
     RESPONSE_NOT_FOUND,
     RESPONSE_UNAUTHORIZED,
 )
+from sentry.apidocs.examples.organization_examples import OrganizationExamples
 from sentry.apidocs.parameters import GlobalParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.models.organization import Organization
@@ -44,6 +45,7 @@ class OrganizationEventsAnomaliesEndpoint(OrganizationEventsV2EndpointBase):
             403: RESPONSE_FORBIDDEN,
             404: RESPONSE_NOT_FOUND,
         },
+        examples=OrganizationExamples.GET_HISTORICAL_ANOMALIES,
     )
     def _format_historical_data(self, data) -> list[TimeSeriesPoint]:
         """
@@ -54,8 +56,8 @@ class OrganizationEventsAnomaliesEndpoint(OrganizationEventsV2EndpointBase):
             list[TimeSeriesPoint]
         """
         if data is None:
-            # TODO: figure out error handling here
-            pass
+            return data
+
         formatted_data: list[TimeSeriesPoint] = []
         for datum in data:
             ts_point = TimeSeriesPoint(timestamp=datum[0], value=datum[1].get("count", 0))
