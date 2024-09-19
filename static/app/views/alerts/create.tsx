@@ -17,6 +17,7 @@ import BuilderBreadCrumbs from 'sentry/views/alerts/builder/builderBreadCrumbs';
 import IssueRuleEditor from 'sentry/views/alerts/rules/issue';
 import MetricRulesCreate from 'sentry/views/alerts/rules/metric/create';
 import MetricRuleDuplicate from 'sentry/views/alerts/rules/metric/duplicate';
+import {UptimeAlertForm} from 'sentry/views/alerts/rules/uptime/uptimeAlertForm';
 import {AlertRuleType} from 'sentry/views/alerts/types';
 import type {
   AlertType as WizardAlertType,
@@ -141,16 +142,29 @@ function Create(props: Props) {
           <LoadingIndicator />
         ) : (
           <Fragment>
-            {(!hasMetricAlerts || alertType === AlertRuleType.ISSUE) && (
+            {organization.features.includes('uptime-api-create-update') &&
+            alertType === AlertRuleType.UPTIME ? (
+              <UptimeAlertForm
+                apiMethod="POST"
+                apiUrl={`/projects/${organization.slug}/${project.slug}/uptime/`}
+                project={project}
+                onSubmitSuccess={response => {
+                  router.push(
+                    normalizeUrl(
+                      `/organizations/${organization.slug}/alerts/rules/uptime/${project.slug}/${response.id}/details`
+                    )
+                  );
+                }}
+              />
+            ) : !hasMetricAlerts || alertType === AlertRuleType.ISSUE ? (
               <IssueRuleEditor
                 {...props}
                 project={project}
                 userTeamIds={teams.map(({id}) => id)}
                 members={members}
               />
-            )}
-
-            {hasMetricAlerts &&
+            ) : (
+              hasMetricAlerts &&
               alertType === AlertRuleType.METRIC &&
               (isDuplicateRule ? (
                 <MetricRuleDuplicate
@@ -170,7 +184,8 @@ function Create(props: Props) {
                   project={project}
                   userTeamIds={teams.map(({id}) => id)}
                 />
-              ))}
+              ))
+            )}
           </Fragment>
         )}
       </Layout.Body>

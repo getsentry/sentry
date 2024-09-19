@@ -255,7 +255,9 @@ function AlertRulesList() {
                       const isIssueAlertInstance = isIssueAlert(rule);
                       const keyPrefix = isIssueAlertInstance
                         ? AlertRuleType.ISSUE
-                        : AlertRuleType.METRIC;
+                        : rule.type === CombinedAlertType.UPTIME
+                          ? AlertRuleType.UPTIME
+                          : AlertRuleType.METRIC;
 
                       return (
                         <RuleListRow
