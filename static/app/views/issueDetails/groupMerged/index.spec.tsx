@@ -54,10 +54,6 @@ describe('Issues -> Merged View', function () {
         project={project}
         params={{orgId: 'orgId', groupId: 'groupId'}}
         location={router.location}
-        routeParams={{}}
-        route={{}}
-        routes={router.routes}
-        router={router}
       />,
       {router}
     );
@@ -81,10 +77,6 @@ describe('Issues -> Merged View', function () {
         project={project}
         params={{orgId: 'orgId', groupId: 'groupId'}}
         location={router.location}
-        routeParams={{}}
-        route={{}}
-        routes={router.routes}
-        router={router}
       />,
       {router}
     );

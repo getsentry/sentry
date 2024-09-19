@@ -19,9 +19,9 @@ import withOrganization from 'sentry/utils/withOrganization';
 
 import MergedList from './mergedList';
 
-type Props = RouteComponentProps<
-  {groupId: Group['id']; orgId: Organization['slug']},
-  {}
+type Props = Pick<
+  RouteComponentProps<{groupId: Group['id']; orgId: Organization['slug']}, {}>,
+  'params' | 'location'
 > & {
   organization: Organization;
   project: Project;

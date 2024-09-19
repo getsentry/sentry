@@ -1,5 +1,4 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
-import {RouterFixture} from 'sentry-fixture/routerFixture';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
@@ -9,7 +8,6 @@ describe('Related Issues View', function () {
   let sameRootIssuesMock: jest.Mock;
   let traceIssuesMock: jest.Mock;
   let issuesMock: jest.Mock;
-  const router = RouterFixture();
 
   const organization = OrganizationFixture();
   const orgSlug = organization.slug;
@@ -85,16 +83,7 @@ describe('Related Issues View', function () {
       body: issuesData,
     });
 
-    render(
-      <GroupRelatedIssues
-        params={params}
-        location={router.location}
-        router={router}
-        routeParams={router.params}
-        routes={router.routes}
-        route={{}}
-      />
-    );
+    render(<GroupRelatedIssues params={params} />);
 
     // Wait for the issues showing up on the table
     expect(await screen.findByText(`EARTH-${group1}`)).toBeInTheDocument();
@@ -123,16 +112,7 @@ describe('Related Issues View', function () {
       url: orgIssuesEndpoint,
       body: issuesData,
     });
-    render(
-      <GroupRelatedIssues
-        params={params}
-        location={router.location}
-        router={router}
-        routeParams={router.params}
-        routes={router.routes}
-        route={{}}
-      />
-    );
+    render(<GroupRelatedIssues params={params} />);
 
     // Wait for the issues showing up on the table
     expect(await screen.findByText(`EARTH-${group1}`)).toBeInTheDocument();

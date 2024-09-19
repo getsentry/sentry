@@ -16,7 +16,7 @@ type RouteParams = {
   groupId: string;
 };
 
-type Props = RouteComponentProps<RouteParams, {}>;
+type Props = Pick<RouteComponentProps<RouteParams, {}>, 'params'>;
 
 type RelatedIssuesResponse = {
   data: number[];
