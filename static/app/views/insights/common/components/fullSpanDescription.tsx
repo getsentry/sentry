@@ -8,11 +8,13 @@ import {IconOpen} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {SQLishFormatter} from 'sentry/utils/sqlish/SQLishFormatter';
+import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
+import {useSpansIndexed} from 'sentry/views/insights/common/queries/useDiscover';
 import {useFullSpanFromTrace} from 'sentry/views/insights/common/queries/useFullSpanFromTrace';
 import {prettyPrintJsonString} from 'sentry/views/insights/database/utils/jsonUtils';
-import {ModuleName} from 'sentry/views/insights/types';
+import {ModuleName, SpanIndexedField} from 'sentry/views/insights/types';
 
 const formatter = new SQLishFormatter();
 
@@ -34,16 +36,32 @@ export function FullSpanDescription({
   filters,
   moduleName,
 }: Props) {
+  const {data: indexedSpans, isFetching: areIndexedSpansLoading} = useSpansIndexed(
+    {
+      search: MutableSearch.fromQueryObject({'span.group': group}),
+      limit: 1,
+      fields: [
+        SpanIndexedField.PROJECT_ID,
+        SpanIndexedField.TRANSACTION_ID,
+        SpanIndexedField.SPAN_DESCRIPTION,
+      ],
+    },
+    'api.starfish.span-description'
+  );
+  const indexedSpan = indexedSpans?.[0];
+
+  // This is used as backup in case we don't have the necessary data available in the indexed span
   const {
     data: fullSpan,
     isLoading,
     isFetching,
-  } = useFullSpanFromTrace(group, [INDEXED_SPAN_SORT], Boolean(group), filters);
+  } = useFullSpanFromTrace(group, [INDEXED_SPAN_SORT], Boolean(indexedSpan), filters);
 
-  const description = fullSpan?.description ?? shortDescription;
+  const description =
+    indexedSpan?.['span.description'] ?? fullSpan?.description ?? shortDescription;
   const system = fullSpan?.data?.['db.system'];
 
-  if (isLoading && isFetching) {
+  if (areIndexedSpansLoading || (isLoading && isFetching)) {
     return (
       <PaddedSpinner>
         <LoadingIndicator mini hideMessage relative />
@@ -61,10 +79,12 @@ export function FullSpanDescription({
       let shouldDisplayTruncatedWarning = false;
       let result: ReturnType<typeof prettyPrintJsonString> | undefined = undefined;
 
-      if (fullSpan?.sentry_tags) {
-        result = prettyPrintJsonString(fullSpan?.sentry_tags?.description);
+      if (indexedSpan?.['span.description']) {
+        result = prettyPrintJsonString(indexedSpan?.['span.description']);
       } else if (description) {
         result = prettyPrintJsonString(description);
+      } else if (fullSpan?.sentry_tags?.description) {
+        result = prettyPrintJsonString(fullSpan?.sentry_tags.description);
       } else if (fullSpan?.sentry_tags?.description) {
         result = prettyPrintJsonString(fullSpan?.sentry_tags?.description);
       } else {
