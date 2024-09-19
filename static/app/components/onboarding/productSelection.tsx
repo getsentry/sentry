@@ -297,6 +297,10 @@ export type ProductSelectionProps = {
    */
   onChange?: (product: ProductSolution[]) => void;
   /**
+   * Callback fired when the component is loaded
+   */
+  onLoad?: (product: ProductSolution[]) => void;
+  /**
    * The platform key of the project (e.g. javascript-react, python-django, etc.)
    */
   platform?: PlatformKey;
@@ -316,6 +320,7 @@ export function ProductSelection({
   platform,
   productsPerPlatform = platformProductAvailability,
   onChange,
+  onLoad,
 }: ProductSelectionProps) {
   const [params, setParams] = useOnboardingQueryParams();
   const urlProducts = useMemo(() => params.product ?? [], [params.product]);
@@ -333,6 +338,7 @@ export function ProductSelection({
   }, [products, disabledProducts]);
 
   useEffect(() => {
+    onLoad?.(defaultProducts);
     setParams({
       product: defaultProducts,
     });

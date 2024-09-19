@@ -29,7 +29,6 @@ import {
   getReplayConfigureDescription,
   getReplayVerifyStep,
 } from 'sentry/components/onboarding/gettingStartedDoc/utils/replayOnboarding';
-import {ProductSolution} from 'sentry/components/onboarding/productSelection';
 import replayOnboardingJsLoader from 'sentry/gettingStartedDocs/javascript/jsLoader/jsLoader';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -65,14 +64,6 @@ type Params = DocsParams<PlatformOptions>;
 
 const isAutoInstall = (params: Params) =>
   params.platformOptions.installationMode === InstallationMode.AUTO;
-
-function getSelectedProducts(params: Params) {
-  const products: ProductSolution[] = [];
-  if (params.isPerformanceSelected) products.push(ProductSolution.PERFORMANCE_MONITORING);
-  if (params.isReplaySelected) products.push(ProductSolution.SESSION_REPLAY);
-  if (params.isProfilingSelected) products.push(ProductSolution.PROFILING);
-  return products;
-}
 
 const getSdkSetupSnippet = (params: Params) => `
 import * as Sentry from "@sentry/browser";
@@ -299,14 +290,6 @@ const loaderScriptOnboarding: OnboardingConfig<PlatformOptions> = {
         platform: params.platformKey,
         project_id: params.projectId,
       });
-
-      updateDynamicSdkLoaderOptions({
-        orgSlug: params.organization.slug,
-        projectSlug: params.projectSlug,
-        products: getSelectedProducts(params),
-        projectKey: params.projectKeyId,
-        api: params.api,
-      });
     };
   },
   onPlatformOptionsChange: params => {
@@ -319,6 +302,17 @@ const loaderScriptOnboarding: OnboardingConfig<PlatformOptions> = {
     };
   },
   onProductSelectionChange: params => {
+    return products => {
+      updateDynamicSdkLoaderOptions({
+        orgSlug: params.organization.slug,
+        projectSlug: params.projectSlug,
+        products,
+        projectKey: params.projectKeyId,
+        api: params.api,
+      });
+    };
+  },
+  onProductSelectionLoad: params => {
     return products => {
       updateDynamicSdkLoaderOptions({
         orgSlug: params.organization.slug,
@@ -455,6 +449,10 @@ const onboarding: OnboardingConfig<PlatformOptions> = {
     isAutoInstall(params)
       ? loaderScriptOnboarding.onPlatformOptionsChange?.(params)
       : packageManagerOnboarding.onPlatformOptionsChange?.(params),
+  onProductSelectionLoad: params =>
+    isAutoInstall(params)
+      ? loaderScriptOnboarding.onProductSelectionLoad?.(params)
+      : packageManagerOnboarding.onProductSelectionLoad?.(params),
 };
 
 const replayOnboarding: OnboardingConfig<PlatformOptions> = {

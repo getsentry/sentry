@@ -1,7 +1,13 @@
+import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectKeysFixture} from 'sentry-fixture/projectKeys';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {render, screen, waitForElementToBeRemoved} from 'sentry-test/reactTestingLibrary';
+import {
+  render,
+  screen,
+  userEvent,
+  waitForElementToBeRemoved,
+} from 'sentry-test/reactTestingLibrary';
 
 import {OnboardingContextProvider} from 'sentry/components/onboarding/onboardingContext';
 import {ProductSolution} from 'sentry/components/onboarding/productSelection';
@@ -382,6 +388,9 @@ describe('Onboarding Setup Docs', function () {
             platform: 'javascript',
           },
         ],
+        organization: OrganizationFixture({
+          features: ['session-replay', 'performance-view'],
+        }),
       });
 
       const updateLoaderMock = MockApiClient.addMockResponse({
@@ -432,6 +441,29 @@ describe('Onboarding Setup Docs', function () {
               hasDebug: false,
               hasPerformance: true,
               hasReplay: true,
+            },
+          },
+          error: expect.any(Function),
+          method: 'PUT',
+          success: expect.any(Function),
+        }
+      );
+
+      expect(
+        await screen.findByRole('radio', {name: 'Loader Script'})
+      ).toBeInTheDocument();
+
+      await userEvent.click(screen.getByRole('checkbox', {name: 'Session Replay'}));
+      expect(updateLoaderMock).toHaveBeenCalledTimes(2);
+
+      expect(updateLoaderMock).toHaveBeenLastCalledWith(
+        expect.any(String), // The URL
+        {
+          data: {
+            dynamicSdkLoaderOptions: {
+              hasDebug: false,
+              hasPerformance: true,
+              hasReplay: false,
             },
           },
           error: expect.any(Function),
