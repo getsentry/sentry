@@ -77,6 +77,7 @@ def is_event_from_browser_javascript_sdk(event: dict[str, Any]) -> bool:
     return sdk_name.lower() in [
         "sentry.javascript.astro",
         "sentry.javascript.browser",
+        "sentry.javascript.cloudflare",
         "sentry.javascript.react",
         "sentry.javascript.gatsby",
         "sentry.javascript.ember",

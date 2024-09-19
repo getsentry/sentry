@@ -72,6 +72,7 @@ BACKEND = {
     "java-logging",
     "java-spring-boot",
     "java-spring",
+    "javascript-cloudflare",
     "kotlin",
     "native",
     "node",
@@ -118,6 +119,7 @@ BACKEND = {
 SERVERLESS = {
     "dotnet-awslambda",
     "dotnet-gcpfunctions",
+    "javascript-cloudflare",
     "node-awslambda",
     "node-azurefunctions",
     "node-gcpfunctions",
