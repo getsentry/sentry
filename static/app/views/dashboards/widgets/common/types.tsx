@@ -4,3 +4,7 @@ export type Meta = {
 };
 
 export type TableData = Record<string, number | string | undefined>[];
+
+export interface StateProps {
+  isLoading?: boolean;
+}

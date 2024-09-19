@@ -1,7 +1,6 @@
 import styled from '@emotion/styled';
 
 import {Tooltip} from 'sentry/components/tooltip';
-import {space} from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
 import type {MetaType} from 'sentry/utils/discover/eventView';
 import {getFieldFormatter} from 'sentry/utils/discover/fieldRenderers';
@@ -9,15 +8,19 @@ import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {AutoSizedText} from 'sentry/views/dashboards/widgetCard/autoSizedText';
 import {NO_DATA_PLACEHOLDER} from 'sentry/views/dashboards/widgets/bigNumberWidget/settings';
-import type {Meta, TableData} from 'sentry/views/dashboards/widgets/common/types';
+import type {
+  Meta,
+  StateProps,
+  TableData,
+} from 'sentry/views/dashboards/widgets/common/types';
 
-export interface Props {
+export interface Props extends StateProps {
   data?: TableData;
   meta?: Meta;
 }
 
 export function BigNumberWidgetVisualization(props: Props) {
-  const {data, meta} = props;
+  const {data, meta, isLoading} = props;
 
   const location = useLocation();
   const organization = useOrganization();
@@ -26,8 +29,14 @@ export function BigNumberWidgetVisualization(props: Props) {
   const datum = data?.[0];
   // TODO: Instrument getting more than one data key back as an error
 
-  if (!defined(datum) || Object.keys(datum).length === 0) {
-    return <SensiblySizedText>{NO_DATA_PLACEHOLDER}</SensiblySizedText>;
+  if (isLoading || !defined(datum) || Object.keys(datum).length === 0) {
+    return (
+      <AutoResizeParent>
+        <AutoSizedText>
+          <Deemphasize>{NO_DATA_PLACEHOLDER}</Deemphasize>
+        </AutoSizedText>
+      </AutoResizeParent>
+    );
   }
 
   const fields = Object.keys(datum);
@@ -79,17 +88,6 @@ const NumberContainerOverride = styled('div')`
   }
 `;
 
-const SensiblySizedText = styled('div')`
-  line-height: 1;
-  display: inline-flex;
-  flex: 1;
-  width: 100%;
-  min-height: 0;
-  font-size: 32px;
-  color: ${p => p.theme.headingColor};
-  padding: ${space(1)} ${space(3)} ${space(3)} ${space(3)};
-
-  * {
-    text-align: left !important;
-  }
+const Deemphasize = styled('span')`
+  color: ${p => p.theme.gray300};
 `;

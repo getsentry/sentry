@@ -54,4 +54,12 @@ describe('BigNumberWidget', () => {
       expect(screen.getByText('17.28ms')).toBeInTheDocument();
     });
   });
+
+  describe('State', () => {
+    it('Shows a loading placeholder', () => {
+      render(<BigNumberWidget isLoading />);
+
+      expect(screen.getByText('—')).toBeInTheDocument();
+    });
+  });
 });

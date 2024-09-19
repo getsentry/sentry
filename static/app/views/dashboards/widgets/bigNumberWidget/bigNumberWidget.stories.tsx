@@ -91,6 +91,23 @@ export default storyBook(BigNumberWidget, story => {
       </Fragment>
     );
   });
+
+  story('State', () => {
+    return (
+      <Fragment>
+        <p>
+          <JSXNode name="BigNumberWidget" /> supports the usual loading and error states.
+          The loading state shows a simple placeholder.
+        </p>
+
+        <SideBySide>
+          <SmallSizingWindow>
+            <BigNumberWidget title="Count" isLoading />
+          </SmallSizingWindow>
+        </SideBySide>
+      </Fragment>
+    );
+  });
 });
 
 const SmallSizingWindow = styled(SizingWindow)`

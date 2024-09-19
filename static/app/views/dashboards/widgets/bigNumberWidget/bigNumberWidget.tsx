@@ -12,14 +12,14 @@ import {
 
 interface Props
   extends Omit<WidgetFrameProps, 'children'>,
-    BigNumberWidgetVisualizationProps,
-    StateProps {}
+    BigNumberWidgetVisualizationProps {}
 
 export function BigNumberWidget(props: Props) {
   return (
     <WidgetFrame title={props.title} description={props.description}>
       <BigNumberResizeWrapper>
         <BigNumberWidgetVisualization
+          isLoading={props.isLoading}
           data={props.data}
           meta={props.meta}
         />
