@@ -165,13 +165,13 @@ describe('SlowestFunctionsTable', () => {
     render(<SlowestFunctionsTable />);
     expect(await screen.findAllByText('slow-package')).toHaveLength(5);
 
-    userEvent.click(screen.getByLabelText('Next'));
+    await userEvent.click(screen.getByLabelText('Next'));
     for (let i = 6; i < 10; i++) {
       expect(await screen.findByText('slow-function-' + i)).toBeInTheDocument();
     }
     expect(screen.getByLabelText('Next')).toBeDisabled();
 
-    userEvent.click(screen.getByLabelText('Previous'));
+    await userEvent.click(screen.getByLabelText('Previous'));
     for (let i = 0; i < 5; i++) {
       expect(await screen.findByText('slow-function-' + i)).toBeInTheDocument();
     }
