@@ -1,4 +1,5 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
+import {WidgetFixture} from 'sentry-fixture/widget';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {
@@ -12,6 +13,7 @@ import {
 import * as modal from 'sentry/actionCreators/modal';
 import * as LineChart from 'sentry/components/charts/lineChart';
 import SimpleTableChart from 'sentry/components/charts/simpleTableChart';
+import {DatasetSource} from 'sentry/utils/discover/types';
 import {MINUTE, SECOND} from 'sentry/utils/formatters';
 import {MEPSettingProvider} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import type {Widget} from 'sentry/views/dashboards/types';
@@ -788,5 +790,32 @@ describe('Dashboards > WidgetCard', function () {
     );
 
     expect(await screen.findByText('Indexed')).toBeInTheDocument();
+  });
+
+  it('displays the discover split warning icon when the dataset source is forced', async function () {
+    const testWidget = {...WidgetFixture(), datasetSource: DatasetSource.FORCED};
+
+    renderWithProviders(
+      <WidgetCard
+        api={api}
+        organization={organization}
+        widget={testWidget}
+        selection={selection}
+        isEditingDashboard={false}
+        onDelete={() => undefined}
+        onEdit={() => undefined}
+        onDuplicate={() => undefined}
+        renderErrorMessage={() => undefined}
+        showContextMenu
+        widgetLimitReached={false}
+        isPreview
+      />
+    );
+
+    await userEvent.hover(screen.getByLabelText('Dataset split warning'));
+
+    expect(
+      await screen.findByText(/We're splitting our datasets up/)
+    ).toBeInTheDocument();
   });
 });
