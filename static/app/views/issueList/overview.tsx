@@ -197,6 +197,11 @@ class IssueListOverview extends Component<Props, State> {
     }
     this.fetchTags();
     this.fetchMemberList();
+    this.props.setRouteAnalyticsParams?.({
+      issueViewsEnabled: this.props.organization.features.includes(
+        'issue-stream-custom-views'
+      ),
+    });
     // let custom analytics take control
     this.props.setDisableRouteAnalytics?.();
   }

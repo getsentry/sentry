@@ -15,6 +15,7 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {InjectedRouter} from 'sentry/types/legacyReactRouter';
 import type {Organization} from 'sentry/types/organization';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
@@ -275,6 +276,10 @@ function CustomViewsIssueListHeaderTabsContent({
             },
           })
         );
+        trackAnalytics('issue_views.shared_view_opened', {
+          organization,
+          query,
+        });
         return;
       }
       return;
@@ -336,6 +341,10 @@ function CustomViewsIssueListHeaderTabsContent({
         );
         setDraggableTabs(updatedTabs);
         debounceUpdateViews(updatedTabs);
+        trackAnalytics('issue_views.add_view.custom_query_saved', {
+          organization,
+          query,
+        });
       } else {
         setNewViewActive(true);
       }
