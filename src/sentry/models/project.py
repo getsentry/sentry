@@ -99,6 +99,7 @@ GETTING_STARTED_DOCS_PLATFORMS = [
     "javascript",
     "javascript-angular",
     "javascript-astro",
+    "javascript-cloudflare",
     "javascript-ember",
     "javascript-gatsby",
     "javascript-nextjs",
