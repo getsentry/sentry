@@ -73,6 +73,7 @@ export type SpanNumberFields =
   | SpanMetricsField.CACHE_ITEM_SIZE;
 
 export type SpanStringFields =
+  | 'span_id'
   | 'span.op'
   | 'span.description'
   | 'span.module'
@@ -80,14 +81,18 @@ export type SpanStringFields =
   | 'span.group'
   | 'span.category'
   | 'span.system'
+  | 'timestamp'
+  | 'trace'
   | 'transaction'
+  | 'transaction.id'
   | 'transaction.method'
   | 'release'
   | 'os.name'
   | 'span.status_code'
   | 'span.ai.pipeline.group'
   | 'project'
-  | 'messaging.destination.name';
+  | 'messaging.destination.name'
+  | 'user';
 
 export type SpanMetricsQueryFilters = {
   [Field in SpanStringFields]?: string;
@@ -178,6 +183,35 @@ export type MetricsFilters = {
 
 export type SpanMetricsProperty = keyof SpanMetricsResponse;
 
+export type EAPSpanResponse = {
+  [Property in SpanNumberFields as `${Aggregate}(${Property})`]: number;
+} & {
+  [Property in SpanFunctions as `${Property}()`]: number;
+} & {
+  [Property in SpanStringFields as `${Property}`]: string;
+} & {
+  [Property in SpanNumberFields as `${Property}`]: number;
+} & {
+  [Property in SpanStringArrayFields as `${Property}`]: string[];
+} & {
+  ['project']: string;
+  ['project.id']: number;
+} & {
+  [Function in RegressionFunctions]: number;
+} & {
+  [Function in SpanAnyFunction]: string;
+} & {
+  [Property in ConditionalAggregate as
+    | `${Property}(${string})`
+    | `${Property}(${string},${string})`
+    | `${Property}(${string},${string},${string})`]: number;
+} & {
+  [SpanMetricsField.USER_GEO_SUBREGION]: SubregionCode;
+  [SpanIndexedField.SPAN_AI_PIPELINE_GROUP_TAG]: string;
+};
+
+export type EAPSpanProperty = keyof EAPSpanResponse;
+
 export enum SpanIndexedField {
   ENVIRONMENT = 'environment',
   RESOURCE_RENDER_BLOCKING_STATUS = 'resource.render_blocking_status',
@@ -193,6 +227,7 @@ export enum SpanIndexedField {
   ID = 'span_id',
   SPAN_ACTION = 'span.action',
   SPAN_AI_PIPELINE_GROUP = 'span.ai.pipeline.group',
+  SPAN_AI_PIPELINE_GROUP_TAG = 'ai_pipeline_group',
   SDK_NAME = 'sdk.name',
   TRACE = 'trace',
   TRANSACTION_ID = 'transaction.id',
@@ -297,7 +332,7 @@ export type SpanIndexedResponse = {
   [SpanIndexedField.USER_GEO_SUBREGION]: string;
 };
 
-export type SpanIndexedPropery = keyof SpanIndexedResponse;
+export type SpanIndexedProperty = keyof SpanIndexedResponse;
 
 // TODO: When convenient, remove this alias and use `IndexedResponse` everywhere
 export type SpanIndexedFieldTypes = SpanIndexedResponse;
