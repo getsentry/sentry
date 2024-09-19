@@ -792,7 +792,7 @@ class _ModalDialog(ABC):
                     extra={
                         **logging_data,
                         "trigger_id": slack_request.data["trigger_id"],
-                        "dialog": "resolve",
+                        "dialog": self.dialog_type,
                     },
                 )
                 # The modal was not found, so we need to open a new one
@@ -858,7 +858,7 @@ class _ModalDialog(ABC):
             metrics.incr(
                 SLACK_WEBHOOK_GROUP_ACTIONS_FAILURE_DATADOG_METRIC,
                 sample_rate=1.0,
-                tags={"type": "resolve_modal_open"},
+                tags={"type": f"{self.dialog_type}_modal_open"},
             )
             _logger.exception(
                 "slack.action.response-error",
