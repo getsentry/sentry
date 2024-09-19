@@ -3,7 +3,7 @@ from uuid import uuid4
 
 import orjson
 
-from sentry.integrations.slack import SlackNotifyServiceAction
+from sentry.integrations.slack.actions.notification import SlackNotifyServiceAction
 from sentry.integrations.slack.sdk_client import SLACK_DATADOG_METRIC
 from sentry.models.notificationmessage import NotificationMessage
 from sentry.models.rulefirehistory import RuleFireHistory

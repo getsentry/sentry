@@ -301,3 +301,34 @@ class OrganizationGroupSearchViewsPutTest(APITestCase):
                 )
             ]
         }
+
+    @with_feature({"organizations:issue-stream-custom-views": True})
+    def test_updated_deleted_view(self) -> None:
+        views = self.client.get(self.url).data
+
+        updated_views = views[1:]
+
+        # First delete a view
+        self.get_success_response(self.organization.slug, views=updated_views)
+
+        # Then reorder the tabs as if the deleted view is still there
+        view_one = views[0]
+        view_two = views[1]
+        views[0] = view_two
+        views[1] = view_one
+
+        # Then save the views as if the deleted view is still there
+        response = self.get_success_response(self.organization.slug, views=views)
+
+        # We should expect the position of these two views to be swapped in the response
+        view_one["position"] = 1
+        view_two["position"] = 0
+
+        assert len(response.data) == 3
+        # Unlike in the plain reordering test, the ids are going to be different here but the views are otherwise the same,
+        # So we need to check for equality of the fields instead of the objects themselves
+        assert response.data[0]["query"] == view_two["query"]
+        assert response.data[0]["querySort"] == view_two["querySort"]
+        assert response.data[1]["query"] == view_one["query"]
+        assert response.data[1]["querySort"] == view_one["querySort"]
+        assert response.data[2] == views[2]

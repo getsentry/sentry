@@ -17,13 +17,11 @@ class RDAPTasksTest(UptimeTestCase):
         mock_fetch_subscription_rdap_info.return_value = test_info
 
         uptime_subscription = self.create_uptime_subscription(
-            url="https://example.com",
-            url_domain="example",
-            url_domain_suffix="com",
+            url="https://some.example.com/health",
         )
         fetch_subscription_rdap_info(uptime_subscription.id)
         uptime_subscription.refresh_from_db()
 
-        mock_fetch_subscription_rdap_info.assert_called_with("example.com")
+        mock_fetch_subscription_rdap_info.assert_called_with("some.example.com")
         assert uptime_subscription.host_provider_id == "TEST-HANDLE"
         assert uptime_subscription.host_provider_name == "Rick Sanchez"

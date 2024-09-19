@@ -127,7 +127,7 @@ def bulk_update_views(
         if "id" not in view:
             _create_view(org, user_id, view, position=idx)
         else:
-            _update_existing_view(view, position=idx)
+            _update_existing_view(org, user_id, view, position=idx)
 
 
 def _delete_missing_views(org: Organization, user_id: int, view_ids_to_keep: list[str]) -> None:
@@ -136,13 +136,22 @@ def _delete_missing_views(org: Organization, user_id: int, view_ids_to_keep: lis
     ).delete()
 
 
-def _update_existing_view(view: GroupSearchViewValidatorResponse, position: int) -> None:
-    GroupSearchView.objects.get(id=view["id"]).update(
-        name=view["name"],
-        query=view["query"],
-        query_sort=view["querySort"],
-        position=position,
-    )
+def _update_existing_view(
+    org: Organization, user_id: int, view: GroupSearchViewValidatorResponse, position: int
+) -> None:
+    try:
+        GroupSearchView.objects.get(id=view["id"]).update(
+            name=view["name"],
+            query=view["query"],
+            query_sort=view["querySort"],
+            position=position,
+        )
+    except GroupSearchView.DoesNotExist:
+        # It is ~possible~ for a view to come in that doesn't exist anymore if, for example,
+        # the user has the issue stream open in separate windows, deletes a view in one window,
+        # then updates it in the other before refreshing. In this case, we decide to recreate the
+        # tab instead of leaving it deleted.
+        _create_view(org, user_id, view, position)
 
 
 def _create_view(

@@ -26,7 +26,7 @@ from sentry.integrations.slack.metrics import (
 from sentry.integrations.slack.requests.base import SlackRequestError
 from sentry.integrations.slack.requests.event import is_event_challenge
 from sentry.integrations.slack.sdk_client import SlackSdkClient
-from sentry.integrations.slack.views import SALT
+from sentry.integrations.slack.views.base import SALT
 from sentry.integrations.slack.views.link_identity import SlackLinkIdentityView
 from sentry.integrations.slack.views.link_team import SlackLinkTeamView
 from sentry.integrations.slack.views.unlink_identity import SlackUnlinkIdentityView
