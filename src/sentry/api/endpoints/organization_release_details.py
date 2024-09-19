@@ -526,7 +526,7 @@ class OrganizationReleaseDetailsEndpoint(
                     datetime=release.date_released,
                 )
 
-        return Response(serialize(release, request.user))
+        return Response(serialize(release, request.user, no_snuba_for_release_creation=True))
 
     @extend_schema(
         operation_id="Delete an Organization's Release",

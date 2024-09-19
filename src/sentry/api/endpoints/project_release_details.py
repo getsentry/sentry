@@ -145,7 +145,7 @@ class ProjectReleaseDetailsEndpoint(ProjectEndpoint, ReleaseAnalyticsMixin):
                 datetime=release.date_released,
             )
 
-        return Response(serialize(release, request.user))
+        return Response(serialize(release, request.user, no_snuba_for_release_creation=True))
 
     def delete(self, request: Request, project, version) -> Response:
         """
