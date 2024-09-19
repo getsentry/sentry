@@ -18,7 +18,9 @@ from sentry.integrations.repository.issue_alert import (
     IssueAlertNotificationMessageRepository,
 )
 from sentry.integrations.slack.message_builder.base.block import BlockSlackMessageBuilder
-from sentry.integrations.slack.message_builder.notifications import get_message_builder
+from sentry.integrations.slack.message_builder.notifications.base import (
+    SlackNotificationsMessageBuilder,
+)
 from sentry.integrations.slack.message_builder.types import SlackBlock
 from sentry.integrations.slack.metrics import (
     SLACK_ACTIVITY_THREAD_FAILURE_DATADOG_METRIC,
@@ -413,9 +415,28 @@ class SlackService:
             extra_context_by_actor[recipient] if extra_context_by_actor and recipient else {}
         )
         context = get_context(notification, recipient, shared_context, extra_context)
-        cls = get_message_builder(notification.message_builder)
+        cls = self._get_message_builder(notification.message_builder)
         attachments = cls(notification, context, recipient).build()
         return attachments
+
+    @staticmethod
+    def _get_message_builder(class_name: str) -> type[SlackNotificationsMessageBuilder]:
+        from sentry.integrations.slack.message_builder.notifications.daily_summary import (
+            SlackDailySummaryMessageBuilder,
+        )
+        from sentry.integrations.slack.message_builder.notifications.digest import (
+            DigestNotificationMessageBuilder,
+        )
+        from sentry.integrations.slack.message_builder.notifications.issues import (
+            IssueNotificationMessageBuilder,
+        )
+
+        return {
+            "DigestNotificationMessageBuilder": DigestNotificationMessageBuilder,
+            "IssueNotificationMessageBuilder": IssueNotificationMessageBuilder,
+            "SlackNotificationsMessageBuilder": SlackNotificationsMessageBuilder,
+            "SlackDailySummaryMessageBuilder": SlackDailySummaryMessageBuilder,
+        }[class_name]
 
     def send_message_to_slack_channel(
         self,

@@ -13,10 +13,10 @@ pytestmark = [requires_snuba]
 
 
 @patch(
-    "sentry.integrations.msteams.MsTeamsClientMixin.get_user_conversation_id",
+    "sentry.integrations.msteams.client.MsTeamsClientMixin.get_user_conversation_id",
     Mock(return_value="some_conversation_id"),
 )
-@patch("sentry.integrations.msteams.MsTeamsClientMixin.send_card")
+@patch("sentry.integrations.msteams.client.MsTeamsClientMixin.send_card")
 class MSTeamsResolvedNotificationTest(MSTeamsActivityNotificationTest):
     def test_resolved(self, mock_send_card: MagicMock):
         """

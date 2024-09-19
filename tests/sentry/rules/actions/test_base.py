@@ -1,6 +1,6 @@
 from uuid import uuid4
 
-from sentry.integrations.slack import SlackNotifyServiceAction
+from sentry.integrations.slack.actions.notification import SlackNotifyServiceAction
 from sentry.models.rulefirehistory import RuleFireHistory
 from sentry.rules.actions.base import instantiate_action
 from sentry.testutils.cases import TestCase
