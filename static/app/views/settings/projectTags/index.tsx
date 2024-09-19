@@ -46,7 +46,7 @@ function ProjectTags(props: Props) {
   const {projects} = useProjects();
   const {projectId} = props.params;
 
-  const project = projects.find(p => p.id === projectId);
+  const project = projects.find(p => p.slug === projectId);
 
   const api = useApi();
   const queryClient = useQueryClient();
