@@ -15,7 +15,6 @@ import {fetchOrgMembers, indexMembersByProject} from 'sentry/actionCreators/memb
 import {fetchTagValues, loadOrganizationTags} from 'sentry/actionCreators/tags';
 import type {Client} from 'sentry/api';
 import ErrorBoundary from 'sentry/components/errorBoundary';
-import HookOrDefault from 'sentry/components/hookOrDefault';
 import * as Layout from 'sentry/components/layouts/thirds';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {extractSelectionParameters} from 'sentry/components/organizations/pageFilters/utils';
@@ -58,6 +57,7 @@ import withPageFilters from 'sentry/utils/withPageFilters';
 import withSavedSearches from 'sentry/utils/withSavedSearches';
 import CustomViewsIssueListHeader from 'sentry/views/issueList/customViewsHeader';
 import IssueListTable from 'sentry/views/issueList/issueListTable';
+import {IssuesDataConsentBanner} from 'sentry/views/issueList/issuesDataConsentBanner';
 import SavedIssueSearches from 'sentry/views/issueList/savedIssueSearches';
 import type {IssueUpdateData} from 'sentry/views/issueList/types';
 import {NewTabContextProvider} from 'sentry/views/issueList/utils/newTabContext';
@@ -143,11 +143,6 @@ type StatEndpointParams = Omit<EndpointParams, 'cursor' | 'page'> & {
   groups: string[];
   expand?: string | string[];
 };
-
-const DataConsentBanner = HookOrDefault({
-  hookName: 'component:data-consent-banner',
-  defaultComponent: null,
-});
 
 class IssueListOverview extends Component<Props, State> {
   state: State = this.getInitialState();
@@ -1248,7 +1243,7 @@ class IssueListOverview extends Component<Props, State> {
 
           <StyledBody>
             <StyledMain>
-              <DataConsentBanner source="issues" />
+              <IssuesDataConsentBanner source="issues" />
               <IssueListFilters query={query} onSearch={this.onSearch} />
               <IssueListTable
                 selection={selection}
