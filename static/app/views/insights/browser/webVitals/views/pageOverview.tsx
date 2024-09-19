@@ -66,7 +66,7 @@ function getCurrentTabSelection(selectedTab) {
 }
 
 export function PageOverview() {
-  const moduleURL = useModuleURL('vital', undefined, true);
+  const moduleURL = useModuleURL('vital');
   const organization = useOrganization();
   const location = useLocation();
   const {projects} = useProjects();
