@@ -51,9 +51,12 @@ const ItemList = styled('ul')`
   padding-top: ${space(1)};
   display: flex;
   flex-direction: column;
-  gap: ${space(1)};
   width: 100%;
   color: rgba(255, 255, 255, 0.85);
+
+  @media screen and (min-width: ${p => p.theme.breakpoints.medium} {
+    gap: ${space(1)};
+  }
 `;
 
 function Item({
@@ -81,7 +84,7 @@ function Item({
       <ItemWrapper>
         <Link to={toProps} {...props} {...activeProps}>
           {icon}
-          {label}
+          <span>{label}</span>
         </Link>
       </ItemWrapper>
     </FeatureGuard>
@@ -90,33 +93,47 @@ function Item({
 
 const ItemWrapper = styled('li')`
   svg {
-    padding-top: ${space(0.5)};
-    width: 18px;
-    height: 18px;
+    --size: 14px;
+    width: var(--size);
+    height: var(--size);
+
+    @media (min-width: ${p => p.theme.breakpoints.medium}) {
+      --size: 18px;
+      padding-top: ${space(0.5)};
+    }
   }
   a {
     display: flex;
-    flex-direction: column;
-    padding: 4px 6px;
+    flex-direction: row;
+    height: 32px;
+    gap: ${space(1.5)};
     align-items: center;
-    justify-content: center;
-    height: 53px;
-    color: inherit;
-    font-size: ${theme.fontSizeExtraSmall};
+    padding: 0 ${space(1.5)};
+    color: var(--color, currentColor);
+    font-size: ${theme.fontSizeMedium};
     font-weight: ${theme.fontWeightNormal};
     line-height: 177.75%;
-    margin-inline: ${space(1)};
-    border-radius: ${theme.borderRadius};
+    border: 1px solid transparent;
 
     &:hover {
-      color: ${theme.white};
-      /* background: rgba(62, 52, 70, 0.09); */
+      color: var(--color-hover, ${theme.white});
     }
 
     &.active {
-      color: ${theme.white};
-      border: 1px solid rgba(255, 255, 255, 0.06);
+      color: var(--color-hover, ${theme.white});
       background: rgba(255, 255, 255, 0.1);
+      border: 1px solid rgba(255, 255, 255, 0.06);
+    }
+
+    @media (min-width: ${p => p.theme.breakpoints.medium}) {
+      flex-direction: column;
+      justify-content: center;
+      height: 53px;
+      padding: ${space(0.5)} ${space(0.75)};
+      border-radius: ${theme.borderRadius};
+      font-size: ${theme.fontSizeExtraSmall};
+      margin-inline: ${space(1)};
+      gap: ${space(0.5)};
     }
   }
 `;
