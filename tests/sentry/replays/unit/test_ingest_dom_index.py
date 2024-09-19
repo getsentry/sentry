@@ -384,18 +384,8 @@ def test_parse_replay_dead_click_actions(patch_rage_click_issue_with_replay_even
         },
     ]
 
-<<<<<<< aliu/reduce-dom-index-queries
-    with Feature(
-        {
-            "organizations:session-replay-rage-click-issue-creation": True,
-        }
-    ):
-        default_project.update_option("sentry:replay_rage_click_issues", True)
-        replay_actions = parse_replay_actions(default_project, "1", 30, events, mock_replay_event())
-=======
     default_project.update_option("sentry:replay_rage_click_issues", True)
     replay_actions = parse_replay_actions(default_project.id, "1", 30, events, mock_replay_event())
->>>>>>> master
     assert patch_rage_click_issue_with_replay_event.call_count == 2
     assert replay_actions is not None
     assert replay_actions["type"] == "replay_event"
@@ -949,18 +939,8 @@ def test_parse_replay_rage_clicks_with_replay_event(
         },
     ]
 
-<<<<<<< aliu/reduce-dom-index-queries
-    with Feature(
-        {
-            "organizations:session-replay-rage-click-issue-creation": True,
-        }
-    ):
-        default_project.update_option("sentry:replay_rage_click_issues", True)
-        replay_actions = parse_replay_actions(default_project, "1", 30, events, mock_replay_event())
-=======
     default_project.update_option("sentry:replay_rage_click_issues", True)
     replay_actions = parse_replay_actions(default_project.id, "1", 30, events, mock_replay_event())
->>>>>>> master
     assert patch_rage_click_issue_with_replay_event.call_count == 2
     assert replay_actions is not None
     assert replay_actions["type"] == "replay_event"
