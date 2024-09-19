@@ -137,6 +137,10 @@ class VSTSOAuth2CallbackView(OAuth2CallbackView):
         return orjson.loads(body)
 
 
+# TODO(iamrajjoshi): Make this the default provider
+# We created this new flow in order to quickly update the DevOps integration to use
+# the new Azure AD OAuth2 flow.
+# This is a temporary solution until we can fully migrate to the new flow once customers are migrated
 class VSTSNewIdentityProvider(OAuth2Provider):
     key = "vsts_new"
     name = "Azure DevOps"
@@ -144,6 +148,7 @@ class VSTSNewIdentityProvider(OAuth2Provider):
     oauth_access_token_url = "https://login.microsoftonline.com/common/oauth2/v2.0/token"
     oauth_authorize_url = "https://login.microsoftonline.com/common/oauth2/v2.0/authorize"
 
+    # Using a new option
     def get_oauth_client_id(self):
         return options.get("vsts_new.client-id")
 
@@ -155,6 +160,7 @@ class VSTSNewIdentityProvider(OAuth2Provider):
 
     def get_pipeline_views(self):
         return [
+            # made a new view to override `get_authorize_params` for the new params needed for the oauth
             VSTSOAuth2LoginView(
                 authorize_url=self.oauth_authorize_url,
                 client_id=self.get_oauth_client_id(),
