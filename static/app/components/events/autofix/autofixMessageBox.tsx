@@ -57,6 +57,8 @@ interface AutofixMessageBoxProps {
   runId: string;
   step: AutofixStep | null;
   children?: React.ReactNode;
+  headerTextOverride?: string | null;
+  primaryAction?: boolean;
 }
 
 function StepIcon({step}: {step: AutofixStep}) {
@@ -91,8 +93,10 @@ function StepIcon({step}: {step: AutofixStep}) {
 
 function AutofixMessageBox({
   displayText = '',
+  headerTextOverride = null,
   step = null,
   inputPlaceholder = 'Say something...',
+  primaryAction = false,
   responseRequired = false,
   onSend,
   actionText = 'Send',
@@ -121,7 +125,7 @@ function AutofixMessageBox({
   return (
     <Container>
       <DisplayArea>
-        {step && (
+        {step && !headerTextOverride && (
           <StepHeader>
             <StepIconContainer>
               <StepIcon step={step} />
@@ -131,6 +135,14 @@ function AutofixMessageBox({
                 __html: singleLineRenderer(step.title),
               }}
             />
+          </StepHeader>
+        )}
+        {headerTextOverride && (
+          <StepHeader>
+            <StepIconContainer>
+              <IconQuestion size="sm" color="gray300" />
+            </StepIconContainer>
+            <StepTitle>{headerTextOverride}</StepTitle>
           </StepHeader>
         )}
         <Message
@@ -150,7 +162,11 @@ function AutofixMessageBox({
               placeholder={inputPlaceholder}
               disabled={isDisabled}
             />
-            <Button onClick={handleSend} disabled={isDisabled}>
+            <Button
+              onClick={handleSend}
+              disabled={isDisabled}
+              priority={primaryAction ? 'primary' : 'default'}
+            >
               {actionText}
             </Button>
           </Fragment>
@@ -163,7 +179,7 @@ function AutofixMessageBox({
               placeholder={'Please answer to continue...'}
               disabled={isDisabled}
             />
-            <Button onClick={handleSend} disabled={isDisabled}>
+            <Button onClick={handleSend} disabled={isDisabled} priority={'primary'}>
               {actionText}
             </Button>
           </Fragment>
