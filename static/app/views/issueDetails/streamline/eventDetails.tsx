@@ -10,6 +10,7 @@ import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
 import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import type {MultiSeriesEventsStats} from 'sentry/types/organization';
 import {useLocation} from 'sentry/utils/useLocation';
 import useMedia from 'sentry/utils/useMedia';
 import {useNavigate} from 'sentry/utils/useNavigate';
@@ -46,15 +47,15 @@ export function EventDetails({
   const isScreenMedium = useMedia(`(max-width: ${theme.breakpoints.medium})`);
   const {environments} = selection;
   const [nav, setNav] = useState<HTMLDivElement | null>(null);
+  const {eventDetails, dispatch} = useEventDetailsReducer();
 
   const searchQuery = useEventQuery({group});
-  const {eventDetails, dispatch} = useEventDetailsReducer();
-  const eventView = useIssueDetailsEventView({group, queryProps: {query: searchQuery}});
+  const eventView = useIssueDetailsEventView({group});
   const {
     data: groupStats,
     isPending: isLoadingStats,
     error,
-  } = useIssueDetailsDiscoverQuery({
+  } = useIssueDetailsDiscoverQuery<MultiSeriesEventsStats>({
     params: {
       route: 'event-stats',
       eventView,
