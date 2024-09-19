@@ -144,7 +144,7 @@ export function YAxisSelector({
             <Feature features="dashboards-bignumber-equations">
               <RadioLineItem index={i} role="radio" aria-label="radio-label">
                 <Radio
-                  checked={i === selectedAggregate ? true : false}
+                  checked={i === selectedAggregate}
                   onChange={() => handleSelectField(i)}
                   aria-label={'field' + i}
                 />
