@@ -17,7 +17,11 @@ import {
   NumberOfPipelinesChart,
   TotalTokensUsedChart,
 } from 'sentry/views/insights/llmMonitoring/components/charts/llmMonitoringCharts';
-import {SpanIndexedField, type SpanIndexedResponse} from 'sentry/views/insights/types';
+import {
+  type EAPSpanResponse,
+  SpanIndexedField,
+  type SpanIndexedResponse,
+} from 'sentry/views/insights/types';
 import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
 import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
 
@@ -55,7 +59,7 @@ function useAIPipelineGroup({
   if (useEAP) {
     return (
       eapData &&
-      (eapData[0] as SpanIndexedResponse)?.[SpanIndexedField.SPAN_AI_PIPELINE_GROUP_TAG]
+      (eapData[0] as EAPSpanResponse)?.[SpanIndexedField.SPAN_AI_PIPELINE_GROUP_TAG]
     );
   }
   return (

@@ -73,6 +73,7 @@ export type SpanNumberFields =
   | SpanMetricsField.CACHE_ITEM_SIZE;
 
 export type SpanStringFields =
+  | 'span_id'
   | 'span.op'
   | 'span.description'
   | 'span.module'
@@ -80,14 +81,18 @@ export type SpanStringFields =
   | 'span.group'
   | 'span.category'
   | 'span.system'
+  | 'timestamp'
+  | 'trace'
   | 'transaction'
+  | 'transaction.id'
   | 'transaction.method'
   | 'release'
   | 'os.name'
   | 'span.status_code'
   | 'span.ai.pipeline.group'
   | 'project'
-  | 'messaging.destination.name';
+  | 'messaging.destination.name'
+  | 'user';
 
 export type SpanMetricsQueryFilters = {
   [Field in SpanStringFields]?: string;
@@ -185,6 +190,8 @@ export type EAPSpanResponse = {
 } & {
   [Property in SpanStringFields as `${Property}`]: string;
 } & {
+  [Property in SpanNumberFields as `${Property}`]: number;
+} & {
   [Property in SpanStringArrayFields as `${Property}`]: string[];
 } & {
   ['project']: string;
@@ -200,6 +207,7 @@ export type EAPSpanResponse = {
     | `${Property}(${string},${string},${string})`]: number;
 } & {
   [SpanMetricsField.USER_GEO_SUBREGION]: SubregionCode;
+  [SpanIndexedField.SPAN_AI_PIPELINE_GROUP_TAG]: string;
 };
 
 export type EAPSpanProperty = keyof EAPSpanResponse;
@@ -324,7 +332,7 @@ export type SpanIndexedResponse = {
   [SpanIndexedField.USER_GEO_SUBREGION]: string;
 };
 
-export type SpanIndexedPropery = keyof SpanIndexedResponse;
+export type SpanIndexedProperty = keyof SpanIndexedResponse;
 
 // TODO: When convenient, remove this alias and use `IndexedResponse` everywhere
 export type SpanIndexedFieldTypes = SpanIndexedResponse;
