@@ -66,8 +66,6 @@ class OrganizationEventsAnomaliesEndpoint(OrganizationEventsV2EndpointBase):
         """
         Return a list of anomalies for a time series of historical event data.
         """
-        # TODO: we need to pass in the config
-
         if not features.has("organizations:anomaly-detection-alerts", organization):
             raise ResourceDoesNotExist("Your organization does not have access to this feature.")
 
