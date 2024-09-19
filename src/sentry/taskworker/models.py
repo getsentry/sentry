@@ -8,6 +8,9 @@ from django.utils import timezone
 from sentry_protos.hackweek_team_no_celery_pls.v1alpha.pending_task_pb2 import (
     PendingTask as PendingTaskProto,
 )
+from sentry_protos.hackweek_team_no_celery_pls.v1alpha.pending_task_pb2 import (
+    RetryPolicy as RetryPolicyProto,
+)
 
 from sentry.backup.scopes import RelocationScope
 from sentry.db.models import JSONField, Model
@@ -84,9 +87,9 @@ class PendingTasks(Model):
             partition=partition,
             state=PendingTasks.States.PENDING,
             offset=offset,
-            processing_deadline=proto_task.processing_deadline
-            if proto_task.processing_deadline
-            else None,
+            processing_deadline=(
+                proto_task.processing_deadline if proto_task.processing_deadline else None
+            ),
             retry_attempts=proto_task.retry_state.attempts,
             retry_kind=proto_task.retry_state.kind,
             deadletter_at=proto_task.deadletter_at or timezone.now(),
@@ -103,7 +106,7 @@ class PendingTasks(Model):
             taskname=self.task_name,
             parameters=orjson.dumps(self.parameters) if self.parameters else None,
             processing_deadline=str(self.processing_deadline),
-            retry_state=PendingTaskProto.RetryPolicy(
+            retry_state=RetryPolicyProto(
                 attempts=self.retry_attempts,
                 kind=self.retry_kind,
                 discard_after_attempt=self.discard_after_attempt,

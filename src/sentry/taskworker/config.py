@@ -8,7 +8,10 @@ from uuid import uuid4
 import orjson
 from arroyo.backends.kafka import KafkaPayload, KafkaProducer
 from arroyo.types import Topic as ArroyoTopic
-from sentry_protos.hackweek_team_no_celery_pls.v1alpha.pending_task_pb2 import PendingTask
+from sentry_protos.hackweek_team_no_celery_pls.v1alpha.pending_task_pb2 import (
+    PendingTask,
+    RetryPolicy,
+)
 
 from sentry.conf.types.kafka_definition import Topic
 from sentry.taskworker.models import PendingTasks
@@ -93,7 +96,7 @@ class TaskNamespace:
     def _serialize_task_call(self, task: Task, args: list[Any], kwargs: Mapping[Any, Any]) -> bytes:
         retry = task.retry or self.default_retry or FALLBACK_RETRY
 
-        retry_policy = PendingTask.RetryPolicy(
+        retry_policy = RetryPolicy(
             attempts=retry.initial_state().attempts,
             kind=retry.initial_state().kind,
             discard_after_attempt=retry.initial_state().discard_after_attempt,
