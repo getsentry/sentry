@@ -85,6 +85,7 @@ export function FullSpanDescription({
         return (
           <StyledClippedBox
             btnText={t('View full query')}
+            clipHeight={320}
             buttonProps={{
               icon: <IconOpen />,
               onClick: () =>
