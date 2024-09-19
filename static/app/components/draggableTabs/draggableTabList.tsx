@@ -337,7 +337,14 @@ function BaseDraggableTabList({
           onHoverStart={() => setHoveringKey('addView')}
           onHoverEnd={() => setHoveringKey(null)}
         >
-          <AddViewButton borderless size="zero" onClick={onAddView}>
+          <AddViewButton
+            borderless
+            size="zero"
+            onClick={onAddView}
+            analyticsEventName="Issue Views: Add View Clicked"
+            analyticsEventKey="issue_views.add_view.clicked"
+            analyticsParams={{organization}}
+          >
             <StyledIconAdd size="xs" />
             {t('Add View')}
           </AddViewButton>

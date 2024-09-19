@@ -294,7 +294,7 @@ export function DraggableTabBar({
       });
       setTabs(newTabs);
       tabListState?.setSelectedKey(tempId);
-      trackAnalytics('issue_views.add_view_clicked', {
+      trackAnalytics('issue_views.add_view.clicked', {
         organization,
       });
     }
@@ -328,9 +328,6 @@ export function DraggableTabBar({
         {replace: true}
       );
       onAddView?.(updatedTabs);
-      trackAnalytics('issue_views.add_view_clicked', {
-        organization,
-      });
     },
 
     // eslint-disable-next-line react-hooks/exhaustive-deps
