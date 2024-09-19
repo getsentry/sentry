@@ -11,10 +11,10 @@ from sentry.types.activity import ActivityType
 
 
 @patch(
-    "sentry.integrations.msteams.MsTeamsClientMixin.get_user_conversation_id",
+    "sentry.integrations.msteams.client.MsTeamsClientMixin.get_user_conversation_id",
     Mock(return_value="some_conversation_id"),
 )
-@patch("sentry.integrations.msteams.MsTeamsClientMixin.send_card")
+@patch("sentry.integrations.msteams.client.MsTeamsClientMixin.send_card")
 class MSTeamsDeployNotificationTest(MSTeamsActivityNotificationTest):
     @skip("Flaky test")
     def test_deploy(self, mock_send_card: MagicMock):

@@ -6,10 +6,9 @@ from sentry.integrations.messaging.linkage import LinkIdentityView
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.services.integration.model import RpcIntegration
 from sentry.integrations.slack.utils.notifications import SlackCommandResponse
+from sentry.integrations.slack.views.base import build_linking_url as base_build_linking_url
 from sentry.integrations.slack.views.linkage import SlackIdentityLinkageView
 from sentry.web.frontend.base import control_silo_view
-
-from . import build_linking_url as base_build_linking_url
 
 _logger = logging.getLogger(__name__)
 

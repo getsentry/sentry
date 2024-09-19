@@ -2,7 +2,7 @@ from typing import Any
 
 import pytest
 
-from sentry.integrations.msteams import MsTeamsEvents, MsTeamsWebhookEndpoint
+from sentry.integrations.msteams.webhook import MsTeamsEvents, MsTeamsWebhookEndpoint
 from sentry.testutils.cases import TestCase
 
 

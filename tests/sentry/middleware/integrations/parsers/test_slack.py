@@ -14,7 +14,7 @@ from sentry.hybridcloud.models.outbox import outbox_context
 from sentry.integrations.middleware.hybrid_cloud.parser import create_async_request_payload
 from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.integrations.slack.utils.auth import _encode_data
-from sentry.integrations.slack.views import SALT
+from sentry.integrations.slack.views.base import SALT
 from sentry.middleware.integrations.parsers.slack import SlackRequestParser
 from sentry.testutils.cases import TestCase
 from sentry.testutils.outbox import assert_no_webhook_payloads
