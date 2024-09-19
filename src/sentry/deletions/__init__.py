@@ -101,6 +101,7 @@ def load_defaults() -> None:
     from sentry.monitors import models as monitor_models
     from sentry.sentry_apps.models.sentry_app import SentryApp
     from sentry.sentry_apps.models.sentry_app_installation import SentryAppInstallation
+    from sentry.sentry_apps.models.servicehook import ServiceHook
     from sentry.snuba import models as snuba_models
 
     from . import defaults
@@ -170,7 +171,7 @@ def load_defaults() -> None:
     default_manager.register(
         models.SentryAppInstallationToken, defaults.SentryAppInstallationTokenDeletionTask
     )
-    default_manager.register(models.ServiceHook, defaults.ServiceHookDeletionTask)
+    default_manager.register(ServiceHook, defaults.ServiceHookDeletionTask)
     default_manager.register(models.SavedSearch, BulkModelDeletionTask)
     default_manager.register(models.Team, defaults.TeamDeletionTask)
     default_manager.register(models.UserReport, BulkModelDeletionTask)
