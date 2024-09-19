@@ -73,9 +73,13 @@ export function AutofixDrawer({group, project, event}: AutofixDrawerProps) {
       <AutofixDrawerBody ref={setContainer}>
         {!autofixData ? (
           <AutofixMessageBox
-            displayText={'Ready to begin analyzing the issue?'}
+            displayText={
+              "If you have any extra context on the issue before we begin, you can share it below. If not, press start when you're ready."
+            }
+            headerTextOverride={'Ready to Start'}
             step={null}
-            inputPlaceholder={'Optionally provide any extra context before we start...'}
+            primaryAction
+            inputPlaceholder={'Optionally provide any extra context here...'}
             responseRequired={false}
             onSend={triggerAutofix}
             actionText={'Start'}
