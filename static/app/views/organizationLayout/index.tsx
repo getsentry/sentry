@@ -81,7 +81,9 @@ function LegacyAppLayout({children, organization}: LayoutProps) {
 
 const AppContainer = styled('div')`
   display: flex;
-  flex-direction: row;
+  @media (min-width: ${p => p.theme.breakpoints.medium}) {
+    flex-direction: row;
+  }
 `;
 
 const BodyContainer = styled('div')`
