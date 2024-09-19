@@ -9,7 +9,7 @@ import {
 import useOrganization from 'sentry/utils/useOrganization';
 
 type FetchIssueTagsParameters = {
-  environment: string[];
+  environment: string[] | string | undefined;
   /**
    * Request is disabled until groupId is defined
    */
