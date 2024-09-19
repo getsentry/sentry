@@ -28,7 +28,6 @@ import IssueListCacheStore from 'sentry/stores/IssueListCacheStore';
 import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
 import type {Group, TeamParticipant, UserParticipant} from 'sentry/types/group';
-import {IssueType} from 'sentry/types/group';
 import type {Organization, OrganizationSummary} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import type {CurrentRelease} from 'sentry/types/release';
@@ -299,13 +298,8 @@ export default function GroupSidebar({
                   ? BACKEND_TAGS
                   : DEFAULT_TAGS
           }
-          event={event}
           tagFormatter={TAGS_FORMATTER}
           project={project}
-          isStatisticalDetector={
-            group.issueType === IssueType.PERFORMANCE_DURATION_REGRESSION ||
-            group.issueType === IssueType.PERFORMANCE_ENDPOINT_REGRESSION
-          }
         />
       )}
       {issueTypeConfig.regression.enabled && event && (
