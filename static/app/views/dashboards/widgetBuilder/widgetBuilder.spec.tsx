@@ -603,10 +603,10 @@ describe('WidgetBuilder', function () {
 
   it('can add additional fields and equation for Big Number with selection', async function () {
     renderTestComponent({
-      orgFeatures: [...defaultOrgFeatures],
       query: {
         displayType: DisplayType.BIG_NUMBER,
       },
+      orgFeatures: [...defaultOrgFeatures, 'dashboards-bignumber-equations'],
     });
 
     // Add new field

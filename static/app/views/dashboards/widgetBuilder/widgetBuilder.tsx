@@ -704,11 +704,13 @@ function WidgetBuilder({
         newQuery = datasetConfig.handleOrderByReset(newQuery, fieldStrings);
       }
 
-      // newQuery.selectedQueryIndex = newSelectedAggregate;
       return newQuery;
     });
 
-    if (defined(newSelectedAggregate))
+    if (
+      organization.features.includes('dashboards-bignumber-equations') &&
+      defined(newSelectedAggregate)
+    )
       newQueries[0].selectedAggregate = newSelectedAggregate;
 
     set(newState, 'queries', newQueries);
