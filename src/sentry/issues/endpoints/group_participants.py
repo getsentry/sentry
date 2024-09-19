@@ -6,6 +6,7 @@ from rest_framework.response import Response
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases import GroupEndpoint
+from sentry.models.group import Group
 from sentry.models.groupsubscription import GroupSubscriptionManager
 from sentry.users.services.user.service import user_service
 
@@ -16,7 +17,7 @@ class GroupParticipantsEndpoint(GroupEndpoint):
         "GET": ApiPublishStatus.UNKNOWN,
     }
 
-    def get(self, request: Request, group) -> Response:
+    def get(self, request: Request, group: Group) -> Response:
         participants = GroupSubscriptionManager.get_participating_user_ids(group)
 
         return Response(

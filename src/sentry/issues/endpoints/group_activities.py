@@ -6,6 +6,7 @@ from sentry.api.base import EnvironmentMixin, region_silo_endpoint
 from sentry.api.bases import GroupEndpoint
 from sentry.api.serializers import serialize
 from sentry.models.activity import Activity
+from sentry.models.group import Group
 
 
 @region_silo_endpoint
@@ -14,7 +15,7 @@ class GroupActivitiesEndpoint(GroupEndpoint, EnvironmentMixin):
         "GET": ApiPublishStatus.UNKNOWN,
     }
 
-    def get(self, request: Request, group) -> Response:
+    def get(self, request: Request, group: Group) -> Response:
         """
         Retrieve all the Activities for a Group
         """
