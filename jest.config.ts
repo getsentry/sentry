@@ -15,7 +15,14 @@ const {
   GITHUB_PR_REF,
   GITHUB_RUN_ID,
   GITHUB_RUN_ATTEMPT,
+  USING_YARN_TEST,
 } = process.env;
+
+if (USING_YARN_TEST === undefined) {
+  // eslint-disable-next-line no-console
+  console.error('Do not run `jest` directly, use `yarn test` instead!');
+  process.exit();
+}
 
 const IS_MASTER_BRANCH = GITHUB_PR_REF === 'refs/heads/master';
 
