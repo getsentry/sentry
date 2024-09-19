@@ -1642,19 +1642,19 @@ function buildRoutes() {
         component={make(() => import('sentry/views/performance/trends'))}
       />
       <Route
-        path={`${FRONTEND_LANDING_SUB_PATH}/`}
+        path={`${FRONTEND_LANDING_SUB_PATH}/*`}
         component={make(() => import('sentry/views/insights/pages/frontendLandingPage'))}
       />
       <Route
-        path={`${BACKEND_LANDING_SUB_PATH}/`}
+        path={`${BACKEND_LANDING_SUB_PATH}/*`}
         component={make(() => import('sentry/views/insights/pages/backendLandingPage'))}
       />
       <Route
-        path={`${MOBILE_LANDING_SUB_PATH}/`}
+        path={`${MOBILE_LANDING_SUB_PATH}/*`}
         component={make(() => import('sentry/views/insights/pages/mobileLandingPage'))}
       />
       <Route
-        path={`${AI_LANDING_SUB_PATH}/`}
+        path={`${AI_LANDING_SUB_PATH}/*`}
         component={make(() => import('sentry/views/insights/pages/aiLandingPage'))}
       />
       <Route path="summary/">

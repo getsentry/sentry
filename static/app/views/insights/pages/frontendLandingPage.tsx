@@ -4,12 +4,10 @@ import {Breadcrumbs, type Crumb} from 'sentry/components/breadcrumbs';
 import ButtonBar from 'sentry/components/buttonBar';
 import FeedbackWidgetButton from 'sentry/components/feedback/widget/feedbackWidgetButton';
 import * as Layout from 'sentry/components/layouts/thirds';
-import {TabList, TabPanels, Tabs} from 'sentry/components/tabs';
+import {TabList, Tabs} from 'sentry/components/tabs';
 import {t} from 'sentry/locale';
 import {PageAlert} from 'sentry/utils/performance/contexts/pageAlert';
-import ResourcesLandingPage from 'sentry/views/insights/browser/resources/views/resourcesLandingPage';
-import WebVitalsLandingPage from 'sentry/views/insights/browser/webVitals/views/webVitalsLandingPage';
-import HTTPLandingPage from 'sentry/views/insights/http/views/httpLandingPage';
+import {ModuleRenderer} from 'sentry/views/insights/pages/moduleRenderer';
 import {OVERVIEW_PAGE_TITLE} from 'sentry/views/insights/pages/settings';
 import {
   type Filters,
@@ -17,13 +15,11 @@ import {
   useUpdateFilters,
 } from 'sentry/views/insights/pages/useFilters';
 import {MODULE_TITLES} from 'sentry/views/insights/settings';
-import {type InsightLandingProps, ModuleName} from 'sentry/views/insights/types';
+import {ModuleName} from 'sentry/views/insights/types';
 
 function FrontendLandingPage() {
   const filters = useFilters();
   const updateFilters = useUpdateFilters();
-
-  const landingPageProps: InsightLandingProps = {disableHeader: true};
 
   const crumbs: Crumb[] = [
     {
@@ -72,7 +68,7 @@ function FrontendLandingPage() {
             </ButtonBar>
           </Layout.HeaderActions>
           <TabList>
-            <TabList.Item key={OVERVIEW_PAGE_TITLE}>{'Overview'}</TabList.Item>
+            <TabList.Item key={OVERVIEW_PAGE_TITLE}>{OVERVIEW_PAGE_TITLE}</TabList.Item>
             <TabList.Item key={ModuleName.VITAL}>
               {MODULE_TITLES[ModuleName.VITAL]}
             </TabList.Item>
@@ -86,18 +82,8 @@ function FrontendLandingPage() {
         </Layout.Header>
         <Layout.Main fullWidth>
           <PageAlert />
-          <TabPanels>
-            <TabPanels.Item key={OVERVIEW_PAGE_TITLE}>{'overview page'}</TabPanels.Item>
-            <TabPanels.Item key={ModuleName.HTTP}>
-              <HTTPLandingPage {...landingPageProps} />
-            </TabPanels.Item>
-            <TabPanels.Item key={ModuleName.RESOURCE}>
-              <ResourcesLandingPage {...landingPageProps} />
-            </TabPanels.Item>
-            <TabPanels.Item key={ModuleName.VITAL}>
-              <WebVitalsLandingPage {...landingPageProps} />
-            </TabPanels.Item>
-          </TabPanels>
+          {!filters.module && 'overview page'}
+          {filters.module && <ModuleRenderer />}
         </Layout.Main>
       </Tabs>
     </Fragment>

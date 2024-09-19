@@ -10,6 +10,7 @@ import {BASE_URL as APP_STARTS_BASE_URL} from 'sentry/views/insights/mobile/appS
 import {BASE_URL as SCREEN_LOADS_BASE_URL} from 'sentry/views/insights/mobile/screenload/settings';
 import {BASE_URL as MOBILE_SCREENS_BASE_URL} from 'sentry/views/insights/mobile/screens/settings';
 import {BASE_URL as MOBILE_UI_BASE_URL} from 'sentry/views/insights/mobile/ui/settings';
+import {useFilters} from 'sentry/views/insights/pages/useFilters';
 import {BASE_URL as QUEUE_BASE_URL} from 'sentry/views/insights/queues/settings';
 import {INSIGHTS_BASE_URL} from 'sentry/views/insights/settings';
 import {ModuleName} from 'sentry/views/insights/types';
@@ -34,16 +35,21 @@ type RoutableModuleNames = Exclude<ModuleNameStrings, '' | 'other'>;
 
 export const useModuleURL = (
   moduleName: RoutableModuleNames,
-  bare: boolean = false
+  bare: boolean = false,
+  detectDomainView: boolean = true
 ): string => {
-  const builder = useModuleURLBuilder(bare);
+  const builder = useModuleURLBuilder(bare, detectDomainView);
   return builder(moduleName);
 };
 
 type URLBuilder = (moduleName: RoutableModuleNames) => string;
 
-export function useModuleURLBuilder(bare: boolean = false): URLBuilder {
+export function useModuleURLBuilder(
+  bare: boolean = false,
+  detectDomainView: boolean = true // we can delete this once domain views are released. This is needed to go from the insight links in the sidebar, when the user is already in a domain view
+): URLBuilder {
   const organization = useOrganization({allowNull: true}); // Some parts of the app, like the main sidebar, render even if the organization isn't available (during loading, or at all).
+  const {view, isInDomainView} = useFilters();
 
   if (!organization) {
     // If there isn't an organization, items that link to modules won't be visible, so this is a fallback just-in-case, and isn't trying too hard to be useful
@@ -51,6 +57,12 @@ export function useModuleURLBuilder(bare: boolean = false): URLBuilder {
   }
 
   const {slug} = organization;
+
+  if (isInDomainView && detectDomainView) {
+    return function (moduleName: RoutableModuleNames) {
+      return normalizeUrl(`/organizations/${slug}/performance/${view}/${moduleName}`);
+    };
+  }
 
   return function (moduleName: RoutableModuleNames) {
     return bare

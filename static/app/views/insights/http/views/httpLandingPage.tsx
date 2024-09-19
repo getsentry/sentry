@@ -244,7 +244,11 @@ export function HTTPLandingPage({disableHeader}: InsightLandingProps) {
               </ModuleLayout.Full>
 
               <ModuleLayout.Full>
-                <DomainsTable response={domainsListResponse} sort={sort} />
+                <DomainsTable
+                  response={domainsListResponse}
+                  sort={sort}
+                  disableHeader={disableHeader}
+                />
               </ModuleLayout.Full>
             </ModulesOnboarding>
           </ModuleLayout.Layout>

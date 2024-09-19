@@ -31,6 +31,7 @@ import {useModuleBreadcrumbs} from 'sentry/views/insights/common/utils/useModule
 import {useModuleURL} from 'sentry/views/insights/common/utils/useModuleURL';
 import SubregionSelector from 'sentry/views/insights/common/views/spans/selectors/subregionSelector';
 import {SampleList} from 'sentry/views/insights/common/views/spanSummaryPage/sampleList';
+import {useFilters} from 'sentry/views/insights/pages/useFilters';
 import {ModuleName, SpanMetricsField} from 'sentry/views/insights/types';
 import {TraceViewSources} from 'sentry/views/performance/newTraceDetails/traceMetadataHeader';
 
@@ -46,7 +47,13 @@ const {
 
 function ResourceSummary() {
   const webVitalsModuleURL = useModuleURL('vital');
-  const {groupId} = useParams();
+  const location = useLocation();
+  const {isInDomainView} = useFilters();
+  let {groupId} = useParams();
+  if (isInDomainView) {
+    groupId = location.pathname.split('/').filter(Boolean).pop() || '';
+  }
+
   const filters = useResourceModuleFilters();
   const selectedSpanOp = filters[SPAN_OP];
   const {

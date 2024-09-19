@@ -115,6 +115,7 @@ interface Props {
     pageLinks?: string;
   };
   sort: ValidSort;
+  disableHeader?: boolean;
 }
 
 export function DomainsTable({response, sort}: Props) {
