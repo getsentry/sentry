@@ -8,6 +8,7 @@ import {getFieldFormatter} from 'sentry/utils/discover/fieldRenderers';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {AutoSizedText} from 'sentry/views/dashboards/widgetCard/autoSizedText';
+import {NO_DATA_PLACEHOLDER} from 'sentry/views/dashboards/widgets/bigNumberWidget/settings';
 import type {Meta, TableData} from 'sentry/views/dashboards/widgets/common/types';
 
 export interface Props {
@@ -92,5 +93,3 @@ const SensiblySizedText = styled('div')`
     text-align: left !important;
   }
 `;
-
-const NO_DATA_PLACEHOLDER = '\u2014';
