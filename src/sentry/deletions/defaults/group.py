@@ -159,6 +159,42 @@ class ErrorEventsDeletionTask(EventsBaseDeletionTask):
             eventstream.backend.end_delete_groups(eventstream_state)
 
 
+class EventIssuePlatformDeletionTask(EventsBaseDeletionTask):
+    """
+    This class helps delete Issue Platform events which use the new Clickhouse light deletes.
+    """
+
+    dataset = Dataset.IssuePlatform
+
+    def delete_events_from_nodestore(self, events: Sequence[Event]) -> None:
+        # Remove from nodestore
+        node_ids = [
+            Event.generate_node_id(event.project_id, event._snuba_data["occurrence_id"])
+            for event in events
+        ]
+        nodestore.backend.delete_multi(node_ids)
+
+    def delete_events_from_snuba(self, project_groups: Mapping[int, Sequence[int]]) -> None:
+        pass
+
+    # def delete_issue_platform_events(self, issue_platform_events: Sequence[Event]) -> None:
+    #     pass
+    # print(issue_platform_events)
+    # XXX: For now, we will only delete one group. We will change this in the future
+    # group_id = issue_platform_group_ids[0]
+    # query = DeleteQuery(
+    #     EntityKey.IssuePlatform.value,
+    #     {"project_id": [self.project.id], "occurrence_id": [occurrence_id]},
+    # )
+    # request = Request(
+    #     dataset=Dataset.IssuePlatform.value,
+    #     app_id=self.referrer,
+    #     query=query,
+    #     tenant_ids=self.tenant_ids,
+    # )
+    # results = bulk_snuba_queries([request])[0]["data"]
+
+
 class GroupDeletionTask(ModelDeletionTask[Group]):
     # Delete groups in blocks of 1000. Using 1000 aims to
     # balance the number of snuba replacements with memory limits.
@@ -194,13 +230,19 @@ class GroupDeletionTask(ModelDeletionTask[Group]):
         for model in _GROUP_RELATED_MODELS:
             child_relations.append(ModelRelation(model, {"group_id__in": group_ids}))
 
-        error_groups, _ = separate_by_group_category(instance_list)
+        error_groups, issue_platform_groups = separate_by_group_category(instance_list)
 
         # If this isn't a retention cleanup also remove event data.
         if not os.environ.get("_SENTRY_CLEANUP"):
             if error_groups:
                 params = {"groups": error_groups}
                 child_relations.append(BaseRelation(params=params, task=ErrorEventsDeletionTask))
+            # XXX: Feature gate here
+            if issue_platform_groups:
+                params = {"groups": issue_platform_groups}
+                child_relations.append(
+                    BaseRelation(params=params, task=EventIssuePlatformDeletionTask)
+                )
 
         self.delete_children(child_relations)
 
