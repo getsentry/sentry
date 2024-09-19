@@ -69,8 +69,11 @@ export function getActiveStatus(
   item: SidebarItem | SubmenuItem,
   location: ReturnType<typeof useLocation>
 ): ActiveStatus {
-  if (hasMatchingQueryParam({to: item.to, label: item.label}, location))
-    return ActiveStatus.ACTIVE;
+  if (item.to.includes('/issues/') && item.to.includes('query=')) {
+    return hasMatchingQueryParam({to: item.to, label: item.label}, location)
+      ? ActiveStatus.ACTIVE
+      : ActiveStatus.INACTIVE;
+  }
   const normalizedTo = normalizeUrl(item.to);
   const normalizedCurrent = normalizeUrl(location.pathname);
   if (normalizedTo === normalizedCurrent) return ActiveStatus.ACTIVE;
@@ -119,7 +122,7 @@ export function hasMatchingQueryParam(
       let match = false;
       for (const key of itemQuery?.split(' ')) {
         match = query.includes(key);
-        if (!match) break;
+        if (!match) continue;
       }
       return match;
     }
