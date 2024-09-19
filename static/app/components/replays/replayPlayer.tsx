@@ -33,7 +33,7 @@ interface Props {
    * diffs, people interact with the
    *
    */
-  ['data-inspectable']?: boolean;
+  inspectable?: boolean;
   /**
    * Use when the player is shown in an embedded preview context.
    */
@@ -83,7 +83,7 @@ function BasePlayerRoot({
   className,
   overlayContent,
   isPreview = false,
-  'data-inspectable': dataInspectable,
+  inspectable,
 }: Props) {
   const {
     dimensions: videoDimensions,
@@ -173,7 +173,7 @@ function BasePlayerRoot({
         </Overlay>
       )}
       <StyledNegativeSpaceContainer ref={windowEl} className="sentry-block">
-        <div ref={viewEl} className={className} data-inspectable={dataInspectable} />
+        <div ref={viewEl} className={className} data-inspectable={inspectable} />
         {fastForwardSpeed ? <PositionedFastForward speed={fastForwardSpeed} /> : null}
         {isBuffering || isVideoBuffering ? <PositionedBuffering /> : null}
         {isPreview || isVideoReplay || isFetching ? null : <PlayerDOMAlert />}
