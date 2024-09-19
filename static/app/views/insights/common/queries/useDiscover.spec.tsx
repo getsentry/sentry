@@ -13,7 +13,11 @@ import {
   useSpanMetrics,
   useSpansIndexed,
 } from 'sentry/views/insights/common/queries/useDiscover';
-import {SpanIndexedField, type SpanMetricsProperty} from 'sentry/views/insights/types';
+import {
+  SpanIndexedField,
+  type SpanIndexedProperty,
+  type SpanMetricsProperty,
+} from 'sentry/views/insights/types';
 import {OrganizationContext} from 'sentry/views/organizationContext';
 
 jest.mock('sentry/utils/useLocation');
@@ -196,7 +200,7 @@ describe('useDiscover', () => {
         {
           wrapper: Wrapper,
           initialProps: {
-            fields: [SpanIndexedField.SPAN_DESCRIPTION],
+            fields: [SpanIndexedField.SPAN_DESCRIPTION] as SpanIndexedProperty[],
             enabled: false,
           },
         }
@@ -253,7 +257,7 @@ describe('useDiscover', () => {
               SpanIndexedField.SPAN_OP,
               SpanIndexedField.SPAN_GROUP,
               SpanIndexedField.SPAN_DESCRIPTION,
-            ],
+            ] as SpanIndexedProperty[],
             sorts: [{field: 'span.group', kind: 'desc' as const}],
             limit: 10,
             referrer: 'api-spec',

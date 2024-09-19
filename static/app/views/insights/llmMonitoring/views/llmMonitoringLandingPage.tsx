@@ -13,11 +13,17 @@ import {ModulePageProviders} from 'sentry/views/insights/common/components/modul
 import {ModulesOnboarding} from 'sentry/views/insights/common/components/modulesOnboarding';
 import {useModuleBreadcrumbs} from 'sentry/views/insights/common/utils/useModuleBreadcrumbs';
 import {
+  EAPNumberOfPipelinesChart,
+  EAPPipelineDurationChart,
+  EAPTotalTokensUsedChart,
   NumberOfPipelinesChart,
   PipelineDurationChart,
   TotalTokensUsedChart,
 } from 'sentry/views/insights/llmMonitoring/components/charts/llmMonitoringCharts';
-import {PipelinesTable} from 'sentry/views/insights/llmMonitoring/components/tables/pipelinesTable';
+import {
+  EAPPipelinesTable,
+  PipelinesTable,
+} from 'sentry/views/insights/llmMonitoring/components/tables/pipelinesTable';
 import {
   MODULE_DOC_LINK,
   MODULE_TITLE,
@@ -29,6 +35,7 @@ export function LLMMonitoringPage({disableHeader}: InsightLandingProps) {
   const organization = useOrganization();
 
   const crumbs = useModuleBreadcrumbs('ai');
+  const useEAP = organization?.features?.includes('insights-use-eap');
 
   return (
     <Layout.Page>
@@ -61,16 +68,16 @@ export function LLMMonitoringPage({disableHeader}: InsightLandingProps) {
               </ModuleLayout.Full>
               <ModulesOnboarding moduleName={ModuleName.AI}>
                 <ModuleLayout.Third>
-                  <TotalTokensUsedChart />
+                  {useEAP ? <EAPTotalTokensUsedChart /> : <TotalTokensUsedChart />}
                 </ModuleLayout.Third>
                 <ModuleLayout.Third>
-                  <NumberOfPipelinesChart />
+                  {useEAP ? <EAPNumberOfPipelinesChart /> : <NumberOfPipelinesChart />}
                 </ModuleLayout.Third>
                 <ModuleLayout.Third>
-                  <PipelineDurationChart />
+                  {useEAP ? <EAPPipelineDurationChart /> : <PipelineDurationChart />}
                 </ModuleLayout.Third>
                 <ModuleLayout.Full>
-                  <PipelinesTable />
+                  {useEAP ? <EAPPipelinesTable /> : <PipelinesTable />}
                 </ModuleLayout.Full>
               </ModulesOnboarding>
             </ModuleLayout.Layout>

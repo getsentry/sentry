@@ -17,9 +17,15 @@ import {MetricReadout} from 'sentry/views/insights/common/components/metricReado
 import * as ModuleLayout from 'sentry/views/insights/common/components/moduleLayout';
 import {ModulePageProviders} from 'sentry/views/insights/common/components/modulePageProviders';
 import {ReadoutRibbon, ToolRibbon} from 'sentry/views/insights/common/components/ribbon';
-import {useSpanMetrics} from 'sentry/views/insights/common/queries/useDiscover';
+import {
+  useEAPSpans,
+  useSpanMetrics,
+} from 'sentry/views/insights/common/queries/useDiscover';
 import {useModuleBreadcrumbs} from 'sentry/views/insights/common/utils/useModuleBreadcrumbs';
 import {
+  EAPNumberOfPipelinesChart,
+  EAPPipelineDurationChart,
+  EAPTotalTokensUsedChart,
   NumberOfPipelinesChart,
   PipelineDurationChart,
   TotalTokensUsedChart,
@@ -54,8 +60,9 @@ export function LLMMonitoringPage({params}: Props) {
     'span.group': groupId,
     'span.category': 'ai.pipeline',
   };
+  const useEAP = organization?.features?.includes('insights-use-eap');
 
-  const {data, isPending: areSpanMetricsLoading} = useSpanMetrics(
+  const {data: spanMetricData, isPending: areSpanMetricsLoading} = useSpanMetrics(
     {
       search: MutableSearch.fromQueryObject(filters),
       fields: [
@@ -64,11 +71,25 @@ export function LLMMonitoringPage({params}: Props) {
         `${SpanFunction.SPM}()`,
         `avg(${SpanMetricsField.SPAN_DURATION})`,
       ],
-      enabled: Boolean(groupId),
+      enabled: Boolean(groupId) && !useEAP,
     },
-    'api.ai-pipelines.view'
+    'api.ai-pipelines.details.view'
   );
-  const spanMetrics = data[0] ?? {};
+
+  const {data: eapData, isPending: isEAPPending} = useEAPSpans(
+    {
+      search: MutableSearch.fromQueryObject(filters),
+      fields: [
+        SpanMetricsField.SPAN_OP,
+        'count()',
+        `${SpanFunction.SPM}()`,
+        `avg(${SpanMetricsField.SPAN_DURATION})`,
+      ],
+      enabled: Boolean(groupId) && useEAP,
+    },
+    'api.ai-pipelines.details-eap.view'
+  );
+  const spanMetrics = (useEAP ? eapData[0] : spanMetricData[0]) ?? {};
 
   const {data: totalTokenData, isPending: isTotalTokenDataLoading} = useSpanMetrics(
     {
@@ -77,11 +98,23 @@ export function LLMMonitoringPage({params}: Props) {
         'span.ai.pipeline.group': groupId,
       }),
       fields: ['sum(ai.total_tokens.used)', 'sum(ai.total_cost)'],
-      enabled: Boolean(groupId),
+      enabled: Boolean(groupId) && !useEAP,
     },
-    'api.ai-pipelines.view'
+    'api.ai-pipelines.details.view'
   );
-  const tokenUsedMetric = totalTokenData[0] ?? {};
+
+  const {data: eapTokenData, isPending: isEAPTotalTokenDataLoading} = useEAPSpans(
+    {
+      search: MutableSearch.fromQueryObject({
+        'span.category': 'ai',
+        'span.ai.pipeline.group': groupId,
+      }),
+      fields: ['sum(ai.total_tokens.used)', 'sum(ai.total_cost)'],
+      enabled: Boolean(groupId) && useEAP,
+    },
+    'api.ai-pipelines.details.view'
+  );
+  const tokenUsedMetric = (useEAP ? eapTokenData[0] : totalTokenData[0]) ?? {};
 
   const crumbs = useModuleBreadcrumbs('ai');
 
@@ -122,43 +155,59 @@ export function LLMMonitoringPage({params}: Props) {
                       title={t('Total Tokens Used')}
                       value={tokenUsedMetric['sum(ai.total_tokens.used)']}
                       unit={'count'}
-                      isLoading={isTotalTokenDataLoading}
+                      isLoading={
+                        useEAP ? isEAPTotalTokenDataLoading : isTotalTokenDataLoading
+                      }
                     />
 
                     <MetricReadout
                       title={t('Total Cost')}
                       value={tokenUsedMetric['sum(ai.total_cost)']}
                       unit={CurrencyUnit.USD}
-                      isLoading={isTotalTokenDataLoading}
+                      isLoading={
+                        useEAP ? isEAPTotalTokenDataLoading : isTotalTokenDataLoading
+                      }
                     />
 
                     <MetricReadout
                       title={t('Pipeline Duration')}
                       value={spanMetrics?.[`avg(${SpanMetricsField.SPAN_DURATION})`]}
                       unit={DurationUnit.MILLISECOND}
-                      isLoading={areSpanMetricsLoading}
+                      isLoading={useEAP ? isEAPPending : areSpanMetricsLoading}
                     />
 
                     <MetricReadout
                       title={t('Pipeline Runs Per Minute')}
                       value={spanMetrics?.[`${SpanFunction.SPM}()`]}
                       unit={RateUnit.PER_MINUTE}
-                      isLoading={areSpanMetricsLoading}
+                      isLoading={useEAP ? isEAPPending : areSpanMetricsLoading}
                     />
                   </ReadoutRibbon>
                 </HeaderContainer>
               </ModuleLayout.Full>
               <ModuleLayout.Third>
-                <TotalTokensUsedChart groupId={groupId} />
+                {useEAP ? (
+                  <EAPTotalTokensUsedChart groupId={groupId} />
+                ) : (
+                  <TotalTokensUsedChart groupId={groupId} />
+                )}
               </ModuleLayout.Third>
               <ModuleLayout.Third>
-                <NumberOfPipelinesChart groupId={groupId} />
+                {useEAP ? (
+                  <EAPNumberOfPipelinesChart groupId={groupId} />
+                ) : (
+                  <NumberOfPipelinesChart groupId={groupId} />
+                )}
               </ModuleLayout.Third>
               <ModuleLayout.Third>
-                <PipelineDurationChart groupId={groupId} />
+                {useEAP ? (
+                  <EAPPipelineDurationChart groupId={groupId} />
+                ) : (
+                  <PipelineDurationChart groupId={groupId} />
+                )}
               </ModuleLayout.Third>
               <ModuleLayout.Full>
-                <PipelineSpansTable groupId={groupId} />
+                <PipelineSpansTable groupId={groupId} useEAP={useEAP} />
               </ModuleLayout.Full>
             </ModuleLayout.Layout>
           </Layout.Main>
