@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 
 import Alert from 'sentry/components/alert';
 import ProjectAvatar from 'sentry/components/avatar/projectAvatar';
-import {LinkButton} from 'sentry/components/button';
+import {Button, LinkButton} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import Count from 'sentry/components/count';
 import DataExport, {ExportQueryType} from 'sentry/components/dataExport';
@@ -258,6 +258,7 @@ function GroupTagsDrawerTagDetails({groupId, project}: GroupTagsDrawerProps) {
 export function GroupTagsDrawer({project, groupId}: GroupTagsDrawerProps) {
   const location = useLocation();
   const organization = useOrganization();
+  const navigate = useNavigate();
   const tagDrawerKey = location.query.tagDrawerKey as string | undefined;
 
   const {
@@ -359,17 +360,24 @@ export function GroupTagsDrawer({project, groupId}: GroupTagsDrawerProps) {
                   <StyledPanel>
                     <PanelBody withPadding>
                       <TagHeading>
-                        <Link
-                          to={{
-                            pathname: location.pathname,
-                            query: {
-                              ...location.query,
-                              tagDrawerKey: tag.key,
-                            },
+                        <Button
+                          priority="link"
+                          size="zero"
+                          onClick={() => {
+                            navigate(
+                              {
+                                pathname: location.pathname,
+                                query: {
+                                  ...location.query,
+                                  tagDrawerKey: tag.key,
+                                },
+                              },
+                              {replace: true}
+                            );
                           }}
                         >
                           <span data-test-id="tag-title">{tag.key}</span>
-                        </Link>
+                        </Button>
                       </TagHeading>
                       <UnstyledUnorderedList>
                         {tag.topValues.map((tagValue, tagValueIdx) => (
@@ -432,7 +440,7 @@ export function useGroupTagsDrawer({
     drawer.openDrawer(() => <GroupTagsDrawer project={project} groupId={groupId} />, {
       ariaLabel: 'tags drawer',
       onClose: () => {
-        if (location.query.attachmentFilter || location.query.cursor) {
+        if (location.query.tagDrawerSort || location.query.tagDrawerKey) {
           // Remove drawer state from URL
           navigate(
             {
