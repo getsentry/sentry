@@ -58,7 +58,7 @@ export function EventDetails({
     error,
   } = useIssueDetailsDiscoverQuery<MultiSeriesEventsStats>({
     params: {
-      route: 'event-stats',
+      route: 'events-stats',
       eventView,
       referrer: 'issue_details.streamline_graph',
     },
@@ -74,11 +74,11 @@ export function EventDetails({
   }, [nav, isScreenMedium, dispatch, theme.sidebar.mobileHeightNumber]);
 
   const graphComponent = !isLoadingStats && groupStats && (
-    <EventArea>
+    <ExtraContent>
       <ErrorBoundary mini message={t('There was an error loading the event graph')}>
         <EventGraph group={group} groupStats={groupStats} searchQuery={searchQuery} />
       </ErrorBoundary>
-    </EventArea>
+    </ExtraContent>
   );
 
   return (
@@ -117,9 +117,9 @@ export function EventDetails({
       ) : (
         graphComponent
       )}
-      <ExtraContent>
+      <GroupContent>
         <EventList group={group} project={project} />
-      </ExtraContent>
+      </GroupContent>
       <GroupContent>
         <FloatingEventNavigation
           event={event}
@@ -140,12 +140,6 @@ export function EventDetails({
   );
 }
 
-const EventArea = styled('div')`
-  border: 1px solid ${p => p.theme.translucentBorder};
-  background: ${p => p.theme.background};
-  border-radius: ${p => p.theme.borderRadius};
-`;
-
 const SearchFilter = styled(EventSearch)`
   border-radius: ${p => p.theme.borderRadius};
 `;
@@ -163,8 +157,8 @@ const FloatingEventNavigation = styled(EventNavigation)`
     top: ${p => p.theme.sidebar.mobileHeight};
   }
   background: ${p => p.theme.background};
-  z-index: 100;
-  border-radius: 6px 6px 0 0;
+  z-index: 500;
+  border-radius: ${p => p.theme.borderRadiusTop};
 `;
 
 const GraphAlert = styled(Alert)`
