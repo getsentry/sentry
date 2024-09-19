@@ -151,6 +151,10 @@ def fetch_historical_data(
     if not project or not dataset or not alert_rule.organization:
         return None
 
+    environments = []
+    if snuba_query.environment:
+        environments = [snuba_query.environment]
+
     if dataset == metrics_performance:
         return get_crash_free_historical_data(
             start, end, project, alert_rule.organization, granularity
@@ -165,7 +169,7 @@ def fetch_historical_data(
                 start=start,
                 end=end,
                 stats_period=None,
-                environments=[snuba_query.environment],
+                environments=environments,
             ),
             rollup=granularity,
             referrer=(
