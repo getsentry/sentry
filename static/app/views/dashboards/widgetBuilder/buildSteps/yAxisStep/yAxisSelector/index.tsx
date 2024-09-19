@@ -142,7 +142,7 @@ export function YAxisSelector({
         <QueryFieldWrapper key={`${fieldValue}:${i}`}>
           {aggregates.length > 1 && displayType === DisplayType.BIG_NUMBER && (
             <Feature features="dashboards-bignumber-equations">
-              <RadioLineItem index={i} role="radio" aria-label="radio-label">
+              <RadioLineItem index={i} role="radio" aria-label="aggregate-selector">
                 <Radio
                   checked={i === selectedAggregate}
                   onChange={() => handleSelectField(i)}
