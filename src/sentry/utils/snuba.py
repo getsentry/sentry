@@ -188,6 +188,9 @@ SPAN_EAP_COLUMN_MAP = {
     # message also maps to span description but gets special handling
     # to support wild card searching by default
     "message": "name",
+    # These sample columns are for debugging only and shouldn't be used
+    "sampling_weight": "sampling_weight",
+    "sampling_factor": "sampling_factor",
     "span.domain": "domain",
     "span.group": "group",
     "span.op": "attr_str[op]",
