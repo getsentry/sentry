@@ -112,10 +112,11 @@ export function YAxisSelector({
   const canDelete = aggregates.length > 1;
 
   const hideAddYAxisButtons =
-    organization.features.includes('dashboards-bignumber-equations') ||
     ([DisplayType.LINE, DisplayType.AREA, DisplayType.BAR].includes(displayType) &&
       aggregates.length === 3) ||
-    (displayType === DisplayType.BIG_NUMBER && widgetType === WidgetType.RELEASE);
+    (organization.features.includes('dashboards-bignumber-equations')
+      ? displayType === DisplayType.BIG_NUMBER && widgetType === WidgetType.RELEASE
+      : DisplayType.BIG_NUMBER === displayType && aggregates.length === 1);
 
   let injectedFunctions: Set<string> = new Set();
 

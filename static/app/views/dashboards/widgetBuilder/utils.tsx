@@ -144,15 +144,18 @@ export const generateOrderOptions = ({
   return options;
 };
 
-export function normalizeQueries({
-  displayType,
-  queries,
-  widgetType,
-}: {
-  displayType: DisplayType;
-  queries: Widget['queries'];
-  widgetType?: Widget['widgetType'];
-}): Widget['queries'] {
+export function normalizeQueries(
+  organization,
+  {
+    displayType,
+    queries,
+    widgetType,
+  }: {
+    displayType: DisplayType;
+    queries: Widget['queries'];
+    widgetType?: Widget['widgetType'];
+  }
+): Widget['queries'] {
   const isTimeseriesChart = getIsTimeseriesChart(displayType);
   const isTabularChart = [DisplayType.TABLE, DisplayType.TOP_N].includes(displayType);
   queries = cloneDeep(queries);
@@ -295,13 +298,25 @@ export function normalizeQueries({
 
   if (DisplayType.BIG_NUMBER === displayType) {
     // For world map chart, cap fields of the queries to only one field.
-    queries = queries.map(query => {
-      return {
-        ...query,
-        orderby: '',
-        columns: [],
-      };
-    });
+    if (organization.features.includes('dashboards-bignumber-equations')) {
+      queries = queries.map(query => {
+        return {
+          ...query,
+          orderby: '',
+          columns: [],
+        };
+      });
+    } else {
+      queries = queries.map(query => {
+        return {
+          ...query,
+          fields: query.aggregates.slice(0, 1),
+          aggregates: query.aggregates.slice(0, 1),
+          orderby: '',
+          columns: [],
+        };
+      });
+    }
   }
 
   return queries;

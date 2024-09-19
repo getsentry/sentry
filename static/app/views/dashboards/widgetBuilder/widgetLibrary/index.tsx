@@ -63,7 +63,7 @@ export function WidgetLibrary({
               ? DisplayType.TABLE
               : widget.displayType;
 
-          const normalizedQueries = normalizeQueries({
+          const normalizedQueries = normalizeQueries(organization, {
             displayType,
             queries: widget.queries,
             widgetType: widget.widgetType,

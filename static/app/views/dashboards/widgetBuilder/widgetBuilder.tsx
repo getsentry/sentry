@@ -323,7 +323,7 @@ function WidgetBuilder({
         newLimit = DEFAULT_RESULTS_LIMIT;
         newDisplayType = DisplayType.AREA;
 
-        queries = normalizeQueries({
+        queries = normalizeQueries(organization, {
           displayType: newDisplayType,
           queries: widgetFromDashboard.queries,
           widgetType: widgetFromDashboard.widgetType ?? defaultWidgetType,
@@ -335,7 +335,7 @@ function WidgetBuilder({
             : [],
         }));
       } else {
-        queries = normalizeQueries({
+        queries = normalizeQueries(organization, {
           displayType: newDisplayType,
           queries: widgetFromDashboard.queries,
           widgetType: widgetFromDashboard.widgetType ?? defaultWidgetType,
@@ -433,7 +433,7 @@ function WidgetBuilder({
         set(
           newState,
           'queries',
-          normalizeQueries({
+          normalizeQueries(organization, {
             displayType: newDisplayType,
             queries: [{...getDatasetConfig(defaultWidgetType).defaultWidgetQuery}],
             widgetType: defaultWidgetType,
@@ -444,7 +444,7 @@ function WidgetBuilder({
         return {...newState, errors: undefined};
       }
 
-      const normalized = normalizeQueries({
+      const normalized = normalizeQueries(organization, {
         displayType: newDisplayType,
         queries: prevState.queries,
         widgetType: DATA_SET_TO_WIDGET_TYPE[prevState.dataSet],
