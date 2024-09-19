@@ -24,6 +24,10 @@ from sentry.api.client import ApiClient
 from sentry.api.helpers.group_index import update_groups
 from sentry.auth.access import from_member
 from sentry.exceptions import UnableToAcceptMemberInvitationException
+from sentry.integrations.messaging.metrics import (
+    MessagingInteractionEvent,
+    MessagingInteractionType,
+)
 from sentry.integrations.services.integration import integration_service
 from sentry.integrations.slack.message_builder.issues import SlackIssuesMessageBuilder
 from sentry.integrations.slack.message_builder.types import SlackBody
@@ -34,6 +38,7 @@ from sentry.integrations.slack.metrics import (
 from sentry.integrations.slack.requests.action import SlackActionRequest
 from sentry.integrations.slack.requests.base import SlackRequestError
 from sentry.integrations.slack.sdk_client import SlackSdkClient
+from sentry.integrations.slack.spec import PROVIDER
 from sentry.integrations.slack.utils.errors import MODAL_NOT_FOUND, unpack_slack_api_error
 from sentry.integrations.types import ExternalProviderEnum
 from sentry.integrations.utils.scope import bind_org_context_from_integration
@@ -650,23 +655,32 @@ class SlackActionEndpoint(Endpoint):
         # response_url later to update it.
         defer_attachment_update = False
 
+        def record_event(interaction_type: MessagingInteractionType) -> MessagingInteractionEvent:
+            return MessagingInteractionEvent(
+                interaction_type,
+                PROVIDER,
+                user=request.user,
+                organization=group.project.organization,
+            )
+
         # Handle interaction actions
         for action in action_list:
             try:
-                if action.name in (
-                    "status",
-                    "unresolved:ongoing",
-                ):
-                    self.on_status(request, identity_user, group, action)
+                if action.name in ("status", "unresolved:ongoing"):
+                    with record_event(MessagingInteractionType.STATUS).capture():
+                        self.on_status(request, identity_user, group, action)
                 elif (
                     action.name == "assign"
                 ):  # TODO: remove this as it is replaced by the options-load endpoint
-                    self.on_assign(request, identity_user, group, action)
+                    with record_event(MessagingInteractionType.ASSIGN).capture():
+                        self.on_assign(request, identity_user, group, action)
                 elif action.name == "resolve_dialog":
-                    self.open_resolve_dialog(slack_request, group)
+                    with record_event(MessagingInteractionType.RESOLVE_DIALOG).capture():
+                        self.open_resolve_dialog(slack_request, group)
                     defer_attachment_update = True
                 elif action.name == "archive_dialog":
-                    self.open_archive_dialog(slack_request, group)
+                    with record_event(MessagingInteractionType.ARCHIVE_DIALOG).capture():
+                        self.open_archive_dialog(slack_request, group)
                     defer_attachment_update = True
             except client.ApiError as error:
                 return self.api_error(slack_request, group, identity_user, error, action.name)

@@ -9,11 +9,13 @@ from sentry.integrations.messaging.spec import (
 from sentry.models.notificationaction import ActionService
 from sentry.rules.actions import IntegrationEventAction
 
+PROVIDER = "discord"
+
 
 class DiscordMessagingSpec(MessagingIntegrationSpec):
     @property
     def provider_slug(self) -> str:
-        return "discord"
+        return PROVIDER
 
     @property
     def action_service(self) -> ActionService:
