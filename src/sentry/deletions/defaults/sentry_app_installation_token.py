@@ -2,7 +2,7 @@ from collections.abc import Sequence
 
 from sentry.deletions.base import BaseRelation, ModelDeletionTask, ModelRelation
 from sentry.deletions.defaults.apitoken import ModelApiTokenDeletionTask
-from sentry.models.integrations.sentry_app_installation_token import SentryAppInstallationToken
+from sentry.sentry_apps.models.sentry_app_installation_token import SentryAppInstallationToken
 
 
 class SentryAppInstallationTokenDeletionTask(ModelDeletionTask[SentryAppInstallationToken]):
