@@ -38,6 +38,7 @@ class IdentityProviderPipeline(Pipeline):
         # Use configured redirect_url if specified for the pipeline if available
         return self.config.get("redirect_url", associate_url)
 
+    # TODO(iamrajjoshi): Delete this after Azure DevOps migration is complete
     def get_provider(self, provider_key: str, **kwargs) -> PipelineProvider:
         if kwargs.get("organization"):
             organization: Organization | RpcOrganization = kwargs["organization"]

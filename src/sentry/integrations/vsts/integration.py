@@ -422,6 +422,7 @@ class VstsIntegrationProvider(IntegrationProvider):
             )
 
     def get_scopes(self) -> Sequence[str]:
+        # TODO(iamrajjoshi): Delete this after Azure DevOps migration is complete
         if features.has(
             "organizations:migrate-azure-devops-integration", self.pipeline.organization
         ):
@@ -465,6 +466,7 @@ class VstsIntegrationProvider(IntegrationProvider):
             },
         }
 
+        # TODO(iamrajjoshi): Clean this up this after Azure DevOps migration is complete
         try:
             CURRENT_MIGRATION_VERSION = 1
 

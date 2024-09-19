@@ -15,6 +15,7 @@ from sentry.integrations.source_code_management.repository import RepositoryClie
 from sentry.models.repository import Repository
 from sentry.shared_integrations.client.base import BaseApiResponseX
 from sentry.shared_integrations.client.proxy import IntegrationProxyClient
+from sentry.shared_integrations.exceptions import ApiError
 from sentry.silo.base import control_silo_function
 from sentry.users.models.identity import Identity
 from sentry.utils.http import absolute_uri
@@ -158,6 +159,7 @@ class VstsSetupApiClient(ApiClient, VstsApiMixin):
 class VstsApiClient(IntegrationProxyClient, VstsApiMixin, RepositoryClient):
     integration_name = "vsts"
     _identity: Identity | None = None
+    INVALID_CLIENT_ERROR = "invalid_client"
 
     def __init__(
         self,
@@ -199,9 +201,19 @@ class VstsApiClient(IntegrationProxyClient, VstsApiMixin, RepositoryClient):
         if time_expires is None:
             raise InvalidIdentity("VstsApiClient requires identity with specified expired time")
         if int(time_expires) <= int(time()):
-            self.identity.get_provider().refresh_identity(
-                self.identity, redirect_url=self.oauth_redirect_url
-            )
+            # TODO(iamrajjoshi): Remove this after migration
+            # Need this here because there is no way to get any identifier which would tell us which method we should use to refresh the token
+            from sentry.identity.vsts.provider import VSTSNewIdentityProvider
+
+            try:
+                self.identity.get_provider().refresh_identity(
+                    self.identity, redirect_url=self.oauth_redirect_url
+                )
+            except ApiError as e:
+                if self.INVALID_CLIENT_ERROR in str(e):
+                    VSTSNewIdentityProvider().refresh_identity(
+                        self.identity, redirect_url=self.oauth_redirect_url
+                    )
 
     @control_silo_function
     def authorize_request(
