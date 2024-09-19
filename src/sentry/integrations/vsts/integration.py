@@ -426,6 +426,7 @@ class VstsIntegrationProvider(IntegrationProvider):
             "organizations:migrate-azure-devops-integration", self.pipeline.organization.id
         ):
             # This is the new way we need to pass scopes to the OAuth flow
+            # https://stackoverflow.com/questions/75729931/get-access-token-for-azure-devops-pat
             return ("offline_access", "499b84ac-1321-427f-aa17-267ca6975798/.default")
         return ("vso.code", "vso.graph", "vso.serviceendpoint_manage", "vso.work_write")
 
@@ -465,17 +466,22 @@ class VstsIntegrationProvider(IntegrationProvider):
         }
 
         try:
+            CURRENT_MIGRATION_VERSION = 1
+
             integration_model = IntegrationModel.objects.get(
                 provider="vsts", external_id=account["accountId"], status=ObjectStatus.ACTIVE
             )
 
             # Get Integration Metadata
-            integration_migrated = integration_model.metadata.get("integration_migrated", False)
+            integration_migration_version = integration_model.metadata.get(
+                "integration_migration_version", 0
+            )
+
             if (
                 features.has(
                     "organizations:migrate-azure-devops-integration", self.pipeline.organization.id
                 )
-                and not integration_migrated
+                and integration_migration_version < CURRENT_MIGRATION_VERSION
             ):
                 subscription_id, subscription_secret = self.create_subscription(
                     base_url=base_url, oauth_data=oauth_data
@@ -485,7 +491,7 @@ class VstsIntegrationProvider(IntegrationProvider):
                     "secret": subscription_secret,
                 }
 
-                integration["metadata"]["integration_migrated"] = True
+                integration["metadata"]["integration_migration_version"] = CURRENT_MIGRATION_VERSION
 
                 logger.info(
                     "vsts.build_integration.migrated",
@@ -493,6 +499,8 @@ class VstsIntegrationProvider(IntegrationProvider):
                         "organization_id": self.pipeline.organization.id,
                         "user_id": user["id"],
                         "account": account,
+                        "migration_version": CURRENT_MIGRATION_VERSION,
+                        "subscription_id": subscription_id,
                     },
                 )
             else:
