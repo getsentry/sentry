@@ -95,10 +95,23 @@ const getInstallConfig = () => [
 ];
 
 const onboarding: OnboardingConfig = {
-  introduction: () =>
-    tct("Sentry's integration with [astroLink:Astro] supports Astro 3.0.0 and above.", {
-      astroLink: <ExternalLink href="https://astro.build/" />,
-    }),
+  introduction: () => (
+    <Fragment>
+      <p>
+        {tct(
+          "Sentry's integration with [astroLink:Astro] supports Astro 3.0.0 and above.",
+          {
+            astroLink: <ExternalLink href="https://astro.build/" />,
+          }
+        )}
+      </p>
+      <p>
+        {tct("In this quick guide you'll use the [astrocli:astro] CLI to set up:", {
+          astrocli: <strong />,
+        })}
+      </p>
+    </Fragment>
+  ),
   install: () => getInstallConfig(),
   configure: (params: Params) => [
     {
