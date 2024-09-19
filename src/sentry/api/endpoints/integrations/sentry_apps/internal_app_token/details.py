@@ -13,7 +13,7 @@ from sentry.api.endpoints.integrations.sentry_apps.details import (
     PARTNERSHIP_RESTRICTED_ERROR_MESSAGE,
 )
 from sentry.models.apitoken import ApiToken
-from sentry.models.integrations.sentry_app_installation_token import SentryAppInstallationToken
+from sentry.sentry_apps.models.sentry_app_installation_token import SentryAppInstallationToken
 
 
 @control_silo_endpoint

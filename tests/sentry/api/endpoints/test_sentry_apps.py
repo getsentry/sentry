@@ -14,11 +14,11 @@ from rest_framework.response import Response
 from sentry import deletions
 from sentry.constants import SentryAppStatus
 from sentry.models.apitoken import ApiToken
-from sentry.models.integrations.sentry_app_installation_token import SentryAppInstallationToken
 from sentry.models.organization import Organization
 from sentry.models.organizationmember import OrganizationMember
 from sentry.sentry_apps.models.sentry_app import MASKED_VALUE, SentryApp
 from sentry.sentry_apps.models.sentry_app_installation import SentryAppInstallation
+from sentry.sentry_apps.models.sentry_app_installation_token import SentryAppInstallationToken
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers import Feature, with_feature
