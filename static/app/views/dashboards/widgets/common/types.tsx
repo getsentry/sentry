@@ -3,4 +3,4 @@ export type Meta = {
   units: Record<string, string | null>;
 };
 
-export type Data = Record<string, number | string | undefined>[];
+export type TableData = Record<string, number | string | undefined>[];

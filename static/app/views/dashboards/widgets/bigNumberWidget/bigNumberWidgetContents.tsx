@@ -8,10 +8,10 @@ import {getFieldFormatter} from 'sentry/utils/discover/fieldRenderers';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {AutoSizedText} from 'sentry/views/dashboards/widgetCard/autoSizedText';
-import type {Data, Meta} from 'sentry/views/dashboards/widgets/common/types';
+import type {Meta, TableData} from 'sentry/views/dashboards/widgets/common/types';
 
 export interface Props {
-  data?: Data;
+  data?: TableData;
   meta?: Meta;
 }
 
