@@ -11,7 +11,7 @@ class SentryAppInstallationDeletionTask(ModelDeletionTask[SentryAppInstallation]
         from sentry.models.integrations.sentry_app_installation_for_provider import (
             SentryAppInstallationForProvider,
         )
-        from sentry.models.integrations.sentry_app_installation_token import (
+        from sentry.sentry_apps.models.sentry_app_installation_token import (
             SentryAppInstallationToken,
         )
 
