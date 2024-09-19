@@ -122,7 +122,6 @@ class ProjectMemberSerializer(serializers.Serializer):
         "performanceIssueCreationRate",
         "performanceIssueCreationThroughPlatform",
         "performanceIssueSendToPlatform",
-        "extrapolateMetrics",
         "uptimeAutodetection",
     ]
 )
