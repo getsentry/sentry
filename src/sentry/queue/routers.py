@@ -7,6 +7,7 @@ from django.conf import settings
 
 from sentry import options
 from sentry.celery import app
+from sentry.utils.celery import build_queue_names
 
 
 def _get_known_queues() -> set[str]:
@@ -35,9 +36,10 @@ class SplitQueueRouter:
     def __init__(self) -> None:
         known_queues = _get_known_queues()
         self.__queue_routers = {}
-        for source, destinations in settings.CELERY_SPLIT_QUEUE_ROUTES.items():
+        for source, dest_config in settings.CELERY_SPLIT_QUEUE_ROUTES.items():
             assert source in known_queues, f"Queue {source} in split queue config is not declared."
-            # _validate_destinations(destinations)
+            destinations = build_queue_names(source, dest_config["in_use"])
+            _validate_destinations(destinations)
             self.__queue_routers[source] = cycle(destinations)
 
     def route_for_queue(self, queue: str) -> str:
@@ -82,14 +84,16 @@ class SplitQueueTaskRouter:
         known_queues = _get_known_queues()
 
         self.__task_routers = {}
-        for source, destinations in settings.CELERY_SPLIT_QUEUE_TASK_ROUTES.items():
-            default_destination = destinations[1]
+        for task, dest_config in settings.CELERY_SPLIT_QUEUE_TASK_ROUTES.items():
+            default_destination = dest_config["default_queue"]
             assert (
                 default_destination in known_queues
             ), f"Queue {default_destination} in split queue config is not declared."
-            _validate_destinations(destinations[0])
-
-            self.__task_routers[source] = TaskRoute(default_destination, cycle(destinations[0]))
+            destinations = build_queue_names(
+                default_destination, dest_config["queues_config"]["in_use"]
+            )
+            _validate_destinations(destinations)
+            self.__task_routers[task] = TaskRoute(default_destination, cycle(destinations))
 
     def route_for_task(self, task: str, *args: Any, **kwargs: Any) -> Mapping[str, str] | None:
         route = self.__task_routers.get(task)

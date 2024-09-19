@@ -13,12 +13,16 @@ def crontab_with_minute_jitter(*args: Any, **kwargs: Any) -> crontab:
     return crontab(*args, **kwargs)
 
 
-def _build_queues(base: str, total: int) -> Sequence[Queue]:
-    ret: MutableSequence[Queue] = []
-    for index in range(total):
-        name = f"{base}_{index + 1}"
-        ret.append(Queue(name=name, routing_key=name))
+def build_queue_names(base_name: str, quantity: int) -> Sequence[str]:
+    ret = []
+    for index in range(quantity):
+        name = f"{base_name}_{index + 1}"
+        ret.append(name)
     return ret
+
+
+def _build_queues(base: str, quantity: int) -> Sequence[Queue]:
+    return [Queue(name=name, routing_key=name) for name in build_queue_names(base, quantity)]
 
 
 def make_split_queues(config: Mapping[str, SplitQueueSize]) -> Sequence[Queue]:

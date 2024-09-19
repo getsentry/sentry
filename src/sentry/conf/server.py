@@ -831,21 +831,14 @@ SENTRY_POST_PROCESS_QUEUE_SPLIT_ROUTER: dict[str, Callable[[], str]] = {}
 # Mapping from queue name to split queues to be used by SplitQueueRouter.
 # This is meant to be used in those case where we have to specify the
 # queue name when issuing a task. Example: post process.
-CELERY_SPLIT_QUEUE_ROUTES: Mapping[str, SplitQueueSize] = {
-    "post_process_transactions": {"total": 10, "in_use": 5}
-}
+CELERY_SPLIT_QUEUE_ROUTES: Mapping[str, SplitQueueSize] = {}
 # Mapping from task names to split queues. This can be used when the
 # task does not have to specify the queue and can rely on Celery to
 # do the routing.
 # Each route has a task name as key and a tuple containing a list of queues
 # and a default one as destination. The default one is used when the
 # rollout option is not active.
-CELERY_SPLIT_QUEUE_TASK_ROUTES: Mapping[str, SplitQueueTaskRoute] = {
-    "sentry.tasks.store.save_event_transaction": {
-        "default_queue": "events.save_event_transaction",
-        "queues_config": {"total": 10, "in_use": 5},
-    }
-}
+CELERY_SPLIT_QUEUE_TASK_ROUTES: Mapping[str, SplitQueueTaskRoute] = {}
 
 
 default_exchange = Exchange("default", type="direct")
