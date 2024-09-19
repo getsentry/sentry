@@ -194,5 +194,4 @@ const QueryFieldWrapper = styled('div')`
 
 const Actions = styled(ButtonBar)`
   justify-content: flex-start;
-  margin-bottom: ${space(2)};
 `;

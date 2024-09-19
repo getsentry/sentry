@@ -231,7 +231,6 @@ class WidgetCardChart extends Component<WidgetCardChartProps> {
         shouldExpandInteger ? {[field]: dataRow[field].toLocaleString()} : dataRow,
         {location, organization, unit}
       );
-      // console.log(dataRow);
 
       const isModalWidget = !(widget.id || widget.tempId);
       if (isModalWidget || isMobile) {
