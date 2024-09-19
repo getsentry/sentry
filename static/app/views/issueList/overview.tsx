@@ -850,6 +850,7 @@ class IssueListOverview extends Component<Props, State> {
       num_new_issues: numNewIssues,
       num_issues: data.length,
       total_issues_count: numHits,
+      issue_views_enabled: organization.features.includes('issue-stream-custom-views'),
       sort: this.getSort(),
     });
   }

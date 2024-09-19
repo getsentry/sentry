@@ -272,6 +272,7 @@ export type IssueEventParameters = {
     priority: PriorityLevel;
   };
   'issues_tab.viewed': {
+    issue_views_enabled: boolean;
     num_issues: number;
     num_new_issues: number;
     num_old_issues: number;
