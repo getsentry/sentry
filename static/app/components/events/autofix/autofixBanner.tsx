@@ -1,4 +1,4 @@
-import {Fragment} from 'react';
+import {useRef} from 'react';
 import styled from '@emotion/styled';
 
 import bannerImage from 'sentry-images/spot/ai-suggestion-banner.svg';
@@ -6,77 +6,73 @@ import bannerImage from 'sentry-images/spot/ai-suggestion-banner.svg';
 import {openModal} from 'sentry/actionCreators/modal';
 import FeatureBadge from 'sentry/components/badge/featureBadge';
 import {Button} from 'sentry/components/button';
-import {AutofixInstructionsModal} from 'sentry/components/events/autofix/autofixInstructionsModal';
+import {AutofixDrawer} from 'sentry/components/events/autofix/autofixDrawer';
 import {AutofixSetupModal} from 'sentry/components/events/autofix/autofixSetupModal';
+import useDrawer from 'sentry/components/globalDrawer';
 import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import type {Event} from 'sentry/types/event';
+import type {Group} from 'sentry/types/group';
+import type {Project} from 'sentry/types/project';
 import {useIsSentryEmployee} from 'sentry/utils/useIsSentryEmployee';
 
 type Props = {
-  groupId: string;
+  event: Event;
+  group: Group;
   hasSuccessfulSetup: boolean;
-  projectId: string;
-  triggerAutofix: (value: string) => void;
+  project: Project;
 };
 
 function SuccessfulSetup({
-  groupId,
-  triggerAutofix,
-}: Pick<Props, 'groupId' | 'triggerAutofix'>) {
-  const onClickGiveInstructions = () => {
-    openModal(deps => (
-      <AutofixInstructionsModal
-        {...deps}
-        triggerAutofix={triggerAutofix}
-        groupId={groupId}
-      />
-    ));
+  group,
+  project,
+  event,
+}: Pick<Props, 'group' | 'project' | 'event'>) {
+  const {openDrawer, isDrawerOpen, closeDrawer} = useDrawer();
+  const openButtonRef = useRef<HTMLButtonElement>(null);
+
+  const openAutofix = () => {
+    if (!isDrawerOpen) {
+      openDrawer(() => <AutofixDrawer group={group} project={project} event={event} />, {
+        ariaLabel: t('Autofix drawer'),
+        // We prevent a click on the Open/Close Autofix button from closing the drawer so that
+        // we don't reopen it immediately, and instead let the button handle this itself.
+        shouldCloseOnInteractOutside: element => {
+          const viewAllButton = openButtonRef.current;
+          if (viewAllButton?.contains(element)) {
+            return false;
+          }
+          return true;
+        },
+        transitionProps: {stiffness: 1000},
+      });
+    } else {
+      closeDrawer();
+    }
   };
 
   return (
-    <Fragment>
-      <Button
-        onClick={() => triggerAutofix('')}
-        size="sm"
-        analyticsEventKey="autofix.start_fix_clicked"
-        analyticsEventName="Autofix: Start Fix Clicked"
-        analyticsParams={{group_id: groupId}}
-      >
-        {t('Get root causes')}
-      </Button>
-      <Button
-        onClick={onClickGiveInstructions}
-        size="sm"
-        analyticsEventKey="autofix.give_instructions_clicked"
-        analyticsEventName="Autofix: Give Instructions Clicked"
-        analyticsParams={{group_id: groupId}}
-      >
-        {t('Provide context first')}
-      </Button>
-    </Fragment>
+    <Button onClick={() => openAutofix()} size="sm" ref={openButtonRef}>
+      {t('Run Autofix')}
+    </Button>
   );
 }
 
-function AutofixBannerContent({
-  groupId,
-  triggerAutofix,
-  hasSuccessfulSetup,
-  projectId,
-}: Props) {
+function AutofixBannerContent({group, hasSuccessfulSetup, project, event}: Props) {
   if (hasSuccessfulSetup) {
-    return <SuccessfulSetup groupId={groupId} triggerAutofix={triggerAutofix} />;
+    return <SuccessfulSetup group={group} project={project} event={event} />;
   }
 
   return (
     <Button
       analyticsEventKey="autofix.setup_clicked"
       analyticsEventName="Autofix: Setup Clicked"
-      analyticsParams={{group_id: groupId}}
+      analyticsParams={{group_id: group.id}}
       onClick={() => {
         openModal(deps => (
-          <AutofixSetupModal {...deps} groupId={groupId} projectId={projectId} />
+          <AutofixSetupModal {...deps} groupId={group.id} projectId={project.id} />
         ));
       }}
       size="sm"
@@ -86,12 +82,7 @@ function AutofixBannerContent({
   );
 }
 
-export function AutofixBanner({
-  groupId,
-  projectId,
-  triggerAutofix,
-  hasSuccessfulSetup,
-}: Props) {
+export function AutofixBanner({group, project, event, hasSuccessfulSetup}: Props) {
   const isSentryEmployee = useIsSentryEmployee();
 
   return (
@@ -117,9 +108,9 @@ export function AutofixBanner({
         </div>
         <ButtonGroup>
           <AutofixBannerContent
-            groupId={groupId}
-            projectId={projectId}
-            triggerAutofix={triggerAutofix}
+            group={group}
+            project={project}
+            event={event}
             hasSuccessfulSetup={hasSuccessfulSetup}
           />
         </ButtonGroup>
