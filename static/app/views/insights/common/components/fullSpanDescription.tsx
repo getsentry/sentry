@@ -8,6 +8,10 @@ import {SQLishFormatter} from 'sentry/utils/sqlish/SQLishFormatter';
 import {useFullSpanFromTrace} from 'sentry/views/insights/common/queries/useFullSpanFromTrace';
 import {prettyPrintJsonString} from 'sentry/views/insights/database/utils/jsonUtils';
 import {ModuleName} from 'sentry/views/insights/types';
+import Alert from 'sentry/components/alert';
+import {t} from 'sentry/locale';
+import ClippedBox, {ClipFade} from 'sentry/components/clippedBox';
+import {IconOpen} from 'sentry/icons';
 
 const formatter = new SQLishFormatter();
 
@@ -53,15 +57,36 @@ export function FullSpanDescription({
   if (moduleName === ModuleName.DB) {
     if (system === 'mongodb') {
       let stringifiedQuery = '';
+      let shouldDisplayTruncatedWarning = false;
+      let result: ReturnType<typeof prettyPrintJsonString> | undefined = undefined;
 
       if (fullSpan?.sentry_tags) {
-        stringifiedQuery = prettyPrintJsonString(fullSpan?.sentry_tags?.description);
+        result = prettyPrintJsonString(fullSpan?.sentry_tags?.description);
       } else if (description) {
-        stringifiedQuery = prettyPrintJsonString(description);
+        result = prettyPrintJsonString(description);
       } else if (fullSpan?.sentry_tags?.description) {
-        stringifiedQuery = prettyPrintJsonString(fullSpan?.sentry_tags?.description);
+        result = prettyPrintJsonString(fullSpan?.sentry_tags?.description);
       } else {
         stringifiedQuery = description || fullSpan?.sentry_tags?.description || 'N/A';
+        shouldDisplayTruncatedWarning = false;
+      }
+
+      if (result) {
+        const {prettifiedQuery, isTruncated} = result;
+        stringifiedQuery = prettifiedQuery;
+        shouldDisplayTruncatedWarning = isTruncated;
+      }
+
+      if (shouldDisplayTruncatedWarning) {
+        return (
+          <StyledClippedBox
+            onReveal={console.log}
+            btnText={t('View full query')}
+            buttonProps={{icon: <IconOpen />}}
+          >
+            <CodeSnippet language="json">{stringifiedQuery}</CodeSnippet>
+          </StyledClippedBox>
+        );
       }
 
       return <CodeSnippet language="json">{stringifiedQuery}</CodeSnippet>;
@@ -85,4 +110,10 @@ const LINE_LENGTH = 60;
 
 const PaddedSpinner = styled('div')`
   padding: 0 ${space(0.5)};
+`;
+
+const StyledClippedBox = styled(ClippedBox)`
+  > div > div {
+    z-index: 1;
+  }
 `;
