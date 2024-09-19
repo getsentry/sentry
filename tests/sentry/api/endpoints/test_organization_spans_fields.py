@@ -113,9 +113,9 @@ class OrganizationEAPSpansTagsEndpointTest(OrganizationSpansTagsEndpointTest):
                 {"key": "bar", "name": "Bar"},
                 {"key": "baz", "name": "Baz"},
                 {"key": "foo", "name": "Foo"},
-                {"key": "name", "name": "Name"},
-                {"key": "segment_name", "name": "Segment Name"},
-                {"key": "service", "name": "Service"},
+                {"key": "span.description", "name": "Span.Description"},
+                {"key": "transaction", "name": "Transaction"},
+                {"key": "project", "name": "Project"},
             ]
 
 
