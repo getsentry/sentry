@@ -61,5 +61,11 @@ describe('BigNumberWidget', () => {
 
       expect(screen.getByText('—')).toBeInTheDocument();
     });
+
+    it('Shows an error message', () => {
+      render(<BigNumberWidget error={new Error('Uh oh')} />);
+
+      expect(screen.getByText('Error: Uh oh')).toBeInTheDocument();
+    });
   });
 });

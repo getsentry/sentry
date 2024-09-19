@@ -104,6 +104,12 @@ export default storyBook(BigNumberWidget, story => {
           <SmallSizingWindow>
             <BigNumberWidget title="Count" isLoading />
           </SmallSizingWindow>
+          <SmallSizingWindow>
+            <BigNumberWidget
+              title="Bad Count"
+              error={new Error('Something went wrong!')}
+            />
+          </SmallSizingWindow>
         </SideBySide>
       </Fragment>
     );

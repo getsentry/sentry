@@ -8,6 +8,7 @@ import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {AutoSizedText} from 'sentry/views/dashboards/widgetCard/autoSizedText';
 import {NO_DATA_PLACEHOLDER} from 'sentry/views/dashboards/widgets/bigNumberWidget/settings';
+import {ErrorPanel} from 'sentry/views/dashboards/widgets/common/errorPanel';
 import type {
   Meta,
   StateProps,
@@ -20,10 +21,14 @@ export interface Props extends StateProps {
 }
 
 export function BigNumberWidgetVisualization(props: Props) {
-  const {data, meta, isLoading} = props;
+  const {data, meta, isLoading, error} = props;
 
   const location = useLocation();
   const organization = useOrganization();
+
+  if (error) {
+    return <ErrorPanel error={error} />;
+  }
 
   // Big Number widgets only show one number, so we only ever look at the first item in the Discover response
   const datum = data?.[0];

@@ -19,9 +19,10 @@ export function BigNumberWidget(props: Props) {
     <WidgetFrame title={props.title} description={props.description}>
       <BigNumberResizeWrapper>
         <BigNumberWidgetVisualization
-          isLoading={props.isLoading}
           data={props.data}
           meta={props.meta}
+          isLoading={props.isLoading}
+          error={props.error}
         />
       </BigNumberResizeWrapper>
     </WidgetFrame>
