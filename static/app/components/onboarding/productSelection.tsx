@@ -407,8 +407,6 @@ export function ProductSelection({
     (platform?.indexOf('javascript') === 0 || platform?.indexOf('node') === 0) &&
     platform !== 'javascript-astro';
 
-  const showAstroInfo = platform === 'javascript-astro';
-
   return (
     <Fragment>
       {showPackageManagerInfo && (
@@ -421,13 +419,6 @@ export function ProductSelection({
                 npm: <strong>npm</strong>,
                 yarn: <strong>yarn</strong>,
               })}
-        </TextBlock>
-      )}
-      {showAstroInfo && (
-        <TextBlock noMargin>
-          {tct("In this quick guide you'll use the [astrocli:astro] CLI to set up:", {
-            astrocli: <strong />,
-          })}
         </TextBlock>
       )}
       <Products>
