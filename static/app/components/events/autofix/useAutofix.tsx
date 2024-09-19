@@ -35,6 +35,7 @@ const makeInitialAutofixData = (): AutofixResponse => ({
         index: 0,
         status: 'PROCESSING',
         title: 'Starting Autofix...',
+        insights: [],
         progress: [],
       },
     ],
@@ -56,6 +57,7 @@ const makeErrorAutofixData = (errorMessage: string): AutofixResponse => {
         status: 'ERROR',
         title: 'Something went wrong',
         completedMessage: errorMessage,
+        insights: [],
         progress: [],
       },
     ];
