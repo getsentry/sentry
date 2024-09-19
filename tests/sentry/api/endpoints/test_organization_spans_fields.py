@@ -1,6 +1,5 @@
 from uuid import uuid4
 
-import pytest
 from django.urls import reverse
 
 from sentry.testutils.cases import APITestCase, BaseSpansTestCase
@@ -35,8 +34,6 @@ class OrganizationSpansTagsEndpointTest(BaseSpansTestCase, APITestCase):
         assert response.status_code == 200, response.data
         assert response.data == []
 
-    # shellmayr: https://github.com/getsentry/sentry/actions/runs/10918616180/job/30304486687
-    @pytest.mark.xfail(reason="test is failing in CI")
     def test_tags_list(self):
         for tag in ["foo", "bar", "baz"]:
             self.store_segment(
@@ -88,6 +85,38 @@ class OrganizationEAPSpansTagsEndpointTest(OrganizationSpansTagsEndpointTest):
                 format="json",
                 **kwargs,
             )
+
+    def test_tags_list(self):
+        for tag in ["foo", "bar", "baz"]:
+            self.store_segment(
+                self.project.id,
+                uuid4().hex,
+                uuid4().hex,
+                span_id=uuid4().hex[:15],
+                organization_id=self.organization.id,
+                parent_span_id=None,
+                timestamp=before_now(days=0, minutes=10).replace(microsecond=0),
+                transaction="foo",
+                duration=100,
+                exclusive_time=100,
+                tags={tag: tag},
+                is_eap=self.is_eap,
+            )
+
+        for features in [
+            None,  # use the default features
+            ["organizations:performance-trace-explorer"],
+        ]:
+            response = self.do_request(features=features)
+            assert response.status_code == 200, response.data
+            assert response.data == [
+                {"key": "bar", "name": "Bar"},
+                {"key": "baz", "name": "Baz"},
+                {"key": "foo", "name": "Foo"},
+                {"key": "span.description", "name": "Span.Description"},
+                {"key": "transaction", "name": "Transaction"},
+                {"key": "project", "name": "Project"},
+            ]
 
 
 class OrganizationSpansTagKeyValuesEndpointTest(BaseSpansTestCase, APITestCase):
