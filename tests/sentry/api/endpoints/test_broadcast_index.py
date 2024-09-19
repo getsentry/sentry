@@ -52,7 +52,7 @@ class BroadcastListTest(APITestCase):
 
     def test_basic_user_with_all(self):
         broadcast1 = Broadcast.objects.create(message="bar", is_active=True)
-        Broadcast.objects.create(message="foo", is_active=False)
+        Broadcast.objects.create(message="foo", is_active=False, created_by_id=self.user)
 
         self.add_user_permission(user=self.user, permission="broadcasts.admin")
         self.login_as(user=self.user, superuser=False)
@@ -61,6 +61,7 @@ class BroadcastListTest(APITestCase):
         assert response.status_code == 200
         assert len(response.data) == 1
         assert response.data[0]["id"] == str(broadcast1.id)
+        assert "createdBy" not in response.data[0]
 
     def test_organization_filtering(self):
         broadcast1 = Broadcast.objects.create(message="foo", is_active=True)
@@ -122,6 +123,7 @@ class BroadcastCreateTest(APITestCase):
         assert broadcast.cta == "Read More"
         assert broadcast.media_url == "http://example.com/image.png"
         assert broadcast.category == "announcement"
+        assert broadcast.created_by_id == self.user
 
     def test_validation(self):
         self.add_user_permission(user=self.user, permission="broadcasts.admin")

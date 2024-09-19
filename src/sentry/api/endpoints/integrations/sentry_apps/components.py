@@ -11,12 +11,12 @@ from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
 from sentry.coreapi import APIError
 from sentry.models.integrations.sentry_app_component import SentryAppComponent
-from sentry.models.integrations.sentry_app_installation import SentryAppInstallation
 from sentry.organizations.services.organization.model import (
     RpcOrganization,
     RpcUserOrganizationContext,
 )
 from sentry.sentry_apps.components import SentryAppComponentPreparer
+from sentry.sentry_apps.models.sentry_app_installation import SentryAppInstallation
 
 
 # TODO(mgaeta): These endpoints are doing the same thing, but one takes a
