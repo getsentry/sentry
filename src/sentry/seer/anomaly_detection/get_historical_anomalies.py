@@ -45,6 +45,7 @@ def get_historical_anomaly_data_from_seer_preview(
 ) -> list | None:
     """
     Send current and historical timeseries data to Seer and return anomaly detection response on the current timeseries.
+    Used for rendering the preview charts of anomaly detection alert rules.
     """
     # Check if historical data has at least seven days of data. Return early if not.
     MIN_DAYS = 7
@@ -102,7 +103,7 @@ def get_historical_anomaly_data_from_seer_preview(
                 "ad_config": config,
                 "context": context,
                 "response_data": response.data,
-                "reponse_code": response.status,
+                "response_code": response.status,
             },
         )
         return None
@@ -116,7 +117,7 @@ def get_historical_anomaly_data_from_seer_preview(
                 "ad_config": config,
                 "context": context,
                 "response_data": decoded_data,
-                "reponse_code": response.status,
+                "response_code": response.status,
             },
         )
         return None
@@ -250,7 +251,7 @@ def get_historical_anomaly_data_from_seer(
                     "ad_config": anomaly_detection_config,
                     "context": formatted_data,
                     "response_data": response.data,
-                    "reponse_code": response.status,
+                    "response_code": response.status,
                 },
             )
             return None
@@ -266,7 +267,7 @@ def get_historical_anomaly_data_from_seer(
                 "ad_config": anomaly_detection_config,
                 "context": formatted_data,
                 "response_data": response.data,
-                "reponse_code": response.status,
+                "response_code": response.status,
             },
         )
         return None

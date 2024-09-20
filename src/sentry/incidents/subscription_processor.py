@@ -752,7 +752,7 @@ class SubscriptionProcessor:
                     "ad_config": anomaly_detection_config,
                     "context": context,
                     "response_data": response.data,
-                    "reponse_code": response.status,
+                    "response_code": response.status,
                 },
             )
             return None
@@ -766,7 +766,7 @@ class SubscriptionProcessor:
                     "ad_config": anomaly_detection_config,
                     "context": context,
                     "response_data": decoded_data,
-                    "reponse_code": response.status,
+                    "response_code": response.status,
                 },
             )
             return None

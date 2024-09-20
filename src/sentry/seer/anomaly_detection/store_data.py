@@ -139,7 +139,7 @@ def send_historical_data_to_seer(alert_rule: AlertRule, project: Project) -> Ale
                 "ad_config": anomaly_detection_config,
                 "alert": alert_rule.id,
                 "response_data": response.data,
-                "reponse_code": response.status,
+                "response_code": response.status,
             },
         )
         raise AttributeError(data_format_error_string)
@@ -154,7 +154,7 @@ def send_historical_data_to_seer(alert_rule: AlertRule, project: Project) -> Ale
                 "ad_config": anomaly_detection_config,
                 "alert": alert_rule.id,
                 "response_data": response.data,
-                "reponse_code": response.status,
+                "response_code": response.status,
                 "dataset": snuba_query.dataset,
                 "meta": json.dumps(historical_data.data.get("meta", {}).get("fields", {})),
             },
