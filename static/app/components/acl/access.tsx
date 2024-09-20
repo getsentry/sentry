@@ -22,7 +22,7 @@ type Props = {
   /**
    * Children can be a node or a function as child.
    */
-  children?: React.ReactNode | ChildFunction;
+  children: React.ReactNode | ChildFunction;
   /**
    * Requires superuser
    */
