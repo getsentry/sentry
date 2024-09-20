@@ -1,4 +1,5 @@
 import {EventFixture} from 'sentry-fixture/event';
+import {GroupFixture} from 'sentry-fixture/group';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
 
@@ -16,6 +17,7 @@ import * as analytics from 'sentry/utils/analytics';
 describe('HighlightsDataSection', function () {
   const organization = OrganizationFixture();
   const project = ProjectFixture();
+  const group = GroupFixture();
   const event = EventFixture({
     contexts: TEST_EVENT_CONTEXTS,
     tags: TEST_EVENT_TAGS,
@@ -53,6 +55,7 @@ describe('HighlightsDataSection', function () {
         event={event}
         project={project}
         viewAllRef={{current: null}}
+        groupId={group.id}
       />,
       {organization}
     );
@@ -87,7 +90,7 @@ describe('HighlightsDataSection', function () {
       body: {},
     });
 
-    render(<HighlightsDataSection event={event} project={project} />, {
+    render(<HighlightsDataSection event={event} project={project} groupId={group.id} />, {
       organization,
     });
     expect(screen.getByText('Event Highlights')).toBeInTheDocument();

@@ -261,7 +261,11 @@ export default function HighlightsDataSection({
   const organization = useOrganization();
   const hasStreamlinedUI = useHasStreamlinedUI();
   const openButtonRef = useRef<HTMLButtonElement>(null);
-  const {openTagsDrawer} = useGroupTagsDrawer({groupId, openButtonRef, project});
+  const {openTagsDrawer} = useGroupTagsDrawer({
+    groupId,
+    openButtonRef,
+    projectSlug: project.slug,
+  });
 
   const viewAllButton = hasStreamlinedUI ? (
     // Streamline details ui has "Jump to" feature, instead we'll show the drawer button
