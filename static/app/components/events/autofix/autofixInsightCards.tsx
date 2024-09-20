@@ -2,6 +2,8 @@ import {useState} from 'react';
 import styled from '@emotion/styled';
 import {AnimatePresence, type AnimationProps, motion} from 'framer-motion';
 
+import bannerImage from 'sentry-images/spot/ai-suggestion-banner.svg';
+
 import {Button} from 'sentry/components/button';
 import {
   replaceHeadersWithBold,
@@ -237,20 +239,66 @@ function AutofixInsightCards({
 }: AutofixInsightCardsProps) {
   return (
     <InsightsContainer>
-      {insights.map((insight, index) =>
-        !insight ? null : (
-          <AutofixInsightCard
-            key={index}
-            insight={insight}
-            hasCardBelow={index < insights.length - 1 || hasStepBelow}
-            hasCardAbove={hasStepAbove && index === 0}
-            repos={repos}
-          />
-        )
+      {!hasStepAbove && (
+        <div>
+          <TitleText>Insights</TitleText>
+          <IconContainer>
+            <IconArrow direction={'down'} />
+          </IconContainer>
+        </div>
       )}
+      {insights.length > 0 ? (
+        insights.map((insight, index) =>
+          !insight ? null : (
+            <AutofixInsightCard
+              key={index}
+              insight={insight}
+              hasCardBelow={index < insights.length - 1 || hasStepBelow}
+              hasCardAbove={hasStepAbove && index === 0}
+              repos={repos}
+            />
+          )
+        )
+      ) : !hasStepAbove && !hasStepBelow ? (
+        <NoInsightsYet>
+          <p>Nothing yet...</p>
+          <p>
+            Autofix will share important conclusions here as it discovers them, building a
+            line of reasoning up to the root cause.
+          </p>
+          <IllustrationContainer>
+            <Illustration src={bannerImage} />
+          </IllustrationContainer>
+        </NoInsightsYet>
+      ) : null}
     </InsightsContainer>
   );
 }
+
+const IllustrationContainer = styled('div')`
+  padding-top: ${space(4)};
+`;
+
+const Illustration = styled('img')`
+  height: 100%;
+`;
+
+const NoInsightsYet = styled('div')`
+  display: flex;
+  justify-content: center;
+  flex-direction: column;
+  padding-left: ${space(4)};
+  padding-right: ${space(4)};
+  text-align: center;
+`;
+
+const TitleText = styled('p')`
+  font-size: ${p => p.theme.fontSizeLarge};
+  font-weight: ${p => p.theme.fontWeightBold};
+  margin: 0;
+  display: flex;
+  justify-content: center;
+`;
 
 const InsightsContainer = styled('div')``;
 
@@ -295,6 +343,7 @@ const TextBreak = styled('span')`
 
 const BackgroundPanel = styled('div')`
   padding: ${space(1)};
+  margin-bottom: ${space(1)};
   background: ${p => p.theme.backgroundSecondary};
   border-radius: ${p => p.theme.borderRadius};
 `;
@@ -308,7 +357,6 @@ const MiniHeader = styled('p')`
 const ExpandableContext = styled('div')`
   width: 100%;
   background: ${p => p.theme.alert.info.backgroundLight};
-  border-radius: ${p => p.theme.borderRadius};
 `;
 
 const ContextHeader = styled(Button)`
@@ -318,6 +366,7 @@ const ContextHeader = styled(Button)`
   border: none;
   font-weight: normal;
   background: ${p => p.theme.backgroundSecondary};
+  border-radius: 0px;
 `;
 
 const ContextHeaderWrapper = styled('div')`

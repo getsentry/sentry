@@ -17,7 +17,9 @@ describe('AutofixRootCause', function () {
     render(<AutofixRootCause {...defaultProps} />);
 
     // Displays all root cause and code context info
-    expect(screen.getByText('This is the title of a root cause.')).toBeInTheDocument();
+    expect(
+      screen.getByText('Potential Root Cause: This is the title of a root cause.')
+    ).toBeInTheDocument();
     expect(
       screen.getByText('This is the description of a root cause.')
     ).toBeInTheDocument();
