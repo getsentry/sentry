@@ -1778,7 +1778,7 @@ describe('SearchQueryBuilder', function () {
           screen.getByRole('button', {name: 'Edit value for filter: custom_tag_name'})
         );
 
-        // Input value should have the excaped value (with a trailing comma)
+        // Input value should have the escaped value (with a trailing comma)
         expect(screen.getByRole('combobox', {name: 'Edit filter value'})).toHaveValue(
           expected + ','
         );
