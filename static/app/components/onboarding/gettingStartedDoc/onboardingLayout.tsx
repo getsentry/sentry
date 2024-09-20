@@ -74,6 +74,7 @@ export function OnboardingLayout({
     onPlatformOptionsChange,
     onProductSelectionChange,
     onPageLoad,
+    onProductSelectionLoad,
   } = useMemo(() => {
     const doc = docsConfig[configType] ?? docsConfig.onboarding;
 
@@ -112,6 +113,7 @@ export function OnboardingLayout({
       nextSteps: doc.nextSteps?.(docParams) || [],
       onPlatformOptionsChange: doc.onPlatformOptionsChange?.(docParams),
       onProductSelectionChange: doc.onProductSelectionChange?.(docParams),
+      onProductSelectionLoad: doc.onProductSelectionLoad?.(docParams),
       onPageLoad: doc.onPageLoad?.(docParams),
     };
   }, [
@@ -149,6 +151,7 @@ export function OnboardingLayout({
               platform={platformKey}
               projectId={projectId}
               onChange={onProductSelectionChange}
+              onLoad={onProductSelectionLoad}
             />
           )}
           {platformOptions && !['customMetricsOnboarding'].includes(configType) ? (
