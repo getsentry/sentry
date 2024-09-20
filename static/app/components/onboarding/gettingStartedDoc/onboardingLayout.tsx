@@ -73,7 +73,6 @@ export function OnboardingLayout({
     nextSteps,
     onPlatformOptionsChange,
     onProductSelectionChange,
-    onProductSelectionLoad,
     onPageLoad,
     onProductSelectionLoad,
   } = useMemo(() => {
