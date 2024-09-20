@@ -37,9 +37,21 @@ def main(number: int, verbose: bool):
     processes = [
         {
             "name": "consumer",
-            "cmd": ["sentry", "run", "consumer", "taskworker", "--consumer-group", "taskworker"],
+            "cmd": [
+                "sentry",
+                "run",
+                "consumer",
+                "taskworker",
+                "--consumer-group",
+                "taskworker",
+                "--log-level",
+                "warning",
+            ],
         },
-        {"name": "worker", "cmd": ["sentry", "run", "taskworker", "--namespace", "demos"]},
+        {
+            "name": "worker",
+            "cmd": ["sentry", "run", "taskworker", "--namespace", "demos"],
+        },
     ]
     for process in processes:
         manager.add_process(process["name"], list2cmdline(process["cmd"]), cwd=cwd)

@@ -4,19 +4,9 @@ from sentry.runner.decorators import configuration
 
 
 @click.command()
-@click.option(
-    "--generate-tasks",
-    default=False,
-    is_flag=True,
-    help="If true, will generate a mini task to spawn with logs",
-)
+@click.option("--namespace", help="Task namespace to fetch tasks from")
 @configuration
-def task_worker(generate_tasks) -> None:
-    from sentry.taskdemo import broken, demotasks, say_hello
-
-    if generate_tasks:
-        say_hello.delay("it works!")
-        broken.delay("safeboom")
+def task_worker(namespace: str) -> None:
     from sentry.taskworker.worker import Worker
 
-    Worker(namespace=demotasks.name).start()
+    Worker(namespace=namespace).start()
