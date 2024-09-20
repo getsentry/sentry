@@ -137,7 +137,7 @@ class OrganizationMemberDetailsEndpoint(OrganizationMemberEndpoint):
         """
         Retrieve an organization member's details.
 
-        Response will be a pending invite if it has been approved by organization admins but is waiting to be accepted by the invitee.
+        Response will be a pending invite if it has been approved by organization owners or managers but is waiting to be accepted by the invitee.
         """
         allowed_roles = get_allowed_org_roles(request, organization, member)
         return Response(
