@@ -51,52 +51,44 @@ export function AutoSizedText({children}: Props) {
 
       let iterationCount = 0;
 
-      Sentry.withScope(scope => {
-        const span = Sentry.startInactiveSpan({
-          op: 'function',
-          name: 'AutoSizedText.iterate',
-          forceTransaction: true,
-        });
-
-        const t1 = performance.now();
-
-        // Run the resize iteration in a loop. This blocks the main UI thread and prevents
-        // visible layout jitter. If this was done through a `ResizeObserver` or React State
-        // each step in the resize iteration would be visible to the user
-        while (iterationCount <= ITERATION_LIMIT) {
-          const childDimensions = getElementDimensions(childElement);
-
-          const widthDifference = parentDimensions.width - childDimensions.width;
-          const heightDifference = parentDimensions.height - childDimensions.height;
-
-          const childFitsIntoParent = heightDifference >= 0 && widthDifference >= 0;
-          const childIsWithinWidthTolerance =
-            Math.abs(widthDifference) <= MAXIMUM_DIFFERENCE;
-          const childIsWithinHeightTolerance =
-            Math.abs(heightDifference) <= MAXIMUM_DIFFERENCE;
-
-          if (
-            childFitsIntoParent &&
-            (childIsWithinWidthTolerance || childIsWithinHeightTolerance)
-          ) {
-            // Stop the iteration, we've found a fit!
-            span.setAttribute('widthDifference', widthDifference);
-            span.setAttribute('heightDifference', heightDifference);
-            break;
-          }
-
-          adjustFontSize(childDimensions, parentDimensions);
-
-          iterationCount += 1;
-        }
-        const t2 = performance.now();
-
-        scope.setTag('didExceedIterationLimit', iterationCount >= ITERATION_LIMIT);
-
-        span.setAttribute('iterationCount', iterationCount);
-        span.setAttribute('durationFromPerformanceAPI', t2 - t1);
-        span.end();
+      const span = Sentry.startInactiveSpan({
+        op: 'function',
+        name: 'AutoSizedText.iterate',
+        onlyIfParent: true,
       });
+
+      // Run the resize iteration in a loop. This blocks the main UI thread and prevents
+      // visible layout jitter. If this was done through a `ResizeObserver` or React State
+      // each step in the resize iteration would be visible to the user
+      while (iterationCount <= ITERATION_LIMIT) {
+        const childDimensions = getElementDimensions(childElement);
+
+        const widthDifference = parentDimensions.width - childDimensions.width;
+        const heightDifference = parentDimensions.height - childDimensions.height;
+
+        const childFitsIntoParent = heightDifference >= 0 && widthDifference >= 0;
+        const childIsWithinWidthTolerance =
+          Math.abs(widthDifference) <= MAXIMUM_DIFFERENCE;
+        const childIsWithinHeightTolerance =
+          Math.abs(heightDifference) <= MAXIMUM_DIFFERENCE;
+
+        if (
+          childFitsIntoParent &&
+          (childIsWithinWidthTolerance || childIsWithinHeightTolerance)
+        ) {
+          // Stop the iteration, we've found a fit!
+          span.setAttribute('widthDifference', widthDifference);
+          span.setAttribute('heightDifference', heightDifference);
+          break;
+        }
+
+        adjustFontSize(childDimensions, parentDimensions);
+
+        iterationCount += 1;
+      }
+
+      span.setAttribute('iterationCount', iterationCount);
+      span.end();
     });
 
     observer.observe(parentElement);
