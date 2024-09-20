@@ -68,16 +68,15 @@ function Checkbox({
       />
 
       <StyledCheckbox aria-hidden checked={checked} size={size} color={checkboxColor}>
-        {checked === true ? (
+        {checked === true && (
           <VariableWeightIcon viewBox="0 0 16 16" size={checkboxSizeMap[size].icon}>
             <path d="M2.86 9.14C4.42 10.7 6.9 13.14 6.86 13.14L12.57 3.43" />
           </VariableWeightIcon>
-        ) : (
-          checked === 'indeterminate' && (
-            <VariableWeightIcon viewBox="0 0 16 16" size={checkboxSizeMap[size].icon}>
-              <path d="M3 8H13" />
-            </VariableWeightIcon>
-          )
+        )}
+        {checked === 'indeterminate' && (
+          <VariableWeightIcon viewBox="0 0 16 16" size={checkboxSizeMap[size].icon}>
+            <path d="M3 8H13" />
+          </VariableWeightIcon>
         )}
       </StyledCheckbox>
       {!props.disabled && (
