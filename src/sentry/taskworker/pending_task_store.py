@@ -16,7 +16,9 @@ class PendingTaskStore:
 
         PendingTasks.objects.bulk_create([PendingTasks.from_proto(task) for task in batch])
 
-    def get_pending_task(self, partition: int | None = None, topic: str | None = None) -> Task:
+    def get_pending_task(
+        self, partition: int | None = None, topic: str | None = None
+    ) -> Task | None:
         from django.db import router, transaction
 
         from sentry.taskworker.models import PendingTasks
