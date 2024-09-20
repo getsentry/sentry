@@ -48,7 +48,7 @@ const FILTER_KEYS: TagCollection = {
     name: 'Browser Name',
     kind: FieldKind.FIELD,
     predefined: true,
-    values: ['Chrome', 'Firefox', 'Safari', 'Edge'],
+    values: ['Chrome', 'Firefox', 'Safari', 'Edge', 'Internet Explorer', 'Opera 1,2'],
   },
   [FieldKey.IS]: {
     key: FieldKey.IS,
