@@ -301,10 +301,6 @@ export type ProductSelectionProps = {
    */
   onLoad?: (products: ProductSolution[]) => void;
   /**
-   * Callback fired when the component is loaded
-   */
-  onLoad?: (product: ProductSolution[]) => void;
-  /**
    * The platform key of the project (e.g. javascript-react, python-django, etc.)
    */
   platform?: PlatformKey;
