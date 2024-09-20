@@ -1,4 +1,4 @@
-import {useCallback, useState} from 'react';
+import {useState} from 'react';
 import styled from '@emotion/styled';
 
 import ProjectAvatar from 'sentry/components/avatar/projectAvatar';
@@ -15,7 +15,8 @@ import {
   NavigationCrumbs,
   SearchInput,
   ShortId,
-} from 'sentry/components/events/eventReplay/eventDrawer';
+} from 'sentry/components/events/eventDrawer';
+import useFocusControl from 'sentry/components/events/useFocusControl';
 import {InputGroup} from 'sentry/components/inputGroup';
 import KeyValueData, {
   type KeyValueDataContentProps,
@@ -75,21 +76,6 @@ interface FlagDrawerProps {
   initialSort: FlagSort;
   project: Project;
   focusControl?: FlagControlOptions;
-}
-
-function useFocusControl(initialFocusControl?: FlagControlOptions) {
-  const [focusControl, setFocusControl] = useState(initialFocusControl);
-  // If the focused control element is blurred, unset the state to remove styles
-  // This will allow us to simulate :focus-visible on the button elements.
-  const getFocusProps = useCallback(
-    (option: FlagControlOptions) => {
-      return option === focusControl
-        ? {autoFocus: true, onBlur: () => setFocusControl(undefined)}
-        : {};
-    },
-    [focusControl]
-  );
-  return {getFocusProps};
 }
 
 export function FeatureFlagDrawer({
