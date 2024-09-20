@@ -13,12 +13,13 @@ function Nav() {
   const nav = useNavItems();
   const screen = useBreakpoints();
 
-  if (!screen.medium)
+  if (!screen.medium) {
     return (
       <NavContainer>
         <Mobile />
       </NavContainer>
     );
+  }
 
   return (
     <NavContainer>
