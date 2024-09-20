@@ -70,6 +70,12 @@ function mockRequests(orgSlug: Organization['slug']) {
     body: [],
   });
 
+  MockApiClient.addMockResponse({
+    url: '/organizations/org-slug/releases/stats/',
+    method: 'GET',
+    body: [],
+  });
+
   return {eventsMock};
 }
 

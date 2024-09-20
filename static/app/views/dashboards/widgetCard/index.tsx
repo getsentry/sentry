@@ -160,10 +160,17 @@ class WidgetCard extends Component<Props, State> {
       router,
       location,
       index,
+      releaseSeries,
     } = this.props;
 
     const {seriesData, tableData, pageLinks, totalIssuesCount, seriesResultsType} =
       this.state;
+
+    const enhancedSeriesData = seriesData
+      ? releaseSeries
+        ? [...seriesData, ...releaseSeries]
+        : seriesData
+      : [];
 
     if (isEditingDashboard) {
       return null;
@@ -183,7 +190,7 @@ class WidgetCard extends Component<Props, State> {
         router={router}
         location={location}
         index={index}
-        seriesData={seriesData}
+        seriesData={enhancedSeriesData}
         seriesResultsType={seriesResultsType}
         tableData={tableData}
         pageLinks={pageLinks}
