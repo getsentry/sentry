@@ -729,7 +729,7 @@ class OrganizationCombinedRuleIndexEndpointTest(BaseAlertRuleSerializerTest, API
         assert response.status_code == 200
         assert len(response.data) == 2  # We are not on this team, but we are a superuser.
 
-    def test_team_filter_no_access(self):
+    def test_team_filter_no_cross_org_access(self):
         self.setup_project_and_rules()
         another_org = self.create_organization(owner=self.user, name="Rowdy Tiger")
         another_org_team = self.create_team(organization=another_org, name="Meow Band", members=[])
@@ -742,7 +742,36 @@ class OrganizationCombinedRuleIndexEndpointTest(BaseAlertRuleSerializerTest, API
             response = self.client.get(
                 path=self.combined_rules_url, data=request_data, content_type="application/json"
             )
+        assert response.status_code == 200
+        assert len(response.data) == 1
+        assert response.data[0]["owner"] == f"team:{self.team.id}"
+
+    def test_team_filter_no_access(self):
+        self.setup_project_and_rules()
+
+        # disable Open Membership
+        self.org.flags.allow_joinleave = False
+        self.org.save()
+
+        user2 = self.create_user("bulldog@example.com")
+        team2 = self.create_team(organization=self.org, name="Barking Voices")
+        project2 = self.create_project(organization=self.org, teams=[team2], name="Bones")
+        self.create_member(user=user2, organization=self.org, role="member", teams=[team2])
+        self.login_as(user2)
+
+        with self.feature(["organizations:incidents", "organizations:performance-view"]):
+            request_data = {
+                "per_page": "10",
+                "project": [project2.id],
+                "team": [team2.id, self.team.id],
+            }
+            response = self.client.get(
+                path=self.combined_rules_url, data=request_data, content_type="application/json"
+            )
         assert response.status_code == 403
+        assert (
+            response.data["detail"] == "Error: You do not have permission to access Mariachi Band"
+        )
 
     def test_name_filter(self):
         self.setup_project_and_rules()
