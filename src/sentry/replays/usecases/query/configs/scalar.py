@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from collections.abc import Sequence
+from datetime import datetime, timezone
 
 from sentry.api.event_search import ParenExpression, SearchFilter
 from sentry.replays.lib.new_query.conditions import (
@@ -102,6 +103,7 @@ scalar_search_config = {**static_search_config, **varying_search_config}
 
 def can_scalar_search_subquery(
     search_filters: Sequence[ParenExpression | SearchFilter | str],
+    started_at: datetime,
 ) -> bool:
     """Return "True" if a scalar event search can be performed."""
     has_seen_varying_field = False
@@ -119,15 +121,18 @@ def can_scalar_search_subquery(
         else:
             name = search_filter.key.name
 
-            # If the search-filter does not exist in either configuration then return false. To
-            # account for tags, which are generically named, we look the field up in the aggregate
-            # config. If the field appears its a named field and this strategy should fail.
-            if (
-                name not in static_search_config
-                and name not in varying_search_config
-                and name in aggregate_search_config
-            ):
-                return False
+            # If the search-filter does not exist in either configuration then return false.
+            if name not in static_search_config and name not in varying_search_config:
+                # If the field is not a tag or the query's start period is greater than the
+                # period when the new field was introduced then we can not apply the
+                # optimization.
+                if name in aggregate_search_config or started_at < datetime(
+                    2024, 9, 17, tzinfo=timezone.utc
+                ):
+                    return False
+                else:
+                    has_seen_varying_field = True
+                    continue
 
             if name in varying_search_config:
                 # If a varying field has been seen before then we can't use a row-based sub-query. We

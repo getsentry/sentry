@@ -1776,29 +1776,35 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
 
         with self.feature(self.features):
             # EQ and IN supported.
-            response = self.client.get(self.url + "?field=id&query=something:else")
+            response = self.client.get(self.url + "?field=id&query=something:else&statsPeriod=1d")
             assert response.status_code == 200
             assert response.headers["X-Data-Source"] == "scalar-subquery"
 
-            response = self.client.get(self.url + "?field=id&query=something:else,other")
+            response = self.client.get(
+                self.url + "?field=id&query=something:else,other&statsPeriod=1d"
+            )
             assert response.status_code == 200
             assert response.headers["X-Data-Source"] == "scalar-subquery"
 
             # Not operators are not supported.
-            response = self.client.get(self.url + "?field=id&query=!something:else")
+            response = self.client.get(self.url + "?field=id&query=!something:else&statsPeriod=1d")
             assert response.status_code == 200
             assert response.headers["X-Data-Source"] == "aggregated-subquery"
 
-            response = self.client.get(self.url + "?field=id&query=!something:else,other")
+            response = self.client.get(
+                self.url + "?field=id&query=!something:else,other&statsPeriod=1d"
+            )
             assert response.status_code == 200
             assert response.headers["X-Data-Source"] == "aggregated-subquery"
 
             # Match not supported.
-            response = self.client.get(self.url + "?field=id&query=something:*else*")
+            response = self.client.get(self.url + "?field=id&query=something:*else*&statsPeriod=1d")
             assert response.status_code == 200
             assert response.headers["X-Data-Source"] == "aggregated-subquery"
 
-            response = self.client.get(self.url + "?field=id&query=!something:*else*")
+            response = self.client.get(
+                self.url + "?field=id&query=!something:*else*&statsPeriod=1d"
+            )
             assert response.status_code == 200
             assert response.headers["X-Data-Source"] == "aggregated-subquery"
 

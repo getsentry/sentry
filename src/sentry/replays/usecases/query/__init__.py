@@ -340,9 +340,9 @@ def _query_using_scalar_strategy(
     period_start: datetime,
     period_stop: datetime,
 ):
-    if not can_scalar_search_subquery(search_filters) or not sort_is_scalar_compatible(
-        sort or DEFAULT_SORT_FIELD
-    ):
+    can_scalar_search = can_scalar_search_subquery(search_filters, period_start)
+    can_scalar_sort = sort_is_scalar_compatible(sort or DEFAULT_SORT_FIELD)
+    if not can_scalar_search or not can_scalar_sort:
         return _query_using_aggregated_strategy(
             search_filters,
             sort,
