@@ -7,6 +7,7 @@ from django.conf import settings
 from sentry import options
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.grouping.api import GroupingConfigNotFound
+from sentry.grouping.enhancer.exceptions import InvalidEnhancerConfig
 from sentry.models.project import Project
 from sentry.seer.similarity.utils import killswitch_enabled, project_is_seer_eligible
 from sentry.silo.base import SiloMode
@@ -31,6 +32,7 @@ from sentry.utils import metrics
 BACKFILL_NAME = "backfill_grouping_records"
 BULK_DELETE_METADATA_CHUNK_SIZE = 100
 SEER_ACCEPTABLE_FAILURE_REASONS = ["Gateway Timeout", "Service Unavailable"]
+EVENT_INFO_EXCEPTIONS = (GroupingConfigNotFound, ResourceDoesNotExist, InvalidEnhancerConfig)
 
 logger = logging.getLogger(__name__)
 
@@ -219,7 +221,7 @@ def backfill_seer_grouping_records_for_project(
         nodestore_results, group_hashes_dict = get_events_from_nodestore(
             project, filtered_snuba_results, groups_to_backfill_with_no_embedding_has_snuba_row
         )
-    except (GroupingConfigNotFound, ResourceDoesNotExist):
+    except EVENT_INFO_EXCEPTIONS:
         metrics.incr("sentry.tasks.backfill_seer_grouping_records.grouping_config_error")
         nodestore_results, group_hashes_dict = GroupStacktraceData(data=[], stacktrace_list=[]), {}
 
