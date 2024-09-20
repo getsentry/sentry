@@ -75,7 +75,6 @@ class AlertRuleAnomalyEndpointTest(AlertRuleBase, SnubaTestCase):
             seasonality=AlertRuleSeasonality.AUTO,
             detection_type=AlertRuleDetectionType.DYNAMIC,
         )
-
         self.login_as(self.user)
 
         seer_return_value = {
