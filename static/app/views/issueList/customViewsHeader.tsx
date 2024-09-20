@@ -126,14 +126,14 @@ function CustomViewsIssueListHeaderTabsContent({
   // TODO(msun): Use the location from useLocation instead of props router in the future
   const {cursor: _cursor, page: _page, ...queryParams} = router?.location.query;
 
+  const {query, sort, viewId, project, environment} = queryParams;
+
   const queryParamsWithPageFilters = {
     ...queryParams,
-    project: pageFilters.selection.projects,
-    environment: pageFilters.selection.environments,
+    project: project ?? pageFilters.selection.projects,
+    environment: environment ?? pageFilters.selection.environments,
     ...normalizeDateTimeParams(pageFilters.selection.datetime),
   };
-
-  const {query, sort, viewId} = queryParams;
 
   const viewsToTabs = views.map(
     ({id, name, query: viewQuery, querySort: viewQuerySort}, index): Tab => {
