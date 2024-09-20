@@ -16,8 +16,8 @@ import useOrganization from 'sentry/utils/useOrganization';
 
 interface EventOrGroupHeaderProps {
   data: Group;
-  event_id: string;
   organization: Organization;
+  event_id?: string;
 }
 
 /**
@@ -51,7 +51,7 @@ function IssueTitleChildren(props: IssueTitleChildrenProps) {
 
 interface IssueTitleProps {
   data: Group;
-  event_id: string;
+  event_id?: string;
 }
 function IssueTitle(props: IssueTitleProps) {
   const organization = useOrganization();
@@ -71,7 +71,9 @@ function IssueTitle(props: IssueTitleProps) {
     <TitleWithLink
       {...commonEleProps}
       to={{
-        pathname: `/organizations/${organization.slug}/issues/${props.data.id}/events/${props.event_id}/`,
+        pathname: props.event_id
+          ? `/organizations/${organization.slug}/issues/${props.data.id}/events/${props.event_id}/`
+          : `/organizations/${organization.slug}/issues/${props.data.id}/`,
       }}
     >
       <IssueTitleChildren data={props.data} organization={organization} />
