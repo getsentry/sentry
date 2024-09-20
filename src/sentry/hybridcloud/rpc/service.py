@@ -667,10 +667,22 @@ class _RemoteSiloCall:
         try:
             return http.post(url, headers=headers, data=data, timeout=timeout)
         except requests.exceptions.ConnectionError as e:
+            metrics.incr(
+                "hybrid_cloud.dispatch_rpc.failure",
+                tags=self._metrics_tags(kind="connectionerror"),
+            )
             raise self._remote_exception("RPC Connection failed") from e
         except requests.exceptions.RetryError as e:
+            metrics.incr(
+                "hybrid_cloud.dispatch_rpc.failure",
+                tags=self._metrics_tags(kind="retryerror"),
+            )
             raise self._remote_exception("RPC failed, max retries reached.") from e
         except requests.exceptions.Timeout as e:
+            metrics.incr(
+                "hybrid_cloud.dispatch_rpc.failure",
+                tags=self._metrics_tags(kind="timeout"),
+            )
             raise self._remote_exception(f"Timeout of {settings.RPC_TIMEOUT} exceeded") from e
 
     def _check_disabled(self) -> None:
