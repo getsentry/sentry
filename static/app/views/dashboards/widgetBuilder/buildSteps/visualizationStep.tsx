@@ -118,41 +118,64 @@ export function VisualizationStep({
         />
       </FieldGroup>
       <VisualizationWrapper displayType={displayType}>
-        <ReleaseSeries
-          end={end}
-          start={start}
-          period={period}
-          environments={environments}
-          projects={projects}
-        >
-          {({releaseSeries}) => {
-            return (
-              <WidgetCard
-                organization={organization}
-                selection={pageFilters}
-                widget={debouncedWidget}
-                dashboardFilters={
-                  getDashboardFiltersFromURL(location) ?? dashboardFilters
-                }
-                isEditingDashboard={false}
-                widgetLimitReached={false}
-                renderErrorMessage={errorMessage =>
-                  typeof errorMessage === 'string' && (
-                    <PanelAlert type="error">{errorMessage}</PanelAlert>
-                  )
-                }
-                noLazyLoad
-                showStoredAlert
-                noDashboardsMEPProvider={noDashboardsMEPProvider}
-                isWidgetInvalid={isWidgetInvalid}
-                onDataFetched={onDataFetched}
-                onWidgetSplitDecision={onWidgetSplitDecision}
-                shouldResize={false}
-                releaseSeries={releaseSeries}
-              />
-            );
-          }}
-        </ReleaseSeries>
+        {organization.features.includes('dashboards-releases-on-charts') ? (
+          <ReleaseSeries
+            end={end}
+            start={start}
+            period={period}
+            environments={environments}
+            projects={projects}
+          >
+            {({releaseSeries}) => {
+              return (
+                <WidgetCard
+                  organization={organization}
+                  selection={pageFilters}
+                  widget={debouncedWidget}
+                  dashboardFilters={
+                    getDashboardFiltersFromURL(location) ?? dashboardFilters
+                  }
+                  isEditingDashboard={false}
+                  widgetLimitReached={false}
+                  renderErrorMessage={errorMessage =>
+                    typeof errorMessage === 'string' && (
+                      <PanelAlert type="error">{errorMessage}</PanelAlert>
+                    )
+                  }
+                  noLazyLoad
+                  showStoredAlert
+                  noDashboardsMEPProvider={noDashboardsMEPProvider}
+                  isWidgetInvalid={isWidgetInvalid}
+                  onDataFetched={onDataFetched}
+                  onWidgetSplitDecision={onWidgetSplitDecision}
+                  shouldResize={false}
+                  releaseSeries={releaseSeries}
+                />
+              );
+            }}
+          </ReleaseSeries>
+        ) : (
+          <WidgetCard
+            organization={organization}
+            selection={pageFilters}
+            widget={debouncedWidget}
+            dashboardFilters={getDashboardFiltersFromURL(location) ?? dashboardFilters}
+            isEditingDashboard={false}
+            widgetLimitReached={false}
+            renderErrorMessage={errorMessage =>
+              typeof errorMessage === 'string' && (
+                <PanelAlert type="error">{errorMessage}</PanelAlert>
+              )
+            }
+            noLazyLoad
+            showStoredAlert
+            noDashboardsMEPProvider={noDashboardsMEPProvider}
+            isWidgetInvalid={isWidgetInvalid}
+            onDataFetched={onDataFetched}
+            onWidgetSplitDecision={onWidgetSplitDecision}
+            shouldResize={false}
+          />
+        )}
       </VisualizationWrapper>
     </StyledBuildStep>
   );

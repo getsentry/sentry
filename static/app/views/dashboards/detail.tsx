@@ -718,39 +718,63 @@ class DashboardDetail extends Component<Props, State> {
           legacyWhen={this.onLegacyRouteLeave}
           when={this.onRouteLeave}
         />
-        <ReleaseSeries
-          end={end}
-          start={start}
-          period={period}
-          environments={environments}
-          projects={projects}
-        >
-          {({releaseSeries}) => {
-            // release series passed through to avoid multiple calls for line and area charts widgets
-            return isValidElement(children)
-              ? cloneElement<any>(children, {
-                  dashboard: modifiedDashboard ?? dashboard,
-                  onSave: this.isEditingDashboard
-                    ? this.onUpdateWidget
-                    : this.handleUpdateWidgetList,
-                  updateDashboardSplitDecision: (
-                    widgetId: string,
-                    splitDecision: WidgetType
-                  ) => {
-                    handleUpdateDashboardSplit({
-                      widgetId,
-                      splitDecision,
-                      dashboard,
-                      modifiedDashboard,
-                      stateSetter: this.setState.bind(this),
-                      onDashboardUpdate,
-                    });
-                  },
-                  releaseSeries: releaseSeries,
-                })
-              : children;
-          }}
-        </ReleaseSeries>
+        {this.props.organization.features.includes('dashboards-releases-on-charts') ? (
+          <ReleaseSeries
+            end={end}
+            start={start}
+            period={period}
+            environments={environments}
+            projects={projects}
+          >
+            {({releaseSeries}) => {
+              // release series passed through to avoid multiple calls for line and area charts widgets
+              return isValidElement(children)
+                ? cloneElement<any>(children, {
+                    dashboard: modifiedDashboard ?? dashboard,
+                    onSave: this.isEditingDashboard
+                      ? this.onUpdateWidget
+                      : this.handleUpdateWidgetList,
+                    updateDashboardSplitDecision: (
+                      widgetId: string,
+                      splitDecision: WidgetType
+                    ) => {
+                      handleUpdateDashboardSplit({
+                        widgetId,
+                        splitDecision,
+                        dashboard,
+                        modifiedDashboard,
+                        stateSetter: this.setState.bind(this),
+                        onDashboardUpdate,
+                      });
+                    },
+                    releaseSeries: releaseSeries,
+                  })
+                : children;
+            }}
+          </ReleaseSeries>
+        ) : isValidElement(children) ? (
+          cloneElement<any>(children, {
+            dashboard: modifiedDashboard ?? dashboard,
+            onSave: this.isEditingDashboard
+              ? this.onUpdateWidget
+              : this.handleUpdateWidgetList,
+            updateDashboardSplitDecision: (
+              widgetId: string,
+              splitDecision: WidgetType
+            ) => {
+              handleUpdateDashboardSplit({
+                widgetId,
+                splitDecision,
+                dashboard,
+                modifiedDashboard,
+                stateSetter: this.setState.bind(this),
+                onDashboardUpdate,
+              });
+            },
+          })
+        ) : (
+          children
+        )}
       </Fragment>
     );
   };
@@ -829,34 +853,53 @@ class DashboardDetail extends Component<Props, State> {
                         location={location}
                         forceTransactions={metricsDataSide.forceTransactionsOnly}
                       >
-                        <ReleaseSeries
-                          end={end}
-                          start={start}
-                          period={period}
-                          environments={environments}
-                          projects={projects}
-                        >
-                          {({releaseSeries}) => {
-                            // release series passed through to avoid multiple calls for line and area charts widgets
-                            return (
-                              <Dashboard
-                                paramDashboardId={dashboardId}
-                                dashboard={modifiedDashboard ?? dashboard}
-                                organization={organization}
-                                isEditingDashboard={this.isEditingDashboard}
-                                widgetLimitReached={widgetLimitReached}
-                                onUpdate={this.onUpdateWidget}
-                                handleUpdateWidgetList={this.handleUpdateWidgetList}
-                                handleAddCustomWidget={this.handleAddCustomWidget}
-                                handleAddMetricWidget={this.handleAddMetricWidget}
-                                isPreview={this.isPreview}
-                                router={router}
-                                location={location}
-                                releaseSeries={releaseSeries}
-                              />
-                            );
-                          }}
-                        </ReleaseSeries>
+                        {organization.features.includes(
+                          'dashboards-releases-on-charts'
+                        ) ? (
+                          <ReleaseSeries
+                            end={end}
+                            start={start}
+                            period={period}
+                            environments={environments}
+                            projects={projects}
+                          >
+                            {({releaseSeries}) => {
+                              // release series passed through to avoid multiple calls for line and area charts widgets
+                              return (
+                                <Dashboard
+                                  paramDashboardId={dashboardId}
+                                  dashboard={modifiedDashboard ?? dashboard}
+                                  organization={organization}
+                                  isEditingDashboard={this.isEditingDashboard}
+                                  widgetLimitReached={widgetLimitReached}
+                                  onUpdate={this.onUpdateWidget}
+                                  handleUpdateWidgetList={this.handleUpdateWidgetList}
+                                  handleAddCustomWidget={this.handleAddCustomWidget}
+                                  handleAddMetricWidget={this.handleAddMetricWidget}
+                                  isPreview={this.isPreview}
+                                  router={router}
+                                  location={location}
+                                  releaseSeries={releaseSeries}
+                                />
+                              );
+                            }}
+                          </ReleaseSeries>
+                        ) : (
+                          <Dashboard
+                            paramDashboardId={dashboardId}
+                            dashboard={modifiedDashboard ?? dashboard}
+                            organization={organization}
+                            isEditingDashboard={this.isEditingDashboard}
+                            widgetLimitReached={widgetLimitReached}
+                            onUpdate={this.onUpdateWidget}
+                            handleUpdateWidgetList={this.handleUpdateWidgetList}
+                            handleAddCustomWidget={this.handleAddCustomWidget}
+                            handleAddMetricWidget={this.handleAddMetricWidget}
+                            isPreview={this.isPreview}
+                            router={router}
+                            location={location}
+                          />
+                        )}
                       </MEPSettingProvider>
                     )}
                   </MetricsDataSwitcher>
@@ -1075,43 +1118,71 @@ class DashboardDetail extends Component<Props, State> {
                                   );
                                 }}
                               />
-
-                              <ReleaseSeries
-                                end={end}
-                                start={start}
-                                period={period}
-                                environments={environments}
-                                projects={projectIds}
-                              >
-                                {({releaseSeries}) => {
-                                  // release series passed through to avoid multiple calls for line and area charts widgets
-                                  return (
-                                    <WidgetViewerContext.Provider
-                                      value={{seriesData, setData}}
-                                    >
-                                      <Dashboard
-                                        paramDashboardId={dashboardId}
-                                        dashboard={modifiedDashboard ?? dashboard}
-                                        organization={organization}
-                                        isEditingDashboard={this.isEditingDashboard}
-                                        widgetLimitReached={widgetLimitReached}
-                                        onUpdate={this.onUpdateWidget}
-                                        handleUpdateWidgetList={
-                                          this.handleUpdateWidgetList
-                                        }
-                                        handleAddCustomWidget={this.handleAddCustomWidget}
-                                        handleAddMetricWidget={this.handleAddMetricWidget}
-                                        router={router}
-                                        location={location}
-                                        newWidget={newWidget}
-                                        onSetNewWidget={onSetNewWidget}
-                                        isPreview={this.isPreview}
-                                        releaseSeries={releaseSeries}
-                                      />
-                                    </WidgetViewerContext.Provider>
-                                  );
-                                }}
-                              </ReleaseSeries>
+                              {organization.features.includes(
+                                'dashboards-releases-on-charts'
+                              ) ? (
+                                <ReleaseSeries
+                                  end={end}
+                                  start={start}
+                                  period={period}
+                                  environments={environments}
+                                  projects={projectIds}
+                                >
+                                  {({releaseSeries}) => {
+                                    // release series passed through to avoid multiple calls for line and area charts widgets
+                                    return (
+                                      <WidgetViewerContext.Provider
+                                        value={{seriesData, setData}}
+                                      >
+                                        <Dashboard
+                                          paramDashboardId={dashboardId}
+                                          dashboard={modifiedDashboard ?? dashboard}
+                                          organization={organization}
+                                          isEditingDashboard={this.isEditingDashboard}
+                                          widgetLimitReached={widgetLimitReached}
+                                          onUpdate={this.onUpdateWidget}
+                                          handleUpdateWidgetList={
+                                            this.handleUpdateWidgetList
+                                          }
+                                          handleAddCustomWidget={
+                                            this.handleAddCustomWidget
+                                          }
+                                          handleAddMetricWidget={
+                                            this.handleAddMetricWidget
+                                          }
+                                          router={router}
+                                          location={location}
+                                          newWidget={newWidget}
+                                          onSetNewWidget={onSetNewWidget}
+                                          isPreview={this.isPreview}
+                                          releaseSeries={releaseSeries}
+                                        />
+                                      </WidgetViewerContext.Provider>
+                                    );
+                                  }}
+                                </ReleaseSeries>
+                              ) : (
+                                <WidgetViewerContext.Provider
+                                  value={{seriesData, setData}}
+                                >
+                                  <Dashboard
+                                    paramDashboardId={dashboardId}
+                                    dashboard={modifiedDashboard ?? dashboard}
+                                    organization={organization}
+                                    isEditingDashboard={this.isEditingDashboard}
+                                    widgetLimitReached={widgetLimitReached}
+                                    onUpdate={this.onUpdateWidget}
+                                    handleUpdateWidgetList={this.handleUpdateWidgetList}
+                                    handleAddCustomWidget={this.handleAddCustomWidget}
+                                    handleAddMetricWidget={this.handleAddMetricWidget}
+                                    router={router}
+                                    location={location}
+                                    newWidget={newWidget}
+                                    onSetNewWidget={onSetNewWidget}
+                                    isPreview={this.isPreview}
+                                  />
+                                </WidgetViewerContext.Provider>
+                              )}
                             </MEPSettingProvider>
                           )}
                         </MetricsDataSwitcher>
