@@ -137,7 +137,7 @@ function AddViewBanner({hasSavedSearches}: {hasSavedSearches: boolean}) {
           </li>
           {hasSavedSearches && (
             <li>
-              <b>Custom searches will be deprecated in the future. </b> you can save them
+              <b>Custom searches will be deprecated in the future. </b> You can save them
               as views from the list below (only appears if you have custom searches)
             </li>
           )}
