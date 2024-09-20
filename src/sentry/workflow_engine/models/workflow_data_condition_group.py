@@ -4,6 +4,10 @@ from sentry.db.models import DefaultFieldsModel, FlexibleForeignKey, region_silo
 
 @region_silo_model
 class WorkflowDataConditionGroup(DefaultFieldsModel):
+    """
+    A lookup table for the conditions associated with a workflow.
+    """
+
     __relocation_scope__ = RelocationScope.Organization
 
     workflow = FlexibleForeignKey("workflow_engine.Workflow")

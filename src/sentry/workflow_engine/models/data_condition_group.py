@@ -7,7 +7,7 @@ from sentry.db.models import DefaultFieldsModel, region_silo_model, sane_repr
 @region_silo_model
 class DataConditionGroup(DefaultFieldsModel):
     """
-    A data condition is a way to specify a condition that must be met for a workflow to execute.
+    A data group is a way to specify a group of conditions that must be met for a workflow action to execute
     """
 
     __relocation_scope__ = RelocationScope.Organization

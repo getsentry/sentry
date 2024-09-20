@@ -7,8 +7,8 @@ from sentry.db.models import DefaultFieldsModel, region_silo_model, sane_repr
 @region_silo_model
 class Action(DefaultFieldsModel):
     """
-    A workflow action is an action to be taken as part of a workflow.
-    These will be executed in order as part of a workflow.
+    Actions are actions that can be taken if the conditions of a DataConditionGrou are satisfied.
+    Examples include: detectors emitting events, sending notifications, creating an issue in the Issue Platform, etc.
     """
 
     __relocation_scope__ = RelocationScope.Organization
