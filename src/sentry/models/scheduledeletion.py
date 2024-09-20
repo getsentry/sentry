@@ -121,9 +121,13 @@ class BaseScheduledDeletion(Model):
 
     def get_instance(self):
         from sentry import deletions
+        from sentry.deletions.base import ModelDeletionTask
 
         model = self.get_model()
-        query_manager = getattr(model, deletions.get(model=model, query=None).manager_name)
+        deletion_task = deletions.get(model=model, query=None)
+        query_manager = model.objects
+        if isinstance(deletion_task, ModelDeletionTask):
+            query_manager = getattr(model, deletion_task.manager_name)
         return query_manager.get(pk=self.object_id)
 
     def get_actor(self) -> RpcUser | None:
