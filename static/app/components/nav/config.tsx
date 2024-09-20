@@ -53,7 +53,10 @@ export function useNavItems(): NavItemsResult {
         label: t('Issues'),
         icon: <IconIssues />,
         submenu: [
-          {label: t('All'), to: `/${prefix}/issues/`},
+          {
+            label: t('All'),
+            to: `/${prefix}/issues/?query=is:unresolved`,
+          },
           {
             label: t('Error & Outage'),
             to: `/${prefix}/issues/${getSearchForIssueGroup(IssueGroup.ERROR_OUTAGE)}`,

@@ -70,6 +70,8 @@ export function getActiveStatus(
   location: ReturnType<typeof useLocation>
 ): ActiveStatus {
   if (item.to.includes('/issues/') && item.to.includes('query=')) {
+    if (location.search.includes('viewId') && item.label === 'All')
+      return ActiveStatus.ACTIVE;
     return hasMatchingQueryParam({to: item.to, label: item.label}, location)
       ? ActiveStatus.ACTIVE
       : ActiveStatus.INACTIVE;
