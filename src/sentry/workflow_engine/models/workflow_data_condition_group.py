@@ -10,5 +10,5 @@ class WorkflowDataConditionGroup(DefaultFieldsModel):
 
     __relocation_scope__ = RelocationScope.Organization
 
+    condition_group = FlexibleForeignKey("workflow_engine.DataConditionGroup", unique=True)
     workflow = FlexibleForeignKey("workflow_engine.Workflow")
-    condition_group = FlexibleForeignKey("workflow_engine.WorkflowDataCondition", unique=True)
