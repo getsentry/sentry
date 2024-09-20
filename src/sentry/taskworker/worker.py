@@ -5,9 +5,13 @@ import time
 
 import orjson
 from django.conf import settings
+from sentry_protos.hackweek_team_no_celery_pls.v1alpha.pending_task_pb2 import (
+    COMPLETE,
+    FAILURE,
+    RETRY,
+)
 
 from sentry.taskworker.config import TaskNamespace, taskregistry
-from sentry.taskworker.pending_tasks import PendingTaskState
 
 logger = logging.getLogger("sentry.taskworker")
 
@@ -53,32 +57,32 @@ class Worker:
             return
 
         try:
-            task_meta = self.namespace.get(task_data.proto_task.taskname)
+            task_meta = self.namespace.get(task_data.work.taskname)
         except KeyError:
-            logger.exception("Could not resolve task with name %s", task_data.proto_task.taskname)
+            logger.exception("Could not resolve task with name %s", task_data.work.taskname)
             return
 
         # TODO: Check idempotency
-        next_state = PendingTaskState.FAILURE
+        next_state = FAILURE
         try:
-            task_data_parameters = orjson.loads(task_data.proto_task.parameters)
+            task_data_parameters = orjson.loads(task_data.work.parameters)
             task_meta(*task_data_parameters["args"], **task_data_parameters["kwargs"])
-            next_state = PendingTaskState.COMPLETE
+            next_state = COMPLETE
         except Exception as err:
             logger.info("taskworker.task_errored", extra={"error": str(err)})
             # TODO check retry policy
             if task_meta.should_retry(task_data.retry_state(), err):
-                logger.info("taskworker.task.retry", extra={"task": task_data.proto_task.taskname})
-                next_state = PendingTaskState.RETRY
-        if next_state == PendingTaskState.COMPLETE:
-            logger.info("taskworker.task.complete", extra={"task": task_data.proto_task.taskname})
-            task_service.complete_task(task_id=task_data.id)
+                logger.info("taskworker.task.retry", extra={"task": task_data.work.taskname})
+                next_state = RETRY
+        if next_state == COMPLETE:
+            logger.info("taskworker.task.complete", extra={"task": task_data.work.taskname})
+            task_service.complete_task(task_id=task_data.store_id)
         else:
             logger.info(
                 "taskworker.task.change_status",
-                extra={"task": task_data.proto_task.taskname, "state": next_state},
+                extra={"task": task_data.work.taskname, "state": next_state},
             )
             task_service.set_task_status(
-                task_id=task_data.id,
+                task_id=task_data.store_id,
                 task_status=next_state,
             )
