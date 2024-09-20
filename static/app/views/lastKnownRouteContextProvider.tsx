@@ -8,14 +8,16 @@ interface Props {
   children: React.ReactNode;
 }
 
-export const LastKnownRouteContext = createContext<string>('');
+export const LastKnownRouteContext = createContext<string>('unknown');
 
 export function useLastKnownRoute() {
   return useContext(LastKnownRouteContext);
 }
 
-// This provider tracks the last known route that the user has navigated to.
-// This is used to better group issues when we hit "route not found" errors.
+/**
+ * This provider tracks the last known route that the user has navigated to.
+ * This is used to better group issues when we hit "route not found" errors.
+ */
 export default function LastKnownRouteContextProvider({children}: Props) {
   const route = useRoutes();
   const prevRoute = usePrevious(route);
