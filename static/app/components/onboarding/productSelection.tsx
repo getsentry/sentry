@@ -297,7 +297,11 @@ export type ProductSelectionProps = {
   /**
    * Fired when the product selection changes
    */
-  onChange?: (product: ProductSolution[]) => void;
+  onChange?: (products: ProductSolution[]) => void;
+  /**
+   * Triggered when the component is loaded
+   */
+  onLoad?: (products: ProductSolution[]) => void;
   /**
    * The platform key of the project (e.g. javascript-react, python-django, etc.)
    */
@@ -306,10 +310,6 @@ export type ProductSelectionProps = {
    * A custom list of products per platform. If not provided, the default list is used.
    */
   productsPerPlatform?: Record<PlatformKey, ProductSolution[]>;
-  /**
-   * If true, the component has a bottom margin of 20px
-   */
-  withBottomMargin?: boolean;
 };
 
 export function ProductSelection({
@@ -319,6 +319,7 @@ export function ProductSelection({
   productsPerPlatform = platformProductAvailability,
   projectId,
   onChange,
+  onLoad,
 }: ProductSelectionProps) {
   const [params, setParams] = useOnboardingQueryParams();
   const urlProducts = useMemo(() => params.product ?? [], [params.product]);
@@ -337,6 +338,7 @@ export function ProductSelection({
   }, [products, disabledProducts]);
 
   useEffect(() => {
+    onLoad?.(defaultProducts);
     setParams({
       showLoader:
         supportLoader && params.showLoader === undefined ? true : params.showLoader,
