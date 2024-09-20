@@ -313,7 +313,6 @@ def _should_report_rage_click_issue(project: Project) -> bool:
     """
     Checks the project option, controlled by a project owner.
     """
-    project = Project.objects.get(id=project.id)
     return project.get_option("sentry:replay_rage_click_issues")
 
 
