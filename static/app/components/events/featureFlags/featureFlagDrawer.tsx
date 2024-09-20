@@ -15,7 +15,8 @@ import {
   NavigationCrumbs,
   SearchInput,
   ShortId,
-} from 'sentry/components/events/eventReplay/eventDrawer';
+} from 'sentry/components/events/eventDrawer';
+import useFocusControl from 'sentry/components/events/useFocusControl';
 import {InputGroup} from 'sentry/components/inputGroup';
 import KeyValueData, {
   type KeyValueDataContentProps,
@@ -74,6 +75,7 @@ interface FlagDrawerProps {
   hydratedFlags: KeyValueDataContentProps[];
   initialSort: FlagSort;
   project: Project;
+  focusControl?: FlagControlOptions;
 }
 
 export function FeatureFlagDrawer({
@@ -82,10 +84,12 @@ export function FeatureFlagDrawer({
   project,
   initialSort,
   hydratedFlags,
+  focusControl: initialFocusControl,
 }: FlagDrawerProps) {
   const [sortMethod, setSortMethod] = useState<FlagSort>(initialSort);
   const [search, setSearch] = useState('');
   const organization = useOrganization();
+  const {getFocusProps} = useFocusControl(initialFocusControl);
 
   const handleSortAlphabetical = (flags: KeyValueDataContentProps[]) => {
     return [...flags].sort((a, b) => {
@@ -111,6 +115,7 @@ export function FeatureFlagDrawer({
             setSearch(e.target.value.toLowerCase());
           }}
           aria-label={t('Search Flags')}
+          {...getFocusProps(FlagControlOptions.SEARCH)}
         />
         <InputGroup.TrailingItems disablePointerEvents>
           <IconSearch size="xs" />
