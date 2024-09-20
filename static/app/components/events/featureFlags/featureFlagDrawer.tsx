@@ -1,4 +1,4 @@
-import {useState} from 'react';
+import {useCallback, useState} from 'react';
 import styled from '@emotion/styled';
 
 import ProjectAvatar from 'sentry/components/avatar/projectAvatar';
@@ -74,6 +74,22 @@ interface FlagDrawerProps {
   hydratedFlags: KeyValueDataContentProps[];
   initialSort: FlagSort;
   project: Project;
+  focusControl?: FlagControlOptions;
+}
+
+function useFocusControl(initialFocusControl?: FlagControlOptions) {
+  const [focusControl, setFocusControl] = useState(initialFocusControl);
+  // If the focused control element is blurred, unset the state to remove styles
+  // This will allow us to simulate :focus-visible on the button elements.
+  const getFocusProps = useCallback(
+    (option: FlagControlOptions) => {
+      return option === focusControl
+        ? {autoFocus: true, onBlur: () => setFocusControl(undefined)}
+        : {};
+    },
+    [focusControl]
+  );
+  return {getFocusProps};
 }
 
 export function FeatureFlagDrawer({
@@ -82,10 +98,12 @@ export function FeatureFlagDrawer({
   project,
   initialSort,
   hydratedFlags,
+  focusControl: initialFocusControl,
 }: FlagDrawerProps) {
   const [sortMethod, setSortMethod] = useState<FlagSort>(initialSort);
   const [search, setSearch] = useState('');
   const organization = useOrganization();
+  const {getFocusProps} = useFocusControl(initialFocusControl);
 
   const handleSortAlphabetical = (flags: KeyValueDataContentProps[]) => {
     return [...flags].sort((a, b) => {
@@ -111,6 +129,7 @@ export function FeatureFlagDrawer({
             setSearch(e.target.value.toLowerCase());
           }}
           aria-label={t('Search Flags')}
+          {...getFocusProps(FlagControlOptions.SEARCH)}
         />
         <InputGroup.TrailingItems disablePointerEvents>
           <IconSearch size="xs" />
