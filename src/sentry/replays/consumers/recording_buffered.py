@@ -56,6 +56,7 @@ from sentry_kafka_schemas.codecs import Codec, ValidationError
 from sentry_kafka_schemas.schema_types.ingest_replay_recordings_v1 import ReplayRecording
 
 from sentry.conf.types.kafka_definition import Topic, get_topic_codec
+from sentry.models.project import Project
 from sentry.replays.lib.storage import (
     RecordingSegmentStorageMeta,
     make_recording_filename,
@@ -318,8 +319,9 @@ def process_message(buffer: RecordingBuffer, message: bytes) -> None:
                 else None
             )
 
+        project = Project.objects.get_from_cache(id=decoded_message["project_id"])
         replay_actions = parse_replay_actions(
-            decoded_message["project_id"],
+            project,
             decoded_message["replay_id"],
             decoded_message["retention_days"],
             parsed_recording_data,
