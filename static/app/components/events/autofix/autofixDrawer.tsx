@@ -1,15 +1,17 @@
 import {useState} from 'react';
 import styled from '@emotion/styled';
 
+import bannerImage from 'sentry-images/spot/ai-suggestion-banner.svg';
+
 import ProjectAvatar from 'sentry/components/avatar/projectAvatar';
 import {Breadcrumbs as NavigationBreadcrumbs} from 'sentry/components/breadcrumbs';
 import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import AutofixFeedback from 'sentry/components/events/autofix/autofixFeedback';
-import AutofixMessageBox from 'sentry/components/events/autofix/autofixMessageBox';
 import {AutofixSteps} from 'sentry/components/events/autofix/autofixSteps';
 import {useAiAutofix} from 'sentry/components/events/autofix/useAutofix';
 import {DrawerBody, DrawerHeader} from 'sentry/components/globalDrawer/components';
+import Input from 'sentry/components/input';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
@@ -18,6 +20,43 @@ import type {Project} from 'sentry/types/project';
 import {getShortEventId} from 'sentry/utils/events';
 import useRouteAnalyticsParams from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
 import {MIN_NAV_HEIGHT} from 'sentry/views/issueDetails/streamline/eventNavigation';
+
+interface AutofixStartBoxProps {
+  onSend: (message: string) => void;
+}
+
+function AutofixStartBox({onSend}: AutofixStartBoxProps) {
+  const [message, setMessage] = useState('');
+
+  const send = () => {
+    onSend(message);
+  };
+
+  return (
+    <StartBox>
+      <Header>Autofix is ready to start</Header>
+      <br />
+      <p>
+        We'll begin by trying to figure out the root cause, analyzing the issue details
+        and the codebase. If you have any other helpful context on the issue before we
+        begin, you can share that below.
+      </p>
+      <Input
+        type="text"
+        value={message}
+        onChange={e => setMessage(e.target.value)}
+        placeholder={'Provide any extra context here...'}
+      />
+      <br />
+      <Button priority="primary" onClick={send}>
+        Start
+      </Button>
+      <IllustrationContainer>
+        <Illustration src={bannerImage} />
+      </IllustrationContainer>
+    </StartBox>
+  );
+}
 
 interface AutofixDrawerProps {
   event: Event;
@@ -72,18 +111,7 @@ export function AutofixDrawer({group, project, event}: AutofixDrawerProps) {
       </AutofixNavigator>
       <AutofixDrawerBody ref={setContainer}>
         {!autofixData ? (
-          <AutofixMessageBox
-            displayText={'Ready to begin analyzing the issue?'}
-            step={null}
-            inputPlaceholder={'Optionally provide any extra context before we start...'}
-            responseRequired={false}
-            onSend={triggerAutofix}
-            actionText={'Start'}
-            allowEmptyMessage
-            isDisabled={false}
-            runId={''}
-            groupId={group.id}
-          />
+          <AutofixStartBox onSend={triggerAutofix} />
         ) : (
           <AutofixSteps
             data={autofixData}
@@ -96,6 +124,23 @@ export function AutofixDrawer({group, project, event}: AutofixDrawerProps) {
     </AutofixDrawerContainer>
   );
 }
+
+const IllustrationContainer = styled('div')`
+  padding-top: ${space(4)};
+`;
+
+const Illustration = styled('img')`
+  height: 100%;
+`;
+
+const StartBox = styled('div')`
+  padding: ${space(2)};
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  height: 100%;
+  width: 100%;
+`;
 
 const AutofixDrawerContainer = styled('div')`
   height: 100%;
