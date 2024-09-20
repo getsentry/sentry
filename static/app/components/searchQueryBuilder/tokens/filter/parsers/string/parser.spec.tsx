@@ -68,7 +68,7 @@ describe('parseMultiSelectValue', function () {
     expect(result!.items).toHaveLength(3);
 
     expect(result?.items[0].value?.value).toEqual('a');
-    expect(result?.items[1].value).toBe(null);
+    expect(result?.items[1].value?.value).toBe('');
     expect(result?.items[2].value?.value).toEqual('b');
   });
 

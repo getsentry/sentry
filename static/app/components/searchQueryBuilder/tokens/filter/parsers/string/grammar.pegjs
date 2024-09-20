@@ -5,9 +5,13 @@
 
 text_in_list
   = item1:text_in_value
-    items:(spaces comma spaces (!comma text_in_value)?)* {
+    items:item* {
       return tc.tokenValueTextList(item1, items);
     }
+
+item = s1:spaces c:comma s2:spaces value:(!comma text_in_value)? {
+  return [s1, c, s2, value ?? [undefined, tc.tokenValueText('', false)]];
+}
 
 text_in_value
   = quoted_value / in_value / empty_value
