@@ -1,4 +1,5 @@
 import logging
+from html import escape
 from typing import Any
 
 from django.http import HttpRequest, HttpResponse
@@ -53,7 +54,7 @@ class IframeView(OrganizationView):
         origin_allowed, info_msg = validate_scheme_and_origin(request, allowed_origins)
         if not origin_allowed:
             return HttpResponse(
-                info_msg, status=403
+                escape(info_msg), status=403
             )  # TODO: replace with 200 response and template var for "project not configured"
 
         return self.respond("sentry/toolbar/iframe.html", status=200)
