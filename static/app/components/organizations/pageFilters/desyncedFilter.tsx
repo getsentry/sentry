@@ -36,14 +36,14 @@ export function DesyncedFilterMessage() {
 }
 
 export const DesyncedFilterIndicator = styled('div')`
-  width: 9px;
-  height: 9px;
+  width: 8px;
+  height: 8px;
   border-radius: 50%;
   background: ${p => p.theme.active};
   border: solid 1px ${p => p.theme.background};
   position: absolute;
-  top: -${space(0.5)};
-  right: -${space(0.5)};
+  top: -${space(0.25)};
+  right: -${space(0.75)};
 `;
 
 const DesyncedFilterMessageWrap = styled('div')`

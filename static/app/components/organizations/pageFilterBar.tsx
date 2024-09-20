@@ -1,5 +1,7 @@
 import styled from '@emotion/styled';
 
+import {space} from 'sentry/styles/space';
+
 const PageFilterBar = styled('div')<{condensed?: boolean}>`
   display: flex;
   position: relative;
@@ -35,6 +37,14 @@ const PageFilterBar = styled('div')<{condensed?: boolean}>`
     border-color: transparent;
     box-shadow: none;
     z-index: 0;
+  }
+
+  /* Less inner padding between buttons */
+  & > div:not(:first-child) > button[aria-haspopup] {
+    padding-left: ${space(1.5)};
+  }
+  & > div:not(:last-child) > button[aria-haspopup] {
+    padding-right: ${space(1.5)};
   }
 
   & button[aria-haspopup]:focus-visible {
