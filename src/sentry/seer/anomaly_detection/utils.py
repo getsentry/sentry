@@ -177,11 +177,8 @@ def fetch_historical_data(
     if dataset_label == "events":
         # DATASET_OPTIONS expects the name 'errors'
         dataset_label = "errors"
-    elif dataset_label == "generic_metrics":
-        # XXX: performance alerts in prod
-        dataset_label = "transactions"
-    elif dataset_label == "transactions":
-        # XXX: performance alerts locally
+    elif dataset_label in ["generic_metrics", "transactions"]:
+        # XXX: performance alerts dataset differs locally vs in prod
         dataset_label = "discover"
     dataset = get_dataset(dataset_label)
 
