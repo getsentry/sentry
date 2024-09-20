@@ -1,10 +1,11 @@
-import {Fragment, useCallback} from 'react';
+import {Fragment, useCallback, useRef} from 'react';
 import styled from '@emotion/styled';
 
 import Alert from 'sentry/components/alert';
 import ProjectAvatar from 'sentry/components/avatar/projectAvatar';
 import {Button, LinkButton} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
+import {CompactSelect} from 'sentry/components/compactSelect';
 import Count from 'sentry/components/count';
 import DataExport, {ExportQueryType} from 'sentry/components/dataExport';
 import {DeviceName} from 'sentry/components/deviceName';
@@ -57,10 +58,14 @@ type GroupTagsDrawerProps = {
   project: Project;
 };
 
+interface GroupTagsDrawerTagDetailsProps extends GroupTagsDrawerProps {
+  drawerRef: React.RefObject<HTMLDivElement>;
+}
+
 type TagSort = 'date' | 'count';
 const DEFAULT_SORT: TagSort = 'count';
 
-function GroupTagsDrawerTagDetails({groupId, project}: GroupTagsDrawerProps) {
+function GroupTagsDrawerTagDetails({groupId, project, drawerRef}: GroupTagsDrawerProps) {
   const location = useLocation();
   const organization = useOrganization();
   const tagKey = location.query.tagDrawerKey as string;
@@ -197,6 +202,8 @@ function GroupTagsDrawerTagDetails({groupId, project}: GroupTagsDrawerProps) {
                 icon: <IconEllipsis />,
                 'aria-label': t('More'),
               }}
+              usePortal
+              portalContainerRef={drawerRef}
               items={[
                 {
                   key: 'open-in-discover',
@@ -260,6 +267,7 @@ export function GroupTagsDrawer({project, groupId}: GroupTagsDrawerProps) {
   const organization = useOrganization();
   const navigate = useNavigate();
   const tagDrawerKey = location.query.tagDrawerKey as string | undefined;
+  const drawerRef = useRef<HTMLDivElement>(null);
 
   const {
     data = [],
@@ -287,7 +295,7 @@ export function GroupTagsDrawer({project, groupId}: GroupTagsDrawerProps) {
   const alphabeticalTags = data.sort((a, b) => a.key.localeCompare(b.key));
 
   return (
-    <EventDrawerContainer>
+    <EventDrawerContainer ref={drawerRef}>
       <EventDrawerHeader>
         <NavigationCrumbs
           crumbs={[
@@ -343,7 +351,11 @@ export function GroupTagsDrawer({project, groupId}: GroupTagsDrawerProps) {
       </EventNavigator>
       <EventDrawerBody>
         {tagDrawerKey ? (
-          <GroupTagsDrawerTagDetails project={project} groupId={groupId} />
+          <GroupTagsDrawerTagDetails
+            project={project}
+            groupId={groupId}
+            drawerRef={drawerRef}
+          />
         ) : (
           <Wrapper>
             <MarginlessAlert type="info">
@@ -557,9 +569,6 @@ const StyledPanelTable = styled(PanelTable)`
   font-size: ${p => p.theme.fontSizeMedium};
 
   overflow: auto;
-  @media (min-width: ${p => p.theme.breakpoints.small}) {
-    overflow: initial;
-  }
 
   & > * {
     padding: ${space(1)} ${space(2)};
