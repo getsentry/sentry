@@ -12,6 +12,7 @@ import {
   TEST_EVENT_CONTEXTS,
   TEST_EVENT_TAGS,
 } from 'sentry/components/events/highlights/util.spec';
+import ProjectsStore from 'sentry/stores/projectsStore';
 import * as analytics from 'sentry/utils/analytics';
 
 describe('HighlightsDataSection', function () {
@@ -37,6 +38,7 @@ describe('HighlightsDataSection', function () {
 
   beforeEach(() => {
     MockApiClient.clearMockResponses();
+    ProjectsStore.loadInitialData([project]);
     jest.clearAllMocks();
   });
 
