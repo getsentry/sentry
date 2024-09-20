@@ -10,6 +10,7 @@ from sentry.api.endpoints.group_integrations import GroupIntegrationsEndpoint
 from sentry.api.endpoints.issues.related_issues import RelatedIssuesEndpoint
 from sentry.api.endpoints.org_auth_token_details import OrgAuthTokenDetailsEndpoint
 from sentry.api.endpoints.org_auth_tokens import OrgAuthTokensEndpoint
+from sentry.api.endpoints.organization_events_anomalies import OrganizationEventsAnomaliesEndpoint
 from sentry.api.endpoints.organization_events_root_cause_analysis import (
     OrganizationEventsRootCauseAnalysisEndpoint,
 )
@@ -1415,6 +1416,11 @@ ORGANIZATION_URLS = [
         r"^(?P<organization_id_or_slug>[^\/]+)/events-stats/$",
         OrganizationEventsStatsEndpoint.as_view(),
         name="sentry-api-0-organization-events-stats",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^\/]+)/events/anomalies/$",
+        OrganizationEventsAnomaliesEndpoint.as_view(),
+        name="sentry-api-0-organization-events-anomalies",
     ),
     re_path(
         r"^(?P<organization_id_or_slug>[^\/]+)/project-templates/$",
