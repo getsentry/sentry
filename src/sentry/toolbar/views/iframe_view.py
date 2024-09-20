@@ -13,14 +13,9 @@ logger = logging.getLogger(__name__)
 
 @region_silo_view
 class IframeView(OrganizationView):
-    security_headers = {
-        "X-Frame-Options": "ALLOWALL"
-    }  # allows response to be embedded in an iframe.
-
     def respond(self, template: str, context: dict[str, Any] | None = None, status: int = 200):
         response = super().respond(template, context=context, status=status)
-        for header, val in IframeView.security_headers.items():
-            response[header] = val
+        response["X-Frame-Options"] = "ALLOWALL"  # allows response to be embedded in an iframe.
         return response
 
     def handle_auth_required(self, request: HttpRequest, *args, **kwargs):
