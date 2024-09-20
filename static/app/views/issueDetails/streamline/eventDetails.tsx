@@ -73,25 +73,20 @@ export function EventDetails({
     });
   }, [nav, isScreenMedium, dispatch, theme.sidebar.mobileHeightNumber]);
 
-  const graphComponent = !isLoadingStats && groupStats && (
-    <ExtraContent>
-      <ErrorBoundary mini message={t('There was an error loading the event graph')}>
-        <EventGraph group={group} groupStats={groupStats} searchQuery={searchQuery} />
-      </ErrorBoundary>
-    </ExtraContent>
-  );
-
   return (
     <EventDetailsContext.Provider value={{...eventDetails, dispatch}}>
-      <ErrorBoundary mini message={t('There was an error loading the suspect commits')}>
+      <PageErrorBoundary
+        mini
+        message={t('There was an error loading the suspect commits')}
+      >
         <SuspectCommits
           project={project}
           eventId={event.id}
           group={group}
           commitRow={CommitRow}
         />
-      </ErrorBoundary>
-      <ErrorBoundary mini message={t('There was an error loading the event filters')}>
+      </PageErrorBoundary>
+      <PageErrorBoundary mini message={t('There was an error loading the event filter')}>
         <FilterContainer>
           <EnvironmentPageFilter />
           <SearchFilter
@@ -107,7 +102,7 @@ export function EventDetails({
           />
           <DatePageFilter />
         </FilterContainer>
-      </ErrorBoundary>
+      </PageErrorBoundary>
       {error ? (
         <div>
           <GraphAlert type="error" showIcon>
@@ -115,11 +110,23 @@ export function EventDetails({
           </GraphAlert>
         </div>
       ) : (
-        graphComponent
+        <PageErrorBoundary mini message={t('There was an error loading the event graph')}>
+          {!isLoadingStats && groupStats && (
+            <ExtraContent>
+              <EventGraph
+                group={group}
+                groupStats={groupStats}
+                searchQuery={searchQuery}
+              />
+            </ExtraContent>
+          )}
+        </PageErrorBoundary>
       )}
-      <GroupContent>
-        <EventList group={group} project={project} />
-      </GroupContent>
+      <PageErrorBoundary mini message={t('There was an error loading the event list')}>
+        <GroupContent>
+          <EventList group={group} project={project} />
+        </GroupContent>
+      </PageErrorBoundary>
       <GroupContent>
         <FloatingEventNavigation
           event={event}
@@ -161,11 +168,6 @@ const FloatingEventNavigation = styled(EventNavigation)`
   border-radius: ${p => p.theme.borderRadiusTop};
 `;
 
-const GraphAlert = styled(Alert)`
-  margin: 0;
-  border: 1px solid ${p => p.theme.translucentBorder};
-`;
-
 const ExtraContent = styled('div')`
   border: 1px solid ${p => p.theme.translucentBorder};
   background: ${p => p.theme.background};
@@ -178,4 +180,14 @@ const GroupContent = styled(ExtraContent)`
 
 const ContentPadding = styled('div')`
   padding: ${space(1)} ${space(1.5)};
+`;
+
+const GraphAlert = styled(Alert)`
+  margin: 0;
+  border: 1px solid ${p => p.theme.translucentBorder};
+`;
+
+const PageErrorBoundary = styled(ErrorBoundary)`
+  margin: 0 ${space(1.5)};
+  border: 1px solid ${p => p.theme.translucentBorder};
 `;
