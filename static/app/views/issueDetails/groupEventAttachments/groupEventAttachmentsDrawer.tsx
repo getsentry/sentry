@@ -10,7 +10,7 @@ import {
   Header,
   NavigationCrumbs,
   ShortId,
-} from 'sentry/components/events/eventReplay/eventDrawer';
+} from 'sentry/components/events/eventDrawer';
 import LoadingError from 'sentry/components/loadingError';
 import Pagination from 'sentry/components/pagination';
 import {t} from 'sentry/locale';
