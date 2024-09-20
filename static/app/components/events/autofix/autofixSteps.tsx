@@ -16,6 +16,7 @@ import {
   type AutofixStep,
   AutofixStepType,
 } from 'sentry/components/events/autofix/types';
+import {space} from 'sentry/styles/space';
 import testableTransition from 'sentry/utils/testableTransition';
 
 const animationProps: AnimationProps = {
@@ -26,6 +27,7 @@ const animationProps: AnimationProps = {
 };
 interface StepProps {
   groupId: string;
+  hasErroredStepBefore: boolean;
   hasStepAbove: boolean;
   hasStepBelow: boolean;
   onRetry: () => void;
@@ -64,6 +66,7 @@ export function Step({
   repos,
   hasStepBelow,
   hasStepAbove,
+  hasErroredStepBefore,
 }: StepProps) {
   const isActive = step.status !== 'PENDING' && step.status !== 'CANCELLED';
 
@@ -92,6 +95,13 @@ export function Step({
               )}
               {step.type === AutofixStepType.CHANGES && (
                 <AutofixChanges step={step} groupId={groupId} onRetry={onRetry} />
+              )}
+              {hasErroredStepBefore && hasStepBelow && (
+                <StepMessage>
+                  Autofix encountered an error.
+                  <br />
+                  Restarting step from scratch...
+                </StepMessage>
               )}
             </Fragment>
           </AnimationWrapper>
@@ -162,6 +172,12 @@ export function AutofixSteps({data, groupId, runId, onRetry}: AutofixStepsProps)
     lastStep.type === AutofixStepType.CHANGES && lastStep.status === 'COMPLETED';
   const disabled = areCodeChangesShowing ? true : false;
 
+  const previousStep = steps.length > 2 ? steps[steps.length - 2] : null;
+  const previousStepErrored =
+    previousStep !== null &&
+    previousStep?.type === lastStep.type &&
+    previousStep.status === 'ERROR';
+
   const scrollToMatchingStep = () => {
     const matchingStepIndex = steps.findIndex(step => step.type === lastStep.type);
     if (matchingStepIndex !== -1 && stepsRef.current[matchingStepIndex]) {
@@ -182,6 +198,7 @@ export function AutofixSteps({data, groupId, runId, onRetry}: AutofixStepsProps)
               runId={runId}
               onRetry={onRetry}
               repos={repos}
+              hasErroredStepBefore={previousStepErrored}
             />
           </div>
         ))}
@@ -220,6 +237,14 @@ export function AutofixSteps({data, groupId, runId, onRetry}: AutofixStepsProps)
     </div>
   );
 }
+
+const StepMessage = styled('div')`
+  overflow: hidden;
+  padding: ${space(2)};
+  color: ${p => p.theme.subText};
+  justify-content: center;
+  text-align: center;
+`;
 
 const StepsContainer = styled('div')`
   margin-bottom: 13em;
