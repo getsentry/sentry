@@ -103,4 +103,30 @@ describe('AlertWizard', () => {
     const alertGroups = screen.getAllByRole('radiogroup');
     expect(alertGroups.length).toEqual(1);
   });
+
+  it('shows uptime alert according to feature flag', () => {
+    const {organization, project, routerProps, router} = initializeOrg({
+      organization: {
+        features: [
+          'alert-crash-free-metrics',
+          'incidents',
+          'performance-view',
+          'crash-rate-alerts',
+          'uptime-api-create-update',
+        ],
+        access: ['org:write', 'alerts:write'],
+      },
+    });
+
+    render(
+      <AlertWizard
+        organization={organization}
+        projectId={project.slug}
+        {...routerProps}
+      />,
+      {router, organization}
+    );
+
+    expect(screen.getByText('Uptime Monitor')).toBeInTheDocument();
+  });
 });
