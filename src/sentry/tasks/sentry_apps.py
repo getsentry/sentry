@@ -19,9 +19,9 @@ from sentry.models.group import Group
 from sentry.models.organization import Organization
 from sentry.models.organizationmapping import OrganizationMapping
 from sentry.models.project import Project
-from sentry.models.servicehook import ServiceHook, ServiceHookProject
 from sentry.sentry_apps.models.sentry_app import VALID_EVENTS, SentryApp
 from sentry.sentry_apps.models.sentry_app_installation import SentryAppInstallation
+from sentry.sentry_apps.models.servicehook import ServiceHook, ServiceHookProject
 from sentry.sentry_apps.services.app.service import (
     app_service,
     get_by_application_id,

@@ -39,11 +39,11 @@ class ProjectDeletionTask(ModelDeletionTask[Project]):
         from sentry.models.release_threshold import ReleaseThreshold
         from sentry.models.releaseprojectenvironment import ReleaseProjectEnvironment
         from sentry.models.releases.release_project import ReleaseProject
-        from sentry.models.servicehook import ServiceHook, ServiceHookProject
         from sentry.models.transaction_threshold import ProjectTransactionThreshold
         from sentry.models.userreport import UserReport
         from sentry.monitors.models import Monitor
         from sentry.replays.models import ReplayRecordingSegment
+        from sentry.sentry_apps.models.servicehook import ServiceHook, ServiceHookProject
         from sentry.snuba.models import QuerySubscription
 
         relations: list[BaseRelation] = [

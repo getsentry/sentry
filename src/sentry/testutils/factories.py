@@ -128,7 +128,6 @@ from sentry.models.repository import Repository
 from sentry.models.rule import Rule
 from sentry.models.rulesnooze import RuleSnooze
 from sentry.models.savedsearch import SavedSearch
-from sentry.models.servicehook import ServiceHook
 from sentry.models.team import Team
 from sentry.models.userreport import UserReport
 from sentry.organizations.services.organization import RpcOrganization, RpcUserOrganizationContext
@@ -142,6 +141,7 @@ from sentry.sentry_apps.models.sentry_app_installation import SentryAppInstallat
 from sentry.sentry_apps.models.sentry_app_installation_for_provider import (
     SentryAppInstallationForProvider,
 )
+from sentry.sentry_apps.models.servicehook import ServiceHook
 from sentry.sentry_apps.services.app.serial import serialize_sentry_app_installation
 from sentry.sentry_apps.services.hook import hook_service
 from sentry.signals import project_created
