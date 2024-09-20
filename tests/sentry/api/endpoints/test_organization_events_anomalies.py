@@ -91,7 +91,7 @@ class OrganizationEventsAnomaliesEndpointTest(APITestCase):
 
         seer_return_value = DetectAnomaliesResponse(
             success=True,
-            message=None,
+            message="",
             timeseries=[
                 TimeSeriesPoint(
                     timestamp=self.current_timestamp_1,
@@ -207,9 +207,7 @@ class OrganizationEventsAnomaliesEndpointTest(APITestCase):
     )
     @patch("sentry.seer.anomaly_detection.get_historical_anomalies.logger")
     def test_seer_error(self, mock_logger, mock_seer_request):
-        mock_seer_request.return_value = HTTPResponse(
-            "Bad stuff", status=500
-        )  # type:ignore[arg-type]
+        mock_seer_request.return_value = HTTPResponse("Bad stuff", status=500)
         self.create_team(organization=self.organization, members=[self.user])
         self.login_as(self.user)
 
@@ -243,7 +241,7 @@ class OrganizationEventsAnomaliesEndpointTest(APITestCase):
                 {"success": False, "message": "I have revolted against my human overlords"}
             ),
             status=200,
-        )  # type:ignore[arg-type]
+        )
         self.create_team(organization=self.organization, members=[self.user])
         self.login_as(self.user)
 
@@ -275,7 +273,7 @@ class OrganizationEventsAnomaliesEndpointTest(APITestCase):
         mock_seer_request.return_value = HTTPResponse(
             orjson.dumps({"success": True, "message": "moo deng is cute", "timeseries": []}),
             status=200,
-        )  # type:ignore[arg-type]
+        )
         self.create_team(organization=self.organization, members=[self.user])
         self.login_as(self.user)
 
