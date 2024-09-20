@@ -105,14 +105,14 @@ function useInView(ref: HTMLElement | null) {
   const [inView, setInView] = useState(false);
 
   useEffect(() => {
+    const observer = new IntersectionObserver(([entry]) => {
+      setInView(entry.isIntersecting);
+    });
+
     if (!ref)
       return () => {
         observer.disconnect();
       };
-
-    const observer = new IntersectionObserver(([entry]) => {
-      setInView(entry.isIntersecting);
-    });
 
     observer.observe(ref);
     return () => {
