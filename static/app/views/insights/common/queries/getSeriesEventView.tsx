@@ -15,7 +15,8 @@ export function getSeriesEventView(
   pageFilters: PageFilters,
   yAxis: string[],
   topEvents?: number,
-  dataset?: DiscoverDatasets
+  dataset?: DiscoverDatasets,
+  orderby?: string | string[]
 ) {
   // Pick the highest possible interval for the given yAxis selection. Find the ideal interval for each function, then choose the largest one. This results in the lowest granularity, but best performance.
   const interval = sortBy(
@@ -43,6 +44,7 @@ export function getSeriesEventView(
       interval,
       topEvents: topEvents?.toString(),
       version: 2,
+      orderby,
     },
     pageFilters
   );

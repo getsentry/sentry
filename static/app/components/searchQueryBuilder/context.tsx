@@ -11,6 +11,7 @@ import type {FieldDefinition} from 'sentry/utils/fields';
 
 export interface SearchQueryBuilderContextData {
   disabled: boolean;
+  disallowFreeText: boolean;
   disallowWildcard: boolean;
   dispatch: Dispatch<QueryBuilderActions>;
   filterKeyMenuWidth: number;
@@ -48,5 +49,6 @@ export const SearchQueryBuilderContext = createContext<SearchQueryBuilderContext
   searchSource: '',
   size: 'normal',
   disabled: false,
+  disallowFreeText: false,
   disallowWildcard: false,
 });

@@ -116,7 +116,11 @@ function AlertWizard({organization, params, location, projectId}: AlertWizardPro
               priority="primary"
               to={{
                 pathname: `/organizations/${organization.slug}/alerts/new/${
-                  isMetricAlert ? AlertRuleType.METRIC : AlertRuleType.ISSUE
+                  isMetricAlert
+                    ? AlertRuleType.METRIC
+                    : alertOption === 'uptime_monitor'
+                      ? AlertRuleType.UPTIME
+                      : AlertRuleType.ISSUE
                 }/`,
                 query: {
                   ...(metricRuleTemplate ? metricRuleTemplate : {}),

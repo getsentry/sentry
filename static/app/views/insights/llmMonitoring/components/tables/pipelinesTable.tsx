@@ -26,10 +26,14 @@ import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {renderHeadCell} from 'sentry/views/insights/common/components/tableCells/renderHeadCell';
-import {useSpanMetrics} from 'sentry/views/insights/common/queries/useDiscover';
+import {
+  useEAPSpans,
+  useSpanMetrics,
+} from 'sentry/views/insights/common/queries/useDiscover';
 import {useModuleURL} from 'sentry/views/insights/common/utils/useModuleURL';
 import {QueryParameterNames} from 'sentry/views/insights/common/views/queryParameters';
 import type {SpanMetricsResponse} from 'sentry/views/insights/types';
+import {SpanIndexedField} from 'sentry/views/insights/types';
 
 type Row = Pick<
   SpanMetricsResponse,
@@ -89,6 +93,154 @@ export function isAValidSort(sort: Sort): sort is ValidSort {
   return (SORTABLE_FIELDS as unknown as string[]).includes(sort.field);
 }
 
+export function EAPPipelinesTable() {
+  const location = useLocation();
+  const moduleURL = useModuleURL('ai');
+
+  const organization = useOrganization();
+  const cursor = decodeScalar(location.query?.[QueryParameterNames.SPANS_CURSOR]);
+  const sortField = decodeScalar(location.query?.[QueryParameterNames.SPANS_SORT]);
+  const spanDescription = decodeScalar(location.query?.['span.description'], '');
+
+  let sort = decodeSorts(sortField).filter(isAValidSort)[0];
+  if (!sort) {
+    sort = {field: 'spm()', kind: 'desc'};
+  }
+
+  const {data, isPending, meta, pageLinks, error} = useEAPSpans(
+    {
+      search: MutableSearch.fromQueryObject({
+        'span.category': 'ai.pipeline',
+        [SpanIndexedField.SPAN_DESCRIPTION]: spanDescription
+          ? `*${spanDescription}*`
+          : undefined,
+      }),
+      fields: [
+        SpanIndexedField.SPAN_GROUP,
+        SpanIndexedField.SPAN_DESCRIPTION,
+        'spm()',
+        'avg(span.duration)',
+        'sum(span.duration)',
+      ],
+      sorts: [sort],
+      limit: 25,
+      cursor,
+    },
+    'api.ai-pipelines-eap.table'
+  );
+
+  const {data: tokensUsedData, isPending: tokensUsedLoading} = useEAPSpans(
+    {
+      search: new MutableSearch(
+        `span.category:ai span.ai.pipeline.group:[${(data as Row[])
+          ?.map(x => x['span.group'])
+          ?.filter(x => !!x)
+          .join(',')}]`
+      ),
+      fields: ['span.ai.pipeline.group', 'sum(ai.total_tokens.used)'],
+    },
+    'api.ai-pipelines-eap.table'
+  );
+
+  const {
+    data: tokenCostData,
+    isPending: tokenCostLoading,
+    error: tokenCostError,
+  } = useEAPSpans(
+    {
+      search: new MutableSearch(
+        `span.category:ai span.ai.pipeline.group:[${(data as Row[])?.map(x => x['span.group']).join(',')}]`
+      ),
+      fields: ['span.ai.pipeline.group', 'sum(ai.total_cost)'],
+    },
+    'api.ai-pipelines-eap.table'
+  );
+
+  const rows: Row[] = (data as Row[]).map(baseRow => {
+    const row: Row = {
+      ...baseRow,
+      'sum(ai.total_tokens.used)': 0,
+      'sum(ai.total_cost)': 0,
+    };
+    if (!tokensUsedLoading) {
+      const tokenUsedDataPoint = tokensUsedData.find(
+        tokenRow => tokenRow['span.ai.pipeline.group'] === row['span.group']
+      );
+      if (tokenUsedDataPoint) {
+        row['sum(ai.total_tokens.used)'] =
+          tokenUsedDataPoint['sum(ai.total_tokens.used)'];
+      }
+    }
+    if (!tokenCostLoading && !tokenCostError) {
+      const tokenCostDataPoint = tokenCostData.find(
+        tokenRow => tokenRow['span.ai.pipeline.group'] === row['span.group']
+      );
+      if (tokenCostDataPoint) {
+        row['sum(ai.total_cost)'] = tokenCostDataPoint['sum(ai.total_cost)'];
+      }
+    }
+    return row;
+  });
+
+  const handleCursor: CursorHandler = (newCursor, pathname, query) => {
+    browserHistory.push({
+      pathname,
+      query: {...query, [QueryParameterNames.SPANS_CURSOR]: newCursor},
+    });
+  };
+
+  const handleSearch = (newQuery: string) => {
+    browserHistory.push({
+      ...location,
+      query: {
+        ...location.query,
+        'span.description': newQuery === '' ? undefined : newQuery,
+        [QueryParameterNames.SPANS_CURSOR]: undefined,
+      },
+    });
+  };
+
+  return (
+    <VisuallyCompleteWithData
+      id="PipelinesTable"
+      hasData={rows.length > 0}
+      isLoading={isPending}
+    >
+      <Container>
+        <SearchBar
+          placeholder={t('Search for pipeline')}
+          query={spanDescription}
+          onSearch={handleSearch}
+        />
+        <GridEditable
+          isLoading={isPending}
+          error={error}
+          data={rows}
+          columnOrder={COLUMN_ORDER}
+          columnSortBy={[
+            {
+              key: sort.field,
+              order: sort.kind,
+            },
+          ]}
+          grid={{
+            renderHeadCell: column =>
+              renderHeadCell({
+                column,
+                sort,
+                location,
+                sortParameterName: QueryParameterNames.SPANS_SORT,
+              }),
+            renderBodyCell: (column, row) =>
+              renderBodyCell(moduleURL, column, row, meta, location, organization),
+          }}
+        />
+        <Pagination pageLinks={pageLinks} onCursor={handleCursor} />
+      </Container>
+    </VisuallyCompleteWithData>
+  );
+}
+
 export function PipelinesTable() {
   const location = useLocation();
   const moduleURL = useModuleURL('ai');
@@ -110,7 +262,6 @@ export function PipelinesTable() {
         'span.description': spanDescription ? `*${spanDescription}*` : undefined,
       }),
       fields: [
-        'project.id',
         'span.group',
         'span.description',
         'spm()',

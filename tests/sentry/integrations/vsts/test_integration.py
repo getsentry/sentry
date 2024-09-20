@@ -8,18 +8,111 @@ import pytest
 import responses
 
 from fixtures.vsts import CREATE_SUBSCRIPTION, VstsIntegrationTestCase
+from sentry.identity.vsts.provider import VSTSNewIdentityProvider
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.models.integration_external_project import IntegrationExternalProject
 from sentry.integrations.models.organization_integration import OrganizationIntegration
+from sentry.integrations.pipeline import ensure_integration
 from sentry.integrations.vsts import VstsIntegration, VstsIntegrationProvider
 from sentry.models.repository import Repository
 from sentry.shared_integrations.exceptions import IntegrationError, IntegrationProviderError
 from sentry.silo.base import SiloMode
+from sentry.testutils.helpers import with_feature
 from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
 from sentry.users.models.identity import Identity
 
 FULL_SCOPES = ["vso.code", "vso.graph", "vso.serviceendpoint_manage", "vso.work_write"]
 LIMITED_SCOPES = ["vso.graph", "vso.serviceendpoint_manage", "vso.work_write"]
+
+
+@control_silo_test
+class VstsIntegrationMigrationTest(VstsIntegrationTestCase):
+
+    # Test regular install still works
+    @with_feature("organizations:migrate-azure-devops-integration")
+    @patch(
+        "sentry.integrations.vsts.VstsIntegrationProvider.get_scopes",
+        return_value=VstsIntegrationProvider.NEW_SCOPES,
+    )
+    @patch(
+        "sentry.identity.pipeline.IdentityProviderPipeline.get_provider",
+        return_value=VSTSNewIdentityProvider(),
+    )
+    def test_original_installation_still_works(self, mock_get_scopes, mock_get_provider):
+        self.pipeline = Mock()
+        self.pipeline.organization = self.organization
+        self.assert_installation(new=True)
+        integration = Integration.objects.get(provider="vsts")
+        assert integration.external_id == self.vsts_account_id
+        assert integration.name == self.vsts_account_name
+
+        metadata = integration.metadata
+        assert set(metadata["scopes"]) == set(VstsIntegrationProvider.NEW_SCOPES)
+        assert metadata["subscription"]["id"] == CREATE_SUBSCRIPTION["id"]
+        assert metadata["domain_name"] == self.vsts_base_url
+
+    # Test that install second time doesn't have the metadata and updates the integration object
+    # Assert that the Integration object now has the migrated metadata
+    @with_feature("organizations:migrate-azure-devops-integration")
+    @patch(
+        "sentry.integrations.vsts.VstsIntegrationProvider.get_scopes",
+        return_value=VstsIntegrationProvider.NEW_SCOPES,
+    )
+    def test_migration(self, mock_get_scopes):
+        state = {
+            "account": {"accountName": self.vsts_account_name, "accountId": self.vsts_account_id},
+            "base_url": self.vsts_base_url,
+            "identity": {
+                "data": {
+                    "access_token": self.access_token,
+                    "expires_in": "3600",
+                    "refresh_token": self.refresh_token,
+                    "token_type": "jwt-bearer",
+                }
+            },
+        }
+
+        external_id = self.vsts_account_id
+        # Create the integration with old integration metadata
+        old_integraton_obj = self.create_provider_integration(
+            metadata=state, provider="vsts", external_id=external_id
+        )
+        assert old_integraton_obj.metadata.get("subscription", None) is None
+
+        provider = VstsIntegrationProvider()
+        pipeline = Mock()
+        pipeline.organization = self.organization
+        provider.set_pipeline(pipeline)
+
+        data = provider.build_integration(
+            {
+                "account": {"accountName": self.vsts_account_name, "accountId": external_id},
+                "base_url": self.vsts_base_url,
+                "identity": {
+                    "data": {
+                        "access_token": "new_access_token",
+                        "expires_in": "3600",
+                        "refresh_token": "new_refresh_token",
+                        "token_type": "bearer",
+                    }
+                },
+            }
+        )
+        assert external_id == data["external_id"]
+        subscription = data["metadata"]["subscription"]
+        assert subscription["id"] is not None and subscription["secret"] is not None
+        metadata = data.get("metadata")
+        assert metadata is not None
+        assert set(metadata["scopes"]) == set(VstsIntegrationProvider.NEW_SCOPES)
+        assert metadata["integration_migration_version"] == 1
+
+        # Make sure the integration object is updated
+        # ensure_integration will be called in _finish_pipeline
+        new_integration_obj = ensure_integration("vsts", data)
+        assert new_integration_obj.metadata["integration_migration_version"] == 1
+        assert set(new_integration_obj.metadata["scopes"]) == set(
+            VstsIntegrationProvider.NEW_SCOPES
+        )
 
 
 @control_silo_test
@@ -125,7 +218,11 @@ class VstsIntegrationProviderTest(VstsIntegrationTestCase):
     def test_fix_subscription(self, mock_get_scopes):
         external_id = self.vsts_account_id
         self.create_provider_integration(metadata={}, provider="vsts", external_id=external_id)
-        data = VstsIntegrationProvider().build_integration(
+        provider = VstsIntegrationProvider()
+        pipeline = Mock()
+        pipeline.organization = self.organization
+        provider.set_pipeline(pipeline)
+        data = provider.build_integration(
             {
                 "account": {"accountName": self.vsts_account_name, "accountId": external_id},
                 "base_url": self.vsts_base_url,

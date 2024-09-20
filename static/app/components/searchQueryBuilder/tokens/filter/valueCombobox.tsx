@@ -55,7 +55,7 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import {uniq} from 'sentry/utils/array/uniq';
 import {type FieldDefinition, FieldValueType} from 'sentry/utils/fields';
 import {isCtrlKeyPressed} from 'sentry/utils/isCtrlKeyPressed';
-import {type QueryKey, useQuery} from 'sentry/utils/queryClient';
+import {keepPreviousData, type QueryKey, useQuery} from 'sentry/utils/queryClient';
 import {useDebouncedValue} from 'sentry/utils/useDebouncedValue';
 import useKeyPress from 'sentry/utils/useKeyPress';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -95,7 +95,7 @@ function prepareInputValueForSaving(valueType: FieldValueType, inputValue: strin
   const values = uniq(
     inputValue
       .split(',')
-      .map(v => cleanFilterValue(valueType, v.trim()))
+      .map(v => cleanFilterValue({valueType, value: v.trim()}))
       .filter(v => v && v.length > 0)
   );
 
@@ -308,7 +308,7 @@ function useFilterSuggestions({
   const {data, isFetching} = useQuery<string[]>({
     queryKey: debouncedQueryKey,
     queryFn: () => getTagValues(key ? key : {key: keyName, name: keyName}, filterValue),
-    keepPreviousData: true,
+    placeholderData: keepPreviousData,
     enabled: shouldFetchValues,
   });
 
@@ -536,10 +536,11 @@ export function SearchQueryBuilderValueCombobox({
 
   const updateFilterValue = useCallback(
     (value: string) => {
-      const cleanedValue = cleanFilterValue(
-        getFilterValueType(token, fieldDefinition),
-        value
-      );
+      const cleanedValue = cleanFilterValue({
+        valueType: getFilterValueType(token, fieldDefinition),
+        value,
+        token,
+      });
 
       // TODO(malwilley): Add visual feedback for invalid values
       if (cleanedValue === null) {
@@ -731,6 +732,7 @@ export function SearchQueryBuilderValueCombobox({
               {...props}
               isMultiSelect={canSelectMultipleValues}
               items={items}
+              isLoading={isFetching}
               canUseWildcard={canUseWildard}
             />
           );
@@ -770,6 +772,7 @@ export function SearchQueryBuilderValueCombobox({
       showDatePicker,
       canSelectMultipleValues,
       items,
+      isFetching,
       canUseWildard,
       inputValue,
       token,
@@ -799,7 +802,6 @@ export function SearchQueryBuilderValueCombobox({
         autoFocus
         maxOptions={50}
         openOnFocus
-        isLoading={isFetching}
         customMenu={customMenu}
         shouldCloseOnInteractOutside={shouldCloseOnInteractOutside}
       >

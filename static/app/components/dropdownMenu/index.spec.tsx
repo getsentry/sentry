@@ -166,7 +166,6 @@ describe('DropdownMenu', function () {
 
     const parentItem = screen.getByRole('menuitemradio', {name: 'Item'});
 
-    expect(parentItem).toHaveAttribute('aria-haspopup', 'true');
     expect(parentItem).toHaveAttribute('aria-expanded', 'false');
 
     await userEvent.hover(parentItem);

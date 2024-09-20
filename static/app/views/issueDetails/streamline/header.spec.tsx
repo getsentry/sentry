@@ -54,6 +54,10 @@ describe('UpdatedGroupHeader', () => {
         url: `/organizations/org-slug/releases/${encodeURIComponent(firstRelease.version)}/deploys/`,
         body: {},
       });
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/issues/${group.id}/attachments/`,
+        body: [],
+      });
     });
 
     it('shows all elements of header', async () => {

@@ -9,13 +9,19 @@ import {DateTime} from 'sentry/components/dateTime';
 import InteractionStateLayer from 'sentry/components/interactionStateLayer';
 import {useSearchQueryBuilder} from 'sentry/components/searchQueryBuilder/context';
 import {useQueryBuilderGridItem} from 'sentry/components/searchQueryBuilder/hooks/useQueryBuilderGridItem';
-import {FilterKeyOperator} from 'sentry/components/searchQueryBuilder/tokens/filter/filterKeyOperator';
+import {AggregateKey} from 'sentry/components/searchQueryBuilder/tokens/filter/aggregateKey';
+import {FilterKey} from 'sentry/components/searchQueryBuilder/tokens/filter/filterKey';
+import {FilterOperator} from 'sentry/components/searchQueryBuilder/tokens/filter/filterOperator';
 import {UnstyledButton} from 'sentry/components/searchQueryBuilder/tokens/filter/unstyledButton';
 import {useFilterButtonProps} from 'sentry/components/searchQueryBuilder/tokens/filter/useFilterButtonProps';
-import {formatFilterValue} from 'sentry/components/searchQueryBuilder/tokens/filter/utils';
+import {
+  formatFilterValue,
+  isAggregateFilterToken,
+} from 'sentry/components/searchQueryBuilder/tokens/filter/utils';
 import {SearchQueryBuilderValueCombobox} from 'sentry/components/searchQueryBuilder/tokens/filter/valueCombobox';
 import {InvalidTokenTooltip} from 'sentry/components/searchQueryBuilder/tokens/invalidTokenTooltip';
 import {
+  FilterType,
   type ParseResultToken,
   Token,
   type TokenResult,
@@ -214,14 +220,34 @@ export function SearchQueryBuilderFilter({item, state, token}: SearchQueryTokenP
         containerDisplayMode="grid"
         forceVisible={filterMenuOpen ? false : undefined}
       >
-        <FilterKeyOperator
-          token={token}
-          state={state}
-          item={item}
-          onOpenChange={setFilterMenuOpen}
-          filterRef={ref}
-          gridCellProps={gridCellProps}
-        />
+        {token.filter === FilterType.IS || token.filter === FilterType.HAS ? null : (
+          <BaseGridCell {...gridCellProps}>
+            {isAggregateFilterToken(token) ? (
+              <AggregateKey
+                filterRef={ref}
+                item={item}
+                token={token}
+                state={state}
+                onActiveChange={setFilterMenuOpen}
+              />
+            ) : (
+              <FilterKey
+                token={token}
+                state={state}
+                item={item}
+                onActiveChange={setFilterMenuOpen}
+              />
+            )}
+          </BaseGridCell>
+        )}
+        <BaseGridCell {...gridCellProps}>
+          <FilterOperator
+            token={token}
+            state={state}
+            item={item}
+            onOpenChange={setFilterMenuOpen}
+          />
+        </BaseGridCell>
         <FilterValueGridCell {...gridCellProps}>
           <FilterValue
             token={token}

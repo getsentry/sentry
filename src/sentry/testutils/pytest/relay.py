@@ -47,7 +47,7 @@ def _remove_container_if_exists(docker_client, container_name):
             pass  # could not remove the container nothing to do about it
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture(scope="module")
 def relay_server_setup(live_server, tmpdir_factory):
     prefix = "test_relay_config_{}_".format(
         datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S_%f")

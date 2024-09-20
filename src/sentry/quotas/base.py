@@ -461,6 +461,12 @@ class Quota(Service):
                 categories=[DataCategory.SESSION],
                 scope=QuotaScope.PROJECT,
             ),
+            AbuseQuota(
+                id="paspi",
+                option="project-abuse-quota.span-limit",
+                categories=[DataCategory.SPAN_INDEXED],
+                scope=QuotaScope.PROJECT,
+            ),
         ]
 
         abuse_quotas.extend(build_metric_abuse_quotas())

@@ -117,7 +117,6 @@ def fix_for_issue_platform(event_data):
             "replay_id": event_data["contexts"].get("feedback", {}).get("replay_id")
         }
     ret_event["event_id"] = event_data["event_id"]
-    ret_event["tags"] = event_data.get("tags", [])
 
     ret_event["platform"] = event_data.get("platform", "other")
     ret_event["level"] = event_data.get("level", "info")
@@ -142,8 +141,26 @@ def fix_for_issue_platform(event_data):
     # If no user email was provided specify the contact-email as the user-email.
     feedback_obj = event_data.get("contexts", {}).get("feedback", {})
     contact_email = feedback_obj.get("contact_email")
+
     if not ret_event["user"].get("email", ""):
         ret_event["user"]["email"] = contact_email
+
+    # Force `tags` to be a dict if it's initially a list,
+    # since we can't guarantee its type here.
+
+    tags = event_data.get("tags", {})
+    tags_dict = {}
+    if isinstance(tags, list):
+        for [k, v] in tags:
+            tags_dict[k] = v
+    else:
+        tags_dict = tags
+    ret_event["tags"] = tags_dict
+
+    # Set the user.email tag since we want to be able to display user.email on the feedback UI as a tag
+    # as well as be able to write alert conditions on it
+    if not ret_event["tags"].get("user.email"):
+        ret_event["tags"]["user.email"] = contact_email
 
     # Set the event message to the feedback message.
     ret_event["logentry"] = {"message": feedback_obj.get("message")}
@@ -347,44 +364,26 @@ def shim_to_feedback(
             },
         }
 
-        if event:
-            feedback_event["contexts"]["feedback"]["associated_event_id"] = event.event_id
+        feedback_event["contexts"]["feedback"]["associated_event_id"] = event.event_id
 
-            if get_path(event.data, "contexts", "replay", "replay_id"):
-                feedback_event["contexts"]["replay"] = event.data["contexts"]["replay"]
-                feedback_event["contexts"]["feedback"]["replay_id"] = event.data["contexts"][
-                    "replay"
-                ]["replay_id"]
+        if get_path(event.data, "contexts", "replay", "replay_id"):
+            feedback_event["contexts"]["replay"] = event.data["contexts"]["replay"]
+            feedback_event["contexts"]["feedback"]["replay_id"] = event.data["contexts"]["replay"][
+                "replay_id"
+            ]
 
-            if get_path(event.data, "contexts", "trace", "trace_id"):
-                feedback_event["contexts"]["trace"] = event.data["contexts"]["trace"]
+        if get_path(event.data, "contexts", "trace", "trace_id"):
+            feedback_event["contexts"]["trace"] = event.data["contexts"]["trace"]
 
-            feedback_event["timestamp"] = event.datetime.timestamp()
-            feedback_event["level"] = event.data["level"]
-            feedback_event["platform"] = event.platform
-            feedback_event["level"] = event.data["level"]
-            feedback_event["environment"] = event.get_environment().name
-            feedback_event["tags"] = [list(item) for item in event.tags]
-
-        else:
-            metrics.incr(
-                "feedback.user_report.missing_event",
-                sample_rate=1.0,
-                tags={"referrer": source.value},
-            )
-
-            feedback_event["timestamp"] = datetime.utcnow().timestamp()
-            feedback_event["platform"] = "other"
-            feedback_event["level"] = report.get("level", "info")
-
-            if report.get("event_id"):
-                feedback_event["contexts"]["feedback"]["associated_event_id"] = report["event_id"]
+        feedback_event["timestamp"] = event.datetime.timestamp()
+        feedback_event["platform"] = event.platform
+        feedback_event["level"] = event.data["level"]
+        feedback_event["environment"] = event.get_environment().name
+        feedback_event["tags"] = [list(item) for item in event.tags]
 
         create_feedback_issue(feedback_event, project.id, source)
     except Exception:
-        logger.exception(
-            "Error attempting to create new User Feedback from Shiming old User Report"
-        )
+        logger.exception("Error attempting to create new user feedback by shimming a user report")
         metrics.incr("feedback.shim_to_feedback.failed", tags={"referrer": source.value})
 
 

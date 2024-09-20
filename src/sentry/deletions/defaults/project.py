@@ -1,10 +1,16 @@
 from __future__ import annotations
 
-from ..base import BulkModelDeletionTask, ModelDeletionTask, ModelRelation
+from sentry.deletions.base import (
+    BaseRelation,
+    BulkModelDeletionTask,
+    ModelDeletionTask,
+    ModelRelation,
+)
+from sentry.models.project import Project
 
 
-class ProjectDeletionTask(ModelDeletionTask):
-    def get_child_relations(self, instance):
+class ProjectDeletionTask(ModelDeletionTask[Project]):
+    def get_child_relations(self, instance: Project) -> list[BaseRelation]:
         from sentry.discover.models import DiscoverSavedQueryProject
         from sentry.incidents.models.alert_rule import AlertRule, AlertRuleProjects
         from sentry.incidents.models.incident import IncidentProject
@@ -40,7 +46,7 @@ class ProjectDeletionTask(ModelDeletionTask):
         from sentry.replays.models import ReplayRecordingSegment
         from sentry.snuba.models import QuerySubscription
 
-        relations = [
+        relations: list[BaseRelation] = [
             # ProjectKey gets revoked immediately, in bulk
             ModelRelation(ProjectKey, {"project_id": instance.id})
         ]
