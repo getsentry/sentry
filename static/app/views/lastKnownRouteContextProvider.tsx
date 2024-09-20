@@ -5,7 +5,7 @@ import usePrevious from 'sentry/utils/usePrevious';
 import {useRoutes} from 'sentry/utils/useRoutes';
 
 interface Props {
-  children?: React.ReactNode;
+  children: React.ReactNode;
 }
 
 export const LastKnownRouteContext = createContext<string>('');
