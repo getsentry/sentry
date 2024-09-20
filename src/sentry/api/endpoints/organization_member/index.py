@@ -205,7 +205,7 @@ class OrganizationMemberIndexEndpoint(OrganizationEndpoint):
         """
         List all organization members.
 
-        Response includes pending invites that are approved by organization admins but waiting to be accepted by the invitee.
+        Response includes pending invites that are approved by organization owners or managers but waiting to be accepted by the invitee.
         """
         queryset = OrganizationMember.objects.filter(
             Q(user_is_active=True, user_id__isnull=False) | Q(user_id__isnull=True),
