@@ -115,36 +115,37 @@ def format_historical_data(
     """
     Format Snuba data into the format the Seer API expects.
     """
-    serializer = SnubaTSResultSerializer(organization=organization, lookup=None, user=None)
-    serialized_result = serializer.serialize(
-        data,
-        resolve_axis_column(query_columns[0]),
-        allow_partial_buckets=False,
-        zerofill_results=False,
-        extra_columns=None,
-    )
     formatted_data: list[TimeSeriesPoint] = []
 
-    # CEO: need to validate this is still correct for sessions data
-    # if dataset == metrics_performance:
-    #     groups = nested_data.get("groups")
-    #     if not len(groups):
-    #         return formatted_data
-    #     series = groups[0].get("series")
+    if dataset == metrics_performance:
+        nested_data = data.data.get("data", [])
+        groups = nested_data.get("groups")
+        if not len(groups):
+            return formatted_data
+        series = groups[0].get("series")
 
-    #     for time, count in zip(nested_data.get("intervals"), series.get("sum(session)", 0)):
-    #         date = datetime.strptime(time, "%Y-%m-%dT%H:%M:%SZ")
-    #         ts_point = TimeSeriesPoint(timestamp=date.timestamp(), value=count)
-    #         formatted_data.append(ts_point)
-
-    for data in serialized_result.get("data"):
-        if len(data) > 1:
-            count_data = data[1]
-            count = 0
-            if len(count_data):
-                count = count_data[0].get("count", 0)
-            ts_point = TimeSeriesPoint(timestamp=data[0], value=count)
+        for time, count in zip(nested_data.get("intervals"), series.get("sum(session)", 0)):
+            date = datetime.strptime(time, "%Y-%m-%dT%H:%M:%SZ")
+            ts_point = TimeSeriesPoint(timestamp=date.timestamp(), value=count)
             formatted_data.append(ts_point)
+    else:
+        serializer = SnubaTSResultSerializer(organization=organization, lookup=None, user=None)
+        serialized_result = serializer.serialize(
+            data,
+            resolve_axis_column(query_columns[0]),
+            allow_partial_buckets=False,
+            zerofill_results=False,
+            extra_columns=None,
+        )
+
+        for data in serialized_result.get("data"):
+            if len(data) > 1:
+                count_data = data[1]
+                count = 0
+                if len(count_data):
+                    count = count_data[0].get("count", 0)
+                ts_point = TimeSeriesPoint(timestamp=data[0], value=count)
+                formatted_data.append(ts_point)
 
     return formatted_data
 
@@ -172,14 +173,15 @@ def fetch_historical_data(
     granularity = snuba_query.time_window
 
     dataset_label = snuba_query.dataset
+
     if dataset_label == "events":
         # DATASET_OPTIONS expects the name 'errors'
         dataset_label = "errors"
     elif dataset_label == "generic_metrics":
-        # XXX: this is for sessions/crash rate alerts
+        # XXX: performance alerts in prod
         dataset_label = "transactions"
     elif dataset_label == "transactions":
-        # XXX: this is for performance alerts
+        # XXX: performance alerts locally
         dataset_label = "discover"
     dataset = get_dataset(dataset_label)
 
@@ -198,13 +200,13 @@ def fetch_historical_data(
         stats_period=None,
         environments=environments,
     )
-    snuba_query_string = get_snuba_query_string(snuba_query)
 
     if dataset == metrics_performance:
         return get_crash_free_historical_data(
             start, end, project, alert_rule.organization, granularity
         )
     else:
+        snuba_query_string = get_snuba_query_string(snuba_query)
         historical_data = dataset.timeseries_query(
             selected_columns=query_columns,
             query=snuba_query_string,

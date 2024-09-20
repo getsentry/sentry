@@ -178,7 +178,6 @@ class AnomalyDetectionStoreDataTest(AlertRuleBase, BaseMetricsTestCase, Performa
         assert {"time": int(event1.datetime.timestamp()), "count": 1} in result.data.get("data")
         assert {"time": int(event2.datetime.timestamp()), "count": 1} in result.data.get("data")
 
-    @pytest.mark.skip(reason="changed everything else and need to revisit this")
     def test_anomaly_detection_format_historical_data_crash_rate_alert(self):
         expected_return_value = [
             {"timestamp": self.time_1_ts, "value": 0},
@@ -200,7 +199,6 @@ class AnomalyDetectionStoreDataTest(AlertRuleBase, BaseMetricsTestCase, Performa
         result = format_historical_data(data, ["count()"], metrics_performance, self.organization)
         assert result == expected_return_value
 
-    @pytest.mark.skip(reason="changed everything else and need to revisit this")
     def test_anomaly_detection_fetch_historical_data_crash_rate_alert(self):
         self.store_session(
             self.build_session(
