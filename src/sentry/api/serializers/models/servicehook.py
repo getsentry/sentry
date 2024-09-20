@@ -1,5 +1,5 @@
 from sentry.api.serializers import Serializer, register
-from sentry.models.servicehook import ServiceHook
+from sentry.sentry_apps.models.servicehook import ServiceHook
 
 
 @register(ServiceHook)
