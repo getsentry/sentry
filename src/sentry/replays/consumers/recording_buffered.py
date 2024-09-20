@@ -319,7 +319,7 @@ def process_message(buffer: RecordingBuffer, message: bytes) -> None:
                 else None
             )
 
-        project = Project.objects.select_related("organization").get_from_cache(
+        project = Project.objects.get_from_cache(
             id=decoded_message["project_id"]
         )
         replay_actions = parse_replay_actions(
