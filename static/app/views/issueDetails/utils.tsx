@@ -13,7 +13,7 @@ import {defined} from 'sentry/utils';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useParams} from 'sentry/utils/useParams';
 import {useUser} from 'sentry/utils/useUser';
-import {useGroupTagsReadable} from 'sentry/views/issueDetails/groupTags/useGroupTags';
+import {useGroupFacetTags} from 'sentry/views/issueDetails/groupTags/useGroupTags';
 
 export function markEventSeen(
   api: Client,
@@ -256,7 +256,7 @@ export function useIsSampleEvent(): boolean {
 
   const group = GroupStore.get(groupId);
 
-  const {data} = useGroupTagsReadable(
+  const {data} = useGroupFacetTags(
     {
       groupId: groupId,
       environment: environments,

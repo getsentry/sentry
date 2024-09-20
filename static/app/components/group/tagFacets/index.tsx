@@ -5,6 +5,7 @@ import type {LocationDescriptor} from 'history';
 import keyBy from 'lodash/keyBy';
 
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
+import {deviceNameMapper} from 'sentry/components/deviceName';
 import LoadingError from 'sentry/components/loadingError';
 import Placeholder from 'sentry/components/placeholder';
 import QuestionTooltip from 'sentry/components/questionTooltip';
@@ -19,7 +20,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 import {formatVersion} from 'sentry/utils/versions/formatVersion';
 import {
   type GroupTag,
-  useGroupTagsReadable,
+  useGroupFacetTags,
 } from 'sentry/views/issueDetails/groupTags/useGroupTags';
 
 import TagFacetsDistributionMeter from './tagFacetsDistributionMeter';
@@ -65,7 +66,7 @@ export function TAGS_FORMATTER(tagsData: Record<string, GroupTag>) {
         topValues: tagsData[tagKey].topValues.map(topValue => {
           return {
             ...topValue,
-            name: topValue.readable ?? topValue.name,
+            name: deviceNameMapper(topValue.name) ?? topValue.name,
           };
         }),
       };
@@ -94,7 +95,7 @@ export default function TagFacets({
 }: Props) {
   const organization = useOrganization();
 
-  const {isPending, isError, data, refetch} = useGroupTagsReadable({
+  const {isPending, isError, data, refetch} = useGroupFacetTags({
     groupId,
     environment: environments,
   });
