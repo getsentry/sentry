@@ -24,7 +24,7 @@ export interface GroupTag {
      * Available if `readable` query param is true
      * @deprecated - Use the frontend to get readable device names
      */
-    readable?: boolean;
+    readable?: string;
   }>;
   totalValues: number;
 }

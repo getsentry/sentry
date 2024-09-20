@@ -5,7 +5,6 @@ import type {LocationDescriptor} from 'history';
 import keyBy from 'lodash/keyBy';
 
 import type {Tag} from 'sentry/actionCreators/events';
-import type {GroupTagResponseItem} from 'sentry/actionCreators/group';
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
 import LoadingError from 'sentry/components/loadingError';
 import Placeholder from 'sentry/components/placeholder';
@@ -19,7 +18,10 @@ import {appendTagCondition} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {formatVersion} from 'sentry/utils/versions/formatVersion';
-import {useGroupTagsReadable} from 'sentry/views/issueDetails/groupTags/useGroupTags';
+import {
+  type GroupTag,
+  useGroupTagsReadable,
+} from 'sentry/views/issueDetails/groupTags/useGroupTags';
 
 import TagFacetsDistributionMeter from './tagFacetsDistributionMeter';
 
@@ -44,9 +46,9 @@ export const BACKEND_TAGS = [
 
 export const DEFAULT_TAGS = ['transaction', 'environment', 'release'];
 
-export function TAGS_FORMATTER(tagsData: Record<string, GroupTagResponseItem>) {
+export function TAGS_FORMATTER(tagsData: Record<string, GroupTag>) {
   // For "release" tag keys, format the release tag value to be more readable (ie removing version prefix)
-  const transformedTagsData = {};
+  const transformedTagsData: Record<string, GroupTag> = {};
   Object.keys(tagsData).forEach(tagKey => {
     if (tagKey === 'release') {
       transformedTagsData[tagKey] = {
@@ -99,9 +101,7 @@ type Props = {
   groupId: string;
   project: Project;
   tagKeys: string[];
-  tagFormatter?: (
-    tagsData: Record<string, GroupTagResponseItem>
-  ) => Record<string, GroupTagResponseItem>;
+  tagFormatter?: (tagsData: Record<string, GroupTag>) => Record<string, GroupTag>;
 };
 
 export default function TagFacets({
@@ -118,16 +118,15 @@ export default function TagFacets({
     environment: environments,
   });
 
-  const tagsData = useMemo(() => {
+  const tagsData = useMemo((): Record<string, GroupTag> => {
     if (!data) {
       return {};
     }
 
     const keyed = keyBy(data, 'key');
-    const formatted =
-      tagFormatter?.(keyed as Record<string, GroupTagResponseItem>) ?? keyed;
+    const formatted = tagFormatter?.(keyed) ?? keyed;
 
-    return formatted as Record<string, GroupTagResponseItem>;
+    return formatted;
   }, [data, tagFormatter]);
 
   // filter out replayId since we no longer want to
@@ -228,7 +227,7 @@ function TagFacetsDistributionMeterWrapper({
   organization: Organization;
   project: Project;
   tagKeys: string[];
-  tagsData: Record<string, GroupTagResponseItem>;
+  tagsData: Record<string, GroupTag>;
   expandFirstTag?: boolean;
 }) {
   const location = useLocation();
