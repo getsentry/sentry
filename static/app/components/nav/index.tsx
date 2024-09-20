@@ -22,32 +22,32 @@ function Nav() {
 
   return (
     <NavContainer>
-      <Sidebar>
+      <Sidebar role="navigation" aria-label="Primary Navigation">
         <Sidebar.Header>
           <OrganizationAvatar organization={organization} size={32} />
         </Sidebar.Header>
         <Sidebar.Body>
           {nav.primary.body.map(item => (
-            <Sidebar.Item key={item.to} {...item} />
+            <Sidebar.Item key={item.label} {...item} />
           ))}
         </Sidebar.Body>
         <Sidebar.Footer>
           {nav.primary.footer.map(item => (
-            <Sidebar.Item key={item.to} {...item} />
+            <Sidebar.Item key={item.label} {...item} />
           ))}
         </Sidebar.Footer>
       </Sidebar>
       {nav.secondary.body.length > 0 && (
-        <Submenu>
+        <Submenu role="navigation" aria-label="Secondary Navigation">
           <Submenu.Body>
             {nav.secondary.body.map(item => (
-              <Submenu.Item key={item.to} {...item} />
+              <Submenu.Item key={item.label} {...item} />
             ))}
           </Submenu.Body>
           {nav.secondary.footer.length > 0 && (
             <Submenu.Footer>
               {nav.secondary.footer.map(item => (
-                <Submenu.Item key={item.to} {...item} />
+                <Submenu.Item key={item.label} {...item} />
               ))}
             </Submenu.Footer>
           )}
@@ -57,7 +57,7 @@ function Nav() {
   );
 }
 
-const NavContainer = styled('nav')`
+const NavContainer = styled('div')`
   display: flex;
   position: sticky;
   top: 0;
