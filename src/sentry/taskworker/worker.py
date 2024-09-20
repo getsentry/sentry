@@ -59,6 +59,9 @@ class Worker:
 
         # TODO: Check idempotency
         next_state = PendingTasks.States.FAILURE
+
+        task_added_time = task_data.added_at.timestamp()
+        execution_time = time.time()
         try:
             task_meta(*task_data.parameters["args"], **task_data.parameters["kwargs"])
             next_state = PendingTasks.States.COMPLETE
@@ -68,6 +71,10 @@ class Worker:
             if task_meta.should_retry(task_data.retry_state(), err):
                 logger.info("taskworker.task.retry", extra={"task": task_data.task_name})
                 next_state = PendingTasks.States.RETRY
+
+        task_latency = execution_time - task_added_time
+        logger.info("task.complete", extra={"latency": task_latency})
+
         if next_state == PendingTasks.States.COMPLETE:
             logger.info("taskworker.task.complete", extra={"task": task_data.task_name})
             task_service.complete_task(task_id=task_data.id)
