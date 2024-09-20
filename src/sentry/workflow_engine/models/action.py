@@ -21,6 +21,3 @@ class Action(DefaultFieldsModel):
     required = models.BooleanField(default=False)
     type = models.TextField(choices=Type.choices)
     data = models.JSONField(default=dict)
-    data_condition_group = models.ForeignKey(
-        "workflow_engine.DataConditionGroup", on_delete=models.CASCADE, blank=True, null=True
-    )
