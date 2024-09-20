@@ -91,8 +91,7 @@ export function FullSpanDescription({
       }
 
       if (result) {
-        const {prettifiedQuery} = result;
-        stringifiedQuery = prettifiedQuery;
+        stringifiedQuery = result.prettifiedQuery;
       }
 
       return (
