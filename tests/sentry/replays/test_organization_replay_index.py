@@ -1762,6 +1762,52 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
             response_data = response.json()
             assert len(response_data["data"]) == 1
 
+    def test_query_scalar_optimization_varying_with_tags(self):
+        project = self.create_project(teams=[self.team])
+
+        replay1_id = uuid.uuid4().hex
+        seq1_timestamp = datetime.datetime.now() - datetime.timedelta(seconds=22)
+        seq2_timestamp = datetime.datetime.now() - datetime.timedelta(seconds=5)
+
+        self.store_replays(
+            mock_replay(seq1_timestamp, project.id, replay1_id, tags={"something": "else"})
+        )
+        self.store_replays(mock_replay(seq2_timestamp, project.id, replay1_id))
+
+        with self.feature(self.features):
+            # EQ and IN supported.
+            response = self.client.get(self.url + "?field=id&query=something:else&statsPeriod=1d")
+            assert response.status_code == 200
+            assert response.headers["X-Data-Source"] == "scalar-subquery"
+
+            response = self.client.get(
+                self.url + "?field=id&query=something:else,other&statsPeriod=1d"
+            )
+            assert response.status_code == 200
+            assert response.headers["X-Data-Source"] == "scalar-subquery"
+
+            # Not operators are not supported.
+            response = self.client.get(self.url + "?field=id&query=!something:else&statsPeriod=1d")
+            assert response.status_code == 200
+            assert response.headers["X-Data-Source"] == "aggregated-subquery"
+
+            response = self.client.get(
+                self.url + "?field=id&query=!something:else,other&statsPeriod=1d"
+            )
+            assert response.status_code == 200
+            assert response.headers["X-Data-Source"] == "aggregated-subquery"
+
+            # Match not supported.
+            response = self.client.get(self.url + "?field=id&query=something:*else*&statsPeriod=1d")
+            assert response.status_code == 200
+            assert response.headers["X-Data-Source"] == "aggregated-subquery"
+
+            response = self.client.get(
+                self.url + "?field=id&query=!something:*else*&statsPeriod=1d"
+            )
+            assert response.status_code == 200
+            assert response.headers["X-Data-Source"] == "aggregated-subquery"
+
     def test_get_replays_missing_segment_0(self):
         """Test fetching replays when the 0th segment is missing."""
         project = self.create_project(teams=[self.team])
