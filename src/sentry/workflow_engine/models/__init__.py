@@ -20,4 +20,4 @@ from .data_source_detector import DataSourceDetector
 from .detector import Detector
 from .detector_workflow import DetectorWorkflow
 from .workflow import Workflow
-from .workflow_data_conidtion_group import WorkflowDataConditionGroup
+from .workflow_data_condition_group import WorkflowDataConditionGroup
