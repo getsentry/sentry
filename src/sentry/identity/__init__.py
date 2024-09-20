@@ -9,7 +9,7 @@ from .manager import IdentityManager
 from .oauth2 import *  # NOQA
 from .slack import *  # NOQA
 from .vercel import *  # NOQA
-from .vsts import VSTSIdentityProvider
+from .vsts import VSTSIdentityProvider, VSTSNewIdentityProvider
 from .vsts_extension import *  # NOQA
 
 default_manager = IdentityManager()
@@ -25,6 +25,7 @@ is_login_provider = default_manager.is_login_provider
 register(SlackIdentityProvider)  # NOQA
 register(GitHubIdentityProvider)  # NOQA
 register(GitHubEnterpriseIdentityProvider)  # NOQA
+register(VSTSNewIdentityProvider)  # NOQA
 register(VSTSIdentityProvider)  # NOQA
 register(VstsExtensionIdentityProvider)  # NOQA
 register(VercelIdentityProvider)  # NOQA

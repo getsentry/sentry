@@ -727,7 +727,7 @@ class AuthHelper(Pipeline):
         self.organization: RpcOrganization = self.organization
         self.provider: Provider = self.provider
 
-    def get_provider(self, provider_key: str | None) -> PipelineProvider:
+    def get_provider(self, provider_key: str | None, **kwargs) -> PipelineProvider:
         if self.provider_model:
             return cast(PipelineProvider, self.provider_model.get_provider())
         elif provider_key:
