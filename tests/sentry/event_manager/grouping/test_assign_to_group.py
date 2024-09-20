@@ -377,8 +377,8 @@ def test_existing_group_no_new_hash(
 )
 @pytest.mark.parametrize(
     "new_logic_enabled",
-    (True, False),
-    ids=(" new_logic_enabled: True ", " new_logic_enabled: False "),
+    (True,),
+    ids=(" new_logic_enabled: True ",),
 )
 @pytest.mark.parametrize(
     "secondary_hash_exists",
@@ -506,13 +506,4 @@ def test_uses_regular_or_optimized_grouping_as_appropriate(
             {"message": "Dogs are great!"}, project, DEFAULT_GROUPING_CONFIG
         )
 
-    if killswitch_enabled:
-        assert mock_save_aggregate.call_count == 1
-    elif flag_on:
-        assert mock_save_aggregate_new.call_count == 1
-    elif in_transition:
-        assert mock_save_aggregate_new.call_count == 1
-    elif id_qualifies:
-        assert mock_save_aggregate_new.call_count == 1
-    else:
-        assert mock_save_aggregate.call_count == 1
+    assert mock_save_aggregate_new.call_count == 1
