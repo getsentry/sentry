@@ -1,3 +1,5 @@
+from unittest import mock
+
 import pytest
 from rest_framework.exceptions import ErrorDetail
 
@@ -91,6 +93,32 @@ class ProjectUptimeAlertDetailsPutEndpointTest(ProjectUptimeAlertDetailsBaseEndp
     def test_not_found(self):
         resp = self.get_error_response(self.organization.slug, self.project.slug, 3)
         assert resp.status_code == 404
+
+    @mock.patch("sentry.uptime.endpoints.validators.MAX_MONITORS_PER_DOMAIN", 1)
+    def test_domain_limit(self):
+        # First monitor is for test-one.example.com
+        self.create_project_uptime_subscription(
+            uptime_subscription=self.create_uptime_subscription(
+                url="test-one.example.com",
+                url_domain="example",
+                url_domain_suffix="com",
+            )
+        )
+
+        # Update second monitor to use the same domain. This will fail with a
+        # validation error
+        uptime_subscription = self.create_project_uptime_subscription()
+        resp = self.get_error_response(
+            self.organization.slug,
+            uptime_subscription.project.slug,
+            uptime_subscription.id,
+            status_code=400,
+            url="https://test-two.example.com",
+        )
+        assert (
+            resp.data["url"][0]
+            == "The domain *.example.com has already been used in 1 uptime monitoring alerts, which is the limit. You cannot create any additional alerts for this domain."
+        )
 
 
 class ProjectUptimeAlertDetailsDeleteEndpointTest(ProjectUptimeAlertDetailsBaseEndpointTest):
