@@ -78,7 +78,7 @@ ACTIVITY_DATA_FIELDS = {
 }
 
 
-def fix_substatus_for__groups(apps: Apps, schema_editor: BaseDatabaseSchemaEditor) -> None:
+def fix_substatus_for_groups(apps: Apps, schema_editor: BaseDatabaseSchemaEditor) -> None:
     Group = apps.get_model("sentry", "Group")
     Activity = apps.get_model("sentry", "Activity")
     GroupSnooze = apps.get_model("sentry", "GroupSnooze")
@@ -163,7 +163,7 @@ class Migration(CheckedMigration):
 
     operations = [
         migrations.RunPython(
-            fix_substatus_for__groups,
+            fix_substatus_for_groups,
             migrations.RunPython.noop,
             hints={"tables": ["sentry_groupedmessage", "sentry_grouphistory"]},
         ),
