@@ -40,7 +40,7 @@ const PageFilterBar = styled('div')<{condensed?: boolean}>`
   }
 
   /* Less inner padding between buttons */
-  x & > div:not(:first-child) > button[aria-haspopup] {
+  & > div:not(:first-child) > button[aria-haspopup] {
     padding-left: ${space(1.5)};
   }
   & > div:not(:last-child) > button[aria-haspopup] {
