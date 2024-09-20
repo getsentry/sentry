@@ -145,6 +145,7 @@ const onboarding: OnboardingConfig = {
     },
     getUploadSourceMapsStep({
       guideLink: 'https://docs.sentry.io/platforms/javascript/guides/ember/sourcemaps/',
+      ...params,
     }),
   ],
   verify: () => [
