@@ -1,3 +1,4 @@
+import {parseMultiSelectFilterValue} from 'sentry/components/searchQueryBuilder/tokens/filter/parsers/string/parser';
 import {
   type AggregateFilter,
   allOperators,
@@ -16,7 +17,7 @@ import {
   getFieldDefinition,
 } from 'sentry/utils/fields';
 
-const SHOULD_ESCAPE_REGEX = /[\s"()]/;
+const SHOULD_ESCAPE_REGEX = /[\s"(),]/;
 
 export function isAggregateFilterToken(
   token: TokenResult<Token.FILTER>
@@ -103,18 +104,32 @@ export function replaceCommaSeparatedValue(
   cursorPosition: number | null,
   replacement: string
 ) {
-  const items = value.split(',');
+  const parsed = parseMultiSelectFilterValue(value);
 
-  let characterCount = 0;
-  for (let i = 0; i < items.length; i++) {
-    characterCount += items[i].length + 1;
-    if (characterCount > (cursorPosition ?? value.length + 1)) {
-      const newItems = [...items.slice(0, i), replacement, ...items.slice(i + 1)];
-      return newItems.map(item => item.trim()).join(',');
-    }
+  if (!parsed) {
+    return value;
   }
 
-  return value;
+  if (cursorPosition === null) {
+    cursorPosition = value.length;
+  }
+
+  const matchingIndex = parsed.items.findIndex(
+    item =>
+      item.value &&
+      item.value?.location.start.offset <= cursorPosition &&
+      item.value?.location.end.offset >= cursorPosition
+  );
+
+  if (matchingIndex === -1) {
+    return replacement;
+  }
+
+  return [
+    ...parsed.items.slice(0, matchingIndex).map(item => item.value?.text ?? ''),
+    replacement,
+    ...parsed.items.slice(matchingIndex + 1).map(item => item.value?.text ?? ''),
+  ].join(',');
 }
 
 /**
