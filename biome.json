@@ -36,7 +36,6 @@
         "noExcessiveNestedTestSuites": "error"
       },
       "nursery": {
-        "noDuplicateJsonKeys": "error",
         "noRestrictedImports": {
           "level": "warn",
           "options": {
@@ -99,6 +98,10 @@
       "fixtures",
       ".devenv"
     ]
+  },
+  "css": {
+    "formatter": { "enabled": false },
+    "linter": { "enabled": false }
   },
   "formatter": {
     "enabled": true,

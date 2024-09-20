@@ -2,6 +2,7 @@ from rest_framework.exceptions import ParseError
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry import options
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import ReleaseAnalyticsMixin, region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint, ProjectReleasePermission
@@ -144,8 +145,12 @@ class ProjectReleaseDetailsEndpoint(ProjectEndpoint, ReleaseAnalyticsMixin):
                 data={"version": release.version},
                 datetime=release.date_released,
             )
-
-        return Response(serialize(release, request.user))
+        no_snuba_for_release_creation = options.get("releases.no_snuba_for_release_creation")
+        return Response(
+            serialize(
+                release, request.user, no_snuba_for_release_creation=no_snuba_for_release_creation
+            )
+        )
 
     def delete(self, request: Request, project, version) -> Response:
         """

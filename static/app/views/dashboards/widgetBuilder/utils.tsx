@@ -6,7 +6,7 @@ import type {FieldValue} from 'sentry/components/forms/types';
 import {t} from 'sentry/locale';
 import type {SelectValue} from 'sentry/types/core';
 import type {TagCollection} from 'sentry/types/group';
-import type {OrganizationSummary} from 'sentry/types/organization';
+import type {Organization, OrganizationSummary} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
 import {
   aggregateFunctionOutputType,
@@ -148,9 +148,11 @@ export function normalizeQueries({
   displayType,
   queries,
   widgetType,
+  organization,
 }: {
   displayType: DisplayType;
   queries: Widget['queries'];
+  organization?: Organization;
   widgetType?: Widget['widgetType'];
 }): Widget['queries'] {
   const isTimeseriesChart = getIsTimeseriesChart(displayType);
@@ -294,16 +296,25 @@ export function normalizeQueries({
   }
 
   if (DisplayType.BIG_NUMBER === displayType) {
-    // For world map chart, cap fields of the queries to only one field.
-    queries = queries.map(query => {
-      return {
-        ...query,
-        fields: query.aggregates.slice(0, 1),
-        aggregates: query.aggregates.slice(0, 1),
-        orderby: '',
-        columns: [],
-      };
-    });
+    if (organization?.features.includes('dashboards-bignumber-equations')) {
+      queries = queries.map(query => {
+        return {
+          ...query,
+          orderby: '',
+          columns: [],
+        };
+      });
+    } else {
+      queries = queries.map(query => {
+        return {
+          ...query,
+          fields: query.aggregates.slice(0, 1),
+          aggregates: query.aggregates.slice(0, 1),
+          orderby: '',
+          columns: [],
+        };
+      });
+    }
   }
 
   return queries;

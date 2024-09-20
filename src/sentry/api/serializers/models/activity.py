@@ -17,9 +17,11 @@ class ActivitySerializer(Serializer):
     def get_attrs(self, item_list, user, **kwargs):
         # TODO(dcramer); assert on relations
         user_ids = [i.user_id for i in item_list if i.user_id]
-        user_list = user_service.serialize_many(
-            filter={"user_ids": user_ids}, as_user=serialize_generic_user(user)
-        )
+        user_list = []
+        if user_ids:
+            user_list = user_service.serialize_many(
+                filter={"user_ids": user_ids}, as_user=serialize_generic_user(user)
+            )
         users = {u["id"]: u for u in user_list}
 
         commit_ids = {

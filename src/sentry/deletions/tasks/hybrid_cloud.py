@@ -40,11 +40,11 @@ class WatermarkBatch:
     transaction_id: str
 
 
-def get_watermark_key(prefix: str, field: HybridCloudForeignKey) -> str:
+def get_watermark_key(prefix: str, field: HybridCloudForeignKey[Any, Any]) -> str:
     return f"{prefix}.{field.model._meta.db_table}.{field.name}"
 
 
-def get_watermark(prefix: str, field: HybridCloudForeignKey) -> tuple[int, str]:
+def get_watermark(prefix: str, field: HybridCloudForeignKey[Any, Any]) -> tuple[int, str]:
     with redis.clusters.get("default").get_local_client_for_key("deletions.watermark") as client:
         key = get_watermark_key(prefix, field)
         v = client.get(key)
@@ -59,7 +59,7 @@ def get_watermark(prefix: str, field: HybridCloudForeignKey) -> tuple[int, str]:
 
 
 def set_watermark(
-    prefix: str, field: HybridCloudForeignKey, value: int, prev_transaction_id: str
+    prefix: str, field: HybridCloudForeignKey[Any, Any], value: int, prev_transaction_id: str
 ) -> None:
     with redis.clusters.get("default").get_local_client_for_key("deletions.watermark") as client:
         client.set(
@@ -78,8 +78,8 @@ def set_watermark(
 
 def _chunk_watermark_batch(
     prefix: str,
-    field: HybridCloudForeignKey,
-    manager: BaseManager,
+    field: HybridCloudForeignKey[Any, Any],
+    manager: BaseManager[Any],
     *,
     batch_size: int,
     model: type[Model],
@@ -116,7 +116,7 @@ def _chunk_watermark_batch(
     acks_late=True,
     silo_mode=SiloMode.CONTROL,
 )
-def schedule_hybrid_cloud_foreign_key_jobs_control():
+def schedule_hybrid_cloud_foreign_key_jobs_control() -> None:
     if options.get("hybrid_cloud.disable_tombstone_cleanup"):
         return
 
@@ -131,7 +131,7 @@ def schedule_hybrid_cloud_foreign_key_jobs_control():
     acks_late=True,
     silo_mode=SiloMode.REGION,
 )
-def schedule_hybrid_cloud_foreign_key_jobs():
+def schedule_hybrid_cloud_foreign_key_jobs() -> None:
     if options.get("hybrid_cloud.disable_tombstone_cleanup"):
         return
 
@@ -258,7 +258,7 @@ def get_batch_size() -> int:
 
 
 def _process_tombstone_reconciliation(
-    field: HybridCloudForeignKey,
+    field: HybridCloudForeignKey[Any, Any],
     model: Any,
     tombstone_cls: type[TombstoneBase],
     row_after_tombstone: bool,
@@ -266,7 +266,7 @@ def _process_tombstone_reconciliation(
     from sentry import deletions
 
     prefix = "tombstone"
-    watermark_manager: BaseManager = tombstone_cls.objects
+    watermark_manager: BaseManager[Any] = tombstone_cls.objects
     if row_after_tombstone:
         prefix = "row"
         watermark_manager = field.model.objects
@@ -323,7 +323,7 @@ def _process_tombstone_reconciliation(
 def _get_model_ids_for_tombstone_cascade(
     tombstone_cls: type[TombstoneBase],
     model: type[Model],
-    field: HybridCloudForeignKey,
+    field: HybridCloudForeignKey[Any, Any],
     row_after_tombstone: bool,
     watermark_batch: WatermarkBatch,
 ) -> tuple[list[int], datetime.datetime]:
@@ -399,7 +399,7 @@ def _get_model_ids_for_tombstone_cascade(
 def get_ids_cross_db_for_row_watermark(
     tombstone_cls: type[TombstoneBase],
     model: type[Model],
-    field: HybridCloudForeignKey,
+    field: HybridCloudForeignKey[Any, Any],
     row_watermark_batch: WatermarkBatch,
 ) -> tuple[list[int], datetime.datetime]:
 
@@ -434,7 +434,7 @@ def get_ids_cross_db_for_row_watermark(
 def get_ids_cross_db_for_tombstone_watermark(
     tombstone_cls: type[TombstoneBase],
     model: type[Model],
-    field: HybridCloudForeignKey,
+    field: HybridCloudForeignKey[Any, Any],
     tombstone_watermark_batch: WatermarkBatch,
 ) -> tuple[list[int], datetime.datetime]:
     oldest_seen = timezone.now()
