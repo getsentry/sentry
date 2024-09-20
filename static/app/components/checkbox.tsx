@@ -1,4 +1,4 @@
-import {useEffect, useRef} from 'react';
+import {useLayoutEffect, useRef} from 'react';
 import type {Theme} from '@emotion/react';
 import {css} from '@emotion/react';
 import type {Interpolation} from '@emotion/styled';
@@ -50,16 +50,15 @@ function Checkbox({
 }: Props) {
   const checkboxRef = useRef<HTMLInputElement>(null);
 
-  // Support setting the indeterminate value, which is only possible through
-  // setting this attribute
-  useEffect(() => {
+  // indeterminate attribute can only be set through javascript
+  useLayoutEffect(() => {
     if (checkboxRef.current) {
       checkboxRef.current.indeterminate = checked === 'indeterminate';
     }
   }, [checked]);
 
   return (
-    <Wrapper {...{className, checked, size}}>
+    <Wrapper className={className} checked={checked} size={size}>
       <HiddenInput
         ref={checkboxRef}
         css={inputCss}
@@ -69,15 +68,16 @@ function Checkbox({
       />
 
       <StyledCheckbox aria-hidden checked={checked} size={size} color={checkboxColor}>
-        {checked === true && (
+        {checked === true ? (
           <VariableWeightIcon viewBox="0 0 16 16" size={checkboxSizeMap[size].icon}>
             <path d="M2.86 9.14C4.42 10.7 6.9 13.14 6.86 13.14L12.57 3.43" />
           </VariableWeightIcon>
-        )}
-        {checked === 'indeterminate' && (
-          <VariableWeightIcon viewBox="0 0 16 16" size={checkboxSizeMap[size].icon}>
-            <path d="M3 8H13" />
-          </VariableWeightIcon>
+        ) : (
+          checked === 'indeterminate' && (
+            <VariableWeightIcon viewBox="0 0 16 16" size={checkboxSizeMap[size].icon}>
+              <path d="M3 8H13" />
+            </VariableWeightIcon>
+          )
         )}
       </StyledCheckbox>
       {!props.disabled && (
@@ -112,13 +112,13 @@ const HiddenInput = styled('input')`
   &:focus-visible + * {
     ${p =>
       p.checked
-        ? `
-        box-shadow: ${p.theme.focus} 0 0 0 3px;
-      `
-        : `
-        border-color: ${p.theme.focusBorder};
-        box-shadow: ${p.theme.focusBorder} 0 0 0 1px;
-      `}
+        ? css`
+            box-shadow: ${p.theme.focus} 0 0 0 3px;
+          `
+        : css`
+            border-color: ${p.theme.focusBorder};
+            box-shadow: ${p.theme.focusBorder} 0 0 0 1px;
+          `}
   }
 
   &:disabled + * {
