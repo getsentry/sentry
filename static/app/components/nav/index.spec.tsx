@@ -85,7 +85,7 @@ describe('Nav', function () {
       renderNavWithFeatures([...ALL_AVAILABLE_FEATURES]);
 
       const links = screen.getAllByRole('link');
-      expect(links).toHaveLength(11);
+      expect(links).toHaveLength(8);
 
       [
         'Issues',
@@ -95,9 +95,6 @@ describe('Nav', function () {
         'Perf.',
         'Boards',
         'Alerts',
-        'Help',
-        'New',
-        'Stats',
         'Settings',
       ].forEach((title, index) => {
         expect(links[index]).toHaveAccessibleName(title);
