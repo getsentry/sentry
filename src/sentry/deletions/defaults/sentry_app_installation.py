@@ -8,7 +8,7 @@ from sentry.sentry_apps.models.sentry_app_installation import SentryAppInstallat
 class SentryAppInstallationDeletionTask(ModelDeletionTask[SentryAppInstallation]):
     def get_child_relations(self, instance: SentryAppInstallation) -> list[BaseRelation]:
         from sentry.models.apigrant import ApiGrant
-        from sentry.models.integrations.sentry_app_installation_for_provider import (
+        from sentry.sentry_apps.models.sentry_app_installation_for_provider import (
             SentryAppInstallationForProvider,
         )
         from sentry.sentry_apps.models.sentry_app_installation_token import (
