@@ -48,7 +48,7 @@ type Props = {
 
 const DEFAULT_SORT = 'count';
 
-export function useTagQueries({
+function useTagQueries({
   groupId,
   tagKey,
   environments,

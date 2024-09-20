@@ -35,7 +35,7 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
-import {GroupTagsDrawerTagDetails} from 'sentry/views/issueDetails/groupTags/groupTagsDrawerTagDetails';
+import {TagDetailsDrawerContent} from 'sentry/views/issueDetails/groupTags/tagDetailsDrawerContent';
 import {useGroupTags} from 'sentry/views/issueDetails/groupTags/useGroupTags';
 
 type GroupTagsDrawerProps = {
@@ -130,7 +130,7 @@ export function GroupTagsDrawer({project, groupId}: GroupTagsDrawerProps) {
       </EventNavigator>
       <EventDrawerBody>
         {tagDrawerKey ? (
-          <GroupTagsDrawerTagDetails
+          <TagDetailsDrawerContent
             project={project}
             groupId={groupId}
             drawerRef={drawerRef}
