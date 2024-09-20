@@ -1,11 +1,9 @@
-import {Fragment} from 'react';
-
 import type {Scope} from 'sentry/types/core';
 import type {Organization, Team} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {isRenderFunc} from 'sentry/utils/isRenderFunc';
+import useOrganization from 'sentry/utils/useOrganization';
 import {useUser} from 'sentry/utils/useUser';
-import withOrganization from 'sentry/utils/withOrganization';
 
 // Props that function children will get.
 type ChildRenderProps = {
@@ -17,7 +15,6 @@ type ChildRenderProps = {
 type ChildFunction = (props: ChildRenderProps) => any;
 
 type Props = {
-  organization: Organization;
   /**
    * List of required access levels
    */
@@ -26,11 +23,15 @@ type Props = {
    * Children can be a node or a function as child.
    */
   children?: React.ReactNode | ChildFunction;
-
   /**
    * Requires superuser
    */
   isSuperuser?: boolean;
+  /**
+   * Evaluate access against a defined organization. If this is not provided,
+   * the access is evaluated against the currently active organization.
+   */
+  organization?: Organization;
 
   /**
    * Optional: To be used when you need to check for access to the Project
@@ -53,50 +54,42 @@ type Props = {
 /**
  * Component to handle access restrictions.
  */
-function Access({
-  children,
-  isSuperuser = false,
-  access = [],
-  team,
-  project,
-  organization,
-}: Props) {
+function Access({children, isSuperuser = false, access = [], team, project}: Props) {
   const user = useUser();
-  team = team ?? undefined;
-  project = project ?? undefined;
+  const organization = useOrganization();
 
-  const hasAccess = hasEveryAccess(access, {organization, team, project});
   const hasSuperuser = Boolean(user?.isSuperuser);
-
-  const renderProps: ChildRenderProps = {
-    hasAccess,
-    hasSuperuser,
-  };
-
-  const render = hasAccess && (!isSuperuser || hasSuperuser);
+  const hasAccess = hasEveryAccess(access, {
+    organization,
+    team,
+    project,
+  });
 
   if (isRenderFunc<ChildFunction>(children)) {
-    return children(renderProps);
+    return children({
+      hasAccess,
+      hasSuperuser,
+    });
   }
 
-  return <Fragment>{render ? children : null}</Fragment>;
+  const render = hasAccess && (!isSuperuser || hasSuperuser);
+  return render ? children : null;
 }
 
 export function hasEveryAccess(
   access: Scope[],
-  props: {organization?: Organization; project?: Project; team?: Team}
+  entities: {
+    organization?: Organization | null;
+    project?: Project | null;
+    team?: Team | null;
+  }
 ) {
-  const {organization, team, project} = props;
-  const {access: orgAccess} = organization || {access: [] as Organization['access']};
-  const {access: teamAccess} = team || {access: [] as Team['access']};
-  const {access: projAccess} = project || {access: [] as Project['access']};
-
   return (
-    !access ||
-    access.every(acc => orgAccess.includes(acc)) ||
-    access.every(acc => teamAccess?.includes(acc)) ||
-    access.every(acc => projAccess?.includes(acc))
+    !access.length ||
+    access.every(acc => entities.organization?.access?.includes(acc)) ||
+    access.every(acc => entities.team?.access?.includes(acc)) ||
+    access.every(acc => entities.project?.access?.includes(acc))
   );
 }
 
-export default withOrganization(Access);
+export default Access;
