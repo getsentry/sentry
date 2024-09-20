@@ -9,13 +9,13 @@ REFERRER_HEADER = "HTTP_REFERER"  # 1 R is the spelling used here: https://docs.
 def url_matches(referrer_url: str, target_url: str) -> bool:
     """
     Matches a referrer url with a user-provided one. Checks 3 fields:
-    * hostname: must equal target.hostname. The left-most subdomain of `url` may be a wildcard (*).
+    * hostname: must equal target.hostname. The first subdomain in target may be a wildcard "*".
     * port: must equal target.port, unless it is excluded from target.
     * scheme: must equal target.scheme, unless it is excluded from target.
     Note both url's path is ignored.
 
     @param referrer_url: Must have a valid scheme and hostname.
-    @param target_url: May exclude scheme.
+    @param target_url: May exclude scheme. THe first subdomain may be a wildcard "*".
     """
     referrer = urlparse(referrer_url)  # Always has scheme and hostname
     target = urlparse(target_url)
@@ -23,10 +23,8 @@ def url_matches(referrer_url: str, target_url: str) -> bool:
         target = urlparse(referrer.scheme + "://" + target_url)
 
     ref_hostname, target_hostname = referrer.hostname, target.hostname
-    if ref_hostname.startswith("*."):
+    if target_hostname.startswith("*."):
         ref_hostname = ref_hostname.split(".", 1)[1]
-        if "." not in target_hostname:  # TODO: Could potentially skip
-            return False
         target_hostname = target_hostname.split(".", 1)[1]
 
     return all(
