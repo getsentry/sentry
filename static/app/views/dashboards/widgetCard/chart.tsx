@@ -32,6 +32,7 @@ import type {
 } from 'sentry/types/echarts';
 import type {InjectedRouter} from 'sentry/types/legacyReactRouter';
 import type {Organization} from 'sentry/types/organization';
+import {defined} from 'sentry/utils';
 import {
   axisLabelFormatter,
   axisLabelFormatterUsingAggregateOutputType,
@@ -206,7 +207,15 @@ class WidgetCardChart extends Component<WidgetCardChartProps> {
       const tableMeta = {...result.meta};
       const fields = Object.keys(tableMeta);
 
-      const field = fields[0];
+      let field = fields[0];
+
+      if (
+        organization.features.includes('dashboards-bignumber-equations') &&
+        defined(widget.queries[0].selectedAggregate)
+      ) {
+        const index = widget.queries[0].selectedAggregate;
+        field = widget.queries[0].aggregates[index];
+      }
 
       // Change tableMeta for the field from integer to string since we will be rendering with toLocaleString
       const shouldExpandInteger = !!expandNumbers && tableMeta[field] === 'integer';

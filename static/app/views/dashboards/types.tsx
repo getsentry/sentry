@@ -80,6 +80,8 @@ export type WidgetQuery = {
   isHidden?: boolean | null;
   // Contains the on-demand entries for the widget query.
   onDemand?: WidgetQueryOnDemand[];
+  // Aggregate selected for the Big Number widget builder
+  selectedAggregate?: number;
 };
 
 export type Widget = {
