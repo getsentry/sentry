@@ -115,7 +115,7 @@ def can_scalar_search_subquery(
         # ParenExpressions are recursive.  So we recursively call our own function and return early
         # if any of the fields fail.
         elif isinstance(search_filter, ParenExpression):
-            is_ok = can_scalar_search_subquery(search_filter.children)
+            is_ok = can_scalar_search_subquery(search_filter.children, started_at)
             if not is_ok:
                 return False
         else:
@@ -126,6 +126,8 @@ def can_scalar_search_subquery(
                 # If the field is not a tag or the query's start period is greater than the
                 # period when the new field was introduced then we can not apply the
                 # optimization.
+                #
+                # TODO(cmanallen): Remove date condition after 90 days (~12/17/2024).
                 if name in aggregate_search_config or started_at < datetime(
                     2024, 9, 17, tzinfo=timezone.utc
                 ):
