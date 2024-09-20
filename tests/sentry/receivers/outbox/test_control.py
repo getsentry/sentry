@@ -19,7 +19,7 @@ class ProcessControlOutboxTest(TestCase):
     identifier = 1
 
     @patch("sentry.receivers.outbox.control.maybe_process_tombstone")
-    def test_process_integration_updatess(self, mock_maybe_process):
+    def test_process_integration_updates(self, mock_maybe_process):
         process_integration_updates(
             object_identifier=self.identifier, region_name=_TEST_REGION.name
         )
@@ -36,7 +36,7 @@ class ProcessControlOutboxTest(TestCase):
             ApiApplication, self.identifier, region_name=_TEST_REGION.name
         )
 
-    @patch("sentry.receivers.outbox.control.region_caching_service")
+    @patch("sentry.tasks.sentry_apps.region_caching_service")
     def test_process_sentry_app_updates(self, mock_caching):
         org = self.create_organization()
         sentry_app = self.create_sentry_app()
@@ -48,7 +48,10 @@ class ProcessControlOutboxTest(TestCase):
             slug=sentry_app.slug, organization=org_two
         )
 
-        process_sentry_app_updates(object_identifier=sentry_app.id, region_name=_TEST_REGION.name)
+        with self.tasks():
+            process_sentry_app_updates(
+                object_identifier=sentry_app.id, region_name=_TEST_REGION.name
+            )
         mock_caching.clear_key.assert_any_call(
             key=f"app_service.get_installation:{install.id}", region_name=_TEST_REGION.name
         )

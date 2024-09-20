@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+from collections import defaultdict
 from collections.abc import Mapping
 from typing import Any
 
@@ -12,14 +13,20 @@ from sentry import analytics
 from sentry.api.serializers import AppPlatformEvent, serialize
 from sentry.constants import SentryAppInstallationStatus
 from sentry.eventstore.models import Event, GroupEvent
+from sentry.hybridcloud.rpc.caching import region_caching_service
 from sentry.models.activity import Activity
 from sentry.models.group import Group
 from sentry.models.organization import Organization
+from sentry.models.organizationmapping import OrganizationMapping
 from sentry.models.project import Project
 from sentry.models.servicehook import ServiceHook, ServiceHookProject
-from sentry.sentry_apps.models.sentry_app import VALID_EVENTS
+from sentry.sentry_apps.models.sentry_app import VALID_EVENTS, SentryApp
 from sentry.sentry_apps.models.sentry_app_installation import SentryAppInstallation
-from sentry.sentry_apps.services.app.service import app_service
+from sentry.sentry_apps.services.app.service import (
+    app_service,
+    get_by_application_id,
+    get_installation,
+)
 from sentry.shared_integrations.exceptions import ApiHostError, ApiTimeoutError, ClientError
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task, retry
@@ -245,6 +252,44 @@ def installation_webhook(installation_id, user_id, *args, **kwargs):
         return
 
     InstallationNotifier.run(install=install, user=user, action="created")
+
+
+@instrumented_task(
+    name="sentry.sentry_apps.tasks.installations.clear_region_cache", **CONTROL_TASK_OPTIONS
+)
+def clear_region_cache(sentry_app_id: int, region_name: str) -> None:
+    try:
+        sentry_app = SentryApp.objects.get(id=sentry_app_id)
+    except SentryApp.DoesNotExist:
+        return
+
+    # When a sentry app's definition changes purge cache for all the installations.
+    # This could get slow for large applications, but generally big applications don't change often.
+    install_query = SentryAppInstallation.objects.filter(
+        sentry_app=sentry_app,
+    ).values("id", "organization_id")
+
+    # There isn't a constraint on org : sentryapp so we have to handle lists
+    install_map: dict[int, list[int]] = defaultdict(list)
+    for install_row in install_query:
+        install_map[install_row["organization_id"]].append(install_row["id"])
+
+    # Clear application_id cache
+    region_caching_service.clear_key(
+        key=get_by_application_id.key_from(sentry_app.application_id), region_name=region_name
+    )
+
+    # Limit our operations to the region this outbox is for.
+    # This could be a single query if we use raw_sql.
+    region_query = OrganizationMapping.objects.filter(
+        organization_id__in=list(install_map.keys()), region_name=region_name
+    ).values("organization_id")
+    for region_row in region_query:
+        installs = install_map[region_row["organization_id"]]
+        for install_id in installs:
+            region_caching_service.clear_key(
+                key=get_installation.key_from(install_id), region_name=region_name
+            )
 
 
 @instrumented_task(name="sentry.tasks.sentry_apps.workflow_notification", **TASK_OPTIONS)
