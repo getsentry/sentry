@@ -59,12 +59,7 @@ def get_snuba_query_string(snuba_query: SnubaQuery) -> str:
         # e.g. (is:unresolved) AND (event.type:error)
         snuba_query_event_type_string = SNUBA_QUERY_EVENT_TYPE_TO_STRING[snuba_query.event_types[0]]
         event_types_string = f"(event.type:{snuba_query_event_type_string})"
-    # this is hacky as heck but if the query is just like level:error (non is: query), only put that and skip the event types
-    # this won't even work if there's a sneaky is: query in the middle of several queries
-    # try to find how this is handled in events-stats
-    if snuba_query.query and not snuba_query.query.startswith("is:"):
-        snuba_query_string = snuba_query.query
-    elif snuba_query.query:
+    if snuba_query.query:
         snuba_query_string = f"({snuba_query.query}) AND {event_types_string}"
     else:
         snuba_query_string = event_types_string

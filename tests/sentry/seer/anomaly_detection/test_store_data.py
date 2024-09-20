@@ -88,6 +88,11 @@ class AnomalyDetectionStoreDataTest(AlertRuleBase, BaseMetricsTestCase, Performa
     def test_anomaly_detection_fetch_historical_data(self):
         alert_rule = self.create_alert_rule(organization=self.organization, projects=[self.project])
         snuba_query = SnubaQuery.objects.get(id=alert_rule.snuba_query_id)
+        # CEO: despite passing event_type to store_event, the event type is default
+        # so we'll just update the type it's looking for to default
+        snuba_query_event_type = SnubaQueryEventType.objects.get(snuba_query=snuba_query)
+        snuba_query_event_type.type = SnubaQueryEventType.EventType.DEFAULT.value
+        snuba_query_event_type.save()
 
         with self.options({"issues.group_attributes.send_kafka": True}):
             self.store_event(
