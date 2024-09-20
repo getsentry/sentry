@@ -122,7 +122,7 @@ class RpcUser(RpcUserProfile):
         return "User"
 
     def has_2fa(self) -> bool:
-        return len(self.authenticators) > 0
+        return any(a.type != 0 for a in self.authenticators)
 
 
 class UserCreateResult(RpcModel):
