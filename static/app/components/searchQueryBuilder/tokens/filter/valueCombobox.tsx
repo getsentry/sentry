@@ -53,6 +53,7 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Tag, TagCollection} from 'sentry/types/group';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {uniq} from 'sentry/utils/array/uniq';
 import {type FieldDefinition, FieldValueType} from 'sentry/utils/fields';
 import {isCtrlKeyPressed} from 'sentry/utils/isCtrlKeyPressed';
 import {keepPreviousData, type QueryKey, useQuery} from 'sentry/utils/queryClient';
@@ -111,7 +112,11 @@ function prepareInputValueForSaving(valueType: FieldValueType, inputValue: strin
       )
       .filter(text => text?.length) ?? [];
 
-  return values.length > 1 ? `[${values.join(',')}]` : values[0] ?? '""';
+  const uniqueValues = uniq(values);
+
+  return uniqueValues.length > 1
+    ? `[${uniqueValues.join(',')}]`
+    : uniqueValues[0] ?? '""';
 }
 
 function getSelectedValuesFromText(
