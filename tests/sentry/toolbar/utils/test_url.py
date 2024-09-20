@@ -1,16 +1,5 @@
 from sentry.toolbar.utils.url import url_matches
 
-"""
-TODO:
-Port
-- not in target
-- in target
-
-Scheme
-- not in target
-- in target
-"""
-
 
 class UrlMatchesTest:
     def __init__(self, test_cases):
@@ -41,5 +30,25 @@ def test_url_matches_wildcard():
             ("https://nugettrends.sentry.com", "https://*.sentry.io", False),
             ("https://nugettrends.sentry.io", "https://*.io", False),
             ("https://sentry.io", "https://*.sentry.io", False),
+        ]
+    ).run()
+
+
+def test_url_matches_port():
+    UrlMatchesTest(
+        [
+            ("https://sentry.io:42", "https://sentry.io:42", True),
+            ("https://sentry.io", "https://sentry.io:42", False),
+            ("https://sentry.io:42", "https://sentry.io", True),
+        ]
+    ).run()
+
+
+def test_url_matches_scheme():
+    UrlMatchesTest(
+        [
+            ("https://sentry.io", "sentry.io", True),
+            ("http://sentry.io", "sentry.io", True),
+            ("http://sentry.io", "https://sentry.io", False),
         ]
     ).run()
