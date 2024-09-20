@@ -11,11 +11,11 @@ from rest_framework.response import Response
 from sentry.exceptions import InvalidIdentity
 from sentry.integrations.base import IntegrationFeatureNotImplementedError
 from sentry.integrations.client import ApiClient
+from sentry.integrations.services.integration.service import integration_service
 from sentry.integrations.source_code_management.repository import RepositoryClient
 from sentry.models.repository import Repository
 from sentry.shared_integrations.client.base import BaseApiResponseX
 from sentry.shared_integrations.client.proxy import IntegrationProxyClient
-from sentry.shared_integrations.exceptions import ApiError
 from sentry.silo.base import control_silo_function
 from sentry.users.models.identity import Identity
 from sentry.utils.http import absolute_uri
@@ -204,16 +204,21 @@ class VstsApiClient(IntegrationProxyClient, VstsApiMixin, RepositoryClient):
             # TODO(iamrajjoshi): Remove this after migration
             # Need this here because there is no way to get any identifier which would tell us which method we should use to refresh the token
             from sentry.identity.vsts.provider import VSTSNewIdentityProvider
+            from sentry.integrations.vsts.integration import VstsIntegrationProvider
 
-            try:
+            integration = integration_service.get_integration(
+                organization_integration_id=self.org_integration_id
+            )
+            # check if integration has migrated to new identity provider
+            migration_version = integration.metadata.get("integration_migration_version", 0)
+            if migration_version < VstsIntegrationProvider.CURRENT_MIGRATION_VERSION:
                 self.identity.get_provider().refresh_identity(
                     self.identity, redirect_url=self.oauth_redirect_url
                 )
-            except ApiError as e:
-                if self.INVALID_CLIENT_ERROR in str(e):
-                    VSTSNewIdentityProvider().refresh_identity(
-                        self.identity, redirect_url=self.oauth_redirect_url
-                    )
+            else:
+                VSTSNewIdentityProvider().refresh_identity(
+                    self.identity, redirect_url=self.oauth_redirect_url
+                )
 
     @control_silo_function
     def authorize_request(

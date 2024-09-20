@@ -177,6 +177,7 @@ class VSTSNewIdentityProvider(OAuth2Provider):
         return {"Content-Type": "application/x-www-form-urlencoded", "Content-Length": "1654"}
 
     def get_refresh_token_params(self, refresh_token, *args, **kwargs):
+        # TODO(iamrajjoshi): Fix vsts-limited here
         # Note: ignoring the below from the original provider
         # # If "vso.code" is missing from the identity.scopes, we know that we installed
         # using the "vsts-limited.client-secret" and therefore should use that to refresh

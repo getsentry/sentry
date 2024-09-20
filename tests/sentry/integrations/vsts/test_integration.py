@@ -24,15 +24,16 @@ from sentry.users.models.identity import Identity
 FULL_SCOPES = ["vso.code", "vso.graph", "vso.serviceendpoint_manage", "vso.work_write"]
 LIMITED_SCOPES = ["vso.graph", "vso.serviceendpoint_manage", "vso.work_write"]
 
-NEW_SCOPES = ["offline_access", "499b84ac-1321-427f-aa17-267ca6975798/.default"]
-
 
 @control_silo_test
 class VstsIntegrationMigrationTest(VstsIntegrationTestCase):
 
     # Test regular install still works
     @with_feature("organizations:migrate-azure-devops-integration")
-    @patch("sentry.integrations.vsts.VstsIntegrationProvider.get_scopes", return_value=NEW_SCOPES)
+    @patch(
+        "sentry.integrations.vsts.VstsIntegrationProvider.get_scopes",
+        return_value=VstsIntegrationProvider.NEW_SCOPES,
+    )
     @patch(
         "sentry.identity.pipeline.IdentityProviderPipeline.get_provider",
         return_value=VSTSNewIdentityProvider(),
@@ -46,14 +47,17 @@ class VstsIntegrationMigrationTest(VstsIntegrationTestCase):
         assert integration.name == self.vsts_account_name
 
         metadata = integration.metadata
-        assert set(metadata["scopes"]) == set(NEW_SCOPES)
+        assert set(metadata["scopes"]) == set(VstsIntegrationProvider.NEW_SCOPES)
         assert metadata["subscription"]["id"] == CREATE_SUBSCRIPTION["id"]
         assert metadata["domain_name"] == self.vsts_base_url
 
     # Test that install second time doesn't have the metadata and updates the integration object
     # Assert that the Integration object now has the migrated metadata
     @with_feature("organizations:migrate-azure-devops-integration")
-    @patch("sentry.integrations.vsts.VstsIntegrationProvider.get_scopes", return_value=NEW_SCOPES)
+    @patch(
+        "sentry.integrations.vsts.VstsIntegrationProvider.get_scopes",
+        return_value=VstsIntegrationProvider.NEW_SCOPES,
+    )
     def test_migration(self, mock_get_scopes):
         state = {
             "account": {"accountName": self.vsts_account_name, "accountId": self.vsts_account_id},
@@ -99,14 +103,16 @@ class VstsIntegrationMigrationTest(VstsIntegrationTestCase):
         assert subscription["id"] is not None and subscription["secret"] is not None
         metadata = data.get("metadata")
         assert metadata is not None
-        assert set(metadata["scopes"]) == set(NEW_SCOPES)
+        assert set(metadata["scopes"]) == set(VstsIntegrationProvider.NEW_SCOPES)
         assert metadata["integration_migration_version"] == 1
 
         # Make sure the integration object is updated
         # ensure_integration will be called in _finish_pipeline
         new_integration_obj = ensure_integration("vsts", data)
         assert new_integration_obj.metadata["integration_migration_version"] == 1
-        assert set(new_integration_obj.metadata["scopes"]) == set(NEW_SCOPES)
+        assert set(new_integration_obj.metadata["scopes"]) == set(
+            VstsIntegrationProvider.NEW_SCOPES
+        )
 
 
 @control_silo_test

@@ -385,6 +385,8 @@ class VstsIntegrationProvider(IntegrationProvider):
     oauth_redirect_url = "/extensions/vsts/setup/"
     needs_default_identity = True
     integration_cls = VstsIntegration
+    CURRENT_MIGRATION_VERSION = 1
+    NEW_SCOPES = ("offline_access", "499b84ac-1321-427f-aa17-267ca6975798/.default")
 
     features = frozenset(
         [
@@ -428,7 +430,7 @@ class VstsIntegrationProvider(IntegrationProvider):
         ):
             # This is the new way we need to pass scopes to the OAuth flow
             # https://stackoverflow.com/questions/75729931/get-access-token-for-azure-devops-pat
-            return ("offline_access", "499b84ac-1321-427f-aa17-267ca6975798/.default")
+            return VstsIntegrationProvider.NEW_SCOPES
         return ("vso.code", "vso.graph", "vso.serviceendpoint_manage", "vso.work_write")
 
     def get_pipeline_views(self) -> Sequence[PipelineView]:
@@ -468,8 +470,6 @@ class VstsIntegrationProvider(IntegrationProvider):
 
         # TODO(iamrajjoshi): Clean this up this after Azure DevOps migration is complete
         try:
-            CURRENT_MIGRATION_VERSION = 1
-
             integration_model = IntegrationModel.objects.get(
                 provider="vsts", external_id=account["accountId"], status=ObjectStatus.ACTIVE
             )
@@ -483,7 +483,8 @@ class VstsIntegrationProvider(IntegrationProvider):
                 features.has(
                     "organizations:migrate-azure-devops-integration", self.pipeline.organization
                 )
-                and integration_migration_version < CURRENT_MIGRATION_VERSION
+                and integration_migration_version
+                < VstsIntegrationProvider.CURRENT_MIGRATION_VERSION
             ):
                 subscription_id, subscription_secret = self.create_subscription(
                     base_url=base_url, oauth_data=oauth_data
@@ -493,7 +494,9 @@ class VstsIntegrationProvider(IntegrationProvider):
                     "secret": subscription_secret,
                 }
 
-                integration["metadata"]["integration_migration_version"] = CURRENT_MIGRATION_VERSION
+                integration["metadata"][
+                    "integration_migration_version"
+                ] = VstsIntegrationProvider.CURRENT_MIGRATION_VERSION
 
                 logger.info(
                     "vsts.build_integration.migrated",
@@ -501,8 +504,9 @@ class VstsIntegrationProvider(IntegrationProvider):
                         "organization_id": self.pipeline.organization.id,
                         "user_id": user["id"],
                         "account": account,
-                        "migration_version": CURRENT_MIGRATION_VERSION,
+                        "migration_version": VstsIntegrationProvider.CURRENT_MIGRATION_VERSION,
                         "subscription_id": subscription_id,
+                        "integration_id": integration_model.id,
                     },
                 )
             else:
