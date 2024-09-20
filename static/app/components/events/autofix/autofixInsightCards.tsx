@@ -261,7 +261,6 @@ function AutofixInsightCards({
         )
       ) : !hasStepAbove && !hasStepBelow ? (
         <NoInsightsYet>
-          <p>Nothing yet...</p>
           <p>
             Autofix will share important conclusions here as it discovers them, building a
             line of reasoning up to the root cause.

@@ -1,4 +1,4 @@
-import {Fragment, useState} from 'react';
+import {type FormEvent, Fragment, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
@@ -112,7 +112,8 @@ function AutofixMessageBox({
   const [message, setMessage] = useState('');
   const {mutate: send} = useSendMessage({groupId, runId});
 
-  const handleSend = () => {
+  const handleSend = (e: FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
     if (message.trim() !== '' || allowEmptyMessage) {
       if (onSend != null) {
         onSend(message);
@@ -157,39 +158,41 @@ function AutofixMessageBox({
           <p>{message.length > 0 ? notEmptyInfoText : emptyInfoText}</p>
         </ActionBar>
       </DisplayArea>
-      <InputArea>
-        {!responseRequired ? (
-          <Fragment>
-            <NormalInput
-              type="text"
-              value={message}
-              onChange={e => setMessage(e.target.value)}
-              placeholder={inputPlaceholder}
-              disabled={isDisabled}
-            />
-            <Button
-              onClick={handleSend}
-              disabled={isDisabled}
-              priority={primaryAction ? 'primary' : 'default'}
-            >
-              {actionText}
-            </Button>
-          </Fragment>
-        ) : (
-          <Fragment>
-            <RequiredInput
-              type="text"
-              value={message}
-              onChange={e => setMessage(e.target.value)}
-              placeholder={'Please answer to continue...'}
-              disabled={isDisabled}
-            />
-            <Button onClick={handleSend} disabled={isDisabled} priority={'primary'}>
-              {actionText}
-            </Button>
-          </Fragment>
-        )}
-      </InputArea>
+      <form onSubmit={handleSend}>
+        <InputArea>
+          {!responseRequired ? (
+            <Fragment>
+              <NormalInput
+                type="text"
+                value={message}
+                onChange={e => setMessage(e.target.value)}
+                placeholder={inputPlaceholder}
+                disabled={isDisabled}
+              />
+              <Button
+                type="submit"
+                priority={primaryAction ? 'primary' : 'default'}
+                disabled={isDisabled}
+              >
+                {actionText}
+              </Button>
+            </Fragment>
+          ) : (
+            <Fragment>
+              <RequiredInput
+                type="text"
+                value={message}
+                disabled={isDisabled}
+                onChange={e => setMessage(e.target.value)}
+                placeholder={'Please answer to continue...'}
+              />
+              <Button type="submit" priority={'primary'} disabled={isDisabled}>
+                {actionText}
+              </Button>
+            </Fragment>
+          )}
+        </InputArea>
+      </form>
     </Container>
   );
 }
