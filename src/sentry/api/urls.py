@@ -273,6 +273,22 @@ from sentry.rules.history.endpoints.project_rule_stats import ProjectRuleStatsIn
 from sentry.scim.endpoints.members import OrganizationSCIMMemberDetails, OrganizationSCIMMemberIndex
 from sentry.scim.endpoints.schemas import OrganizationSCIMSchemaIndex
 from sentry.scim.endpoints.teams import OrganizationSCIMTeamDetails, OrganizationSCIMTeamIndex
+from sentry.sentry_apps.api.endpoints.installation_details import (
+    SentryAppInstallationDetailsEndpoint,
+)
+from sentry.sentry_apps.api.endpoints.installation_external_issue_actions import (
+    SentryAppInstallationExternalIssueActionsEndpoint,
+)
+from sentry.sentry_apps.api.endpoints.installation_external_issue_details import (
+    SentryAppInstallationExternalIssueDetailsEndpoint,
+)
+from sentry.sentry_apps.api.endpoints.installation_external_issues import (
+    SentryAppInstallationExternalIssuesEndpoint,
+)
+from sentry.sentry_apps.api.endpoints.installation_external_requests import (
+    SentryAppInstallationExternalRequestsEndpoint,
+)
+from sentry.sentry_apps.api.endpoints.sentry_app_installations import SentryAppInstallationsEndpoint
 from sentry.uptime.endpoints.project_uptime_alert_details import ProjectUptimeAlertDetailsEndpoint
 from sentry.uptime.endpoints.project_uptime_alert_index import ProjectUptimeAlertIndexEndpoint
 from sentry.users.api.endpoints.authenticator_index import AuthenticatorIndexEndpoint
@@ -368,12 +384,6 @@ from .endpoints.integrations.sentry_apps import (
     SentryAppComponentsEndpoint,
     SentryAppDetailsEndpoint,
     SentryAppFeaturesEndpoint,
-    SentryAppInstallationDetailsEndpoint,
-    SentryAppInstallationExternalIssueActionsEndpoint,
-    SentryAppInstallationExternalIssueDetailsEndpoint,
-    SentryAppInstallationExternalIssuesEndpoint,
-    SentryAppInstallationExternalRequestsEndpoint,
-    SentryAppInstallationsEndpoint,
     SentryAppInteractionEndpoint,
     SentryAppPublishRequestEndpoint,
     SentryAppRequestsEndpoint,
