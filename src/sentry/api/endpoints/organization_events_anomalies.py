@@ -47,7 +47,7 @@ class OrganizationEventsAnomaliesEndpoint(OrganizationEventsV2EndpointBase):
         },
         examples=OrganizationExamples.GET_HISTORICAL_ANOMALIES,
     )
-    def _format_historical_data(self, data) -> list[TimeSeriesPoint]:
+    def _format_historical_data(self, data) -> list[TimeSeriesPoint] | None:
         """
         Format EventsStatsData into the format that the Seer API expects.
         EventsStatsData is a list of lists with this format:
@@ -84,7 +84,7 @@ class OrganizationEventsAnomaliesEndpoint(OrganizationEventsV2EndpointBase):
             )
 
         anomalies = get_historical_anomaly_data_from_seer_preview(
-            project_id, config, historical_data, current_data
+            current_data, historical_data, project_id, config
         )
         # NOTE: returns None if there's a problem with the Seer response
         if anomalies is None:
