@@ -9,17 +9,14 @@ import {
   splitAtDivider,
 } from 'sentry/components/nav/utils';
 import {
-  IconBroadcast,
   IconDashboard,
   IconGraph,
   IconIssues,
   IconLightning,
   IconProject,
-  IconQuestion,
   IconSearch,
   IconSettings,
   IconSiren,
-  IconStats,
 } from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {getDiscoverLandingUrl} from 'sentry/utils/discover/urls';
@@ -157,9 +154,9 @@ export function useNavItems(): NavItemsResult {
       },
       {label: t('Alerts'), to: `/${prefix}/alerts/rules/`, icon: <IconSiren />},
       NAV_DIVIDER,
-      {label: t('Help'), to: '', icon: <IconQuestion />},
-      {label: t('New'), to: '', icon: <IconBroadcast />},
-      {label: t('Stats'), to: '', icon: <IconStats />},
+      // {label: t('Help'), to: '', icon: <IconQuestion />},
+      // {label: t('New'), to: '', icon: <IconBroadcast />},
+      // {label: t('Stats'), to: '', icon: <IconStats />},
       {
         label: t('Settings'),
         to: `/settings/${organization.slug}/`,
