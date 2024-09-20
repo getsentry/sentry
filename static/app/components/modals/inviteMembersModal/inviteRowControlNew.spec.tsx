@@ -1,13 +1,30 @@
 import type {ComponentProps} from 'react';
+import {TeamFixture} from 'sentry-fixture/team';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import InviteRowControlNew from 'sentry/components/modals/inviteMembersModal/inviteRowControlNew';
+import TeamStore from 'sentry/stores/teamStore';
 
 describe('InviteRowControlNew', function () {
   const mockOnChangeEmails = jest.fn();
   const mockOnChangeRole = jest.fn();
   const mockOnChangeTeams = jest.fn();
+
+  const teamData = [
+    {
+      id: '1',
+      slug: 'moo-deng',
+      name: "Moo Deng's Team",
+    },
+    {
+      id: '2',
+      slug: 'moo-waan',
+      name: "Moo Waan's Team",
+    },
+  ];
+  const teams = teamData.map(data => TeamFixture(data));
+
   const rowControlProps: ComponentProps<typeof InviteRowControlNew> = {
     disabled: false,
     emails: [],
@@ -20,22 +37,26 @@ describe('InviteRowControlNew', function () {
     roleDisabledUnallowed: false,
     roleOptions: [
       {
-        id: 'moo-deng',
-        name: 'Moo Deng',
+        id: 'member',
+        name: 'Member',
         desc: '...',
         minimumTeamRole: 'contributor',
         isTeamRolesAllowed: true,
       },
       {
-        id: 'moo-waan',
-        name: 'Moo Waan',
+        id: 'billing',
+        name: 'Billing',
         desc: '...',
         minimumTeamRole: 'contributor',
         isTeamRolesAllowed: false,
       },
     ],
-    teams: ['Zoo'],
+    teams: [],
   };
+
+  beforeEach(function () {
+    TeamStore.loadInitialData(teams);
+  });
 
   it('renders', function () {
     render(<InviteRowControlNew {...rowControlProps} />);
@@ -60,20 +81,23 @@ describe('InviteRowControlNew', function () {
     render(<InviteRowControlNew {...rowControlProps} />);
     const roleInput = screen.getByLabelText('Role');
     await userEvent.click(roleInput);
-    await userEvent.click(screen.getByText('Moo Deng'));
+    await userEvent.click(screen.getByText('Member'));
     expect(mockOnChangeRole).toHaveBeenCalled();
   });
 
   it('disables team selection when team roles are not allowed', function () {
-    render(<InviteRowControlNew {...rowControlProps} role="moo-waan" />);
+    render(<InviteRowControlNew {...rowControlProps} role="billing" />);
     const teamInput = screen.getByLabelText('Add to Team');
     expect(teamInput).toBeDisabled();
   });
 
   it('enables team selection when team roles are allowed', async function () {
-    render(<InviteRowControlNew {...rowControlProps} role="moo-deng" />);
+    render(<InviteRowControlNew {...rowControlProps} role="member" />);
     const teamInput = screen.getByLabelText('Add to Team');
     expect(teamInput).toBeEnabled();
     await userEvent.click(teamInput);
+    await userEvent.click(screen.getByText('#moo-deng'));
+    await userEvent.click(screen.getByText('#moo-waan'));
+    expect(mockOnChangeTeams).toHaveBeenCalledTimes(2);
   });
 });
