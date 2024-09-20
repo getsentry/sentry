@@ -91,13 +91,18 @@ export function hasEveryAccess(
     project?: Project | null;
     team?: Team | null;
   }
-) {
-  return (
-    !access.length ||
-    access.every(acc => entities.organization?.access?.includes(acc)) ||
-    access.every(acc => entities.team?.access?.includes(acc)) ||
-    access.every(acc => entities.project?.access?.includes(acc))
-  );
+): boolean {
+  const hasOrganizationAccess = entities.organization
+    ? access.every(acc => entities.organization?.access?.includes(acc))
+    : false;
+  const hasTeamAccess = entities.team
+    ? access.every(acc => entities.team?.access?.includes(acc))
+    : false;
+  const hasProjectAccess = entities.project
+    ? access.every(acc => entities.project?.access?.includes(acc))
+    : false;
+
+  return !access.length || hasOrganizationAccess || hasTeamAccess || hasProjectAccess;
 }
 
 export default Access;
