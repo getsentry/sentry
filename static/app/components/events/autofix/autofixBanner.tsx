@@ -55,7 +55,7 @@ function SuccessfulSetup({
 
   return (
     <Button onClick={() => openAutofix()} size="sm" ref={openButtonRef}>
-      {t('Run Autofix')}
+      {t('Open Autofix')}
     </Button>
   );
 }

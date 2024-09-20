@@ -77,6 +77,6 @@ describe('Autofix', () => {
 
     render(<Autofix event={event} group={group} />);
 
-    expect(await screen.findByRole('button', {name: 'Run Autofix'})).toBeInTheDocument();
+    expect(await screen.findByRole('button', {name: 'Open Autofix'})).toBeInTheDocument();
   });
 });
