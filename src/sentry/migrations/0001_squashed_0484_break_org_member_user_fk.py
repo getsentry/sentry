@@ -32,9 +32,9 @@ import sentry.models.apitoken
 import sentry.models.broadcast
 import sentry.models.groupshare
 import sentry.models.scheduledeletion
-import sentry.models.servicehook
 import sentry.sentry_apps.models.sentry_app
 import sentry.sentry_apps.models.sentry_app_installation
+import sentry.sentry_apps.models.servicehook
 import sentry.users.models.authenticator
 import sentry.users.models.user
 import sentry.utils.security.hash
@@ -2029,7 +2029,10 @@ class Migration(CheckedMigration):
                     ),
                 ),
                 ("url", models.URLField(max_length=512)),
-                ("secret", models.TextField(default=sentry.models.servicehook.generate_secret)),
+                (
+                    "secret",
+                    models.TextField(default=sentry.sentry_apps.models.servicehook.generate_secret),
+                ),
                 ("events", sentry.db.models.fields.array.ArrayField(null=True)),
                 (
                     "status",

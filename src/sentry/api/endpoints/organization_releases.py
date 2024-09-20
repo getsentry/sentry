@@ -588,7 +588,9 @@ class OrganizationReleasesEndpoint(
                 update_org_auth_token_last_used(request.auth, [project.id for project in projects])
 
             scope.set_tag("success_status", status)
-            return Response(serialize(release, request.user), status=status)
+            return Response(
+                serialize(release, request.user, no_snuba_for_release_creation=True), status=status
+            )
         scope.set_tag("failure_reason", "serializer_error")
         return Response(serializer.errors, status=400)
 

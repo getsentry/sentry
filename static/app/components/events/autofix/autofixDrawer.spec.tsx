@@ -34,7 +34,7 @@ describe('AutofixDrawer', () => {
 
     expect(screen.getByRole('heading', {name: 'Autofix'})).toBeInTheDocument();
 
-    expect(screen.getByText('Ready to begin analyzing the issue?')).toBeInTheDocument();
+    expect(screen.getByText('Autofix is ready to start')).toBeInTheDocument();
 
     const startButton = screen.getByRole('button', {name: 'Start'});
     expect(startButton).toBeInTheDocument();
@@ -88,7 +88,7 @@ describe('AutofixDrawer', () => {
     await userEvent.click(startOverButton);
 
     await waitFor(() => {
-      expect(screen.getByText('Ready to begin analyzing the issue?')).toBeInTheDocument();
+      expect(screen.getByText('Autofix is ready to start')).toBeInTheDocument();
       expect(screen.getByRole('button', {name: 'Start'})).toBeInTheDocument();
     });
   });

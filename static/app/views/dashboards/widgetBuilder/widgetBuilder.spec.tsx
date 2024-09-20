@@ -601,6 +601,39 @@ describe('WidgetBuilder', function () {
     expect(handleSave).toHaveBeenCalledTimes(1);
   });
 
+  it('can add additional fields and equation for Big Number with selection', async function () {
+    renderTestComponent({
+      query: {
+        displayType: DisplayType.BIG_NUMBER,
+      },
+      orgFeatures: [...defaultOrgFeatures, 'dashboards-bignumber-equations'],
+    });
+
+    // Add new field
+    await userEvent.click(screen.getByLabelText('Add Field'));
+    expect(screen.getByText('(Required)')).toBeInTheDocument();
+    await selectEvent.select(screen.getByText('(Required)'), ['count_unique(…)']);
+    expect(screen.getByRole('radio', {name: 'field1'})).toBeChecked();
+
+    // Add another new field
+    await userEvent.click(screen.getByLabelText('Add Field'));
+    expect(screen.getByText('(Required)')).toBeInTheDocument();
+    await selectEvent.select(screen.getByText('(Required)'), ['eps()']);
+    expect(screen.getByRole('radio', {name: 'field2'})).toBeChecked();
+
+    // Add an equation
+    await userEvent.click(screen.getByLabelText('Add an Equation'));
+    expect(screen.getByPlaceholderText('Equation')).toBeInTheDocument();
+    expect(screen.getByRole('radio', {name: 'field3'})).toBeChecked();
+    await userEvent.click(screen.getByPlaceholderText('Equation'));
+    await userEvent.paste('eps() + 100');
+
+    // Check if right value is displayed from equation
+    await userEvent.click(screen.getByPlaceholderText('Equation'));
+    await userEvent.paste('2 * 100');
+    expect(screen.getByText('200')).toBeInTheDocument();
+  });
+
   it('can add equation fields', async function () {
     const handleSave = jest.fn();
 
