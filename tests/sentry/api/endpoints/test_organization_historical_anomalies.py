@@ -6,6 +6,7 @@ from sentry.incidents.models.alert_rule import (
     AlertRuleThresholdType,
 )
 from sentry.seer.anomaly_detection.types import AnomalyDetectionConfig
+from sentry.seer.anomaly_detection.utils import translate_direction
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.outbox import outbox_runner
@@ -24,7 +25,7 @@ class OrganizationEventsAnomaliesEndpointTest(APITestCase):
         config = AnomalyDetectionConfig(
             time_period=60,
             sensitivity=AlertRuleSensitivity.LOW,
-            direction=AlertRuleThresholdType.ABOVE,
+            direction=translate_direction(AlertRuleThresholdType.ABOVE.value),
             expected_seasonality=AlertRuleSeasonality.AUTO,
         )
         data = {
