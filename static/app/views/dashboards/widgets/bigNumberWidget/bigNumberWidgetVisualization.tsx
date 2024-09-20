@@ -63,7 +63,7 @@ export function BigNumberWidgetVisualization(props: Props) {
     <AutoResizeParent>
       <AutoSizedText>
         <NumberContainerOverride>
-          <Tooltip title={rendered} showOnlyOnOverflow>
+          <Tooltip title={datum[field]} isHoverable delay={0}>
             {rendered}
           </Tooltip>
         </NumberContainerOverride>

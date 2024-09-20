@@ -1,4 +1,4 @@
-import {render, screen} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {BigNumberWidget} from 'sentry/views/dashboards/widgets/bigNumberWidget/bigNumberWidget';
 
@@ -52,6 +52,30 @@ describe('BigNumberWidget', () => {
       );
 
       expect(screen.getByText('17.28ms')).toBeInTheDocument();
+    });
+
+    it('Shows the full unformatted value on hover', async () => {
+      render(
+        <BigNumberWidget
+          data={[
+            {
+              'count()': 178451214,
+            },
+          ]}
+          meta={{
+            fields: {
+              'count()': 'integer',
+            },
+            units: {
+              'count()': null,
+            },
+          }}
+        />
+      );
+
+      await userEvent.hover(screen.getByText('178m'));
+
+      expect(screen.getByText('178451214')).toBeInTheDocument();
     });
   });
 
