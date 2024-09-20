@@ -1,11 +1,11 @@
 from django.db import models
 
 from sentry.backup.scopes import RelocationScope
-from sentry.db.models import DefaultFieldsModel, FlexibleForeignKey, region_silo_model, sane_repr
+from sentry.db.models import DefaultFieldsModel, region_silo_model, sane_repr
 
 
 @region_silo_model
-class WorkflowAction(DefaultFieldsModel):
+class Action(DefaultFieldsModel):
     """
     A workflow action is an action to be taken as part of a workflow.
     These will be executed in order as part of a workflow.
@@ -14,11 +14,11 @@ class WorkflowAction(DefaultFieldsModel):
     __relocation_scope__ = RelocationScope.Organization
     __repr__ = sane_repr("workflow_id", "type")
 
+    # TODO (@saponifi3d): Don't hardcode these values
     class Type(models.TextChoices):
-        NOTIFICATION = "SendNotificationAction"
+        Notification = "SendNotificationAction"
 
     required = models.BooleanField(default=False)
-    workflow = FlexibleForeignKey("workflow_engine.Workflow")
     type = models.TextField(choices=Type.choices)
     data = models.JSONField(default=dict)
     data_condition_group = models.ForeignKey(
