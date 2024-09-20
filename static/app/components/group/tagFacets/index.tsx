@@ -4,7 +4,6 @@ import styled from '@emotion/styled';
 import type {LocationDescriptor} from 'history';
 import keyBy from 'lodash/keyBy';
 
-import type {Tag} from 'sentry/actionCreators/events';
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
 import LoadingError from 'sentry/components/loadingError';
 import Placeholder from 'sentry/components/placeholder';
@@ -76,24 +75,6 @@ export function TAGS_FORMATTER(tagsData: Record<string, GroupTag>) {
   });
 
   return transformedTagsData;
-}
-
-export function sumTagFacetsForTopValues(tag: Tag) {
-  return {
-    ...tag,
-    name: tag.key,
-    totalValues: tag.topValues.reduce((acc, {count}) => acc + count, 0),
-    topValues: tag.topValues.map(({name, count}) => ({
-      key: tag.key,
-      name,
-      value: name,
-      count,
-
-      // These values aren't displayed in the sidebar
-      firstSeen: '',
-      lastSeen: '',
-    })),
-  };
 }
 
 type Props = {
