@@ -42,6 +42,7 @@ from sentry.replays.usecases.query.conditions import (
 )
 from sentry.replays.usecases.query.conditions.aggregate import SumOfUUIDScalar
 from sentry.replays.usecases.query.conditions.event_ids import SumOfErrorIdScalar, SumOfInfoIdScalar
+from sentry.replays.usecases.query.conditions.tags import SumOfTagAggregate
 from sentry.replays.usecases.query.fields import ComputedField, TagField
 
 
@@ -154,4 +155,4 @@ search_config["user.ip"] = search_config["user.ip_address"]
 
 # Field-names which could not be found in the set are tag-keys and will, by default, look for
 # the `*` key to find their search instructions. If this is not defined an error is returned.
-search_config["*"] = TagField()
+search_config["*"] = TagField(query=SumOfTagAggregate)
