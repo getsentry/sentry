@@ -8,12 +8,26 @@ from sentry import audit_log
 from sentry.api.fields import ActorField
 from sentry.api.serializers.rest_framework import CamelSnakeSerializer
 from sentry.auth.superuser import is_active_superuser
-from sentry.uptime.models import ProjectUptimeSubscriptionMode
+from sentry.uptime.detectors.url_extraction import extract_domain_parts
+from sentry.uptime.models import ProjectUptimeSubscription, ProjectUptimeSubscriptionMode
 from sentry.uptime.subscriptions.subscriptions import (
     create_project_uptime_subscription,
     create_uptime_subscription,
 )
 from sentry.utils.audit import create_audit_entry
+
+MAX_MONITORS_PER_DOMAIN = 100
+"""
+The bounding upper limit on how many ProjectUptimeSubscription's can exist for
+a single domain + suffix.
+
+This takes into accunt subdomains by including them in the count. For example,
+for the domain `sentry.io` both the hosts `subdomain-one.sentry.io` and
+`subdomain-2.sentry.io` will both count towards the limit
+
+Importantly domains like `vercel.dev` are considered TLDs as defined by the
+public suffix list (PSL). See `extract_domain_parts` fo more details
+"""
 
 
 @extend_schema_serializer()
@@ -33,6 +47,19 @@ class UptimeMonitorValidator(CamelSnakeSerializer):
         required=True, min_value=60, max_value=int(timedelta(days=1).total_seconds())
     )
     mode = serializers.IntegerField(required=False)
+
+    def validate_url(self, url):
+        url_parts = extract_domain_parts(url)
+        existing_count = ProjectUptimeSubscription.objects.filter(
+            uptime_subscription__url_domain=url_parts.domain,
+            uptime_subscription__url_domain_suffix=url_parts.suffix,
+        ).count()
+
+        if existing_count >= MAX_MONITORS_PER_DOMAIN:
+            raise serializers.ValidationError(
+                f"The domain *.{url_parts.domain}.{url_parts.suffix} has already been used in {MAX_MONITORS_PER_DOMAIN} uptime monitoring alerts, which is the limit. You cannot create any additional alerts for this domain."
+            )
+        return url
 
     def validate_mode(self, mode):
         if not is_active_superuser(self.context["request"]):
