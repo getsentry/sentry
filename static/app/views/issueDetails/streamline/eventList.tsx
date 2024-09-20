@@ -1,4 +1,4 @@
-import {Fragment} from 'react';
+import {useState} from 'react';
 import {css, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
@@ -14,19 +14,17 @@ import Panel from 'sentry/components/panels/panel';
 import {IconChevron} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {Group} from 'sentry/types/group';
+import {type Group, IssueType} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
-import type {TableData} from 'sentry/utils/discover/discoverQuery';
+import {parseCursor} from 'sentry/utils/cursor';
 import parseLinkHeader from 'sentry/utils/parseLinkHeader';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
-import AllEventsTable from 'sentry/views/issueDetails/allEventsTable';
+import {useRoutes} from 'sentry/utils/useRoutes';
+import {useEventColumns} from 'sentry/views/issueDetails/allEventsTable';
 import {ALL_EVENTS_EXCLUDED_TAGS} from 'sentry/views/issueDetails/groupEvents';
-import {
-  useIssueDetailsDiscoverQuery,
-  useIssueDetailsEventView,
-} from 'sentry/views/issueDetails/streamline/useIssueDetailsDiscoverQuery';
-import {EventTablePagination} from 'sentry/views/performance/transactionSummary/transactionEvents/eventsTable';
+import {useIssueDetailsEventView} from 'sentry/views/issueDetails/streamline/useIssueDetailsDiscoverQuery';
+import EventsTable from 'sentry/views/performance/transactionSummary/transactionEvents/eventsTable';
 
 interface EventListProps {
   group: Group;
@@ -34,79 +32,109 @@ interface EventListProps {
 }
 
 export function EventList({group}: EventListProps) {
-  const currentRange = [0, 25];
-  const totalCount = 259;
+  const referrer = 'issue_details.streamline_list';
+  const theme = useTheme();
   const location = useLocation();
   const organization = useOrganization();
-  const theme = useTheme();
+  const routes = useRoutes();
+  const [_error, setError] = useState('');
+  const {fields, columnTitles} = useEventColumns(group, organization);
+  const eventView = useIssueDetailsEventView({group, queryProps: {fields}});
+
   const grayText = css`
     color: ${theme.subText};
     font-weight: ${theme.fontWeightNormal};
   `;
 
-  const eventView = useIssueDetailsEventView({group});
-  const {data, response} = useIssueDetailsDiscoverQuery<TableData>({
-    params: {
-      eventView,
-      route: 'events',
-      referrer: 'issue_details.streamline_list',
-    },
-  });
-  const pageLinks = response?.getResponseHeader('Link') ?? null;
-  const links = parseLinkHeader(pageLinks);
-  const previousDisabled = links.previous?.results === false;
-  const nextDisabled = links.next?.results === false;
-  // TODO: Can't use AllEventsTable since we need to mutate the query along with the event picker and timeline.
+  const isRegressionIssue =
+    group.issueType === IssueType.PERFORMANCE_DURATION_REGRESSION ||
+    group.issueType === IssueType.PERFORMANCE_ENDPOINT_REGRESSION;
 
   return (
-    <Fragment>
-      <EventListHeader>
-        <EventListTitle>{t('All Events')}</EventListTitle>
-        <EventListHeaderItem>
-          {tct('Showing [start]-[end] of [count]', {
-            start: currentRange[0],
-            end: currentRange[1],
-            count: totalCount,
-          })}
-        </EventListHeaderItem>
-        <EventListHeaderItem>
-          <ButtonBar gap={0.25}>
-            <LinkButton
-              aria-label={t('Previous Page')}
-              borderless
-              size="xs"
-              icon={<IconChevron direction="left" />}
-              css={grayText}
-              to={links.previous}
-              disabled={previousDisabled}
-            />
-            <LinkButton
-              aria-label={t('Next Page')}
-              borderless
-              size="xs"
-              icon={<IconChevron direction="right" />}
-              css={grayText}
-              to={links.next}
-              disabled={nextDisabled}
-            />
-          </ButtonBar>
-        </EventListHeaderItem>
-        <EventListHeaderItem>
-          <Button borderless size="xs" css={grayText}>
-            {t('Close')}
-          </Button>
-        </EventListHeaderItem>
-      </EventListHeader>
-      <StreamlineEventsTable>
-        <AllEventsTable
-          issueId={group.id}
-          location={location}
-          organization={organization}
-          group={group}
-          excludedTags={ALL_EVENTS_EXCLUDED_TAGS}
-        />
-      </StreamlineEventsTable>
-    </Fragment>
+    <StreamlineEventsTable>
+      <EventsTable
+        eventView={eventView}
+        location={location}
+        issueId={group.id}
+        isRegressionIssue={isRegressionIssue}
+        organization={organization}
+        routes={routes}
+        excludedTags={ALL_EVENTS_EXCLUDED_TAGS}
+        projectSlug={group.project.slug}
+        customColumns={['minidump']}
+        setError={err => setError(err ?? '')}
+        transactionName={group.title || group.type}
+        columnTitles={columnTitles}
+        referrer={referrer}
+        hidePagination
+        renderTableHeader={({
+          pageLinks,
+          pageEventsCount,
+          totalEventsCount,
+          isPending,
+        }) => {
+          const links = parseLinkHeader(pageLinks);
+          const previousDisabled = links.previous?.results === false;
+          const nextDisabled = links.next?.results === false;
+          const currentCursor = parseCursor(location.query?.cursor);
+          const start = currentCursor?.offset ?? 0;
+
+          return (
+            <EventListHeader>
+              <EventListTitle>{t('All Events')}</EventListTitle>
+              <EventListHeaderItem>
+                {isPending
+                  ? null
+                  : tct('Showing [start]-[end] of [count]', {
+                      start: start,
+                      end: start + pageEventsCount,
+                      count: totalEventsCount,
+                    })}
+              </EventListHeaderItem>
+              <EventListHeaderItem>
+                <ButtonBar gap={0.25}>
+                  <LinkButton
+                    aria-label={t('Previous Page')}
+                    borderless
+                    size="xs"
+                    icon={<IconChevron direction="left" />}
+                    css={grayText}
+                    to={{
+                      ...location,
+                      query: {
+                        ...location.query,
+                        cursor: links.previous?.cursor,
+                      },
+                    }}
+                    disabled={isPending || previousDisabled}
+                  />
+                  <LinkButton
+                    aria-label={t('Next Page')}
+                    borderless
+                    size="xs"
+                    icon={<IconChevron direction="right" />}
+                    css={grayText}
+                    to={{
+                      ...location,
+                      query: {
+                        ...location.query,
+                        cursor: links.next?.cursor,
+                      },
+                    }}
+                    disabled={isPending || nextDisabled}
+                  />
+                </ButtonBar>
+              </EventListHeaderItem>
+              <EventListHeaderItem>
+                <Button borderless size="xs" css={grayText}>
+                  {t('Close')}
+                </Button>
+              </EventListHeaderItem>
+            </EventListHeader>
+          );
+        }}
+      />
+    </StreamlineEventsTable>
   );
 }
 
@@ -140,6 +168,7 @@ const StreamlineEventsTable = styled('div')`
   ${Panel} {
     border: 0;
   }
+
   ${GridHead} {
     min-height: unset;
     font-size: ${p => p.theme.fontSizeMedium};
@@ -147,6 +176,7 @@ const StreamlineEventsTable = styled('div')`
       height: 36px;
     }
   }
+
   ${GridHeadCell} {
     height: 36px;
     padding: 0 ${space(1.5)};
@@ -169,6 +199,7 @@ const StreamlineEventsTable = styled('div')`
       border: 0;
     }
   }
+
   ${GridBodyCell} {
     min-height: unset;
     padding: ${space(1)} ${space(1.5)};
@@ -179,9 +210,6 @@ const StreamlineEventsTable = styled('div')`
     a {
       color: ${p => p.theme.textColor};
     }
-  }
-  ${EventTablePagination} {
-    border: 2px solid red;
   }
   a {
     text-decoration: underline;
