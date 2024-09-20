@@ -262,7 +262,7 @@ def recording_post_processor(
             op="replays.usecases.ingest.parse_and_emit_replay_actions",
             description="parse_and_emit_replay_actions",
         ):
-            project = Project.objects.select_related("organization").get_from_cache(
+            project = Project.objects.get_from_cache(
                 id=message.project_id
             )
             parse_and_emit_replay_actions(
