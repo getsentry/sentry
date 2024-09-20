@@ -1,0 +1,53 @@
+#!/usr/bin/env python
+import os
+import sys
+import time
+from subprocess import list2cmdline
+
+import click
+from honcho.manager import Manager
+
+from sentry.runner import configure
+from sentry.runner.formatting import get_honcho_printer
+
+configure()
+
+
+@click.command("taskworker-test")
+@click.option("--number", "-n", help="Number of messages to append", default=10_000)
+@click.option("--verbose", "-v", help="Enable verbose output", default=False, is_flag=True)
+def main(number: int, verbose: bool):
+    from sentry.taskdemo import say_hello
+
+    if verbose:
+        click.echo(f"Adding {number} task messages")
+
+    # Fill the topic up with a number of tasks
+    start = time.monotonic()
+    for i in range(number):
+        say_hello.delay(i)
+    end = time.monotonic()
+    click.echo(f"Appending {number} tasks took {(end-start)}s")
+
+    cwd = os.getcwd()
+
+    # Use honcho to control the worker and consumer proceses.
+    honcho_printer = get_honcho_printer(prefix=True, pretty=False)
+    manager = Manager(honcho_printer)
+    processes = [
+        {
+            "name": "consumer",
+            "cmd": ["sentry", "run", "consumer", "taskworker", "--consumer-group", "taskworker"],
+        },
+        {"name": "worker", "cmd": ["sentry", "run", "taskworker", "--namespace", "demos"]},
+    ]
+    for process in processes:
+        manager.add_process(process["name"], list2cmdline(process["cmd"]), cwd=cwd)
+
+    # Lets go!
+    manager.loop()
+    sys.exit(manager.returncode)
+
+
+if __name__ == "__main__":
+    main()
