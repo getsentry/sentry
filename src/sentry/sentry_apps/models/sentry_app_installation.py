@@ -22,7 +22,7 @@ from sentry.types.region import find_regions_for_orgs
 
 if TYPE_CHECKING:
     from sentry.models.apitoken import ApiToken
-    from sentry.models.integrations.sentry_app_component import SentryAppComponent
+    from sentry.sentry_apps.models.sentry_app_component import SentryAppComponent
     from sentry.models.project import Project
 
 from sentry.hybridcloud.models.outbox import ControlOutboxBase, outbox_context
@@ -193,7 +193,7 @@ def prepare_sentry_app_components(
     project_slug: str | None = None,
     values: list[Mapping[str, Any]] | None = None,
 ) -> SentryAppComponent | None:
-    from sentry.models.integrations.sentry_app_component import SentryAppComponent
+    from sentry.sentry_apps.models.sentry_app_component import SentryAppComponent
 
     try:
         component = SentryAppComponent.objects.get(
