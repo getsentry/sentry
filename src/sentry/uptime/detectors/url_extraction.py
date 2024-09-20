@@ -6,6 +6,7 @@ from urllib.parse import urlsplit
 from django.core.exceptions import ValidationError
 from django.core.validators import URLValidator, validate_ipv46_address
 from tldextract import TLDExtract
+from tldextract.tldextract import ExtractResult
 
 if TYPE_CHECKING:
     pass
@@ -51,3 +52,9 @@ def extract_base_url(url: str | None) -> str | None:
     extracted_url = extractor.extract_urllib(split_url)
     fqdn = extracted_url.fqdn
     return f"{split_url.scheme}://{fqdn}" if fqdn else None
+
+
+def extract_domain_parts(url: str) -> ExtractResult:
+    # We enable private PSL domains so that hosting services that use
+    # subdomains are treated as suffixes for the purposes of monitoring.
+    return extractor.extract_str(url, include_psl_private_domains=True)
