@@ -15,9 +15,8 @@ class Detector(DefaultFieldsModel, OwnerModel):
     name = models.CharField(max_length=200)
     data_sources = models.ManyToManyField("workflow_engine.DataSource", through=DataSourceDetector)
 
-    condition_group = models.ForeignKey(
+    condition_group = FlexibleForeignKey(
         "workflow_engine.DataConditionGroup",
-        on_delete=models.CASCADE,
         blank=True,
         null=True,
         unique=True,

@@ -18,7 +18,7 @@ class Workflow(DefaultFieldsModel):
     organization = FlexibleForeignKey("sentry.Organization")
 
     # Required as the 'when' condition for the workflow
-    condition_group = FlexibleForeignKey(DataConditionGroup, on_delete=models.CASCADE)
+    condition_group = FlexibleForeignKey(DataConditionGroup, blank=True, null=True)
 
     __repr__ = sane_repr("name", "organization_id")
 
