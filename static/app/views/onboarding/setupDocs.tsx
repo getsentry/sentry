@@ -41,13 +41,14 @@ function SetupDocs({location, recentCreatedProject: project}: StepProps) {
 
   const platformName = currentPlatform.name;
   const integrationSlug = project.platform && platformToIntegrationMap[project.platform];
-  const showIntegrationOnboarding = integrationSlug && !params.showManualSetup;
+  const showIntegrationOnboarding =
+    integrationSlug && params.installationMode !== 'manual';
 
   return (
     <Fragment>
       <Wrapper>
         <MainContent>
-          {showIntegrationOnboarding && params.installationMode !== 'manual' ? (
+          {showIntegrationOnboarding ? (
             <IntegrationSetup
               integrationSlug={integrationSlug}
               project={project}
