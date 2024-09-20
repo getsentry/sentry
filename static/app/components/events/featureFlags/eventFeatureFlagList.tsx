@@ -134,7 +134,7 @@ export function EventFeatureFlagList({
     <ButtonBar gap={1}>
       {feedbackButton}
       <Button
-        aria-label={t('Open Breadcrumb Search')}
+        aria-label={t('Open Feature Flag Search')}
         icon={<IconSearch size="xs" />}
         size="xs"
         title={t('Open Search')}
