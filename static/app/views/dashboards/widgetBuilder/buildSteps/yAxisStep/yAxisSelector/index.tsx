@@ -1,7 +1,10 @@
 import styled from '@emotion/styled';
 
+import Feature from 'sentry/components/acl/feature';
 import ButtonBar from 'sentry/components/buttonBar';
+import {RadioLineItem} from 'sentry/components/forms/controls/radioGroup';
 import FieldGroup from 'sentry/components/forms/fieldGroup';
+import Radio from 'sentry/components/radio';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {TagCollection} from 'sentry/types/group';
@@ -25,11 +28,12 @@ interface Props {
   /**
    * Fired when aggregates are added/removed/modified/reordered.
    */
-  onChange: (aggregates: QueryFieldValue[]) => void;
+  onChange: (aggregates: QueryFieldValue[], selectedAggregate?: number) => void;
   tags: TagCollection;
   widgetType: Widget['widgetType'];
   errors?: Record<string, any>;
   noFieldsMessage?: string;
+  selectedAggregate?: number;
 }
 
 export function YAxisSelector({
@@ -40,20 +44,26 @@ export function YAxisSelector({
   onChange,
   errors,
   noFieldsMessage,
+  selectedAggregate,
 }: Props) {
   const organization = useOrganization();
   const datasetConfig = getDatasetConfig(widgetType);
 
   const {customMeasurements} = useCustomMeasurements();
 
-  function handleAddOverlay(event: React.MouseEvent) {
+  function handleAddFields(event: React.MouseEvent) {
     event.preventDefault();
 
     const newAggregates = [
       ...aggregates,
       {kind: FieldValueKind.FIELD, field: ''} as QueryFieldValue,
     ];
-    onChange(newAggregates);
+    if (
+      organization.features.includes('dashboards-bignumber-equations') &&
+      displayType === DisplayType.BIG_NUMBER
+    ) {
+      onChange(newAggregates, newAggregates.length - 1);
+    } else onChange(newAggregates);
   }
 
   function handleAddEquation(event: React.MouseEvent) {
@@ -63,7 +73,13 @@ export function YAxisSelector({
       ...aggregates,
       {kind: FieldValueKind.EQUATION, field: ''} as QueryFieldValue,
     ];
-    onChange(newAggregates);
+    if (
+      organization.features.includes('dashboards-bignumber-equations') &&
+      displayType === DisplayType.BIG_NUMBER
+    ) {
+      const newSelectedAggregate = newAggregates.length - 1;
+      onChange(newAggregates, newSelectedAggregate);
+    } else onChange(newAggregates);
   }
 
   function handleRemoveQueryField(event: React.MouseEvent, fieldIndex: number) {
@@ -71,7 +87,13 @@ export function YAxisSelector({
 
     const newAggregates = [...aggregates];
     newAggregates.splice(fieldIndex, 1);
-    onChange(newAggregates);
+    if (
+      organization.features.includes('dashboards-bignumber-equations') &&
+      displayType === DisplayType.BIG_NUMBER
+    ) {
+      const newSelectedAggregate = newAggregates.length - 1;
+      onChange(newAggregates, newSelectedAggregate);
+    } else onChange(newAggregates);
   }
 
   function handleChangeQueryField(value: QueryFieldValue, fieldIndex: number) {
@@ -80,13 +102,19 @@ export function YAxisSelector({
     onChange(newAggregates);
   }
 
+  function handleSelectField(newSelectedAggregate: number) {
+    onChange(aggregates, newSelectedAggregate);
+  }
+
   const fieldError = errors?.find(error => error?.aggregates)?.aggregates;
   const canDelete = aggregates.length > 1;
 
   const hideAddYAxisButtons =
-    (DisplayType.BIG_NUMBER === displayType && aggregates.length === 1) ||
     ([DisplayType.LINE, DisplayType.AREA, DisplayType.BAR].includes(displayType) &&
-      aggregates.length === 3);
+      aggregates.length === 3) ||
+    (organization.features.includes('dashboards-bignumber-equations')
+      ? displayType === DisplayType.BIG_NUMBER && widgetType === WidgetType.RELEASE
+      : DisplayType.BIG_NUMBER === displayType && aggregates.length === 1);
 
   let injectedFunctions: Set<string> = new Set();
 
@@ -112,6 +140,17 @@ export function YAxisSelector({
     <FieldGroup inline={false} flexibleControlStateSize error={fieldError} stacked>
       {aggregates.map((fieldValue, i) => (
         <QueryFieldWrapper key={`${fieldValue}:${i}`}>
+          {aggregates.length > 1 && displayType === DisplayType.BIG_NUMBER && (
+            <Feature features="dashboards-bignumber-equations">
+              <RadioLineItem index={i} role="radio" aria-label="aggregate-selector">
+                <Radio
+                  checked={i === selectedAggregate}
+                  onChange={() => handleSelectField(i)}
+                  aria-label={'field' + i}
+                />
+              </RadioLineItem>
+            </Feature>
+          )}
           <QueryField
             fieldValue={fieldValue}
             fieldOptions={fieldOptions}
@@ -136,7 +175,15 @@ export function YAxisSelector({
 
       {!hideAddYAxisButtons && (
         <Actions gap={1}>
-          <AddButton title={t('Add Overlay')} onAdd={handleAddOverlay} />
+          <AddButton
+            title={
+              displayType === DisplayType.BIG_NUMBER &&
+              organization.features.includes('dashboards-bignumber-equations')
+                ? t('Add Field')
+                : t('Add Overlay')
+            }
+            onAdd={handleAddFields}
+          />
           {datasetConfig.enableEquations && (
             <AddButton title={t('Add an Equation')} onAdd={handleAddEquation} />
           )}

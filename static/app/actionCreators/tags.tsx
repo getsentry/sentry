@@ -10,6 +10,7 @@ import type {PageFilters} from 'sentry/types/core';
 import type {Tag, TagValue} from 'sentry/types/group';
 import {
   type ApiQueryKey,
+  keepPreviousData,
   useApiQuery,
   type UseApiQueryOptions,
 } from 'sentry/utils/queryClient';
@@ -250,7 +251,7 @@ export const useFetchOrganizationTags = (
 ) => {
   return useApiQuery<Tag[]>(makeFetchOrganizationTags(params), {
     staleTime: Infinity,
-    keepPreviousData: params.keepPreviousData,
+    placeholderData: params.keepPreviousData ? keepPreviousData : undefined,
     enabled: params.enabled,
     ...options,
   });

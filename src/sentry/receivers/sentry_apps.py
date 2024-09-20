@@ -10,7 +10,7 @@ from sentry.models.groupassignee import GroupAssignee
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.models.team import Team
-from sentry.sentry_apps.apps import consolidate_events
+from sentry.sentry_apps.logic import consolidate_events
 from sentry.sentry_apps.services.app import RpcSentryAppInstallation, app_service
 from sentry.signals import (
     comment_created,

@@ -304,8 +304,8 @@ def _make_snuba_call(project, snuba_requests, referrer):
             bulk_snuba_queries,
             snuba_requests,
             referrer,
-            retries=3,
-            delay=2,
+            retries=6,
+            delay=15,
             exceptions=SNUBA_RETRY_EXCEPTIONS,
         )
     except SNUBA_RETRY_EXCEPTIONS as e:

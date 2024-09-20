@@ -101,8 +101,6 @@ from sentry.models.group import Group
 from sentry.models.grouphistory import GroupHistory
 from sentry.models.grouplink import GroupLink
 from sentry.models.grouprelease import GroupRelease
-from sentry.models.integrations.sentry_app import SentryApp
-from sentry.models.integrations.sentry_app_installation import SentryAppInstallation
 from sentry.models.integrations.sentry_app_installation_for_provider import (
     SentryAppInstallationForProvider,
 )
@@ -137,11 +135,13 @@ from sentry.models.servicehook import ServiceHook
 from sentry.models.team import Team
 from sentry.models.userreport import UserReport
 from sentry.organizations.services.organization import RpcOrganization, RpcUserOrganizationContext
-from sentry.sentry_apps.apps import SentryAppCreator
 from sentry.sentry_apps.installations import (
     SentryAppInstallationCreator,
     SentryAppInstallationTokenCreator,
 )
+from sentry.sentry_apps.logic import SentryAppCreator
+from sentry.sentry_apps.models.sentry_app import SentryApp
+from sentry.sentry_apps.models.sentry_app_installation import SentryAppInstallation
 from sentry.sentry_apps.services.app.serial import serialize_sentry_app_installation
 from sentry.sentry_apps.services.hook import hook_service
 from sentry.signals import project_created
@@ -1944,9 +1944,14 @@ class Factories:
         subscription_id: str | None,
         status: UptimeSubscription.Status,
         url: str,
+        url_domain: str,
+        url_domain_suffix: str,
         host_provider_id: str,
         interval_seconds: int,
         timeout_ms: int,
+        method,
+        headers,
+        body,
         date_updated: datetime,
     ):
         return UptimeSubscription.objects.create(
@@ -1954,10 +1959,15 @@ class Factories:
             subscription_id=subscription_id,
             status=status.value,
             url=url,
+            url_domain=url_domain,
+            url_domain_suffix=url_domain_suffix,
             host_provider_id=host_provider_id,
             interval_seconds=interval_seconds,
             timeout_ms=timeout_ms,
             date_updated=date_updated,
+            method=method,
+            headers=headers,
+            body=body,
         )
 
     @staticmethod
