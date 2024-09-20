@@ -890,8 +890,9 @@ class BaseDeleteMonitorTest(MonitorTestCase):
         self.login_as(user=self.user)
         super().setUp()
 
+    @patch("sentry.quotas.backend.disable_monitor_seat")
     @patch("sentry.quotas.backend.update_monitor_slug")
-    def test_simple(self, update_monitor_slug):
+    def test_simple(self, mock_update_monitor_slug, mock_disable_monitor_seat):
         monitor = self._create_monitor()
         old_slug = monitor.slug
 
@@ -906,7 +907,8 @@ class BaseDeleteMonitorTest(MonitorTestCase):
         assert RegionScheduledDeletion.objects.filter(
             object_id=monitor.id, model_name="Monitor"
         ).exists()
-        update_monitor_slug.assert_called_once()
+        mock_update_monitor_slug.assert_called_once()
+        mock_disable_monitor_seat.assert_called_once_with(monitor=monitor)
 
     def test_mismatched_org_slugs(self):
         monitor = self._create_monitor()

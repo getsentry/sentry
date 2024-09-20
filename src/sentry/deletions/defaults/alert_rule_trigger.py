@@ -1,8 +1,9 @@
-from ..base import ModelDeletionTask, ModelRelation
+from sentry.deletions.base import BaseRelation, ModelDeletionTask, ModelRelation
+from sentry.incidents.models.alert_rule import AlertRuleTrigger
 
 
-class AlertRuleTriggerDeletionTask(ModelDeletionTask):
-    def get_child_relations(self, instance):
+class AlertRuleTriggerDeletionTask(ModelDeletionTask[AlertRuleTrigger]):
+    def get_child_relations(self, instance: AlertRuleTrigger) -> list[BaseRelation]:
         from sentry.incidents.models.alert_rule import AlertRuleTriggerAction
 
         return [

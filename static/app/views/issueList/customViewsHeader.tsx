@@ -4,6 +4,7 @@ import debounce from 'lodash/debounce';
 
 import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
+import {TEMPORARY_TAB_KEY} from 'sentry/components/draggableTabs/draggableTabList';
 import GlobalEventProcessingAlert from 'sentry/components/globalEventProcessingAlert';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
@@ -14,6 +15,7 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {InjectedRouter} from 'sentry/types/legacyReactRouter';
 import type {Organization} from 'sentry/types/organization';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
@@ -161,17 +163,17 @@ function CustomViewsIssueListHeaderTabsContent({
       return draggableTabs.find(tab => tab.id === viewId)!.key;
     }
     if (query) {
-      return 'temporary-tab';
+      return TEMPORARY_TAB_KEY;
     }
     return draggableTabs[0].key;
   };
 
   // TODO: Try to remove this state if possible
   const [tempTab, setTempTab] = useState<Tab | undefined>(
-    getInitialTabKey() === 'temporary-tab' && query
+    getInitialTabKey() === TEMPORARY_TAB_KEY && query
       ? {
-          id: 'temporary-tab',
-          key: 'temporary-tab',
+          id: TEMPORARY_TAB_KEY,
+          key: TEMPORARY_TAB_KEY,
           label: t('Unsaved'),
           query: query,
           querySort: sort ?? IssueSortOptions.DATE,
@@ -264,7 +266,7 @@ function CustomViewsIssueListHeaderTabsContent({
       }
       if (!selectedTab) {
         // if a viewId does not exist, remove it from the query
-        tabListState?.setSelectedKey('temporary-tab');
+        tabListState?.setSelectedKey(TEMPORARY_TAB_KEY);
         navigate(
           normalizeUrl({
             ...location,
@@ -274,12 +276,16 @@ function CustomViewsIssueListHeaderTabsContent({
             },
           })
         );
+        trackAnalytics('issue_views.shared_view_opened', {
+          organization,
+          query,
+        });
         return;
       }
       return;
     }
     if (query) {
-      tabListState?.setSelectedKey('temporary-tab');
+      tabListState?.setSelectedKey(TEMPORARY_TAB_KEY);
       return;
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -335,6 +341,10 @@ function CustomViewsIssueListHeaderTabsContent({
         );
         setDraggableTabs(updatedTabs);
         debounceUpdateViews(updatedTabs);
+        trackAnalytics('issue_views.add_view.custom_query_saved', {
+          organization,
+          query,
+        });
       } else {
         setNewViewActive(true);
       }

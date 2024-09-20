@@ -298,7 +298,6 @@ function OverlayContent<T extends SelectOptionOrSectionWithKey<string>>({
           hiddenOptions={hiddenOptions}
           keyDownHandler={() => true}
           overlayIsOpen={isOpen}
-          showSectionHeaders={!filterValue}
           size="sm"
         />
       </ListBoxOverlay>
@@ -352,7 +351,11 @@ function SearchQueryBuilderComboboxInner<T extends SelectOptionOrSectionWithKey<
   });
 
   const onSelectionChange = useCallback(
-    (key: Key) => {
+    (key: Key | null) => {
+      if (!key) {
+        return;
+      }
+
       const selectedOption = findItemInSections(items, key);
       if (selectedOption) {
         onOptionSelected(selectedOption);

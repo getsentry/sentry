@@ -9,7 +9,7 @@ from sentry.tasks.base import instrumented_task, retry, track_group_async_operat
 
 
 @instrumented_task(
-    name="sentry.tasks.deletion.delete_groups",
+    name="sentry.deletions.tasks.groups.delete_groups",
     queue="cleanup",
     default_retry_delay=60 * 5,
     max_retries=MAX_RETRIES,

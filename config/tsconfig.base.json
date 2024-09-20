@@ -19,11 +19,7 @@
     "moduleResolution": "node",
 
     // We add esnext to lib to pull in types for all newer ECMAScript features
-    "lib": [
-      "esnext",
-      "dom",
-      "dom.iterable"
-    ],
+    "lib": ["esnext", "dom", "dom.iterable"],
 
     // Skip type checking of all declaration files
     "skipLibCheck": true,

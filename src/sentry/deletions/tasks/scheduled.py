@@ -26,22 +26,22 @@ MAX_RETRIES = 5
 
 
 @instrumented_task(
-    name="sentry.tasks.deletion.reattempt_deletions_control",
+    name="sentry.deletions.tasks.reattempt_deletions_control",
     queue="cleanup.control",
     acks_late=True,
     silo_mode=SiloMode.CONTROL,
 )
-def reattempt_deletions_control():
+def reattempt_deletions_control() -> None:
     _reattempt_deletions(ScheduledDeletion)
 
 
 @instrumented_task(
-    name="sentry.tasks.deletion.reattempt_deletions",
+    name="sentry.deletions.tasks.reattempt_deletions",
     queue="cleanup",
     acks_late=True,
     silo_mode=SiloMode.REGION,
 )
-def reattempt_deletions():
+def reattempt_deletions() -> None:
     _reattempt_deletions(RegionScheduledDeletion)
 
 
@@ -57,7 +57,7 @@ def _reattempt_deletions(model_class: type[BaseScheduledDeletion]) -> None:
 
 
 @instrumented_task(
-    name="sentry.tasks.deletion.run_scheduled_deletions_control",
+    name="sentry.deletions.tasks.run_scheduled_deletions_control",
     queue="cleanup.control",
     acks_late=True,
 )
@@ -69,7 +69,7 @@ def run_scheduled_deletions_control() -> None:
 
 
 @instrumented_task(
-    name="sentry.tasks.deletion.run_scheduled_deletions", queue="cleanup", acks_late=True
+    name="sentry.deletions.tasks.run_scheduled_deletions", queue="cleanup", acks_late=True
 )
 def run_scheduled_deletions() -> None:
     _run_scheduled_deletions(
@@ -93,7 +93,7 @@ def _run_scheduled_deletions(model_class: type[BaseScheduledDeletion], process_t
 
 
 @instrumented_task(
-    name="sentry.tasks.deletion.run_deletion_control",
+    name="sentry.deletions.tasks.run_deletion_control",
     queue="cleanup.control",
     default_retry_delay=60 * 5,
     max_retries=MAX_RETRIES,
@@ -101,7 +101,7 @@ def _run_scheduled_deletions(model_class: type[BaseScheduledDeletion], process_t
     silo_mode=SiloMode.CONTROL,
 )
 @retry(exclude=(DeleteAborted,))
-def run_deletion_control(deletion_id, first_pass=True, **kwargs: Any):
+def run_deletion_control(deletion_id: int, first_pass: bool = True, **kwargs: Any) -> None:
     _run_deletion(
         deletion_id=deletion_id,
         first_pass=first_pass,
@@ -111,7 +111,7 @@ def run_deletion_control(deletion_id, first_pass=True, **kwargs: Any):
 
 
 @instrumented_task(
-    name="sentry.tasks.deletion.run_deletion",
+    name="sentry.deletions.tasks.run_deletion",
     queue="cleanup",
     default_retry_delay=60 * 5,
     max_retries=MAX_RETRIES,
@@ -119,7 +119,7 @@ def run_deletion_control(deletion_id, first_pass=True, **kwargs: Any):
     silo_mode=SiloMode.REGION,
 )
 @retry(exclude=(DeleteAborted,))
-def run_deletion(deletion_id, first_pass=True, **kwargs: Any):
+def run_deletion(deletion_id: int, first_pass: bool = True, **kwargs: Any) -> None:
     _run_deletion(
         deletion_id=deletion_id,
         first_pass=first_pass,

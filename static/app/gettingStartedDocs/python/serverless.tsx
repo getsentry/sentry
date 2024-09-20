@@ -64,9 +64,11 @@ const onboarding: OnboardingConfig = {
           }
         )}
       </p>
-      {t(
-        'If you use a serverless provider not directly supported by the SDK, you can use this generic integration.'
-      )}
+      <p>
+        {t(
+          'If you use a serverless provider not directly supported by the SDK, you can use this generic integration.'
+        )}
+      </p>
     </Fragment>
   ),
   install: (params: Params) => [

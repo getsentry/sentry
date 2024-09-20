@@ -26,7 +26,6 @@ from sentry.hybridcloud.rpc.service import compare_signature
 from sentry.models.apiapplication import ApiApplication
 from sentry.models.apikey import ApiKey
 from sentry.models.apitoken import ApiToken
-from sentry.models.integrations.sentry_app import SentryApp
 from sentry.models.orgauthtoken import (
     OrgAuthToken,
     is_org_auth_token_auth,
@@ -35,6 +34,7 @@ from sentry.models.orgauthtoken import (
 from sentry.models.projectkey import ProjectKey
 from sentry.models.relay import Relay
 from sentry.relay.utils import get_header_relay_id, get_header_relay_signature
+from sentry.sentry_apps.models.sentry_app import SentryApp
 from sentry.silo.base import SiloLimit, SiloMode
 from sentry.users.models.user import User
 from sentry.users.services.user import RpcUser

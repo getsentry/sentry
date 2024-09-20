@@ -99,6 +99,69 @@ class OrganizationCombinedRuleIndexEndpointTest(BaseAlertRuleSerializerTest, API
         )
         self.combined_rules_url = f"/api/0/organizations/{self.org.slug}/combined-rules/"
 
+    def test_simple(self):
+        self.setup_project_and_rules()
+        with self.feature(["organizations:incidents", "organizations:performance-view"]):
+            request_data = {"per_page": "10", "project": self.project_ids}
+            response = self.client.get(
+                path=self.combined_rules_url, data=request_data, content_type="application/json"
+            )
+        assert response.status_code == 200
+        result = json.loads(response.content)
+        assert len(result) == 4
+        self.assert_alert_rule_serialized(self.yet_another_alert_rule, result[0], skip_dates=True)
+        assert result[1]["id"] == str(self.issue_rule.id)
+        assert result[1]["type"] == "rule"
+        self.assert_alert_rule_serialized(self.other_alert_rule, result[2], skip_dates=True)
+        self.assert_alert_rule_serialized(self.alert_rule, result[3], skip_dates=True)
+
+    def test_snoozed_rules(self):
+        """
+        Test that we properly serialize snoozed rules with and without an owner
+        """
+        self.setup_project_and_rules()
+        issue_rule2 = self.create_issue_alert_rule(
+            data={
+                "project": self.project2,
+                "name": "Issue Rule Test",
+                "conditions": [],
+                "actions": [],
+                "actionMatch": "all",
+                "date_added": before_now(minutes=4),
+            }
+        )
+        self.snooze_rule(user_id=self.user.id, rule=self.issue_rule)
+        self.snooze_rule(user_id=self.user.id, rule=issue_rule2, owner_id=self.user.id)
+        self.snooze_rule(user_id=self.user.id, alert_rule=self.alert_rule)
+        self.snooze_rule(
+            user_id=self.user.id, alert_rule=self.yet_another_alert_rule, owner_id=self.user.id
+        )
+
+        with self.feature(["organizations:incidents", "organizations:performance-view"]):
+            request_data = {"per_page": "10", "project": self.project_ids}
+            response = self.client.get(
+                path=self.combined_rules_url, data=request_data, content_type="application/json"
+            )
+        assert response.status_code == 200
+        result = json.loads(response.content)
+        assert len(result) == 5
+        self.assert_alert_rule_serialized(self.yet_another_alert_rule, result[0], skip_dates=True)
+        assert result[0]["snooze"]
+
+        assert result[1]["id"] == str(issue_rule2.id)
+        assert result[1]["type"] == "rule"
+        assert result[1]["snooze"]
+
+        assert result[2]["id"] == str(self.issue_rule.id)
+        assert result[2]["type"] == "rule"
+        assert result[2]["snooze"]
+
+        self.assert_alert_rule_serialized(self.other_alert_rule, result[3], skip_dates=True)
+        assert not result[3].get("snooze")
+
+        self.assert_alert_rule_serialized(self.alert_rule, result[4], skip_dates=True)
+        assert result[4]["snooze"]
+
     def test_invalid_limit(self):
         self.setup_project_and_rules()
         with self.feature(["organizations:incidents", "organizations:performance-view"]):
@@ -666,7 +729,7 @@ class OrganizationCombinedRuleIndexEndpointTest(BaseAlertRuleSerializerTest, API
         assert response.status_code == 200
         assert len(response.data) == 2  # We are not on this team, but we are a superuser.
 
-    def test_team_filter_no_access(self):
+    def test_team_filter_no_cross_org_access(self):
         self.setup_project_and_rules()
         another_org = self.create_organization(owner=self.user, name="Rowdy Tiger")
         another_org_team = self.create_team(organization=another_org, name="Meow Band", members=[])
@@ -679,7 +742,36 @@ class OrganizationCombinedRuleIndexEndpointTest(BaseAlertRuleSerializerTest, API
             response = self.client.get(
                 path=self.combined_rules_url, data=request_data, content_type="application/json"
             )
+        assert response.status_code == 200
+        assert len(response.data) == 1
+        assert response.data[0]["owner"] == f"team:{self.team.id}"
+
+    def test_team_filter_no_access(self):
+        self.setup_project_and_rules()
+
+        # disable Open Membership
+        self.org.flags.allow_joinleave = False
+        self.org.save()
+
+        user2 = self.create_user("bulldog@example.com")
+        team2 = self.create_team(organization=self.org, name="Barking Voices")
+        project2 = self.create_project(organization=self.org, teams=[team2], name="Bones")
+        self.create_member(user=user2, organization=self.org, role="member", teams=[team2])
+        self.login_as(user2)
+
+        with self.feature(["organizations:incidents", "organizations:performance-view"]):
+            request_data = {
+                "per_page": "10",
+                "project": [project2.id],
+                "team": [team2.id, self.team.id],
+            }
+            response = self.client.get(
+                path=self.combined_rules_url, data=request_data, content_type="application/json"
+            )
         assert response.status_code == 403
+        assert (
+            response.data["detail"] == "Error: You do not have permission to access Mariachi Band"
+        )
 
     def test_name_filter(self):
         self.setup_project_and_rules()

@@ -103,9 +103,9 @@ def process_message(message: Message[KafkaPayload]) -> None:
 
 
 def process_batch(worker: ThreadPoolExecutor, messages: Message[ValuesBatch[KafkaPayload]]) -> None:
-    from sentry.issues.occurrence_consumer import _process_batch
+    from sentry.issues.occurrence_consumer import process_occurrence_batch
 
     try:
-        _process_batch(worker, messages)
+        process_occurrence_batch(worker, messages)
     except Exception:
         logger.exception("failed to process batch payload")

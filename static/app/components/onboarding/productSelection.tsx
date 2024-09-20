@@ -295,6 +295,14 @@ export type ProductSelectionProps = {
    */
   disabledProducts?: DisabledProducts;
   /**
+   * Fired when the product selection changes
+   */
+  onChange?: (products: ProductSolution[]) => void;
+  /**
+   * Triggered when the component is loaded
+   */
+  onLoad?: (products: ProductSolution[]) => void;
+  /**
    * The platform key of the project (e.g. javascript-react, python-django, etc.)
    */
   platform?: PlatformKey;
@@ -302,10 +310,6 @@ export type ProductSelectionProps = {
    * A custom list of products per platform. If not provided, the default list is used.
    */
   productsPerPlatform?: Record<PlatformKey, ProductSolution[]>;
-  /**
-   * If true, the component has a bottom margin of 20px
-   */
-  withBottomMargin?: boolean;
 };
 
 export function ProductSelection({
@@ -314,6 +318,8 @@ export function ProductSelection({
   platform,
   productsPerPlatform = platformProductAvailability,
   projectId,
+  onChange,
+  onLoad,
 }: ProductSelectionProps) {
   const [params, setParams] = useOnboardingQueryParams();
   const urlProducts = useMemo(() => params.product ?? [], [params.product]);
@@ -332,6 +338,7 @@ export function ProductSelection({
   }, [products, disabledProducts]);
 
   useEffect(() => {
+    onLoad?.(defaultProducts);
     setParams({
       showLoader:
         supportLoader && params.showLoader === undefined ? true : params.showLoader,
@@ -365,6 +372,8 @@ export function ProductSelection({
       }
 
       const selectedProducts = [...newProduct] as ProductSolution[];
+
+      onChange?.(selectedProducts);
       setParams({product: selectedProducts});
 
       if (organization.features.includes('project-create-replay-feedback')) {
@@ -373,7 +382,7 @@ export function ProductSelection({
         );
       }
     },
-    [defaultProducts, organization, setParams, urlProducts]
+    [defaultProducts, organization, setParams, urlProducts, onChange]
   );
 
   const handleToggleLoader = useCallback(() => {
@@ -400,8 +409,6 @@ export function ProductSelection({
     (platform?.indexOf('javascript') === 0 || platform?.indexOf('node') === 0) &&
     platform !== 'javascript-astro';
 
-  const showAstroInfo = platform === 'javascript-astro';
-
   return (
     <Fragment>
       {showPackageManagerInfo && (
@@ -414,13 +421,6 @@ export function ProductSelection({
                 npm: <strong>npm</strong>,
                 yarn: <strong>yarn</strong>,
               })}
-        </TextBlock>
-      )}
-      {showAstroInfo && (
-        <TextBlock noMargin>
-          {tct("In this quick guide you'll use the [astrocli:astro] CLI to set up:", {
-            astrocli: <strong />,
-          })}
         </TextBlock>
       )}
       <Products>

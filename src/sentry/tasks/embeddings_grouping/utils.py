@@ -304,8 +304,8 @@ def _make_snuba_call(project, snuba_requests, referrer):
             bulk_snuba_queries,
             snuba_requests,
             referrer,
-            retries=3,
-            delay=2,
+            retries=6,
+            delay=15,
             exceptions=SNUBA_RETRY_EXCEPTIONS,
         )
     except SNUBA_RETRY_EXCEPTIONS as e:
@@ -411,8 +411,8 @@ def _make_seer_call(
     seer_response = _retry_operation(
         post_bulk_grouping_records,
         create_grouping_records_request,
-        retries=15,
-        delay=10,
+        retries=20,
+        delay=15,
         exceptions=Exception,
     )
 

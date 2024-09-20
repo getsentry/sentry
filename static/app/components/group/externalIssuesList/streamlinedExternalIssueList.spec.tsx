@@ -166,7 +166,7 @@ describe('StreamlinedExternalIssueList', () => {
     );
 
     expect(await screen.findByRole('button', {name: 'GitHub'})).toBeInTheDocument();
-    userEvent.click(await screen.findByRole('button', {name: 'GitHub'}));
+    await userEvent.click(await screen.findByRole('button', {name: 'GitHub'}));
 
     // Both items are listed inside the dropdown
     expect(
