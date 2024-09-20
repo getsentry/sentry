@@ -363,6 +363,7 @@ const packageManagerOnboarding: OnboardingConfig<PlatformOptions> = {
     },
     getUploadSourceMapsStep({
       guideLink: 'https://docs.sentry.io/platforms/javascript/sourcemaps/',
+      ...params,
     }),
   ],
   verify: getVerifyConfig,

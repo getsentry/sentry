@@ -123,12 +123,17 @@ type OrganizationHeaderProps = {
   organization: Organization;
 };
 
-type ProductSelectionAvailabilityProps = Pick<
+type ProductSelectionAvailabilityProps = Omit<
   ProductSelectionProps,
+<<<<<<< HEAD
   'platform' | 'withBottomMargin' | 'projectId' | 'onChange' | 'onLoad'
 > & {
   organization: Organization;
 };
+=======
+  'disabledProducts' | 'productsPerPlatform'
+>;
+>>>>>>> master
 
 type FirstPartyIntegrationAlertProps = {
   integrations: Integration[];

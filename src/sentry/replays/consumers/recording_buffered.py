@@ -55,12 +55,10 @@ from arroyo.types import BaseValue, Commit, Message, Partition
 from sentry_kafka_schemas.codecs import Codec, ValidationError
 from sentry_kafka_schemas.schema_types.ingest_replay_recordings_v1 import ReplayRecording
 
-from sentry import options
 from sentry.conf.types.kafka_definition import Topic, get_topic_codec
 from sentry.replays.lib.storage import (
     RecordingSegmentStorageMeta,
     make_recording_filename,
-    make_video_filename,
     storage_kv,
 )
 from sentry.replays.usecases.ingest import process_headers, track_initial_segment_event
@@ -284,26 +282,15 @@ def process_message(buffer: RecordingBuffer, message: bytes) -> None:
             unit="byte",
         )
 
-        if decoded_message["org_id"] in options.get(
-            "replay.replay-video.organization-file-packing"
-        ):
-            dat = zlib.compress(pack(rrweb=recording_data, video=cast(bytes, replay_video)))
-            buffer.upload_events.append(
-                {"key": make_recording_filename(recording_segment), "value": dat}
-            )
+        dat = zlib.compress(pack(rrweb=recording_data, video=cast(bytes, replay_video)))
+        buffer.upload_events.append(
+            {"key": make_recording_filename(recording_segment), "value": dat}
+        )
 
-            # Track combined payload size.
-            metrics.distribution(
-                "replays.recording_consumer.replay_video_event_size", len(dat), unit="byte"
-            )
-        else:
-            buffer.upload_events.append(
-                {"key": make_recording_filename(recording_segment), "value": compressed_segment}
-            )
-            buffer.upload_events.append(
-                {"key": make_video_filename(recording_segment), "value": cast(bytes, replay_video)}
-            )
-
+        # Track combined payload size.
+        metrics.distribution(
+            "replays.recording_consumer.replay_video_event_size", len(dat), unit="byte"
+        )
     else:
         buffer.upload_events.append(
             {"key": make_recording_filename(recording_segment), "value": compressed_segment}

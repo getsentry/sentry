@@ -295,7 +295,11 @@ export type ProductSelectionProps = {
   /**
    * Fired when the product selection changes
    */
-  onChange?: (product: ProductSolution[]) => void;
+  onChange?: (products: ProductSolution[]) => void;
+  /**
+   * Triggered when the component is loaded
+   */
+  onLoad?: (products: ProductSolution[]) => void;
   /**
    * Callback fired when the component is loaded
    */
@@ -308,10 +312,6 @@ export type ProductSelectionProps = {
    * A custom list of products per platform. If not provided, the default list is used.
    */
   productsPerPlatform?: Record<PlatformKey, ProductSolution[]>;
-  /**
-   * If true, the component has a bottom margin of 20px
-   */
-  withBottomMargin?: boolean;
 };
 
 export function ProductSelection({
@@ -396,8 +396,6 @@ export function ProductSelection({
     platform !== 'javascript-astro' &&
     platform !== 'javascript';
 
-  const showAstroInfo = platform === 'javascript-astro';
-
   return (
     <Fragment>
       {showPackageManagerInfo && (
@@ -405,13 +403,6 @@ export function ProductSelection({
           {tct('In this quick guide you’ll use [npm] or [yarn] to set up:', {
             npm: <strong>npm</strong>,
             yarn: <strong>yarn</strong>,
-          })}
-        </TextBlock>
-      )}
-      {showAstroInfo && (
-        <TextBlock noMargin>
-          {tct("In this quick guide you'll use the [astrocli:astro] CLI to set up:", {
-            astrocli: <strong />,
           })}
         </TextBlock>
       )}
