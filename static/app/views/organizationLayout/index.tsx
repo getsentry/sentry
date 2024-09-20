@@ -37,7 +37,8 @@ function OrganizationLayout({children}: Props) {
   // oganization is loaded before rendering children. Organization may not be
   // loaded yet when this first renders.
   const organization = useOrganization({allowNull: true});
-  const hasNavigationV2 = organization?.features.includes('navigation-sidebar-v2');
+  // const hasNavigationV2 = organization?.features.includes('navigation-sidebar-v2');
+  const hasNavigationV2 = true;
   const App = hasNavigationV2 ? AppLayout : LegacyAppLayout;
 
   return (
