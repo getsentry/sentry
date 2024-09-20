@@ -54,9 +54,17 @@ type Props = {
 /**
  * Component to handle access restrictions.
  */
-function Access({children, isSuperuser, access, team, project}: Props) {
+function Access({
+  children,
+  organization: overrideOrganization,
+  isSuperuser,
+  access,
+  team,
+  project,
+}: Props) {
   const user = useUser();
-  const organization = useOrganization();
+  const implicitOrganization = useOrganization();
+  const organization = overrideOrganization || implicitOrganization;
 
   const hasSuperuser = Boolean(user?.isSuperuser);
   const hasAccess = hasEveryAccess(access, {
