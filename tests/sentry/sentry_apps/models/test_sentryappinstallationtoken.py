@@ -1,9 +1,9 @@
 from sentry.models.apiapplication import ApiApplication
 from sentry.models.apitoken import ApiToken
-from sentry.models.integrations.sentry_app_installation_for_provider import (
+from sentry.sentry_apps.models.sentry_app_installation import SentryAppInstallation
+from sentry.sentry_apps.models.sentry_app_installation_for_provider import (
     SentryAppInstallationForProvider,
 )
-from sentry.sentry_apps.models.sentry_app_installation import SentryAppInstallation
 from sentry.sentry_apps.models.sentry_app_installation_token import SentryAppInstallationToken
 from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import control_silo_test
