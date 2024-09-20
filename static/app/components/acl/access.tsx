@@ -18,7 +18,7 @@ type Props = {
   /**
    * List of required access levels
    */
-  access?: Scope[];
+  access: Scope[];
   /**
    * Children can be a node or a function as child.
    */
@@ -40,7 +40,7 @@ type Props = {
    * An "org-member" does not have project:write but if they are "team-admin" for
    * of a parent team, they will have appropriate scopes.
    */
-  project?: Project | null | undefined;
+  project?: Project;
   /**
    * Optional: To be used when you need to check for access to the Team
    *
@@ -48,13 +48,13 @@ type Props = {
    * An "org-member" does not have team:write but if they are "team-admin" for
    * the team, they will have appropriate scopes.
    */
-  team?: Team | null | undefined;
+  team?: Team;
 };
 
 /**
  * Component to handle access restrictions.
  */
-function Access({children, isSuperuser = false, access = [], team, project}: Props) {
+function Access({children, isSuperuser, access, team, project}: Props) {
   const user = useUser();
   const organization = useOrganization();
 
