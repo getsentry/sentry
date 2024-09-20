@@ -1323,20 +1323,11 @@ def get_culprit(data: Mapping[str, Any]) -> str:
 
 @sentry_sdk.tracing.trace
 def assign_event_to_group(event: Event, job: Job, metric_tags: MutableTags) -> GroupInfo | None:
-    if job["optimized_grouping"]:
-        group_info = _save_aggregate_new(
-            event=event,
-            job=job,
-            metric_tags=metric_tags,
-        )
-    else:
-        group_info = _save_aggregate(
-            event=event,
-            job=job,
-            release=job["release"],
-            received_timestamp=job["received_timestamp"],
-            metric_tags=metric_tags,
-        )
+    group_info = _save_aggregate_new(
+        event=event,
+        job=job,
+        metric_tags=metric_tags,
+    )
 
     if group_info:
         event.group = group_info.group
