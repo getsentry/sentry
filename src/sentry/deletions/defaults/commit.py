@@ -1,8 +1,9 @@
-from ..base import ModelDeletionTask, ModelRelation
+from sentry.deletions.base import BaseRelation, ModelDeletionTask, ModelRelation
+from sentry.models.commit import Commit
 
 
-class CommitDeletionTask(ModelDeletionTask):
-    def get_child_relations(self, instance):
+class CommitDeletionTask(ModelDeletionTask[Commit]):
+    def get_child_relations(self, instance: Commit) -> list[BaseRelation]:
         from sentry.models.commitfilechange import CommitFileChange
         from sentry.models.releasecommit import ReleaseCommit
         from sentry.models.releaseheadcommit import ReleaseHeadCommit

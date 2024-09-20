@@ -27,10 +27,6 @@ def repository_cascade_delete_on_hide(repo_id: int) -> None:
     while has_more:
         # get child relations
         child_relations = _get_repository_child_relations(repo)
-        # extend relations
-        child_relations = child_relations + [
-            rel(repo) for rel in default_manager.dependencies[Repository]
-        ]
         # no need to filter relations; delete them
         if child_relations:
             has_more = _delete_children(manager=default_manager, relations=child_relations)

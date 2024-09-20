@@ -1,8 +1,9 @@
-from sentry.deletions.base import ModelDeletionTask, ModelRelation
+from sentry.deletions.base import BaseRelation, ModelDeletionTask, ModelRelation
+from sentry.models.rulefirehistory import RuleFireHistory
 
 
-class RuleFireHistoryDeletionTask(ModelDeletionTask):
-    def get_child_relations(self, instance):
+class RuleFireHistoryDeletionTask(ModelDeletionTask[RuleFireHistory]):
+    def get_child_relations(self, instance: RuleFireHistory) -> list[BaseRelation]:
         from sentry.models.notificationmessage import NotificationMessage
 
         return [
