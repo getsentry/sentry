@@ -152,14 +152,6 @@ class EventsApiResponse(TypedDict):
     meta: EventsMeta
 
 
-# When calling make build-spectacular-docs we hit this issue
-# https://github.com/tfranzel/drf-spectacular/issues/1041
-# This is a work around
-EventsMeta.__annotations__["datasetReason"] = str
-EventsMeta.__annotations__["isMetricsData"] = bool
-EventsMeta.__annotations__["isMetricsExtractedData"] = bool
-
-
 def rate_limit_events(
     request: Request, organization_id_or_slug: str | None = None, *args, **kwargs
 ) -> dict[str, dict[RateLimitCategory, RateLimit]]:
