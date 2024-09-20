@@ -1,8 +1,9 @@
-from ..base import ModelDeletionTask, ModelRelation
+from sentry.deletions.base import BaseRelation, ModelDeletionTask, ModelRelation
+from sentry.models.pullrequest import PullRequest
 
 
-class PullRequestDeletionTask(ModelDeletionTask):
-    def get_child_relations(self, instance):
+class PullRequestDeletionTask(ModelDeletionTask[PullRequest]):
+    def get_child_relations(self, instance: PullRequest) -> list[BaseRelation]:
         from sentry.models.pullrequest import PullRequestComment
 
         return [

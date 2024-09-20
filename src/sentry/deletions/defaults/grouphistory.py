@@ -1,7 +1,8 @@
 from sentry.deletions.base import ModelDeletionTask
+from sentry.models.grouphistory import GroupHistory
 
 
-class GroupHistoryDeletionTask(ModelDeletionTask):
+class GroupHistoryDeletionTask(ModelDeletionTask[GroupHistory]):
     """
     Specialized deletion handling that operates per group
 

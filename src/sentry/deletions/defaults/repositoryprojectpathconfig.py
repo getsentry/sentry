@@ -1,8 +1,9 @@
-from ..base import ModelDeletionTask, ModelRelation
+from sentry.deletions.base import BaseRelation, ModelDeletionTask, ModelRelation
+from sentry.integrations.models.repository_project_path_config import RepositoryProjectPathConfig
 
 
-class RepositoryProjectPathConfigDeletionTask(ModelDeletionTask):
-    def get_child_relations(self, instance):
+class RepositoryProjectPathConfigDeletionTask(ModelDeletionTask[RepositoryProjectPathConfig]):
+    def get_child_relations(self, instance: RepositoryProjectPathConfig) -> list[BaseRelation]:
         from sentry.models.projectcodeowners import ProjectCodeOwners
 
         return [

@@ -48,7 +48,7 @@ _GROUP_RELATED_MODELS = DIRECT_GROUP_RELATED_MODELS + (
 )
 
 
-class EventDataDeletionTask(BaseDeletionTask):
+class EventDataDeletionTask(BaseDeletionTask[Group]):
     """
     Deletes nodestore data, EventAttachment and UserReports for group
     """
@@ -121,7 +121,7 @@ class EventDataDeletionTask(BaseDeletionTask):
         return True
 
 
-class GroupDeletionTask(ModelDeletionTask):
+class GroupDeletionTask(ModelDeletionTask[Group]):
     # Delete groups in blocks of 1000. Using 1000 aims to
     # balance the number of snuba replacements with memory limits.
     DEFAULT_CHUNK_SIZE = 1000
@@ -152,7 +152,9 @@ class GroupDeletionTask(ModelDeletionTask):
         self.delete_children(child_relations)
 
         # Remove group objects with children removed.
-        return self.delete_instance_bulk(instance_list)
+        self.delete_instance_bulk(instance_list)
+
+        return False
 
     def delete_instance(self, instance: Group) -> None:
         from sentry import similarity

@@ -1,8 +1,9 @@
-from ..base import ModelDeletionTask, ModelRelation
+from sentry.deletions.base import BaseRelation, ModelDeletionTask, ModelRelation
+from sentry.models.grouphash import GroupHash
 
 
-class GroupHashDeletionTask(ModelDeletionTask):
-    def get_child_relations(self, instance):
+class GroupHashDeletionTask(ModelDeletionTask[GroupHash]):
+    def get_child_relations(self, instance: GroupHash) -> list[BaseRelation]:
         from sentry.models.grouphashmetadata import GroupHashMetadata
 
         return [
