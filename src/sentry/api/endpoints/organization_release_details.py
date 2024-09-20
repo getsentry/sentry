@@ -5,7 +5,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.serializers import ListField
 
-from sentry import release_health
+from sentry import options, release_health
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import ReleaseAnalyticsMixin, region_silo_endpoint
@@ -526,7 +526,12 @@ class OrganizationReleaseDetailsEndpoint(
                     datetime=release.date_released,
                 )
 
-        return Response(serialize(release, request.user))
+        no_snuba_for_release_creation = options.get("releases.no_snuba_for_release_creation")
+        return Response(
+            serialize(
+                release, request.user, no_snuba_for_release_creation=no_snuba_for_release_creation
+            )
+        )
 
     @extend_schema(
         operation_id="Delete an Organization's Release",
