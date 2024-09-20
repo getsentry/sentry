@@ -19,6 +19,7 @@ import {
   formatFilterValue,
   getFilterValueType,
   replaceCommaSeparatedValue,
+  unescapeTagValue,
 } from 'sentry/components/searchQueryBuilder/tokens/filter/utils';
 import {ValueListBox} from 'sentry/components/searchQueryBuilder/tokens/filter/valueListBox';
 import {getDefaultAbsoluteDateValue} from 'sentry/components/searchQueryBuilder/tokens/filter/valueSuggestions/date';
@@ -113,7 +114,10 @@ function prepareInputValueForSaving(valueType: FieldValueType, inputValue: strin
   return values.length > 1 ? `[${values.join(',')}]` : values[0] ?? '""';
 }
 
-function getSelectedValuesFromText(text: string) {
+function getSelectedValuesFromText(
+  text: string,
+  {escaped = true}: {escaped?: boolean} = {}
+) {
   const parsed = parseMultiSelectFilterValue(text);
 
   if (!parsed) {
@@ -123,7 +127,9 @@ function getSelectedValuesFromText(text: string) {
   return parsed.items
     .filter(item => item.value?.value)
     .map(item => {
-      return item.value?.text ?? '';
+      return (
+        (escaped ? item.value?.text : unescapeTagValue(item.value?.value ?? '')) ?? ''
+      );
     });
 }
 
@@ -507,8 +513,11 @@ export function SearchQueryBuilderValueCombobox({
     ? getValueAtCursorPosition(inputValue, selectionIndex)
     : inputValue;
 
-  const selectedValues = useMemo(
-    () => (canSelectMultipleValues ? getSelectedValuesFromText(inputValue) : []),
+  const selectedValuesUnescaped = useMemo(
+    () =>
+      canSelectMultipleValues
+        ? getSelectedValuesFromText(inputValue, {escaped: false})
+        : [],
     [canSelectMultipleValues, inputValue]
   );
 
@@ -535,7 +544,7 @@ export function SearchQueryBuilderValueCombobox({
   const {items, suggestionSectionItems, isFetching} = useFilterSuggestions({
     token,
     filterValue,
-    selectedValues,
+    selectedValues: selectedValuesUnescaped,
     ctrlKeyPressed,
   });
 
@@ -571,10 +580,13 @@ export function SearchQueryBuilderValueCombobox({
       }
 
       if (canSelectMultipleValues) {
-        if (selectedValues.includes(value)) {
+        if (selectedValuesUnescaped.includes(value)) {
           const newValue = prepareInputValueForSaving(
             getFilterValueType(token, fieldDefinition),
-            selectedValues.filter(v => v !== value).join(',')
+            selectedValuesUnescaped
+              .filter(v => v !== value)
+              .map(escapeTagValue)
+              .join(',')
           );
 
           dispatch({
@@ -614,16 +626,16 @@ export function SearchQueryBuilderValueCombobox({
       return true;
     },
     [
-      analyticsData,
-      canSelectMultipleValues,
-      dispatch,
-      fieldDefinition,
-      inputValue,
-      onCommit,
-      selectedValues,
-      selectionIndex,
       token,
+      fieldDefinition,
+      canSelectMultipleValues,
+      analyticsData,
+      selectedValuesUnescaped,
+      dispatch,
+      inputValue,
+      selectionIndex,
       ctrlKeyPressed,
+      onCommit,
     ]
   );
 

@@ -1772,6 +1772,21 @@ describe('SearchQueryBuilder', function () {
             expect.anything()
           );
         });
+
+        // Open menu again and check to see if value is correct
+        await userEvent.click(
+          screen.getByRole('button', {name: 'Edit value for filter: custom_tag_name'})
+        );
+
+        // Input value should have the excaped value (with a trailing comma)
+        expect(screen.getByRole('combobox', {name: 'Edit filter value'})).toHaveValue(
+          expected + ','
+        );
+
+        // The original value should be selected in the dropdown
+        expect(
+          within(await screen.findByRole('option', {name: value})).getByRole('checkbox')
+        ).toBeChecked();
       });
 
       it('can replace a value with a new one', async function () {
