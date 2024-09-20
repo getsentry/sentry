@@ -7,7 +7,7 @@ import {getEscapedKey} from 'sentry/components/compactSelect/utils';
 import {useSearchQueryBuilder} from 'sentry/components/searchQueryBuilder/context';
 import {SearchQueryBuilderCombobox} from 'sentry/components/searchQueryBuilder/tokens/combobox';
 import {FunctionDescription} from 'sentry/components/searchQueryBuilder/tokens/filter/functionDescription';
-import {replaceCommaSeparatedValue} from 'sentry/components/searchQueryBuilder/tokens/filter/utils';
+import {replaceCommaSeparatedValue} from 'sentry/components/searchQueryBuilder/tokens/filter/replaceCommaSeparatedValue';
 import type {AggregateFilter} from 'sentry/components/searchSyntax/parser';
 import {t} from 'sentry/locale';
 import {FieldKind, FieldValueType} from 'sentry/utils/fields';

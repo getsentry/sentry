@@ -16,7 +16,7 @@ import {
   getFieldDefinition,
 } from 'sentry/utils/fields';
 
-const SHOULD_ESCAPE_REGEX = /[\s"()]/;
+const SHOULD_ESCAPE_REGEX = /[\s"(),]/;
 
 export function isAggregateFilterToken(
   token: TokenResult<Token.FILTER>
@@ -89,32 +89,6 @@ export function formatFilterValue(token: TokenResult<Token.FILTER>['value']): st
     default:
       return token.text;
   }
-}
-
-/**
- * Replaces the focused parameter (at cursorPosition) with the new value.
- * If cursorPosition is null, will default to the end of the string.
- *
- * Example:
- * replaceCommaSeparatedValue('foo,bar,baz', 5, 'new') => 'foo,new,baz'
- */
-export function replaceCommaSeparatedValue(
-  value: string,
-  cursorPosition: number | null,
-  replacement: string
-) {
-  const items = value.split(',');
-
-  let characterCount = 0;
-  for (let i = 0; i < items.length; i++) {
-    characterCount += items[i].length + 1;
-    if (characterCount > (cursorPosition ?? value.length + 1)) {
-      const newItems = [...items.slice(0, i), replacement, ...items.slice(i + 1)];
-      return newItems.map(item => item.trim()).join(',');
-    }
-  }
-
-  return value;
 }
 
 /**

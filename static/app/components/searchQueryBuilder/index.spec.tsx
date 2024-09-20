@@ -1718,7 +1718,8 @@ describe('SearchQueryBuilder', function () {
         ['spaces', 'a b', '"a b"'],
         ['quotes', 'a"b', '"a\\"b"'],
         ['parens', 'foo()', '"foo()"'],
-      ])('tag values escape %s', async (_, value, expected) => {
+        ['commas', '"a,b"', '"a,b"'],
+      ])('typed tag values escape %s', async (_, value, expected) => {
         const mockOnChange = jest.fn();
         render(
           <SearchQueryBuilder
@@ -1740,6 +1741,52 @@ describe('SearchQueryBuilder', function () {
             expect.anything()
           );
         });
+      });
+
+      it.each([
+        ['spaces', 'a b', '"a b"'],
+        ['quotes', 'a"b', '"a\\"b"'],
+        ['parens', 'foo()', '"foo()"'],
+        ['commas', 'a,b', '"a,b"'],
+      ])('selected tag value suggestions escape %s', async (_, value, expected) => {
+        const mockOnChange = jest.fn();
+        const mockGetTagValues = jest.fn().mockResolvedValue([value]);
+        render(
+          <SearchQueryBuilder
+            {...defaultProps}
+            onChange={mockOnChange}
+            initialQuery="custom_tag_name:"
+            getTagValues={mockGetTagValues}
+          />
+        );
+
+        await userEvent.click(
+          screen.getByRole('button', {name: 'Edit value for filter: custom_tag_name'})
+        );
+        await userEvent.click(await screen.findByRole('option', {name: value}));
+
+        // Value should be surrounded by quotes and escaped
+        await waitFor(() => {
+          expect(mockOnChange).toHaveBeenCalledWith(
+            `custom_tag_name:${expected}`,
+            expect.anything()
+          );
+        });
+
+        // Open menu again and check to see if value is correct
+        await userEvent.click(
+          screen.getByRole('button', {name: 'Edit value for filter: custom_tag_name'})
+        );
+
+        // Input value should have the escaped value (with a trailing comma)
+        expect(screen.getByRole('combobox', {name: 'Edit filter value'})).toHaveValue(
+          expected + ','
+        );
+
+        // The original value should be selected in the dropdown
+        expect(
+          within(await screen.findByRole('option', {name: value})).getByRole('checkbox')
+        ).toBeChecked();
       });
 
       it('can replace a value with a new one', async function () {
