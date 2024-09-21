@@ -5,7 +5,7 @@ from django.http import HttpRequest, HttpResponse
 
 from sentry.models.organization import Organization
 from sentry.models.project import Project
-from sentry.toolbar.utils.url import validate_scheme_and_origin
+from sentry.toolbar.utils.url import check_origin
 from sentry.web.frontend.base import OrganizationView, region_silo_view
 
 
@@ -48,7 +48,7 @@ class IframeView(OrganizationView):
             )  # TODO: replace with 200 response and template var for "project doesn't exist"
 
         allowed_origins: list[str] = project.get_option("sentry:toolbar_allowed_origins")
-        origin_allowed, info_msg = validate_scheme_and_origin(request, allowed_origins)
+        origin_allowed, info_msg = check_origin(request, allowed_origins)
         if not origin_allowed:
             return HttpResponse(
                 escape(info_msg), status=403

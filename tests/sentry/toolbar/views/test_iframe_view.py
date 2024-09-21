@@ -43,22 +43,6 @@ class IframeViewTest(APITestCase):
         res = self.client.get(self.url)
         assert res.status_code == 403
 
-    def test_allowed_schemes(self):
-        self.project.update_option("sentry:toolbar_allowed_origins", ["sentry.io"])
-        for referrer in ["http://sentry.io", "https://sentry.io"]:
-            res = self.client.get(self.url, **{REFERRER_HEADER: referrer})
-            assert res.status_code == 200
-
-        for referrer in [
-            "sentry.io",
-            "ftp://sentry.io",
-            "ftps://sentry.io",
-            "sftp://sentry.io",
-            "ws://sentry.io",
-        ]:
-            res = self.client.get(self.url, **{REFERRER_HEADER: referrer})
-            assert res.status_code == 403
-
     def test_calls_url_matches(self):
         """
         The `url_matches` helper fx has more in-depth unit test coverage.

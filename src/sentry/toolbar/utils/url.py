@@ -2,7 +2,6 @@ from urllib.parse import urlparse
 
 from django.http import HttpRequest
 
-ALLOWED_SCHEMES = ("http", "https")
 REFERRER_HEADER = "HTTP_REFERER"  # 1 R is the spelling used here: https://docs.djangoproject.com/en/5.1/ref/request-response/
 
 
@@ -36,14 +35,12 @@ def url_matches(referrer_url: str, target_url: str) -> bool:
     )
 
 
-def validate_scheme_and_origin(
-    request: HttpRequest, allowed_origins: list[str]
-) -> tuple[bool, str]:
+def check_origin(request: HttpRequest, allowed_origins: list[str]) -> tuple[bool, str]:
     referrer: str | None = request.META.get(REFERRER_HEADER)
     if referrer:
         parsed_ref = urlparse(referrer)
-        if parsed_ref.scheme not in ALLOWED_SCHEMES:
-            return False, f"Invalid scheme: {parsed_ref.scheme}"
+        if not parsed_ref.scheme:
+            parsed_ref = urlparse("http://" + referrer)
         if not parsed_ref.hostname:
             return False, f"Missing hostname in {referrer}"
 
