@@ -60,6 +60,9 @@ class IframeViewTest(APITestCase):
             assert res.status_code == 403
 
     def test_calls_url_matches(self):
+        """
+        The `url_matches` helper fx has more in-depth unit test coverage.
+        """
         mock_url_matches = Mock(return_value=False)
         allowed_origins = ["sentry.io", "abc.com"]
         referrer = "https://example.com"
