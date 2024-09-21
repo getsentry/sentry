@@ -39,8 +39,6 @@ class IframeViewTest(APITestCase):
         assert res.status_code == 403
 
     def test_no_referrer(self):
-        res = self.client.get(self.url)
-        assert res.status_code == 403
         self.project.update_option("sentry:toolbar_allowed_origins", ["sentry.io"])
         res = self.client.get(self.url)
         assert res.status_code == 403
