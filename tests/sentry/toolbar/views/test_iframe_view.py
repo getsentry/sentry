@@ -74,3 +74,8 @@ class IframeViewTest(APITestCase):
         for (i, (args, _)) in enumerate(mock_url_matches.call_args_list):
             assert args[0] == referrer
             assert args[1] == allowed_origins[i]
+
+    def test_x_frame_options(self):
+        self.project.update_option("sentry:toolbar_allowed_origins", ["https://sentry.io"])
+        res = self.client.get(self.url, **{REFERRER_HEADER: "https://sentry.io"})
+        assert res.headers.get("X-Frame-Options") == "ALLOWALL"
