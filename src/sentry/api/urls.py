@@ -273,6 +273,23 @@ from sentry.rules.history.endpoints.project_rule_stats import ProjectRuleStatsIn
 from sentry.scim.endpoints.members import OrganizationSCIMMemberDetails, OrganizationSCIMMemberIndex
 from sentry.scim.endpoints.schemas import OrganizationSCIMSchemaIndex
 from sentry.scim.endpoints.teams import OrganizationSCIMTeamDetails, OrganizationSCIMTeamIndex
+from sentry.sentry_apps.api.endpoints.organization_sentry_apps import OrganizationSentryAppsEndpoint
+from sentry.sentry_apps.api.endpoints.sentry_app_authorizations import (
+    SentryAppAuthorizationsEndpoint,
+)
+from sentry.sentry_apps.api.endpoints.sentry_app_components import (
+    OrganizationSentryAppComponentsEndpoint,
+    SentryAppComponentsEndpoint,
+)
+from sentry.sentry_apps.api.endpoints.sentry_app_details import SentryAppDetailsEndpoint
+from sentry.sentry_apps.api.endpoints.sentry_app_features import SentryAppFeaturesEndpoint
+from sentry.sentry_apps.api.endpoints.sentry_app_interaction import SentryAppInteractionEndpoint
+from sentry.sentry_apps.api.endpoints.sentry_app_publish_request import (
+    SentryAppPublishRequestEndpoint,
+)
+from sentry.sentry_apps.api.endpoints.sentry_app_requests import SentryAppRequestsEndpoint
+from sentry.sentry_apps.api.endpoints.sentry_app_rotate_secret import SentryAppRotateSecretEndpoint
+from sentry.sentry_apps.api.endpoints.sentry_apps import SentryAppsEndpoint
 from sentry.uptime.endpoints.project_uptime_alert_details import ProjectUptimeAlertDetailsEndpoint
 from sentry.uptime.endpoints.project_uptime_alert_index import ProjectUptimeAlertIndexEndpoint
 from sentry.users.api.endpoints.authenticator_index import AuthenticatorIndexEndpoint
@@ -362,23 +379,12 @@ from .endpoints.group_user_reports import GroupUserReportsEndpoint
 from .endpoints.grouping_configs import GroupingConfigsEndpoint
 from .endpoints.index import IndexEndpoint
 from .endpoints.integrations.sentry_apps import (
-    OrganizationSentryAppComponentsEndpoint,
-    OrganizationSentryAppsEndpoint,
-    SentryAppAuthorizationsEndpoint,
-    SentryAppComponentsEndpoint,
-    SentryAppDetailsEndpoint,
-    SentryAppFeaturesEndpoint,
     SentryAppInstallationDetailsEndpoint,
     SentryAppInstallationExternalIssueActionsEndpoint,
     SentryAppInstallationExternalIssueDetailsEndpoint,
     SentryAppInstallationExternalIssuesEndpoint,
     SentryAppInstallationExternalRequestsEndpoint,
     SentryAppInstallationsEndpoint,
-    SentryAppInteractionEndpoint,
-    SentryAppPublishRequestEndpoint,
-    SentryAppRequestsEndpoint,
-    SentryAppRotateSecretEndpoint,
-    SentryAppsEndpoint,
     SentryAppsStatsEndpoint,
     SentryAppStatsEndpoint,
     SentryInternalAppTokenDetailsEndpoint,
