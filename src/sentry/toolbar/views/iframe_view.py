@@ -1,4 +1,3 @@
-import logging
 from html import escape
 from typing import Any
 
@@ -8,8 +7,6 @@ from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.toolbar.utils.url import validate_scheme_and_origin
 from sentry.web.frontend.base import OrganizationView, region_silo_view
-
-logger = logging.getLogger(__name__)
 
 
 @region_silo_view
@@ -42,15 +39,15 @@ class IframeView(OrganizationView):
         kwargs["project"] = active_project
         return args, kwargs
 
-    def get(self, request: HttpRequest, organization, project, *args, **kwargs):
-        logger.info(organization)  # TODO: remove
-        logger.info(project)
+    def get(
+        self, request: HttpRequest, organization: Organization, project: Project, *args, **kwargs
+    ):
         if not project:
             return HttpResponse(
                 "Project does not exist.", status=404
             )  # TODO: replace with 200 response and template var for "project doesn't exist"
 
-        allowed_origins: list[str] = project.get_option("sentry:", validate=lambda val: True)
+        allowed_origins: list[str] = project.get_option("sentry:toolbar_allowed_origins")
         origin_allowed, info_msg = validate_scheme_and_origin(request, allowed_origins)
         if not origin_allowed:
             return HttpResponse(

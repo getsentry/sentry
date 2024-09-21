@@ -52,4 +52,4 @@ def validate_scheme_and_origin(
                 return True, f"Matched allowed origin: {origin}"
         return False, f"Referrer {referrer} does not match allowed origins."
 
-    return False, f"Missing {REFERRER_HEADER} header"
+    return False, f"Could not validate origin, missing {REFERRER_HEADER} header."
