@@ -38,11 +38,8 @@ def url_matches(referrer_url: str, target_url: str) -> bool:
 def check_origin(request: HttpRequest, allowed_origins: list[str]) -> tuple[bool, str]:
     referrer: str | None = request.META.get(REFERRER_HEADER)
     if referrer:
-        parsed_ref = urlparse(referrer)
-        if not parsed_ref.scheme:
-            parsed_ref = urlparse("http://" + referrer)
-        if not parsed_ref.hostname:
-            return False, f"Missing hostname in {referrer}"
+        if not urlparse(referrer).scheme:
+            referrer = "http://" + referrer
 
         for origin in allowed_origins:
             if url_matches(referrer, origin):
