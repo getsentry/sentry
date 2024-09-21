@@ -14,7 +14,6 @@ from sentry.uptime.subscriptions.subscriptions import (
     create_project_uptime_subscription,
     create_uptime_subscription,
 )
-from sentry.utils import json
 from sentry.utils.audit import create_audit_entry
 
 MAX_MONITORS_PER_DOMAIN = 100
@@ -55,25 +54,29 @@ class UptimeMonitorValidator(CamelSnakeSerializer):
     body = serializers.CharField(required=False)
 
     def validate(self, attrs):
-        request_line_size = len(f"{attrs.get('method', 'GET')} {attrs['url']} HTTP/1.1\r\n")
+        headers_dict = {}
+        method = "GET"
+        body = ""
+        url = ""
+        if self.instance:
+            headers_dict = self.instance.uptime_subscription.headers
+            method = self.instance.uptime_subscription.method
+            body = self.instance.uptime_subscription.body or ""
+            url = self.instance.uptime_subscription.url
+        request_line_size = len(
+            f"{attrs.get('method', method)} {attrs.get('url', url)} HTTP/1.1\r\n"
+        )
 
-        headers_dict = json.loads(attrs.get("headers", "{}"))
+        headers_dict = attrs.get("headers", headers_dict)
         headers_size = sum(len(f"{key}: {value}\r\n") for key, value in headers_dict.items())
 
-        body_size = len(attrs.get("body", ""))
+        body_size = len(attrs.get("body", body))
 
         request_size = request_line_size + headers_size + len("\r\n") + body_size
 
         if request_size > MAX_REQUEST_SIZE:
             raise serializers.ValidationError("Request is too large")
         return attrs
-
-    def validate_headers(self, headers):
-        try:
-            json.loads(headers)
-            return headers
-        except ValueError:
-            raise serializers.ValidationError("Headers must be valid JSON")
 
     def validate_method(self, method):
         if method not in SUPPORTED_HTTP_METHODS:

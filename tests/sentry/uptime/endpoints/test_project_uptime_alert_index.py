@@ -113,7 +113,7 @@ class ProjectUptimeAlertIndexPostEndpointTest(ProjectUptimeAlertIndexBaseEndpoin
             interval_seconds=60,
             method="POST",
             body='{"key": "value"}',
-            headers='{"header": "value"}',
+            headers={"header": "value"},
         )
         uptime_monitor = ProjectUptimeSubscription.objects.get(id=resp.data["id"])
         uptime_subscription = uptime_monitor.uptime_subscription
@@ -128,8 +128,8 @@ class ProjectUptimeAlertIndexPostEndpointTest(ProjectUptimeAlertIndexBaseEndpoin
         assert uptime_subscription.headers == {"header": "value"}
 
     @with_feature("organizations:uptime-api-create-update")
-    def test_bad_headers(self):
-        resp = self.get_error_response(
+    def test_headers_body_method_already_exists(self):
+        resp = self.get_success_response(
             self.organization.slug,
             self.project.slug,
             name="test",
@@ -138,11 +138,39 @@ class ProjectUptimeAlertIndexPostEndpointTest(ProjectUptimeAlertIndexBaseEndpoin
             interval_seconds=60,
             method="POST",
             body='{"key": "value"}',
-            headers='{"header: "value"}',
+            headers={"header": "value"},
         )
-        assert resp.data == {
-            "headers": [ErrorDetail(string="Headers must be valid JSON", code="invalid")]
-        }
+        uptime_monitor = ProjectUptimeSubscription.objects.get(id=resp.data["id"])
+        new_proj = self.create_project()
+        resp = self.get_success_response(
+            self.organization.slug,
+            new_proj.slug,
+            name="test",
+            owner=f"user:{self.user.id}",
+            url="http://sentry.io",
+            interval_seconds=60,
+            method="POST",
+            body='{"key": "value"}',
+            headers={"header": "value"},
+        )
+        new_uptime_monitor = ProjectUptimeSubscription.objects.get(id=resp.data["id"])
+        assert uptime_monitor.uptime_subscription_id == new_uptime_monitor.uptime_subscription_id
+        assert new_uptime_monitor.project_id != uptime_monitor.project_id
+        resp = self.get_success_response(
+            self.organization.slug,
+            new_proj.slug,
+            name="test",
+            owner=f"user:{self.user.id}",
+            url="http://sentry.io",
+            interval_seconds=60,
+            method="POST",
+            body='{"key": "value"}',
+            headers={"header": "valu"},
+        )
+        newer_uptime_monitor = ProjectUptimeSubscription.objects.get(id=resp.data["id"])
+        assert (
+            newer_uptime_monitor.uptime_subscription_id != new_uptime_monitor.uptime_subscription_id
+        )
 
     @with_feature("organizations:uptime-api-create-update")
     def test_size_too_big(self):
@@ -155,7 +183,7 @@ class ProjectUptimeAlertIndexPostEndpointTest(ProjectUptimeAlertIndexBaseEndpoin
             interval_seconds=60,
             method="POST",
             body="body" * 250,
-            headers='{"header": "value"}',
+            headers={"header": "value"},
         )
         assert resp.data == {
             "nonFieldErrors": [ErrorDetail(string="Request is too large", code="invalid")]

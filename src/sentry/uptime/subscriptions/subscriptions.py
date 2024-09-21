@@ -3,10 +3,10 @@ import logging
 from typing import Any
 
 from django.db import IntegrityError
+from django.db.models import TextField
 from django.db.models.expressions import Value
 from django.db.models.functions import MD5, Coalesce
 
-from sentry.db.models.fields.text import CharField
 from sentry.models.project import Project
 from sentry.types.actor import Actor
 from sentry.uptime.detectors.url_extraction import extract_domain_parts
@@ -14,6 +14,7 @@ from sentry.uptime.models import (
     ProjectUptimeSubscription,
     ProjectUptimeSubscriptionMode,
     UptimeSubscription,
+    headers_json_encoder,
 )
 from sentry.uptime.rdap.tasks import fetch_subscription_rdap_info
 from sentry.uptime.subscriptions.tasks import (
@@ -30,39 +31,47 @@ DEFAULT_SUBSCRIPTION_TIMEOUT_MS = 10000
 
 
 def retrieve_uptime_subscription(
-    url: str, interval_seconds: int, method: str = "GET", headers: str = "{}", body: str = ""
+    url: str, interval_seconds: int, method: str, headers: dict[str, str], body: str | None
 ) -> UptimeSubscription | None:
-    headers_md5 = hashlib.md5(headers.encode("utf-8")).hexdigest()
-    body_md5 = hashlib.md5(body.encode("utf-8")).hexdigest()
-
-    filtered_qs = UptimeSubscription.objects.filter(
-        url=url, interval_seconds=interval_seconds, method=method
-    )
-    return (
-        filtered_qs.annotate(
-            headers_md5=MD5("headers"),
-            body_md5=Coalesce(MD5("body"), Value(""), output_field=CharField()),
+    try:
+        subscription = (
+            UptimeSubscription.objects.filter(
+                url=url, interval_seconds=interval_seconds, method=method
+            )
+            .annotate(
+                headers_md5=MD5("headers", output_field=TextField()),
+                body_md5=Coalesce(MD5("body"), Value(""), output_field=TextField()),
+            )
+            .filter(
+                headers_md5=hashlib.md5(headers_json_encoder(headers).encode("utf-8")).hexdigest(),
+                body_md5=hashlib.md5(body.encode("utf-8")).hexdigest() if body else "",
+            )
+            .get()
         )
-        .filter(
-            headers_md5=headers_md5,
-            body_md5=body_md5,
-        )
-        .first()
-    )
+    except UptimeSubscription.DoesNotExist:
+        subscription = None
+    return subscription
 
 
 def create_uptime_subscription(
-    url: str, interval_seconds: int, timeout_ms: int = DEFAULT_SUBSCRIPTION_TIMEOUT_MS, **kwargs
+    url: str,
+    interval_seconds: int,
+    timeout_ms: int = DEFAULT_SUBSCRIPTION_TIMEOUT_MS,
+    method: str = "GET",
+    headers: dict[str, str] | None = None,
+    body: str | None = None,
 ) -> UptimeSubscription:
     """
     Creates a new uptime subscription. This creates the row in postgres, and fires a task that will send the config
     to the uptime check system.
     """
+    if headers is None:
+        headers = {}
     # We extract the domain and suffix of the url here. This is used to prevent there being too many checks to a single
     # domain.
     result = extract_domain_parts(url)
 
-    subscription = retrieve_uptime_subscription(url, interval_seconds, **kwargs)
+    subscription = retrieve_uptime_subscription(url, interval_seconds, method, headers, body)
     created = False
 
     if subscription is None:
@@ -75,12 +84,16 @@ def create_uptime_subscription(
                 timeout_ms=timeout_ms,
                 status=UptimeSubscription.Status.CREATING.value,
                 type=UPTIME_SUBSCRIPTION_TYPE,
-                **kwargs,
+                method=method,
+                headers=headers,
+                body=body,
             )
             created = True
         except IntegrityError:
             # Handle race condition where we tried to retrieve an existing subscription while it was being created
-            subscription = retrieve_uptime_subscription(url, interval_seconds, **kwargs)
+            subscription = retrieve_uptime_subscription(
+                url, interval_seconds, method, headers, body
+            )
 
     if subscription.status == UptimeSubscription.Status.DELETING.value:
         # This is pretty unlikely to happen, but we should avoid deleting the subscription here and just confirm it
