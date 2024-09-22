@@ -237,7 +237,7 @@ function CustomViewsIssueListHeaderTabsContent({
 
         setDraggableTabs(
           draggableTabs.map(tab =>
-            tab.key === selectedTab!.key
+            tab.key === selectedTab.key
               ? {
                   ...tab,
                   unsavedChanges,
@@ -289,7 +289,7 @@ function CustomViewsIssueListHeaderTabsContent({
       return;
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [navigate, organization.slug, query, sort, viewId]);
+  }, [navigate, organization.slug, query, sort, viewId, tabListState]);
 
   // Update local tabs when new views are received from mutation request
   useEffect(() => {
