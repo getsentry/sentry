@@ -74,7 +74,7 @@ def send_historical_data_to_seer(alert_rule: AlertRule, project: Project) -> Ale
 
     formatted_data = format_historical_data(
         data=historical_data,
-        query_column=query_columns,
+        query_columns=query_columns,
         dataset=dataset,
         organization=project.organization,
     )
