@@ -5,7 +5,7 @@ import Timeline from 'sentry/components/timeline';
 import TimeSince from 'sentry/components/timeSince';
 import type {Group} from 'sentry/types/group';
 import useOrganization from 'sentry/utils/useOrganization';
-import {GroupActivityTypeIconMapping} from 'sentry/views/issueDetails/streamline/groupActivityIcons';
+import {groupActivityTypeIconMapping} from 'sentry/views/issueDetails/streamline/groupActivityIcons';
 import getGroupActivityItem from 'sentry/views/issueDetails/streamline/groupActivityItem';
 
 function StreamlinedActivitySection({group}: {group: Group}) {
@@ -22,11 +22,16 @@ function StreamlinedActivitySection({group}: {group: Group}) {
             group.project.id,
             <Author>{authorName}</Author>
           );
+
+          const Icon = groupActivityTypeIconMapping[item.type]?.Component ?? null;
+
           return (
             <Timeline.Item
               title={title}
               timestamp={<TimeSince date={item.dateCreated} />}
-              icon={GroupActivityTypeIconMapping[item.type]}
+              icon={
+                Icon && <Icon {...groupActivityTypeIconMapping[item.type].defaultProps} />
+              }
               key={item.id}
             >
               {message}

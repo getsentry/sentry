@@ -19,29 +19,49 @@ import {
 } from 'sentry/icons';
 import {GroupActivityType} from 'sentry/types/group';
 
-export const GroupActivityTypeIconMapping: Record<GroupActivityType, React.ReactNode> = {
-  [GroupActivityType.NOTE]: <IconFile />,
-  [GroupActivityType.SET_RESOLVED]: <IconCheckmark />,
-  [GroupActivityType.SET_RESOLVED_BY_AGE]: <IconCheckmark />,
-  [GroupActivityType.SET_RESOLVED_IN_RELEASE]: <IconCheckmark />,
-  [GroupActivityType.SET_RESOLVED_IN_COMMIT]: <IconCheckmark />,
-  [GroupActivityType.SET_RESOLVED_IN_PULL_REQUEST]: <IconCheckmark />,
-  [GroupActivityType.SET_UNRESOLVED]: <IconClose />,
-  [GroupActivityType.SET_IGNORED]: <IconMute />,
-  [GroupActivityType.SET_PUBLIC]: <IconLock />,
-  [GroupActivityType.SET_PRIVATE]: <IconLock locked />,
-  [GroupActivityType.SET_REGRESSION]: <IconFire />,
-  [GroupActivityType.CREATE_ISSUE]: <IconAdd />,
-  [GroupActivityType.UNMERGE_SOURCE]: <IconPrevious />,
-  [GroupActivityType.UNMERGE_DESTINATION]: <IconPrevious />,
-  [GroupActivityType.FIRST_SEEN]: <IconFlag />,
-  [GroupActivityType.ASSIGNED]: <IconUser />,
-  [GroupActivityType.UNASSIGNED]: <IconUnsubscribed />,
-  [GroupActivityType.MERGE]: <IconNext />,
-  [GroupActivityType.REPROCESS]: <IconRefresh />,
-  [GroupActivityType.MARK_REVIEWED]: <IconCheckmark />,
-  [GroupActivityType.AUTO_SET_ONGOING]: <IconPlay />,
-  [GroupActivityType.SET_ESCALATING]: <IconGraph type="area" />,
-  [GroupActivityType.SET_PRIORITY]: <IconEdit />,
-  [GroupActivityType.DELETED_ATTACHMENT]: <IconDelete />,
+interface IconWithDefaultProps {
+  Component: React.ComponentType<any> | null;
+  defaultProps: {locked?: boolean; type?: string};
+}
+
+export const groupActivityTypeIconMapping: Record<
+  GroupActivityType,
+  IconWithDefaultProps
+> = {
+  [GroupActivityType.NOTE]: {Component: IconFile, defaultProps: {}},
+  [GroupActivityType.SET_RESOLVED]: {Component: IconCheckmark, defaultProps: {}},
+  [GroupActivityType.SET_RESOLVED_BY_AGE]: {Component: IconCheckmark, defaultProps: {}},
+  [GroupActivityType.SET_RESOLVED_IN_RELEASE]: {
+    Component: IconCheckmark,
+    defaultProps: {},
+  },
+  [GroupActivityType.SET_RESOLVED_IN_COMMIT]: {
+    Component: IconCheckmark,
+    defaultProps: {},
+  },
+  [GroupActivityType.SET_RESOLVED_IN_PULL_REQUEST]: {
+    Component: IconCheckmark,
+    defaultProps: {},
+  },
+  [GroupActivityType.SET_UNRESOLVED]: {Component: IconClose, defaultProps: {}},
+  [GroupActivityType.SET_IGNORED]: {Component: IconMute, defaultProps: {}},
+  [GroupActivityType.SET_PUBLIC]: {Component: IconLock, defaultProps: {}},
+  [GroupActivityType.SET_PRIVATE]: {Component: IconLock, defaultProps: {locked: true}},
+  [GroupActivityType.SET_REGRESSION]: {Component: IconFire, defaultProps: {}},
+  [GroupActivityType.CREATE_ISSUE]: {Component: IconAdd, defaultProps: {}},
+  [GroupActivityType.UNMERGE_SOURCE]: {Component: IconPrevious, defaultProps: {}},
+  [GroupActivityType.UNMERGE_DESTINATION]: {Component: IconPrevious, defaultProps: {}},
+  [GroupActivityType.FIRST_SEEN]: {Component: IconFlag, defaultProps: {}},
+  [GroupActivityType.ASSIGNED]: {Component: IconUser, defaultProps: {}},
+  [GroupActivityType.UNASSIGNED]: {Component: IconUnsubscribed, defaultProps: {}},
+  [GroupActivityType.MERGE]: {Component: IconNext, defaultProps: {}},
+  [GroupActivityType.REPROCESS]: {Component: IconRefresh, defaultProps: {}},
+  [GroupActivityType.MARK_REVIEWED]: {Component: IconCheckmark, defaultProps: {}},
+  [GroupActivityType.AUTO_SET_ONGOING]: {Component: IconPlay, defaultProps: {}},
+  [GroupActivityType.SET_ESCALATING]: {
+    Component: IconGraph,
+    defaultProps: {type: 'area'},
+  },
+  [GroupActivityType.SET_PRIORITY]: {Component: IconEdit, defaultProps: {}},
+  [GroupActivityType.DELETED_ATTACHMENT]: {Component: IconDelete, defaultProps: {}},
 };
