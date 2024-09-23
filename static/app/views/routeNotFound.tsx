@@ -27,6 +27,10 @@ function RouteNotFound({router, location}: Props) {
       scope.setFingerprint(['RouteNotFound']);
       scope.setTag('isMissingSlash', isMissingSlash);
       scope.setTag('pathname', pathname);
+      scope.setTag(
+        'reactRouterVersion',
+        window.__SENTRY_USING_REACT_ROUTER_SIX ? '6' : '3'
+      );
       Sentry.captureException(new Error('Route not found'));
     });
   }, [pathname, search, hash, isMissingSlash, router]);

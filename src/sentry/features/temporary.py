@@ -66,8 +66,6 @@ def register_temporary_features(manager: FeatureManager):
     manager.add("organizations:api-keys", OrganizationFeature, FeatureHandlerStrategy.INTERNAL, default=False, api_expose=True)
     # Rollout of the new API rate limits for organization events
     manager.add("organizations:api-organization_events-rate-limit-reduced-rollout", OrganizationFeature, FeatureHandlerStrategy.INTERNAL, api_expose=False)
-    # Enables auto-sized Big Number widgets in Dashboards
-    manager.add("organizations:auto-size-big-number-widget", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enables the cron job to auto-enable codecov integrations.
     manager.add("organizations:auto-enable-codecov", OrganizationFeature, FeatureHandlerStrategy.INTERNAL, api_expose=False)
     # Enables Autofix
@@ -91,10 +89,6 @@ def register_temporary_features(manager: FeatureManager):
     # Delightful Developer Metrics (DDM):
     # Enables experimental WIP custom metrics related features
     manager.add("organizations:custom-metrics-experimental", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
-    # Enables generation of custom metrics extraction rules
-    manager.add("organizations:custom-metrics-extraction-rule", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
-    # Enables UI for creation of custom metrics extraction rules
-    manager.add("organizations:custom-metrics-extraction-rule-ui", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable daily summary
     manager.add("organizations:daily-summary", OrganizationFeature, FeatureHandlerStrategy.INTERNAL, api_expose=False)
     # Enables import/export functionality for dashboards
@@ -102,6 +96,10 @@ def register_temporary_features(manager: FeatureManager):
     # Enable metrics enhanced performance in dashboards
     manager.add("organizations:dashboards-mep", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     manager.add("organizations:dashboards-span-metrics", OrganizationFeature, FeatureHandlerStrategy.OPTIONS, api_expose=False)
+    # Enable releases overlay on dashboard chart widgets
+    manager.add("organizations:dashboards-releases-on-charts", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
+    # Enable equations for Big Number widgets
+    manager.add("organizations:dashboards-bignumber-equations", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable the dev toolbar PoC code for employees
     # Data Secrecy
     manager.add("organizations:data-secrecy", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
@@ -125,6 +123,8 @@ def register_temporary_features(manager: FeatureManager):
     manager.add("organizations:escalating-issues-v2", OrganizationFeature, FeatureHandlerStrategy.INTERNAL, api_expose=False)
     # Enable emiting escalating data to the metrics backend
     manager.add("organizations:escalating-metrics-backend", OrganizationFeature, FeatureHandlerStrategy.INTERNAL, api_expose=False)
+    # Enable logging for failure rate subscription processor
+    manager.add("organizations:failure-rate-metric-alert-logging", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Enable feature flag UI in issue details
     manager.add("organizations:feature-flag-ui", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable disabling gitlab integrations when broken is detected
@@ -190,6 +190,8 @@ def register_temporary_features(manager: FeatureManager):
     manager.add("organizations:metric-alert-threshold-period", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enables the search bar for metrics samples list
     manager.add("organizations:metrics-samples-list-search", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
+    # Migrate Orgs to new Azure DevOps Integration
+    manager.add("organizations:migrate-azure-devops-integration", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable Session Stats down to a minute resolution
     manager.add("organizations:minute-resolution-sessions", OrganizationFeature, FeatureHandlerStrategy.INTERNAL, default=True, api_expose=True)
     # Display CPU and memory metrics in transactions with profiles
@@ -401,8 +403,6 @@ def register_temporary_features(manager: FeatureManager):
     manager.add("organizations:session-replay-timeline-gap", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, default=False, api_expose=True)
     # Enable the new event linking columns to be queried
     manager.add("organizations:session-replay-new-event-counts", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
-    # Enable Rage Click Issue Creation In Recording Consumer
-    manager.add("organizations:session-replay-rage-click-issue-creation", OrganizationFeature, FeatureHandlerStrategy.INTERNAL, api_expose=False)
     # Enable a reduced timeout when waiting for the DOM, before reporting Rage and Dead clicks
     manager.add("organizations:session-replay-dead-click-reduced-timeout", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, default=False, api_expose=False)
     # Enable data scrubbing of replay recording payloads in Relay.
@@ -437,8 +437,12 @@ def register_temporary_features(manager: FeatureManager):
     manager.add("organizations:insights-initial-modules", OrganizationFeature, FeatureHandlerStrategy.INTERNAL, api_expose=True)
     # Enable access to newer Insights modules (Caches, Queues, LLMs, Mobile UI)
     manager.add("organizations:insights-addon-modules", OrganizationFeature, FeatureHandlerStrategy.INTERNAL, api_expose=True)
+    # Make Insights modules use EAP instead of metrics
+    manager.add("organizations:insights-use-eap", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable access to insights metrics alerts
     manager.add("organizations:insights-alerts", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
+    # Enable domain view in Insights modules
+    manager.add("organizations:insights-domain-view", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable Related Issues table in Insights modules
     manager.add("organizations:insights-related-issues-table", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable access to Mobile Screens insights module
@@ -491,6 +495,8 @@ def register_temporary_features(manager: FeatureManager):
     manager.add("organizations:transaction-name-sanitization", OrganizationFeature, FeatureHandlerStrategy.INTERNAL, api_expose=False)
     # Enables creation and full updating of uptime monitors via the api
     manager.add("organizations:uptime-api-create-update", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
+    # Displys the "Uptime Monitor" option in the alert creation wizard
+    manager.add("organizations:uptime-display-wizard-create", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enables automatic hostname detection in uptime
     manager.add("organizations:uptime-automatic-hostname-detection", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Enables automatic subscription creation in uptime
@@ -528,6 +534,8 @@ def register_temporary_features(manager: FeatureManager):
     manager.add("organizations:webhooks-unresolved", OrganizationFeature, FeatureHandlerStrategy.OPTIONS, api_expose=True)
     # Display the new 'what's new' experience
     manager.add("organizations:what-is-new-revamp", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
+    # Enable new feature parsing code for Jira integrations
+    manager.add("organizations:new-jira-transformers", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # NOTE: Don't add features down here! Add them to their specific group and sort
     #       them alphabetically! The order features are registered is not important.
 

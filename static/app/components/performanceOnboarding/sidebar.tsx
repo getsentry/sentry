@@ -8,15 +8,18 @@ import type {MenuItemProps} from 'sentry/components/dropdownMenu';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import IdBadge from 'sentry/components/idBadge';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {Step} from 'sentry/components/onboarding/gettingStartedDoc/step';
+import type {DocsParams} from 'sentry/components/onboarding/gettingStartedDoc/types';
+import {useLoadGettingStarted} from 'sentry/components/onboarding/gettingStartedDoc/utils/useLoadGettingStarted';
+import {ProductSolution} from 'sentry/components/onboarding/productSelection';
 import {shouldShowPerformanceTasks} from 'sentry/components/onboardingWizard/filterSupportedTasks';
-import useOnboardingDocs from 'sentry/components/onboardingWizard/useOnboardingDocs';
-import OnboardingStep from 'sentry/components/sidebar/onboardingStep';
 import SidebarPanel from 'sentry/components/sidebar/sidebarPanel';
 import type {CommonSidebarProps} from 'sentry/components/sidebar/types';
 import {SidebarPanelKey} from 'sentry/components/sidebar/types';
 import {withoutPerformanceSupport} from 'sentry/data/platformCategories';
-import platforms from 'sentry/data/platforms';
+import platforms, {otherPlatform} from 'sentry/data/platforms';
 import {t, tct} from 'sentry/locale';
+import ConfigStore from 'sentry/stores/configStore';
 import PageFiltersStore from 'sentry/stores/pageFiltersStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import pulsingIndicatorStyles from 'sentry/styles/pulsingIndicator';
@@ -29,7 +32,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 import usePrevious from 'sentry/utils/usePrevious';
 import useProjects from 'sentry/utils/useProjects';
 
-import {filterProjects, generateDocKeys, isPlatformSupported} from './utils';
+import {filterProjects} from './utils';
 
 function decodeProjectIds(projectIds: unknown): string[] | null {
   if (Array.isArray(projectIds)) {
@@ -191,8 +194,10 @@ function PerformanceOnboardingSidebar(props: CommonSidebarProps) {
 function OnboardingContent({currentProject}: {currentProject: Project}) {
   const api = useApi();
   const organization = useOrganization();
-  const previousProject = usePrevious(currentProject);
+  const {isSelfHosted, urlPrefix} = useLegacyStore(ConfigStore);
   const [received, setReceived] = useState<boolean>(false);
+
+  const previousProject = usePrevious(currentProject);
 
   useEffect(() => {
     if (previousProject.id !== currentProject.id) {
@@ -204,15 +209,13 @@ function OnboardingContent({currentProject}: {currentProject: Project}) {
     ? platforms.find(p => p.id === currentProject.platform)
     : undefined;
 
-  const docKeys = useMemo(() => {
-    return currentPlatform ? generateDocKeys(currentPlatform.id) : [];
-  }, [currentPlatform]);
-
-  const {docContents, isLoading, hasOnboardingContents} = useOnboardingDocs({
-    project: currentProject,
-    docKeys,
-    isPlatformSupported: isPlatformSupported(currentPlatform),
+  const {isLoading, docs, dsn, projectKeyId} = useLoadGettingStarted({
+    platform: currentPlatform || otherPlatform,
+    orgSlug: organization.slug,
+    projSlug: currentProject.slug,
+    productType: 'performance',
   });
+  const performanceDocs = docs?.performanceOnboarding;
 
   if (isLoading) {
     return <LoadingIndicator />;
@@ -240,7 +243,7 @@ function OnboardingContent({currentProject}: {currentProject: Project}) {
     );
   }
 
-  if (!currentPlatform || !hasOnboardingContents) {
+  if (!currentPlatform || !performanceDocs || !dsn || !projectKeyId) {
     return (
       <Fragment>
         <div>
@@ -262,47 +265,73 @@ function OnboardingContent({currentProject}: {currentProject: Project}) {
     );
   }
 
+  const docParams: DocsParams<any> = {
+    api,
+    projectKeyId,
+    dsn,
+    organization: organization,
+    platformKey: currentProject.platform || 'other',
+    projectId: currentProject.id,
+    projectSlug: currentProject.slug,
+    isFeedbackSelected: false,
+    isPerformanceSelected: true,
+    isProfilingSelected: false,
+    isReplaySelected: false,
+    sourcePackageRegistries: {
+      isLoading: false,
+      data: undefined,
+    },
+    platformOptions: [ProductSolution.PERFORMANCE_MONITORING],
+    newOrg: false,
+    feedbackOptions: {},
+    urlPrefix,
+    isSelfHosted,
+  };
+
+  const steps = [
+    ...performanceDocs.install(docParams),
+    ...performanceDocs.configure(docParams),
+    ...performanceDocs.verify(docParams),
+  ];
+
   return (
     <Fragment>
-      <div>
-        {tct(
-          `Adding Performance to your [platform] project is simple. Make sure you've got these basics down.`,
-          {platform: currentPlatform?.name || currentProject.slug}
-        )}
-      </div>
-      {docKeys.map((docKey, index) => {
-        let footer: React.ReactNode = null;
-
-        if (index === docKeys.length - 1) {
-          footer = (
-            <EventWaiter
-              api={api}
-              organization={organization}
-              project={currentProject}
-              eventType="transaction"
-              onIssueReceived={() => {
-                setReceived(true);
-              }}
-            >
-              {() => (received ? <EventReceivedIndicator /> : <EventWaitingIndicator />)}
-            </EventWaiter>
-          );
-        }
-        return (
-          <div key={index}>
-            <OnboardingStep
-              docContent={docContents[docKey]}
-              docKey={docKey}
-              prefix="perf"
-              project={currentProject}
-            />
-            {footer}
-          </div>
-        );
-      })}
+      {performanceDocs.introduction && (
+        <Introduction>{performanceDocs.introduction(docParams)}</Introduction>
+      )}
+      <Steps>
+        {steps.map(step => {
+          return <Step key={step.title ?? step.type} {...step} />;
+        })}
+      </Steps>
+      <EventWaiter
+        api={api}
+        organization={organization}
+        project={currentProject}
+        eventType="transaction"
+        onIssueReceived={() => {
+          setReceived(true);
+        }}
+      >
+        {() => (received ? <EventReceivedIndicator /> : <EventWaitingIndicator />)}
+      </EventWaiter>
     </Fragment>
   );
 }
+
+const Steps = styled('div')`
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  padding-bottom: ${space(1)};
+`;
+
+const Introduction = styled('div')`
+  display: flex;
+  flex-direction: column;
+  margin-top: ${space(2)};
+  margin-bottom: ${space(2)};
+`;
 
 const TaskSidebarPanel = styled(SidebarPanel)`
   width: 450px;

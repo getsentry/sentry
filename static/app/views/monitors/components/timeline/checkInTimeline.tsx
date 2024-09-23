@@ -8,14 +8,14 @@ import {getTickStyle} from 'sentry/views/monitors/utils';
 import {getAggregateStatus} from './utils/getAggregateStatus';
 import {mergeBuckets} from './utils/mergeBuckets';
 import {CheckInTooltip} from './checkInTooltip';
-import type {MonitorBucketData, TimeWindowConfig} from './types';
+import type {MonitorBucket, TimeWindowConfig} from './types';
 
 interface TimelineProps {
   timeWindowConfig: TimeWindowConfig;
 }
 
 export interface CheckInTimelineProps extends TimelineProps {
-  bucketedData: MonitorBucketData;
+  bucketedData: MonitorBucket[];
   environment: string;
 }
 

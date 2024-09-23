@@ -101,11 +101,6 @@ from sentry.models.group import Group
 from sentry.models.grouphistory import GroupHistory
 from sentry.models.grouplink import GroupLink
 from sentry.models.grouprelease import GroupRelease
-from sentry.models.integrations.sentry_app import SentryApp
-from sentry.models.integrations.sentry_app_installation import SentryAppInstallation
-from sentry.models.integrations.sentry_app_installation_for_provider import (
-    SentryAppInstallationForProvider,
-)
 from sentry.models.notificationaction import (
     ActionService,
     ActionTarget,
@@ -133,15 +128,20 @@ from sentry.models.repository import Repository
 from sentry.models.rule import Rule
 from sentry.models.rulesnooze import RuleSnooze
 from sentry.models.savedsearch import SavedSearch
-from sentry.models.servicehook import ServiceHook
 from sentry.models.team import Team
 from sentry.models.userreport import UserReport
 from sentry.organizations.services.organization import RpcOrganization, RpcUserOrganizationContext
-from sentry.sentry_apps.apps import SentryAppCreator
 from sentry.sentry_apps.installations import (
     SentryAppInstallationCreator,
     SentryAppInstallationTokenCreator,
 )
+from sentry.sentry_apps.logic import SentryAppCreator
+from sentry.sentry_apps.models.sentry_app import SentryApp
+from sentry.sentry_apps.models.sentry_app_installation import SentryAppInstallation
+from sentry.sentry_apps.models.sentry_app_installation_for_provider import (
+    SentryAppInstallationForProvider,
+)
+from sentry.sentry_apps.models.servicehook import ServiceHook
 from sentry.sentry_apps.services.app.serial import serialize_sentry_app_installation
 from sentry.sentry_apps.services.hook import hook_service
 from sentry.signals import project_created
@@ -170,7 +170,13 @@ from sentry.users.models.userrole import UserRole
 from sentry.users.services.user import RpcUser
 from sentry.utils import loremipsum
 from sentry.utils.performance_issues.performance_problem import PerformanceProblem
-from sentry.workflow_engine.models import DataSource, Detector, Workflow, WorkflowAction
+from sentry.workflow_engine.models import (
+    DataSource,
+    DataSourceDetector,
+    Detector,
+    Workflow,
+    WorkflowAction,
+)
 from social_auth.models import UserSocialAuth
 
 
@@ -1938,8 +1944,14 @@ class Factories:
         subscription_id: str | None,
         status: UptimeSubscription.Status,
         url: str,
+        url_domain: str,
+        url_domain_suffix: str,
+        host_provider_id: str,
         interval_seconds: int,
         timeout_ms: int,
+        method,
+        headers,
+        body,
         date_updated: datetime,
     ):
         return UptimeSubscription.objects.create(
@@ -1947,9 +1959,15 @@ class Factories:
             subscription_id=subscription_id,
             status=status.value,
             url=url,
+            url_domain=url_domain,
+            url_domain_suffix=url_domain_suffix,
+            host_provider_id=host_provider_id,
             interval_seconds=interval_seconds,
             timeout_ms=timeout_ms,
             date_updated=date_updated,
+            method=method,
+            headers=headers,
+            body=body,
         )
 
     @staticmethod
@@ -2057,7 +2075,7 @@ class Factories:
 
     @staticmethod
     @assume_test_silo_mode(SiloMode.REGION)
-    def create_datasource(
+    def create_data_source(
         organization: Organization | None = None,
         query_id: int | None = None,
         type: DataSource.Type | None = None,
@@ -2087,3 +2105,16 @@ class Factories:
         return Detector.objects.create(
             organization=organization, name=name, owner_user_id=owner_user_id, owner_team=owner_team
         )
+
+    @staticmethod
+    @assume_test_silo_mode(SiloMode.REGION)
+    def create_data_source_detector(
+        data_source: DataSource | None = None,
+        detector: Detector | None = None,
+        **kwargs,
+    ) -> DataSourceDetector:
+        if data_source is None:
+            data_source = Factories.create_data_source()
+        if detector is None:
+            detector = Factories.create_detector()
+        return DataSourceDetector.objects.create(data_source=data_source, detector=detector)

@@ -78,11 +78,11 @@ def get_crash_free_historical_data(
 def format_historical_data(data: SnubaTSResult, dataset: Any) -> list[TimeSeriesPoint]:
     """
     Format Snuba data into the format the Seer API expects.
-    For errors data:
+    For errors/transactions data:
         If there are no results, it's just the timestamp
         {'time': 1719012000}, {'time': 1719018000}, {'time': 1719024000}
 
-        If there are results, the count is added
+        If there are results, the aggregate is added
         {'time': 1721300400, 'count': 2}
 
     For metrics_performance dataset/sessions data:
@@ -97,13 +97,26 @@ def format_historical_data(data: SnubaTSResult, dataset: Any) -> list[TimeSeries
             return formatted_data
         series = groups[0].get("series")
 
-        for time, count in zip(nested_data.get("intervals"), series.get("sum(session)")):
+        for time, count in zip(nested_data.get("intervals"), series.get("sum(session)", 0)):
             date = datetime.strptime(time, "%Y-%m-%dT%H:%M:%SZ")
             ts_point = TimeSeriesPoint(timestamp=date.timestamp(), value=count)
             formatted_data.append(ts_point)
     else:
+        # we don't know what the aggregation key of the query is
+        # so we should see it when we see a data point that has a value
+        agg_key = ""
         for datum in nested_data:
-            ts_point = TimeSeriesPoint(timestamp=datum.get("time"), value=datum.get("count", 0))
+            if len(datum) == 1:
+                # this data point has no value
+                ts_point = TimeSeriesPoint(timestamp=datum.get("time"), value=0)
+            else:
+                # if we don't know the aggregation key yet, we should set it
+                if not agg_key:
+                    for key in datum:  # only two keys in this dict
+                        if key != "time":
+                            agg_key = key
+                            break
+                ts_point = TimeSeriesPoint(timestamp=datum.get("time"), value=datum.get(agg_key, 0))
             formatted_data.append(ts_point)
     return formatted_data
 

@@ -1,8 +1,10 @@
+import {Fragment} from 'react';
 import styled from '@emotion/styled';
 import {isMac} from '@react-aria/utils';
 
 import {ListBox} from 'sentry/components/compactSelect/listBox';
 import type {SelectOptionOrSectionWithKey} from 'sentry/components/compactSelect/types';
+import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {Overlay} from 'sentry/components/overlay';
 import type {CustomComboboxMenuProps} from 'sentry/components/searchQueryBuilder/tokens/combobox';
 import {itemIsSection} from 'sentry/components/searchQueryBuilder/tokens/utils';
@@ -11,6 +13,7 @@ import {space} from 'sentry/styles/space';
 
 interface ValueListBoxProps<T> extends CustomComboboxMenuProps<T> {
   canUseWildcard: boolean;
+  isLoading: boolean;
   isMultiSelect: boolean;
   items: T[];
 }
@@ -39,6 +42,7 @@ function Footer({
 export function ValueListBox<T extends SelectOptionOrSectionWithKey<string>>({
   hiddenOptions,
   isOpen,
+  isLoading,
   listBoxProps,
   listBoxRef,
   popoverRef,
@@ -55,26 +59,34 @@ export function ValueListBox<T extends SelectOptionOrSectionWithKey<string>>({
   );
   const anyItemsShowing = totalOptions > hiddenOptions.size;
 
-  if (!isOpen || !anyItemsShowing) {
+  if (!isOpen || (!anyItemsShowing && !isLoading)) {
     return null;
   }
 
   return (
     <StyledPositionWrapper {...overlayProps} visible={isOpen}>
       <SectionedOverlay ref={popoverRef}>
-        <StyledListBox
-          {...listBoxProps}
-          ref={listBoxRef}
-          listState={state}
-          hasSearch={!!filterValue}
-          hiddenOptions={hiddenOptions}
-          keyDownHandler={() => true}
-          overlayIsOpen={isOpen}
-          showSectionHeaders={!filterValue}
-          size="sm"
-          style={{maxWidth: overlayProps.style.maxWidth}}
-        />
-        <Footer isMultiSelect={isMultiSelect} canUseWildcard={canUseWildcard} />
+        {isLoading && hiddenOptions.size >= totalOptions ? (
+          <LoadingWrapper>
+            <LoadingIndicator mini />
+          </LoadingWrapper>
+        ) : (
+          <Fragment>
+            <StyledListBox
+              {...listBoxProps}
+              ref={listBoxRef}
+              listState={state}
+              hasSearch={!!filterValue}
+              hiddenOptions={hiddenOptions}
+              keyDownHandler={() => true}
+              overlayIsOpen={isOpen}
+              showSectionHeaders={!filterValue}
+              size="sm"
+              style={{maxWidth: overlayProps.style.maxWidth}}
+            />
+            <Footer isMultiSelect={isMultiSelect} canUseWildcard={canUseWildcard} />
+          </Fragment>
+        )}
       </SectionedOverlay>
     </StyledPositionWrapper>
   );
@@ -106,6 +118,14 @@ const FooterContainer = styled('div')`
   display: flex;
   flex-direction: column;
   gap: ${space(0.5)};
+`;
+
+const LoadingWrapper = styled('div')`
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 140px;
+  width: 200px;
 `;
 
 const Label = styled('div')``;

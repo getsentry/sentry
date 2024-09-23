@@ -354,7 +354,7 @@ class EventAiSuggestedFixEndpoint(ProjectEndpoint):
 
         # Cache the suggestion for a certain amount by primary hash, so even when new events
         # come into the group, we are sharing the same response.
-        cache_key = "ai:" + event.get_primary_hash()  # type: ignore[operator]  # XXX: get_primary_hash probably typed wrong
+        cache_key = "ai:" + event.get_primary_hash()
         suggestion = cache.get(cache_key)
         if suggestion is None:
             try:

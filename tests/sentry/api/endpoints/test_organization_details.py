@@ -20,6 +20,7 @@ from sentry import options as sentry_options
 from sentry.api.endpoints.organization_details import ERR_NO_2FA, ERR_SSO_ENABLED
 from sentry.api.serializers.models.organization import TrustedRelaySerializer
 from sentry.api.utils import generate_region_url
+from sentry.auth.authenticators.recovery_code import RecoveryCodeInterface
 from sentry.auth.authenticators.totp import TotpInterface
 from sentry.constants import RESERVED_ORGANIZATION_SLUGS, ObjectStatus
 from sentry.models.auditlogentry import AuditLogEntry
@@ -406,7 +407,7 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
 
     @responses.activate
     @patch(
-        "sentry.integrations.github.GitHubApiClient.get_repositories",
+        "sentry.integrations.github.integration.GitHubApiClient.get_repositories",
         return_value=[{"name": "cool-repo", "full_name": "testgit/cool-repo"}],
     )
     @with_feature("organizations:codecov-integration")
@@ -540,7 +541,7 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
 
     @responses.activate
     @patch(
-        "sentry.integrations.github.GitHubApiClient.get_repositories",
+        "sentry.integrations.github.client.GitHubApiClient.get_repositories",
         return_value=[{"name": "abc", "full_name": "testgit/abc"}],
     )
     @with_feature("organizations:codecov-integration")
@@ -1114,6 +1115,12 @@ class OrganizationSettings2FATest(TwoFactorAPITestCase):
 
     def test_cannot_enforce_2fa_without_2fa_enabled(self):
         with assume_test_silo_mode_of(Authenticator):
+            assert not self.owner.has_2fa()
+        self.assert_cannot_enable_org_2fa(self.organization, self.owner, 400, ERR_NO_2FA)
+
+        # having recovery codes only (backup method) should not allow to enforce org 2FA
+        with assume_test_silo_mode_of(Authenticator):
+            RecoveryCodeInterface().enroll(self.owner)
             assert not self.owner.has_2fa()
         self.assert_cannot_enable_org_2fa(self.organization, self.owner, 400, ERR_NO_2FA)
 

@@ -327,6 +327,7 @@ function WidgetBuilder({
           displayType: newDisplayType,
           queries: widgetFromDashboard.queries,
           widgetType: widgetFromDashboard.widgetType ?? defaultWidgetType,
+          organization: organization,
         }).map(query => ({
           ...query,
           // Use the last aggregate because that's where the y-axis is stored
@@ -339,6 +340,7 @@ function WidgetBuilder({
           displayType: newDisplayType,
           queries: widgetFromDashboard.queries,
           widgetType: widgetFromDashboard.widgetType ?? defaultWidgetType,
+          organization: organization,
         });
       }
 
@@ -437,6 +439,7 @@ function WidgetBuilder({
             displayType: newDisplayType,
             queries: [{...getDatasetConfig(defaultWidgetType).defaultWidgetQuery}],
             widgetType: defaultWidgetType,
+            organization: organization,
           })
         );
         set(newState, 'dataSet', defaultDataset);
@@ -448,6 +451,7 @@ function WidgetBuilder({
         displayType: newDisplayType,
         queries: prevState.queries,
         widgetType: DATA_SET_TO_WIDGET_TYPE[prevState.dataSet],
+        organization: organization,
       });
 
       if (newDisplayType === DisplayType.TOP_N) {
@@ -675,7 +679,10 @@ function WidgetBuilder({
     return handleColumnFieldChange;
   }
 
-  function handleYAxisChange(newFields: QueryFieldValue[]) {
+  function handleYAxisChange(
+    newFields: QueryFieldValue[],
+    newSelectedAggregate?: number
+  ) {
     const fieldStrings = newFields.map(generateFieldAsString);
     const newState = cloneDeep(state);
 
@@ -703,6 +710,12 @@ function WidgetBuilder({
 
       return newQuery;
     });
+
+    if (
+      organization.features.includes('dashboards-bignumber-equations') &&
+      defined(newSelectedAggregate)
+    )
+      newQueries[0].selectedAggregate = newSelectedAggregate;
 
     set(newState, 'queries', newQueries);
     set(newState, 'userHasModified', true);
@@ -1242,10 +1255,13 @@ function WidgetBuilder({
                                       displayType={state.displayType}
                                       widgetType={widgetType}
                                       queryErrors={state.errors?.queries}
-                                      onYAxisChange={newFields => {
-                                        handleYAxisChange(newFields);
+                                      onYAxisChange={(newFields, newSelectedField) => {
+                                        handleYAxisChange(newFields, newSelectedField);
                                       }}
                                       aggregates={explodedAggregates}
+                                      selectedAggregate={
+                                        state.queries[0].selectedAggregate
+                                      }
                                       tags={tags}
                                       organization={organization}
                                     />

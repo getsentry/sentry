@@ -54,6 +54,7 @@ function ProjectFilters({query, relativeDateOptions, tagValueLoader, onSearch}: 
           filterKeys={SUPPORTED_TAGS}
           onSearch={onSearch}
           getTagValues={getTagValues}
+          showUnsubmittedIndicator
         />
       ) : (
         <SmartSearchBar

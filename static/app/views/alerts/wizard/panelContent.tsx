@@ -182,4 +182,8 @@ export const AlertWizardPanelContent: Record<AlertType, PanelContent> = {
     ],
     illustration: diagramCrashFreeUsers,
   },
+  uptime_monitor: {
+    description: t('Monitor the availability and reliability of your web services.'),
+    examples: [t('When a URL is detected to be down, create an issue.')],
+  },
 };

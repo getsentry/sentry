@@ -65,9 +65,9 @@ rfc3339-validator>=0.1.2
 rfc3986-validator>=0.1.1
 # [end] jsonschema format validators
 sentry-arroyo>=2.16.5
-sentry-kafka-schemas>=0.1.106
-sentry-ophio==0.2.7
-sentry-protos>=0.1.19
+sentry-kafka-schemas>=0.1.109
+sentry-ophio==1.0.0
+sentry-protos>=0.1.21
 sentry-redis-tools>=0.1.7
 sentry-relay>=0.9.1
 sentry-sdk>=2.12.0
@@ -77,7 +77,7 @@ simplejson>=3.17.6
 sqlparse>=0.4.4
 statsd>=3.3
 structlog>=22
-symbolic==12.8.0
+symbolic==12.10.0
 tiktoken>=0.6.0
 tldextract>=5.1.2
 toronado>=0.1.0

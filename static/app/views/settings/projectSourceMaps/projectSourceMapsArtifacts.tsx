@@ -19,7 +19,7 @@ import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import type {Project} from 'sentry/types/project';
 import type {Artifact} from 'sentry/types/release';
 import type {DebugIdBundleArtifact} from 'sentry/types/sourceMaps';
-import {useApiQuery} from 'sentry/utils/queryClient';
+import {keepPreviousData, useApiQuery} from 'sentry/utils/queryClient';
 import {decodeScalar} from 'sentry/utils/queryString';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import useApi from 'sentry/utils/useApi';
@@ -148,7 +148,7 @@ export function ProjectSourceMapsArtifacts({params, location, router, project}: 
     ],
     {
       staleTime: 0,
-      keepPreviousData: true,
+      placeholderData: keepPreviousData,
       enabled: !tabDebugIdBundlesActive,
     }
   );
@@ -166,7 +166,7 @@ export function ProjectSourceMapsArtifacts({params, location, router, project}: 
     ],
     {
       staleTime: 0,
-      keepPreviousData: true,
+      placeholderData: keepPreviousData,
       enabled: tabDebugIdBundlesActive,
     }
   );

@@ -76,6 +76,38 @@ class OrganizationEventsSpanIndexedEndpointTest(OrganizationEventsEndpointTestBa
         ]
         assert meta["dataset"] == self.dataset
 
+    def test_id_fields(self):
+        self.store_spans(
+            [
+                self.create_span(
+                    {"description": "foo", "sentry_tags": {"status": "success"}},
+                    start_ts=self.ten_mins_ago,
+                ),
+                self.create_span(
+                    {"description": "bar", "sentry_tags": {"status": "invalid_argument"}},
+                    start_ts=self.ten_mins_ago,
+                ),
+            ],
+            is_eap=self.is_eap,
+        )
+        response = self.do_request(
+            {
+                "field": ["id", "span_id"],
+                "query": "",
+                "orderby": "id",
+                "project": self.project.id,
+                "dataset": self.dataset,
+            }
+        )
+
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+        meta = response.data["meta"]
+        assert len(data) == 2
+        for obj in data:
+            assert obj["id"] == obj["span_id"]
+        assert meta["dataset"] == self.dataset
+
     def test_sentry_tags_vs_tags(self):
         self.store_spans(
             [
@@ -466,6 +498,32 @@ class OrganizationEventsSpanIndexedEndpointTest(OrganizationEventsEndpointTestBa
             assert response.status_code == 200, response.content
             assert response.data["data"] == [{"foo": "BaR", "count()": 1}]
 
+    def test_query_for_missing_tag(self):
+        self.store_spans(
+            [
+                self.create_span(
+                    {"description": "foo"},
+                    start_ts=self.ten_mins_ago,
+                ),
+                self.create_span(
+                    {"description": "qux", "tags": {"foo": "bar"}},
+                    start_ts=self.ten_mins_ago,
+                ),
+            ],
+            is_eap=self.is_eap,
+        )
+
+        response = self.do_request(
+            {
+                "field": ["foo", "count()"],
+                "query": 'foo:""',
+                "project": self.project.id,
+                "dataset": self.dataset,
+            }
+        )
+        assert response.status_code == 200, response.content
+        assert response.data["data"] == [{"foo": "", "count()": 1}]
+
 
 class OrganizationEventsEAPSpanEndpointTest(OrganizationEventsSpanIndexedEndpointTest):
     is_eap = True
@@ -558,11 +616,6 @@ class OrganizationEventsEAPSpanEndpointTest(OrganizationEventsSpanIndexedEndpoin
         ]
         assert meta["dataset"] == self.dataset
 
-    # 2024-09-12 / shellmayr: Marked as failing because test fails in CI
-    # https://github.com/getsentry/sentry/actions/runs/10826394743/job/30037275706?pr=77376
-    @pytest.mark.xfail(
-        reason="percentile_weighted(span.duration, 0.23) causes: Invalid query. Argument to function is wrong type"
-    )
     def test_extrapolation_smoke(self):
         """This is a hack, we just want to make sure nothing errors from using the weighted functions"""
         for function in [

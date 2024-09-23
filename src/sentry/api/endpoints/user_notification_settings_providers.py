@@ -6,7 +6,6 @@ from rest_framework.response import Response
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import control_silo_endpoint
-from sentry.api.bases.user import UserEndpoint
 from sentry.api.exceptions import ParameterValidationError
 from sentry.api.serializers import serialize
 from sentry.api.validators.notifications import validate_type
@@ -15,6 +14,7 @@ from sentry.models.notificationsettingprovider import NotificationSettingProvide
 from sentry.notifications.serializers import NotificationSettingsProviderSerializer
 from sentry.notifications.types import NotificationSettingsOptionEnum
 from sentry.notifications.validators import UserNotificationSettingsProvidersDetailsSerializer
+from sentry.users.api.bases.user import UserEndpoint
 from sentry.users.models.user import User
 
 

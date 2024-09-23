@@ -24,7 +24,7 @@ import {
 } from 'sentry/components/events/highlights/util';
 import ExternalLink from 'sentry/components/links/externalLink';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
-import {IconEdit, IconMegaphone} from 'sentry/icons';
+import {IconEdit} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
@@ -33,7 +33,6 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import useReplayData from 'sentry/utils/replays/hooks/useReplayData';
 import theme from 'sentry/utils/theme';
 import {useDetailedProject} from 'sentry/utils/useDetailedProject';
-import {useFeedbackForm} from 'sentry/utils/useFeedbackForm';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
@@ -257,7 +256,6 @@ export default function HighlightsDataSection({
   project,
 }: HighlightsDataSectionProps) {
   const organization = useOrganization();
-  const openForm = useFeedbackForm();
   const hasStreamlinedUI = useHasStreamlinedUI();
 
   const viewAllButton = viewAllRef ? (
@@ -288,26 +286,6 @@ export default function HighlightsDataSection({
       actions={
         <ErrorBoundary mini>
           <ButtonBar gap={1}>
-            {openForm && (
-              <Button
-                aria-label={t('Give Feedback')}
-                icon={<IconMegaphone />}
-                size={'xs'}
-                onClick={() =>
-                  openForm({
-                    messagePlaceholder: t(
-                      'How can we make tags, context or highlights more useful to you?'
-                    ),
-                    tags: {
-                      ['feedback.source']: 'issue_details_highlights',
-                      ['feedback.owner']: 'issues',
-                    },
-                  })
-                }
-              >
-                {t('Feedback')}
-              </Button>
-            )}
             {viewAllButton}
             <EditHighlightsButton project={project} event={event} />
           </ButtonBar>

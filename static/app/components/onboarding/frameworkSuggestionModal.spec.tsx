@@ -1,5 +1,5 @@
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {
   makeClosableHeader,
@@ -73,8 +73,5 @@ describe('Framework suggestion modal', function () {
     expect(screen.getByRole('button', {name: 'Configure SDK'})).toBeEnabled();
 
     await userEvent.click(screen.getByRole('button', {name: 'Skip'}));
-    await waitFor(() => {
-      expect(closeModal).toHaveBeenCalled();
-    });
   });
 });

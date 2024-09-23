@@ -647,7 +647,12 @@ export default class ReplayReader {
           }
         }
       }
-      return allWebVitals.filter(frame => !groupedCls.includes(frame)).reverse();
+      return allWebVitals
+        .filter(
+          frame =>
+            !groupedCls.includes(frame) && frame.description !== 'first-input-delay'
+        )
+        .reverse();
     }
     return [];
   });

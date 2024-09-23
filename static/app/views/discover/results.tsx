@@ -105,6 +105,7 @@ type State = {
   savedQueryDataset?: SavedQueryDatasets;
   showForcedDatasetAlert?: boolean;
   showMetricsAlert?: boolean;
+  showQueryIncompatibleWithDataset?: boolean;
   showUnparameterizedBanner?: boolean;
   splitDecision?: SavedQueryDatasets;
 };
@@ -169,6 +170,7 @@ export class Results extends Component<Props, State> {
     confirmedQuery: false,
     tips: [],
     showForcedDatasetAlert: true,
+    showQueryIncompatibleWithDataset: false,
   };
 
   componentDidMount() {
@@ -199,6 +201,14 @@ export class Results extends Component<Props, State> {
   componentDidUpdate(prevProps: Props, prevState: State) {
     const {location, organization, selection} = this.props;
     const {eventView, confirmedQuery, savedQuery} = this.state;
+
+    if (location.query.incompatible) {
+      this.setState({showQueryIncompatibleWithDataset: true});
+      browserHistory.replace({
+        ...location,
+        query: {...location.query, incompatible: undefined},
+      });
+    }
 
     this.checkEventView();
     const currentQuery = eventView.getEventsAPIPayload(location);
@@ -520,10 +530,11 @@ export class Results extends Component<Props, State> {
 
   getDocumentTitle(): string {
     const {eventView} = this.state;
+    const {isHomepage} = this.props;
     if (!eventView) {
       return '';
     }
-    return generateTitle({eventView});
+    return generateTitle({eventView, isHomepage});
   }
 
   renderTagsTable() {
@@ -600,6 +611,32 @@ export class Results extends Component<Props, State> {
               ),
             }
           )}
+        </Alert>
+      );
+    }
+    return null;
+  }
+
+  renderQueryIncompatibleWithDatasetBanner() {
+    const {organization} = this.props;
+    if (hasDatasetSelector(organization) && this.state.showQueryIncompatibleWithDataset) {
+      return (
+        <Alert
+          type="warning"
+          showIcon
+          trailingItems={
+            <StyledCloseButton
+              icon={<IconClose size="sm" />}
+              aria-label={t('Close')}
+              onClick={() => {
+                this.setState({showQueryIncompatibleWithDataset: false});
+              }}
+              size="zero"
+              borderless
+            />
+          }
+        >
+          {t('Your query was updated to make it compatible with this dataset.')}
         </Alert>
       );
     }
@@ -769,6 +806,7 @@ export class Results extends Component<Props, State> {
                 {this.renderError(error)}
                 {this.renderTips()}
                 {this.renderForcedDatasetBanner()}
+                {this.renderQueryIncompatibleWithDatasetBanner()}
                 {!hasDatasetSelectorFeature && <SampleDataAlert query={query} />}
 
                 <Wrapper>

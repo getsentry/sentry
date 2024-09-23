@@ -13,7 +13,6 @@ from sentry import ratelimits as ratelimiter
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import control_silo_endpoint
-from sentry.api.bases.user import UserEndpoint
 from sentry.api.decorators import email_verification_required, sudo_required
 from sentry.api.invite_helper import ApiInviteHelper, remove_invite_details_from_session
 from sentry.api.serializers import serialize
@@ -23,6 +22,7 @@ from sentry.auth.authenticators.totp import TotpInterface
 from sentry.auth.authenticators.u2f import U2fInterface
 from sentry.organizations.services.organization import organization_service
 from sentry.security.utils import capture_security_activity
+from sentry.users.api.bases.user import UserEndpoint
 from sentry.users.api.serializers.authenticator import get_interface_serializer
 from sentry.users.models.authenticator import Authenticator
 from sentry.users.models.user import User

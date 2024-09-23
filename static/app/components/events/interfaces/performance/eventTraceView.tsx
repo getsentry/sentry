@@ -28,7 +28,7 @@ import {SpanEvidenceKeyValueList} from './spanEvidenceKeyValueList';
 
 const DEFAULT_ISSUE_DETAILS_TRACE_VIEW_PREFERENCES: TracePreferencesState = {
   drawer: {
-    minimized: false,
+    minimized: true,
     sizes: {
       'drawer left': 0.33,
       'drawer right': 0.33,
@@ -61,8 +61,12 @@ function EventTraceViewInner({
     traceSlug: traceId ? traceId : undefined,
     limit: 10000,
   });
-  const rootEvent = useTraceRootEvent(trace.data ?? null);
   const meta = useTraceMeta([{traceSlug: traceId, timestamp: undefined}]);
+
+  const hasNoTransactions = meta.data?.transactions === 0;
+  const shouldLoadTraceRoot = !trace.isPending && trace.data && !hasNoTransactions;
+
+  const rootEvent = useTraceRootEvent(shouldLoadTraceRoot ? trace.data! : null);
 
   const preferences = useMemo(
     () =>
@@ -87,7 +91,7 @@ function EventTraceViewInner({
     });
   }, [location.query.statsPeriod, traceId]);
 
-  if (trace.isPending || rootEvent.isPending || !rootEvent.data) {
+  if (trace.isPending || rootEvent.isPending || !rootEvent.data || hasNoTransactions) {
     return null;
   }
 
@@ -109,6 +113,15 @@ function EventTraceViewInner({
             metaResults={meta}
             source="issues"
             replayRecord={null}
+            scrollToNode={
+              trace.data?.transactions[0]?.event_id
+                ? {
+                    // Scroll/highlight the current transaction
+                    path: [`txn-${trace.data.transactions[0].event_id}`],
+                  }
+                : undefined
+            }
+            isEmbedded
           />
         </TraceViewWaterfallWrapper>
       </TraceStateProvider>
@@ -158,5 +171,5 @@ export function EventTraceView({
 const TraceViewWaterfallWrapper = styled('div')`
   display: flex;
   flex-direction: column;
-  height: 750px;
+  height: 500px;
 `;
