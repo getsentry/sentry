@@ -337,6 +337,26 @@ class OrganizationAuthSettingsTest(AuthProviderTestCase):
         resp = self.client.post(path, {"op": "disable"})
         assert resp.status_code == 405
 
+    @with_feature("organizations:sso-basic")
+    def test_disable_partner_provider_after_migration(self):
+        organization, auth_provider = self.create_org_and_auth_provider("Fly.io")
+        self.create_om_and_link_sso(organization)
+        path = reverse("sentry-organization-auth-provider-settings", args=[organization.slug])
+        auth_provider.update(provider="fly-non-partner")
+
+        self.login_as(self.user, organization_id=organization.id)
+
+        resp = self.client.post(path, {"op": "disable"})
+        assert resp.status_code == 302
+
+        assert not AuthProvider.objects.filter(organization_id=organization.id).exists()
+        assert not AuthProvider.objects.filter(id=auth_provider.id).exists()
+        audit_log_entry = AuditLogEntry.objects.filter(
+            event=audit_log.get_event_id("SSO_DISABLE")
+        ).first()
+        assert audit_log_entry
+        assert audit_log_entry.data["provider"] == "fly"
+
     def test_disable__scim_missing(self):
         organization, auth_provider = self.create_org_and_auth_provider()
         auth_provider.flags.scim_enabled = True
