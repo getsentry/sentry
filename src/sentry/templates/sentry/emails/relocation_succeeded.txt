@@ -1,3 +1,4 @@
+{% autoescape off %}
 Your relocation request was successful! The following organizations were moved to sentry.io:
 
 {% for org in orgs %}
@@ -9,3 +10,4 @@ You are now an owner of all of these organizations. Please note that the DSNs (s
 Welcome to sentry.io!
 
 ID: {{ uuid }}
+{% endautoescape %}

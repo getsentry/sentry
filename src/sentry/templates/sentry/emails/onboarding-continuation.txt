@@ -1,3 +1,4 @@
+{% autoescape off %}
 Finish Onboarding
 
 Hey {{ recipient_name }}
@@ -7,3 +8,4 @@ about your {{ platforms }} project{{num_platforms|pluralize}}. Click the button 
 your computer to complete the set up for {{ organization_name }}.
 
 {{ onboarding_link }}
+{% endautoescape %}

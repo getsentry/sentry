@@ -1,3 +1,4 @@
+{% autoescape off %}
 Setup Two-Factor Authentication
 
 The {{ organization.name|title }} organization now requires all members to enable
@@ -7,3 +8,4 @@ one form of 2FA.
 
 Enable 2FA to reinstate your access and settings:
 {{ url }}
+{% endautoescape %}

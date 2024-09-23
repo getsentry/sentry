@@ -1,1 +1,3 @@
+{% autoescape off %}
 You have been granted access to the {{ organization.slug }} / #{{ team.slug }} team on Sentry.
+{% endautoescape %}

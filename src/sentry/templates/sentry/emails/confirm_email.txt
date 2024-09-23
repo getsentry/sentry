@@ -1,3 +1,4 @@
+{% autoescape off %}
 {% if is_new_user %}
 Thanks for signing up for Sentry!
 {% endif %}
@@ -13,3 +14,4 @@ If you did not sign up, you may simply ignore this email.
 {% else %}
 If you did not make this request, you may simply ignore this email.
 {% endif %}
+{% endautoescape %}

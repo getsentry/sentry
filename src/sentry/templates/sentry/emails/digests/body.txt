@@ -1,3 +1,4 @@
+{% autoescape off %}
 {% load sentry_helpers %}
 {% load sentry_features %}Notifications for {{ project.slug }}
 {{ start|date:"N j, Y, P e" }} to {{ end|date:"N j, Y, P e" }}
@@ -10,3 +11,4 @@
 {% endfor %}
 
 Unsubscribe: {{ unsubscribe_link }}
+{% endautoescape %}

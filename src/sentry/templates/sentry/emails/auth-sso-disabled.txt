@@ -1,3 +1,4 @@
+{% autoescape off %}
 {{ provider.name }} Single Sign-On has been disabled for the {{ organization.name }} organization.
 
 {% if has_password %}
@@ -11,3 +12,4 @@ You can now login using your email {{ email }}, however you'll first have to set
 {% endif %}
 
 SSO was disabled by {{ actor_email }}
+{% endautoescape %}

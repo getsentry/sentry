@@ -1,3 +1,4 @@
+{% autoescape off %}
 You have a new account on Sentry!
 
 Username: {{ username }}
@@ -15,3 +16,4 @@ with the following value for the Sentry DSN to start sending events:
     {{ dsn }}
 {% endif %}
 {% endspaceless %}
+{% endautoescape %}

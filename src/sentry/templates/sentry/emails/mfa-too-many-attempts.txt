@@ -1,3 +1,4 @@
+{% autoescape off %}
 This is a notice that your Sentry account ({{ email }}) has failed multiple login attempts at the 2FA step from the following location:
 
 IP address: {{ ip_address }}
@@ -13,3 +14,4 @@ If these logins are not from you, we recommend you log in to your Sentry account
 {{ url }}
 
 On the same account security page, we also recommend you click the “Sign out of all devices” button to remove all currently logged-in sessions of your account.
+{% endautoescape %}

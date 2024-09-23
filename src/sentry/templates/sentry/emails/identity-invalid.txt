@@ -1,3 +1,4 @@
+{% autoescape off %}
 Action Required
 ---------------
 
@@ -6,3 +7,4 @@ An identity with a third party service provider ({{ identity.provider }}) failed
 You will need to associate your account with {{ identity.provider }} to continue using the integration.
 
 {{ auth_url }}
+{% endautoescape %}

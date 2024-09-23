@@ -1,3 +1,4 @@
+{% autoescape off %}
 Slack Upgrade
 --------------
 
@@ -15,3 +16,4 @@ Your Sentry Slack Integration for workspace {{integration.name}} has been update
         {{ channel }}
     {% endfor %}
 {% endif %}
+{% endautoescape %}

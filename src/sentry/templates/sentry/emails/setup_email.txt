@@ -1,3 +1,4 @@
+{% autoescape off %}
 Confirm Email
 
 The {{ organization.name|title }} organization now requires all members to
@@ -11,3 +12,4 @@ link will expire in 48 hours.
 
 Step 2: Click the link below to reinstate your access and settings.
 {{ invite_url }}
+{% endautoescape %}

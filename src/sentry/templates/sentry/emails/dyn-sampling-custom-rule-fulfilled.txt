@@ -1,3 +1,4 @@
+{% autoescape off %}
 We have samples!
 
 We've collected {{ num_samples }} samples for the following search query:
@@ -7,3 +8,4 @@ We'll stop giving special priority to samples for your query once we collected 1
 
 View samples here:
 {{ discover_link|safe }}
+{% endautoescape %}

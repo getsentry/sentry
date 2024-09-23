@@ -1,3 +1,4 @@
+{% autoescape off %}
 Your relocation has failed for the following reason:
 
 {%if reason != "" %}
@@ -7,3 +8,4 @@ Your relocation has failed for the following reason:
 Please contact support at https://sentry.zendesk.com/hc/en-us for further assistance if necessary.
 
 ID: {{ uuid }}
+{% endautoescape %}

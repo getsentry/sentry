@@ -1,3 +1,4 @@
+{% autoescape off %}
 {% if requester %}
 {{ requester }} is requesting to add {{ name }} to the #{{ team.slug }} team.
 {% else %}
@@ -9,3 +10,4 @@ You can accept or decline this request in via the pending requests panel:
   {{ url }}
 
 You are receiving this email because you're listed as an administrator of the #{{ team.slug }} team.
+{% endautoescape %}
