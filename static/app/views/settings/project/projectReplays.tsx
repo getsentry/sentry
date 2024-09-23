@@ -54,6 +54,9 @@ function ProjectReplaySettings({organization, project, params: {projectId}}: Pro
             );
           },
           getData: data => ({options: data}),
+          visible({features}) {
+            return features.has('session-replay-hydration-error-issue-creation');
+          },
         },
       ],
     },
