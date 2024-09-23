@@ -326,14 +326,10 @@ class IssueRuleEditor extends DeprecatedAsyncView<Props, State> {
     if (!ruleId && !this.isDuplicateRule) {
       // now that we've loaded all the possible conditions, we can populate the
       // value of conditions for a new alert
-      if (this.props.organization.features.includes('priority-ga-features')) {
-        this.handleChange('conditions', [
-          {id: IssueAlertConditionType.NEW_HIGH_PRIORITY_ISSUE},
-          {id: IssueAlertConditionType.EXISTING_HIGH_PRIORITY_ISSUE},
-        ]);
-      } else {
-        this.handleChange('conditions', [{id: IssueAlertConditionType.FIRST_SEEN_EVENT}]);
-      }
+      this.handleChange('conditions', [
+        {id: IssueAlertConditionType.NEW_HIGH_PRIORITY_ISSUE},
+        {id: IssueAlertConditionType.EXISTING_HIGH_PRIORITY_ISSUE},
+      ]);
     }
   }
 
