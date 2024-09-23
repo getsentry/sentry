@@ -8,7 +8,11 @@ from sentry.conf.server import SEER_ANOMALY_DETECTION_ENDPOINT_URL
 from sentry.incidents.models.alert_rule import AlertRule, AlertRuleStatus
 from sentry.models.project import Project
 from sentry.net.http import connection_from_url
-from sentry.seer.anomaly_detection.types import AnomalyDetectionConfig, DetectAnomaliesRequest
+from sentry.seer.anomaly_detection.types import (
+    AnomalyDetectionConfig,
+    DetectAnomaliesRequest,
+    TimeSeriesPoint,
+)
 from sentry.seer.anomaly_detection.utils import (
     fetch_historical_data,
     format_historical_data,
@@ -26,6 +30,31 @@ seer_anomaly_detection_connection_pool = connection_from_url(
     settings.SEER_ANOMALY_DETECTION_URL,
     timeout=settings.SEER_ANOMALY_DETECTION_TIMEOUT,
 )
+
+
+def get_historical_anomaly_data_from_seer_preview(
+    current_data: list[TimeSeriesPoint],
+    historical_data: list[TimeSeriesPoint],
+    project_id: int,
+    config: AnomalyDetectionConfig,
+) -> list | None:
+    """
+    Send current and historical timeseries data to Seer and return anomaly detection response on the current timeseries.
+
+    Dummy function. TODO: write out the Seer request logic.
+    """
+    return [
+        {
+            "anomaly": {"anomaly_score": -0.38810767243044786, "anomaly_type": "none"},
+            "timestamp": 169,
+            "value": 0.048480431,
+        },
+        {
+            "anomaly": {"anomaly_score": -0.3890542800124323, "anomaly_type": "none"},
+            "timestamp": 170,
+            "value": 0.047910238,
+        },
+    ]
 
 
 def get_historical_anomaly_data_from_seer(

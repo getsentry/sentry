@@ -126,6 +126,7 @@ class OrganizationMemberDetailsEndpoint(OrganizationMemberEndpoint):
             403: RESPONSE_FORBIDDEN,
             404: RESPONSE_NOT_FOUND,
         },
+        examples=OrganizationExamples.UPDATE_ORG_MEMBER,
     )
     def get(
         self,
@@ -136,7 +137,7 @@ class OrganizationMemberDetailsEndpoint(OrganizationMemberEndpoint):
         """
         Retrieve an organization member's details.
 
-        Will return a pending invite as long as it's already approved.
+        Response will be a pending invite if it has been approved by organization owners or managers but is waiting to be accepted by the invitee.
         """
         allowed_roles = get_allowed_org_roles(request, organization, member)
         return Response(

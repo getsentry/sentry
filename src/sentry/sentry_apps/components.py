@@ -9,7 +9,7 @@ from django.utils.encoding import force_str
 from django.utils.http import urlencode
 
 from sentry.mediators.external_requests.select_requester import SelectRequester
-from sentry.models.integrations.sentry_app_component import SentryAppComponent
+from sentry.sentry_apps.models.sentry_app_component import SentryAppComponent
 from sentry.sentry_apps.models.sentry_app_installation import SentryAppInstallation
 from sentry.sentry_apps.services.app.model import RpcSentryAppComponent, RpcSentryAppInstallation
 from sentry.sentry_apps.services.app.serial import serialize_sentry_app_installation

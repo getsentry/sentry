@@ -1,9 +1,11 @@
 import {useContext, useEffect, useMemo, useRef, useState} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
+import {motion} from 'framer-motion';
 
 import {GrowingInput} from 'sentry/components/growingInput';
 import {TabsContext} from 'sentry/components/tabs';
+import {Tooltip} from 'sentry/components/tooltip';
 
 interface EditableTabTitleProps {
   isEditing: boolean;
@@ -84,30 +86,46 @@ function EditableTabTitle({
     setInputValue(e.target.value);
   };
 
-  return isSelected ? (
-    <StyledGrowingInput
-      value={inputValue}
-      onChange={handleOnChange}
-      onKeyDown={handleOnKeyDown}
-      onDoubleClick={() => isSelected && setIsEditing(true)}
-      onBlur={handleOnBlur}
-      ref={inputRef}
-      style={memoizedStyles}
-      isEditing={isEditing}
-      onFocus={e => e.target.select()}
-      onPointerDown={e => {
-        e.stopPropagation();
-      }}
-      onMouseDown={e => {
-        e.stopPropagation();
-      }}
-    />
-  ) : (
-    <div style={{height: '20px'}}>{label}</div>
+  return (
+    <Tooltip title={label} showOnlyOnOverflow skipWrapper>
+      <motion.div layout="position" transition={{duration: 0.25}}>
+        {isSelected ? (
+          <StyledGrowingInput
+            value={inputValue}
+            onChange={handleOnChange}
+            onKeyDown={handleOnKeyDown}
+            onDoubleClick={() => isSelected && setIsEditing(true)}
+            onBlur={handleOnBlur}
+            ref={inputRef}
+            style={memoizedStyles}
+            isEditing={isEditing}
+            onFocus={e => e.target.select()}
+            onPointerDown={e => {
+              e.stopPropagation();
+            }}
+            onMouseDown={e => {
+              e.stopPropagation();
+            }}
+            maxLength={128}
+          />
+        ) : (
+          <UnselectedTabTitle>{label}</UnselectedTabTitle>
+        )}
+      </motion.div>
+    </Tooltip>
   );
 }
 
 export default EditableTabTitle;
+
+const UnselectedTabTitle = styled('div')`
+  height: 20px;
+  /* The max width is slightly smaller than the GrowingInput since the text in the growing input is bolded */
+  max-width: 310px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+`;
 
 const StyledGrowingInput = styled(GrowingInput)<{
   isEditing: boolean;
@@ -119,7 +137,10 @@ const StyledGrowingInput = styled(GrowingInput)<{
   min-height: 0px;
   height: 20px;
   border-radius: 0px;
+  text-overflow: ellipsis;
   cursor: ${p => (p.isEditing ? 'text' : 'pointer')};
+
+  ${p => !p.isEditing && `max-width: 325px;`}
 
   &,
   &:focus,

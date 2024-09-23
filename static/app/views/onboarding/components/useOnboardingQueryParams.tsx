@@ -11,10 +11,6 @@ type QueryValues = {
    */
   product: string[];
   /**
-   * Used to show the loader script for when the platform is javascript
-   */
-  showLoader: boolean;
-  /**
    * Used to show or not the integration onboarding for certain platforms, e.g. AWS (python)
    */
   showManualSetup: boolean;
@@ -29,7 +25,6 @@ export function useOnboardingQueryParams(): [
   const params = useLocationQuery({
     fields: {
       product: decodeList,
-      showLoader: decodeBoolean,
       showManualSetup: decodeBoolean,
     },
   });
