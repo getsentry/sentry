@@ -316,7 +316,7 @@ def register_temporary_features(manager: FeatureManager):
     # Enable showing INP web vital in default views
     manager.add("organizations:performance-vitals-inp", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Enable the GA features for priority alerts
-    manager.add("organizations:priority-ga-features", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
+    manager.add("organizations:priority-ga-features", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, default=True, api_expose=True)
     # Enable profiling
     manager.add("organizations:profiling", OrganizationFeature, FeatureHandlerStrategy.INTERNAL, api_expose=True)
     # Enabled for those orgs who participated in the profiling Beta program
@@ -389,8 +389,6 @@ def register_temporary_features(manager: FeatureManager):
     manager.add("organizations:session-replay-enable-canvas", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable canvas replaying
     manager.add("organizations:session-replay-enable-canvas-replayer", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
-    # Enable Hydration Error Issue Creation In Recording Consumer
-    manager.add("organizations:session-replay-hydration-error-issue-creation", OrganizationFeature, FeatureHandlerStrategy.OPTIONS, api_expose=True)
     # Enable linking from 'new issue' email notifs to the issue replay list
     manager.add("organizations:session-replay-issue-emails", OrganizationFeature, FeatureHandlerStrategy.INTERNAL, api_expose=False)
     # Enable queries to materialized view from replay index endpoint

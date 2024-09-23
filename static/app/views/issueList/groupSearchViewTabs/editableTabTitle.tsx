@@ -1,6 +1,7 @@
 import {useContext, useEffect, useMemo, useRef, useState} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
+import {motion} from 'framer-motion';
 
 import {GrowingInput} from 'sentry/components/growingInput';
 import {TabsContext} from 'sentry/components/tabs';
@@ -86,29 +87,31 @@ function EditableTabTitle({
   };
 
   return (
-    <Tooltip title={label} showOnlyOnOverflow>
-      {isSelected ? (
-        <StyledGrowingInput
-          value={inputValue}
-          onChange={handleOnChange}
-          onKeyDown={handleOnKeyDown}
-          onDoubleClick={() => isSelected && setIsEditing(true)}
-          onBlur={handleOnBlur}
-          ref={inputRef}
-          style={memoizedStyles}
-          isEditing={isEditing}
-          onFocus={e => e.target.select()}
-          onPointerDown={e => {
-            e.stopPropagation();
-          }}
-          onMouseDown={e => {
-            e.stopPropagation();
-          }}
-          maxLength={128}
-        />
-      ) : (
-        <UnselectedTabTitle>{label}</UnselectedTabTitle>
-      )}
+    <Tooltip title={label} showOnlyOnOverflow skipWrapper>
+      <motion.div layout="position" transition={{duration: 0.25}}>
+        {isSelected ? (
+          <StyledGrowingInput
+            value={inputValue}
+            onChange={handleOnChange}
+            onKeyDown={handleOnKeyDown}
+            onDoubleClick={() => isSelected && setIsEditing(true)}
+            onBlur={handleOnBlur}
+            ref={inputRef}
+            style={memoizedStyles}
+            isEditing={isEditing}
+            onFocus={e => e.target.select()}
+            onPointerDown={e => {
+              e.stopPropagation();
+            }}
+            onMouseDown={e => {
+              e.stopPropagation();
+            }}
+            maxLength={128}
+          />
+        ) : (
+          <UnselectedTabTitle>{label}</UnselectedTabTitle>
+        )}
+      </motion.div>
     </Tooltip>
   );
 }
