@@ -53,10 +53,13 @@ def get_historical_anomaly_data_from_seer_preview(
     if data_start_index == -1:
         return []
 
-    data_start_time = datetime.fromtimestamp(historical_data[data_start_index]["timestamp"])
-    data_end_time = datetime.fromtimestamp(historical_data[data_end_index]["timestamp"])
+    data_start_time = datetime.fromtimestamp(
+        historical_data.get(data_start_index, {}).get("timestamp")
+    )
+    data_end_time = datetime.fromtimestamp(historical_data.get(data_end_index, {}).get("timestamp"))
     if data_end_time - data_start_time < timedelta(days=MIN_DAYS):
         return []
+
     # Send data to Seer
     context = DetectHistoricalAnomaliesContext(
         history=historical_data,
@@ -80,7 +83,6 @@ def get_historical_anomaly_data_from_seer_preview(
             path=SEER_ANOMALY_DETECTION_ENDPOINT_URL,
             body=json.dumps(body).encode("utf-8"),
         )
-    # Error handling
     except (TimeoutError, MaxRetryError):
         logger.warning("Timeout error when hitting anomaly detection endpoint", extra=extra_data)
         return None
@@ -90,6 +92,7 @@ def get_historical_anomaly_data_from_seer_preview(
             "Error when hitting Seer detect anomalies endpoint",
             extra={
                 "response_data": response.data,
+                "response_code": response.status,
                 **extra_data,
             },
         )
