@@ -136,7 +136,7 @@ export const performanceOnboarding: OnboardingConfig = {
 import sentry-sdk
 
 sentry_sdk.init(
-  dsn: "${params.dsn.public}",
+  dsn="${params.dsn.public}",
   enable_tracing=True,
 )`,
           additionalInfo: tct(
