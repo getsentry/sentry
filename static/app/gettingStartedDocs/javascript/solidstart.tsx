@@ -95,7 +95,7 @@ const getSdkServerSetupSnippet = (params: Params) => `
 import * as Sentry from "@sentry/solidstart";
 
 Sentry.init({
-  dsn: "__PUBLIC_DSN__",
+  dsn: "${params.dsn.public}",
   ${
     params.isPerformanceSelected
       ? `
