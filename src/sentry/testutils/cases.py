@@ -3402,6 +3402,7 @@ class SpanTestCase(BaseTestCase):
         project: Project | None = None,
         start_ts: datetime | None = None,
         duration: int = 1000,
+        measurements: dict[str, Any] | None = None,
     ) -> dict[str, Any]:
         """Create span json, not required for store_span, but with no params passed should just work out of the box"""
         if organization is None:
@@ -3440,6 +3441,8 @@ class SpanTestCase(BaseTestCase):
         # coerce to string
         for tag, value in dict(span["tags"]).items():
             span["tags"][tag] = str(value)
+        if measurements:
+            span["measurements"] = measurements
         return span
 
 
