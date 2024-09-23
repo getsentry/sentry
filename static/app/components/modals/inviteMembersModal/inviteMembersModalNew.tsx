@@ -59,9 +59,8 @@ export default function InviteMembersModalNew({
   willInvite,
   error,
 }: Props) {
-  const inviteEmails = invites.map(inv => inv.email);
-  const hasDuplicateEmails = inviteEmails.length !== new Set(inviteEmails).size;
-  const isValidInvites = invites.length > 0 && !hasDuplicateEmails;
+  const isValidInvites = invites.length > 0;
+  const {emails, role, teams} = pendingInvites[0] ?? {};
 
   const errorAlert = error ? (
     <Alert type="error" showIcon>
@@ -91,22 +90,19 @@ export default function InviteMembersModalNew({
         {headerInfo}
 
         <Rows>
-          {pendingInvites.map(({emails, role, teams}, i) => (
-            <StyledInviteRow
-              key={i}
-              disabled={false}
-              emails={[...emails]}
-              role={role}
-              teams={[...teams]}
-              roleOptions={member?.orgRoleList ?? ORG_ROLES}
-              roleDisabledUnallowed={willInvite}
-              inviteStatus={inviteStatus}
-              onRemove={reset}
-              onChangeEmails={opts => setEmails(opts?.map(v => v.value) ?? [], i)}
-              onChangeRole={value => setRole(value?.value, i)}
-              onChangeTeams={opts => setTeams(opts ? opts.map(v => v.value) : [], i)}
-            />
-          ))}
+          <StyledInviteRow
+            disabled={false}
+            emails={[...emails]}
+            role={role}
+            teams={[...teams]}
+            roleOptions={member?.orgRoleList ?? ORG_ROLES}
+            roleDisabledUnallowed={willInvite}
+            inviteStatus={inviteStatus}
+            onRemove={reset}
+            onChangeEmails={opts => setEmails(opts?.map(v => v.value) ?? [], 0)}
+            onChangeRole={value => setRole(value?.value, 0)}
+            onChangeTeams={opts => setTeams(opts ? opts.map(v => v.value) : [], 0)}
+          />
         </Rows>
 
         <Footer>
@@ -114,7 +110,7 @@ export default function InviteMembersModalNew({
             <div>
               <InviteStatusMessage
                 complete={complete}
-                hasDuplicateEmails={hasDuplicateEmails}
+                hasDuplicateEmails={false}
                 inviteStatus={inviteStatus}
                 sendingInvites={sendingInvites}
                 willInvite={willInvite}
