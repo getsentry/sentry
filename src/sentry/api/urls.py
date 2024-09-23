@@ -273,6 +273,21 @@ from sentry.rules.history.endpoints.project_rule_stats import ProjectRuleStatsIn
 from sentry.scim.endpoints.members import OrganizationSCIMMemberDetails, OrganizationSCIMMemberIndex
 from sentry.scim.endpoints.schemas import OrganizationSCIMSchemaIndex
 from sentry.scim.endpoints.teams import OrganizationSCIMTeamDetails, OrganizationSCIMTeamIndex
+from sentry.sentry_apps.api.endpoints.installation_details import (
+    SentryAppInstallationDetailsEndpoint,
+)
+from sentry.sentry_apps.api.endpoints.installation_external_issue_actions import (
+    SentryAppInstallationExternalIssueActionsEndpoint,
+)
+from sentry.sentry_apps.api.endpoints.installation_external_issue_details import (
+    SentryAppInstallationExternalIssueDetailsEndpoint,
+)
+from sentry.sentry_apps.api.endpoints.installation_external_issues import (
+    SentryAppInstallationExternalIssuesEndpoint,
+)
+from sentry.sentry_apps.api.endpoints.installation_external_requests import (
+    SentryAppInstallationExternalRequestsEndpoint,
+)
 from sentry.sentry_apps.api.endpoints.organization_sentry_apps import OrganizationSentryAppsEndpoint
 from sentry.sentry_apps.api.endpoints.sentry_app_authorizations import (
     SentryAppAuthorizationsEndpoint,
@@ -284,6 +299,7 @@ from sentry.sentry_apps.api.endpoints.sentry_app_components import (
 )
 from sentry.sentry_apps.api.endpoints.sentry_app_details import SentryAppDetailsEndpoint
 from sentry.sentry_apps.api.endpoints.sentry_app_features import SentryAppFeaturesEndpoint
+from sentry.sentry_apps.api.endpoints.sentry_app_installations import SentryAppInstallationsEndpoint
 from sentry.sentry_apps.api.endpoints.sentry_app_interaction import SentryAppInteractionEndpoint
 from sentry.sentry_apps.api.endpoints.sentry_app_publish_request import (
     SentryAppPublishRequestEndpoint,
@@ -380,12 +396,6 @@ from .endpoints.group_user_reports import GroupUserReportsEndpoint
 from .endpoints.grouping_configs import GroupingConfigsEndpoint
 from .endpoints.index import IndexEndpoint
 from .endpoints.integrations.sentry_apps import (
-    SentryAppInstallationDetailsEndpoint,
-    SentryAppInstallationExternalIssueActionsEndpoint,
-    SentryAppInstallationExternalIssueDetailsEndpoint,
-    SentryAppInstallationExternalIssuesEndpoint,
-    SentryAppInstallationExternalRequestsEndpoint,
-    SentryAppInstallationsEndpoint,
     SentryAppsStatsEndpoint,
     SentryAppStatsEndpoint,
     SentryInternalAppTokenDetailsEndpoint,

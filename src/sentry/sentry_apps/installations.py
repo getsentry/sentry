@@ -158,7 +158,7 @@ class SentryAppInstallationCreator:
                 data={"sentry_app": self.sentry_app.name},
             )
 
-    def record_analytics(self, user: User) -> None:
+    def record_analytics(self, user: User | RpcUser) -> None:
         analytics.record(
             "sentry_app.installed",
             user_id=user.id,
