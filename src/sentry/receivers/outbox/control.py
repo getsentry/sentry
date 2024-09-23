@@ -140,10 +140,6 @@ def process_relocation_reply_with_export(payload: Mapping[str, Any], **kwds):
     except Exception:
         raise FileNotFoundError("Could not open SaaS -> SaaS export in proxy relocation bucket.")
 
-    # TODO(mark) remove this after the stuck outbox is cleared
-    if slug == "test-reloc-ct":
-        return
-
     with encrypted_bytes:
         region_relocation_export_service.reply_with_export(
             relocation_uuid=payload["relocation_uuid"],
