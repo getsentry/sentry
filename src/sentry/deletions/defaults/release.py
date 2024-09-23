@@ -1,8 +1,9 @@
-from ..base import ModelDeletionTask, ModelRelation
+from sentry.deletions.base import BaseRelation, ModelDeletionTask, ModelRelation
+from sentry.models.release import Release
 
 
-class ReleaseDeletionTask(ModelDeletionTask):
-    def get_child_relations(self, instance):
+class ReleaseDeletionTask(ModelDeletionTask[Release]):
+    def get_child_relations(self, instance: Release) -> list[BaseRelation]:
         from sentry.models.deploy import Deploy
         from sentry.models.distribution import Distribution
         from sentry.models.group import Group

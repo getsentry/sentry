@@ -11,6 +11,7 @@ from rest_framework.response import Response
 from sentry.exceptions import InvalidIdentity
 from sentry.integrations.base import IntegrationFeatureNotImplementedError
 from sentry.integrations.client import ApiClient
+from sentry.integrations.services.integration.service import integration_service
 from sentry.integrations.source_code_management.repository import RepositoryClient
 from sentry.models.repository import Repository
 from sentry.shared_integrations.client.base import BaseApiResponseX
@@ -158,6 +159,7 @@ class VstsSetupApiClient(ApiClient, VstsApiMixin):
 class VstsApiClient(IntegrationProxyClient, VstsApiMixin, RepositoryClient):
     integration_name = "vsts"
     _identity: Identity | None = None
+    INVALID_CLIENT_ERROR = "invalid_client"
 
     def __init__(
         self,
@@ -199,9 +201,24 @@ class VstsApiClient(IntegrationProxyClient, VstsApiMixin, RepositoryClient):
         if time_expires is None:
             raise InvalidIdentity("VstsApiClient requires identity with specified expired time")
         if int(time_expires) <= int(time()):
-            self.identity.get_provider().refresh_identity(
-                self.identity, redirect_url=self.oauth_redirect_url
+            # TODO(iamrajjoshi): Remove this after migration
+            # Need this here because there is no way to get any identifier which would tell us which method we should use to refresh the token
+            from sentry.identity.vsts.provider import VSTSNewIdentityProvider
+            from sentry.integrations.vsts.integration import VstsIntegrationProvider
+
+            integration = integration_service.get_integration(
+                organization_integration_id=self.org_integration_id
             )
+            # check if integration has migrated to new identity provider
+            migration_version = integration.metadata.get("integration_migration_version", 0)
+            if migration_version < VstsIntegrationProvider.CURRENT_MIGRATION_VERSION:
+                self.identity.get_provider().refresh_identity(
+                    self.identity, redirect_url=self.oauth_redirect_url
+                )
+            else:
+                VSTSNewIdentityProvider().refresh_identity(
+                    self.identity, redirect_url=self.oauth_redirect_url
+                )
 
     @control_silo_function
     def authorize_request(

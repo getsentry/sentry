@@ -1,5 +1,6 @@
 import {Fragment, useEffect, useState} from 'react';
 import styled from '@emotion/styled';
+import {AnimatePresence, type AnimationProps, motion} from 'framer-motion';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {openModal} from 'sentry/actionCreators/modal';
@@ -22,6 +23,7 @@ import {IconOpen} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {setApiQueryData, useMutation, useQueryClient} from 'sentry/utils/queryClient';
+import testableTransition from 'sentry/utils/testableTransition';
 import useApi from 'sentry/utils/useApi';
 
 type AutofixChangesProps = {
@@ -184,6 +186,13 @@ function AutofixRepoChange({
   );
 }
 
+const cardAnimationProps: AnimationProps = {
+  exit: {opacity: 0},
+  initial: {opacity: 0, y: 20},
+  animate: {opacity: 1, y: 0},
+  transition: testableTransition({duration: 0.3}),
+};
+
 export function AutofixChanges({step, onRetry, groupId}: AutofixChangesProps) {
   const data = useAutofixData({groupId});
 
@@ -225,17 +234,21 @@ export function AutofixChanges({step, onRetry, groupId}: AutofixChangesProps) {
   }
 
   return (
-    <ChangesContainer>
-      <ClippedBox clipHeight={408}>
-        <HeaderText>{t('Fixes')}</HeaderText>
-        {step.changes.map((change, i) => (
-          <Fragment key={change.repo_external_id}>
-            {i > 0 && <Separator />}
-            <AutofixRepoChange change={change} groupId={groupId} />
-          </Fragment>
-        ))}
-      </ClippedBox>
-    </ChangesContainer>
+    <AnimatePresence initial>
+      <AnimationWrapper key="card" {...cardAnimationProps}>
+        <ChangesContainer>
+          <ClippedBox clipHeight={408}>
+            <HeaderText>{t('Fixes')}</HeaderText>
+            {step.changes.map((change, i) => (
+              <Fragment key={change.repo_external_id}>
+                {i > 0 && <Separator />}
+                <AutofixRepoChange change={change} groupId={groupId} />
+              </Fragment>
+            ))}
+          </ClippedBox>
+        </ChangesContainer>
+      </AnimationWrapper>
+    </AnimatePresence>
   );
 }
 
@@ -246,6 +259,8 @@ const PreviewContent = styled('div')`
   margin-top: ${space(2)};
 `;
 
+const AnimationWrapper = styled(motion.div)``;
+
 const PrefixText = styled('span')``;
 
 const ChangesContainer = styled('div')`
@@ -253,7 +268,9 @@ const ChangesContainer = styled('div')`
   border-radius: ${p => p.theme.borderRadius};
   overflow: hidden;
   box-shadow: ${p => p.theme.dropShadowHeavy};
-  padding: ${space(2)};
+  padding-left: ${space(2)};
+  padding-right: ${space(2)};
+  padding-top: ${space(1)};
 `;
 
 const Content = styled('div')`

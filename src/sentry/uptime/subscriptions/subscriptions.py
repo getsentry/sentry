@@ -3,7 +3,7 @@ from typing import Any
 
 from sentry.models.project import Project
 from sentry.types.actor import Actor
-from sentry.uptime.detectors.url_extraction import extractor
+from sentry.uptime.detectors.url_extraction import extract_domain_parts
 from sentry.uptime.models import (
     ProjectUptimeSubscription,
     ProjectUptimeSubscriptionMode,
@@ -32,9 +32,7 @@ def create_uptime_subscription(
     """
     # We extract the domain and suffix of the url here. This is used to prevent there being too many checks to a single
     # domain.
-    # We enable private PSL domains so that hosting services that use subdomains are treated as suffixes for the
-    # purposes of monitoring.
-    result = extractor.extract_str(url, include_psl_private_domains=True)
+    result = extract_domain_parts(url)
     subscription, created = UptimeSubscription.objects.get_or_create(
         url=url,
         interval_seconds=interval_seconds,

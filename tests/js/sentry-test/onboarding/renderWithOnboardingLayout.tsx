@@ -1,3 +1,5 @@
+import {ProjectKeysFixture} from 'sentry-fixture/projectKeys';
+
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render} from 'sentry-test/reactTestingLibrary';
 
@@ -30,7 +32,7 @@ export function renderWithOnboardingLayout<
     selectedOptions = {},
   } = options;
 
-  const {organization, router} = initializeOrg({
+  const {organization, project, router} = initializeOrg({
     router: {
       location: {
         query: selectedOptions,
@@ -38,15 +40,23 @@ export function renderWithOnboardingLayout<
     },
   });
 
+  const projectKey = 'test-project-key-id';
+
   MockApiClient.addMockResponse({
     url: `/organizations/${organization.slug}/sdks/`,
     body: releaseRegistry,
   });
 
+  MockApiClient.addMockResponse({
+    url: `/projects/${organization.slug}/${project.slug}/keys/${projectKey}/`,
+    method: 'PUT',
+    body: [ProjectKeysFixture()[0]],
+  });
+
   render(
     <OnboardingLayout
       docsConfig={docsConfig}
-      projectSlug="test-project-slug"
+      projectSlug={project.slug}
       dsn={{
         public: 'test-dsn',
         secret: 'test-secret',
@@ -60,7 +70,7 @@ export function renderWithOnboardingLayout<
       platformKey="java-spring-boot"
       projectId="test-project-id"
       activeProductSelection={selectedProducts}
-      projectKeyId="test-project-key-id"
+      projectKeyId={projectKey}
     />,
     {
       organization,

@@ -1,9 +1,8 @@
+from sentry.deletions.base import ModelDeletionTask
 from sentry.snuba.models import QuerySubscription
 
-from ..base import ModelDeletionTask
 
-
-class QuerySubscriptionDeletionTask(ModelDeletionTask):
+class QuerySubscriptionDeletionTask(ModelDeletionTask[QuerySubscription]):
     def delete_instance(self, instance: QuerySubscription) -> None:
         from sentry.incidents.models.incident import Incident
 
