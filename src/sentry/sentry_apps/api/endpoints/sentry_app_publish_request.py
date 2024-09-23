@@ -74,7 +74,9 @@ class SentryAppPublishRequestEndpoint(SentryAppBaseEndpoint):
 
         questionnaire: Iterable[dict[str, str]] = request.data.get("questionnaire", [])
         for question_pair in questionnaire:
-            message += "\n\n>{}\n{}".format(question_pair["question"], question_pair["answer"])
+            message += "\n\n>{}\n{}".format(
+                question_pair.get("question", ""), question_pair.get("answer", "")
+            )
 
         subject = "Sentry Integration Publication Request from %s" % org_slug
 
